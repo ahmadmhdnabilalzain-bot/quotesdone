@@ -9,10 +9,10 @@
 //
 // ── WHAT IT DOES NOW ─────────────────────────────────────────────────────────────────────────────
 // GET /v1/projects/<ref>/functions/<slug>/body returns the deployed ESZIP (v2.x). Measured on
-// supplier_portal: its sources section carries the ORIGINAL TypeScript of every first-party module
-// (functions/<slug>/*.ts and functions/_shared/*.ts), keyed by a specifier relative to supabase/.
-// So no hash has to be reproduced: each deployed first-party file is compared, in full, with main's
-// file at supabase/<specifier>, after normalising line endings and trailing whitespace only.
+// supplier_portal: its sources section carries Deno's TRANSPILED JavaScript of every first-party
+// module, and each module's source map carries the ORIGINAL TypeScript in sourcesContent. The original
+// is compared, in full, with main's file after normalising line endings and trailing whitespace only;
+// a module with no usable map falls back to comparing the transpiled text through norm().
 // Remote modules (jsr:, npm:, https:) are dependency resolution, not this repo's code, and are
 // not compared.
 //
@@ -33,7 +33,12 @@ import ts from 'typescript';
 const PROD_REF = 'htdblwldjkcgjvmqkbeh';
 const FN_DIR = 'supabase/functions';
 
-/** Parse an ESZIP v2.x buffer into Map<specifier, source text> of the modules that carry source. */
+/**
+ * Parse an ESZIP v2.x buffer into Map<specifier, { text, original }> of the modules that carry source.
+ * `text` is the ORIGINAL TypeScript when the module's source map carries it in sourcesContent
+ * (original: true; measured on dropbox_backup 13 Oct: every first-party module does), else Deno's
+ * transpiled JavaScript from the sources section (original: false).
+ */
 export function parseEszip(buf) {
   if (buf.toString('latin1', 0, 6) !== 'ESZIP2') throw new Error(`not an eszip v2 (magic ${JSON.stringify(buf.toString('latin1', 0, 8))})`);
   const minor = buf.toString('latin1', 6, 8);
@@ -55,7 +60,7 @@ export function parseEszip(buf) {
   while (p < headerEnd) {
     const sl = u32(); const spec = buf.toString('utf8', p, p + sl); p += sl;
     const kind = buf[p++];
-    if (kind === 0) { mods.push({ spec, so: u32(), sl: u32() }); p += 9; } // map off, map len, module kind
+    if (kind === 0) { mods.push({ spec, so: u32(), sl: u32(), mo: u32(), ml: u32() }); p += 1; } // + module kind
     else if (kind === 1) { const tl = u32(); p += tl; } // redirect
     else if (kind === 2) { p += 4; } // npm specifier -> package id
     else throw new Error(`unknown module entry kind ${kind} at ${p - 1}`);
@@ -64,8 +69,23 @@ export function parseEszip(buf) {
   if (minor !== '\0\0') { const nl = u32(); p += nl + hashSize; } // npm snapshot (v2.1+)
   const srcLen = u32(); const base = p;
   if (base + srcLen > buf.length) throw new Error('sources section runs past the end of the body');
+  // The source-maps section follows the sources section (and its hash), length-prefixed.
+  const mp = base + srcLen + hashSize;
+  const mapBase = mp + 4 <= buf.length ? mp + 4 : -1;
+  const mapEnd = mapBase < 0 ? -1 : mapBase + buf.readUInt32BE(mp);
   const out = new Map();
-  for (const m of mods) if (m.sl) out.set(m.spec, buf.toString('utf8', base + m.so, base + m.so + m.sl));
+  for (const m of mods) {
+    if (!m.sl) continue;
+    let original = null;
+    if (m.ml && mapBase >= 0 && mapBase + m.mo + m.ml <= mapEnd) {
+      try {
+        const map = JSON.parse(buf.toString('utf8', mapBase + m.mo, mapBase + m.mo + m.ml));
+        if (map.sources?.length === 1 && typeof map.sourcesContent?.[0] === 'string') original = map.sourcesContent[0];
+      } catch { /* an unreadable map falls back to the transpiled text */ }
+    }
+    out.set(m.spec, original != null ? { text: original, original: true }
+      : { text: buf.toString('utf8', base + m.so, base + m.so + m.sl), original: false });
+  }
   return out;
 }
 
@@ -76,7 +96,12 @@ export function parseEszip(buf) {
 // Deno's emit loses. A change in code or in a string literal survives this and is reported.
 export function norm(src) {
   const js = ts.transpileModule(src.replace(/^\uFEFF/, ''), {
-    compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, removeComments: true },
+    // useDefineForClassFields: false. Deno's emit moves class field initialisers into the constructor
+    // (`refreshes = 0;` -> `refreshes; constructor(){ ...; this.refreshes = 0; }`, measured on
+    // dropbox_backup/dropbox.ts TokenCache, 13 Oct). With [[Define]] semantics TS kept them as fields
+    // and an identical file read STALE. [[Set]] semantics puts both sides' initialisers in the
+    // constructor and drops bare field declarations on both.
+    compilerOptions: { target: ts.ScriptTarget.ESNext, module: ts.ModuleKind.ESNext, removeComments: true, useDefineForClassFields: false },
     reportDiagnostics: false,
   }).outputText;
   // Deno's emit also drops trailing commas and redundant parentheses ((a && b) ? x : y), and wraps a
@@ -88,15 +113,32 @@ export function norm(src) {
   return tight(tight(js).replace(/,([\]})])/g, '$1').replace(/[(){}]/g, ' ')).trim();
 }
 
-/** Compare deployed first-party sources with main. readMain(spec) -> string | null. */
+// Line endings, trailing whitespace and a BOM only: an original-source compare is otherwise exact.
+const plain = (s) => s.replace(/^﻿/, '').replace(/\r\n?/g, '\n').replace(/[ \t]+$/gm, '').trimEnd();
+
+/**
+ * A deployed specifier as a path under supabase/, or null when it is not this repo's code.
+ * A bundle built from supabase/ keys modules 'functions/<slug>/x.ts'; one built from
+ * supabase/functions/ (site_error_ingest, stripe_setup_page, voice_otp_capture, measured 13 Oct)
+ * keys the same files '<slug>/x.ts'. Schemes (jsr:, npm:, https:, vfs:) and '---' markers are not.
+ */
+export function firstPartyPath(spec) {
+  if (spec.startsWith('---') || /^[a-z][a-z0-9+.-]*:/i.test(spec)) return null;
+  return spec.startsWith('functions/') ? spec : `functions/${spec}`;
+}
+
+/** Compare deployed first-party sources with main. readMain(path under supabase/) -> string | null. */
 export function compareSources(sources, readMain) {
-  const firstParty = [...sources.keys()].filter((s) => s.startsWith('functions/')).sort();
+  const firstParty = [...sources.keys()].filter((s) => firstPartyPath(s)).sort();
   if (!firstParty.length) return { state: 'UNVERIFIED', reason: 'body carries no first-party source', files: 0 };
   const differ = [];
   for (const spec of firstParty) {
-    const main = readMain(spec);
-    if (main == null) differ.push(`${spec} (not on main)`);
-    else if (norm(main) !== norm(sources.get(spec))) differ.push(spec);
+    const path = firstPartyPath(spec);
+    const main = readMain(path);
+    const dep = sources.get(spec);
+    const { text, original } = typeof dep === 'string' ? { text: dep, original: false } : dep;
+    if (main == null) differ.push(`${path} (not on main)`);
+    else if (original ? plain(main) !== plain(text) : norm(main) !== norm(text)) differ.push(path);
   }
   return { state: differ.length ? 'STALE' : 'MATCH', differ, files: firstParty.length };
 }

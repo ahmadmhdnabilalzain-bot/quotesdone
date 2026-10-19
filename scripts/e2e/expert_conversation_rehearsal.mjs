@@ -145,7 +145,15 @@ async function main() {
         if (/\b(correct|that.?s right|confirmed|go ahead|proceed)\b|صحيح|تمام/i.test(reply) && /confirm|summary|ملخص|تأكيد|أكد/i.test(turns.at(-2).text)) break;
       }
       const transcript = turns.map((x) => `${x.role.toUpperCase()}${x.image ? ' (sent an image of the wall' + (val('--photo') ? ' (a photo)' : ': a sketch, ~2.4 m wide, 2.7 m high, window on the right, socket low right') + ')' : ''}: ${x.text}`).join('\n');
-      const agentModel = [...models].join(',') || 'unknown';
+      const agentModel = [...models].join(',');
+      // No agent model answered: there is no author to judge against, and a judge called with 'unknown' is refused as
+      // AUTHOR UNKNOWN (18 Oct 2026, ai_cost_log 19198). Record the scenario as unanswered instead.
+      if (!agentModel) {
+        results.push({ id: s.id, lang: s.lang, trade: s.trade, agent_model: null, judge_model: null, score: null,
+                       judge_raw: 'not judged: the agent never answered', transcript: turns });
+        console.log(`${s.id}: not judged - the agent never answered`);
+        continue;
+      }
       const j = await gw({ fn: 'sales_engineer_conversation_drill', task_class: 'knowledge_validation', counterpart_model: agentModel,
         sys: JUDGE, input: `TRADE: ${s.trade}\nCUSTOMER'S HIDDEN FACTS (for checking completeness): ${s.facts}\n\nTRANSCRIPT:\n${transcript}`, max: 900, temperature: 0 });
       const v = json(j.content);

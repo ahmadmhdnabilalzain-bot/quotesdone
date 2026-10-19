@@ -30,7 +30,7 @@
 // false zero — and a document whose meaning could not be read records why (meaning: embedding_unavailable,
 // budget_spent), so an empty proposal is never mistaken for a document that names nothing.
 import { readDocument, type DocumentRead } from './doc_read/index.ts';
-import type { Extracted } from './doc_read/types.ts';
+import { type Extracted, LIMITS } from './doc_read/types.ts';
 import { catalogueLines, supplyOnlyOf } from './catalogue_read.ts';
 import { licenceFieldsFromText } from './document_expiry.ts';
 import { liveTradeDeps, tradesOfText, type ExactState, type MeaningState, type TradeHit, type TradeResolveDeps } from './trade_resolve.ts';
@@ -48,14 +48,26 @@ export type DocKind = 'licence' | 'profile' | 'catalogue';
 // upload, read through the same path, and the evidence says it came from a photo.
 export type DocIn = { path: string; name: string; kind: DocKind; bytes?: Uint8Array; mime?: string; read?: DocumentRead; photo_text?: string;
   /** names the company is known by (registered, licence legal name read by code or model): never read as a trade */
-  names?: (string | null)[] };
+  names?: (string | null)[];
+  /** set by supplier_docs_later.gateStored when the stored bytes failed the type / malware gate: recorded, never read */
+  refused?: string };
 export type DocEvidence = {
   path: string; name: string; kind: DocKind;
-  status: 'read' | 'needs_ocr' | 'needs_cad_conversion' | 'unreadable';
+  /** 'reading': marked BEFORE the parse (markReading); if the worker is killed mid-parse it stays, and it proposes nothing.
+   *  'refused': a file uploaded straight to storage failed the type / malware gate; it was removed and never read. */
+  status: 'read' | 'needs_ocr' | 'needs_cad_conversion' | 'unreadable' | 'reading' | 'refused';
+  /** a 'reading' mark set by the sweep's one re-read (supplier_docs_later.rereadStuck); a second stall is escalated */
+  retry?: boolean;
   reason?: string; format?: string; trades: TradeHit[]; read_at: string;
   source?: 'document_text' | 'photo_text'; supply_only?: boolean;
   /** how each path fared on this document (reader @3 on) */
   exact?: ExactState; meaning?: MeaningState;
+  /** profile / catalogue: 'on' = the model chose the trades and each was proven by its quote; 'unavailable' = it could not
+   *  be asked, so NOTHING was proposed (reason says why); rejected = codes the model named that code refused */
+  choice?: 'on' | 'unavailable'; rejected?: { code: string; why: string }[];
+  /** trades read off a PICTURE (image, or a PDF with no text layer): their quotes are lines the vision model transcribed,
+   *  which code cannot check against the file, so they are never proposed - held here for the sales engineer to confirm */
+  vision_held?: TradeHit[];
 };
 export const PHOTO_TEXT_MAX = 60_000;
 
@@ -97,6 +109,41 @@ export function withoutCredentialLines(text: string): string {
     && !/\b(certification|audit(?:ing)?|consultan(?:cy|ts?)|training|implementation)\s+(services?|body|bodies)\b|\bwe\s+(certify|audit|train)\b/i.test(l))).join('\n');
 }
 
+// WHAT A REAL PROFILE SAYS IT DOES (13 Oct 2026, it_engineer; ACCURACY_real_profiles.md). The synthetic profiles of the
+// suite were a page each; a real UAE company profile is 10-180 pages of which a few lines say what the company does,
+// and the rest is the CEO's message, policies, the organisation chart, staff and machinery lists, certificates,
+// client and project lists. Measured on 29 real profiles and catalogues, reading every line: 131 trades proposed that
+// the company does not do (meaning: "Management 1" on an org chart -> accounting, "SECTION 13: INSURANCE DETAILS" ->
+// insurance brokerage, "Full range of equipment" -> commercial kitchens), and meaning's 40-clause budget was spent on
+// whichever lines came first. So a long profile is read where it states its offer, by the document's STRUCTURE, never
+// by which trade a word names:
+//   * the lines under an offer heading ("Our Services", "Specialised in", "Scope of Work", "Products", "Activities" ...)
+//     up to OFFER_WINDOW lines on;
+//   * a sentence that states the offer ("specialises in", "services include", "we offer / provide / undertake / supply /
+//     install / manufacture", "principal activity", "engaged in", "is a ... contractor") from that phrase on, and the
+//     OFFER_TAIL lines that continue it (a PDF breaks a sentence across lines).
+// Which trade those lines name is still decided only by exact code and meaning (trade_resolve.tradesOfText).
+// A document of SHORT_DOC_LINES lines or fewer, or one that states no offer in these forms, is read whole, as before.
+// ARABIC TOO (review of #1404): the same headings and offer sentences in Arabic (خدماتنا، نطاق العمل، منتجاتنا، متخصصة في،
+// نقدم ...). Measured on the BCG Arabic brochure (69 pages) in ACCURACY_real_profiles.md.
+export const SHORT_DOC_LINES = 60, OFFER_WINDOW = 25, OFFER_TAIL = 3;
+const OFFER_HEAD = /^\s*(?:\d{1,2}[.)]?\s*)?(?:our\s+|core\s+|main\s+|key\s+|list\s+of\s+)*(?:services?|products?(?:\s+range)?|product\s+range|scope(?:\s+of\s+(?:work|works|services|supply))?|activities|speciali[sz](?:ed\s+in|ations?)|expertise|what\s+we\s+do|capabilities|disciplines|divisions)\s*:?\s*$/i;
+const OFFER_FRAME = /\b(?:speciali[sz](?:e|es|ed|ing)\s+in|services?\s+(?:include|including|such\s+as|offered)|we\s+(?:offer|provide|undertake|supply|install|manufacture|take\s+up|carry\s+out|deal\s+in)|scope\s+of\s+works?\s*(?:includes?|:)|activities\s*:|principal\s+activit(?:y|ies)|engaged\s+in|deal(?:s|ing)?\s+(?:with|in)|(?:is|are)\s+(?:a|an|the)\s+(?:[\w&/-]+\s+){0,6}?(?:company|contractors?|manufacturers?|suppliers?|providers?|specialists?|firm))\b/i;
+const OFFER_HEAD_AR = /^\s*(?:\d{1,2}[.)]?\s*)?(?:خدماتنا|الخدمات|خدمات الشركة|نطاق العمل|نطاق الأعمال|نطاق أعمالنا|منتجاتنا|المنتجات|الأنشطة|أنشطة الشركة|أنشطتنا|مجالات العمل|مجالات عملنا|تخصصاتنا|قدراتنا|خبراتنا|أقسام الشركة)\s*[:：]?\s*$/u;
+const OFFER_FRAME_AR = /(?:متخصص(?:ة|ون|ين)?\s+في|تتخصص\s+في|نتخصص\s+في|نقدم|نوفر|تقدم\s+الشركة|توفر\s+الشركة|تشمل\s+خدمات|خدماتنا\s+تشمل|نشاط\s+الشركة|تعمل\s+(?:الشركة\s+)?في\s+مجال)/u;
+export function offerText(text: string): string | null {
+  const lines = String(text ?? '').split(/\r?\n/);
+  if (lines.filter((l) => l.trim()).length <= SHORT_DOC_LINES) return null;
+  const keep = new Set<number>();
+  lines.forEach((l, i) => {
+    if (OFFER_HEAD.test(l) || OFFER_HEAD_AR.test(l)) for (let k = i + 1; k <= i + OFFER_WINDOW && k < lines.length; k++) keep.add(k);
+    const m = OFFER_FRAME.exec(l) ?? OFFER_FRAME_AR.exec(l);
+    if (m) { lines[i] = l.slice(m.index); for (let k = i; k <= i + OFFER_TAIL && k < lines.length; k++) keep.add(k); }
+  });
+  const out = [...keep].sort((a, b) => a - b).map((i) => lines[i]).filter((l) => l.trim());
+  return out.length ? out.join('\n') : null;
+}
+
 /** One document -> what it says about trades, or the honest reason it could not be read. */
 export async function readDocForTrades(doc: DocIn, deps: TradeResolveDeps): Promise<DocEvidence> {
   const base = { path: doc.path, name: doc.name, kind: doc.kind, read_at: new Date().toISOString() };
@@ -108,18 +155,41 @@ export async function readDocForTrades(doc: DocIn, deps: TradeResolveDeps): Prom
     // the labelled activities line is read now; a licence whose activities could not be read proposes nothing.
     // A NAME IS NEVER A TRADE (12 Oct 2026): the supplier's known names and the names this document's own name fields
     // print are cut out of every line by trade_resolve.withoutNames, printed with or without a legal suffix.
+    let whole = text;
     const F = licenceFieldsFromText(text);
     const names = [...(doc.names ?? []), F.legal_name_en, F.legal_name_ar, F.trade_name];
     if (doc.kind === 'licence') {
       const acts = F.activities;
       if (!acts?.length) return { ...base, status: 'read', format, source, reason: 'no activities line could be read on the licence', trades: [] };
       text = acts.join('\n');
-    } else text = withoutCredentialLines(text);
+    } else { text = withoutCredentialLines(text); whole = text; if (doc.kind === 'profile') text = offerText(text) ?? text; }
     const c = doc.kind === 'catalogue' ? catalogueText(text) : null;
+    // A PROFILE OR CATALOGUE: THE MODEL CHOOSES FROM OUR CODES, CODE CHECKS EVERY QUOTE (supplier_trade_choice.ts).
+    if (deps.chooseTrades && doc.kind !== 'licence') {
+      // The model reads the OFFER first and then the rest of the document, up to its text cap: on the 29 real files the
+      // offer sections alone hid trades a group brochure states in a company's description (ASGC's facade and steel
+      // companies, Royal Joinery's fit-out), and the model - unlike meaning - is not misled by the rest.
+      const forModel = c ? c.text : text === whole ? whole : `${text}
+
+--- the rest of the document ---
+${whole}`;
+      const ch = await deps.chooseTrades(forModel, doc.kind, (doc.names ?? []).find((n) => !!n) ?? null);
+      if (!ch.ok) {
+        console.error(JSON.stringify({ at: 'supplier_doc_trades.choice', path: doc.path, error: ch.error }));
+        return { ...base, status: 'read', format, source, reason: `the trades could not be chosen: ${ch.error}`, trades: [], choice: 'unavailable', ...(c ? { supply_only: c.supply_only } : {}) };
+      }
+      const hits = ch.trades.map((t) => ({ code: t.code, via: 'model_choice' as const, phrases: [t.reason], snippet: t.quote }));
+      // HELD, NOT PROPOSED (review of #1412, 18 Oct 2026): a picture's quote is checked only against the vision model's own
+      // transcription, so a line it invented would pass. Those trades wait for the sales engineer (vision_trades_confirm).
+      if (source === 'photo_text') return { ...base, status: 'read', format, source, choice: 'on', rejected: ch.rejected, ...(c ? { supply_only: c.supply_only } : {}),
+        reason: 'read off a picture by the vision model; held for the sales engineer to confirm against the file', trades: [], vision_held: hits };
+      return { ...base, status: 'read', format, source, choice: 'on', rejected: ch.rejected, ...(c ? { supply_only: c.supply_only } : {}), trades: hits };
+    }
     const r = await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only, names });
     return { ...base, status: 'read', format, source, trades: r.trades, exact: r.exact, meaning: r.meaning, ...(c ? { supply_only: c.supply_only } : {}) };
   };
-  const r = doc.read ?? (doc.bytes ? await readDocument(doc.bytes, doc.name, doc.mime || '', 0, { textOnly: true }) : null);
+  if (doc.refused) return { ...base, status: 'refused', reason: doc.refused.slice(0, 200), trades: [] };
+  const r = doc.read ?? (doc.bytes ? await readDocument(doc.bytes, doc.name, doc.mime || '', 0, { textOnly: true, maxBytes: LIMITS.maxPaperBytes }) : null);
   const text = r && r.ok ? allText(r) : '';
   // The file's own text layer wins; the photo text is read only when the file has none of its own.
   if (!text.trim() && photo.trim()) return await found(photo, 'photo_text', r && r.ok ? r.kind : undefined);
@@ -143,6 +213,22 @@ export function mergeEvidence(prev: DocEvidence[], fresh: DocEvidence[]): DocEvi
   return [...fresh, ...kept].slice(0, MAX_DOCS);
 }
 
+/** One pending sales_engineer item per supplier document whose trades were read off a picture (never filed twice). */
+async function visionHeld(admin: Admin, supplierId: number, d: DocEvidence): Promise<void> {
+  const target = `${supplierId}:${d.path}`;
+  try {
+    const { data: open } = await admin.from('agent_actions').select('id').eq('kind', 'vision_trades_confirm').eq('status', 'pending').eq('target_id', target).limit(1);
+    if (open?.length) return;
+    const { error } = await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'vision_trades_confirm', status: 'pending', risk: 'low',
+      title: ('Confirm trades read off a picture: ' + d.name).slice(0, 200),
+      detail: { supplier_id: supplierId, path: d.path, kind: d.kind, held: d.vision_held!.map((t) => ({ code: t.code, quote: t.snippet })),
+                waiting_for: 'sales_engineer to check each quote against the file and confirm or drop the trade' },
+      target_table: 'supplier_capabilities', target_id: target });
+    // 23505: the table's one-pending-per-document index refused a second item filed at the same moment - already filed
+    if (error && error.code !== '23505') console.error(JSON.stringify({ at: 'supplier_doc_trades.visionHeld', supplier: supplierId, error: error.message }));
+  } catch (e) { console.error(JSON.stringify({ at: 'supplier_doc_trades.visionHeld', supplier: supplierId, error: String((e as Error)?.message || e) })); }
+}
+
 export const proposedFrom = (docs: DocEvidence[]): string[] =>
   [...new Set(docs.flatMap((d) => (d.trades || []).map((t) => t.code)))].sort();
 
@@ -151,7 +237,26 @@ export const proposedFrom = (docs: DocEvidence[]): string[] =>
  * Never throws and never blocks an upload: a failure comes back as { error } for the caller to report.
  * `deps` is for tests; an edge function passes nothing and gets the live routine, vectors and model.
  */
-export async function proposeTradesFromDocs(admin: Admin, supplierId: number, docs: DocIn[], deps?: TradeResolveDeps):
+/**
+ * HELD BEFORE IT IS READ (review of #1404). The edge worker is killed at its CPU cap with no catch running, so a parse
+ * that dies must already have left its mark: each document is stored as 'reading' first. A finished read replaces the
+ * mark; a killed one leaves the document held ('reading', no trades), visible as not read rather than silently absent.
+ * Never throws; a failed write is returned for the caller to report.
+ */
+export async function markReading(admin: Admin, supplierId: number, docs: { path: string; name: string; kind: DocKind }[], retry = false): Promise<string | null> {
+  try {
+    if (!docs.length) return null;
+    const { data: cur } = await admin.from('supplier_capabilities').select('source_docs').eq('supplier_id', supplierId).maybeSingle();
+    const prevSrc = (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};
+    const at = new Date().toISOString();
+    const marks: DocEvidence[] = docs.map((d) => ({ path: d.path, name: d.name, kind: d.kind, status: 'reading', reason: 'being read; if this stays, the read did not finish', trades: [], read_at: at, ...(retry ? { retry } : {}) }));
+    const merged = mergeEvidence(Array.isArray(prevSrc.docs) ? prevSrc.docs as DocEvidence[] : [], marks);
+    const { error } = await admin.from('supplier_capabilities').upsert({ supplier_id: supplierId, source_docs: { ...prevSrc, reader: READER, docs: merged } }, { onConflict: 'supplier_id' });
+    return error ? `mark: ${error.message}` : null;
+  } catch (e) { return String((e as Error)?.message || e).slice(0, 200); }
+}
+
+export async function proposeTradesFromDocs(admin: Admin, supplierId: number, docs: DocIn[], deps?: TradeResolveDeps, retry = false):
   Promise<{ ok: true; proposed_trades: string[]; docs: DocEvidence[] } | { ok: false; error: string }> {
   try {
     if (!docs.length) return { ok: true, proposed_trades: [], docs: [] };
@@ -161,10 +266,12 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
     // (code's reading, or the model's where code read none). Read once; a failed read only means fewer names.
     const { data: who } = await admin.from('leads').select('company_name,licence_legal_name').eq('id', supplierId).maybeSingle();
     const known = [who?.company_name ?? null, who?.licence_legal_name ?? null];
+    const markErr = await markReading(admin, supplierId, docs.filter((d) => !d.refused), retry);
+    if (markErr) console.error(JSON.stringify({ at: 'supplier_doc_trades.markReading', supplier: supplierId, error: markErr }));
     const fresh: DocEvidence[] = [];
     for (const d of docs) {
       let bytes = d.bytes;
-      if (!bytes && !d.read) {
+      if (!bytes && !d.read && !d.refused) {
         const { data: blob } = await admin.storage.from('supplier-docs').download(d.path);
         if (blob) bytes = new Uint8Array(await blob.arrayBuffer());
       }
@@ -174,6 +281,7 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
     const prevSrc = (cur?.source_docs && typeof cur.source_docs === 'object') ? cur.source_docs as Record<string, unknown> : {};
     const merged = mergeEvidence(Array.isArray(prevSrc.docs) ? prevSrc.docs as DocEvidence[] : [], fresh);
     const proposed = proposedFrom(merged);
+    for (const d of fresh) if (d.vision_held?.length) await visionHeld(admin, supplierId, d);
     const { error } = await admin.from('supplier_capabilities').upsert({
       supplier_id: supplierId, proposed_trades: proposed,
       source_docs: { ...prevSrc, reader: READER, docs: merged }, extracted_at: new Date().toISOString(),

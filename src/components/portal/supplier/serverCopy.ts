@@ -13,6 +13,9 @@ import { price } from './money';
 type P = Record<string, any>;
 type L = 'en' | 'ar';
 type Entry = { en: (p: P) => string; ar: (p: P) => string };
+const DOCS_BEING_READ = 'we are still reading your company profile or catalogue; your registration is checked again as soon as that read finishes';
+const READING_NOW = 'We are reading your company profile or catalogue now. This page updates by itself when the read finishes; you can keep working meanwhile.';
+const DIRECT_UPLOAD_FAILED = 'The file could not be uploaded. Files up to 100 MB are accepted (PDF, Word, PowerPoint, JPEG or PNG). Please try again.';
 const s = (en: string | ((p: P) => string), ar: string | ((p: P) => string)): Entry => ({
   en: typeof en === 'string' ? () => en : en,
   ar: typeof ar === 'string' ? () => ar : ar,
@@ -131,6 +134,16 @@ const TRADE_AR: Record<string, string> = {
   jewellery_supplies: 'مستلزمات تجارة المجوهرات والساعات',
   agri_inputs: 'مستلزمات زراعية',
   veterinary_supplies: 'مستلزمات بيطرية وحيوانات',
+  apparel_fashion_wholesale: 'تجارة الملابس والأزياء بالجملة',
+  optical_eyewear: 'البصريات والنظارات',
+  home_furniture: 'أثاث المنازل والمراتب',
+  weighing_systems: 'موازين وجسور وزن',
+  drones_uav: 'الطائرات بدون طيار (الدرون)',
+  occupational_health: 'الصحة المهنية والخدمات الطبية في الموقع',
+  artwork_decor: 'الأعمال الفنية والبراويز والديكور',
+  bicycles_micromobility: 'الدراجات الهوائية والسكوترات الكهربائية',
+  baby_nursery_products: 'منتجات الأطفال الرضع وغرف الأطفال',
+  houseware_wholesale: 'الأدوات المنزلية وأدوات المطبخ بالجملة',
   legal_services: 'الخدمات القانونية',
   pro_government_services: 'خدمات المندوب والتأشيرات والمعاملات الحكومية',
   accounting_bookkeeping: 'المحاسبة ومسك الدفاتر',
@@ -336,6 +349,16 @@ export const TRADE_EN: Record<string, string> = {
   jewellery_supplies: 'Jewellery & watch trade supplies',
   agri_inputs: 'Agricultural inputs',
   veterinary_supplies: 'Animal & veterinary supplies',
+  apparel_fashion_wholesale: 'Garments & fashion wholesale',
+  optical_eyewear: 'Optical & eyewear',
+  home_furniture: 'Home furniture & mattresses',
+  weighing_systems: 'Weighing scales & weighbridges',
+  drones_uav: 'Drones & unmanned aircraft',
+  occupational_health: 'Occupational health & onsite medical services',
+  artwork_decor: 'Artwork, framing & decor',
+  bicycles_micromobility: 'Bicycles & e-scooters',
+  baby_nursery_products: 'Baby & nursery products',
+  houseware_wholesale: 'Houseware & kitchenware wholesale',
   legal_services: 'Legal services',
   pro_government_services: 'PRO, visa & government transaction services',
   accounting_bookkeeping: 'Accounting & bookkeeping',
@@ -433,15 +456,15 @@ export const TRADE_GROUPS: { code: string; en: string; ar: string; codes: string
   { code: 'mep_building_systems', en: 'MEP & Building Systems', ar: 'الأعمال الكهروميكانيكية وأنظمة المباني',
     codes: ['electrical', 'elevators', 'fire_fighting', 'home_automation', 'hvac', 'mep_general', 'plumbing', 'security_systems', 'av_it', 'electrical_wholesale', 'cables_wires', 'lighting_fixtures'] },
   { code: 'industrial_manufacturing', en: 'Industrial Equipment & Manufacturing', ar: 'المعدات الصناعية والتصنيع',
-    codes: ['oilfield', 'pallets_wood_plastic', 'industrial_machinery', 'machinery_spare_parts', 'industrial_pumps', 'valves_actuators', 'bearings_power_transmission', 'hand_power_tools', 'fasteners_fixings', 'hydraulics_pneumatics', 'air_compressors', 'welding_equipment', 'material_handling', 'racking_storage', 'motors_drives', 'instrumentation_automation', 'industrial_gases', 'lubricants_industrial_oils', 'abrasives_surface_finishing', 'industrial_filters', 'castings_forgings', 'cnc_machining', 'additive_manufacturing', 'mining_quarry_supplies', 'corrosion_insulation', 'machinery_repair', 'tool_equipment_rental'] },
+    codes: ['weighing_systems', 'oilfield', 'pallets_wood_plastic', 'industrial_machinery', 'machinery_spare_parts', 'industrial_pumps', 'valves_actuators', 'bearings_power_transmission', 'hand_power_tools', 'fasteners_fixings', 'hydraulics_pneumatics', 'air_compressors', 'welding_equipment', 'material_handling', 'racking_storage', 'motors_drives', 'instrumentation_automation', 'industrial_gases', 'lubricants_industrial_oils', 'abrasives_surface_finishing', 'industrial_filters', 'castings_forgings', 'cnc_machining', 'additive_manufacturing', 'mining_quarry_supplies', 'corrosion_insulation', 'machinery_repair', 'tool_equipment_rental'] },
   { code: 'materials_packaging', en: 'Materials, Chemicals & Packaging', ar: 'المواد الخام والكيماويات والتغليف',
     codes: ['chemicals', 'packaging', 'plastics_pipes', 'corrugated_packaging', 'flexible_packaging', 'rigid_plastic_packaging', 'glass_containers', 'metal_packaging', 'industrial_crating', 'packaging_machinery', 'steel_stock', 'non_ferrous_metals', 'polymers_resins', 'rubber_products', 'paper_board', 'industrial_textiles', 'labels_sleeves', 'protective_packaging', 'bulk_bags_sacks', 'luxury_rigid_boxes', 'paper_bags', 'pharma_packaging', 'packaging_tapes_strapping'] },
   { code: 'energy_environment', en: 'Energy, Environment & Agriculture', ar: 'الطاقة والبيئة والزراعة',
     codes: ['solar', 'power_generators', 'fuel_diesel', 'lpg_gas', 'batteries_storage', 'water_treatment', 'agri_inputs', 'waste_management', 'recycling_scrap', 'hazardous_waste', 'sewage_tanker', 'water_treatment_services', 'ev_charging', 'bitumen_petroleum_products'] },
   { code: 'transport_mobility', en: 'Transport, Vehicles, Marine & Aviation', ar: 'النقل والمركبات والبحرية والطيران',
-    codes: ['logistics_moving', 'marine', 'vehicles_fleet', 'vehicle_leasing', 'auto_parts', 'tyres_batteries', 'staff_transport', 'courier_express', 'cold_chain_logistics', 'fleet_maintenance', 'aircraft_parts_mro', 'shipbuilding_repair', 'railway_equipment', 'removals_relocation'] },
+    codes: ['bicycles_micromobility', 'logistics_moving', 'marine', 'vehicles_fleet', 'vehicle_leasing', 'auto_parts', 'tyres_batteries', 'staff_transport', 'courier_express', 'cold_chain_logistics', 'fleet_maintenance', 'aircraft_parts_mro', 'shipbuilding_repair', 'railway_equipment', 'removals_relocation'] },
   { code: 'technology_telecom', en: 'Technology & Telecom', ar: 'التقنية والاتصالات',
-    codes: ['it_services', 'office_equipment', 'pos_retail', 'software_licensing', 'telecom_services', 'electronics_wholesale', 'mobile_phones_wholesale', 'software_development', 'device_repair'] },
+    codes: ['drones_uav', 'it_services', 'office_equipment', 'pos_retail', 'software_licensing', 'telecom_services', 'electronics_wholesale', 'mobile_phones_wholesale', 'software_development', 'device_repair'] },
   { code: 'facilities_property', en: 'Facilities & Property Services', ar: 'خدمات المرافق والعقارات',
     codes: ['cleaning', 'cleaning_chemicals', 'tissue_disposables', 'real_estate_services', 'business_centres', 'security_guarding', 'pest_control', 'facade_access_maintenance', 'laundry_services', 'furniture_repair', 'facilities_management'] },
   { code: 'professional_business', en: 'Professional & Business Services', ar: 'الخدمات المهنية وخدمات الأعمال',
@@ -449,9 +472,9 @@ export const TRADE_GROUPS: { code: string; en: string; ar: string; codes: string
   { code: 'marketing_media_events', en: 'Marketing, Media & Events', ar: 'التسويق والإعلام والفعاليات',
     codes: ['signage', 'marketing_advertising', 'digital_marketing', 'public_relations', 'market_research', 'event_management', 'exhibition_stands', 'event_equipment_rental', 'photo_video_production', 'commercial_printing', 'event_entertainment'] },
   { code: 'health_lab_safety', en: 'Health, Laboratory & Safety', ar: 'الصحة والمختبرات والسلامة',
-    codes: ['safety_equipment', 'medical_equipment', 'medical_consumables', 'dental_supplies', 'laboratory_equipment', 'pharma_wholesale', 'veterinary_supplies'] },
+    codes: ['occupational_health', 'optical_eyewear', 'safety_equipment', 'medical_equipment', 'medical_consumables', 'dental_supplies', 'laboratory_equipment', 'pharma_wholesale', 'veterinary_supplies'] },
   { code: 'furniture_hospitality_consumer', en: 'Furniture, Hospitality & Consumer Goods', ar: 'الأثاث والضيافة والسلع الاستهلاكية',
-    codes: ['upholstery', 'office_furniture', 'hotel_furniture', 'outdoor_furniture', 'school_furniture', 'retail_shelving', 'mannequins_visual_merchandising', 'commercial_kitchen', 'refrigeration_cold_rooms', 'laundry_equipment', 'hospitality_supplies', 'vending_machines', 'water_dispensers', 'uniforms_corporate_apparel', 'textiles_fabrics', 'stationery_office_supplies', 'promotional_gifts', 'books_educational', 'home_appliances', 'fitness_equipment', 'sports_equipment', 'playground_equipment', 'salon_equipment', 'cosmetics_wholesale', 'perfumes_wholesale', 'toys_wholesale', 'jewellery_supplies', 'leather_footwear', 'musical_pro_audio', 'curtains_blinds'] },
+    codes: ['houseware_wholesale', 'baby_nursery_products', 'artwork_decor', 'home_furniture', 'apparel_fashion_wholesale', 'upholstery', 'office_furniture', 'hotel_furniture', 'outdoor_furniture', 'school_furniture', 'retail_shelving', 'mannequins_visual_merchandising', 'commercial_kitchen', 'refrigeration_cold_rooms', 'laundry_equipment', 'hospitality_supplies', 'vending_machines', 'water_dispensers', 'uniforms_corporate_apparel', 'textiles_fabrics', 'stationery_office_supplies', 'promotional_gifts', 'books_educational', 'home_appliances', 'fitness_equipment', 'sports_equipment', 'playground_equipment', 'salon_equipment', 'cosmetics_wholesale', 'perfumes_wholesale', 'toys_wholesale', 'jewellery_supplies', 'leather_footwear', 'musical_pro_audio', 'curtains_blinds'] },
 ];
 export const tradeLabel = (lang: string, code: string) => vocabLabel(lang, 'trade', code, TRADE_EN[code]);
 
@@ -574,6 +597,13 @@ const COPY: Record<string, Entry> = {
     'لم نتمكن من قراءة تاريخ الانتهاء في رخصتكم التجارية حتى بقارئ المستندات لدينا. يُرجى رفع نسخة أوضح (ملف PDF أو صورة واضحة للصفحة كاملة)، وسنقرؤها مجددًا فور وصولها'),
   licence_number_unread: s('we could not read the licence number on your trade licence, even with our document reader. Please upload a clearer copy (a PDF, or a sharp photo of the whole page); we read it again as soon as it arrives',
     'لم نتمكن من قراءة رقم الرخصة في رخصتكم التجارية حتى بقارئ المستندات لدينا. يُرجى رفع نسخة أوضح (ملف PDF أو صورة واضحة للصفحة كاملة)، وسنقرؤها مجددًا فور وصولها'),
+  // 13 Oct 2026 (review of #1404): a profile or catalogue whose read has not finished holds approval until it has.
+  // English only: suppliers are always written to in English (ruling 1008), so both slots carry the same sentence.
+  documents_being_read: s(DOCS_BEING_READ, DOCS_BEING_READ),
+  // 19 Oct 2026 (sales_engineer): a profile or catalogue is read after its upload answers; the Documents tab says so
+  // until the read finishes, and a file uploaded straight to storage that did not arrive says that. English only.
+  documents_reading_now: s(READING_NOW, READING_NOW),
+  direct_upload_failed: s(DIRECT_UPLOAD_FAILED, DIRECT_UPLOAD_FAILED),
   licence_name_mismatch: s('the company name on your trade licence does not match your registered company name. Upload your own company’s trade licence, or contact us if your registered name should change',
     'اسم الشركة في الرخصة التجارية لا يطابق اسم شركتكم المسجّل. يُرجى رفع الرخصة التجارية الخاصة بشركتكم، أو التواصل معنا إن كان اسمكم المسجّل يحتاج إلى تعديل'),
 

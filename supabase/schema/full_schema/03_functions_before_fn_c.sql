@@ -1226,6 +1226,55 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_budget_variance()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_m date; v_n int; v_big jsonb; v_rep jsonb;
+begin
+  select month into v_m from public.accountant_month_close order by month desc limit 1;
+  if v_m is null then return jsonb_build_object('explained', false, 'reason', 'no month is closed yet'); end if;
+  if exists (select 1 from public.accountant_budget_variance where month = v_m) then
+    return jsonb_build_object('month', v_m, 'already_explained', true);
+  end if;
+  with b as (select l.account_code, sum(l.amount) amt from public.budget_lines l join public.budgets g on g.id = l.budget_id and g.status = 'active'
+              where l.period_month = v_m group by 1),
+       a as (select jl.account_code, sum(jl.debit - jl.credit) amt
+               from public.gl_journal j join public.gl_journal_lines jl on jl.journal_id = j.id
+               join public.gl_accounts ac on ac.code = jl.account_code and ac.type = 'expense'
+              where j.status = 'posted' and j.entry_date >= v_m and j.entry_date < (v_m + interval '1 month')::date group by 1),
+       k as (select account_code from b union select account_code from a),
+       d as (select k.account_code, jsonb_agg(jsonb_build_object('entry', j.entry_no, 'date', j.entry_date, 'memo', left(j.memo, 120), 'aed', jl.debit - jl.credit)
+                                              order by jl.debit - jl.credit desc) filter (where j.id is not null) drv
+               from k left join public.gl_journal_lines jl on jl.account_code = k.account_code
+               left join public.gl_journal j on j.id = jl.journal_id and j.status = 'posted' and j.entry_date >= v_m and j.entry_date < (v_m + interval '1 month')::date
+              group by k.account_code)
+  insert into public.accountant_budget_variance (month, account_code, budget_aed, actual_aed, variance_aed, variance_pct, explanation, drivers)
+  select v_m, k.account_code, coalesce(b.amt, 0), coalesce(a.amt, 0), coalesce(a.amt, 0) - coalesce(b.amt, 0),
+         round(100 * (coalesce(a.amt, 0) - coalesce(b.amt, 0)) / nullif(b.amt, 0), 1),
+         case when b.amt is null then 'Spent with no budget line: ' || coalesce((select string_agg(x->>'memo', '; ') from jsonb_array_elements(coalesce(d.drv, '[]')) with ordinality t(x, o) where o <= 3), 'no entries')
+              when coalesce(a.amt, 0) = 0 then 'Budgeted, nothing posted in the month: the cost did not fall due or its receipt has not been booked.'
+              when abs(coalesce(a.amt, 0) - b.amt) <= greatest(100, abs(b.amt) * 0.10) then 'Within 10% (or AED 100) of budget.'
+              else (case when a.amt > b.amt then 'Over' else 'Under' end) || ' budget by AED ' || abs(round(a.amt - b.amt, 2)) || '; largest entries: '
+                   || coalesce((select string_agg((x->>'memo') || ' AED ' || (x->>'aed'), '; ') from jsonb_array_elements(coalesce(d.drv, '[]')) with ordinality t(x, o) where o <= 3), 'none') end,
+         coalesce((select jsonb_agg(x) from jsonb_array_elements(coalesce(d.drv, '[]')) with ordinality t(x, o) where o <= 5), '[]')
+    from k left join b using (account_code) left join a using (account_code) left join d using (account_code);
+  get diagnostics v_n = row_count;
+  select coalesce(jsonb_agg(to_jsonb(v) - 'recorded_at' - 'drivers' order by abs(v.variance_aed) desc), '[]') into v_big
+    from public.accountant_budget_variance v
+   where v.month = v_m and abs(v.variance_aed) > greatest(100, abs(v.budget_aed) * 0.10);
+  if jsonb_array_length(v_big) > 0 then
+    v_rep := public.fn_support_report_to_ceo('accountant.budget_variance:' || to_char(v_m, 'YYYY-MM'), 'routine',
+      format('Budget variance %s: %s line(s) off budget by more than 10%%, each explained', to_char(v_m, 'Mon YYYY'), jsonb_array_length(v_big)),
+      jsonb_build_object('month', v_m, 'lines', v_big), '[]'::jsonb,
+      'Read the explained lines; re-budget any line that is structurally wrong.', null, null, interval '3 days', 'accountant');
+  end if;
+  return jsonb_build_object('month', v_m, 'lines_explained', v_n, 'lines_over_10pct', jsonb_array_length(v_big), 'reported', v_rep is not null);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_budgets_renewal(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1391,6 +1440,31 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_cash_forecast_week()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_week date := date_trunc('week', now() at time zone 'Asia/Dubai')::date; f jsonb; v_low numeric; v_rep jsonb;
+begin
+  f := public.fn_accountant_cash_forecast(v_week);
+  insert into public.accountant_cash_forecast_week (week, forecast) values (v_week, f)
+  on conflict (week) do update set forecast = excluded.forecast, recorded_at = now();
+  select min((w->>'closing_aed')::numeric) into v_low from jsonb_array_elements(coalesce(f->'weeks', '[]'::jsonb)) w;
+  v_low := coalesce(v_low, (f#>>'{low_point,balance_aed}')::numeric);
+  if v_low < 0 then
+    v_rep := public.fn_support_report_to_ceo('accountant.cash_forecast_negative:' || v_week, 'elevated',
+      format('13-week cash forecast from %s goes below zero (low point AED %s)', v_week, v_low),
+      f, '[]'::jsonb, 'Decide how the gap is funded before the week it opens: owner capital, a cost cut, or a timing change.',
+      null, null, interval '2 days', 'accountant');
+    update public.accountant_cash_forecast_week set ceo_report_id = (v_rep->>'report_id')::bigint where week = v_week;
+  end if;
+  return jsonb_build_object('week', v_week, 'low_point_aed', v_low, 'reported', v_rep is not null,
+    'weeks', jsonb_array_length(coalesce(f->'weeks', '[]'::jsonb)));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_cash_position(p_month date, p_month_expenses_aed numeric)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1520,10 +1594,11 @@ begin
     n := n + 1;
   end loop;
 
-  -- Every unresolved difference is a finding, whether or not it was audited on this run.
+  -- Every unresolved LIVE-mode difference is a finding, whether or not it was audited on this run.
+  -- 19 Oct 2026: a Stripe test-mode charge moved no money; its audit stays recorded in charge_audit, not raised.
   for r in select a.*, coalesce(cu.is_demo, false) demo from public.charge_audit a
              join public.transactions t on t.id = a.transaction_id left join public.customers cu on cu.id = t.customer_id
-            where abs(a.diff_aed) >= 0.01 and a.resolved_at is null loop
+            where abs(a.diff_aed) >= 0.01 and a.resolved_at is null and a.livemode loop
     v_items := v_items || jsonb_build_object('item', 'charge:' || r.transaction_id,
       'owner_seat', 'accountant', 'subject', 'stripe_checkout',
       'title', case when r.diff_aed > 0
@@ -1571,6 +1646,20 @@ begin
    where transaction_id = p_transaction_id and resolved_at is null and abs(diff_aed) >= 0.01;
   if not found then return jsonb_build_object('ok', false, 'reason', 'no open charge difference on ' || p_transaction_id); end if;
   return jsonb_build_object('ok', true, 'transaction_id', p_transaction_id);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_charge_recovery_duty()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  return jsonb_build_object('tick', public.fn_accountant_recovery_tick(),
+    'open_claims', (select count(*) from public.v_accountant_recovery_ledger where not demo),
+    'open_claim_aed', (select coalesce(sum(claim_aed), 0) from public.v_accountant_recovery_ledger where not demo),
+    'by_stage', (select coalesce(jsonb_object_agg(stage, n), '{}'::jsonb) from (select stage, count(*) n from public.v_accountant_recovery_ledger where not demo group by stage) x));
 end $function$
 
 
@@ -2339,6 +2428,8 @@ begin
                                                            'amount', amount, 'currency', currency) order by id), '[]'::jsonb)
       into v_n, v_list from public.expense_entries
      where coalesce(btrim(doc_path), '') = '' and doc_kind is distinct from 'founder_statement'
+       -- 19 Oct 2026: the daily OpenRouter accrual is measured from usage; no receipt ever exists for it.
+       and coalesce(source, '') <> 'accountant:openrouter_daily'
        and ((coalesce(vendor, '') || ' ' || coalesce(note, '')) ~* 'zz[ _-]?demo') = v_demo;
     if v_n > 0 then
       v_items := v_items || jsonb_build_object('item', case when v_demo then 'no_document:zz_demo' else 'no_document' end,
@@ -2431,6 +2522,48 @@ begin
   return new;
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_finance_week()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_week date := date_trunc('week', now() at time zone 'Asia/Dubai')::date; v_key text; v jsonb; v_rep jsonb; v_dec int;
+begin
+  v_key := 'accountant.finance_week:' || to_char(v_week, 'IYYY-"W"IW');
+  if exists (select 1 from public.support_ceo_report where idempotency_key = v_key) then
+    return jsonb_build_object('week', v_week, 'already_with_the_ceo', true);
+  end if;
+  v := jsonb_build_object(
+    'cash', jsonb_build_object(
+       'bank', (select jsonb_build_object('closing_aed', closing_balance_aed, 'on', balance_on) from public.bank_statement_intake
+                 where closing_balance_aed is not null order by balance_on desc, received_at desc limit 1),
+       'forecast_13w', (select forecast - 'items' from public.accountant_cash_forecast_week order by week desc limit 1)),
+    'collections', jsonb_build_object(
+       'supplier_charges_open', (select count(*) from public.v_accountant_recovery_ledger where not demo),
+       'supplier_charges_aed', (select coalesce(sum(claim_aed), 0) from public.v_accountant_recovery_ledger where not demo),
+       'refunds_open', (select count(*) from public.refunds where status in ('requested', 'approved', 'processing'))),
+    'exceptions', jsonb_build_object(
+       'receipts_held', (select count(*) from public.inbound_messages where to_email ilike 'expenses@%' and needs_review and replied_at is null),
+       'expenses_not_in_ledger', (select count(*) from public.expense_entries x where coalesce(x.amount, 0) > 0
+                                    and (coalesce(x.vendor, '') || ' ' || coalesce(x.note, '')) !~* 'zz[ _-]?demo'
+                                    and not exists (select 1 from public.gl_journal g where g.source = 'expense' and g.source_ref = x.id::text)),
+       'unhealthy_duties', (select coalesce(jsonb_agg(h->>'duty'), '[]') from jsonb_array_elements(public.fn_seat_duty_health()) h where h->>'owner_seat' = 'accountant'),
+       'vat', (select to_jsonb(t) - 'recorded_at' from public.accountant_vat_threshold_check t order by checked_on desc limit 1)),
+    'decisions_needed', (select coalesce(jsonb_agg(jsonb_build_object('id', r.id, 'subject', r.subject, 'since', r.created_at) order by r.id), '[]')
+                           from public.support_ceo_report r where r.source_agent = 'accountant' and r.status in ('sent', 'failed', 'blocked')
+                            and r.idempotency_key not like 'accountant.finance_week:%'),
+    'weekly_report', (select jsonb_build_object('id', id, 'key', report_key, 'status', status) from public.accountant_weekly_report order by id desc limit 1));
+  v_dec := jsonb_array_length(v->'decisions_needed');
+  v_rep := public.fn_support_report_to_ceo(v_key, case when v_dec > 0 then 'elevated' else 'routine' end,
+    format('Finance week %s: cash, collections, exceptions; %s decision(s) waiting on the CEO', to_char(v_week, 'IYYY-"W"IW'), v_dec),
+    v, '[]'::jsonb,
+    case when v_dec > 0 then 'Decide the waiting items listed under decisions_needed.' else 'Read and acknowledge the week''s finance position.' end,
+    null, null, interval '2 days', 'accountant');
+  return jsonb_build_object('week', v_week, 'report', v_rep, 'decisions_needed', v_dec);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_accountant_flags_touching(p_customer uuid, p_supplier bigint)
@@ -3570,10 +3703,15 @@ begin
   v_signed := case when v_acc is not null and t.revealed_at is not null and v_acc <= t.revealed_at
                    then coalesce(nullif(regexp_replace(coalesce(v_ver, ''), '\D', '', 'g'), '')::int, 0) else 0 end;
   if v_signed >= 13 then
-    v_fee := coalesce((select (d.value #>> '{}')::numeric from public.decision_policy d where d.key = 'supplier_nonresponse_admin_fee_from_v13_aed'), c.supplier_nonresponse_admin_fee_aed);
+    v_fee := coalesce((select (d.value #>> '{}')::numeric from public.decision_policy d where d.key = 'supplier_nonresponse_admin_fee_from_v13_aed'), 500);
     v_fee_basis := 'Supplier Agreement ' || v_ver || ' clause 33(b), accepted ' || v_acc || ' before the reveal';
   else
-    v_fee := c.supplier_nonresponse_admin_fee_aed;
+    -- 19 OCT 2026 (accountant): the AED 250 of clauses v6-v12 is a LITERAL, as the 9% below is. It used to be read from
+    -- pricing_config, which made the pricing table state AED 250 as if it were the current fee (marketing's fact
+    -- register found it against the FAQ's AED 500), and raising that row to the current figure would have charged a
+    -- v12 signer the v13 fee. pricing_config now carries the CURRENT terms (v15: AED 500, 12%); a legacy supplier keeps
+    -- the fee it signed, whatever that row says. Never retroactive.
+    v_fee := 250;
     v_fee_basis := 'Supplier Agreement ' || coalesce(v_ver, '(no version recorded)') || ' clause 33(b) as signed before this reveal';
   end if;
   -- 24 SEP 2026 (ceo): SUPPLIER AGREEMENT v14 (founder instruction 990: the maximum UAE law safely allows).
@@ -4188,6 +4326,117 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_receipt_bank_match()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_days int; v_pct numeric; v_floor numeric; v_usd numeric;
+  e int; n_matched int := 0;
+begin
+  select num_value::int into v_days  from public.gl_settings where key = 'receipt_match_days';
+  select num_value      into v_pct   from public.gl_settings where key = 'receipt_match_tolerance_pct';
+  select num_value      into v_floor from public.gl_settings where key = 'receipt_match_tolerance_aed';
+  select num_value      into v_usd   from public.gl_settings where key = 'usd_to_aed';
+  if v_days is null or v_pct is null or v_floor is null or v_usd is null then
+    raise exception 'fn_accountant_receipt_bank_match: a receipt_match_* window or usd_to_aed is missing from gl_settings';
+  end if;
+
+  -- Every (unmatched receipt, unmatched debit) pair that fits on account, amount and date, with whether
+  -- the debit's text carries the receipt vendor's first 3+ character word (after any ZZ DEMO prefix).
+  drop table if exists pg_temp.rbm_cand;
+  create temp table rbm_cand on commit drop as
+  select x.id as eid, bl.id as lid, r.aed as receipt_aed, -bl.amount_aed as bank_aed,
+         bl.value_date - x.charged_on as gap,
+         (r.tok is not null and position(r.tok in lower(coalesce(bl.description, '') || ' ' || coalesce(bl.reference, ''))) > 0) as hit
+    from public.expense_entries x
+    cross join lateral (select round(x.amount * case when upper(x.currency) = 'USD' then v_usd else 1 end, 2) as aed,
+                               lower(substring(regexp_replace(coalesce(x.vendor, ''), '^\s*ZZ DEMO\s*', '', 'i')
+                                               from '[A-Za-z0-9]{3,}')) as tok) r
+    join public.bank_statement_line bl
+      on bl.amount_aed < 0
+     and (bl.account = 'zz_demo') = (x.vendor ilike 'ZZ DEMO%')
+     and abs(-bl.amount_aed - r.aed) <= greatest(v_floor, r.aed * v_pct / 100)
+     and bl.value_date between x.charged_on - 1 and x.charged_on + v_days
+   where x.amount > 0 and upper(x.currency) in ('AED', 'USD')
+     and not exists (select 1 from public.expense_bank_match m where m.expense_entry_id = x.id)
+     and not exists (select 1 from public.expense_bank_match m where m.bank_line_id = bl.id);
+
+  -- A receipt whose fitting debits carry no vendor word is never booked: it is listed ambiguous.
+  -- Only vendor-word pairs can be booked, and only when the pairing is forced, never by order:
+  -- a receipt with exactly one such debit takes it unless another receipt has that same debit as
+  -- ITS only one too (contested). Each booking removes both sides and the rest is re-read, so a
+  -- later receipt whose only debit an earlier receipt could also use gets it, and the earlier one
+  -- is left with its own. Whatever is still open is ambiguous for the accountant.
+  drop table if exists pg_temp.rbm_open;
+  create temp table rbm_open on commit drop as select * from rbm_cand where hit;
+  loop
+    with only_one as (
+      select eid, min(lid) as lid from rbm_open group by eid having count(*) = 1
+    ), forced as (
+      select o.eid, o.lid from only_one o
+       where (select count(*) from only_one o2 where o2.lid = o.lid) = 1
+    ), booked as (
+      insert into public.expense_bank_match (expense_entry_id, bank_line_id, receipt_aed, bank_aed, day_gap, vendor_in_text)
+      select c.eid, c.lid, c.receipt_aed, c.bank_aed, c.gap, true
+        from forced f join rbm_open c on c.eid = f.eid and c.lid = f.lid
+      returning expense_entry_id, bank_line_id
+    ), gone as (
+      delete from rbm_open c using booked b where c.eid = b.expense_entry_id or c.lid = b.bank_line_id
+      returning 1
+    )
+    select count(*) into e from booked;
+    exit when e = 0;
+    n_matched := n_matched + e;
+  end loop;
+
+  return jsonb_build_object(
+    'matched_now', n_matched,
+    'matched', (select count(*) from public.expense_bank_match),
+    -- Receipts with a fitting debit that were NOT booked, for the accountant to decide: never posted.
+    'ambiguous', (select coalesce(jsonb_agg(jsonb_build_object('expense_entry', a.eid,
+                     'reason', case when not bool_or_hit then 'no_vendor_word'
+                                    when open_n > 1 then 'several_debits' else 'contested' end,
+                     'lines', a.lines) order by a.eid), '[]'::jsonb)
+                    from (select c.eid, bool_or(c.hit) as bool_or_hit,
+                                 (select count(*) from rbm_open o where o.eid = c.eid) as open_n,
+                                 jsonb_agg(c.lid order by c.lid) as lines
+                            from rbm_cand c
+                           where not exists (select 1 from public.expense_bank_match m where m.expense_entry_id = c.eid)
+                             and not exists (select 1 from public.expense_bank_match m where m.bank_line_id = c.lid)
+                           group by c.eid) a),
+    'receipts_not_matchable', (select count(*) from public.expense_entries x
+                                where not (x.amount > 0 and upper(coalesce(x.currency, '')) in ('AED', 'USD'))),
+    -- Receipts inside a statement's coverage (and past the window) with no debit: paid elsewhere, or missing.
+    'receipts_unmatched', (select coalesce(jsonb_agg(jsonb_build_object('expense_entry', x.id, 'vendor', x.vendor,
+                              'amount', x.amount, 'currency', x.currency, 'charged_on', x.charged_on) order by x.charged_on), '[]'::jsonb)
+                             from public.expense_entries x
+                            where x.amount > 0 and upper(x.currency) in ('AED', 'USD')
+                              and not exists (select 1 from public.expense_bank_match m where m.expense_entry_id = x.id)
+                              and not exists (select 1 from rbm_cand c where c.eid = x.id
+                                                and not exists (select 1 from public.expense_bank_match m where m.bank_line_id = c.lid))
+                              and exists (select 1 from public.bank_statement_line bl
+                                           where (bl.account = 'zz_demo') = (x.vendor ilike 'ZZ DEMO%')
+                                             and bl.value_date <= x.charged_on - 1)
+                              and exists (select 1 from public.bank_statement_line bl
+                                           where (bl.account = 'zz_demo') = (x.vendor ilike 'ZZ DEMO%')
+                                             and bl.value_date >= x.charged_on + v_days)),
+    -- Debits the bank did not book itself, with no receipt: a payment the mailbox never received a document for.
+    'bank_debits_unmatched', (select coalesce(jsonb_agg(jsonb_build_object('line', bl.id, 'account', bl.account,
+                              'value_date', bl.value_date, 'amount_aed', bl.amount_aed,
+                              'description', public.fn_mask_bank_text(bl.description)) order by bl.value_date), '[]'::jsonb)
+                             from public.bank_statement_line bl
+                            where bl.amount_aed < 0
+                              and bl.kind is distinct from 'bank_charge'
+                              and not exists (select 1 from public.expense_bank_match m where m.bank_line_id = bl.id)),
+    'basis', 'Receipts (expense_entries, from the expenses mailbox) against Mashreq debits: amount within '
+             || v_pct || '% (floor AED ' || v_floor || '), USD at ' || v_usd || ', value date ' || '-1..+' || v_days
+             || ' days, vendor word in the line preferred. Bank charges book themselves and are not expected to carry a receipt. Nothing was posted to the ledger.');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_receipt_cadence_gaps(p_as_of date DEFAULT NULL::date)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -4346,6 +4595,42 @@ begin
           or (i.playbook_class is null and coalesce(btrim(i.not_automatable_reason), '') = ''));
   get diagnostics n = row_count;
   return n;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_receipt_intake_duty()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare c public.accountant_mailbox_check; e record; n_posted int := 0; n_owned int;
+begin
+  select * into c from public.accountant_mailbox_check order by checked_at desc limit 1;
+  -- a stalled intake is a seat failure: the duty fails, so its last_ok_at stops and the seat shows red
+  if c.id is null or c.checked_at < now() - interval '26 hours' then
+    raise exception 'the expenses mailbox has not been checked since % (accountant_mailbox_check)', coalesce(c.checked_at::text, 'ever');
+  end if;
+  if c.not_taken_in > 0 then
+    raise exception '% email(s) in the expenses mailbox were never taken in (check #% at %)', c.not_taken_in, c.id, c.checked_at;
+  end if;
+
+  -- booked from the mailbox but not in the ledger: post it (AED and USD only; another currency is the routine's own refusal)
+  for e in select x.id from public.expense_entries x
+            where x.source_msg_id is not null and upper(coalesce(x.currency, 'AED')) in ('AED', 'USD') and coalesce(x.amount, 0) > 0
+              and (coalesce(x.vendor, '') || ' ' || coalesce(x.note, '')) !~* 'zz[ _-]?demo'
+              and not exists (select 1 from public.gl_journal g where g.source = 'expense' and g.source_ref = x.id::text) loop
+    if public.fn_expense_post_to_gl(e.id) is not null then n_posted := n_posted + 1; end if;
+  end loop;
+
+  -- a held expenses-mailbox email belongs to the accountant, never to nobody
+  update public.inbound_messages m set owner_role = 'accountant'
+   where m.owner_role is null and m.needs_review and m.replied_at is null and m.to_email ilike 'expenses@%';
+  get diagnostics n_owned = row_count;
+
+  return jsonb_build_object('mailbox_checked_at', c.checked_at, 'verdict', c.verdict, 'listed', c.listed,
+    'held_over_24h', c.held_over_24h, 'posted_to_ledger', n_posted, 'held_given_an_owner', n_owned,
+    'held_now', (select count(*) from public.inbound_messages where to_email ilike 'expenses@%' and needs_review and replied_at is null));
 end $function$
 
 
@@ -6079,7 +6364,7 @@ declare
   v_m date := date_trunc('month', p_month)::date; v_e date; v_fx numeric;
   v_reveals int; v_fee numeric; v_gmv numeric; v_charged numeric; v_stripe numeric;
   v_ref_n int; v_ref_aed numeric; v_disp int; v_rfq int; v_llm numeric; v_msg numeric;
-  v_sub_n int; v_sub_rev numeric; v_var numeric; v_missing text[] := '{}';
+  v_sub_n int; v_sub_rev numeric; v_var numeric; v_missing text[] := '{}'; v_llm_unpriced int;
 begin
   v_e := (v_m + interval '1 month')::date;
   select num_value into v_fx from public.gl_settings where key = 'usd_to_aed';
@@ -6096,7 +6381,9 @@ begin
   select count(*) into v_disp from public.stripe_dispute where livemode and first_seen_at >= v_m and first_seen_at < v_e;
   select count(*) into v_rfq from public.inquiries i join public.customers c on c.id = i.customer_id
    where i.created_at >= v_m and i.created_at < v_e and not (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email));
-  select coalesce(sum(cost_aed), 0) into v_llm from public.ai_cost_log where occurred_at >= v_m and occurred_at < v_e;
+  select coalesce(sum(cost_aed), 0),
+         count(*) filter (where cost_aed is null and not cached and coalesce(model_used, 'none') <> 'none')
+    into v_llm, v_llm_unpriced from public.ai_cost_log where occurred_at >= v_m and occurred_at < v_e;
   select coalesce(sum(case when upper(currency) = 'USD' then amount * v_fx else amount end), 0) into v_msg
     from public.expense_entries where charged_on >= v_m and charged_on < v_e and vendor ~* '(twilio|resend|whatsapp|meta.*messag)';
   select count(*) into v_sub_n from public.leads where registration_paid_at >= v_m and registration_paid_at < v_e;
@@ -6105,6 +6392,7 @@ begin
   v_var := v_llm + v_msg;
   if v_reveals = 0 then v_missing := v_missing || text 'no paid reveal in the month, so per-reveal figures are undefined'; end if;
   if v_rfq = 0 then v_missing := v_missing || text 'no request in the month, so cost per request is undefined'; end if;
+  if v_llm_unpriced > 0 then v_missing := v_missing || (v_llm_unpriced || ' model call(s) returned no usage: their cost is unknown, so llm_cost_aed is a lower bound'); end if;
   if v_sub_n = 0 then v_missing := v_missing || text 'no paid supplier subscription in the month'; end if;
   return jsonb_build_object(
     'month', to_char(v_m, 'YYYY-MM'),
@@ -6116,13 +6404,61 @@ begin
     'refunds', v_ref_n, 'refunded_aed', round(v_ref_aed, 2),
     'refund_rate', case when v_fee > 0 then round(v_ref_aed / v_fee, 4) end,
     'disputes', v_disp, 'dispute_rate', case when v_reveals > 0 then round(v_disp::numeric / v_reveals, 4) end,
-    'requests', v_rfq, 'llm_cost_aed', round(v_llm, 2), 'messaging_email_cost_aed', round(v_msg, 2),
+    'requests', v_rfq, 'llm_cost_aed', round(v_llm, 2), 'llm_calls_unpriced', v_llm_unpriced, 'messaging_email_cost_aed', round(v_msg, 2),
     'variable_cost_per_request_aed', case when v_rfq > 0 then round(v_var / v_rfq, 2) end,
     'contribution_per_reveal_aed', case when v_reveals > 0 then round((v_fee - v_stripe - v_ref_aed - v_var) / v_reveals, 2) end,
     'subscriptions_paid', v_sub_n, 'subscription_revenue_aed', round(v_sub_rev, 2),
     'revenue_per_subscription_aed', case when v_sub_n > 0 then round(v_sub_rev / v_sub_n, 2) end,
     'missing', to_jsonb(v_missing),
     'basis', 'Paid reveals by revealed_at, refunds by refund_confirmed_at, ZZ DEMO customers excluded. Stripe fees from transactions.stripe_fee_fils. Variable cost = ai_cost_log.cost_aed + messaging/email vendor expenses (USD at gl_settings usd_to_aed). Contribution per reveal = (fee - Stripe fees - refunds - variable cost) / reveals. Numerators and denominators are all returned.');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_vat_threshold(p_as_of date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_d date := coalesce(p_as_of, (now() at time zone 'Asia/Dubai')::date);
+  c_mand constant numeric := 375000; c_vol constant numeric := 187500;
+  v_12 numeric; v_30 numeric; v_335 numeric; v_proj numeric; v_status text; v_by date; v_rep jsonb;
+begin
+  select coalesce(sum(jl.credit - jl.debit) filter (where j.entry_date > v_d - interval '12 months'), 0),
+         coalesce(sum(jl.credit - jl.debit) filter (where j.entry_date > v_d - 30), 0),
+         coalesce(sum(jl.credit - jl.debit) filter (where j.entry_date > v_d - 335), 0)
+    into v_12, v_30, v_335
+    from public.gl_journal j join public.gl_journal_lines jl on jl.journal_id = j.id
+    join public.gl_accounts ac on ac.code = jl.account_code and ac.type = 'revenue'
+   where j.status = 'posted' and j.entry_date <= v_d and j.entry_date > v_d - interval '12 months';
+  v_proj := v_335 + v_30;
+  v_status := case when v_12 > c_mand or v_proj > c_mand then 'mandatory'
+                   when v_12 > c_vol then 'voluntary_eligible'
+                   when v_proj > 0.8 * c_mand or v_12 > 0.8 * c_vol then 'approaching'
+                   else 'below' end;
+  -- historical test: within 30 days of the end of the month the threshold was passed; forward test: within 30 days
+  v_by := case when v_status = 'mandatory' then
+                 case when v_12 > c_mand then (date_trunc('month', v_d) + interval '1 month' - interval '1 day')::date + 30 else v_d + 30 end end;
+  insert into public.accountant_vat_threshold_check (checked_on, taxable_12m_aed, last_30d_aed, projected_aed, status, register_by)
+  values (v_d, v_12, v_30, v_proj, v_status, v_by)
+  on conflict (checked_on) do update set taxable_12m_aed = excluded.taxable_12m_aed, last_30d_aed = excluded.last_30d_aed,
+    projected_aed = excluded.projected_aed, status = excluded.status, register_by = excluded.register_by, recorded_at = now();
+  if v_status <> 'below' then
+    v_rep := public.fn_support_report_to_ceo('accountant.vat_threshold:' || v_status || ':' || to_char(v_d, 'YYYY'),
+      case when v_status = 'mandatory' then 'elevated' else 'routine' end,
+      format('VAT threshold: %s. Taxable supplies AED %s over 12 months, AED %s projected 30 days ahead (voluntary AED 187,500, mandatory AED 375,000)',
+             replace(v_status, '_', ' '), v_12, v_proj),
+      jsonb_build_object('as_of', v_d, 'taxable_12m_aed', v_12, 'last_30d_aed', v_30, 'projected_aed', v_proj, 'register_by', v_by,
+                         'basis', 'posted revenue in gl_journal (gl_accounts.type = revenue); Federal Decree-Law 8 of 2017 Art 13-14'),
+      '[]'::jsonb,
+      case v_status when 'mandatory' then format('Register QuotesDone for VAT with the FTA by %s.', v_by)
+                    when 'voluntary_eligible' then 'Decide whether to register voluntarily now; the accountant keeps measuring toward the mandatory line.'
+                    else 'Plan the VAT registration: supplies are at 80% of a threshold.' end,
+      null, null, interval '2 days', 'accountant');
+    update public.accountant_vat_threshold_check set ceo_report_id = (v_rep->>'report_id')::bigint where checked_on = v_d;
+  end if;
+  return jsonb_build_object('as_of', v_d, 'taxable_12m_aed', v_12, 'projected_aed', v_proj, 'status', v_status, 'register_by', v_by,
+    'reported', v_rep is not null);
 end $function$
 
 
@@ -6661,7 +6997,7 @@ declare
   v_gl_all int; v_gl_lines int; v_gl_n int; v_dr numeric; v_cr numeric;
   v_cash numeric;
   -- platform cost
-  v_ai_all int; v_ai_n int; v_ai_aed numeric; v_ai_models text;
+  v_ai_all int; v_ai_n int; v_ai_aed numeric; v_ai_models text; v_ai_unpriced int;
   v_lines jsonb;
 begin
   select count(*) into v_txn_all from transactions;
@@ -6706,8 +7042,9 @@ begin
   select coalesce(sum(balance),0) into v_cash from gl_account_balances where code in ('1000','1050');
 
   select count(*) into v_ai_all from ai_cost_log;
-  select count(*), coalesce(sum(cost_aed),0), coalesce(string_agg(distinct coalesce(model_used,'?'), ', '), '')
-    into v_ai_n, v_ai_aed, v_ai_models
+  select count(*), coalesce(sum(cost_aed),0), coalesce(string_agg(distinct coalesce(model_used,'?'), ', '), ''),
+         count(*) filter (where cost_aed is null and not cached and coalesce(model_used, 'none') <> 'none')
+    into v_ai_n, v_ai_aed, v_ai_models, v_ai_unpriced
     from ai_cost_log where occurred_at >= v_from and occurred_at < v_to;
 
   v_lines := jsonb_build_object(
@@ -6808,12 +7145,13 @@ begin
 
     -- PLATFORM COST --------------------------------------------------------------------------
     'ai_and_model_cost', jsonb_build_object(
-      'aed', v_ai_aed, 'n', v_ai_n, 'denom', v_ai_all, 'models', v_ai_models,
+      'aed', v_ai_aed, 'n', v_ai_n, 'denom', v_ai_all, 'models', v_ai_models, 'unpriced', v_ai_unpriced,
       'basis', case when v_ai_all = 0 then 'true zero' else 'measured' end,
       'note', case when v_ai_all = 0
         then 'public.ai_cost_log holds 0 rows.'
         else v_ai_n||' model call(s) inside the window, of '||v_ai_all||' logged in total, costing '||to_char(v_ai_aed,'FM999,999,990.00')||
              ' AED. Models used: '||coalesce(nullif(v_ai_models,''),'none in this window')||
+             case when v_ai_unpriced > 0 then ' '||v_ai_unpriced||' call(s) returned no usage, so their cost is unknown and this total is a lower bound.' else '' end||
              case when v_ai_models = 'none' then '. Every logged call resolved to model_used=''none'', so this zero is a real measured zero: the paid route was refused, not that the work was free.' else '.' end end)
   );
 
@@ -6885,6 +7223,33 @@ begin
   return public.fn_accountant_weekly_report(v_start)
          || jsonb_build_object('fired', true, 'configured_at', v_at::text, 'configured_dow', v_dow);
 end;$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_year_end_duty()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_y int := extract(year from now() at time zone 'Asia/Dubai')::int; v_rev numeric; v_rep jsonb;
+begin
+  -- the Corporate Tax audit condition (MD 82/2023, MD 84/2025): revenue over AED 50m in the period. A sole establishment
+  -- is outside the Companies Law auditor duty, so this is the only test that could ever require an audit.
+  select coalesce(sum(jl.credit - jl.debit), 0) into v_rev
+    from public.gl_journal j join public.gl_journal_lines jl on jl.journal_id = j.id
+    join public.gl_accounts ac on ac.code = jl.account_code and ac.type in ('revenue', 'other_income')
+   where j.status = 'posted' and extract(year from j.entry_date) = v_y;
+  if v_rev > 0.8 * 50000000 then
+    v_rep := public.fn_support_report_to_ceo('accountant.audit_threshold:' || v_y, 'elevated',
+      format('Revenue for %s is AED %s, over 80%% of the AED 50m Corporate Tax audit threshold', v_y, v_rev),
+      jsonb_build_object('year', v_y, 'revenue_aed', v_rev, 'basis', 'Ministerial Decision 84 of 2025 (formerly 82 of 2023)'), '[]'::jsonb,
+      'Appoint an auditor for this tax period before its year end.', null, null, interval '3 days', 'accountant');
+  end if;
+  return jsonb_build_object('year_end', public.fn_accountant_year_end_tick(), 'revenue_ytd_aed', v_rev,
+    'auditor', case when v_rev > 50000000 then 'required: revenue over AED 50m'
+                    else 'not applicable: sole establishment (outside FDL 32/2021), revenue under the AED 50m CT audit threshold, not a free zone person' end,
+    'reported', v_rep is not null);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_accountant_year_end_pack_attach(p_year integer, p_files jsonb)
@@ -8478,6 +8843,135 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -8993,135 +9487,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -10058,7 +10423,8 @@ begin
   -- cheap model is a green check that means nothing.
   if v_generic and p_agent_key is not null and v_idp.identity_key is null then
     v_rt := public.fn_routing_tier_model(p_agent_key);
-    if v_rt is not null and (v_rt->>'model') is not null then
+    -- 18 Oct 2026 (ledger 1240/1241): the routing tier may only pick inside the class's own pair.
+    if v_rt is not null and (v_rt->>'model') is not null and (v_rt->>'model') in (v_pol.model_primary, v_pol.model_fallback) then
       v_pol.model_primary := v_rt->>'model';
       v_pol.tier          := v_rt->>'registry_tier';
       v_src := v_src || ' | routing_tier "' || (v_rt->>'routing_tier') || '" for "' || p_agent_key
@@ -10105,8 +10471,10 @@ begin
     -- 1056: 'xlarge' is only the founder's named hard routes (the CEO's judgement, the comparison report, on
     -- Opus); a confidence prior never moves them. 'large' keeps the 11 Aug doctrine.
     if v_conf >= 0.95 and v_tier = 'large' then
-      select model_id into v_model from model_registry
-       where active and approved and tier = 'medium' order by in_per_mtok_usd, model_id limit 1;  -- model_id: 1056 tie-break
+      -- 18 Oct 2026 (ledger 1240/1241): the cheapest MEDIUM row of the whole registry was Gemini, which may only hear.
+      -- A downgrade now stays inside the class's own pair; with no medium model there, the class keeps its primary.
+      v_model := coalesce((select model_id from model_registry
+       where active and approved and tier = 'medium' and model_id in (v_pol.model_primary, v_pol.model_fallback) order by in_per_mtok_usd, model_id limit 1), v_model);
       v_why := v_why || ' | confidence ' || v_conf
                || case when v_prior is null then ''
                        else ' (' || p_agent_key || ' own median over ' || (v_prior->>'n')
@@ -10148,8 +10516,8 @@ begin
   select * into v_reg from model_registry where model_id = v_model and active;
   if not found then
     select * into v_reg from model_registry
-     where active and approved and tier = (case v_tier when 'xlarge' then 'xlarge' else v_tier end)
-     order by in_per_mtok_usd, model_id limit 1;  -- model_id: 1056 tie-break
+     where active and approved and model_id in (v_pol.model_primary, v_pol.model_fallback)   -- 18 Oct 2026: the class's own pair, never the cheapest of the registry
+     order by (model_id = v_pol.model_fallback) desc, in_per_mtok_usd, model_id limit 1;
     v_why := v_why || ' | WARNING: policy model "' || v_model || '" is not in model_registry; substituted ' || coalesce(v_reg.model_id,'(none)');
     v_model := v_reg.model_id;
   end if;
@@ -10167,6 +10535,7 @@ begin
     select * into v_sub from model_registry
      where active and approved and model_id not like '%:online'      -- 1056: never a web-grounded variant
        and (not v_vis or supports_vision) and (not v_aud or supports_audio) and (not v_tls or supports_tools)
+       and (model_id in (v_pol.model_primary, v_pol.model_fallback) or (v_aud and supports_audio))   -- 18 Oct 2026 (ledger 1241): own pair; only a recording reaches the model that hears
      order by (fn_ai_route_tier_rank(tier) < v_want),                 -- at-or-above the tier first
               abs(fn_ai_route_tier_rank(tier) - v_want),              -- then closest to it
               in_per_mtok_usd, model_id                                -- then cheapest (model_id: 1056 tie-break)
@@ -10193,6 +10562,7 @@ begin
     select * into v_fb from model_registry
      where active and approved and model_id <> v_model and model_id not like '%:online'   -- 1056
        and (not v_vis or supports_vision) and (not v_aud or supports_audio) and (not v_tls or supports_tools)
+       and (model_id in (v_pol.model_primary, v_pol.model_fallback) or (v_aud and supports_audio))   -- 18 Oct 2026 (ledger 1241)
      order by (fn_ai_route_tier_rank(tier) < v_want), abs(fn_ai_route_tier_rank(tier) - v_want), in_per_mtok_usd, model_id
      limit 1;
   end if;
@@ -10288,9 +10658,12 @@ begin
       union all select p.model_id, 10 + p.rank from public.review_pool p where p.active
       -- 1068 (30 Sep 2026): the last-resort families are the matrix's live ones. 5 Oct 2026 (matrix v2): the two retired
       -- models leave the list; Gemini first, then luna, Opus last.
-      union all select 'google/gemini-3.8-flash', 2000000
-      union all select 'openai/gpt-6-luna', 2000001
-      union all select 'anthropic/claude-opus-5.5', 2000002)
+      -- 18 Oct 2026 (ledger 1240/1241, matrix v3): Gemini only hears, so it is a last resort only for a review that
+      -- must hear; GPT-6 Luna Pro replaces luna (ruling 1218), Sonnet 5.5 and Opus are the Anthropic families.
+      union all select 'anthropic/claude-sonnet-5.5', 2000000
+      union all select 'openai/gpt-6-luna-pro', 2000001
+      union all select 'anthropic/claude-opus-5.5', 2000002
+      union all select 'google/gemini-3.8-flash', 2000003 where v_aud)
     select d.model_id, d.ord, lower(btrim(r.provider)) provider, coalesce(r.active and r.approved, false) reg_ok,
            (not v_vis or coalesce(r.supports_vision, false)) and (not v_aud or coalesce(r.supports_audio, false))
              and (not v_tls or coalesce(r.supports_tools, false)) caps_ok,
@@ -11129,6 +11502,8 @@ begin
   select count(*), coalesce(jsonb_agg(id order by id) filter (where rn <= 20), '[]'::jsonb) into v_not_done, v_ids
     from (select d.id, row_number() over (order by d.id) rn from public.doc_backups d
            where d.status <> 'done' and d.entity <> 'zz_demo'
+             -- 19 Oct 2026: retention moves only a verified copy into these; a stuck prune is a backup_prune finding.
+             and d.status not in ('prune_pending', 'pruning', 'pruned')
              and not (d.status = 'abandoned' and coalesce(d.error, '') like 'abandoned:%')
              and coalesce(d.requeued_at, d.created_at) < now() - interval '48 hours') x;
   select count(*) into v_abandoned from public.doc_backups where status = 'abandoned' and coalesce(error, '') like 'abandoned:%';
@@ -11332,7 +11707,7 @@ begin
      set status = coalesce(b.status_before_prune, 'pending'), status_before_prune = null,
          claimed_at = null, claimed_by = null, error = null
     from cl
-   where b.dedupe_key like 'EXPORT:' || to_char(cl.day, 'YYYY-MM-DD') || '/%'
+   where left(b.dedupe_key, 18) = 'EXPORT:' || to_char(cl.day, 'YYYY-MM-DD') || '/'
      and b.status in ('prune_pending', 'pruning');
   get diagnostics v_reverted = row_count;
   return v_reverted;
@@ -11472,13 +11847,15 @@ CREATE OR REPLACE FUNCTION public.fn_backup_prune_plan(p_today date DEFAULT NULL
 AS $function$
   select p.day, p.origin, p.kind, p.day_status, p.decision, p.reason, s.n, s.b,
          (select count(*) from public.doc_backups b
-           where b.dedupe_key like 'EXPORT:' || to_char(p.day, 'YYYY-MM-DD') || '/%' and b.status <> 'pruned'
+           where left(b.dedupe_key, 18) = 'EXPORT:' || to_char(p.day, 'YYYY-MM-DD') || '/' and b.status <> 'pruned'
              and public.fn_backup_prune_dropbox_allowed(b.bucket, b.path, b.dedupe_key, b.doc_type, b.dropbox_path))
     from public.fn_backup_prune_decide(public.fn_backup_prune_days(),
                                        coalesce(p_today, (now() at time zone 'Asia/Dubai')::date)) p
     cross join lateral (select count(*) as n, coalesce(sum((o.metadata->>'size')::bigint), 0)::bigint as b
                           from storage.objects o
-                         where o.bucket_id = 'backups' and o.name like to_char(p.day, 'YYYY-MM-DD') || '/%'
+                         where o.bucket_id = 'backups'
+                           and o.name collate "C" >= to_char(p.day, 'YYYY-MM-DD') || '/' and o.name collate "C" < to_char(p.day, 'YYYY-MM-DD') || '0'
+                           and o.name like to_char(p.day, 'YYYY-MM-DD') || '/%'
                            and public.fn_backup_prune_path_allowed(o.bucket_id, o.name)) s;
 $function$
 
@@ -11551,7 +11928,9 @@ begin
   if not found then return jsonb_build_object('log_id', null, 'cancelled', v_cancelled); end if;
   select coalesce(array_agg(o.name order by o.name), '{}') into v_names
     from (select o2.name from storage.objects o2
-           where o2.bucket_id = 'backups' and o2.name like to_char(v_log.day, 'YYYY-MM-DD') || '/%'
+           where o2.bucket_id = 'backups'
+             and o2.name collate "C" >= to_char(v_log.day, 'YYYY-MM-DD') || '/' and o2.name collate "C" < to_char(v_log.day, 'YYYY-MM-DD') || '0'
+             and o2.name like to_char(v_log.day, 'YYYY-MM-DD') || '/%'
              and public.fn_backup_prune_path_allowed(o2.bucket_id, o2.name)
              -- 15 Sep 2026 (the guard): only a file whose Dropbox copy was uploaded AND verified. A file
              -- without one stays, and fn_backup_prune_storage_done counts it as left, so the day is never
@@ -11609,7 +11988,7 @@ begin
       from public.backup_prune_log l
      where l.mode = 'delete' and l.cancelled_at is null and l.dropbox_done_at is null
        and l.storage_deleted_at is not null
-       and b.dedupe_key like 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/%'
+       and left(b.dedupe_key, 18) = 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/'
        and b.status = 'done' and b.verified_at is not null
        and public.fn_backup_prune_dropbox_allowed(b.bucket, b.path, b.dedupe_key, b.doc_type, b.dropbox_path);
     update public.doc_backups b set status = 'pruned', error = null
@@ -11617,7 +11996,7 @@ begin
     update public.backup_prune_log l set dropbox_done_at = now()
      where l.mode = 'delete' and l.cancelled_at is null and l.dropbox_done_at is null
        and not exists (select 1 from public.doc_backups b
-                        where b.dedupe_key like 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/%' and b.status <> 'pruned');
+                        where left(b.dedupe_key, 18) = 'EXPORT:' || to_char(l.day, 'YYYY-MM-DD') || '/' and b.status <> 'pruned');
   end if;
 
   -- A prune failure is an it_engineer finding; the same settle closes it once the deletion completes.
@@ -11923,6 +12302,10 @@ begin
         || coalesce(v_cov->>'sources_without_a_row','unknown') || ' source(s) with no row, '
         || (v_cov->>'refiles_open_past_48h') || ' refile(s) not verified. Rows: ' || (v_cov->>'not_done_ids') || '.',
         'doc_backups', v_cov);
+      -- 19 Oct 2026: one condition is one report. While an earlier escalation is still accepted the CEO holds it;
+      -- a new day's key is raised only after that one is completed (12 sat accepted, one per day, before this).
+      if not exists (select 1 from public.support_ceo_report
+                      where idempotency_key like 'dropbox_backup_escalation:%' and status = 'accepted') then
       perform public.fn_support_report_to_ceo(
         'dropbox_backup_escalation:' || v_date, 'serious',
         'Dropbox backup coverage has been failing for over 48 hours (' || (v_cov->>'failing') || ')',
@@ -11931,6 +12314,7 @@ begin
                     from agent_actions where kind = 'handoff' and detail->>'type' in ('backup.refile','backup.remediate') and status <> 'done'), '[]'::jsonb),
         'Decide whether the missing documents need the founder''s Dropbox checked by hand or the filing corrected. The IT engineer has raised it and handed each missing file to the sales engineer to refile; this is past 48 hours, which is why it reaches you.',
         p_review_in => interval '1 day', p_source_agent => 'it_engineer');
+      end if;
     end if;
   end if;
 

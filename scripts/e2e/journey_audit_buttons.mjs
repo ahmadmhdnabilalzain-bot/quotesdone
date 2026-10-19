@@ -153,7 +153,7 @@ async function customerAudit(ctx) {
   const stored = Number(big.json?.project?.budget_total ?? NaN);
   rep.step(C, 'an absurd project budget is refused', !big.json?.ok || !(stored > 1e11) ? 'PASS' : 'FAIL', `HTTP ${big.status} stored=${big.json?.project?.budget_total ?? '(none)'}`);
 
-  // 6. SIGN-IN: a magic-link session leaves no token in history (item 29), and two roles in one browser
+  // 6. SIGN-IN: a magic-link (URL-borne) session is REFUSED and leaves no token in history (item 29; CWE-384, 19 Oct 2026), and two roles in one browser
   // do not bounce each other (item 30).
   await signInAudit(ctx, cust, demoOnly(fx.suppliers[0]));
 }
@@ -242,7 +242,7 @@ async function signInAudit(ctx, cust, sup) {
       body: JSON.stringify({ type: 'magiclink', email: sup.email, redirect_to: SITE + '/portal' }),
     }).then((r) => r.json()).catch(() => ({}));
     const link = gl.action_link || gl.properties?.action_link;
-    if (!link) { rep.step(C, 'magic link: no session left in the browser history', 'SKIP', 'generate_link returned no link'); return; }
+    if (!link) { rep.step(C, 'magic link: does NOT sign in (URL sessions are refused), and no session is left in history', 'SKIP', 'generate_link returned no link'); return; }
     // The supplier signs in by magic link in a SECOND TAB of the SAME browser.
     const p2 = await s.ctx.newPage();
     await p2.goto(link, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -251,7 +251,8 @@ async function signInAudit(ctx, cust, sup) {
     await p2.goBack({ timeout: 10000 }).catch(() => {});
     const back = p2.url();
     const leaked = /access_token=|refresh_token=/.test(hereNow + back);
-    rep.step(C, 'magic link: signs in, and no session is left in the address bar or one Back press away', signedIn && !leaked ? 'PASS' : 'FAIL',
+    // CWE-384 (19 Oct 2026): a URL session is never adopted, so the link must NOT sign in (no login fixation).
+    rep.step(C, 'magic link: does NOT sign in (URL sessions are refused), and no session is left in the address bar or one Back press away', !signedIn && !leaked ? 'PASS' : 'FAIL',
       `signed in=${signedIn}; address bar ${/access_token=/.test(hereNow) ? 'HOLDS THE TOKEN' : 'clean'}; Back ${/access_token=/.test(back) ? 'SHOWS THE TOKEN URL' : 'clean'}`, { shot: await shot(p2, dir, 'h_magic_link') });
     await p2.close().catch(() => {});
     // The customer's tab must stay the customer's (item 30: "redirected the customer's /me tab to /portal").

@@ -73,6 +73,14 @@ export async function tradeLabelVocab(admin: any): Promise<Record<string, string
   return error ? undefined : Object.fromEntries((data || []).map((r: { code: string; label: string }) => [r.code, r.label]));
 }
 
+/** Each active trade's own aliases (taxonomy_trade.aliases): what CONFIRMS a meaning hit on a supplier's document
+ *  (service_meaning.proposeByMeaning, opts.tradeAliases); never what names a trade. undefined when unread. */
+// deno-lint-ignore no-explicit-any
+export async function tradeAliasVocab(admin: any): Promise<Record<string, string[]> | undefined> {
+  const { data, error } = await admin.from('taxonomy_trade').select('code,aliases').eq('active', true);
+  return error ? undefined : Object.fromEntries((data || []).map((r: { code: string; aliases: string[] | null }) => [r.code, r.aliases || []]));
+}
+
 /** Each active trade's ARABIC name (taxonomy_trade.label_ar), for trade_resolve's exact-name path; undefined when unread. */
 // deno-lint-ignore no-explicit-any
 export async function tradeArNameVocab(admin: any): Promise<Record<string, string> | undefined> {

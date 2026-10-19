@@ -1,0 +1,58 @@
+{
+  "trade": "houseware_wholesale",
+  "layer": "uae-market",
+  "label_en": "Houseware & kitchenware wholesale",
+  "label_ar": "الأدوات المنزلية وأدوات المطبخ بالجملة",
+  "entries": [
+    {
+      "id": "houseware_wholesale:uae-market-brands",
+      "topic": "Houseware & kitchenware wholesale: brands and makers in this category",
+      "topic_ar": "الأدوات المنزلية وأدوات المطبخ بالجملة: العلامات التجارية والصانعون في هذه الفئة",
+      "kind": "uae_market_brands",
+      "body_en": "Makes in this category, each confirmed on the brand's Wikipedia page (no supplier or price is named): Tefal (France, Groupe SEB) makes non-stick cookware and small appliances. Zwilling J. A. Henckels (Germany) makes kitchen knives, cutlery and cookware. Pyrex is a borosilicate glassware brand developed by Corning for laboratory and kitchen use. Which local distributor carries each make was not checked.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحة العلامة في ويكيبيديا (دون ذكر مورد أو سعر): Tefal (فرنسا، مجموعة SEB) تصنع أواني الطبخ غير اللاصقة والأجهزة الصغيرة. Zwilling J. A. Henckels (ألمانيا) تصنع سكاكين المطبخ وأدوات المائدة وأواني الطبخ. Pyrex علامة أواني زجاجية من البوروسيليكات طورتها Corning للمختبرات والمطابخ. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Tefal",
+        "https://en.wikipedia.org/wiki/Zwilling_J._A._Henckels",
+        "https://en.wikipedia.org/wiki/Pyrex"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Coordinator route for ledger 899: each brand fact (what the brand makes and where it is based) read on the brand's Wikipedia page on 19 Oct 2026; brands only, no supplier, no price.",
+      "source_note": "Tefal: https://en.wikipedia.org/wiki/Tefal | Zwilling: https://en.wikipedia.org/wiki/Zwilling_J._A._Henckels | Pyrex: https://en.wikipedia.org/wiki/Pyrex"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which makes of houseware & kitchenware wholesale are commonly offered?",
+      "q_ar": "ما العلامات الشائعة في الأدوات المنزلية وأدوات المطبخ بالجملة؟",
+      "expected_entry_ids": [
+        "houseware_wholesale:uae-market-brands"
+      ],
+      "written_blind": true
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-10-19",
+    "ledger": [
+      899,
+      900,
+      903,
+      1198,
+      1209
+    ],
+    "brands_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "added": [
+        "houseware_wholesale:uae-market-brands"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Tefal",
+        "https://en.wikipedia.org/wiki/Zwilling_J._A._Henckels",
+        "https://en.wikipedia.org/wiki/Pyrex"
+      ]
+    }
+  }
+}

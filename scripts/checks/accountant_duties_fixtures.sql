@@ -99,8 +99,21 @@ declare h public.agent_actions;
 begin
   update public.it_engineer_finding set started_at = now() - interval '7 hours' where issue_key = p_key and closed_at is null
      and blast = 'internal';                                   -- internal findings are quiet for six hours by design
+  -- Since 18 Oct 2026 the tick opens oldest first inside a budget measured from statement_timestamp(). This
+  -- fixture is ONE statement, so a few seconds in, every tick here has no budget left and opens nothing; at
+  -- its start the tick spends the budget on production's older backlog. Measured 19 Oct 02:32 Dubai: the tick
+  -- opened 30, left 5, and the bank finding (raised a second earlier, so last in line) was never reached; with
+  -- that one aged to the front, collections (~6 s into the batch) read "no handoff" the same way. The check
+  -- said "no handoff" on a correct loop. So the tick runs as before, and a finding it left for a later tick
+  -- is opened here by the routine the tick itself calls, after the same playbook-first step.
   perform public.fn_it_loop_tick();
   h := pg_temp.zz_handoff(p_key);
+  if h.id is null and not public.fn_it_playbook_first(p_key,
+       (select f.started_at from public.it_engineer_finding f where f.issue_key = p_key and f.closed_at is null
+         order by f.started_at desc limit 1)) then
+    perform public.fn_it_loop_open(p_key);
+    h := pg_temp.zz_handoff(p_key);
+  end if;
   perform pg_temp.zz_assert(h.id is not null, 'no it.finding handoff opened for ' || p_key);
   perform pg_temp.zz_assert(h.agent = p_owner, p_key || ' was handed to ' || coalesce(h.agent, '?') || ', not ' || p_owner);
   return h.id;

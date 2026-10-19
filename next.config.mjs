@@ -128,6 +128,13 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // /en is the default locale, served unprefixed. next-intl sent /en and /en/* with a 307, a
+      // TEMPORARY redirect, so search engines kept the /en URLs ("Page with redirect") instead of
+      // folding them into the unprefixed page. Measured 19 Oct 2026: /en/about -> 307 /about.
+      { source: '/en', destination: '/', permanent: true },
+      // Social-card image routes (/en/opengraph-image, /en/blog/x/opengraph-image) are real /en URLs
+      // that every page's og:image names, so they are left out.
+      { source: '/en/:path((?!(?:.*/)?(?:opengraph|twitter)-image(?:/|$)).*)', destination: '/:path', permanent: true },
       // Audit 14 Sep: Supplier Agreement §16 linked /legal?doc=privacy, a 404. The text is fixed,
       // but copies accepted before the fix still carry the old link, so the old URL resolves too.
       { source: '/legal', has: [{ type: 'query', key: 'doc', value: 'privacy' }], destination: '/privacy', permanent: true },

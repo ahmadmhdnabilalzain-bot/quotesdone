@@ -25,7 +25,8 @@ Deno.test('the routine result reaches the model as facts and the model writes th
   const r = await modelSays(s.deps, { audience: 'supplier', lang: 'ar', message: 'make it 9000', situation: 'They asked to change their quotation price to AED 9000. pricing routine: {"ok":true,"old":10000,"new":9000}',
     subject: { fixture: true, phone: '+971500000021' } });
   assertEquals(r.text, 'Done: your quotation for the ZZ DEMO job is now AED 9,000.');
-  assert(s.calls[0].system.includes('"new":9000'), 'the routine result is in the facts');
+  // the facts ride in the turn itself, after the cached conversation (chat_history.ts, 18 Oct 2026), not in the system prompt
+  assert(s.calls[0].input.includes('"new":9000'), 'the routine result is in the facts');
   assert(s.calls[0].system.includes('suppliers are always answered in English'), 'a supplier is answered in English even when they wrote Arabic');
   assertEquals((s.calls[0].o.subject as Record<string, unknown>).fixture, true, 'a ZZ DEMO turn is tagged for the rehearsal window');
 });
@@ -63,4 +64,49 @@ Deno.test('the rate key reaches the gateway call, and the model\'s escalate flag
   const r = await modelSays(s.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO: you took my money and vanished', situation: 'a complaint', rateKey: 'wa:whatsapp:+971500000021' });
   assertEquals(s.calls[0].o.rateKey, 'wa:whatsapp:+971500000021');
   assertEquals(r.escalate, true);
+});
+
+// prevented by: this test. Run 5 (qd_run:321d13ae, agent_runs 3793567) held a WhatsApp turn 73.7 s in serial model
+// calls and still ended llm_failed. A hanging model now costs at most the reply budget: each call is given only the
+// time left (never more than PER_CALL_MS), no call starts with under MIN_CALL_MS left, and the result is '' so the
+// caller sends the held notice and queues the turn.
+Deno.test('a hanging model ends the reply inside its budget, each call given only the time left', async () => {
+  const timeouts: number[] = [];
+  const deps = {
+    gate: () => Promise.resolve(null),
+    // the gateway honours the caller's timeout: it hangs until then and answers nothing
+    llm: (_p: string, _s: string, _i: string, o: Record<string, unknown>) => {
+      timeouts.push(Number(o.timeoutMs));
+      return new Promise<LlmReply>((res) => setTimeout(() => res({ content: null, error: 'timeout' } as LlmReply), Number(o.timeoutMs)));
+    },
+    embed: () => Promise.resolve(null),
+    rpc: () => Promise.resolve({ data: null, error: null }),
+  } as unknown as ThinkDeps;
+  const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'how long does installation take?', situation: 'facts', budgetMs: 9_000 });
+  assertEquals(r.text, '', 'no model answered: the caller sends the held notice');
+  assert(r.ms < 10_000, `the turn took ${r.ms} ms against a 9 s budget`);
+  assertEquals(timeouts.length, 1, 'no second call starts with under MIN_CALL_MS left');
+  assert(timeouts[0] <= 9_000, `the call was given ${timeouts[0]} ms, more than the budget`);
+  assert(r.attempts.some((a) => a.startsWith('deadline')), 'the attempts say the clock ran out: ' + r.attempts.join(','));
+});
+
+Deno.test('the default WhatsApp budget caps a reply call at 25 s', async () => {
+  const s = stub([A('Installation of aluminium windows on a villa usually takes a few days, depending on the area.')]);
+  const r = await modelSays(s.deps, { audience: 'customer', lang: 'en', message: 'how long?', situation: 'facts' });
+  assert(r.text.length > 0);
+  assert(Number(s.calls[0].o.timeoutMs) <= 25_000, 'a reply call keeps no more than 25 s');
+});
+
+Deno.test('the 45 s clock runs from arrival: time spent before the model call is taken off the budget', async () => {
+  const { budgetLeft, WA_REPLY_BUDGET_MS, WA_SEND_MARGIN_MS } = await import('./model_says.ts');
+  assertEquals(budgetLeft(1_000, 1_000), WA_REPLY_BUDGET_MS - WA_SEND_MARGIN_MS);
+  assertEquals(budgetLeft(0, 30_000), WA_REPLY_BUDGET_MS - WA_SEND_MARGIN_MS - 30_000);
+  assertEquals(budgetLeft(0, 50_000), 0);   // measured case: ~45 s of routing before the reply began
+});
+
+Deno.test('no budget left: no model call starts and the text is empty, so the caller sends the held notice', async () => {
+  const { deps, calls } = stub(['{"reply":"late answer"}']);
+  const said = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'hi', situation: 'x', budgetMs: 0 });
+  assertEquals(calls.length, 0);
+  assertEquals(said.text, '');
 });

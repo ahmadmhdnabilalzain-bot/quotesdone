@@ -1,0 +1,1103 @@
+{
+  "seat": "customer_support",
+  "role": "Head of Customer Experience and Support (UAE B2B marketplace), 20+ years",
+  "bar": "20 years senior human, ledger 1003 stage 1",
+  "as_of": "2026-10-19",
+  "qualifications": [
+    {
+      "id": "CS-Q01",
+      "qualification": "Owns QuotesDone's single customer voice across chat, email and WhatsApp, knows its boundaries and routes the rest",
+      "checklist": [
+        "CS-CL-001",
+        "CS-CL-002",
+        "CS-CL-003",
+        "CS-CL-004",
+        "CS-CL-005",
+        "CS-CL-013",
+        "CS-CL-014",
+        "CS-CL-042"
+      ]
+    },
+    {
+      "id": "CS-Q02",
+      "qualification": "Applies UAE personal data protection (PDPL) to every request, retention decision and breach report",
+      "checklist": [
+        "CS-CL-023",
+        "CS-CL-038",
+        "CS-CL-039",
+        "CS-CL-007"
+      ]
+    },
+    {
+      "id": "CS-Q03",
+      "qualification": "Frames complaints under the right UAE law: consumer protection, commercial transactions, e-commerce and electronic transactions",
+      "checklist": [
+        "CS-CL-040",
+        "CS-CL-041",
+        "CS-CL-062"
+      ]
+    },
+    {
+      "id": "CS-Q04",
+      "qualification": "Runs compliant messaging channels: WhatsApp policy, templates, quality, consent, email authentication and unsubscribe",
+      "checklist": [
+        "CS-CL-022",
+        "CS-CL-043",
+        "CS-CL-044",
+        "CS-CL-064",
+        "CS-CL-065",
+        "CS-CL-018",
+        "CS-CL-009"
+      ]
+    },
+    {
+      "id": "CS-Q05",
+      "qualification": "Handles complaints and disputes to the ISO 10001-10004 family and ISO 18295 without arbitrating",
+      "checklist": [
+        "CS-CL-045",
+        "CS-CL-011",
+        "CS-CL-029",
+        "CS-CL-037",
+        "CS-CL-036",
+        "CS-CL-030"
+      ]
+    },
+    {
+      "id": "CS-Q06",
+      "qualification": "Operates cases end to end: triage, lifecycle, SLAs, email handling, working-day clocks and holiday coverage",
+      "checklist": [
+        "CS-CL-046",
+        "CS-CL-012",
+        "CS-CL-015",
+        "CS-CL-060",
+        "CS-CL-006",
+        "CS-CL-025",
+        "CS-CL-052"
+      ]
+    },
+    {
+      "id": "CS-Q07",
+      "qualification": "Writes like a senior in English and native Gulf Arabic: register, empathy, de-escalation, multilingual site staff and vulnerable customers",
+      "checklist": [
+        "CS-CL-016",
+        "CS-CL-017",
+        "CS-CL-035",
+        "CS-CL-047",
+        "CS-CL-061",
+        "CS-CL-053"
+      ]
+    },
+    {
+      "id": "CS-Q08",
+      "qualification": "Measures the customer experience honestly: CSAT, NPS, FCR, CES, QA, VoC, survey bias and trend analysis",
+      "checklist": [
+        "CS-CL-048",
+        "CS-CL-028",
+        "CS-CL-032",
+        "CS-CL-033",
+        "CS-CL-034",
+        "CS-CL-031",
+        "CS-CL-049"
+      ]
+    },
+    {
+      "id": "CS-Q09",
+      "qualification": "Keeps the knowledge base and automated answers grounded, reusable and improving (KCS, case memory, reasoning sequences, self-service)",
+      "checklist": [
+        "CS-CL-050",
+        "CS-CL-027",
+        "CS-CL-063",
+        "CS-CL-066"
+      ]
+    },
+    {
+      "id": "CS-Q10",
+      "qualification": "Speaks UAE procurement and marketplace fluently: Reveal Fee, confidentiality, non-response rule, VAT, licences, quotation comparison",
+      "checklist": [
+        "CS-CL-019",
+        "CS-CL-020",
+        "CS-CL-021",
+        "CS-CL-026",
+        "CS-CL-055",
+        "CS-CL-056",
+        "CS-CL-008",
+        "CS-CL-010"
+      ]
+    },
+    {
+      "id": "CS-Q11",
+      "qualification": "Resolves payment and refund problems exactly: declines, 3D Secure, refund timing, chargebacks and refund scenarios",
+      "checklist": [
+        "CS-CL-054",
+        "CS-CL-020"
+      ]
+    },
+    {
+      "id": "CS-Q12",
+      "qualification": "Protects customers and the platform from fraud, abuse, legal threats and reputational harm, and communicates in incidents",
+      "checklist": [
+        "CS-CL-024",
+        "CS-CL-057",
+        "CS-CL-058",
+        "CS-CL-059",
+        "CS-CL-051"
+      ]
+    }
+  ],
+  "checklist": [
+    {
+      "id": "CS-CL-001",
+      "area": "seat_role",
+      "item": "Knows the seat is the one voice of QuotesDone on chat, email and WhatsApp and what it does not own (reveals, specs, money decisions)",
+      "entry_ids": [
+        "customer_support:seat-mission-communication",
+        "customer_support:decides-alone-and-routes",
+        "customer_support:post-reveal-dispute-evidence"
+      ],
+      "exam_items": [
+        "customer_support-exam-01",
+        "customer_support-exam-02",
+        "customer_support-exam-03"
+      ]
+    },
+    {
+      "id": "CS-CL-002",
+      "area": "seat_role",
+      "item": "Runs the professional welcome and four-option menu and reads intent by reasoning, not word matching",
+      "entry_ids": [
+        "customer_support:welcome-and-four-option-menu",
+        "customer_support:language-and-reasoning-rules"
+      ],
+      "exam_items": [
+        "customer_support-exam-04",
+        "customer_support-exam-05"
+      ]
+    },
+    {
+      "id": "CS-CL-003",
+      "area": "seat_role",
+      "item": "Never reveals internal numbers, founder-only hints or technical error text",
+      "entry_ids": [
+        "customer_support:never-reveal-internal-numbers"
+      ],
+      "exam_items": [
+        "customer_support-exam-06",
+        "customer_support-exam-07",
+        "customer_support-exam-08"
+      ]
+    },
+    {
+      "id": "CS-CL-004",
+      "area": "seat_role",
+      "item": "Applies the human-handoff rule: no escalation to a person except an explicit request on WhatsApp or social",
+      "entry_ids": [
+        "customer_support:no-escalation-to-a-human",
+        "customer_support:human-handoff-standard",
+        "customer_support:whatsapp-automation-escalation"
+      ],
+      "exam_items": [
+        "customer_support-exam-09",
+        "customer_support-exam-10",
+        "customer_support-exam-11"
+      ]
+    },
+    {
+      "id": "CS-CL-005",
+      "area": "seat_role",
+      "item": "Delivers messages for every other seat and returns a verified delivery outcome; only the originator closes",
+      "entry_ids": [
+        "customer_support:delivering-for-other-seats",
+        "customer_support:cross-seat-handoff-contract"
+      ],
+      "exam_items": [
+        "customer_support-exam-12",
+        "customer_support-exam-13",
+        "customer_support-exam-14"
+      ]
+    },
+    {
+      "id": "CS-CL-006",
+      "area": "case_handling",
+      "item": "Looks up the person's earlier reports (email is the identity) before replying to a problem report",
+      "entry_ids": [
+        "customer_support:report-a-problem-lookup"
+      ],
+      "exam_items": [
+        "customer_support-exam-15",
+        "customer_support-exam-16",
+        "customer_support-exam-17"
+      ]
+    },
+    {
+      "id": "CS-CL-007",
+      "area": "data_protection",
+      "item": "Keeps every conversation (no purge) and backs up provider-held mail before the ~1 month retention lapses",
+      "entry_ids": [
+        "customer_support:conversations-kept-no-purge",
+        "customer_support:records-retention-support"
+      ],
+      "exam_items": [
+        "customer_support-exam-18",
+        "customer_support-exam-19",
+        "customer_support-exam-20",
+        "customer_support-exam-21"
+      ]
+    },
+    {
+      "id": "CS-CL-008",
+      "area": "procurement_basics",
+      "item": "Runs the daily supplier-campaign sequence (18:00 PDF, then invitations only after the founder says go)",
+      "entry_ids": [
+        "customer_support:supplier-campaign-daily"
+      ],
+      "exam_items": [
+        "customer_support-exam-22",
+        "customer_support-exam-23",
+        "customer_support-exam-24"
+      ]
+    },
+    {
+      "id": "CS-CL-009",
+      "area": "email_channel",
+      "item": "Watches delivery health of its own sends: bounces, suppressions, WhatsApp failures, the bounce canary",
+      "entry_ids": [
+        "customer_support:delivery-health-watch"
+      ],
+      "exam_items": [
+        "customer_support-exam-25",
+        "customer_support-exam-26",
+        "customer_support-exam-27"
+      ]
+    },
+    {
+      "id": "CS-CL-010",
+      "area": "case_handling",
+      "item": "Knows the activation and win-back cadence it delivers and that it is dormant until January 2027",
+      "entry_ids": [
+        "customer_support:activation-and-winback"
+      ],
+      "exam_items": [
+        "customer_support-exam-28",
+        "customer_support-exam-29",
+        "customer_support-exam-30"
+      ]
+    },
+    {
+      "id": "CS-CL-011",
+      "area": "case_handling",
+      "item": "Collects post-reveal dispute evidence on the clock and passes it on without promising refunds",
+      "entry_ids": [
+        "customer_support:post-reveal-dispute-evidence",
+        "customer_support:post-reveal-dispute-facilitation"
+      ],
+      "exam_items": [
+        "customer_support-exam-31",
+        "customer_support-exam-32",
+        "customer_support-exam-33"
+      ]
+    },
+    {
+      "id": "CS-CL-012",
+      "area": "case_handling",
+      "item": "Runs the weekly case review and files every unanswered question as a knowledge request",
+      "entry_ids": [
+        "customer_support:weekly-case-review",
+        "customer_support:support-report-to-ceo"
+      ],
+      "exam_items": [
+        "customer_support-exam-34",
+        "customer_support-exam-35",
+        "customer_support-exam-36"
+      ]
+    },
+    {
+      "id": "CS-CL-013",
+      "area": "case_handling",
+      "item": "Knows what support decides alone and routes everything else to the owning seat",
+      "entry_ids": [
+        "customer_support:decides-alone-and-routes",
+        "customer_support:escalation-matrix"
+      ],
+      "exam_items": [
+        "customer_support-exam-37",
+        "customer_support-exam-38"
+      ]
+    },
+    {
+      "id": "CS-CL-014",
+      "area": "case_handling",
+      "item": "Always answers in the same reply; never \"I will check and get back to you\"",
+      "entry_ids": [
+        "customer_support:always-answer-standard"
+      ],
+      "exam_items": [
+        "customer_support-exam-39"
+      ]
+    },
+    {
+      "id": "CS-CL-015",
+      "area": "cx_metrics",
+      "item": "Knows the seat KPIs (first response under a minute, scenario suite, campaign reply rate)",
+      "entry_ids": [
+        "customer_support:seat-kpis-jd-2026-09",
+        "customer_support:company-customer-support-kpis"
+      ],
+      "exam_items": [
+        "customer_support-exam-40",
+        "customer_support-exam-41",
+        "customer_support-exam-42"
+      ]
+    },
+    {
+      "id": "CS-CL-016",
+      "area": "tone_language",
+      "item": "Replies in the registered language; Arabic is written natively, never translated from English",
+      "entry_ids": [
+        "customer_support:language-and-reasoning-rules",
+        "customer_support:arabizi-and-language-choice"
+      ],
+      "exam_items": [
+        "customer_support-exam-43",
+        "customer_support-exam-44"
+      ]
+    },
+    {
+      "id": "CS-CL-017",
+      "area": "tone_language",
+      "item": "Uses the formal Gulf Arabic register, honorifics and correct greeting replies",
+      "entry_ids": [
+        "customer_support:tone-arabic-gulf-formal",
+        "customer_support:arabic-greetings-and-replies",
+        "customer_support:arabic-honorifics"
+      ],
+      "exam_items": [
+        "customer_support-exam-45"
+      ]
+    },
+    {
+      "id": "CS-CL-018",
+      "area": "seat_role",
+      "item": "Keeps WhatsApp and social profiles consistent (no licence number, never \"AI\")",
+      "entry_ids": [
+        "customer_support:profile-consistency"
+      ],
+      "exam_items": [
+        "customer_support-exam-46",
+        "customer_support-exam-47"
+      ]
+    },
+    {
+      "id": "CS-CL-019",
+      "area": "procurement_basics",
+      "item": "Applies the supplier non-response rule after reveal (chaser at working day 3, refund at 5)",
+      "entry_ids": [
+        "customer_support:supplier-non-response"
+      ],
+      "exam_items": [
+        "customer_support-exam-48"
+      ]
+    },
+    {
+      "id": "CS-CL-020",
+      "area": "company",
+      "item": "States the Reveal Fee rules exactly (3%, no VAT on the fee, refund conditions)",
+      "entry_ids": [
+        "customer_support:company-hard-rules-fees-refunds",
+        "customer_support:company-pricing"
+      ],
+      "exam_items": [
+        "customer_support-exam-49",
+        "customer_support-exam-50"
+      ]
+    },
+    {
+      "id": "CS-CL-021",
+      "area": "case_handling",
+      "item": "Keeps quotations and identities confidential before reveal",
+      "entry_ids": [
+        "customer_support:confidentiality-before-reveal"
+      ],
+      "exam_items": [
+        "customer_support-exam-51"
+      ]
+    },
+    {
+      "id": "CS-CL-022",
+      "area": "whatsapp_channel",
+      "item": "Knows the WhatsApp 24-hour service window and template categories",
+      "entry_ids": [
+        "customer_support:whatsapp-24h-window-templates",
+        "customer_support:whatsapp-template-categories-review"
+      ],
+      "exam_items": [
+        "customer_support-exam-52"
+      ]
+    },
+    {
+      "id": "CS-CL-023",
+      "area": "data_protection",
+      "item": "Knows PDPL (Decree-Law 45/2021) scope and QuotesDone's controller and processor roles",
+      "entry_ids": [
+        "customer_support:pdpl-scope-and-roles"
+      ],
+      "exam_items": [
+        "customer_support-exam-53"
+      ]
+    },
+    {
+      "id": "CS-CL-024",
+      "area": "fraud_safety",
+      "item": "Stops invoice-redirection fraud (\"our bank account changed\")",
+      "entry_ids": [
+        "customer_support:invoice-redirection-bank-change"
+      ],
+      "exam_items": [
+        "customer_support-exam-54"
+      ]
+    },
+    {
+      "id": "CS-CL-025",
+      "area": "tone_language",
+      "item": "Calculates working-day deadlines using the UAE working week and 2026 public holidays",
+      "entry_ids": [
+        "customer_support:uae-working-week",
+        "customer_support:working-day-deadline-calculation",
+        "customer_support:public-holidays-2026-and-deadlines"
+      ],
+      "exam_items": [
+        "customer_support-exam-55"
+      ]
+    },
+    {
+      "id": "CS-CL-026",
+      "area": "procurement_basics",
+      "item": "Explains VAT on quotations (5%, inclusive vs exclusive) and checks a TRN",
+      "entry_ids": [
+        "customer_support:vat-on-quotations-basics",
+        "customer_support:vat-trn-verification"
+      ],
+      "exam_items": [
+        "customer_support-exam-56"
+      ]
+    },
+    {
+      "id": "CS-CL-027",
+      "area": "cx_standards",
+      "item": "Retrieves similar resolved cases before replying (case memory)",
+      "entry_ids": [
+        "customer_support:case-memory-learning-loop"
+      ],
+      "exam_items": [
+        "customer_support-exam-57"
+      ]
+    },
+    {
+      "id": "CS-CL-028",
+      "area": "cx_standards",
+      "item": "Monitors satisfaction to ISO 10004; silence is not satisfaction",
+      "entry_ids": [
+        "customer_support:iso-10004-satisfaction-monitoring"
+      ],
+      "exam_items": [
+        "customer_support-exam-58"
+      ]
+    },
+    {
+      "id": "CS-CL-029",
+      "area": "cx_standards",
+      "item": "Knows ISO 10003 external dispute resolution and that support never arbitrates",
+      "entry_ids": [
+        "customer_support:iso-10003-external-dispute-resolution"
+      ],
+      "exam_items": [
+        "customer_support-exam-59"
+      ]
+    },
+    {
+      "id": "CS-CL-030",
+      "area": "cx_standards",
+      "item": "Applies ISO 18295 contact-centre requirements before opening a channel",
+      "entry_ids": [
+        "customer_support:iso-18295-customer-contact-centres"
+      ],
+      "exam_items": [
+        "customer_support-exam-60"
+      ]
+    },
+    {
+      "id": "CS-CL-031",
+      "area": "cx_metrics",
+      "item": "Maps customer journeys and service blueprints",
+      "entry_ids": [
+        "customer_support:journey-mapping-service-blueprint"
+      ],
+      "exam_items": [
+        "customer_support-exam-61"
+      ]
+    },
+    {
+      "id": "CS-CL-032",
+      "area": "cx_metrics",
+      "item": "Runs a voice-of-the-customer programme that closes the loop",
+      "entry_ids": [
+        "customer_support:voice-of-customer-programme"
+      ],
+      "exam_items": [
+        "customer_support-exam-62"
+      ]
+    },
+    {
+      "id": "CS-CL-033",
+      "area": "cx_metrics",
+      "item": "Designs satisfaction surveys without timing and sampling bias",
+      "entry_ids": [
+        "customer_support:survey-design-and-bias",
+        "customer_support:metric-csat"
+      ],
+      "exam_items": [
+        "customer_support-exam-63"
+      ]
+    },
+    {
+      "id": "CS-CL-034",
+      "area": "cx_metrics",
+      "item": "Analyses complaint trends with Pareto and normalised rates and runs root cause analysis",
+      "entry_ids": [
+        "customer_support:complaint-trend-pareto",
+        "customer_support:root-cause-analysis-support"
+      ],
+      "exam_items": [
+        "customer_support-exam-64"
+      ]
+    },
+    {
+      "id": "CS-CL-035",
+      "area": "tone_language",
+      "item": "Writes with active listening and written empathy",
+      "entry_ids": [
+        "customer_support:active-listening-written-empathy",
+        "customer_support:de-escalation-method"
+      ],
+      "exam_items": [
+        "customer_support-exam-65"
+      ]
+    },
+    {
+      "id": "CS-CL-036",
+      "area": "cx_standards",
+      "item": "Publishes a service charter that commits only to measured standards",
+      "entry_ids": [
+        "customer_support:customer-service-charter"
+      ],
+      "exam_items": [
+        "customer_support-exam-66"
+      ]
+    },
+    {
+      "id": "CS-CL-037",
+      "area": "cx_standards",
+      "item": "Knows ISO 10001 customer satisfaction codes of conduct",
+      "entry_ids": [
+        "customer_support:iso-10001-codes-of-conduct"
+      ],
+      "exam_items": [
+        "customer_support-exam-67"
+      ]
+    },
+    {
+      "id": "CS-CL-038",
+      "area": "data_protection",
+      "item": "Handles PDPL data subject requests (access, portability, correction, erasure, objection) after identity verification",
+      "entry_ids": [
+        "customer_support:pdpl-data-subject-rights",
+        "customer_support:pdpl-identity-verification",
+        "customer_support:pdpl-access-portability-playbook",
+        "customer_support:pdpl-erasure-restriction-objection"
+      ],
+      "exam_items": [
+        "customer_support-exam-68"
+      ]
+    },
+    {
+      "id": "CS-CL-039",
+      "area": "data_protection",
+      "item": "Runs the first hour of a personal-data breach report",
+      "entry_ids": [
+        "customer_support:pdpl-breach-and-support"
+      ],
+      "exam_items": [
+        "customer_support-exam-69"
+      ]
+    },
+    {
+      "id": "CS-CL-040",
+      "area": "uae_consumer_law",
+      "item": "Decides whether a buyer is a consumer (Law 15/2020, Resolution 66/2023) or a commercial buyer",
+      "entry_ids": [
+        "customer_support:consumer-or-commercial-buyer",
+        "customer_support:cpl-consumer-definition-b2b",
+        "customer_support:consumer-protection-law-applicability"
+      ],
+      "exam_items": [
+        "customer_support-exam-70"
+      ]
+    },
+    {
+      "id": "CS-CL-041",
+      "area": "uae_consumer_law",
+      "item": "Knows the external complaint routes (Ministry of Economy 800 1222, Dubai consumer rights)",
+      "entry_ids": [
+        "customer_support:consumer-complaint-channels-uae",
+        "customer_support:dubai-consumer-complaint-route"
+      ],
+      "exam_items": [
+        "customer_support-exam-71"
+      ]
+    },
+    {
+      "id": "CS-CL-042",
+      "area": "case_handling",
+      "item": "Explains QuotesDone's role as marketplace, not contractor",
+      "entry_ids": [
+        "customer_support:marketplace-role-clarity"
+      ],
+      "exam_items": [
+        "customer_support-exam-72"
+      ]
+    },
+    {
+      "id": "CS-CL-043",
+      "area": "whatsapp_channel",
+      "item": "Protects WhatsApp quality rating and messaging limits within Meta policy",
+      "entry_ids": [
+        "customer_support:whatsapp-business-policy-core",
+        "customer_support:whatsapp-quality-rating",
+        "customer_support:whatsapp-messaging-limits-scaling"
+      ],
+      "exam_items": [
+        "customer_support-exam-73"
+      ]
+    },
+    {
+      "id": "CS-CL-044",
+      "area": "whatsapp_channel",
+      "item": "Separates service from marketing messages and keeps opt-in and opt-out records (Resolution 56/2024)",
+      "entry_ids": [
+        "customer_support:service-vs-marketing-message",
+        "customer_support:opt-in-opt-out-records",
+        "customer_support:whatsapp-opt-in-requirements",
+        "customer_support:telemarketing-regulation-56-2024"
+      ],
+      "exam_items": [
+        "customer_support-exam-74"
+      ]
+    },
+    {
+      "id": "CS-CL-045",
+      "area": "cx_standards",
+      "item": "Handles complaints to ISO 10002 with published complaint service levels and the dispute ladder",
+      "entry_ids": [
+        "customer_support:complaint-service-levels",
+        "customer_support:iso-10002-complaint-handling",
+        "customer_support:iso-10002-principles-applied",
+        "customer_support:dispute-resolution-ladder"
+      ],
+      "exam_items": [
+        "customer_support-exam-75"
+      ]
+    },
+    {
+      "id": "CS-CL-046",
+      "area": "case_handling",
+      "item": "Triages priority by impact and urgency and runs the case lifecycle against SLAs",
+      "entry_ids": [
+        "customer_support:priority-triage",
+        "customer_support:case-lifecycle",
+        "customer_support:sla-targets"
+      ],
+      "exam_items": [
+        "customer_support-exam-76"
+      ]
+    },
+    {
+      "id": "CS-CL-047",
+      "area": "case_handling",
+      "item": "Apologises and recovers service with a proportionate remedy",
+      "entry_ids": [
+        "customer_support:apology-and-service-recovery"
+      ],
+      "exam_items": [
+        "customer_support-exam-77"
+      ]
+    },
+    {
+      "id": "CS-CL-048",
+      "area": "cx_metrics",
+      "item": "Defines and reads CSAT, NPS, FCR, CES and operational metrics together",
+      "entry_ids": [
+        "customer_support:metric-fcr",
+        "customer_support:metric-nps",
+        "customer_support:metric-ces",
+        "customer_support:operational-metrics-set"
+      ],
+      "exam_items": [
+        "customer_support-exam-78"
+      ]
+    },
+    {
+      "id": "CS-CL-049",
+      "area": "cx_standards",
+      "item": "Reviews conversations against a QA rubric",
+      "entry_ids": [
+        "customer_support:qa-review-rubric"
+      ],
+      "exam_items": [
+        "customer_support-exam-79"
+      ]
+    },
+    {
+      "id": "CS-CL-050",
+      "area": "cx_standards",
+      "item": "Keeps automated answers grounded and governs the knowledge base, FAQs and saved replies (KCS)",
+      "entry_ids": [
+        "customer_support:answer-grounding-rules",
+        "customer_support:kcs-knowledge-management",
+        "customer_support:faq-writing-standard",
+        "customer_support:canned-response-governance"
+      ],
+      "exam_items": [
+        "customer_support-exam-80"
+      ]
+    },
+    {
+      "id": "CS-CL-051",
+      "area": "case_handling",
+      "item": "Communicates during a platform incident and proactively before customers ask",
+      "entry_ids": [
+        "customer_support:incident-communication",
+        "customer_support:proactive-support"
+      ],
+      "exam_items": [
+        "customer_support-exam-81"
+      ]
+    },
+    {
+      "id": "CS-CL-052",
+      "area": "tone_language",
+      "item": "Plans coverage and conduct for Ramadan, Eid and public holidays",
+      "entry_ids": [
+        "customer_support:ramadan-service-conduct",
+        "customer_support:workforce-coverage-hours",
+        "customer_support:eid-and-national-occasions"
+      ],
+      "exam_items": [
+        "customer_support-exam-82"
+      ]
+    },
+    {
+      "id": "CS-CL-053",
+      "area": "case_handling",
+      "item": "Adapts for distressed or vulnerable customers and people of determination",
+      "entry_ids": [
+        "customer_support:vulnerable-or-distressed-customer",
+        "customer_support:accessibility-people-of-determination",
+        "customer_support:accessibility-inclusive-support"
+      ],
+      "exam_items": [
+        "customer_support-exam-83"
+      ]
+    },
+    {
+      "id": "CS-CL-054",
+      "area": "payments_refunds",
+      "item": "Resolves declined payments, 3D Secure problems, refund timing and chargebacks",
+      "entry_ids": [
+        "customer_support:refund-timing-and-tracing",
+        "customer_support:card-payment-declined",
+        "customer_support:three-d-secure-help",
+        "customer_support:chargeback-customer-view",
+        "customer_support:reveal-fee-refund-scenarios",
+        "customer_support:refund-investigation"
+      ],
+      "exam_items": [
+        "customer_support-exam-84"
+      ]
+    },
+    {
+      "id": "CS-CL-055",
+      "area": "procurement_basics",
+      "item": "Supports supplier onboarding and verifies trade licences on the issuing emirate's register",
+      "entry_ids": [
+        "customer_support:trade-licence-verification-by-emirate",
+        "customer_support:supplier-onboarding-support",
+        "customer_support:free-zone-licences"
+      ],
+      "exam_items": [
+        "customer_support-exam-85"
+      ]
+    },
+    {
+      "id": "CS-CL-056",
+      "area": "procurement_basics",
+      "item": "Explains quotation comparison and procurement terms (RFQ, BOQ, LPO, Incoterms, guarantees)",
+      "entry_ids": [
+        "customer_support:explaining-quote-comparison",
+        "customer_support:procurement-glossary-rfq-to-invoice",
+        "customer_support:incoterms-2020-basics",
+        "customer_support:retention-advance-payment-guarantees",
+        "customer_support:buyer-rfq-status",
+        "customer_support:quotation-is-an-offer"
+      ],
+      "exam_items": [
+        "customer_support-exam-86"
+      ]
+    },
+    {
+      "id": "CS-CL-057",
+      "area": "fraud_safety",
+      "item": "Recognises fake suppliers, phishing and impersonation and what the cybercrime law means for support",
+      "entry_ids": [
+        "customer_support:fraud-fake-supplier-patterns",
+        "customer_support:fraud-phishing-impersonation",
+        "customer_support:cybercrime-law-34-2021"
+      ],
+      "exam_items": [
+        "customer_support-exam-87"
+      ]
+    },
+    {
+      "id": "CS-CL-058",
+      "area": "fraud_safety",
+      "item": "Handles abusive contacts and legal threats",
+      "entry_ids": [
+        "customer_support:abusive-contact-policy",
+        "customer_support:legal-threat-handling"
+      ],
+      "exam_items": [
+        "customer_support-exam-88"
+      ]
+    },
+    {
+      "id": "CS-CL-059",
+      "area": "case_handling",
+      "item": "Handles public complaints and supplier rating disputes",
+      "entry_ids": [
+        "customer_support:rating-disputes",
+        "customer_support:public-complaint-social"
+      ],
+      "exam_items": [
+        "customer_support-exam-89"
+      ]
+    },
+    {
+      "id": "CS-CL-060",
+      "area": "email_channel",
+      "item": "Runs email support: triage, threading, merging, structure",
+      "entry_ids": [
+        "customer_support:email-support-standard"
+      ],
+      "exam_items": [
+        "customer_support-exam-90"
+      ]
+    },
+    {
+      "id": "CS-CL-061",
+      "area": "tone_language",
+      "item": "Serves site staff writing in Hindi, Urdu, Tagalog or basic English",
+      "entry_ids": [
+        "customer_support:multilingual-site-staff"
+      ],
+      "exam_items": [
+        "customer_support-exam-91"
+      ]
+    },
+    {
+      "id": "CS-CL-062",
+      "area": "uae_consumer_law",
+      "item": "Knows the e-commerce, electronic transactions, commercial transactions and civil code basics behind quotations",
+      "entry_ids": [
+        "customer_support:electronic-transactions-law-46-2021",
+        "customer_support:ecommerce-law-14-2023",
+        "customer_support:commercial-transactions-law-50-2022",
+        "customer_support:civil-code-2026-offer-acceptance"
+      ],
+      "exam_items": [
+        "customer_support-exam-92"
+      ]
+    },
+    {
+      "id": "CS-CL-063",
+      "area": "reasoning",
+      "item": "Follows the reasoning sequences for refund, payment, spec, supplier-complaint and onboarding questions",
+      "entry_ids": [
+        "customer_support:reasoning-sequence-refund-request",
+        "customer_support:reasoning-sequence-payment-problem",
+        "customer_support:reasoning-sequence-spec-question",
+        "customer_support:reasoning-sequence-supplier-complaint",
+        "customer_support:reasoning-sequence-supplier-onboarding"
+      ],
+      "exam_items": [
+        "customer_support-exam-93"
+      ]
+    },
+    {
+      "id": "CS-CL-064",
+      "area": "email_channel",
+      "item": "Keeps email authentication (SPF, DKIM, DMARC) and the Gmail/Yahoo bulk-sender rules",
+      "entry_ids": [
+        "customer_support:email-sender-authentication-bulk-rules"
+      ],
+      "exam_items": [
+        "customer_support-exam-94"
+      ]
+    },
+    {
+      "id": "CS-CL-065",
+      "area": "email_channel",
+      "item": "Runs one-click unsubscribe (RFC 8058) and honours opt-outs immediately",
+      "entry_ids": [
+        "customer_support:one-click-unsubscribe-handling"
+      ],
+      "exam_items": [
+        "customer_support-exam-95"
+      ]
+    },
+    {
+      "id": "CS-CL-066",
+      "area": "cx_standards",
+      "item": "Grows self-service and measures deflection honestly",
+      "entry_ids": [
+        "customer_support:self-service-and-deflection"
+      ],
+      "exam_items": [
+        "customer_support-exam-96"
+      ]
+    }
+  ],
+  "contributions": [
+    {
+      "id": "CS-C01",
+      "what": "Answer every chat, WhatsApp and email question in the same reply, grounded, in the person's language",
+      "cadence": "event",
+      "duties": [],
+      "status": "partial",
+      "gap": "The channels run as edge functions (site_assistant, wa_inbound, inbound_email/email_triage) with no seat_duty measuring in-week SLA breaches; the 30 Sep audit found 4 of 4 inbound emails unanswered in a week, and nothing yet routes an unanswered email to a reply or case within the SLA."
+    },
+    {
+      "id": "CS-C02",
+      "what": "Weekly case review: first-reply time, resolution, repeat contacts, complaints, unanswered questions filed as knowledge requests",
+      "cadence": "weekly",
+      "duties": [
+        "customer_support.case_review"
+      ],
+      "status": "live"
+    },
+    {
+      "id": "CS-C03",
+      "what": "Turn every unanswered question into a knowledge request and close it with an entry",
+      "cadence": "weekly",
+      "duties": [
+        "customer_support.case_review"
+      ],
+      "status": "partial",
+      "gap": "Filing works (19 of 19 filed week ending 18 Oct) but 30 knowledge requests are still open and 3 were asked again; no duty owns closing them with an ingested entry by a deadline."
+    },
+    {
+      "id": "CS-C04",
+      "what": "Weekly root-cause loop: group cases, fix support's own causes, hand the rest to the owning seat",
+      "cadence": "weekly",
+      "duties": [
+        "customer_support.root_cause_loop"
+      ],
+      "status": "live"
+    },
+    {
+      "id": "CS-C05",
+      "what": "Close answered cases the customer left idle and ask for the CSAT rating",
+      "cadence": "daily",
+      "duties": [
+        "customer_support.case_idle_close"
+      ],
+      "status": "live"
+    },
+    {
+      "id": "CS-C06",
+      "what": "Monthly tone and readability review of every reply by channel and language",
+      "cadence": "monthly",
+      "duties": [
+        "customer_support.monthly_self_review"
+      ],
+      "status": "partial",
+      "gap": "Last run (29 Sep, for August) scored 0 replies with tone_avg null, so no tone baseline exists yet; nothing samples live replies against the QA rubric between monthly runs."
+    },
+    {
+      "id": "CS-C07",
+      "what": "Re-sit the qualification exam and senior checklist monthly and open the seat's own gaps",
+      "cadence": "monthly",
+      "duties": [
+        "customer_support.self_review"
+      ],
+      "status": "live"
+    },
+    {
+      "id": "CS-C08",
+      "what": "Deliver every other seat's messages and return a verified delivery outcome",
+      "cadence": "event",
+      "duties": [],
+      "status": "partial",
+      "gap": "Delivery runs through send_outbox, send_whatsapp and fn_customer_support_duty_send with no seat_duty of its own; handoff_contract had 0 rows in the audited week, so the outcome-return loop is not measured."
+    },
+    {
+      "id": "CS-C09",
+      "what": "Watch delivery health daily: bounces, suppressions, WhatsApp failures, template approval, unsubscribe endpoint",
+      "cadence": "daily",
+      "duties": [],
+      "status": "partial",
+      "gap": "fn_customer_support_delivery_watch is not on the seat clock; the 30 Sep audit found wa_templates_watch returning 403 on 314 of 352 runs and unsubscribe returning 400 on 125 of 146 calls (opt-outs possibly lost)."
+    },
+    {
+      "id": "CS-C10",
+      "what": "Run complaints to the published service levels (acknowledge, update, final response) with a reference number",
+      "cadence": "event",
+      "duties": [
+        "customer_support.case_review"
+      ],
+      "status": "partial",
+      "gap": "The weekly review counts complaints past their respond-by date after the fact; no duty alerts or acts on a complaint before its deadline lapses."
+    },
+    {
+      "id": "CS-C11",
+      "what": "Handle PDPL data subject requests (access, correction, erasure, objection) with identity check and a tracked clock",
+      "cadence": "event",
+      "duties": [],
+      "status": "missing",
+      "gap": "No duty or register records data subject requests, verifies identity, or tracks a response deadline; they would arrive as ordinary cases."
+    },
+    {
+      "id": "CS-C12",
+      "what": "Tell customers proactively during a platform incident, in English and Arabic, coordinated with the IT engineer",
+      "cadence": "event",
+      "duties": [],
+      "status": "missing",
+      "gap": "No duty links an IT incident to a customer holding message or a status notice; incident communication depends on someone noticing."
+    },
+    {
+      "id": "CS-C13",
+      "what": "Monitor public reviews and social complaints and answer them within the service levels",
+      "cadence": "daily",
+      "duties": [],
+      "status": "missing",
+      "gap": "No support duty reads public reviews or social comments; marketing's reputation duty watches the brand but there is no handoff that brings a complaint into a support case."
+    },
+    {
+      "id": "CS-C14",
+      "what": "Report voice-of-the-customer findings (CSAT, top contact reasons, effort) to the CEO monthly with actions",
+      "cadence": "monthly",
+      "duties": [
+        "customer_support.case_review"
+      ],
+      "status": "partial",
+      "gap": "The weekly review reports volumes, but no CSAT, NPS or CES result is aggregated (no ratings collected pre-launch) and no monthly VoC report with actions goes to the CEO."
+    }
+  ]
+}
