@@ -206,7 +206,8 @@ export function totalsFromText(text: string): TextTotals {
   // HELD, NEVER GUESSED (#1562 review): a total with no currency, or totals that disagree with nothing to decide
   // between them (not exactly one grand / net / incl. total), is not taken as the price.
   const values = new Set(seen.map((x) => x.v)), decisive = new Set(seen.filter((x) => x.decisive).map((x) => x.v));
-  const ambiguous = noCurrency ? 'total_without_currency' : (values.size > 1 && decisive.size !== 1 ? 'conflicting_totals' : null);
+  // A conflict is recorded before a missing currency: corroboration by the lines may excuse a missing currency, never a conflict.
+  const ambiguous = values.size > 1 && decisive.size !== 1 ? 'conflicting_totals' : (noCurrency ? 'total_without_currency' : null);
   return { subtotal, vat, total, options, ambiguous };
 }
 

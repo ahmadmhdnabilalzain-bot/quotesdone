@@ -187,3 +187,7 @@ Deno.test('a total with no currency is taken when its priced lines add up to it'
   const p = await textQuote(['Gypsum partition 20 m2 @ 100 = 2000', 'Paint 100 m2 @ 12 = 1200', 'Total: 3200']);
   assertEquals(p.amount, 3200); assertEquals(p.review_reason ?? null, null);
 });
+Deno.test('lines that corroborate one currency-less total never hide a conflicting second total', async () => {
+  const p = await textQuote(['Gypsum partition 20 m2 @ 100 = 2000', 'Paint 100 m2 @ 12 = 1200', 'Total: 3200', 'Total: 2400']);
+  assertEquals(p.amount, null); assertEquals(p.review_reason, 'conflicting_totals');
+});
