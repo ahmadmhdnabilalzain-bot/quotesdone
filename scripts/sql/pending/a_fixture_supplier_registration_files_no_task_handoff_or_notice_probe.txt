@@ -1,1 +1,0 @@
-A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run after a_fixture_supplier_registration_files_no_task_handoff_or_notice.sql is applied (or with it in the same rolled-back transaction) and must print PROBE OK. This note therefore stays for the life of the file. Seat: customer_support.

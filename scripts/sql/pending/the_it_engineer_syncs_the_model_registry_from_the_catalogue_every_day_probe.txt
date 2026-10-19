@@ -1,1 +1,0 @@
-Committed, not applied (it_engineer integration-3, 19 Oct 2026). This is the verdict-row probe for the_it_engineer_syncs_the_model_registry_from_the_catalogue_every_day.sql. Run it right after that file is applied; then this note is deleted and the file is appended to the END of MANIFEST.txt.

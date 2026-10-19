@@ -1,4 +1,0 @@
-A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run
-after the_quarterly_refresh_rechecks_every_seat_knowledge_entry_against_its_source.sql is applied (or appended to
-it while that file is pending), and must print PROBE OK. This note therefore stays for the life of the file.
-Seat: it_engineer.
