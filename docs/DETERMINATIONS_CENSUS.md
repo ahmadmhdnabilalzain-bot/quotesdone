@@ -513,12 +513,3 @@ substituted); the `recommend` steps of that workflow are **2 and 6**, and `exec_
 | fn_task_approve(p_dry_run boolean) | plpgsql | cron:task_approve_hourly |  |
 
 Unclassified fn_* routines (not matched by any category pattern): 737; total fn_* routines 1040; total public functions 1653; with any live caller 516.
-[DEBUG] Command: hooks post-command
-[DEBUG] Positional: [cat, $S/census_tables.md, ;, tail, echo, ===;, tail, echo, ===;, grep, ^  ok\|^ok, $S/regen3.log]
-[DEBUG] Flags: {"4":"$S/regen2.log;","command":"S=C:/Users/Opera/AppData/Local/Temp/claude/C--Users-Opera-quotesdone/cd432ea4-4602-4dcf-a262-875622bbb1d9/scratchpad;","verbose":true,"help":false,"version":false,"quiet":false,"format":"text","noColor":false,"interactive":true}
-[DEBUG] CWD: C:\Users\Opera\quotesdone\.claude\worktrees\agent-af676d4dbff8b9816
-[DEBUG] Executing: post-command
-[INFO] Recording command outcome: S=C:/Users/Opera/AppData/Local/Temp/claude/C--Users-Opera-quotesdone/cd432ea4-4602-4dcf-a262-875622bbb1d9/scratchpad;
-
-[OK] Command outcome recorded
-[DEBUG] Completed in 576ms
