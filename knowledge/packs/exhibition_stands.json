@@ -58,6 +58,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "exhibition_stands:product-distinctions",
+      "topic": "Exhibition stands: shell scheme, system and custom builds",
+      "topic_ar": "أجنحة المعارض: الجناح الجاهز والأنظمة المعيارية والبناء المخصص",
+      "kind": "product_distinctions",
+      "body_en": "Exhibitors choose between a shell scheme (the organiser's standard booth with panels, fascia name board, carpet, lights and a power point, the exhibitor adds graphics and furniture), a modular or system stand (reusable aluminium frame systems with fabric graphics, quick to build and reusable across shows), and a custom or space-only build (a designed stand built from timber, metal, glass and acrylic, with platforms, ceilings, storage rooms, meeting areas, LED screens and rigged banners). Double-deck stands and rigging over a stand need structural calculations and the venue's approval. Every build must pass the venue's and organiser's rules: submission of drawings and calculations by the deadline, maximum heights and setbacks, fire-rated materials, electrical design by the venue contractor, contractor badges, and build-up and breakdown windows. The quote should separate design, build, graphics, AV, furniture rental, flooring, power and water connections from the organiser, rigging points, storage between shows, and venue fees, and state whether the stand is reusable or disposable after the show.",
+      "body_ar": "يختار العارضون بين الجناح الجاهز (جناح المنظم القياسي بألواح ولوحة اسم وسجاد وإضاءة ونقطة كهرباء، ويضيف العارض الرسومات والأثاث)، والجناح المعياري أو النظام (أنظمة إطارات ألمنيوم قابلة لإعادة الاستخدام مع رسومات قماشية، سريعة التركيب وتُستخدم في معارض متعددة)، والجناح المخصص أو المساحة فقط (جناح مصمم يُبنى من الخشب والمعدن والزجاج والأكريليك مع منصات وأسقف وغرف تخزين ومناطق اجتماعات وشاشات LED ولافتات معلقة). والأجنحة ذات الطابقين والتعليق فوق الجناح تحتاج حسابات إنشائية وموافقة مكان المعرض. ويجب أن يجتاز كل بناء قواعد المكان والمنظم: تقديم المخططات والحسابات قبل الموعد، والارتفاعات القصوى والارتدادات، والمواد المقاومة للحريق، والتصميم الكهربائي عبر مقاول المكان، وبطاقات المقاولين، ونوافذ التركيب والفك. ويجب أن يفصل العرض بين التصميم والبناء والرسومات والأجهزة المرئية وتأجير الأثاث والأرضيات وتوصيلات الكهرباء والماء من المنظم ونقاط التعليق والتخزين بين المعارض ورسوم المكان، وأن يذكر هل الجناح قابل لإعادة الاستخدام أم يُتلف بعد المعرض.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Trade_fair"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: trade-fair booths range from simple tables to elaborate constructions -> confirmed."
+    },
+    {
+      "id": "exhibition_stands:lead-times-and-quoting",
+      "topic": "Exhibition stand design & build - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "تصميم وبناء أجنحة المعارض: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Design takes 1-3 weeks; build 2-6 weeks before the show; submissions follow the organiser's deadline, usually 4-8 weeks before. A builder needs the show, stand size and type (corner, island), brand guidelines, objectives and functions (meeting room, storage, display), budget, and reuse plans. A quote states design and revisions, build materials, graphics, AV, furniture, flooring, rigging, venue services and fees, storage, timeline, payment terms and validity.",
+      "body_ar": "يستغرق التصميم 1-3 أسابيع؛ والبناء 2-6 أسابيع قبل المعرض؛ والتقديمات تتبع موعد المنظم، عادة قبل 4-8 أسابيع. ويحتاج المنفذ المعرض، ومساحة الجناح ونوعه (زاوية، جزيرة)، وإرشادات العلامة، والأهداف والوظائف (غرفة اجتماعات، تخزين، عرض)، والميزانية، وخطط إعادة الاستخدام. ويذكر العرض التصميم والتعديلات، ومواد البناء، والرسومات، والأجهزة المرئية، والأثاث، والأرضيات، والتعليق، وخدمات المكان ورسومه، والتخزين، والجدول الزمني، وشروط الدفع، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -83,6 +113,14 @@
       ],
       "why": "No entry of this pack answered it (No entry states DWTC stand height limits; missing organiser-rules content). exhibition_stands:dwtc-stand-height-limits was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from exhibition_stands.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Shell scheme or a custom stand for our first exhibition with 18 square metres?",
+      "q_ar": "جناح جاهز ولا مخصص لأول معرض لنا بمساحة 18 متر مربع؟",
+      "expected_entry_ids": [
+        "exhibition_stands:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -101,6 +139,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "exhibition_stands:dwtc-stand-height-limits"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "exhibition_stands:product-distinctions"
+      ],
+      "stored_not_served": [
+        "exhibition_stands:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Trade_fair"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

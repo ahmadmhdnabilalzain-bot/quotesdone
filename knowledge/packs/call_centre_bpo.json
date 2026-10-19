@@ -56,6 +56,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "call_centre_bpo:product-distinctions",
+      "topic": "Call centres and BPO: service types and pricing models",
+      "topic_ar": "مراكز الاتصال والعمليات الخارجية: أنواع الخدمة ونماذج التسعير",
+      "kind": "product_distinctions",
+      "body_en": "Contact-centre work is inbound (customer service, order taking, helpdesk, complaints, appointment booking) or outbound (sales, collections reminders, surveys, lead qualification), across voice, email, chat, WhatsApp and social channels. Back-office BPO covers data entry, document processing, finance and accounting processes, HR administration and content moderation. Delivery is onshore, nearshore or offshore, in a dedicated team (agents only on your account) or a shared bureau (agents across several clients, billed per use). Pricing models: per agent per month (full-time equivalent), per hour logged, per call or minute, per transaction, or outcome-based (per sale or per resolved case). What separates providers: languages (Arabic dialects and English), the KPIs written into the SLA (service level such as 80% of calls answered in 20 seconds, abandonment rate, average handle time, first-contact resolution, quality score, customer satisfaction), the telephony and CRM platform, call recording and data protection, agent attrition and training, reporting, and the ramp-up and exit terms.",
+      "body_ar": "عمل مراكز الاتصال إما وارد (خدمة العملاء، استلام الطلبات، الدعم الفني، الشكاوى، حجز المواعيد) أو صادر (المبيعات، تذكير التحصيل، الاستبيانات، تأهيل العملاء المحتملين)، عبر الصوت والبريد الإلكتروني والدردشة وواتساب ووسائل التواصل. وتشمل العمليات المكتبية الخارجية إدخال البيانات، ومعالجة المستندات، والعمليات المالية والمحاسبية، وإدارة الموارد البشرية، ومراقبة المحتوى. ويكون التنفيذ محلياً أو قريباً أو خارجياً، بفريق مخصص (موظفون على حسابك فقط) أو مكتب مشترك (موظفون لعدة عملاء، بالدفع حسب الاستخدام). ونماذج التسعير: لكل موظف شهرياً، أو لكل ساعة عمل، أو لكل مكالمة أو دقيقة، أو لكل معاملة، أو حسب النتيجة (لكل بيع أو حالة محلولة). وما يميز المزودين: اللغات (اللهجات العربية والإنجليزية)، ومؤشرات الأداء المكتوبة في اتفاقية مستوى الخدمة (مستوى الخدمة مثل الرد على 80% من المكالمات خلال 20 ثانية، ونسبة المكالمات المتروكة، ومتوسط زمن المعالجة، والحل من أول اتصال، ودرجة الجودة، ورضا العملاء)، ومنصة الاتصالات ونظام إدارة العملاء، وتسجيل المكالمات وحماية البيانات، ودوران الموظفين وتدريبهم، والتقارير، وشروط البدء والخروج.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Call_centre"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: inbound and outbound call centres and outsourced bureaus billed per use -> confirmed."
+    },
+    {
+      "id": "call_centre_bpo:lead-times-and-quoting",
+      "topic": "Call centre & BPO - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "مراكز الاتصال والاستعانة بمصادر خارجية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A small dedicated team can usually go live in 3-6 weeks (hiring, training, systems); larger programmes 2-3 months. A provider needs the channels, volumes by hour and day, languages, hours of operation, processes and systems to use, KPIs, data-protection requirements, and contract term. A quote states the team and seats, the pricing model and rate card, KPIs and penalties or credits, technology included, reporting, set-up fees, term and exit, and validity.",
+      "body_ar": "يمكن عادة تشغيل فريق مخصص صغير خلال 3-6 أسابيع (التوظيف، التدريب، الأنظمة)؛ والبرامج الأكبر 2-3 أشهر. ويحتاج المزود القنوات، والأحجام حسب الساعة واليوم، واللغات، وساعات العمل، والعمليات والأنظمة المستخدمة، ومؤشرات الأداء، ومتطلبات حماية البيانات، ومدة العقد. ويذكر العرض الفريق والمقاعد، ونموذج التسعير وجدول الأسعار، ومؤشرات الأداء والغرامات أو الخصومات، والتقنية المشمولة، والتقارير، ورسوم الإعداد، والمدة والخروج، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -81,6 +111,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither states pricing models (spec checklist only lists 'pricing basis'); missing: per-hour vs per-FTE-month pricing entry). call_centre_bpo:outsourced-contact-centre-pricing-models was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from call_centre_bpo.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Should we pay a call centre per agent or per call for our customer helpline?",
+      "q_ar": "ندفع لمركز الاتصال لكل موظف ولا لكل مكالمة لخط خدمة العملاء؟",
+      "expected_entry_ids": [
+        "call_centre_bpo:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -100,6 +138,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "call_centre_bpo:outsourced-contact-centre-pricing-models"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "call_centre_bpo:product-distinctions"
+      ],
+      "stored_not_served": [
+        "call_centre_bpo:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Call_centre"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

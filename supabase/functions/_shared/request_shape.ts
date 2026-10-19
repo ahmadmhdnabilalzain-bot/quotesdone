@@ -43,6 +43,10 @@ export function shapeRequest(s: ShapeIn): Record<string, unknown> {
     out.reasoning = { effort };
     out.max_tokens = s.maxTokens + THINKING_HEADROOM;
   }
+  // A CALLER'S EXPLICIT EFFORT REACHES A REASONING MODEL OF ANOTHER FAMILY TOO (customer_support, 19 Oct 2026), only where
+  // OpenRouter lists `reasoning` for it. Measured: a WhatsApp classification on Luna Pro wrote 800-1800 reasoning tokens
+  // (10-20 s) at the default effort. No effort given = the model's own default, exactly as before.
+  else if (s.effort && (EFFORTS as readonly string[]).includes(String(s.effort)) && s.supported?.has('reasoning')) out.reasoning = { effort: String(s.effort) };
   if (s.responseFormat != null && s.supported?.has('response_format')) out.response_format = s.responseFormat;
   return out;
 }

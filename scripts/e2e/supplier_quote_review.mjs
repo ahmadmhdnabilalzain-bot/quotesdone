@@ -67,13 +67,14 @@ async function job(run, customer, supplier, lang) {
 }
 
 async function drive(browser, run, supplier, inquiryId, lang, viewport) {
-  const ar = lang === 'ar';
+  // The supplier portal is English whatever the language (ruling 1008): `lang` only sets the browser locale.
+  const ar = false;
   // The portal's job number is the RFQ number when the inquiry has one, else the id prefix
   // (_shared/quote_documents.ts jobNoOf, since #1364 on 13 Oct). This used the id prefix alone, so on
   // 17 Oct (run 39079803518) "listed by job number" failed and the detail wait timed out at 30 s.
   const rfq = (await read(`select rfq_no from public.inquiries where id = ${q(inquiryId)}`))[0]?.rfq_no;
   const job = rfq != null && String(rfq).trim() !== '' ? String(rfq) : String(inquiryId).slice(0, 8).toUpperCase();
-  const L = (en, a) => (ar ? a : en);
+  const L = (en) => en;
   const { ctx, page, consoleErrors, calls } = await signedInPage(browser, supplier, { lang, viewport });
   if (REVIEW_API) {
     // PRE-DEPLOY: the new actions go to the stand-in; everything else stays on production.
@@ -140,18 +141,23 @@ async function drive(browser, run, supplier, inquiryId, lang, viewport) {
     await detail.getByText(L('Bill of quantities (2 lines, CSV)', 'جدول الكميات (2 بندًا، CSV)')).waitFor({ timeout: 30000 });
     await shot('02_inquiry_detail');
     // Downloads: the BOQ as a file, and the redacted drawing page by its signed URL.
-    const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 20000 }), detail.getByRole('button', { name: L('Download', 'تنزيل') }).first().click()]);
+    // Each document is a row with its own four actions (instruction 524), drawing first, BOQ second; a
+    // signed-URL download may land in a new tab, so the download is awaited on the page OR its popup.
+    const docRow = (re) => detail.locator('li').filter({ hasText: re });
+    const anyDownload = () => Promise.race([page.waitForEvent('download', { timeout: 20000 }),
+      page.waitForEvent('popup', { timeout: 20000 }).then((pp) => pp.waitForEvent('download', { timeout: 20000 }))]);
+    const [dl] = await Promise.all([anyDownload(), docRow(/Bill of quantities \(2 lines, CSV\)/, /Drawing page 1/).getByRole('button', { name: 'Download', exact: true }).click()]);
     const boqFile = join(SHOTS, `${lang}_${dl.suggestedFilename()}`); await dl.saveAs(boqFile);
     const csv = readFileSync(boqFile, 'utf8');
     step(name('BOQ downloads as a CSV with both lines'), /Internal wall painting emulsion/.test(csv) && /Ceiling painting emulsion/.test(csv), dl.suggestedFilename());
-    const href = await detail.locator('a[download]').first().getAttribute('href');
-    const img = href ? await fetch(href) : null;
-    step(name('redacted drawing downloads by signed URL'), !!img && img.ok && /image\/png/.test(img.headers.get('content-type') || ''), href ? new URL(href).pathname.split('/').slice(-2).join('/') : 'no link');
+    const [dd] = await Promise.all([anyDownload(), docRow(/Drawing page 1 \(identity removed\)/, /Bill of quantities/).getByRole('button', { name: 'Download', exact: true }).click()]);
+    const ddFile = join(SHOTS, `${lang}_${viewport}_${dd.suggestedFilename()}`); await dd.saveAs(ddFile);
+    step(name('redacted drawing downloads'), readFileSync(ddFile).subarray(1, 4).toString() === 'PNG', dd.suggestedFilename());
     step(name('no customer identity on the inquiry'), !(await detail.innerText()).includes('ZZ DEMO Customer'));
 
     await detail.getByRole('button', { name: L('Send your quotation to the sales engineer', 'إرسال عرض السعر إلى مهندس المبيعات') }).click();
     const chat = page.locator(`#qd-qt-c-${inquiryId}`);
-    await chat.getByText(L('I am the QuotesDone sales engineer', 'أنا مهندس المبيعات')).waitFor({ timeout: 30000 });
+    await chat.getByText(/is open for your quotation/).first().waitFor({ timeout: 30000 });
     await shot('03_chat_opened');
 
     const incompletePath = join(SHOTS, `quote_incomplete_${run.tag}_${lang}.csv`); writeFileSync(incompletePath, INCOMPLETE);

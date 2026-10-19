@@ -27,7 +27,7 @@
     },
     {
       "id": "sales_engineer:rfq-completeness-checklist",
-      "topic": "RFQ completeness checklist before suppliers can price",
+      "topic": "RFQ completeness checklist: what an inquiry must state before matching",
       "kind": "checklist",
       "body_en": "A supplier can only price what is defined. Before matching, check that the inquiry states: the exact trade and item or service; quantities with units (m2, linear metres, number of units, tonnes); specification per line (grade, thickness, brand or \"approved equal\", finish, rating) or an explicit \"no preference\"; location down to emirate and community, plus access constraints (high-rise, occupied villa, working hours); required date or programme; who supplies what (supply only, supply and install, labour only); drawings or BOQ attached where the scope needs them; approvals the work will need (for example Civil Defence for fire systems, authority connection for power) and who obtains them; warranty expectation; payment expectation (advance, on delivery, credit); and whether VAT-registered invoicing is required. A missing line specification is a hold, not a guess: the platform rule is exact specs or the quote is held, and the customer is offered alternatives only through the spec-offer loop. List every missing item in one message to the customer instead of asking one question at a time, so that the inquiry is not delayed by several rounds.",
       "body_ar": "لا يستطيع المورّد تسعير إلا ما هو محدد. قبل المطابقة يُتحقَّق من أن الاستفسار يذكر: الحرفة والبند أو الخدمة بدقة؛ والكميات بوحداتها (متر مربع، متر طولي، عدد، طن)؛ والمواصفة لكل بند (الدرجة، السماكة، العلامة أو \"ما يعادلها المعتمد\"، التشطيب، التصنيف) أو عبارة صريحة بعدم التفضيل؛ والموقع حتى الإمارة والمنطقة مع قيود الوصول (برج عالٍ، فيلا مسكونة، ساعات العمل)؛ والتاريخ المطلوب؛ ومن يورّد ماذا (توريد فقط، توريد وتركيب، عمالة فقط)؛ والمخططات أو جدول الكميات عند الحاجة؛ والموافقات اللازمة كموافقة الدفاع المدني لأنظمة الحريق ومن يستخرجها؛ والضمان المتوقع؛ وشروط الدفع المتوقعة؛ وهل تُشترط فاتورة ضريبية. غياب مواصفة بند يعني التعليق لا التخمين، فقاعدة المنصة: مواصفات دقيقة أو يُعلَّق عرض السعر، ولا تُعرض البدائل إلا عبر حلقة عرض المواصفات. تُجمع كل النواقص في رسالة واحدة للعميل تفادياً لجولات متعددة.",
@@ -40,7 +40,7 @@
     },
     {
       "id": "sales_engineer:budget-realism-check",
-      "topic": "Judging whether a stated budget is realistic",
+      "topic": "Judging whether a customer's stated budget is realistic for the job",
       "kind": "decision_rule",
       "body_en": "When a customer states a budget, compare it with a documented market band before letting it shape the match. Sources of a band, in order of reliability: prices actually quoted on the platform for the same trade, emirate and specification in the last months (case memory); published market reports; supplier-provided indicative rates. Published whole-building benchmarks exist: Turner & Townsend's 2025 UAE survey puts average construction cost at about US$1,926 per m2 in Dubai and US$1,872 in Abu Dhabi, and Knight Frank's H1 2025 note gives about AED 4,200/m2 for standard villas up to about AED 11,000/m2 for high-end, and AED 5,500-7,300/m2 for commercial buildings. These are whole-building figures and must never be used to judge a single trade package. If no trade-level band exists, the band is \"not established\" and the seat says so rather than inventing one. Rule: a budget far below the band is not a reason to reject; it becomes a note to the customer (\"quotes are likely to exceed this; do you want to proceed or adjust scope?\"). Never share one customer's budget with suppliers unless the customer agreed.",
       "body_ar": "عند ذكر العميل ميزانيةً تُقارن بنطاق سوقي موثّق قبل أن تؤثر في المطابقة. مصادر النطاق بحسب الموثوقية: الأسعار المقدَّمة فعلاً على المنصة للحرفة والإمارة والمواصفة ذاتها في الأشهر الأخيرة، ثم التقارير السوقية المنشورة، ثم الأسعار الاسترشادية من الموردين. توجد معايير منشورة للمباني كاملة: يقدّر مسح Turner & Townsend لعام ٢٠٢٥ متوسط كلفة البناء بنحو ١٬٩٢٦ دولاراً للمتر المربع في دبي و١٬٨٧٢ في أبوظبي، وتذكر Knight Frank للنصف الأول من ٢٠٢٥ نحو ٤٬٢٠٠ درهم للمتر المربع للفلل العادية حتى نحو ١١٬٠٠٠ للفاخرة، و٥٬٥٠٠-٧٬٣٠٠ للمباني التجارية. هذه أرقام للمبنى كاملاً ولا يجوز استخدامها للحكم على حزمة حرفة واحدة. إن لم يتوفر نطاق للحرفة فهو \"غير محدد\" ويُصرَّح بذلك بدل اختلاق رقم. القاعدة: الميزانية المنخفضة كثيراً ليست سبباً للرفض، بل ملاحظة للعميل بأن العروض قد تتجاوزها. ولا تُشارك ميزانية العميل مع الموردين دون موافقته.",
@@ -57,14 +57,17 @@
       "kind": "decision_rule",
       "body_en": "An inquiry is held (not matched) when a supplier could not produce a comparable price from it: no quantity, no location, no line specification where the trade needs one, or a scope that mixes trades without saying which. It is also held when the request is outside the platform's scope (for example employment, loans, or a trade the taxonomy does not hold - new trades are welcome but must be added before matching, never mapped to a \"nearest\" trade). The seat asks the minimum set of questions that unblocks pricing, in the customer's language, in one message, and records the hold reason as a structured code plus the quoted span. A held inquiry has a clock: remind once, then close with a clear message if there is no reply, and write the outcome to case memory so the pattern (which question customers fail to answer) can improve the intake form. The seat never fills a gap with an assumption presented as fact. If the model that would interpret the text is on hold, the seat holds the decision rather than guessing by keywords.",
       "body_ar": "يُعلَّق الاستفسار ولا يُطابَق حين يتعذّر على المورد تقديم سعر قابل للمقارنة: لا كمية، أو لا موقع، أو لا مواصفة بند تحتاجها الحرفة، أو نطاق يخلط الحرف دون تحديد. ويُعلَّق كذلك إن كان خارج نطاق المنصة، كطلبات التوظيف أو القروض أو حرفة غير موجودة في التصنيف؛ فالحرف الجديدة مرحّب بها لكن تُضاف قبل المطابقة ولا تُربط بأقرب حرفة. يطرح المقعد الحد الأدنى من الأسئلة التي تتيح التسعير، بلغة العميل، في رسالة واحدة، ويسجّل سبب التعليق برمز منظّم مع النص المقتبس. للتعليق مهلة: تذكير واحد، ثم إغلاق برسالة واضحة إن لم يرد، مع تسجيل النتيجة في ذاكرة الحالات لتحسين نموذج الإدخال. لا يملأ المقعد أي فجوة بافتراض يُقدَّم كحقيقة، وإذا كان النموذج معلَّقاً يُعلَّق القرار بدل التخمين بالكلمات.",
-      "sources": [],
+      "sources": [
+        "internal:memory/exact-specs-or-the-quote-is-held.md",
+        "internal:memory/exact-trade-match-or-none-categories-open.md"
+      ],
       "confidence": "high",
       "as_of": "2026-09-23",
       "source_note": "Internal QuotesDone operating rule from founder rulings (seat duties plan, 23 Sep 2026); no external source applies."
     },
     {
       "id": "sales_engineer:quote-levelling-method",
-      "topic": "Quote levelling: making quotes comparable",
+      "topic": "Quote levelling: how to compare quotes that look different, like for like",
       "kind": "method",
       "body_en": "Quote levelling (bid levelling, normalisation) turns quotes that look different into a like-for-like comparison. Tabulation only lists who quoted what total; levelling compares scope. Steps: (1) confirm every supplier priced the same request, revision and attachments; (2) read exclusions, qualifications and assumptions before looking at the price; (3) build a matrix of scope items against suppliers marking included, excluded or unclear; (4) for each gap, send a written clarification asking the supplier to confirm or price the item, with a deadline; (5) where a gap remains, insert a \"plug\" - an estimated cost for the missing item - so adjusted totals are comparable; (6) only then rank. Plug reliability, from strongest: another supplier's firm price for the same item, historical platform data, published cost references, judgement alone. The number of plugs matters: a quote with five plugs carries more risk than one with none at the same adjusted total. Present the customer with the adjusted comparison and state every plug and its source. Never blend an alternate option into a base price.",
       "body_ar": "تسوية العروض (أو توحيدها) تحوّل عروضاً مختلفة الشكل إلى مقارنة متكافئة. الجدولة تعرض فقط من قدّم وبأي إجمالي، أما التسوية فتقارن النطاق. الخطوات: (١) التأكد من أن كل مورد سعّر الطلب والمراجعة والمرفقات ذاتها؛ (٢) قراءة الاستثناءات والشروط والافتراضات قبل النظر إلى السعر؛ (٣) بناء مصفوفة لبنود النطاق مقابل الموردين مع وسم كل بند: مشمول أو مستثنى أو غير واضح؛ (٤) إرسال استيضاح مكتوب لكل فجوة مع مهلة؛ (٥) إن بقيت فجوة يُدرج \"مبلغ تقديري\" للبند الناقص لتصبح الإجماليات المعدَّلة قابلة للمقارنة؛ (٦) ثم الترتيب. موثوقية المبلغ التقديري من الأقوى: سعر ثابت من مورد آخر للبند ذاته، ثم بيانات المنصة التاريخية، ثم مراجع الكلفة المنشورة، ثم التقدير وحده. عدد المبالغ التقديرية مهم؛ فعرض بخمسة منها أخطر من عرض بلا أي منها. يُعرض على العميل الإجمالي المعدَّل مع كل مبلغ تقديري ومصدره، ولا يُدمج خيار بديل في السعر الأساسي.",
@@ -167,7 +170,7 @@
     },
     {
       "id": "sales_engineer:batna-in-procurement",
-      "topic": "BATNA: the walk-away alternative",
+      "topic": "BATNA: the customer's real walk-away alternative in procurement",
       "kind": "concept",
       "body_en": "BATNA - Best Alternative to a Negotiated Agreement, from Fisher, Ury and Patton - is what a party will do if no deal is reached. It decides whether to accept an offer, sets leverage, and shows when walking away is sensible. Harvard's Program on Negotiation stresses that a BATNA is only useful when understood on equivalent terms: an alternative that looks 30% cheaper can be weaker once scope and conditions are compared. For the sales engineer this is the practical point: a customer's real BATNA is the next-best levelled quote, not the headline cheapest one, and a supplier's BATNA is its other work and pipeline. When advising a customer who wants to negotiate, first level the quotes so the customer knows its true alternative, then negotiate on the items that differ (scope, delivery, payment, warranty) rather than only on price. Keep reassessing: a new quote or a clarification can change the BATNA mid-negotiation. The seat never misrepresents the customer's alternatives to a supplier, and never reveals another supplier's price as leverage.",
       "body_ar": "البديل الأفضل للاتفاق المتفاوض عليه (BATNA)، وهو مفهوم وضعه فيشر ويوري وباتون، هو ما سيفعله الطرف إن لم يتم الاتفاق. وهو الذي يحدد قبول العرض من عدمه، ويحدد قوة الموقف التفاوضي، ويبيّن متى يكون الانسحاب معقولاً. يؤكد برنامج التفاوض في هارفارد أن هذا البديل لا يفيد إلا إذا فُهم على أسس متكافئة؛ فبديل يبدو أرخص بنسبة ٣٠٪ قد يكون أضعف بعد مقارنة النطاق والشروط. والنقطة العملية لمهندس المبيعات: البديل الحقيقي للعميل هو العرض المسوّى التالي في الترتيب لا أرخص رقم ظاهر، وبديل المورد هو أعماله الأخرى. عند مساعدة عميل يريد التفاوض تُسوّى العروض أولاً ليعرف بديله الحقيقي، ثم يُتفاوض على البنود المختلفة (النطاق، التسليم، الدفع، الضمان) لا على السعر وحده. ويُعاد التقييم باستمرار. ولا يحرّف المقعد بدائل العميل أمام المورد، ولا يكشف سعر مورد آخر كورقة ضغط.",
@@ -348,7 +351,7 @@
     },
     {
       "id": "sales_engineer:quote-validity",
-      "topic": "Quote validity and price escalation",
+      "topic": "Quote validity period: why every quote must state how long its price holds, and price escalation",
       "kind": "decision_rule",
       "body_en": "Every quote should state how long its price holds. Material costs in the UAE have been rising: Turner & Townsend's 2025 UAE survey reports construction cost inflation forecasts of about 5% in 2025 for Dubai and Abu Dhabi, tender price inflation of 3.3% in 2025, materials at roughly 60% of baseline construction cost, and increases across MEP components, concrete, structural steel and timber. A long validity therefore costs the supplier risk; a short one pressures the customer. Seat rules: record validity for each quote and show it in the comparison; warn the customer when a quote is about to expire before they decide; if a quote expired, ask the supplier to reconfirm or revise rather than treating the old price as binding; for long lead-time items check whether the price is fixed or subject to escalation (for example tied to steel or copper prices) and state the clause. Do not assume a price will hold because the customer is slow. Case memory of how often suppliers revise expired quotes, and by how much, improves future advice.",
       "body_ar": "يجب أن يذكر كل عرض مدة ثبات سعره. وقد ارتفعت كلفة المواد في الإمارات: يذكر مسح Turner & Townsend لعام ٢٠٢٥ توقعات تضخم كلفة البناء بنحو ٥٪ في ٢٠٢٥ لدبي وأبوظبي، وتضخم أسعار المناقصات ٣٫٣٪ في ٢٠٢٥، وأن المواد تمثل نحو ٦٠٪ من الكلفة الأساسية، مع زيادات في مكونات الأنظمة الكهروميكانيكية والخرسانة والحديد الإنشائي والأخشاب. فالصلاحية الطويلة مخاطرة على المورد، والقصيرة ضغط على العميل. قواعد المقعد: تسجيل الصلاحية لكل عرض وإظهارها في المقارنة؛ وتنبيه العميل عند اقتراب انتهاء العرض قبل قراره؛ وإن انتهى العرض يُطلب من المورد إعادة التأكيد أو التعديل بدل اعتبار السعر القديم ملزماً؛ وللبنود طويلة التوريد يُتحقق هل السعر ثابت أم خاضع للتصعيد كربطه بأسعار الحديد أو النحاس ويُذكر البند. ولا يُفترض ثبات السعر لأن العميل تأخر.",
@@ -422,7 +425,7 @@
     },
     {
       "id": "sales_engineer:incoterms-choice-uae",
-      "topic": "Choosing and comparing Incoterms for UAE buyers",
+      "topic": "Delivery terms that matter for local UAE quotes: delivered to site versus ex-warehouse, and choosing Incoterms",
       "kind": "decision_rule",
       "body_en": "Most QuotesDone orders are domestic: the relevant terms are \"delivered to site\" versus \"ex-warehouse or collection\", plus who offloads. Incoterms matter when a supplier quotes imported goods directly or a customer compares a local stockist with an overseas manufacturer. Guidance: compare quotes only on the same delivery basis; convert an FOB or EXW quote by adding freight, insurance, UAE customs duty, port and clearance charges, inland transport and offloading, stating each assumption; prefer FCA over EXW when the seller can clear export (EXW puts export formalities on the buyer, which the buyer may not legally be able to do); treat DDP with care because it makes the seller responsible for UAE import clearance and duties, which a foreign seller may not handle well; for containerised goods, FCA/CPT/CIP fit better than the sea-only FOB/CFR/CIF because risk under the sea rules passes on board the vessel. Note long lead times for imported equipment: Turner & Townsend reported generators at 41+ weeks and switchgear at 19-25 weeks in Dubai in 2025. The seat does not quote customs duty rates it has not verified.",
       "body_ar": "معظم طلبات QuotesDone محلية، والشروط المهمة فيها \"التسليم للموقع\" مقابل \"من المستودع أو الاستلام\"، ومن يتولى التنزيل. وتصبح إنكوترمز مهمة حين يسعّر مورد بضائع مستوردة مباشرة أو يقارن العميل بين مخزّن محلي ومصنّع خارجي. التوجيهات: تُقارن العروض على أساس التسليم ذاته فقط؛ ويُحوَّل عرض FOB أو EXW بإضافة الشحن والتأمين والرسوم الجمركية الإماراتية ورسوم الميناء والتخليص والنقل الداخلي والتنزيل مع ذكر كل افتراض؛ ويُفضَّل FCA على EXW حين يستطيع البائع تخليص التصدير، لأن EXW يلقي إجراءات التصدير على المشتري الذي قد لا يستطيع قانوناً القيام بها؛ ويُتعامل بحذر مع DDP لأنه يجعل البائع مسؤولاً عن تخليص الاستيراد والرسوم في الإمارات؛ وللبضائع في حاويات تناسب FCA/CPT/CIP أكثر من القواعد البحرية لأن المخاطر فيها تنتقل على متن السفينة. وتُلاحظ مدد التوريد الطويلة: ذكرت Turner & Townsend مولدات بأكثر من ٤١ أسبوعاً ولوحات توزيع بـ١٩-٢٥ أسبوعاً في دبي عام ٢٠٢٥. ولا يذكر المقعد نسب رسوم جمركية لم يتحقق منها.",
@@ -436,7 +439,7 @@
     },
     {
       "id": "sales_engineer:vat-on-quotes",
-      "topic": "VAT presentation on quotes and tax invoices",
+      "topic": "VAT on quotes: show prices with or without VAT, TRN and tax invoices",
       "kind": "standard",
       "body_en": "The UAE standard VAT rate is 5%. For comparing quotes: show every price VAT-exclusive, with VAT as a separate line, and record whether the supplier is VAT-registered (a 15-digit TRN). A supplier that is not registered does not charge VAT, which can make its price look 5% cheaper while a registered competitor's VAT may be recoverable by a registered customer - so the right comparison depends on whether the customer can recover input tax. A homeowner generally cannot, so for them the VAT-inclusive total is the real cost. Tax invoices: per Wafeq's summary of FTA rules, a full tax invoice carries the words \"Tax Invoice\", supplier name, address and TRN, recipient details and TRN where registered, sequential number, dates of issue and supply, description, quantity, unit price, VAT rate and amount, and totals, with VAT in AED; simplified invoices are allowed for retail and for supplies under AED 10,000; invoices are due within 14 days of the date of supply. The seat does not decide a party's VAT treatment; tax questions go to the accountant seat.",
       "body_ar": "نسبة ضريبة القيمة المضافة القياسية في الإمارات ٥٪. عند مقارنة العروض: يُعرض كل سعر غير شامل للضريبة مع الضريبة في سطر منفصل، ويُسجَّل هل المورد مسجَّل ضريبياً (رقم تسجيل ضريبي من ١٥ خانة). المورد غير المسجل لا يفرض الضريبة، فقد يبدو سعره أرخص بـ٥٪، بينما قد يسترد العميل المسجَّل ضريبة المنافس المسجَّل - فالمقارنة الصحيحة تعتمد على قدرة العميل على استرداد ضريبة المدخلات. وصاحب المنزل لا يسترد عادةً، فالإجمالي الشامل للضريبة هو كلفته الحقيقية. أما الفواتير الضريبية فبحسب ملخص Wafeq لقواعد الهيئة الاتحادية للضرائب: تحمل الفاتورة الكاملة عبارة \"فاتورة ضريبية\" واسم المورد وعنوانه ورقمه الضريبي، وبيانات المستلم ورقمه إن كان مسجلاً، ورقماً تسلسلياً، وتاريخي الإصدار والتوريد، والوصف والكمية وسعر الوحدة ونسبة الضريبة ومبلغها والإجماليات، مع الضريبة بالدرهم؛ وتُجاز الفاتورة المبسطة للتجزئة وللتوريدات دون ١٠٬٠٠٠ درهم؛ وتُصدر الفاتورة خلال ١٤ يوماً من تاريخ التوريد. ولا يقرر المقعد المعاملة الضريبية لأي طرف؛ فأسئلة الضريبة تُحال لمقعد المحاسب.",
@@ -513,7 +516,7 @@
     },
     {
       "id": "sales_engineer:cost-structure-of-a-quote",
-      "topic": "Reading the cost structure inside a trade quote",
+      "topic": "Cost structure inside a trade quote: what share of UAE construction cost is materials, labour and overheads",
       "kind": "concept",
       "body_en": "Understanding what a quote is made of helps the seat judge whether it is plausible and where negotiation is possible. A typical trade or supply-and-install quote contains: materials (Turner & Townsend estimates materials at around 60% of baseline construction cost in the UAE, though this varies widely by trade); labour; plant and tools; preliminaries or general costs (site supervision, access equipment, transport, insurance, permits - reported at about 12-15% on building projects); overhead; and profit (8-12% reported on mid-to-large projects). Small trade suppliers rarely itemise these, so the seat should ask for a breakdown only when needed - for a large order, an outlier, or a variation. Clues when reading a quote: a very low labour content for installation-heavy work; lump-sum \"preliminaries\" larger than the work; missing transport for bulky items; materials priced below known wholesale. Knowing the structure also clarifies which items move with commodity prices (steel, copper, aluminium) and so which quotes need escalation clauses or short validity.",
       "body_ar": "فهم مكوّنات العرض يساعد المقعد على الحكم بمعقوليته وتحديد مواضع التفاوض. يتضمن عرض الحرفة أو التوريد والتركيب عادةً: المواد (تقدّرها Turner & Townsend بنحو ٦٠٪ من الكلفة الأساسية للبناء في الإمارات مع تفاوت كبير بين الحرف)؛ والعمالة؛ والمعدات والأدوات؛ والمصاريف التمهيدية أو العامة (الإشراف، ومعدات الوصول، والنقل، والتأمين، والتصاريح - ويُذكر أنها نحو ١٢-١٥٪ في مشاريع المباني)؛ والنفقات العامة؛ والربح (يُذكر ٨-١٢٪ في المشاريع المتوسطة والكبيرة). ونادراً ما يفصّل موردو الحرف الصغار هذه البنود، فلا يطلب المقعد التفصيل إلا عند الحاجة: طلب كبير، أو عرض شاذ، أو تغيير. ومن المؤشرات عند القراءة: عمالة منخفضة جداً في عمل يعتمد على التركيب، أو \"مصاريف تمهيدية\" مقطوعة أكبر من العمل نفسه، أو غياب النقل لبنود كبيرة الحجم، أو مواد مسعّرة دون سعر الجملة المعروف. ويوضح فهم البنية أيضاً أي البنود تتحرك مع أسعار السلع كالحديد والنحاس والألمنيوم.",
@@ -538,7 +541,7 @@
     },
     {
       "id": "sales_engineer:licence-verification-sources",
-      "topic": "Where to verify a UAE trade licence",
+      "topic": "Where to verify a supplier's UAE trade licence",
       "kind": "method",
       "body_en": "UAE licences are issued by each emirate's economic department or by free-zone authorities, so verification must go to the right issuer. The government portal u.ae lists: federally, the Ministry of Economy's National Economic Register and a commercial-company licence enquiry; Abu Dhabi, the Department of Economic Development enquiry on the TAMM platform; Dubai, the Department of Economy and Tourism licence and name search, with Invest in Dubai handling trade names and licences; Sharjah and Ajman, their economic development departments' trade-name enquiries; Umm Al Quwain lists only a trade-name booking service, so its licence enquiry route is not established; Ras Al Khaimah is not listed; Fujairah, the municipality's licence portal. Free-zone companies are verified with their free-zone authority. What to capture: licence number, legal name, legal form, issuing authority, status (active, expired, cancelled), expiry date, and listed activities. A licence that is expired or cancelled blocks activation; one expiring soon triggers a renewal reminder (the IT seat runs the licence-expiry watch that removes expired suppliers from matching and notifies them through support). If a registry cannot be reached, the item stays unverified - it is never marked verified from the document image alone.",
       "body_ar": "تُصدر الرخص في الإمارات من الدائرة الاقتصادية في كل إمارة أو من سلطات المناطق الحرة، فيجب التحقق لدى الجهة المصدِرة الصحيحة. تسرد بوابة u.ae الحكومية: اتحادياً السجل الاقتصادي الوطني لوزارة الاقتصاد والاستعلام عن رخص الشركات التجارية؛ وفي أبوظبي استعلام دائرة التنمية الاقتصادية عبر منصة تم؛ وفي دبي البحث عن الرخص والأسماء لدى دائرة الاقتصاد والسياحة، مع منصة Invest in Dubai للأسماء التجارية والرخص؛ وفي الشارقة وعجمان الاستعلام عن الأسماء التجارية لدى دوائر التنمية الاقتصادية؛ وفي أم القيوين لا تُدرج إلا خدمة حجز الاسم التجاري فمسار الاستعلام عن الرخص غير مثبت؛ ولا تُدرج رأس الخيمة؛ وفي الفجيرة بوابة الرخص لدى البلدية. وتُتحقق شركات المناطق الحرة لدى سلطة منطقتها. ما يُسجَّل: رقم الرخصة، والاسم القانوني، والشكل القانوني، والجهة المصدِرة، والحالة (سارية، منتهية، ملغاة)، وتاريخ الانتهاء، والأنشطة. الرخصة المنتهية أو الملغاة تمنع التفعيل، والقريبة من الانتهاء تستدعي تذكيراً بالتجديد، ويتولى مقعد تقنية المعلومات مراقبة انتهاء الرخص. وإن تعذّر الوصول للسجل يبقى العنصر غير محقق، ولا يُعتمد من صورة المستند وحدها.",
@@ -550,7 +553,7 @@
     },
     {
       "id": "sales_engineer:licence-activity-scope",
-      "topic": "Matching declared trades to licensed activities",
+      "topic": "Licensed activities: can a building materials trading licence quote for installation?",
       "kind": "decision_rule",
       "body_en": "A valid licence is not enough: the supplier's declared trades must be within the activities listed on its licence. A company licensed for \"building materials trading\" can supply materials but is not thereby licensed to execute installation or contracting work; a company licensed for a specific contracting activity may not be licensed to trade unrelated goods. Rule for the seat: for each declared trade and service role, find the licensed activity that covers it and record the pairing; where none covers it, the trade is not activated for matching and the supplier is told which activity is missing; do not decide coverage by keyword overlap between the activity text and the trade name - decide by meaning, citing the activity wording, and where the model that reads meaning is on hold, hold the decision. Exact trade or none: never activate a \"nearest\" trade. Some work additionally needs authority registration beyond the trade licence (for example fire and life-safety contractors approved by Civil Defence); that technical layer is covered in the trade knowledge packs and must be checked where the trade requires it.",
       "body_ar": "الرخصة السارية لا تكفي؛ يجب أن تقع الحرف التي يعلنها المورد ضمن الأنشطة المدرجة في رخصته. فالشركة المرخّصة لـ\"تجارة مواد البناء\" تستطيع توريد المواد لكنها ليست مرخّصة بذلك لتنفيذ أعمال التركيب أو المقاولات، والشركة المرخّصة لنشاط مقاولات محدد قد لا تكون مرخّصة لتجارة سلع غير ذات صلة. قاعدة المقعد: لكل حرفة ودور خدمة معلن يُحدد النشاط المرخّص الذي يغطيه ويُسجَّل الاقتران؛ وإن لم يغطه نشاط لا تُفعَّل الحرفة للمطابقة ويُبلَّغ المورد بالنشاط الناقص؛ ولا تُقرر التغطية بتطابق الكلمات بين نص النشاط واسم الحرفة، بل بالمعنى مع اقتباس صياغة النشاط، وإن كان النموذج القارئ للمعنى معلَّقاً يُعلَّق القرار. حرفة مطابقة أو لا شيء؛ فلا تُفعَّل \"أقرب\" حرفة. وبعض الأعمال يحتاج تسجيلاً لدى جهات أخرى إضافة للرخصة، كمقاولي الحريق والسلامة المعتمدين من الدفاع المدني، وتغطي حزم المعرفة الفنية هذه الطبقة.",
@@ -614,7 +617,7 @@
     },
     {
       "id": "sales_engineer:kraljic-supply-segmentation",
-      "topic": "Kraljic segmentation of purchase categories",
+      "topic": "Kraljic matrix: what it classifies - purchase categories by profit impact and supply risk",
       "kind": "concept",
       "body_en": "The Kraljic matrix classifies purchasing categories by profit impact and supply risk into four groups: non-critical (low impact, abundant supply - make the buying process efficient, catalogues), leverage (high impact, abundant supply - use bargaining power and competition), bottleneck (low impact but supply risk - secure continuity through longer relationships), and strategic (high impact and supply risk - monitor the market, develop alternatives, build partnerships). The model can be applied to purchase categories or to suppliers; for the seat, apply it to trade-and-emirate categories. Use for the seat: segment the platform's trades by emirate. Leverage categories (many suppliers, frequent demand - for example common finishing trades in Dubai) need competitive matching and fast levelling. Bottleneck categories (few qualified suppliers, specialist approvals - for example some fire-safety or specialist glazing work in smaller emirates) need supply-gap recruitment and closer supplier relationships. This segmentation drives where the seat spends recruitment effort and how many suppliers it seeks per trade and emirate. Category examples here are illustrative; the actual classification must come from platform data.",
       "body_ar": "تصنّف مصفوفة كرالييتش فئات المشتريات حسب أثرها على الربح ومخاطر التوريد إلى أربع مجموعات: غير الحرجة (أثر منخفض وتوريد وفير - تُجعل عملية الشراء فعالة وتُستخدم الكتالوجات)، والرافعة (أثر عالٍ وتوريد وفير - تُستخدم القوة التفاوضية والمنافسة)، والاختناق (أثر منخفض مع مخاطر توريد - تُؤمَّن الاستمرارية بعلاقات أطول)، والاستراتيجية (أثر عالٍ ومخاطر توريد - مراقبة السوق وتطوير البدائل وبناء الشراكات). ويمكن تطبيق النموذج على فئات المشتريات أو على الموردين، ويطبقه المقعد على فئات الحرفة والإمارة. استخدامها للمقعد: تقسيم حرف المنصة حسب الإمارة. فئات الرافعة (موردون كثر وطلب متكرر، كحرف التشطيب الشائعة في دبي) تحتاج مطابقة تنافسية وتسوية سريعة. وفئات الاختناق (قلة من الموردين المؤهلين وموافقات متخصصة، كبعض أعمال السلامة من الحريق أو الزجاج المتخصص في الإمارات الأصغر) تحتاج استقطاباً لسد فجوات التوريد وعلاقات أوثق. والأمثلة هنا توضيحية، والتصنيف الفعلي يأتي من بيانات المنصة.",
@@ -817,7 +820,7 @@
     },
     {
       "id": "sales_engineer:win-loss-review",
-      "topic": "Win/loss review after a reveal or decline",
+      "topic": "Win/loss review: how the seat learns from closed outcomes (chosen, declined, no decision)",
       "kind": "method",
       "body_en": "Win/loss review is the structured study of closed outcomes - chosen, declined, no decision - to learn what drove them. Internal reason codes alone are an unreliable record; the buyer's own account is needed (how often seller and buyer reasons differ was not established from the source). Clozd's framework: open with a broad question that lets the buyer tell the story, cover consistent topic areas (the offering, the sales experience, price, competitive alternatives, the decision makers, expectations about delivery), drill down where relevant, prefer \"what\" and \"why\" questions over ratings, and adapt. For QuotesDone: after a decision, ask the customer a short, optional question set in their language (why this quote; what nearly changed their mind; if none chosen, why); ask suppliers not chosen whether they want feedback and give factual, non-identifying feedback (rank position, main differences in terms, never another supplier's price); code the reasons into a fixed taxonomy plus the quoted text; review patterns monthly by trade. Findings feed matching, the intake form, supplier coaching, and the CEO seat's pricing monitoring.",
       "body_ar": "مراجعة الفوز والخسارة دراسة منظمة للنتائج المغلقة - الاختيار أو الرفض أو عدم القرار - لمعرفة ما دفع إليها. رموز الأسباب الداخلية وحدها سجل غير موثوق (ونسبة اختلاف أسباب البائع والمشتري لم تثبت من المصدر)؛ بل يلزم رواية المشتري نفسه. إطار Clozd: البدء بسؤال واسع يترك للمشتري سرد القصة، وتغطية محاور ثابتة (العرض، وتجربة البيع، والسعر، والبدائل المنافسة، وأصحاب القرار، وتوقعات التسليم)، والتعمق حيث يلزم، وتفضيل أسئلة \"ماذا\" و\"لماذا\" على التقييمات الرقمية، والمرونة. في QuotesDone: بعد القرار يُطرح على العميل سؤال قصير اختياري بلغته (لماذا هذا العرض؛ وما كاد يغيّر رأيه؛ وإن لم يختر فلماذا)؛ ويُسأل الموردون غير المختارين هل يريدون ملاحظات، وتُقدَّم ملاحظات واقعية لا تكشف هوية أحد (ترتيبهم، والفروق الرئيسية في الشروط، دون سعر مورد آخر)؛ وتُرمَّز الأسباب في تصنيف ثابت مع النص المقتبس؛ وتُراجع الأنماط شهرياً لكل حرفة.",
@@ -833,18 +836,23 @@
       "kind": "decision_rule",
       "body_en": "The seat audit found that every inquiry, quote dispute and supplier question was decided as if it were the first: no outcomes were stored and no precedents retrieved. A senior human remembers similar cases. Rule: before qualifying, matching, levelling, answering a price question or handling a spec-offer, the seat retrieves the most similar past cases by meaning (trade, specification, emirate, scale, customer type) and reads their decisions and final outcomes. It cites the precedents it relied on in the decision basis, and states when none was found. After the outcome is known, it writes the case: subject, decision, rationale, evidence, outcome, whether final. Guardrails: precedents inform, they do not bind - a different specification or date can change the answer; a precedent from before a rule change (for example the new Civil Code from 1 June 2026, or a decision_policy change) is marked as such; one supplier's price from a past case is used only in aggregate, never revealed; precedent search is by meaning, not word overlap. Case memory is also the source of the platform's own price and lead-time bands.",
       "body_ar": "وجد تدقيق المقعد أن كل استفسار ونزاع عرض وسؤال مورد كان يُقرَّر كأنه الأول: لا نتائج مخزنة ولا سوابق مسترجعة. والخبير البشري يتذكر الحالات المشابهة. القاعدة: قبل التأهيل أو المطابقة أو التسوية أو الإجابة عن سؤال سعر أو معالجة عرض مواصفات، يسترجع المقعد أكثر الحالات السابقة تشابهاً بالمعنى (الحرفة، والمواصفة، والإمارة، والحجم، ونوع العميل) ويقرأ قراراتها ونتائجها النهائية، ويذكر السوابق التي اعتمد عليها في أساس القرار، ويصرّح إن لم يجد شيئاً. وبعد معرفة النتيجة يكتب الحالة: الموضوع، والقرار، والمبرر، والدليل، والنتيجة، وهل هي نهائية. الضوابط: السوابق تُرشد ولا تُلزم، فاختلاف المواصفة أو التاريخ قد يغيّر الجواب؛ والسابقة من قبل تغيير قاعدة (كالقانون المدني الجديد من ١ يونيو ٢٠٢٦ أو تعديل في decision_policy) تُوسم بذلك؛ وسعر مورد من حالة سابقة يُستخدم مجمّعاً فقط ولا يُكشف؛ والبحث بالمعنى لا بتطابق الكلمات. وذاكرة الحالات هي أيضاً مصدر نطاقات الأسعار ومدد التوريد الخاصة بالمنصة.",
-      "sources": [],
+      "sources": [
+        "internal:docs/audits/2026-09-30_senior_hire_audit.md"
+      ],
       "confidence": "high",
       "as_of": "2026-09-23",
       "source_note": "Internal QuotesDone operating rule from founder rulings (seat duties plan, 23 Sep 2026); no external source applies."
     },
     {
       "id": "sales_engineer:escalation-and-handoffs",
-      "topic": "Escalation paths and closed-loop handoffs",
+      "topic": "Who handles what: escalation paths and handoffs (refunds and charges go to the accountant seat)",
       "kind": "decision_rule",
       "body_en": "The sales engineer is one of five seats and must route work to its owner, closing every loop it opens. Routes: payment, refund, charge, non-response charge, billing questions and suspected fee circumvention or duplicate accounts - to the accountant seat; sanctions or UBO concerns - accountant and CEO; customer-facing messages, disputes after the reveal, PDPL requests and rating solicitation - customer support; platform fee concessions, exceptions to commercial rules, pricing proposals, and any decision the seat is not authorised to take - the CEO seat (which reports to the founder only through its own channel); licence-expiry removal and system faults - the IT engineer seat; supply-gap recruitment campaigns - marketing. Rules: every handoff carries the evidence and the exact question; the originator closes it after the reply is verified (nothing is one-way); a handoff that times out is re-raised, not dropped; never name \"an agent\" - name the seat. Where a judgement about another seat's work is needed, it goes through cross-family model review. The seat does not contact the founder directly.",
       "body_ar": "مهندس المبيعات أحد خمسة مقاعد، وعليه توجيه العمل إلى مالكه وإغلاق كل حلقة يفتحها. المسارات: الدفع والاسترداد والرسوم ورسم عدم الاستجابة وأسئلة الفوترة وشبهات التحايل على الرسوم أو الحسابات المكررة - إلى مقعد المحاسب؛ ومخاوف العقوبات أو المالك المستفيد - إلى المحاسب والرئيس التنفيذي؛ والرسائل الموجهة للعملاء والنزاعات بعد الكشف وطلبات حماية البيانات وطلب التقييم - إلى خدمة العملاء؛ والتنازل عن رسوم المنصة والاستثناءات من القواعد التجارية ومقترحات التسعير وأي قرار لا يملك المقعد صلاحيته - إلى مقعد الرئيس التنفيذي؛ وإزالة الرخص المنتهية وأعطال النظام - إلى مهندس تقنية المعلومات؛ وحملات استقطاب سد الفجوات - إلى التسويق. القواعد: تحمل كل إحالة الدليل والسؤال المحدد؛ ويغلقها المنشئ بعد التحقق من الرد؛ والإحالة التي تنتهي مهلتها تُعاد ولا تُسقط؛ ويُسمّى المقعد دائماً لا \"وكيل\". وأي حكم على عمل مقعد آخر يمر بمراجعة نموذج من عائلة مختلفة. ولا يتواصل المقعد مع المؤسس مباشرة.",
-      "sources": [],
+      "sources": [
+        "internal:memory/seat-ownership-map-24-sep.md",
+        "internal:memory/nothing-is-one-way.md"
+      ],
       "confidence": "high",
       "as_of": "2026-09-23",
       "source_note": "Internal QuotesDone operating rule from founder rulings (seat duties plan, 23 Sep 2026); no external source applies."
@@ -867,7 +875,7 @@
     },
     {
       "id": "sales_engineer:glossary-marketplace-terms",
-      "topic": "Glossary: marketplace and supplier-management terms (EN/AR)",
+      "topic": "Glossary: marketplace terms (EN/AR) - liquidity, fill rate, time to match",
       "kind": "glossary",
       "body_en": "Liquidity - how easily buyers and sellers find a suitable counterpart. Fill rate / match rate - share of demand that finds supply and transacts. Time to match - time from inquiry to a usable match. Market depth - adequacy of supply for demand. Take rate - share of transaction value the marketplace earns. GMV - gross merchandise value. Supply concentration - share of activity held by the largest suppliers. Disintermediation / leakage - completing the deal off-platform after discovery on it. Multi-tenanting - using several platforms. Cold start - lack of history for a new supplier or segment. Exploration share - matches reserved for suppliers without enough history. Supply gap - a trade-and-emirate segment where demand cannot be served. Onboarding funnel - invited, registered, verified, activated, first quote. Mandatory six - name, mobile (OTP), email, licence, profile, signed terms. Performance score - measured supplier behaviour feeding ranking. OTIF - on-time in-full. Response rate / response time. Win/loss review - study of why an outcome occurred. Kraljic matrix - category segmentation by profit impact and supply risk. BATNA - best alternative to a negotiated agreement. BANT / MEDDIC - qualification frameworks.",
       "body_ar": "السيولة: سهولة عثور المشترين والبائعين على الطرف المناسب. معدل الإشباع أو المطابقة: نسبة الطلب الذي يجد عرضاً ويتم فيه التعامل. زمن المطابقة: الزمن من الاستفسار إلى مطابقة صالحة. عمق السوق: كفاية العرض للطلب. نسبة الاقتطاع: حصة المنصة من قيمة التعامل. إجمالي قيمة البضائع (GMV). تركّز العرض: حصة النشاط لدى أكبر الموردين. التسرّب أو تجاوز الوسيط: إتمام الصفقة خارج المنصة بعد الاكتشاف عليها. تعدد المنصات. البداية الباردة: غياب التاريخ لمورد أو شريحة جديدة. حصة الاستكشاف: مطابقات محجوزة لموردين بلا تاريخ كافٍ. فجوة العرض: شريحة حرفة وإمارة لا يُخدم فيها الطلب. مسار التأهيل: مدعو، مسجّل، محقَّق، مفعّل، أول عرض. العناصر الستة: الاسم، والهاتف برمز التحقق، والبريد، والرخصة، والملف، والشروط الموقعة. درجة الأداء: سلوك المورد المقاس الذي يغذي الترتيب. التسليم في الموعد وكاملاً (OTIF). معدل الاستجابة وزمنها. مراجعة الفوز والخسارة. مصفوفة كرالييتش. البديل الأفضل للاتفاق (BATNA). إطارا التأهيل BANT وMEDDIC.",
@@ -900,7 +908,7 @@
     },
     {
       "id": "sales_engineer:reading-drawings",
-      "topic": "Reading a drawing set before pricing",
+      "topic": "Reading a drawing set before pricing, and which drawing file formats a customer can upload",
       "kind": "method",
       "body_en": "Before any quantity is taken, read the drawing set as a set. Start with the title block: project, drawing number, discipline, scale, revision letter or number and its date, and status (for tender, for construction, for approval). Quote only against a named revision and list the drawing numbers and revisions priced; a quote without them cannot be levelled when the drawings change. Read the legend and general notes first, then plans, sections and elevations together, then details and schedules (door, window, finishes, equipment schedules often carry the quantities). Use the scale bar and written dimensions; where a note says do not scale, never scale a dimension - ask. Check that disciplines agree (architectural against structural and MEP) and list each conflict as a written clarification rather than choosing one. Customer drawings on QuotesDone are PDF or CAD (DWG/DXF) only. Missing information on a drawing is a question to the customer, never an assumption in the price.",
       "body_ar": "قبل حصر أي كمية تُقرأ مجموعة المخططات كوحدة واحدة. يبدأ القارئ بإطار العنوان: المشروع، رقم المخطط، التخصص، المقياس، حرف أو رقم المراجعة وتاريخها، والحالة (للمناقصة، للتنفيذ، للاعتماد). لا يُسعَّر إلا على مراجعة مسمّاة، وتُذكر أرقام المخططات ومراجعاتها المسعَّرة؛ فالعرض الذي يخلو منها لا يمكن مقارنته حين تتغير المخططات. تُقرأ وسيلة الإيضاح والملاحظات العامة أولاً، ثم المساقط والقطاعات والواجهات معاً، ثم التفاصيل والجداول (جداول الأبواب والنوافذ والتشطيبات والمعدات كثيراً ما تحمل الكميات). يُستخدم شريط المقياس والأبعاد المكتوبة، وإذا نصّت ملاحظة على عدم القياس بالمسطرة فلا يُقاس أي بُعد بل يُسأل عنه. يُتحقق من توافق التخصصات (المعماري مع الإنشائي والكهروميكانيكي) ويُدرج كل تعارض كاستيضاح مكتوب بدلاً من اختيار أحدهما. مخططات العملاء في كوتس دن بصيغة PDF أو CAD (DWG/DXF) فقط. والمعلومة الناقصة في المخطط سؤال للعميل، لا افتراض في السعر.",
@@ -969,7 +977,7 @@
     },
     {
       "id": "sales_engineer:takeoff-mep",
-      "topic": "Quantity take-off: MEP trades",
+      "topic": "Quantity take-off: MEP trades - how cables, containment, wiring points and AC units are measured",
       "kind": "method",
       "body_en": "MEP is measured by length, number and capacity: cables in linear metres by size, cores and type (for example 4C x 16 mm2 XLPE/SWA), containment (conduit, trunking, tray) in metres by size; wiring points (lighting, socket, data) by number; distribution boards, isolators and fittings by number from the schedule; pipes in metres by material and nominal diameter, with fittings either enumerated or stated as a percentage allowance (say which); ductwork in m2 of surface or kg by gauge, with insulation in m2; air-conditioning units by number with the cooling capacity in kW or TR, the refrigerant and the efficiency rating; pumps, tanks and fans by number with duty point. Testing and commissioning, authority inspections (DEWA or the relevant distribution company for power, Civil Defence for fire systems) and as-built drawings are separate lines. A quote that prices \"complete MEP\" as one lump sum cannot be levelled; ask for the breakdown by system.",
       "body_ar": "تُقاس الأعمال الكهروميكانيكية بالطول والعدد والسعة: الكابلات بالمتر الطولي حسب المقطع وعدد الأسلاك والنوع (مثل 4C x 16 مم2 XLPE/SWA)، والمسارات (المواسير، المجاري، الحوامل) بالمتر حسب المقاس؛ نقاط التمديد (إنارة، مقابس، بيانات) بالعدد؛ لوحات التوزيع والعوازل والتجهيزات بالعدد من الجدول؛ المواسير بالمتر حسب المادة والقطر الاسمي، مع تعداد القطع أو ذكرها كنسبة مئوية (مع بيان أيهما)؛ مجاري الهواء بالمتر المربع للسطح أو بالكيلوغرام حسب السماكة، والعزل بالمتر المربع؛ وحدات التكييف بالعدد مع سعة التبريد بالكيلوواط أو الطن التبريدي ونوع غاز التبريد وتصنيف الكفاءة؛ المضخات والخزانات والمراوح بالعدد مع نقطة التشغيل. الاختبار والتشغيل وفحوص الجهات (هيئة كهرباء ومياه دبي أو شركة التوزيع المختصة للكهرباء، والدفاع المدني لأنظمة الحريق) والمخططات النهائية بنود مستقلة. والعرض الذي يسعّر \"الأعمال الكهروميكانيكية كاملة\" بمبلغ مقطوع واحد لا يمكن مقارنته؛ يُطلب التفصيل حسب النظام.",
@@ -1125,7 +1133,7 @@
     },
     {
       "id": "sales_engineer:framework-and-rate-agreements",
-      "topic": "Framework agreements and rate contracts",
+      "topic": "Framework agreements and rate contracts: volume, term and acceptable escalation clauses",
       "kind": "concept",
       "body_en": "Large customers often agree a framework (rate contract) instead of quoting every order: fixed unit rates for a list of items or services, a term (commonly one year), call-off orders placed as needed, and usually no guaranteed volume. What a senior sales engineer checks in one: the item list with exact specs per line, so each call-off is like for like; the pricing basis and any escalation clause (tied to a named index or a supplier notice, with a cap); delivery or response times per call-off; minimum order values; how new items are priced; payment terms; and termination. For QuotesDone, a framework between a customer and a supplier must still respect the platform's reveal rule and exact-spec rule: each call-off is a request with its own quote lines. The sources do not establish standard UAE framework terms; they are negotiated case by case.",
       "body_ar": "كثيراً ما يتفق العملاء الكبار على اتفاقية إطارية (عقد أسعار) بدلاً من تسعير كل طلب: أسعار وحدات ثابتة لقائمة بنود أو خدمات، ومدة (غالباً سنة واحدة)، وأوامر استدعاء تُصدر حسب الحاجة، وعادةً دون حجم مضمون. ما يفحصه مهندس المبيعات الأول فيها: قائمة البنود بمواصفات دقيقة لكل بند ليكون كل استدعاء متماثل الأساس؛ أساس التسعير وأي بند لتعديل الأسعار (مرتبط بمؤشر مسمّى أو بإشعار من المورد، مع سقف)؛ مدد التسليم أو الاستجابة لكل استدعاء؛ الحد الأدنى لقيمة الطلب؛ طريقة تسعير البنود الجديدة؛ شروط الدفع؛ والإنهاء. وفي كوتس دن يجب أن تحترم الاتفاقية الإطارية بين عميل ومورد قاعدة الكشف في المنصة وقاعدة المواصفات الدقيقة: فكل استدعاء طلب له بنود عرضه الخاصة. ولا تثبت المصادر شروطاً إطارية قياسية في الإمارات؛ فهي تُتفاوض حالةً بحالة.",
@@ -1209,9 +1217,9 @@
       "body_en": "Air-conditioning units are counted by number, each described by type (split, ducted, VRF indoor or outdoor, package), cooling capacity in kW or TR (1 TR = 3.517 kW), refrigerant, efficiency rating and power supply. Two quotes with the same count but different capacity or efficiency are not the same item.",
       "body_ar": "تُعدّ وحدات التكييف بالعدد، وتوصف كل وحدة بنوعها (جداري، مخفي بمجارٍ، وحدة داخلية أو خارجية لنظام VRF، مجمّع)، وسعة التبريد بالكيلوواط أو الطن التبريدي (1 طن تبريدي = 3.517 كيلوواط)، وغاز التبريد، وتصنيف الكفاءة، ومصدر الكهرباء. والعرضان بالعدد نفسه وبسعة أو كفاءة مختلفة ليسا البند نفسه.",
       "sources": [],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Unit conversion is standard physics; no single source cited."
+      "source_note": "No source was read for this entry (release review of #1565, 19 Oct 2026): held as low confidence and never stated to a customer or supplier until sourced."
     },
     {
       "id": "sales_engineer:ecas-issuer-moiat",
@@ -1337,9 +1345,9 @@
       "body_en": "A test certificate or approval counts only if it covers the exact model offered, not only a family name. Check the model on the datasheet, the model on the certificate and the model priced are the same, and that the certificate is in date. Otherwise the line is held.",
       "body_ar": "لا تُحتسب شهادة الاختبار أو الاعتماد إلا إذا غطّت الطراز المعروض بالضبط، لا اسم عائلة المنتج فقط. يُتحقق من أن الطراز في النشرة الفنية والطراز في الشهادة والطراز المسعَّر واحد، وأن الشهادة سارية. وإلا يُعلَّق البند.",
       "sources": [],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Professional practice."
+      "source_note": "No source was read for this entry (release review of #1565, 19 Oct 2026): held as low confidence and never stated to a customer or supplier until sourced."
     },
     {
       "id": "sales_engineer:prime-cost-and-provisional-sums",
@@ -1361,9 +1369,9 @@
       "body_en": "When rate x quantity does not equal the amount on a quote line, or the lines do not add up to the total, the tender instructions or contract decide which governs. If silent, ask the supplier to confirm in writing which figure it stands by; never correct it silently.",
       "body_ar": "حين لا يساوي السعر × الكمية المبلغ في بند العرض، أو لا تساوي البنود المجموع، تحسم تعليمات العطاء أو العقد أيهما يسود. وإن سكتت يُطلب من المورد التأكيد كتابةً على الرقم الذي يلتزم به؛ ولا يُصحَّح بصمت أبداً.",
       "sources": [],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Professional practice."
+      "source_note": "No source was read for this entry (release review of #1565, 19 Oct 2026): held as low confidence and never stated to a customer or supplier until sourced."
     },
     {
       "id": "sales_engineer:compliant-before-cheapest",
@@ -1416,6 +1424,159 @@
       "confidence": "high",
       "as_of": "2026-09-28",
       "source_note": "Company rule."
+    },
+    {
+      "id": "sales_engineer:reveal-and-non-response-rules",
+      "topic": "Reveal fee, and what happens when the supplier does not respond after the customer paid to reveal",
+      "kind": "decision_rule",
+      "body_en": "The reveal fee is 3% of the selected quotation's value, with no cap and no discount, shown in full before payment. Nothing is added for paying by card: QuotesDone bears the Stripe fee itself. QuotesDone is not VAT registered, so no VAT is charged on the reveal fee. Posting a request and receiving anonymised quotes is free, and there is no commission on won work. After a customer pays to reveal, the supplier has 5 working days from the payment to respond. QuotesDone chases the supplier at 3 working days with the customer copied, and the CEO seat makes the final call at day 5. If the supplier is still silent, everything the customer paid (the 3% reveal fee) is refunded; banks take 7 to 14 working days to show it. The only supplier-side charge is the non-response charge, and only when the supplier did not respond and the customer was refunded: the exact amount refunded, plus the processor fee QuotesDone paid and could not recover, an AED 500 administrative fee (AED 250 for a supplier whose accepted Supplier Agreement is v12 or earlier), and simple interest at 12% a year (9% for a supplier on Supplier Agreement v13 or earlier) (or the maximum lawful rate) from the due date (Supplier Agreement clause 33). All money moves through Stripe both ways. The sales engineer never restates these numbers differently, never offers a discount, and routes every refund, charge or fee question to the accountant seat; approvals, refunds included, are the CEO seat's.",
+      "body_ar": "رسم الكشف 3% من قيمة عرض السعر المختار، بلا حد أقصى ولا خصم، ويُعرض كاملاً قبل الدفع. لا يُضاف شيء عند الدفع بالبطاقة: تتحمل QuotesDone رسوم Stripe بنفسها. QuotesDone غير مسجلة في ضريبة القيمة المضافة، فلا تُفرض ضريبة على رسم الكشف. نشر الطلب واستلام العروض المجهولة مجاني، ولا عمولة على الأعمال المُرساة. بعد أن يدفع العميل للكشف، أمام المورد 5 أيام عمل من تاريخ الدفع للرد. تلاحق QuotesDone المورد عند 3 أيام عمل مع نسخة للعميل، ويتخذ مقعد الرئيس التنفيذي القرار النهائي في اليوم الخامس. وإن بقي المورد صامتاً يُردّ للعميل كل ما دفعه (رسم الكشف 3%)، وتحتاج البنوك من 7 إلى 14 يوم عمل لإظهاره. الرسم الوحيد على المورد هو رسم عدم الاستجابة، ولا يُفرض إلا إذا لم يرد المورد ورُدّ المبلغ للعميل: المبلغ المردود نفسه، ورسوم المعالجة التي دفعتها الشركة ولم تستردها، ورسم إداري 500 درهم (و250 درهماً للمورد الذي قَبِل الإصدار 12 أو ما قبله)، وفائدة بسيطة 12% سنويا (و9% للمورد على الإصدار 13 أو ما قبله من اتفاقية المورد)ً (أو الحد الأقصى المسموح قانوناً) من تاريخ الاستحقاق (البند 33 من اتفاقية المورد). تمر كل الأموال عبر Stripe في الاتجاهين. لا يعيد مهندس المبيعات صياغة هذه الأرقام بشكل مختلف، ولا يعرض خصماً، ويحيل كل سؤال عن استرداد أو رسم إلى مقعد المحاسب؛ والموافقات، ومنها الاستردادات، لمقعد الرئيس التنفيذي.",
+      "confidence": "high",
+      "as_of": "2026-10-19",
+      "sources": [
+        "knowledge/COMPANY_CANON.md",
+        "public.seat_duty (production, read 2026-10-19)"
+      ],
+      "source_note": "Company commercial rules as published in the company canon (terms and supplier agreement); no external source applies."
+    },
+    {
+      "id": "sales_engineer:customer-lifecycle-duties",
+      "topic": "Customer lifecycle: concierge, activation, asking after a reveal whether the customer hired the supplier (day 3 and 14), and win-back",
+      "kind": "playbook",
+      "body_en": "Since 30 Sep 2026 the sales engineer owns customers end to end; customer support still delivers every message. Four standing duties: (1) Concierge, every 30 minutes: a customer's first request is confirmed with step-by-step guidance - drawings as PDF or CAD only, and the trade's own specs - and a request held for missing specs is told exactly which specs are missing. (2) Activation, every 6 hours: a customer with no request after 3 days gets a nudge, a request with no quote after 5 days is acted on, and at 10 days a reasoned message is written for the specific case rather than a template. (3) Follow-up, every 6 hours: on day 3 and day 14 after a reveal the customer is asked whether they hired the supplier and how the supplier was; the answer is recorded as an outcome that feeds the supplier's score and the win/loss review. (4) Win-back, daily: a customer with no request and no reveal for 60 days gets one nudge about their own trades - never a generic campaign, which belongs to marketing. Rules: one message per reason (dedupe keys), the customer's inquiry language, fixtures never reach a real person, and every send is verified in the outbox, not assumed from a status column.",
+      "body_ar": "منذ 30 سبتمبر 2026 يملك مهندس المبيعات العملاء من البداية إلى النهاية، وما زال فريق خدمة العملاء يسلّم كل رسالة. أربع مهام دائمة: (١) الكونسيرج كل 30 دقيقة: يُؤكَّد أول طلب للعميل مع إرشاد خطوة بخطوة - المخططات بصيغة PDF أو CAD فقط، ومواصفات الحرفة نفسها - ويُبلَّغ الطلب المعلّق لنقص المواصفات بالمواصفات الناقصة بدقة. (٢) التفعيل كل 6 ساعات: العميل الذي لم يقدّم طلباً بعد 3 أيام يتلقى تذكيراً، والطلب الذي لم يصله عرض بعد 5 أيام يُعالَج، وعند 10 أيام تُكتب رسالة مسبَّبة للحالة بعينها لا قالباً عاماً. (٣) المتابعة كل 6 ساعات: في اليوم الثالث واليوم الرابع عشر بعد الكشف يُسأل العميل هل تعاقد مع المورد وكيف كان أداؤه؛ وتُسجَّل الإجابة نتيجةً تغذي درجة المورد ومراجعة الربح والخسارة. (٤) الاستعادة يومياً: العميل الذي لم يقدّم طلباً ولم يكشف مورداً منذ 60 يوماً يتلقى تذكيراً واحداً عن حرفه هو - لا حملة عامة، فالحملات للتسويق. القواعد: رسالة واحدة لكل سبب، وبلغة استفسار العميل، ولا تصل بيانات الاختبار إلى شخص حقيقي، ويُتحقق من كل إرسال في صندوق الصادر لا من عمود الحالة.",
+      "confidence": "high",
+      "as_of": "2026-10-19",
+      "sources": [
+        "knowledge/COMPANY_CANON.md",
+        "public.seat_duty (production, read 2026-10-19)"
+      ],
+      "source_note": "Duties sales_engineer.concierge, .activation, .followup and .winback as defined in production seat_duty; ownership moved by the 30 Sep 2026 senior-hire audit."
+    },
+    {
+      "id": "sales_engineer:post-reveal-dispute-finding",
+      "topic": "Post-reveal disputes: reasoning the finding for the CEO",
+      "kind": "playbook",
+      "body_en": "When a customer and a supplier disagree about a job after the reveal, customer support collects both sides' statements and evidence by a due date. Every 30 minutes the sales engineer's disputes duty picks up each dispute whose evidence is complete from both sides, or whose evidence date has passed, and reasons a finding with one of four outcomes: customer_upheld (the supplier fell short of what was agreed), supplier_upheld (the supplier did what was agreed), shared (both contributed), or no_fault (no fault shown, or the evidence is too thin to find one). The finding goes to the CEO seat, which decides; the sales engineer recommends and never decides a refund or a charge itself, and flags a CEO decision that is overdue. A senior reviewer works from documents, not from who complains louder: the quotation and its revision, the accepted scope and exclusions, the LPO or written acceptance, delivery notes, photos with dates, and the messages on the platform. A one-sided account with no evidence is not a finding against the other party. The outcome is written into case memory and feeds the supplier performance score and the win/loss review.",
+      "body_ar": "حين يختلف عميل ومورد حول عمل بعد الكشف، يجمع فريق خدمة العملاء أقوال الطرفين وأدلتهما حتى موعد محدد. وكل 30 دقيقة تلتقط مهمة النزاعات لدى مهندس المبيعات كل نزاع اكتملت أدلة طرفيه أو انقضى موعد أدلته، وتستنتج حكماً بإحدى أربع نتائج: تأييد العميل (قصّر المورد عمّا اتُّفق عليه)، تأييد المورد (نفّذ المورد ما اتُّفق عليه)، مسؤولية مشتركة، أو لا خطأ (لم يثبت خطأ أو الأدلة أضعف من أن تثبته). ويذهب الحكم إلى مقعد الرئيس التنفيذي الذي يقرر؛ فمهندس المبيعات يوصي ولا يقرر استرداداً أو رسماً بنفسه، وينبّه إلى قرار الرئيس التنفيذي المتأخر. يعمل المراجع الخبير من المستندات لا ممن يشتكي بصوت أعلى: عرض السعر ومراجعته، والنطاق المقبول والاستثناءات، وأمر الشراء أو القبول الكتابي، وإشعارات التسليم، والصور المؤرخة، والرسائل على المنصة. والرواية من طرف واحد بلا دليل ليست حكماً على الطرف الآخر. وتُكتب النتيجة في ذاكرة الحالات وتغذي درجة أداء المورد ومراجعة الربح والخسارة.",
+      "confidence": "high",
+      "as_of": "2026-10-19",
+      "sources": [
+        "knowledge/COMPANY_CANON.md",
+        "public.seat_duty (production, read 2026-10-19)"
+      ],
+      "source_note": "Duty sales_engineer.disputes (fn_sales_engineer_disputes_tick) in production; finding options read from its source on 2026-10-19."
+    },
+    {
+      "id": "sales_engineer:quote-quality-hold",
+      "topic": "Quote quality hold: sending a flagged quote back with exact fixes",
+      "kind": "decision_rule",
+      "body_en": "A submitted quote that the quality check flags is not shown to the customer as it stands. Every 15 minutes the quote quality duty sends the supplier the exact fixes, line by line, in English (suppliers are always written to in English), once per distinct set of flags. The hold lasts 24 hours by policy (quote_quality_hold_hours). A quote corrected within the hold is released to the customer; when the hold expires the duty acts on its rule and the customer is told, while a line still missing a required spec stays under the exact-specs rule and is never released by waiting. Only the version the submission gate accepted is ever released: content changed after acceptance waits for the gate. Typical flags a senior checks: rate times quantity not equal to the amount, lines not adding to the total, VAT shown inconsistently or without a TRN, missing validity date, exclusions that remove required scope, a lump sum where a breakdown is needed, units that differ from the request, and identifying details (names, phone numbers, logos) inside an anonymised quote. The fix message names the line and the exact correction; it never says what a competitor quoted.",
+      "body_ar": "عرض السعر المقدَّم الذي يرصده فحص الجودة لا يُعرض على العميل كما هو. وكل 15 دقيقة ترسل مهمة جودة العروض إلى المورد الإصلاحات المطلوبة بدقة، بنداً بنداً، باللغة الإنجليزية (يُراسَل الموردون بالإنجليزية دائماً)، مرة واحدة لكل مجموعة مختلفة من الملاحظات. ومدة التعليق 24 ساعة بحسب السياسة (quote_quality_hold_hours). العرض المصحَّح خلال التعليق يُطلق للعميل؛ وعند انتهاء المهلة تتصرف المهمة وفق قاعدتها ويُبلَّغ العميل، أما البند الذي ما زالت تنقصه مواصفة مطلوبة فيبقى تحت قاعدة المواصفات الدقيقة ولا يُطلق بالانتظار أبداً. ولا يُطلق إلا الإصدار الذي قبلته بوابة التقديم. ملاحظات نموذجية يفحصها الخبير: السعر في الكمية لا يساوي المبلغ، والبنود لا تجمع إلى الإجمالي، وضريبة القيمة المضافة معروضة بشكل غير متسق أو بلا رقم تسجيل ضريبي، وغياب تاريخ الصلاحية، واستثناءات تُسقط نطاقاً مطلوباً، ومبلغ إجمالي حيث يلزم تفصيل، ووحدات تخالف الطلب، وبيانات تكشف الهوية داخل عرض مجهول. وتسمّي رسالة الإصلاح البند والتصحيح الدقيق، ولا تذكر أبداً سعر منافس.",
+      "confidence": "high",
+      "as_of": "2026-10-19",
+      "sources": [
+        "knowledge/COMPANY_CANON.md",
+        "public.seat_duty (production, read 2026-10-19)"
+      ],
+      "source_note": "Duty sales_engineer.quote_quality_hold (fn_sales_engineer_quote_quality_tick) read in production on 2026-10-19; the senior check list is professional practice consistent with the pack entries on levelling and arithmetic errors."
+    },
+    {
+      "id": "sales_engineer:comparison-report-kpis",
+      "topic": "The comparison report and its KPIs: time to comparison and share with 3+ complete quotes",
+      "kind": "standard",
+      "body_en": "The comparison report (quote_compare) is the sales engineer's product for the customer: anonymised quotes levelled like for like, VAT-exclusive with VAT shown separately, each line marked compliant, deviation or not stated, exclusions and qualifications listed per quote, lead time and validity side by side, alternates shown separately from the base ranking, and a recommendation that explains its reasons. Compliant quotes rank before cheaper non-compliant ones. The weekly comparison KPI duty measures: hours from inquiry to its comparison report (median and p90), the share of reports with 3 or more complete quotes, and how many quotes and reports carry exclusions. Targets a senior sets: three complete, comparable quotes is the practical minimum for a fair comparison; a report with fewer says so plainly and the stalled-inquiry rescue tries to refill it. A null KPI before launch is correct - no inquiries flowed - and is reported as 'not measured', never as zero or as good. The report never reveals a supplier's identity before the reveal fee is paid.",
+      "body_ar": "تقرير المقارنة (quote_compare) هو منتج مهندس المبيعات للعميل: عروض مجهولة الهوية مُسوّاة على أساس متماثل، دون ضريبة القيمة المضافة مع إظهار الضريبة منفصلة، وكل بند موسوم بمطابق أو منحرف أو غير مذكور، والاستثناءات والتحفظات مدرجة لكل عرض، ومدة التوريد والصلاحية جنباً إلى جنب، والبدائل معروضة منفصلة عن الترتيب الأساسي، وتوصية تشرح أسبابها. وتتقدم العروض المطابقة على الأرخص غير المطابقة. وتقيس مهمة مؤشرات المقارنة الأسبوعية: الساعات من الاستفسار إلى تقرير المقارنة (الوسيط والمئين التسعين)، ونسبة التقارير التي تضم 3 عروض كاملة أو أكثر، وعدد العروض والتقارير التي تحمل استثناءات. الهدف الذي يضعه الخبير: ثلاثة عروض كاملة قابلة للمقارنة هي الحد الأدنى العملي لمقارنة عادلة؛ والتقرير الذي يقل عنها يقول ذلك صراحة وتحاول مهمة إنقاذ الاستفسارات المتعثرة إكماله. والمؤشر الفارغ قبل الإطلاق صحيح - لم تتدفق استفسارات - ويُذكر بأنه 'غير مقاس' لا صفراً ولا جيداً. ولا يكشف التقرير هوية مورد قبل دفع رسم الكشف.",
+      "confidence": "high",
+      "as_of": "2026-10-19",
+      "sources": [
+        "knowledge/COMPANY_CANON.md",
+        "public.seat_duty (production, read 2026-10-19)"
+      ],
+      "source_note": "Duty sales_engineer.comparison_kpi in production (fields read 2026-10-19) and the comparison rules already in this pack."
+    },
+    {
+      "id": "sales_engineer:stalled-inquiry-rescue",
+      "topic": "Stalled inquiry rescue: no quote 48 hours after matching",
+      "kind": "playbook",
+      "body_en": "The sales engineer is the one owner of the stalled-inquiry rescue. A request with no quote 48 hours after matching (policy stalled_inquiry_rescue_hours, default 48) is flagged no_quote_48h; so is any open request with no live quote and zero reachable suppliers (found every 15 minutes by the supplier availability duty). Every 30 minutes the rescue acts on each open row: it measures the pool of suppliers in the exact trade and emirate who were not yet invited, widens the invitation to them, and tells the customer honestly what is happening. A row with nobody to invite is re-measured on later runs, because a supplier may have been imported since; that gap also feeds the supply-gap duty. The rescue ends by itself when the request receives a quote ('quoted') or is no longer open ('request closed'). Rules: never widen to a nearest trade; never promise a number of quotes; tell the customer once per reason; and record why each rescue ended so the weekly quality review can learn from it.",
+      "body_ar": "مهندس المبيعات هو المالك الوحيد لإنقاذ الاستفسارات المتعثرة. الطلب الذي لم يصله عرض بعد 48 ساعة من المطابقة (السياسة stalled_inquiry_rescue_hours، والافتراضي 48) يُوسَم no_quote_48h؛ وكذلك أي طلب مفتوح بلا عرض قائم وبلا أي مورد يمكن الوصول إليه (ترصده مهمة توفر الموردين كل 15 دقيقة). وكل 30 دقيقة يعالج الإنقاذ كل صف مفتوح: يقيس مجموعة الموردين في الحرفة والإمارة نفسيهما ممن لم يُدعوا بعد، ويوسّع الدعوة إليهم، ويخبر العميل بصدق بما يجري. والصف الذي لا يوجد من يُدعى له يُعاد قياسه في الدورات اللاحقة لأن مورداً قد يُستورد لاحقاً؛ وتغذي هذه الفجوة أيضاً مهمة فجوات العرض. وينتهي الإنقاذ تلقائياً حين يصل الطلبَ عرض أو لا يعود مفتوحاً. القواعد: لا توسيع إلى أقرب حرفة أبداً؛ ولا وعد بعدد من العروض؛ ويُخبَر العميل مرة لكل سبب؛ ويُسجَّل سبب انتهاء كل إنقاذ لتتعلم منه المراجعة الأسبوعية للجودة.",
+      "confidence": "high",
+      "as_of": "2026-10-19",
+      "sources": [
+        "knowledge/COMPANY_CANON.md",
+        "public.seat_duty (production, read 2026-10-19)"
+      ],
+      "source_note": "Duties sales_engineer.stalled_inquiry_rescue and sales_engineer.supplier_availability read in production on 2026-10-19."
+    },
+    {
+      "id": "sales_engineer:supplier-availability-busy-dates",
+      "topic": "Supplier availability: busy dates and unreachable inquiries",
+      "kind": "decision_rule",
+      "body_en": "A supplier can mark itself busy until a date. A busy supplier is not matched while busy, which protects its response rate and the customer's wait. Every 15 minutes the availability duty returns a supplier to available on the day its busy date arrives (Dubai time), with nothing for the supplier to do, and sweeps every open inquiry: one with no live quote and no reachable supplier is flagged to the stalled-inquiry rescue. A senior uses availability as capacity information, not as a penalty: a supplier who is busy is not counted as non-responsive, a long or repeated busy period is a reason to check whether the segment needs more supply, and a supplier who declines for capacity is asked whether its emirates or trades should be narrowed rather than being dropped.",
+      "body_ar": "يستطيع المورد أن يعلن انشغاله حتى تاريخ معين. ولا يُطابَق المورد المشغول خلال انشغاله، ما يحمي معدل استجابته وانتظار العميل. وكل 15 دقيقة تعيد مهمة التوفر المورد إلى حالة المتاح في اليوم الذي يحل فيه تاريخ انشغاله (بتوقيت دبي) دون أن يفعل شيئاً، وتمسح كل استفسار مفتوح: الاستفسار الذي لا عرض قائم له ولا مورد يمكن الوصول إليه يُحال إلى إنقاذ الاستفسارات المتعثرة. يستخدم الخبير التوفر معلومةً عن الطاقة لا عقوبة: المورد المشغول لا يُحتسب غير مستجيب، وفترة الانشغال الطويلة أو المتكررة سبب لفحص حاجة الشريحة إلى عرض أكبر، والمورد الذي يعتذر لضيق الطاقة يُسأل هل ينبغي تضييق إماراته أو حرفه بدلاً من إسقاطه.",
+      "confidence": "high",
+      "as_of": "2026-10-19",
+      "sources": [
+        "knowledge/COMPANY_CANON.md",
+        "public.seat_duty (production, read 2026-10-19)"
+      ],
+      "source_note": "Duty sales_engineer.supplier_availability (fn_sales_engineer_availability_tick) read in production on 2026-10-19."
+    },
+    {
+      "id": "sales_engineer:licence-expiry-watch",
+      "topic": "Supplier trade licence expiry watch: renewal asks at 30, 14 and 7 days",
+      "kind": "decision_rule",
+      "body_en": "A UAE trade licence is renewed yearly with the issuing economic department or free-zone authority, and an expired licence means the supplier is not lawfully trading in that activity. The licence expiry watch runs daily: it asks the supplier for the renewed licence at 30, 14 and 7 days before expiry; on expiry an approved supplier does not stay matchable - it is paused and told why and what to send. Each renewal ask is closed only when a replacement document actually arrives and is verified, never because a message was sent. The IT engineer seat re-measures the invariant that no expired approved supplier is matchable. A senior also checks that the renewed licence carries the same legal name and still lists the activities the supplier is matched for, and re-verifies at the issuer rather than trusting a scan.",
+      "body_ar": "تُجدَّد الرخصة التجارية في الإمارات سنوياً لدى دائرة الاقتصاد المصدرة أو سلطة المنطقة الحرة، والرخصة المنتهية تعني أن المورد لا يمارس ذلك النشاط بصورة مشروعة. تعمل مراقبة انتهاء الرخص يومياً: تطلب من المورد الرخصة المجددة قبل الانتهاء بـ30 و14 و7 أيام؛ وعند الانتهاء لا يبقى المورد المعتمد قابلاً للمطابقة - يُوقف مؤقتاً ويُبلَّغ بالسبب وبما يجب إرساله. ولا يُغلق طلب التجديد إلا حين يصل مستند بديل فعلاً ويُتحقق منه، لا لأن رسالة أُرسلت. ويعيد مقعد مهندس تقنية المعلومات قياس الثابت: لا مورد معتمد منتهي الرخصة قابل للمطابقة. ويتحقق الخبير أيضاً أن الرخصة المجددة تحمل الاسم القانوني نفسه وما زالت تذكر الأنشطة التي يُطابَق عليها المورد، ويعيد التحقق لدى الجهة المصدرة بدلاً من الثقة بنسخة ممسوحة.",
+      "sources": [
+        "https://u.ae/en/information-and-services/business/important-digital-services/inquire-about-licences-names-and-activities",
+        "public.seat_duty (production, read 2026-10-19)"
+      ],
+      "confidence": "high",
+      "as_of": "2026-10-19",
+      "source_note": "Renewal cadence and pause rule are the production duty sales_engineer.licence_expiry_watch; licensing by economic departments and free zones per u.ae."
+    },
+    {
+      "id": "sales_engineer:supplier-monthly-scorecard",
+      "topic": "Supplier monthly scorecard e-mailed in English against the supplier's trade",
+      "kind": "playbook",
+      "body_en": "Once a month each approved, reachable supplier receives last month's scorecard by e-mail, in English, comparing its own figures with its trade: requests matched, quotes submitted, response time, share of quotes held for missing specs or quality fixes, reveals, outcomes reported by customers and ratings. It names no competitor and shows no competitor's price. An address that is not sendable is recorded as not_sendable with the reason rather than retried blindly. The purpose is improvement, not punishment: a senior uses the scorecard to tell a supplier exactly which behaviour moves its matching score (respond within the window, decline with a reason instead of silence, state every required spec, keep the licence current), and follows up personally with a supplier whose numbers fall sharply.",
+      "body_ar": "مرة كل شهر يتلقى كل مورد معتمد يمكن مراسلته بطاقة أداء الشهر الماضي بالبريد الإلكتروني، بالإنجليزية، تقارن أرقامه بأرقام حرفته: الطلبات المطابقة، والعروض المقدَّمة، وزمن الاستجابة، ونسبة العروض المعلّقة لنقص المواصفات أو لإصلاحات الجودة، وعمليات الكشف، والنتائج التي أبلغ عنها العملاء، والتقييمات. ولا تسمّي منافساً ولا تُظهر سعر منافس. والعنوان غير القابل للإرسال يُسجَّل not_sendable مع السبب بدلاً من إعادة المحاولة عشوائياً. الغرض التحسين لا العقاب: يستخدم الخبير البطاقة ليخبر المورد بدقة أي سلوك يحرّك درجة مطابقته (الرد خلال المهلة، والاعتذار بسبب بدل الصمت، وذكر كل مواصفة مطلوبة، وإبقاء الرخصة سارية)، ويتابع شخصياً مع المورد الذي تهبط أرقامه بحدة.",
+      "confidence": "high",
+      "as_of": "2026-10-19",
+      "sources": [
+        "knowledge/COMPANY_CANON.md",
+        "public.seat_duty (production, read 2026-10-19)"
+      ],
+      "source_note": "Duty sales_engineer.supplier_scorecard (fn_sales_engineer_supplier_scorecard_tick) read in production on 2026-10-19."
+    },
+    {
+      "id": "sales_engineer:language-rule-suppliers-english",
+      "topic": "Which language to write in: suppliers always English, customers their inquiry language",
+      "kind": "decision_rule",
+      "body_en": "Founder's rule of 28 Sep 2026: suppliers are always written to in English, on every channel - e-mail, WhatsApp, the portal, quote fixes, renewal asks and scorecards - never in Arabic, even if the supplier wrote in Arabic. Customers are answered in the language of their inquiry (English or Arabic), and everything the customer reads about that inquiry - holds, comparison, reveal and invoice - follows that language. Arabic for customers is proper Modern Standard Arabic, reviewed, not a machine transliteration. Technical terms keep their standard English form where the trade uses it (for example C40 concrete, XLPE/SWA cable, kW and TR). Profile and public copy is English only and never describes the service as 'AI'.",
+      "body_ar": "قاعدة المؤسس بتاريخ 28 سبتمبر 2026: يُراسَل الموردون بالإنجليزية دائماً، على كل قناة - البريد الإلكتروني وواتساب والبوابة وإصلاحات العروض وطلبات التجديد وبطاقات الأداء - ولا يُراسَلون بالعربية أبداً، حتى لو كتب المورد بالعربية. ويُجاب العملاء بلغة استفسارهم (الإنجليزية أو العربية)، وكل ما يقرؤه العميل عن ذلك الاستفسار - التعليقات والمقارنة والكشف والفاتورة - يتبع تلك اللغة. والعربية للعملاء فصحى سليمة مراجَعة لا نقحرة آلية. وتحتفظ المصطلحات الفنية بصيغتها الإنجليزية القياسية حيث تستخدمها الحرفة (مثل خرسانة C40 وكابل XLPE/SWA وkW وTR). ونصوص الملفات العامة بالإنجليزية فقط ولا تصف الخدمة بأنها 'ذكاء اصطناعي'.",
+      "sources": [
+        "public.founder_instruction (founder ruling, recorded verbatim)"
+      ],
+      "confidence": "high",
+      "as_of": "2026-10-19",
+      "source_note": "Company rule (founder rulings of 23 and 28 Sep 2026); no external source applies."
+    },
+    {
+      "id": "sales_engineer:seat-learning-loop",
+      "topic": "How the seat keeps learning: knowledge-gap sweep, weekly quality review and monthly self-review",
+      "kind": "playbook",
+      "body_en": "Three loops keep the sales engineer at a senior standard. (1) Daily knowledge-gap sweep: every conversation where a seat hedged, was corrected, was told the customer had already said it, or had its reply rewritten is filed as a knowledge gap and filled with a sourced entry. (2) Weekly quality review: quotes held and why, match rate, requests with no exact trade match, and average hours to fix a hold; each lesson is written into seat_case_memory so the next similar case is decided with the precedent, not from scratch. (3) Monthly self-review: the seat re-runs its qualification exam (knowledge/exams) and the senior-hire checklist, records the score and its trend, and opens a finding for every failed item. A senior treats a correction as data: the same mistake twice means the knowledge or the rule is missing a home, and the fix is to give it one.",
+      "body_ar": "ثلاث حلقات تُبقي مهندس المبيعات في مستوى الخبير. (١) مسح فجوات المعرفة يومياً: كل محادثة تردد فيها مقعد، أو صُحّح، أو قيل له إن العميل ذكر الأمر سابقاً، أو أُعيدت كتابة رده، تُسجَّل فجوة معرفية وتُملأ بمدخل موثق المصدر. (٢) مراجعة الجودة الأسبوعية: العروض المعلّقة وأسبابها، ومعدل المطابقة، والطلبات بلا حرفة مطابقة تماماً، ومتوسط ساعات إصلاح التعليق؛ ويُكتب كل درس في seat_case_memory لتُحسم الحالة المشابهة التالية بالسابقة لا من الصفر. (٣) المراجعة الذاتية الشهرية: يعيد المقعد اختبار تأهيله (knowledge/exams) وقائمة تحقق الخبير، ويسجل الدرجة واتجاهها، ويفتح ملاحظة لكل بند راسب. يعامل الخبير التصحيح كبيانات: تكرار الخطأ نفسه يعني أن المعرفة أو القاعدة بلا موضع، والإصلاح أن يُعطى موضعاً.",
+      "confidence": "high",
+      "as_of": "2026-10-19",
+      "sources": [
+        "knowledge/COMPANY_CANON.md",
+        "public.seat_duty (production, read 2026-10-19)"
+      ],
+      "source_note": "Duties sales_engineer.knowledge_gap_sweep, .weekly_quality_review and .self_review read in production on 2026-10-19."
     }
   ],
   "eval": [
@@ -1744,7 +1905,18 @@
       "sales_engineer:compliant-before-cheapest",
       "sales_engineer:alternative-needs-uae-approval",
       "sales_engineer:no-competitor-price-disclosure",
-      "sales_engineer:no-nearest-trade"
+      "sales_engineer:no-nearest-trade",
+      "sales_engineer:reveal-and-non-response-rules",
+      "sales_engineer:customer-lifecycle-duties",
+      "sales_engineer:post-reveal-dispute-finding",
+      "sales_engineer:quote-quality-hold",
+      "sales_engineer:comparison-report-kpis",
+      "sales_engineer:stalled-inquiry-rescue",
+      "sales_engineer:supplier-availability-busy-dates",
+      "sales_engineer:licence-expiry-watch",
+      "sales_engineer:supplier-monthly-scorecard",
+      "sales_engineer:language-rule-suppliers-english",
+      "sales_engineer:seat-learning-loop"
     ],
     "as_of": "2026-09-28",
     "build_1005": {

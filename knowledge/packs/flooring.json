@@ -55,6 +55,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "flooring:product-distinctions",
+      "topic": "Flooring: material families and where each suits",
+      "topic_ar": "الأرضيات: عائلات المواد وأين يناسب كل منها",
+      "kind": "product_distinctions",
+      "body_en": "Flooring families: porcelain and ceramic tiles (porcelain is dense with low water absorption, rated for wear and slip, in large formats such as 60x120 cm and slabs), natural stone (marble, granite, travertine; polished or honed, needing sealing), resilient flooring (vinyl composition tile for heavy-traffic utility areas, luxury vinyl tile and plank (LVT/LVP) in glue-down or click formats, sheet vinyl and homogeneous vinyl for hospitals and labs with welded seams, rubber, linoleum), carpet (broadloom or carpet tiles; nylon or polypropylene; cut or loop pile; rated for traffic), wood (solid hardwood, engineered wood, laminate, which is a printed fibreboard product), raised access floors for data and office services, and seamless resin floors (epoxy, polyurethane, cementitious urethane for kitchens and factories), plus terrazzo and polished concrete. Selection follows traffic and use, slip resistance in wet areas, moisture in the subfloor, acoustic needs (underlay, impact sound), maintenance, and fire rating for public buildings. Subfloor preparation (levelling, moisture testing, screeds) and correct adhesives decide whether the floor lasts. Offers differ on the exact product and its wear layer or grade, installation method, preparation included, skirting and trims, and warranty.",
+      "body_ar": "عائلات الأرضيات: البلاط البورسلين والسيراميك (البورسلين كثيف ومنخفض امتصاص الماء، ومصنف للتآكل والانزلاق، بمقاسات كبيرة مثل 60×120 سم وألواح)، والحجر الطبيعي (الرخام، الجرانيت، الترافرتين؛ مصقول أو مطفي، ويحتاج عزلاً)، والأرضيات المرنة (بلاط الفينيل المركب لمناطق الخدمة كثيفة الحركة، وبلاط وألواح الفينيل الفاخر بالتثبيت اللاصق أو بالتعشيق، والفينيل الملفوف والمتجانس للمستشفيات والمختبرات بوصلات ملحومة، والمطاط، واللينوليوم)، والسجاد (ملفوف عريض أو بلاط سجاد؛ نايلون أو بولي بروبيلين؛ وبر مقصوص أو حلقي؛ مصنف حسب الحركة)، والخشب (خشب صلب، وخشب هندسي، واللامينيت وهو منتج ليفي مطبوع)، والأرضيات المرتفعة للبيانات وخدمات المكاتب، والأرضيات الراتنجية المتصلة (إيبوكسي، بولي يوريثان، يوريثان إسمنتي للمطابخ والمصانع)، إضافة إلى التيرازو والخرسانة المصقولة. ويتبع الاختيار الحركة والاستخدام، ومقاومة الانزلاق في المناطق الرطبة، والرطوبة في الأرضية الأساسية، والاحتياجات الصوتية (الطبقة السفلية، صوت الصدمات)، والصيانة، وتصنيف الحريق للمباني العامة. وتجهيز الأرضية الأساسية (التسوية، فحص الرطوبة، الطبقات) واللواصق الصحيحة تحدد إن كانت الأرضية ستدوم. وتختلف العروض في المنتج الدقيق وطبقة التآكل أو الدرجة، وطريقة التركيب، والتجهيز المشمول، والوزرات والحواف، والضمان.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Vinyl_composition_tile"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: vinyl composition tile and luxury vinyl tile as separate products from sheet vinyl -> confirmed."
+    },
+    {
+      "id": "flooring:lead-times-and-quoting",
+      "topic": "Flooring - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الأرضيات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock tiles and vinyl: days; imported collections 4-10 weeks; installation by area. A supplier needs the area by room, the use and traffic, the product or design intent, subfloor condition, and whether supply-only or supply-and-install. A quote states product code, brand, grade or wear layer, quantities with wastage, preparation, adhesive and installation, skirting and trims, warranty, delivery and validity.",
+      "body_ar": "البلاط والفينيل المتوفر: أيام؛ والمجموعات المستوردة 4-10 أسابيع؛ والتركيب حسب المساحة. ويحتاج المورد المساحة لكل غرفة، والاستخدام والحركة، والمنتج أو فكرة التصميم، وحالة الأرضية الأساسية، وهل توريد فقط أم توريد وتركيب. ويذكر العرض رمز المنتج والعلامة والدرجة أو طبقة التآكل والكميات مع الهدر والتجهيز واللاصق والتركيب والوزرات والحواف والضمان والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry covers homogeneous/heterogeneous vinyl, welded seams or infection-control suitability for clinics). flooring:healthcare-vinyl-homogeneous-welded was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from flooring.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "LVT or porcelain tile for a busy clinic corridor?",
+      "q_ar": "فينيل فاخر ولا بلاط بورسلين لممر عيادة فيه حركة كثيرة؟",
+      "expected_entry_ids": [
+        "flooring:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "flooring:healthcare-vinyl-homogeneous-welded"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "flooring:product-distinctions"
+      ],
+      "stored_not_served": [
+        "flooring:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Vinyl_composition_tile"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

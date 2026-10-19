@@ -1,1 +1,0 @@
-Committed, not applied: apply at merge (release train). Moves when the PR merges: apply with --apply --ddl, confirm the verdict row reads PROBE OK, then delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit. Seat: sales_engineer.
