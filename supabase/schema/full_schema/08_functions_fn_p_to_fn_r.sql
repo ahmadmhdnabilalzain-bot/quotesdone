@@ -3459,7 +3459,7 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_reason_retrieve(p_seat text, p_embedding vector, p_k integer DEFAULT 6, p_trade text DEFAULT NULL::text, p_kind text DEFAULT NULL::text, p_area text DEFAULT NULL::text)
+CREATE OR REPLACE FUNCTION public.fn_reason_retrieve(p_seat text, p_embedding vector, p_k integer DEFAULT 6, p_trade text DEFAULT NULL::text, p_kind text DEFAULT NULL::text, p_area text DEFAULT NULL::text, p_audience text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
@@ -3473,6 +3473,9 @@ declare
   v_trade text[];  -- 'trade:<code>' of the resolved trade; NULL = no trade resolved
   v_kind  text;    -- the trade's resolved topic: a kind one of its entries carries; NULL = any kind
   v_area  text;    -- the seat's resolved area: an area one of its own rows carries; NULL = every area
+  -- ONLY AN AUDIENCE NAMED internal OR founder reads the company's own facts and gets the own-row reservation.
+  -- customer, supplier, visitor, a NULL or any other value: external (fails closed, as settledFacts() in think.ts).
+  v_internal constant boolean := lower(btrim(coalesce(p_audience, ''))) in ('internal', 'founder');
 begin
   -- 1. RESOLVE, exactly or not at all. The trade through the estate's exact resolver; the kind and the area only
   --    when a row of this trade / of this seat's own table is tagged with exactly that value. No word is read.
@@ -3495,88 +3498,91 @@ begin
 
   with hits as (
     (select 'kb_chunks' src, c.id::text id, c.title, left(c.content, 1200) excerpt, c.citation,
-            1 - (c.embedding_gte <=> p_embedding) sim, 'reviewed' trust
+            1 - (c.embedding_gte <=> p_embedding) sim, 'reviewed' trust, false mine
        from public.kb_chunks c where c.embedding_gte is not null
       order by c.embedding_gte <=> p_embedding limit k)
     union all
     (select 'ops_knowledge', o.record_id, o.title, left(o.content, 1200), o.source_path,
-            1 - (o.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (o.embedding_gte <=> p_embedding), 'reviewed', false
        from public.ops_knowledge o
       where o.embedding_gte is not null and o.runtime_eligible and o.supersession_state = 'current'
         and o.scope_type in ('company', 'external_source', 'category') and o.dept_key is null
       order by o.embedding_gte <=> p_embedding limit k)
     union all
     (select 'agent_knowledge', a.id::text, a.topic, left(a.content, 1200), a.source_ref,
-            1 - (a.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (a.embedding_gte <=> p_embedding), 'reviewed', a.agent_key = p_seat
        from public.agent_knowledge a
-      where a.embedding_gte is not null and a.agent_key in (p_seat, '_global')
+      where a.embedding_gte is not null and (a.agent_key = '_global' or (v_internal and a.agent_key = p_seat))
       order by a.embedding_gte <=> p_embedding limit k)
     union all
     (select 'company_faq', f.id::text, f.question, left(f.answer, 1200), 'FAQ ' || f.id,
-            1 - (f.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (f.embedding_gte <=> p_embedding), 'reviewed', false
        from public.company_faq f where f.embedding_gte is not null and f.status = 'approved'
       order by f.embedding_gte <=> p_embedding limit k)
     union all
     (select 'sales_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
-            1 - (s.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.sales_knowledge s
       where s.embedding_gte is not null and s.runtime_index_eligible
         and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and s.pack_id like 'verified:trade:%'))
         and (v_trade is null or not exists (select 1 from unnest(s.tags) t where t like 'trade:%')
              or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind])))
-        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%'))
+        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
     (select 'accountant_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
-            1 - (s.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.accountant_knowledge s
       where p_seat = 'accountant' and s.embedding_gte is not null and s.runtime_index_eligible
-        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%'))
+        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
     (select 'it_engineer_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
-            1 - (s.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.it_engineer_knowledge s
       where p_seat = 'it_engineer' and s.embedding_gte is not null and s.runtime_index_eligible
-        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%'))
+        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
     (select 'support_knowledge', s.record_id, s.title, left(s.body, 1200), coalesce(s.source_path, s.pack_id),
-            1 - (s.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.support_knowledge s
       where p_seat = 'customer_support' and s.embedding_gte is not null and coalesce(s.runtime_index_eligible, true)
-        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%'))
+        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
     (select 'ceo_knowledge', s.record_id, s.title, left(s.body, 1200), coalesce(s.source_path, s.pack_fingerprint),
-            1 - (s.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.ceo_knowledge s
       where p_seat = 'ceo' and s.embedding_gte is not null and s.runtime_index_eligible
-        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%'))
+        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
     (select 'marketing_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id,
-            1 - (s.embedding_gte <=> p_embedding), 'reviewed'
+            1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
        from public.marketing_knowledge s
       where p_seat = 'marketing' and s.embedding_gte is not null and s.runtime_index_eligible
-        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%'))
+        and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
       order by s.embedding_gte <=> p_embedding limit k)
     union all
     (select 'research', r.id::text, left(r.question, 200), r.finding, r.sources->0->>'url',
-            1 - (r.embedding_gte <=> p_embedding), case when r.status = 'approved' then 'reviewed' else 'pending_review' end
+            1 - (r.embedding_gte <=> p_embedding), case when r.status = 'approved' then 'reviewed' else 'pending_review' end, false
        from public.reasoning_knowledge_candidate r
-      where r.embedding_gte is not null and r.status <> 'rejected'
+      where r.embedding_gte is not null and r.status <> 'rejected' and (v_internal or r.status = 'approved')
       order by r.embedding_gte <=> p_embedding limit k)
   )
+  -- THE SEAT'S OWN ROWS FILL AT LEAST HALF, FOR AN INTERNAL AUDIENCE: its best k own rows (its pack, its agent_knowledge)
+  -- are reserved and come first; the rest of the k * 2 is the best of everything else. External: ranked by similarity only.
   select coalesce(jsonb_agg(jsonb_build_object('source', src, 'id', id, 'title', title, 'excerpt', excerpt,
-           'citation', citation, 'similarity', round(sim::numeric, 4), 'trust', trust) order by sim desc), '[]'::jsonb)
+           'citation', citation, 'similarity', round(sim::numeric, 4), 'trust', trust, 'own', mine) order by reserved desc, sim desc), '[]'::jsonb)
     into out
-    from (select * from hits order by sim desc limit k * 2) t;
+    from (select * from (select h.*, v_internal and h.mine and row_number() over (partition by h.mine order by h.sim desc) <= k reserved from hits h) x
+           order by reserved desc, sim desc limit k * 2) t;
   return out;
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_reason_retrieve_ml(p_seat text, p_embedding vector, p_embedding_gte vector DEFAULT NULL::vector, p_k integer DEFAULT 6, p_own integer DEFAULT 3, p_trade text DEFAULT NULL::text, p_kind text DEFAULT NULL::text, p_area text DEFAULT NULL::text)
+CREATE OR REPLACE FUNCTION public.fn_reason_retrieve_ml(p_seat text, p_embedding vector, p_embedding_gte vector DEFAULT NULL::vector, p_k integer DEFAULT 6, p_own integer DEFAULT 3, p_trade text DEFAULT NULL::text, p_kind text DEFAULT NULL::text, p_area text DEFAULT NULL::text, p_audience text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
@@ -3586,7 +3592,7 @@ CREATE OR REPLACE FUNCTION public.fn_reason_retrieve_ml(p_seat text, p_embedding
 AS $function$
 declare
   k    integer := greatest(1, least(coalesce(p_k, 6), 12));
-  own  integer := greatest(0, least(coalesce(p_own, 3), 2 * k));
+  own  integer := case when lower(btrim(coalesce(p_audience, ''))) in ('internal', 'founder') then least(greatest(coalesce(p_own, 3), k), 2 * k) else 0 end;  -- internal: own rows fill at least half of the k * 2 returned; external: no reservation
   n    constant integer := 20;
   g    vector(384) := p_embedding_gte;
   m    vector(384) := p_embedding;
@@ -3594,6 +3600,9 @@ declare
   v_trade text[];  -- 'trade:<code>' of the resolved trade; NULL = no trade resolved
   v_kind  text;    -- the trade's resolved topic: a kind one of its entries carries; NULL = any kind
   v_area  text;    -- the seat's resolved area: an area one of its own rows carries; NULL = every area
+  -- ONLY AN AUDIENCE NAMED internal OR founder reads the company's own facts and gets the own-row reservation.
+  -- customer, supplier, visitor, a NULL or any other value: external (fails closed, as settledFacts() in think.ts).
+  v_internal constant boolean := lower(btrim(coalesce(p_audience, ''))) in ('internal', 'founder');
 begin
   -- 1. RESOLVE, exactly or not at all. The trade through the estate's exact resolver; the kind and the area only
   --    when a row of this trade / of this seat's own table is tagged with exactly that value. No word is read.
@@ -3624,61 +3633,61 @@ begin
             where g is not null and o.embedding_gte is not null and o.runtime_eligible and o.supersession_state = 'current'
               and o.scope_type in ('company', 'external_source', 'category') and o.dept_key is null order by o.embedding_gte <=> g limit n)
     union (select 'agent_knowledge', a.id::text from public.knowledge_vector_ml v join public.agent_knowledge a on v.src = 'agent_knowledge' and a.id::text = v.row_id
-            where a.agent_key in (p_seat, '_global') order by v.embedding <=> m limit n)
+            where (a.agent_key = '_global' or (v_internal and a.agent_key = p_seat)) order by v.embedding <=> m limit n)
     union (select 'agent_knowledge', a.id::text from public.agent_knowledge a
-            where g is not null and a.embedding_gte is not null and a.agent_key in (p_seat, '_global') order by a.embedding_gte <=> g limit n)
+            where g is not null and a.embedding_gte is not null and (a.agent_key = '_global' or (v_internal and a.agent_key = p_seat)) order by a.embedding_gte <=> g limit n)
     union (select 'company_faq', f.id::text from public.knowledge_vector_ml v join public.company_faq f on v.src = 'company_faq' and f.id::text = v.row_id
             where f.status = 'approved' order by v.embedding <=> m limit n)
     union (select 'company_faq', f.id::text from public.company_faq f
             where g is not null and f.embedding_gte is not null and f.status = 'approved' order by f.embedding_gte <=> g limit n)
     union (select 'reasoning_knowledge_candidate', r.id::text from public.knowledge_vector_ml v
              join public.reasoning_knowledge_candidate r on v.src = 'reasoning_knowledge_candidate' and r.id::text = v.row_id
-            where r.status <> 'rejected' order by v.embedding <=> m limit n)
+            where r.status <> 'rejected' and (v_internal or r.status = 'approved') order by v.embedding <=> m limit n)
     union (select 'reasoning_knowledge_candidate', r.id::text from public.reasoning_knowledge_candidate r
-            where g is not null and r.embedding_gte is not null and r.status <> 'rejected' order by r.embedding_gte <=> g limit n)
+            where g is not null and r.embedding_gte is not null and r.status <> 'rejected' and (v_internal or r.status = 'approved') order by r.embedding_gte <=> g limit n)
     -- sales_knowledge: the sales engineer reads all of it; customer_support reads the TRADE packs (what a trade
     -- needs), never the sales seat's own playbook
     union (select 'sales_knowledge', s.record_id from public.knowledge_vector_ml v join public.sales_knowledge s on v.src = 'sales_knowledge' and s.record_id = v.row_id
             where s.runtime_index_eligible and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and (s.pack_id like 'verified:trade:%' or exists (select 1 from unnest(s.tags) t where t like 'trade:%'))))
             and (v_trade is null or not exists (select 1 from unnest(s.tags) t where t like 'trade:%')
              or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind])))
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%'))
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
             order by v.embedding <=> m limit n)
     union (select 'sales_knowledge', s.record_id from public.sales_knowledge s
             where g is not null and s.embedding_gte is not null and s.runtime_index_eligible
               and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and (s.pack_id like 'verified:trade:%' or exists (select 1 from unnest(s.tags) t where t like 'trade:%'))))
             and (v_trade is null or not exists (select 1 from unnest(s.tags) t where t like 'trade:%')
              or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind])))
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%'))
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
             order by s.embedding_gte <=> g limit n)
     union (select 'accountant_knowledge', s.record_id from public.knowledge_vector_ml v join public.accountant_knowledge s on v.src = 'accountant_knowledge' and s.record_id = v.row_id
             where p_seat = 'accountant' and s.runtime_index_eligible
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by v.embedding <=> m limit n)
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by v.embedding <=> m limit n)
     union (select 'accountant_knowledge', s.record_id from public.accountant_knowledge s
             where p_seat = 'accountant' and g is not null and s.embedding_gte is not null and s.runtime_index_eligible
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by s.embedding_gte <=> g limit n)
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by s.embedding_gte <=> g limit n)
     union (select 'it_engineer_knowledge', s.record_id from public.knowledge_vector_ml v join public.it_engineer_knowledge s on v.src = 'it_engineer_knowledge' and s.record_id = v.row_id
             where p_seat = 'it_engineer' and s.runtime_index_eligible
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by v.embedding <=> m limit n)
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by v.embedding <=> m limit n)
     union (select 'it_engineer_knowledge', s.record_id from public.it_engineer_knowledge s
             where p_seat = 'it_engineer' and g is not null and s.embedding_gte is not null and s.runtime_index_eligible
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by s.embedding_gte <=> g limit n)
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by s.embedding_gte <=> g limit n)
     union (select 'marketing_knowledge', s.record_id from public.knowledge_vector_ml v join public.marketing_knowledge s on v.src = 'marketing_knowledge' and s.record_id = v.row_id
             where p_seat = 'marketing' and s.runtime_index_eligible
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by v.embedding <=> m limit n)
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by v.embedding <=> m limit n)
     union (select 'marketing_knowledge', s.record_id from public.marketing_knowledge s
             where p_seat = 'marketing' and g is not null and s.embedding_gte is not null and s.runtime_index_eligible
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by s.embedding_gte <=> g limit n)
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by s.embedding_gte <=> g limit n)
     union (select 'ceo_knowledge', v.row_id from public.knowledge_vector_ml v join public.ceo_knowledge s on v.src = 'ceo_knowledge' and s.record_id = v.row_id
-            where p_seat = 'ceo' and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by v.embedding <=> m limit n)
+            where p_seat = 'ceo' and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by v.embedding <=> m limit n)
     union (select 'ceo_knowledge', s.record_id from public.ceo_knowledge s
             where p_seat = 'ceo' and g is not null and s.embedding_gte is not null
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by s.embedding_gte <=> g limit n)
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by s.embedding_gte <=> g limit n)
     union (select 'support_knowledge', v.row_id from public.knowledge_vector_ml v join public.support_knowledge s on v.src = 'support_knowledge' and s.record_id = v.row_id
-            where p_seat = 'customer_support' and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by v.embedding <=> m limit n)
+            where p_seat = 'customer_support' and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by v.embedding <=> m limit n)
     union (select 'support_knowledge', s.record_id from public.support_knowledge s
             where p_seat = 'customer_support' and g is not null and s.embedding_gte is not null
-            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) order by s.embedding_gte <=> g limit n)
+            and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by s.embedding_gte <=> g limit n)
   ), sims as (
     -- both similarities for every candidate; a CASE evaluates only its own branch, so a text key is never cast
     select c.src, c.row_id,
@@ -3734,6 +3743,7 @@ begin
     (select 'research', r.id::text, left(r.question, 200), r.finding, r.sources->0->>'url', coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score,
             case when r.status = 'approved' then 'reviewed' else 'pending_review' end, false
        from (select *, row_id::bigint key from scored where src = 'reasoning_knowledge_candidate') sc join public.reasoning_knowledge_candidate r on r.id = sc.key
+      where r.status <> 'rejected' and (v_internal or r.status = 'approved')
       order by sc.score desc limit k)
     union all
     (select 'sales_knowledge', s.record_id, s.title, left(s.content, 1200), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
