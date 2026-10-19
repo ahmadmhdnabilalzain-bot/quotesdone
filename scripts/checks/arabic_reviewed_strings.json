@@ -449,7 +449,9 @@
   "fc42ae7333f5",
   "fd9cc5abf53d",
   "ff564000c32a",
-  "ffafacc477aa"
+  "ffafacc477aa",
+  "806a8c0a9b11",
+  "96e14be90f55"
  ],
  "scripts/sql/a_claimed_company_cannot_be_registered_twice_under_another_spelling_or_the_same_licence.sql": [
   "24c7d3a2ff4f",
@@ -2842,7 +2844,8 @@
   "9c1f71981011",
   "a4879318094c",
   "a69c82313935",
-  "c8eadf831cf9"
+  "c8eadf831cf9",
+  "a6b33dd50c2d"
  ],
  "src/components/CompanyIdentity.tsx": [
   "639ceec6e997"
@@ -4806,7 +4809,8 @@
   "5f16eab40f42",
   "9261a30506c0",
   "9fcc5be416e8",
-  "d5e659d2e470"
+  "d5e659d2e470",
+  "5b0ed52584d7"
  ],
  "src/components/portal/supplier/servicesCopy.ts": [
   "00d972094620",
@@ -5321,7 +5325,14 @@
   "10bbb69afc8c",
   "2faf49d175ad",
   "755be831f556",
-  "f10f79ee1c12"
+  "f10f79ee1c12",
+  "2e2b8541e5b0",
+  "52e7c937ed18",
+  "6dfb72ee6864",
+  "8ea6e2bbade2",
+  "c146992d411c",
+  "c89285eb576d",
+  "e85df900f31b"
  ],
  "src/components/portal/suppliers/SupplierRelationship.tsx": [
   "005339379cfe",
@@ -5534,7 +5545,8 @@
   "a689a4cf0af7",
   "abec5f925a16",
   "e46de96ffa56",
-  "fd4a3bdaef87"
+  "fd4a3bdaef87",
+  "7c4da9eb6df5"
  ],
  "src/components/visual/AnonymityFlow.tsx": [
   "0350b5fc4422",
@@ -5605,7 +5617,10 @@
   "cf3c018291ef",
   "d4ac37286024",
   "da98c1583a6a",
-  "f5abebf3196f"
+  "f5abebf3196f",
+  "28c42f5909d0",
+  "69adab83d339",
+  "dd5485195143"
  ],
  "supabase/functions/_shared/clearer_copy.ts": [
   "d73b7070b4bf"
@@ -5656,7 +5671,11 @@
  ],
  "supabase/functions/_shared/customer_mail.ts": [
   "7784a68c401d",
-  "9c9347b8a06d"
+  "9c9347b8a06d",
+  "4253a24f0090",
+  "586f6f44a448",
+  "6aa95d8fabfb",
+  "c607dba157a1"
  ],
  "supabase/functions/_shared/customer_terms.ts": [
   "bb6521bace53"
@@ -5676,7 +5695,8 @@
   "a55eed84e8ff",
   "a851e616d0b9",
   "b539face70fe",
-  "cbb176539761"
+  "cbb176539761",
+  "fbe144d11ac6"
  ],
  "supabase/functions/_shared/drawing_format.ts": [
   "939055a3b61f"
@@ -5943,7 +5963,9 @@
   "2eeb132406ba",
   "bc769b49e75d",
   "b72aaecaef24",
-  "d469c60c6d28"
+  "d469c60c6d28",
+  "0ace90eb0853",
+  "5839dc1b25d3"
  ],
  "supabase/functions/_shared/supplier_charge_documents.ts": [
   "028bd4e1bdc6",
@@ -6084,7 +6106,9 @@
  "supabase/functions/_shared/support_reply_guard.ts": [
   "29e16cbb341d",
   "622dc4a7b5b1",
-  "713903274b9b"
+  "713903274b9b",
+  "1c124ac36381",
+  "24c91058ee6f"
  ],
  "supabase/functions/_shared/think.ts": [
   "4e2156827796"
@@ -6125,7 +6149,8 @@
   "e00773da115b",
   "e13e073561a2",
   "f5175202b419",
-  "fe9667777dfb"
+  "fe9667777dfb",
+  "cc83c7932429"
  ],
  "supabase/functions/customer_documents/index.ts": [
   "45f92e2a0325"
@@ -6335,7 +6360,29 @@
   "244053c77971",
   "9a03685e2791",
   "ee486754ccff",
-  "0e0329c97c49"
+  "0e0329c97c49",
+  "0271a1f4c66d",
+  "32f673f57030",
+  "35a1a42cc34d",
+  "488eec99c14e",
+  "4c6a9cec02c0",
+  "524c3be9b432",
+  "5915ebe1b5c8",
+  "5e40435fb3ce",
+  "5f72d41e3fd6",
+  "88fc3314de43",
+  "89008c118194",
+  "9a84f622dd82",
+  "9ce520c3750e",
+  "ad996ed439d2",
+  "af3e20773443",
+  "c183c419054d",
+  "c4356c2c80ac",
+  "c94d66d845db",
+  "d13175d02298",
+  "dbd6352d03bc",
+  "f34fd00dad6c",
+  "f40cee86aeb4"
  ],
  "supabase/functions/site_assistant/stream_reply.ts": [
   "aeb58bdf5c4d"
@@ -6366,7 +6413,8 @@
   "94956e39f7f1",
   "a2d8778c01cf",
   "b950c9daf1bf",
-  "d8840a7d8b95"
+  "d8840a7d8b95",
+  "bfca58024b1a"
  ],
  "supabase/functions/supplier_api/quote_review_flow.ts": [
   "0c4b45efc9bf",
@@ -6498,7 +6546,8 @@
   "f6f438acd428",
   "fa22358733e6",
   "fd221d747267",
-  "fd6f0db18deb"
+  "fd6f0db18deb",
+  "754922b40436"
  ],
  "supabase/functions/supplier_api/quote_template.ts": [
   "62ef1b50197e"
@@ -6755,5 +6804,19 @@
   "ee8222ed97de",
   "f92c158c7e87",
   "fa8603f50563"
+ ],
+ "scripts/sql/a_customer_with_quotes_who_has_not_revealed_is_nudged_and_offered_help.sql": [
+  "0f73aac5d3bd",
+  "12a0161d6030",
+  "39c3bdec1bf1",
+  "6ae9dc8830c9",
+  "859798d5f8bb",
+  "a7cf367ebba3",
+  "bdb73e6c4e03",
+  "d4e419cf740a",
+  "f6f72234df37"
+ ],
+ "scripts/sql/the_public_contact_is_configured_not_hard_coded.sql": [
+  "ac6c63ab5f9f"
  ]
 }
