@@ -811,6 +811,18 @@ async function handleInbound(req: Request): Promise<Response> {
                      hasMedia: media.length > 0 };
     // Only a menu choice, the problem text after "Report a problem", or an explicit hello/MENU is taken
     // here. A substantive message goes to its own handler first; welcomeFirstContact runs after them.
+    // THE CLASSIFICATIONS START TOGETHER, NOT ONE AFTER ANOTHER (customer_support, 19 Oct 2026). Measured on production
+    // (ai_cost_log, 18 Oct, four ZZ DEMO turns): what-it-asks, menu meaning and needs-a-person ran in series, 54-108 s
+    // before the reply call. They read only the message, so a typed question starts both here; each is memoised and
+    // awaited where it was before. A menu tap, a button and a document never reach them, so nothing starts for those.
+    const typedQuestion = !!Body.trim() && media.length === 0 && !ListId && !ButtonPayload;
+    let needsP: Promise<boolean | null> | null = null;
+    const needsPersonP = () => (needsP ??= needsAPerson(defaultDeps(admin, 'wa_inbound'), {
+      seat: 'customer_support', surface: 'wa_inbound.needs_a_person', message: Body.slice(0, 4000),
+      audience: audience === 'supplier' ? 'supplier' : 'customer',
+      dedupeKey: 'wa:' + (MessageSid || From + ':' + Body.slice(0, 40)), subject: { phone: From, message_sid: MessageSid || null },
+    }).then((r) => r.value, () => null /* unreasoned is not "no": the route records it as held */));
+    if (typedQuestion) { menuDeps.intent(Body); if (audience !== 'founder') needsPersonP(); }
     const m = await menuTurn(menuDeps, menuIn);
     if (m.handled) {
       await logRun('ok', { audience, route: m.route, cost_aed: 0 }, 'answered from the WhatsApp menu: ' + m.route);
@@ -1152,15 +1164,7 @@ async function handleInbound(req: Request): Promise<Response> {
     // the hold the answer is null, the message waits in customer_support's queue, and nobody is escalated
     // on a guess (_shared/reasoned_decisions.ts).
     let needsPerson: boolean | null = null;
-    if (Body.trim()) {
-      try {
-        needsPerson = (await needsAPerson(defaultDeps(admin, 'wa_inbound'), {
-          seat: 'customer_support', surface: 'wa_inbound.needs_a_person', message: Body.slice(0, 4000),
-          audience: audience === 'supplier' ? 'supplier' : 'customer',
-          dedupeKey: 'wa:' + (MessageSid || From + ':' + Body.slice(0, 40)), subject: { phone: From, message_sid: MessageSid || null },
-        })).value;
-      } catch (_e) { needsPerson = null; /* unreasoned is not "no": the route records it as held */ }
-    }
+    if (Body.trim()) needsPerson = await needsPersonP();
     // A person asked to review an automated decision (ledger 1152): it is filed with the seat that owns that decision
     // (review_route), decided by another model family. Only asked when the reasoning above already said a person.
     if (needsPerson === true) {

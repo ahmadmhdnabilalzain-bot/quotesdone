@@ -21,6 +21,9 @@ export async function needsAPerson(deps: ThinkDeps, o: {
   const result = await think(deps, {
     seat: o.seat, surface: o.surface, question: o.message, dedupeKey: o.dedupeKey, subject: o.subject,
     context: { audience: o.audience ?? 'customer', conversation: o.conversation },
+    // A choice among given options needs no planner: its options are the whole of what it needs (think.ts `plan`).
+    // Measured 18 Oct 2026: the plan call was 5-8 s of every one of these, and the plan was never used by a decision.
+    plan: { steps: [] },
     decision: {
       name: 'needs_a_person',
       options: [
