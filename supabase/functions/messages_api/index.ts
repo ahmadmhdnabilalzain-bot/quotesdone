@@ -434,7 +434,14 @@ Deno.serve(siteCors(observe('messages_api', async (req) => {
       // message that carried the file.
       if (attachOk && m) {
         try {
-          await admin.from('documents').insert({ bucket: clip(body.attachment_bucket, 60) || 'uploads', path: attach, file_name: attachName,
+          // THE BUCKET IS OURS TO SET, NOT THE CALLER'S (field-tampering hardening, it_engineer 19 Oct
+          // 2026, launch-checklist security pass). body.attachment_bucket let the sender name the bucket
+          // the documents row points at. Nothing signs a ref_table='messages' row today, so this is not
+          // live-exploitable, but the day fn_customer_document_refs grows a messages branch it would be a
+          // cross-party file-read: send a chat attachment pointing at another customer's object in
+          // agent-docs/finance-docs, then fetch it through customer_documents. The chat attachment always
+          // lives in 'uploads' (see the SHAPE-only comment above); hard-code it.
+          await admin.from('documents').insert({ bucket: 'uploads', path: attach, file_name: attachName,
             kind: clip(body.attachment_kind, 40) || 'chat_attachment', ref_table: 'messages', ref_id: String(m.id), status: 'received' });
         } catch (_e) { /* the message is delivered either way */ }
       }

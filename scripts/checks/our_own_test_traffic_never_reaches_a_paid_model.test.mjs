@@ -19,15 +19,20 @@ import { replaySql } from '../lib/safe_replay.mjs';
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 
-test('the gateway answers a fixture before it reads the provider key', () => {
+// RULING 1260 (19 Oct 2026): "all tests need to be done with AI. from now on open router stays on". The fixture
+// check lets a test run through INSIDE its tagged, open window and tags the costed row; untagged or outside its
+// window it is still refused before the provider key is read.
+test('ruling 1260: inside its window a test run is tagged and costed; outside it, it is refused', () => {
   const gw = read('supabase/functions/ai_gateway/index.ts');
   const fx = gw.indexOf("admin.rpc('fn_ai_subject_is_fixture'");
   const key = gw.indexOf("sec('openrouter_api_key')");
   const dry = gw.indexOf('if (dry) {');
-  assert.ok(fx > 0, 'ai_gateway no longer asks fn_ai_subject_is_fixture');
-  assert.ok(dry > 0 && dry < fx && fx < key, 'the fixture stub must sit after the dry run and before the provider key is read');
+  assert.ok(dry > 0 && dry < fx && fx < key, 'the fixture check must sit after the dry run and before the provider key is read');
   assert.match(gw, /ownWorkByName\(fnName\)/, 'probes, rehearsals, smokes and evals must be recognised by name');
+  assert.match(gw, /if \(ownWork && !inWindow\) \{/, 'untagged or out-of-window test traffic must still be refused');
   assert.match(gw, /outcome: 'fixture_no_spend'/);
+  assert.match(gw, /if \(inWindow\) route\.why = route\.why \+ ' \| TEST RUN \(ruling 1260\): run tag '/, 'an in-window test call must carry its tag on the costed row');
+  assert.match(gw, /if \(runTag\) \{/, 'a named probe/smoke/eval inside its window must be let through too');
 });
 
 test('the fixture marker is one only the harness can set, never a name, domain or number a user types', () => {

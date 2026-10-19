@@ -46,7 +46,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { replay } from '../lib/alarm_replay.mjs';
+import { replay, replaySql as replaySqlFor } from '../lib/alarm_replay.mjs';
 import { manifestWithPending, pendingNotes } from '../lib/pending_sql.mjs';
 import { lit } from '../lib/db.mjs';
 
@@ -136,9 +136,14 @@ export const REGISTER = {
   // 24 Sep 2026 (it_engineer, #901). Raises seat_duty:<duty> when a registered duty is overdue, failing or has no
   // live owner (fn_seat_duty_health). Duties are present state; a healthy day has every duty on its clock. The
   // duties it runs are run inside the rolled-back replay.
+  // 19 Oct 2026: the replay used to RUN the duties through public.fn_seat_duty_run. That took a FOR UPDATE row lock on
+  // the live public.seat_duty row and held it for the replay's whole transaction, and the live tick
+  // ("for update skip locked") then skipped the most overdue duties for as long as CI replays ran: five sales_engineer
+  // duties went 80 minutes without a run. The alarm under test is fn_seat_duty_health, so the duty runs are stubbed.
   fn_seat_duties_tick: {
     replay: 'pg_temp.qd_replay_fn_seat_duties_tick(1)',
     asOf: { seat_duty: 'created_at' },   // a duty registered after the instant did not exist then
+    stub: { 'public.fn_seat_duty_run': `'{}'::jsonb`, 'public.fn_seat_duty_isolate': 'null' },
   },
   // 24 Sep 2026 (it_engineer, #903). Raises held_notice:undelivered when a WhatsApp holding notice owed to a customer
   // failed 8 times. It reads held questions that existed (were escalated) at the instant; a healthy day has none
@@ -262,6 +267,8 @@ export const REGISTER = {
   fn_seat_clock_deliver: { relay: 'records a message the send door refused; the refusal is the door\'s decision' },
   fn_it_engineer_ingest_watch_findings: { relay: 'copies fn_it_detect\'s open it_watch_finding rows into the finding ledger' },
   fn_invite_placement_finding: { relay: 'records the verdict fn_invite_placement_settle reached on a seed message the inbox reader (resilience_ping inboxPlacement) looked at; the folder is the reader\'s reading, and no seed is sent on a healthy day before the morning batch' },
+  fn_lesson_reapproval_lapse_escalates: { relay: 'records that the CEO escalation of a lapsed lesson re-approval could not be opened (#1443); fires only when fn_seat_handoff itself errors on that lapse, and a healthy day has none' },
+  fn_rehearsal_window_sweep: { relay: 'logs a window it closed as an already-resolved info row (status resolved, severity info); the decision is the window\'s own expires_at (#1401), and no alarm is raised' },
   fn_it_duty_settle: { relay: 'writes the failing items a duty reading hands it; the rule is the duty\'s' },
   fn_accountant_duty_settle: { relay: 'the accountant\'s twin of fn_it_duty_settle' },
   fn_accountant_record_supplier_payment: { relay: 'records the refusal of a bank payment above what is still owed on a supplier due; fires only when a caller attempts that overpayment, and a healthy day has none' },
@@ -356,6 +363,14 @@ export function unanswered(bodies, register = REGISTER, baseline = BASELINE) {
   }
   return bad;
 }
+
+test('the seat-duty tick replay never runs a live duty (no live row lock)', () => {
+  const def = `create or replace function public.fn_seat_duties_tick(p_limit integer default 8) returns jsonb language plpgsql as $f$
+    begin perform public.fn_seat_duty_isolate(sd.duty) from public.seat_duty sd; v := v || public.fn_seat_duty_run(d.duty); end $f$;`;
+  const sql = replaySqlFor('fn_seat_duties_tick', def, REGISTER.fn_seat_duties_tick, '2026-09-14T01:00:00Z');
+  assert.doesNotMatch(sql, /public\.fn_seat_duty_run\s*\(/, 'the replay would lock and run live seat_duty rows');
+  assert.doesNotMatch(sql, /public\.fn_seat_duty_isolate\s*\(/, 'the replay would isolate a live duty');
+});
 
 test('every routine that can raise an IT finding is replayed on a healthy day, or says why not', () => {
   const bad = unanswered(canonicalBodies());

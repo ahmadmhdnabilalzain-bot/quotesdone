@@ -33,7 +33,7 @@
 // dry_run:true runs 1-6 and returns the decision WITHOUT calling a model, so the whole thing can be
 // verified for zero spend.
 import { cacheTokens, tapUsage } from './stream_usage.ts';
-import { sendWithTtlFallback, systemMessage } from './system_message.ts';
+import { sendWithTtlFallback, systemMessage, withHistoryBreakpoint } from './system_message.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
@@ -160,6 +160,7 @@ interface Body {
   sys?: string;
   sys_stable?: string;                    // the byte-stable half of the system prompt; only this is marked cacheable
   sys_shared?: string;                    // a byte-stable block shared by a family of prompts, cached first (system_message.ts)
+  cache_history?: boolean;                // mark the turn before the newest as a cache breakpoint (system_message.ts withHistoryBreakpoint)
   cache_ttl?: '1h';                       // Anthropic's 1-hour cache tier, asked for by the chat callers only
   input?: string | Msg[];
   messages?: Msg[];                       // full OpenAI-shape passthrough (multimodal, tool turns)
@@ -524,7 +525,7 @@ async function handle(req: Request): Promise<Response> {
       // (spend_guards.rehearsalLetsFixtureThrough). The paid gate below still enforces the window's cap.
       let inWindow = false;
       const runTag = e2eRunTag();
-      if (!ownWork && subject && runTag) {
+      if (runTag) {   // ruling 1260: a named probe/smoke/eval inside its own open window is let through too
         let open: unknown = null; let openErr: unknown = null;
         try { const res = await admin.rpc('fn_e2e_run_tag_open', { p_tag: runTag }); open = res.data; openErr = res.error; }
         catch (e) { openErr = e; }
@@ -537,19 +538,25 @@ async function handle(req: Request): Promise<Response> {
         const v = fixtureVerdict(fx, fxErr);
         if (v.stub) ownWork = v.why;
       }
-      if (ownWork) {
+      // RULING 1260 (19 Oct 2026): "all tests need to be done with AI. from now on open router stays on".
+      // A test run always opens a tagged rehearsal window (models_allowed defaults true), so INSIDE that window our
+      // own traffic reaches the model, is TAGGED here and COSTED on the real ai_cost_log row (trg_ai_cost_log_e2e_run_tag
+      // stamps the run tag; fn_kernel_paid_provider_gate still enforces the window's cap). Untagged, or outside its
+      // window, it is still refused with the no-cost stub.
+      if (ownWork && !inWindow) {
         await llmLog({
           p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
           p_task_class: route.task_class ?? null, p_model: 'none',
-          p_because: route.why + ' | FIXTURE: ' + ownWork + ' — answered with the no-cost stub, no provider call was made',
+          p_because: route.why + ' | FIXTURE: ' + ownWork + ' — untagged or outside its rehearsal window, answered with the no-cost stub, no provider call was made',
           p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
           p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
         });
-        // held: the run row reads 'held', not 'error' - refusing our own test traffic is the design (observe.statusOf).
+        // held: the run row reads 'held', not 'error' - refusing untagged test traffic is the design (observe.statusOf).
         return annotate(J({ ok: false, used_llm: false, outcome: 'fixture_no_spend',
-          error: 'our own test traffic is never sent to a paid model', why: ownWork,
+          error: 'test traffic reaches a model only inside its tagged rehearsal window', why: ownWork,
           task_class: route.task_class, cost_usd: 0 }, 503), { held: true, outcome: 'fixture_no_spend' });
       }
+      if (inWindow) route.why = route.why + ' | TEST RUN (ruling 1260): run tag ' + runTag + (ownWork ? ' | ' + ownWork : '');
     }
 
     // ---- 7. THE CALL --------------------------------------------------------------------
@@ -584,7 +591,9 @@ async function handle(req: Request): Promise<Response> {
     // the transcribe path there is no system prompt at all. Only prepend one when it says something,
     // and never when the caller already supplied its own system turn inside `messages`.
     const hasOwnSystem = convo.some((m) => m?.role === 'system');
-    const outbound: Msg[] = (sysMsg && !hasOwnSystem) ? [sysMsg as Msg, ...convo] : convo;
+    // cache_history (chat_history.ts): the earlier turns of a long conversation are the third cached block.
+    const convoOut: Msg[] = (useCache && body.cache_history === true) ? withHistoryBreakpoint(convo, cacheTtl) as Msg[] : convo;
+    const outbound: Msg[] = (sysMsg && !hasOwnSystem) ? [sysMsg as Msg, ...convoOut] : convoOut;
 
     // 29 Jul 2026 - WALL DEADLINE. The ladder could run two models x two attempts x 25s, up to
     // about 100 seconds, while _shared/llm.ts abandons a plain call after 30. On 29 Jul five
@@ -669,7 +678,9 @@ async function handle(req: Request): Promise<Response> {
     // a wall and reporting it as a model failure.
     // A REVIEW WHOSE REVIEWER CANNOT BE CALLED IS HELD, NOT SKIPPED (#880 review, item 6). Every route open-circuit for a
     // reason other than the founder's hold (which holds everything, reviewed or not) is recorded as a review_hold.
-    if (counterpart && !ladder.length && fullLadder.length && skipped.some((x) => !/^(founder_hold|exception):/.test(x.reason))) {
+    // A sandbox call whose rehearsal window closed is refused on EVERY model, reviewed or not: that is the test run's
+    // own end, not a missing reviewer (18 Oct 2026: hold 71 reached the founder's digest this way).
+    if (counterpart && !ladder.length && fullLadder.length && skipped.some((x) => !/^(founder_hold|exception|rehearsal_window_closed):/.test(x.reason))) {
       await rpcSafe('fn_review_hold_record', { p_task_class: route.task_class ?? null, p_fn: fnName, p_agent_key: body.agent ?? null,
         p_counterpart_model: counterpart, p_why: 'reviewer unreachable: ' + skipped.map((x) => x.route + ' (' + x.reason + ')').join('; ') });
     }

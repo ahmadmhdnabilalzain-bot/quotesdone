@@ -43,13 +43,14 @@ import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from '../_shared/twilio_inbound_signature.ts';
 import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, menuTurn, type Turn } from './menu_flow.ts';
 import type { Figures } from './founder_queries.ts';
+import { isStop } from '../_shared/marketing_send_gate.ts';
 import { type Audience, humanAlert, type Lang, menuItems } from './menu.ts';
 import type { Trade } from './coverage.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 import { waRow } from './wa_row.ts';
-import { holdUnwritten, modelSays } from './model_says.ts';
+import { budgetLeft, holdUnwritten, modelSays } from './model_says.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
 // THE QUESTION IS UNDERSTOOD, NOT ONLY MATCHED (instruction 763). Measured 22 Sep 2026: wa_inbound
@@ -381,14 +382,32 @@ Deno.serve(observe('wa_inbound', async (req) => {
   return ackThenWork(TW(200), () => handleInbound(copy), 'wa_inbound');
 }));
 
-// Every wa_messages write goes through waRow (wa_row.ts): created_at = arrival, replied_at = reply sent.
-function waInsert(receivedAt: string, row: Record<string, unknown>) {
-  return admin.from('wa_messages').insert(waRow(receivedAt, row));
-}
-
 async function handleInbound(req: Request): Promise<Response> {
   const logRun = mkLog(Date.now());
   const receivedAt = new Date().toISOString();   // the inbound's arrival: wa_messages.created_at, so replied_at - created_at is the first-reply time
+  // THE MESSAGE IS STORED ON ARRIVAL, NOT AFTER THE REPLY (19 Oct 2026, seat customer_support; sandbox run 5, S19).
+  // Since #1335 the reply is model-written, and the turn's wa_messages row was written only once the model chain
+  // finished: 73 s for the run-5 demo message (llm_failed after the hold). For those 73 s the customer's words
+  // existed nowhere but in a waitUntil isolate, and an isolate killed by its wall-clock or CPU cap lost them for
+  // good (wa_inbound_seen already held the MessageSid, so Twilio's redelivery was dropped as a duplicate).
+  // arrivalId is the row written the moment the sender is authenticated (STORED ON ARRIVAL below); the FIRST
+  // waInsert of the turn completes that row in place, later ones (a second row in one turn) insert as before.
+  // Every wa_messages write goes through waRow (wa_row.ts): created_at = arrival, replied_at = reply sent.
+  // Prevented by: arrival_is_stored_first.test.ts.
+  let arrivalId: number | null = null;
+  let crashed = false, MessageSidSeen = '';
+  // RACE WITH THE SWEEP (review of #1457): the arrival row is completed only while it is still 'received'. If
+  // fn_wa_arrival_sweep took it first (a turn past 5 minutes), the row stays 'escalated', this turn's record goes on a row
+  // of its own, and fn_wa_arrival_turn_finished closes the action and suppresses a holding notice not yet sent.
+  const waInsert = async (rcv: string, row: Record<string, unknown>) => {
+    const id = arrivalId; arrivalId = null;
+    if (id == null) return await admin.from('wa_messages').insert(waRow(rcv, row));
+    const upd = await admin.from('wa_messages').update(waRow(rcv, row)).eq('id', id).eq('meta->>stage', 'received').select('id');
+    if (upd.error || (upd.data?.length ?? 0) > 0) return upd;
+    const own = await admin.from('wa_messages').insert(waRow(rcv, { ...row, meta: { ...((row.meta as Record<string, unknown>) || {}), after_sweep_of: id } }));
+    await admin.rpc('fn_wa_arrival_turn_finished', { p_wa_message_id: id }).then(() => null, () => null);
+    return own;
+  };
   try {
     let From = '', Body = '', Profile = '', MessageSid = '';
     // An interactive list or button reply names the option chosen (the menu, 22 Sep 2026).
@@ -498,6 +517,32 @@ async function handleInbound(req: Request): Promise<Response> {
       }
     }
 
+    // ---- STORED ON ARRIVAL (see arrivalId above): before any model call, before any branch can return ----
+    {
+      const { data: arr, error: arrErr } = await admin.from('wa_messages').insert(waRow(receivedAt, {
+        wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply: '',
+        lang: /[؀-ۿ]/.test(Body) ? 'ar' : 'en', escalated: false, sent: false,
+        meta: { stage: 'received', provenance_verified: true, message_sid: MessageSid || null, media: media.length } })).select('id').single();
+      if (arrErr) await logRun('error', { arrival_saved: 0 }, 'wa_inbound could not store an authenticated message on arrival: ' + arrErr.message + '. The turn continues and writes its row at the end, as before.');
+      else { arrivalId = (arr as { id: number }).id; MessageSidSeen = MessageSid; }
+    }
+    // ---- "STOP" IS AN OPT-OUT, HONOURED AT ONCE (marketing, 19 Oct 2026, ruling 1184) ----
+    // The supplier invitation template tells the recipient to reply STOP. Every lead on this number is set to
+    // whatsapp_opt='none' and any invitation still queued to it is cancelled; nothing is replied (UAE PDPL / TDRA:
+    // an objection ends the messaging, it does not start a conversation).
+    if (isStop(Body)) {
+      const { data: opt, error: optErr } = await admin.rpc('fn_wa_supplier_invite_opt_out', { p_from: From });
+      // Only a number that is a lead's ends here; anyone else (the founder's command channel, a customer) goes on to
+      // the normal turn, so a STOP that is not an opt-out is never swallowed.
+      const hit = !optErr && (Number(opt?.leads_opted_out) > 0 || Number(opt?.invitations_cancelled) > 0);
+      if (optErr) await logRun('error', { opt_out: 0 }, 'STOP received but the opt-out failed: ' + optErr.message + '; the message continues as a normal turn.');
+      if (hit) {
+        await logRun('ok', { opt_out: 1 }, 'STOP honoured: ' + JSON.stringify(opt));
+        return TW(200);
+      }
+    }
+
+
     // ---- THE WORDS OF EVERY CONVERSATION REPLY (rulings 1195/1196/1197, 12 Oct 2026) ----------------------------
     // Code decides what happened; the model writes what is said, in this turn (model_says.ts). '' = no model
     // answered: nothing conversational is sent, the turn is recorded unsent (send_error 'no_model_reply').
@@ -507,6 +552,7 @@ async function handleInbound(req: Request): Promise<Response> {
     let modelEscalate = false;
     const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en') => {
       const r = await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
+        budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
         rateKey: 'wa:' + From,   // the per-number ceiling (20/hour) the old prompt path had
         subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From } });
       modelEscalate = modelEscalate || r.escalate;
@@ -650,7 +696,9 @@ async function handleInbound(req: Request): Promise<Response> {
           .gte('created_at', new Date(Date.now() - 86400e3).toISOString()).order('created_at', { ascending: false }).limit(5);
         // A message we refused at the door (bad signature, unverified) was never a conversation we were in.
         return ((data || []) as Array<{ meta: Record<string, unknown> | null; lang: string | null }>)
-          .filter((r) => !r.meta?.no_autoreply_reason)
+          // ...nor is an arrival row ('received': this very message or a crashed turn; 'handled': a branch that kept no row,
+          // which before 19 Oct 2026 left no row at all): neither carries a route.
+          .filter((r) => !r.meta?.no_autoreply_reason && r.meta?.stage !== 'received' && r.meta?.stage !== 'handled')
           .map((r) => ({ route: (r.meta?.route as string) || null, await: (r.meta?.menu_await as string) || null,
                          lang: r.lang === 'ar' ? 'ar' : r.lang === 'en' ? 'en' : null }));
       },
@@ -1242,7 +1290,9 @@ async function handleInbound(req: Request): Promise<Response> {
     try { const { error: wErr } = await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, held_notice: heldNotice, model_written: !heldNotice, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
 
 
-    if (enabled && !sent) {
+    // A captured fixture send (isDemoPhone: never handed to Twilio) is not a failed delivery: the QA channels run of 19 Oct
+    // 2026 filed support_ceo_report 13811/13812/13887/13890 'A WhatsApp reply could not be delivered' for ZZ DEMO numbers.
+    if (enabled && !sent && !isDemoPhone(From)) {
       // A FAILED SEND IS THE CEO'S, not the founder's. It was a founder_alerts row and an email
       // to him; under constitution 1.2 neither agent sends him unsolicited operational alerts.
       try {
@@ -1284,7 +1334,17 @@ async function handleInbound(req: Request): Promise<Response> {
 
     return TW(200);
   } catch (e) {
-    await logRun('error', {}, 'exception (message dropped, Twilio still got 200): ' + String((e as Error)?.message || e));
+    crashed = true;
+    await logRun('error', {}, 'exception (the arrival row stays at stage received; fn_wa_arrival_sweep hands it to customer_support): ' + String((e as Error)?.message || e));
     return TW(200);
+  } finally {
+    // A turn that FINISHED but wrote no row of its own (a branch that answers without waInsert) closes its arrival row,
+    // so only a crashed or killed turn is left at 'received' for fn_wa_arrival_sweep (5 minutes, once, to customer_support).
+    if (!crashed && arrivalId != null) {
+      try {
+        const h = await admin.from('wa_messages').update({ meta: { stage: 'handled', message_sid: MessageSidSeen || null } }).eq('id', arrivalId).eq('meta->>stage', 'received').select('id');
+        if (!h.error && (h.data?.length ?? 0) === 0) await admin.rpc('fn_wa_arrival_turn_finished', { p_wa_message_id: arrivalId });
+      } catch (_e) { /* the sweep will escalate it: noisy, never silent */ }
+    }
   }
 }

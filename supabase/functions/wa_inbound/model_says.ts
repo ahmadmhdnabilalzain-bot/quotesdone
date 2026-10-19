@@ -20,6 +20,18 @@ export interface SayRequest {
   subject?: Record<string, unknown>;
   rateKey?: string;             // the per-sender ceiling at the gateway (wa:<From>, 20/hour)
   forbidden?: string[];         // another party's identity before a reveal: a hit is rewritten by the model
+  budgetMs?: number;            // the reply's wall-clock budget (default WA_REPLY_BUDGET_MS)
+}
+// A WhatsApp reply is written within this, or the person gets the held notice and the turn is queued (run 5: 73.7 s).
+export const WA_REPLY_BUDGET_MS = 45_000;
+/** Time kept back from the budget for the send itself and the row write after the model answers. */
+export const WA_SEND_MARGIN_MS = 3_000;
+/** THE CLOCK STARTS AT ARRIVAL, NOT AT THE MODEL CALL (QA channels run, 19 Oct 2026). Measured on production: two
+ *  plain questions spent ~45 s in serial routing/intent calls before modelSays began, then answered at 54-55 s with no
+ *  held notice, because the 45 s deadline was counted from t0 inside modelSays. The budget handed to modelSays is what is
+ *  left of 45 s since the message arrived; at 0 no call starts, the text is '' and the caller sends the held notice. */
+export function budgetLeft(arrivedAtMs: number, nowMs: number = Date.now()): number {
+  return Math.max(0, WA_REPLY_BUDGET_MS - WA_SEND_MARGIN_MS - (nowMs - arrivedAtMs));
 }
 export interface Said { text: string; model: string | null; attempts: string[]; ms: number; escalate: boolean }
 
@@ -35,6 +47,7 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
       conversation: r.conversation,
       facts: 'WHAT HAS HAPPENED ON THIS TURN (decided by our systems; convey it accurately, do not change or add to it):\n' + r.situation,
       rules: WA_RULES, subject: r.subject, rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true,
+      deadline: t0 + (r.budgetMs ?? WA_REPLY_BUDGET_MS),
     });
     return { text: String(out.reply || '').trim(), model: out.model, attempts: out.attempts, ms: Date.now() - t0, escalate: out.escalate === true };
   } catch (e) {

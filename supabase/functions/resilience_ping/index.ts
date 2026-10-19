@@ -33,6 +33,7 @@ import { defaultDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROW
 import { drain as drainRoutineJudgements } from '../_shared/routine_judgements.ts';
 import { distilLessons } from '../_shared/learning_loop.ts';
 import { deliverReasoned, liveDeliveryIO, sendHeldNotices } from '../_shared/reasoned_delivery.ts';
+import { customerReplyGate } from '../_shared/ai_reply.ts';
 import { envCoverage as vercelEnvCoverage, snapshot as vercelSnapshot } from '../_shared/vercel_snapshot.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
@@ -1273,9 +1274,25 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // their callers and not judged inline: five a tick, no per-day limit; three failed readings end a row. Held rows stay queued
   // (scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql).
   await step('routine_judgements', async () => drainRoutineJudgements(defaultDeps(admin, 'resilience_ping'), 5));
+  // A WHATSAPP TURN THAT CRASHED (customer_support, 19 Oct 2026): a wa_messages row still at stage 'received' after 5 minutes
+  // goes to customer_support once and into the held-question queue (so reasoning_escalate below sends the holding notice in the same tick); never replayed
+  // (scripts/sql/a_whatsapp_message_whose_turn_crashed_reaches_customer_support_in_five_minutes.sql).
+  await step('wa_arrival_sweep', async () => ({ escalated: ((await rpc('fn_wa_arrival_sweep', { p_limit: 20 })) as unknown[] | null ?? []).length }));
   // A held question never expires: at 48 hours (or after 5 failed reasonings) it becomes a pending item in its
   // seat's queue, once, and a WhatsApp customer is told a person is handling it. Runs under the hold too; the
   // row stays held and is still replayed above the moment the hold lifts.
+  // The CEO's answer to a customer_support handover (customer_support, #1462) passes the customer-reply gate before it
+  // is sent; a held answer leaves the item open. Routing and pick-up run on pg_cron (cs_held_question_route); only this
+  // TypeScript gate runs here (a_customer_support_question_reaches_a_person_in_fifteen_minutes.sql).
+  await step('ceo_support_replies', async () => {
+    const due = ((await rpc('fn_ceo_support_reply_due', { p_limit: 10 })) ?? []) as { handover_id: number; answer: string; lang: 'en' | 'ar'; supplier: boolean }[];
+    const verdicts: Record<string, unknown>[] = [];
+    for (const d of due) {
+      const problems = await customerReplyGate((fn, args) => admin.rpc(fn, args), d.answer, d.lang, d.supplier);
+      verdicts.push({ id: d.handover_id, verdict: await rpc('fn_ceo_support_reply_record', { p_handover_id: d.handover_id, p_problems: problems }), problems });
+    }
+    return { verdicts };
+  });
   await step('reasoning_escalate', async () => {
     const rows = (await rpc('fn_reason_held_escalate', { p_limit: 20 })) as unknown[] | null;
     // The notices owed — the rows just escalated AND any earlier one whose send failed — come from the queue, not
@@ -1283,6 +1300,25 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
     const owed = (await rpc('fn_reason_held_notice_due', { p_limit: 20 })) as { id: number; surface: string; question: string; subject: Record<string, unknown> | null }[] | null;
     const told = await sendHeldNotices(owed ?? [], liveDeliveryIO(admin), (id, d) => rpc('fn_reason_held_notice_record', { p_id: id, p_delivery: d }));
     return { escalated: (rows ?? []).length, told };
+  });
+  // A SUPPLIER DOCUMENT WHOSE READ NEVER FINISHED (review of #1404): a profile or catalogue is marked 'reading' before
+  // its parse; one still 'reading' after 30 minutes was killed mid-parse. It is set unreadable with the reason and handed
+  // to the sales_engineer seat (fn_supplier_doc_reading_escalate) - never left silent - and the gate never approves past it.
+  // BEFORE THAT, ONE RE-READ (19 Oct 2026, sales_engineer; _shared/supplier_docs_later.ts): a profile or catalogue read
+  // after its upload answered and still 'reading' 10 minutes on is read once more by supplier_api (it runs after that
+  // answer), marked retry; only a second stall reaches the escalation below.
+  await step('supplier_doc_reread', async () => {
+    const r = await timedFetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/supplier_api', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + SERVICE_KEY },
+      body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), action: 'docs_reread' }),
+    }, 30_000);
+    const j = await r.json().catch(() => ({}));
+    if (!(r.ok && j?.ok)) throw new Error('supplier_api docs_reread: ' + String(j?.error ?? r.status));
+    return { rereading: j.rereading };
+  });
+  await step('supplier_doc_reading_stuck', async () => {
+    const rows = (await rpc('fn_supplier_doc_reading_escalate', { p_minutes: 30, p_limit: 50 })) as unknown[] | null;
+    return { handed_to_sales_engineer: (rows ?? []).length };
   });
   // THE SUPPLIER TRADE BACKFILL (sales_engineer, 23 Sep 2026): files at most the daily cap of leads for reasoning,
   // and NOTHING unless app_secrets.lead_reclassify_backfill = 'go' (the cost is quoted beside the gate).
@@ -1312,6 +1348,22 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // blocklist reading, on this heartbeat, never pg_cron. This function deploys on merge while its SQL may still be
   // pending, so runPostmasterStep records a missing routine or table as "skipped: schema not applied".
   await step('postmaster', () => runPostmasterStep((fn, args) => admin.rpc(fn, args), () => takePostmasterReading(fetch, sec)));
+  // The model registry against the public OpenRouter catalogue, once a day (it_engineer, follow-up 28). Reading the
+  // catalogue is a public GET with no key, not inference. Postgres records (fn_model_catalogue_sync): every disagreement
+  // becomes a ledger row and a finding; no price is ever changed here (rulings 1217/1218). Only the fields the
+  // rule reads are sent, so the payload is a fraction of the catalogue.
+  await step('model_catalogue', async () => {
+    if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('model_catalogue')) return { due: false };
+    const res = await timedFetch('https://openrouter.ai/api/v1/models', {}, 20_000);
+    if (!res.ok) throw new Error('catalogue answered HTTP ' + res.status);
+    // deno-lint-ignore no-explicit-any
+    const data = ((await res.json())?.data ?? []) as any[];
+    const cat = data.map((m) => ({ id: m?.id, context_length: m?.context_length ?? null,
+      pricing: { prompt: m?.pricing?.prompt ?? null, completion: m?.pricing?.completion ?? null } }));
+    const r = (await rpc('fn_model_catalogue_sync', { p_catalogue: cat })) as Record<string, unknown>;
+    return { due: true, compared: r?.compared, open: r?.open, new: r?.new,
+             resolved: r?.resolved };
+  });
   await step('supplier_docs', async () => {
     if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('supplier_docs')) return { due: false };
     const r = (await rpc('fn_sales_engineer_supplier_documents_tick')) as Record<string, unknown>;

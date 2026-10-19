@@ -49,6 +49,15 @@ export function documentContent(intro: string, images: any[], body: { file_b64?:
 
 /** The ai_gateway body for one licence (no caller-side `max`: model_policy.document_extraction decides it). */
 // deno-lint-ignore no-explicit-any
+// A company profile's reading (license_extract mode 'profile'). lines = the printed service lines, verbatim: the only text
+// a picture's trades are chosen from, so every chosen trade's quote is a line the page prints (review of #1412, 18 Oct 2026).
+export const SYS_PROFILE = `You read a UAE supplier's COMPANY PROFILE and/or PRODUCT CATALOG and summarise what the company actually does, so QuotesDone can match it to relevant customer requests. Be factual; use only what the documents show. Return STRICT JSON only:\n{\"summary\":string,\"services\":[string],\"products\":[string],\"sectors\":[string],\"emirates\":[string],\"confidence\":\"low\"|\"medium\"|\"high\",\"lines\":[string]}\nlines = every line on the pages that names a service, activity, product line or scope of work, copied EXACTLY as printed (same words and spelling, never reworded or summarised; max 30, each under 120 characters). Take them only from what the company prints about its OWN work; never from a certificate, a letter of recommendation, a client or project list, or a licence. summary = 2-4 plain sentences describing the business, its core offering and strengths. services = the services they provide. products = product lines they supply (generic, no need to keep brand names). sectors = the trade categories they fit (e.g. joinery, MEP, fit-out, flooring, signage, landscaping). emirates = areas/emirates they serve if stated. Keep arrays concise (max ~12 each).`;
+
+export function profileExtractRequest(payload: { images?: any[]; file_b64?: string; mime?: string; filename?: string }, subject: unknown) {
+  return { fn: 'license_extract', subject: subject ?? null, temperature: 0.1, sys: SYS_PROFILE,
+    input: [{ role: 'user', content: documentContent('Read the attached company profile / catalog pages and return the summary JSON.', payload.images || [], payload) }] };
+}
+
 export function licenceExtractRequest(payload: { images?: any[]; file_b64?: string; mime?: string; filename?: string }, subject: unknown) {
   return { fn: 'license_extract', subject: subject ?? null, temperature: 0.1, sys: SYS_LICENSE,
     input: [{ role: 'user', content: documentContent('Read the attached UAE trade licence (all pages) and return the extraction JSON.', payload.images || [], payload) }] };

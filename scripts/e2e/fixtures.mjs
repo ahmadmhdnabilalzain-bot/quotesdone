@@ -38,13 +38,27 @@ export const demoEmail = (run, kind) => `qd-${run.tag}-${kind}${run.seq++}@examp
 // number, and production answered it as a known supplier). One definition, re-exported here.
 export { demoMobile };
 
-/** Open a run: a tag for every row, and a rehearsal window so the failed-run watcher never pages the founder. */
+/**
+ * Open a run: a tag for every row, and a CAPPED MODEL WINDOW for it (founder ruling, 18 Oct 2026: every test runs
+ * with the AI on - real models inside a capped rehearsal window, never the fixture_no_spend stub). Before this the
+ * window opened with models_allowed false, so every journey's model call was answered fixture_no_spend and the
+ * journeys proved the stub. capUsd is the run's ceiling, enforced by fn_kernel_paid_provider_gate (rehearsal_cap)
+ * on the run's tagged ai_cost_log spend; the window expires in the database even if this process dies.
+ * QD_E2E_RUN_TAG makes call() carry the tag and its proof (_shared/e2e_run.ts). closeRun turns both off.
+ */
 export async function openRun(opts = {}) {
   if (process.env.QD_FIXTURES !== '1') process.env.QD_FIXTURES = '1';   // this module IS the fixture door
-  const run = newRun({ quiet: true, ...opts });
+  const { capUsd = 15, minutes: _minutes, ...rest } = opts;   // ledger 1247: no spend limit on tests; 15 is the CHECK maximum, 120 min the window limit
+  const run = newRun({ quiet: true, ...rest });
   run.ids = { inquiries: new Set(), quotes: new Set(), leads: new Set(), customers: new Set(), storage: [] };
-  await write(`insert into public.rehearsal_window (run_tag, opened_by, note)
-               values (${q('qd_run:' + run.tag)}, 'scripts/e2e/run.mjs', 'e2e harness run')`, 'rehearsal window');
+  // The window's run time is its expires_at: fn_rehearsal_window_sweep closes it after that if this process died.
+  // QD_E2E_WINDOW_MIN = the workflow's job wall + teardown (smoke 33, nightly 120); an explicit opts.minutes wins;
+  // unset or bad = the 2 h maximum.
+  const min = Math.min(120, Math.max(1, Number(opts.minutes ?? process.env.QD_E2E_WINDOW_MIN) || 120));
+  await write(`insert into public.rehearsal_window (run_tag, opened_by, note, models_allowed, cap_usd, expires_at)
+               values (${q('qd_run:' + run.tag)}, 'scripts/e2e/run.mjs', 'e2e harness run', true, ${Number(capUsd)},
+                       now() + make_interval(mins => ${min}))`, 'rehearsal window');
+  process.env.QD_E2E_RUN_TAG = run.tag;
   return run;
 }
 
@@ -106,7 +120,8 @@ export async function closeRun(run, { keep = false } = {}) {
   } finally {
     // ALWAYS closed, even when teardown throws. An open window silences the failed-run watcher for up
     // to six hours - the first harness run left one open exactly that way (14 Sep 2026).
-    await write(`update public.rehearsal_window set ended_at = now() where run_tag = ${q('qd_run:' + run.tag)} and ended_at is null`, 'rehearsal window');
+    await write(`update public.rehearsal_window set ended_at = now(), models_allowed = false where run_tag = ${q('qd_run:' + run.tag)} and ended_at is null`, 'rehearsal window');
+    if (process.env.QD_E2E_RUN_TAG === run.tag) delete process.env.QD_E2E_RUN_TAG;
   }
   return { removed, leftovers: keep ? null : await leftovers(run) };
 }

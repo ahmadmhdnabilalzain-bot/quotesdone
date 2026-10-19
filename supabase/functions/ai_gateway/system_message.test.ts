@@ -42,3 +42,14 @@ Deno.test('any other failure is not retried here; nothing is retried when no ttl
   assertEquals((await sendWithTtlFallback(ttl400, MSGS, null)).status, 400);
   assertEquals(n, 2);
 });
+
+// prevented by: this test (18 Oct 2026, _shared/chat_history.ts). A long chat's earlier turns are the third cached block.
+Deno.test('cache_history marks the turn before the newest, on the asked tier, and changes nothing else', async () => {
+  const { withHistoryBreakpoint } = await import('./system_message.ts');
+  const msgs = [{ role: 'user', content: 'turn 1' }, { role: 'assistant', content: 'reply 1' }, { role: 'user', content: [{ type: 'text', text: 'now' }, { type: 'image_url', image_url: { url: 'x' } }] }];
+  const out = withHistoryBreakpoint(msgs, '1h');
+  assertEquals(out[1].content, [{ type: 'text', text: 'reply 1', cache_control: { type: 'ephemeral', ttl: '1h' } }]);
+  assertEquals(out[0], msgs[0]); assertEquals(out[2], msgs[2]);
+  assertEquals(msgs[1].content, 'reply 1');   // the input is not mutated
+  assertEquals(withHistoryBreakpoint([{ role: 'user', content: 'only' }], null), [{ role: 'user', content: 'only' }]);
+});

@@ -214,21 +214,50 @@ export const RUN_TAG_COL = (tag) => `'qd_run:${tag}'`;
  */
 export async function closeRehearsalWindow(tag) {
   if (!/^[a-z0-9]{4,16}$/.test(String(tag))) throw new Error(`bad run tag ${JSON.stringify(tag)}`);
-  return mgmtFixture(REF, `update public.rehearsal_window set ended_at = now() where run_tag = 'qd_run:${tag}' and ended_at is null`, 'rehearsal window');
+  if (process.env.QD_E2E_RUN_TAG === tag) delete process.env.QD_E2E_RUN_TAG;
+  return mgmtFixture(REF, `update public.rehearsal_window set ended_at = now(), models_allowed = false where run_tag = 'qd_run:${tag}' and ended_at is null`, 'rehearsal window');
+}
+
+/**
+ * Close a window when the process is ended before its `finally` can run: SIGTERM (a cancelled CI job),
+ * SIGINT, or an uncaught exception / unhandled rejection. 13 Oct 2026: nine smoke and withRun windows
+ * stayed open for hours and blocked stage2. Same pattern as a_phone_cannot_select_an_account.test.mjs
+ * (#1362, #1377). Returns a disarm function; call it once the normal `finally` has closed the window.
+ * A kill -9 is caught by nothing here: fn_rehearsal_window_sweep is the net for that.
+ */
+export function closeOnExit(close) {
+  const h = (code, err) => () => {
+    if (err !== undefined) console.error(err);
+    Promise.resolve().then(close).catch(() => {}).finally(() => process.exit(code));
+  };
+  const handlers = {
+    SIGTERM: h(143), SIGINT: h(130),
+    uncaughtException: (e) => h(1, e)(), unhandledRejection: (e) => h(1, e)(),
+  };
+  for (const [ev, fn] of Object.entries(handlers)) process.once(ev, fn);
+  return () => { for (const [ev, fn] of Object.entries(handlers)) process.removeListener(ev, fn); };
 }
 
 export async function withRun(fn, opts = {}) {
-  const run = newRun(opts);
+  // AI ON, CAPPED (founder ruling 18 Oct 2026): the window lets this run's tagged model calls through up to capUsd.
+  const { capUsd = 15, minutes = 120, ...rest } = opts;   // ledger 1247: no spend limit on tests; 15 is the CHECK maximum, 120 min the window limit
+  const run = newRun(rest);
   run.log(`demo run ${run.tag} on ${REF}`);
   // DECLARE THE WINDOW (3 Sep 2026). Every function this run exercises logs into agent_runs like a
   // real call, and fn_watch_failed_runs paged the founder twice about one morning's rehearsals.
   // A declared window tells the watcher these rows are the operator's; rows outside it are judged
   // exactly as before. The row is never deleted by teardown — it is the record that a rehearsal ran.
-  try { await mgmtFixture(REF, `insert into public.rehearsal_window (run_tag, opened_by) values ('qd_run:${run.tag}', 'demo_factory.withRun')`, 'rehearsal window'); }
+  try {
+    await mgmtFixture(REF, `insert into public.rehearsal_window (run_tag, opened_by, models_allowed, cap_usd, expires_at)
+      values ('qd_run:${run.tag}', 'demo_factory.withRun', true, ${Number(capUsd)}, now() + make_interval(mins => ${Math.min(120, Number(minutes) | 0)}))`, 'rehearsal window');
+    process.env.QD_E2E_RUN_TAG = run.tag;
+  }
   catch (e) { run.log(`(rehearsal window not declared: ${String(e.message || e).slice(0, 120)})`); }
+  const disarm = closeOnExit(() => closeRehearsalWindow(run.tag));
   try {
     return await fn(run);
   } finally {
+    disarm();
     if (run.keep) run.log(`run ${run.tag} KEPT (teardown skipped) - tear down later with --purge`);
     else {
       const t = await teardown(run);
@@ -326,6 +355,11 @@ export async function makeCustomer(run, opts = {}) {
  * exercised; only the delivery hop is skipped.
  */
 export async function verifyEmailByOtp(email, userKind = 'customer', code = '424242') {
+  // A SEEDED CODE IS A SESSION FOR WHOEVER OWNS THE ADDRESS (19 Oct 2026). Only a reserved RFC 2606
+  // address can be seeded; a real account's address is refused before anything is written.
+  if (!/^[^@\s]+@example\.invalid$/i.test(String(email))) {
+    throw new Error(`REFUSED: a sign-in code is only ever seeded for a demo @example.invalid address, not ${email}`);
+  }
   const key = (await mgmtRead(REF, "select value from public.app_secrets where key='otp_hmac_key'"))[0]?.value;
   if (!key) throw new Error('otp_hmac_key missing from staging app_secrets');
   const hash = createHmac('sha256', key).update(code).digest('hex');
@@ -873,7 +907,8 @@ export async function runIntake(cust, answers, maxTurns = 10, sheet = null) {
     if (status === 'ready') break;
     // A HELD TURN ENDS THE INTERVIEW AND SAYS WHY (12 Oct 2026, run 1c94fa6a). 'held' means no model could
     // read the trade; re-asking 13 more times only repeated it, and the result read "readiness 0" with the
-    // gateway's HTTP status (a 502 from a spent OpenRouter key) nowhere in it.
+    // gateway's HTTP status (a 502 from a spent OpenRouter key) nowhere in it. 'held' also means a spec went
+    // unanswered three turns (slots.ts MAX_OPEN_TURNS): held_reason then reads 'specs_unanswered: <keys>'.
     if (status === 'held') {
       const f = r.json?.llm_failure;
       status = `held (${r.json?.held_reason ?? 'held'}${f ? `; gateway HTTP ${f.http} ${f.error} ${f.detail}` : ''})`;
@@ -1316,12 +1351,17 @@ export async function teardown(run) {
     // refused the leads delete and stranded the run). Found from the catalogue at teardown time, so a table added
     // tomorrow is covered too; only rows of THIS run's own lead ids are removed.
     ...(await fkChildren('leads')).map(([t, c]) => [`${t} (fk ${c} -> leads)`, `delete from public.${t} where ${c} in ${LEAD}`]),
-    ['leads', `delete from public.leads where id in ${LEAD}`],
+    // A LATE inbound message (19 Oct 2026, platform-on simulation: the stale-run sweep failed 23503 on
+    // inbound_messages_lead_id_fkey) can land between the inbound_messages step above and this one. It is
+    // taken in the same statement as the lead, so no gap is left for it.
+    ['leads', `with im as (delete from public.inbound_messages where lead_id in ${LEAD}) delete from public.leads where id in ${LEAD}`],
     ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id in ${CUST} or owner_email like 'qd-${tag}-%@example.%'`],
     ['customer_preference', `delete from public.customer_preference where customer_id in ${CUST}`],
     ['customer_organization', `delete from public.customer_organization where owner_customer_id in ${CUST}`],
     ['company_event (customer)', `delete from public.company_event where entity_type='customer' and entity_id in (select id::text from public.customers where id in ${CUST})`],
-    ...(await fkChildren('customers')).map(([t, c]) => [`${t} (fk ${c} -> customers)`, `delete from public.${t} where ${c} in ${CUST}`]),
+    // support_customer_profile is NOT taken by customer id here (review of #1464): stage2's marker sweep removes the run's
+    // profiles (and their cases first) by the run's own markers only.
+    ...(await fkChildren('customers')).filter(([t]) => t !== 'support_customer_profile').map(([t, c]) => [`${t} (fk ${c} -> customers)`, `delete from public.${t} where ${c} in ${CUST}`]),
     ['customers', `delete from public.customers where id in ${CUST}`],
     ['inquiry_intake', `delete from public.inquiry_intake where email like 'qd-${tag}-%@example.%'`],
     ['email_verifications', `delete from public.email_verifications where email like 'qd-${tag}-%@example.%'`],
@@ -1401,7 +1441,7 @@ export async function purge(opts = {}) {
     ['supplier_catalog', `delete from public.supplier_catalog where supplier_id in ${P_LEAD}`],
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${P_LEAD}`],
     ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${P_LEAD} or supplier_id not in (select id from public.leads)`],
-    ['leads', `delete from public.leads where id in ${P_LEAD}`],
+    ['leads', `with im as (delete from public.inbound_messages where lead_id in ${P_LEAD}) delete from public.leads where id in ${P_LEAD}`],
     ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id is null or customer_id not in (select id from public.customers) or owner_email like 'qd-%@example.%'`],
     ['customer_preference', `delete from public.customer_preference where customer_id in ${P_CUST}`],
     ['customer_organization', `delete from public.customer_organization where owner_customer_id in ${P_CUST}`],

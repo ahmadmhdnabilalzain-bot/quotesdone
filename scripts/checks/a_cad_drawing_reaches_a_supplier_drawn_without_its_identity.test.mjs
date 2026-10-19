@@ -87,3 +87,19 @@ test('a drawing journey\'s lines become report steps the sales engineer owns; a 
   const dead = stepsOf('every_drawing_format_is_read.mjs', 'Error: boom', 1);
   assert.equal(dead.length, 1); assert.equal(dead[0].status, 'FAIL');
 });
+
+test('the CAD journeys expect the preview page AND the anonymised file #1056 records beside it', async () => {
+  // Nightly 18 Oct 2026: both CAD journeys failed "one recorded page" on a correct run (redaction_complete true,
+  // 2 paths: <prefix>_p0.jpg + <prefix>_drawing.dxf). redactCad pushes the file path after the preview.
+  assert.match(between(api, 'async function redactCad(', 'async function redactFile('), /if \(f\) \{ redacted\.push\(f\.path\)/, 'the anonymised file no longer rides beside the preview; revisit cad_redacted_paths.mjs');
+  const { cadRedactionShape } = await import('../e2e/cad_redacted_paths.mjs');
+  assert.ok(cadRedactionShape(['redacted/a_p0.jpg', 'redacted/a_drawing.dxf']).ok, 'preview + anonymised file is the correct shape');
+  assert.ok(cadRedactionShape(['redacted/a_p0.jpg']).ok, 'a preview whose file was held is still correct');
+  assert.ok(cadRedactionShape(['https://x/redacted/a_p0.jpg?token=t', 'https://x/redacted/a_drawing.dxf?token=t']).ok, 'signed inbox URLs');
+  for (const bad of [[], ['redacted/a_drawing.dxf'], ['redacted/a_p0.jpg', 'redacted/a_p1.jpg'], ['redacted/a_p0.jpg', 'redacted/orig.dwg']]) assert.equal(cadRedactionShape(bad).ok, false, JSON.stringify(bad));
+  for (const j of ['cad_identity_reaches_no_supplier.mjs', 'every_drawing_format_is_read.mjs']) {
+    const s = read('scripts/e2e/' + j);
+    assert.ok(s.includes('cadRedactionShape('), `${j} does not use cadRedactionShape`);
+    assert.doesNotMatch(s, /(drawing_redacted_paths \|\| \[\]\)|pages|drawing_pages)\.length === 1/, `${j} expects exactly one CAD path again`);
+  }
+});

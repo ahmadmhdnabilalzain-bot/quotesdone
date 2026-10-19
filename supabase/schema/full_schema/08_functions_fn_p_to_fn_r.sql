@@ -2231,6 +2231,41 @@ CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__knowledge_refresh(p_id bi
 AS $function$ select public.fn_it_engineer_knowledge_refreshed(p_id, p_result) $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__lesson_reapproval(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.reasoning_held_question; v_choice text; v_ak bigint; v_cand bigint; v_n int;
+begin
+  select * into r from public.reasoning_held_question where id = p_id;
+  v_choice := p_result->'decision'->>'choice';
+  v_ak := nullif(r.subject->>'knowledge_id', '')::bigint;
+  v_cand := nullif(r.subject->>'candidate_id', '')::bigint;
+  if v_choice is null or v_choice not in ('approve', 'reject') or v_ak is null then
+    return jsonb_build_object('applied', false, 'reason', 'no approve/reject for a lesson version in the answer');
+  end if;
+  if v_choice = 'approve' then
+    update public.agent_knowledge set validation_status = 'author_verified', updated_at = now(),
+           supporting_evidence = coalesce(supporting_evidence, '') || '; re-approved by the CEO seat (held ' || p_id || ')'
+     where id = v_ak and validation_status = 'quarantined';
+  else
+    update public.agent_knowledge set valid_until = current_date, updated_at = now(),
+           supporting_evidence = coalesce(supporting_evidence, '') || '; re-approval refused by the CEO seat (held ' || p_id || ')'
+     where id = v_ak;
+  end if;
+  get diagnostics v_n = row_count;
+  if v_cand is not null then
+    update public.reasoning_knowledge_candidate
+       set status = case when v_choice = 'approve' then 'approved' else 'rejected' end,
+           reviewed_by = 'ceo:lesson_reapproval:' || p_id, reviewed_at = now()
+     where id = v_cand and status = 'pending_review';
+  end if;
+  return jsonb_build_object('knowledge_id', v_ak, 'candidate_id', v_cand, 'choice', v_choice, 'rows', v_n);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__management_review(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE sql
@@ -2693,7 +2728,8 @@ begin
   v_subject := coalesce(v_subject, p_result->'subject');
   select * into c from public.seat_lesson_cluster where cluster_key = v_subject->>'cluster_key';
   if c.cluster_key is null then return jsonb_build_object('applied', false, 'reason', 'no such cluster'); end if;
-  v_answer := btrim(coalesce(p_result->>'answer', ''));
+  -- A lesson is know-how, never a pointer to one party's case or price (18 Oct 2026, follow-up of #1441).
+  v_answer := public.fn_lesson_scrub(btrim(coalesce(p_result->>'answer', '')));
   if v_answer = '' or p_result->>'status' <> 'answered' then return jsonb_build_object('applied', false, 'reason', 'no lesson'); end if;
   v_ver := coalesce(p_result->'verified'->>'status', 'not_run');
   v_by := p_result->'verified'->>'by';
@@ -5622,6 +5658,43 @@ AS $function$
       and p_at <= coalesce(w.ended_at, w.started_at + interval '6 hours')
   );
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_rehearsal_window_sweep()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  x record;
+  v_closed jsonb := '[]'::jsonb;
+begin
+  for x in
+    select w.id, w.run_tag, w.opened_by, w.started_at, w.expires_at, d.deadline
+      from public.rehearsal_window w
+      cross join lateral (select w.expires_at as deadline) d
+     where w.ended_at is null
+       and d.deadline < now()
+       and not exists (select 1 from public.ai_cost_log c
+                        where c.e2e_run_tag = substring(w.run_tag from '^qd_run:([a-z0-9]{4,16})$')
+                          and c.occurred_at > now() - interval '10 minutes')
+     for update of w skip locked
+  loop
+    update public.rehearsal_window set ended_at = now() where id = x.id and ended_at is null;
+    insert into public.it_watch_finding
+      (detector_key, detector, subject, state, severity, title, evidence, opened_at, last_seen_at, seen_count, status, resolved_at)
+    values ('rehearsal_window_sweep:' || x.id, 'rehearsal_window_sweep', 'e2e_harness', 'closed', 'info',
+            'Rehearsal window ' || x.id || ' (' || x.run_tag || ', ' || x.opened_by || ') closed: past its run time with no live owner',
+            jsonb_build_object('rehearsal_window_id', x.id, 'run_tag', x.run_tag, 'opened_by', x.opened_by,
+                               'started_at', x.started_at, 'expires_at', x.expires_at, 'deadline', x.deadline,
+                               'reason', 'past its run time (deadline ' || x.deadline || ') and no tagged model call in the last 10 minutes'),
+            now(), now(), 1, 'resolved', now())
+    on conflict (detector_key) do nothing;
+    v_closed := v_closed || jsonb_build_object('id', x.id, 'run_tag', x.run_tag, 'opened_by', x.opened_by);
+  end loop;
+  return jsonb_build_object('closed', v_closed);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_render_template(p_text text, p_vars jsonb)

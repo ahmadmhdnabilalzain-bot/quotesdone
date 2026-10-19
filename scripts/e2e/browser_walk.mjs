@@ -22,7 +22,7 @@
 import { chromium, devices } from 'playwright';
 import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
-import { launch, signedInPage, realErrors, IGNORABLE_CONSOLE } from './browser.mjs';
+import { launch, signedInPage, realErrors, IGNORABLE_CONSOLE, measureInquiryBox } from './browser.mjs';
 
 export const OUT = process.env.QD_WALK_OUT || 'C:/Users/Opera/Desktop/QuotesDone Sandbox Test 2026-10/browser';
 const SITE = process.env.QD_SITE || 'https://quotesdone.com';
@@ -381,6 +381,15 @@ export async function openNewRequest(page, lang) {
     await page.getByRole('button', { name: lang === 'ar' ? /طلب جديد/ : /new request/i }).first().click({ timeout: 10000 });
     await box.waitFor({ state: 'visible', timeout: 20000 });
   }
+  // PLAYWRIGHT "VISIBLE" IS NOT SEEN (founder, 18 Oct 2026). waitFor visible means a non-empty bounding box and
+  // no visibility:hidden; a textarea clipped to 7px by the panel's overflow:hidden passed it, so S26 walked a
+  // page whose box the founder could not see. The box is now measured as a person sees it and a hidden one
+  // fails the step that opened it (scripts/e2e/inquiry_box_visible.mjs walks all five viewports, both languages).
+  // 'nearest' honours the box's scroll-margin (it clears the phone's fixed tab bar), as focusing it does.
+  await box.evaluate((el) => el.scrollIntoView({ block: 'nearest' })).catch(() => {});
+  await page.waitForTimeout(400);
+  const { problems } = await page.evaluate(measureInquiryBox);
+  if (problems.length) throw new Error('the inquiry box is not usable: ' + problems.join(' | '));
   return box;
 }
 
@@ -482,6 +491,9 @@ async function customerJourney(browser, w, lang, view) {
     // OPEN THE REQUEST THAT HAS QUOTES (run 71b75b60): the cards are collapsed, and prices render only inside an
     // opened card (CustomerPortal.tsx RequestCard), so the walk read a list of closed cards and found no AED.
     const card = page.locator('[id^="inq-"]').filter({ hasText: lang === 'ar' ? /[1-9]\d*\s*عر(ض|وض)/ : /\b[1-9]\d* quotes?\b/ }).first();
+    // WAIT FOR THE CARDS (run 5, 321d13ae): requests load after networkidle; the step read the page 2 s in and
+    // failed C1, whose "4 quotes" card was on the screenshot taken moments later.
+    await card.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
     if (!(await card.count())) return [false, 'no request of this customer has a quote on screen (were quotes released for this customer?)'];
     const head = card.locator('[role=button][aria-expanded]').first();
     if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click();
