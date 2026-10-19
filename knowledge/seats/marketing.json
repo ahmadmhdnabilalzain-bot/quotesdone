@@ -2003,6 +2003,21 @@
    "confidence": "medium",
    "source_note": "The messaging house is a practitioner framework, not a formal standard; the example promises are illustrative and must follow the company's current rules.",
    "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:never-pay-for-a-followed-link",
+   "topic": "Paying a blog for a link: never for a followed link; a paid link carries rel=\"sponsored\"",
+   "topic_ar": "الدفع لمدونة مقابل رابط: لا ندفع أبدًا مقابل رابط متتبَّع؛ الرابط المدفوع يحمل rel=\"sponsored\"",
+   "kind": "decision_rule",
+   "area": "seo",
+   "body_en": "No: we never pay for a followed link. Google treats buying links that pass ranking credit as link spam. If we pay for a placement, the link must carry rel=\"sponsored\" (or nofollow) and the post must be disclosed as sponsored. Links are earned through digital PR instead.",
+   "body_ar": "لا: لا ندفع أبدًا مقابل رابط متتبَّع. تعتبر Google شراء الروابط التي تنقل قيمة الترتيب رسائل مزعجة. وإن دفعنا مقابل ظهور، يجب أن يحمل الرابط rel=\"sponsored\" (أو nofollow) وأن يُعلن المنشور بوضوح أنه مموَّل. أما الروابط فتُكسب عبر العلاقات العامة الرقمية.",
+   "sources": [
+    "https://developers.google.com/search/docs/essentials/spam-policies"
+   ],
+   "confidence": "high",
+   "as_of": "2026-10-19",
+   "source_note": "Focused entry split from a multi-fact entry the model-on exam missed (ledger 1084, run b2f80d4d)."
   }
  ],
  "eval": [

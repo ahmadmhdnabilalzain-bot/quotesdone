@@ -1985,6 +1985,21 @@
    "confidence": "high",
    "source_note": "The three-by-three matrix and review cadence are common practice (ISO 31000 and COSO describe the process, not one fixed matrix).",
    "as_of": "2026-09-28"
+  },
+  {
+   "id": "ceo:escrow-is-not-our-model",
+   "topic": "Escrow and a more managed marketplace: QuotesDone stays lightly managed; the founder decides",
+   "topic_ar": "الضمان المالي والسوق الأكثر إدارة: تبقى QuotesDone خفيفة الإدارة والقرار للمؤسس",
+   "kind": "decision_rule",
+   "area": "strategy",
+   "body_en": "QuotesDone is lightly managed: it verifies suppliers, matches the trade, collects comparable quotations and charges a reveal fee; it does not hold the customer's money, execute the contract or guarantee the work. Escrow would change that model and is the founder's decision, not the CEO's: the CEO brings evidence (does it lift reveal conversion or cut leakage more than it costs) and the founder rules.",
+   "body_ar": "QuotesDone سوق خفيفة الإدارة: تتحقق من الموردين وتطابق التخصص وتجمع عروضًا قابلة للمقارنة وتتقاضى رسوم الكشف، ولا تحتفظ بأموال العميل ولا تنفذ العقد ولا تضمن العمل. الضمان المالي يغيّر هذا النموذج، وقراره للمؤسس لا للرئيس التنفيذي: يقدم الرئيس التنفيذي الأدلة ويقرر المؤسس.",
+   "sources": [
+    "internal:memory/the-only-hard-rules-and-operating-doctrine.md"
+   ],
+   "confidence": "high",
+   "as_of": "2026-10-19",
+   "source_note": "Focused entry split from a multi-fact entry the model-on exam missed (ledger 1084, run b2f80d4d)."
   }
  ],
  "eval": [
