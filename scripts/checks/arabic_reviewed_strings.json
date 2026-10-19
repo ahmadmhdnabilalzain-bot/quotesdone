@@ -62,9 +62,6 @@
   "f1acdc868e08",
   "fdce93c05d49"
  ],
- "knowledge/brief/uae_regulations/services_and_general_trades.md": [
-  "52a0b1d6e84b"
- ],
  "messages/ar.json": [
   "02bd35ced3c1",
   "031f4b936523",
@@ -462,31 +459,20 @@
   "496a302c86b0",
   "ec42828d58cb"
  ],
- "scripts/sql/a_customer_hears_the_reveal_and_its_invoice_in_the_inquiry_language.sql": [
-  "0ad679a262b2",
-  "1390254fa3fe",
-  "6795f24f47d7"
- ],
- "scripts/sql/a_customer_support_question_reaches_a_person_in_fifteen_minutes_probe.sql": [
-  "1143523d828f"
- ],
  "scripts/sql/a_customer_support_question_reaches_a_person_in_fifteen_minutes.sql": [
   "3c2dc612880a",
   "7741094dd3ef",
   "d0466f61047f",
   "fae3d0feb457"
  ],
+ "scripts/sql/a_customer_support_question_reaches_a_person_in_fifteen_minutes_probe.sql": [
+  "1143523d828f"
+ ],
  "scripts/sql/a_fee_question_that_names_no_side_gets_the_customer_fee.sql": [
   "2fcc300bc0ca",
   "4c605fe5b5ab",
   "6190da0bcb51",
   "ca7ac89e6aaf"
- ],
- "scripts/sql/a_fenced_seat_duty_keeps_its_fixture_switch.sql": [
-  "1ddbe22a20cf",
-  "25831966a970",
-  "71425d07f632",
-  "735f3f9ff862"
  ],
  "scripts/sql/a_greeting_written_in_arabic_is_answered_in_arabic.sql": [
   "1d182c597aa0",
@@ -505,12 +491,6 @@
  "scripts/sql/a_held_request_takes_its_missing_specs_from_the_customer_and_is_released_when_complete.sql": [
   "dd7717d7c21d",
   "f8a24d42bef5"
- ],
- "scripts/sql/a_lesson_never_carries_a_case_or_inquiry_id_or_an_amount.sql": [
-  "5333ab878234",
-  "80e20e866c69",
-  "ad5f1850d35a",
-  "d9b3d92d9cd5"
  ],
  "scripts/sql/a_licence_may_arrive_by_email_or_portal_and_a_stranger_must_prove_the_account_is_theirs.sql": [
   "7478879f664f",
@@ -563,14 +543,6 @@
  ],
  "scripts/sql/a_stalled_request_puts_its_trade_and_area_first_in_the_invitation_queue.sql": [
   "d4da55db16ad"
- ],
- "scripts/sql/a_supplier_may_refresh_a_quotation_before_reveal_as_the_agreement_says.sql": [
-  "2d40f052e0dc",
-  "8e9efb918bad",
-  "8f2b4b5cab7b",
-  "952398d7142e",
-  "bafd773faf8b",
-  "cda600d8f764"
  ],
  "scripts/sql/a_verified_supplier_is_told_what_his_portfolio_is_missing.sql": [
   "033fce7adb9c",
@@ -1130,9 +1102,6 @@
   "6722f6506ada",
   "ccde2d166647"
  ],
- "scripts/sql/supplier_quote_templates_carry_structure_never_price.sql": [
-  "5af222ccab16"
- ],
  "scripts/sql/suppliers_are_always_written_in_english_and_customers_in_their_inquirys_language.sql": [
   "014c460148eb",
   "062526994b5f",
@@ -1393,11 +1362,11 @@
  "scripts/sql/the_faq_states_the_fee_base_and_the_supplier_quote_as_stated.sql": [
   "33f3832b06b0",
   "5dc0c783470e",
+  "87dbc4d1e035",
   "90ef68a67059",
   "96c9fec939b6",
   "dc528da26c82",
-  "e586ea015bca",
-  "87dbc4d1e035"
+  "e586ea015bca"
  ],
  "scripts/sql/the_invitation_pool_is_read_once_as_a_set_so_the_daily_list_fits_its_timeout.sql": [
   "c12bc8b93a2b",
@@ -2874,10 +2843,10 @@
   "393a046df1b4",
   "3fdb73924e6b",
   "4477d80dfaab",
+  "54a4dbc7f286",
   "626a9b9f8db5",
   "7ae0e95b97ad",
-  "fd5a7b66a146",
-  "54a4dbc7f286"
+  "fd5a7b66a146"
  ],
  "src/components/FaqInner.tsx": [
   "1085098eb87e",
@@ -3156,6 +3125,7 @@
   "cc308a5e6acf",
   "d0150f86cbe5",
   "d04f39d6f405",
+  "d2479290cc2e",
   "d24e24552aa4",
   "d36c663e6a31",
   "d466a6a5871c",
@@ -3203,8 +3173,7 @@
   "fc644b0eb14a",
   "fe7e984490db",
   "fed9f6096feb",
-  "ff0cc7c9de41",
-  "d2479290cc2e"
+  "ff0cc7c9de41"
  ],
  "src/components/me/quoteExpiry.ts": [
   "124fb2c05c50",
@@ -5529,8 +5498,8 @@
   "0f70841ffbde"
  ],
  "src/components/QuoteBadges.tsx": [
-  "aa7ef1d629ad",
-  "88c2b594cb3c"
+  "88c2b594cb3c",
+  "aa7ef1d629ad"
  ],
  "src/components/ServiceDoc.tsx": [
   "00970d07e4bb",
@@ -5599,6 +5568,9 @@
   "80525653a9e7",
   "ce534deaa8f7"
  ],
+ "supabase/functions/_shared/brief.generated.ts": [
+  "434f70386172"
+ ],
  "supabase/functions/_shared/cad_file_redact.ts": [
   "214e2a66c5bf"
  ],
@@ -5634,6 +5606,7 @@
   "022c0e841ed6",
   "047b6da45a18",
   "06338a5c4b64",
+  "0681db1a83a2",
   "369b9a738647",
   "3757e4fbb5e1",
   "383d04ced24b",
@@ -5659,16 +5632,11 @@
   "a844ae93d451",
   "c3731f8fd32a",
   "d1e1bf0448b1",
+  "de62a9134e25",
   "e1814f15aded",
   "eb86d8fc0c02",
   "f4e468bb2a84",
-  "fe4e3d803c47",
-  "0681db1a83a2",
-  "de62a9134e25"
- ],
- "supabase/functions/_shared/contact_limits.ts": [
-  "7c5b9dd79c62",
-  "84dc981d29ae"
+  "fe4e3d803c47"
  ],
  "supabase/functions/_shared/customer_mail.ts": [
   "7784a68c401d",
@@ -5893,10 +5861,6 @@
   "d0d8c5ebe026",
   "fdacad8a8771"
  ],
- "supabase/functions/_shared/marketing_send_gate.ts": [
-  "17664d278ab8",
-  "b0071cfe9c80"
- ],
  "supabase/functions/_shared/marketing_style.ts": [
   "8a268a74f2b2"
  ],
@@ -5944,21 +5908,21 @@
   "0606cadc7570",
   "112c4662fbf6",
   "17a8beaa5500",
+  "49175bc8c637",
+  "5a629a082c9a",
   "5eada1a04c3f",
   "659b3e0b6865",
   "6eb3a5ab7bb4",
   "704a95d762a3",
+  "7d12b7a501dc",
   "8c237eb49571",
   "8cc7466c5249",
   "9b9c4b356724",
   "c56381adb176",
+  "c6aa2ccc0e0b",
   "d1e3bf58385c",
   "daec3ca59871",
-  "df7419d4841d",
-  "49175bc8c637",
-  "5a629a082c9a",
-  "7d12b7a501dc",
-  "c6aa2ccc0e0b"
+  "df7419d4841d"
  ],
  "supabase/functions/_shared/supplier_agreement.ts": [
   "2eeb132406ba",
@@ -6083,10 +6047,6 @@
   "fb467e556fc1",
   "fdd836af5b0c",
   "ff0d6c60d45e"
- ],
- "supabase/functions/_shared/supplier_doc_trades.ts": [
-  "4116f122be73",
-  "611e94d11c87"
  ],
  "supabase/functions/_shared/supplier_english.ts": [
   "6a43e6a940cb",
@@ -6358,6 +6318,7 @@
   "4cd3834955bb"
  ],
  "supabase/functions/site_assistant/index.ts": [
+  "0e0329c97c49",
   "244053c77971",
   "9a03685e2791",
   "ee486754ccff",
@@ -6550,9 +6511,6 @@
   "fd6f0db18deb",
   "754922b40436"
  ],
- "supabase/functions/supplier_api/quote_template.ts": [
-  "62ef1b50197e"
- ],
  "supabase/functions/supplier_portal/document_actions.ts": [
   "5b18a29fa4d7",
   "afa6fc3ea96a",
@@ -6587,24 +6545,21 @@
   "cdda50dc07b3"
  ],
  "supabase/functions/wa_inbound/index.ts": [
-  "5cbb277245b5",
-  "61e5bb9d6ede",
-  "75e7c95e9ceb",
-  "7fea49861151",
-  "c09183a62789",
-  "caa8dfdaf4f5",
-  "cb974acf7755",
-  "f00b7f659d1a",
   "0c779ad88625",
   "26aade657b40",
   "4061420fc991",
+  "5cbb277245b5",
+  "61e5bb9d6ede",
   "6c8d4e17edaa",
+  "75e7c95e9ceb",
+  "7fea49861151",
   "a543b7484225",
   "b2a7e76366cb",
-  "e687fbf0ba76"
- ],
- "supabase/functions/wa_inbound/menu_flow.ts": [
-  "dd8eecf60984"
+  "c09183a62789",
+  "caa8dfdaf4f5",
+  "cb974acf7755",
+  "e687fbf0ba76",
+  "f00b7f659d1a"
  ],
  "supabase/functions/wa_inbound/menu.ts": [
   "027ef5367e8d",
@@ -6661,9 +6616,6 @@
   "fbc23836418d",
   "fe741877988e"
  ],
- "supabase/functions/wa_inbound/model_says.ts": [
-  "036a6e41b969"
- ],
  "supabase/functions/wa_template_setup/index.ts": [
   "06650a058c0a",
   "08c4943939dc",
@@ -6679,8 +6631,58 @@
   "d7028cd29b51",
   "d9a9b884d813"
  ],
- "supabase/functions/_shared/brief.generated.ts": [
-  "434f70386172"
+ "knowledge/brief/uae_regulations/services_and_general_trades.md": [
+  "52a0b1d6e84b"
+ ],
+ "supabase/functions/wa_inbound/menu_flow.ts": [
+  "dd8eecf60984"
+ ],
+ "supabase/functions/wa_inbound/model_says.ts": [
+  "036a6e41b969"
+ ],
+ "scripts/sql/a_supplier_may_refresh_a_quotation_before_reveal_as_the_agreement_says.sql": [
+  "2d40f052e0dc",
+  "8e9efb918bad",
+  "8f2b4b5cab7b",
+  "952398d7142e",
+  "bafd773faf8b",
+  "cda600d8f764"
+ ],
+ "scripts/sql/a_customer_hears_the_reveal_and_its_invoice_in_the_inquiry_language.sql": [
+  "0ad679a262b2",
+  "1390254fa3fe",
+  "6795f24f47d7"
+ ],
+ "scripts/sql/a_fenced_seat_duty_keeps_its_fixture_switch.sql": [
+  "1ddbe22a20cf",
+  "25831966a970",
+  "71425d07f632",
+  "735f3f9ff862"
+ ],
+ "scripts/sql/a_lesson_never_carries_a_case_or_inquiry_id_or_an_amount.sql": [
+  "5333ab878234",
+  "80e20e866c69",
+  "ad5f1850d35a",
+  "d9b3d92d9cd5"
+ ],
+ "scripts/sql/supplier_quote_templates_carry_structure_never_price.sql": [
+  "5af222ccab16"
+ ],
+ "supabase/functions/_shared/contact_limits.ts": [
+  "7c5b9dd79c62",
+  "b52d77701d81",
+  "84dc981d29ae"
+ ],
+ "supabase/functions/_shared/marketing_send_gate.ts": [
+  "17664d278ab8",
+  "b0071cfe9c80"
+ ],
+ "supabase/functions/_shared/supplier_doc_trades.ts": [
+  "4116f122be73",
+  "611e94d11c87"
+ ],
+ "supabase/functions/supplier_api/quote_template.ts": [
+  "62ef1b50197e"
  ],
  "supabase/functions/email_triage/index.ts": [
   "1d82a8451ead",
