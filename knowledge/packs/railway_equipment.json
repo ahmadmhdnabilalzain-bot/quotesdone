@@ -51,6 +51,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "railway_equipment:product-distinctions",
+      "topic": "Railway equipment: track components, rolling stock parts and systems",
+      "topic_ar": "معدات السكك الحديدية: مكونات المسار وقطع العربات والأنظمة",
+      "kind": "product_distinctions",
+      "body_en": "Track components: rails by profile and weight (flat-bottom profiles such as UIC 60 / 60E1 for main lines; head-hardened rails for heavy haul), sleepers or ties (pre-stressed concrete is standard; steel and timber in special locations), fastening systems (baseplates, elastic clips, pads and insulators), ballast and sub-ballast, or ballastless slab track for metros and high-speed lines, turnouts and crossings, rail joints and thermite welding, and buffer stops. Rolling-stock parts: wheels and axles, bogies, brake components, couplers, suspension, doors, HVAC and interiors, traction and auxiliary electrics. Systems: signalling and train control (interlockings, track circuits or axle counters, ATP/ETCS/CBTC), telecommunications, traction power (overhead catenary or third rail, substations), SCADA, platform screen doors and fare collection for urban rail. Maintenance services: track inspection and geometry measurement, rail grinding, ultrasonic rail flaw detection, tamping, wheel re-profiling, and fleet maintenance. Railway parts are safety-critical and procured to the network operator's technical standards and approvals, with type approval, traceability and certification.",
+      "body_ar": "مكونات المسار: القضبان حسب المقطع والوزن (مقاطع مسطحة القاعدة مثل UIC 60 / 60E1 للخطوط الرئيسية؛ وقضبان مقساة الرأس للنقل الثقيل)، والعوارض (الخرسانة سابقة الإجهاد هي المعيار؛ والحديد والخشب في مواقع خاصة)، وأنظمة التثبيت (القواعد، المشابك المرنة، الوسادات والعوازل)، والحصى وطبقة ما تحت الحصى، أو المسار البلاطي بلا حصى للمترو والخطوط فائقة السرعة، والتحويلات والتقاطعات، ووصلات القضبان واللحام الحراري، ومصدات النهاية. وقطع العربات: العجلات والمحاور، والعربات الحاملة، ومكونات المكابح، والقارنات، والتعليق، والأبواب، والتكييف والتجهيزات الداخلية، والكهرباء الجرّية والمساعدة. والأنظمة: الإشارات والتحكم بالقطارات (أنظمة التشابك، دوائر المسار أو عدادات المحاور، أنظمة الحماية والتحكم الآلي)، والاتصالات، والطاقة الجرّية (الخطوط الهوائية أو القضيب الثالث، المحطات الفرعية)، وأنظمة المراقبة، وأبواب الأرصفة وتحصيل الأجرة للسكك الحضرية. وخدمات الصيانة: فحص المسار وقياس هندسته، وتجليخ القضبان، وكشف عيوب القضبان بالموجات فوق الصوتية، ودك الحصى، وإعادة تشكيل العجلات، وصيانة الأسطول. وقطع السكك الحديدية حرجة للسلامة وتُشترى وفق المعايير الفنية واعتمادات مشغل الشبكة، مع اعتماد النوع والتتبع والشهادات.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Track_(rail_transport)"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: rail profiles, pre-stressed concrete sleepers, fastenings (baseplates and clips), ballasted versus slab track -> confirmed."
+    },
+    {
+      "id": "railway_equipment:lead-times-and-quoting",
+      "topic": "Railway equipment & services - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "معدات وخدمات السكك الحديدية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stocked track materials: weeks; manufactured components and rolling-stock parts 8-26 weeks with type approval; systems projects many months. A supplier needs the operator's specification and standards, drawings or part numbers, quantities, approvals required, and the delivery programme. A quote states product and standard compliance, type approval status, manufacturer and origin, inspection and test plan, certificates, delivery schedule, warranty and validity.",
+      "body_ar": "مواد المسار المتوفرة: أسابيع؛ والمكونات المصنعة وقطع العربات 8-26 أسبوعاً مع اعتماد النوع؛ ومشاريع الأنظمة أشهراً عديدة. ويحتاج المورد مواصفة المشغل ومعاييره، والرسومات أو أرقام القطع، والكميات، والاعتمادات المطلوبة، وبرنامج التسليم. ويذكر العرض المنتج والامتثال للمعيار وحالة اعتماد النوع والصانع والمنشأ وخطة الفحص والاختبار والشهادات وجدول التسليم والضمان والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -76,6 +106,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry states the Etihad Rail rail profile (for example UIC 60 / 60E1); spec-checklist only lists \"rail profile\" as a field). railway_equipment:etihad-rail-rail-section was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from railway_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What is the difference between ballasted track and slab track for a metro line?",
+      "q_ar": "وش الفرق بين المسار بالحصى والمسار البلاطي لخط مترو؟",
+      "expected_entry_ids": [
+        "railway_equipment:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -95,6 +133,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "railway_equipment:etihad-rail-rail-section"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "railway_equipment:product-distinctions"
+      ],
+      "stored_not_served": [
+        "railway_equipment:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Track_(rail_transport)"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

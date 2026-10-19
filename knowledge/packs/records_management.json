@@ -53,6 +53,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "records_management:product-distinctions",
+      "topic": "Records management: storage, digitisation, retention and destruction",
+      "topic_ar": "إدارة السجلات: التخزين والرقمنة والاحتفاظ والإتلاف",
+      "kind": "product_distinctions",
+      "body_en": "Records management services: off-site storage of boxes and files in secure, fire-protected and climate-controlled records centres, with barcoded indexing, retrieval and delivery on request (physical or scan-on-demand); scanning and digitisation (back-file conversion of archives and day-forward scanning of new documents, with OCR, indexing and metadata, and certified scanning where a legal copy is needed); document management systems for storing, searching and controlling access to electronic records; retention schedules that set how long each record class must be kept to meet legal, tax and business needs; and secure destruction (on-site or off-site shredding, certified destruction of hard drives and media) with certificates of destruction. Specialist services include media vaults for tapes, vital-records protection, and archive appraisal. What separates providers: facility security and fire protection, access logs and chain of custody, retrieval times, scanning quality and output formats, data-protection compliance, and pricing per box per month, per retrieval, per scanned page, and per kg shredded.",
+      "body_ar": "خدمات إدارة السجلات: تخزين الصناديق والملفات خارج الموقع في مراكز سجلات آمنة ومحمية من الحريق ومكيفة، مع فهرسة بالباركود واسترجاع وتوصيل عند الطلب (ورقياً أو بالمسح عند الطلب)؛ والمسح الضوئي والرقمنة (تحويل الأرشيف القديم والمسح المستمر للمستندات الجديدة، مع التعرف الضوئي على الحروف والفهرسة والبيانات الوصفية، والمسح المعتمد حيث تلزم نسخة قانونية)؛ وأنظمة إدارة الوثائق لتخزين السجلات الإلكترونية والبحث فيها والتحكم في الوصول إليها؛ وجداول الاحتفاظ التي تحدد مدة حفظ كل فئة سجلات للوفاء بالاحتياجات القانونية والضريبية والتجارية؛ والإتلاف الآمن (التمزيق في الموقع أو خارجه، والإتلاف المعتمد للأقراص الصلبة والوسائط) مع شهادات الإتلاف. ومن الخدمات المتخصصة خزائن الوسائط للأشرطة، وحماية السجلات الحيوية، وتقييم الأرشيف. وما يميز المزودين: أمن المنشأة والحماية من الحريق، وسجلات الدخول وسلسلة الحيازة، وأزمنة الاسترجاع، وجودة المسح وصيغ المخرجات، والامتثال لحماية البيانات، والتسعير لكل صندوق شهرياً ولكل استرجاع ولكل صفحة ممسوحة ولكل كيلوغرام ممزق.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Records_management"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: retention schedules, off-site records centres, scanning to electronic records, secure destruction by shredding and incineration -> confirmed."
+    },
+    {
+      "id": "records_management:lead-times-and-quoting",
+      "topic": "Records storage & document management - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "تخزين السجلات وإدارة الوثائق: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Storage onboarding: 1-3 weeks; scanning projects by volume (thousands of pages per day per line); shredding collections within days. A provider needs volumes (boxes, pages), record types, retrieval frequency, retention rules, scanning output needs, and destruction volumes. A quote states the facility and security, rates per box, retrieval, scanning per page and indexing, destruction per kg or bin, certificates, data protection and validity.",
+      "body_ar": "بدء التخزين: 1-3 أسابيع؛ ومشاريع المسح حسب الحجم (آلاف الصفحات يومياً لكل خط)؛ وجمع مواد التمزيق خلال أيام. ويحتاج المزود الأحجام (الصناديق، الصفحات)، وأنواع السجلات، وتكرار الاسترجاع، وقواعد الاحتفاظ، واحتياجات مخرجات المسح، وأحجام الإتلاف. ويذكر العرض المنشأة والأمن والأسعار لكل صندوق والاسترجاع والمسح لكل صفحة والفهرسة والإتلاف لكل كيلوغرام أو حاوية والشهادات وحماية البيانات والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -78,6 +108,14 @@
       ],
       "why": "No entry of this pack answered it (the checklist lists retrieval time and services as fields but no entry explains per-box pricing or typical retrieval times). records_management:offsite-storage-pricing-and-retrieval was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from records_management.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Should we scan our old archive or keep the boxes in off-site storage?",
+      "q_ar": "نمسح أرشيفنا القديم ضوئياً ولا نخلي الصناديق في تخزين خارجي؟",
+      "expected_entry_ids": [
+        "records_management:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -97,6 +135,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "records_management:offsite-storage-pricing-and-retrieval"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "records_management:product-distinctions"
+      ],
+      "stored_not_served": [
+        "records_management:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Records_management"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
