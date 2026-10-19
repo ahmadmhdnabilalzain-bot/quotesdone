@@ -1,0 +1,49 @@
+{
+  "trade": "cnc_machining",
+  "layer": "uae-market",
+  "label_en": "CNC machining & fabrication services",
+  "label_ar": "خدمات التشغيل الآلي CNC والتصنيع",
+  "entries": [
+    {
+      "id": "cnc_machining:uae-market-brands",
+      "topic": "CNC machining & fabrication services: brands and makers in this category",
+      "topic_ar": "خدمات التشغيل الآلي CNC والتصنيع: العلامات التجارية والصانعون في هذه الفئة",
+      "kind": "uae_market_brands",
+      "body_en": "Makes in this category, each confirmed on its own page (no supplier or price is named): Haas Automation (United States) makes CNC machining centres, lathes and rotary tables. Mazak (Yamazaki Mazak, Japan) builds machining centres, multitasking machines and CNC laser processing machines. Okuma (Japan) makes CNC lathes, machining centres, multitasking machines, grinders and its own CNC controls. Which local distributor carries each make was not checked.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحته الخاصة (دون ذكر مورد أو سعر): Haas Automation (الولايات المتحدة) تصنع مراكز تشغيل ومخارط CNC وطاولات دوارة. Mazak (Yamazaki Mazak، اليابان) تصنع مراكز التشغيل والآلات متعددة المهام وآلات المعالجة بالليزر CNC. Okuma (اليابان) تصنع مخارط CNC ومراكز التشغيل والآلات متعددة المهام والجلاخات وأنظمة تحكم CNC خاصة بها. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Haas_Automation",
+        "https://en.wikipedia.org/wiki/Yamazaki_Mazak_Corporation",
+        "https://en.wikipedia.org/wiki/Okuma_Corporation"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Coordinator route for ledger 899: each brand fact read on the brand's own page on 19 Oct 2026; brands only, no supplier, no price.",
+      "source_note": "Haas: https://en.wikipedia.org/wiki/Haas_Automation | Mazak: https://en.wikipedia.org/wiki/Yamazaki_Mazak_Corporation | Okuma: https://en.wikipedia.org/wiki/Okuma_Corporation"
+    }
+  ],
+  "eval": [],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-10-19",
+    "ledger": [
+      899,
+      900,
+      903,
+      1198,
+      1209
+    ],
+    "brands_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "added": [
+        "cnc_machining:uae-market-brands"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Haas_Automation",
+        "https://en.wikipedia.org/wiki/Yamazaki_Mazak_Corporation",
+        "https://en.wikipedia.org/wiki/Okuma_Corporation"
+      ]
+    }
+  }
+}

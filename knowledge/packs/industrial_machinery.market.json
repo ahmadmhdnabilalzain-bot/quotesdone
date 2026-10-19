@@ -1,0 +1,49 @@
+{
+  "trade": "industrial_machinery",
+  "layer": "uae-market",
+  "label_en": "Industrial machinery & plant equipment",
+  "label_ar": "الآلات الصناعية ومعدات المصانع",
+  "entries": [
+    {
+      "id": "industrial_machinery:uae-market-brands",
+      "topic": "Industrial machinery & plant equipment: brands and makers in this category",
+      "topic_ar": "الآلات الصناعية ومعدات المصانع: العلامات التجارية والصانعون في هذه الفئة",
+      "kind": "uae_market_brands",
+      "body_en": "Makes in this category, each confirmed on its own page (no supplier or price is named): Engel (Austria) builds injection moulding machines and automation. KraussMaffei (Germany) makes injection moulding machines, extrusion equipment, reaction process machinery and automation. Arburg (Germany) makes plastic injection moulding machines and turnkey systems. Which local distributor carries each make was not checked.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحته الخاصة (دون ذكر مورد أو سعر): Engel (النمسا) تصنع آلات الحقن والأتمتة. KraussMaffei (ألمانيا) تصنع آلات الحقن ومعدات البثق وآلات عمليات التفاعل والأتمتة. Arburg (ألمانيا) تصنع آلات حقن البلاستيك وأنظمة التسليم الجاهز. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Engel_Austria",
+        "https://en.wikipedia.org/wiki/KraussMaffei",
+        "https://en.wikipedia.org/wiki/Arburg"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Coordinator route for ledger 899: each brand fact read on the brand's own page on 19 Oct 2026; brands only, no supplier, no price.",
+      "source_note": "Engel: https://en.wikipedia.org/wiki/Engel_Austria | KraussMaffei: https://en.wikipedia.org/wiki/KraussMaffei | Arburg: https://en.wikipedia.org/wiki/Arburg"
+    }
+  ],
+  "eval": [],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-10-19",
+    "ledger": [
+      899,
+      900,
+      903,
+      1198,
+      1209
+    ],
+    "brands_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "added": [
+        "industrial_machinery:uae-market-brands"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Engel_Austria",
+        "https://en.wikipedia.org/wiki/KraussMaffei",
+        "https://en.wikipedia.org/wiki/Arburg"
+      ]
+    }
+  }
+}

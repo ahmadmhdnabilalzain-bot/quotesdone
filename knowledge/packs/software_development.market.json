@@ -1,0 +1,49 @@
+{
+  "trade": "software_development",
+  "layer": "uae-market",
+  "label_en": "Software, web & app development",
+  "label_ar": "تطوير البرمجيات والمواقع والتطبيقات",
+  "entries": [
+    {
+      "id": "software_development:uae-market-brands",
+      "topic": "Software, web & app development: brands and makers in this category",
+      "topic_ar": "تطوير البرمجيات والمواقع والتطبيقات: العلامات التجارية والصانعون في هذه الفئة",
+      "kind": "uae_market_brands",
+      "body_en": "Makes in this category, each confirmed on its own page (no supplier or price is named): Odoo (Belgium) is a business-management platform in a free Community edition (LGPLv3) and a proprietary Enterprise edition. Shopify (Canada) provides a cloud-based commerce platform for merchants. Flutter is Google's free, open-source toolkit for building apps for several platforms from one codebase. Which local distributor carries each make was not checked.",
+      "body_ar": "من العلامات في هذه الفئة، وكل منها مؤكد على صفحته الخاصة (دون ذكر مورد أو سعر): Odoo (بلجيكا) منصة لإدارة الأعمال بإصدار مجتمعي مجاني (LGPLv3) وإصدار مؤسسي مملوك. Shopify (كندا) توفر منصة تجارة سحابية للتجار. Flutter أداة مجانية مفتوحة المصدر من Google لبناء التطبيقات لعدة منصات من شيفرة واحدة. ولم يُتحقق من الموزع المحلي لكل علامة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Odoo",
+        "https://en.wikipedia.org/wiki/Shopify",
+        "https://en.wikipedia.org/wiki/Flutter_(software)"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Coordinator route for ledger 899: each brand fact read on the brand's own page on 19 Oct 2026; brands only, no supplier, no price.",
+      "source_note": "Odoo: https://en.wikipedia.org/wiki/Odoo | Shopify: https://en.wikipedia.org/wiki/Shopify | Flutter: https://en.wikipedia.org/wiki/Flutter_(software)"
+    }
+  ],
+  "eval": [],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-10-19",
+    "ledger": [
+      899,
+      900,
+      903,
+      1198,
+      1209
+    ],
+    "brands_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "added": [
+        "software_development:uae-market-brands"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Odoo",
+        "https://en.wikipedia.org/wiki/Shopify",
+        "https://en.wikipedia.org/wiki/Flutter_(software)"
+      ]
+    }
+  }
+}
