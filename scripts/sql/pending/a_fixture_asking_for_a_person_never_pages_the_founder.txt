@@ -1,0 +1,4 @@
+Committed, not applied: no apply before merge (release operator rule). Apply at merge with
+node scripts/apply_sql.mjs scripts/sql/a_fixture_asking_for_a_person_never_pages_the_founder.sql --apply --ddl
+then run a_fixture_asking_for_a_person_never_pages_the_founder_probe.sql (it must print PROBE OK), delete this note,
+append the file to the END of scripts/sql/MANIFEST.txt and refresh the full_schema mirror in the same commit. Seat: customer_support.
