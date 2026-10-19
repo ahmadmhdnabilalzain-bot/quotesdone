@@ -205,23 +205,25 @@ try {
       const aa = (await read(`select count(*)::int n from public.agent_actions where kind='supplier_name_from_licence' and target_id::text='${lead.id}'`))[0];
       step(m, 'ruling 1176: the read licence name became the company name, the old name logged', tr.company_name === c.truth.legal_name_en && aa.n > 0, `company_name=${tr.company_name}; log rows ${aa.n}`);
     }
-    // THE DECISION REACHES THE SUPPLIER. Ruling 1199: a delivery request raised from a ZZ DEMO row is not filed at all
-    // (fn_seat_handoff -> fn_seat_work_is_demo), so a fixture leaves NO notifications row - asserting "written, suppressed"
-    // failed every leg from 19 Oct 2026 00:25Z. What a demo row can still prove: the approval notice was DECIDED (the
-    // sales engineer's supplier_approved_notice record), and a hold is SAID on the supplier's own screen (#1406). Any
-    // notifications row that does exist must still be suppressed, never sent.
+    // THE DECISION REACHES THE SUPPLIER. A demo delivery request writes its notification as status 'suppressed' with its
+    // dedupe_key (#1497, on top of ruling 1199), so the walk requires the row itself: exactly one suppressed e-mail
+    // supplier_approved notice for an approval, and suppressed notice rows plus the reason on the supplier's own screen
+    // (#1406) for a hold. Every row must be suppressed, never sent. The sales engineer's decision record
+    // (agent_actions supplier_approved_notice) is asserted as well, in addition, never instead.
     await new Promise((r) => setTimeout(r, 4000));
     const nt = await read(`select type, channel, status from public.notifications where lead_id=${lead.id} order by id`);
-    let want, said;
+    const allSuppressed = nt.every((x) => x.status === 'suppressed');
     if (approveCase) {
-      said = (await read(`select count(*)::int n from public.agent_actions where kind='supplier_approved_notice' and status in ('auto_done','skipped') and target_table='leads' and target_id='${lead.id}'`))[0].n;
-      want = said > 0;
+      const approvedMail = nt.filter((x) => x.type === 'supplier_approved' && x.channel === 'email');
+      step(m, 'exactly one approval notice is written, suppressed (fixture: never sent)', approvedMail.length === 1 && allSuppressed, JSON.stringify(nt));
+      const decided = (await read(`select count(*)::int n from public.agent_actions where kind='supplier_approved_notice' and status in ('auto_done','skipped') and target_table='leads' and target_id='${lead.id}'`))[0].n;
+      step(m, 'the approval notice decision is on record', decided > 0, `agent_actions rows ${decided}`);
     } else {
+      step(m, 'the hold notice is written, suppressed (fixture: never sent)', nt.length > 0 && allSuppressed, JSON.stringify(nt));
       await p.reload({ waitUntil: 'domcontentloaded' }); await heading.waitFor({ timeout: 30000 }).catch(() => {});
-      said = await p.getByText(/^Why: /).first().innerText({ timeout: 15000 }).catch(() => '');
-      want = !!said;
+      const said = await p.getByText(/^Why: /).first().innerText({ timeout: 15000 }).catch(() => '');
+      step(m, 'the hold reason is on the supplier screen', !!said, said);
     }
-    step(m, `the ${approveCase ? 'approval notice is decided' : 'hold reason is on the supplier screen'}; any notice row is suppressed, never sent`, want && nt.every((x) => x.status === 'suppressed'), JSON.stringify({ said, nt }));
     await shot(p, m, 'after_submit');
     if (reg?.signed_terms_path) run.ids.storage.push('signed-terms/' + reg.signed_terms_path);
 
