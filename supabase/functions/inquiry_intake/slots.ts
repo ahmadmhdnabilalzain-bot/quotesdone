@@ -25,6 +25,8 @@
 // built from the state, so the customer is never told "ready" while the row says otherwise. No word of
 // the customer's text is matched here (ruling 890): only keys and values the model returned are read.
 import { orderFields, questionText, type Lang, type SpecField } from './interview.ts';
+import { aiReply } from '../_shared/ai_reply.ts';
+import type { ThinkDeps } from '../_shared/think.ts';
 import { requirementQuestions, isValidAnswer, NO_PREFERENCE, type Answers, type Ans } from '../_shared/intake_requirements.ts';
 
 const asText = (v: unknown) => (typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')).trim();
@@ -48,6 +50,27 @@ export const HELD_FOR_SPECS: Record<Lang, string> = {
   en: 'Thank you. A few specifications are still open, so our sales engineer will help you settle them before this goes to suppliers. We will continue with you here; there is no need to type anything again.',
   ar: 'شكرًا لكم. ما زالت بعض المواصفات غير محددة، لذلك سيساعدكم مهندس المبيعات لدينا على تحديدها قبل إرسال الطلب إلى الموردين. سنكمل معكم هنا، ولا حاجة إلى إعادة كتابة أي شيء.',
 };
+
+// THE HELD REPLY NAMES WHAT IS STILL OPEN (customer_support, 19 Oct 2026). settleModelTurn clears `missing` on a hold,
+// and HELD_FOR_SPECS said only "a few specifications are still open": a real customer was never told WHICH. The reply
+// is now written by the model (ruling 1196) with the exhausted questions, in the inquiry language, as its facts.
+// HELD_FOR_SPECS stays only as the handover when no model answers in time (ai_reply.ts: the caller's held notice).
+/** The plain questions still open on a held intake, in the customer's language, in checklist order. */
+export function heldQuestions(checklist: SpecField[], exhausted: string[], lang: Lang): string[] {
+  return orderFields(checklist).filter((o) => exhausted.includes(String(o.f.key))).map((o) => questionText(o.f, lang));
+}
+/** The held reply, written by the model, naming every still-open question. */
+export async function heldReply(deps: ThinkDeps, checklist: SpecField[], exhausted: string[], lang: Lang, message: string, conversation: { role: string; text: string }[], deadline?: number): Promise<string> {
+  const open = heldQuestions(checklist, exhausted, lang);
+  const r = await aiReply(deps, {
+    seat: 'customer_support', channel: 'the website request chat', audience: 'customer', lang, message, deadline,
+    conversation: conversation.map((t) => ({ role: t.role === 'assistant' ? 'seat' as const : 'customer' as const, text: String(t.text || '') })),
+    facts: 'This request is HELD: it goes to no supplier yet. These questions were asked three times and are still unanswered:\n- ' + open.join('\n- ') +
+      '\nOur sales engineer will help the customer settle them here in this chat; nothing needs to be typed again.',
+    rules: 'Thank them, name EACH still-open question above in plain words, say our sales engineer will help settle them in this chat before it goes to suppliers. Two to four sentences. Do not ask anything else.',
+  });
+  return r.reply || HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en;
+}
 
 /** How many earlier assistant turns each required key stayed open on (stampTurn's missing_keys). */
 export function openTurnsByKey(turns: any[]): Record<string, number> {
