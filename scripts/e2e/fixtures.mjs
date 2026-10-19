@@ -286,6 +286,18 @@ const SERVICE_WORDS = {
   aluminium: 'Aluminium windows and doors, curtain wall, ACP cladding, pergolas and louvres',
   gypsum: 'Gypsum partitions, false ceilings, decorative gypsum and bulkheads',
   painting: 'Interior painting and exterior painting',
+  // 19 Oct 2026, stage2 run 0a717394: these trades had no sentence, so their demo supplier confirmed no
+  // service and fn_match_capability's services gate dropped it from every request that named one
+  // (6 of 9 routed to nobody; hvac passed only because its brief named none). Exact taxonomy labels.
+  // prevented by: scripts/checks/every_stage2_supplier_trade_states_its_services.test.mjs
+  electrical: 'Wiring & electrical installation, Distribution boards & switchgear, Cable trays & containment, Lighting supply & installation, Electrical maintenance',
+  plumbing: 'Water supply piping, Drainage & sewerage, Sanitary fixtures installation, Water heaters & pumps, Plumbing maintenance',
+  hvac: 'Supply & installation of AC units, Ducting & ventilation, VRF & chiller systems, Testing & commissioning, Maintenance & annual contracts',
+  flooring: 'Tiling, Marble & granite, Parquet & vinyl, Epoxy flooring, Carpet',
+  joinery: 'Kitchens, Wardrobes & closets, Wooden doors, Wood panelling, Custom furniture',
+  glazing: 'Frameless glazing, Glass façades, Shower & glass partitions, Tempered & laminated glass, Mirrors',
+  waterproofing: 'Roof waterproofing, Wet-area waterproofing, Basement & foundation waterproofing, Thermal insulation, Acoustic insulation',
+  landscaping: 'Softscape & planting, Hardscape, Irrigation systems, Artificial grass, Garden maintenance',
 };
 async function stateServices(leadId, jwt, trade) {
   const text = SERVICE_WORDS[trade];
