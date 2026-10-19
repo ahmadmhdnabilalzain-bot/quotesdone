@@ -212,3 +212,65 @@ test('the capabilities the registry file claims are the ones the catalogue adver
     'a capability the registry records no longer matches the catalogue, so fn_ai_route\'s capability '
     + `branch will substitute a model nobody chose:\n  ${wrong.join('\n  ')}`);
 });
+
+// ── THE DAILY CATALOGUE SYNC (follow-up 28; record-only since the 18 Oct 2026 review, rulings 1217/1218) ──
+// scripts/sql/the_it_engineer_syncs_the_model_registry_from_the_catalogue_every_day.sql records every disagreement
+// between model_registry and the catalogue and raises it as a finding. It never writes a price. The strict comparison
+// above stays the gate; these tests add that the sync runs, and that its probe still proves it writes nothing.
+// They need a management token: the tokenless checks job reports them skipped, the parity job runs them with
+// REGISTRY_SYNC_REQUIRE_LIVE=1, where a missing token fails.
+const SYNC_SQL = 'scripts/sql/the_it_engineer_syncs_the_model_registry_from_the_catalogue_every_day.sql';
+const SYNC_PROBE = 'scripts/sql/the_it_engineer_syncs_the_model_registry_from_the_catalogue_every_day_probe.sql';
+const PENDING_NOTE = 'scripts/sql/pending/the_it_engineer_syncs_the_model_registry_from_the_catalogue_every_day.txt';
+const MATRIX_PROBE = 'scripts/sql/every_seat_runs_the_founders_model_matrix_probe.sql';
+const FRESH_HOURS = 36;
+const { existsSync } = await import('node:fs');
+const { homedir } = await import('node:os');
+const hasToken = () => Boolean(process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token')));
+const pending = () => existsSync(join(REPO, PENDING_NOTE));
+
+test('a management token is present where the sync must be verified',
+  { skip: process.env.REGISTRY_SYNC_REQUIRE_LIVE !== '1' && 'no REGISTRY_SYNC_REQUIRE_LIVE: the parity job verifies it' }, () => {
+  assert.ok(hasToken(), 'SUPABASE_ACCESS_TOKEN is missing: the model catalogue sync was NOT verified');
+});
+
+test('the model catalogue sync succeeded in the last 36 hours', { skip: !hasToken() && 'no management token' }, async () => {
+  const { sql } = await import('../lib/db.mjs');
+  const [r] = await sql(`select to_regclass('public.model_catalogue_change') is not null as built,
+      (select max(started_at) from public.agent_runs where agent = 'it_engineer' and status = 'ok'
+          and counts->>'job' = 'duty:model_catalogue') as last_ok,
+      (select extract(epoch from now() - max(started_at)) / 3600 from public.agent_runs where agent = 'it_engineer'
+          and status = 'ok' and counts->>'job' = 'duty:model_catalogue') as hours`, { readOnly: true });
+  if (!r.built) {
+    assert.ok(pending(), `public.model_catalogue_change does not exist and ${PENDING_NOTE} is gone: the sync file was never applied`);
+    console.log(`NOT YET APPLIED (pending until merge): ${SYNC_SQL}. Freshness is asserted from the first run after it.`);
+    return;
+  }
+  assert.ok(r.last_ok && Number(r.hours) < FRESH_HOURS,
+    `the model catalogue sync last succeeded ${r.last_ok ? `${Number(r.hours).toFixed(1)} h ago (${r.last_ok})` : 'never'}; `
+    + `it must run at least every ${FRESH_HOURS} h (it_duty_schedule 'model_catalogue', resilience_ping itlater step `
+    + `model_catalogue). Look at the step's result in the last ticks, and at duty_pause for 'resilience_ping.model_catalogue'.`);
+});
+
+test('the sync records every move and changes no price (probe replayed, rolled back)', { skip: !hasToken() && 'no management token' }, async () => {
+  const { sql } = await import('../lib/db.mjs');
+  const { replaySql } = await import('../lib/safe_replay.mjs');
+  const [{ built }] = await sql(`select to_regprocedure('public.fn_model_catalogue_sync(jsonb,text[],text[])') is not null as built`, { readOnly: true });
+  if (!built) assert.ok(pending(), `fn_model_catalogue_sync is not on production and ${PENDING_NOTE} is gone`);
+  const text = (built ? '' : `${readFileSync(join(REPO, SYNC_SQL), 'utf8')}\n;\n`) + readFileSync(join(REPO, SYNC_PROBE), 'utf8');
+  let verdict = '';
+  try { await replaySql(text, { label: SYNC_PROBE }); } catch (e) { verdict = String(e?.body ?? e?.message ?? e); }
+  assert.match(verdict, /PROBE OK ::/, `the sync probe did not pass: ${verdict.slice(0, 1200)}`);
+});
+
+test('the sync file writes no price and no registry row', () => {
+  const body = readFileSync(join(REPO, SYNC_SQL), 'utf8').replace(/--.*$/gm, '');
+  assert.doesNotMatch(body, /\b(update|insert\s+into|delete\s+from)\s+public\.(model_registry|model_rate)\b/i,
+    `${SYNC_SQL} writes model_registry or model_rate; model prices are the founder's (rulings 1217/1218) and change only by a reviewed file`);
+});
+
+test('the matrix probe states no price', () => {
+  const probe = readFileSync(join(REPO, MATRIX_PROBE), 'utf8').replace(/--.*$/gm, '');
+  assert.doesNotMatch(probe, /(in|out)_per_mtok_usd\s*(=|<|>|<=|>=)\s*[\d.]/i,
+    `${MATRIX_PROBE} compares a price literal; prices live in the registry`);
+});
