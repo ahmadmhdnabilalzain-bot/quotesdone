@@ -1,0 +1,4 @@
+Applies AT MERGE, after a_seats_own_pack_fills_half_of_every_retrieval.sql (already applied, #1567). It only lengthens the
+excerpt of a seat-pack row from 1,200 to 2,400 characters in fn_reason_retrieve and fn_reason_retrieve_ml (CREATE OR
+REPLACE, same signatures, ACL kept). Dry run passed 19 Oct 2026. When applied: delete this note and append the file to
+the END of scripts/sql/MANIFEST.txt in the same commit. think.ts reads the longer excerpt either way (it keeps up to 2,400).

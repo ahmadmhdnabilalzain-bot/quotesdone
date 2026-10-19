@@ -88,6 +88,6 @@ Deno.test('retrieval is told the audience: the company\'s own pack rows are for 
     assert(sent.length > 0, 'retrieval ran');
     return sent.map((a) => a.p_audience);
   };
-  for (const a of ['customer', 'supplier', 'visitor', 'internal', 'founder']) assertEquals(await run({ audience: a }), [a]);
-  assertEquals(await run({}), [null], 'a missing audience is sent as none, which the routine treats as external');
+  for (const a of ['customer', 'supplier', 'visitor', 'internal', 'founder']) assertEquals(await run({ audience: a }), [a, a]);   // the planned step and the question as asked
+  assertEquals(await run({}), [null, null], 'a missing audience is sent as none, which the routine treats as external');
 });
