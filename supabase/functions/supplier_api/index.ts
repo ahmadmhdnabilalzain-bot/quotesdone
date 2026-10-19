@@ -1683,6 +1683,8 @@ ${q}`,
       // RULING 1177 (12 Oct 2026): 'fill the form instead' was the answer to every quotation quote_extract could not price.
       // The original now goes through the read-every-attachment helper (the vision model transcribes it, the quotation
       // parser prices it, one more asking); only when that fails too is the supplier asked for a clearer copy, in English.
+      // A total quote_extract held as ambiguous is the supplier's to state; no other reader is asked to guess it (#1562).
+      if (jd?.error === 'total_ambiguous') return J({ error: 'total_ambiguous', code: 'quote_total_ambiguous', review_reason: jd.review_reason ?? null, proposal: jd.proposal ?? null, original_file_path, original_file_name, message: 'We read your quotation but could not be sure of its total (' + String(jd.review_reason || '').replace(/_/g, ' ') + '). Please type the total in the form.' }, 422);
       if (!jd?.ok && orig.b64) {
         const seen = await readQuotationFile(b64Bytes(String(orig.b64)), String(orig.filename || 'quotation'), String(orig.mime || ''), [String((sup as any).company_name || '')].filter(Boolean), undefined, envGatewayVision({ subject: { supplier_id: (sup as any).id, email } })).catch(() => null);
         if (seen?.proposal) jd = { ok: true, proposal: seen.proposal, extracted_by_model: 'read_every_attachment' };
