@@ -52,6 +52,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "cleaning:product-distinctions",
+      "topic": "Cleaning services: service types and contract models",
+      "topic_ar": "خدمات النظافة: أنواع الخدمة ونماذج العقود",
+      "kind": "product_distinctions",
+      "body_en": "Cleaning services split into routine or contract cleaning (offices, retail, residential buildings and common areas, on daily or weekly schedules with a set number of cleaners or hours), deep cleaning (kitchens, washrooms, upholstery, sanitisation), specialist services (carpet shampoo and hot-water extraction, marble polishing and crystallisation, facade and window cleaning, kitchen exhaust duct cleaning, tank cleaning, high-level cleaning), post-construction or handover cleaning (removing cement, paint and dust before occupation), and one-off home cleaning by the hour. Contract models: manpower supply (cleaners supplied per head per month, the client directs them), output-based (a specification of areas, frequencies and standards, with the contractor responsible for meeting them), or included in integrated facilities management. What separates offers: staffing levels and shift patterns, supervision, the chemicals and equipment included, consumables (tissue, soap, bin liners) included or charged, uniforms and visas, the quality-inspection method and KPIs, response to ad-hoc requests, insurance, and the treatment of public holidays and overtime.",
+      "body_ar": "تنقسم خدمات النظافة إلى النظافة الدورية أو التعاقدية (المكاتب، محلات التجزئة، المباني السكنية والمناطق المشتركة، بجداول يومية أو أسبوعية بعدد محدد من العمال أو الساعات)، والتنظيف العميق (المطابخ، دورات المياه، المفروشات، التعقيم)، والخدمات المتخصصة (شامبو السجاد والاستخلاص بالماء الساخن، تلميع الرخام وبلورته، تنظيف الواجهات والنوافذ، تنظيف مجاري شفط المطابخ، تنظيف الخزانات، التنظيف على الارتفاعات)، وتنظيف ما بعد الإنشاء أو التسليم (إزالة الإسمنت والطلاء والغبار قبل الإشغال)، وتنظيف المنازل لمرة واحدة بالساعة. ونماذج العقود: توريد عمالة (عمال نظافة لكل فرد شهرياً، ويوجههم العميل)، أو قائم على النتائج (مواصفة للمناطق والتكرار والمعايير ويتحمل المقاول تحقيقها)، أو ضمن إدارة مرافق متكاملة. وما يميز العروض: أعداد العمال ونظام الورديات، والإشراف، والكيماويات والمعدات المشمولة، والمستهلكات (المناديل، الصابون، أكياس القمامة) مشمولة أو مدفوعة، والزي والتأشيرات، وطريقة فحص الجودة ومؤشرات الأداء، والاستجابة للطلبات الطارئة، والتأمين، ومعاملة العطلات الرسمية والعمل الإضافي.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Commercial_cleaning"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: commercial cleaning: routine office cleaning, window cleaning, carpet hot-water extraction, washroom deep cleaning, post-construction cleaning -> confirmed."
+    },
+    {
+      "id": "cleaning:lead-times-and-quoting",
+      "topic": "Cleaning & facility services - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "خدمات النظافة والمرافق: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "One-off and deep cleans: usually within 1-3 days; contracts mobilise in 1-3 weeks. A cleaning company needs the site type and areas, the scope and frequencies or staffing requested, working hours, consumables responsibility, and contract term. A quote states the staffing or output specification, supervision, materials and equipment, consumables, KPIs and inspection, the monthly or per-visit fee, overtime and holiday rates, insurance and validity.",
+      "body_ar": "التنظيف لمرة واحدة والتنظيف العميق: عادة خلال 1-3 أيام؛ والعقود تبدأ خلال 1-3 أسابيع. وتحتاج شركة النظافة نوع الموقع ومساحاته، والنطاق والتكرار أو العمالة المطلوبة، وساعات العمل، ومسؤولية المستهلكات، ومدة العقد. ويذكر العرض العمالة أو مواصفة النتائج، والإشراف، والمواد والمعدات، والمستهلكات، ومؤشرات الأداء والفحص، والرسوم الشهرية أو لكل زيارة، وأسعار العمل الإضافي والعطلات، والتأمين، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -77,6 +107,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither explains per-hour vs per-m2 pricing for post-construction cleans; missing: cleaning pricing models entry). cleaning:post-construction-clean-pricing-models was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from cleaning.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Should our office cleaning contract be priced per cleaner or by the areas and standard we want?",
+      "q_ar": "عقد تنظيف المكتب نسعره لكل عامل ولا حسب المساحات والمستوى اللي نبيه؟",
+      "expected_entry_ids": [
+        "cleaning:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "cleaning:post-construction-clean-pricing-models"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "cleaning:product-distinctions"
+      ],
+      "stored_not_served": [
+        "cleaning:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Commercial_cleaning"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

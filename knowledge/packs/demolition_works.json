@@ -55,6 +55,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "demolition_works:product-distinctions",
+      "topic": "Demolition: methods, strip-out and the hazardous-materials step",
+      "topic_ar": "الهدم: الطرق وإزالة التجهيزات وخطوة المواد الخطرة",
+      "kind": "product_distinctions",
+      "body_en": "Demolition methods: mechanical demolition with excavators and breakers for low-rise, high-reach excavators with long booms for taller structures, top-down floor-by-floor demolition for high-rise in tight sites, controlled implosion with explosives (rare, specialist), and deconstruction where materials are salvaged. Concrete cutting (wire saw, wall saw, core drilling) removes parts of a structure that stays. Strip-out (soft strip) removes fit-out, ceilings, partitions, MEP services and finishes back to shell, often for refurbishment. Before work, hazardous materials are surveyed and removed by licensed specialists: asbestos (in older buildings), contaminated soil, chemicals, refrigerants and fluorescent tubes. The sequence is survey, permits and utility disconnection, method statement and structural engineer's demolition plan (temporary propping for partial demolition), hoarding and protection of neighbours, dust and noise control, and segregated waste disposal and recycling with tracked manifests. Offers differ on method, programme, salvage credit, disposal routes and fees, insurance, and who obtains permits.",
+      "body_ar": "طرق الهدم: الهدم الميكانيكي بالحفارات والكسارات للمباني المنخفضة، والحفارات طويلة الذراع للمباني الأعلى، والهدم من الأعلى طابقاً بطابق للأبراج في المواقع الضيقة، والتفجير المتحكم به (نادر ومتخصص)، والتفكيك حيث تُسترد المواد. ويزيل قطع الخرسانة (المنشار السلكي، منشار الجدران، الثقب اللبي) أجزاء من منشأ يبقى قائماً. وإزالة التجهيزات تزيل أعمال التجهيز والأسقف والقواطع وخدمات الكهروميكانيك والتشطيبات حتى الهيكل، غالباً للتجديد. وقبل العمل تُمسح المواد الخطرة وتُزال بمختصين مرخصين: الأسبستوس (في المباني القديمة)، والتربة الملوثة، والكيماويات، وغازات التبريد، ومصابيح الفلورسنت. والتسلسل: المسح، والتصاريح وفصل المرافق، وبيان الطريقة وخطة الهدم من المهندس الإنشائي (التدعيم المؤقت للهدم الجزئي)، والسياج وحماية الجيران، والتحكم بالغبار والضوضاء، والتخلص من النفايات وإعادة تدويرها مفروزة بسجلات متتبعة. وتختلف العروض في الطريقة، والبرنامج الزمني، وخصم قيمة المواد المستردة، ومسارات التخلص ورسومه، والتأمين، ومن يستخرج التصاريح.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Demolition"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: mechanical, high-reach, implosion and deconstruction methods; asbestos abatement and pre-demolition removal of hazardous materials -> confirmed."
+    },
+    {
+      "id": "demolition_works:lead-times-and-quoting",
+      "topic": "Demolition & strip-out - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الهدم وإزالة التجهيزات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Small strip-outs start within 1-2 weeks; full demolitions need 2-6 weeks for surveys and permits before work. A contractor needs drawings or a site visit, building age and structure, hazardous-material survey if any, scope (full, partial, strip-out), neighbours and access, and programme. A quote states method, programme, permits, hazardous-material handling, disposal and recycling, salvage, insurance, exclusions and validity.",
+      "body_ar": "تبدأ أعمال إزالة التجهيزات الصغيرة خلال 1-2 أسبوع؛ والهدم الكامل يحتاج 2-6 أسابيع للمسوحات والتصاريح قبل العمل. ويحتاج المقاول المخططات أو زيارة الموقع، وعمر المبنى وإنشاءه، ومسح المواد الخطرة إن وجد، والنطاق (كامل، جزئي، إزالة تجهيزات)، والجيران والوصول، والبرنامج الزمني. ويذكر العرض الطريقة والبرنامج والتصاريح والتعامل مع المواد الخطرة والتخلص وإعادة التدوير والمواد المستردة والتأمين والاستثناءات والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (the standards entry covers Dubai Municipality material approvals and Civil Defence, not demolition permits). demolition_works:dubai-demolition-permit-sequence was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from demolition_works.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "We are stripping out an old office floor. Do we need an asbestos survey first?",
+      "q_ar": "بنشيل تجهيزات طابق مكاتب قديم، نحتاج مسح أسبستوس قبل؟",
+      "expected_entry_ids": [
+        "demolition_works:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "demolition_works:dubai-demolition-permit-sequence"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "demolition_works:product-distinctions"
+      ],
+      "stored_not_served": [
+        "demolition_works:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Demolition"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

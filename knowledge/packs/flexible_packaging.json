@@ -59,6 +59,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "flexible_packaging:product-distinctions",
+      "topic": "Flexible packaging: film structures, barrier and pouch formats",
+      "topic_ar": "التغليف المرن: بنية الأغشية والحاجزية وأشكال الأكياس",
+      "kind": "product_distinctions",
+      "body_en": "Flexible packaging is built from films chosen for print, barrier and sealing: BOPP (clear or metallised, good moisture barrier, crisp print), PET or BoPET (stiff, heat-resistant, a print and barrier layer), PE (LDPE, LLDPE, the sealing layer), metallised films and aluminium foil (high barrier to oxygen, moisture and light), nylon (puncture resistance, for vacuum and retort), and paper laminates. Laminates combine them, for example PET/PE, PET/MET-PET/PE, PET/ALU/PE, BOPP/BOPP, with the barrier measured as oxygen transmission rate (OTR) and water-vapour transmission rate (WVTR). Formats: rollstock for form-fill-seal machines, three-side-seal and centre-seal pouches, stand-up pouches with zipper or spout, gusseted bags, flat-bottom pouches, retort pouches (sterilised at high temperature), shrink films, stretch films, and bags. Printing is rotogravure (long runs, highest quality, cylinder cost) or flexo (shorter runs, plate cost), and digital for very short runs. Mono-material recyclable structures (all-PE or all-PP) are replacing mixed laminates where recyclability is required. Food-contact compliance and low-migration inks matter where the content requires it.",
+      "body_ar": "يُبنى التغليف المرن من أغشية تُختار للطباعة والحاجزية والختم: BOPP (شفاف أو معدني، حاجز جيد للرطوبة، طباعة واضحة)، وPET (صلب، مقاوم للحرارة، طبقة طباعة وحاجز)، والبولي إيثيلين (LDPE، LLDPE، طبقة الختم)، والأغشية المعدنية ورقائق الألمنيوم (حاجز عالٍ للأكسجين والرطوبة والضوء)، والنايلون (مقاومة الثقب، للتفريغ والتعقيم الحراري)، والرقائق الورقية. وتجمع الطبقات بينها، مثل PET/PE وPET/MET-PET/PE وPET/ALU/PE وBOPP/BOPP، ويُقاس الحاجز بمعدل نفاذ الأكسجين ومعدل نفاذ بخار الماء. والأشكال: لفات لآلات التشكيل والتعبئة والختم، وأكياس الختم الثلاثي والختم المركزي، والأكياس القائمة بسحاب أو فوهة، والأكياس ذات الجوانب، والأكياس مسطحة القاع، وأكياس التعقيم الحراري، والأغشية المنكمشة، والأغشية المطاطية، والأكياس. والطباعة بالروتوغرافور (كميات طويلة، أعلى جودة، تكلفة أسطوانات) أو الفلكسو (كميات أقصر، تكلفة ألواح)، والرقمية للكميات القصيرة جداً. وتحل البنى أحادية المادة القابلة للتدوير (كلها بولي إيثيلين أو كلها بولي بروبيلين) محل الرقائق المختلطة حيث تُشترط قابلية التدوير. ويهم امتثال ملامسة الأغذية والأحبار منخفضة الهجرة حيث يتطلب المحتوى ذلك.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Flexible_packaging"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: barrier against oxygen, water vapour and light; BoPET, aluminium foil, multilayer films, stand-up and retort pouches -> confirmed."
+    },
+    {
+      "id": "flexible_packaging:lead-times-and-quoting",
+      "topic": "Flexible packaging & films - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "التغليف المرن والأغشية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Repeat jobs: 2-3 weeks; new designs with cylinders or plates 3-6 weeks; imported specialities 6-10 weeks. A converter needs the product, shelf life and barrier needs, format and dimensions, filling machine, print design and colours, quantity per run and per year, and compliance needs. A quote states the laminate structure and thickness, barrier values, format, print process and colours, cylinder or plate cost, price basis per kg or per 1,000 pouches, MOQ, delivery and validity.",
+      "body_ar": "الأعمال المكررة: 2-3 أسابيع؛ والتصاميم الجديدة بأسطوانات أو ألواح 3-6 أسابيع؛ والمنتجات المتخصصة المستوردة 6-10 أسابيع. ويحتاج المحوّل المنتج، ومدة الصلاحية واحتياجات الحاجز، والشكل والأبعاد، وآلة التعبئة، وتصميم الطباعة وألوانها، والكمية لكل دفعة وسنوياً، واحتياجات الامتثال. ويذكر العرض بنية الرقائق وسماكتها، وقيم الحاجز، والشكل، وعملية الطباعة وألوانها، وتكلفة الأسطوانات أو الألواح، وأساس السعر للكيلوغرام أو لكل ألف كيس، والحد الأدنى للطلب، والتسليم، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -84,6 +114,14 @@
       ],
       "why": "No entry of this pack answered it (No entry gives stretch-film gauge/micron guidance; missing). flexible_packaging:stretch-film-thickness-for-pallets was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from flexible_packaging.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Which pouch laminate keeps out moisture and light for a powdered product?",
+      "q_ar": "وش نوع الرقائق للأكياس اللي تمنع الرطوبة والضوء عن منتج بودرة؟",
+      "expected_entry_ids": [
+        "flexible_packaging:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -102,6 +140,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "flexible_packaging:stretch-film-thickness-for-pallets"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "flexible_packaging:product-distinctions"
+      ],
+      "stored_not_served": [
+        "flexible_packaging:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Flexible_packaging"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

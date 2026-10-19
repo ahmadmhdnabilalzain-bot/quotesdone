@@ -76,7 +76,7 @@ for (const d of truth.docs) {
   let model_trades: string[] = [];
   const acts = (j?.ok ? (j.doc as { activities?: string[] }).activities : null) || [];
   if (via === 'gateway' && acts.length && !(c.activities || []).length) {
-    deps ??= await liveTradeDeps(createClient(URL_, SERVICE, { auth: { persistSession: false } }), 'document_intake_accuracy');
+    deps ??= await liveTradeDeps(createClient(URL_, SERVICE, { auth: { persistSession: false } }), 'document_intake_accuracy', { subject: SUBJECT, headers });
     deps.budget.left = 40;
     const ev = await readDocForTrades({ path: d.file, name: d.file, kind: 'licence', bytes, mime: d.mime, photo_text: modelReadText('licence', acts) }, deps);
     model_trades = [...new Set((ev.trades || []).map((t) => t.code))].sort();
@@ -87,25 +87,38 @@ for (const d of truth.docs) {
 // A PHOTO-ONLY COMPANY PROFILE (ruling 1177): the picture goes to license_extract's profile mode, exactly as
 // supplier_api.process_docs now sends it, and the services it reads are read for trades through photo_text.
 for (const d of truth.docs) {
-  if (via === 'none' || d.kind !== 'profile' || !d.file || !/^image\//.test(d.mime)) continue;
+  // A profile PDF with no text layer goes to the same mode as a file, as supplier_api.process_docs sends it (13 Oct 2026).
+  const noTextPdf = /pdf/i.test(d.mime) && code[d.id]?.trades?.status === 'needs_ocr';
+  if (via === 'none' || d.kind !== 'profile' || !d.file || !(/^image\//.test(d.mime) || noTextPdf)) continue;
   if (Deno.env.get('QD_ONLY') && !Deno.env.get('QD_ONLY')!.split(',').includes(d.id)) continue;
   const bytes = await Deno.readFile(`${dir}/${d.file}`);
   let b64 = ''; for (let i = 0; i < bytes.length; i += 0x8000) b64 += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   let jd: any = null;
   for (let attempt = 0; attempt < 2 && !jd?.ok; attempt++) {
+    // via=gateway: the request THIS checkout builds (licence_extract.profileExtractRequest), parsed as license_extract does.
+    if (via === 'gateway') {
+      const payload = noTextPdf ? { file_b64: btoa(b64), mime: d.mime, filename: d.file } : { images: [{ b64: btoa(b64), mime: d.mime }] };
+      const r = await fetch(`${URL_}/functions/v1/ai_gateway`, { method: 'POST', headers, signal: AbortSignal.timeout(150_000),
+        body: JSON.stringify({ __secret: SECRET, ...LX.profileExtractRequest(payload, SUBJECT) }) });
+      const g = await r.json().catch(() => null);
+      const p = r.ok && g?.ok !== false && !g?.truncated ? LX.parseJson(String(g?.content ?? '')) : null;
+      jd = p ? { ok: true, profile: { ...p, lines: Array.isArray(p.lines) ? p.lines.map((s: unknown) => String(s).trim().slice(0, 120)).filter(Boolean).slice(0, 30) : [] } } : { ok: false, error: String(g?.error || g?.detail || 'unreadable') };
+      continue;
+    }
     const r = await fetch(`${URL_}/functions/v1/license_extract`, { method: 'POST', headers, signal: AbortSignal.timeout(150_000),
-      body: JSON.stringify({ __secret: Deno.env.get('QD_SECRET_EXTRACT'), subject: SUBJECT, mode: 'profile', images: [{ b64: btoa(b64), mime: d.mime }] }) });
+      body: JSON.stringify({ __secret: Deno.env.get('QD_SECRET_EXTRACT'), subject: SUBJECT, mode: 'profile', ...(noTextPdf ? { file_b64: btoa(b64), mime: d.mime, filename: d.file } : { images: [{ b64: btoa(b64), mime: d.mime }] }) }) });
     jd = await r.json().catch(() => null);
   }
-  let model_trades: string[] = [];
-  const services: string[] = jd?.ok ? (jd.profile?.services || []) : [];
+  let model_trades: string[] = [], vision_held: string[] = [];
+  const services: string[] = jd?.ok ? (jd.profile?.lines || []) : [];
   if (services.length) {
-    deps ??= await liveTradeDeps(createClient(URL_, SERVICE, { auth: { persistSession: false } }), 'document_intake_accuracy');
+    deps ??= await liveTradeDeps(createClient(URL_, SERVICE, { auth: { persistSession: false } }), 'document_intake_accuracy', { subject: SUBJECT, headers });
     deps.budget.left = 40;
     const ev = await readDocForTrades({ path: d.file, name: d.file, kind: 'profile', bytes, mime: d.mime, photo_text: modelReadText('profile', services) }, deps);
-    model_trades = [...new Set((ev.trades || []).map((t) => t.code))].sort();
+    model_trades = [...new Set((ev.trades || []).map((t) => t.code))].sort();   // [] for a picture: its trades are held
+    vision_held = [...new Set((ev.vision_held || []).map((t) => t.code))].sort();
   }
-  out.push({ id: d.id, asked: true, ok: !!jd?.ok, profile: jd?.profile ?? null, error: jd?.ok ? null : String(jd?.error || 'no answer'), model_trades });
+  out.push({ id: d.id, asked: true, ok: !!jd?.ok, profile: jd?.profile ?? null, error: jd?.ok ? null : String(jd?.error || 'no answer'), model_trades, vision_held });
   console.log(`${d.id}: ${jd?.ok ? 'read ' + services.length + ' services' : 'not read'}`);
 }
 await Deno.writeTextFile(outPath, JSON.stringify({ via, run_tag: TAG, read_at: new Date().toISOString(), docs: out }, null, 1));

@@ -14,8 +14,10 @@ import { readFileSync } from 'node:fs';
 
 export const PROD_REF = 'htdblwldjkcgjvmqkbeh';
 
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+// No token (CI's checks job) must not make IMPORTING this module throw: closeOnExit and the SQL literals are used
+// without one (a_rehearsal_window_past_its_run_time_is_closed.test.mjs). A call without a token is refused by the API.
+const tokenFile = () => { try { return readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8'); } catch { return ''; } };
+const token = (process.env.SUPABASE_ACCESS_TOKEN || tokenFile()).trim();
 const H = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
 
 export class ProductionRefusal extends Error {

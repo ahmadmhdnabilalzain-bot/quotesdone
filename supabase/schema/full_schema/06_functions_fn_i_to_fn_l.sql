@@ -795,8 +795,10 @@ begin
     if p_now < public.fn_invite_placement_cutoff(v_day) then return 'wait'; end if;
     v := public.fn_invite_placement_settle(v_day, p_now);
   end if;
-  -- A measured placement lets the batch go, junk included (ledger 1001); only a failure to measure holds it.
-  if v not in ('inbox', 'spam', 'elsewhere') then return 'fail:' || v; end if;
+  -- Ledger 1113 (5 Oct 2026, 'make sure no emails go to junk or spam') supersedes 1001: a spam seed holds the batch
+  -- (settle has already filed the it_engineer finding and the marketing handoff); Gmail Promotions ('elsewhere') passes.
+  if v = 'spam' then return 'fail:spam'; end if;
+  if v not in ('inbox', 'elsewhere') then return 'fail:' || v; end if;
   if public.fn_invite_placement_sender() is distinct from r.from_address then return 'fail:from_changed'; end if;
   return 'pass';
 end
@@ -2394,21 +2396,24 @@ CREATE OR REPLACE FUNCTION public.fn_it_dependency_ingest(p_r jsonb)
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare e jsonb; v_items jsonb := '[]'::jsonb; v_res jsonb;
+declare e jsonb; v_items jsonb := '[]'::jsonb; v_res jsonb; v_hot boolean;
 begin
   if jsonb_typeof(p_r->'advisories') is distinct from 'array' then
     raise exception 'fn_it_dependency_ingest takes {advisories:[...]} from scripts/it/report_dependency_audit.mjs';
   end if;
   for e in select a from jsonb_array_elements(p_r->'advisories') a loop
+    v_hot := lower(e->>'severity') in ('high', 'critical') or coalesce((e->>'epss')::numeric, 0) >= 0.1;
     v_items := v_items || jsonb_build_object('item', (e->>'ecosystem') || ':' || (e->>'package') || ':' || coalesce(e->>'id', '?'),
-      'owner_seat', case when e->>'ecosystem' = 'app' then 'ceo' else coalesce(e->>'owner_seat', 'ceo') end,
+      'owner_seat', case when v_hot or e->>'ecosystem' = 'app' then 'ceo' else coalesce(e->>'owner_seat', 'ceo') end,
       'subject', coalesce(e->>'function', e->>'package'),
-      'title', upper(coalesce(e->>'severity', '?')) || ' advisory in ' || (e->>'package') || ': ' || left(coalesce(e->>'title', ''), 120),
-      'blast', case when lower(e->>'severity') in ('high', 'critical') then 'security' else 'internal' end,
-      'affected', case when lower(e->>'severity') in ('high', 'critical') then 1 else 0 end,
-      'evidence', e || jsonb_build_object('no_founder_email', lower(e->>'severity') not in ('high', 'critical')));
+      'title', upper(coalesce(e->>'severity', '?')) || ' advisory in ' || (e->>'package') || ': ' || left(coalesce(e->>'title', ''), 120)
+               || coalesce(' (EPSS ' || round((e->>'epss')::numeric, 3) || ')', ''),
+      'blast', case when v_hot then 'security' else 'internal' end,
+      'affected', case when v_hot then 1 else 0 end,
+      'evidence', e || jsonb_build_object('no_founder_email', true));   -- ruling 1254: never the founder, high/critical included
   end loop;
-  v_res := public.fn_it_duty_settle('dependency', v_items);
+  v_res := public.fn_it_duty_settle('dependency', v_items)
+           || jsonb_build_object('functions_not_deployed', p_r->'functions_not_deployed', 'deployed_list_read', p_r->'deployed_list_read');
   perform public.fn_it_duty_ran('dependency', v_res);
   return v_res;
 end $function$
@@ -4305,7 +4310,9 @@ CREATE OR REPLACE FUNCTION public.fn_it_duty_ran(p_duty text, p_result jsonb)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
-  values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'duty:' || p_duty, 'result', p_result), null)
+  values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'duty:' || p_duty, 'result', p_result), null);
+  -- the perimeter check's own last success, on its schedule row (IT-C13)
+  update public.it_duty_schedule set last_ok_at = now(), last_result = p_result where duty = p_duty;
 $function$
 
 
@@ -4375,6 +4382,37 @@ begin
   end loop;
   return jsonb_build_object('duty', p_duty, 'failing', coalesce(array_length(v_keys, 1), 0),
                             'closed', n_closed, 'configuration_already_recorded', n_held);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_advisory_triage()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_items jsonb := '[]'::jsonb; r record; v_at timestamptz;
+begin
+  -- the two weekly readings that need the repository are fresh, or their absence is the finding
+  for r in select k duty from unnest(array['dependency', 'workflow_audit']) k loop
+    select max(started_at) into v_at from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:' || r.duty;
+    if coalesce(v_at, 'epoch') < now() - interval '8 days' then
+      v_items := v_items || jsonb_build_object('item', 'stale:' || r.duty, 'subject', r.duty, 'owner_seat', 'it_engineer', 'blast', 'internal',
+        'title', 'The weekly ' || r.duty || ' reading has not reported since ' || coalesce(to_char(v_at, 'DD Mon'), 'it was built')
+                 || ' (it-weekly-readings.yml)', 'evidence', jsonb_build_object('last_run_at', v_at));
+    end if;
+  end loop;
+  -- provider advisories: an open Supabase security advisor outside the accepted baseline is about what is deployed
+  for r in select cache_key, name, level, title, metadata from public.security_advisor_baseline
+            where cleared_at is null and not in_baseline and level in ('WARN', 'ERROR') and last_seen_at > now() - interval '2 days' loop
+    v_items := v_items || jsonb_build_object('item', 'supabase:' || r.cache_key, 'subject', coalesce(r.metadata->>'name', r.name),
+      'owner_seat', 'it_engineer', 'blast', case when r.level = 'ERROR' then 'security' else 'internal' end,
+      'title', 'Supabase advisor ' || r.level || ' ' || r.name || ' on ' || coalesce(r.metadata->>'schema', '?') || '.' || coalesce(r.metadata->>'name', '?'),
+      'evidence', jsonb_build_object('advisor', r.name, 'level', r.level, 'metadata', r.metadata));
+  end loop;
+  return jsonb_build_object('settled', public.fn_it_duty_settle('advisory_triage', v_items),
+    'dependency_open', (select count(*) from public.it_engineer_finding where closed_at is null and issue_key like 'duty:dependency:%'),
+    'workflow_open', (select count(*) from public.it_engineer_finding where closed_at is null and issue_key like 'duty:workflow_audit:%'));
 end $function$
 
 
@@ -5078,6 +5116,81 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_finding_closure(p_duty text, p_days integer)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare f public.it_engineer_finding; c public.it_finding_closure; v_owner text; v_to text; v_id bigint;
+  n_new int := 0; n_reopened int := 0; n_closed int := 0; n_overdue int := 0;
+begin
+  if coalesce(btrim(p_duty), '') = '' or coalesce(p_days, 0) < 1 then
+    raise exception 'fn_it_engineer_finding_closure(duty, days): a duty and a deadline of at least one day are required';
+  end if;
+
+  -- every open finding of the duty: an owner, a deadline, and the latest reading the hourly duty took
+  for f in select * from public.it_engineer_finding
+            where closed_at is null and issue_key like 'duty:' || p_duty || ':%'
+              and not coalesce((evidence->>'demo')::boolean, false) loop
+    v_owner := coalesce(nullif(f.evidence->>'owner_seat', ''), 'it_engineer');
+    select * into c from public.it_finding_closure where issue_key = f.issue_key;
+    if not found then
+      insert into public.it_finding_closure (issue_key, duty, owner_seat, opened_at, deadline, reading_at_open, last_reading, last_measured_at)
+      values (f.issue_key, p_duty, v_owner, f.started_at, f.started_at + make_interval(days => p_days), f.evidence, f.evidence, f.last_seen_at);
+      n_new := n_new + 1;
+    elsif c.closed_at is not null then
+      -- a regression: the finding came back, so its closure opens again with a fresh deadline
+      update public.it_finding_closure set opened_at = f.started_at, deadline = greatest(now(), f.started_at) + make_interval(days => p_days),
+             reading_at_open = f.evidence, last_reading = f.evidence, last_measured_at = f.last_seen_at, owner_seat = v_owner,
+             closed_at = null, reading_at_close = null, reopen_count = reopen_count + 1, overdue_handoff_id = null
+       where issue_key = f.issue_key;
+      n_reopened := n_reopened + 1;
+    else
+      update public.it_finding_closure set last_reading = f.evidence, last_measured_at = f.last_seen_at, owner_seat = v_owner
+       where issue_key = f.issue_key;
+    end if;
+  end loop;
+
+  -- the duty closed it (the reading is back under its line): the closure closes with what it read
+  for c in select k.* from public.it_finding_closure k join public.it_engineer_finding fi using (issue_key)
+            where k.duty = p_duty and k.closed_at is null and fi.closed_at is not null loop
+    update public.it_finding_closure k set closed_at = fi.closed_at,
+           reading_at_close = jsonb_build_object('close_note', fi.close_note, 'last_breach_reading', k.last_reading,
+                                                 'days_open', round(extract(epoch from fi.closed_at - k.opened_at) / 86400, 1),
+                                                 'met_deadline', fi.closed_at <= k.deadline)
+      from public.it_engineer_finding fi where fi.issue_key = k.issue_key and k.issue_key = c.issue_key;
+    n_closed := n_closed + 1;
+  end loop;
+
+  -- past its deadline and still open: one overdue handoff to the owner (the CEO when IT itself owns it)
+  for c in select * from public.it_finding_closure
+            where duty = p_duty and closed_at is null and deadline < now() and overdue_handoff_id is null
+            order by deadline limit 20 loop
+    select * into f from public.it_engineer_finding where issue_key = c.issue_key;
+    v_to := case when c.owner_seat = 'it_engineer' then 'ceo' else c.owner_seat end;
+    v_id := public.fn_seat_handoff('it_engineer', v_to, 'it.finding', 'it_engineer_finding',
+      c.issue_key || '@' || floor(extract(epoch from c.opened_at))::bigint || '@overdue',
+      jsonb_build_object('issue_key', c.issue_key, 'occurrence_started_at', f.started_at, 'duty', p_duty,
+        'subject', f.evidence->>'subject', 'overdue', true, 'deadline', c.deadline, 'owner_seat', c.owner_seat,
+        'title', 'Past its ' || to_char(c.deadline at time zone 'Asia/Dubai', 'DD Mon') || ' deadline: ' || f.title,
+        'where_it_is', f.where_it_is, 'reading_at_open', c.reading_at_open, 'latest_reading', c.last_reading,
+        'done_when', case p_duty when 'latency_slo' then 'p95 is back under 2500 ms over 24 h (the hourly duty closes it)'
+                                 else 'the hourly reading is back under its line (the duty closes it)' end,
+        'never', case when p_duty in ('model_spend', 'cost_watch')
+                      then 'no OpenRouter cap, no hold, no model-route change: fix the caller; the idle internal ceiling is USD 1-2 a day' end));
+    update public.it_finding_closure set overdue_handoff_id = coalesce(v_id, -1) where issue_key = c.issue_key;
+    n_overdue := n_overdue + 1;
+  end loop;
+
+  return jsonb_build_object('duty', p_duty, 'deadline_days', p_days, 'new', n_new, 'reopened', n_reopened, 'closed', n_closed,
+    'overdue_handed', n_overdue,
+    'open', (select count(*) from public.it_finding_closure where duty = p_duty and closed_at is null),
+    'open_past_deadline', (select count(*) from public.it_finding_closure where duty = p_duty and closed_at is null and deadline < now()),
+    'closed_30d', (select count(*) from public.it_finding_closure where duty = p_duty and closed_at > now() - interval '30 days'));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_finding_upsert(p_issue_key text, p_title text, p_where text, p_blast text, p_affected integer DEFAULT 0, p_evidence jsonb DEFAULT '{}'::jsonb, p_ruled_out text[] DEFAULT '{}'::text[], p_undetermined text[] DEFAULT '{}'::text[], p_raised_by text DEFAULT 'it_engineer'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -5456,7 +5569,7 @@ begin
     insert into public.seat_knowledge_recall_answer (day, question_id, seat, lang, recall)
     select v_day, q.id, q.seat, q.lang,
            (select count(distinct regexp_replace(x->>'id', '@ar$', ''))
-              from jsonb_array_elements(public.fn_reason_retrieve_ml(q.seat, q.embedding_ml, case when q.lang = 'ar' then null else q.embedding end, 6)) with ordinality t(x, n)
+              from jsonb_array_elements(public.fn_reason_retrieve_ml(q.seat, q.embedding_ml, case when q.lang = 'ar' then null else q.embedding end, 6, p_audience => 'internal')) with ordinality t(x, n)
              where n <= 5 and regexp_replace(x->>'id', '@ar$', '') = any(q.expected))::numeric
            / (select count(distinct e) from unnest(q.expected) e)
     on conflict do nothing;
@@ -5515,49 +5628,210 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_knowledge_refresh()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare s text; i record; v_q date := date_trunc('quarter', (now() at time zone 'Asia/Dubai'))::date; v_items jsonb; v_held bigint;
-  v_opened int := 0; v_verified int := 0; v_overdue int := 0; f record; v_text text;
+declare s text; i record; k record; v_q date := date_trunc('quarter', (now() at time zone 'Asia/Dubai'))::date;
+  v_today date := (now() at time zone 'Asia/Dubai')::date; v_items jsonb; v_held bigint;
+  v_opened int := 0; v_verified int := 0; v_overdue int := 0; v_rechecked int := 0; f record; v_text text;
+  v_reasons text[]; v_checked int; v_stale int; v_filed int := 0; v_nosrc int; v_due int; v_old int; v_prior text;
+  v_sum jsonb; v_behind text[] := '{}'; v_st public.seat_knowledge_stale; v_title text; v_content text; v_today_start timestamptz; v_cap_ceo int; v_cap_other int;
+  c_cap_ceo constant int := 2;     -- measured: a ceo question mean USD 0.1196, max 0.2185 (THE DAILY CAP above)
+  c_cap_other constant int := 20;  -- measured: another seat's question mean USD 0.0125, max 0.0236
 begin
   foreach s in array array['customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing', 'ceo'] loop
     if not exists (select 1 from public.seat_knowledge_refresh where seat = s and quarter = v_q) then
       v_items := '[]'::jsonb;
-      for i in select k.item_key, k.title, k.content from public.fn_seat_knowledge_items(s) k
-                order by k.updated_at nulls first, k.item_key limit 5 loop
-        v_text := 'Quarterly knowledge refresh (' || to_char(v_q, 'YYYY "Q"Q') || '). Is this still correct and current in the '
-               || 'UAE today? Check the authoritative source and state precisely what has changed, if anything. Item: '
-               || coalesce(i.title, '') || E'\n' || left(i.content, 1500);
-        v_held := public.fn_reason_hold(s, s || '.knowledge_refresh', v_text,
-          jsonb_build_object('seat', s, 'surface', s || '.knowledge_refresh', 'question', v_text, 'research', true, 'stakes', 'high',
-            'context', jsonb_build_object('audience', 'internal'),
-            'subject', jsonb_build_object('item_key', i.item_key, 'quarter', v_q), 'dedupeKey', 'krefresh:' || v_q || ':' || i.item_key),
-          jsonb_build_object('filed_by', 'it_engineer.knowledge_refresh'), jsonb_build_object('item_key', i.item_key, 'quarter', v_q),
-          'seat_duty', 'krefresh:' || v_q || ':' || i.item_key);
-        v_items := v_items || jsonb_build_object('item_key', i.item_key, 'title', left(i.title, 200), 'held_id', v_held, 'done_at', null);
+      -- the quarter's five are CHOSEN here and FILED under THE DAILY CAP below (review of #1189: on day 1 they
+      -- were 30 extra questions, 5 of them the ceo's, outside the cap)
+      for i in select k2.item_key, k2.title from public.fn_seat_knowledge_items(s) k2
+                order by k2.updated_at nulls first, k2.item_key limit 5 loop
+        v_items := v_items || jsonb_build_object('item_key', i.item_key, 'title', left(i.title, 200), 'held_id', null, 'done_at', null);
       end loop;
       insert into public.seat_knowledge_refresh (seat, quarter, items) values (s, v_q, v_items);
       v_opened := v_opened + 1;
     end if;
+
+    -- THE FULL RE-CHECK: every entry of the seat, once per quarter, against its source and its dates.
+    if exists (select 1 from public.seat_knowledge_refresh where seat = s and quarter = v_q and recheck is null) then
+      v_checked := 0; v_stale := 0; v_nosrc := 0; v_due := 0; v_old := 0;
+      for k in select * from public.fn_seat_knowledge_items(s) x where coalesce(x.validation_status, '') <> 'quarantined' loop
+        v_checked := v_checked + 1;
+        v_reasons := array_remove(array[
+          case when not k.has_source then 'no_source' end,
+          case when k.review_due < v_today or k.validation_status = 'stale' then 'review_overdue' end,
+          case when k.updated_at is null or k.updated_at < (v_q - interval '3 months') then 'source_old' end], null);
+        continue when cardinality(v_reasons) = 0;
+        v_stale := v_stale + 1;
+        v_nosrc := v_nosrc + (('no_source' = any(v_reasons))::int);
+        v_due := v_due + (('review_overdue' = any(v_reasons))::int);
+        v_old := v_old + (('source_old' = any(v_reasons))::int);
+
+        -- THE STALE STATUS: the ledger row for every pack; the agent_knowledge row itself so the prompt tag shows.
+        v_prior := k.validation_status;
+        if k.item_key like 'agent_knowledge:%' then
+          update public.agent_knowledge set validation_status = 'stale'
+           where id = split_part(k.item_key, ':', 2)::bigint and coalesce(validation_status, '') not in ('stale', 'quarantined');
+        end if;
+        insert into public.seat_knowledge_stale (quarter, item_key, seat, reasons, prior_status)
+        values (v_q, k.item_key, s, v_reasons, v_prior) on conflict (quarter, item_key) do nothing;
+
+        -- one of the quarter's five already has its research question: the stale row points at it, filed now.
+        -- Every other stale entry waits for THE DAILY CAP below.
+        update public.seat_knowledge_stale st set held_id = (x->>'held_id')::bigint, filed_at = now()
+          from public.seat_knowledge_refresh r, jsonb_array_elements(r.items) x
+         where r.seat = s and r.quarter = v_q and x->>'item_key' = k.item_key and (x->>'held_id') is not null
+           and st.quarter = v_q and st.item_key = k.item_key and st.held_id is null;
+      end loop;
+      update public.seat_knowledge_refresh
+         set recheck = jsonb_build_object('checked', v_checked, 'stale', v_stale, 'no_source', v_nosrc, 'review_overdue', v_due,
+                                          'source_old', v_old, 'filed', 0, 'at', now())
+       where seat = s and quarter = v_q;
+      v_rechecked := v_rechecked + 1;
+    end if;
   end loop;
 
-  -- VERIFY: a quarter is refreshed when every item it filed was reasoned (the apply stamps done_at).
+  -- THE CEO SUMMARY AND THE OWNERS' NOTICES: once, when the whole quarter is re-checked (fn_seat_handoff dedupes
+  -- on its subject, so a later run sends nothing twice).
+  if v_rechecked > 0 and not exists (select 1 from public.seat_knowledge_refresh where quarter = v_q and recheck is null) then
+    select jsonb_object_agg(r.seat, r.recheck - 'filed' - 'at'), sum((r.recheck->>'stale')::int)
+      into v_sum, v_stale from public.seat_knowledge_refresh r where r.quarter = v_q;
+    perform public.fn_seat_handoff('it_engineer', 'ceo', 'it.finding', 'seat_knowledge_stale', 'knowledge_recheck:' || v_q,
+      jsonb_build_object('duty', 'knowledge_recheck', 'issue_key', 'knowledge_recheck:' || v_q, 'subject', 'every seat''s knowledge',
+        'quarter', v_q, 'per_seat', v_sum, 'stale', v_stale, 'daily_cap', jsonb_build_object('ceo', c_cap_ceo, 'other', c_cap_other),
+        'title', 'Quarterly knowledge re-check ' || to_char(v_q, 'YYYY "Q"Q') || ': ' || v_stale || ' stale entries across the seats; '
+                 || 'each is re-researched in its own seat''s queue a daily batch at a time, and holding the seats to it is yours'));
+    for f in select r.seat, r.recheck from public.seat_knowledge_refresh r
+              where r.quarter = v_q and r.seat <> 'it_engineer' and (r.recheck->>'stale')::int > 0 loop
+      perform public.fn_seat_handoff('it_engineer', f.seat, 'it.finding', 'seat_knowledge_stale', 'knowledge_recheck:' || v_q || ':' || f.seat,
+        jsonb_build_object('duty', 'knowledge_recheck', 'issue_key', 'knowledge_recheck:' || v_q || ':' || f.seat, 'subject', f.seat || ' knowledge',
+          'quarter', v_q, 'recheck', f.recheck - 'at',
+          'title', 'Quarterly knowledge re-check ' || to_char(v_q, 'YYYY "Q"Q') || ': ' || (f.recheck->>'stale') || ' of your '
+                   || (f.recheck->>'checked') || ' entries are stale; their re-research questions arrive in your queue a daily batch at a time'));
+    end loop;
+  end if;
+
+  -- THE DAILY CAP: EVERY question this duty files counts, the quarter's five included. Today's count is read from
+  -- the queue itself (every krefresh:/krecheck: question created since Dubai midnight), so no day exceeds 2 + 20.
+  v_today_start := v_today::timestamp at time zone 'Asia/Dubai';
+  select c_cap_ceo - count(*) filter (where h.seat = 'ceo'), c_cap_other - count(*) filter (where h.seat <> 'ceo')
+    into v_cap_ceo, v_cap_other
+    from public.reasoning_held_question h
+   where h.created_at >= v_today_start and (h.dedupe_key like 'krefresh:%' or h.dedupe_key like 'krecheck:%');
+  -- first the quarter's five (any quarter still open), ceo and others each within their own cap
+  for i in select r.seat, r.quarter, x->>'item_key' item_key, o from public.seat_knowledge_refresh r,
+                  jsonb_array_elements(r.items) with ordinality t(x, o)
+            where r.verified_at is null and (x->>'held_id') is null and (x->>'done_at') is null
+            order by r.quarter, r.seat, o loop
+    exit when v_cap_ceo <= 0 and v_cap_other <= 0;
+    continue when (i.seat = 'ceo' and v_cap_ceo <= 0) or (i.seat <> 'ceo' and v_cap_other <= 0);
+    select k2.title, k2.content into v_title, v_content from public.fn_seat_knowledge_items(i.seat) k2 where k2.item_key = i.item_key;
+    v_text := 'Quarterly knowledge refresh (' || to_char(i.quarter, 'YYYY "Q"Q') || '). Is this still correct and current in the '
+           || 'UAE today? Check the authoritative source and state precisely what has changed, if anything. Item: '
+           || coalesce(v_title, i.item_key) || E'\n' || left(coalesce(v_content, ''), 1500);
+    v_held := public.fn_reason_hold(i.seat, i.seat || '.knowledge_refresh', v_text,
+      jsonb_build_object('seat', i.seat, 'surface', i.seat || '.knowledge_refresh', 'question', v_text, 'research', true, 'stakes', 'high',
+        'context', jsonb_build_object('audience', 'internal'),
+        'subject', jsonb_build_object('item_key', i.item_key, 'quarter', i.quarter), 'dedupeKey', 'krefresh:' || i.quarter || ':' || i.item_key),
+      jsonb_build_object('filed_by', 'it_engineer.knowledge_refresh'), jsonb_build_object('item_key', i.item_key, 'quarter', i.quarter),
+      'seat_duty', 'krefresh:' || i.quarter || ':' || i.item_key);
+    update public.seat_knowledge_refresh r
+       set items = jsonb_set(r.items, array[(i.o - 1)::text, 'held_id'], to_jsonb(v_held))
+     where r.seat = i.seat and r.quarter = i.quarter;
+    -- a stale entry that is one of the five shares this question
+    update public.seat_knowledge_stale set held_id = v_held, filed_at = now()
+     where quarter = i.quarter and item_key = i.item_key and held_id is null;
+    if i.seat = 'ceo' then v_cap_ceo := v_cap_ceo - 1; else v_cap_other := v_cap_other - 1; end if;
+    v_filed := v_filed + 1;
+  end loop;
+  -- then this quarter's stale entries that are not among the five
+  for v_st in select * from public.seat_knowledge_stale x
+             where x.quarter = v_q and x.held_id is null
+               and not exists (select 1 from public.seat_knowledge_refresh r, jsonb_array_elements(r.items) y
+                                where r.seat = x.seat and r.quarter = x.quarter and y->>'item_key' = x.item_key)
+             order by x.flagged_at, ('no_source' <> all(x.reasons)), ('review_overdue' <> all(x.reasons)), x.item_key loop
+    exit when v_cap_ceo <= 0 and v_cap_other <= 0;
+    continue when (v_st.seat = 'ceo' and v_cap_ceo <= 0) or (v_st.seat <> 'ceo' and v_cap_other <= 0);
+    select k2.title, k2.content into v_title, v_content from public.fn_seat_knowledge_items(v_st.seat) k2 where k2.item_key = v_st.item_key;
+    v_text := 'Quarterly knowledge re-check (' || to_char(v_q, 'YYYY "Q"Q') || ') found this entry stale ('
+           || array_to_string(v_st.reasons, ', ') || '). Find its authoritative source, confirm it is correct and current '
+           || 'in the UAE today, and state precisely what has changed, if anything, citing the source. Item: '
+           || coalesce(v_title, v_st.item_key) || E'\n' || left(coalesce(v_content, ''), 1500);
+    v_held := public.fn_reason_hold(v_st.seat, v_st.seat || '.knowledge_refresh', v_text,
+      jsonb_build_object('seat', v_st.seat, 'surface', v_st.seat || '.knowledge_refresh', 'question', v_text, 'research', true, 'stakes', 'high',
+        'context', jsonb_build_object('audience', 'internal'),
+        'subject', jsonb_build_object('item_key', v_st.item_key, 'quarter', v_q, 'recheck', true), 'dedupeKey', 'krecheck:' || v_q || ':' || v_st.item_key),
+      jsonb_build_object('filed_by', 'it_engineer.knowledge_refresh'), jsonb_build_object('item_key', v_st.item_key, 'quarter', v_q, 'recheck', true),
+      'seat_duty', 'krecheck:' || v_q || ':' || v_st.item_key);
+    update public.seat_knowledge_stale set held_id = v_held, filed_at = now() where quarter = v_q and item_key = v_st.item_key;
+    if v_st.seat = 'ceo' then v_cap_ceo := v_cap_ceo - 1; else v_cap_other := v_cap_other - 1; end if;
+    v_filed := v_filed + 1;
+  end loop;
+  update public.seat_knowledge_refresh r
+     set recheck = r.recheck || jsonb_build_object(
+           'filed', (select count(*) from public.seat_knowledge_stale st3 where st3.seat = r.seat and st3.quarter = r.quarter and st3.held_id is not null),
+           'unfiled', (select count(*) from public.seat_knowledge_stale st3 where st3.seat = r.seat and st3.quarter = r.quarter and st3.held_id is null))
+   where r.quarter = v_q and r.recheck is not null;
+
+  -- VERIFY: a quarter is refreshed when every item it filed was reasoned (the apply stamps done_at) AND every
+  -- stale entry its re-check found was re-researched (the apply stamps resolved_at). A quarter that closed before
+  -- the re-check existed (recheck null, quarter past) is judged on its five alone.
   update public.seat_knowledge_refresh r set verified_at = now()
-   where verified_at is null and jsonb_array_length(items) > 0
-     and not exists (select 1 from jsonb_array_elements(r.items) x where x->>'done_at' is null);
+   where verified_at is null and jsonb_array_length(items) > 0 and (recheck is not null or quarter < v_q)
+     and not exists (select 1 from jsonb_array_elements(r.items) x where x->>'done_at' is null)
+     and not exists (select 1 from public.seat_knowledge_stale st where st.seat = r.seat and st.quarter = r.quarter and st.resolved_at is null);
   get diagnostics v_verified = row_count;
-  for f in select * from public.seat_knowledge_refresh where verified_at is null and opened_at < now() - interval '45 days' loop
+  -- a verified seat-quarter closes its owner's notice; the ceo summary closes when every seat of its quarter verified
+  for f in select a.id, a.evidence, a.target_id from public.agent_actions a
+            where a.kind = 'handoff' and a.target_id like 'it.finding:knowledge_recheck:%' and a.status not in ('done', 'failed') loop
+    continue when exists (select 1 from public.seat_knowledge_refresh r
+                           where r.verified_at is null
+                             and (f.target_id = 'it.finding:knowledge_recheck:' || r.quarter
+                                  or f.target_id = 'it.finding:knowledge_recheck:' || r.quarter || ':' || r.seat));
+    perform public.fn_seat_handoff_complete(f.id, (coalesce(f.evidence, '{}'::jsonb) - 'waiting')
+      || jsonb_build_object('verified_by', 'it_engineer', 'verified_at', now()));
+  end loop;
+  -- BEHIND PACE, NOT MERELY LONG (review of #1189): a capped backlog (the ceo's ~210 at 2 a day) runs past 45 days
+  -- by design. A seat-quarter is a finding when its CLASS (ceo, or the other seats sharing 20) has re-researched
+  -- fewer questions than the cap could have delivered since the quarter opened, allowing the same 45 days for a
+  -- question to be reasoned once filed: due = least(total, cap x (days open - 45)). A small quarter (the five plus
+  -- a few) is due in full on day 46, exactly as before.
+  for f in with per_seat as (
+             select r.seat, r.quarter, r.opened_at, r.verified_at, r.items, r.recheck, (r.seat = 'ceo') is_ceo,
+                    jsonb_array_length(r.items)
+                      + (select count(*) from public.seat_knowledge_stale x where x.seat = r.seat and x.quarter = r.quarter
+                            and not exists (select 1 from jsonb_array_elements(r.items) y where y->>'item_key' = x.item_key)) total,
+                    (select count(*) from jsonb_array_elements(r.items) y where y->>'done_at' is not null)
+                      + (select count(*) from public.seat_knowledge_stale x where x.seat = r.seat and x.quarter = r.quarter and x.resolved_at is not null
+                            and not exists (select 1 from jsonb_array_elements(r.items) y where y->>'item_key' = x.item_key)) done
+               from public.seat_knowledge_refresh r),
+           per_class as (
+             select quarter, is_ceo, sum(total)::int total, sum(done)::int done,
+                    least(sum(total), (case when is_ceo then c_cap_ceo else c_cap_other end)
+                          * greatest(0, extract(day from now() - min(opened_at))::int - 45))::int due
+               from per_seat group by quarter, is_ceo)
+           select p.*, c.total class_total, c.done class_done, c.due class_due
+             from per_seat p join per_class c using (quarter, is_ceo)
+            where p.verified_at is null and c.done < c.due loop
     v_overdue := v_overdue + 1;
+    v_behind := v_behind || ('knowledge_refresh:' || f.seat || ':' || f.quarter);
     perform public.fn_it_engineer_finding_upsert('knowledge_refresh:' || f.seat || ':' || f.quarter,
-      'The ' || f.seat || ' seat''s knowledge refresh for ' || to_char(f.quarter, 'YYYY "Q"Q') || ' is not complete after 45 days',
-      'public.seat_knowledge_refresh', 'agent_facing',
-      (select count(*)::int from jsonb_array_elements(f.items) x where x->>'done_at' is null),
-      jsonb_build_object('seat', f.seat, 'quarter', f.quarter, 'owner_seat', f.seat), '{}'::text[],
+      'The ' || f.seat || ' seat''s knowledge refresh for ' || to_char(f.quarter, 'YYYY "Q"Q') || ' is behind its daily pace: '
+        || f.class_done || ' of ' || f.class_due || ' due re-researched',
+      'public.seat_knowledge_refresh / public.seat_knowledge_stale', 'agent_facing',
+      (select count(*)::int from jsonb_array_elements(f.items) x where x->>'done_at' is null)
+        + (select count(*)::int from public.seat_knowledge_stale st where st.seat = f.seat and st.quarter = f.quarter and st.resolved_at is null),
+      jsonb_build_object('seat', f.seat, 'quarter', f.quarter, 'owner_seat', f.seat, 'recheck', f.recheck,
+                         'class', case when f.is_ceo then 'ceo' else 'other' end, 'class_total', f.class_total,
+                         'class_done', f.class_done, 'class_due', f.class_due), '{}'::text[],
       array['whether the model hold or a failing research step keeps the questions held'], 'it_engineer');
   end loop;
-  update public.it_engineer_finding fi set closed_at = now(), close_note = 'the quarter''s refresh completed'
-   where fi.issue_key like 'knowledge_refresh:%' and fi.closed_at is null
-     and exists (select 1 from public.seat_knowledge_refresh r
-                  where 'knowledge_refresh:' || r.seat || ':' || r.quarter = fi.issue_key and r.verified_at is not null);
-  return jsonb_build_object('quarter', v_q, 'opened', v_opened, 'verified', v_verified, 'overdue', v_overdue);
+  update public.it_engineer_finding fi
+     set closed_at = now(),
+         close_note = case when exists (select 1 from public.seat_knowledge_refresh r
+                                         where 'knowledge_refresh:' || r.seat || ':' || r.quarter = fi.issue_key and r.verified_at is not null)
+                           then 'the quarter''s refresh completed' else 'the quarter''s refresh is back on its daily pace' end
+   where fi.issue_key like 'knowledge_refresh:%' and fi.closed_at is null and not (fi.issue_key = any(v_behind))
+     and exists (select 1 from public.seat_knowledge_refresh r where 'knowledge_refresh:' || r.seat || ':' || r.quarter = fi.issue_key);
+  return jsonb_build_object('quarter', v_q, 'opened', v_opened, 'rechecked', v_rechecked, 'filed_today', v_filed,
+                            'verified', v_verified, 'overdue', v_overdue);
 end $function$
 
 
@@ -5567,7 +5841,7 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_knowledge_refreshed(p_id bigint
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r public.reasoning_held_question; v_n int;
+declare r public.reasoning_held_question; v_n int; v_s int;
 begin
   select * into r from public.reasoning_held_question where id = p_id;
   if (r.subject->>'quarter') is null then
@@ -5575,13 +5849,24 @@ begin
     return jsonb_build_object('applied', true, 'refiled_exam', r.subject->>'exam_id', 'sources', jsonb_array_length(coalesce(p_result->'sources', '[]'::jsonb)));
   end if;
   update public.seat_knowledge_refresh k
-     set items = (select jsonb_agg(case when x->>'item_key' = r.subject->>'item_key' and x->>'done_at' is null
+     set items = (select coalesce(jsonb_agg(case when x->>'item_key' = r.subject->>'item_key' and x->>'done_at' is null
                                         then x || jsonb_build_object('done_at', now(), 'sources', jsonb_array_length(coalesce(p_result->'sources', '[]'::jsonb)))
-                                        else x end order by o)
+                                        else x end order by o), '[]'::jsonb)
                     from jsonb_array_elements(k.items) with ordinality t(x, o))
-   where k.seat = r.seat and k.quarter = (r.subject->>'quarter')::date;
+   where k.seat = r.seat and k.quarter = (r.subject->>'quarter')::date
+     and exists (select 1 from jsonb_array_elements(k.items) x where x->>'item_key' = r.subject->>'item_key' and x->>'done_at' is null);
   get diagnostics v_n = row_count;
-  return jsonb_build_object('applied', v_n > 0, 'item_key', r.subject->>'item_key');
+  with s as (
+    update public.seat_knowledge_stale set resolved_at = now()
+     where quarter = (r.subject->>'quarter')::date and item_key = r.subject->>'item_key' and resolved_at is null
+    returning item_key, prior_status)
+  -- re-researched: the agent_knowledge entry leaves 'stale' for the status it had (its candidate is reviewed as usual)
+  update public.agent_knowledge a set validation_status = coalesce(s.prior_status, 'unvalidated')
+    from s where s.item_key like 'agent_knowledge:%' and a.id = split_part(s.item_key, ':', 2)::bigint
+     and a.validation_status = 'stale';
+  v_s := (select count(*) from public.seat_knowledge_stale
+           where quarter = (r.subject->>'quarter')::date and item_key = r.subject->>'item_key' and resolved_at is not null);
+  return jsonb_build_object('applied', v_n > 0 or v_s > 0, 'item_stamped', v_n > 0, 'item_key', r.subject->>'item_key', 'stale_resolved', v_s > 0);
 end $function$
 
 
@@ -5597,6 +5882,16 @@ begin
    || setweight(to_tsvector('english'::regconfig, coalesce(new.content,'')), 'C');
   return new;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_latency_closure()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_it_engineer_finding_closure('latency_slo', 7)
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_latency_slo()
@@ -5702,6 +5997,76 @@ begin
   end if;
   return jsonb_build_object('renewal_asks', v_asks - 'sample', 'expired_matchable_before', v_before,
                             'paused', v_fix, 'expired_matchable_after', v_after);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_load_test()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_run timestamptz := now(); v_budget numeric := coalesce((select value::numeric from public.it_threshold where key = 'slow_query_mean_ms'), 500);
+  v_inq uuid[]; v_quo uuid[]; j text; n int; i int; t0 timestamptz; t1 timestamptz; v_ms numeric[]; v_total numeric; v_p95 numeric;
+  v_broke boolean; v_items jsonb := '[]'::jsonb; v_out jsonb := '[]'::jsonb; v_x int; v_deadline timestamptz;
+  v_inquiry public.inquiries; v_quote public.quotes; v_err text;
+begin
+  -- ZZ DEMO ONLY: no real customer's or supplier's row is ever read by the test
+  select array_agg(id order by id) into v_inq from public.inquiries where public.fn_inquiry_is_demo(id) and coalesce(cardinality(trades), 0) > 0;
+  select array_agg(id order by id) into v_quo from public.quotes where public.fn_quote_is_demo(id);
+  if v_inq is null or v_quo is null then
+    v_items := v_items || jsonb_build_object('item', 'no_demo_fixture', 'subject', 'load_test', 'owner_seat', 'it_engineer', 'config', true,
+      'title', 'The load test has no ZZ DEMO inquiry with trades or no ZZ DEMO quote to run on', 'evidence', jsonb_build_object('inquiries', cardinality(v_inq), 'quotes', cardinality(v_quo)));
+    return jsonb_build_object('ran', false, 'settled', public.fn_it_duty_settle('load_test', v_items));
+  end if;
+
+  foreach j in array array['inquiry_match', 'quote_check', 'comparison'] loop
+    v_broke := false;
+    v_deadline := clock_timestamp() + interval '5 seconds';   -- each journey gets 5 s, so the duty ends inside ~16 s
+    foreach n in array array[10, 40, 160, 640] loop
+      exit when v_broke or clock_timestamp() > v_deadline;
+      v_ms := '{}'; v_err := null;
+      t0 := clock_timestamp();
+      begin
+        for i in 1..n loop
+          t1 := clock_timestamp();
+          if j = 'inquiry_match' then
+            select * into v_inquiry from public.inquiries where id = v_inq[1 + (i % cardinality(v_inq))];
+            select count(*) into v_x from public.fn_match_capability(v_inquiry.trades, 'executes', '{}', '{}', null, null, v_inquiry.emirate, 12);
+          elsif j = 'quote_check' then
+            select * into v_quote from public.quotes where id = v_quo[1 + (i % cardinality(v_quo))];
+            perform public.fn_quote_quality_flags(v_quote), public.fn_quote_spec_mismatches(v_quote.id::text);
+          else
+            perform public.fn_quote_structured_score(v_quo[1 + (i % cardinality(v_quo))]::text);
+          end if;
+          v_ms := v_ms || round(extract(epoch from clock_timestamp() - t1) * 1000, 2);
+          exit when clock_timestamp() > v_deadline;
+        end loop;
+        -- whatever the paths wrote is rolled back with this sub-transaction; the timings live in variables
+        raise exception using errcode = 'QDLT0', message = 'load test step rolled back';
+      exception when sqlstate 'QDLT0' then null;
+        when others then v_err := sqlerrm;   -- a path that fails under load is the breakpoint, not a crashed duty
+      end;
+      v_total := round(extract(epoch from clock_timestamp() - t0) * 1000, 1);
+      select percentile_cont(0.95) within group (order by m) into v_p95 from unnest(v_ms) m;
+      v_broke := v_err is not null or coalesce(v_p95 > v_budget, true);
+      insert into public.it_load_test_run (run_at, journey, step_ops, total_ms, ops_per_sec, p95_ms, max_ms, within_budget, breakpoint, detail)
+      values (v_run, j, cardinality(v_ms), v_total, round(cardinality(v_ms) / greatest(v_total / 1000, 0.001), 1), round(v_p95, 2),
+              (select max(m) from unnest(v_ms) m), not v_broke, v_broke,
+              jsonb_build_object('budget_ms', v_budget, 'requested_ops', n, 'demo_inquiries', cardinality(v_inq), 'demo_quotes', cardinality(v_quo), 'error', v_err));
+      v_out := v_out || jsonb_build_object('journey', j, 'ops', cardinality(v_ms), 'total_ms', v_total, 'p95_ms', round(v_p95, 2), 'breakpoint', v_broke);
+      if v_broke then
+        v_items := v_items || jsonb_build_object('item', j, 'subject', j, 'owner_seat', 'it_engineer', 'blast', 'internal',
+          'title', 'Load test: the ' || j || ' database path broke its ' || v_budget || ' ms per-operation budget at ' || n
+                   || ' operations (p95 ' || round(v_p95) || ' ms) on ZZ DEMO data',
+          'evidence', jsonb_build_object('run_at', v_run, 'step_ops', n, 'p95_ms', round(v_p95, 2), 'budget_ms', v_budget));
+      end if;
+    end loop;
+  end loop;
+  return jsonb_build_object('ran', true, 'run_at', v_run, 'budget_ms', v_budget, 'steps', v_out,
+    'ceiling_ops_per_sec', (select jsonb_object_agg(journey, m) from (select journey, max(ops_per_sec) m from public.it_load_test_run
+                              where run_at = v_run and within_budget group by 1) x),
+    'settled', public.fn_it_duty_settle('load_test', v_items));
 end $function$
 
 
@@ -5824,6 +6189,38 @@ begin
   end if;
 
   return jsonb_build_object('settled', public.fn_it_duty_settle('model_spend', v_items));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_model_spend_closure()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('model_spend', public.fn_it_engineer_finding_closure('model_spend', 3),
+                            'cost_watch', public.fn_it_engineer_finding_closure('cost_watch', 7))
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_perimeter_freshness()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare s record; v_items jsonb := '[]'::jsonb;
+begin
+  for s in select * from public.it_duty_schedule
+            where coalesce(last_ok_at, 'epoch') < now() - (every * 2 + interval '1 hour') order by duty loop
+    v_items := v_items || jsonb_build_object('item', s.duty, 'subject', s.duty, 'owner_seat', s.owner_seat, 'blast', 'internal',
+      'title', 'Perimeter check ' || s.duty || ' has not succeeded since '
+               || coalesce(to_char(s.last_ok_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI'), 'any recorded run')
+               || ' (it runs every ' || s.every || ')',
+      'evidence', jsonb_build_object('every', s.every, 'last_ok_at', s.last_ok_at, 'note', s.note));
+  end loop;
+  return jsonb_build_object('checks', (select count(*) from public.it_duty_schedule), 'stale', jsonb_array_length(v_items),
+                            'settled', public.fn_it_duty_settle('perimeter_freshness', v_items));
 end $function$
 
 
@@ -6476,8 +6873,8 @@ AS $function$
         -- fn_originators_reverify_handoffs escalates them to the CEO at the window first. Per-type
         -- rules belong in seat_handoff_kind if one of them ever needs a different allowance.
         when h.replied and h.t <> 'it.finding' and not h.held and now() > h.due + h.w + interval '24 hours' then 'unclosed'
-        -- 23 Sep 2026: answered, the problem is still there, and a day has gone by.
-        when h.replied and h.t = 'it.finding' and not h.cleared and now() > h.created_at + interval '24 hours' then 'open_over_24h'
+        -- 19 Oct 2026: an answered it.finding whose problem is still there is the open queue itself
+        -- (fn_it_loop_reverify escalates it); repeating it here as an SLA item was a duplicate.
       end state
       from h)
   select coalesce(jsonb_agg(jsonb_build_object(
@@ -6487,9 +6884,8 @@ AS $function$
            'subject', 'agent_actions',
            'title', g.n || ' ' || g.t || ' handoff(s) to ' || g.agent
                     || case g.state when 'unanswered' then ' have had no reply'
-                                    when 'open_over_24h' then ' were answered more than 24 hours ago and the problem is still open'
                        else ' were answered but never closed by the seat that sent them' end
-                    || case when g.state = 'open_over_24h' then '' else ' past the ' || g.w || ' window' end
+                    || ' past the ' || g.w || ' window'
                     || '; the oldest is #' || g.oldest_id || ' from '
                     || to_char(g.oldest_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai',
            'blast', 'agent_facing', 'affected', g.n,
@@ -6974,7 +7370,18 @@ begin
              completion_note = 'IT engineer re-verified: ' || coalesce(f.close_note, 'the finding is no longer open') || ' (handoff ' || h.id || ').'
        where idempotency_key = 'it_loop:' || h.id and status = 'accepted';
       n_closed := n_closed + 1;
-    elsif not (h.detail ? 'escalated_report_id') and now() > h.created_at + v_window then
+    -- 19 Oct 2026: an info finding (affected 0, title 'info:...') is a note, not a fault. Once its handoff is
+    -- answered the note has been read: the finding and the handoff close here, so nothing stays open unwatched.
+    elsif coalesce(f.affected, 1) = 0 and coalesce(f.title, '') ilike 'info:%' and h.detail ? 'replied_at' then
+      perform public.fn_it_engineer_finding_close(f.issue_key, 'info finding: the owning seat answered handoff ' || h.id);
+      perform set_config('qd.handoff_closer', 'it_engineer', true);
+      perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
+        'verified_by', 'it_engineer', 'verified_at', now(), 'verdict', 'info finding answered and closed'));
+      perform set_config('qd.handoff_closer', '', true);
+      n_closed := n_closed + 1;
+    -- An unanswered info finding waits for its reply; it never escalates.
+    elsif not (h.detail ? 'escalated_report_id') and now() > h.created_at + v_window
+          and not (coalesce(f.affected, 1) = 0 and coalesce(f.title, '') ilike 'info:%') then
       v_rep := public.fn_support_report_to_ceo(
         'it_loop:' || h.id,
         case when h.detail->>'severity' = 'critical' then 'critical' else 'serious' end,
@@ -8436,6 +8843,28 @@ begin
   v_out := jsonb_build_object('settled', public.fn_it_duty_settle('whatsapp_delivery', v_items), 'rates', v_rates);
   perform public.fn_it_duty_ran('whatsapp_delivery', v_out);
   return v_out;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_workflow_audit_ingest(p_r jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare e jsonb; v_items jsonb := '[]'::jsonb; v_res jsonb;
+begin
+  if jsonb_typeof(p_r->'violations') is distinct from 'array' or coalesce((p_r->>'files')::int, 0) < 1 then
+    raise exception 'fn_it_workflow_audit_ingest takes {files:n, violations:[...]} from scripts/it/workflow_audit.mjs';
+  end if;
+  for e in select v from jsonb_array_elements(p_r->'violations') v loop
+    v_items := v_items || jsonb_build_object('item', (e->>'file') || ':' || (e->>'rule'), 'subject', e->>'file',
+      'owner_seat', 'it_engineer', 'blast', case when e->>'rule' in ('secret_in_log', 'write_all') then 'security' else 'internal' end,
+      'title', (e->>'file') || ': ' || (e->>'message'), 'evidence', e);
+  end loop;
+  v_res := public.fn_it_duty_settle('workflow_audit', v_items) || jsonb_build_object('files', p_r->'files');
+  perform public.fn_it_duty_ran('workflow_audit', v_res);
+  return v_res;
 end $function$
 
 
@@ -10341,6 +10770,22 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_leads_verification_status_follows_verified()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  -- Only the two values verified decides. 'pending', 'held', 'rejected' or any other status a writer sets is
+  -- left alone when verified is false: a held or unreadable licence stays held (release review of #1486).
+  new.verification_status := case
+    when new.verified is true then 'verified'
+    when new.verification_status is null or new.verification_status = 'verified' then 'unverified'
+    else new.verification_status end;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_lesson_clusters(p_limit integer DEFAULT 6, p_floor real DEFAULT 0.84)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -10412,6 +10857,213 @@ begin
   update public.reasoning_knowledge_candidate set embedding_gte = p_embedding where id = p_id and embedding_gte is null;
   update public.agent_knowledge set embedding_gte = p_embedding, updated_at = now() where source_ref = 'lesson:' || p_id and embedding_gte is null;
   return true;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_lesson_reapproval_decided(p_knowledge_id bigint)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case when k.validation_status <> 'quarantined' then 'approved'
+              when k.valid_until is not null then 'rejected' end
+    from public.agent_knowledge k where k.id = p_knowledge_id
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_lesson_reapproval_lapse_escalates()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_k bigint; v_open bigint; v_gen int;
+begin
+  begin
+    v_k := nullif(new.subject->>'knowledge_id', '')::bigint;
+    if v_k is null or public.fn_lesson_reapproval_decided(v_k) is not null then return null; end if;
+    perform pg_advisory_xact_lock(hashtext('lesson_reapproval_overdue:' || v_k));
+    select id into v_open from public.agent_actions
+     where kind = 'handoff' and agent = 'ceo' and detail->>'type' = 'ceo.lesson_reapproval_overdue'
+       and detail->>'knowledge_id' = v_k::text and status not in ('done', 'failed')
+     order by id limit 1;
+    if v_open is not null then
+      update public.agent_actions set detail = detail || jsonb_build_object('held_id', new.id, 'lapsed_as', new.status) where id = v_open;
+      perform public.fn_seat_handoff_act(v_open);
+      return null;
+    end if;
+    select count(*) + 1 into v_gen from public.agent_actions
+     where kind = 'handoff' and detail->>'type' = 'ceo.lesson_reapproval_overdue' and detail->>'knowledge_id' = v_k::text;
+    perform public.fn_seat_handoff('it_engineer', 'ceo', 'ceo.lesson_reapproval_overdue', 'agent_knowledge', v_k || ':g' || v_gen,
+      jsonb_build_object('held_id', new.id, 'lapsed_as', new.status, 'question', left(new.question, 1500),
+                         'knowledge_id', v_k::text, 'supersedes_id', new.subject->>'supersedes_id', 'reasks', 0,
+                         'waiting_for', 'the CEO seat to approve or reject the cleaned lesson; until then it is withheld'));
+  exception when others then
+    begin
+      perform public.fn_it_engineer_finding_upsert(
+        'monitor:lesson_reapproval_escalation_failed:' || coalesce(new.subject->>'knowledge_id', new.id::text),
+        'A lapsed lesson re-approval could not be escalated to the CEO',
+        'public.fn_lesson_reapproval_lapse_escalates (held question ' || new.id || ')', 'agent_facing', 1,
+        jsonb_build_object('held_id', new.id, 'status', new.status, 'knowledge_id', new.subject->>'knowledge_id',
+                           'error', left(sqlerrm, 500), 'owner_seat', 'it_engineer'),
+        '{}'::text[], array['why the handoff could not be opened or acted on'], 'fn_lesson_reapproval_lapse_escalates');
+    end;
+  end;
+  return null;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_lesson_reapproval_overdue_act(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; q public.reasoning_held_question; v_again bigint; v_dec text; v_reasks int; v_cap constant int := 3;
+begin
+  select * into a from public.agent_actions where id = p_id;
+  v_dec := public.fn_lesson_reapproval_decided(nullif(a.detail->>'knowledge_id', '')::bigint);
+  if v_dec is not null then
+    return jsonb_build_object('decided', v_dec, 'knowledge_id', a.detail->>'knowledge_id', 'held_id', a.detail->>'held_id');
+  end if;
+  select * into q from public.reasoning_held_question where id = nullif(a.detail->>'held_id', '')::bigint;
+  v_reasks := coalesce((a.detail->>'reasks')::int, 0);
+  if q.id is not null and q.status <> 'held' and v_reasks < v_cap then
+    -- an expired or failed row stays closed by design (R3): the question is filed afresh; a question that failed in the
+    -- last 7 days comes back as that failed row (the 3-try limit holds across re-filings) and is not counted as asked
+    v_again := public.fn_reason_hold(q.seat, q.surface, q.question, q.request, '{}'::jsonb, q.subject, 'overdue_reasked',
+                                     split_part(q.dedupe_key, ':reask:', 1) || ':reask:' || (v_reasks + 1));
+    if v_again is not null and v_again <> q.id then
+      v_reasks := v_reasks + 1;
+      update public.agent_actions set detail = detail || jsonb_build_object('held_id', v_again, 'reasked_from', q.id, 'reasks', v_reasks)
+       where id = p_id;
+      select * into q from public.reasoning_held_question where id = v_again;
+    end if;
+  end if;
+  return jsonb_build_object('waiting', 'the CEO seat to approve or reject lesson version #' || (a.detail->>'knowledge_id')
+                              || ' (held question ' || coalesce(q.id::text, '?') || ', ' || coalesce(q.status, 'gone') || ', re-asked '
+                              || v_reasks || ' of ' || v_cap
+                              || case when v_reasks >= v_cap then '; the cap is reached: the CEO must decide it directly' else '' end || ')',
+                            'held_id', q.id, 'held_status', q.status, 'reasks', v_reasks, 'cap_reached', v_reasks >= v_cap,
+                            'apply_error', q.result->>'apply_error');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_lesson_scrub(p_text text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE PARALLEL SAFE
+ SET search_path TO 'pg_catalog', 'pg_temp'
+AS $function$
+  select btrim(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(
+         regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(regexp_replace(
+           translate(coalesce(p_text, ''), '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹٬٫', '01234567890123456789,.'),
+           -- identifiers: a UUID
+           '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}', 'a record', 'g'),
+           -- identifiers: a QD- reference
+           '\mQD-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*', 'a reference', 'gi'),
+           -- identifiers: an rfq number, after or before the word, joined or not
+           '\mrfq(?:_?no)?[\s#:=_-]*\d+', 'rfq', 'gi'),
+           '\m\d+[\s#-]*rfq\M', 'rfq', 'gi'),
+           -- identifiers: a number following a record noun ("cases 384 and 387", "Case #368, #369"); the noun stays
+           '\m(cases?|inquir(?:y|ies)|quotes?|quotations?|tickets?|findings?|lessons?|judgements?|handoffs?)(\s*(?:no\.?|number)?\s*[#:]?\s*\d+(?:\s*(?:,|and|&|/)\s*#?\s*\d+)*)\M', '\1', 'gi'),
+           '(حالة|الحالة|طلب|الطلب|عرض|العرض|رقم)\s*[#:]?\s*\d+(?:\s*(?:،|,|و)\s*\d+)*', '\1', 'g'),
+           -- identifiers: a bare "#361"
+           '#\s?\d+', '', 'g'),
+           -- amounts: currency before the number
+           '(?:\m(?:aed|dhs?|usd|dirhams?)|\$|دراهم|درهم|د\.إ\.?)\s?\d[\d,]*(?:\.\d+)?(?:\s?(?:k|m|thousand|million)\M|\s?(?:ألف|مليون))?', 'an amount', 'gi'),
+           -- amounts: currency after the number
+           '\m\d[\d,]*(?:\.\d+)?(?:\s?(?:k|m|thousand|million)\M|\s?(?:ألف|مليون))?\s?(?:(?:aed|dhs?|dirhams?|usd)\M|دراهم|درهم|د\.إ\.?)', 'an amount', 'gi'),
+           -- contacts: an e-mail address
+           '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}', 'a contact', 'g'),
+           -- contacts: a phone number (a date such as 2026-10-18 or a count is not one)
+           '(?:\+|\m00)\d[\d\s-]{7,}\d|\m0[2-9]\d?[\s-]?\d{3}[\s-]?\d{4}\M', 'a contact', 'g'),
+           '[ \t]+([,.;:)])', '\1', 'g'),
+           '[ \t]{2,}', ' ', 'g'))
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_lesson_scrub_backfill()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare g record; k record; v_new bigint; v_req jsonb; v_dup int := 0; v_clean int := 0; v_versioned int := 0; v_cases int := 0;
+  v_opts jsonb := jsonb_build_array(
+  jsonb_build_object('id', 'approve', 'meaning', 'the cleaned lesson is still correct, general know-how: make it live'),
+  jsonb_build_object('id', 'reject', 'meaning', 'the lesson is wrong, or meaningless without the removed identifiers: keep it out'));
+begin
+  -- 1. candidates, grouped by their scrubbed text: one kept per group, the rest rejected as its duplicate
+  for g in
+    with s as (select r.id, r.finding, r.finding_sha, left(public.fn_lesson_scrub(r.finding), 4000) as clean from public.reasoning_knowledge_candidate r),
+         t as (select s.*, md5(lower(btrim(s.clean))) as clean_sha from s),
+         grp as (select t.clean_sha, count(*) as n, bool_or(t.finding <> t.clean) as dirty from t group by t.clean_sha)
+    select t.id, t.finding, t.clean, t.clean_sha,
+           first_value(t.id) over (partition by t.clean_sha order by (t.finding_sha = t.clean_sha) desc, t.id) as keeper
+      from t join grp using (clean_sha) where grp.dirty or grp.n > 1
+  loop
+    if g.id <> g.keeper then
+      update public.reasoning_knowledge_candidate set status = 'rejected', reviewed_at = now(),
+             reviewed_by = 'rule:lesson_scrub_duplicate_of:' || g.keeper where id = g.id;
+      update public.seat_lesson_cluster set candidate_id = g.keeper where candidate_id = g.id;
+      update public.agent_knowledge set validation_status = 'quarantined', valid_until = current_date, updated_at = now(),
+             supporting_evidence = coalesce(supporting_evidence, '') || '; retired 18 Oct 2026: its candidate is a duplicate of lesson#' || g.keeper
+       where source_ref = 'lesson:' || g.id and validation_status <> 'quarantined';
+      v_dup := v_dup + 1;
+    end if;
+  end loop;
+  for g in
+    select r.id, left(public.fn_lesson_scrub(r.finding), 4000) as clean from public.reasoning_knowledge_candidate r
+     where r.finding <> public.fn_lesson_scrub(r.finding)
+       and coalesce(r.reviewed_by, '') not like 'rule:lesson_scrub_duplicate_of:%'   -- a duplicate keeps its text: its clean text is its keeper's
+  loop
+    update public.reasoning_knowledge_candidate set finding = g.clean, embedding_gte = null where id = g.id;
+    v_clean := v_clean + 1;
+  end loop;
+
+  -- 2. an approved lesson whose text changes: original retired as history, version + 1 quarantined, CEO asked
+  for k in
+    select a.* from public.agent_knowledge a
+     where a.source_ref like 'lesson:%' and a.validation_status <> 'quarantined' and a.content <> public.fn_lesson_scrub(a.content)
+  loop
+    insert into public.agent_knowledge (agent_key, topic, content, priority, layer, source_ref, owner_agent, version, confidence,
+                                        validation_status, review_due, supersedes_id, supporting_evidence)
+    values (k.agent_key, k.topic, left(public.fn_lesson_scrub(k.content), 4000), k.priority, k.layer, k.source_ref, k.owner_agent,
+            coalesce(k.version, 1) + 1, k.confidence, 'quarantined', k.review_due, k.id,
+            coalesce(k.supporting_evidence, '') || '; v' || (coalesce(k.version, 1) + 1)
+              || ' 18 Oct 2026: case ids/amounts removed (fn_lesson_scrub), awaiting CEO re-approval')
+    returning id into v_new;
+    update public.agent_knowledge set validation_status = 'quarantined', valid_until = current_date, updated_at = now(),
+           supporting_evidence = coalesce(supporting_evidence, '') || '; retired 18 Oct 2026: carried case ids/amounts; superseded by #' || v_new
+     where id = k.id;
+    update public.reasoning_knowledge_candidate set status = 'pending_review', reviewed_by = null, reviewed_at = null
+     where id = nullif(substring(k.source_ref from '^lesson:(\d+)$'), '')::bigint and status = 'approved';
+    v_req := jsonb_build_object('seat', 'ceo', 'surface', 'ceo.lesson_reapproval',
+      'question', 'A ' || k.agent_key || ' lesson was approved, then found to carry case ids or amounts. They were removed. '
+                  || 'Is the cleaned lesson still correct, general know-how that should be live? Lesson: ' || left(public.fn_lesson_scrub(k.content), 3000),
+      'context', jsonb_build_object('audience', 'internal'),
+      'decision', jsonb_build_object('name', 'reapproval', 'options', v_opts),
+      'subject', jsonb_build_object('knowledge_id', v_new, 'supersedes_id', k.id,
+                                    'candidate_id', nullif(substring(k.source_ref from '^lesson:(\d+)$'), '')::bigint),
+      'dedupeKey', 'lesson_reapproval:' || v_new);
+    -- the lesson is withheld only while the CEO is asked: no question filed, no backfill (review of #1443)
+    if public.fn_reason_hold('ceo', 'ceo.lesson_reapproval', v_req->>'question', v_req, '{}'::jsonb, v_req->'subject',
+                             'sql_caller', v_req->>'dedupeKey') is null then
+      raise exception 'lesson % v%: the CEO re-approval question was not filed (fn_reason_hold returned no id); nothing is withheld unasked',
+        k.id, coalesce(k.version, 1) + 1;
+    end if;
+    v_versioned := v_versioned + 1;
+  end loop;
+
+  -- 3. case notes: scrubbed in place
+  update public.seat_case_memory m
+     set lessons = array(select public.fn_lesson_scrub(x) from unnest(m.lessons) with ordinality u(x, n) order by n), updated_at = now()
+   where cardinality(m.lessons) > 0
+     and m.lessons <> array(select public.fn_lesson_scrub(x) from unnest(m.lessons) with ordinality u(x, n) order by n);
+  get diagnostics v_cases = row_count;
+  return jsonb_build_object('duplicates_rejected', v_dup, 'candidates_cleaned', v_clean, 'lessons_sent_for_reapproval', v_versioned, 'case_rows_cleaned', v_cases);
 end $function$
 
 

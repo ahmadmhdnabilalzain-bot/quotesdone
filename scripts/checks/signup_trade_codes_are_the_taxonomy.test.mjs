@@ -21,9 +21,10 @@ const keysOf = (name) => {
 
 // 42 -> 195 on 23 Sep 2026 (founder instructions 895/899/900, the_missing_trades_join_the_taxonomy_under_twelve_groups.sql).
 // 195 -> 213 on 24 Sep 2026 (the trades a buyer names that were only a service under a neighbour).
-test('TRADE_EN and TRADE_AR carry the same 213 taxonomy_trade codes', () => {
+// 213 -> 223 on 19 Oct 2026 (ten_uae_trades_the_taxonomy_still_missed_join_it.sql).
+test('TRADE_EN and TRADE_AR carry the same 223 taxonomy_trade codes', () => {
   const en = keysOf('TRADE_EN'); const ar = keysOf('TRADE_AR');
-  assert.equal(en.length, 213, 'TRADE_EN should mirror the 213 active taxonomy_trade codes');
+  assert.equal(en.length, 223, 'TRADE_EN should mirror the 223 active taxonomy_trade codes');
   assert.deepEqual([...en].sort(), [...ar].sort());
 });
 

@@ -45,6 +45,9 @@ Deno.test('only customer_support delivers, and every seat that asks hears back',
     // or its revision stalled, the CEO is owed a final decision as ceo.decision_owed; it asks for that decision and
     // delivers nothing.
     if (h.type === 'ceo.decision_owed' && h.to === 'ceo') continue;
+    // — and a fifth (legal finding 1, #1512): an objection to an automated decision that support did not resolve goes
+    // to the CEO as support.decision_objection; it asks for the CEO's reply and delivers nothing.
+    if (h.type === 'support.decision_objection' && h.to === 'ceo') continue;
     assertEquals(h.type, 'delivery.result');
   }
   for (const h of HANDOFF_TYPES.filter((x) => x.type === 'delivery.request')) {

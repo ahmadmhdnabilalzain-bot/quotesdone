@@ -30,9 +30,12 @@ import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { ackThenWork, detach } from '../_shared/async_webhook.ts';
 import { sendWhatsApp } from '../_shared/wa_send.ts';
-import { defaultDeps } from '../_shared/think.ts';
+import { defaultDeps, type Phase } from '../_shared/think.ts';
+/** The wall clock one classification call may take before it counts as unreasoned (see classifyDeps). */
+const CLASSIFY_MS = 20_000;
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
-import { queueWhatsAppMeaning, whatsappMeaning, type WaMeaningInput } from '../_shared/reasoned_channels.ts';
+import { fileReviewRequest } from '../_shared/review_request.ts';
+import { queueWhatsAppMeaning, whatsappReadings, type WaMeaningInput } from '../_shared/reasoned_channels.ts';
 import { menuMeaning } from '../_shared/reasoned_menus.ts';
 import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
@@ -43,13 +46,14 @@ import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from '../_shared/twilio_inbound_signature.ts';
 import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, menuTurn, type Turn } from './menu_flow.ts';
 import type { Figures } from './founder_queries.ts';
-import { type Audience, humanAlert, type Lang, menuItems } from './menu.ts';
+import { isStop } from '../_shared/marketing_send_gate.ts';
+import { type Audience, humanAlert, type Lang, MENU_IDS, menuItems } from './menu.ts';
 import type { Trade } from './coverage.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 import { waRow } from './wa_row.ts';
-import { holdUnwritten, modelSays } from './model_says.ts';
+import { budgetLeft, holdUnwritten, modelSays } from './model_says.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
 // THE QUESTION IS UNDERSTOOD, NOT ONLY MATCHED (instruction 763). Measured 22 Sep 2026: wa_inbound
@@ -525,6 +529,22 @@ async function handleInbound(req: Request): Promise<Response> {
       if (arrErr) await logRun('error', { arrival_saved: 0 }, 'wa_inbound could not store an authenticated message on arrival: ' + arrErr.message + '. The turn continues and writes its row at the end, as before.');
       else { arrivalId = (arr as { id: number }).id; MessageSidSeen = MessageSid; }
     }
+    // ---- "STOP" IS AN OPT-OUT, HONOURED AT ONCE (marketing, 19 Oct 2026, ruling 1184) ----
+    // The supplier invitation template tells the recipient to reply STOP. Every lead on this number is set to
+    // whatsapp_opt='none' and any invitation still queued to it is cancelled; nothing is replied (UAE PDPL / TDRA:
+    // an objection ends the messaging, it does not start a conversation).
+    if (isStop(Body)) {
+      const { data: opt, error: optErr } = await admin.rpc('fn_wa_supplier_invite_opt_out', { p_from: From });
+      // Only a number that is a lead's ends here; anyone else (the founder's command channel, a customer) goes on to
+      // the normal turn, so a STOP that is not an opt-out is never swallowed.
+      const hit = !optErr && (Number(opt?.leads_opted_out) > 0 || Number(opt?.invitations_cancelled) > 0);
+      if (optErr) await logRun('error', { opt_out: 0 }, 'STOP received but the opt-out failed: ' + optErr.message + '; the message continues as a normal turn.');
+      if (hit) {
+        await logRun('ok', { opt_out: 1 }, 'STOP honoured: ' + JSON.stringify(opt));
+        return TW(200);
+      }
+    }
+
 
     // ---- THE WORDS OF EVERY CONVERSATION REPLY (rulings 1195/1196/1197, 12 Oct 2026) ----------------------------
     // Code decides what happened; the model writes what is said, in this turn (model_says.ts). '' = no model
@@ -535,6 +555,7 @@ async function handleInbound(req: Request): Promise<Response> {
     let modelEscalate = false;
     const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en') => {
       const r = await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
+        budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
         rateKey: 'wa:' + From,   // the per-number ceiling (20/hour) the old prompt path had
         subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From } });
       modelEscalate = modelEscalate || r.escalate;
@@ -647,31 +668,55 @@ async function handleInbound(req: Request): Promise<Response> {
     // guessed, and only if nothing else answers the message is it filed for replay (menu_flow.ts unanswered).
     // The reason it was not answered (the hold, a failed reasoning, or a throw) rides with it, so the queue files
     // the question WITHOUT reasoning again: one think() per message, never a second model call.
+    // A CLASSIFICATION HAS 20 S (CLASSIFY_MS), NOT THE REPLY'S 45 (customer_support, 19 Oct 2026). Measured on production
+    // (run 53bbd42e): a Luna Pro classification is 9-16 s, and one call in ten ran 41-47 s, which left the reply no time
+    // and sent the held notice. A classification that runs out is unreasoned (null), exactly like the hold: nothing is
+    // guessed, the reply is still written from the facts, and needs-a-person goes to the CEO seat for visibility.
+    const classifyDeps = () => { const d = defaultDeps(admin, 'wa_inbound');
+      return { ...d, llm: (p: Phase, s: string, i: string, o: Parameters<typeof d.llm>[3]) => d.llm(p, s, i, { ...o, timeoutMs: Math.min(o.timeoutMs ?? CLASSIFY_MS, CLASSIFY_MS) }) }; };
     let meaningP: Promise<string | null> | null = null; let meaningWhy = 'not_asked';
     const meaningIn = async (): Promise<WaMeaningInput> => {
       const { data: rows } = await admin.from('wa_reply_intent').select('intent_key,label').eq('active', true).order('sort').order('intent_key');
       return { message: Body, intents: (rows || []) as WaMeaningInput['intents'], trades: await menuDeps.trades(), phone: From,
                messageSid: MessageSid || null, audience: (['customer', 'supplier', 'founder'].includes(audience) ? audience : 'unknown') as WaMeaningInput['audience'] };
     };
+    // Both languages' titles, so a typed Arabic title is recognised as surely as an English one.
+    // Paired by option id, never by position, so the two languages cannot drift onto each other's option.
+    const menuOffer = () => menuItems('en', audience === 'supplier' ? 'supplier' : 'unknown').map((i) => {
+      const ar = menuItems('ar', audience === 'supplier' ? 'supplier' : 'unknown').find((x) => x.id === i.id);
+      return { id: i.id, title: i.item + (ar ? ' / ' + ar.item : ''), description: i.description + (ar ? ' / ' + ar.description : '') };
+    });
+    // THE THREE READINGS OF A TYPED MESSAGE ARE ONE MODEL CALL (whatsappReadings, customer_support 19 Oct 2026): what it
+    // asks, whether it needs a person, what it means to the menu. Memoised; each consumer below reads its own part.
+    type Readings = { intent: string | null; needsPerson: boolean | null; menu: string | null; why: string };
+    let readingsP: Promise<Readings> | null = null;
+    const readings = () => (readingsP ??= (async (): Promise<Readings> => {
+      const r = await whatsappReadings(classifyDeps(), { ...(await meaningIn()), menu: menuOffer() });
+      return { intent: r.intent, needsPerson: r.needsPerson, menu: r.menu, why: r.result.reason ?? r.result.status };
+    })().catch((e) => ({ intent: null, needsPerson: null, menu: null, why: 'threw: ' + String((e as Error)?.message || e).slice(0, 200) })));
     const menuDeps: MenuDeps = {
-      intent: (_text: string) => (meaningP ??= (async () => {
-        if (!Body.trim()) return null;
-        const r = await whatsappMeaning(defaultDeps(admin, 'wa_inbound'), await meaningIn());
-        meaningWhy = r.result.reason ?? r.result.status;
-        return r.value;
-      })().catch((e) => { meaningWhy = 'threw: ' + String((e as Error)?.message || e).slice(0, 200); return null; })),
+      intent: (_text: string) => (meaningP ??= Body.trim() ? readings().then((r) => { meaningWhy = r.why; return r.intent; }) : Promise.resolve(null)),
       queueIntent: async (_text: string) => {
         try { await queueWhatsAppMeaning(defaultDeps(admin, 'wa_inbound'), await meaningIn(), meaningWhy); }
         catch (e) { await itFinding('wa_inbound:meaning_not_queued', 'A held WhatsApp question could not be filed for replay', { error: String((e as Error)?.message || e) }); }
       },
-      meaning: async (text: string, awaitingProblem: boolean, offerMenu: boolean) =>
-        (await menuMeaning(defaultDeps(admin, 'wa_inbound'), { text, awaitingProblem, messageSid: MessageSid || undefined,
+      meaning: async (text: string, awaitingProblem: boolean, offerMenu: boolean) => {
+        // This message: its menu reading came with the others. The menu items and the problem option count only when
+        // the turn offers them; otherwise the message is 'other', exactly as if they had not been offered.
+        if (text.trim() && text.trim() === Body.trim()) {
+          const m = (await readings()).menu;
+          if (m === 'problem' && !awaitingProblem) return 'other';
+          if (m && (MENU_IDS as readonly string[]).includes(m) && !offerMenu) return 'other';
+          return m as Awaited<ReturnType<MenuDeps['meaning']>>;
+        }
+        return (await menuMeaning(classifyDeps(), { text, awaitingProblem, messageSid: MessageSid || undefined,
           // Both languages' titles, so a typed Arabic title is recognised as surely as an English one.
           // Paired by option id, never by position, so the two languages cannot drift onto each other's option.
           menu: offerMenu ? menuItems('en', audience === 'supplier' ? 'supplier' : 'unknown').map((i) => {
             const ar = menuItems('ar', audience === 'supplier' ? 'supplier' : 'unknown').find((x) => x.id === i.id);
             return { id: i.id, title: i.item + (ar ? ' / ' + ar.item : ''), description: i.description + (ar ? ' / ' + ar.description : '') };
-          }) : undefined })).value,
+          }) : undefined })).value;
+      },
       autoreplyEnabled: async () => (await sec('wa_autoreply_enabled')) === 'true',
       recentTurns: async (from: string): Promise<Turn[]> => {
         const { data } = await admin.from('wa_messages').select('meta,lang,created_at').eq('wa_from', from)
@@ -792,6 +837,19 @@ async function handleInbound(req: Request): Promise<Response> {
                      hasMedia: media.length > 0 };
     // Only a menu choice, the problem text after "Report a problem", or an explicit hello/MENU is taken
     // here. A substantive message goes to its own handler first; welcomeFirstContact runs after them.
+    // THE CLASSIFICATIONS START TOGETHER, NOT ONE AFTER ANOTHER (customer_support, 19 Oct 2026). Measured on production
+    // (ai_cost_log, 18 Oct, four ZZ DEMO turns): what-it-asks, menu meaning and needs-a-person ran in series, 54-108 s
+    // before the reply call. They read only the message, so a typed question starts both here; each is memoised and
+    // awaited where it was before. A menu tap, a button and a document never reach them, so nothing starts for those.
+    const typedQuestion = !!Body.trim() && media.length === 0 && !ListId && !ButtonPayload;
+    let needsP: Promise<boolean | null> | null = null;
+    const needsPersonP = () => (needsP ??= readings().then((r) => r.needsPerson !== null ? r.needsPerson : needsAPerson(classifyDeps(), {
+      seat: 'customer_support', surface: 'wa_inbound.needs_a_person', message: Body.slice(0, 4000),
+      audience: audience === 'supplier' ? 'supplier' : 'customer',
+      dedupeKey: 'wa:' + (MessageSid || From + ':' + Body.slice(0, 40)), subject: { phone: From, message_sid: MessageSid || null },
+    }).then((x) => x.value, () => null /* unreasoned is not "no": the route records it as held */)));
+    // Held or failed, the person check falls back to its own think(): under the hold that files it for replay (no model).
+    if (typedQuestion) readings();
     const m = await menuTurn(menuDeps, menuIn);
     if (m.handled) {
       await logRun('ok', { audience, route: m.route, cost_aed: 0 }, 'answered from the WhatsApp menu: ' + m.route);
@@ -1133,14 +1191,13 @@ async function handleInbound(req: Request): Promise<Response> {
     // the hold the answer is null, the message waits in customer_support's queue, and nobody is escalated
     // on a guess (_shared/reasoned_decisions.ts).
     let needsPerson: boolean | null = null;
-    if (Body.trim()) {
-      try {
-        needsPerson = (await needsAPerson(defaultDeps(admin, 'wa_inbound'), {
-          seat: 'customer_support', surface: 'wa_inbound.needs_a_person', message: Body.slice(0, 4000),
-          audience: audience === 'supplier' ? 'supplier' : 'customer',
-          dedupeKey: 'wa:' + (MessageSid || From + ':' + Body.slice(0, 40)), subject: { phone: From, message_sid: MessageSid || null },
-        })).value;
-      } catch (_e) { needsPerson = null; /* unreasoned is not "no": the route records it as held */ }
+    if (Body.trim()) needsPerson = await needsPersonP();
+    // A person asked to review an automated decision (ledger 1152): it is filed with the seat that owns that decision
+    // (review_route), decided by another model family. Only asked when the reasoning above already said a person.
+    if (needsPerson === true) {
+      await fileReviewRequest(admin, defaultDeps(admin, 'wa_inbound'), { channel: 'whatsapp', requester: From, message: Body,
+        surface: 'wa_inbound.review_of_decision', dedupeKey: MessageSid || From + ':' + Body.slice(0, 40),
+        audience: audience === 'supplier' ? 'supplier' : 'customer', subjectTable: 'wa_conversation', subjectId: From });
     }
     // Held is not "no". Until the reasoning runs, the CEO seat SEES the message (visibility, no page), so a
     // complaint is never silently parked; the replay then gives the contact on WhatsApp if a person is needed.
@@ -1207,11 +1264,13 @@ async function handleInbound(req: Request): Promise<Response> {
     // not break. Appending them here is what stops the model filling a gap from memory.
     let brainPack = '';
     if (route?.fact_pack) {
-      brainPack = '\n\nFACT PACK (the ONLY source for any fact about this company, this person, '
-        + 'their jobs, their quotes or any price -- if it is not here, say you will check and pass '
-        + 'it to the team, and never fill the gap from memory):\n'
-        + JSON.stringify(route.fact_pack) + '\n'
-        + (route.model_brief ? ('\nSTANDING BRIEF:\n' + String(route.model_brief) + '\n') : '');
+      // fn_wa_model_brief (route.model_brief, the old STANDING BRIEF) is NOT sent any more (customer_support, 19 Oct 2026).
+      // It predates the reply rules in _shared/ai_reply.ts and contradicts them: its "ABSOLUTE RULE ON SUBJECT" made the
+      // model answer "how long does installation usually take?" with fn_wa_off_topic_reply's "QuotesDone inquiries only"
+      // sentence (runs 0f48ea10 and c95eb7da, EN and AR), and it said "say you will check", which the answer standard forbids.
+      brainPack = '\n\nFACT PACK (the ONLY source for any fact about this person, their own jobs and quotes, and any '
+        + 'QuotesDone fee; a trade, material, timing or specification question is answered from your own expertise):\n'
+        + JSON.stringify(route.fact_pack) + '\n';
     }
 
     // THE COMPANY BLOCK — customer_support's half of the founder's 9 Sep 2026 ruling: "the company
@@ -1272,7 +1331,9 @@ async function handleInbound(req: Request): Promise<Response> {
     try { const { error: wErr } = await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, held_notice: heldNotice, model_written: !heldNotice, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
 
 
-    if (enabled && !sent) {
+    // A captured fixture send (isDemoPhone: never handed to Twilio) is not a failed delivery: the QA channels run of 19 Oct
+    // 2026 filed support_ceo_report 13811/13812/13887/13890 'A WhatsApp reply could not be delivered' for ZZ DEMO numbers.
+    if (enabled && !sent && !isDemoPhone(From)) {
       // A FAILED SEND IS THE CEO'S, not the founder's. It was a founder_alerts row and an email
       // to him; under constitution 1.2 neither agent sends him unsolicited operational alerts.
       try {

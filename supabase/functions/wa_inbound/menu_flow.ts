@@ -218,6 +218,10 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
   //     or model can answer it with a count.
   //     Whether it IS a size question is reasoned (think(), 23 Sep 2026), never matched; a menu choice is not
   //     reasoned at all. Held, it is not guessed: the message goes on, and is answered on replay if unanswered.
+  // The menu meaning starts beside the size question, not after it (19 Oct 2026: two serial reasonings, ~30 s).
+  const offerMenu = lastWasMenu && inp.audience !== 'founder';
+  // A failed menu reading is unreasoned (null), as under the hold: never a thrown turn (review of #1499).
+  const meaningP = !choice && body ? d.meaning(body, awaiting === 'problem', offerMenu).catch(() => null) : Promise.resolve(null);
   if (!choice && (await d.intent(body)) === 'size') {
     await talk(d, inp, lang, 'capability_answer', 'They asked about our size or volumes. Never give any count or figure about suppliers, customers, requests, quotes or revenue. Say instead, professionally: ' + capabilityAnswer(lang), null, { audience: inp.audience, size_question: true });
     return { handled: true, route: 'capability_answer' };
@@ -226,8 +230,7 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
   // What the message MEANS to the menu is reasoned, once (menuMeaning); null while held — never a word list.
   // The menu's options are offered to the reasoning ONLY right after we showed the menu (a typed title answers it),
   // never mid-conversation or for the founder: a reading must not page a person or skip a case on its own.
-  const offerMenu = lastWasMenu && inp.audience !== 'founder';
-  const meaning = !choice && body ? await d.meaning(body, awaiting === 'problem', offerMenu) : null;
+  const meaning = await meaningP;
   // A typed option (its title, or plainly asking for it) is REASONED to that option (decision point wa_inbound.menu_choice).
   const picked: MenuId | null = choice ?? (offerMenu && (MENU_IDS as readonly string[]).includes(String(meaning)) ? meaning as MenuId : null);
 

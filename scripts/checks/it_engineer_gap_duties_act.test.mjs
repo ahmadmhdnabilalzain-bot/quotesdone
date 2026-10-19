@@ -114,6 +114,14 @@ do $$ declare o jsonb := '{}'; v jsonb; qid uuid; hid bigint; inc public.it_inci
     'm_think_unlisted', (select count(*) from public.it_engineer_finding where issue_key = 'duty:model_spend:unlisted:sales_engineer:agent_reasoning' and closed_at is null),
     'm_inventory', (select calls_30d from public.fn_it_model_consumer_inventory() where consumer = 'zz_demo_fn:zz_loop'));
 
+  -- postmortem: drain production's own backlog first. The duty asks at most three faults a run, OLDEST first, so on
+  -- 13 Oct a burst of 10 real unclassified incidents left 7 waiting and both probe runs below spent their cap on those:
+  -- the fixtures were asked 0 times (0 !== 4) with the routine working as designed. Inside this aborted transaction
+  -- the drain files nothing that survives; afterwards the four fixtures are the only faults left to ask about.
+  for i in 1..60 loop
+    v := public.fn_it_engineer_postmortem();
+    exit when (v->>'asked')::int = 0 and (v->>'opened')::int = 0;
+  end loop;
   -- postmortem: a high-severity fault of a known class, closed after the duty went live
   -- a handoff names its case and what it needs (trg_handoff_carries_its_note refuses one that does not), so the fixture does too
   insert into public.agent_actions (agent, kind, status, target_id, title, detail, decided_at, evidence)
@@ -124,7 +132,7 @@ do $$ declare o jsonb := '{}'; v jsonb; qid uuid; hid bigint; inc public.it_inci
   insert into public.agent_actions (agent, kind, status, target_id, title, detail, decided_at)
   select 'ceo', 'handoff', 'done', 'it.finding:zz_demo_new_class:' || g, 'ZZ DEMO new class ' || g, jsonb_build_object('type', 'it.finding', 'severity', 'critical',
           'issue_key', 'zz_demo_new_class:' || chr(96 + g), 'title', 'ZZ DEMO new class ' || g, 'occurrence_started_at', now() - interval '2 hours'), now()
-    from generate_series(1, 4) g;  -- four distinct faults: one postmortem per fault keys on the issue_key with digits stripped  -- four distinct faults: one postmortem per fault keys on the issue_key with digits stripped
+    from generate_series(1, 4) g;  -- four distinct faults: one postmortem per fault keys on the issue_key with digits stripped
   v := public.fn_it_engineer_postmortem();
   perform public.fn_it_engineer_postmortem();
   select * into inc from public.it_incident where handoff_id = hid;

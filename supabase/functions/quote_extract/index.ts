@@ -65,6 +65,8 @@ Deno.serve(observe('quote_extract', async (req) => {
         // (think(), founder_instruction 886-903). Held: they are left empty and the supplier types them.
         const masks = Array.isArray(body.supplier_terms) ? body.supplier_terms.map((s: unknown) => String(s)) : [];
         const priced = quoteFromExtracted(rd, masks);
+        // A total the code found but could not be sure of is held for the supplier, never handed to a model to guess (#1562).
+        if (priced.review_reason) return J({ ok: false, error: 'total_ambiguous', review_reason: priced.review_reason, proposal: { ...priced, fallback_reason: why }, extracted_by_model: 'deterministic' });
         if (priced.amount == null && !priced.line_items.length) return null;   // no model is asked about a file with no price
         if (needTotal && priced.amount == null) return null;   // code first: only a priced reading stops the model
         const terms = await quoteTerms(defaultDeps(admin, 'quote_extract'), { text: quoteText(rd) });
