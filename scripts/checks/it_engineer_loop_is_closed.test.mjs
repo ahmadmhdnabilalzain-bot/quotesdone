@@ -232,7 +232,7 @@ const REFUSAL_PROBE = (withWindow, counts = '{"http":404}') => `
       -- a real window open over the last minute would cover the control's runs too; end it inside this rollback
       ${withWindow ? '' : "update public.rehearsal_window set ended_at = now() - interval '10 minutes' where coalesce(ended_at, started_at + interval '6 hours') > now() - interval '10 minutes';"}
       v0 := public.fn_it_detect(null, false);
-      ${withWindow ? "insert into public.rehearsal_window (run_tag, opened_by, note, started_at, expires_at) values ('qd_run:zz_probe', 'probe', 'ZZ DEMO', now() - interval '5 minutes', now() + interval '15 minutes');" : ''}
+      ${withWindow ? "insert into public.rehearsal_window (run_tag, opened_by, note, models_allowed, started_at, expires_at) values ('qd_run:zz_probe', 'probe', 'ZZ DEMO', true, now() - interval '5 minutes', now() + interval '15 minutes');" : ''}
       insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
       select 'fn:login_otp', 'warn', now() - interval '1 minute', now() - interval '1 minute', '${counts}'::jsonb, 'ZZ DEMO'
         from generate_series(1, 60);
