@@ -33,3 +33,11 @@ Deno.test('an explicit effort reaches a non-Claude reasoning model only where it
   assertEquals(shapeRequest({ model: luna, maxTokens: 900, supported: new Set(['reasoning']) }).reasoning, undefined);
   assertEquals(shapeRequest({ model: luna, maxTokens: 900, effort: 'bogus', supported: new Set(['reasoning']) }).reasoning, undefined);
 });
+
+Deno.test('a non-Claude reasoning model gets thinking headroom, so a 600-token review is not eaten by its reasoning', () => {
+  const luna = 'openai/gpt-6-luna-pro';
+  assertEquals(shapeRequest({ model: luna, maxTokens: 600, supported: new Set(['reasoning']) }).max_tokens, 600 + THINKING_HEADROOM);
+  assertEquals(shapeRequest({ model: luna, maxTokens: 600, supported: null }).max_tokens, 600 + THINKING_HEADROOM);
+  assertEquals(shapeRequest({ model: luna, maxTokens: 600, supported: new Set(['temperature']) }).max_tokens, 600);
+  assertEquals(shapeRequest({ model: 'google/gemini-3.8-flash', maxTokens: 600, supported: null }).max_tokens, 600);
+});
