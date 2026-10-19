@@ -2826,6 +2826,7 @@
   "2eca4f9d9171",
   "7d65f5c4634e",
   "850e635c2b4d",
+  "865beccd9a65",
   "a0b7f299c779",
   "b835ee841c0b",
   "e6185af60865"
@@ -2876,7 +2877,9 @@
   "54a4dbc7f286"
  ],
  "src/components/FaqInner.tsx": [
-  "1085098eb87e"
+  "1085098eb87e",
+  "35f49cd30fa1",
+  "6beaf09aea06"
  ],
  "src/components/LegalDoc.tsx": [
   "28fd1b25a6a1",
@@ -5528,7 +5531,8 @@
   "8bc4aed040a9",
   "a689a4cf0af7",
   "abec5f925a16",
-  "e46de96ffa56"
+  "e46de96ffa56",
+  "fd4a3bdaef87"
  ],
  "src/components/visual/AnonymityFlow.tsx": [
   "0350b5fc4422",
