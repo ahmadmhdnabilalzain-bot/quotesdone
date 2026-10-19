@@ -7,7 +7,8 @@
 -- notice: the hold path could not be proven in the sandbox at all.
 --
 -- Fix: when no handoff is filed (demo), the notification row is inserted directly. The demo capture
--- trigger (zzzz_notifications_demo_capture) suppresses it, so nothing reaches anyone, and the caller
+-- row is written with status suppressed EXPLICITLY (fn_seat_work_is_demo is wider than the capture
+-- trigger: a demo-by-payload row can carry a real recipient), so nothing reaches anyone, and the caller
 -- gets a real notification_id. Real (non-demo) rows take the unchanged handoff path.
 create or replace function public.fn_customer_support_takes_delivery(p_rows jsonb)
  returns jsonb
@@ -35,9 +36,10 @@ begin
     if v_id is null then
       -- demo work (ruling 1199): no handoff; the row is written and the demo capture suppresses it
       insert into public.notifications (type, channel, to_email, to_phone, to_role, lead_id, inquiry_id, quote_id,
-                                        subject, body, html, kind, lang, attachments, cc_emails, reply_to, requested_by)
+                                        subject, body, html, kind, lang, attachments, cc_emails, reply_to, requested_by, status, last_error)
       select n.type, coalesce(n.channel, 'email'), n.to_email, n.to_phone, n.to_role, n.lead_id, n.inquiry_id, n.quote_id,
-             n.subject, n.body, n.html, n.kind, n.lang, n.attachments, coalesce(n.cc_emails, '{}'), n.reply_to, v_seat
+             n.subject, n.body, n.html, n.kind, n.lang, n.attachments, coalesce(n.cc_emails, '{}'), n.reply_to, v_seat,
+             'suppressed', 'demo work (ruling 1199): written for the record, never sent'
         from jsonb_populate_record(null::public.notifications, r) n
       returning id into v_nid;
       v_out := v_out || jsonb_build_array(jsonb_build_object('handoff_id', null, 'seat', v_seat, 'status', 'demo_captured',
