@@ -99,6 +99,10 @@ export interface ThinkRequest {
   // One more choice made IN the answering call, so it costs no chain of its own (the widget: which published trade, if
   // any, they ask the price of). Comes back as result.extra (null if not one of the ids).
   ask?: { key: string; options: { id: string; meaning: string }[] };
+  // MORE CHOICES IN THE SAME CALL AS A DECISION (customer_support, 19 Oct 2026): WhatsApp reads what a message asks,
+  // whether it needs a person and what it means to the menu in ONE model call instead of three. Each comes back in
+  // result.also[key], null when the model did not name one of that key's ids. The main decision is validated as always.
+  also?: { key: string; options: { id: string; meaning: string }[] }[];
   // Output ceilings for a caller whose reply is short (the widget: ~70 words). With a verify ceiling the reviewer is
   // also told to return the strict JSON verdict only. A truncated output is a failed pass, never a fragment sent.
   maxTokens?: { synthesise?: number; verify?: number };
@@ -135,6 +139,7 @@ export interface ThinkResult {
   reason?: string;
   route?: string | null;
   extra?: string | null;
+  also?: Record<string, string | null>;
 }
 
 export interface LlmReply { content: string | null; model?: string | null; error?: string | null; used_llm?: boolean }
@@ -625,7 +630,9 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   const sourceIds = new Set(sources.map((s) => s.id));
   const synthSys = synthesisPrompt(req.seat, audience, ctx.language ?? 'en', req.decision, req.route, req.allowDecline === true)
     + (req.ask && !deciding ? `
-Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.` : '');
+Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.` : '')
+    + (req.also ?? []).map((a) => `
+Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.`).join('');
   const payload = { question: req.question, context: ctx, plan: planSteps, facts_known: facts.filter((f) => f.value), facts_missing: missing, sources };
   let draft: Draft | null = null; let model: string | null = null; let refusal: string | null = null;
   for (let pass = 1; pass <= (deciding ? 2 : MAX_SYNTH_PASSES); pass++) {
@@ -697,6 +704,7 @@ Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.o
     missing_context: missing, sources: sources.filter((s) => (draft!.cited ?? []).includes(s.id)),
     confidence, asked_back: draft.asked_back ? String(draft.asked_back) : null, verified, model,
     route: req.route?.some((o) => o.id === String(draft!.route ?? '')) ? String(draft!.route) : null,
+    also: req.also ? Object.fromEntries(req.also.map((a) => { const v = String((draft as unknown as Record<string, unknown>)[a.key] ?? ''); return [a.key, a.options.some((o) => o.id === v) ? v : null]; })) : undefined,
     extra: req.ask?.options.some((o) => o.id === String((draft as unknown as Record<string, unknown>)[req.ask!.key] ?? '')) ? String((draft as unknown as Record<string, unknown>)[req.ask.key]) : null,
   };
 }

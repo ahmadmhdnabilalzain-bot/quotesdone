@@ -186,7 +186,7 @@
     {
      "file": "supabase/functions/wa_inbound/index.ts",
      "must_contain": [
-      "whatsappMeaning(classifyDeps()",
+      "whatsappReadings(classifyDeps()",
       "p_intent: intent"
      ]
     },
