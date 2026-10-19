@@ -12,3 +12,10 @@ test('both call sites use the guard', () => {
   assert.match(readFileSync(new URL('../../supabase/functions/resend_inbound/index.ts', import.meta.url), 'utf8'), /orSafeEmail\(from\)/);
   assert.match(readFileSync(new URL('../../supabase/functions/inbound_email/index.ts', import.meta.url), 'utf8'), /orSafeDomain\(dom\)/);
 });
+test('the outbox escaper is safe inside an attribute', async () => {
+  const { esc } = await import(new URL('../../supabase/functions/send_outbox/render.ts', import.meta.url).href);
+  const v = `x" onmouseover="alert(1)' y='`;
+  const html = `<a href="${esc(v)}" title='${esc(v)}'>k</a>`;
+  assert.equal(esc(v), 'x&quot; onmouseover=&quot;alert(1)&#39; y=&#39;');
+  assert.equal(html.split('"').length, 3); assert.equal(html.split("'").length, 3);
+});
