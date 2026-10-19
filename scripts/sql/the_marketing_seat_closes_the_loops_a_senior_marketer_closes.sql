@@ -655,3 +655,11 @@ revoke execute on function public.fn_marketing_recruitment_funnel() from public,
 grant execute on function public.fn_marketing_recruitment_funnel() to service_role;
 revoke execute on function public.fn_marketing_reputation() from public, anon, authenticated;
 grant execute on function public.fn_marketing_reputation() to service_role;
+
+-- The three tables this file creates go to the daily export (release operator, #1551). PENDING: applied at merge only.
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('marketing_duty_record', true, 'marketing', 'One record per marketing duty per period: what each senior duty found and did.', 'marketing'),
+  ('marketing_geo_fix', true, 'marketing', 'C03: each AI-answer question the site loses, the fix briefed for it, and when it closed.', 'marketing'),
+  ('marketing_fact_watch', true, 'marketing', 'C14: each public surface that must state the public facts, and whether it did when last fetched.', 'marketing')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
