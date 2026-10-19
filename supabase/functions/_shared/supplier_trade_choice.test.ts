@@ -2,7 +2,7 @@
 // Regression fixtures from the 29 real UAE profiles measured on 13 Oct 2026 (ACCURACY_real_profiles.md), names
 // replaced by ZZ DEMO. deno test --no-lock --node-modules-dir=none supabase/functions/_shared/supplier_trade_choice.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { agreed, checkChoice, checkVerify, choiceRequest, choiceSystem, isHeading, mergeChoices, quoteContext, quoteKey, textChunks, verifyRequest, type TradeDef } from './supplier_trade_choice.ts';
+import { checkChoice, majority, needsThird, checkVerify, choiceRequest, choiceSystem, isHeading, mergeChoices, quoteContext, quoteKey, textChunks, verifyRequest, type TradeDef } from './supplier_trade_choice.ts';
 import { readDocForTrades, type TradeResolveDeps } from './supplier_doc_trades.ts';
 
 const DEFS: TradeDef[] = [
@@ -151,15 +151,14 @@ Deno.test('a word hyphenated across a line break is read whole (N07 OCR: "Compa-
   const r = checkChoice(JSON.stringify({ trades: [{ code: 'fire_fighting', quotes: ['is a leading UAE-based General Contracting Company. We install Sprinkler Systems.'], reason: 'r' }] }), text, DEFS);
   assert(r.ok && r.trades.length === 1, JSON.stringify(r));
 });
-Deno.test('two readings: a code goes forward only when both named it; an empty reading leaves the other standing', () => {
+Deno.test('majority of readings: a third reading settles a code one of two missed; three empty readings hold the document', () => {
   const r = (codes: string[]) => ({ ok: true as const, trades: codes.map((c) => ({ code: c, quote: c + ' line', reason: 'r' })), rejected: [] });
-  const both = agreed(r(['joinery', 'doors']), r(['joinery', 'fire_fighting']));
-  assertEquals(both.trades.map((t) => t.code), ['joinery']);
-  assertEquals(both.rejected.map((x) => x.code).sort(), ['doors', 'fire_fighting']);
-  assertEquals(agreed(r([]), r(['doors'])).trades.map((t) => t.code), ['doors']);
-});
-Deno.test('agreement counts a code a reading named even when its quote failed; the other reading proves it (N12)', () => {
-  const a = { ok: true as const, trades: [{ code: 'joinery', quote: 'j', reason: 'r' }], rejected: [{ code: 'doors', why: 'the quote is not in the document: "x"' }] };
-  const b = { ok: true as const, trades: [{ code: 'joinery', quote: 'j2', reason: 'r' }, { code: 'doors', quote: 'Doors', reason: 'r' }], rejected: [] };
-  assertEquals(agreed(a, b).trades.map((t) => t.code), ['doors', 'joinery']);
+  assert(needsThird(r(['joinery', 'doors']), r(['joinery'])));
+  assert(needsThird(r([]), r(['joinery'])));
+  assert(!needsThird(r(['doors', 'joinery']), r(['joinery', 'doors'])));
+  // M08: two readings of three name prefab -> kept; a code named once -> dropped
+  assertEquals(majority([r(['joinery', 'doors']), r(['joinery']), r(['joinery', 'doors', 'fire_fighting'])])!.trades.map((t) => t.code), ['doors', 'joinery']);
+  // M12: two empty readings and one full one -> the full one stands
+  assertEquals(majority([r([]), r([]), r(['doors'])])!.trades.map((t) => t.code), ['doors']);
+  assertEquals(majority([r([]), r([]), r([])]), null);
 });

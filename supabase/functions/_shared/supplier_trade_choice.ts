@@ -58,7 +58,7 @@ RULES
 8. What a line IS before what it says: a contact mailbox or department name ("leasing@...", "Procurement Department"), a word in the company's name or in its logo artwork (a slogan such as "Build Smart" printed under a logo), a caption, or a heading of the brochure's own layout names no trade. A METHOD of delivering a service (working at height from cradles, night shifts, prefabrication off site) is not a trade of its own: the trade is the work done with it (cleaning done from a cradle is cleaning). The exception is a company whose business IS the access itself - it presents itself as a rope-access, BMU or gondola provider: facade_access_maintenance covers that access service, named beside the work it carries out. A product feature or a material used in its main work (the light fittings installed as part of a shop fit-out) is that main work's trade.
 
 9. A list's HEADING says whose work its items are. Items printed under a heading that names a trade (under "PLUMBING WORKS": water heaters, booster pumps) are that heading trade's work: name another trade for such an item only when the company also offers it as a service of its own elsewhere in the text. A heading or label that is itself a trade's name ("Civil:", "Joinery -") names THAT trade for the items listed after it when those items fall within that trade's definition (buildings and structures under "Civil"); when the items under it are other trades' works (tiling, painting and partitions under a "CIVIL" label), name the items' own trades, not the heading's. An MEP or electromechanical heading is the exception: the specific trades it lists ("MEP: HVAC, electrical and plumbing services") are each named, with mep_general.
-11. GOODS ARE NOT WORKS. In a CATALOGUE every trade named is a goods or supply trade. A company that sells or trades goods (a catalogue, a trading or building-materials company) is named by the goods trades whose definitions cover what it sells (for example building_materials, electrical_wholesale, plastics_pipes, hand_power_tools), never by an installation or contracting trade (plumbing, electrical, hvac, painting) unless the text says it installs or carries out that work.
+11. GOODS ARE NOT WORKS. In a CATALOGUE every trade named is a goods or supply trade. A product is named by what it IS, never by a word in its name: "thermal insulation blocks" are concrete blocks (building_materials), "cable trays" and trunking are cable containment (electrical), not cables. A company that sells or trades goods (a catalogue, a trading or building-materials company) is named by the goods trades whose definitions cover what it sells (for example building_materials, electrical_wholesale, plastics_pipes, hand_power_tools), never by an installation or contracting trade (plumbing, electrical, hvac, painting) unless the text says it installs or carries out that work.
 14. A MAIN TRADE'S OWN SCOPE. Items a company lists as the scope of its main trade - ordinary parts of that work, such as landscape lighting, pergolas or plant nurseries in a landscaping company's list, or ceilings and partitions in a fit-out company's list - are that main trade's work, not trades of their own, unless the company gives the item its own heading or section as a separate business.
 12. ONE ITEM, ONE TRADE. When the definitions of two trades both cover the same item (shade structures, kitchen cabinets), name only the trade whose own listed services name it most closely, and only once.
 13. A quote names the service itself. A line that only introduces a list ("Our main activities are:", "We offer the following") names nothing: quote the list item.
@@ -84,17 +84,25 @@ export function textChunks(text: string, max = CHUNK_CHARS): string[] {
   if (cur.trim() || !out.length) out.push(cur);
   return out;
 }
-/** The codes both readings named (quotes of both gathered); one reading alone when the other named nothing. */
-export function agreed(a: Extract<ChoiceResult, { ok: true }>, b: Extract<ChoiceResult, { ok: true }>): Extract<ChoiceResult, { ok: true }> {
-  if (!a.trades.length) return b;
-  if (!b.trades.length) return a;
-  // a reading NAMED a code when it proposed it, even if its quote failed code's check (N12: one reading quoted two cells of a
-  // table row as one line); the proof then comes from the other reading's quote
-  const named = (r: typeof a) => new Set([...r.trades.map((t) => t.code), ...r.rejected.filter((x) => x.why.startsWith('the quote is not in the document')).map((x) => x.code)]);
-  const inA = named(a), inB = named(b);
-  const both = mergeChoices([{ trades: a.trades.filter((t) => inB.has(t.code)), rejected: [] }, { trades: b.trades.filter((t) => inA.has(t.code)), rejected: [] }]);
-  const once = [...a.trades, ...b.trades].filter((t) => !both.trades.some((x) => x.code === t.code));
-  return { ok: true, trades: both.trades, rejected: [...a.rejected, ...b.rejected, ...once.map((t) => ({ code: t.code, why: 'named by one of two readings only: "' + t.quote.slice(0, 80) + '"' }))] };
+/** Codes a reading NAMED: proposed, or proposed with a quote code could not find. */
+const namedBy = (r: Extract<ChoiceResult, { ok: true }>) => new Set([...r.trades.map((t) => t.code), ...r.rejected.filter((x) => x.why.startsWith('the quote is not in the document')).map((x) => x.code)]);
+/** A third reading is needed when one of two readings is empty or they named different codes. */
+export function needsThird(a: Extract<ChoiceResult, { ok: true }>, b: Extract<ChoiceResult, { ok: true }>): boolean {
+  const x = namedBy(a), y = namedBy(b);
+  return !a.trades.length || !b.trades.length || x.size !== y.size || [...x].some((c) => !y.has(c));
+}
+/** The codes at least two non-empty readings named, each proven by a quote one of them gave; one non-empty reading stands
+ *  alone; none -> null (the document is held). */
+export function majority(rs: Extract<ChoiceResult, { ok: true }>[]): Extract<ChoiceResult, { ok: true }> | null {
+  const full = rs.filter((r) => r.trades.length);
+  if (!full.length) return null;
+  if (full.length === 1) return full[0];
+  const count = new Map<string, number>();
+  for (const r of full) for (const c of namedBy(r)) count.set(c, (count.get(c) ?? 0) + 1);
+  const keep = new Set([...count].filter(([, n]) => n >= 2).map(([c]) => c));
+  const merged = mergeChoices(full.map((r) => ({ trades: r.trades.filter((t) => keep.has(t.code)), rejected: [] })));
+  const once = [...new Set(full.flatMap((r) => r.trades.map((t) => t.code)))].filter((c) => !keep.has(c));
+  return { ok: true, trades: merged.trades, rejected: [...full.flatMap((r) => r.rejected), ...once.map((c) => ({ code: c, why: 'named by one reading only' }))] };
 }
 /** Proven choices of several chunks as one: a code once, its quotes (up to 3) gathered; refusals kept. */
 export function mergeChoices(rs: { trades: TradeChoice[]; rejected: { code: string; why: string }[] }[]): Extract<ChoiceResult, { ok: true }> {
@@ -195,21 +203,25 @@ export function liveTradeChooser(admin: any, opts: { subject?: unknown; headers?
       // A later chunk is read with the document's opening (title, about, services) as context, so a list item is judged
       // as part of the company it belongs to; only the chunk itself may be quoted.
       const head = parts.length > 1 ? parts[0].slice(0, 2500) : '';
-      // TWO READINGS of every chunk, merged (19 Oct 2026): at temperature 0 the model still answered {"trades":[]} for a whole
-      // landscaping profile in one run and its core trade in the next (N10). A trade either reading proves goes to the second
-      // look, which alone decides; the price is one more call per chunk.
-      const each = await Promise.all([...parts, ...parts].map((p, j) => { const i = j % parts.length; return twice(async () => { const g = await gateway(choiceRequest(i && head ? `[The document opens with this, for context only - do not quote it:]\n${head}\n[The part to read and quote from:]\n${p}` : p, kind, d, opts.subject, company)); if (g.ok && (globalThis as any).Deno?.env?.get('QD_CHOICE_DEBUG')) console.error('CHOICE_RAW', i, String(g.content).slice(0, 1500)); return g.ok ? checkChoice(g.content, p, d) : g; }); }));
-      // a chunk counts as read when either of its readings came back; it fails the document only when both failed
-      const failed = parts.map((_, i) => [each[i], each[i + parts.length]]).find(([x, y]) => !x.ok && !y.ok);
-      if (failed) return failed[0];
-      // AGREEMENT, NOT UNION (iteration 7, 19 Oct 2026): merged as a union, the two readings added a different passing item
-      // each run (N11 "Security Cabin" -> prefab_buildings, N08 "Oil Field Materials" -> oilfield). A main line of business
-      // is named by both readings; an item one reading picks up in passing is not. So a code goes forward only when both
-      // readings of the document named it - unless one reading named nothing at all (an empty answer is a failed reading,
-      // measured on N10), when the other stands alone.
-      const ok = each as Extract<ChoiceResult, { ok: true }>[];
-      const first = mergeChoices(ok.slice(0, parts.length).filter((x) => x.ok)), second = mergeChoices(ok.slice(parts.length).filter((x) => x.ok));
-      const chosen = agreed(first, second);
+      // one reading of the whole document: every chunk read once, merged; an error only when a chunk could not be read twice
+      const readOnce = async (): Promise<ChoiceResult> => {
+        const each = await Promise.all(parts.map((p, i) => twice(async () => { const g = await gateway(choiceRequest(i && head ? `[The document opens with this, for context only - do not quote it:]\n${head}\n[The part to read and quote from:]\n${p}` : p, kind, d, opts.subject, company)); if (g.ok && (globalThis as any).Deno?.env?.get('QD_CHOICE_DEBUG')) console.error('CHOICE_RAW', i, String(g.content).slice(0, 1500)); return g.ok ? checkChoice(g.content, p, d) : g; })));
+        const bad = each.find((x) => !x.ok);
+        return bad ?? mergeChoices(each as Extract<ChoiceResult, { ok: true }>[]);
+      };
+      // AGREEMENT BY MAJORITY (stability runs on the fresh blind set, 19 Oct 2026). Two readings had to agree, so a core trade
+      // one reading missed was dropped (M08 prefab_buildings, M09 electrical_wholesale), and a scan both readings answered
+      // with nothing lost every trade (M12). Now a third reading is taken whenever the two disagree or one came back empty,
+      // and a code goes forward when at least two of the readings named it; three empty readings hold the document.
+      const [ra, rb] = await Promise.all([readOnce(), readOnce()]);
+      let readings = [ra, rb].filter((x) => x.ok) as Extract<ChoiceResult, { ok: true }>[];
+      if (!readings.length) return ra;
+      if (readings.length < 2 || needsThird(readings[0], readings[1])) {
+        const rc = await readOnce();
+        if (rc.ok) readings = [...readings, rc];
+      }
+      const chosen = majority(readings);
+      if (!chosen) return { ok: false, error: 'no reading of the document named any trade: held for the sales engineer' };
       if (!chosen.ok || !chosen.trades.length) return chosen;
       const kept = await twice(async () => { const g = await gateway(verifyRequest(chosen.trades, d, opts.subject, text, company)); return g.ok ? checkVerify(g.content, chosen) : g; });
       return kept;
@@ -249,7 +261,7 @@ export function verifySystem(defs: TradeDef[]): string {
   return `You check trades proposed for a UAE company from its own profile. Each proposal is a trade code, one or more lines quoted from the profile each with the lines around it in the profile (context, with the list heading it sits under when there is one), and a reason. Judge the quote together with its context. Trade definitions (code = name (covers: services)):
 ${list}
 
-KEEP a proposal only when the quoted lines show that the company ITSELF sells this now, as one of its MAIN lines of business - in its title or tagline, its list of services, activities, divisions or products, or a section or heading of its own - and it falls under that trade's definition. An item mentioned in passing, a sub-item or component of another service, or one word in a long sentence is not a main line: DROP it. A company that sells goods is not an installation or contracting trade (plumbing, electrical, flooring works) unless the text says it does that work; but each product category a trading company or catalogue lists under its own goods (tools, pipes, safety products) is a line of business of that company, even when printed under a general heading such as "BUILDING MATERIALS". Items a company lists as ordinary parts of its main trade's scope (landscape lighting or pergolas in a landscaper's list, ceilings in a fit-out list) are that main trade: DROP their own trades unless they have a heading or section of their own. When two proposals cover the same item, KEEP only the one whose definition names it most closely.
+KEEP a proposal only when the quoted lines show that the company ITSELF sells this now, as one of its MAIN lines of business - in its title or tagline, its list of services, activities, divisions or products, or a section or heading of its own - and it falls under that trade's definition. An item mentioned in passing, a sub-item or component of another service, or one word in a long sentence is not a main line: DROP it. A product is named by what it IS, not by a word in its name (insulation blocks are blocks; cable trays are containment, not cables). A company that sells goods is not an installation or contracting trade (plumbing, electrical, flooring works) unless the text says it does that work; but each product category a trading company or catalogue lists under its own goods (tools, pipes, safety products) is a line of business of that company, even when printed under a general heading such as "BUILDING MATERIALS". Items a company lists as ordinary parts of its main trade's scope (landscape lighting or pergolas in a landscaper's list, ceilings in a fit-out list) are that main trade: DROP their own trades unless they have a heading or section of their own. When two proposals cover the same item, KEEP only the one whose definition names it most closely.
 DROP it when the line is: history the company has left behind ("began as", "formerly" - but a capability its history says it ADDED and still runs, such as "in 2015 we added a precast concrete plant", is current), an internal function of the company (its own IT, HR, fleet), a tool or method it uses for its own work or to deliver a service (working from a cradle is how the cleaning is delivered, not a trade of its own), an accessory sold alongside its main goods rather than a line of business, work that is only a part of another trade's work and is not offered on its own (light fittings installed inside a shop fit-out are fit-out; but a service the company lists on its own in its list of services is offered on its own), a client, a project, or work of a sister, partner or group company when the profile is one company's (when the registered company IS the group and the document is the group's own brochure, each group company's described work is the group's and is kept), a contact mailbox or department name, a word of the company's own name or logo, or a certificate, policy or value, or a vision, mission or goal statement (N09: "envisions providing ... Pipeline work"). A COMPONENT printed under a list heading that names ANOTHER trade (under "ELECTRICAL WORKS": an item such as intercoms or access control) is that heading trade's work: DROP the component's own trade unless another quoted line shows the company offers it on its own. But an item that is itself the name of a service ("Joinery solutions", "HVAC services", "Plumbing") is a line of business wherever it is listed: a section label such as "HOME INTERIORS" or a combined "MEP" heading does not swallow it - HVAC, electrical and plumbing listed under MEP are each KEPT. Design of the company's own trade's works (landscape design by a landscaper, MEP design by an MEP contractor) is that trade's work, not design_consultancy, which is architectural or interior design. Judge every quote a proposal gives: KEEP it when any one of them shows the trade is sold now.
 
 Return STRICT JSON only: {"keep":["code",...],"drop":[{"code":"...","why":"..."}]}`;
