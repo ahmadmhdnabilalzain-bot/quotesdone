@@ -78,3 +78,12 @@ test('the portal refuses Revit, IFC and DGN, accepts DWG/DXF and polls a queued 
   assert.doesNotMatch(accept, /\.(rvt|ifc|dgn)\b/);
   assert.match(portal, /action: 'cad_read_status'/);
 });
+
+// 18 Oct 2026: the dispatch answered 403 for weeks and only console.warn knew. A refused dispatch must
+// raise a sales_engineer finding, or a customer's DWG waits 6 h in silence again.
+test('a refused CAD worker dispatch raises a finding', () => {
+  const fn = api.slice(api.indexOf('async function dispatchCadWorker'), api.indexOf('function cadJobNeedsRedispatch'));
+  assert.match(fn, /r\.status !== 204\)[^\n]*cadDispatchRefused\(/);
+  assert.match(fn, /catch[^\n]*cadDispatchRefused\(/);
+  assert.match(fn, /fn_it_engineer_finding_upsert[\s\S]{0,400}cad_dispatch_refused[\s\S]{0,600}p_raised_by: 'sales_engineer'/);
+});

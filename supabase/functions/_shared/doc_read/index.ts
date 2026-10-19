@@ -59,8 +59,8 @@ const READERS: Record<string, Reader> = {
 export type DocumentRead = ReadResult & { mime?: string };
 
 /** Bytes (or base64) from anyone -> what the document says, or a refusal with the reason. */
-export async function readDocument(input: Uint8Array | string, filename: string, declaredMime = '', depth = 0, opts: { textOnly?: boolean; pdfCadDrawingsOnly?: boolean } = {}): Promise<DocumentRead> {
-  const s = sanitizeUpload({ input, declaredMime, filename, allow: SAFE_DOCS, maxBytes: LIMITS.maxBytes });
+export async function readDocument(input: Uint8Array | string, filename: string, declaredMime = '', depth = 0, opts: { textOnly?: boolean; pdfCadDrawingsOnly?: boolean; maxBytes?: number } = {}): Promise<DocumentRead> {
+  const s = sanitizeUpload({ input, declaredMime, filename, allow: SAFE_DOCS, maxBytes: opts.maxBytes ?? LIMITS.maxBytes });
   // Founder ruling 1000 (_shared/drawing_format.ts): a customer's drawing is PDF or CAD (DWG/DXF) only.
   // Decided on the SNIFFED type, so a renamed model and a model inside a zip (readChild keeps opts) are refused too.
   // Checked before the allow-list: with no Revit/IFC/DGN reader those types fail it, and the customer is owed the
@@ -70,7 +70,7 @@ export async function readDocument(input: Uint8Array | string, filename: string,
   if (!s.ok) return refuse(s.error, s.detail);
   const reader = READERS[s.mime];
   if (!reader) return refuse('file_type_not_allowed', `no reader for ${s.mime}`);
-  const ctx: ReadContext = { filename, depth, textOnly: !!opts.textOnly, readChild: (b, name, d) => readDocument(b, name, '', d, opts) };
+  const ctx: ReadContext = { filename, depth, textOnly: !!opts.textOnly, maxBytes: opts.maxBytes, readChild: (b, name, d) => readDocument(b, name, '', d, opts) };
   try {
     const r = await reader(s.bytes, ctx);
     return r.ok ? { ...r, mime: s.mime } : r;

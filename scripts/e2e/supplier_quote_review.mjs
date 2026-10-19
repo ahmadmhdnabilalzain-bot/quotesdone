@@ -68,7 +68,11 @@ async function job(run, customer, supplier, lang) {
 
 async function drive(browser, run, supplier, inquiryId, lang, viewport) {
   const ar = lang === 'ar';
-  const job = String(inquiryId).slice(0, 8).toUpperCase();
+  // The portal's job number is the RFQ number when the inquiry has one, else the id prefix
+  // (_shared/quote_documents.ts jobNoOf, since #1364 on 13 Oct). This used the id prefix alone, so on
+  // 17 Oct (run 39079803518) "listed by job number" failed and the detail wait timed out at 30 s.
+  const rfq = (await read(`select rfq_no from public.inquiries where id = ${q(inquiryId)}`))[0]?.rfq_no;
+  const job = rfq != null && String(rfq).trim() !== '' ? String(rfq) : String(inquiryId).slice(0, 8).toUpperCase();
   const L = (en, a) => (ar ? a : en);
   const { ctx, page, consoleErrors, calls } = await signedInPage(browser, supplier, { lang, viewport });
   if (REVIEW_API) {

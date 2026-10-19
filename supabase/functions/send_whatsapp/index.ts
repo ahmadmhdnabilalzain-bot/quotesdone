@@ -39,6 +39,7 @@
 //     The one exception on purpose: an UNREADABLE template status ('twilio http NNN') requeues
 //     rather than retiring the row — not being able to ask Twilio is not Meta refusing.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { isMarketingType, marketingGate } from '../_shared/marketing_send_gate.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { twilioVerdict, UNKNOWN_RETRY_CAP } from '../_shared/provider_signals.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
@@ -157,6 +158,8 @@ function tmplKey(type:string):string|null{
   // 23 Sep 2026: a reasoned answer to the customer's own question, due after their 24-hour window closed
   // (_shared/reasoned_delivery.ts). Held queued until the support_reply template is approved.
   if(t==='support_reply') return 'support_reply';
+  // 19 Oct 2026 (marketing, ruling 1184): the WhatsApp supplier invitation, queued only by fn_wa_supplier_invite_queue.
+  if(t==='supplier_invite_wa') return 'supplier_invite';
   return null;
 }
 // 18 SEP 2026: the founder authorised the submission and supplier_account_notice now HAS a template
@@ -175,6 +178,8 @@ function varsFor(key:string, n:{subject?:string|null; body?:string|null}){
     return {'1': waVar(shortSummary(head||n.subject||'') , 120), '2': waVar(rest || 'see the founder console at quotesdone.com/os', 500)};
   }
   // support_reply: {{1}} their question (the subject), {{2}} the answer (the body), each one line.
+  // supplier_invite: {{1}} the trade label (the subject), {{2}} the lead's own claim link, carried in the body.
+  if (key==='supplier_invite') return {'1': waVar(String(n.subject||'your trade'), 80), '2': (String(n.body||'').match(/https:\/\/quotesdone\.com\/(en|ar)\/portal\?t=[0-9a-f-]{36}/)||[PORTAL_URL])[0]};
   if (key==='support_reply') return {'1': waVar(shortSummary(n.subject||''), 120), '2': waVar(String(n.body||''), 700)};
   return {'1':shortSummary(n.subject||n.body||''),'2':linkFor(key)};
 }
@@ -375,6 +380,8 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     let smsFailover = 0;
     // The notice goes by SMS instead. Founder rows keep their own email fallback (fn_wa_founder_alert_fallback).
     const toSms = async (n: WaRow, reason: string) => {
+      // Ruling 1185: bulk SMS is too expensive; a supplier invitation never fails over to SMS.
+      if (isMarketingType(n.type)) { lastErr = 'no SMS failover for a supplier invitation (ruling 1185)'; return false; }
       const r = await queueSmsTwin((fn, args) => admin.rpc(fn, args), n.id, smsTextFor(n, linkFor(tmplKey(String(n.type || '')))), reason);
       if (r.ok) { smsFailover++; return true; }
       lastErr = 'SMS failover not queued for notification ' + n.id + ': ' + r.outcome; return false;
@@ -417,6 +424,17 @@ Deno.serve(observe('send_whatsapp', async (req) => {
         if (g.action === 'cancel') { await admin.from('notifications').update({ status: 'cancelled', last_error: g.reason }).eq('id', n.id); skipped++; continue; }
         // held like a row waiting on its template: the claim lapses and the next run re-checks it
         if (g.action === 'hold') { await admin.from('notifications').update({ last_error: g.reason }).eq('id', n.id); skipped++; requeued++; lastErr = g.reason; continue; }
+      }
+      // A MARKETING MESSAGE IS RE-CHECKED AS IT LEAVES (marketing, ruling 1184): the go-live switch (a missing secret is
+      // off) and the recipient's WhatsApp opt-out, read now, not when the row was queued. Off holds the row; opt-out cancels.
+      if (isMarketingType(n.type)) {
+        const [{ data: gl }, { data: ld }] = await Promise.all([
+          admin.from('app_secrets').select('value').eq('key', 'wa_supplier_invite_golive').maybeSingle(),
+          n.lead_id ? admin.from('leads').select('whatsapp_opt').eq('id', n.lead_id).maybeSingle() : Promise.resolve({ data: null }),
+        ]);
+        const g = marketingGate(gl?.value as string | undefined, (ld as { whatsapp_opt?: string } | null)?.whatsapp_opt);
+        if (g === 'cancel') { await admin.from('notifications').update({ status: 'cancelled', last_error: 'the recipient opted out of WhatsApp' }).eq('id', n.id); skipped++; continue; }
+        if (g === 'hold') { await admin.from('notifications').update({ status: 'queued', claimed_at: null, last_error: 'held: wa_supplier_invite_golive is not true' }).eq('id', n.id); skipped++; continue; }
       }
       // WHATSAPP DOWN: the notice goes by SMS now, not when WhatsApp comes back. If the twin cannot be
       // queued the row falls through to the WhatsApp attempt, whose failure is caught below.

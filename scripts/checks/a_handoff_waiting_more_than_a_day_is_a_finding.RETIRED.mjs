@@ -1,3 +1,8 @@
+// RETIRED 19 Oct 2026 (it_engineer): the 'open_over_24h' item it asserted was removed by
+// scripts/sql/detectors_stop_escalating_what_is_not_a_fault.sql -- an answered it.finding whose problem is still
+// open is the open queue itself, which fn_it_loop_reverify escalates; the SLA item repeated it (5 such items on
+// 19 Oct 2026). The opposite is now guarded by scripts/checks/detectors_stop_escalating_what_is_not_a_fault.test.mjs.
+//
 // A HANDOFF WAITING MORE THAN A DAY IS A FINDING, EVEN WHEN ITS PROBLEM IS STILL OPEN.
 //
 // scripts/sql/a_handoff_waiting_more_than_a_day_is_a_finding.sql. Runs the file inside ONE transaction that ends

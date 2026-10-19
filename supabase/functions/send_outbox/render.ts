@@ -4,7 +4,7 @@
 // the clickable portal link and the Arabic frame are all present.
 import { BRAND, lockupImg } from '../_shared/brand.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
-export function esc(s: string) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+export function esc(s: string) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 // BRAND: the founder's kit is on file (public.company_brand). Every colour below is one of its
 // rows, and this file now renders on NAVY, so it uses the on-navy pair throughout. The on-white
 // link (teal-deep #0B8276) is gone from here -- it was correct when the mail was white and is
