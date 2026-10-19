@@ -109,7 +109,7 @@ async function run(mode) {
   const rows = [];
   for (const c of BANK) {
     const r = await think(live ? deps : mockDeps(c, mode), requestOf(c));
-    rows.push({ id: c.id, seat: c.seat, kind: c.kind, ...score(c, r), status: r.status });
+    rows.push({ id: c.id, seat: c.seat, kind: c.kind, ...score(c, r), status: r.status, askedBack: !!r.asked_back });
   }
   return rows;
 }
@@ -135,9 +135,11 @@ const main = async () => {
   const caught = evasive.filter((r) => r.kind === 'answer' && !r.answered).length, answerCases = evasive.filter((r) => r.kind === 'answer').length;
   console.log(`ADVERSARIAL: ${caught}/${answerCases} evasive drafts refused and never answered`);
   const needless = await run('needless_ask');
-  const flagged = needless.filter((r) => r.kind === 'answer' && !r.pass).length;
+  // refused, scored as a failure, or (since 19 Oct 2026, think.groundDraft) removed while the answer stands: in every
+  // case the needless question never reaches the person.
+  const flagged = needless.filter((r) => r.kind === 'answer' && (!r.pass || !r.askedBack)).length;
   const needlessCases = BANK.filter((c) => c.kind === 'answer' && !(c.expect?.decision_changing ?? []).length).length;
-  console.log(`ADVERSARIAL: ${flagged}/${needlessCases} needless questions back refused or scored as failures`);
+  console.log(`ADVERSARIAL: ${flagged}/${needlessCases} needless questions back refused, scored as failures or removed`);
   if (args.json) console.log(JSON.stringify({ good, evasive, needless }, null, 1));
   const ok = g.pass === g.n && caught === answerCases && flagged === needlessCases;
   console.log(ok ? '\nHARNESS OK' : '\nHARNESS FAILED');

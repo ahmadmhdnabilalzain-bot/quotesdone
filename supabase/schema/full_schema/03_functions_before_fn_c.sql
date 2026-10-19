@@ -10968,6 +10968,22 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_app_secrets_no_paid_ai_stays_off()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if new.key = 'no_paid_ai' and lower(coalesce(new.value, '')) in ('1','true','yes','on')
+     and not public.fn_founder_hold_change_allowed() then
+    raise exception 'RULING_1260: OpenRouter stays on; app_secrets.no_paid_ai is switched on only by the founder (set local app.change_reason = ''founder:<ledger id>'').'
+      using errcode = 'P0001';
+  end if;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_apply_playbook(p_agent_key text, p_query_embedding vector, p_query_text text, p_min_similarity real DEFAULT 0.85, p_k integer DEFAULT 20)
  RETURNS jsonb
  LANGUAGE plpgsql
