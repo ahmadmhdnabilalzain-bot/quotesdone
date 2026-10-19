@@ -42,7 +42,12 @@ const PING = read('supabase/functions/resilience_ping/index.ts');
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 
 // A routine's body, from its create statement to the closing $fn$, so prose elsewhere cannot satisfy it.
-function body(name) {
+// 19 Oct 2026 (ledger 1113 supersedes 1001): the gate is defined by its own, newer file; the owning file keeps
+// the applied 1001 text and is not edited in place.
+const GATE = 'scripts/sql/a_spam_seed_holds_the_invitation_batch.sql';
+const GATE_SQL = code(read(GATE));
+function body(name, src = SQL) {
+  const SQL = src;
   const open = SQL.indexOf(`create or replace function public.${name}(`);
   assert.ok(open >= 0, `${name} is no longer defined in ${FILE}`);
   const end = SQL.indexOf('$fn$;', SQL.indexOf('$fn$', open) + 4);
@@ -131,7 +136,7 @@ test('a junk placement never pauses: it is diagnosed, filed and handed to market
 });
 
 test('the batch fails closed: the gate, the tick and the enqueue; the sender is the effective one', () => {
-  const gate = body('fn_invite_placement_gate');
+  const gate = body('fn_invite_placement_gate', GATE_SQL);
   assert.match(gate, /if p_now < public\.fn_invite_placement_cutoff\(v_day\) then return 'wait'; end if;\s+if public\.fn_invite_placement_day_closed\(p_now\) is null then\s+perform public\.fn_invite_placement_finding\(v_day, 'no_check',/,
     'a day with no check does not fail closed, or holds in silence');
   assert.match(gate, /return 'fail:no_check';/);
@@ -231,7 +236,6 @@ test('production, aborted: queue from 04:30, wait, junk sends and hands off, inb
   const { sql } = await import('../lib/db.mjs');
   const replay = pending(FILE) ? read(FILE) : '';
   // ledger 1113: the gate's own apply file, replayed while it waits for its apply at merge.
-  const GATE = 'scripts/sql/a_spam_seed_holds_the_invitation_batch.sql';
   const gateReplay = !pending(FILE) && existsSync(join(REPO, GATE)) && pending(GATE) ? read(GATE) : '';
   let o;
   try { await replaySql(replay + '\n' + gateReplay + '\n' + PROBE, { retry: false }); }

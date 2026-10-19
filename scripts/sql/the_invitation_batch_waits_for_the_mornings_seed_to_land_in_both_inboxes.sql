@@ -56,7 +56,7 @@
 --      the day without touching invite_enabled. Every non-inbox verdict files the it_engineer finding
 --      deliverability:inbox_placement (fn_invite_placement_finding -> fn_it_engineer_finding_upsert, the #935
 --      door), once per day and verdict. An inbox verdict closes it and completes the open marketing handoff.
---   5. fn_invite_placement_gate(day, now): 'pass' for inbox or elsewhere, 'fail:spam' for spam (ledger 1113) under the current effective sender
+--   5. fn_invite_placement_gate(day, now): 'pass' for a measured placement (inbox, spam, elsewhere) under the current effective sender
 --      (fn_invite_placement_sender: the #963 invitation lane when invite_lane_enabled='true', else
 --      email_from_supplier). 'wait' until a verdict or the cutoff. 'fail' otherwise. A day with no check is
 --      'fail:no_check', filed as the same finding on an open day. enqueue_supplier_invites refuses to queue without
@@ -553,10 +553,8 @@ begin
     if p_now < public.fn_invite_placement_cutoff(v_day) then return 'wait'; end if;
     v := public.fn_invite_placement_settle(v_day, p_now);
   end if;
-  -- Ledger 1113 (5 Oct 2026, 'make sure no emails go to junk or spam') supersedes 1001: a spam seed holds the batch
-  -- (settle has already filed the it_engineer finding and the marketing handoff); Gmail Promotions ('elsewhere') passes.
-  if v = 'spam' then return 'fail:spam'; end if;
-  if v not in ('inbox', 'elsewhere') then return 'fail:' || v; end if;
+  -- A measured placement lets the batch go, junk included (ledger 1001); only a failure to measure holds it.
+  if v not in ('inbox', 'spam', 'elsewhere') then return 'fail:' || v; end if;
   if public.fn_invite_placement_sender() is distinct from r.from_address then return 'fail:from_changed'; end if;
   return 'pass';
 end
