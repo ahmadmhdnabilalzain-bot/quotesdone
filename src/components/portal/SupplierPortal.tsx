@@ -583,11 +583,9 @@ export function SupplierPortal() {
       } else if (t) setInvite({ invalid: true });
     } catch (_e) {}
     try { const th = localStorage.getItem('qd-theme'); if (th === 'light' || th === 'dark') setTheme(th); } catch (_e) {}
-    // A magic-link session in the URL is taken out of it in place and signs in (audit 21 Sep, item 29).
-    const urlSession = takeAuthFragment();
-    if (urlSession) onAuth(urlSession.access_token, urlSession.refresh_token);
-    else try { const tk = localStorage.getItem('qd-sup-token'); if (tk) { warmSupplier(tk); setToken(tk); setPhase('app'); claimIfInvited(tk); } } catch (_e) {}
-    if (!urlSession) try { SB().auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-sup-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} warmSupplier(ss.access_token); setPhase('app'); claimIfInvited(ss.access_token); } }).catch(() => {}); } catch (_e) {}
+    takeAuthFragment();   // a session in the URL is stripped and NEVER adopted (CWE-384): sign-in is by code only
+    try { const tk = localStorage.getItem('qd-sup-token'); if (tk) { warmSupplier(tk); setToken(tk); setPhase('app'); claimIfInvited(tk); } } catch (_e) {}
+    try { SB().auth.getSession().then(({ data }) => { const ss = data.session; if (ss && ss.access_token) { setToken(ss.access_token); try { localStorage.setItem('qd-sup-token', ss.access_token); if (ss.refresh_token) localStorage.setItem('qd-sup-refresh', ss.refresh_token); } catch (_e) {} warmSupplier(ss.access_token); setPhase('app'); claimIfInvited(ss.access_token); } }).catch(() => {}); } catch (_e) {}
     // THE HOUR MARK (14 Sep 2026). supabase-js refreshes the access token on schedule, and nothing here
     // listened — the customer portal learned this on 13 Aug; the supplier portal still sent the token
     // captured at mount, so after 60 minutes every tab answered "Something went wrong". One listener,
@@ -609,7 +607,7 @@ export function SupplierPortal() {
   const expiredRuns = useRef(0);
   const refreshing = useRef<Promise<void> | null>(null);
   const onAuth = (access, refresh, _locale) => { expiredRuns.current = 0; try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); if (access) warmSupplier(access); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
-  const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB().auth.signOut().catch(() => {}); } catch (_e) {} };
+  const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); localStorage.removeItem('qd-chat-conv'); } catch (_e) {} setToken(''); setPhase('login'); try { SB().auth.signOut().catch(() => {}); } catch (_e) {} };
   // A 401: try the stored refresh token once, and only then decide whether to sign the supplier out.
   //
   // SIGNING SOMEONE OUT IS NOT A SAFE DEFAULT (review of #858, 22 Sep 2026). Until this PR only the
