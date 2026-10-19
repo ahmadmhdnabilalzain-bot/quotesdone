@@ -19,6 +19,17 @@
 -- Apply at merge, AFTER the_public_company_block_carries_no_internal_figures.sql's position:
 --   node scripts/apply_sql.mjs scripts/sql/internal_seats_read_the_live_business_figures_in_the_company_block.sql --apply --ddl
 
+-- APPLY ORDER, ENFORCED HERE (review of #1549): this body is the_public_company_block_carries_no_internal_figures.sql's
+-- plus one section. Applied before that file, it would put back an older body. The guard refuses unless the live
+-- routine already carries that file's public-block boundary; scripts/checks/customer_support_senior_contributions_are_
+-- working_duties.test.mjs also refuses a MANIFEST that lists this file before that one.
+do $order$ begin
+  if not exists (select 1 from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'fn_company_context'
+                   and p.prosrc like '%A PUBLIC BLOCK STOPS HERE%' and p.prosrc like '%deliberately withheld%') then
+    raise exception 'apply order: fn_company_context is not yet the_public_company_block_carries_no_internal_figures.sql body; apply that first';
+  end if;
+end $order$;
+
 create or replace function public.fn_company_context(p_max_chars integer DEFAULT 16000, p_audience text DEFAULT 'internal'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -217,7 +228,11 @@ begin
   begin
     v_tail := v_tail || chr(10) || '## LIVE BUSINESS FIGURES (internal only: never state these to a customer or supplier)' || chr(10)
       || (select string_agg(key || ': ' || value, chr(10) order by key) from jsonb_each_text(public.fn_business_entity_summary())) || chr(10);
-  exception when others then null;
+  exception when others then
+    -- NOT SWALLOWED (review of #1549): the failure is named in the block and in missing[], so complete=false says it
+    -- (the routine is STABLE and cannot write a log row; every caller already reads complete/missing).
+    v_missing := array_append(v_missing, 'live business figures: fn_business_entity_summary failed: ' || left(sqlerrm, 200));
+    v_tail := v_tail || chr(10) || '## LIVE BUSINESS FIGURES: UNAVAILABLE (' || left(sqlerrm, 200) || '). Do not estimate them.' || chr(10);
   end;
   v_block := v_core || v_tail;
 

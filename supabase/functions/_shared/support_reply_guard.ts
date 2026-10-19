@@ -36,35 +36,40 @@ const INTERNAL = /circuit_open|openrouter|supabase|service_role|app_secrets|\bfn
 const PROMPT = /SHARED FACTS|CUSTOMER-SIDE FACTS|SUPPLIER-SIDE FACTS|AUDIENCE RULES|FORMAT RULES|GENERAL RULES|COMPANY BLOCK|FAQ CONTEXT|PRICE GUIDANCE:|system prompt|my instructions (?:are|say)|I (?:was|am) instructed to/i;
 
 
-// INTERNAL NUMBER (19 Oct 2026, narrowed on review of #1549). A sentence is refused only when ALL three hold:
-//   1. a COUNT: 100 or more as digits ("19,901", "19901", "20,000+"), a short form ("15k", "1.9 thousand", "2 million"),
-//      or words ("nineteen thousand", "twenty thousand", "thousands of", Arabic "15 ألف", "آلاف");
-//   2. within 40 characters of a word for the people we hold: suppliers, vendors, customers, clients, buyers, leads,
-//      registrations, members (Arabic مورد/موردين/عملاء/شركات);
-//   3. an OURS cue in the same sentence: we have / we currently / our network, platform, directory, database / there
-//      are / registered / signed up / on our or the platform (Arabic لدينا، منصتنا، شبكتنا، مسجل).
-// Never a count: a reference ("QD-10234"), a year (1900-2099), a phone number, a price (AED 1,000), "up to N" (a
-// capacity, not a size), and the published programme figures (the first 1,000 free; the fee from the 1,001st).
-const PEOPLE = String.raw`(?:suppliers?|vendors?|customers?|clients?|buyers?|leads|registrations?|members|موردين|مورّدين|موردًا|مورد|عملاء|عميل|شركات)`;
-const WORD_NUM = String.raw`(?:(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[- ](?:one|two|three|four|five|six|seven|eight|nine))?[- ](?:hundred|thousand|million)|(?:a|one) (?:hundred|thousand)|(?:hundreds|thousands|tens of thousands) of)`;
-const AR_NUM = String.raw`(?:[0-9٠-٩]+(?:[.,٫][0-9٠-٩]+)?\s*(?:ألف|آلاف|مليون)|آلاف|مئات)`;
-const DIGIT_NUM = String.raw`(?:[0-9٠-٩]{1,3}(?:[,٬][0-9٠-٩]{3})+|[0-9٠-٩]{3,}|[0-9٠-٩]+(?:[.,٫][0-9٠-٩]+)?\s*(?:k|K|thousand|million)\b)\+?`;
-const COUNT = String.raw`(?:${DIGIT_NUM}|${WORD_NUM}|${AR_NUM})`;
-const COUNT_NEAR_PEOPLE = new RegExp(String.raw`${COUNT}[^.!?؟\n]{0,40}?${PEOPLE}|${PEOPLE}[^.!?؟\n]{0,40}?${COUNT}`, 'iu');
+// INTERNAL NUMBER (19 Oct 2026; second review of #1549). Two rules, judged per sentence:
+//   A. A BIG COUNT, ALWAYS: 1,000 or more next to (within 40 characters, either order) suppliers, vendors, companies,
+//      businesses, leads, customers, clients, buyers, registrations or members (Arabic مورد/موردين/عملاء/شركات), with or
+//      without any "we have": "19,901 suppliers", "15k suppliers", "nineteen thousand suppliers", "QuotesDone has
+//      19,901 suppliers". Forms: digits with or without separators, "15k", "1.9 thousand", "2 million", words with
+//      thousand/million, "thousands of", Arabic "15 ألف" / "آلاف".
+//   B. A SMALLER COUNT CLAIMED AS OURS: 100-999 next to those words AND a cue that it is ours in the same sentence
+//      (we have / our network, platform, directory, database / there are / registered / on our platform; Arabic
+//      لدينا، منصتنا، شبكتنا، مسجل). "Your request went to 120 suppliers" alone is not our size.
+// Never a count, removed before judging: a reference ("QD-10234"), a phone number (short ones too: "800 1234",
+// "04 123 4567"), a year, a price, a duration ("120 days", "30 minutes"), "up to N" (a capacity), and the published
+// programme figures (the first 1,000 free; the fee from the 1,001st).
+const PEOPLE = String.raw`(?:suppliers?|vendors?|compan(?:y|ies)|businesses|customers?|clients?|buyers?|leads|registrations?|members|موردين|مورّدين|موردًا|مورد|عملاء|عميل|شركات|شركة)`;
+const NUM_WORD_UNIT = String.raw`(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:[- ](?:one|two|three|four|five|six|seven|eight|nine))?`;
+const BIG = String.raw`(?:[0-9٠-٩]{1,3}(?:[,٬][0-9٠-٩]{3})+|[0-9٠-٩]{4,}|[0-9٠-٩]+(?:[.,٫][0-9٠-٩]+)?\s*(?:k|K|thousand|million)\b|(?:${NUM_WORD_UNIT}|a|one)[- ](?:thousand|million)|(?:thousands|millions|tens of thousands) of|[0-9٠-٩]+(?:[.,٫][0-9٠-٩]+)?\s*(?:ألف|آلاف|مليون)|آلاف)\+?`;
+const MID = String.raw`(?:[0-9٠-٩]{3}|${NUM_WORD_UNIT}[- ]hundred|(?:a|one) hundred|hundreds of|مئات)\+?`;
+const near = (n: string) => new RegExp(String.raw`(?<![0-9٠-٩,٬.])${n}[^.!?؟\n]{0,40}?${PEOPLE}|${PEOPLE}[^.!?؟\n]{0,40}?(?<![0-9٠-٩,٬.])${n}(?![0-9٠-٩])`, 'iu');
+const BIG_NEAR_PEOPLE = near(BIG);
+const MID_NEAR_PEOPLE = near(MID);
 const OURS = /\b(?:we have|we've|we currently|we now have|our (?:network|platform|directory|database|base|community|list|system)|there are|registered|signed up|on (?:our|the) (?:platform|network|directory))\b|لدينا|منصتنا|شبكتنا|مسجل|مسجّل|مسجلين/iu;
 const NOT_A_COUNT = [
-  /\b[A-Z]{2,}(?:-[A-Z0-9]+)+\b/g,                                          // references: QD-10234, QD-S-KYUUSA
-  /\+?\d[\d\s().-]{7,}\d/g,                                                   // phone numbers
-  /\b(?:19|20)\d{2}\b(?![,٬]\d)/g,                                            // years
+  /\b[A-Z]{2,}(?:-[A-Z0-9]+)+\b/g,                                                    // references: QD-10234, QD-S-KYUUSA
+  /\+?\(?\d{2,4}\)?[\s.-]\d{2,4}(?:[\s.-]\d{2,4}){0,3}\b/g,                             // phone numbers, short ones too
+  /\b(?:19|20)\d{2}\b(?![,٬]\d)/g,                                                      // years
   /(?:AED|USD|Dhs?|درهم)\s*[0-9٠-٩][0-9٠-٩,٬.]*|[0-9٠-٩][0-9٠-٩,٬.]*\s*(?:AED|USD|Dhs?|درهم)/giu, // prices
-  /\bup to\s+\S+|حتى\s+\S+/giu,                                               // a capacity, not our size
-  /(?:first|أول|أوّل)\s*(?:1[,٬]?000|١[٬,]?٠٠٠)|(?:1[,٬]?001|١[٬,]?٠٠١)(?:st)?/giu, // the published programme figures
+  /[0-9٠-٩][0-9٠-٩,٬.]*\s*(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?|MB|KB|GB|km|m2|sqm|sq ft|يوم|أيام|ساعة|ساعات|شهر|أشهر)\b/giu, // durations, sizes
+  /\bup to\s+\S+|حتى\s+\S+/giu,                                                         // a capacity, not our size
+  /(?:first|أول|أوّل)\s*(?:1[,٬]?000|١[٬,]?٠٠٠)|(?:1[,٬]?001|١[٬,]?٠٠١)(?:st)?/giu,     // the published programme figures
 ];
 function hasInternalNumber(s: string): boolean {
   return String(s || '').split(/(?<=[.!?؟])\s+|\n+/).some((sentence) => {
     let t = sentence;
     for (const re of NOT_A_COUNT) t = t.replace(re, ' ');
-    return OURS.test(t) && COUNT_NEAR_PEOPLE.test(t);
+    return BIG_NEAR_PEOPLE.test(t) || (OURS.test(t) && MID_NEAR_PEOPLE.test(t));
   });
 }
 

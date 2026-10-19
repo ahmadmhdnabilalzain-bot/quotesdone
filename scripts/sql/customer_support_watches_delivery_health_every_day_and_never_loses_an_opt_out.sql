@@ -26,7 +26,9 @@
 --        that address ONE confirmation per calendar month carrying a FRESHLY SIGNED unsubscribe link (the same HMAC
 --        the endpoint verifies, unsubscribe_signing_key). Ownership is then proven one of two ways only:
 --          the person uses the signed link   -> the endpoint itself records the opt-out (source 'link');
---          a reply FROM that address after the confirmation was sent -> recorded here as reason 'unsubscribe',
+--          an AUTHENTICATED reply from that address after the confirmation was sent (inbound_messages.raw
+--            .sender_authenticated, set by resend_inbound from the SPF/DKIM/DMARC verdict, the same gate its own
+--            unsubscribe-by-mail path uses; a reply that fails it proves nothing) -> recorded as reason 'unsubscribe',
 --            source 'confirmed_by_reply' (marketing only, fn_opt_out_types; transactional mail still goes).
 --        No proof within 30 days: the refusal is closed as 'not confirmed', nothing suppressed. An address we never
 --        mailed is closed after a day: nothing of ours to unsubscribe from. example.invalid probes never count.
@@ -103,7 +105,10 @@ begin
     if exists (select 1 from public.email_suppressions s where lower(btrim(s.email)) = lower(btrim(r.email))) then
       update public.unsubscribe_refusal set recovered_at = now(), outcome = 'suppressed (the signed link, or already)' where id = r.id;
     elsif r.confirm_sent_at is not null and exists (select 1 from public.inbound_messages m
-                    where lower(btrim(m.from_email)) = lower(btrim(r.email)) and m.created_at > r.confirm_sent_at) then
+                    where lower(btrim(m.from_email)) = lower(btrim(r.email)) and m.created_at > r.confirm_sent_at
+                      -- AUTHENTICATED ONLY: resend_inbound records raw.sender_authenticated from fromDomainAuthenticated
+                      -- (the receiving server's SPF/DKIM/DMARC verdict for the From domain); a forged From proves nothing
+                      and coalesce((m.raw->>'sender_authenticated')::boolean, false)) then
       insert into public.email_suppressions (email, reason, source) values (lower(btrim(r.email)), 'unsubscribe', 'confirmed_by_reply')
       on conflict (email) do nothing;
       update public.unsubscribe_refusal set recovered_at = now(), outcome = 'opt-out recorded: the address replied to the confirmation' where id = r.id;

@@ -18,6 +18,20 @@ const LEAKS = [
   'لدينا ١٩٬٩٠١ مورد مسجل على المنصة.',
   'لدينا 19901 موردين مسجلين.',
   'لدينا 15 ألف مورد على منصتنا.',
+  // bare counts, no 'we have' (second review of #1549)
+  '19,901 suppliers.',
+  '19901 suppliers are listed.',
+  '15k suppliers.',
+  '1.9 thousand customers use it.',
+  'nineteen thousand suppliers.',
+  'Twenty thousand companies trust it.',
+  'QuotesDone has 19,901 suppliers.',
+  'QuotesDone works with 2 million leads.',
+  'Thousands of suppliers compete for your job.',
+  'Over 16,242 companies in the pool.',
+  '١٩٬٩٠١ مورد.',
+  '15 ألف مورد.',
+  'Our network has 450 suppliers.',
 ];
 const FINE = [
   'Your reference is QD-10234.',
@@ -35,6 +49,13 @@ const FINE = [
   'Your request went to 12 suppliers in that trade.',
   'Please send drawings of up to 25 MB.',
   'أول 1000 مورد يسجلون مجانًا بشكل دائم.',
+  'The quote is valid 120 days.',
+  'Valid for 120 days from issue; 3 suppliers quoted.',
+  'Call 800 1234 to reach our supplier desk.',
+  'Call 04 123 4567 or 800-1234 and our customers team will help.',
+  'Your request went to 120 suppliers in that trade.',
+  'Attach files up to 2,000 KB for suppliers.',
+  'The 1,001st supplier pays AED 1,000 a year.',
 ];
 
 Deno.test('a count of our suppliers, customers or leads is an internal_number violation, in every form', () => {

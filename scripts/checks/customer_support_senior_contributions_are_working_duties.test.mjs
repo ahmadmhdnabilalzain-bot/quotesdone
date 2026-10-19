@@ -77,6 +77,13 @@ test('static: the leak fix withholds live-figure rows, filters the corpus, and t
   const cc = code(read(CONTEXT));
   assert.ok(cc.includes('jsonb_each_text(public.fn_business_entity_summary())'), 'internal seats lost the live figures');
   assert.ok(pending(CONTEXT) !== manifest().includes(CONTEXT), 'exactly one of a pending note and a MANIFEST line');
+  // APPLY ORDER: the body is the public-block file's plus one section, so it must follow that file in MANIFEST
+  const PUB = 'scripts/sql/the_public_company_block_carries_no_internal_figures.sql';
+  if (manifest().includes(CONTEXT)) assert.ok(manifest().indexOf(CONTEXT) > manifest().indexOf(PUB), CONTEXT + ' is listed before ' + PUB);
+  assert.ok(manifest().includes(PUB), PUB + ' must already be applied');
+  assert.ok(cc.includes("raise exception 'apply order:"), 'the in-file apply-order guard is gone');
+  assert.doesNotMatch(cc, /exception when others then null/, 'the live-figures failure is swallowed again');
+  assert.ok(read('scripts/sql/customer_support_watches_delivery_health_every_day_and_never_loses_an_opt_out.sql').includes("(m.raw->>'sender_authenticated')::boolean"), 'an unauthenticated reply can confirm an opt-out');
   const dh = code(read('scripts/sql/customer_support_watches_delivery_health_every_day_and_never_loses_an_opt_out.sql'));
   assert.doesNotMatch(dh, /recovered_refused_link/, 'a refused attempt is turned into an opt-out without proof of ownership');
   assert.ok(dh.includes("'confirmed_by_reply'") && dh.includes('fn_unsubscribe_signed_link(r.email)') && dh.includes('a00_unsubscribe_refusal_throttle'), 'the ownership proof or the throttle is gone');
@@ -114,6 +121,7 @@ test('production, aborted: every duty acts on its fixture, and nothing reaches t
   assert.equal(o.c09_after_refusal, 0, 'C09: a refused attempt alone unsubscribed the address');
   assert.equal(o.c09_confirm, 1, 'C09: the mailed address was not sent a signed confirmation');
   assert.equal(o.c09_link_signed, true, 'C09: the confirmation link is not signed the way the endpoint verifies');
+  assert.equal(o.c09_forged_reply, 0, 'C09: a reply that failed SPF/DKIM/DMARC confirmed an opt-out');
   assert.ok(o.c09 >= 1 && o.c09_suppressed === 'confirmed_by_reply', 'C09: a reply from the address did not confirm the opt-out');
   assert.equal(o.cc_internal, true, 'internal seats do not get the live figures in the company block');
   assert.equal(o.cc_public, false, 'the public company block carries the live figures');
@@ -173,7 +181,10 @@ begin
   o := o || jsonb_build_object('c09_after_refusal', (select count(*) from email_suppressions where email = 'zz.cs09@example.invalid'),
            'c09_confirm', (select count(*) from customer_support_duty_message where stage = 'optout.confirm' and to_email = 'zz.cs09@example.invalid'),
            'c09_link_signed', public.fn_unsubscribe_signed_link('zz.cs09@example.invalid') ~ '[?&]e=zz.cs09%40example.invalid&t=[0-9a-f]{20}$');
-  insert into inbound_messages (from_email, to_email, subject, body, created_at) values ('zz.cs09@example.invalid', 'support@quotesdone.com', 'ZZ DEMO stop', 'ZZ DEMO stop', now() + interval '1 second');
+  insert into inbound_messages (from_email, to_email, subject, body, created_at, raw) values ('zz.cs09@example.invalid', 'support@quotesdone.com', 'ZZ DEMO stop', 'ZZ DEMO stop', now() + interval '1 second', '{"sender_authenticated": false}');
+  perform fn_customer_support_delivery_health_tick();
+  o := o || jsonb_build_object('c09_forged_reply', (select count(*) from email_suppressions where email = 'zz.cs09@example.invalid'));
+  insert into inbound_messages (from_email, to_email, subject, body, created_at, raw) values ('zz.cs09@example.invalid', 'support@quotesdone.com', 'ZZ DEMO stop', 'ZZ DEMO stop', now() + interval '2 seconds', '{"sender_authenticated": true}');
   v := fn_customer_support_delivery_health_tick();
   o := o || jsonb_build_object('c09', v->'opt_outs_confirmed', 'c09_suppressed', (select source from email_suppressions where email = 'zz.cs09@example.invalid'));
 
