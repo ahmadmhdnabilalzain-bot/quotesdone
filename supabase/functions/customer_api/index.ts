@@ -9,7 +9,7 @@ import { notSureKeys, specHandoffArgs } from './spec_handoff.ts';
 import { parseRatingInput } from './rating_input.ts';
 import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
-import { repeatPlan } from './repeat.ts';
+import { repeatCheck, repeatPlan } from './repeat.ts';
 import { HELD_NOTICE, hasArabic, holdForEnglish, mailMatched, supplierMail } from '../_shared/supplier_english.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { NONE, tradeOfText } from '../_shared/reasoned_trades.ts';
@@ -1198,7 +1198,18 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       const { data: o } = await admin.from('inquiries').select('id,customer_id,parent_inquiry_id,category,emirate,raw_input,spec,summary,budget,scope_type,trades,floor,project_id,lang,created_at').eq('id', String(body.inquiry_id || '')).maybeSingle();
       if (!o || o.customer_id !== cust.id) return J({ error: 'not_found' }, 404);
       if (o.parent_inquiry_id) return J({ error: 'repeat_the_whole_request', message: 'This is one trade of a larger request. Repeat the whole request instead.' }, 409);
-      const plan = repeatPlan(o, new Date());
+      const now = new Date();
+      const plan = repeatPlan(o, now, body.edits && typeof body.edits === 'object' ? body.edits : {});
+      // Checked before anything is written, so a refusal leaves no intake row (release review of #1180).
+      const chk = repeatCheck(plan, now);
+      if (!chk.ok) return J({ error: 'nothing_to_repeat', missing: chk.missing, message: 'This request has no saved answers to repeat. Please start a new request instead.' }, 422);
+      // The edit step (founder_instruction 1028): the customer sees the copy and changes it before anything is posted.
+      if (body.preview === true) return J({ ok: true, draft: { summary: plan.brief.summary, budget: plan.brief.budget, emirate: plan.brief.emirate, required_by: chk.required_by } });
+      // Double-click guard: one copy of the same request per customer within three minutes.
+      // ponytail: read-then-insert, so two calls in the same instant can both pass; add a unique key if that is ever seen.
+      const since = new Date(now.getTime() - 3 * 60e3).toISOString();
+      const { count: dup } = await admin.from('inquiry_intake').select('id', { count: 'exact', head: true }).eq('customer_id', cust.id).eq('brief->>repeat_of', o.id).gte('created_at', since);
+      if ((dup || 0) > 0) return J({ error: 'already_repeated', message: 'This request was just posted again. Check your requests list.' }, 409);
       const { data: it, error: ie } = await admin.from('inquiry_intake').insert({ customer_id: cust.id, email, category: plan.category, status: 'ready', raw_input: plan.raw_input, brief: plan.brief, readiness: 100, missing: [], turns: [] }).select('id').single();
       if (ie || !it) return J({ error: 'save_failed' }, 500);
       Object.assign(body, plan.body, { intake_id: it.id });
@@ -1422,7 +1433,8 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
           return list && list.length ? { list, source: 'category_specs', category: cat, attached_at: new Date().toISOString() } : null;
         } catch (_e) { return null; }
       };
-      const briefCols = { floor: floorTxt, delivery_window: timelineTxt, required_by: requiredBy, project_id: projectId };
+      // A repeated request is linked to the one it copies (founder_instruction 1028); read from the server-side intake only.
+      const briefCols = { floor: floorTxt, delivery_window: timelineTxt, required_by: requiredBy, project_id: projectId, ...(briefObj?.repeat_of ? { repeat_of: String(briefObj.repeat_of) } : {}) };
 
       if (wantSplit) {
         // ALL OR NOTHING (_shared/inquiry_split.ts; review of #653). Parent and every child are saved

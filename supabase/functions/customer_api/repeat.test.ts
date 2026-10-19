@@ -39,3 +39,24 @@ Deno.test('the sourcing choice is the customer\'s own; nothing is split that was
   assertEquals(repeatPlan({ ...base, scope_type: 'multi', trades: ['tiling'] }).body.scope_type, 'single');
   assertEquals(repeatPlan({ ...base, scope_type: null }).body.scope_type, 'single');
 });
+
+// Release review of #1180: the check runs before any write, and the customer's edits reach the copy.
+import { repeatCheck } from './repeat.ts';
+
+Deno.test('a request with no stored answers is refused by the check that runs before the intake insert', () => {
+  const p = repeatPlan({ ...base, spec: { quantity: 1 } }, new Date('2026-10-05T10:00:00Z'));
+  const c = repeatCheck(p, new Date('2026-10-05T10:00:00Z'));
+  assertEquals(c.ok, false);
+});
+
+Deno.test('the customer edits summary, budget, emirate and date before posting; the copy links to the original', () => {
+  const p = repeatPlan({ ...base, id: 'orig-1' }, new Date('2026-10-05T10:00:00Z'), { summary: 'Tiling 150 m2', budget: '', emirate: 'Sharjah', required_by: '2026-11-30' });
+  assertEquals(p.brief.repeat_of, 'orig-1');
+  assertEquals([p.body.summary, p.body.budget, p.body.emirate], ['Tiling 150 m2', null, 'Sharjah']);
+  assertEquals(p.body.requirement_edits, { required_by: '2026-11-30' });
+});
+
+Deno.test('no edits keeps every original value', () => {
+  const p = repeatPlan(base, new Date('2026-09-10T10:00:00Z'), {});
+  assertEquals([p.body.summary, p.body.budget, p.body.emirate], [base.summary, base.budget, base.emirate]);
+});

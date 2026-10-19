@@ -1178,7 +1178,11 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
   const doCancel = async (e) => { e.stopPropagation(); if (canceling) return; if (!(await ask(t(lang, 'rc_cancel_confirm'), { title: t(lang, 'rc_cancel'), confirm: t(lang, 'rc_cancel'), danger: true }))) return; setCanceling(true); setErr(''); try { const j = await call('customer_api', { action: 'cancel_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { onChange(); } else { setErr(errText(j, lang, 'rc_cancel_fail')); setCanceling(false); } } catch (_e) { setErr(t(lang, 'rc_cancel_fail')); setCanceling(false); } };
   const [repeating, setRepeating] = useState(false);
   const [repeated, setRepeated] = useState('');
-  const doRepeat = async (e) => { e.stopPropagation(); if (repeating) return; if (!(await ask(t(lang, 'rc_repeat_confirm'), { title: t(lang, 'rc_repeat'), confirm: t(lang, 'rc_repeat') }))) return; setRepeating(true); setErr(''); setRepeated(''); try { const j = await call('customer_api', { action: 'repeat_inquiry', inquiry_id: inq.id }, token); if (j && j.ok) { setRepeated(t(lang, 'rc_repeat_done')); onChange(); } else { setErr(errText(j, lang, 'rc_repeat_fail')); } } catch (_e) { setErr(t(lang, 'rc_repeat_fail')); } setRepeating(false); };
+  // REPEAT (founder_instruction 1028): one click opens the same specs as an editable copy; nothing is posted until
+  // the customer presses Post. The server checks the copy can be posted before it shows it (preview).
+  const [rDraft, setRDraft] = useState(null);
+  const openRepeat = async (e) => { e.stopPropagation(); if (repeating) return; setRepeating(true); setErr(''); setRepeated(''); try { const j = await call('customer_api', { action: 'repeat_inquiry', inquiry_id: inq.id, preview: true }, token); if (j && j.ok && j.draft) { setRDraft({ summary: j.draft.summary || '', budget: j.draft.budget || '', emirate: j.draft.emirate || '', required_by: j.draft.required_by || '' }); } else { setErr(j && j.error === 'nothing_to_repeat' ? t(lang, 'rc_repeat_nothing') : errText(j, lang, 'rc_repeat_fail')); } } catch (_e) { setErr(t(lang, 'rc_repeat_fail')); } setRepeating(false); };
+  const postRepeat = async () => { if (repeating || !rDraft) return; setRepeating(true); setErr(''); try { const j = await call('customer_api', { action: 'repeat_inquiry', inquiry_id: inq.id, edits: rDraft }, token); if (j && j.ok) { setRDraft(null); setRepeated(t(lang, 'rc_repeat_done')); onChange(); } else { setErr(j && j.error === 'nothing_to_repeat' ? t(lang, 'rc_repeat_nothing') : errText(j, lang, 'rc_repeat_fail')); } } catch (_e) { setErr(t(lang, 'rc_repeat_fail')); } setRepeating(false); };
   const saveEdit = async () => { setSaving(true); setErr(''); try { const j = await call('customer_api', { action: 'edit_inquiry', inquiry_id: inq.id, patch: { summary: eSummary, budget: eBudget || null, emirate: eEmirate || null } }, token); if (j && j.ok) { setEditing(false); onChange(); } else { setErr(errText(j, lang, 'rc_save_fail')); } } catch (_e) { setErr(t(lang, 'rc_save_fail')); } setSaving(false); };
   return (<Card ref={cardRef} id={'inq-' + inq.id} className={cn('scroll-mt-20 p-4 shadow-e1 transition-[border-color,box-shadow] duration-300 hover:border-primary/30 hover:shadow-e2 sm:p-5', open && 'border-primary/25 shadow-e2')}>{dialog}
     {/* A11Y (5 Aug 2026): role+tabIndex+onKeyDown rather than a <button>, because this wraps <div>
@@ -1226,9 +1230,23 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
     </div>}
     {/* REPEAT IN ONE CLICK (founder_instruction 1028): the same specs posted again as a new request, through the
         same posting door (customer_api repeat_inquiry -> create_inquiry). */}
-    {!editing && <div className="flex gap-2.5 flex-wrap items-center mt-1">
-      <Button variant="link" className="px-0 h-auto" disabled={repeating} onClick={doRepeat}>{repeating ? t(lang, 'rc_repeating') : t(lang, 'rc_repeat')}</Button>
+    {!editing && !rDraft && <div className="flex gap-2.5 flex-wrap items-center mt-1">
+      <Button variant="link" className="px-0 h-auto" disabled={repeating} onClick={openRepeat}>{repeating ? t(lang, 'rc_repeating') : t(lang, 'rc_repeat')}</Button>
       {repeated ? <span className={S.sub} role="status">{repeated}</span> : null}
+    </div>}
+    {rDraft && <div className="mt-2" onClick={(e) => e.stopPropagation()}>
+      <div className={S.sub}>{t(lang, 'rc_repeat_confirm')}</div>
+      <label className="sr-only" htmlFor={'qd-rep-' + inq.id}>{t(lang, 'rc_describe')}</label>
+      <textarea id={'qd-rep-' + inq.id} className={S.area} rows={3} value={rDraft.summary} onChange={(e) => setRDraft({ ...rDraft, summary: e.target.value })} placeholder={t(lang, 'rc_describe')} />
+      <div className={S.frow}>
+        <select className={cn(S.field, 'bg-background')} aria-label={t(lang, 'rc_emirate_opt')} value={rDraft.emirate} onChange={(e) => setRDraft({ ...rDraft, emirate: e.target.value })}><option value="">{t(lang, 'rc_emirate_opt')}</option>{EMIRATES.map((em) => <option key={em} value={em}>{emirateName(em, lang)}</option>)}</select>
+        <Input aria-label={t(lang, 'rc_budget_opt')} placeholder={t(lang, 'rc_budget_opt')} value={rDraft.budget} onChange={(e) => setRDraft({ ...rDraft, budget: e.target.value })} />
+        <Input type="date" aria-label={t(lang, 'rc_repeat_date')} title={t(lang, 'rc_repeat_date')} value={rDraft.required_by} onChange={(e) => setRDraft({ ...rDraft, required_by: e.target.value })} />
+      </div>
+      <div className="flex gap-2.5 flex-wrap items-center mt-2.5">
+        <Button disabled={repeating || !rDraft.summary.trim()} onClick={postRepeat}>{repeating ? t(lang, 'rc_repeating') : t(lang, 'rc_repeat_post')}</Button>
+        <Button variant="link" className="px-0 h-auto" onClick={() => { setRDraft(null); setErr(''); }}>{t(lang, 'rc_cancel_edit')}</Button>
+      </div>
     </div>}
     {err && <div className={S.err} role="alert">{err}</div>}
     <Journey idx={stepIdx} lang={lang} matched={inq.matched_suppliers} revealed={anyRevealed} />

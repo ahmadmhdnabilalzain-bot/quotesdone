@@ -14,8 +14,10 @@
 // ponytail: lead time is whole days between the old post and its date, floored at 7; a customer who wants
 // another date edits the request after posting.
 
+import { applyEdits, validateStored } from '../_shared/intake_requirements.ts';
+
 export type Original = {
-  category: string | null; emirate: string | null; raw_input: string | null; summary: string | null;
+  id?: string; category: string | null; emirate: string | null; raw_input: string | null; summary: string | null;
   budget: string | null; scope_type: string | null; trades: string[] | null; floor: string | null;
   project_id: string | null; lang: string | null; created_at: string; spec: Record<string, unknown> | null;
 };
@@ -24,7 +26,11 @@ const DROP = new Set(['customer_requirements', 'boq_check', 'plausibility', 'pro
 const DAY = 86400e3;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
-export function repeatPlan(o: Original, now = new Date()) {
+/** What the customer may change before posting the copy (founder_instruction 1028: "edit it before submitting"). */
+export type RepeatEdits = { summary?: unknown; budget?: unknown; emirate?: unknown; required_by?: unknown };
+const txt = (v: unknown, n: number) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+
+export function repeatPlan(o: Original, now = new Date(), e: RepeatEdits = {}) {
   const spec = (o.spec && typeof o.spec === 'object') ? o.spec : {};
   const details: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(spec)) if (!DROP.has(k)) details[k] = v;
@@ -37,14 +43,36 @@ export function repeatPlan(o: Original, now = new Date()) {
     const lead = Math.max(7, Math.round((Date.parse(old) - Date.parse(String(o.created_at).slice(0, 10))) / DAY));
     edits.required_by = iso(new Date(Date.parse(iso(now)) + lead * DAY));
   }
+  const date = txt(e.required_by, 10);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) edits.required_by = date;
+  const summary = txt(e.summary, 500) || o.summary;
+  const budget = e.budget === undefined ? o.budget : (txt(e.budget, 80) || null);
+  const emirate = e.emirate === undefined ? o.emirate : (txt(e.emirate, 40) || null);
   // The requirements carry their own category (validateStored checks it), so a turnkey parent ('fitout')
   // keeps the category its answers were recorded under.
   const category = String(reqs?.category || o.category || 'general');
-  const brief = { summary: o.summary, emirate: o.emirate, budget: o.budget, floor: o.floor, project_id: o.project_id, trades, details, requirements: reqs };
+  const brief = { repeat_of: o.id ?? null, summary, emirate, budget, floor: o.floor, project_id: o.project_id, trades, details, requirements: reqs };
   return {
     category,
     raw_input: String(o.raw_input || o.summary || '').slice(0, 4000),
     brief,
-    body: { category, emirate: o.emirate, summary: o.summary, budget: o.budget, raw_input: o.raw_input, scope_type: scope, trades, lang: o.lang, requirement_edits: edits, drawing: null, spec: {} },
+    body: { category, emirate, summary, budget, raw_input: o.raw_input, scope_type: scope, trades, lang: o.lang, requirement_edits: edits, drawing: null, spec: {} },
   };
+}
+
+/** Checked BEFORE anything is written (release review of #1180): a request whose stored answers cannot be posted
+ *  again is refused with a plain message and leaves no intake row behind. Also returns the needed-by date the copy
+ *  will carry, for the edit form. */
+export function repeatCheck(plan: ReturnType<typeof repeatPlan>, now = new Date()) {
+  const reqs = plan.brief.requirements;
+  const cat = String(reqs?.category || plan.category);
+  let stored: unknown = reqs;
+  if (Object.keys(plan.body.requirement_edits).length) {
+    const ed = applyEdits(cat, reqs, plan.body.requirement_edits, now);
+    if (ed.invalid.length) return { ok: false as const, missing: ed.invalid, required_by: null };
+    stored = ed.stored;
+  }
+  const v = validateStored(cat, stored);
+  const rb = (stored as any)?.required_by?.date;
+  return { ok: v.ok, missing: v.missing, required_by: typeof rb === 'string' ? rb : null };
 }
