@@ -35,6 +35,9 @@ export async function menuMeaning<M extends string = never>(deps: ThinkDeps, o: 
     dedupeKey: o.messageSid ? 'wa_menu:' + o.messageSid : undefined,
     context: { audience: 'customer' },
     decision: { name: 'menu_meaning', options },
+    // A choice among given options needs no planner: its options are the whole of what it needs (think.ts `plan`).
+    // Measured 18 Oct 2026: the plan call was 5-8 s of every one of these, and the plan was never used by a decision.
+    plan: { steps: [] },
   });
   const choice = result.status === 'answered' ? result.decision?.choice ?? null : null;
   return { value: options.some((x) => x.id === choice) ? choice as MenuMeaning | M : null, result };
