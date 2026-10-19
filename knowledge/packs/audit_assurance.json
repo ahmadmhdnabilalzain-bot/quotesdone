@@ -56,6 +56,36 @@
       "confidence": "high",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "audit_assurance:product-distinctions",
+      "topic": "Audit and assurance: engagement types and the opinions they produce",
+      "topic_ar": "التدقيق والتأكيد: أنواع المهام والآراء التي تنتج عنها",
+      "kind": "product_distinctions",
+      "body_en": "A statutory financial-statement audit is performed under the International Standards on Auditing (ISA, issued by the IAASB) and ends in an opinion: unqualified (clean), qualified (true and fair except for a stated matter), adverse (materially misstated), or a disclaimer (the auditor could not obtain enough evidence). A review engagement gives limited assurance at lower cost. Agreed-upon procedures report factual findings with no opinion, and are often used for grant, licence or bank covenant checks. Other assurance work: internal audit (outsourced or co-sourced, testing controls and processes for management and the board), audits for specific regulators or free-zone authorities, inventory counts and verification, forensic audits for fraud, IT and SOC-type controls reports, ESG and sustainability assurance, and due diligence on acquisitions. What separates offers: the firm's registration and licence to sign audits for that type of entity, the partner and team experience in the sector, the audit approach and the number of days, the timetable to the signed report, what the client must prepare (trial balance, schedules, confirmations), and independence (an auditor must not also keep the books it audits).",
+      "body_ar": "يُنفّذ التدقيق القانوني للقوائم المالية وفق معايير التدقيق الدولية (الصادرة عن مجلس معايير التدقيق والتأكيد الدولي) وينتهي برأي: غير متحفظ (نظيف)، أو متحفظ (عادل باستثناء مسألة محددة)، أو معارض (تحريف جوهري)، أو امتناع عن إبداء الرأي (لم يحصل المدقق على أدلة كافية). ومهمة المراجعة تعطي تأكيداً محدوداً بتكلفة أقل. والإجراءات المتفق عليها تقدم نتائج واقعية دون رأي، وتُستخدم غالباً لفحوص المنح أو التراخيص أو تعهدات البنوك. ومن أعمال التأكيد الأخرى: التدقيق الداخلي (خارجي أو مشترك، يختبر الضوابط والعمليات للإدارة ومجلس الإدارة)، والتدقيق لجهات تنظيمية بعينها أو لسلطات المناطق الحرة، وجرد المخزون والتحقق منه، والتدقيق الجنائي للاحتيال، وتقارير ضوابط تقنية المعلومات، والتأكيد على تقارير الاستدامة والحوكمة البيئية والاجتماعية، والعناية الواجبة في الاستحواذ. وما يميز العروض: تسجيل المكتب وترخيصه لتوقيع التدقيق لذلك النوع من الكيانات، وخبرة الشريك والفريق في القطاع، ومنهج التدقيق وعدد الأيام، والجدول الزمني حتى التقرير الموقع، وما يجب على العميل إعداده (ميزان المراجعة، الجداول، المصادقات)، والاستقلالية (لا يجوز للمدقق أن يمسك الدفاتر التي يدققها).",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Financial_audit"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: unqualified, qualified, adverse and disclaimer opinions; International Standards on Auditing issued by the IAASB -> confirmed."
+    },
+    {
+      "id": "audit_assurance:lead-times-and-quoting",
+      "topic": "Audit & assurance - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "التدقيق والتأكيد: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A small-company audit usually takes 2-6 weeks from complete records to the signed report; larger groups longer with interim visits. An auditor needs the entity type and licensing authority, year-end, turnover and assets, number of transactions and locations, the accounting system, prior-year reports, and the deadline. A quote states the engagement type and standard, scope and entities, team and days, timetable, client deliverables, the fee and extra-work basis, independence confirmation and validity.",
+      "body_ar": "يستغرق تدقيق شركة صغيرة عادة 2-6 أسابيع من اكتمال السجلات حتى التقرير الموقع؛ والمجموعات الأكبر أطول مع زيارات مرحلية. ويحتاج المدقق نوع الكيان وجهة الترخيص، ونهاية السنة المالية، والإيرادات والأصول، وعدد المعاملات والمواقع، والنظام المحاسبي، وتقارير السنة السابقة، والموعد النهائي. ويذكر العرض نوع المهمة والمعيار، والنطاق والكيانات، والفريق والأيام، والجدول الزمني، ومخرجات العميل، والأتعاب وأساس العمل الإضافي، وتأكيد الاستقلالية، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -81,6 +111,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither addresses free-zone approved-auditor lists (standards entry only covers Ministry of Economy registration); missing: free-zone auditor panel rules). audit_assurance:free-zone-approved-auditor-panels was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from audit_assurance.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Our bank asked for a review instead of a full audit. What is the difference in what we get?",
+      "q_ar": "البنك طلب منا مراجعة بدل تدقيق كامل، وش الفرق في اللي نحصل عليه؟",
+      "expected_entry_ids": [
+        "audit_assurance:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "audit_assurance:free-zone-approved-auditor-panels"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "audit_assurance:product-distinctions"
+      ],
+      "stored_not_served": [
+        "audit_assurance:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Financial_audit"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

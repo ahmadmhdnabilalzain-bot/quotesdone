@@ -4,7 +4,7 @@
   "items": [
     {
       "id": "marketing-exam-01",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-007",
       "q_en": "Should the site redirect Arabic-speaking visitors automatically to the Arabic pages?",
       "q_ar": "هل يعيد الموقع توجيه الزوار الناطقين بالعربية تلقائياً إلى الصفحات العربية؟",
       "expected_entry_ids": [
@@ -12,11 +12,16 @@
       ],
       "expected_facts": [
         "Do not redirect visitors automatically"
+      ],
+      "q_reworded": "A Dubai visitor with Arabic browser settings lands on our English homepage. Should we bounce them straight to /ar?",
+      "answer_must": [
+        "No automatic language redirects",
+        "Offer a visible language switch; let crawlers reach both versions"
       ]
     },
     {
       "id": "marketing-exam-02",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-007",
       "q_en": "What must hreflang annotations between English and Arabic pages look like?",
       "q_ar": "كيف يجب أن تكون وسوم hreflang بين الصفحات الإنجليزية والعربية؟",
       "expected_entry_ids": [
@@ -25,11 +30,16 @@
       "expected_facts": [
         "reciprocal",
         "x-default"
+      ],
+      "q_reworded": "Our developer is adding the language tags that link the English and Arabic versions. What must he get right?",
+      "answer_must": [
+        "Each page must reference the other (reciprocal) and itself",
+        "Include an x-default fallback"
       ]
     },
     {
       "id": "marketing-exam-03",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-010",
       "q_en": "What are the Core Web Vitals thresholds?",
       "q_ar": "ما حدود مؤشرات أداء الويب الأساسية؟",
       "expected_entry_ids": [
@@ -39,11 +49,17 @@
         "2.5 seconds",
         "200 milliseconds",
         "0.1"
+      ],
+      "q_reworded": "The site feels slow on phones. What speed numbers does Google treat as good?",
+      "answer_must": [
+        "LCP within 2.5 seconds",
+        "INP within 200 ms",
+        "CLS at or below 0.1"
       ]
     },
     {
       "id": "marketing-exam-04",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-014",
       "q_en": "Can we pay a construction blog for a link to our site?",
       "q_ar": "هل يمكن أن ندفع لمدونة بناء مقابل رابط لموقعنا؟",
       "expected_entry_ids": [
@@ -52,11 +68,16 @@
       "expected_facts": [
         "rel=\"sponsored\"",
         "never pay for a followed link"
+      ],
+      "q_reworded": "A contracting magazine offers us a backlink for AED 500. Is that worth doing?",
+      "answer_must": [
+        "Paying for a followed link is link spam",
+        "Any paid link must be marked rel=\"sponsored\"; earn links through data and PR instead"
       ]
     },
     {
       "id": "marketing-exam-05",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-016",
       "q_en": "How do we get our explainer videos to show in Google search?",
       "q_ar": "كيف نجعل فيديوهاتنا التعريفية تظهر في بحث جوجل؟",
       "expected_entry_ids": [
@@ -64,11 +85,16 @@
       ],
       "expected_facts": [
         "VideoObject"
+      ],
+      "q_reworded": "Our how-it-works clip never appears in Google results. What are we missing?",
+      "answer_must": [
+        "Mark it up with VideoObject structured data",
+        "Give each video its own indexable page with thumbnail and description"
       ]
     },
     {
       "id": "marketing-exam-06",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-029",
       "q_en": "Our reel got views but nobody clicked. Which numbers should we read?",
       "q_ar": "حقق مقطعنا مشاهدات لكن لم ينقر أحد، أي أرقام نقرأ؟",
       "expected_entry_ids": [
@@ -77,11 +103,16 @@
       "expected_facts": [
         "hook rate",
         "link clicks"
+      ],
+      "q_reworded": "A reel reached 20,000 people but brought zero sign-ups. Which numbers tell us what went wrong?",
+      "answer_must": [
+        "Check hook rate / early retention to see if people stayed",
+        "Check link clicks and landing conversion, not views"
       ]
     },
     {
       "id": "marketing-exam-07",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-060",
       "q_en": "How do we know whether our Meta ads actually caused the sign-ups?",
       "q_ar": "كيف نعرف أن إعلانات ميتا سببت التسجيلات فعلاً؟",
       "expected_entry_ids": [
@@ -90,11 +121,16 @@
       "expected_facts": [
         "holdout",
         "upper bound"
+      ],
+      "q_reworded": "The agency says Facebook brought us 40 suppliers. How do we check that is real?",
+      "answer_must": [
+        "Platform-reported conversions are an upper bound",
+        "Prove causation with a holdout or lift test"
       ]
     },
     {
       "id": "marketing-exam-08",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-051",
       "q_en": "What does Gmail require from our bulk marketing emails?",
       "q_ar": "ماذا تشترط جيميل على رسائلنا التسويقية الجماعية؟",
       "expected_entry_ids": [
@@ -103,11 +139,16 @@
       "expected_facts": [
         "one-click unsubscribe",
         "0.3%"
+      ],
+      "q_reworded": "Our supplier newsletter is going to spam in Gmail. What do the big mailbox providers demand?",
+      "answer_must": [
+        "Authenticate the domain and offer one-click unsubscribe",
+        "Keep spam complaints under 0.3%"
       ]
     },
     {
       "id": "marketing-exam-09",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-050",
       "q_en": "How fast should we respond to a supplier who started sign-up?",
       "q_ar": "بأي سرعة نرد على مورد بدأ التسجيل؟",
       "expected_entry_ids": [
@@ -116,11 +157,16 @@
       "expected_facts": [
         "within an hour",
         "minutes, not days"
+      ],
+      "q_reworded": "A contractor half-finished registration this morning. When should someone reach out?",
+      "answer_must": [
+        "Within an hour while intent is fresh",
+        "Response time is measured in minutes, not days"
       ]
     },
     {
       "id": "marketing-exam-10",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-023",
       "q_en": "How do we measure share of voice against competitors?",
       "q_ar": "كيف نقيس حصة الصوت مقابل المنافسين؟",
       "expected_entry_ids": [
@@ -129,11 +175,16 @@
       "expected_facts": [
         "excess share of voice",
         "same competitor set"
+      ],
+      "q_reworded": "How do we tell if we are louder than other quote platforms online?",
+      "answer_must": [
+        "Measure share of voice against the same competitor set each time",
+        "Compare share of voice with market share (excess share of voice)"
       ]
     },
     {
       "id": "marketing-exam-11",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-038",
       "q_en": "Can we launch a free first month for suppliers in Dubai right away?",
       "q_ar": "هل نطلق شهراً أول مجانياً للموردين في دبي فوراً؟",
       "expected_entry_ids": [
@@ -142,11 +193,16 @@
       "expected_facts": [
         "Department of Economy and Tourism",
         "permit check"
+      ],
+      "q_reworded": "Sales wants a \"first month free\" offer for Dubai suppliers starting Monday. Anything to check?",
+      "answer_must": [
+        "Promotions in Dubai may need a Department of Economy and Tourism permit",
+        "Run a permit check before launch"
       ]
     },
     {
       "id": "marketing-exam-12",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-042",
       "q_en": "What content belongs at the bottom of the funnel?",
       "q_ar": "ما المحتوى الذي ينتمي إلى أسفل القمع؟",
       "expected_entry_ids": [
@@ -154,11 +210,16 @@
       ],
       "expected_facts": [
         "pricing pages"
+      ],
+      "q_reworded": "What should a procurement manager who is almost ready to buy be reading from us?",
+      "answer_must": [
+        "Bottom-of-funnel content: pricing pages, fees and comparisons",
+        "Proof that removes the final doubt"
       ]
     },
     {
       "id": "marketing-exam-13",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-001",
       "q_en": "What is the difference between GEO and classic SEO for our marketplace?",
       "q_ar": "ما الفرق بين تحسين الظهور في محركات الإجابة التوليدية وتحسين محركات البحث التقليدي لمنصتنا؟",
       "expected_entry_ids": [
@@ -167,11 +228,16 @@
       "expected_facts": [
         "ranked list of ten links",
         "generative answer engines"
+      ],
+      "q_reworded": "The founder asks why we need anything beyond normal SEO now that people ask chatbots. What do you tell him?",
+      "answer_must": [
+        "SEO targets a ranked list of links; GEO targets being the source an answer engine quotes",
+        "Crawlability and authority still matter for both"
       ]
     },
     {
       "id": "marketing-exam-14",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-002",
       "q_en": "Which crawler must we allow so our pages can appear in ChatGPT search?",
       "q_ar": "أي زاحف يجب أن نسمح به لكي تظهر صفحاتنا في بحث ChatGPT؟",
       "expected_entry_ids": [
@@ -180,11 +246,16 @@
       "expected_facts": [
         "OAI-SearchBot",
         "GPTBot is the separate training crawler"
+      ],
+      "q_reworded": "IT wants to block AI bots in robots.txt. Which one must stay open so ChatGPT search can show us?",
+      "answer_must": [
+        "Allow OAI-SearchBot",
+        "GPTBot is the separate training crawler and can be decided separately"
       ]
     },
     {
       "id": "marketing-exam-15",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-003",
       "q_en": "How long should the direct answer under each question heading be?",
       "q_ar": "ما الطول المناسب للإجابة المباشرة تحت كل عنوان سؤال؟",
       "expected_entry_ids": [
@@ -192,11 +263,16 @@
       ],
       "expected_facts": [
         "40-70 word direct answer"
+      ],
+      "q_reworded": "How should the opening of each FAQ answer on our site be written?",
+      "answer_must": [
+        "A direct answer of about 40-70 words immediately under the question heading",
+        "Elaborate after the direct answer"
       ]
     },
     {
       "id": "marketing-exam-16",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-005",
       "q_en": "Is an llms.txt file required, and what is its only mandatory element?",
       "q_ar": "هل ملف llms.txt إلزامي، وما عنصره الإلزامي الوحيد؟",
       "expected_entry_ids": [
@@ -204,11 +280,16 @@
       ],
       "expected_facts": [
         "The only mandatory element is an H1"
+      ],
+      "q_reworded": "Do we have to publish an llms.txt file, and what has to be in it?",
+      "answer_must": [
+        "It is optional, not a standard requirement",
+        "Its only mandatory element is an H1 title"
       ]
     },
     {
       "id": "marketing-exam-17",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-006",
       "q_en": "How do we measure whether answer engines mention QuotesDone?",
       "q_ar": "كيف نقيس ما إذا كانت محركات الإجابة تذكر QuotesDone؟",
       "expected_entry_ids": [
@@ -217,11 +298,16 @@
       "expected_facts": [
         "prompt panel",
         "three runs per prompt"
+      ],
+      "q_reworded": "How can we tell if Perplexity and Gemini talk about us at all?",
+      "answer_must": [
+        "Run a fixed prompt panel monthly",
+        "Repeat each prompt three times and record mentions and citations"
       ]
     },
     {
       "id": "marketing-exam-18",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-007",
       "q_en": "Can the Arabic page canonicalise to the English version?",
       "q_ar": "هل يجوز أن تشير الصفحة العربية بالرابط القانوني إلى النسخة الإنجليزية؟",
       "expected_entry_ids": [
@@ -229,11 +315,16 @@
       ],
       "expected_facts": [
         "never let the Arabic page canonicalise to English"
+      ],
+      "q_reworded": "To avoid duplicate content, can we point the Arabic page's canonical to the English one?",
+      "answer_must": [
+        "Never; each language version is self-canonical",
+        "Link them with hreflang instead"
       ]
     },
     {
       "id": "marketing-exam-19",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-010",
       "q_en": "What must every public page pass before we invest in content?",
       "q_ar": "ما الذي يجب أن تجتازه كل صفحة عامة قبل أن نستثمر في المحتوى؟",
       "expected_entry_ids": [
@@ -242,11 +333,16 @@
       "expected_facts": [
         "self-referencing canonical",
         "no redirect chains"
+      ],
+      "q_reworded": "Before writing blog content, what technical basics must the site pass?",
+      "answer_must": [
+        "Indexable pages with self-referencing canonicals",
+        "No redirect chains, working sitemap and robots"
       ]
     },
     {
       "id": "marketing-exam-20",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-011",
       "q_en": "Should buyer and supplier keyword research be done together?",
       "q_ar": "هل يجرى بحث الكلمات المفتاحية للمشترين والموردين معاً؟",
       "expected_entry_ids": [
@@ -254,11 +350,16 @@
       ],
       "expected_facts": [
         "Research separately for each side"
+      ],
+      "q_reworded": "Can one keyword list serve both contractors and the companies hiring them?",
+      "answer_must": [
+        "No, research each side separately",
+        "Their intent and vocabulary differ"
       ]
     },
     {
       "id": "marketing-exam-21",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-012",
       "q_en": "Can we generate a page for every trade in every emirate?",
       "q_ar": "هل يمكننا إنشاء صفحة لكل تخصص في كل إمارة؟",
       "expected_entry_ids": [
@@ -266,11 +367,16 @@
       ],
       "expected_facts": [
         "scaled content abuse"
+      ],
+      "q_reworded": "Can we auto-create a page for every trade in every emirate to grab traffic?",
+      "answer_must": [
+        "Mass thin pages count as scaled content abuse",
+        "Only publish pages with unique, useful local substance"
       ]
     },
     {
       "id": "marketing-exam-22",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-013",
       "q_en": "Which element of E-E-A-T matters most for our pages?",
       "q_ar": "أي عنصر من عناصر الخبرة والتخصص والموثوقية والثقة هو الأهم لصفحاتنا؟",
       "expected_entry_ids": [
@@ -278,11 +384,16 @@
       ],
       "expected_facts": [
         "Trust the most important"
+      ],
+      "q_reworded": "Of experience, expertise, authoritativeness and trust, which matters most for our site?",
+      "answer_must": [
+        "Trust is the most important",
+        "Show verifiable company facts, people and process"
       ]
     },
     {
       "id": "marketing-exam-23",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-033",
       "q_en": "Does a small creator with few followers need a permit to post paid content about us?",
       "q_ar": "هل يحتاج صانع محتوى صغير بعدد متابعين قليل إلى تصريح لنشر محتوى مدفوع عنا؟",
       "expected_entry_ids": [
@@ -291,11 +402,16 @@
       "expected_facts": [
         "no follower-count threshold",
         "1 February 2026"
+      ],
+      "q_reworded": "A micro-influencer with 900 followers will post about us for a fee. Does she need a licence?",
+      "answer_must": [
+        "Yes, there is no follower-count threshold",
+        "The Advertiser Permit regime applies from 1 February 2026"
       ]
     },
     {
       "id": "marketing-exam-24",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-035",
       "q_en": "Can we use the email from an RFQ to send marketing newsletters?",
       "q_ar": "هل يجوز استخدام البريد الإلكتروني الوارد في طلب عرض سعر لإرسال نشرات تسويقية؟",
       "expected_entry_ids": [
@@ -303,11 +419,16 @@
       ],
       "expected_facts": [
         "not automatically marketing consent"
+      ],
+      "q_reworded": "A buyer gave his email to receive quotes. Can we put him on our newsletter?",
+      "answer_must": [
+        "No, a transactional email is not automatically marketing consent",
+        "Get explicit opt-in first under PDPL"
       ]
     },
     {
       "id": "marketing-exam-25",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-033",
       "q_en": "What must we collect from a creator before any collaboration?",
       "q_ar": "ما الذي يجب أن نحصل عليه من صانع المحتوى قبل أي تعاون؟",
       "expected_entry_ids": [
@@ -315,11 +436,16 @@
       ],
       "expected_facts": [
         "Advertiser Permit number"
+      ],
+      "q_reworded": "Before signing any creator deal, what paperwork do we ask for?",
+      "answer_must": [
+        "Their Advertiser Permit number",
+        "A written agreement with disclosure obligations"
       ]
     },
     {
       "id": "marketing-exam-26",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-036",
       "q_en": "During which hours may we make marketing calls to suppliers?",
       "q_ar": "في أي ساعات يجوز لنا إجراء المكالمات التسويقية للموردين؟",
       "expected_entry_ids": [
@@ -328,11 +454,16 @@
       "expected_facts": [
         "between 9 am and 6 pm",
         "Do Not Call Register"
+      ],
+      "q_reworded": "What times are we allowed to phone suppliers to pitch registration?",
+      "answer_must": [
+        "Only between 9 am and 6 pm",
+        "Do not call numbers on the Do Not Call Register"
       ]
     },
     {
       "id": "marketing-exam-27",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-037",
       "q_en": "Can our ads compare QuotesDone with a competitor platform?",
       "q_ar": "هل يجوز أن تقارن إعلاناتنا بين QuotesDone ومنصة منافسة؟",
       "expected_entry_ids": [
@@ -340,11 +471,16 @@
       ],
       "expected_facts": [
         "truthful and does not mislead"
+      ],
+      "q_reworded": "Can our ad say we are better than a named rival platform?",
+      "answer_must": [
+        "Comparisons are allowed only if truthful and not misleading",
+        "Claims must be substantiated; no disparagement"
       ]
     },
     {
       "id": "marketing-exam-28",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-041",
       "q_en": "What company size fits our supplier ideal customer profile?",
       "q_ar": "ما حجم الشركة الذي يناسب ملف المورد المثالي لدينا؟",
       "expected_entry_ids": [
@@ -352,11 +488,16 @@
       ],
       "expected_facts": [
         "2-200 staff"
+      ],
+      "q_reworded": "Which supplier companies should recruitment target first by size?",
+      "answer_must": [
+        "Companies of about 2-200 staff",
+        "In trades where buyers post demand"
       ]
     },
     {
       "id": "marketing-exam-29",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-045",
       "q_en": "Which side of the marketplace should marketing prioritise in 2026?",
       "q_ar": "أي جانب من السوق يجب أن يعطيه التسويق الأولوية في عام 2026؟",
       "expected_entry_ids": [
@@ -365,11 +506,16 @@
       "expected_facts": [
         "constrained side",
         "one confirmed supplier gates every RFQ"
+      ],
+      "q_reworded": "With little budget, should we chase buyers or suppliers first this year?",
+      "answer_must": [
+        "Focus on the constrained side, suppliers, first",
+        "Every RFQ needs at least one confirmed supplier"
       ]
     },
     {
       "id": "marketing-exam-30",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-047",
       "q_en": "Can we pay cash for every referred supplier sign-up?",
       "q_ar": "هل يجوز أن ندفع مبلغاً نقدياً عن كل مورد مسجل عبر الإحالة؟",
       "expected_entry_ids": [
@@ -377,11 +523,16 @@
       ],
       "expected_facts": [
         "never cash per signup"
+      ],
+      "q_reworded": "Could we pay AED 100 per supplier who signs up through a referral link?",
+      "answer_must": [
+        "No cash per sign-up",
+        "Reward only real, qualified outcomes"
       ]
     },
     {
       "id": "marketing-exam-31",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-049",
       "q_en": "Can we publish a savings percentage in a customer case study?",
       "q_ar": "هل يجوز نشر نسبة توفير في دراسة حالة لعميل؟",
       "expected_entry_ids": [
@@ -389,11 +540,16 @@
       ],
       "expected_facts": [
         "no savings percentage"
+      ],
+      "q_reworded": "A happy client says we saved them 30%. Can we put that in the case study?",
+      "answer_must": [
+        "No savings percentage without evidence",
+        "Case studies need approval and verified facts"
       ]
     },
     {
       "id": "marketing-exam-32",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-042",
       "q_en": "Which framework do we use to define our positioning?",
       "q_ar": "ما الإطار الذي نستخدمه لتحديد تموضع العلامة؟",
       "expected_entry_ids": [
@@ -401,11 +557,16 @@
       ],
       "expected_facts": [
         "April Dunford"
+      ],
+      "q_reworded": "How do we decide what we stand for compared to alternatives?",
+      "answer_must": [
+        "Use April Dunford's positioning method",
+        "Start from competitive alternatives and unique value"
       ]
     },
     {
       "id": "marketing-exam-33",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-043",
       "q_en": "Should our Arabic website copy be written in Emirati dialect?",
       "q_ar": "هل تكتب نصوص موقعنا العربية باللهجة الإماراتية؟",
       "expected_entry_ids": [
@@ -414,11 +575,16 @@
       "expected_facts": [
         "Modern Standard Arabic",
         "not translated from English"
+      ],
+      "q_reworded": "Should the Arabic site sound like local Emirati speech?",
+      "answer_must": [
+        "Use Modern Standard Arabic for the website",
+        "Write Arabic natively, not translated from English"
       ]
     },
     {
       "id": "marketing-exam-34",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-042",
       "q_en": "How should our brand voice sound in copy?",
       "q_ar": "كيف يجب أن يبدو صوت علامتنا في النصوص؟",
       "expected_entry_ids": [
@@ -426,11 +592,16 @@
       ],
       "expected_facts": [
         "knowledgeable procurement colleague"
+      ],
+      "q_reworded": "What personality should our written copy have?",
+      "answer_must": [
+        "Like a knowledgeable procurement colleague",
+        "Plain, specific and calm, not hype"
       ]
     },
     {
       "id": "marketing-exam-35",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-032",
       "q_en": "When is Ramadan 2027 expected to begin in the UAE?",
       "q_ar": "متى يتوقع أن يبدأ شهر رمضان 2027 في الإمارات؟",
       "expected_entry_ids": [
@@ -438,11 +609,16 @@
       ],
       "expected_facts": [
         "8 February"
+      ],
+      "q_reworded": "When do we expect the 2027 fasting month to start in the Emirates?",
+      "answer_must": [
+        "Around 8 February 2027",
+        "Subject to moon sighting"
       ]
     },
     {
       "id": "marketing-exam-36",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-027",
       "q_en": "Which post format should we use for buyer education on LinkedIn?",
       "q_ar": "ما صيغة المنشور التي نستخدمها لتثقيف المشترين على لينكدإن؟",
       "expected_entry_ids": [
@@ -450,11 +626,16 @@
       ],
       "expected_facts": [
         "document/carousel posts"
+      ],
+      "q_reworded": "What kind of LinkedIn post works best to teach buyers how procurement works?",
+      "answer_must": [
+        "Document/carousel posts",
+        "Educational, one idea per post"
       ]
     },
     {
       "id": "marketing-exam-37",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-021",
       "q_en": "Do hashtags increase reach on our social posts?",
       "q_ar": "هل تزيد الوسوم من انتشار منشوراتنا على وسائل التواصل؟",
       "expected_entry_ids": [
@@ -462,11 +643,16 @@
       ],
       "expected_facts": [
         "not a reach engine"
+      ],
+      "q_reworded": "Will adding 20 hashtags make our posts reach more people?",
+      "answer_must": [
+        "No, hashtags are not a reach engine",
+        "Use a few relevant ones for categorisation"
       ]
     },
     {
       "id": "marketing-exam-38",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-024",
       "q_en": "What happens to a post that fails one item of the quality checklist?",
       "q_ar": "ماذا يحدث لمنشور لا يجتاز بنداً واحداً من قائمة الجودة؟",
       "expected_entry_ids": [
@@ -474,11 +660,16 @@
       ],
       "expected_facts": [
         "passes all items or is held"
+      ],
+      "q_reworded": "A post is perfect except the Arabic was not reviewed. Can it go out?",
+      "answer_must": [
+        "No, a post passes all items or is held",
+        "No partial passes"
       ]
     },
     {
       "id": "marketing-exam-39",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-032",
       "q_en": "When should the National Day greeting be posted?",
       "q_ar": "متى تنشر التهنئة باليوم الوطني؟",
       "expected_entry_ids": [
@@ -486,11 +677,16 @@
       ],
       "expected_facts": [
         "no posting on the public-holiday days"
+      ],
+      "q_reworded": "Can we publish our 2 December greeting on the holiday itself?",
+      "answer_must": [
+        "No posting on the public-holiday days",
+        "Schedule the greeting before the holiday"
       ]
     },
     {
       "id": "marketing-exam-40",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-018",
       "q_en": "What video length fits a problem-agitate-solve explainer?",
       "q_ar": "ما مدة الفيديو المناسبة لشرح يعرض المشكلة ويضخمها ثم يقدم الحل؟",
       "expected_entry_ids": [
@@ -498,11 +694,16 @@
       ],
       "expected_facts": [
         "(30-60 s)"
+      ],
+      "q_reworded": "How long should a problem-agitate-solve explainer video run?",
+      "answer_must": [
+        "About 30-60 seconds",
+        "Hook in the first seconds"
       ]
     },
     {
       "id": "marketing-exam-41",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-019",
       "q_en": "Why does the hook matter so much in short video?",
       "q_ar": "لماذا تعد الافتتاحية مهمة جداً في الفيديو القصير؟",
       "expected_entry_ids": [
@@ -511,11 +712,16 @@
       "expected_facts": [
         "watch-through",
         "the hook decides distribution"
+      ],
+      "q_reworded": "Why do people say the first second of a short video is everything?",
+      "answer_must": [
+        "Platforms distribute based on watch-through",
+        "The hook decides distribution"
       ]
     },
     {
       "id": "marketing-exam-42",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-062",
       "q_en": "Can we offer a discount to buyers who leave a Google review?",
       "q_ar": "هل يجوز تقديم خصم للمشترين الذين يكتبون مراجعة على جوجل؟",
       "expected_entry_ids": [
@@ -524,11 +730,16 @@
       "expected_facts": [
         "review gating",
         "fake-engagement policy"
+      ],
+      "q_reworded": "Could we give buyers 10% off if they rate us five stars on Google?",
+      "answer_must": [
+        "No, incentivised or gated reviews break Google policy",
+        "Review gating violates the fake-engagement policy"
       ]
     },
     {
       "id": "marketing-exam-43",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-062",
       "q_en": "How quickly must we reply to a Google review?",
       "q_ar": "بأي سرعة يجب أن نرد على مراجعة في جوجل؟",
       "expected_entry_ids": [
@@ -536,11 +747,16 @@
       ],
       "expected_facts": [
         "within one working day"
+      ],
+      "q_reworded": "A one-star Google review came in Friday afternoon. How soon do we reply?",
+      "answer_must": [
+        "Within one working day",
+        "Calm, factual, move details to private"
       ]
     },
     {
       "id": "marketing-exam-44",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-059",
       "q_en": "How should UTM parameters be formatted for our campaigns?",
       "q_ar": "كيف يجب تنسيق معاملات UTM لحملاتنا؟",
       "expected_entry_ids": [
@@ -549,11 +765,16 @@
       "expected_facts": [
         "all lowercase",
         "no personal data"
+      ],
+      "q_reworded": "How do we write campaign tags in our tracking links?",
+      "answer_must": [
+        "UTM values all lowercase with a fixed naming scheme",
+        "No personal data in UTM parameters"
       ]
     },
     {
       "id": "marketing-exam-45",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-061",
       "q_en": "One post did twice as well as another; do we change strategy?",
       "q_ar": "حقق منشور ضعف أداء منشور آخر، فهل نغير الاستراتيجية؟",
       "expected_entry_ids": [
@@ -561,11 +782,16 @@
       ],
       "expected_facts": [
         "Never declare a winner"
+      ],
+      "q_reworded": "Post A got 2x the engagement of post B. Do we switch our strategy?",
+      "answer_must": [
+        "Never declare a winner on small samples",
+        "Wait for enough data and a pre-set rule"
       ]
     },
     {
       "id": "marketing-exam-46",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-052",
       "q_en": "Can a promotional offer be sent as a WhatsApp utility template?",
       "q_ar": "هل يجوز إرسال عرض ترويجي كقالب خدمي على واتساب؟",
       "expected_entry_ids": [
@@ -573,11 +799,16 @@
       ],
       "expected_facts": [
         "must be non-promotional"
+      ],
+      "q_reworded": "Can we send a discount offer through the WhatsApp template type used for account updates?",
+      "answer_must": [
+        "No, utility templates must be non-promotional",
+        "Promotions need marketing templates and opt-in"
       ]
     },
     {
       "id": "marketing-exam-47",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-051",
       "q_en": "What does a sender of 5,000 emails a day to Gmail need beyond SPF?",
       "q_ar": "ما الذي يحتاجه مرسل 5,000 رسالة يومياً إلى جيميل إضافة إلى SPF؟",
       "expected_entry_ids": [
@@ -586,11 +817,16 @@
       "expected_facts": [
         "BOTH SPF and DKIM",
         "DMARC"
+      ],
+      "q_reworded": "We will email about 5,000 Gmail users daily. Is SPF alone enough?",
+      "answer_must": [
+        "No, both SPF and DKIM plus DMARC",
+        "Plus one-click unsubscribe and low complaint rates"
       ]
     },
     {
       "id": "marketing-exam-48",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-063",
       "q_en": "Will a product launch alone earn press coverage?",
       "q_ar": "هل يكفي إطلاق منتج وحده للحصول على تغطية صحفية؟",
       "expected_entry_ids": [
@@ -598,11 +834,16 @@
       ],
       "expected_facts": [
         "Product launches alone rarely earn coverage"
+      ],
+      "q_reworded": "If we announce our launch, will journalists write about it?",
+      "answer_must": [
+        "Product launches alone rarely earn coverage",
+        "Offer data or a story journalists need"
       ]
     },
     {
       "id": "marketing-exam-49",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-063",
       "q_en": "When and where is Big 5 Global in 2026?",
       "q_ar": "متى وأين يقام معرض Big 5 Global في عام 2026؟",
       "expected_entry_ids": [
@@ -611,11 +852,16 @@
       "expected_facts": [
         "23-26 November 2026",
         "Dubai World Trade Centre"
+      ],
+      "q_reworded": "When is the big Dubai construction trade show this year and where?",
+      "answer_must": [
+        "Big 5 Global, 23-26 November 2026",
+        "At Dubai World Trade Centre"
       ]
     },
     {
       "id": "marketing-exam-50",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-054",
       "q_en": "Which edits restart the Meta learning phase?",
       "q_ar": "ما التعديلات التي تعيد مرحلة التعلم في ميتا؟",
       "expected_entry_ids": [
@@ -624,11 +870,16 @@
       "expected_facts": [
         "50 optimisation events",
         "Significant edits"
+      ],
+      "q_reworded": "If I change the ad set budget a lot, does Meta start learning again?",
+      "answer_must": [
+        "Significant edits reset learning",
+        "Learning needs about 50 optimisation events per week"
       ]
     },
     {
       "id": "marketing-exam-51",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-055",
       "q_en": "Does a negative keyword block its plural and misspellings automatically?",
       "q_ar": "هل تحجب الكلمة المفتاحية السلبية صيغة الجمع والأخطاء الإملائية تلقائياً؟",
       "expected_entry_ids": [
@@ -636,11 +887,16 @@
       ],
       "expected_facts": [
         "do NOT match close variants"
+      ],
+      "q_reworded": "I excluded \"cheap\" in Google Ads. Will \"cheaper\" also be blocked?",
+      "answer_must": [
+        "No, negative keywords do not match close variants",
+        "Add plurals and misspellings explicitly"
       ]
     },
     {
       "id": "marketing-exam-52",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-057",
       "q_en": "When should we rotate the creative in a retargeting ad set?",
       "q_ar": "متى يجب تبديل التصميم الإعلاني في مجموعة إعلانات إعادة الاستهداف؟",
       "expected_entry_ids": [
@@ -649,11 +905,16 @@
       "expected_facts": [
         "CTR falls by roughly a third",
         "3-5 live creatives"
+      ],
+      "q_reworded": "Our retargeting ads are getting fewer clicks each week. When do we refresh them?",
+      "answer_must": [
+        "When CTR falls by roughly a third from its baseline",
+        "Keep 3-5 live creatives rotating"
       ]
     },
     {
       "id": "marketing-exam-53",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-056",
       "q_en": "How long does LinkedIn keep Lead Gen Form data?",
       "q_ar": "كم يحتفظ لينكدإن ببيانات نماذج جمع العملاء المحتملين؟",
       "expected_entry_ids": [
@@ -662,11 +923,16 @@
       "expected_facts": [
         "after 90 days",
         "three custom questions"
+      ],
+      "q_reworded": "How long can we pull leads from LinkedIn forms before they vanish?",
+      "answer_must": [
+        "Lead data is available for 90 days, download before then",
+        "Forms allow up to three custom questions"
       ]
     },
     {
       "id": "marketing-exam-54",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-065",
       "q_en": "How is engagement rate by reach calculated?",
       "q_ar": "كيف يحسب معدل التفاعل بالنسبة إلى الوصول؟",
       "expected_entry_ids": [
@@ -674,11 +940,16 @@
       ],
       "expected_facts": [
         "interactions ÷ reach"
+      ],
+      "q_reworded": "How do we compute engagement rate based on reach?",
+      "answer_must": [
+        "Interactions divided by reach",
+        "Times 100 for a percentage"
       ]
     },
     {
       "id": "marketing-exam-55",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-065",
       "q_en": "Where does marketing send a lead that came from a social post?",
       "q_ar": "إلى أين يرسل التسويق عميلاً محتملاً جاء من منشور على وسائل التواصل؟",
       "expected_entry_ids": [
@@ -686,11 +957,16 @@
       ],
       "expected_facts": [
         "sales_engineer via social.lead"
+      ],
+      "q_reworded": "Someone commented asking for a quote on a villa fit-out. Who handles it?",
+      "answer_must": [
+        "Pass it to sales_engineer via social.lead",
+        "The originator closes the loop"
       ]
     },
     {
       "id": "marketing-exam-56",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-064",
       "q_en": "Can our copy say buyers see only three quotes?",
       "q_ar": "هل يجوز أن تذكر نصوصنا أن المشترين يرون ثلاثة عروض فقط؟",
       "expected_entry_ids": [
@@ -699,11 +975,16 @@
       "expected_facts": [
         "Never write \"only three shown\"",
         "Suppliers pay no commission"
+      ],
+      "q_reworded": "Can the ad copy say \"we show you only three quotes\"?",
+      "answer_must": [
+        "Never write \"only three shown\"",
+        "Also: suppliers pay no commission"
       ]
     },
     {
       "id": "marketing-exam-57",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-064",
       "q_en": "What happens if a revealed supplier does not respond?",
       "q_ar": "ماذا يحدث إذا لم يرد المورد الذي كشفت هويته؟",
       "expected_entry_ids": [
@@ -712,11 +993,16 @@
       "expected_facts": [
         "within 5 working days",
         "refunded automatically"
+      ],
+      "q_reworded": "A buyer asks what happens if the supplier he unlocked never calls back.",
+      "answer_must": [
+        "If the supplier does not respond within 5 working days the buyer is refunded automatically",
+        "The supplier owes the non-response charge"
       ]
     },
     {
       "id": "marketing-exam-58",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-066",
       "q_en": "I have a campaign idea. What is the first thing to establish?",
       "q_ar": "لدي فكرة حملة، ما أول ما يجب تحديده؟",
       "expected_entry_ids": [
@@ -724,11 +1010,16 @@
       ],
       "expected_facts": [
         "which company KPI moves"
+      ],
+      "q_reworded": "Before I pitch a new campaign concept to the CEO, what do I need to answer first?",
+      "answer_must": [
+        "Which company KPI it moves",
+        "Audience, evidence and stop rule"
       ]
     },
     {
       "id": "marketing-exam-59",
-      "checklist": "MKT-PRO",
+      "checklist": "MKT-CL-053",
       "q_en": "When should we not recommend paid spend on a channel?",
       "q_ar": "متى لا نوصي بالإنفاق المدفوع على قناة ما؟",
       "expected_entry_ids": [
@@ -736,6 +1027,362 @@
       ],
       "expected_facts": [
         "cost per reveal exceeds the fee"
+      ],
+      "q_reworded": "When should we refuse to recommend spending on ads for a channel?",
+      "answer_must": [
+        "When cost per reveal exceeds the fee earned",
+        "When gates are not met (categories closed, no approved budget)"
+      ]
+    },
+    {
+      "id": "marketing-exam-60",
+      "checklist": "MKT-CL-004",
+      "q_en": "What should the Organization JSON-LD on our home page contain?",
+      "q_ar": "ماذا يجب أن يتضمن ترميز JSON-LD الخاص بالمؤسسة في صفحتنا الرئيسية؟",
+      "expected_entry_ids": [
+        "marketing:geo-structured-data"
+      ],
+      "expected_facts": [
+        "legalName exactly as on the DET licence",
+        "sameAs"
+      ],
+      "q_reworded": "Google is showing our company name inconsistently. What markup do we add to the homepage to fix who we are?",
+      "answer_must": [
+        "Use Organization schema in JSON-LD with the legal name exactly as licensed and the brand name",
+        "List all official profiles in sameAs",
+        "Validate it with Google Rich Results Test / schema validator"
+      ]
+    },
+    {
+      "id": "marketing-exam-61",
+      "checklist": "MKT-CL-008",
+      "q_en": "Where do answer engines take the facts they state about a brand?",
+      "q_ar": "من أين تأخذ محركات الإجابة الحقائق التي تذكرها عن علامة تجارية؟",
+      "expected_entry_ids": [
+        "marketing:geo-authoritative-citations"
+      ],
+      "expected_facts": [
+        "several independent, authoritative sources",
+        "third-party pages"
+      ],
+      "q_reworded": "Our own site is good but ChatGPT still never mentions us. Where else do we need to show up?",
+      "answer_must": [
+        "Engines rely on facts corroborated by several independent sources and often cite third-party pages",
+        "Earn press with original data, directory listings and genuine reviews",
+        "Map which domains engines cite for our questions and target those"
+      ]
+    },
+    {
+      "id": "marketing-exam-62",
+      "checklist": "MKT-CL-009",
+      "q_en": "Our reveal fee wording changed. What must marketing do the same day?",
+      "q_ar": "تغيرت صياغة رسوم الكشف لدينا. ماذا يجب على التسويق فعله في اليوم نفسه؟",
+      "expected_entry_ids": [
+        "marketing:geo-content-freshness-facts"
+      ],
+      "expected_facts": [
+        "update the register first",
+        "IndexNow"
+      ],
+      "q_reworded": "The accountant just told me a fee changed; how do we stop ChatGPT repeating the old number?",
+      "answer_must": [
+        "Update the single fact register first",
+        "Regenerate every page, schema, llms.txt and profile that shows it the same day and request recrawl (Search Console, IndexNow)",
+        "Re-check engine answers after a few weeks"
+      ]
+    },
+    {
+      "id": "marketing-exam-63",
+      "checklist": "MKT-CL-015",
+      "q_en": "How long should a paragraph answer be to win a featured snippet?",
+      "q_ar": "ما طول الفقرة المناسبة للفوز بمقتطف مميز؟",
+      "expected_entry_ids": [
+        "marketing:aeo-featured-snippets-voice"
+      ],
+      "expected_facts": [
+        "40-60 word definition"
+      ],
+      "q_reworded": "We want Google to show our text in the answer box at the top. How should we write that part?",
+      "answer_must": [
+        "Put a short 40-60 word direct answer right under a question heading",
+        "Match the snippet type: paragraph, list or table",
+        "Answer the literal question in the first sentence and avoid facts that mislead out of context"
+      ]
+    },
+    {
+      "id": "marketing-exam-64",
+      "checklist": "MKT-CL-017",
+      "q_en": "What must every campaign have before it starts?",
+      "q_ar": "ما الذي يجب أن يتوفر في كل حملة قبل أن تبدأ؟",
+      "expected_entry_ids": [
+        "marketing:campaign-types"
+      ],
+      "expected_facts": [
+        "one objective, one audience, one primary KPI and a stop rule"
+      ],
+      "q_reworded": "Sales wants us to launch something big for suppliers next week. What do we pin down before saying yes?",
+      "answer_must": [
+        "A single objective and a single audience",
+        "One primary KPI",
+        "A stop rule decided in advance"
+      ]
+    },
+    {
+      "id": "marketing-exam-65",
+      "checklist": "MKT-CL-020",
+      "q_en": "Which caption framework fits pain-driven buyer content?",
+      "q_ar": "أي إطار للتعليقات يناسب المحتوى الموجه للمشترين القائم على المشكلة؟",
+      "expected_entry_ids": [
+        "marketing:caption-frameworks"
+      ],
+      "expected_facts": [
+        "PAS",
+        "Problem, Agitate, Solve"
+      ],
+      "q_reworded": "I need a caption for a post about buyers getting three quotes they cannot compare. How do I structure it?",
+      "answer_must": [
+        "Use Problem-Agitate-Solve: name the pain, sharpen its cost, then give the fix",
+        "One idea and one call to action",
+        "Facts checked against the register before publishing"
+      ]
+    },
+    {
+      "id": "marketing-exam-66",
+      "checklist": "MKT-CL-022",
+      "q_en": "Where do we look for trends and how fast must we decide?",
+      "q_ar": "أين نبحث عن الاتجاهات الرائجة وبأي سرعة يجب أن نقرر؟",
+      "expected_entry_ids": [
+        "marketing:trend-detection"
+      ],
+      "expected_facts": [
+        "TikTok Creative Center",
+        "within 48 hours"
+      ],
+      "q_reworded": "A sound is blowing up on Reels this week. How do we judge whether to jump on it?",
+      "answer_must": [
+        "Check it against our audience and content pillars, and its origin and political/religious sensitivity",
+        "Decide quickly, within about two days, because trends decay",
+        "Use only audio cleared for commercial use"
+      ]
+    },
+    {
+      "id": "marketing-exam-67",
+      "checklist": "MKT-CL-025",
+      "q_en": "On which days may QuotesDone publish posts?",
+      "q_ar": "في أي أيام يجوز لـ QuotesDone نشر المنشورات؟",
+      "expected_entry_ids": [
+        "marketing:posting-standards-and-approval"
+      ],
+      "expected_facts": [
+        "no posting on weekends or UAE public holidays",
+        "Monday to Friday"
+      ],
+      "q_reworded": "We missed Thursday's slot. Can I just push it out on Saturday?",
+      "answer_must": [
+        "No posting on weekends (Saturday-Sunday) or UAE public holidays",
+        "A missed slot is skipped, not moved to a weekend",
+        "Only founder-approved content from the monthly plan is published"
+      ]
+    },
+    {
+      "id": "marketing-exam-68",
+      "checklist": "MKT-CL-026",
+      "q_en": "How many content pillars should we have and how far ahead is the calendar built?",
+      "q_ar": "كم ركيزة محتوى يجب أن تكون لدينا وكم من الوقت مسبقاً تُبنى الخطة؟",
+      "expected_entry_ids": [
+        "marketing:content-pillars-calendar"
+      ],
+      "expected_facts": [
+        "3-5 recurring themes",
+        "4-6 weeks ahead"
+      ],
+      "q_reworded": "How should next quarter's social plan be organised so it is not random posting?",
+      "answer_must": [
+        "A few (3-5) recurring themes tied to positioning, every post belongs to one",
+        "A monthly calendar prepared weeks in advance and approved",
+        "Reserve some capacity for reactive posts and repurpose each piece"
+      ]
+    },
+    {
+      "id": "marketing-exam-69",
+      "checklist": "MKT-CL-028",
+      "q_en": "What does Instagram rank Reels on?",
+      "q_ar": "على أي أساس يرتّب إنستغرام مقاطع ريلز؟",
+      "expected_entry_ids": [
+        "marketing:platform-instagram-facebook"
+      ],
+      "expected_facts": [
+        "reshare",
+        "watch it all the way through"
+      ],
+      "q_reworded": "Can we just upload our TikTok videos to Instagram as they are?",
+      "answer_must": [
+        "No: watermarked or low-quality reels are shown less; render native versions",
+        "Reels are ranked mainly on likely reshares, full watch-through and likes",
+        "Use 9:16 with text inside safe zones and captions on"
+      ]
+    },
+    {
+      "id": "marketing-exam-70",
+      "checklist": "MKT-CL-030",
+      "q_en": "How fast must we answer social comments and DMs?",
+      "q_ar": "بأي سرعة يجب أن نرد على التعليقات والرسائل الخاصة؟",
+      "expected_entry_ids": [
+        "marketing:community-management"
+      ],
+      "expected_facts": [
+        "within 1-2 hours"
+      ],
+      "q_reworded": "Someone left an angry comment on our LinkedIn post. Should we delete it?",
+      "answer_must": [
+        "Do not hide legitimate criticism; respond to it, and only hide spam, abuse or exposed personal data",
+        "Reply in business hours within one to two hours and move details to DM",
+        "Route complaints to customer_support and leads to sales_engineer"
+      ]
+    },
+    {
+      "id": "marketing-exam-71",
+      "checklist": "MKT-CL-031",
+      "q_en": "What colour contrast must our post graphics meet?",
+      "q_ar": "ما نسبة تباين الألوان المطلوبة في تصاميم منشوراتنا؟",
+      "expected_entry_ids": [
+        "marketing:accessibility-content"
+      ],
+      "expected_facts": [
+        "4.5:1"
+      ],
+      "q_reworded": "A visually impaired contractor says our posts are hard to use. What should we change?",
+      "answer_must": [
+        "Add meaningful alt text and accurate captions",
+        "Meet contrast of at least 4.5:1 and never rely on colour alone",
+        "Use CamelCase hashtags and descriptive links"
+      ]
+    },
+    {
+      "id": "marketing-exam-72",
+      "checklist": "MKT-CL-034",
+      "q_en": "Which UAE law and standards govern our social content?",
+      "q_ar": "ما القانون والمعايير الإماراتية التي تحكم محتوانا على وسائل التواصل؟",
+      "expected_entry_ids": [
+        "marketing:uae-media-content-standards"
+      ],
+      "expected_facts": [
+        "Federal Decree-Law No. 55 of 2023"
+      ],
+      "q_reworded": "Can we use the UAE flag and a leadership quote in our National Day ad?",
+      "answer_must": [
+        "The UAE media law and Media Council content standards apply",
+        "No commercial use of national symbols or leadership references without permission, no political or religious content",
+        "Ads must be identifiable as ads and not misleading"
+      ]
+    },
+    {
+      "id": "marketing-exam-73",
+      "checklist": "MKT-CL-039",
+      "q_en": "Does Google penalise content drafted with a model?",
+      "q_ar": "هل يعاقب Google المحتوى المكتوب بمساعدة نموذج لغوي؟",
+      "expected_entry_ids": [
+        "marketing:ai-generated-content-disclosure"
+      ],
+      "expected_facts": [
+        "not against its guidelines per se"
+      ],
+      "q_reworded": "Is it OK if the blog posts are written by our assistant tool rather than a person?",
+      "answer_must": [
+        "Machine-assisted content is acceptable if helpful and original; mass content to manipulate rankings is spam",
+        "Every draft is reviewed and facts traced to the register",
+        "Disclose realistic synthetic media per platform rules and never fake people or testimonials"
+      ]
+    },
+    {
+      "id": "marketing-exam-74",
+      "checklist": "MKT-CL-040",
+      "q_en": "Why would Meta reject an ad that says \"Struggling to pay your contractor?\"",
+      "q_ar": "لماذا قد ترفض ميتا إعلاناً يقول \"هل تواجه صعوبة في الدفع لمقاولك؟\"",
+      "expected_entry_ids": [
+        "marketing:meta-ad-standards"
+      ],
+      "expected_facts": [
+        "personal attributes"
+      ],
+      "q_reworded": "Our Facebook ad got disapproved and we do not know why. What usually trips B2B ads?",
+      "answer_must": [
+        "Copy implying the viewer's personal attributes (e.g. financial status) is rejected",
+        "The ad must match what the landing page offers",
+        "Edit and resubmit or appeal through Account Quality"
+      ]
+    },
+    {
+      "id": "marketing-exam-75",
+      "checklist": "MKT-CL-044",
+      "q_en": "At what point does a social problem become a Level 2 crisis and who is told?",
+      "q_ar": "متى تصبح مشكلة على وسائل التواصل أزمة من المستوى الثاني ومن يُبلَّغ؟",
+      "expected_entry_ids": [
+        "marketing:crisis-reputation-playbook"
+      ],
+      "expected_facts": [
+        "Level 2",
+        "within 1 hour"
+      ],
+      "q_reworded": "A complaint about one of our suppliers is going viral on X. What do we do first?",
+      "answer_must": [
+        "Pause scheduled posts and paid activity",
+        "Notify ceo and customer_support quickly and establish facts before speaking",
+        "Acknowledge publicly fast, move individuals to private channels, never speculate"
+      ]
+    },
+    {
+      "id": "marketing-exam-76",
+      "checklist": "MKT-CL-046",
+      "q_en": "What counts as an invited supplier in the acquisition funnel?",
+      "q_ar": "ما الذي يُعد مورداً مدعواً في مسار استقطاب الموردين؟",
+      "expected_entry_ids": [
+        "marketing:supplier-acquisition-funnel"
+      ],
+      "expected_facts": [
+        "a status column is not a delivery record"
+      ],
+      "q_reworded": "The dashboard says 171 suppliers were invited. Is that the number to report?",
+      "answer_must": [
+        "Only an invitation actually delivered through the outbox counts, not a status flag",
+        "Measure each stage: sourced, invited, registered, verified, activated, retained",
+        "Prioritise trades where buyers post and coverage is thin"
+      ]
+    },
+    {
+      "id": "marketing-exam-77",
+      "checklist": "MKT-CL-048",
+      "q_en": "Can buyers and suppliers share one landing page?",
+      "q_ar": "هل يمكن أن يتشارك المشترون والموردون صفحة هبوط واحدة؟",
+      "expected_entry_ids": [
+        "marketing:two-sided-landing-pages"
+      ],
+      "expected_facts": [
+        "Never send buyers and suppliers to the same page"
+      ],
+      "q_reworded": "We are running one ad for everyone. Where should the link go?",
+      "answer_must": [
+        "Each side gets its own page with its own headline and single CTA",
+        "Buyer page explains the 3% reveal fee plainly; supplier page states cost and verification",
+        "Ad message must match the page; an Arabic twin page exists"
+      ]
+    },
+    {
+      "id": "marketing-exam-78",
+      "checklist": "MKT-CL-058",
+      "q_en": "How long is the free window after a click-to-WhatsApp ad conversation starts?",
+      "q_ar": "ما مدة النافذة المجانية بعد بدء محادثة من إعلان النقر إلى واتساب؟",
+      "expected_entry_ids": [
+        "marketing:whatsapp-click-to-chat-ads"
+      ],
+      "expected_facts": [
+        "72-hour"
+      ],
+      "q_reworded": "If a contractor messages us from an Instagram ad on WhatsApp, can we send him promotions later?",
+      "answer_must": [
+        "A chat is not marketing consent; record explicit opt-in",
+        "Messages are free for 72 hours from our first reply in an ad-started conversation",
+        "Judge the ad on cost per verified supplier or posted request"
       ]
     }
   ]

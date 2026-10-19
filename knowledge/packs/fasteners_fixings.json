@@ -54,6 +54,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "fasteners_fixings:product-distinctions",
+      "topic": "Fasteners and fixings: grades, materials, coatings and anchors",
+      "topic_ar": "المثبتات: الدرجات والمواد والطلاءات والبراغي الإسفينية",
+      "kind": "product_distinctions",
+      "body_en": "Bolts and screws are specified by thread standard (metric ISO coarse or fine, or imperial UNC/UNF), diameter and length, head type, and strength grade: property classes 4.6, 8.8, 10.9 and 12.9 for metric steel (the first number times 100 is tensile strength in MPa), with matching nut classes (8, 10), or ASTM grades (A307, A325/F3125, A490, A193 B7 studs with A194 2H nuts for pressure flanges). Stainless fasteners are A2 (304) or A4 (316, for coastal and chemical exposure), in property classes 70 or 80. Coatings: zinc plated (indoor), hot-dip galvanised (outdoor structural, with oversized nut threads), zinc flake (Geomet, Dacromet), PTFE/xylan for offshore, and plain for later painting. Structural joints are tightened to a preload, and the torque needed depends on the grade, size and lubrication. Anchors into concrete and masonry: mechanical expansion (wedge, sleeve), undercut, chemical (injection resin with threaded rod), and screw anchors, selected for cracked or uncracked concrete, edge distance, and load, ideally with a European technical assessment (ETA) or similar approval. Other fixings: self-drilling screws for cladding, rivets, threaded rod, washers, and specialist fixings for façades.",
+      "body_ar": "تُحدد المسامير والبراغي بمعيار السن (متري ISO خشن أو ناعم، أو إمبراطوري UNC/UNF)، والقطر والطول، ونوع الرأس، ودرجة المتانة: فئات الخواص 4.6 و8.8 و10.9 و12.9 للفولاذ المتري (الرقم الأول مضروباً في 100 هو مقاومة الشد بالميغاباسكال)، مع فئات صواميل مطابقة (8، 10)، أو درجات ASTM (A307، A325/F3125، A490، وصواميل A193 B7 مع صواميل A194 2H لفلنجات الضغط). ومثبتات الستانلس من A2 (304) أو A4 (316 للبيئات الساحلية والكيميائية)، بفئات خواص 70 أو 80. والطلاءات: زنك مطلي كهربائياً (داخلي)، ومجلفن بالغمس الساخن (إنشائي خارجي مع أسنان صواميل موسعة)، ورقائق الزنك، وPTFE للأعمال البحرية، ومن دون طلاء للدهان لاحقاً. وتُشد الوصلات الإنشائية إلى قوة شد مسبق، ويعتمد العزم اللازم على الدرجة والمقاس والتزييت. والبراغي في الخرسانة والطابوق: تمدد ميكانيكي (إسفيني، بجلبة)، وتجويف سفلي، وكيميائي (راتنج حقن مع قضيب مسنن)، وبراغي لولبية، وتُختار حسب الخرسانة المتشققة أو غير المتشققة والمسافة من الحافة والحمل، ويفضل أن تحمل تقييماً فنياً أوروبياً أو اعتماداً مماثلاً. ومثبتات أخرى: براغي ذاتية الحفر للكسوة، والمسامير البرشامية، والقضبان المسننة، والوردات، ومثبتات متخصصة للواجهات.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Bolted_joint"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: bolt property class or grade governs torque; preload and the torque-preload relation T = K P d -> confirmed."
+    },
+    {
+      "id": "fasteners_fixings:lead-times-and-quoting",
+      "topic": "Fasteners & fixings - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المثبتات والمسامير: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Common sizes and grades: ex-stock same day; special lengths, A4-80, B7/2H with certificates, or large diameters 1-6 weeks. A supplier needs the full description (standard, size, length, grade, material, coating), quantity, certificate level (EN 10204 3.1), and approved brands for anchors. A quote states the exact designation, origin, coating, certificate, pack quantity, availability and validity.",
+      "body_ar": "المقاسات والدرجات الشائعة: متوفرة في نفس اليوم؛ والأطوال الخاصة وA4-80 وB7/2H بالشهادات أو الأقطار الكبيرة 1-6 أسابيع. ويحتاج المورد الوصف الكامل (المعيار، المقاس، الطول، الدرجة، المادة، الطلاء)، والكمية، ومستوى الشهادة (EN 10204 3.1)، والعلامات المعتمدة للبراغي الإسفينية. ويذكر العرض التسمية الدقيقة والمنشأ والطلاء والشهادة وعدد القطع في العبوة والتوفر والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (no entry names ASTM A193 B7 / A194 2H stud bolting for flanges; the checklist uses ISO 4014 generically (the oilfield pack covers it, not this trade)). fasteners_fixings:flange-stud-bolting-b7-2h was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from fasteners_fixings.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Which stainless bolts should we use for a seaside handrail, A2 or A4?",
+      "q_ar": "وش مسامير الستانلس المناسبة لدرابزين جنب البحر، A2 ولا A4؟",
+      "expected_entry_ids": [
+        "fasteners_fixings:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -97,6 +135,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "fasteners_fixings:flange-stud-bolting-b7-2h"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "fasteners_fixings:product-distinctions"
+      ],
+      "stored_not_served": [
+        "fasteners_fixings:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Bolted_joint"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

@@ -491,6 +491,9 @@ async function customerJourney(browser, w, lang, view) {
     // OPEN THE REQUEST THAT HAS QUOTES (run 71b75b60): the cards are collapsed, and prices render only inside an
     // opened card (CustomerPortal.tsx RequestCard), so the walk read a list of closed cards and found no AED.
     const card = page.locator('[id^="inq-"]').filter({ hasText: lang === 'ar' ? /[1-9]\d*\s*عر(ض|وض)/ : /\b[1-9]\d* quotes?\b/ }).first();
+    // WAIT FOR THE CARDS (run 5, 321d13ae): requests load after networkidle; the step read the page 2 s in and
+    // failed C1, whose "4 quotes" card was on the screenshot taken moments later.
+    await card.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
     if (!(await card.count())) return [false, 'no request of this customer has a quote on screen (were quotes released for this customer?)'];
     const head = card.locator('[role=button][aria-expanded]').first();
     if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click();

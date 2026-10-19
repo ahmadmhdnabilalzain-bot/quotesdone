@@ -1,0 +1,1201 @@
+{
+ "seat": "ceo",
+ "role": "Chief Executive Officer, UAE B2B procurement marketplace",
+ "bar": "20 years senior human, ledger 1003 stage 1",
+ "as_of": "2026-10-19",
+ "qualifications": [
+  {
+   "id": "CEO-Q01",
+   "qualification": "Runs marketplace unit economics end to end: GMV versus revenue, take rate, CAC/LTV per side, contribution per reveal and per request",
+   "checklist": [
+    "CEO-CL-001",
+    "CEO-CL-002",
+    "CEO-CL-003",
+    "CEO-CL-004",
+    "CEO-CL-005",
+    "CEO-CL-006",
+    "CEO-CL-007"
+   ]
+  },
+  {
+   "id": "CEO-Q02",
+   "qualification": "Builds and governs two-sided liquidity: harder side first, atomic networks, launch gates, supply gaps",
+   "checklist": [
+    "CEO-CL-008",
+    "CEO-CL-009",
+    "CEO-CL-010",
+    "CEO-CL-011",
+    "CEO-CL-012",
+    "CEO-CL-013",
+    "CEO-CL-014"
+   ]
+  },
+  {
+   "id": "CEO-Q03",
+   "qualification": "Analyses and proposes pricing with evidence while price stays a founder hard rule",
+   "checklist": [
+    "CEO-CL-015",
+    "CEO-CL-016",
+    "CEO-CL-017",
+    "CEO-CL-018",
+    "CEO-CL-019"
+   ]
+  },
+  {
+   "id": "CEO-Q04",
+   "qualification": "Forecasts by scenario, measures forecast accuracy and runs the company on a driver tree and KPI pack",
+   "checklist": [
+    "CEO-CL-020",
+    "CEO-CL-021",
+    "CEO-CL-022",
+    "CEO-CL-023",
+    "CEO-CL-024",
+    "CEO-CL-025",
+    "CEO-CL-026",
+    "CEO-CL-027"
+   ]
+  },
+  {
+   "id": "CEO-Q05",
+   "qualification": "Sets strategy: what winning means, the binding constraint, where to play, the UAE procurement landscape",
+   "checklist": [
+    "CEO-CL-028",
+    "CEO-CL-029",
+    "CEO-CL-030",
+    "CEO-CL-031",
+    "CEO-CL-032"
+   ]
+  },
+  {
+   "id": "CEO-Q06",
+   "qualification": "Owns enterprise risk: register, dependencies, incidents and crises, trust and safety, insurance, cash",
+   "checklist": [
+    "CEO-CL-033",
+    "CEO-CL-034",
+    "CEO-CL-035",
+    "CEO-CL-036",
+    "CEO-CL-037",
+    "CEO-CL-038"
+   ]
+  },
+  {
+   "id": "CEO-Q07",
+   "qualification": "Keeps the company compliant on UAE tax and the annual regulatory calendar",
+   "checklist": [
+    "CEO-CL-039",
+    "CEO-CL-040",
+    "CEO-CL-041",
+    "CEO-CL-042",
+    "CEO-CL-043"
+   ]
+  },
+  {
+   "id": "CEO-Q08",
+   "qualification": "Knows the UAE corporate, commercial, platform, data and AI law that binds a Dubai mainland marketplace LLC",
+   "checklist": [
+    "CEO-CL-044",
+    "CEO-CL-045",
+    "CEO-CL-046",
+    "CEO-CL-047",
+    "CEO-CL-048",
+    "CEO-CL-049",
+    "CEO-CL-050",
+    "CEO-CL-051"
+   ]
+  },
+  {
+   "id": "CEO-Q09",
+   "qualification": "Prepares the company for its first human hires under UAE labour rules",
+   "checklist": [
+    "CEO-CL-052",
+    "CEO-CL-053"
+   ]
+  },
+  {
+   "id": "CEO-Q10",
+   "qualification": "Keeps the company investor-ready and reports to the founder as owner and investor",
+   "checklist": [
+    "CEO-CL-054",
+    "CEO-CL-055",
+    "CEO-CL-056",
+    "CEO-CL-057"
+   ]
+  },
+  {
+   "id": "CEO-Q11",
+   "qualification": "Governs within the founder's boundaries: reserved subjects, governance cadence, refunds, decision records",
+   "checklist": [
+    "CEO-CL-058",
+    "CEO-CL-059",
+    "CEO-CL-060",
+    "CEO-CL-061"
+   ]
+  },
+  {
+   "id": "CEO-Q12",
+   "qualification": "Manages the seats as a senior executive manages a team: directives, scorecards, review, budget, marketing oversight, model hold",
+   "checklist": [
+    "CEO-CL-062",
+    "CEO-CL-063",
+    "CEO-CL-064",
+    "CEO-CL-065",
+    "CEO-CL-066"
+   ]
+  },
+  {
+   "id": "CEO-Q13",
+   "qualification": "Runs the operating cadence: weekly and monthly reviews, experiments, measurement integrity",
+   "checklist": [
+    "CEO-CL-067",
+    "CEO-CL-068",
+    "CEO-CL-069",
+    "CEO-CL-070"
+   ]
+  }
+ ],
+ "checklist": [
+  {
+   "id": "CEO-CL-001",
+   "area": "unit_economics",
+   "item": "States revenue as the triple requested / revealed / collected and never calls GMV revenue",
+   "entry_ids": [
+    "ceo:gmv-vs-revenue",
+    "ceo:take-rate-two-sided",
+    "ceo:glossary-marketplace"
+   ],
+   "exam_items": [
+    "ceo-exam-12",
+    "ceo-exam-63"
+   ]
+  },
+  {
+   "id": "CEO-CL-002",
+   "area": "unit_economics",
+   "item": "Builds CAC, LTV and payback per side of the marketplace",
+   "entry_ids": [
+    "ceo:cac-ltv-payback",
+    "ceo:cac-ltv-two-sided"
+   ],
+   "exam_items": [
+    "ceo-exam-13",
+    "ceo-exam-64"
+   ]
+  },
+  {
+   "id": "CEO-CL-003",
+   "area": "unit_economics",
+   "item": "Computes contribution per reveal and per posted request by category",
+   "entry_ids": [
+    "ceo:contribution-per-reveal",
+    "ceo:contribution-by-category",
+    "ceo:reveal-model-unit-economics"
+   ],
+   "exam_items": [
+    "ceo-exam-14",
+    "ceo-exam-65"
+   ]
+  },
+  {
+   "id": "CEO-CL-004",
+   "area": "unit_economics",
+   "item": "Reads cohort and core-action retention",
+   "entry_ids": [
+    "ceo:cohort-retention"
+   ],
+   "exam_items": [
+    "ceo-exam-15"
+   ]
+  },
+  {
+   "id": "CEO-CL-005",
+   "area": "unit_economics",
+   "item": "Knows take-rate benchmarks and why a modest rake wins",
+   "entry_ids": [
+    "ceo:take-rate-strategy",
+    "ceo:take-rate-benchmarks"
+   ],
+   "exam_items": [
+    "ceo-exam-16",
+    "ceo-exam-66"
+   ]
+  },
+  {
+   "id": "CEO-CL-006",
+   "area": "unit_economics",
+   "item": "Defends against multi-homing and off-platform leakage",
+   "entry_ids": [
+    "ceo:multi-homing-leakage",
+    "ceo:disintermediation-defence"
+   ],
+   "exam_items": [
+    "ceo-exam-67"
+   ]
+  },
+  {
+   "id": "CEO-CL-007",
+   "area": "unit_economics",
+   "item": "Uses the burn multiple to judge capital efficiency",
+   "entry_ids": [
+    "ceo:burn-multiple-capital-efficiency"
+   ],
+   "exam_items": [
+    "ceo-exam-03"
+   ]
+  },
+  {
+   "id": "CEO-CL-008",
+   "area": "marketplace",
+   "item": "Measures liquidity, match rate, fill rate and time to first quote",
+   "entry_ids": [
+    "ceo:marketplace-liquidity",
+    "ceo:fill-rate-time-to-first-quote",
+    "ceo:marketplace-metric-set"
+   ],
+   "exam_items": [
+    "ceo-exam-20",
+    "ceo-exam-40",
+    "ceo-exam-68"
+   ]
+  },
+  {
+   "id": "CEO-CL-009",
+   "area": "marketplace",
+   "item": "Solves the chicken-and-egg problem: harder side first, atomic network",
+   "entry_ids": [
+    "ceo:chicken-and-egg",
+    "ceo:supply-first-or-demand-first",
+    "ceo:atomic-network"
+   ],
+   "exam_items": [
+    "ceo-exam-21",
+    "ceo-exam-23",
+    "ceo-exam-69"
+   ]
+  },
+  {
+   "id": "CEO-CL-010",
+   "area": "marketplace",
+   "item": "Identifies which network effects exist and how defensible they are",
+   "entry_ids": [
+    "ceo:network-effects-and-defensibility",
+    "ceo:seven-powers-strategy"
+   ],
+   "exam_items": [
+    "ceo-exam-01",
+    "ceo-exam-09"
+   ]
+  },
+  {
+   "id": "CEO-CL-011",
+   "area": "marketplace",
+   "item": "Chooses how managed the marketplace is",
+   "entry_ids": [
+    "ceo:managed-vs-unmanaged-marketplace"
+   ],
+   "exam_items": [
+    "ceo-exam-02"
+   ]
+  },
+  {
+   "id": "CEO-CL-012",
+   "area": "marketplace",
+   "item": "Tracks supply and demand concentration risk",
+   "entry_ids": [
+    "ceo:concentration-risk"
+   ],
+   "exam_items": [
+    "ceo-exam-25"
+   ]
+  },
+  {
+   "id": "CEO-CL-013",
+   "area": "marketplace",
+   "item": "Turns supply gaps into prioritised recruitment",
+   "entry_ids": [
+    "ceo:supply-gap-to-recruitment"
+   ],
+   "exam_items": [
+    "ceo-exam-70"
+   ]
+  },
+  {
+   "id": "CEO-CL-014",
+   "area": "marketplace",
+   "item": "Runs a measured launch go/no-go gate before customers open",
+   "entry_ids": [
+    "ceo:launch-go-no-go",
+    "ceo:company-seat-targets-by-month"
+   ],
+   "exam_items": [
+    "ceo-exam-71"
+   ]
+  },
+  {
+   "id": "CEO-CL-015",
+   "area": "pricing",
+   "item": "Monitors pricing evidence weekly without changing price",
+   "entry_ids": [
+    "ceo:pricing-monitoring",
+    "ceo:competitor-pricing-watch"
+   ],
+   "exam_items": [
+    "ceo-exam-72"
+   ]
+  },
+  {
+   "id": "CEO-CL-016",
+   "area": "pricing",
+   "item": "Writes an evidence-based pricing proposal to the founder",
+   "entry_ids": [
+    "ceo:pricing-proposal",
+    "ceo:reasoning-pricing-change"
+   ],
+   "exam_items": [
+    "ceo-exam-58",
+    "ceo-exam-73"
+   ]
+  },
+  {
+   "id": "CEO-CL-017",
+   "area": "pricing",
+   "item": "Measures willingness to pay and price structures",
+   "entry_ids": [
+    "ceo:willingness-to-pay",
+    "ceo:price-discrimination-forms",
+    "ceo:pricing-strategy-principles"
+   ],
+   "exam_items": [
+    "ceo-exam-17",
+    "ceo-exam-18",
+    "ceo-exam-74"
+   ]
+  },
+  {
+   "id": "CEO-CL-018",
+   "area": "pricing",
+   "item": "Designs pricing tests within guardrails",
+   "entry_ids": [
+    "ceo:pricing-experiment-design",
+    "ceo:pricing-test-guardrails"
+   ],
+   "exam_items": [
+    "ceo-exam-19",
+    "ceo-exam-75"
+   ]
+  },
+  {
+   "id": "CEO-CL-019",
+   "area": "pricing",
+   "item": "Knows the company pricing: 3% reveal fee, uncapped, no card surcharge",
+   "entry_ids": [
+    "ceo:company-pricing",
+    "ceo:company-hard-rules"
+   ],
+   "exam_items": [
+    "ceo-exam-57",
+    "ceo-exam-76"
+   ]
+  },
+  {
+   "id": "CEO-CL-020",
+   "area": "metrics_forecasting",
+   "item": "Forecasts by scenario (conservative / base / stretch) to August 2027",
+   "entry_ids": [
+    "ceo:forecast-aed-1m",
+    "ceo:company-plan-scenarios",
+    "ceo:target-revision"
+   ],
+   "exam_items": [
+    "ceo-exam-37",
+    "ceo-exam-77"
+   ]
+  },
+  {
+   "id": "CEO-CL-021",
+   "area": "metrics_forecasting",
+   "item": "Recomputes the required run rate against each scenario weekly",
+   "entry_ids": [
+    "ceo:required-run-rate",
+    "ceo:weekly-review-scenario-lens"
+   ],
+   "exam_items": [
+    "ceo-exam-78"
+   ]
+  },
+  {
+   "id": "CEO-CL-022",
+   "area": "metrics_forecasting",
+   "item": "Measures forecast accuracy and bias, runs sensitivity",
+   "entry_ids": [
+    "ceo:forecast-accuracy",
+    "ceo:scenario-sensitivity"
+   ],
+   "exam_items": [
+    "ceo-exam-35",
+    "ceo-exam-36"
+   ]
+  },
+  {
+   "id": "CEO-CL-023",
+   "area": "metrics_forecasting",
+   "item": "Builds the revenue driver tree and focuses on controllable inputs",
+   "entry_ids": [
+    "ceo:driver-tree",
+    "ceo:input-vs-output-metrics"
+   ],
+   "exam_items": [
+    "ceo-exam-38",
+    "ceo-exam-79"
+   ]
+  },
+  {
+   "id": "CEO-CL-024",
+   "area": "metrics_forecasting",
+   "item": "Maintains one KPI pack with written definitions and owners",
+   "entry_ids": [
+    "ceo:kpi-pack",
+    "ceo:company-seat-kpis"
+   ],
+   "exam_items": [
+    "ceo-exam-80"
+   ]
+  },
+  {
+   "id": "CEO-CL-025",
+   "area": "metrics_forecasting",
+   "item": "Uses weekly growth rate and signal-versus-noise discipline",
+   "entry_ids": [
+    "ceo:growth-rate-discipline",
+    "ceo:wbr-variation"
+   ],
+   "exam_items": [
+    "ceo-exam-34",
+    "ceo-exam-81"
+   ]
+  },
+  {
+   "id": "CEO-CL-026",
+   "area": "metrics_forecasting",
+   "item": "Reads the P&L variance and recognises product/market fit",
+   "entry_ids": [
+    "ceo:pnl-variance-analysis",
+    "ceo:product-market-fit"
+   ],
+   "exam_items": [
+    "ceo-exam-59",
+    "ceo-exam-60",
+    "ceo-exam-24"
+   ]
+  },
+  {
+   "id": "CEO-CL-027",
+   "area": "metrics_forecasting",
+   "item": "Cascades OKRs from plan drivers",
+   "entry_ids": [
+    "ceo:okrs",
+    "ceo:okr-cascade-from-drivers"
+   ],
+   "exam_items": [
+    "ceo-exam-39",
+    "ceo-exam-82"
+   ]
+  },
+  {
+   "id": "CEO-CL-028",
+   "area": "strategy",
+   "item": "Defines what winning looks like and the company vision",
+   "entry_ids": [
+    "ceo:company-vision",
+    "ceo:company-what-winning-looks-like"
+   ],
+   "exam_items": [
+    "ceo-exam-83"
+   ]
+  },
+  {
+   "id": "CEO-CL-029",
+   "area": "strategy",
+   "item": "Finds the binding constraint and acts on it",
+   "entry_ids": [
+    "ceo:binding-constraint"
+   ],
+   "exam_items": [
+    "ceo-exam-22"
+   ]
+  },
+  {
+   "id": "CEO-CL-030",
+   "area": "strategy",
+   "item": "Maps the UAE procurement landscape and competitors honestly",
+   "entry_ids": [
+    "ceo:uae-procurement-landscape",
+    "ceo:competitor-landscape-verified",
+    "ceo:competitive-strategy-b2b"
+   ],
+   "exam_items": [
+    "ceo-exam-84"
+   ]
+  },
+  {
+   "id": "CEO-CL-031",
+   "area": "strategy",
+   "item": "Chooses where to play and what job customers hire us for",
+   "entry_ids": [
+    "ceo:competitive-strategy-b2b",
+    "ceo:jobs-to-be-done"
+   ],
+   "exam_items": [
+    "ceo-exam-10",
+    "ceo-exam-85"
+   ]
+  },
+  {
+   "id": "CEO-CL-032",
+   "area": "strategy",
+   "item": "Runs the quarterly strategy reset",
+   "entry_ids": [
+    "ceo:quarterly-strategy"
+   ],
+   "exam_items": [
+    "ceo-exam-86"
+   ]
+  },
+  {
+   "id": "CEO-CL-033",
+   "area": "risk",
+   "item": "Keeps the risk register and scores risks",
+   "entry_ids": [
+    "ceo:risk-register",
+    "ceo:risk-scoring-matrix",
+    "ceo:premortem"
+   ],
+   "exam_items": [
+    "ceo-exam-28",
+    "ceo-exam-61",
+    "ceo-exam-62",
+    "ceo-exam-26"
+   ]
+  },
+  {
+   "id": "CEO-CL-034",
+   "area": "risk",
+   "item": "Manages platform and vendor dependency",
+   "entry_ids": [
+    "ceo:platform-dependency-risk",
+    "ceo:vendor-contract-management"
+   ],
+   "exam_items": [
+    "ceo-exam-27",
+    "ceo-exam-87"
+   ]
+  },
+  {
+   "id": "CEO-CL-035",
+   "area": "risk",
+   "item": "Leads in incidents and crises",
+   "entry_ids": [
+    "ceo:incident-business-view",
+    "ceo:crisis-leadership"
+   ],
+   "exam_items": [
+    "ceo-exam-88"
+   ]
+  },
+  {
+   "id": "CEO-CL-036",
+   "area": "risk",
+   "item": "Runs trust and safety across the seats",
+   "entry_ids": [
+    "ceo:trust-and-safety-framework"
+   ],
+   "exam_items": [
+    "ceo-exam-89"
+   ]
+  },
+  {
+   "id": "CEO-CL-037",
+   "area": "risk",
+   "item": "Reviews insurance cover",
+   "entry_ids": [
+    "ceo:insurance-review"
+   ],
+   "exam_items": [
+    "ceo-exam-90"
+   ]
+  },
+  {
+   "id": "CEO-CL-038",
+   "area": "risk",
+   "item": "Holds cash, runway and the bank relationship",
+   "entry_ids": [
+    "ceo:cash-runway-burn",
+    "ceo:banking-relationship"
+   ],
+   "exam_items": [
+    "ceo-exam-29",
+    "ceo-exam-32"
+   ]
+  },
+  {
+   "id": "CEO-CL-039",
+   "area": "tax_compliance",
+   "item": "Watches the VAT threshold",
+   "entry_ids": [
+    "ceo:vat-threshold-watch"
+   ],
+   "exam_items": [
+    "ceo-exam-41"
+   ]
+  },
+  {
+   "id": "CEO-CL-040",
+   "area": "tax_compliance",
+   "item": "Knows Corporate Tax registration, return, rates and relief",
+   "entry_ids": [
+    "ceo:corporate-tax-basics",
+    "ceo:ct-registration-deadline",
+    "ceo:ct-return-and-relief"
+   ],
+   "exam_items": [
+    "ceo-exam-91"
+   ]
+  },
+  {
+   "id": "CEO-CL-041",
+   "area": "tax_compliance",
+   "item": "Keeps the annual compliance and regulatory calendar",
+   "entry_ids": [
+    "ceo:regulatory-calendar",
+    "ceo:compliance-calendar-annual",
+    "ceo:trade-licence-renewal",
+    "ceo:domain-and-nol-renewals"
+   ],
+   "exam_items": [
+    "ceo-exam-43",
+    "ceo-exam-92"
+   ]
+  },
+  {
+   "id": "CEO-CL-042",
+   "area": "tax_compliance",
+   "item": "Prepares for e-invoicing and knows ESR status",
+   "entry_ids": [
+    "ceo:e-invoicing-readiness",
+    "ceo:esr-status"
+   ],
+   "exam_items": [
+    "ceo-exam-44",
+    "ceo-exam-93"
+   ]
+  },
+  {
+   "id": "CEO-CL-043",
+   "area": "tax_compliance",
+   "item": "Keeps the beneficial owner register",
+   "entry_ids": [
+    "ceo:ubo-register"
+   ],
+   "exam_items": [
+    "ceo-exam-42"
+   ]
+  },
+  {
+   "id": "CEO-CL-044",
+   "area": "legal_regulatory",
+   "item": "Applies the PDPL and its open status",
+   "entry_ids": [
+    "ceo:pdpl-ceo-obligations",
+    "ceo:pdpl-executive-regulations-status"
+   ],
+   "exam_items": [
+    "ceo-exam-45",
+    "ceo-exam-94"
+   ]
+  },
+  {
+   "id": "CEO-CL-045",
+   "area": "legal_regulatory",
+   "item": "Knows the LLC form, manager duties and liability",
+   "entry_ids": [
+    "ceo:llc-legal-form-basics",
+    "ceo:llc-manager-duties-and-liability"
+   ],
+   "exam_items": [
+    "ceo-exam-08",
+    "ceo-exam-95"
+   ]
+  },
+  {
+   "id": "CEO-CL-046",
+   "area": "legal_regulatory",
+   "item": "Runs the general assembly, auditor, books and statutory reserve",
+   "entry_ids": [
+    "ceo:llc-annual-general-assembly",
+    "ceo:llc-auditor-and-books",
+    "ceo:llc-statutory-reserve"
+   ],
+   "exam_items": [
+    "ceo-exam-49",
+    "ceo-exam-50",
+    "ceo-exam-96"
+   ]
+  },
+  {
+   "id": "CEO-CL-047",
+   "area": "legal_regulatory",
+   "item": "Watches losses against capital and the 2025 Companies Law amendments",
+   "entry_ids": [
+    "ceo:llc-losses-half-capital",
+    "ceo:companies-law-2025-amendments"
+   ],
+   "exam_items": [
+    "ceo-exam-97"
+   ]
+  },
+  {
+   "id": "CEO-CL-048",
+   "area": "legal_regulatory",
+   "item": "Stays inside the DET licensed activities and agency law",
+   "entry_ids": [
+    "ceo:det-licensed-activities",
+    "ceo:commercial-agency-law"
+   ],
+   "exam_items": [
+    "ceo-exam-46",
+    "ceo-exam-98"
+   ]
+  },
+  {
+   "id": "CEO-CL-049",
+   "area": "legal_regulatory",
+   "item": "Knows the platform, consumer, cybercrime and AML laws that bind a marketplace",
+   "entry_ids": [
+    "ceo:e-commerce-law-2023",
+    "ceo:consumer-protection-scope",
+    "ceo:cybercrime-law-awareness",
+    "ceo:aml-position-non-dnfbp"
+   ],
+   "exam_items": [
+    "ceo-exam-99"
+   ]
+  },
+  {
+   "id": "CEO-CL-050",
+   "area": "legal_regulatory",
+   "item": "Governs automated decisions under the UAE AI charter",
+   "entry_ids": [
+    "ceo:uae-ai-charter",
+    "ceo:automated-decision-governance",
+    "ceo:ai-seat-governance"
+   ],
+   "exam_items": [
+    "ceo-exam-47",
+    "ceo-exam-100"
+   ]
+  },
+  {
+   "id": "CEO-CL-051",
+   "area": "legal_regulatory",
+   "item": "Reasons through a regulatory question in order",
+   "entry_ids": [
+    "ceo:reasoning-regulatory-question"
+   ],
+   "exam_items": [
+    "ceo-exam-101"
+   ]
+  },
+  {
+   "id": "CEO-CL-052",
+   "area": "people_hiring",
+   "item": "Knows labour law, gratuity, ILOE, WPS and health insurance before a first hire",
+   "entry_ids": [
+    "ceo:labour-law-hiring-basics",
+    "ceo:end-of-service-gratuity",
+    "ceo:iloe-and-wps",
+    "ceo:dubai-employee-health-insurance"
+   ],
+   "exam_items": [
+    "ceo-exam-56",
+    "ceo-exam-102"
+   ]
+  },
+  {
+   "id": "CEO-CL-053",
+   "area": "people_hiring",
+   "item": "Knows when Emiratisation applies and how a first hire is reasoned",
+   "entry_ids": [
+    "ceo:emiratisation-applicability",
+    "ceo:reasoning-first-human-hire",
+    "ceo:esop-in-uae"
+   ],
+   "exam_items": [
+    "ceo-exam-103"
+   ]
+  },
+  {
+   "id": "CEO-CL-054",
+   "area": "capital_investors",
+   "item": "Knows fundraising basics, dilution and use of funds",
+   "entry_ids": [
+    "ceo:fundraising-basics",
+    "ceo:dilution-and-use-of-funds"
+   ],
+   "exam_items": [
+    "ceo-exam-04",
+    "ceo-exam-104"
+   ]
+  },
+  {
+   "id": "CEO-CL-055",
+   "area": "capital_investors",
+   "item": "Explains SAFEs, term sheets and the cap table",
+   "entry_ids": [
+    "ceo:safe-and-convertibles",
+    "ceo:term-sheet-glossary",
+    "ceo:cap-table-hygiene"
+   ],
+   "exam_items": [
+    "ceo-exam-30",
+    "ceo-exam-31",
+    "ceo-exam-105"
+   ]
+  },
+  {
+   "id": "CEO-CL-056",
+   "area": "capital_investors",
+   "item": "Reports to the founder as owner and investor",
+   "entry_ids": [
+    "ceo:monthly-investor-update",
+    "ceo:investor-reporting-standard",
+    "ceo:board-pack-structure",
+    "ceo:reasoning-investor-question"
+   ],
+   "exam_items": [
+    "ceo-exam-07",
+    "ceo-exam-33",
+    "ceo-exam-106"
+   ]
+  },
+  {
+   "id": "CEO-CL-057",
+   "area": "capital_investors",
+   "item": "Knows non-dilutive capital routes and subscription metrics",
+   "entry_ids": [
+    "ceo:non-dilutive-capital-uae",
+    "ceo:subscription-metrics-mrr-nrr"
+   ],
+   "exam_items": [
+    "ceo-exam-11",
+    "ceo-exam-05",
+    "ceo-exam-06"
+   ]
+  },
+  {
+   "id": "CEO-CL-058",
+   "area": "governance_board",
+   "item": "Keeps the founder-reserved subjects and authority boundary",
+   "entry_ids": [
+    "ceo:founder-reserved-subjects"
+   ],
+   "exam_items": [
+    "ceo-exam-107"
+   ]
+  },
+  {
+   "id": "CEO-CL-059",
+   "area": "governance_board",
+   "item": "Runs a board-like governance cadence",
+   "entry_ids": [
+    "ceo:governance-cadence"
+   ],
+   "exam_items": [
+    "ceo-exam-108"
+   ]
+  },
+  {
+   "id": "CEO-CL-060",
+   "area": "governance_board",
+   "item": "Rules on refunds and disputes",
+   "entry_ids": [
+    "ceo:refund-dispute-authority",
+    "ceo:reasoning-refund-escalation"
+   ],
+   "exam_items": [
+    "ceo-exam-51",
+    "ceo-exam-109"
+   ]
+  },
+  {
+   "id": "CEO-CL-061",
+   "area": "governance_board",
+   "item": "Logs decisions with outcomes and matches process to reversibility",
+   "entry_ids": [
+    "ceo:decision-log-outcomes",
+    "ceo:decision-reversibility",
+    "ceo:disagree-and-commit"
+   ],
+   "exam_items": [
+    "ceo-exam-48",
+    "ceo-exam-110"
+   ]
+  },
+  {
+   "id": "CEO-CL-062",
+   "area": "seat_management",
+   "item": "Writes directives that can be closed and scores seats",
+   "entry_ids": [
+    "ceo:directive-design",
+    "ceo:seat-scorecard",
+    "ceo:closed-loop-handoffs"
+   ],
+   "exam_items": [
+    "ceo-exam-54",
+    "ceo-exam-55",
+    "ceo-exam-111"
+   ]
+  },
+  {
+   "id": "CEO-CL-063",
+   "area": "seat_management",
+   "item": "Uses cross-family review and challenge questions",
+   "entry_ids": [
+    "ceo:cross-family-review",
+    "ceo:wbr-challenge-questions"
+   ],
+   "exam_items": [
+    "ceo-exam-112"
+   ]
+  },
+  {
+   "id": "CEO-CL-064",
+   "area": "seat_management",
+   "item": "Allocates budget to the binding constraint",
+   "entry_ids": [
+    "ceo:budget-allocation"
+   ],
+   "exam_items": [
+    "ceo-exam-113"
+   ]
+  },
+  {
+   "id": "CEO-CL-065",
+   "area": "seat_management",
+   "item": "Reviews the monthly marketing plan",
+   "entry_ids": [
+    "ceo:marketing-plan-review"
+   ],
+   "exam_items": [
+    "ceo-exam-114"
+   ]
+  },
+  {
+   "id": "CEO-CL-066",
+   "area": "seat_management",
+   "item": "Behaves correctly under model hold and keeps knowledge in decisions",
+   "entry_ids": [
+    "ceo:model-hold-behaviour",
+    "ceo:knowledge-at-decision-time",
+    "ceo:commands-by-reasoning"
+   ],
+   "exam_items": [
+    "ceo-exam-115"
+   ]
+  },
+  {
+   "id": "CEO-CL-067",
+   "area": "operating_cadence",
+   "item": "Runs the weekly management review",
+   "entry_ids": [
+    "ceo:weekly-management-review",
+    "ceo:weekly-review-scenario-lens"
+   ],
+   "exam_items": [
+    "ceo-exam-52",
+    "ceo-exam-116"
+   ]
+  },
+  {
+   "id": "CEO-CL-068",
+   "area": "operating_cadence",
+   "item": "Writes the founder summary and monthly business review",
+   "entry_ids": [
+    "ceo:founder-summary",
+    "ceo:monthly-business-review"
+   ],
+   "exam_items": [
+    "ceo-exam-53",
+    "ceo-exam-117"
+   ]
+  },
+  {
+   "id": "CEO-CL-069",
+   "area": "operating_cadence",
+   "item": "Runs growth experiments to a recorded verdict",
+   "entry_ids": [
+    "ceo:experiment-governance"
+   ],
+   "exam_items": [
+    "ceo-exam-118"
+   ]
+  },
+  {
+   "id": "CEO-CL-070",
+   "area": "operating_cadence",
+   "item": "Never states what was not measured",
+   "entry_ids": [
+    "ceo:measurement-integrity"
+   ],
+   "exam_items": [
+    "ceo-exam-119"
+   ]
+  }
+ ],
+ "contributions": [
+  {
+   "id": "CEO-C01",
+   "what": "Reads the business every morning against the year-one path and sets each seat's priorities",
+   "cadence": "daily",
+   "duties": [
+    "ceo.daily_run",
+    "ceo.target_verdict"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "CEO-C02",
+   "what": "Runs the weekly management review per seat with a verdict and the binding constraint, challenged by another model family",
+   "cadence": "weekly",
+   "duties": [
+    "ceo.management_review"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "CEO-C03",
+   "what": "Issues directives with a done-condition to every seat and closes them when met",
+   "cadence": "daily",
+   "duties": [
+    "ceo.directive"
+   ],
+   "status": "partial",
+   "gap": "Duty runs hourly but on 19 Oct shows 11 open, 0 met, 0 issued, 0 escalated: directives are opened but none has been closed as met, so the loop does not yet prove seats deliver."
+  },
+  {
+   "id": "CEO-C04",
+   "what": "Closes last month per seat, sends the founder the monthly review/board pack and issues each seat's month directive",
+   "cadence": "monthly",
+   "duties": [
+    "ceo.month_plan",
+    "ceo.strategy_memo"
+   ],
+   "status": "partial",
+   "gap": "ceo.month_plan for 2026-10-01 returned closed 0, issued 0, reported null (same as September): no seat month was closed, no month directive issued and no monthly report to the founder recorded. The strategy memo itself runs."
+  },
+  {
+   "id": "CEO-C05",
+   "what": "Forecasts which scenario the company is tracking and answers an off-track verdict with a counter-action",
+   "cadence": "weekly",
+   "duties": [
+    "ceo.target_forecast"
+   ],
+   "status": "partial",
+   "gap": "Verdict is AT_RISK on FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30 with binding_stage null; no dated counter-action to a binding seat is tracked from the verdict."
+  },
+  {
+   "id": "CEO-C06",
+   "what": "Turns the binding constraint and recurring misses into improvements and closes them",
+   "cadence": "weekly",
+   "duties": [
+    "ceo.constraint_lever",
+    "ceo.improvement",
+    "ceo.improvement_review"
+   ],
+   "status": "partial",
+   "gap": "ceo.improvement shows 88 open vs 9 closed and stopped_at_budget true; constraint_lever closed 0; improvement_review closed 0 and returned 0. Improvements are proposed faster than they are closed."
+  },
+  {
+   "id": "CEO-C07",
+   "what": "Drives supply to the 50 / 200 / 300 verified milestones and the launch go/no-go before customers open",
+   "cadence": "daily",
+   "duties": [
+    "ceo.supplier_target",
+    "ceo.launch_readiness",
+    "ceo.company_stage"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "CEO-C08",
+   "what": "Monitors pricing evidence and brings evidence-based proposals to the founder",
+   "cadence": "weekly",
+   "duties": [
+    "ceo.pricing_monitor"
+   ],
+   "status": "partial",
+   "gap": "Runs weekly but quoted_requests_90d is 0 and reasoning_filed false: no pricing evidence exists until customers open, so no keep-or-propose reasoning has ever been filed."
+  },
+  {
+   "id": "CEO-C09",
+   "what": "Runs one growth experiment a month to a recorded verdict",
+   "cadence": "monthly",
+   "duties": [
+    "ceo.experiment_review"
+   ],
+   "status": "missing",
+   "gap": "ceo.experiment_review reports started 0, measured 0, verdicts_filed 0 (week 2026-10-12): no experiment is running; the planned one supplier-recruitment experiment per month has not been started."
+  },
+  {
+   "id": "CEO-C10",
+   "what": "Audits every seat quarterly and re-sits its own qualification exam monthly",
+   "cadence": "monthly",
+   "duties": [
+    "ceo.seat_audit",
+    "ceo.self_review"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "CEO-C11",
+   "what": "Answers every report the hour it arrives and keeps the CEO queue clean",
+   "cadence": "daily",
+   "duties": [
+    "ceo.report_answer",
+    "ceo.queue_work"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "CEO-C12",
+   "what": "Reviews next month's marketing plan and chases it when late",
+   "cadence": "monthly",
+   "duties": [
+    "ceo.marketing_plan"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "CEO-C13",
+   "what": "Rules on refunds and disputes as the approving seat",
+   "cadence": "event",
+   "duties": [
+    "ceo.report_answer"
+   ],
+   "status": "partial",
+   "gap": "Refund approvals arrive as deliberation.review handoffs answered through ceo.report_answer; there is no seat_duty that measures refund decisions or their turnaround, so the contribution cannot be evidenced from the duty table."
+  },
+  {
+   "id": "CEO-C14",
+   "what": "Keeps the risk register, compliance calendar and vendor register reviewed every month",
+   "cadence": "monthly",
+   "duties": [],
+   "status": "missing",
+   "gap": "No ceo.* seat_duty reviews the risk register, the compliance/regulatory calendar or the vendor register; the knowledge exists (ceo:risk-register, ceo:compliance-calendar-annual, ceo:vendor-contract-management) but nothing runs it."
+  }
+ ]
+}

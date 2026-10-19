@@ -58,6 +58,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "agri_inputs:product-distinctions",
+      "topic": "Agricultural inputs: fertiliser types, growing media and irrigation inputs",
+      "topic_ar": "المدخلات الزراعية: أنواع الأسمدة ووسائط الزراعة ومدخلات الري",
+      "kind": "product_distinctions",
+      "body_en": "Fertilisers are labelled by NPK, the percentages of nitrogen, phosphate (P2O5) and potash (K2O), for example 20-20-20. They come as straight fertilisers (urea, ammonium sulphate, potassium sulphate, MAP, DAP), compound or blended NPK granules, water-soluble grades for fertigation through drip systems, controlled and slow-release coated granules for landscapes and turf, liquid fertilisers, micronutrients (iron chelates such as EDDHA for alkaline soils, zinc, manganese), and organic fertilisers and composts. Soil improvers and media: compost, peat moss, cocopeat, perlite, vermiculite, sand blends, gypsum for sodic soils, and soil conditioners and wetting agents for sandy soils. Plant protection products (insecticides, fungicides, herbicides) are registered pesticides with label rates and pre-harvest intervals. Other inputs: seeds and seedlings (hybrid and open-pollinated), irrigation consumables (drippers, laterals, filters, controllers), greenhouse films and shade nets, and growing systems for hydroponics. The buyer decides on the crop or landscape, the soil and water analysis (salinity and pH drive the choice), the irrigation method and the application rate.",
+      "body_ar": "تُوسم الأسمدة بنسب NPK، أي نسب النيتروجين والفوسفات (P2O5) والبوتاس (K2O)، مثل 20-20-20. وتأتي أسمدة أحادية (اليوريا، كبريتات الأمونيوم، كبريتات البوتاسيوم، فوسفات الأمونيوم الأحادية والثنائية)، أو حبيبات NPK مركبة أو مخلوطة، أو درجات ذائبة في الماء للتسميد مع الري بالتنقيط، أو حبيبات مغلفة بطيئة ومضبوطة التحرر للمسطحات والعشب، أو أسمدة سائلة، أو عناصر صغرى (مخلبات الحديد مثل EDDHA للتربة القلوية، الزنك، المنغنيز)، أو أسمدة عضوية وكمبوست. ومحسنات التربة والوسائط: الكمبوست، والبيتموس، والكوكوبيت، والبيرلايت، والفيرميكولايت، وخلطات الرمل، والجبس للتربة الصودية، ومحسنات التربة وعوامل الترطيب للتربة الرملية. ومنتجات وقاية النبات (المبيدات الحشرية والفطرية والعشبية) مبيدات مسجلة بمعدلات استخدام على الملصق وفترات أمان قبل الحصاد. ومدخلات أخرى: البذور والشتلات (الهجينة ومفتوحة التلقيح)، ومستهلكات الري (النقاطات، الخطوط، الفلاتر، وحدات التحكم)، وأغشية البيوت المحمية وشباك التظليل، وأنظمة الزراعة المائية. ويقرر المشتري حسب المحصول أو المسطح، وتحليل التربة والمياه (الملوحة ودرجة الحموضة تحددان الاختيار)، وطريقة الري، ومعدل الإضافة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fertilizer"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: NPK ratings, straight versus multinutrient, slow and controlled release, organic fertilisers -> confirmed."
+    },
+    {
+      "id": "agri_inputs:lead-times-and-quoting",
+      "topic": "Agricultural inputs - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المدخلات الزراعية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock fertilisers and media: 1-5 days; imported or bulk orders 3-8 weeks; registered pesticides only from licensed stock. A supplier needs the crop or landscape, area, soil and water analysis, irrigation method, products or nutrient programme, quantities and delivery site. A quote states product, brand, analysis or active ingredient, registration, pack size, application rate, delivery, payment terms and validity.",
+      "body_ar": "الأسمدة والوسائط المتوفرة: 1-5 أيام؛ والطلبات المستوردة أو بالجملة 3-8 أسابيع؛ والمبيدات المسجلة من مخزون مرخص فقط. ويحتاج المورد المحصول أو المسطح، والمساحة، وتحليل التربة والمياه، وطريقة الري، والمنتجات أو البرنامج الغذائي، والكميات، وموقع التسليم. ويذكر العرض المنتج والعلامة والتحليل أو المادة الفعالة والتسجيل وحجم العبوة ومعدل الاستخدام والتسليم وشروط الدفع والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -83,6 +113,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither names a fertiliser grade or NPK analysis for date-palm fertigation; missing: crop fertigation grades entry). agri_inputs:date-palm-fertigation-nutrition was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from agri_inputs.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Our palm trees have yellow leaves on alkaline sandy soil. Which fertiliser type helps?",
+      "q_ar": "نخيلنا أوراقه صفراء والتربة رملية قلوية، وش نوع السماد المناسب؟",
+      "expected_entry_ids": [
+        "agri_inputs:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -102,6 +140,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "agri_inputs:date-palm-fertigation-nutrition"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "agri_inputs:product-distinctions"
+      ],
+      "stored_not_served": [
+        "agri_inputs:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Fertilizer"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

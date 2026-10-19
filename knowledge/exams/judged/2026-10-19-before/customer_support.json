@@ -1,0 +1,342 @@
+{
+ "seat": "customer_support",
+ "judged_by": "ceo session reader (Claude), no paid judge",
+ "source": "before_llm_customer_support.json",
+ "items": [
+  {
+   "id": "customer_support-exam-01",
+   "verdict": "fail",
+   "note": "misses the company fact: only seat with WhatsApp"
+  },
+  {
+   "id": "customer_support-exam-02",
+   "verdict": "fail",
+   "note": "says support handles reveals"
+  },
+  {
+   "id": "customer_support-exam-03",
+   "verdict": "fail",
+   "note": "misses the company fact: Amazon chat bot"
+  },
+  {
+   "id": "customer_support-exam-04",
+   "verdict": "fail",
+   "note": "misses the company fact: Report a problem / Existing inquiry"
+  },
+  {
+   "id": "customer_support-exam-05",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-06",
+   "verdict": "fail",
+   "note": "LEAK - discloses internal supplier counts"
+  },
+  {
+   "id": "customer_support-exam-07",
+   "verdict": "fail",
+   "note": "misses the company fact: technical error text"
+  },
+  {
+   "id": "customer_support-exam-08",
+   "verdict": "fail",
+   "note": "misses the company fact: 22 Sep 2026"
+  },
+  {
+   "id": "customer_support-exam-09",
+   "verdict": "fail",
+   "note": "offers the founder's contact"
+  },
+  {
+   "id": "customer_support-exam-10",
+   "verdict": "fail",
+   "note": "misses the company fact: founder is then emailed"
+  },
+  {
+   "id": "customer_support-exam-11",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-12",
+   "verdict": "fail",
+   "note": "misses the company fact: delivery outcome / proof of response"
+  },
+  {
+   "id": "customer_support-exam-13",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-14",
+   "verdict": "fail",
+   "note": "misses the company fact: only the originator closes"
+  },
+  {
+   "id": "customer_support-exam-15",
+   "verdict": "fail",
+   "note": "misses the company fact: looks up earlier reports"
+  },
+  {
+   "id": "customer_support-exam-16",
+   "verdict": "fail",
+   "note": "misses the company fact: email is the identity"
+  },
+  {
+   "id": "customer_support-exam-17",
+   "verdict": "fail",
+   "note": "misses the company fact: to the IT engineer"
+  },
+  {
+   "id": "customer_support-exam-18",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-19",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: the reply is not one JSON object"
+  },
+  {
+   "id": "customer_support-exam-20",
+   "verdict": "fail",
+   "note": "misses the company fact: Dropbox"
+  },
+  {
+   "id": "customer_support-exam-21",
+   "verdict": "fail",
+   "note": "misses the company fact: provably test data"
+  },
+  {
+   "id": "customer_support-exam-22",
+   "verdict": "fail",
+   "note": "misses the company fact: 18:00 Dubai time"
+  },
+  {
+   "id": "customer_support-exam-23",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-24",
+   "verdict": "fail",
+   "note": "wrong launch threshold (1,000 suppliers)"
+  },
+  {
+   "id": "customer_support-exam-25",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: no reply"
+  },
+  {
+   "id": "customer_support-exam-26",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-27",
+   "verdict": "fail",
+   "note": "misses the company fact: delivery success rate, per channel"
+  },
+  {
+   "id": "customer_support-exam-28",
+   "verdict": "fail",
+   "note": "misses the company fact: written to once"
+  },
+  {
+   "id": "customer_support-exam-29",
+   "verdict": "fail",
+   "note": "misses the company fact: 60 to 90 days"
+  },
+  {
+   "id": "customer_support-exam-30",
+   "verdict": "fail",
+   "note": "misses the company fact: January 2027"
+  },
+  {
+   "id": "customer_support-exam-31",
+   "verdict": "fail",
+   "note": "misses the company fact: 5 working days"
+  },
+  {
+   "id": "customer_support-exam-32",
+   "verdict": "fail",
+   "note": "misses the company fact: 3 working days"
+  },
+  {
+   "id": "customer_support-exam-33",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-34",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-35",
+   "verdict": "fail",
+   "note": "misses the company fact: 12 not answered"
+  },
+  {
+   "id": "customer_support-exam-36",
+   "verdict": "fail",
+   "note": "misses the company fact: no reply time"
+  },
+  {
+   "id": "customer_support-exam-37",
+   "verdict": "fail",
+   "note": "misses the company fact: go to the sales engineer"
+  },
+  {
+   "id": "customer_support-exam-38",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-39",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-40",
+   "verdict": "fail",
+   "note": "misses the company fact: under a minute"
+  },
+  {
+   "id": "customer_support-exam-41",
+   "verdict": "fail",
+   "note": "misses the company fact: automated scenario suite"
+  },
+  {
+   "id": "customer_support-exam-42",
+   "verdict": "fail",
+   "note": "misses the company fact: reply rate and registrations"
+  },
+  {
+   "id": "customer_support-exam-43",
+   "verdict": "fail",
+   "note": "replies in the message language, rule is the registration language"
+  },
+  {
+   "id": "customer_support-exam-44",
+   "verdict": "fail",
+   "note": "allows translating English drafts"
+  },
+  {
+   "id": "customer_support-exam-45",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-46",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "customer_support-exam-47",
+   "verdict": "fail",
+   "note": "misses the company fact: marketing seat"
+  },
+  {
+   "id": "customer_support-exam-48",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-49",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-50",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-51",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: the reply is not one JSON object"
+  },
+  {
+   "id": "customer_support-exam-52",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-53",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-54",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-55",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-56",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: no reply"
+  },
+  {
+   "id": "customer_support-exam-57",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-58",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-59",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-60",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-61",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-62",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-63",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-64",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-65",
+   "verdict": "fail",
+   "note": "misses the company fact: Reflect"
+  },
+  {
+   "id": "customer_support-exam-66",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "customer_support-exam-67",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  }
+ ]
+}

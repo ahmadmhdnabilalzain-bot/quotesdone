@@ -1,0 +1,317 @@
+{
+ "seat": "ceo",
+ "judged_by": "ceo session reader (Claude), no paid judge",
+ "source": "before_llm_ceo.json",
+ "items": [
+  {
+   "id": "ceo-exam-01",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-02",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-03",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-04",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-05",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-06",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-07",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-08",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-09",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-10",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-11",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-12",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-13",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-14",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-15",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-16",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-17",
+   "verdict": "fail",
+   "note": "misses the company fact: Van Westendorp"
+  },
+  {
+   "id": "ceo-exam-18",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-19",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-20",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-21",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-22",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-23",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-24",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-25",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-26",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-27",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-28",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-29",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-30",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-31",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-32",
+   "verdict": "fail",
+   "note": "does not know the bank is Mashreq / AED 199"
+  },
+  {
+   "id": "ceo-exam-33",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-34",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-35",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-36",
+   "verdict": "fail",
+   "note": "misses the company fact: plus and minus 20%"
+  },
+  {
+   "id": "ceo-exam-37",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-38",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-39",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-40",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-41",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-42",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-43",
+   "verdict": "fail",
+   "note": "misses the company fact: 24 June 2027"
+  },
+  {
+   "id": "ceo-exam-44",
+   "verdict": "fail",
+   "note": "misses the company fact: 1 July 2026"
+  },
+  {
+   "id": "ceo-exam-45",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-46",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-47",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-48",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-49",
+   "verdict": "fail",
+   "note": "says 10%, the law says 5%"
+  },
+  {
+   "id": "ceo-exam-50",
+   "verdict": "fail",
+   "note": "misses the company fact: four months"
+  },
+  {
+   "id": "ceo-exam-51",
+   "verdict": "fail",
+   "note": "WRONG - says the founder approves refunds"
+  },
+  {
+   "id": "ceo-exam-52",
+   "verdict": "fail",
+   "note": "misses the company fact: Weekly Business Review"
+  },
+  {
+   "id": "ceo-exam-53",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-54",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-55",
+   "verdict": "fail",
+   "note": "misses the company fact: balanced scorecard"
+  },
+  {
+   "id": "ceo-exam-56",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-57",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-58",
+   "verdict": "fail",
+   "note": "misses the company fact: never changes a price"
+  },
+  {
+   "id": "ceo-exam-59",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-60",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "ceo-exam-61",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "ceo-exam-62",
+   "verdict": "fail",
+   "note": "misses the company fact: reviewed weekly"
+  }
+ ]
+}
