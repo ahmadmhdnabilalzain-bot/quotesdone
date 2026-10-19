@@ -27,6 +27,7 @@ import { SAFE_SUPPLIER_PAPERS, safeFilename } from './attachment.ts';
 import { LIMITS } from './doc_read/types.ts';
 import { liveTradeDeps } from './trade_resolve.ts';
 import { proposeTradesFromDocs, type DocEvidence, type DocIn, type TradeResolveDeps } from './supplier_doc_trades.ts';
+import { timedFetch } from './timed_fetch.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -66,7 +67,7 @@ export async function signedUpload(admin: Admin, supplierId: number, kind: strin
 export async function fetchStored(admin: Admin, path: string): Promise<{ bytes: Uint8Array } | { error: 'not_found' | 'file_too_large' }> {
   const { data } = await admin.storage.from(BUCKET).createSignedUrl(path, 600);
   if (!data?.signedUrl) return { error: 'not_found' };
-  const res = await fetch(data.signedUrl);
+  const res = await timedFetch(data.signedUrl, {}, 120_000);   // a stored file of up to 100 MB; a stall still ends
   if (!res.ok || !res.body) { await res.body?.cancel(); return { error: 'not_found' }; }
   const n = Number(res.headers.get('content-length') || 0);
   if (n > LIMITS.maxPaperBytes) { await res.body.cancel(); return { error: 'file_too_large' }; }
