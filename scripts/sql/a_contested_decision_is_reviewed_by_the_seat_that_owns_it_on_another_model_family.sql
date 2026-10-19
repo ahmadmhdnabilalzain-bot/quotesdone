@@ -37,7 +37,7 @@
 --      seat records the reversed decision in decision_log on an overturn/amendment, and customer_support replies
 --      to the requester through its own delivery.request (none is filed for a demo requester, ruling 1199).
 --
---   7. RULING 1264 (19 Oct 2026): there is no "human review" option anywhere; the app is fully automated and the
+--   7. RULING 1264 (19 Oct 2026): no option to have a person decide exists anywhere; the app is fully automated and the
 --      different-model-family review above IS the review. The ONE exception is an EXPLICIT request for a person,
 --      made in chat (WhatsApp, site chat) or e-mail: route 'person' files it (owner_seat customer_support keeps
 --      the record) and it reaches the founder through founder_mail_policy, fn_notify_founder with p_kind
