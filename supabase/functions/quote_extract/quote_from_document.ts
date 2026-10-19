@@ -290,7 +290,13 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
   // lines, or a text total read with no currency or among totals that disagree, is not pre-filled as the price.
   const sumOf = (k: string) => (b?.lines ?? []).filter((l) => String(l.option) === k).reduce((x, l) => x + (l.amount || 0), 0);
   const mismatch = options.length > 0 && Object.entries(option_totals).some(([k, v]) => { const t = sumOf(k); return t > 0 && Math.abs(t - v) > 1; });
-  const review = mismatch ? 'option_total_mismatch' : (!best && textTotal != null && gross === textTotal ? tt.ambiguous : null);
+  // A total written without a currency is still taken when the priced lines add up to it: the lines corroborate
+  // it ("Total 15000" under lines of 11,400 and 3,600). Uncorroborated, it is held.
+  // The same file's table text and plain text can both carry a line, so the lines are counted once each.
+  const uniqueSum = [...new Map(plain.map((l) => [`${l.description}|${l.qty}|${l.amount}`, l.amount || 0])).values()].reduce((x, y) => x + y, 0);
+  const corroborated = uniqueSum > 0 && textTotal != null && Math.abs(uniqueSum - textTotal) <= 1;
+  const textDoubt = tt.ambiguous === 'total_without_currency' && corroborated ? null : tt.ambiguous;
+  const review = mismatch ? 'option_total_mismatch' : (!best && textTotal != null && gross === textTotal ? textDoubt : null);
   if (review) {
     p.review_reason = review as Proposal['review_reason'];
     p.amount = null; p.price_ex_vat = null; p.gross_amount = null; p.options = [];

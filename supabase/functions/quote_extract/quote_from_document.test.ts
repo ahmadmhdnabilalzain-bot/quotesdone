@@ -159,7 +159,7 @@ const textQuote = async (lines: string[]) => {
   return quoteFromExtracted(r);
 };
 Deno.test('held, never guessed: a total with no currency', async () => {
-  const p = await textQuote(['Gypsum partition 20 m2 @ 100 = 2000', 'Total: 2000']);
+  const p = await textQuote(['Gypsum partition 20 m2 @ 100 = 2000', 'Total: 2400']);   // no currency, and the lines do not add up to it
   assertEquals(p.amount, null); assertEquals(p.review_reason, 'total_without_currency');
 });
 Deno.test('held, never guessed: two totals that disagree with nothing to choose between them', async () => {
@@ -182,4 +182,8 @@ Deno.test('held, never guessed: an option total that is not the sum of its lines
   if (typeof text === 'string') (tampered as unknown as { text: string }).text = text.replace('AED 7200', 'AED 7900');
   const p = quoteFromExtracted(tampered);
   assertEquals(p.review_reason, 'option_total_mismatch'); assertEquals(p.amount, null); assertEquals(p.options, []);
+});
+Deno.test('a total with no currency is taken when its priced lines add up to it', async () => {
+  const p = await textQuote(['Gypsum partition 20 m2 @ 100 = 2000', 'Paint 100 m2 @ 12 = 1200', 'Total: 3200']);
+  assertEquals(p.amount, 3200); assertEquals(p.review_reason ?? null, null);
 });
