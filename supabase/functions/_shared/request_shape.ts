@@ -20,6 +20,9 @@ export const THINKING_HEADROOM = 4000;
 export const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
 export type Effort = typeof EFFORTS[number];
 
+// Reasoning models outside Claude, used only when OpenRouter's catalogue could not be read for this attempt.
+export const REASONING_ID = /^openai\/(gpt-6|o\d)/;
+
 export function isClaude(model: string): boolean {
   return /^anthropic\/claude-/.test(model);
 }
@@ -47,6 +50,13 @@ export function shapeRequest(s: ShapeIn): Record<string, unknown> {
   // OpenRouter lists `reasoning` for it. Measured: a WhatsApp classification on Luna Pro wrote 800-1800 reasoning tokens
   // (10-20 s) at the default effort. No effort given = the model's own default, exactly as before.
   else if (s.effort && (EFFORTS as readonly string[]).includes(String(s.effort)) && s.supported?.has('reasoning')) out.reasoning = { effort: String(s.effort) };
+  // A REASONING MODEL OF ANOTHER FAMILY GETS THE SAME THINKING HEADROOM (ceo, 19 Oct 2026). The cross-family reviewer of
+  // every Claude-written answer is openai/gpt-6-luna-pro; think() asks it for a 600-token verdict, and its reasoning
+  // counts against max_tokens. Measured on production, 17-19 Oct: 231 of 299 ceo knowledge_validation attempts came back
+  // as a chat.completion with EMPTY content, the gateway rightly called that a failure, the ladder had no other
+  // cross-family reviewer, and high-stakes CEO answers went out 'review_held_no_independent_reviewer'.
+  // Headroom on top of the answer budget, never instead of it; an unknown catalogue (null) falls back to the model id.
+  if (!claude && (s.supported ? s.supported.has('reasoning') : REASONING_ID.test(s.model))) out.max_tokens = s.maxTokens + THINKING_HEADROOM;
   if (s.responseFormat != null && s.supported?.has('response_format')) out.response_format = s.responseFormat;
   return out;
 }
