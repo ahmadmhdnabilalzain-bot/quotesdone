@@ -35,7 +35,9 @@
 --      * the day's health, by class, each its own finding owned by customer_support (opened over threshold, closed when
 --        back): delivery_health:send_failures (failed or bounced share of the last 24 h's sends over 5%, 20 sends or
 --        more), delivery_health:whatsapp_failures (the same for the WhatsApp channel), delivery_health:template_watch
---        (any wa_templates_watch run in 24 h not 'ok'; a watcher that does not run at all is the heartbeat's alarm, not this one, measured loud on healthy 14 and 19 Sep), delivery_health:unsubscribe_refusals (refusals
+--        (any wa_templates_watch run in 24 h not 'ok', OR no run at all while it is due: fn_resilience_orphan_steps_due
+--        schedules the watcher only while app_secrets.wa_templates_ready is not 'true', so 'no run' is a fault only then;
+--        the unconditional 'no run' arm was loud on healthy 14 and 19 Sep, when the templates were ready and it rightly idled), delivery_health:unsubscribe_refusals (refusals
 --        from real addresses in 24 h). Suppressions added in 24 h are reported in the result.
 --
 -- Prevented by: scripts/checks/customer_support_senior_contributions_are_working_duties.test.mjs (a refusal alone
@@ -161,7 +163,8 @@ begin
       v_on := case v_cls
                 when 'send_failures' then v_sends >= 20 and v_bad::numeric / v_sends > 0.05
                 when 'whatsapp_failures' then v_wa >= 20 and v_wa_bad::numeric / v_wa > 0.05
-                when 'template_watch' then v_tpl_bad > 0
+                when 'template_watch' then v_tpl_bad > 0 or (v_tpl_ok = 0
+                     and coalesce((select value from public.app_secrets where key = 'wa_templates_ready'), '') is distinct from 'true')
                 else v_ref > 0 end;
       if v_on then
         perform public.fn_it_engineer_finding_upsert('delivery_health:' || v_cls,

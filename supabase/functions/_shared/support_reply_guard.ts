@@ -57,7 +57,10 @@ const BIG_NEAR_PEOPLE = near(BIG);
 const MID_NEAR_PEOPLE = near(MID);
 const OURS = /\b(?:we have|we've|we currently|we now have|our (?:network|platform|directory|database|base|community|list|system)|there are|registered|signed up|on (?:our|the) (?:platform|network|directory))\b|لدينا|منصتنا|شبكتنا|مسجل|مسجّل|مسجلين/iu;
 const PHONE = /\+?\(?\d{2,4}\)?[\s.-]\d{2,4}(?:[\s.-]\d{2,4}){0,3}\b/g;   // phone numbers, short ones too (7+ digits)
-const PHONE_WORD = /\b(?:call|phone|tel|telephone|mobile|whatsapp|hotline|toll[- ]free|dial|fax)\b|اتصل|اتصلوا|هاتف|جوال|واتساب|الرقم/iu;
+// A phone word DIRECTLY before the number, with at most a few joining words ("call 800 123", "WhatsApp at 050 123",
+// "phone us on 600 522", "اتصلوا على 800 123"). Anywhere else in the sentence it proves nothing (fifth review of #1549:
+// "Call us today: we have 19 900 suppliers.").
+const PHONE_WORD_BEFORE = /(?:\b(?:call|phone|tel|telephone|mobile|whatsapp|hotline|toll[- ]free|dial|fax)\b|اتصل|اتصلوا|هاتف|جوال|واتساب|الرقم)[\s:.]*(?:(?:us|me|them|on|at|via|number|no\.?|رقم|على|عبر)[\s:.]+){0,3}$/iu;
 const NOT_A_COUNT = [
   /\b[A-Z]{2,}(?:-[A-Z0-9]+)+\b/g,                                                    // references: QD-10234, QD-S-KYUUSA
   /\b(?:19|20)\d{2}\b(?![,٬]\d)/g,                                                      // years
@@ -70,8 +73,8 @@ function hasInternalNumber(s: string): boolean {
   return String(s || '').split(/(?<=[.!?؟])\s+|\n+/).some((sentence) => {
     // a phone number has at least 7 digits; "19 900" (5) is a count, not a phone (third review of #1549)
     // ...unless the sentence says it is a phone number ("call 800 123"): then any phone-shaped group is one (fourth review)
-    const phoneSaid = PHONE_WORD.test(sentence);
-    let t = sentence.replace(PHONE, (m) => (phoneSaid || m.replace(/[^0-9]/g, '').length >= 7 ? ' ' : m));
+    // ...unless a phone word stands directly before it ("call 800 123"): then a shorter group is a phone number too
+    let t = sentence.replace(PHONE, (m, ...a) => { const at = a[a.length - 2] as number; return (m.replace(/[^0-9]/g, '').length >= 7 || PHONE_WORD_BEFORE.test(sentence.slice(Math.max(0, at - 40), at))) ? ' ' : m; });
     for (const re of NOT_A_COUNT) t = t.replace(re, ' ');
     return BIG_NEAR_PEOPLE.test(t) || (OURS.test(t) && MID_NEAR_PEOPLE.test(t));
   });
