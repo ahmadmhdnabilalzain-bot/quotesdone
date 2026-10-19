@@ -24,6 +24,13 @@ export const REPLY_CLASS = 'conversation_reply';
 export const REPLY_MODEL = 'anthropic/claude-sonnet-5.5';
 
 export const MAX_CALLS = 4;
+// THE TURN HAS A CLOCK (customer_support, 19 Oct 2026). Without one, MAX_CALLS calls at 45 s each could hold a turn
+// for minutes: run 5 (qd_run:321d13ae, agent_runs 3793567) spent 73.7 s in serial gateway calls and still ended
+// llm_failed; ai_cost_log 27144 shows one wa_inbound call cut at the gateway's 47 s wall. With r.deadline, each call
+// gets at most PER_CALL_MS and never more than the time left, and none starts with under MIN_CALL_MS left, so the
+// caller reaches its held notice (the handover) in bounded time.
+export const PER_CALL_MS = 25_000;
+export const MIN_CALL_MS = 8_000;
 
 export interface AiReplyRequest {
   seat: Seat; channel: string; audience: 'customer' | 'supplier' | 'visitor' | 'founder';
@@ -36,6 +43,7 @@ export interface AiReplyRequest {
   actions?: { id: string; meaning: string }[];   // the next step the model picks in the same call (quote-review chat)
   askEscalate?: boolean;    // the model also says whether this is a complaint, dispute, legal/payment/refund matter or a person request
   forbidden?: string[];     // another party's identity before a reveal: names, phones, e-mails, licence numbers
+  deadline?: number;        // epoch ms by which the reply must be settled; no model call starts after it
   images?: string[];        // photos or drawings the person sent (accepted by chat_images.acceptImages); the model uses them (ruling 1200)
 }
 export interface AiReply { reply: string; model: string | null; attempts: string[]; action?: string | null; escalate?: boolean; problems?: string[] }
@@ -56,8 +64,18 @@ RULES:
 Return ONE JSON object: {"answer":"<the reply>"${extra}}${r.facts ? '\n\nTHIS CONVERSATION\'S FACTS:\n' + r.facts.slice(0, 6000) : ''}`;
 }
 
+// A MODEL'S OK ANSWER WAS BEING THROWN AWAY (customer_support, 19 Oct 2026). Run c89dc272: conversation_reply came back
+// ok on Sonnet 5.5 and Gemini 3.8 Flash and the customer still got the held notice. The old parser accepted only bare
+// JSON or a fence flush against both ends: a leading newline, a trailing newline after the closing fence, or a sentence
+// before the object made JSON.parse throw, the answer read '' and the turn counted as "no model answered". The object
+// is now taken from the first '{' to the last '}' when the whole string does not parse. A truncated object (cut at
+// the output cap) still does not parse and is still refused: a half answer is never sent.
 const json = (s: string | null | undefined): Record<string, unknown> => {
-  try { return JSON.parse(String(s ?? '').replace(/^```(json)?|```$/g, '').trim()) ?? {}; } catch (_e) { return {}; }
+  const t = String(s ?? '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  for (const c of [t, t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1)]) {
+    try { const v = JSON.parse(c); if (v && typeof v === 'object') return v as Record<string, unknown>; } catch (_e) { /* next */ }
+  }
+  return {};
 };
 const parse = (s: string | null | undefined): string => String(json(s).answer ?? '').trim();
 
@@ -85,6 +103,21 @@ export function replyProblems(text: string, known: Set<string>, o: { allowed?: s
   return out;
 }
 
+/** The customer-reply gate for a reply written OUTSIDE aiReply (the CEO's answer to a support handover, #1462): the
+ *  same replyProblems checks against the company brief, plus the language rule: a supplier and an English reply carry
+ *  no Arabic (ruling 1008); an Arabic reply is mostly Arabic. Empty = it may be sent. */
+export async function customerReplyGate(rpc: Parameters<typeof companyBrief>[0], text: string, lang: 'en' | 'ar', supplier: boolean): Promise<string[]> {
+  const want: 'en' | 'ar' = supplier ? 'en' : lang;
+  const brief = await companyBrief(rpc, [], '', want);
+  const allowed = figureSource(brief);
+  const out = text.trim() ? replyProblems(text, briefNumbers(allowed), { allowed }) : ['the reply is empty'];
+  const ar = (text.match(/[؀-ۿ]/g) ?? []).length;
+  const latin = (text.match(/[A-Za-z]/g) ?? []).length;
+  if (want === 'en' && ar > 0) out.push('it is not in English (' + (supplier ? 'a supplier is always answered in English' : 'the inquiry language') + ')');
+  if (want === 'ar' && ar <= latin) out.push('it is not in Arabic (the inquiry language)');
+  return out;
+}
+
 const actionOf = (r: AiReplyRequest, content: string | null | undefined): string | null => {
   const a = String(json(content).action ?? '');
   return r.actions?.some((x) => x.id === a) ? a : null;
@@ -99,12 +132,15 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   const sys = '\n\n' + aiSystem(r, replyLang);   // after the brief, which rides as the cached sys_stable block
   const convo = (r.conversation ?? []).slice(-8).map((t) => `${t.role}: ${t.text}`).join('\n');
   const input = (convo ? 'CONVERSATION SO FAR:\n' + convo + '\n\n' : '') + 'MESSAGE:\n' + r.message.slice(0, 4000);
-  const opts = { taskClass: REPLY_CLASS, sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable, cacheTtl: '1h' as const, seat: r.seat, max: 700, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
+  const opts = { taskClass: REPLY_CLASS, sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable, cacheTtl: '1h' as const, seat: r.seat, max: 900 /* c89dc272: Gemini stopped at 696 of 700, the JSON cut mid-answer; 900 is the gateway cap */, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
   const attempts: string[] = [];
   let calls = 0; let lastProblems: string[] = [];
+  const left = () => (r.deadline ?? Infinity) - Date.now();
   const call = async (prompt: string, counterpartModel: string | null) => {
+    if (left() < MIN_CALL_MS) { calls = MAX_CALLS; attempts.push('deadline: no time left for another call'); return null; }
     calls++;
-    return await deps.llm('synthesise', sys, prompt, { ...opts, ...(counterpartModel ? { counterpartModel } : {}) }).catch(() => null);
+    const timeout = r.deadline ? { timeoutMs: Math.min(PER_CALL_MS, left()) } : {};
+    return await deps.llm('synthesise', sys, prompt, { ...opts, ...timeout, ...(counterpartModel ? { counterpartModel } : {}) }).catch(() => null);
   };
   const done = (text: string, content: string | null | undefined, model: string | null): AiReply => {
     const j = json(content);

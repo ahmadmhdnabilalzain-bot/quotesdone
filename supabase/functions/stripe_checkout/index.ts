@@ -140,7 +140,7 @@ Deno.serve(siteCors(observe('stripe_checkout', async (req) => {
         const counts = { quote_id: qid, status: res.status, ...(res.priced ? { total: res.priced.charge.total_charged, basis: res.priced.basis.basis, card_country: res.priced.basis.card_country, wallet: res.priced.basis.wallet } : {}) };
         if (res.status === 'succeeded') {
           const sale = await recordRevealSale(admin, { quoteId: qid, customerId: String(cust.id), baseFee: res.priced.charge.base_fee,
-            processingFee: res.priced.charge.processing_fee, totalCharged: res.priced.charge.total_charged, paymentRef: res.payment_intent });
+            processingFee: res.priced.charge.processing_fee, totalCharged: res.priced.charge.total_charged, paymentRef: res.payment_intent, invoiceId: res.invoice });
           await logRun('error' in sale ? 'error' : 'ok', { ...counts, invoice: res.invoice, sale }, 'error' in sale ? 'PAID BUT NOT RECORDED by element_pay - stripe_webhook invoice.paid will retry: ' + sale.error : '');
         } else {
           await logRun(res.status === 'failed' ? 'error' : 'ok', counts, res.status === 'failed' ? 'element payment failed: ' + res.error : '');
@@ -159,7 +159,7 @@ Deno.serve(siteCors(observe('stripe_checkout', async (req) => {
         if (inv.status !== 'paid') return J({ ok: false, pending: true });
         const pi = String(inv.payments?.data?.[0]?.payment?.payment_intent || invId);
         const sale = await recordRevealSale(admin, { quoteId: qid, customerId: String(cust.id), baseFee: Number(inv.metadata.base_fee),
-          processingFee: Number(inv.metadata.processing_fee), totalCharged: Number(inv.amount_paid) / 100, paymentRef: pi });
+          processingFee: Number(inv.metadata.processing_fee), totalCharged: Number(inv.amount_paid) / 100, paymentRef: pi, invoiceId: invId });
         await logRun('error' in sale ? 'error' : 'ok', { quote_id: qid, invoice: invId, sale }, '');
         return 'error' in sale ? J({ error: 'record_failed' }, 500) : J({ ok: true });
       }
