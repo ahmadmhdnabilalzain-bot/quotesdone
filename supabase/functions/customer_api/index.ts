@@ -1643,9 +1643,19 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       // because a quote that vanished with no explanation is its own defect. A quote the customer
       // has already paid to reveal is never withdrawn: that disclosure is theirs.
       const paidQuoteIds = new Set(txs.map((t) => String(t.quote_id)));
-      const sanctionedSup = await sanctionedLeads(admin, [...new Set(allQuotes.map((q) => q.supplier_id).filter((x) => x != null))] as (string | number)[]);
+      // THE LAST THREE WAVES ARE ONE (coordinator ruling G5, 19 Oct 2026). The sanctions read, the
+      // quote lines and the supplier rows each waited for the one before, though all three need only
+      // the quote list. In Postgres each is under 4 ms (pg_stat_statements max); what they cost was
+      // three edge-to-database round trips back to back. The supplier rows are now read for every
+      // quoting supplier — a superset of the listed ones, used only through supMeta lookups of quotes
+      // that survive the filters, so the answer is unchanged.
+      const allSupIds = [...new Set(allQuotes.map((q) => q.supplier_id).filter((x) => x != null))] as (string | number)[];
+      const [sanctionedSup, itemsOf, supRows] = await Promise.all([
+        sanctionedLeads(admin, allSupIds),
+        itemsByQuote(admin, allQuotes.map((q) => String(q.id))),
+        allSupIds.length ? Promise.all([admin.from('leads').select('id,company_name,app_rating,app_reviews,emirate,founded_year,rv_response_rate,rv_reveals,verified,licence_gate_reason,license_doc_path,license_expiry,company_profile_doc_path').in('id', allSupIds), admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', allSupIds)]) : null,
+      ]);
       const inqById = new Map<string, any>([...(tops || []), ...kids].map((i: any) => [String(i.id), i]));
-      const itemsOf = await itemsByQuote(admin, allQuotes.map((q) => String(q.id)));
       const heldIds = new Set<string>();
       for (const [iid, row] of inqById) {
         const mine = allQuotes.filter((q) => String(q.inquiry_id) === iid && !paidQuoteIds.has(String(q.id)));
@@ -1690,7 +1700,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       try { const ms = msRes?.data; for (const m of (ms || [])) { matchedBy[String(m.inquiry_id)] = (matchedBy[String(m.inquiry_id)] || 0) + 1; if (m.match_reason) reasonBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = String(m.match_reason); const sim = m.similarity == null ? null : Number(m.similarity); if (sim != null && Number.isFinite(sim)) { const pct = Math.round(sim * 100); pctBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = pct; if (pct > (bestPct[String(m.inquiry_id)] ?? -1)) bestPct[String(m.inquiry_id)] = pct; } } } catch (_e) { /* */ }
       const supIds = [...new Set(quotes.map((q) => q.supplier_id))];
       const supMeta: Record<string, any> = {};
-      if (supIds.length) { const [{ data: ls }, { data: perf }] = await Promise.all([admin.from('leads').select('id,company_name,app_rating,app_reviews,emirate,founded_year,rv_response_rate,rv_reveals,verified,licence_gate_reason,license_doc_path,license_expiry,company_profile_doc_path').in('id', supIds), admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', supIds)]); const perfById: Record<string, any> = {}; for (const p of (perf||[])) perfById[String(p.supplier_id)] = p; const _yr = new Date().getFullYear(); for (const l of ls || []) supMeta[String(l.id)] = { r: ratingOf(l), name: l.company_name || null, emirate: l.emirate, verified: !!l.verified, vb: verifiedBadges(l), years_active: l.founded_year ? Math.max(0, _yr - Number(l.founded_year)) : null, jobs_won: (perfById[String(l.id)]||{}).won ?? 0, win_rate: (perfById[String(l.id)]||{}).win_rate ?? null, rr: Number(l.rv_reveals) > 0 && l.rv_response_rate != null ? Number(l.rv_response_rate) : null }; }
+      if (supIds.length && supRows) { const [{ data: ls }, { data: perf }] = supRows; const perfById: Record<string, any> = {}; for (const p of (perf||[])) perfById[String(p.supplier_id)] = p; const _yr = new Date().getFullYear(); for (const l of ls || []) supMeta[String(l.id)] = { r: ratingOf(l), name: l.company_name || null, emirate: l.emirate, verified: !!l.verified, vb: verifiedBadges(l), years_active: l.founded_year ? Math.max(0, _yr - Number(l.founded_year)) : null, jobs_won: (perfById[String(l.id)]||{}).won ?? 0, win_rate: (perfById[String(l.id)]||{}).win_rate ?? null, rr: Number(l.rv_reveals) > 0 && l.rv_response_rate != null ? Number(l.rv_response_rate) : null }; }
       const revealedQ = new Set<string>(); const txByQuote: Record<string, string> = {}; const revealAtByQuote: Record<string, string | null> = {};
       // 21 Sep 2026 (customer audit, finding 17): the portal said "AED 778 paid" for a card charged
       // AED 816.37 — it printed the 3% fee, not transactions.total_charged (fee + card processing).
