@@ -161,6 +161,17 @@ export function companyFromBody(body: string): string {
   return m ? m[1] : '';
 }
 
+// THE MORNING SEED KEEPS ITS PLACEMENT TOKEN (ceo, 26 Oct 2026). _shared/inbox_placement.ts finds the day's seed in
+// the two seed mailboxes ONLY by the "(ref QD<10 hex>)" token fn_invite_placement_due puts on the row's subject. #1566
+// (19 Oct) rebuilt every Microsoft 365 subject with m365Subject and dropped it: measured 20-26 Oct, both copies of all
+// five seeds read not_found (0 token matches, 0 other-sender skips), so every day's batch was held and 0 invitations
+// left. A supplier_invite_seed row that carries a token keeps it on the rebuilt subject; no other row ever has one.
+const PLACEMENT_REF = /\(ref QD[0-9A-F]{10}\)/;
+export function withPlacementRef(subject: string, row: { type?: unknown; subject?: unknown }): string {
+  const ref = row.type === 'supplier_invite_seed' ? PLACEMENT_REF.exec(String(row.subject || ''))?.[0] : undefined;
+  return ref && !subject.includes(ref) ? `${subject} ${ref}` : subject;
+}
+
 // A placement-test seed (GlockApps) is matched by an inbox-test ID on the LAST line of the body, e.g.
 // "id:2026-10-05-18:36:55:550t". 5 Oct 2026: m365Body rebuilt the text from the link alone, dropped that line,
 // and GlockApps matched 0 of 80 seeds. Only a seed row carries it; a real invitation or nudge never does.
