@@ -23,6 +23,7 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { canonicalReplay, definitions } from '../lib/canonical_sql.mjs';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FNS = join(REPO, 'supabase', 'functions');
@@ -99,8 +100,30 @@ function kindRows() {
         rows.push({ type, from, to, handler: named ?? `fn_${to}_acts_on_handoff` });
       }
     }
+    // 27 Oct 2026: two more shapes were invisible, so ceo.lesson_reapproval_overdue (#1496) and the five
+    // review.requested rows (#1566) were live in production and absent from payment_handoffs.ts with this test green.
+    // (a) one literal row: SELECT 'type', 'from', 'to', '<meaning>', 'fn_handler' ... WHERE NOT EXISTS (...)
+    for (const t of m[0].matchAll(/select\s+'([a-z_.]+)',\s*'([a-z_]+)',\s*'([a-z_]+)',\s*'(?:[^']|'')*',\s*'(fn_[a-z0-9_]+)'/g)) {
+      const [, type, from, to, named] = t;
+      rows.push({ type, from, to, handler: named });
+    }
+    // (b) one kind to every seat review_route names: SELECT 'type', 'from', s.seat, '<meaning>', 'fn_handler' ...
+    //     FROM (select distinct owner_seat as seat from public.review_route where decision_type <> 'person') s.
+    //     The seats are the review_route rows the files insert, read the same way.
+    for (const t of m[0].matchAll(/select\s+'([a-z_.]+)',\s*'([a-z_]+)',\s*s\.seat,\s*'(?:[^']|'')*',\s*'(fn_[a-z0-9_]+)'[\s\S]*?from\s+\(select distinct owner_seat as seat from public\.review_route where decision_type <> 'person'\)\s+s\b/g)) {
+      const [, type, from, named] = t;
+      for (const to of reviewRouteSeats()) rows.push({ type, from, to, handler: named });
+    }
   }
   return rows;
+}
+// The owning seats of review_route (ledger 1152), from the (decision_type, owner_seat, meaning) rows its inserts write.
+function reviewRouteSeats() {
+  const seats = new Set();
+  for (const m of allSql.matchAll(/insert into public\.review_route\b[\s\S]*?;\s*$/gm)) {
+    for (const [, kind, seat] of m[0].matchAll(/\('([a-z_]+)',\s*'([a-z_]+)',\s*'(?:[^']|'')*'\)/g)) if (kind !== 'person') seats.add(seat);
+  }
+  return [...seats].sort();
 }
 // A pair two files register (the second insert is on conflict do nothing) is one conversation.
 const sqlRegistry = () => [...new Set(kindRows().map((r) => `${r.type}|${r.from}|${r.to}`))].sort();
@@ -166,6 +189,9 @@ test('every conversation has a producer and a handler in the receiving seat', ()
       // a recurring support cause goes to the seat support_category names as its owner (instruction 1009)
       || (type === 'support.root_cause' && from === 'customer_support'
           && allSql.includes("fn_seat_handoff('customer_support', r.owner_seat, 'support.root_cause'"))
+      // a contested decision goes to the seat review_route names as its owner (ledger 1152, #1566)
+      || (type === 'review.requested' && from === 'customer_support'
+          && allSql.includes("fn_seat_handoff('customer_support', v_route.owner_seat, 'review.requested'"))
       // a review is started only by a real call site for THIS pair (founder_instruction 873): the generic opener
       // proves nothing about which pairs anything opens
       || (type === 'deliberation.review' && (new RegExp(`fn_seat_deliberation_open\\(\\s*'[a-z_.]+',\\s*'${from}',\\s*'${to}'`).test(allSql)
@@ -221,7 +247,10 @@ test('production: the whole refund ladder on ZZ DEMO fixtures, rolled back', { s
   const LEDGER = 'scripts/sql/a_rejection_never_ends_the_cycle_the_ceo_gives_reasons_and_the_seat_revises.sql';
   const ledgerPending = existsSync(join(REPO, LEDGER))
     && !read(join(REPO, 'scripts', 'sql', 'MANIFEST.txt')).split(/\r?\n/).map((l) => l.trim()).includes(LEDGER);
-  const batch = [sqlText, ...(ledgerPending ? [read(join(REPO, LEDGER))] : []),
+  // Ruling 1199 (demo_activity_files_no_seat_task_or_handoff.sql, #1479) files no handoff for a ZZ DEMO subject, so
+  // the ladder stopped at "s1 reveal.paid handoff not done" (27 Oct 2026). The fixtures prove the loop, so they switch
+  // that guard off for their own rolled-back transaction (a_rolled_back_probe_may_file_demo_seat_work_under_its_own_switch.sql).
+  const batch = [sqlText, ...(ledgerPending ? [read(join(REPO, LEDGER))] : []), seatWorkFixtures(),
     read(join(REPO, 'scripts', 'checks', 'refund_ladder_fixtures.sql'))].join('\n;\n');
   let message = '';
   try { await replaySql(batch); message = 'the fixture batch returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }

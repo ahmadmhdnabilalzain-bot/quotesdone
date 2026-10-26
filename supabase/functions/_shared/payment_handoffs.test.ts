@@ -14,7 +14,9 @@ Deno.test('every conversation is between real seats and listed once', () => {
   // The complaint clock (22 Sep 2026, PR #811) is support's own queue too: it holds each complaint as a
   // complaint.due item until the Complaints Policy's final response is given.
   const selfTalk = (h: { type: string; from: string; to: string }) => h.from === 'customer_support' && h.to === 'customer_support'
-    && (h.type === 'delivery.request' || h.type === 'delivery.result' || h.type === 'complaint.due' || h.type === 'support.case_open' || h.type === 'support.human_requested')
+    && (h.type === 'delivery.request' || h.type === 'delivery.result' || h.type === 'complaint.due' || h.type === 'support.case_open' || h.type === 'support.human_requested'
+        // a contested messaging or account decision is support's own to review on another model family (ledger 1152, #1566)
+        || h.type === 'review.requested')
     // The CEO's morning five numbers (ruling 1209, #1365): its own daily reading, queued and closed like any other.
     || (h.from === 'ceo' && h.to === 'ceo' && h.type === 'report.five_numbers');
   for (const h of HANDOFF_TYPES) assert(seats.has(h.from) && seats.has(h.to) && (h.from !== h.to || selfTalk(h)), JSON.stringify(h));
@@ -50,6 +52,9 @@ Deno.test('only customer_support delivers, and every seat that asks hears back',
     // — and a fifth (legal finding 1, #1512): an objection to an automated decision that support did not resolve goes
     // to the CEO as support.decision_objection; it asks for the CEO's reply and delivers nothing.
     if (h.type === 'support.decision_objection' && h.to === 'ceo') continue;
+    // — and a sixth (ledger 1152, #1566): a contested automated decision goes to the seat review_route names as its
+    // owner as review.requested; it asks that seat to decide it again on another model family and delivers nothing.
+    if (h.type === 'review.requested') continue;
     assertEquals(h.type, 'delivery.result');
   }
   for (const h of HANDOFF_TYPES.filter((x) => x.type === 'delivery.request')) {

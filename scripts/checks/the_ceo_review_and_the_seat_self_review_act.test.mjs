@@ -16,6 +16,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -67,6 +68,10 @@ for (const f of ['the_ceo_weekly_review_acts_on_every_missed_target', 'every_sea
     if (f === 'the_ceo_weekly_review_acts_on_every_missed_target' && !applied(FIX)) {
       body = body.replace(/^begin;$/m, () => 'begin;\n' + R(`scripts/sql/${FIX}.sql`));
     }
+    // Both probes hand an improvement to a ZZ DEMO seat case; ruling 1199 (#1479, demo_activity_files_no_seat_task_or_handoff.sql)
+    // files no handoff or org task for a demo subject, so the seat was never handed it. seatWorkFixtures() lifts that for
+    // this rolled-back transaction only (a_rolled_back_probe_may_file_demo_seat_work_under_its_own_switch.sql).
+    body = seatWorkFixtures() + '\n;\n' + body;
     const r = await replaySql(body, { retry: false, rows: true, label: `${f}_probe` });
     const verdict = Array.isArray(r) && r[0] ? String(r[0].verdict) : JSON.stringify(r).slice(0, 500);
     assert.match(verdict, /^PROBE OK/, verdict);

@@ -184,4 +184,15 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // a customer answered "not sure" to a spec on a held request: the sales engineer takes that spec up
   // (scripts/sql/a_not_sure_spec_opens_a_handoff_to_the_sales_engineer.sql, handler fn_sales_engineer_spec_handoff_waits)
   { type: 'spec.not_sure', from: 'customer_support', to: 'sales_engineer' },
+  // a lesson version whose CEO re-approval lapsed is escalated to the CEO; its handler asks again and closes once he
+  // decided (#1496, scripts/sql/a_lesson_never_carries_a_case_or_inquiry_id_or_an_amount.sql)
+  { type: 'ceo.lesson_reapproval_overdue', from: 'it_engineer', to: 'ceo' },
+  // a customer or supplier contests an automated decision: support routes it to the seat review_route names as the
+  // decision's owner, to decide on another model family (ledger 1152, #1566,
+  // scripts/sql/a_contested_decision_is_reviewed_by_the_seat_that_owns_it_on_another_model_family.sql)
+  { type: 'review.requested', from: 'customer_support', to: 'accountant' },
+  { type: 'review.requested', from: 'customer_support', to: 'ceo' },
+  { type: 'review.requested', from: 'customer_support', to: 'customer_support' },
+  { type: 'review.requested', from: 'customer_support', to: 'it_engineer' },
+  { type: 'review.requested', from: 'customer_support', to: 'sales_engineer' },
 ] as const;

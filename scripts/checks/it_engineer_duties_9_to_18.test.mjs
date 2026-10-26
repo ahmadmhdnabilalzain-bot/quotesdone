@@ -13,12 +13,18 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';
+import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 
-async function probe(body) {
-  try { await sql(`do $p$ ${body} $p$;`); }
+// fixtures: ruling 1199 (#1479, demo_activity_files_no_seat_task_or_handoff.sql) files no handoff for a ZZ DEMO subject;
+// a probe that proves an it.finding loop on one switches that guard off for its own rolled-back transaction
+// (scripts/lib/seat_work_fixtures.mjs).
+async function probe(body, { fixtures = false } = {}) {
+  const text = `do $p$ ${body} $p$;`;
+  try { if (fixtures) await replaySql(seatWorkFixtures() + '\n;\n' + text); else await sql(text); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (m) return JSON.parse(m[1].replace(/\\"/g, '"'));
@@ -203,7 +209,7 @@ test('a new bug cannot close without its learning; with it, it closes and its PD
       raise exception 'CHK<<%>>', json_build_object('refused_without_learning', v_refused,
         'status_after', (select status from public.agent_actions where id = v_h),
         'pdf_blocks', jsonb_array_length(v_blocks->'blocks'));
-    end`);
+    end`, { fixtures: true });
   assert.equal(r.refused_without_learning, true);
   assert.equal(r.status_after, 'done');
   assert.ok(r.pdf_blocks >= 10);
