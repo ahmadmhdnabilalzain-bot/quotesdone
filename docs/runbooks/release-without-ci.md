@@ -1,6 +1,6 @@
 # Releasing without CI
 
-Seat: it_engineer. Written 26 Oct 2026.
+Seat: it_engineer. Written 26 Oct 2026; scheduled jobs moved to Claude cloud routines 27 Oct 2026.
 
 **The founder's order, 26 Oct 2026:** Ubicloud is stopped. No paid service runs CI until the bugs are cleared,
 and that includes GitHub-hosted Actions minutes. Claude sessions run the checks, the deploys and the scheduled
@@ -111,18 +111,38 @@ node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production --chan
   deployed over a newer one this way.
 - Push the bookkeeping (the MANIFEST line, the deleted note, the schema mirror) as one commit through a PR.
 
-## 3. The scheduled work
+## 3. Scheduled jobs now run as Claude cloud routines
+
+**Founder's clarification, 27 Oct 2026 (founder_instruction 1296, clarifying 1279):** GitHub Actions comes back later. Until then, jobs run on Claude's own
+cloud (the "Claude server") to keep costs down. The coordinator created five scheduled Claude cloud routines on the
+QuotesDone environment, and they replace the Actions schedules that need a runner:
+
+| Routine | Schedule (UTC) | Replaces | Link |
+|---|---|---|---|
+| CAD read worker | every 2 h at :15 | `cad-read-worker.yml` (every 6 h) | [trig_01Ba9wRwSSbwrs6byguTqAYB](https://claude.ai/code/routines/trig_01Ba9wRwSSbwrs6byguTqAYB) |
+| Multilingual embed backfill | daily 02:50 | `ml-embed-backfill.yml` | [trig_01PvyTpFGoLyy9iLeLbyHnUo](https://claude.ai/code/routines/trig_01PvyTpFGoLyy9iLeLbyHnUo) |
+| Daily parity gate | daily 05:41 | `project-parity.yml` schedule | [trig_01RKafcU3CoLJKtfUGJXxJS1](https://claude.ai/code/routines/trig_01RKafcU3CoLJKtfUGJXxJS1) |
+| Weekly readings | Mondays 04:30 | `it-weekly-readings.yml` | [trig_01Bxp48JvtXygiQ7M3Eq3ATK](https://claude.ai/code/routines/trig_01Bxp48JvtXygiQ7M3Eq3ATK) |
+| Nightly journey | daily 22:00 | `nightly-journey.yml` | [trig_01BYYDz8uEKUyoiEaKuR9eyJ](https://claude.ai/code/routines/trig_01BYYDz8uEKUyoiEaKuR9eyJ) |
+
+Each routine runs the same scripts the workflow ran (the commands are in the table below). Those scripts report to
+the same database rows, so the existing heartbeats watch the routines with no change: `journey_heartbeat` (26 h),
+`dependency` and `platform` (8 d), and `parity` (36 h, through the advisor refresh). A routine that stops, fails or
+cannot report opens the same finding a failed workflow did. The routines are Claude's cloud, not this repository,
+so a change to one is made at its link, and this table must change with it.
+
+## 3b. Every scheduled job, and where it runs now
 
 | Was (GitHub schedule) | Now | If it does not run |
 |---|---|---|
 | `dropbox-backup-second-scheduler.yml`, every 6 h | **pg_cron `dropbox_backup_second_scheduler`**, same minute (`scripts/sql/the_github_schedules_that_can_move_run_on_pg_cron_while_actions_are_off.sql`, applied at merge) | A document still reaches Dropbox through the pg_net kick when it lands and through resilience_ping every 15 min. What is lost: this was the one kick path outside both Supabase and Vercel. |
 | `kb-embed-backfill.yml`, daily 02:20 UTC | **pg_cron `kb_embed_daily`**, `fn_kb_embed_scheduled_run()` (same file) | 0 rows were unembedded on 26 Oct. resilience_ping embeds new rows every 15 min. |
-| `nightly-journey.yml`, daily 22:00 UTC | A Claude session, nightly: `npm ci && npx playwright install chromium`, then `node scripts/e2e/run.mjs`, `node scripts/e2e/drawing_journeys_into_report.mjs e2e-out`, `node scripts/e2e/report_to_it_engineer.mjs e2e-out`, `node scripts/e2e/supplier_quote_review.mjs`, then `node scripts/e2e/close_job_windows.mjs "$QD_E2E_RUN_TAGS"` (set `QD_E2E_REPORTS=e2e-out`, `QD_E2E_DEADLINE_MS=2460000`, `QD_E2E_WINDOW_MIN=120`, `QD_E2E_RUN_TAGS=e2e-run-tags.txt`) | Nothing proves the funnel and the screens on demo data. `fn_it_duties` journey_heartbeat raises a finding after 26 h. |
+| `nightly-journey.yml`, daily 22:00 UTC | **Claude cloud routine "Nightly journey"**, 22:00 UTC (section 3). It runs `npm ci && npx playwright install chromium`, then `node scripts/e2e/run.mjs`, `node scripts/e2e/drawing_journeys_into_report.mjs e2e-out`, `node scripts/e2e/report_to_it_engineer.mjs e2e-out`, `node scripts/e2e/supplier_quote_review.mjs`, then `node scripts/e2e/close_job_windows.mjs "$QD_E2E_RUN_TAGS"` (set `QD_E2E_REPORTS=e2e-out`, `QD_E2E_DEADLINE_MS=2460000`, `QD_E2E_WINDOW_MIN=120`, `QD_E2E_RUN_TAGS=e2e-run-tags.txt`) | Nothing proves the funnel and the screens on demo data. `fn_it_duties` journey_heartbeat raises a finding after 26 h. |
 | `it-post-deploy-smoke.yml`, after each main deploy | The release operator, after a merge that deployed: `node scripts/e2e/run.mjs --journey a,b,c`, then `node scripts/e2e/report_to_it_engineer.mjs e2e-out --smoke <sha> changed-files.txt` (`git diff --name-only <sha>~1 <sha> > changed-files.txt`, `QD_E2E_WINDOW_MIN=33`) | A merge that broke sign-in, a portal, a quote or the PDF is not seen until the nightly runs. The `smoke` heartbeat (7 d) raises it. |
-| `it-weekly-readings.yml`, Mondays 04:30 UTC | A Claude session, weekly: `node scripts/it/report_dependency_audit.mjs`, `node scripts/it/report_platform_readings.mjs`, `node scripts/it/workflow_audit.mjs`, `node scripts/it/open_dependency_patch_pr.mjs` | No dependency advisories, backups/PITR, members or disk readings. The `dependency` and `platform` heartbeats (8 d) raise it. |
-| `project-parity.yml`, daily 05:41 UTC | `npm run gate -- --daily` on main, daily. Its advisor refresh beats the `parity` heartbeat (36 h) | Routine drift, a new advisor finding and an edge-log attack pattern go unread. |
-| `cad-read-worker.yml`, every 6 h and dispatched by customer_api | A Claude session, when `select count(*) from cad_read_jobs where status not in ('done','failed')` is above 0: `deno run --no-lock --node-modules-dir=auto --allow-net --allow-env --allow-read scripts/cad_read_worker.ts` | A CAD drawing too big for the edge stays unread. 0 open jobs on 26 Oct. customer_api's dispatch still calls the workflow, and that run queues on the stopped runner. |
-| `ml-embed-backfill.yml`, daily 02:50 UTC | A Claude session, as needed: `npm i --no-save @huggingface/transformers@3.8.1 && node scripts/kb/run_ml_embed_backfill.mjs --minutes=40 --claim=64` (free, local CPU) | The Arabic/multilingual backlog drains only at resilience_ping's 4 rows a tick. |
+| `it-weekly-readings.yml`, Mondays 04:30 UTC | **Claude cloud routine "Weekly readings"**, Mondays 04:30 UTC. It runs `node scripts/it/report_dependency_audit.mjs`, `node scripts/it/report_platform_readings.mjs`, `node scripts/it/workflow_audit.mjs`, `node scripts/it/open_dependency_patch_pr.mjs` | No dependency advisories, backups/PITR, members or disk readings. The `dependency` and `platform` heartbeats (8 d) raise it. |
+| `project-parity.yml`, daily 05:41 UTC | **Claude cloud routine "Daily parity gate"**, 05:41 UTC: `npm run gate -- --daily` on main. Its advisor refresh beats the `parity` heartbeat (36 h) | Routine drift, a new advisor finding and an edge-log attack pattern go unread. |
+| `cad-read-worker.yml`, every 6 h and dispatched by customer_api | **Claude cloud routine "CAD read worker"**, every 2 h at :15 UTC, when `select count(*) from cad_read_jobs where status not in ('done','failed')` is above 0: `deno run --no-lock --node-modules-dir=auto --allow-net --allow-env --allow-read scripts/cad_read_worker.ts` | A CAD drawing too big for the edge stays unread. A queued drawing now waits up to 2 h for the routine instead of being read at once. 0 open jobs on 26 Oct. customer_api's dispatch still calls the workflow, and that run queues on the stopped runner. |
+| `ml-embed-backfill.yml`, daily 02:50 UTC | **Claude cloud routine "Multilingual embed backfill"**, 02:50 UTC: `npm i --no-save @huggingface/transformers@3.8.1 && node scripts/kb/run_ml_embed_backfill.mjs --minutes=40 --claim=64` (free, local CPU) | The Arabic/multilingual backlog drains only at resilience_ping's 4 rows a tick. |
 | `marketing-asset-features.yml`, Mondays 03:41 UTC | A Claude session after a campaign upload (needs ffmpeg and tesseract): `node scripts/media/measure_marketing_assets.mjs --check-determinism --write` | New videos are not measured. |
 | `resilience-ping.yml`, daily 07:17 UTC | Not replaced. Vercel Cron still calls resilience_ping every 15 min. | Nothing outside both Supabase and Vercel checks them, so an outage of both at once goes unseen. |
 | `release-train.yml`, every 10 min | The release operator, by hand (sections 1 and 2) | PRs wait for the operator. |
@@ -131,4 +151,6 @@ node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production --chan
 
 Uncomment the triggers in each workflow and delete the founder line above `on:`. The test above then asserts
 only that `workflow_dispatch` survived. If the pg_cron jobs should hand back to GitHub, unschedule
-`dropbox_backup_second_scheduler` and `kb_embed_daily` in a new SQL file.
+`dropbox_backup_second_scheduler` and `kb_embed_daily` in a new SQL file. Pause the five Claude cloud routines in
+section 3 at their links in the same change. If a routine and its workflow both run, the job runs twice. The
+journey and smoke runs then open and tear down their demo windows twice.
