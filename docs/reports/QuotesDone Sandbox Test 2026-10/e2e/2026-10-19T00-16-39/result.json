@@ -1,0 +1,353 @@
+{
+ "version": 1,
+ "ok": false,
+ "complete": false,
+ "truncated": true,
+ "harness_signed_out": null,
+ "tag": "39514e1e",
+ "site": "https://quotesdone.com",
+ "project": "htdblwldjkcgjvmqkbeh",
+ "started": "2026-10-19T00-16-39",
+ "seconds": 1635,
+ "journeys": [
+  "a",
+  "b",
+  "c",
+  "d",
+  "e",
+  "h",
+  "f",
+  "g"
+ ],
+ "kept": false,
+ "pass": 25,
+ "fail": 12,
+ "held": 0,
+ "skip": 9,
+ "report": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\e2e\\2026-10-19T00-16-39\\report.md",
+ "purge": null,
+ "steps": [
+  {
+   "journey": "fixtures",
+   "name": "fixtures of runs that are over are removed before this run starts",
+   "status": "FAIL",
+   "detail": "management API 400: {\"message\":\"Failed to run sql query: ERROR:  23503: update or delete on table \\\"leads\\\" violates foreign key constraint \\\"inbound_messages_lead_id_fkey\\\" on table \\\"inbound_message",
+   "ms": null
+  },
+  {
+   "journey": "fixtures",
+   "name": "demo customer complete (name, 18+ DOB, email+mobile verified, current terms signed)",
+   "status": "PASS",
+   "detail": "is_demo=true dob=1990-01-15 email_verified=true phone_verified=true terms=v10/v10 signed=false",
+   "ms": null
+  },
+  {
+   "journey": "fixtures",
+   "name": "demo supplier A has the mandatory six",
+   "status": "PASS",
+   "detail": "is_demo=true approval=approved missing=[] licence=uploaded profile=uploaded agreement=v15/v15 signed=true",
+   "ms": null
+  },
+  {
+   "journey": "fixtures",
+   "name": "demo supplier B has the mandatory six",
+   "status": "PASS",
+   "detail": "is_demo=true approval=approved missing=[] licence=uploaded profile=uploaded agreement=v15/v15 signed=true",
+   "ms": null
+  },
+  {
+   "journey": "fixtures",
+   "name": "demo supplier C has the mandatory six",
+   "status": "PASS",
+   "detail": "is_demo=true approval=approved missing=[] licence=uploaded profile=uploaded agreement=v15/v15 signed=true",
+   "ms": null
+  },
+  {
+   "journey": "a customer",
+   "name": "signed in without an OTP (en-desktop)",
+   "status": "PASS",
+   "detail": "nav visible=true, dir=ltr",
+   "ms": null
+  },
+  {
+   "journey": "a customer",
+   "name": "overview data under 2.5 s (en-desktop)",
+   "status": "FAIL",
+   "detail": "data settled in 4127 ms (shell 1666 ms, 7 function call(s): kyc:state @723 +462, customer_api:my_inquiries @723 +672, customer_portal:overview @742 +676, project_api:dashboard @743 +553, messages_api:threads @743 +588, customer_portal:decision_support @743 +598, sales_engineer:support_rating_due @1030 +3104)",
+   "ms": 4127
+  },
+  {
+   "journey": "a customer",
+   "name": "signed in without an OTP (ar-desktop)",
+   "status": "PASS",
+   "detail": "nav visible=true, dir=rtl",
+   "ms": null
+  },
+  {
+   "journey": "a customer",
+   "name": "overview data under 2.5 s (ar-desktop)",
+   "status": "PASS",
+   "detail": "data settled in 1731 ms (shell 1296 ms, 7 function call(s): kyc:state @795 +293, customer_api:my_inquiries @795 +550, project_api:dashboard @796 +570, customer_portal:overview @796 +654, messages_api:threads @796 +734, customer_portal:decision_support @797 +502, sales_engineer:support_rating_due @1161 +573)",
+   "ms": 1731
+  },
+  {
+   "journey": "a customer",
+   "name": "Arabic renders right-to-left (ar-desktop)",
+   "status": "PASS",
+   "detail": "document dir=rtl",
+   "ms": null
+  },
+  {
+   "journey": "a customer",
+   "name": "signed in without an OTP (en-mobile)",
+   "status": "PASS",
+   "detail": "nav visible=true, dir=ltr",
+   "ms": null
+  },
+  {
+   "journey": "a customer",
+   "name": "overview data under 2.5 s (en-mobile)",
+   "status": "PASS",
+   "detail": "data settled in 1109 ms (shell 1334 ms, 7 function call(s): kyc:state @332 +564, customer_api:my_inquiries @337 +565, project_api:dashboard @337 +575, customer_portal:overview @337 +787, customer_portal:decision_support @338 +594, messages_api:threads @338 +729, sales_engineer:support_rating_due @612 +477)",
+   "ms": 1109
+  },
+  {
+   "journey": "a customer",
+   "name": "signed in without an OTP (ar-mobile)",
+   "status": "PASS",
+   "detail": "nav visible=true, dir=rtl",
+   "ms": null
+  },
+  {
+   "journey": "a customer",
+   "name": "overview data under 2.5 s (ar-mobile)",
+   "status": "PASS",
+   "detail": "data settled in 1206 ms (shell 1240 ms, 7 function call(s): kyc:state @304 +458, customer_api:my_inquiries @305 +562, project_api:dashboard @307 +506, messages_api:threads @307 +670, customer_portal:overview @307 +902, customer_portal:decision_support @310 +524, sales_engineer:support_rating_due @618 +588)",
+   "ms": 1206
+  },
+  {
+   "journey": "a customer",
+   "name": "Arabic renders right-to-left (ar-mobile)",
+   "status": "PASS",
+   "detail": "document dir=rtl",
+   "ms": null
+  },
+  {
+   "journey": "a customer",
+   "name": "every Arabic page in the sitemap renders right-to-left",
+   "status": "PASS",
+   "detail": "79/79 Arabic pages rtl",
+   "ms": null
+  },
+  {
+   "journey": "a customer",
+   "name": "the sales engineer interview reaches ready",
+   "status": "FAIL",
+   "detail": "8 turn(s), status=held, readiness=0",
+   "ms": null
+  },
+  {
+   "journey": "a customer",
+   "name": "fallback request written for the rest of the funnel",
+   "status": "SKIP",
+   "detail": "inquiry cd7b7f70-e4a3-4644-a0fa-2a5e72415347 written by demo_factory.makeInquiry because the portal did not post one",
+   "ms": null
+  },
+  {
+   "journey": "a customer",
+   "name": "database: the request belongs to the customer and is demo",
+   "status": "PASS",
+   "detail": "owner match=true, demo=true, category=aluminium, status=sent, rfq_ready=true",
+   "ms": null
+  },
+  {
+   "journey": "a customer",
+   "name": "database: the sales-engineer answers are on the request (installation, warranty, materials, date)",
+   "status": "SKIP",
+   "detail": "answered: installation, warranty, date (fallback request)",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "routing invited the demo suppliers",
+   "status": "FAIL",
+   "detail": "0/3 matched by the product; 3 invited directly by the harness",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "sees the invitation (en-desktop)",
+   "status": "PASS",
+   "detail": "RFQ visible in the \"Inquiries received\" tab",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "invitation is anonymised (en-desktop)",
+   "status": "PASS",
+   "detail": "none of 4 customer identifiers on screen",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "sees the invitation (ar-desktop)",
+   "status": "FAIL",
+   "detail": "the \"الاستفسارات الواردة\" tab could not be opened in 15 s",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "invitation is anonymised (ar-desktop)",
+   "status": "PASS",
+   "detail": "none of 4 customer identifiers on screen",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "sees the invitation (en-mobile)",
+   "status": "PASS",
+   "detail": "RFQ visible in the \"Inquiries received\" tab",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "invitation is anonymised (en-mobile)",
+   "status": "PASS",
+   "detail": "none of 4 customer identifiers on screen",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "sees the invitation (ar-mobile)",
+   "status": "FAIL",
+   "detail": "the \"الاستفسارات الواردة\" tab could not be opened in 15 s",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "invitation is anonymised (ar-mobile)",
+   "status": "PASS",
+   "detail": "none of 4 customer identifiers on screen",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "API: the inbox carries no customer identity",
+   "status": "PASS",
+   "detail": "HTTP 200, 1 RFQ(s), customer_id field present=false",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "an incomplete quote is HELD",
+   "status": "FAIL",
+   "detail": "HTTP 500 held=undefined missing=",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "database: the hold is open and owned by the sales engineer",
+   "status": "FAIL",
+   "detail": "{}",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "the hold notice was written and CAPTURED, never sent",
+   "status": "FAIL",
+   "detail": "no notification row",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "the hold notice reaches WhatsApp too",
+   "status": "SKIP",
+   "detail": "the hold desk queues e-mail only (workflow.ts gate); WhatsApp fan-out needs the supplier's wa_optin, which a demo supplier does not give",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "two options become two quotations",
+   "status": "FAIL",
+   "detail": "HTTP 500 code=undefined rows=#1:draft held=0",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "preflight: the complete quote states every required detail",
+   "status": "FAIL",
+   "detail": "would_hold=true missing=glass_type,glass_thickness,profile_system,installation_included,warranty_coverage,glass_type,glass_thickness,profile_system,installation_included,warranty_coverage would_accept=false",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "a complete quote is accepted",
+   "status": "PASS",
+   "detail": "HTTP 200 held=undefined accepted=true code=",
+   "ms": null
+  },
+  {
+   "journey": "b supplier",
+   "name": "a held quote is not ranked",
+   "status": "FAIL",
+   "detail": "HTTP 409 ok=false on_hold=0 held quote in ranking=?",
+   "ms": null
+  },
+  {
+   "journey": "c",
+   "name": "journey not started",
+   "status": "SKIP",
+   "detail": "the 20-minute harness deadline passed before this journey; teardown and the report run so the heartbeat still reaches the IT engineer",
+   "ms": null
+  },
+  {
+   "journey": "d",
+   "name": "journey not started",
+   "status": "SKIP",
+   "detail": "the 20-minute harness deadline passed before this journey; teardown and the report run so the heartbeat still reaches the IT engineer",
+   "ms": null
+  },
+  {
+   "journey": "e",
+   "name": "journey not started",
+   "status": "SKIP",
+   "detail": "the 20-minute harness deadline passed before this journey; teardown and the report run so the heartbeat still reaches the IT engineer",
+   "ms": null
+  },
+  {
+   "journey": "h",
+   "name": "journey not started",
+   "status": "SKIP",
+   "detail": "the 20-minute harness deadline passed before this journey; teardown and the report run so the heartbeat still reaches the IT engineer",
+   "ms": null
+  },
+  {
+   "journey": "f",
+   "name": "journey not started",
+   "status": "SKIP",
+   "detail": "the 20-minute harness deadline passed before this journey; teardown and the report run so the heartbeat still reaches the IT engineer",
+   "ms": null
+  },
+  {
+   "journey": "g",
+   "name": "journey not started",
+   "status": "SKIP",
+   "detail": "the 20-minute harness deadline passed before this journey; teardown and the report run so the heartbeat still reaches the IT engineer",
+   "ms": null
+  },
+  {
+   "journey": "safety",
+   "name": "nothing the run caused was dispatched",
+   "status": "PASS",
+   "detail": "email/suppressed: 3, whatsapp/suppressed: 3",
+   "ms": null
+  },
+  {
+   "journey": "cleanup",
+   "name": "zero leftovers",
+   "status": "PASS",
+   "detail": "removed: notifications 6, comparison_candidate_v2 (table no longer exists) 0, agent_actions 9, doc_versions 11, doc_versions (rfq) 2, quote_items 3, documents 6, company_event (quote) 3, quotes 3, inquiry_matches 3, company_event (lead) 3, company_event (inquiry) 2, inquiries 1, supplier_capability_confirmation 3, supplier_capabilities (fk supplier_id -> leads) 3, leads 3, customer_preference 1, customer_organization (table no longer exists) 0, company_event (customer) 1, customers 1, inquiry_intake 1, email_verifications 1, auth_users 4, storage_objects 16; leftovers: {\"auth_users\":0,\"customers\":0,\"leads\":0,\"inquiries\":0,\"quotes\":0,\"quote_spec_hold\":0,\"quote_reviews\":0,\"notifications\":0,\"transactions\":0,\"refunds\":0,\"supplier_dues\":0,\"refund_case\":0,\"inquiry_intake\":0,\"email_verifications\":0,\"storage_objects\":0,\"total\":0}",
+   "ms": null
+  }
+ ]
+}

@@ -1,0 +1,11 @@
+{
+ "id": 95996,
+ "type": "supplier_approved",
+ "channel": "whatsapp",
+ "status": "suppressed",
+ "to_email": "qd-71b75b60-sup3@example.invalid",
+ "lang": "en",
+ "subject": "You are verified on QuotesDone: please confirm your categories",
+ "body": "Dear ZZ DEMO HV hvac 71b75b60,\n\nYour company is now verified on QuotesDone. Our sales engineer has reviewed your registration documents, and your supplier account is approved.\n\nFrom your documents we have set these categories for your company:\n• HVAC & air conditioning\n\nWhat to do now (about two minutes):\n1. Open your supplier portal: https://quotesdone.com/portal\n2. In the Services tab, check that the categories are correct, and press \"Remove this trade\" for any your company does not work in.\n3. Add any categories and services we missed, then press \"Confirm my services\".\n\nInquiries are matched to the categories and services you confirm, so the sooner you confirm them, the sooner the right inquiries reach you.\n\nNeed help? Reply to this e-mail or message us on WhatsApp.\n\nKind regards,\nQuotesDone Customer Support",
+ "html": null
+}

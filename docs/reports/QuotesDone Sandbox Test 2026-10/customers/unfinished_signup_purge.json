@@ -1,0 +1,39 @@
+{
+ "before_30_min": {
+  "held": 0,
+  "apply": true,
+  "items": [],
+  "removed": 0
+ },
+ "after_30_min": {
+  "held": 0,
+  "apply": true,
+  "items": [
+   {
+    "kind": "customer",
+    "counts": {
+     "outbox": 0,
+     "email_otp": 1,
+     "phone_otp": 0,
+     "auth_users": 1,
+     "records_listed": 0,
+     "mail_pdfs_listed": 0,
+     "mail_archive_rows": 0,
+     "mail_copies_listed": 0
+    },
+    "missing": [
+     "terms",
+     "terms_ip"
+    ],
+    "purge_id": 82
+   }
+  ],
+  "removed": 1
+ },
+ "complete_same_age": {
+  "held": 0,
+  "apply": true,
+  "items": [],
+  "removed": 0
+ }
+}
