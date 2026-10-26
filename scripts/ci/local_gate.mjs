@@ -123,9 +123,19 @@ const pick = (s) => {
 };
 const head = execOut('git rev-parse --short HEAD'); const branch = execOut('git rev-parse --abbrev-ref HEAD');
 function execOut(c) { return String(spawnSync(c, { cwd: REPO, shell: true, encoding: 'utf8' }).stdout || '').trim(); }
+// A PASS posted to a PR certifies that PR's code: refuse when the tree is dirty or HEAD is not the PR's head.
+if (PR !== null) {
+  if (execOut('git status --porcelain --untracked-files=no')) { console.error('--pr refused: the worktree has uncommitted changes'); process.exit(2); }
+  const prHead = execOut(`gh pr view ${PR} --json headRefOid --jq .headRefOid`);
+  if (!prHead || prHead !== execOut('git rev-parse HEAD')) { console.error(`--pr refused: HEAD is not PR #${PR}'s head (${prHead || 'unreadable'})`); process.exit(2); }
+}
 console.log(`local gate on ${branch} @ ${head}; logs in ${LOGS}`);
 
-const offline = STEPS.filter((s) => !s.prod); const prod = STEPS.filter((s) => s.prod);
+// With a token, npm test is itself a production caller, so it runs FIRST in the one serial production chain:
+// two callers sharing the management API's request budget is how 10 of 19 failures became 429s
+// (scripts/checks/run.mjs). Review of #1597, 26 Oct 2026.
+const serialFirst = TOKEN ? STEPS.filter((s) => s.id === 'npm-test') : [];
+const offline = STEPS.filter((s) => !s.prod && !serialFirst.includes(s)); const prod = [...serialFirst, ...STEPS.filter((s) => s.prod)];
 await Promise.all([
   ...offline.map(async (s) => { const r = pick(s) || await (s.postgres ? withPostgres(s) : run(s)); results.set(s.id, r); console.log(`${r.result.padEnd(7)} ${s.id}`); }),
   (async () => { for (const s of prod) { const r = pick(s) || await run(s); results.set(s.id, r); console.log(`${r.result.padEnd(7)} ${s.id}`); } })(),
