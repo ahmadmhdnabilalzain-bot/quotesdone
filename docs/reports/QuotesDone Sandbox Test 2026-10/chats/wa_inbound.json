@@ -1,0 +1,11 @@
+{
+ "sent": "ZZ DEMO 0a717394 inbound wa_inbound",
+ "response": {
+  "status": 200,
+  "text": "<Response></Response>"
+ },
+ "stored_in": [
+  "wa_messages:1",
+  "support_case:1"
+ ]
+}

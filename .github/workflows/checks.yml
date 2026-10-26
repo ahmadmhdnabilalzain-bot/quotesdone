@@ -29,12 +29,13 @@ concurrency:
   group: checks-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
+# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
 on:
-  push:
-    branches: ['main']
-    paths-ignore: ['docs/**', '**/*.md', '.claude-flow/**', 'graphify-out/**']
-  pull_request:
-    paths-ignore: ['docs/**', '**/*.md', '.claude-flow/**', 'graphify-out/**']
+  # push:
+    # branches: ['main']
+    # paths-ignore: ['docs/**', '**/*.md', '.claude-flow/**', 'graphify-out/**']
+  # pull_request:
+    # paths-ignore: ['docs/**', '**/*.md', '.claude-flow/**', 'graphify-out/**']
   workflow_dispatch:
 
 # Deno reads only the npm: specifiers the edge functions import, never the Next.js app's package.json: with

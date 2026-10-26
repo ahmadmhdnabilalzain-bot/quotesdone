@@ -2576,6 +2576,24 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_takes_invite_reply(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found then raise exception 'no handoff %', p_id; end if;
+  -- The sales engineer owns the company page. The handoff stays in its queue, waiting on that work, with the lead
+  -- and the supplier's own words in front of it.
+  return jsonb_build_object(
+    'waiting', 'sales_engineer: set up the company page for lead #' || coalesce(a.detail->>'lead_id', '?') || ' from the trades in the reply',
+    'lead_id', a.detail->'lead_id', 'inbound_message_id', a.detail->'inbound_message_id', 'reply_text', a.detail->'reply_text');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_tells_customer_invoice_ready()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -7617,9 +7635,10 @@ begin
   v_site := coalesce(v_site, 'https://quotesdone.com');
   select value into v_subj    from app_secrets where key = 'invite_subject';
   select value into v_body    from app_secrets where key = 'invite_body';
-  -- A template without the link placeholder is the 62-invitations-with-no-way-in failure. Refuse.
-  if coalesce(v_body, '') not like '%{{link}}%' then
-    raise exception 'app_secrets.invite_body has no {{link}} placeholder: an invitation with no way in is refused';
+  -- 27 Oct 2026: the founder's invitation carries no link ("safer to not send links"); a supplier registers at
+  -- quotesdone.com or replies. Only an EMPTY template is refused now. A template that still has {{link}} is filled.
+  if btrim(coalesce(v_body, '')) = '' then
+    raise exception 'app_secrets.invite_body is empty: no invitation is built from nothing';
   end if;
   v_target := coalesce((select nullif(value,'')::int from app_secrets where key='invite_target_per_category'),
                        (select nullif(value,'')::int from app_secrets where key='invite_target_per_trade'), 10);
@@ -7655,8 +7674,9 @@ begin
   ),
   touched_d as materialized (select distinct dkey from keyed where touched),
   touched_n as materialized (select distinct nkey from keyed where touched and nkey is not null),
-  -- instr 1013: marketing's ranking of the trades below ten suppliers, with each trade's English variant
-  plans as materialized (select p.trade, p.emirate, p.rank, p.invite_subject, p.invite_body from public.marketing_gap_recruitment_plan p),
+  -- instr 1013: marketing's ranking of the trades below ten suppliers (the ranking orders the queue; since 27 Oct 2026
+  -- every row stores the one approved text, not a per-trade variant)
+  plans as materialized (select p.trade, p.emirate, p.rank from public.marketing_gap_recruitment_plan p),
   -- 29 Sep 2026 (ledger 1018): the trades and areas of the open, real stalled-request rescues (public.stalled_inquiry_rescue).
   -- A fixture rescue never moves the real queue.
   rescue as materialized (select x.trades, x.emirate from public.stalled_inquiry_rescue x where x.cleared_at is null and not x.fixture and cardinality(x.trades) > 0),
@@ -7682,7 +7702,7 @@ begin
            when exists (select 1 from public.supply_gap g where g.status = 'recruit' and g.trade = any(coalesce(c.invite_trades, '{}'::text[]))
                           and (g.emirate = 'UAE' or g.emirate = c.emirate)) then 0
            when pl.rank is not null then 1 else 2 end as target_rank,
-      coalesce(pl.rank, 2147483647) as plan_rank, pl.invite_subject as plan_subject, pl.invite_body as plan_body,
+      coalesce(pl.rank, 2147483647) as plan_rank,
       coalesce((select u.domain_slug from lead_subcategory ls join under u on u.domain_slug = ls.domain_slug
                  where ls.lead_id = c.id order by u.have asc, ls.score desc limit 1), '~none') as pdomain,
       case when c.email_verified in ('verified','true') then 0 else 1 end as unverified_rank,
@@ -7691,12 +7711,12 @@ begin
               'support','hello','marketing','general','accounts','reception','careers','hr')
            then 1 else 0 end as role_rank
     from cand c
-    left join lateral (select p.rank, p.invite_subject, p.invite_body from plans p
+    left join lateral (select p.rank from plans p
                         where p.trade = any(coalesce(c.invite_trades, '{}'::text[])) and (p.emirate = 'UAE' or p.emirate = c.emirate)
                         order by p.rank limit 1) pl on true
   ),
   elig as (
-    select r.id, r.email, r.company_name, r.claim_token, r.lang, r.plan_subject, r.plan_body from (
+    select r.id, r.email, r.company_name, r.claim_token, r.lang from (
       select p.*,
         case when p.pdomain='~none' then 1 else 0 end as is_none,
         row_number() over (partition by p.pdomain order by p.unverified_rank, p.role_rank, p.id) as rk,
@@ -7711,12 +7731,15 @@ begin
     order by r.target_rank, r.plan_rank, r.is_none, r.rk, r.unverified_rank, r.role_rank, r.pdomain
     limit greatest(coalesce(p_limit, 0), 0)
   )
-  select e.id, btrim(e.email), e.company_name, e.lang, coalesce(e.plan_subject, v_subj),
-         -- an Arabic-script company name is not written into an English letter (the 29 Sep probe found 11 of 200)
-         replace(replace(coalesce(e.plan_body, v_body), '{{company}}',
-                         coalesce(nullif(btrim(case when e.company_name ~ '[؀-ۿ]' then '' else e.company_name end), ''), 'there')),
-                 '{{link}}', public.fn_supplier_invite_link(v_site, e.claim_token, e.id))   -- English, with its ref (see header)
-  from elig e;
+  select e.id, btrim(e.email), e.company_name, e.lang, v_subj,
+         -- an Arabic-script company name is not written into an English letter (the 29 Sep probe found 11 of 200);
+         -- with no usable name the greeting is the neutral "Hello," the Microsoft 365 lane also sends
+         -- (a template that still carries {{link}} is filled as before; the approved one has none)
+         replace(replace(case when n.nm = '' then replace(v_body, 'Hi {{company}} team,', 'Hello,') else v_body end,
+                         '{{company}}', case when n.nm = '' then 'there' else n.nm end),
+                 '{{link}}', public.fn_supplier_invite_link(v_site, e.claim_token, e.id))
+  from elig e
+  cross join lateral (select coalesce(nullif(btrim(case when e.company_name ~ '[؀-ۿ]' then '' else e.company_name end), ''), '') as nm) n;
 end
 $function$
 

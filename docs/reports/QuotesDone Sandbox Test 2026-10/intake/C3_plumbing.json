@@ -1,0 +1,79 @@
+{
+ "customer": "C3",
+ "email": "qd-fe7ba9c4-cust16@example.invalid",
+ "category": "plumbing",
+ "final_status": "needs_info",
+ "final_readiness": 56,
+ "final_missing": [
+  "Any preference for the pipes? Tap one, or type what you have in mind.",
+  "Any preference for the sanitary fixtures? Tap one, or type what you have in mind.",
+  "Do you need a warranty, and for how long at least?",
+  "By when do you need it done or delivered? Tap one, or type a date."
+ ],
+ "final_brief": {
+  "state": "interview",
+  "details": {},
+  "asked_key": null,
+  "boq_asked": false,
+  "cad_asked": false,
+  "req_asked": "material.pipes",
+  "req_answers": {
+   "installation": {
+    "v": "yes"
+   }
+  }
+ },
+ "turns": [
+  {
+   "turn": 1,
+   "harness_answer": "Plumbing & Sanitary for a villa in Sharjah. Line 1: sanitary ware x 20. Line 2: ppr pipes x 10. Line 3: drainage pipes x 5.",
+   "ai_reply": "Thanks — I have the villa location and the three product lines. A few details will help suppliers quote the right items and quantities."
+  },
+  {
+   "turn": 2,
+   "harness_answer": "Sizes: line 1 is 1200 x 1500 mm; for lines 2 and 3 I am not sure, please advise the standard.",
+   "ai_reply": "Thanks, I’ve noted the three product lines and that you’d like suppliers to recommend standard pipe sizes. Please confirm the supply/installation arrangement and share the bathroom, WC and kitchen fixture breakdown if you know it."
+  },
+  {
+   "turn": 3,
+   "harness_answer": "Supply and install, within six weeks, ground and first floor.",
+   "ai_reply": "I’ve noted the villa in Sharjah, supply and installation, and the sanitary ware, PPR pipe and drainage pipe quantities. How many bathrooms/WCs and kitchens are there, and do you know the number of WCs, basins, showers, baths and sinks?"
+  },
+  {
+   "turn": 4,
+   "harness_answer": "Brand: Grohe; grade: not sure, standard commercial.",
+   "ai_reply": "I’ve noted the supply and installation of the sanitary ware and pipework for your villa in Sharjah. To help suppliers confirm the quantities, could you share the number of bathrooms/WCs and kitchens, and how the 20 sanitary items are divided between WCs, basins, showers, baths and sinks?"
+  },
+  {
+   "turn": 5,
+   "harness_answer": "Details: fixture_count: standard specification, please assume typical values.",
+   "ai_reply": "I’ve noted the 20 sanitaryware items and your request for suppliers to recommend standard pipe sizes and assume a typical villa fixture layout. One detail will help them price the pipe quantities accurately."
+  },
+  {
+   "turn": 6,
+   "harness_answer": "Details: Pipe quantity units or approximate lengths: standard specification, please assume typical values.",
+   "ai_reply": "Thanks, I’ve captured the supply-and-install request and your preference for suppliers to use typical villa assumptions where sizes or fixture breakdowns are unknown. Suppliers can quote on that basis and clearly state their assumptions."
+  },
+  {
+   "turn": 7,
+   "harness_answer": "Details: Any preference for the pipes? Tap one, or type what you have in mind.: standard specification, please assume typical values; Any preference for the sanitary fixtures? Tap one, or type what you have in mind.: standard specification, please assume typical values; Do you need a warranty, and for how long at least?: standard specification, please assume typical values; By when do you need it done or delivered? Tap one, or type a date.: standard specification, please assume typical values.",
+   "ai_reply": "Your plumbing and sanitary request is ready to share with suppliers. They should clearly state their assumptions for the fixture layout and pipe sizes, since you’ve asked them to use typical villa specifications."
+  },
+  {
+   "turn": 8,
+   "harness_answer": "Details: Any preference for the pipes? Tap one, or type what you have in mind.: standard specification, please assume typical values; Any preference for the sanitary fixtures? Tap one, or type what you have in mind.: standard specification, please assume typical values; Do you need a warranty, and for how long at least?: standard specification, please assume typical values; By when do you need it done or delivered? Tap one, or type a date.: standard specification, please assume typical values.",
+   "ai_reply": "Your plumbing request is ready to share with suppliers. They should state their assumptions for the typical villa fixture layout and pipe sizes, since those details are not specified."
+  },
+  {
+   "turn": 9,
+   "harness_answer": "Details: Any preference for the pipes? Tap one, or type what you have in mind.: standard specification, please assume typical values; Any preference for the sanitary fixtures? Tap one, or type what you have in mind.: standard specification, please assume typical values; Do you need a warranty, and for how long at least?: standard specification, please assume typical values; By when do you need it done or delivered? Tap one, or type a date.: standard specification, please assume typical values.",
+   "ai_reply": "Your plumbing request is ready to share with suppliers. They should state their assumptions for the typical villa fixture layout and pipe sizes, and confirm what units the pipe quantities represent."
+  },
+  {
+   "turn": 10,
+   "harness_answer": "Details: Any preference for the pipes? Tap one, or type what you have in mind.: standard specification, please assume typical values; Any preference for the sanitary fixtures? Tap one, or type what you have in mind.: standard specification, please assume typical values; Do you need a warranty, and for how long at least?: standard specification, please assume typical values; By when do you need it done or delivered? Tap one, or type a date.: standard specification, please assume typical values.",
+   "ai_reply": "Your request is ready to share with plumbing suppliers. They should state their assumptions for the typical villa fixture layout and pipe sizes, and clarify the units or lengths assumed for the pipe quantities."
+  }
+ ],
+ "note": "per-turn slots are not stored by inquiry_intake; only the final brief/missing survive"
+}
