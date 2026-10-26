@@ -28,7 +28,7 @@
 //
 // STATED RESIDUAL, not hidden: a PUBLIC hostname that RESOLVES to a private address (DNS rebinding)
 // is not caught. Deno does not expose the resolved IP to the caller, so there is nothing here to
-// check it against. safeFetch() narrows it by re-checking the FINAL url after redirects — a public
+// check it against. safeFetch() narrows it by judging EVERY redirect hop before requesting it — a public
 // host cannot bounce the fetch into a private one — but a rebinding DNS record still gets through.
 
 /** null when the URL is safe to fetch; otherwise a short reason code, suitable for a log. */
@@ -87,6 +87,8 @@ export interface SafeFetchOptions {
   /** Refuse a response body larger than this. Default 25 MB, matching the storage buckets. */
   maxBytes?: number;
   headers?: HeadersInit;
+  /** Test seam: the fetch to use. Default globalThis.fetch. */
+  fetchImpl?: typeof fetch;
 }
 
 export type SafeFetchResult =
@@ -111,9 +113,22 @@ export async function safeFetch(url: string, opts: SafeFetchOptions = {}): Promi
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), timeoutMs);
   try {
-    const r = await fetch(url, { redirect: 'follow', signal: ac.signal, headers: opts.headers });
-    const badFinal = unsafeUrl(r.url || url);
-    if (badFinal) { try { await r.body?.cancel(); } catch { /* nothing to cancel */ } return { ok: false, error: 'url_refused_after_redirect', detail: badFinal }; }
+    // Redirects are followed BY HAND, each hop judged before it is requested (CWE-918 audit, 19 Oct 2026).
+    // redirect:'follow' only let us judge the FINAL url, so public -> 169.254.169.254 -> public had already
+    // sent the GET to the internal hop (a blind SSRF) by the time the final url was checked.
+    let cur = url, r: Response;
+    for (let hop = 0; ; hop++) {
+      r = await (opts.fetchImpl ?? fetch)(cur, { redirect: 'manual', signal: ac.signal, headers: opts.headers });
+      const loc = r.status >= 300 && r.status < 400 ? r.headers.get('location') : null;
+      if (!loc) break;
+      try { await r.body?.cancel(); } catch { /* nothing to cancel */ }
+      if (hop >= 5) return { ok: false, error: 'too_many_redirects', detail: 'more than 5 redirects' };
+      let next: string;
+      try { next = new URL(loc, cur).toString(); } catch { return { ok: false, error: 'url_refused_after_redirect', detail: 'invalid_url' }; }
+      const badHop = unsafeUrl(next);
+      if (badHop) return { ok: false, error: 'url_refused_after_redirect', detail: badHop };
+      cur = next;
+    }
     if (!r.ok) { try { await r.body?.cancel(); } catch { /* nothing to cancel */ } return { ok: false, error: 'http_' + r.status, detail: 'the target answered ' + r.status }; }
 
     // A declared Content-Length over the cap is refused before a single byte is read.
@@ -134,7 +149,7 @@ export async function safeFetch(url: string, opts: SafeFetchOptions = {}): Promi
     }
     const bytes = new Uint8Array(total);
     let o = 0; for (const c of chunks) { bytes.set(c, o); o += c.length; }
-    return { ok: true, bytes, contentType: (r.headers.get('content-type') || '').toLowerCase(), finalUrl: r.url || url };
+    return { ok: true, bytes, contentType: (r.headers.get('content-type') || '').toLowerCase(), finalUrl: cur };
   } catch (e) {
     const msg = String((e as Error)?.message || e);
     return { ok: false, error: ac.signal.aborted ? 'timeout' : 'fetch_failed', detail: msg.slice(0, 160) };

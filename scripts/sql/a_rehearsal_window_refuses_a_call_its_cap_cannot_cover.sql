@@ -33,6 +33,10 @@ drop policy if exists rehearsal_spend_reservation_service_role_only on public.re
 create policy rehearsal_spend_reservation_service_role_only on public.rehearsal_spend_reservation
   as permissive for all to public using (false) with check (false);
 revoke all on public.rehearsal_spend_reservation from anon, authenticated;
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('rehearsal_spend_reservation', false, 'measurement', 'live per-call spend reservations of a rehearsal window; each stops counting after ten minutes, and the money is recorded in ai_cost_log', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
 
 -- What a tag has committed: every logged cost (the larger of the two prices on each row) plus every live
 -- reservation. NULL only if it cannot be read; callers treat NULL as a refusal.
@@ -47,13 +51,17 @@ as $fn$
 $fn$;
 revoke execute on function public.fn_rehearsal_committed_usd(text) from public, anon, authenticated;
 
--- One call's estimate: the tag's own mean logged cost so far, USD 0.01 before any is logged.
+-- One call's estimate: the tag's own mean PAID cost so far, USD 0.01 before any is logged. Cache hits and zero-cost
+-- rows (refusals, errors) are not calls that were paid for, so they do not pull the mean down.
 create or replace function public.fn_rehearsal_call_estimate_usd(p_tag text)
 returns numeric language sql stable security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-  select coalesce(nullif(avg(greatest(coalesce(c.cost_usd_reported, 0), coalesce(c.cost_aed, 0) / 3.6725)), 0), 0.01)
-    from public.ai_cost_log c where c.e2e_run_tag = p_tag and c.model_used is distinct from 'none';
+  select coalesce(avg(x.usd), 0.01)
+    from (select greatest(coalesce(c.cost_usd_reported, 0), coalesce(c.cost_aed, 0) / 3.6725) as usd
+            from public.ai_cost_log c
+           where c.e2e_run_tag = p_tag and c.model_used is distinct from 'none' and not coalesce(c.cached, false)) x
+   where x.usd > 0;
 $fn$;
 revoke execute on function public.fn_rehearsal_call_estimate_usd(text) from public, anon, authenticated;
 
@@ -97,13 +105,17 @@ exception when others then
 end $fn$;
 revoke execute on function public.fn_rehearsal_spend_reserve() from public, anon, authenticated;
 
--- The cost row for a tag releases that tag's oldest reservation: the money is now counted as spend instead.
+-- A PAID cost row for a tag releases that tag's oldest reservation: the money is now counted as spend instead.
+-- Only a paid row: a cache hit (cached, cost 0) or a zero-cost refusal/error row reserved nothing, and letting it
+-- release another in-flight call's reservation would reopen the --concurrency race this file closes (review of
+-- #1588, 26 Oct 2026). A call that died without a paid row keeps its reservation until the ten minutes run out.
 create or replace function public.fn_ai_cost_log_releases_rehearsal_reservation()
 returns trigger language plpgsql security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
 begin
-  if new.e2e_run_tag is not null and new.model_used is distinct from 'none' then
+  if new.e2e_run_tag is not null and new.model_used is distinct from 'none' and not coalesce(new.cached, false)
+     and greatest(coalesce(new.cost_usd_reported, 0), coalesce(new.cost_aed, 0)) > 0 then
     delete from public.rehearsal_spend_reservation
      where id = (select id from public.rehearsal_spend_reservation
                   where e2e_run_tag = new.e2e_run_tag order by created_at limit 1);
@@ -242,19 +254,25 @@ end $function$;
 
 -- PROBE (this file defines routines, so it cleans up and returns a verdict row instead of raising).
 -- A tag no harness uses; the window and its rows are removed before the verdict is read.
+-- It never raises (a raise would roll back the DDL above): it records what it found in a transaction-local setting.
 do $probe$
-declare v_ok_tag text := 'zzcapprobe'; v_c numeric; v_r jsonb; v_rows int;
+declare v_ok_tag text := 'zzcapprobe'; v_c numeric; v_e numeric; v_rows int; v_bad text := '';
 begin
   insert into public.rehearsal_window (run_tag, opened_by, note, models_allowed, cap_usd, expires_at)
   values ('qd_run:' || v_ok_tag, 'probe', 'cap reservation probe', true, 0.025, now() + interval '5 minutes');
   insert into public.rehearsal_spend_reservation (e2e_run_tag, reserved_usd) values (v_ok_tag, 0.01), (v_ok_tag, 0.01);
   v_c := public.fn_rehearsal_committed_usd(v_ok_tag);
-  if v_c <> 0.02 then raise exception 'committed % <> 0.02', v_c; end if;
+  v_e := public.fn_rehearsal_call_estimate_usd(v_ok_tag);
+  if v_c is distinct from 0.02 then v_bad := v_bad || 'committed ' || coalesce(v_c::text, 'NULL') || ' <> 0.02; '; end if;
+  if v_e is distinct from 0.01 then v_bad := v_bad || 'estimate ' || coalesce(v_e::text, 'NULL') || ' <> 0.01; '; end if;
   -- 0.02 committed + 0.01 estimate >= 0.025: the next call is refused although nothing has been LOGGED yet.
   delete from public.rehearsal_spend_reservation where e2e_run_tag = v_ok_tag;
   delete from public.rehearsal_window where run_tag = 'qd_run:' || v_ok_tag;
   select count(*) into v_rows from public.rehearsal_spend_reservation where e2e_run_tag = v_ok_tag;
-  if v_rows <> 0 then raise exception 'probe left % rows', v_rows; end if;
+  if v_rows <> 0 then v_bad := v_bad || 'probe left ' || v_rows || ' reservation rows; '; end if;
+  select count(*) into v_rows from public.rehearsal_window where run_tag = 'qd_run:' || v_ok_tag;
+  if v_rows <> 0 then v_bad := v_bad || 'probe left its window; '; end if;
+  perform set_config('qd.rehearsal_cap_probe', v_bad, true);
 end $probe$;
-select case when public.fn_rehearsal_committed_usd('zzcapprobe') = 0
-            then 'PROBE OK' else 'PROBE FAILED: zzcapprobe rows remain' end as verdict;
+select case when coalesce(current_setting('qd.rehearsal_cap_probe', true), '') = ''
+            then 'PROBE OK' else 'PROBE FAILED: ' || current_setting('qd.rehearsal_cap_probe', true) end as verdict;

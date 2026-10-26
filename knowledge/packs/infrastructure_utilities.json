@@ -60,6 +60,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "infrastructure_utilities:product-distinctions",
+      "topic": "Utility networks: network types, pipe systems and the locate-before-dig step",
+      "topic_ar": "شبكات المرافق: أنواع الشبكات وأنظمة الأنابيب وخطوة الكشف قبل الحفر",
+      "kind": "product_distinctions",
+      "body_en": "Infrastructure utility work covers water supply (ductile iron, HDPE PE100 and GRP pipes by pressure class, valves, hydrants, house connections), sewerage and drainage (gravity sewers in uPVC, GRP, vitrified clay or concrete by stiffness class, manholes, pumping stations and rising mains), storm-water networks, irrigation networks with treated water, district cooling pipework (pre-insulated steel or HDPE), gas distribution (PE pipes for low and medium pressure), electrical and telecom ducts and cable routes, and street lighting. Methods: open-cut trenching with shoring and dewatering, and trenchless methods (horizontal directional drilling, pipe jacking and microtunnelling, pipe bursting and relining) under roads and existing services. Before excavation, existing services are located by drawings and detection (electromagnetic locators and ground-penetrating radar) with trial pits, and no-objection certificates are obtained from each utility owner. Testing and commissioning close each network: pressure and leak tests, CCTV inspection of sewers, disinfection of water mains, and as-built surveys.",
+      "body_ar": "تشمل أعمال المرافق البنية التحتية لإمداد المياه (أنابيب حديد الدكتايل وHDPE PE100 والألياف الزجاجية حسب فئة الضغط، والصمامات، وحنفيات الحريق، والوصلات المنزلية)، والصرف الصحي (خطوط الصرف بالجاذبية من uPVC أو الألياف الزجاجية أو الفخار المزجج أو الخرسانة حسب فئة الصلابة، والمناهل، ومحطات الضخ والخطوط الضاغطة)، وشبكات تصريف الأمطار، وشبكات الري بالمياه المعالجة، وأنابيب تبريد المناطق (حديد أو HDPE معزول مسبقاً)، وتوزيع الغاز (أنابيب بولي إيثيلين للضغط المنخفض والمتوسط)، ومجاري الكهرباء والاتصالات ومسارات الكابلات، وإنارة الشوارع. والطرق: الحفر المكشوف مع التدعيم وسحب المياه، والطرق دون حفر (الحفر الأفقي الموجه، والدفع والأنفاق الدقيقة، وتكسير الأنابيب وإعادة التبطين) تحت الطرق والخدمات القائمة. وقبل الحفر تُحدد الخدمات القائمة بالمخططات والكشف (أجهزة الكشف الكهرومغناطيسية والرادار المخترق للأرض) مع حفر الجس، وتُستخرج شهادات عدم ممانعة من كل مالك مرفق. ويُختم كل شبكة بالاختبار والتشغيل: اختبارات الضغط والتسرب، وفحص خطوط الصرف بالكاميرا، وتعقيم خطوط المياه، ومسوحات ما بعد التنفيذ.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Utility_location"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: ground-penetrating radar and electromagnetic locators for buried utilities -> confirmed."
+    },
+    {
+      "id": "infrastructure_utilities:lead-times-and-quoting",
+      "topic": "Utility networks & pipelines - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "شبكات المرافق وخطوط الأنابيب: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Design and approvals usually take weeks to months; construction by length and method. A contractor needs drawings and specifications, route and ground conditions, existing-service information, approvals status, and the testing regime. A tender states rates per metre by diameter and depth, fittings and structures, trenchless sections, reinstatement, dewatering, testing and commissioning, programme, exclusions and validity.",
+      "body_ar": "يستغرق التصميم والموافقات عادة أسابيع إلى أشهر؛ والتنفيذ حسب الطول والطريقة. ويحتاج المقاول المخططات والمواصفات، والمسار وظروف التربة، ومعلومات الخدمات القائمة، وحالة الموافقات، ونظام الاختبار. ويذكر العطاء الأسعار للمتر حسب القطر والعمق، والقطع والمنشآت، والأقسام دون حفر، وإعادة الرصف، وسحب المياه، والاختبار والتشغيل، والبرنامج، والاستثناءات، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -85,6 +115,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither explains SN ring-stiffness classes for sewer pipes; missing: pipe stiffness class (SN) explainer). infrastructure_utilities:pipe-ring-stiffness-sn-classes was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from infrastructure_utilities.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Can a sewer line be laid under a busy road without digging a trench?",
+      "q_ar": "نقدر نمد خط صرف تحت طريق مزدحم بدون ما نحفر خندق؟",
+      "expected_entry_ids": [
+        "infrastructure_utilities:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -104,6 +142,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "infrastructure_utilities:pipe-ring-stiffness-sn-classes"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "infrastructure_utilities:product-distinctions"
+      ],
+      "stored_not_served": [
+        "infrastructure_utilities:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Utility_location"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

@@ -1,0 +1,80 @@
+{
+  "_about": "Sales-engineer drawing bench, answer key written by hand BEFORE any reader ran (19 Oct 2026, sales_engineer; founder ledger 31, 580, 1177). Counts are what an estimator counts on the sheet: legend samples are not work, an array of N is N, a door drawn as a dynamic block is still a door, a socket inside a repeated room block is counted once per room. identifiers = every string (planted as ZZ DEMO convention: ZZ prefixed names, example.invalid, 000 phones; the key lists the part after ZZ so stripping only 'ZZ' still FAILS) that names a party, a contact, the project, the site or the job; any one of them in a supplier-facing output is a FAIL.",
+  "dxf_realistic": {
+    "source": "bench.fixtures.ts benchDxf(): a ground-floor fit-out plan authored the way AutoCAD writes it (dynamic-block doors as *U anonymous inserts, a window MINSERT array, sockets nested in a typical-room block, a legend, a paper-space title block with attributes, a hyperlink in XDATA, DWGPROPS)",
+    "counts": {
+      "door": 5,
+      "window": 6,
+      "socket": 10,
+      "wc": 3
+    },
+    "identifiers": [
+      "Noor Holdings",
+      "Marina Heights",
+      "MHT-2291",
+      "Khalid Rahman",
+      "+971 4 000 0199",
+      "pm@zz-noor.example.invalid",
+      "zz-noor.example.invalid",
+      "Plot 392-118",
+      "Crescent Design"
+    ]
+  },
+  "pdf_vector": {
+    "source": "bench.fixtures.ts benchPdf(): one vector sheet, tags D1 doors, W1 windows, SKT sockets, WC-1 toilets, legend with one sample tag of each, title strip on the right, Info dictionary",
+    "counts": {
+      "D1": 5,
+      "W1": 6,
+      "SKT": 10,
+      "WC-1": 3
+    },
+    "identifiers": [
+      "Noor Holdings",
+      "Marina Heights",
+      "MHT-2291",
+      "Khalid Rahman",
+      "+971 4 000 0199",
+      "pm@zz-noor.example.invalid",
+      "Plot 392-118",
+      "Crescent Design"
+    ]
+  },
+  "image_real": {
+    "source": "fixtures/harrogate_court_fire_alarm_gf_as_installed.png (third-party sample drawing). Hand count, every device checked on 3x crops of the sheet: 22 address pairs are double-ring detector+sounder heads (Boiler Room L1/02-03 and Kitchen L1/05-06 are the heat type), single-ring So heads are smoke detectors, single addresses with a centre dot at exit doors are call points (L1/70 beside the FAP is one), L1/07 is a heat detector, four beacons (L1/18, 27, 60, 65), the FAP carries no address. KEY CORRECTED 19 Oct 2026 before any change to the raster counter: the first key (written from the full-sheet view) had MCP 9, SDS 21, HDS 1, total 48; the 3x crops showed L1/70 is a call point and the boiler-room head is heat c/w sounder.",
+    "counts": {
+      "fire_alarm_control_panel": 1,
+      "manual_call_point": 10,
+      "smoke_detector": 11,
+      "smoke_detector_sounder": 20,
+      "heat_detector": 1,
+      "heat_detector_sounder": 2,
+      "wall_sounder_beacon": 4
+    },
+    "legend_total": 49,
+    "identifiers": [
+      "HARROGATE COURT",
+      "ANY STREET",
+      "ANY TOWN",
+      "AB1 2CD",
+      "FireSafetyCo",
+      "200201-QDOS-ZZ-GF-DR-Y-0001"
+    ]
+  },
+  "boq_xlsx": {
+    "source": "bench.fixtures.ts benchBoqXlsx(): a contractor's priced-blank BOQ, header rows naming the project, client and QS contact",
+    "lines": {
+      "Single leaf timber door 900x2100": 5,
+      "Aluminium window 1200x1500": 6,
+      "13A twin switched socket outlet": 10,
+      "Wall hung WC complete": 3
+    },
+    "identifiers": [
+      "Noor Holdings",
+      "Marina Heights",
+      "MHT-2291",
+      "Khalid Rahman",
+      "+971 4 000 0199",
+      "pm@zz-noor.example.invalid"
+    ]
+  }
+}

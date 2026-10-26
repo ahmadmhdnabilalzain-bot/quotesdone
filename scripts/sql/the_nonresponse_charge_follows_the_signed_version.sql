@@ -172,6 +172,7 @@ begin
           || '+ from v14, the processor fee QuotesDone could not recover (transactions.stripe_fee_fils); + the administration fee of the agreement version the supplier had signed at the reveal; '
           || '+ simple interest on (base + processor fee + admin fee) at that version''s rate (v14: the agreed 12%; v9 to v13: the agreed 9%; no agreed rate: the policy rate, never above 9% a year; always simple, never compounded), from the due date (' || v_due_days || ' days after the notice was delivered, clause 33) to the as-of date, each payment (supplier_due_payments) reducing the principal from its own date. Nothing is typed.');
 end $function$;
+revoke execute on function public.fn_accountant_nonresponse_charge(uuid, date) from public, anon, authenticated;
 
 -- The pricing table states the CURRENT signed terms (Supplier Agreement v15 clause 33(c) and clause 31).
 update public.pricing_config set supplier_nonresponse_admin_fee_aed = 500, supplier_nonresponse_interest_apr = 0.12

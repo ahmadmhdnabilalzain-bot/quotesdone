@@ -86,7 +86,7 @@ async function main() {
   const withSql = process.argv.flatMap((a, i) => (a === '--with-sql' ? [readFileSync(process.argv[i + 1], 'utf8')] : [])).join('\n');
   // --audience <a> (ceo 19 Oct 2026, #1567): pass p_audience to the routine. The daily and monthly SQL exams pass
   // 'internal'; 'customer' shows what an outside audience is given. Omitted: the call is made without it.
-  const aud = at('--audience') ? `, p_audience => '${at('--audience').replace(/[^a-z_]/g, '')}'` : '';
+  const aud = at('--audience') ? `, p_audience => '${at('--audience').replace(/[^a-z_]/g, '')}'` : `, p_audience => 'visitor'`;
   if (withSql && mode !== 'staged') { console.error('--with-sql needs --mode staged (live never runs DDL)'); process.exit(1); }
   const packs = readPacks(join(REPO, 'knowledge'));
   const exams = readExams().filter((x) => !at('--seat') || x.seat === at('--seat'));

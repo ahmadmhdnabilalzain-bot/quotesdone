@@ -52,6 +52,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "sports_equipment:product-distinctions",
+      "topic": "Sports equipment: categories and facility-grade specifications",
+      "topic_ar": "المعدات الرياضية: الفئات ومواصفات المنشآت",
+      "kind": "product_distinctions",
+      "body_en": "Sports equipment spans team-sport equipment (footballs, basketballs, goals, nets, basketball systems from portable to in-ground and wall-mounted), racket sports (tennis and padel courts, nets, posts, rackets, balls), athletics equipment, gymnastics and mats, aquatic equipment (lane ropes, starting blocks, timing), combat sports (rings, cages, bags, mats), cycling, outdoor and water sports, and school PE kits. Facility surfaces: artificial turf for football and multi-sport pitches (pile height, yarn type, and infill of sand and rubber or organic infill; FIFA Quality or Quality Pro ratings for competition pitches), acrylic hard courts, rubber and PU sports flooring, sprung wooden floors for indoor halls, and synthetic running tracks. Facility-grade versus retail-grade is the key distinction: competition and school equipment must meet the sport federation's specifications and safety standards (goal anchoring and stability, impact attenuation of surfaces), resist heavy use, and come with installation and certification. Hot climates add UV resistance, shade and court lighting requirements.",
+      "body_ar": "تشمل المعدات الرياضية معدات الرياضات الجماعية (كرات القدم والسلة، المرامي، الشباك، أنظمة السلة من المحمولة إلى المثبتة أرضياً وجدارياً)، ورياضات المضرب (ملاعب التنس والبادل، الشباك، القوائم، المضارب، الكرات)، ومعدات ألعاب القوى، والجمباز والحصائر، والمعدات المائية (حبال الحارات، منصات البدء، التوقيت)، والرياضات القتالية (الحلبات، الأقفاص، الأكياس، الحصائر)، والدراجات، والرياضات الخارجية والمائية، وأطقم التربية البدنية للمدارس. وأسطح المنشآت: العشب الصناعي لملاعب كرة القدم والملاعب متعددة الرياضات (ارتفاع الوبر، نوع الخيط، وحشوة الرمل والمطاط أو الحشوة العضوية؛ وتصنيفات الجودة من الفيفا لملاعب المنافسات)، والملاعب الصلبة الأكريليكية، والأرضيات الرياضية المطاطية والبولي يوريثانية، والأرضيات الخشبية المرنة للصالات الداخلية، ومضامير الجري الصناعية. والفرق الأساسي بين فئة المنشآت وفئة التجزئة: معدات المنافسات والمدارس يجب أن تستوفي مواصفات الاتحادات الرياضية ومعايير السلامة (تثبيت المرامي وثباتها، وامتصاص الأسطح للصدمات)، وتتحمل الاستخدام الكثيف، وتأتي مع التركيب والاعتماد. ويضيف المناخ الحار متطلبات مقاومة الأشعة فوق البنفسجية والتظليل وإنارة الملاعب.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Artificial_turf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: artificial turf pile heights, sand and crumb-rubber infill, FIFA Quality Concept ratings -> confirmed."
+    },
+    {
+      "id": "sports_equipment:lead-times-and-quoting",
+      "topic": "Sports equipment - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المعدات الرياضية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock equipment: days; courts, pitches and installed systems 4-12 weeks. A supplier needs the sport and level (school, club, competition), facility size, surface conditions, quantities, and standards required. A quote states products with specs and standards, surface system build-up, installation, certification, warranty and validity.",
+      "body_ar": "المعدات المتوفرة: أيام؛ والملاعب والأنظمة المركبة 4-12 أسبوعاً. ويحتاج المورد الرياضة والمستوى (مدرسة، نادٍ، منافسات)، وحجم المنشأة، وحالة السطح، والكميات، والمعايير المطلوبة. ويذكر العرض المنتجات مع المواصفات والمعايير وطبقات نظام السطح والتركيب والاعتماد والضمان والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -77,6 +107,14 @@
       ],
       "why": "No entry of this pack answered it (no entry gives padel court dimensions (10 x 20 m) or pricing). sports_equipment:padel-court-dimensions-and-cost-drivers was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from sports_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What should we specify for an artificial turf football pitch at a school?",
+      "q_ar": "وش نحدد في مواصفات ملعب كرة قدم عشب صناعي في مدرسة؟",
+      "expected_entry_ids": [
+        "sports_equipment:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "sports_equipment:padel-court-dimensions-and-cost-drivers"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "sports_equipment:product-distinctions"
+      ],
+      "stored_not_served": [
+        "sports_equipment:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Artificial_turf"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

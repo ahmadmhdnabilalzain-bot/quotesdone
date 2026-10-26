@@ -32,6 +32,9 @@ let REVIEW_API = process.env.QD_REVIEW_API || '';
 /** QD_REVIEW_STANDIN=1 starts review_server.ts here, so a pre-deploy run needs no second terminal. */
 const STANDIN = process.env.QD_REVIEW_STANDIN === '1' && !REVIEW_API;
 const VIEWPORTS = (process.env.QD_VIEWPORTS || 'desktop,mobile').split(',').map((s) => s.trim()).filter(Boolean);
+// Suppliers are English only (founder ruling 1008, #1409): the Arabic passes waited 30 s for an Arabic nav the portal
+// deliberately never renders (18 Oct, run 39079803518, ar/desktop and ar/mobile).
+const SUPPLIER_LANGS = ['en'];
 const FN_URL = 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/supplier_api';
 const REVIEW_ACTIONS = ['inquiries_list', 'inquiry_detail', 'inquiry_documents', 'review_thread', 'review_start', 'review_message', 'review_upload', 'review_choose', 'review_submit'];
 mkdirSync(SHOTS, { recursive: true });
@@ -224,10 +227,10 @@ try {
   const supplier = await makeDemoSupplier(run, { label: 'QR' });
   // One job per journey: a conversation ends submitted, so each language and each viewport gets its own.
   const jobs = {};
-  for (const lang of ['en', 'ar']) for (const vp of VIEWPORTS) jobs[`${lang}_${vp}`] = await job(run, customer, supplier, lang);
+  for (const lang of SUPPLIER_LANGS) for (const vp of VIEWPORTS) jobs[`${lang}_${vp}`] = await job(run, customer, supplier, lang);
   const browser = await launch();
   try {
-    for (const lang of ['en', 'ar']) for (const vp of VIEWPORTS) await drive(browser, run, supplier, jobs[`${lang}_${vp}`], lang, vp);
+    for (const lang of SUPPLIER_LANGS) for (const vp of VIEWPORTS) await drive(browser, run, supplier, jobs[`${lang}_${vp}`], lang, vp);
   } finally { await browser.close(); }
   // The standardised quotation PDFs quote_pdf printed for this supplier (folder supplier/<id>).
   const pdfs = await read(`select bucket_id b, name from storage.objects where name like ${q(`supplier/${Number(supplier.leadId)}/%`)}`);

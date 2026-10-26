@@ -152,7 +152,12 @@ test('production, once loaded: every pack meets the recall floor', { skip: hasTo
   const { sql } = await import('../lib/db.mjs');
   const [r] = await sql(`select count(*)::int n from public.sales_knowledge where tags @> array['verified_pack']`, { readOnly: true });
   if (existsSync(join(REPO, NOTE)) || !r.n) return t.skip('not applied and loaded yet (see the pending note); the staged eval measured the baseline');
-  const run = spawnSync(process.execPath, [join(REPO, 'scripts/eval/knowledge_pack_eval.mjs'), '--mode', 'live'], { encoding: 'utf8', timeout: 1_500_000 });
+  // The eval ran 28 min 21 s and 36 min 23 s on 19 Oct 2026 (448 packs, ml path, management-API throttling included),
+  // so the old 25-minute limit killed it before it reported, and the check failed on its clock, not on recall. The
+  // limit is now 60 minutes; the floor and every question are unchanged. This check needs a management token, so it
+  // runs in a session, never in the token-less CI checks job.
+  const run = spawnSync(process.execPath, [join(REPO, 'scripts/eval/knowledge_pack_eval.mjs'), '--mode', 'live'], { encoding: 'utf8', timeout: 3_600_000 });
+  assert.notEqual(run.signal, 'SIGTERM', 'the eval was killed by the 60-minute limit before it reported: re-run it, or make it faster');
   assert.equal(run.status, 0, (run.stdout + run.stderr).slice(-3000));
   assert.match(run.stdout, /EVAL OK/);
 });
