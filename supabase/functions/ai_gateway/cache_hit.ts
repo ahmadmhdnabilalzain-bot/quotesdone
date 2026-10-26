@@ -3,5 +3,6 @@
 // semantic cache (scoped by task class, not model, 24 h TTL) still held an openai/gpt-6-luna answer and
 // replayed it 3 times, logged as model_used=openai/gpt-6-luna. A route change must take effect at once.
 export function cacheHitServesRoute(hitModel: string | null | undefined, model: string, fallback: string | null): boolean {
-  return !hitModel || hitModel === model || hitModel === fallback;
+  // A cached row with no recorded model cannot be shown to come from this route, so it is not served (fail closed).
+  return !!hitModel && (hitModel === model || hitModel === fallback);
 }
