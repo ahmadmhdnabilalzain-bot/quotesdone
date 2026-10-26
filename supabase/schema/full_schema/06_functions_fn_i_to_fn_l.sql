@@ -8963,14 +8963,16 @@ begin
            (select max(started_at) from public.agent_runs
              where agent = 'it_engineer' and counts->>'job' = 'duty:smoke')
     union all
-    select 'kb_embed', interval '36 hours', '.github/workflows/kb-embed-backfill.yml',
+    -- 26 Oct 2026: pg_cron 'kb_embed_daily' (fn_kb_embed_scheduled_run) beats it; the workflow is dispatch only.
+    select 'kb_embed', interval '36 hours', 'pg_cron kb_embed_daily (was .github/workflows/kb-embed-backfill.yml)',
            (select max(started_at) from public.agent_runs
              where agent = 'it_engineer' and counts->>'job' = 'duty:kb_embed')
     union all
     -- The second scheduler kicks every 6 hours; 12 h is two missed kicks, not one late one.
-    select 'dropbox_kick', interval '12 hours', '.github/workflows/dropbox-backup-second-scheduler.yml',
+    -- 26 Oct 2026: pg_cron 'dropbox_backup_second_scheduler' kicks it; a dispatched GitHub run still counts.
+    select 'dropbox_kick', interval '12 hours', 'pg_cron dropbox_backup_second_scheduler (was .github/workflows/dropbox-backup-second-scheduler.yml)',
            (select max(started_at) from public.agent_runs
-             where agent = 'backup_kick' and counts->>'reason' = 'github_actions')
+             where agent = 'backup_kick' and counts->>'reason' in ('github_actions', 'pg_cron_second_scheduler'))
     union all
     -- project-parity.yml runs daily AND on every pull request, and the advisor refresh step stamps
     -- last_seen_at on each of the 563 baseline rows.
@@ -8981,6 +8983,7 @@ begin
     -- parity run of any kind for 36 hours, which is the weekend, the quiet day, and a deleted or
     -- disabled workflow. It is deliberately not claimed as coverage of the schedule itself; closing
     -- that would need the refresh step to record which trigger it ran under, and it does not.
+    -- 26 Oct 2026: `npm run gate` runs the same refresh, so a session's gate run beats it too.
     select 'parity', interval '36 hours', '.github/workflows/project-parity.yml',
            (select max(last_seen_at) from public.security_advisor_baseline)
   loop
@@ -9397,6 +9400,22 @@ begin
                             'at', now());
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kb_embed_scheduled_run()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_t jsonb;
+begin
+  v_t := public.fn_kb_embed_tick(400);
+  if coalesce((v_t->'dispatch'->>'ok')::boolean, false) then
+    perform public.fn_it_duty_ran('kb_embed', jsonb_build_object('scheduler', 'pg_cron kb_embed_daily', 'tick', v_t));
+  end if;
+  return v_t;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_kb_embed_tick(p_limit integer DEFAULT 200)
