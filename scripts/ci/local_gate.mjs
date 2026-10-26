@@ -43,7 +43,8 @@ const migrations = () => (existsSync(join(REPO, 'supabase/migrations')) ? readdi
 
 // [id, workflow job, name, command | () => command | null (nothing to run, passes with a note), opts]
 const STEPS = [
-  ['npm-test', 'checks', 'npm test: node --test over scripts/checks + the deno suite', 'npm test'],
+  // With a token, npm test also runs every production check the CI job skipped, one at a time (the 429 budget): slower.
+  ['npm-test', 'checks', 'npm test: node --test over scripts/checks + the deno suite', 'npm test', { minutes: 120 }],
   ['ssrf', 'checks', 'the SSRF guard fires on a private address, file:// and metadata', 'node scripts/checks/ssrf_guard_refuses_private_addresses.mjs'],
   ['fetch-timeout', 'checks', 'no new outbound fetch without a deadline', 'node scripts/checks/every_outbound_fetch_has_a_timeout.mjs'],
   ['dwg', 'checks', 'a DWG is read into the same take-off as its DXF', `${DENO} --allow-net=raw.githubusercontent.com,cdn.jsdelivr.net supabase/functions/_shared/doc_read/dwg_samples.check.ts`],
@@ -82,17 +83,19 @@ function run(step, extraEnv = {}) {
   if (cmd === null) return Promise.resolve({ result: 'PASS', note: 'nothing to run (only generated baseline migrations)', secs: 0 });
   const log = join(LOGS, `${step.id}.log`); const t0 = Date.now();
   return new Promise((done) => {
-    const p = spawn(cmd, { cwd: REPO, shell: true, env: { ...process.env, ...env, ...(step.env || {}), ...extraEnv } });
+    const p = spawn(cmd, { cwd: REPO, shell: true, detached: process.platform !== 'win32', env: { ...process.env, ...env, ...(step.env || {}), ...extraEnv } });
     let out = '';
     p.stdout.on('data', (d) => { out += d; }); p.stderr.on('data', (d) => { out += d; });
-    const kill = setTimeout(() => p.kill(), 45 * 60_000);   // the longest job wall in the two workflows
+    // The whole tree: with shell: true, p is only the shell, and killing it alone leaves the command running.
+    const minutes = step.minutes || 45;   // 45 = the longest job wall in the two workflows
+    const kill = setTimeout(() => { if (process.platform === 'win32') spawnSync('taskkill', ['/pid', String(p.pid), '/T', '/F'], { stdio: 'ignore' }); else process.kill(-p.pid, 'SIGKILL'); }, minutes * 60_000);
     p.on('close', (code) => {
       clearTimeout(kill); writeFileSync(log, out);
       const secs = Math.round((Date.now() - t0) / 1000);
       if (step.noSkip && SKIPPED.test(out)) return done({ result: 'FAIL', note: 'skipped for want of a credential', secs, log, out });
       if (code === 0) return done({ result: 'PASS', secs, log });
       if (step.warnOn?.includes(code)) return done({ result: 'PASS', note: `exit ${code}: a pattern was found and recorded in security_events`, secs, log });
-      done({ result: 'FAIL', note: code === null ? 'killed at 45 min' : `exit ${code}`, secs, log, out });
+      done({ result: 'FAIL', note: code === null || (process.platform === 'win32' && Date.now() - t0 >= minutes * 60_000) ? `killed at ${minutes} min` : `exit ${code}`, secs, log, out });
     });
   });
 }
