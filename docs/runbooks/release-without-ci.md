@@ -29,8 +29,11 @@ npm run gate -- --pr <number>
 | `checks.yml` | `npm test` (node --test over `scripts/checks` and the deno suite), the SSRF guard, the fetch-deadline ratchet, the four drawing `.check.ts` proofs, squawk, `npm run typecheck`, `npm audit`, `deno check` on the gated functions and on all of them, and the OTP race |
 | `project-parity.yml` | the parity job (canonical_routine_manifest, export-identical, advisors baseline, edge-log attack read, function owners, duty clocks, model matrix, registry sync, receipts) and the kernel gate (anon_cannot_execute_security_definer, every_alarm_is_quiet_on_a_healthy_day) |
 
-- It prints one PASS/FAIL table, exits 1 on any FAIL and, with `--pr`, posts the table as a PR comment
-  (`gh pr comment`). Each step's log is in `<tmp>/qd-gate-<time>/`.
+- It prints one PASS/FAIL table, exits 1 on any FAIL and, with `--pr`, posts the table as a PR comment. The comment
+  goes through REST (`gh api -X POST repos/<owner>/<repo>/issues/<n>/comments`), which works in a cloud or phone
+  session. Each step's log is in `<tmp>/qd-gate-<time>/`.
+- `--pr` refuses to run when the worktree has uncommitted changes or when HEAD is not the PR's head (read through
+  `gh api repos/<owner>/<repo>/pulls/<n>`). A posted PASS therefore always certifies the PR's own code.
 - The production steps need `SUPABASE_ACCESS_TOKEN` or `~/.supabase/access-token`. Without one they **FAIL**. A
   check that cannot reach its subject has not passed.
 - The OTP race needs a throwaway Postgres: set `QD_OTP_RACE_PG`, or start Docker so the gate can run `postgres:16`
@@ -45,6 +48,41 @@ The release operator merges only on a posted table with no FAIL, the same as the
 not protected", and `/rulesets` returns `[]`). GitHub never enforced the green checks. The only thing that did was
 `REQUIRED_CHECKS` in `scripts/it/release_train.mjs`. With CI off those checks never report, so
 `release_train.mjs` refuses every PR, and the operator merges by hand.
+
+## 1b. A whole merge over REST (cloud and phone sessions)
+
+In a cloud or phone session the proxy blocks GitHub's GraphQL API, so `gh pr ...` and `gh issue ...` answer 403
+there. `scripts/it/release_train.mjs` is built on `gh pr` and cannot run in those sessions. Use `gh api` (REST) for
+every step, as below. `git` itself works. The same commands also work on a desktop.
+
+```
+R=repos/ahmadmhdnabilalzain-bot/quotesdone; N=<pr number>
+
+# read: open, mergeable, head and base
+gh api $R/pulls/$N --jq '{state, draft, mergeable, mergeable_state, head: .head.sha, base: .base.ref, labels: [.labels[].name]}'
+HEAD_SHA=$(gh api $R/pulls/$N --jq .head.sha)
+# read: the newest gate table. It must say "all PASS", and its "@ <sha>" (12 characters) must be the start of HEAD_SHA
+gh api "$R/issues/$N/comments?per_page=100" --jq '[.[] | select(.body | startswith("### Local gate:"))] | last | .body | split("\n")[0]'
+# read: what still reports on the head (Vercel's preview is a commit status; anything left is a check run)
+gh api $R/commits/$HEAD_SHA/status --jq '{state, statuses: [.statuses[] | {context, state}]}'
+gh api "$R/commits/$HEAD_SHA/check-runs?per_page=100" --jq '[.check_runs[] | {name, status, conclusion}]'
+# read: each "Depends-on: #M" in the body must be merged
+gh api $R/pulls/<M> --jq '{merged, state}'
+
+# label (add; remove)
+gh api -X POST $R/issues/$N/labels -f 'labels[]=review-approved'
+gh api -X DELETE $R/issues/$N/labels/hold
+
+# merge: squash, and only if the head is still the commit the gate certified
+gh api -X PUT $R/pulls/$N/merge -f merge_method=squash -f sha=$HEAD_SHA
+#   409 = the head moved since you read it (re-read, re-gate); 405 = not mergeable (conflict or draft)
+
+# comment (the gate's --pr does this itself)
+gh api -X POST $R/issues/$N/comments -f body='released: applied <file>, deployed <slugs>'
+```
+
+Then do section 2 from a checkout of main. If the bookkeeping commit needs a PR, open it over REST too:
+`gh api -X POST $R/pulls -f title='<seat>: ...' -f head=<branch> -f base=main -f body='...'`.
 
 ## 2. After each merge: apply, then deploy the functions
 

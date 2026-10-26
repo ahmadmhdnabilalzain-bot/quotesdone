@@ -9,7 +9,7 @@
 // race) is a FAIL, never a quiet pass; only a step named in --skip is left out, and the table says so.
 //
 //   npm run gate                                  # everything
-//   npm run gate -- --pr 1601                     # and post the table on PR #1601 (gh pr comment)
+//   npm run gate -- --pr 1601                     # and post the table on PR #1601 (gh api REST, works where GraphQL is blocked)
 //   npm run gate -- --skip=otp-race,audit         # leave named steps out, shown as SKIPPED (named)
 //   npm run gate -- --daily                       # also the daily-only step: every deployed function runs main
 //
@@ -121,12 +121,15 @@ const pick = (s) => {
   if (s.prod && !TOKEN) return { result: 'FAIL', note: 'no SUPABASE_ACCESS_TOKEN or ~/.supabase/access-token', secs: 0 };
   return null;
 };
-const head = execOut('git rev-parse --short HEAD'); const branch = execOut('git rev-parse --abbrev-ref HEAD');
+const head = execOut('git rev-parse --short=12 HEAD'); const branch = execOut('git rev-parse --abbrev-ref HEAD');
 function execOut(c) { return String(spawnSync(c, { cwd: REPO, shell: true, encoding: 'utf8' }).stdout || '').trim(); }
+const SLUG = execOut('git remote get-url origin').match(/github\.com[/:]([^/]+\/[^/.]+?)(?:\.git)?$/)?.[1];
 // A PASS posted to a PR certifies that PR's code: refuse when the tree is dirty or HEAD is not the PR's head.
 if (PR !== null) {
+  if (!SLUG) { console.error('--pr refused: could not read owner/repo from the origin remote'); process.exit(2); }
   if (execOut('git status --porcelain --untracked-files=no')) { console.error('--pr refused: the worktree has uncommitted changes'); process.exit(2); }
-  const prHead = execOut(`gh pr view ${PR} --json headRefOid --jq .headRefOid`);
+  // REST only (gh api), never `gh pr`: a cloud or phone session's proxy blocks GraphQL, so `gh pr ...` gets 403 there.
+  const prHead = execOut(`gh api repos/${SLUG}/pulls/${PR} --jq .head.sha`);
   if (!prHead || prHead !== execOut('git rev-parse HEAD')) { console.error(`--pr refused: HEAD is not PR #${PR}'s head (${prHead || 'unreadable'})`); process.exit(2); }
 }
 console.log(`local gate on ${branch} @ ${head}; logs in ${LOGS}`);
@@ -151,7 +154,11 @@ console.log('\n' + table);
 for (const s of fails) { const r = results.get(s.id); if (r.out) console.log(`\n--- ${s.id}: last lines (${r.log}) ---\n${r.out.split('\n').slice(-25).join('\n')}`); }
 
 if (PR !== null) {
-  const c = spawnSync('gh', ['pr', 'comment', PR, '--body-file', '-'], { cwd: REPO, input: table, encoding: 'utf8' });
+  // REST only (gh api), never `gh pr`: a cloud or phone session's proxy blocks GraphQL, so `gh pr comment` gets 403 there.
+  const slug = execOut('git remote get-url origin').match(/github\.com[/:]([^/]+\/[^/.]+)/)?.[1];
+  if (!slug) { console.error('could not read owner/repo from the origin remote'); process.exit(1); }
+  const c = spawnSync('gh', ['api', '-X', 'POST', `repos/${SLUG}/issues/${PR}/comments`, '--input', '-'],
+    { cwd: REPO, input: JSON.stringify({ body: table }), encoding: 'utf8' });
   if (c.status !== 0) { console.error(`could not comment on PR #${PR}: ${c.stderr}`); process.exit(1); }
   console.log(`posted to PR #${PR}`);
 }
