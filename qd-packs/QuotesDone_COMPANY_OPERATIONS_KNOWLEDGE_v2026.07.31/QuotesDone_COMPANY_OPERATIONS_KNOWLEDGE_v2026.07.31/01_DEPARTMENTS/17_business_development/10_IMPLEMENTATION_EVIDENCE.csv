@@ -1,0 +1,18 @@
+department_key,evidence_type,name,path,status,note
+business_development,backend_function,contact_submit,functions/contact_submit.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+business_development,backend_function,project_consultant,functions/project_consultant.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+business_development,backend_function,ea_meeting_summary,functions/ea_meeting_summary.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+business_development,backend_function,legal_review,functions/legal_review.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+business_development,backend_function,marketing_draft,functions/marketing_draft.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+business_development,database_object,opportunity,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,leads,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,crm_activities,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,board_advisor,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,company_goals,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,market_intel,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,competitor,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,projects,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,legal_reviews,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,org_tasks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,migration,20260708101918_erp_gl_sync_business_events,migrations/20260708101918_erp_gl_sync_business_events.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+business_development,migration,20260726225705_business_health_score,migrations/20260726225705_business_health_score.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.

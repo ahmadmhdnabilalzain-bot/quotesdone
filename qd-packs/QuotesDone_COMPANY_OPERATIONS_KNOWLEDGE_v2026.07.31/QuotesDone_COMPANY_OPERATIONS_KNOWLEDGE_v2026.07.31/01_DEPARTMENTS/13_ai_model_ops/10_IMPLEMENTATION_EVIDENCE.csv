@@ -1,0 +1,31 @@
+department_key,evidence_type,name,path,status,note
+ai_model_ops,backend_function,ai_gateway,functions/ai_gateway.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,backend_function,agent_brain,functions/agent_brain.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,backend_function,agent_act,functions/agent_act.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,backend_function,prompt_gate,functions/prompt_gate.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,backend_function,prompt_improve,functions/prompt_improve.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,backend_function,canon_eval,functions/canon_eval.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,backend_function,knowledge_exam,functions/knowledge_exam.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,backend_function,qa_suite,functions/qa_suite.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,backend_function,ai_health,functions/ai_health.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,database_object,ai_model_register,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,model_registry,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,model_policy,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,model_rate,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,llm_policy,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,llm_calls,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,llm_cache,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,prompt_versions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,prompt_eval_runs,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,agent_evals,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,ai_quality_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,ai_cost_log,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,ai_governance_review,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,migration,20260706104613_ops_dashboard_data,migrations/20260706104613_ops_dashboard_data.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+ai_model_ops,migration,20260706115247_structured_quotation_model_v2,migrations/20260706115247_structured_quotation_model_v2.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+ai_model_ops,migration,20260706115422_supplier_capability_model,migrations/20260706115422_supplier_capability_model.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+ai_model_ops,migration,20260708102707_erp_stripe_fee_modeling,migrations/20260708102707_erp_stripe_fee_modeling.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+ai_model_ops,migration,20260708113638_erp_ws_ai_agents_ops,migrations/20260708113638_erp_ws_ai_agents_ops.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+ai_model_ops,migration,20260709100715_ws_operations_add_ops_block,migrations/20260709100715_ws_operations_add_ops_block.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+ai_model_ops,migration,20260718191000_ops_watch_observes_silence_watchdog,migrations/20260718191000_ops_watch_observes_silence_watchdog.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+ai_model_ops,migration,20260726220925_employee_model,migrations/20260726220925_employee_model.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.

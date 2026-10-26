@@ -1,0 +1,29 @@
+department_key,evidence_type,name,path,status,note
+knowledge_learning,backend_function,dept_learn,functions/dept_learn.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+knowledge_learning,backend_function,kb_ingest,functions/kb_ingest.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+knowledge_learning,backend_function,kb_embed,functions/kb_embed.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+knowledge_learning,backend_function,kb_search,functions/kb_search.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+knowledge_learning,backend_function,knowledge_exam,functions/knowledge_exam.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+knowledge_learning,backend_function,learn_gaps,functions/learn_gaps.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+knowledge_learning,backend_function,reflect,functions/reflect.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+knowledge_learning,backend_function,export_all_knowledge,functions/export_all_knowledge.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+knowledge_learning,database_object,dept_library,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,employee_knowledge,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,employee_knowledge_standard,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,agent_knowledge,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,agent_memory,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,institutional_memory,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,org_memory,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,kb_chunks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,kb_revisions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,memory_promotions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,knowledge_exam_results,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,knowledge_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,migration,20260623214903_agent_knowledge_and_memory,migrations/20260623214903_agent_knowledge_and_memory.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+knowledge_learning,migration,20260706003605_knowledge_graph,migrations/20260706003605_knowledge_graph.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+knowledge_learning,migration,20260706110716_closed_case_learning_loop,migrations/20260706110716_closed_case_learning_loop.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+knowledge_learning,migration,20260706115335_knowledge_governance,migrations/20260706115335_knowledge_governance.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+knowledge_learning,migration,20260709090556_knowledge_hybrid_publish_gate,migrations/20260709090556_knowledge_hybrid_publish_gate.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+knowledge_learning,migration,20260709090644_knowledge_usage_and_kpis,migrations/20260709090644_knowledge_usage_and_kpis.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+knowledge_learning,migration,20260709090800_knowledge_kpis_fix_matching,migrations/20260709090800_knowledge_kpis_fix_matching.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+knowledge_learning,migration,20260709090909_fn_knowledge_curator_agent,migrations/20260709090909_fn_knowledge_curator_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.

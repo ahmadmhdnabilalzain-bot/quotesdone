@@ -1,0 +1,4 @@
+gap_id,severity,gap,closure
+GAP-supplier_success-002,medium,3 named functions or live-data objects were not found by exact name in the supplied export.,"Map each concept to the actual current object, update the binding registry and keep unresolved items disabled."
+GAP-supplier_success-003,high,Department records have not been approved by the responsible subject-matter owner.,"Run department-owner review, scenario tests and authority validation before production activation."
+GAP-supplier_success-004,medium,Frontend controls and user experience were not present in the supplied backend export.,"Claude must inspect the current Next.js repository and verify that operational states, permissions, notices and errors are represented correctly."

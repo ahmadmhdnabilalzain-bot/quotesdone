@@ -1,0 +1,542 @@
+[
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-preserve-existing-value-3c96130004",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "Preserve existing value",
+    "content": "Improve, extend, connect and automate before replacing working capabilities. Replacement is the last option. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "Preserve existing value",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-fail-closed-on-privacy-6954300c22",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "Fail closed on privacy",
+    "content": "When identity protection, redaction or access control is uncertain, withhold the action or data and escalate. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "Fail closed on privacy",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-no-invented-facts-425fecd3ff",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "No invented facts",
+    "content": "Agents must distinguish verified facts, live data, assumptions, proposals and unknowns. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "No invented facts",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-one-source-of-truth-1ddd76d9e5",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "One source of truth",
+    "content": "Each mutable business fact has one authoritative live source; static knowledge points to it rather than copying it. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "One source of truth",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-least-privilege-7f72d1fee2",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "Least privilege",
+    "content": "Agents and users receive only the data and actions required for their current role. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "Least privilege",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-reversible-first-0798eda8b3",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "Reversible first",
+    "content": "Prefer actions with a tested rollback path; irreversible actions require higher authority. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "Reversible first",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-evidence-before-confidence-9e09dace9b",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "Evidence before confidence",
+    "content": "High confidence without traceable evidence is insufficient for legal, financial, security or technical decisions. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "Evidence before confidence",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-no-silent-regulated-learning-8d6ffa5e24",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "No silent regulated learning",
+    "content": "Legal, tax, finance, privacy and compliance learning may propose updates but cannot silently promote them to approved knowledge. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "No silent regulated learning",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-customer-clarity-32544b60f8",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "Customer clarity",
+    "content": "Customer-facing explanations should be understandable to non-specialists and disclose assumptions, exclusions and fees. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "Customer clarity",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-supplier-fairness-acfd488e35",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "Supplier fairness",
+    "content": "Suppliers receive the same supplier-safe scope and are compared against consistent requirements. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "Supplier fairness",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-cost-aware-ai-9224a9582e",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "Cost-aware AI",
+    "content": "Use deterministic rules and internal retrieval before external high-cost models when quality and safety are equivalent. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "Cost-aware AI",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-event-driven-ownership-1003f67a99",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "Event-driven ownership",
+    "content": "Important business events create owned tasks or subscriptions; departments do not rely on informal awareness. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "Event-driven ownership",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-no-duplicate-outreach-14ecfcde74",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "No duplicate outreach",
+    "content": "Communications use deduplication, consent, suppression and channel limits. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "No duplicate outreach",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-measured-automation-bbb98ef853",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "Measured automation",
+    "content": "Automation is considered successful only when quality, cost, failure and human override metrics are tracked. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "Measured automation",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-human-professional-boundary-050075c8da",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "Human professional boundary",
+    "content": "Agents do not replace licensed lawyers, engineers, accountants, tax agents or authority decisions. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "Human professional boundary",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-current-source-requirement-282bd61652",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "Current source requirement",
+    "content": "Time-sensitive legal, tax, security, provider and policy knowledge carries review dates and supersession links. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "Current source requirement",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-secure-secrets-a019095ffc",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "Secure secrets",
+    "content": "Credentials and secret values never enter knowledge records, prompts, logs or generated documents. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "Secure secrets",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-data-minimisation-eced481cd5",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "Data minimisation",
+    "content": "Collect and retain only information required for a defined purpose and approved retention period. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "Data minimisation",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-separation-of-duties-487850317e",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "Separation of duties",
+    "content": "Where practical, the creator, approver, executor and reconciler of high-risk actions are different roles. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "Separation of duties",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  },
+  {
+    "record_id": "ops-company-quotesdone-principles-operating-principle-founder-escalation-discipline-50366fb4e2",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "principles",
+    "record_type": "operating_principle",
+    "title": "Founder escalation discipline",
+    "content": "Escalate only when policy, authority, confidence, legal judgment, material money or irreversible risk requires it. This principle applies across all departments and should be encoded in both agent context and deterministic workflow controls.",
+    "structured_data": {
+      "principle": "Founder escalation discipline",
+      "applies_to": "all_departments"
+    },
+    "source_ids": [
+      "INT-BLUEPRINT-AGENTS",
+      "INT-CODE-EXPORT"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "reviewed",
+    "authority_tier": "advisory",
+    "risk_level": "high",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {}
+  }
+]

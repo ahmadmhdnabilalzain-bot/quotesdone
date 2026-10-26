@@ -1,0 +1,32 @@
+department_key,evidence_type,name,path,status,note
+supplier_knowledge,backend_function,kb_ingest,functions/kb_ingest.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,kb_import,functions/kb_import.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,kb_embed,functions/kb_embed.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,kb_deepen,functions/kb_deepen.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,kb_fill_gap,functions/kb_fill_gap.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,kb_autofill_gaps,functions/kb_autofill_gaps.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,knowledge_exam,functions/knowledge_exam.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,gen_category_knowledge,functions/gen_category_knowledge.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,export_all_knowledge,functions/export_all_knowledge.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,learn_gaps,functions/learn_gaps.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,database_object,knowledge_domain,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,agent_knowledge,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,kb_chunks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,kb_revisions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,kb_usage_log,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,knowledge_module_standard,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,knowledge_exam_questions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,knowledge_exam_results,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,spec_backlog,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,compliance_sources,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,mdm_brands,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,mdm_manufacturers,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,mdm_standards,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,migration,20260724160651_comparison_agent_expert_knowledge_and_supplier_coaching,migrations/20260724160651_comparison_agent_expert_knowledge_and_supplier_coaching.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_knowledge,migration,20260607094054_match_suppliers_kw_rpc,migrations/20260607094054_match_suppliers_kw_rpc.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_knowledge,migration,20260607101334_supplier_portal_fields,migrations/20260607101334_supplier_portal_fields.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_knowledge,migration,20260607102607_supplier_kyc_and_terms,migrations/20260607102607_supplier_kyc_and_terms.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_knowledge,migration,20260607104755_supplier_account_link,migrations/20260607104755_supplier_account_link.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_knowledge,migration,20260609154916_supplier_approval_workflow,migrations/20260609154916_supplier_approval_workflow.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_knowledge,migration,20260623204607_supplier_dues_fix_types,migrations/20260623204607_supplier_dues_fix_types.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_knowledge,migration,20260623214903_agent_knowledge_and_memory,migrations/20260623214903_agent_knowledge_and_memory.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.

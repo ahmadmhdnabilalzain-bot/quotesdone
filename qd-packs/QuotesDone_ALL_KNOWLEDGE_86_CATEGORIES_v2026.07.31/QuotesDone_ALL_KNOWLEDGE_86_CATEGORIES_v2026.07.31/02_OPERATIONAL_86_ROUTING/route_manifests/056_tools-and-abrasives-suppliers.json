@@ -1,0 +1,92 @@
+{
+  "catalog_num": 56,
+  "catalog_name": "Tools & Abrasives Suppliers",
+  "expected_catalog_slug": "tools-and-abrasives-suppliers",
+  "live_catalog_resolution": {
+    "method": "lookup_by_num",
+    "table": "catalog_supplier_categories",
+    "must_match_num": 56,
+    "do_not_overwrite_live_slug": true
+  },
+  "route_key": "opcat-056",
+  "route_type": "composite",
+  "coverage_status": "mapped_composite_existing_corpus",
+  "knowledge_mappings": [
+    {
+      "package_number": 38,
+      "package_slug": "abrasives-tools-and-industrial-consumables",
+      "package_name": "Abrasives, Tools & Industrial Consumables",
+      "package_zip": "QD-KB-038-abrasives-tools-and-industrial-consumables-v2026.07.31.zip",
+      "subcategories": [
+        "cutting-tools",
+        "grinding-tools",
+        "welding-consumables",
+        "measuring-instruments",
+        "hand-tools",
+        "power-tools"
+      ],
+      "priority": "primary",
+      "notes": ""
+    },
+    {
+      "package_number": 59,
+      "package_slug": "vehicles-automotive-and-equipment",
+      "package_name": "Vehicles, Automotive & Equipment",
+      "package_zip": "QD-KB-059-vehicles-automotive-and-equipment-v2026.07.31.zip",
+      "subcategories": [
+        "tools-power-tools-and-hardware"
+      ],
+      "priority": "secondary",
+      "notes": ""
+    }
+  ],
+  "routing_aliases_en": [
+    "Tools & Abrasives Suppliers",
+    "Tools & Abrasives",
+    "Cutting tools",
+    "Grinding tools",
+    "Welding consumables",
+    "Measuring instruments",
+    "Hand tools",
+    "Power tools",
+    "Tools, power tools & hardware",
+    "Tools, power tools",
+    "hardware",
+    "Tools",
+    "power tools & hardware",
+    "tools power tools and hardware"
+  ],
+  "routing_aliases_ar": [
+    "متطلبات Cutting tools",
+    "متطلبات Grinding tools",
+    "متطلبات Welding consumables",
+    "متطلبات Measuring instruments",
+    "متطلبات Hand tools",
+    "متطلبات Power tools",
+    "متطلبات Tools, power tools & hardware"
+  ],
+  "routing_behavior": {
+    "first_pass": "deterministic alias and keyword scoring",
+    "second_pass": "small language model only when intent remains ambiguous",
+    "clarification_question_en": "Which part of Tools & Abrasives Suppliers best describes what you need?",
+    "clarification_question_ar": "ما الجزء من Tools & Abrasives Suppliers الذي يصف احتياجك بشكل أفضل؟",
+    "preserve_multiple_candidates": true,
+    "minimum_auto_route_confidence": 0.82,
+    "minimum_margin_over_second_candidate": 0.15,
+    "low_confidence_action": "ask_one_clarifying_question",
+    "no_match_action": "route_to_miscellaneous_and_log_gap"
+  },
+  "runtime_knowledge_selection": {
+    "retrieve_by_package_and_subcategory": true,
+    "load_full_master_into_prompt": false,
+    "questions_rules_validations_are_deterministic": true,
+    "narrative_retrieval_only_when_needed": true
+  },
+  "certification": {
+    "structural_mapping_checked": true,
+    "source_and_sme_approval_inherited_from_underlying_records": true,
+    "approved_for_autonomous_engineering_or_legal_decisions": false
+  },
+  "version": "1.0.0",
+  "build_date": "2026-07-31"
+}

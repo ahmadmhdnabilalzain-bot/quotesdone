@@ -1,0 +1,6 @@
+-- Human writing voice for all customer/supplier-facing outbound (distilled from blader/humanizer's AI-tell list).
+-- One _global rule every writing agent applies: sound like a person, not AI.
+insert into public.agent_knowledge(agent_key,topic,priority,content)
+select '_global','writing:human_voice',81,
+'When writing anything a customer or supplier will read (emails, WhatsApp, support replies, social posts), sound like a real person, not AI. Avoid the AI tells: ban words like delve, leverage, robust, seamless, testament, landscape, showcasing, additionally, actually; no "not just X, it is Y" or tailing-negation constructions; no forced rule-of-three lists; replace copulas (serves as, boasts, features) with plain verbs (is, has); few or no em-dashes; no emojis unless the person used one first; no signposting ("let us dive in"); no chatbot artifacts ("I hope this helps! Let me know..."); no sycophancy ("Great question!"); cut filler ("in order to"->"to") and stacked hedging; end with a concrete next step. Vary sentence length; be specific and plain. Never fabricate facts, names, or figures to sound specific.'
+where not exists (select 1 from public.agent_knowledge k where k.agent_key='_global' and k.topic='writing:human_voice');

@@ -1,0 +1,111 @@
+{
+  "catalog_num": 24,
+  "catalog_name": "Kitchen & Bathroom Suppliers",
+  "expected_catalog_slug": "kitchen-and-bathroom-suppliers",
+  "live_catalog_resolution": {
+    "method": "lookup_by_num",
+    "table": "catalog_supplier_categories",
+    "must_match_num": 24,
+    "do_not_overwrite_live_slug": true
+  },
+  "route_key": "opcat-024",
+  "route_type": "composite",
+  "coverage_status": "mapped_composite_existing_corpus",
+  "knowledge_mappings": [
+    {
+      "package_number": 8,
+      "package_slug": "interior-fit-out-finishes-and-joinery",
+      "package_name": "Interior Fit-Out, Finishes & Joinery",
+      "package_zip": "QD-KB-008-interior-fit-out-finishes-and-joinery-v2026.07.31.zip",
+      "subcategories": [
+        "kitchen-and-bathroom-fit-out-packages"
+      ],
+      "priority": "primary",
+      "notes": ""
+    },
+    {
+      "package_number": 2,
+      "package_slug": "mep-mechanical-electrical-plumbing",
+      "package_name": "MEP (Mechanical, Electrical, Plumbing)",
+      "package_zip": "QD-KB-002-mep-mechanical-electrical-plumbing-v2026.07.31.zip",
+      "subcategories": [
+        "plumbing-fixtures-fittings-and-sanitaryware"
+      ],
+      "priority": "secondary",
+      "notes": ""
+    }
+  ],
+  "routing_aliases_en": [
+    "Kitchen & Bathroom Suppliers",
+    "Kitchen & Bathroom",
+    "Kitchen & bathroom fit-out packages",
+    "Kitchen",
+    "bathroom fit-out packages",
+    "Kitchen bathroom",
+    "fit-out packages",
+    "sanitaryware",
+    "sanitary ware",
+    "toilet",
+    "WC water closet",
+    "water closet",
+    "wash basin",
+    "urinal",
+    "bidet",
+    "faucet",
+    "tap",
+    "mixer",
+    "shower",
+    "flush valve",
+    "concealed cistern",
+    "kitchen sink",
+    "ablution fixture",
+    "accessible toilet",
+    "Plumbing fixtures, fittings & sanitaryware"
+  ],
+  "routing_aliases_ar": [
+    "متطلبات Kitchen & bathroom fit-out packages",
+    "متطلبات Kitchen",
+    "متطلبات bathroom fit-out packages",
+    "متطلبات Kitchen bathroom",
+    "متطلبات fit-out packages",
+    "أدوات صحية",
+    "مرحاض",
+    "كرسي حمام",
+    "حوض غسيل",
+    "مبولة",
+    "بيديه",
+    "حنفية",
+    "خلاط",
+    "دش",
+    "فلاش فالف",
+    "سيفون مخفي",
+    "حوض مطبخ",
+    "أدوات وضوء",
+    "حمام لذوي الإعاقة",
+    "الأدوات الصحية والخلاطات وملحقات السباكة"
+  ],
+  "routing_behavior": {
+    "first_pass": "deterministic alias and keyword scoring",
+    "second_pass": "small language model only when intent remains ambiguous",
+    "clarification_question_en": "Which part of Kitchen & Bathroom Suppliers best describes what you need?",
+    "clarification_question_ar": "ما الجزء من Kitchen & Bathroom Suppliers الذي يصف احتياجك بشكل أفضل؟",
+    "preserve_multiple_candidates": true,
+    "minimum_auto_route_confidence": 0.82,
+    "minimum_margin_over_second_candidate": 0.15,
+    "low_confidence_action": "ask_one_clarifying_question",
+    "no_match_action": "route_to_miscellaneous_and_log_gap"
+  },
+  "runtime_knowledge_selection": {
+    "retrieve_by_package_and_subcategory": true,
+    "load_full_master_into_prompt": false,
+    "questions_rules_validations_are_deterministic": true,
+    "narrative_retrieval_only_when_needed": true
+  },
+  "certification": {
+    "structural_mapping_checked": true,
+    "source_and_sme_approval_inherited_from_underlying_records": true,
+    "approved_for_autonomous_engineering_or_legal_decisions": false
+  },
+  "version": "1.0.0",
+  "build_date": "2026-07-31"
+}

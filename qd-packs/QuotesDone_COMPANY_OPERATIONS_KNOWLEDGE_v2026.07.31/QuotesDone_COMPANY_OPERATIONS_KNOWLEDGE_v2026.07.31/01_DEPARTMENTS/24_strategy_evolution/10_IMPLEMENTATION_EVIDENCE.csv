@@ -1,0 +1,25 @@
+department_key,evidence_type,name,path,status,note
+strategy_evolution,backend_function,reflect,functions/reflect.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+strategy_evolution,backend_function,analytics_recommend,functions/analytics_recommend.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+strategy_evolution,backend_function,boost_recommend,functions/boost_recommend.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+strategy_evolution,backend_function,canon_eval,functions/canon_eval.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+strategy_evolution,backend_function,dept_plan,functions/dept_plan.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+strategy_evolution,backend_function,cos_execute,functions/cos_execute.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+strategy_evolution,database_object,idea,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,evolution_proposal,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,experiments,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,experiment_assignments,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,experiment_events,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,outcome_record,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,company_reflection,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,allocation_change,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,resource_pool,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,implementation_map,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,simulations,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,migration,20260709105933_strategy_intel_risk_kpis,migrations/20260709105933_strategy_intel_risk_kpis.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+strategy_evolution,migration,20260709110023_fn_strategy_ai_agent,migrations/20260709110023_fn_strategy_ai_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+strategy_evolution,migration,20260709110104_fn_ws_strategy,migrations/20260709110104_fn_ws_strategy.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+strategy_evolution,migration,20260726233429_continuity_vendor_career_evolution,migrations/20260726233429_continuity_vendor_career_evolution.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+strategy_evolution,migration,20260726233527_self_evolution_engine,migrations/20260726233527_self_evolution_engine.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+strategy_evolution,migration,20260727004408_bi_innovation_simulation_evolution_collaboration,migrations/20260727004408_bi_innovation_simulation_evolution_collaboration.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+strategy_evolution,migration,20260727004445_fix_bi_metric_sql_and_evolution_scan,migrations/20260727004445_fix_bi_metric_sql_and_evolution_scan.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.

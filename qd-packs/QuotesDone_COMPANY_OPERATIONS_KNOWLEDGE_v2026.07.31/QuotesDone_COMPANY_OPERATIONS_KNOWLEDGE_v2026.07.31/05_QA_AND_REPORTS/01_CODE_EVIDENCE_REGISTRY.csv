@@ -1,0 +1,570 @@
+department_key,evidence_type,name,path,status,note
+executive_office,backend_function,exec_agents,functions/exec_agents.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+executive_office,backend_function,cos_execute,functions/cos_execute.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+executive_office,backend_function,dept_plan,functions/dept_plan.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+executive_office,backend_function,alert_founder,functions/alert_founder.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+executive_office,backend_function,ea_meeting_summary,functions/ea_meeting_summary.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+executive_office,backend_function,report_body,functions/report_body.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+executive_office,backend_function,os_api,functions/os_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+executive_office,backend_function,os_ops,functions/os_ops.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+executive_office,database_object,org_objectives,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,org_tasks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,org_departments,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,org_authority,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,company_goals,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,company_vision,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,company_snapshot,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,exec_reports,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,board_reports,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,risk_register,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,decision_record,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,company_calendar,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,founder_alerts,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,migration,20260706021848_executive_intelligence_layer,migrations/20260706021848_executive_intelligence_layer.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+executive_office,migration,20260706094443_founder_brief_officer_priorities,migrations/20260706094443_founder_brief_officer_priorities.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+executive_office,migration,20260728173258_appoint_chief_performance_officer_v2,migrations/20260728173258_appoint_chief_performance_officer_v2.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+executive_office,migration,20260728173424_weekly_executive_meeting_and_ceo_self_questioning,migrations/20260728173424_weekly_executive_meeting_and_ceo_self_questioning.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+executive_office,migration,20260728191417_os_review_and_executive_meeting_by_os,migrations/20260728191417_os_review_and_executive_meeting_by_os.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+executive_office,migration,20260728191502_executive_meeting_runs_by_operating_system,migrations/20260728191502_executive_meeting_runs_by_operating_system.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_success,backend_function,supplier_api,functions/supplier_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,supplier_portal,functions/supplier_portal.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,supplier_review,functions/supplier_review.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,supplier_ack,functions/supplier_ack.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,capability_agent,functions/capability_agent.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,enrich_capability,functions/enrich_capability.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,license_extract,functions/license_extract.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,licence_reminder,functions/licence_reminder.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,doc_reminder,functions/doc_reminder.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,kyc,functions/kyc.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,database_object,supplier_capabilities,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_success,database_object,supplier_capability_confirmation,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_success,database_object,supplier_score,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_success,database_object,supplier_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_success,database_object,supplier_dues,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_success,database_object,catalog_supplier_categories,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_success,database_object,supplier_health_snapshots,,not_found_by_exact_name,Name may differ in production; Claude should map to actual schema.
+supplier_success,database_object,documents,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_success,database_object,doc_reviews,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_success,database_object,companies,,not_found_by_exact_name,Name may differ in production; Claude should map to actual schema.
+supplier_success,database_object,suppliers,,not_found_by_exact_name,Name may differ in production; Claude should map to actual schema.
+supplier_success,migration,20260709080840_fn_supplier_success_agent,migrations/20260709080840_fn_supplier_success_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_success,migration,20260709081211_ws_suppliers_add_success_block,migrations/20260709081211_ws_suppliers_add_success_block.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_success,migration,20260724025336_supplier_success_executors_and_registry,migrations/20260724025336_supplier_success_executors_and_registry.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_success,migration,20260607094054_match_suppliers_kw_rpc,migrations/20260607094054_match_suppliers_kw_rpc.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_success,migration,20260607101334_supplier_portal_fields,migrations/20260607101334_supplier_portal_fields.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_success,migration,20260607102607_supplier_kyc_and_terms,migrations/20260607102607_supplier_kyc_and_terms.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_success,migration,20260607104755_supplier_account_link,migrations/20260607104755_supplier_account_link.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_success,migration,20260609154916_supplier_approval_workflow,migrations/20260609154916_supplier_approval_workflow.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+customer_success,backend_function,customer_api,functions/customer_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,backend_function,customer_portal,functions/customer_portal.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,backend_function,login_otp,functions/login_otp.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,backend_function,mobile_otp,functions/mobile_otp.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,backend_function,pdpl_request,functions/pdpl_request.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,backend_function,refund_flow,functions/refund_flow.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,backend_function,refunds_api,functions/refunds_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,backend_function,messages_api,functions/messages_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,backend_function,faq,functions/faq.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,database_object,customers,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,customer_score,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,customer_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,feedback,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,contact_messages,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,pdpl_requests,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,inquiries,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,quote_comparisons,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,reveal_invoices,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,notifications,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,migration,20260709082211_fn_customer_success_agent,migrations/20260709082211_fn_customer_success_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+customer_success,migration,20260709082330_ws_customers_add_success_block,migrations/20260709082330_ws_customers_add_success_block.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+customer_success,migration,20260628220813_fix_chat_threads_customer_id_uuid,migrations/20260628220813_fix_chat_threads_customer_id_uuid.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+customer_success,migration,20260708112745_erp_ws_customer_360,migrations/20260708112745_erp_ws_customer_360.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+customer_success,migration,20260708112832_erp_ws_customer_360_fix,migrations/20260708112832_erp_ws_customer_360_fix.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+customer_success,migration,20260709080840_fn_supplier_success_agent,migrations/20260709080840_fn_supplier_success_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+customer_success,migration,20260709081211_ws_suppliers_add_success_block,migrations/20260709081211_ws_suppliers_add_success_block.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+customer_success,migration,20260709082017_customer_health_and_kpis,migrations/20260709082017_customer_health_and_kpis.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+rfq_intelligence,backend_function,inquiry_ai,functions/inquiry_ai.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,inquiry_intake,functions/inquiry_intake.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,inquiry_parse,functions/inquiry_parse.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,intent_router,functions/intent_router.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,route_inquiry,functions/route_inquiry.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,doc_extract,functions/doc_extract.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,drawing_boq,functions/drawing_boq.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,drawing_redact,functions/drawing_redact.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,dispatch_inquiry,functions/dispatch_inquiry.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,category_reqs,functions/category_reqs.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,database_object,inquiry_intake,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,inquiries,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,inquiry_requirement,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,category_specs,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,category_quote_specs,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,questions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,qualification_playbooks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,subcategory_agent_map,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,category_agent_map,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,kb_category_aliases,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,quote_requirements,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,migration,20260706021848_executive_intelligence_layer,migrations/20260706021848_executive_intelligence_layer.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+rfq_intelligence,migration,20260706102534_document_intelligence_registry,migrations/20260706102534_document_intelligence_registry.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+rfq_intelligence,migration,20260706105057_rfq_archive_lifecycle,migrations/20260706105057_rfq_archive_lifecycle.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+rfq_intelligence,migration,20260706110043_rfq_inquiry_versioning,migrations/20260706110043_rfq_inquiry_versioning.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+rfq_intelligence,migration,20260706115127_rfq_completeness_gate_v2,migrations/20260706115127_rfq_completeness_gate_v2.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+rfq_intelligence,migration,20260708114138_erp_ws_rfq_360,migrations/20260708114138_erp_ws_rfq_360.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+rfq_intelligence,migration,20260708131431_rfq_qualification_gate_and_clarify,migrations/20260708131431_rfq_qualification_gate_and_clarify.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+rfq_intelligence,migration,20260710214222_marketplace_intelligence_views,migrations/20260710214222_marketplace_intelligence_views.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketplace_operations,backend_function,match,functions/match.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketplace_operations,backend_function,match_eval,functions/match_eval.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketplace_operations,backend_function,dispatch_inquiry,functions/dispatch_inquiry.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketplace_operations,backend_function,quote_extract,functions/quote_extract.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketplace_operations,backend_function,quote_review,functions/quote_review.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketplace_operations,backend_function,quote_quality,functions/quote_quality.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketplace_operations,backend_function,quote_compare,functions/quote_compare.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketplace_operations,backend_function,quote_pdf,functions/quote_pdf.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketplace_operations,backend_function,rate_dims,functions/rate_dims.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketplace_operations,backend_function,stripe_checkout,functions/stripe_checkout.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketplace_operations,database_object,inquiry_matches,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketplace_operations,database_object,quotes,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketplace_operations,database_object,quote_items,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketplace_operations,database_object,quote_committed_items,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketplace_operations,database_object,quote_reviews,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketplace_operations,database_object,quote_comparisons,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketplace_operations,database_object,qd_compare_cache,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketplace_operations,database_object,match_eval_runs,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketplace_operations,database_object,reviews,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketplace_operations,database_object,supplier_score,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketplace_operations,database_object,customer_score,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketplace_operations,database_object,reveal_invoices,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketplace_operations,migration,20260607093502_marketplace_core_schema,migrations/20260607093502_marketplace_core_schema.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketplace_operations,migration,20260706003936_marketplace_analytics,migrations/20260706003936_marketplace_analytics.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketplace_operations,migration,20260706102146_marketplace_health_index,migrations/20260706102146_marketplace_health_index.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketplace_operations,migration,20260709100208_ws_operations_add_security_block,migrations/20260709100208_ws_operations_add_security_block.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketplace_operations,migration,20260709100608_operations_kpis_and_agent,migrations/20260709100608_operations_kpis_and_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketplace_operations,migration,20260709100715_ws_operations_add_ops_block,migrations/20260709100715_ws_operations_add_ops_block.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketplace_operations,migration,20260710214222_marketplace_intelligence_views,migrations/20260710214222_marketplace_intelligence_views.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketplace_operations,migration,20260728193744_reputation_maturity_energy_and_marketplace_health,migrations/20260728193744_reputation_maturity_energy_and_marketplace_health.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+sales_crm,backend_function,contact_submit,functions/contact_submit.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+sales_crm,backend_function,embed_leads,functions/embed_leads.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+sales_crm,backend_function,email_triage,functions/email_triage.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+sales_crm,backend_function,inbound_email,functions/inbound_email.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+sales_crm,backend_function,export_leads_csv,functions/export_leads_csv.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+sales_crm,backend_function,orchestrate,functions/orchestrate.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+sales_crm,backend_function,messages_api,functions/messages_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+sales_crm,database_object,leads,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,lead_category,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,lead_subcategory,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,lead_trade_map,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,crm_activities,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,crm_notes,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,crm_stages,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,crm_tasks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,crm_lost_reasons,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,opportunity,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,outreach,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,migration,20260628222517_crm_notes,migrations/20260628222517_crm_notes.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+sales_crm,migration,20260703135324_create_crm_tasks,migrations/20260703135324_create_crm_tasks.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+sales_crm,migration,20260705174139_crm_odoo_pipeline_layer,migrations/20260705174139_crm_odoo_pipeline_layer.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+sales_crm,migration,20260705174339_crm_pipeline_rls_hardening,migrations/20260705174339_crm_pipeline_rls_hardening.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+sales_crm,migration,20260721172923_fn_category_sales_restore,migrations/20260721172923_fn_category_sales_restore.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketing,backend_function,marketing_draft,functions/marketing_draft.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,marketing_image,functions/marketing_image.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,social_stage,functions/social_stage.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,postiz_publish,functions/postiz_publish.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,meta_ads,functions/meta_ads.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,meta_sync,functions/meta_sync.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,blog_weekly,functions/blog_weekly.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,seo_gen,functions/seo_gen.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,site_deploy,functions/site_deploy.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,content_revise,functions/content_revise.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,database_object,marketing_library,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,content_drafts,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,social_posts,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,blog_posts,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,marketing_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,meta_insights,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,brand_assets,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,brand_signal,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,seo_categories,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,pages,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,site_publish_state,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,migration,20260623191036_marketing_and_category_agents,migrations/20260623191036_marketing_and_category_agents.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketing,migration,20260623191816_cron_marketing_category,migrations/20260623191816_cron_marketing_category.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketing,migration,20260709084228_marketing_kpis_and_demand,migrations/20260709084228_marketing_kpis_and_demand.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketing,migration,20260709084410_fn_marketing_ai_agent,migrations/20260709084410_fn_marketing_ai_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketing,migration,20260709084512_marketing_kpis_social_sent_fix,migrations/20260709084512_marketing_kpis_social_sent_fix.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketing,migration,20260709084634_fn_ws_marketing,migrations/20260709084634_fn_ws_marketing.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketing,migration,20260709085728_wire_meta_into_marketing_v2,migrations/20260709085728_wire_meta_into_marketing_v2.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketing,migration,20260709085815_fn_marketing_ai_add_meta,migrations/20260709085815_fn_marketing_ai_add_meta.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+finance,backend_function,finance_ingest,functions/finance_ingest.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+finance,backend_function,finance_doc,functions/finance_doc.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+finance,backend_function,cost_snapshot,functions/cost_snapshot.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+finance,backend_function,money_tests,functions/money_tests.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+finance,backend_function,stripe_webhook,functions/stripe_webhook.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+finance,backend_function,refund_flow,functions/refund_flow.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+finance,backend_function,report_body,functions/report_body.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+finance,database_object,expenses,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+finance,database_object,expense_entries,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+finance,database_object,gl_accounts,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+finance,database_object,gl_journal,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+finance,database_object,gl_journal_lines,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+finance,database_object,ap_bills,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+finance,database_object,budgets,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+finance,database_object,budget_lines,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+finance,database_object,finance_reports,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+finance,database_object,finance_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+finance,database_object,finance_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+finance,database_object,transactions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+finance,database_object,reveal_invoices,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+finance,database_object,stripe_events,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+finance,migration,20260708110544_erp_ws_finance_cfo,migrations/20260708110544_erp_ws_finance_cfo.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+finance,migration,20260709083034_finance_forecast_and_kpis,migrations/20260709083034_finance_forecast_and_kpis.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+finance,migration,20260709083220_fn_finance_ai_agent,migrations/20260709083220_fn_finance_ai_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+finance,migration,20260709083600_ws_finance_add_ai_block,migrations/20260709083600_ws_finance_add_ai_block.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+finance,migration,20260713112611_finance_subscription_reminders,migrations/20260713112611_finance_subscription_reminders.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+legal_compliance,backend_function,legal,functions/legal.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+legal_compliance,backend_function,legal_review,functions/legal_review.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+legal_compliance,backend_function,legal_ingest,functions/legal_ingest.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+legal_compliance,backend_function,collections_legal,functions/collections_legal.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+legal_compliance,backend_function,pdpl_request,functions/pdpl_request.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+legal_compliance,backend_function,pdpl_erase,functions/pdpl_erase.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+legal_compliance,backend_function,compliance_archive,functions/compliance_archive.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+legal_compliance,database_object,legal_documents,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,legal_reviews,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,legal_checklist,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,legal_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,regulations,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,reg_catalog,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,compliance_sources,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,pdpl_requests,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,retention_policy,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,risk_register,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,migration,20260706004818_category_reqs_compliance,migrations/20260706004818_category_reqs_compliance.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+legal_compliance,migration,20260709094952_legal_checklist_and_kpis,migrations/20260709094952_legal_checklist_and_kpis.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+legal_compliance,migration,20260709095057_fn_legal_ai_agent,migrations/20260709095057_fn_legal_ai_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+legal_compliance,migration,20260709095321_ws_company_add_legal_block,migrations/20260709095321_ws_company_add_legal_block.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+legal_compliance,migration,20260710165420_collections_legal_escalation,migrations/20260710165420_collections_legal_escalation.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+legal_compliance,migration,20260722145000_os_audit_h6_accrue_exclude_legal,migrations/20260722145000_os_audit_h6_accrue_exclude_legal.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+hr_people,backend_function,agent_autogen,functions/agent_autogen.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+hr_people,backend_function,knowledge_exam,functions/knowledge_exam.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+hr_people,backend_function,agents,functions/agents.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+hr_people,backend_function,dept_learn,functions/dept_learn.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+hr_people,backend_function,exec_agents,functions/exec_agents.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+hr_people,database_object,org_agents,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,org_onboarding,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,employee_knowledge,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,employee_knowledge_standard,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,employee_kpi,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,skills_matrix,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,career_level,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,promotion_record,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,company_calendar,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,public_holidays,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+admin_operations,backend_function,project_api,functions/project_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+admin_operations,backend_function,os_ops,functions/os_ops.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+admin_operations,backend_function,doc_render,functions/doc_render.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+admin_operations,backend_function,backup,functions/backup.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+admin_operations,backend_function,licence_reminder,functions/licence_reminder.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+admin_operations,database_object,po_vendors,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+admin_operations,database_object,po_orders,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+admin_operations,database_object,po_lines,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+admin_operations,database_object,inv_items,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+admin_operations,database_object,inv_stock_moves,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+admin_operations,database_object,fa_assets,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+admin_operations,database_object,company_calendar,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+admin_operations,database_object,documents,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+admin_operations,database_object,doc_versions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+admin_operations,database_object,org_tasks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+admin_operations,database_object,continuity_plan,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+admin_operations,migration,20260629174442_admin_mfa_sessions,migrations/20260629174442_admin_mfa_sessions.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+admin_operations,migration,20260709100208_ws_operations_add_security_block,migrations/20260709100208_ws_operations_add_security_block.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+admin_operations,migration,20260709100608_operations_kpis_and_agent,migrations/20260709100608_operations_kpis_and_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+admin_operations,migration,20260709100715_ws_operations_add_ops_block,migrations/20260709100715_ws_operations_add_ops_block.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+engineering,backend_function,put_src,functions/put_src.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+engineering,backend_function,push_src_to_github,functions/push_src_to_github.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+engineering,backend_function,github_sync,functions/github_sync.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+engineering,backend_function,deploy_next_preview,functions/deploy_next_preview.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+engineering,backend_function,site_deploy,functions/site_deploy.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+engineering,backend_function,qa_suite,functions/qa_suite.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+engineering,backend_function,os_health,functions/os_health.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+engineering,backend_function,backup,functions/backup.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+engineering,database_object,implementation_map,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,integration_matrix,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,feature_flags,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,deploy_state,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,qd_deploy_src,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,qa_results,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,error_events,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,health_checks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,os_audit_log,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,undo_log,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,backend_function,ai_gateway,functions/ai_gateway.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,backend_function,agent_brain,functions/agent_brain.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,backend_function,agent_act,functions/agent_act.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,backend_function,prompt_gate,functions/prompt_gate.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,backend_function,prompt_improve,functions/prompt_improve.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,backend_function,canon_eval,functions/canon_eval.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,backend_function,knowledge_exam,functions/knowledge_exam.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,backend_function,qa_suite,functions/qa_suite.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,backend_function,ai_health,functions/ai_health.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+ai_model_ops,database_object,ai_model_register,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,model_registry,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,model_policy,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,model_rate,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,llm_policy,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,llm_calls,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,llm_cache,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,prompt_versions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,prompt_eval_runs,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,agent_evals,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,ai_quality_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,ai_cost_log,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,database_object,ai_governance_review,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+ai_model_ops,migration,20260706104613_ops_dashboard_data,migrations/20260706104613_ops_dashboard_data.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+ai_model_ops,migration,20260706115247_structured_quotation_model_v2,migrations/20260706115247_structured_quotation_model_v2.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+ai_model_ops,migration,20260706115422_supplier_capability_model,migrations/20260706115422_supplier_capability_model.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+ai_model_ops,migration,20260708102707_erp_stripe_fee_modeling,migrations/20260708102707_erp_stripe_fee_modeling.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+ai_model_ops,migration,20260708113638_erp_ws_ai_agents_ops,migrations/20260708113638_erp_ws_ai_agents_ops.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+ai_model_ops,migration,20260709100715_ws_operations_add_ops_block,migrations/20260709100715_ws_operations_add_ops_block.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+ai_model_ops,migration,20260718191000_ops_watch_observes_silence_watchdog,migrations/20260718191000_ops_watch_observes_silence_watchdog.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+ai_model_ops,migration,20260726220925_employee_model,migrations/20260726220925_employee_model.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+it_cybersecurity,backend_function,os_health,functions/os_health.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+it_cybersecurity,backend_function,ai_health,functions/ai_health.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+it_cybersecurity,backend_function,dr_drill,functions/dr_drill.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+it_cybersecurity,backend_function,backup,functions/backup.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+it_cybersecurity,backend_function,dropbox_backup,functions/dropbox_backup.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+it_cybersecurity,backend_function,pdpl_erase,functions/pdpl_erase.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+it_cybersecurity,backend_function,qa_suite,functions/qa_suite.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+it_cybersecurity,database_object,admin_mfa_sessions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,app_secrets,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,security_events,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,security_audit_log,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,security_selfaudit_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,secops_rule,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,health_checks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,health_state,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,edge_health_probe,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,continuity_plan,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,dr_restore,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,error_events,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,backend_function,analytics_recommend,functions/analytics_recommend.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+data_analytics,backend_function,cost_snapshot,functions/cost_snapshot.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+data_analytics,backend_function,public_stats,functions/public_stats.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+data_analytics,backend_function,report_body,functions/report_body.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+data_analytics,backend_function,agent_learnings_report,functions/agent_learnings_report.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+data_analytics,backend_function,os_api,functions/os_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+data_analytics,database_object,metric_definition,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,metric_snapshot,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,market_intel,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,competitive_position,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,competitor,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,customer_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,supplier_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,marketing_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,finance_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,ai_quality_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,strategy_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,company_snapshot,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,migration,20260626204501_cleanup_test_data_and_vestigial_table,migrations/20260626204501_cleanup_test_data_and_vestigial_table.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+data_analytics,migration,20260706003936_marketplace_analytics,migrations/20260706003936_marketplace_analytics.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+data_analytics,migration,20260706101759_mdm_master_data_management,migrations/20260706101759_mdm_master_data_management.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+data_analytics,migration,20260706104613_ops_dashboard_data,migrations/20260706104613_ops_dashboard_data.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+data_analytics,migration,20260724031359_analytics_advisory_executor_support,migrations/20260724031359_analytics_advisory_executor_support.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+qa_testing,backend_function,qa_suite,functions/qa_suite.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+qa_testing,backend_function,qa_api,functions/qa_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+qa_testing,backend_function,canon_eval,functions/canon_eval.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+qa_testing,backend_function,kb_research_test,functions/kb_research_test.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+qa_testing,backend_function,match_eval,functions/match_eval.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+qa_testing,backend_function,money_tests,functions/money_tests.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+qa_testing,backend_function,knowledge_exam,functions/knowledge_exam.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+qa_testing,database_object,qa_results,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+qa_testing,database_object,ai_qa_log,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+qa_testing,database_object,scenario_library,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+qa_testing,database_object,prompt_benchmarks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+qa_testing,database_object,prompt_eval_runs,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+qa_testing,database_object,canon_eval_questions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+qa_testing,database_object,canon_eval_runs,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+qa_testing,database_object,canary_records,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+qa_testing,database_object,quality_standard,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+qa_testing,database_object,vt_results,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+qa_testing,database_object,match_eval_runs,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,backend_function,contact_submit,functions/contact_submit.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+business_development,backend_function,project_consultant,functions/project_consultant.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+business_development,backend_function,ea_meeting_summary,functions/ea_meeting_summary.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+business_development,backend_function,legal_review,functions/legal_review.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+business_development,backend_function,marketing_draft,functions/marketing_draft.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+business_development,database_object,opportunity,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,leads,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,crm_activities,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,board_advisor,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,company_goals,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,market_intel,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,competitor,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,projects,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,legal_reviews,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,database_object,org_tasks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+business_development,migration,20260708101918_erp_gl_sync_business_events,migrations/20260708101918_erp_gl_sync_business_events.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+business_development,migration,20260726225705_business_health_score,migrations/20260726225705_business_health_score.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_knowledge,backend_function,kb_ingest,functions/kb_ingest.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,kb_import,functions/kb_import.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,kb_embed,functions/kb_embed.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,kb_deepen,functions/kb_deepen.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,kb_fill_gap,functions/kb_fill_gap.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,kb_autofill_gaps,functions/kb_autofill_gaps.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,knowledge_exam,functions/knowledge_exam.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,gen_category_knowledge,functions/gen_category_knowledge.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,export_all_knowledge,functions/export_all_knowledge.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,backend_function,learn_gaps,functions/learn_gaps.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_knowledge,database_object,knowledge_domain,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,agent_knowledge,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,kb_chunks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,kb_revisions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,kb_usage_log,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,knowledge_module_standard,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,knowledge_exam_questions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,knowledge_exam_results,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,spec_backlog,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,compliance_sources,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,mdm_brands,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,mdm_manufacturers,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,database_object,mdm_standards,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_knowledge,migration,20260724160651_comparison_agent_expert_knowledge_and_supplier_coaching,migrations/20260724160651_comparison_agent_expert_knowledge_and_supplier_coaching.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_knowledge,migration,20260607094054_match_suppliers_kw_rpc,migrations/20260607094054_match_suppliers_kw_rpc.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_knowledge,migration,20260607101334_supplier_portal_fields,migrations/20260607101334_supplier_portal_fields.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_knowledge,migration,20260607102607_supplier_kyc_and_terms,migrations/20260607102607_supplier_kyc_and_terms.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_knowledge,migration,20260607104755_supplier_account_link,migrations/20260607104755_supplier_account_link.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_knowledge,migration,20260609154916_supplier_approval_workflow,migrations/20260609154916_supplier_approval_workflow.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_knowledge,migration,20260623204607_supplier_dues_fix_types,migrations/20260623204607_supplier_dues_fix_types.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_knowledge,migration,20260623214903_agent_knowledge_and_memory,migrations/20260623214903_agent_knowledge_and_memory.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+document_intelligence,backend_function,doc_extract,functions/doc_extract.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+document_intelligence,backend_function,extract_text,functions/extract_text.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+document_intelligence,backend_function,drawing_boq,functions/drawing_boq.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+document_intelligence,backend_function,drawing_redact,functions/drawing_redact.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+document_intelligence,backend_function,quote_extract,functions/quote_extract.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+document_intelligence,backend_function,doc_render,functions/doc_render.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+document_intelligence,backend_function,cad_convert,functions/cad_convert.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+document_intelligence,backend_function,pdf_native,functions/pdf_native.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+document_intelligence,backend_function,dropbox_sync,functions/dropbox_sync.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+document_intelligence,backend_function,compliance_archive,functions/compliance_archive.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+document_intelligence,database_object,documents,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+document_intelligence,database_object,doc_versions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+document_intelligence,database_object,doc_reviews,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+document_intelligence,database_object,doc_backups,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+document_intelligence,database_object,dropbox_files,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+document_intelligence,database_object,quote_items,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+document_intelligence,database_object,quote_reviews,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+document_intelligence,database_object,rfq_archives,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+document_intelligence,database_object,legal_documents,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+document_intelligence,database_object,pdpl_erase_files,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+document_intelligence,migration,20260706102534_document_intelligence_registry,migrations/20260706102534_document_intelligence_registry.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+document_intelligence,migration,20260706021848_executive_intelligence_layer,migrations/20260706021848_executive_intelligence_layer.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+document_intelligence,migration,20260706105544_document_versioning,migrations/20260706105544_document_versioning.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+document_intelligence,migration,20260709102030_document_controller_inventory_kpis,migrations/20260709102030_document_controller_inventory_kpis.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+document_intelligence,migration,20260709102127_fn_document_controller_agent,migrations/20260709102127_fn_document_controller_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+document_intelligence,migration,20260709102238_ws_documents_add_controller_block,migrations/20260709102238_ws_documents_add_controller_block.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+document_intelligence,migration,20260710214222_marketplace_intelligence_views,migrations/20260710214222_marketplace_intelligence_views.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+document_intelligence,migration,20260726232912_innovation_and_intelligence,migrations/20260726232912_innovation_and_intelligence.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+communications,backend_function,inbound_email,functions/inbound_email.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+communications,backend_function,email_triage,functions/email_triage.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+communications,backend_function,email_cron,functions/email_cron.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+communications,backend_function,send_whatsapp,functions/send_whatsapp.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+communications,backend_function,send_sms,functions/send_sms.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+communications,backend_function,messages_api,functions/messages_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+communications,backend_function,pending_digest,functions/pending_digest.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+communications,database_object,messages,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,inbound_messages,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,notifications,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,email_suppressions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,email_block_pattern,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,event_delivery,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,outreach,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,response_template,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,templates,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,chat_threads,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,backend_function,stripe_checkout,functions/stripe_checkout.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+payments_revenue,backend_function,stripe_confirm,functions/stripe_confirm.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+payments_revenue,backend_function,stripe_webhook,functions/stripe_webhook.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+payments_revenue,backend_function,supplier_pay,functions/supplier_pay.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+payments_revenue,backend_function,refund_flow,functions/refund_flow.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+payments_revenue,backend_function,refunds_api,functions/refunds_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+payments_revenue,backend_function,money_tests,functions/money_tests.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+payments_revenue,backend_function,quote_pdf,functions/quote_pdf.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+payments_revenue,database_object,transactions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,database_object,stripe_events,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,database_object,reveal_invoices,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,database_object,payment_dispute,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,database_object,refunds,,not_found_by_exact_name,Name may differ in production; Claude should map to actual schema.
+payments_revenue,database_object,supplier_dues,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,database_object,pricing_config,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,database_object,gl_journal,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,database_object,notifications,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,database_object,os_audit_log,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,migration,20260719003740_gl_reverse_phantom_test_revenue,migrations/20260719003740_gl_reverse_phantom_test_revenue.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+trust_safety,backend_function,kyc,functions/kyc.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+trust_safety,backend_function,inquiry_dedup_check,functions/inquiry_dedup_check.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+trust_safety,backend_function,match_eval,functions/match_eval.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+trust_safety,backend_function,supplier_review,functions/supplier_review.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+trust_safety,backend_function,qa_suite,functions/qa_suite.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+trust_safety,backend_function,customer_api,functions/customer_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+trust_safety,backend_function,supplier_api,functions/supplier_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+trust_safety,database_object,fraud_flags,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+trust_safety,database_object,chat_violations,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+trust_safety,database_object,app_blocked_domains,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+trust_safety,database_object,security_events,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+trust_safety,database_object,customer_score,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+trust_safety,database_object,supplier_score,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+trust_safety,database_object,reviews,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+trust_safety,database_object,audit_logs,,not_found_by_exact_name,Name may differ in production; Claude should map to actual schema.
+trust_safety,database_object,kyc,,not_found_by_exact_name,Name may differ in production; Claude should map to actual schema.
+trust_safety,database_object,user_roles,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+trust_safety,migration,20260727002128_trust_governance_ai_board_culture,migrations/20260727002128_trust_governance_ai_board_culture.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+trust_safety,migration,20260729141025_rfq_required_gate_keyless_field_safety,migrations/20260729141025_rfq_required_gate_keyless_field_safety.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+knowledge_learning,backend_function,dept_learn,functions/dept_learn.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+knowledge_learning,backend_function,kb_ingest,functions/kb_ingest.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+knowledge_learning,backend_function,kb_embed,functions/kb_embed.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+knowledge_learning,backend_function,kb_search,functions/kb_search.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+knowledge_learning,backend_function,knowledge_exam,functions/knowledge_exam.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+knowledge_learning,backend_function,learn_gaps,functions/learn_gaps.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+knowledge_learning,backend_function,reflect,functions/reflect.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+knowledge_learning,backend_function,export_all_knowledge,functions/export_all_knowledge.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+knowledge_learning,database_object,dept_library,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,employee_knowledge,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,employee_knowledge_standard,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,agent_knowledge,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,agent_memory,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,institutional_memory,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,org_memory,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,kb_chunks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,kb_revisions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,memory_promotions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,knowledge_exam_results,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,database_object,knowledge_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+knowledge_learning,migration,20260623214903_agent_knowledge_and_memory,migrations/20260623214903_agent_knowledge_and_memory.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+knowledge_learning,migration,20260706003605_knowledge_graph,migrations/20260706003605_knowledge_graph.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+knowledge_learning,migration,20260706110716_closed_case_learning_loop,migrations/20260706110716_closed_case_learning_loop.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+knowledge_learning,migration,20260706115335_knowledge_governance,migrations/20260706115335_knowledge_governance.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+knowledge_learning,migration,20260709090556_knowledge_hybrid_publish_gate,migrations/20260709090556_knowledge_hybrid_publish_gate.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+knowledge_learning,migration,20260709090644_knowledge_usage_and_kpis,migrations/20260709090644_knowledge_usage_and_kpis.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+knowledge_learning,migration,20260709090800_knowledge_kpis_fix_matching,migrations/20260709090800_knowledge_kpis_fix_matching.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+knowledge_learning,migration,20260709090909_fn_knowledge_curator_agent,migrations/20260709090909_fn_knowledge_curator_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+strategy_evolution,backend_function,reflect,functions/reflect.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+strategy_evolution,backend_function,analytics_recommend,functions/analytics_recommend.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+strategy_evolution,backend_function,boost_recommend,functions/boost_recommend.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+strategy_evolution,backend_function,canon_eval,functions/canon_eval.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+strategy_evolution,backend_function,dept_plan,functions/dept_plan.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+strategy_evolution,backend_function,cos_execute,functions/cos_execute.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+strategy_evolution,database_object,idea,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,evolution_proposal,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,experiments,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,experiment_assignments,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,experiment_events,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,outcome_record,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,company_reflection,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,allocation_change,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,resource_pool,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,implementation_map,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,database_object,simulations,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+strategy_evolution,migration,20260709105933_strategy_intel_risk_kpis,migrations/20260709105933_strategy_intel_risk_kpis.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+strategy_evolution,migration,20260709110023_fn_strategy_ai_agent,migrations/20260709110023_fn_strategy_ai_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+strategy_evolution,migration,20260709110104_fn_ws_strategy,migrations/20260709110104_fn_ws_strategy.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+strategy_evolution,migration,20260726233429_continuity_vendor_career_evolution,migrations/20260726233429_continuity_vendor_career_evolution.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+strategy_evolution,migration,20260726233527_self_evolution_engine,migrations/20260726233527_self_evolution_engine.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+strategy_evolution,migration,20260727004408_bi_innovation_simulation_evolution_collaboration,migrations/20260727004408_bi_innovation_simulation_evolution_collaboration.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+strategy_evolution,migration,20260727004445_fix_bi_metric_sql_and_evolution_scan,migrations/20260727004445_fix_bi_metric_sql_and_evolution_scan.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.

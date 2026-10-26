@@ -1,0 +1,28 @@
+department_key,evidence_type,name,path,status,note
+customer_success,backend_function,customer_api,functions/customer_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,backend_function,customer_portal,functions/customer_portal.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,backend_function,login_otp,functions/login_otp.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,backend_function,mobile_otp,functions/mobile_otp.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,backend_function,pdpl_request,functions/pdpl_request.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,backend_function,refund_flow,functions/refund_flow.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,backend_function,refunds_api,functions/refunds_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,backend_function,messages_api,functions/messages_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,backend_function,faq,functions/faq.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+customer_success,database_object,customers,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,customer_score,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,customer_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,feedback,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,contact_messages,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,pdpl_requests,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,inquiries,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,quote_comparisons,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,reveal_invoices,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,database_object,notifications,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+customer_success,migration,20260709082211_fn_customer_success_agent,migrations/20260709082211_fn_customer_success_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+customer_success,migration,20260709082330_ws_customers_add_success_block,migrations/20260709082330_ws_customers_add_success_block.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+customer_success,migration,20260628220813_fix_chat_threads_customer_id_uuid,migrations/20260628220813_fix_chat_threads_customer_id_uuid.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+customer_success,migration,20260708112745_erp_ws_customer_360,migrations/20260708112745_erp_ws_customer_360.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+customer_success,migration,20260708112832_erp_ws_customer_360_fix,migrations/20260708112832_erp_ws_customer_360_fix.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+customer_success,migration,20260709080840_fn_supplier_success_agent,migrations/20260709080840_fn_supplier_success_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+customer_success,migration,20260709081211_ws_suppliers_add_success_block,migrations/20260709081211_ws_suppliers_add_success_block.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+customer_success,migration,20260709082017_customer_health_and_kpis,migrations/20260709082017_customer_health_and_kpis.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.

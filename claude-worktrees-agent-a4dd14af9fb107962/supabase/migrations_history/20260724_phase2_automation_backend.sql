@@ -1,0 +1,6 @@
+-- Phase 2 (Automation Control Panel): cron_registry + SECURITY DEFINER helpers
+-- fn_os_automation_list / _set_active / _reschedule / _run. Admin-gated via the
+-- os_automation edge function; every mutation writes os_audit_log.
+-- Applied to project htdblwldjkcgjvmqkbeh on 2026-07-24.
+-- Authoritative current definitions are mirrored nightly into
+-- supabase/schema/full_schema.sql.

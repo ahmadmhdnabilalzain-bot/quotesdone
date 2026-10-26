@@ -1,0 +1,212 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Get Quotes — QuotesDone</title><link rel="icon" href="data:image/svg+xml,%3Csvg%20width%3D%2230%22%20height%3D%2230%22%20viewBox%3D%220%200%20512%20512%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Crect%20width%3D%22512%22%20height%3D%22512%22%20rx%3D%22116%22%20fill%3D%22%230d9488%22/%3E%3Cpath%20d%3D%22M96%20150%20a54%2054%200%200%201%2054%20-54%20h212%20a54%2054%200%200%201%2054%2054%20v152%20a54%2054%200%200%201%20-54%2054%20h-148%20l-66%2062%20l8%20-62%20h-6%20a54%2054%200%200%201%20-54%20-54%20z%22%20fill%3D%22%23fff%22/%3E%3Cpath%20d%3D%22M205%20300%20l52%2050%20l104%20-118%22%20fill%3D%22none%22%20stroke%3D%22%230d9488%22%20stroke-width%3D%2244%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E">
+<style>:root{--bg:#04101a;--ink:#eaf6f4;--mut:#8fa6ab;--teal:#2dd4bf;--cyan:#22d3ee;--vio:#7c83ff;--card:rgba(255,255,255,.04);--line:rgba(255,255,255,.10);--glass:rgba(8,28,34,.55);--grad:linear-gradient(100deg,#5eead4,#22d3ee 45%,#7c83ff)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Inter,-apple-system,Segoe UI,Roboto,sans-serif;overflow-x:hidden}
+h1,h2,h3,.step,.price,.kpi .n{font-family:'Space Grotesk',Inter,sans-serif;letter-spacing:-.01em}
+a{color:var(--teal);text-decoration:none}
+.bgfx{position:fixed;inset:0;z-index:-2;overflow:hidden;background:radial-gradient(60% 50% at 50% -5%,rgba(45,212,191,.12),transparent 60%),radial-gradient(40% 40% at 100% 0%,rgba(124,131,255,.10),transparent 60%),var(--bg)}
+.orb{position:absolute;border-radius:50%;filter:blur(70px);opacity:.5;animation:floatx 18s ease-in-out infinite}
+.orb.a{width:480px;height:480px;background:radial-gradient(circle,#0f766e,transparent 70%);top:-140px;left:-120px}
+.orb.b{width:420px;height:420px;background:radial-gradient(circle,#0e7490,transparent 70%);top:40%;right:-140px;animation-delay:-6s}
+.orb.c{width:360px;height:360px;background:radial-gradient(circle,#4338ca,transparent 70%);bottom:-140px;left:25%;opacity:.35;animation-delay:-11s}
+@keyframes floatx{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(26px,-26px) scale(1.07)}}
+.gridfx{position:fixed;inset:0;z-index:-1;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:46px 46px;-webkit-mask-image:radial-gradient(circle at 50% 20%,#000,transparent 75%);mask-image:radial-gradient(circle at 50% 20%,#000,transparent 75%)}
+.wrap{max-width:740px;margin:0 auto;padding:26px 18px 90px;position:relative}
+h1{font-size:22px;margin:0 0 2px;font-weight:700}
+h1 span{color:var(--teal)}
+.sub{color:var(--mut);font-size:13.5px;margin-bottom:18px;max-width:560px}
+.card{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:18px;margin:14px 0;backdrop-filter:blur(12px);box-shadow:0 20px 40px rgba(0,0,0,.35)}
+.step{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--teal);margin-bottom:10px}
+input,select,textarea{border:1px solid var(--line);border-radius:10px;padding:10px 11px;font:inherit;background:rgba(255,255,255,.05);color:var(--ink);width:100%}
+input::placeholder,textarea::placeholder{color:#6f868c}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--teal);background:rgba(45,212,191,.06)}
+select option{background:#0a1f2b;color:var(--ink)}
+textarea{min-height:90px;resize:vertical}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+button{background:var(--grad);color:#04222b;border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:700;cursor:pointer;transition:.2s}
+button:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(45,212,191,.4)}
+button.gray,button.ghost{background:rgba(255,255,255,.06);color:var(--ink);border:1px solid var(--line)}
+button.ghost:hover,button.gray:hover{border-color:var(--teal);color:var(--teal);box-shadow:none}
+button:disabled{opacity:.5;transform:none;box-shadow:none}
+.iconbtn{display:inline-flex;align-items:center;gap:6px;background:rgba(45,212,191,.12);color:#7ff0e2;border:1px solid rgba(45,212,191,.35);border-radius:10px;padding:9px 14px;font-weight:600;cursor:pointer}
+.iconbtn.rec{background:rgba(239,68,68,.16);color:#fca5a5;border-color:rgba(239,68,68,.4)}
+.muted{color:var(--mut);font-size:13px}
+.q{margin:12px 0}.q label{display:block;font-weight:600;margin-bottom:5px;font-size:14px;color:var(--ink)}
+.q.miss label{color:#fcd34d}.q.miss input,.q.miss select{border-color:#f59e0b;background:rgba(245,158,11,.08)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:600px){.grid{grid-template-columns:1fr}}
+.tabs{display:flex;gap:8px;margin:14px 0 0}.tab{flex:1;text-align:center;padding:10px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--line);font-weight:600;cursor:pointer;color:var(--mut)}.tab.on{background:var(--grad);color:#04222b;border-color:transparent}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.kpi{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:12px;text-align:center}.kpi .n{font-size:22px;font-weight:700;color:var(--teal)}.kpi .l{font-size:11px;color:var(--mut)}
+.badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(254,243,199,.15);color:#fcd34d}.badge.ok{background:rgba(34,197,94,.2);color:#86efac}
+.em{display:inline-flex;align-items:center;gap:5px;font-size:13px;margin:2px 12px 2px 0}
+.req{color:#f87171}.hide{display:none}
+table.fees{border-collapse:collapse;width:100%;font-size:13px;margin:6px 0}.fees td,.fees th{border:1px solid var(--line);padding:6px 9px;text-align:left}.fees th{background:rgba(255,255,255,.05);color:var(--mut)}
+.agree{background:rgba(45,212,191,.08);border:1px solid rgba(45,212,191,.3);border-radius:10px;padding:12px;margin-top:10px}
+.res{border:1px solid var(--line);border-radius:10px;padding:9px 11px;margin:5px 0;cursor:pointer}.res:hover{border-color:var(--teal);background:rgba(45,212,191,.07)}
+.inq{border:1px solid var(--line);border-radius:12px;padding:13px;margin:10px 0;background:rgba(255,255,255,.03)}
+.qt{border:1px solid var(--line);border-radius:10px;padding:11px;margin:8px 0;background:rgba(255,255,255,.03);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.price{font-size:18px;font-weight:700;color:var(--teal)}
+.pill{display:inline-block;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;margin:2px 4px 2px 0;color:#cfe6e3}
+.contact{background:rgba(45,212,191,.08);border:1px solid rgba(45,212,191,.3);border-radius:10px;padding:12px;margin-top:8px}.contact a{color:var(--teal);font-weight:600}
+.ai{background:rgba(34,211,238,.08);border:1px solid rgba(34,211,238,.3);border-radius:10px;padding:10px;margin-top:10px;font-size:13px;color:#a5e8f0}
+.star{color:#fbbf24}.thumb{display:inline-block;width:48px;height:48px;border-radius:8px;border:1px solid var(--line);object-fit:cover;margin:4px 4px 0 0;vertical-align:middle}
+.err{color:#f87171;font-size:13px}.ok{color:#86efac;font-size:13px}
+.logo svg{vertical-align:-6px;margin-right:7px}</style><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet"></head><body><div class="bgfx"><div class="orb a"></div><div class="orb b"></div><div class="orb c"></div></div><div class="gridfx"></div><div class="wrap">
+<h1><svg width="28" height="28" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" style="vertical-align:-7px;margin-right:8px"><rect width="512" height="512" rx="116" fill="#0d9488"/><path d="M96 150 a54 54 0 0 1 54 -54 h212 a54 54 0 0 1 54 54 v152 a54 54 0 0 1 -54 54 h-148 l-66 62 l8 -62 h-6 a54 54 0 0 1 -54 -54 z" fill="#fff"/><g fill="#0d9488"><path d="M150 196 c0 -20 11 -33 31 -39 l5 12 c-11 5 -16 11 -18 20 h18 v35 h-36 z"/><path d="M204 196 c0 -20 11 -33 31 -39 l5 12 c-11 5 -16 11 -18 20 h18 v35 h-36 z"/></g><path d="M205 300 l52 50 l104 -118" fill="none" stroke="#0d9488" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/></svg>Quotes<span style="color:#0d9488">Done</span></h1>
+<div class="sub">Describe your job by voice, photo or text — our AI builds the request and sends it to matched UAE suppliers. Free for you.</div>
+<div id="app">Loading…</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script><script>window.pdfToImages=async function(b64){const L=window.pdfjsLib;L.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';const raw=atob(b64);const arr=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)arr[i]=raw.charCodeAt(i);const pdf=await L.getDocument({data:arr}).promise;const out=[];const n=Math.min(pdf.numPages,6);for(let p=1;p<=n;p++){const pg=await pdf.getPage(p);const vp=pg.getViewport({scale:1.8});const c=document.createElement('canvas');c.width=vp.width;c.height=vp.height;await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;out.push({mime:'image/jpeg',data:c.toDataURL('image/jpeg',0.8).split(',')[1]});}return out;};</script><script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const URL_='https://htdblwldjkcgjvmqkbeh.supabase.co';
+const ANON='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo';
+const supa=createClient(URL_,ANON);
+const EMIRATES=['Dubai','Abu Dhabi','Sharjah','Ajman','Ras Al Khaimah','Umm Al Quwain','Fujairah'];
+const app=document.getElementById('app');let SPECS=[],DRAFT=null,FILES=[],DRAWING=null;
+async function api(action,payload={}){const {data:{session}}=await supa.auth.getSession();const r=await fetch(URL_+'/functions/v1/customer_api',{method:'POST',headers:{'Authorization':'Bearer '+(session?.access_token||ANON),'Content-Type':'application/json'},body:JSON.stringify({action,...payload})});return r.json();}
+async function aiAnalyze(payload){const {data:{session}}=await supa.auth.getSession();const r=await fetch(URL_+'/functions/v1/inquiry_ai',{method:'POST',headers:{'Authorization':'Bearer '+(session?.access_token||ANON),'Content-Type':'application/json'},body:JSON.stringify(payload)});return r.json();}
+function esc(s){return String(s==null?'':s).replace(/"/g,'&quot;').replace(/</g,'&lt;')}
+supa.auth.onAuthStateChange((_e,session)=>{setTimeout(()=>render(session),0);});supa.auth.getSession().then(({data})=>render(data.session));
+async function render(session){if(!session){return loginView();}mainView('new');}
+function loginView(){app.innerHTML=`<div class="card"><div class="step">Sign in</div>
+  <div class="q"><label>Your email</label><input id="email" type="email" placeholder="you@email.com"></div>
+  <div class="row"><button id="send">Email me a code</button><span id="msg" class="muted"></span></div>
+  <div id="otp" class="hide"><div class="q"><label>Enter the 6-digit code</label><input id="code" inputmode="numeric" placeholder="123456"></div><div class="row"><button id="verify">Verify &amp; continue</button></div></div></div>`;
+  document.getElementById('send').onclick=async()=>{const email=document.getElementById('email').value.trim();if(!email)return;document.getElementById('msg').textContent='Sending…';const {error}=await supa.auth.signInWithOtp({email,options:{shouldCreateUser:true}});document.getElementById('msg').innerHTML=error?('<span class="err">'+error.message+'</span>'):'Code sent — check your email.';if(!error)document.getElementById('otp').classList.remove('hide');};
+  document.getElementById('verify').onclick=async()=>{const email=document.getElementById('email').value.trim();const token=document.getElementById('code').value.trim();const {error}=await supa.auth.verifyOtp({email,token,type:'email'});if(error)document.getElementById('msg').innerHTML='<span class="err">'+error.message+'</span>';};
+}
+async function mainView(tab){if(!SPECS.length){const r=await api('specs');SPECS=r.specs||[];}
+  app.innerHTML=`<div class="tabs"><div class="tab ${tab==='new'?'on':''}" id="t_new">New request</div><div class="tab ${tab==='mine'?'on':''}" id="t_mine">My requests</div></div><div id="view"></div>
+  <div class="row" style="justify-content:flex-end"><button class="gray" id="out" style="padding:6px 12px;font-size:13px">Sign out</button></div>`;
+  document.getElementById('t_new').onclick=()=>mainView('new');
+  document.getElementById('t_mine').onclick=()=>mainView('mine');
+  document.getElementById('out').onclick=()=>supa.auth.signOut();
+  if(tab==='new')newView();else mineView();
+}
+function newView(){FILES=[];DRAWING=null;const v=document.getElementById('view');
+  v.innerHTML=`<div class="card"><div class="step">1 · Tell us what you need</div>
+   <div class="q"><textarea id="need" placeholder="Speak or type… e.g. I need SPC flooring for my villa in Dubai, around 250 sqm, supply and installation. Attach photos or a plan if you have one."></textarea></div>
+   <div class="row">
+     <button type="button" class="iconbtn" id="mic">🎤 <span id="micl">Speak</span></button>
+     <button type="button" class="iconbtn" id="att">📎 Add photos</button> <button type="button" class="iconbtn" id="datt">📐 Attach drawing / CAD</button> <input id="dfile" type="file" accept=".pdf,.png,.jpg,.jpeg,.dwg,.dxf,image/*,application/pdf" class="hide"> <button type="button" class="iconbtn" id="qatt">🧾 Attach existing quotation</button> <input id="qfile" type="file" accept=".pdf,.png,.jpg,.jpeg,image/*,application/pdf" class="hide">
+     <input id="file" type="file" accept="image/*" multiple class="hide">
+     <select id="em" style="max-width:200px"><option value="">Emirate (optional)</option>${EMIRATES.map(e=>`<option>${e}</option>`).join('')}</select>
+   </div>
+   <div id="thumbs"></div><div id="drawingbox"></div>
+   <div class="row"><button id="go">Continue with AI →</button><span id="m1" class="muted"></span></div>
+   <div class="muted" style="margin-top:6px">Voice + photos are read by AI to build your request. Works in English &amp; Arabic.</div>
+   </div><div id="stage2"></div>`;
+  // mic
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;let rec=null,recing=false;
+  const micBtn=document.getElementById('mic');
+  micBtn.onclick=()=>{
+    if(!SR){alert('Voice typing is not supported in this browser. Please type your request, or try Chrome.');return;}
+    if(recing){rec&&rec.stop();return;}
+    rec=new SR();rec.lang=(navigator.language||'en').toLowerCase().startsWith('ar')?'ar-AE':'en-US';rec.interimResults=true;rec.continuous=true;
+    let base=document.getElementById('need').value;
+    rec.onresult=(e)=>{let t='';for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript;document.getElementById('need').value=(base?base+' ':'')+t;};
+    rec.onend=()=>{recing=false;micBtn.classList.remove('rec');document.getElementById('micl').textContent='Speak';base=document.getElementById('need').value;};
+    rec.onerror=()=>{recing=false;micBtn.classList.remove('rec');document.getElementById('micl').textContent='Speak';};
+    rec.start();recing=true;micBtn.classList.add('rec');document.getElementById('micl').textContent='Stop';
+  };
+  // attachments
+  document.getElementById('att').onclick=()=>document.getElementById('file').click();
+  document.getElementById('file').onchange=async(e)=>{
+    for(const f of [...e.target.files]){
+      if(FILES.length>=5){alert('Up to 5 photos.');break;}
+      if(f.size>10*1024*1024){alert('Each photo must be under 10 MB: '+f.name);continue;}
+      const data=await new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(f);});
+      FILES.push({mime:f.type,dataUrl:data,data:String(data).split(',')[1]});
+    }
+    document.getElementById('thumbs').innerHTML=FILES.map((x,i)=>`<img class="thumb" src="${x.dataUrl}" title="tap to remove" data-i="${i}">`).join('');
+    document.querySelectorAll('#thumbs .thumb').forEach(t=>t.onclick=()=>{FILES.splice(Number(t.dataset.i),1);document.getElementById('file').onchange({target:{files:[]}});});
+  };
+  function renderBOQ(){var box=document.getElementById('drawingbox');if(!box)return;if(!DRAWING){box.innerHTML='';return;}var b=DRAWING.boq;var h='<div class="card" style="margin-top:10px"><div class="step">'+(DRAWING.brief_source==='quotation'?'🧾 Quotation attached: ':'📐 Drawing attached: ')+esc(DRAWING.drawing_file_name||'file')+'</div>';if(b&&Array.isArray(b.boq)&&b.boq.length){h+='<div class="ai">🤖 <b>'+(DRAWING.brief_source==='quotation'?'Scope from your quotation — contact details &amp; prices removed.':'Draft bill of quantities — AI estimate, please verify.')+'</b>'+(b.summary?' '+esc(b.summary):'')+'</div>';h+='<div style="overflow:auto;margin-top:6px"><table style="width:100%;border-collapse:collapse;font-size:13px"><tr><th style="text-align:left;border-bottom:1px solid #1c3b3b;padding:4px 6px;color:#8fa6ab">Section</th><th style="text-align:left;border-bottom:1px solid #1c3b3b;padding:4px 6px;color:#8fa6ab">Item</th><th style="text-align:right;border-bottom:1px solid #1c3b3b;padding:4px 6px;color:#8fa6ab">Qty</th><th style="text-align:left;border-bottom:1px solid #1c3b3b;padding:4px 6px;color:#8fa6ab">Unit</th></tr>'+b.boq.map(function(it){return '<tr><td style="border-bottom:1px solid #122a2a;padding:4px 6px;vertical-align:top">'+esc(it.section||'')+'</td><td style="border-bottom:1px solid #122a2a;padding:4px 6px;vertical-align:top">'+esc(it.description||'')+'</td><td style="border-bottom:1px solid #122a2a;padding:4px 6px;text-align:right">'+(it.qty==null?'—':esc(String(it.qty)))+'</td><td style="border-bottom:1px solid #122a2a;padding:4px 6px">'+esc(it.unit||'')+'</td></tr>';}).join('')+'</table></div>';if(b.assumptions&&b.assumptions.length)h+='<div class="muted" style="margin-top:6px"><b>Assumptions:</b> '+esc(b.assumptions.join('; '))+'</div>';h+='<div class="muted" style="margin-top:4px">'+(DRAWING.brief_source==='quotation'?'Anonymized from your quotation — supplier identity, prices and brand/model names removed. Suppliers quote against this scope without seeing the original prices.':'These quantities are an AI estimate read from your drawing — not a verified take-off. We recommend confirming the final quantities with the supplier before relying on them.')+'</div>';}else{h+='<div class="muted">Attached to your request. No automatic BOQ was produced for this file type — a supplier will review the drawing.</div>';}h+='<div class="row"><button type="button" class="iconbtn" id="drm">Remove drawing</button></div></div>';box.innerHTML=h;var rm=document.getElementById('drm');if(rm)rm.onclick=function(){DRAWING=null;renderBOQ();};}
+document.getElementById('datt').onclick=function(){document.getElementById('dfile').click();};
+document.getElementById('dfile').onchange=async function(e){var f=e.target.files&&e.target.files[0];if(!f)return;if(f.size>25*1024*1024){alert('Drawing must be under 25 MB.');return;}var dataUrl=await new Promise(function(res){var r=new FileReader();r.onload=function(){res(r.result);};r.readAsDataURL(f);});var b64=String(dataUrl).split(',')[1];var mime=f.type||'application/octet-stream';var nm=(f.name||'drawing').toLowerCase();var box=document.getElementById('drawingbox');var images=[];try{if(mime==='application/pdf'||nm.endsWith('.pdf')){box.innerHTML='<div class="muted">Reading drawing pages…</div>';images=await window.pdfToImages(b64);}else if(/^image\//.test(mime)||/\.(png|jpe?g|webp)$/.test(nm)){images=[{mime:mime,data:b64}];}}catch(err){images=[];}var iscad=/\.(dwg|dxf)$/.test(nm)||/dwg|dxf/.test(mime);var willAnalyze=images.length>0||iscad;box.innerHTML='<div class="ai">📐 <b>'+esc(f.name)+'</b> attached.'+(willAnalyze?(iscad?' Converting your CAD file and generating a draft bill of quantities… <span class="muted">this can take up to ~3 minutes — please wait.</span>':' Generating a draft bill of quantities… <span class="muted">this can take up to ~2 minutes — please wait.</span>'):' <span class="muted">This file type cannot be auto-read for a BOQ; it will be attached to your request as-is.</span>')+'</div>';var hint=document.getElementById('need').value.trim().slice(0,400);var res;try{res=await api('analyze_drawing',{images:images,original_b64:b64,mime:mime,drawing_file_name:f.name,hint:hint});}catch(err){res=null;}if(!res||(res.error&&!res.drawing_file_path&&!res.boq)){box.innerHTML='<div class="q miss"><span class="err">Could not process the drawing. You can still continue without it.</span></div>';DRAWING=null;return;}DRAWING={drawing_file_path:res.drawing_file_path||null,drawing_file_name:res.drawing_file_name||f.name,boq:res.boq||null};renderBOQ();};
+document.getElementById('qatt').onclick=function(){document.getElementById('qfile').click();};
+document.getElementById('qfile').onchange=async function(e){var f=e.target.files&&e.target.files[0];if(!f)return;if(f.size>25*1024*1024){alert('File must be under 25 MB.');return;}var dataUrl=await new Promise(function(res){var r=new FileReader();r.onload=function(){res(r.result);};r.readAsDataURL(f);});var b64=String(dataUrl).split(',')[1];var mime=f.type||'application/octet-stream';var nm=(f.name||'quotation').toLowerCase();var box=document.getElementById('drawingbox');var images=[];try{if(mime==='application/pdf'||nm.endsWith('.pdf')){box.innerHTML='<div class="muted">Reading your quotation…</div>';images=await window.pdfToImages(b64);}else if(/^image\//.test(mime)||/\.(png|jpe?g|webp)$/.test(nm)){images=[{mime:mime,data:b64}];}}catch(err){images=[];}if(!images.length){box.innerHTML='<div class="q miss"><span class="err">Could not read that file. Please attach a clear PDF or photo of the quotation.</span></div>';return;}box.innerHTML='<div class="ai">🧾 <b>'+esc(f.name)+'</b> attached. Reading and anonymizing (removing contact details, prices and brand names)… <span class="muted">this can take up to ~2 minutes — please wait.</span></div>';var hint=document.getElementById('need').value.trim().slice(0,400);var res;try{res=await api('analyze_quotation',{images:images,original_b64:b64,mime:mime,file_name:f.name,hint:hint});}catch(err){res=null;}if(!res||(res.error&&!res.scope)){box.innerHTML='<div class="q miss"><span class="err">Could not process the quotation. You can still continue without it.</span></div>';DRAWING=null;return;}DRAWING={drawing_file_path:res.drawing_file_path||null,drawing_file_name:res.drawing_file_name||f.name,boq:res.scope||null,brief_source:'quotation'};renderBOQ();};
+document.getElementById('go').onclick=goAI;
+}
+async function goAI(){
+  const text=document.getElementById('need').value.trim();const em=document.getElementById('em').value;
+  if(text.length<6 && !FILES.length){alert('Please describe what you need, or add a photo.');return;}
+  document.getElementById('m1').textContent='AI is reading your request…';
+  let res=null;
+  try{res=await aiAnalyze({text,emirate:em||null,images:FILES.map(f=>({mime:f.mime,data:f.data}))});}catch(e){res={fallback:true};}
+  // fallback to keyword detect if AI unavailable
+  if(!res||res.fallback||!res.category){
+    document.getElementById('m1').textContent='';
+    const d=await api('detect',{text});const cat=d.category;
+    if(!cat){document.getElementById('m1').innerHTML='<span class="err">Could not understand the job yet — add a bit more detail or a photo, or pick a category below.</span>';return chooseCategory(text,em);}
+    const sp=SPECS.find(s=>s.category===cat);DRAFT={category:cat,label:sp?sp.label:cat,emirate:em||d.emirate||'',raw:text,fields:sp?sp.fields:[],spec:{},missingKeys:[],ai:false};
+    return stage2();
+  }
+  document.getElementById('m1').textContent='';
+  const qs=(res.missing||[]).map(m=>({key:m.key,question:m.question,type:m.type||'text',options:Array.isArray(m.options)?m.options:[],required:m.required!==false}));DRAFT={category:res.category,label:res.label||res.category,emirate:res.emirate||em||'',raw:text,fields:qs,spec:res.spec||{},missingKeys:qs.filter(x=>x.required).map(x=>x.key),scope_type:res.scope_type||'single',trades:Array.isArray(res.trades)?res.trades:[],summary:res.summary||'',notes:res.notes||'',confidence:res.confidence,ai:true};
+  stage2();
+}
+function chooseCategory(text,em){
+  const st=document.getElementById('stage2');
+  st.innerHTML=`<div class="card"><div class="step">Pick the category</div><div class="q"><select id="pc"><option value="">Choose…</option>${SPECS.map(s=>`<option value="${s.category}">${s.label}</option>`).join('')}</select></div><div class="row"><button id="pcgo">Continue</button></div></div>`;
+  document.getElementById('pcgo').onclick=()=>{const cat=document.getElementById('pc').value;if(!cat)return;const sp=SPECS.find(s=>s.category===cat);DRAFT={category:cat,label:sp.label,emirate:em||'',raw:text,fields:sp.fields,spec:{},missingKeys:[],ai:false};stage2();};
+}
+function stage2(){const st=document.getElementById('stage2');const f=DRAFT.fields||[];const sp=DRAFT.spec||{};const miss=new Set(DRAFT.missingKeys||[]);
+  const val=k=>{const x=sp[k];return x==null?'':String(x);};
+  const render1=x=>{const id='sf_'+x.key;const mc=miss.has(x.key)?' miss':'';const lbl=`<label>${esc(x.question)} ${x.required?'<span class="req">*</span>':''}</label>`;
+    if(x.type==='select'){const cur=val(x.key);return `<div class="q${mc}">${lbl}<select id="${id}"><option value="">Choose…</option>${(x.options||[]).map(o=>`<option ${cur===o||(!cur&&x.default===o)?'selected':''}>${esc(o)}</option>`).join('')}</select></div>`;}
+    if(x.type==='multiselect')return `<div class="q${mc}">${lbl}<div id="${id}">${(x.options||[]).map(o=>`<label style="display:inline-flex;align-items:center;gap:6px;margin:2px 10px 2px 0;font-weight:400"><input type="checkbox" value="${esc(o)}"> ${esc(o)}</label>`).join('')}</div></div>`;if(x.type==='number')return `<div class="q${mc}">${lbl}<input id="${id}" type="number" inputmode="decimal" value="${esc(val(x.key))}" placeholder="${esc(x.help||'')}"></div>`;
+    return `<div class="q${mc}">${lbl}<input id="${id}" value="${esc(val(x.key))}" placeholder="${esc(x.help||'')}"></div>`;};
+  const reqs=f.filter(x=>x.required),opts=f.filter(x=>!x.required);
+  st.innerHTML=`<div class="card"><div class="step">2 · ${esc(DRAFT.label)} ${DRAFT.ai?'— AI filled what it understood; check &amp; complete the highlighted items':'— a few details so suppliers can quote'}</div>
+   ${DRAFT.ai&&DRAFT.summary?`<div class="ai">🤖 <b>Understood:</b> ${esc(DRAFT.summary)}${DRAFT.notes?'<br><span class="muted">'+esc(DRAFT.notes)+'</span>':''}</div>`:''}
+   <div class="grid" style="margin-top:10px"><div class="q"><label>Emirate <span class="req">*</span></label><select id="em2"><option value="">Choose…</option>${EMIRATES.map(e=>`<option ${DRAFT.emirate===e?'selected':''}>${e}</option>`).join('')}</select></div></div>
+   <div class="q"><label>Approximate budget <span class="muted" style="font-weight:400">(optional)</span></label><select id="budget_sel"><option value="">Choose…</option>${['Under AED 5,000','AED 5,000–15,000','AED 15,000–50,000','AED 50,000–150,000','AED 150,000+','Not sure / prefer not to say'].map(b=>`<option>${b}</option>`).join('')}</select></div>${reqs.map(render1).join('')}
+   ${opts.length?`<details ${DRAFT.ai?'open':''}><summary class="muted" style="cursor:pointer;margin:8px 0">More details (better quotes)</summary>${opts.map(render1).join('')}</details>`:''}
+   <div class="row"><button id="send2">Send to matched suppliers</button><span id="m2" class="muted"></span></div>
+   <div class="muted" style="margin-top:8px">Your identity stays private. Suppliers only see the request details.</div></div>`;
+  document.getElementById('send2').onclick=async()=>{
+    const spec=Object.assign({},DRAFT.spec||{});let missing=null;
+    for(const x of DRAFT.fields){if(x.type==='multiselect'){const box=document.getElementById('sf_'+x.key);const vals=box?[...box.querySelectorAll('input:checked')].map(c=>c.value):[];if(x.required&&!vals.length){missing=x;if(box)box.scrollIntoView();break;}if(vals.length)spec[x.key]=vals.join(', ');continue;}const el=document.getElementById('sf_'+x.key);if(!el)continue;const v=el.value.trim();if(x.required&&!v){missing=x;el.focus();break;}if(v)spec[x.key]=v;}
+    if(missing){alert('Please answer: '+missing.question);return;}
+    const emirate=document.getElementById('em2').value;if(!emirate){alert('Please choose your emirate.');document.getElementById('em2').focus();return;}
+    const budget=(document.getElementById('budget_sel')||{}).value||'';document.getElementById('m2').textContent='Sending…';
+    const summary=DRAFT.summary||(DRAFT.label+' — '+Object.values(spec).slice(0,5).join(', ')+' ('+emirate+')');
+    const res=await api('create_inquiry',{category:DRAFT.category,emirate,raw_input:DRAFT.raw,spec,summary,budget,scope_type:DRAFT.scope_type||'single',trades:DRAFT.trades||[],drawing:DRAWING});
+    if(res.error){document.getElementById('m2').innerHTML='<span class="err">'+res.error+'</span>';return;}
+    st.innerHTML=`<div class="card"><div class="step">Request sent ✓</div><div>Sent to <b>${res.matches}</b> matched suppliers in ${emirate}.</div><div class="muted" style="margin-top:6px">Quotes appear in <b>My requests</b>. You stay anonymous until you accept one.</div><div class="row"><button id="seeMine">View my requests</button></div></div>`;
+    document.getElementById('seeMine').onclick=()=>mainView('mine');};
+}
+async function mineView(){const v=document.getElementById('view');v.innerHTML='<div class="card muted">Loading…</div>';
+  const r=await api('my_inquiries');const inquiries=r.inquiries;
+  if(!inquiries||!inquiries.length){v.innerHTML='<div class="card"><div class="muted">No requests yet. Create your first one in <b>New request</b>.</div></div>';return;}
+  const money=n=>'AED '+Number(n||0).toLocaleString();const QDET={};
+  v.innerHTML=inquiries.map(i=>{const date=new Date(i.created_at).toLocaleDateString();
+    const qs=(i.quotes||[]).map(q=>{const meta=`${q.verified?'<span class="badge ok">verified</span> ':''}${q.rating?`<span class="star">★</span> ${Number(q.rating).toFixed(1)}${q.rating_count?` (${q.rating_count} ${q.rating_source==='QuotesDone'?'QuotesDone':'Google'})`:''} · `:''}${q.emirate||''}`;
+      const price=`<div class="price">${money(q.price)}</div>`;
+      if(q.revealed)return `<div class="qt"><div><b>${q.label}</b> <span class="muted">${meta}</span>${q.has_original?'<span class="muted" style="font-size:12px" title="Supplier attached their original quotation — unlocked after you reveal">📎 original </span>':''}<a href="#" class="muted" data-detail="${q.id}" style="font-size:12px">View full quotation</a></div><div style="text-align:right">${price}<button class="gray" data-show="${q.id}" style="padding:6px 12px;font-size:13px">Show contact</button> <a href="#" class="muted" data-refund="${q.id}" style="font-size:12px;display:inline-block;margin-top:4px">Request refund</a> <a href="#" class="muted" data-hist="${q.id}" style="font-size:12px">Past projects</a> ${q.rated?'<span class="muted" style="font-size:12px">✓ Rated</span>':`<a href="#" class="muted" data-rate="${q.id}" style="font-size:12px">Rate</a>`}</div></div>`;
+      return `<div class="qt"><div><b>${q.label}</b> <span class="muted">${meta}</span>${q.has_original?'<span class="muted" style="font-size:12px" title="Supplier attached their original quotation — unlocked after you reveal">📎 original </span>':''}<a href="#" class="muted" data-detail="${q.id}" style="font-size:12px">View full quotation</a></div><div style="text-align:right">${price}<button data-r="${q.id}">Reveal · ${money(q.reveal_fee)}</button></div></div>`;}).join('');
+    return `<div class="inq"><b>${esc(i.summary||i.category)}</b> <span class="muted">· ${date}</span> <span class="badge ${i.status==='revealed'?'ok':''}">${i.status}</span>${i.drawing_file_name?('<div class="ai" style="margin-top:6px">📐 Drawing: '+esc(i.drawing_file_name)+(i.drawing_file_url?(' · <a href="'+i.drawing_file_url+'" target="_blank" rel="noopener">download</a>'):'')+(i.boq&&i.boq.boq&&i.boq.boq.length?(' · <span class="muted">draft BOQ '+i.boq.boq.length+' items'+(i.boq_confidence?(' ('+esc(i.boq_confidence)+' confidence)'):'')+'</span>'):'')+'</div>'):''}${qs||'<div class="muted" style="margin-top:6px">Waiting for quotes…</div>'}<div class="contactbox" id="c_${i.id}"></div></div>`;}).join('');
+  function showContact(box,s,fileUrl,fileName){box.innerHTML=`<div class="contact"><b>${esc(s.company_name||'')}</b><br>${s.phone?`📞 <a href="tel:${esc(s.phone)}">${esc(s.phone)}</a><br>`:''}${s.whatsapp?`💬 <a href="https://wa.me/${esc(String(s.whatsapp).replace(/[^0-9]/g,''))}" target="_blank">WhatsApp</a><br>`:''}${s.email?`✉️ <a href="mailto:${esc(s.email)}">${esc(s.email)}</a><br>`:''}${s.website?`🌐 <a href="${esc(s.website)}" target="_blank">Website</a>`:''}${fileUrl?`<br>📄 <a href="${fileUrl}" target="_blank" rel="noopener">Download supplier's original quotation${fileName?(' — '+esc(fileName)):''}</a>`:''}<div class="muted" style="margin-top:6px">You can now contact them directly. You pay the supplier their quoted price — the reveal fee is already paid.</div></div>`;}
+  v.querySelectorAll('button[data-r]').forEach(b=>b.onclick=async()=>{
+    b.disabled=true;const q=await api('reveal',{quote_id:b.dataset.r});b.disabled=false;
+    if(q.error){alert(q.error);return;}
+    const box=b.closest('.inq').querySelector('.contactbox');
+    if(q.already_revealed){showContact(box,q.supplier||{});return;}
+    const fee=money(q.reveal_fee);
+    box.innerHTML=`<div class="contact"><div style="font-weight:700;margin-bottom:2px">Unlock this supplier's contact</div><div class="muted" style="font-size:13px">One-time reveal fee: <b>${fee}</b>. Refundable within 3 working days if they don't respond.</div><div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap"><button data-pay="apple" style="background:#000">Apple Pay</button><button data-pay="google" style="background:#1a73e8">Google Pay</button><button data-pay="card" class="gray">Card</button></div><div class="muted" id="paymsg" style="font-size:12px;margin-top:6px"></div></div>`;
+    box.querySelectorAll('button[data-pay]').forEach(pb=>pb.onclick=async()=>{
+      box.querySelectorAll('button[data-pay]').forEach(x=>x.disabled=true);
+      box.querySelector('#paymsg').textContent='Processing payment…';
+      const res=await api('confirm_reveal',{quote_id:b.dataset.r,payment_ref:'STUB-'+pb.dataset.pay+'-'+Date.now()});
+      if(res.error){box.querySelector('#paymsg').textContent=res.error;box.querySelectorAll('button[data-pay]').forEach(x=>x.disabled=false);return;}
+      showContact(box,res.supplier||{},res.original_file_url,res.original_file_name);});});
+  v.querySelectorAll('button[data-show]').forEach(b=>b.onclick=async()=>{
+    const res=await api('reveal',{quote_id:b.dataset.show});showContact(b.closest('.inq').querySelector('.contactbox'),res.supplier||{},res.original_file_url,res.original_file_name);});
+  v.querySelectorAll('a[data-refund]').forEach(a=>a.onclick=async(e)=>{e.preventDefault();
+    if(!confirm('Request a refund of the reveal fee? Use this if the supplier has not responded.'))return;
+    const res=await api('request_refund',{quote_id:a.dataset.refund});alert(res.error||res.note||'Refund requested.');});
+  v.querySelectorAll('a[data-hist]').forEach(a=>a.onclick=async(e)=>{e.preventDefault();const box=a.closest('.inq').querySelector('.contactbox');box.innerHTML='<div class="muted">Loading projects…</div>';const res=await api('supplier_history',{quote_id:a.dataset.hist});if(res.error){box.innerHTML='<span class="err">'+res.error+'</span>';return;}const s=res.supplier||{};const rd=s.rating_display||{};box.innerHTML='<div class="contact"><b>'+esc(s.company_name||'')+'</b> '+(rd.value?'<span class="star">★</span> '+rd.value+' ('+rd.count+' '+rd.source+')':'')+'<div class="muted" style="margin:6px 0">'+(res.projects_count||0)+' completed project(s) on QuotesDone</div>'+(res.projects||[]).map(pr=>'<div style="font-size:13px;border-top:1px solid #eee;padding:4px 0">'+esc(pr.category||'')+' · '+esc(pr.emirate||'')+' · '+esc(pr.month||'')+' · '+esc(pr.value_band||'')+'</div>').join('')+'</div>';});
+  v.querySelectorAll('a[data-rate]').forEach(a=>a.onclick=(e)=>{e.preventDefault();const box=a.closest('.inq').querySelector('.contactbox');box.innerHTML='<div class="contact"><div style="font-weight:700">Rate this supplier</div><div style="font-size:26px;cursor:pointer" id="stars">'+[1,2,3,4,5].map(n=>'<span data-star="'+n+'">☆</span>').join(' ')+'</div><div class="muted" id="ratemsg" style="font-size:12px"></div></div>';box.querySelectorAll('[data-star]').forEach(st=>{st.onmouseover=()=>{const n=Number(st.dataset.star);box.querySelectorAll('[data-star]').forEach(x=>x.textContent=Number(x.dataset.star)<=n?'★':'☆');};st.onclick=async()=>{const n=Number(st.dataset.star);const c=prompt('Optional comment about this supplier:')||'';box.querySelector('#ratemsg').textContent='Saving…';const res=await api('rate_supplier',{quote_id:a.dataset.rate,rating:n,comment:c});box.querySelector('#ratemsg').innerHTML=res.error?'<span class="err">'+res.error+'</span>':'<span class="ok">✓ Thanks for rating!</span>';};});});
+  v.querySelectorAll('a[data-detail]').forEach(a=>a.onclick=(e)=>{e.preventDefault();const q=QDET[a.dataset.detail]||{};const box=a.closest('.inq').querySelector('.contactbox');box.innerHTML='<div class="contact"><div style="font-weight:700;margin-bottom:4px">Quotation — '+esc(q.label||'Supplier')+'</div><table style="font-size:13px;width:100%">'+[['Price','AED '+Number(q.price||0).toLocaleString()],['Delivery / install',q.lead_time],['Valid for',q.validity],['Payment terms',q.payment_terms],['Warranty',q.warranty],['Scope / included',q.scope],['Conditions',q.conditions],['Notes',q.notes]].filter(r=>r[1]).map(r=>'<tr><td class="muted" style="vertical-align:top;padding-right:10px;white-space:nowrap">'+r[0]+'</td><td>'+esc(r[1])+'</td></tr>').join('')+'</table><div class="muted" style="font-size:11px;margin-top:6px">Company name & contact stay hidden until you reveal.</div></div>';});
+}
+</script></body></html>

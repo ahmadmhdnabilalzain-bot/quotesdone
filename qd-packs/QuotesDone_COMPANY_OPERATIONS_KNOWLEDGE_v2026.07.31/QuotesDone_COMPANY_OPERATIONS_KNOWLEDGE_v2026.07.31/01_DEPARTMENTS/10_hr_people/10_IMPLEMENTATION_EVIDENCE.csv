@@ -1,0 +1,16 @@
+department_key,evidence_type,name,path,status,note
+hr_people,backend_function,agent_autogen,functions/agent_autogen.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+hr_people,backend_function,knowledge_exam,functions/knowledge_exam.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+hr_people,backend_function,agents,functions/agents.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+hr_people,backend_function,dept_learn,functions/dept_learn.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+hr_people,backend_function,exec_agents,functions/exec_agents.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+hr_people,database_object,org_agents,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,org_onboarding,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,employee_knowledge,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,employee_knowledge_standard,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,employee_kpi,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,skills_matrix,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,career_level,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,promotion_record,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,company_calendar,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+hr_people,database_object,public_holidays,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.

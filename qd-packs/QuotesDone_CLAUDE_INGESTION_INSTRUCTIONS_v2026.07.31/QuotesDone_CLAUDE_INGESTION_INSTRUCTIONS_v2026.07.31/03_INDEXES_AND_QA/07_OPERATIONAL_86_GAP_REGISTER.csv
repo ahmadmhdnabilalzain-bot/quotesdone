@@ -1,0 +1,6 @@
+gap_id,severity,scope,gap,closure
+OP86-001,high,all routes,Live slugs for categories 1-84 must be reconciled against the production table; expected slugs are hints only.,Resolve by num and report name/slug mismatches.
+OP86-002,high,all regulated routes,Underlying records retain draft/source_verified/reviewed statuses and are not automatically authority-approved.,Run SME/legal/compliance review and promote selectively.
+OP86-003,high,route 86,Licensed current standards and exact jurisdictional adoption mapping remain required.,Acquire standards and obtain vertical-transportation SME sign-off.
+OP86-004,medium,route 85,"Printing/signage products and authority advertising permits can vary by emirate, site and sign type.",Add site-specific permit source packs and supplier catalogue updates.
+OP86-005,medium,router,Aliases and test phrases must be expanded from real customer conversations after launch.,Log corrections and add approved aliases without silently changing regulated knowledge.

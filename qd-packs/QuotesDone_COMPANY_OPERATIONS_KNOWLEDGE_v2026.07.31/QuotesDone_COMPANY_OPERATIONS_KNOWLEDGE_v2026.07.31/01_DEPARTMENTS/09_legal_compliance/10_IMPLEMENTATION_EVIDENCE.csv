@@ -1,0 +1,24 @@
+department_key,evidence_type,name,path,status,note
+legal_compliance,backend_function,legal,functions/legal.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+legal_compliance,backend_function,legal_review,functions/legal_review.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+legal_compliance,backend_function,legal_ingest,functions/legal_ingest.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+legal_compliance,backend_function,collections_legal,functions/collections_legal.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+legal_compliance,backend_function,pdpl_request,functions/pdpl_request.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+legal_compliance,backend_function,pdpl_erase,functions/pdpl_erase.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+legal_compliance,backend_function,compliance_archive,functions/compliance_archive.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+legal_compliance,database_object,legal_documents,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,legal_reviews,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,legal_checklist,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,legal_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,regulations,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,reg_catalog,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,compliance_sources,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,pdpl_requests,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,retention_policy,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,database_object,risk_register,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+legal_compliance,migration,20260706004818_category_reqs_compliance,migrations/20260706004818_category_reqs_compliance.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+legal_compliance,migration,20260709094952_legal_checklist_and_kpis,migrations/20260709094952_legal_checklist_and_kpis.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+legal_compliance,migration,20260709095057_fn_legal_ai_agent,migrations/20260709095057_fn_legal_ai_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+legal_compliance,migration,20260709095321_ws_company_add_legal_block,migrations/20260709095321_ws_company_add_legal_block.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+legal_compliance,migration,20260710165420_collections_legal_escalation,migrations/20260710165420_collections_legal_escalation.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+legal_compliance,migration,20260722145000_os_audit_h6_accrue_exclude_legal,migrations/20260722145000_os_audit_h6_accrue_exclude_legal.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.

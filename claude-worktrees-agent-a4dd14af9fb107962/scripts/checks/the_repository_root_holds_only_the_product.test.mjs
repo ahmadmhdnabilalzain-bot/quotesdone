@@ -1,0 +1,84 @@
+// THE REPOSITORY ROOT HOLDS ONLY THE PRODUCT (founder instruction 642, 22 Sep 2026).
+//
+// Measured 22 Sep 2026 (it_engineer): the main checkout held 334 untracked root entries named `0`,
+// `$TMP`, `1{print`, `NUL`, `%s`, `console.log(OPEN`… (redirect and quoting accidents) plus ~40
+// PHASE_C_*/PHASE_D_* reports and dozens of *.out/*.json/*.pdf scratch files. The tree also carried
+// 490 MB of committed artefacts nothing read: 23 dated graphify backups (434 MB), a 49 MB
+// certification export, holdout_v2_eval/ (26 MB), repomix-src.xml (5.8 MB) and a 2.7 MB codebase
+// snapshot. repomix-src.xml was named in .gitignore and committed anyway, so an ignore rule alone
+// is not a guard. This check is.
+//
+// It fails when:
+//   1. a tracked top-level name is not on the root allowlist in .gitignore (the `/*` block);
+//   2. a name of the kind measured on 22 Sep would NOT be ignored at the root (`git add -A` would
+//      take it), or an allowlisted name WOULD be ignored;
+//   3. a tracked file is larger than 5 MB, other than the live graphify graph.
+// To add a top-level file or folder on purpose, add its `!/<name>` line to .gitignore in the same
+// commit.
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { readFileSync, statSync, existsSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const git = (args) => execFileSync('git', args, { cwd: ROOT, maxBuffer: 1 << 26 }).toString('utf8');
+const tracked = () => git(['ls-files', '-z']).split('\0').filter(Boolean);
+
+function allowlist() {
+  const lines = readFileSync(join(ROOT, '.gitignore'), 'utf8').split(/\r?\n/).map((l) => l.trim());
+  const at = lines.indexOf('/*');
+  assert.ok(at >= 0, '.gitignore has lost its `/*` root rule — every stray root file is addable again');
+  const names = new Set();
+  for (const l of lines.slice(at + 1)) {
+    const m = /^!\/([^/]+)\/?$/.exec(l);
+    if (m) names.add(m[1]);
+    else if (l && !l.startsWith('#')) break;
+  }
+  return names;
+}
+
+// Names are git pathspecs relative to the root; `git check-ignore --no-index` answers for a path
+// that does not exist, which is exactly the question `git add -A` would ask.
+function ignored(paths) {
+  const r = spawnSync('git', ['check-ignore', '--no-index', '--stdin', '-z'], {
+    cwd: ROOT, input: paths.join('\0') + '\0',
+  });
+  assert.ok(r.status === 0 || r.status === 1, 'git check-ignore failed: ' + r.stderr);
+  return new Set(r.stdout.toString('utf8').split('\0').filter(Boolean));
+}
+
+test('every tracked top-level name is on the root allowlist', () => {
+  const allow = allowlist();
+  const top = [...new Set(tracked().map((f) => f.split('/')[0]))].sort();
+  const extra = top.filter((n) => !allow.has(n));
+  assert.deepEqual(extra, [], 'tracked at the root but not on the .gitignore allowlist: ' + extra.join(', '));
+});
+
+test('the names measured in the main checkout on 22 Sep 2026 are ignored at the root', () => {
+  const stray = ['0', '1', '104', '2026-09-07T19', '$TMP', '$S', '$M', '1{print', '1{c[$1]++}', 'NUL', '%s',
+    "'safe_package_ref'", 'console.log(OPEN', '{const', 'PHASE_D_REMEDIATION_PLAN.md',
+    'PHASE_C_FINAL_GATE_RESULTS.csv', 's3.out', 'm6.err', 'out.txt', 'q.json', 'lic.pdf', 'MEMORY.md',
+    '.tmp_pr653.diff', 'repomix-src.xml', 'holdout_v2_eval/rd.js', 'scratchpad/q.mjs',
+    'graphify-out/2026-09-21/graph.json', 'docs/knowledge/certification/V3_CERTIFICATION_RAW_OUTPUTS.jsonl'];
+  const got = ignored(stray);
+  const addable = stray.filter((n) => !got.has(n));
+  assert.deepEqual(addable, [], '`git add -A` would commit these: ' + addable.join(', '));
+});
+
+test('nothing on the allowlist, and no ordinary product path, is ignored', () => {
+  const allow = [...allowlist()];
+  const product = ['src/app/layout.tsx', 'scripts/sql/MANIFEST.txt', 'supabase/functions/x/index.ts',
+    'docs/README.md', 'graphify-out/graph.json', ...allow];
+  const got = ignored(product);
+  const hidden = product.filter((n) => got.has(n));
+  assert.deepEqual(hidden, [], 'these product paths are ignored: ' + hidden.join(', '));
+});
+
+test('no tracked file is a multi-megabyte artefact', () => {
+  const LIMIT = 5 * 1024 * 1024;
+  const EXEMPT = new Set(['graphify-out/graph.json']); // the live graph the repo's CLAUDE.md tells every session to query
+  const big = tracked().filter((f) => !EXEMPT.has(f) && existsSync(join(ROOT, f)) && statSync(join(ROOT, f)).size > LIMIT);
+  assert.deepEqual(big, [], 'tracked files over 5 MB (generate them, do not commit them): ' + big.join(', '));
+});

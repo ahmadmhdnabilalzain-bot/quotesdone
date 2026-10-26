@@ -1,0 +1,19 @@
+department_key,evidence_type,name,path,status,note
+engineering,backend_function,put_src,functions/put_src.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+engineering,backend_function,push_src_to_github,functions/push_src_to_github.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+engineering,backend_function,github_sync,functions/github_sync.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+engineering,backend_function,deploy_next_preview,functions/deploy_next_preview.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+engineering,backend_function,site_deploy,functions/site_deploy.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+engineering,backend_function,qa_suite,functions/qa_suite.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+engineering,backend_function,os_health,functions/os_health.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+engineering,backend_function,backup,functions/backup.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+engineering,database_object,implementation_map,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,integration_matrix,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,feature_flags,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,deploy_state,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,qd_deploy_src,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,qa_results,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,error_events,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,health_checks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,os_audit_log,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+engineering,database_object,undo_log,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.

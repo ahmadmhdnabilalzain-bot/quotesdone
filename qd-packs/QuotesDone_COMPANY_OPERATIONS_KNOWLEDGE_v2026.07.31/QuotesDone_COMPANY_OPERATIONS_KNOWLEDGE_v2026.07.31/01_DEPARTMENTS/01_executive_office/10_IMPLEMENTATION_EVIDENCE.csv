@@ -1,0 +1,28 @@
+department_key,evidence_type,name,path,status,note
+executive_office,backend_function,exec_agents,functions/exec_agents.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+executive_office,backend_function,cos_execute,functions/cos_execute.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+executive_office,backend_function,dept_plan,functions/dept_plan.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+executive_office,backend_function,alert_founder,functions/alert_founder.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+executive_office,backend_function,ea_meeting_summary,functions/ea_meeting_summary.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+executive_office,backend_function,report_body,functions/report_body.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+executive_office,backend_function,os_api,functions/os_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+executive_office,backend_function,os_ops,functions/os_ops.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+executive_office,database_object,org_objectives,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,org_tasks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,org_departments,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,org_authority,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,company_goals,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,company_vision,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,company_snapshot,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,exec_reports,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,board_reports,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,risk_register,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,decision_record,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,company_calendar,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,database_object,founder_alerts,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+executive_office,migration,20260706021848_executive_intelligence_layer,migrations/20260706021848_executive_intelligence_layer.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+executive_office,migration,20260706094443_founder_brief_officer_priorities,migrations/20260706094443_founder_brief_officer_priorities.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+executive_office,migration,20260728173258_appoint_chief_performance_officer_v2,migrations/20260728173258_appoint_chief_performance_officer_v2.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+executive_office,migration,20260728173424_weekly_executive_meeting_and_ceo_self_questioning,migrations/20260728173424_weekly_executive_meeting_and_ceo_self_questioning.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+executive_office,migration,20260728191417_os_review_and_executive_meeting_by_os,migrations/20260728191417_os_review_and_executive_meeting_by_os.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+executive_office,migration,20260728191502_executive_meeting_runs_by_operating_system,migrations/20260728191502_executive_meeting_runs_by_operating_system.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.

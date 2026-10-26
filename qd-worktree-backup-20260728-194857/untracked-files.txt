@@ -1,0 +1,4 @@
+﻿SKILLS_MANUAL.md
+scripts/qd-graph-peek.js
+scripts/qd-inventory.js
+supabase/functions/SYNCED_FROM_PRODUCTION.md

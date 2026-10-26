@@ -1,0 +1,15 @@
+﻿model_id,role,price_input_usd_per_m,price_output_usd_per_m,context,best_for,deployment_note
+none/deterministic,Tier 0,0,0,n/a,"SQL, decision rules, scoring, workflow state, permissions, payment state, reminders, templates",Always first choice when an approved rule exists.
+qwen/qwen3.7-flash,Tier 1 cheap,0.03,0.13,1M,"Routing, intent, short extraction, translation, low-risk classification, short tool calls; also vision-capable",New model: run canary benchmark before making it 100% primary.
+google/gemini-3.1-flash-lite,Tier 1 fallback,0.25,1.50,1.05M,High-volume multimodal extraction and a proven fallback for Qwen canary,Already present in the export; retain during transition.
+qwen/qwen3.7-plus,Tier 2 communication,0.32,1.28,1M,"Customer/supplier communication, marketing copy, multilingual drafting and tool use",Primary for routine outward-facing text; Sonnet reviews sensitive/public claims.
+deepseek/deepseek-v4-flash,Tier 2 reasoning,0.09,0.18,1.05M,"Routine employee reasoning, analysis, agent tools, coding, root-cause analysis and planning",Recommended default internal employee model after task-level benchmark.
+deepseek/deepseek-v4-flash-0731,Tier 2 canary,0.14,0.28,1M,Newest DeepSeek agent/coding revision,Start at 5-10% canary; promote only if quality/cost/latency beats the stable model.
+google/gemini-3.5-flash-lite,Tier 2 multimodal,0.30,2.50,1.05M,"Focused document, image, PDF, audio and extraction subagents",Primary for routine document intelligence.
+google/gemini-3.6-flash,Tier 3 multimodal reasoning,1.50,7.50,1.05M,"Complex drawings, PDFs, document conflicts, agentic/coding tasks",Use only when Lite confidence is low or document complexity is high.
+anthropic/claude-sonnet-5,Tier 3 professional judgment,2.00,10.00,1M,"Chief of Staff, director review, legal/finance/security judgment, final customer reports","Exception/reviewer tier, not the default for every employee thought."
+anthropic/claude-sonnet-5:batch,Tier 3 async review,1.00,5.00,1M,"Nightly/weekly executive reports, knowledge review and asynchronous quality audits",Use for non-interactive work.
+anthropic/claude-opus-5,Tier 4 escalation,5.00,25.00,1M,"Rare high-impact strategy, major contracts, serious incidents and unresolved model disagreement",Requires explicit risk/authority trigger; target under 0.5% of calls.
+qwen/qwen3-asr-flash-2026-02-10,Speech specialist,$0.000035/sec,n/a,audio,Arabic/English and multilingual speech transcription,Use instead of a general chat model for transcription.
+google/gemini-3.1-flash-lite-image,Image specialist,provider/image pricing,provider/image pricing,66K,Fast branded image drafts and edits,Keep behind brand QA and exact-logo composition.
+Supabase gte-small,Embedding/retrieval,in-region/no OpenRouter call,n/a,short text chunks,"FAQ matching, semantic cache and initial knowledge retrieval",Keep until retrieval benchmarks prove a need for a larger embedding model.

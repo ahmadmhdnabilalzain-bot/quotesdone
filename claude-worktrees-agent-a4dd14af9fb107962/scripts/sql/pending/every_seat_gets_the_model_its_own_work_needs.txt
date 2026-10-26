@@ -1,0 +1,18 @@
+model_policy routing per founder_instruction 841 + 844 (23 Sep 2026), the AUDIENCE split: plan A
+qwen/qwen3.8-max-0902 for anything a customer or supplier reads, anything that can emit Arabic, any
+document reading and any judgement (35 classes); plan A z-ai/glm-5.3-flash for purely internal work
+(18 classes); plan B anthropic/claude-opus-5.5 and google/gemini-3.8-flash respectively. Two new
+classes, fn_task_class rows for the three gateway callers that had none, dept_key for the four that
+lacked one, a tier/model alignment so no degrade step is a cliff, and a trigger guard. Written by
+
+APPLY SECOND, after the_catalogue_names_every_model_the_seats_run_and_the_hold_covers_all_of_them.sql -
+this file names qwen/qwen3.8-max-0902, z-ai/glm-5.3-flash and anthropic/claude-opus-5.5, and its own
+trigger refuses them until the catalogue file has added their registry and health rows.
+
+  node scripts/apply_sql.mjs scripts/sql/every_seat_gets_the_model_its_own_work_needs.sql --apply --ddl
+
+ONE result set comes back: the verdict row FIRST, then one ROUTE line per seat class printed by
+fn_ai_route itself. It has to be one set in that order - apply_sql.mjs returns only the LAST result set,
+and it exits 3 on a PROBE FAILED row, so the verdict must sit in the set it actually reads. Expect
+PROBE OK and put the ROUTE lines in a comment on the PR. Then delete this note and append the file as
+the LAST line of scripts/sql/MANIFEST.txt in the same commit.

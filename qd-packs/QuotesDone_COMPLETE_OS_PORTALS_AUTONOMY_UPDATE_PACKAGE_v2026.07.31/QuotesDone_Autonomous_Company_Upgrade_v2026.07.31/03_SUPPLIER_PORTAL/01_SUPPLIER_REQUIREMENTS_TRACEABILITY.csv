@@ -1,0 +1,25 @@
+﻿feature,vision,status,evidence,gap_or_improvement,phase
+Entry experience,AI-led welcome and onboarding,Backend partial; frontend unverified,claim/create_company/process_docs/save_profile,Build conversational shell on top of deterministic onboarding state machine,P1
+AI supplier onboarding,"Extract company, category, capabilities and documents",Partial,"profile_ai, license_extract, capability_agent, process_docs",Replace legacy 16-category classifier with canonical 86-route taxonomy and corpus,P0
+Supplier digital twin,"Living profile, capability, certifications, risk and opportunity fit",Admin backend strong; supplier self-service partial,"supplier_twin, fn_ws_supplier_360, fn_supplier_stats",Expose a permission-safe supplier_self_twin endpoint,P1
+Command center,"Opportunities, alerts, performance and recommendations",Partial,supplier_portal overview/docs/eligibility,"Create command_center_v2 aggregating twin, opportunities, documents and actions",P1
+3D supplier environment,Factory/inventory visual model,Missing/unverified,No frontend; no normalized plant model,Defer; only enable when supplier provides structured plant/inventory data,P5
+Living company profile,"Identity, coverage, capabilities and confidence",Partial,leads fields and admin 360 view,"Versioned profile sections, completeness score and evidence links",P1
+Product intelligence,Convert catalogues to structured products/specs,Missing as normalized product system,Catalog PDFs and text fields only,Add supplier_product/catalog/version/variant tables and corpus mapping,P1
+AI product cards,Structured product cards and project compatibility,Missing,No product-card API/table,Generate only from source-backed catalog extraction; allow supplier correction,P2
+RFQ intelligence center,Relevant opportunities with fit and deadline,Core inbox implemented,supplier_api inbox,"Add deterministic opportunity score, reasons, risk and missing eligibility",P1
+AI RFQ ranking,Recommended opportunities rather than newest first,Missing,Inbox orders created_at descending,"Add supplier_opportunity_score using capability, location, capacity and history",P1
+AI quote builder,Help construct complete quote,Partial,"quote_extract, structured score, quote coach, dry run",Add guided draft; never invent price; use supplier price list/history and margin policy,P2
+Negotiation assistant,Recommend safe responses and concessions,Missing,No dedicated negotiation flow,Require supplier-defined floor/margin/authority and explicit approval before sending,P3
+Performance intelligence,"Quality, delivery, response, pricing and trends",Backend implemented,"fn_supplier_stats, supplier performance views",Expose self-facing trends and explain every score,P1
+Market intelligence,"Demand trends, competition and market positioning",Backend partial; not self-facing,market intel and pricing stats exist,Anonymized aggregates only; enforce minimum sample sizes and freshness,P3
+Supplier AI employee,Ask why losing RFQs and what to improve,Missing as supplier-specific assistant,No supplier assistant action,"Add assistant grounded only in supplier-owned data, corpus and aggregated market data",P2
+Document intelligence,"Validity, expiry, use and impact",Partial,"documents upload, expiry alerts, extraction","Searchable document index, extraction provenance and renewal workflows",P1
+Risk protection,"Monitor expiry, complaints, delays and drops",Partial,"eligibility, expiry reconciliation, supplier scores",Unified risk center with remediation workflow and appeal trail,P2
+Collaboration workspace,"Project files, messages and timeline",Partial,projects action; messages after reveal,Create project workspace; preserve reveal/privacy rules,P2
+Supplier network map,Demand/project/supplier visualization,Missing/unverified,No frontend,Defer; use opportunity map based on anonymized demand first,P5
+Gamification/ranking,Transparent professional supplier tiers,Partial backend,scores/rank fields exist,Use explainable eligibility/quality tiers; avoid pay-to-win ranking,P3
+Inventory,Available/reserved/production stock,Missing normalized system,No inventory linked to supplier products,Optional integration; do not require manual inventory unless value is proven,P4
+Finance,"Registration, dues, earnings and invoices",Partial,"supplier pay, dues, transactions","Self-service statements and reconciliation, not full ERP initially",P2
+Mobile,Full supplier mobile experience,Frontend unverified,No frontend export,Deliver responsive PWA first; native app only after usage evidence,P4
+UI language,"Command-first, glass/floating workspace",Frontend unverified,Next.js not included,Use accessible responsive workspace; command-first plus fallback navigation,P2

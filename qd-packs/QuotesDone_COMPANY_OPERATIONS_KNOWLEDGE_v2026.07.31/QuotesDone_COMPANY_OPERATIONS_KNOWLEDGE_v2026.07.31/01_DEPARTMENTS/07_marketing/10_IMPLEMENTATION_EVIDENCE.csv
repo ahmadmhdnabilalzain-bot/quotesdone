@@ -1,0 +1,30 @@
+department_key,evidence_type,name,path,status,note
+marketing,backend_function,marketing_draft,functions/marketing_draft.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,marketing_image,functions/marketing_image.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,social_stage,functions/social_stage.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,postiz_publish,functions/postiz_publish.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,meta_ads,functions/meta_ads.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,meta_sync,functions/meta_sync.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,blog_weekly,functions/blog_weekly.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,seo_gen,functions/seo_gen.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,site_deploy,functions/site_deploy.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,backend_function,content_revise,functions/content_revise.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+marketing,database_object,marketing_library,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,content_drafts,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,social_posts,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,blog_posts,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,marketing_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,meta_insights,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,brand_assets,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,brand_signal,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,seo_categories,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,pages,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,database_object,site_publish_state,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+marketing,migration,20260623191036_marketing_and_category_agents,migrations/20260623191036_marketing_and_category_agents.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketing,migration,20260623191816_cron_marketing_category,migrations/20260623191816_cron_marketing_category.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketing,migration,20260709084228_marketing_kpis_and_demand,migrations/20260709084228_marketing_kpis_and_demand.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketing,migration,20260709084410_fn_marketing_ai_agent,migrations/20260709084410_fn_marketing_ai_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketing,migration,20260709084512_marketing_kpis_social_sent_fix,migrations/20260709084512_marketing_kpis_social_sent_fix.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketing,migration,20260709084634_fn_ws_marketing,migrations/20260709084634_fn_ws_marketing.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketing,migration,20260709085728_wire_meta_into_marketing_v2,migrations/20260709085728_wire_meta_into_marketing_v2.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+marketing,migration,20260709085815_fn_marketing_ai_add_meta,migrations/20260709085815_fn_marketing_ai_add_meta.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.

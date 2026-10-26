@@ -1,0 +1,9 @@
+Comments only (two COMMENT ON COLUMN on public.notifications); no DDL, no data, no routine, no grant.
+Written by it_engineer for PR #846, which is the change that makes the live comment false: the column
+now carries email outcomes from the resend_webhook edge function as well as Twilio's from
+fn_twilio_status_arrived. This builder was told not to apply anything to production, so the
+coordinator applies it:
+
+  node scripts/apply_sql.mjs scripts/sql/the_delivery_column_names_everyone_who_writes_it.sql --apply --ddl
+
+then deletes this note and appends the file as the LAST line of scripts/sql/MANIFEST.txt.

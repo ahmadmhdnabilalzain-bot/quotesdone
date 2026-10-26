@@ -1,0 +1,89 @@
+{
+  "customer_portal": [
+    "overview"
+  ],
+  "customer_api": [
+    "me",
+    "analyze_drawing",
+    "create_inquiry",
+    "my_inquiries",
+    "compare_pdf",
+    "brief_pdf",
+    "quote_pdf",
+    "reveal",
+    "request_refund",
+    "rate_supplier",
+    "complete_inquiry",
+    "edit_inquiry",
+    "cancel_inquiry",
+    "supplier_history"
+  ],
+  "project_api": [
+    "list",
+    "dashboard",
+    "create",
+    "update",
+    "detail",
+    "link",
+    "unlink"
+  ],
+  "messages_api": [
+    "threads",
+    "request_chat",
+    "thread",
+    "send"
+  ],
+  "supplier_portal": [
+    "overview",
+    "documents",
+    "save_documents",
+    "eligibility"
+  ],
+  "supplier_api": [
+    "me",
+    "search",
+    "create_company",
+    "claim",
+    "process_docs",
+    "save_profile",
+    "pay_registration",
+    "inbox",
+    "projects",
+    "extract_quote",
+    "submit_quote"
+  ],
+  "os_api": [
+    "dashboard",
+    "viz",
+    "nav",
+    "search",
+    "record",
+    "activity",
+    "suppliers_board",
+    "customers_board",
+    "rfq_board",
+    "agents_board",
+    "ws.agent",
+    "ws.supplier",
+    "ws.customer",
+    "ws.rfq",
+    "inbox",
+    "secretary_chat",
+    "files",
+    "reports",
+    "knowledge",
+    "marketing",
+    "reviews",
+    "prompts"
+  ],
+  "os_ops": [
+    "supplier/customer decisions",
+    "document decisions",
+    "tasks",
+    "RFQ stage/outcome",
+    "field edits",
+    "GL posting",
+    "PO approval",
+    "knowledge/prompt approval"
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quotesdone.com/schemas/knowledge-record-v1.json",
+  "title": "QuotesDone Knowledge Record",
+  "type": "object",
+  "required": [
+    "record_id", "category_slug", "subcategory_slug", "module",
+    "record_type", "title", "content", "source_ids", "version",
+    "confidence", "validation_status", "review_after"
+  ],
+  "properties": {
+    "record_id": {"type": "string", "minLength": 4},
+    "category_slug": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+    "subcategory_slug": {"type": "string", "pattern": "^[a-z0-9-]+$"},
+    "module": {
+      "type": "string",
+      "enum": [
+        "industry", "products_services", "technical", "brands_manufacturers",
+        "supplier_ecosystem", "commercial_pricing", "customer_tradeoffs",
+        "quotation", "documents", "uae_regulations", "risk", "troubleshooting",
+        "best_practices", "inquiry_qualification", "glossary", "supplier_eligibility",
+        "validation", "scenario_test"
+      ]
+    },
+    "record_type": {"type": "string"},
+    "title": {"type": "string", "minLength": 3},
+    "content": {"type": "string", "minLength": 20},
+    "structured_data": {"type": ["object", "array", "null"]},
+    "jurisdiction": {"type": ["string", "null"]},
+    "authority": {"type": ["string", "null"]},
+    "source_ids": {"type": "array", "items": {"type": "string"}},
+    "effective_date": {"type": ["string", "null"], "format": "date"},
+    "superseded_date": {"type": ["string", "null"], "format": "date"},
+    "version": {"type": "string"},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "validation_status": {
+      "type": "string",
+      "enum": ["draft", "source_verified", "reviewed", "approved", "quarantined", "superseded"]
+    },
+    "review_after": {"type": "string", "format": "date"},
+    "keywords_en": {"type": "array", "items": {"type": "string"}},
+    "keywords_ar": {"type": "array", "items": {"type": "string"}},
+    "applies_when": {"type": ["object", "null"]},
+    "exceptions": {"type": "array", "items": {"type": "object"}},
+    "escalation_rule": {"type": ["object", "null"]}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,133 @@
+{
+  "actions": {
+    "executive_home_v2": {
+      "method": "POST",
+      "returns": [
+        "health",
+        "financials",
+        "marketplace",
+        "autonomy",
+        "incidents",
+        "opportunities",
+        "objectives",
+        "exceptions",
+        "freshness"
+      ]
+    },
+    "company_stream": {
+      "method": "POST",
+      "inputs": [
+        "cursor",
+        "filters"
+      ],
+      "returns": [
+        "events",
+        "next_cursor"
+      ]
+    },
+    "organization_graph": {
+      "method": "POST",
+      "inputs": [
+        "scope",
+        "depth"
+      ],
+      "returns": [
+        "nodes",
+        "edges",
+        "freshness"
+      ]
+    },
+    "employee_workspace_v2": {
+      "method": "POST",
+      "inputs": [
+        "agent_key"
+      ],
+      "returns": [
+        "identity",
+        "management",
+        "authority",
+        "goals",
+        "kpis",
+        "workload",
+        "tasks",
+        "decisions",
+        "knowledge",
+        "memory",
+        "learning",
+        "plans"
+      ]
+    },
+    "decision_trace": {
+      "method": "POST",
+      "inputs": [
+        "trace_id_or_entity"
+      ],
+      "returns": [
+        "trace",
+        "events",
+        "evidence",
+        "outcome"
+      ]
+    },
+    "simulate_v2": {
+      "method": "POST",
+      "inputs": [
+        "scenario",
+        "assumptions"
+      ],
+      "returns": [
+        "best",
+        "base",
+        "downside",
+        "sensitivity",
+        "confidence"
+      ]
+    },
+    "command_preview": {
+      "method": "POST",
+      "inputs": [
+        "natural_language_command"
+      ],
+      "returns": [
+        "interpretation",
+        "actions",
+        "impact",
+        "policy",
+        "authority",
+        "confirmation_required"
+      ]
+    },
+    "command_execute": {
+      "method": "POST",
+      "inputs": [
+        "preview_id",
+        "confirmation"
+      ],
+      "requires": "active control session"
+    },
+    "control_session_start": {
+      "method": "POST",
+      "inputs": [
+        "mfa_proof",
+        "reason"
+      ],
+      "returns": [
+        "session_id",
+        "expires_at"
+      ]
+    },
+    "time_machine_v2": {
+      "method": "POST",
+      "inputs": [
+        "date",
+        "scope"
+      ],
+      "returns": [
+        "snapshot",
+        "events",
+        "changes"
+      ]
+    }
+  },
+  "compatibility": "Prefer extending os_api actions and existing RPCs rather than creating a parallel service."
+}

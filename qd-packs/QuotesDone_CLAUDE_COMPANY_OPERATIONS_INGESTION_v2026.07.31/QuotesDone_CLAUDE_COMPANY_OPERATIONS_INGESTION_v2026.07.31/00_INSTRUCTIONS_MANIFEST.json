@@ -1,0 +1,114 @@
+{
+  "package_name": "QuotesDone Claude Company Operations Ingestion Instructions",
+  "version": "1.0.0",
+  "build_date": "2026-07-31",
+  "paired_corpus": "QuotesDone_COMPANY_OPERATIONS_KNOWLEDGE_v2026.07.31.zip",
+  "purpose": "Instructions, staging schema, importer, validation and acceptance controls for integrating the company operations corpus.",
+  "files": [
+    {
+      "path": "00_START_HERE.md",
+      "size_bytes": 1522,
+      "sha256": "5cb00ae248ff1b12f0638f4c952d4097f75310187438766925db61cb156c82e1"
+    },
+    {
+      "path": "01_PASTE_THIS_TO_CLAUDE.md",
+      "size_bytes": 7128,
+      "sha256": "b769edc05c24ee905bfc52cff80b180822e656f2b8eee4d1da1c68362d1b3f45"
+    },
+    {
+      "path": "02_TOKEN_EFFICIENT_METHOD.md",
+      "size_bytes": 1436,
+      "sha256": "64f4e2ff0947f3db687ab81be63501f0ff6a7da30f7cb012a9110d355561b995"
+    },
+    {
+      "path": "03_IMPORT_ORDER.md",
+      "size_bytes": 732,
+      "sha256": "07724b93a13af516cbe84c78a9407c6727fe9ad7ba89c7face128e505b36da81"
+    },
+    {
+      "path": "04_ACCEPTANCE_CHECKLIST.md",
+      "size_bytes": 1950,
+      "sha256": "e11700aca7b22e5a72f1985b496d1f82997225ab2f6057a3fba59f1a34d9bfb0"
+    },
+    {
+      "path": "05_SECURITY_AND_APPROVAL_RULES.md",
+      "size_bytes": 1024,
+      "sha256": "fff9a27b2e445650dae54afdee19f1139629c483540a3924ea3a6a16592976a4"
+    },
+    {
+      "path": "06_TECHNICAL_FILES/01_STAGING_SCHEMA.sql",
+      "size_bytes": 7649,
+      "sha256": "6122932e28caa60808120bfebebc147f2cfab2a389daece0bc875b1df5663440"
+    },
+    {
+      "path": "06_TECHNICAL_FILES/02_IMPORT_TEMPLATE.ts",
+      "size_bytes": 6034,
+      "sha256": "627426203160aa4dfe12f6d7286d4392bfabc8b7304c7a140b1dff807b98853e"
+    },
+    {
+      "path": "06_TECHNICAL_FILES/03_VALIDATE_PACKAGE.py",
+      "size_bytes": 3368,
+      "sha256": "ecfe10557312db9c2b6e735cbd3d054da5f5025e321d4b5b5aa8c4c743aa89f1"
+    },
+    {
+      "path": "06_TECHNICAL_FILES/04_EXISTING_SCHEMA_MAPPING_GUIDE.md",
+      "size_bytes": 1925,
+      "sha256": "3507352e9f96d88eed5552b02f7e35a6444a926a9bc76fa2cce5b712934dd85c"
+    },
+    {
+      "path": "06_TECHNICAL_FILES/05_OPENROUTER_REDUCTION_PLAN.md",
+      "size_bytes": 2150,
+      "sha256": "8167b74a21c2a90ffc1c4f04dbbea9bcb60d95a209370d27ea9591e307afc366"
+    },
+    {
+      "path": "06_TECHNICAL_FILES/06_STAGING_TEST_PLAN.md",
+      "size_bytes": 2027,
+      "sha256": "3332cb30cb89f856cd1159dc439808e1ed35cc58e020ef35ce707880a3a4decb"
+    },
+    {
+      "path": "06_TECHNICAL_FILES/07_ROLLBACK_AND_RECOVERY.md",
+      "size_bytes": 1169,
+      "sha256": "fab5bf2efe4859b2634d89eca8e3582cb094944ef87e0b8671404f4d95ac7e2d"
+    },
+    {
+      "path": "06_TECHNICAL_FILES/08_TROUBLESHOOTING.md",
+      "size_bytes": 1467,
+      "sha256": "7a57fcc047e7f96e066a495af5c3252a3d2e0c2539ae7885ad560f70a53deaa9"
+    },
+    {
+      "path": "07_REFERENCE/01_CORPUS_MANIFEST.json",
+      "size_bytes": 62542,
+      "sha256": "a09c0ae94787a733afb2c879eae0d22eec4c24d4afc36f1a6f77580b49006940"
+    },
+    {
+      "path": "07_REFERENCE/02_DEPARTMENT_INDEX.csv",
+      "size_bytes": 2355,
+      "sha256": "446125c47d289b38a6e8c57102ae18a373ca29ac6574d7c091c8f5388a8e4cb2"
+    },
+    {
+      "path": "07_REFERENCE/03_DEPARTMENT_CROSSWALK.csv",
+      "size_bytes": 1660,
+      "sha256": "56e2554ad15fcd230e8e796a33dd0cf49c5532bda36f0b3dec50d940d292453d"
+    },
+    {
+      "path": "07_REFERENCE/04_CORPUS_QA_REPORT.md",
+      "size_bytes": 7600,
+      "sha256": "d954056d65ff7a7b0b30d5a6600d43ff37054368ed938e9155cf80d3da256985"
+    },
+    {
+      "path": "07_REFERENCE/05_GLOBAL_GAP_REGISTER.csv",
+      "size_bytes": 4328,
+      "sha256": "efdcfa83b7e3a5abce9625c5a0aa00fad437dd268c9f827779a9a1345a0f4432"
+    },
+    {
+      "path": "07_REFERENCE/06_SOURCE_REGISTRY.csv",
+      "size_bytes": 6121,
+      "sha256": "5f4c3c52f9cd6f7fe88159f93336cd1a821232577de50c65dbf57b1e6919566c"
+    },
+    {
+      "path": "07_REFERENCE/07_CORPUS_VALIDATION_RESULT.json",
+      "size_bytes": 1216,
+      "sha256": "d6bfcaa1a6fabe5871cf7fd6bbd2e5064705a4d56ac3293367f98bab6bf065b7"
+    }
+  ]
+}

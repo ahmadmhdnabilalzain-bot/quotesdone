@@ -1,0 +1,30 @@
+department_key,evidence_type,name,path,status,note
+rfq_intelligence,backend_function,inquiry_ai,functions/inquiry_ai.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,inquiry_intake,functions/inquiry_intake.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,inquiry_parse,functions/inquiry_parse.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,intent_router,functions/intent_router.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,route_inquiry,functions/route_inquiry.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,doc_extract,functions/doc_extract.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,drawing_boq,functions/drawing_boq.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,drawing_redact,functions/drawing_redact.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,dispatch_inquiry,functions/dispatch_inquiry.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,backend_function,category_reqs,functions/category_reqs.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+rfq_intelligence,database_object,inquiry_intake,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,inquiries,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,inquiry_requirement,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,category_specs,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,category_quote_specs,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,questions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,qualification_playbooks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,subcategory_agent_map,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,category_agent_map,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,kb_category_aliases,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,database_object,quote_requirements,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+rfq_intelligence,migration,20260706021848_executive_intelligence_layer,migrations/20260706021848_executive_intelligence_layer.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+rfq_intelligence,migration,20260706102534_document_intelligence_registry,migrations/20260706102534_document_intelligence_registry.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+rfq_intelligence,migration,20260706105057_rfq_archive_lifecycle,migrations/20260706105057_rfq_archive_lifecycle.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+rfq_intelligence,migration,20260706110043_rfq_inquiry_versioning,migrations/20260706110043_rfq_inquiry_versioning.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+rfq_intelligence,migration,20260706115127_rfq_completeness_gate_v2,migrations/20260706115127_rfq_completeness_gate_v2.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+rfq_intelligence,migration,20260708114138_erp_ws_rfq_360,migrations/20260708114138_erp_ws_rfq_360.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+rfq_intelligence,migration,20260708131431_rfq_qualification_gate_and_clarify,migrations/20260708131431_rfq_qualification_gate_and_clarify.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+rfq_intelligence,migration,20260710214222_marketplace_intelligence_views,migrations/20260710214222_marketplace_intelligence_views.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.

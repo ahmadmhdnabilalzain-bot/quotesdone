@@ -1,0 +1,33 @@
+﻿task_class,deterministic_first,primary_model,fallback_model,escalation_model,max_output_tokens,batch_preferred,notes
+health_ping,Yes,none/deterministic,,,0,No,Use provider health/key/status endpoints; never spend tokens to prove a provider is alive.
+workflow_state_and_permissions,Yes,none/deterministic,,,0,No,"SQL, policies and queues only."
+money_state_change,Yes,none/deterministic,,,0,No,Stripe/webhook/ledger code only; model may explain but never post money.
+kpi_measurement,Yes,none/deterministic,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,600,Yes,SQL computes; model diagnoses variance only.
+rfq_routing,Rules + aliases first,qwen/qwen3.7-flash,google/gemini-3.1-flash-lite,deepseek/deepseek-v4-flash,250,No,Return structured candidates and confidence; ask clarification on ambiguity.
+category_classification,Rules + aliases first,qwen/qwen3.7-flash,google/gemini-3.1-flash-lite,deepseek/deepseek-v4-flash,250,No,Do not send full corpus; retrieve taxonomy and aliases only.
+intent_detection,Rules/templates first,qwen/qwen3.7-flash,google/gemini-3.1-flash-lite,deepseek/deepseek-v4-flash,200,No,High-volume short classification.
+json_extraction_text,Schema/parser first,qwen/qwen3.7-flash,google/gemini-3.1-flash-lite,deepseek/deepseek-v4-flash,500,No,Use response_format/json_schema.
+document_extraction_multimodal,File parser/OCR first,google/gemini-3.5-flash-lite,google/gemini-3.6-flash,anthropic/claude-sonnet-5,1800,Yes,"Extract once, store structured fields and source coordinates."
+drawing_and_boq_analysis,Geometry/parser first,google/gemini-3.6-flash,anthropic/claude-sonnet-5,anthropic/claude-opus-5,3000,Yes,Escalate design calculations and low-confidence interpretations.
+redaction_detection,Deterministic patterns first,google/gemini-3.5-flash-lite,google/gemini-3.6-flash,anthropic/claude-sonnet-5,1200,No,Must include independent post-redaction verification and fail closed.
+missing_fields_detection,Yes after extraction,none/deterministic,qwen/qwen3.7-flash,deepseek/deepseek-v4-flash,300,No,Question sequencing and completeness come from imported rules.
+supplier_matching,Yes,none/deterministic,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,800,No,SQL eligibility/ranking first; model explains ties or trade-offs.
+inquiry_qualification_conversation,Rules select next question,qwen/qwen3.7-plus,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,700,No,Model interprets/rephrases; code controls state and questions.
+customer_communication,Templates first,qwen/qwen3.7-plus,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,700,No,"Escalate complaints, legal claims, refunds and sensitive communication."
+supplier_communication,Templates first,qwen/qwen3.7-plus,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,700,No,Use funnel/context fields; keep opt-out and contact-policy gates.
+marketing_copy,Content plan first,qwen/qwen3.7-plus,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,1200,Yes,Sonnet only for final high-visibility brand/legal review.
+translation_general,Translation memory first,qwen/qwen3.7-flash,qwen/qwen3.7-plus,anthropic/claude-sonnet-5,1200,Yes,Legal terms use Sonnet and approved bilingual source text.
+knowledge_ingestion,Parser/chunker first,google/gemini-3.5-flash-lite,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,2200,Yes,"Expensive research happens offline once, not in live inquiries."
+knowledge_validation,Rules/source check first,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5:batch,anthropic/claude-opus-5,1800,Yes,Independent reviewer model; never auto-approve regulated knowledge.
+quote_comparison,Deterministic compliance score first,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,anthropic/claude-opus-5,2200,Yes,Score all quotes with code; Sonnet writes final top-three explanation only.
+routine_employee_reasoning,Live metrics/rules first,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,anthropic/claude-opus-5,1000,No,Replace current blanket large-tier agent_reasoning.
+department_planning,KPI/root-cause data first,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,anthropic/claude-opus-5,1600,Yes,"Sonnet for quarterly plans or material underperformance, not every daily plan."
+chief_of_staff_decision,Policy/authority check first,anthropic/claude-sonnet-5,deepseek/deepseek-v4-flash,anthropic/claude-opus-5,2200,No,Opus only for high-impact conflict or strategic decisions.
+legal_analysis,Exact official source retrieval first,anthropic/claude-sonnet-5,anthropic/claude-opus-5,,2600,Yes,No autonomous legal conclusion; preserve citations and lawyer escalation.
+finance_analysis,SQL/ledger first,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,anthropic/claude-opus-5,1400,Yes,No model-generated accounting entries without deterministic validation.
+security_incident_analysis,Detectors/runbook first,anthropic/claude-sonnet-5,deepseek/deepseek-v4-flash,anthropic/claude-opus-5,2200,No,Severe incidents route to Opus plus founder/human escalation.
+engineering_reasoning,Tests/logs/static analysis first,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,anthropic/claude-opus-5,2200,Yes,Production changes still require CI and branch protections.
+reflection_and_learning,Outcome ledger first,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5:batch,anthropic/claude-opus-5,1200,Yes,Run daily/weekly in batch; avoid a model reflection after every tiny task.
+executive_report,Metrics and event trace first,anthropic/claude-sonnet-5:batch,anthropic/claude-sonnet-5,anthropic/claude-opus-5,2500,Yes,Opus only for board-level strategic synthesis.
+speech_transcription,Audio preprocessing first,qwen/qwen3-asr-flash-2026-02-10,google/gemini-3.5-flash-lite,anthropic/claude-sonnet-5,0,No,Use vocabulary hints for company/category terms.
+marketing_image,Brand template/compositor first,google/gemini-3.1-flash-lite-image,,,0,Yes,"Exact logos should be composited from assets, never generated by the model."

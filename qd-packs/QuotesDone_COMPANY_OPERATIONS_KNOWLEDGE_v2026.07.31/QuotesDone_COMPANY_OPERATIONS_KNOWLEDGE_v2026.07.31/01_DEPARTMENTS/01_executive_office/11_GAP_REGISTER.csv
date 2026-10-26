@@ -1,0 +1,3 @@
+gap_id,severity,gap,closure
+GAP-executive_office-003,high,Department records have not been approved by the responsible subject-matter owner.,"Run department-owner review, scenario tests and authority validation before production activation."
+GAP-executive_office-004,medium,Frontend controls and user experience were not present in the supplied backend export.,"Claude must inspect the current Next.js repository and verify that operational states, permissions, notices and errors are represented correctly."

@@ -1,0 +1,77 @@
+{
+  "catalog_num": 38,
+  "catalog_name": "Accounting & Audit Firms",
+  "expected_catalog_slug": "accounting-and-audit-firms",
+  "live_catalog_resolution": {
+    "method": "lookup_by_num",
+    "table": "catalog_supplier_categories",
+    "must_match_num": 38,
+    "do_not_overwrite_live_slug": true
+  },
+  "route_key": "opcat-038",
+  "route_type": "direct",
+  "coverage_status": "mapped_existing_corpus",
+  "knowledge_mappings": [
+    {
+      "package_number": 24,
+      "package_slug": "accounting-finance-and-corporate-services",
+      "package_name": "Accounting, Finance & Corporate Services",
+      "package_zip": "QD-KB-024-accounting-finance-and-corporate-services-v2026.07.31.zip",
+      "subcategories": [
+        "accounting-bookkeeping-and-payroll",
+        "audit-and-assurance"
+      ],
+      "priority": "primary",
+      "notes": ""
+    }
+  ],
+  "routing_aliases_en": [
+    "Accounting & Audit Firms",
+    "Accounting & Audit",
+    "Accounting, bookkeeping & payroll",
+    "Accounting",
+    "bookkeeping",
+    "payroll",
+    "Accounting bookkeeping",
+    "bookkeeping payroll",
+    "Audit & assurance",
+    "Audit",
+    "assurance",
+    "Audit assurance"
+  ],
+  "routing_aliases_ar": [
+    "متطلبات Accounting, bookkeeping & payroll",
+    "متطلبات Accounting",
+    "متطلبات bookkeeping",
+    "متطلبات payroll",
+    "متطلبات Accounting bookkeeping",
+    "متطلبات Audit & assurance",
+    "متطلبات Audit",
+    "متطلبات assurance",
+    "متطلبات Audit assurance"
+  ],
+  "routing_behavior": {
+    "first_pass": "deterministic alias and keyword scoring",
+    "second_pass": "small language model only when intent remains ambiguous",
+    "clarification_question_en": "Which part of Accounting & Audit Firms best describes what you need?",
+    "clarification_question_ar": "ما الجزء من Accounting & Audit Firms الذي يصف احتياجك بشكل أفضل؟",
+    "preserve_multiple_candidates": true,
+    "minimum_auto_route_confidence": 0.82,
+    "minimum_margin_over_second_candidate": 0.15,
+    "low_confidence_action": "ask_one_clarifying_question",
+    "no_match_action": "route_to_miscellaneous_and_log_gap"
+  },
+  "runtime_knowledge_selection": {
+    "retrieve_by_package_and_subcategory": true,
+    "load_full_master_into_prompt": false,
+    "questions_rules_validations_are_deterministic": true,
+    "narrative_retrieval_only_when_needed": true
+  },
+  "certification": {
+    "structural_mapping_checked": true,
+    "source_and_sme_approval_inherited_from_underlying_records": true,
+    "approved_for_autonomous_engineering_or_legal_decisions": false
+  },
+  "version": "1.0.0",
+  "build_date": "2026-07-31"
+}

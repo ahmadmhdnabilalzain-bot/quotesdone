@@ -1,0 +1,23 @@
+﻿feature,vision,status,evidence,gap_or_improvement,phase
+Entry workspace,AI procurement workspace with priorities,Backend partial; frontend unverified,customer_portal overview,"Create workspace_v2 with alerts, projects, inquiries, decisions and provenance",P1
+Customer digital twin,"Business profile, preferences and buying patterns",Admin backend partial,fn_ws_customer_360/customer health,Add opt-in preference model and customer-safe self endpoint,P2
+AI procurement assistant,Natural-language procurement specialist,Core inquiry AI exists; portal integration unverified,"inquiry_ai, inquiry_intake, route_inquiry",Integrate with projects and corpus; deterministic field completion after routing,P1
+Command center,"Projects, RFQs, budget and recommendations",Partial,customer stats + project API,Aggregate into one self-service command endpoint,P1
+Project workspace,"Projects, linked RFQs, spend, timeline and files",Basic backend,project_api and project_summary,"Add members, milestones, documents, approvals and spend links",P2
+3D project view,BIM/spatial procurement status,Missing/unverified,Drawing/BIM-related utilities only,Defer; enable only for uploaded BIM/CAD and clear business use,P5
+AI RFQ creation,Create structured inquiry from normal language/files,Implemented core,"inquiry intake, drawing/BOQ, customer_api create",Connect new 86-category corpus and deterministic qualification,P0
+RFQ command center,"Lifecycle, response count, analysis and award",Partial,"my_inquiries, boards and statuses",Add customer-facing lifecycle and audit trail,P1
+Supplier discovery,Find qualified suppliers,Implemented internally but identity must remain hidden,matching and inquiry_matches,Show anonymous pool strength/capability; do not expose identities pre-reveal,P1
+Quote comparison,Compare all and recommend top three,Implemented but LLM-dependent,quote_compare evaluates all and returns top 3,Deterministic compliance/evaluated-cost scoring first; AI only explains,P0
+All quote access,Customer can open every quote,Implemented,my_inquiries returns quotes,Keep; add normalized line-item and original-document views,P1
+Spending intelligence,"Budgets, spend and savings",Mostly missing self-facing,project budget + transactions only,Build only from actual transaction/project data; label estimates clearly,P3
+Purchase approvals,Enterprise approval chain,Missing customer-specific workflow,Internal PO approval exists but not customer org workflow,"Add optional customer organizations, roles and approval policies",P3
+Supplier relationship management,"History, quality and relationship score",Partial,supplier_history after reveal,Add relationship timeline/preferences after reveal only,P2
+Document vault,"Search contracts, quotes, drawings and warranties",Partial,storage/entity files and generated PDFs,Create permission-safe customer document index and semantic search,P2
+Negotiation assistant,Recommend negotiation and draft message,Missing,No customer negotiation endpoint,Allow anonymous structured clarification; require customer approval before sending,P3
+Communication center,Unified chat/email/WhatsApp/documents,Partial,messages_api and notifications,Unify thread view; preserve no-contact-sharing and reveal policy,P2
+Customer memory,Remember procurement preferences,Partial,locale/history; no explicit preference store,Consent-based preferences with reset/export controls,P2
+Mobile,Customer mobile experience,Frontend unverified,No frontend export,Responsive PWA first,P4
+Predictive intelligence,Predict future needs,Missing,No customer-facing forecasting,Only after enough real historical data; never invent needs,P4
+Arabic experience,Full Arabic customer journey and reports,Backend partial; frontend unverified,locale/lang and Arabic comparison support,Audit every route/message/document; create bilingual acceptance suite,P1
+Enterprise accounts,"Multiple users, roles and approval rules",Missing,customers is a single-user profile,Add customer organizations and membership model without breaking consumer users,P3

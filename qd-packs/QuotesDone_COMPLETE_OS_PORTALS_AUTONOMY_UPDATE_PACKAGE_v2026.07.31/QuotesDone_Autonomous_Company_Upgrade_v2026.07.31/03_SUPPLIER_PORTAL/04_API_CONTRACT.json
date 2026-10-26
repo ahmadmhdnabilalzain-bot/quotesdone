@@ -1,0 +1,74 @@
+{
+  "actions": {
+    "command_center_v2": [
+      "supplier",
+      "profile_health",
+      "documents",
+      "opportunities",
+      "draft_quotes",
+      "performance",
+      "alerts",
+      "recommendations"
+    ],
+    "self_twin": [
+      "identity",
+      "capabilities",
+      "products",
+      "coverage",
+      "compliance",
+      "performance",
+      "risk",
+      "evidence"
+    ],
+    "catalog_import": [
+      "file",
+      "source_hash"
+    ],
+    "catalog_products": [
+      "filters",
+      "cursor"
+    ],
+    "product_upsert": [
+      "product",
+      "evidence"
+    ],
+    "opportunities": [
+      "ranked",
+      "reasons",
+      "deadline",
+      "risk",
+      "quote_status"
+    ],
+    "quote_draft_assist": [
+      "inquiry_id",
+      "current_draft",
+      "missing_fields",
+      "supplier_policy"
+    ],
+    "negotiation_assist": [
+      "quote_id",
+      "customer_request",
+      "supplier_policy"
+    ],
+    "performance_v2": [
+      "trend",
+      "win_loss",
+      "response",
+      "quality",
+      "pricing_position",
+      "recommendations"
+    ],
+    "market_intelligence": [
+      "category",
+      "emirate",
+      "period",
+      "minimum_sample_size"
+    ],
+    "assistant_query": [
+      "question",
+      "current_context"
+    ]
+  },
+  "privacy": "No customer identity before reveal. No competitor-specific price disclosure.",
+  "compatibility": "Prefer extending supplier_portal/supplier_api rather than building parallel endpoints."
+}

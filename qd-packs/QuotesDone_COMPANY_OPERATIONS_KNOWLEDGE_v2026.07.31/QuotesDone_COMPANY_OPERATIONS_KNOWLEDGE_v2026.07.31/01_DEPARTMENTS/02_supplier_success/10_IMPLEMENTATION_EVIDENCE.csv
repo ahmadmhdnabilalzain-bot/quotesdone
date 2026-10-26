@@ -1,0 +1,30 @@
+department_key,evidence_type,name,path,status,note
+supplier_success,backend_function,supplier_api,functions/supplier_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,supplier_portal,functions/supplier_portal.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,supplier_review,functions/supplier_review.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,supplier_ack,functions/supplier_ack.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,capability_agent,functions/capability_agent.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,enrich_capability,functions/enrich_capability.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,license_extract,functions/license_extract.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,licence_reminder,functions/licence_reminder.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,doc_reminder,functions/doc_reminder.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,backend_function,kyc,functions/kyc.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+supplier_success,database_object,supplier_capabilities,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_success,database_object,supplier_capability_confirmation,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_success,database_object,supplier_score,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_success,database_object,supplier_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_success,database_object,supplier_dues,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_success,database_object,catalog_supplier_categories,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_success,database_object,supplier_health_snapshots,,not_found_by_exact_name,Name may differ in production; Claude should map to actual schema.
+supplier_success,database_object,documents,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_success,database_object,doc_reviews,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+supplier_success,database_object,companies,,not_found_by_exact_name,Name may differ in production; Claude should map to actual schema.
+supplier_success,database_object,suppliers,,not_found_by_exact_name,Name may differ in production; Claude should map to actual schema.
+supplier_success,migration,20260709080840_fn_supplier_success_agent,migrations/20260709080840_fn_supplier_success_agent.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_success,migration,20260709081211_ws_suppliers_add_success_block,migrations/20260709081211_ws_suppliers_add_success_block.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_success,migration,20260724025336_supplier_success_executors_and_registry,migrations/20260724025336_supplier_success_executors_and_registry.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_success,migration,20260607094054_match_suppliers_kw_rpc,migrations/20260607094054_match_suppliers_kw_rpc.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_success,migration,20260607101334_supplier_portal_fields,migrations/20260607101334_supplier_portal_fields.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_success,migration,20260607102607_supplier_kyc_and_terms,migrations/20260607102607_supplier_kyc_and_terms.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_success,migration,20260607104755_supplier_account_link,migrations/20260607104755_supplier_account_link.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+supplier_success,migration,20260609154916_supplier_approval_workflow,migrations/20260609154916_supplier_approval_workflow.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.

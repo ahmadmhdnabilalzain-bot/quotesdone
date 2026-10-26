@@ -1,0 +1,104 @@
+workflow_key,workflow_name,department_key,raci,note
+founder_objective_to_execution,Founder objective to coordinated execution,data_analytics,R,Responsible participant
+founder_objective_to_execution,Founder objective to coordinated execution,executive_office,A,Accountable owner
+founder_objective_to_execution,Founder objective to coordinated execution,strategy_evolution,R,Responsible participant
+supplier_registration,"Supplier registration, verification and activation",communications,R,Responsible participant
+supplier_registration,"Supplier registration, verification and activation",document_intelligence,R,Responsible participant
+supplier_registration,"Supplier registration, verification and activation",legal_compliance,R,Responsible participant
+supplier_registration,"Supplier registration, verification and activation",supplier_success,A,Accountable owner
+supplier_registration,"Supplier registration, verification and activation",trust_safety,R,Responsible participant
+customer_registration,Customer registration and immediate inquiry readiness,communications,R,Responsible participant
+customer_registration,Customer registration and immediate inquiry readiness,customer_success,A,Accountable owner
+customer_registration,Customer registration and immediate inquiry readiness,legal_compliance,R,Responsible participant
+customer_registration,Customer registration and immediate inquiry readiness,trust_safety,R,Responsible participant
+inquiry_to_supplier_dispatch,Customer inquiry to supplier-safe dispatch,communications,R,Responsible participant
+inquiry_to_supplier_dispatch,Customer inquiry to supplier-safe dispatch,customer_success,A,Accountable owner
+inquiry_to_supplier_dispatch,Customer inquiry to supplier-safe dispatch,document_intelligence,R,Responsible participant
+inquiry_to_supplier_dispatch,Customer inquiry to supplier-safe dispatch,marketplace_operations,R,Responsible participant
+inquiry_to_supplier_dispatch,Customer inquiry to supplier-safe dispatch,rfq_intelligence,R,Responsible participant
+inquiry_to_supplier_dispatch,Customer inquiry to supplier-safe dispatch,supplier_knowledge,R,Responsible participant
+inquiry_to_supplier_dispatch,Customer inquiry to supplier-safe dispatch,trust_safety,R,Responsible participant
+inquiry_to_supplier_dispatch,Customer inquiry to supplier-safe dispatch,legal_compliance,C,Consulted for legal/privacy gate
+quotation_collection_comparison,"Quotation collection, technical comparison and top-three recommendation",customer_success,R,Responsible participant
+quotation_collection_comparison,"Quotation collection, technical comparison and top-three recommendation",data_analytics,R,Responsible participant
+quotation_collection_comparison,"Quotation collection, technical comparison and top-three recommendation",document_intelligence,R,Responsible participant
+quotation_collection_comparison,"Quotation collection, technical comparison and top-three recommendation",marketplace_operations,A,Accountable owner
+quotation_collection_comparison,"Quotation collection, technical comparison and top-three recommendation",supplier_knowledge,R,Responsible participant
+quotation_collection_comparison,"Quotation collection, technical comparison and top-three recommendation",legal_compliance,C,Consulted for legal/privacy gate
+reveal_and_payment,Chosen supplier reveal and payment,communications,R,Responsible participant
+reveal_and_payment,Chosen supplier reveal and payment,customer_success,A,Accountable owner
+reveal_and_payment,Chosen supplier reveal and payment,finance,R,Responsible participant
+reveal_and_payment,Chosen supplier reveal and payment,legal_compliance,R,Responsible participant
+reveal_and_payment,Chosen supplier reveal and payment,marketplace_operations,R,Responsible participant
+reveal_and_payment,Chosen supplier reveal and payment,payments_revenue,R,Responsible participant
+supplier_nonresponse_refund,Supplier non-response complaint and refund review,communications,R,Responsible participant
+supplier_nonresponse_refund,Supplier non-response complaint and refund review,customer_success,A,Accountable owner
+supplier_nonresponse_refund,Supplier non-response complaint and refund review,finance,R,Responsible participant
+supplier_nonresponse_refund,Supplier non-response complaint and refund review,legal_compliance,R,Responsible participant
+supplier_nonresponse_refund,Supplier non-response complaint and refund review,marketplace_operations,R,Responsible participant
+supplier_nonresponse_refund,Supplier non-response complaint and refund review,payments_revenue,R,Responsible participant
+supplier_nonresponse_refund,Supplier non-response complaint and refund review,trust_safety,R,Responsible participant
+expense_email_to_reporting,Expense email to financial reporting,communications,A,Accountable owner
+expense_email_to_reporting,Expense email to financial reporting,data_analytics,R,Responsible participant
+expense_email_to_reporting,Expense email to financial reporting,document_intelligence,R,Responsible participant
+expense_email_to_reporting,Expense email to financial reporting,finance,R,Responsible participant
+expense_email_to_reporting,Expense email to financial reporting,trust_safety,R,Responsible participant
+expense_email_to_reporting,Expense email to financial reporting,legal_compliance,C,Consulted for legal/privacy gate
+marketing_content_campaign,Marketing content and campaign publication,communications,R,Responsible participant
+marketing_content_campaign,Marketing content and campaign publication,data_analytics,R,Responsible participant
+marketing_content_campaign,Marketing content and campaign publication,legal_compliance,R,Responsible participant
+marketing_content_campaign,Marketing content and campaign publication,marketing,A,Accountable owner
+marketing_content_campaign,Marketing content and campaign publication,strategy_evolution,R,Responsible participant
+marketing_content_campaign,Marketing content and campaign publication,supplier_knowledge,R,Responsible participant
+seo_and_site_update,SEO research and website update,data_analytics,R,Responsible participant
+seo_and_site_update,SEO research and website update,engineering,R,Responsible participant
+seo_and_site_update,SEO research and website update,legal_compliance,R,Responsible participant
+seo_and_site_update,SEO research and website update,marketing,A,Accountable owner
+seo_and_site_update,SEO research and website update,qa_testing,R,Responsible participant
+seo_and_site_update,SEO research and website update,supplier_knowledge,R,Responsible participant
+pdpl_request,Personal-data rights request,communications,R,Responsible participant
+pdpl_request,Personal-data rights request,customer_success,A,Accountable owner
+pdpl_request,Personal-data rights request,document_intelligence,R,Responsible participant
+pdpl_request,Personal-data rights request,engineering,R,Responsible participant
+pdpl_request,Personal-data rights request,it_cybersecurity,R,Responsible participant
+pdpl_request,Personal-data rights request,legal_compliance,R,Responsible participant
+security_incident,Security or privacy incident response,communications,R,Responsible participant
+security_incident,Security or privacy incident response,engineering,R,Responsible participant
+security_incident,Security or privacy incident response,executive_office,R,Responsible participant
+security_incident,Security or privacy incident response,it_cybersecurity,A,Accountable owner
+security_incident,Security or privacy incident response,legal_compliance,R,Responsible participant
+security_incident,Security or privacy incident response,trust_safety,R,Responsible participant
+software_release,Software change and production release,ai_model_ops,R,Responsible participant
+software_release,Software change and production release,engineering,A,Accountable owner
+software_release,Software change and production release,executive_office,R,Responsible participant
+software_release,Software change and production release,it_cybersecurity,R,Responsible participant
+software_release,Software change and production release,legal_compliance,R,Responsible participant
+software_release,Software change and production release,qa_testing,R,Responsible participant
+knowledge_change,"Knowledge acquisition, review and promotion",ai_model_ops,R,Responsible participant
+knowledge_change,"Knowledge acquisition, review and promotion",data_analytics,R,Responsible participant
+knowledge_change,"Knowledge acquisition, review and promotion",knowledge_learning,A,Accountable owner
+knowledge_change,"Knowledge acquisition, review and promotion",legal_compliance,R,Responsible participant
+knowledge_change,"Knowledge acquisition, review and promotion",qa_testing,R,Responsible participant
+knowledge_change,"Knowledge acquisition, review and promotion",supplier_knowledge,R,Responsible participant
+agent_onboarding_certification,Agent or employee onboarding and certification,ai_model_ops,R,Responsible participant
+agent_onboarding_certification,Agent or employee onboarding and certification,executive_office,R,Responsible participant
+agent_onboarding_certification,Agent or employee onboarding and certification,hr_people,A,Accountable owner
+agent_onboarding_certification,Agent or employee onboarding and certification,it_cybersecurity,R,Responsible participant
+agent_onboarding_certification,Agent or employee onboarding and certification,knowledge_learning,R,Responsible participant
+agent_onboarding_certification,Agent or employee onboarding and certification,qa_testing,R,Responsible participant
+provider_outage,External provider outage and continuity,ai_model_ops,R,Responsible participant
+provider_outage,External provider outage and continuity,communications,R,Responsible participant
+provider_outage,External provider outage and continuity,engineering,R,Responsible participant
+provider_outage,External provider outage and continuity,executive_office,R,Responsible participant
+provider_outage,External provider outage and continuity,it_cybersecurity,A,Accountable owner
+provider_outage,External provider outage and continuity,payments_revenue,R,Responsible participant
+supplier_enforcement,"Supplier suspension, ban and appeal",communications,R,Responsible participant
+supplier_enforcement,"Supplier suspension, ban and appeal",legal_compliance,R,Responsible participant
+supplier_enforcement,"Supplier suspension, ban and appeal",marketplace_operations,R,Responsible participant
+supplier_enforcement,"Supplier suspension, ban and appeal",supplier_success,R,Responsible participant
+supplier_enforcement,"Supplier suspension, ban and appeal",trust_safety,A,Accountable owner
+monthly_company_review,Monthly operating and financial review,all,R,Responsible participant
+monthly_company_review,Monthly operating and financial review,data_analytics,R,Responsible participant
+monthly_company_review,Monthly operating and financial review,executive_office,R,Responsible participant
+monthly_company_review,Monthly operating and financial review,finance,A,Accountable owner
+monthly_company_review,Monthly operating and financial review,strategy_evolution,R,Responsible participant

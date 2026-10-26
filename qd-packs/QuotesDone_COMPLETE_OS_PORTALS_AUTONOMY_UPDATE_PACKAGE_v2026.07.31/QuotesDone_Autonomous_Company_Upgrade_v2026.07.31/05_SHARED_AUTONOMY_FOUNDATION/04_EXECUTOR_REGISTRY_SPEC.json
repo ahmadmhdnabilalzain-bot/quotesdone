@@ -1,0 +1,26 @@
+{
+  "required_fields": [
+    "action_class",
+    "owner_os",
+    "owner_department",
+    "kind",
+    "target",
+    "risk_tier",
+    "reversible",
+    "idempotency_strategy",
+    "timeout_seconds",
+    "max_attempts",
+    "backoff",
+    "required_authority",
+    "compensation_action_class",
+    "health_check",
+    "active"
+  ],
+  "acceptance": {
+    "all_active_workflow_side_effects_have_executor": true,
+    "all_executors_have_idempotency_test": true,
+    "all_high_risk_executors_are_gated": true,
+    "all_reversible_executors_define_compensation": true,
+    "every_execution_writes_decision_trace": true
+  }
+}

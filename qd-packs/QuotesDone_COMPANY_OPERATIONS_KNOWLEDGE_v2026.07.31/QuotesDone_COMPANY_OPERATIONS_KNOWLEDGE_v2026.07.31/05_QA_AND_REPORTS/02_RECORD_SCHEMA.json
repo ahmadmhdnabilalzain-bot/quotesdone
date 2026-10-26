@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://quotesdone.com/schemas/company-operations-record-v1.json",
+  "title": "QuotesDone Company Operations Knowledge Record",
+  "type": "object",
+  "required": [
+    "record_id",
+    "scope_type",
+    "scope_key",
+    "module",
+    "record_type",
+    "title",
+    "content",
+    "structured_data",
+    "source_ids",
+    "implementation_status",
+    "validation_status",
+    "authority_tier",
+    "risk_level",
+    "version",
+    "effective_date",
+    "review_after",
+    "keywords",
+    "dependencies",
+    "escalation_rule"
+  ],
+  "properties": {
+    "record_id": {
+      "type": "string",
+      "minLength": 8
+    },
+    "scope_type": {
+      "enum": [
+        "company",
+        "department",
+        "workflow",
+        "agent",
+        "external_source"
+      ]
+    },
+    "scope_key": {
+      "type": "string",
+      "minLength": 1
+    },
+    "module": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_type": {
+      "type": "string",
+      "minLength": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "content": {
+      "type": "string",
+      "minLength": 20
+    },
+    "structured_data": {
+      "type": "object"
+    },
+    "source_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "implementation_status": {
+      "enum": [
+        "implemented",
+        "partial",
+        "target_state",
+        "external_reference"
+      ]
+    },
+    "validation_status": {
+      "enum": [
+        "source_verified",
+        "reviewed",
+        "draft",
+        "approved",
+        "quarantined",
+        "superseded"
+      ]
+    },
+    "authority_tier": {
+      "enum": [
+        "advisory",
+        "supervised",
+        "gated",
+        "autonomous"
+      ]
+    },
+    "risk_level": {
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "version": {
+      "type": "string"
+    },
+    "effective_date": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "review_after": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "keywords": {
+      "type": "array"
+    },
+    "dependencies": {
+      "type": "array"
+    },
+    "escalation_rule": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true
+}

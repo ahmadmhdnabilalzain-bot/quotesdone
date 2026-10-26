@@ -1,0 +1,342 @@
+[
+  {
+    "record_id": "ops-company-quotesdone-governance-hard-gate-hard-gate-money-move-fbbacc0e7d",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "governance",
+    "record_type": "hard_gate",
+    "title": "Hard gate — money_move",
+    "content": "Any payout, bank transfer, refund beyond approved policy, journal posting that changes reported financial position, or financial commitment above the delegated threshold. The action must not execute until the required authority confirms the evidence, scope and rollback plan.",
+    "structured_data": {
+      "action_class": "money_move",
+      "description": "Any payout, bank transfer, refund beyond approved policy, journal posting that changes reported financial position, or financial commitment above the delegated threshold.",
+      "default_tier": "gated",
+      "approval_role": "Founder/authorised finance approver",
+      "threshold": "Use live org_authority threshold; current seed references AED 10,000 for money movement.",
+      "rollback": "Reverse through provider/accounting controls where legally and operationally possible."
+    },
+    "source_ids": [
+      "INT-CODE-EXPORT",
+      "INT-BLUEPRINT-AGENTS"
+    ],
+    "implementation_status": "implemented",
+    "validation_status": "source_verified",
+    "authority_tier": "gated",
+    "risk_level": "critical",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {
+      "when": "approval_missing_or_scope_uncertain",
+      "action": "block_and_escalate"
+    }
+  },
+  {
+    "record_id": "ops-company-quotesdone-governance-hard-gate-hard-gate-authentication-identity-df24abfd72",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "governance",
+    "record_type": "hard_gate",
+    "title": "Hard gate — authentication_identity",
+    "content": "MFA, login methods, identity verification, role elevation, privileged-access grants, customer or supplier identity changes. The action must not execute until the required authority confirms the evidence, scope and rollback plan.",
+    "structured_data": {
+      "action_class": "authentication_identity",
+      "description": "MFA, login methods, identity verification, role elevation, privileged-access grants, customer or supplier identity changes.",
+      "default_tier": "gated",
+      "approval_role": "Authorised security/identity owner",
+      "threshold": "Always gated for privileged or identity-changing actions.",
+      "rollback": "Revoke session/role, restore prior verified identity state, preserve audit evidence."
+    },
+    "source_ids": [
+      "INT-CODE-EXPORT",
+      "INT-BLUEPRINT-AGENTS"
+    ],
+    "implementation_status": "implemented",
+    "validation_status": "source_verified",
+    "authority_tier": "gated",
+    "risk_level": "critical",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {
+      "when": "approval_missing_or_scope_uncertain",
+      "action": "block_and_escalate"
+    }
+  },
+  {
+    "record_id": "ops-company-quotesdone-governance-hard-gate-hard-gate-secrets-security-6acb47cb1c",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "governance",
+    "record_type": "hard_gate",
+    "title": "Hard gate — secrets_security",
+    "content": "Create, reveal, rotate or change secrets; alter security policy, firewall, signing keys, webhook secrets or provider credentials. The action must not execute until the required authority confirms the evidence, scope and rollback plan.",
+    "structured_data": {
+      "action_class": "secrets_security",
+      "description": "Create, reveal, rotate or change secrets; alter security policy, firewall, signing keys, webhook secrets or provider credentials.",
+      "default_tier": "gated",
+      "approval_role": "Authorised security owner",
+      "threshold": "Always gated; secret values never enter logs or prompts.",
+      "rollback": "Restore prior credential where safe, rotate compromised material, invalidate old sessions."
+    },
+    "source_ids": [
+      "INT-CODE-EXPORT",
+      "INT-BLUEPRINT-AGENTS"
+    ],
+    "implementation_status": "implemented",
+    "validation_status": "source_verified",
+    "authority_tier": "gated",
+    "risk_level": "critical",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {
+      "when": "approval_missing_or_scope_uncertain",
+      "action": "block_and_escalate"
+    }
+  },
+  {
+    "record_id": "ops-company-quotesdone-governance-hard-gate-hard-gate-destructive-data-c8169452cf",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "governance",
+    "record_type": "hard_gate",
+    "title": "Hard gate — destructive_data",
+    "content": "Delete production data, erase records, drop objects, overwrite originals, bulk archive or perform PDPL erasure. The action must not execute until the required authority confirms the evidence, scope and rollback plan.",
+    "structured_data": {
+      "action_class": "destructive_data",
+      "description": "Delete production data, erase records, drop objects, overwrite originals, bulk archive or perform PDPL erasure.",
+      "default_tier": "gated",
+      "approval_role": "Data owner plus legal/privacy approval where applicable",
+      "threshold": "Always gated except pre-approved retention jobs with tested scope and rollback/backup.",
+      "rollback": "Restore from verified backup where lawful; erasure actions may be intentionally irreversible and require pre-checks."
+    },
+    "source_ids": [
+      "INT-CODE-EXPORT",
+      "INT-BLUEPRINT-AGENTS"
+    ],
+    "implementation_status": "implemented",
+    "validation_status": "source_verified",
+    "authority_tier": "gated",
+    "risk_level": "critical",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {
+      "when": "approval_missing_or_scope_uncertain",
+      "action": "block_and_escalate"
+    }
+  },
+  {
+    "record_id": "ops-company-quotesdone-governance-hard-gate-hard-gate-production-deploy-7361022c45",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "governance",
+    "record_type": "hard_gate",
+    "title": "Hard gate — production_deploy",
+    "content": "Promote code, schema, configuration or model-policy changes to production. The action must not execute until the required authority confirms the evidence, scope and rollback plan.",
+    "structured_data": {
+      "action_class": "production_deploy",
+      "description": "Promote code, schema, configuration or model-policy changes to production.",
+      "default_tier": "gated",
+      "approval_role": "Release authority",
+      "threshold": "Staging and automated tests must pass; emergency self-heal may be supervised only within an approved runbook.",
+      "rollback": "Known-good version, migration rollback or forward fix, feature flag disable."
+    },
+    "source_ids": [
+      "INT-CODE-EXPORT",
+      "INT-BLUEPRINT-AGENTS"
+    ],
+    "implementation_status": "implemented",
+    "validation_status": "source_verified",
+    "authority_tier": "gated",
+    "risk_level": "critical",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {
+      "when": "approval_missing_or_scope_uncertain",
+      "action": "block_and_escalate"
+    }
+  },
+  {
+    "record_id": "ops-company-quotesdone-governance-hard-gate-hard-gate-legal-commitment-40b6d482ca",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "governance",
+    "record_type": "hard_gate",
+    "title": "Hard gate — legal_commitment",
+    "content": "Sign or materially amend contracts, terms, policies, demand letters, admissions, waivers, settlement or legal positions. The action must not execute until the required authority confirms the evidence, scope and rollback plan.",
+    "structured_data": {
+      "action_class": "legal_commitment",
+      "description": "Sign or materially amend contracts, terms, policies, demand letters, admissions, waivers, settlement or legal positions.",
+      "default_tier": "gated",
+      "approval_role": "Founder and qualified UAE counsel as required",
+      "threshold": "Agents may draft and flag; legal judgment is not autonomous.",
+      "rollback": "Withdraw draft before signature; signed obligations require legal analysis."
+    },
+    "source_ids": [
+      "INT-CODE-EXPORT",
+      "INT-BLUEPRINT-AGENTS"
+    ],
+    "implementation_status": "implemented",
+    "validation_status": "source_verified",
+    "authority_tier": "gated",
+    "risk_level": "critical",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {
+      "when": "approval_missing_or_scope_uncertain",
+      "action": "block_and_escalate"
+    }
+  },
+  {
+    "record_id": "ops-company-quotesdone-governance-hard-gate-hard-gate-public-claim-publish-e44cbacd44",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "governance",
+    "record_type": "hard_gate",
+    "title": "Hard gate — public_claim_publish",
+    "content": "Publish public claims, legal statements, performance figures, customer promises, social content or advertising. The action must not execute until the required authority confirms the evidence, scope and rollback plan.",
+    "structured_data": {
+      "action_class": "public_claim_publish",
+      "description": "Publish public claims, legal statements, performance figures, customer promises, social content or advertising.",
+      "default_tier": "gated",
+      "approval_role": "Marketing/Legal/Founder according to claim class",
+      "threshold": "Routine pre-approved templates may be supervised; new material claims are gated.",
+      "rollback": "Unpublish/correct, document reach and correction notice where required."
+    },
+    "source_ids": [
+      "INT-CODE-EXPORT",
+      "INT-BLUEPRINT-AGENTS"
+    ],
+    "implementation_status": "partial",
+    "validation_status": "source_verified",
+    "authority_tier": "gated",
+    "risk_level": "critical",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {
+      "when": "approval_missing_or_scope_uncertain",
+      "action": "block_and_escalate"
+    }
+  },
+  {
+    "record_id": "ops-company-quotesdone-governance-hard-gate-hard-gate-ad-spend-becbb4a038",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "governance",
+    "record_type": "hard_gate",
+    "title": "Hard gate — ad_spend",
+    "content": "Activate or materially increase paid advertising or commit budget. The action must not execute until the required authority confirms the evidence, scope and rollback plan.",
+    "structured_data": {
+      "action_class": "ad_spend",
+      "description": "Activate or materially increase paid advertising or commit budget.",
+      "default_tier": "gated",
+      "approval_role": "Budget owner",
+      "threshold": "Campaign drafts may be autonomous; spend activation and cap changes require approval.",
+      "rollback": "Pause campaign and preserve performance data."
+    },
+    "source_ids": [
+      "INT-CODE-EXPORT",
+      "INT-BLUEPRINT-AGENTS"
+    ],
+    "implementation_status": "implemented",
+    "validation_status": "source_verified",
+    "authority_tier": "gated",
+    "risk_level": "critical",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {
+      "when": "approval_missing_or_scope_uncertain",
+      "action": "block_and_escalate"
+    }
+  },
+  {
+    "record_id": "ops-company-quotesdone-governance-hard-gate-hard-gate-supplier-enforcement-1a561f1e68",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "governance",
+    "record_type": "hard_gate",
+    "title": "Hard gate — supplier_enforcement",
+    "content": "Ban, suspend or materially restrict a supplier or customer. The action must not execute until the required authority confirms the evidence, scope and rollback plan.",
+    "structured_data": {
+      "action_class": "supplier_enforcement",
+      "description": "Ban, suspend or materially restrict a supplier or customer.",
+      "default_tier": "gated",
+      "approval_role": "Trust & Safety/Supplier Success owner",
+      "threshold": "Temporary risk holds may be supervised; final bans require documented evidence and appeal path.",
+      "rollback": "Restore account status and document correction if decision reversed."
+    },
+    "source_ids": [
+      "INT-CODE-EXPORT",
+      "INT-BLUEPRINT-AGENTS"
+    ],
+    "implementation_status": "implemented",
+    "validation_status": "source_verified",
+    "authority_tier": "gated",
+    "risk_level": "critical",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {
+      "when": "approval_missing_or_scope_uncertain",
+      "action": "block_and_escalate"
+    }
+  },
+  {
+    "record_id": "ops-company-quotesdone-governance-hard-gate-hard-gate-autonomy-framework-82bf483905",
+    "scope_type": "company",
+    "scope_key": "quotesdone",
+    "module": "governance",
+    "record_type": "hard_gate",
+    "title": "Hard gate — autonomy_framework",
+    "content": "Change authority tiers, confidence thresholds, governance rules, audit requirements or the ability of agents to act. The action must not execute until the required authority confirms the evidence, scope and rollback plan.",
+    "structured_data": {
+      "action_class": "autonomy_framework",
+      "description": "Change authority tiers, confidence thresholds, governance rules, audit requirements or the ability of agents to act.",
+      "default_tier": "gated",
+      "approval_role": "Founder/AI Governor",
+      "threshold": "Always gated and independently tested.",
+      "rollback": "Restore previous versioned policy and invalidate affected delegations."
+    },
+    "source_ids": [
+      "INT-CODE-EXPORT",
+      "INT-BLUEPRINT-AGENTS"
+    ],
+    "implementation_status": "implemented",
+    "validation_status": "source_verified",
+    "authority_tier": "gated",
+    "risk_level": "critical",
+    "version": "1.0.0",
+    "effective_date": "2026-07-31",
+    "review_after": "2027-01-31",
+    "keywords": [],
+    "dependencies": [],
+    "escalation_rule": {
+      "when": "approval_missing_or_scope_uncertain",
+      "action": "block_and_escalate"
+    }
+  }
+]

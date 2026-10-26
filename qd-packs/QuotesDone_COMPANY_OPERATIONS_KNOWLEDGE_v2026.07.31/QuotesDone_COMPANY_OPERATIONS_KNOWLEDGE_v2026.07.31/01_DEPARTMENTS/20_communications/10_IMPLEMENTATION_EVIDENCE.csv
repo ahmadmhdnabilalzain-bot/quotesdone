@@ -1,0 +1,18 @@
+department_key,evidence_type,name,path,status,note
+communications,backend_function,inbound_email,functions/inbound_email.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+communications,backend_function,email_triage,functions/email_triage.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+communications,backend_function,email_cron,functions/email_cron.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+communications,backend_function,send_whatsapp,functions/send_whatsapp.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+communications,backend_function,send_sms,functions/send_sms.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+communications,backend_function,messages_api,functions/messages_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+communications,backend_function,pending_digest,functions/pending_digest.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+communications,database_object,messages,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,inbound_messages,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,notifications,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,email_suppressions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,email_block_pattern,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,event_delivery,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,outreach,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,response_template,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,templates,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+communications,database_object,chat_threads,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.

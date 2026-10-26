@@ -1,0 +1,20 @@
+department_key,evidence_type,name,path,status,note
+it_cybersecurity,backend_function,os_health,functions/os_health.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+it_cybersecurity,backend_function,ai_health,functions/ai_health.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+it_cybersecurity,backend_function,dr_drill,functions/dr_drill.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+it_cybersecurity,backend_function,backup,functions/backup.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+it_cybersecurity,backend_function,dropbox_backup,functions/dropbox_backup.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+it_cybersecurity,backend_function,pdpl_erase,functions/pdpl_erase.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+it_cybersecurity,backend_function,qa_suite,functions/qa_suite.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+it_cybersecurity,database_object,admin_mfa_sessions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,app_secrets,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,security_events,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,security_audit_log,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,security_selfaudit_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,secops_rule,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,health_checks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,health_state,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,edge_health_probe,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,continuity_plan,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,dr_restore,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+it_cybersecurity,database_object,error_events,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.

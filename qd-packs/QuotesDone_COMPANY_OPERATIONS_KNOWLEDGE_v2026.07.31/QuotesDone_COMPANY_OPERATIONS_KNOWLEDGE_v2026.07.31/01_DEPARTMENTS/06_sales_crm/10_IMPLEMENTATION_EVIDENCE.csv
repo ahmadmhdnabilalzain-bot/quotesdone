@@ -1,0 +1,24 @@
+department_key,evidence_type,name,path,status,note
+sales_crm,backend_function,contact_submit,functions/contact_submit.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+sales_crm,backend_function,embed_leads,functions/embed_leads.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+sales_crm,backend_function,email_triage,functions/email_triage.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+sales_crm,backend_function,inbound_email,functions/inbound_email.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+sales_crm,backend_function,export_leads_csv,functions/export_leads_csv.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+sales_crm,backend_function,orchestrate,functions/orchestrate.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+sales_crm,backend_function,messages_api,functions/messages_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+sales_crm,database_object,leads,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,lead_category,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,lead_subcategory,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,lead_trade_map,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,crm_activities,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,crm_notes,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,crm_stages,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,crm_tasks,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,crm_lost_reasons,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,opportunity,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,database_object,outreach,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+sales_crm,migration,20260628222517_crm_notes,migrations/20260628222517_crm_notes.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+sales_crm,migration,20260703135324_create_crm_tasks,migrations/20260703135324_create_crm_tasks.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+sales_crm,migration,20260705174139_crm_odoo_pipeline_layer,migrations/20260705174139_crm_odoo_pipeline_layer.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+sales_crm,migration,20260705174339_crm_pipeline_rls_hardening,migrations/20260705174339_crm_pipeline_rls_hardening.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+sales_crm,migration,20260721172923_fn_category_sales_restore,migrations/20260721172923_fn_category_sales_restore.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.

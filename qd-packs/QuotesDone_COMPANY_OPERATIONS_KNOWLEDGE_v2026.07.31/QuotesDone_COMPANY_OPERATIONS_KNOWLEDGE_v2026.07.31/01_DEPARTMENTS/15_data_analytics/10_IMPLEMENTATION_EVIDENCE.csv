@@ -1,0 +1,24 @@
+department_key,evidence_type,name,path,status,note
+data_analytics,backend_function,analytics_recommend,functions/analytics_recommend.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+data_analytics,backend_function,cost_snapshot,functions/cost_snapshot.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+data_analytics,backend_function,public_stats,functions/public_stats.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+data_analytics,backend_function,report_body,functions/report_body.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+data_analytics,backend_function,agent_learnings_report,functions/agent_learnings_report.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+data_analytics,backend_function,os_api,functions/os_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+data_analytics,database_object,metric_definition,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,metric_snapshot,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,market_intel,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,competitive_position,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,competitor,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,customer_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,supplier_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,marketing_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,finance_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,ai_quality_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,strategy_kpi_snapshots,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,database_object,company_snapshot,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+data_analytics,migration,20260626204501_cleanup_test_data_and_vestigial_table,migrations/20260626204501_cleanup_test_data_and_vestigial_table.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+data_analytics,migration,20260706003936_marketplace_analytics,migrations/20260706003936_marketplace_analytics.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+data_analytics,migration,20260706101759_mdm_master_data_management,migrations/20260706101759_mdm_master_data_management.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+data_analytics,migration,20260706104613_ops_dashboard_data,migrations/20260706104613_ops_dashboard_data.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.
+data_analytics,migration,20260724031359_analytics_advisory_executor_support,migrations/20260724031359_analytics_advisory_executor_support.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.

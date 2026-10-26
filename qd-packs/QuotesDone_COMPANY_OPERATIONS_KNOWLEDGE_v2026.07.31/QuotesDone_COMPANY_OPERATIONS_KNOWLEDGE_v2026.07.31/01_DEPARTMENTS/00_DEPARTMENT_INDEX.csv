@@ -1,0 +1,25 @@
+department_no,department_key,department_name,implementation_assessment,topics,knowledge_records,roles,sops,decision_rules,exception_playbooks,kpis,templates,scenario_tests,live_bindings,total_records,master_characters
+1,executive_office,Executive Office / Chief of Staff,implemented,20,80,4,8,10,10,9,5,8,13,147,83968
+2,supplier_success,Supplier Success,implemented,20,80,4,10,10,10,9,5,8,11,147,85479
+3,customer_success,Customer Success,implemented,20,80,4,9,10,10,9,5,8,10,145,81677
+4,rfq_intelligence,RFQ / Inquiry Intelligence,implemented,20,80,4,10,10,10,9,5,8,11,147,86717
+5,marketplace_operations,Marketplace Operations,implemented,20,80,4,10,10,10,9,5,8,12,148,83863
+6,sales_crm,Sales & CRM,partial,20,80,4,9,10,10,9,5,8,11,146,80332
+7,marketing,Marketing,implemented,20,80,4,10,10,10,9,5,8,11,147,81787
+8,finance,Finance,implemented,20,80,4,10,10,10,9,5,8,14,150,80754
+9,legal_compliance,Legal & Compliance,implemented,20,80,4,10,10,10,9,5,8,10,146,82311
+10,hr_people,HR & People Operations,partial,20,80,4,10,10,10,9,5,8,10,146,80767
+11,admin_operations,Administration & Operations,partial,20,80,4,10,10,10,9,5,8,11,147,81310
+12,engineering,Engineering,implemented,20,80,4,10,10,10,9,5,8,10,146,80123
+13,ai_model_ops,AI & Model Operations,implemented,20,80,4,10,10,10,9,5,8,13,149,82983
+14,it_cybersecurity,"IT, SRE & Cybersecurity",implemented,20,80,4,10,10,10,9,5,8,12,148,82025
+15,data_analytics,"Data, Analytics & Intelligence",implemented,20,80,4,10,10,10,9,5,8,12,148,82763
+16,qa_testing,QA & Testing,partial,20,80,4,10,10,10,9,5,8,11,147,79901
+17,business_development,Business Development & Partnerships,target_state,20,80,4,10,10,10,9,5,8,10,146,82050
+18,supplier_knowledge,Supplier Knowledge,implemented,20,80,4,10,10,10,9,5,8,13,149,83789
+19,document_intelligence,Document Intelligence,partial,20,80,4,10,10,10,9,5,8,10,146,82281
+20,communications,Notification & Communications,partial,20,80,4,10,10,10,9,5,8,10,146,81406
+21,payments_revenue,Payments & Revenue Operations,partial,20,80,4,10,10,10,9,5,8,10,146,82511
+22,trust_safety,Trust & Safety,partial,20,80,4,10,10,10,9,5,8,10,146,80561
+23,knowledge_learning,Knowledge Engineering & Corporate Learning,implemented,20,80,4,10,10,10,9,5,8,12,148,84645
+24,strategy_evolution,"Strategy, Performance & Evolution",implemented,20,80,4,10,10,10,9,5,8,11,147,82600

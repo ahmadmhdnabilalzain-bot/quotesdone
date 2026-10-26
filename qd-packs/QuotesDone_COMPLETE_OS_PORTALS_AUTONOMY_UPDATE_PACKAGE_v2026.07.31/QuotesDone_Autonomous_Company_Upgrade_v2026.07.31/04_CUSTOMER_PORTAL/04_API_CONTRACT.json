@@ -1,0 +1,77 @@
+{
+  "actions": {
+    "workspace_v2": [
+      "customer",
+      "active_projects",
+      "inquiries",
+      "decisions",
+      "alerts",
+      "recommendations",
+      "freshness"
+    ],
+    "self_twin": [
+      "profile",
+      "preferences",
+      "history",
+      "privacy_settings"
+    ],
+    "project_workspace": [
+      "project",
+      "inquiries",
+      "transactions",
+      "documents",
+      "timeline",
+      "budget"
+    ],
+    "inquiry_workspace": [
+      "brief",
+      "qualification",
+      "documents",
+      "matched_pool",
+      "quotes",
+      "status",
+      "trace"
+    ],
+    "comparison_v2": [
+      "all_quotes",
+      "top3",
+      "score_breakdown",
+      "hard_gates",
+      "deviations",
+      "missing",
+      "evaluated_cost",
+      "explanation",
+      "methodology"
+    ],
+    "document_vault": [
+      "filters",
+      "cursor",
+      "search"
+    ],
+    "supplier_relationship": [
+      "supplier_after_reveal",
+      "history",
+      "reviews",
+      "messages",
+      "documents"
+    ],
+    "assistant_query": [
+      "question",
+      "context"
+    ],
+    "preferences_update": [
+      "preferences",
+      "consent"
+    ],
+    "approval_requests": [
+      "organization",
+      "status"
+    ]
+  },
+  "privacy": "Supplier identities remain hidden until a valid reveal transaction.",
+  "languages": [
+    "en",
+    "ar"
+  ],
+  "compatibility": "Prefer extending customer_portal/customer_api/project_api/messages_api and existing comparison stores."
+}

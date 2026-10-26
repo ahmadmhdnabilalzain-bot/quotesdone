@@ -1,0 +1,15 @@
+production_dept_key,target_departments,mapping_type,note
+exec,executive_office,direct,Existing Executive Office / Chief of Staff.
+it,"engineering,it_cybersecurity",split,Production IT & Engineering should be separated logically while preserving shared operations.
+procurement,"rfq_intelligence,marketplace_operations,document_intelligence",split,"Marketplace core currently spans intake, match, quote and document intelligence."
+supplier_success,"supplier_success,trust_safety",direct_plus_shared,Trust controls remain cross-functional.
+customer_success,"customer_success,payments_revenue",direct_plus_shared,Customer remediation and reveal support share payment workflows.
+marketing,"marketing,sales_crm",direct_plus_target,Sales/CRM has live objects but no confirmed separate org department.
+finance,"finance,payments_revenue",direct_plus_shared,Payment operations must reconcile into finance.
+knowledge,"supplier_knowledge,knowledge_learning",split,Legacy knowledge function is separated into domain knowledge and corporate learning.
+analytics,data_analytics,direct,Existing Analytics & Intelligence.
+legal,legal_compliance,direct,Existing Legal & Compliance.
+knowledge_eng,"knowledge_learning,supplier_knowledge",direct_plus_shared,Knowledge Engineering was added later.
+intelligence,data_analytics,direct,Intelligence operating system was added later.
+evolution,strategy_evolution,direct,Evolution operating system was added later.
+unmapped_target,"hr_people,admin_operations,qa_testing,business_development,communications",target_state,Capabilities exist partially in functions/tables but no one-to-one production department is confirmed.

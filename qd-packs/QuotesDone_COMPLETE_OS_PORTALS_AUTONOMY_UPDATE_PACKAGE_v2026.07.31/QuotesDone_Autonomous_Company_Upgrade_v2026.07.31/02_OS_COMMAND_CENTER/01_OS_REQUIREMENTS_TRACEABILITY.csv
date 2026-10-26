@@ -1,0 +1,41 @@
+﻿area,requirement,status,evidence,gap_or_improvement,phase
+Executive Home,"Live health, revenue, customers, suppliers, AI employees and bottlenecks",Backend partial; frontend unverified,"fn_os_command, fn_os_dashboard_viz, fn_company_indices, fn_company_situation",Create one provenance-aware executive_home_v2 contract; show unknown/unreliable data honestly,P1
+AI Conversation,Founder talks to executive team instead of navigating,Backend partial; frontend unverified,os_api secretary_chat; secretary_act; fn_query_platform,"Add command preview, evidence, authority check, simulation and confirmation for high-risk commands",P1
+Live Company,Animated live work and cross-department handoffs,Backend partial; frontend unverified,"company_event, event_delivery, activity APIs, agent_runs","Canonical event taxonomy, correlation IDs, reliable outbox and live stream",P1
+Organization,See hierarchy and enter each employee workspace,Backend implemented; frontend unverified,"org_agents, org_departments, v_org_chart, fn_ws_agent_ops","Expose manager/direct reports, objectives, authority, KPIs and workload in one endpoint",P1
+Employee View,"Thoughts, tasks, decisions, performance, confidence, knowledge, plans and learning",Partial,fn_ws_agent_ops includes identity/health/performance/knowledge/memory/queue,"Add goals, KPI trend, authority, direct reports, plan, learning progress and current decision context",P1
+Company Timeline,Every action visible chronologically,Partial,"company_event, decision_log, os_audit_log, agent_runs, entity activity",Unify into one trace store and cursor-based timeline with correlation/causation,P1
+Mission Control,Live node view of agents and operating systems,Backend partial; frontend unverified,"agents_board, v_ai_agent_health, v_os_health, event backbone",Add live work-state stream and intervention actions behind Control Mode,P2
+Digital Twin,Health/workload/KPI pressure across company,Backend implemented at aggregate level,"v_digital_twin, company_snapshot, company_index",Extend to entity-level state and freshness/provenance metadata,P2
+Approval Center,Only rare strategic decisions reach founder,Implemented but conflicts with monitoring-only goal,"agent_actions, review_queue, os_ops approve/reject APIs",Delegate routine approvals by policy; default Observe Mode; founder sees exceptions only,P1
+Executive Reports,Interactive drill-down reports,Backend partial; frontend unverified,"exec_reports, board_reports, report PDFs, multiple workspaces",Interactive evidence-linked reports plus optional PDF download,P2
+Intelligence Center,"Risks, opportunities, forecasts, competitors, spending",Partial,"opportunity, simulations, market_intel, competitive_position, ai cost views","Add data-quality score, assumption registry and scenario comparison",P2
+Company Memory,Search decisions and lessons,Backend partial,"agent_memory, org_memory, institutional_memory, decision logs, os search",One semantic + relational memory search with source and supersession,P2
+Command Palette,Universal navigation and commands,Backend partial; frontend unverified,"fn_os_nav, fn_os_search, secretary tools","Typed command registry, preview mode, keyboard-first UI and accessible fallback navigation",P1
+Notifications,Grouped critical/important/suggested/completed,Partial,"notifications, founder_alerts, inbox APIs","Deduplicate, group, snooze and route by urgency/policy",P1
+Interactive Company Map,"Relationships among departments, processes, entities and knowledge",Backend partial; frontend unverified,"graph_nodes, graph_edges, fn_graph_rebuild",Include customers/RFQs/quotes/payments/documents/events and relationship provenance,P3
+What-if Simulator,"Simulate pricing, costs, channels and outages",Partial,"simulations, fn_what_if, growth simulator","General scenario schema with assumptions, sensitivity and confidence intervals",P2
+Voice Executive Companion,Spoken brief and commands,Missing as OS feature,transcription/voice functions exist for other flows,Add later after command preview and safety are mature,P4
+Executive Meeting Room,"OS heads present wins, risks and requests",Backend implemented,"fn_exec_meeting, board reports, os reviews","Expose agenda, debate, dissent, decisions and follow-up tasks in UI",P2
+Company Consciousness,Nightly reflection and self-improvement,Backend implemented,"fn_company_reflect, company_reflection",Link every reflection to measurable action and later outcome,P2
+Enterprise Event Nervous System,Everything reacts to events,Partial,"company_event, subscriptions, dispatcher and some emitters","Outbox pattern, complete emitter coverage, schema registry and dead-letter queue",P0
+Organizational Graph Engine,Navigate infinite company relationships,Partial,graph_nodes/edges and rebuild function,"Incremental graph updates, permission-aware queries and entity coverage",P3
+Autonomous Resource Allocation,Move budget/compute/resources by policy,Partial,"allocation_change, fn_reallocate",Start recommendation-only; add bounded reversible execution with rollback,P3
+AI Board of Directors,Independent specialist viewpoints,Backend implemented at basic level,"board_advisor, board_opinion, fn_board_review","Structured dissent, evidence, conflicts and decision outcome tracking",P2
+Multi-model Intelligence,Route by cost/quality/task,Implemented,"ai_gateway, model policy, cost logs, cache",Continue replacing model calls with rules/corpus and quality outcome feedback,P0
+Autonomous Procurement,"Discover gaps, qualify and invite suppliers",Partial,"supply gap, invite executor, matching and supplier automation",Expand executors and policy-controlled supplier discovery/verification,P2
+Knowledge Confidence Layer,"Source, confidence, validation, expiry and owner",Implemented,knowledge lifecycle tables/views,Apply same metadata to all new corpus records and runtime answers,P0
+Strategic Memory,Remember why strategies changed,Partial,"institutional_memory, outcome_record, decision records",Add supersession links and strategy-decision retrieval,P2
+Opportunity Detection,Detect underserved categories and growth openings,Implemented backend,"opportunity, fn_opportunity_scan",Connect approved opportunity to workflow and outcome measurement,P2
+Marketplace Health Index,One transparent marketplace score,Implemented,"fn_company_indices, marketplace health views",Improve dimensions and show source freshness/data quality,P1
+Organizational Energy,"Velocity, backlog and collaboration",Implemented,company_index organizational_energy,"Avoid vanity metric; include quality and rework, not just activity",P2
+AI Reputation,Agent correctness/reliability/cost/collaboration,Implemented,agent_reputation,Gate authority changes through governance and sufficient sample size,P2
+Executive Replay,Replay a day and decisions,Partial,"company_snapshot, events and logs",Event-level replay with immutable trace; aggregate snapshot alone is insufficient,P3
+Stress Testing,"Simulate outages, fraud, cash and campaign failures",Partial,"DR drills, simulations, continuity plans",Automated game-day suite and recovery acceptance criteria,P2
+Autonomous Hiring/Restructuring,Propose or create roles based on load,Partial/proposal only,"evolution proposals, org model",Keep founder-gated; never autonomously grant production authority,P4
+Explainability Everywhere,Why/who/knowledge/policies/alternatives/outcome,Partial and fragmented,"decision_log, agent runs, audits, review chain",Implement normalized decision_trace and UI drawer,P0
+Competitive Benchmarking,Track competitor changes monthly,Partial,"competitor, competitive_position, market_intel",Scheduled evidence-backed collection with legal/rate-limit controls,P3
+Digital Operating Manual,System documents workflows and ownership,Backend implemented,v_operating_manual,Add frontend explorer and change history,P2
+Autonomous Governance,Pause automation on violations,Partial,"governance rules, kill switches, authority tables",Central policy decision point and enforcement tests for every executor,P0
+Personalization,OS adapts display priorities to founder behavior,Missing,No clear preference model in export,Add UI preferences only; never silently weaken governance,P4
+3D/Spatial HQ,Living 3D company headquarters,Frontend unverified; non-core,No frontend in export,Defer until operational UX is proven; use 2D graph first,P5

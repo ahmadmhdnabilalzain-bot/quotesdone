@@ -1,0 +1,17 @@
+﻿area,path,meaning
+Frontend limitation,README.md,Export explicitly excludes Next.js pages/components/translations/styles.
+Customer dashboard,functions/customer_portal.md,"Only overview action, backed by fn_customer_stats."
+Customer marketplace,functions/customer_api.md,"Inquiry creation/listing, PDFs, reveal, refunds, ratings, edit/cancel and supplier history."
+Customer projects,functions/project_api.md,List/dashboard/create/update/detail/link/unlink.
+Messaging,functions/messages_api.md,"Threads, request chat, thread and send; chat available after reveal and contact-sharing controls."
+Comparison,functions/quote_compare.md,Evaluates all live quotes and asks AI to shortlist top three; cache exists but no deterministic fallback.
+Supplier dashboard,functions/supplier_portal.md,"Overview, documents, save documents and eligibility."
+Supplier marketplace,functions/supplier_api.md,Claim/create/profile/docs/payment/inbox/projects/quote extraction and submission.
+Supplier profile classifier,functions/profile_ai.md,"Hard-coded 16-category list, inconsistent with 86 operational routes."
+Executive API,functions/os_api.md,"Dashboard, visualization, boards, search, workspaces, reports, knowledge and secretary chat."
+Executive mutations,functions/os_ops.md,"Approvals, edits, tasks, RFQ outcomes, GL posting and supplier/customer decisions."
+Chief of Staff execution,functions/cos_execute.md,"At most two tasks per run; registered executors make real side effects, otherwise departments produce deliverables."
+10 OS layer,migrations/20260728191223_operating_system_layer_ten_core_systems.md,"Creates Leadership, Commercial, Marketplace, Operations, Technology, Finance, Legal/Governance, Knowledge, Intelligence and Evolution OS."
+OS lifecycle,migrations/20260728191802... through 20260728194203...,"Missions, objectives, event contract, workflows, memory, health, reflection, board, indices, simulations, graph, snapshots and operating manual."
+Schema,database/schema-tables-and-views.md,"325 tables and 110 views including OS, events, agents, workflows, memory, portals and finance."
+Database logic,database/database-functions.md,"599 routines including OS command, workspaces, comparison, simulations, reflection and health."

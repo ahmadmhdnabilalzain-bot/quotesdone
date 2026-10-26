@@ -1,0 +1,20 @@
+department_key,evidence_type,name,path,status,note
+payments_revenue,backend_function,stripe_checkout,functions/stripe_checkout.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+payments_revenue,backend_function,stripe_confirm,functions/stripe_confirm.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+payments_revenue,backend_function,stripe_webhook,functions/stripe_webhook.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+payments_revenue,backend_function,supplier_pay,functions/supplier_pay.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+payments_revenue,backend_function,refund_flow,functions/refund_flow.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+payments_revenue,backend_function,refunds_api,functions/refunds_api.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+payments_revenue,backend_function,money_tests,functions/money_tests.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+payments_revenue,backend_function,quote_pdf,functions/quote_pdf.md,found_in_production_export,Function name explicitly mapped to this department; Claude must inspect current code before relying on behaviour.
+payments_revenue,database_object,transactions,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,database_object,stripe_events,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,database_object,reveal_invoices,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,database_object,payment_dispute,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,database_object,refunds,,not_found_by_exact_name,Name may differ in production; Claude should map to actual schema.
+payments_revenue,database_object,supplier_dues,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,database_object,pricing_config,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,database_object,gl_journal,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,database_object,notifications,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,database_object,os_audit_log,database/schema-tables-and-views.md,found_in_schema,Live data binding candidate; confirm columns and grants before use.
+payments_revenue,migration,20260719003740_gl_reverse_phantom_test_revenue,migrations/20260719003740_gl_reverse_phantom_test_revenue.md,found_in_production_export,Potential implementation evidence selected by filename; inspect SQL before asserting coverage.

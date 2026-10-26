@@ -1,0 +1,104 @@
+// How resilience_ping runs its ticks: in order, each on its own, inside a deadline, and with every
+// failure named. Pure, so the rules are tested without a network (steps.test.ts).
+//
+// WHY. Measured 15 Sep 2026: every tick swallowed its error and the endpoint answered ok:true, so the
+// accountant's duties answered HTTP 401 on every pass (151 refusals at the gateway in 24 hours) and
+// nothing anywhere said so. A step that fails is now returned in `failing` and raised as an IT engineer
+// finding by the handler; one step failing never stops the next.
+export type Step = { name: string; run: () => Promise<unknown>; always?: boolean; nested?: boolean };
+export type Failure = { name: string; error: string; carried?: boolean };
+
+// What counts as a failed step: it threw, it answered {ok:false, error}, or its HTTP call answered 4xx/5xx.
+// A seat answering {ok:false} WITHOUT an error string has already reported its own partial failure
+// (fn_accountant_duties stages each failed duty as its own finding), so it is not counted twice.
+export function failureOf(r: unknown): string | null {
+  if (!r || typeof r !== 'object') return null;
+  const o = r as Record<string, unknown>;
+  if (o.ok === false && typeof o.error === 'string') return o.error.slice(0, 300);
+  if (typeof o.status === 'number' && o.status >= 400) return 'HTTP ' + o.status;
+  return null;
+}
+
+// The error a failed HTTP hop records, with the error the callee gave (22 Sep 2026). backupVerify
+// recorded only "dropbox_backup reconcile answered HTTP 500" for two days while the body said
+// "apply canceling statement due to statement timeout" -- the cause was in the reply and not in the row.
+export function httpHopError(what: string, status: number, body: unknown): string {
+  const b = body && typeof body === 'object' ? body as Record<string, unknown> : {};
+  const why = typeof b.error === 'string' ? b.error : typeof b.message === 'string' ? b.message : '';
+  return (what + ' answered HTTP ' + status + (why ? ': ' + why : '')).slice(0, 300);
+}
+
+// Runs every step in order. A step not started by `deadlineMs` after `t0` is skipped and counted as
+// failing, unless it is `always` (the mail drains: skipping them would hold a message a whole beat).
+export async function runSteps(steps: Step[], t0: number, deadlineMs: number, now: () => number = Date.now) {
+  const results: Record<string, unknown> = {};
+  const failing: Failure[] = [];
+  // How long each step that actually ran took. Two Date.now() calls a step, so it costs nothing it is
+  // measuring, and it is what fn_resilience_step_record folds into each step's ewma_ms — the estimate
+  // the plan uses to decide what fits. Before this existed the only number anyone had was the tick's
+  // total, and "which step is eating the budget" had to be inferred from the sub-functions' own
+  // agent_runs rows, which says nothing at all about the steps that are pure RPCs.
+  const ms: Record<string, number> = {};
+  for (const s of steps) {
+    if (!s.always && now() - t0 > deadlineMs) {
+      results[s.name] = { skipped: 'deadline' };
+      failing.push({ name: s.name, error: 'not run: the tick passed its ' + Math.round(deadlineMs / 1000) + 's deadline' });
+      continue;
+    }
+    const s0 = now();
+    let r: unknown;
+    try { r = await s.run(); } catch (e) { r = { ok: false, error: String((e as Error)?.message || e) }; }
+    ms[s.name] = now() - s0;
+    results[s.name] = r;
+    // A NESTED STEP IS STILL JUDGED AT ITS OWN LEVEL FIRST (18 Sep 2026, it_engineer).
+    // Found in review: the nested branch only looked at the entries, so a nested step that THREW —
+    // wrapped as {ok:false, error} by the catch above — had that shape split into the entries
+    // ('ok', false) and ('error', '...'), neither of which failureOf can read, and the failure
+    // vanished. Same for a nested step that returns a bare {ok:false, error} because it never got
+    // as far as having sub-results, which is exactly what a gate RPC failing looks like. The top
+    // level is asked first; only a step that is itself fine is opened up and read per entry.
+    const top = failureOf(r);
+    if (top) {
+      failing.push({ name: s.name, error: top });
+    } else if (s.nested && r && typeof r === 'object') {
+      for (const [k, v] of Object.entries(r as Record<string, unknown>)) {
+        const f = failureOf(v);
+        if (f) failing.push({ name: s.name + '.' + k, error: f });
+      }
+    }
+  }
+  return { results, failing, ms };
+}
+
+// WHAT THE TICK TELLS THE SCHEDULE AFTERWARDS, in the shape fn_resilience_step_record reads. A step is
+// `ok` when nothing in `failing` names it — either the step itself or one of its nested entries, because
+// `orphans.sanctions_screen` failing means the orphans step did not do its job. A deferred step stamps
+// nothing: leaving its last attempt untouched is exactly what makes it the stalest step next tick, so
+// this function is the other half of the starvation guarantee that lives in fn_resilience_tick_plan.
+export function stepRows(ranMs: Record<string, number>, failing: Failure[], deferred: string[]) {
+  const bad = new Set<string>();
+  for (const f of failing) bad.add(f.name.split('.')[0]);
+  const rows: Array<Record<string, unknown>> = Object.entries(ranMs)
+    .map(([step, ms]) => ({ step, ms, ok: !bad.has(step) }));
+  for (const step of deferred) rows.push({ step, deferred: true });
+  return rows;
+}
+
+// A STEP THAT FAILED STAYS FAILED UNTIL IT RUNS AGAIN (22 Sep 2026, it_engineer). The heartbeat duty is
+// settled every tick with the failures of THIS tick, and fn_it_duty_settle closes every open
+// duty:heartbeat key not in that list. A step on a 6-hour cadence (backupVerify) therefore had its
+// finding closed 15 minutes after each failure, on a tick where it simply was not due: MEASURED 21 Sep,
+// duty:heartbeat:backupVerify raised 17:16Z ("canceling statement due to statement timeout"), closed
+// 17:31Z "the heartbeat duty no longer finds it", while resilience_step still read last_ok_at 20 Sep
+// 03:31Z. So the ledger said healthy for 23 of every 24 ticks of a check that had not passed in 38 hours.
+// A step whose last attempt is newer than its last success, and which did not run this tick, is carried
+// as still failing, with `carried` so fn_it_duty_settle holds the open finding instead of re-seeing it.
+export type StepState = { step: string; last_started_at: string | null; last_ok_at: string | null };
+export function carriedFailures(state: StepState[], ranMs: Record<string, number>, failing: Failure[]): Failure[] {
+  const named = new Set(failing.map((f) => f.name.split('.')[0]));
+  return state
+    .filter((s) => !(s.step in ranMs) && !named.has(s.step) && s.last_started_at !== null
+      && (s.last_ok_at === null || Date.parse(s.last_ok_at) < Date.parse(s.last_started_at)))
+    .map((s) => ({ name: s.step, error: 'its last run at ' + s.last_started_at + ' failed and it has not passed since (last ok: '
+      + (s.last_ok_at ?? 'never') + ')', carried: true }));
+}

@@ -1,0 +1,242 @@
+{
+  "package": "QuotesDone Autonomous Company Upgrade",
+  "version": "2026.07.31",
+  "generated_files": 47,
+  "files": [
+    {
+      "path": "00_START_HERE.md",
+      "bytes": 2194,
+      "sha256": "92784abd44df319f27bf3bc5a6e2bb7d6f2f4a0a86170c523dd9a5c9e8318158"
+    },
+    {
+      "path": "02_OS_COMMAND_CENTER/03_API_CONTRACT.json",
+      "bytes": 2463,
+      "sha256": "3d3275a0bdff4347a2ada2d6073f16be56007c2a8780251f4d41441197ec341c"
+    },
+    {
+      "path": "02_OS_COMMAND_CENTER/05_ACCEPTANCE_TESTS.md",
+      "bytes": 825,
+      "sha256": "ff8d9f2436dae5d8fc503046d2a2d9a16c103d158ffe9e43f16f2af6759f2405"
+    },
+    {
+      "path": "02_OS_COMMAND_CENTER/00_READ_ME.md",
+      "bytes": 844,
+      "sha256": "c72cd7946e1913a1d4802bcfc9345a9fcf930f5b65cb55024a5afca4f5d8487c"
+    },
+    {
+      "path": "02_OS_COMMAND_CENTER/04_FRONTEND_BLUEPRINT.md",
+      "bytes": 885,
+      "sha256": "d48f0c317b0d873328c0cfe20c434d2cb7cd25aa480a93757e36e84a0518a7bd"
+    },
+    {
+      "path": "02_OS_COMMAND_CENTER/02_TARGET_PRODUCT_SPEC.md",
+      "bytes": 1977,
+      "sha256": "0d7f54e7e605e1076e73762131881234f85f8fc68d654d05582adf4efbfd808f"
+    },
+    {
+      "path": "02_OS_COMMAND_CENTER/01_OS_REQUIREMENTS_TRACEABILITY.csv",
+      "bytes": 8377,
+      "sha256": "76642ad5d9052a74b11f3f66a5dcd850f1255eb624746ef82bdbec2fe22c362a"
+    },
+    {
+      "path": "02_OS_COMMAND_CENTER/06_PASTE_THIS_TO_CLAUDE.md",
+      "bytes": 937,
+      "sha256": "2cb309dad9038bb0fe73d307b79d9dfd4ba1a71f3bf1051e896d9afea741d778"
+    },
+    {
+      "path": "01_MASTER/08_CURRENT_API_ACTION_INVENTORY.json",
+      "bytes": 1453,
+      "sha256": "33cecece9551395862fcf85188b9bb89b33cb0185583cb028f06b9ea23831701"
+    },
+    {
+      "path": "01_MASTER/02_CODE_EVIDENCE_INDEX.csv",
+      "bytes": 2252,
+      "sha256": "2ad507cde18dff76826b8d1666f0826684c35db6f0630126537771b75bc1caa6"
+    },
+    {
+      "path": "01_MASTER/01_EXECUTIVE_AUDIT.md",
+      "bytes": 4824,
+      "sha256": "01344549938743a4314a63a5e7cd989995a39c5b64586aafba2fb9f7888f78c8"
+    },
+    {
+      "path": "01_MASTER/04_RECONCILED_TARGET_ARCHITECTURE.md",
+      "bytes": 2303,
+      "sha256": "b7fdf96e31aff8de22aad1b251c88a3742b730b50d2057a636e66d20143b27d5"
+    },
+    {
+      "path": "01_MASTER/07_ACCEPTANCE_GATES.md",
+      "bytes": 1500,
+      "sha256": "4e6a5807a77db251981bc98a3f0fba5545c6a5124b2e282df1bc28822f9c9921"
+    },
+    {
+      "path": "01_MASTER/03_FRONTEND_REPOSITORY_AUDIT.md",
+      "bytes": 1640,
+      "sha256": "8e140a221819a20553f1cc9ebbab6fda214f3e140358dedf0fffb4b8b77cd147"
+    },
+    {
+      "path": "01_MASTER/09_DEPLOYMENT_AND_ROLLBACK.md",
+      "bytes": 780,
+      "sha256": "9f146eb114d4e76badeeebab9132a440f033777102258b8ae6ec54b042a53019"
+    },
+    {
+      "path": "01_MASTER/06_PASTE_THIS_TO_CLAUDE.md",
+      "bytes": 4930,
+      "sha256": "6d062403894100210a53f89bed117c00fe850cc1375b0579b337dc8c8246ae0f"
+    },
+    {
+      "path": "01_MASTER/05_PRIORITY_ROADMAP.md",
+      "bytes": 1876,
+      "sha256": "a3056a20e40900a6613ea284c69201370510b951cfc054c4768b5f1926824db8"
+    },
+    {
+      "path": "05_SHARED_AUTONOMY_FOUNDATION/04_EXECUTOR_REGISTRY_SPEC.json",
+      "bytes": 617,
+      "sha256": "6e861f1003400c30f98766fb2eed67b9438d17dec89fd7a358c3db1b4030f735"
+    },
+    {
+      "path": "05_SHARED_AUTONOMY_FOUNDATION/02_REFERENCE_MIGRATION_DO_NOT_APPLY_BLINDLY.sql",
+      "bytes": 3871,
+      "sha256": "5b4e14b2228b952ead2755003428d5d45e59db6e283c9d21b9b8a11684f0c9d5"
+    },
+    {
+      "path": "05_SHARED_AUTONOMY_FOUNDATION/00_READ_ME.md",
+      "bytes": 1087,
+      "sha256": "825cc5908b0ac2ea74dcf06d16292c87668a25a47b02d7e9e76df9f2c8da1f17"
+    },
+    {
+      "path": "05_SHARED_AUTONOMY_FOUNDATION/01_TARGET_RUNTIME.md",
+      "bytes": 1457,
+      "sha256": "4307b4dc850d7e596d7ff7011a7a99b92d824cb2910f485963d22e25e29067a0"
+    },
+    {
+      "path": "05_SHARED_AUTONOMY_FOUNDATION/03_AUTONOMY_GOVERNANCE.md",
+      "bytes": 961,
+      "sha256": "1d7ead798650e9d62f957726cf727e31fedc0bdf354bfa237ef6093b8e3a6df9"
+    },
+    {
+      "path": "05_SHARED_AUTONOMY_FOUNDATION/05_CLAUDE_PROMPT.md",
+      "bytes": 1056,
+      "sha256": "a09abc8b7a666da87f6354b2d0a7cc616f67d4aafd70b7657460c31dfcd48197"
+    },
+    {
+      "path": "SOURCE_PLANS/SUPPLIER_PORTAL_VISION.txt",
+      "bytes": 9227,
+      "sha256": "bedb5512f6628b082a0423f075e674565d763fa2cc4d14461f6054bd4c6831e7"
+    },
+    {
+      "path": "SOURCE_PLANS/UNIVERSAL_OS_BLUEPRINT.txt",
+      "bytes": 6174,
+      "sha256": "8db99a2c53fe2eb9dc9d45bee0348580afdb29e803ccdde690a8bbdfe1f2a645"
+    },
+    {
+      "path": "SOURCE_PLANS/PRODUCTION_EXPORT_README.md",
+      "bytes": 11800,
+      "sha256": "47a1a59ae4729964bda1007d09037e0ee5b8907977b617edacb3deb60cde1966"
+    },
+    {
+      "path": "SOURCE_PLANS/OS_COMMAND_CENTER_VISION.txt",
+      "bytes": 17836,
+      "sha256": "9a598f5def8edde1720a11de8e0c2a88ccc73e62fa697c2e9168bd4a1192f017"
+    },
+    {
+      "path": "SOURCE_PLANS/CUSTOMER_PORTAL_VISION.txt",
+      "bytes": 8995,
+      "sha256": "ad77aa82d88b2d7dd1ba2583604c922e8bfe80897d1f88c0a09254be56d061d8"
+    },
+    {
+      "path": "SOURCE_PLANS/SUPPLIER_CATEGORY_BLUEPRINT.txt",
+      "bytes": 21611,
+      "sha256": "2ffbb89fdf16ffba8d1253ec66e76710929a1d8e4616a3ef64f8ce31432e1855"
+    },
+    {
+      "path": "SOURCE_PLANS/AGENTS_AND_KNOWLEDGE_BLUEPRINT.txt",
+      "bytes": 25724,
+      "sha256": "5a8e04e048c11b64d28b5ccc753e896843f70e39fec32ba7754d08e7cda6bdba"
+    },
+    {
+      "path": "SOURCE_PLANS/AUTONOMOUS_COMPANY_ARCHITECTURE.txt",
+      "bytes": 7226,
+      "sha256": "01e689da661b703e431e0dab313034d468ae61002a2e97209d3652d0bd025bd9"
+    },
+    {
+      "path": "03_SUPPLIER_PORTAL/03_REFERENCE_MIGRATION_DO_NOT_APPLY_BLINDLY.sql",
+      "bytes": 2477,
+      "sha256": "588891b60ea5cd36be596c6b96c24a680a309c13947c058ed7f425802ddcd27f"
+    },
+    {
+      "path": "03_SUPPLIER_PORTAL/02_IMPROVED_TARGET_SPEC.md",
+      "bytes": 1636,
+      "sha256": "53e694b25e0489f281e77f4322ada99a9f3a3e7f68e38836a5c9bfe4d0651aa3"
+    },
+    {
+      "path": "03_SUPPLIER_PORTAL/07_PASTE_THIS_TO_CLAUDE.md",
+      "bytes": 980,
+      "sha256": "aebc903d8d290be7e05b9a2a90dc886a21f01e77ec5419a6a7ca80f85e927332"
+    },
+    {
+      "path": "03_SUPPLIER_PORTAL/00_READ_ME.md",
+      "bytes": 451,
+      "sha256": "21ac8b7aba7eacc9648a6c46363ecacbfb8e750ff6d243d6a5b4c02dd243b38e"
+    },
+    {
+      "path": "03_SUPPLIER_PORTAL/01_SUPPLIER_REQUIREMENTS_TRACEABILITY.csv",
+      "bytes": 4726,
+      "sha256": "ea4678411b964199888e71aed7eedec27edc6e9f5f17fdd20bc0d2fcfda64e27"
+    },
+    {
+      "path": "03_SUPPLIER_PORTAL/06_ACCEPTANCE_TESTS.md",
+      "bytes": 853,
+      "sha256": "9dfb775c6512ac7d7040dcd6c08abcec4b21788f80b9398bf9fb42e92c85a217"
+    },
+    {
+      "path": "03_SUPPLIER_PORTAL/05_FRONTEND_BLUEPRINT.md",
+      "bytes": 706,
+      "sha256": "c891f86ca4181e506d87a010e4e78f20a0bb4db3609f60328283abb3fd43f5a8"
+    },
+    {
+      "path": "03_SUPPLIER_PORTAL/04_API_CONTRACT.json",
+      "bytes": 1477,
+      "sha256": "f3ad1999f49168f682755139fe20afee86ce1bf034f6855191c762450331f5f3"
+    },
+    {
+      "path": "04_CUSTOMER_PORTAL/01_CUSTOMER_REQUIREMENTS_TRACEABILITY.csv",
+      "bytes": 4058,
+      "sha256": "08fb7b4ab125dfdd0b8419ac5606f792a6f5289c8b881d80fd6a01623742c171"
+    },
+    {
+      "path": "04_CUSTOMER_PORTAL/03_REFERENCE_MIGRATION_DO_NOT_APPLY_BLINDLY.sql",
+      "bytes": 2900,
+      "sha256": "99871bf0b03e9ace0fb60f46a24bfa3a034d1f93ad240f4ab3971cd27ed0b392"
+    },
+    {
+      "path": "04_CUSTOMER_PORTAL/02_IMPROVED_TARGET_SPEC.md",
+      "bytes": 1913,
+      "sha256": "c9fb6d77970b649d0aec72e88af619b103e205bb955fccf378e27f8114c28186"
+    },
+    {
+      "path": "04_CUSTOMER_PORTAL/07_PASTE_THIS_TO_CLAUDE.md",
+      "bytes": 930,
+      "sha256": "e5efe6ac1f76430975454dbcc74b434334adf9a518462d936a826267824d6ff6"
+    },
+    {
+      "path": "04_CUSTOMER_PORTAL/00_READ_ME.md",
+      "bytes": 521,
+      "sha256": "0d635edd9e8cb22205cca0cdd6be69bc4a093e3284a7be960b3497b26dc1b1d8"
+    },
+    {
+      "path": "04_CUSTOMER_PORTAL/06_ACCEPTANCE_TESTS.md",
+      "bytes": 850,
+      "sha256": "657c5b35ddd331a3917e38b5114680b7e85730eee987842337810c35b420e7f2"
+    },
+    {
+      "path": "04_CUSTOMER_PORTAL/05_FRONTEND_BLUEPRINT.md",
+      "bytes": 774,
+      "sha256": "a55d908d6e784301718de68681dd196d69f2353e59a908b071328ecc175bee8b"
+    },
+    {
+      "path": "04_CUSTOMER_PORTAL/04_API_CONTRACT.json",
+      "bytes": 1488,
+      "sha256": "6bad2b8f4248190e59dc3f1c498043ea1636f37a691aa59158f7fc2a45bc5eaf"
+    }
+  ]
+}

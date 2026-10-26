@@ -1,0 +1,25 @@
+﻿agent_key,title,department,deterministic_first,primary_model,fallback_model,escalation_model,note
+brief,Chief of Staff,exec,Yes,anthropic/claude-sonnet-5,deepseek/deepseek-v4-flash,anthropic/claude-opus-5,Cross-department decisions; routine summaries may use DeepSeek.
+cfo,CFO,finance,Yes,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,anthropic/claude-opus-5,SQL computes; Sonnet reviews material finance judgment; no model posts money.
+bookkeeper,Bookkeeper,finance,Yes,none/deterministic,qwen/qwen3.7-flash,anthropic/claude-sonnet-5,Receipt extraction may use Qwen/Gemini; ledger posting remains deterministic.
+collections,Collections,finance,Yes,deepseek/deepseek-v4-flash,qwen/qwen3.7-plus,anthropic/claude-sonnet-5,Use approved templates and payment-state data.
+it,IT/SRE,it,Yes,deepseek/deepseek-v4-flash,qwen/qwen3.7-flash,anthropic/claude-sonnet-5,Monitoring and runbooks first; model for diagnosis.
+security,Security Engineer,it,Yes,anthropic/claude-sonnet-5,deepseek/deepseek-v4-flash,anthropic/claude-opus-5,High-risk analysis; containment remains runbook/policy driven.
+onboarding,Supplier Onboarding/KYC,supplier_success,Yes,google/gemini-3.5-flash-lite,qwen/qwen3.7-flash,anthropic/claude-sonnet-5,Documents/extraction plus deterministic KYC gates.
+bd,Supplier Business Development,supplier_success,Yes,deepseek/deepseek-v4-flash,qwen/qwen3.7-plus,anthropic/claude-sonnet-5,Owns acquisition experiments and funnel outcomes.
+followup,Customer Follow-up/SLA,customer_success,Yes,qwen/qwen3.7-plus,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,Templates first; sensitive complaints escalate.
+marketing,Marketing Lead,marketing,Yes,qwen/qwen3.7-plus,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,Sonnet final review for major public claims.
+docs,Knowledge/Documents,knowledge,Yes,google/gemini-3.5-flash-lite,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,Offline ingestion and source-backed retrieval.
+legal,Legal & Compliance,legal,Yes,anthropic/claude-sonnet-5,deepseek/deepseek-v4-flash,anthropic/claude-opus-5,Exact official sources first; lawyer gate remains.
+cpo,Chief Performance Officer,evolution,Yes,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,anthropic/claude-opus-5,KPI/outcome SQL first; model diagnoses and proposes improvements.
+knowledge_director,Knowledge Director,knowledge_eng,Yes,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5:batch,anthropic/claude-opus-5,Batch review and regulated-content approval gates.
+kb_engineer,Knowledge Engineer,knowledge_eng,Yes,google/gemini-3.5-flash-lite,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,Chunking/embedding is code; model only for extraction/synthesis.
+knowledge_validator,Knowledge Validator,knowledge_eng,Yes,anthropic/claude-sonnet-5:batch,deepseek/deepseek-v4-flash,anthropic/claude-opus-5,Independent grading; no silent approval.
+intel_director,Intelligence Director,intelligence,Yes,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,anthropic/claude-opus-5,"Metrics first, then synthesis."
+forecast_analyst,Forecasting Analyst,intelligence,Yes,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,anthropic/claude-opus-5,Forecasting code/SQL first; model explains assumptions.
+market_analyst,Market Intelligence Analyst,intelligence,Yes,deepseek/deepseek-v4-flash,google/gemini-3.5-flash-lite,anthropic/claude-sonnet-5,"Scheduled research, not live inquiry browsing."
+supplier_analyst,Supplier & Customer Analyst,intelligence,Yes,deepseek/deepseek-v4-flash,qwen/qwen3.7-flash,anthropic/claude-sonnet-5,SQL scoring and cohort analysis first.
+innovation_mgr,Innovation Manager,evolution,Yes,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,anthropic/claude-opus-5,Uses experiment and outcome ledger.
+optimisation_eng,Optimisation Engineer,evolution,Yes,deepseek/deepseek-v4-flash,qwen/qwen3.7-flash,anthropic/claude-sonnet-5,Cost logs and benchmarks first.
+org_designer,Organisational Designer,evolution,Yes,deepseek/deepseek-v4-flash,anthropic/claude-sonnet-5,anthropic/claude-opus-5,Reorg proposals require executive approval.
+cat:*,All 86 category experts,procurement,Yes,none/deterministic,qwen/qwen3.7-flash,anthropic/claude-sonnet-5,RAG/rules are the expert brain; DeepSeek handles ambiguous trade-offs before Sonnet escalation.

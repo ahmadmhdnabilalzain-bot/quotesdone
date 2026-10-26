@@ -1,0 +1,5 @@
+gap_id,severity,gap,closure
+GAP-trust_safety-001,medium,No one-to-one production department implementation is confirmed.,"Claude must inspect current org_departments, org_agents, employee workflows, functions and frontend; map or create the missing operating unit in staging."
+GAP-trust_safety-002,medium,2 named functions or live-data objects were not found by exact name in the supplied export.,"Map each concept to the actual current object, update the binding registry and keep unresolved items disabled."
+GAP-trust_safety-003,high,Department records have not been approved by the responsible subject-matter owner.,"Run department-owner review, scenario tests and authority validation before production activation."
+GAP-trust_safety-004,medium,Frontend controls and user experience were not present in the supplied backend export.,"Claude must inspect the current Next.js repository and verify that operational states, permissions, notices and errors are represented correctly."

@@ -1,0 +1,86 @@
+{
+  "catalog_num": 46,
+  "catalog_name": "Cleaning Companies",
+  "expected_catalog_slug": "cleaning-companies",
+  "live_catalog_resolution": {
+    "method": "lookup_by_num",
+    "table": "catalog_supplier_categories",
+    "must_match_num": 46,
+    "do_not_overwrite_live_slug": true
+  },
+  "route_key": "opcat-046",
+  "route_type": "composite",
+  "coverage_status": "mapped_composite_existing_corpus",
+  "knowledge_mappings": [
+    {
+      "package_number": 30,
+      "package_slug": "facilities-management-and-support-services",
+      "package_name": "Facilities Management & Support Services",
+      "package_zip": "QD-KB-030-facilities-management-and-support-services-v2026.07.31.zip",
+      "subcategories": [
+        "soft-fm-cleaning-janitorial-waste",
+        "laundry-and-dry-cleaning-services",
+        "pest-control"
+      ],
+      "priority": "primary",
+      "notes": ""
+    },
+    {
+      "package_number": 41,
+      "package_slug": "chemicals",
+      "package_name": "Chemicals",
+      "package_zip": "QD-KB-041-chemicals-v2026.07.31.zip",
+      "subcategories": [
+        "cleaning-chemicals"
+      ],
+      "priority": "secondary",
+      "notes": ""
+    }
+  ],
+  "routing_aliases_en": [
+    "Cleaning Companies",
+    "Cleaning",
+    "Soft FM (cleaning, janitorial, waste)",
+    "Soft FM",
+    "Laundry & dry-cleaning services",
+    "Laundry",
+    "dry-cleaning services",
+    "Laundry dry-cleaning",
+    "Pest control",
+    "Cleaning chemicals"
+  ],
+  "routing_aliases_ar": [
+    "متطلبات Soft FM (cleaning, janitorial, waste)",
+    "متطلبات Soft FM",
+    "متطلبات Laundry & dry-cleaning services",
+    "متطلبات Laundry",
+    "متطلبات dry-cleaning services",
+    "متطلبات Laundry dry-cleaning",
+    "متطلبات Pest control",
+    "متطلبات Cleaning chemicals"
+  ],
+  "routing_behavior": {
+    "first_pass": "deterministic alias and keyword scoring",
+    "second_pass": "small language model only when intent remains ambiguous",
+    "clarification_question_en": "Which part of Cleaning Companies best describes what you need?",
+    "clarification_question_ar": "ما الجزء من Cleaning Companies الذي يصف احتياجك بشكل أفضل؟",
+    "preserve_multiple_candidates": true,
+    "minimum_auto_route_confidence": 0.82,
+    "minimum_margin_over_second_candidate": 0.15,
+    "low_confidence_action": "ask_one_clarifying_question",
+    "no_match_action": "route_to_miscellaneous_and_log_gap"
+  },
+  "runtime_knowledge_selection": {
+    "retrieve_by_package_and_subcategory": true,
+    "load_full_master_into_prompt": false,
+    "questions_rules_validations_are_deterministic": true,
+    "narrative_retrieval_only_when_needed": true
+  },
+  "certification": {
+    "structural_mapping_checked": true,
+    "source_and_sme_approval_inherited_from_underlying_records": true,
+    "approved_for_autonomous_engineering_or_legal_decisions": false
+  },
+  "version": "1.0.0",
+  "build_date": "2026-07-31"
+}
