@@ -11,6 +11,7 @@
 //
 // Zero cost: writes only kb_chunks rows on the one project. No paid inference, no business effect.
 
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 
 const args = process.argv.slice(2);
@@ -33,8 +34,7 @@ if (!file || !category || !sourceId) {
 }
 
 const PROD_REF = 'htdblwldjkcgjvmqkbeh';
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 
 async function dbPost(q, attempt = 0) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${PROD_REF}/database/query`, {

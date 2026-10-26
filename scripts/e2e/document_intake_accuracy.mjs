@@ -28,6 +28,7 @@
 //
 //   node scripts/e2e/document_intake_accuracy.mjs [--model deployed|gateway] [--cap-usd 4] [--gate-sql f.sql ...]
 //        [--out <dir>] [--label <name>] [--reuse-code <code.json>] [--reuse-model <model.json>]
+import { SANDBOX_OUT } from '../lib/sandbox_out.mjs';
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,7 +48,7 @@ if (!(CAP_USD > 0 && CAP_USD <= 5)) { console.error('REFUSED: --cap-usd must be 
 const LABEL = val('--label') || (MODEL ? `model-${MODEL}` : 'code-only');
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
-const OUT = val('--out') || 'C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\documents';
+const OUT = val('--out') || join(SANDBOX_OUT, 'documents');
 const WORK = join(OUT, `run-${LABEL}`);
 mkdirSync(WORK, { recursive: true });
 process.env.QD_FIXTURES = '1';

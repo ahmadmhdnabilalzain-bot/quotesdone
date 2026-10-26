@@ -22,6 +22,7 @@
 //    value is about to win.
 // 4. THE CLI's EXIT CODE IS NOT THE VERIFICATION. Each function's version is read from the API
 //    before and after; a deploy that did not bump the version did not happen, whatever it printed.
+import { supabaseTokenOrEmpty, MISSING_TOKEN } from './lib/supabase_token.mjs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { isTransientDeployFailure } from './lib/retry.mjs';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
@@ -122,10 +123,8 @@ if (ref === PROD_REF && !has('dry-run')) {
 if (has('dry-run')) { console.log('--dry-run: stopping before the drift check.'); process.exit(0); }
 
 // Everything past this point talks to the API, so the token is required from here.
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || (existsSync('C:/Users/Opera/.supabase/access-token')
-      ? readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8') : '')).trim();
-if (!token) die('No Supabase access token (SUPABASE_ACCESS_TOKEN).');
+const token = supabaseTokenOrEmpty();
+if (!token) die(MISSING_TOKEN);
 const H = { Authorization: 'Bearer ' + token };
 
 // A 429 IS THE ROAD BEING BUSY, NOT THE BUILD BEING BROKEN.

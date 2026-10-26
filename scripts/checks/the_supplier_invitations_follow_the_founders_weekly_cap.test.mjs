@@ -7,12 +7,13 @@
 // Applied by scripts/sql/the_founders_weekly_invite_cap_starts_its_week_of_20_on_19_october.sql.
 //
 //   node --test scripts/checks/the_supplier_invitations_follow_the_founders_weekly_cap.test.mjs
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { sql } from '../lib/db.mjs';
 
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 const q = (query) => sql(query, { ref: 'htdblwldjkcgjvmqkbeh', readOnly: true });

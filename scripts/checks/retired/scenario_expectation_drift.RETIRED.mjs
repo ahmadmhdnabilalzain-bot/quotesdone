@@ -74,6 +74,7 @@
 // the ledger, not to widen this.
 //
 //   node --test scripts/checks/scenario_expectation_drift.test.mjs
+import { SUPABASE_TOKEN_FILE } from '../../lib/supabase_token.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -83,7 +84,7 @@ const PROD = 'htdblwldjkcgjvmqkbeh';
 // PRODUCTION, and CI has no management token. Skipping loudly beats failing a build on a missing
 // credential — the drift it looks for is created by a deliberate change and is caught the next time
 // a session runs the sweep.
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 
