@@ -338,7 +338,9 @@ test('a parked handoff closes from the playbook, and an unknown class still refu
 // transaction that rolls back. A pending file that redefines the tick is replayed first in the same request, so a
 // PR is measured against the routine it will apply. 6000 ms, as for fn_it_detect above: 2 s of headroom.
 const PENDING_TICK = manifestWithPending().filter((f) => !applied.has(f))
-  .map((f) => readFileSync(join(REPO, f), 'utf8')).filter((t) => /function public\.fn_it_(loop_tick|engineer_alert_tick)\(/i.test(t));
+  // fn_it_loop_reverify too (27 Oct 2026): the tick runs it first, and its walk over ~1,000 handoffs is what took the
+  // tick past 8 s (the_it_loop_reverify_works_within_a_budget_so_the_alert_tick_commits.sql)
+  .map((f) => readFileSync(join(REPO, f), 'utf8')).filter((t) => /function public\.fn_it_(loop_tick|engineer_alert_tick|loop_reverify)\(/i.test(t));
 test('the alert tick fits the 8 s statement timeout and escalates before it opens', { skip: SKIP }, async () => {
   const block = `do $p$
     declare t0 timestamptz; v jsonb;
