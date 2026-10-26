@@ -1,7 +1,0 @@
--- Phase 1 F0.2/F0.3: SECURITY DEFINER helpers for the Settings console.
--- fn_os_settings_list / _set / _history / _revert. The _set/_revert functions refuse
--- any key not present in os_settings_meta (the structural secret guard), enforce
--- type/range validation, honour the dangerous-flag confirm gate, and write os_audit_log.
--- Applied to project htdblwldjkcgjvmqkbeh on 2026-07-24.
--- Authoritative current definitions are mirrored nightly into
--- supabase/schema/full_schema.sql (section FUNCTIONS).

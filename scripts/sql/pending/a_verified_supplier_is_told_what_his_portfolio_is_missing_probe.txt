@@ -1,8 +1,0 @@
-A PROBE, so it is never applied at all — it is READ through node scripts/qsql.mjs after
-a_verified_supplier_is_told_what_his_portfolio_is_missing.sql has been applied, and it must print PROBE OK.
-scripts/checks/a_verified_supplier_is_told_what_his_portfolio_is_missing.test.mjs runs it on every pull request.
-
-It writes three ZZ DEMO / @example.invalid suppliers, their capabilities, two storage rows and the reminder
-it sends them inside a block that always raises, so nothing survives it (asserted after the rollback).
-
-This note therefore stays for the life of the file. Seat: sales_engineer.

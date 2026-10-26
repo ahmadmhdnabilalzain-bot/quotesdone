@@ -1,5 +1,0 @@
--- Phase 3 Epic C (Category & Spec management): SECURITY DEFINER helpers
--- fn_os_catalog_list / _get / _save_fields / _spec_upsert / _spec_delete / _test_gate.
--- Admin-gated via the os_catalog edge function; mutations write os_audit_log; regex
--- patterns are validated by compiling before save. Applied 2026-07-24 to htdblwldjkcgjvmqkbeh.
--- Authoritative current definitions are mirrored nightly into supabase/schema/full_schema.sql.

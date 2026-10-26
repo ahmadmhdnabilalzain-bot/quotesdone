@@ -1,6 +1,0 @@
--- Phase 5 Epic F: incident capture, escalation, and runbook library.
--- os_incidents + os_runbooks tables; fn_os_incident_open (fires alert_founder), _list,
--- _resolve; fn_os_runbooks; seeded with 10 top-incident runbooks. Admin-gated via the
--- os_incidents edge function. Applied 2026-07-25 to htdblwldjkcgjvmqkbeh.
--- Note: F1 (kill-switches inside live checkout/reveal/auth) intentionally NOT auto-applied;
--- subsystem flags remain controllable via Settings. Definitions mirrored nightly into full_schema.sql.
