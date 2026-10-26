@@ -1,0 +1,84 @@
+{
+ "trade": "cnc_machining",
+ "layer": "uae-market",
+ "label_en": "CNC machining & fabrication services",
+ "label_ar": "خدمات التشغيل الآلي CNC والتصنيع",
+ "entries": [
+  {
+   "id": "cnc_machining:uae-market-products",
+   "topic": "CNC machining & fabrication services: products, variants and grades sold in the UAE",
+   "topic_ar": "خدمات التشغيل الآلي CNC والتصنيع: المنتجات والأنواع والدرجات المباعة في الإمارات",
+   "kind": "uae_market_products",
+   "body_en": "CNC machining in the UAE covers turned and milled parts, oilfield components, moulds, sheet-metal cutting and bending, and reverse-engineered spares, produced to drawing in Sharjah, Ajman, Dubai (Al Quoz, Jebel Ali), Abu Dhabi (Mussafah, ICAD) and RAK. Typical work: oil and gas spares (couplings, subs, flanges, valve parts), pump and compressor parts, food and packaging machine parts, marine shafts, aluminium enclosures, signage and architectural metal, jigs and fixtures. Many shops also do welding fabrication, laser cutting and reverse engineering from a worn sample.",
+   "body_ar": "يشمل التشغيل الآلي CNC في الإمارات القطع المخروطة والمفرزة، ومكونات حقول النفط، والقوالب، وقطع وثني الصاج، وقطع الغيار المصنّعة بالهندسة العكسية، وتُنتج حسب الرسم في الشارقة وعجمان ودبي (القوز، جبل علي) وأبوظبي (مصفح، ICAD) ورأس الخيمة. الأعمال المعتادة: قطع غيار النفط والغاز (وصلات، سبس، فلنجات، قطع صمامات)، وقطع المضخات والضواغط، وقطع ماكينات الأغذية والتغليف، وأعمدة السفن، وصناديق الألمنيوم، والمعادن المعمارية واللافتات، والمثبتات والقوالب. وكثير من الورش تقدم أيضاً اللحام والتصنيع والقطع بالليزر والهندسة العكسية من عينة مستهلكة.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Numerical_control"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-10-19",
+   "source_note": "Pages opened 2026-10-19: CNC milling on three to six axes and turning on two-axis lathes with multi-axis variants -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+  },
+  {
+   "id": "cnc_machining:uae-market-brands",
+   "topic": "CNC machining & fabrication services: makes, brands, distributors and origins in the UAE",
+   "topic_ar": "خدمات التشغيل الآلي CNC والتصنيع: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
+   "kind": "uae_market_brands",
+   "body_en": "Machine makes common in UAE CNC shops: Haas, Mazak, DMG Mori, Okuma, Doosan/DN Solutions, Hurco, Fanuc and Siemens controls; wire EDM by Sodick, Mitsubishi Electric, Fanuc and GF; laser cutters by Trumpf, Bystronic, Amada and Chinese makers (HSG, Bodor). Bar stock is drawn from UAE metal stockists and imported mill material (Europe, India, China, Korea). Which distributor holds each brand in the UAE was not checked.",
+   "body_ar": "ماركات الآلات الشائعة في ورش CNC بالإمارات: Haas وMazak وDMG Mori وOkuma وDoosan/DN Solutions وHurco، وأنظمة تحكم Fanuc وSiemens؛ وتفريغ كهربائي بالسلك من Sodick وMitsubishi Electric وFanuc وGF؛ وقواطع ليزر من Trumpf وBystronic وAmada وصانعين صينيين (HSG، Bodor). وتُؤخذ القضبان من تجار المعادن في الإمارات ومن مواد مصانع مستوردة (أوروبا، الهند، الصين، كوريا). لم يُتحقق من موزّع كل علامة في الإمارات.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Numerical_control"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-10-19",
+   "source_note": "Pages opened 2026-10-19: CNC milling on three to six axes and turning on two-axis lathes with multi-axis variants -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+  },
+  {
+   "id": "cnc_machining:uae-market-sizes",
+   "topic": "CNC machining & fabrication services: typical sizes, units and how it is quoted in the UAE",
+   "topic_ar": "خدمات التشغيل الآلي CNC والتصنيع: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
+   "kind": "uae_market_sizes",
+   "body_en": "Priced per piece at stated quantity breaks, with a separate setup, programming or fixture charge. Sheet work is priced per piece or per sheet nest. Reverse engineering and drawing creation are a separate line. Machine-hour rates apply to repair work. Delivery is ex-works or delivered, and material certificates and inspection reports are separate deliverables.",
+   "body_ar": "تُسعّر بالقطعة عند شرائح كميات محددة، مع رسوم منفصلة للتجهيز أو البرمجة أو القالب. وتُسعّر أعمال الصاج بالقطعة أو بتوزيع اللوح. والهندسة العكسية وإعداد الرسومات بند منفصل. وتُطبّق أسعار ساعة الآلة على أعمال الإصلاح. والتسليم من الورشة أو حتى الموقع، وشهادات المادة وتقارير الفحص مخرجات منفصلة.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Numerical_control"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-10-19",
+   "source_note": "Pages opened 2026-10-19: CNC milling on three to six axes and turning on two-axis lathes with multi-axis variants -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+  }
+ ],
+ "eval": [
+  {
+   "q_en": "Should my shaft be turned on a normal lathe or does it need grinding to hit the tolerance?",
+   "q_ar": "هل يكفي خراطة العمود على مخرطة عادية أم يحتاج تجليخ عشان يوصل للتفاوت المطلوب؟",
+   "expected_entry_ids": [
+    "cnc_machining:uae-market-products",
+    "cnc_machining:product-distinctions"
+   ],
+   "expected_mode": "any",
+   "why": "The products entry names the variants sold in the UAE; the sibling distinctions entry explains the choice.",
+   "written_blind": true
+  }
+ ],
+ "verified": {
+  "by": "sales_engineer",
+  "on": "2026-10-19",
+  "method": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Brand names are well-known makes in the UAE market; local distributor appointments were not checked.",
+  "checks": [
+   {
+    "claim": "CNC milling on three to six axes and turning on two-axis lathes with multi-axis variants -> confirmed",
+    "url": "https://en.wikipedia.org/wiki/Numerical_control",
+    "result": "confirmed on the page opened"
+   }
+  ],
+  "unverified": "Distributor appointments per brand.",
+  "ledger": [
+   893,
+   899,
+   900,
+   903,
+   1198,
+   1209
+  ]
+ }
+}

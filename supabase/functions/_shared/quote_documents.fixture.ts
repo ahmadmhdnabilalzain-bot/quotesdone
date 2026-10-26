@@ -10,6 +10,7 @@
 // (docs/contracts/technical_comparison.md) will produce: stated value per attribute, per line, per
 // supplier, flagged against the request, plus the lead-time / installation / warranty checks.
 import { supplierLabel, type InquiryDocRow, type Item, type TechnicalComparison } from './quote_documents.ts';
+import { isLiveQuote } from './quote_live.ts';
 import type { Labelled } from '../quote_compare/deterministic.ts';
 
 export type FixtureQuote = {

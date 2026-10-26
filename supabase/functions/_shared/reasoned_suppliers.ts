@@ -34,6 +34,7 @@ export async function quoteTerms(deps: ThinkDeps, o: { text: string }): Promise<
     seat: 'sales_engineer', surface: 'quote_extract.document', question: o.text.slice(0, 6000), queueWhenHeld: false,
     context: { audience: 'supplier', conversation: [{ role: 'supplier', text: o.text.slice(0, 6000) }] },
     decision: { name: 'quotation_terms', fields: QUOTE_TERMS.map((t) => ({ key: t.key, question: t.question })) },
+    ...readerOfTheirOwnText('read the terms the quotation states'),
   });
   if (!answered(result)) return { value: null, result };
   const out: Partial<Record<QuoteTermKey, string>> = {};

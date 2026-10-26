@@ -28,8 +28,12 @@ import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { logParty, widgetReplyEffects } from '../_shared/widget_reply_effects.ts';
 import { companyBrief } from '../_shared/company_brief.ts';
+<<<<<<< HEAD
 import { CONVERSATION_STYLE } from '../_shared/brief.generated.ts';
 import { precedentBlock, recallCases, type CaseMemory } from '../_shared/case_recall.ts';
+=======
+import { recallCases } from '../_shared/case_recall.ts';
+>>>>>>> origin/main
 import { answerFromBrief } from '../_shared/brief_answer.ts';
 import { acceptImages } from '../_shared/chat_images.ts';
 import { logWithAttempts } from '../_shared/reply_attempts.ts';
@@ -321,17 +325,18 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // Customers and visitors are answered in their language; suppliers always in English (founder, 28 Sep 2026).
     const lang = langOf(message, uiLang);
     const replyLang: 'en' | 'ar' = audience === 'supplier' ? 'en' : lang;
-    // Past cases first (every seat recalls before it decides): support's own cases only on this public surface, read while
-    // the brief is built. The model stays consistent with a finalised resolution and never mentions another customer.
+    // NO PAST-CASE TEXT ON THIS SURFACE (18 Oct 2026, sandbox run d6cf4793 turn 16). A recalled case's situation is the
+    // raw record it was opened from (a quote case: another customer's inquiry id, amount and scope), and every reader of
+    // this surface is a customer, a supplier or a visitor. A sentence in the prompt asking the model not to mention it
+    // did not hold: the portal read one back as "the quote record refers to 40 aluminium windows". Past cases stay for
+    // internal seats (think() drops case text for an external audience). The recall still runs, so this judgement is opened
+    // with what was recalled and its outcome is learned from; its text is never put in this prompt.
     const [brief, memory] = await Promise.all([
       companyBrief(rpc, (faqs || []) as FaqRow[], [FACTS_SHARED, FACTS_CUSTOMER, FACTS_SUPPLIER].join('\n\n'), replyLang),
-      recallCases(admin, { seat: 'customer_support', path: 'reply', situation: message, otherSeats: false }).catch(() => ({ cases: [] }) as unknown as CaseMemory),
+      recallCases(admin, { seat: 'customer_support', path: 'reply', situation: message, otherSeats: false }).catch(() => null),
     ]);
-    // rule: null — precedentRule is written for a seat's own work ("reference it by its number", "say so") and, in a
-    // customer's reply, made the model tell them "a similar earlier query was not finalised" (12 Oct 2026, 3 of 3 signed-in
-    // answers, judged off-topic leakage). The person is answered; the block only keeps the answer consistent.
-    const memoryBlock = memory.cases.length ? '\n' + precedentBlock({ ...memory, rule: null }) + '\nStay consistent with how a FINALISED past case was resolved; never mention another customer, a case number or this block.' : '';
     lap('brief');
+    void memory; // read in parallel with the brief (the fast-answer check pins it); its text never enters this prompt
     const audienceBlock = audience === 'supplier'
       ? `AUDIENCE: a SUPPLIER${path ? ' (on ' + path + ')' : ''}. Answer as to a supplier.`
       : audience === 'customer'
@@ -339,7 +344,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
       : `AUDIENCE: not known yet${path ? ' (on ' + path + ')' : ''}. Read from their words whether they buy (a customer) or sell (a supplier); if the answer genuinely differs and you cannot tell, answer both sides briefly.`;
     const liveBlock = live ? `\n\nTHIS PERSON IS SIGNED IN. Their OWN live account data, scoped in SQL to them alone:\n${JSON.stringify(live)}\nAnswer about their account from it directly; never tell them to log in. Before a reveal, price_band is a rounded band and a count on purpose: never present it as exact and never name or describe a supplier. Their portal is in ${uiLang === 'ar' ? 'ARABIC; name its buttons in Arabic as printed ("طلب جديد", "طلباتي", "المستندات", "الرسائل", "الحساب")' : 'ENGLISH; name its buttons as printed ("New request", "My requests", "Documents", "Messages", "Account")'}.` : '';
     const sys = `You are QuotesDone's ${seatForSurface === 'sales_engineer' ? 'sales engineer' : 'customer support'} on ${live ? 'the signed-in portal' : 'the quotesdone.com website chat'}. Answer the way a senior UAE construction and procurement expert answers a client: one direct, exact answer to what they asked, reasoned with your own expertise. Trade, material, specification and market questions (for example the difference between MDF and plywood) get a clear expert answer from your own knowledge.
-${audienceBlock}${liveBlock}${timelineBlock}${memoryBlock}
+${audienceBlock}${liveBlock}${timelineBlock}
 RULES:
 - Everything about QuotesDone itself (fees, terms, liability, how it works, policies, contacts) comes from the COMPANY BRIEF. Every money figure or percentage you write must be one the brief states; never estimate a price, fee or rate the brief does not give — explain without a number instead. For what a trade or item costs, give the range from the PUBLISHED PRICE GUIDE as a range, say it is a guide and not a quotation, and offer to collect real quotes.
 - Never say you will check, confirm or get back to them, and never decline a question about any trade, category or specification (food and beverage excepted): give everything that can be said now.

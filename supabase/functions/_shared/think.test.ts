@@ -178,6 +178,23 @@ Deno.test('thin knowledge is researched on the authoritative web, cited, and wri
   assertEquals(r.sources[0].url, url);
   const p = m.rpcs.find(([f]) => f === 'fn_reason_propose_knowledge')!;
   assertEquals((p[1].p_sources as { url: string }[])[0].url, url);
+  assertEquals(p[1].p_question, 'do I need a permit for a pool in Dubai?');   // internal: the question as asked
+});
+
+// The pending row is retrievable by every seat and its question is printed as a source title in other people's replies:
+// a customer's own message (name, villa, phone) is never stored there, only the planner's research query.
+Deno.test('a customer\'s message is never stored as the research question; the plan step query is', async () => {
+  const url = 'https://www.dm.gov.ae/pools';
+  const m = mock({ retrieve: [{ source: 'kb_chunks', id: 1, title: 'x', excerpt: 'unrelated', similarity: 0.7 }],
+    search: [{ url, title: 'DM pools' }], pages: { [url]: 'Private pools require a building permit.' },
+    replies: {
+      decompose: [J({ steps: [{ id: 's1', goal: 'DM pool rule', query: 'dubai private pool permit' }], facts: [] })],
+      research: [J({ findings: [{ statement: 'Private pools require a Dubai Municipality building permit.', url }] })],
+      synthesise: [J({ answer: 'In Dubai a private pool needs a Dubai Municipality building permit.', reasoning: ['s1: DM requires a permit'], cited: ['web:s1.1'], confidence: 0.7 })],
+    } });
+  await think(m.deps, { seat: 'sales_engineer', surface: 'portal', question: 'ZZ DEMO Ahmed, villa 12 Jumeirah, 0501234567: do I need a pool permit?', context: { audience: 'customer' } });
+  const p = m.rpcs.find(([f]) => f === 'fn_reason_propose_knowledge')!;
+  assertEquals(p[1].p_question, 'dubai private pool permit');
 });
 
 Deno.test('only authority hosts over https are read', () => {
@@ -326,7 +343,7 @@ Deno.test('a fixture question is held but never queued for a paid replay (e2e jo
 Deno.test('a fixture inside a proven, open sandbox window makes a model call; outside it, or unproven, it is stubbed', async () => {
   const { E2E_RUN } = await import('./e2e_run.ts');
   const opts = { name: 'trade', options: [{ id: 'aluminium', meaning: 'aluminium work' }, { id: 'glazing', meaning: 'glazing work' }] };
-  const req = { seat: 'sales_engineer' as const, surface: 'inquiry_intake.trade', decision: opts, question: 'We need 40 aluminium windows', subject: { intake_id: 'x', fixture: true } };
+  const req = { context: { audience: 'internal' as const }, seat: 'sales_engineer' as const, surface: 'inquiry_intake.trade', decision: opts, question: 'We need 40 aluminium windows', subject: { intake_id: 'x', fixture: true } };
   const run = (open: unknown, tag: string | null) => {
     const m = mock({ gate: { allowed: true, rule: 'allowed' }, replies: {} });
     const rpc = m.deps.rpc;
@@ -391,4 +408,33 @@ Deno.test('a plan cut off at the output cap still answers, from a one-step plan 
   const none = mock({ replies: { decompose: [{ content: null, error: 'all_models_failed' }] } });
   const r2 = await think(none.deps, { seat: 'customer_support', surface: 'support_reply.portal', question: 'q', context: { audience: 'customer' } });
   assert(r2.status !== 'answered');
+});
+
+// 18 Oct 2026, sandbox run d6cf4793 turn 16: customer A's portal reply described customer B's quote ("the quote record
+// refers to 40 aluminium windows"). The text was a recalled seat_case_memory quote case. An external audience's prompt
+// never carries a recalled case; an internal one still does.
+Deno.test('customer A never sees customer B\'s quote case in the chat context; an internal seat still does', async () => {
+  const B = 'quote AED 118500 | for inquiry 474a37be-4dd5-47ec-be6a-a12f1800d20c | Supply and installation of 40 aluminium windows';
+  const run = async (audience: 'customer' | 'supplier' | 'visitor' | 'internal') => {
+    const m = mock({ retrieve: KB, replies: {
+      decompose: [J({ steps: [{ id: 's1', goal: 'install time', query: 'window installation time' }], facts: [], high_stakes: false })],
+      synthesise: [J({ answer: 'It depends on the job.', reasoning: ['s1: kb'], cited: ['kb_chunks:7'], confidence: 0.7, asked_back: null })],
+    } });
+    const rpc = m.deps.rpc;
+    m.deps.rpc = (fn, args) => fn === 'fn_case_recall'
+      ? Promise.resolve({ data: { cases: [{ case_id: 149321, seat: 'sales_engineer', case_kind: 'quote', trade: null, situation: B, decision: null, outcome: 'lost at reveal', correction: null, lessons: [], finalised: true, similarity: 0.9 }] }, error: null })
+      : rpc(fn, args);
+    const r = await think(m.deps, { seat: 'sales_engineer', surface: 'portal', question: 'how long does installation take?', context: { audience } });
+    const prompts = m.calls.map((c) => c.system + c.input).join('\n');
+    return { ids: r.sources.map((s) => s.id), leaked: prompts.includes('40 aluminium windows') || prompts.includes('474a37be'), sys: m.calls.find((c) => c.phase === 'synthesise')?.system ?? '' };
+  };
+  for (const a of ['customer', 'supplier', 'visitor'] as const) {
+    const x = await run(a);
+    assert(!x.ids.includes('case#149321'), a + ': another party\'s case reached the sources');
+    assert(!x.leaked, a + ': another party\'s quote text reached a model prompt');
+    assertMatch(x.sys, /never this person's own records/);
+    
+  }
+  const internal = await run('internal');
+  assert(internal.leaked, 'an internal seat lost its case memory');
 });

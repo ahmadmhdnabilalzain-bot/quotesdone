@@ -1,0 +1,1 @@
+"Applied at merge by the release operator (apply at merge, never before). Adds founder_hold/target_label and the CEO's plain founder note and weekly review. When applied: delete this note, append the .sql to the END of MANIFEST.txt, regenerate the schema mirror." ; node --test scripts/checks/the_founder_reads_a_plain_ceo_note_and_held_targets_are_paused.test.mjs  

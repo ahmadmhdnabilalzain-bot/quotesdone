@@ -45,7 +45,10 @@ const steps = dead ? all.filter((s) => !(s.status === 'FAIL' && s.detail === dea
 // run that actually ran every journey. A run cut short by its deadline (QD_E2E_DEADLINE_MS) or by
 // --journey still reports its heartbeat and its failures; it just may not close anything.
 // Older reports have no such field; those runs predate truncation and are treated as complete.
-const report = { tag: run.tag, leftovers: run.leftovers ?? null, complete: run.complete !== false, steps };
+// journeys: the journeys that ran to their end. The ingest settles only those journeys' keys and
+// carries every other open one untouched. Absent (older run.json) means every journey, as before.
+const report = { tag: run.tag, leftovers: run.leftovers ?? null, complete: run.complete !== false, steps,
+  ...(Array.isArray(run.journeys) ? { journeys: run.journeys } : {}) };
 if (smoke) {
   report.sha = smoke.sha;
   report.changed_files = readFileSync(smoke.files, 'utf8').split(/\r?\n/).map((s) => s.trim()).filter(Boolean);

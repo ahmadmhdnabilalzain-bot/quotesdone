@@ -147,7 +147,7 @@ async function drive(browser, run, supplier, inquiryId, lang, viewport) {
 
     await detail.getByRole('button', { name: L('Send your quotation to the sales engineer', 'إرسال عرض السعر إلى مهندس المبيعات') }).click();
     const chat = page.locator(`#qd-qt-c-${inquiryId}`);
-    await chat.getByText(L('I am the QuotesDone sales engineer', 'أنا مهندس المبيعات')).waitFor({ timeout: 30000 });
+    await chat.getByText(/is open for your quotation/).first().waitFor({ timeout: 30000 });
     await shot('03_chat_opened');
 
     const incompletePath = join(SHOTS, `quote_incomplete_${run.tag}_${lang}.csv`); writeFileSync(incompletePath, INCOMPLETE);

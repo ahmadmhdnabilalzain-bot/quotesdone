@@ -1,6 +1,10 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
+<<<<<<< HEAD
 -- Captured 2026-10-19T00:33:42.631Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+=======
+-- Captured 2026-10-19T01:52:51.889Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+>>>>>>> origin/main
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and

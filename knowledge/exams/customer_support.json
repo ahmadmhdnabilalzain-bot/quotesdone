@@ -121,6 +121,10 @@
       ],
       "expected_facts": [
         "founder is then emailed"
+      ],
+      "answer_must": [
+        "An explicit request for a person on WhatsApp is the one exception",
+        "The founder is emailed and carries on the conversation himself"
       ]
     },
     {
@@ -389,6 +393,10 @@
       ],
       "expected_facts": [
         "3 working days"
+      ],
+      "answer_must": [
+        "The CEO decides the dispute, not support",
+        "Within 3 working days"
       ]
     },
     {
@@ -727,6 +735,10 @@
       ],
       "expected_facts": [
         "published contact route"
+      ],
+      "answer_must": [
+        "A published contact route, stated hours, a measured response commitment and a complaint path",
+        "A channel missing any of the four is not opened"
       ]
     },
     {

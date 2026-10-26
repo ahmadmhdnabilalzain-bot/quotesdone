@@ -319,6 +319,15 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
     if (action === 'product_match') {
       const inquiryId = String(b.inquiry_id || '');
       if (!inquiryId) return J({ error: 'inquiry_id required' }, 400);
+      // ONLY AN ENQUIRY THIS SUPPLIER WAS MATCHED TO (IDOR, it_engineer 19 Oct 2026, launch-checklist
+      // security pass). p_inquiry_id was taken straight from the body and fn_supplier_product_match
+      // reads public.inquiries (summary, raw_input, category) for ANY id, with no membership check —
+      // unlike fn_supplier_quote_recommend, which gates on inquiry_matches. A signed-in supplier could
+      // probe any inquiry's existence and category, and feed another party's raw_input (which may carry
+      // unmasked customer detail) into a platform-billed think() call. Gate it here, the same way
+      // supplier_api gates extract_quote/submit_quote through matchedInquiry().
+      const { data: mm } = await admin.from('inquiry_matches').select('id').eq('inquiry_id', inquiryId).eq('supplier_id', supId).limit(1);
+      if (!mm || !mm.length) return J({ error: 'not_your_inquiry', code: 'not_your_inquiry' }, 403);
       // WHICH OF HIS PRODUCTS THE ENQUIRY ASKS FOR IS REASONED, not counted in shared words (founder_instruction
       // 886-903; decision point 26): the routine hands back the enquiry and his products, think() reads them
       // (reasoned_matching.ts productsAsked), and the routine is asked again with the answer. Held: the list is
@@ -650,12 +659,11 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
     // refused above the switch. Catalogues: one path out of the array, the same way.
     if (action === 'remove_document') {
       const kindStr = String(b.kind || '');
-      const ar = String(b.lang || '') === 'ar';
       if (kindStr === 'catalogs') {
         const path = String(b.path || '');
         const { data: cur } = await admin.from('leads').select('catalog_doc_paths').eq('id', sup.id).maybeSingle();
         const list: string[] = Array.isArray(cur?.catalog_doc_paths) ? (cur!.catalog_doc_paths as string[]) : [];
-        if (!path || !list.includes(path)) { const r = removeRefusal({ kind: kindStr, known: true, onFile: false, required: false, approval_status: sup.approval_status })!; return J({ ok: false, error: 'remove_refused', code: r.code, message: ar ? r.message_ar : r.message }, 409); }
+        if (!path || !list.includes(path)) { const r = removeRefusal({ kind: kindStr, known: true, onFile: false, required: false, approval_status: sup.approval_status })!; return J({ ok: false, error: 'remove_refused', code: r.code, message: r.message }, 409); }
         const { error } = await admin.from('leads').update({ catalog_doc_paths: list.filter((p) => p !== path), portal_updated_at: new Date().toISOString() }).eq('id', sup.id);
         if (error) return failed('remove_document', 'remove_failed', 'We could not remove that document. Please try again.', error, 502);
         const snap: VersionSnapshot = { event: 'removed', kind: 'catalogs', path, name: path.split('/').pop() || null, expiry: null, at: new Date().toISOString() };
@@ -669,7 +677,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
       const row = (cur || {}) as Record<string, unknown>;
       const prev = kind ? (row[kind.pathCol] as string | null) : null;
       const refusal = removeRefusal({ kind: kindStr, known: !!kind, onFile: !!prev, required: REQUIRED_DOC_KEYS.includes(kindStr), approval_status: sup.approval_status });
-      if (refusal || !kind || !prev) { const r = refusal!; return J({ ok: false, error: 'remove_refused', code: r.code, message: ar ? r.message_ar : r.message }, r.code === 'mandatory_of_approved' ? 409 : 400); }
+      if (refusal || !kind || !prev) { const r = refusal!; return J({ ok: false, error: 'remove_refused', code: r.code, message: r.message }, r.code === 'mandatory_of_approved' ? 409 : 400); }
       const clear: Record<string, unknown> = { [kind.pathCol]: null, portal_updated_at: new Date().toISOString() };
       if (kind.nameCol) clear[kind.nameCol] = null;
       if (kind.expCol) clear[kind.expCol] = null;

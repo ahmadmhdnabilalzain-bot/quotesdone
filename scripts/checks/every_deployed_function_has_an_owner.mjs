@@ -64,3 +64,7 @@ if (!unowned.length && !stale.length) {
   console.log('\nEvery deployed function names an owner, and every owner has a subject.');
 }
 process.exit(unowned.length || stale.length ? 1 : 0);
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1]).href) await main();
+printf: warning: ignoring excess arguments, starting with ';'

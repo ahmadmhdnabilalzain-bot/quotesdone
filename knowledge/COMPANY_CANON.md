@@ -132,7 +132,7 @@ Registration is free for the first 1,000 suppliers; after that it is AED 1,000 p
 
 **Are there any other fees for suppliers?**
 
-No. There is no commission on won work and registration is currently free. The only supplier-side charge is the non-response charge (the exact amount refunded to the buyer, an AED 250 administrative fee, and simple interest at 9% a year from the due date), and only if the supplier did not respond and the buyer was refunded.
+No. There is no commission on won work and registration is currently free. The only supplier-side charge is the non-response charge (the exact amount refunded to the buyer, the processor fee QuotesDone could not recover, an AED 500 administrative fee, and simple interest at 12% a year from the due date), and only if the supplier did not respond and the buyer was refunded.
 
 ## Licence Expiry
 

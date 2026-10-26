@@ -120,7 +120,7 @@ Deno.test('copy rules bite: two links, HTML, a dated offer, a capped quote count
   assert(bad(m365InvitationText(LINK).replace('Hello,', '<b>Hello</b>,')).some((r) => r.includes('HTML')));
   assert(bad(m365InvitationText(LINK).replace('1,000 supplier registrations', '1,000 supplier registrations until December 2026')).some((r) => r.includes('date')));
   assert(bad(m365InvitationText(LINK).replace('Any number of suppliers', 'Up to ' + 'three suppliers')).some((r) => r.includes('any number may quote')));
-  assert(bad(m365InvitationText(LINK).replace('marketplace', 'AI marketplace')).length);
+  assert(bad(m365InvitationText(LINK).replace('founder of QuotesDone', 'founder of QuotesDone AI')).length);
   assert(bad(m365InvitationText(LINK).replace('Hello', 'مرحبا')).length);
 });
 
@@ -174,7 +174,7 @@ Deno.test('a placement seed keeps its trailing inbox-test ID; a real invitation 
   // the marker is the only exemption: a date elsewhere in a seed still fails, and so do the content rules
   const dated = seed.replace('1,000 supplier registrations', '1,000 supplier registrations until December 2026');
   assert(m365CopyLint({ subject: 'x', body: dated, seed: true }).some((l) => !l.ok && l.rule.includes('date')));
-  assert(m365CopyLint({ subject: 'x', body: seed.replace('marketplace', 'AI marketplace'), seed: true }).some((l) => !l.ok));
+  assert(m365CopyLint({ subject: 'x', body: seed.replace('founder of QuotesDone', 'founder of QuotesDone AI'), seed: true }).some((l) => !l.ok));
   // a line that is not exactly the marker shape is not carried
   assertFalse(m365Body('supplier_invite_seed', row.replace(ID, 'id: 2026 bad'), M365_SEED_KIND).includes('id:'));
 });

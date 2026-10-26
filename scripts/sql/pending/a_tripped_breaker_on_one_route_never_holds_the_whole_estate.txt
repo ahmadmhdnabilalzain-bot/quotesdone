@@ -1,0 +1,6 @@
+Committed, not applied: applied at merge by the release operator (apply at merge, never before). It replaces fn_kernel_paid_provider_gate so rule 3 (the founder's hold) counts only routes held more than a year out; a normal failure breaker then refuses its own route under rule 5 instead of the whole estate. On apply: delete this note and append the file to the END of MANIFEST.txt. Seat: it_engineer.
+;
+sed
+-n
+1,40p
+scripts/checks/a_sandbox_success_never_lifts_the_model_hold.test.mjs

@@ -1,0 +1,84 @@
+{
+ "trade": "industrial_machinery",
+ "layer": "uae-market",
+ "label_en": "Industrial machinery & plant equipment",
+ "label_ar": "الآلات الصناعية ومعدات المصانع",
+ "entries": [
+  {
+   "id": "industrial_machinery:uae-market-products",
+   "topic": "Industrial machinery & plant equipment: products, variants and grades sold in the UAE",
+   "topic_ar": "الآلات الصناعية ومعدات المصانع: المنتجات والأنواع والدرجات المباعة في الإمارات",
+   "kind": "uae_market_products",
+   "body_en": "Industrial machinery in the UAE is sold into free-zone and mainland factories: KEZAD and ICAD in Abu Dhabi, Jebel Ali and Dubai Industrial City, the Sharjah industrial areas, Hamriyah, Ajman and RAK. The main lines are plastics and packaging machines, food-grade process equipment for non-food-contact uses, metal-working and sheet-metal machines, woodworking and furniture lines, block and precast plants, printing and converting, water bottling, and recycling plants. Dubai is also a re-export hub for machines going to Africa and South Asia, and the used-machinery trade is active.",
+   "body_ar": "تُباع الآلات الصناعية في الإمارات لمصانع المناطق الحرة والبر الرئيسي: كيزاد وICAD في أبوظبي، وجبل علي ومدينة دبي الصناعية، والمناطق الصناعية بالشارقة، والحمرية، وعجمان، ورأس الخيمة. وأهم الخطوط: آلات البلاستيك والتغليف، ومعدات العمليات، وآلات تشغيل المعادن والصاج، وخطوط النجارة والأثاث، ومصانع الطابوق والخرسانة مسبقة الصب، والطباعة والتحويل، وتعبئة المياه، ومصانع إعادة التدوير. ودبي أيضاً مركز لإعادة تصدير الآلات إلى أفريقيا وجنوب آسيا، وتجارة الآلات المستعملة نشطة.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Machinery_Directive"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-10-19",
+   "source_note": "Pages opened 2026-10-19: the EU Machinery Directive and CE marking provisions; the page does not name EN ISO 12100 -> partly confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+  },
+  {
+   "id": "industrial_machinery:uae-market-brands",
+   "topic": "Industrial machinery & plant equipment: makes, brands, distributors and origins in the UAE",
+   "topic_ar": "الآلات الصناعية ومعدات المصانع: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
+   "kind": "uae_market_brands",
+   "body_en": "Makes seen in the UAE: Engel, Arburg, KraussMaffei, Haitian and Chen Hsong (injection moulding); Bausano and Battenfeld-Cincinnati (extrusion); Trumpf, Amada and Bystronic (sheet metal); Biesse, SCM and Homag (woodworking); Bosch Packaging/Syntegon, Krones and Sidel (packaging and bottling); Atlas Copco and Kaeser (compressed air); plus a wide range of Chinese and Indian builders. UAE agency appointments were not checked.",
+   "body_ar": "الماركات المتداولة في الإمارات: Engel وArburg وKraussMaffei وHaitian وChen Hsong (الحقن)؛ Bausano وBattenfeld-Cincinnati (البثق)؛ Trumpf وAmada وBystronic (الصاج)؛ Biesse وSCM وHomag (النجارة)؛ Bosch Packaging/Syntegon وKrones وSidel (التغليف والتعبئة)؛ Atlas Copco وKaeser (الهواء المضغوط)؛ إضافة إلى طيف واسع من الصانعين الصينيين والهنود. لم يُتحقق من الوكالات في الإمارات.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Machinery_Directive"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-10-19",
+   "source_note": "Pages opened 2026-10-19: the EU Machinery Directive and CE marking provisions; the page does not name EN ISO 12100 -> partly confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+  },
+  {
+   "id": "industrial_machinery:uae-market-sizes",
+   "topic": "Industrial machinery & plant equipment: typical sizes, units and how it is quoted in the UAE",
+   "topic_ar": "الآلات الصناعية ومعدات المصانع: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
+   "kind": "uae_market_sizes",
+   "body_en": "Priced per machine or per line, with options, spares, installation and training as separate lines. The Incoterm is always named (EXW, FOB, CIF Jebel Ali, DDP). Payment is usually in milestones with a letter of credit for imports. Used machines are sold as-is or with a refurbishment warranty. Annual maintenance contracts are offered per machine.",
+   "body_ar": "تُسعّر لكل آلة أو لكل خط، مع الخيارات وقطع الغيار والتركيب والتدريب بنوداً منفصلة. ويُذكر دائماً شرط التسليم (من المصنع، أو FOB، أو CIF جبل علي، أو حتى الموقع). والسداد عادة على دفعات مع اعتماد مستندي للاستيراد. وتُباع الآلات المستعملة بحالتها أو بضمان تجديد. وتُعرض عقود صيانة سنوية لكل آلة.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Machinery_Directive"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-10-19",
+   "source_note": "Pages opened 2026-10-19: the EU Machinery Directive and CE marking provisions; the page does not name EN ISO 12100 -> partly confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+  }
+ ],
+ "eval": [
+  {
+   "q_en": "Is a used European injection moulding machine a better buy than a new Chinese one?",
+   "q_ar": "هل الأفضل أشتري ماكينة حقن أوروبية مستعملة ولا صينية جديدة؟",
+   "expected_entry_ids": [
+    "industrial_machinery:uae-market-products",
+    "industrial_machinery:product-distinctions"
+   ],
+   "expected_mode": "any",
+   "why": "The products entry names the variants sold in the UAE; the sibling distinctions entry explains the choice.",
+   "written_blind": true
+  }
+ ],
+ "verified": {
+  "by": "sales_engineer",
+  "on": "2026-10-19",
+  "method": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Brand names are well-known makes in the UAE market; local distributor appointments were not checked.",
+  "checks": [
+   {
+    "claim": "the EU Machinery Directive and CE marking provisions; the page does not name EN ISO 12100 -> partly confirmed",
+    "url": "https://en.wikipedia.org/wiki/Machinery_Directive",
+    "result": "confirmed on the page opened"
+   }
+  ],
+  "unverified": "Distributor appointments per brand.",
+  "ledger": [
+   893,
+   899,
+   900,
+   903,
+   1198,
+   1209
+  ]
+ }
+}

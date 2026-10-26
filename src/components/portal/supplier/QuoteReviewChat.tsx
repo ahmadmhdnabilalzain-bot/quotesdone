@@ -132,8 +132,8 @@ function Bubble({ m, lang, token }: { m: MessageView; lang: Lang; token: string 
             <span aria-hidden className="rounded-sm border border-[var(--line2)] px-1.5 py-0.5 font-mono text-[10.5px] uppercase text-muted-foreground">{(a.name.split('.').pop() || 'file').slice(0, 4)}</span>
             <span className="min-w-0 truncate text-[12.5px] text-foreground"><Ltr>{a.name}</Ltr></span>
             {(a.kind === 'quotation_file' || a.kind === 'chat_file') && safeUrl(a.url) ? <a className="text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" href={safeUrl(a.url)!} target="_blank" rel="noopener noreferrer">{t.download}</a> : null}
-            {a.kind === 'standard_quote' && a.quote_id ? <Button size="sm" variant="outline" disabled={opening} onClick={() => openPdf(a.quote_id!, a.lang ?? lang)}>{a.lang === 'ar' ? t.pdfAr : a.lang === 'en' ? t.pdfEn : t.pdf}</Button> : null}
-            {a.kind === 'standard_quote' && pdfNote ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{pdfNote === 'held' ? t.pdfHeld : t.pdfFailed}</span> : null}
+            {a.kind === 'standard_quote' && a.quote_id ? <Button size="sm" variant="outline" disabled={opening} onClick={() => openPdf(a.quote_id!, a.lang ?? lang)}>{a.lang === 'en' ? t.pdfEn : t.pdf}</Button> : null}
+            {a.kind === 'standard_quote' && pdfNote ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{t.pdfFailed}</span> : null}
           </div>
         ))}
       </div>

@@ -1,0 +1,84 @@
+{
+ "trade": "welding_equipment",
+ "layer": "uae-market",
+ "label_en": "Welding equipment & consumables",
+ "label_ar": "معدات ومستهلكات اللحام",
+ "entries": [
+  {
+   "id": "welding_equipment:uae-market-products",
+   "topic": "Welding equipment & consumables: products, variants and grades sold in the UAE",
+   "topic_ar": "معدات ومستهلكات اللحام: المنتجات والأنواع والدرجات المباعة في الإمارات",
+   "kind": "uae_market_products",
+   "body_en": "Sold in the UAE: stick, MIG/MAG, TIG and multi-process inverters, engine-driven welder-generators, plasma cutters, oxy-fuel sets and gas regulators, electrodes and wires (carbon steel, low-hydrogen, stainless, duplex, aluminium, hardfacing), flux, welding helmets and PPE, fume extractors, positioners, and welding automation. Buyers are steel fabricators, oil and gas and shutdown contractors, shipyards (Dubai Drydocks, Abu Dhabi, Sharjah), MEP contractors, workshops and rental fleets.",
+   "body_ar": "يُباع في الإمارات: آلات إنفرتر للحام بالقطب وMIG/MAG وTIG ومتعددة العمليات، ومولدات لحام بمحرك، وقواطع بلازما، وأطقم القطع بالأكسجين والوقود ومنظمات الغاز، والأقطاب والأسلاك (حديد كربوني، منخفض الهيدروجين، ستانلس، دوبلكس، ألمنيوم، طبقات التقسية)، والصهارات، وخوذ اللحام ومعدات الوقاية، وشافطات الأبخرة، والمواضع الدوارة، وأتمتة اللحام. والمشترون هم مصنّعو الحديد ومقاولو النفط والغاز والتوقفات وأحواض السفن (أحواض دبي الجافة، أبوظبي، الشارقة) ومقاولو الأعمال الكهروميكانيكية والورش وأساطيل التأجير.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Shielded_metal_arc_welding"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-10-19",
+   "source_note": "Pages opened 2026-10-19: the AWS electrode numbering (E prefix, tensile strength, position, coating/current digits) and E6010 as an all-position electrode -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+  },
+  {
+   "id": "welding_equipment:uae-market-brands",
+   "topic": "Welding equipment & consumables: makes, brands, distributors and origins in the UAE",
+   "topic_ar": "معدات ومستهلكات اللحام: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
+   "kind": "uae_market_brands",
+   "body_en": "Brands common in the UAE: Lincoln Electric, ESAB, Miller, Kemppi, Fronius, Hypertherm (plasma), Kobelco, Bohler/voestalpine, Hyundai Welding, Chosun and ESAB-OK consumables, plus Chinese inverters (Jasic, Riland) in the economy segment. Distributor appointments were not checked.",
+   "body_ar": "العلامات الشائعة في الإمارات: Lincoln Electric وESAB وMiller وKemppi وFronius وHypertherm (البلازما)، ومستهلكات Kobelco وBohler/voestalpine وHyundai Welding وChosun وESAB-OK، إضافة إلى إنفرترات صينية (Jasic، Riland) في الفئة الاقتصادية. لم يُتحقق من تعيينات الموزعين.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Shielded_metal_arc_welding"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-10-19",
+   "source_note": "Pages opened 2026-10-19: the AWS electrode numbering (E prefix, tensile strength, position, coating/current digits) and E6010 as an all-position electrode -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+  },
+  {
+   "id": "welding_equipment:uae-market-sizes",
+   "topic": "Welding equipment & consumables: typical sizes, units and how it is quoted in the UAE",
+   "topic_ar": "معدات ومستهلكات اللحام: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
+   "kind": "uae_market_sizes",
+   "body_en": "Electrodes are priced per kg or per packet (often 5 kg) or per carton, wire per spool (15-18 kg) or drum, machines per unit with a kit, gases separately per cylinder refill and rental, and engine welders for sale or rent per day, week or month.",
+   "body_ar": "تُسعّر الأقطاب بالكيلوغرام أو بالعلبة (غالباً 5 كغ) أو بالكرتون، والأسلاك بالبكرة (15-18 كغ) أو البرميل، والآلات بالوحدة مع الطقم، والغازات منفصلة بتعبئة الأسطوانة وإيجارها، وآلات اللحام بمحرك بيعاً أو تأجيراً باليوم أو الأسبوع أو الشهر.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Shielded_metal_arc_welding"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-10-19",
+   "source_note": "Pages opened 2026-10-19: the AWS electrode numbering (E prefix, tensile strength, position, coating/current digits) and E6010 as an all-position electrode -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+  }
+ ],
+ "eval": [
+  {
+   "q_en": "What rod should we use for the root pass on a carbon steel pipeline, and what for the cap?",
+   "q_ar": "وش القطب اللي نستخدمه للجذر في خط أنابيب حديد كربوني، ووش للتغطية؟",
+   "expected_entry_ids": [
+    "welding_equipment:uae-market-products",
+    "welding_equipment:product-distinctions"
+   ],
+   "expected_mode": "any",
+   "why": "The products entry names the variants sold in the UAE; the sibling distinctions entry explains the choice.",
+   "written_blind": true
+  }
+ ],
+ "verified": {
+  "by": "sales_engineer",
+  "on": "2026-10-19",
+  "method": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Brand names are well-known makes in the UAE market; local distributor appointments were not checked.",
+  "checks": [
+   {
+    "claim": "the AWS electrode numbering (E prefix, tensile strength, position, coating/current digits) and E6010 as an all-position electrode -> confirmed",
+    "url": "https://en.wikipedia.org/wiki/Shielded_metal_arc_welding",
+    "result": "confirmed on the page opened"
+   }
+  ],
+  "unverified": "Distributor appointments per brand.",
+  "ledger": [
+   893,
+   899,
+   900,
+   903,
+   1198,
+   1209
+  ]
+ }
+}

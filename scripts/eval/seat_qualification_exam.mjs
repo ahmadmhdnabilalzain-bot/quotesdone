@@ -135,8 +135,8 @@ async function main() {
       const rows = rowsOf(x.pack).filter((r) => r.table === SEAT_TABLE[x.seat]);
       const rv = await embedder.many(rows.map((r) => r.text));
       rows.forEach((r, i) => { r.vec = rv[i]; });
-      // 8 questions a chunk: the answer comes back through an error message the management API cuts at ~2,000 characters.
-      for (let c = 0; c < x.items.length; c += 8) {
+      // 6 questions a chunk, ids cut to 48 characters (a pack id is shorter; an ops_knowledge path is not): the answer comes back through an error message the management API cuts at ~2,000 characters.
+      for (let c = 0; c < x.items.length; c += 6) {
         const part = x.items.slice(c, c + 8);
         const stage = new Map();
         for (const it of part) rows.map((r) => [r, cosine(it.vec, r.vec)]).sort((a, b) => b[1] - a[1]).slice(0, K_RETRIEVE).forEach(([r]) => stage.set(r.record_id, r));

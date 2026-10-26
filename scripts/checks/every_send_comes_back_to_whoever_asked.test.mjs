@@ -108,7 +108,10 @@ const TRACKING_FILES = new Set(['every_send_comes_back_to_whoever_asked.sql', 't
   'the_originator_closes_what_was_answered_and_the_digest_carries_only_his_decisions.sql',
   // 5 Oct 2026: redefines the digest with one added step (a notify=false integration closes internal); its marking
   // and the closing of every told request with the digest's notification ids are carried over unchanged.
-  'an_integration_the_founder_holds_no_account_for_is_never_his_decision.sql']);
+  'an_integration_the_founder_holds_no_account_for_is_never_his_decision.sql',
+  // 19 Oct 2026 (#1472): redefines the watch to finish under the API timeout; its one marking step is the watch's
+  // own email retry, carried over unchanged and tracked by the request (retry_notification_id). Asserted below.
+  'the_backup_prune_and_the_delivery_watch_finish_under_the_api_timeout.sql']);
 const MARK = /set_config\(\s*'app\.qd_delivery_tracked'/;
 test('no SQL routine can switch off the tracking, and every other row is adopted', () => {
   const bypass = []; let writers = 0;
