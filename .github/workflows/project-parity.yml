@@ -35,13 +35,14 @@ concurrency:
   group: repo-and-database-agree-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, labeled]
-  push:
-    branches: [main]
-  schedule:
-    - cron: '41 5 * * *'
+  # pull_request:
+    # types: [opened, synchronize, reopened, labeled]
+  # push:
+    # branches: [main]
+  # schedule:
+    # - cron: '41 5 * * *'
   workflow_dispatch:
 
 # Deno reads only the npm: specifiers the edge functions import, never the Next.js app's package.json: with

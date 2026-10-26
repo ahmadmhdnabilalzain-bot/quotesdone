@@ -8,9 +8,10 @@ name: Nightly full journey (demo data)
 # workflow). If it were ever missing the job skips with a notice, and the IT engineer reports the missing
 # run itself after 26 hours (fn_it_duties, 'journey_heartbeat').
 
+# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
 on:
-  schedule:
-    - cron: '0 22 * * *'   # 02:00 Dubai
+  # schedule:
+    # - cron: '0 22 * * *'   # 02:00 Dubai
   workflow_dispatch: {}
 
 jobs:

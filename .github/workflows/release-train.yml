@@ -8,12 +8,13 @@
 # changed functions itself instead of relying on deploy-functions.yml's push trigger.
 name: release train
 
+# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
 on:
-  schedule:
-    - cron: '*/10 * * * *'
-  check_suite:
-    types: [completed]
-  status:
+  # schedule:
+    # - cron: '*/10 * * * *'
+  # check_suite:
+    # types: [completed]
+  # status:
   workflow_dispatch:
     inputs:
       dry_run:
