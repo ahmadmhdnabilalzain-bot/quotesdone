@@ -23,6 +23,7 @@ import { replaySql } from '../lib/safe_replay.mjs';
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FILE = 'scripts/sql/the_ceo_reviews_the_months_video_plan_before_the_founder_sees_it.sql';
 const PROBE = 'scripts/sql/the_ceo_reviews_the_months_video_plan_before_the_founder_sees_it_probe.sql';
+const LATER = 'scripts/sql/a_month_plan_revision_carries_its_ideas_and_a_failed_one_is_asked_again.sql';
 
 function canonical() {
   const out = new Map();
@@ -57,7 +58,8 @@ test('the stall watch measures when the plan reached the CEO on each path', () =
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 test('production, aborted: the probe answers PROBE OK', { skip: hasToken ? false : 'no Supabase management token in this environment', timeout: 600000 }, async () => {
   const { sql } = await import('../lib/db.mjs');
-  const text = [FILE, PROBE].map((f) => readFileSync(join(REPO, f), 'utf8')).join('\n;\n');
+  // FILE re-creates its routines inside the replay; the later file that supersedes them follows it (27 Oct 2026)
+  const text = [FILE, LATER, PROBE].map((f) => readFileSync(join(REPO, f), 'utf8')).join('\n;\n');
   let msg = '';
   try { await replaySql(text, { retry: false }); msg = 'the probe did not raise'; } catch (e) { msg = String(e.message); }
   const i = msg.indexOf('CHK<<');

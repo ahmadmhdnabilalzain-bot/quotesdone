@@ -1,0 +1,1 @@
+Committed by it_engineer on 27 Oct 2026, not applied: the release operator applies it at merge (outside 08:30-17:00 Dubai on a weekday). Proved in a rolled-back run on production the same day: it_engineer.latency_slo ran through fn_seat_duty_run with ok = true and failures = 0. On apply, delete this note and append the file to the END of MANIFEST.txt.

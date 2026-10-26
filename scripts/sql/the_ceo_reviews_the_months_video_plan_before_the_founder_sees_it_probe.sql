@@ -40,7 +40,10 @@ begin
   rq := (public.fn_seat_revises_for_the_ceo(rh)->>'held_id')::bigint;
   v := public.fn_ceo_revision_applies(rq, jsonb_build_object('decision', jsonb_build_object('choice', 'revised', 'fields', jsonb_build_object(
          'revision', 'Eight videos, all supplier stories; the two pricing ideas move to December.',
-         'answers', 'Cut from twelve to eight as asked, and the pricing ideas moved to December because they brought no registrations.')),
+         'answers', 'Cut from twelve to eight as asked, and the pricing ideas moved to December because they brought no registrations.',
+         -- 27 Oct 2026: a 'revised' month plan restates its idea list (a_month_plan_revision_carries_its_ideas_...sql)
+         'ideas', E'2099-11-02 | supplier | ZZ DEMO supplier story one | ZZ DEMO hook | ZZ DEMO call to action | ZZ DEMO film\n'
+               || '2099-11-04 | supplier | ZZ DEMO supplier story two | ZZ DEMO hook | ZZ DEMO call to action')),
          'answer', 'Revised to eight supplier-story videos; pricing moves to December.'));
   select ceo_held_id into h2 from public.marketing_month_plan where month = '2099-11-01';
   o := o || jsonb_build_object('rev_filed', v->'resubmission'->'filed', 'h2_round', (select subject->>'round' from public.reasoning_held_question where id = h2),
