@@ -359,3 +359,25 @@ Deno.test('wiring: index.ts builds the campaign email with campaignMail on BOTH 
   assert(/camp\s*\? resendPayload\(\{ from, to: n\.to_email, reply, subject: camp\.subject, html: '', text: camp\.text, unsub,/.test(src), 'the fallback no longer sends the campaign text without HTML');
   assert(/return campaignMail\(n, /.test(src));
 });
+
+// 27 Oct 2026 (review of #1614): the copy rules read OUR copy, not the supplier's registered name. Measured that day,
+// 11 of 17,401 eligible leads were held for their own names; each is replayed here and must now pass and be sent.
+Deno.test('a supplier\'s own name never holds its email: dates, month-like words and "AI" in a name pass; a web address in a name gives "Hello,"', () => {
+  const HELD_27_OCT = [
+    ['Eastlake Dec.Design & Fitout LLC', 'interior_fitout'], ['ROYAL TALENT INTERIOR DEC CO LLC', 'interior_fitout'],
+    ['2003 ALUMINIUM WORKS & CARPENTRY LLC', 'aluminium'], ['WELCOME ARTS 2000', 'signage'], ['PETRO SEP MEMBRANE TECHNOLOGIES INC', 'chemicals'],
+    ['QARYAT AL FAAN AL KASHMIRI NOV &#038; CARPETS', 'flooring'], ['CHINA 2008 BUILDING MATERIAL LLC', 'building_materials'],
+    ['AI TRADING EST', 'steel'], ['AL FAYAD CARPETS &#038; NOV TRADING', 'flooring'], ['JAN DE NUL DREDGING LTD', undefined],
+  ] as const;
+  for (const [company, trade] of HELD_27_OCT) {
+    const c = campaignMail({ type: 'supplier_invite', body: '' }, { company, trade });
+    assertEquals(c.bad, [], `${company} is still held`);
+    assert(c.text.startsWith(`Hi ${companyName(company)} team,`), `${company}: not greeted by name`);
+  }
+  const web = campaignMail({ type: 'supplier_invite', body: '' }, { company: 'www.khaazay.com online division of Al Twat Trading LLC', trade: 'building_materials' });
+  assertEquals(web.bad, []); assert(web.text.startsWith('Hello,\n\n') && !/khaazay/.test(web.text + web.subject), 'a web address in a name reached the email');
+  assertEquals(companyName('Acme.ae Trading'), '');
+  // the masking is only of the name: our own copy is still held for the same faults
+  const t = campaignMail({ type: 'supplier_invite', body: '' }, { company: 'AI TRADING EST', trade: 'steel' }).text;
+  assert(m365CopyLint({ subject: 'x', body: t.replace('register at quotesdone.com', 'register by December 2026 at quotesdone.com') }).some((l) => !l.ok && l.rule.includes('date')));
+});
