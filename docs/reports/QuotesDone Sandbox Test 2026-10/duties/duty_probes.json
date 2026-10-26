@@ -1,0 +1,5982 @@
+[
+ {
+  "duty": "accountant.ad_spend_reconcile",
+  "routine": "fn_accountant_ad_spend_reconcile",
+  "ms": 132,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"months\": [{\"basis\": \"Invoiced = Meta ads invoices booked in expense_entries (read_as meta_ads_invoice: each document REASONED to be a Meta advertising invoice when it was booked), USD at gl_settings usd_to_aed. Reported = ad_spend_policy.month_spent_aed as meta_sync last wrote it for the month. Co",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "accountant.cash_truth",
+  "routine": "fn_accountant_cash_truth_check",
+  "ms": 302,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"agree\": true, \"reported_to_ceo\": true, \"cash_position_aed\": 59.25, \"forecast_cash_aed\": 59.25, \"gl_minus_bank_aed\": -168.76}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "accountant.close_by_day_five",
+  "routine": "fn_accountant_close_by_day_5",
+  "ms": 167,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"late\": false, \"tick\": {\"month\": \"2026-09\", \"closed\": false, \"status\": \"closed\", \"waiting_for\": null, \"pending_render\": 0}, \"month\": \"2026-09\", \"due_by\": \"2026-10-07\", \"status\": \"closed\", \"closed_at\": \"2026-10-04T21:16:07.887171+00:00\", \"closed_by_day_5\": true}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "accountant.founder_close_pack",
+  "routine": "fn_accountant_founder_close_pack_tick",
+  "ms": 137,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"send\": null, \"build\": {\"ok\": true, \"month\": \"2026-09\", \"already_built\": true}, \"month\": \"2026-09\", \"due_by\": \"2026-10-07\", \"sent_at\": \"2026-10-05T02:01:02.940388+00:00\", \"close_status\": \"closed\", \"late_reported\": false}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "accountant.fraud_watch",
+  "routine": "fn_accountant_fraud_watch_tick",
+  "ms": 920,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"reasoning_filed\": 0, \"signals_flagged\": 0, \"duplicates_flagged\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "accountant.receipt_bank_match",
+  "routine": "fn_accountant_receipt_bank_match",
+  "ms": 132,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"basis\": \"Receipts (expense_entries, from the expenses mailbox) against Mashreq debits: amount within 3% (floor AED 1), USD at 3.6725, value date -1..+5 days, vendor word in the line preferred. Bank charges book themselves and are not expected to carry a receipt. Nothing was posted to the ledger.\",",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "accountant.refund_correctness",
+  "routine": "fn_accountant_refund_correctness_check",
+  "ms": 147,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"reported\": 0, \"this_month\": {\"basis\": \"A succeeded refund is correct when the refunded total equals what the customer paid (total_charged), every refund row carries a CEO approval (refund_decision_id) and a Stripe refund against the same payment (payment_ref).\", \"month\": \"2026-10\", \"correct\": 0, \"",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "accountant.reveal_invoice_filing",
+  "routine": "fn_accountant_reveal_invoice_filing_check",
+  "ms": 196,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"gaps\": [], \"incomplete\": 0, \"paid_reveals\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "accountant.risk_screen",
+  "routine": "fn_accountant_risk_screen_tick",
+  "ms": 272,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"new\": 0, \"flagged\": 0, \"holds_overdue\": 0, \"holds_released\": 0, \"severity_raised\": 0, \"holds_rescreened\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "accountant.runway_report",
+  "routine": "fn_accountant_runway_report_tick",
+  "ms": 144,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"reason\": \"the runway for 2026-09 is already with the CEO\", \"reported\": false}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "accountant.sanctions_rescreen",
+  "routine": "fn_accountant_sanctions_rescreen",
+  "ms": 157,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"runs\": [333, 334], \"entries\": 4394, \"sources\": \"uae_local_terrorist_list (618 entries, fetched 18 Oct 2026 09:00 UTC, sha256 0811418a1325); un_consolidated (3776 entries, fetched 18 Oct 2026 09:00 UTC, sha256 baf03595ff25)\", \"hits_new\": 0, \"hits_open\": 0, \"leads_hit\": 0, \"suppliers\": 0, \"oldest_li",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "accountant.self_review",
+  "routine": "fn_accountant_self_review",
+  "ms": 140,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"seat\": \"accountant\", \"month\": \"2026-10-01\", \"already\": true}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "accountant.stripe_email_setting",
+  "routine": "fn_accountant_stripe_email_setting_watch",
+  "ms": 135,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"on\": 0, \"stale\": 0, \"readings\": [{\"value\": \"off\", \"read_at\": \"2026-09-22T05:40:00+00:00\", \"read_by\": \"claude (founder_instruction 697)\", \"setting\": \"customer_emails.refunds\", \"evidence\": \"Live Stripe dashboard, Settings > Business > Customer emails: Successful payments and Refunds both OFF.\"}, {\"v",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "accountant.stripe_reconcile",
+  "routine": "fn_accountant_stripe_reconcile_duty",
+  "ms": 124,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"bank\": {\"as_of\": \"2026-10-19\", \"basis\": \"Stripe payouts (read from GET /v1/payouts) against Mashreq statement lines, amount exact, date within the gl_settings window. Nothing was posted to the ledger.\", \"payouts\": 0, \"findings\": {\"duty\": \"bank\", \"closed\": 0, \"failing\": 0, \"waiting\": []}, \"statemen",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "accountant.ubo_rescreen",
+  "routine": "fn_accountant_ubo_rescreen",
+  "ms": 152,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"screen\": {\"entries\": 4394, \"hits_new\": 0, \"hits_open\": 0, \"leads_hit\": 0, \"suppliers\": 0}, \"owner_hits_new\": 0, \"owners_screened\": 0, \"suppliers_without_owner_on_record\": 0, \"suppliers_with_owner_unverified_a_year\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "accountant.ubo_watch",
+  "routine": "fn_accountant_ubo_watch_tick",
+  "ms": 258,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"findings\": {\"duty\": \"ubo\", \"closed\": 0, \"failing\": 0, \"waiting\": []}, \"rescreened_by\": \"accountant.sanctions_rescreen (daily) screens every current owner name\", \"owners_changed\": [], \"owners_first_seen\": 0, \"suppliers_without_owner\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.company_stage",
+  "routine": "fn_ceo_company_stage_advance",
+  "ms": 288,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"from\": \"supply_seeding\", \"moved\": false, \"stage\": \"supply_seeding\", \"readings\": {\"fee_aed_30d\": 0, \"reveals_paid_30d\": 0, \"reveals_paid_cumulative\": 0, \"registrations_verified_cumulative\": 0}}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.constraint_lever",
+  "routine": "fn_ceo_constraint_lever",
+  "ms": 308,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"level\": 2, \"stage\": \"verification\", \"closed\": 0, \"plan_id\": 35, \"proposed\": null}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.daily_run",
+  "routine": "fn_ceo_daily_run_now",
+  "ms": 728,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"day\": \"2026-10-19\", \"misses\": 5, \"matters\": [], \"stuck_new\": 0, \"directives\": {\"met\": 1, \"open\": 10, \"issued\": 0, \"missed\": 0, \"escalated\": 0}, \"priorities\": {\"marketing\": {\"first\": \"Directive #294, due 21 Oct 10:00: RE-ISSUED after the deadline of 14 Oct passed: Bring registrations_submitted back",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.directive",
+  "routine": "fn_ceo_directive_run_now",
+  "ms": 332,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"met\": 0, \"open\": 11, \"issued\": 0, \"missed\": 0, \"escalated\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.experiment_review",
+  "routine": "fn_ceo_experiment_review",
+  "ms": 250,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"week\": \"2026-10-19\", \"started\": 0, \"measured\": 0, \"verdicts_filed\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.improvement",
+  "routine": "fn_ceo_improvement_sweep",
+  "ms": 2234,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"open\": 90, \"closed\": 11, \"passes\": 1, \"proposed\": 12, \"stopped_at_budget\": true}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.improvement_review",
+  "routine": "fn_ceo_reviews_answered_improvements",
+  "ms": 247,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"closed\": 0, \"failed\": [], \"returned\": 0, \"decision_owed\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.launch_readiness",
+  "routine": "fn_ceo_launch_readiness_now",
+  "ms": 234,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"week\": \"2026-10-19\", \"verdict\": \"not_ready\", \"decision\": null, \"trades_ready\": 0, \"trades_total\": 213, \"founder_notice\": null}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.management_review",
+  "routine": "fn_ceo_management_review",
+  "ms": 439,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"week\": \"2026-10-19\", \"filed\": 26554}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.marketing_plan",
+  "routine": "fn_ceo_marketing_plan_watch_now",
+  "ms": 258,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"late\": false, \"closed\": 0, \"status\": \"ceo_reviewing\", \"deadline\": \"2026-10-23\", \"model_hold\": null, \"plan_month\": \"2026-11-01\", \"improvement\": null, \"reached_ceo_at\": null, \"review_stalled\": false, \"covered_by_approved_calendar\": false}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.month_plan",
+  "routine": "fn_ceo_month_plan_now",
+  "ms": 170,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"month\": \"2026-10-01\", \"closed\": 0, \"issued\": 0, \"reported\": null}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.pricing_monitor",
+  "routine": "fn_ceo_pricing_monitor",
+  "ms": 293,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"week\": \"2026-10-19\", \"reasoning_filed\": false, \"quoted_requests_90d\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.queue_work",
+  "routine": "fn_ceo_queue_work",
+  "ms": 187,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"done\": 0, \"ceo_task\": null, \"dismissed\": 0, \"flagged_overdue\": 0, \"ceo_tasks_closed\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.report_answer",
+  "routine": "fn_ceo_report_answer_sweep",
+  "ms": 128,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"failed\": 0, \"answered\": 0, \"still_sent\": 3, \"heartbeat_closed\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.seat_audit",
+  "routine": "fn_ceo_seat_audit_now",
+  "ms": 127,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"already\": true, \"quarter\": \"2026-10-01\"}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.self_review",
+  "routine": "fn_ceo_self_review",
+  "ms": 129,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"seat\": \"ceo\", \"month\": \"2026-10-01\", \"already\": true}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.strategy_memo",
+  "routine": "fn_ceo_strategy_memo_now",
+  "ms": 149,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"due\": true, \"month\": \"2026-09\", \"already\": true}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.supplier_target",
+  "routine": "fn_ceo_supplier_target_now",
+  "ms": 165,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"day\": \"2026-10-19\", \"gate\": false, \"behind\": true, \"target\": 200, \"task_id\": 20476, \"verified\": 0, \"below_ten\": 213, \"days_left\": 42, \"milestone\": \"2026-11-30\", \"shortfall\": 200, \"registered\": 0, \"behind_path\": 71, \"pace_per_day\": 4.8, \"expected_today\": 71, \"trades_at_ten_by_emirate\": {\"UAE\": 0, \"",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.target_forecast",
+  "routine": "fn_ceo_target_forecast",
+  "ms": 198,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"week\": \"2026-10-19\", \"verdicts\": [{\"verdict\": \"AT_RISK\", \"contract\": \"FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30\", \"remaining\": 500, \"binding_stage\": null, \"days_remaining\": 316, \"verdict_reason\": \"The arithmetic is fundable, but 2 stage(s) declare no capacity ceiling: registrations_submitted (must ca",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "ceo.target_verdict",
+  "routine": "fn_ceo_target_daily_verdict",
+  "ms": 258,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"day\": \"2026-10-19\", \"misses\": 5, \"metrics\": [{\"actual\": 0, \"metric\": \"b2b_active_accounts\", \"status\": \"not_yet_due\", \"expected\": 0}, {\"actual\": 0.00, \"metric\": \"bounce_pct_7d\", \"status\": \"on_track\", \"expected\": 5}, {\"actual\": null, \"metric\": \"checkout_success_pct\", \"status\": \"not_yet_due\", \"expect",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "customer_support.case_idle_close",
+  "routine": "fn_support_case_idle_close",
+  "ms": 249,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"closed\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "customer_support.case_review",
+  "routine": "fn_customer_support_case_review_tick",
+  "ms": 298,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"to\": \"2026-10-19T11:30:29.558079+00:00\", \"chat\": {\"answered\": 543, \"questions\": 563, \"not_answered\": 20, \"not_answered_filed\": 20, \"not_answered_unfiled\": 0}, \"from\": \"2026-10-12T11:30:29.558079+00:00\", \"email\": {\"replied\": 0, \"received\": 0, \"unanswered\": 0, \"p90_first_reply_minutes\": null, \"media",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "customer_support.monthly_self_review",
+  "routine": "fn_customer_support_monthly_self_review",
+  "ms": 166,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"month\": \"2026-09-01\", \"fixture\": false, \"replies\": 0, \"tone_avg\": null, \"rewritten\": 0, \"by_channel\": {}, \"top_issues\": [], \"by_language\": {}, \"below_target\": [], \"readability_avg\": null, \"first_time_pass_share\": null, \"canned_because_no_model\": 0, \"canned_because_unreadable\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "customer_support.root_cause_loop",
+  "routine": "fn_customer_support_root_cause_week",
+  "ms": 167,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"fell\": 0, \"causes\": 1, \"fixture\": false, \"measured\": 0, \"handed_off\": 0, \"week_ending\": \"2026-10-19\", \"support_to_fix\": 0, \"root_causes_opened\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "customer_support.self_review",
+  "routine": "fn_customer_support_self_review",
+  "ms": 254,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"seat\": \"customer_support\", \"month\": \"2026-10-01\", \"already\": true}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.backup_objectives",
+  "routine": "fn_it_engineer_backup_objectives",
+  "ms": 180,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"rpo\": {\"target_hours\": 26, \"hours_since_export\": 11.9, \"widest_gap_7d_hours\": 24.2}, \"rto\": {\"last_pass_id\": 965, \"target_hours\": 4, \"sample_restore_seconds\": 99.6}, \"drill\": {\"last_at\": \"2026-10-15T00:47:50.274703+00:00\", \"last_id\": 965, \"every_days\": 7}, \"settled\": {\"duty\": \"backup_objectives\", ",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.capacity_review",
+  "routine": "fn_it_engineer_capacity_review",
+  "ms": 233,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"db_cap\": 19327352832, \"settled\": {\"duty\": \"capacity_review\", \"closed\": 0, \"failing\": 0, \"configuration_already_recorded\": 0}, \"db_bytes\": 11356163219, \"storage_cap\": 107374182400, \"storage_bytes\": 43042650243}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.code_health",
+  "routine": "fn_it_engineer_code_health",
+  "ms": 258,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"settled\": {\"duty\": \"code_health\", \"closed\": 0, \"failing\": 1, \"configuration_already_recorded\": 0}, \"unpinned\": 0, \"rls_no_policy\": 434, \"failing_duties\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.cost_watch",
+  "routine": "fn_it_cost_watch_tick",
+  "ms": 206,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"settled\": {\"duty\": \"cost_watch\", \"closed\": 0, \"failing\": 1, \"configuration_already_recorded\": 0}, \"providers\": [{\"basis\": \"ai_cost_log\", \"cause\": \"ceo / internal_judgement on anthropic/claude-opus-5.5 rose from AED 1.47 to AED 82.25\", \"detail\": {\"top_rise\": {\"seat\": \"ceo\", \"model\": \"anthropic/clau",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.credential_rotation_age",
+  "routine": "fn_it_engineer_credential_rotation_age",
+  "ms": 297,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"overdue\": 0, \"settled\": {\"duty\": \"credential_rotation_age\", \"closed\": 0, \"failing\": 0, \"configuration_already_recorded\": 0}, \"grace_days\": 7, \"unrecorded\": 0, \"rotate_days\": 90}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.data_quality",
+  "routine": "fn_it_engineer_data_quality",
+  "ms": 266,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"counts\": {\"orphan_quotes\": 0, \"orphan_inquiries\": 0, \"orphan_transactions\": 0, \"demo_quote_crosses_real\": 0, \"transaction_quote_mismatch\": 0, \"demo_transaction_crosses_real\": 0}, \"settled\": {\"duty\": \"data_quality\", \"closed\": 0, \"failing\": 0, \"configuration_already_recorded\": 0}}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.dr_review",
+  "routine": "fn_it_engineer_dr_review",
+  "ms": 353,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"settled\": {\"duty\": \"dr_review\", \"closed\": 0, \"failing\": 1, \"configuration_already_recorded\": 0}, \"last_full_restore\": null}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.duty_pause_expiry",
+  "routine": "fn_it_engineer_duty_pause_expiry",
+  "ms": 368,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"closed\": 0, \"expired\": []}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.finding_chase",
+  "routine": "fn_it_engineer_finding_chase",
+  "ms": 2943,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"chased\": 40, \"by_seat\": {\"ceo\": 15, \"accountant\": 9, \"sales_engineer\": 13, \"customer_support\": 3}, \"superseded\": 0, \"loops_opened\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.game_day",
+  "routine": "fn_it_engineer_game_day",
+  "ms": 8329,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ran\": true, \"month\": \"2026-10-01\", \"scenarios\": [{\"passed\": true, \"scenario\": \"email_provider_down\", \"recovery_ms\": 62.2, \"detection_ms\": 942.0}, {\"passed\": true, \"scenario\": \"whatsapp_down\", \"recovery_ms\": 34.7, \"detection_ms\": 813.2}, {\"passed\": true, \"scenario\": \"edge_function_slow\", \"recovery_",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.knowledge_exam",
+  "routine": "fn_it_engineer_duty_knowledge_exam",
+  "ms": 155,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"asked\": 0, \"retired\": \"the model exam files no question (24 Sep 2026)\"}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.knowledge_pass_rate",
+  "routine": "fn_it_engineer_knowledge_pass_rate",
+  "ms": 133,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"seats\": [{\"seat\": \"it_engineer\", \"raised\": false, \"rate_30d\": 0.000, \"graded_30d\": 2, \"rate_prev_30d\": null}, {\"seat\": \"customer_support\", \"raised\": false, \"rate_30d\": 0.000, \"graded_30d\": 2, \"rate_prev_30d\": null}, {\"seat\": \"sales_engineer\", \"raised\": false, \"rate_30d\": 0.000, \"graded_30d\": 2, \"r",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.knowledge_recall",
+  "routine": "fn_it_engineer_knowledge_recall_exam",
+  "ms": 4154,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"day\": \"2026-10-19\", \"left\": 317, \"scored\": 52}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.knowledge_refresh",
+  "routine": "fn_it_engineer_knowledge_refresh",
+  "ms": 2685,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"opened\": 0, \"overdue\": 0, \"quarter\": \"2026-10-01\", \"verified\": 0, \"rechecked\": 6, \"filed_today\": 22}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.latency_slo",
+  "routine": "fn_it_engineer_latency_slo",
+  "ms": 586,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"settled\": {\"duty\": \"latency_slo\", \"closed\": 0, \"failing\": 10, \"configuration_already_recorded\": 0}, \"functions\": [{\"fn\": \"customer_api\", \"runs\": 388, \"p95_ms\": 8572, \"runs_30d\": 4770, \"budget_ms\": 2500, \"p95_30d_ms\": 3565, \"burn_rate_24h\": 120.10, \"error_rate_30d\": 0.0000, \"availability_30d\": 0.93",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.model_spend",
+  "routine": "fn_it_engineer_model_spend",
+  "ms": 1016,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"settled\": {\"duty\": \"model_spend\", \"closed\": 0, \"failing\": 37, \"configuration_already_recorded\": 0}}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.postmortem",
+  "routine": "fn_it_engineer_postmortem",
+  "ms": 198,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"asked\": 0, \"opened\": 0, \"settled\": {\"duty\": \"postmortem\", \"closed\": 0, \"failing\": 1, \"configuration_already_recorded\": 0}, \"from_playbook\": 0, \"cause_already_known\": 0, \"waiting_on_its_fault\": 0, \"historical_without_postmortem\": 31}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.self_review",
+  "routine": "fn_it_engineer_self_review",
+  "ms": 116,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"seat\": \"it_engineer\", \"month\": \"2026-10-01\", \"already\": true}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "it_engineer.uptime_slo",
+  "routine": "fn_it_engineer_uptime_slo",
+  "ms": 134,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"urls\": [{\"up\": 1943, \"url\": \"https://www.quotesdone.ae\", \"samples\": 1943, \"uptime_pct\": 100.000}, {\"up\": 1943, \"url\": \"https://www.quotesdone.com\", \"samples\": 1943, \"uptime_pct\": 100.000}, {\"up\": 1943, \"url\": \"https://quotesdone.com\", \"samples\": 1943, \"uptime_pct\": 100.000}, {\"up\": 1943, \"url\": \"h",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "marketing.article_release",
+  "routine": "fn_marketing_article_release_duty",
+  "ms": 118,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"live\": 0, \"topic\": {\"picked\": null, \"reason\": \"a topic is open\"}, \"approved\": 1, \"in_review\": 0, \"open_topic\": {\"id\": 2, \"kind\": \"search\", \"title\": \"fire\"}}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "marketing.competitor_refresh",
+  "routine": "fn_marketing_competitor_refresh_duty",
+  "ms": 128,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"scan\": {\"collected\": 0, \"requested\": 0}, \"week\": \"2026-10-19\", \"watched\": 36, \"fetch_failures\": 0, \"stale_profiles\": 0, \"social_posts_seen\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "marketing.competitor_scan",
+  "routine": "fn_marketing_competitor_scan",
+  "ms": 119,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"collected\": 0, \"requested\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "marketing.gap_recruitment_plans",
+  "routine": "fn_marketing_gap_recruitment_plans",
+  "ms": 212,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"top\": [{\"gap\": 10, \"rank\": 1, \"trade\": \"building_materials\", \"emirate\": \"UAE\", \"sources\": 19, \"demand_90d\": 0, \"gap_status\": \"deferred\", \"uninvited_pool\": 3192}, {\"gap\": 10, \"rank\": 2, \"trade\": \"civil_works\", \"emirate\": \"UAE\", \"sources\": 20, \"demand_90d\": 0, \"gap_status\": \"deferred\", \"uninvited_po",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "marketing.geo_check",
+  "routine": "fn_marketing_geo_check_duty",
+  "ms": 129,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"owed\": 0, \"month\": \"2026-10-01\", \"summary\": {\"month\": \"2026-10-01\", \"by_engine\": {\"answer_online\": {\"cited\": 0, \"checked\": 12}, \"answer_search\": {\"cited\": 0, \"checked\": 12}}, \"questions\": 12, \"answer_cited\": 0, \"answer_checked\": 24, \"competitors_cited\": {\"TaskRight\": 2, \"ServiceMarket\": 1, \"Yellow",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "marketing.launch_plan",
+  "routine": "fn_marketing_launch_plan_duty",
+  "ms": 144,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"open\": 0, \"total\": 86, \"mailed\": false, \"status\": \"draft\", \"paid_allowed\": false, \"posting_days\": 20, \"founder_changes\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "marketing.month_plan",
+  "routine": "fn_marketing_month_plan_duty",
+  "ms": 127,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"tick\": {\"sent\": false, \"filed\": {\"why\": \"marketing owes the CEO a revision\", \"filed\": false}, \"month\": \"2026-11-01\", \"with_ceo\": true}, \"month\": \"2026-11-01\", \"status\": \"ceo_reviewing\", \"sent_at\": null, \"paid_allowed\": false, \"founder_decided_at\": null}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "marketing.recruitment_funnel",
+  "routine": "fn_marketing_recruitment_funnel",
+  "ms": 130,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"totals\": {\"pool\": null, \"invited\": null, \"quoting\": null, \"approved\": null, \"registered\": null}, \"diagnosis\": {\"filed\": [{\"channel\": \"email\", \"improvement_id\": null}], \"by_trade\": [{\"drop\": {\"to\": \"sent\", \"from\": \"invited\", \"lost\": 15, \"cause\": \"not_actually_sent\", \"proposed_fix\": \"Leads are marke",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "marketing.reputation",
+  "routine": "fn_marketing_reputation",
+  "ms": 121,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"asked\": 0, \"snapshot\": {\"day\": \"2026-10-19\", \"reviews\": 2, \"asks_sent\": 0, \"avg_rating\": 4.50, \"asks_waiting\": 0, \"low_ratings_30d\": 0}, \"waiting_for_link\": true}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "marketing.self_review",
+  "routine": "fn_marketing_self_review",
+  "ms": 118,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"seat\": \"marketing\", \"month\": \"2026-10-01\", \"already\": true}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.activation",
+  "routine": "fn_customer_support_activation_tick",
+  "ms": 118,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"no_quote\": 0, \"first_request\": 0, \"stalled_filed\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.comparison_kpi",
+  "routine": "fn_sales_engineer_comparison_kpi",
+  "ms": 121,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"reports\": 0, \"hours_p90\": null, \"window_days\": 7, \"hours_median\": null, \"share_3plus_complete\": null, \"quotes_with_exclusions\": 0, \"reports_with_exclusions\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.concierge",
+  "routine": "fn_customer_support_concierge_tick",
+  "ms": 117,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"first_request\": 0, \"held_for_specs\": 0, \"finding_suppliers\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.disputes",
+  "routine": "fn_sales_engineer_disputes_tick",
+  "ms": 117,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"to_review\": 0, \"decision_overdue\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.followup",
+  "routine": "fn_customer_support_followup_tick",
+  "ms": 127,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"due\": 0, \"asked\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.knowledge_gap_sweep",
+  "routine": "fn_sales_engineer_knowledge_gap_tick",
+  "ms": 123,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"from\": \"2026-10-18T09:32:42.353069+00:00\", \"open\": 0, \"filed\": 0, \"found\": 0, \"by_kind\": {}, \"dry_run\": false, \"filled_by\": \"Claude in a session on the subscription: edit knowledge/brief/*.md, recompile, set status knowledge_added\"}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.licence_expiry_watch",
+  "routine": "fn_sales_engineer_licence_expiry_watch",
+  "ms": 135,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"paused\": null, \"renewal_asks\": {\"ok\": true, \"note\": \"Asks queued. Each is closed only when a replacement document actually arrives, never when a message is sent.\", \"dry_run\": false, \"email_asks\": 0, \"whatsapp_status\": \"open to confirmed numbers: the email is twinned by trg_wa_fanout and sent on th",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.quote_quality_hold",
+  "routine": "fn_sales_engineer_quote_quality_tick",
+  "ms": 129,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"open\": 0, \"fixes_sent\": 0, \"hold_hours\": 24, \"customers_told\": 0, \"fixes_not_sent\": [], \"released_corrected\": 0, \"released_after_wait\": 0, \"left_to_the_spec_desk\": 0, \"content_not_the_accepted_version\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.self_review",
+  "routine": "fn_sales_engineer_self_review",
+  "ms": 126,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"seat\": \"sales_engineer\", \"month\": \"2026-10-01\", \"already\": true}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.stalled_inquiry_rescue",
+  "routine": "fn_sales_engineer_stalled_inquiry_rescue",
+  "ms": 167,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"open\": 0, \"acted\": 0, \"hours\": 48, \"closed\": 0, \"enqueue\": null, \"not_told\": [], \"refilled\": 0, \"customers_told\": 0, \"findings_closed\": 0, \"flagged_no_quote\": 0, \"no_uninvited_leads\": 0, \"acted_real_with_pool\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.supplier_availability",
+  "routine": "fn_sales_engineer_availability_tick",
+  "ms": 296,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"cleared\": 0, \"unreachable\": 0, \"busy_expired\": 0, \"newly_flagged\": 0, \"inquiries_swept\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.supplier_onboarding",
+  "routine": "fn_sales_engineer_supplier_onboarding",
+  "ms": 341,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"nudged\": 0, \"stages\": {\"invited\": 171, \"quoting\": 1}, \"invite_nudges\": {\"due\": 0, \"held\": \"the supplier campaign is not open (invite_enabled / supplier_outreach_golive)\", \"queued\": 0}}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.supplier_performance",
+  "routine": "fn_sales_engineer_supplier_performance",
+  "ms": 1102,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"scored\": 2, \"dropped_unmeasured\": 0, \"score_rows_refreshed\": 20298}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.supplier_scorecard",
+  "routine": "fn_sales_engineer_supplier_scorecard_tick",
+  "ms": 298,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"sent\": 0, \"month\": \"2026-09\", \"not_sendable\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.supply_gap",
+  "routine": "fn_sales_engineer_duty_supply_gap",
+  "ms": 250,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"closed\": 2, \"target\": 10, \"reopened\": 0, \"by_status\": {\"closed\": 2, \"deferred\": 215}, \"recruit_by_rule\": 0, \"filed_for_reasoning\": 0, \"customer_rule_undone\": 0, \"held_questions_settled\": 0, \"deferred_nobody_waiting\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.weekly_quality_review",
+  "routine": "fn_sales_engineer_weekly_quality_review",
+  "ms": 235,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"held\": 0, \"week\": \"2026-W43\", \"matched\": 0, \"requests\": 0, \"held_fixed\": 0, \"hold_reasons\": {}, \"match_rate_pct\": null, \"no_exact_match\": 0, \"avg_hours_to_fix\": null}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "sales_engineer.winback",
+  "routine": "fn_customer_support_winback_tick",
+  "ms": 237,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"dormant\": 0, \"written\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_accountant_openrouter_tick",
+  "routine": "fn_accountant_openrouter_tick",
+  "ms": 165,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"days\": [], \"agent\": \"accountant\", \"today_dubai\": \"2026-10-19\", \"days_reconciled\": 0, \"meter_reading_id\": null}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_accountant_vat_threshold_check",
+  "routine": "fn_accountant_vat_threshold_check",
+  "ms": 124,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"band\": \"below\", \"obligation\": \"No registration obligation on the preceding-12-months test.\", \"window_from\": \"2025-10-19\", \"headroom_aed\": 374750.00, \"turnover_aed\": 250.00, \"run_rate_note\": \"The preceding-12-months test is decided above. This annualised figure is the forward-looking limb of the UA",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_accountant_weekly_report_tick",
+  "routine": "fn_accountant_weekly_report_tick",
+  "ms": 125,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"id\": 12, \"fired\": false, \"reason\": \"already generated and delivered for this ISO week\", \"status\": \"delivered\", \"revision\": 1, \"report_key\": \"quotesdone:2026-W42\"}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_backup_prune_tick",
+  "routine": "fn_backup_prune_tick",
+  "ms": 311,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"mode\": \"delete\", \"pass\": null, \"findings\": 4, \"dropbox_pending\": 3180, \"storage_pending\": 7}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_case_embed_claim",
+  "routine": "fn_case_embed_claim",
+  "ms": 122,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"id\": 198, \"hash\": \"b4ef61be4d2c50b7489c9cc4c81dd2fe\", \"text\": \"it_engineer is failing 36% of attempts, against a baseline of 4% | where: run_failure / it_engineer | blast: internal\"}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_ceo_daily_digest_tick",
+  "routine": "fn_ceo_daily_digest_tick",
+  "ms": 119,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"fired\": false, \"exists\": false, \"reason\": \"before the configured local time\", \"local_now\": \"2026-10-19 15:36\", \"report_key\": \"quotesdone:2026-10-19\", \"configured_at\": \"20:00:00\"}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_ceo_decisions_evaluate",
+  "routine": "fn_ceo_decisions_evaluate",
+  "ms": 187,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"fired\": 6, \"rules\": [{\"keys\": null, \"rule\": \"binding_constraint\", \"state\": \"quiet\", \"detail\": \"no feasibility run has named a binding stage (target_verdict.binding_stage is null on every run), so there is nothing to compare the worked stage with\", \"firings\": 0}, {\"keys\": null, \"rule\": ",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_ceo_plan_tick",
+  "routine": "fn_ceo_plan_tick",
+  "ms": 151,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"stage\": \"verification\", \"reason\": \"today's plan exists\", \"plan_id\": 35, \"planned\": false, \"followup\": {\"ok\": true, \"met\": 0, \"open\": 1, \"missed\": 0}}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_ceo_support_reply_due",
+  "routine": "fn_ceo_support_reply_due",
+  "ms": 120,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "[]",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_ceo_weekly_report_tick",
+  "routine": "fn_ceo_weekly_report_tick",
+  "ms": 119,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"id\": 200, \"fired\": false, \"reason\": \"already delivered\", \"report_key\": \"quotesdone:2026-W42\"}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_ceo_weekly_review_tick",
+  "routine": "fn_ceo_weekly_review_tick",
+  "ms": 120,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"id\": 96, \"week\": \"2026-10-19\", \"fired\": false, \"reason\": \"already delivered\"}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_customer_support_campaign_list_tick",
+  "routine": "fn_customer_support_campaign_list_tick",
+  "ms": 125,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"due\": false, \"reason\": \"before 18:00 Dubai\"}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_delivery_feedback_canary_tick",
+  "routine": "fn_delivery_feedback_canary_tick",
+  "ms": 129,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_dropbox_backup_due",
+  "routine": "fn_dropbox_backup_due",
+  "ms": 119,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"due\": true, \"queued\": 2, \"ran_today\": true, \"local_date\": \"2026-10-19\"}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_it_backup_tick",
+  "routine": "fn_it_backup_tick",
+  "ms": 1123,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ceo\": {\"completed\": 0}, \"daily\": {\"filed\": false, \"reason\": \"before 19:00 Asia/Dubai\"}, \"queue\": {\"duty\": \"dropbox_queue\", \"hours\": 3, \"stale\": 0, \"closed\": 0, \"failing\": 0, \"oldest_queued_at\": null, \"configuration_already_recorded\": 0}, \"watch\": {\"ok\": false, \"last\": \"2026-10-19T11:32:13.351+00:0",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_it_change_revisions_due",
+  "routine": "fn_it_change_revisions_due",
+  "ms": 158,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "[]",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_it_deliberation_independence_watch",
+  "routine": "fn_it_deliberation_independence_watch",
+  "ms": 152,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"items\": 1, \"settle\": {\"duty\": \"deliberation_independence\", \"closed\": 0, \"failing\": 1, \"configuration_already_recorded\": 0}}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_it_detect",
+  "routine": "fn_it_detect",
+  "ms": 1230,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"at\": \"2026-10-19T11:36:13.206137+00:00\", \"ok\": true, \"notes\": {\"slice\": {\"rows\": 60826, \"basis\": \"measured\", \"cap_per_subject\": 5000, \"subjects_capped\": 2}, \"cadence\": {\"basis\": \"measured\", \"subjects_with_a_measurable_rhythm\": 6}, \"latency\": {\"ceo\": {\"basis\": \"insufficient_history\", \"samples_neede",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_it_dropbox_health_due",
+  "routine": "fn_it_dropbox_health_due",
+  "ms": 116,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "false",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_it_duties_due",
+  "routine": "fn_it_duties_due",
+  "ms": 120,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "false",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_it_engineer_alert_tick",
+  "routine": "fn_it_engineer_alert_tick",
+  "ms": 853,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": false, \"loop\": {\"ok\": false, \"ceo\": {\"decided\": 0, \"acknowledged\": 0}, \"daily\": {\"filed\": false, \"completed_after_receipt\": 0}, \"digest\": {\"sent\": false, \"reason\": \"the IT digest leaves at 19:00 Dubai\", \"digest_key\": \"it_daily_digest:2026-10-19\"}, \"errors\": [{\"step\": \"reverify\", \"error\": \"han",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_it_renewal_watch",
+  "routine": "fn_it_renewal_watch",
+  "ms": 123,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"closed\": 0, \"renewal\": {\"duty\": \"renewal\", \"closed\": 0, \"failing\": 0, \"configuration_already_recorded\": 0}, \"escalated\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_it_restore_table_due",
+  "routine": "fn_it_restore_table_due",
+  "ms": 131,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "false",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_it_restore_table_overdue",
+  "routine": "fn_it_restore_table_overdue",
+  "ms": 120,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"overdue\": false, \"last_drill\": \"2026-10-15T00:47:50.274703+00:00\"}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_it_restore_table_pick",
+  "routine": "fn_it_restore_table_pick",
+  "ms": 138,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"chain\": {\"base\": \"2026-10-19/kb_chunks/page_0000.json\", \"table\": \"kb_chunks\", \"changes\": [], \"full_day\": \"2026-10-19\", \"increments\": []}, \"table\": {\"day\": \"2026-10-19\", \"path\": \"2026-10-19/leads/page_0000.json\", \"table\": \"leads\"}, \"sample_rows\": 50, \"newest_export_day\": \"2026-10-19\"}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_it_review_independence_watch",
+  "routine": "fn_it_review_independence_watch",
+  "ms": 207,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"items\": 1, \"settle\": {\"duty\": \"review_independence\", \"closed\": 0, \"failing\": 1, \"configuration_already_recorded\": 0}, \"closed_holds\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_it_scheduled_due",
+  "routine": "fn_it_scheduled_due",
+  "ms": 128,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "[]",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_it_whatsapp_delivery_health",
+  "routine": "fn_it_whatsapp_delivery_health",
+  "ms": 127,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"rates\": {}, \"settled\": {\"duty\": \"whatsapp_delivery\", \"closed\": 0, \"failing\": 0, \"configuration_already_recorded\": 0}}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_lead_reclassify_tick",
+  "routine": "fn_lead_reclassify_tick",
+  "ms": 116,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ran\": false, \"reason\": \"gate_off\", \"gate_key\": \"lead_reclassify_backfill\"}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_org_task_consume_tick",
+  "routine": "fn_org_task_consume_tick",
+  "ms": 228,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ms\": 116, \"ok\": true, \"done\": [], \"error\": null, \"closed\": 0, \"queued\": [], \"raised\": 0, \"dry_run\": false, \"refused\": 0, \"scanned\": 0, \"findings\": {\"duty\": \"org_task_queue\", \"closed\": 0, \"failing\": 3, \"configuration_already_recorded\": 3}, \"still_queued\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_prune_website_error_events",
+  "routine": "fn_prune_website_error_events",
+  "ms": 116,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"more\": false, \"limit\": 2000, \"deleted\": 0}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_reason_held_escalate",
+  "routine": "fn_reason_held_escalate",
+  "ms": 125,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "[]",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_reason_held_notice_due",
+  "routine": "fn_reason_held_notice_due",
+  "ms": 126,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "[]",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_refund_ladder_sweep",
+  "routine": "fn_refund_ladder_sweep",
+  "ms": 256,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"seen\": 2, \"cases\": [], \"chased\": 0, \"ran_at\": \"2026-10-19T11:36:20.767266+00:00\", \"ceo_loop\": {\"remediation_closed\": 0, \"held_charges_raised\": 0, \"remediation_overdue\": 0}, \"final_calls\": 0, \"owner_agent\": \"sales_engineer writes, customer_support delivers, ceo decides\", \"support_watch\"",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_resilience_orphan_steps_due",
+  "routine": "fn_resilience_orphan_steps_due",
+  "ms": 133,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"send_sms\": false, \"sanctions\": false, \"email_cron\": false, \"doc_extract\": false, \"email_triage\": true, \"wa_templates\": false}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_sales_engineer_supplier_documents_tick",
+  "routine": "fn_sales_engineer_supplier_documents_tick",
+  "ms": 197,
+  "counts": {
+   "leads": {
+    "demo": 6,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"reconcile\": {\"ran_at\": \"2026-10-19T11:36:21.548629+00:00\", \"restored\": 0, \"grace_days\": 0, \"licence_suspended\": 0, \"insurance_suspended\": 0}, \"final_notice\": {\"ran_at\": \"2026-10-19T11:36:21.548629+00:00\", \"skipped\": 0, \"days_ahead\": 7, \"emails_queued\": 0, \"whatsapp_note\": \"WhatsApp goes only as th",
+  "real": 0,
+  "demo": 6
+ },
+ {
+  "duty": "tick.fn_sales_engineer_supplier_outreach_tick",
+  "routine": "fn_sales_engineer_supplier_outreach_tick",
+  "ms": 119,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"due\": false, \"reason\": \"already ran this Dubai day\"}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_seat_clocks_tick",
+  "routine": "fn_seat_clocks_tick",
+  "ms": 152,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"complaints\": {\"ok\": true, \"closed\": 0, \"refused\": [], \"on_seat_clock\": 0, \"raised_to_ceo\": 0}, \"reply_watch\": {\"ok\": true, \"chat\": {\"over_sla\": 40, \"median_first_reply_minutes_7d\": null}, \"email\": {\"over_sla\": 2, \"median_first_reply_minutes_7d\": null}, \"whatsapp\": {\"over_sla\": 0, \"medi",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_seat_learning_measure",
+  "routine": "fn_seat_learning_measure",
+  "ms": 137,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"day\": \"2026-10-19\", \"seats\": [{\"fell\": false, \"seat\": \"accountant\", \"accuracy_30d\": null, \"outcomes_30d\": 0}, {\"fell\": false, \"seat\": \"ceo\", \"accuracy_30d\": null, \"outcomes_30d\": 0}, {\"fell\": false, \"seat\": \"customer_support\", \"accuracy_30d\": null, \"outcomes_30d\": 0}, {\"fell\": false, \"",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_supplier_doc_reading_escalate",
+  "routine": "fn_supplier_doc_reading_escalate",
+  "ms": 143,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "[]",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_support_request_ratings_due",
+  "routine": "fn_support_request_ratings_due",
+  "ms": 129,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"ok\": true, \"note\": \"Enqueued into public.notifications as customer_support. send_outbox delivers; a row in any state means the ask was already made.\", \"asked\": 0, \"days_after_reveal\": 21}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_table_export_due",
+  "routine": "fn_table_export_due",
+  "ms": 121,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "{\"due\": false, \"kind\": \"full\", \"stamp\": \"2026-10-19\", \"status\": \"done\"}",
+  "real": 0,
+  "demo": 0
+ },
+ {
+  "duty": "tick.fn_wa_arrival_sweep",
+  "routine": "fn_wa_arrival_sweep",
+  "ms": 119,
+  "counts": {
+   "leads": {
+    "demo": 0,
+    "real": 0
+   },
+   "quotes": {
+    "demo": 0,
+    "real": 0
+   },
+   "refunds": {
+    "demo": 0,
+    "real": 0
+   },
+   "customers": {
+    "demo": 0,
+    "real": 0
+   },
+   "inquiries": {
+    "demo": 0,
+    "real": 0
+   },
+   "transactions": {
+    "demo": 0,
+    "real": 0
+   },
+   "notifications": {
+    "demo": 0,
+    "real": 0
+   },
+   "supplier_dues": {
+    "demo": 0,
+    "real": 0
+   },
+   "quote_spec_hold": {
+    "demo": 0,
+    "real": 0
+   }
+  },
+  "result": "[]",
+  "real": 0,
+  "demo": 0
+ }
+]

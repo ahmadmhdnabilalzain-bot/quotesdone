@@ -50,7 +50,10 @@ test('a CAD drawing the edge cannot read is queued on both paths, and 546 counts
 test('the queue has a worker, the dispatch names it, and the status is the owner\'s only', () => {
   assert.ok(api.includes('/actions/workflows/cad-read-worker.yml/dispatches'), 'customer_api dispatches the CAD worker workflow');
   assert.match(worker, /workflow_dispatch/);
-  assert.match(worker, /schedule:/);
+  // The 6-hourly schedule is the last resort for a lost dispatch. Founder, 26 Oct 2026: every automatic
+  // trigger is off until the bugs clear, so it may stand commented out, but only under that note.
+  assert.match(worker, /^ {2}(# )?schedule:/m, 'the CAD worker lost its schedule');
+  if (/^ {2}# schedule:/m.test(worker)) assert.match(worker, /founder 26 Oct: automatic triggers off/, 'the schedule is off without the founder note');
   assert.match(worker, /scripts\/cad_read_worker\.ts/);
   assert.match(workerTs, /fn_cad_read_claim\(/);
   assert.match(workerTs, /readDwg\(bytes, ctx, Infinity\)/);

@@ -1,0 +1,11 @@
+{
+ "id": 96033,
+ "type": "new_inquiry",
+ "channel": "whatsapp",
+ "status": "suppressed",
+ "to_email": "qd-71b75b60-sup10@example.invalid",
+ "lang": "en",
+ "subject": "New job request on QuotesDone",
+ "body": "A customer is requesting quotes for: Replacement of aluminium windows, doors and living-room curtain walling at an occupied Dubai villa. (Dubai). The customer asks for: Aluminium profile system: Premium system (Schüco, Technal); Glass: Single glazed; Installation: Yes, install it; Warranty: Yes, at least 2 years; Needed by: By 2026-11-11. Log in to your QuotesDone supplier portal to quote.",
+ "html": null
+}

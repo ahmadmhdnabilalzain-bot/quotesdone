@@ -1,0 +1,153 @@
+{
+  "rect": {
+    "top": 736,
+    "left": 85,
+    "width": 77,
+    "height": 76
+  },
+  "visible": {
+    "w": 77,
+    "h": 76
+  },
+  "textarea": {
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "height": "75.5px",
+    "minH": "48px",
+    "lineHeight": "24.75px",
+    "zIndex": "auto"
+  },
+  "window": {
+    "w": 375,
+    "h": 812,
+    "scrollY": 129
+  },
+  "chain": [
+    {
+      "tag": "div",
+      "cls": "flex items-end gap-2",
+      "display": "flex",
+      "position": "static",
+      "overflow": "visible/visible",
+      "height": 76,
+      "minH": "0px",
+      "maxH": "none",
+      "top": 736,
+      "bottom": 812
+    },
+    {
+      "tag": "div",
+      "cls": "shrink-0 border-t border-border bg-secondary/20 px-3 py-3 sm:px-4",
+      "display": "block",
+      "position": "static",
+      "overflow": "visible/visible",
+      "height": 201,
+      "minH": "auto",
+      "maxH": "none",
+      "top": 623,
+      "bottom": 824
+    },
+    {
+      "tag": "section",
+      "cls": "qd-panel qd-grain mb-3.5 flex flex-col overflow-hidden shadow-e2",
+      "display": "flex",
+      "position": "relative",
+      "overflow": "hidden/hidden",
+      "height": 633,
+      "minH": "0px",
+      "maxH": "none",
+      "top": 179,
+      "bottom": 813
+    },
+    {
+      "tag": "div",
+      "cls": "mb-5",
+      "display": "block",
+      "position": "static",
+      "overflow": "visible/visible",
+      "height": 633,
+      "minH": "0px",
+      "maxH": "none",
+      "top": 179,
+      "bottom": 813
+    },
+    {
+      "tag": "div",
+      "cls": "mx-auto w-full max-w-[1240px] px-4 py-5 sm:px-6",
+      "display": "block",
+      "position": "static",
+      "overflow": "visible/visible",
+      "height": 3364,
+      "minH": "0px",
+      "maxH": "none",
+      "top": -64,
+      "bottom": 3300
+    },
+    {
+      "tag": "main",
+      "id": "main",
+      "cls": "min-w-0 flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8",
+      "display": "block",
+      "position": "static",
+      "overflow": "visible/visible",
+      "height": 3460,
+      "minH": "auto",
+      "maxH": "none",
+      "top": -64,
+      "bottom": 3396
+    },
+    {
+      "tag": "div",
+      "cls": "flex min-w-0 flex-1 flex-col",
+      "display": "flex",
+      "position": "static",
+      "overflow": "visible/visible",
+      "height": 3525,
+      "minH": "auto",
+      "maxH": "none",
+      "top": -129,
+      "bottom": 3396
+    },
+    {
+      "tag": "div",
+      "cls": "flex min-h-screen w-full",
+      "display": "flex",
+      "position": "static",
+      "overflow": "visible/visible",
+      "height": 3525,
+      "minH": "812px",
+      "maxH": "none",
+      "top": -129,
+      "bottom": 3396
+    },
+    {
+      "tag": "div",
+      "cls": "osx min-h-screen bg-background text-foreground",
+      "display": "block",
+      "position": "static",
+      "overflow": "visible/visible",
+      "height": 3525,
+      "minH": "812px",
+      "maxH": "none",
+      "top": -129,
+      "bottom": 3396
+    },
+    {
+      "tag": "body",
+      "cls": "font-sans",
+      "display": "block",
+      "position": "static",
+      "overflow": "clip/visible",
+      "height": 3525,
+      "minH": "812px",
+      "maxH": "none",
+      "top": -129,
+      "bottom": 3396
+    }
+  ],
+  "problems": [
+    "box is only 77px wide",
+    "something lies on top of the box: 124,774 -> button.relative flex min-h-[56px] min-w-0 flex-1 flex-col items-cen; 95,802 -> span.max-w-full break-words text-center; 152,802 -> button.relative flex min-h-[56px] min-w-0 flex-1 flex-col items-cen"
+  ]
+}

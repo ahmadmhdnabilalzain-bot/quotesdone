@@ -1,0 +1,534 @@
+STAGE 2 --run · project htdblwldjkcgjvmqkbeh · cap USD 15 · out C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10
+
+OK   demo capture + both pairing guards installed — a01_inquiry_match_demo_and_real_never_pair, a01_quote_demo_and_real_never_pair, zzzz_notifications_demo_capture
+OK   model hold read (off); the harness never changes it — {"gate":"kernel_k12","rule":"registered_breaker_closed","model":"anthropic/claude-opus-5.5","reason":"switch off, no hold, route registered, breaker closed","allowed":true}
+OK   Stripe TEST keys present and test-mode — stripe_secret_key_test=sk_test_… stripe_publishable_key_test=pk_test_… unsubscribe_signing_key=[redacted]… stripe_webhook_secret_test=whsec_[redacted]…
+OK   unsubscribe signing key present — app_secrets
+OK   matrix: every working class has a priced primary and a priced fallback from another provider (names read from live model_policy) — inquiry_qualification_conversation:anthropic/claude-sonnet-5.5/openai/gpt-6-luna-pro rfq_routing:openai/gpt-6-luna-pro/anthropic/claude-sonnet-5.5 document_extraction:openai/gpt-6-luna-pro/anthropic/claude-sonnet-5.5 json_extraction:openai/gpt-6-luna-pro/anthropic/claude-sonnet-5.5 visitor_chat:anthropic/claude-sonnet-5.5/openai/gpt-6-luna-pro support_ai:openai/gpt-6-luna-pro/anthropic/claude-sonnet-5.5
+OK   matrix v2: Opus on the comparison report — {"task_class":"quote_comparison","model_primary":"anthropic/claude-opus-5.5","model_fallback":"openai/gpt-6-luna-pro"}
+OK   every task class the scenarios use has an active policy — all present
+OK   the 10 supplier trades and the unmatched trade exist — aluminium,electrical,plumbing,hvac,flooring,joinery,glazing,painting,waterproofing,landscaping,elevators
+OK   no standing demo supplier in elevators (else the hold scenario would match it) — 0 demo leads
+OK   ai_cost_log.e2e_run_tag, rehearsal_window.models_allowed and the tagged gate exist (a_sandbox_run_is_tagged_capped_and_let_through_only_inside_its_window.sql applied) — present
+OK   no other harness run is open (rehearsal windows) — 0 open
+PASS [S01] AL aluminium: mandatory six, approved, own licence ZZDEMO-0A717394-AL — approval=approved missing=[]
+PASS [S01] AL aluminium: licence and company profile exported — licenses/147099/0a717394_trade_licence.pdf / profiles/147099/0a717394_company_profile.pdf
+PASS [S01] EL electrical: mandatory six, approved, own licence ZZDEMO-0A717394-EL — approval=approved missing=[]
+PASS [S01] EL electrical: licence and company profile exported — licenses/147100/0a717394_trade_licence.pdf / profiles/147100/0a717394_company_profile.pdf
+PASS [S01] PL plumbing: mandatory six, approved, own licence ZZDEMO-0A717394-PL — approval=approved missing=[]
+PASS [S01] PL plumbing: licence and company profile exported — licenses/147101/0a717394_trade_licence.pdf / profiles/147101/0a717394_company_profile.pdf
+PASS [S01] HV hvac: mandatory six, approved, own licence ZZDEMO-0A717394-HV — approval=approved missing=[]
+PASS [S01] HV hvac: licence and company profile exported — licenses/147102/0a717394_trade_licence.pdf / profiles/147102/0a717394_company_profile.pdf
+PASS [S01] FL flooring: mandatory six, approved, own licence ZZDEMO-0A717394-FL — approval=approved missing=[]
+PASS [S01] FL flooring: licence and company profile exported — licenses/147103/0a717394_trade_licence.pdf / profiles/147103/0a717394_company_profile.pdf
+PASS [S01] JO joinery: mandatory six, approved, own licence ZZDEMO-0A717394-JO — approval=approved missing=[]
+PASS [S01] JO joinery: licence and company profile exported — licenses/147104/0a717394_trade_licence.pdf / profiles/147104/0a717394_company_profile.pdf
+PASS [S01] GL glazing: mandatory six, approved, own licence ZZDEMO-0A717394-GL — approval=approved missing=[]
+PASS [S01] GL glazing: licence and company profile exported — licenses/147105/0a717394_trade_licence.pdf / profiles/147105/0a717394_company_profile.pdf
+PASS [S01] PA painting: mandatory six, approved, own licence ZZDEMO-0A717394-PA — approval=approved missing=[]
+PASS [S01] PA painting: licence and company profile exported — licenses/147106/0a717394_trade_licence.pdf / profiles/147106/0a717394_company_profile.pdf
+PASS [S01] WA waterproofing: mandatory six, approved, own licence ZZDEMO-0A717394-WA — approval=approved missing=[]
+PASS [S01] WA waterproofing: licence and company profile exported — licenses/147107/0a717394_trade_licence.pdf / profiles/147107/0a717394_company_profile.pdf
+PASS [S01] LA landscaping: mandatory six, approved, own licence ZZDEMO-0A717394-LA — approval=approved missing=[]
+PASS [S01] LA landscaping: licence and company profile exported — licenses/147108/0a717394_trade_licence.pdf / profiles/147108/0a717394_company_profile.pdf
+PASS [S01] A2 aluminium: mandatory six, approved, own licence ZZDEMO-0A717394-A2 — approval=approved missing=[]
+PASS [S01] A2 aluminium: licence and company profile exported — licenses/147109/0a717394_trade_licence.pdf / profiles/147109/0a717394_company_profile.pdf
+PASS [S01] A3 aluminium: mandatory six, approved, own licence ZZDEMO-0A717394-A3 — approval=approved missing=[]
+PASS [S01] A3 aluminium: licence and company profile exported — licenses/147110/0a717394_trade_licence.pdf / profiles/147110/0a717394_company_profile.pdf
+PASS [S01] A4 aluminium: mandatory six, approved, own licence ZZDEMO-0A717394-A4 — approval=approved missing=[]
+PASS [S01] A4 aluminium: licence and company profile exported — licenses/147111/0a717394_trade_licence.pdf / profiles/147111/0a717394_company_profile.pdf
+PASS [S01] model routes follow matrix v2 (0 calls) — all on primary or fallback
+     S01: USD 0.0000 (0 calls), running total USD 0.0000 of 15
+PASS [S02] process_docs reads the licence and records the legal name — HTTP 200 name=ZZ DEMO AL aluminium 0a717394 gate=null
+PASS [S02] an approved supplier who uploads an unreadable licence is held as licence_unreadable — approval=pending reason=licence_unreadable
+PASS [S02] model routes follow matrix v2 (0 calls) — all on primary or fallback
+     S02: USD 0.0000 (0 calls), running total USD 0.0000 of 15
+PASS [S03] C1 (en): name, DOB 18+, verified, current terms — age=36.8 terms=v10
+PASS [S03] C2 (ar): name, DOB 18+, verified, current terms — age=36.8 terms=v10
+PASS [S03] C3 (en): name, DOB 18+, verified, current terms — age=36.8 terms=v10
+PASS [S03] C4 (ar): name, DOB 18+, verified, current terms — age=36.8 terms=v10
+PASS [S03] C5 (en): name, DOB 18+, verified, current terms — age=36.8 terms=v10
+PASS [S03] C6 (ar): name, DOB 18+, verified, current terms — age=36.8 terms=v10
+PASS [S03] C7 (en): name, DOB 18+, verified, current terms — age=36.8 terms=v10
+PASS [S03] C8 (ar): name, DOB 18+, verified, current terms — age=36.8 terms=v10
+PASS [S03] C9 (en): name, DOB 18+, verified, current terms — age=36.8 terms=v10
+PASS [S03] C10 (ar): name, DOB 18+, verified, current terms — age=36.8 terms=v10
+PASS [S03] model routes follow matrix v2 (0 calls) — all on primary or fallback
+     S03: USD 0.0000 (0 calls), running total USD 0.0000 of 15
+PASS [S04] C1 en aluminium in Dubai: interview reached ready and became a request — intake=ready turns=7 readiness=92 missing= inquiry=5cf453b0-1ebd-4149-87f3-8403531b684d status=sent
+PASS [S04] C2 ar electrical in Abu Dhabi: interview reached ready and became a request — intake=ready turns=5 readiness=80 missing= inquiry=08c7a14a-3835-45a7-bf76-4d6e3f05b023 status=sent
+PASS [S04] C3 en plumbing in Sharjah: interview reached ready and became a request — intake=ready turns=5 readiness=70 missing= inquiry=b4b7fbc8-49d9-4874-b4d0-90fe0957af06 status=sent
+PASS [S04] C4 ar hvac in Ajman: interview reached ready and became a request — intake=ready turns=6 readiness=85 missing= inquiry=2aa94052-96e4-4b84-b80b-0f41dbd90a1e status=sent
+PASS [S04] C5 en flooring in Ras Al Khaimah: interview reached ready and became a request — intake=ready turns=5 readiness=72 missing= inquiry=8f8b5764-0fa8-4082-93e3-290419bba46e status=sent
+PASS [S04] C6 ar joinery in Fujairah: interview reached ready and became a request — intake=ready turns=6 readiness=92 missing= inquiry=7ede2279-2ce5-4488-86b1-44368c718e39 status=sent
+PASS [S04] C7 en glazing in Umm Al Quwain: interview reached ready and became a request — intake=ready turns=6 readiness=88 missing= inquiry=0d0e4683-9115-46e3-963f-5fcfe3ae5041 status=sent
+PASS [S04] C8 ar painting in Dubai: interview reached ready and became a request — intake=ready turns=8 readiness=70 missing= inquiry=b86f7157-04be-4788-9bf2-36b92c60351d status=sent
+FAIL [S04] C9 en waterproofing in Abu Dhabi: interview reached ready and became a request — intake=held (specs_unanswered: area) turns=4 readiness=70 missing= inquiry=undefined status=undefined
+PASS [S04] C10 ar landscaping in Sharjah: interview reached ready and became a request — intake=ready turns=7 readiness=85 missing= inquiry=6f5e4e37-af15-4b3d-bffc-66691d48f1c0 status=sent
+PASS [S04] C10 ar elevators in Sharjah: interview reached ready and became a request — intake=ready turns=5 readiness=80 missing= inquiry=a34cda2a-097d-47e7-b9ed-66aa113833a1 status=sent
+PASS [S04] customer project: create, link, list, detail, dashboard, update, unlink — {"create":200,"link":200,"list":200,"detail":200,"dashboard":200,"update":200,"unlink":200}
+PASS [S04] model routes follow matrix v2 (73 calls) — all on primary or fallback
+     S04: USD 1.3186 (73 calls), running total USD 1.3186 of 15
+PASS [S05] the drawing is analysed into lines (BOQ) — HTTP 200
+PASS [S05] no unredacted copy of the drawing is stored for suppliers — 0 unredacted derivatives
+PASS [S05] model routes follow matrix v2 (0 calls) — all on primary or fallback
+     S05: USD 0.0000 (0 calls), running total USD 1.3186 of 15
+PASS [S06] C1:aluminium: matched only to demo suppliers of the exact trade — [{"supplier_id":146512,"is_demo":true,"trades":["aluminium","doors"]},{"supplier_id":146513,"is_demo":true,"trades":["aluminium","doors"]},{"supplier_id":146514
+FAIL [S06] C2:electrical: matched only to demo suppliers of the exact trade — []
+FAIL [S06] C3:plumbing: matched only to demo suppliers of the exact trade — []
+PASS [S06] C4:hvac: matched only to demo suppliers of the exact trade — [{"supplier_id":147102,"is_demo":true,"trades":["hvac"]}]
+FAIL [S06] C5:flooring: matched only to demo suppliers of the exact trade — []
+FAIL [S06] C6:joinery: matched only to demo suppliers of the exact trade — []
+FAIL [S06] C7:glazing: matched only to demo suppliers of the exact trade — []
+PASS [S06] C8:painting: matched only to demo suppliers of the exact trade — [{"supplier_id":126512,"is_demo":true,"trades":["gypsum","painting"]},{"supplier_id":147106,"is_demo":true,"trades":["painting"]}]
+FAIL [S06] C10:landscaping: matched only to demo suppliers of the exact trade — []
+PASS [S06] C10:elevators: a trade with no supplier HOLDS, no nearest match — matches=0 status=sent
+PASS [S06] model routes follow matrix v2 (0 calls) — all on primary or fallback
+     S06: USD 0.0000 (0 calls), running total USD 1.3186 of 15
+PASS [S07] the aluminium request invites every one of its 4 capable aluminium suppliers (no count cap) — invited ZZ DEMO AL aluminium 0a717394, ZZ DEMO A2 aluminium 0a717394, ZZ DEMO A3 aluminium 0a717394, ZZ DEMO A4 aluminium 0a717394; not invited none
+PASS [S07] quote 1 from ZZ DEMO AL aluminium 0a717394 — HTTP 200 status=draft
+PASS [S07] quote 2 from ZZ DEMO A2 aluminium 0a717394 — HTTP 200 status=draft
+PASS [S07] quote 3 from ZZ DEMO A3 aluminium 0a717394 — HTTP 200 status=draft
+PASS [S07] quote 4 from ZZ DEMO A4 aluminium 0a717394 — HTTP 200 status=draft
+PASS [S07] ZZ DEMO AL aluminium 0a717394: the specs the hold names are completed and the quote released — fill HTTP 200 approve HTTP 200 hold=released
+PASS [S07] ZZ DEMO A2 aluminium 0a717394: the specs the hold names are completed and the quote released — fill HTTP 200 approve HTTP 200 hold=released
+PASS [S07] ZZ DEMO A3 aluminium 0a717394: the specs the hold names are completed and the quote released — fill HTTP 200 approve HTTP 200 hold=released
+PASS [S07] the incomplete quote is HELD with notes naming what is missing — {"state":"open","missing":[{"attr":"glass_type","type":"text","scope":"line","line_no":1,"label_ar":"نوع الزجاج","label_en":"Glass type","description":"Supply a
+PASS [S07] spec_fill: every missing detail answered regenerates the standard quotation — HTTP 200 {"ok":true,"complete":true,"regenerated":{"contract":"standardised_quotation","version":1,"quote_id":"634894a4-56f7-4b62-bf97-875304e301d8","option_no"
+PASS [S07] spec_approve releases the hold — HTTP 200 hold=released {"ok":true,"released":true,"live":true}
+PASS [S07] notice quote_spec_hold: rendered to the supplier in English — 2 rows: email,whatsapp
+PASS [S07] notice quote_spec_regenerated: rendered to the supplier in English — 2 rows: email,whatsapp
+PASS [S07] notice quote_spec_released: rendered to the supplier in English — 2 rows: email,whatsapp
+PASS [S07] model routes follow matrix v2 (16 calls) — all on primary or fallback
+     S07: USD 0.0154 (16 calls), running total USD 1.3340 of 15
+PASS [S08] aluminium: spec questions asked are what the request's hold check finds missing, and answered (incl. "not sure") — check missing 0 [], asked 0, answered 0, not sure 0, reply HTTP 400 nothing_to_add
+PASS [S08] electrical: spec questions asked are what the request's hold check finds missing, and answered (incl. "not sure") — check missing 0 [], asked 0, answered 0, not sure 0, reply HTTP 400 nothing_to_add
+PASS [S08] plumbing: spec questions asked are what the request's hold check finds missing, and answered (incl. "not sure") — check missing 0 [], asked 0, answered 0, not sure 0, reply HTTP 400 nothing_to_add
+PASS [S08] hvac: spec questions asked are what the request's hold check finds missing, and answered (incl. "not sure") — check missing 0 [], asked 0, answered 0, not sure 0, reply HTTP 400 nothing_to_add
+PASS [S08] model routes follow matrix v2 (0 calls) — all on primary or fallback
+     S08: USD 0.0000 (0 calls), running total USD 1.3340 of 15
+PASS [S09] comparison en: report produced on the Opus route — HTTP 200 routes=quote_comparison:anthropic/claude-opus-5.5
+PASS [S09] comparison en: every live quote listed (top 3 + the rest) — 4 quote lines in the CSV, 4 submitted quotes
+FAIL [S09] comparison ar: report produced on the Opus route — HTTP 504 routes=quote_comparison:anthropic/claude-opus-5.5 routine_employee_reasoning:openai/gpt-6-luna-pro customer_communication:openai/gpt-6-luna-pro routine
+PASS [S09] comparison ar: every live quote listed (top 3 + the rest) — 4 quote lines in the CSV, 4 submitted quotes
+PASS [S09] model routes follow matrix v2 (8 calls) — all on primary or fallback
+     S09: USD 0.3045 (8 calls), running total USD 1.6385 of 15
+PASS [S10] the reveal price is 3% of the final ex-VAT quote with no card surcharge (declined card) — HTTP 200 quote 118500 -> charge 3555 processing 0 basis international
+PASS [S10] the reveal price is 3% of the final ex-VAT quote with no card surcharge (visa card) — HTTP 200 quote 118500 -> charge 3555 processing 0 basis international
+PASS [S10] a declined TEST card is refused and reveals nothing — {"ok":false,"status":"failed","error":"generic_decline"}
+PASS [S10] the paid TEST card is charged exactly the total it was quoted — {"ok":true,"status":"succeeded","base_fee":3555,"processing_fee":0,"total_charged":3555,"total_fils":355500,"fee_basis":"international"}
+PASS [S10] a paid TEST card reveals: transaction paid, invoice recorded — fee_status=paid invoice=in_1USEiTC45SqX5pVbXxiIXu22 total=3555.00 processing=0.00
+PASS [S10] the invoice is filed: number and PDF stored — number=3D7KGRJF-0002 doc=invoices/stripe/2026-10-19/in_1USEiTC45SqX5pVbXxiIXu22_3D7KGRJF-0002.pdf
+PASS [S10] no card surcharge recorded — processing_fee=0.00
+PASS [S10] both parties notified — customer 2, supplier 6
+FAIL [S10] the Arabic customer reveals with the TEST card — quote HTTP 404 status=undefined on electrical
+FAIL [S10] the Arabic customer's reveal receipt is in Arabic — 0 reveal_receipt(s), langs none
+PASS [S10] model routes follow matrix v2 (0 calls) — all on primary or fallback
+     S10: USD 0.0000 (0 calls), running total USD 1.6385 of 15
+PASS [S11] the refund request opens a case for the accountant — HTTP 200 {"ok":true,"refund_status":"requested","refund_id":77478,"refund_ref":"QD-RF-77478","duplicate":false,"decision_after":"2026-10-26T11:27:00.988+00:00",
+PASS [S11] the CEO decision is taken on the Opus route, with reasons — rows=0 decision=null
+PASS [S11] model routes follow matrix v2 (0 calls) — all on primary or fallback
+     S11: USD 0.0000 (0 calls), running total USD 1.6385 of 15
+PASS [S12] a non-response watch is open on the revealed supplier — {"id":402,"transaction_id":"730164b4-6cf7-4e9a-88a8-17fe532bc708","lead_id":147099,"opened_at":"2026-10-19 11:27:01.284184+00","attempts":[],"first_response_at"
+PASS [S12] model routes follow matrix v2 (0 calls) — all on primary or fallback
+     S12: USD 0.0000 (0 calls), running total USD 1.6385 of 15
+PASS [S13] visitor chat en answers in en — 11603 ms
+PASS [S13] visitor chat ar answers in ar — 7472 ms
+PASS [S13] customer chat en answers in en — 23141 ms
+PASS [S13] customer chat ar answers in ar — 16094 ms
+PASS [S13] supplier chat en answers in en — 13713 ms
+PASS [S13] post-reveal customer-supplier chat stores the message — send HTTP 200
+PASS [S13] model routes follow matrix v2 (12 calls) — all on primary or fallback
+     S13: USD 0.4237 (12 calls), running total USD 2.0622 of 15
+PASS [S14] a signed unsubscribe link suppresses the address — HTTP 200 reason=unsubscribe
+PASS [S14] the customer can rate the revealed supplier — HTTP 200
+PASS [S14] model routes follow matrix v2 (0 calls) — all on primary or fallback
+     S14: USD 0.0000 (0 calls), running total USD 2.0622 of 15
+PASS [S15] every notice the run caused was captured, none sent — 95 notices, statuses suppressed
+PASS [S15] every customer receives their registered language — 10 customer notices (0 to Arabic customers); wrong language: none
+PASS [S15] suppliers receive English only — 64 notices
+PASS [S15] model routes follow matrix v2 (0 calls) — all on primary or fallback
+     S15: USD 0.0000 (0 calls), running total USD 2.0622 of 15
+PASS [S16] page /about renders — HTTP 200 console errors 0
+PASS [S16] page /ar/about renders — HTTP 200 console errors 0
+PASS [S16] page /acceptable-use renders — HTTP 200 console errors 0
+PASS [S16] page /ar/acceptable-use renders — HTTP 200 console errors 0
+PASS [S16] page /blog renders — HTTP 200 console errors 0
+PASS [S16] page /ar/blog renders — HTTP 200 console errors 0
+PASS [S16] page /brand renders — HTTP 200 console errors 0
+PASS [S16] page /ar/brand renders — HTTP 200 console errors 0
+PASS [S16] page /complaints renders — HTTP 200 console errors 0
+PASS [S16] page /ar/complaints renders — HTTP 200 console errors 0
+PASS [S16] page /complaints/status renders — HTTP 200 console errors 0
+PASS [S16] page /ar/complaints/status renders — HTTP 200 console errors 0
+PASS [S16] page /contact renders — HTTP 200 console errors 0
+PASS [S16] page /ar/contact renders — HTTP 200 console errors 0
+PASS [S16] page /cookie-policy renders — HTTP 200 console errors 0
+PASS [S16] page /ar/cookie-policy renders — HTTP 200 console errors 0
+PASS [S16] page /disclaimer renders — HTTP 200 console errors 0
+PASS [S16] page /ar/disclaimer renders — HTTP 200 console errors 0
+PASS [S16] page /faq renders — HTTP 200 console errors 0
+PASS [S16] page /ar/faq renders — HTTP 200 console errors 0
+PASS [S16] page /how-it-works renders — HTTP 200 console errors 0
+PASS [S16] page /ar/how-it-works renders — HTTP 200 console errors 0
+PASS [S16] page /how-we-verify renders — HTTP 200 console errors 0
+PASS [S16] page /ar/how-we-verify renders — HTTP 200 console errors 0
+PASS [S16] page /me renders — HTTP 200 console errors 0
+PASS [S16] page /ar/me renders — HTTP 200 console errors 0
+PASS [S16] page / renders — HTTP 200 console errors 0
+PASS [S16] page /ar/ renders — HTTP 200 console errors 0
+PASS [S16] page /portal renders — HTTP 200 console errors 0
+PASS [S16] page /ar/portal renders — HTTP 200 console errors 0
+PASS [S16] page /privacy renders — HTTP 200 console errors 0
+PASS [S16] page /ar/privacy renders — HTTP 200 console errors 0
+PASS [S16] page /refund-policy renders — HTTP 200 console errors 0
+PASS [S16] page /ar/refund-policy renders — HTTP 200 console errors 0
+PASS [S16] page /services renders — HTTP 200 console errors 0
+PASS [S16] page /ar/services renders — HTTP 200 console errors 0
+PASS [S16] page /supplier renders — HTTP 200 console errors 0
+PASS [S16] page /ar/supplier renders — HTTP 200 console errors 0
+PASS [S16] page /supplier-agreement renders — HTTP 200 console errors 0
+PASS [S16] page /ar/supplier-agreement renders — HTTP 200 console errors 0
+PASS [S16] page /supplier-agreement/v10 renders — HTTP 200 console errors 0
+PASS [S16] page /ar/supplier-agreement/v10 renders — HTTP 200 console errors 0
+PASS [S16] page /supplier-agreement/v11 renders — HTTP 200 console errors 0
+PASS [S16] page /ar/supplier-agreement/v11 renders — HTTP 200 console errors 0
+PASS [S16] page /supplier-agreement/v12 renders — HTTP 200 console errors 0
+PASS [S16] page /ar/supplier-agreement/v12 renders — HTTP 200 console errors 0
+PASS [S16] page /supplier-agreement/v13 renders — HTTP 200 console errors 0
+PASS [S16] page /ar/supplier-agreement/v13 renders — HTTP 200 console errors 0
+PASS [S16] page /supplier-agreement/v14 renders — HTTP 200 console errors 0
+PASS [S16] page /ar/supplier-agreement/v14 renders — HTTP 200 console errors 0
+PASS [S16] page /terms renders — HTTP 200 console errors 0
+PASS [S16] page /ar/terms renders — HTTP 200 console errors 0
+PASS [S16] page /terms/v9 renders — HTTP 200 console errors 0
+PASS [S16] page /ar/terms/v9 renders — HTTP 200 console errors 0
+PASS [S16] customer en: portal tabs found — home,requests,documents,orders,messages,projects,spatial,predict,profile,account
+PASS [S16] customer en: every portal tab opens — opened 10 of 10: all
+PASS [S16] customer ar: portal tabs found — home,requests,documents,orders,messages,projects,spatial,predict,profile,account
+PASS [S16] customer ar: every portal tab opens — opened 10 of 10: all
+PASS [S16] supplier en: portal tabs found — services,rfqs,quotes,messages,documents,insights
+PASS [S16] supplier en: every portal tab opens — opened 6 of 6: all
+PASS [S16] supplier ar: portal tabs found — services,rfqs,quotes,messages,documents,insights
+PASS [S16] supplier ar: every portal tab opens — opened 6 of 6: all
+PASS [S16] model routes follow matrix v2 (3 calls) — all on primary or fallback
+     S16: USD 0.0038 (3 calls), running total USD 2.0660 of 15
+PASS [S18] duty accountant.ad_spend_reconcile ran on the demo scope and wrote no real row — demo rows written 0, real 0, 132 ms, result {"months": [{"basis": "Invoiced = Meta ads invoices booked in expense_entries (read_as meta_ads_invoice: each docume
+PASS [S18] duty accountant.cash_truth ran on the demo scope and wrote no real row — demo rows written 0, real 0, 302 ms, result {"agree": true, "reported_to_ceo": true, "cash_position_aed": 59.25, "forecast_cash_aed": 59.25, "gl_minus_bank_aed"
+PASS [S18] duty accountant.close_by_day_five ran on the demo scope and wrote no real row — demo rows written 0, real 0, 167 ms, result {"late": false, "tick": {"month": "2026-09", "closed": false, "status": "closed", "waiting_for": null, "pending_rend
+PASS [S18] duty accountant.founder_close_pack ran on the demo scope and wrote no real row — demo rows written 0, real 0, 137 ms, result {"send": null, "build": {"ok": true, "month": "2026-09", "already_built": true}, "month": "2026-09", "due_by": "2026
+PASS [S18] duty accountant.fraud_watch ran on the demo scope and wrote no real row — demo rows written 0, real 0, 920 ms, result {"reasoning_filed": 0, "signals_flagged": 0, "duplicates_flagged": 0}
+PASS [S18] duty accountant.receipt_bank_match ran on the demo scope and wrote no real row — demo rows written 0, real 0, 132 ms, result {"basis": "Receipts (expense_entries, from the expenses mailbox) against Mashreq debits: amount within 3% (floor AED
+PASS [S18] duty accountant.refund_correctness ran on the demo scope and wrote no real row — demo rows written 0, real 0, 147 ms, result {"reported": 0, "this_month": {"basis": "A succeeded refund is correct when the refunded total equals what the custo
+PASS [S18] duty accountant.reveal_invoice_filing ran on the demo scope and wrote no real row — demo rows written 0, real 0, 196 ms, result {"gaps": [], "incomplete": 0, "paid_reveals": 0}
+PASS [S18] duty accountant.risk_screen ran on the demo scope and wrote no real row — demo rows written 0, real 0, 272 ms, result {"new": 0, "flagged": 0, "holds_overdue": 0, "holds_released": 0, "severity_raised": 0, "holds_rescreened": 0}
+PASS [S18] duty accountant.runway_report ran on the demo scope and wrote no real row — demo rows written 0, real 0, 144 ms, result {"reason": "the runway for 2026-09 is already with the CEO", "reported": false}
+PASS [S18] duty accountant.sanctions_rescreen ran on the demo scope and wrote no real row — demo rows written 0, real 0, 157 ms, result {"runs": [333, 334], "entries": 4394, "sources": "uae_local_terrorist_list (618 entries, fetched 18 Oct 2026 09:00 U
+PASS [S18] duty accountant.self_review ran on the demo scope and wrote no real row — demo rows written 0, real 0, 140 ms, result {"ok": true, "seat": "accountant", "month": "2026-10-01", "already": true}
+PASS [S18] duty accountant.stripe_email_setting ran on the demo scope and wrote no real row — demo rows written 0, real 0, 135 ms, result {"on": 0, "stale": 0, "readings": [{"value": "off", "read_at": "2026-09-22T05:40:00+00:00", "read_by": "claude (foun
+PASS [S18] duty accountant.stripe_reconcile ran on the demo scope and wrote no real row — demo rows written 0, real 0, 124 ms, result {"bank": {"as_of": "2026-10-19", "basis": "Stripe payouts (read from GET /v1/payouts) against Mashreq statement line
+PASS [S18] duty accountant.ubo_rescreen ran on the demo scope and wrote no real row — demo rows written 0, real 0, 152 ms, result {"screen": {"entries": 4394, "hits_new": 0, "hits_open": 0, "leads_hit": 0, "suppliers": 0}, "owner_hits_new": 0, "o
+PASS [S18] duty accountant.ubo_watch ran on the demo scope and wrote no real row — demo rows written 0, real 0, 258 ms, result {"findings": {"duty": "ubo", "closed": 0, "failing": 0, "waiting": []}, "rescreened_by": "accountant.sanctions_rescr
+PASS [S18] duty ceo.company_stage ran on the demo scope and wrote no real row — demo rows written 0, real 0, 288 ms, result {"from": "supply_seeding", "moved": false, "stage": "supply_seeding", "readings": {"fee_aed_30d": 0, "reveals_paid_3
+PASS [S18] duty ceo.constraint_lever ran on the demo scope and wrote no real row — demo rows written 0, real 0, 308 ms, result {"level": 2, "stage": "verification", "closed": 0, "plan_id": 35, "proposed": null}
+PASS [S18] duty ceo.daily_run ran on the demo scope and wrote no real row — demo rows written 0, real 0, 728 ms, result {"day": "2026-10-19", "misses": 5, "matters": [], "stuck_new": 0, "directives": {"met": 1, "open": 10, "issued": 0, 
+PASS [S18] duty ceo.directive ran on the demo scope and wrote no real row — demo rows written 0, real 0, 332 ms, result {"met": 0, "open": 11, "issued": 0, "missed": 0, "escalated": 0}
+PASS [S18] duty ceo.experiment_review ran on the demo scope and wrote no real row — demo rows written 0, real 0, 250 ms, result {"week": "2026-10-19", "started": 0, "measured": 0, "verdicts_filed": 0}
+PASS [S18] duty ceo.improvement ran on the demo scope and wrote no real row — demo rows written 0, real 0, 2234 ms, result {"open": 90, "closed": 11, "passes": 1, "proposed": 12, "stopped_at_budget": true}
+PASS [S18] duty ceo.improvement_review ran on the demo scope and wrote no real row — demo rows written 0, real 0, 247 ms, result {"closed": 0, "failed": [], "returned": 0, "decision_owed": 0}
+PASS [S18] duty ceo.launch_readiness ran on the demo scope and wrote no real row — demo rows written 0, real 0, 234 ms, result {"week": "2026-10-19", "verdict": "not_ready", "decision": null, "trades_ready": 0, "trades_total": 213, "founder_no
+PASS [S18] duty ceo.management_review ran on the demo scope and wrote no real row — demo rows written 0, real 0, 439 ms, result {"week": "2026-10-19", "filed": 26554}
+PASS [S18] duty ceo.marketing_plan ran on the demo scope and wrote no real row — demo rows written 0, real 0, 258 ms, result {"late": false, "closed": 0, "status": "ceo_reviewing", "deadline": "2026-10-23", "model_hold": null, "plan_month": 
+PASS [S18] duty ceo.month_plan ran on the demo scope and wrote no real row — demo rows written 0, real 0, 170 ms, result {"month": "2026-10-01", "closed": 0, "issued": 0, "reported": null}
+PASS [S18] duty ceo.pricing_monitor ran on the demo scope and wrote no real row — demo rows written 0, real 0, 293 ms, result {"week": "2026-10-19", "reasoning_filed": false, "quoted_requests_90d": 0}
+PASS [S18] duty ceo.queue_work ran on the demo scope and wrote no real row — demo rows written 0, real 0, 187 ms, result {"done": 0, "ceo_task": null, "dismissed": 0, "flagged_overdue": 0, "ceo_tasks_closed": 0}
+PASS [S18] duty ceo.report_answer ran on the demo scope and wrote no real row — demo rows written 0, real 0, 128 ms, result {"failed": 0, "answered": 0, "still_sent": 3, "heartbeat_closed": 0}
+PASS [S18] duty ceo.seat_audit ran on the demo scope and wrote no real row — demo rows written 0, real 0, 127 ms, result {"already": true, "quarter": "2026-10-01"}
+PASS [S18] duty ceo.self_review ran on the demo scope and wrote no real row — demo rows written 0, real 0, 129 ms, result {"ok": true, "seat": "ceo", "month": "2026-10-01", "already": true}
+PASS [S18] duty ceo.strategy_memo ran on the demo scope and wrote no real row — demo rows written 0, real 0, 149 ms, result {"ok": true, "due": true, "month": "2026-09", "already": true}
+PASS [S18] duty ceo.supplier_target ran on the demo scope and wrote no real row — demo rows written 0, real 0, 165 ms, result {"day": "2026-10-19", "gate": false, "behind": true, "target": 200, "task_id": 20476, "verified": 0, "below_ten": 21
+PASS [S18] duty ceo.target_forecast ran on the demo scope and wrote no real row — demo rows written 0, real 0, 198 ms, result {"week": "2026-10-19", "verdicts": [{"verdict": "AT_RISK", "contract": "FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30", "re
+PASS [S18] duty ceo.target_verdict ran on the demo scope and wrote no real row — demo rows written 0, real 0, 258 ms, result {"day": "2026-10-19", "misses": 5, "metrics": [{"actual": 0, "metric": "b2b_active_accounts", "status": "not_yet_due
+PASS [S18] duty customer_support.case_idle_close ran on the demo scope and wrote no real row — demo rows written 0, real 0, 249 ms, result {"closed": 0}
+PASS [S18] duty customer_support.case_review ran on the demo scope and wrote no real row — demo rows written 0, real 0, 298 ms, result {"to": "2026-10-19T11:30:29.558079+00:00", "chat": {"answered": 543, "questions": 563, "not_answered": 20, "not_answ
+PASS [S18] duty customer_support.monthly_self_review ran on the demo scope and wrote no real row — demo rows written 0, real 0, 166 ms, result {"month": "2026-09-01", "fixture": false, "replies": 0, "tone_avg": null, "rewritten": 0, "by_channel": {}, "top_iss
+PASS [S18] duty customer_support.root_cause_loop ran on the demo scope and wrote no real row — demo rows written 0, real 0, 167 ms, result {"fell": 0, "causes": 1, "fixture": false, "measured": 0, "handed_off": 0, "week_ending": "2026-10-19", "support_to_
+PASS [S18] duty customer_support.self_review ran on the demo scope and wrote no real row — demo rows written 0, real 0, 254 ms, result {"ok": true, "seat": "customer_support", "month": "2026-10-01", "already": true}
+PASS [S18] duty it_engineer.backup_objectives ran on the demo scope and wrote no real row — demo rows written 0, real 0, 180 ms, result {"rpo": {"target_hours": 26, "hours_since_export": 11.9, "widest_gap_7d_hours": 24.2}, "rto": {"last_pass_id": 965, 
+PASS [S18] duty it_engineer.capacity_review ran on the demo scope and wrote no real row — demo rows written 0, real 0, 233 ms, result {"db_cap": 19327352832, "settled": {"duty": "capacity_review", "closed": 0, "failing": 0, "configuration_already_rec
+PASS [S18] duty it_engineer.code_health ran on the demo scope and wrote no real row — demo rows written 0, real 0, 258 ms, result {"settled": {"duty": "code_health", "closed": 0, "failing": 1, "configuration_already_recorded": 0}, "unpinned": 0, 
+PASS [S18] duty it_engineer.cost_watch ran on the demo scope and wrote no real row — demo rows written 0, real 0, 206 ms, result {"settled": {"duty": "cost_watch", "closed": 0, "failing": 1, "configuration_already_recorded": 0}, "providers": [{"
+PASS [S18] duty it_engineer.credential_rotation_age ran on the demo scope and wrote no real row — demo rows written 0, real 0, 297 ms, result {"overdue": 0, "settled": {"duty": "credential_rotation_age", "closed": 0, "failing": 0, "configuration_already_reco
+PASS [S18] duty it_engineer.data_quality ran on the demo scope and wrote no real row — demo rows written 0, real 0, 266 ms, result {"counts": {"orphan_quotes": 0, "orphan_inquiries": 0, "orphan_transactions": 0, "demo_quote_crosses_real": 0, "tran
+PASS [S18] duty it_engineer.dr_review ran on the demo scope and wrote no real row — demo rows written 0, real 0, 353 ms, result {"settled": {"duty": "dr_review", "closed": 0, "failing": 1, "configuration_already_recorded": 0}, "last_full_restor
+PASS [S18] duty it_engineer.duty_pause_expiry ran on the demo scope and wrote no real row — demo rows written 0, real 0, 368 ms, result {"closed": 0, "expired": []}
+PASS [S18] duty it_engineer.finding_chase ran on the demo scope and wrote no real row — demo rows written 0, real 0, 2943 ms, result {"chased": 40, "by_seat": {"ceo": 15, "accountant": 9, "sales_engineer": 13, "customer_support": 3}, "superseded": 
+PASS [S18] duty it_engineer.game_day ran on the demo scope and wrote no real row — demo rows written 0, real 0, 8329 ms, result {"ran": true, "month": "2026-10-01", "scenarios": [{"passed": true, "scenario": "email_provider_down", "recovery_ms
+PASS [S18] duty it_engineer.knowledge_exam ran on the demo scope and wrote no real row — demo rows written 0, real 0, 155 ms, result {"asked": 0, "retired": "the model exam files no question (24 Sep 2026)"}
+PASS [S18] duty it_engineer.knowledge_pass_rate ran on the demo scope and wrote no real row — demo rows written 0, real 0, 133 ms, result {"seats": [{"seat": "it_engineer", "raised": false, "rate_30d": 0.000, "graded_30d": 2, "rate_prev_30d": null}, {"se
+PASS [S18] duty it_engineer.knowledge_recall ran on the demo scope and wrote no real row — demo rows written 0, real 0, 4154 ms, result {"day": "2026-10-19", "left": 317, "scored": 52}
+PASS [S18] duty it_engineer.knowledge_refresh ran on the demo scope and wrote no real row — demo rows written 0, real 0, 2685 ms, result {"opened": 0, "overdue": 0, "quarter": "2026-10-01", "verified": 0, "rechecked": 6, "filed_today": 22}
+PASS [S18] duty it_engineer.latency_slo ran on the demo scope and wrote no real row — demo rows written 0, real 0, 586 ms, result {"settled": {"duty": "latency_slo", "closed": 0, "failing": 10, "configuration_already_recorded": 0}, "functions": [
+PASS [S18] duty it_engineer.model_spend ran on the demo scope and wrote no real row — demo rows written 0, real 0, 1016 ms, result {"settled": {"duty": "model_spend", "closed": 0, "failing": 37, "configuration_already_recorded": 0}}
+PASS [S18] duty it_engineer.postmortem ran on the demo scope and wrote no real row — demo rows written 0, real 0, 198 ms, result {"asked": 0, "opened": 0, "settled": {"duty": "postmortem", "closed": 0, "failing": 1, "configuration_already_record
+PASS [S18] duty it_engineer.self_review ran on the demo scope and wrote no real row — demo rows written 0, real 0, 116 ms, result {"ok": true, "seat": "it_engineer", "month": "2026-10-01", "already": true}
+PASS [S18] duty it_engineer.uptime_slo ran on the demo scope and wrote no real row — demo rows written 0, real 0, 134 ms, result {"urls": [{"up": 1943, "url": "https://www.quotesdone.ae", "samples": 1943, "uptime_pct": 100.000}, {"up": 1943, "ur
+PASS [S18] duty marketing.article_release ran on the demo scope and wrote no real row — demo rows written 0, real 0, 118 ms, result {"live": 0, "topic": {"picked": null, "reason": "a topic is open"}, "approved": 1, "in_review": 0, "open_topic": {"i
+PASS [S18] duty marketing.competitor_refresh ran on the demo scope and wrote no real row — demo rows written 0, real 0, 128 ms, result {"scan": {"collected": 0, "requested": 0}, "week": "2026-10-19", "watched": 36, "fetch_failures": 0, "stale_profiles
+PASS [S18] duty marketing.competitor_scan ran on the demo scope and wrote no real row — demo rows written 0, real 0, 119 ms, result {"collected": 0, "requested": 0}
+PASS [S18] duty marketing.gap_recruitment_plans ran on the demo scope and wrote no real row — demo rows written 0, real 0, 212 ms, result {"top": [{"gap": 10, "rank": 1, "trade": "building_materials", "emirate": "UAE", "sources": 19, "demand_90d": 0, "ga
+PASS [S18] duty marketing.geo_check ran on the demo scope and wrote no real row — demo rows written 0, real 0, 129 ms, result {"owed": 0, "month": "2026-10-01", "summary": {"month": "2026-10-01", "by_engine": {"answer_online": {"cited": 0, "c
+PASS [S18] duty marketing.launch_plan ran on the demo scope and wrote no real row — demo rows written 0, real 0, 144 ms, result {"open": 0, "total": 86, "mailed": false, "status": "draft", "paid_allowed": false, "posting_days": 20, "founder_cha
+PASS [S18] duty marketing.month_plan ran on the demo scope and wrote no real row — demo rows written 0, real 0, 127 ms, result {"tick": {"sent": false, "filed": {"why": "marketing owes the CEO a revision", "filed": false}, "month": "2026-11-01
+PASS [S18] duty marketing.recruitment_funnel ran on the demo scope and wrote no real row — demo rows written 0, real 0, 130 ms, result {"totals": {"pool": null, "invited": null, "quoting": null, "approved": null, "registered": null}, "diagnosis": {"fi
+PASS [S18] duty marketing.reputation ran on the demo scope and wrote no real row — demo rows written 0, real 0, 121 ms, result {"asked": 0, "snapshot": {"day": "2026-10-19", "reviews": 2, "asks_sent": 0, "avg_rating": 4.50, "asks_waiting": 0, 
+PASS [S18] duty marketing.self_review ran on the demo scope and wrote no real row — demo rows written 0, real 0, 118 ms, result {"ok": true, "seat": "marketing", "month": "2026-10-01", "already": true}
+PASS [S18] duty sales_engineer.activation ran on the demo scope and wrote no real row — demo rows written 0, real 0, 118 ms, result {"no_quote": 0, "first_request": 0, "stalled_filed": 0}
+PASS [S18] duty sales_engineer.comparison_kpi ran on the demo scope and wrote no real row — demo rows written 0, real 0, 121 ms, result {"reports": 0, "hours_p90": null, "window_days": 7, "hours_median": null, "share_3plus_complete": null, "quotes_with
+PASS [S18] duty sales_engineer.concierge ran on the demo scope and wrote no real row — demo rows written 0, real 0, 117 ms, result {"first_request": 0, "held_for_specs": 0, "finding_suppliers": 0}
+PASS [S18] duty sales_engineer.disputes ran on the demo scope and wrote no real row — demo rows written 0, real 0, 117 ms, result {"to_review": 0, "decision_overdue": 0}
+PASS [S18] duty sales_engineer.followup ran on the demo scope and wrote no real row — demo rows written 0, real 0, 127 ms, result {"due": 0, "asked": 0}
+PASS [S18] duty sales_engineer.knowledge_gap_sweep ran on the demo scope and wrote no real row — demo rows written 0, real 0, 123 ms, result {"from": "2026-10-18T09:32:42.353069+00:00", "open": 0, "filed": 0, "found": 0, "by_kind": {}, "dry_run": false, "fi
+PASS [S18] duty sales_engineer.licence_expiry_watch ran on the demo scope and wrote no real row — demo rows written 0, real 0, 135 ms, result {"paused": null, "renewal_asks": {"ok": true, "note": "Asks queued. Each is closed only when a replacement document 
+PASS [S18] duty sales_engineer.quote_quality_hold ran on the demo scope and wrote no real row — demo rows written 0, real 0, 129 ms, result {"ok": true, "open": 0, "fixes_sent": 0, "hold_hours": 24, "customers_told": 0, "fixes_not_sent": [], "released_corr
+PASS [S18] duty sales_engineer.self_review ran on the demo scope and wrote no real row — demo rows written 0, real 0, 126 ms, result {"ok": true, "seat": "sales_engineer", "month": "2026-10-01", "already": true}
+PASS [S18] duty sales_engineer.stalled_inquiry_rescue ran on the demo scope and wrote no real row — demo rows written 0, real 0, 167 ms, result {"ok": true, "open": 0, "acted": 0, "hours": 48, "closed": 0, "enqueue": null, "not_told": [], "refilled": 0, "custo
+PASS [S18] duty sales_engineer.supplier_availability ran on the demo scope and wrote no real row — demo rows written 0, real 0, 296 ms, result {"ok": true, "cleared": 0, "unreachable": 0, "busy_expired": 0, "newly_flagged": 0, "inquiries_swept": 0}
+PASS [S18] duty sales_engineer.supplier_onboarding ran on the demo scope and wrote no real row — demo rows written 0, real 0, 341 ms, result {"nudged": 0, "stages": {"invited": 171, "quoting": 1}, "invite_nudges": {"due": 0, "held": "the supplier campaign i
+PASS [S18] duty sales_engineer.supplier_performance ran on the demo scope and wrote no real row — demo rows written 0, real 0, 1102 ms, result {"scored": 2, "dropped_unmeasured": 0, "score_rows_refreshed": 20298}
+PASS [S18] duty sales_engineer.supplier_scorecard ran on the demo scope and wrote no real row — demo rows written 0, real 0, 298 ms, result {"sent": 0, "month": "2026-09", "not_sendable": 0}
+PASS [S18] duty sales_engineer.supply_gap ran on the demo scope and wrote no real row — demo rows written 0, real 0, 250 ms, result {"closed": 2, "target": 10, "reopened": 0, "by_status": {"closed": 2, "deferred": 215}, "recruit_by_rule": 0, "filed
+PASS [S18] duty sales_engineer.weekly_quality_review ran on the demo scope and wrote no real row — demo rows written 0, real 0, 235 ms, result {"held": 0, "week": "2026-W43", "matched": 0, "requests": 0, "held_fixed": 0, "hold_reasons": {}, "match_rate_pct": 
+PASS [S18] duty sales_engineer.winback ran on the demo scope and wrote no real row — demo rows written 0, real 0, 237 ms, result {"dormant": 0, "written": 0}
+PASS [S18] duty tick.fn_accountant_openrouter_tick ran on the demo scope and wrote no real row — demo rows written 0, real 0, 165 ms, result {"ok": true, "days": [], "agent": "accountant", "today_dubai": "2026-10-19", "days_reconciled": 0, "meter_reading_id
+PASS [S18] duty tick.fn_accountant_vat_threshold_check ran on the demo scope and wrote no real row — demo rows written 0, real 0, 124 ms, result {"band": "below", "obligation": "No registration obligation on the preceding-12-months test.", "window_from": "2025-
+PASS [S18] duty tick.fn_accountant_weekly_report_tick ran on the demo scope and wrote no real row — demo rows written 0, real 0, 125 ms, result {"id": 12, "fired": false, "reason": "already generated and delivered for this ISO week", "status": "delivered", "re
+PASS [S18] duty tick.fn_backup_prune_tick ran on the demo scope and wrote no real row — demo rows written 0, real 0, 311 ms, result {"mode": "delete", "pass": null, "findings": 4, "dropbox_pending": 3180, "storage_pending": 7}
+PASS [S18] duty tick.fn_case_embed_claim ran on the demo scope and wrote no real row — demo rows written 0, real 0, 122 ms, result {"id": 198, "hash": "b4ef61be4d2c50b7489c9cc4c81dd2fe", "text": "it_engineer is failing 36% of attempts, against a b
+PASS [S18] duty tick.fn_ceo_daily_digest_tick ran on the demo scope and wrote no real row — demo rows written 0, real 0, 119 ms, result {"fired": false, "exists": false, "reason": "before the configured local time", "local_now": "2026-10-19 15:36", "re
+PASS [S18] duty tick.fn_ceo_decisions_evaluate ran on the demo scope and wrote no real row — demo rows written 0, real 0, 187 ms, result {"ok": true, "fired": 6, "rules": [{"keys": null, "rule": "binding_constraint", "state": "quiet", "detail": "no feas
+PASS [S18] duty tick.fn_ceo_plan_tick ran on the demo scope and wrote no real row — demo rows written 0, real 0, 151 ms, result {"ok": true, "stage": "verification", "reason": "today's plan exists", "plan_id": 35, "planned": false, "followup": 
+PASS [S18] duty tick.fn_ceo_support_reply_due ran on the demo scope and wrote no real row — demo rows written 0, real 0, 120 ms, result []
+PASS [S18] duty tick.fn_ceo_weekly_report_tick ran on the demo scope and wrote no real row — demo rows written 0, real 0, 119 ms, result {"id": 200, "fired": false, "reason": "already delivered", "report_key": "quotesdone:2026-W42"}
+PASS [S18] duty tick.fn_ceo_weekly_review_tick ran on the demo scope and wrote no real row — demo rows written 0, real 0, 120 ms, result {"id": 96, "week": "2026-10-19", "fired": false, "reason": "already delivered"}
+PASS [S18] duty tick.fn_customer_support_campaign_list_tick ran on the demo scope and wrote no real row — demo rows written 0, real 0, 125 ms, result {"due": false, "reason": "before 18:00 Dubai"}
+PASS [S18] duty tick.fn_delivery_feedback_canary_tick ran on the demo scope and wrote no real row — demo rows written 0, real 0, 129 ms, result {"ok": true}
+PASS [S18] duty tick.fn_dropbox_backup_due ran on the demo scope and wrote no real row — demo rows written 0, real 0, 119 ms, result {"due": true, "queued": 2, "ran_today": true, "local_date": "2026-10-19"}
+PASS [S18] duty tick.fn_it_backup_tick ran on the demo scope and wrote no real row — demo rows written 0, real 0, 1123 ms, result {"ceo": {"completed": 0}, "daily": {"filed": false, "reason": "before 19:00 Asia/Dubai"}, "queue": {"duty": "dropbo
+PASS [S18] duty tick.fn_it_change_revisions_due ran on the demo scope and wrote no real row — demo rows written 0, real 0, 158 ms, result []
+PASS [S18] duty tick.fn_it_deliberation_independence_watch ran on the demo scope and wrote no real row — demo rows written 0, real 0, 152 ms, result {"items": 1, "settle": {"duty": "deliberation_independence", "closed": 0, "failing": 1, "configuration_already_recor
+PASS [S18] duty tick.fn_it_detect ran on the demo scope and wrote no real row — demo rows written 0, real 0, 1230 ms, result {"at": "2026-10-19T11:36:13.206137+00:00", "ok": true, "notes": {"slice": {"rows": 60826, "basis": "measured", "cap
+PASS [S18] duty tick.fn_it_dropbox_health_due ran on the demo scope and wrote no real row — demo rows written 0, real 0, 116 ms, result false
+PASS [S18] duty tick.fn_it_duties_due ran on the demo scope and wrote no real row — demo rows written 0, real 0, 120 ms, result false
+PASS [S18] duty tick.fn_it_engineer_alert_tick ran on the demo scope and wrote no real row — demo rows written 0, real 0, 853 ms, result {"ok": false, "loop": {"ok": false, "ceo": {"decided": 0, "acknowledged": 0}, "daily": {"filed": false, "completed_a
+PASS [S18] duty tick.fn_it_renewal_watch ran on the demo scope and wrote no real row — demo rows written 0, real 0, 123 ms, result {"closed": 0, "renewal": {"duty": "renewal", "closed": 0, "failing": 0, "configuration_already_recorded": 0}, "escal
+PASS [S18] duty tick.fn_it_restore_table_due ran on the demo scope and wrote no real row — demo rows written 0, real 0, 131 ms, result false
+PASS [S18] duty tick.fn_it_restore_table_overdue ran on the demo scope and wrote no real row — demo rows written 0, real 0, 120 ms, result {"overdue": false, "last_drill": "2026-10-15T00:47:50.274703+00:00"}
+PASS [S18] duty tick.fn_it_restore_table_pick ran on the demo scope and wrote no real row — demo rows written 0, real 0, 138 ms, result {"chain": {"base": "2026-10-19/kb_chunks/page_0000.json", "table": "kb_chunks", "changes": [], "full_day": "2026-10-
+PASS [S18] duty tick.fn_it_review_independence_watch ran on the demo scope and wrote no real row — demo rows written 0, real 0, 207 ms, result {"items": 1, "settle": {"duty": "review_independence", "closed": 0, "failing": 1, "configuration_already_recorded": 
+PASS [S18] duty tick.fn_it_scheduled_due ran on the demo scope and wrote no real row — demo rows written 0, real 0, 128 ms, result []
+PASS [S18] duty tick.fn_it_whatsapp_delivery_health ran on the demo scope and wrote no real row — demo rows written 0, real 0, 127 ms, result {"rates": {}, "settled": {"duty": "whatsapp_delivery", "closed": 0, "failing": 0, "configuration_already_recorded": 
+PASS [S18] duty tick.fn_lead_reclassify_tick ran on the demo scope and wrote no real row — demo rows written 0, real 0, 116 ms, result {"ran": false, "reason": "gate_off", "gate_key": "lead_reclassify_backfill"}
+PASS [S18] duty tick.fn_org_task_consume_tick ran on the demo scope and wrote no real row — demo rows written 0, real 0, 228 ms, result {"ms": 116, "ok": true, "done": [], "error": null, "closed": 0, "queued": [], "raised": 0, "dry_run": false, "refuse
+PASS [S18] duty tick.fn_prune_website_error_events ran on the demo scope and wrote no real row — demo rows written 0, real 0, 116 ms, result {"more": false, "limit": 2000, "deleted": 0}
+PASS [S18] duty tick.fn_reason_held_escalate ran on the demo scope and wrote no real row — demo rows written 0, real 0, 125 ms, result []
+PASS [S18] duty tick.fn_reason_held_notice_due ran on the demo scope and wrote no real row — demo rows written 0, real 0, 126 ms, result []
+PASS [S18] duty tick.fn_refund_ladder_sweep ran on the demo scope and wrote no real row — demo rows written 0, real 0, 256 ms, result {"ok": true, "seen": 2, "cases": [], "chased": 0, "ran_at": "2026-10-19T11:36:20.767266+00:00", "ceo_loop": {"remedi
+PASS [S18] duty tick.fn_resilience_orphan_steps_due ran on the demo scope and wrote no real row — demo rows written 0, real 0, 133 ms, result {"send_sms": false, "sanctions": false, "email_cron": false, "doc_extract": false, "email_triage": true, "wa_templat
+PASS [S18] duty tick.fn_sales_engineer_supplier_documents_tick ran on the demo scope and wrote no real row — demo rows written 6, real 0, 197 ms, result {"reconcile": {"ran_at": "2026-10-19T11:36:21.548629+00:00", "restored": 0, "grace_days": 0, "licence_suspended": 0,
+PASS [S18] duty tick.fn_sales_engineer_supplier_outreach_tick ran on the demo scope and wrote no real row — demo rows written 0, real 0, 119 ms, result {"due": false, "reason": "already ran this Dubai day"}
+PASS [S18] duty tick.fn_seat_clocks_tick ran on the demo scope and wrote no real row — demo rows written 0, real 0, 152 ms, result {"ok": true, "complaints": {"ok": true, "closed": 0, "refused": [], "on_seat_clock": 0, "raised_to_ceo": 0}, "reply_
+PASS [S18] duty tick.fn_seat_learning_measure ran on the demo scope and wrote no real row — demo rows written 0, real 0, 137 ms, result {"ok": true, "day": "2026-10-19", "seats": [{"fell": false, "seat": "accountant", "accuracy_30d": null, "outcomes_30
+PASS [S18] duty tick.fn_supplier_doc_reading_escalate ran on the demo scope and wrote no real row — demo rows written 0, real 0, 143 ms, result []
+PASS [S18] duty tick.fn_support_request_ratings_due ran on the demo scope and wrote no real row — demo rows written 0, real 0, 129 ms, result {"ok": true, "note": "Enqueued into public.notifications as customer_support. send_outbox delivers; a row in any sta
+PASS [S18] duty tick.fn_table_export_due ran on the demo scope and wrote no real row — demo rows written 0, real 0, 121 ms, result {"due": false, "kind": "full", "stamp": "2026-10-19", "status": "done"}
+PASS [S18] duty tick.fn_wa_arrival_sweep ran on the demo scope and wrote no real row — demo rows written 0, real 0, 119 ms, result []
+PASS [S18] model routes follow matrix v2 (0 calls) — all on primary or fallback
+     S18: USD 0.0000 (0 calls), running total USD 2.0660 of 15
+PASS [S19] wa_inbound: a Twilio-signed message from a demo number is accepted and stored — HTTP 200 stored in wa_messages:1, support_case:1
+PASS [S19] sms_inbound: a Twilio-signed message from a demo number is accepted and stored — HTTP 200 stored in sms_messages:1
+PASS [S19] wa_status: a Twilio-signed delivery receipt is accepted — HTTP 200 {"ok":true,"applied":false,"matched":false}
+PASS [S19] resend_inbound: a Svix-signed email from a demo address is accepted and stored — HTTP 200 stored in inbound_messages:1
+PASS [S19] resend_webhook: a Svix-signed delivery event is accepted — HTTP 200 {"ok":true,"type":"email.delivered","suppressed":0}
+PASS [S19] inbound_email: an authenticated inbound email from a demo address is accepted — HTTP 200 {"ok":true,"lead_id":147140,"company":"example.invalid","matched_existing":false,"created_new_lead":true,"ai_ok":false,"fields_updated":["contacted","p
+FAIL [S19] model routes follow matrix v2 (18 calls) — intent_detection:openai/gpt-6-luna
+     S19: USD 0.0837 (18 calls), running total USD 2.1497 of 15
+PASS [S20] customer_intelligence.forecast answers a demo caller with a body — HTTP 401 {"code":"UNAUTHORIZED_ASYMMETRIC_JWT","message":"Invalid JWT"}
+PASS [S20] customer_intelligence.savings answers a demo caller with a body — HTTP 401 {"code":"UNAUTHORIZED_ASYMMETRIC_JWT","message":"Invalid JWT"}
+PASS [S20] customer_intelligence.supplier_performance answers a demo caller with a body — HTTP 401 {"code":"UNAUTHORIZED_ASYMMETRIC_JWT","message":"Invalid JWT"}
+PASS [S20] customer_intelligence.supplier_relationship answers a demo caller with a body — HTTP 401 {"code":"UNAUTHORIZED_ASYMMETRIC_JWT","message":"Invalid JWT"}
+PASS [S20] ceo_agent.board answers a demo caller with a body — HTTP 200 {"ok":true,"board":{"basis":"Every figure is a count of rows that exist, over the window for activity and lifetime for a
+PASS [S20] ceo_agent.seats answers a demo caller with a body — HTTP 200 {"ok":true,"board":{"basis":"Every figure is a count of rows that exist, over the window for activity and lifetime for a
+PASS [S20] ceo_agent.inbox answers a demo caller with a body — HTTP 200 {"ok":true,"commands":[{"command_id":18,"received_at":"2026-09-08T20:44:54.524809+00:00","channel":"api","body":"build t
+PASS [S20] ceo_agent.context answers a demo caller with a body — HTTP 400 {"error":"query_required"}
+PASS [S20] it_engineer.health answers a demo caller with a body — HTTP 200 {"ok":true,"seat":"it_engineer","caller":"it_engineer","authenticated_by":"fn.it_engineer","seated":true,"agent":{"agent
+PASS [S20] it_engineer.status answers a demo caller with a body — HTTP 200 {"ok":true,"seat":"it_engineer","caller":"it_engineer","authenticated_by":"fn.it_engineer","seated":true,"agent":{"agent
+PASS [S20] compliance_archive.ping answers a demo caller with a body — HTTP 200 {"ok":true,"dropbox_ready":true}
+PASS [S20] embed_ml.query answers a demo caller with a body — HTTP 403 {"ok":false,"error":"forbidden"}
+PASS [S20] site_error_ingest answers a demo caller with a body — HTTP 401 {"error":"unauthorized"}
+PASS [S20] sanctions_screen answers a demo caller with a body — HTTP 403 {"error":"forbidden"}
+PASS [S20] role_guard answers a demo caller with a body — HTTP 200 {"ok":true,"kind":"customer","conflict":null}
+PASS [S20] supplier_onboard answers a demo caller with a body — HTTP 401 {"code":"UNAUTHORIZED_ASYMMETRIC_JWT","message":"Invalid JWT"}
+PASS [S20] supplier_catalog_ingest answers a demo caller with a body — HTTP 401 {"code":"UNAUTHORIZED_ASYMMETRIC_JWT","message":"Invalid JWT"}
+PASS [S20] stripe_setup_page renders — HTTP 200
+PASS [S20] model routes follow matrix v2 (2 calls) — all on primary or fallback
+     S20: USD 0.0019 (2 calls), running total USD 2.1515 of 15
+PASS [S21] lic_dubai_ded_old_text (text_pdf_colon, dubai_ded_old): licence number, legal name and expiry read exactly — HTTP 200 no=507919/507919 name=ZZ DEMO Falcon Aluminium LLC/ZZ DEMO Falcon Aluminium LLC expiry=2027-01-28/2027-01-28 {"licence_no":"correct","legal_name":"corr
+PASS [S21] lic_dubai_ded_old_text: the gate decides approve — approved company=ZZ DEMO Falcon Aluminium LLC -> correct
+PASS [S21] lic_dubai_ded_old_text: every attachment read (licence + pdf profile + catalogue) (1177) — 3 uploaded, unread: none · [["1792410942775_qd-0a717394-lic_dubai_ded_old_text.pdf","reading"],["1792410943626_qd-0a717394-profile_pdf.pdf","reading"],["1792410
+FAIL [S21] lic_dubai_ded_old_text: the profile's trades are proposed for matching, none it does not do — proposed [] truth ["aluminium","joinery","glazing"] wrong  missing aluminium,glazing
+PASS [S21] lic_dubai_ded_old_scan_pdf (scan_pdf, dubai_ded_old): licence number, legal name and expiry read exactly — HTTP 200 no=515838/515838 name=ZZ DEMO Pearl Electrical LLC/ZZ DEMO Pearl Electrical LLC expiry=2028-02-01/2028-02-01 {"licence_no":"correct","legal_name":"corr
+PASS [S21] lic_dubai_ded_old_scan_pdf: the gate decides approve — approved company=ZZ DEMO Pearl Electrical LLC -> correct
+PASS [S21] lic_dubai_ded_old_scan_pdf: every attachment read (licence + docx profile) (1177) — 2 uploaded, unread: none · [["1792410957204_qd-0a717394-profile_docx.docx","read"],["1792410950089_qd-0a717394-lic_dubai_ded_old_scan_pdf.pdf","read"]]
+FAIL [S21] lic_dubai_ded_old_scan_pdf: the profile's trades are proposed for matching, none it does not do — proposed ["electrical","painting"] truth ["electrical","painting","fire_fighting"] wrong  missing fire_fighting
+PASS [S21] lic_dubai_det_text (text_pdf_table, dubai_det): licence number, legal name and expiry read exactly — HTTP 200 no=1023757/1023757 name=ZZ DEMO Dune Plumbing LLC/ZZ DEMO Dune Plumbing LLC expiry=2028-03-02/2028-03-02 {"licence_no":"correct","legal_name":"correct"
+FAIL [S21] lic_dubai_det_text: the gate decides approve — pending (documents_being_read) company=ZZ DEMO Dune Plumbing LLC -> wrong
+PASS [S21] lic_dubai_det_text: every attachment read (licence + pptx profile) (1177) — 2 uploaded, unread: none · [["1792411061583_qd-0a717394-lic_dubai_det_text.pdf","reading"],["1792411062231_qd-0a717394-profile_pptx.pptx","reading"]]
+FAIL [S21] lic_dubai_det_text: the profile's trades are proposed for matching, none it does not do — proposed [] truth ["plumbing","waterproofing","hvac"] wrong  missing hvac,plumbing
+PASS [S21] lic_dubai_det_png (png, dubai_det): licence number, legal name and expiry read exactly — HTTP 200 no=1031676/1031676 name=ZZ DEMO Oasis Air LLC/ZZ DEMO Oasis Air LLC expiry=2027-04-03/2027-04-03 {"licence_no":"correct","legal_name":"correct","expiry
+PASS [S21] lic_dubai_det_png: the gate decides approve — approved company=ZZ DEMO Oasis Air LLC -> correct
+PASS [S21] lic_dubai_det_png: every attachment read (licence + png profile) (1177) — 2 uploaded, unread: none · [["1792411166922_qd-0a717394-lic_dubai_det_png.png","reading"],["1792411179428_qd-0a717394-profile_png.png","reading"]]
+FAIL [S21] lic_dubai_det_png: the profile's trades are proposed for matching, none it does not do — proposed [] truth ["hvac","landscaping","flooring","joinery"] wrong  missing flooring,joinery
+PASS [S21] lic_abu_dhabi_added_jpg (jpg, abu_dhabi_added): licence number, legal name and expiry read exactly — HTTP 200 no=CN-1628374/CN-1628374 name=ZZ DEMO Saker Carpentry LLC/ZZ DEMO Saker Carpentry LLC expiry=2029-06-05/2029-06-05 {"licence_no":"correct","legal_name"
+PASS [S21] lic_abu_dhabi_added_jpg: the gate decides approve — approved company=ZZ DEMO Saker Carpentry LLC -> correct
+PASS [S21] lic_abu_dhabi_added_jpg: every attachment read (licence + pdf profile) (1177) — 2 uploaded, unread: none · [["1792411284163_qd-0a717394-lic_abu_dhabi_added_jpg.jpg","reading"],["1792411297542_qd-0a717394-profile_pdf_paint.pdf","reading"]]
+FAIL [S21] lic_abu_dhabi_added_jpg: the profile's trades are proposed for matching, none it does not do — proposed [] truth ["elevators","joinery","painting","waterproofing"] wrong  missing painting,waterproofing
+PASS [S21] lic_adgm_rotated90 (rotated90, adgm): licence number, legal name and expiry read exactly — HTTP 200 no=000010296/000010296 name=ZZ DEMO Crescent Building Ltd/ZZ DEMO Crescent Building Ltd expiry=2028-08-07/2028-08-07 {"licence_no":"correct","legal_nam
+PASS [S21] lic_adgm_rotated90: the gate decides approve — approved company=ZZ DEMO Crescent Building Ltd -> correct
+PASS [S21] lic_adgm_rotated90: every attachment read (licence + docx profile) (1177) — 2 uploaded, unread: none · [["1792411317175_qd-0a717394-profile_docx_land.docx","read"],["1792411304434_qd-0a717394-lic_adgm_rotated90.jpg","read"]]
+FAIL [S21] lic_adgm_rotated90: the profile's trades are proposed for matching, none it does not do — proposed ["aluminium","waterproofing"] truth ["aluminium","waterproofing","landscaping"] wrong  missing landscaping
+PASS [S21] lic_sharjah_sedd_skewed (skewed, sharjah_sedd): licence number, legal name and expiry read exactly — HTTP 200 no=706130/706130 name=ZZ DEMO Palm Glass LLC/ZZ DEMO Palm Glass LLC expiry=2027-01-09/2027-01-09 {"licence_no":"correct","legal_name":"correct","expiry
+PASS [S21] lic_sharjah_sedd_skewed: the gate decides approve — approved company=ZZ DEMO Palm Glass LLC -> correct
+PASS [S21] lic_sharjah_sedd_skewed: every attachment read (licence + docx profile) (1177) — 2 uploaded, unread: none · [["1792411373767_qd-0a717394-lic_sharjah_sedd_skewed.jpg","reading"],["1792411388182_qd-0a717394-profile_docx_unsuffixed_name.docx","
+FAIL [S21] lic_sharjah_sedd_skewed: the profile's trades are proposed for matching, none it does not do — proposed [] truth ["glazing","plumbing","painting"] wrong  missing painting
+PASS [S21] lic_ajman_ded_lowdpi (lowdpi, ajman_ded): licence number, legal name and expiry read exactly — HTTP 200 no=13252/13252 name=ZZ DEMO Nakheel Fire Est/ZZ DEMO Nakheel Fire Est expiry=2029-03-11/2029-03-11 {"licence_no":"correct","legal_name":"correct","expi
+PASS [S21] lic_ajman_ded_lowdpi: the gate decides approve — approved company=ZZ DEMO Nakheel Fire Est -> correct
+PASS [S21] lic_ajman_ded_lowdpi: every attachment read (licence + pdf profile) (1177) — 2 uploaded, unread: none · [["1792411405913_qd-0a717394-profile_pdf.pdf","read"],["1792411394488_qd-0a717394-lic_ajman_ded_lowdpi.jpg","read"]]
+FAIL [S21] lic_ajman_ded_lowdpi: the profile's trades are proposed for matching, none it does not do — proposed ["fire_fighting","flooring"] truth ["fire_fighting","flooring","aluminium","glazing"] wrong  missing aluminium,glazing
+PASS [S21] lic_rak_ded_phone (phone, rak_ded): licence number, legal name and expiry read exactly — HTTP 200 no=24634/24634 name=ZZ DEMO Lulu Electrical LLC/ZZ DEMO Lulu Electrical LLC expiry=2028-05-13/2028-05-13 {"licence_no":"correct","legal_name":"correct"
+PASS [S21] lic_rak_ded_phone: the gate decides approve — approved company=ZZ DEMO Lulu Electrical LLC -> correct
+PASS [S21] lic_rak_ded_phone: every attachment read (licence + docx profile) (1177) — 2 uploaded, unread: none · [["1792411625466_qd-0a717394-profile_docx.docx","read"],["1792411611041_qd-0a717394-lic_rak_ded_phone.jpg","read"]]
+PASS [S21] lic_rak_ded_phone: the profile's trades are proposed for matching, none it does not do — proposed ["electrical","fire_fighting","painting"] truth ["electrical","painting","fire_fighting"] wrong  missing 
+PASS [S21] lic_dubai_det_bi_jpg (bilingual_jpg, dubai_det): licence number, legal name and expiry read exactly — HTTP 200 no=1293003/1293003 name=ZZ DEMO Falcon Aluminium LLC/ZZ DEMO Falcon Aluminium LLC expiry=2027-01-09/2027-01-09 {"licence_no":"correct","legal_name":"co
+PASS [S21] lic_dubai_det_bi_jpg: the gate decides approve — approved company=ZZ DEMO Falcon Aluminium LLC -> correct
+PASS [S21] lic_dubai_det_bi_jpg: every attachment read (licence + pptx profile) (1177) — 2 uploaded, unread: none · [["1792411749222_qd-0a717394-profile_pptx.pptx","read"],["1792411737716_qd-0a717394-lic_dubai_det_bi_jpg.jpg","read"]]
+PASS [S21] lic_dubai_det_bi_jpg: the profile's trades are proposed for matching, none it does not do — proposed ["aluminium","hvac","joinery","plumbing"] truth ["aluminium","joinery","hvac","plumbing"] wrong  missing 
+PASS [S21] lic_sharjah_sedd_bi_phone (bilingual_phone, sharjah_sedd): licence number, legal name and expiry read exactly — HTTP 200 no=723294/723294 name=ZZ DEMO Pearl Electrical LLC/ZZ DEMO Pearl Electrical LLC expiry=2028-02-10/2028-02-10 {"licence_no":"correct","legal_name":"corr
+PASS [S21] lic_sharjah_sedd_bi_phone: the gate decides approve — approved company=ZZ DEMO Pearl Electrical LLC -> correct
+PASS [S21] lic_sharjah_sedd_bi_phone: every attachment read (licence + png profile) (1177) — 2 uploaded, unread: none · [["1792411807802_qd-0a717394-lic_sharjah_sedd_bi_phone.jpg","reading"],["1792411817842_qd-0a717394-profile_png.png","reading"]]
+FAIL [S21] lic_sharjah_sedd_bi_phone: the profile's trades are proposed for matching, none it does not do — proposed [] truth ["electrical","painting","flooring","joinery"] wrong  missing flooring,joinery
+FAIL [S21] scenario crashed — Error: management API 400: {"message":"Failed to run sql query: ERROR:  23505: duplicate key value violates unique constraint \"leads_claimed_company_name_uidx\
+PASS [S21] model routes follow matrix v2 (32 calls) — all on primary or fallback
+     S21: USD 0.2174 (32 calls), running total USD 2.3690 of 15
+PASS [S22] C1: acceptance records the current version, the IP and the text hash — version=v10/v10 ip=94.204.21.3 sha=3862c43377b9
+PASS [S22] C1: the signed certificate is on the letterhead and names the signer, IP and hash — customers/1792407173108_ZZ_DEMO_C1_0a717394_TnC-Acceptance.pdf 139044 bytes letterhead=true ip=true hash=true
+PASS [S22] C2: acceptance records the current version, the IP and the text hash — version=v10/v10 ip=94.204.21.3 sha=3862c43377b9
+PASS [S22] C2: the signed certificate is on the letterhead and names the signer, IP and hash — customers/1792407178759_ZZ_DEMO_C2_0a717394_TnC-Acceptance.pdf 159869 bytes letterhead=true ip=true hash=true
+PASS [S22] C3: acceptance records the current version, the IP and the text hash — version=v10/v10 ip=94.204.21.3 sha=3862c43377b9
+PASS [S22] C3: the signed certificate is on the letterhead and names the signer, IP and hash — customers/1792407182393_ZZ_DEMO_C3_0a717394_TnC-Acceptance.pdf 139044 bytes letterhead=true ip=true hash=true
+PASS [S22] C4: acceptance records the current version, the IP and the text hash — version=v10/v10 ip=94.204.21.3 sha=3862c43377b9
+PASS [S22] C4: the signed certificate is on the letterhead and names the signer, IP and hash — customers/1792407187678_ZZ_DEMO_C4_0a717394_TnC-Acceptance.pdf 159876 bytes letterhead=true ip=true hash=true
+PASS [S22] C5: acceptance records the current version, the IP and the text hash — version=v10/v10 ip=94.204.21.3 sha=3862c43377b9
+PASS [S22] C5: the signed certificate is on the letterhead and names the signer, IP and hash — customers/1792407191367_ZZ_DEMO_C5_0a717394_TnC-Acceptance.pdf 139048 bytes letterhead=true ip=true hash=true
+PASS [S22] C6: acceptance records the current version, the IP and the text hash — version=v10/v10 ip=94.204.21.3 sha=3862c43377b9
+PASS [S22] C6: the signed certificate is on the letterhead and names the signer, IP and hash — customers/1792407196272_ZZ_DEMO_C6_0a717394_TnC-Acceptance.pdf 159880 bytes letterhead=true ip=true hash=true
+PASS [S22] C7: acceptance records the current version, the IP and the text hash — version=v10/v10 ip=94.204.21.3 sha=3862c43377b9
+PASS [S22] C7: the signed certificate is on the letterhead and names the signer, IP and hash — customers/1792407200900_ZZ_DEMO_C7_0a717394_TnC-Acceptance.pdf 139044 bytes letterhead=true ip=true hash=true
+PASS [S22] C8: acceptance records the current version, the IP and the text hash — version=v10/v10 ip=94.204.21.3 sha=3862c43377b9
+PASS [S22] C8: the signed certificate is on the letterhead and names the signer, IP and hash — customers/1792407205934_ZZ_DEMO_C8_0a717394_TnC-Acceptance.pdf 159874 bytes letterhead=true ip=true hash=true
+PASS [S22] C9: acceptance records the current version, the IP and the text hash — version=v10/v10 ip=94.204.21.3 sha=3862c43377b9
+PASS [S22] C9: the signed certificate is on the letterhead and names the signer, IP and hash — customers/1792407213620_ZZ_DEMO_C9_0a717394_TnC-Acceptance.pdf 139041 bytes letterhead=true ip=true hash=true
+PASS [S22] C10: acceptance records the current version, the IP and the text hash — version=v10/v10 ip=94.204.21.3 sha=3862c43377b9
+PASS [S22] C10: the signed certificate is on the letterhead and names the signer, IP and hash — customers/1792407219021_ZZ_DEMO_C10_0a717394_TnC-Acceptance.pdf 159876 bytes letterhead=true ip=true hash=true
+FAIL [S22] customer_api accept_terms re-records the acceptance at the current version — HTTP 401 {"code":"UNAUTHORIZED_ASYMMETRIC_JWT","message":"Invalid JWT"}
+PASS [S22] the company customer register lists every real customer and no fixture (and its Dropbox copy is the same file) — HTTP 200 count=2 real=2 fixture mentions in the file=0 dropbox=true
+PASS [S22] model routes follow matrix v2 (3 calls) — all on primary or fallback
+     S22: USD 0.0066 (3 calls), running total USD 2.3756 of 15
+PASS [S25] inside its 30 minutes an unfinished sign-up stays — {"held":0,"apply":true,"items":[],"removed":0} row=1 auth=1
+PASS [S25] after 30 minutes the purge removes the row, the auth user and the OTP rows — {"held":0,"apply":true,"items":[{"kind":"customer","counts":{"outbox":0,"email_otp":1,"phone_otp":0,"auth_users":1,"records_listed":0,"mail_pdfs_listed":0,"mail
+PASS [S25] a complete sign-up of the same age is never touched — {"held":0,"apply":true,"items":[],"removed":0} row=1 auth=1
+PASS [S25] model routes follow matrix v2 (0 calls) — all on primary or fallback
+     S25: USD 0.0000 (0 calls), running total USD 2.3756 of 15
+PASS [S26] browser walk portals ran to the end — exit 0 index: 307 PASS, 20 FAIL
+PASS [S26] browser walk journeys ran to the end — exit 0 FAIL journey_customer_C1_desktop_en quotes and comparison report — no request of this customer has a quote on screen (were quotes released for this custo
+FAIL [S26] inquiry box usable at every viewport, EN + AR — FAIL 1440x900_ar — could not open New request: locator.click: Timeout 10000ms exceeded. | FAIL 1366x768_ar — could not open New request: locator.click: Timeout 
+PASS [S26] browser: customer_C1_desktop_ar (11 steps) — all PASS
+PASS [S26] browser: customer_C1_desktop_en (11 steps) — all PASS
+PASS [S26] browser: customer_C1_mobile_ar (11 steps) — all PASS
+PASS [S26] browser: customer_C1_mobile_en (11 steps) — all PASS
+PASS [S26] browser: customer_C2_desktop_ar (11 steps) — all PASS
+PASS [S26] browser: customer_C2_desktop_en (11 steps) — all PASS
+PASS [S26] browser: customer_C2_mobile_ar (11 steps) — all PASS
+PASS [S26] browser: customer_C2_mobile_en (11 steps) — all PASS
+FAIL [S26] browser: inquiry_box (10 steps) — 1440x900_ar: FAIL could not open New request: locator.click: Timeout 10000ms exceeded. | 1366x768_ar: FAIL could not open New request: locator.click: Timeout 10
+FAIL [S26] browser: journey_customer_C1_desktop_ar (7 steps) — terms re-accept inline prompt: FAIL threw: locator.click: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('button', { name: /طلب جديد/ }).firs
+FAIL [S26] browser: journey_customer_C1_desktop_en (7 steps) — quotes and comparison report: FAIL no request of this customer has a quote on screen (were quotes released for this customer?) | reveal checkout: test card succ
+FAIL [S26] browser: journey_customer_C1_mobile_ar (7 steps) — terms re-accept inline prompt: FAIL threw: locator.click: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('button', { name: /طلب جديد/ }).firs
+FAIL [S26] browser: journey_customer_C1_mobile_en (7 steps) — quotes and comparison report: FAIL no request of this customer has a quote on screen (were quotes released for this customer?) | reveal checkout: test card succ
+FAIL [S26] browser: journey_customer_C2_desktop_ar (7 steps) — quotes and comparison report: FAIL no request of this customer has a quote on screen (were quotes released for this customer?) | reveal checkout: test card succ
+FAIL [S26] browser: journey_customer_C2_mobile_ar (7 steps) — quotes and comparison report: FAIL no request of this customer has a quote on screen (were quotes released for this customer?) | reveal checkout: test card succ
+FAIL [S26] browser: journey_supplier_registration_licence (1 steps) — registration with licence upload (supplier_registration_walk.mjs): FAIL exit 1: FAIL [en/desktop] licence + company profile uploaded; licence expiry read — {"li
+PASS [S26] browser: journey_unsubscribe_real_token (2 steps) — all PASS
+PASS [S26] browser: remeasure_services_cleaning_mobile (3 steps) — all PASS
+PASS [S26] browser: supplier_AL_desktop_en (7 steps) — all PASS
+PASS [S26] browser: supplier_AL_mobile_en (7 steps) — all PASS
+PASS [S26] model routes follow matrix v2 (20 calls) — all on primary or fallback
+     S26: USD 0.2451 (20 calls), running total USD 2.6206 of 15
+PASS [S17] blog draft produced and routed to CEO review; nothing published or posted — HTTP 401 social posts=0
+PASS [S17] model routes follow matrix v2 (0 calls) — all on primary or fallback
+     S17: USD 0.0000 (0 calls), running total USD 2.6206 of 15
+PASS [S23] every document of the run has a backup record, uploaded and verified by size and content hash — 131 records · all done · enqueue {"tag":"0a717394","enqueued":131,"sandbox_rows":131} · last upload HTTP 200
+PASS [S23] supplier 147099: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO AL aluminium 0a717394 (147099)
+PASS [S23] supplier 147100: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO EL electrical 0a717394 (147100)
+PASS [S23] supplier 147101: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO PL plumbing 0a717394 (147101)
+PASS [S23] supplier 147102: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO HV hvac 0a717394 (147102)
+PASS [S23] supplier 147103: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO FL flooring 0a717394 (147103)
+PASS [S23] supplier 147104: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO JO joinery 0a717394 (147104)
+PASS [S23] supplier 147105: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO GL glazing 0a717394 (147105)
+PASS [S23] supplier 147106: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO PA painting 0a717394 (147106)
+PASS [S23] supplier 147107: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO WA waterproofing 0a717394 (147107)
+PASS [S23] supplier 147108: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO LA landscaping 0a717394 (147108)
+PASS [S23] supplier 147109: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO A2 aluminium 0a717394 (147109)
+PASS [S23] supplier 147110: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO A3 aluminium 0a717394 (147110)
+PASS [S23] supplier 147111: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO A4 aluminium 0a717394 (147111)
+PASS [S23] supplier 147141: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO Falcon Aluminium LLC [0a717394 lic_dubai_ded_old_text] (147141)
+PASS [S23] supplier 147142: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO Pearl Electrical LLC [0a717394 lic_dubai_ded_old_scan_pdf] (147142)
+PASS [S23] supplier 147143: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO Dune Plumbing LLC (147143)
+PASS [S23] supplier 147144: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO Oasis Air LLC [0a717394 lic_dubai_det_png] (147144)
+PASS [S23] supplier 147145: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO Saker Carpentry LLC [0a717394 lic_abu_dhabi_added_jpg] (147145)
+PASS [S23] supplier 147146: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO Crescent Building Ltd [0a717394 lic_adgm_rotated90] (147146)
+PASS [S23] supplier 147147: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO Palm Glass LLC [0a717394 lic_sharjah_sedd_skewed] (147147)
+PASS [S23] supplier 147148: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO Nakheel Fire Est [0a717394 lic_ajman_ded_lowdpi] (147148)
+PASS [S23] supplier 147149: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO Lulu Electrical LLC [0a717394 lic_rak_ded_phone] (147149)
+PASS [S23] supplier 147150: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO Falcon Aluminium LLC [0a717394 lic_dubai_det_bi_jpg] (147150)
+PASS [S23] supplier 147151: licence and profile filed in its ONE folder — 2/2 filed · folders Suppliers/uncategorized/ZZ DEMO Pearl Electrical LLC [0a717394 lic_sharjah_sedd_bi_phone] (147151)
+PASS [S23] customer C1: details and signed terms in its ONE folder, inquiry files under it — 5 files · folders ZZ DEMO C1 0a717394 (48b11d52) · signed terms true · inquiries 1 ok=true
+PASS [S23] customer C2: details and signed terms in its ONE folder, inquiry files under it — 3 files · folders ZZ DEMO C2 0a717394 (cd64cddf) · signed terms true · inquiries 1 ok=true
+PASS [S23] customer C3: details and signed terms in its ONE folder, inquiry files under it — 3 files · folders ZZ DEMO C3 0a717394 (b0cb4aa9) · signed terms true · inquiries 1 ok=true
+PASS [S23] customer C4: details and signed terms in its ONE folder, inquiry files under it — 3 files · folders ZZ DEMO C4 0a717394 (97516bbb) · signed terms true · inquiries 1 ok=true
+PASS [S23] customer C5: details and signed terms in its ONE folder, inquiry files under it — 3 files · folders ZZ DEMO C5 0a717394 (0273db77) · signed terms true · inquiries 1 ok=true
+PASS [S23] customer C6: details and signed terms in its ONE folder, inquiry files under it — 3 files · folders ZZ DEMO C6 0a717394 (704e2c3f) · signed terms true · inquiries 1 ok=true
+PASS [S23] customer C7: details and signed terms in its ONE folder, inquiry files under it — 3 files · folders ZZ DEMO C7 0a717394 (3e178bfc) · signed terms true · inquiries 1 ok=true
+PASS [S23] customer C8: details and signed terms in its ONE folder, inquiry files under it — 3 files · folders ZZ DEMO C8 0a717394 (0ffa4024) · signed terms true · inquiries 1 ok=true
+PASS [S23] customer C9: details and signed terms in its ONE folder, inquiry files under it — 2 files · folders ZZ DEMO C9 0a717394 (9b2d79b3) · signed terms true · inquiries 0 ok=true
+PASS [S23] customer C10: details and signed terms in its ONE folder, inquiry files under it — 4 files · folders ZZ DEMO C10 0a717394 (3e8a3d70) · signed terms true · inquiries 2 ok=true
+PASS [S23] the Dropbox listing matches the backup records (0 missing, 0 changed, 0 stray) — HTTP 200 {"roots":1,"unlisted_roots":0,"expected":131,"listed":131,"missing":0,"confirmed_missing":0,"changed":0,"stray":0,"files_refreshed":0,"files_removed":0
+PASS [S23] model routes follow matrix v2 (0 calls) — all on primary or fallback
+     S23: USD 0.0000 (0 calls), running total USD 2.6206 of 15
+FAIL [S24] an Arabic customer receives Arabic, including an Arabic reveal_receipt — 0 notices to Arabic customers, 0 reveal_receipt (none)
+PASS [S24] visitor chat (en): answer saved for the Claude agent's grade (producer anthropic/claude-sonnet-5.5) — Revealing a supplier costs a 3% reveal fee on the final quoted price of the quote you choose, calculated after any discount the supplier states and before VAT. 
+PASS [S24] visitor chat (ar): answer saved for the Claude agent's grade (producer anthropic/claude-sonnet-5.5) — رسوم كشف بيانات المورد 3٪ من السعر النهائي للعرض الذي تختاره، قبل ضريبة القيمة المضافة وبعد أي خصم يذكره المورد، دون حد أقصى. مثال: عرض 2,000 درهم، وبعد الخصم 1
+PASS [S24] customer chat (en): answer saved for the Claude agent's grade (producer openai/gpt-6-luna-pro) — Open "My requests" in your portal and select your Dubai aluminium request. All 3 quotes received for it are listed there, anonymous, with the top-3 comparison r
+PASS [S24] customer chat (ar): answer saved for the Claude agent's grade (producer openai/gpt-6-luna-pro) — طلبك (توريد وتركيب لوحات توزيع ومجاري كابلات في فيلا بأبوظبي) حالته "مُرسَل"، ولم يصلك أي عرض حتى الآن، ولم يصل الطلب إلى أي مورد بعد. عند وصول العروض ستجدها في
+PASS [S24] supplier chat (en): answer saved for the Claude agent's grade (producer openai/gpt-6-luna-pro) — Your quote on RFQ 159257 has already been revealed, so it can no longer be refreshed or withdrawn through the portal. Once a customer reveals a supplier, the re
+PASS [S24] comparison report (EN): answer saved for the Claude agent's grade (producer anthropic/claude-opus-5.5) — QuotesDone Technologies  DET Trader License No. 1633275 · TDRA NOL-26-100000665  Bid tabulation and technical comparison  Quote comparison report  Supply and in
+PASS [S24] 0 messages from the run reached a real person (email, WhatsApp, SMS) — 108 notices · real-looking addresses 0 (-) · delivered/queued 0
+PASS [S24] model routes follow matrix v2 (0 calls) — all on primary or fallback
+     S24: USD 0.0000 (0 calls), running total USD 2.6206 of 15
+
+STAGE 2 33 FAILED · spend USD 2.621 · cleanup KEPT (--keep): window closed, demo data and tag 0a717394 kept; remove with --cleanup-only --tag 0a717394 · C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\INDEX.html
+STAGE2 EXIT 1

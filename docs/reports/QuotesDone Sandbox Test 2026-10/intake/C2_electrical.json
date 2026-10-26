@@ -1,0 +1,78 @@
+{
+ "customer": "C2",
+ "email": "qd-fe7ba9c4-cust15@example.invalid",
+ "category": "electrical",
+ "final_status": "needs_info",
+ "final_readiness": 63,
+ "final_missing": [
+  "هل لديك تفضيل في الكابلات والمفاتيح والمقابس؟ اختر أحد الخيارات، أو اكتب ما تفضّله.",
+  "هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟",
+  "متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ."
+ ],
+ "final_brief": {
+  "state": "interview",
+  "details": {},
+  "asked_key": null,
+  "boq_asked": false,
+  "cad_asked": false,
+  "req_asked": "material.cables_devices",
+  "req_answers": {
+   "installation": {
+    "v": "yes"
+   }
+  }
+ },
+ "turns": [
+  {
+   "turn": 1,
+   "harness_answer": "نحتاج Electrical لفيلا في Abu Dhabi: البند الأول db panels عدد 20، البند الثاني cable trays عدد 10.",
+   "ai_reply": "شكراً، سجّلت طلب لوحات التوزيع وحوامل الكابلات للفيلا في أبوظبي. نحتاج بعض التفاصيل البسيطة حتى يتمكن الموردون من تسعير الطلب بدقة."
+  },
+  {
+   "turn": 2,
+   "harness_answer": "المقاسات: غير متأكد، أرجو اقتراح المقاس القياسي.",
+   "ai_reply": "سجّلت 20 لوحة توزيع و10 حوامل كابلات للفيلا في أبوظبي، مع ترك اختيار المقاسات القياسية للمورد. أحتاج هذه التفاصيل لتجهيز الطلب للتسعير."
+  },
+  {
+   "turn": 3,
+   "harness_answer": "التوريد والتركيب، خلال ستة أسابيع.",
+   "ai_reply": "تم تسجيل توريد وتركيب 20 لوحة توزيع و10 حوامل كابلات لفيلا في أبوظبي، مع ترك تحديد المقاسات القياسية للمورد. بقيت معلومتان لمساعدة الموردين على التسعير بدقة:"
+  },
+  {
+   "turn": 4,
+   "harness_answer": "المواصفات: غير متأكد من العلامة التجارية، درجة تجارية قياسية.",
+   "ai_reply": "تم تسجيل توريد وتركيب 20 لوحة توزيع و10 حوامل كابلات لفيلا في أبوظبي، خلال ستة أسابيع، مع اعتماد درجة تجارية وترك المقاسات والعلامة التجارية للمورد. بقيت معلومتان أساسيتان لاستكمال الطلب:"
+  },
+  {
+   "turn": 5,
+   "harness_answer": "Details: property_area: standard specification, please assume typical values; supply_phase: standard specification, please assume typical values.",
+   "ai_reply": "تم تجهيز الطلب للتسعير: توريد وتركيب 20 لوحة توزيع و10 حوامل كابلات لفيلا في أبوظبي خلال ستة أسابيع. المساحة وعدد الغرف ونوع التغذية غير محددة، لذا سيُطلب من المورد اعتماد افتراضات نموذجية وتوضيحها في عرضه."
+  },
+  {
+   "turn": 6,
+   "harness_answer": "Details: هل لديك تفضيل في الكابلات والمفاتيح والمقابس؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟: standard specification, please assume typical values; متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.: standard specification, please assume typical values.",
+   "ai_reply": "تم تجهيز الطلب للموردين، مع توضيح أن المساحة والتغذية والمقاسات غير معروفة وأن المطلوب اعتماد افتراضات قياسية وذكرها في العرض."
+  },
+  {
+   "turn": 7,
+   "harness_answer": "Details: هل لديك تفضيل في الكابلات والمفاتيح والمقابس؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟: standard specification, please assume typical values; متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.: standard specification, please assume typical values.",
+   "ai_reply": "تم تجهيز الطلب للموردين: توريد وتركيب 20 لوحة توزيع و10 حوامل كابلات للفيلا في أبوظبي خلال ستة أسابيع. المساحة وعدد الغرف ونوع التغذية غير محددة؛ سيُطلب من المورد توضيح الافتراضات القياسية التي يعتمدها في عرضه."
+  },
+  {
+   "turn": 8,
+   "harness_answer": "Details: هل لديك تفضيل في الكابلات والمفاتيح والمقابس؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟: standard specification, please assume typical values; متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.: standard specification, please assume typical values.",
+   "ai_reply": "تم تجهيز الطلب للموردين لتوريد وتركيب 20 لوحة توزيع و10 حوامل كابلات في فيلا بأبوظبي خلال ستة أسابيع. المساحة والمقاسات ونوع التغذية غير محددة؛ سيُطلب من المورد توضيح الافتراضات القياسية التي يعتمدها في عرضه."
+  },
+  {
+   "turn": 9,
+   "harness_answer": "Details: هل لديك تفضيل في الكابلات والمفاتيح والمقابس؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟: standard specification, please assume typical values; متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.: standard specification, please assume typical values.",
+   "ai_reply": "تم تجهيز الطلب للموردين لتوريد وتركيب 20 لوحة توزيع و10 حوامل كابلات في فيلا بأبوظبي خلال ستة أسابيع. المساحة وعدد الغرف ونوع التغذية غير محددة؛ سيُطلب من المورد توضيح الافتراضات القياسية التي يعتمدها في عرضه."
+  },
+  {
+   "turn": 10,
+   "harness_answer": "Details: هل لديك تفضيل في الكابلات والمفاتيح والمقابس؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟: standard specification, please assume typical values; متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.: standard specification, please assume typical values.",
+   "ai_reply": "تم تجهيز الطلب للموردين لتوريد وتركيب 20 لوحة توزيع و10 حوامل كابلات في فيلا بأبوظبي خلال ستة أسابيع. المساحة وعدد الغرف ونوع التغذية غير محددة؛ سيُطلب من المورد توضيح الافتراضات القياسية التي يعتمدها في عرضه."
+  }
+ ],
+ "note": "per-turn slots are not stored by inquiry_intake; only the final brief/missing survive"
+}

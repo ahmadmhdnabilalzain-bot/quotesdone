@@ -15,7 +15,7 @@ import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, ownsChannel } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
-import { M365_HARD_CEILING, M365_ID_PREFIX, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, companyFromBody, graphSend, holdForM365, m365Body, m365Subject, m365Carries, m365CopyLint, m365Mime, m365ReplyTo, m365Text, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
+import { M365_HARD_CEILING, M365_ID_PREFIX, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, companyFromBody, graphSend, holdForM365, m365Body, m365Subject, withPlacementRef, m365Carries, m365CopyLint, m365Mime, m365ReplyTo, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
@@ -295,11 +295,12 @@ Deno.serve(observe('send_outbox', async (req) => {
         const { data: lead } = n.kind === M365_SEED_KIND ? { data: null } : await admin.from('leads').select('company_name,invite_trades').ilike('email', String(n.to_email).trim().replace(/[\\%_]/g, '\\$&')).limit(1).maybeSingle();
         const who = { company: (lead as any)?.company_name ?? undefined, trade: ((lead as any)?.invite_trades || [])[0] };
         const mBody = m365Body(n.type, n.body || '', n.kind, who);
-        const mSubject = n.type === 'supplier_invite_nudge' ? (n.subject || 'QuotesDone') : m365Subject({ company: who.company ?? companyFromBody(n.body || ''), trade: who.trade });
+        // 27 Oct 2026: the invitation, its nudge and the seed send one approved email; only the seed keeps its (ref QD…) token.
+        const mSubject = withPlacementRef(m365Subject({ company: who.company ?? companyFromBody(n.body || ''), trade: who.trade }), n);
         const bad = m365CopyLint({ subject: mSubject, body: mBody, seed: n.kind === M365_SEED_KIND }).filter((l) => !l.ok);
         if (bad.length) { await admin.from('notifications').update({ status: 'held', last_error: ('held: Microsoft 365 invitation copy rule failed: ' + bad.map((l) => l.rule + ' (' + (l.detail || '') + ')').join('; ')).slice(0, 500) }).eq('id', n.id); held++; continue; }
         const now = new Date(); const mid = messageIdFor(n.id, now);
-        const mime = m365Mime({ from: 'Ahmad Alzain at QuotesDone <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: mSubject, text: m365Text(mBody), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now });
+        const mime = m365Mime({ from: 'Ahmad Alzain at QuotesDone <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: mSubject, text: mBody, unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now });
         try {
           const r = await graphSend((u, i) => timedFetch(u, i || {}, 15_000), m365, mime, mid, closeFinding);
           if (r.ok) {

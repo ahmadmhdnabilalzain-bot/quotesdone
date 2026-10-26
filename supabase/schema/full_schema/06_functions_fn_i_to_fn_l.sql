@@ -3740,6 +3740,19 @@ begin
   -- within_its_window.sql). Cannot see: a conversation that was never started -- only one that stalled.
   v_out := v_out || jsonb_build_object('handoff_sla', public.fn_it_duty_settle('handoff_sla', public.fn_it_handoff_sla_items()));
 
+  -- ── 4c. EVERY PACK ROW HAS ITS MULTILINGUAL VECTOR ──
+  -- Reads: fn_pack_rows_without_fresh_ml_vector, the eligible verified_pack rows of the six seat tables whose
+  -- ml vector is missing or stale for over an hour since their load. Cannot see: why the queue is slow.
+  v_items := '[]'::jsonb;
+  for x in select * from public.fn_pack_rows_without_fresh_ml_vector(interval '1 hour') p where p.overdue > 0 loop
+    v_items := v_items || jsonb_build_object('item', x.src, 'owner_seat', 'it_engineer', 'subject', 'knowledge_ml',
+      'title', x.overdue || ' ' || x.src || ' pack rows have had no fresh multilingual vector for over an hour',
+      'blast', 'agent_facing', 'affected', x.overdue,
+      'evidence', jsonb_build_object('pack_rows', x.pack_rows, 'without_fresh', x.without_fresh, 'overdue', x.overdue,
+        'oldest_due', x.oldest_due, 'remedy', 'gh workflow run ml-embed-backfill.yml; fn_ml_embed_claim serves the rows'));
+  end loop;
+  v_out := v_out || jsonb_build_object('pack_ml_vectors', public.fn_it_duty_settle('pack_ml_vectors', v_items));
+
   -- ── 5. PAYMENT RECONCILIATION ──
   -- Reads: Stripe live and test — completed Checkout Sessions and refunds of the last 72 hours, and the
   -- webhook endpoints' enabled events against HANDLED_STRIPE_EVENTS (passed in from
@@ -8963,14 +8976,16 @@ begin
            (select max(started_at) from public.agent_runs
              where agent = 'it_engineer' and counts->>'job' = 'duty:smoke')
     union all
-    select 'kb_embed', interval '36 hours', '.github/workflows/kb-embed-backfill.yml',
+    -- 26 Oct 2026: pg_cron 'kb_embed_daily' (fn_kb_embed_scheduled_run) beats it; the workflow is dispatch only.
+    select 'kb_embed', interval '36 hours', 'pg_cron kb_embed_daily (was .github/workflows/kb-embed-backfill.yml)',
            (select max(started_at) from public.agent_runs
              where agent = 'it_engineer' and counts->>'job' = 'duty:kb_embed')
     union all
     -- The second scheduler kicks every 6 hours; 12 h is two missed kicks, not one late one.
-    select 'dropbox_kick', interval '12 hours', '.github/workflows/dropbox-backup-second-scheduler.yml',
+    -- 26 Oct 2026: pg_cron 'dropbox_backup_second_scheduler' kicks it; a dispatched GitHub run still counts.
+    select 'dropbox_kick', interval '12 hours', 'pg_cron dropbox_backup_second_scheduler (was .github/workflows/dropbox-backup-second-scheduler.yml)',
            (select max(started_at) from public.agent_runs
-             where agent = 'backup_kick' and counts->>'reason' = 'github_actions')
+             where agent = 'backup_kick' and counts->>'reason' in ('github_actions', 'pg_cron_second_scheduler'))
     union all
     -- project-parity.yml runs daily AND on every pull request, and the advisor refresh step stamps
     -- last_seen_at on each of the 563 baseline rows.
@@ -8981,6 +8996,7 @@ begin
     -- parity run of any kind for 36 hours, which is the weekend, the quiet day, and a deleted or
     -- disabled workflow. It is deliberately not claimed as coverage of the schedule itself; closing
     -- that would need the refresh step to record which trigger it ran under, and it does not.
+    -- 26 Oct 2026: `npm run gate` runs the same refresh, so a session's gate run beats it too.
     select 'parity', interval '36 hours', '.github/workflows/project-parity.yml',
            (select max(last_seen_at) from public.security_advisor_baseline)
   loop
@@ -9397,6 +9413,22 @@ begin
                             'at', now());
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_kb_embed_scheduled_run()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_t jsonb;
+begin
+  v_t := public.fn_kb_embed_tick(400);
+  if coalesce((v_t->'dispatch'->>'ok')::boolean, false) then
+    perform public.fn_it_duty_ran('kb_embed', jsonb_build_object('scheduler', 'pg_cron kb_embed_daily', 'tick', v_t));
+  end if;
+  return v_t;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_kb_embed_tick(p_limit integer DEFAULT 200)
