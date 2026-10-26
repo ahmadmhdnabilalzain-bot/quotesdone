@@ -7,7 +7,7 @@ import { assert, assertEquals, assertFalse } from 'jsr:@std/assert@1';
 import {
   M365_HARD_CEILING, M365_ID_PREFIX, M365_OFF, M365_REFUSED_ISSUE, M365_SEED_KIND, graphSend, holdForM365, m365Body, m365Carries,
   companyName, m365CopyLint, m365InvitationText, m365Mime, m365Subject, m365Text, messageIdFor, resolveM365, scrub, switchOn, type Fetch, type M365,
-  M365_INBOX_AGENT, M365_INBOX_PROOF_MAX_AGE_MS, m365ReplyTo,
+  M365_INBOX_AGENT, M365_INBOX_PROOF_MAX_AGE_MS, m365ReplyTo, withPlacementRef,
 } from './m365_lane.ts';
 import { INVITE_LANE_TYPES } from './invite_lane.ts';
 
@@ -248,4 +248,21 @@ Deno.test('opt-out: one-click List-Unsubscribe with -Post in the MIME, and a "st
   assertFalse(isUnsubscribeRequest({ to: 'supplier@quotesdone.com', subject: 'Re: x', text: 'We cover tiling. Please stop by.' }));
   const sent = m365Text(m365InvitationText(LINK));
   assert(sent.includes('Reply "stop"') && sent.includes('QuotesDone Technologies'), 'the legal identity line is in the signature');
+});
+
+Deno.test('the morning placement seed keeps its (ref QD…) token on the rebuilt subject; nothing else gains one', () => {
+  const row = { type: 'supplier_invite_seed', subject: 'Invitation: become a founding supplier on QuotesDone (free, no commission) (ref QD8F6C46AE93)' };
+  const subject = withPlacementRef(m365Subject({}), row);
+  assertEquals(subject, 'Quote requests in the UAE (ref QD8F6C46AE93)');
+  // the reader (_shared/inbox_placement.ts) matches the token in the subject that actually leaves, i.e. the MIME's
+  const now = new Date('2026-10-27T04:30:00Z');
+  const mime = atob(m365Mime({ from: 'QuotesDone <supplier@quotesdone.com>', to: 'management@quotesdone.com', reply: '', subject, text: 'x',
+    unsub: '', unsubMailto: 'supplier@quotesdone.com', messageId: messageIdFor(1, now), now }));
+  assert(mime.includes('Subject: Quote requests in the UAE (ref QD8F6C46AE93)'), 'the token is in the sent Subject header');
+  // and the copy rules still pass, so the seed is not held for its token
+  const body = m365Body('supplier_invite_seed', 'Hello,\n\nhttps://www.quotesdone.com/portal?t=00000000-0000-0000-0000-000000000000', 'supplier_invite_seed');
+  assertEquals(m365CopyLint({ subject, body }).filter((l) => !l.ok), []);
+  assertEquals(withPlacementRef('X', { type: 'supplier_invite', subject: 'Y (ref QD8F6C46AE93)' }), 'X', 'a real invitation never carries a token');
+  assertEquals(withPlacementRef('X', { type: 'supplier_invite_seed', subject: 'no token' }), 'X');
+  assertEquals(withPlacementRef('X (ref QD8F6C46AE93)', row), 'X (ref QD8F6C46AE93)', 'never doubled');
 });
