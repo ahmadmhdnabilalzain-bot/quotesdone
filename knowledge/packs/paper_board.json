@@ -53,6 +53,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "paper_board:product-distinctions",
+      "topic": "Paper and paperboard: grades and what each is used for",
+      "topic_ar": "الورق والكرتون: الدرجات واستخدام كل منها",
+      "kind": "product_distinctions",
+      "body_en": "Paper grades: woodfree uncoated (copier and offset printing paper by gsm, for example 70-120), coated art paper (gloss, matt, silk; 90-350 gsm for brochures and magazines), newsprint, kraft papers (for sacks, bags and wrapping), tissue base papers, and speciality papers (labels, thermal, carbonless, security). Paperboard (boxboard) grades: solid bleached sulphate (SBS, white throughout, premium for pharma, cosmetics and food-adjacent cartons), folding boxboard (FBB, virgin fibre middle with white top, stiff and light, common for consumer cartons), white-lined chipboard (WLC or duplex, recycled grey back with white coated top, economical cartons), coated recycled board, and grey board and chipboard (for rigid boxes and book covers). Board is specified by grammage (g/m2) and caliper (thickness in microns or points), stiffness, brightness and shade, coating, moisture content, and food-contact compliance where needed; corrugating papers (liner and fluting) are a separate family. Supply is in reels or sheets to the converter's sizes, with grain direction stated for sheets. Prices follow pulp and paper market cycles, so quotes have short validity.",
+      "body_ar": "درجات الورق: ورق خالٍ من الخشب غير مطلي (ورق النسخ وطباعة الأوفست حسب الغرام للمتر المربع، مثل 70-120)، والورق الفني المطلي (لامع، مطفي، حريري؛ 90-350 غراماً للبروشورات والمجلات)، وورق الصحف، وأوراق الكرافت (للأكياس الكبيرة والأكياس والتغليف)، والأوراق الأساسية للمناديل، والأوراق الخاصة (الملصقات، الحراري، الناسخ دون كربون، الأمني). ودرجات الكرتون: SBS المبيض بالكامل (أبيض في كل الطبقات، فاخر لعلب الأدوية ومستحضرات التجميل)، وFBB (وسط من ألياف خام مع وجه أبيض، صلب وخفيف، شائع لعلب المستهلكين)، وWLC أو الدوبلكس (ظهر رمادي معاد تدويره ووجه أبيض مطلي، علب اقتصادية)، والكرتون المعاد تدويره المطلي، والكرتون الرمادي (للعلب الصلبة وأغلفة الكتب). ويُحدد الكرتون بالوزن (غرام/م2) والسماكة (بالميكرون أو النقاط)، والصلابة، والسطوع والدرجة اللونية، والطلاء، ونسبة الرطوبة، والامتثال لملامسة الأغذية عند الحاجة؛ وأوراق الكرتون المموج (الوجه والتموج) عائلة منفصلة. ويُورد على لفات أو أفرخ بمقاسات المحول، مع ذكر اتجاه الألياف للأفرخ. وتتبع الأسعار دورات سوق اللب والورق، لذلك تكون صلاحية العروض قصيرة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Paperboard"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: boxboard grades SBS, FBB and WLC; grammage in g/m2 and caliper -> confirmed."
+    },
+    {
+      "id": "paper_board:lead-times-and-quoting",
+      "topic": "Paper & paperboard - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الورق والكرتون: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock reels and sheets: days; mill orders 4-10 weeks. A supplier needs the grade, gsm or caliper, size (reel width and diameter, or sheet size and grain), quantity in tonnes, end use, and compliance needs. A quote states mill and brand, grade specs, size, quantity tolerance, price basis per tonne, delivery terms and short validity.",
+      "body_ar": "اللفات والأفرخ المتوفرة: أيام؛ وطلبات المصانع 4-10 أسابيع. ويحتاج المورد الدرجة، والوزن أو السماكة، والمقاس (عرض اللفة وقطرها، أو مقاس الفرخ واتجاه الألياف)، والكمية بالطن، والاستخدام النهائي، واحتياجات الامتثال. ويذكر العرض المصنع والعلامة ومواصفات الدرجة والمقاس وتفاوت الكمية وأساس السعر للطن وشروط التسليم وصلاحية قصيرة.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -78,6 +108,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither names carton board grades (FBB/GC1, SBS, WLC/GD2); missing: folding boxboard grade entry). paper_board:folding-carton-board-grades was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from paper_board.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "FBB or white-lined chipboard for cosmetic cartons that must look premium?",
+      "q_ar": "كرتون FBB ولا دوبلكس لعلب مستحضرات تجميل لازم تبين فاخرة؟",
+      "expected_entry_ids": [
+        "paper_board:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -97,6 +135,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "paper_board:folding-carton-board-grades"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "paper_board:product-distinctions"
+      ],
+      "stored_not_served": [
+        "paper_board:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Paperboard"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

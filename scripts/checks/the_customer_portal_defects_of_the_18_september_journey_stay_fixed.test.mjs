@@ -25,12 +25,15 @@ import { readFileSync } from 'node:fs';
 const path = new URL('../../src/components/me/CustomerPortal.tsx', import.meta.url);
 const code = readFileSync(path, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, ' '));
 
-test('a revealed request lights the Reveal node of the Journey rail', () => {
-  const fn = code.match(/function Journey\s*\(\{([^}]*)\}\)\s*\{([\s\S]*?)\n\}/);
-  assert.ok(fn, 'function Journey not found in CustomerPortal.tsx');
-  assert.match(fn[1], /\brevealed\b/, 'Journey no longer takes a `revealed` prop');
-  assert.match(fn[2], /revealed\s*\?\s*JOURNEY\.length\s*-\s*1/, 'Journey no longer lights its last node from the reveal');
-  assert.match(code, /<Journey\b[^>]*\brevealed=\{/, 'no caller passes `revealed` to <Journey>');
+// 5 Oct 2026 (sales_engineer, T2): the Journey rail was replaced by the request tracker
+// (src/components/me/requestTracker.ts). The property is unchanged and is now EXECUTED: a paid
+// reveal, with no hire, lights "Revealed" from the reveal itself.
+test('a revealed request lights the Revealed stage of the request tracker', async () => {
+  const { trackerOf } = await import('../../src/components/me/requestTracker.ts');
+  const tr = trackerOf({ status: 'quoted', rfq_ready: true }, [{ revealed: true }, {}], 'en');
+  const rev = tr.stages.find((s) => s.key === 'revealed');
+  assert.equal(rev.done, true, 'a paid reveal no longer lights the Revealed stage');
+  assert.match(code, /<RequestTracker\b[^>]*\bquotes=\{/, 'no caller passes the quotes to <RequestTracker>');
 });
 
 test('the request-list skeleton also covers the refresh after a post', () => {

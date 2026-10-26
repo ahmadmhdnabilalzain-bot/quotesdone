@@ -23,7 +23,7 @@ export type BoqItem = { section: string; item: string; description: string; qty:
 
 const UNIT: [string, RegExp][] = [
   ['sqm', /^(?:sqm|sq\.?\s?m|m2|m²)$/i], ['sqft', /^(?:sqft|sq\.?\s?ft|ft2)$/i], ['m3', /^(?:m3|m³|cum)$/i],
-  ['lm', /^(?:lm|rm|r\.m\.?|l\.m\.?)$/i], ['m', /^(?:m|mtr|mtrs)$/i], ['nos', /^(?:nos?\.?|pcs|each|ea|units?|sets?)$/i],
+  ['lm', /^(?:lm|rm|r\.m\.?|l\.m\.?)$/i], ['m', /^(?:m|mtr|mtrs)$/i], ['nos', /^(?:nos?\.?|nr\.?|pcs|each|ea|units?|sets?)$/i],
   ['kg', /^kg$/i], ['ton', /^(?:tons?|t)$/i], ['lot', /^(?:lot|ls|l\.s\.)$/i], ['kw', /^kw$/i], ['tr', /^tr$/i],
 ];
 const unitOf = (s: string) => { for (const [u, re] of UNIT) if (re.test(s)) return u; return null; };
@@ -65,6 +65,17 @@ export function boqFromLines(lines: { page: number; text: string }[]): BoqItem[]
     if (text.length > 160) continue;                                        // a note paragraph, not a quantity
     const clean = scrubIdentity(text);
     if (!clean) continue;
+    // 0) a BOQ row: "[item no] <description> <unit> <qty>" (19 Oct 2026 drawing bench: a BOQ PDF and a photographed
+    //    BOQ read 0 of 4 lines, because the unit comes BEFORE the quantity in every bill and "nr" was not a unit).
+    //    The item number is "1.01" / "A.2.3" / "12"; the description may start with a digit ("13A socket").
+    const r = clean.match(/^(?:[A-Z]?\d+(?:\.\d+)+[a-z]?\s+|\d{1,3}\s+)?(\S.{2,118}?)\s+(sq\.?\s?m|sqm|m2|m²|m3|m³|lm|rm|m|nos?\.?|nr\.?|pcs|each|ea|sets?|kg|tons?|lot|ls|item)\s+(\d+(?:[.,]\d+)?)$/i);
+    const unit0 = r ? unitOf(r[2].replace(/\s/g, '')) ?? (/^item$/i.test(r[2]) ? 'lot' : null) : null;
+    if (r && unit0 && /[A-Za-z]{3,}/.test(r[1]) && !/[\u0600-\u06FF]/.test(r[1])) {  // English descriptions only: suppliers are always English (ruling 1008)
+      const qty = Number(r[3].replace(',', '.')), desc = r[1].trim();
+      const key = `${desc.toLowerCase()}|${qty}|${unit0}`;
+      if (qty > 0 && !seen.has(key)) { seen.add(key); items.push({ section: 'Read from drawing text', item: desc.slice(0, 120), description: desc.slice(0, 120), qty, unit: unit0, basis: `printed on page ${page}: "${clean.slice(0, 80)}"`, confidence: 'medium' }); }
+      if (qty > 0) continue;
+    }
     // 1) "<description> <qty> <unit>" or "<qty> <unit> <description>"
     const m = clean.match(/(\d+(?:[.,]\d+)?)\s*(sq\.?\s?m|sqm|m2|m²|sq\.?\s?ft|sqft|ft2|m3|m³|cum|lm|rm|r\.m\.?|l\.m\.?|mtrs?|m|nos?\.?|pcs|each|ea|units?|sets?|kg|tons?|lot|ls|kw|tr)(?![a-z0-9])/i);
     if (m) {

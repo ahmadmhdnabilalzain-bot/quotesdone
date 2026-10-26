@@ -215,6 +215,19 @@ export function faqPairs(html: string): { q: string; a: string }[] {
   return out;
 }
 
+/** HowTo for /how-it-works, built from the same steps the page renders, so the two cannot disagree. */
+export function howToLd(o: { name: string; description: string; url: string; steps: { title: string; body: string }[]; locale: string }) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: o.name,
+    description: clampDesc(o.description, 300),
+    url: o.url,
+    inLanguage: o.locale === 'ar' ? 'ar-AE' : 'en-AE',
+    step: o.steps.map((s, i) => ({ '@type': 'HowToStep', position: i + 1, name: s.title, text: s.body })),
+  };
+}
+
 export function faqLd(pairs: { q: string; a: string }[], locale: string) {
   return {
     '@context': 'https://schema.org',

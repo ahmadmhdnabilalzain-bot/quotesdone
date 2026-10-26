@@ -56,6 +56,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "thermal_insulation:product-distinctions",
+      "topic": "Building insulation: materials, performance values and acoustic treatment",
+      "topic_ar": "عزل المباني: المواد وقيم الأداء والمعالجة الصوتية",
+      "kind": "product_distinctions",
+      "body_en": "Thermal insulation is rated by thermal conductivity (lambda, W/mK) and the resulting R-value of a layer or U-value of a whole wall or roof; energy codes set maximum U-values, which in hot climates matter mostly for roofs and external walls. Materials: extruded polystyrene (XPS, closed-cell and moisture-resistant, used in inverted roofs and below ground), expanded polystyrene (EPS boards and inserts in blocks), polyurethane and PIR boards and spray foam (lowest conductivity), mineral wool (rock and glass wool, non-combustible, for walls, ceilings, HVAC ducts and fire stopping), reflective foils and radiant barriers, and insulated sandwich panels; cellular glass and aerogels for special uses. Fire performance differs sharply: mineral wool is non-combustible, while foam plastics need protection and must meet the façade and building fire rules. Acoustic insulation is different from thermal: it uses mass and absorption (mineral wool in partitions, resilient channels, acoustic ceilings and panels, floor underlays for impact noise) and is rated by sound reduction (Rw, STC) and absorption (NRC); a material that insulates well against heat may do little for sound.",
+      "body_ar": "يُصنف العزل الحراري بالموصلية الحرارية (لامدا، واط/م.كلفن) وبقيمة R الناتجة لطبقة أو قيمة U لجدار أو سقف كامل؛ وتحدد أكواد الطاقة قيم U القصوى، وتهم في المناخ الحار أساساً للأسقف والجدران الخارجية. والمواد: البوليسترين المبثوق (XPS، خلايا مغلقة ومقاوم للرطوبة، يُستخدم في الأسقف المقلوبة وتحت الأرض)، والبوليسترين الممدد (ألواح EPS وحشوات البلوك)، وألواح البولي يوريثان وPIR والرغوة المرشوشة (أقل موصلية)، والصوف المعدني (الصوف الصخري والزجاجي، غير قابل للاحتراق، للجدران والأسقف ومجاري التكييف وسد الحريق)، والرقائق العاكسة والحواجز الإشعاعية، وألواح الساندويتش المعزولة؛ والزجاج الخلوي والأيروجيل للاستخدامات الخاصة. ويختلف الأداء تجاه الحريق بشدة: الصوف المعدني غير قابل للاحتراق، بينما تحتاج اللدائن الرغوية حماية ويجب أن تستوفي قواعد الحريق للواجهات والمباني. والعزل الصوتي مختلف عن الحراري: يستخدم الكتلة والامتصاص (الصوف المعدني في القواطع، القنوات المرنة، الأسقف والألواح الصوتية، الطبقات تحت الأرضيات لضوضاء الصدمات) ويُصنف بخفض الصوت (Rw، STC) والامتصاص (NRC)؛ والمادة التي تعزل الحرارة جيداً قد لا تفعل الكثير للصوت.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Building_insulation"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: R-value and U-value; EPS, XPS and rock wool insulation; acoustic insulation as a related field -> confirmed."
+    },
+    {
+      "id": "thermal_insulation:lead-times-and-quoting",
+      "topic": "Thermal & acoustic insulation - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "العزل الحراري والصوتي: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock boards and rolls: days; project quantities 1-4 weeks; spray foam applications scheduled with the programme. A supplier needs the application (roof, wall, duct, floor), required U-value or thickness, fire requirements, acoustic targets, areas, and approved products. A quote states material, brand, density, thickness and lambda, fire classification and certificates, areas and quantities, installation scope, price basis per m2, and validity.",
+      "body_ar": "الألواح واللفات المتوفرة: أيام؛ وكميات المشاريع 1-4 أسابيع؛ وتطبيقات الرغوة المرشوشة تُجدول مع البرنامج. ويحتاج المورد التطبيق (سقف، جدار، مجرى، أرضية)، وقيمة U أو السماكة المطلوبة، ومتطلبات الحريق، والأهداف الصوتية، والمساحات، والمنتجات المعتمدة. ويذكر العرض المادة والعلامة والكثافة والسماكة والموصلية وتصنيف الحريق والشهادات والمساحات والكميات ونطاق التركيب وأساس السعر للمتر المربع والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -81,6 +111,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry says chilled water pipes use closed-cell elastomeric/phenolic/PIR with a vapour barrier; spec-checklist lists only generic materials). thermal_insulation:chilled-water-pipe-insulation was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from thermal_insulation.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Will the polystyrene insulation in our walls also stop noise from the neighbours?",
+      "q_ar": "هل عزل البوليسترين في جدراننا بيمنع أصوات الجيران بعد؟",
+      "expected_entry_ids": [
+        "thermal_insulation:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -100,6 +138,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "thermal_insulation:chilled-water-pipe-insulation"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "thermal_insulation:product-distinctions"
+      ],
+      "stored_not_served": [
+        "thermal_insulation:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Building_insulation"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
