@@ -20,8 +20,28 @@
     "field": "tdra_nol_no",
     "source": "TDRA No-Objection Letter for www.quotesdone.ae, issued 14 Sep 2026, expires 14 Sep 2027; stated in the founder's 14 Sep 2026 brief. Not on the trade licence."
   },
+  "licence_activities": {
+    "value": [
+      {
+        "code": "722901",
+        "en": "Computer Systems & Communication Equipment Software Design",
+        "ar": "تصميم نظم الحاسب الآلي وأجهزة الإتصال"
+      },
+      {
+        "code": "724003",
+        "en": "Portal",
+        "ar": "مجمع للتعامل الإلكتروني"
+      }
+    ],
+    "trade_name": {
+      "en": "quotesdone technologies",
+      "ar": "كوتس دن للتكنولوجيا"
+    },
+    "field": "licence_activities",
+    "source": "The same licence PDF, Activities table, read 19 Oct 2026 (ceo). No commission-agent, brokerage, e-commerce or marketplace activity is listed. Whether DET activity 724003 Portal covers a marketplace that charges a customer reveal fee and supplier subscriptions was NOT confirmed from DET: its activity guide could not be read on 19 Oct 2026 (investindubai.gov.ae returned Page not found). The licence remarks read DE@AE Tier 1."
+  },
   "not_printed": {
-    "2883503": "Was printed as 'Commercial Register No.' until 14 Sep 2026; entered company.json that day (6a42b59) with no source. The trade licence prints no Commercial Register number. Founder, 14 Sep 2026: take it from the licence.",
-    "2063672": "The owner's member number in the licence's members table. Not a register number; never printed."
+    "2063672": "The owner's member number in the licence's members table. Not a register number; never printed.",
+    "2883503": "Was printed as 'Commercial Register No.' until 14 Sep 2026; entered company.json that day (6a42b59) with no source. The trade licence prints no Commercial Register number. Founder, 14 Sep 2026: take it from the licence."
   }
 }

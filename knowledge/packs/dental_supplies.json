@@ -56,6 +56,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "dental_supplies:product-distinctions",
+      "topic": "Dental equipment and supplies: equipment classes and consumables",
+      "topic_ar": "معدات ومستلزمات الأسنان: فئات المعدات والمستهلكات",
+      "kind": "product_distinctions",
+      "body_en": "Dental equipment: the dental chair unit (which powers the handpieces and carries the cuspidor rinse, suction, three-way air/water syringe, operating light, instrument tray and often a monitor; specified by delivery system, upholstery, and integrated options such as scalers and intraoral cameras), handpieces (high-speed air turbines, electric motors with contra-angles, low-speed), ultrasonic scalers, compressors (oil-free, dry air for the unit) and suction systems, sterilisation (class B autoclaves for wrapped and hollow instruments, washer-disinfectors, sealing machines), imaging (intraoral X-ray, digital sensors and phosphor plates, panoramic and CBCT 3D), CAD/CAM scanners and milling, and lab equipment. Consumables: composites and bonding systems, glass ionomers, cements, impression materials, endodontic files and obturation, burs, prophylaxis items, implants and components, orthodontic supplies, and infection-control disposables. Equipment brings installation needs (water, air, drain, power, radiation shielding for X-ray), and devices are medical devices needing registration. Offers differ on brand, configuration, installation, training, warranty and service response, and spare-part availability.",
+      "body_ar": "معدات الأسنان: وحدة كرسي الأسنان (تشغّل القبضات وتحمل مغسلة المضمضة والشفط والحقنة الثلاثية للهواء والماء وإضاءة العمليات وصينية الأدوات وغالباً شاشة؛ وتُحدد بنظام التوزيع والتنجيد والخيارات المدمجة مثل أجهزة إزالة الجير وكاميرات الفم)، والقبضات (التوربينات الهوائية عالية السرعة، والمحركات الكهربائية مع الزوايا، والسرعة المنخفضة)، وأجهزة إزالة الجير بالموجات فوق الصوتية، والضواغط (خالية من الزيت، هواء جاف للوحدة) وأنظمة الشفط، والتعقيم (أجهزة أوتوكلاف من الفئة B للأدوات المغلفة والمجوفة، وأجهزة الغسيل والتطهير، وآلات الختم)، والتصوير (الأشعة داخل الفم، والحساسات الرقمية وألواح الفوسفور، والبانوراما والتصوير المقطعي ثلاثي الأبعاد)، وماسحات وآلات تفريز CAD/CAM، ومعدات المختبر. والمستهلكات: الحشوات التجميلية وأنظمة الربط، والزجاج الأيونومري، والأسمنتات، ومواد الطبعات، ومبارد وحشو العصب، والسنابل، ومواد التنظيف الوقائي، والزرعات ومكوناتها، ومستلزمات التقويم، والمستهلكات أحادية الاستخدام لمكافحة العدوى. وتجلب المعدات احتياجات تركيب (الماء، الهواء، الصرف، الكهرباء، التدريع الإشعاعي للأشعة)، والأجهزة أجهزة طبية تحتاج تسجيلاً. وتختلف العروض في العلامة والتهيئة والتركيب والتدريب والضمان واستجابة الخدمة وتوفر قطع الغيار.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Dental_chair"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: a dental chair unit powers handpieces and carries rinse, suction, air/water syringe, light, tray and monitor -> confirmed."
+    },
+    {
+      "id": "dental_supplies:lead-times-and-quoting",
+      "topic": "Dental equipment & supplies - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "معدات ومستلزمات طب الأسنان: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Consumables from stock: 1-3 days; chairs and imaging 3-10 weeks plus installation and approvals. A supplier needs the clinic size and number of surgeries, the specification or brands, utilities available, imaging needs, and registration status. A quote states make, model, configuration, registration, installation and site requirements, training, warranty and service plan, delivery and validity.",
+      "body_ar": "المستهلكات من المخزون: 1-3 أيام؛ والكراسي وأجهزة التصوير 3-10 أسابيع إضافة إلى التركيب والموافقات. ويحتاج المورد حجم العيادة وعدد غرف العلاج، والمواصفة أو العلامات، والمرافق المتاحة، واحتياجات التصوير، وحالة التسجيل. ويذكر العرض الماركة والموديل والتهيئة والتسجيل والتركيب ومتطلبات الموقع والتدريب والضمان وخطة الخدمة والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -81,6 +111,14 @@
       ],
       "why": "No entry of this pack answered it (Standards entry covers EDE marketing authorization only; no FANR licensing for dental X-ray units; missing). dental_supplies:fanr-dental-xray-authorisation was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from dental_supplies.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What should come with a new dental chair besides the chair itself?",
+      "q_ar": "وش لازم يجي مع كرسي الأسنان الجديد غير الكرسي نفسه؟",
+      "expected_entry_ids": [
+        "dental_supplies:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "dental_supplies:fanr-dental-xray-authorisation"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "dental_supplies:product-distinctions"
+      ],
+      "stored_not_served": [
+        "dental_supplies:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Dental_chair"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

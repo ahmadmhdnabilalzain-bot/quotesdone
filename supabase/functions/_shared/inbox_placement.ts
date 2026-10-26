@@ -39,14 +39,14 @@
 // Credentials are read from app_secrets. vault.secrets is empty on this project (measured 24 Sep 2026).
 //   Gmail:   google_oauth_client_id, google_oauth_client_secret (the Google client the YouTube connection
 //            already uses) + gmail_seed_refresh_token (scope https://www.googleapis.com/auth/gmail.readonly).
-//   Graph:   ms_graph_tenant_id, ms_graph_client_id, and EITHER ms_graph_seed_refresh_token (delegated Mail.Read +
-//            offline_access, read as /me; ms_graph_client_secret optional, because the app may be a public client
-//            whose token was minted with PKCE by oauth_connect, PR #974) OR ms_graph_client_secret alone
-//            (application Mail.Read, read as /users/<seed>, which must be limited to that one mailbox by an
-//            Exchange ApplicationAccessPolicy).
+//   Graph:   app-only, the Microsoft 365 app send_outbox already sends with (edge secrets MS_TENANT_ID, MS_CLIENT_ID,
+//            MS_CLIENT_SECRET; application Mail.Read), read as /users/<SEED_OUTLOOK>. The delegated
+//            ms_graph_seed refresh-token path is gone (18 Oct 2026): it needed a second app nobody had made.
 
+/** = send_outbox/m365_lane.ts M365_SECRET_NAMES (a function folder is not imported from _shared). */
+export const M365_SECRET_NAMES = ["MS_TENANT_ID", "MS_CLIENT_ID", "MS_CLIENT_SECRET"] as const;
 export const SEED_GMAIL = 'ahmadmhdnabilalzain@gmail.com';
-export const SEED_OUTLOOK = 'management@doratajewelries.com';
+export const SEED_OUTLOOK = 'management@quotesdone.com';
 export const PLACEMENT_SEEDS: readonly string[] = [SEED_GMAIL, SEED_OUTLOOK];
 /** Graph pages of 50 followed per list: 500 messages since the seed was queued before a reading gives up. */
 export const MAX_PAGES = 10;
@@ -108,13 +108,16 @@ export function worstFolder(fs: Folder[]): Folder {
 export function authVerdicts(h: unknown): Record<string, string | null> {
   const s = String(h ?? '');
   const one = (k: string) => s.match(new RegExp('(?:^|[;\\s])' + k + '=([a-z]+)', 'i'))?.[1]?.toLowerCase() ?? null;
-  return { spf: one('spf'), dkim: one('dkim'), dmarc: one('dmarc'), compauth: one('compauth') };
+  // compauth's reason code says WHY Microsoft judged the From (1xx pass, 0xx fail, 2xx soft-pass, 6xx/7xx tenant or intra-org).
+  const reason = s.match(/compauth=[a-z]+\s+reason=([0-9a-z]+)/i)?.[1] ?? null;
+  return { spf: one('spf'), dkim: one('dkim'), dmarc: one('dmarc'), compauth: one('compauth'), compauth_reason: reason };
 }
 /** X-Forefront-Antispam-Report 'CIP:…;SCL:5;SFV:SPM;…;CAT:SPM;' -> { scl, sfv, cat }. */
-export function forefront(h: unknown): { scl: number | null; sfv: string | null; cat: string | null } {
+export function forefront(h: unknown): { scl: number | null; sfv: string | null; cat: string | null; ptr: string | null; ipv: string | null } {
   const kv = new Map(String(h ?? '').split(';').map((p) => { const i = p.indexOf(':'); return [p.slice(0, i).trim().toUpperCase(), p.slice(i + 1).trim()] as [string, string]; }));
   const scl = kv.get('SCL');
-  return { scl: scl != null && /^-?\d+$/.test(scl) ? Number(scl) : null, sfv: kv.get('SFV') || null, cat: kv.get('CAT') || null };
+  return { scl: scl != null && /^-?\d+$/.test(scl) ? Number(scl) : null, sfv: kv.get('SFV') || null, cat: kv.get('CAT') || null,
+    ptr: kv.get('PTR') || null, ipv: kv.get('IPV') || null };
 }
 const header = (hs: unknown, name: string) => (Array.isArray(hs) ? hs : [])
   .filter((h: { name?: unknown }) => String(h?.name).toLowerCase() === name.toLowerCase()).map((h: { value?: unknown }) => String(h?.value ?? '')).join(' | ') || null;
@@ -162,39 +165,25 @@ export async function readGmail(f: Fetch, sec: Sec, to: string, token: string, s
   } catch (e) { return failed(String((e as Error)?.message || e), { provider: 'gmail' }); }
 }
 
-export async function readOutlook(f: Fetch, sec: Sec, to: string, token: string, sinceIso: string, sender: string, save?: Save): Promise<Reading> {
+export async function readOutlook(f: Fetch, _sec: Sec, to: string, token: string, sinceIso: string, sender: string, _save?: Save,
+  env: (k: string) => string | undefined = (k) => Deno.env.get(k)): Promise<Reading> {
   if (!seedAllowed(to, 'outlook')) return failed('refused: not the allowlisted Outlook seed inbox');
   if (!TOKEN_RE.test(token)) return failed('refused: malformed placement token');
   const want = addressOf(sender);
   if (!want.includes('@')) return failed('refused: no effective sender to match');
   try {
-    const [tenant, id, secret, refresh] = [await sec('ms_graph_tenant_id'), await sec('ms_graph_client_id'),
-      await sec('ms_graph_client_secret'), await sec('ms_graph_seed_refresh_token')];
-    const delegated = !!refresh;
-    // A delegated token from a public client (no secret anywhere) refreshes with the client id alone; the
-    // application mode has no user, so it always needs the secret.
-    const missing = [['ms_graph_tenant_id', tenant], ['ms_graph_client_id', id], ...(delegated ? [] : [['ms_graph_client_secret', secret]])]
-      .filter(([, v]) => !v).map(([k]) => k);
-    if (missing.length) return failed('missing app_secrets: ' + missing.join(', ') + (delegated ? '' : ' (or ms_graph_seed_refresh_token)'));
-    const form: Record<string, string> = delegated
-      ? { grant_type: 'refresh_token', refresh_token: String(refresh), client_id: String(id), ...(secret ? { client_secret: String(secret) } : {}), scope: 'offline_access https://graph.microsoft.com/Mail.Read' }
-      : { grant_type: 'client_credentials', client_id: String(id), client_secret: String(secret), scope: 'https://graph.microsoft.com/.default' };
-    const tok = await json(f, `https://login.microsoftonline.com/${encodeURIComponent(String(tenant))}/oauth2/v2.0/token`,
-      { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(form) });
-    // Microsoft rotates a delegated refresh token on use; keeping the new one keeps the 90-day window sliding. A failed
-    // store is recorded in the reading's evidence (the message only; never the token) so the finding can say so.
-    let rotation: string | null = null;
-    if (delegated && tok.refresh_token && tok.refresh_token !== refresh && save) {
-      const res = await save('ms_graph_seed_refresh_token', String(tok.refresh_token)).catch((e) => ({ error: { message: String((e as Error)?.message || e) } }));
-      const err = (res as { error?: { message?: string } | null } | null)?.error;
-      rotation = err ? 'the rotated Graph refresh token was NOT stored: ' + String(err.message || 'unknown error').slice(0, 160) : 'stored';
-    }
-    const auth = { Authorization: 'Bearer ' + String(tok.access_token || '') };
-    const base = delegated ? 'https://graph.microsoft.com/v1.0/me' : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(SEED_OUTLOOK)}`;
-    if (delegated) {
-      const me = await json(f, base + '?$select=mail,userPrincipalName', { headers: auth });
-      if (!seedAllowed(me.mail, 'outlook') && !seedAllowed(me.userPrincipalName, 'outlook')) return failed('refused: the Graph credential opens a mailbox that is not the seed');
-    }
+    // App-only, with the SAME Microsoft 365 app send_outbox's M365 lane uses (edge secrets M365_SECRET_NAMES).
+    // It holds application Mail.Read (measured 18 Oct 2026: token roles include Mail.Read; HTTP 200 on
+    // /users/management@quotesdone.com/mailFolders/inbox/messages). No delegated token, no second app.
+    const [tenant, id, secret] = M365_SECRET_NAMES.map((k) => String(env(k) || '').trim());
+    const missing = M365_SECRET_NAMES.filter((k) => !String(env(k) || '').trim());
+    if (missing.length) return failed('missing edge secrets: ' + missing.join(', '));
+    const tok = await json(f, `https://login.microsoftonline.com/${encodeURIComponent(tenant)}/oauth2/v2.0/token`,
+      { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ grant_type: 'client_credentials', client_id: id, client_secret: secret, scope: 'https://graph.microsoft.com/.default' }) });
+    if (!tok.access_token) return failed('the Microsoft 365 app was refused a token' + (tok.error ? ' (' + String(tok.error) + ')' : ''), { provider: 'outlook' });
+    const auth = { Authorization: 'Bearer ' + String(tok.access_token) };
+    const base = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(SEED_OUTLOOK)}`;
     const ids: WellKnown = {};
     for (const k of ['inbox', 'junkemail', 'deleteditems', 'sentitems', 'drafts'] as const) {
       ids[k] = String((await json(f, `${base}/mailFolders/${k}?$select=id`, { headers: auth })).id || '');
@@ -232,8 +221,8 @@ export async function readOutlook(f: Fetch, sec: Sec, to: string, token: string,
         m.diagnosis = { ...forefront(header(hs, 'X-Forefront-Antispam-Report')), authentication_results: ar ? ar.slice(0, 600) : null, ...authVerdicts(ar) };
       } catch (e) { m.diagnosis = { error: String((e as Error)?.message || e).slice(0, 200) }; }
     }
-    const detail = { provider: 'graph', mode: delegated ? 'delegated' : 'application', messages: found, pages,
-      skipped_own_copies: ownCopies, skipped_other_sender: otherSender, ...(rotation ? { refresh_token_rotation: rotation } : {}) };
+    const detail = { provider: 'graph', mode: 'application', messages: found, pages,
+      skipped_own_copies: ownCopies, skipped_other_sender: otherSender };
     // Nothing found and the listing stopped at the page bound: that is a reading we could not finish, not a not_found.
     if (!found.length && truncated) return { folder: null, detail: { ...detail, error: `more than ${MAX_PAGES} pages since the seed; not read to the end` } };
     return { folder: worstFolder(found.map((x) => x.folder)), detail };

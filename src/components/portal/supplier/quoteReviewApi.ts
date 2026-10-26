@@ -80,6 +80,7 @@ export const qr = {
   choose: (token: string, id: string, choice: 'generate' | 'reupload', lang: Lang) => post<ThreadView>({ action: 'review_choose', inquiry_id: id, choice, lang }, token),
   submit: (token: string, id: string, lang: Lang) => post<ThreadView>({ action: 'review_submit', inquiry_id: id, lang }, token),
   quotePdf: (token: string, quoteId: string, lang: Lang) => call('supplier_api', { action: 'quote_pdf', quote_id: quoteId, lang }, token),
+  withdraw: (token: string, quoteId: string) => call('supplier_api', { action: 'withdraw_quote', quote_id: quoteId }, token),
   /** The inquiry as the sales engineer's document (PDF, one language per file), cached server-side. */
   inquiryPdf: (token: string, inquiryId: string, lang: Lang) => call('supplier_api', { action: 'inquiry_pdf', inquiry_id: inquiryId, lang }, token),
 };

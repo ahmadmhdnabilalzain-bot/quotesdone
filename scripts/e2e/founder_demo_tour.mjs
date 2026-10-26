@@ -1,4 +1,4 @@
-// scripts/e2e/founder_demo_tour.mjs — ONE standing demo of both portals, and the link that opens it.
+// scripts/e2e/founder_demo_tour.mjs — ONE standing demo of both portals, and how to open it signed in.
 // Assigned: sales_engineer (the supplier portal is his surface).
 //
 // THE FOUNDER, 18 Sep 2026: "generate a link for me to access the supplier portal directly without
@@ -24,20 +24,23 @@
 // unless those three triggers are installed. No reveal is seeded and no payment is taken, so
 // Messages shows its locked state truthfully.
 //
-//   node scripts/e2e/founder_demo_tour.mjs --seed       stand the demo up and print both links
-//   node scripts/e2e/founder_demo_tour.mjs --link       mint FRESH links for the demo already standing
-//   node scripts/e2e/founder_demo_tour.mjs --verify     open the supplier link in a browser and prove it lands signed in
+//   node scripts/e2e/founder_demo_tour.mjs --seed       stand the demo up
+//   node scripts/e2e/founder_demo_tour.mjs --link       open both portals, signed in, in a visible browser
+//   node scripts/e2e/founder_demo_tour.mjs --verify     sign in by code and prove every tab of both portals opens
 //   node scripts/e2e/founder_demo_tour.mjs --teardown   remove every row, file and auth user this seeded
 //
-// The link is a Supabase magic link (POST /auth/v1/admin/generate_link, type magiclink). Its token
-// is single-use and expires after mailer_otp_exp — 3600 s on this project — so --link is the
-// command that hands out another one. The SESSION it creates lasts as long as any other: the portal
-// refreshes it, so a tab left open keeps working past the hour.
+// SIGN-IN IS THE ONE-TIME CODE, NOT A URL SESSION (19 Oct 2026, follows #1507). Both portals now refuse
+// a session that arrives in the URL, so the magic link this file used to mint opens signed out. A demo
+// account signs in the way every account does: login_otp verify. The code is seeded hashed with
+// demo_factory.verifyEmailByOtp (the harness's one OTP seed; only delivery is skipped, because
+// @example.invalid cannot receive mail) and that function refuses any address that is not
+// @example.invalid. The session login_otp answers with is written into the portal's own storage keys,
+// exactly where the portal's own verify() puts it. No code is printed.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, read, write, REF, BASE, call } from './fixtures.mjs';
-import { newRun, makeInquiry, uploadObject, keys, q, num } from '../lib/demo_factory.mjs';
+import { newRun, makeInquiry, uploadObject, keys, q, num, verifyEmailByOtp } from '../lib/demo_factory.mjs';
 import { demoPdf, demoOfficePlanPng } from '../lib/demo_pdf.mjs';
 
 // ONE TAG FOR THE LIFE OF THE DEMO. Not random: the founder's demo is a standing thing, so --link
@@ -170,37 +173,35 @@ const drawingPng = () => demoOfficePlanPng({ redactTitleBlock: true });
 
 const b64 = (s) => Buffer.from(s, 'utf8').toString('base64');
 
-// ── the link ──────────────────────────────────────────────────────────────────────────────────
-/**
- * A sign-in link for one demo account, minted with the Auth admin API.
- *
- * TWO THINGS SILENTLY SEND THE BROWSER TO SITE_URL INSTEAD (both measured 18 Sep 2026, and both
- * look identical from here — HTTP 200 with an action_link):
- *   1. `redirect_to` nested under `options`. That is the supabase-js ADMIN CLIENT's shape
- *      (`options.redirectTo`); the REST endpoint this calls reads `redirect_to` at the TOP LEVEL and
- *      ignores anything else, so the nested form is not a redirect at all.
- *   2. a `redirect_to` that is not on the project's redirect allow list. Until 18 Sep the list held
- *      only the Vercel preview hosts, so the company's own domains fell back.
- * The hash tokens then land on the marketing home page, where no portal client is mounted to read
- * them, and the founder sees a signed-out page. The read-back below is what turns either failure
- * into an error here instead of a puzzle in his browser.
- */
-export async function mintLink(email, path) {
-  const { SERVICE } = await keys();
-  const redirect = `${SITE}${path}`;
-  const r = await fetch(`${BASE}/auth/v1/admin/generate_link`, {
-    method: 'POST',
-    headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ type: 'magiclink', email, redirect_to: redirect }),
-  });
-  const j = await r.json();
-  if (!j.action_link) throw new Error(`generate_link refused ${email}: HTTP ${r.status} ${JSON.stringify(j).slice(0, 240)}`);
-  const got = new URL(j.action_link).searchParams.get('redirect_to');
-  if (got !== redirect) {
-    throw new Error(`the auth redirect allow list does not carry ${redirect} — generate_link answered with ` +
-      `redirect_to=${got}. Add ${new URL(SITE).origin}/** to the project's uri_allow_list, or the link lands signed out on the home page.`);
+// ── signing in ─────────────────────────────────────────────────────────────────────────────────
+/** A session for one demo account, minted by login_otp verify against a freshly seeded code. */
+export async function signInByCode(email, kind) {
+  const r = await verifyEmailByOtp(email, kind, String(100000 + Math.floor(Math.random() * 900000)));
+  if (!r.json?.ok || !r.json?.access_token) throw new Error(`login_otp verify refused ${email}: HTTP ${r.status} ${r.json?.code || r.json?.error || ''}`);
+  return r.json;
+}
+
+const STORE = { supplier: ['qd-sup-token', 'qd-sup-refresh', '/portal'], customer: ['qd-cust-token', 'qd-cust-refresh', '/me'] };
+
+/** A fresh browser context signed in as one demo account through the code path, open on its portal. */
+async function openSignedIn(browser, email, kind) {
+  const s = await signInByCode(email, kind);
+  const [tk, rf, path] = STORE[kind];
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await ctx.addInitScript(([tk, rf, a, r]) => { try { if (!localStorage.getItem(tk)) { localStorage.setItem(tk, a); localStorage.setItem(rf, r); } } catch {} },
+    [tk, rf, s.access_token, s.refresh_token]);
+  const page = await ctx.newPage();
+  await page.goto(`${SITE}${path}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
+  // A NEW SUPPLIER AGREEMENT puts a re-accept gate in front of every tab (v15 on 19 Oct 2026). The
+  // demo supplier accepts it the way a supplier does, through the portal's own button.
+  if (kind === 'supplier') {
+    const gate = page.getByRole('button', { name: 'Accept and continue' });
+    if (await gate.waitFor({ timeout: 20000 }).then(() => true, () => false)) {
+      await page.locator('label:has-text("Supplier Agreement") input[type=checkbox], input[type=checkbox]').first().check();
+      await gate.click();
+    }
   }
-  return j.action_link;
+  return { ctx, page };
 }
 
 /** The identities of a demo that is already standing. */
@@ -224,7 +225,7 @@ async function seed() {
   }
   const already = await standing();
   if (already.sup) throw new Error(`a demo tagged ${TAG} is already standing (lead ${already.sup.id}, ${already.sup.claimed_by}). ` +
-    'Run --link for a fresh link, or --teardown first.');
+    'Run --link to open it, or --teardown first.');
 
   const run = await openRun({ tag: TAG });
   const out = { tag: TAG, site: SITE, jobs: [] };
@@ -340,10 +341,7 @@ async function seed() {
     // ── what each tab will actually show, MEASURED through the portal's own endpoints ─────────
     out.tabs = await measureTabs(sup.jwt);
 
-    out.links = {
-      supplier: await mintLink(sup.email, '/portal'),
-      customer: await mintLink(custA.email, '/me'),
-    };
+    out.sign_in = 'node scripts/e2e/founder_demo_tour.mjs --link (one-time code, no URL session)';
   } finally {
     // KEPT ON PURPOSE. The founder needs this alive; --teardown is the only thing that removes it.
     // closeRun still closes the rehearsal window, so the failed-run watcher is not silenced for ever.
@@ -394,11 +392,14 @@ if (has('--teardown')) {
 }
 
 if (has('--link')) {
+  const { chromium } = await import('playwright');
   const { sup, cust } = await standing();
   if (!sup) { console.error(`no demo tagged ${TAG} is standing — run --seed first`); process.exit(1); }
-  console.log(`supplier portal  ${await mintLink(sup.claimed_by, '/portal')}`);
-  if (cust) console.log(`customer portal  ${await mintLink(cust.email, '/me')}`);
-  console.log(`\nvalid for one hour, single use. Re-run this command for another.`);
+  const browser = await chromium.launch({ headless: false });
+  await openSignedIn(browser, sup.claimed_by, 'supplier');
+  if (cust) await openSignedIn(browser, cust.email, 'customer');
+  console.log('both portals are open and signed in by one-time code; close the browser to finish.');
+  await new Promise((res) => browser.on('disconnected', res));
   process.exit(0);
 }
 
@@ -407,17 +408,13 @@ if (has('--verify')) {
   const { sup } = await standing();
   if (!sup) { console.error(`no demo tagged ${TAG} is standing — run --seed first`); process.exit(1); }
   mkdirSync(SHOTS, { recursive: true });
-  const link = await mintLink(sup.claimed_by, '/portal');
   const browser = await chromium.launch({ headless: process.env.QD_HEADED !== '1' });
-  // A CLEAN CONTEXT, so what is proved is the LINK and not a session this machine already held.
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  const page = await ctx.newPage();
-  let ok = false, detail = '';
+  // A CLEAN CONTEXT holding only the session login_otp just answered with.
+  let page, ok = false, detail = '', failed = 0;
   try {
-    await page.goto(link, { waitUntil: 'domcontentloaded', timeout: 90000 });
-    await page.waitForURL(/\/portal/, { timeout: 60000 }).catch(() => {});
+    ({ page } = await openSignedIn(browser, sup.claimed_by, 'supplier'));
     // Signed in is not "the page loaded": the supplier's own tabs only exist once a token is held.
-    await page.getByRole('button', { name: /Inquiries received|الاستفسارات الواردة/ }).first().waitFor({ timeout: 90000 });
+    await page.getByRole('tab', { name: /Inquiries received|الاستفسارات الواردة/ }).or(page.getByRole('button', { name: /Inquiries received|الاستفسارات الواردة/ })).first().waitFor({ timeout: 90000 });
     const tk = await page.evaluate(() => localStorage.getItem('qd-sup-token'));
     ok = !!tk;
     detail = `url ${page.url().split('#')[0]}, qd-sup-token ${tk ? 'held' : 'absent'}`;
@@ -425,8 +422,8 @@ if (has('--verify')) {
     detail = String(e.message).slice(0, 300);
   }
   const shotFile = join(SHOTS, 'supplier_portal_signed_in.png');
-  await page.screenshot({ path: shotFile, fullPage: false }).catch(() => {});
-  step('the magic link lands SIGNED IN on the supplier portal', ok, detail);
+  await page?.screenshot({ path: shotFile, fullPage: false }).catch(() => {});
+  step('one-time code signs the supplier portal in', ok, detail);
   console.log(`screenshot ${shotFile}`);
   // WHAT EACH TAB ACTUALLY SHOWS, read off the rendered page. The endpoint counts in --seed say what
   // the data holds; this says what the founder will see, which is the claim being made to him.
@@ -434,7 +431,7 @@ if (has('--verify')) {
     for (const [key, label] of [['services', /^Services$/], ['rfqs', /^Inquiries received/], ['quotes', /^Quotations submitted$/],
                                 ['messages', /^Messages/], ['documents', /^Documents$/], ['insights', /^Insights$/]]) {
       try {
-        await page.getByRole('button', { name: label }).first().click();
+        await page.getByRole('tab', { name: label }).or(page.getByRole('button', { name: label })).first().click();
         // Each tab fetches on open; the wait is generous rather than tight because what is being
         // captured is what the founder sees, and a screenshot of a spinner is not that.
         await page.waitForFunction(() => !/Loading (your )?\w+…/.test(document.body.innerText), { timeout: 30000 }).catch(() => {});
@@ -442,35 +439,32 @@ if (has('--verify')) {
         const f = join(SHOTS, `tab_${key}.png`);
         await page.screenshot({ path: f, fullPage: true });
         const text = (await page.locator('main, body').first().innerText()).replace(/\s+/g, ' ').trim();
-        console.log(`  ${key.padEnd(10)} ${text.slice(0, 220)}`);
-      } catch (e) { console.log(`  ${key.padEnd(10)} could not be opened: ${String(e.message).slice(0, 120)}`); }
+        step(`supplier tab ${key} reached`, true, text.slice(0, 160));
+      } catch (e) { failed++; step(`supplier tab ${key} reached`, false, String(e.message).slice(0, 120)); }
     }
     console.log(`tab screenshots in ${SHOTS}`);
   }
-  // The customer portal's link, proved the same way and in its own clean context.
+  // The customer portal, signed in the same way and in its own clean context.
   const { cust } = await standing();
+  let cok = !cust;
   if (cust) {
-    const cl = await mintLink(cust.email, '/me');
-    const cctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-    const cpage = await cctx.newPage();
-    let cok = false, cdetail = '';
+    let cctx, cpage, cdetail = '';
     try {
-      await cpage.goto(cl, { waitUntil: 'domcontentloaded', timeout: 90000 });
-      await cpage.waitForURL(/\/me/, { timeout: 60000 }).catch(() => {});
+      ({ ctx: cctx, page: cpage } = await openSignedIn(browser, cust.email, 'customer'));
       await cpage.waitForFunction(() => !!localStorage.getItem('qd-cust-token'), { timeout: 90000 });
       await cpage.waitForTimeout(6000);
-      cok = true;
+      // Signed in is the dashboard, not the sign-in form.
+      cok = !(await cpage.locator('input[type=email], input[autocomplete=email]').first().isVisible().catch(() => false));
       cdetail = `url ${cpage.url().split('#')[0]}, qd-cust-token held`;
     } catch (e) { cdetail = String(e.message).slice(0, 300); }
     const cf = join(SHOTS, 'customer_portal_signed_in.png');
-    await cpage.screenshot({ path: cf, fullPage: true }).catch(() => {});
-    step('the magic link lands SIGNED IN on the customer portal', cok, cdetail);
+    await cpage?.screenshot({ path: cf, fullPage: true }).catch(() => {});
+    step('one-time code signs the customer portal in', cok, cdetail);
     console.log(`screenshot ${cf}`);
-    await cctx.close();
+    await cctx?.close();
   }
-  console.log(`link used (now spent): ${link}`);
   await browser.close();
-  process.exit(ok ? 0 : 1);
+  process.exit(ok && cok && !failed ? 0 : 1);
 }
 
 if (has('--seed')) {

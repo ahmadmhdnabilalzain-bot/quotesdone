@@ -24,6 +24,7 @@ import { boqFromLines, scrubIdentity, type BoqItem } from './boq_from_text.ts';
 import { boqFromRows, MAX_ROWS } from './boq_from_sheet.ts';
 import { readDrawing, type Counts, type OcrLine } from './drawing_from_ocr.ts';
 import { deviceTypeOf } from './legend_vocabulary.ts';
+import { printedLines } from './symbol_count.ts';
 import { validateBoq } from '../_shared/boq_validate.ts';
 
 export type DrawingInput = { lines?: OcrLine[]; width?: number; counts?: Counts };
@@ -39,6 +40,19 @@ const CUR = '(?:AED|Dhs?\\.?|د\\.?\\s?إ\\.?|درهم|USD|US\\$|\\$|€|£|EUR|
 const PRICE = new RegExp(`${CUR}\\s*[\\d.,]+|[\\d.,]+\\s*${CUR}|(?:@|\\brate\\b[:\\s]*|\\bunit price\\b[:\\s]*|\\bprice\\b[:\\s]*|\\bamount\\b[:\\s]*|السعر[:\\s]*|المبلغ[:\\s]*)\\s*[\\d.,]+`, 'gi');
 /** Remove every currency amount and "@ 85" / "rate 85" figure from a line of customer text. */
 export const stripPrices = (s: string) => s.replace(PRICE, ' ').replace(/\s{2,}/g, ' ').trim();
+
+/** OCR lines (one per table CELL in sparse-text mode) back into printed ROWS: each printed line once (its longest
+ *  reading), cells on the same baseline joined left to right. 19 Oct 2026 drawing bench: a photographed BOQ read 0 of
+ *  4 lines because description, unit and quantity came back as separate lines. */
+export function rowsOf(lines: OcrLine[]): string {
+  const rows: OcrLine[][] = [];
+  for (const l of printedLines(lines).sort((a, b) => a.bbox.y - b.bbox.y)) {
+    const cy = l.bbox.y + l.bbox.h / 2;
+    const row = rows.find((r) => Math.abs(r[0].bbox.y + r[0].bbox.h / 2 - cy) < Math.max(4, r[0].bbox.h * 0.6));
+    if (row) row.push(l); else rows.push([l]);
+  }
+  return rows.map((r) => r.sort((a, b) => a.bbox.x - b.bbox.x).map((l) => l.text.trim()).join(' ')).join('\n');
+}
 
 export function boqFromExtracted(ex: Extracted, hint = '', ocrText = '', drawing: DrawingInput = {}) {
   const boq: (BoqItem & { type?: string; qty_status?: string; estimate?: number | null })[] = [];
@@ -93,8 +107,8 @@ export function boqFromExtracted(ex: Extracted, hint = '', ocrText = '', drawing
     for (const b of dr.boq) boq.push({ section: b.section || 'Drawing', item: b.item || b.description, description: b.description, qty: b.qty, unit: b.unit, basis: b.basis || '', confidence: 'low', type: b.type, qty_status: b.qty_status, estimate: b.estimate ?? null });
     for (const m of dr.missing_info) missing.push(m);
     assumptions.add('The drawing was read by OCR in the customer’s browser and by rules on our side; quantities we could not read are shown to the customer as our count to confirm, or marked for the supplier to verify.');
-  } else if (ocrText) {
-    fromText(ocrText, 'OCR of the photo', 'low');
+  } else if (ocrLines || ocrText) {
+    fromText(ocrLines ? rowsOf(ocrLines) : ocrText, 'OCR of the photo', 'low');
     assumptions.add('The photo was read by OCR in the customer’s browser; OCR can misread digits, so every quantity is marked low confidence.');
   }
 

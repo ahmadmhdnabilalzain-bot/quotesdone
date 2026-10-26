@@ -56,6 +56,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "general_contracting:product-distinctions",
+      "topic": "General contracting: procurement routes and contract pricing",
+      "topic_ar": "المقاولات العامة: مسارات التعاقد وتسعير العقود",
+      "kind": "product_distinctions",
+      "body_en": "A general (main) contractor builds the project and coordinates specialist subcontractors (MEP, facade, joinery, finishes). Procurement routes: traditional design-bid-build (the client's consultant designs, contractors price a BOQ or drawings, the consultant supervises), design-and-build (one contractor designs and builds against the client's requirements, with single-point responsibility but less client control over details), construction management or management contracting (a manager runs trade packages for a fee), and early contractor involvement. Pricing: lump sum or fixed price on full drawings, re-measurable BOQ at unit rates, cost-plus with a fee, and target cost with pain/gain share. Contract forms are often FIDIC (Red Book for employer-designed, Yellow for design-build) with particular conditions. What separates contractors: their licence classification for the project size and type, experience of similar buildings, the site team, programme and method, the subcontractor list, financial capacity and bonds (bid, performance, advance payment), insurances (contractor's all risk, third party), quality and safety records, and how they price provisional sums, variations and prolongation.",
+      "body_ar": "المقاول العام (الرئيسي) ينفذ المشروع وينسق مقاولي الباطن المتخصصين (الكهروميكانيك، الواجهات، النجارة، التشطيبات). ومسارات التعاقد: التصميم ثم المناقصة ثم التنفيذ التقليدي (يصمم استشاري العميل، ويسعر المقاولون جدول الكميات أو المخططات، ويشرف الاستشاري)، والتصميم والتنفيذ (مقاول واحد يصمم وينفذ وفق متطلبات العميل، بمسؤولية من نقطة واحدة لكن بتحكم أقل للعميل في التفاصيل)، وإدارة الإنشاء أو التعاقد الإداري (مدير يدير حزم الأعمال مقابل أتعاب)، وإشراك المقاول المبكر. والتسعير: مبلغ مقطوع أو سعر ثابت على مخططات كاملة، أو جدول كميات قابل لإعادة القياس بأسعار وحدة، أو التكلفة زائد أتعاب، أو التكلفة المستهدفة مع تقاسم المكسب والخسارة. ونماذج العقود غالباً فيديك (الكتاب الأحمر للتصميم من المالك، والأصفر للتصميم والتنفيذ) مع شروط خاصة. وما يميز المقاولين: تصنيف ترخيصهم لحجم المشروع ونوعه، وخبرتهم في مبانٍ مماثلة، وفريق الموقع، والبرنامج والطريقة، وقائمة مقاولي الباطن، والقدرة المالية والضمانات (العطاء، حسن التنفيذ، الدفعة المقدمة)، والتأمينات (جميع أخطار المقاول، الطرف الثالث)، وسجلات الجودة والسلامة، وكيفية تسعير المبالغ الاحتياطية والأوامر التغييرية وتمديد المدة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/General_contractor"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: general contractors hire specialist subcontractors; fixed-price and cost-plus pricing -> confirmed (design-build not on the page)."
+    },
+    {
+      "id": "general_contracting:lead-times-and-quoting",
+      "topic": "General building contracting - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المقاولات العامة للمباني: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Tendering usually takes 3-6 weeks for a mid-size building; construction duration depends on scope (a villa often 8-14 months, mid-rise 18-30 months). A contractor needs drawings and specifications or the employer's requirements, BOQ if any, the contract form and conditions, programme, site information, and permits status. A tender states the price per BOQ or lump sum, inclusions and qualifications, programme, method statement, team, subcontractors, bonds and insurances, payment terms, validity and exclusions.",
+      "body_ar": "تستغرق المناقصة عادة 3-6 أسابيع لمبنى متوسط؛ ومدة التنفيذ تعتمد على النطاق (الفيلا غالباً 8-14 شهراً، والمباني متوسطة الارتفاع 18-30 شهراً). ويحتاج المقاول المخططات والمواصفات أو متطلبات المالك، وجدول الكميات إن وجد، ونموذج العقد وشروطه، والبرنامج الزمني، ومعلومات الموقع، وحالة التصاريح. ويذكر العطاء السعر حسب جدول الكميات أو المبلغ المقطوع، والمشمولات والتحفظات، والبرنامج الزمني، وبيان الطريقة، والفريق، ومقاولي الباطن، والضمانات والتأمينات، وشروط الدفع، والصلاحية، والاستثناءات.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -81,6 +111,14 @@
       ],
       "why": "No entry of this pack answered it (No entry covers villa contract payment terms (advance, progress stages, retention); missing). general_contracting:payment-structure-and-retention was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from general_contracting.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Should we build our warehouse as design-and-build or traditional tender?",
+      "q_ar": "نبني المستودع بنظام التصميم والتنفيذ ولا مناقصة تقليدية؟",
+      "expected_entry_ids": [
+        "general_contracting:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -100,6 +138,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "general_contracting:payment-structure-and-retention"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "general_contracting:product-distinctions"
+      ],
+      "stored_not_served": [
+        "general_contracting:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/General_contractor"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

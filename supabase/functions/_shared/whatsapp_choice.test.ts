@@ -132,3 +132,35 @@ Deno.test('voice: a refused call is a failure, not a false sent', async () => {
   const res = await voiceAfterSms(sent(false, { code: 21614 }), () => Promise.resolve({ r: { ok: false, status: 400 }, jd: { code: 60200 } }));
   assertEquals([res.ok, res.channel], [false, null]);
 });
+
+// it_engineer, 18 Oct 2026 (review of #1432): WhatsApp only where it is known to reach the person, SMS failover.
+import { channelOfRow, failoverStep, FAILOVER_AFTER_S, nextChannel, sidOfRow } from './whatsapp_choice.ts';
+Deno.test('WhatsApp goes only to a confirmed number or to the number the user just chose WhatsApp for', () => {
+  const m = '+971501234567';
+  assertEquals(nextChannel({ e164: m }), 'sms');                          // unconfirmed, nobody chose: SMS
+  assertEquals(nextChannel({ e164: m, waConfirmed: true }), 'whatsapp');  // the account confirmed it
+  assertEquals(nextChannel({ e164: m, asked: 'whatsapp' }), 'whatsapp');  // signed-in user chose it in sign-up
+  assertEquals(nextChannel({ e164: m, asked: 'whatsapp', lastChannel: 'whatsapp' }), 'sms'); // asked again = not arrived
+  assertEquals(nextChannel({ e164: m, waConfirmed: true, lastChannel: 'whatsapp' }), 'sms');
+  assertEquals(nextChannel({ e164: m, waConfirmed: true, asked: 'sms' }), 'sms');
+  assertEquals(nextChannel({ e164: m, asked: 'call' }), 'call');
+  assertEquals(nextChannel({ e164: '+97142587734', asked: 'whatsapp' }), 'sms'); // a landline never gets WhatsApp
+  assertEquals(nextChannel({ e164: '+447700900000', waConfirmed: true }), 'sms');
+});
+Deno.test('a WhatsApp code fails over to SMS when Twilio reports it undelivered or it is late', () => {
+  assertEquals(failoverStep('DELIVERED', 60e3), 'none');
+  assertEquals(failoverStep('read', 60e3), 'none');
+  assertEquals(failoverStep('UNDELIVERED', 2e3), 'sms');
+  assertEquals(failoverStep('failed', 2e3), 'sms');
+  assertEquals(failoverStep('SENT', FAILOVER_AFTER_S * 1000 - 1), 'wait');
+  assertEquals(failoverStep('SENT', FAILOVER_AFTER_S * 1000), 'sms');
+  assertEquals(failoverStep(null, FAILOVER_AFTER_S * 1000 + 5), 'sms');
+});
+Deno.test('the ledger row carries the channel and the Verify SID, never a code', () => {
+  assertEquals(channelOfRow('twilio:whatsapp:VEc60112ca453826c0f5df15847908a061'), 'whatsapp');
+  assertEquals(sidOfRow('twilio:whatsapp:VEc60112ca453826c0f5df15847908a061'), 'VEc60112ca453826c0f5df15847908a061');
+  assertEquals(channelOfRow('twilio:sms'), 'sms');
+  assertEquals(sidOfRow('twilio:sms'), null);
+  assertEquals(channelOfRow('twilio'), null);
+  assertEquals(channelOfRow('twilio:sms:123456'), null);   // a 6-digit code is never a valid row
+});

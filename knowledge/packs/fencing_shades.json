@@ -54,6 +54,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "fencing_shades:product-distinctions",
+      "topic": "Shades and fencing: membrane fabrics, structure types and fence systems",
+      "topic_ar": "المظلات والأسوار: أقمشة الأغشية وأنواع الهياكل وأنظمة الأسوار",
+      "kind": "product_distinctions",
+      "body_en": "Shade structures: car-park shades (cantilever, single or double post), sail shades, umbrellas, pergolas, and architectural tensile structures. Fabrics: HDPE knitted shade cloth (breathable, UV-stabilised, rated by shade percentage and UV block, the economical choice for car parks and playgrounds), PVC-coated polyester (waterproof, 10-15 year life, for tensile canopies), PTFE-coated glass fibre (25+ year life, translucent, for stadiums and landmarks), and PVDF-topcoated fabrics that resist dirt. Steel frames are hot-dip galvanised and/or powder coated, with foundations and wind-load design for the site's design wind speed. Fencing: chain-link, welded mesh panels (358 anti-climb for security), palisade, GRP and wood, ornamental steel and aluminium, temporary site hoarding and fencing, and security add-ons (razor wire, gates with automation, access control). Wall-mounted and freestanding retractable awnings and louvred pergolas are a related residential line. What separates offers: fabric make and warranty, structural calculations and steel sizes, galvanising and coating thickness, foundation design, and authority approvals for permanent structures.",
+      "body_ar": "المظلات: مظلات مواقف السيارات (معلقة، بعمود واحد أو عمودين)، والمظلات الشراعية، والشماسي، والبرجولات، والهياكل الشدية المعمارية. والأقمشة: قماش الظل المحبوك من HDPE (يسمح بالتهوية، مثبت ضد الأشعة فوق البنفسجية، يُصنف بنسبة الظل وحجب الأشعة، الخيار الاقتصادي لمواقف السيارات والملاعب)، والبوليستر المطلي بـ PVC (مقاوم للماء، عمره 10-15 سنة، للمظلات الشدية)، والألياف الزجاجية المطلية بـ PTFE (عمر 25 سنة فأكثر، شفافة جزئياً، للملاعب والمعالم)، والأقمشة بطبقة PVDF المقاومة للأوساخ. والإطارات الحديدية مجلفنة بالغمس الساخن و/أو مطلية بالبودرة، مع أساسات وتصميم لأحمال الرياح وفق سرعة الرياح التصميمية للموقع. والأسوار: الشبك المجدول، وألواح الشبك الملحوم (358 المضاد للتسلق للأمن)، والسياج المسنن، والألياف الزجاجية والخشب، والحديد والألمنيوم الزخرفي، وسياج وحواجز المواقع المؤقتة، وإضافات الأمن (الأسلاك الشائكة، البوابات الآلية، التحكم بالدخول). والمظلات القابلة للطي الجدارية والقائمة والبرجولات ذات الشرائح خط سكني مرتبط. وما يميز العروض: ماركة القماش وضمانه، والحسابات الإنشائية ومقاسات الحديد، والجلفنة وسماكة الطلاء، وتصميم الأساسات، وموافقات الجهات للهياكل الدائمة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Tensile_structure"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: PVC-coated polyester and PTFE-coated glass fibre as common tensile membrane materials -> confirmed (HDPE shade fabric not on the page)."
+    },
+    {
+      "id": "fencing_shades:lead-times-and-quoting",
+      "topic": "Fencing, shades & tensile structures - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الأسوار والمظلات والهياكل الشدية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Standard car-park shades: 2-4 weeks; tensile structures 6-12 weeks including design and fabric; fencing days to weeks by length. A supplier needs the area and layout, number of bays or length, structure type, fabric choice and colour, site conditions and foundations, and approval needs. A quote states fabric make and warranty, steel sizes and coating, foundations, design calculations, installation, approvals and validity.",
+      "body_ar": "مظلات المواقف القياسية: 2-4 أسابيع؛ والهياكل الشدية 6-12 أسبوعاً شاملة التصميم والقماش؛ والأسوار من أيام إلى أسابيع حسب الطول. ويحتاج المورد المساحة والتخطيط، وعدد المواقف أو الطول، ونوع الهيكل، واختيار القماش ولونه، وظروف الموقع والأساسات، واحتياجات الموافقة. ويذكر العرض ماركة القماش وضمانه، ومقاسات الحديد وطلاؤه، والأساسات، والحسابات التصميمية، والتركيب، والموافقات، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (No entry compares HDPE, PVC and PTFE shade fabrics; missing). fencing_shades:shade-fabric-types-hdpe-pvc-ptfe was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from fencing_shades.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "HDPE or PVC fabric for car-park shades, and how long does each last?",
+      "q_ar": "قماش HDPE ولا PVC لمظلات المواقف؟ وكم يعيش كل واحد؟",
+      "expected_entry_ids": [
+        "fencing_shades:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -97,6 +135,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "fencing_shades:shade-fabric-types-hdpe-pvc-ptfe"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "fencing_shades:product-distinctions"
+      ],
+      "stored_not_served": [
+        "fencing_shades:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Tensile_structure"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

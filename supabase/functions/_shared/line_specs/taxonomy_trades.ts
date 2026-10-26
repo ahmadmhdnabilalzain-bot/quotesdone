@@ -35,6 +35,8 @@ export const BRANDED_GOODS: ReadonlySet<string> = new Set([
   'water_dispensers', 'medical_equipment', 'electronics_wholesale', 'mobile_phones_wholesale', 'home_appliances',
   'vehicles_fleet', 'auto_parts', 'tyres_batteries', 'batteries_storage', 'fitness_equipment', 'salon_equipment',
   'musical_pro_audio', 'lighting_fixtures',
+  // 19 Oct 2026, scripts/sql/ten_uae_trades_the_taxonomy_still_missed_join_it.sql: sold by make and model.
+  'weighing_systems', 'drones_uav', 'bicycles_micromobility',
 ]);
 
 export const NO_LINE_SPECS_YET: ReadonlySet<string> = new Set([
@@ -64,4 +66,7 @@ export const NO_LINE_SPECS_YET: ReadonlySet<string> = new Set([
   'laundry_services', 'ev_charging', 'aircraft_parts_mro', 'shipbuilding_repair', 'leather_footwear',
   'bitumen_petroleum_products', 'device_repair', 'event_entertainment', 'railway_equipment', 'furniture_repair',
   'investigation_screening', 'facilities_management', 'labels_sleeves', 'protective_packaging', 'bulk_bags_sacks', 'luxury_rigid_boxes', 'paper_bags', 'pharma_packaging', 'packaging_tapes_strapping',
+  // 19 Oct 2026, ten_uae_trades_the_taxonomy_still_missed_join_it.sql.
+  'apparel_fashion_wholesale', 'optical_eyewear', 'home_furniture', 'occupational_health', 'artwork_decor',
+  'baby_nursery_products', 'houseware_wholesale',
 ]);

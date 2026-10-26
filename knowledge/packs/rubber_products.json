@@ -52,6 +52,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "rubber_products:product-distinctions",
+      "topic": "Rubber products: compounds, hardness and product families",
+      "topic_ar": "المنتجات المطاطية: الخلطات والصلادة وعائلات المنتجات",
+      "kind": "product_distinctions",
+      "body_en": "Rubber products are made from compounds chosen for the service: natural rubber (resilience and abrasion resistance), SBR (general purpose, economical), EPDM (weather, ozone, hot water and steam, not oils), nitrile NBR (oils and fuels), neoprene CR (moderate oil and weather resistance, flame retardant grades), silicone (wide temperature range, food and medical grades), and Viton FKM (high temperature and aggressive chemicals). Hardness is measured on the Shore A scale (a door seal around 55, tyre tread around 70; most moulded parts are 40-90 Shore A). Product families: conveyor belts (fabric EP or steel-cord carcass, by tensile rating such as EP 630/4 and cover grade for abrasion, heat or oil resistance), V-belts and timing belts, hoses (by pressure, temperature and media), sheets and matting (insertion rubber, anti-slip and anti-fatigue mats), gaskets, seals and O-rings, extruded profiles and edge trims, moulded parts to drawing, anti-vibration mounts, dock fenders and bumpers, and rubber linings for tanks and chutes. Specification points: compound and standard, hardness, dimensions and tolerances, temperature and chemical exposure, and certifications such as food grade (FDA) or potable water where needed.",
+      "body_ar": "تُصنع المنتجات المطاطية من خلطات تُختار حسب الخدمة: المطاط الطبيعي (المرونة ومقاومة التآكل)، وSBR (متعدد الأغراض واقتصادي)، وEPDM (الطقس والأوزون والماء الساخن والبخار، لا الزيوت)، والنتريل NBR (الزيوت والوقود)، والنيوبرين CR (مقاومة متوسطة للزيوت والطقس، ودرجات مقاومة للهب)، والسيليكون (مدى حرارة واسع، ودرجات للأغذية والطب)، والفيتون FKM (الحرارة العالية والكيماويات القوية). وتُقاس الصلادة بمقياس شور A (مانع تسرب الباب نحو 55، ونقشة الإطار نحو 70؛ ومعظم القطع المقولبة 40-90 شور A). وعائلات المنتجات: السيور الناقلة (هيكل نسيجي EP أو أسلاك حديدية، حسب تصنيف الشد مثل EP 630/4 ودرجة الغطاء للتآكل أو الحرارة أو الزيت)، وسيور V والتوقيت، والخراطيم (حسب الضغط والحرارة والوسط)، والألواح والحصائر (المطاط المدعم بالقماش، الحصائر المانعة للانزلاق والمضادة للإرهاق)، والحشوات وموانع التسرب والحلقات الدائرية، والمقاطع المبثوقة وحواف التشطيب، والقطع المقولبة حسب الرسم، ومخمدات الاهتزاز، ومصدات الأرصفة، والبطانات المطاطية للخزانات والمجاري. ونقاط المواصفة: الخلطة والمعيار، والصلادة، والأبعاد والتفاوتات، والتعرض للحرارة والكيماويات، والشهادات مثل درجة الأغذية أو مياه الشرب عند الحاجة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Shore_durometer"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: Shore A hardness and typical rubber values (door seal about 55, tyre tread about 70) -> confirmed."
+    },
+    {
+      "id": "rubber_products:lead-times-and-quoting",
+      "topic": "Rubber products & belts - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المنتجات المطاطية والسيور: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock sheets, mats, hoses and belts: days; moulded parts and profiles to drawing 2-6 weeks; conveyor belts 2-8 weeks plus vulcanising on site. A supplier needs the application, compound or exposure, hardness, dimensions or drawing, quantity, and certifications. A quote states compound and standard, hardness, dimensions, tooling cost for moulded parts, test certificates, delivery and validity.",
+      "body_ar": "الألواح والحصائر والخراطيم والسيور المتوفرة: أيام؛ والقطع المقولبة والمقاطع حسب الرسم 2-6 أسابيع؛ والسيور الناقلة 2-8 أسابيع إضافة إلى الوصل بالفلكنة في الموقع. ويحتاج المورد التطبيق، والخلطة أو التعرض، والصلادة، والأبعاد أو الرسم، والكمية، والشهادات. ويذكر العرض الخلطة والمعيار والصلادة والأبعاد وتكلفة القالب للقطع المقولبة وشهادات الاختبار والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -77,6 +107,14 @@
       ],
       "why": "No entry of this pack answered it (no entry recommends UV/ozone-resistant rubbers (EPDM, silicone, neoprene) for outdoor sun). rubber_products:weathering-resistant-elastomers was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from rubber_products.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Which rubber should a gasket be for hot water and steam: EPDM or nitrile?",
+      "q_ar": "وش نوع المطاط لحشوة تتعرض لماء حار وبخار: EPDM ولا نتريل؟",
+      "expected_entry_ids": [
+        "rubber_products:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "rubber_products:weathering-resistant-elastomers"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "rubber_products:product-distinctions"
+      ],
+      "stored_not_served": [
+        "rubber_products:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Shore_durometer"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

@@ -41,6 +41,36 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "removals_relocation:product-distinctions",
+      "topic": "Removals: move types, packing levels and what protects the goods",
+      "topic_ar": "نقل الأثاث: أنواع النقل ومستويات التغليف وما يحمي المقتنيات",
+      "kind": "product_distinctions",
+      "body_en": "Removals are local (within a city or between nearby cities), long-distance, or international (door-to-door by sea in a shared or full container, or by air for urgent goods, with export and import customs). Office moves add IT disconnection and reconnection, crate hire, labelled floor plans and weekend execution to avoid downtime. Packing levels: self-pack, partial (fragiles only) or full packing with cartons, bubble wrap, blankets, wardrobe boxes and custom crates for art, mirrors and antiques. Other services: furniture dismantling and reassembly, appliance disconnection, piano and safe moving, storage (short or long term in a warehouse, ideally climate-controlled), vehicle shipping, and pet relocation through specialists. What protects the customer: a pre-move survey (in person or by video) that produces the volume and crew, a written inventory with condition notes, transit insurance on a stated value (full replacement or limited per kg), building access arrangements (lift booking, parking, permits), and a clear liability clause for damage and delays.",
+      "body_ar": "يكون نقل الأثاث محلياً (داخل المدينة أو بين مدن متقاربة)، أو لمسافات طويلة، أو دولياً (من الباب إلى الباب بحراً في حاوية مشتركة أو كاملة، أو جواً للمقتنيات العاجلة، مع جمارك التصدير والاستيراد). ويضيف نقل المكاتب فصل أجهزة تقنية المعلومات وإعادة توصيلها، واستئجار الصناديق، ومخططات أرضية مرقمة، والتنفيذ في عطلة نهاية الأسبوع لتجنب التوقف. ومستويات التغليف: تغليف ذاتي، أو جزئي (القطع القابلة للكسر فقط)، أو كامل بالكراتين والفقاعات والبطانيات وصناديق الملابس والصناديق الخشبية المخصصة للوحات والمرايا والتحف. ومن الخدمات الأخرى: فك الأثاث وتركيبه، وفصل الأجهزة، ونقل البيانو والخزائن الحديدية، والتخزين (قصير أو طويل الأجل في مستودع ويفضل مكيف)، وشحن السيارات، ونقل الحيوانات الأليفة عبر مختصين. وما يحمي العميل: معاينة قبل النقل (حضورياً أو بالفيديو) تحدد الحجم وطاقم العمل، وجرد مكتوب مع ملاحظات الحالة، وتأمين أثناء النقل بقيمة محددة (استبدال كامل أو محدود لكل كيلوغرام)، وترتيبات الوصول إلى المبنى (حجز المصعد، المواقف، التصاريح)، وبند مسؤولية واضح عن الأضرار والتأخير.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Moving_company"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: packing as an optional mover service and warehousing -> confirmed (surveys and international moves not on the page)."
+    },
+    {
+      "id": "removals_relocation:lead-times-and-quoting",
+      "topic": "Home & office removals - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "نقل المنازل والمكاتب: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Local moves can often be booked within 2-7 days (month-ends and summer are busiest); international moves take 2-8 weeks door to door depending on route and customs. A mover needs the origin and destination with floors and access, an inventory or survey, packing level, dates, storage needs, special items, and insurance value. A quote states the volume and crew, vehicles, packing materials, services included, insurance terms, access permits, the price basis (fixed or per hour or per m3), payment terms and validity.",
+      "body_ar": "يمكن غالباً حجز النقل المحلي خلال 2-7 أيام (نهايات الأشهر والصيف أكثر ازدحاماً)؛ والنقل الدولي يستغرق 2-8 أسابيع من الباب إلى الباب حسب المسار والجمارك. ويحتاج الناقل نقطة الانطلاق والوجهة مع الطوابق والوصول، وجرداً أو معاينة، ومستوى التغليف، والتواريخ، واحتياجات التخزين، والقطع الخاصة، وقيمة التأمين. ويذكر العرض الحجم وطاقم العمل، والمركبات، ومواد التغليف، والخدمات المشمولة، وشروط التأمين، وتصاريح الوصول، وأساس السعر (ثابت أو بالساعة أو بالمتر المكعب)، وشروط الدفع، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -66,6 +96,14 @@
       ],
       "why": "The checklist lists what a mover prices on: inventory volume in m3, origin/destination, packing scope, insurance and storage.",
       "origin": "real buyer question, moved from removals_relocation.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What should a moving quote include so I am not surprised on moving day?",
+      "q_ar": "وش لازم يشمل عرض شركة النقل عشان ما أتفاجأ يوم النقل؟",
+      "expected_entry_ids": [
+        "removals_relocation:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -82,6 +120,27 @@
       "removals_relocation:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "removals_relocation:product-distinctions"
+      ],
+      "stored_not_served": [
+        "removals_relocation:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Moving_company"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

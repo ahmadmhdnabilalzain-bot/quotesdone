@@ -1,0 +1,97 @@
+{
+  "trade": "houseware_wholesale",
+  "entries": [
+    {
+      "id": "houseware_wholesale:spec-checklist",
+      "topic": "Houseware & kitchenware wholesale - what the buyer must state",
+      "topic_ar": "الأدوات المنزلية وأدوات المطبخ بالجملة: ما يجب أن يحدده المشتري",
+      "kind": "spec_checklist",
+      "body_en": "For houseware & kitchenware wholesale (trade code houseware_wholesale only), every quoted line must state: Item type and set composition; Material and grade; Coating type (if any); Size or capacity; Compatibility (induction, dishwasher, oven); Brand or private label; Packaging and carton quantity; Food-contact compliance; Quantity; Origin; Delivery terms; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط الأدوات المنزلية وأدوات المطبخ بالجملة (رمز النشاط houseware_wholesale فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الصنف ومكونات الطقم؛ المادة ودرجتها؛ نوع الطلاء (إن وجد)؛ المقاس أو السعة؛ التوافق (الحث، غسالة الصحون، الفرن)؛ علامة تجارية أو خاصة؛ التغليف وعدد القطع في الكرتون؛ الامتثال لملامسة الأغذية؛ الكمية؛ المنشأ؛ شروط التسليم؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Item type and set composition",
+        "Material and grade",
+        "Coating type (if any)",
+        "Size or capacity",
+        "Compatibility (induction, dishwasher, oven)",
+        "Brand or private label",
+        "Packaging and carton quantity",
+        "Food-contact compliance",
+        "Quantity",
+        "Origin",
+        "Delivery terms",
+        "Lead time"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Cookware_and_bakeware"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: cookware in stainless steel, cast iron, aluminium, PTFE non-stick and ceramic coatings, copper and carbon steel."
+    },
+    {
+      "id": "houseware_wholesale:product-distinctions",
+      "topic": "Houseware and kitchenware: materials and what decides quality",
+      "topic_ar": "الأدوات المنزلية وأدوات المطبخ: المواد وما يحدد الجودة",
+      "kind": "product_distinctions",
+      "body_en": "Houseware wholesale covers cookware (pots, pans, pressure cookers, woks), bakeware, tableware (plates and bowls in porcelain, bone china, stoneware, melamine or tempered glass), glassware, cutlery and serving items, kitchen tools and utensils, food storage containers, plasticware, cleaning tools, home organisation, and home textiles such as towels and table linen. Cookware materials: stainless steel (durable, multi-ply with an aluminium or copper core for even heating, induction-compatible when magnetic), cast iron (holds heat, enamelled or seasoned), aluminium (light and conductive, usually anodised or coated), non-stick coatings (PTFE-based, or ceramic coatings), copper, and carbon steel. Quality points: gauge or thickness, base construction and induction compatibility, handle fixing (riveted or welded), coating durability and food-contact compliance, oven and dishwasher safety, and lid fit. For tableware and storage, food-contact safety (lead and cadmium limits on glazes, food-grade plastics) and microwave or dishwasher suitability matter. Wholesale buying is by carton and set; private label and promotional sets need artwork and MOQ.",
+      "body_ar": "تغطي تجارة الأدوات المنزلية بالجملة أواني الطبخ (القدور، المقالي، قدور الضغط، الووك)، وأدوات الخبز، وأدوات المائدة (الأطباق والأوعية من البورسلين أو العظم الصيني أو الحجري أو الميلامين أو الزجاج المقسى)، والأواني الزجاجية، وأدوات الطعام والتقديم، وأدوات المطبخ، وحاويات حفظ الطعام، والأدوات البلاستيكية، وأدوات التنظيف، وتنظيم المنزل، والمفروشات المنزلية مثل المناشف ومفارش الطاولات. ومواد أواني الطبخ: الستانلس (متين، متعدد الطبقات بقلب ألمنيوم أو نحاس لتسخين متساوٍ، ومتوافق مع الحث عندما يكون مغناطيسياً)، والحديد الزهر (يحتفظ بالحرارة، مطلي بالمينا أو معالج)، والألمنيوم (خفيف وموصل، غالباً مؤكسد أو مطلي)، والطلاءات غير اللاصقة (أساسها PTFE، أو طلاءات سيراميكية)، والنحاس، والحديد الكربوني. ونقاط الجودة: السماكة، وبنية القاعدة والتوافق مع الحث، وتثبيت المقابض (برشام أو لحام)، ومتانة الطلاء والامتثال لملامسة الأغذية، والأمان في الفرن وغسالة الصحون، وإحكام الغطاء. ولأدوات المائدة والحفظ تهم سلامة ملامسة الأغذية (حدود الرصاص والكادميوم في الطلاءات، والبلاستيك الغذائي) وملاءمة الميكروويف أو غسالة الصحون. والشراء بالجملة بالكرتون والطقم؛ والعلامة الخاصة والأطقم الترويجية تحتاج تصميماً وحداً أدنى للطلب.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Cookware_and_bakeware"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
+      "source_note": "Page opened 2026-10-19: cookware in stainless steel, cast iron, aluminium, PTFE non-stick and ceramic coatings, copper and carbon steel -> confirmed."
+    },
+    {
+      "id": "houseware_wholesale:lead-times-and-quoting",
+      "topic": "Houseware & kitchenware wholesale - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الأدوات المنزلية وأدوات المطبخ بالجملة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "body_en": "Stock items: days; container orders 6-10 weeks; private label 8-12 weeks. A supplier needs item lists, materials, sizes, set composition, quantities, branding and compliance needs. A quote states per item material and gauge, coating, compatibility, compliance, carton pack, unit price, MOQ, delivery and validity.",
+      "body_ar": "الأصناف المتوفرة: أيام؛ وطلبات الحاويات 6-10 أسابيع؛ والعلامة الخاصة 8-12 أسبوعاً. ويحتاج المورد قوائم الأصناف، والمواد، والمقاسات، ومكونات الأطقم، والكميات، والعلامة، واحتياجات الامتثال. ويذكر العرض لكل صنف المادة والسماكة والطلاء والتوافق والامتثال وعدد القطع في الكرتون وسعر الوحدة والحد الأدنى للطلب والتسليم والصلاحية.",
+      "gap_kind": "commercial",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page, so the entry is stored verified=false and never stated until sourced.",
+      "source_note": "Authored practice; not read from a page."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which cookware works on an induction hob, and what should a wholesaler confirm?",
+      "q_ar": "وش أواني الطبخ اللي تشتغل على موقد الحث؟ ووش لازم يأكده تاجر الجملة؟",
+      "expected_entry_ids": [
+        "houseware_wholesale:product-distinctions"
+      ],
+      "written_blind": true
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-10-19",
+    "method": "New trade added by scripts/sql/ten_uae_trades_the_taxonomy_still_missed_join_it.sql; pack authored by Claude on the subscription (ledger 1198/1209), no paid model.",
+    "pages_opened": [
+      "https://en.wikipedia.org/wiki/Cookware_and_bakeware"
+    ],
+    "served": [
+      "houseware_wholesale:spec-checklist",
+      "houseware_wholesale:product-distinctions"
+    ],
+    "stored_not_served": [
+      "houseware_wholesale:lead-times-and-quoting"
+    ],
+    "ledger": [
+      893,
+      899,
+      900,
+      903,
+      1198,
+      1209
+    ]
+  }
+}

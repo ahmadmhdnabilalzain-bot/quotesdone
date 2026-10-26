@@ -53,6 +53,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "steel_stock:product-distinctions",
+      "topic": "Steel stock: product forms, grades and certification",
+      "topic_ar": "مخزون الحديد: أشكال المنتجات والدرجات والشهادات",
+      "kind": "product_distinctions",
+      "body_en": "Steel stockists supply reinforcing bar (deformed rebar by diameter, typically 8-32 mm, in grades such as Grade 60 / 420 MPa to ASTM A615 or B500B to BS 4449, in straight 12 m lengths or coils), welded wire mesh, structural sections (I-beams and H-beams such as IPE, HEA/HEB, UB/UC; channels and angles; to grades such as S275 or S355 under EN 10025, or ASTM A36 / A572), hollow sections (square, rectangular and circular, cold- or hot-formed), plates and sheets (hot-rolled, cold-rolled, galvanised and pre-painted coils; chequered plate), pipes (seamless and welded to ASTM A53, A106, API 5L, and galvanised), flat bars, round bars and wire rod, and stainless steel in 304 and 316 grades. Each grade fixes strength and weldability, so a substitute must match the specified grade, not just the size. Mill test certificates (EN 10204 3.1) tie each heat number to its chemistry and mechanical tests, and project consultants usually require them with the delivery. Value-added services: cut-to-length, bending and scheduling of rebar to bar-bending schedules, shearing, drilling, galvanising and painting. Prices follow international steel and scrap markets, so quotes often have short validity.",
+      "body_ar": "يورد تجار الحديد حديد التسليح (حديد مضلع حسب القطر، عادة 8-32 مم، بدرجات مثل Grade 60 / 420 ميغاباسكال وفق ASTM A615 أو B500B وفق BS 4449، بأطوال مستقيمة 12 متراً أو لفائف)، والشبك الملحوم، والمقاطع الإنشائية (الجسور على شكل I وH مثل IPE وHEA/HEB وUB/UC؛ المجاري والزوايا؛ بدرجات مثل S275 أو S355 وفق EN 10025، أو ASTM A36 / A572)، والمقاطع المجوفة (المربعة والمستطيلة والدائرية، المشكلة على البارد أو الساخن)، والألواح والصفائح (المدرفلة على الساخن والبارد، واللفائف المجلفنة والمطلية مسبقاً؛ والألواح المضلعة)، والأنابيب (غير الملحومة والملحومة وفق ASTM A53 وA106 وAPI 5L، والمجلفنة)، والقضبان المسطحة والدائرية وأسلاك اللف، والستانلس بدرجتي 304 و316. وكل درجة تحدد المقاومة وقابلية اللحام، لذلك يجب أن يطابق البديل الدرجة المحددة لا المقاس فقط. وشهادات اختبار المصنع (EN 10204 3.1) تربط كل رقم صهرة بتركيبه الكيميائي واختباراته الميكانيكية، ويطلبها استشاريو المشاريع عادة مع التسليم. والخدمات المضافة: القص حسب الطول، وثني الحديد وجدولته وفق جداول التفريد، والقص، والثقب، والجلفنة، والدهان. وتتبع الأسعار أسواق الحديد والخردة العالمية، لذلك تكون صلاحية العروض قصيرة في الغالب.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Rebar"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: Grade 60 rebar and bar size systems -> confirmed (B500B and mill certificates not on the page)."
+    },
+    {
+      "id": "steel_stock:lead-times-and-quoting",
+      "topic": "Steel stock & trading - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "تجارة الحديد ومخزونه: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock items: same day to 3 days; cut and bent rebar 2-7 days after schedules; mill orders 4-10 weeks. A supplier needs the product, grade and standard, sizes and lengths, quantities in tonnes or pieces, bar-bending schedules if any, certificate needs and delivery site. A quote states product, grade, standard, mill and origin, sizes, weight basis (theoretical or actual), certificates, processing, price per tonne, delivery and short validity.",
+      "body_ar": "الأصناف المتوفرة: في نفس اليوم حتى 3 أيام؛ والحديد المقصوص والمثني 2-7 أيام بعد الجداول؛ وطلبات المصانع 4-10 أسابيع. ويحتاج المورد المنتج والدرجة والمعيار، والمقاسات والأطوال، والكميات بالطن أو بالقطعة، وجداول التفريد إن وجدت، واحتياجات الشهادة، وموقع التسليم. ويذكر العرض المنتج والدرجة والمعيار والمصنع والمنشأ والمقاسات وأساس الوزن (نظري أو فعلي) والشهادات والمعالجة والسعر للطن والتسليم وصلاحية قصيرة.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -78,6 +108,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither states quote validity periods; missing: steel price validity / price-adjustment entry). steel_stock:uae-steel-price-validity was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from steel_stock.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Can a contractor use B500B rebar where the drawings say ASTM A615 Grade 60?",
+      "q_ar": "يقدر المقاول يستخدم حديد B500B مكان ASTM A615 Grade 60 المذكور في المخططات؟",
+      "expected_entry_ids": [
+        "steel_stock:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -97,6 +135,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "steel_stock:uae-steel-price-validity"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "steel_stock:product-distinctions"
+      ],
+      "stored_not_served": [
+        "steel_stock:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Rebar"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

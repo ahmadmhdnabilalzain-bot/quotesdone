@@ -56,6 +56,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "air_compressors:product-distinctions",
+      "topic": "Air compressors: types, oil-free versus lubricated, and air treatment",
+      "topic_ar": "ضواغط الهواء: الأنواع والخالية من الزيت مقابل المزيتة ومعالجة الهواء",
+      "kind": "product_distinctions",
+      "body_en": "Reciprocating (piston) compressors suit small workshops and intermittent demand. Rotary screw compressors are the industrial standard for continuous duty, either oil-flooded (lower cost, oil carry-over removed by filters) or oil-free (dry or water-injected) for food-adjacent, pharma, electronics and hospital air where oil contamination is not allowed (ISO 8573-1 class 0). Centrifugal compressors serve large flows. Scroll compressors are quiet oil-free units for laboratories and dental clinics. Fixed-speed machines suit steady loads; variable-speed drive (VSD) machines follow fluctuating demand and save energy. Size is flow (m3/min or cfm, as free air delivery) at working pressure (bar). Air quality depends on treatment: refrigerated dryers (pressure dew point around +3 °C), desiccant dryers (-40 °C or lower), coalescing and particulate filters, activated-carbon filters, receivers, condensate drains and oil-water separators. In hot ambient conditions, check the compressor's maximum ambient rating, and size ventilation and the dryer for the inlet temperature. Portable diesel compressors are a separate rental class for construction.",
+      "body_ar": "تناسب الضواغط الترددية (المكبسية) الورش الصغيرة والطلب المتقطع. والضواغط اللولبية الدوارة هي المعيار الصناعي للتشغيل المستمر، إما مغمورة بالزيت (أقل تكلفة، ويُزال الزيت المحمول بالفلاتر) أو خالية من الزيت (جافة أو بحقن الماء) لهواء الأدوية والإلكترونيات والمستشفيات والصناعات الحساسة حيث لا يُسمح بالتلوث بالزيت (الفئة 0 وفق ISO 8573-1). والضواغط الطاردة المركزية تخدم التدفقات الكبيرة. والضواغط الحلزونية (سكرول) وحدات هادئة خالية من الزيت للمختبرات وعيادات الأسنان. وتناسب الآلات ثابتة السرعة الأحمال المستقرة، وتتبع آلات السرعة المتغيرة الطلب المتذبذب وتوفر الطاقة. ويُحدد الحجم بالتدفق (متر مكعب في الدقيقة أو قدم مكعب في الدقيقة كهواء حر مُسلّم) عند ضغط التشغيل (بار). وتعتمد جودة الهواء على المعالجة: المجففات التبريدية (نقطة ندى تحت الضغط نحو +3 درجات)، والمجففات بالمادة المجففة (-40 درجة أو أقل)، والفلاتر الملتحمة وفلاتر الجسيمات، وفلاتر الكربون النشط، والخزانات، وصمامات تصريف المتكثفات، وفواصل الزيت عن الماء. وفي الحرارة المحيطة العالية تحقق من أقصى حرارة محيطة يتحملها الضاغط، وصمم التهوية والمجفف حسب حرارة الدخول. والضواغط المتنقلة بمحرك ديزل فئة تأجير منفصلة للإنشاءات.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Gas_compressor"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: reciprocating, rotary screw and centrifugal compressors; oil-flooded, water-flooded and dry screw types -> confirmed."
+    },
+    {
+      "id": "air_compressors:lead-times-and-quoting",
+      "topic": "Air compressors - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "ضواغط الهواء: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Standard screw compressors and dryers: ex-stock to 4 weeks; large or oil-free units 6-14 weeks; service parts days. A supplier needs the air demand profile (or current machines and running hours), working pressure, required air quality class, power supply, room and ventilation, and duty/standby needs. A quote states make, model, FAD at pressure, motor power and drive type, specific power, oil-free or lubricated, the dryer and filters with their classes, installation and piping, warranty and service plan, delivery and validity.",
+      "body_ar": "الضواغط اللولبية والمجففات القياسية: متوفرة حتى 4 أسابيع؛ والوحدات الكبيرة أو الخالية من الزيت 6-14 أسبوعاً؛ وقطع الصيانة خلال أيام. ويحتاج المورد منحنى استهلاك الهواء (أو الآلات الحالية وساعات تشغيلها)، وضغط التشغيل، وفئة جودة الهواء المطلوبة، والتغذية الكهربائية، والغرفة والتهوية، ومتطلبات التشغيل والاحتياط. ويذكر العرض الماركة والموديل والهواء الحر المسلّم عند الضغط وقدرة المحرك ونوع التشغيل والقدرة النوعية وخلوه من الزيت أو تزييته والمجفف والفلاتر وفئاتها والتركيب والتمديدات والضمان وخطة الصيانة والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -81,6 +111,14 @@
       ],
       "why": "No entry of this pack answered it (no entry says when oil-free (ISO 8573-1 class 0) air is needed for pharma; the checklist only names oil-free/oil-injected and ISO 8573-1 class as fields to state). air_compressors:iso-8573-1-class-0-pharma-air was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from air_compressors.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Do we need an oil-free compressor for a pharmaceutical packing room, or will filters do?",
+      "q_ar": "نحتاج ضاغط هواء خالي من الزيت لغرفة تعبئة أدوية، ولا تكفي الفلاتر؟",
+      "expected_entry_ids": [
+        "air_compressors:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "air_compressors:iso-8573-1-class-0-pharma-air"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "air_compressors:product-distinctions"
+      ],
+      "stored_not_served": [
+        "air_compressors:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Gas_compressor"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

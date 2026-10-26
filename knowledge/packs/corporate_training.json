@@ -53,6 +53,36 @@
       "confidence": "high",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "corporate_training:product-distinctions",
+      "topic": "Corporate training: delivery formats, accreditation and how impact is measured",
+      "topic_ar": "التدريب المؤسسي: أشكال التقديم والاعتماد وكيف يُقاس الأثر",
+      "kind": "product_distinctions",
+      "body_en": "Corporate training ranges from soft skills (leadership, management, communication, sales, customer service), technical and professional courses (project management, finance, IT and cloud, quality, engineering software), to compliance and safety training (health and safety, first aid, fire warden, working at height, confined space, scaffolding, forklift and crane operator, defensive driving), and language training. Certified courses lead to an exam and certificate from an awarding body (for example PMI, IOSH, NEBOSH, CIPD, ACCA, vendor IT certifications), so the provider should be an approved centre for that body; non-certified courses issue the provider's own certificate. Formats: public open courses, in-house courses tailored to the company, virtual instructor-led, e-learning and blended programmes, coaching. Good programmes start from a training needs analysis, define learning objectives, and evaluate results at several levels (reaction, learning, behaviour on the job, business results, the Kirkpatrick model). Offers differ on trainer qualifications, course hours, materials and language, exam fees included or not, group size, and post-course support.",
+      "body_ar": "يتراوح التدريب المؤسسي بين المهارات الشخصية (القيادة، الإدارة، التواصل، المبيعات، خدمة العملاء)، والدورات الفنية والمهنية (إدارة المشاريع، المالية، تقنية المعلومات والحوسبة السحابية، الجودة، برامج الهندسة)، وتدريب الامتثال والسلامة (الصحة والسلامة، الإسعافات الأولية، مراقب الحريق، العمل على المرتفعات، الأماكن المحصورة، السقالات، مشغل الرافعة الشوكية والرافعات، القيادة الوقائية)، وتعليم اللغات. والدورات المعتمدة تنتهي باختبار وشهادة من جهة مانحة (مثل PMI وIOSH وNEBOSH وCIPD وACCA وشهادات موردي تقنية المعلومات)، لذلك يجب أن يكون المزود مركزاً معتمداً لدى تلك الجهة؛ أما الدورات غير المعتمدة فتصدر شهادة المزود نفسه. والأشكال: دورات عامة مفتوحة، ودورات داخلية مخصصة للشركة، وتدريب افتراضي بمدرب، وتعلم إلكتروني، وبرامج مدمجة، وتوجيه فردي. والبرامج الجيدة تبدأ بتحليل الاحتياجات التدريبية، وتحدد أهداف التعلم، وتقيّم النتائج على عدة مستويات (رد الفعل، التعلم، السلوك في العمل، نتائج الأعمال، نموذج كيركباتريك). وتختلف العروض في مؤهلات المدرب، وساعات الدورة، والمواد واللغة، وشمول رسوم الاختبار، وحجم المجموعة، والدعم بعد الدورة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Training_and_development"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: training needs analysis, delivery and evaluation (ADDIE, Kirkpatrick) -> confirmed."
+    },
+    {
+      "id": "corporate_training:lead-times-and-quoting",
+      "topic": "Corporate training & certification - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "التدريب المؤسسي والشهادات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Public courses run on scheduled dates; in-house courses can usually be arranged in 2-4 weeks; tailored programmes 4-8 weeks to design. A provider needs the topic and objectives, number and level of participants, language, format and location, certification needed, dates, and budget band. A quote states the course outline and hours, trainer profile, accreditation and exam body, materials, exam and certificate fees, the per-participant or per-group fee, venue and catering, cancellation terms and validity.",
+      "body_ar": "الدورات العامة تُعقد في مواعيد مجدولة؛ والدورات الداخلية يمكن ترتيبها عادة خلال 2-4 أسابيع؛ والبرامج المخصصة 4-8 أسابيع للتصميم. ويحتاج المزود الموضوع والأهداف، وعدد المشاركين ومستواهم، واللغة، والشكل والمكان، والشهادة المطلوبة، والتواريخ، ونطاق الميزانية. ويذكر العرض محتوى الدورة وساعاتها، وملف المدرب، والاعتماد وجهة الاختبار، والمواد، ورسوم الاختبار والشهادة، والرسوم لكل مشارك أو مجموعة، والقاعة والضيافة، وشروط الإلغاء، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -78,6 +108,14 @@
       ],
       "why": "No entry of this pack answered it (the standards entry says the sources set no corporate-training rule; KHDA permit for training providers is not covered). corporate_training:khda-educational-services-permit was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from corporate_training.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "How do we know a NEBOSH course provider is genuine?",
+      "q_ar": "كيف نعرف أن مزود دورة NEBOSH معتمد فعلاً؟",
+      "expected_entry_ids": [
+        "corporate_training:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -97,6 +135,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "corporate_training:khda-educational-services-permit"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "corporate_training:product-distinctions"
+      ],
+      "stored_not_served": [
+        "corporate_training:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Training_and_development"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

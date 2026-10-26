@@ -51,6 +51,8 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'refund.remediate', from: 'ceo', to: 'accountant' },
   { type: 'refund.remediate', from: 'ceo', to: 'sales_engineer' },
   { type: 'incident.fix', from: 'ceo', to: 'accountant' },
+  // the CEO hands himself yesterday's five numbers every morning (ruling 1209; the_ceo_reads_five_numbers_every_morning.sql)
+  { type: 'report.five_numbers', from: 'ceo', to: 'ceo' },
   // marketing puts its monthly plan before the CEO on the review machine: another model family, blind first
   // (founder_instructions 866 and 873; the_marketing_seat_watches_its_videos_studies_the_market_and_argues_its_month_with_the_ceo.sql)
   { type: 'deliberation.review', from: 'marketing', to: 'ceo' },
@@ -166,6 +168,9 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'marketing.lead_sourcing', from: 'marketing', to: 'ceo' },
   { type: 'adspend.recorded', from: 'marketing', to: 'accountant' },
   { type: 'adspend.booked', from: 'accountant', to: 'marketing' },
+  // legal finding 1: an unresolved objection to an automated decision
+  // (scripts/sql/the_support_desk_takes_an_objection_to_an_automated_decision.sql)
+  { type: 'support.decision_objection', from: 'customer_support', to: 'ceo' },
   { type: 'delivery.request', from: 'marketing', to: 'customer_support' },
   { type: 'delivery.result', from: 'customer_support', to: 'marketing' },
   { type: 'it.finding', from: 'it_engineer', to: 'marketing' },

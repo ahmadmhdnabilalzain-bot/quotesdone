@@ -14,7 +14,9 @@ Deno.test('every conversation is between real seats and listed once', () => {
   // The complaint clock (22 Sep 2026, PR #811) is support's own queue too: it holds each complaint as a
   // complaint.due item until the Complaints Policy's final response is given.
   const selfTalk = (h: { type: string; from: string; to: string }) => h.from === 'customer_support' && h.to === 'customer_support'
-    && (h.type === 'delivery.request' || h.type === 'delivery.result' || h.type === 'complaint.due' || h.type === 'support.case_open' || h.type === 'support.human_requested');
+    && (h.type === 'delivery.request' || h.type === 'delivery.result' || h.type === 'complaint.due' || h.type === 'support.case_open' || h.type === 'support.human_requested')
+    // The CEO's morning five numbers (ruling 1209, #1365): its own daily reading, queued and closed like any other.
+    || (h.from === 'ceo' && h.to === 'ceo' && h.type === 'report.five_numbers');
   for (const h of HANDOFF_TYPES) assert(seats.has(h.from) && seats.has(h.to) && (h.from !== h.to || selfTalk(h)), JSON.stringify(h));
 });
 
@@ -45,6 +47,9 @@ Deno.test('only customer_support delivers, and every seat that asks hears back',
     // or its revision stalled, the CEO is owed a final decision as ceo.decision_owed; it asks for that decision and
     // delivers nothing.
     if (h.type === 'ceo.decision_owed' && h.to === 'ceo') continue;
+    // — and a fifth (legal finding 1, #1512): an objection to an automated decision that support did not resolve goes
+    // to the CEO as support.decision_objection; it asks for the CEO's reply and delivers nothing.
+    if (h.type === 'support.decision_objection' && h.to === 'ceo') continue;
     assertEquals(h.type, 'delivery.result');
   }
   for (const h of HANDOFF_TYPES.filter((x) => x.type === 'delivery.request')) {

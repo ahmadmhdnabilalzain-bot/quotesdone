@@ -45,6 +45,36 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "home_appliances:product-distinctions",
+      "topic": "Home appliances: categories and the specifications that separate models",
+      "topic_ar": "الأجهزة المنزلية: الفئات والمواصفات التي تفرّق بين الموديلات",
+      "kind": "product_distinctions",
+      "body_en": "Major appliances (white goods) are refrigerators and freezers, washing machines and dryers, dishwashers, cookers and ovens, and air conditioners; small appliances are kettles, irons, vacuum cleaners, microwaves, blenders, coffee makers, air fryers and personal care. What separates models: capacity (litres for fridges, kg for washers, place settings for dishwashers, BTU/h or tonnage for air conditioners), energy efficiency (star or class label; for air conditioners the seasonal rating, SEER, and an inverter compressor, which varies speed instead of cycling on and off), refrigerant (R-410A in many air conditioners, with lower-impact R-32 and R-290 replacing it), climate class (a fridge or AC rated for high ambient, T-class/T3, keeps cooling at 43-52 °C where an N-class model struggles), voltage and plug (220-240 V/50 Hz), front or top load, inverter motor, and noise. Stock grade matters in wholesale: brand-authorised with the local warranty, parallel import (cheaper, often without a local warranty or service), or refurbished/open-box. Spare parts and the after-sales network decide the real cost over the life of the unit.",
+      "body_ar": "الأجهزة الكبيرة (البيضاء) هي الثلاجات والمجمدات والغسالات والمجففات وغسالات الصحون والطباخات والأفران والمكيفات؛ والأجهزة الصغيرة هي الغلايات والمكاوي والمكانس الكهربائية والميكروويف والخلاطات وصانعات القهوة والقلايات الهوائية وأجهزة العناية الشخصية. وما يفرّق بين الموديلات: السعة (باللتر للثلاجات، بالكيلوغرام للغسالات، بعدد أطقم الصحون لغسالات الصحون، بالوحدة الحرارية في الساعة أو الطن للمكيفات)، وكفاءة الطاقة (ملصق النجوم أو الفئة؛ وللمكيفات معدل الكفاءة الموسمي SEER وضاغط الإنفرتر الذي يغيّر سرعته بدلاً من التشغيل والإيقاف المتكرر)، وغاز التبريد (R-410A في كثير من المكيفات، ويحل محله R-32 وR-290 الأقل أثراً)، وفئة المناخ (الثلاجة أو المكيف المصنف لدرجات الحرارة العالية T3 يواصل التبريد عند 43-52 درجة حيث يتعثر الموديل N)، والجهد والقابس (220-240 فولت/50 هرتز)، والتحميل الأمامي أو العلوي، ومحرك الإنفرتر، ومستوى الضوضاء. ونوع البضاعة مهم في الجملة: معتمدة من العلامة بضمان محلي، أو استيراد موازٍ (أرخص وغالباً بلا ضمان أو خدمة محلية)، أو مجددة/مفتوحة العلبة. وقطع الغيار وشبكة ما بعد البيع تحدد التكلفة الحقيقية طوال عمر الجهاز.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Air_conditioning"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: inverter compressors, SEER ratings and R-410A refrigerant -> confirmed (EER and R-32 not on the page)."
+    },
+    {
+      "id": "home_appliances:lead-times-and-quoting",
+      "topic": "Home appliances wholesale - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "تجارة الأجهزة المنزلية بالجملة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock models from distributors: 1-5 days; container orders from the factory 6-12 weeks including production and sea freight; project orders (hotels, residential towers) 4-12 weeks, with installation scheduled to handover. A supplier needs the model numbers or the specification (capacity, efficiency, climate class, colour, built-in or freestanding), quantities, stock grade accepted, warranty and installation needs, and the delivery site. A complete quote states per line brand, model, origin, stock type, warranty (period and who services it), energy label, installation and accessories, delivery, payment terms and validity.",
+      "body_ar": "الموديلات المتوفرة لدى الموزعين: 1-5 أيام؛ وطلبات الحاويات من المصنع 6-12 أسبوعاً شاملة الإنتاج والشحن البحري؛ وطلبات المشاريع (الفنادق، الأبراج السكنية) 4-12 أسبوعاً مع جدولة التركيب حسب التسليم. ويحتاج المورد أرقام الموديلات أو المواصفة (السعة، الكفاءة، فئة المناخ، اللون، مدمج أو مستقل)، والكميات، ونوع البضاعة المقبول، ومتطلبات الضمان والتركيب، وموقع التسليم. ويذكر العرض الكامل لكل بند العلامة والموديل والمنشأ ونوع البضاعة، والضمان (المدة ومن يقدم الصيانة)، وملصق الطاقة، والتركيب والملحقات، والتسليم، وشروط الدفع، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -70,6 +100,14 @@
       ],
       "why": "The standards entry states MoIAT runs the UAE efficiency labels and conformity marks, which answers that the UAE label (not Energy Star) applies.",
       "origin": "real buyer question, moved from home_appliances.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Why does my cheap imported fridge stop cooling properly in summer?",
+      "q_ar": "ليش الثلاجة المستوردة الرخيصة ما تبرد زين في الصيف؟",
+      "expected_entry_ids": [
+        "home_appliances:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -86,6 +124,27 @@
       "home_appliances:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "home_appliances:product-distinctions"
+      ],
+      "stored_not_served": [
+        "home_appliances:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Air_conditioning"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

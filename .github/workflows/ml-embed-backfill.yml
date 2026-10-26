@@ -33,6 +33,8 @@ jobs:
     timeout-minutes: 55
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
@@ -41,4 +43,5 @@ jobs:
       - name: embed the backlog, highest priority first
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: node scripts/kb/run_ml_embed_backfill.mjs --minutes=${{ github.event.inputs.minutes || '40' }} --claim=64
+          IN_MINUTES: ${{ github.event.inputs.minutes || '40' }}
+        run: node scripts/kb/run_ml_embed_backfill.mjs --minutes="$IN_MINUTES" --claim=64

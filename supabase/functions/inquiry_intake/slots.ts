@@ -25,6 +25,8 @@
 // built from the state, so the customer is never told "ready" while the row says otherwise. No word of
 // the customer's text is matched here (ruling 890): only keys and values the model returned are read.
 import { orderFields, questionText, type Lang, type SpecField } from './interview.ts';
+import { aiReply } from '../_shared/ai_reply.ts';
+import type { ThinkDeps } from '../_shared/think.ts';
 import { requirementQuestions, isValidAnswer, NO_PREFERENCE, type Answers, type Ans } from '../_shared/intake_requirements.ts';
 
 const asText = (v: unknown) => (typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')).trim();
@@ -48,6 +50,32 @@ export const HELD_FOR_SPECS: Record<Lang, string> = {
   en: 'Thank you. A few specifications are still open, so our sales engineer will help you settle them before this goes to suppliers. We will continue with you here; there is no need to type anything again.',
   ar: 'شكرًا لكم. ما زالت بعض المواصفات غير محددة، لذلك سيساعدكم مهندس المبيعات لدينا على تحديدها قبل إرسال الطلب إلى الموردين. سنكمل معكم هنا، ولا حاجة إلى إعادة كتابة أي شيء.',
 };
+
+// THE HELD REPLY NAMES WHAT IS STILL OPEN (customer_support, 19 Oct 2026). settleModelTurn clears `missing` on a hold,
+// and HELD_FOR_SPECS said only "a few specifications are still open": a real customer was never told WHICH. The reply
+// is now written by the model (ruling 1196) with the exhausted questions, in the inquiry language, as its facts.
+// HELD_FOR_SPECS stays only as the handover when aiReply returns no acceptable reply in time: the deadline passed, the
+// models errored, or every draft was refused by the reply guards.
+// The request chat is a portal surface, so the reply is the sales engineer's (the_portals_are_the_sales_engineer).
+/** The plain questions still open on a held intake, in the customer's language, in checklist order. A field with no
+ *  question text is skipped: a raw key ('area') never reaches the model. */
+export function heldQuestions(checklist: SpecField[], exhausted: string[], lang: Lang): string[] {
+  return orderFields(checklist).filter((o) => exhausted.includes(String(o.f.key)))
+    .map((o) => String((lang === 'ar' ? o.f.question_plain_ar || o.f.question_plain_en : o.f.question_plain_en) || o.f.question || '').trim())
+    .filter(Boolean);
+}
+/** The held reply, written by the model, naming every still-open question. */
+export async function heldReply(deps: ThinkDeps, checklist: SpecField[], exhausted: string[], lang: Lang, message: string, conversation: { role: string; text: string }[], deadline?: number): Promise<string> {
+  const open = heldQuestions(checklist, exhausted, lang);
+  const r = await aiReply(deps, {
+    seat: 'sales_engineer', channel: 'the website request chat', audience: 'customer', lang, message, deadline,
+    conversation: conversation.map((t) => ({ role: t.role === 'assistant' ? 'seat' as const : 'customer' as const, text: String(t.text || '') })),
+    facts: 'This request is HELD: it goes to no supplier yet. These questions were asked three times and are still unanswered:\n- ' + open.join('\n- ') +
+      '\nOur sales engineer will help the customer settle them here in this chat; nothing needs to be typed again.',
+    rules: 'Thank them, name EACH still-open question above in plain words, say our sales engineer will help settle them in this chat before it goes to suppliers. Two to four sentences. Do not ask anything else.',
+  });
+  return r.reply || HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en;
+}
 
 /** How many earlier assistant turns each required key stayed open on (stampTurn's missing_keys). */
 export function openTurnsByKey(turns: any[]): Record<string, number> {
@@ -188,4 +216,21 @@ export function stampTurn(turns: any[], snap: TurnSlots): void {
   for (let i = turns.length - 1; i >= 0; i--) {
     if (turns[i] && turns[i].role === 'assistant') { turns[i].slots = { ...snap, at: new Date().toISOString() }; return; }
   }
+}
+
+// ---- the open key and the hold's reason (stage2 run 321d13ae, 18 Oct 2026) ----------------------
+/** The slot state's first askable question and its key, or null (exhausted keys are never asked). */
+export function slotAskOf(sl: SlotState): { key: string; text: string } | null {
+  const askKeys = sl.missingKeys.filter((k) => !sl.exhausted.includes(k));
+  return askKeys.length && sl.missing.length ? { key: askKeys[0], text: sl.missing[0] } : null;
+}
+/** The key goes with the question only on an EXACT match with the state's question: a question the
+ *  model wrote in its own words has no key we can vouch for. */
+export function slotKeyFor(ask: { key: string; text: string } | null, question: string): string | null {
+  return ask && question === ask.text ? ask.key : null;
+}
+/** Only our own harness subject (@example.invalid) is told why an intake is held; a customer never is. */
+export function heldReasonFor(status: string, email: string, exhausted: string[]): { held_reason: string } | Record<string, never> {
+  return status === 'held' && String(email || '').toLowerCase().endsWith('@example.invalid')
+    ? { held_reason: 'specs_unanswered: ' + (exhausted.join(',') || 'unknown') } : {};
 }

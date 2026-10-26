@@ -58,6 +58,36 @@
       "confidence": "high",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "corrosion_insulation:product-distinctions",
+      "topic": "Industrial insulation and corrosion protection: systems and the CUI risk",
+      "topic_ar": "العزل الصناعي والحماية من التآكل: الأنظمة وخطر التآكل تحت العزل",
+      "kind": "product_distinctions",
+      "body_en": "Hot and cold insulation on pipes, vessels, tanks and ducts uses mineral (rock) wool and glass wool (hot service), calcium silicate and perlite (high temperature, rigid), cellular glass (cold and cryogenic, closed-cell and non-absorbent), flexible elastomeric foam and phenolic or PIR foam (chilled water and refrigeration, with vapour barriers), and aerogel blankets where space is tight; finished with aluminium, stainless or galvanised cladding or with mastics. Corrosion under insulation (CUI) happens when water gets into the insulation and stays on the steel: carbon and low-alloy steel are most at risk at roughly -12 to 177 °C and austenitic and duplex stainless at about 60 to 204 °C (chloride stress cracking), so the steel under insulation needs a suitable coating, the cladding must shed water, and low-chloride insulation is used on stainless. Corrosion protection beyond insulation: surface preparation by abrasive blasting to a stated cleanliness and profile, protective coating systems (zinc-rich primers, epoxies, polyurethanes, thermally sprayed aluminium or zinc, high-temperature silicones), linings for tanks, fireproofing (intumescent and cementitious), and cathodic protection for buried and submerged steel. Coating work is specified by system, dry film thickness per coat, and inspection.",
+      "body_ar": "يستخدم العزل الساخن والبارد على الأنابيب والأوعية والخزانات ومجاري الهواء الصوف الصخري والصوف الزجاجي (للخدمة الساخنة)، وسيليكات الكالسيوم والبيرلايت (للحرارة العالية، صلب)، والزجاج الخلوي (للتبريد والتبريد الفائق، خلايا مغلقة لا تمتص الماء)، والرغوة المطاطية المرنة والرغوة الفينولية أو PIR (المياه المبردة والتبريد، مع حواجز البخار)، وبطانيات الأيروجيل حيث المساحة ضيقة؛ ويُكسى بالألمنيوم أو الستانلس أو الحديد المجلفن أو بالمعاجين. ويحدث التآكل تحت العزل عندما يدخل الماء إلى العزل ويبقى على الحديد: الحديد الكربوني والمنخفض السبائك الأكثر عرضة عند نحو -12 إلى 177 درجة، والستانلس الأوستنيتي والدوبلكس عند نحو 60 إلى 204 درجات (تشقق إجهاد الكلوريد)، لذلك يحتاج الحديد تحت العزل طلاءً مناسباً، ويجب أن تطرد الكسوة الماء، ويُستخدم عزل منخفض الكلوريد على الستانلس. والحماية من التآكل بعيداً عن العزل: تجهيز السطح بالسفع إلى درجة نظافة وخشونة محددة، وأنظمة الطلاء الواقية (البرايمر الغني بالزنك، الإيبوكسي، البولي يوريثان، الرش الحراري بالألمنيوم أو الزنك، السيليكونات المقاومة للحرارة)، وبطانات الخزانات، والحماية من الحريق (منتفخة وإسمنتية)، والحماية الكاثودية للحديد المدفون والمغمور. وتُحدد أعمال الطلاء بالنظام وسماكة الطبقة الجافة لكل طبقة والفحص.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Corrosion_under_insulation"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: corrosion under insulation when water collects in insulation; carbon and low-alloy steel at about -12 to 177 °C and stainless at about 60 to 204 °C -> confirmed."
+    },
+    {
+      "id": "corrosion_insulation:lead-times-and-quoting",
+      "topic": "Industrial insulation & corrosion protection - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "العزل الصناعي والحماية من التآكل: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Material supply: days to 4 weeks; site insulation and coating crews mobilise in 1-3 weeks; shutdown work is booked to the shutdown window. A contractor needs the line list or drawings (sizes, lengths, temperatures), the insulation and coating specification, access and scaffolding, and inspection requirements. A quote states the systems and materials by brand, thicknesses, cladding, surface preparation and DFT per coat, inspection and test plan, unit rates per metre or m2, scaffolding inclusion, warranty and validity.",
+      "body_ar": "توريد المواد: أيام حتى 4 أسابيع؛ وفرق العزل والطلاء في الموقع تبدأ خلال 1-3 أسابيع؛ وأعمال التوقفات تُحجز حسب نافذة التوقف. ويحتاج المقاول قائمة الخطوط أو المخططات (الأقطار، الأطوال، الحرارة)، ومواصفة العزل والطلاء، والوصول والسقالات، ومتطلبات الفحص. ويذكر العرض الأنظمة والمواد بالعلامات، والسماكات، والكسوة، وتجهيز السطح وسماكة الطبقة الجافة لكل طبقة، وخطة الفحص والاختبار، وأسعار الوحدة للمتر أو المتر المربع، وشمول السقالات، والضمان، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -83,6 +113,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry gives how pipe insulation is priced (per linear metre by size and thickness, fittings counted as equivalent lengths); spec-checklist only says to state a \"pricing basis\"). corrosion_insulation:pipe-insulation-pricing-basis was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from corrosion_insulation.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Why is our insulated steel pipe rusting underneath the cladding?",
+      "q_ar": "ليش الأنبوب الحديد المعزول عندنا يصدي تحت الكسوة؟",
+      "expected_entry_ids": [
+        "corrosion_insulation:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -102,6 +140,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "corrosion_insulation:pipe-insulation-pricing-basis"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "corrosion_insulation:product-distinctions"
+      ],
+      "stored_not_served": [
+        "corrosion_insulation:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Corrosion_under_insulation"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

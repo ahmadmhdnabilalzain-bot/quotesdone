@@ -9,7 +9,7 @@ import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_
 import { customerTermsRecord } from '../_shared/customer_terms.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
-import { askedPatch, choosePatch, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, whatsappState, type Patch, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
+import { askedPatch, channelOfRow, choosePatch, failoverStep, nextChannel, RESEND_GAP_S, sidOfRow, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, voiceAfterSms, whatsappState, type Patch, type VerifySent, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
 import { blocksTransactional } from '../_shared/suppression_policy.ts';
@@ -180,7 +180,7 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
     if (sanctioned) return J(SANCTIONED_REFUSAL, 403);
     const b = bodyIn; const action = String(b.action || ''); meta.action = action.slice(0, 40);
     // Every action that sends or checks a Twilio Verify code refuses a fixture number first.
-    if (['send_sms', 'verify_sms', 'whatsapp_send_code', 'whatsapp_verify'].includes(action) && isDemoPhone(toE164(String(b.phone || '')))) {
+    if (['send_sms', 'verify_sms', 'whatsapp_send_code', 'whatsapp_verify', 'phone_failover'].includes(action) && isDemoPhone(toE164(String(b.phone || '')))) {
       await logRun('skipped', { action, captured: 1 }, FIXTURE_CAPTURE_NOTE);
       return J(FIXTURE_REFUSAL);
     }
@@ -368,13 +368,53 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       // "we are calling you" instead of asking him to watch for an SMS that cannot arrive.
       // Locale: the SMS or voice call speaks the registered language (founder, 14 Sep 2026).
       const vLocale = await registeredLocale(admin, { role: kind, email }, b.lang);
-      let channel = String(b.channel || 'sms'); if (channel !== 'sms' && channel !== 'call') channel = 'sms';
-      let { r, jd } = await verifySend(tw, phone, channel, vLocale);
-      if (jd?.code === 21635 && channel === 'sms') { channel = 'call'; ({ r, jd } = await verifySend(tw, phone, channel, vLocale)); }
-      if (!r.ok || jd?.status === 'canceled') { await logRun('error', { action, kind, http: r.status, channel }, 'twilio verify send failed on channel ' + channel + ': ' + String(jd?.message || jd?.status || '').slice(0, 200)); return J({ error: 'Could not send the code. Please try again in a minute.', code: 'sms_send_failed' }, 502); }
-      await admin.from('phone_verifications').insert({ email, phone, code: 'twilio', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
+      // WHATSAPP ONLY WHEN THE USER CHOSE IT (it_engineer, 18 Oct 2026; review of #1432). The screen offers
+      // "Send the code on WhatsApp" and "by SMS"; the signed-in user typed this number and picked one.
+      // _shared/whatsapp_choice.ts nextChannel: a second request after a WhatsApp code goes by SMS. Resends
+      // are spaced by the locked rl_check (one per RESEND_GAP_S per number), checked before Twilio is asked.
+      if (!(await rl('otp_gap:' + phone, 1, RESEND_GAP_S))) return J({ error: 'A code is on its way. Please wait a few seconds before asking for another.', code: 'resend_too_soon', retry_after: RESEND_GAP_S }, 429);
+      const { data: lastRow } = await admin.from('phone_verifications').select('code').eq('phone', phone)
+        .gte('created_at', new Date(Date.now() - 10 * 60e3).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      const pick = nextChannel({ e164: phone, asked: b.channel, lastChannel: channelOfRow(lastRow?.code) });
+      const send = async (c: 'whatsapp' | 'sms' | 'call') => verifySend(tw, phone, c, vLocale);
+      const one = async (c: 'sms' | 'call'): Promise<VerifySent> => { const x = await send(c); return x.r.ok && x.jd?.status !== 'canceled' ? { ...x, refused: null, ok: true, channel: c } : { ...x, refused: null, ok: false, channel: null }; };
+      let res: VerifySent = pick === 'whatsapp' ? await sendWhatsAppFirst(send) : await one(pick);
+      // 21635 is the landline refusal kept from 12 Aug; voiceAfterSms covers the other SMS-unreachable codes.
+      if (!res.ok && res.jd?.code === 21635 && pick === 'sms') res = await one('call');
+      res = await voiceAfterSms(res, send);
+      const { r, jd } = res; const channel = res.channel || pick;
+      if (!res.ok) { await logRun('error', { action, kind, http: r.status, channel }, 'twilio verify send failed on channel ' + channel + ': ' + String(jd?.message || jd?.status || '').slice(0, 200)); return J({ error: 'Could not send the code. Please try again in a minute.', code: 'sms_send_failed' }, 502); }
+      // The row carries the delivered channel and Verify's SID (never the code) so phone_failover can read
+      // the WhatsApp message's delivery status.
+      const sid = /^VE\w+$/.test(String(jd?.sid || '')) ? ':' + jd.sid : '';
+      await admin.from('phone_verifications').insert({ email, phone, code: 'twilio:' + channel + sid, user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
       await logRun('ok', { action, kind, channel }, '');
       return J({ ok: true, channel });
+    }
+    // PHONE_FAILOVER (it_engineer, 18 Oct 2026; review of #1432). The screen calls this at fixed times after a
+    // WhatsApp code went out. It reads Twilio's delivery status for that message and, when Twilio reports it
+    // undelivered or failed, or it is still not delivered FAILOVER_AFTER_S after the send, sends the SAME code
+    // (one Verify verification) to the same number by SMS - once, under a locked rl_check key per verification.
+    if (action === 'phone_failover') {
+      const phone = kind === 'supplier' ? uaeMobile(b.phone) : toE164(String(b.phone || ''));
+      if (!phone) return J({ error: 'Enter a valid UAE mobile number, for example 05X XXX XXXX.', code: 'bad_mobile' }, 400);
+      const { data: row } = await admin.from('phone_verifications').select('code,created_at').eq('phone', phone).eq('email', email)
+        .gte('created_at', new Date(Date.now() - 10 * 60e3).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      const sid = sidOfRow(row?.code);
+      if (!row || channelOfRow(row.code) !== 'whatsapp' || !sid) return J({ ok: true, state: 'nothing_to_do' });
+      const tw = await twilioAuth(); if (!tw) return J({ ok: true, state: 'nothing_to_do' });
+      const ar = await timedFetch(`https://verify.twilio.com/v2/Attempts?VerificationSid=${sid}&Channel=whatsapp&PageSize=5`, { headers: { Authorization: tw.hdr } });
+      const aj: any = await ar.json().catch(() => ({}));
+      const status = (aj?.attempts || [])[0]?.channel_data?.message_status ?? null;
+      const step = failoverStep(status, Date.now() - Date.parse(row.created_at));
+      if (step !== 'sms') return J({ ok: true, state: step === 'none' ? 'delivered' : 'waiting' });
+      if (!(await rl('otp_failover:' + sid, 1, 600)) || await phoneRateLimited(phone, email)) return J({ ok: true, state: 'waiting' });
+      const vLocale = await registeredLocale(admin, { role: kind, email }, b.lang);
+      const x = await verifySend(tw, phone, 'sms', vLocale);
+      if (!x.r.ok || x.jd?.status === 'canceled') { await logRun('error', { action, kind, http: x.r.status, wa_status: status }, 'whatsapp failover SMS refused: ' + String(x.jd?.message || x.jd?.status || '').slice(0, 200)); return J({ ok: false, state: 'failed', code: 'sms_send_failed' }, 502); }
+      await admin.from('phone_verifications').insert({ email, phone, code: 'twilio:sms:' + sid, user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
+      await logRun('ok', { action, kind, failover: 1, wa_status: status }, '');
+      return J({ ok: true, state: 'sent_sms', channel: 'sms' });
     }
     if (action === 'verify_sms') {
       // SP-A-05 WAS ONLY HALF CLOSED (review of #858, 22 Sep 2026). send_sms applied the UAE-mobile
@@ -511,6 +551,11 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
           const rec = await customerTermsRecord(sec, ip);
           if (rec && rec.tos_version === custV) await admin.from('customers').update({ tos_sha256: rec.tos_sha256 }).eq('email', email).then(() => null, () => null);
         }
+        // PROMOTIONAL MESSAGES ARE OPT-IN (19 Oct 2026, founder, legal finding 2; seat: ceo). The separate, unticked
+        // box beside the terms. Recorded only when it is exactly true; never required. Written on its own so a
+        // database without the column cannot fail the acceptance. The outbox gate is
+        // scripts/sql/promotional_messages_are_opt_in_and_the_outbox_checks_the_consent.sql.
+        if (b.marketing_consent === true) await admin.from('customers').update({ marketing_consent: true, marketing_consent_at: nowIso, marketing_consent_source: 'signup' }).eq('email', email).then(() => null, () => null);
       }
       // A CUSTOMER'S CERTIFICATE IS ISSUED AFTER THE ANSWER (it_engineer, 29 Sep 2026, finding
       // duty:latency_slo:kyc:error_budget). Every one of the 12 over-budget kyc runs in 30 days was an

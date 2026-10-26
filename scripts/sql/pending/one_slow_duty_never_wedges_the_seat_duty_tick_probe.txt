@@ -1,0 +1,1 @@
+A PROBE (pure, aborted transaction, no DDL, ends in raise exception CHK<<...>>): run after its .sql in the same query. Never applied on its own; kept as the proof named by "Prevented by:" in one_slow_duty_never_wedges_the_seat_duty_tick.sql.
