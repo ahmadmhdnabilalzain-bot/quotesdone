@@ -53,12 +53,12 @@ test('the queue has a worker, a queued job is held for the sales_engineer, and t
   assert.match(workerTs, /readDwg\(bytes, ctx, Infinity\)/);
   const status = api.slice(api.indexOf("action === 'cad_read_status'"), api.indexOf("action === 'analyze_boq'"));
   assert.match(status, /\.eq\('customer_id', cust\.id\)/);
-  // 27 Oct 2026: GitHub Actions is off, so nothing starts the worker. Every queued job raises its own
-  // sales_engineer finding at once, and a polled open job tells the screen who holds it.
+  // 27 Oct 2026: GitHub Actions is off, so nothing starts the worker. A queued job raises the hour's
+  // sales_engineer finding at once (one per hour: the worker reads every queued job in one run), and a polled open job tells the screen who holds it.
   const queue = api.slice(api.indexOf('async function queueCadRead'), api.indexOf('async function cadReadHeld'));
   assert.match(queue, /await cadReadHeld\(String\(data\.id\), o\.why\)/);
   const held = api.slice(api.indexOf('async function cadReadHeld'), api.indexOf('// A CAD DRAWING IS DRAWN FOR SUPPLIERS'));
-  assert.match(held, /fn_it_engineer_finding_upsert[\s\S]{0,200}sales_engineer:cad_read_held:' \+ jobId[\s\S]{0,800}p_raised_by: 'sales_engineer'/);
+  assert.match(held, /fn_it_engineer_finding_upsert[\s\S]{0,200}sales_engineer:cad_read_held:' \+ new Date\(\)\.toISOString\(\)\.slice\(0, 13\)[\s\S]{0,800}p_raised_by: 'sales_engineer'/);
   assert.match(held, /if \(error\) console\.error\(/, 'a finding that was not written is said, never swallowed');
   assert.match(status, /held_for: 'sales_engineer'/);
 });

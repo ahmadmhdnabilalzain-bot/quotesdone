@@ -446,14 +446,14 @@ async function queueCadRead(o: { customerId: string; email: string; path: string
 // and re-dispatch it while the customer's screen polled. GitHub Actions is off, so every dispatch reached nothing and a
 // queued drawing waited for a runner that never came while the customer was told "a few minutes". The reader cannot run
 // on the edge (2 s CPU cap; a scanned drawing is OCR'd for up to 30 minutes) nor in pg_cron (no Deno, no LibreDWG), so a
-// queued job is HELD FOR THE SALES ENGINEER: one finding per drawing, raised the moment it is queued, naming the job and
-// why. The sales_engineer reads it with scripts/cad_read_worker.ts (fn_cad_read_claim still takes it), and the
+// queued job is HELD FOR THE SALES ENGINEER: one finding per hour (the worker reads every queued job in one run, and a
+// run of scans must not flood the queue), raised the moment a job is queued, naming the latest job and why. The sales_engineer reads it with scripts/cad_read_worker.ts (fn_cad_read_claim still takes it), and the
 // customer's screen says an engineer is reading it (cad_read_status answers held_for). Never silent: a finding that
 // cannot be written is logged as an error, and the job stays queued for the worker either way.
 async function cadReadHeld(jobId: string, why: string): Promise<void> {
   try {
     const { error } = await admin.rpc('fn_it_engineer_finding_upsert', {
-      p_issue_key: 'sales_engineer:cad_read_held:' + jobId,
+      p_issue_key: 'sales_engineer:cad_read_held:' + new Date().toISOString().slice(0, 13),
       p_title: 'A customer CAD drawing is queued for the CAD reader and no runner starts on its own: read it with scripts/cad_read_worker.ts',
       p_where: 'customer_api queueCadRead -> public.cad_read_jobs', p_blast: 'customer_facing', p_affected: 1,
       p_evidence: { job_id: jobId, why, run: 'SUPABASE_ACCESS_TOKEN=... deno run --no-lock --node-modules-dir=auto --allow-net --allow-env --allow-read scripts/cad_read_worker.ts', at: new Date().toISOString() },
