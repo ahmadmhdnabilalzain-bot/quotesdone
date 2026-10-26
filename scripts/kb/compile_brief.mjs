@@ -20,11 +20,15 @@ export function compileBrief() {
   // conversation_style.md + conversation/<trade_group>.md: the sales_engineer's conversation method and per-trade
   // playbooks (rulings 1195-1200: adaptive, expert follow-up questions). Same cached block, always included.
   const convo = readdirSync(join(DIR, 'conversation')).filter((f) => f.endsWith('.md')).sort();
+  // Ruling 1209 (13 Oct 2026): contract practice, the Gulf Arabic reading guide, the supplier how-to and the
+  // per-trade materials/brands digests join the same always-included block (~120k-token ceiling).
+  const mats = readdirSync(join(DIR, 'uae_materials_brands')).filter((f) => f.endsWith('.md')).sort();
+  const top = ['company.md', 'conversation_style.md', 'uae_contract_practice.md', 'supplier_howto.md', 'gulf_arabic_guide.md'];
   const parts = [
-    ['company.md', readFileSync(join(DIR, 'company.md'), 'utf8')],
-    ['conversation_style.md', readFileSync(join(DIR, 'conversation_style.md'), 'utf8')],
+    ...top.map((f) => [f, readFileSync(join(DIR, f), 'utf8')]),
     ...regs.map((f) => [`uae_regulations/${f}`, readFileSync(join(DIR, 'uae_regulations', f), 'utf8')]),
     ...convo.map((f) => [`conversation/${f}`, readFileSync(join(DIR, 'conversation', f), 'utf8')]),
+    ...mats.map((f) => [`uae_materials_brands/${f}`, readFileSync(join(DIR, 'uae_materials_brands', f), 'utf8')]),
   ];
   const text = parts
     .map(([name, body]) => `<<<FILE knowledge/brief/${name}>>>\n${body.replace(/\r\n/g, '\n').trim()}\n<<<END>>>`)

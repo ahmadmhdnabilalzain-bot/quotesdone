@@ -187,7 +187,10 @@ export function surfaces() {
     ? fs.readdirSync(path.join(ROOT, 'docs/marketing')).filter((n) => n.endsWith('.json')).map((n) => 'docs/marketing/' + n) : [];
   // The company's public profile description on every platform (instruction 920, #883).
   const profile = 'supabase/functions/marketing/profile_text.json';
-  return [...new Set(['messages/ar.json', profile, ...calendars, ...code, ...sqlAfterAnchor()])]
+  // The Gulf Arabic reading guide in the agents' cached brief (ruling 1209, 13 Oct 2026): the agents learn
+  // their Arabic from it, so its lines are reviewed and held to the tanwin rule like stored SQL text.
+  const guide = 'knowledge/brief/gulf_arabic_guide.md';
+  return [...new Set(['messages/ar.json', profile, guide, ...calendars, ...code, ...sqlAfterAnchor()])]
     .filter((f) => fs.existsSync(path.join(ROOT, f))).sort();
 }
 
@@ -335,7 +338,7 @@ if (MAIN && process.argv.includes('--write')) {
   test('new Arabic stored by a SQL file writes the tanwin fathatan-first', () => {
     const hits = [];
     for (const { file, ranges } of scanned()) {
-      if (!file.startsWith('scripts/sql/')) continue;   // SQL_ONLY — see the paragraph above
+      if (!file.startsWith('scripts/sql/') && !file.startsWith('knowledge/brief/')) continue;   // SQL_ONLY (+ the brief guide) — see the paragraph above
       for (const l of arabicLines(file, ranges)) if (WRONG_TANWIN.test(l.text)) hits.push(`${file}:${l.line} ${l.text.trim().slice(0, 100)}`);
     }
     assert.deepEqual(hits, [], 'write the fathatan before the alif (the order the reviewed corpus uses)');
