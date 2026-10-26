@@ -58,6 +58,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "luxury_rigid_boxes:product-distinctions",
+      "topic": "Rigid and luxury boxes: construction, materials and finishes",
+      "topic_ar": "العلب الصلبة والفاخرة: الصنع والمواد والتشطيبات",
+      "kind": "product_distinctions",
+      "body_en": "Rigid (set-up) boxes are made from thick greyboard or chipboard (typically 1.5-3 mm) wrapped in printed paper, speciality paper, fabric or leatherette, unlike folding cartons, which ship flat. Styles: lid-and-base (telescope), shoulder-and-neck, book-style with magnetic closure, drawer (slide) boxes, hinged lids, collapsible rigid boxes (fold flat for shipping, then snap rigid), and cylinder tubes. Inserts hold the product: foam (EVA or PE), moulded pulp, card or velvet-covered inserts. Finishes: foil stamping (gold, silver, holographic), embossing and debossing, spot UV, soft-touch lamination, textured papers, ribbons and pull tabs. They are used for perfume and oud, jewellery and watches, cosmetics, electronics, corporate gifts and premium confectionery packaging (contents outside this trade). Unit cost is driven by size, board thickness, wrap material, number of finishes and the insert, and handmade versus machine-made production; most luxury boxes are wrapped by semi-automatic or manual lines, so lead time and MOQ are higher than for folding cartons.",
+      "body_ar": "تُصنع العلب الصلبة من كرتون رمادي سميك (عادة 1.5-3 مم) مغلف بورق مطبوع أو ورق خاص أو قماش أو جلد صناعي، بخلاف العلب الكرتونية القابلة للطي التي تُشحن مسطحة. والأشكال: غطاء وقاعدة، وكتف وعنق، وعلبة على شكل كتاب بإغلاق مغناطيسي، وعلب الدرج المنزلق، والأغطية بمفصلات، والعلب الصلبة القابلة للطي (تُطوى مسطحة للشحن ثم تُثبت صلبة)، والأسطوانات. وتحمل الحشوات المنتج: الإسفنج (EVA أو PE)، ولب الورق المقولب، والكرتون أو الحشوات المغطاة بالمخمل. والتشطيبات: الختم بالرقائق (ذهبي، فضي، هولوغرامي)، والنقش البارز والغائر، والورنيش الموضعي، والتغليف ناعم الملمس، والأوراق المحببة، والشرائط وألسنة السحب. وتُستخدم للعطور والعود، والمجوهرات والساعات، ومستحضرات التجميل، والإلكترونيات، وهدايا الشركات. وتكلفة الوحدة تتأثر بالمقاس وسماكة الكرتون ومادة التغليف وعدد التشطيبات والحشوة والإنتاج اليدوي مقابل الآلي؛ ومعظم العلب الفاخرة تُغلف بخطوط نصف آلية أو يدوية، لذلك مدة التوريد والحد الأدنى للطلب أعلى من العلب القابلة للطي.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Paperboard"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: chipboard as recycled low-grade board and cartonboard for rigid set-up boxes -> confirmed."
+    },
+    {
+      "id": "luxury_rigid_boxes:lead-times-and-quoting",
+      "topic": "Luxury & gift boxes - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "العلب الفاخرة وعلب الهدايا: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Samples: 1-2 weeks; production 3-6 weeks locally, 6-10 weeks imported with sea freight. A supplier needs the product and its dimensions, box style, materials and finishes, insert, artwork, quantity and target date. A quote states construction and board thickness, wrap material, finishes, insert, sample cost, unit price at quantity breaks, tooling, MOQ, packing and validity.",
+      "body_ar": "العينات: 1-2 أسبوع؛ والإنتاج 3-6 أسابيع محلياً، و6-10 أسابيع مستورداً مع الشحن البحري. ويحتاج المورد المنتج وأبعاده، وشكل العلبة، والمواد والتشطيبات، والحشوة، والتصميم، والكمية، والموعد المستهدف. ويذكر العرض الصنع وسماكة الكرتون ومادة التغليف والتشطيبات والحشوة وتكلفة العينة وسعر الوحدة عند شرائح الكميات والقوالب والحد الأدنى للطلب والتعبئة والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -83,6 +113,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry states typical MOQs for custom rigid gift boxes (packaging:moq-tooling exists in another trade, not this one)). luxury_rigid_boxes:moq-and-run-economics was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from luxury_rigid_boxes.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "We want a magnetic gift box for 1,000 perfume bottles. What drives the price?",
+      "q_ar": "نبي علبة هدايا مغناطيسية لألف قارورة عطر، وش اللي يحدد السعر؟",
+      "expected_entry_ids": [
+        "luxury_rigid_boxes:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -101,6 +139,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "luxury_rigid_boxes:moq-and-run-economics"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "luxury_rigid_boxes:product-distinctions"
+      ],
+      "stored_not_served": [
+        "luxury_rigid_boxes:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Paperboard"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

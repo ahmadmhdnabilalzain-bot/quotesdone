@@ -17,6 +17,10 @@ export const MATRIX = [
   { lang: 'en', viewport: 'mobile' }, { lang: 'ar', viewport: 'mobile' },
 ];
 const tag = (m) => `${m.lang}-${m.viewport}`;
+// SUPPLIERS ARE ENGLISH ONLY (founder ruling 1008, #1409): the supplier portal never renders Arabic, so an Arabic
+// supplier pass asserted a portal the product deliberately does not build - 24 of the 36 failures on 18 Oct
+// (run 39079803518) were the supplier ar-desktop / ar-mobile passes reading "ltr/en". Customers keep both.
+export const matrixFor = (kind) => MATRIX.filter((m) => kind !== 'supplier' || m.lang === 'en');
 
 // ---- the quotations each supplier sends ---------------------------------------------------------
 // COMPLETE: every detail the sales engineer's hold desk requires for a glazing line
@@ -341,7 +345,7 @@ export async function journeySuppliers(ctx) {
   // gets the English, left-to-right portal and the English tab names. No Arabic label is clicked.
   // Demo lead at example.invalid only.
   const setSupplierLocale = (lang) => write(`update public.leads set locale = ${q(lang)} where id = ${Number(A.leadId)} and is_demo = true`, 'e2e supplier portal language');
-  for (const m of MATRIX) {
+  for (const m of matrixFor('supplier')) {
     await setSupplierLocale(m.lang);
     const s = await signedInPage(browser, A, m);
     try {
@@ -907,7 +911,7 @@ export async function journeyCrawl(ctx) {
    // journey's last Arabic pass. run.mjs catches at the journey level, so without this finally the
    // restore below would be skipped on the one path that needs it.
    try {
-    for (const m of MATRIX) {
+    for (const m of matrixFor(who.kind)) {
       if (stop()) { rep.step(J, `${who.kind} ${tag(m)}: not crawled`, 'SKIP', 'the harness deadline passed before this viewport; the run still tears down and reports'); continue; }
       await setPortalLocale(who, m.lang);
       const lang = uiLang(who.kind, m.lang);

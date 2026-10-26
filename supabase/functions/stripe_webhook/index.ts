@@ -1,3 +1,4 @@
+import { draftDisputes } from '../_shared/dispute_draft.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { CHECKOUT_EVENTS, FAILED_CHECKOUT_EVENTS, REFUND_EVENTS, INVOICE_EVENTS, DISPUTE_EVENTS, stripeEventMode, signingSecretFor, refundsInEvent } from '../_shared/stripe_events.ts';
@@ -434,6 +435,15 @@ Deno.serve(observe('stripe_webhook', async (req) => {
       const { data: rec, error: dErr } = await admin.rpc('fn_accountant_dispute_record', { p_dispute: dp, p_livemode: sigMode === 'live' });
       await logRun(dErr ? 'error' : 'ok', { type: event.type, dispute: String(dp.id || ''), result: rec ?? null },
         dErr ? 'DISPUTE NOT RECORDED - ' + dErr.message + '. The accountant runtime re-reads open disputes daily, but until then the evidence clock runs unwatched.' : '');
+      // 13 Oct 2026: a NEW dispute gets its evidence pack built and saved at Stripe as a draft now (submit=false),
+      // and the CEO's review item filed, rather than at the next hourly duty (which stays the backstop).
+      if (!dErr && event.type === 'charge.dispute.created' && rec?.dispute) {
+        const k = sigMode === 'test' ? (await secret('stripe_secret_key_test')) || '' : await secret('stripe_secret_key');
+        try {
+          const drafted = await draftDisputes(admin, sigMode === 'test' ? { test: k } : { live: k }, String(dp.id));
+          await logRun('ok', { type: event.type, dispute: String(dp.id), drafted }, '');
+        } catch (e) { await logRun('error', { type: event.type, dispute: String(dp.id) }, 'evidence draft failed, the hourly duty retries: ' + String((e as Error)?.message || e)); }
+      }
     }
     // ---- THE REVEAL-FEE INVOICE, ONCE STRIPE HAS FINALISED IT (14 Sep 2026, agent: accountant) --
     // checkout.session.completed often arrives before Stripe has finalised the invoice PDF, which

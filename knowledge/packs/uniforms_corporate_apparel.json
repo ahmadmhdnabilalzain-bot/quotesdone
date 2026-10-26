@@ -54,6 +54,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "uniforms_corporate_apparel:product-distinctions",
+      "topic": "Uniforms: garment types, fabrics, protective categories and branding",
+      "topic_ar": "الزي الموحد: أنواع الملابس والأقمشة والفئات الواقية والعلامة",
+      "kind": "product_distinctions",
+      "body_en": "Uniform programmes cover corporate wear (shirts, blouses, trousers, suits, abayas and scarves for front-of-house staff), hospitality uniforms (chef coats, aprons, housekeeping and F&B service uniforms), healthcare scrubs and lab coats, school uniforms, security uniforms, and industrial workwear (coveralls, work trousers and shirts). Protective garments are a separate category with tested standards: high-visibility clothing (EN ISO 20471 classes), flame-resistant clothing for oil and gas and welding (inherent or treated FR fabrics, with arc ratings for electrical work), chemical-protective and anti-static garments, and cooling or breathable fabrics for outdoor heat. Fabrics: polyester-cotton blends (durable, easy care, the workwear standard), 100% cotton (comfort, shrinks and fades more), and performance polyester (moisture-wicking for polos and sportswear); weight in g/m2 and colour fastness to industrial laundering decide life. Branding: embroidery (durable, priced by stitch count), screen printing, heat transfer and woven badges. Programmes also need size sets for fitting, stock holding for new joiners, replacement cycles, and individual name packing.",
+      "body_ar": "تغطي برامج الزي الموحد ملابس الشركات (القمصان، البلوزات، البناطيل، البدلات، العبايات والأوشحة لموظفي الواجهة)، وزي الضيافة (معاطف الطهاة، المرايل، زي خدمة الغرف وخدمة الطعام)، وملابس الرعاية الصحية والمعاطف المخبرية، والزي المدرسي، وزي الأمن، وملابس العمل الصناعية (الأفرولات، بناطيل وقمصان العمل). والملابس الواقية فئة منفصلة بمعايير مختبرة: الملابس عالية الوضوح (فئات EN ISO 20471)، والملابس المقاومة للهب للنفط والغاز واللحام (أقمشة مقاومة ذاتياً أو معالجة، مع تصنيفات القوس الكهربائي للأعمال الكهربائية)، والملابس الواقية من الكيماويات والمضادة للكهرباء الساكنة، والأقمشة المبردة أو المسامية لحرارة العمل الخارجي. والأقمشة: خليط البوليستر والقطن (متين وسهل العناية، معيار ملابس العمل)، والقطن 100% (مريح، وينكمش ويبهت أكثر)، والبوليستر عالي الأداء (يطرد الرطوبة للقمصان والملابس الرياضية)؛ والوزن بالغرام للمتر المربع وثبات اللون في الغسيل الصناعي يحددان العمر. والعلامة: التطريز (متين، يُسعّر بعدد الغرز)، والطباعة بالشاشة، والنقل الحراري، والشارات المنسوجة. وتحتاج البرامج أيضاً أطقم مقاسات للقياس، ومخزوناً للموظفين الجدد، ودورات استبدال، وتغليفاً فردياً بالأسماء.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Workwear"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: polyester-cotton workwear and company logos on garments -> confirmed (hi-vis and FR not on the page)."
+    },
+    {
+      "id": "uniforms_corporate_apparel:lead-times-and-quoting",
+      "topic": "Uniforms & corporate apparel - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الزي الموحد والملابس المؤسسية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock garments with branding: 1-3 weeks; custom-made uniforms 4-8 weeks after sample approval; protective garments with certification as stocked or 4-10 weeks. A supplier needs garment types and designs, fabric and colour, size breakdown, quantities and replacement cycle, branding, protective standards, and delivery. A quote states fabric composition and weight, construction, branding, standards and certificates, sizes, unit prices at quantities, sample cost, delivery and validity.",
+      "body_ar": "الملابس المتوفرة مع العلامة: 1-3 أسابيع؛ والزي المفصل 4-8 أسابيع بعد اعتماد العينة؛ والملابس الواقية المعتمدة من المخزون أو 4-10 أسابيع. ويحتاج المورد أنواع الملابس وتصاميمها، والقماش واللون، وتوزيع المقاسات، والكميات ودورة الاستبدال، والعلامة، والمعايير الواقية، والتسليم. ويذكر العرض تركيب القماش ووزنه والصنع والعلامة والمعايير والشهادات والمقاسات وأسعار الوحدات عند الكميات وتكلفة العينة والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (entries name EN ISO 20471 but not the class required (Class 2/3) for road workers). uniforms_corporate_apparel:en-iso-20471-classes-for-roadworks was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from uniforms_corporate_apparel.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What should a uniform for our outdoor maintenance team be made of to survive summer and daily washing?",
+      "q_ar": "من وش لازم يكون زي فريق الصيانة الخارجي عشان يتحمل الصيف والغسيل اليومي؟",
+      "expected_entry_ids": [
+        "uniforms_corporate_apparel:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "uniforms_corporate_apparel:en-iso-20471-classes-for-roadworks"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "uniforms_corporate_apparel:product-distinctions"
+      ],
+      "stored_not_served": [
+        "uniforms_corporate_apparel:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Workwear"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

@@ -109,8 +109,8 @@ if (ML) {
   };
 }
 const routineCall = (q) => ML
-  ? `public.fn_reason_retrieve_ml('${q.seat}', ${vecLit(q.mvec)}, ${PATH === 'ml' && gteReads(q.text) ? vecLit(q.vec) : 'null'}, ${K_RETRIEVE})`
-  : `public.fn_reason_retrieve('${q.seat}', ${vecLit(q.vec)}, ${K_RETRIEVE})`;
+  ? `public.fn_reason_retrieve_ml('${q.seat}', ${vecLit(q.mvec)}, ${PATH === 'ml' && gteReads(q.text) ? vecLit(q.vec) : 'null'}, ${K_RETRIEVE}, p_audience => 'visitor')`
+  : `public.fn_reason_retrieve('${q.seat}', ${vecLit(q.vec)}, ${K_RETRIEVE}, p_audience => 'visitor')`;
 
 // The expected entries among the first TOP rows the routine returns, counted in SQL: a staged probe reports
 // through an error message the management API cuts at ~2,000 characters, so one integer per question comes back.

@@ -56,6 +56,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "motors_drives:product-distinctions",
+      "topic": "Electric motors and drives: motor types, efficiency classes and starting methods",
+      "topic_ar": "المحركات الكهربائية: الأنواع وفئات الكفاءة وطرق التشغيل",
+      "kind": "product_distinctions",
+      "body_en": "Most industrial motors are three-phase induction motors, specified by power (kW), speed (poles: 2-pole about 3000 rpm, 4-pole about 1500 rpm at 50 Hz), frame size and mounting (foot B3, flange B5 or B14), voltage and frequency, enclosure and protection (IP55 typical), insulation class and temperature rise, and efficiency class IE2, IE3 or IE4 under IEC 60034-30-1. Hazardous areas need explosion-proof (Ex d or Ex e) motors; hot ambient conditions may need derating. Other types: single-phase motors for small loads, permanent-magnet and synchronous reluctance motors for high efficiency, servo motors for motion control, and geared motors. Starting and speed control: direct-on-line, star-delta, soft starters (reduce starting current and mechanical shock, fixed speed), and variable-frequency drives (VFDs), which vary speed to match demand and save large amounts of energy on pumps and fans, start motors at low frequency to avoid inrush, but create harmonics that may need filters or line reactors, and need correct cable and EMC practice. Selection follows the load (torque profile, duty, speed range), the supply, and the environment.",
+      "body_ar": "معظم المحركات الصناعية محركات حثية ثلاثية الطور، وتُحدد بالقدرة (كيلوواط)، والسرعة (الأقطاب: ثنائي الأقطاب نحو 3000 دورة، ورباعي نحو 1500 دورة عند 50 هرتز)، وحجم الإطار وطريقة التثبيت (قاعدة B3، شفة B5 أو B14)، والجهد والتردد، والغلاف والحماية (IP55 هو المعتاد)، وفئة العزل وارتفاع الحرارة، وفئة الكفاءة IE2 أو IE3 أو IE4 وفق IEC 60034-30-1. وتحتاج المناطق الخطرة محركات مقاومة للانفجار (Ex d أو Ex e)؛ وقد تحتاج الحرارة المحيطة العالية خفض القدرة. وأنواع أخرى: محركات أحادية الطور للأحمال الصغيرة، ومحركات المغناطيس الدائم والممانعة المتزامنة للكفاءة العالية، ومحركات السيرفو للتحكم بالحركة، والمحركات المزودة بتروس. والتشغيل والتحكم بالسرعة: التشغيل المباشر، والنجمة دلتا، والبادئات الناعمة (تخفض تيار البدء والصدمة الميكانيكية بسرعة ثابتة)، ومحولات التردد المتغير التي تغير السرعة حسب الطلب وتوفر طاقة كبيرة في المضخات والمراوح، وتبدأ المحرك بتردد منخفض لتجنب تيار الاندفاع، لكنها تولد توافقيات قد تحتاج فلاتر أو ملفات خط، وتحتاج ممارسات صحيحة للكابلات والتوافق الكهرومغناطيسي. ويتبع الاختيار الحمل (منحنى العزم، دورة التشغيل، مدى السرعة)، والتغذية، والبيئة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Variable-frequency_drive"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: VFD energy savings on pumps and fans, line harmonics, low-frequency starting to limit inrush -> confirmed."
+    },
+    {
+      "id": "motors_drives:lead-times-and-quoting",
+      "topic": "Electric motors & drives - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المحركات الكهربائية ووحدات التحكم: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Standard motors and drives: ex-stock to 3 weeks; large or special motors 6-16 weeks; drive panels 4-10 weeks. A supplier needs the motor nameplate or load data, mounting and shaft, supply, environment (IP, hazardous area, ambient), and control method. A quote states make, model, kW, poles, frame and mounting, efficiency class, IP and insulation, drive rating and options (filters, bypass), warranty, delivery and validity.",
+      "body_ar": "المحركات ووحدات التحكم القياسية: من المخزون حتى 3 أسابيع؛ والمحركات الكبيرة أو الخاصة 6-16 أسبوعاً؛ ولوحات المحولات 4-10 أسابيع. ويحتاج المورد لوحة بيانات المحرك أو بيانات الحمل، والتثبيت والعمود، والتغذية، والبيئة (الحماية، المنطقة الخطرة، الحرارة المحيطة)، وطريقة التحكم. ويذكر العرض الماركة والموديل والكيلوواط والأقطاب والإطار والتثبيت وفئة الكفاءة والحماية والعزل وتصنيف المحول وخياراته (الفلاتر، المسار البديل) والضمان والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -81,6 +111,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither compares IE3 vs IE4 efficiency or life-cycle cost for continuous duty; missing: motor efficiency class selection entry). motors_drives:ie3-vs-ie4-continuous-duty was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from motors_drives.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Soft starter or VFD for a cooling tower fan that runs all day?",
+      "q_ar": "بادئ ناعم ولا محول تردد لمروحة برج تبريد تشتغل طول اليوم؟",
+      "expected_entry_ids": [
+        "motors_drives:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -100,6 +138,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "motors_drives:ie3-vs-ie4-continuous-duty"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "motors_drives:product-distinctions"
+      ],
+      "stored_not_served": [
+        "motors_drives:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Variable-frequency_drive"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

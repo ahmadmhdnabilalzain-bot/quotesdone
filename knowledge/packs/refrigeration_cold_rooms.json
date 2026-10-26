@@ -60,6 +60,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "refrigeration_cold_rooms:product-distinctions",
+      "topic": "Commercial refrigeration: cold rooms, display and refrigeration systems",
+      "topic_ar": "التبريد التجاري: غرف التبريد والعرض وأنظمة التبريد",
+      "kind": "product_distinctions",
+      "body_en": "Commercial refrigeration covers walk-in cold rooms and freezer rooms built from insulated sandwich panels (PU or PIR core, thickness by temperature, often 80-100 mm for chillers and 120-150 mm for freezers, with heated door frames and anti-slip floors), blast chillers and freezers, display refrigeration for retail (multideck chillers, islands, counters, glass-door merchandisers), reach-in and undercounter units, ice machines, and industrial cold stores. Refrigeration systems: condensing units with evaporators (split systems), monoblock plug-in units for small rooms, and central rack systems with remote condensers for supermarkets; refrigerants are moving from high-GWP HFCs (R404A) to lower-GWP options (R448A, R449A, CO2 transcritical systems, propane R290 in self-contained cabinets). In hot climates, condensers must be rated for high ambient temperatures (often 46-52 °C), and oversizing for pull-down and door openings matters. Specifications: internal dimensions and temperature range, product load and pull-down time, door type and number, panel thickness and finish, refrigerant and compressor make, controls and alarms with temperature logging, defrost method, and power supply. Offers differ on panel make and certificates, equipment brand, energy use, installation and commissioning, warranty, and maintenance response.",
+      "body_ar": "يشمل التبريد التجاري غرف التبريد والتجميد المصنوعة من ألواح ساندويتش معزولة (قلب PU أو PIR، والسماكة حسب الحرارة، غالباً 80-100 مم للتبريد و120-150 مم للتجميد، مع إطارات أبواب مسخنة وأرضيات مانعة للانزلاق)، ومبردات ومجمدات الصدمة، وثلاجات العرض للتجزئة (الثلاجات متعددة الأرفف، الجزر، الكاونترات، الثلاجات بأبواب زجاجية)، والوحدات القائمة وتحت الطاولة، وآلات الثلج، ومخازن التبريد الصناعية. وأنظمة التبريد: وحدات تكثيف مع مبخرات (أنظمة منفصلة)، ووحدات مدمجة للغرف الصغيرة، وأنظمة الرف المركزية مع مكثفات بعيدة للسوبرماركت؛ وتنتقل غازات التبريد من مركبات عالية الأثر الحراري (R404A) إلى خيارات أقل أثراً (R448A، R449A، أنظمة ثاني أكسيد الكربون، البروبان R290 في الخزائن المدمجة). وفي المناخ الحار يجب أن تُصنف المكثفات لدرجات حرارة محيطة عالية (غالباً 46-52 درجة)، ويهم التحجيم الزائد لتبريد المنتج وفتح الأبواب. والمواصفات: الأبعاد الداخلية ومدى الحرارة، وحمل المنتج وزمن التبريد، ونوع الأبواب وعددها، وسماكة الألواح وتشطيبها، وغاز التبريد وماركة الضاغط، ووحدات التحكم والإنذارات مع تسجيل الحرارة، وطريقة إذابة الثلج، والتغذية الكهربائية. وتختلف العروض في ماركة الألواح وشهاداتها، وعلامة المعدات، واستهلاك الطاقة، والتركيب والتشغيل، والضمان، واستجابة الصيانة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Cold_room"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: walk-in coolers and freezers with refrigeration units; insulation lowers energy use -> confirmed."
+    },
+    {
+      "id": "refrigeration_cold_rooms:lead-times-and-quoting",
+      "topic": "Commercial refrigeration & cold rooms - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "التبريد التجاري وغرف التبريد: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock cabinets: days; cold rooms 3-8 weeks including panels, equipment and installation; large cold stores months. A supplier needs room dimensions and temperatures, product type and daily load, door needs, site power and location for condensers, and display or storage purpose. A quote states panel specs, refrigeration equipment make and capacity at the design ambient, refrigerant, controls and logging, installation and commissioning, warranty, maintenance and validity.",
+      "body_ar": "الخزائن المتوفرة: أيام؛ وغرف التبريد 3-8 أسابيع شاملة الألواح والمعدات والتركيب؛ ومخازن التبريد الكبيرة أشهراً. ويحتاج المورد أبعاد الغرفة ودرجات الحرارة، ونوع المنتج والحمل اليومي، واحتياجات الأبواب، والكهرباء في الموقع ومكان المكثفات، والغرض من العرض أو التخزين. ويذكر العرض مواصفات الألواح وماركة معدات التبريد وقدرتها عند الحرارة المحيطة التصميمية وغاز التبريد ووحدات التحكم والتسجيل والتركيب والتشغيل والضمان والصيانة والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -85,6 +115,14 @@
       ],
       "why": "No entry of this pack answered it (Standards entry explicitly says the sources do not set a panel thickness and the checklist gives none; missing: panel thickness by room temperature entry). refrigeration_cold_rooms:panel-thickness-by-room-temperature was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from refrigeration_cold_rooms.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What panel thickness do we need for a -20 °C freezer room?",
+      "q_ar": "كم سماكة الألواح اللي نحتاجها لغرفة تجميد على -20 درجة؟",
+      "expected_entry_ids": [
+        "refrigeration_cold_rooms:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -104,6 +142,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "refrigeration_cold_rooms:panel-thickness-by-room-temperature"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "refrigeration_cold_rooms:product-distinctions"
+      ],
+      "stored_not_served": [
+        "refrigeration_cold_rooms:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Cold_room"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
