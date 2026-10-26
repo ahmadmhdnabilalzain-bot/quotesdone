@@ -1,0 +1,11 @@
+{
+ "id": 101554,
+ "type": "invoice_ready",
+ "channel": "email",
+ "status": "suppressed",
+ "to_email": "qd-321d13ae-cust14@example.invalid",
+ "lang": "en",
+ "subject": "Your invoice is ready",
+ "body": "The invoice for the reveal fee you paid is now in your QuotesDone account. Open it any time from the \"Invoice (PDF)\" button on the quote you revealed, or under Invoices in Documents.",
+ "html": null
+}

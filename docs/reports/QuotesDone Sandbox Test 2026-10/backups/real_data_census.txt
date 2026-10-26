@@ -1,0 +1,42 @@
+QuotesDone Dropbox backup - real-data census (it_engineer, read-only, project htdblwldjkcgjvmqkbeh, 2026-10-07)
+Scope: 17 registry buckets (kind=bucket, backed_up=true, all STORAGE SWEEP). "Objects" excludes folder placeholders and names matching zz demo. "Real" excludes doc_backups.entity='zz_demo'. Counts only.
+
+METRIC                                                         COUNT
+1  Storage objects with NO doc_backups row (same bucket,path)     61
+   - older than 1 h / younger than 1 h (in grace)                 33 / 28
+   - per bucket: supplier-docs 32 (4 old, 28 grace), quote-files 26, agent-docs 2, signed-terms 1
+   - left out by fn_backup_sweep_objects on purpose                61 (60 demo/PDPL owner, 1 signed-terms register)
+   - in the sweep list but not queued (true gaps)                  0
+   - backups/<date>/ + conversations/ export pages with no row     0
+2  Storage objects with a row whose best row is not 'done'         0 (24,123 objects done, 61 no row)
+   - done rows with verified_at null (real + demo)                 0
+   - doc_backups by status: real done 24,156 / abandoned 28; demo abandoned 697
+3  Real done storage-source rows whose storage object is gone     33 (finance-docs 17, agent-docs 9, drawing-files 4, brand 3; all created <30 d)
+   - dropbox_files mirror: 861 rows, last synced 2026-09-07 -> STALE (30 d); Dropbox<->doc_backups comparison NOT made
+4a Same (bucket,path) in >1 row                                    0
+4b Same lower(dropbox_path) in >1 row                              0
+4c Same storage file in >1 Dropbox folder                          0
+4d Content hashes in >1 done row with different dropbox_path       1,428 hashes over 11,046 rows; 28 hashes within one entity
+5a Supplier rows without "(<entity_id>)" in dropbox_path           17
+   Customer rows without left(entity_id,8) in dropbox_path         61
+5b Inquiries split across >1 '/Inquiries/<date> <id8> - <status>/'  2 of 60
+5c Suppliers split across >1 Suppliers/<cat>/<name> (<id>)/        0 of 49
+   Customers split across >1 Customers/<name> (<id8>)/             2 of 40
+5d Owned files filed under /QuotesDone Backup/Storage/             386: quote-files inquiry 273, quote 1; agent-docs customer 61, quote 31;
+                                                                   drawing-files inquiry 33; supplier-docs supplier 11; backups supplier 6, customer 1
+6  error/abandoned/skipped_large, last attempt within 30 d         real 2 abandoned (both attempts>=5; classes: "source transaction ..." 1, "Stripe invoice PDF of a ..." 1); demo 697 abandoned (ZZ DEMO fixture)
+   agent_runs 30 d: dropbox_backup ok 2,466 / error 157 (last 2026-10-05) / warn 4; backup_kick ok 1,621; it_engineer (dropbox) ok 46 / error 2 / warn 2
+7  Bucket public flag: public = brand, site, social-media (3); the other 14 private
+8  Rows whose dropbox_path not under '/QuotesDone Backup/'         0
+   Rows with backed_up_at < created_at                             0
+   Done rows with null dropbox_content_hash                        0
+
+What each line measured:
+1  storage.objects in registry buckets, anti-joined to doc_backups on (bucket,path); age is from objects.created_at; reason from re-applying the sweep's filters (registers, pdpl_erase_files) with the rest being demo/PDPL-owner exclusions of fn_backup_sweep_objects.
+2  For each object the best doc_backups row (done first, then newest); status and verified_at.
+3  doc_backups real, status done, source storage, with no storage.objects row at (bucket,path). Dropbox mirror freshness = max(synced_at).
+4  Grouping of real rows; 4c folder = dropbox_path minus last segment, lower-cased; 4d = done rows grouped by dropbox_content_hash with >1 distinct lower(dropbox_path); "within one entity" = a single entity||entity_id.
+5  Pattern checks on dropbox_path of real rows (regex on folder segment); 5d = rows with an owning entity but filed in the Storage tree.
+6  doc_backups by coalesce(last_attempt_at,created_at) > now()-30 d, error text shortened to a 40-char prefix (no names); agent_runs started_at > now()-30 d.
+7  storage.buckets.public for the 17 registry buckets.
+8  Plain filters across all real rows.

@@ -1,0 +1,103 @@
+PASS customer_C1_desktop_en landing 6137ms slow load 6137 ms (> 4000)
+PASS customer_C1_desktop_en tab:Overview 
+PASS customer_C1_desktop_en tab:My requests 
+PASS customer_C1_desktop_en tab:Documents 
+PASS customer_C1_desktop_en tab:Orders 
+PASS customer_C1_desktop_en tab:Messages 
+PASS customer_C1_desktop_en tab:Projects 
+PASS customer_C1_desktop_en tab:Project room 
+PASS customer_C1_desktop_en tab:What you may need next 
+PASS customer_C1_desktop_en tab:Buying profile 
+PASS customer_C1_desktop_en tab:Account 
+PASS customer_C1_desktop_ar landing 1892ms 
+PASS customer_C1_desktop_ar tab:Overview 
+PASS customer_C1_desktop_ar tab:My requests 
+PASS customer_C1_desktop_ar tab:Documents 
+PASS customer_C1_desktop_ar tab:Orders 
+PASS customer_C1_desktop_ar tab:Messages 
+PASS customer_C1_desktop_ar tab:Projects 
+PASS customer_C1_desktop_ar tab:Project room 
+PASS customer_C1_desktop_ar tab:What you may need next 
+PASS customer_C1_desktop_ar tab:Buying profile 
+PASS customer_C1_desktop_ar tab:Account 
+PASS customer_C1_mobile_en landing 413ms 
+PASS customer_C1_mobile_en tab:Overview 
+PASS customer_C1_mobile_en tab:My requests 
+PASS customer_C1_mobile_en tab:Documents 
+PASS customer_C1_mobile_en tab:Messages 
+PASS customer_C1_mobile_en tab:Orders 
+PASS customer_C1_mobile_en tab:Projects 
+PASS customer_C1_mobile_en tab:Project room 
+PASS customer_C1_mobile_en tab:What you may need next 
+PASS customer_C1_mobile_en tab:Buying profile 
+PASS customer_C1_mobile_en tab:Account 
+PASS customer_C1_mobile_ar landing 456ms 
+PASS customer_C1_mobile_ar tab:Overview 
+PASS customer_C1_mobile_ar tab:My requests 
+PASS customer_C1_mobile_ar tab:Documents 
+PASS customer_C1_mobile_ar tab:Messages 
+PASS customer_C1_mobile_ar tab:Orders 
+PASS customer_C1_mobile_ar tab:Projects 
+PASS customer_C1_mobile_ar tab:Project room 
+PASS customer_C1_mobile_ar tab:What you may need next 
+PASS customer_C1_mobile_ar tab:Buying profile 
+PASS customer_C1_mobile_ar tab:Account 
+PASS customer_C2_desktop_en landing 581ms 
+PASS customer_C2_desktop_en tab:نظرة عامة 
+PASS customer_C2_desktop_en tab:طلباتي 
+PASS customer_C2_desktop_en tab:المستندات 
+PASS customer_C2_desktop_en tab:أوامر الشراء 
+PASS customer_C2_desktop_en tab:الرسائل 
+PASS customer_C2_desktop_en tab:المشاريع 
+PASS customer_C2_desktop_en tab:غرفة المشروع 
+PASS customer_C2_desktop_en tab:ما قد تحتاجه لاحقًا 
+PASS customer_C2_desktop_en tab:ملف المشتريات 
+PASS customer_C2_desktop_en tab:الحساب 
+PASS customer_C2_desktop_ar landing 371ms 
+PASS customer_C2_desktop_ar tab:نظرة عامة 
+PASS customer_C2_desktop_ar tab:طلباتي 
+PASS customer_C2_desktop_ar tab:المستندات 
+PASS customer_C2_desktop_ar tab:أوامر الشراء 
+PASS customer_C2_desktop_ar tab:الرسائل 
+PASS customer_C2_desktop_ar tab:المشاريع 
+PASS customer_C2_desktop_ar tab:غرفة المشروع 
+PASS customer_C2_desktop_ar tab:ما قد تحتاجه لاحقًا 
+PASS customer_C2_desktop_ar tab:ملف المشتريات 
+PASS customer_C2_desktop_ar tab:الحساب 
+PASS customer_C2_mobile_en landing 390ms 
+PASS customer_C2_mobile_en tab:نظرة عامة 
+PASS customer_C2_mobile_en tab:طلباتي 
+PASS customer_C2_mobile_en tab:المستندات 
+PASS customer_C2_mobile_en tab:الرسائل 
+PASS customer_C2_mobile_en tab:أوامر الشراء 
+PASS customer_C2_mobile_en tab:المشاريع 
+PASS customer_C2_mobile_en tab:غرفة المشروع 
+PASS customer_C2_mobile_en tab:ما قد تحتاجه لاحقًا 
+PASS customer_C2_mobile_en tab:ملف المشتريات 
+PASS customer_C2_mobile_en tab:الحساب 
+PASS customer_C2_mobile_ar landing 642ms 
+PASS customer_C2_mobile_ar tab:نظرة عامة 
+PASS customer_C2_mobile_ar tab:طلباتي 
+PASS customer_C2_mobile_ar tab:المستندات 
+PASS customer_C2_mobile_ar tab:الرسائل 
+PASS customer_C2_mobile_ar tab:أوامر الشراء 
+PASS customer_C2_mobile_ar tab:المشاريع 
+PASS customer_C2_mobile_ar tab:غرفة المشروع 
+PASS customer_C2_mobile_ar tab:ما قد تحتاجه لاحقًا 
+PASS customer_C2_mobile_ar tab:ملف المشتريات 
+PASS customer_C2_mobile_ar tab:الحساب 
+PASS supplier_AL_desktop_en landing 1193ms 
+PASS supplier_AL_desktop_en tab:Services 
+PASS supplier_AL_desktop_en tab:Inquiries received (1) 
+PASS supplier_AL_desktop_en tab:Quotations submitted 
+PASS supplier_AL_desktop_en tab:Messages 1 
+PASS supplier_AL_desktop_en tab:Documents 
+PASS supplier_AL_desktop_en tab:Insights 
+PASS supplier_AL_mobile_en landing 420ms 
+PASS supplier_AL_mobile_en tab:Services 
+PASS supplier_AL_mobile_en tab:Inquiries received (1) 
+PASS supplier_AL_mobile_en tab:Quotations submitted 
+PASS supplier_AL_mobile_en tab:Messages 1 
+PASS supplier_AL_mobile_en tab:Documents 
+PASS supplier_AL_mobile_en tab:Insights 
+index: 307 PASS, 20 FAIL

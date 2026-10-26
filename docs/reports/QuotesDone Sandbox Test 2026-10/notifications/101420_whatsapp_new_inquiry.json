@@ -1,0 +1,11 @@
+{
+ "id": 101420,
+ "type": "new_inquiry",
+ "channel": "whatsapp",
+ "status": "suppressed",
+ "to_email": "qd-321d13ae-sup4@example.invalid",
+ "lang": "en",
+ "subject": "New job request on QuotesDone",
+ "body": "A customer is requesting quotes for: Replace flooring in occupied 6-room villa in Ras Al Khaimah: porcelain tiles, vinyl and epoxy, supply and install with removal of existing. (Ras Al Khaimah). The customer asks for: Material grade: their own specification (see the brief); Installation: Yes, install it; Warranty: Yes, at least 2 years; Needed by: By 2026-11-17. Log in to your QuotesDone supplier portal to quote.",
+ "html": null
+}

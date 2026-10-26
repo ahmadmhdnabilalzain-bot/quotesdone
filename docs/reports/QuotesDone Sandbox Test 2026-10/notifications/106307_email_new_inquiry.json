@@ -1,0 +1,11 @@
+{
+ "id": 106307,
+ "type": "new_inquiry",
+ "channel": "email",
+ "status": "suppressed",
+ "to_email": "qd-f968ee97-sup1@example.invalid",
+ "lang": "en",
+ "subject": "New job request on QuotesDone",
+ "body": "A customer is requesting quotes for: Supply and install 20 aluminium windows, 10 aluminium doors and 5 curtain wall units for a Dubai villa, including removal and disposal of existing items. (Dubai). The customer asks for: Aluminium profile system: Standard profile; Glass: Single glazed; Installation: Yes, install it; Warranty: Yes, at least 2 years; Needed by: By 2026-11-18. Log in to your QuotesDone supplier portal to quote.",
+ "html": null
+}

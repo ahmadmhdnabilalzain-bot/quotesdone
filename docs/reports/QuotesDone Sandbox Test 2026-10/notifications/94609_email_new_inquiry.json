@@ -1,0 +1,11 @@
+{
+ "id": 94609,
+ "type": "new_inquiry",
+ "channel": "email",
+ "status": "suppressed",
+ "to_email": "qd-1be65ab2-sup8@example.invalid",
+ "lang": "en",
+ "subject": "New job request on QuotesDone",
+ "body": "A customer is requesting quotes for: Preventive waterproofing replacement at an occupied villa; bedroom surface still to be clarified. (Abu Dhabi). The customer asks for: Waterproofing system: their own specification (see the brief); Installation: Yes, install it; Warranty: Yes, at least 2 years; Needed by: By 2026-11-11. Log in to your QuotesDone supplier portal to quote.",
+ "html": null
+}

@@ -1,0 +1,11 @@
+{
+ "ok": true,
+ "boq": null,
+ "drawing_file_path": null,
+ "drawing_file_name": "drawing",
+ "drawing_redacted_paths": [],
+ "drawing_held": false,
+ "share_redacted": false,
+ "note": "no_readable_pages",
+ "advice": "We could not read any pages from this file. It may be corrupted, password-protected, or saved in a format we cannot open. Please re-export it as a PDF or upload clear images of each page."
+}
