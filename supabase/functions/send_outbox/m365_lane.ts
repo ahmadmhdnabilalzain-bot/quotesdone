@@ -201,6 +201,18 @@ export function m365Body(_type: unknown, rowBody: string, kind?: unknown, who: W
   return marker ? built + '\n\n' + marker : built;
 }
 
+/** THE ONE SUPPLIER CAMPAIGN EMAIL, WHICHEVER ROUTE CARRIES IT (27 Oct 2026, coordinator follow-up to #1614).
+ *  send_outbox builds the subject and text here for the Microsoft 365 lane AND the Resend fallback, so switching
+ *  invite_m365_enabled off can never bring back the old email (link, closing question, Al Furjan footer).
+ *  `bad` lists the copy rules the email fails; any failure holds the row on either route. */
+export function campaignMail(row: { type?: unknown; body?: unknown; subject?: unknown; kind?: unknown }, who: Who = {}):
+  { subject: string; text: string; bad: CopyRule[] } {
+  const body = String(row.body || '');
+  const text = m365Body(row.type, body, row.kind, who);
+  const subject = withPlacementRef(m365Subject({ company: who.company ?? companyFromBody(body), trade: who.trade }), row);
+  return { subject, text, bad: m365CopyLint({ subject, body: text, seed: row.kind === M365_SEED_KIND }).filter((l) => !l.ok) };
+}
+
 const DATED = /\b(?:20\d\d|jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|deadline|until|expires?|limited time)\b/i;
 const UP_TO_THREE = /\b(?:up to|only|maximum of|max(?:imum)?)\s+(?:three|3)\s+(?:suppliers|quotes|quotations)\b/i;
 
