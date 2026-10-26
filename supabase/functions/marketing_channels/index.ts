@@ -25,6 +25,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
+import { belowUploadSpec, readMp4 } from '../_shared/video_quality.ts';
 import {
   assetMismatch, deletePostizPost, dubaiDate, findInPostiz, integrationFor, isDemoText, measureAccess, postizIds, postizIntegrations, postizReleases,
   publishPost, pullInsights, readAdSpend, socialIntegrationItems, stripTokens, type MetaEnv, type PublishInput, type Variant, type YoutubeAuth,
@@ -111,6 +112,7 @@ async function download(path: string | null): Promise<PublishInput['media'][numb
     : /\.mp4$/i.test(name) ? 'video/mp4' : /\.png$/i.test(name) ? 'image/png' : /\.jpe?g$/i.test(name) ? 'image/jpeg' : 'application/octet-stream';
   return { name, type, bytes: new Uint8Array(await blob.arrayBuffer()) };
 }
+const QUALITY_REFUSAL = 'below the platform upload spec: ';
 async function patch(id: number, fields: Record<string, unknown>) {
   const { error } = await admin.from('marketing_post').update({ ...fields, updated_at: new Date().toISOString() }).eq('id', id);
   return error;
@@ -203,6 +205,11 @@ async function publishDue(e: Env) {
     const differs = await assetMismatch(media.map((m, i) => ({ path: (p.media_paths || [])[i], bytes: m.bytes })).concat(cover ? [{ path: p.cover_path, bytes: cover.bytes }] : []),
       { [p.video_path || '']: p.video_sha256, [p.cover_path || '']: p.cover_sha256 });
     if (differs) { await patch(p.id, { status: 'failed', error: 'bytes differ from what was approved: ' + differs }); failed++; continue; }
+    // Highest quality or nothing (founder, 24 Sep 2026): a video below any target platform's recommended upload
+    // spec is refused here, before a byte leaves, and filed for the IT digest below.
+    const video = media.find((m) => m.type === 'video/mp4');
+    const low = video ? [...new Set(variants.map((v) => v.platform))].flatMap((pf) => belowUploadSpec(pf, readMp4(video.bytes))) : [];
+    if (low.length) { await patch(p.id, { status: 'failed', error: (QUALITY_REFUSAL + low.join('; ')).slice(0, 1000) }); failed++; continue; }
     const res = await publishPost(fetch, e.postizBase, e.postizKey, input(media, cover), true, '');
     const now = new Date().toISOString();
     if (res.mode === 'live' && res.ok) {
@@ -216,7 +223,13 @@ async function publishDue(e: Env) {
       failed++;
     }
   }
-  return { ok: failed === 0 && refused === 0, due: due.length, published: live, dry_run: dry, failed, unconfirmed, refused_by_database: refused, reconcile: recon };
+  // One settle per run from what the database holds, so a refused post stays a finding until it is replaced or
+  // cancelled, and closes by its own key after.
+  const { data: lowq } = await admin.from('marketing_post').select('id,ingest_key,error').eq('status', 'failed').like('error', QUALITY_REFUSAL + '%');
+  const settled = await admin.rpc('fn_it_duty_settle', { p_duty: 'marketing_media_quality', p_items: (lowq || []).map((q) => ({
+    item: q.ingest_key, title: 'marketing refused a video below the platform upload spec: ' + q.ingest_key, owner_seat: 'marketing',
+    subject: 'marketing', blast: 'agent_facing', affected: 1, evidence: { post_id: q.id, error: q.error } })) });
+  return { ok: failed === 0 && refused === 0, due: due.length, published: live, dry_run: dry, failed, unconfirmed, refused_by_database: refused, reconcile: recon, quality_settle_error: settled.error?.message ?? null };
 }
 
 // ── cancel / reschedule / requeue ─────────────────────────────────────────────────────────────────
