@@ -291,3 +291,38 @@ unread-ink hold, standing readings and the `@` rule.
 - **Graphic-only schedule tables** in PDFs are read by OCR only when the customer's browser sends them. Unread cells
   are flagged, never guessed (`drawing_set.ts`).
 - **Live sends (²)** turn S only after deploy and a passing nightly.
+
+## Drawing bench, 19 Oct 2026 (founder ledger 31, 580, 1177)
+
+`supabase/functions/drawing_boq/drawing_bench.test.ts` scores every format against a hand-written key,
+`drawing_boq/fixtures/bench_truth.json` (the key was written before the first run). Fixtures are in
+`drawing_boq/bench.fixtures.ts`. They are a fit-out plan drawn the way AutoCAD writes it, with dynamic-block doors,
+a MINSERT window array, sockets nested in a room block, a legend, and identity in a paper-space title block, MTEXT,
+XDATA, DWGPROPS and header variables. The same job is also drawn as a vector PDF and as a BOQ in xlsx, PDF and image
+form. The real sample sheet (`fixtures/harrogate_court_…png`) is used as a PNG, as a scanned PDF and as a phone photo.
+
+| case | format before → after | count before → after | leaks before → after |
+|---|---|---|---|
+| DXF ascii | read | 0/4 → 4/4 | 3 → 0 |
+| DXF binary | read | 0/4 → 4/4 | 3 → 0 |
+| PDF vector | read | 0/4 → 4/4 | 0 → 0 |
+| BOQ xlsx | read | 4/4 → 4/4 | 0 → 0 |
+| BOQ pdf | read, 0 lines → read | 0/4 → 4/4 | 0 → 0 |
+| BOQ image (OCR) | read, 0 lines → read | 0/4 → 3/4 (door line's text misread "210C") | 0 → 0 |
+| image PNG (real sheet) | read | 1/7 → 4/7, total error 35 → 6 | 0 → 0 |
+| PDF scanned (OCR) | read | 0/7 → 3/7, total error ~230 → 33 | 0 → 0 |
+| photo JPG (rotated 1.5°) | read | 0/7 → 1/7 | 0 → 0 |
+
+What changed: `doc_read/cad.ts` resolves dynamic `*U` blocks through `AcDbBlockRepBTag`, counts MINSERT arrays,
+counts blocks nested in blocks once per placement, and recognises legend samples described in plain words, with
+"beside" measured from the symbol's right edge. `redactDxf` rewrites every XRECORD string, which is where DWGPROPS
+keeps author and job number. `cad_identity` ends a label's value at an MTEXT paragraph break, so the sockets note is
+no longer treated as part of the site name. `drawing_set.ts` reads W/WN windows and SKT sockets and skips legend
+sample tags. `boq_from_text.ts` reads "[item] description unit qty" rows and the unit "nr". `boq_from_document.rowsOf`
+rebuilds OCR cells into rows. `symbol_count.ts` scores the inside of each symbol as well as its ring, fixes one plan
+scale per sheet, turns directional symbols, crops each template to its own row, and drops JPEG specks.
+
+Still open: raster counts on a rotated or blurred phone photo, where OCR found 4 of the 7 legend rows and template
+matching does not handle rotation. Smoke detectors are over-counted on JPEG scans. Raster counts stay estimates the
+customer confirms (`to_confirm`). Real DWG files were not re-measured here: `dwg_samples.check.ts` needs the network,
+and dynamic-block resolution depends on LibreDWG carrying the BLOCK_RECORD XDATA, which has not been measured.

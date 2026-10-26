@@ -6,7 +6,8 @@ import { precedentBlock, recallCases } from './case_recall.ts';
 
 const note = {
   handoff_id: 7, from: 'accountant', conversation: 'refund.settled', opened_at: '2026-09-29T00:00:00Z', status: 'pending',
-  summary: { known: { case: 'zz_demo_case#ZZ-DEMO-1' }, tried: { actions: [] }, needed: { ask: 'tell the customer' }, evidence: ['public.zz_demo_case?id=eq.ZZ-DEMO-1'] },
+  summary: { context: 'accountant handed refund.settled on zz_demo_case#ZZ-DEMO-1 to sales_engineer.', decision: 'ZZ DEMO: refund settled',
+             open_asks: ['tell the customer'], deadline: '2026-09-30T00:00:00Z', known: { case: 'zz_demo_case#ZZ-DEMO-1' }, tried: { actions: [] }, needed: { ask: 'tell the customer' }, evidence: ['public.zz_demo_case?id=eq.ZZ-DEMO-1'] },
 };
 const pastCase = {
   case_id: 3, seat: 'sales_engineer', case_kind: 'x', trade: null, situation: 'ZZ DEMO past', decision: null, reasoning: null,
@@ -33,6 +34,21 @@ Deno.test('a named case brings its handoff note, and the note leads the block', 
   assertEquals(m.handoffs?.[0]?.handoff_id, 7);
   const block = precedentBlock(m);
   assert(block.indexOf('HANDOFF NOTES') >= 0 && block.indexOf('HANDOFF NOTES') < block.indexOf('PAST CASES'), block);
+});
+
+// Ledger 1013 (19 Oct 2026): the model sees the four fields and is told to cite the note, and the judgement
+// record carries the handoff id it read. Fails if a field drops out of the block or the citation leaves the trace.
+Deno.test('the note shows context, decision, open asks and deadline, and the recall record cites it', async () => {
+  const calls: string[] = [];
+  const m = await recallCases(fakeAdmin(calls), {
+    seat: 'sales_engineer', path: 'test', situation: 'ZZ DEMO', embedding: '[0]', exclude: { table: 'zz_demo_case', id: 'ZZ-DEMO-1' },
+  });
+  const block = precedentBlock(m);
+  for (const s of ['context: accountant handed', 'decision: ZZ DEMO: refund settled', 'open asks: tell the customer', 'deadline: 2026-09-30', 'cite the note', 'handoff #7']) {
+    assert(block.includes(s), `missing "${s}" in\n${block}`);
+  }
+  const rec = calls.find((c) => c.startsWith('fn_judgement_record:'));
+  assert(rec && JSON.parse(rec.slice('fn_judgement_record:'.length)).p_recall.handoffs.includes(7), rec);
 });
 
 Deno.test('no case named, no handoff note fetched', async () => {

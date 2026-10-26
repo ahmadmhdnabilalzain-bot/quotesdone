@@ -4881,6 +4881,68 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_contact_dedup()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare g record; v_items jsonb := '[]'::jsonb; n_groups int := 0; n_demo int := 0; n_handed int := 0;
+        v_merged boolean; v_err text;
+begin
+  for g in
+    with ids as (
+      select lower(btrim(l.email)) k from public.leads l where l.merged_into is null and btrim(coalesce(l.email, '')) <> ''
+      union all select lower(btrim(l.claimed_by)) from public.leads l where l.merged_into is null and btrim(coalesce(l.claimed_by, '')) <> ''
+      union all select lower(btrim(c.email)) from public.customers c where c.merged_into is null and btrim(coalesce(c.email, '')) <> ''
+    ), keys as (select k from ids group by k having count(*) > 1)
+    select k.k, array_agg(distinct m.kind order by m.kind) kinds,
+           jsonb_agg(jsonb_build_object('kind', m.kind, 'id', m.id, 'via', m.via, 'is_demo', m.is_demo) order by m.kind, m.id) members,
+           count(*)::int n, coalesce(bool_and(m.is_demo), false) all_demo,
+           -- confirmation only: two members of an EMAIL group share a phone
+           (count(m.phone_key) filter (where length(m.phone_key) >= 7)
+             > count(distinct m.phone_key) filter (where length(m.phone_key) >= 7)) phone_confirms
+      from keys k cross join lateral public.fn_contact_identity_members(k.k) m
+     group by k.k having count(*) > 1
+  loop
+    n_groups := n_groups + 1;
+    insert into public.contact_duplicate_group as d (identity_key, kinds, members, member_count, phone_confirms, all_demo)
+    values (g.k, g.kinds, g.members, g.n, g.phone_confirms, g.all_demo)
+    on conflict (run_on, identity_key) do update
+      set kinds = excluded.kinds, members = excluded.members, member_count = excluded.member_count,
+          phone_confirms = excluded.phone_confirms, all_demo = excluded.all_demo
+      where d.status <> 'merged';
+
+    v_merged := false; v_err := null;
+    if g.all_demo and cardinality(g.kinds) = 1 then
+      -- one failing group must not lose every other group's report: it falls through to the hand-off
+      begin
+        perform public.fn_contact_merge(d.id, 'it_engineer', 'demo fixture auto-merge by it_engineer.contact_dedup')
+           from public.contact_duplicate_group d where d.run_on = current_date and d.identity_key = g.k and d.status <> 'merged';
+        v_merged := true; n_demo := n_demo + 1;
+      exception when others then v_err := sqlerrm;
+      end;
+    end if;
+    if not v_merged then
+      update public.contact_duplicate_group set status = 'handed_to_seat', handed_to_seat = 'sales_engineer'
+       where run_on = current_date and identity_key = g.k and status = 'reported';
+      n_handed := n_handed + 1;
+      v_items := v_items || jsonb_build_object(
+        'item', 'contact_duplicate:' || md5(g.k), 'owner_seat', 'sales_engineer', 'subject', 'contact_duplicate',
+        'affected', g.n, 'blast', 'internal',
+        'title', g.n || ' accounts share one email identity (' || array_to_string(g.kinds, ' + ') || ')'
+                 || case when g.phone_confirms then ', phone confirms' else '' end
+                 || ' - review and merge with fn_contact_merge, or leave',
+        'evidence', jsonb_build_object('identity_md5', md5(g.k), 'members', g.members, 'kinds', g.kinds,
+                                       'cross_kind', cardinality(g.kinds) > 1, 'auto_merge_error', v_err));
+    end if;
+  end loop;
+
+  return jsonb_build_object('groups', n_groups, 'demo_merged', n_demo, 'handed_to_sales_engineer', n_handed,
+                            'settled', public.fn_it_duty_settle('contact_dedup', v_items));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_credential_rotation_age()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -5569,7 +5631,7 @@ begin
     insert into public.seat_knowledge_recall_answer (day, question_id, seat, lang, recall)
     select v_day, q.id, q.seat, q.lang,
            (select count(distinct regexp_replace(x->>'id', '@ar$', ''))
-              from jsonb_array_elements(public.fn_reason_retrieve_ml(q.seat, q.embedding_ml, case when q.lang = 'ar' then null else q.embedding end, 6)) with ordinality t(x, n)
+              from jsonb_array_elements(public.fn_reason_retrieve_ml(q.seat, q.embedding_ml, case when q.lang = 'ar' then null else q.embedding end, 6, p_audience => 'internal')) with ordinality t(x, n)
              where n <= 5 and regexp_replace(x->>'id', '@ar$', '') = any(q.expected))::numeric
            / (select count(distinct e) from unnest(q.expected) e)
     on conflict do nothing;
@@ -5980,11 +6042,11 @@ begin
   -- or insurance is past its date is not matchable (fn_is_matchable reads matching_blocked).
   select count(*) into v_before from public.leads l
    where l.approval_status = 'approved' and not coalesce(l.banned, false) and not coalesce(l.matching_blocked, false)
-     and (l.license_expiry < v_today or l.insurance_expiry < v_today);
+     and (l.license_expiry <= v_today or l.insurance_expiry <= v_today);
   if v_before > 0 then v_fix := public.fn_reconcile_doc_blocks(0); end if;   -- pauses them AND tells each supplier
   select count(*), coalesce(jsonb_agg(l.id order by l.id), '[]'::jsonb) into v_after, v_ids from public.leads l
    where l.approval_status = 'approved' and not coalesce(l.banned, false) and not coalesce(l.matching_blocked, false)
-     and (l.license_expiry < v_today or l.insurance_expiry < v_today);
+     and (l.license_expiry <= v_today or l.insurance_expiry <= v_today);
 
   if v_after > 0 then
     perform public.fn_it_engineer_finding_upsert('licence_expiry:matchable_after_expiry',
@@ -10016,6 +10078,399 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_knowledge_library_detach(p_store text, p_id text)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_lib bigint;
+begin
+  delete from public.knowledge_library_origin where origin_store = p_store and origin_id = p_id returning library_id into v_lib;
+  if v_lib is null then return; end if;
+  if exists (select 1 from public.knowledge_library_origin where library_id = v_lib) then
+    perform public.fn_knowledge_library_recompute(v_lib);
+  else
+    delete from public.knowledge_vector_ml where src = 'knowledge_library' and row_id = v_lib::text;
+    delete from public.knowledge_library where id = v_lib;
+  end if;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_library_fill_page(p_store text, p_n integer DEFAULT 2000)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'extensions', 'pg_temp'
+ SET lock_timeout TO '2s'
+AS $function$
+declare
+  q constant record := public.fn_knowledge_library_source_sql(p_store);
+  v_n constant integer := greatest(1, least(coalesce(p_n, 2000), 5000));
+  v_dedup constant boolean := p_store in ('kb_chunks', 'agent_knowledge', 'ops_knowledge');
+  v_unmapped text;
+  v_keys text[]; v_ins integer := 0; v_mrg integer := 0; v_left bigint; v_lib bigint;
+begin
+  if not pg_try_advisory_xact_lock(hashtext('public.fn_kb_purge_batch')) then   -- never beside a purge or trim batch
+    raise exception 'fn_knowledge_library_fill_page: a kb purge or trim batch is running';
+  end if;
+  v_unmapped := format('select s.origin_id from (%s) s where not exists (select 1 from public.knowledge_library_origin o
+                          where o.origin_store = %L and o.origin_id = s.origin_id)', replace(q.sel, '/*KEY*/', ''), p_store);
+  execute 'select array_agg(origin_id) from (' || v_unmapped || ' order by s.origin_id limit ' || v_n || ') k' into v_keys;
+  if v_keys is not null then
+    drop table if exists qd_kl_page;
+    execute 'create temp table qd_kl_page on commit drop as select s.*, md5(s.content) md5, null::bigint lib_id from ('
+         || replace(q.sel, '/*KEY*/', q.key || ' and ') || ') s' using v_keys;
+    -- the library's lock EXCLUSIVE (writers' triggers hold it shared), then drop what a trigger mapped meanwhile
+    perform pg_advisory_xact_lock(hashtext('public.knowledge_library'));
+    delete from qd_kl_page p using public.knowledge_library_origin o where o.origin_store = p_store and o.origin_id = p.origin_id;
+    if v_dedup then   -- a text already in the library with the same eligibility: merge into its row
+      update qd_kl_page p set lib_id = (select l.id from public.knowledge_library l where l.content_md5 = p.md5
+                                         and l.runtime_eligible = p.runtime_eligible
+                                         and l.origin_store in ('kb_chunks', 'agent_knowledge', 'ops_knowledge') order by l.id limit 1);
+    end if;
+    -- new texts: one library row per text (per origin when the store does not merge), the first origin its primary
+    with firsts as (
+      select distinct on (case when v_dedup then p.md5 || ':' || p.runtime_eligible else p.origin_id end) p.*
+        from qd_kl_page p where p.lib_id is null
+       order by case when v_dedup then p.md5 || ':' || p.runtime_eligible else p.origin_id end, p.origin_id),
+    ins as (
+      insert into public.knowledge_library (origin_store, origin_id, title, content, trade, tags, seats, lang, source_ref,
+                                            source_ids, verified, runtime_eligible, embedding_gte)
+      select origin_store, origin_id, title, content, trade, tags, seats, lang, source_ref, source_ids, verified,
+             runtime_eligible, embedding_gte from firsts
+      returning id, origin_id, content_md5, runtime_eligible)
+    update qd_kl_page p set lib_id = i.id from ins i
+     where p.lib_id is null
+       and (p.origin_id = i.origin_id or (v_dedup and p.md5 = i.content_md5 and p.runtime_eligible = i.runtime_eligible));
+    get diagnostics v_ins = row_count;
+    insert into public.knowledge_library_origin (origin_store, origin_id, library_id, source_ref, source_ids)
+    select p.origin_store, p.origin_id, p.lib_id, p.source_ref, p.source_ids from qd_kl_page p;
+    -- ml vectors of the new primaries, by id mapping
+    insert into public.knowledge_vector_ml (src, row_id, text_hash, embedding, embedded_at)
+    select 'knowledge_library', l.id::text, v.text_hash, v.embedding, now()
+      from public.knowledge_library l join public.knowledge_vector_ml v on v.src = l.origin_store and v.row_id = l.origin_id
+     where l.id in (select lib_id from qd_kl_page) and l.origin_store = p_store
+    on conflict (src, row_id) do nothing;
+    -- rows that gained a merged origin: primary by store priority, seat union, vectors
+    for v_lib in select p.lib_id from qd_kl_page p join public.knowledge_library_origin o on o.library_id = p.lib_id
+                  group by p.lib_id having count(distinct (o.origin_store, o.origin_id)) > 1 loop
+      perform public.fn_knowledge_library_recompute(v_lib);
+      v_mrg := v_mrg + 1;
+    end loop;
+    v_ins := (select count(*) from qd_kl_page p join public.knowledge_library l on l.id = p.lib_id
+               where l.origin_store = p.origin_store and l.origin_id = p.origin_id);
+    drop table qd_kl_page;
+  end if;
+  execute 'select count(*) from (' || v_unmapped || ') k' into v_left;
+  return jsonb_build_object('store', p_store, 'page', coalesce(cardinality(v_keys), 0), 'inserted', v_ins,
+                            'rows_merged_into', v_mrg, 'left', v_left);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_library_mirror()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_col constant text := case when tg_table_name in ('kb_chunks', 'agent_knowledge') then 'id' else 'record_id' end;
+  v_new text; v_old text;
+begin
+  if tg_op <> 'INSERT' then v_old := to_jsonb(old) ->> v_col; end if;
+  if tg_op <> 'DELETE' then v_new := to_jsonb(new) ->> v_col; end if;
+  if v_old is not null and v_old is distinct from v_new then
+    perform public.fn_knowledge_library_sync(tg_table_name, v_old);
+  end if;
+  if v_new is not null then
+    perform public.fn_knowledge_library_sync(tg_table_name, v_new);
+  end if;
+  return null;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_library_mirror_citation()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  x text; v text[] := '{}';
+begin
+  if tg_op <> 'DELETE' then v := v || coalesce(new.cited, '{}'); end if;
+  if tg_op <> 'INSERT' then v := v || coalesce(old.cited, '{}'); end if;
+  for x in select distinct split_part(c, ':', 2) from unnest(v) c where c ~ '^kb_chunks:[0-9]+$' loop
+    perform public.fn_knowledge_library_sync('kb_chunks', x);
+  end loop;
+  return null;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_library_mirror_ml()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_src text; v_row text; v_lib bigint;
+begin
+  if tg_op = 'DELETE' then v_src := old.src; v_row := old.row_id; else v_src := new.src; v_row := new.row_id; end if;
+  select library_id into v_lib from public.knowledge_library_origin where origin_store = v_src and origin_id = v_row;
+  if v_lib is not null then perform public.fn_knowledge_library_recompute(v_lib); end if;
+  return null;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_library_read()
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case when (select value from public.app_secrets where key = 'knowledge_library_read') = 'library'
+              then 'library' else 'legacy' end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_library_recompute(p_library_id bigint)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'extensions', 'pg_temp'
+AS $function$
+declare
+  o record; s record; p record; v_have boolean := false;
+  v_seats text[] := '{}'; v_elig boolean := false; v_ver boolean := false;
+  v_ml vector(384); v_ml_hash text;
+begin
+  for o in select * from public.knowledge_library_origin where library_id = p_library_id
+            order by case origin_store when 'kb_chunks' then 1 when 'ops_knowledge' then 2 when 'agent_knowledge' then 3 else 4 end,
+                     origin_id loop
+    select * into s from public.fn_knowledge_library_source(o.origin_store, o.origin_id);
+    if not found then continue; end if;
+    if not v_have then p := s; v_have := true; end if;
+    v_seats := v_seats || s.seats;
+    v_elig := v_elig or s.runtime_eligible;
+    v_ver := v_ver or s.verified;
+  end loop;
+  if not v_have then return; end if;
+  select v.embedding, v.text_hash into v_ml, v_ml_hash from public.knowledge_vector_ml v
+   where v.src = p.origin_store and v.row_id = p.origin_id;
+  v_seats := case when '*' = any(v_seats) then '{*}'::text[]
+                  else array(select distinct x from unnest(v_seats) x order by x) end;
+  update public.knowledge_library l
+     set origin_store = p.origin_store, origin_id = p.origin_id, title = p.title, content = p.content, trade = p.trade,
+         tags = p.tags, lang = p.lang, source_ref = p.source_ref, source_ids = p.source_ids, seats = v_seats,
+         runtime_eligible = v_elig, verified = v_ver, embedding_gte = p.embedding_gte, updated_at = now()
+   where l.id = p_library_id
+     and (l.origin_store, l.origin_id, l.title, l.content, l.trade, l.tags, l.lang, l.source_ref, l.source_ids, l.seats,
+          l.runtime_eligible, l.verified, l.embedding_gte)
+         is distinct from
+         (p.origin_store, p.origin_id, p.title, p.content, p.trade, p.tags, p.lang, p.source_ref, p.source_ids, v_seats,
+          v_elig, v_ver, p.embedding_gte);
+  if v_ml is null then
+    delete from public.knowledge_vector_ml where src = 'knowledge_library' and row_id = p_library_id::text;
+  else
+    insert into public.knowledge_vector_ml (src, row_id, text_hash, embedding, embedded_at)
+    values ('knowledge_library', p_library_id::text, v_ml_hash, v_ml, now())
+    on conflict (src, row_id) do update set embedding = excluded.embedding, text_hash = excluded.text_hash,
+      embedded_at = excluded.embedded_at
+    where knowledge_vector_ml.embedding is distinct from excluded.embedding;
+  end if;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_library_reconcile()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_store text; v_out jsonb := '{}'; v_ok boolean := true; n bigint; refs bigint; ids bigint; ln bigint; lrefs bigint; lids bigint; lprim bigint;
+begin
+  foreach v_store in array array['kb_chunks', 'ops_knowledge', 'agent_knowledge', 'sales_knowledge', 'accountant_knowledge',
+                                 'it_engineer_knowledge', 'marketing_knowledge', 'ceo_knowledge', 'support_knowledge'] loop
+    execute 'select count(*), count(s.source_ref), coalesce(sum(cardinality(s.source_ids)), 0) from ('
+         || replace((public.fn_knowledge_library_source_sql(v_store)).sel, '/*KEY*/', '') || ') s' into n, refs, ids;
+    select count(*), count(o.source_ref), coalesce(sum(cardinality(o.source_ids)), 0),
+           count(*) filter (where l.origin_store = o.origin_store and l.origin_id = o.origin_id)
+      into ln, lrefs, lids, lprim
+      from public.knowledge_library_origin o join public.knowledge_library l on l.id = o.library_id where o.origin_store = v_store;
+    v_ok := v_ok and n = ln and refs = lrefs and ids = lids;
+    v_out := v_out || jsonb_build_object(v_store, jsonb_build_object('source_rows', n, 'mapped', ln, 'primaries', lprim,
+               'source_refs', refs, 'mapped_refs', lrefs, 'source_ids', ids, 'mapped_ids', lids));
+  end loop;
+  return jsonb_build_object('stores', v_out, 'reconciled', v_ok,
+    'library_rows', (select count(*) from public.knowledge_library),
+    'merged_origins', (select count(*) from public.knowledge_library_origin o join public.knowledge_library l on l.id = o.library_id
+                        where (l.origin_store, l.origin_id) is distinct from (o.origin_store, o.origin_id)),
+    'ml_vectors', (select count(*) from public.knowledge_vector_ml where src = 'knowledge_library'),
+    'gte_vectors', (select count(*) from public.knowledge_library where embedding_gte is not null),
+    'duplicate_texts', (select count(*) - count(distinct (content_md5, runtime_eligible)) from public.knowledge_library
+                         where origin_store in ('kb_chunks', 'agent_knowledge', 'ops_knowledge')));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_library_seat_store(p_seat text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case p_seat when 'sales_engineer' then 'sales_knowledge' when 'accountant' then 'accountant_knowledge'
+                     when 'it_engineer' then 'it_engineer_knowledge' when 'customer_support' then 'support_knowledge'
+                     when 'ceo' then 'ceo_knowledge' when 'marketing' then 'marketing_knowledge' end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_library_source(p_store text, p_id text)
+ RETURNS TABLE(origin_store text, origin_id text, title text, content text, trade text, tags text[], seats text[], lang text, source_ref text, source_ids text[], verified boolean, runtime_eligible boolean, embedding_gte vector)
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'extensions', 'pg_temp'
+AS $function$
+declare q record := public.fn_knowledge_library_source_sql(p_store);
+begin
+  return query execute replace(q.sel, '/*KEY*/', q.key || ' and ') using array[p_id];
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_library_source_sql(p_store text, OUT sel text, OUT key text)
+ RETURNS record
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_lang constant text := 'case when %s like ''%%@ar'' or %s ~ ''^[^A-Za-z]*[\u0621-\u064A]'' then ''ar'' else ''en'' end';
+begin
+  case p_store
+  when 'kb_chunks' then
+    key := 'c.id = any($1::bigint[])';
+    sel := 'select ''kb_chunks''::text, c.id::text, c.title, c.content, c.category_norm, ''{}''::text[], ''{*}''::text[], '
+          || format(v_lang, 'c.id::text', 'c.content') || ', c.citation, ''{}''::text[], true, true, c.embedding_gte
+               from public.kb_chunks c
+              where /*KEY*/ not (c.source_kind is not distinct from ''qd_kb_pack''
+                                 and c.id not in (select split_part(x, '':'', 2)::bigint from public.sales_decision_log s, unnest(s.cited) x
+                                                   where x ~ ''^kb_chunks:[0-9]+$''))';   -- a hashed subplan, read once
+  when 'ops_knowledge' then
+    key := 'c.record_id = any($1)';
+    sel := 'select ''ops_knowledge''::text, c.record_id, c.title, c.content, c.category_key, ''{}''::text[], ''{*}''::text[], '
+          || format(v_lang, 'c.record_id', 'c.content') || ', c.source_path, coalesce(c.source_ids, ''{}''), c.validation_status <> ''draft'',
+                    coalesce(c.runtime_eligible and c.supersession_state = ''current''
+                             and c.scope_type in (''company'', ''external_source'', ''category''), false), c.embedding_gte
+               from public.ops_knowledge c where /*KEY*/ true';
+  when 'agent_knowledge' then
+    key := 'c.id = any($1::bigint[])';
+    sel := 'select ''agent_knowledge''::text, c.id::text, c.topic, c.content, null::text, ''{}''::text[],
+                    case when c.agent_key = ''_global'' then ''{*}''::text[] else array[c.agent_key] end, '
+          || format(v_lang, 'c.id::text', 'c.content') || ', c.source_ref, ''{}''::text[],
+                    coalesce(c.validation_status not in (''unsourced'', ''unvalidated'', ''quarantined''), false), true, c.embedding_gte
+               from public.agent_knowledge c where /*KEY*/ true';
+  when 'sales_knowledge' then
+    key := 'c.record_id = any($1)';
+    sel := 'select ''sales_knowledge''::text, c.record_id, c.title, c.content,
+                    (select substr(t, 7) from unnest(c.tags) t where t like ''trade:%%'' limit 1), coalesce(c.tags, ''{}''),
+                    case when c.pack_id like ''verified:trade:%%'' or exists (select 1 from unnest(c.tags) t where t like ''trade:%%'')
+                         then array[''sales_engineer'', ''customer_support''] else array[''sales_engineer''] end, '
+          || format(v_lang, 'c.record_id', 'c.content') || ', c.pack_id, coalesce(c.source_ids, ''{}''),
+                    c.epistemic_status = ''verified_pack_sourced'', coalesce(c.runtime_index_eligible, false), c.embedding_gte
+               from public.sales_knowledge c where /*KEY*/ true';
+  when 'accountant_knowledge', 'it_engineer_knowledge', 'marketing_knowledge' then
+    key := 'c.record_id = any($1)';
+    sel := format('select %L::text, c.record_id, c.title, c.content, null::text, coalesce(c.tags, ''{}''), array[%L], ',
+                    p_store, case p_store when 'accountant_knowledge' then 'accountant' when 'it_engineer_knowledge' then 'it_engineer'
+                                          else 'marketing' end)
+          || format(v_lang, 'c.record_id', 'c.content') || ', c.pack_id, coalesce(c.source_ids, ''{}''),
+                    c.epistemic_status = ''verified_pack_sourced'', coalesce(c.runtime_index_eligible, false), c.embedding_gte
+               from public.' || p_store || ' c where /*KEY*/ true';
+  when 'ceo_knowledge' then
+    key := 'c.record_id = any($1)';
+    sel := 'select ''ceo_knowledge''::text, c.record_id, c.title, c.body, null::text, coalesce(c.tags, ''{}''), array[''ceo''],
+                    coalesce(nullif(c.language, ''''), ' || format(v_lang, 'c.record_id', 'c.body') || '),
+                    coalesce(c.source_path, c.pack_fingerprint), coalesce(c.source_ids, ''{}''), c.review_status = ''verified_sourced'',
+                    coalesce(c.runtime_index_eligible, false), c.embedding_gte
+               from public.ceo_knowledge c where /*KEY*/ true';
+  when 'support_knowledge' then
+    key := 'c.record_id = any($1)';
+    sel := 'select ''support_knowledge''::text, c.record_id, c.title, c.body, null::text, coalesce(c.tags, ''{}''), array[''customer_support''],
+                    coalesce(nullif(c.language, ''''), ' || format(v_lang, 'c.record_id', 'c.body') || '),
+                    coalesce(c.source_path, c.pack_id), coalesce(c.source_ids, ''{}''), c.review_status = ''verified_sourced'',
+                    coalesce(c.runtime_index_eligible, true), c.embedding_gte
+               from public.support_knowledge c where /*KEY*/ true';
+  else
+    raise exception 'fn_knowledge_library_source: % is not one of the nine stores', p_store;
+  end case;
+  -- columns: origin_store, origin_id, title, content, trade, tags, seats, lang, source_ref, source_ids, verified,
+  -- runtime_eligible, embedding_gte. key: the predicate that picks the origins listed in $1 (text[]).
+  -- A row with no text yet (a placeholder a loader fills later) is not knowledge: it waits outside the library, so the
+  -- mirror trigger can never fail the writer's own insert on the library's NOT NULL.
+  sel := 'select * from (' || sel || ') s (origin_store, origin_id, title, content, trade, tags, seats, lang, source_ref, '
+      || 'source_ids, verified, runtime_eligible, embedding_gte) where s.content is not null';
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_library_sync(p_store text, p_id text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'extensions', 'pg_temp'
+AS $function$
+declare
+  s record; m record;
+  v_dedup constant boolean := p_store in ('kb_chunks', 'agent_knowledge', 'ops_knowledge');
+  v_md5 text; v_target bigint; v_alone boolean;
+begin
+  perform pg_advisory_xact_lock_shared(hashtext('public.knowledge_library'));
+  select * into s from public.fn_knowledge_library_source(p_store, p_id);
+  select o.library_id, l.content_md5, l.runtime_eligible
+    into m from public.knowledge_library_origin o join public.knowledge_library l on l.id = o.library_id
+   where o.origin_store = p_store and o.origin_id = p_id;
+
+  if s.origin_id is null then                               -- deleted, empty, or not knowledge (an uncited qd_kb_pack row)
+    if m.library_id is null then return 'absent'; end if;
+    perform public.fn_knowledge_library_detach(p_store, p_id);
+    return 'removed';
+  end if;
+  v_md5 := md5(s.content);
+
+  if m.library_id is not null then
+    select count(*) = 1 into v_alone from public.knowledge_library_origin where library_id = m.library_id;
+    -- in place while it still belongs to its group: same text and same eligibility, or a store that never merges
+    if (m.content_md5 = v_md5 and m.runtime_eligible = s.runtime_eligible) or (v_alone and not v_dedup) then
+      update public.knowledge_library_origin set source_ref = s.source_ref, source_ids = s.source_ids
+       where origin_store = p_store and origin_id = p_id
+         and (source_ref, source_ids) is distinct from (s.source_ref, s.source_ids);
+      perform public.fn_knowledge_library_recompute(m.library_id);
+      return 'updated';
+    end if;
+    perform public.fn_knowledge_library_detach(p_store, p_id); -- its text or eligibility changed: it finds its group again
+  end if;
+
+  if v_dedup then
+    select l.id into v_target from public.knowledge_library l
+     where l.content_md5 = v_md5 and l.runtime_eligible = s.runtime_eligible
+       and l.origin_store in ('kb_chunks', 'agent_knowledge', 'ops_knowledge')
+     order by l.id limit 1;
+  end if;
+  if v_target is null then
+    insert into public.knowledge_library (origin_store, origin_id, title, content, trade, tags, seats, lang, source_ref,
+                                          source_ids, verified, runtime_eligible, embedding_gte)
+    values (p_store, p_id, s.title, s.content, s.trade, s.tags, s.seats, s.lang, s.source_ref, s.source_ids, s.verified,
+            s.runtime_eligible, s.embedding_gte)
+    returning id into v_target;
+  end if;
+  insert into public.knowledge_library_origin values (p_store, p_id, v_target, s.source_ref, s.source_ids);
+  perform public.fn_knowledge_library_recompute(v_target);
+  return case when (select count(*) from public.knowledge_library_origin where library_id = v_target) = 1 then 'inserted' else 'merged' end;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_knowledge_provenance_stamp()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -11152,32 +11607,29 @@ begin
            (l.license_expiry - (now() at time zone 'Asia/Dubai')::date) as days_left
       from public.leads l
      where l.license_expiry is not null
+       -- 1 to 30 days ahead. The expiry day itself is fn_reconcile_doc_blocks's: it pauses matching and tells the
+       -- supplier that day, so a second "expired" ask here would be a second message for one threshold.
+       and l.license_expiry >  (now() at time zone 'Asia/Dubai')::date
        and l.license_expiry <= (now() at time zone 'Asia/Dubai')::date + 30
        and coalesce(l.banned, false) = false
      order by l.license_expiry
      limit 500
   loop
     v_days := r.days_left;
-    v_band := case
-      when v_days < 0   then 'expired'
-      when v_days <= 7  then 't_minus_7'
-      when v_days <= 14 then 't_minus_14'
-      else                   't_minus_30' end;
+    -- TWO THRESHOLDS, 30 and 7 days (ruling 1209). One ask per threshold per channel: the unique key
+    -- (lead_id, expiry_date, band, channel) makes a re-run a no-op and a renewed licence a fresh pair.
+    v_band := case when v_days <= 7 then 't_minus_7' else 't_minus_30' end;
     v_planned := v_planned + 1;
     v_twin := null; v_twin_st := null; v_twin_err := null;
     -- Where a WhatsApp twin would go: only a number the supplier confirmed, never the raw phone.
     v_dest := public.fn_whatsapp_destination('supplier', null, r.id, r.email);
 
-    v_subject := case when v_days < 0
-      then 'Your trade licence has expired'
-      else 'Your trade licence expires in ' || v_days || ' days' end;
+    v_subject := 'Your trade licence expires in ' || v_days || case when v_days = 1 then ' day' else ' days' end;
 
     v_body := 'Dear ' || coalesce(r.company_name, 'Supplier') || ',' || chr(10) || chr(10)
-           || case when v_days < 0
-                then 'The trade licence we hold for you expired on ' || to_char(r.license_expiry, 'DD Mon YYYY')
-                  || '. Until we have a valid one we cannot include you in new requests.'
-                else 'The trade licence we hold for you expires on ' || to_char(r.license_expiry, 'DD Mon YYYY')
-                  || ', which is ' || v_days || ' days from now.' end
+           || 'The trade licence we hold for you expires on ' || to_char(r.license_expiry, 'DD Mon YYYY')
+           || ', which is ' || v_days || case when v_days = 1 then ' day' else ' days' end || ' from now. On that day we pause new '
+           || 'customer requests to you until we have approved the renewed licence.'
            || chr(10) || chr(10)
            || 'Please send us the renewed copy. A clear photograph is fine, a PDF is better. '
            || 'You can reply to this email with it attached, or upload it in the Documents tab of your '
@@ -11512,6 +11964,31 @@ begin
   end if;
   return case when tg_op = 'DELETE' then old else new end;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_llm_route_health_no_new_founder_hold()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if public.fn_llm_route_is_held(new.open_until, new.cooldown_seconds)
+     and (tg_op = 'INSERT' or new.open_until is distinct from old.open_until)
+     and not public.fn_founder_hold_change_allowed() then
+    raise exception 'RULING_1260: OpenRouter stays on; route % is held past its own breaker cooldown only by the founder (set local app.change_reason = ''founder:<ledger id>'').',
+      new.model_id using errcode = 'P0001';
+  end if;
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_llm_route_is_held(p_open_until timestamp with time zone, p_cooldown_seconds integer)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select coalesce(p_open_until > now() + make_interval(secs => greatest(coalesce(p_cooldown_seconds, 0), 0)) + interval '5 minutes', false) $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_login_otp_email_issue(p_email text, p_hash text, p_kind text, p_ttl_seconds integer DEFAULT 600)

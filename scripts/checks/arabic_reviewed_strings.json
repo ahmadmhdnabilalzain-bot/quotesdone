@@ -62,9 +62,6 @@
   "f1acdc868e08",
   "fdce93c05d49"
  ],
- "knowledge/brief/uae_regulations/services_and_general_trades.md": [
-  "52a0b1d6e84b"
- ],
  "messages/ar.json": [
   "02bd35ced3c1",
   "031f4b936523",
@@ -449,7 +446,9 @@
   "fc42ae7333f5",
   "fd9cc5abf53d",
   "ff564000c32a",
-  "ffafacc477aa"
+  "ffafacc477aa",
+  "806a8c0a9b11",
+  "96e14be90f55"
  ],
  "scripts/sql/a_claimed_company_cannot_be_registered_twice_under_another_spelling_or_the_same_licence.sql": [
   "24c7d3a2ff4f",
@@ -460,31 +459,20 @@
   "496a302c86b0",
   "ec42828d58cb"
  ],
- "scripts/sql/a_customer_hears_the_reveal_and_its_invoice_in_the_inquiry_language.sql": [
-  "0ad679a262b2",
-  "1390254fa3fe",
-  "6795f24f47d7"
- ],
- "scripts/sql/a_customer_support_question_reaches_a_person_in_fifteen_minutes_probe.sql": [
-  "1143523d828f"
- ],
  "scripts/sql/a_customer_support_question_reaches_a_person_in_fifteen_minutes.sql": [
   "3c2dc612880a",
   "7741094dd3ef",
   "d0466f61047f",
   "fae3d0feb457"
  ],
+ "scripts/sql/a_customer_support_question_reaches_a_person_in_fifteen_minutes_probe.sql": [
+  "1143523d828f"
+ ],
  "scripts/sql/a_fee_question_that_names_no_side_gets_the_customer_fee.sql": [
   "2fcc300bc0ca",
   "4c605fe5b5ab",
   "6190da0bcb51",
   "ca7ac89e6aaf"
- ],
- "scripts/sql/a_fenced_seat_duty_keeps_its_fixture_switch.sql": [
-  "1ddbe22a20cf",
-  "25831966a970",
-  "71425d07f632",
-  "735f3f9ff862"
  ],
  "scripts/sql/a_greeting_written_in_arabic_is_answered_in_arabic.sql": [
   "1d182c597aa0",
@@ -503,12 +491,6 @@
  "scripts/sql/a_held_request_takes_its_missing_specs_from_the_customer_and_is_released_when_complete.sql": [
   "dd7717d7c21d",
   "f8a24d42bef5"
- ],
- "scripts/sql/a_lesson_never_carries_a_case_or_inquiry_id_or_an_amount.sql": [
-  "5333ab878234",
-  "80e20e866c69",
-  "ad5f1850d35a",
-  "d9b3d92d9cd5"
  ],
  "scripts/sql/a_licence_may_arrive_by_email_or_portal_and_a_stranger_must_prove_the_account_is_theirs.sql": [
   "7478879f664f",
@@ -561,14 +543,6 @@
  ],
  "scripts/sql/a_stalled_request_puts_its_trade_and_area_first_in_the_invitation_queue.sql": [
   "d4da55db16ad"
- ],
- "scripts/sql/a_supplier_may_refresh_a_quotation_before_reveal_as_the_agreement_says.sql": [
-  "2d40f052e0dc",
-  "8e9efb918bad",
-  "8f2b4b5cab7b",
-  "952398d7142e",
-  "bafd773faf8b",
-  "cda600d8f764"
  ],
  "scripts/sql/a_verified_supplier_is_told_what_his_portfolio_is_missing.sql": [
   "033fce7adb9c",
@@ -1128,9 +1102,6 @@
   "6722f6506ada",
   "ccde2d166647"
  ],
- "scripts/sql/supplier_quote_templates_carry_structure_never_price.sql": [
-  "5af222ccab16"
- ],
  "scripts/sql/suppliers_are_always_written_in_english_and_customers_in_their_inquirys_language.sql": [
   "014c460148eb",
   "062526994b5f",
@@ -1391,11 +1362,11 @@
  "scripts/sql/the_faq_states_the_fee_base_and_the_supplier_quote_as_stated.sql": [
   "33f3832b06b0",
   "5dc0c783470e",
+  "87dbc4d1e035",
   "90ef68a67059",
   "96c9fec939b6",
   "dc528da26c82",
-  "e586ea015bca",
-  "87dbc4d1e035"
+  "e586ea015bca"
  ],
  "scripts/sql/the_invitation_pool_is_read_once_as_a_set_so_the_daily_list_fits_its_timeout.sql": [
   "c12bc8b93a2b",
@@ -2826,6 +2797,7 @@
   "2eca4f9d9171",
   "7d65f5c4634e",
   "850e635c2b4d",
+  "865beccd9a65",
   "a0b7f299c779",
   "b835ee841c0b",
   "e6185af60865"
@@ -2841,7 +2813,8 @@
   "9c1f71981011",
   "a4879318094c",
   "a69c82313935",
-  "c8eadf831cf9"
+  "c8eadf831cf9",
+  "a6b33dd50c2d"
  ],
  "src/components/CompanyIdentity.tsx": [
   "639ceec6e997"
@@ -2870,13 +2843,15 @@
   "393a046df1b4",
   "3fdb73924e6b",
   "4477d80dfaab",
+  "54a4dbc7f286",
   "626a9b9f8db5",
   "7ae0e95b97ad",
-  "fd5a7b66a146",
-  "54a4dbc7f286"
+  "fd5a7b66a146"
  ],
  "src/components/FaqInner.tsx": [
-  "1085098eb87e"
+  "1085098eb87e",
+  "35f49cd30fa1",
+  "6beaf09aea06"
  ],
  "src/components/LegalDoc.tsx": [
   "28fd1b25a6a1",
@@ -2926,7 +2901,8 @@
   "e2cb86156237",
   "e5425312ff82",
   "e787c2bb7f43",
-  "eaae39f3a7e1"
+  "eaae39f3a7e1",
+  "41de66289e04"
  ],
  "src/components/me/NewRequest.tsx": [
   "15b233b4ba6e",
@@ -2942,6 +2918,7 @@
   "f085945a9a01"
  ],
  "src/components/me/portalText.ts": [
+  "ad4af4c1027c",
   "00883d7920a3",
   "01776b1f13a4",
   "020d45ecac5c",
@@ -3035,6 +3012,7 @@
   "5af9cad10162",
   "5c174a8af4ea",
   "5e4992364cc0",
+  "606ff8f1f04d",
   "63a5702c7fef",
   "63bb7a637e18",
   "6417fb3ff929",
@@ -3063,6 +3041,7 @@
   "778fa2108edb",
   "77e267bc8c3a",
   "78062a29d408",
+  "780e9a802413",
   "7a745f0a144d",
   "7b14105ed4f9",
   "7c5822c53657",
@@ -3146,6 +3125,7 @@
   "cc308a5e6acf",
   "d0150f86cbe5",
   "d04f39d6f405",
+  "d2479290cc2e",
   "d24e24552aa4",
   "d36c663e6a31",
   "d466a6a5871c",
@@ -3193,8 +3173,7 @@
   "fc644b0eb14a",
   "fe7e984490db",
   "fed9f6096feb",
-  "ff0cc7c9de41",
-  "d2479290cc2e"
+  "ff0cc7c9de41"
  ],
  "src/components/me/quoteExpiry.ts": [
   "124fb2c05c50",
@@ -4800,7 +4779,8 @@
   "5f16eab40f42",
   "9261a30506c0",
   "9fcc5be416e8",
-  "d5e659d2e470"
+  "d5e659d2e470",
+  "5b0ed52584d7"
  ],
  "src/components/portal/supplier/servicesCopy.ts": [
   "00d972094620",
@@ -5311,7 +5291,18 @@
   "fd3788506791",
   "fd4d1114538b",
   "fd9cfbba2824",
-  "fe4f54bad0fc"
+  "fe4f54bad0fc",
+  "10bbb69afc8c",
+  "2faf49d175ad",
+  "755be831f556",
+  "f10f79ee1c12",
+  "2e2b8541e5b0",
+  "52e7c937ed18",
+  "6dfb72ee6864",
+  "8ea6e2bbade2",
+  "c146992d411c",
+  "c89285eb576d",
+  "e85df900f31b"
  ],
  "src/components/portal/suppliers/SupplierRelationship.tsx": [
   "005339379cfe",
@@ -5507,8 +5498,8 @@
   "0f70841ffbde"
  ],
  "src/components/QuoteBadges.tsx": [
-  "aa7ef1d629ad",
-  "88c2b594cb3c"
+  "88c2b594cb3c",
+  "aa7ef1d629ad"
  ],
  "src/components/ServiceDoc.tsx": [
   "00970d07e4bb",
@@ -5523,7 +5514,9 @@
   "8bc4aed040a9",
   "a689a4cf0af7",
   "abec5f925a16",
-  "e46de96ffa56"
+  "e46de96ffa56",
+  "fd4a3bdaef87",
+  "7c4da9eb6df5"
  ],
  "src/components/visual/AnonymityFlow.tsx": [
   "0350b5fc4422",
@@ -5575,6 +5568,9 @@
   "80525653a9e7",
   "ce534deaa8f7"
  ],
+ "supabase/functions/_shared/brief.generated.ts": [
+  "434f70386172"
+ ],
  "supabase/functions/_shared/cad_file_redact.ts": [
   "214e2a66c5bf"
  ],
@@ -5594,7 +5590,10 @@
   "cf3c018291ef",
   "d4ac37286024",
   "da98c1583a6a",
-  "f5abebf3196f"
+  "f5abebf3196f",
+  "28c42f5909d0",
+  "69adab83d339",
+  "dd5485195143"
  ],
  "supabase/functions/_shared/clearer_copy.ts": [
   "d73b7070b4bf"
@@ -5607,6 +5606,7 @@
   "022c0e841ed6",
   "047b6da45a18",
   "06338a5c4b64",
+  "0681db1a83a2",
   "369b9a738647",
   "3757e4fbb5e1",
   "383d04ced24b",
@@ -5632,20 +5632,19 @@
   "a844ae93d451",
   "c3731f8fd32a",
   "d1e1bf0448b1",
+  "de62a9134e25",
   "e1814f15aded",
   "eb86d8fc0c02",
   "f4e468bb2a84",
-  "fe4e3d803c47",
-  "0681db1a83a2",
-  "de62a9134e25"
- ],
- "supabase/functions/_shared/contact_limits.ts": [
-  "7c5b9dd79c62",
-  "84dc981d29ae"
+  "fe4e3d803c47"
  ],
  "supabase/functions/_shared/customer_mail.ts": [
   "7784a68c401d",
-  "9c9347b8a06d"
+  "9c9347b8a06d",
+  "4253a24f0090",
+  "586f6f44a448",
+  "6aa95d8fabfb",
+  "c607dba157a1"
  ],
  "supabase/functions/_shared/customer_terms.ts": [
   "bb6521bace53"
@@ -5665,7 +5664,8 @@
   "a55eed84e8ff",
   "a851e616d0b9",
   "b539face70fe",
-  "cbb176539761"
+  "cbb176539761",
+  "fbe144d11ac6"
  ],
  "supabase/functions/_shared/drawing_format.ts": [
   "939055a3b61f"
@@ -5861,10 +5861,6 @@
   "d0d8c5ebe026",
   "fdacad8a8771"
  ],
- "supabase/functions/_shared/marketing_send_gate.ts": [
-  "17664d278ab8",
-  "b0071cfe9c80"
- ],
  "supabase/functions/_shared/marketing_style.ts": [
   "8a268a74f2b2"
  ],
@@ -5912,25 +5908,29 @@
   "0606cadc7570",
   "112c4662fbf6",
   "17a8beaa5500",
+  "49175bc8c637",
+  "5a629a082c9a",
   "5eada1a04c3f",
   "659b3e0b6865",
   "6eb3a5ab7bb4",
   "704a95d762a3",
+  "7d12b7a501dc",
   "8c237eb49571",
   "8cc7466c5249",
   "9b9c4b356724",
   "c56381adb176",
+  "c6aa2ccc0e0b",
   "d1e3bf58385c",
   "daec3ca59871",
-  "df7419d4841d",
-  "49175bc8c637",
-  "5a629a082c9a",
-  "7d12b7a501dc",
-  "c6aa2ccc0e0b"
+  "df7419d4841d"
  ],
  "supabase/functions/_shared/supplier_agreement.ts": [
   "2eeb132406ba",
-  "bc769b49e75d"
+  "bc769b49e75d",
+  "b72aaecaef24",
+  "d469c60c6d28",
+  "0ace90eb0853",
+  "5839dc1b25d3"
  ],
  "supabase/functions/_shared/supplier_charge_documents.ts": [
   "028bd4e1bdc6",
@@ -6048,10 +6048,6 @@
   "fdd836af5b0c",
   "ff0d6c60d45e"
  ],
- "supabase/functions/_shared/supplier_doc_trades.ts": [
-  "4116f122be73",
-  "611e94d11c87"
- ],
  "supabase/functions/_shared/supplier_english.ts": [
   "6a43e6a940cb",
   "def44508420c"
@@ -6071,7 +6067,9 @@
  "supabase/functions/_shared/support_reply_guard.ts": [
   "29e16cbb341d",
   "622dc4a7b5b1",
-  "713903274b9b"
+  "713903274b9b",
+  "1c124ac36381",
+  "24c91058ee6f"
  ],
  "supabase/functions/_shared/think.ts": [
   "4e2156827796"
@@ -6112,7 +6110,8 @@
   "e00773da115b",
   "e13e073561a2",
   "f5175202b419",
-  "fe9667777dfb"
+  "fe9667777dfb",
+  "cc83c7932429"
  ],
  "supabase/functions/customer_documents/index.ts": [
   "45f92e2a0325"
@@ -6319,10 +6318,33 @@
   "4cd3834955bb"
  ],
  "supabase/functions/site_assistant/index.ts": [
+  "0e0329c97c49",
   "244053c77971",
   "9a03685e2791",
   "ee486754ccff",
-  "0e0329c97c49"
+  "0e0329c97c49",
+  "0271a1f4c66d",
+  "32f673f57030",
+  "35a1a42cc34d",
+  "488eec99c14e",
+  "4c6a9cec02c0",
+  "524c3be9b432",
+  "5915ebe1b5c8",
+  "5e40435fb3ce",
+  "5f72d41e3fd6",
+  "88fc3314de43",
+  "89008c118194",
+  "9a84f622dd82",
+  "9ce520c3750e",
+  "ad996ed439d2",
+  "af3e20773443",
+  "c183c419054d",
+  "c4356c2c80ac",
+  "c94d66d845db",
+  "d13175d02298",
+  "dbd6352d03bc",
+  "f34fd00dad6c",
+  "f40cee86aeb4"
  ],
  "supabase/functions/site_assistant/stream_reply.ts": [
   "aeb58bdf5c4d"
@@ -6353,7 +6375,8 @@
   "94956e39f7f1",
   "a2d8778c01cf",
   "b950c9daf1bf",
-  "d8840a7d8b95"
+  "d8840a7d8b95",
+  "bfca58024b1a"
  ],
  "supabase/functions/supplier_api/quote_review_flow.ts": [
   "0c4b45efc9bf",
@@ -6485,10 +6508,8 @@
   "f6f438acd428",
   "fa22358733e6",
   "fd221d747267",
-  "fd6f0db18deb"
- ],
- "supabase/functions/supplier_api/quote_template.ts": [
-  "62ef1b50197e"
+  "fd6f0db18deb",
+  "754922b40436"
  ],
  "supabase/functions/supplier_portal/document_actions.ts": [
   "5b18a29fa4d7",
@@ -6524,24 +6545,21 @@
   "cdda50dc07b3"
  ],
  "supabase/functions/wa_inbound/index.ts": [
-  "5cbb277245b5",
-  "61e5bb9d6ede",
-  "75e7c95e9ceb",
-  "7fea49861151",
-  "c09183a62789",
-  "caa8dfdaf4f5",
-  "cb974acf7755",
-  "f00b7f659d1a",
   "0c779ad88625",
   "26aade657b40",
   "4061420fc991",
+  "5cbb277245b5",
+  "61e5bb9d6ede",
   "6c8d4e17edaa",
+  "75e7c95e9ceb",
+  "7fea49861151",
   "a543b7484225",
   "b2a7e76366cb",
-  "e687fbf0ba76"
- ],
- "supabase/functions/wa_inbound/menu_flow.ts": [
-  "dd8eecf60984"
+  "c09183a62789",
+  "caa8dfdaf4f5",
+  "cb974acf7755",
+  "e687fbf0ba76",
+  "f00b7f659d1a"
  ],
  "supabase/functions/wa_inbound/menu.ts": [
   "027ef5367e8d",
@@ -6598,9 +6616,6 @@
   "fbc23836418d",
   "fe741877988e"
  ],
- "supabase/functions/wa_inbound/model_says.ts": [
-  "036a6e41b969"
- ],
  "supabase/functions/wa_template_setup/index.ts": [
   "06650a058c0a",
   "08c4943939dc",
@@ -6616,8 +6631,58 @@
   "d7028cd29b51",
   "d9a9b884d813"
  ],
- "supabase/functions/_shared/brief.generated.ts": [
-  "434f70386172"
+ "knowledge/brief/uae_regulations/services_and_general_trades.md": [
+  "52a0b1d6e84b"
+ ],
+ "supabase/functions/wa_inbound/menu_flow.ts": [
+  "dd8eecf60984"
+ ],
+ "supabase/functions/wa_inbound/model_says.ts": [
+  "036a6e41b969"
+ ],
+ "scripts/sql/a_supplier_may_refresh_a_quotation_before_reveal_as_the_agreement_says.sql": [
+  "2d40f052e0dc",
+  "8e9efb918bad",
+  "8f2b4b5cab7b",
+  "952398d7142e",
+  "bafd773faf8b",
+  "cda600d8f764"
+ ],
+ "scripts/sql/a_customer_hears_the_reveal_and_its_invoice_in_the_inquiry_language.sql": [
+  "0ad679a262b2",
+  "1390254fa3fe",
+  "6795f24f47d7"
+ ],
+ "scripts/sql/a_fenced_seat_duty_keeps_its_fixture_switch.sql": [
+  "1ddbe22a20cf",
+  "25831966a970",
+  "71425d07f632",
+  "735f3f9ff862"
+ ],
+ "scripts/sql/a_lesson_never_carries_a_case_or_inquiry_id_or_an_amount.sql": [
+  "5333ab878234",
+  "80e20e866c69",
+  "ad5f1850d35a",
+  "d9b3d92d9cd5"
+ ],
+ "scripts/sql/supplier_quote_templates_carry_structure_never_price.sql": [
+  "5af222ccab16"
+ ],
+ "supabase/functions/_shared/contact_limits.ts": [
+  "7c5b9dd79c62",
+  "b52d77701d81",
+  "84dc981d29ae"
+ ],
+ "supabase/functions/_shared/marketing_send_gate.ts": [
+  "17664d278ab8",
+  "b0071cfe9c80"
+ ],
+ "supabase/functions/_shared/supplier_doc_trades.ts": [
+  "4116f122be73",
+  "611e94d11c87"
+ ],
+ "supabase/functions/supplier_api/quote_template.ts": [
+  "62ef1b50197e"
  ],
  "supabase/functions/email_triage/index.ts": [
   "1d82a8451ead",
@@ -6704,5 +6769,77 @@
  ],
  "supabase/functions/send_outbox/m365_lane.ts": [
   "83ed89be1b93"
+ ],
+ "scripts/sql/the_terms_of_19_october_2026_make_promotions_opt_in_and_name_the_automated_decisions.sql": [
+  "005b945eb449",
+  "076b6d5ad3ac",
+  "083e8276f79e",
+  "347954a3e357",
+  "3540d39928d8",
+  "48175a54e663",
+  "527c251b42af",
+  "56b5c7595316",
+  "66cdbd243f65",
+  "6ee550bf08c6",
+  "70f8f9c95bcf",
+  "716792202838",
+  "74db16d12837",
+  "832c92fb3975",
+  "8c92b3e38b32",
+  "9dd093a35ce9",
+  "9fcba2406792",
+  "9ff28a224a3d",
+  "a56dbf495b14",
+  "aaaf4fb2adf3",
+  "aed9d55060dd",
+  "af68e7f40dcb",
+  "afc34aee5102",
+  "c086f100b7da",
+  "c945142d1ff3",
+  "d8571810ff3d",
+  "d8f5c71bf9df",
+  "d9a4353cc86d",
+  "da5f51f2705d",
+  "e5b97c22b0a2",
+  "e7df148bfae0",
+  "e88c52b925fc",
+  "ee1df12af9df",
+  "ee8222ed97de",
+  "f92c158c7e87",
+  "fa8603f50563"
+ ],
+ "scripts/sql/a_customer_with_quotes_who_has_not_revealed_is_nudged_and_offered_help.sql": [
+  "0f73aac5d3bd",
+  "12a0161d6030",
+  "39c3bdec1bf1",
+  "6ae9dc8830c9",
+  "859798d5f8bb",
+  "a7cf367ebba3",
+  "bdb73e6c4e03",
+  "d4e419cf740a",
+  "f6f72234df37"
+ ],
+ "scripts/sql/the_public_contact_is_configured_not_hard_coded.sql": [
+  "ac6c63ab5f9f"
+ ],
+ "src/components/me/requestTracker.ts": [
+  "0b9e3ae1240b",
+  "18ae7d240bf7",
+  "50b73bfb238b",
+  "517cfcac321f",
+  "669c7c28f4fc",
+  "6ce78f65aec8",
+  "70401eb4ce96",
+  "91e0f4759901",
+  "b5eb4f5ef591",
+  "c1a7fe86f818",
+  "cfa563ec3771",
+  "de2f9e06f9ad",
+  "e99cf34c18d0"
+ ],
+ "scripts/sql/a_pest_control_company_is_invited_as_pest_control_never_as_cleaning.sql": [
+  "d20c7b61f790",
+  "2e61942d939f",
+  "ab7473df79f4"
  ]
 }

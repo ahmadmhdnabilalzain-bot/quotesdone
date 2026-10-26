@@ -1701,6 +1701,69 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_reveal_followup_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  r record; v jsonb; v_lang text; v_ar boolean; v_name text; v_cat text; v_ref text; v_sent int := 0; v_seen int := 0;
+begin
+  for r in
+    with q as (
+      select coalesce(i.parent_inquiry_id, i.id) as root, min(qt.created_at) as first_at, count(*) as n
+        from public.quotes qt join public.inquiries i on i.id = qt.inquiry_id
+       where qt.status = 'submitted' and (qt.expires_at is null or qt.expires_at > now())
+       group by 1)
+    select q.root, q.first_at, q.n, p.rfq_no, p.category, c.id as cid, c.full_name, c.email, c.locale,
+           case when q.first_at <= now() - interval '7 days' then 'day_seven' else 'day_two' end as stage
+      from q join public.inquiries p on p.id = q.root join public.customers c on c.id = p.customer_id
+     where ((q.first_at <= now() - interval '2 days' and q.first_at > now() - interval '6 days')
+         or (q.first_at <= now() - interval '7 days' and q.first_at > now() - interval '21 days'))
+       and p.hired_supplier_id is null and p.completed_at is null
+       and coalesce(p.status, '') not in ('cancelled', 'closed', 'completed', 'revealed')
+       and not coalesce(c.banned, false)
+       and (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) = v_fx
+       and not exists (select 1 from public.transactions t join public.inquiries x on x.id = t.inquiry_id
+                        where t.revealed_at is not null and coalesce(x.parent_inquiry_id, x.id) = q.root)
+     order by q.first_at limit 200
+  loop
+    v_seen := v_seen + 1;
+    v_lang := public.fn_customer_message_lang(r.root, r.locale);
+    v_ar := v_lang = 'ar';
+    v_name := coalesce(nullif(btrim(r.full_name), ''), case when v_ar then 'عميلنا الكريم' else 'there' end);
+    v_cat := coalesce(public.fn_trade_label(r.category, v_lang), case when v_ar then 'طلبكم' else 'your request' end);
+    v_ref := 'RFQ-' || coalesce(r.rfq_no::text, '-');
+    v := public.fn_customer_support_duty_send('reveal.' || r.stage, r.root::text, 'customer', r.email, v_lang,
+      case when v_ar then
+        case when r.stage = 'day_two' then 'عروضكم جاهزة للمقارنة - ' || v_ref else 'تذكير أخير: عروض ' || v_ref || ' ما زالت بانتظاركم' end
+      else
+        case when r.stage = 'day_two' then 'Your quotes are ready to compare - ' || v_ref else 'Last reminder: your quotes on ' || v_ref || ' are waiting' end
+      end,
+      case when v_ar then
+        case when nullif(btrim(r.full_name), '') is null then 'عميلنا الكريم،' else 'السادة/ ' || v_name || ' المحترمين،' end || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+        || 'وصلكم ' || r.n || ' من العروض على طلبكم ' || v_ref || ' (' || v_cat || ')، ويرتّب تقرير المقارنة أفضل ثلاثة منها من حيث القيمة. '
+        || 'لا تكشفون إلا بيانات المورّد الذي تختارونه، ولا تدفعون 3% إلا حينها.' || chr(10) || chr(10)
+        || 'وإن كان في أحد العروض ما يحتاج إلى توضيح - السعر أو النطاق أو الشروط - فأضيفوا ملاحظتكم أو سؤالكم من صفحة الطلب، فتصل إلى جميع المورّدين دون اسمكم أو رقمكم، أو ردّوا على هذه الرسالة لنساعدكم في المقارنة.' || chr(10) || chr(10)
+        || 'افتحوا عروضكم من هنا: https://quotesdone.com/ar/me' || chr(10) || chr(10)
+        || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
+      else
+        'Dear ' || v_name || ',' || chr(10) || chr(10)
+        || 'You have ' || r.n || case when r.n = 1 then ' quote' else ' quotes' end || ' on ' || v_ref || ' (' || v_cat || '), and your comparison report ranks the top three by value. '
+        || 'You reveal only the supplier you choose, and pay 3% only then.' || chr(10) || chr(10)
+        || 'If anything in a quote needs explaining - the price, the scope or the terms - add your note or question on the request page and it reaches every supplier without your name or number, or reply to this e-mail and we will help you compare.' || chr(10) || chr(10)
+        || 'Open your quotes: https://quotesdone.com/me' || chr(10) || chr(10)
+        || 'Kind regards,'
+      end,
+      r.cid, null, r.root);
+    if (v->>'sent')::boolean then v_sent := v_sent + 1; end if;
+  end loop;
+  return jsonb_build_object('seen', v_seen, 'sent', v_sent, 'fixture', v_fx);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_self_review()
  RETURNS jsonb
  LANGUAGE sql
@@ -4386,7 +4449,7 @@ begin
     v_pass := false; v_found := false; v_missing := '{}';
     if e.q_vec is not null then
       select coalesce(jsonb_agg(x order by n), '[]'::jsonb) into v_top
-        from jsonb_array_elements(public.fn_reason_retrieve(e.seat, e.q_vec, 6)) with ordinality t(x, n) where n <= 5;
+        from jsonb_array_elements(public.fn_reason_retrieve(e.seat, e.q_vec, 6, p_audience => 'internal')) with ordinality t(x, n) where n <= 5;
       for v_hit in select x from jsonb_array_elements(v_top) x where x->>'id' = any(e.expected_entry_ids) loop
         if not v_found then   -- the facts reported missing are the first hit's, as in grade()
           v_missing := array(select f from unnest(e.expected_facts) f where strpos(lower(coalesce(v_hit->>'excerpt', '')), lower(f)) = 0);
@@ -4516,6 +4579,10 @@ begin
   end if;
   execute format('select public.%I($1)', k.handler) into v using p_id;
   if v is null then raise exception '% answered nothing for handoff %', k.handler, p_id; end if;
+  -- 1013: the receiver's answer cites the note it was handed.
+  if jsonb_typeof(v) = 'object' and not v ? 'cites_note' then
+    v := v || jsonb_build_object('cites_note', public.fn_handoff_note_citation(p_id));
+  end if;
 
   if v ? 'waiting' or k.originator_closes then
     update public.agent_actions
@@ -4537,11 +4604,15 @@ CREATE OR REPLACE FUNCTION public.fn_seat_handoff_complete(p_id bigint, p_eviden
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare a public.agent_actions;
+declare a public.agent_actions; v_ev jsonb := coalesce(p_evidence, '{}'::jsonb);
 begin
+  -- 1013: every way a handoff closes, the answer cites the note.
+  if jsonb_typeof(v_ev) = 'object' and not v_ev ? 'cites_note' then
+    v_ev := v_ev || jsonb_build_object('cites_note', public.fn_handoff_note_citation(p_id));
+  end if;
   update public.agent_actions
      set status = 'done', decided_at = now(), decided_by = agent,
-         evidence = coalesce(p_evidence, '{}'::jsonb),
+         evidence = v_ev,
          detail = detail - 'awaiting'
    where id = p_id and kind = 'handoff' and status <> 'done'
   returning * into a;
@@ -6399,6 +6470,24 @@ begin
     'funnel', (select coalesce(fn_marketplace_analytics(),'{}'::jsonb))
   ) into res;
   return res;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_stripe_dispute_counts_the_customer()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_c uuid;
+begin
+  select customer_id into v_c from public.transactions where id = new.transaction_id;
+  if v_c is null then return new; end if;
+  update public.customers c
+     set disputes_filed = (select count(*) from public.stripe_dispute d join public.transactions t on t.id = d.transaction_id
+                            where t.customer_id = v_c)
+   where c.id = v_c;
+  return new;
 end $function$
 
 

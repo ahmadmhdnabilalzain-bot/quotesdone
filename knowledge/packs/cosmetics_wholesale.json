@@ -44,6 +44,36 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "cosmetics_wholesale:product-distinctions",
+      "topic": "Cosmetics wholesale: categories, grades of stock and what distinguishes an offer",
+      "topic_ar": "مستحضرات التجميل بالجملة: الفئات وأنواع البضاعة وما يميز العرض",
+      "kind": "product_distinctions",
+      "body_en": "Wholesale cosmetics fall into skin care (cleansers, moisturisers, serums, sun care), make-up or decorative cosmetics (foundation, lipstick, mascara, eye and nail products), hair care (shampoo, conditioner, colour, styling), fragrance and body care, and men's grooming. The stock itself differs: brand-authorised distribution (from the brand or its appointed distributor, full traceability and batch codes), parallel or grey imports (genuine product bought outside the authorised chain, cheaper, with risk on warranty, labelling language and shelf life), private label or white label (a manufacturer's formula under the buyer's brand, with an MOQ), and clearance, short-dated or tester stock. What separates a sound offer: the ingredient list in INCI names on the pack, the batch number and the manufacture or expiry date (or period-after-opening symbol), the country of origin, the product notification or registration status where the market requires it, the shelf life remaining at delivery, storage conditions (heat damages many formulas), and a certificate of analysis or free-sale certificate for private label.",
+      "body_ar": "تنقسم مستحضرات التجميل بالجملة إلى العناية بالبشرة (المنظفات، المرطبات، السيرومات، الوقاية من الشمس)، والمكياج أو مستحضرات الزينة (كريم الأساس، أحمر الشفاه، الماسكارا، منتجات العيون والأظافر)، والعناية بالشعر (الشامبو، البلسم، الصبغات، التصفيف)، والعطور والعناية بالجسم، ومستحضرات العناية للرجال. وتختلف البضاعة نفسها: توزيع معتمد من العلامة (من العلامة أو موزعها المعين، مع تتبع كامل وأرقام دفعات)، أو استيراد موازٍ (منتج أصلي اشتُري خارج القناة المعتمدة، أرخص، مع مخاطر في الضمان ولغة الملصق ومدة الصلاحية)، أو علامة خاصة (تركيبة المصنع باسم علامة المشتري مع حد أدنى للطلب)، أو بضاعة تصفية أو قريبة الانتهاء أو عينات تجربة. وما يميز العرض السليم: قائمة المكونات بأسماء INCI على العبوة، ورقم الدفعة وتاريخ الإنتاج أو الانتهاء (أو رمز مدة الاستعمال بعد الفتح)، وبلد المنشأ، وحالة الإخطار أو التسجيل حيث تشترطها السوق، ومدة الصلاحية المتبقية عند التسليم، وظروف التخزين (الحرارة تتلف كثيراً من التركيبات)، وشهادة تحليل أو شهادة بيع حر للعلامة الخاصة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Cosmetics"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: cosmetic categories make-up, skin care, hair care and perfume; EU and US require INCI ingredient names on the pack -> confirmed."
+    },
+    {
+      "id": "cosmetics_wholesale:lead-times-and-quoting",
+      "topic": "Cosmetics wholesale - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "تجارة مستحضرات التجميل بالجملة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock lines from a distributor are usually delivered in 2-7 days; imported orders 3-8 weeks; private label 8-16 weeks including formulation, artwork and stability testing. A supplier needs the brands or product types, quantities per SKU, whether authorised or parallel stock is acceptable, the minimum remaining shelf life, labelling language needs, and the destination market. A complete quote states per SKU the brand, product name and size, the stock type, batch and expiry, origin, registration or notification status, carton quantity, MOQ, delivery terms, payment terms and validity.",
+      "body_ar": "البضاعة المتوفرة لدى الموزع تسلم عادة خلال 2-7 أيام؛ والطلبات المستوردة 3-8 أسابيع؛ والعلامة الخاصة 8-16 أسبوعاً شاملة التركيبة والتصميم واختبار الثبات. ويحتاج المورد العلامات أو أنواع المنتجات، والكميات لكل صنف، وهل البضاعة الموازية مقبولة أم المعتمدة فقط، والحد الأدنى للصلاحية المتبقية، ومتطلبات لغة الملصق، والسوق المقصودة. ويذكر العرض الكامل لكل صنف العلامة واسم المنتج وحجمه، ونوع البضاعة، والدفعة والانتهاء، والمنشأ، وحالة التسجيل أو الإخطار، وعدد القطع في الكرتون، والحد الأدنى للطلب، وشروط التسليم والدفع، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -69,6 +99,14 @@
       ],
       "why": "The checklist names what an imported cosmetic needs: UAE product registration, conformity certificate, ingredients, batch/expiry and Arabic labelling.",
       "origin": "real buyer question, moved from cosmetics_wholesale.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Is grey-market stock of a big skincare brand safe to buy for my shop, and what should I check on it?",
+      "q_ar": "هل بضاعة السوق الموازي لماركة عناية بالبشرة معروفة آمنة لمحلي؟ وش أتأكد منه؟",
+      "expected_entry_ids": [
+        "cosmetics_wholesale:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -84,6 +122,27 @@
       "cosmetics_wholesale:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "cosmetics_wholesale:product-distinctions"
+      ],
+      "stored_not_served": [
+        "cosmetics_wholesale:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Cosmetics"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

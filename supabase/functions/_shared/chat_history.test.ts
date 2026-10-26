@@ -4,6 +4,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert';
 import { accountKey, fitHistory, loadTranscript, openConversation, transcriptFromRows, type ChatMsg } from './chat_history.ts';
 import { aiReply } from './ai_reply.ts';
+import { forgetWidgetConv, readWidgetConv, WIDGET_CONV_KEY } from '../../../src/lib/widgetConv.ts';
 import type { LlmReply, ThinkDeps } from './think.ts';
 
 type Row = { id: number; conv_id: string | null; message: string | null; reply: string | null; created_at?: string };
@@ -187,4 +188,24 @@ Deno.test('a signed-in call without the adopt flag moves nothing (assist, site_a
   const a = await openConversation(fakeAdmin(rows), { account: accountKey('customer', 'c-3'), visitorConv: V + '06' });
   assertEquals([a.adopted, a.turns?.length], [0, 0]);
   assert(rows.every((r) => r.conv_id === 'v-' + V + '06'));
+});
+
+Deno.test('A signs out and B signs in on the same browser: B adopts nothing', async () => {
+  const rows: Row[] = [];
+  seed(rows, 'v-' + V + '07', 5, new Date().toISOString());
+  const browser = new Map<string, string>([[WIDGET_CONV_KEY, V + '07']]);
+  const storage = { getItem: (k: string) => browser.get(k) ?? null, removeItem: (k: string) => { browser.delete(k); } };
+  // A signs in; the move fails (the store refuses the update), so the portal keeps the id to retry
+  const base = fakeAdmin(rows);
+  const failing = { from: (t: string) => ({ ...base.from(t), update: () => ({ eq: () => ({ select: () => Promise.resolve({ data: null, error: { message: 'down' } }) }) }) }) };
+  const a = await openConversation(failing, { account: accountKey('customer', 'c-A'), visitorConv: readWidgetConv(storage), adopt: true });
+  assertEquals([a.adopted, a.pending], [0, true]);
+  assertEquals(readWidgetConv(storage), V + '07');
+  // A signs out (CustomerPortal doSignOut), then B signs in on the same browser and the portal mounts
+  forgetWidgetConv(storage);
+  const wc = readWidgetConv(storage);
+  assertEquals(wc, '');
+  const b = await openConversation(fakeAdmin(rows), { account: accountKey('customer', 'c-B'), ...(wc ? { visitorConv: wc, adopt: true } : {}) });
+  assertEquals([b.adopted, b.turns?.length], [0, 0]);
+  assert(rows.every((r) => r.conv_id === 'v-' + V + '07'), 'the visitor chat was moved into nobody');
 });

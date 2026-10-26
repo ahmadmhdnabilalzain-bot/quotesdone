@@ -54,6 +54,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "translation_interpretation:product-distinctions",
+      "topic": "Translation and interpreting: service types and quality levels",
+      "topic_ar": "الترجمة التحريرية والشفهية: أنواع الخدمة ومستويات الجودة",
+      "kind": "product_distinctions",
+      "body_en": "Translation (written) services: general and business translation, legal translation (contracts, court documents), certified or legal translation by a sworn or licensed translator for submission to authorities and courts, technical and medical translation by subject specialists, website and software localisation, marketing transcreation (adapting the message, not just the words), subtitling and voice-over, and machine translation with human post-editing for large volumes. Quality depends on the translator's native language (translating into their mother tongue), subject expertise, a review or proofreading step (translation, editing, proofreading), terminology management and translation memory, and handling of formats and right-to-left layout for Arabic. Interpreting (spoken): simultaneous interpreting, where interpreters work in a soundproof booth with headsets as the speaker talks, for conferences (usually two interpreters per language pair per booth); consecutive interpreting in pauses for meetings, interviews and site visits; whispered interpreting; and remote interpreting over video platforms. Equipment rental (booths, consoles, receivers) is a separate line for simultaneous interpreting.",
+      "body_ar": "خدمات الترجمة التحريرية: الترجمة العامة والتجارية، والترجمة القانونية (العقود، مستندات المحاكم)، والترجمة المعتمدة أو القانونية من مترجم محلف أو مرخص لتقديمها للجهات والمحاكم، والترجمة الفنية والطبية من متخصصين في المجال، وتوطين المواقع والبرمجيات، وإعادة الصياغة التسويقية (تكييف الرسالة لا الكلمات فقط)، والترجمة المرئية والتعليق الصوتي، والترجمة الآلية مع المراجعة البشرية للأحجام الكبيرة. وتعتمد الجودة على اللغة الأم للمترجم (الترجمة إلى لغته الأم)، والخبرة في الموضوع، وخطوة المراجعة أو التدقيق (ترجمة، تحرير، تدقيق)، وإدارة المصطلحات وذاكرة الترجمة، والتعامل مع الصيغ والتخطيط من اليمين لليسار للعربية. والترجمة الشفهية: الترجمة الفورية حيث يعمل المترجمون في كابينة عازلة للصوت بسماعات أثناء حديث المتحدث، للمؤتمرات (عادة مترجمان لكل زوج لغات في الكابينة)؛ والترجمة التتابعية في فترات التوقف للاجتماعات والمقابلات وزيارات المواقع؛ والترجمة الهمسية؛ والترجمة عن بعد عبر منصات الفيديو. وتأجير المعدات (الكبائن، وحدات التحكم، أجهزة الاستقبال) بند منفصل للترجمة الفورية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Interpreting"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: simultaneous interpreting in soundproof booths with microphones and earphones versus consecutive interpreting in pauses -> confirmed."
+    },
+    {
+      "id": "translation_interpretation:lead-times-and-quoting",
+      "topic": "Translation & interpretation - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الترجمة التحريرية والفورية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A few pages: 1-3 working days; legal certification adds time; large projects by volume (a translator handles about 2,000-3,000 words per day); interpreters are booked days to weeks ahead. A provider needs the documents or word count, language pair, purpose and whether certification is needed, format, deadline, and for interpreting the date, duration, mode and location. A quote states the rate per word or page, certification, review steps, turnaround, interpreter rate per half-day or day, equipment, travel and validity.",
+      "body_ar": "بضع صفحات: 1-3 أيام عمل؛ والاعتماد القانوني يضيف وقتاً؛ والمشاريع الكبيرة حسب الحجم (يترجم المترجم نحو 2000-3000 كلمة يومياً)؛ ويُحجز المترجمون الشفهيون قبل أيام إلى أسابيع. ويحتاج المزود المستندات أو عدد الكلمات، وزوج اللغات، والغرض وهل يلزم الاعتماد، والصيغة، والموعد، وللترجمة الشفهية التاريخ والمدة والنمط والموقع. ويذكر العرض السعر للكلمة أو الصفحة، والاعتماد، وخطوات المراجعة، ومدة الإنجاز، وسعر المترجم الشفهي لنصف اليوم أو اليوم، والمعدات، والسفر، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: uae-standards says MOJ registers legal translators but explicitly does not say which documents require one (courts require Arabic legal translation)). translation_interpretation:court-submissions-arabic-legal-translation was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from translation_interpretation.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Do we need simultaneous or consecutive interpreting for a 200-person conference?",
+      "q_ar": "نحتاج ترجمة فورية ولا تتابعية لمؤتمر فيه 200 شخص؟",
+      "expected_entry_ids": [
+        "translation_interpretation:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -97,6 +135,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "translation_interpretation:court-submissions-arabic-legal-translation"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "translation_interpretation:product-distinctions"
+      ],
+      "stored_not_served": [
+        "translation_interpretation:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Interpreting"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
