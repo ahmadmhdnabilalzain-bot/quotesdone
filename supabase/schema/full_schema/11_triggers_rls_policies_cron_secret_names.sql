@@ -1480,6 +1480,8 @@ select cron.schedule('seat_duty:it_engineer.contact_dedup','*/5 * * * *',$CRON$s
 select cron.schedule('seat_duty:ceo.five_number_report','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.five_number_report');$CRON$);
 select cron.schedule('seat_duty:it_engineer.model_spend','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.model_spend');$CRON$);
 select cron.schedule('seat_duty:customer_support.case_idle_close','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.case_idle_close');$CRON$);
+select cron.schedule('dropbox_backup_second_scheduler','41 */6 * * *',$CRON$select public.fn_backup_kick('pg_cron_second_scheduler', 'enqueue');$CRON$);
+select cron.schedule('kb_embed_daily','20 2 * * *',$CRON$set statement_timeout = '120s'; select public.fn_kb_embed_scheduled_run();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow

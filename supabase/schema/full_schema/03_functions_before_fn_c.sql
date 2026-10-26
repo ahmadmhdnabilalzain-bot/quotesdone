@@ -11727,8 +11727,9 @@ begin
      or exists (select 1 from public.agent_runs where agent = 'backup_kick' and status = 'ok'
                 and started_at > now() - interval '60 seconds') then
     -- 7 Oct 2026: the scheduler's call is recorded, so its heartbeat sees that it ran (dropbox_kick, handoff
-    -- 130872). Only 'github_actions': the per-document trigger kicks debounce in bursts and nothing reads them.
-    if p_reason = 'github_actions' then
+    -- 130872). Only the two second schedulers (GitHub until 26 Oct 2026, pg_cron from then): the per-document
+    -- trigger kicks debounce in bursts and nothing reads them.
+    if p_reason in ('github_actions', 'pg_cron_second_scheduler') then
       insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
       values ('backup_kick', 'skipped', jsonb_build_object('reason', p_reason, 'mode', p_mode, 'debounced', true),
               left('dropbox_backup not kicked (' || p_mode || '): debounced, a kick in the last 60 seconds is still draining: ' || p_reason, 500),
