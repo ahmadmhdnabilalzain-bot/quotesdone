@@ -1,0 +1,3 @@
+[INFO] Recording command outcome: 300
+
+[OK] Command outcome recorded

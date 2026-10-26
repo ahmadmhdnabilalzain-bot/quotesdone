@@ -1,0 +1,9 @@
+[DEBUG] Command: hooks post-command
+[DEBUG] Positional: [$TEMP;, for, f, in, cad_identity.ts, doc_read/cad.ts, boqNotes.ts, boq_from_document.ts, drawing_set.ts;, do, echo, ##### $f;, awk, f=$f, '/diff, p', h1523.txt]
+[DEBUG] Flags: {"command":"cd","verbose":true,"git/{p":"index($0,f)","help":false,"version":false,"quiet":false,"format":"text","noColor":false,"interactive":true}
+[DEBUG] CWD: C:\Users\Opera\quotesdone
+[DEBUG] Executing: post-command
+[INFO] Recording command outcome: cd
+
+[OK] Command outcome recorded
+[DEBUG] Completed in 1590ms

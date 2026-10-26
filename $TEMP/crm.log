@@ -1,0 +1,339 @@
+   PENDING (committed, deliberately not applied)  scripts/sql/a_busy_or_paused_supplier_is_skipped_and_an_unreachable_inquiry_goes_to_the_rescue_probe.sql
+      A PROBE, so it is never applied at all. It is run by
+      scripts/checks/a_busy_or_paused_supplier_is_skipped_and_an_unreachable_inquiry_goes_to_the_rescue.test.mjs on every
+      pull request with a token: while the change is pending, the change's file is run first in the same transaction.
+      It writes ZZ DEMO inquiries, matches and availability rows inside a block that always raises, so nothing survives
+      it (asserted after the rollback). This note therefore stays for the life of the file. Seat: sales_engineer.
+   PENDING (committed, deliberately not applied)  scripts/sql/a_held_request_takes_its_missing_specs_from_the_customer_and_is_released_when_complete_probe.sql
+      A PROBE, so it is never applied: it always raises 'PROBE OK ...' or 'PROBE FAILED: ...', rolling back every row it writes (ZZ DEMO customers and a ZZ DEMO supplier at .invalid addresses, their requests, the match, the notes, the delivery handoffs). Run it in one transaction after a_held_request_takes_its_missing_specs_from_the_customer_and_is_released_when_complete.sql before that file is applied, or on its own after. This note stays for the life of the file. Seat: customer_support.
+   PENDING (committed, deliberately not applied)  scripts/sql/a_month_of_posts_is_approved_once_and_goes_out_exactly_as_approved_probe.sql
+      A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run
+      after a_month_of_posts_is_approved_once_and_goes_out_exactly_as_approved.sql is applied, and must print PROBE OK.
+      This note therefore stays for the life of the file. Seat: marketing.
+   PENDING (committed, deliberately not applied)  scripts/sql/a_permission_error_on_a_key_the_company_just_rotated_never_pages_the_founder_probe.sql
+      A PROBE, so it is never applied: it always raises CHK<<...>> and rolls back (ZZ DEMO finding and rotation row, founder mail stubbed). Run after a_permission_error_on_a_key_the_company_just_rotated_never_pages_the_founder.sql is applied; it must print PROBE OK. This note stays for the life of the file. Seat: it_engineer.
+   PENDING (committed, deliberately not applied)  scripts/sql/a_quote_is_checked_for_specs_prices_and_terms_before_the_customer_sees_it_probe.sql
+      A PROBE (pure, aborted transaction, no DDL, ends in raise exception CHK<<...>>): run after its .sql in the same transaction. Never applied on its own; kept as the proof named by "Prevented by:" (scripts/checks/a_quote_is_checked_before_the_customer_sees_it.test.mjs).
+   PENDING (committed, deliberately not applied)  scripts/sql/a_rejection_never_ends_the_cycle_the_ceo_gives_reasons_and_the_seat_revises_probe.sql
+      A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes (and the stub checklist it installs for its own transaction). It is run after a_rejection_never_ends_the_cycle_the_ceo_gives_reasons_and_the_seat_revises.sql and the_directive_escalation_rule_is_decided_by_its_own_duty.sql are applied (or with both in the same rolled-back transaction, as scripts/checks/a_ceo_rejection_loops_back_to_the_seat.test.mjs does), and must print PROBE OK. This note therefore stays for the life of the file. Seat: ceo.
+   PENDING (committed, deliberately not applied)  scripts/sql/a_stalled_request_puts_its_trade_and_area_first_in_recruitment_and_tells_the_customer_probe.sql
+      A PROBE (pure, aborted transaction, no DDL, ends in raise exception CHK<<...>>): run after its .sql in the same transaction. Never applied on its own; kept as the proof named by "Prevented by:" (scripts/checks/a_stalled_request_is_rescued_through_the_invitation_queue.test.mjs).
+   PENDING (committed, deliberately not applied)  scripts/sql/a_supplier_sees_only_the_jobs_it_was_matched_to_probe.sql
+      A PROBE, so it is never applied at all — it is READ through node scripts/qsql.mjs after
+      a_supplier_sees_only_the_jobs_it_was_matched_to.sql has been applied, and it must print PROBE OK.
+      
+      It writes ZZ DEMO quote rows inside a block that always raises, so nothing survives it; plain
+      apply_sql.mjs would print "nothing to do" and exit 0, which is a silent pass, not a result.
+      
+      This note therefore stays for the life of the file. Seat: sales_engineer.
+   PENDING (committed, deliberately not applied)  scripts/sql/a_test_reveal_posts_to_the_ledger_and_its_refund_reverses_it_probe.sql
+      A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes (the probe-scoped override of fn_gl_fixture_or_orphan
+      included). Run it after a nightly or manual E2E run of journeys d+e has left a ZZ DEMO reveal paid and
+      refunded in Stripe TEST mode; it must print PROBE OK. This note stays for the life of the file. Seat: accountant.
+   PENDING (committed, deliberately not applied)  scripts/sql/a_verified_supplier_is_told_what_his_portfolio_is_missing_probe.sql
+      A PROBE, so it is never applied at all — it is READ through node scripts/qsql.mjs after
+      a_verified_supplier_is_told_what_his_portfolio_is_missing.sql has been applied, and it must print PROBE OK.
+      scripts/checks/a_verified_supplier_is_told_what_his_portfolio_is_missing.test.mjs runs it on every pull request.
+      
+      It writes three ZZ DEMO / @example.invalid suppliers, their capabilities, two storage rows and the reminder
+      it sends them inside a block that always raises, so nothing survives it (asserted after the rollback).
+      
+      This note therefore stays for the life of the file. Seat: sales_engineer.
+   PENDING (committed, deliberately not applied)  scripts/sql/a_whatsapp_template_twilio_no_longer_has_is_missing_not_404.sql
+      Committed, not applied: apply at merge (customer_support, 6 Oct 2026). Moves when the PR merges; the watcher change writes last_http_status, so this file must be applied before wa_templates_watch is deployed.
+   PENDING (committed, deliberately not applied)  scripts/sql/an_approved_supplier_is_told_and_the_licence_name_must_match_probe.sql
+      A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run
+      after an_approved_supplier_is_told_and_the_licence_name_must_match.sql is applied, and must print PROBE OK.
+      This note therefore stays for the life of the file. Seat: sales_engineer.
+   PENDING (committed, deliberately not applied)  scripts/sql/an_open_supply_gap_becomes_a_recruitment_brief_marketing_reads_and_closes_at_target_probe.sql
+      A PROBE, so it is never applied. It is READ through node scripts/qsql.mjs after the routine file is applied, and it must print CHK<<PROBE OK ...>>.
+      It writes ZZ DEMO rows (trade zz_demo_recruit, example.invalid lead) inside a block that always raises, so nothing survives.
+      This note stays for the life of the file. Seat: sales_engineer.
+   PENDING (committed, deliberately not applied)  scripts/sql/an_unopened_supplier_invitation_is_nudged_on_day_3_7_and_14_under_the_same_switch_cap_and_brakes_probe.sql
+      A pure aborted-transaction probe (no DDL, ends in raise exception CHK<<...>>): run after its .sql in the same transaction. Never applied on its own; kept as the proof named by "Prevented by:".
+   PENDING (committed, deliberately not applied)  scripts/sql/customer_support_finds_the_root_cause_each_week_and_measures_the_fix_probe.sql
+      A PROBE, so it is never applied at all — it is READ through node scripts/qsql.mjs after
+      customer_support_finds_the_root_cause_each_week_and_measures_the_fix.sql has been applied, and it must print PROBE OK.
+      
+      It writes ZZ DEMO @example.invalid customers, WhatsApp, widget, FAQ and root-cause rows inside a block that always
+      raises, so nothing survives it; plain apply_sql.mjs would print "nothing to do" and exit 0, which is a silent pass,
+      not a result.
+      
+      This note therefore stays for the life of the file. Seat: customer_support.
+   PENDING (committed, deliberately not applied)  scripts/sql/customer_support_guides_a_first_request_step_by_step_and_asks_a_held_one_for_its_specs_probe.sql
+      A PROBE, so it is never applied: it always raises 'PROBE OK ...' or 'PROBE FAILED: ...', rolling back every row it writes (ZZ DEMO customers at @example.invalid, their requests, the duty messages). Run it in one transaction after customer_support_guides_a_first_request_step_by_step_and_asks_a_held_one_for_its_specs.sql before that file is applied, or on its own after. This note stays for the life of the file. Seat: customer_support.
+   PENDING (committed, deliberately not applied)  scripts/sql/customer_support_scores_its_own_plain_language_and_tone_every_month_probe.sql
+      A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run it after
+      customer_support_scores_its_own_plain_language_and_tone_every_month.sql is live; it must print PROBE OK.
+      Measured PROBE OK on htdblwldjkcgjvmqkbeh, 29 Sep 2026 (run together with the unapplied file in one rolled-back
+      transaction). This note stays for the life of the file. Seat: customer_support.
+   PENDING (committed, deliberately not applied)  scripts/sql/each_post_is_measured_and_names_the_suppliers_it_brought_probe.sql
+      A PROBE, so it is never applied: it always raises CHK<<...>> and leaves nothing. READ it with
+      node scripts/qsql.mjs scripts/sql/each_post_is_measured_and_names_the_suppliers_it_brought_probe.sql
+      after each_post_is_measured_and_names_the_suppliers_it_brought.sql is applied; it must print PROBE OK.
+   PENDING (committed, deliberately not applied)  scripts/sql/every_customer_is_asked_for_a_public_review_whatever_their_rating_probe.sql
+      A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run it after
+      every_customer_is_asked_for_a_public_review_whatever_their_rating.sql is live; it must print PROBE OK.
+      Measured PROBE OK on htdblwldjkcgjvmqkbeh, 28 Sep 2026 (with the fix inside the same aborted transaction).
+      This note stays for the life of the file. Seat: marketing.
+   PENDING (committed, deliberately not applied)  scripts/sql/every_handoff_note_and_seat_playbook_proved_on_zz_demo_probe.sql
+      A PROBE, so it is never applied at all - it is READ through node scripts/qsql.mjs after
+      every_handoff_carries_a_note_of_what_is_known_tried_and_needed.sql and every_seat_keeps_a_living_playbook.sql
+      have been applied, and it must print PROBE OK inside its CHK<<...>> message.
+      
+      It writes a ZZ DEMO case, handoff and lesson inside a block that always raises, so nothing survives it,
+      and it asserts no notification was queued while it ran. This note stays for the life of the file.
+      Seat: it_engineer.
+   PENDING (committed, deliberately not applied)  scripts/sql/every_refund_approval_goes_through_the_one_decision_and_the_second_seat_probe.sql
+      A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes (and the checklist stub and clearance wrapper it installs for its own transaction). It is run after every_refund_approval_goes_through_the_one_decision_and_the_second_seat.sql is applied (or with it in the same rolled-back transaction), and must print PROBE OK. Against the bodies that file replaces it prints PROBE FAILED (measured 29 Sep 2026). This note therefore stays for the life of the file. Seat: accountant.
+   PENDING (committed, deliberately not applied)  scripts/sql/every_seat_reviews_itself_every_month_probe.sql
+      A PROBE, so it is never applied at all: it always rolls back every row it writes and returns one verdict row. It is run
+      after every_seat_reviews_itself_every_month.sql is applied, and must print PROBE OK. This note therefore stays for the life of the file. Seat: ceo.
+   PENDING (committed, deliberately not applied)  scripts/sql/every_seat_runs_the_founders_model_matrix_probe.sql
+      A PROBE, so it is never applied at all. It is READ through node scripts/qsql.mjs after
+      every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql has been applied, and must print
+      CHK<<PROBE OK ...>>.
+      
+      It resolves one or more functions of every seat through fn_ai_route and fn_ai_route_review_for, walks every review pair
+      (every class with reviews_class, every author class, the author's primary and fallback), and checks the fleet: the hold,
+      the registry, the review pool and the seat catch-alls. It writes nothing, calls no model, and ends in a raise, so nothing
+      it touches survives.
+      
+      Measured 29 Sep 2026 against production with the change file replayed first in the same aborted transaction:
+      PROBE OK routes=74 review_pairs=150 hold_until=2126-08-15. Against production as it was (the file not applied): PROBE
+      FAILED count=137, first finding "SE quote_compare got openai/gpt-5.6-sol".
+      
+      This note therefore stays for the life of the file. Seat: sales_engineer.
+      
+      29 Sep 2026 (marketing): section 4 added - every active model class is named with its seat and route, and a class with
+      no line there is a finding. Run on every PR by scripts/checks/every_model_class_is_on_the_founders_matrix.test.mjs
+      (pending model_policy files replayed first). With the_blog_classes_run_on_the_founders_model_matrix.sql replayed:
+      PROBE OK routes=74 review_pairs=156 classes=77 hold_until=2126-08-15. Production as it was: PROBE FAILED count=8.
+   PENDING (committed, deliberately not applied)  scripts/sql/every_support_conversation_is_one_case_measured_rated_and_recovered_probe.sql
+      A PROBE, so it is never applied at all — it is READ through node scripts/qsql.mjs after
+      every_support_conversation_is_one_case_measured_rated_and_recovered.sql has been applied, and it must print PROBE OK.
+      
+      It writes a ZZ DEMO @example.invalid customer, WhatsApp, email and widget rows inside a block that always
+      raises, so nothing survives it; plain apply_sql.mjs would print "nothing to do" and exit 0, which is a
+      silent pass, not a result.
+      
+      This note therefore stays for the life of the file. Seat: customer_support.
+   PENDING (committed, deliberately not applied)  scripts/sql/next_months_video_plan_leans_on_what_brought_suppliers_probe.sql
+      Pure probe for next_months_video_plan_leans_on_what_brought_suppliers.sql; runs after that file is applied: node scripts/apply_sql.mjs scripts/sql/next_months_video_plan_leans_on_what_brought_suppliers_probe.sql --apply (raises CHK<<PROBE OK ...>>, commits nothing). Then delete this note and append the probe to MANIFEST.txt after the file.
+   PENDING (committed, deliberately not applied)  scripts/sql/probe_marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql
+      A PROBE, so it is never applied at all - it is READ through node scripts/qsql.mjs after
+      marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql has been applied, and its CHK<<...>> must say PROBE OK.
+      
+      It runs the duty (plan rows) and the queue's dry run inside a block that always raises, so nothing survives it; plain
+      apply_sql.mjs would print "nothing to do" and exit 0, which is a silent pass, not a result.
+      
+      This note therefore stays for the life of the file. Seat: marketing.
+   PENDING (committed, deliberately not applied)  scripts/sql/the_accountant_books_a_late_item_as_a_prior_period_adjustment_probe.sql
+      A PROBE, so it is never applied at all — it is READ through node scripts/qsql.mjs after
+      the_accountant_books_a_late_item_as_a_prior_period_adjustment.sql and the_accountant_sends_the_founder_one_close_pack_by_the_fifth.sql
+      have been applied, and it must print PROBE OK.
+      
+      It closes ZZ DEMO July 2020, feeds a late July bank fee, poisons one charge and one credit with a trigger that exists only
+      inside its transaction, and builds the ZZ DEMO August 2020 close pack, all inside a block that always raises, so nothing
+      survives and nobody is sent anything; plain apply_sql.mjs would print "nothing to do" and exit 0, which is a silent
+      pass, not a result.
+      
+      This note therefore stays for the life of the file. Seat: accountant.
+   PENDING (committed, deliberately not applied)  scripts/sql/the_accountant_forecasts_ninety_days_of_cash_week_by_week_probe.sql
+      A PROBE, so it is never applied at all - it is READ through node scripts/qsql.mjs after
+      the_accountant_forecasts_ninety_days_of_cash_week_by_week.sql has been applied, and it must print PROBE OK.
+      
+      It writes ZZ DEMO rows on the 'zz_demo' bank account and a ZZ DEMO weekly report inside a block that always
+      raises, so nothing survives; plain apply_sql.mjs would print "nothing to do", a silent pass, not a result.
+      
+      This note therefore stays for the life of the file. Seat: accountant.
+   PENDING (committed, deliberately not applied)  scripts/sql/the_accountant_keeps_one_cash_truth_and_closes_the_open_audit_gaps_probe.sql
+      A PROBE, so it is never applied: it always raises 'PROBE ...', rolling back every row it writes (a July close, the CEO reports). Run it in one transaction after the file it proves (before apply) or on its
+      own after apply. This note stays for the life of the file. Seat: accountant.
+   PENDING (committed, deliberately not applied)  scripts/sql/the_accountant_screens_every_party_and_holds_money_for_review_before_it_moves_probe.sql
+      A PROBE, so it is never applied: it always raises 'PROBE OK ...' or 'PROBE FAILED: ...', rolling back every row it writes (ZZ DEMO customers at .invalid addresses, ZZ DEMO suppliers, holds, flags, handoffs, three transactions). Run it in one transaction after the_accountant_screens_every_party_and_holds_money_for_review_before_it_moves.sql before that file is applied, or on its own after. This note stays for the life of the file. Seat: accountant.
+   PENDING (committed, deliberately not applied)  scripts/sql/the_accountant_sends_the_founder_one_close_pack_by_the_fifth_probe.sql
+      A PROBE, so it is never applied at all — it is READ through node scripts/qsql.mjs after
+      the_accountant_sends_the_founder_one_close_pack_by_the_fifth.sql has been applied, and it must print PROBE OK.
+      
+      It writes ZZ DEMO journals, a ZZ DEMO Mashreq statement and budget for January 2020 inside a block that always
+      raises, so nothing survives and the founder receives nothing; plain apply_sql.mjs would print "nothing to do" and
+      exit 0, which is a silent pass, not a result.
+      
+      This note therefore stays for the life of the file. Seat: accountant.
+   PENDING (committed, deliberately not applied)  scripts/sql/the_books_say_why_they_are_stale_probe.sql
+      A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run it after
+      the_accountant_runs_its_duties_every_hour.sql (duty 12, fn_accountant_books_duty) is live; it must print PROBE OK.
+      Measured PROBE OK on htdblwldjkcgjvmqkbeh, 23 Sep 2026. This note stays for the life of the file. Seat: accountant.
+   PENDING (committed, deliberately not applied)  scripts/sql/the_ceo_issues_directives_and_closes_them_on_their_own_condition_probe.sql
+      A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run
+      after the_ceo_issues_directives_and_closes_them_on_their_own_condition.sql is applied, and must print PROBE OK.
+      This note therefore stays for the life of the file. Seat: ceo.
+   PENDING (committed, deliberately not applied)  scripts/sql/the_ceo_reviews_the_months_video_plan_before_the_founder_sees_it_probe.sql
+      A PROBE, so it is never applied at all. scripts/checks/the_ceo_reviews_the_months_video_plan_before_the_founder.test.mjs
+      replays the_ceo_reviews_the_months_video_plan_before_the_founder_sees_it.sql and then this file in ONE aborted
+      transaction; it ends in a raise, so nothing survives, and the founder mail it queues is rolled back before any worker
+      can read it. It refuses to run if a real November or December 2026 plan exists.
+      
+      Measured 29 Sep 2026 against production: with the file replayed first, PROBE OK (rejected:1, revised, approved:2,
+      one founder mail only after approval, the watch fired on both paths). Against production as it was: fails,
+      fn_reason_apply_ceo__marketing_month_plan does not exist.
+      
+      This note therefore stays for the life of the file. Seat: it_engineer.
+   PENDING (committed, deliberately not applied)  scripts/sql/the_ceo_target_verdict_and_forecast_read_the_year_plan_probe.sql
+      A PROBE, so it is never applied — it is READ through node scripts/qsql.mjs after
+      the_ceo_target_verdict_and_forecast_read_the_year_plan.sql has been applied, and it must end with a CHK<<...>> line
+      that has no FAIL. It always raises, so its two seeded suppliers (one ZZ DEMO, one with no email or phone, inserted
+      with triggers off) never survive. This note stays for the life of the file. Seat: ceo.
+   PENDING (committed, deliberately not applied)  scripts/sql/the_ceo_tracks_the_supplier_target_by_trade_and_emirate_probe.sql
+      A PROBE, so it is never applied at all: it is READ through node scripts/qsql.mjs after
+      the_ceo_tracks_the_supplier_target_by_trade_and_emirate.sql has been applied, and it must print CHK<<...>>.
+      It seeds ZZ DEMO / @example.invalid suppliers inside a block that always raises, so nothing survives it.
+      This note stays for the life of the file. Seat: ceo.
+   PENDING (committed, deliberately not applied)  scripts/sql/the_ceo_weekly_review_acts_on_every_missed_target_probe.sql
+      A PROBE, so it is never applied at all: it always rolls back every row it writes and returns one verdict row. It is run
+      after the_ceo_weekly_review_acts_on_every_missed_target.sql is applied, and must print PROBE OK. This note therefore stays for the life of the file. Seat: ceo.
+   PENDING (committed, deliberately not applied)  scripts/sql/the_ceo_writes_a_one_page_strategy_memo_every_month_probe.sql
+      A PROBE, so it is never applied at all - it is READ through node scripts/qsql.mjs after
+      the_ceo_writes_a_one_page_strategy_memo_every_month.sql has been applied, and it must print PROBE OK.
+      
+      It seeds a ZZ DEMO memo and two ZZ DEMO suppliers inside a block that always raises, so nothing survives -
+      including the notifications row, which pg_net never sends because it is never committed.
+      
+      This note therefore stays for the life of the file. Seat: ceo.
+   PENDING (committed, deliberately not applied)  scripts/sql/the_it_engineer_breaks_the_company_once_a_month_to_prove_it_heals_probe.sql
+      A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run it after the_it_engineer_breaks_the_company_once_a_month_to_prove_it_heals.sql is live; it must print PROBE OK, with every scenario passed and 0 leftovers. Measured PROBE OK on htdblwldjkcgjvmqkbeh, 29 Sep 2026, with the SQL file and this probe in ONE transaction that rolled back (nothing persisted: it_game_day_run absent, 0 seat_duty rows afterwards): 5/5 passed, 0 leftovers. A second rolled-back run of fn_it_engineer_game_day twice plus fn_ceo_weekly_report: 5 rows, the second call skipped the month, the report body carries GAME DAY, 0 open game_day findings. This note stays for the life of the file. Seat: it_engineer.
+   PENDING (committed, deliberately not applied)  scripts/sql/the_it_engineer_watches_each_providers_weekly_cost_and_names_the_cause_probe.sql
+      A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run it after
+      the_it_engineer_watches_each_providers_weekly_cost_and_names_the_cause.sql is live; it must print PROBE OK.
+      Measured PROBE OK on htdblwldjkcgjvmqkbeh, 29 Sep 2026 (run together with the unapplied file in one rolled-back
+      transaction). This note stays for the life of the file. Seat: it_engineer.
+   PENDING (committed, deliberately not applied)  scripts/sql/the_marketing_seat_knows_every_platforms_limits_probe.sql
+      A PROBE, so it is never applied at all — it is READ through node scripts/qsql.mjs after
+      the_marketing_seat_knows_every_platforms_limits.sql has been applied, and it must print PROBE OK.
+      It is read-only (SELECTs only) and cannot reach a person. Before the apply it errors (the routine does not
+      exist); with naive character counting it fails on the X URL, emoji and ZWJ cases (shown in the PR).
+      
+      This note therefore stays for the life of the file. Seat: marketing.
+   PENDING (committed, deliberately not applied)  scripts/sql/the_recruitment_funnel_counts_what_was_sent_and_names_the_stage_that_lost_them_probe.sql
+      A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run
+      after the_recruitment_funnel_counts_what_was_sent_and_names_the_stage_that_lost_them.sql is applied, and must print
+      PROBE OK. This note therefore stays for the life of the file. Seat: marketing.
+   PENDING (committed, deliberately not applied)  scripts/sql/uae_price_benchmarks_come_only_from_real_quotes_probe.sql
+      A PROBE, so it is never applied at all. It is READ through node scripts/qsql.mjs and must print CHK<<PROBE OK ...>>. uae_price_benchmarks_come_only_from_real_quotes.sql is live (#1060), so it runs alone.
+      
+      Every party is ZZ DEMO and chosen at run time. The bidders are the four lowest-id leads that are is_demo, 'ZZ DEMO%' and demo_factory. They bid on the ZZ DEMO gypsum enquiries 8b287960 and d958e1ea, both checked with fn_inquiry_is_demo before any write. All of this happens inside a block that always raises, so nothing survives it. The first version hard-coded lead 134369, which has since left the demo pool, and fn_demo_and_real_never_pair refused it.
+      
+      Measured 29 Sep 2026 against production: PROBE OK median=45.00 p25=42.00 p75=48.00 n=5 suppliers=3 accepted=1 real_ranges=0. The lines read well_above, within and well_below, and the unpriced item reads no_benchmark_yet. Afterwards 0 ZZPROBE quote_items and 0 probe quotes remain.
+      
+      This note therefore stays for the life of the file. Seat: sales_engineer.
+files scanned 2352   routine names with a repo definition 2096   canonical 2090
+
+CONFLICTING current definitions (two files at one sequence key): 0
+
+AMBIGUOUS routine winners: 0
+
+MANIFEST GAPS: 29
+   PENDING ENTRY WITH NO REASON  scripts/sql/the_29_parked_it_handoffs_of_23_september_to_5_october_close_with_what_was_learned.sql (its note in scripts/sql/pending/ is empty)
+   PENDING, NOT ON DISK  scripts/sql/a_conversation_retention_queue_path_is_not_a_backup_source.sql
+   PENDING, NOT ON DISK  scripts/sql/a_finding_chase_supersedes_the_chase_before_it.sql
+   PENDING, NOT ON DISK  scripts/sql/a_month_directive_is_late_by_its_month_end_not_its_reply_window.sql
+   PENDING, NOT ON DISK  scripts/sql/a_sandbox_run_is_tagged_capped_and_let_through_only_inside_its_window.sql
+   PENDING, NOT ON DISK  scripts/sql/a_sandbox_run_tags_its_own_model_cost.sql
+   PENDING, NOT ON DISK  scripts/sql/a_supplier_whose_licence_could_not_be_read_is_held_never_approved.sql
+   PENDING, NOT ON DISK  scripts/sql/a_supplier_whose_licence_could_not_be_read_is_held_never_approved_probe.sql
+   PENDING, NOT ON DISK  scripts/sql/a_tripped_breaker_on_one_route_never_holds_the_whole_estate.sql
+   PENDING, NOT ON DISK  scripts/sql/a_whatsapp_request_for_a_person_is_escalated_never_left_waiting.sql
+   PENDING, NOT ON DISK  scripts/sql/an_approved_supplier_who_swaps_in_an_unreadable_licence_is_held_again_probe.sql
+   PENDING, NOT ON DISK  scripts/sql/every_document_lands_in_its_owners_one_folder_and_a_missing_copy_is_found_the_next_day.sql
+   PENDING, NOT ON DISK  scripts/sql/no_reveal_copy_adds_a_card_fee.sql
+   PENDING, NOT ON DISK  scripts/sql/the_retention_erasure_summary_crons_and_the_gateway_auth_label_name_their_seat.sql
+   PENDING, NOT ON DISK  scripts/sql/the_supplier_invitation_states_the_free_offer_with_no_date.sql
+   PENDING, NOT ON DISK  scripts/sql/the_support_knowledge_adds_no_card_fee_to_the_reveal.sql
+   PENDING, NOT ON DISK  scripts/sql/the_three_detector_gaps_record_their_regression_checks.sql
+   PENDING OVER 24 H ON MAIN  scripts/sql/a_conversation_retention_queue_path_is_not_a_backup_source.sql — note reached main 2026-10-06T12:59:36Z by PR #1260; apply it with its MANIFEST line or delete it
+   PENDING OVER 24 H ON MAIN  scripts/sql/a_finding_chase_supersedes_the_chase_before_it.sql — note reached main 2026-10-07T10:19:07Z by PR #1278; apply it with its MANIFEST line or delete it
+   PENDING OVER 24 H ON MAIN  scripts/sql/a_month_directive_is_late_by_its_month_end_not_its_reply_window.sql — note reached main 2026-10-07T17:31:30Z by PR #1281; apply it with its MANIFEST line or delete it
+   PENDING OVER 24 H ON MAIN  scripts/sql/a_sandbox_run_is_tagged_capped_and_let_through_only_inside_its_window.sql — note reached main 2026-10-06T01:26:35Z by PR #1230; apply it with its MANIFEST line or delete it
+   PENDING OVER 24 H ON MAIN  scripts/sql/a_supplier_whose_licence_could_not_be_read_is_held_never_approved.sql — note reached main 2026-10-06T21:26:59Z by PR #1268; apply it with its MANIFEST line or delete it
+   PENDING OVER 24 H ON MAIN  scripts/sql/a_whatsapp_request_for_a_person_is_escalated_never_left_waiting.sql — note reached main 2026-10-07T17:31:30Z by PR #1281; apply it with its MANIFEST line or delete it
+   PENDING OVER 24 H ON MAIN  scripts/sql/a_whatsapp_template_twilio_no_longer_has_is_missing_not_404.sql — note reached main 2026-10-06T02:57:15Z by PR #1256; apply it with its MANIFEST line or delete it
+   PENDING OVER 24 H ON MAIN  scripts/sql/no_reveal_copy_adds_a_card_fee.sql — note reached main 2026-10-05T00:33:30Z by PR #1200; apply it with its MANIFEST line or delete it
+   ... and 4 more
+
+REPOSITORY -> PRODUCTION drift (canonical body not deployed): 46
+   fn_pdpl_erase_plan  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [supabase/migrations_history/20260710223646_pdpl_dsar_workflow.sql]
+   fn_llm_log  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/the_accountant_gets_a_daily_openrouter_ledger_that_names_the_seat_that_spent_it.sql]
+   fn_email_sendable  DRIFTED — 0 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (2 live overload(s), 1 canonical)  [scripts/sql/the_invite_composer_calls_a_sendability_check_that_was_retired_under_it.sql]
+   fn_ai_route  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql]
+   scrub_inquiry_contacts  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/the_supplier_learns_the_job_and_never_whose_job_it_is.sql]
+   fn_sales_engineer_verifies_supplier  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/an_approved_supplier_is_told_and_the_licence_name_must_match.sql]
+   fn_resilience_orphan_steps_due  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/an_approved_whatsapp_template_is_rechecked_with_twilio_once_a_day.sql]
+   fn_sales_engineer_supply_gap  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/a_supply_gap_with_no_leads_left_is_deferred_by_rule.sql]
+   fn_it_duties_scheduled  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/the_sender_health_duty_reads_dmarc_reports_and_judges_its_rates_by_one_rule.sql]
+   fn_customer_support_sends_the_it_digest  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/a_credential_only_the_founder_can_renew_is_never_rotated_or_reminded.sql]
+   fn_sales_engineer_ladder_step  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/every_arabic_message_is_written_not_translated.sql]
+   fn_backup_source_registry  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/the_ceo_weekly_review_acts_on_every_missed_target.sql]
+   fn_it_handoff_sla_items  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/a_handoff_waiting_more_than_a_day_is_a_finding.sql]
+   fn_reason_hold  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql]
+   fn_reason_held_due  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/a_held_row_is_tried_three_times_and_the_build_test_backlog_is_expired.sql]
+   fn_inquiry_add_missing_specs  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/a_held_request_takes_its_missing_specs_from_the_customer_and_is_released_when_complete.sql]
+   fn_reason_held_resolve  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/a_held_row_is_tried_three_times_and_the_build_test_backlog_is_expired.sql]
+   fn_high_stakes_gate  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql]
+   fn_ceo_review_applies  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/a_high_stakes_decision_waits_for_a_second_seat_on_another_family.sql]
+   fn_ceo_improvement_sweep  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/a_lesson_is_one_improvement_and_the_ceo_closes_it_once_it_stops_recurring.sql]
+   fn_kernel_paid_provider_gate  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/a_paid_model_call_needs_an_approved_provider.sql]
+   fn_it_detect  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/a_queue_filled_this_hour_is_not_a_stopped_queue.sql]
+   fn_supplier_dues_accrue_interest  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/the_nonresponse_charge_falls_due_seven_days_after_the_notice.sql]
+   fn_ai_route_review_for  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql]
+   fn_it_run_is_held  DRIFTED — 1 canonical body(ies) not deployed, 1 deployed body(ies) not in the canonical file (1 live overload(s), 1 canonical)  [scripts/sql/a_run_the_founders_hold_refused_is_held_not_failed.sql]
+   ... and 21 more
+
+PRODUCTION -> REPOSITORY drift (live application routine with no canonical file): 55
+   fn_accountant_classify_bank_lines_by_reference()  owner postgres  — in the schema mirror only, with no change file
+   fn_accountant_record_supplier_payment(p_due_id bigint, p_amount numeric, p_paid_on date, p_reference text, p_entered_by text)  owner postgres  — in the schema mirror only, with no change file
+   fn_ai_cost_log_e2e_run_tag()  owner postgres  — in the schema mirror only, with no change file
+   fn_app_secrets_no_paid_ai_guard()  owner postgres  — in the schema mirror only, with no change file
+   fn_conversation_party_last_activity(p_kind text, p_id text)  owner postgres  — in the schema mirror only, with no change file
+   fn_conversation_party_on_hold(p_kind text, p_id text)  owner postgres  — in the schema mirror only, with no change file
+   fn_conversation_retention_mode()  owner postgres  — in the schema mirror only, with no change file
+   fn_conversation_retention_plan(p_now timestamp with time zone, p_limit integer)  owner postgres  — in the schema mirror only, with no change file
+   fn_conversation_retention_purge(p_limit integer)  owner postgres  — in the schema mirror only, with no change file
+   fn_deliberation_subject_is_fixture(p_subject_table text, p_subject_id text)  owner postgres  — in the schema mirror only, with no change file
+   fn_duty_pause_stakes(p_duty text)  owner postgres  — in the schema mirror only, with no change file
+   fn_e2e_run_tag_current()  owner postgres  — in the schema mirror only, with no change file
+   fn_e2e_run_tag_open(p_tag text)  owner postgres  — in the schema mirror only, with no change file
+   fn_email_type_is_marketing(p_type text)  owner postgres  — in the schema mirror only, with no change file
+   fn_founder_hold_change_allowed()  owner postgres  — in the schema mirror only, with no change file
+   fn_handoff_is_late(p_detail jsonb, p_created_at timestamp with time zone, p_window interval, p_at timestamp with time zone)  owner postgres  — in NO repository file
+   fn_inquiry_conversation_summary_build(p_inquiry uuid)  owner postgres  — in the schema mirror only, with no change file
+   fn_inquiry_conversation_summary_due(p_now timestamp with time zone, p_limit integer)  owner postgres  — in the schema mirror only, with no change file
+   fn_inquiry_conversation_summary_run(p_limit integer)  owner postgres  — in the schema mirror only, with no change file
+   fn_it_engineer_duty_pause_expiry()  owner postgres  — in the schema mirror only, with no change file
+   fn_it_postmortem_fault_key(p_detail jsonb)  owner postgres  — in the schema mirror only, with no change file
+   fn_kb_chunks_swap_log()  owner postgres  — in the schema mirror only, with no change file
+   fn_kb_trim_batch(p_limit integer)  owner postgres  — in the schema mirror only, with no change file
+   fn_kb_trim_hash_page(p_after bigint, p_limit integer)  owner postgres  — in the schema mirror only, with no change file
+   fn_kb_trim_plan_build(p_upto bigint)  owner postgres  — in the schema mirror only, with no change file
+   ... and 30 more
+
+UNCOMMITTED APPLICATION DDL (live, and in no canonical file or the schema mirror): 0
+
+ownership of live public routines: APPLICATION 1729   EXTENSION_MANAGED 149
+
+---------------------------------------------------------------- SUMMARY
+  conflicting current definitions  0
+  ambiguous routine winners        0
+  manifest gaps                    29
+  repository -> production drift   46
+  production -> repository drift   55
+  uncommitted application DDL      0
+  ------------------------------------
+  countable findings               130  -> exit 1
+
+  THE THREE PRODUCTION COUNTERS READ THE LIVE DATABASE, NOT THIS DIFF.
+  A finding is only this branch's if the same check is red on main at the same moment:
+      git fetch origin && git checkout --detach origin/main && node scripts/checks/canonical_routine_manifest.mjs
+  Red on main too: production and main disagree - apply, or correct the file, on main.
+  Green on main:   the finding is this branch's - its SQL is unapplied, or its file is stale.
+  Red on both while another PR is mid-apply: that is the apply-then-merge window; re-read after it merges.

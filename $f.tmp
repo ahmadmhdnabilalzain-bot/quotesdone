@@ -1,0 +1,5 @@
+==> // RETIRED 19 Oct 2026 (it_engineer): the 'open_over_24h' item it asserted was removed by <==
+
+==> // open is the open queue itself, which fn_it_loop_reverify escalates; the SLA item repeated it (5 such items on <==
+
+==> //; <==

@@ -1,0 +1,87 @@
+catalog_num,catalog_name,expected_slug,route_key,route_type,coverage_status,mapped_packages,mapped_package_slugs,mapped_subcategory_count,alias_count_en,alias_count_ar,live_slug_resolution
+1,Construction Materials Suppliers,construction-materials-suppliers,opcat-001,composite,mapped_composite_existing_corpus,1,construction-civil-and-building-materials,6,81,74,lookup_by_num
+2,Steel & Reinforcement Suppliers,steel-and-reinforcement-suppliers,opcat-002,direct,mapped_existing_corpus,1,construction-civil-and-building-materials,1,12,8,lookup_by_num
+3,Cement & Concrete Suppliers,cement-and-concrete-suppliers,opcat-003,direct,mapped_existing_corpus,1,construction-civil-and-building-materials,2,26,20,lookup_by_num
+4,Formwork & Scaffolding Suppliers,formwork-and-scaffolding-suppliers,opcat-004,direct,mapped_existing_corpus,1,construction-civil-and-building-materials,1,14,10,lookup_by_num
+5,Waterproofing Suppliers,waterproofing-suppliers,opcat-005,direct,mapped_existing_corpus,1,construction-civil-and-building-materials,1,17,13,lookup_by_num
+6,Insulation Suppliers,insulation-suppliers,opcat-006,direct,mapped_existing_corpus,1,construction-civil-and-building-materials,1,17,14,lookup_by_num
+7,Roofing Suppliers,roofing-suppliers,opcat-007,direct,mapped_existing_corpus,1,construction-civil-and-building-materials,1,16,14,lookup_by_num
+8,MEP Suppliers / Electromechanical Suppliers,mep-suppliers-electromechanical-suppliers,opcat-008,composite,mapped_composite_existing_corpus,2,mep-mechanical-electrical-plumbing,11,189,171,lookup_by_num
+9,HVAC Suppliers,hvac-suppliers,opcat-009,direct,mapped_existing_corpus,2,mep-mechanical-electrical-plumbing,2,35,31,lookup_by_num
+10,Electrical Suppliers,electrical-suppliers,opcat-010,composite,mapped_composite_existing_corpus,2,mep-mechanical-electrical-plumbing,6,101,91,lookup_by_num
+11,Plumbing & Sanitaryware Suppliers,plumbing-and-sanitaryware-suppliers,opcat-011,direct,mapped_existing_corpus,2,mep-mechanical-electrical-plumbing,3,57,49,lookup_by_num
+12,Fire Fighting Equipment Suppliers,fire-fighting-equipment-suppliers,opcat-012,composite,mapped_composite_existing_corpus,6,firefighting-life-safety-and-security,5,55,50,lookup_by_num
+13,Fire Alarm & Life Safety Suppliers,fire-alarm-and-life-safety-suppliers,opcat-013,direct,mapped_existing_corpus,6,firefighting-life-safety-and-security,3,34,30,lookup_by_num
+14,ELV & Security Systems Suppliers,elv-and-security-systems-suppliers,opcat-014,composite,mapped_composite_existing_corpus,6; 7,firefighting-life-safety-and-security; elv-smart-systems-home-automation,5,65,55,lookup_by_num
+15,Smart Home & Home Automation Suppliers,smart-home-and-home-automation-suppliers,opcat-015,composite,mapped_composite_existing_corpus,7,elv-smart-systems-home-automation,7,69,57,lookup_by_num
+16,Fit-Out Contractors / Interior Fit-Out Suppliers,fit-out-contractors-interior-fit-out-suppliers,opcat-016,composite,mapped_composite_existing_corpus,8; 9,interior-fit-out-finishes-and-joinery; luxury-fit-out,16,64,57,lookup_by_num
+17,Gypsum & False Ceiling Suppliers,gypsum-and-false-ceiling-suppliers,opcat-017,direct,mapped_existing_corpus,8,interior-fit-out-finishes-and-joinery,2,10,8,lookup_by_num
+18,Flooring Suppliers,flooring-suppliers,opcat-018,direct,mapped_existing_corpus,8,interior-fit-out-finishes-and-joinery,1,3,2,lookup_by_num
+19,Aluminium & Glass Suppliers,aluminium-and-glass-suppliers,opcat-019,direct,mapped_existing_corpus,8,interior-fit-out-finishes-and-joinery,2,12,9,lookup_by_num
+20,Joinery & Carpentry Suppliers,joinery-and-carpentry-suppliers,opcat-020,direct,mapped_existing_corpus,8,interior-fit-out-finishes-and-joinery,3,19,15,lookup_by_num
+21,Paints & Finishing Materials Suppliers,paints-and-finishing-materials-suppliers,opcat-021,direct,mapped_existing_corpus,8,interior-fit-out-finishes-and-joinery,2,12,9,lookup_by_num
+22,Interior Decoration,interior-decoration,opcat-022,composite,mapped_composite_existing_corpus,10,interior-decoration-and-styling,7,15,14,lookup_by_num
+23,Furniture Suppliers / FF&E Suppliers,furniture-suppliers-ff-and-e-suppliers,opcat-023,composite,mapped_composite_existing_corpus,11,furniture-ff-and-e-and-loose-items,7,23,21,lookup_by_num
+24,Kitchen & Bathroom Suppliers,kitchen-and-bathroom-suppliers,opcat-024,composite,mapped_composite_existing_corpus,8; 2,interior-fit-out-finishes-and-joinery; mep-mechanical-electrical-plumbing,2,25,20,lookup_by_num
+25,Swimming Pool Suppliers & Contractors,swimming-pool-suppliers-and-contractors,opcat-025,composite,mapped_composite_existing_corpus,12,swimming-pools-spas-and-water-features,6,8,6,lookup_by_num
+26,Cold Room & Refrigeration Suppliers,cold-room-and-refrigeration-suppliers,opcat-026,composite,mapped_composite_existing_corpus,13,cold-rooms-refrigeration-and-cold-chain,6,11,9,lookup_by_num
+27,Catering Companies,catering-companies,opcat-027,composite,mapped_composite_existing_corpus,14,catering-f-and-b-and-hospitality-services,4,19,17,lookup_by_num
+28,Hospitality Supplies Companies,hospitality-supplies-companies,opcat-028,composite,mapped_composite_existing_corpus,15; 11,hospitality-supplies; furniture-ff-and-e-and-loose-items,5,13,11,lookup_by_num
+29,Bakery Equipment Suppliers,bakery-equipment-suppliers,opcat-029,direct,mapped_existing_corpus,16,bakery-and-food-processing,2,4,2,lookup_by_num
+30,Food Processing Equipment Suppliers,food-processing-equipment-suppliers,opcat-030,composite,mapped_composite_existing_corpus,16; 48,bakery-and-food-processing; agriculture-food-production-and-environment,4,7,4,lookup_by_num
+31,Event Management Companies,event-management-companies,opcat-031,composite,mapped_composite_existing_corpus,18; 20,marketing-media-events-and-creative-services; temporary-event-infrastructure,6,14,12,lookup_by_num
+32,Exhibition Stand Contractors,exhibition-stand-contractors,opcat-032,composite,mapped_composite_existing_corpus,19,exhibition-industry,5,6,5,lookup_by_num
+33,AV & Media Equipment Suppliers,av-and-media-equipment-suppliers,opcat-033,composite,mapped_composite_existing_corpus,17,media-av-production-and-creative-equipment,9,38,35,lookup_by_num
+34,Marketing & Advertising Agencies,marketing-and-advertising-agencies,opcat-034,composite,mapped_composite_existing_corpus,18,marketing-media-events-and-creative-services,10,43,42,lookup_by_num
+35,IT Companies / IT Services Providers,it-companies-it-services-providers,opcat-035,composite,mapped_composite_existing_corpus,21,it-technology-and-digital-services,10,48,44,lookup_by_num
+36,Data Centre Suppliers & Service Providers,data-centre-suppliers-and-service-providers,opcat-036,composite,mapped_composite_existing_corpus,22,data-centres,6,10,8,lookup_by_num
+37,Telecommunication Companies,telecommunication-companies,opcat-037,composite,mapped_composite_existing_corpus,23; 7,telecommunications; elv-smart-systems-home-automation,7,21,15,lookup_by_num
+38,Accounting & Audit Firms,accounting-and-audit-firms,opcat-038,direct,mapped_existing_corpus,24,accounting-finance-and-corporate-services,2,12,9,lookup_by_num
+39,Tax Consultants,tax-consultants,opcat-039,direct,mapped_existing_corpus,24,accounting-finance-and-corporate-services,1,7,5,lookup_by_num
+40,Corporate Service Providers / PRO Services,corporate-service-providers-pro-services,opcat-040,composite,mapped_composite_existing_corpus,24; 27,accounting-finance-and-corporate-services; legal-and-compliance,4,16,14,lookup_by_num
+41,Law Firms,law-firms,opcat-041,composite,mapped_composite_existing_corpus,27,legal-and-compliance,9,33,31,lookup_by_num
+42,Management Consulting Firms,management-consulting-firms,opcat-042,composite,mapped_composite_existing_corpus,28,business-consulting,7,20,18,lookup_by_num
+43,HR & Recruitment Agencies,hr-and-recruitment-agencies,opcat-043,composite,mapped_composite_existing_corpus,29,human-resources-and-recruitment,6,24,22,lookup_by_num
+44,Staffing Companies,staffing-companies,opcat-044,composite,mapped_composite_existing_corpus,29; 14,human-resources-and-recruitment; catering-f-and-b-and-hospitality-services,3,13,12,lookup_by_num
+45,Facilities Management Companies,facilities-management-companies,opcat-045,composite,mapped_composite_existing_corpus,30,facilities-management-and-support-services,8,27,25,lookup_by_num
+46,Cleaning Companies,cleaning-companies,opcat-046,composite,mapped_composite_existing_corpus,30; 41,facilities-management-and-support-services; chemicals,4,10,8,lookup_by_num
+47,Security Companies,security-companies,opcat-047,direct,mapped_existing_corpus,6,firefighting-life-safety-and-security,3,40,34,lookup_by_num
+48,Business Centres & Coworking Spaces,business-centres-and-coworking-spaces,opcat-048,composite,mapped_composite_existing_corpus,31,business-centres-and-coworking,4,5,4,lookup_by_num
+49,Logistics & Freight Forwarding Companies,logistics-and-freight-forwarding-companies,opcat-049,composite,mapped_composite_existing_corpus,32,logistics-transport-and-supply-chain,6,22,20,lookup_by_num
+50,Warehousing & 3PL Companies,warehousing-and-3pl-companies,opcat-050,direct,mapped_existing_corpus,32,logistics-transport-and-supply-chain,2,11,8,lookup_by_num
+51,Oil & Gas Equipment Suppliers,oil-and-gas-equipment-suppliers,opcat-051,composite,mapped_composite_existing_corpus,33,oil-and-gas-energy-and-industrial,4,19,17,lookup_by_num
+52,Industrial Equipment Suppliers,industrial-equipment-suppliers,opcat-052,composite,mapped_composite_existing_corpus,33; 59,oil-and-gas-energy-and-industrial; vehicles-automotive-and-equipment,7,36,22,lookup_by_num
+53,Industrial Automation Suppliers,industrial-automation-suppliers,opcat-053,composite,mapped_composite_existing_corpus,35,industrial-automation,6,8,6,lookup_by_num
+54,Bearings & Power Transmission Suppliers,bearings-and-power-transmission-suppliers,opcat-054,composite,mapped_composite_existing_corpus,36,bearings-power-transmission-and-hydraulics,6,8,6,lookup_by_num
+55,Fasteners & Fixings Suppliers,fasteners-and-fixings-suppliers,opcat-055,composite,mapped_composite_existing_corpus,37,fasteners-and-fixings,6,8,6,lookup_by_num
+56,Tools & Abrasives Suppliers,tools-and-abrasives-suppliers,opcat-056,composite,mapped_composite_existing_corpus,38; 59,abrasives-tools-and-industrial-consumables; vehicles-automotive-and-equipment,7,14,7,lookup_by_num
+57,Air Compressor & Pneumatic Suppliers,air-compressor-and-pneumatic-suppliers,opcat-057,composite,mapped_composite_existing_corpus,39; 36,air-compressors-and-pneumatics; bearings-power-transmission-and-hydraulics,5,9,7,lookup_by_num
+58,Chemical Suppliers,chemical-suppliers,opcat-058,composite,mapped_composite_existing_corpus,41; 33,chemicals; oil-and-gas-energy-and-industrial,6,12,10,lookup_by_num
+59,Laboratory Equipment Suppliers,laboratory-equipment-suppliers,opcat-059,composite,mapped_composite_existing_corpus,43,laboratory-and-scientific-suppliers,6,12,10,lookup_by_num
+60,Cleanroom Suppliers & Contractors,cleanroom-suppliers-and-contractors,opcat-060,composite,mapped_composite_existing_corpus,44,cleanrooms-and-controlled-environments,5,7,5,lookup_by_num
+61,Medical Equipment Suppliers,medical-equipment-suppliers,opcat-061,direct,mapped_existing_corpus,42,healthcare-medical-and-life-sciences,3,15,13,lookup_by_num
+62,Pharmaceutical Suppliers,pharmaceutical-suppliers,opcat-062,direct,mapped_existing_corpus,42,healthcare-medical-and-life-sciences,1,6,4,lookup_by_num
+63,Education Equipment Suppliers,education-equipment-suppliers,opcat-063,composite,mapped_composite_existing_corpus,45,education-and-training-support,4,18,16,lookup_by_num
+64,Aviation & Ground Support Suppliers,aviation-and-ground-support-suppliers,opcat-064,direct,mapped_existing_corpus,46,aviation-maritime-and-offshore,2,8,2,lookup_by_num
+65,Marine Equipment & Marine Safety Suppliers,marine-equipment-and-marine-safety-suppliers,opcat-065,composite,mapped_composite_existing_corpus,46; 47,aviation-maritime-and-offshore; marine-safety,6,19,6,lookup_by_num
+66,Offshore & Marine Construction Companies,offshore-and-marine-construction-companies,opcat-066,composite,mapped_composite_existing_corpus,46,aviation-maritime-and-offshore,6,10,6,lookup_by_num
+67,"Renewable Energy Companies (Solar, EV, Battery)",renewable-energy-companies,opcat-067,composite,mapped_composite_existing_corpus,34,renewable-energy,4,6,4,lookup_by_num
+68,Real Estate Agencies,real-estate-agencies,opcat-068,composite,mapped_composite_existing_corpus,50,real-estate-services,4,8,4,lookup_by_num
+69,Property Management Companies,property-management-companies,opcat-069,composite,mapped_composite_existing_corpus,50,real-estate-services,4,6,4,lookup_by_num
+70,Textile & Uniform Suppliers,textile-and-uniform-suppliers,opcat-070,composite,mapped_composite_existing_corpus,51,textile-uniforms-and-soft-goods,7,19,7,lookup_by_num
+71,Beauty & Spa Equipment Suppliers,beauty-and-spa-equipment-suppliers,opcat-071,composite,mapped_composite_existing_corpus,52,beauty-wellness-and-personal-care,5,10,5,lookup_by_num
+72,Gym & Sports Equipment Suppliers,gym-and-sports-equipment-suppliers,opcat-072,composite,mapped_composite_existing_corpus,53,sports-recreation-and-leisure,5,9,5,lookup_by_num
+73,Jewelry Suppliers / Gold & Diamond Traders,jewelry-suppliers-gold-and-diamond-traders,opcat-073,composite,mapped_composite_existing_corpus,55,jewelry-and-luxury-retail,6,8,6,lookup_by_num
+74,Luxury & Concierge Service Providers,luxury-and-concierge-service-providers,opcat-074,composite,mapped_composite_existing_corpus,56,luxury-and-concierge-services,5,8,5,lookup_by_num
+75,Travel Agencies,travel-agencies,opcat-075,composite,mapped_composite_existing_corpus,60,travel-and-tourism-services,5,7,5,lookup_by_num
+76,"Domestic Services Companies (Maids, Care)",domestic-services-companies,opcat-076,composite,mapped_composite_existing_corpus,61,domestic-services,4,7,4,lookup_by_num
+77,Pet Care & Veterinary Services,pet-care-and-veterinary-services,opcat-077,composite,mapped_composite_existing_corpus,62,pet-industry,4,8,4,lookup_by_num
+78,Translation & Interpretation Companies,translation-and-interpretation-companies,opcat-078,direct,mapped_existing_corpus,63,translation-interpretation-and-localization,3,10,3,lookup_by_num
+79,Tender & Bid Management Consultants,tender-and-bid-management-consultants,opcat-079,composite,mapped_composite_existing_corpus,64,government-tenders-and-procurement-support,4,5,4,lookup_by_num
+80,"Testing, Inspection & Certification Companies",testing-inspection-and-certification-companies,opcat-080,composite,mapped_composite_existing_corpus,65,testing-inspection-certification-and-technical-services,10,33,10,lookup_by_num
+81,Modular & Prefab Building Suppliers,modular-and-prefab-building-suppliers,opcat-081,composite,mapped_composite_existing_corpus,1; 66,construction-civil-and-building-materials; miscellaneous-catch-all,5,39,34,lookup_by_num
+82,"Gas Systems Suppliers (LPG, Medical Gas, Industrial Gas)",gas-systems-suppliers,opcat-082,composite,mapped_composite_existing_corpus,4,gas-systems,5,53,45,lookup_by_num
+83,Utility Contractors (DEWA / SEWA / FEWA approved),utility-contractors,opcat-083,composite,mapped_composite_existing_corpus,3,utilities,7,68,66,lookup_by_num
+84,Wastewater & Drainage Contractors,wastewater-and-drainage-contractors,opcat-084,composite,mapped_composite_existing_corpus,5,wastewater-drainage,4,40,39,lookup_by_num
+85,Signage & Printing Suppliers,signage-and-printing-suppliers,opcat-085,composite,mapped_composite_existing_corpus,58; 8; 18,printing-packaging-and-office-supplies; interior-fit-out-finishes-and-joinery; marketing-media-events-and-creative-services,7,30,15,lookup_by_num
+86,Lifts & Escalator Suppliers,lifts-and-escalator-suppliers,opcat-086,supplement,mapped_new_supplement,86,lifts-and-escalators,12,69,52,lookup_by_num

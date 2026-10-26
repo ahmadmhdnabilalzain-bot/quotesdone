@@ -1,0 +1,6 @@
+[0m[1m[31merror[0m: unexpected argument '-i' found
+
+  tip: to pass '-i' as a value, use '-- -i'
+
+Usage: deno check [OPTIONS] [file]...
+

@@ -1,0 +1,2 @@
+head: invalid trailing option -- )
+Try 'head --help' for more information.

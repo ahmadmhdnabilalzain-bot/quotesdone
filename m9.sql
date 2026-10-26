@@ -1,0 +1,1 @@
+"select jsonb_agg(table_name||'.'||column_name||':'||is_generated||':'||coalesce(generation_expression,'')) r from information_schema.columns where table_schema='public' and column_name='is_demo';"  

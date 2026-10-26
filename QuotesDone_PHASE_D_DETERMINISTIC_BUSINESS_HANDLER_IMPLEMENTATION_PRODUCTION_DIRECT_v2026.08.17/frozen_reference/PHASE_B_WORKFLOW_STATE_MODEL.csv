@@ -1,0 +1,15 @@
+state,definition,terminal
+draft,Record exists but work has not been accepted into active processing.,False
+queued,Work is accepted and waiting for its accountable owner.,False
+active,The accountable owner is executing the current required step.,False
+waiting_input,Required evidence or response is awaited from an identified party.,False
+waiting_handoff,A complete handoff packet is awaiting receiving-owner acceptance.,False
+waiting_review,An independent review or approval is pending.,False
+blocked,A named blocker prevents progression and has an accountable resolution owner.,False
+approved,The required decision/review passed but final closure actions remain.,False
+rejected,"The required decision/review failed; correction, appeal or closure must follow.",False
+failed,"Execution ended unsuccessfully and requires retry, escalation or closure.",False
+expired,A configured time window ended without the required action.,False
+cancelled,The workflow was intentionally stopped with authority and reason.,True
+completed,The required end state and closure criteria are satisfied.,True
+superseded,A newer approved workflow/version replaces this one while preserving history.,True

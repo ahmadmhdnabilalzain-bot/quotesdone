@@ -1,0 +1,702 @@
+{
+  "package": "QuotesDone_Operational_86_Final_v2026.07.31",
+  "build_date": "2026-07-31",
+  "version": "1.0.0",
+  "operational_routes": 86,
+  "crosswalk_rows": 426,
+  "alias_records": 3831,
+  "route_tests": 258,
+  "supplement": {
+    "package_id": "QD-KB-086-lifts-and-escalators-v2026.07.31",
+    "category_number": 86,
+    "category_slug": "lifts-and-escalators",
+    "category_name": "Lifts & Escalators",
+    "version": "1.0.0",
+    "build_date": "2026-07-31",
+    "subcategories": 12,
+    "atomic_records": 2047,
+    "questions": 248,
+    "decision_rules": 150,
+    "validation_rules": 248,
+    "scenario_tests": 72,
+    "sources": 20,
+    "master_characters": 828412,
+    "status": "research_complete_production_draft_not_sme_approved"
+  },
+  "files": [
+    {
+      "file": "00_CONTROL/01_OPERATIONAL_CATEGORY_INDEX_001-086.csv",
+      "bytes": 15774,
+      "sha256": "6ae2056a71a74334d9a149409101ecf0db0c542072cf933f2bbc973bdbc0e808"
+    },
+    {
+      "file": "00_CONTROL/02_OPERATIONAL_CROSSWALK.jsonl",
+      "bytes": 133674,
+      "sha256": "f0ea158b727bd6576c2700b5c4337b307a58004420bd60c5102f9e05bf43d12d"
+    },
+    {
+      "file": "00_CONTROL/03_OPERATIONAL_ALIAS_LEXICON.jsonl",
+      "bytes": 603725,
+      "sha256": "65d5841b93f46696bbd6388dee2134610d1eb9c4bef10576ab6c3980a53d4b7c"
+    },
+    {
+      "file": "00_CONTROL/04_OPERATIONAL_ROUTE_TESTS.jsonl",
+      "bytes": 43907,
+      "sha256": "2906c260231e9cc0789847cf785c956c3ff9998456fe3c32e01d4329bed702c4"
+    },
+    {
+      "file": "00_CONTROL/05_SUPABASE_OPERATIONAL_86_SCHEMA.sql",
+      "bytes": 2066,
+      "sha256": "a02172470a09211a3ef1024a5324516b150286eaeb43fc996b274eb53e278496"
+    },
+    {
+      "file": "00_CONTROL/06_IMPORT_OPERATIONAL_86_TEMPLATE.ts",
+      "bytes": 2900,
+      "sha256": "8451e7e5998cef34b79e7bb571b16f3cd61ab577d7c171b5265041dd1fa91709"
+    },
+    {
+      "file": "00_CONTROL/07_VALIDATE_OPERATIONAL_86.py",
+      "bytes": 594,
+      "sha256": "da71cbbb11cfb80c30ea14d8b56119d339ebb0a1fb827a15fd050cc755c5b1e6"
+    },
+    {
+      "file": "00_CONTROL/08_CLAUDE_MASTER_IMPLEMENTATION_PROMPT.md",
+      "bytes": 2445,
+      "sha256": "c3f59485074a5cbd6f788839cf8ec26a0df2f3c4baaeeebac58a0bd8cba44b13"
+    },
+    {
+      "file": "00_CONTROL/09_TOKEN_EFFICIENT_INGESTION.md",
+      "bytes": 525,
+      "sha256": "b5da3919c1ae0d09b3068ef6718b745025cf5d982dfabbae384dabefe50f5698"
+    },
+    {
+      "file": "00_README.md",
+      "bytes": 849,
+      "sha256": "575a4af786167d69dc619532136acdf62140cd1a58a5acb94cb9599050399cf5"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/001_construction-materials-suppliers.json",
+      "bytes": 6083,
+      "sha256": "83e2c846541d7801bd07bb986bd48cc0017928df499a095f81c836b99c6ece7e"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/002_steel-and-reinforcement-suppliers.json",
+      "bytes": 2668,
+      "sha256": "19fbb86bc6e58d2c2fedcab2738a2fe32df89ec29add176eb85284084e4186a7"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/003_cement-and-concrete-suppliers.json",
+      "bytes": 3257,
+      "sha256": "dc78b20ed5d8bb2400ce1094885b2ece62a25a408b2dcbceba65bcd1597ffdad"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/004_formwork-and-scaffolding-suppliers.json",
+      "bytes": 2669,
+      "sha256": "6c09721e4aac73139eeec3f929176bbf2fc535bb6a0fa14837d82db25b406ce2"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/005_waterproofing-suppliers.json",
+      "bytes": 2859,
+      "sha256": "c13b91ec1cccce19cf4b4f0f24d3b6102d93208a7f16754b3f3c06785089d633"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/006_insulation-suppliers.json",
+      "bytes": 2752,
+      "sha256": "d5240793da121cd3e1f8ec2c6447c6fa66d2bee714389b5073d25c2255589ad4"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/007_roofing-suppliers.json",
+      "bytes": 2693,
+      "sha256": "bd14bfad0a303416499a76ced0d19c846d6f633f846b6e1a460616ddc5d23416"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/008_mep-suppliers-electromechanical-suppliers.json",
+      "bytes": 11601,
+      "sha256": "05bd1349cb950fad5caafe5cc4d8c60ef4e00ee2d8dc3fe68a9a8782a84f158a"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/009_hvac-suppliers.json",
+      "bytes": 3669,
+      "sha256": "983e9fb7a67453a3a32a660f325ce098baa0a0bb768cf44e136fa8c1bea2eafc"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/010_electrical-suppliers.json",
+      "bytes": 7202,
+      "sha256": "ed81e37cfe4617952d7430bad7e5dfed4ffa4a84151ba4d8d0e23cc35a847e4f"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/011_plumbing-and-sanitaryware-suppliers.json",
+      "bytes": 4664,
+      "sha256": "a294639740b8db24bbef7f2071cbef70f1d7a5704df97712ed08c4579b468c80"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/012_fire-fighting-equipment-suppliers.json",
+      "bytes": 5358,
+      "sha256": "eea2972c5af771fca6621c3ca677cf025c21ecd45480d5c1308bbe8f60b5483c"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/013_fire-alarm-and-life-safety-suppliers.json",
+      "bytes": 4029,
+      "sha256": "0255c1c63c4a4202e5b54d9da258261599feeef3dd0a4ee7d7203c67a91ec0b1"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/014_elv-and-security-systems-suppliers.json",
+      "bytes": 5742,
+      "sha256": "33db2a26bc7f0f76d2ea53a107dfb67d7fddef1bb70a2135f7c3d0aa11cc04f9"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/015_smart-home-and-home-automation-suppliers.json",
+      "bytes": 5529,
+      "sha256": "2a5216161ca85df3f921f53cb1094bc8468ee4bf86586b89cbfa0f90371a31bd"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/016_fit-out-contractors-interior-fit-out-suppliers.json",
+      "bytes": 7033,
+      "sha256": "8795294afecd8982b5fef26dcd1d440e30affac10d85344cd385a2b7fcb063a0"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/017_gypsum-and-false-ceiling-suppliers.json",
+      "bytes": 2716,
+      "sha256": "d58679eb48a26aa3e30761ed83e3df423ce8477912240a65e6aaa13597c94c5e"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/018_flooring-suppliers.json",
+      "bytes": 2267,
+      "sha256": "fda84b53bbfa77339a342561736f945000b97a2002723d78fe9c879c833d80c3"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/019_aluminium-and-glass-suppliers.json",
+      "bytes": 2701,
+      "sha256": "7e045a15d2a0f7c651a775a497fbea7be955f0e609326e2905417cb69592bc13"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/020_joinery-and-carpentry-suppliers.json",
+      "bytes": 3228,
+      "sha256": "e9c16b690c5fed957cbfe4c4b1432f3dcfd8273dfbdf06ca8ccdfd16fc748362"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/021_paints-and-finishing-materials-suppliers.json",
+      "bytes": 2885,
+      "sha256": "fab3d422592f0cb5202f0cd79bab69132fb08c6aa8db298359b8a573e0dd8d75"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/022_interior-decoration.json",
+      "bytes": 3066,
+      "sha256": "80bab5fd5ea0b53f5bfd1854e85275f07c8619ca2e08316a8e552361da0abdfe"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/023_furniture-suppliers-ff-and-e-suppliers.json",
+      "bytes": 3753,
+      "sha256": "f82e57e6603871da47b3e8394cbd6d589e8390c2aec716e1e8a122c0d3a78a81"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/024_kitchen-and-bathroom-suppliers.json",
+      "bytes": 3622,
+      "sha256": "903c7d51f16cadece89814216ef58479dfc6e0331f64d89659dd7957b155e25d"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/025_swimming-pool-suppliers-and-contractors.json",
+      "bytes": 2640,
+      "sha256": "b5c4ea9ae22636f6ef8e02119b10fb4777729045690757d66f804a2e5781a296"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/026_cold-room-and-refrigeration-suppliers.json",
+      "bytes": 2902,
+      "sha256": "7ce08881526316e306af306ae7c15901a1275c1cf469a4eec4084aafeaed8c2d"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/027_catering-companies.json",
+      "bytes": 3338,
+      "sha256": "21bb0d19fed5c1abe1e1192db6a1c97be96fda4356f60073f2fcd1f922f64485"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/028_hospitality-supplies-companies.json",
+      "bytes": 3201,
+      "sha256": "d7c501a2b3433fcf92a9a636bdb2906d50dec90cd10b76f262c88ef62751d399"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/029_bakery-equipment-suppliers.json",
+      "bytes": 2197,
+      "sha256": "a702b15350efdca7e7472d722700257de3aab19890f6d9823ced676f97b0c54d"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/030_food-processing-equipment-suppliers.json",
+      "bytes": 2850,
+      "sha256": "39e169a8e77a3726ce12e8f91c44bc1ebde2ebe90e1214fbed6d4cb4cd0cc3b3"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/031_event-management-companies.json",
+      "bytes": 3406,
+      "sha256": "bf648aa796acb871a6e152b261cb697df1f6df75b5cb328933948dd3d87e90b0"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/032_exhibition-stand-contractors.json",
+      "bytes": 2468,
+      "sha256": "30e6465d951cbd2620789bf9ad44b74c152b689609c2a9041eba63411b64868c"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/033_av-and-media-equipment-suppliers.json",
+      "bytes": 5036,
+      "sha256": "52e36d65e4fe8ff72dfb10f3384282307ee192fe586ce71e7cbd987880f5510a"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/034_marketing-and-advertising-agencies.json",
+      "bytes": 5509,
+      "sha256": "f37cbd82e527906be5dfe74b9e6056f495f6dd0fcb489416c5b14483dfedcd26"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/035_it-companies-it-services-providers.json",
+      "bytes": 5657,
+      "sha256": "90dc3ec15bd6cca4cb05e99008dd0295c27ccdf62e2c26d9e4809e6bdb7aba88"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/036_data-centre-suppliers-and-service-providers.json",
+      "bytes": 2736,
+      "sha256": "fd6b6dd15eb2162e3b71927745d20648a4df13d887880df13b032f5b53f53038"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/037_telecommunication-companies.json",
+      "bytes": 3427,
+      "sha256": "551a676ae1702d68771714c9cb68d6d85d47d8c7c81d35779ace8618b5ef0875"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/038_accounting-and-audit-firms.json",
+      "bytes": 2696,
+      "sha256": "d7b5f73599e7b9ceb3ebc250d2fa7476dbc5018f6d0ceb23539b8c92244b1438"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/039_tax-consultants.json",
+      "bytes": 2339,
+      "sha256": "afe07e78f80b77c8b644cf491a664cf21030ae101cf1a63f3f0da3a88b2f8b8e"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/040_corporate-service-providers-pro-services.json",
+      "bytes": 3647,
+      "sha256": "089b0096e8f9e70f4d0dbc4a7dec392cf3bcff7c51ac0ae0dfe2db93df3bb2b8"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/041_law-firms.json",
+      "bytes": 4477,
+      "sha256": "9623c754f1e862c89f9322cceb07059aa10b97dfe3b7ed8687a961219cd4d594"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/042_management-consulting-firms.json",
+      "bytes": 3788,
+      "sha256": "ed0e539c1bf446cf9dd0eabe243a4d3c3e8dafebe02678b1fd2bd04b40c32499"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/043_hr-and-recruitment-agencies.json",
+      "bytes": 4041,
+      "sha256": "7428c0f9453204783167f06fd19cc6291d071112624fe2c0bbb82436ffadac74"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/044_staffing-companies.json",
+      "bytes": 3510,
+      "sha256": "3984ae4a1d3c1fcf7ff497413d90033afd9a73718abe623c2571c6608d19197f"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/045_facilities-management-companies.json",
+      "bytes": 4244,
+      "sha256": "4128b300a665e5bfbe3b750ddd392e5f9d805615a846d6929b1025c50c0ad41f"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/046_cleaning-companies.json",
+      "bytes": 2979,
+      "sha256": "ae4b2db401a528d67d6bdb860c70047bd943a0103d390359934306660159f23e"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/047_security-companies.json",
+      "bytes": 4088,
+      "sha256": "5b4dc20a4aaab6d00e5ffb789df40b2d7336b195a28d331191f861af8516f4f9"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/048_business-centres-and-coworking-spaces.json",
+      "bytes": 2424,
+      "sha256": "92056dee0d85518a37d00b1b8466b44dcd2248c0704c352fbbdc7eefa85cfe60"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/049_logistics-and-freight-forwarding-companies.json",
+      "bytes": 3828,
+      "sha256": "acfdc7347d4aa96cfb59e862432b6fe43f9391c4718b685a222d6a4d31a438ff"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/050_warehousing-and-3pl-companies.json",
+      "bytes": 2640,
+      "sha256": "2d5d884f63f61985ed8c0c333b1ed318307219e4f80667c25da28d79be51c2cd"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/051_oil-and-gas-equipment-suppliers.json",
+      "bytes": 3451,
+      "sha256": "9f29cade122ba10055e57e872f450c77f7078de22156069d4f6acfef9d9ba064"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/052_industrial-equipment-suppliers.json",
+      "bytes": 4816,
+      "sha256": "f9f759fbdcd1df1bd38ae39baa1d31d4da889ace53e321d917528939cb9f7d99"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/053_industrial-automation-suppliers.json",
+      "bytes": 2480,
+      "sha256": "27a13a80a4b1d2b9f7a9e2e026bec83fa31c7d6ce780eb4a4070a6ea84ab03f8"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/054_bearings-and-power-transmission-suppliers.json",
+      "bytes": 2646,
+      "sha256": "9a24b06e0fc4ebfa055f113da179a4772b2db4abb30404b4afbaa65b9819fd53"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/055_fasteners-and-fixings-suppliers.json",
+      "bytes": 2447,
+      "sha256": "4de3b500aee2dbb426f567de0ea6f2d6f67bf596b088feb6d427493a4718dc33"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/056_tools-and-abrasives-suppliers.json",
+      "bytes": 3185,
+      "sha256": "54b404b5d78e5eb25713485cbe91eb60e6df5ed87c23999b230707025f39f478"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/057_air-compressor-and-pneumatic-suppliers.json",
+      "bytes": 3027,
+      "sha256": "8887b058f3f779b2ab42a9a47c9e2115216733095a856a8b69222cece75f7b06"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/058_chemical-suppliers.json",
+      "bytes": 3155,
+      "sha256": "f3912ad351c872c374a2f0a8182a85f99470bb8d1ffedb54932a4206c8c47ff4"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/059_laboratory-equipment-suppliers.json",
+      "bytes": 2963,
+      "sha256": "1a624fae791c3207ad4459551ac5849924456ef731a5f5655dc5a13522270589"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/060_cleanroom-suppliers-and-contractors.json",
+      "bytes": 2596,
+      "sha256": "88bcaa509152769b0bf1c19cdbe7e3ae5f125d3c71e61314eec0367aac96052e"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/061_medical-equipment-suppliers.json",
+      "bytes": 3054,
+      "sha256": "0e6f06e452d2817aa3b62ca04dc382f7fb57e528febd2208de9165bdc74d855a"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/062_pharmaceutical-suppliers.json",
+      "bytes": 2382,
+      "sha256": "010a5c339ae980f1fd8cfda617b142e0dd06d2e21e32df347bb8a3957a2a6103"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/063_education-equipment-suppliers.json",
+      "bytes": 3341,
+      "sha256": "fe007c5509a015603e737485787f628138b0a0793af67fcd3b19a62da10103ba"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/064_aviation-and-ground-support-suppliers.json",
+      "bytes": 2465,
+      "sha256": "ca4bf529444aec533d02ad34aa3dad481a12b64ef08e06dd4307174186903aba"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/065_marine-equipment-and-marine-safety-suppliers.json",
+      "bytes": 3326,
+      "sha256": "0c2a62c1b0e61019e9635bde2fa7ef4129458c43947858377b62b75a529848df"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/066_offshore-and-marine-construction-companies.json",
+      "bytes": 2745,
+      "sha256": "c62304fceb7c1c9b58e082053f95c77dc26057f19df38c906eafc0e8b2c2c740"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/067_renewable-energy-companies.json",
+      "bytes": 2421,
+      "sha256": "b99cbaa40d756d510549607185ec68a7ae7c1dc80b8022828cd8052e4bef57fb"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/068_real-estate-agencies.json",
+      "bytes": 2471,
+      "sha256": "cf472e2b993bdfb852c452b195a47e1b0775ce037e0b39e759041c7e61b73618"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/069_property-management-companies.json",
+      "bytes": 2433,
+      "sha256": "3a53d6eea81c03132615863dfe08395ca5059c1adcb1b5cae60d87630e967b80"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/070_textile-and-uniform-suppliers.json",
+      "bytes": 2918,
+      "sha256": "981cce778dacdb28b64f013f0e226baee27a20c269f5106bc33b5726a84a1c8f"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/071_beauty-and-spa-equipment-suppliers.json",
+      "bytes": 2583,
+      "sha256": "77944b0cfcd98c2e4ae0660c8428c7c03b63c31d6a4fa7541e35bb34cc965cde"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/072_gym-and-sports-equipment-suppliers.json",
+      "bytes": 2554,
+      "sha256": "8546169faf5bbe64f0bec2f11b06ff7d138fbffb4d4a7d81744fccf9867c62a8"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/073_jewelry-suppliers-gold-and-diamond-traders.json",
+      "bytes": 2598,
+      "sha256": "4acf916bb660b50e829022b1469bb199e89122b1ab72fac6dcacae9f0d4c3306"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/074_luxury-and-concierge-service-providers.json",
+      "bytes": 2533,
+      "sha256": "20e5b7a59f083ce5b5729ae6b1b6fc41e3985b69eadc7bdfbd8a2e5946d4bc16"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/075_travel-agencies.json",
+      "bytes": 2416,
+      "sha256": "72d4c28564f11137656fc7999ad3c61acd7f4fa004b6c030c55ba74967a0d54a"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/076_domestic-services-companies.json",
+      "bytes": 2407,
+      "sha256": "f011d525e528ed7858ff7b0589b15dd22c7892d4e5be16aa748e8e9c2801f7e3"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/077_pet-care-and-veterinary-services.json",
+      "bytes": 2404,
+      "sha256": "fe341511cab9be956250464e7f4f5adce4dd2d5d50aa0bf12890251287d76f0b"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/078_translation-and-interpretation-companies.json",
+      "bytes": 2662,
+      "sha256": "67bb9157dda2e2c5fa9ac4e43ad890cae565465ed5dc9f3a261641a75d4eb0ed"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/079_tender-and-bid-management-consultants.json",
+      "bytes": 2472,
+      "sha256": "d87020684f7c58e9545f67c997a55c12457e6f583db2ddf7ddd6771a90b3c91c"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/080_testing-inspection-and-certification-companies.json",
+      "bytes": 4282,
+      "sha256": "bc13cacd5a857114c7ae70d56c335e0ae17b76a04f571207407d55cf94465ce9"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/081_modular-and-prefab-building-suppliers.json",
+      "bytes": 4751,
+      "sha256": "d57f092ccd6ac88975eda0d1bd7d5b085a0153acf275e07648ac408f44d0eb2e"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/082_gas-systems-suppliers.json",
+      "bytes": 4773,
+      "sha256": "2734338e37a1a209fdbb3a72a84a0be6777617079878d7542f977c0244d8ab25"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/083_utility-contractors.json",
+      "bytes": 6555,
+      "sha256": "c603cb506259fdba17339d3f1161b2e02df5c5dec7626fb02909eee04620d479"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/084_wastewater-and-drainage-contractors.json",
+      "bytes": 4327,
+      "sha256": "9defff26f49b255d87987c3d2d78ea96497da31f17b178957fc9c4f6919c2d8d"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/085_signage-and-printing-suppliers.json",
+      "bytes": 4690,
+      "sha256": "dab24c880f44bde5d2f6cd9f344d770e9568e463b335516e4adb944182a9a3d1"
+    },
+    {
+      "file": "01_ROUTE_MANIFESTS/086_lifts-and-escalator-suppliers.json",
+      "bytes": 6010,
+      "sha256": "c24689f86deb647f3886efb8cfa27c980bda9b33d5da1377ea49fdf626ac7d3b"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/00_README.md",
+      "bytes": 386,
+      "sha256": "5c55b7b4837b410e4e63ade28d22fa6e1af044e0f7d9ed58cb4d556bca88fa39"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/01_manifest.json",
+      "bytes": 485,
+      "sha256": "bedfb720926479ee0eca4a0cf81e17ee98d22be2f7934939ea2dfbb2920bb77f"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/02_category_master.md",
+      "bytes": 834692,
+      "sha256": "772ca725bb2d240f3b5f01aa8eae9726b228f63eba425946a62db9d51c60aa0a"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/03_taxonomy.json",
+      "bytes": 8444,
+      "sha256": "0aa69bf2e4071bd60e97396a5f289c38b8ca46d4d57e83d6d3262e2224fb1c71"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/04_glossary_en_ar.jsonl",
+      "bytes": 197481,
+      "sha256": "ef039d87bde01ef6ca0253de1a5fd091bb273ca01a3e7c557fc959a9636d26e8"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/05_products_services.jsonl",
+      "bytes": 59115,
+      "sha256": "4e5de815694693bcf87c6e892d169c7215a80a9586802e21e44cb6de50387abc"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/06_technical_knowledge.jsonl",
+      "bytes": 156812,
+      "sha256": "fc2f7b997f441e5b23d2dc4dd4b343681e8318e9d341d7dd9c8212700b2d99f1"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/07_brands_manufacturers.jsonl",
+      "bytes": 81943,
+      "sha256": "2e6c4ac33d5f70b4251484ab5820c5d6c7a1a4e83e64c73e3fda3d1cb427131b"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/08_supplier_ecosystem.jsonl",
+      "bytes": 131210,
+      "sha256": "be8f429de5e8c980dac486661d02ebe0a068ae56eef7d36f83bea274bda1692d"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/09_quotation_knowledge.jsonl",
+      "bytes": 30337,
+      "sha256": "2060a3c6639099bc2091d5877646e7214545f4c6d289e08abcbd7cb707a55ac8"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/10_document_requirements.jsonl",
+      "bytes": 312988,
+      "sha256": "05ed508270f6d026c16e91cc997aef5e2cbdb5b45c77e3ca70aed001c9e8a19d"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/11_uae_regulations_authorities.jsonl",
+      "bytes": 135192,
+      "sha256": "3190c7e75ade5a645297340366417ee541ebe717413b7208094c2b0a04d4dbf5"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/12_inquiry_questions.jsonl",
+      "bytes": 436905,
+      "sha256": "9ca91e375766328e666f37e1c113cd1d4c47beb68663d6ff8db67c3742ed6ad2"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/13_decision_rules.jsonl",
+      "bytes": 222793,
+      "sha256": "f8b3f67557f448cc40e6377d0c052737529b6ae6be2ca6bb05889fb357984e5d"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/14_validation_rules.jsonl",
+      "bytes": 316787,
+      "sha256": "665995291981aaf693aa7be444f1a0edea98b9fc92a22c00cda229ee0c02d3d8"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/15_pricing_cost_drivers.jsonl",
+      "bytes": 240825,
+      "sha256": "748ed8240bb8cce23b54171002dd6c15eab7303342047807ef6fcb04895303ec"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/16_risks_common_mistakes.jsonl",
+      "bytes": 169469,
+      "sha256": "bc4796d473b8c466f8ee0526e67fe96c9793b38a2b4f278736081cf7c8ff66f0"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/17_troubleshooting.jsonl",
+      "bytes": 133753,
+      "sha256": "bb2f40b9c1380f9f077d68e8d48288a386e62a8b5e457b599423427354194b22"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/18_scenarios_tests.jsonl",
+      "bytes": 90745,
+      "sha256": "363abad62c98c40e3b6acea43fc1c31d26ac408fa3b939cd2cc8e9da795ca2eb"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/19_source_registry.csv",
+      "bytes": 6419,
+      "sha256": "38f450407b010f7b8996faad68ad80d14f6477bf73248508535f1bc9a815747e"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/20_gap_register.csv",
+      "bytes": 715,
+      "sha256": "d1007058cbdd42909d2bfd67afbb56acefe93dbf502d90ae84b3501dc929cb8f"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/21_ingestion_manifest.json",
+      "bytes": 4953,
+      "sha256": "d83ca52c81f064a442bdc707da844f955db5c6a4d257cb37ffc8509a95ce7086"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/22_QA_report.md",
+      "bytes": 1550,
+      "sha256": "5c3eb599f16084243d37b8c1c0877f282ac3bca53e07b1b383e9013e101758a0"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/23_source_ingestion_queue.csv",
+      "bytes": 4207,
+      "sha256": "1e74fbb450e3ca386ebf2aa0b0b88201eed212df410e82ca6b0456fcdfda0350"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/24_all_records.jsonl",
+      "bytes": 2716355,
+      "sha256": "32fd391ef6adae297b56f3fe6c9894a5ea0cebb3ce40376253c6e77c97c78576"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/25_knowledge_record_schema.json",
+      "bytes": 1593,
+      "sha256": "4da56a5bd9150ffb135a17cacc9165d0c1d3fc0613b9a58b8998ae173bb07297"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/26_production_specification.md",
+      "bytes": 9942,
+      "sha256": "583fb8bdcd86010d57f4b7536c880c604d989496540d3d9da749559677b0ee1b"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31/27_Claude_ingestion_instructions.md",
+      "bytes": 431,
+      "sha256": "d8a681065feaef54898d3e3bd0de717f99888f07af68a3c48f3de90519286094"
+    },
+    {
+      "file": "02_SUPPLEMENTS/QD-KB-086-lifts-and-escalators-v2026.07.31.zip",
+      "bytes": 412078,
+      "sha256": "5a3212338727fecb3534e22ec85cc81947941546313c01d3a65a31b4a0a759a4"
+    },
+    {
+      "file": "03_REPORTS/01_OPERATIONAL_86_QA_REPORT.md",
+      "bytes": 2608,
+      "sha256": "e0bb3d8e884f8c762657fbd1ddf593200803ce31b42dd79081ef9da61e5c9890"
+    },
+    {
+      "file": "03_REPORTS/02_OPERATIONAL_86_GAP_REGISTER.csv",
+      "bytes": 1002,
+      "sha256": "fedc38e7a95dbaf7c4730bbb94c24408beeaee5c533c3d6e08dd65eff4a6ea7b"
+    },
+    {
+      "file": "03_REPORTS/03_BROAD_PACKAGES_NOT_DIRECTLY_ROUTED.json",
+      "bytes": 1001,
+      "sha256": "bf77083ab70d4527ebef39e2be2da656d64933ac3e98df839386a49593dc918a"
+    }
+  ],
+  "broad_packages_available": 66,
+  "broad_packages_referenced_by_operational_routes": 60,
+  "broad_packages_not_directly_routed": [
+    {
+      "package_number": 25,
+      "package_slug": "banking-and-financial-products",
+      "package_name": "Banking & Financial Products"
+    },
+    {
+      "package_number": 26,
+      "package_slug": "insurance",
+      "package_name": "Insurance"
+    },
+    {
+      "package_number": 40,
+      "package_slug": "manufacturing-by-process",
+      "package_name": "Manufacturing by Process"
+    },
+    {
+      "package_number": 49,
+      "package_slug": "recycling-and-circular-economy",
+      "package_name": "Recycling & Circular Economy"
+    },
+    {
+      "package_number": 54,
+      "package_slug": "religious-facilities",
+      "package_name": "Religious Facilities"
+    },
+    {
+      "package_number": 57,
+      "package_slug": "retail-and-consumer-goods",
+      "package_name": "Retail & Consumer Goods"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+[INFO] Recording command outcome: m1.txt
+
+[OK] Command outcome recorded

@@ -1,0 +1,258 @@
+{"test_id":"route-001-exact","input":"I need construction materials suppliers for a project in Dubai.","expected_catalog_num":1,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-001-alias","input":"We are looking for construction materials.","expected_catalog_num":1,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-001-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-002-exact","input":"I need steel & reinforcement suppliers for a project in Dubai.","expected_catalog_num":2,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-002-alias","input":"We are looking for steel & reinforcement.","expected_catalog_num":2,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-002-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-003-exact","input":"I need cement & concrete suppliers for a project in Dubai.","expected_catalog_num":3,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-003-alias","input":"We are looking for cement & concrete.","expected_catalog_num":3,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-003-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-004-exact","input":"I need formwork & scaffolding suppliers for a project in Dubai.","expected_catalog_num":4,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-004-alias","input":"We are looking for formwork & scaffolding.","expected_catalog_num":4,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-004-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-005-exact","input":"I need waterproofing suppliers for a project in Dubai.","expected_catalog_num":5,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-005-alias","input":"We are looking for waterproofing.","expected_catalog_num":5,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-005-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-006-exact","input":"I need insulation suppliers for a project in Dubai.","expected_catalog_num":6,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-006-alias","input":"We are looking for insulation.","expected_catalog_num":6,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-006-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-007-exact","input":"I need roofing suppliers for a project in Dubai.","expected_catalog_num":7,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-007-alias","input":"We are looking for roofing.","expected_catalog_num":7,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-007-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-008-exact","input":"I need mep suppliers / electromechanical suppliers for a project in Dubai.","expected_catalog_num":8,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-008-alias","input":"We are looking for mep / electromechanical.","expected_catalog_num":8,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-008-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-009-exact","input":"I need hvac suppliers for a project in Dubai.","expected_catalog_num":9,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-009-alias","input":"We are looking for hvac.","expected_catalog_num":9,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-009-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-010-exact","input":"I need electrical suppliers for a project in Dubai.","expected_catalog_num":10,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-010-alias","input":"We are looking for electrical.","expected_catalog_num":10,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-010-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-011-exact","input":"I need plumbing & sanitaryware suppliers for a project in Dubai.","expected_catalog_num":11,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-011-alias","input":"We are looking for plumbing & sanitaryware.","expected_catalog_num":11,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-011-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-012-exact","input":"I need fire fighting equipment suppliers for a project in Dubai.","expected_catalog_num":12,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-012-alias","input":"We are looking for fire fighting equipment.","expected_catalog_num":12,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-012-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-013-exact","input":"I need fire alarm & life safety suppliers for a project in Dubai.","expected_catalog_num":13,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-013-alias","input":"We are looking for fire alarm & life safety.","expected_catalog_num":13,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-013-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-014-exact","input":"I need elv & security systems suppliers for a project in Dubai.","expected_catalog_num":14,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-014-alias","input":"We are looking for elv & security systems.","expected_catalog_num":14,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-014-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-015-exact","input":"I need smart home & home automation suppliers for a project in Dubai.","expected_catalog_num":15,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-015-alias","input":"We are looking for smart home & home automation.","expected_catalog_num":15,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-015-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-016-exact","input":"I need fit-out contractors / interior fit-out suppliers for a project in Dubai.","expected_catalog_num":16,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-016-alias","input":"We are looking for fit-out contractors / interior fit-out.","expected_catalog_num":16,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-016-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-017-exact","input":"I need gypsum & false ceiling suppliers for a project in Dubai.","expected_catalog_num":17,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-017-alias","input":"We are looking for gypsum & false ceiling.","expected_catalog_num":17,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-017-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-018-exact","input":"I need flooring suppliers for a project in Dubai.","expected_catalog_num":18,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-018-alias","input":"We are looking for flooring.","expected_catalog_num":18,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-018-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-019-exact","input":"I need aluminium & glass suppliers for a project in Dubai.","expected_catalog_num":19,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-019-alias","input":"We are looking for aluminium & glass.","expected_catalog_num":19,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-019-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-020-exact","input":"I need joinery & carpentry suppliers for a project in Dubai.","expected_catalog_num":20,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-020-alias","input":"We are looking for joinery & carpentry.","expected_catalog_num":20,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-020-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-021-exact","input":"I need paints & finishing materials suppliers for a project in Dubai.","expected_catalog_num":21,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-021-alias","input":"We are looking for paints & finishing materials.","expected_catalog_num":21,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-021-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-022-exact","input":"I need interior decoration for a project in Dubai.","expected_catalog_num":22,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-022-alias","input":"We are looking for interior decoration services.","expected_catalog_num":22,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-022-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-023-exact","input":"I need furniture suppliers / ff&e suppliers for a project in Dubai.","expected_catalog_num":23,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-023-alias","input":"We are looking for furniture / ff&e.","expected_catalog_num":23,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-023-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-024-exact","input":"I need kitchen & bathroom suppliers for a project in Dubai.","expected_catalog_num":24,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-024-alias","input":"We are looking for kitchen & bathroom.","expected_catalog_num":24,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-024-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-025-exact","input":"I need swimming pool suppliers & contractors for a project in Dubai.","expected_catalog_num":25,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-025-alias","input":"We are looking for swimming pool & contractors.","expected_catalog_num":25,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-025-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-026-exact","input":"I need cold room & refrigeration suppliers for a project in Dubai.","expected_catalog_num":26,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-026-alias","input":"We are looking for cold room & refrigeration.","expected_catalog_num":26,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-026-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-027-exact","input":"I need catering companies for a project in Dubai.","expected_catalog_num":27,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-027-alias","input":"We are looking for catering.","expected_catalog_num":27,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-027-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-028-exact","input":"I need hospitality supplies companies for a project in Dubai.","expected_catalog_num":28,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-028-alias","input":"We are looking for hospitality supplies.","expected_catalog_num":28,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-028-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-029-exact","input":"I need bakery equipment suppliers for a project in Dubai.","expected_catalog_num":29,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-029-alias","input":"We are looking for bakery equipment.","expected_catalog_num":29,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-029-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-030-exact","input":"I need food processing equipment suppliers for a project in Dubai.","expected_catalog_num":30,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-030-alias","input":"We are looking for food processing equipment.","expected_catalog_num":30,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-030-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-031-exact","input":"I need event management companies for a project in Dubai.","expected_catalog_num":31,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-031-alias","input":"We are looking for event management.","expected_catalog_num":31,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-031-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-032-exact","input":"I need exhibition stand contractors for a project in Dubai.","expected_catalog_num":32,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-032-alias","input":"We are looking for exhibition contractors.","expected_catalog_num":32,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-032-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-033-exact","input":"I need av & media equipment suppliers for a project in Dubai.","expected_catalog_num":33,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-033-alias","input":"We are looking for av & media equipment.","expected_catalog_num":33,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-033-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-034-exact","input":"I need marketing & advertising agencies for a project in Dubai.","expected_catalog_num":34,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-034-alias","input":"We are looking for full-service advertising agencies.","expected_catalog_num":34,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-034-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-035-exact","input":"I need it companies / it services providers for a project in Dubai.","expected_catalog_num":35,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-035-alias","input":"We are looking for it / it services providers.","expected_catalog_num":35,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-035-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-036-exact","input":"I need data centre suppliers & service providers for a project in Dubai.","expected_catalog_num":36,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-036-alias","input":"We are looking for data centre & service providers.","expected_catalog_num":36,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-036-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-037-exact","input":"I need telecommunication companies for a project in Dubai.","expected_catalog_num":37,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-037-alias","input":"We are looking for telecommunication.","expected_catalog_num":37,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-037-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-038-exact","input":"I need accounting & audit firms for a project in Dubai.","expected_catalog_num":38,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-038-alias","input":"We are looking for accounting & audit.","expected_catalog_num":38,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-038-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-039-exact","input":"I need tax consultants for a project in Dubai.","expected_catalog_num":39,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-039-alias","input":"We are looking for tax, vat & corporate tax advisory.","expected_catalog_num":39,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-039-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-040-exact","input":"I need corporate service providers / pro services for a project in Dubai.","expected_catalog_num":40,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-040-alias","input":"We are looking for company formation & business setup.","expected_catalog_num":40,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-040-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-041-exact","input":"I need law firms for a project in Dubai.","expected_catalog_num":41,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-041-alias","input":"We are looking for law.","expected_catalog_num":41,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-041-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-042-exact","input":"I need management consulting firms for a project in Dubai.","expected_catalog_num":42,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-042-alias","input":"We are looking for management consulting.","expected_catalog_num":42,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-042-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-043-exact","input":"I need hr & recruitment agencies for a project in Dubai.","expected_catalog_num":43,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-043-alias","input":"We are looking for recruitment & executive search.","expected_catalog_num":43,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-043-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-044-exact","input":"I need staffing companies for a project in Dubai.","expected_catalog_num":44,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-044-alias","input":"We are looking for staffing.","expected_catalog_num":44,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-044-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-045-exact","input":"I need facilities management companies for a project in Dubai.","expected_catalog_num":45,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-045-alias","input":"We are looking for facilities management.","expected_catalog_num":45,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-045-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-046-exact","input":"I need cleaning companies for a project in Dubai.","expected_catalog_num":46,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-046-alias","input":"We are looking for cleaning.","expected_catalog_num":46,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-046-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-047-exact","input":"I need security companies for a project in Dubai.","expected_catalog_num":47,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-047-alias","input":"We are looking for security.","expected_catalog_num":47,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-047-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-048-exact","input":"I need business centres & coworking spaces for a project in Dubai.","expected_catalog_num":48,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-048-alias","input":"We are looking for business centres.","expected_catalog_num":48,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-048-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-049-exact","input":"I need logistics & freight forwarding companies for a project in Dubai.","expected_catalog_num":49,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-049-alias","input":"We are looking for logistics & freight forwarding.","expected_catalog_num":49,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-049-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-050-exact","input":"I need warehousing & 3pl companies for a project in Dubai.","expected_catalog_num":50,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-050-alias","input":"We are looking for warehousing & 3pl.","expected_catalog_num":50,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-050-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-051-exact","input":"I need oil & gas equipment suppliers for a project in Dubai.","expected_catalog_num":51,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-051-alias","input":"We are looking for oil & gas equipment.","expected_catalog_num":51,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-051-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-052-exact","input":"I need industrial equipment suppliers for a project in Dubai.","expected_catalog_num":52,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-052-alias","input":"We are looking for industrial equipment.","expected_catalog_num":52,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-052-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-053-exact","input":"I need industrial automation suppliers for a project in Dubai.","expected_catalog_num":53,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-053-alias","input":"We are looking for industrial automation.","expected_catalog_num":53,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-053-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-054-exact","input":"I need bearings & power transmission suppliers for a project in Dubai.","expected_catalog_num":54,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-054-alias","input":"We are looking for bearings & power transmission.","expected_catalog_num":54,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-054-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-055-exact","input":"I need fasteners & fixings suppliers for a project in Dubai.","expected_catalog_num":55,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-055-alias","input":"We are looking for fasteners & fixings.","expected_catalog_num":55,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-055-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-056-exact","input":"I need tools & abrasives suppliers for a project in Dubai.","expected_catalog_num":56,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-056-alias","input":"We are looking for tools & abrasives.","expected_catalog_num":56,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-056-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-057-exact","input":"I need air compressor & pneumatic suppliers for a project in Dubai.","expected_catalog_num":57,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-057-alias","input":"We are looking for air compressor & pneumatic.","expected_catalog_num":57,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-057-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-058-exact","input":"I need chemical suppliers for a project in Dubai.","expected_catalog_num":58,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-058-alias","input":"We are looking for chemical.","expected_catalog_num":58,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-058-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-059-exact","input":"I need laboratory equipment suppliers for a project in Dubai.","expected_catalog_num":59,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-059-alias","input":"We are looking for laboratory equipment.","expected_catalog_num":59,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-059-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-060-exact","input":"I need cleanroom suppliers & contractors for a project in Dubai.","expected_catalog_num":60,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-060-alias","input":"We are looking for cleanroom & contractors.","expected_catalog_num":60,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-060-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-061-exact","input":"I need medical equipment suppliers for a project in Dubai.","expected_catalog_num":61,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-061-alias","input":"We are looking for medical equipment.","expected_catalog_num":61,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-061-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-062-exact","input":"I need pharmaceutical suppliers for a project in Dubai.","expected_catalog_num":62,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-062-alias","input":"We are looking for pharmaceutical.","expected_catalog_num":62,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-062-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-063-exact","input":"I need education equipment suppliers for a project in Dubai.","expected_catalog_num":63,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-063-alias","input":"We are looking for education equipment.","expected_catalog_num":63,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-063-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-064-exact","input":"I need aviation & ground support suppliers for a project in Dubai.","expected_catalog_num":64,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-064-alias","input":"We are looking for aviation & ground support.","expected_catalog_num":64,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-064-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-065-exact","input":"I need marine equipment & marine safety suppliers for a project in Dubai.","expected_catalog_num":65,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-065-alias","input":"We are looking for marine equipment & marine safety.","expected_catalog_num":65,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-065-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-066-exact","input":"I need offshore & marine construction companies for a project in Dubai.","expected_catalog_num":66,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-066-alias","input":"We are looking for offshore & marine construction.","expected_catalog_num":66,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-066-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-067-exact","input":"I need renewable energy companies (solar, ev, battery) for a project in Dubai.","expected_catalog_num":67,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-067-alias","input":"We are looking for renewable energy (solar, ev, battery).","expected_catalog_num":67,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-067-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-068-exact","input":"I need real estate agencies for a project in Dubai.","expected_catalog_num":68,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-068-alias","input":"We are looking for real estate agencies & brokerage.","expected_catalog_num":68,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-068-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-069-exact","input":"I need property management companies for a project in Dubai.","expected_catalog_num":69,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-069-alias","input":"We are looking for property management.","expected_catalog_num":69,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-069-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-070-exact","input":"I need textile & uniform suppliers for a project in Dubai.","expected_catalog_num":70,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-070-alias","input":"We are looking for textile & uniform.","expected_catalog_num":70,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-070-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-071-exact","input":"I need beauty & spa equipment suppliers for a project in Dubai.","expected_catalog_num":71,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-071-alias","input":"We are looking for beauty & spa equipment.","expected_catalog_num":71,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-071-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-072-exact","input":"I need gym & sports equipment suppliers for a project in Dubai.","expected_catalog_num":72,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-072-alias","input":"We are looking for gym & sports equipment.","expected_catalog_num":72,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-072-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-073-exact","input":"I need jewelry suppliers / gold & diamond traders for a project in Dubai.","expected_catalog_num":73,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-073-alias","input":"We are looking for jewelry / gold & diamond traders.","expected_catalog_num":73,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-073-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-074-exact","input":"I need luxury & concierge service providers for a project in Dubai.","expected_catalog_num":74,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-074-alias","input":"We are looking for concierge services.","expected_catalog_num":74,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-074-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-075-exact","input":"I need travel agencies for a project in Dubai.","expected_catalog_num":75,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-075-alias","input":"We are looking for corporate travel.","expected_catalog_num":75,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-075-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-076-exact","input":"I need domestic services companies (maids, care) for a project in Dubai.","expected_catalog_num":76,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-076-alias","input":"We are looking for domestic services (maids, care).","expected_catalog_num":76,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-076-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-077-exact","input":"I need pet care & veterinary services for a project in Dubai.","expected_catalog_num":77,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-077-alias","input":"We are looking for veterinary clinics.","expected_catalog_num":77,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-077-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-078-exact","input":"I need translation & interpretation companies for a project in Dubai.","expected_catalog_num":78,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-078-alias","input":"We are looking for translation & interpretation.","expected_catalog_num":78,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-078-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-079-exact","input":"I need tender & bid management consultants for a project in Dubai.","expected_catalog_num":79,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-079-alias","input":"We are looking for tender consultants.","expected_catalog_num":79,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-079-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-080-exact","input":"I need testing, inspection & certification companies for a project in Dubai.","expected_catalog_num":80,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-080-alias","input":"We are looking for testing, inspection & certification.","expected_catalog_num":80,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-080-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-081-exact","input":"I need modular & prefab building suppliers for a project in Dubai.","expected_catalog_num":81,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-081-alias","input":"We are looking for modular & prefab building.","expected_catalog_num":81,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-081-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-082-exact","input":"I need gas systems suppliers (lpg, medical gas, industrial gas) for a project in Dubai.","expected_catalog_num":82,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-082-alias","input":"We are looking for gas systems (lpg, medical gas, industrial gas).","expected_catalog_num":82,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-082-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-083-exact","input":"I need utility contractors (dewa / sewa / fewa approved) for a project in Dubai.","expected_catalog_num":83,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-083-alias","input":"We are looking for dewa contractor.","expected_catalog_num":83,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-083-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-084-exact","input":"I need wastewater & drainage contractors for a project in Dubai.","expected_catalog_num":84,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-084-alias","input":"We are looking for sewage tank cleaning.","expected_catalog_num":84,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-084-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-085-exact","input":"I need signage & printing suppliers for a project in Dubai.","expected_catalog_num":85,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-085-alias","input":"We are looking for signage & printing.","expected_catalog_num":85,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-085-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}
+{"test_id":"route-086-exact","input":"I need lifts & escalator suppliers for a project in Dubai.","expected_catalog_num":86,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-086-alias","input":"We are looking for lifts & escalator.","expected_catalog_num":86,"expected_action":"route_or_ask_scope_details"}
+{"test_id":"route-086-ambiguous","input":"I need a supplier but I am not sure what the technical name is.","expected_catalog_num":null,"expected_action":"ask_clarifying_question"}

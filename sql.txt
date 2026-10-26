@@ -1,0 +1,9 @@
+[DEBUG] Command: hooks post-command
+[DEBUG] Positional: [cd, $S;, grep, 'scripts/sql/', files.txt, ;, grep, 'scripts/sql/', files.txt, ;, split, 2, code.txt, cb_;, ls, cb_*]
+[DEBUG] Flags: {"command":"S=/c/Users/Opera/AppData/Local/Temp/claude/C--Users-Opera-quotesdone/8c4972a3-8a16-4cb0-a308-31a4f45e00bb/scratchpad;","verbose":true,"limit":50,"duration":true,"autoAssign":true,"help":false,"version":false,"quiet":false,"format":"text","noColor":false,"interactive":true}
+[DEBUG] CWD: C:\Users\Opera\quotesdone
+[DEBUG] Executing: post-command
+[INFO] Recording command outcome: S=/c/Users/Opera/AppData/Local/Temp/claude/C--Users-Opera-quotesdone/8c4972a3-8a16-4cb0-a308-31a4f45e00bb/scratchpad;
+
+[OK] Command outcome recorded
+[DEBUG] Completed in 568ms

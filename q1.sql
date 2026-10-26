@@ -1,0 +1,3 @@
+grep: unknown option -- ref=htdblwldjkcgjvmqkbeh
+Usage: grep [OPTION]... PATTERN [FILE]...
+Try 'grep --help' for more information.

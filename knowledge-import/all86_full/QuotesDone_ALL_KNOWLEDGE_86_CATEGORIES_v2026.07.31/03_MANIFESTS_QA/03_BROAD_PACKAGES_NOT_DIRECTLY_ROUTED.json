@@ -1,0 +1,36 @@
+{
+  "count": 6,
+  "packages": [
+    {
+      "package_number": 25,
+      "package_slug": "banking-and-financial-products",
+      "package_name": "Banking & Financial Products"
+    },
+    {
+      "package_number": 26,
+      "package_slug": "insurance",
+      "package_name": "Insurance"
+    },
+    {
+      "package_number": 40,
+      "package_slug": "manufacturing-by-process",
+      "package_name": "Manufacturing by Process"
+    },
+    {
+      "package_number": 49,
+      "package_slug": "recycling-and-circular-economy",
+      "package_name": "Recycling & Circular Economy"
+    },
+    {
+      "package_number": 54,
+      "package_slug": "religious-facilities",
+      "package_name": "Religious Facilities"
+    },
+    {
+      "package_number": 57,
+      "package_slug": "retail-and-consumer-goods",
+      "package_name": "Retail & Consumer Goods"
+    }
+  ],
+  "interpretation": "Available in corpus but not assigned to a dedicated current operational route; all 86 operational routes remain mapped."
+}

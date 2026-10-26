@@ -1,0 +1,9 @@
+[DEBUG] Command: hooks post-command
+[DEBUG] Positional: [C:/Users/Opera/qd-rel;, D=C:/Users/Opera/AppData/Local/Temp/claude/C--Users-Opera-quotesdone/8c4972a3-8a16-4cb0-a308-31a4f45e00bb/scratchpad/rv5x;, ext(){, awk, fn=public.$1(, 'index(tolower($0),function fn){p=1;c=0}, p{print;, if, ($0, ~, /\$[a-z]*\$/), {c+=gsub(/\$[a-z]*\$/,&)}, if, (c, p=0}';, }]
+[DEBUG] Flags: {"command":"cd","verbose":true,"help":false,"version":false,"quiet":false,"format":"text","noColor":false,"interactive":true}
+[DEBUG] CWD: C:\Users\Opera\quotesdone
+[DEBUG] Executing: post-command
+[INFO] Recording command outcome: cd
+
+[OK] Command outcome recorded
+[DEBUG] Completed in 818ms

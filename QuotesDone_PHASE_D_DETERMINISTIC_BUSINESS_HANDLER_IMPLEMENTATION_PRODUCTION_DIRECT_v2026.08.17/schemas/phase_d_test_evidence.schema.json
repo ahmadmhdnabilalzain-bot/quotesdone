@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "QuotesDone Phase D Test Evidence",
+  "type": "object",
+  "required": [
+    "test_id",
+    "subject_type",
+    "subject_id",
+    "environment",
+    "commit",
+    "started_at",
+    "finished_at",
+    "expected",
+    "observed",
+    "verdict"
+  ],
+  "properties": {
+    "test_id": {
+      "type": "string"
+    },
+    "subject_type": {
+      "type": "string"
+    },
+    "subject_id": {
+      "type": "string"
+    },
+    "environment": {
+      "type": "string"
+    },
+    "commit": {
+      "type": "string"
+    },
+    "started_at": {
+      "type": "string"
+    },
+    "finished_at": {
+      "type": "string"
+    },
+    "expected": {},
+    "observed": {},
+    "database_delta": {},
+    "http_evidence": {},
+    "trace_refs": {
+      "type": "array"
+    },
+    "external_effect_count": {
+      "type": "integer"
+    },
+    "paid_inference_cost_usd": {
+      "type": "number"
+    },
+    "verdict": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "INVALID_TEST"
+      ]
+    },
+    "failure_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

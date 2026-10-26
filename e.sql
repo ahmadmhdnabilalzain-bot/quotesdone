@@ -1,0 +1,1 @@
+"select json_agg(json_build_object('k',issue_key,'closed',closed_at is not null)) from public.it_engineer_finding where issue_key ~* '(exec_reports|doc_backups|review_queue)' or (closed_at is null)"  

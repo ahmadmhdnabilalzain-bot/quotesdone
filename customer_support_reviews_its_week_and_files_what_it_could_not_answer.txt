@@ -1,0 +1,5 @@
+Seat: customer_support. Written 24 Sep 2026 (ledger 983, job description gap 6: the weekly case review). Not applied: the
+session that wrote it may not apply SQL to production. The release operator applies it with
+  node scripts/apply_sql.mjs scripts/sql/customer_support_reviews_its_week_and_files_what_it_could_not_answer.sql --apply --ddl
+then deletes this note and appends the file to the END of scripts/sql/MANIFEST.txt in the same commit.
+Proved beforehand by scripts/checks/customer_support_reviews_its_week.test.mjs (aborted transaction, ZZ DEMO rows).

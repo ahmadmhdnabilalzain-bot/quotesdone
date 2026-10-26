@@ -1,0 +1,2 @@
+change_request_id,workflow_id,step_id,field,source_package_value,effective_value,runtime_alias,contributor_requirement,authority_effect,founder_approval,phase_d_rule
+PBCR-001,W14,W14-S05,accountable_role_id,relevant_category_overlay,quote_evaluation_specialist,quote_evaluation,relevant_category_overlay; relevant_domain_specialist,overlay contributes but cannot own task/state transition,approved,export and reconcile live effective handoff/event graph

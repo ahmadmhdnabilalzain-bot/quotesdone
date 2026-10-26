@@ -1,0 +1,1 @@
+"select json_build_object('ar',(select json_agg(json_build_object('t',relname,'n',n_live_tup)) from pg_stat_user_tables where schemaname='public' and relname ~ '(agent_reasoning|llm_log|decision_trace|decision_log)'), 'think_fns',(select json_agg(proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where nspname='public' and proname ~ 'think'))"  

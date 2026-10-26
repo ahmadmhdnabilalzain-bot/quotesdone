@@ -1,0 +1,69 @@
+{
+  "catalog_num": 76,
+  "catalog_name": "Domestic Services Companies (Maids, Care)",
+  "expected_catalog_slug": "domestic-services-companies",
+  "live_catalog_resolution": {
+    "method": "lookup_by_num",
+    "table": "catalog_supplier_categories",
+    "must_match_num": 76,
+    "do_not_overwrite_live_slug": true
+  },
+  "route_key": "opcat-076",
+  "route_type": "composite",
+  "coverage_status": "mapped_composite_existing_corpus",
+  "knowledge_mappings": [
+    {
+      "package_number": 61,
+      "package_slug": "domestic-services",
+      "package_name": "Domestic Services",
+      "package_zip": "QD-KB-061-domestic-services-v2026.07.31.zip",
+      "subcategories": [
+        "maid-services",
+        "babysitting",
+        "elderly-care",
+        "home-nursing"
+      ],
+      "priority": "primary",
+      "notes": ""
+    }
+  ],
+  "routing_aliases_en": [
+    "Domestic Services Companies (Maids, Care)",
+    "Domestic Services (Maids, Care)",
+    "Maid services",
+    "Maid",
+    "Babysitting",
+    "Elderly care",
+    "Home nursing"
+  ],
+  "routing_aliases_ar": [
+    "متطلبات Maid services",
+    "متطلبات Babysitting",
+    "متطلبات Elderly care",
+    "متطلبات Home nursing"
+  ],
+  "routing_behavior": {
+    "first_pass": "deterministic alias and keyword scoring",
+    "second_pass": "small language model only when intent remains ambiguous",
+    "clarification_question_en": "Which part of Domestic Services Companies (Maids, Care) best describes what you need?",
+    "clarification_question_ar": "ما الجزء من Domestic Services Companies (Maids, Care) الذي يصف احتياجك بشكل أفضل؟",
+    "preserve_multiple_candidates": true,
+    "minimum_auto_route_confidence": 0.82,
+    "minimum_margin_over_second_candidate": 0.15,
+    "low_confidence_action": "ask_one_clarifying_question",
+    "no_match_action": "route_to_miscellaneous_and_log_gap"
+  },
+  "runtime_knowledge_selection": {
+    "retrieve_by_package_and_subcategory": true,
+    "load_full_master_into_prompt": false,
+    "questions_rules_validations_are_deterministic": true,
+    "narrative_retrieval_only_when_needed": true
+  },
+  "certification": {
+    "structural_mapping_checked": true,
+    "source_and_sme_approval_inherited_from_underlying_records": true,
+    "approved_for_autonomous_engineering_or_legal_decisions": false
+  },
+  "version": "1.0.0",
+  "build_date": "2026-07-31"
+}

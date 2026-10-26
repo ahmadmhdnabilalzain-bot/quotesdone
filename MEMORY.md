@@ -1,0 +1,151 @@
+## Standing rules and founder facts
+- [EVERY founder message is an instruction](every-founder-message-is-an-instruction.md) — 22 Sep, instr 644: record each ask in founder_instruction at once; reconcile before any "nothing pending"
+- [US law out of scope](us-law-out-of-scope-for-uae.md) — UAE/GCC/international only
+- [Autonomy and staging rules](quotesdone-autonomy-and-staging-rules.md) — fix defects without asking
+- [Build until done, then one line](build-until-done-then-one-line.md) + [Definition of done](quotesdone-definition-of-done.md) — fixed = deployed + proven
+- [Work without check-ins](quotesdone-work-without-checkins.md) · [Decide, do not present options](decide-dont-present-options.md) · [No technical questions to him](dont-ask-him-technical-questions.md)
+- [Never state what you have not measured](never-state-what-you-have-not-measured.md) — founder's standing rule
+- [Ready means every gate measured](ready-means-every-gate-measured.md) — 6 Oct: founder relies fully; "ready" only with a same-day measured go/no-go checklist
+- [The agent delivers its own work](the-agent-delivers-its-own-work.md) — never hand-deliver a seat's output; the delivery IS the test
+- [A status column is not a delivery record](a-status-column-is-not-a-delivery-record.md) — verify sends through the outbox; 171 leads read "invited" with 0 emails ever sent
+- [Always use max parallel agents](always-max-parallel-agents.md) + [no git in a shared tree](parallel-agents-must-not-do-git-in-a-shared-tree.md) — reads/applies parallelise; checkout/add/commit do not
+- [Founder sets boundaries, not methods](founder-sets-boundaries-not-methods.md)
+- [Next phases: marketing seat, then LLM per seat](next-phases-marketing-then-llm-per-seat.md) — 22 Sep: REMIND him of LLM A/B/C after marketing; Meta/social only for marketing
+- [Never ask about campaign go or subscriptions](do-not-ask-about-campaign-go-or-subscriptions.md) — 22 Sep: he decides go; WhatsApp templates + deliverability tests are Claude's
+- [Launch only when perfect; test in a sandbox](launch-only-when-perfect-sandbox.md)
+- [Launch governance loop closed](launch-governance-loop-closed.md) + [All approvals are the CEO's, refunds included](refunds-belong-to-the-ceo.md) — 8 Sep: nothing goes to the founder
+- [The only hard rules + operating doctrine](the-only-hard-rules-and-operating-doctrine.md) — 3% reveal, top-3, non-response 3%, AED15k/3x; ~95/5 deterministic
+- [Autonomous company is the standard](autonomous-company-is-the-standard.md) — AED 1M by Aug 2027
+- [Surfaces are held for future agents](payments-are-held-for-the-accountant-agent.md) — delete only what no agent will own
+- [Keep only five things from before 7 Sep](keep-only-five-things-from-before-7-september.md) — website content, FAQ, knowledge, leads, secrets
+- [The capable-machine target](the-capable-machine-target.md) · [Every agent is an expert human staff who acts](agents-are-expert-human-staff-who-act.md)
+- [Phase freezes removed](phase-freezes-removed-totally.md) · [Never raise OpenRouter again](never-raise-openrouter-again.md) · [All limits lifted except OpenRouter](all-founder-system-limits-lifted-except-openrouter.md) — deterministic-first is the architecture
+- [Mirror gates are retired](mirror-gates-are-retired.md) — production proves properties; never --emit a CSV to green a check
+- [WhatsApp is the founder's command channel](whatsapp-founder-command-channel.md)
+- [Founder mail goes through founder_mail_policy](founder-mail-goes-through-founder-mail-policy.md) — fn_notify_founder needs p_kind
+- [The estate could not email a file](the-estate-could-not-email-a-file.md) — fixed 9 Sep: notifications.attachments + send_outbox v43
+- [Founder's landline and mobile](founder-landline-and-mobile.md)
+- [No observe mode — plain login](no-observe-mode-plain-login.md) — mobile number + OTP
+- [Links he shares are standing, not per-task](links-he-shares-are-standing-not-per-task.md)
+- [Expenses email is the source of truth](expenses-email-source-of-truth.md) · [Resend inbound keeps ~1 month](resend-inbound-retention-is-about-a-month.md) · [Accountant only sees what was forwarded](the-accountant-only-sees-what-was-forwarded.md)
+- [Owner money in is capital](owner-money-in-is-capital.md) — 14 Sep: founder's own transfers are capital unless he says loan; Aug 2026 AED 1,000
+- [The bank is Mashreq; statements come monthly](the-bank-is-mashreq-and-statements-come-monthly.md) — forwarded to the expenses mailbox each month end; fee is AED 199 + 9.95 VAT; hold lifted 14 Sep
+- [Reveal notifies both parties](reveal-notifies-both-parties.md)
+- [Terms say CC us, the platform already knows](terms-say-cc-us-and-the-platform-already-knows.md)
+- [Rating solicitation timing](rating-solicitation-timing.md) — SUPERSEDED 9 Sep: Support emails 3 weeks after the reveal date
+- [Sales and Support divide by surface and by truth](sales-and-support-divide-by-surface-and-by-truth.md) — homepage widget is Support, either portal is Sales; supplier questions always via Support
+- [A phone may confirm, never select](a-phone-may-confirm-never-select.md) — email is the identity
+- [The sidebar is approved — do not "fix" the red](founder-approved-the-portal-sidebar.md)
+- [Drive the knowledge road alone](drive-the-knowledge-road-alone.md) — founder will not help
+- [Specs are upgrades, not repairs](specs-are-upgrades-not-repairs.md)
+- [Session briefs carry misdiagnoses](session-briefs-carry-misdiagnoses.md) — counts reliable, causes not
+- [Demo fixtures: ZZ DEMO + example.invalid](demo-fixture-convention.md) · [Safe rehearsal](safe-marketplace-demo-rehearsal.md) · [Probes page the founder](rehearsals-and-probes-page-the-founder.md) · [Test without his credentials](test-without-the-founders-credentials.md)
+- [Walk the OS in his browser](walk-the-os-in-his-browser.md) — Claude in Chrome has his session
+- [Quote the cost before spending](quote-the-cost-before-spending.md)
+- [Payments are the accountant; talks to sales](payments-are-the-accountant-and-talk-to-sales.md) — payment paths owned by accountant, portals speak only as sales engineer
+- [No exact spec → offer alternatives](no-exact-spec-offer-alternatives.md) — support asks; yes = accepted spec, no = apology
+- [Exact specs or the quote is held](exact-specs-or-the-quote-is-held.md) — per-line specs per trade; missing → hold; PDFs pro + fully Arabic
+- [Code extremely well built](code-extremely-well-built.md) — PERMANENT: independent review before EVERY merge; code first, LLM only where code can't
+- [Nothing is one-way](nothing-is-one-way.md) — every handoff/report tracked, replied, re-verified and closed by the originator
+- [Always name the seat](always-name-the-seat.md) — never say "an agent"; commits signed by the owning seat
+- [All conversations are kept for sales](all-conversations-are-kept-for-sales.md) — kept while active + 5 years after closure if lawful (6 Oct, ledger 1126), then purged
+- [Exact trade match or none; categories open](exact-trade-match-or-none-categories-open.md) — no nearest mapping; new trades welcome
+- [WhatsApp notices go to the confirmed number](whatsapp-notices-go-to-the-confirmed-number.md) — clause 21 → v12; confirmed inside sign-up with OTP (instruction 391)
+- [TDRA NOL received](tdra-nol-received.md) — NOL-26-100000665 for www.quotesdone.ae, expires 14 Sep 2027
+- [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
+## Working the estate
+- [End-of-session log sweep](end-of-session-log-sweep.md) — GitHub Actions, edge logs, cron
+- [Supabase access has three paths](supabase-access-has-three-paths.md)
+- [Check a PR's base before merging](check-a-prs-base-before-merging.md) — verify baseRefName and main's head
+- [A big batch delete restarted production](a-big-batch-delete-restarted-production.md) — 21 Sep: 50k purge batch seq-scanned, retried on 524, memory >4 GB, hard restart
+- [An apply can lock sign-in](an-apply-can-lock-sign-in.md) — 21 Sep: a 75 s apply locked login; no applies in a campaign hour
+- [Two applied PRs deadlock each other's DB check](two-applied-prs-deadlock-each-others-database-check.md) — serialize applies: apply, merge, then next; if stuck, merge one branch into the other
+- [Close a finding by its exact key, never by title match](close-a-finding-by-its-exact-key-never-by-title-match.md) — 15 Sep: an ilike sweep closed the unfixed Stripe TEST-webhook finding
+- [Never merge on a red check](never-merge-on-a-red-check.md) — 22 Sep: `...; gh pr merge` merged #817 red; gate with [ -z "$FAILURES" ] &&
+- [A merge chain must read status contexts by state](a-merge-chain-must-read-status-contexts-by-state.md) — Vercel has state, no status/conclusion; gate the merge on 0 pending + 0 failed
+- [Parallel helpers need their own scratch folders](parallel-helpers-need-their-own-scratch-folders.md) — same-named q.mjs got overwritten; one helper ran another's script against production
+- [Post-deploy smokes overlap manual E2E](post-deploy-smokes-overlap-manual-e2e.md) — every main deploy starts a production E2E smoke; check none is running before a manual E2E
+- [An edge function has a CPU cap a deadline doesn't bound](an-edge-function-has-a-cpu-cap-a-deadline-does-not-bound.md) — #686's escaping hit 546 CPU-exceeded; the kill skips every finding path, so the job hung silently
+- [A dry run doesn't parse a file whose dependencies aren't live](a-dry-run-does-not-parse-a-file-whose-dependencies-are-not-live.md) — two extra `)` found only at apply
+- [Agent worktrees fill the founder's disk](agent-worktrees-fill-the-founders-disk.md) — 22 Sep: 341 × ~1 GB left 46 GB free; remove each worktree when its PR merges
+- [Stage paths, never git add -A](stage-paths-never-git-add-all.md) · [A hook rewrites shell redirect targets](a-hook-rewrites-shell-redirect-targets.md) · [New scripts/sql file needs a MANIFEST line](new-sql-file-needs-a-manifest-line.md)
+- [Against-production gates vs a running company](against-production-gates-vs-a-running-company.md) — disclose, never weaken
+- [Gateway caps output ~900 tokens](ai-gateway-caps-output-at-900-tokens.md) · [Out of credit looks like judgement](out-of-credit-looks-like-model-judgement.md) · [The tier is the bill](the-tier-is-the-bill-not-the-prompt.md)
+- [Embedding is free, not OpenRouter](embedding-is-free-not-openrouter.md) — gte-small in-region
+- [Credentials rotate themselves](credentials-rotate-themselves.md) — cron 334, 30d ahead
+- [Deactivation is not death](deactivation-is-not-death.md)
+- [agent_runs is a cron log, not an employee log](agent-runs-is-a-cron-log-not-an-employee-log.md)
+- [No job or task without an agent](no-job-or-task-without-an-agent.md) — his rule, 7 Sep
+- [The org is two agents and no departments](the-org-is-two-agents-and-no-departments.md) — 7 Sep; since grown to 5 seats (ceo, customer_support, sales_engineer, accountant, it_engineer)
+- [CI green is not npm test green](ci-green-does-not-mean-npm-test-green.md) — the checks job has no token
+- [Checks retired with their subject](checks-retired-with-their-subject.md) — 13 retired; never soften a check to green
+- [Apify paused until ~Feb 2027](apify-paused-until-2027.md)
+- [The OS dashboard is still basic](os-dashboard-still-basic.md)
+- [Lessons — measurement, guards, checks, audits, identity](lessons-measurement-guards-and-audits.md) — 75 pattern lessons, grouped
+- [Lessons — Postgres, kernel, deploy, phase machinery](lessons-postgres-kernel-and-deploy.md) — 60 pattern lessons, grouped
+- [A mention is not a reference](a-mention-is-not-a-reference.md) — how to prove a routine is dead
+## The lenses that keep paying
+- [A fix's own check measures the case the fix handles](a-fixs-own-check-measures-the-case-the-fix-handles.md) — 23 Sep, 3 times: ask what case the check measures vs what case the fix handles; same case = green certifies the gap
+- [A record variable can shadow a table alias and kill a routine](a-record-variable-can-shadow-a-table-alias-and-kill-a-routine.md) — 15-18 Sep: one alias clash stopped nine scheduled IT duties, hiding 10 real findings
+- [Guarded by a condition that cannot occur](guarded-by-a-condition-that-cannot-occur.md)
+- [A succession record unreachable behind the row it replaces](a-succession-record-unreachable-behind-the-row-it-replaces.md)
+- [A correction must reach who got the original](a-correction-must-reach-who-got-the-original.md)
+- [A condition that cannot NOT fire](a-condition-that-cannot-not-fire.md)
+- [An FK to an emptied table fails every writer](an-fk-to-an-emptied-table-fails-every-writer.md)
+- [A guard that fires when the system works](a-guard-that-fires-when-the-system-works.md)
+- [A heartbeat that beats only under load](a-heartbeat-that-beats-only-under-load.md)
+- [Instrument measuring the wrong subject is the lens](instrument-measuring-wrong-subject-is-the-lens.md)
+- [Addressed to an identity nobody models](addressed-to-an-identity-nobody-models.md)
+- [Finished capability with no entry point](finished-capability-with-no-entry-point.md)
+- [A guard that names a remedy that does not exist](a-guard-that-names-a-remedy-that-does-not-exist.md)
+- [pg_cron removal left queues with no consumer](pg_cron_removal_left_queues_with_no_consumer.md) — WhatsApp fixed; exec_reports still open
+- [Harness seeds an order reality cannot produce](harness-seeds-an-order-reality-cannot-produce.md)
+- [The marketplace funnel was all fixtures](the-funnel-was-all-fixtures.md)
+- [Zero cannot tell a dead guard from an idle system](zero-cannot-tell-a-dead-guard-from-an-idle-system.md)
+- [A watcher reading a name nothing writes](a-watcher-reading-a-name-nothing-writes.md)
+- [An error string is not a subject](an-error-string-is-not-a-subject.md) — read the column that names the owner
+- [CONNECTED is a claim, not a measurement](connected-is-a-claim-not-a-measurement.md) · [A blocker is a claim too](a-blocker-is-a-claim-too.md)
+- [Group per class, not in aggregate](group-per-class-not-in-aggregate.md) · [One number, three causes](one-number-three-causes.md) · [A 30-day total is not a run rate](a-30-day-total-is-not-a-run-rate.md)
+- [A fix that makes the headline fall](a-fix-that-makes-the-headline-fall.md)
+- [A nearest neighbour is always found](a-nearest-neighbour-is-always-found.md) — corroborate by lexemes, no cosine floor
+- [The deterministic close documents rather than performs](the-deterministic-close-documents-rather-than-performs.md)
+- [The profession layer was budgeted after the budget was spent](the-profession-layer-was-budgeted-after-the-budget-was-spent.md)
+- [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
+- [A picker that walks its own successes](a-picker-that-walks-its-own-successes.md) — index the remaining set; gates assert deltas
+## State of the build
+- [Customer support: LLM always on, better than Amazon](customer-support-better-than-amazon.md) — 22 Sep: automated scenario suite proves it; never say ready without the score
+- [The model ruling (now ledger 1056, 29 Sep)](the-model-ruling-23-sep.md) — CEO Opus hard/Gemini easy, SE Gemini + Opus comparison (plan B GPT 6 Luna); others Gemini, plan B DeepSeek v4.1 Flash
+- [Applying an old file resurrects a superseded routine](applying-an-old-file-resurrects-a-superseded-routine.md) — 23 Sep: #848's older file restored a second IT-digest overload; the highest MANIFEST key is canonical, not the file you apply
+- [CHECKPOINT 22 Sep — marketing seat live](checkpoint-22-sep-marketing-seat-live.md) — READ FIRST on resume: #827–#837 merged; meta_app_secret, Twilio 29665983 (WABA exists), golive off, prospects go-ahead
+- [CHECKPOINT 21 Sep night — merge queue done, purge running](checkpoint-21-sep-night-merge-queue-and-purge.md) — READ FIRST on resume: 8 PRs merged, #795 applied, purge log, 6 agents in flight
+- [CHECKPOINT 21 Sep — Sunday brief executed](checkpoint-21-sep-sunday-brief-executed.md) — READ FIRST on resume: #760–#767 merged; #769 purge applied not run; 6 fixer agents stopped mid-work in worktrees
+- [SUNDAY PLAN — deep portal audit + the cull](sunday-plan-deep-portal-audit.md) — READ FIRST on Sunday: instructions 520-528, what to test, what to remove, what is held
+- [UAE authority source facts, 18 Sep](uae-authority-source-facts-18-sep.md) — verified primary-source facts for the knowledge rebuild, including what each document does NOT say
+- [CHECKPOINT 18 Sep — portal tabs live, three-day backlog](checkpoint-18-sep-portal-and-three-day-backlog.md) — READ FIRST on resume: #725/#726/#727/#728 merged; Services rework + 4 estate fixes in flight; demo purge awaiting his yes
+- [CHECKPOINT 15 Sep midday — supplier portal](checkpoint-15-sep-midday-supplier-portal.md) — READ FIRST on resume: #722/#723/#724 merged; #725, Services rework (instr. 438+439 smart matching), probe fix in flight
+- [Supplier portal tab spec 15 Sep](supplier-portal-tab-spec-15-sep.md) — founder's 7-tab structure + quotation-review chat (instr. 435-437); API-first for mobile; voice via held transcribe, flag OFF; 3 builders in flight
+- [Supplier portal build 15 Sep](supplier-portal-build-15-sep.md) — READ FIRST on resume: 3 audits + W1 gate / W2 catalogue / W3 sign-up builds in flight; W4 parity deferred
+- [IT alert storm 15 Sep and its four fixes](it-alert-storm-15-sep-and-its-four-fixes.md) — ~50 founder emails; one digest per tick (#693), outbox starvation (#691), DNSBL refusal (#692), export page bytes (#694)
+- [Agenda after 14 Sep: supplier portal, then audit gaps](agenda-15-sep-supplier-portal-then-audit-gaps.md) — READ FIRST next session; website signed off, portal un-parked
+- [CHECKPOINT 14 Sep night — what's live, what carries](checkpoint-14-sep-night-what-is-live-and-what-carries.md) — READ FIRST on resume; open PRs #672/#676/#679/#680/#568 + fixture guard; 2 founder decisions pending
+- [CHECKPOINT 14 Sep — two audit workflows running](checkpoint-14-sep-two-audit-workflows-running.md) — earlier; the audit MDs are PR #568 (Part 1)
+- [CHECKPOINT 9 Sep — the accountant and the books](checkpoint-9-sep-the-accountant-and-the-books.md) — PR #552, AED 6,905.59 booked
+- [10-step autonomous-company build](ten-step-autonomous-company-build.md) — steps 1-2 done, 3-10 scoped
+- [Master audit verdict + redesign](master-audit-verdict-and-redesign.md) — built + empty + switched-off
+- [The company loop is live](the-company-loop-is-live.md) · [Connectivity audit is deterministic](connectivity-audit-is-deterministic-now.md)
+- [Revenue-loop mechanics proven; blocker is data](revenue-loop-mechanics-proven-blocker-is-data.md) — demo-supplier seeding recipe inside
+- [One confirmed supplier gates every RFQ](one-confirmed-supplier-gates-every-rfq.md) · [Supplier funnel: 81 invited, 0 registered](supplier-funnel-81-invited-0-registered.md)
+- [Supplier verification: the mandatory six](supplier-verification-mandatory-six.md) — name/mobile/email/licence/profile/signed T&C
+- [Ad spend autopilot is built](ad-spend-autopilot-built.md) — only the Meta token is missing
+- [Meta portfolio + what the DET licence prints](the-meta-business-portfolio-and-the-licence-facts.md) — trade name, two phones, ad account not in the business
+- [Audit defect verdicts, 3 Sep](audit-defect-verdicts-3-sep.md) — 4 real, 7 false positives; do not re-chase
+- [The cascade wall needs his session or inference](the-cascade-wall-needs-founder-session-or-inference.md)
+- Knowledge: [universal + live](company-knowledge-universal-and-live.md) · [loads into ops_knowledge](agent-knowledge-loads-into-ops-knowledge.md) · [role→cert map](role-certification-map-exists.md) · [IT/cyber](step3-it-cyber-knowledge-built.md) · [semantic retrieval](reasoning-layer-semantic-retrieval.md) · [plan 6 Sep](knowledge-plan-2026-09-06-delivered.md)
+- [The surfaces counted raw status as his approvals](the-surfaces-counted-raw-status-as-his-approvals.md) — PR #521
+- [Receipts fell into the founder's queue under the hold](receipts-fell-into-the-founders-queue-under-the-hold.md) — PR #522
+- [Trade licence and VAT status are closed](trade-licence-and-vat-status-are-closed.md) — DET 1633275 (exp 24 Jun 2027); no VAT till AED 375k; never ask again
+- [The CEO seat has tools but no runtime](the-ceo-seat-has-tools-but-no-runtime.md)
+- [The outbox had no heartbeat](the-outbox-had-no-heartbeat.md) — fixed 9 Sep
+- [The chat widget is the support agent](the-chat-widget-is-the-support-agent.md) · [Support + CEO v1.2 build complete](support-and-ceo-v1-2-build-complete.md)
+"- [Chat model candidates only](chat-model-candidates-only.md) - 13 Oct, ledger 1217: Sonnet 5.5 / GPT-6 Luna Pro / GPT-6 Luna only; never name the two excluded models to him"  -s true -e 0
+"- [Microsoft 365 app already exists](m365-app-already-exists.md) - 18 Oct: reuse the quotesdone.com M365 app (M365_* edge secrets); never ask him to register a new one"  -s true -e 0
