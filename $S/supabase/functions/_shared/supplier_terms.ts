@@ -1,0 +1,55 @@
+// ONE RECORD OF A SUPPLIER'S TERMS ACCEPTANCE (sales_engineer, 15 Sep 2026).
+//
+// Measured on origin/main: three writers recorded the acceptance three ways. supplier_api save_profile
+// and supplier_api accept_terms read app_secrets('terms_version') and stored the SHA-256 of the exact
+// agreement text; kyc accept_terms, called by the portal straight afterwards, read
+// supplier_terms_version and rewrote the version with NO hash, so the stored record was always the one
+// without the evidence. Both keys hold 'v12' today; nothing guaranteed they would stay equal.
+//
+// Every writer now builds the row here. The version is read server-side (supplier_terms_version, then
+// terms_version), never from the browser; the hash is of the text this module was exported for, and is
+// null — never the hash of the wrong agreement — when the live version is a different one.
+import { SUPPLIER_AGREEMENT_AR, SUPPLIER_AGREEMENT_EN, SUPPLIER_AGREEMENT_VERSION } from './supplier_agreement.ts';
+
+export type TermsRecord = {
+  accepted_terms_at: string;
+  accepted_terms_version: string;
+  accepted_terms_ip: string | null;
+  accepted_terms_sha256: string | null;
+  accepted_terms_user_agent: string | null;
+};
+
+export async function agreementSha256(): Promise<string> {
+  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(SUPPLIER_AGREEMENT_EN + '\n' + SUPPLIER_AGREEMENT_AR));
+  return Array.from(new Uint8Array(bytes)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function currentSupplierTermsVersion(sec: (k: string) => Promise<string | null>): Promise<string> {
+  return String((await sec('supplier_terms_version')) || (await sec('terms_version')) || '').trim().slice(0, 20);
+}
+
+// ONE READER FOR THE ACCEPTING ADDRESS (24 Sep 2026, sales_engineer). supplier_api fell back to
+// cf-connecting-ip and x-real-ip when x-forwarded-for was absent; kyc accept_terms read x-forwarded-for
+// only, so the same acceptance could be stored with an IP on one path and none on the other, and the
+// certificate then prints "Not recorded". Both paths now read the address here.
+export function clientIp(req: Request): string {
+  return (req.headers.get('x-forwarded-for') || '').split(',')[0].trim()
+    || (req.headers.get('cf-connecting-ip') || '').trim() || (req.headers.get('x-real-ip') || '').trim();
+}
+
+// 24 Sep 2026 (sales_engineer): the record said when, which version, from which IP and which text, but not
+// from which browser - leads had no user-agent column, so the certificate could not print one. The
+// User-Agent header of the accepting request is now kept beside the IP (clipped; null when absent).
+/** The acceptance row for now, or null when no version is configured (refuse rather than invent one). */
+export async function supplierTermsRecord(sec: (k: string) => Promise<string | null>, ip: string, userAgent = ''): Promise<TermsRecord | null> {
+  const v = await currentSupplierTermsVersion(sec);
+  if (!v) return null;
+  if (v !== SUPPLIER_AGREEMENT_VERSION) console.error(`supplier terms ${v} have no exported agreement text (module is ${SUPPLIER_AGREEMENT_VERSION}); hash not stored`);
+  return {
+    accepted_terms_at: new Date().toISOString(),
+    accepted_terms_version: v,
+    accepted_terms_ip: ip || null,
+    accepted_terms_sha256: v === SUPPLIER_AGREEMENT_VERSION ? await agreementSha256() : null,
+    accepted_terms_user_agent: String(userAgent || '').trim().slice(0, 500) || null,
+  };
+}

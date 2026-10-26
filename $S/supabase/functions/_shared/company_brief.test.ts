@@ -1,0 +1,134 @@
+// The company brief and the figure check (company_brief.ts). No network.
+import { assert, assertEquals } from 'jsr:@std/assert';
+import { briefNumbers, companyBrief, composeBrief, FAQ_CAP, moneyFiguresNotInBrief, policyProblems, takeSentences } from './company_brief.ts';
+
+// prevented by: this test (review of #1330). A false policy sentence with no number goes back to the model too.
+Deno.test('policy claims: an affirmed card fee, VAT on the fee, a refund promise or a liability admission is named; a denial passes', () => {
+  for (const bad of ['A card fee is added at checkout.', 'VAT applies on the reveal fee.', 'We will refund you in full today.',
+    'QuotesDone is liable for the quality of the work.', 'تُضاف رسوم البطاقة عند الدفع.', 'تُفرض ضريبة القيمة المضافة على رسوم الكشف.'])
+    assertEquals(policyProblems(bad).length, 1, bad);
+  for (const ok of ['No card fee is ever added.', 'There is no VAT on the reveal fee.', 'If the supplier does not respond, you are refunded everything you paid.',
+    'لا تُضاف رسوم على الدفع بالبطاقة.', 'Comparing quotes is free.'])
+    assertEquals(policyProblems(ok), [], ok);
+});
+
+// prevented by: this test. The published price guide (fn_price_brief) rides in the brief, so its ranges pass the
+// figure check and an unpublished price still does not.
+Deno.test('the published price guide is in the brief and its figures pass; an unpublished price does not', async () => {
+  const rpc = (fn: string) => Promise.resolve({ data: fn === 'fn_price_brief' ? '## PUBLISHED PRICE GUIDE\n- gypsum: Gypsum false ceiling: AED 35 to 70 per sqm' : { block: 'CO' }, error: null });
+  const b = await companyBrief(rpc, [], 'FACTS P', 'en', [], 10);
+  assert(b.includes('Gypsum false ceiling: AED 35 to 70'));
+  const known = briefNumbers(b);
+  assertEquals(moneyFiguresNotInBrief('A gypsum ceiling runs about AED 35 to 70 per square metre.', known), []);
+  assertEquals(moneyFiguresNotInBrief('A gypsum ceiling runs about AED 45 per square metre.', known), ['AED 45']);
+});
+
+Deno.test('the brief cache is keyed on content: same-length facts never share a brief', async () => {
+  const rpc = () => Promise.resolve({ data: { block: 'CO' }, error: null });
+  const a = await companyBrief(rpc, [], 'FACTS A', 'en', [], 1);
+  const b = await companyBrief(rpc, [], 'FACTS B', 'en', [], 2);
+  assert(a.includes('FACTS A') && b.includes('FACTS B'));
+});
+
+const COMPANY = 'REVEAL FEE: the CUSTOMER pays 3.00% of the selected quotation value. Supplier registration is free for the first 1000, then AED 1000/year. AED 500 administrative fee; 12% per annum.';
+
+Deno.test('the brief carries the company block, the facts, the FAQ in the asker language only, and any extra cached block', () => {
+  const b = composeBrief({ company: COMPANY, facts: 'FACTS: minimum job AED 500.', lang: 'ar', blocks: ['## UAE REGULATIONS DIGEST\nCivil Defence code.'],
+    faqs: [{ id: 2, question: 'كم الرسوم؟', answer: '3% فقط', language: 'ar' }, { id: 1, question: 'Fee?', answer: '3%', language: 'en' }] });
+  assert(b.includes(COMPANY) && b.includes('minimum job AED 500') && b.includes('كم الرسوم؟') && !b.includes('Fee?'));
+  assert(b.indexOf('PUBLISHED FAQ') < b.indexOf('UAE REGULATIONS DIGEST'), 'a second knowledge block follows the FAQ in the same cached prefix');
+});
+
+Deno.test('the FAQ section stays under its cap', () => {
+  const faqs = Array.from({ length: 400 }, (_, i) => ({ id: i, question: 'Q' + i + ' '.repeat(40), answer: 'A'.repeat(200), language: 'en' }));
+  const b = composeBrief({ company: '', facts: '', faqs, lang: 'en' });
+  assert(b.length < FAQ_CAP + 500);
+});
+
+Deno.test('figure check: a fee or rate the brief states passes; any other money figure is named', () => {
+  const known = briefNumbers(COMPANY);
+  assertEquals(moneyFiguresNotInBrief('The reveal fee is 3% of the quote. Registration is AED 1,000 a year after the first 1000.', known), []);
+  assertEquals(moneyFiguresNotInBrief('رسوم الكشف ٣٪ فقط، والغرامة 500 درهم.', known), []);
+  assertEquals(moneyFiguresNotInBrief('The reveal fee is 2.5% and a gypsum ceiling runs AED 45 per sqm.', known), ['AED 45', '2.5%']);
+  assertEquals(moneyFiguresNotInBrief('Verification takes 3 working days; MDF is 18 mm thick.', known), [], 'counts and sizes are not money');
+});
+
+// prevented by: this test (review of #1330). A figure is its number AND its unit: a 5 stated as dirhams, a phone digit
+// or an hour never lets "5%" through, and a range states both ends with the unit.
+Deno.test('figure check compares the unit: AED 5 in the brief does not pass 5% in a reply', () => {
+  const known = briefNumbers('Admin fee AED 5. Call +971 50 931 9355, Mon-Fri 9am-5pm. Gypsum ceiling: AED 35 to 70 per sqm. ضريبة 12٪.');
+  assertEquals(moneyFiguresNotInBrief('The reveal fee is 5%.', known), ['5%']);
+  assertEquals(moneyFiguresNotInBrief('The admin fee is AED 5.', known), []);
+  assertEquals(moneyFiguresNotInBrief('Expect AED 35 to 70 per square metre, or 70 AED at the top.', known), []);
+  assertEquals(moneyFiguresNotInBrief('من 35 إلى 70 درهم للمتر المربع.', known), []);
+  assertEquals(moneyFiguresNotInBrief('Interest is 12 AED.', known), ['AED 12'], 'a percentage in the brief is not a dirham amount');
+});
+
+// prevented by: these tests (second review of #1330). Every way a fee or rate can be written is read as a figure.
+const BRIEF2 = 'The reveal fee is 3.00%. Registration is AED 1,000 a year. Admin fee AED 500. Interest 12% per annum. Fine AED 2.5.';
+Deno.test('figure check: "UAE dirhams" and the Arabic abbreviation د.إ are dirham units', () => {
+  const k = briefNumbers(BRIEF2);
+  assertEquals(moneyFiguresNotInBrief('Registration costs 1,000 UAE dirhams a year.', k), []);
+  assertEquals(moneyFiguresNotInBrief('Registration costs 2,000 UAE dirhams a year.', k), ['AED 2000']);
+  assertEquals(moneyFiguresNotInBrief('رسوم إدارية قدرها 500 د.إ.', k), []);
+  assertEquals(moneyFiguresNotInBrief('رسوم إدارية قدرها 700 د.إ.', k), ['AED 700']);
+});
+Deno.test('figure check: the Arabic decimal mark ٫ and Persian digits are read', () => {
+  const k = briefNumbers(BRIEF2);
+  assertEquals(moneyFiguresNotInBrief('غرامة ٢٫٥ درهم.', k), []);
+  assertEquals(moneyFiguresNotInBrief('غرامة ۳٫۵ درهم.', k), ['AED 3.5']);
+  assertEquals(moneyFiguresNotInBrief('رسوم الكشف ۳٪.', k), []);
+  assertEquals(moneyFiguresNotInBrief('رسوم الكشف ۵٪.', k), ['5%']);
+});
+Deno.test('figure check: numbers in words and unit-less fees next to fee words are checked', () => {
+  const k = briefNumbers(BRIEF2);
+  assertEquals(moneyFiguresNotInBrief('The reveal fee is three percent.', k), []);
+  assertEquals(moneyFiguresNotInBrief('The reveal fee is five per cent.', k), ['5%']);
+  assertEquals(moneyFiguresNotInBrief('رسوم الكشف خمسة بالمئة.', k), ['5%']);
+  assertEquals(moneyFiguresNotInBrief('رسوم الكشف ثلاثة في المئة.', k), []);
+  assertEquals(moneyFiguresNotInBrief('The reveal fee is 5 on the quote you choose.', k), ['a fee of 5']);
+  assertEquals(moneyFiguresNotInBrief('The admin fee is 500.', k), []);
+});
+// prevented by: these tests (independent review of #1330). Tens, hundreds and thousands in words, EN and AR, and the
+// subscription / price / cost words, are all read as figures.
+Deno.test('figure check: tens, hundreds and thousands written in words are read', () => {
+  const k = briefNumbers(BRIEF2);
+  assertEquals(moneyFiguresNotInBrief('The fee is thirty percent.', k), ['30%']);
+  assertEquals(moneyFiguresNotInBrief('It costs fifty dirhams.', k), ['AED 50']);
+  assertEquals(moneyFiguresNotInBrief('Registration is two thousand dirhams a year.', k), ['AED 2000']);
+  assertEquals(moneyFiguresNotInBrief('Registration is one thousand dirhams a year.', k), []);
+  assertEquals(moneyFiguresNotInBrief('The admin fee is five hundred dirhams.', k), []);
+  assertEquals(moneyFiguresNotInBrief('Registration is two thousand five hundred dirhams.', k), ['AED 2500']);
+  assertEquals(moneyFiguresNotInBrief('رسوم التسجيل ألف درهم سنويًا.', k), []);
+  assertEquals(moneyFiguresNotInBrief('رسوم التسجيل ألفا درهم.', k).length, 0, 'an unknown spelling is not invented into a figure');
+  assertEquals(moneyFiguresNotInBrief('الرسوم ثلاثين بالمئة.', k), ['30%']);
+  assertEquals(moneyFiguresNotInBrief('الفائدة اثنا عشر بالمئة سنويًا.', k), []);
+  assertEquals(moneyFiguresNotInBrief('رسوم إدارية قدرها خمسمائة درهم.', k), []);
+  assertEquals(moneyFiguresNotInBrief('رسوم قدرها ثلاثة آلاف درهم.', k), ['AED 3000']);
+  assertEquals(moneyFiguresNotInBrief('غرامة خمسة وعشرون درهمًا.', k), ['AED 25']);
+  assertEquals(moneyFiguresNotInBrief('رسوم قدرها ألفين درهم.', k), ['AED 2000']);
+  assertEquals(moneyFiguresNotInBrief('رسوم قدرها مئة درهم.', k), ['AED 100']);
+  assertEquals(moneyFiguresNotInBrief('The cost is one million two hundred thousand dirhams.', k), ['AED 1200000']);
+  assertEquals(moneyFiguresNotInBrief('التكلفة مليونان درهم.', k), ['AED 2000000']);
+});
+Deno.test('figure check: subscription, price and cost words carry a unit-less fee figure', () => {
+  const k = briefNumbers(BRIEF2);
+  assertEquals(moneyFiguresNotInBrief('The subscription is 1,200 a year.', k), ['a fee of 1200']);
+  assertEquals(moneyFiguresNotInBrief('The subscription is 1,000 a year.', k), []);
+  assertEquals(moneyFiguresNotInBrief('The price is 90 per sqm.', k), ['a fee of 90']);
+  assertEquals(moneyFiguresNotInBrief('قيمة الاشتراك 1,200 سنويًا.', k), ['a fee of 1200']);
+  assertEquals(moneyFiguresNotInBrief('تكلفة 750 للمتر.', k), ['a fee of 750']);
+});
+
+Deno.test('figure check: "AED 1,000 - 5 working days" is not a range; a range with units on both sides is', () => {
+  const k = briefNumbers(BRIEF2);
+  assertEquals(moneyFiguresNotInBrief('Registration is AED 1,000 - 5 working days to verify.', k), []);
+  assertEquals(moneyFiguresNotInBrief('Expect AED 1,000 - 2,000.', k), ['AED 2000']);
+});
+
+Deno.test('sentences come off the front of the stream whole, the unfinished tail stays', () => {
+  const { done, rest } = takeSentences('The fee is 3%. Comparing is free! Suppliers pa');
+  assertEquals(done, ['The fee is 3%. ', 'Comparing is free! ']);
+  assertEquals(rest, 'Suppliers pa');
+  assertEquals(takeSentences('نعم، هويتك مخفية؟ ثم').done, ['نعم، هويتك مخفية؟ ']);
+});

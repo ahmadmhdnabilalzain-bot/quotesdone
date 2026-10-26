@@ -1,0 +1,137 @@
+{
+  "_": "ONE company description (founder instruction 920, 23 Sep 2026). Every profile variant is BUILT from these sentences, so no variant can say what the canonical text does not; profile_text.test.ts proves each fits its platform's limit. Edit a sentence here and every platform follows. Standing rules (23 Sep 2026): English only, no trade licence number, never the word \"AI\" (say \"smart\"). Seat: marketing.",
+  "canonical": {
+    "en": {
+      "tagline": "Post once. Compare quotes. Reveal only who you choose.",
+      "what": "QuotesDone is the UAE's anonymous quote marketplace.",
+      "how": "Post your request once and compare quotes from vetted suppliers.",
+      "reveal": "You reveal only the supplier you choose.",
+      "match": "Suppliers are matched on the trades they confirm.",
+      "drawings": "Drawings are shared only when identity details are covered.",
+      "fee": "Customers pay a 3% reveal fee only when they reveal a supplier.",
+      "free": "The first 1,000 suppliers join free, permanently.",
+      "site": "quotesdone.ae"
+    }
+  },
+  "variants": [
+    {
+      "platform": "whatsapp",
+      "field": "about",
+      "limit": 139,
+      "api": "twilio",
+      "join": " | ",
+      "parts": [
+        "en.tagline"
+      ],
+      "source": "Meta WhatsApp Business profile: about, 139 characters"
+    },
+    {
+      "platform": "whatsapp",
+      "field": "description",
+      "limit": 512,
+      "api": "twilio",
+      "join": "\n",
+      "parts": [
+        "en.what",
+        "en.how",
+        "en.reveal",
+        "en.match",
+        "en.free",
+        "en.site"
+      ],
+      "source": "Meta WhatsApp Business profile: description, 512 characters"
+    },
+    {
+      "platform": "instagram",
+      "field": "bio",
+      "limit": 150,
+      "api": "manual",
+      "join": "\n",
+      "parts": [
+        "en.tagline"
+      ],
+      "source": "Instagram bio, 150 characters; the Graph API cannot write a bio"
+    },
+    {
+      "platform": "facebook",
+      "field": "intro",
+      "limit": 101,
+      "api": "graph",
+      "join": " ",
+      "parts": [
+        "en.tagline"
+      ],
+      "source": "Facebook Page intro (Graph field 'about'), 101 characters"
+    },
+    {
+      "platform": "linkedin",
+      "field": "tagline",
+      "limit": 120,
+      "api": "manual",
+      "join": " ",
+      "parts": [
+        "en.tagline"
+      ],
+      "source": "LinkedIn company page tagline, 120 characters; editing needs rw_organization_admin, which the founder's rule does not grant"
+    },
+    {
+      "platform": "linkedin",
+      "field": "about",
+      "limit": 2000,
+      "api": "manual",
+      "join": "\n",
+      "parts": [
+        "en.what",
+        "en.how",
+        "en.reveal",
+        "en.match",
+        "en.drawings",
+        "en.fee",
+        "en.free",
+        "en.site"
+      ],
+      "source": "LinkedIn company page overview, 2,000 characters"
+    },
+    {
+      "platform": "tiktok",
+      "field": "bio",
+      "limit": 80,
+      "api": "manual",
+      "join": " ",
+      "parts": [
+        "en.tagline"
+      ],
+      "source": "TikTok bio, 80 characters; no public API writes it"
+    },
+    {
+      "platform": "youtube",
+      "field": "description",
+      "limit": 1000,
+      "api": "youtube",
+      "join": "\n",
+      "parts": [
+        "en.what",
+        "en.how",
+        "en.reveal",
+        "en.match",
+        "en.drawings",
+        "en.fee",
+        "en.free",
+        "en.site"
+      ],
+      "source": "YouTube channel description, 1,000 characters (channels.update brandingSettings, youtube.force-ssl)"
+    },
+    {
+      "platform": "x",
+      "field": "bio",
+      "limit": 160,
+      "api": "manual",
+      "join": " ",
+      "parts": [
+        "en.what",
+        "en.tagline"
+      ],
+      "source": "X bio, 160 characters; the profile API needs the paid tier the founder ruled out"
+    }
+  ]
+}

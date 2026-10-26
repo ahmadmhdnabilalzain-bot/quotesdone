@@ -1,0 +1,27 @@
+import { assertEquals } from 'jsr:@std/assert@1';
+import { shapeRequest, THINKING_HEADROOM } from './request_shape.ts';
+
+const RF = { type: 'json_object' };
+
+Deno.test('Opus 5.5 never receives temperature, gets effort and thinking headroom', () => {
+  const p = shapeRequest({ model: 'anthropic/claude-opus-5.5', maxTokens: 2000, temperature: 0.2 });
+  assertEquals(p.temperature, undefined);
+  assertEquals(p.reasoning, { effort: 'medium' });
+  assertEquals(p.max_tokens, 2000 + THINKING_HEADROOM);
+});
+
+Deno.test('a caller effort is honoured, an invalid one falls back to medium', () => {
+  assertEquals(shapeRequest({ model: 'anthropic/claude-opus-5.5', maxTokens: 1, effort: 'high' }).reasoning, { effort: 'high' });
+  assertEquals(shapeRequest({ model: 'anthropic/claude-opus-5.5', maxTokens: 1, effort: 'none' }).reasoning, { effort: 'medium' });
+});
+
+Deno.test('non-Claude routes keep temperature and their own max_tokens, no reasoning field', () => {
+  const p = shapeRequest({ model: 'google/gemini-3.8-flash', maxTokens: 700, temperature: 0.3 });
+  assertEquals(p, { max_tokens: 700, temperature: 0.3 });
+});
+
+Deno.test('response_format only where the model lists it', () => {
+  assertEquals(shapeRequest({ model: 'qwen/qwen3.8-max-0902', maxTokens: 1, responseFormat: RF, supported: new Set(['response_format']) }).response_format, RF);
+  assertEquals(shapeRequest({ model: 'qwen/x', maxTokens: 1, responseFormat: RF, supported: new Set(['temperature']) }).response_format, undefined);
+  assertEquals(shapeRequest({ model: 'qwen/x', maxTokens: 1, responseFormat: RF, supported: null }).response_format, undefined);
+});

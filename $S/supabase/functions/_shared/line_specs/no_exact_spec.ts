@@ -1,0 +1,158 @@
+// line_specs/no_exact_spec.ts — when no supplier quoted the customer's exact spec.
+//
+// FOUNDER, 14 Sep 2026 (founder_instruction #321): if no supplier could quote what the customer asked
+// for, customer_support tells the customer, lists the similar options suppliers DID quote, and asks
+// whether to proceed with one. Yes: proceed, and the chosen spec is no longer a deviation. No: a
+// professional apology. The loop's state lives in public.spec_alternative_offer
+// (scripts/sql/no_supplier_quoted_the_exact_spec_so_the_customer_is_offered_what_was.sql).
+//
+// Everything here is pure: detection over quote_compare's technical comparison, the alternatives list,
+// the EN/AR messages and the reply reading. sales_engineer detects and decides; customer_support sends.
+//
+// NO SUPPLIER IDENTITY. An alternative is { option_id, value, suppliers } — a value and a COUNT of
+// suppliers. Nothing about which supplier, which quote or which label ever enters the list, and the
+// database refuses any other key (spec_alternative_offer_alternatives_shape).
+import { sameValue, type TechnicalComparison } from './compare.ts';
+
+export type Alternative = { option_id: string; value: string; suppliers: number };
+export type SpecOffer = {
+  line_no: number; item: string; attr: string; label_en: string; label_ar: string;
+  requested: string; alternatives: Alternative[];
+};
+
+/**
+ * The lines where no eligible quote matches what the customer asked for, on a MANDATORY attribute with
+ * a requested value of the customer's own, but at least one eligible quote offers something else.
+ * If ANY eligible quote matches, nothing is returned for that attribute: then a differing quote is only
+ * shown in the comparison as "This is what the supplier quoted in writing".
+ * `t` is quote_compare's technical_detail, which only ever holds eligible (rankable) quotes.
+ */
+export function noExactSpec(t: TechnicalComparison | null | undefined): SpecOffer[] {
+  if (!t || !Array.isArray(t.lines)) return [];
+  const letterOf = new Map(t.quotes.map((q) => [q.quote_id, q.supplier_letter]));
+  const out: SpecOffer[] = [];
+  for (const row of t.lines) {
+    for (const a of row.attributes) {
+      if (!a.mandatory || !a.requested) continue;
+      if (a.requested_source !== 'boq' && a.requested_source !== 'intake') continue;
+      if (a.cells.some((c) => c.flag === 'match')) continue;
+      const differing = a.cells.filter((c) => c.flag === 'differs' && c.value);
+      if (!differing.length) continue;
+      // Group equal values (the comparison's own sameValue) and count DISTINCT suppliers, never quotes:
+      // two options from one supplier are one supplier offering that value.
+      const groups: Array<{ value: string; letters: Set<string> }> = [];
+      for (const c of differing) {
+        const v = String(c.value).trim();
+        const g = groups.find((x) => sameValue(x.value, v));
+        const letter = letterOf.get(c.quote_id) ?? c.quote_id;
+        if (g) g.letters.add(letter); else groups.push({ value: v, letters: new Set([letter]) });
+      }
+      groups.sort((x, y) => y.letters.size - x.letters.size || x.value.localeCompare(y.value));
+      out.push({
+        line_no: row.request_line?.line_no ?? row.row, item: String(row.item || ''), attr: a.code,
+        label_en: a.label_en, label_ar: a.label_ar, requested: a.requested,
+        alternatives: groups.map((g, i) => ({ option_id: 'o' + (i + 1), value: g.value, suppliers: g.letters.size })),
+      });
+    }
+  }
+  return out;
+}
+
+// ── THE MESSAGES ─────────────────────────────────────────────────────────────────────────────────
+export type Lang = 'en' | 'ar';
+export type OfferForText = Pick<SpecOffer, 'item' | 'label_en' | 'label_ar' | 'requested' | 'alternatives'> & { accepted_value?: string | null };
+export type Message = { subject: string; body: string; untranslated?: string[] };
+
+// Western digits, as everywhere else in the estate: one numeral system per message (instruction 586).
+const arNum = (n: number | string) => String(n);
+/**
+ * Supplier or customer words on an Arabic message: their native Arabic, reasoned upstream
+ * (_shared/reasoned_governance.ts arabicTextsFor) and handed in as `arTexts`. A line without it is left as the
+ * placeholder ⟦words⟧ and reported in the message's `untranslated`: such a message is NEVER sent. The caller
+ * parks it (fn_arabic_outbound_park) or retries, and it goes out once the Arabic exists (decision point
+ * trade_glossary_ar, founder's decision 23 Sep 2026: an Arabic message never goes out with quoted English).
+ */
+export type ArTexts = Record<string, string>;
+/** The placeholder a parked message carries for a line awaiting its reasoned Arabic (fn_arabic_outbound_flush fills it). */
+export const arPlaceholder = (s: string) => '⟦' + s + '⟧';
+function arWords(v: string, arTexts: ArTexts = {}, sink?: Set<string>): string {
+  const s = String(v || '').trim();
+  if (!s) return '—';
+  if (arTexts[s]) return arTexts[s];
+  if (!/[A-Za-z]/.test(s)) return s;
+  sink?.add(s);
+  return arPlaceholder(s);
+}
+/** Every person-written string an Arabic message about this offer prints: what arabicTextsFor translates. */
+export function offerTexts(o: OfferForText): string[] {
+  return [o.item, o.requested, o.accepted_value ?? '', ...o.alternatives.map((a) => a.value)].map((x) => String(x || '').trim()).filter(Boolean);
+}
+const ref = (rfqNo: number | string | null | undefined, lang: Lang) => rfqNo == null ? '' : (lang === 'ar' ? ` رقم ${arNum(rfqNo)}` : ` #${rfqNo}`);
+const suppliersEn = (n: number) => n === 1 ? '1 supplier' : `${n} suppliers`;
+const suppliersAr = (n: number) => n === 1 ? 'مورّد واحد' : n === 2 ? 'مورّدان' : (n <= 10 ? `${arNum(n)} مورّدين` : `${arNum(n)} مورّدًا`);
+
+function optionLines(o: OfferForText, lang: Lang, arTexts: ArTexts = {}, sink?: Set<string>): string {
+  return o.alternatives.map((a, i) => lang === 'ar'
+    ? `${arNum(i + 1)}) ${arWords(a.value, arTexts, sink)} — ${suppliersAr(a.suppliers)}`
+    : `${i + 1}) ${a.value} — ${suppliersEn(a.suppliers)}`).join('\n');
+}
+
+/** The question. `reminder` 0 is the first message; 1..n are reminders; `final` marks the last one. */
+export function offerMessage(o: OfferForText, lang: Lang, opts: { rfqNo?: number | string | null; portalUrl?: string | null; reminder?: number; final?: boolean; replyBy?: string | null; arTexts?: ArTexts } = {}): Message {
+  const r = opts.reminder ?? 0;
+  if (lang === 'ar') {
+    const head = r === 0 ? '' : (opts.final ? 'تذكير أخير: ' : 'تذكير: ');
+    const sink = new Set<string>();
+    const m = {
+      subject: `${head}طلبكم${ref(opts.rfqNo, 'ar')}: لم يقدّم أي مورّد المواصفة المطلوبة بدقة`,
+      body: [
+        `${head}لم يتمكّن أي مورّد من تقديم عرض مطابق تمامًا للمواصفة التي حددتموها في طلبكم${ref(opts.rfqNo, 'ar')}.`,
+        `البند: ${arWords(o.item, opts.arTexts, sink)} — ${o.label_ar}`,
+        `المواصفة المطلوبة: ${arWords(o.requested, opts.arTexts, sink)}`,
+        'غير أن المورّدين قدّموا البدائل المماثلة التالية:',
+        optionLines(o, 'ar', opts.arTexts, sink),
+        'هل ترغبون في المتابعة بأحد هذه البدائل؟ يُرجى الرد برقم الخيار، أو بكلمة «لا» إن كنتم لا ترغبون في المتابعة.',
+        ...(opts.portalUrl ? [`كما يمكنكم الرد من خلال البوابة: ${opts.portalUrl}`] : []),
+        ...(opts.final ? ['هذا هو التذكير الأخير؛ وفي حال عدم ورود ردّكم سنغلق الطلب دون أي رسوم.'] : []),
+      ].join('\n'),
+    };
+    return { ...m, untranslated: [...sink] };
+  }
+  const head = r === 0 ? '' : (opts.final ? 'Final reminder: ' : 'Reminder: ');
+  return {
+    subject: `${head}Your request${ref(opts.rfqNo, 'en')}: no supplier could quote your exact specification`,
+    body: [
+      `${head}No supplier was able to quote your exact specification on your request${ref(opts.rfqNo, 'en')}.`,
+      `Item: ${o.item} — ${o.label_en}`,
+      `You asked for: ${o.requested}`,
+      'Suppliers did quote similar options:',
+      optionLines(o, 'en'),
+      'Would you like to proceed with one of these options? Reply with the option number, or NO if you would rather not proceed.',
+      ...(opts.portalUrl ? [`You can also answer in your portal: ${opts.portalUrl}`] : []),
+      ...(opts.final ? ['This is the last reminder; if we do not hear from you, we will close the request with nothing charged.'] : []),
+    ].join('\n'),
+  };
+}
+
+/** The customer said yes to an option. */
+export function acceptedMessage(o: OfferForText, lang: Lang, opts: { rfqNo?: number | string | null; arTexts?: ArTexts } = {}): Message {
+  const v = String(o.accepted_value || '');
+  const sink = new Set<string>();
+  return lang === 'ar'
+    ? { subject: `طلبكم${ref(opts.rfqNo, 'ar')}: سنتابع بالخيار الذي اخترتموه`,
+        body: `شكرًا لكم. سنمضي في طلبكم${ref(opts.rfqNo, 'ar')} باعتماد ${arWords(v, opts.arTexts, sink)} في ${o.label_ar}، وأصبحت العروض التي تتضمنه تُقارَن بوصفها مطابقة لطلبكم.`, untranslated: [...sink] }
+    : { subject: `Your request${ref(opts.rfqNo, 'en')}: we will proceed with your chosen option`,
+        body: `Thank you. We will proceed with ${v} for ${o.label_en} on your request${ref(opts.rfqNo, 'en')}, and quotes offering it are now compared as matching your request.` };
+}
+
+/** The customer declined, or did not answer after the final reminder. Nothing was revealed, so nothing is charged. */
+export function apologyMessage(o: OfferForText, lang: Lang, why: 'declined' | 'no_reply', opts: { rfqNo?: number | string | null } = {}): Message {
+  if (lang === 'ar') {
+    const lead = why === 'declined' ? 'نتفهّم قراركم.' : 'لم يصلنا ردّكم على البدائل التي أرسلناها.';
+    return { subject: `طلبكم${ref(opts.rfqNo, 'ar')}: نعتذر لعدم توفّر المواصفة المطلوبة`,
+      body: `${lead} نعتذر لعدم تمكّن أي مورّد من تقديم ${o.label_ar} وفق ما طلبتم تمامًا. وقد أغلقنا طلبكم${ref(opts.rfqNo, 'ar')} دون أي رسوم عليكم، ويسعدنا استقبال طلباتكم الجديدة في أي وقت.` };
+  }
+  const lead = why === 'declined' ? 'We understand.' : 'We did not hear back from you about the options we sent.';
+  return { subject: `Your request${ref(opts.rfqNo, 'en')}: we are sorry your exact specification was not available`,
+    body: `${lead} We are sorry that no supplier could quote ${o.label_en} exactly as you asked. We have closed your request${ref(opts.rfqNo, 'en')} and nothing has been charged. You are welcome to post a new request at any time.` };
+}
