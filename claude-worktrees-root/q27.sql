@@ -1,0 +1,1 @@
+select to_jsonb(p) r from founder_mail_policy p where kind='marketing_calendar'; select max(sent_at) last_sent, count(*) filter (where status='queued') queued from notifications where channel='email' and created_at > now() - interval '2 days';

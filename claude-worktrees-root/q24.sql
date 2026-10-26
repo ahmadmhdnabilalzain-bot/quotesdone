@@ -1,0 +1,1 @@
+select id, status, recipient, sent_at, left(coalesce(error,''),120) err from notifications where id=63608; select calendar_sent_at from marketing_campaign where key='2026-month1-supplier-recruitment';

@@ -1,0 +1,1 @@
+select count(*) filter (where scheduled_at >= '2026-09-25') posts, min(scheduled_at) first from marketing_post where campaign_id=7; select id, status, created_at from notifications where type ilike '%calendar%' order by id desc limit 2;

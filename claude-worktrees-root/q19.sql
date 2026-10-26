@@ -1,0 +1,1 @@
+select column_name, column_default from information_schema.columns where table_name='inbound_messages' and column_name='owner_role'; select tgname from pg_trigger where tgrelid='public.inbound_messages'::regclass and not tgisinternal;

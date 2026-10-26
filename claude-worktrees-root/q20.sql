@@ -1,0 +1,1 @@
+select id, subject, owner_role from inbound_messages where needs_review and replied_at is null and owner_role is null and to_email like 'expenses@%' and created_at > '2026-09-23' ; select h.id, h.subject->>'email_id' from reasoning_held_question h where h.surface in ('accountant.document_kind','accountant.receipt_vendor') and h.status='held';

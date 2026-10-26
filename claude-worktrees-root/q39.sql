@@ -1,0 +1,1 @@
+select c.relname, t.tgname, p.proname from pg_trigger t join pg_proc p on p.oid=t.tgfoid join pg_class c on c.oid=t.tgrelid where c.relname in ('legal_documents','app_secrets','deploy_state') and not t.tgisinternal;

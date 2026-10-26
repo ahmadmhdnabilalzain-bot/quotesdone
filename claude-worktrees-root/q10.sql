@@ -1,0 +1,1 @@
+select record_id, length(body) len, embedding_gte is null nul, (select count(*) from knowledge_vector_ml v where v.src='support_knowledge' and v.row_id=s.record_id) mlv from support_knowledge s where tags @> array['verified_pack'] and embedding_gte is null limit 8;

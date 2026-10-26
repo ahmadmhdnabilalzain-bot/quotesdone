@@ -1,0 +1,1 @@
+select pg_get_functiondef('public.fn_company_brief(integer)'::regprocedure) d, (select string_agg(p.oid::regprocedure::text, ', ') from pg_proc p where proname='fn_company_brief') sigs, (select proacl::text from pg_proc where proname='fn_company_brief') acl;

@@ -1,0 +1,1 @@
+select pid, application_name, state, now()-xact_start age, left(query,120) q from pg_stat_activity where pid in (select pid from pg_locks where relation='public.pages'::regclass) or (state<>'idle' and now()-xact_start > interval '20 seconds');

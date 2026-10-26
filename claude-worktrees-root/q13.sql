@@ -1,0 +1,1 @@
+select count(*) filter (where status='standing') standing, pg_get_constraintdef((select oid from pg_constraint where conname='founder_instruction_status_check')) like '%standing%' has_state from founder_instruction;
