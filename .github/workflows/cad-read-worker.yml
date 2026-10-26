@@ -8,6 +8,9 @@ name: CAD read worker
 # The schedule stays ONLY for what nothing else can see: a lost dispatch or a dead runner after the
 # customer closed the page - without it that drawing would never be read. 4 runs a day, ~120 Actions-
 # minutes a month, plus ~1 minute per queued drawing. Owner: sales_engineer.
+# 27 Oct 2026 (it_engineer): GitHub Actions is OFF, so nothing triggers this file. customer_api no longer dispatches it;
+# a queued job raises a sales_engineer finding instead (customer_api cadReadHeld), and the sales_engineer runs the same
+# command as the step below by hand. This file stays as the record of how the worker runs when Actions returns.
 
 on:
   schedule:
