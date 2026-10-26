@@ -1,1 +1,0 @@
-Committed, applied at merge by the release operator: adds fn_pack_rows_without_fresh_ml_vector and section 4c of fn_it_duties (duty:pack_ml_vectors).
