@@ -10,12 +10,13 @@
 // statement, the DDL included, rolls back and production is never written.
 //
 //   node --test scripts/checks/a_receipt_is_matched_to_the_bank_debit_that_paid_it.test.mjs
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { replaySql } from '../lib/safe_replay.mjs';
 
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 const FILE = 'scripts/sql/the_accountant_matches_every_expense_receipt_to_its_bank_line.sql';

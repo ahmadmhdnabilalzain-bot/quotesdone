@@ -21,6 +21,7 @@
 //   · no delete/drop/truncate/alter at all — removal is a decision, not a side effect of seeding
 //   · every update must name the fixture marker in the same statement
 //   · no production ref literal, the same check qd_guard makes
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 import { mgmtWrite, PROD_REF, assertNoProductionLiteral } from '../lib/qd_guard.mjs';
 import { REF as STAGE } from '../lib/demo_factory.mjs';
@@ -40,8 +41,7 @@ for (const m of code.matchAll(/\bupdate\s+[\s\S]*?(?=;|$)/gi)) {
 }
 assertNoProductionLiteral(sql, file);
 
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 
 // Same backoff as apply_sql.mjs: the failure mode is a fixture that landed on one project only,
 // which is precisely what the founder's "no staging only" rule exists to prevent.

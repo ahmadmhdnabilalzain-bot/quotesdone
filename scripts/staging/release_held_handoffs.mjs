@@ -22,6 +22,7 @@
 //
 //   node scripts/staging/release_held_handoffs.mjs --ref=<project>            # dry run
 //   node scripts/staging/release_held_handoffs.mjs --ref=<project> --commit   # release
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 
 const arg = (n) => (process.argv.find((a) => a.startsWith(`--${n}=`)) || '').split('=').slice(1).join('=');
@@ -29,7 +30,7 @@ const REF = arg('ref');
 const COMMIT = process.argv.includes('--commit');
 if (!/^[a-z]{20}$/.test(REF)) { console.error('--ref=<project> is required and has no default'); process.exit(2); }
 
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 if (!token) { console.error('no SUPABASE_ACCESS_TOKEN and no local access token'); process.exit(2); }

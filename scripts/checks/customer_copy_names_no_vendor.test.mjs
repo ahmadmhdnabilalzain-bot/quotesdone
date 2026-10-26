@@ -17,6 +17,7 @@
 //      and says so; CI's checks job has no token.
 //
 //   node --test scripts/checks/customer_copy_names_no_vendor.test.mjs
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -54,7 +55,7 @@ test('customer-facing files name no infrastructure vendor', () => {
   assert.deepEqual(hits, [], 'vendor named in customer copy:\n' + hits.join('\n'));
 });
 
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 

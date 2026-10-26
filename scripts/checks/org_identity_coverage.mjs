@@ -20,9 +20,10 @@
 //
 // CI runs npm test with no SUPABASE_ACCESS_TOKEN. This skips there rather than failing on a 401
 // that reads like a data failure and is not one.
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 

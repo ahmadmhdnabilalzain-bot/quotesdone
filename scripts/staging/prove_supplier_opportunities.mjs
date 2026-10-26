@@ -5,11 +5,12 @@
 // supplier_portal resolves the supplier from the caller's e-mail via leads.claimed_by, so this
 // signs in AS the fenced demo supplier. The auth user is created only if it is missing and is
 // removed again in a finally block unless it was already there.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 
 const ref = process.argv[2];
 if (!ref) { console.error('usage: prove_supplier_opportunities.mjs <ref>'); process.exit(2); }
-const token = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 const H = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
 
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${ref}/api-keys?reveal=true`, { headers: H })).json();

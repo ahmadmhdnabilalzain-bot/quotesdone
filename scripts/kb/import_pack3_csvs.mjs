@@ -5,13 +5,14 @@
 // per-identity policies (96 target employees + 24 current agents) had nowhere to land.
 //
 //   node scripts/kb/import_pack3_csvs.mjs --ref=<project> --dir=<pack dir>
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const arg = (n) => (process.argv.find(a => a.startsWith(`--${n}=`)) || '').split('=').slice(1).join('=');
 const REF = arg('ref'), DIR = arg('dir');
 if (!/^[a-z]{20}$/.test(REF) || !DIR) throw new Error('--ref and --dir are required');
-const token = readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8').trim();
+const token = readFileSync(SUPABASE_TOKEN_FILE, 'utf8').trim();
 
 async function q(sql, attempt = 0) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {

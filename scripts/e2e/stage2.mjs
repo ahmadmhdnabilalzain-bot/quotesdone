@@ -20,6 +20,7 @@
 // +971 50 000 00xx block; the run refuses without the demo capture and pairing guards; it never posts,
 // publishes or sends to Meta; Stripe is TEST mode only (the run refuses a live key). Cleanup is scoped by
 // the run tag and the ids the run recorded itself, never by a pattern that could match a real row.
+import { SANDBOX_OUT } from '../lib/sandbox_out.mjs';
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,7 +48,7 @@ if (!Number.isFinite(CAP_USD) || CAP_USD <= 0 || CAP_USD > 15) { console.error('
 const AED_PER_USD = 3.6725;
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
-const OUT = val('--out') || process.env.QD_STAGE2_OUT || 'C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10';
+const OUT = val('--out') || process.env.QD_STAGE2_OUT || SANDBOX_OUT;
 process.env.QD_FIXTURES = '1';
 
 // ---- the matrix ------------------------------------------------------------------------------------

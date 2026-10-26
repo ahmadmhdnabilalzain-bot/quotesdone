@@ -10,13 +10,14 @@
 // Read-only work against production is legitimate (A-01 was diagnosed that way), so
 // mgmtRead() is deliberately separate and permits PROD. It refuses anything that looks
 // like a write.
+import { SUPABASE_TOKEN_FILE } from './supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 
 export const PROD_REF = 'htdblwldjkcgjvmqkbeh';
 
 // No token (CI's checks job) must not make IMPORTING this module throw: closeOnExit and the SQL literals are used
 // without one (a_rehearsal_window_past_its_run_time_is_closed.test.mjs). A call without a token is refused by the API.
-const tokenFile = () => { try { return readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8'); } catch { return ''; } };
+const tokenFile = () => { try { return readFileSync(SUPABASE_TOKEN_FILE, 'utf8'); } catch { return ''; } };
 const token = (process.env.SUPABASE_ACCESS_TOKEN || tokenFile()).trim();
 const H = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
 
