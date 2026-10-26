@@ -1,0 +1,32 @@
+{
+ "verify": {
+  "tables_scanned": 712,
+  "tables_in_registry": 712,
+  "found": [
+   {
+    "table": "agent_actions",
+    "rows": 1
+   },
+   {
+    "table": "file_scan",
+    "rows": 3
+   },
+   {
+    "table": "org_tasks",
+    "rows": 1
+   },
+   {
+    "table": "undo_log",
+    "rows": 3
+   }
+  ],
+  "unverified": [],
+  "storage": [],
+  "auth_users": 0,
+  "dropbox": {
+   "listed": 0,
+   "records": 0
+  },
+  "clean": false
+ }
+}

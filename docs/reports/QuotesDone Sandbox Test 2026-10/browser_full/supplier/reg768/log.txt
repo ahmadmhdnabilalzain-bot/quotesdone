@@ -1,0 +1,71 @@
+PASS [en/mobile] the invitation names the company on landing — 1215 ms
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\en_mobile_01_landing_from_invitation.png
+PASS [en/mobile] the form opens on create-account, not "Welcome back" — Register as a supplier
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\en_mobile_02_signup_form.png
+FAIL [en/mobile] the sign-up e-mail code verifies through login_otp — HTTP 429
+PASS [en/mobile] the claimed company opens — never a blank "Register your company" — 3006 ms
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\en_mobile_03_portal_after_claim.png
+FAIL [en/mobile] the listing is claimed by this account with the e-mail proof carried — {"claimed":true,"mine":true,"ev":false}
+PASS [en/mobile] licence + company profile uploaded; licence expiry read — {"lic":true,"license_expiry":"2028-03-14","prof":true}
+PASS [en/mobile] the Documents tab read the licence name and it matches the company — {"licence_legal_name":"ZZ DEMO Walk a0404761 en mobile 0","company_name":"ZZ DEMO Walk a0404761 en mobile 0","matches":true,"mismatch":false}
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\en_mobile_04_documents_uploaded.png
+PASS [en/mobile] a fixture mobile is refused before any SMS — {"ok":false,"captured":true,"code":"fixture_number","error":"This is a reserved test numbe
+PASS [en/mobile] the WhatsApp question is on the Profile tab while registration needs it
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\en_mobile_05_profile_whatsapp_question.png
+PASS [en/mobile] the WhatsApp answer is recorded — HTTP 200
+FAIL [en/mobile] terms + Save → approved with a signed certificate, by the deterministic check with no licence hold — {"approval_status":null,"signed_terms_path":null,"signatory_name":null,"approval_decided_by":null,"licence_gate_reason":null}; Save answered in 393 ms, approved 116787 ms after
+FAIL [en/mobile] acceptance stored with IP, agent, version, hash, signatory; mobile + e-mail verified; fields as typed — {"ip":false,"ua":false,"v":null,"sha":false,"signatory_name":null,"contact_name":null,"service_emirates":null,"pv":true,"ev":false,"company_name":"ZZ DEMO Walk a0404761 en mobile 0"}
+FAIL [en/mobile] the approval notice is decided by the seat, and nothing is sent to a fixture — {"acts":[],"sent":[]}
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\en_mobile_06_after_submit.png
+PASS [en/mobile] tab "Services" settles — 1103 ms
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\en_mobile_07_tab_Services.png
+PASS [en/mobile] tab "Inquiries received" settles — 1092 ms
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\en_mobile_08_tab_Inquiries_received.png
+PASS [en/mobile] tab "Quotations submitted" settles — 1370 ms
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\en_mobile_09_tab_Quotations_submitted.png
+PASS [en/mobile] tab "Messages" settles — 27 ms
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\en_mobile_10_tab_Messages.png
+PASS [en/mobile] tab "Documents" settles — 1956 ms
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\en_mobile_11_tab_Documents.png
+PASS [en/mobile] tab "Insights" settles — 2173 ms
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\en_mobile_12_tab_Insights.png
+PASS [en/mobile] account "Profile" settles — 10 ms
+PASS [en/mobile] account "Billing" settles — 55 ms
+PASS [en/mobile] account "Settings" settles — 42 ms
+PASS [ar/mobile] the invitation names the company on landing — 1321 ms
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\ar_mobile_13_landing_from_invitation.png
+PASS [ar/mobile] the form opens on create-account, not "Welcome back" — Register as a supplier
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\ar_mobile_14_signup_form.png
+FAIL [ar/mobile] the sign-up e-mail code verifies through login_otp — HTTP 429
+PASS [ar/mobile] the claimed company opens — never a blank "Register your company" — 3152 ms
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\ar_mobile_15_portal_after_claim.png
+FAIL [ar/mobile] the listing is claimed by this account with the e-mail proof carried — {"claimed":true,"mine":true,"ev":false}
+PASS [ar/mobile] licence + company profile uploaded; licence expiry read — {"lic":true,"license_expiry":"2028-03-14","prof":true}
+PASS [ar/mobile] the Documents tab read the licence name and it matches the company — {"licence_legal_name":"ZZ DEMO Walk a0404761 ar mobile 1","company_name":"ZZ DEMO Walk a0404761 ar mobile 1","matches":true,"mismatch":false}
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\ar_mobile_16_documents_uploaded.png
+PASS [ar/mobile] a fixture mobile is refused before any SMS — {"ok":false,"captured":true,"code":"fixture_number","error":"This is a reserved test numbe
+PASS [ar/mobile] the WhatsApp question is on the Profile tab while registration needs it
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\ar_mobile_17_profile_whatsapp_question.png
+PASS [ar/mobile] the WhatsApp answer is recorded — HTTP 200
+FAIL [ar/mobile] terms + Save → approved with a signed certificate, by the deterministic check with no licence hold — {"approval_status":null,"signed_terms_path":null,"signatory_name":null,"approval_decided_by":null,"licence_gate_reason":null}; Save answered in 260 ms, approved 159601 ms after
+FAIL [ar/mobile] acceptance stored with IP, agent, version, hash, signatory; mobile + e-mail verified; fields as typed — {"ip":false,"ua":false,"v":null,"sha":false,"signatory_name":null,"contact_name":null,"service_emirates":null,"pv":true,"ev":false,"company_name":"ZZ DEMO Walk a0404761 ar mobile 1"}
+FAIL [ar/mobile] the approval notice is decided by the seat, and nothing is sent to a fixture — {"acts":[],"sent":[]}
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\ar_mobile_18_after_submit.png
+PASS [ar/mobile] tab "Services" settles — 1051 ms
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\ar_mobile_19_tab_Services.png
+PASS [ar/mobile] tab "Inquiries received" settles — 1071 ms
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\ar_mobile_20_tab_Inquiries_received.png
+PASS [ar/mobile] tab "Quotations submitted" settles — 1598 ms
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\ar_mobile_21_tab_Quotations_submitted.png
+PASS [ar/mobile] tab "Messages" settles — 267 ms
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\ar_mobile_22_tab_Messages.png
+PASS [ar/mobile] tab "Documents" settles — 1325 ms
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\ar_mobile_23_tab_Documents.png
+PASS [ar/mobile] tab "Insights" settles — 2138 ms
+  shot C:\Users\Opera\Desktop\QuotesDone Sandbox Test 2026-10\browser_full\supplier\reg768\ar_mobile_24_tab_Insights.png
+PASS [ar/mobile] account "Profile" settles — 7 ms
+PASS [ar/mobile] account "Billing" settles — 266 ms
+PASS [ar/mobile] account "Settings" settles — 265 ms
+teardown: {"auth_users":0,"customers":0,"leads":0,"inquiries":0,"quotes":0,"quote_spec_hold":0,"quote_reviews":0,"notifications":0,"transactions":0,"refunds":0,"supplier_dues":0,"refund_case":0,"inquiry_intake":0,"email_verifications":0,"storage_objects":0,"total":0}
+34/44 passed
+exit 1
