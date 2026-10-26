@@ -1,0 +1,84 @@
+{
+ "trade": "staff_transport",
+ "layer": "uae-market",
+ "label_en": "Staff transport & bus rental",
+ "label_ar": "نقل الموظفين وتأجير الحافلات",
+ "entries": [
+  {
+   "id": "staff_transport:uae-market-products",
+   "topic": "Staff transport & bus rental: products, variants and grades sold in the UAE",
+   "topic_ar": "نقل الموظفين وتأجير الحافلات: المنتجات والأنواع والدرجات المباعة في الإمارات",
+   "kind": "uae_market_products",
+   "body_en": "Staff transport in the UAE is a large B2B service. It moves construction and facility workers between labour camps (Al Quoz, Sonapur/Muhaisnah, Jebel Ali, Mussafah, Sajja) and sites, hotel and retail staff on shifts, hospital and airport staff, schools and universities, and event shuttles. Contracts are mostly monthly per vehicle with a driver, while events and tourism use per-trip and per-day hire.",
+   "body_ar": "نقل الموظفين في الإمارات خدمة كبيرة بين الشركات: نقل عمال الإنشاءات والمرافق بين سكن العمال (القوز، صونابور/محيصنة، جبل علي، مصفح، الصجعة) والمواقع، وموظفي الفنادق والتجزئة بنظام الورديات، وموظفي المستشفيات والمطارات، والمدارس والجامعات، ومكوكات الفعاليات. والعقود في الغالب شهرية لكل مركبة مع سائق، بينما الفعاليات والسياحة بالرحلة واليوم.",
+   "sources": [
+    "https://www.rta.ae/wps/portal/rta/ae/home"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-10-19",
+   "source_note": "Pages opened 2026-10-19: RTA lists services for passenger-transport vehicles under franchise and short-term bus rental -> confirmed (operator licensing detail not on the page). Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+  },
+  {
+   "id": "staff_transport:uae-market-brands",
+   "topic": "Staff transport & bus rental: makes, brands, distributors and origins in the UAE",
+   "topic_ar": "نقل الموظفين وتأجير الحافلات: الماركات والعلامات التجارية والموزعون وبلدان المنشأ في الإمارات",
+   "kind": "uae_market_brands",
+   "body_en": "Vehicle makes common in UAE staff-transport fleets: Toyota (Hiace, Coaster), Nissan (Urvan, Civilian), Ashok Leyland (Falcon, Lynx; assembled in RAK), Tata, King Long, Yutong, Zhongtong, MAN and Mercedes-Benz. Operators range from large fleet firms and tourism companies to small owner-operators. Individual operators' licences were not checked.",
+   "body_ar": "ماركات المركبات الشائعة في أساطيل نقل الموظفين بالإمارات: تويوتا (هايس، كوستر)، ونيسان (أورفان، سيفيليان)، وأشوك ليلاند (فالكون، لينكس، وتُجمّع في رأس الخيمة)، وتاتا، وكينغ لونغ، ويوتونغ، وتشونغ تونغ، ومان، ومرسيدس-بنز. ويتراوح المشغلون بين شركات أساطيل كبيرة وشركات سياحة ومشغلين أفراد صغار. لم يُتحقق من تراخيص المشغلين بأعينهم.",
+   "sources": [
+    "https://www.rta.ae/wps/portal/rta/ae/home"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-10-19",
+   "source_note": "Pages opened 2026-10-19: RTA lists services for passenger-transport vehicles under franchise and short-term bus rental -> confirmed (operator licensing detail not on the page). Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+  },
+  {
+   "id": "staff_transport:uae-market-sizes",
+   "topic": "Staff transport & bus rental: typical sizes, units and how it is quoted in the UAE",
+   "topic_ar": "نقل الموظفين وتأجير الحافلات: المقاسات والوحدات المعتادة وطريقة التسعير في الإمارات",
+   "kind": "uae_market_sizes",
+   "body_en": "Quoted per vehicle per month (with a driver, a set number of daily hours and km, often fuel-inclusive), per trip, or per day (8, 10 or 12 hours). Excess hours, Salik, parking and overnight driver allowances are separate lines. Long contracts may include new-vehicle branding.",
+   "body_ar": "يُسعّر لكل مركبة شهرياً (مع سائق وعدد محدد من الساعات والكيلومترات اليومية، وغالباً شاملاً الوقود)، أو بالرحلة، أو باليوم (8 أو 10 أو 12 ساعة). والساعات الزائدة وسالك والمواقف وبدل مبيت السائق بنود منفصلة. وقد تشمل العقود الطويلة تغليف المركبات الجديدة بالعلامة التجارية.",
+   "sources": [
+    "https://www.rta.ae/wps/portal/rta/ae/home"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-10-19",
+   "source_note": "Pages opened 2026-10-19: RTA lists services for passenger-transport vehicles under franchise and short-term bus rental -> confirmed (operator licensing detail not on the page). Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model)."
+  }
+ ],
+ "eval": [
+  {
+   "q_en": "We need to move 120 workers from Sonapur to a site in Jebel Ali every day. Coasters or big buses?",
+   "q_ar": "نبي ننقل 120 عامل كل يوم من صونابور لموقع في جبل علي، كوستر ولا باصات كبيرة؟",
+   "expected_entry_ids": [
+    "staff_transport:uae-market-products",
+    "staff_transport:product-distinctions"
+   ],
+   "expected_mode": "any",
+   "why": "The products entry names the variants sold in the UAE; the sibling distinctions entry explains the choice.",
+   "written_blind": true
+  }
+ ],
+ "verified": {
+  "by": "sales_engineer",
+  "on": "2026-10-19",
+  "method": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Brand names are well-known makes in the UAE market; local distributor appointments were not checked.",
+  "checks": [
+   {
+    "claim": "RTA lists services for passenger-transport vehicles under franchise and short-term bus rental -> confirmed (operator licensing detail not on the page)",
+    "url": "https://www.rta.ae/wps/portal/rta/ae/home",
+    "result": "confirmed on the page opened"
+   }
+  ],
+  "unverified": "Distributor appointments per brand.",
+  "ledger": [
+   893,
+   899,
+   900,
+   903,
+   1198,
+   1209
+  ]
+ }
+}
