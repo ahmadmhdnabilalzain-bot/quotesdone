@@ -43,8 +43,8 @@ const migrations = () => (existsSync(join(REPO, 'supabase/migrations')) ? readdi
 
 // [id, workflow job, name, command | () => command | null (nothing to run, passes with a note), opts]
 const STEPS = [
-  // With a token, npm test also runs every production check the CI job skipped, one at a time (the 429 budget): slower.
-  ['npm-test', 'checks', 'npm test: node --test over scripts/checks + the deno suite', 'npm test', { minutes: 120 }],
+  // With a token, npm test also runs every production check the CI job skipped, one at a time (the 429 budget), including every_seat_reads_its_verified_pack's live eval (up to 60 min): measured >90 min on 26 Oct.
+  ['npm-test', 'checks', 'npm test: node --test over scripts/checks + the deno suite', 'npm test', { minutes: 180 }],
   ['ssrf', 'checks', 'the SSRF guard fires on a private address, file:// and metadata', 'node scripts/checks/ssrf_guard_refuses_private_addresses.mjs'],
   ['fetch-timeout', 'checks', 'no new outbound fetch without a deadline', 'node scripts/checks/every_outbound_fetch_has_a_timeout.mjs'],
   ['dwg', 'checks', 'a DWG is read into the same take-off as its DXF', `${DENO} --allow-net=raw.githubusercontent.com,cdn.jsdelivr.net supabase/functions/_shared/doc_read/dwg_samples.check.ts`],
