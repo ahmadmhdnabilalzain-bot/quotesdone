@@ -1,6 +1,0 @@
--- Phase 4 (Epic E3+E4): read-only System Health + Money Reconciliation snapshots.
--- fn_os_health() aggregates failing crons, agent errors, health-check fails, AI health.
--- fn_os_reconcile() compares transactions vs Stripe events vs GL balance.
--- Admin-gated via the os_health edge function. Applied 2026-07-25 to htdblwldjkcgjvmqkbeh.
--- (PITR/DR restore surface intentionally descoped per owner instruction.)
--- Authoritative definitions mirrored nightly into supabase/schema/full_schema.sql.

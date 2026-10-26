@@ -1,9 +1,0 @@
-﻿runtime_mode,primary_model,role_count
-event_driven_operator,anthropic/claude-haiku-4.5,19
-event_driven_operator,anthropic/claude-sonnet-5,13
-event_driven_operator,google/gemini-3.6-flash,1
-independent_reviewer,openai/gpt-5.2:exacto,10
-on_demand_specialist,anthropic/claude-sonnet-5,32
-on_demand_specialist,google/gemini-3.6-flash,3
-persistent_manager,anthropic/claude-sonnet-5,6
-scheduled_manager,anthropic/claude-sonnet-5,6

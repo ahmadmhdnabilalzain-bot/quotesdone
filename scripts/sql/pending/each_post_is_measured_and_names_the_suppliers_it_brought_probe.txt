@@ -1,3 +1,0 @@
-A PROBE, so it is never applied: it always raises CHK<<...>> and leaves nothing. READ it with
-node scripts/qsql.mjs scripts/sql/each_post_is_measured_and_names_the_suppliers_it_brought_probe.sql
-after each_post_is_measured_and_names_the_suppliers_it_brought.sql is applied; it must print PROBE OK.
