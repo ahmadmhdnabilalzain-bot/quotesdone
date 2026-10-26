@@ -1,1 +1,0 @@
-A pure aborted-transaction probe (no DDL, ends in raise exception CHK<<...>>): run after its .sql in the same transaction. Never applied on its own; kept as the proof named by "Prevented by:".

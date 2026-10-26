@@ -1,2 +1,0 @@
-A PROBE, so it is never applied at all: it always rolls back every row it writes and returns one verdict row. It is run
-after every_seat_reviews_itself_every_month.sql is applied, and must print PROBE OK. This note therefore stays for the life of the file. Seat: ceo.

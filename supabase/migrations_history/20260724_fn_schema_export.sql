@@ -1,9 +1,0 @@
--- fn_schema_export(): returns the full DB schema as DDL text, for the nightly
--- github_sync to commit to supabase/schema/full_schema.sql. Excludes secret VALUES
--- (key names only) and row data. SECURITY DEFINER, service_role only.
--- (Full body is applied in the live DB; see supabase/schema/full_schema.sql for the
--- current definition. This file records that the function exists as part of the schema-sync feature.)
--- Applied to project htdblwldjkcgjvmqkbeh on 2026-07-24.
---
--- The definitive, always-current source of this function is mirrored nightly into
--- supabase/schema/full_schema.sql (section "FUNCTIONS").

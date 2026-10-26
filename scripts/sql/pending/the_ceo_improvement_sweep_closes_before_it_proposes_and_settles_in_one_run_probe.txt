@@ -1,3 +1,0 @@
-A PROBE, so it is never applied at all: it raises CHK<<...>> and rolls back every row it writes. It is run after
-the_ceo_improvement_sweep_closes_before_it_proposes_and_settles_in_one_run.sql is applied (or sent in one request
-after that file, before), and must report "verdict": "PROBE OK". This note therefore stays for the life of the file. Seat: ceo.

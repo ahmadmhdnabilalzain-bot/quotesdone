@@ -1,1 +1,0 @@
-A PROBE (pure, aborted transaction, no DDL of its own beyond a gate replaced inside its own transaction, ends in raise exception CHK<<...>>): run after its .sql in the same query. Never applied on its own; kept as the proof named by "Prevented by:" (scripts/checks/a_held_question_is_paid_for_once.test.mjs).

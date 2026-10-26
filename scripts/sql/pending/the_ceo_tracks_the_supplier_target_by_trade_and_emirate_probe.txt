@@ -1,4 +1,0 @@
-A PROBE, so it is never applied at all: it is READ through node scripts/qsql.mjs after
-the_ceo_tracks_the_supplier_target_by_trade_and_emirate.sql has been applied, and it must print CHK<<...>>.
-It seeds ZZ DEMO / @example.invalid suppliers inside a block that always raises, so nothing survives it.
-This note stays for the life of the file. Seat: ceo.

@@ -1,3 +1,0 @@
-A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run
-after the_recruitment_funnel_counts_what_was_sent_and_names_the_stage_that_lost_them.sql is applied, and must print
-PROBE OK. This note therefore stays for the life of the file. Seat: marketing.

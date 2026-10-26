@@ -1,7 +1,0 @@
-A PROBE, so it is never applied at all — it is READ through node scripts/qsql.mjs after
-a_supplier_sees_only_the_jobs_it_was_matched_to.sql has been applied, and it must print PROBE OK.
-
-It writes ZZ DEMO quote rows inside a block that always raises, so nothing survives it; plain
-apply_sql.mjs would print "nothing to do" and exit 0, which is a silent pass, not a result.
-
-This note therefore stays for the life of the file. Seat: sales_engineer.

@@ -1,4 +1,0 @@
-A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run it after
-customer_support_scores_its_own_plain_language_and_tone_every_month.sql is live; it must print PROBE OK.
-Measured PROBE OK on htdblwldjkcgjvmqkbeh, 29 Sep 2026 (run together with the unapplied file in one rolled-back
-transaction). This note stays for the life of the file. Seat: customer_support.

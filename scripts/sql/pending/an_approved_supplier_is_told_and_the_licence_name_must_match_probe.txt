@@ -1,3 +1,0 @@
-A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run
-after an_approved_supplier_is_told_and_the_licence_name_must_match.sql is applied, and must print PROBE OK.
-This note therefore stays for the life of the file. Seat: sales_engineer.

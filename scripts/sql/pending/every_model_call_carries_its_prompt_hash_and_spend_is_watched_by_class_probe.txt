@@ -1,1 +1,0 @@
-A PROBE (pure, aborted transaction, no DDL, ends in raise exception CHK<<...>>): run after its .sql in the same query. Never applied on its own; kept as the proof named by "Prevented by:" (scripts/checks/the_repeat_alert_keys_on_a_prompt_hash_every_row_carries.test.mjs).

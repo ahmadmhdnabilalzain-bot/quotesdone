@@ -1,5 +1,0 @@
-A PROBE, so it is never applied at all. It is run by
-scripts/checks/a_busy_or_paused_supplier_is_skipped_and_an_unreachable_inquiry_goes_to_the_rescue.test.mjs on every
-pull request with a token: while the change is pending, the change's file is run first in the same transaction.
-It writes ZZ DEMO inquiries, matches and availability rows inside a block that always raises, so nothing survives
-it (asserted after the rollback). This note therefore stays for the life of the file. Seat: sales_engineer.

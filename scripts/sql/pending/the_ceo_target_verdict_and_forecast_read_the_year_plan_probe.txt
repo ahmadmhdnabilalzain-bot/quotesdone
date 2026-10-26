@@ -1,4 +1,0 @@
-A PROBE, so it is never applied — it is READ through node scripts/qsql.mjs after
-the_ceo_target_verdict_and_forecast_read_the_year_plan.sql has been applied, and it must end with a CHK<<...>> line
-that has no FAIL. It always raises, so its two seeded suppliers (one ZZ DEMO, one with no email or phone, inserted
-with triggers off) never survive. This note stays for the life of the file. Seat: ceo.

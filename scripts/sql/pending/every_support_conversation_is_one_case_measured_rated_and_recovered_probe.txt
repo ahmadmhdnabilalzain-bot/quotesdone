@@ -1,8 +1,0 @@
-A PROBE, so it is never applied at all — it is READ through node scripts/qsql.mjs after
-every_support_conversation_is_one_case_measured_rated_and_recovered.sql has been applied, and it must print PROBE OK.
-
-It writes a ZZ DEMO @example.invalid customer, WhatsApp, email and widget rows inside a block that always
-raises, so nothing survives it; plain apply_sql.mjs would print "nothing to do" and exit 0, which is a
-silent pass, not a result.
-
-This note therefore stays for the life of the file. Seat: customer_support.
