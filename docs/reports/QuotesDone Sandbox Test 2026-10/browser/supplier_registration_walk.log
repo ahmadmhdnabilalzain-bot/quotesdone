@@ -1,0 +1,60 @@
+PASS [en/desktop] the invitation names the company on landing — 2465 ms
+PASS [en/desktop] the form opens on create-account, not "Welcome back" — Register as a supplier
+PASS [en/desktop] the sign-up e-mail code verifies through login_otp — HTTP 200
+PASS [en/desktop] the claimed company opens — never a blank "Register your company" — 4452 ms
+PASS [en/desktop] the listing is claimed by this account with the e-mail proof carried — {"claimed":true,"mine":true,"ev":true}
+FAIL [en/desktop] licence + company profile uploaded; licence expiry read — {"lic":true,"license_expiry":"2028-03-14","prof":false}
+PASS [en/desktop] the Documents tab read the licence name and it matches the company — {"licence_legal_name":"ZZ DEMO Walk dab4b4be en desktop 0","company_name":"ZZ DEMO Walk dab4b4be en desktop 0","matches":true,"mismatch":false}
+PASS [en/desktop] a fixture mobile is refused before any SMS — {"ok":false,"captured":true,"code":"fixture_number","error":"This is a reserved test numbe
+PASS [en/desktop] the WhatsApp question is on the Profile tab while registration needs it
+PASS [en/desktop] the WhatsApp answer is recorded — HTTP 200
+FAIL [en/desktop] terms + Save → approved with a signed certificate, by the deterministic check with no licence hold — {"approval_status":null,"signed_terms_path":null,"signatory_name":null,"approval_decided_by":null,"licence_gate_reason":null}; Save answered in 959 ms, approved 61134 ms after
+FAIL [en/desktop] acceptance stored with IP, agent, version, hash, signatory; mobile + e-mail verified; fields as typed — {"ip":false,"ua":false,"v":null,"sha":false,"signatory_name":null,"contact_name":null,"service_emirates":null,"pv":true,"ev":true,"company_name":"ZZ DEMO Walk dab4b4be en desktop 0"}
+FAIL [en/desktop] the approval notice is written (fixture: suppressed, never sent) — []
+PASS [en/desktop] tab "Services" settles — 1860 ms
+PASS [en/desktop] tab "Inquiries received" settles — 1062 ms
+PASS [en/desktop] tab "Quotations submitted" settles — 1854 ms
+PASS [en/desktop] tab "Messages" settles — 268 ms
+PASS [en/desktop] tab "Documents" settles — 1587 ms
+PASS [en/desktop] tab "Insights" settles — 2441 ms
+PASS [en/desktop] account "Profile" settles — 7 ms
+PASS [en/desktop] account "Billing" settles — 268 ms
+PASS [en/desktop] account "Settings" settles — 271 ms
+PASS [en/mobile] the invitation names the company on landing — 1297 ms
+PASS [en/mobile] the form opens on create-account, not "Welcome back" — Register as a supplier
+PASS [en/mobile] the sign-up e-mail code verifies through login_otp — HTTP 200
+PASS [en/mobile] the claimed company opens — never a blank "Register your company" — 2966 ms
+PASS [en/mobile] the listing is claimed by this account with the e-mail proof carried — {"claimed":true,"mine":true,"ev":true}
+FAIL [en/mobile] licence + company profile uploaded; licence expiry read — {"lic":true,"license_expiry":"2028-03-14","prof":false}
+PASS [en/mobile] the Documents tab read the licence name and it matches the company — {"licence_legal_name":"ZZ DEMO Walk dab4b4be en mobile 1","company_name":"ZZ DEMO Walk dab4b4be en mobile 1","matches":true,"mismatch":false}
+PASS [en/mobile] a fixture mobile is refused before any SMS — {"ok":false,"captured":true,"code":"fixture_number","error":"This is a reserved test numbe
+PASS [en/mobile] the WhatsApp question is on the Profile tab while registration needs it
+PASS [en/mobile] the WhatsApp answer is recorded — HTTP 200
+FAIL [en/mobile] terms + Save → approved with a signed certificate, by the deterministic check with no licence hold — {"approval_status":null,"signed_terms_path":null,"signatory_name":null,"approval_decided_by":null,"licence_gate_reason":null}; Save answered in 62 ms, approved 60870 ms after
+FAIL [en/mobile] acceptance stored with IP, agent, version, hash, signatory; mobile + e-mail verified; fields as typed — {"ip":false,"ua":false,"v":null,"sha":false,"signatory_name":null,"contact_name":null,"service_emirates":null,"pv":true,"ev":true,"company_name":"ZZ DEMO Walk dab4b4be en mobile 1"}
+FAIL [en/mobile] the approval notice is written (fixture: suppressed, never sent) — []
+PASS [en/mobile] tab "Services" settles — 1344 ms
+PASS [en/mobile] tab "Inquiries received" settles — 1095 ms
+PASS [en/mobile] tab "Quotations submitted" settles — 1372 ms
+PASS [en/mobile] tab "Messages" settles — 20 ms
+PASS [en/mobile] tab "Documents" settles — 1620 ms
+PASS [en/mobile] tab "Insights" settles — 5327 ms (>3 s)
+PASS [en/mobile] account "Profile" settles — 10 ms
+PASS [en/mobile] account "Billing" settles — 16 ms
+PASS [en/mobile] account "Settings" settles — 271 ms
+file:///C:/Users/Opera/qd-qa-main/scripts/lib/qd_guard.mjs:103
+    const e = new Error(`management API ${r.status}: ${body.slice(0, 300)}`);
+              ^
+
+Error: management API 400: {"message":"Failed to run sql query: ERROR:  0A000: WITH clause containing a data-modifying statement must be at the top level\nLINE 1: with d as (with im as (delete from public.inbound_messages where lead_id in (select id from public.leads where 'qd_run:dab4b4be' = any(coalesce(tags,'{}'::text[])))
+    at post (file:///C:/Users/Opera/qd-qa-main/scripts/lib/qd_guard.mjs:103:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async delCount (file:///C:/Users/Opera/qd-qa-main/scripts/lib/demo_factory.mjs:1223:16)
+    at async teardown (file:///C:/Users/Opera/qd-qa-main/scripts/lib/demo_factory.mjs:1375:17)
+    at async closeRun (file:///C:/Users/Opera/qd-qa-main/scripts/e2e/fixtures.mjs:115:17)
+    at async file:///C:/Users/Opera/qd-qa-main/scripts/e2e/supplier_registration_walk.mjs:231:13 {
+  status: 400,
+  body: `{"message":"Failed to run sql query: ERROR:  0A000: WITH clause containing a data-modifying statement must be at the top level\\nLINE 1: with d as (with im as (delete from public.inbound_messages where lead_id in (select id from public.leads where 'qd_run:dab4b4be' = any(coalesce(tags,'{}'::text[])))) delete from public.leads where id in (select id from public.leads where 'qd_run:dab4b4be' = any(coalesce(tags,'{}'::text[]))) returning 1) select count(*)::int n from d\\n                        ^\\n"}`
+}
+
+Node.js v24.16.0

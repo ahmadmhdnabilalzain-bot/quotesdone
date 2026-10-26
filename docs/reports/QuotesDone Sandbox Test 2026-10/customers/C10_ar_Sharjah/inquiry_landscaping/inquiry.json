@@ -1,0 +1,89 @@
+{
+ "fact_sheet": {
+  "element": "Landscaping & Pools: soft landscaping وhard landscaping وirrigation system",
+  "lines": "البند 1: soft landscaping عدد 20، مقاس 1200 × 1500 مم لكل وحدة؛ البند 2: hard landscaping عدد 10، مقاس 900 × 2100 مم لكل وحدة؛ البند 3: irrigation system عدد 5، مقاس 3000 × 2400 مم لكل وحدة",
+  "purpose": "البند 1 لغرف النوم، البند 2 للمدخل الرئيسي والشرفات، البند 3 لواجهة غرفة المعيشة",
+  "location": "فيلا في Sharjah، الطابق الأرضي والأول، وصول مباشر بالطريق، لا حاجة لرافعة",
+  "area": "مساحة الحديقة الخارجية حوالي 300 متر مربع",
+  "scope": "توريد وتركيب، مع إزالة القطع القديمة والتخلص منها",
+  "new_or_replace": "استبدال قطع قائمة في فيلا مسكونة",
+  "timeline": "خلال شهر واحد",
+  "warranty": "ضمان سنتان على الأقل",
+  "supply_phase": "تغذية ثلاثية الطور 400 فولت",
+  "surface_prep": "جدران مدهونة سابقًا بحالة جيدة مع إصلاح شقوق بسيطة",
+  "stops": "4 وقفات (أرضي + 3)",
+  "capacity": "8 أشخاص، 630 كغ",
+  "design": "التصميم جاهز",
+  "material": "درجة تجارية قياسية من علامة معروفة",
+  "leak": "لا يوجد تسرب حالياً، العمل وقائي",
+  "finish": "لامينيت / ميلامين",
+  "system_type": "نظام مركزي بالمياه المبردة: وحدات فان كويل مخفية بمجارٍ مع وحدات مناولة هواء",
+  "fixtures": "4 حمامات ومطبخ واحد"
+ },
+ "intake": {
+  "intakeId": "191f1d98-9b85-48ba-adf2-22fb661ee6ee",
+  "status": "ready",
+  "readiness": 85,
+  "missing": [],
+  "turns": 7,
+  "log": [
+   {
+    "turn": 1,
+    "answer": "Landscaping & Pools: soft landscaping وhard landscaping وirrigation system. البند 1: soft landscaping عدد 20، مقاس 1200 × 1500 مم لكل وحدة؛ البند 2: hard landscaping عدد 10، مقاس 900 × 2100 مم لكل وحدة؛ البند 3: irrigation system عدد 5، مقاس 3000 × 2400 مم لكل وحدة. فيلا في Sharjah، الطابق الأرضي والأول، وصول مباشر بالطريق، لا حاجة لرافعة.",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 2,
+    "answer": "area_sqm: مساحة الحديقة الخارجية حوالي 300 متر مربع.",
+    "asked_key": "material.paving",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 3,
+    "answer": "إنترلوك",
+    "asked_key": "material.lawn",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 4,
+    "answer": "عشب طبيعي",
+    "asked_key": "installation",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 5,
+    "answer": "yes",
+    "asked_key": "warranty",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 6,
+    "answer": "yes_24",
+    "asked_key": "required_by",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 7,
+    "answer": "m1",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "ready"
+   }
+  ],
+  "sent": 200
+ },
+ "inquiry": {
+  "id": "6f5e4e37-af15-4b3d-bffc-66691d48f1c0",
+  "status": "sent",
+  "trades": null,
+  "lang": "ar",
+  "emirate": "Sharjah"
+ }
+}
