@@ -74,7 +74,7 @@ import { isDemoEmail } from '../_shared/demo_identity.ts';
 import { revealChargeFor, absorbedStripeCost } from '../_shared/reveal_fee.ts';
 import { readStatement } from '../_shared/bank_statement_parse.ts';
 import { statementRowText, takeInStatement } from '../_shared/bank_statement_intake.ts';
-import { disputeEvidenceForm } from '../_shared/dispute_evidence.ts';
+import { draftDisputes } from '../_shared/dispute_draft.ts';
 import { type InboundItem, type MailboxMessage, mailboxMessages, registerRowsFor } from '../_shared/expense_mailbox.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -1432,33 +1432,7 @@ Deno.serve(observe('accountant', async (req) => {
       // assembled, and the CEO gets a review item; (2) it is submitted only when
       // fn_accountant_disputes_to_submit names a trigger: the CEO's approval, or his silence at T-24h.
       const answered: Record<string, unknown>[] = [];
-      const { data: toDraft } = await admin.rpc('fn_accountant_disputes_to_draft');
-      for (const ev of (toDraft || []) as Record<string, any>[]) {
-        if (ev?.ok !== true) continue;
-        const key = ev.livemode ? keys.live : keys.test;
-        if (!key) { await admin.rpc('fn_accountant_dispute_drafted', { p_id: ev.dispute, p_ok: false, p_response: null, p_error: 'no Stripe key for this mode' }); continue; }
-        let fileId: string | undefined;
-        if (ev.receipt?.path) {
-          const { data: blob } = await admin.storage.from(String(ev.receipt.bucket)).download(String(ev.receipt.path));
-          if (blob) {
-            const fd = new FormData();
-            fd.set('purpose', 'dispute_evidence');
-            fd.set('file', blob, String(ev.receipt.name || 'invoice.pdf'));
-            const fr = await fetch('https://files.stripe.com/v1/files', { method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: fd });
-            const fj = await fr.json().catch(() => ({}));
-            if (fr.ok && fj?.id) fileId = String(fj.id);
-          }
-        }
-        const r = await fetch('https://api.stripe.com/v1/disputes/' + encodeURIComponent(String(ev.dispute)), {
-          method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: disputeEvidenceForm(ev.fields || {}, { receipt: fileId }, false).toString(),   // a DRAFT: submit=false
-        });
-        const j = await r.json().catch(() => ({}));
-        await admin.rpc('fn_accountant_dispute_drafted', { p_id: ev.dispute, p_ok: r.ok,
-          p_response: r.ok ? { id: j.id, status: j.status, receipt_file: fileId ?? null, draft: true } : null,
-          p_error: r.ok ? null : 'HTTP ' + r.status + ': ' + String(j?.error?.message || '').slice(0, 300) });
-        answered.push({ dispute: ev.dispute, drafted: r.ok, receipt_file: fileId ?? null });
-      }
+      answered.push(...await draftDisputes(admin, keys));   // _shared/dispute_draft.ts; stripe_webhook runs it on charge.dispute.created too
       const { data: toSubmit } = await admin.rpc('fn_accountant_disputes_to_submit');
       for (const s of (toSubmit || []) as Record<string, any>[]) {
         const key = s.livemode ? keys.live : keys.test;

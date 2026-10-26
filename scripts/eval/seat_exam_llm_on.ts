@@ -46,7 +46,7 @@ for (const it of items) {
     } };
     try {
       return await think(deps as never,
-        { seat: it.seat as never, surface: 'think.answer', question: it.wording, subject: { fixture: true } as never });
+        { seat: it.seat as never, surface: 'think.answer', question: it.wording, context: { audience: 'internal' } as never, subject: { fixture: true } as never });
     } catch (e) { return { status: 'error', answer: '', reason: (e as Error).message } as never; }
   });
   out.push({ id: it.id, seat: it.seat, wording: it.wording, status: r.status, answer: r.answer ?? '', model: r.model ?? null,

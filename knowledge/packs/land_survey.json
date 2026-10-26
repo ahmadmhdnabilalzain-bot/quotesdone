@@ -52,6 +52,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "land_survey:product-distinctions",
+      "topic": "Land survey: survey types, instruments and deliverables",
+      "topic_ar": "المسح: أنواع المسوحات والأجهزة والمخرجات",
+      "kind": "product_distinctions",
+      "body_en": "Survey types: topographic surveys (levels, features and contours for design), cadastral or boundary surveys (plot corners and boundaries against the official records, which only a licensed surveyor may certify), setting-out for construction (gridlines, levels, piles), as-built surveys, utility surveys (detection of buried services), building and measured surveys (floor plans and elevations), monitoring of settlement and deformation, and hydrographic surveys of seabed and channels (single-beam and multibeam echo sounders, side-scan sonar). Instruments: total stations (angles and distances), GNSS receivers with RTK or network corrections for centimetre positioning, digital levels for precise heights, 3D laser scanners and mobile or drone lidar for dense point clouds, and drone photogrammetry for orthophotos and volumes. Deliverables: CAD drawings in the local coordinate system and height datum, point clouds and models, orthophotos, volume calculations, and survey reports with control points and accuracy statements. Offers differ on the coordinate system and accuracy promised, the instruments and their calibration, licensing for cadastral work, drone permits, and turnaround.",
+      "body_ar": "أنواع المسوحات: المسوحات الطبوغرافية (المناسيب والمعالم وخطوط الكنتور للتصميم)، والمسوحات المساحية أو الحدودية (أركان القطع وحدودها مقابل السجلات الرسمية، ولا يعتمدها إلا مساح مرخص)، وتوقيع الأعمال للإنشاء (المحاور، المناسيب، الخوازيق)، ومسوحات ما بعد التنفيذ، ومسوحات المرافق (كشف الخدمات المدفونة)، ومسوحات المباني والقياس (المساقط والواجهات)، ومراقبة الهبوط والتشوه، والمسوحات الهيدروغرافية لقاع البحر والقنوات (مسابير الصدى أحادية ومتعددة الحزم، والسونار الجانبي). والأجهزة: محطات الرصد الشاملة (الزوايا والمسافات)، وأجهزة GNSS مع تصحيحات RTK أو الشبكة لدقة بالسنتيمتر، والموازين الرقمية للمناسيب الدقيقة، والماسحات الليزرية ثلاثية الأبعاد والليدار المتنقل أو بالطائرات المسيرة لسحب نقاط كثيفة، والتصوير المساحي بالطائرات المسيرة للصور المعدلة والحجوم. والمخرجات: رسومات CAD بنظام الإحداثيات المحلي ومرجع الارتفاع، وسحب النقاط والنماذج، والصور المعدلة، وحسابات الحجوم، وتقارير المسح مع نقاط الضبط وبيانات الدقة. وتختلف العروض في نظام الإحداثيات والدقة الموعودة، والأجهزة ومعايرتها، والترخيص للأعمال المساحية، وتصاريح الطائرات المسيرة، ومدة الإنجاز.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Surveying"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: total stations, GNSS and RTK, 3D laser scanning and lidar; topographic and cadastral surveys -> confirmed."
+    },
+    {
+      "id": "land_survey:lead-times-and-quoting",
+      "topic": "Land, topographic & hydrographic survey - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "مسح الأراضي والمسح الطبوغرافي والهيدروغرافي: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A plot topographic survey usually takes 1-5 days in the field plus 2-5 days processing; large or hydrographic surveys by scope. A surveyor needs the location and extent, purpose, deliverables, accuracy and coordinate system, access, and whether boundary certification is needed. A quote states method and instruments, deliverables and formats, accuracy, crew days, permits, turnaround, price and validity.",
+      "body_ar": "يستغرق المسح الطبوغرافي لقطعة أرض عادة 1-5 أيام ميدانية إضافة إلى 2-5 أيام للمعالجة؛ والمسوحات الكبيرة أو الهيدروغرافية حسب النطاق. ويحتاج المساح الموقع والامتداد، والغرض، والمخرجات، والدقة ونظام الإحداثيات، والوصول، وهل يلزم اعتماد الحدود. ويذكر العرض الطريقة والأجهزة والمخرجات وصيغها والدقة وأيام الطاقم والتصاريح ومدة الإنجاز والسعر والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -77,6 +107,14 @@
       ],
       "why": "No entry of this pack answered it (the standards entry says sources do not establish surveyor licensing; nothing on Dubai Land Department licensed surveyors). land_survey:dld-accredited-surveyors was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from land_survey.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Can a drone survey replace a ground topographic survey for our plot design?",
+      "q_ar": "هل مسح بالطائرة المسيرة يغني عن المسح الطبوغرافي الأرضي لتصميم قطعتنا؟",
+      "expected_entry_ids": [
+        "land_survey:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -95,6 +133,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "land_survey:dld-accredited-surveyors"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "land_survey:product-distinctions"
+      ],
+      "stored_not_served": [
+        "land_survey:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Surveying"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

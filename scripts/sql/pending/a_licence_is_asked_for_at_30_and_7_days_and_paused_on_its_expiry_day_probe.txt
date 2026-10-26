@@ -1,0 +1,5 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run after
+a_licence_is_asked_for_at_30_and_7_days_and_paused_on_its_expiry_day.sql is applied (or with it in the same rolled-back query). Measured 13 Oct 2026 on production through
+scripts/qsql.mjs: with the file -> CHK<<PROBE OK asks ...:t_minus_30, ...:t_minus_7, ...:t_minus_30 (once each on a
+re-run); expiry day paused + told once, restored on a renewed date>>; alone, against the live routines -> PROBE FAILED
+(a 14-day ask, an expiry-day ask, no pause on the expiry day). This note stays for the life of the file. Seat: sales_engineer.

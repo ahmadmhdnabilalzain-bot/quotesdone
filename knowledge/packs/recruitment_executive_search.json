@@ -51,6 +51,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "recruitment_executive_search:product-distinctions",
+      "topic": "Recruitment services: contingency, retained search and RPO",
+      "topic_ar": "خدمات التوظيف: البحث المشروط والمحتفظ والإسناد الخارجي",
+      "kind": "product_distinctions",
+      "body_en": "Recruitment models: contingency recruitment (the agency is paid only when its candidate is hired, typically a percentage of first-year base salary, often around 15-25% for mid-level roles, and agencies compete on speed), retained executive search (for senior and board roles; a fee, often around a third of first-year total remuneration, paid in stages starting with a retainer, with a dedicated research and assessment process and usually exclusivity), exclusive or engaged search (a hybrid with a smaller upfront fee), recruitment process outsourcing (RPO: the provider runs all or part of the hiring process for a monthly fee or per hire), and temporary or contract staffing (the agency employs the worker and bills an hourly or monthly rate). Agencies differ by specialisation (sector and function), candidate network and research capability, assessment methods (competency interviews, psychometrics, references), and market knowledge. Contract terms to check: fee basis and what remuneration it is calculated on, the guarantee or replacement period if a hire leaves early (often 3-6 months), exclusivity, off-limits commitments, candidate ownership period, and compliance with data protection and lawful advertising.",
+      "body_ar": "نماذج التوظيف: التوظيف المشروط (تُدفع الوكالة فقط عند تعيين مرشحها، عادة نسبة من الراتب الأساسي للسنة الأولى، غالباً نحو 15-25% للمستويات المتوسطة، وتتنافس الوكالات على السرعة)، والبحث التنفيذي المحتفظ (للمناصب العليا ومجالس الإدارة؛ أتعاب غالباً نحو ثلث إجمالي مكافأة السنة الأولى، تُدفع على مراحل تبدأ بدفعة مقدمة، مع عملية بحث وتقييم مخصصة وغالباً حصرية)، والبحث الحصري أو الملتزم (مزيج بدفعة مقدمة أصغر)، وإسناد عملية التوظيف (يدير المزود كل عملية التوظيف أو جزءاً منها برسوم شهرية أو لكل تعيين)، والتوظيف المؤقت أو التعاقدي (توظف الوكالة العامل وتفوتر بسعر الساعة أو الشهر). وتختلف الوكالات بالتخصص (القطاع والوظيفة)، وشبكة المرشحين وقدرات البحث، وطرق التقييم (مقابلات الكفاءات، الاختبارات النفسية، المراجع)، ومعرفة السوق. وشروط العقد التي يجب فحصها: أساس الأتعاب وعلى أي مكافأة تُحسب، وفترة الضمان أو الاستبدال إذا غادر الموظف مبكراً (غالباً 3-6 أشهر)، والحصرية، والتزامات عدم استقطاب موظفي العميل، ومدة ملكية المرشح، والامتثال لحماية البيانات والإعلان النظامي.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Executive_search"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: retained search with a retainer versus contingent search paid on success at about 20-35% of first-year salary -> confirmed."
+    },
+    {
+      "id": "recruitment_executive_search:lead-times-and-quoting",
+      "topic": "Recruitment & executive search - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "التوظيف والبحث عن التنفيذيين: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Contingency roles: shortlists in 1-3 weeks; executive searches 8-16 weeks to placement; notice periods add time. An agency needs the job description, salary and package band, location, must-have criteria, interview process and timeline, and exclusivity. Terms state the model, fee and basis, payment stages, guarantee period, exclusivity, timeline, and validity.",
+      "body_ar": "الوظائف المشروطة: قوائم مختصرة خلال 1-3 أسابيع؛ والبحث التنفيذي 8-16 أسبوعاً حتى التعيين؛ وفترات الإشعار تضيف وقتاً. وتحتاج الوكالة الوصف الوظيفي، ونطاق الراتب والمزايا، والموقع، والمعايير الإلزامية، وعملية المقابلات والجدول الزمني، والحصرية. وتذكر الشروط النموذج والأتعاب وأساسها ومراحل الدفع وفترة الضمان والحصرية والجدول الزمني والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -76,6 +106,14 @@
       ],
       "why": "No entry of this pack answered it (Spec-checklist lists 'fee basis' only; no typical agency fee (percent of annual salary); missing). recruitment_executive_search:placement-fee-benchmarks was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from recruitment_executive_search.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Should we use retained search or contingency agencies to hire a CFO?",
+      "q_ar": "نستخدم بحث محتفظ ولا وكالات مشروطة لتوظيف مدير مالي؟",
+      "expected_entry_ids": [
+        "recruitment_executive_search:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -95,6 +133,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "recruitment_executive_search:placement-fee-benchmarks"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "recruitment_executive_search:product-distinctions"
+      ],
+      "stored_not_served": [
+        "recruitment_executive_search:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Executive_search"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

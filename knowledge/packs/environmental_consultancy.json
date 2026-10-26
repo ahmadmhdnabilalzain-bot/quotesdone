@@ -42,6 +42,36 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "environmental_consultancy:product-distinctions",
+      "topic": "Environmental consultancy: the kinds of study and what each delivers",
+      "topic_ar": "الاستشارات البيئية: أنواع الدراسات وما يقدمه كل منها",
+      "kind": "product_distinctions",
+      "body_en": "Environmental consultancy work splits into: environmental impact assessment (EIA) for new projects, which identifies the effects of a development, sets mitigation measures and is followed by monitoring or a post-project audit; the lighter initial environmental examination or environmental screening for smaller works; construction and operation environmental management plans (CEMP/OEMP) with their monitoring; baseline surveys (air, noise, soil, groundwater, marine and ecology); air dispersion and noise modelling; contaminated land assessment and remediation design; waste management plans; environmental permits and periodic compliance audits; ISO 14001 environmental management system set-up; sustainability work (green building rating support, carbon footprint and greenhouse-gas inventories to the GHG Protocol or ISO 14064, ESG reporting); and expert witness or due-diligence reports for transactions. What differs between offers: whether the consultant is registered with the authority that will review the study, whether field sampling uses an accredited laboratory, the number of sampling locations and seasons, and whether the fee covers answering the authority's comments.",
+      "body_ar": "تنقسم أعمال الاستشارات البيئية إلى: تقييم الأثر البيئي للمشاريع الجديدة، الذي يحدد آثار المشروع ويضع إجراءات التخفيف ويتبعه رصد أو تدقيق بعد التنفيذ؛ والفحص البيئي المبدئي الأخف للأعمال الأصغر؛ وخطط الإدارة البيئية للإنشاء والتشغيل مع الرصد المصاحب لها؛ والمسوحات المرجعية (الهواء، الضوضاء، التربة، المياه الجوفية، البيئة البحرية والحياة الفطرية)؛ ونمذجة انتشار ملوثات الهواء والضوضاء؛ وتقييم الأراضي الملوثة وتصميم معالجتها؛ وخطط إدارة النفايات؛ والتصاريح البيئية وتدقيقات الامتثال الدورية؛ وإنشاء نظام الإدارة البيئية ISO 14001؛ وأعمال الاستدامة (دعم تقييمات المباني الخضراء، والبصمة الكربونية وقوائم غازات الاحتباس وفق بروتوكول غازات الاحتباس أو ISO 14064، وتقارير الحوكمة البيئية والاجتماعية)؛ وتقارير الخبرة والعناية الواجبة في الصفقات. وما يختلف بين العروض: هل الاستشاري مسجل لدى الجهة التي ستراجع الدراسة، وهل تُحلل العينات الميدانية في مختبر معتمد، وعدد مواقع أخذ العينات والمواسم، وهل الأتعاب تشمل الرد على ملاحظات الجهة المراجعة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Environmental_impact_assessment"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: an EIA must cover mitigation among its key areas and is followed by post-project audit -> confirmed."
+    },
+    {
+      "id": "environmental_consultancy:lead-times-and-quoting",
+      "topic": "Environmental consultancy - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الاستشارات البيئية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A screening or permit application usually takes 2-6 weeks; a full EIA 2-6 months including baseline surveys and authority review; ISO 14001 implementation 3-6 months; a GHG inventory 3-8 weeks. The consultant needs the project description, location and plot, the drawings and schedule, the authority and permit route, any existing studies, and the deliverables required. A complete proposal states scope and deliverables, the field programme (locations, parameters, seasons, laboratory and its accreditation), the consultant's registration with the reviewing authority, the team, the timeline, the fee per stage, the number of comment rounds included, exclusions (authority fees, additional sampling) and validity.",
+      "body_ar": "الفحص المبدئي أو طلب التصريح يستغرق عادة 2-6 أسابيع؛ وتقييم الأثر البيئي الكامل 2-6 أشهر شاملة المسوحات المرجعية ومراجعة الجهة المختصة؛ وتطبيق ISO 14001 من 3 إلى 6 أشهر؛ وقائمة غازات الاحتباس 3-8 أسابيع. ويحتاج الاستشاري وصف المشروع وموقعه والقطعة، والمخططات والجدول الزمني، والجهة ومسار التصريح، وأي دراسات سابقة، والمخرجات المطلوبة. ويذكر العرض الكامل النطاق والمخرجات، وبرنامج العمل الميداني (المواقع، المعاملات، المواسم، المختبر واعتماده)، وتسجيل الاستشاري لدى الجهة المراجعة، والفريق، والجدول الزمني، والأتعاب لكل مرحلة، وعدد جولات الرد على الملاحظات المشمولة، والاستثناءات (رسوم الجهات، العينات الإضافية)، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -67,6 +97,14 @@
       ],
       "why": "The standards entry states the Environment Agency - Abu Dhabi registers consultancy offices and the EIA must be done by an EAD-registered office under the 2022 regulation.",
       "origin": "real buyer question, moved from environmental_consultancy.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Do we need a full environmental impact assessment for a small warehouse, or is a lighter study enough?",
+      "q_ar": "نحتاج دراسة أثر بيئي كاملة لمستودع صغير ولا تكفي دراسة أخف؟",
+      "expected_entry_ids": [
+        "environmental_consultancy:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -82,6 +120,27 @@
       "environmental_consultancy:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "environmental_consultancy:product-distinctions"
+      ],
+      "stored_not_served": [
+        "environmental_consultancy:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Environmental_impact_assessment"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

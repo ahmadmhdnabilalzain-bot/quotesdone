@@ -52,6 +52,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "sewage_tanker:product-distinctions",
+      "topic": "Tanker services: sewage removal, potable water and grease trap cleaning",
+      "topic_ar": "خدمات الصهاريج: سحب الصرف الصحي ومياه الشرب وتنظيف مصائد الشحوم",
+      "kind": "product_distinctions",
+      "body_en": "Tanker services fall into wastewater removal (vacuum tankers pumping out septic tanks, holding tanks, soakaways and sewage from sites not connected to the network, and disposing at an authorised treatment plant), grease trap cleaning and desludging for kitchens (removing fats, oils and grease before they block drains, often on a scheduled contract), industrial liquid waste removal (which needs the right waste licence), and water supply (potable water delivered in food-grade tankers to sites, camps and buildings during shortages, and non-potable or treated water for construction, dust control and irrigation). Tank capacity is quoted in gallons or cubic metres (for example 3,000-5,000 gallon tankers). Pumping frequency depends on tank size, use and occupancy. For potable water, the tanker must be dedicated and clean, the source approved, and water quality certificates available; mixing sewage and potable duties in one vehicle is never acceptable. Each sewage load should have a disposal receipt or manifest from the treatment facility as proof of lawful disposal.",
+      "body_ar": "تنقسم خدمات الصهاريج إلى سحب المياه العادمة (صهاريج شفط تفرغ خزانات التحليل وخزانات التجميع وآبار التصريف والصرف الصحي من المواقع غير المتصلة بالشبكة، وتتخلص منها في محطة معالجة معتمدة)، وتنظيف مصائد الشحوم وإزالة الحمأة للمطابخ (إزالة الدهون والزيوت والشحوم قبل أن تسد المجاري، غالباً بعقد مجدول)، وسحب النفايات السائلة الصناعية (وتحتاج ترخيص النفايات المناسب)، وتوريد المياه (مياه الشرب في صهاريج بدرجة غذائية للمواقع والسكن والمباني عند الانقطاع، والمياه غير الصالحة للشرب أو المعالجة للإنشاء ومكافحة الغبار والري). وتُذكر سعة الخزان بالجالون أو المتر المكعب (مثل صهاريج 3000-5000 جالون). ويعتمد تكرار الشفط على حجم الخزان والاستخدام والإشغال. ولمياه الشرب يجب أن يكون الصهريج مخصصاً ونظيفاً، والمصدر معتمداً، وشهادات جودة المياه متاحة؛ والجمع بين مهام الصرف ومياه الشرب في مركبة واحدة غير مقبول أبداً. ويجب أن يكون لكل حمولة صرف إيصال تخلص أو سجل من منشأة المعالجة كدليل على التخلص النظامي.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Septic_tank"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: septic sludge pumped out by vacuum trucks at an interval set by tank size and use -> confirmed."
+    },
+    {
+      "id": "sewage_tanker:lead-times-and-quoting",
+      "topic": "Sewage & water tanker services - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "خدمات صهاريج الصرف الصحي والمياه: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Call-outs: same day to next day; scheduled contracts start within a week. A provider needs the service type, tank sizes and locations, access, frequency, and for water the volume and quality needed. A quote states tanker capacity, price per trip or per gallon, schedule, disposal site and receipts or water source and certificates, licences, emergency response and validity.",
+      "body_ar": "الطلبات الطارئة: في نفس اليوم حتى اليوم التالي؛ والعقود المجدولة تبدأ خلال أسبوع. ويحتاج المزود نوع الخدمة، وأحجام الخزانات ومواقعها، والوصول، والتكرار، وللمياه الحجم والجودة المطلوبة. ويذكر العرض سعة الصهريج والسعر للرحلة أو الجالون والجدول وموقع التخلص والإيصالات أو مصدر المياه والشهادات والتراخيص والاستجابة الطارئة والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -77,6 +107,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither lists tanker capacities (gallons); missing: tanker size range entry). sewage_tanker:tanker-capacity-range was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from sewage_tanker.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "How often should a restaurant's grease trap be cleaned?",
+      "q_ar": "كل كم مرة المفروض تنظف مصيدة الشحوم في المطعم؟",
+      "expected_entry_ids": [
+        "sewage_tanker:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "sewage_tanker:tanker-capacity-range"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "sewage_tanker:product-distinctions"
+      ],
+      "stored_not_served": [
+        "sewage_tanker:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Septic_tank"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
