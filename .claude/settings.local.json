@@ -1,0 +1,18 @@
+{
+  "env": {
+    "ECC_DISABLED_HOOKS": "pre:edit-write:gateguard-fact-force,pre:bash:gateguard-fact-force"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git rev-list *)",
+      "Bash(git ls-remote *)",
+      "Bash(git add *)",
+      "Bash(git commit -m '@ *)",
+      "Read(//c/Users/Opera/AppData/Local/Temp/claude/C--Users-Opera-quotesdone/5fbd934d-0d8b-4d31-9206-29d664d2fd4b/scratchpad/drawing_baseline/**)",
+      "Bash(rm -f img/*)",
+      "Bash(sed -i 's#const im = await new Promise\\(\\(res\\) => { try { page.objs.get\\(name, res\\); } catch { res\\(null\\); } }\\);#const im = await Promise.race\\([new Promise\\(\\(res\\) => { try { page.objs.get\\(name, res\\); } catch { res\\(null\\); } }\\), new Promise\\(\\(r\\) => setTimeout\\(\\(\\) => r\\(null\\), 4000\\)\\)]\\);#; s#.png\\(\\).toFile#.rotate\\(90\\).png\\(\\).toFile#' imgs.mjs)",
+      "Bash(sed -i 's#for \\(let p = 1; p <= doc.numPages; p++\\) {#for \\(let p = 1; p <= doc.numPages; p++\\) { if \\(!\\(\\(tag===\"M\"\\\\&\\\\&\\(p===2||p===3\\)\\)||p>=2\\\\&\\\\&tag===\"P\"\\)\\) continue;#' imgs.mjs)",
+      "Bash(timeout 300 node imgs.mjs)"
+    ]
+  }
+}
