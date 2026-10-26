@@ -54,6 +54,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "promotional_gifts:product-distinctions",
+      "topic": "Promotional gifts: product categories and branding methods",
+      "topic_ar": "الهدايا الترويجية: فئات المنتجات وطرق الطباعة والعلامة",
+      "kind": "product_distinctions",
+      "body_en": "Promotional and corporate gifts range from giveaways (pens, notebooks, keychains, lanyards, mugs, tote bags, caps), to tech items (power banks, USB drives, wireless chargers, earbuds), drinkware (stainless tumblers and bottles), apparel (T-shirts, polos, jackets), desk and executive gifts (leather folders, diaries, pen sets, clocks), seasonal and festive hampers (contents outside this trade), and premium gift boxes. Branding methods are matched to material: screen printing (flat items, textiles, larger runs), pad printing (small curved surfaces such as pens), digital UV printing (full colour on hard items), heat transfer and sublimation (polyester textiles, mugs), embroidery (caps, polos, jackets; priced by stitch count), laser engraving (metal, wood, leather, glass; permanent, single tone), debossing and hot-foil on leather and notebooks, and doming. Brand colours are matched to Pantone (PMS) references, and an approved pre-production sample or digital proof avoids colour and logo errors. Offers differ on product quality and brand, decoration method and number of colours or positions, set-up charges, MOQ, packaging (individual gift boxes), and delivery to multiple addresses.",
+      "body_ar": "تتراوح الهدايا الترويجية والمؤسسية بين التوزيعات (الأقلام، الدفاتر، الميداليات، أشرطة البطاقات، الأكواب، الحقائب القماشية، القبعات)، والأصناف التقنية (بنوك الطاقة، وحدات USB، الشواحن اللاسلكية، السماعات)، وأدوات الشرب (أكواب وقوارير ستانلس)، والملابس (التيشيرتات، القمصان بياقة، الجاكيتات)، وهدايا المكاتب والتنفيذيين (الملفات الجلدية، المفكرات، أطقم الأقلام، الساعات)، والهدايا الموسمية، وعلب الهدايا الفاخرة. وتُطابق طرق الطباعة مع المادة: الطباعة بالشاشة (الأصناف المسطحة، المنسوجات، الكميات الأكبر)، وطباعة الوسادة (الأسطح المنحنية الصغيرة مثل الأقلام)، والطباعة الرقمية بالأشعة فوق البنفسجية (ألوان كاملة على الأصناف الصلبة)، والنقل الحراري والتسامي (منسوجات البوليستر، الأكواب)، والتطريز (القبعات، القمصان، الجاكيتات؛ ويُسعّر حسب عدد الغرز)، والحفر بالليزر (المعدن، الخشب، الجلد، الزجاج؛ دائم وبلون واحد)، والنقش الغائر والختم بالرقائق على الجلد والدفاتر، والقبة البلاستيكية. وتُطابق ألوان العلامة بمراجع بانتون، وعينة ما قبل الإنتاج أو البروفة الرقمية المعتمدة تتجنب أخطاء اللون والشعار. وتختلف العروض في جودة المنتج وعلامته، وطريقة الطباعة وعدد الألوان أو المواضع، ورسوم الإعداد، والحد الأدنى للطلب، والتغليف (علب هدايا فردية)، والتسليم لعناوين متعددة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Promotional_merchandise"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: promotional products printed with a logo or message in specific Pantone colours -> confirmed (decoration methods not on the page)."
+    },
+    {
+      "id": "promotional_gifts:lead-times-and-quoting",
+      "topic": "Promotional & corporate gifts - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الهدايا الترويجية والمؤسسية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock items branded locally: 3-10 working days; imported custom items 4-8 weeks. A supplier needs the items or budget per piece, quantities, logo files and colours, branding positions, packaging, and delivery date and addresses. A quote states product code and quality, branding method, colours and positions, set-up and sample costs, unit price at quantities, MOQ, packaging, delivery and validity.",
+      "body_ar": "الأصناف المتوفرة مع الطباعة محلياً: 3-10 أيام عمل؛ والأصناف المخصصة المستوردة 4-8 أسابيع. ويحتاج المورد الأصناف أو الميزانية للقطعة، والكميات، وملفات الشعار وألوانه، ومواضع الطباعة، والتغليف، وتاريخ التسليم وعناوينه. ويذكر العرض رمز المنتج وجودته وطريقة الطباعة والألوان والمواضع وتكاليف الإعداد والعينة وسعر الوحدة عند الكميات والحد الأدنى للطلب والتغليف والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (No entry gives MOQ for branded power banks; missing). promotional_gifts:branded-power-bank-moq was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from promotional_gifts.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Should our logo be engraved or printed on steel water bottles?",
+      "q_ar": "شعارنا نحفره ولا نطبعه على قوارير الماء الستانلس؟",
+      "expected_entry_ids": [
+        "promotional_gifts:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "promotional_gifts:branded-power-bank-moq"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "promotional_gifts:product-distinctions"
+      ],
+      "stored_not_served": [
+        "promotional_gifts:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Promotional_merchandise"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

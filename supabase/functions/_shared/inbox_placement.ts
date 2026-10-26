@@ -108,13 +108,16 @@ export function worstFolder(fs: Folder[]): Folder {
 export function authVerdicts(h: unknown): Record<string, string | null> {
   const s = String(h ?? '');
   const one = (k: string) => s.match(new RegExp('(?:^|[;\\s])' + k + '=([a-z]+)', 'i'))?.[1]?.toLowerCase() ?? null;
-  return { spf: one('spf'), dkim: one('dkim'), dmarc: one('dmarc'), compauth: one('compauth') };
+  // compauth's reason code says WHY Microsoft judged the From (1xx pass, 0xx fail, 2xx soft-pass, 6xx/7xx tenant or intra-org).
+  const reason = s.match(/compauth=[a-z]+\s+reason=([0-9a-z]+)/i)?.[1] ?? null;
+  return { spf: one('spf'), dkim: one('dkim'), dmarc: one('dmarc'), compauth: one('compauth'), compauth_reason: reason };
 }
 /** X-Forefront-Antispam-Report 'CIP:…;SCL:5;SFV:SPM;…;CAT:SPM;' -> { scl, sfv, cat }. */
-export function forefront(h: unknown): { scl: number | null; sfv: string | null; cat: string | null } {
+export function forefront(h: unknown): { scl: number | null; sfv: string | null; cat: string | null; ptr: string | null; ipv: string | null } {
   const kv = new Map(String(h ?? '').split(';').map((p) => { const i = p.indexOf(':'); return [p.slice(0, i).trim().toUpperCase(), p.slice(i + 1).trim()] as [string, string]; }));
   const scl = kv.get('SCL');
-  return { scl: scl != null && /^-?\d+$/.test(scl) ? Number(scl) : null, sfv: kv.get('SFV') || null, cat: kv.get('CAT') || null };
+  return { scl: scl != null && /^-?\d+$/.test(scl) ? Number(scl) : null, sfv: kv.get('SFV') || null, cat: kv.get('CAT') || null,
+    ptr: kv.get('PTR') || null, ipv: kv.get('IPV') || null };
 }
 const header = (hs: unknown, name: string) => (Array.isArray(hs) ? hs : [])
   .filter((h: { name?: unknown }) => String(h?.name).toLowerCase() === name.toLowerCase()).map((h: { value?: unknown }) => String(h?.value ?? '')).join(' | ') || null;

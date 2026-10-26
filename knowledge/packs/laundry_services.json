@@ -53,6 +53,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "laundry_services:product-distinctions",
+      "topic": "Commercial laundry services: service models and quality points",
+      "topic_ar": "خدمات الغسيل التجارية: نماذج الخدمة ونقاط الجودة",
+      "kind": "product_distinctions",
+      "body_en": "Commercial laundry serves hotels, restaurants, hospitals, clinics, gyms, salons, offices (uniforms) and households. Service models: wash-only of the client's own linen (priced per kg or per piece), linen hire or rental (the laundry owns the linen and supplies clean sets, priced per piece or per room-night, removing capital cost and stock losses for the client), uniform and workwear rental and laundering, dry cleaning and pressing of garments, and healthcare laundry with infection-control processes. Quality points: wash formulas by soil type, thermal or chemical disinfection for healthcare and food-handling textiles, whiteness and stain removal, ironing and folding standards, turnaround (same day, 24 or 48 hours), separate handling of soiled and clean linen in transport, piece counting and discrepancy reports, damage and loss policies, and par-stock management (enough sets in circulation, usually three to five par). Offers differ on the pricing basis, minimum volumes, collection frequency, rewash and damage allowances, and whether linen replacement is included.",
+      "body_ar": "تخدم المغاسل التجارية الفنادق والمطاعم والمستشفيات والعيادات والصالات الرياضية والصالونات والمكاتب (الزي الرسمي) والمنازل. ونماذج الخدمة: الغسيل فقط لمفروشات العميل الخاصة (بالكيلوغرام أو بالقطعة)، أو تأجير المفروشات (تملك المغسلة المفروشات وتوفر أطقماً نظيفة بسعر للقطعة أو لليلة الغرفة، فتزيل عن العميل التكلفة الرأسمالية وفقد المخزون)، أو تأجير وغسيل الزي وملابس العمل، أو التنظيف الجاف وكي الملابس، أو غسيل الرعاية الصحية بعمليات مكافحة العدوى. ونقاط الجودة: تركيبات الغسيل حسب نوع الاتساخ، والتطهير الحراري أو الكيميائي لمنسوجات الرعاية الصحية وتداول الأغذية، والبياض وإزالة البقع، ومعايير الكي والطي، ومدة الإنجاز (في نفس اليوم، 24 أو 48 ساعة)، والفصل بين المتسخ والنظيف أثناء النقل، وعد القطع وتقارير الفروقات، وسياسات التلف والفقد، وإدارة مخزون التداول (أطقم كافية في الدورة، عادة ثلاثة إلى خمسة أضعاف). وتختلف العروض في أساس التسعير، والحد الأدنى للأحجام، وتكرار الاستلام، وسماحات إعادة الغسيل والتلف، وهل استبدال المفروشات مشمول.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Laundry"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: commercial laundries outside the home, mangles and ironing -> confirmed (washer-extractor and ironer detail not on the page)."
+    },
+    {
+      "id": "laundry_services:lead-times-and-quoting",
+      "topic": "Commercial laundry & linen hire - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "خدمات الغسيل التجاري وتأجير المفروشات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Contracts usually start within 1-2 weeks; linen-hire programmes 2-6 weeks to build stock. A laundry needs item types and volumes per day or week, own or hired linen, turnaround, collection points and times, and hygiene requirements. A quote states the pricing basis per kg, piece or room-night, turnaround, collection schedule, quality standards, damage and loss terms, minimums and validity.",
+      "body_ar": "تبدأ العقود عادة خلال 1-2 أسبوع؛ وبرامج تأجير المفروشات 2-6 أسابيع لبناء المخزون. وتحتاج المغسلة أنواع الأصناف وأحجامها يومياً أو أسبوعياً، والمفروشات مملوكة أو مؤجرة، ومدة الإنجاز، ونقاط الاستلام وأوقاته، ومتطلبات النظافة الصحية. ويذكر العرض أساس التسعير للكيلوغرام أو القطعة أو ليلة الغرفة، ومدة الإنجاز، وجدول الاستلام، ومعايير الجودة، وشروط التلف والفقد، والحد الأدنى، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -78,6 +108,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither explains per-kg vs per-piece linen pricing; missing: laundry pricing basis entry). laundry_services:linen-billing-models was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from laundry_services.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Should our boutique hotel rent linen from the laundry or buy our own?",
+      "q_ar": "فندقنا الصغير يستأجر المفروشات من المغسلة ولا نشتري مفروشاتنا؟",
+      "expected_entry_ids": [
+        "laundry_services:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "laundry_services:linen-billing-models"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "laundry_services:product-distinctions"
+      ],
+      "stored_not_served": [
+        "laundry_services:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Laundry"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

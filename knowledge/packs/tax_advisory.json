@@ -38,6 +38,36 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "tax_advisory:product-distinctions",
+      "topic": "Tax advisory: the services and what separates a sound engagement",
+      "topic_ar": "الاستشارات الضريبية: الخدمات وما يميز التعاقد السليم",
+      "kind": "product_distinctions",
+      "body_en": "Tax advisory work divides into indirect tax (VAT registration and deregistration, return preparation and filing, VAT impact assessments of contracts and pricing, input-tax recovery, place-of-supply and zero-rating analysis, refunds, voluntary disclosures, and audit support) and direct tax (corporate tax registration, taxable-income computation from the financial statements, exemptions and reliefs, group and free-zone positions, filings, and tax provisions), plus transfer pricing, where related-party transactions must follow the arm's-length principle and be documented in a master file, local file and, for large groups, a country-by-country report. Other services: tax health checks and due diligence, structuring, excise tax, economic substance and reporting obligations, representation in disputes and reconsideration requests, and acting as the registered tax agent. A sound engagement names who is the authorised tax agent and their registration, separates compliance (recurring filings) from advisory (one-off opinions), states the period and entities covered, and makes clear who is responsible for the data and for meeting deadlines.",
+      "body_ar": "تنقسم أعمال الاستشارات الضريبية إلى الضرائب غير المباشرة (التسجيل في ضريبة القيمة المضافة وإلغاؤه، وإعداد الإقرارات وتقديمها، وتقييم أثر الضريبة على العقود والتسعير، واسترداد ضريبة المدخلات، وتحليل مكان التوريد ونسبة الصفر، والاستردادات، والإفصاحات الطوعية، ودعم التدقيق) والضرائب المباشرة (التسجيل في ضريبة الشركات، واحتساب الدخل الخاضع للضريبة من القوائم المالية، والإعفاءات والتسهيلات، ومراكز المجموعات والمناطق الحرة، والإقرارات، والمخصصات الضريبية)، إضافة إلى تسعير المعاملات، حيث يجب أن تتبع معاملات الأطراف ذات العلاقة مبدأ السعر المحايد وأن توثق في ملف رئيسي وملف محلي، وللمجموعات الكبيرة تقرير لكل دولة على حدة. ومن الخدمات الأخرى: الفحوص الضريبية والعناية الواجبة، والهيكلة، والضريبة الانتقائية، والمادة الاقتصادية والتزامات الإبلاغ، والتمثيل في النزاعات وطلبات إعادة النظر، والعمل وكيلاً ضريبياً مسجلاً. والتعاقد السليم يسمي الوكيل الضريبي المعتمد وتسجيله، ويفصل الامتثال (الإقرارات المتكررة) عن الاستشارة (الآراء لمرة واحدة)، ويحدد الفترة والكيانات المشمولة، ويوضح من المسؤول عن البيانات وعن الالتزام بالمواعيد.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Transfer_pricing"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: the arm's-length principle and the master file, local file and country-by-country report -> confirmed."
+    },
+    {
+      "id": "tax_advisory:lead-times-and-quoting",
+      "topic": "VAT & corporate tax advisory - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "استشارات ضريبة القيمة المضافة وضريبة الشركات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Registrations usually take 1-4 weeks depending on documents; returns are prepared within days of the books closing; transfer-pricing documentation 4-10 weeks. An adviser needs the entities, activities and turnover, the books and prior filings, related-party transactions, deadlines, and the services wanted. A quote states the scope per entity and period, compliance versus advisory, the tax agent and registration, the fee basis (fixed per filing, retainer or hourly), what is excluded, deadlines and responsibilities, and validity.",
+      "body_ar": "يستغرق التسجيل عادة 1-4 أسابيع حسب المستندات؛ وتُعد الإقرارات خلال أيام من إقفال الدفاتر؛ ووثائق تسعير المعاملات 4-10 أسابيع. ويحتاج المستشار الكيانات والأنشطة والإيرادات، والدفاتر والإقرارات السابقة، ومعاملات الأطراف ذات العلاقة، والمواعيد النهائية، والخدمات المطلوبة. ويذكر العرض النطاق لكل كيان وفترة، والامتثال مقابل الاستشارة، والوكيل الضريبي وتسجيله، وأساس الأتعاب (ثابت لكل إقرار أو اشتراك أو بالساعة)، والمستثنى، والمواعيد والمسؤوليات، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -63,6 +93,14 @@
       ],
       "why": "States the FTA keeps a tax agent register and anyone representing a taxpayer before the FTA must be registered.",
       "origin": "real buyer question, moved from tax_advisory.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Our group sells services between two related companies. What documentation do we need for the prices between them?",
+      "q_ar": "مجموعتنا تبيع خدمات بين شركتين مرتبطتين، وش الوثائق اللي نحتاجها للأسعار بينهم؟",
+      "expected_entry_ids": [
+        "tax_advisory:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -79,6 +117,27 @@
       "tax_advisory:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "tax_advisory:product-distinctions"
+      ],
+      "stored_not_served": [
+        "tax_advisory:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Transfer_pricing"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

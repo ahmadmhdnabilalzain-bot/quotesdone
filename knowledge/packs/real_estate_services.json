@@ -39,6 +39,36 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "real_estate_services:product-distinctions",
+      "topic": "Real estate services: brokerage versus management, and what each mandate covers",
+      "topic_ar": "الخدمات العقارية: الوساطة مقابل الإدارة وما يشمله كل تفويض",
+      "kind": "product_distinctions",
+      "body_en": "Brokerage covers sale and leasing of residential, commercial, retail and industrial property: market appraisal, marketing and listing, viewings, negotiation, and transaction coordination; the mandate may be exclusive or open, and commission is set as a percentage of price or annual rent and stated in the agreement. Property management covers the landlord's ongoing duties: tenant screening and leasing, rent collection and deposit handling, enforcing payment deadlines and sending notices, routine inspections, maintenance coordination and oversight of contractors, owners' accounts and reporting, and lease renewals. Larger mandates add facilities management, service-charge budgeting and owners'-association management, and asset management with valuation and investment advice. Related services are valuation by a qualified valuer (often required by banks), snagging and handover inspections, and holiday-home operation. Offers differ on the fee basis (percentage of rent collected, fixed per unit, or commission), what is included (marketing spend, inspections, maintenance mark-up), reporting frequency, client-money handling, and the termination terms.",
+      "body_ar": "تشمل الوساطة بيع وتأجير العقارات السكنية والتجارية ومحلات التجزئة والصناعية: تقييم السوق، والتسويق والإدراج، والمعاينات، والتفاوض، وتنسيق الصفقة؛ ويكون التفويض حصرياً أو مفتوحاً، وتحدد العمولة نسبة من السعر أو الإيجار السنوي وتُذكر في الاتفاقية. أما إدارة العقارات فتشمل واجبات المالك المستمرة: فحص المستأجرين والتأجير، وتحصيل الإيجار والتعامل مع التأمينات، وفرض مواعيد الدفع وإرسال الإشعارات، والتفتيش الدوري، وتنسيق الصيانة والإشراف على المقاولين، وحسابات الملاك وتقاريرهم، وتجديد العقود. وتضيف التفويضات الأكبر إدارة المرافق، وموازنة رسوم الخدمات وإدارة جمعيات الملاك، وإدارة الأصول مع التقييم والمشورة الاستثمارية. ومن الخدمات المرتبطة التقييم من مقيّم مؤهل (تشترطه البنوك غالباً)، وفحص العيوب والاستلام، وتشغيل بيوت العطلات. وتختلف العروض في أساس الأتعاب (نسبة من الإيجار المحصل، أو مبلغ ثابت للوحدة، أو عمولة)، والمشمولات (مصاريف التسويق، التفتيش، هامش الصيانة)، وتكرار التقارير، والتعامل مع أموال العملاء، وشروط الإنهاء.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Property_management"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: property managers collect rent, hold deposits, inspect, coordinate repairs and contractors, and screen tenants -> confirmed."
+    },
+    {
+      "id": "real_estate_services:lead-times-and-quoting",
+      "topic": "Real estate brokerage & property management - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الوساطة العقارية وإدارة العقارات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A leasing mandate usually starts within days; tenancy is typically secured in 2-8 weeks depending on the market; a management handover takes 2-4 weeks for documents, keys and accounts. A broker or manager needs the property details, title and documents, the asking price or rent, the services wanted, the current tenancy status and maintenance contracts. A proposal states the services, the fee basis and commission, inclusions and exclusions, reporting, client-money arrangements, the term and termination, and validity.",
+      "body_ar": "يبدأ تفويض التأجير عادة خلال أيام؛ ويُؤمَّن المستأجر عادة خلال 2-8 أسابيع حسب السوق؛ واستلام الإدارة يستغرق 2-4 أسابيع للمستندات والمفاتيح والحسابات. ويحتاج الوسيط أو المدير بيانات العقار وسند الملكية والمستندات، والسعر أو الإيجار المطلوب، والخدمات المطلوبة، ووضع الإيجار الحالي وعقود الصيانة. ويذكر العرض الخدمات، وأساس الأتعاب والعمولة، والمشمولات والمستثنيات، والتقارير، وترتيبات أموال العملاء، والمدة والإنهاء، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -64,6 +94,14 @@
       ],
       "why": "States DLD licenses brokers through RERA with a public broker list; partial only, as it does not cover Form A or the Trakheesi advertising permit, which are missing.",
       "origin": "real buyer question, moved from real_estate_services.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What should a property management company actually do for me as a landlord of five flats?",
+      "q_ar": "وش المفروض تسوي شركة إدارة العقارات لي كمالك خمس شقق؟",
+      "expected_entry_ids": [
+        "real_estate_services:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -79,6 +117,27 @@
       "real_estate_services:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "real_estate_services:product-distinctions"
+      ],
+      "stored_not_served": [
+        "real_estate_services:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Property_management"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

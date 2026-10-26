@@ -426,55 +426,68 @@ set local lock_timeout = '5s';
 drop trigger if exists z_ml_vectors_stale on public.accountant_knowledge;
 create trigger z_ml_vectors_stale after update of title, content on public.accountant_knowledge for each row
   when (old.title is distinct from new.title or old.content is distinct from new.content) execute function public.fn_ml_vectors_stale('accountant_knowledge', 'record_id');
+drop trigger if exists z_ml_vectors_stale_del on public.accountant_knowledge;
 create trigger z_ml_vectors_stale_del after delete on public.accountant_knowledge for each row execute function public.fn_ml_vectors_stale('accountant_knowledge', 'record_id');
 drop trigger if exists z_ml_vectors_stale on public.agent_knowledge;
 create trigger z_ml_vectors_stale after update of topic, content on public.agent_knowledge for each row
   when (old.topic is distinct from new.topic or old.content is distinct from new.content) execute function public.fn_ml_vectors_stale('agent_knowledge', 'id');
+drop trigger if exists z_ml_vectors_stale_del on public.agent_knowledge;
 create trigger z_ml_vectors_stale_del after delete on public.agent_knowledge for each row execute function public.fn_ml_vectors_stale('agent_knowledge', 'id');
 drop trigger if exists z_ml_vectors_stale on public.ceo_knowledge;
 create trigger z_ml_vectors_stale after update of title, body on public.ceo_knowledge for each row
   when (old.title is distinct from new.title or old.body is distinct from new.body) execute function public.fn_ml_vectors_stale('ceo_knowledge', 'record_id');
+drop trigger if exists z_ml_vectors_stale_del on public.ceo_knowledge;
 create trigger z_ml_vectors_stale_del after delete on public.ceo_knowledge for each row execute function public.fn_ml_vectors_stale('ceo_knowledge', 'record_id');
 drop trigger if exists z_ml_vectors_stale on public.company_faq;
 create trigger z_ml_vectors_stale after update of question, answer on public.company_faq for each row
   when (old.question is distinct from new.question or old.answer is distinct from new.answer) execute function public.fn_ml_vectors_stale('company_faq', 'id');
+drop trigger if exists z_ml_vectors_stale_del on public.company_faq;
 create trigger z_ml_vectors_stale_del after delete on public.company_faq for each row execute function public.fn_ml_vectors_stale('company_faq', 'id');
 drop trigger if exists z_ml_vectors_stale on public.it_engineer_knowledge;
 create trigger z_ml_vectors_stale after update of title, content on public.it_engineer_knowledge for each row
   when (old.title is distinct from new.title or old.content is distinct from new.content) execute function public.fn_ml_vectors_stale('it_engineer_knowledge', 'record_id');
+drop trigger if exists z_ml_vectors_stale_del on public.it_engineer_knowledge;
 create trigger z_ml_vectors_stale_del after delete on public.it_engineer_knowledge for each row execute function public.fn_ml_vectors_stale('it_engineer_knowledge', 'record_id');
 drop trigger if exists z_ml_vectors_stale on public.kb_chunks;
 create trigger z_ml_vectors_stale after update of title, content on public.kb_chunks for each row
   when (old.title is distinct from new.title or old.content is distinct from new.content) execute function public.fn_ml_vectors_stale('kb_chunks', 'id');
+drop trigger if exists z_ml_vectors_stale_del on public.kb_chunks;
 create trigger z_ml_vectors_stale_del after delete on public.kb_chunks for each row execute function public.fn_ml_vectors_stale('kb_chunks', 'id');
 -- kb_chunks_old: only where the table still exists (it is a leftover of the kb_chunks rebuild)
 do $kbo$ begin if to_regclass('public.kb_chunks_old') is not null then
   drop trigger if exists z_ml_vectors_stale on public.kb_chunks_old;
   create trigger z_ml_vectors_stale after update of title, content on public.kb_chunks_old for each row
     when (old.title is distinct from new.title or old.content is distinct from new.content) execute function public.fn_ml_vectors_stale('kb_chunks', 'id');
+  drop trigger if exists z_ml_vectors_stale_del on public.kb_chunks_old;
   create trigger z_ml_vectors_stale_del after delete on public.kb_chunks_old for each row execute function public.fn_ml_vectors_stale('kb_chunks', 'id');
 end if; end $kbo$;
 drop trigger if exists z_ml_vectors_stale on public.marketing_knowledge;
 create trigger z_ml_vectors_stale after update of title, content on public.marketing_knowledge for each row
   when (old.title is distinct from new.title or old.content is distinct from new.content) execute function public.fn_ml_vectors_stale('marketing_knowledge', 'record_id');
+drop trigger if exists z_ml_vectors_stale_del on public.marketing_knowledge;
 create trigger z_ml_vectors_stale_del after delete on public.marketing_knowledge for each row execute function public.fn_ml_vectors_stale('marketing_knowledge', 'record_id');
 drop trigger if exists z_ml_vectors_stale on public.ops_knowledge;
 create trigger z_ml_vectors_stale after update of title, content on public.ops_knowledge for each row
   when (old.title is distinct from new.title or old.content is distinct from new.content) execute function public.fn_ml_vectors_stale('ops_knowledge', 'record_id');
+drop trigger if exists z_ml_vectors_stale_del on public.ops_knowledge;
 create trigger z_ml_vectors_stale_del after delete on public.ops_knowledge for each row execute function public.fn_ml_vectors_stale('ops_knowledge', 'record_id');
 drop trigger if exists z_ml_vectors_stale on public.reasoning_knowledge_candidate;
 create trigger z_ml_vectors_stale after update of question, finding on public.reasoning_knowledge_candidate for each row
   when (old.question is distinct from new.question or old.finding is distinct from new.finding) execute function public.fn_ml_vectors_stale('reasoning_knowledge_candidate', 'id');
+drop trigger if exists z_ml_vectors_stale_del on public.reasoning_knowledge_candidate;
 create trigger z_ml_vectors_stale_del after delete on public.reasoning_knowledge_candidate for each row execute function public.fn_ml_vectors_stale('reasoning_knowledge_candidate', 'id');
 drop trigger if exists z_ml_vectors_stale on public.sales_knowledge;
 create trigger z_ml_vectors_stale after update of title, content on public.sales_knowledge for each row
   when (old.title is distinct from new.title or old.content is distinct from new.content) execute function public.fn_ml_vectors_stale('sales_knowledge', 'record_id');
+drop trigger if exists z_ml_vectors_stale_del on public.sales_knowledge;
 create trigger z_ml_vectors_stale_del after delete on public.sales_knowledge for each row execute function public.fn_ml_vectors_stale('sales_knowledge', 'record_id');
 drop trigger if exists z_ml_vectors_stale on public.seat_case_memory;
 create trigger z_ml_vectors_stale after update of situation on public.seat_case_memory for each row
   when (old.situation is distinct from new.situation) execute function public.fn_ml_vectors_stale('seat_case_memory', 'id');
+drop trigger if exists z_ml_vectors_stale_del on public.seat_case_memory;
 create trigger z_ml_vectors_stale_del after delete on public.seat_case_memory for each row execute function public.fn_ml_vectors_stale('seat_case_memory', 'id');
 drop trigger if exists z_ml_vectors_stale on public.support_knowledge;
 create trigger z_ml_vectors_stale after update of title, body on public.support_knowledge for each row
   when (old.title is distinct from new.title or old.body is distinct from new.body) execute function public.fn_ml_vectors_stale('support_knowledge', 'record_id');
+drop trigger if exists z_ml_vectors_stale_del on public.support_knowledge;
 create trigger z_ml_vectors_stale_del after delete on public.support_knowledge for each row execute function public.fn_ml_vectors_stale('support_knowledge', 'record_id');

@@ -135,6 +135,12 @@ export async function ocrDrawing(img: PageImage, opts?: { onProgress?: (p: numbe
   const plan = await import('./ocrPlan');
   const bmp = await createImageBitmap(await (await fetch(`data:${img.mime};base64,${img.data}`)).blob());
   const W0 = bmp.width, H0 = bmp.height;
+  // Straighten a skewed photo first (ocrPlan.skewDegrees); everything below reads and counts the level copy.
+  const src = document.createElement('canvas'); src.width = W0; src.height = H0;
+  const sx = src.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
+  sx.fillStyle = '#fff'; sx.fillRect(0, 0, W0, H0); sx.drawImage(bmp, 0, 0);
+  const skew = plan.skewDegrees(sx.getImageData(0, 0, W0, H0).data, 4, W0, H0);
+  if (skew) { sx.fillRect(0, 0, W0, H0); sx.translate(W0 / 2, H0 / 2); sx.rotate(skew * Math.PI / 180); sx.drawImage(bmp, -W0 / 2, -H0 / 2); sx.setTransform(1, 0, 0, 1, 0, 0); }
   const { createWorker } = await import('tesseract.js');
   const worker = await createWorker('eng', 1, { workerPath: ocrUrl('worker.min.js'), corePath: ocrUrl('core'), langPath: ocrUrl('lang'), workerBlobURL: false });
   const passes = opts?.lite ? plan.OCR_PASSES.slice(0, 1) : plan.OCR_PASSES;
@@ -148,7 +154,7 @@ export async function ocrDrawing(img: PageImage, opts?: { onProgress?: (p: numbe
       const W = Math.round(W0 * s), H = Math.round(H0 * s);
       const big = document.createElement('canvas'); big.width = W; big.height = H;
       const ctx = big.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
-      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); ctx.imageSmoothingQuality = 'high'; ctx.drawImage(bmp, 0, 0, W, H);
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H); ctx.imageSmoothingQuality = 'high'; ctx.drawImage(src, 0, 0, W, H);
       const id = ctx.getImageData(0, 0, W, H);
       const g = plan.binarize(id.data, 4, W, H);
       for (let i = 0; i < g.length; i++) { const v = g[i]; id.data[i * 4] = v; id.data[i * 4 + 1] = v; id.data[i * 4 + 2] = v; id.data[i * 4 + 3] = 255; }
@@ -168,7 +174,7 @@ export async function ocrDrawing(img: PageImage, opts?: { onProgress?: (p: numbe
     }
     const c0 = document.createElement('canvas'); c0.width = W0; c0.height = H0;
     const x0 = c0.getContext('2d', { willReadFrequently: true }) as CanvasRenderingContext2D;
-    x0.fillStyle = '#fff'; x0.fillRect(0, 0, W0, H0); x0.drawImage(bmp, 0, 0);
+    x0.fillStyle = '#fff'; x0.fillRect(0, 0, W0, H0); x0.drawImage(src, 0, 0);
     pixels = x0.getImageData(0, 0, W0, H0).data;
   } finally { await worker.terminate(); bmp.close(); }
   const lines = plan.mergeLines(all).map(({ text, bbox }) => ({ text, bbox }));
