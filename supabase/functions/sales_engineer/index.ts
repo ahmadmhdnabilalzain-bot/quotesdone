@@ -41,6 +41,7 @@ import { acceptImages } from '../_shared/chat_images.ts';
 import { quoteQuestion } from '../_shared/reasoned_channels.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 import { supportReply } from '../_shared/support_reply.ts';
+import { clientHistory, convIdOf, loadTranscript } from '../_shared/chat_history.ts';
 import { tradeSlugsOf, matchEmirate } from '../_shared/match_criteria.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -373,6 +374,13 @@ Deno.serve(observe('sales_engineer', async (req) => {
       const message = String(body.message || '').trim();
       if (!message) return J({ error: 'message_required' }, 400);
       const lang = langOf(message, String(body.lang || ''));
+      // THE WHOLE CONVERSATION (_shared/chat_history.ts, 18 Oct 2026). PortalShell always sent its history and this
+      // handler never read it: every portal turn reached the model alone, so on 14 Oct the founder's 2 m x 1.2 m wardrobe
+      // was asked for again one turn later (assistant_logs 3695). Every turn is stored under conv_id, scoped to the
+      // caller the session resolved (never the body), and read back whole; the browser's copy only fills the first turn.
+      const pConv = convIdOf(body.conv);
+      const convKey = pConv ? 'p-' + (caller.kind === 'customer' ? caller.customerId : caller.kind) + '-' + pConv : '';
+      const pStored = convKey ? loadTranscript(admin, convKey) : Promise.resolve(null);
 
       // ── A QUESTION ABOUT THE CUSTOMER'S OWN QUOTE IS ANSWERED FROM THAT QUOTE (21 Sep 2026) ──
       // Measured in the portal audit: "the quote excludes scaffolding above 4 m, but my ceilings
@@ -415,9 +423,12 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // shared word decided it until 23 Sep 2026. Held (the model hold), none is chosen: the gap is recorded and
       // the honest sentence goes out with its task number; nothing is guessed.
       const all = (r.records || []) as Array<Record<string, unknown>>;
+      const stored = await pStored;
+      const transcript = stored && stored.length ? stored : clientHistory(body.history).filter((h, i, a) => !(i === a.length - 1 && h.role === 'user' && h.content === message));
       {
         const sr = await supportReply(defaultDeps(admin, 'sales_engineer'), {
           channel: 'portal', message, lang, seat: 'sales_engineer', audience: 'customer',
+          conversation: transcript.map((t) => ({ role: t.role === 'assistant' ? 'seat' as const : 'customer' as const, text: t.content })),
           passages: all.map((x) => ({ content: String(x.title || '') + '\n' + String(x.content || ''), citation: String(x.corpus || '') + ':' + String(x.record_id || '') })),
           facts: ownQuote ? 'THEIR OWN QUOTE (scoped in SQL to this customer):\n' + ownQuote : undefined,
           // a photo or drawing the customer sent (ruling 1200): only what chat_images accepts reaches the model
@@ -425,7 +436,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
         }, () => Promise.resolve(null));
         if (sr.path === 'reasoned' && sr.reply) {
           try {
-            await admin.from('assistant_logs').insert({ message, reply: sr.reply, seat: 'sales_engineer', answered: true,
+            await admin.from('assistant_logs').insert({ message, reply: sr.reply, seat: 'sales_engineer', answered: true, ...(convKey ? { conv_id: convKey } : {}),
               audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind, path: 'portal:reasoned', gap_task_id: (r.task_id as number | undefined) ?? null });  // the gap fn_sales_assist filed stays linked (review of #1043)
           } catch { /* the customer already has the answer */ }
           await run('assist', 'ok', { answered: true, basis: 'reasoned', routed_seat: sr.seat, precedent: recallTrace(memory) });
@@ -436,7 +447,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // by a model, directly if its chain cannot. Only when no model answered at all does the customer get no text; the
       // question is logged and the gap fn_sales_assist filed stays linked.
       try {
-        await admin.from('assistant_logs').insert({ message, reply: null, seat: 'sales_engineer', answered: false,
+        await admin.from('assistant_logs').insert({ message, reply: null, seat: 'sales_engineer', answered: false, ...(convKey ? { conv_id: convKey } : {}),
           audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind, path: 'portal', gap_task_id: (r.task_id as number | undefined) ?? null });
       } catch { /* logging must not change the outcome */ }
       await run('assist', 'error', { answered: false, no_model: true, task_id: r.task_id ?? null, precedent: recallTrace(memory) });
