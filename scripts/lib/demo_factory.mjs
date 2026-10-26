@@ -1220,7 +1220,13 @@ async function deleteObjects(bucket, paths) {
 }
 
 const delCount = async (label, sql) => {
-  const rows = await mgmtFixture(REF, `with d as (${sql} returning 1) select count(*)::int n from d`, label);
+  // A step that already begins with its own WITH (the leads step deletes inbound_messages first) cannot be nested
+  // inside another WITH: Postgres refuses a data-modifying WITH below the top level, and every teardown since #1496
+  // stopped at the leads step (runs 0de4a572 and 0775f926, 19 Oct 2026, left their fixtures). Its final statement
+  // becomes the last CTE instead.
+  const m = /^\s*with\s([\s\S]*\))\s*((?:delete|update|insert)\b[\s\S]*)$/i.exec(sql);
+  const text = m ? `with ${m[1]}, d as (${m[2]} returning 1) select count(*)::int n from d` : `with d as (${sql} returning 1) select count(*)::int n from d`;
+  const rows = await mgmtFixture(REF, text, label);
   return Number(rows?.[0]?.n ?? 0);
 };
 
