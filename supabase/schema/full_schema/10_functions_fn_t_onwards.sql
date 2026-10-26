@@ -9100,6 +9100,23 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_invite_reply_reaches_sales_engineer()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  -- never costs the mail it rides on: a failure is a warning, the inbound row is kept
+  begin
+    perform public.fn_marketing_files_invite_reply(new.id);
+  exception when others then
+    raise warning 'trg_invite_reply_reaches_sales_engineer: inbound_messages % not handed to the sales engineer: %', new.id, sqlerrm;
+  end;
+  return null;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_it_judge_routine_change()
  RETURNS trigger
  LANGUAGE plpgsql
