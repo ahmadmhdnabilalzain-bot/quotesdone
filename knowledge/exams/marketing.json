@@ -1,0 +1,759 @@
+{
+  "seat": "marketing",
+  "standard": "scratchpad/seats_v3/JOB_DESCRIPTIONS.md section 4",
+  "items": [
+    {
+      "id": "marketing-exam-01",
+      "checklist": "MKT-01",
+      "q_en": "Which tool do we publish the approved social calendar through?",
+      "q_ar": "ما الأداة التي ننشر بها تقويم التواصل المعتمد؟",
+      "expected_entry_ids": [
+        "marketing:seat-operating-cycle"
+      ],
+      "expected_facts": [
+        "Postiz"
+      ]
+    },
+    {
+      "id": "marketing-exam-02",
+      "checklist": "MKT-02",
+      "q_en": "The calendar has a post on a Sunday. What happens to it?",
+      "q_ar": "في التقويم منشور يوم الأحد، ماذا يحدث له؟",
+      "expected_entry_ids": [
+        "marketing:posting-days-rule"
+      ],
+      "expected_facts": [
+        "Saturday or Sunday",
+        "fn_marketing_next_working_slot"
+      ]
+    },
+    {
+      "id": "marketing-exam-03",
+      "checklist": "MKT-02",
+      "q_en": "Is 16 May 2027 a day we can post?",
+      "q_ar": "هل يمكن النشر يوم 16 مايو 2027؟",
+      "expected_entry_ids": [
+        "marketing:posting-days-rule"
+      ],
+      "expected_facts": [
+        "16-18 May 2027 Eid al-Adha"
+      ]
+    },
+    {
+      "id": "marketing-exam-04",
+      "checklist": "MKT-02",
+      "q_en": "Can we publish on National Day, 2 December 2026?",
+      "q_ar": "هل يمكن النشر في اليوم الوطني 2 ديسمبر 2026؟",
+      "expected_entry_ids": [
+        "marketing:posting-days-rule"
+      ],
+      "expected_facts": [
+        "2-3 Dec 2026 National Day"
+      ]
+    },
+    {
+      "id": "marketing-exam-05",
+      "checklist": "MKT-03",
+      "q_en": "Does every reply to an Instagram comment need the founder's OK?",
+      "q_ar": "هل يحتاج كل رد على تعليق Instagram موافقة المؤسس؟",
+      "expected_entry_ids": [
+        "marketing:comments-dms-autonomy"
+      ],
+      "expected_facts": [
+        "does NOT approve each reply"
+      ]
+    },
+    {
+      "id": "marketing-exam-06",
+      "checklist": "MKT-03",
+      "q_en": "How long before an unanswered comment is picked up again?",
+      "q_ar": "متى يُعاد التقاط تعليق لم يُعالج؟",
+      "expected_entry_ids": [
+        "marketing:comments-dms-autonomy"
+      ],
+      "expected_facts": [
+        "10 minutes"
+      ]
+    },
+    {
+      "id": "marketing-exam-07",
+      "checklist": "MKT-04",
+      "q_en": "Someone in a DM says they want to talk to a real person. What do we do?",
+      "q_ar": "شخص في الرسائل يريد التحدث مع إنسان، ماذا نفعل؟",
+      "expected_entry_ids": [
+        "marketing:comments-dms-autonomy"
+      ],
+      "expected_facts": [
+        "emails the founder"
+      ]
+    },
+    {
+      "id": "marketing-exam-08",
+      "checklist": "MKT-05",
+      "q_en": "How many LinkedIn outreach drafts do we prepare each day, and who sends them?",
+      "q_ar": "كم مسودة تواصل على LinkedIn نعدها يومياً ومن يرسلها؟",
+      "expected_entry_ids": [
+        "marketing:linkedin-business-development"
+      ],
+      "expected_facts": [
+        "2 or 3",
+        "founder sends them by hand"
+      ]
+    },
+    {
+      "id": "marketing-exam-09",
+      "checklist": "MKT-05",
+      "q_en": "Why can't the seat just send the LinkedIn messages automatically?",
+      "q_ar": "لماذا لا يرسل المقعد رسائل LinkedIn آلياً؟",
+      "expected_entry_ids": [
+        "marketing:linkedin-business-development"
+      ],
+      "expected_facts": [
+        "section 8.2"
+      ]
+    },
+    {
+      "id": "marketing-exam-10",
+      "checklist": "MKT-06",
+      "q_en": "At what points after publishing do we read a post's results?",
+      "q_ar": "متى نقرأ نتائج المنشور بعد نشره؟",
+      "expected_entry_ids": [
+        "marketing:insights-and-kpi-cadence"
+      ],
+      "expected_facts": [
+        "+28 days"
+      ]
+    },
+    {
+      "id": "marketing-exam-11",
+      "checklist": "MKT-07",
+      "q_en": "A headline looks useful but nobody wrote why. Can it go in the plan?",
+      "q_ar": "عنوان يبدو مفيداً لكن دون سبب مكتوب، هل يدخل الخطة؟",
+      "expected_entry_ids": [
+        "marketing:trend-logging"
+      ],
+      "expected_facts": [
+        "not usable in a plan"
+      ]
+    },
+    {
+      "id": "marketing-exam-12",
+      "checklist": "MKT-07",
+      "q_en": "Can we decide a trend is relevant because it contains our keywords?",
+      "q_ar": "هل نعتبر التوجه مهماً لأنه يحتوي كلماتنا المفتاحية؟",
+      "expected_entry_ids": [
+        "marketing:trend-logging"
+      ],
+      "expected_facts": [
+        "never decided by keyword matching"
+      ]
+    },
+    {
+      "id": "marketing-exam-13",
+      "checklist": "MKT-08",
+      "q_en": "How often should a new blog article go out?",
+      "q_ar": "كم مرة يجب نشر مقال جديد في المدونة؟",
+      "expected_entry_ids": [
+        "marketing:weekly-blog-and-geo-audit"
+      ],
+      "expected_facts": [
+        "one blog article a week"
+      ]
+    },
+    {
+      "id": "marketing-exam-14",
+      "checklist": "MKT-08",
+      "q_en": "What is GEO and how is it different from SEO?",
+      "q_ar": "ما هو GEO وكيف يختلف عن SEO؟",
+      "expected_entry_ids": [
+        "marketing:geo-definition"
+      ],
+      "expected_facts": [
+        "ten links"
+      ]
+    },
+    {
+      "id": "marketing-exam-15",
+      "checklist": "MKT-09",
+      "q_en": "How often are competitors' home and pricing pages checked?",
+      "q_ar": "كم مرة تُفحص الصفحات الرئيسية وصفحات الأسعار للمنافسين؟",
+      "expected_entry_ids": [
+        "marketing:competitor-watch-duty"
+      ],
+      "expected_facts": [
+        "monthly",
+        "CEO task"
+      ]
+    },
+    {
+      "id": "marketing-exam-16",
+      "checklist": "MKT-09",
+      "q_en": "Why don't we use the Meta Ad Library to study competitors?",
+      "q_ar": "لماذا لا نستخدم مكتبة إعلانات Meta لدراسة المنافسين؟",
+      "expected_entry_ids": [
+        "marketing:competitor-watch-duty"
+      ],
+      "expected_facts": [
+        "political and issue ads"
+      ]
+    },
+    {
+      "id": "marketing-exam-17",
+      "checklist": "MKT-09",
+      "q_en": "How many competitors are we tracking?",
+      "q_ar": "كم منافساً نتابع؟",
+      "expected_entry_ids": [
+        "marketing:competitor-watch-duty"
+      ],
+      "expected_facts": [
+        "36 competitors"
+      ]
+    },
+    {
+      "id": "marketing-exam-18",
+      "checklist": "MKT-10",
+      "q_en": "Who actually sends the request for a review to a customer?",
+      "q_ar": "من يرسل فعلياً طلب المراجعة للعميل؟",
+      "expected_entry_ids": [
+        "marketing:reputation-review-ask"
+      ],
+      "expected_facts": [
+        "through customer_support"
+      ]
+    },
+    {
+      "id": "marketing-exam-19",
+      "checklist": "MKT-10",
+      "q_en": "Is it fine to ask only customers who rated us 5 stars for a Google review?",
+      "q_ar": "هل يجوز أن نطلب مراجعة Google فقط من العملاء الذين قيّمونا بخمس نجوم؟",
+      "expected_entry_ids": [
+        "marketing:review-solicitation-rules"
+      ],
+      "expected_facts": [
+        "review gating"
+      ]
+    },
+    {
+      "id": "marketing-exam-20",
+      "checklist": "MKT-10",
+      "q_en": "How long after the reveal is a customer asked for a review?",
+      "q_ar": "بعد كم من الكشف يُطلب من العميل مراجعة؟",
+      "expected_entry_ids": [
+        "marketing:reputation-review-ask"
+      ],
+      "expected_facts": [
+        "3 weeks after the reveal"
+      ]
+    },
+    {
+      "id": "marketing-exam-21",
+      "checklist": "MKT-11",
+      "q_en": "Should marketing send the supplier invitations for a trade that is short?",
+      "q_ar": "هل يرسل التسويق دعوات الموردين لتخصص فيه نقص؟",
+      "expected_entry_ids": [
+        "marketing:recruitment-funnel-scope"
+      ],
+      "expected_facts": [
+        "NOT responsible for the supplier invitation"
+      ]
+    },
+    {
+      "id": "marketing-exam-22",
+      "checklist": "MKT-11",
+      "q_en": "The recruit pool for a flagged trade is empty. Whose problem is it?",
+      "q_ar": "مجمع الاستقطاب لتخصص محدد فارغ، مسؤولية من؟",
+      "expected_entry_ids": [
+        "marketing:recruitment-funnel-scope"
+      ],
+      "expected_facts": [
+        "empty pool is a marketing finding"
+      ]
+    },
+    {
+      "id": "marketing-exam-23",
+      "checklist": "MKT-12",
+      "q_en": "Is looking at the numbers enough for the monthly content review?",
+      "q_ar": "هل تكفي الأرقام لمراجعة المحتوى الشهرية؟",
+      "expected_entry_ids": [
+        "marketing:monthly-see-and-hear-review"
+      ],
+      "expected_facts": [
+        "listen to its music",
+        "Metrics alone are not a verdict"
+      ]
+    },
+    {
+      "id": "marketing-exam-24",
+      "checklist": "MKT-13",
+      "q_en": "When must next month's plan reach the CEO?",
+      "q_ar": "متى يجب أن تصل خطة الشهر القادم للرئيس التنفيذي؟",
+      "expected_entry_ids": [
+        "marketing:month-plan-ceo-debate"
+      ],
+      "expected_facts": [
+        "At least a week before month end"
+      ]
+    },
+    {
+      "id": "marketing-exam-25",
+      "checklist": "MKT-13",
+      "q_en": "Can the CEO review the plan on the same model as marketing?",
+      "q_ar": "هل يمكن أن يراجع الرئيس التنفيذي الخطة على نفس نموذج التسويق؟",
+      "expected_entry_ids": [
+        "marketing:month-plan-ceo-debate"
+      ],
+      "expected_facts": [
+        "DIFFERENT model family",
+        "strongest case against"
+      ]
+    },
+    {
+      "id": "marketing-exam-26",
+      "checklist": "MKT-14",
+      "q_en": "The founder replied \"approve\" to the calendar. Do we still need a go-live?",
+      "q_ar": "رد المؤسس بكلمة approve على التقويم، هل نحتاج إذن تشغيل؟",
+      "expected_entry_ids": [
+        "marketing:calendar-one-shot-approval"
+      ],
+      "expected_facts": [
+        "no separate go switch"
+      ]
+    },
+    {
+      "id": "marketing-exam-27",
+      "checklist": "MKT-14",
+      "q_en": "A reply approving the calendar came from someone else's address. Does it count?",
+      "q_ar": "وصل رد يعتمد التقويم من بريد شخص آخر، هل يُعتد به؟",
+      "expected_entry_ids": [
+        "marketing:calendar-one-shot-approval"
+      ],
+      "expected_facts": [
+        "never answered"
+      ]
+    },
+    {
+      "id": "marketing-exam-28",
+      "checklist": "MKT-14",
+      "q_en": "What columns does the monthly calendar carry?",
+      "q_ar": "ما الأعمدة التي يتضمنها التقويم الشهري؟",
+      "expected_entry_ids": [
+        "marketing:calendar-one-shot-approval"
+      ],
+      "expected_facts": [
+        "video link",
+        "hashtags"
+      ]
+    },
+    {
+      "id": "marketing-exam-29",
+      "checklist": "MKT-15",
+      "q_en": "We spent nothing on ads this month. Do we still report to the accountant?",
+      "q_ar": "لم ننفق شيئاً على الإعلانات هذا الشهر، هل نرفع تقريراً للمحاسب؟",
+      "expected_entry_ids": [
+        "marketing:organic-only-no-spend"
+      ],
+      "expected_facts": [
+        "currently zero"
+      ]
+    },
+    {
+      "id": "marketing-exam-30",
+      "checklist": "MKT-16",
+      "q_en": "Can our LinkedIn bio say \"AI-powered quotes\"?",
+      "q_ar": "هل يمكن أن تقول نبذة LinkedIn \"عروض أسعار مدعومة بالذكاء الاصطناعي\"؟",
+      "expected_entry_ids": [
+        "marketing:profile-copy-rules"
+      ],
+      "expected_facts": [
+        "say \"smart\""
+      ]
+    },
+    {
+      "id": "marketing-exam-31",
+      "checklist": "MKT-16",
+      "q_en": "Should the Instagram bio be in Arabic too, and show our licence number?",
+      "q_ar": "هل تكون نبذة Instagram بالعربية أيضاً وتعرض رقم الرخصة؟",
+      "expected_entry_ids": [
+        "marketing:profile-copy-rules"
+      ],
+      "expected_facts": [
+        "English only",
+        "licence"
+      ]
+    },
+    {
+      "id": "marketing-exam-32",
+      "checklist": "MKT-16",
+      "q_en": "How long can the WhatsApp about text be?",
+      "q_ar": "ما الحد الأقصى لنص about في WhatsApp؟",
+      "expected_entry_ids": [
+        "marketing:profile-copy-rules"
+      ],
+      "expected_facts": [
+        "139 characters"
+      ]
+    },
+    {
+      "id": "marketing-exam-33",
+      "checklist": "MKT-17",
+      "q_en": "What does marketing review every quarter?",
+      "q_ar": "ماذا يراجع التسويق كل ربع سنة؟",
+      "expected_entry_ids": [
+        "marketing:quarterly-review"
+      ],
+      "expected_facts": [
+        "brand and positioning review"
+      ]
+    },
+    {
+      "id": "marketing-exam-34",
+      "checklist": "MKT-18",
+      "q_en": "Which questions do we use to check if answer engines cite us?",
+      "q_ar": "ما الأسئلة التي نستخدمها لمعرفة هل تستشهد بنا محركات الإجابات؟",
+      "expected_entry_ids": [
+        "marketing:weekly-blog-and-geo-audit"
+      ],
+      "expected_facts": [
+        "6 questions"
+      ]
+    },
+    {
+      "id": "marketing-exam-35",
+      "checklist": "MKT-18",
+      "q_en": "The search for a panel question returned nothing. Are we simply not cited?",
+      "q_ar": "بحث سؤال اللوحة لم يُرجع شيئاً، هل يعني أننا غير مذكورين؟",
+      "expected_entry_ids": [
+        "marketing:weekly-blog-and-geo-audit"
+      ],
+      "expected_facts": [
+        "blocked page"
+      ]
+    },
+    {
+      "id": "marketing-exam-36",
+      "checklist": "MKT-19",
+      "q_en": "A platform help page we cite has changed. What happens?",
+      "q_ar": "صفحة مساعدة لمنصة نستشهد بها تغيرت، ماذا يحدث؟",
+      "expected_entry_ids": [
+        "marketing:quarterly-review"
+      ],
+      "expected_facts": [
+        "fn_marketing_platform_spec_source_verified"
+      ]
+    },
+    {
+      "id": "marketing-exam-37",
+      "checklist": "MKT-20",
+      "q_en": "When do customers start joining, and who decides the launch?",
+      "q_ar": "متى يبدأ انضمام العملاء ومن يقرر الإطلاق؟",
+      "expected_entry_ids": [
+        "marketing:launch-timing-suppliers-first"
+      ],
+      "expected_facts": [
+        "January 2027",
+        "CEO's decision"
+      ]
+    },
+    {
+      "id": "marketing-exam-38",
+      "checklist": "MKT-20",
+      "q_en": "Roughly how many suppliers do we need before opening to customers?",
+      "q_ar": "كم مورداً نحتاج تقريباً قبل فتح المنصة للعملاء؟",
+      "expected_entry_ids": [
+        "marketing:launch-timing-suppliers-first"
+      ],
+      "expected_facts": [
+        "1,000 suppliers"
+      ]
+    },
+    {
+      "id": "marketing-exam-39",
+      "checklist": "MKT-21",
+      "q_en": "Do I need anyone's approval to pick hashtags and posting times?",
+      "q_ar": "هل أحتاج موافقة لاختيار الوسوم وأوقات النشر؟",
+      "expected_entry_ids": [
+        "marketing:decision-rights"
+      ],
+      "expected_facts": [
+        "Decides alone"
+      ]
+    },
+    {
+      "id": "marketing-exam-40",
+      "checklist": "MKT-22",
+      "q_en": "What KPIs is the marketing seat judged on?",
+      "q_ar": "ما مؤشرات الأداء التي يُقيَّم بها مقعد التسويق؟",
+      "expected_entry_ids": [
+        "marketing:insights-and-kpi-cadence"
+      ],
+      "expected_facts": [
+        "plan approval at the first pass"
+      ]
+    },
+    {
+      "id": "marketing-exam-41",
+      "checklist": "MKT-22",
+      "q_en": "On which day is the weekly scorecard stored?",
+      "q_ar": "في أي يوم تُحفظ بطاقة الأداء الأسبوعية؟",
+      "expected_entry_ids": [
+        "marketing:insights-and-kpi-cadence"
+      ],
+      "expected_facts": [
+        "Monday"
+      ]
+    },
+    {
+      "id": "marketing-exam-42",
+      "checklist": "MKT-23",
+      "q_en": "Can we boost a post with a small budget?",
+      "q_ar": "هل يمكن ترويج منشور بميزانية صغيرة؟",
+      "expected_entry_ids": [
+        "marketing:organic-only-no-spend"
+      ],
+      "expected_facts": [
+        "no ads and no spend"
+      ]
+    },
+    {
+      "id": "marketing-exam-43",
+      "checklist": "MKT-24",
+      "q_en": "Can marketing send a WhatsApp message to a lead itself?",
+      "q_ar": "هل يرسل التسويق رسالة WhatsApp لعميل محتمل بنفسه؟",
+      "expected_entry_ids": [
+        "marketing:seat-working-rules"
+      ],
+      "expected_facts": [
+        "Only customer_support sends"
+      ]
+    },
+    {
+      "id": "marketing-exam-44",
+      "checklist": "MKT-25",
+      "q_en": "What should our UTM medium be for organic social posts?",
+      "q_ar": "ما قيمة utm_medium للمنشورات العضوية؟",
+      "expected_entry_ids": [
+        "marketing:utm-standard"
+      ],
+      "expected_facts": [
+        "use \"social\" for organic social"
+      ]
+    },
+    {
+      "id": "marketing-exam-45",
+      "checklist": "MKT-26",
+      "q_en": "What is the only required part of an llms.txt file?",
+      "q_ar": "ما الجزء الإلزامي الوحيد في ملف llms.txt؟",
+      "expected_entry_ids": [
+        "marketing:geo-llms-txt"
+      ],
+      "expected_facts": [
+        "H1"
+      ]
+    },
+    {
+      "id": "marketing-exam-46",
+      "checklist": "MKT-27",
+      "q_en": "How many hashtags should a LinkedIn post carry?",
+      "q_ar": "كم وسماً يحمل منشور LinkedIn؟",
+      "expected_entry_ids": [
+        "marketing:hashtag-strategy"
+      ],
+      "expected_facts": [
+        "about three"
+      ]
+    },
+    {
+      "id": "marketing-exam-47",
+      "checklist": "MKT-28",
+      "q_en": "Does a creator we gift a product to need a Media Council permit?",
+      "q_ar": "هل يحتاج صانع محتوى أهديناه منتجاً إلى تصريح من مجلس الإعلام؟",
+      "expected_entry_ids": [
+        "marketing:uae-media-council-advertiser-permit"
+      ],
+      "expected_facts": [
+        "1 February 2026",
+        "gifted products"
+      ]
+    },
+    {
+      "id": "marketing-exam-48",
+      "checklist": "MKT-28",
+      "q_en": "What hours are marketing calls allowed in the UAE?",
+      "q_ar": "ما الساعات المسموح فيها بالمكالمات التسويقية في الإمارات؟",
+      "expected_entry_ids": [
+        "marketing:telemarketing-rules-56-2024"
+      ],
+      "expected_facts": [
+        "9 am and 6 pm"
+      ]
+    },
+    {
+      "id": "marketing-exam-49",
+      "checklist": "MKT-28",
+      "q_en": "Which law governs consent for our marketing messages?",
+      "q_ar": "ما القانون الذي ينظم الموافقة على رسائلنا التسويقية؟",
+      "expected_entry_ids": [
+        "marketing:pdpl-marketing"
+      ],
+      "expected_facts": [
+        "No. 45 of 2021"
+      ]
+    },
+    {
+      "id": "marketing-exam-50",
+      "checklist": "MKT-28",
+      "q_en": "Can an ad say we are better than a named competitor?",
+      "q_ar": "هل يمكن لإعلان أن يقول إننا أفضل من منافس بالاسم؟",
+      "expected_entry_ids": [
+        "marketing:comparative-advertising-rules"
+      ],
+      "expected_facts": [
+        "compare models, not named competitors"
+      ]
+    },
+    {
+      "id": "marketing-exam-51",
+      "checklist": "MKT-29",
+      "q_en": "Should Arabic website copy be in Gulf dialect?",
+      "q_ar": "هل تكون نصوص الموقع العربية باللهجة الخليجية؟",
+      "expected_entry_ids": [
+        "marketing:arabic-dialect-vs-msa"
+      ],
+      "expected_facts": [
+        "Gulf-formal Modern Standard Arabic"
+      ]
+    },
+    {
+      "id": "marketing-exam-52",
+      "checklist": "MKT-31",
+      "q_en": "Complaints on one issue are piling up and a press enquiry came in. Who do we tell and how fast?",
+      "q_ar": "تتراكم الشكاوى حول مشكلة واحدة ووصل استفسار صحفي، من نبلغ وبأي سرعة؟",
+      "expected_entry_ids": [
+        "marketing:crisis-reputation-playbook"
+      ],
+      "expected_facts": [
+        "within 1 hour"
+      ]
+    },
+    {
+      "id": "marketing-exam-53",
+      "checklist": "MKT-31",
+      "q_en": "How fast should we answer a comment during business hours?",
+      "q_ar": "بأي سرعة نرد على تعليق في ساعات العمل؟",
+      "expected_entry_ids": [
+        "marketing:community-management"
+      ],
+      "expected_facts": [
+        "within 1-2 hours"
+      ]
+    },
+    {
+      "id": "marketing-exam-54",
+      "checklist": "MKT-32",
+      "q_en": "One post did twice as well as another. Is that a winner?",
+      "q_ar": "منشور حقق ضعف آخر، هل هو الفائز؟",
+      "expected_entry_ids": [
+        "marketing:small-sample-decision-rule"
+      ],
+      "expected_facts": [
+        "Never declare a winner"
+      ]
+    },
+    {
+      "id": "marketing-exam-55",
+      "checklist": "MKT-34",
+      "q_en": "How do we describe the customer fee in a post?",
+      "q_ar": "كيف نصف رسوم العميل في منشور؟",
+      "expected_entry_ids": [
+        "marketing:company-pricing-message"
+      ],
+      "expected_facts": [
+        "3% Reveal Fee"
+      ]
+    },
+    {
+      "id": "marketing-exam-56",
+      "checklist": "MKT-34",
+      "q_en": "Can a post say we show \"only three quotes\"?",
+      "q_ar": "هل يمكن أن يقول منشور إننا نعرض \"ثلاثة عروض فقط\"؟",
+      "expected_entry_ids": [
+        "marketing:company-hard-rules-in-copy"
+      ],
+      "expected_facts": [
+        "only three shown"
+      ]
+    },
+    {
+      "id": "marketing-exam-57",
+      "checklist": "MKT-35",
+      "q_en": "Can the seat reply \"I'll check and get back to you\"?",
+      "q_ar": "هل يمكن للمقعد أن يرد \"سأتحقق وأعود إليك\"؟",
+      "expected_entry_ids": [
+        "marketing:seat-working-rules"
+      ],
+      "expected_facts": [
+        "instr 903"
+      ]
+    },
+    {
+      "id": "marketing-exam-58",
+      "checklist": "MKT-35",
+      "q_en": "What share of routine marketing work should be code rather than the model?",
+      "q_ar": "ما نسبة العمل الروتيني التي يجب أن تكون برمجية لا عبر النموذج؟",
+      "expected_entry_ids": [
+        "marketing:seat-working-rules"
+      ],
+      "expected_facts": [
+        "90% or more coded"
+      ]
+    },
+    {
+      "id": "marketing-exam-59",
+      "checklist": "MKT-30",
+      "q_en": "What kind of supplier company are we trying to recruit?",
+      "q_ar": "ما نوع شركات الموردين التي نسعى لاستقطابها؟",
+      "expected_entry_ids": [
+        "marketing:icp-suppliers"
+      ],
+      "expected_facts": [
+        "2-200 staff"
+      ]
+    },
+    {
+      "id": "marketing-exam-60",
+      "checklist": "MKT-30",
+      "q_en": "Can we call QuotesDone a revolutionary platform in our copy?",
+      "q_ar": "هل يمكن وصف QuotesDone بأنها منصة ثورية في نصوصنا؟",
+      "expected_entry_ids": [
+        "marketing:brand-voice-guidelines"
+      ],
+      "expected_facts": [
+        "Precise, not hype"
+      ]
+    },
+    {
+      "id": "marketing-exam-61",
+      "checklist": "MKT-33",
+      "q_en": "What kind of story actually gets press coverage for us?",
+      "q_ar": "ما نوع القصة التي تحصل فعلاً على تغطية صحفية؟",
+      "expected_entry_ids": [
+        "marketing:pr-press"
+      ],
+      "expected_facts": [
+        "Product launches alone rarely earn coverage"
+      ]
+    },
+    {
+      "id": "marketing-exam-62",
+      "checklist": "MKT-36",
+      "q_en": "When exactly is the National Day holiday?",
+      "q_ar": "متى بالضبط عطلة اليوم الوطني؟",
+      "expected_entry_ids": [
+        "marketing:national-day-campaign-norms"
+      ],
+      "expected_facts": [
+        "2 and 3 December"
+      ]
+    }
+  ]
+}

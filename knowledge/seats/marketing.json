@@ -1716,6 +1716,289 @@
    "sources": [],
    "confidence": "medium",
    "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:seat-operating-cycle",
+   "topic": "The marketing seat's working cycle: daily, weekly, monthly and quarterly duties",
+   "kind": "company",
+   "body_en": "Daily: publish the approved calendar through Postiz in each platform's format, never on the UAE weekend (Saturday and Sunday) or a UAE public holiday; reply to comments and DMs autonomously; draft 2 or 3 LinkedIn soft-invitation messages for the founder to send by hand; pull insights per post and per platform; watch trends and log each with the reason it matters. Weekly: publish one blog article for SEO and GEO; competitor watch; reputation snapshot; recruitment-funnel analytics for the trades the sales engineer flagged. Monthly: \"see and hear\" last month's content; plan next month and debate it with the CEO at least a week before month end; build the calendar and email it to the founder for one-shot approval; report ad spend (currently zero) to the accountant; keep profiles consistent. Quarterly: brand and positioning review, GEO visibility audit, refreshed platform-spec table, and the January 2027 customer-launch plan for the CEO's decision. Marketing is organic only: no ads, no spend (instr 866, 492). Mission: a senior marketing manager, \"not a bot who just puts a schedule\" (instr 865).",
+   "body_ar": "يومياً: نشر التقويم المعتمد عبر Postiz بصيغة كل منصة، دون النشر في عطلة نهاية الأسبوع الإماراتية (السبت والأحد) أو في العطل الرسمية؛ الرد على التعليقات والرسائل ذاتياً؛ صياغة 2 إلى 3 رسائل دعوة لطيفة على LinkedIn يرسلها المؤسس بنفسه؛ سحب مؤشرات الأداء لكل منشور ومنصة؛ رصد التوجهات وتسجيل سبب أهمية كل منها. أسبوعياً: مقال مدونة واحد لتحسين الظهور في البحث ومحركات الإجابات، ومتابعة المنافسين، ولقطة للسمعة، وتحليل قمع استقطاب الموردين للتخصصات التي حددها مهندس المبيعات. شهرياً: مشاهدة محتوى الشهر الماضي والاستماع إليه، وخطة الشهر القادم ومناقشتها مع الرئيس التنفيذي قبل نهاية الشهر بأسبوع على الأقل، وإعداد التقويم وإرساله للمؤسس للاعتماد بخطوة واحدة، ورفع الإنفاق الإعلاني (صفر حالياً) للمحاسب، وتوحيد الملفات التعريفية. ربع سنوياً: مراجعة العلامة والتموضع، وتدقيق الظهور في محركات الإجابات، وتحديث جدول مواصفات المنصات، وخطة إطلاق العملاء في يناير 2027 لقرار الرئيس التنفيذي. التسويق عضوي فقط: لا إعلانات ولا إنفاق.",
+   "sources": [
+    "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#4-marketing",
+    "internal:founder_instruction/865",
+    "internal:founder_instruction/866",
+    "internal:founder_instruction/492"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:posting-days-rule",
+   "topic": "Posting days: never on the UAE weekend or a UAE public holiday",
+   "kind": "company",
+   "body_en": "No post is published on Saturday or Sunday (the UAE weekend) or on a UAE official public holiday, including Eid and the Hijri-calendar holidays (founder standing rule, 24 Sep 2026; instr 865, 869). This is enforced in code, not by memory: the trigger fn_marketing_post_on_a_working_day moves any draft or scheduled post to fn_marketing_next_working_slot, which advances day by day (Asia/Dubai time) until fn_is_working_day is true; a working day is an ISO weekday below 6 that is not in public.public_holidays. If no working day exists within 30 days it raises an error. Holidays in the table (measured 28 Sep 2026): 2-3 Dec 2026 National Day, 1 Jan 2027 New Year, 10-12 Mar 2027 Eid al-Fitr, 15 May 2027 Arafat Day, 16-18 May 2027 Eid al-Adha, 7 Jun 2027 Hijri New Year, 16 Aug 2027 Prophet's Birthday, 2-3 Dec 2027 National Day. The 2027 Hijri dates are marked unconfirmed until the moon-sighting announcement. The first calendar started 25 Sep 2026, a Friday, which is a working day.",
+   "body_ar": "لا يُنشر أي منشور يوم السبت أو الأحد (عطلة نهاية الأسبوع في الإمارات) أو في عطلة رسمية إماراتية، بما فيها الأعياد والعطل الهجرية (قاعدة دائمة من المؤسس، 24 سبتمبر 2026). التطبيق برمجي: المشغّل fn_marketing_post_on_a_working_day ينقل أي منشور إلى أول يوم عمل عبر fn_marketing_next_working_slot بتوقيت دبي، ويوم العمل هو يوم من الاثنين إلى الجمعة غير مدرج في جدول public_holidays. العطل المسجلة: 2-3 ديسمبر 2026 اليوم الوطني، 1 يناير 2027 رأس السنة، 10-12 مارس 2027 عيد الفطر، 15 مايو 2027 يوم عرفة، 16-18 مايو 2027 عيد الأضحى، 7 يونيو 2027 رأس السنة الهجرية، 16 أغسطس 2027 المولد النبوي. تواريخ 2027 الهجرية غير مؤكدة حتى إعلان رؤية الهلال. بدأ أول تقويم يوم 25 سبتمبر 2026، وهو يوم جمعة أي يوم عمل.",
+   "sources": [
+    "internal:memory/marketing-month-approval-flow.md",
+    "internal:founder_instruction/869",
+    "scripts/sql (pg_proc fn_marketing_next_working_slot, fn_is_working_day)",
+    "internal:db/public.public_holidays"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:calendar-one-shot-approval",
+   "topic": "The monthly calendar: one-shot approval by the founder",
+   "kind": "company",
+   "body_en": "The founder approves the monthly social calendar in ONE step: he replies \"approve\" to the calendar email and it is scheduled, with no separate go switch (founder, 24 Sep 2026: \"It should be one shot\"; instr 871, 872, 973). Any other reply goes back to the marketing seat, which adjusts and re-sends the calendar. The calendar is built from the content the founder produced and lists dates, times, platform, video name, video link, captions and hashtags, in the company template. fn_marketing_calendar_reply accepts a reply only from the founder's address and only if the mail passed SPF/DKIM/DMARC; a reply from anyone else is recorded and never answered, and a reply to an older calendar email approves nothing (a newer calendar replaces it). app_secrets.marketing_publishing_enabled is the emergency stop. From November 2026 the loop is: the seat proposes video ideas with a plan for each, the founder creates the content, the seat builds the calendar. October 2026 was produced by the founder and only needed scheduling and captions.",
+   "body_ar": "يعتمد المؤسس التقويم الشهري بخطوة واحدة: يرد بكلمة \"approve\" على بريد التقويم فيُجدول فوراً دون أي مفتاح تشغيل منفصل. أي رد آخر يعود إلى مقعد التسويق ليعدّل ويعيد الإرسال. يُبنى التقويم من المحتوى الذي أنتجه المؤسس ويتضمن التواريخ والأوقات والمنصة واسم الفيديو ورابطه والتعليقات والوسوم بقالب الشركة. لا يُقبل الرد إلا من بريد المؤسس وبعد اجتياز التحقق SPF/DKIM/DMARC، والرد على بريد تقويم أقدم لا يعتمد شيئاً. مفتاح الإيقاف الطارئ هو marketing_publishing_enabled. ابتداءً من نوفمبر 2026: يقترح المقعد أفكار الفيديو مع خطة لكل منها، وينتج المؤسس المحتوى، ثم يبني المقعد التقويم.",
+   "sources": [
+    "internal:memory/marketing-month-approval-flow.md",
+    "internal:founder_instruction/871",
+    "internal:founder_instruction/872",
+    "internal:founder_instruction/973",
+    "scripts/sql (pg_proc fn_marketing_calendar_reply)"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:month-plan-ceo-debate",
+   "topic": "Next month's plan: sent to the CEO a week before month end and debated",
+   "kind": "company",
+   "body_en": "At least a week before month end the marketing seat sends next month's plan (video ideas with a plan for each, grounded in market research) to the CEO and debates it with reasons (instr 865, 866). The CEO's review runs on a DIFFERENT model family (instr 873, 891): the reviewer judges the evidence blind, states the strongest case against, and agreement rates are monitored. Mechanics: marketing_month_plan moves to status with_ceo; fn_marketing_plan_to_ceo opens a seat_deliberation; fn_marketing_takes_the_ceo_review reads each CEO verdict back into marketing_plan_review_turn; when agreed, fn_marketing_plan_loop_tick closes the deliberation and sends the content brief to the founder through customer_support. The KPI is plan approval at the first pass. Measured 28 Sep 2026: marketing_month_plan has 0 rows, so this loop has not yet run on production.",
+   "body_ar": "قبل نهاية الشهر بأسبوع على الأقل يرسل مقعد التسويق خطة الشهر القادم (أفكار فيديو مع خطة لكل منها مبنية على دراسة السوق) إلى الرئيس التنفيذي ويناقشها بالحجج. تُجرى مراجعة الرئيس التنفيذي على عائلة نماذج مختلفة: المراجع يقيّم الأدلة دون معرفة المصدر، ويعرض أقوى حجة مضادة، وتُراقب نسب الاتفاق. آلياً: تنتقل الخطة إلى حالة with_ceo وتُفتح مداولة seat_deliberation، ويُقرأ كل حكم في marketing_plan_review_turn، وعند الاتفاق تُغلق المداولة ويُرسل ملخص المحتوى إلى المؤسس عبر خدمة العملاء. المؤشر: اعتماد الخطة من المحاولة الأولى. حتى 28 سبتمبر 2026 لا توجد أي خطة مسجلة، أي أن الحلقة لم تعمل بعد على الإنتاج.",
+   "sources": [
+    "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#4-marketing",
+    "internal:founder_instruction/873",
+    "internal:founder_instruction/891",
+    "scripts/sql (pg_proc fn_marketing_plan_loop_tick)"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:monthly-see-and-hear-review",
+   "topic": "The monthly \"see and hear\" review of last month's content",
+   "kind": "company",
+   "body_en": "Every month the seat must \"see and hear\" last month's content: watch every video and listen to its music, and judge the visuals, the audio and the message like a human, alongside the metrics (instr 867). It then says plainly whether the month worked and why (instr 865). Metrics alone are not a verdict: a video with good reach but a muddled message, wrong music for the audience or a hard-rule breach is still a failure to fix. The judgement duty (supabase/functions/marketing/duties.ts, \"judgement\") runs perception, synthesis, quality review and verdict one step per beat, and records its work in marketing_asset_review and marketing_asset_perception. Results per post are read at +1 day, +3 days, +7 days and +28 days (post_results). Measured 28 Sep 2026: marketing_asset_review has 0 rows (the first month is September 2026, so the first review is due in October).",
+   "body_ar": "كل شهر يجب أن \"يرى ويسمع\" المقعد محتوى الشهر الماضي: يشاهد كل فيديو ويستمع إلى موسيقاه، ويحكم على الصورة والصوت والرسالة كما يفعل الإنسان، إلى جانب الأرقام. ثم يقول بوضوح هل نجح الشهر ولماذا. الأرقام وحدها ليست حكماً: فيديو بوصول جيد لكن برسالة مشوشة أو موسيقى غير مناسبة للجمهور أو مخالفة لقاعدة أساسية يبقى إخفاقاً يجب إصلاحه. تُقرأ نتائج كل منشور بعد يوم و3 أيام و7 أيام و28 يوماً. حتى 28 سبتمبر 2026 لا توجد مراجعات مسجلة، وأول مراجعة مستحقة في أكتوبر.",
+   "sources": [
+    "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#4-marketing",
+    "internal:founder_instruction/867",
+    "internal:founder_instruction/865",
+    "supabase/functions/marketing/duties.ts"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:comments-dms-autonomy",
+   "topic": "Replying to comments and DMs autonomously, and when a person is asked for",
+   "kind": "company",
+   "body_en": "The seat replies to comments and DMs on every platform synced to Postiz autonomously; automatic guards protect quality and the founder does NOT approve each reply (instr 866, 868, 721). If someone asks for a person, the seat emails the founder (instr 721). Mechanics (duties.ts social_comments): Instagram and Facebook comments arrive by Meta webhook; YouTube and the LinkedIn company page are read for the last 3 days with the token stored by the founder's one connect link; a comment without an outcome after 10 minutes is retried. Whether a comment needs a person, and what the comment is (question, praise, complaint, abuse), are reasoned by the model, never by word matching (instr 575, 890); if the model is held, nothing is hidden or said and the comment waits. X is removed (founder, 23 Sep 2026: no paid X API). A reply already accepted by the platform is never re-sent.",
+   "body_ar": "يرد المقعد على التعليقات والرسائل في كل منصة مربوطة بـ Postiz بشكل ذاتي، وضوابط آلية تحمي الجودة، ولا يعتمد المؤسس كل رد. إذا طلب أحدهم التحدث مع شخص، يراسل المقعد المؤسس بالبريد. تصل تعليقات Instagram وFacebook عبر Meta webhook، وتُقرأ تعليقات YouTube وصفحة LinkedIn لآخر 3 أيام، ويُعاد معالجة أي تعليق بلا نتيجة بعد 10 دقائق. تحديد نوع التعليق وهل يحتاج شخصاً يتم بالاستدلال لا بمطابقة الكلمات؛ وإذا كان النموذج متوقفاً لا يُخفى ولا يُقال شيء. منصة X أُزيلت. الرد الذي قبلته المنصة لا يُرسل مرة ثانية.",
+   "sources": [
+    "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#4-marketing",
+    "internal:founder_instruction/866",
+    "internal:founder_instruction/721",
+    "supabase/functions/marketing/duties.ts"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:linkedin-business-development",
+   "topic": "LinkedIn business development: 2-3 drafted messages a day, sent by the founder",
+   "kind": "company",
+   "body_en": "The seat drafts 2 or 3 soft-invitation LinkedIn messages a day; the founder sends them by hand (instr 726). They must never read as if written by an agent. Why by hand: LinkedIn's User Agreement section 8.2 rules out automating messages, so the seat never sends. The list is drafted once each Dubai morning (resilience step marketingOutreach, every 30 minutes) and emailed to the founder only while app_secrets.marketing_golive is true; measured 28 Sep 2026 it is false, and marketing_outreach_message and marketing_prospect hold 0 rows. Collecting real prospects' data needs the founder's go-ahead first (PDPL). A soft invitation introduces QuotesDone and invites a conversation; it is not the supplier invitation, which belongs to sales_engineer and customer_support (instr 625).",
+   "body_ar": "يصوغ المقعد 2 إلى 3 رسائل دعوة لطيفة على LinkedIn يومياً، ويرسلها المؤسس بنفسه يدوياً. يجب ألا تبدو أبداً وكأن آلة كتبتها. السبب: البند 8.2 من اتفاقية مستخدم LinkedIn يمنع أتمتة الرسائل، فالمقعد لا يرسل. تُعدّ القائمة كل صباح بتوقيت دبي وتُرسل للمؤسس فقط عندما يكون marketing_golive مفعلاً؛ حتى 28 سبتمبر 2026 هو غير مفعل ولا توجد رسائل أو جهات مسجلة. جمع بيانات أشخاص حقيقيين يحتاج موافقة المؤسس أولاً. الدعوة اللطيفة ليست دعوة الموردين، فتلك تخص مهندس المبيعات وخدمة العملاء.",
+   "sources": [
+    "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#4-marketing",
+    "internal:founder_instruction/726",
+    "internal:memory/checkpoint-22-sep-marketing-seat-live.md",
+    "https://www.linkedin.com/legal/user-agreement"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:organic-only-no-spend",
+   "topic": "Organic only: no ads, no spend, and ad spend reported as zero",
+   "kind": "company",
+   "body_en": "Marketing is organic only for now: no ads and no spend (instr 866, 492). Any spend is an escalation, and none is allowed now. The seat still reports ad spend, currently zero, to the accountant every month (instr 721): the ad_spend duty records marketing_ad_spend_day rows (measured 27 Sep 2026: rows 0, currency AED, handoffs 0) and fn_marketing_closes_ad_spend_loops closes the handoff with the accountant. The paid-media entries in this pack (Meta, LinkedIn, Google Ads, TikTok) are knowledge for when budget is approved, not permission to spend. Competitor study uses organic data only (Instagram business_discovery), because the plan is organic.",
+   "body_ar": "التسويق حالياً عضوي فقط: لا إعلانات ولا إنفاق. أي إنفاق يُصعّد، ولا يُسمح بأي إنفاق الآن. ومع ذلك يرفع المقعد الإنفاق الإعلاني، وهو صفر حالياً، إلى المحاسب كل شهر؛ واجب ad_spend يسجل الصفوف بالدرهم ويغلق حلقة التسليم مع المحاسب. مداخل الإعلانات المدفوعة في هذه الحزمة (Meta وLinkedIn وGoogle Ads وTikTok) معرفة جاهزة لحين اعتماد ميزانية، وليست إذناً بالإنفاق.",
+   "sources": [
+    "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#4-marketing",
+    "internal:founder_instruction/866",
+    "internal:founder_instruction/492",
+    "internal:founder_instruction/721"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:profile-copy-rules",
+   "topic": "Public profiles: one description, English only, \"smart\" not \"AI\", no licence number",
+   "kind": "company",
+   "body_en": "Every public profile and bio (WhatsApp, Facebook, Instagram, LinkedIn, YouTube, TikTok) says the same thing, within each platform's limit (instr 920, 959). Rules: English only, no Arabic in any bio; never the word \"AI\", say \"smart\"; never show the trade licence (eTrader) number. The canonical sentences live in supabase/functions/marketing/profile_text.json: tagline \"Post once. Compare quotes. Reveal only who you choose.\"; \"QuotesDone is the UAE's anonymous quote marketplace.\"; \"Customers pay a 3% reveal fee only when they reveal a supplier.\"; \"The first 1,000 suppliers join free, permanently.\" Every platform variant is built only from these sentences, and profile_text.test.ts proves each fits its limit (for example the WhatsApp about field, 139 characters). The profile_text duty pushes the text once a day to every profile an API may write.",
+   "body_ar": "كل ملف تعريفي علني (WhatsApp وFacebook وInstagram وLinkedIn وYouTube وTikTok) يقول الشيء نفسه ضمن حدود كل منصة. القواعد: الإنجليزية فقط دون أي عربية في النبذة؛ لا تُستخدم كلمة \"AI\" بل \"smart\"؛ لا يُعرض رقم الرخصة التجارية. الجمل المعتمدة في profile_text.json، ومنها: رسوم كشف 3% يدفعها العميل فقط عند كشف المورد، وأول 1,000 مورد ينضمون مجاناً وبشكل دائم. كل نسخة للمنصات تُبنى من هذه الجمل فقط، واختبار آلي يثبت أنها ضمن الحد، مثل حقل about في WhatsApp بحد 139 حرفاً. يُدفع النص يومياً إلى كل ملف يسمح به الـ API.",
+   "sources": [
+    "internal:memory/profile-copy-rules.md",
+    "internal:founder_instruction/920",
+    "internal:founder_instruction/959",
+    "supabase/functions/marketing/profile_text.json"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:weekly-blog-and-geo-audit",
+   "topic": "The weekly blog article and the monthly answer-engine panel",
+   "kind": "company",
+   "body_en": "The seat publishes one blog article a week on the website for SEO and GEO, so QuotesDone appears in ChatGPT-style assistants as well as Google (instr 894, 726). Articles are ingested, approved and released on the weekly cadence (fn_marketing_article_release_due) and marked live when the page is up (fn_marketing_article_mark_live). Measured 28 Sep 2026: marketing_article holds 4 drafts, none live. Answer-engine visibility is measured on a fixed panel of 6 questions in marketing_geo_question, for example \"How can I get quotes from several contractors for a fit-out in Dubai?\" and \"Which UAE platforms send construction RFQs to suppliers?\". The geo_audit duty records each month's answers in marketing_geo_check; an empty search result is treated as a blocked page and a finding, never as \"we are not cited\". Measured 28 Sep 2026: marketing_geo_check has 0 rows.",
+   "body_ar": "ينشر المقعد مقالاً واحداً أسبوعياً في مدونة الموقع لتحسين الظهور في البحث ومحركات الإجابات، ليظهر QuotesDone في مساعدات المحادثة كما في Google. تُعتمد المقالات وتُنشر وفق الوتيرة الأسبوعية وتُعلَّم منشورة عند ظهور الصفحة. حتى 28 سبتمبر 2026 توجد 4 مسودات ولا مقال منشور. يُقاس الظهور في محركات الإجابات عبر لوحة ثابتة من 6 أسئلة، مثل: كيف أحصل على عروض أسعار من عدة مقاولين لأعمال تشطيب في دبي؟ نتيجة البحث الفارغة تُعامل كصفحة محجوبة وتُسجل كملاحظة، لا كدليل على عدم الاستشهاد بنا. لا توجد فحوص مسجلة حتى الآن.",
+   "sources": [
+    "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#4-marketing",
+    "internal:founder_instruction/894",
+    "internal:founder_instruction/726",
+    "supabase/functions/marketing/duties.ts"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:competitor-watch-duty",
+   "topic": "Competitor watch: what is watched and what happens on a change",
+   "kind": "company",
+   "body_en": "Competitor watch covers what UAE procurement platforms and competitors post, their offers and their positioning (seat map). public.competitor holds 36 competitors (measured 28 Sep 2026), among them Bark, dubizzle Business Hub, ContractorSelect.me, Connect.ae, Amazon.ae (Amazon Business UAE), Alibaba.com RFQ and the Abu Dhabi Government Procurement Gate. The seat duty marketing.competitor_scan (routine fn_marketing_competitor_scan) fetches each competitor's home and pricing page monthly; a changed page is reasoned, and a material change becomes a CEO task. The competitor_study duty reads competitors' ORGANIC Instagram posts weekly through the Instagram Graph API business_discovery endpoint (official and free); the Meta Ad Library was rejected because outside the EU/UK it returns only political and issue ads. A failed fetch is recorded and not retried until the next Dubai day.",
+   "body_ar": "تشمل متابعة المنافسين ما تنشره منصات المشتريات والمنافسون في الإمارات، وعروضهم وتموضعهم. يضم جدول المنافسين 36 منافساً، منهم Bark وdubizzle Business Hub وContractorSelect.me وAmazon.ae. يجلب الواجب marketing.competitor_scan الصفحة الرئيسية وصفحة الأسعار لكل منافس شهرياً؛ أي تغيير يُحلل بالاستدلال، والتغيير الجوهري يصبح مهمة للرئيس التنفيذي. ويقرأ واجب competitor_study منشورات Instagram العضوية للمنافسين أسبوعياً عبر business_discovery الرسمية والمجانية؛ ورُفضت مكتبة إعلانات Meta لأنها خارج أوروبا وبريطانيا لا تعرض إلا الإعلانات السياسية.",
+   "sources": [
+    "internal:memory/seat-ownership-map-24-sep.md",
+    "internal:db/public.seat_duty marketing.competitor_scan",
+    "scripts/sql/the_ceo_sets_the_target_runs_experiments_and_watches_competitors.sql",
+    "supabase/functions/marketing/duties.ts"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:reputation-review-ask",
+   "topic": "Reputation: the daily snapshot and asking satisfied customers for a review",
+   "kind": "company",
+   "body_en": "Reputation is a daily snapshot of reviews, and satisfied customers are asked for a public review through customer_support, not by marketing directly (instr 898, 93). The duty marketing.reputation (fn_marketing_reputation, daily) selects customers who gave a rating of 4 or 5 in the last 30 days, were never asked, have an email, are not a demo fixture and are not banned; each is asked ONCE. If app_secrets.public_review_url is not set, the waiting customers become the finding reputation:no_public_review_link. Support emails the ask 3 weeks after the reveal date (founder ruling, 9 Sep). This work is mostly from 2027, because customers launch in January 2027. CONFLICT: selecting only 4-5 ratings is review gating, which Google's fake-engagement policy forbids (see marketing:review-solicitation-rules); until the routine asks every genuine customer, do not point these asks at Google Business Profile.",
+   "body_ar": "السمعة لقطة يومية للمراجعات، ويُطلب من العملاء الراضين مراجعة علنية عبر خدمة العملاء لا عبر التسويق مباشرة. الواجب اليومي marketing.reputation يختار العملاء الذين قيّموا بـ 4 أو 5 خلال آخر 30 يوماً ولم يُسألوا من قبل ولديهم بريد وليسوا حسابات تجريبية أو محظورة، ويُسأل كل منهم مرة واحدة فقط. إذا لم يُضبط رابط المراجعة العلني يُسجل ذلك كملاحظة. ترسل خدمة العملاء الطلب بعد 3 أسابيع من تاريخ الكشف. هذا العمل غالباً من 2027 لأن إطلاق العملاء في يناير 2027. تنبيه: اختيار أصحاب التقييم 4 و5 فقط يُعد انتقاءً للمراجعات تمنعه سياسة Google، فلا تُوجَّه هذه الطلبات إلى ملف Google التجاري حتى يُسأل كل عميل حقيقي.",
+   "sources": [
+    "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#4-marketing",
+    "internal:founder_instruction/898",
+    "internal:db/public.seat_duty marketing.reputation",
+    "scripts/sql/marketing_recruits_where_supply_is_short_and_keeps_the_companys_reputation.sql",
+    "internal:memory/rating-solicitation-timing.md"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:recruitment-funnel-scope",
+   "topic": "Recruitment funnel: marketing does the analytics, not the supplier invitation",
+   "kind": "company",
+   "body_en": "Marketing is NOT responsible for the supplier invitation (instr 625): the invitation, and its order, belong to sales_engineer and customer_support. Marketing's part is funnel analytics and awareness content aimed at the trades where the sales engineer flagged a gap (instr 898). The daily duty marketing.recruitment_funnel (fn_marketing_recruitment_funnel) builds a funnel per gap the sales engineer marked \"recruit\"; an empty pool is a marketing finding, because the lead source is marketing's to fix. Supplier registrations traced to marketing are a seat KPI. Only customer_support sends email and WhatsApp; marketing asks it to deliver (instr 93, 178).",
+   "body_ar": "التسويق غير مسؤول عن دعوة الموردين: الدعوة وترتيبها من اختصاص مهندس المبيعات وخدمة العملاء. دور التسويق هو تحليل القمع ومحتوى التوعية الموجه للتخصصات التي حدد فيها مهندس المبيعات نقصاً. الواجب اليومي marketing.recruitment_funnel يبني قمعاً لكل نقص وُسم بالاستقطاب؛ والمجمع الفارغ ملاحظة على التسويق لأن مصدر العملاء المحتملين مسؤوليته. تسجيلات الموردين المنسوبة للتسويق مؤشر أداء للمقعد. خدمة العملاء وحدها ترسل البريد وWhatsApp.",
+   "sources": [
+    "internal:founder_instruction/625",
+    "internal:founder_instruction/898",
+    "internal:db/public.seat_duty marketing.recruitment_funnel",
+    "scripts/sql/marketing_recruits_where_supply_is_short_and_keeps_the_companys_reputation.sql"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:launch-timing-suppliers-first",
+   "topic": "Timing: suppliers only until December 2026, customers from January 2027",
+   "kind": "company",
+   "body_en": "From October to December 2026 the company registers suppliers only; customers launch in January 2027, and there is no customer revenue before then (seat map). Suppliers come first: no customers until the supplier base can quote every inquiry, roughly the first 1,000 suppliers (instr 844). For marketing this means: content before January speaks mainly to suppliers (joining free, being matched on confirmed trades), customer review asks are mostly a 2027 activity, and each quarter the seat plans the January 2027 customer launch, ready for the CEO's decision (the seat does not decide the launch).",
+   "body_ar": "من أكتوبر إلى ديسمبر 2026 تسجل الشركة الموردين فقط، ويبدأ إطلاق العملاء في يناير 2027، ولا إيرادات من العملاء قبل ذلك. الموردون أولاً: لا عملاء حتى تستطيع قاعدة الموردين تسعير كل طلب، أي نحو أول 1,000 مورد. للتسويق يعني ذلك: المحتوى قبل يناير موجه أساساً للموردين، وطلبات المراجعات من العملاء نشاط لعام 2027، وكل ربع سنة يخطط المقعد لإطلاق العملاء في يناير 2027 جاهزاً لقرار الرئيس التنفيذي.",
+   "sources": [
+    "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#4-marketing",
+    "internal:founder_instruction/844",
+    "internal:memory/seat-ownership-map-24-sep.md"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:decision-rights",
+   "topic": "What the marketing seat decides alone and what it escalates",
+   "kind": "company",
+   "body_en": "Decides alone: captions, hashtags, timing, comment replies, blog topics and the content of next month's plan (instr 866). Escalates: the monthly plan to the CEO (a debate on a different model family), the calendar to the founder (one-shot approval), and any spend (none allowed now). A request for a human in a comment or DM goes to the founder by email (instr 721). Meta and every social access belong to this seat only (instr 641). The seat acts and solves problems like a senior human with 20+ years' experience; it does not just notify the founder, and never answers at random with a yes or a no (instr 13, 888).",
+   "body_ar": "يقرر المقعد وحده: التعليقات المرافقة للمنشورات والوسوم والتوقيت والرد على التعليقات ومواضيع المدونة ومحتوى خطة الشهر القادم. ويصعّد: الخطة الشهرية إلى الرئيس التنفيذي للنقاش على عائلة نماذج مختلفة، والتقويم إلى المؤسس للاعتماد بخطوة واحدة، وأي إنفاق (غير مسموح حالياً). طلب التحدث مع شخص يُرسل للمؤسس بالبريد. صلاحيات Meta وكل حسابات التواصل تخص هذا المقعد وحده. يعمل المقعد كخبير بخبرة تزيد على 20 عاماً، يحل المشكلات ولا يكتفي بإبلاغ المؤسس.",
+   "sources": [
+    "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#4-marketing",
+    "internal:founder_instruction/866",
+    "internal:founder_instruction/641",
+    "internal:founder_instruction/888"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:trend-logging",
+   "topic": "Trend watch: every trend logged with why it matters",
+   "kind": "company",
+   "body_en": "The seat watches trends and the news daily for anything the business can use, and logs each with the reason it matters (seat map). The trend_watch duty reads the RSS feeds in marketing_trend_source; a failing feed is recorded on its row and retried tomorrow, and only every feed failing is a finding. Each headline is then judged by reasoning (decision trend_relevance) with one line on why it matters and what content or positioning it suggests; \"relevant\" with no reason is not usable in a plan and is recorded as not relevant. Relevance is never decided by keyword matching (instr 575, 890). Measured 28 Sep 2026: 66 trends seen in marketing_trend, 0 judged (judged_at set on none), so the judgement step has not yet run.",
+   "body_ar": "يرصد المقعد التوجهات والأخبار يومياً بحثاً عن أي شيء يفيد العمل، ويسجل كل منها مع سبب أهميته. يقرأ واجب trend_watch مصادر RSS؛ فشل مصدر واحد يُسجل ويُعاد غداً، وفشل كل المصادر فقط يُعد ملاحظة. يُحكم على كل عنوان بالاستدلال مع سطر يوضح سبب الأهمية والمحتوى المقترح؛ ووصف \"مهم\" دون سبب لا يُستخدم في الخطة. لا تُحدد الأهمية أبداً بمطابقة الكلمات. حتى 28 سبتمبر 2026: 66 توجهاً مرصوداً، ولم يُحكم على أي منها بعد.",
+   "sources": [
+    "internal:memory/seat-ownership-map-24-sep.md",
+    "internal:founder_instruction/890",
+    "supabase/functions/marketing/duties.ts"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:insights-and-kpi-cadence",
+   "topic": "Insights per post and platform, the scorecard, and the JD KPIs",
+   "kind": "company",
+   "body_en": "Insights are pulled per post and per platform daily (the insights duty: 27 Sep 2026 wrote 17 rows for that day into marketing_insight_day). Each published post's results are read at +1 day, +3 days, +7 days and +28 days (post_results). The scorecard (fn_marketing_scorecard) is stored weekly on Monday (Asia/Dubai) and at month end on the 1st. JD KPIs: reach, engagement and follower growth per platform; website sessions from social and from search; rankings and whether answer engines cite QuotesDone; supplier registrations traced to marketing; replies within the platform's expected time; the calendar delivered on time; and plan approval at the first pass. Never state a number that was not measured.",
+   "body_ar": "تُسحب المؤشرات لكل منشور ولكل منصة يومياً (في 27 سبتمبر 2026 سُجل 17 صفاً). تُقرأ نتائج كل منشور بعد يوم و3 أيام و7 أيام و28 يوماً. تُحفظ بطاقة الأداء أسبوعياً يوم الاثنين بتوقيت دبي وفي نهاية الشهر يوم 1. مؤشرات الأداء: الوصول والتفاعل ونمو المتابعين لكل منصة؛ زيارات الموقع من التواصل والبحث؛ الترتيب وهل تستشهد محركات الإجابات بـ QuotesDone؛ تسجيلات الموردين المنسوبة للتسويق؛ الرد ضمن الوقت المتوقع للمنصة؛ تسليم التقويم في موعده؛ واعتماد الخطة من المحاولة الأولى.",
+   "sources": [
+    "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#4-marketing",
+    "supabase/functions/marketing/duties.ts",
+    "supabase/functions/marketing/post_results.ts"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:quarterly-review",
+   "topic": "The quarterly review: brand, GEO audit and the platform-spec table",
+   "kind": "company",
+   "body_en": "Each quarter the seat runs a brand and positioning review, a GEO visibility audit and a refresh of the platform-spec table (instr 869), and plans the January 2027 customer launch for the CEO's decision. Between quarters the platform_spec_freshness duty re-reads every page cited by marketing_platform_spec once a month, three pages per beat; a changed or unreachable page is an IT finding owned by marketing and stays open until the rows are re-checked and fn_marketing_platform_spec_source_verified(url, who) is called. marketing_platform_spec held 101 rows on 28 Sep 2026 (measured). Platform formats in posts must follow that table, not memory.",
+   "body_ar": "كل ربع سنة يجري المقعد مراجعة للعلامة والتموضع، وتدقيقاً للظهور في محركات الإجابات، وتحديثاً لجدول مواصفات المنصات، ويخطط لإطلاق العملاء في يناير 2027 لقرار الرئيس التنفيذي. وبين الأرباع يعيد واجب platform_spec_freshness قراءة كل صفحة مرجعية شهرياً، ثلاث صفحات في كل دورة؛ والصفحة المتغيرة أو غير المتاحة ملاحظة تبقى مفتوحة حتى تُراجع الصفوف ويُستدعى fn_marketing_platform_spec_source_verified. صيغ المنشورات تتبع الجدول لا الذاكرة.",
+   "sources": [
+    "internal:founder_instruction/869",
+    "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#4-marketing",
+    "supabase/functions/marketing/duties.ts"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "marketing:seat-working-rules",
+   "topic": "Rules every seat follows, as they apply to marketing",
+   "kind": "company",
+   "body_en": "Company knowledge is shared by every seat and changes everywhere at once (instr 11, 965). Arabic and English at a native professional standard; a conversation stays in the language the person registered in (instr 12, 586, 193). Reasoning, never word matching (instr 575, 890). Think in steps before answering, and never answer \"I need to check and get back to you\" (instr 903). Routine work is code and the LLM is for judgement only, aiming for 90% or more coded (instr 211, 973). Every exchange is a loop: a handoff sent is tracked and closed by the sender (instr 207). Reviews use a different model family (instr 873, 891). Learning loop: recall how a similar case was handled and whether it was finished (instr 887, 838). UAE facts only, no US law (instr 535). Only customer_support sends email and WhatsApp (instr 93, 178). Every generated PDF uses the QuotesDone template (instr 569).",
+   "body_ar": "معرفة الشركة مشتركة بين كل المقاعد وتتغير في كل مكان دفعة واحدة. العربية والإنجليزية بمستوى مهني أصلي، وتبقى المحادثة بلغة تسجيل الشخص. الاستدلال لا مطابقة الكلمات. التفكير خطوة بخطوة قبل الإجابة، وعدم الرد أبداً بعبارة \"سأتحقق وأعود إليك\". العمل الروتيني برمجي والنموذج للحكم فقط، بهدف 90% أو أكثر مبرمج. كل تبادل حلقة مغلقة يتابعها المرسل. المراجعة على عائلة نماذج مختلفة. حلقة التعلم: تذكر كيف عولجت حالة مشابهة وهل اكتملت. حقائق الإمارات فقط دون القانون الأمريكي. خدمة العملاء وحدها ترسل البريد وWhatsApp. كل ملف PDF بقالب QuotesDone.",
+   "sources": [
+    "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#4-marketing",
+    "internal:founder_instruction/903",
+    "internal:founder_instruction/890",
+    "internal:founder_instruction/207"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-28"
   }
  ],
  "eval": [
@@ -2264,6 +2547,140 @@
     "marketing:frequency-creative-fatigue",
     "marketing:creative-testing-framework"
    ]
+  },
+  {
+   "q_en": "What does the marketing seat have to do every day, week and month?",
+   "q_ar": "ما المهام اليومية والأسبوعية والشهرية لمقعد التسويق؟",
+   "expected_entry_ids": [
+    "marketing:seat-operating-cycle"
+   ]
+  },
+  {
+   "q_en": "Can we post on a Saturday or on Eid?",
+   "q_ar": "هل يمكن النشر يوم السبت أو في العيد؟",
+   "expected_entry_ids": [
+    "marketing:posting-days-rule"
+   ]
+  },
+  {
+   "q_en": "How does the founder approve next month's social calendar?",
+   "q_ar": "كيف يعتمد المؤسس تقويم التواصل للشهر القادم؟",
+   "expected_entry_ids": [
+    "marketing:calendar-one-shot-approval"
+   ]
+  },
+  {
+   "q_en": "Who reviews the monthly marketing plan and how?",
+   "q_ar": "من يراجع خطة التسويق الشهرية وكيف؟",
+   "expected_entry_ids": [
+    "marketing:month-plan-ceo-debate"
+   ]
+  },
+  {
+   "q_en": "How do we judge whether last month's videos worked?",
+   "q_ar": "كيف نحكم على نجاح فيديوهات الشهر الماضي؟",
+   "expected_entry_ids": [
+    "marketing:monthly-see-and-hear-review"
+   ]
+  },
+  {
+   "q_en": "Does the founder approve each comment reply?",
+   "q_ar": "هل يعتمد المؤسس كل رد على التعليقات؟",
+   "expected_entry_ids": [
+    "marketing:comments-dms-autonomy"
+   ]
+  },
+  {
+   "q_en": "Why doesn't the seat send LinkedIn messages itself?",
+   "q_ar": "لماذا لا يرسل المقعد رسائل LinkedIn بنفسه؟",
+   "expected_entry_ids": [
+    "marketing:linkedin-business-development"
+   ]
+  },
+  {
+   "q_en": "Can marketing run a paid boost this month?",
+   "q_ar": "هل يمكن للتسويق تشغيل إعلان ممول هذا الشهر؟",
+   "expected_entry_ids": [
+    "marketing:organic-only-no-spend"
+   ]
+  },
+  {
+   "q_en": "Can our Instagram bio say we use AI?",
+   "q_ar": "هل يمكن أن تذكر نبذة Instagram أننا نستخدم الذكاء الاصطناعي؟",
+   "expected_entry_ids": [
+    "marketing:profile-copy-rules"
+   ]
+  },
+  {
+   "q_en": "How often do we publish a blog article?",
+   "q_ar": "كم مرة ننشر مقالاً في المدونة؟",
+   "expected_entry_ids": [
+    "marketing:weekly-blog-and-geo-audit"
+   ]
+  },
+  {
+   "q_en": "How do we keep track of what competitors change?",
+   "q_ar": "كيف نتابع تغييرات المنافسين؟",
+   "expected_entry_ids": [
+    "marketing:competitor-watch-duty"
+   ]
+  },
+  {
+   "q_en": "Who asks a happy customer for a Google review?",
+   "q_ar": "من يطلب من العميل الراضي مراجعة على Google؟",
+   "expected_entry_ids": [
+    "marketing:reputation-review-ask"
+   ]
+  },
+  {
+   "q_en": "Is marketing responsible for inviting suppliers?",
+   "q_ar": "هل التسويق مسؤول عن دعوة الموردين؟",
+   "expected_entry_ids": [
+    "marketing:recruitment-funnel-scope"
+   ]
+  },
+  {
+   "q_en": "When do customers launch?",
+   "q_ar": "متى يبدأ إطلاق العملاء؟",
+   "expected_entry_ids": [
+    "marketing:launch-timing-suppliers-first"
+   ]
+  },
+  {
+   "q_en": "Can the marketing seat choose blog topics on its own?",
+   "q_ar": "هل يختار مقعد التسويق مواضيع المدونة وحده؟",
+   "expected_entry_ids": [
+    "marketing:decision-rights"
+   ]
+  },
+  {
+   "q_en": "What do we do with a news item that might matter?",
+   "q_ar": "ماذا نفعل بخبر قد يكون مهماً؟",
+   "expected_entry_ids": [
+    "marketing:trend-logging"
+   ]
+  },
+  {
+   "q_en": "When is the marketing scorecard produced?",
+   "q_ar": "متى تُعد بطاقة أداء التسويق؟",
+   "expected_entry_ids": [
+    "marketing:insights-and-kpi-cadence"
+   ]
+  },
+  {
+   "q_en": "What happens every quarter in marketing?",
+   "q_ar": "ما الذي يحدث كل ربع سنة في التسويق؟",
+   "expected_entry_ids": [
+    "marketing:quarterly-review"
+   ]
+  },
+  {
+   "q_en": "Can marketing email a supplier directly?",
+   "q_ar": "هل يمكن للتسويق مراسلة مورد مباشرة بالبريد؟",
+   "expected_entry_ids": [
+    "marketing:seat-working-rules",
+    "marketing:recruitment-funnel-scope"
+   ]
   }
  ],
  "verified": {
@@ -2391,6 +2808,32 @@
     "marketing:national-day-campaign-norms",
     "marketing:ramadan-uae-calendar"
    ]
+  },
+  "wave3": {
+   "upgraded": "2026-09-28 instr 888",
+   "added": [
+    "marketing:seat-operating-cycle",
+    "marketing:posting-days-rule",
+    "marketing:calendar-one-shot-approval",
+    "marketing:month-plan-ceo-debate",
+    "marketing:monthly-see-and-hear-review",
+    "marketing:comments-dms-autonomy",
+    "marketing:linkedin-business-development",
+    "marketing:organic-only-no-spend",
+    "marketing:profile-copy-rules",
+    "marketing:weekly-blog-and-geo-audit",
+    "marketing:competitor-watch-duty",
+    "marketing:reputation-review-ask",
+    "marketing:recruitment-funnel-scope",
+    "marketing:launch-timing-suppliers-first",
+    "marketing:decision-rights",
+    "marketing:trend-logging",
+    "marketing:insights-and-kpi-cadence",
+    "marketing:quarterly-review",
+    "marketing:seat-working-rules"
+   ],
+   "fetched_urls": [],
+   "note": "Wave 3 adds the seat's own operating knowledge from JOB_DESCRIPTIONS.md section 4, founder memory files, and the live routines/tables (read-only queries 28 Sep 2026). Company/process facts only; no new law or platform claims, so no URLs fetched. The LinkedIn User Agreement 8.2 claim is carried from memory checkpoint-22-sep-marketing-seat-live, not re-fetched. 2027 Hijri holiday dates are from public.public_holidays marked unconfirmed."
   }
  }
 }

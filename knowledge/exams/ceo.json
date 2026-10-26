@@ -1,0 +1,636 @@
+{
+ "seat": "ceo",
+ "standard": "scratchpad/seats_v3/JOB_DESCRIPTIONS.md section 1",
+ "items": [
+  {
+   "id": "ceo-exam-01",
+   "checklist": "CEO-01",
+   "q_en": "Remind me what the seven things in my daily brief are.",
+   "q_ar": "ذكّرني بالبنود السبعة في موجزي اليومي.",
+   "expected_entry_ids": [
+    "ceo:founder-daily-brief-seven-items"
+   ],
+   "expected_facts": [
+    "supplier invitations sent today",
+    "the plan for the next day"
+   ]
+  },
+  {
+   "id": "ceo-exam-02",
+   "checklist": "CEO-01",
+   "q_en": "How should customer registrations appear in the daily brief?",
+   "q_ar": "كيف تظهر تسجيلات العملاء في الموجز اليومي؟",
+   "expected_entry_ids": [
+    "ceo:founder-daily-brief-seven-items"
+   ],
+   "expected_facts": [
+    "names and mobile numbers",
+    "PDF"
+   ]
+  },
+  {
+   "id": "ceo-exam-03",
+   "checklist": "CEO-02",
+   "q_en": "A customer wants money back. What do you check it against?",
+   "q_ar": "عميل يطلب استرداد أمواله، بماذا تطابق الطلب؟",
+   "expected_entry_ids": [
+    "ceo:refund-verification-stripe-invoice"
+   ],
+   "expected_facts": [
+    "one Stripe invoice",
+    "exact reference"
+   ]
+  },
+  {
+   "id": "ceo-exam-04",
+   "checklist": "CEO-02",
+   "q_en": "You found a problem in a refund case. Who fixes it and when do you approve?",
+   "q_ar": "وجدت خللاً في ملف استرداد، من يصلحه ومتى تعتمد؟",
+   "expected_entry_ids": [
+    "ceo:refund-verification-stripe-invoice"
+   ],
+   "expected_facts": [
+    "accountant or the sales engineer",
+    "only when everything is correct"
+   ]
+  },
+  {
+   "id": "ceo-exam-05",
+   "checklist": "CEO-02",
+   "q_en": "What is the target for refund decisions being right?",
+   "q_ar": "ما المستهدف لصحة قرارات الاسترداد؟",
+   "expected_entry_ids": [
+    "ceo:refund-verification-stripe-invoice"
+   ],
+   "expected_facts": [
+    "100%"
+   ]
+  },
+  {
+   "id": "ceo-exam-06",
+   "checklist": "CEO-03",
+   "q_en": "After paying a refund the numbers do not reconcile. First move?",
+   "q_ar": "بعد دفع استرداد لم تتطابق الأرقام، ما أول خطوة؟",
+   "expected_entry_ids": [
+    "ceo:refund-mismatch-playbook"
+   ],
+   "expected_facts": [
+    "pause refunds and supplier charges",
+    "open an incident"
+   ]
+  },
+  {
+   "id": "ceo-exam-07",
+   "checklist": "CEO-03",
+   "q_en": "Do I have to approve restarting refunds after a mismatch?",
+   "q_ar": "هل عليّ أن أعتمد استئناف الاستردادات بعد عدم التطابق؟",
+   "expected_entry_ids": [
+    "ceo:refund-mismatch-playbook"
+   ],
+   "expected_facts": [
+    "short WhatsApp summary",
+    "he does not approve"
+   ]
+  },
+  {
+   "id": "ceo-exam-08",
+   "checklist": "CEO-04",
+   "q_en": "How many working days does a supplier get to respond after a reveal?",
+   "q_ar": "كم يوم عمل لدى المورد للرد بعد الكشف؟",
+   "expected_entry_ids": [
+    "ceo:day-5-final-call"
+   ],
+   "expected_facts": [
+    "5 working days",
+    "chases at 3 working days"
+   ]
+  },
+  {
+   "id": "ceo-exam-09",
+   "checklist": "CEO-04",
+   "q_en": "What does a silent supplier owe after day 5?",
+   "q_ar": "ماذا يتحمّل المورد الصامت بعد اليوم الخامس؟",
+   "expected_entry_ids": [
+    "ceo:day-5-final-call"
+   ],
+   "expected_facts": [
+    "AED 500 admin fee",
+    "9% a year simple interest"
+   ]
+  },
+  {
+   "id": "ceo-exam-10",
+   "checklist": "CEO-04",
+   "q_en": "Can you take a supplier off the matching hold yourself?",
+   "q_ar": "هل يمكنك رفع تعليق المطابقة عن مورد بنفسك؟",
+   "expected_entry_ids": [
+    "ceo:day-5-final-call"
+   ],
+   "expected_facts": [
+    "founder's decision"
+   ]
+  },
+  {
+   "id": "ceo-exam-11",
+   "checklist": "CEO-05",
+   "q_en": "By when must marketing hand you next month's plan?",
+   "q_ar": "متى يجب أن يسلّمك التسويق خطة الشهر القادم؟",
+   "expected_entry_ids": [
+    "ceo:marketing-plan-monthly-debate"
+   ],
+   "expected_facts": [
+    "at least a week before month end"
+   ]
+  },
+  {
+   "id": "ceo-exam-12",
+   "checklist": "CEO-05",
+   "q_en": "Once you and marketing agree, what does the founder have to do?",
+   "q_ar": "بعد اتفاقك مع التسويق، ما المطلوب من المؤسس؟",
+   "expected_entry_ids": [
+    "ceo:marketing-plan-monthly-debate"
+   ],
+   "expected_facts": [
+    "one organised PDF",
+    "single approve"
+   ]
+  },
+  {
+   "id": "ceo-exam-13",
+   "checklist": "CEO-05",
+   "q_en": "Are we spending on ads this month?",
+   "q_ar": "هل ننفق على الإعلانات هذا الشهر؟",
+   "expected_entry_ids": [
+    "ceo:marketing-plan-monthly-debate"
+   ],
+   "expected_facts": [
+    "organic only",
+    "no paid ads"
+   ]
+  },
+  {
+   "id": "ceo-exam-14",
+   "checklist": "CEO-06",
+   "q_en": "When do customers start paying us?",
+   "q_ar": "متى يبدأ العملاء الدفع لنا؟",
+   "expected_entry_ids": [
+    "ceo:launch-readiness-gate"
+   ],
+   "expected_facts": [
+    "January 2027",
+    "suppliers only"
+   ]
+  },
+  {
+   "id": "ceo-exam-15",
+   "checklist": "CEO-06",
+   "q_en": "How many suppliers do we need before opening to customers?",
+   "q_ar": "كم مورداً نحتاج قبل فتح المنصة للعملاء؟",
+   "expected_entry_ids": [
+    "ceo:launch-readiness-gate"
+   ],
+   "expected_facts": [
+    "1,000",
+    "quote every inquiry"
+   ]
+  },
+  {
+   "id": "ceo-exam-16",
+   "checklist": "CEO-06",
+   "q_en": "We passed 1,000 suppliers. Can we launch?",
+   "q_ar": "تجاوزنا 1,000 مورد، هل نطلق؟",
+   "expected_entry_ids": [
+    "ceo:launch-readiness-gate"
+   ],
+   "expected_facts": [
+    "coverage, not a headcount",
+    "is a gap"
+   ]
+  },
+  {
+   "id": "ceo-exam-17",
+   "checklist": "CEO-07",
+   "q_en": "How quickly do IT reports have to be answered?",
+   "q_ar": "ما سرعة الرد المطلوبة على تقارير التقنية؟",
+   "expected_entry_ids": [
+    "ceo:it-reports-same-day"
+   ],
+   "expected_facts": [
+    "same day",
+    "24 hours"
+   ]
+  },
+  {
+   "id": "ceo-exam-18",
+   "checklist": "CEO-07",
+   "q_en": "Is acknowledging a report enough?",
+   "q_ar": "هل يكفي الإقرار باستلام التقرير؟",
+   "expected_entry_ids": [
+    "ceo:it-reports-same-day"
+   ],
+   "expected_facts": [
+    "a decision, not an acknowledgement"
+   ]
+  },
+  {
+   "id": "ceo-exam-19",
+   "checklist": "CEO-08",
+   "q_en": "How often must you propose an improvement idea?",
+   "q_ar": "كم مرة يجب أن تقترح فكرة تحسين؟",
+   "expected_entry_ids": [
+    "ceo:weekly-innovation-idea"
+   ],
+   "expected_facts": [
+    "at least one reasoned idea",
+    "owner and a date"
+   ]
+  },
+  {
+   "id": "ceo-exam-20",
+   "checklist": "CEO-08",
+   "q_en": "How many innovation bets do you pick each quarter?",
+   "q_ar": "كم رهاناً للابتكار تختار كل ربع سنة؟",
+   "expected_entry_ids": [
+    "ceo:weekly-innovation-idea"
+   ],
+   "expected_facts": [
+    "one or two innovation bets"
+   ]
+  },
+  {
+   "id": "ceo-exam-21",
+   "checklist": "CEO-09",
+   "q_en": "Which decisions are still mine as founder?",
+   "q_ar": "ما القرارات التي تبقى لي كمؤسس؟",
+   "expected_entry_ids": [
+    "ceo:decides-alone-vs-founder"
+   ],
+   "expected_facts": [
+    "a pricing change",
+    "the campaign go"
+   ]
+  },
+  {
+   "id": "ceo-exam-22",
+   "checklist": "CEO-09",
+   "q_en": "Should you remind me about the campaign launch?",
+   "q_ar": "هل يجب أن تذكّرني بإطلاق الحملة؟",
+   "expected_entry_ids": [
+    "ceo:decides-alone-vs-founder"
+   ],
+   "expected_facts": [
+    "do not remind him"
+   ]
+  },
+  {
+   "id": "ceo-exam-23",
+   "checklist": "CEO-09",
+   "q_en": "Which reports do I receive just for information?",
+   "q_ar": "ما التقارير التي تصلني للعلم فقط؟",
+   "expected_entry_ids": [
+    "ceo:decides-alone-vs-founder"
+   ],
+   "expected_facts": [
+    "weekly and monthly report",
+    "refund-mismatch summary"
+   ]
+  },
+  {
+   "id": "ceo-exam-24",
+   "checklist": "CEO-10",
+   "q_en": "What must the monthly report cover?",
+   "q_ar": "ماذا يجب أن يغطي التقرير الشهري؟",
+   "expected_entry_ids": [
+    "ceo:month-plan-and-board-report"
+   ],
+   "expected_facts": [
+    "supply growth by trade and emirate",
+    "cost against budget"
+   ]
+  },
+  {
+   "id": "ceo-exam-25",
+   "checklist": "CEO-10",
+   "q_en": "Where do next month's seat targets get reset?",
+   "q_ar": "أين يُعاد ضبط أهداف المقاعد للشهر القادم؟",
+   "expected_entry_ids": [
+    "ceo:month-plan-and-board-report"
+   ],
+   "expected_facts": [
+    "ceo_plan_month"
+   ]
+  },
+  {
+   "id": "ceo-exam-26",
+   "checklist": "CEO-11",
+   "q_en": "Who actually sends my WhatsApp messages from the company?",
+   "q_ar": "من يرسل فعلياً رسائل الواتساب لي من الشركة؟",
+   "expected_entry_ids": [
+    "ceo:outbound-through-customer-support"
+   ],
+   "expected_facts": [
+    "Only customer_support sends email and WhatsApp"
+   ]
+  },
+  {
+   "id": "ceo-exam-27",
+   "checklist": "CEO-11",
+   "q_en": "Is a send done once it has been requested?",
+   "q_ar": "هل يُعد الإرسال منجزاً بمجرد طلبه؟",
+   "expected_entry_ids": [
+    "ceo:outbound-through-customer-support"
+   ],
+   "expected_facts": [
+    "not a delivery record"
+   ]
+  },
+  {
+   "id": "ceo-exam-28",
+   "checklist": "CEO-12",
+   "q_en": "What share of the work should be plain code?",
+   "q_ar": "ما نسبة العمل التي يجب أن تكون برمجة؟",
+   "expected_entry_ids": [
+    "ceo:routine-is-code-judgement-is-llm"
+   ],
+   "expected_facts": [
+    "At least 90%",
+    "judgement"
+   ]
+  },
+  {
+   "id": "ceo-exam-29",
+   "checklist": "CEO-12",
+   "q_en": "How much can the models spend while idle?",
+   "q_ar": "كم يمكن أن تنفق النماذج في وقت الخمول؟",
+   "expected_entry_ids": [
+    "ceo:routine-is-code-judgement-is-llm"
+   ],
+   "expected_facts": [
+    "USD 1 to 2 a day"
+   ]
+  },
+  {
+   "id": "ceo-exam-30",
+   "checklist": "CEO-13",
+   "q_en": "Walk me through how you answer a tricky question.",
+   "q_ar": "كيف تجيب عن سؤال صعب خطوة بخطوة؟",
+   "expected_entry_ids": [
+    "ceo:reason-in-steps-never-defer"
+   ],
+   "expected_facts": [
+    "step by step",
+    "which emirate"
+   ]
+  },
+  {
+   "id": "ceo-exam-31",
+   "checklist": "CEO-13",
+   "q_en": "Can a decision be made because some keywords matched?",
+   "q_ar": "هل يمكن اتخاذ قرار لأن كلمات معينة تطابقت؟",
+   "expected_entry_ids": [
+    "ceo:reason-in-steps-never-defer"
+   ],
+   "expected_facts": [
+    "No decision is made by matching words"
+   ]
+  },
+  {
+   "id": "ceo-exam-32",
+   "checklist": "CEO-14",
+   "q_en": "Before ruling, what do you look up first?",
+   "q_ar": "قبل إصدار الحكم، ما الذي تبحث عنه أولاً؟",
+   "expected_entry_ids": [
+    "ceo:learning-loop-recall"
+   ],
+   "expected_facts": [
+    "similar case before",
+    "whether it was finished"
+   ]
+  },
+  {
+   "id": "ceo-exam-33",
+   "checklist": "CEO-15",
+   "q_en": "At what revenue do we have to register for VAT, and who warns you?",
+   "q_ar": "عند أي إيراد يجب التسجيل في الضريبة ومن ينبهك؟",
+   "expected_entry_ids": [
+    "ceo:accountant-notices-vat-and-runway"
+   ],
+   "expected_facts": [
+    "AED 375,000",
+    "accountant notifies the CEO"
+   ]
+  },
+  {
+   "id": "ceo-exam-34",
+   "checklist": "CEO-15",
+   "q_en": "Where does the runway figure come from?",
+   "q_ar": "من أين يأتي رقم مدة التشغيل المتبقية؟",
+   "expected_entry_ids": [
+    "ceo:accountant-notices-vat-and-runway"
+   ],
+   "expected_facts": [
+    "report with the runway"
+   ]
+  },
+  {
+   "id": "ceo-exam-35",
+   "checklist": "CEO-16",
+   "q_en": "What is the CEO seat meant to be like?",
+   "q_ar": "كيف يُفترض أن يكون مقعد الرئيس التنفيذي؟",
+   "expected_entry_ids": [
+    "ceo:mission-visionary-ceo"
+   ],
+   "expected_facts": [
+    "what Elon Musk does for Tesla",
+    "not a yes/no bot"
+   ]
+  },
+  {
+   "id": "ceo-exam-36",
+   "checklist": "CEO-16",
+   "q_en": "Why do refunds come to you and not to me?",
+   "q_ar": "لماذا تأتي الاستردادات إليك لا إليّ؟",
+   "expected_entry_ids": [
+    "ceo:mission-visionary-ceo"
+   ],
+   "expected_facts": [
+    "founder's eyes in the company"
+   ]
+  },
+  {
+   "id": "ceo-exam-37",
+   "checklist": "CEO-17",
+   "q_en": "How do you know a seat's duty is late?",
+   "q_ar": "كيف تعرف أن مهمة مقعد متأخرة؟",
+   "expected_entry_ids": [
+    "ceo:seat-accountability-directives"
+   ],
+   "expected_facts": [
+    "last_ok_at exceeds its interval"
+   ]
+  },
+  {
+   "id": "ceo-exam-38",
+   "checklist": "CEO-17",
+   "q_en": "What goes into a directive to a seat?",
+   "q_ar": "ماذا يتضمن التوجيه لمقعد؟",
+   "expected_entry_ids": [
+    "ceo:seat-accountability-directives"
+   ],
+   "expected_facts": [
+    "directive with a deadline",
+    "never \"an agent\""
+   ]
+  },
+  {
+   "id": "ceo-exam-39",
+   "checklist": "CEO-18",
+   "q_en": "Talk me through the weekly management review.",
+   "q_ar": "اشرح لي المراجعة الإدارية الأسبوعية.",
+   "expected_entry_ids": [
+    "ceo:weekly-management-review"
+   ],
+   "expected_facts": [
+    "Amazon Weekly Business Review",
+    "same metrics in the same order"
+   ]
+  },
+  {
+   "id": "ceo-exam-40",
+   "checklist": "CEO-19",
+   "q_en": "What do you watch when judging the 3% fee?",
+   "q_ar": "ماذا تراقب عند تقييم رسوم 3%؟",
+   "expected_entry_ids": [
+    "ceo:pricing-monitoring"
+   ],
+   "expected_facts": [
+    "the founder, who decides",
+    "does not change prices"
+   ]
+  },
+  {
+   "id": "ceo-exam-41",
+   "checklist": "CEO-20",
+   "q_en": "Which scenario are we tracking to August 2027?",
+   "q_ar": "أي سيناريو نسير عليه حتى أغسطس 2027؟",
+   "expected_entry_ids": [
+    "ceo:company-plan-scenarios"
+   ],
+   "expected_facts": [
+    "base about AED 245,000",
+    "AED 1M target"
+   ]
+  },
+  {
+   "id": "ceo-exam-42",
+   "checklist": "CEO-20",
+   "q_en": "How do you measure whether your forecasts are any good?",
+   "q_ar": "كيف تقيس جودة توقعاتك؟",
+   "expected_entry_ids": [
+    "ceo:forecast-accuracy"
+   ],
+   "expected_facts": [
+    "absolute percentage error"
+   ]
+  },
+  {
+   "id": "ceo-exam-43",
+   "checklist": "CEO-21",
+   "q_en": "What is the one thing holding the company back right now, and how do you find it?",
+   "q_ar": "ما العائق الأكبر أمام الشركة الآن وكيف تحدده؟",
+   "expected_entry_ids": [
+    "ceo:binding-constraint"
+   ],
+   "expected_facts": [
+    "Theory of Constraints",
+    "one constraint at a time"
+   ]
+  },
+  {
+   "id": "ceo-exam-44",
+   "checklist": "CEO-22",
+   "q_en": "Who challenges your weekly review, and on what model?",
+   "q_ar": "من يراجع مراجعتك الأسبوعية وعلى أي نموذج؟",
+   "expected_entry_ids": [
+    "ceo:cross-family-review"
+   ],
+   "expected_facts": [
+    "different model family"
+   ]
+  },
+  {
+   "id": "ceo-exam-45",
+   "checklist": "CEO-23",
+   "q_en": "What do you check every quarter about strategy?",
+   "q_ar": "ماذا تراجع في الاستراتيجية كل ربع سنة؟",
+   "expected_entry_ids": [
+    "ceo:quarterly-strategy"
+   ],
+   "expected_facts": [
+    "product/market fit",
+    "constrain before expanding"
+   ]
+  },
+  {
+   "id": "ceo-exam-46",
+   "checklist": "CEO-24",
+   "q_en": "What are the reveal fee and supplier subscription terms?",
+   "q_ar": "ما شروط رسوم الكشف واشتراك الموردين؟",
+   "expected_entry_ids": [
+    "ceo:company-hard-rules"
+   ],
+   "expected_facts": [
+    "3% Reveal Fee",
+    "AED 1,000 a year"
+   ]
+  },
+  {
+   "id": "ceo-exam-47",
+   "checklist": "CEO-25",
+   "q_en": "How is the CEO seat itself judged?",
+   "q_ar": "كيف يُقيَّم مقعد الرئيس التنفيذي نفسه؟",
+   "expected_entry_ids": [
+    "ceo:company-seat-kpis"
+   ],
+   "expected_facts": [
+    "Forecast accuracy"
+   ]
+  },
+  {
+   "id": "ceo-exam-48",
+   "checklist": "CEO-26",
+   "q_en": "Walk me through a refund dispute file before you rule.",
+   "q_ar": "اشرح ملف نزاع الاسترداد قبل أن تحكم.",
+   "expected_entry_ids": [
+    "ceo:refund-dispute-authority"
+   ],
+   "expected_facts": [
+    "accountant authors the case"
+   ]
+  },
+  {
+   "id": "ceo-exam-49",
+   "checklist": "CEO-27",
+   "q_en": "Which compliance deadlines does the company carry each year?",
+   "q_ar": "ما المواعيد التنظيمية السنوية للشركة؟",
+   "expected_entry_ids": [
+    "ceo:compliance-calendar-annual"
+   ],
+   "expected_facts": [
+    "nine months after each financial year end"
+   ]
+  },
+  {
+   "id": "ceo-exam-50",
+   "checklist": "CEO-28",
+   "q_en": "Is our data-protection position something you govern?",
+   "q_ar": "هل حماية البيانات من مسؤولياتك؟",
+   "expected_entry_ids": [
+    "ceo:pdpl-ceo-obligations"
+   ],
+   "expected_facts": [
+    "Federal Decree-Law No. 45 of 2021"
+   ]
+  }
+ ]
+}
