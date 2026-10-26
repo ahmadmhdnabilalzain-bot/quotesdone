@@ -39,6 +39,36 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "veterinary_supplies:product-distinctions",
+      "topic": "Veterinary supplies: product classes for livestock and companion animals",
+      "topic_ar": "المستلزمات البيطرية: فئات المنتجات للماشية والحيوانات الأليفة",
+      "kind": "product_distinctions",
+      "body_en": "Veterinary supply serves two practices with different needs: livestock, poultry, camel and equine (herd health programmes, vaccines, dewormers and antiparasitics, antibiotics under prescription, mineral and vitamin supplements, mastitis and reproduction products, ear tags and identification, foot baths, and farm hygiene and disinfectants) and companion animals (clinic pharmaceuticals and vaccines, flea, tick and worm control, prescription diets, surgical and dental instruments, anaesthesia machines, monitors, X-ray and ultrasound, laboratory analysers, kennels, and grooming equipment). Products are veterinary medicines (registered for animal use, with withdrawal periods for meat and milk animals), biologicals (vaccines needing a 2-8 °C cold chain), and non-medicinal supplies (instruments, consumables, equipment, pet accessories). Feed and pet food sit outside this trade. Offers differ on product registration for animal use, batch and expiry, cold-chain evidence for vaccines, the prescription requirement, the species and withdrawal labelling, and technical support from a veterinarian.",
+      "body_ar": "تخدم المستلزمات البيطرية ممارستين باحتياجات مختلفة: الماشية والدواجن والإبل والخيول (برامج صحة القطيع، اللقاحات، طاردات الديدان ومضادات الطفيليات، المضادات الحيوية بوصفة، مكملات المعادن والفيتامينات، منتجات التهاب الضرع والتناسل، أرقام الأذن والتعريف، أحواض الأقدام، ونظافة المزارع والمطهرات) والحيوانات الأليفة (أدوية ولقاحات العيادات، مكافحة البراغيث والقراد والديدان، الأنظمة الغذائية العلاجية، أدوات الجراحة والأسنان، أجهزة التخدير، أجهزة المراقبة، الأشعة والموجات فوق الصوتية، أجهزة التحليل المخبري، الأقفاص، ومعدات التجميل). والمنتجات إما أدوية بيطرية (مسجلة للاستخدام الحيواني مع فترات سحب للحوم والحليب)، أو منتجات حيوية (لقاحات تحتاج سلسلة تبريد 2-8 درجات)، أو مستلزمات غير دوائية (أدوات، مستهلكات، معدات، إكسسوارات الحيوانات الأليفة). والأعلاف وأطعمة الحيوانات الأليفة خارج هذا النشاط. وتختلف العروض في تسجيل المنتج للاستخدام الحيواني، والدفعة والانتهاء، وإثبات سلسلة التبريد للقاحات، واشتراط الوصفة، وملصق النوع الحيواني وفترة السحب، والدعم الفني من طبيب بيطري.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Veterinary_medicine"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: veterinary drugs and the livestock versus companion-animal split in practice -> confirmed."
+    },
+    {
+      "id": "veterinary_supplies:lead-times-and-quoting",
+      "topic": "Animal & veterinary supplies - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المستلزمات البيطرية والحيوانية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Registered stock items: 1-5 days; vaccines by cold-chain delivery within days; equipment 2-8 weeks; unregistered products need permits. A supplier needs the species and use, product names or active ingredients, quantities, the buyer's licence (clinic, farm, pharmacy), and delivery and storage conditions. A quote states per line brand, manufacturer, registration, batch and expiry, storage and cold-chain terms, withdrawal period where relevant, delivery, payment terms and validity.",
+      "body_ar": "الأصناف المسجلة المتوفرة: 1-5 أيام؛ واللقاحات بتوصيل مبرد خلال أيام؛ والمعدات 2-8 أسابيع؛ والمنتجات غير المسجلة تحتاج تصاريح. ويحتاج المورد النوع الحيواني والاستخدام، وأسماء المنتجات أو المواد الفعالة، والكميات، وترخيص المشتري (عيادة، مزرعة، صيدلية)، وشروط التسليم والتخزين. ويذكر العرض لكل بند العلامة والصانع والتسجيل والدفعة والانتهاء وشروط التخزين والتبريد وفترة السحب حيث تنطبق والتسليم وشروط الدفع والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -64,6 +94,14 @@
       ],
       "why": "states veterinary medicines are registered federally by the Ministry of Climate Change and Environment, with emirate authorities (for example ADAFSA) regulating veterinary facilities.",
       "origin": "real buyer question, moved from veterinary_supplies.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "We run a camel farm. What should we check when buying dewormers and vaccines?",
+      "q_ar": "عندنا مزرعة إبل، وش نتأكد منه لما نشتري طاردات الديدان واللقاحات؟",
+      "expected_entry_ids": [
+        "veterinary_supplies:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -80,6 +118,27 @@
       "veterinary_supplies:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "veterinary_supplies:product-distinctions"
+      ],
+      "stored_not_served": [
+        "veterinary_supplies:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Veterinary_medicine"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

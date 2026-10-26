@@ -121,7 +121,8 @@ export function dwgToDxf(db: DwgDb): { dxf: string; skipped: Map<string, number>
         for (const v of e.vertices ?? []) { g(0, 'VERTEX'); g(8, e.layer || '0'); pt(v); if (v.bulge) g(42, v.bulge); }
         g(0, 'SEQEND'); break;
       case 'INSERT':
-        head('INSERT'); g(2, e.name ?? ''); pt(e.insertionPoint);
+        // An array (columns x rows) is a MINSERT, so the reader counts every copy.
+        head((e.columnCount ?? 1) > 1 || (e.rowCount ?? 1) > 1 ? 'MINSERT' : 'INSERT'); g(2, e.name ?? ''); pt(e.insertionPoint);
         if (e.xScale && e.xScale !== 1) g(41, e.xScale); if (e.yScale && e.yScale !== 1) g(42, e.yScale);
         if (e.rotation) g(50, deg(e.rotation));
         if ((e.columnCount ?? 1) > 1) { g(70, e.columnCount); g(44, e.columnSpacing ?? 0); }
@@ -151,6 +152,21 @@ export function dwgToDxf(db: DwgDb): { dxf: string; skipped: Map<string, number>
   };
   // Block definitions: drawn by cad_render when an INSERT names them; never measured (readDxf reads ENTITIES).
   const blocks = (db.tables?.BLOCK_RECORD?.entries ?? []).filter((b) => b?.name && !isSpaceBlock(b.name));
+  // DYNAMIC BLOCKS (19 Oct 2026, measured on LibreDWG's Dynblocks.dwg): AutoCAD keeps each dynamic variant as an
+  // anonymous *U block whose BLOCK_RECORD XDATA names its source, and LibreDWG 0.7.14 returns no XDATA on the record,
+  // so all 7 variants were uncounted (the same drawing's DXF resolves all 7). A *U block whose entity types, as a
+  // multiset, equal exactly ONE named block's is that block's variant; it is written as readDxf expects, with the
+  // AcDbBlockRepBTag link. ponytail: a variant whose stretch changed its entity list stays anonymous (noted, uncounted).
+  const sig = (b: { entities?: { type: string }[] }) => (b.entities ?? []).map((e) => e.type).sort().join(',');
+  const named = blocks.filter((b) => !(b.name ?? '').startsWith('*'));
+  const hid = (i: number) => (0x10000 + i).toString(16).toUpperCase();
+  const src = new Map<string, number>();
+  blocks.forEach((b) => { if (!/^\*U/i.test(b.name ?? '') || !(b.entities ?? []).length) return; const m = named.filter((o) => sig(o) === sig(b)); if (m.length === 1) src.set(b.name ?? '', blocks.indexOf(m[0])); });
+  if (src.size) {
+    g(0, 'SECTION'); g(2, 'TABLES'); g(0, 'TABLE'); g(2, 'BLOCK_RECORD');
+    blocks.forEach((b, i) => { g(0, 'BLOCK_RECORD'); g(5, hid(i)); g(2, b.name ?? ''); const k = src.get(b.name ?? ''); if (k !== undefined) { g(1001, 'AcDbBlockRepBTag'); g(1070, 1); g(1005, hid(k)); } });
+    g(0, 'ENDTAB'); g(0, 'ENDSEC');
+  }
   if (blocks.length) {
     g(0, 'SECTION'); g(2, 'BLOCKS');
     for (const b of blocks) {
@@ -211,7 +227,7 @@ export function lowerMemoryFloor(bin: Uint8Array, pages = WASM_MIN_PAGES): { fro
 let heapOf = () => 0;
 export const lastWasmHeapBytes = () => heapOf();
 // deno-lint-ignore no-explicit-any
-async function freshLibreDwg(): Promise<any> {
+export async function freshLibreDwg(): Promise<any> {
   compiled ??= (async () => {
     const r = await fetch(WASM_URL);
     if (!r.ok) throw new Error(`libredwg wasm fetch ${r.status}`);

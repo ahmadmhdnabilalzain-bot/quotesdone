@@ -79,14 +79,16 @@ const FIXTURE: Record<string, string> = {
   // of the lighting/power sheet because these were missing). Counted per occurrence, like a fixture.
   LT: 'Light fitting', LF: 'Light fitting', EL: 'Emergency light fitting', DS: 'Double socket outlet', SSO: 'Single socket outlet',
   SW: 'Light switch', SD: 'Smoke detector', HD: 'Heat detector', MCP: 'Manual call point', D: 'Door', DR: 'Door',
+  // 19 Oct 2026 drawing bench: windows tagged W1.. and sockets tagged SKT were read as nothing.
+  W: 'Window', WN: 'Window', SKT: 'Socket outlet',
 };
 // Section of a counted fixture line; a type not listed is a plumbing fixture (the table's original scope).
 const SECTION_OF: Record<string, string> = {
   LT: 'Electrical devices', LF: 'Electrical devices', EL: 'Electrical devices', DS: 'Electrical devices', SSO: 'Electrical devices', SW: 'Electrical devices',
-  SD: 'Fire alarm devices', HD: 'Fire alarm devices', MCP: 'Fire alarm devices', D: 'Doors', DR: 'Doors',
+  SD: 'Fire alarm devices', HD: 'Fire alarm devices', MCP: 'Fire alarm devices', D: 'Doors', DR: 'Doors', W: 'Windows', WN: 'Windows', SKT: 'Electrical devices',
 };
 // Types written with no number are rare and specific; anything else needs a number to be a tag.
-const NO_NUMBER_OK = new Set(['EWC', 'FCO', 'DF', 'WCO', 'CO', 'SD', 'HD', 'MCP']);
+const NO_NUMBER_OK = new Set(['EWC', 'FCO', 'DF', 'WCO', 'CO', 'SD', 'HD', 'MCP', 'SKT']);
 const SHEET_NO = /^[A-Z]{1,2}-?\d{1,2}\.\d{1,2}[A-Z]?$/;
 const PREFIX = /^\((E|R|N|D|ER|EX)\)\s*/;
 const statusOf = (p: string | undefined): Status => p === 'E' || p === 'EX' ? 'existing' : p === 'R' || p === 'ER' ? 'relocate' : p === 'D' ? 'demolish' : 'new';
@@ -155,14 +157,24 @@ function abbreviations(pages: PdfPage[]): Map<string, string> {
 
 type Consumed = Set<TextRun>;
 
+/** A tag drawn as a LEGEND sample: under a LEGEND / KEY / SYMBOLS heading in the same column (within a quarter of the
+ *  sheet), with a description of two or more words beside it on its own line. */
+const LEGEND_HEAD = /^(?:(?:electrical|fire\s*alarm|symbols?)\s+)?(?:legend|key|symbols?)(?:\s+(?:of\s+)?symbols?)?\s*:?$/i;
+function legendSample(r: TextRun, runs: TextRun[]): boolean {
+  if (!runs.some((h) => LEGEND_HEAD.test(h.text.trim()) && h.y < r.y && r.y - h.y < 0.25 && Math.abs(r.x - h.x) < 0.05)) return false;
+  return runs.some((o) => o !== r && Math.abs(cy(o) - cy(r)) < r.h * 0.6 && o.x > r.x + r.w && o.x - (r.x + r.w) < 0.06 && /[A-Za-z]{3,}\s+\S{2,}/.test(o.text));
+}
+
 /** Every tag on one sheet, drawing area only (the title strip is excluded by the caller). */
 export function tagsOnSheet(p: PdfPage, pi: number, strip: Box | null, airTypes: Iterable<string> = []): { hits: TagHit[]; diffusers: Diffuser[]; consumed: Consumed } {
   const runs = p.runs.filter((r) => !inBox(r, strip));
   const consumed: Consumed = new Set();
   const hits: TagHit[] = [];
-  // 1. Single-run tags.
+  // 1. Single-run tags. A legend's sample tag is not work (founder 580): the drawing bench counted one extra of
+  //    every tag its legend listed.
   for (const r of runs) {
     const t = parseTag(r.text); if (!t) continue;
+    if (legendSample(r, runs)) { consumed.add(r); continue; }
     hits.push({ tag: t.tag, type: t.type, status: t.status, page: pi + 1, x: cx(r), y: cy(r) }); consumed.add(r);
   }
   // 2. Tag bubbles: a type code with its number directly below (same centre line, within 1.8 heights).

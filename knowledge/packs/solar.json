@@ -43,6 +43,36 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "solar:product-distinctions",
+      "topic": "Solar PV: system types, module and inverter choices",
+      "topic_ar": "الطاقة الشمسية: أنواع الأنظمة واختيار الألواح والعواكس",
+      "kind": "product_distinctions",
+      "body_en": "Solar PV systems are grid-connected (feeding the building and exporting surplus under a net-metering or similar scheme), off-grid or stand-alone (with batteries, for remote sites), or hybrid (grid plus batteries for backup). Size is stated in kWp (peak DC capacity) with the inverter in kWac; the DC/AC ratio, orientation, tilt, shading and soiling decide the yield in kWh per kWp per year. Modules are crystalline silicon (monocrystalline PERC, TOPCon and heterojunction cells, increasingly bifacial, in 400-700 W formats) or thin film; specify the power class, efficiency, temperature coefficient (it matters in heat), degradation and the product and performance warranties (often 12-25 and 25-30 years), and tier and test certifications (IEC 61215, IEC 61730). Inverters are string inverters, central inverters for utility plants, or micro-inverters and optimisers for shaded or complex roofs; check efficiency, MPPT count, derating at high temperature, and grid-code compliance. Mounting is rooftop (ballasted or anchored), carport or ground-mount (fixed or single-axis tracker). Batteries are now mostly lithium iron phosphate (LFP). Cleaning frequency drives output where dust is heavy.",
+      "body_ar": "أنظمة الطاقة الشمسية إما مربوطة بالشبكة (تغذي المبنى وتصدّر الفائض وفق نظام صافي القياس أو ما يشبهه)، أو منفصلة عن الشبكة (مع بطاريات للمواقع النائية)، أو هجينة (الشبكة مع بطاريات احتياطية). ويُذكر الحجم بالكيلوواط الذروي (السعة القصوى للتيار المستمر) والعاكس بالكيلوواط المتردد؛ وتحدد نسبة التيار المستمر إلى المتردد والاتجاه والميل والظل والأتربة الإنتاجَ بالكيلوواط ساعة لكل كيلوواط ذروي سنوياً. والألواح من السيليكون البلوري (خلايا أحادية البلورة PERC وTOPCon والوصلة غير المتجانسة، ومتزايدة ثنائية الوجه، بقدرات 400-700 واط) أو الأغشية الرقيقة؛ وحدد فئة القدرة والكفاءة ومعامل الحرارة (مهم في الحر) ونسبة التدهور وضماني المنتج والأداء (غالباً 12-25 و25-30 سنة) وشهادات الاختبار (IEC 61215، IEC 61730). والعواكس إما عواكس سلسلة، أو مركزية لمحطات المرافق، أو عواكس دقيقة ومحسّنات للأسطح المظللة أو المعقدة؛ وتحقق من الكفاءة وعدد متتبعات نقطة القدرة القصوى وخفض القدرة في الحرارة العالية والتوافق مع كود الشبكة. والتثبيت على الأسطح (بالأثقال أو بالتثبيت) أو مظلات السيارات أو على الأرض (ثابت أو بمتتبع أحادي المحور). والبطاريات اليوم في الغالب ليثيوم فوسفات الحديد. وتكرار التنظيف يحدد الإنتاج حيث الغبار كثيف.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Photovoltaic_system"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: grid-connected versus stand-alone systems, string versus micro-inverters, kWp sizing, crystalline silicon versus thin film -> confirmed."
+    },
+    {
+      "id": "solar:lead-times-and-quoting",
+      "topic": "Solar PV - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الطاقة الشمسية الكهروضوئية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Residential and commercial rooftop systems usually take 4-12 weeks including design, utility approval, installation and connection; utility-scale plants many months. A supplier needs the roof or land area and drawings, the electricity bills or load profile, the connection point and capacity, backup needs, and the target (bill saving, export, backup). A quote states system size in kWp and kWac, module and inverter makes and models, mounting, the estimated annual yield and its assumptions, approvals and connection included, warranties, O&M and cleaning, the payment schedule and validity.",
+      "body_ar": "تستغرق الأنظمة على أسطح المنازل والمباني التجارية عادة 4-12 أسبوعاً شاملة التصميم وموافقة جهة المرافق والتركيب والربط؛ ومحطات المرافق أشهراً عديدة. ويحتاج المورد مساحة السطح أو الأرض ومخططاتها، وفواتير الكهرباء أو منحنى الأحمال، ونقطة الربط وسعتها، واحتياجات الطاقة الاحتياطية، والهدف (توفير الفاتورة، التصدير، الاحتياط). ويذكر العرض حجم النظام بالكيلوواط الذروي والمتردد، وماركات وموديلات الألواح والعواكس، والتثبيت، والإنتاج السنوي المقدر وافتراضاته، والموافقات والربط المشمولة، والضمانات، والتشغيل والصيانة والتنظيف، وجدول الدفع، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -68,6 +98,14 @@
       ],
       "why": "States that in Dubai DEWA's Shams Dubai accepts rooftop PV only through enrolled solar PV consultants and contractors using listed equipment, which answers who can install.",
       "origin": "real buyer question, moved from solar.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "String inverter or micro-inverters for a villa roof with some shade from a water tank?",
+      "q_ar": "عاكس سلسلة ولا عواكس دقيقة لسطح فيلا فيه ظل من خزان الماء؟",
+      "expected_entry_ids": [
+        "solar:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -84,6 +122,27 @@
       "solar:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "solar:product-distinctions"
+      ],
+      "stored_not_served": [
+        "solar:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Photovoltaic_system"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

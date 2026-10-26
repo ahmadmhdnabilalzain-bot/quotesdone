@@ -57,6 +57,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "marble_stone:product-distinctions",
+      "topic": "Natural stone: stone types, finishes and where each is suitable",
+      "topic_ar": "الحجر الطبيعي: الأنواع والتشطيبات وأماكن الاستخدام",
+      "kind": "product_distinctions",
+      "body_en": "Marble is a metamorphic calcium-carbonate stone: soft and porous, so it scratches more easily, is etched by acids (lemon, vinegar, acidic cleaners), and needs sealing and periodic polishing or crystallisation; it suits floors and walls in low to medium traffic and feature areas. Granite is an igneous stone, much harder and more resistant to scratching, heat and acids, so it suits kitchen countertops, heavy-traffic floors and exterior paving. Other stones: limestone and travertine (softer, often filled), onyx (translucent, back-lit features), quartzite (very hard natural stone), slate and sandstone. Engineered quartz and porcelain slabs are man-made alternatives. Finishes: polished (glossy, slippery when wet), honed (matt), brushed or leathered (textured), flamed or bush-hammered (slip-resistant for outdoors). Specification points: stone name and origin, grade or selection (colour and veining consistency, defects), thickness (for example 18-20 mm floor tiles, 20 or 30 mm slabs), format, edge profiles for countertops, water absorption and flexural strength for exterior or facade use, and slip resistance for wet areas. Installation needs the right adhesive (white or rapid-set for marble to prevent staining), movement joints and sealing.",
+      "body_ar": "الرخام حجر متحول من كربونات الكالسيوم: لين ومسامي فيُخدش أسهل، وتحفره الأحماض (الليمون، الخل، المنظفات الحمضية)، ويحتاج عزلاً وتلميعاً أو بلورة دورية؛ ويناسب الأرضيات والجدران في الحركة المنخفضة والمتوسطة والمناطق الجمالية. والجرانيت حجر ناري، أصلب بكثير وأكثر مقاومة للخدش والحرارة والأحماض، فيناسب أسطح المطابخ والأرضيات كثيفة الحركة والتبليط الخارجي. وأحجار أخرى: الحجر الجيري والترافرتين (أنعم، غالباً معبأ)، والأونيكس (شفاف جزئياً للعناصر المضاءة من الخلف)، والكوارتزيت (حجر طبيعي صلب جداً)، والأردواز والحجر الرملي. والكوارتز الهندسي وألواح البورسلين بدائل مصنعة. والتشطيبات: مصقول (لامع وزلق عند البلل)، وناعم مطفي، ومفرّش أو بملمس الجلد (محبب)، ومحروق أو مطروق (مقاوم للانزلاق للخارج). ونقاط المواصفة: اسم الحجر ومنشؤه، والدرجة أو الانتقاء (تجانس اللون والعروق، العيوب)، والسماكة (مثل 18-20 مم لبلاط الأرضيات، و20 أو 30 مم للألواح)، والمقاس، وحواف الأسطح، وامتصاص الماء ومقاومة الانحناء للاستخدام الخارجي أو الواجهات، ومقاومة الانزلاق للمناطق الرطبة. ويحتاج التركيب اللاصق المناسب (أبيض أو سريع التصلب للرخام لمنع التبقع)، وفواصل الحركة، والعزل.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Marble"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: marble is soft and porous, scratches easily, is attacked by acids, and is polished by crystallisation -> confirmed."
+    },
+    {
+      "id": "marble_stone:lead-times-and-quoting",
+      "topic": "Marble, granite & natural stone - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الرخام والجرانيت والحجر الطبيعي: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock tiles and slabs: days; imported selections 4-10 weeks; fabrication of countertops 1-3 weeks after templating. A supplier needs the stone or look wanted, areas and dimensions, thickness and finish, edge details, quantities with wastage, and installation needs. A quote states stone name and origin, grade, thickness, finish, sizes, quantity with wastage, fabrication and installation, sealing, delivery and validity.",
+      "body_ar": "البلاط والألواح المتوفرة: أيام؛ والانتقاءات المستوردة 4-10 أسابيع؛ وتصنيع الأسطح 1-3 أسابيع بعد أخذ القالب. ويحتاج المورد الحجر أو المظهر المطلوب، والمساحات والأبعاد، والسماكة والتشطيب، وتفاصيل الحواف، والكميات مع الهدر، واحتياجات التركيب. ويذكر العرض اسم الحجر ومنشأه والدرجة والسماكة والتشطيب والمقاسات والكمية مع الهدر والتصنيع والتركيب والعزل والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -82,6 +112,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither compares quartz vs sintered stone; missing: engineered surfaces comparison entry). marble_stone:engineered-quartz-vs-sintered-stone was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from marble_stone.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Marble or granite for a kitchen countertop that gets lemon and hot pans?",
+      "q_ar": "رخام ولا جرانيت لسطح مطبخ يتعرض لليمون والقدور الحارة؟",
+      "expected_entry_ids": [
+        "marble_stone:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -101,6 +139,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "marble_stone:engineered-quartz-vs-sintered-stone"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "marble_stone:product-distinctions"
+      ],
+      "stored_not_served": [
+        "marble_stone:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Marble"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

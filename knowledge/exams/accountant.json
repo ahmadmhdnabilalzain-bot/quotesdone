@@ -199,8 +199,8 @@
       ],
       "q_reworded": "A supplier ignored a paid unlock and we refunded the buyer. What can we bill the supplier?",
       "answer_must": [
-        "The 3% charge plus 12% per annum simple interest",
-        "Plus an AED 500 admin fee where that agreement version applies"
+        "The supplier owes the exact amount refunded plus the processor fee QuotesDone could not recover, an AED 500 admin fee and 12% a year simple interest (Supplier Agreement v14/v15)",
+        "An earlier accepted version keeps its own terms: v13 AED 500 and 9%, v10-v12 AED 250 and 9%"
       ]
     },
     {
@@ -1313,7 +1313,8 @@
       ],
       "q_reworded": "A buyer based in Oman paid a fee. Do we charge 5%?",
       "answer_must": [
-        "It can be zero-rated if the recipient is non-resident and outside the UAE and the service is not tied to UAE real estate or goods"
+        "No VAT is charged: QuotesDone is not VAT-registered, so neither 5% nor zero-rating applies today",
+        "Once registered, a fee to a non-resident outside the UAE can be zero-rated if the service is not tied to UAE real estate or goods"
       ]
     },
     {
@@ -1656,7 +1657,7 @@
       "expected_facts": [
         "3.00%"
       ],
-      "q_reworded": "Someone just paid to unlock a supplier. What does finance do next?",
+      "q_reworded": "Out of every reveal we collect, what share should land as our net fee?",
       "answer_must": [
         "The net fee rate per reveal is 3.00% of the quotation value"
       ]
@@ -1672,7 +1673,7 @@
       "expected_facts": [
         "3D Secure"
       ],
-      "q_reworded": "Do we add 5% tax on top of our unlock charge?",
+      "q_reworded": "How do we keep fraudsters with stolen cards from paying for unlocks?",
       "answer_must": [
         "Use 3D Secure (Strong Customer Authentication) on card payments, with Stripe Radar rules"
       ]
@@ -1688,7 +1689,7 @@
       "expected_facts": [
         "25% or more"
       ],
-      "q_reworded": "If a buyer pays with a credit card, do they pay extra, and who eats the processing cost?",
+      "q_reworded": "At what stake does a shareholder count as the real owner we must record?",
       "answer_must": [
         "A beneficial owner holds 25% or more of the ownership or voting rights, or otherwise controls the entity"
       ]
@@ -1704,7 +1705,7 @@
       "expected_facts": [
         "Cabinet Resolution 134 of 2025"
       ],
-      "q_reworded": "A quote comes in at a hundred thousand dirhams. What do we keep?",
+      "q_reworded": "Do the anti-money-laundering rules treat a business like ours as a designated non-financial business?",
       "answer_must": [
         "Answer by the current DNFBP list under Cabinet Resolution 134 of 2025, not by assumption"
       ]
@@ -1720,7 +1721,7 @@
       "expected_facts": [
         "tip off"
       ],
-      "q_reworded": "A buyer lost their receipt. Where can they find it again?",
+      "q_reworded": "We think a buyer may be laundering money. Should we let them know we are looking into it?",
       "answer_must": [
         "No: it is an offence to tip off the customer; report through goAML and say nothing to them"
       ]
@@ -1736,7 +1737,7 @@
       "expected_facts": [
         "21 days"
       ],
-      "q_reworded": "Which seat lets the buyer know their card charge succeeded?",
+      "q_reworded": "When we hire, what end-of-service pay builds up in an employee's first five years?",
       "answer_must": [
         "21 days of basic wage for each year of the first five years"
       ]
@@ -1752,7 +1753,7 @@
       "expected_facts": [
         "Wage Protection System"
       ],
-      "q_reworded": "The boss okayed a refund yesterday. Can I process the other three pending ones too?",
+      "q_reworded": "Once we have staff, through what system must their salaries be paid?",
       "answer_must": [
         "Through the Wage Protection System (WPS)"
       ]
@@ -1768,7 +1769,7 @@
       "expected_facts": [
         "market value"
       ],
-      "q_reworded": "If we give a buyer their money back, do we deduct the card fee?",
+      "q_reworded": "Can the owner draw a salary from the company and count it as a deductible expense?",
       "answer_must": [
         "Only at market value for real work done, documented; anything above is not deductible"
       ]
@@ -1784,7 +1785,7 @@
       "expected_facts": [
         "Reasoning sequence the accountant follow"
       ],
-      "q_reworded": "After approval, how fast does a refund actually go out?",
+      "q_reworded": "A tax question comes up that nobody here has seen before. How do you work it out?",
       "answer_must": [
         "Follow the accountant's reasoning sequence: identify the law and article, the facts, apply, state the conclusion and its confidence, and escalate what cannot be settled"
       ]

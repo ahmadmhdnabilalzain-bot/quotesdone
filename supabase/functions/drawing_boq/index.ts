@@ -19,6 +19,7 @@ import { readEveryAttachment, gatewayVision, b64Bytes } from '../_shared/read_ev
 import { DRAWING_KINDS, drawingIdentityTerms, gateDrawingBoq } from '../_shared/drawing_identity_gate.ts';
 import { empty } from '../_shared/doc_read/types.ts';
 import { drawingInput } from './drawing_input.ts';
+import { parseVisionCounts, reconcile, visionUserText, VISION_COUNT_FLAG, VISION_COUNT_MAX_TOKENS, VISION_COUNT_ROUTE, VISION_COUNT_SYS } from './vision_count.ts';
 import { CONFIRM_MAX_TOKENS, CONFIRM_ROUTE, CONFIRM_SYS, confirmUserText, mergeConfirm, parseConfirm, redactedPageFor, type ConfirmReply, type RedactedPage, type RedactionRun } from './confirm.ts';
 import { lineKey } from '../_shared/boq_open_lines.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -106,6 +107,35 @@ Deno.serve(observe('drawing_boq', async (req) => {
       // No author named: 'unknown' — the confirm is withheld, never routed as if code wrote it (every reader now names its author).
       const author = typeof body.author_model === 'string' && body.author_model.trim() ? body.author_model.trim().slice(0, 200) : 'unknown';
       return J({ ok: true, ...(await confirmStep(lines, page, author)) });
+    }
+    // 19 Oct 2026. THE VISION COUNT (vision_count.ts): a model counts each legend symbol on the REDACTED page of a
+    // photo or scan, after redaction, like the confirm. Body: {mode:'vision_count', redaction_job_id, legend:[{type,en}],
+    // code_counts, addresses}. Off when the flag is off, the page is not verified, or the model refuses: code stands.
+    if (body.mode === 'vision_count') {
+      const legend = (Array.isArray(body.legend) ? body.legend : []).slice(0, 30).filter((t: any) => t && typeof t.type === 'string').map((t: any) => ({ type: String(t.type).slice(0, 60), en: String(t.en || t.type).slice(0, 80) }));
+      const code: Record<string, number> = {};
+      for (const t of legend) { const n = Number(body.code_counts?.[t.type]); if (Number.isInteger(n) && n >= 0) code[t.type] = n; }
+      const addresses = Number.isInteger(Number(body.addresses)) ? Number(body.addresses) : null;
+      const flag = String((await sec(VISION_COUNT_FLAG)) || 'on').toLowerCase();
+      if (['off', 'false', '0'].includes(flag) || !legend.length) return J({ ok: true, ...reconcile(code, null, addresses), why: 'off' });
+      const jobId = String(body.redaction_job_id || '');
+      const { data: run } = /^[0-9a-f-]{36}$/i.test(jobId) ? await admin.from('drawing_redaction_runs').select('id,status,pages_in,pages_out,output_paths').eq('id', jobId).maybeSingle() : { data: null };
+      const page = redactedPageFor(run as RedactionRun | null);
+      if (!page) return J({ ok: true, ...reconcile(code, null, addresses), why: 'redaction_not_verified' });
+      const { data: file } = await admin.storage.from('drawing-files').download(page.path);
+      if (!file) return J({ ok: true, ...reconcile(code, null, addresses), why: 'redacted_page_unreadable' });
+      const u8 = new Uint8Array(await file.arrayBuffer()); let bin = '';
+      for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode(...u8.subarray(i, i + 0x8000));
+      let vision: Record<string, number> | null = null, why = 'no_reply';
+      try {
+        const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+          __secret: await sec('cred_fn_ai'), fn: 'drawing_boq', task_class: VISION_COUNT_ROUTE, max: VISION_COUNT_MAX_TOKENS, temperature: 0, sys: VISION_COUNT_SYS,
+          input: [{ role: 'user', content: [{ type: 'text', text: visionUserText(legend) }, { type: 'image_url', image_url: { url: dataUrl(btoa(bin), 'image/jpeg') } }] }] }) });
+        const jd = await r.json();
+        if (r.ok && jd?.ok !== false && jd?.content) { vision = parseVisionCounts(String(jd.content), legend.map((t: any) => t.type)); why = vision ? 'ok' : 'unparseable'; }
+        else why = String(jd?.outcome || jd?.error || 'refused');
+      } catch (_e) { why = 'exception'; }
+      return J({ ok: true, ...reconcile(code, vision, addresses), vision, why, redaction_job_id: page.job_id });
     }
     // 22 Sep 2026. THE LENGTHS, as a second call after the take-off (drawing_set.ts, "THE LENGTHS ARE A SECOND
     // CALL"): the same PDF read WITH its CAD layers, duct and pipe runs measured at the printed scale, and

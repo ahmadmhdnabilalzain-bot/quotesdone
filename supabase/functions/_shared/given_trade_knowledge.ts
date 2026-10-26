@@ -12,6 +12,9 @@ export interface GivenDeps {
   embed: (t: string, space: 'gte' | 'ml') => Promise<number[] | null>;
   rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
   gteReads: (t: string) => boolean;
+  /** Who reads the reply, sent as p_audience: only 'internal' or 'founder' reserves seat-own rows. Absent means
+   *  'visitor', the value think.ts sends for a public reader (reasoned_channels.ts). Never left to the signature. */
+  audience?: 'visitor' | 'customer' | 'supplier';
 }
 export interface GivenRow { source?: string; id?: string; title?: string; excerpt?: string; similarity?: number }
 
@@ -40,7 +43,7 @@ async function fetchGiven(deps: GivenDeps, question: string, k: number): Promise
     const v = await deps.embed(question, 'ml');
     if (!v) return [];
     const vg = deps.gteReads(question) ? await deps.embed(question, 'gte') : null;
-    const { data, error } = await deps.rpc('fn_reason_retrieve_ml', { p_seat: 'customer_support', p_embedding: vec(v), p_embedding_gte: vg ? vec(vg) : null, p_k: k });
+    const { data, error } = await deps.rpc('fn_reason_retrieve_ml', { p_seat: 'customer_support', p_embedding: vec(v), p_embedding_gte: vg ? vec(vg) : null, p_k: k, p_audience: deps.audience ?? 'visitor' });
     if (error || !Array.isArray(data)) return [];
     return (data as GivenRow[]).filter((r) => Number(r.similarity) >= GIVEN_FLOOR && r.excerpt && customerSafe(r));
   } catch { return []; }
