@@ -1,0 +1,7 @@
+Committed, not applied: the release operator applies it at merge (apply at merge, never before), then deletes this note
+and appends the file to the END of MANIFEST.txt in the same commit. It redefines fn_seat_revises_for_the_ceo and
+fn_ceo_revision_applies (both bodies were equal to production on 27 Oct 2026), creates fn_ceo_revision_refile and
+registers the duty ceo.revision_refile (daily). No ordering dependency on any other pending file.
+On the first tick after apply the four ceo.revise handoffs stuck since 13-17 Oct (151684, 163352, 170729, 171906) are
+asked again - one held question each, three tries at most, the same budget the reasoning queue already allows.
+Seat: ceo.
