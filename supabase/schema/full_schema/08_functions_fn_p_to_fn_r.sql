@@ -1,3 +1,34 @@
+CREATE OR REPLACE FUNCTION public.fn_pack_rows_without_fresh_ml_vector(p_grace interval DEFAULT '01:00:00'::interval)
+ RETURNS TABLE(src text, pack_rows integer, without_fresh integer, overdue integer, oldest_due timestamp with time zone)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with last_load as (
+    select max(r.finished_at) t from public.agent_runs r
+     where r.agent = 'it_engineer' and r.counts->>'job' = 'verified_pack_load'
+  ), pack as (
+              select 'ceo_knowledge'::text src, c.record_id, null::timestamptz upd from public.ceo_knowledge c where c.tags @> array['verified_pack']
+    union all select 'support_knowledge', s.record_id, null from public.support_knowledge s where s.tags @> array['verified_pack']
+    union all select 'accountant_knowledge', a.record_id, a.updated_at from public.accountant_knowledge a where a.tags @> array['verified_pack']
+    union all select 'it_engineer_knowledge', i.record_id, i.updated_at from public.it_engineer_knowledge i where i.tags @> array['verified_pack']
+    union all select 'marketing_knowledge', m.record_id, m.updated_at from public.marketing_knowledge m where m.tags @> array['verified_pack']
+    union all select 'sales_knowledge', k.record_id, k.updated_at from public.sales_knowledge k where k.tags @> array['verified_pack']
+  ), j as (
+    -- Only what the queue can claim: an eligible row (it is in the view) with a body.
+    select p.src, (v.row_id is not null) fresh, coalesce(p.upd, (select t from last_load), '-infinity'::timestamptz) due
+      from pack p
+      join public.v_knowledge_ml_source s on s.src = p.src and s.row_id = p.record_id and btrim(coalesce(s.body, '')) <> ''
+      left join public.knowledge_vector_ml v on v.src = p.src and v.row_id = p.record_id
+            and v.text_hash = md5(coalesce(s.title, '') || E'\n' || coalesce(s.body, ''))
+  )
+  select j.src, count(*)::int, count(*) filter (where not j.fresh)::int,
+         count(*) filter (where not j.fresh and j.due < now() - p_grace)::int,
+         min(j.due) filter (where not j.fresh)
+    from j group by j.src order by j.src;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_page_high_agent_action()
  RETURNS trigger
  LANGUAGE plpgsql

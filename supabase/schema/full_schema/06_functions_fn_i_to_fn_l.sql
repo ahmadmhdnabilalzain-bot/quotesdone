@@ -3740,6 +3740,19 @@ begin
   -- within_its_window.sql). Cannot see: a conversation that was never started -- only one that stalled.
   v_out := v_out || jsonb_build_object('handoff_sla', public.fn_it_duty_settle('handoff_sla', public.fn_it_handoff_sla_items()));
 
+  -- ── 4c. EVERY PACK ROW HAS ITS MULTILINGUAL VECTOR ──
+  -- Reads: fn_pack_rows_without_fresh_ml_vector, the eligible verified_pack rows of the six seat tables whose
+  -- ml vector is missing or stale for over an hour since their load. Cannot see: why the queue is slow.
+  v_items := '[]'::jsonb;
+  for x in select * from public.fn_pack_rows_without_fresh_ml_vector(interval '1 hour') p where p.overdue > 0 loop
+    v_items := v_items || jsonb_build_object('item', x.src, 'owner_seat', 'it_engineer', 'subject', 'knowledge_ml',
+      'title', x.overdue || ' ' || x.src || ' pack rows have had no fresh multilingual vector for over an hour',
+      'blast', 'agent_facing', 'affected', x.overdue,
+      'evidence', jsonb_build_object('pack_rows', x.pack_rows, 'without_fresh', x.without_fresh, 'overdue', x.overdue,
+        'oldest_due', x.oldest_due, 'remedy', 'gh workflow run ml-embed-backfill.yml; fn_ml_embed_claim serves the rows'));
+  end loop;
+  v_out := v_out || jsonb_build_object('pack_ml_vectors', public.fn_it_duty_settle('pack_ml_vectors', v_items));
+
   -- ── 5. PAYMENT RECONCILIATION ──
   -- Reads: Stripe live and test — completed Checkout Sessions and refunds of the last 72 hours, and the
   -- webhook endpoints' enabled events against HANDLED_STRIPE_EVENTS (passed in from
