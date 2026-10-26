@@ -1,0 +1,6 @@
+Committed with its PR and applied at merge by the release operator (apply at merge, never before).
+It registers the invoice.issued conversation (accountant -> sales_engineer) in public.seat_handoff_kind, gives
+the accountant's handoff its type, decision and ask, and routes the sales engineer's answer through
+fn_seat_handoff_act so the note is cited. Proved before apply by rolled-back replays:
+node --test scripts/checks/the_reveal_invoice_handoff_states_its_note_and_is_cited.test.mjs
+Moves to the END of MANIFEST.txt (and this note is deleted) in the commit that records the apply. Seat: accountant.
