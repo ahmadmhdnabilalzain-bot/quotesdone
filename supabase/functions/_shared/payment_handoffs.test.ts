@@ -55,6 +55,12 @@ Deno.test('only customer_support delivers, and every seat that asks hears back',
     // — and a sixth (ledger 1152, #1566): a contested automated decision goes to the seat review_route names as its
     // owner as review.requested; it asks that seat to decide it again on another model family and delivers nothing.
     if (h.type === 'review.requested') continue;
+    // — and a seventh (#1549 CS-C03): a question support could not answer goes to the seat that owns the knowledge
+    // (sales_engineer or ceo) as knowledge.request with a 7-day deadline; it asks for the entry and delivers nothing.
+    if (h.type === 'knowledge.request' && ['sales_engineer', 'ceo'].includes(h.to)) continue;
+    // — and an eighth (#1549 CS-C11): a verified PDPL correction request goes to it_engineer as data.correction; it asks
+    // for the record to be corrected by the due date and delivers nothing.
+    if (h.type === 'data.correction' && h.to === 'it_engineer') continue;
     assertEquals(h.type, 'delivery.result');
   }
   for (const h of HANDOFF_TYPES.filter((x) => x.type === 'delivery.request')) {

@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-27T18:48:52.963Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-27T20:23:26.042Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -221,7 +221,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (754) =====
+-- ===== TABLES (764) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -2716,6 +2716,25 @@ CREATE TABLE IF NOT EXISTS public.customer_support_case_review (
   reviewed_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.customer_support_data_request (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  received_at timestamp with time zone DEFAULT now() NOT NULL,
+  email text NOT NULL,
+  kind text NOT NULL,
+  source text NOT NULL,
+  case_ref text,
+  pdpl_request_id uuid,
+  handoff_id bigint,
+  identity_status text DEFAULT 'pending'::text NOT NULL,
+  due_at timestamp with time zone NOT NULL,
+  status text DEFAULT 'open'::text NOT NULL,
+  fulfilled_at timestamp with time zone,
+  outcome jsonb DEFAULT '{}'::jsonb NOT NULL,
+  warned_at timestamp with time zone,
+  overdue_at timestamp with time zone,
+  fixture boolean DEFAULT false NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.customer_support_duty_message (
   stage text NOT NULL,
   subject_key text NOT NULL,
@@ -2727,12 +2746,61 @@ CREATE TABLE IF NOT EXISTS public.customer_support_duty_message (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.customer_support_inbound_drive (
+  channel text NOT NULL,
+  message_id bigint NOT NULL,
+  case_ref text,
+  acknowledged boolean DEFAULT false NOT NULL,
+  handoff_id bigint,
+  outcome text,
+  acted_at timestamp with time zone DEFAULT now() NOT NULL,
+  answered_at timestamp with time zone,
+  fixture boolean DEFAULT false NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.customer_support_monthly_review (
   month date NOT NULL,
   metrics jsonb NOT NULL,
   below_target text[] DEFAULT '{}'::text[] NOT NULL,
   fixture boolean DEFAULT false NOT NULL,
   reviewed_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.customer_support_reply_quality_week (
+  week_ending date NOT NULL,
+  metrics jsonb NOT NULL,
+  below_target text[] DEFAULT '{}'::text[] NOT NULL,
+  fixture boolean DEFAULT false NOT NULL,
+  reviewed_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.customer_support_voc_month (
+  month date NOT NULL,
+  report jsonb NOT NULL,
+  actions jsonb DEFAULT '[]'::jsonb NOT NULL,
+  ceo_report jsonb,
+  fixture boolean DEFAULT false NOT NULL,
+  reported_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.customer_support_voice_owed (
+  stage text NOT NULL,
+  subject_key text NOT NULL,
+  voice_key text NOT NULL,
+  to_role text NOT NULL,
+  to_email text NOT NULL,
+  lang text NOT NULL,
+  subject text NOT NULL,
+  draft text NOT NULL,
+  situation text NOT NULL,
+  facts text DEFAULT ''::text NOT NULL,
+  must text[] DEFAULT '{}'::text[] NOT NULL,
+  attempts integer DEFAULT 0 NOT NULL,
+  last_error text,
+  written_by text,
+  written_at timestamp with time zone,
+  result jsonb,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.customers (
@@ -4565,7 +4633,10 @@ CREATE TABLE IF NOT EXISTS public.it_incident (
   recorded_by text,
   pdf_path text,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  customer_impact text,
+  customer_note_en text,
+  customer_note_ar text
 );
 
 CREATE TABLE IF NOT EXISTS public.it_integration_external_cause (
@@ -5008,6 +5079,12 @@ CREATE TABLE IF NOT EXISTS public.knowledge_ingestion_undo (
   key text NOT NULL,
   existed boolean NOT NULL,
   prev_row jsonb
+);
+
+CREATE TABLE IF NOT EXISTS public.knowledge_internal_figure_record (
+  record_id text NOT NULL,
+  why text NOT NULL,
+  added_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.knowledge_kpi_snapshots (
@@ -8313,7 +8390,13 @@ CREATE TABLE IF NOT EXISTS public.sales_knowledge_gap (
   source text,
   source_ref text,
   excerpt text,
-  detector text
+  detector text,
+  owner_seat text,
+  due_at timestamp with time zone,
+  routed_at timestamp with time zone,
+  handoff_id bigint,
+  chase_count integer DEFAULT 0 NOT NULL,
+  chased_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.sales_qualification_field (
@@ -9549,6 +9632,28 @@ CREATE TABLE IF NOT EXISTS public.supplier_voice_note (
   chars integer
 );
 
+CREATE TABLE IF NOT EXISTS public.supplier_whatsapp_consent_ask (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  phone text NOT NULL,
+  question text NOT NULL,
+  asked_by text NOT NULL,
+  asked_at timestamp with time zone DEFAULT now() NOT NULL,
+  answered_at timestamp with time zone,
+  answer text
+);
+
+CREATE TABLE IF NOT EXISTS public.supplier_whatsapp_optin (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  lead_id bigint NOT NULL,
+  phone text NOT NULL,
+  source text NOT NULL,
+  button_payload text,
+  consent_question text,
+  consent_answer text,
+  evidence text NOT NULL,
+  opted_in_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.supply_gap (
   trade text NOT NULL,
   emirate text NOT NULL,
@@ -10162,6 +10267,18 @@ CREATE TABLE IF NOT EXISTS public.undo_log (
   created_at timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.unsubscribe_refusal (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  at timestamp with time zone DEFAULT now() NOT NULL,
+  email text NOT NULL,
+  method text,
+  token_present boolean DEFAULT false NOT NULL,
+  user_agent text,
+  confirm_sent_at timestamp with time zone,
+  recovered_at timestamp with time zone,
+  outcome text
+);
+
 CREATE TABLE IF NOT EXISTS public.user_roles (
   email text NOT NULL,
   role text NOT NULL,
@@ -10275,6 +10392,16 @@ CREATE TABLE IF NOT EXISTS public.wa_reply_intent (
   active boolean DEFAULT true NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   requires_number boolean DEFAULT false NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.wa_sender_quality_reading (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  read_at timestamp with time zone DEFAULT now() NOT NULL,
+  rating text,
+  status text NOT NULL,
+  messaging_limit text,
+  ok boolean NOT NULL,
+  raw jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.wa_template_registry (
@@ -10600,8 +10727,13 @@ ALTER TABLE public.customer_preference ADD CONSTRAINT customer_preference_pkey P
 ALTER TABLE public.customer_score ADD CONSTRAINT customer_score_pkey PRIMARY KEY (customer_id);
 ALTER TABLE public.customer_spec_guide ADD CONSTRAINT customer_spec_guide_pkey PRIMARY KEY (trade);
 ALTER TABLE public.customer_support_case_review ADD CONSTRAINT customer_support_case_review_pkey PRIMARY KEY (week_ending);
+ALTER TABLE public.customer_support_data_request ADD CONSTRAINT customer_support_data_request_pkey PRIMARY KEY (id);
 ALTER TABLE public.customer_support_duty_message ADD CONSTRAINT customer_support_duty_message_pkey PRIMARY KEY (stage, subject_key);
+ALTER TABLE public.customer_support_inbound_drive ADD CONSTRAINT customer_support_inbound_drive_pkey PRIMARY KEY (channel, message_id);
 ALTER TABLE public.customer_support_monthly_review ADD CONSTRAINT customer_support_monthly_review_pkey PRIMARY KEY (month);
+ALTER TABLE public.customer_support_reply_quality_week ADD CONSTRAINT customer_support_reply_quality_week_pkey PRIMARY KEY (week_ending);
+ALTER TABLE public.customer_support_voc_month ADD CONSTRAINT customer_support_voc_month_pkey PRIMARY KEY (month);
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_pkey PRIMARY KEY (stage, subject_key);
 ALTER TABLE public.customers ADD CONSTRAINT customers_pkey PRIMARY KEY (id);
 ALTER TABLE public.dead_letter ADD CONSTRAINT dead_letter_pkey PRIMARY KEY (id);
 ALTER TABLE public.decision_log ADD CONSTRAINT decision_log_pkey PRIMARY KEY (id);
@@ -10782,6 +10914,7 @@ ALTER TABLE public.knowledge_exam_questions ADD CONSTRAINT knowledge_exam_questi
 ALTER TABLE public.knowledge_exam_results ADD CONSTRAINT knowledge_exam_results_pkey PRIMARY KEY (id);
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_pkey PRIMARY KEY (run_id);
 ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_undo_pkey PRIMARY KEY (run_id, table_name, key);
+ALTER TABLE public.knowledge_internal_figure_record ADD CONSTRAINT knowledge_internal_figure_record_pkey PRIMARY KEY (record_id);
 ALTER TABLE public.knowledge_kpi_snapshots ADD CONSTRAINT knowledge_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.knowledge_library ADD CONSTRAINT knowledge_library_pkey PRIMARY KEY (id);
 ALTER TABLE public.knowledge_library_origin ADD CONSTRAINT knowledge_library_origin_pkey PRIMARY KEY (origin_store, origin_id);
@@ -11099,6 +11232,8 @@ ALTER TABLE public.supplier_score ADD CONSTRAINT supplier_score_pkey PRIMARY KEY
 ALTER TABLE public.supplier_scorecard ADD CONSTRAINT supplier_scorecard_pkey PRIMARY KEY (lead_id, month);
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_pkey PRIMARY KEY (id);
+ALTER TABLE public.supplier_whatsapp_consent_ask ADD CONSTRAINT supplier_whatsapp_consent_ask_pkey PRIMARY KEY (id);
+ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_pkey PRIMARY KEY (id);
 ALTER TABLE public.supply_gap ADD CONSTRAINT supply_gap_pkey PRIMARY KEY (trade, emirate);
 ALTER TABLE public.supply_health_snapshots ADD CONSTRAINT supply_health_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_pkey PRIMARY KEY (id);
@@ -11138,6 +11273,7 @@ ALTER TABLE public.trade_spec_checklist ADD CONSTRAINT trade_spec_checklist_pkey
 ALTER TABLE public.transactions ADD CONSTRAINT transactions_pkey PRIMARY KEY (id);
 ALTER TABLE public.ui_label ADD CONSTRAINT ui_label_pkey PRIMARY KEY (domain, key);
 ALTER TABLE public.undo_log ADD CONSTRAINT undo_log_pkey PRIMARY KEY (id);
+ALTER TABLE public.unsubscribe_refusal ADD CONSTRAINT unsubscribe_refusal_pkey PRIMARY KEY (id);
 ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_pkey PRIMARY KEY (email, role);
 ALTER TABLE public.vendor_billing_ended ADD CONSTRAINT vendor_billing_ended_pkey PRIMARY KEY (vendor);
 ALTER TABLE public.vision_horizon ADD CONSTRAINT vision_horizon_pkey PRIMARY KEY (year_no);
@@ -11148,6 +11284,7 @@ ALTER TABLE public.wa_document_intake ADD CONSTRAINT wa_document_intake_pkey PRI
 ALTER TABLE public.wa_inbound_seen ADD CONSTRAINT wa_inbound_seen_pkey PRIMARY KEY (message_sid);
 ALTER TABLE public.wa_messages ADD CONSTRAINT wa_messages_pkey PRIMARY KEY (id);
 ALTER TABLE public.wa_reply_intent ADD CONSTRAINT wa_reply_intent_pkey PRIMARY KEY (intent_key);
+ALTER TABLE public.wa_sender_quality_reading ADD CONSTRAINT wa_sender_quality_reading_pkey PRIMARY KEY (id);
 ALTER TABLE public.wa_template_registry ADD CONSTRAINT wa_template_registry_pkey PRIMARY KEY (template_name);
 ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_pkey PRIMARY KEY (id);
 ALTER TABLE public.web_search_day ADD CONSTRAINT web_search_day_pkey PRIMARY KEY (day);
@@ -11294,6 +11431,7 @@ ALTER TABLE public.supplier_product_variant ADD CONSTRAINT supplier_product_vari
 ALTER TABLE public.supplier_quote_template ADD CONSTRAINT supplier_quote_template_supplier_id_name_key UNIQUE (supplier_id, name);
 ALTER TABLE public.supplier_response_watch ADD CONSTRAINT supplier_response_watch_one_per_tx UNIQUE (transaction_id);
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_lead_id_entry_source_entry_reference_key UNIQUE (lead_id, entry_source, entry_reference, field);
+ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_lead_id_phone_key UNIQUE (lead_id, phone);
 ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_trade_emirate_key UNIQUE (trade, emirate);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_case_ref_key UNIQUE (case_ref);
 ALTER TABLE public.support_ceo_report ADD CONSTRAINT support_ceo_report_idempotency_key_key UNIQUE (idempotency_key);
@@ -11517,9 +11655,22 @@ ALTER TABLE public.customer_followup ADD CONSTRAINT customer_followup_stage_chec
 ALTER TABLE public.customer_followup ADD CONSTRAINT customer_followup_stars_check CHECK (((stars >= 1) AND (stars <= 5)));
 ALTER TABLE public.customer_spec_guide ADD CONSTRAINT customer_spec_guide_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'published'::text])));
 ALTER TABLE public.customer_support_case_review ADD CONSTRAINT customer_support_case_review_knowledge_filed_check CHECK ((knowledge_filed >= 0));
+ALTER TABLE public.customer_support_data_request ADD CONSTRAINT customer_support_data_request_identity_status_check CHECK ((identity_status = ANY (ARRAY['pending'::text, 'verified'::text, 'failed'::text])));
+ALTER TABLE public.customer_support_data_request ADD CONSTRAINT customer_support_data_request_kind_check CHECK ((kind = ANY (ARRAY['access'::text, 'correction'::text, 'erasure'::text, 'objection'::text])));
+ALTER TABLE public.customer_support_data_request ADD CONSTRAINT customer_support_data_request_status_check CHECK ((status = ANY (ARRAY['open'::text, 'fulfilled'::text, 'refused'::text])));
 ALTER TABLE public.customer_support_duty_message ADD CONSTRAINT customer_support_duty_message_stage_check CHECK ((stage ~ '^[a-z_]+\.[a-z_]+$'::text));
 ALTER TABLE public.customer_support_duty_message ADD CONSTRAINT customer_support_duty_message_subject_key_check CHECK ((btrim(subject_key) <> ''::text));
+ALTER TABLE public.customer_support_inbound_drive ADD CONSTRAINT customer_support_inbound_drive_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'whatsapp'::text])));
 ALTER TABLE public.customer_support_monthly_review ADD CONSTRAINT customer_support_monthly_review_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
+ALTER TABLE public.customer_support_voc_month ADD CONSTRAINT customer_support_voc_month_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_draft_check CHECK ((btrim(draft) <> ''::text));
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_lang_check CHECK ((lang = ANY (ARRAY['en'::text, 'ar'::text])));
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_situation_check CHECK ((btrim(situation) <> ''::text));
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_stage_check CHECK ((stage ~ '^[a-z_]+\.[a-z_]+$'::text));
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_subject_key_check CHECK ((btrim(subject_key) <> ''::text));
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_to_role_check CHECK ((to_role = ANY (ARRAY['customer'::text, 'supplier'::text])));
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_voice_key_check CHECK ((btrim(voice_key) <> ''::text));
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_written_by_check CHECK ((written_by = ANY (ARRAY['model'::text, 'outage_fallback'::text])));
 ALTER TABLE public.customers ADD CONSTRAINT customers_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
 ALTER TABLE public.customers ADD CONSTRAINT customers_whatsapp_opt_known CHECK (((whatsapp_opt IS NULL) OR (whatsapp_opt = ANY (ARRAY['same'::text, 'other'::text, 'none'::text]))));
 ALTER TABLE public.customers ADD CONSTRAINT customers_whatsapp_phone_is_verified CHECK (((whatsapp_phone IS NULL) OR (whatsapp_verified_at IS NOT NULL)));
@@ -11639,6 +11790,7 @@ ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_warn_days_ck CHECK (((card
 ALTER TABLE public.it_founder_decision_class ADD CONSTRAINT it_founder_decision_class_only_his_categories CHECK (((NOT to_founder) OR (founder_category = ANY (ARRAY['money'::text, 'destructive_production_change'::text, 'fact_only_he_holds'::text]))));
 ALTER TABLE public.it_game_day_run ADD CONSTRAINT it_game_day_run_run_month_check CHECK ((run_month = (date_trunc('month'::text, (run_month)::timestamp with time zone))::date));
 ALTER TABLE public.it_game_day_run ADD CONSTRAINT it_game_day_run_scenario_check CHECK ((scenario = ANY (ARRAY['email_provider_down'::text, 'whatsapp_down'::text, 'edge_function_slow'::text, 'db_connection'::text, 'credential_expired'::text])));
+ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_customer_impact_check CHECK (((customer_impact IS NULL) OR (customer_impact = ANY (ARRAY['customers'::text, 'suppliers'::text, 'everyone'::text]))));
 ALTER TABLE public.it_model_consumer ADD CONSTRAINT it_model_consumer_consumer_check CHECK ((consumer ~ '^[a-z0-9_]+[:.][a-z0-9_]+$'::text));
 ALTER TABLE public.it_model_consumer ADD CONSTRAINT it_model_consumer_why_a_model_check CHECK ((btrim(why_a_model) <> ''::text));
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_added_by_check CHECK ((btrim(added_by) <> ''::text));
@@ -12231,13 +12383,17 @@ ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_chars_
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_duration_ms_check CHECK (((duration_ms IS NULL) OR (duration_ms >= 0)));
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_lang_check CHECK (((lang IS NULL) OR (lang = ANY (ARRAY['en'::text, 'ar'::text]))));
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_outcome_check CHECK ((outcome = ANY (ARRAY['pending'::text, 'flag_off'::text, 'rate_limited'::text, 'refused'::text, 'transcribed'::text, 'empty'::text, 'failed'::text])));
+ALTER TABLE public.supplier_whatsapp_consent_ask ADD CONSTRAINT supplier_whatsapp_consent_ask_phone_check CHECK ((phone ~ '^\+[0-9]{8,15}$'::text));
+ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_evidence_check CHECK ((btrim(evidence) <> ''::text));
+ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_phone_check CHECK ((phone ~ '^\+[0-9]{8,15}$'::text));
+ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_source_check CHECK ((source = ANY (ARRAY['wa_button'::text, 'wa_consent_reply'::text, 'email_consent_reply'::text, 'call_consent_reply'::text])));
 ALTER TABLE public.supply_gap ADD CONSTRAINT supply_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'deciding'::text, 'recruit'::text, 'deferred'::text, 'closed'::text])));
 ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_priority_check CHECK ((priority = ANY (ARRAY['P1'::text, 'P2'::text, 'P3'::text])));
 ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text])));
 ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_approved_ck CHECK (((privacy_state <> 'approved'::text) OR ((approved_at IS NOT NULL) AND (privacy_result IS NOT NULL) AND (checksum IS NOT NULL))));
 ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_kind_ck CHECK ((artifact_kind = ANY (ARRAY['comparison_report'::text, 'reveal_invoice'::text])));
 ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_privacy_ck CHECK ((privacy_state = ANY (ARRAY['unchecked'::text, 'approved'::text, 'refused'::text])));
-ALTER TABLE public.support_case ADD CONSTRAINT support_case_channel_ck CHECK (((channel IS NULL) OR (channel = ANY (ARRAY['whatsapp'::text, 'email'::text, 'widget'::text, 'portal'::text, 'phone'::text, 'internal'::text]))));
+ALTER TABLE public.support_case ADD CONSTRAINT support_case_channel_ck CHECK (((channel IS NULL) OR (channel = ANY (ARRAY['whatsapp'::text, 'email'::text, 'widget'::text, 'portal'::text, 'phone'::text, 'internal'::text, 'social'::text]))));
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_close_ck CHECK (((state <> 'closed'::text) OR ((closed_at IS NOT NULL) AND (close_reason IS NOT NULL))));
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_kind_ck CHECK ((case_kind = ANY (ARRAY['support'::text, 'service_recovery'::text])));
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_party_ck CHECK ((party_kind = ANY (ARRAY['customer'::text, 'supplier'::text, 'unknown'::text])));
@@ -12671,6 +12827,7 @@ ALTER TABLE public.supplier_quote_template ADD CONSTRAINT supplier_quote_templat
 ALTER TABLE public.supplier_scorecard ADD CONSTRAINT supplier_scorecard_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_run_id_fkey FOREIGN KEY (run_id) REFERENCES screening_run(id) ON DELETE SET NULL;
+ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supply_gap ADD CONSTRAINT supply_gap_brief_id_fkey FOREIGN KEY (brief_id) REFERENCES supply_recruitment_brief(id);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_category_fkey FOREIGN KEY (category) REFERENCES support_category(category);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_customer_profile_id_fkey FOREIGN KEY (customer_profile_id) REFERENCES support_customer_profile(id);
@@ -12802,6 +12959,9 @@ CREATE INDEX cpo_cust_idx ON public.customer_phone_otps USING btree (customer_id
 CREATE INDEX customer_calls_customer_idx ON public.customer_calls USING btree (customer_id, started_at DESC);
 CREATE INDEX customer_calls_inquiry_idx ON public.customer_calls USING btree (inquiry_id);
 CREATE UNIQUE INDEX customer_kpi_snap_day ON public.customer_kpi_snapshots USING btree (snapshot_date);
+CREATE UNIQUE INDEX customer_support_data_request_one_open ON public.customer_support_data_request USING btree (lower(email), kind) WHERE (status = 'open'::text);
+CREATE UNIQUE INDEX customer_support_data_request_pdpl ON public.customer_support_data_request USING btree (pdpl_request_id) WHERE (pdpl_request_id IS NOT NULL);
+CREATE INDEX customer_support_voice_owed_due ON public.customer_support_voice_owed USING btree (created_at) WHERE (written_at IS NULL);
 CREATE UNIQUE INDEX customers_email_lower_uidx ON public.customers USING btree (lower(btrim(email))) WHERE ((email IS NOT NULL) AND (btrim(email) <> ''::text));
 CREATE INDEX dead_letter_open_idx ON public.dead_letter USING btree (source, created_at DESC) WHERE (resolved_at IS NULL);
 CREATE INDEX decision_review_request_open_idx ON public.decision_review_request USING btree (owner_seat) WHERE (status = 'open'::text);
@@ -13245,6 +13405,8 @@ CREATE UNIQUE INDEX supplier_kpi_snap_day ON public.supplier_kpi_snapshots USING
 CREATE INDEX supplier_public_name_norm ON public.supplier_public_name USING btree (norm);
 CREATE INDEX supplier_response_watch_open_idx ON public.supplier_response_watch USING btree (opened_at) WHERE ((first_response_at IS NULL) AND (closed_at IS NULL));
 CREATE INDEX supplier_voice_note_supplier_recent ON public.supplier_voice_note USING btree (supplier_id, created_at DESC);
+CREATE INDEX supplier_whatsapp_consent_ask_phone_idx ON public.supplier_whatsapp_consent_ask USING btree (phone, asked_at DESC);
+CREATE INDEX supplier_whatsapp_optin_phone_idx ON public.supplier_whatsapp_optin USING btree (phone);
 CREATE INDEX support_case_category_opened_idx ON public.support_case USING btree (category, opened_at);
 CREATE INDEX support_case_profile_open_idx ON public.support_case USING btree (customer_profile_id) WHERE (state <> 'closed'::text);
 CREATE INDEX support_ceo_report_open_idx ON public.support_ceo_report USING btree (status, next_review_at) WHERE (status = ANY (ARRAY['sent'::text, 'failed'::text, 'blocked'::text]));
@@ -13271,6 +13433,8 @@ CREATE INDEX taxonomy_trade_proposal_pending ON public.taxonomy_trade_proposal U
 CREATE UNIQUE INDEX transactions_quote_id_uidx ON public.transactions USING btree (quote_id) WHERE (quote_id IS NOT NULL);
 CREATE UNIQUE INDEX transactions_refund_stripe_uidx ON public.transactions USING btree (refund_stripe_id) WHERE (refund_stripe_id IS NOT NULL);
 CREATE INDEX undo_log_created_idx ON public.undo_log USING btree (created_at DESC);
+CREATE INDEX unsubscribe_refusal_email_at ON public.unsubscribe_refusal USING btree (lower(email), at);
+CREATE INDEX unsubscribe_refusal_open ON public.unsubscribe_refusal USING btree (at) WHERE (recovered_at IS NULL);
 CREATE UNIQUE INDEX uq_accountant_spend_report_object ON public.accountant_spend_report USING btree (pdf_bucket, pdf_path);
 CREATE UNIQUE INDEX uq_company_faq_q ON public.company_faq USING btree (question);
 CREATE UNIQUE INDEX uq_doc_backups_dedupe ON public.doc_backups USING btree (dedupe_key);
@@ -13281,6 +13445,7 @@ CREATE INDEX wa_answer_log_unmatched ON public.wa_answer_log USING btree (receiv
 CREATE INDEX wa_conversation_open ON public.wa_conversation USING btree (last_seen_at DESC) WHERE (thread_state <> 'resolved'::text);
 CREATE INDEX wa_document_intake_lead ON public.wa_document_intake USING btree (lead_id, received_at DESC);
 CREATE INDEX wa_inbound_seen_first_seen_idx ON public.wa_inbound_seen USING btree (first_seen_at DESC);
+CREATE INDEX wa_sender_quality_reading_read_at_idx ON public.wa_sender_quality_reading USING btree (read_at DESC);
 CREATE INDEX wa_turn_conv ON public.wa_turn USING btree (conversation_id, at DESC);
 CREATE INDEX yello_email_idx ON public.yello_staging USING btree (email);
 
