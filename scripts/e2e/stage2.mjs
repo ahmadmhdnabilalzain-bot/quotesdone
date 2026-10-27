@@ -612,6 +612,7 @@ async function realRun(pre) {
       A('the Arabic customer\'s reveal receipt is in Arabic', arReceipts.length > 0 && arReceipts.every((x) => x.lang === 'ar' && /[؀-ۿ]{3,}/.test(`${x.subject} ${x.body}`)),
         arInq ? `${arReceipts.length} reveal_receipt(s), langs ${[...new Set(arReceipts.map((x) => x.lang))].join(',') || 'none'}` : 'no Arabic request with an exact-trade supplier reached S10');
       fx.revealedAr = arReceipts;
+      fx.arQuoted = arInq?.cu;   // S26's Arabic journey walks this customer: Arabic-registered, with its own quoted request
     },
     S11: async () => {
       const { tx, inq } = need(fx.revealed?.tx && fx.revealed, 'no paid reveal (S10), so there is no transaction to refund');
@@ -1050,7 +1051,10 @@ async function realRun(pre) {
       // THE AR JOURNEY WALKS THE CUSTOMER WHOSE REQUEST HAS QUOTES (run 5, 321d13ae): only the aluminium request
       // is quoted (S07), so the first AR customer (C2, electrical, 0 quotes) could never show one. The journey's
       // language is its own argument; the portals walk (`walk`) still covers the AR customer.
-      const qc = alu?.cu || ar;
+      // BUT ONLY IF THAT CUSTOMER IS ARABIC-REGISTERED (run 2, 19 Oct, it_engineer): the aluminium customer is C1 (en),
+      // and once signed in the registered language wins (src/lib/documentLocale.ts adoptLocale), so /ar/me rendered
+      // English and the AR journey and inquiry-box check waited 10 s for a "طلب جديد" button that never exists.
+      const qc = alu?.cu?.cfg.locale === 'ar' ? alu.cu : (fx.arQuoted || ar);
       const ids = { tag, customer: who(en, 'customer', en.cfg.label), customerAr: who(qc, 'customer', qc.cfg.label), supplier: who(su, 'supplier', 'AL'),
         walk: [who(en, 'customer', en.cfg.label), who(ar, 'customer', ar.cfg.label), who(su, 'supplier', 'AL')] };
       const idsPath = save('browser/ids.json', ids);
