@@ -4000,6 +4000,8 @@ begin
        from public.ops_knowledge o
       where o.embedding_gte is not null and o.runtime_eligible and o.supersession_state = 'current'
         and o.scope_type in ('company', 'external_source', 'category') and o.dept_key is null
+        -- founder ruling 1338: an outside audience is given an operations row only when it is confidentiality 'public'
+        and (v_internal or o.confidentiality = 'public')
       order by o.embedding_gte <=> p_embedding limit k)
     union all
     (select 'agent_knowledge', a.id::text, a.topic, left(a.content, 1200), a.source_ref,
@@ -4330,6 +4332,8 @@ begin
     union all
     (select 'ops_knowledge', o.record_id, o.title, left(o.content, 1200), o.source_path, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', false
        from scored sc join public.ops_knowledge o on sc.src = 'ops_knowledge' and o.record_id = sc.row_id
+      -- founder ruling 1338: an outside audience is given an operations row only when it is confidentiality 'public'
+      where v_internal or o.confidentiality = 'public'
       order by sc.score desc limit k)
     union all
     (select 'agent_knowledge', a.id::text, a.topic, left(a.content, 1200), a.source_ref, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', a.agent_key = p_seat
