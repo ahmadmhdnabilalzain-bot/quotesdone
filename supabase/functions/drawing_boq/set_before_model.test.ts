@@ -76,3 +76,47 @@ Deno.test('index.ts gates the early return on the coverage floor, not on any non
   const block = src.slice(src.lastIndexOf('if (pdfB64 && body.deterministic !== true)', at), at);
   assert(/const set = setBeforeModel\(/.test(block), 'the early path must call setBeforeModel (boqFromDrawingSet alone has no floor)');
 });
+
+// ── independent review of 29dda0b5a (27 Oct 2026): the floor knew only one spelling of a tag ──────────────────────────
+// TAG_SHAPE alone let each case below through with 2 of 14 units read, and the set answered before the model: the twelve
+// indoor units spelled with a floor code, a space, four digits, a hyphenated or five-letter type, or a dotted number, or
+// tagged on a sheet titled LAYOUT (no PLAN in the title, so the take-off skips it). Every tag here is ONE run, so the
+// bubble rule of unreadTagLike cannot catch it by accident. With the series rule the repository fixtures above (rooms
+// "OFFICE 101" among them) still read 0 unread and take the early path.
+function plansOf(sheets: { title: string; tags: string[] }[]): Uint8Array {
+  return pdfFrom(sheets.map(({ title, tags }, n) => {
+    let s = t(0.30, 0.05, 28, title) + t(0.30, 0.09, 11, 'SCALE 1:100');
+    tags.forEach((g, i) => { s += t(0.08 + (i % 6) * 0.12, 0.35 + Math.floor(i / 6) * 0.15, 9, g); });
+    return s + l(0.855, 0.02, 0.855, 0.98) + t(0.865, 0.06, 11, 'ZZ DEMO MEP CONSULTANTS') + t(0.90, 0.93, 28, `M-1.0${n + 1}`);
+  }), { Title: 'ZZ DEMO HVAC' });
+}
+const twelve = (f: (i: number) => string) => Array.from({ length: 12 }, (_, i) => f(i + 1));
+const PLAN = 'FIRST FLOOR PLAN - HVAC';
+
+Deno.test('every common spelling of an unread tag series sends the set to the model', async () => {
+  assert(typeof early === 'function', 'no coverage floor');
+  const spellings: [string, (i: number) => string][] = [
+    ['a floor code', (i) => `IDU-GF-${String(i).padStart(2, '0')}`], ['a space', (i) => `IDU ${i}`], ['four digits', (i) => `IDU-${1000 + i}`],
+    ['a hyphenated type', (i) => `VRF-IDU-${i}`], ['a five-letter type', (i) => `SPLIT-${i}`], ['a dotted number', (i) => `IDU-1.${String(i).padStart(2, '0')}`],
+  ];
+  for (const [what, f] of spellings) {
+    const pages = await pdfPages(plansOf([{ title: PLAN, tags: ['EF-1', 'EF-2', ...twelve(f)] }]), undefined, { layers: false });
+    const coded = drawingSet.boqFromDrawingSet(pages)!;
+    assertEquals(coded.boq.filter((x) => x.type.startsWith('tag:')).length, 2, `${what}: code reads only the two fans`);
+    assertEquals(early!(pages), null, `${what}: 2 of 14 read must not answer before the model`);
+  }
+});
+
+Deno.test('tags on a sheet the take-off does not count as a plan send the set to the model', async () => {
+  assert(typeof early === 'function', 'no coverage floor');
+  for (const unit of ['FCU', 'IDU']) {
+    const pages = await pdfPages(plansOf([{ title: PLAN, tags: ['EF-1', 'EF-2'] }, { title: 'GROUND FLOOR AC LAYOUT', tags: twelve((i) => `${unit}-${i}`) }]), undefined, { layers: false });
+    assertEquals(early!(pages), null, `${unit}-1..12 on a LAYOUT sheet are not counted: the set must reach the model`);
+  }
+});
+
+Deno.test('a series of sheet references is not an unread tag series', async () => {
+  assert(typeof early === 'function', 'no coverage floor');
+  const pages = await pdfPages(plansOf([{ title: PLAN, tags: ['EF-1', 'EF-2', 'M-5.01', 'M-5.02', 'M-5.03'] }]), undefined, { layers: false });
+  assert(early!(pages), 'detail references are not units: a completely read set must still answer early');
+});
