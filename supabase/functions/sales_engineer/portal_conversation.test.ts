@@ -429,3 +429,20 @@ Deno.test('a slot is read with or without the Arabic article: حالي is الح
   assertEquals(h.plan.next, 'system');
   assertEquals(reaskOf('هل العزل الحالي قديم؟', h), 'asks the existing condition again');
 });
+
+// LEDGER 1339 (#1640/#1647): `outage` is true only when OpenRouter was down. With the plan's filter around the model, a draft
+// the filter or the checks refused is the model UP (outage false, no code text), salvage never brings a dropped re-ask
+// back, and only a provider failure on every rung is an outage.
+Deno.test('the plan filter and the outage rule: refused drafts are never an outage, salvage keeps the filter', async () => {
+  const h = heldState(AC, 'Inverter please.');
+  const again = 'Inverter noted. Does the apartment use its own air-conditioning units, or central or district cooling?';
+  const up = gw([sse(['Inverter noted. ', 'Does the apartment use its own air-conditioning units, or central or district cooling?']),
+    json({ content: again }), json({ content: again }), json({ content: again }), json({ content: again }), json({ content: again })]);
+  const r = await answerFromBrief(CALL(h), () => {}, up.f);
+  assertEquals(r.outage, false);
+  assert(!/central or district cooling/.test(r.reply), 'a dropped re-ask came back through salvage: ' + r.reply);
+  const down = gw([new Response('{"error":"upstream"}', { status: 503 }), new Response('{"error":"upstream"}', { status: 503 }),
+    new Response('{"error":"upstream"}', { status: 503 }), new Response('{"error":"upstream"}', { status: 503 })]);
+  const d = await answerFromBrief(CALL(h), () => {}, down.f);
+  assertEquals([d.reply, d.outage], ['', true]);
+});

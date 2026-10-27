@@ -55,6 +55,25 @@ export async function readReply(r: Response, on: ReplyHandlers = {}): Promise<Re
   }
 }
 
+// THE "YOUR QUESTION IS SAVED" LINE IS FOR OPENROUTER BEING DOWN, NOT FOR THE MODEL'S WORDS BEING REFUSED (founder_instruction
+// 1339, 27 Oct 2026, verbatim: "the engineer and customer support never replies without llm unless the server of open router
+// is down"). The line is the panel's own text, so it is shown only when:
+//   - the answer never arrived (noVerdict: the connection dropped, a 504 page, a stream with no `done`, or a server error
+//     before the model was asked) and the stored answer was not found either; or
+//   - the server said OpenRouter was down: done.outage === true (supabase/functions/_shared/openrouter_down.ts).
+// When the model was up (done.error 'no_answer' without outage: every draft refused, its passing sentences salvaged where
+// any passed, and the model asked once more), the panel shows no code-written text at all. Measured before: the panel
+// showed the saved line on every reply-less turn, the model-up case included.
+/** The server gave no considered answer: transport failure, or an error before the model ladder ran. */
+export function noVerdict(r: ReadReply): boolean {
+  return !r.done || String(r.done.error ?? '') !== 'no_answer';
+}
+/** Whether the panel may show its own "saved" line for this turn. `reply` is what was finally found (the stored answer). */
+export function savedLineDue(r: ReadReply, reply: string = r.reply): boolean {
+  if (String(reply || '').trim()) return false;
+  return noVerdict(r) || r.done?.outage === true;
+}
+
 /** The newest assistant turn after the customer's message, from assist_history's turns ('' when none yet). */
 export function answerAfter(turns: { role?: string; content?: string }[] | null | undefined, question: string): string {
   if (!Array.isArray(turns)) return '';

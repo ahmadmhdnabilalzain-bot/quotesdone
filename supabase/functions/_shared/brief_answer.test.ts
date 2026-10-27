@@ -158,3 +158,55 @@ Deno.test('callBudget: a share of the time left, capped per call, zero when too 
   assertEquals(callBudget(now + 20_000, now, RESERVE_MS), 20_000 - RESERVE_MS);   // room kept for the next rung
   assertEquals(callBudget(now + 15_000, now, RESERVE_MS), 15_000);                // too little for both: all of it
 });
+
+// ── OPENROUTER DOWN, OR THE MODEL UP (founder_instruction 1339, 27 Oct 2026) ────────────────────────────────────────
+// "the engineer and customer support never replies without llm unless the server of open router is down". prevented by:
+// these tests. Before them answerFromBrief returned reply '' with no `outage` both when every call failed and when every
+// draft was refused, and the portal showed its own fixed line for both.
+const said = (t: string) => json({ content: t, model: 'anthropic/claude-sonnet-5.5' });
+
+Deno.test('1339: every call failing at the provider (5xx, network, deadline) is an outage, with no text', async () => {
+  const down = await answerFromBrief(C, () => {}, gateway([json({ error: 'x' }, 502), json({ outcome: 'circuit_open' }, 503), json({ error: 'route_failed' }, 500)]).f);
+  assertEquals([down.reply, down.outage], ['', true]);
+  const net = (() => Promise.reject(new TypeError('error sending request: connection refused'))) as typeof fetch;
+  assertEquals((await answerFromBrief(C, () => {}, net)).outage, true);
+  const late = await answerFromBrief({ ...C, deadline: Date.now() + MIN_CALL_MS - 1000 }, () => {}, gateway([]).f);
+  assertEquals([late.reply, late.outage], ['', true]);
+});
+
+Deno.test('1339: a 4xx or the rate limit is the model up, never an outage', async () => {
+  const four = await answerFromBrief(C, () => {}, gateway([json({ error: 'bad_request' }, 400), json({ error: 'bad_request' }, 400), json({ error: 'bad_request' }, 400)]).f);
+  assertEquals([four.reply, four.outage], ['', false]);
+  const rl = await answerFromBrief(C, () => {}, gateway([json({ ok: false, error: 'rate_limited' }, 429)]).f);
+  assertEquals([rl.error, rl.outage], ['rate_limited', false]);
+  // one call down and one draft refused: a model answered, so it is not an outage
+  const mixed = await answerFromBrief(C, () => {}, gateway([json({ error: 'x' }, 502), said('The fee is 5%.'), said('The fee is 6%.')]).f);
+  assertEquals(mixed.outage, false);
+});
+
+Deno.test('1339: drafts refused by the checks keep the model\'s own passing sentences; code adds no words', async () => {
+  const g = gateway([sse(['Comparing quotes is free. ', 'The reveal fee is 5% of the quote. ']),
+    said('Comparing quotes is free. The fee is 7%.'), said('Comparing quotes is free. The fee is 8%.'),
+    said('Comparing quotes is free. The fee is 9%.'), said('Comparing quotes on QuotesDone is free. The fee is 4%.')]);
+  const a = await answerFromBrief(C, () => {}, g.f);
+  assertEquals(a.reply, 'Comparing quotes on QuotesDone is free.');
+  assertEquals(a.outage, false);
+  assertEquals(g.bodies.length, 5, 'salvaged from the last draft: no further call');
+  assert(a.attempts.some((x) => /^salvaged/.test(x)), a.attempts.join(' | '));
+});
+
+Deno.test('1339: when no sentence passes the model is asked once more; its passing answer is the reply', async () => {
+  const g = gateway([sse(['The fee is 5%. ']), said('The fee is 6%.'), said('The fee is 7%.'), said('The fee is 8%.'), said('The fee is 9%.'),
+    said('The reveal fee is 3% of the quote, with no card fee and no VAT.')]);
+  const a = await answerFromBrief(C, () => {}, g.f);
+  assertEquals(a.reply, 'The reveal fee is 3% of the quote, with no card fee and no VAT.');
+  assertEquals([a.outage, g.bodies.length], [false, 6]);
+  const ask = (g.bodies[5].input as { content: string }[]).at(-1)!.content;
+  assert(/9/.test(ask) && /problems/.test(ask), 'the last ask names what was wrong with the last draft');
+});
+
+Deno.test('1339: nothing passes even once more -> no text and not an outage (the caller shows nothing of its own)', async () => {
+  const g = gateway([sse(['The fee is 5%. ']), said('The fee is 6%.'), said('The fee is 7%.'), said('The fee is 8%.'), said('The fee is 9%.'), said('The fee is 2%.')]);
+  const a = await answerFromBrief(C, () => {}, g.f);
+  assertEquals([a.reply, a.outage, g.bodies.length], ['', false, 6]);
+});
