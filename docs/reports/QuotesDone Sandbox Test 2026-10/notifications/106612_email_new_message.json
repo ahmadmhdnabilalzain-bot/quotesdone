@@ -1,0 +1,11 @@
+{
+ "id": 106612,
+ "type": "new_message",
+ "channel": "email",
+ "status": "suppressed",
+ "to_email": "qd-0a717394-sup0@example.invalid",
+ "lang": "en",
+ "subject": "New message from a customer on QuotesDone",
+ "body": "You have a new message on an open project chat. Log in to your supplier portal to reply.",
+ "html": null
+}

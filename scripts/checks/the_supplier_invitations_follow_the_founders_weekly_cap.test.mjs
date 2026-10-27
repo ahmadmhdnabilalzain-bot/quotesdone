@@ -21,9 +21,15 @@ const q = (query) => sql(query, { ref: 'htdblwldjkcgjvmqkbeh', readOnly: true })
 test('the daily invitation cap is the founder schedule, enforced by the ramp and the sender', async (t) => {
   if (!mgmtToken) { t.skip('no management token, so the live routines cannot be read'); return; }
 
-  const [caps] = await q(`select public.fn_invite_founder_cap('2026-10-19') a, public.fn_invite_founder_cap('2026-10-25') b,
+  // EXECUTE on fn_invite_founder_cap is postgres and service_role only (revoked from public, anon, authenticated by
+  // both files that define it, as apply-discipline requires), so the management API's read_only flag, which runs as
+  // supabase_read_only_user, is refused with 42501 (measured 27 Oct 2026). The call runs as postgres inside a
+  // READ ONLY transaction instead: it still cannot write anything.
+  const [caps] = await sql(`start transaction read only;
+    select public.fn_invite_founder_cap('2026-10-19') a, public.fn_invite_founder_cap('2026-10-25') b,
     public.fn_invite_founder_cap('2026-10-26') c, public.fn_invite_founder_cap('2026-11-02') d,
-    public.fn_invite_founder_cap('2026-11-09') e, public.fn_invite_founder_cap('2030-01-01') f`);
+    public.fn_invite_founder_cap('2026-11-09') e, public.fn_invite_founder_cap('2030-01-01') f;
+    commit;`, { ref: 'htdblwldjkcgjvmqkbeh' });
   assert.deepEqual([caps.a, caps.b, caps.c, caps.d, caps.e, caps.f].map(Number), [20, 20, 30, 40, 50, 50],
     'fn_invite_founder_cap no longer returns ruling 1231 (20 until 25 Oct / 30 from 26 Oct / 40 from 2 Nov / 50 from 9 Nov, ceiling 50)');
 

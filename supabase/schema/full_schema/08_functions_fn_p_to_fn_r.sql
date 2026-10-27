@@ -1,3 +1,34 @@
+CREATE OR REPLACE FUNCTION public.fn_pack_rows_without_fresh_ml_vector(p_grace interval DEFAULT '01:00:00'::interval)
+ RETURNS TABLE(src text, pack_rows integer, without_fresh integer, overdue integer, oldest_due timestamp with time zone)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with last_load as (
+    select max(r.finished_at) t from public.agent_runs r
+     where r.agent = 'it_engineer' and r.counts->>'job' = 'verified_pack_load'
+  ), pack as (
+              select 'ceo_knowledge'::text src, c.record_id, null::timestamptz upd from public.ceo_knowledge c where c.tags @> array['verified_pack']
+    union all select 'support_knowledge', s.record_id, null from public.support_knowledge s where s.tags @> array['verified_pack']
+    union all select 'accountant_knowledge', a.record_id, a.updated_at from public.accountant_knowledge a where a.tags @> array['verified_pack']
+    union all select 'it_engineer_knowledge', i.record_id, i.updated_at from public.it_engineer_knowledge i where i.tags @> array['verified_pack']
+    union all select 'marketing_knowledge', m.record_id, m.updated_at from public.marketing_knowledge m where m.tags @> array['verified_pack']
+    union all select 'sales_knowledge', k.record_id, k.updated_at from public.sales_knowledge k where k.tags @> array['verified_pack']
+  ), j as (
+    -- Only what the queue can claim: an eligible row (it is in the view) with a body.
+    select p.src, (v.row_id is not null) fresh, coalesce(p.upd, (select t from last_load), '-infinity'::timestamptz) due
+      from pack p
+      join public.v_knowledge_ml_source s on s.src = p.src and s.row_id = p.record_id and btrim(coalesce(s.body, '')) <> ''
+      left join public.knowledge_vector_ml v on v.src = p.src and v.row_id = p.record_id
+            and v.text_hash = md5(coalesce(s.title, '') || E'\n' || coalesce(s.body, ''))
+  )
+  select j.src, count(*)::int, count(*) filter (where not j.fresh)::int,
+         count(*) filter (where not j.fresh and j.due < now() - p_grace)::int,
+         min(j.due) filter (where not j.fresh)
+    from j group by j.src order by j.src;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_page_high_agent_action()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -3499,6 +3530,12 @@ declare
   -- ONLY AN AUDIENCE NAMED internal OR founder reads the company's own facts and gets the own-row reservation.
   -- customer, supplier, visitor, a NULL or any other value: external (fails closed, as settledFacts() in think.ts).
   v_internal constant boolean := lower(btrim(coalesce(p_audience, ''))) in ('internal', 'founder');
+  -- MARKET OR PRICING, BY MEANING: the kind tags a trade's market and pricing entries carry. The planner names a kind
+  -- (think.ts ENTRY_KINDS, chosen by the model from the question's meaning); no word of the question is read here.
+  v_market constant text[] := array['kind:uae_market_products', 'kind:uae_market_brands', 'kind:uae_market_sizes',
+    'kind:price_driver', 'kind:price_drivers', 'kind:pricing_basis', 'kind:pricing_rule', 'kind:pricing_structure',
+    'kind:pricing_reference', 'kind:pricing_benchmark', 'kind:market_practice', 'kind:market_reference'];
+  v_lead_market boolean;   -- the trade resolved and the planner says the question is about its market or pricing
 begin
   -- 1. RESOLVE, exactly or not at all. The trade through the estate's exact resolver; the kind and the area only
   --    when a row of this trade / of this seat's own table is tagged with exactly that value. No word is read.
@@ -3506,6 +3543,7 @@ begin
   v_kind := nullif(lower(btrim(coalesce(p_kind, ''))), '');
   if v_trade is null or (v_kind is not null and not exists (select 1 from public.sales_knowledge x
        where x.tags && v_trade and x.tags @> array['kind:' || v_kind])) then v_kind := null; end if;
+  v_lead_market := coalesce(v_trade is not null and ('kind:' || v_kind) = any(v_market), false);   -- never NULL: a NULL would sort FIRST under DESC
   v_area := nullif(lower(btrim(coalesce(p_area, ''))), '');
   if v_area is not null and not exists (
        select 1 from public.sales_knowledge x        where p_seat = 'sales_engineer'   and x.tags @> array['area:' || v_area]
@@ -3549,9 +3587,9 @@ begin
       where s.embedding_gte is not null and s.runtime_index_eligible
         and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and s.pack_id like 'verified:trade:%'))
         and (v_trade is null or not exists (select 1 from unnest(s.tags) t where t like 'trade:%')
-             or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind])))
+             or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind] or (('kind:' || v_kind) = any(v_market) and s.tags && v_market))))
         and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
-      order by s.embedding_gte <=> p_embedding limit k)
+      order by (v_trade is not null and s.tags && v_trade) desc, s.embedding_gte <=> p_embedding limit case when v_trade is null then k else 128 end)
     union all
     (select 'accountant_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id,
             1 - (s.embedding_gte <=> p_embedding), 'reviewed', true
@@ -3594,13 +3632,24 @@ begin
       where r.embedding_gte is not null and r.status <> 'rejected' and (v_internal or r.status = 'approved')
       order by r.embedding_gte <=> p_embedding limit k)
   )
-  -- THE SEAT'S OWN ROWS FILL AT LEAST HALF, FOR AN INTERNAL AUDIENCE: its best k own rows (its pack, its agent_knowledge)
-  -- are reserved and come first; the rest of the k * 2 is the best of everything else. External: ranked by similarity only.
+  -- THE TRADE'S OWN PACK FIRST, THEN THE SEAT'S OWN ROWS (internal only), THEN THE REST. When the trade resolves, its
+  -- best k pack rows (base and market) are reserved, by similarity; when the planner says the question is about the
+  -- market or pricing, its market and pricing rows lead them. Trade packs are public, so this holds for every audience; #1567's
+  -- audience guard has already removed any internal row.
   select coalesce(jsonb_agg(jsonb_build_object('source', src, 'id', id, 'title', title, 'excerpt', excerpt,
-           'citation', citation, 'similarity', round(sim::numeric, 4), 'trust', trust, 'own', mine) order by reserved desc, sim desc), '[]'::jsonb)
+           'citation', citation, 'similarity', round(sim::numeric, 4), 'trust', trust, 'own', mine) order by reserved desc, tr nulls last, sim desc), '[]'::jsonb)
     into out
-    from (select * from (select h.*, v_internal and h.mine and row_number() over (partition by h.mine order by h.sim desc) <= k reserved from hits h) x
-           order by reserved desc, sim desc limit k * 2) t;
+    from (select * from (
+            select h.*, t.tr,
+                   case when t.tr <= k then 2
+                        when v_internal and h.mine and t.tr is null
+                         and row_number() over (partition by h.mine and t.tr is null order by h.sim desc) <= k then 1
+                        else 0 end reserved
+              from hits h
+              left join (select h2.id, row_number() over (order by (v_lead_market and s.tags && v_market) desc, h2.sim desc) tr
+                           from hits h2 join public.sales_knowledge s on h2.src = 'sales_knowledge' and s.record_id = h2.id
+                          where v_trade is not null and s.tags && v_trade) t on h.src = 'sales_knowledge' and t.id = h.id) x
+           order by reserved desc, tr nulls last, sim desc limit k * 2) y;
   return out;
 end $function$
 
@@ -3707,6 +3756,12 @@ declare
   -- ONLY AN AUDIENCE NAMED internal OR founder reads the company's own facts and gets the own-row reservation.
   -- customer, supplier, visitor, a NULL or any other value: external (fails closed, as settledFacts() in think.ts).
   v_internal constant boolean := lower(btrim(coalesce(p_audience, ''))) in ('internal', 'founder');
+  -- MARKET OR PRICING, BY MEANING: the kind tags a trade's market and pricing entries carry. The planner names a kind
+  -- (think.ts ENTRY_KINDS, chosen by the model from the question's meaning); no word of the question is read here.
+  v_market constant text[] := array['kind:uae_market_products', 'kind:uae_market_brands', 'kind:uae_market_sizes',
+    'kind:price_driver', 'kind:price_drivers', 'kind:pricing_basis', 'kind:pricing_rule', 'kind:pricing_structure',
+    'kind:pricing_reference', 'kind:pricing_benchmark', 'kind:market_practice', 'kind:market_reference'];
+  v_lead_market boolean;   -- the trade resolved and the planner says the question is about its market or pricing
 begin
   -- 1. RESOLVE, exactly or not at all. The trade through the estate's exact resolver; the kind and the area only
   --    when a row of this trade / of this seat's own table is tagged with exactly that value. No word is read.
@@ -3714,6 +3769,7 @@ begin
   v_kind := nullif(lower(btrim(coalesce(p_kind, ''))), '');
   if v_trade is null or (v_kind is not null and not exists (select 1 from public.sales_knowledge x
        where x.tags && v_trade and x.tags @> array['kind:' || v_kind])) then v_kind := null; end if;
+  v_lead_market := coalesce(v_trade is not null and ('kind:' || v_kind) = any(v_market), false);   -- never NULL: a NULL would sort FIRST under DESC
   v_area := nullif(lower(btrim(coalesce(p_area, ''))), '');
   if v_area is not null and not exists (
        select 1 from public.sales_knowledge x        where p_seat = 'sales_engineer'   and x.tags @> array['area:' || v_area]
@@ -3754,16 +3810,22 @@ begin
     union (select 'sales_knowledge', s.record_id from public.knowledge_vector_ml v join public.sales_knowledge s on v.src = 'sales_knowledge' and s.record_id = v.row_id
             where s.runtime_index_eligible and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and (s.pack_id like 'verified:trade:%' or exists (select 1 from unnest(s.tags) t where t like 'trade:%'))))
             and (v_trade is null or not exists (select 1 from unnest(s.tags) t where t like 'trade:%')
-             or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind])))
+             or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind] or (('kind:' || v_kind) = any(v_market) and s.tags && v_market))))
             and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
             order by v.embedding <=> m limit n)
     union (select 'sales_knowledge', s.record_id from public.sales_knowledge s
             where g is not null and s.embedding_gte is not null and s.runtime_index_eligible
               and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and (s.pack_id like 'verified:trade:%' or exists (select 1 from unnest(s.tags) t where t like 'trade:%'))))
             and (v_trade is null or not exists (select 1 from unnest(s.tags) t where t like 'trade:%')
-             or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind])))
+             or (s.tags && v_trade and (v_kind is null or s.tags @> array['kind:' || v_kind] or (('kind:' || v_kind) = any(v_market) and s.tags && v_market))))
             and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%')))
             order by s.embedding_gte <=> g limit n)
+    -- every row of the resolved trade's own pack is a candidate, whatever its rank in either space
+    union (select 'sales_knowledge', s.record_id from public.sales_knowledge s
+            where v_trade is not null and s.runtime_index_eligible and s.tags && v_trade
+              and (p_seat = 'sales_engineer' or (p_seat = 'customer_support' and (s.pack_id like 'verified:trade:%' or exists (select 1 from unnest(s.tags) t where t like 'trade:%'))))
+              and (v_kind is null or s.tags @> array['kind:' || v_kind] or (('kind:' || v_kind) = any(v_market) and s.tags && v_market))
+              and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))))
     union (select 'accountant_knowledge', s.record_id from public.knowledge_vector_ml v join public.accountant_knowledge s on v.src = 'accountant_knowledge' and s.record_id = v.row_id
             where p_seat = 'accountant' and s.runtime_index_eligible
             and (v_area is null or s.tags @> array['area:' || v_area] or not exists (select 1 from unnest(s.tags) t where t like 'area:%')) and (v_internal or not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))) order by v.embedding <=> m limit n)
@@ -3852,7 +3914,7 @@ begin
     union all
     (select 'sales_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.sales_knowledge s on sc.src = 'sales_knowledge' and s.record_id = sc.row_id
-      order by sc.score desc limit k)
+      order by sc.score desc limit case when v_trade is null then k else 128 end)
     union all
     (select 'accountant_knowledge', s.record_id, s.title, left(s.content, 2400), s.pack_id, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.accountant_knowledge s on sc.src = 'accountant_knowledge' and s.record_id = sc.row_id
@@ -3873,17 +3935,32 @@ begin
     (select 'support_knowledge', s.record_id, s.title, left(s.body, 2400), s.source_path, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', true
        from scored sc join public.support_knowledge s on sc.src = 'support_knowledge' and s.record_id = sc.row_id
       order by sc.score desc limit k)
+  ), trade_rows as (
+    -- THE TRADE'S OWN PACK FIRST, THEN THE SEAT'S OWN ROWS (internal only), THEN THE REST. When the trade resolves, its
+    -- best k pack rows (base and market) are reserved, by similarity; when the planner says the question is about the
+    -- market or pricing, its market and pricing rows lead them. Trade packs are public, so this holds for every audience; #1567's
+    -- audience guard has already removed any internal row.
+    select h.*, row_number() over (order by (v_lead_market and s.tags && v_market) desc, h.score desc) tr
+      from hits h join public.sales_knowledge s on h.src = 'sales_knowledge' and s.record_id = h.id
+     where v_trade is not null and s.tags && v_trade
+     order by tr limit k
   ), own_rows as (
-    select * from hits where mine order by score desc limit own
+    select h.*, null::bigint tr from hits h
+     where h.mine and not exists (select 1 from trade_rows t where t.src = h.src and t.id = h.id)
+     order by h.score desc limit least(own, k * 2 - (select count(*) from trade_rows))
   ), chosen as (
-    select o.*, true reserved from own_rows o
+    select t.*, 2 reserved from trade_rows t
     union all
-    select *, false from (select h.* from hits h where not exists (select 1 from own_rows o where o.src = h.src and o.id = h.id)
-                    order by h.score desc limit greatest(k * 2 - (select count(*) from own_rows), 0)) rest
+    select o.*, 1 from own_rows o
+    union all
+    select *, 0 from (select h.*, null::bigint tr from hits h
+                       where not exists (select 1 from trade_rows t where t.src = h.src and t.id = h.id)
+                         and not exists (select 1 from own_rows o where o.src = h.src and o.id = h.id)
+                       order by h.score desc limit greatest(k * 2 - (select count(*) from trade_rows) - (select count(*) from own_rows), 0)) rest
   )
   select coalesce(jsonb_agg(jsonb_build_object('source', src, 'id', id, 'title', title, 'excerpt', excerpt,
            'citation', citation, 'similarity', round(coalesce(s_ml, 0)::numeric, 4), 'score', round(score::numeric, 6),
-           'trust', trust, 'own', mine) order by reserved desc, score desc), '[]'::jsonb)
+           'trust', trust, 'own', mine) order by reserved desc, tr nulls last, score desc), '[]'::jsonb)
     into out
     from chosen;
   return out;
@@ -5892,6 +5969,71 @@ AS $function$
           where p_email is not null and lower(c.email) = lower(btrim(p_email)) limit 1))
     end as x) s
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_rehearsal_call_estimate_usd(p_tag text)
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(avg(x.usd), 0.01)
+    from (select greatest(coalesce(c.cost_usd_reported, 0), coalesce(c.cost_aed, 0) / 3.6725) as usd
+            from public.ai_cost_log c
+           where c.e2e_run_tag = p_tag and c.model_used is distinct from 'none' and not coalesce(c.cached, false)) x
+   where x.usd > 0;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_rehearsal_committed_usd(p_tag text)
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select (select coalesce(sum(greatest(coalesce(c.cost_usd_reported, 0), coalesce(c.cost_aed, 0) / 3.6725)), 0)
+            from public.ai_cost_log c where c.e2e_run_tag = p_tag)
+       + (select coalesce(sum(r.reserved_usd), 0) from public.rehearsal_spend_reservation r
+           where r.e2e_run_tag = p_tag and r.created_at > now() - interval '10 minutes');
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_rehearsal_spend_reserve()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_tag text := public.fn_e2e_run_tag_current();
+  v_cap numeric; v_committed numeric; v_est numeric;
+begin
+  if v_tag is null then
+    return jsonb_build_object('allowed', true, 'rule', 'not_a_rehearsal');
+  end if;
+  perform pg_advisory_xact_lock(hashtext('rehearsal_spend:' || v_tag));
+  select w.cap_usd into v_cap from public.rehearsal_window w
+   where w.run_tag = 'qd_run:' || v_tag and w.ended_at is null and w.models_allowed
+     and (w.expires_at is null or w.expires_at > now())
+   order by w.started_at desc limit 1;
+  v_committed := public.fn_rehearsal_committed_usd(v_tag);
+  v_est := public.fn_rehearsal_call_estimate_usd(v_tag);
+  if v_cap is null or v_committed is null or v_est is null then
+    return jsonb_build_object('allowed', false, 'rule', 'rehearsal_cap_unreadable',
+      'reason', 'sandbox run ' || v_tag || ': no open window cap, or its spend could not be read');
+  end if;
+  if v_committed + v_est >= v_cap then
+    return jsonb_build_object('allowed', false, 'rule', 'rehearsal_cap',
+      'reason', 'sandbox run ' || v_tag || ' has committed USD ' || round(v_committed, 4) || ' (spent + reserved); one more call ('
+             || round(v_est, 4) || ') would reach its USD ' || v_cap || ' cap');
+  end if;
+  insert into public.rehearsal_spend_reservation (e2e_run_tag, reserved_usd) values (v_tag, v_est);
+  return jsonb_build_object('allowed', true, 'rule', 'reserved', 'reserved_usd', v_est,
+    'committed_usd', v_committed + v_est, 'cap_usd', v_cap);
+exception when others then
+  return jsonb_build_object('allowed', false, 'rule', 'rehearsal_cap_unreadable',
+    'reason', 'the reservation could not be made: ' || sqlstate || ' ' || sqlerrm);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_rehearsal_window_covers(p_at timestamp with time zone)
