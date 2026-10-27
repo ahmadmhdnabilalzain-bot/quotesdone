@@ -4,8 +4,10 @@
 // secrets that live in these files (inbound_secret, deploy secret, force key).
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = 'C:/Users/Opera/quotesdone/supabase/functions';
+const ROOT = fileURLToPath(new URL('../supabase/functions', import.meta.url));
 const dirs = fs.readdirSync(ROOT, { withFileTypes: true })
   .filter((d) => d.isDirectory() && !d.name.startsWith('_'))
   .map((d) => d.name).sort();
@@ -96,6 +98,6 @@ for (const r of rows) {
     out.push(`${r.fn.padEnd(26)} -> ${(m ? m[1] : '(target not on this line)').padEnd(24)} [${o.s}] L${o.n}`);
   }
 }
-fs.writeFileSync('C:/Users/Opera/qd-check/inventory_gates2.out.txt', out.join('\n'), 'utf8');
+fs.writeFileSync(path.join(os.tmpdir(), 'inventory_gates2.out.txt'), out.join('\n'), 'utf8');
 console.log(out.slice(0, 30).join('\n'));
 console.log(`\n[full report: ${out.length} lines]`);

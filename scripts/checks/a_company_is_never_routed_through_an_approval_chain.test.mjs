@@ -17,6 +17,7 @@
 //
 // Patterns are anchored on call shapes (rpc('…'), .from('…'), id: '…'), not on words, so the
 // comments that explain the removal cannot match them.
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
@@ -55,7 +56,7 @@ test('the customer portal has no Approvals destination anywhere', () => {
   assert.deepEqual(bad, []);
 });
 
-const TOKEN_FILE = 'C:/Users/Opera/.supabase/access-token';
+const TOKEN_FILE = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN || (existsSync(TOKEN_FILE) ? read(TOKEN_FILE) : '')).trim();
 
 test('production: an award runs through no approval trigger and the approval objects are gone', { skip: !token && 'no SUPABASE_ACCESS_TOKEN (expected in CI)' }, async () => {
