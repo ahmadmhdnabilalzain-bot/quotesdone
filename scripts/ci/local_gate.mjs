@@ -20,7 +20,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { lstatSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
-import { tmpdir, homedir, totalmem } from 'node:os';
+import { tmpdir, homedir, totalmem, freemem } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -232,9 +232,43 @@ const heavy = offline.filter((s) => s.heavy).sort((a, b) => LONGEST_FIRST.indexO
 console.log(`${heavy.length} heavy steps on ${LANES} lane(s) (${(memory / GB).toFixed(1)} GB available)`);
 const finish = (s, r) => { results.set(s.id, r); console.log(`${r.result.padEnd(7)} ${s.id}${r.note ? ` (${r.note})` : ''}`); };
 const doStep = async (s) => finish(s, pick(s) || await (s.postgres ? withPostgres(s) : run(s)));
+
+// The memory cgroup of a cloud session is shared with every other process in it, other agents' gates and test runs
+// included (27 Oct 2026: two lanes of this gate plus another worktree's OCR suites, and the kernel killed
+// scan-redact again). So a heavy step starts only when the cgroup has HEADROOM_GB free, unless this gate has no heavy
+// step running (then it starts anyway: waiting on other processes forever proves nothing either).
+const HEADROOM_GB = 4;
+function freeBytes() {
+  try {
+    const rel = readFileSync('/proc/self/cgroup', 'utf8').match(/^\d+:(?:memory)?:(.*)$/m)?.[1] ?? '';
+    const v2 = join('/sys/fs/cgroup', rel); const v1 = join('/sys/fs/cgroup/memory', rel);
+    const [dir, cur, max, stat, inactive] = existsSync(join(v2, 'memory.current'))
+      ? [v2, 'memory.current', 'memory.max', 'memory.stat', /^inactive_file (\d+)/m]
+      : [v1, 'memory.usage_in_bytes', 'memory.limit_in_bytes', 'memory.stat', /^total_inactive_file (\d+)/m];
+    const used = Number(readFileSync(join(dir, cur), 'utf8')) - Number(readFileSync(join(dir, stat), 'utf8').match(inactive)?.[1] ?? 0);
+    const limit = Math.min(Number(readFileSync(join(dir, max), 'utf8')) || Infinity, totalmem());
+    if (Number.isFinite(used) && Number.isFinite(limit)) return limit - used;
+  } catch { /* not Linux, or no cgroup: the machine's free memory */ }
+  return freemem();
+}
+let heavyRunning = 0;
+async function admitted() { while (heavyRunning > 0 && freeBytes() < HEADROOM_GB * GB) await new Promise((r) => setTimeout(r, 5000)); }
+// A heavy step the KERNEL killed (not the gate's timeout, not an assertion) runs once more when the memory is there;
+// the row says so, and the second run has to pass on its own.
+async function doHeavy(s) {
+  await admitted(); heavyRunning++;
+  try {
+    const first = pick(s) || await run(s);
+    if (first.result !== 'FAIL' || !/^killed by .*not by the gate/.test(first.note || '')) return finish(s, first);
+    console.log(`again   ${s.id} (${first.note}; waiting for ${HEADROOM_GB} GB free, then one rerun)`);
+    heavyRunning--; await admitted(); heavyRunning++;
+    const again = await run(s);
+    finish(s, { ...again, note: [`the kernel killed the first run for memory (${first.secs}s in); this is the rerun`, again.note].filter(Boolean).join('; ') });
+  } finally { heavyRunning--; }
+}
 await Promise.all([
   ...offline.filter((s) => !s.heavy).map(doStep),
-  ...Array.from({ length: LANES }, async () => { for (let s; (s = heavy.shift());) await doStep(s); }),
+  ...Array.from({ length: LANES }, async () => { for (let s; (s = heavy.shift());) await doHeavy(s); }),
   (async () => { for (const s of prod) finish(s, pick(s) || await run(s)); })(),
 ]);
 
