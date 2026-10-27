@@ -69,8 +69,10 @@ export interface DeliveryIO extends BooksIO, OutreachIO {
    *  files the pending inbound_review a customer who asked for a person is owed. */
   emailReply?(messageId: number, text: string, person: boolean): Promise<Sent>;
 }
-/** 'unwritten': the model was up and nothing it wrote passed — nothing was sent, and the row is NOT closed (fn_reason_held_delivered
- *  closes only delivered or 'none'), so the replay asks the model again and, after its tries, escalates to the seat. */
+/** 'unwritten': the model was up and nothing it wrote passed — nothing was sent. fn_reason_held_delivered puts the row back
+ *  to 'held' (scripts/sql/an_unwritten_person_notice_goes_back_to_the_replay.sql; without it the row stayed 'reasoned',
+ *  which nothing reads), so fn_reason_held_due asks again after 10 minutes; at its third try the row is 'failed',
+ *  fn_reason_held_escalate hands it to customer_support, and the person is owed the model-written holding notice. */
 export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'accountant_sweep' | 'bookkeeper' | 'outreach_follow_up' | 'email' | 'portal' | 'unwritten' | 'none'; detail?: string };
 
 const isAr = (s: string) => /[؀-ۿ]/.test(s);
@@ -107,17 +109,21 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
     // THE MODEL WRITES THE CONTACT NOTICE (founder ruling 1339, extended by ledger 1348: any message a person reads as a
     // reply is the model's; code-written text only when OpenRouter is down). The facts are code's: a person will follow
     // up, and the direct line and who answers it. personContactNotice goes out only on an outage; with the model up and
-    // nothing it wrote passing, nothing is sent and the row stays open for the replay (via 'unwritten').
+    // nothing it wrote passing (or a draft in the wrong language, or the brand in Arabic letters), nothing is sent and the
+    // row goes back to the replay (via 'unwritten'; fn_reason_held_delivered).
     const w = io.writeNotice
       ? await io.writeNotice(said || question, lang, { channel: 'WhatsApp', subject, facts: personContactFacts(contact), must: contact ? [contact] : undefined,
         note: 'Plain text for WhatsApp, two sentences at most. They need a person. Thank them for their patience and tell them, in your own words, the facts given: a person will follow up with them, and the direct line (keep the number exactly, on its own line). Do not answer their question itself and do not promise a time.' })
       : { reply: '', outage: false };
-    const text = w.reply.trim() || (w.outage ? personContactNotice(lang, contact) : '');
+    // A draft in the wrong language, or one that spells the brand in Arabic letters, is refused: it counts as unwritten.
+    const refused = personNoticeProblems(w.reply, lang);
+    const text = personNoticeDraft(w.reply, lang) || (w.outage ? personContactNotice(lang, contact) : '');
     await io.reportToCeo('reasoned:person:' + row.id, text
       ? 'A held WhatsApp message was reasoned to need a person and was given the public contact'
       : 'A held WhatsApp message was reasoned to need a person; no model-written contact notice passed yet, so nothing was sent (1339)',
-      { held_id: row.id, message: question.slice(0, 300), reasoning: r.answer.slice(0, 500), written_by: w.reply.trim() ? 'model' : w.outage ? 'outage_fallback' : 'none' });
-    if (!text) return { delivered: false, via: 'unwritten', detail: io.writeNotice ? 'model up, no contact notice it wrote passed the guards: nothing code-written is sent (1339); asked again on replay' : 'no model writer: a code-written notice is never sent blind (1339)' };
+      { held_id: row.id, message: question.slice(0, 300), reasoning: r.answer.slice(0, 500), written_by: personNoticeDraft(w.reply, lang) ? 'model' : w.outage ? 'outage_fallback' : 'none',
+        ...(refused.length ? { refused } : {}) });
+    if (!text) return { delivered: false, via: 'unwritten', detail: io.writeNotice ? 'model up, no contact notice it wrote passed the guards' + (refused.length ? ' (' + refused.join('; ') + ')' : '') + ': nothing code-written is sent (1339); asked again on replay' : 'no model writer: a code-written notice is never sent blind (1339)' };
     return await whatsapp(io, phone, question, text);
   }
 
@@ -279,6 +285,31 @@ export function personContactFacts(contact: string): string {
   return 'A person from our team will follow up with them.' + (contact
     ? ' If they would rather speak to someone directly, they can call or message ' + contact + ', which is answered by the owner of the company.'
     : ' They can reply in this same chat and a person will see it.');
+}
+/** The brand written in Arabic letters (kwts dn, with its variants of the vowel, the s and the n, spaced or not): every
+ *  customer reads it as "QuotesDone". */
+// written in escapes: a pattern, not a message (every_arabic_message_is_written_not_translated reviews messages)
+const ARABIC_BRAND = /\u0643[\u0648\u064F]?[\u062A\u0637][\u0633\u0632\u0635]\s*[-\u0640]?\s*\u062F[\u0648\u064F]?[\u0646\u06BB]/;
+const LATIN = /[A-Za-z]/g;
+const ARABIC_LETTERS = /[\u0621-\u064A\u0671-\u06D3]/g;
+/** Why a model draft of the person-contact notice is refused (empty: it may be sent). The person's language is
+ *  the notice's: an Arabic message gets Arabic, an English one gets no Arabic. Latin letters that are the brand, a
+ *  link or an e-mail address are not counted against an Arabic draft. */
+export function personNoticeProblems(draft: string, lang: 'en' | 'ar'): string[] {
+  const t = String(draft ?? '').trim();
+  if (!t) return [];
+  const out: string[] = [];
+  const ar = (t.match(ARABIC_LETTERS) ?? []).length;
+  const latin = (t.replace(/QuotesDone/gi, '').replace(/\S+@\S+|https?:\/\/\S+|\b[\w-]+\.(?:com|ae)\b/gi, '').match(LATIN) ?? []).length;
+  if (lang === 'ar' && ar <= latin) out.push('it is not in Arabic, the language they wrote in');
+  if (lang === 'en' && ar > 0) out.push('it carries Arabic, but they wrote in English');
+  if (ARABIC_BRAND.test(t)) out.push('it spells the brand in Arabic letters; it must read "QuotesDone"');
+  return out;
+}
+/** The model's draft when it passes personNoticeProblems, else '' (unwritten). */
+export function personNoticeDraft(draft: string, lang: 'en' | 'ar'): string {
+  const t = String(draft ?? '').trim();
+  return t && !personNoticeProblems(t, lang).length ? t : '';
 }
 /** The person-contact notice in code's words: sent ONLY when OpenRouter is down (Delivery of wa_inbound.needs_a_person).
  *  With no published line on file it is the holding notice (a person has it, the reply comes here), never a blank number. */

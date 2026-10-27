@@ -25,6 +25,11 @@
 //       reads as a reply; the WhatsApp "needs a person" contact notice (_shared/reasoned_delivery.ts, surface
 //       wa_inbound.needs_a_person) was such a literal, sent whatever the model's state. The file was already scanned, yet
 //       R1/R2 never saw it: no `||` and no registered constant. R5 sees it, and R4 pins its gate at the source.
+//   R6  a delivery that returns via 'unwritten' must not strand its row: fn_reason_held_resolve has already set it to
+//       'reasoned', which neither fn_reason_held_due (claims 'held') nor fn_reason_held_escalate ('failed' / 'held')
+//       ever reads. The SQL file defining fn_reason_held_delivered (scripts/sql/an_unwritten_person_notice_goes_back_to_
+//       the_replay.sql; review of #1669, read from the live definition) must send 'unwritten' back to 'held', and to
+//       'failed' at the last try. Its probe proves the replay and the escalation then pick the row up.
 // Each rule has a KNOWN-BAD CONTROL below: the exact line main carried before this fix must fail it.
 // prevented by: this file, _shared/reasoned_delivery.test.ts (the 1339 person-contact test).
 import { test } from 'node:test';
@@ -93,12 +98,22 @@ export function noticeFindings(files) {
   if (at < 0) out.push('_shared/reasoned_delivery.ts: R4 the wa_inbound.needs_a_person branch moved; re-anchor this check');
   else {
     if (!/await io\.writeNotice\(/.test(branch)) out.push('_shared/reasoned_delivery.ts: R4 the person-contact notice is not written by the model (writeNotice)');
-    if (!/const text = w\.reply\.trim\(\) \|\| \(w\.outage \? personContactNotice\(lang, contact\) : ''\);/.test(branch)) out.push('_shared/reasoned_delivery.ts: R4 the person-contact notice in code words is not gated on the outage');
+    if (!/const text = personNoticeDraft\(w\.reply, lang\) \|\| \(w\.outage \? personContactNotice\(lang, contact\) : ''\);/.test(branch)) out.push('_shared/reasoned_delivery.ts: R4 the person-contact notice in code words is not gated on the outage, or the model draft skips its language and brand check');
   }
   return out;
 }
 
 const read = (p) => fs.readFileSync(FN(p), 'utf8');
+
+/** R6: every 'unwritten' delivery has a fn_reason_held_delivered that returns it to the replay. `sqlFiles`: {name: text}. */
+export function unwrittenFindings(deliverySrc, sqlFiles) {
+  if (!/via: 'unwritten'/.test(stripComments(deliverySrc).join('\n'))) return [];
+  const defs = Object.entries(sqlFiles).filter(([, t]) => /create or replace function public\.fn_reason_held_delivered\s*\(/i.test(t));
+  const ok = defs.some(([, t]) => /when p_delivery->>'via' = 'unwritten' then case when attempts >= 3 then 'failed' else 'held' end/.test(t));
+  return ok ? [] : ["_shared/reasoned_delivery.ts: R6 a delivery returns via 'unwritten' but no fn_reason_held_delivered sends that row back to 'held' (it stays 'reasoned', never replayed, never escalated)"];
+}
+const SQL_DIR = path.join(REPO, 'scripts', 'sql');
+const sqlFiles = () => Object.fromEntries(fs.readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql')).map((f) => [f, fs.readFileSync(path.join(SQL_DIR, f), 'utf8')]));
 
 test('1339: no reply path sends a code-written sentence unless OpenRouter is down (R1, R2, R5)', () => {
   const found = REPLY_PATHS.flatMap((p) => replyFindings(p, read(p)));
@@ -107,6 +122,9 @@ test('1339: no reply path sends a code-written sentence unless OpenRouter is dow
 test('1339: the fixed notices are gated on the outage where they are made (R4)', () => {
   const files = Object.fromEntries(REPLY_PATHS.map((p) => [p, read(p)]));
   assert.deepEqual(noticeFindings(files), []);
+});
+test('1339 / ledger 1348: an unwritten delivery goes back to the replay (R6)', () => {
+  assert.deepEqual(unwrittenFindings(read('_shared/reasoned_delivery.ts'), sqlFiles()), []);
 });
 test('1339: every reply-path file this check names exists (a renamed file is re-registered, never silently dropped)', () => {
   for (const p of REPLY_PATHS) assert.ok(fs.existsSync(FN(p)), p);
@@ -168,7 +186,18 @@ test('known-bad (R5, ledger 1348): the needs-a-person contact notice written in 
   // an Arabic-only literal is caught as well (the register: it is still code's words)
   assert.equal(replyFindings('x.ts', "    const reply = 'شكرًا لكم، سيتواصل معكم أحد أعضاء فريقنا على هذا الرقم قريبًا جدًا';\n").filter((x) => x.includes('R5')).length, 1);
   // ...and the sanctioned forms pass
-  assert.equal(replyFindings('x.ts', "    const text = w.reply.trim() || (w.outage ? personContactNotice(lang, contact) : '');\n").length, 0);
+  assert.equal(replyFindings('x.ts', "    const text = personNoticeDraft(w.reply, lang) || (w.outage ? personContactNotice(lang, contact) : '');\n").length, 0);
   assert.equal(replyFindings('x.ts', "    const text = said || (outage ? 'Thank you for your patience, a person will follow up.' : '');\n").length, 0);
   assert.equal(replyFindings('x.ts', "    const reply = personContactNotice(lang, contact);\n").filter((x) => x.includes('R2')).length, 1, 'the fixed notice used with no gate');
+});
+test('known-bad (R6, review of #1669): an unwritten delivery with the live fn_reason_held_delivered is caught', () => {
+  const delivery = "    if (!text) return { delivered: false, via: 'unwritten', detail: 'x' };\n";
+  // the live definition (27 Oct 2026): anything not delivered and not 'none' keeps its status, so 'reasoned' stays 'reasoned'
+  const live = "CREATE OR REPLACE FUNCTION public.fn_reason_held_delivered(p_id bigint, p_delivery jsonb)\n  status = case when coalesce((p_delivery->>'delivered')::boolean, false) or p_delivery->>'via' = 'none' then 'applied' else status end,\n";
+  assert.equal(unwrittenFindings(delivery, { 'a.sql': live }).length, 1);
+  const fixed = live.replace("then 'applied' else status end", "then 'applied'\n when p_delivery->>'via' = 'unwritten' then case when attempts >= 3 then 'failed' else 'held' end\n else status end");
+  assert.equal(unwrittenFindings(delivery, { 'a.sql': fixed }).length, 0);
+  // #1669's first head: the model's draft sent with no language or brand check is caught by the R4 pin
+  const first = "  if (row.surface === 'wa_inbound.needs_a_person') {\n    const w = await io.writeNotice(said, lang, {});\n    const text = w.reply.trim() || (w.outage ? personContactNotice(lang, contact) : '');\n  }\n";
+  assert.ok(noticeFindings({ '_shared/reasoned_delivery.ts': first }).some((x) => x.includes('language and brand check')));
 });

@@ -1,6 +1,6 @@
 // A held question, reasoned after the hold lifts, is delivered on its own channel under the channel's rules.
 import { assertEquals, assertMatch } from 'jsr:@std/assert';
-import { casSecrets, deliverReasoned, holdingNotice, liveDeliveryIO, replayHeldComment, sendHeldNotices, type CommentReplayIO, type DeliveryIO } from './reasoned_delivery.ts';
+import { casSecrets, deliverReasoned, holdingNotice, personNoticeDraft, personNoticeProblems, liveDeliveryIO, replayHeldComment, sendHeldNotices, type CommentReplayIO, type DeliveryIO } from './reasoned_delivery.ts';
 import { call, processComment, replyRequest, type CommentEvent, type Store } from './marketing_social_comments.ts';
 import { accessToken, open, seal, type SocialPlatform } from './marketing_social_oauth.ts';
 import type { HeldRow, ThinkResult } from './think.ts';
@@ -86,6 +86,36 @@ Deno.test('1339: the person-contact notice in code words goes ONLY when OpenRout
   noLine.x.writeNotice = (_q, _l, o) => { assertEquals(o?.must, undefined); return Promise.resolve({ reply: '', outage: true }); };
   await deliverReasoned(row('wa_inbound.needs_a_person', 'you took my money and vanished', { phone: '+971500000001' }), answered('needs_a_person'), noLine.x);
   assertMatch(noLine.log[1], /^text \+971500000001 Thank you for your patience\. Your question is now with our team/);
+});
+
+Deno.test('ledger 1348: a person-contact draft in the wrong language, or with the brand in Arabic letters, is refused as unwritten', async () => {
+  const send = async (said: string, draft: string) => {
+    const m = io(true);
+    m.x.writeNotice = () => Promise.resolve({ reply: draft, outage: false });
+    const d = await deliverReasoned(row('wa_inbound.needs_a_person', said, { phone: '+971500000001' }), answered('needs_a_person'), m.x);
+    return { d, sent: m.log.filter((l) => /^(text|template)/.test(l)) };
+  };
+  // English draft for an Arabic message
+  const a = await send('نصبتوا علي', 'Thank you. A person from our team will follow up; call +971 50 000 0000.');
+  assertEquals([a.d.delivered, a.d.via, a.sent], [false, 'unwritten', []]);
+  assertMatch(String(a.d.detail), /not in Arabic/);
+  // Arabic draft for an English message
+  const b = await send('you took my money', 'شكرًا لصبركم، سيتابع معكم أحد أعضاء فريقنا على +971 50 000 0000');
+  assertEquals([b.d.delivered, b.d.via, b.sent], [false, 'unwritten', []]);
+  // the brand in Arabic letters, in either spelling
+  for (const brand of ['كوتس دن', 'كوتس دون', 'كوتسدن', 'كوتز دن']) {
+    const c = await send('نصبتوا علي', 'شكرًا لصبركم، سيتابع معكم فريق ' + brand + ' على +971 50 000 0000');
+    assertEquals([c.d.delivered, c.d.via, c.sent], [false, 'unwritten', []], brand);
+  }
+  // ...and the right ones go: Arabic with the brand in Latin letters, the number and an e-mail; plain English
+  const ok = await send('نصبتوا علي', 'شكرًا لصبركم، سيتابع معكم فريق QuotesDone، ويمكنكم الاتصال على\n+971 50 000 0000\nmanagement@quotesdone.com');
+  assertEquals([ok.d.delivered, ok.d.via], [true, 'whatsapp_text']);
+  const en = await send('you took my money', 'Thank you for your patience. A person from QuotesDone will follow up; call +971 50 000 0000.');
+  assertEquals([en.d.delivered, en.d.via], [true, 'whatsapp_text']);
+  // pure helpers
+  assertEquals(personNoticeDraft('  ', 'ar'), '');
+  assertEquals(personNoticeProblems('Thank you, QuotesDone', 'en'), []);
+  assertEquals(personNoticeProblems('شكرًا من QuotesDone', 'ar'), []);
 });
 
 Deno.test('reasoned to need no person: nothing is sent again', async () => {
