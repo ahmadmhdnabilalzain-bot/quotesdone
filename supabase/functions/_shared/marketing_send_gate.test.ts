@@ -1,9 +1,9 @@
 import { assertEquals } from 'jsr:@std/assert@1';
 import {
   isMarketingType, isStop, marketingGate, pickSender, renderWaInvite, senderQualityOk, supplierInviteGate,
-  WA_INVITE_BUTTONS, WA_INVITE_TEMPLATE_EN, waInviteTrade,
+  WA_INVITE_APPROVED_OFFER, WA_INVITE_BUTTONS, WA_INVITE_TEMPLATE_EN, waInviteTrade,
 } from './marketing_send_gate.ts';
-import { ANY_LINK, m365InvitationText } from '../send_outbox/m365_lane.ts';
+import { ANY_LINK } from '../send_outbox/m365_lane.ts';
 
 // 27 Oct 2026: nothing leaves unless BOTH switches are exactly 'true' and no brake is open; opt-out cancels first.
 Deno.test('invite gate: every switch off, missing or mistyped holds; a brake holds; both on sends', () => {
@@ -33,7 +33,7 @@ Deno.test('pickSender finds our number in a Twilio senders page and reads its ra
   assertEquals(pickSender(page, '971500000000'), null);
   assertEquals(pickSender(null, '971500000099'), null);
 });
-Deno.test('the WhatsApp invitation: no link, English, the STOP line, one mid-sentence variable, the approved email\'s offer', () => {
+Deno.test('the WhatsApp invitation: no link, English, the STOP line, one mid-sentence variable, the approved offer', () => {
   const t = WA_INVITE_TEMPLATE_EN;
   assertEquals(ANY_LINK.test(t), false, 'a link (ruling 1301)');
   assertEquals(/[؀-ۿ]/.test(t), false, 'Arabic to a supplier');
@@ -42,10 +42,15 @@ Deno.test('the WhatsApp invitation: no link, English, the STOP line, one mid-sen
   assertEquals(/^\{\{|\}\}$/.test(t.trim()), false);
   assertEquals(t.length <= 1024, true);
   assertEquals(t.endsWith('reply STOP and we won\'t message you again.'), true);
-  // the same promises the founder approved in the email (m365_lane.ts), nothing more
-  const mail = m365InvitationText();
-  for (const p of ['No commission on work you win', 'first 1,000 suppliers', 'register at quotesdone.com', 'set up your company page'])
-    assertEquals(mail.toLowerCase().includes(p.toLowerCase()) && t.toLowerCase().includes(p.toLowerCase()), true, p);
+  // The promises the founder approved (ledger 1298), checked against the stored offer and the canon, not the email
+  // body. #1648 removed the offer from the email for filter reasons only (WA_INVITE_APPROVED_OFFER says why).
+  const canon = Deno.readTextFileSync(new URL('../../../knowledge/COMPANY_CANON.md', import.meta.url));
+  for (const { promise, canon: fact } of WA_INVITE_APPROVED_OFFER) {
+    assertEquals(t.toLowerCase().includes(promise.toLowerCase()), true, 'the template carries: ' + promise);
+    if (fact) assertEquals(canon.includes(fact), true, 'COMPANY_CANON.md still states: ' + fact);
+  }
+  // nothing more: no price, percentage, discount, deadline or other commercial claim beyond the approved offer
+  assertEquals(/\bAED\b|%|\bdiscount|\bguarantee|\bexclusive|\blimited\b|\bdeadline|\bexpires?\b|\buntil\b/i.test(t), false, 'an offer beyond the approved one');
   assertEquals(WA_INVITE_BUTTONS.map((b) => b.title), ['Set up my page', 'Stop']);
   for (const b of WA_INVITE_BUTTONS) assertEquals(b.title.length <= 20, true, 'Meta caps a quick-reply title at 20');
   assertEquals(isStop(WA_INVITE_BUTTONS[1].title), true, 'the Stop button must read as an opt-out in wa_inbound');

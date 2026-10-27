@@ -82,6 +82,22 @@ export const WA_INVITE_TEMPLATE_EN =
   'on work you win. Registration is free for our first 1,000 suppliers. To join, reply with the trades you cover and ' +
   'our team will set up your company page for you, or register at quotesdone.com. ' +
   'If this isn\'t relevant, reply STOP and we won\'t message you again.';
+// THE OFFER THE WHATSAPP INVITATION MAKES, AND WHAT APPROVES EACH PROMISE (marketing, 27 Oct 2026).
+// The founder approved these promises in the supplier invitation email (ledger 1298, "the wording sounds fine to me").
+// That email text is kept as the rollback body in docs/reports/QuotesDone Campaign/GLOCKAPPS_27_OCT_RESULT_AND_FIX_PLAN.md.
+// #1648 then took the offer OUT of the email (variant A, "one question, no offer"). It did so for filter reasons only:
+// Microsoft Junk at 18 of 18 seeds and Gmail Promotions. The offer itself did not change. So the WhatsApp invitation
+// keeps it: WhatsApp has no Promotions tab, and changing a template's text needs Meta to approve it again. I searched
+// the ledger on 27 Oct and found no founder ruling that requires identical copy on both channels (920 covers only the
+// profile description). So the test guards against this approved offer, not against whatever the email body says today.
+// `canon` is the sentence in knowledge/COMPANY_CANON.md that a commercial promise rests on, so changing the fact there
+// fails the test. The two calls to action carry no commercial fact and have canon null.
+export const WA_INVITE_APPROVED_OFFER: readonly { promise: string; canon: string | null }[] = [
+  { promise: 'no commission on work you win', canon: 'QuotesDone takes no commission on won work' },
+  { promise: 'free for our first 1,000 suppliers', canon: 'Registration is free for the first 1,000 suppliers' },
+  { promise: 'set up your company page', canon: null },
+  { promise: 'register at quotesdone.com', canon: null },
+];
 export const WA_INVITE_BUTTONS: readonly { id: string; title: string }[] = [
   { id: 'supplier_invite_yes', title: 'Set up my page' },
   { id: 'supplier_invite_stop', title: 'Stop' },
