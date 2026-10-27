@@ -175,6 +175,9 @@ test('every conversation has a producer and a handler in the receiving seat', ()
       || new RegExp(`p_from: '${from}', p_to: '${to}', p_type: '${type.replace('.', '\\.')}'`).test(ts)
       || (type === 'refund.remediate' && sqlText.includes("fn_seat_handoff('ceo', x.owner, 'refund.remediate'"))
       || (type === 'incident.fix' && sqlText.includes("fn_seat_handoff('ceo', 'accountant', 'incident.fix'"))
+      // the reveal invoice is filed directly, not through fn_seat_handoff, so a ZZ DEMO sale still proves the notice
+      // (ruling 1199 files nothing for demo work); the accountant's trigger writes the typed row itself
+      || (type === 'invoice.issued' && allSql.includes("jsonb_build_object('type', 'invoice.issued', 'from', 'accountant', 'from_name', 'Accountant', 'to', 'sales_engineer'"))
       // the CEO's daily plan addresses each directive to the seat the plan names
       || (type === 'ceo.directive' && allSql.includes("fn_seat_handoff('ceo', dr->>'seat', 'ceo.directive'"))
       // a target miss asks the metric's owning seat (#913); the month directive and an improvement go to the seat
