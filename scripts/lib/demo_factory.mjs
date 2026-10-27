@@ -1310,6 +1310,28 @@ export async function teardown(run) {
     // the revealed supplier, and on 21 Sep 2026 its first run stopped teardown here with 23503.
     ['reviews', `delete from public.reviews where transaction_id in ${TX} or customer_id in ${CUST} or supplier_id in ${LEAD}`],
     ['transactions', `delete from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD}`],
+    // WHAT EACH CHAT TURN WRITES (27 Oct 2026, customer_support). One conversation-bank session (22 scenarios, ~270
+    // portal turns) left 273 assistant_logs, 269 sales_decision_log and 273 support_reply_readability rows after this
+    // teardown, and every customer:<id> chat row opens a support profile and case (z50_support_wire_widget): 76 ZZ DEMO
+    // profiles and 113 cases had piled up since 12 Oct. Chat rows go by the run's customer/supplier audience while
+    // those rows still exist, and by the run tag a00_chat_row_e2e_run_tag stamps (scripts/sql/a_rehearsal_files_no_
+    // knowledge_gap_and_its_chat_rows_carry_its_run_tag.sql). Support rows go by the run's own email and ids only.
+    ['assistant_logs (audience)', `delete from public.assistant_logs where audience in (select 'customer:' || id::text from public.customers where id in ${CUST}
+          union all select 'supplier:' || id::text from public.leads where id in ${LEAD})`],
+    ...['assistant_logs', 'sales_decision_log', 'support_reply_readability'].map((t) => [`${t} (run tag)`,
+      `delete from public.${t} where e2e_run_tag = '${tag}'`]),
+    ...(() => {
+      const PROF = `(select id from public.support_customer_profile where email like 'qd-${tag}-%@example.%' or customer_id in ${CUST} or lead_id in ${LEAD})`;
+      const CASES = `(select case_id from public.support_case where customer_profile_id in ${PROF})`;
+      return [
+        ['feedback (support)', `delete from public.feedback where case_id in ${CASES} or profile_id in ${PROF}`],
+        ['support_document_intake', `delete from public.support_document_intake where case_id in ${CASES}`],
+        ['support_notification', `delete from public.support_notification where case_id in ${CASES}`],
+        ['support_case (recovery link)', `update public.support_case set recovery_of_case_id = null where recovery_of_case_id in ${CASES}`],
+        ['support_case', `delete from public.support_case where case_id in ${CASES} and not exists (select 1 from public.refund_case rc where rc.case_id = support_case.case_id)`],
+        ['support_customer_profile', `delete from public.support_customer_profile where id in ${PROF}`],
+      ];
+    })(),
     // notifications names all three parents (inquiry_id, lead_id, quote_id) and has no children of
     // its own, so it goes first - after the quote is deleted the quote_id clause matches nothing.
     ['notifications', `delete from public.notifications where inquiry_id in ${INQ} or lead_id in ${LEAD} or quote_id in ${QUO} or to_email like 'qd-${tag}-%@example.%'`],
@@ -1395,6 +1417,8 @@ export async function teardown(run) {
       // A discovered-FK child that is itself still referenced (support_customer_profile <- support_case) is left for
       // the caller's sweep and NAMED; the parent delete after it then fails loudly if anything really remains.
       if (/\(fk /.test(label) && /23503/.test(String(e.message))) { counts[`${label} (deferred: still referenced)`] = 0; continue; }
+      // The e2e_run_tag column arrives with its SQL file at merge; until then the step is named, not fatal.
+      if (/\(run tag\)/.test(label) && /42703/.test(String(e.message))) { counts[`${label} (column not applied yet)`] = 0; continue; }
       if (!/42P01|does not exist/.test(String(e.message))) throw e;
       counts[`${label} (table no longer exists)`] = 0;
     }

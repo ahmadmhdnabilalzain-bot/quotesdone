@@ -119,6 +119,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Lessons — measurement, guards, checks, audits, identity](lessons-measurement-guards-and-audits.md) — 75 pattern lessons, grouped
 - [Lessons — Postgres, kernel, deploy, phase machinery](lessons-postgres-kernel-and-deploy.md) — 60 pattern lessons, grouped
 - [A mention is not a reference](a-mention-is-not-a-reference.md) — how to prove a routine is dead
+- [A chat turn writes more than teardown knew](a-chat-turn-writes-more-than-teardown-knew.md) — 27 Oct: chat logs, support cases, gap tasks; teardown + leftovers now cover them, a rehearsal files no task
 ## The lenses that keep paying
 - [All audit lenses index](lenses-index.md) — 21 pattern lessons (shadowed aliases, dead guards, heartbeats, fixtures…)
 - [A fix's own check measures the case the fix handles](a-fixs-own-check-measures-the-case-the-fix-handles.md) — 23 Sep, 3 times: ask what case the check measures vs what case the fix handles; same case = green certifies the gap
