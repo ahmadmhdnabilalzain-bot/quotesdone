@@ -7,10 +7,12 @@
 // The drawings are LibreDWG's own test data (GPL-3.0 repository, provenance not stated upstream), so they
 // are FETCHED at a pinned commit and checked by hash, never committed here. That needs the network, which
 // the `npm test` Deno suite deliberately does not grant, so it is not a *.test.ts: .github/workflows/
-// checks.yml runs it as its own step with --allow-net limited to the two hosts it reads.
+// checks.yml runs it as its own step with --allow-net limited to the two hosts it reads. cdn.jsdelivr.net is NOT
+// granted (27 Oct 2026): the reader's first-choice jsDelivr fetch is refused at once and every read here takes the
+// npm registry tarball, the source that works where jsDelivr is refused (a cloud session's egress proxy).
 //
 //   deno test --no-lock --node-modules-dir=auto --allow-read=. \
-//     --allow-net=raw.githubusercontent.com,cdn.jsdelivr.net,registry.npmjs.org supabase/functions/_shared/doc_read/dwg_samples.check.ts
+//     --allow-net=raw.githubusercontent.com,registry.npmjs.org supabase/functions/_shared/doc_read/dwg_samples.check.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { lastWasmHeapBytes, LIBREDWG_WASM_SHA256, libreDwgWasmBytes, libreDwgWasmFromNpmTarball, lowerMemoryFloor, readDwg, WASM_MIN_PAGES } from './dwg.ts';
 import { readDxf } from './cad.ts';
@@ -101,8 +103,9 @@ Deno.test('the pinned LibreDWG wasm asks for 1 GB, is lowered to 16 MB, and read
   assert(heap > 0 && heap <= 64 * 1048576, `WASM heap ${heap} bytes`);
 });
 
-// THE SECOND SOURCE, ALONE (27 Oct 2026). Where cdn.jsdelivr.net answers, every test above takes the first source
-// and the npm-registry path would never run; this one fetches it by itself and asserts it is the pinned binary.
+// THE SECOND SOURCE, ALONE (27 Oct 2026). Run without cdn.jsdelivr.net in --allow-net (the gate, checks.yml), every
+// test above already reads through it; this one fetches it by itself and asserts it is the pinned binary, so it still
+// proves the npm path if someone runs this file with jsDelivr granted.
 Deno.test('the npm registry tarball carries the pinned LibreDWG wasm, byte for byte', async () => {
   const bin = await libreDwgWasmFromNpmTarball();
   const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bin))].map((x) => x.toString(16).padStart(2, '0')).join('');
