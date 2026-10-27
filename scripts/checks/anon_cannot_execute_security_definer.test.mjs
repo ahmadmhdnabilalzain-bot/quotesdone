@@ -157,8 +157,44 @@ const AUTHENTICATED_BY_DESIGN = {
 };
 
 let rows = [], totals = {}, stillOpen = [], anonReadable = [], objViews = [], clientWritable = [];
+let clientMaintenance = [], clientSequences = [], exposedSchemas = null, invokerCallsNet = [];
 if (hasToken) {
-  const { sql } = await import('../lib/db.mjs');
+  const { sql, PROJECT_REF } = await import('../lib/db.mjs');
+  // PRE-LAUNCH AUDIT, 27 Oct 2026 (it_engineer, ledger 1143; docs/reports/security/prelaunch_audit_27_oct.md).
+  // The privileges the INSERT/UPDATE/DELETE sweep below never asked about: TRUNCATE (which ignores RLS), TRIGGER,
+  // REFERENCES and MAINTAIN on relations, and USAGE/UPDATE on sequences (UPDATE is setval).
+  clientMaintenance = await sql(`
+    select c.relname, r.x as role,
+           has_table_privilege(r.x, c.oid, 'TRUNCATE') as trunc, has_table_privilege(r.x, c.oid, 'TRIGGER') as trig,
+           has_table_privilege(r.x, c.oid, 'REFERENCES') as refs, has_table_privilege(r.x, c.oid, 'MAINTAIN') as maint
+      from pg_class c join pg_namespace n on n.oid = c.relnamespace cross join (values ('anon'), ('authenticated')) r(x)
+     where n.nspname = 'public' and c.relkind in ('r','p','v','m')
+       and (has_table_privilege(r.x, c.oid, 'TRUNCATE') or has_table_privilege(r.x, c.oid, 'TRIGGER')
+         or has_table_privilege(r.x, c.oid, 'REFERENCES') or has_table_privilege(r.x, c.oid, 'MAINTAIN'))
+     order by c.relname, r.x`);
+  clientSequences = await sql(`
+    select c.relname, r.x as role
+      from pg_class c join pg_namespace n on n.oid = c.relnamespace cross join (values ('anon'), ('authenticated')) r(x)
+     where n.nspname = 'public' and c.relkind = 'S'
+       and (has_sequence_privilege(r.x, c.oid, 'USAGE') or has_sequence_privilege(r.x, c.oid, 'UPDATE')
+         or has_sequence_privilege(r.x, c.oid, 'SELECT'))
+     order by c.relname, r.x`);
+  // pg_net's net.http_* and net.http_request_queue are open to anon and authenticated, and those objects belong to
+  // supabase_admin, so a revoke as postgres is a silent no-op (proved 27 Oct). Two things keep that unreachable, and
+  // both are asserted below: PostgREST exposes no schema but public and graphql_public, and no routine a client role
+  // can execute calls net.* as its caller.
+  invokerCallsNet = await sql(`
+    select n.nspname || '.' || p.proname as fn
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname in ('public', 'graphql_public') and not p.prosecdef and p.prosrc ~* '\\mnet\\.'
+       and (has_function_privilege('anon', p.oid, 'EXECUTE') or has_function_privilege('authenticated', p.oid, 'EXECUTE'))
+     order by 1`);
+  const { supabaseAccessToken } = await import('../lib/supabase_token.mjs');
+  const res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/postgrest`,
+                          { headers: { Authorization: `Bearer ${supabaseAccessToken()}` } });
+  // Only db_schema is read. This response also carries the JWT secret: it is never printed, logged or kept.
+  if (res.ok) exposedSchemas = String((await res.json()).db_schema || '');
+  else exposedSchemas = `UNREADABLE: HTTP ${res.status}`;
   rows = await sql(`
     select p.proname,
            has_function_privilege('anon',          p.oid, 'EXECUTE') as anon_can,
@@ -346,4 +382,67 @@ test('no relation in public is writable by anon or authenticated', { skip: SKIP 
     + '\nIf this is deliberate the grant needs an RLS policy set behind it and a line here saying so.'
     + ' Right now the estate has 607 relations with RLS enabled and ZERO policies, which is deny-all'
     + ' only for as long as no write grant exists.');
+});
+
+// PRE-LAUNCH AUDIT, 27 Oct 2026 (it_engineer, ledger 1143). Measured that day: 99 sequences in public usable by anon AND
+// authenticated, and TRIGGER/REFERENCES/MAINTAIN on templates, undo_log, legal_documents and category_specs. The revoke
+// is scripts/sql/the_internet_roles_hold_no_sequence_and_no_table_maintenance_grant.sql, applied at merge. Until its
+// pending note goes, an open grant is excused ONLY if that file would remove it (every sequence in public; the four
+// named tables). Anything else fails now, and once the file is applied the floor is zero for everything.
+const GRANT_FIX = 'scripts/sql/the_internet_roles_hold_no_sequence_and_no_table_maintenance_grant.sql';
+const GRANT_FIX_PENDING = pendingNotes().has(GRANT_FIX);
+const GRANT_FIX_TABLES = (() => {
+  try {
+    const t = readFileSync(new URL('../../' + GRANT_FIX, import.meta.url), 'utf8');
+    const m = t.match(/revoke trigger, references, truncate, maintain\s+on ([^;]+?)\s+from anon, authenticated;/);
+    return new Set(m ? m[1].split(',').map((s) => s.trim().replace(/^public\./, '')) : []);
+  } catch { return new Set(); }
+})();
+
+test('no relation in public grants TRUNCATE, TRIGGER, REFERENCES or MAINTAIN to anon or authenticated', { skip: SKIP }, () => {
+  const all = clientMaintenance.map((r) => `${r.relname} -> ${r.role}: `
+    + [r.trunc && 'TRUNCATE', r.trig && 'TRIGGER', r.refs && 'REFERENCES', r.maint && 'MAINTAIN'].filter(Boolean).join(','));
+  const notCovered = GRANT_FIX_PENDING ? clientMaintenance.filter((r) => !GRANT_FIX_TABLES.has(r.relname) || r.trunc)
+    .map((r) => `${r.relname} -> ${r.role}`) : all;
+  console.log(`      maintenance grants to a client role: ${all.length}`
+    + (GRANT_FIX_PENDING ? ` (revoke pending at merge: ${GRANT_FIX})` : ''));
+  assert.deepEqual(notCovered, [],
+    'a client role holds a table privilege beyond SELECT that nothing removes:\n  ' + notCovered.join('\n  ')
+    + '\nTRUNCATE empties a table whatever its RLS says; TRIGGER/REFERENCES/MAINTAIN have no client use here.'
+    + ' Revoke them from anon and authenticated (and from PUBLIC first if the grant is held through PUBLIC).');
+});
+
+test('no sequence in public is usable by anon or authenticated', { skip: SKIP }, () => {
+  // Every sequence in public is covered by the pending file's "all sequences in schema public", so while it is pending
+  // there is nothing to excuse by name; once it is applied any row here is a regression.
+  console.log(`      sequence grants to a client role: ${clientSequences.length}`
+    + (GRANT_FIX_PENDING ? ` (revoke pending at merge: ${GRANT_FIX})` : ''));
+  if (GRANT_FIX_PENDING) return;
+  assert.deepEqual(clientSequences.map((r) => `${r.relname} -> ${r.role}`), [],
+    'a client role can use a sequence again. Neither role inserts anywhere, so it has no use for one, and UPDATE is'
+    + ' setval(): rewinding an id sequence makes every later insert collide. A table created by supabase_admin in'
+    + ' public picks this up from its default ACL. Revoke all on the sequence from anon, authenticated.');
+});
+
+// The PostgREST exposed-schema list is what keeps pg_net (net.http_post et al., open to anon by its default ACL and not
+// revocable by postgres) off the internet. Adding net, extensions, cron or vault to it would publish an SSRF primitive.
+const EXPOSED_BY_DESIGN = ['graphql_public', 'public'];
+
+test('PostgREST exposes only public and graphql_public, so pg_net stays unreachable', { skip: SKIP }, () => {
+  assert.ok(exposedSchemas !== null && !String(exposedSchemas).startsWith('UNREADABLE'),
+    `the PostgREST config could not be read (${exposedSchemas}); an unread setting is not a pass`);
+  const actual = exposedSchemas.split(',').map((s) => s.trim()).filter(Boolean).sort();
+  console.log(`      PostgREST db_schema: ${actual.join(', ')}`);
+  assert.deepEqual(actual, EXPOSED_BY_DESIGN,
+    'the schemas PostgREST serves have changed. net.http_post/http_get and net.http_request_queue are executable and'
+    + ' writable by anon (pg_net default, owned by supabase_admin, so not revocable here); exposing net or any schema'
+    + ' that wraps it hands an unauthenticated caller server-side requests from inside the database.');
+});
+
+test('no client-executable SECURITY INVOKER routine calls pg_net', { skip: SKIP }, () => {
+  const found = invokerCallsNet.map((r) => r.fn);
+  assert.deepEqual(found, [],
+    'these routines run as their caller, are executable by anon or authenticated, and reference net.*:\n  '
+    + found.join('\n  ') + '\nBecause anon can execute net.http_post, such a routine is an SSRF door over PostgREST.'
+    + ' Make it SECURITY DEFINER with a pinned search_path and revoke it from public, anon, authenticated.');
 });
