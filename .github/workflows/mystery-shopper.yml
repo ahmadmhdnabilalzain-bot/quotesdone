@@ -1,0 +1,46 @@
+name: Daily mystery shopper (ZZ DEMO)
+
+# The IT engineer's daily mystery shopper (founder ruling 1209, 13 Oct 2026). Drives scripts/e2e/mystery_shopper.mjs:
+# one ZZ DEMO customer on @example.invalid signs up, makes a request, is matched to ZZ DEMO suppliers only, gets two
+# quotes and the comparison report written by the real model inside the run's window (ruling 1260), and the run tears
+# itself down to 0 leftovers. The script hands every step to public.fn_it_engineer_mystery_shopper_ingest, which files
+# an IT finding naming the broken step and its error; it_engineer.mystery_shopper_heartbeat reports a missing run after
+# 26 hours. While Actions are off (ledger 1279) a session runs it by hand (workflow_dispatch or the node command).
+#
+# Uses the repository secret SUPABASE_ACCESS_TOKEN, as nightly-journey.yml does. If it is missing the job skips with a
+# notice and the heartbeat duty reports the silence itself.
+
+# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
+on:
+  # schedule:
+    # - cron: '30 4 * * *'   # 08:30 Dubai, clear of the 02:00 nightly journey
+  workflow_dispatch: {}
+
+concurrency:
+  group: mystery-shopper
+  cancel-in-progress: false
+
+jobs:
+  shop:
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - id: gate
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::notice::SUPABASE_ACCESS_TOKEN is not set; the IT engineer reports the missing run itself"
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.gate.outputs.skip != '1'
+        uses: actions/checkout@v7
+      - if: steps.gate.outputs.skip != '1'
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - if: steps.gate.outputs.skip != '1'
+        run: npm ci
+      # A broken step is the finding, not a failed job; the script reports before it exits.
+      - if: steps.gate.outputs.skip != '1'
+        run: node scripts/e2e/mystery_shopper.mjs
