@@ -6376,6 +6376,9 @@
  "supabase/functions/sales_engineer/index.ts": [
   "326fac240e11"
  ],
+ "supabase/functions/sales_engineer/portal_turn.ts": [
+  "5e2e73b04acf"
+ ],
  "supabase/functions/send_outbox/arabic_frame.ts": [
   "0ef7f2caa346",
   "6a8e44761ee6",
