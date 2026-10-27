@@ -1,1 +1,0 @@
-Waits for merge (apply at merge). Apply with node scripts/apply_sql.mjs scripts/sql/a_wal_failure_the_archiver_has_already_retried_past_raises_no_alarm.sql --apply --ddl, then delete this note and append the file to MANIFEST.txt. Seat: it_engineer.
