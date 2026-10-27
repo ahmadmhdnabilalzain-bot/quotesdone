@@ -5971,6 +5971,71 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_rehearsal_call_estimate_usd(p_tag text)
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(avg(x.usd), 0.01)
+    from (select greatest(coalesce(c.cost_usd_reported, 0), coalesce(c.cost_aed, 0) / 3.6725) as usd
+            from public.ai_cost_log c
+           where c.e2e_run_tag = p_tag and c.model_used is distinct from 'none' and not coalesce(c.cached, false)) x
+   where x.usd > 0;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_rehearsal_committed_usd(p_tag text)
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select (select coalesce(sum(greatest(coalesce(c.cost_usd_reported, 0), coalesce(c.cost_aed, 0) / 3.6725)), 0)
+            from public.ai_cost_log c where c.e2e_run_tag = p_tag)
+       + (select coalesce(sum(r.reserved_usd), 0) from public.rehearsal_spend_reservation r
+           where r.e2e_run_tag = p_tag and r.created_at > now() - interval '10 minutes');
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_rehearsal_spend_reserve()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_tag text := public.fn_e2e_run_tag_current();
+  v_cap numeric; v_committed numeric; v_est numeric;
+begin
+  if v_tag is null then
+    return jsonb_build_object('allowed', true, 'rule', 'not_a_rehearsal');
+  end if;
+  perform pg_advisory_xact_lock(hashtext('rehearsal_spend:' || v_tag));
+  select w.cap_usd into v_cap from public.rehearsal_window w
+   where w.run_tag = 'qd_run:' || v_tag and w.ended_at is null and w.models_allowed
+     and (w.expires_at is null or w.expires_at > now())
+   order by w.started_at desc limit 1;
+  v_committed := public.fn_rehearsal_committed_usd(v_tag);
+  v_est := public.fn_rehearsal_call_estimate_usd(v_tag);
+  if v_cap is null or v_committed is null or v_est is null then
+    return jsonb_build_object('allowed', false, 'rule', 'rehearsal_cap_unreadable',
+      'reason', 'sandbox run ' || v_tag || ': no open window cap, or its spend could not be read');
+  end if;
+  if v_committed + v_est >= v_cap then
+    return jsonb_build_object('allowed', false, 'rule', 'rehearsal_cap',
+      'reason', 'sandbox run ' || v_tag || ' has committed USD ' || round(v_committed, 4) || ' (spent + reserved); one more call ('
+             || round(v_est, 4) || ') would reach its USD ' || v_cap || ' cap');
+  end if;
+  insert into public.rehearsal_spend_reservation (e2e_run_tag, reserved_usd) values (v_tag, v_est);
+  return jsonb_build_object('allowed', true, 'rule', 'reserved', 'reserved_usd', v_est,
+    'committed_usd', v_committed + v_est, 'cap_usd', v_cap);
+exception when others then
+  return jsonb_build_object('allowed', false, 'rule', 'rehearsal_cap_unreadable',
+    'reason', 'the reservation could not be made: ' || sqlstate || ' ' || sqlerrm);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_rehearsal_window_covers(p_at timestamp with time zone)
  RETURNS boolean
  LANGUAGE sql
