@@ -1,0 +1,5 @@
+Committed 27 Oct 2026 on ceo/senior-seat-audit-27-oct (founder ledger 1003). Seat: ceo. Applied by the release operator at
+merge, never before (apply-at-merge rule). Proved by
+scripts/sql/the_ceo_measures_every_seat_against_its_senior_standard_every_week_probe.sql: PROBE OK on htdblwldjkcgjvmqkbeh,
+27 Oct 2026, in one rolled-back transaction with this file; all six seats junior (exam 36.5-52.9% against the 95% bar).
+When a new judged exam lands in knowledge/exams/judged/, re-run node scripts/eval/seat_senior_standard_seed.mjs --write.
