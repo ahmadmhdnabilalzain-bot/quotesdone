@@ -92,7 +92,7 @@ const CONCLUDED = ['completed','closed','cancelled'];
 // Same derivation as auth_api line 9 so the two paths produce comparable records.
 const clip = (v: unknown, n: number) => (v == null || String(v).trim() === '') ? null : String(v).slice(0, n);
 // The identity scrubbers (scrubIdentity, inboxField, inboxBoq) live in ./identity_scrub.ts.
-import { inboxBoq, inboxField, scrubIdentity } from './identity_scrub.ts';
+import { inboxBoq, inboxField, scrubDeep, scrubIdentity, scrubLine } from './identity_scrub.ts';
 import { cleanTemplate } from './quote_template.ts';
 import { lossFeedback } from './loss_feedback.ts';
 import { newOptionRefusal } from './new_option.ts';
@@ -1597,13 +1597,21 @@ ${q}`,
       const cust: Record<string, any> = {};
       if (custIds.length) { const { data: cs } = await admin.from('customers').select('id,full_name,email,phone').in('id', custIds); for (const c of (cs || [])) cust[String(c.id)] = c; }
       const wd = async (from: string, n: number) => { try { const { data } = await admin.rpc('fn_add_working_days', { p_from: from, p_days: n }); return (data as string) || null; } catch (_e) { return null; } };
+      // The customer's post-job review (T2): stars, words and photos, on the supplier's own revealed
+      // jobs only. Photos come from the private review-photos bucket as 1-hour signed URLs.
+      const rvBy: Record<string, any> = {};
+      const txIds = (projs || []).map((p: any) => p.id);
+      if (txIds.length) { const { data: rvs } = await admin.from('reviews').select('transaction_id,rating,comment,photo_paths,created_at').in('transaction_id', txIds); for (const r of (rvs || [])) rvBy[String(r.transaction_id)] = r; }
+      const photoUrl = async (p: string) => { try { const { data } = await admin.storage.from('review-photos').createSignedUrl(p, 3600); return data?.signedUrl || null; } catch (_e) { return null; } };
       const out: any[] = [];
       for (const p of (projs || []) as any[]) {
         const c = cust[String(p.customer_id)] || {};
         out.push({ id: p.id, inquiry_id: p.inquiry_id, category: p.inquiries?.category || null, emirate: p.inquiries?.emirate || null, summary: p.inquiries?.summary || null,
           revealed_at: p.revealed_at, amount: p.quote_amount, acknowledged_at: p.supplier_ack_at || null, refund_status: p.refund_status || null,
           chase_at: await wd(p.revealed_at, 3), respond_by: p.refund_deadline || await wd(p.revealed_at, 5),
-          customer: { name: c.full_name || null, email: c.email || null, phone: c.phone || null } });
+          customer: { name: c.full_name || null, email: c.email || null, phone: c.phone || null },
+          review: rvBy[String(p.id)] ? { rating: rvBy[String(p.id)].rating, comment: rvBy[String(p.id)].comment || null, created_at: rvBy[String(p.id)].created_at,
+            photo_urls: (await Promise.all(((rvBy[String(p.id)].photo_paths || []) as string[]).map(photoUrl))).filter(Boolean) } : null });
       }
       return J({ ok: true, projects: out });
     }
@@ -1706,7 +1714,7 @@ ${q}`,
     // then is it released; (b) upload a revised quote, which is submit_quote again and supersedes the
     // hold. Every step is the sales_engineer seat's (_shared/line_specs/workflow.ts).
     if (action === 'spec_hold' || action === 'spec_fill' || action === 'spec_approve') {
-      const { data: sup } = await admin.from('leads').select('id,locale,whatsapp,phone').eq('claimed_by', email).maybeSingle();
+      const { data: sup } = await admin.from('leads').select('id,company_name,locale,whatsapp,phone').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       const qid = String(body.quote_id || '');
       if (!UUID_RE.test(qid)) return J({ error: 'not found', code: 'not_found' }, 404);
@@ -1732,7 +1740,7 @@ ${q}`,
         // the supplier's own language, under the one alias this supplier carries on this job (the rule
         // quote_pdf above uses). Audit 22 Sep 2026, finding 1: it was a blank page.
         const render = regenRender(q, sup, inqRow);
-        const out = await fillIn(repo, qid, supplierOf(sup, email), body.values && typeof body.values === 'object' ? body.values : {}, ctx, render);
+        const out = await fillIn(repo, qid, supplierOf(sup, email), body.values && typeof body.values === 'object' ? scrubDeep(body.values, sup.company_name, []) as typeof body.values : {}, ctx, render);
         if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 400);
         if (out.complete) return J({ ...out, pdf_url: await signed(out.pdf?.bucket, out.pdf?.path) });
         return J(out);
@@ -1886,7 +1894,7 @@ ${q}`,
       // quantity the supplier explained, lives in quote_reviews.working — written by the engineer, not by
       // the caller — so it is read from the row and never from the request body. A supplier posting
       // straight to this endpoint has no such row, and every rule applies to them in full.
-      const confirmedTerms = sanitizeTermsSpec(body.terms_spec);
+      const confirmedTerms = (() => { const t = sanitizeTermsSpec(body.terms_spec); return t ? scrubDeep(t, sup.company_name, maskHits) as typeof t : t; })();
       const reviewRow = await supabaseReviewRepo(admin).review(inquiryId, Number(sup.id)).catch(() => null);
       const safeInq = await safeInquiryOf(req, jwt, inquiryId);
       if (!safeInq) return J({ error: 'not_found', code: 'not_found' }, 404);
@@ -1921,7 +1929,7 @@ ${q}`,
           discount_label: multi ? null : clip(body.discount_label, 80), net_amount: multi ? null : numOrNull(body.net_amount) });
         const det = { inquiry_id: inquiryId, supplier_id: sup.id, option_no: p.option_no, submission_id, ...storedPrice(vat, p.amount), supplier_trn: trn,
           discount_label: vat.discount_label ? scrub(vat.discount_label, 80) : null,
-          notes: sNotes, lead_time: clip(body.lead_time, 200), validity: clip(body.validity, 200), payment_terms: clip(body.payment_terms, 400), warranty: clip(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', extracted_by_model: quoteAuthor, anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: allMasked.length ? allMasked : null, structured: p.lines.length > 0 };
+          notes: sNotes, lead_time: scrub(body.lead_time, 200), validity: scrub(body.validity, 200), payment_terms: scrub(body.payment_terms, 400), warranty: scrub(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', extracted_by_model: quoteAuthor, anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: (() => { const m = [...allMasked, ...maskHits.filter((h) => !allMasked.includes(h))]; return m.length ? m : null; })(), structured: p.lines.length > 0 };
         // Delivery / installation / warranty the supplier confirmed in the quotation review, cleaned
         // (quote_review.ts) — the hold gate reads them exactly as it reads the portal's fill-in.
         if (confirmedTerms) (det as Record<string, unknown>).terms_spec = confirmedTerms;
@@ -1959,7 +1967,7 @@ ${q}`,
           // the first line install = 0 — "included in the rate" — so the scorer's labour-or-installation
           // count reads what the supplier wrote (derive.ts, finding 15).
           const anyInstall = p.lines.some((it: any) => numOrNull(it.labour) != null || numOrNull(it.install) != null);
-          const rows = p.lines.slice(0, 80).map((it: any, i: number) => { const dv = deriveLineFields(it); return { quote_id: qid, line_no: i + 1, description: clip(it.description, 300), brand: clip(it.brand || dv.brand, 120), model: clip(it.model || dv.model, 120), specification: clip(it.specification || dv.specification, 800), qty: numOrNull(it.qty), unit: clip(it.unit, 40), unit_price: numOrNull(it.unit_price), labour: numOrNull(it.labour), install: numOrNull(it.install) ?? (i === 0 && !anyInstall && fromScope.installation_included ? 0 : null), commissioning: numOrNull(it.commissioning), amount: numOrNull(it.amount) ?? ((numOrNull(it.qty) || 0) * (numOrNull(it.unit_price) || 0) || null), country_of_origin: clip(it.country_of_origin, 80), notes: clip(it.notes, 300), ...(() => { const s = sanitizeSpec(it.spec); return Object.keys(s.spec).length ? { spec: s.spec, spec_source: s.source } : {}; })() }; });
+          const rows = p.lines.slice(0, 80).map((raw: any, i: number) => { const it = scrubLine(raw, sup.company_name, maskHits); const dv = deriveLineFields(it); return { quote_id: qid, line_no: i + 1, description: clip(it.description, 300), brand: clip(it.brand || dv.brand, 120), model: clip(it.model || dv.model, 120), specification: clip(it.specification || dv.specification, 800), qty: numOrNull(it.qty), unit: clip(it.unit, 40), unit_price: numOrNull(it.unit_price), labour: numOrNull(it.labour), install: numOrNull(it.install) ?? (i === 0 && !anyInstall && fromScope.installation_included ? 0 : null), commissioning: numOrNull(it.commissioning), amount: numOrNull(it.amount) ?? ((numOrNull(it.qty) || 0) * (numOrNull(it.unit_price) || 0) || null), country_of_origin: clip(it.country_of_origin, 80), notes: clip(it.notes, 300), ...(() => { const s = sanitizeSpec(it.spec); return Object.keys(s.spec).length ? { spec: s.spec, spec_source: s.source } : {}; })() }; });
           // A line item with no description is dropped, not stored blank - a quote line the buyer
           // cannot read is worse than one that is absent.
           const clean = rows.filter((r: { description: string | null }) => r.description);

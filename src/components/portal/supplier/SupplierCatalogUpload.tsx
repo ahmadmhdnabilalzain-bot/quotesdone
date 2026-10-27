@@ -75,7 +75,7 @@ const ACCEPT = '.csv,.tsv,.txt,.xlsx,.xls,.pdf,.png,.jpg,.jpeg,.webp,.dwg,.dxf';
 
 const T = {
   en: {
-    title: 'Catalog AI', lead: 'Upload your product catalog, price list, spreadsheet or drawing. We read it and build your product records.',
+    title: 'Product catalogue', lead: 'Upload your product catalog, price list, spreadsheet or drawing. We read it and build your product records.',
     formats: 'Price lists and spreadsheets (CSV, Excel), catalogs (PDF, images), and drawings as PDF or CAD (DWG/DXF).',
     choose: 'Choose a catalog file', working: 'Reading your catalog…',
     created: 'products added to your catalog', found: 'found in the document',
@@ -86,20 +86,10 @@ const T = {
     photo_text: 'Read from the text in your photo or scan.',
     supply_only: 'Your catalogue reads as supply only (importer, wholesaler or stockist). Confirm or correct this on the Services tab.',
   },
-  ar: {
-    title: 'قراءة الكتالوج بالذكاء الاصطناعي', lead: 'ارفعوا كتالوج منتجاتكم أو قائمة الأسعار أو الجدول أو المخطط، ونتولى قراءته وإنشاء سجلات منتجاتكم.',
-    formats: 'قوائم الأسعار والجداول (CSV وExcel)، والكتالوجات (PDF والصور)، والمخططات بصيغة PDF أو CAD ‏(DWG/DXF).',
-    choose: 'اختيار ملف الكتالوج', working: 'جارٍ قراءة الكتالوج…',
-    created: 'منتج أُضيف إلى كتالوجكم', found: 'وُجد في المستند',
-    none: 'قرأنا المستند ولم نجد فيه منتجات، فلم يُضف أي شيء.',
-    unsupported: 'حفظنا الملف لكن تعذّرت قراءة المنتجات منه.',
-    failed: 'لم يكتمل الاستخراج.', route: 'طريقة القراءة',
-    held: 'حفظنا ملفكم، لكن قراءة منتجاته تحتاج إلى محرك القراءة لدينا، وهو متوقف مؤقتًا. لم يُقرأ الملف بعد، وهذا لا يعني عدم وجود منتجات. سيُقرأ فور عودة المحرك، ويمكنكم بدلًا من ذلك رفع قائمة أسعار بصيغة CSV أو Excel لتُقرأ الآن.',
-    photo_text: 'قُرئ من النص الموجود في صورتكم أو ملفكم الممسوح ضوئيًا.',
-    supply_only: 'يُقرأ كتالوجكم على أنه توريد فقط (مستورد أو تاجر جملة أو مخزّن). يُرجى تأكيد ذلك أو تصحيحه من تبويب الخدمات.',
-  },
 };
-const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
+// Suppliers read English only (founder ruling 1008; review of #1369, 19 Oct 2026): the Arabic table
+// was deleted, so `lang` no longer selects a copy and every label is the English one.
+const t = (_lang: Lang, k: keyof typeof T.en): string => T.en[k] || String(k);
 
 export default function SupplierCatalogUpload({ token, lang = 'en', onDone }:
   { token?: string | null; lang?: Lang; onDone?: () => void }) {
