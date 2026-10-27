@@ -123,7 +123,11 @@ export const SLOTS: SlotDef[] = [
     ask: /\bbudget\b|\bprice range\b|\beconomy,? mid-?range\b|الميزانية|ميزانية|فئة السعر/i },
   { slot: 'door type',
     fill: /\b(sliding|hinged|push[- ]to[- ]open|bi-?fold|pocket)\b|سحاب|منزلق|منزلقة|مفصل|مفصلات|بالضغط|ضغط/i,
-    ask: /\b(sliding|hinged|push[- ]to[- ]open|bi-?fold)\b[^?]{0,40}\bor\b|\b(door|doors) type\b|\btype of doors?\b|نوع الأبواب|نوع الابواب|(سحاب|منزلق)[^؟]{0,20}(أو|او|أم|ام)/i },
+    // two door types offered as the choice; "handles or push-to-open" is the handle slot below (run 91fb819d dropped it here)
+    ask: /\b(sliding|hinged|bi-?fold)\b[^?]{0,40}\bor\b[^?]{0,20}\b(sliding|hinged|bi-?fold|push[- ]to[- ]open)\b|\b(door|doors) type\b|\btype of doors?\b|نوع الأبواب|نوع الابواب|(سحاب|منزلق)[^؟]{0,20}(أو|او|أم|ام)[^؟]{0,20}(مفصل|عادي)/i },
+  { slot: 'handles',
+    fill: /\bhandle-?less\b|\bwith handles\b|\bhandles\b|\bpush[- ]to[- ]open\b|\bgola\b|بدون مقابض|مقابض|بالضغط/i,
+    ask: /\bhandles?\b[^?]{0,30}\bor\b[^?]{0,30}\b(push|handle-?less|gola|touch)|\b(push[- ]to[- ]open|handle-?less)\b[^?]{0,30}\bor\b[^?]{0,30}\bhandles?\b|مقابض[^؟]{0,20}(أو|او|أم|ام)|(بالضغط|اللمس)[^؟]{0,20}(أو|او|أم|ام)[^؟]{0,20}مقابض/i },
   { slot: 'internal layout',
     fill: /\b(hanging|shelves|shelving|drawers)\b|تعليق|رفوف|أدراج|ادراج/i,
     ask: /\binternal layout\b|\blayout inside\b|\b(long|short|double) (or (long|short|double) )?hanging\b|\b(hanging|shelves|drawers)\b[^?]{0,30}\b(or|and)\b[^?]{0,30}\b(hanging|shelves|drawers)\b|الترتيب الداخلي|(تعليق|رفوف|أدراج)[^؟]{0,20}(أو|او|و)[^؟]{0,20}(تعليق|رفوف|أدراج)/i },
@@ -190,7 +194,8 @@ export function heldBlock(h: Held): string {
 export function reaskOf(q: string, h: Held): string | null {
   const filled = new Set(h.slots.map((s) => s.slot));
   for (const d of SLOTS) if (filled.has(d.slot) && d.ask.test(q)) return `asks the ${d.slot} again`;
-  if (DIM_ASK.test(q) && h.dims.length) {
+  // a question that quotes a figure ("Is the 85 square metres the dry areas only?") asks ABOUT what they gave, not for it
+  if (DIM_ASK.test(q) && h.dims.length && !/\d/.test(q)) {
     const objs = objectsOf(q); const kinds = kindsOf(q);
     for (const o of objs) {
       const got = h.dims.filter((d) => d.object === o);

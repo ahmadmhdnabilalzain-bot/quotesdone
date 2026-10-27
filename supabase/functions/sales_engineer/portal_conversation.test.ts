@@ -218,3 +218,15 @@ Deno.test('the summary and its confirm question are never dropped as re-asks or 
   assertEquals(replyFilter(h)('Did I get everything right?'), null);
   assertEquals(replyFilter(heldState([u('أبي أصبغ السور.'), a('كم طول السور؟')], 'السور 60 متر.'))('هل الملخص صحيح؟'), null);
 });
+
+// Run 91fb819d (27 Oct 2026): two false drops found by auditing every dropped sentence in agent_runs.
+Deno.test('a question about a figure they gave, and handles vs push-to-open, are not re-asks', () => {
+  const p = heldState([u('I want engineered wood flooring in my apartment, about 85 square metres, and in the bathrooms too.')], 'There are ceramic tiles now.');
+  assertEquals(reaskOf('Is the 85 square metres the dry areas only, or does it include the bathrooms?', p), null);
+  assertEquals(reaskOf('What is the floor area of the apartment?', heldState([u('The floor is about 85 square metres.')], 'ok')), 'asks the floor area again');
+  const w = heldState([u('I need two built-in wardrobes.')], 'Change the doors to hinged.');
+  assertEquals(reaskOf('For the doors, would you like handles or push-to-open, and standard or premium soft-close hinges?', w), null);
+  assertEquals(reaskOf('Do you want sliding or hinged doors?', w), 'asks the door type again');
+  // the customer who said "handle-less" is not asked handles vs push-to-open again
+  assertEquals(reaskOf('Would you like handles or push-to-open?', heldState([u('Sliding doors, handle-less.')], 'Matte white.')), 'asks the handles again');
+});
