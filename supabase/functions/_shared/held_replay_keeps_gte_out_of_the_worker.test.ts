@@ -91,3 +91,17 @@ Deno.test('the heartbeat\'s embedder asks embed_ml for gte-small, the same 384-d
   await heartbeatDeps(a).embed('a research finding with no space named');
   assertEquals(inWorker.runs, 0);
 });
+
+// EVERY STEP OF THE HEARTBEAT BUILDS ITS DEPS WITH heartbeatDeps (it_engineer, 27 Oct 2026). Merging main into #1678
+// brought #1659's supportVoiceTick in on defaultDeps(admin, 'resilience_ping'): the in-worker gte-small session, in the
+// same worker whose 2 s CPU cap killed the replay. Its writer (aiReply) asks for no embedding today, so nothing burned yet;
+// a step that does would be killed the way 28985-28988 were. resilience_ping builds no deps but heartbeatDeps.
+Deno.test('resilience_ping builds every reasoning deps with heartbeatDeps, never the in-worker defaultDeps', async () => {
+  const src = await Deno.readTextFile(new URL('../resilience_ping/index.ts', import.meta.url));
+  const lines = src.split('\n');
+  const code = lines.filter((l) => !/^\s*\/\//.test(l)).join('\n');
+  const inWorker = lines.flatMap((l, i) => !/^\s*\/\//.test(l) && /defaultDeps\s*\(/.test(l) ? [i + 1] : []);
+  assertEquals(inWorker, [], `resilience_ping calls defaultDeps (gte-small in its own worker) at line(s) ${inWorker.join(', ')}; use heartbeatDeps(admin)`);
+  assert(/writeOwedDutyMessages\(liveVoiceIO\(admin, heartbeatDeps\(admin\)\)/.test(code), 'the support voice step writes on heartbeatDeps');
+  assert(/drainRoutineJudgements\(heartbeatDeps\(admin\)/.test(code), 'the routine judgements drain on heartbeatDeps');
+});
