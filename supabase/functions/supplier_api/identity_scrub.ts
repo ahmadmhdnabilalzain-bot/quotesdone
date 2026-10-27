@@ -107,3 +107,15 @@ export function inboxField<T>(v: T | null | undefined, buyerName: string | null,
   const r = redactBoq(scrubDeep(v, buyerName, hits) as T, seeds);
   return r.held ? { boq: null, withheld: true } : { boq: r.boq, withheld: false };
 }
+// EVERY SUPPLIER-TYPED FIELD A CUSTOMER READS BEFORE THE REVEAL (13 Oct 2026, sales_engineer). submit_quote
+// scrubbed notes / scope / conditions / exclusions and nothing else, yet my_inquiries and quote_compare serve
+// lead_time, validity, payment_terms, warranty, terms_spec and every quote_items text column to the customer
+// pre-reveal, verbatim. "Payment: 50% to Al Noor Trading, call 050 123 4567" in payment_terms, or an email in
+// a line's notes, handed over what the reveal fee sells. These two helpers are the same scrub for the rest.
+const LINE_TEXT = ['description', 'brand', 'model', 'specification', 'notes', 'country_of_origin'] as const;
+export function scrubLine<T extends Record<string, unknown>>(it: T, ownName: unknown, hits: string[]): T {
+  const out: Record<string, unknown> = { ...it };
+  for (const k of LINE_TEXT) if (typeof out[k] === 'string') out[k] = scrubIdentity(out[k] as string, ownName, hits);
+  if (out.spec && typeof out.spec === 'object') out.spec = scrubDeep(out.spec, ownName, hits);
+  return out as T;
+}
