@@ -132,7 +132,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Security hardening 27 Oct — SSL, network, legacy JWT, pg_net: state and next steps](security-hardening-27-oct-state.md) — nothing applied (restart / unproven exemptions); legacy JWT secret still trusted until the consumer PR, then disable + revoke; pg_net needs Supabase support
 - [Invitations resume only at ≥80% Outlook inbox](invitations-resume-only-at-80-percent-outlook-inbox.md) — 27 Oct, instr 1312: GlockApps from supplier@; report inbox/spam/promotions per provider
 - [Standing approval: merge and deploy reviewed PRs](standing-approval-merge-and-deploy-reviewed-prs.md) — 27 Oct, instr 1340: reviewed + gate-clean PRs ship without asking; policy, real sends, spend and irreversible steps still go to him
-- [Ask before the internal test email management@ → supplier@](ask-before-the-internal-test-email.md) — 27 Oct, instr 1314: his explicit yes first
+- [Ask before the internal test email management@ → supplier@](ask-before-the-internal-test-email.md) — 27 Oct, instr 1314: his explicit yes first; DROPPED later that day (not a prerequisite)
 - [CHECKPOINT 19 Oct — campaign on from 20 Oct, PR drain](checkpoint-19-oct-campaign-on-pr-drain.md) — READ FIRST: caps, open PRs, exam scores, grounding fix
 - [CHECKPOINT 6 Oct evening — pre-launch, resume after restart](checkpoint-6-oct-evening-prelaunch.md) — READ FIRST: open PRs, tonight's jobs, launch checklist, founder end-list
 - [Customer support: LLM always on, better than Amazon](customer-support-better-than-amazon.md) — 22 Sep: automated scenario suite proves it; never say ready without the score
