@@ -143,7 +143,7 @@ runs daily and sets `matching_blocked` + `matching_block_reason` when a trade li
 or insurance lapses, and `match_suppliers_kw` *does* exclude `matching_blocked`. v5:
 - reports an expired **licence** or **insurance** as a *blocker* — framed as
   auto-restorable ("upload a valid copy and your account is restored automatically,
-  usually within a day. There is no fee"), not "contact our team";
+  within a day, at the daily document check. There is no fee"), not "contact our team";
 - adds **expiring-within-30-days** warnings to *improving*, so a supplier is warned
   while it is still fixable, not after the account is already paused.
 

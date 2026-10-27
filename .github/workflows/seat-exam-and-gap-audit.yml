@@ -43,14 +43,16 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with: { node-version: 24 }
       - if: steps.gate.outputs.skip != '1'
-        uses: denoland/setup-deno@v2
+        # Third-party actions are pinned to a commit (pre-launch audit 27 Oct 2026, it_engineer; same rule as #1459): this
+        # job holds the account-wide SUPABASE_ACCESS_TOKEN and contents:write, so a moved tag would run with both.
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with: { deno-version: v2.x }
       - if: steps.gate.outputs.skip != '1'
         run: |
           npm ci --no-audit --no-fund
           mkdir -p ~/.supabase && printf '%s' "$SUPABASE_ACCESS_TOKEN" > ~/.supabase/access-token
       - if: steps.gate.outputs.skip != '1' && env.JOB == 'exam'
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@8041f1d17e0e7d2f2cfe35002962e9f26237c0bb # v1.0.263 (= v1 on 27 Oct 2026)
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: '--allowedTools Bash,Read,Edit,Write,Glob,Grep --max-turns 120'
@@ -77,7 +79,7 @@ jobs:
                as an open gap for the weekly audit. Prove 0 ZZ DEMO rows of this run remain (the run's tag).
             End with one line: "exam <pass>/<asked>, open fixes <n>, conversations <met>/<n> (slice <i>/7), PR <url or none>".
       - if: steps.gate.outputs.skip != '1' && env.JOB == 'audit'
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@8041f1d17e0e7d2f2cfe35002962e9f26237c0bb # v1.0.263 (= v1 on 27 Oct 2026)
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: '--allowedTools Bash,Read,Edit,Write,Glob,Grep --max-turns 150'
