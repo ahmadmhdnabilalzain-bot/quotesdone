@@ -8,7 +8,7 @@ import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
 import { blocksTransactional } from '../_shared/suppression_policy.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoEmail, isDemoPhone } from '../_shared/demo_identity.ts';
-import { sendWhatsAppFirst, voiceAfterSms, type VerifySent } from '../_shared/whatsapp_choice.ts';
+import { channelOfRow, failoverStep, nextChannel, RESEND_GAP_S, sidOfRow, sendWhatsAppFirst, voiceAfterSms, type VerifySent } from '../_shared/whatsapp_choice.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 const SB_URL = Deno.env.get('SUPABASE_URL')!, SB_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 // `admin` is the system's service-role client and must NEVER sign anybody in. See mintSession.
@@ -121,7 +121,10 @@ async function roleConflict(kind: string, email: string): Promise<'supplier' | '
   return null;
 }
 async function uidByEmail(email: string): Promise<string | null> { try { const { data } = await admin.rpc('auth_uid_by_email', { p_email: email }); return (data as string) || null; } catch { return null; } }
-async function ensureUser(email: string) { let uid = await uidByEmail(email); if (!uid) { const cr = await admin.auth.admin.createUser({ email, email_confirm: true, password: crypto.randomUUID() }); uid = cr.data?.user?.id || null; } return uid; }
+// A USER IS CREATED OR CONFIRMED ONLY ON A PROVEN EMAIL (13 Oct 2026, security review). createUser sets
+// email_confirm: true, so the caller must say the address is proven; both callers reach here only after an
+// email code (verify) or a phone code on a row whose phone AND email are verified.
+async function ensureUser(email: string, emailProven: boolean) { if (!emailProven) return null; let uid = await uidByEmail(email); if (!uid) { const cr = await admin.auth.admin.createUser({ email, email_confirm: true, password: crypto.randomUUID() }); uid = cr.data?.user?.id || null; } return uid; }
 // SIGN-IN NEVER BORROWS THE SYSTEM'S DATABASE CLIENT (15 Sep 2026). verifyOtp stores the session
 // it gets back on the client it ran on, and supabase-js then sends that session's token on every
 // later database call from that client. This ran on `admin`, so from the first verify onwards the
@@ -137,10 +140,11 @@ async function ensureUser(email: string) { let uid = await uidByEmail(email); if
 // a supplier or customer session, and a third caller written next year inherits the refusal for
 // free. It is asked of public.sanctions_ban, not of leads.banned: a supplier banned for unpaid dues
 // must still be able to sign in and pay them.
-async function mintSession(email: string): Promise<{ access_token: string; refresh_token: string } | 'sanctioned' | null> {
+async function mintSession(email: string, emailProven: boolean): Promise<{ access_token: string; refresh_token: string } | 'sanctioned' | null> {
   try {
     if (await sanctionedEmail(admin, email)) return 'sanctioned';
-    await ensureUser(email);
+    if (!emailProven) return null;
+    await ensureUser(email, emailProven);
     const { data } = await admin.auth.admin.generateLink({ type: 'magiclink', email });
     const th = (data as any)?.properties?.hashed_token; if (!th) return null;
     const once = createClient(SB_URL, SB_SERVICE, { auth: { persistSession: false, autoRefreshToken: false } });
@@ -182,14 +186,18 @@ async function resolveAdminEmailByPhone(e164: string): Promise<string | null> {
 // see the comment on the column. The consequence of allowing it to repeat is that a phone may
 // only ever CONFIRM an identity, never SELECT one: if a number maps to more than one account we
 // refuse and ask for the email rather than guess which person is holding the handset.
+// A PHONE MATCHES ONLY A ROW WHOSE PHONE AND EMAIL ARE BOTH VERIFIED (13 Oct 2026, security review).
+// kyc save_customer stores an unverified number and a supplier claim keeps the scraped leads.phone, so
+// anyone could put a victim's number on their own account and capture or lock out the victim's phone
+// sign-in. otherRoleByPhone applies the same rule.
 type PhoneOwner = { email: string } | { ambiguous: true } | null;
 async function resolveEmailByPhone(kind: string, e164: string): Promise<PhoneOwner> {
   if (kind === 'admin') { const e = await resolveAdminEmailByPhone(e164); return e ? { email: e } : null; }
   const last9 = e164.replace(/\D/g, '').slice(-9);
   const col = kind === 'supplier' ? 'claimed_by' : 'email';
   const q = kind === 'supplier'
-    ? admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).ilike('phone', '%' + last9).limit(5)
-    : admin.from('customers').select('email').not('email', 'is', null).ilike('phone', '%' + last9).limit(5);
+    ? admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).eq('owner_phone_verified', true).eq('owner_email_verified', true).ilike('phone', '%' + last9).limit(5)
+    : admin.from('customers').select('email').not('email', 'is', null).eq('phone_verified', true).eq('email_verified', true).ilike('phone', '%' + last9).limit(5);
   const { data } = await q;
   const owners = [...new Set((data || []).map((r: any) => String(r[col] || '').trim().toLowerCase()).filter(Boolean))];
   if (owners.length > 1) return { ambiguous: true };
@@ -204,8 +212,8 @@ async function otherRoleByPhone(kind: string, e164: string): Promise<'supplier' 
   const last9 = e164.replace(/\D/g, '').slice(-9);
   if (last9.length < 9) return null;
   const { data } = kind === 'customer'
-    ? await admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).ilike('phone', '%' + last9).limit(1)
-    : await admin.from('customers').select('email').not('email', 'is', null).ilike('phone', '%' + last9).limit(1);
+    ? await admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).eq('owner_phone_verified', true).eq('owner_email_verified', true).ilike('phone', '%' + last9).limit(1)
+    : await admin.from('customers').select('email').not('email', 'is', null).eq('phone_verified', true).eq('email_verified', true).ilike('phone', '%' + last9).limit(1);
   return data && data.length ? (kind === 'customer' ? 'supplier' : 'customer') : null;
 }
 const ROLE_CONFLICT_MSG = { supplier: 'This mobile number is registered to a supplier account. Please use the Supplier portal to sign in.', customer: 'This mobile number is registered to a customer account. Please use the customer app to sign in.' };
@@ -386,6 +394,15 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
       const since = new Date(Date.now() - 3600e3).toISOString();
       const { count } = await admin.from('phone_verifications').select('id', { count: 'exact', head: true }).eq('phone', e164).gte('created_at', since);
       if ((count || 0) >= 6) return J({ error: 'Too many code requests. Please try again later.', code: 'rate_limited' }, 429);
+      // WHATSAPP ONLY TO A CONFIRMED NUMBER (review of #1432), SMS when a WhatsApp code is asked for again
+      // (_shared/whatsapp_choice.ts nextChannel). Resends are spaced by the locked rl_check before Twilio is asked.
+      // No 'asked' channel here: an anonymous caller cannot steer a paid channel.
+      const gap = await rl('otp_gap:' + e164, 1, RESEND_GAP_S);
+      if (gap === 'down') return J(LIMITER_DOWN, 503);
+      if (gap === 'limited') return J({ error: 'A code is on its way. Please wait a few seconds before asking for another.', code: 'resend_too_soon', retry_after: RESEND_GAP_S }, 429);
+      const { data: lastRow } = await admin.from('phone_verifications').select('code').eq('phone', e164)
+        .gte('created_at', new Date(Date.now() - 10 * 60e3).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      const pick = nextChannel({ e164, lastChannel: channelOfRow(lastRow?.code), waConfirmed: acctEmail ? await confirmedWhatsApp(kind, acctEmail, e164) : false });
       try {
         // Locale: Twilio Verify writes the SMS in the account holder's registered language.
         const smsLocale = await registeredLocale(admin, { role: kind, email: acctEmail || '' }, body.lang);
@@ -397,14 +414,13 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
         // channel itself (a missing sender or an unapproved Authentication template — the three codes
         // in _shared/whatsapp_choice.ts), which means no code was delivered on the first attempt. Any
         // other Verify refusal is a send failure and is reported as one, never retried on the second
-        // channel. An account that has not confirmed a WhatsApp number goes straight to SMS as before.
+        // channel. Which channel goes first is pick (nextChannel above).
         const smsOnly = async (): Promise<VerifySent> => {
           const x = await send('sms');
           return x.r.ok && x.jd?.status !== 'canceled'
             ? { ...x, refused: null, ok: true, channel: 'sms' } : { ...x, refused: null, ok: false, channel: null };
         };
-        const wantsWa = acctEmail ? await confirmedWhatsApp(kind, acctEmail, e164) : false;
-        const res = await voiceAfterSms(wantsWa ? await sendWhatsAppFirst(send) : await smsOnly(), send);
+        const res = await voiceAfterSms(pick === 'whatsapp' ? await sendWhatsAppFirst(send) : await smsOnly(), send);
         // A WHATSAPP REFUSAL IS ONE FINDING, NOT A LOG LINE PER CODE (customer_support, 6 Oct 2026). Verify
         // refused its WhatsApp channel (sender or Authentication template), so this code went by SMS or voice.
         // The upsert is keyed by the refusal code, so a thousand sign-ins raise one open finding.
@@ -421,7 +437,7 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
         // The delivered channel is recorded in phone_verifications.code (the column only ever held the
         // marker 'twilio'; no reader compares it), the same convention kyc's whatsapp_send_code uses,
         // so the day WhatsApp starts carrying sign-in codes is visible in the table with no code change.
-        await admin.from('phone_verifications').insert({ email: acctEmail || '', phone: e164, code: 'twilio:' + res.channel, user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
+        await admin.from('phone_verifications').insert({ email: acctEmail || '', phone: e164, code: 'twilio:' + res.channel + (/^VE\w+$/.test(String(res.jd?.sid || '')) ? ':' + res.jd.sid : ''), user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
         // THE ANSWER DOES NOT NAME THE CHANNEL (security review, 18 Sep 2026). This endpoint takes no
         // session, and 'whatsapp' vs 'sms' would tell any anonymous caller holding a number that
         // resolves to one account whether THAT account has confirmed a WhatsApp number — private state
@@ -434,6 +450,38 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
       } catch (e) { console.error('login_otp: SMS send threw —', String((e as Error)?.message || e)); return J({ error: 'Could not send the SMS code.', code: 'sms_send_failed' }, 502); }
     }
 
+    // FAILOVER (it_engineer, 18 Oct 2026; review of #1432). The sign-in screen calls this at fixed times after
+    // every phone code request, whichever channel carried it. When the last code to the number went by WhatsApp,
+    // this reads Twilio's delivery status for it and sends the SAME code by SMS when Twilio reports it undelivered
+    // or failed, or it is still not delivered FAILOVER_AFTER_S after the send (_shared/whatsapp_choice.ts
+    // failoverStep) - once per verification, under a locked rl_check key. The answer is ALWAYS {ok:true}: this
+    // endpoint takes no session, and naming the channel or the delivery state would tell an anonymous caller
+    // whether an account confirmed WhatsApp on that number.
+    if (action === 'failover') {
+      const e164 = toE164(idRaw);
+      if (!e164 || isDemoPhone(e164)) return J({ ok: true });     // a fixture number never reaches Twilio
+      const ipGate = await rl('login_otp_failover_ip:' + ip, 60, 3600);
+      if (ipGate !== 'ok') return J({ ok: true });
+      const { data: row } = await admin.from('phone_verifications').select('code,created_at,email').eq('phone', e164)
+        .gte('created_at', new Date(Date.now() - 10 * 60e3).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      const sid = sidOfRow(row?.code);
+      if (!row || channelOfRow(row.code) !== 'whatsapp' || !sid) return J({ ok: true });
+      const tw = await twilioAuth(); if (!tw) return J({ ok: true });
+      try {
+        const ar = await timedFetch(`https://verify.twilio.com/v2/Attempts?VerificationSid=${sid}&Channel=whatsapp&PageSize=5`, { headers: { Authorization: tw.hdr } });
+        const aj = await ar.json().catch(() => ({}));
+        const status = (aj?.attempts || [])[0]?.channel_data?.message_status ?? null;
+        if (failoverStep(status, Date.now() - Date.parse(row.created_at)) !== 'sms') return J({ ok: true });
+        if ((await rl('otp_failover:' + sid, 1, 600)) !== 'ok') return J({ ok: true });
+        const locale = await registeredLocale(admin, { role: kind, email: row.email || '' }, body.lang);
+        const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Channel: 'sms', Locale: locale }) });
+        const jd = await r.json().catch(() => ({}));
+        if (!r.ok || jd?.status === 'canceled') { await log('error', { failover: 1, http: r.status, wa_status: status }, 'login_otp could not send the failover SMS for a WhatsApp sign-in code: ' + String(jd?.message || jd?.status || '').slice(0, 200)); return J({ ok: true }); }
+        await admin.from('phone_verifications').insert({ email: row.email || '', phone: e164, code: 'twilio:sms:' + sid, user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
+        await log('ok', { failover: 1, wa_status: status }, '');
+      } catch (e) { console.error('login_otp: failover threw -', String((e as Error)?.message || e)); }
+      return J({ ok: true });
+    }
     if (action === 'verify') {
       const code = String(body.code || '').replace(/\D/g, '');
       if (!code) return J({ error: 'Enter the code you received.', code: 'enter_code' }, 400);
@@ -499,7 +547,7 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
         // kind === 'admin' writes neither: the founder is not a customers row and not a claimed
         // lead. Before the third kind existed /os sent 'customer', so an admin email sign-in fell
         // into the else and ran an UPDATE on leads.claimed_by for the admin address.
-        const s = await mintSession(email); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
+        const s = await mintSession(email, true); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
         return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
       }
       const e164 = toE164(idRaw); if (!e164) return J({ error: 'Enter a valid mobile number.', code: 'bad_mobile' }, 400);
@@ -528,7 +576,7 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
       if (!email) return J({ error: 'No account is registered with this number. Please sign in with your email, or sign up first.', code: 'no_account_for_number' }, 404);
       if (kind === 'customer') await admin.from('customers').update({ phone_verified: true }).eq('email', email);
       await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', e164).is('used_at', null);
-      const s = await mintSession(email); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
+      const s = await mintSession(email, true); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
       return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
     }
 

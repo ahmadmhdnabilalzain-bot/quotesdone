@@ -23,11 +23,12 @@
 //   2. the WhatsApp question is on screen whenever registration demands it (the edit-mode dead end);
 //   3. terms + Save end in approved with a signed certificate (and a failed certificate heals on Save);
 //   4. every tab, the bell and the account menu settle (no endless "Loading…").
+import { SANDBOX_OUT } from '../lib/sandbox_out.mjs';
 import { launch, SITE } from './browser.mjs';
-import { openRun, closeRun, read, write, call, BASE } from './fixtures.mjs';
+import { openRun, closeRun, read, write, call, BASE, waitFor } from './fixtures.mjs';
 import { keys, verifyEmailByOtp, mkAuthUser } from '../lib/demo_factory.mjs';
 import { demoPdf, demoTradeLicence } from '../lib/demo_pdf.mjs';
-import { writeFileSync, mkdtempSync } from 'node:fs';
+import { writeFileSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -39,22 +40,41 @@ const KEEP = argv.includes('--keep');
 const SHOTS = val('--shots', ''); let shotN = 0;
 const shot = async (p, m, name) => { if (!SHOTS) return; const f = join(SHOTS, `${m.replace('/', '_')}_${String(++shotN).padStart(2, '0')}_${name}.png`); await p.screenshot({ path: f, fullPage: true }).catch(() => {}); console.log('  shot', f); };
 const TMP = mkdtempSync(join(tmpdir(), 'qd-regwalk-'));
-const AR = (l) => l === 'ar';
+// SUPPLIERS ARE ALWAYS ENGLISH (founder, 28 Sep 2026): SupplierPortal rewrites /ar/portal to /portal and renders
+// English. The ar leg is kept to prove an /ar/ invitation link still lands, signs up and registers, so every
+// on-screen assertion expects English (19 Oct 2026, sales_engineer, ruling 1230 walk: the ar leg failed on
+// "Register as a supplier", then timed out on an Arabic Upload button the portal never shows).
+const AR = () => false;
 const results = [];
 const step = (m, name, ok, detail = '') => { results.push({ m, name, ok, detail }); console.log(`${ok ? 'PASS' : 'FAIL'} [${m}] ${name}${detail ? ' — ' + detail : ''}`); };
 
+// --case <truth id,...> (13 Oct 2026, ruling 1230, it_engineer): instead of a generated licence, upload a corpus
+// licence (default corpus: the 12 Oct accuracy run) under an invited name that DIFFERS from it, and assert ruling
+// 1176 (the read licence name becomes the company name), the licence number and expiry, the profile + catalogue
+// (ruling 1177), and the outcome the corpus truth expects: approved, or held with a reason. Scans and Arabic-only
+// licences need the vision model; openRun's window has models on for every run (ruling 1260).
+const CASES = val('--case', '').split(',').filter(Boolean);
+const CORPUS = val('--corpus', join(SANDBOX_OUT, 'documents/run-final-12-oct-model-on/corpus'));
+const TRUTH = CASES.length ? JSON.parse(readFileSync(join(CORPUS, 'truth.json'), 'utf8')).docs : [];
+const MATRIX = CASES.length ? CASES.map((c, i) => ({ lang: 'en', vp: VPS[i % VPS.length], c: TRUTH.find((d) => d.id === c) || (() => { throw new Error('no corpus case ' + c); })() }))
+  : LANGS.flatMap((lang) => VPS.map((vp) => ({ lang, vp, c: null })));
+const esc = (x) => String(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const run = await openRun();
+// Ruling 1260 (19 Oct 2026): every run has the AI on. openRun opens the capped model window for every leg, so the
+// case-only override (USD 1, 1 hour) is gone: it only ever LOWERED the run's ceiling below openRun's.
 const browser = await launch();
 try {
-  for (const lang of LANGS) for (const vp of VPS) {
-    const m = `${lang}/${vp}`, n = run.seq++;
-    const email = `qd-${run.tag}-sup${n}@example.invalid`, company = `ZZ DEMO Walk ${run.tag} ${lang} ${vp}`;
+  for (const { lang, vp, c } of MATRIX) {
+    const m = `${lang}/${vp}${c ? '/' + c.id : ''}`, n = run.seq++;
+    const approveCase = !c || ['approve', 'name_autofilled'].includes(c.expected);
+    const email = `qd-${run.tag}-sup${n}@example.invalid`, company = `ZZ DEMO Walk ${run.tag} ${lang} ${vp} ${n}`;
     const lead = (await write(`insert into public.leads (company_name, email, emirate, source, invite_status, invited_at, locale, tags)
       values ('${company}', '${email}', 'Dubai', 'directory', 'sent', now(), '${lang}', ARRAY['qd_demo','qd_run:${run.tag}'])
       returning id, claim_token::text t`, 'invited demo lead'))[0];
     run.ids.leads.add(String(lead.id));
     const mobile = vp === 'mobile';
-    const ctxOpts = { viewport: mobile ? { width: Number(val('--mobile-width', '390')), height: 844 } : { width: 1440, height: 900 }, locale: AR(lang) ? 'ar-AE' : 'en-GB', ...(mobile ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) };
+    const ctxOpts = { viewport: mobile ? { width: Number(val('--mobile-width', '390')), height: 844 } : { width: 1440, height: 900 }, locale: lang === 'ar' ? 'ar-AE' : 'en-GB', ...(mobile ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) };
     const consent = () => localStorage.setItem('qd-cookie-consent', JSON.stringify({ necessary: true, analytics: false, marketing: false, ts: Date.now() }));
     const url = `${SITE}/${lang}/portal?t=${lead.t}`;
 
@@ -82,12 +102,14 @@ try {
       localStorage.setItem('qd-lang', lang); try { sessionStorage.setItem('qd-claim-token', t); } catch { /* */ }
     }, [s, lang, lead.t]);
     const p = await ctx.newPage(); const M = p.locator('main');
+    // --slow (13 Oct 2026, ruling 1230): a poor mobile connection on every portal request (CDP throttling: 400 ms, ~400 kbit/s).
+    if (argv.includes('--slow')) { const cdp = await ctx.newCDPSession(p); await cdp.send('Network.enable'); await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 400, downloadThroughput: 50000, uploadThroughput: 50000 }); }
     const blank = { hit: false };
     p.on('framenavigated', () => {});
     const t1 = Date.now();
     await p.goto(url, { waitUntil: 'domcontentloaded' });
     // Poll the whole claim window: the blank company form must NEVER appear.
-    const heading = p.getByRole('heading', { name: company });
+    const heading = p.getByRole('heading', { name: c?.truth?.legal_name_en ? new RegExp(`^(${esc(company)}|${esc(c.truth.legal_name_en)})$`) : company });
     for (let i = 0; i < 60 && !(await heading.isVisible().catch(() => false)); i++) {
       if (await M.getByText(AR(lang) ? 'تسجيل الشركة' : 'Register your company', { exact: true }).isVisible().catch(() => false)) blank.hit = true;
       await p.waitForTimeout(500);
@@ -105,14 +127,30 @@ try {
     // 3. documents: licence + company profile
     await nav.getByRole('button').nth(4).click(); await M.getByRole('progressbar').first().waitFor({ timeout: 30000 });
     const lic = join(TMP, `${run.tag}_${n}_trade_licence.pdf`), prof = join(TMP, `${run.tag}_${n}_company_profile.pdf`);
+    if (c) { writeFileSync(prof, readFileSync(join(CORPUS, 'profile_pdf.pdf'))); }
+    else {
     writeFileSync(lic, demoTradeLicence({ company, licenceNo: `ZZDEMO-${run.tag}-${n}`.toUpperCase(), activity: 'Aluminium and Glass Works' }));
-    writeFileSync(prof, demoPdf([['COMPANY PROFILE (ZZ DEMO FIXTURE - NOT A REAL COMPANY)', 14], [company, 12]]));
+    writeFileSync(prof, demoPdf([['COMPANY PROFILE (ZZ DEMO FIXTURE - NOT A REAL COMPANY)', 14], [company, 12]])); }
+    const licUp = c ? join(TMP, `${run.tag}_${n}_${c.file}`) : lic; if (c) writeFileSync(licUp, readFileSync(join(CORPUS, c.file)));
     const upBtn = () => M.locator('button:enabled').filter({ hasText: AR(lang) ? /^(رفع|تحميل)$/ : /^Upload$/ }).first();
-    await M.locator('input[type=file]').nth(0).setInputFiles(lic); await upBtn().click(); await settle();
+    await M.locator('input[type=file]').nth(0).setInputFiles(licUp); await upBtn().click(); await settle();
     await M.getByText(/2028/).first().waitFor({ timeout: 30000 }).catch(() => {});
     await M.locator('button:enabled').filter({ hasText: AR(lang) ? /^(رفع|تحميل)$/ : /^Upload$/ }).first().waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
     await p.waitForTimeout(1500);
     await M.locator('input[type=file]').nth(1).setInputFiles(prof); await upBtn().click(); await settle(); await p.waitForTimeout(2500);
+    if (c) {
+      // ruling 1177: a catalogue is read too. The third file input on the Documents tab is the catalogue door.
+      const cat = join(TMP, `${run.tag}_${n}_catalogue.pdf`); writeFileSync(cat, readFileSync(join(CORPUS, 'catalogue_pdf.pdf')));
+      const inputs = await M.locator('input[type=file]').count();
+      if (inputs > 2) { await M.locator('input[type=file]').nth(2).setInputFiles(cat); await upBtn().click().catch(() => {}); await settle(); await p.waitForTimeout(2500); }
+      let d; const t0 = Date.now();
+      for (;;) { d = (await read(`select license_doc_path is not null lic, company_profile_doc_path is not null prof, coalesce(array_length(catalog_doc_paths,1),0) cats,
+          trade_license_no, license_expiry::text exp, licence_legal_name from public.leads where id=${lead.id}`))[0];
+        if ((d.licence_legal_name && d.exp) || Date.now() - t0 > 90000 || !approveCase) break; await new Promise((r) => setTimeout(r, 3000)); }
+      step(m, `licence (${c.format}) + profile + catalogue stored`, d.lic && d.prof && d.cats > 0, JSON.stringify(d) + ` file inputs ${inputs}`);
+      if (approveCase) step(m, 'the licence was read: number, legal name, expiry as printed', d.trade_license_no === c.truth.licence_no && d.licence_legal_name === c.truth.legal_name_en && d.exp === c.truth.expiry_date,
+        `read ${JSON.stringify({ no: d.trade_license_no, name: d.licence_legal_name, exp: d.exp })} truth ${JSON.stringify({ no: c.truth.licence_no, name: c.truth.legal_name_en, exp: c.truth.expiry_date })} in ${Date.now() - t0} ms`);
+    } else {
     const docs = (await read(`select license_doc_path is not null lic, license_expiry, company_profile_doc_path is not null prof from public.leads where id=${lead.id}`))[0];
     step(m, 'licence + company profile uploaded; licence expiry read', docs?.lic && docs?.prof && String(docs?.license_expiry || '').startsWith('2028'), JSON.stringify(docs));
     // D1 (E2E stage 1, 30 Sep 2026): the Documents tab reads the NAME the licence prints, by code, and that name
@@ -122,8 +160,9 @@ try {
         public.fn_supplier_licence_name_mismatch(l) as mismatch
       from public.leads l where id=${lead.id}`))[0];
     step(m, 'the Documents tab read the licence name and it matches the company', !!nm?.licence_legal_name && nm?.matches === true && nm?.mismatch === false, JSON.stringify(nm));
+    }
     await shot(p, m, 'documents_uploaded');
-    for (const d of await read(`select license_doc_path p from public.leads where id=${lead.id} union all select company_profile_doc_path from public.leads where id=${lead.id}`)) if (d.p) run.ids.storage.push('supplier-docs/' + d.p);
+    for (const d of await read(`select license_doc_path p from public.leads where id=${lead.id} union all select company_profile_doc_path from public.leads where id=${lead.id} union all select unnest(catalog_doc_paths) from public.leads where id=${lead.id}`)) if (d.p) run.ids.storage.push('supplier-docs/' + d.p);
 
     // 4. mobile: the fixture refusal, then recorded verified
     const sms = await call('kyc', s.access_token, { action: 'send_sms', phone: `+9715000000${String(10 + n).padStart(2, '0')}` });
@@ -153,11 +192,39 @@ try {
     const t3 = Date.now(); let reg;
     for (;;) {
       reg = (await read(`select approval_status, signed_terms_path, signatory_name, approval_decided_by, licence_gate_reason from public.leads where id=${lead.id}`))[0];
-      if ((reg?.approval_status === 'approved' && reg?.signed_terms_path) || Date.now() - t3 > 60000) break;
+      if ((reg?.approval_status === 'approved' && reg?.signed_terms_path) || (!approveCase && reg?.licence_gate_reason && reg.licence_gate_reason !== 'reg_terms') || Date.now() - t3 > 60000) break;
       await new Promise((r) => setTimeout(r, 2000));
     }
-    step(m, 'terms + Save → approved with a signed certificate, by the deterministic check with no licence hold', reg?.approval_status === 'approved' && !!reg?.signed_terms_path && !reg?.licence_gate_reason,
+    if (approveCase) step(m, 'terms + Save → approved with a signed certificate, by the deterministic check with no licence hold', reg?.approval_status === 'approved' && !!reg?.signed_terms_path && !reg?.licence_gate_reason,
       `${JSON.stringify(reg)}; Save answered in ${t3 - t2} ms, approved ${Date.now() - t3} ms after`);
+    // The reason must be the LICENCE's, not "terms still missing" (reg_terms is only the certificate not landed yet).
+    else step(m, `terms + Save → NOT approved, held for the licence (corpus expects ${c.expected})`, reg?.approval_status !== 'approved' && !!reg?.licence_gate_reason && reg.licence_gate_reason !== 'reg_terms', JSON.stringify(reg));
+    // ruling 1230: the acceptance is stored with IP, the authorised person and the signature; every typed field saved.
+    const tr = (await read(`select accepted_terms_ip is not null ip, accepted_terms_user_agent is not null ua, accepted_terms_version v, accepted_terms_sha256 is not null sha, signatory_name, contact_name, service_emirates, owner_phone_verified pv, owner_email_verified ev, company_name from public.leads where id=${lead.id}`))[0];
+    step(m, 'acceptance stored with IP, agent, version, hash, signatory; mobile + e-mail verified; fields as typed', tr.ip && tr.ua && !!tr.v && tr.sha && tr.signatory_name === 'ZZ DEMO Signatory' && tr.contact_name === 'ZZ DEMO Contact' && JSON.stringify(tr.service_emirates || '').includes('Dubai') && tr.pv && tr.ev, JSON.stringify(tr));
+    if (c?.truth?.legal_name_en && approveCase) {
+      const aa = (await read(`select count(*)::int n from public.agent_actions where kind='supplier_name_from_licence' and target_id::text='${lead.id}'`))[0];
+      step(m, 'ruling 1176: the read licence name became the company name, the old name logged', tr.company_name === c.truth.legal_name_en && aa.n > 0, `company_name=${tr.company_name}; log rows ${aa.n}`);
+    }
+    // THE DECISION REACHES THE SUPPLIER. A demo delivery request writes its notification as status 'suppressed' with its
+    // dedupe_key (#1497, on top of ruling 1199), so the walk requires the row itself: exactly one suppressed e-mail
+    // supplier_approved notice for an approval, and suppressed notice rows plus the reason on the supplier's own screen
+    // (#1406) for a hold. Every row must be suppressed, never sent. The sales engineer's decision record
+    // (agent_actions supplier_approved_notice) is asserted as well, in addition, never instead.
+    await new Promise((r) => setTimeout(r, 4000));
+    const nt = await read(`select type, channel, status from public.notifications where lead_id=${lead.id} order by id`);
+    const allSuppressed = nt.every((x) => x.status === 'suppressed');
+    if (approveCase) {
+      const approvedMail = nt.filter((x) => x.type === 'supplier_approved' && x.channel === 'email');
+      step(m, 'exactly one approval notice is written, suppressed (fixture: never sent)', approvedMail.length === 1 && allSuppressed, JSON.stringify(nt));
+      const decided = (await read(`select count(*)::int n from public.agent_actions where kind='supplier_approved_notice' and status in ('auto_done','skipped') and target_table='leads' and target_id='${lead.id}'`))[0].n;
+      step(m, 'the approval notice decision is on record', decided > 0, `agent_actions rows ${decided}`);
+    } else {
+      step(m, 'the hold notice is written, suppressed (fixture: never sent)', nt.length > 0 && allSuppressed, JSON.stringify(nt));
+      await p.reload({ waitUntil: 'domcontentloaded' }); await heading.waitFor({ timeout: 30000 }).catch(() => {});
+      const said = await p.getByText(/^Why: /).first().innerText({ timeout: 15000 }).catch(() => '');
+      step(m, 'the hold reason is on the supplier screen', !!said, said);
+    }
     await shot(p, m, 'after_submit');
     if (reg?.signed_terms_path) run.ids.storage.push('signed-terms/' + reg.signed_terms_path);
 

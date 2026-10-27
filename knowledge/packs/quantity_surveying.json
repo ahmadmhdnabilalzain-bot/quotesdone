@@ -40,6 +40,36 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "quantity_surveying:product-distinctions",
+      "topic": "Quantity surveying: the services and when each is needed",
+      "topic_ar": "المساحة الكمية: الخدمات ومتى يلزم كل منها",
+      "kind": "product_distinctions",
+      "body_en": "A quantity surveyor (cost consultant) manages the money in a construction project. Pre-contract: feasibility estimates, cost plans that track the design stage by stage, value engineering, the measurement of quantities into a bill of quantities (BOQ) under a stated method of measurement (for example POMI, NRM2 or CESMM), tender documents, tender analysis and recommendation, and contract advice (FIDIC forms and their particular conditions). Post-contract: interim valuations and payment certificates, variation pricing, cost reporting and forecasts, claims and extension-of-time assessment, and the final account. The contractor's QS does the mirror image: estimating, pricing BOQs, subcontract procurement, valuations, variations and claims. Specialist services include expert witness and dispute work, insurance reinstatement valuations, and replacement-cost reports for banks. Offers differ on the stages covered, whether the BOQ is a full re-measure or approximate, the measurement standard, the number of cost-plan updates, site visit frequency, and the team's professional memberships (RICS and others).",
+      "body_ar": "يدير مهندس المساحة الكمية (استشاري التكاليف) أموال مشروع الإنشاء. قبل العقد: تقديرات الجدوى، وخطط التكلفة التي تتابع التصميم مرحلة بمرحلة، وهندسة القيمة، وقياس الكميات في جدول كميات وفق طريقة قياس محددة (مثل POMI أو NRM2 أو CESMM)، ووثائق المناقصة، وتحليل العطاءات والتوصية، والمشورة التعاقدية (نماذج فيديك وشروطها الخاصة). وبعد العقد: التقييمات المرحلية وشهادات الدفع، وتسعير الأوامر التغييرية، وتقارير التكلفة والتوقعات، وتقييم المطالبات وتمديد المدة، والحساب الختامي. ومهندس الكميات لدى المقاول يقوم بالدور المقابل: التقدير، وتسعير جداول الكميات، والتعاقد من الباطن، والتقييمات، والأوامر التغييرية، والمطالبات. ومن الخدمات المتخصصة الخبرة القضائية وأعمال النزاعات، وتقييمات إعادة الإنشاء للتأمين، وتقارير تكلفة الاستبدال للبنوك. وتختلف العروض في المراحل المشمولة، وهل جدول الكميات إعادة قياس كاملة أم تقريبي، ومعيار القياس، وعدد تحديثات خطة التكلفة، وتكرار زيارات الموقع، والعضويات المهنية للفريق.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Quantity_surveyor"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: QS work: cost estimating, planning and management, tender management with bills of quantities, valuing construction work -> confirmed."
+    },
+    {
+      "id": "quantity_surveying:lead-times-and-quoting",
+      "topic": "Quantity surveying & cost consultancy - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المساحة الكمية والاستشارات في التكاليف: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A BOQ for a mid-size building usually takes 2-6 weeks from complete drawings; a cost plan 1-3 weeks per stage; post-contract services run monthly for the project duration. A QS needs the drawings and specifications at their current stage, the procurement route, the contract form, the programme, and the services required. A quote states the scope by stage, the measurement standard, deliverables, the team and their memberships, the fee (lump sum, percentage of construction cost or monthly), the number of revisions included, exclusions and validity.",
+      "body_ar": "يستغرق إعداد جدول كميات لمبنى متوسط عادة 2-6 أسابيع من اكتمال المخططات؛ وخطة التكلفة 1-3 أسابيع لكل مرحلة؛ وخدمات ما بعد العقد تكون شهرية طوال مدة المشروع. ويحتاج المهندس المخططات والمواصفات في مرحلتها الحالية، ومسار التعاقد، ونموذج العقد، والبرنامج الزمني، والخدمات المطلوبة. ويذكر العرض النطاق حسب المرحلة، ومعيار القياس، والمخرجات، والفريق وعضوياته، والأتعاب (مبلغ مقطوع أو نسبة من تكلفة الإنشاء أو شهرياً)، وعدد المراجعات المشمولة، والاستثناءات، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -65,6 +95,14 @@
       ],
       "why": "The standards entry says POMI, NRM or CESMM are used and chosen by contract, not by law.",
       "origin": "real buyer question, moved from quantity_surveying.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Do we need a full bill of quantities or is an approximate one enough to tender our villa?",
+      "q_ar": "نحتاج جدول كميات كامل ولا يكفي تقريبي عشان نطرح مناقصة الفيلا؟",
+      "expected_entry_ids": [
+        "quantity_surveying:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -81,6 +119,27 @@
       "quantity_surveying:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "quantity_surveying:product-distinctions"
+      ],
+      "stored_not_served": [
+        "quantity_surveying:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Quantity_surveyor"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

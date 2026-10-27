@@ -38,11 +38,13 @@ const GROUPS = [...between(seed, 'insert into public.taxonomy_trade_group', 'on 
   .matchAll(/^ {2}\('([a-z_]+)','([^']+)','([^']+)',\d+\)/gm)].map(([, code, en, ar]) => ({ code, en, ar }));
 const EXISTING = Object.fromEntries([...between(seed, 'with v(code, group_code) as (values', 'update public.taxonomy_trade t set group_code')
   .matchAll(/^ {2}\('([a-z_]+)','([a-z_]+)'\)/gm)].map(([, c, g]) => [c, g]));
-const NEW = [...between(seed, 'insert into public.taxonomy_trade (code, label', ') as v(code, label, label_ar')
+// A later file that adds trades the same way (same row shapes) is read beside the seed: 19 Oct 2026.
+const LATER = ['scripts/sql/ten_uae_trades_the_taxonomy_still_missed_join_it.sql'].map(read);
+const NEW = [seed, ...LATER].flatMap((src) => [...between(src, 'insert into public.taxonomy_trade (code, label', ') as v(code, label, label_ar')
   .matchAll(/^ {2}\('([a-z_0-9]+)','([^']+)','([^']+)',array\[[^\]]*\]::text\[\],\d+,'([a-z_]+)'\)/gm)]
-  .map(([, code, en, ar, group]) => ({ code, en, ar, group }));
-const SERVICES = [...seed.matchAll(/^ {2}\('([a-z_0-9]+)','([a-z][a-z0-9_]*)','([^']+)','([^']+)',\d+\)/gm)]
-  .map(([, trade, code, en, ar]) => ({ trade, code, en, ar }));
+  .map(([, code, en, ar, group]) => ({ code, en, ar, group })));
+const SERVICES = [seed, ...LATER].flatMap((src) => [...src.matchAll(/^ {2}\('([a-z_0-9]+)','([a-z][a-z0-9_]*)','([^']+)','([^']+)',\d+\)/gm)]
+  .map(([, trade, code, en, ar]) => ({ trade, code, en, ar })));
 
 test('the seed: twelve groups, the 42 existing trades each in one, every new trade named, grouped and serviced', () => {
   assert.equal(GROUPS.length, 12);

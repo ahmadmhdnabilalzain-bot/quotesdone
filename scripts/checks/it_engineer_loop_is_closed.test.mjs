@@ -221,6 +221,8 @@ test('the detector fits the 8 s statement timeout, and a detector that stops per
 // them was scripts/checks/a_phone_cannot_select_an_account.test.mjs (6 calls a run, 5 refused by design) run
 // by check sessions without a rehearsal window of its own - the suite raising a "customers turned away"
 // finding against itself. That test now opens one. This probe now measures only what its own 60 rows do:
+// 13 Oct 2026: the window names its own expires_at. The default (now() + 2 h) on a window backdated 5 minutes
+// broke CHECK rehearsal_window_at_most_two_hours (expires_at <= started_at + 2h01m), so the probe errored before measuring.
 // the detector runs once before they exist and once after, and the attempts it counts must not move inside a
 // window, and must move by exactly 60 outside one (the control), whatever real traffic is doing.
 const REFUSAL_PROBE = (withWindow, counts = '{"http":404}') => `
@@ -230,7 +232,7 @@ const REFUSAL_PROBE = (withWindow, counts = '{"http":404}') => `
       -- a real window open over the last minute would cover the control's runs too; end it inside this rollback
       ${withWindow ? '' : "update public.rehearsal_window set ended_at = now() - interval '10 minutes' where coalesce(ended_at, started_at + interval '6 hours') > now() - interval '10 minutes';"}
       v0 := public.fn_it_detect(null, false);
-      ${withWindow ? "insert into public.rehearsal_window (run_tag, opened_by, note, started_at) values ('qd_run:zz_probe', 'probe', 'ZZ DEMO', now() - interval '5 minutes');" : ''}
+      ${withWindow ? "insert into public.rehearsal_window (run_tag, opened_by, note, models_allowed, started_at, expires_at) values ('qd_run:zz_probe', 'probe', 'ZZ DEMO', true, now() - interval '5 minutes', now() + interval '15 minutes');" : ''}
       insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
       select 'fn:login_otp', 'warn', now() - interval '1 minute', now() - interval '1 minute', '${counts}'::jsonb, 'ZZ DEMO'
         from generate_series(1, 60);
@@ -280,25 +282,44 @@ test('a registered policy refusal on the counted telemetry row is not a customer
 // -- a parked handoff whose class the playbook covers must close, and one whose class it does not
 // must stay parked -- because a gate that opens for everything is the failure this build could cause.
 test('a parked handoff closes from the playbook, and an unknown class still refuses', { skip: SKIP }, async () => {
+  // 13 Oct 2026: covered_by_playbook used to count only handoffs ALREADY parked (awaiting_learning),
+  // while fn_it_loop_reverify fills from the playbook every handoff whose finding has CLEARED --
+  // parked or clearing in this very pass. Two handoffs that cleared since the last tick made it
+  // learned 2 / covered 0 and turned the check red on a correct run. It now counts the population the
+  // routine acts on (the routine's own cleared test), and asserts the real invariant directly:
+  // after the pass, no parked handoff is one the playbook covers.
   const r = await probe(`
-    declare v jsonb; v_before int; v_after int; v_known int; v_unknown int;
+    declare v jsonb; v_after int; v_known int; v_unknown int; v_parked_covered int;
     begin
       set local statement_timeout = '60s';
-      select count(*) filter (where true),
-             count(*) filter (where (public.fn_it_playbook_for(a.detail->>'issue_key')).failure_class is not null),
+      select count(*) filter (where (public.fn_it_playbook_for(a.detail->>'issue_key')).failure_class is not null),
              count(*) filter (where (public.fn_it_playbook_for(a.detail->>'issue_key')).failure_class is null)
-        into v_before, v_known, v_unknown
+        into v_known, v_unknown
+        from public.agent_actions a
+        left join public.it_engineer_finding f on f.issue_key = a.detail->>'issue_key'
+       where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.detail->>'from' = 'it_engineer'
+         and a.status in ('pending','failed')
+         and (f.issue_key is null or f.closed_at is not null
+              or f.started_at > (a.detail->>'occurrence_started_at')::timestamptz)
+         -- 27 Oct 2026: and only a handoff that BECAME an incident. fn_it_learning_from_playbook returns null for
+         -- one with no it_incident row ("No incident row -- the handoff never became a new bug. Nothing to learn,
+         -- and nothing is wrong."; the row is opened by fn_ceo_it_escalation_decide on escalation), and reverify
+         -- simply closes it. Counting those made it learned 42 / covered 108 on 27 Oct: the 66 extra were cleared,
+         -- never-escalated handoffs piled up while the alert tick was rolled back every tick (#1613), not a gate
+         -- that failed to open. Measured the same day: cleared + covered + with an incident = 42 = learned.
+         and exists (select 1 from public.it_incident i where i.handoff_id = a.id);
+      v := public.fn_it_loop_reverify();
+      select count(*),
+             count(*) filter (where (public.fn_it_playbook_for(a.detail->>'issue_key')).failure_class is not null)
+        into v_after, v_parked_covered
         from public.agent_actions a
        where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
          and a.status in ('pending','failed') and a.detail ? 'awaiting_learning';
-      v := public.fn_it_loop_reverify();
-      select count(*) into v_after from public.agent_actions a
-       where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
-         and a.status in ('pending','failed') and a.detail ? 'awaiting_learning';
       raise exception 'CHK<<%>>', json_build_object(
-        'parked_before', v_before, 'parked_after', v_after,
+        'parked_after', v_after, 'parked_after_but_covered', v_parked_covered,
         'covered_by_playbook', v_known, 'not_covered', v_unknown,
         'closed', (v->>'closed')::int, 'learned_from_playbook', (v->>'learned_from_playbook')::int,
+        'left_for_next_tick', coalesce((v->>'left_for_next_tick')::int, 0),
         'known_class', (public.fn_it_playbook_for('duty:heartbeat:ZZ DEMO probe step')).failure_class,
         'narrower_class_without_a_cause', (public.fn_it_playbook_for('duty:demo:window:ZZ DEMO')).failure_class,
         'unknown_class_opened', (public.fn_it_playbook_for('duty:zz_demo_no_such_class:ZZ DEMO')).failure_class);
@@ -308,11 +329,95 @@ test('a parked handoff closes from the playbook, and an unknown class still refu
   assert.equal(r.narrower_class_without_a_cause, null,
     'a key whose own class has no written cause borrowed a broader class: the gate opened on a guess');
   assert.equal(r.known_class, 'heartbeat_step', 'the playbook no longer covers duty:heartbeat:');
+  // STRICT, ALWAYS (release review of #1618, 27 Oct): one pass must learn every covered handoff and leave none parked.
+  // A pass that stops early (#1613's budget, left_for_next_tick > 0) is red here until the walk reaches every
+  // handoff in one pass - never a weaker "no more than covered".
   assert.equal(r.learned_from_playbook, r.covered_by_playbook,
-    'a parked handoff whose class the playbook covers was not filled from it');
-  assert.equal(r.parked_after, r.not_covered,
-    'the handoffs left parked are not exactly the ones no playbook class covers');
+    `a cleared handoff whose class the playbook covers was not filled from it (left for next tick: ${r.left_for_next_tick})`);
+  assert.equal(r.parked_after_but_covered, 0, 'a handoff the playbook covers is still parked after the pass');
   // Deliberately NO assertion that either count is above zero. Both are a snapshot of production's
   // backlog: a floor on them would turn a drained queue -- the thing this build is for -- into a red
   // check. The refusal path is proved by the three lookups above, which do not depend on the backlog.
+});
+
+// THE ALERT TICK FITS PostgREST'S 8 S STATEMENT TIMEOUT (it_engineer, 18 Oct 2026). Handoff 165782 sat past its
+// window unescalated because fn_it_engineer_alert_tick never finished: its open step called fn_it_loop_open for
+// every unopened finding (409 x ~104 ms = 42.6 s, measured 18 Oct), before reverify, so PostgREST cancelled the
+// tick at 8 s, rolled everything back, and the backlog only grew. The fix bounds the open step and runs reverify
+// first (scripts/sql/the_it_alert_tick_opens_its_backlog_within_budget_and_escalates_first.sql). This times the
+// WHOLE tick, as resilience_ping calls it, on production's real backlog, under the same 8 s cancel, inside a
+// transaction that rolls back. A pending file that redefines the tick is replayed first in the same request, so a
+// PR is measured against the routine it will apply. 6000 ms, as for fn_it_detect above: 2 s of headroom.
+const PENDING_TICK = manifestWithPending().filter((f) => !applied.has(f))
+  // fn_it_loop_reverify too (27 Oct 2026): the tick runs it first, and its walk over ~1,000 handoffs is what took the
+  // tick past 8 s (the_it_loop_reverify_works_within_a_budget_so_the_alert_tick_commits.sql)
+  .map((f) => readFileSync(join(REPO, f), 'utf8')).filter((t) => /function public\.fn_it_(loop_tick|engineer_alert_tick|loop_reverify)\(/i.test(t));
+test('the alert tick fits the 8 s statement timeout and escalates before it opens', { skip: SKIP }, async () => {
+  const block = `do $p$
+    declare t0 timestamptz; v jsonb;
+    begin
+      set local statement_timeout = '8s';
+      -- worst case: the hourly silence watch is due on this tick
+      update public.it_engineer_scanner set last_beat_at = now() - interval '2 hours' where scanner = 'it_ceo_silence_watch';
+      t0 := clock_timestamp();
+      v := public.fn_it_engineer_alert_tick();
+      raise exception 'CHK<<%>>', json_build_object('tick_ms', round(extract(epoch from clock_timestamp() - t0) * 1000),
+        'reverify_ran', v->'loop' ? 'reverify', 'opened', v->'loop'->'opened', 'left', v->'loop'->'left_for_next_tick',
+        'silence_ran', jsonb_typeof(v->'loop'->'ceo_silence') = 'object',
+        'floor_4_5', pg_get_functiondef('public.fn_it_loop_tick()'::regprocedure) like '%v_floor_until timestamptz := statement_timestamp() + interval ''4.5 seconds''%');
+    end $p$;`;
+  let r;
+  try {
+    if (PENDING_TICK.length) await replaySql([...PENDING_TICK, block].join('\n;\n'), { label: 'pending alert tick' });
+    else await sql(block);
+  } catch (e) {
+    const m = String(e.message).match(/CHK<<(.*?)>>/s);
+    if (!m) throw e; // a statement_timeout cancel lands here: the tick did not fit
+    r = JSON.parse(m[1].replace(/\\"/g, '"'));
+  }
+  assert.ok(r, 'the probe committed instead of rolling back');
+  assert.ok(r.tick_ms < 6000, `fn_it_engineer_alert_tick took ${r.tick_ms} ms; PostgREST cancels it at 8000`);
+  assert.equal(r.reverify_ran, true, 'the tick returned without running reverify, so nothing it owes escalated');
+  assert.ok(r.opened <= 50, `the open step opened ${r.opened} findings in one tick; it is capped at 50`);
+  assert.equal(r.silence_ran, true, 'the silence watch was due and did not run: the worst case was not measured');
+  assert.equal(r.floor_4_5, true, 'the forced open floor is no longer 4.5 s after the statement began');
+});
+
+// RE-VERIFY WORKS WITHIN A BUDGET AND STILL REACHES THE TAIL (it_engineer, 27 Oct 2026). fn_it_loop_reverify stops 1 s
+// after it began (the_it_loop_reverify_works_within_a_budget_so_the_alert_tick_commits.sql) and walks oldest first, so
+// the risk is a head of handoffs it passes without closing, walked again every tick, that keeps the closable ones
+// behind it from ever being reached. This measures it instead of arguing it: successive calls in ONE transaction that
+// always rolls back (each sees what the last wrote, as committed ticks do), on production's real backlog, until a call
+// leaves nothing for the next; then one more call must find nothing left to close or escalate. Measured 27 Oct 2026:
+// 48 calls, 973 pending -> 562, left_for_next_tick 950 -> 0, the last call 77 ms with 0 closed.
+test('successive reverify calls reach and close the closable tail', { skip: SKIP }, async () => {
+  const block = `do $p$
+    declare v jsonb; t timestamptz; n int := 0; slowest int := 0; ms int;
+    begin
+      perform set_config('app.qd_stub_founder_notify', 'on', true);
+      loop
+        n := n + 1;
+        t := clock_timestamp(); v := public.fn_it_loop_reverify();
+        ms := round(extract(epoch from clock_timestamp() - t) * 1000); slowest := greatest(slowest, ms);
+        exit when coalesce((v->>'left_for_next_tick')::int, -1) = 0 or n >= 150;
+      end loop;
+      t := clock_timestamp(); v := public.fn_it_loop_reverify();
+      raise exception 'CHK<<%>>', json_build_object('calls', n, 'slowest_ms', slowest,
+        'final_ms', round(extract(epoch from clock_timestamp() - t) * 1000), 'final_left', v->'left_for_next_tick',
+        'final_closed', v->'closed', 'final_escalated', v->'escalated');
+    end $p$;`;
+  let r;
+  try {
+    await replaySql([...PENDING_TICK, block].join('\n;\n'), { retry: false, label: 'reverify drains' });
+  } catch (e) {
+    const m = String(e.message).match(/CHK<<(.*?)>>/s);
+    if (!m) throw e;
+    r = JSON.parse(m[1].replace(/\\"/g, '"'));
+  }
+  assert.ok(r, 'the probe committed instead of rolling back');
+  assert.ok(r.calls < 150, `150 successive calls still left handoffs for the next one: the walk does not reach the tail ${JSON.stringify(r)}`);
+  assert.equal(r.final_left, 0, `a call after the drain still ran out of budget ${JSON.stringify(r)}`);
+  assert.equal(r.final_closed, 0, `a call after the drain still found handoffs to close: earlier calls never reached them ${JSON.stringify(r)}`);
+  assert.equal(r.final_escalated, 0, `a call after the drain still found handoffs to escalate ${JSON.stringify(r)}`);
+  assert.ok(r.slowest_ms < 3000, `one reverify call took ${r.slowest_ms} ms; its budget is 1 s`);
 });

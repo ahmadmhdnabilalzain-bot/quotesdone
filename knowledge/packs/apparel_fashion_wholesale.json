@@ -1,0 +1,97 @@
+{
+  "trade": "apparel_fashion_wholesale",
+  "entries": [
+    {
+      "id": "apparel_fashion_wholesale:spec-checklist",
+      "topic": "Garments & fashion wholesale - what the buyer must state",
+      "topic_ar": "تجارة الملابس والأزياء بالجملة: ما يجب أن يحدده المشتري",
+      "kind": "spec_checklist",
+      "body_en": "For garments & fashion wholesale (trade code apparel_fashion_wholesale only), every quoted line must state: Garment type and style or design reference; Fabric composition and weight; Size range and size ratio per style; Colours; Quantity per style, colour and size; Stock garments or made to order; Branding, labels and packaging; Quality standard and inspection (AQL); Country of origin; Delivery terms and location; Lead time; Returns and defect policy. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط تجارة الملابس والأزياء بالجملة (رمز النشاط apparel_fashion_wholesale فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الملبس وتصميمه أو مرجعه؛ تركيب القماش ووزنه؛ مدى المقاسات ونسبتها لكل تصميم؛ الألوان؛ الكمية لكل تصميم ولون ومقاس؛ بضاعة جاهزة أم تصنيع بالطلب؛ العلامة والملصقات والتغليف؛ معيار الجودة والفحص (AQL)؛ بلد المنشأ؛ شروط التسليم وموقعه؛ مدة التوريد؛ سياسة المرتجعات والعيوب. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Garment type and style or design reference",
+        "Fabric composition and weight",
+        "Size range and size ratio per style",
+        "Colours",
+        "Quantity per style, colour and size",
+        "Stock garments or made to order",
+        "Branding, labels and packaging",
+        "Quality standard and inspection (AQL)",
+        "Country of origin",
+        "Delivery terms and location",
+        "Lead time",
+        "Returns and defect policy"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Abaya"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: abayas in the Gulf mostly black; crepe, georgette and chiffon common, with light shades also worn."
+    },
+    {
+      "id": "apparel_fashion_wholesale:product-distinctions",
+      "topic": "Garment wholesale: stock types, fabrics and modest-wear specifics",
+      "topic_ar": "تجارة الملابس بالجملة: أنواع البضاعة والأقمشة وخصوصيات الأزياء المحتشمة",
+      "kind": "product_distinctions",
+      "body_en": "Wholesale garments are bought as ready stock (seasonal collections, basics, stock lots and surplus from brands, sold by assorted size ratios per pack), as made-to-order or private-label production (the buyer's design and label, with sampling, fabric approval and minimum quantities per style and colour), or as branded goods through authorised distributors. Categories: menswear, womenswear, children's wear, sportswear and activewear, underwear and nightwear, and modest wear: abayas (in the Gulf mostly black, in crepe, georgette, chiffon and nida-type fabrics, with light shades also worn; plain, embroidered, beaded or with lace trims), kanduras and jalabiyas, and sheilas and scarves. Quality points: fabric composition and weight, colour fastness, shrinkage, stitching density and seam strength, trims and fastenings, measurement tolerance against the size chart, and labelling (fibre content and care instructions). Inspection to an AQL sampling level before shipment is standard for imported orders. Price drivers are fabric, embellishment work (hand or machine embroidery, stones), order quantity per style, and origin.",
+      "body_ar": "تُشترى الملابس بالجملة كبضاعة جاهزة (تشكيلات موسمية، وأساسيات، ودفعات مخزون وفائض من العلامات، تُباع بنسب مقاسات مشكلة لكل عبوة)، أو كإنتاج بالطلب أو بعلامة خاصة (تصميم المشتري وعلامته، مع العينات واعتماد القماش وحد أدنى لكل تصميم ولون)، أو كبضائع ذات علامات عبر موزعين معتمدين. والفئات: ملابس الرجال، وملابس النساء، وملابس الأطفال، والملابس الرياضية، والملابس الداخلية وملابس النوم، والأزياء المحتشمة: العبايات (في الخليج غالباً سوداء، من الكريب والجورجيت والشيفون وأقمشة الندى، مع ارتداء الألوان الفاتحة أيضاً؛ سادة أو مطرزة أو بالخرز أو بحواف الدانتيل)، والكنادير والجلابيات، والشيلات والأوشحة. ونقاط الجودة: تركيب القماش ووزنه، وثبات اللون، والانكماش، وكثافة الغرز ومتانة الدرزات، والإكسسوارات والأزرار، وتفاوت القياسات مقابل جدول المقاسات، والملصقات (محتوى الألياف وتعليمات العناية). والفحص بمستوى عينات AQL قبل الشحن معتاد للطلبات المستوردة. وعوامل السعر هي القماش، وأعمال التزيين (التطريز اليدوي أو الآلي، الأحجار)، والكمية لكل تصميم، والمنشأ.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Abaya"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
+      "source_note": "Page opened 2026-10-19: abayas in the Gulf mostly black; crepe, georgette and chiffon common, with light shades also worn -> confirmed."
+    },
+    {
+      "id": "apparel_fashion_wholesale:lead-times-and-quoting",
+      "topic": "Garments & fashion wholesale - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "تجارة الملابس والأزياء بالجملة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "body_en": "Ready stock: days; private label 6-12 weeks including sampling; embroidered abayas by workload. A supplier needs styles or designs, fabrics, sizes and ratios, colours, quantities, branding, quality level and delivery. A quote states per style the fabric, sizes, colours, quantity, unit price, sample cost, MOQ, inspection, delivery and validity.",
+      "body_ar": "البضاعة الجاهزة: أيام؛ والعلامة الخاصة 6-12 أسبوعاً شاملة العينات؛ والعبايات المطرزة حسب ضغط العمل. ويحتاج المورد التصاميم، والأقمشة، والمقاسات ونسبها، والألوان، والكميات، والعلامة، ومستوى الجودة، والتسليم. ويذكر العرض لكل تصميم القماش والمقاسات والألوان والكمية وسعر الوحدة وتكلفة العينة والحد الأدنى للطلب والفحص والتسليم والصلاحية.",
+      "gap_kind": "commercial",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page, so the entry is stored verified=false and never stated until sourced.",
+      "source_note": "Authored practice; not read from a page."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What should I check before ordering 500 embroidered abayas from a wholesaler?",
+      "q_ar": "وش أتأكد منه قبل ما أطلب 500 عباية مطرزة من تاجر جملة؟",
+      "expected_entry_ids": [
+        "apparel_fashion_wholesale:product-distinctions"
+      ],
+      "written_blind": true
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-10-19",
+    "method": "New trade added by scripts/sql/ten_uae_trades_the_taxonomy_still_missed_join_it.sql; pack authored by Claude on the subscription (ledger 1198/1209), no paid model.",
+    "pages_opened": [
+      "https://en.wikipedia.org/wiki/Abaya"
+    ],
+    "served": [
+      "apparel_fashion_wholesale:spec-checklist",
+      "apparel_fashion_wholesale:product-distinctions"
+    ],
+    "stored_not_served": [
+      "apparel_fashion_wholesale:lead-times-and-quoting"
+    ],
+    "ledger": [
+      893,
+      899,
+      900,
+      903,
+      1198,
+      1209
+    ]
+  }
+}

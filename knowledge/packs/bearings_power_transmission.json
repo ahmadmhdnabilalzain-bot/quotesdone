@@ -56,6 +56,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "bearings_power_transmission:product-distinctions",
+      "topic": "Bearings and power transmission: bearing types, designations and drive components",
+      "topic_ar": "المحامل ونقل الحركة: أنواع المحامل ورموزها ومكونات النقل",
+      "kind": "product_distinctions",
+      "body_en": "Rolling bearings: deep groove ball bearings (the general-purpose radial bearing for motors and pumps), angular contact ball bearings (combined loads, pairs for spindles and pumps), cylindrical roller (heavy radial loads), tapered roller (combined radial and axial, wheel hubs and gearboxes), spherical roller (heavy loads with misalignment, conveyors and crushers), needle roller (compact), and thrust bearings; plus mounted units (pillow block and flange housings with insert bearings) and plain bearings and bushes. The designation code carries the series and bore, plus suffixes for internal clearance (C3 for hot-running motors and tight fits), seals and shields (2RS, 2Z), cage material, and precision class; an equivalent from another brand must match every suffix, not just the base number. Power transmission around them: V-belts and wedge belts, timing belts and pulleys, roller chain and sprockets (ANSI or ISO/BS series), couplings (jaw, tyre, gear, disc, fluid), gearboxes and geared motors, shafts and keys, and linear guides and ball screws. Lubrication (grease type and interval, oil) and alignment decide bearing life more than brand; counterfeit premium-brand bearings are common and are best avoided by buying from authorised distributors.",
+      "body_ar": "المحامل الدوارة: المحامل الكروية ذات المجرى العميق (المحمل الشعاعي متعدد الأغراض للمحركات والمضخات)، والمحامل الكروية ذات التلامس الزاوي (الأحمال المركبة، وتستخدم أزواجاً للأعمدة الرئيسية والمضخات)، والأسطوانية (الأحمال الشعاعية الثقيلة)، والمخروطية (الأحمال الشعاعية والمحورية معاً، لمحاور العجلات وصناديق التروس)، والكروية الأسطوانية (الأحمال الثقيلة مع عدم المحاذاة، للسيور الناقلة والكسارات)، والإبرية (المدمجة)، ومحامل الدفع؛ إضافة إلى الوحدات المركبة (حاضنات الوسادة والشفة مع محامل داخلية) والمحامل الانزلاقية والجلب. ويحمل رمز المحمل السلسلة والقطر الداخلي، مع لاحقات للخلوص الداخلي (C3 للمحركات الساخنة والتركيب المحكم)، وموانع التسرب والدروع (2RS، 2Z)، ومادة القفص، وفئة الدقة؛ والمكافئ من علامة أخرى يجب أن يطابق كل لاحقة لا الرقم الأساسي فقط. ونقل الحركة حولها: السيور على شكل V والسيور الإسفينية، وسيور التوقيت وبكراتها، والجنازير الأسطوانية والتروس (سلاسل ANSI أو ISO/BS)، والقوارن (الفكية، الإطارية، الترسية، القرصية، الهيدروليكية)، وصناديق التروس والمحركات المزودة بتروس، والأعمدة والخوابير، والموجهات الخطية والمسامير الكروية. والتزييت (نوع الشحم وفترته، والزيت) والمحاذاة يحددان عمر المحمل أكثر من العلامة؛ والمحامل المقلدة لعلامات فاخرة شائعة، والأفضل تجنبها بالشراء من الموزعين المعتمدين.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Rolling-element_bearing"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: ball, cylindrical, spherical, tapered and needle roller bearings; clearance and seals as characters in the designation code -> confirmed."
+    },
+    {
+      "id": "bearings_power_transmission:lead-times-and-quoting",
+      "topic": "Bearings & power transmission - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المحامل ونقل الحركة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Common bearings and belts: ex-stock same day; large or special bearings and gearboxes 2-12 weeks. A supplier needs the full designation with suffixes (or the OEM part and machine), quantity, brand preference or acceptable equivalents, and urgency. A quote states brand, full designation, origin, authorised-distributor status, availability, delivery and validity.",
+      "body_ar": "المحامل والسيور الشائعة: متوفرة في نفس اليوم؛ والمحامل الكبيرة أو الخاصة وصناديق التروس 2-12 أسبوعاً. ويحتاج المورد الرمز الكامل مع اللاحقات (أو رقم قطعة الشركة المصنعة والآلة)، والكمية، والعلامة المفضلة أو المكافئات المقبولة، والاستعجال. ويذكر العرض العلامة والرمز الكامل والمنشأ وصفة الموزع المعتمد والتوفر والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -81,6 +111,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither decodes bearing designations; missing: bearing designation/suffix (2RS, C3) explainer). bearings_power_transmission:bearing-designation-6205-2rs-c3 was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from bearings_power_transmission.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Our motor bearing is 6309-2Z-C3. Can we fit a 6309-2RS instead?",
+      "q_ar": "محمل المحرك عندنا 6309-2Z-C3، نقدر نركب بداله 6309-2RS؟",
+      "expected_entry_ids": [
+        "bearings_power_transmission:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "bearings_power_transmission:bearing-designation-6205-2rs-c3"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "bearings_power_transmission:product-distinctions"
+      ],
+      "stored_not_served": [
+        "bearings_power_transmission:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Rolling-element_bearing"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

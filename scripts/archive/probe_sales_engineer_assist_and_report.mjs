@@ -9,10 +9,11 @@
 //   * the report runs on the ONE real customer, and on a SYNTHETIC supplier seeded inside a
 //     transaction that is then rolled back by raising CHK<<...>>, so production gains no row and
 //     the numbers still surface.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
-const token = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 
 // The management API rate-limits hard after a heavy session; a 429 between two assertions would
 // report a FAIL that is about the transport, not about the subject.

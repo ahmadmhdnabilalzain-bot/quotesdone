@@ -33,14 +33,17 @@ import { METHOD_NOTE_AR, METHOD_NOTE_EN } from '../quote_compare/deterministic.t
 
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
 import { aed, aedRange, figure } from './money.ts';
+import { feeBaseOf, feeBasisLine, NOT_RESPONSIBLE, priceStated, vatShort, vatStated, type PriceRow } from './stated_price.ts';
 import { assessQuote, requirementsOf, type Line as SpecLine, type TermsSpec } from './line_specs/assess.ts';
 export type Lang = 'en' | 'ar';
 /** The version printed in each document's control line AND carried in its file name. Bump when the
  * layout or wording changes: a cached file whose name lacks the current version is re-rendered
  * (isCurrentDoc). v2.1, 21 Sep 2026: the Arabic fixes of #782/#790/#794 — before this, the cache kept
  * serving documents rendered by v2.0 for as long as the quote was untouched. v2.2, 23 Sep 2026: the Arabic of a
- * person's words is reasoned (decision point trade_glossary_ar), so every glossary-era Arabic file is re-rendered. */
-export const DOC_VERSION = 'v2.2';
+ * person's words is reasoned (decision point trade_glossary_ar), so every glossary-era Arabic file is re-rendered.
+ * v2.3, 13 Oct 2026: rulings 1207/1208 — the supplier's discount and VAT as stated, the fee basis line and the
+ * not-responsible clause; every v2.2 file said "Prices shown exclude VAT" and is re-rendered. */
+export const DOC_VERSION = 'v2.3';
 /** The file name pdf_native writes: `<ts>_<name>.pdf`, name = `<ref>-<DOC_VERSION>-<kind>-<lang>`. The
  * version sits BEFORE the kind: trg_quote_pdf_cache_register replaces a quote's earlier vault entry by
  * matching a path that ENDS in `-quotation-<lang>.pdf`, and that ending must not move. */
@@ -150,6 +153,10 @@ export type QuoteRow = {
   /** The price excluding VAT (the spec/hold contract's `price_ex_vat`). Every customer document
    * shows and compares this figure; the 3% fee is taken on it. Absent: quote_amount is ex-VAT. */
   price_ex_vat?: number | null;
+  /** Ruling 1207: the supplier's discount and VAT exactly as stated (quotes.gross_amount / discount_amount /
+   * discount_label / vat_treatment / vat_amount / amount_as_stated). Shown as written; never the TRN. */
+  gross_amount?: number | null; discount_amount?: number | null; discount_label?: string | null;
+  vat_treatment?: string | null; vat_amount?: number | null; amount_as_stated?: number | null;
 };
 export type InquiryRow = { id: string; rfq_no?: number | string | null; category?: string | null; summary?: string | null; emirate?: string | null };
 /** The one job number (inquiries.rfq_no) as printed on every document; the uuid prefix only for a row read without it. */
@@ -228,11 +235,12 @@ const arrOf = (x: any) => Array.isArray(x) ? x : [];
 export const arLabelWords = (s: string) => s.replace(/\bSupplier ([A-Z]{1,2})\b/g, 'المورّد $1').replace(/\bOption (\d{1,3})\b/g, 'الخيار $1');
 export function labelFor(label: unknown, lang: Lang) { const l = String(label ?? ''); return lang === 'ar' ? arLabelWords(l) : l; }
 
-// ── VAT never reaches the customer ─────────────────────────────────────────────────────────────
-// Founder, 14 Sep 2026: "our company is not vat registered so for our reveal fee there is no vat.
-// and for suppliers quotations, we definetely hide the vat details when sharing the quotes with the
-// customer." Every price is shown ex-VAT; the one neutral line below is the only mention; a sentence
-// of supplier or analysis text that mentions VAT, tax registration or a TRN is dropped whole.
+// ── The supplier's VAT is shown as stated (ruling 1207, 13 Oct 2026) ─────────────────────────────
+// SUPERSEDED: the 14 Sep 2026 ruling hid the supplier's VAT from the customer ("we definetely hide the vat details").
+// Ruling 1207: QuotesDone shows the customer EXACTLY what the supplier stated, VAT included, and "no VAT" is said
+// only beside OUR fee (stated_price.ts). Supplier and analysis text is no longer stripped of VAT sentences; a TRN is
+// still blanked by maskContacts (it names the company). VAT_LINE and stripVat are kept only so the test can prove
+// no customer page prints VAT_LINE any more.
 export const VAT_LINE = { en: 'Prices shown exclude VAT, where applicable.', ar: 'الأسعار المعروضة لا تشمل ضريبة القيمة المضافة حيثما تنطبق.' };
 export const VAT_RE = /\b(?:vat|trn|value[- ]added tax|tax registration(?: number)?|tax reg(?:istration)? no)\b|ضريبة القيمة المضافة|الرقم الضريبي|رقم التسجيل الضريبي|\b100\d{12}\b/i;
 /** Drop every sentence / clause that mentions VAT or a TRN. */
@@ -255,7 +263,7 @@ function kit(lang: Lang, names: string[] = [], arTexts: ArTexts = {}) {
   const untranslated = new Set<string>();
   // Contacts are masked and VAT dropped BEFORE translation, so neither can survive in the Arabic
   // primary text or in the "original wording" line under it.
-  const clean = (v: unknown) => maskContacts(stripVat(v), names, 'en');
+  const clean = (v: unknown) => maskContacts(v, names, 'en');
   const T = (en: string, arx: string) => (ar ? arx : en);
   // One formatter for both languages (money.ts): the Arabic page differs only in the unit's word.
   const money = (v: unknown, dec = false) => aed(v, lang, dec);
@@ -273,10 +281,9 @@ function kit(lang: Lang, names: string[] = [], arTexts: ArTexts = {}) {
   const pay = (v: unknown): Cell => { const c = clipCell(clean(v), 90); if (!c) return '—'; return ar ? cell(c) : c; };
   const label = (l: unknown) => labelFor(l, lang);
   // Analysis sentences name suppliers by label and prices in AED: both take the page's language.
-  // Any sentence about VAT is dropped in both languages.
   // deno-lint-ignore no-explicit-any
   const sentence = (v: any): any => typeof v === 'string'
-    ? (ar ? arLabelWords(stripVat(v)).replace(/\bAED\s?([\d,.]+)/g, '$1 درهم') : stripVat(v))
+    ? (ar ? arLabelWords(v).replace(/\bAED\s?([\d,.]+)/g, '$1 درهم') : v)
     : Array.isArray(v) ? v.map(sentence) : (v && typeof v === 'object') ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, k === 'link' ? x : sentence(x)])) : v;
   const today = () => new Date().toLocaleDateString(ar ? 'ar-AE-u-nu-latn' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   return { ar, T, money, loc, cell, dur, pay, label, sentence, today, untranslated };
@@ -317,11 +324,15 @@ const hasSpecs = (it: Item) => !!((it.specs && Object.values(it.specs).some((v) 
 /** The pdf_native body for ONE quote in ONE language. Pure: the caller fetches the rows. */
 // requestUrl: the portal deep link back to this quote on its request (site_origins portalLink).
 /** `partyName`: the supplier's company name once the customer has paid to reveal it; the letter still names the reference. */
-export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; items: Item[]; letter: string; lang: Lang; partyName?: string | null; maskNames?: string[]; requestUrl?: string; date?: string; date_ar?: string; arTexts?: ArTexts }) {
+export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; items: Item[]; letter: string; lang: Lang; partyName?: string | null; maskNames?: string[]; requestUrl?: string; date?: string; date_ar?: string; arTexts?: ArTexts;
+  /** pricing_config.standard_reveal_rate, read by the caller (reveal_rate.ts readRevealRate) — the source public.reveal_fee()
+   * reads. Absent or not positive, the page prints no rate and no fee figure: a guessed rate is never printed. */
+  revealRate?: number | null }) {
   const { quote: q, inquiry: inq, letter, lang } = args;
   // A line that is itself VAT ("VAT 5%") is not scope; it never reaches the page.
   const items = (args.items || []).filter((it) => !VAT_RE.test(String(it.desc || '')));
-  const exVat = Number(q.price_ex_vat) > 0 ? Number(q.price_ex_vat) : Number(q.quote_amount) || 0;
+  // Ruling 1208: the final price after the stated discount, excluding VAT — the fee base and the comparison basis.
+  const exVat = feeBaseOf(q as PriceRow) ?? 0;
   const k = kit(lang, args.maskNames || [], args.arTexts); const { T, ar } = k;
   const ref = quoteRef(inq, letter);
   const date = (ar ? args.date_ar : args.date) || k.today();
@@ -366,16 +377,34 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
   } else {
     blocks.push({ t: 'callout', tone: 'gold', title: T('Lump-sum quote', 'عرض بسعر إجمالي'), text: T('The supplier priced this job as one sum with no line breakdown, so it cannot be checked item by item. Ask for an itemised breakdown before you commit.', 'سعّر المورّد العمل بمبلغ إجمالي واحد دون تفصيل بالبنود، لذا لا يمكن التحقق منه بندًا بندًا. اطلب تفصيلًا بالبنود قبل الالتزام.') });
   }
-  // Totals: the lines' own sum where they carry amounts, then the total — both excluding VAT. No VAT
-  // line, amount, rate or TRN ever reaches the customer (founder, 14 Sep 2026: "we definetely hide
-  // the vat details when sharing the quotes with the customer"; a TRN would also name the supplier).
+  // Totals (ruling 1207): the lines' own sum, then the supplier's price exactly as stated — before the discount,
+  // the discount in the supplier's words, after the discount — then the supplier's VAT as stated. The bold figure
+  // is the final price excluding VAT, which our fee is taken on (ruling 1208). A TRN never reaches the page.
   const sum = items.reduce((a, it) => a + (Number(it.amount) > 0 ? Number(it.amount) : 0), 0);
   const trows: Array<[string, string, boolean?]> = [];
-  if (sum > 0) trows.push([T('Lines subtotal', 'مجموع البنود'), k.money(sum, true)]);
-  trows.push([T('Total quoted', 'إجمالي العرض'), k.money(exVat, true), true]);
-  const diff = sum > 0 && exVat > 0 && Math.abs(sum - exVat) > 1;
+  const gross = Number(q.gross_amount) > 0 ? Number(q.gross_amount) : null, disc = Number(q.discount_amount) > 0 ? Number(q.discount_amount) : null;
+  const discounted = !!(gross && disc && gross > exVat);
+  // The lines' sum is printed unless it is the very figure printed as the price before the discount.
+  if (sum > 0 && !(discounted && Math.abs(sum - gross!) <= 1)) trows.push([T('Lines subtotal', 'مجموع البنود'), k.money(sum, true)]);
+  if (discounted) {
+    trows.push([T('Price before discount, as stated', 'السعر قبل الخصم كما ذكره المورّد'), k.money(gross, true)]);
+    const dl = q.discount_label ? k.loc(q.discount_label, 80).text : '';
+    trows.push([T('Discount', 'الخصم') + (dl ? ` (${dl})` : ''), '− ' + k.money(disc, true)]);
+  }
+  trows.push([gross && disc ? T('Total quoted after discount, excluding VAT', 'إجمالي العرض بعد الخصم غير شامل الضريبة') : T('Total quoted, excluding VAT', 'إجمالي العرض غير شامل الضريبة'), k.money(exVat, true), true]);
+  const vatAmt = Number(q.vat_amount) > 0 ? Number(q.vat_amount) : null;
+  if (vatAmt && (q.vat_treatment === 'exclusive' || q.vat_treatment === 'confirmed_on_portal')) {
+    trows.push([T('VAT, as stated by the supplier', 'ضريبة القيمة المضافة كما ذكرها المورّد'), k.money(vatAmt, true)]);
+    trows.push([T('Total including VAT, as stated', 'الإجمالي شاملًا الضريبة كما ذكره المورّد'), k.money(Math.round((exVat + vatAmt) * 100) / 100, true)]);
+  } else if (q.vat_treatment === 'inclusive' && Number(q.amount_as_stated) > 0) {
+    trows.push([T('Total including VAT, as stated', 'الإجمالي شاملًا الضريبة كما ذكره المورّد'), k.money(q.amount_as_stated, true)]);
+  }
+  // A stated discount explains lines that add up to the price before it.
+  const diff = sum > 0 && exVat > 0 && Math.abs(sum - exVat) > 1 && !(discounted && Math.abs(sum - gross!) <= 1);
   blocks.push({ t: 'totals', rows: trows, note: diff ? T(`The line amounts add up to ${k.money(sum, true)}; the quoted total is ${k.money(exVat, true)}. The quoted total is the price this supplier offered.`, `مجموع مبالغ البنود ${k.money(sum, true)} بينما إجمالي العرض ${k.money(exVat, true)}. إجمالي العرض هو السعر الذي قدّمه هذا المورّد.`) : '' });
-  blocks.push({ t: 'note', text: T(VAT_LINE.en, VAT_LINE.ar) });
+  blocks.push({ t: 'note', text: vatStated(q as PriceRow, lang) });
+  blocks.push({ t: 'note', text: feeBasisLine(exVat || null, args.revealRate ?? null, lang) });
+  blocks.push({ t: 'callout', tone: 'gold', title: T('The supplier\'s quotation, as stated', 'عرض المورّد كما ذكره'), text: T(NOT_RESPONSIBLE.en, NOT_RESPONSIBLE.ar) });
 
   section('Completeness check', 'فحص اكتمال العرض');
   blocks.push({ t: 'p', text: T('A quote is complete when it states all four of these. Each is marked as the supplier stated it.', 'يكون العرض مكتملًا عندما يذكر هذه البنود الأربعة كلها. كل بند معلّم كما ذكره المورّد.'), muted: true });
@@ -410,15 +439,15 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
   }
 
   blocks.push({ t: 'callout', tone: 'grey', title: T('Standardised by QuotesDone from the supplier\'s submission', 'وحّدته QuotesDone من العرض الذي قدّمه المورّد'),
-    text: T(`${PREPARED_BY.en}. This is QuotesDone's standard layout of the supplier's quote, not the supplier's own document, and it carries no signature. Figures, specifications and scope are as the supplier stated them; verify final details before ordering. QuotesDone charges the customer a 3% facilitation fee on the quoted value at the point of contact reveal.`,
-      `${PREPARED_BY.ar}. هذا هو التنسيق الموحّد لعرض المورّد لدى QuotesDone وليس مستند المورّد نفسه، ولا يحمل توقيعًا. القيم والمواصفات والنطاق كما ذكرها المورّد؛ يُرجى التحقق من التفاصيل النهائية قبل الطلب. تتقاضى QuotesDone من العميل رسوم تيسير بنسبة 3% من قيمة العرض عند كشف بيانات التواصل.`) });
+    text: T(`${PREPARED_BY.en}. This is QuotesDone's standard layout of the supplier's quote, not the supplier's own document, and it carries no signature. Figures, specifications and scope are as the supplier stated them; verify final details before ordering. QuotesDone charges the customer a 3% facilitation fee at the point of contact reveal, on the supplier's final price after any stated discount and before VAT; no card fee, no VAT on our fee.`,
+      `${PREPARED_BY.ar}. هذا هو التنسيق الموحّد لعرض المورّد لدى QuotesDone وليس مستند المورّد نفسه، ولا يحمل توقيعًا. القيم والمواصفات والنطاق كما ذكرها المورّد؛ يُرجى التحقق من التفاصيل النهائية قبل الطلب. تتقاضى QuotesDone من العميل رسوم تيسير بنسبة 3% عند كشف بيانات التواصل، تُحتسب على السعر النهائي للمورّد بعد أي خصم يذكره وقبل الضريبة، بلا رسوم بطاقة ولا ضريبة قيمة مضافة على رسومنا.`) });
   if (args.requestUrl) blocks.push({ t: 'link', text: T('Open this quote on your request in the QuotesDone portal', 'افتح هذا العرض في طلبك على بوابة QuotesDone'), link: args.requestUrl });
 
   const cover0 = {
     kicker: T('Standardised quotation', 'عرض أسعار موحّد'), title: T('Quotation', 'عرض أسعار'),
     subtitle: clipCell(summary.text, 170),
     meta: [[T('Reference', 'الرقم المرجعي'), ref], [T('Date', 'التاريخ'), date], [T('Quoting party', 'مقدّم العرض'), party], [T('Trade', 'التخصص'), trade || '—']],
-    figures: [[T('Total quoted', 'إجمالي العرض'), k.money(exVat)], [T('Lead time', 'مدة التنفيذ'), lead || '—'], [T('Warranty', 'الضمان'), warranty || '—'], [T('Valid for', 'صالح لمدة'), validity || '—']],
+    figures: [[T('Total quoted', 'إجمالي العرض'), priceStated(q as PriceRow, lang)], [T('Lead time', 'مدة التنفيذ'), lead || '—'], [T('Warranty', 'الضمان'), warranty || '—'], [T('Valid for', 'صالح لمدة'), validity || '—']],
   };
   const control = `${ref} · ${DOC_VERSION} · ${T('Generated', 'أُنشئ في')} ${date} · ${ar ? PREPARED_BY.ar : PREPARED_BY.en}`;
   const names = args.maskNames || [];
@@ -443,21 +472,51 @@ const cellText = (c: Cell) => typeof c === 'string' ? c : c.text;
 // deno-lint-ignore no-explicit-any
 const joinList = (x: any, ar = false) => arrOf(x).map((s: unknown) => String(s ?? '').trim().replace(/[.。]+$/, '')).filter(Boolean).join(ar ? '؛ ' : '; ');
 
-// THE SIDE-BY-SIDE COMMERCIAL TABLE, ONCE. The report renders the rich cells and compare_csv
-// exports the same rows as text (compareTable), so the spreadsheet can never disagree with the page.
+/** The roster row (all_quotes) for a shortlisted quote, as a PriceRow: the analysis' own `price` is its fallback. */
 // deno-lint-ignore no-explicit-any
-function commercialRows(a: any, lang: Lang, names: string[] = [], arTexts: ArTexts = {}, sink?: Set<string>): { head: Cell[]; rows: Cell[][]; labels: string[] } | null {
+function statedOf(a: any): (q: any) => PriceRow {
+  // deno-lint-ignore no-explicit-any
+  const by = new Map<string, any>(arrOf(a?.all_quotes).filter((r: any) => r && r.label).map((r: any) => [String(r.label), r]));
+  // deno-lint-ignore no-explicit-any
+  return (q: any) => { const r = by.get(String(q.label)) || {}; return { quote_amount: r.price ?? q.price, price_ex_vat: q.price_ex_vat ?? r.price, gross_amount: r.gross_amount, discount_amount: r.discount_amount, vat_treatment: r.vat_treatment, vat_amount: r.vat_amount }; };
+}
+
+// IN compare_csv EVERY LIVE QUOTE IS A COLUMN, CHEAPEST FIRST (sandbox run 5, tag 321d13ae, 19 Oct 2026).
+// The CSV's columns used to be the model's `quotes`, which quote_compare caps at three: with four
+// submitted quotes the AED 131,000 one was in no column of compare_csv. The roster (all_quotes) is every
+// live quote; the model's detail fills a column where it has one, the roster's own figures otherwise.
+// The PDF keeps its detailed table to the shortlist and lists every quote in "All quotes received".
+// deno-lint-ignore no-explicit-any
+export function comparedQuotes(a: any): any[] {
+  const held = heldLabels(a);
+  // deno-lint-ignore no-explicit-any
+  const detail = new Map<string, any>(arrOf(a?.quotes).filter((q: any) => q && q.label).map((q: any) => [String(q.label), q]));
+  // deno-lint-ignore no-explicit-any
+  const roster = arrOf(a?.all_quotes).filter((r: any) => r && r.label);
+  // deno-lint-ignore no-explicit-any
+  const rows: any[] = roster.length
+    // deno-lint-ignore no-explicit-any
+    ? roster.map((r: any) => detail.get(String(r.label)) || { label: r.label, price: r.price, lead_time: r.lead_time, warranty: r.warranty })
+    : [...detail.values()];
+  // deno-lint-ignore no-explicit-any
+  const price = (q: any) => { const r = roster.find((x: any) => String(x.label) === String(q.label)); const p = Number(r?.price ?? q.price_ex_vat ?? q.price); return p > 0 ? p : Infinity; };
+  // deno-lint-ignore no-explicit-any
+  return rows.filter((q: any) => !held.has(String(q.label))).sort((x, y) => price(x) - price(y));
+}
+
+// THE SIDE-BY-SIDE COMMERCIAL TABLE, ONCE. The report renders the rich cells and compare_csv
+// exports the same rows as text (compareTable) with one column per live quote (`every`), so no quote the page lists is missing from the spreadsheet.
+// deno-lint-ignore no-explicit-any
+function commercialRows(a: any, lang: Lang, names: string[] = [], arTexts: ArTexts = {}, sink?: Set<string>, every = false): { head: Cell[]; rows: Cell[][]; labels: string[] } | null {
   const k = kit(lang, names, arTexts);
-  const out = commercialRowsOf(a, k);
+  const out = commercialRowsOf(a, k, every);
   if (sink) for (const t of k.untranslated) sink.add(t);
   return out;
 }
 // deno-lint-ignore no-explicit-any
-function commercialRowsOf(a: any, k: Kit): { head: Cell[]; rows: Cell[][]; labels: string[] } | null {
+function commercialRowsOf(a: any, k: Kit, every = false): { head: Cell[]; rows: Cell[][]; labels: string[] } | null {
   const { T } = k;
-  const held = heldLabels(a);
-  // deno-lint-ignore no-explicit-any
-  const qs = arrOf(a?.quotes).filter((q: any) => !held.has(String(q.label)));
+  const qs = every ? comparedQuotes(a) : arrOf(a?.quotes).filter((q: any) => !heldLabels(a).has(String(q.label)));
   if (!qs.length) return null;
   const terms = techOf(a)?.terms || null;
   const rows: Cell[][] = [];
@@ -471,7 +530,11 @@ function commercialRowsOf(a: any, k: Kit): { head: Cell[]; rows: Cell[][]; label
   };
   // deno-lint-ignore no-explicit-any
   const list = (x: any, n: number): Cell => { const s = clipCell(joinList(x, k.ar), n); return s ? k.cell(k.sentence(s), n) : '—'; };
-  push(T('Price', 'السعر'), (q) => k.money(Number(q.price_ex_vat) > 0 ? q.price_ex_vat : q.price));
+  // Ruling 1207: the price as the supplier stated it ("AED 2,000, after discount AED 1,700") and its VAT as stated.
+  // The ranking basis is the after-discount ex-VAT figure (stated_price.ts) — the same one our fee is taken on.
+  const stated = statedOf(a);
+  push(T('Price (excluding VAT)', 'السعر (غير شامل الضريبة)'), (q) => priceStated(stated(q), k.ar ? 'ar' : 'en'));
+  push(T('VAT, as stated', 'الضريبة كما ذكرها المورّد'), (q) => vatShort(stated(q), k.ar ? 'ar' : 'en'));
   push(T('Delivery / lead time', 'التسليم / مدة التنفيذ'), (q) => term(terms?.lead_time, q, k.dur(q.lead_time) || '—'));
   if (terms?.installation) push(T('Installation', 'التركيب'), (q) => term(terms.installation, q, '—'));
   push(T('Warranty', 'الضمان'), (q) => term(terms?.warranty, q, k.dur(q.warranty) || '—'));
@@ -496,7 +559,7 @@ const MARK: Record<SpecFlag, string> = { match: '✓', differs: '≠', missing: 
 // deno-lint-ignore no-explicit-any
 export function compareTable(a: any, ar: boolean, arTexts: ArTexts = {}): { head: string[]; rows: string[][]; untranslated: string[] } | null {
   const sink = new Set<string>();
-  const r = commercialRows(a, ar ? 'ar' : 'en', [], arTexts, sink);
+  const r = commercialRows(a, ar ? 'ar' : 'en', [], arTexts, sink, true);
   if (!r) return null;
   const txt = (c: Cell) => { if (typeof c === 'string') return c; const m = c.flag ? MARK[c.flag] : ''; return (m && c.text !== '—' ? m + ' ' : '') + c.text; };
   return { head: r.head.map(cellText), rows: r.rows.map((row) => row.map(txt)), untranslated: [...sink] };
@@ -630,7 +693,8 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
     section('Commercial comparison', 'المقارنة التجارية');
     const colW = 0.76 / Math.max(1, side.labels.length);
     blocks.push({ t: 'table', head: side.head, rows: side.rows, widths: [0.24, ...side.labels.map(() => colW)], zebra: true });
-    blocks.push({ t: 'note', text: T(VAT_LINE.en, VAT_LINE.ar) });
+    blocks.push({ t: 'note', text: T('Ranked on each supplier\'s final price after any discount it states, excluding VAT — the same figure our 3% fee is taken on; no card fee, no VAT on our fee.', 'رُتّبت العروض على السعر النهائي لكل مورّد بعد أي خصم يذكره وقبل الضريبة، وهو الرقم نفسه الذي تُحتسب عليه رسومنا البالغة 3%، بلا رسوم بطاقة ولا ضريبة قيمة مضافة على رسومنا.') });
+    blocks.push({ t: 'callout', tone: 'gold', title: T('The suppliers\' quotations, as stated', 'عروض المورّدين كما ذكروها'), text: T(NOT_RESPONSIBLE.en, NOT_RESPONSIBLE.ar) });
   }
 
   // 5 — Every quote received
@@ -645,7 +709,7 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
       // deno-lint-ignore no-explicit-any
       rows: roster.map((r: any) => r.status === 'held'
         ? [linked(k.label(r.label), r.quote_id, { bold: true }), '—', '—', chip(r)]
-        : [linked(k.label(r.label) + (r.expired ? T(' (expired)', ' (منتهي الصلاحية)') : ''), r.quote_id, { bold: true }), k.money(Number(r.price_ex_vat) > 0 ? r.price_ex_vat : r.price), k.dur(r.lead_time) || '—', chip(r)]),
+        : [linked(k.label(r.label) + (r.expired ? T(' (expired)', ' (منتهي الصلاحية)') : ''), r.quote_id, { bold: true }), priceStated({ ...r, quote_amount: r.price }, lang), k.dur(r.lead_time) || '—', chip(r)]),
       widths: [0.26, 0.22, 0.22, 0.30], align: ['s', 'e', 's', 's'], zebra: true });
     // deno-lint-ignore no-explicit-any
     for (const r of roster.filter((x: any) => x.status === 'held')) {

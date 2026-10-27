@@ -87,3 +87,29 @@ export function mergeLines(lines: OcrLine[]): OcrLine[] {
 
 /** The text the server reads: one merged line per row. */
 export const linesToText = (lines: { text: string }[]) => lines.map((l) => l.text).join('\n');
+
+/**
+ * The sheet's skew in degrees, by projection profile (19 Oct 2026, founder: deskew phone photos before OCR). Dark
+ * pixels of a copy scaled to <= 800 px are projected onto rows at each angle in -6..6 (0.25 steps); text lines and
+ * walls make the sharpest profile (largest sum of squared row counts) when level. The result is the CORRECTION:
+ * rotate the image by it (clockwise positive, as canvas rotate and sharp.rotate). Measured on the sample sheet turned 1.5 deg: reads 1.5. ponytail: +-6 deg only; a photo held
+ * sideways is the 90 deg turns' job.
+ */
+export function skewDegrees(px: Uint8Array | Uint8ClampedArray, channels: 3 | 4, w: number, h: number): number {
+  const k = Math.max(1, Math.ceil(Math.max(w, h) / 800)), sw = Math.floor(w / k), sh = Math.floor(h / k);
+  const xs: number[] = [], ys: number[] = [];
+  for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) {
+    const p = ((y * k) * w + x * k) * channels;
+    if (px[p] * 0.299 + px[p + 1] * 0.587 + px[p + 2] * 0.114 < 128) { xs.push(x - sw / 2); ys.push(y - sh / 2); }
+  }
+  let best = 0, bestScore = -1;
+  const rows = new Float64Array(sw + sh + 4);
+  for (let a = -6; a <= 6 + 1e-9; a += 0.25) {
+    const t = a * Math.PI / 180, s = Math.sin(t), c = Math.cos(t);
+    rows.fill(0);
+    for (let i = 0; i < xs.length; i++) rows[Math.round(ys[i] * c + xs[i] * s + (sw + sh) / 2)]++;
+    let score = 0; for (const r of rows) score += r * r;
+    if (score > bestScore) { bestScore = score; best = a; }
+  }
+  return best;
+}

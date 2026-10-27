@@ -2,7 +2,7 @@
 // by an exact code or by meaning, never by the document's alias words (ruling 890, ledger 1054).
 // deno test --no-lock --node-modules-dir=auto supabase/functions/_shared/supplier_doc_trades.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { mergeEvidence, modelReadText, proposedFrom, readDocForTrades, WORD_READ, type DocEvidence, type TradeResolveDeps } from './supplier_doc_trades.ts';
+import { docTradesHeld, mergeEvidence, modelReadText, proposedFrom, readDocForTrades, WORD_READ, type DocEvidence, type TradeResolveDeps } from './supplier_doc_trades.ts';
 import type { MeaningService } from './service_meaning.ts';
 import { makeDrawingPdf } from './pdf_measure.fixtures.ts';
 
@@ -154,4 +154,192 @@ Deno.test('an image-only licence or profile: what the vision model read becomes 
   assertEquals(modelReadText('licence', []), undefined);
   const none = await readDocForTrades({ path: 'licenses/1/s.pdf', name: 's.pdf', kind: 'licence', bytes: scan, mime: 'application/pdf', photo_text: modelReadText('licence', null) }, deps());
   assertEquals(none.status, 'needs_ocr');
+});
+
+// ── REAL UAE COMPANY PROFILES (13 Oct 2026, it_engineer; ACCURACY_real_profiles.md) ─────────────────────────────────
+// Regression fixtures from the 29 real profiles and catalogues measured that day. The files themselves are real
+// companies' publications and stay on the founder's Desktop (real_profiles\, with SOURCES.md and the hand-written
+// truth.json); what is committed here is the SHAPE of each failure, names replaced by ZZ DEMO.
+import { offerText, SHORT_DOC_LINES } from './supplier_doc_trades.ts';
+import { readDocument } from './doc_read/index.ts';
+
+/** A one-page PDF that places every glyph with its own Td, as Canva/InDesign exports do (Maxfire, MAS Paints, Abu Hail). */
+function perGlyphPdf(line: string): Uint8Array {
+  let ops = 'BT /F1 12 Tf 72 700 Td';
+  // Helvetica's own advance widths (1/1000 em) at 12 pt, so the glyphs sit where a real export puts them
+  const W: Record<string, number> = { S: 667, p: 556, r: 333, i: 222, n: 556, k: 500, l: 222, e: 556, y: 500, t: 278, m: 833, s: 500, F: 611, u: 556, P: 667, ' ': 278 };
+  for (const ch of line) ops += ` (${ch}) Tj ${((W[ch] ?? 556) * 12) / 1000} 0 Td`;   // letters and spaces only
+  ops += ' ET';
+  const objs = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${ops.length} >>\nstream\n${ops}\nendstream`, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
+  let pdf = '%PDF-1.4\n'; const at: number[] = [];
+  objs.forEach((o, i) => { at.push(pdf.length); pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+  const x = pdf.length;
+  pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${at.map((n) => String(n).padStart(10, '0') + ' 00000 n \n').join('')}trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${x}\n%%EOF`;
+  return new TextEncoder().encode(pdf);
+}
+
+Deno.test('a PDF that places each glyph on its own is read as words, not letters (pdf.js, words-only reads)', async () => {
+  const r = await readDocument(perGlyphPdf('Sprinkler Systems Fire Pumps'), 'p.pdf', 'application/pdf', 0, { textOnly: true });
+  const text = r.ok ? r.text : '';
+  assert(/Sprinkler\s*Systems/.test(text), text);
+  assert(!/S p r i n k/.test(text), text);
+});
+
+Deno.test('a long profile is read where it states its offer, not in its org chart, insurance or client sections', () => {
+  const filler = (k: string, n: number) => Array.from({ length: n }, (_, i) => `${k} ${i + 1}`);
+  const doc = [
+    'CEO MESSAGE', 'ZZ DEMO Fire LLC is a Dubai based fire protection contractor approved by Civil Defence.',
+    ...filler('Our vision line', 20),
+    'ORGANIZATION CHART', 'Management 1', 'Marketing 2', 'Estimation 2', 'Foremen 2', ...filler('Staff row', 25),
+    'OUR SERVICES', 'Sprinkler Systems', 'Fire Alarm Systems', 'Fire Pumps', 'Clean Agent Systems',
+    ...filler('Gallery caption', 30),
+    'SECTION 13: INSURANCE DETAILS', 'Workmen compensation', 'OUR CLIENTS', 'ZZ DEMO Packaging, Technopark',
+  ].join('\n');
+  const o = offerText(doc)!;
+  for (const l of ['is a Dubai based fire protection contractor approved by Civil Defence.', 'Sprinkler Systems', 'Fire Alarm Systems', 'Fire Pumps']) assert(o.includes(l), l);
+  for (const l of ['Management 1', 'Marketing 2', 'INSURANCE DETAILS', 'Workmen compensation', 'ZZ DEMO Packaging']) assert(!o.includes(l), l);
+  // a short document (the synthetic one-page profiles of the suite) is read whole, as before
+  assertEquals(offerText(filler('line', SHORT_DOC_LINES).join('\n')), null);
+});
+
+Deno.test('on a supplier document a meaning hit stands only when the line holds its TRADE\'s own words', () => {
+  const S: MeaningService[] = [
+    { trade_code: 'accounting_bookkeeping', code: 'mgmt_accounts', label_en: 'Management accounts', label_ar: '', aliases: ['management'], vec: [1, 0, 0] },
+    { trade_code: 'fire_fighting', code: 'sprinklers', label_en: 'Sprinkler systems', label_ar: '', aliases: [], vec: [0, 1, 0] },
+    { trade_code: 'testing_labs', code: 'lab_testing', label_en: 'Product lab testing', label_ar: '', aliases: [], vec: [0, 0, 1] },
+  ];
+  const labels = { accounting_bookkeeping: 'Accounting & bookkeeping', fire_fighting: 'Fire fighting & life safety', testing_labs: 'Testing laboratories' };
+  const tradeAliases = { accounting_bookkeeping: ['bookkeeping', 'accountant'], fire_fighting: ['sprinkler', 'fire alarm'], testing_labs: ['laboratory'] };
+  const read = (text: string, vec: number[]) => proposeByMeaning([{ text, vec, space: 'gte' }], S, { tradeLabels: labels, tradeAliases }).map((x) => [x.trade, x.because]);
+  // measured on real profiles: an org chart's "Management 1" -> accounting (the service's own alias agreed), and
+  // " Testing and Commissioning" of an MEP contractor -> testing labs; neither line names the trade
+  assertEquals(read('Management 1', [0.95, 0, 0.3]), []);
+  assertEquals(read('Testing and Commissioning', [0, 0.2, 0.97]), []);
+  assertEquals(read('Sprinkler Systems', [0, 0.99, 0.1]), [['fire_fighting', 'trade_alias']]);
+  // without tradeAliases (the Services tab, the RFQ side) nothing changes: the head word still corroborates
+  assertEquals(proposeByMeaning([{ text: 'Management 1', vec: [0.95, 0, 0.3], space: 'gte' }], S, { tradeLabels: labels }).map((x) => x.trade), ['accounting_bookkeeping']);
+});
+
+// ── ARABIC (review of #1404; measured on the BCG Arabic brochure, 69 pages) ─────────────────────────────────────────
+import { arabicLigatureFix } from './doc_read/pdf.ts';
+Deno.test('Arabic: the reversed lam-alef at a word start is repaired; an alef-lam inside a word is left alone', () => {
+  assertEquals(arabicLigatureFix('االنتهاء من أعمال األساسات'), 'الانتهاء من أعمال الأساسات');
+  assertEquals(arabicLigatureFix('أعمال مال سؤال'), 'أعمال مال سؤال');
+});
+Deno.test('Arabic: a long profile is read under its Arabic offer heading and offer sentences', () => {
+  const filler = (k: string, n: number) => Array.from({ length: n }, (_, i) => `${k} ${i + 1}`);
+  const doc = ['كلمة رئيس مجلس الإدارة', ...filler('سطر رؤية', 30), 'خدماتنا', 'أعمال الأساسات', 'أعمال الطرق والجسور',
+    ...filler('صورة مشروع', 30), 'قائمة العملاء', 'زد زد ديمو للتغليف', 'الشركة متخصصة في أعمال المقاولات العامة'].join('\n');
+  const o = offerText(doc)!;
+  for (const l of ['أعمال الأساسات', 'أعمال الطرق والجسور', 'متخصصة في أعمال المقاولات العامة']) assert(o.includes(l), l);
+  for (const l of ['زد زد ديمو للتغليف', 'سطر رؤية 3']) assert(!o.includes(l), l);
+});
+Deno.test('Arabic: a meaning hit on an Arabic line stands only with an Arabic alias of its trade', () => {
+  const S: MeaningService[] = [{ trade_code: 'fire_fighting', code: 'sprinklers', label_en: 'Sprinkler systems', label_ar: 'رشاشات الحريق', aliases: [], vec: [1, 0], vec_ml: [1, 0] },
+    { trade_code: 'accounting_bookkeeping', code: 'mgmt', label_en: 'Management accounts', label_ar: 'حسابات الإدارة', aliases: [], vec: [0, 1], vec_ml: [0, 1] }];
+  const labels = { fire_fighting: 'Fire fighting & life safety', accounting_bookkeeping: 'Accounting & bookkeeping' };
+  const tradeAliases = { fire_fighting: ['مكافحة حريق', 'رشاشات حريق'], accounting_bookkeeping: ['محاسبة'] };
+  const read = (text: string, vec: number[]) => proposeByMeaning([{ text, vec, space: 'ml' }], S, { tradeLabels: labels, tradeAliases }).map((x) => [x.trade, x.because]);
+  assertEquals(read('تركيب رشاشات الحريق ضمن أنظمة مكافحة الحريق', [0.99, 0.1]), [['fire_fighting', 'trade_alias']]);
+  assertEquals(read('الإدارة العليا', [0.1, 0.99]), []);
+  assertEquals(read('رشاشات المياه للحدائق', [0.99, 0.1]), [], 'the service word alone, without the trade, is not enough');
+});
+
+// ── A KILLED PARSE LEAVES THE DOCUMENT HELD (review of #1404) ───────────────────────────────────────────────────────
+import { proposeTradesFromDocs } from './supplier_doc_trades.ts';
+Deno.test('a read killed partway (the worker dies at its CPU cap) leaves the document held as "reading"', async () => {
+  const writes: { source_docs: { docs: { path: string; status: string; trades: unknown[] }[] } }[] = [];
+  const admin = { from: (_t: string) => ({
+    select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }),
+    upsert: async (row: { source_docs: { docs: { path: string; status: string; trades: unknown[] }[] } }) => { writes.push(structuredClone(row)); return { error: null }; },
+  }) };
+  // The parse never finishes: the worker is killed here, so nothing after this point runs (no catch, no final write).
+  const hang = new Promise<number[] | null>(() => {});
+  const killed = deps({ embed: () => hang });
+  const pdf = makeDrawingPdf(['ZZ DEMO PROFILE', 'Chiller maintenance for villas and towers'], '');
+  const run = proposeTradesFromDocs(admin, 7, [{ path: 'profiles/7/p.pdf', name: 'p.pdf', kind: 'profile', bytes: pdf, mime: 'application/pdf' }], killed);
+  const outcome = await Promise.race([run.then(() => 'finished'), new Promise((r) => setTimeout(() => r('killed'), 300))]);
+  assertEquals(outcome, 'killed');
+  assertEquals(writes.length, 1, 'only the mark was written before the kill');
+  const d = writes[0].source_docs.docs[0];
+  assertEquals([d.path, d.status, d.trades.length], ['profiles/7/p.pdf', 'reading', 0]);
+});
+
+// ── THE READING BUDGET AND THE SIZE REFUSAL (review of #1404) ───────────────────────────────────────────────────────
+import { pdfjsText, PDFJS_BUDGET_MS } from './doc_read/pdf.ts';
+import { LIMITS } from './doc_read/types.ts';
+/** A PDF of `n` pages, each printing "Page k fire pumps" in Helvetica. */
+function pagesPdf(n: number, line = (k: number) => `Page ${k} fire pumps`): Uint8Array {
+  const objs: string[] = ['<< /Type /Catalog /Pages 2 0 R >>', ''];
+  const kids: string[] = [];
+  for (let k = 1; k <= n; k++) {
+    const ops = `BT /F1 12 Tf 72 700 Td (${line(k)}) Tj ET`;
+    const page = objs.length + 1; kids.push(`${page} 0 R`);
+    objs.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents ${page + 1} 0 R /Resources << /Font << /F1 ${3 + 2 * n} 0 R >> >> >>`);
+    objs.push(`<< /Length ${ops.length} >>\nstream\n${ops}\nendstream`);
+  }
+  objs[1] = `<< /Type /Pages /Kids [${kids.join(' ')}] /Count ${n} >>`;
+  objs.push('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  let pdf = '%PDF-1.4\n'; const at: number[] = [];
+  objs.forEach((o, i) => { at.push(pdf.length); pdf += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+  const x = pdf.length;
+  pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${at.map((v) => String(v).padStart(10, '0') + ' 00000 n \n').join('')}trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${x}\n%%EOF`;
+  return new TextEncoder().encode(pdf);
+}
+Deno.test('the pdf.js read stops starting pages once its CPU budget is spent, and says how far it got', async () => {
+  let t = 0; const clock = () => (t += 300);   // every look at the clock costs 300 ms of parse time
+  const r = await pdfjsText(pagesPdf(6), 250, PDFJS_BUDGET_MS, clock);
+  assertEquals(r.status, 'text');
+  assertEquals(r.of, 6);
+  assert(r.pages >= 1 && r.pages < 6, `read ${r.pages} of 6`);
+  assert(r.text.includes('Page 1 fire pumps') && !r.text.includes('Page 6'), r.text);
+  const all = await pdfjsText(pagesPdf(6));
+  assertEquals([all.pages, all.of], [6, 6]);
+});
+Deno.test('a file over 25 MB is refused before pdf.js opens it, and is held unreadable, never read as a scan', async () => {
+  const big = new Uint8Array(LIMITS.maxBytes + 1); big.set(new TextEncoder().encode('%PDF-1.4\n'));
+  const r = await pdfjsText(big);
+  assertEquals([r.status, r.pages], ['failed', 0]);
+  assert(/over the .* read limit/.test(r.detail || ''), r.detail);
+  // A supplier's paper is read up to 100 MB (19 Oct 2026, LIMITS.maxPaperBytes); past that it is held unreadable too.
+  const huge = new Uint8Array(LIMITS.maxPaperBytes + 1); huge.set(new TextEncoder().encode('%PDF-1.4\n'));
+  const ev = await readDocForTrades({ path: 'profiles/1/big.pdf', name: 'big.pdf', kind: 'profile', bytes: huge, mime: 'application/pdf' }, deps());
+  assertEquals(ev.status, 'unreadable');
+  assert(/file_too_large/.test(ev.reason || ''), ev.reason);
+});
+Deno.test('a busy worker that spends the budget opening the file still reads page 1, never calling a text PDF a scan (N01)', async () => {
+  let t = 0; const clock = () => (t += 5_000);   // the open alone is over budget
+  const r = await pdfjsText(pagesPdf(6), 250, PDFJS_BUDGET_MS, clock);
+  assertEquals(r.status, 'text');
+  assert(r.text.includes('Page 1 fire pumps'), r.text);
+});
+
+// Review of #1483: readings that agree on no trade HOLD the document - a distinct outcome from a model outage - and one
+// pending agent_actions item (kind doc_trades_held) goes to the sales engineer with the readings.
+Deno.test('a document whose readings agree on nothing is held, not unavailable, and files one doc_trades_held handoff', async () => {
+  const readings = [[{ code: 'doors', quote: 'Doors' }], [{ code: 'joinery', quote: 'Kitchens' }]];
+  const deps = { chooseTrades: async () => ({ ok: false as const, error: 'the readings did not agree on any trade: held for the sales engineer', held: { readings } }) } as unknown as TradeResolveDeps;
+  const ev = await readDocForTrades({ path: 'profiles/7/p.pdf', name: 'p.pdf', kind: 'profile', photo_text: undefined, ocr_text: 'ZZ DEMO Doors and Kitchens LLC. '.repeat(10) }, deps);
+  assertEquals([ev.choice, ev.trades.length], ['held', 0]);
+  assertEquals(ev.held_readings, readings);
+  const rows: Record<string, unknown>[] = [];
+  const admin = { from: () => ({
+    select: () => ({ eq: () => ({ eq: () => ({ eq: () => ({ limit: async () => ({ data: rows.filter((r) => r.status === 'pending') }) }) }) }) }),
+    insert: async (r: Record<string, unknown>) => { rows.push(r); return { error: null }; } }) };
+  await docTradesHeld(admin, 7, ev);
+  await docTradesHeld(admin, 7, ev);   // a second call files nothing more
+  assertEquals(rows.length, 1);
+  assertEquals([rows[0].agent, rows[0].kind, rows[0].status, rows[0].target_id], ['sales_engineer', 'doc_trades_held', 'pending', '7:profiles/7/p.pdf']);
+  const det = rows[0].detail as Record<string, unknown>;
+  assertEquals([det.supplier_id, det.path, det.readings], [7, 'profiles/7/p.pdf', readings]);
+});
+Deno.test('a scan with a stray text layer is read from the OCR, not from its 20 stray characters (M12)', async () => {
+  let seen = '';
+  const deps = { chooseTrades: async (t: string) => { seen = t; return { ok: true as const, trades: [], rejected: [] }; } } as unknown as TradeResolveDeps;
+  const ocr = 'ZZ DEMO Group of Companies. GENERAL CONTRACTING. TURNKEY CONTRACTS. Portable cabins, Camps & Mobile Houses. '.repeat(4);
+  // M12's real stray layer, as the reader reads it: "58" and "GLOBAL REACH" - 13 letters and digits, under the 200 threshold
+  await readDocForTrades({ path: 'profiles/9/s.pdf', name: 's.pdf', kind: 'profile', bytes: pagesPdf(1, () => '58 GLOBAL REACH'), mime: 'application/pdf', ocr_text: ocr }, deps);
+  assert(seen.includes('Portable cabins'), seen.slice(0, 200));
 });

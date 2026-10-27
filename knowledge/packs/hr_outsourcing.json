@@ -52,6 +52,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "hr_outsourcing:product-distinctions",
+      "topic": "HR outsourcing: payroll, employer of record and outsourced HR",
+      "topic_ar": "الاستعانة الخارجية للموارد البشرية: الرواتب وصاحب العمل المسجل والموارد البشرية الخارجية",
+      "kind": "product_distinctions",
+      "body_en": "Services range from payroll outsourcing (the provider calculates and processes salaries, allowances, overtime, deductions and end-of-service, runs payslips and the salary transfer file, while the client remains the employer), to an employer of record (EOR) or co-employment model, where the provider legally employs the worker on the client's behalf, holds the visa and contract, runs payroll and benefits, and the client directs the day-to-day work, useful for a company without its own entity or quota in a market, to HR administration and full outsourced HR (onboarding, contracts, policies and handbooks, leave and attendance, performance processes, HR systems), recruitment process outsourcing, and benefits brokerage (medical insurance and others). What separates providers: legal entity and licence to employ in the jurisdiction, how statutory obligations are covered (wage protection, end-of-service, insurance), data protection, the HR system and employee self-service, the fee basis (per employee per month, or a percentage of payroll for EOR), deposits required, and the exit terms if employees later transfer to the client's own entity.",
+      "body_ar": "تتراوح الخدمات بين إسناد الرواتب (يحسب المزود الرواتب ويعالجها مع البدلات والعمل الإضافي والاستقطاعات ومكافأة نهاية الخدمة، ويصدر قسائم الرواتب وملف تحويل الرواتب، ويبقى العميل صاحب العمل)، ونموذج صاحب العمل المسجل أو التوظيف المشترك حيث يوظف المزود العامل قانونياً نيابة عن العميل ويحمل التأشيرة والعقد ويدير الرواتب والمزايا ويوجه العميل العمل اليومي، وهو مفيد لشركة بلا كيان خاص أو حصة في سوق ما، وإدارة الموارد البشرية والموارد البشرية الخارجية الكاملة (التعيين، العقود، السياسات والأدلة، الإجازات والحضور، عمليات الأداء، أنظمة الموارد البشرية)، وإسناد عمليات التوظيف، ووساطة المزايا (التأمين الطبي وغيره). وما يميز المزودين: الكيان القانوني والترخيص للتوظيف في الولاية القضائية، وكيفية تغطية الالتزامات النظامية (حماية الأجور، نهاية الخدمة، التأمين)، وحماية البيانات، ونظام الموارد البشرية والخدمة الذاتية للموظفين، وأساس الرسوم (لكل موظف شهرياً، أو نسبة من الرواتب لصاحب العمل المسجل)، والتأمينات المطلوبة، وشروط الخروج إذا انتقل الموظفون لاحقاً إلى كيان العميل.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Professional_employer_organization"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: co-employment where the provider is employer of record and runs payroll and benefits -> confirmed."
+    },
+    {
+      "id": "hr_outsourcing:lead-times-and-quoting",
+      "topic": "HR outsourcing & payroll (EOR) - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الاستعانة بمصادر خارجية للموارد البشرية والرواتب: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Payroll set-up usually takes 2-4 weeks; EOR onboarding of a new hire depends on visa processing, typically 2-6 weeks. A provider needs employee numbers, locations, salary structures, current systems, the services wanted, and whether the provider must be employer of record. A quote states the scope, legal model, fee per employee or percentage, deposits, statutory costs passed through, SLAs, data protection, term and exit, and validity.",
+      "body_ar": "يستغرق إعداد الرواتب عادة 2-4 أسابيع؛ وتعيين موظف جديد عبر صاحب العمل المسجل يعتمد على إجراءات التأشيرة، عادة 2-6 أسابيع. ويحتاج المزود أعداد الموظفين، والمواقع، وهياكل الرواتب، والأنظمة الحالية، والخدمات المطلوبة، وهل يجب أن يكون المزود صاحب العمل المسجل. ويذكر العرض النطاق، والنموذج القانوني، والرسوم لكل موظف أو كنسبة، والتأمينات، والتكاليف النظامية المحولة، واتفاقيات مستوى الخدمة، وحماية البيانات، والمدة والخروج، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -77,6 +107,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither breaks down an EOR monthly fee (salary, visa, insurance, gratuity, margin); missing: EOR fee build-up entry). hr_outsourcing:eor-cost-build-up-uae was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from hr_outsourcing.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "We have no local company yet. Can an employer of record hire our first salesperson?",
+      "q_ar": "ما عندنا شركة محلية للحين، هل يقدر صاحب عمل مسجل يوظف أول مندوب مبيعات لنا؟",
+      "expected_entry_ids": [
+        "hr_outsourcing:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -95,6 +133,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "hr_outsourcing:eor-cost-build-up-uae"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "hr_outsourcing:product-distinctions"
+      ],
+      "stored_not_served": [
+        "hr_outsourcing:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Professional_employer_organization"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

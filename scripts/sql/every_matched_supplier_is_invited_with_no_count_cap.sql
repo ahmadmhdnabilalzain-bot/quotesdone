@@ -15,7 +15,6 @@
 --
 -- The verdict row: the two dials stay in decision_policy (the founder's text-change table still lists them), but
 -- nothing reads them; the row below records that, so a reader of the table is not misled.
-begin;
 
 CREATE OR REPLACE FUNCTION public.fn_rfq_short_of_quotes_tick(p_include_fixtures boolean DEFAULT false)
  RETURNS jsonb
@@ -137,4 +136,3 @@ update public.decision_policy
        updated_at = now()
  where key in ('match_max_fanout', 'match_max_fanout_per_trade');
 
-commit;

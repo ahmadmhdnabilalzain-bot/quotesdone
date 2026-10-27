@@ -1,3 +1,13 @@
+# memory — READ FIRST, every session
+- **`.claude/memory/MEMORY.md`** — Claude's operating memory for QuotesDone: the founder's standing
+  rulings, facts about the estate, lessons, and the latest checkpoints, one subject per file. Read the
+  index before any other work. Founder's ruling of 26 Oct 2026 (ledger 1278): GitHub is the single
+  source of truth and nothing lives only on the laptop, so this folder is the one copy.
+- When a session learns something a future session needs, it edits or adds the file in
+  `.claude/memory/` and lands it **by PR**, the same as code. A note kept only in a local
+  `~/.claude/projects/.../memory/` folder does not count.
+- Reports and evidence go to `docs/reports/` (see `docs/reports/README.md`), never to a laptop folder.
+
 # graphify
 - **graphify** (`.claude/skills/graphify/SKILL.md`) - any input to knowledge graph. Trigger: `/graphify`
 When the user types `/graphify`, use the installed graphify skill or instructions before doing anything else.
@@ -27,8 +37,9 @@ Load this alongside `quotesdone-session` at the START of every session on this r
 # quotesdone-build-until-done — ALWAYS APPLY
 - **quotesdone-build-until-done** (`.claude/skills/quotesdone-build-until-done/SKILL.md`) — when the
   founder shares a build (a spec, a prompt, a knowledge pack, a ZIP, a list of requirements), the
-  session does NOT stop until every requirement is built, proved by execution and CI is green, and
-  the only thing said at the end is the one confirmation line. Blockers are worked around, not
+  session does NOT stop until every requirement is built, proved by execution and the local gate
+  passes (`npm run gate`; GitHub Actions is off since 26 Oct 2026, ledger 1279, so "CI green" means
+  the local gate, not a GitHub check), and the only thing said at the end is the one confirmation line. Blockers are worked around, not
   stopped at. Ruling of 7 Sep 2026.
 
 # quotesdone-parallel-agents — ALWAYS APPLY

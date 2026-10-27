@@ -1,0 +1,407 @@
+{
+ "seat": "it_engineer",
+ "judged_by": "ceo session reader (Claude), no paid judge",
+ "source": "before_llm_it_engineer.json",
+ "items": [
+  {
+   "id": "it_engineer-exam-01",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: the reply is not one JSON object"
+  },
+  {
+   "id": "it_engineer-exam-02",
+   "verdict": "fail",
+   "note": "misses the company fact: launchpath"
+  },
+  {
+   "id": "it_engineer-exam-03",
+   "verdict": "fail",
+   "note": "WRONG - p75 LCP, our rule is 2.5 s at p95"
+  },
+  {
+   "id": "it_engineer-exam-04",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: no reply"
+  },
+  {
+   "id": "it_engineer-exam-05",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-06",
+   "verdict": "fail",
+   "note": "misses the company fact: false SCHEDULER DOWN page / 17 Sep 2026"
+  },
+  {
+   "id": "it_engineer-exam-07",
+   "verdict": "fail",
+   "note": "misses the company fact: 26 hours"
+  },
+  {
+   "id": "it_engineer-exam-08",
+   "verdict": "fail",
+   "note": "misses the company fact: Every 15 minutes"
+  },
+  {
+   "id": "it_engineer-exam-09",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "it_engineer-exam-10",
+   "verdict": "fail",
+   "note": "misses the company fact: otp_block_hours 24"
+  },
+  {
+   "id": "it_engineer-exam-11",
+   "verdict": "fail",
+   "note": "misses the company fact: 0.8 (80%)"
+  },
+  {
+   "id": "it_engineer-exam-12",
+   "verdict": "fail",
+   "note": "misses the company fact: cap_resend_emails_month 50000"
+  },
+  {
+   "id": "it_engineer-exam-13",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "it_engineer-exam-14",
+   "verdict": "fail",
+   "note": "misses the company fact: 0.05 (5%)"
+  },
+  {
+   "id": "it_engineer-exam-15",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-16",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-17",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-18",
+   "verdict": "fail",
+   "note": "misses the company fact: authentication successes and failures"
+  },
+  {
+   "id": "it_engineer-exam-19",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-20",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-21",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: no reply"
+  },
+  {
+   "id": "it_engineer-exam-22",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-23",
+   "verdict": "fail",
+   "note": "misses the company fact: SEV1"
+  },
+  {
+   "id": "it_engineer-exam-24",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-25",
+   "verdict": "fail",
+   "note": "misses the company fact: it_refusal_policy"
+  },
+  {
+   "id": "it_engineer-exam-26",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-27",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-28",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-29",
+   "verdict": "fail",
+   "note": "misses the company fact: both Supabase and Dropbox"
+  },
+  {
+   "id": "it_engineer-exam-30",
+   "verdict": "fail",
+   "note": "misses the company fact: restore_export_max_age_days 2"
+  },
+  {
+   "id": "it_engineer-exam-31",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-32",
+   "verdict": "fail",
+   "note": "misses the company fact: about two minutes"
+  },
+  {
+   "id": "it_engineer-exam-33",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-34",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-35",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-36",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-37",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: the answer carries no reasoning steps; show the steps it stands on"
+  },
+  {
+   "id": "it_engineer-exam-38",
+   "verdict": "fail",
+   "note": "misses the company fact: spend_anomaly_multiple 2 / spend_floor_aed 20"
+  },
+  {
+   "id": "it_engineer-exam-39",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-40",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-41",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-42",
+   "verdict": "fail",
+   "note": "misses the company fact: Stripe, Resend, Twilio, Vercel, Supabase and Dropbox"
+  },
+  {
+   "id": "it_engineer-exam-43",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: no reply"
+  },
+  {
+   "id": "it_engineer-exam-44",
+   "verdict": "fail",
+   "note": "misses the company fact: 602 objects of drift"
+  },
+  {
+   "id": "it_engineer-exam-45",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-46",
+   "verdict": "fail",
+   "note": "misses the company fact: 02:00 Dubai"
+  },
+  {
+   "id": "it_engineer-exam-47",
+   "verdict": "fail",
+   "note": "misses the company fact: comparison PDF in en and ar"
+  },
+  {
+   "id": "it_engineer-exam-48",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: decompose"
+  },
+  {
+   "id": "it_engineer-exam-49",
+   "verdict": "fail",
+   "note": "misses the company fact: pass rate"
+  },
+  {
+   "id": "it_engineer-exam-50",
+   "verdict": "fail",
+   "note": "misses the company fact: Knowledge ages"
+  },
+  {
+   "id": "it_engineer-exam-51",
+   "verdict": "fail",
+   "note": "misses the company fact: 5x its usual hour"
+  },
+  {
+   "id": "it_engineer-exam-52",
+   "verdict": "fail",
+   "note": "does not know the USD 1-2/day idle ceiling"
+  },
+  {
+   "id": "it_engineer-exam-53",
+   "verdict": "fail",
+   "note": "misses the company fact: 50 rows"
+  },
+  {
+   "id": "it_engineer-exam-54",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-55",
+   "verdict": "fail",
+   "note": "misses the company fact: GitHub, Vercel, Stripe and Dropbox"
+  },
+  {
+   "id": "it_engineer-exam-56",
+   "verdict": "fail",
+   "note": "misses the company fact: never auto-merged"
+  },
+  {
+   "id": "it_engineer-exam-57",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-58",
+   "verdict": "fail",
+   "note": "misses the company fact: 2026-11-09"
+  },
+  {
+   "id": "it_engineer-exam-59",
+   "verdict": "fail",
+   "note": "misses the company fact: 2027-06-24"
+  },
+  {
+   "id": "it_engineer-exam-60",
+   "verdict": "fail",
+   "note": "misses the company fact: a performance review"
+  },
+  {
+   "id": "it_engineer-exam-61",
+   "verdict": "fail",
+   "note": "misses the company fact: Declare"
+  },
+  {
+   "id": "it_engineer-exam-62",
+   "verdict": "fail",
+   "note": "misses the company fact: capacity and cost review"
+  },
+  {
+   "id": "it_engineer-exam-63",
+   "verdict": "fail",
+   "note": "misses the company fact: healthy and organised"
+  },
+  {
+   "id": "it_engineer-exam-64",
+   "verdict": "fail",
+   "note": "misses the company fact: rollback, retry, failover or key rotation"
+  },
+  {
+   "id": "it_engineer-exam-65",
+   "verdict": "fail",
+   "note": "WRONG - emails the founder for incidents"
+  },
+  {
+   "id": "it_engineer-exam-66",
+   "verdict": "fail",
+   "note": "WRONG - escalates to the founder"
+  },
+  {
+   "id": "it_engineer-exam-67",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-68",
+   "verdict": "fail",
+   "note": "misses the company fact: 30 of them"
+  },
+  {
+   "id": "it_engineer-exam-69",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-70",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-71",
+   "verdict": "fail",
+   "note": "misses the company fact: STRIDE table"
+  },
+  {
+   "id": "it_engineer-exam-72",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-73",
+   "verdict": "fail",
+   "note": "misses the company fact: one game day per quarter"
+  },
+  {
+   "id": "it_engineer-exam-74",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-75",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: the reply is not one JSON object"
+  },
+  {
+   "id": "it_engineer-exam-76",
+   "verdict": "pass",
+   "note": "correct, conveys the expected facts"
+  },
+  {
+   "id": "it_engineer-exam-77",
+   "verdict": "fail",
+   "note": "misses the company fact: breakpoint test"
+  },
+  {
+   "id": "it_engineer-exam-78",
+   "verdict": "fail",
+   "note": "misses the company fact: trace / traceparent"
+  },
+  {
+   "id": "it_engineer-exam-79",
+   "verdict": "fail",
+   "note": "misses the company fact: 31536000 / includeSubDomains"
+  },
+  {
+   "id": "it_engineer-exam-80",
+   "verdict": "fail",
+   "note": "not answered: held: model_failed: the reply is not one JSON object"
+  }
+ ]
+}

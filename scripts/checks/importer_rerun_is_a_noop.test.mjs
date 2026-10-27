@@ -20,6 +20,7 @@
 // failure, one layer along. Both are asserted here.
 //
 //   node --test scripts/checks/
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -45,7 +46,7 @@ test('a repeated import re-opens its run row instead of colliding with it', () =
     'a re-opened run still carrying its previous completed_at reads as finished while it is running');
 });
 
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 

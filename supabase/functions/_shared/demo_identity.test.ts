@@ -2,7 +2,17 @@
 // fn_is_demo_phone by scripts/checks/demo_identities_never_reach_a_real_person.test.mjs, so the
 // TypeScript and SQL answers cannot drift apart silently.
 import { assertEquals } from 'jsr:@std/assert@1';
-import { isDemoEmail, isDemoPhone, stripeKeyNames } from './demo_identity.ts';
+import { isDemoEmail, isDemoPhone, isFixtureLead, stripeKeyNames } from './demo_identity.ts';
+
+// A fixture registration files no supplier_registered notice, so no handoff and no org_task (13 Oct 2026).
+Deno.test('a fixture supplier is recognised by any one marker; a real supplier by none', () => {
+  for (const l of [{ is_demo: true }, { company_name: 'ZZ DEMO Walk 79399dc7 en mobile 0' }, { company_name: '  zz demo x' },
+                   { email: 'qd-79399dc7-sup0@example.invalid' }, { claimed_by: 'a@x.test' }, { tags: ['qd_demo', 'qd_run:79399dc7'] }])
+    assertEquals(isFixtureLead(l), true, JSON.stringify(l));
+  for (const l of [null, undefined, {}, { company_name: 'Al Zz Demolition LLC', email: 'ops@realco.ae', tags: ['lead'] },
+                   { is_demo: false, company_name: 'Crescent Building Ltd', email: 'info@crescent.ae' }])
+    assertEquals(isFixtureLead(l), false, JSON.stringify(l));
+});
 
 Deno.test('reserved domains are demo, real domains are not', () => {
   for (const e of ['qd-ab12-cust0@example.invalid', 'x@example.com', 'x@EXAMPLE.ORG', 'x@sub.example.net',

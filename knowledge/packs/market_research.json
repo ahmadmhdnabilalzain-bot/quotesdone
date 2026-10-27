@@ -52,6 +52,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "market_research:product-distinctions",
+      "topic": "Market research: methods and what each answers",
+      "topic_ar": "أبحاث السوق: الطرق وما تجيب عنه كل منها",
+      "kind": "product_distinctions",
+      "body_en": "Market research answers business questions with evidence. Secondary (desk) research uses existing data: reports, statistics, trade data and competitor information, and is quick and cheap but may not fit the exact question. Primary research collects new data: quantitative methods (surveys online, by phone or face to face, with a sample sized for the confidence needed; retail audits and mystery shopping; tracking studies) measure how many and how much, while qualitative methods (focus groups, in-depth interviews, ethnography, user testing) explain why. Common studies: market sizing and feasibility, customer segmentation and needs, brand awareness and health tracking, pricing research (conjoint, Van Westendorp), concept and product testing, customer satisfaction and NPS, and B2B research with decision-makers. Quality depends on the sampling frame and quotas (nationality, language, emirate or city, income), questionnaire design, translation and back-translation, fieldwork control and data validation, and transparent methodology in the report. Offers differ on method and sample, languages, fieldwork method, incidence assumptions, deliverables (data tables, dashboards, report and presentation), timeline, and data-protection compliance.",
+      "body_ar": "تجيب أبحاث السوق عن أسئلة الأعمال بالأدلة. والبحث الثانوي (المكتبي) يستخدم بيانات موجودة: التقارير، والإحصاءات، والبيانات التجارية، ومعلومات المنافسين، وهو سريع ورخيص لكنه قد لا يطابق السؤال تماماً. والبحث الأولي يجمع بيانات جديدة: الطرق الكمية (الاستبيانات عبر الإنترنت أو الهاتف أو وجهاً لوجه، بعينة يُحدد حجمها حسب الثقة المطلوبة؛ وتدقيق المتاجر والمتسوق الخفي؛ ودراسات التتبع) تقيس كم وكمية، بينما الطرق النوعية (مجموعات النقاش، المقابلات المعمقة، الدراسات الإثنوغرافية، اختبار المستخدمين) تفسر لماذا. والدراسات الشائعة: تقدير حجم السوق والجدوى، وتقسيم العملاء واحتياجاتهم، وتتبع الوعي بالعلامة وصحتها، وأبحاث التسعير، واختبار المفاهيم والمنتجات، ورضا العملاء وصافي نقاط الترويج، والبحث بين الشركات مع صناع القرار. وتعتمد الجودة على إطار العينة والحصص (الجنسية، اللغة، الإمارة أو المدينة، الدخل)، وتصميم الاستبيان، والترجمة والترجمة العكسية، وضبط العمل الميداني والتحقق من البيانات، وشفافية المنهجية في التقرير. وتختلف العروض في الطريقة والعينة، واللغات، وطريقة العمل الميداني، وافتراضات نسبة الأهلية، والمخرجات (جداول البيانات، لوحات المعلومات، التقرير والعرض)، والجدول الزمني، والامتثال لحماية البيانات.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Market_research"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: qualitative methods (focus groups, interviews) versus quantitative (surveys); secondary data analysis -> confirmed."
+    },
+    {
+      "id": "market_research:lead-times-and-quoting",
+      "topic": "Market research & surveys - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "أبحاث السوق والاستبيانات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A desk study: 1-3 weeks; an online survey 2-5 weeks; qualitative studies 3-6 weeks; multi-city face-to-face studies longer. A research firm needs the business decision, questions, target audience and markets, sample size or precision needed, languages, budget and deadline. A proposal states method, sample and quotas, questionnaire length, fieldwork method, deliverables, timeline, fee and validity.",
+      "body_ar": "الدراسة المكتبية: 1-3 أسابيع؛ والاستبيان الإلكتروني 2-5 أسابيع؛ والدراسات النوعية 3-6 أسابيع؛ والدراسات الميدانية وجهاً لوجه في عدة مدن أطول. وتحتاج شركة البحث القرار التجاري، والأسئلة، والجمهور المستهدف والأسواق، وحجم العينة أو الدقة المطلوبة، واللغات، والميزانية، والموعد. ويذكر العرض الطريقة والعينة والحصص وطول الاستبيان وطريقة العمل الميداني والمخرجات والجدول الزمني والأتعاب والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -77,6 +107,14 @@
       ],
       "why": "No entry of this pack answered it (No entry covers focus group pricing; missing). market_research:focus-group-cost-components was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from market_research.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Do we need a survey or focus groups to understand why customers stopped buying?",
+      "q_ar": "نحتاج استبيان ولا مجموعات نقاش عشان نفهم ليش العملاء وقفوا يشترون؟",
+      "expected_entry_ids": [
+        "market_research:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "market_research:focus-group-cost-components"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "market_research:product-distinctions"
+      ],
+      "stored_not_served": [
+        "market_research:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Market_research"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

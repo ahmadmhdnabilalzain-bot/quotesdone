@@ -12,6 +12,23 @@
 // ponytail: the FAQ section is capped at FAQ_CAP chars (≈ the first ~60 FAQs by id) to keep the brief near 8k tokens;
 // rank FAQs by how often they are asked if the cap starts cutting answers people need.
 // prevented by: _shared/company_brief.test.ts
+import { BRIEF_TEXT } from './brief.generated.ts';
+
+/** The text whose numbers the figure check accepts: the brief WITHOUT the authored knowledge block. Measured 13 Oct
+ *  2026: with BRIEF_TEXT counted, "The reveal fee is 5%." passed the check, because the regulation digests state a
+ *  5% VAT. Fees and prices come from the live sources (fn_company_context, fn_price_brief, FAQ); the knowledge block
+ *  informs the answer but never licenses a money figure. */
+export const figureSource = (brief: string): string => brief.replace(BRIEF_TEXT, '');
+
+/** ONE CACHED PREFIX FOR EVERY LANGUAGE AND CHANNEL (13 Oct 2026, coordinator's option a). The knowledge block is the
+ *  brief's FIRST part and identical for every caller, so it is sent as the gateway's sys_shared with its own cache
+ *  breakpoint; the rest (company block, price guide, FAQ, the caller's facts) is sys_stable. Language rules live in the
+ *  caller's sys, after both breakpoints. */
+export const BRIEF_SHARED = BRIEF_TEXT;
+export function splitBrief(brief: string): { shared: string; stable: string } {
+  return brief.startsWith(BRIEF_TEXT) ? { shared: BRIEF_TEXT, stable: brief.slice(BRIEF_TEXT.length) } : { shared: '', stable: brief };
+}
+
 export const FAQ_CAP = 16_000;
 export const BRIEF_TTL_MS = 5 * 60_000;
 
@@ -21,8 +38,9 @@ type Faq = { id?: unknown; question?: unknown; answer?: unknown; language?: unkn
 // MORE CACHED BLOCKS: a second knowledge block (next: the UAE regulations digest, mandatory codes per trade) is passed
 // as `blocks` — each is appended after the FAQ inside the same byte-stable, cacheable prefix. Its numbers become figures
 // the check accepts, so a block must hold published facts only.
-export function composeBrief(o: { company: string; facts: string; faqs: Faq[]; lang: 'en' | 'ar'; blocks?: string[] }): string {
-  const mine = o.faqs.filter((f) => (f.language ?? 'en') === o.lang && f.question && f.answer)
+/** One language's published FAQ, by id, capped at FAQ_CAP (the same rows that language's asker always received). */
+function faqSection(faqs: Faq[], lang: 'en' | 'ar'): string {
+  const mine = faqs.filter((f) => (f.language ?? 'en') === lang && f.question && f.answer)
     .sort((a, b) => Number(a.id ?? 0) - Number(b.id ?? 0));
   let faq = '';
   for (const f of mine) {
@@ -30,11 +48,21 @@ export function composeBrief(o: { company: string; facts: string; faqs: Faq[]; l
     if (faq.length + line.length > FAQ_CAP) break;
     faq += line;
   }
+  return faq.trim();
+}
+
+// lang 'all' (13 Oct 2026, #1407 review): ONE brief for every language that loses nothing. The Arabic FAQ is not a
+// provable translation of the English one (measured: 150 English rows, 152 Arabic, no shared id, section, sort or
+// source key), so both sections ride in the one brief, each exactly as its own asker received it before.
+export function composeBrief(o: { company: string; facts: string; faqs: Faq[]; lang: 'en' | 'ar' | 'all'; blocks?: string[] }): string {
+  const faq = o.lang === 'all' ? faqSection(o.faqs, 'en') : faqSection(o.faqs, o.lang);
+  const faqAr = o.lang === 'all' ? faqSection(o.faqs, 'ar') : '';
   return [
     '# QUOTESDONE COMPANY BRIEF — everything you state about the company, its fees, terms, rules and contacts comes from here.',
     o.company.trim(),
     o.facts.trim(),
-    '## PUBLISHED FAQ (the approved answers)\n' + faq.trim(),
+    '## PUBLISHED FAQ (the approved answers)\n' + faq,
+    ...(faqAr ? ['## PUBLISHED FAQ IN ARABIC (the approved Arabic answers; the same rules apply)\n' + faqAr] : []),
     ...(o.blocks ?? []).map((b) => b.trim()),
   ].filter(Boolean).join('\n\n');
 }
@@ -46,8 +74,11 @@ export function fnv1a(s: string): string {
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
   return h.toString(16) + ':' + s.length;
 }
-/** The brief for a language, rebuilt from the live sources at most every BRIEF_TTL_MS per worker. */
-export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, lang: 'en' | 'ar', blocks: string[] = [], now = Date.now()): Promise<string> {
+/** The brief, rebuilt from the live sources at most every BRIEF_TTL_MS per worker. ONE brief for every language
+ *  (13 Oct 2026): the published FAQ in both languages, each as its asker always received it (FAQ_CAP each), and the
+ *  model answers in the person's language, set by the caller's rules after the cache breakpoints. `_lang` is kept for callers. */
+export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, _lang: 'en' | 'ar', blocks: string[] = [], now = Date.now()): Promise<string> {
+  const lang = 'all' as const;
   // Keyed on the CONTENT (review of #1330): two callers whose facts or blocks differ only in wording never share a
   // brief. The FAQ list is the same live table for every caller; its edits reach the brief within BRIEF_TTL_MS.
   const key = lang + ':' + fnv1a([facts, ...blocks].join('\u0001'));
@@ -59,7 +90,11 @@ export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, lang: '
   const [cc, pb] = await Promise.all([read('fn_company_context', { p_max_chars: 8000, p_audience: 'public' }), read('fn_price_brief', {})]);
   const company = String((cc as { block?: string } | null)?.block || '');
   const prices = typeof pb === 'string' ? pb : '';
-  const brief = composeBrief({ company, facts, faqs, lang, blocks: [prices, ...blocks].filter(Boolean) });
+  // BRIEF_TEXT FIRST, byte-identical for every caller: splitBrief() hands it to the gateway as its own cached block.
+  const brief = BRIEF_TEXT + '\n\n' + composeBrief({ company, facts, faqs, lang, blocks: [prices, ...blocks].filter(Boolean) });
+  // BRIEF_TEXT (scripts/kb/compile_brief.mjs, sales_engineer, rulings 1195-1200): the authored company brief, the UAE
+  // regulation digests and every trade's conversation playbook, ~60k tokens, byte-stable, so it sits FIRST in the cached
+  // prefix for every caller (aiReply, site_assistant) instead of being passed by each one.
   cache.set(key, { at: now, brief });
   return brief;
 }
@@ -172,9 +207,16 @@ const SUPPLIER_SUBJECT = /^\s*(?:the\s+)?suppliers?(?:'s?)?\b|^\s*(?:\S+\s+)?\u0
 const OUR_MARK = /\breveal\b|\bQuotesDone\b|\bour\b|\bwe\b|\bplatform\b|\byou\s+pay\b|\b3\s?%|\u0663\s?\u066A|\u0627\u0644\u0643\u0634\u0641|\u0627\u0644\u0645\u0646\u0635\u0629|\u0631\u0633\u0648\u0645\u0646\u0627|\u0639\u0645\u0648\u0644\u062A\u0646\u0627|\u062A\u062F\u0641\u0639/i;
 const aboutSupplierOnly = (s: string) =>
   (SUPPLIER_SUBJECT.test(s) && !OUR_MARK.test(s)) || (SUPPLIER_TERMS.test(s) && !OUR_FEE.test(s.replace(SUPPLIER_FEE, ' ')));
+// Ruling 1208: our fee is taken on the supplier's final price BEFORE / excluding VAT. A sentence giving that basis
+// states policy, not VAT on our fee (the Arabic alternatives are \u escapes, so this line is not an Arabic message).
+const FEE_BASIS_EX_VAT = /\b(?:before|excluding|ex)[\s-]VAT\b|\u0642\u0628\u0644 (?:\u0627\u0644)?\u0636\u0631\u064A\u0628\u0629|\u063A\u064A\u0631 \u0634\u0627\u0645\u0644/gi;
+// Exempt only when the fee-basis phrase is the SOLE VAT mention: strip it, and any VAT left ("and VAT is added to it")
+// is still a claim (review of #1364 at 2b2ac40).
+const feeBasisOnly = (s: string) => { FEE_BASIS_EX_VAT.lastIndex = 0; if (!FEE_BASIS_EX_VAT.test(s)) return false; FEE_BASIS_EX_VAT.lastIndex = 0;
+  return !/\bVAT\b|\u0636\u0631\u064A\u0628\u0629/i.test(s.replace(FEE_BASIS_EX_VAT, ' ')); };
 const CLAIMS: { problem: string; re: RegExp; unless?: RegExp | ((s: string) => boolean) }[] = [
   { problem: 'it says a card fee is added (the brief: no card fee is ever added)', re: /card (?:payment |processing )?(?:fee|surcharge|charge)|\u0631\u0633\u0648\u0645 (?:\u0639\u0644\u0649 )?(?:\u0627\u0644\u062F\u0641\u0639 (?:\u0628|\u0639\u0628\u0631 )?)?\u0627\u0644\u0628\u0637\u0627\u0642\u0629|\u0631\u0633\u0648\u0645 \u0627\u0644\u0628\u0637\u0627\u0642\u0629/i, unless: aboutSupplierOnly },
-  { problem: 'it says VAT is charged on the fee (the brief: no VAT on the reveal fee; the company is not VAT-registered)', re: /\bVAT\b[^.!?\u061F]*\b(?:fee|charge|reveal)|\b(?:fee|reveal)[^.!?\u061F]*\bVAT\b|\u0636\u0631\u064A\u0628\u0629 \u0627\u0644\u0642\u064A\u0645\u0629 \u0627\u0644\u0645\u0636\u0627\u0641\u0629/i, unless: aboutSupplierOnly },
+  { problem: 'it says VAT is charged on the fee (the brief: no VAT on the reveal fee; the company is not VAT-registered)', re: /\bVAT\b[^.!?\u061F]*\b(?:fee|charge|reveal)|\b(?:fee|reveal)[^.!?\u061F]*\bVAT\b|\u0636\u0631\u064A\u0628\u0629 \u0627\u0644\u0642\u064A\u0645\u0629 \u0627\u0644\u0645\u0636\u0627\u0641\u0629/i, unless: (s: string) => aboutSupplierOnly(s) || feeBasisOnly(s) },
   { problem: 'it promises a refund (every refund is the CEO\'s decision)', re: /\b(?:we|we'?ll|we will|you will|you'?ll)\b[^.!?؟]*\b(?:refund|get your money back|be refunded)|سن(?:عيد|رد) (?:لك|إليك|لكم)? ?(?:المبلغ|أموالك|رسوم)|ستسترد|سيتم (?:رد|استرداد)/i,
     // the published non-response rule is conditional ("if the supplier does not respond, you are refunded"): that is policy, not a promise
     unless: /\b(?:if|when|unless)\b|إذا|إن |في حال|عند /i },

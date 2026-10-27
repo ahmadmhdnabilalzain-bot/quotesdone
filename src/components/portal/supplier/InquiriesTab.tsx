@@ -36,7 +36,7 @@ const COPY = {
     scope: 'Scope', documents: 'Documents', download: 'Download', noDocs: 'No documents were attached to this inquiry.',
     boqFile: (n: number) => `Bill of quantities (${n} lines, CSV)`, page: (n: number) => `Drawing page ${n} (identity removed)`,
     inqPdf: 'Inquiry document (PDF)', pdfEn: 'English', pdfAr: 'Arabic', preparing: 'Preparing…', pdfHeld: 'The Arabic version is being prepared by our sales engineer and will be ready shortly. The English version is available now.', pdfFailed: 'The document could not be prepared. Please try again.',
-    quote: 'Send your quotation to the sales engineer', form: 'Or type it into the quote form', closeForm: 'Close the form', sentOk: 'Your quotation was submitted.', sentHeld: 'Your quotation is saved and on hold: the card below lists what is still needed.',
+    quote: 'Send your quotation to the sales engineer', form: 'Or type it into the quote form', closeForm: 'Close the form', addOption: 'Add another option', sentOk: 'Your quotation was submitted.', sentHeld: 'Your quotation is saved and on hold: the card below lists what is still needed.',
     concluded: 'Concluded — the customer has chosen.', won: 'You won this job.', quoted: 'Your quotation', loading: 'Loading inquiries…', err: 'Something went wrong. Please try again.', retry: 'Try again',
     boqHeld: 'The bill of quantities is held back because we could not prove it free of the customer’s details. Price from the drawings and the scope.',
     budget: 'Budget', open: 'Open', close: 'Close',
@@ -83,9 +83,8 @@ function Documents({ token, lang, id }: { token: string; lang: Lang; id: string 
       <span className="min-w-0 text-[13px] font-semibold text-foreground">{t.inqPdf}</span>
       <span className="flex items-center gap-1.5">
         <Button size="sm" variant="outline" disabled={!!busy} onClick={() => inquiryPdf('en')} lang="en">{busy === 'en' ? t.preparing : t.pdfEn}</Button>
-        <Button size="sm" variant="outline" disabled={!!busy} onClick={() => inquiryPdf('ar')} lang="ar">{busy === 'ar' ? t.preparing : t.pdfAr}</Button>
       </span>
-      {pdfErr ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{pdfErr === 'held' ? t.pdfHeld : t.pdfFailed}</span> : null}
+      {pdfErr ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{t.pdfFailed}</span> : null}
     </li>
   );
   if (err) return (
@@ -119,11 +118,12 @@ function Documents({ token, lang, id }: { token: string; lang: Lang; id: string 
   );
 }
 
-function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; lang: Lang; id: string; onQuote: (id: string) => void; renderQuoteForm?: (inq: LegacyInquiry, done: (r?: { held?: boolean }) => void) => React.ReactNode }) {
+function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; lang: Lang; id: string; onQuote: (id: string) => void; renderQuoteForm?: (inq: LegacyInquiry, done: (r?: { held?: boolean }) => void, opts?: { newOption?: boolean }) => React.ReactNode }) {
   const t = COPY[lang];
   const [d, setD] = useState<InquiryDetail['inquiry'] | null>(null);
   const [err, setErr] = useState('');
-  const [form, setForm] = useState(false);
+  // 'edit' reopens this supplier's quote; 'new' starts another option, which is its own quotation (newOption).
+  const [form, setForm] = useState<false | 'edit' | 'new'>(false);
   // Submit confirmation (audit 21 Sep 2026, finding 33: the form closed with no word of what happened).
   const [sent, setSent] = useState<'' | 'ok' | 'held'>('');
   const alive = useRef(true);
@@ -158,18 +158,19 @@ function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; 
       {canQuote ? (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Button onClick={() => onQuote(d.id)}>{t.quote}</Button>
-          {renderQuoteForm ? <Button variant="ghost" aria-expanded={form} onClick={() => setForm(!form)}>{form ? t.closeForm : t.form}</Button> : null}
+          {renderQuoteForm ? <Button variant="ghost" aria-expanded={form === 'edit'} onClick={() => setForm(form === 'edit' ? false : 'edit')}>{form === 'edit' ? t.closeForm : t.form}</Button> : null}
+          {renderQuoteForm && q ? <Button variant="ghost" lang="en" aria-expanded={form === 'new'} onClick={() => setForm(form === 'new' ? false : 'new')}>{form === 'new' ? t.closeForm : COPY.en.addOption}</Button> : null}
         </div>
       ) : null}
       {sent ? <p role="status" className="mt-3 text-[13px] text-foreground">{sent === 'held' ? t.sentHeld : t.sentOk}</p> : null}
-      {form && renderQuoteForm ? renderQuoteForm({ ...d, quote: q ?? null, quotes: d.quotes }, (r) => { setForm(false); setSent(r?.held ? 'held' : 'ok'); load(); }) : null}
+      {form && renderQuoteForm ? renderQuoteForm({ ...d, quote: q ?? null, quotes: d.quotes }, (r) => { setForm(false); setSent(r?.held ? 'held' : 'ok'); load(); }, { newOption: form === 'new' }) : null}
     </div>
   );
 }
 
 export function InquiriesTab({ token, lang, focus = null, onFocused, onQuote, renderQuoteForm }: {
   token: string; lang: Lang; focus?: string | null; onFocused?: () => void; onQuote: (id: string) => void;
-  renderQuoteForm?: (inq: LegacyInquiry, done: (r?: { held?: boolean }) => void) => React.ReactNode;
+  renderQuoteForm?: (inq: LegacyInquiry, done: (r?: { held?: boolean }) => void, opts?: { newOption?: boolean }) => React.ReactNode;
 }) {
   const t = COPY[lang];
   const [list, setList] = useState<InquiryListItem[] | null>(null);

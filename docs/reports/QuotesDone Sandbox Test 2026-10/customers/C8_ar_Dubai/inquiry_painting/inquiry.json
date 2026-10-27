@@ -1,0 +1,98 @@
+{
+ "fact_sheet": {
+  "element": "Painting & Finishes: interior painting وexterior painting وdecorative finishes",
+  "lines": "البند 1: interior painting عدد 20، مقاس 1200 × 1500 مم لكل وحدة؛ البند 2: exterior painting عدد 10، مقاس 900 × 2100 مم لكل وحدة؛ البند 3: decorative finishes عدد 5، مقاس 3000 × 2400 مم لكل وحدة",
+  "purpose": "البند 1 لغرف النوم، البند 2 للمدخل الرئيسي والشرفات، البند 3 لواجهة غرفة المعيشة",
+  "location": "فيلا في Dubai، الطابق الأرضي والأول، وصول مباشر بالطريق، لا حاجة لرافعة",
+  "area": "حوالي 450 متر مربع مساحة مبنية، 6 غرف",
+  "scope": "توريد وتركيب، مع إزالة القطع القديمة والتخلص منها",
+  "new_or_replace": "استبدال قطع قائمة في فيلا مسكونة",
+  "timeline": "خلال شهر واحد",
+  "warranty": "ضمان سنتان على الأقل",
+  "supply_phase": "تغذية ثلاثية الطور 400 فولت",
+  "surface_prep": "جدران مدهونة سابقًا بحالة جيدة مع إصلاح شقوق بسيطة",
+  "stops": "4 وقفات (أرضي + 3)",
+  "capacity": "8 أشخاص، 630 كغ",
+  "design": "التصميم جاهز",
+  "material": "درجة تجارية قياسية من علامة معروفة",
+  "leak": "لا يوجد تسرب حالياً، العمل وقائي",
+  "finish": "لامينيت / ميلامين",
+  "system_type": "نظام مركزي بالمياه المبردة: وحدات فان كويل مخفية بمجارٍ مع وحدات مناولة هواء",
+  "fixtures": "4 حمامات ومطبخ واحد"
+ },
+ "intake": {
+  "intakeId": "4ca3854e-a487-4e5f-bf95-474f6868ac2f",
+  "status": "ready",
+  "readiness": 70,
+  "missing": [],
+  "turns": 8,
+  "log": [
+   {
+    "turn": 1,
+    "answer": "Painting & Finishes: interior painting وexterior painting وdecorative finishes. البند 1: interior painting عدد 20، مقاس 1200 × 1500 مم لكل وحدة؛ البند 2: exterior painting عدد 10، مقاس 900 × 2100 مم لكل وحدة؛ البند 3: decorative finishes عدد 5، مقاس 3000 × 2400 مم لكل وحدة. فيلا في Dubai، الطابق الأرضي والأول، وصول مباشر بالطريق، لا حاجة لرافعة.",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 2,
+    "answer": "area: حوالي 450 متر مربع مساحة مبنية، 6 غرف. surface_prep: جدران مدهونة سابقًا بحالة جيدة مع إصلاح شقوق بسيطة.",
+    "asked_key": "material.brand",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 3,
+    "answer": "جوتن",
+    "asked_key": "material.finish",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 4,
+    "answer": "أخرى: Texture/decorative للبند 3؛ بقية البنود قرار المورد",
+    "asked_key": "installation",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 5,
+    "answer": "yes",
+    "asked_key": "warranty",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 6,
+    "answer": "yes_24",
+    "asked_key": "scope",
+    "missing_keys": [
+     "scope"
+    ],
+    "status": "needs_info"
+   },
+   {
+    "turn": 7,
+    "answer": "scope: توريد وتركيب، مع إزالة القطع القديمة والتخلص منها.",
+    "asked_key": "required_by",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 8,
+    "answer": "m1",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "ready"
+   }
+  ],
+  "sent": 200
+ },
+ "inquiry": {
+  "id": "b86f7157-04be-4788-9bf2-36b92c60351d",
+  "status": "sent",
+  "trades": null,
+  "lang": "ar",
+  "emirate": "Dubai"
+ }
+}

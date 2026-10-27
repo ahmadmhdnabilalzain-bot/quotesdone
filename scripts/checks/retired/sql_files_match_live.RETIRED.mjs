@@ -40,6 +40,7 @@ process.exit(2);
 // The check fails when that number GROWS. Lower it when you reconcile one; never raise it.
 //
 //   node scripts/checks/sql_files_match_live.test.mjs
+import { SUPABASE_TOKEN_FILE } from '../../lib/supabase_token.mjs';
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import { join } from 'node:path';
@@ -66,7 +67,7 @@ const PROD = 'htdblwldjkcgjvmqkbeh';
 // what the first run of this file did: ENOENT on the local token path, exit 1, red merge.
 // It is not weakened, it is scoped: the drift it looks for is created by a human applying (or not
 // applying) a file, and it is caught the next time a session runs the sweep.
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 if (!token) {

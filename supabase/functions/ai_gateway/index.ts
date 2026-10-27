@@ -32,14 +32,18 @@
 //
 // dry_run:true runs 1-6 and returns the decision WITHOUT calling a model, so the whole thing can be
 // verified for zero spend.
+import { cacheTokens, tapUsage } from './stream_usage.ts';
+import { sendWithTtlFallback, systemMessage, withHistoryBreakpoint } from './system_message.ts';
+import { withDataDeny } from './provider_privacy.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
 import { annotate, observe } from '../_shared/observe.ts';
-import { attemptPlan, failureKind, fixtureVerdict, nextAttempt, ownWorkByName, rehearsalLetsFixtureThrough, subjectOf } from '../_shared/spend_guards.ts';
+import { attemptPlan, failureKind, fixtureVerdict, nextAttempt, ownWorkByName, rehearsalLetsFixtureThrough, reservationVerdict, subjectOf, unprovenRunTag } from '../_shared/spend_guards.ts';
 import { e2eRunTag } from '../_shared/e2e_run.ts';
 import { embedAnswer } from '../_shared/embed_answer.ts';
 import { shapeRequest } from '../_shared/request_shape.ts';
+import { cacheHitServesRoute } from './cache_hit.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) =>
@@ -157,6 +161,9 @@ interface Body {
   counterpart_model?: string;   // the model that wrote what this call reviews (fn_ai_route_review)
   sys?: string;
   sys_stable?: string;                    // the byte-stable half of the system prompt; only this is marked cacheable
+  sys_shared?: string;                    // a byte-stable block shared by a family of prompts, cached first (system_message.ts)
+  cache_history?: boolean;                // mark the turn before the newest as a cache breakpoint (system_message.ts withHistoryBreakpoint)
+  cache_ttl?: '1h';                       // Anthropic's 1-hour cache tier, asked for by the chat callers only
   input?: string | Msg[];
   messages?: Msg[];                       // full OpenAI-shape passthrough (multimodal, tool turns)
   max?: number; temperature?: number; confidence?: number;
@@ -323,7 +330,15 @@ async function handle(req: Request): Promise<Response> {
     //
     // Callers that know which half of their prompt is stable now say so. sys_stable is prepended to
     // sys and is the ONLY block marked cacheable; sys keeps whatever changes per call.
-    const sysStable = String(body.sys_stable || '');
+    // THE SHARED PREFIX (13 Oct 2026, sales_engineer; coordinator's options a and c). sys_shared is a byte-stable block
+    // that is the SAME for every caller of a family of prompts (the ~250k-char knowledge brief every conversation reply
+    // carries); it goes first with its own cache breakpoint, so a reply in any language on any channel reads it from the
+    // cache even when the caller's own stable half differs. sysStable below holds both halves for hashing and lengths.
+    const sysShared = String(body.sys_shared || '');
+    // cache_ttl '1h': Anthropic's 1-hour cache tier (2x write instead of 1.25x). Asked for only by the chat callers,
+    // whose traffic is too sparse for 5 minutes; every other caller keeps the default (see NO ttl FIELD below).
+    const cacheTtl = body.cache_ttl === '1h' ? '1h' : null;
+    const sysStable = sysShared + String(body.sys_stable || '');
     const sys = String(body.sys || '');
     const explicit = Array.isArray(body.messages) ? body.messages : null;
     const convo: Msg[] = explicit
@@ -459,7 +474,7 @@ async function handle(req: Request): Promise<Response> {
         p_key: cacheKey, p_embedding: promptEmb,
         p_task_class: route.task_class ?? null, p_min_similarity: 0.95,
       });
-      if (hit && hit.hit === true) {
+      if (hit && hit.hit === true && cacheHitServesRoute(hit.model, model, fallback)) {
         await llmLog({
           p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
           p_task_class: route.task_class ?? null, p_model: hit.model ?? model,
@@ -504,6 +519,15 @@ async function handle(req: Request): Promise<Response> {
     // caller takes the deterministic path it already takes today — the harness keeps testing
     // exactly what it tests now, for nothing. Placed after the dry run on purpose: routing and
     // caching are still verified for free; only the paid call is replaced.
+    // A REQUEST THAT NAMES A RUN IT CANNOT PROVE IS REFUSED, NOT RUN UNTAGGED (19 Oct 2026). qd_run:ceodiag1 (cap
+    // USD 5) spent USD 13.86 this way: the tag was dropped here, so no window cap ever saw the calls.
+    {
+      const why = unprovenRunTag(req.headers.get('x-qd-e2e-run'), e2eRunTag());
+      if (why) {
+        return annotate(J({ ok: false, used_llm: false, outcome: 'rehearsal_tag_unproven', error: why,
+          task_class: route.task_class, cost_usd: 0 }, 503), { held: true, outcome: 'rehearsal_tag_unproven' });
+      }
+    }
     {
       const subject = subjectOf((body as { subject?: unknown }).subject);
       let ownWork = ownWorkByName(fnName)
@@ -512,7 +536,7 @@ async function handle(req: Request): Promise<Response> {
       // (spend_guards.rehearsalLetsFixtureThrough). The paid gate below still enforces the window's cap.
       let inWindow = false;
       const runTag = e2eRunTag();
-      if (!ownWork && subject && runTag) {
+      if (runTag) {   // ruling 1260: a named probe/smoke/eval inside its own open window is let through too
         let open: unknown = null; let openErr: unknown = null;
         try { const res = await admin.rpc('fn_e2e_run_tag_open', { p_tag: runTag }); open = res.data; openErr = res.error; }
         catch (e) { openErr = e; }
@@ -525,19 +549,25 @@ async function handle(req: Request): Promise<Response> {
         const v = fixtureVerdict(fx, fxErr);
         if (v.stub) ownWork = v.why;
       }
-      if (ownWork) {
+      // RULING 1260 (19 Oct 2026): "all tests need to be done with AI. from now on open router stays on".
+      // A test run always opens a tagged rehearsal window (models_allowed defaults true), so INSIDE that window our
+      // own traffic reaches the model, is TAGGED here and COSTED on the real ai_cost_log row (trg_ai_cost_log_e2e_run_tag
+      // stamps the run tag; fn_kernel_paid_provider_gate still enforces the window's cap). Untagged, or outside its
+      // window, it is still refused with the no-cost stub.
+      if (ownWork && !inWindow) {
         await llmLog({
           p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
           p_task_class: route.task_class ?? null, p_model: 'none',
-          p_because: route.why + ' | FIXTURE: ' + ownWork + ' — answered with the no-cost stub, no provider call was made',
+          p_because: route.why + ' | FIXTURE: ' + ownWork + ' — untagged or outside its rehearsal window, answered with the no-cost stub, no provider call was made',
           p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
           p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
         });
-        // held: the run row reads 'held', not 'error' - refusing our own test traffic is the design (observe.statusOf).
+        // held: the run row reads 'held', not 'error' - refusing untagged test traffic is the design (observe.statusOf).
         return annotate(J({ ok: false, used_llm: false, outcome: 'fixture_no_spend',
-          error: 'our own test traffic is never sent to a paid model', why: ownWork,
+          error: 'test traffic reaches a model only inside its tagged rehearsal window', why: ownWork,
           task_class: route.task_class, cost_usd: 0 }, 503), { held: true, outcome: 'fixture_no_spend' });
       }
+      if (inWindow) route.why = route.why + ' | TEST RUN (ruling 1260): run tag ' + runTag + (ownWork ? ' | ' + ownWork : '');
     }
 
     // ---- 7. THE CALL --------------------------------------------------------------------
@@ -560,24 +590,21 @@ async function handle(req: Request): Promise<Response> {
     // is right for a caller whose whole prompt genuinely is stable and wrong only for one that
     // silently mixes, which is exactly what sys_stable exists to fix.
     //
-    // NO ttl FIELD. The 1-hour tier works (probe 11 Aug 2026 returned 200) and loses money on this
+    // NO ttl FIELD BY DEFAULT (a caller may send cache_ttl '1h': only the sparse chat callers do, system_message.ts).
+    // The 1-hour tier works (probe 11 Aug 2026 returned 200) and loses money on this
     // workload: it bills 2x to write against 1.25x for the default, and the hourly loop repeats at
     // ~65 minutes — just outside the window. See scripts/sql/prompt_cache_accounting.sql for the
     // arithmetic and the measured hit rates.
     const cacheBlock = sysStable || sys;
     const useCache = route.cache === true && promptCacheOn && cacheBlock.length >= CACHE_MIN_CHARS;
-    const sysText = sysStable ? (sysStable + sys) : sys;
-    const sysMsg = useCache
-      ? { role: 'system', content: sysStable
-            ? [{ type: 'text', text: sysStable, cache_control: { type: 'ephemeral' } },
-               ...(sys ? [{ type: 'text', text: sys }] : [])]
-            : [{ type: 'text', text: sys, cache_control: { type: 'ephemeral' } }] }
-      : { role: 'system', content: sysText };
+    const sysMsg = systemMessage({ shared: useCache ? sysShared : '', stable: useCache ? sysStable.slice(sysShared.length) : sysStable, sys, useCache, ttl: cacheTtl });
     // An empty system message is not free - it is a message the provider still tokenises, and on
     // the transcribe path there is no system prompt at all. Only prepend one when it says something,
     // and never when the caller already supplied its own system turn inside `messages`.
     const hasOwnSystem = convo.some((m) => m?.role === 'system');
-    const outbound: Msg[] = (sysText && !hasOwnSystem) ? [sysMsg as Msg, ...convo] : convo;
+    // cache_history (chat_history.ts): the earlier turns of a long conversation are the third cached block.
+    const convoOut: Msg[] = (useCache && body.cache_history === true) ? withHistoryBreakpoint(convo, cacheTtl) as Msg[] : convo;
+    const outbound: Msg[] = (sysMsg && !hasOwnSystem) ? [sysMsg as Msg, ...convoOut] : convoOut;
 
     // 29 Jul 2026 - WALL DEADLINE. The ladder could run two models x two attempts x 25s, up to
     // about 100 seconds, while _shared/llm.ts abandons a plain call after 30. On 29 Jul five
@@ -662,7 +689,9 @@ async function handle(req: Request): Promise<Response> {
     // a wall and reporting it as a model failure.
     // A REVIEW WHOSE REVIEWER CANNOT BE CALLED IS HELD, NOT SKIPPED (#880 review, item 6). Every route open-circuit for a
     // reason other than the founder's hold (which holds everything, reviewed or not) is recorded as a review_hold.
-    if (counterpart && !ladder.length && fullLadder.length && skipped.some((x) => !/^(founder_hold|exception):/.test(x.reason))) {
+    // A sandbox call whose rehearsal window closed is refused on EVERY model, reviewed or not: that is the test run's
+    // own end, not a missing reviewer (18 Oct 2026: hold 71 reached the founder's digest this way).
+    if (counterpart && !ladder.length && fullLadder.length && skipped.some((x) => !/^(founder_hold|exception|rehearsal_window_closed):/.test(x.reason))) {
       await rpcSafe('fn_review_hold_record', { p_task_class: route.task_class ?? null, p_fn: fnName, p_agent_key: body.agent ?? null,
         p_counterpart_model: counterpart, p_why: 'reviewer unreachable: ' + skipped.map((x) => x.route + ' (' + x.reason + ')').join('; ') });
     }
@@ -687,6 +716,26 @@ async function handle(req: Request): Promise<Response> {
       return J({ ok: false, used_llm: false, outcome: 'circuit_open',
         error: 'every model route for this task class is open-circuit',
         routes: skipped, task_class: route.task_class, cost_usd: 0 }, 503);
+    }
+    // A REHEARSAL CALL RESERVES ITS ESTIMATE BEFORE IT IS MADE (19 Oct 2026). The gate above reads committed spend;
+    // N concurrent calls all read the same figure before any logs a cost. One reservation per request, serialised
+    // per run in the database, closes that race. Untagged traffic gets allowed:'not_a_rehearsal' and no row.
+    if (e2eRunTag()) {
+      let rv: unknown = null; let rvErr: unknown = null;
+      try { const res = await admin.rpc('fn_rehearsal_spend_reserve'); rv = res.data; rvErr = res.error; }
+      catch (e) { rvErr = e; }
+      const v = reservationVerdict(rv, rvErr);
+      if (!v.allowed) {
+        await llmLog({
+          p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
+          p_task_class: route.task_class ?? null, p_model: 'none',
+          p_because: route.why + ' | HELD: ' + v.rule + ' - ' + v.reason + ' - no provider call was made',
+          p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
+          p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
+        });
+        return annotate(J({ ok: false, used_llm: false, outcome: v.rule, error: v.reason,
+          task_class: route.task_class, cost_usd: 0 }, 503), { held: true, outcome: v.rule });
+      }
     }
     // attempt_no is assigned SERVER-SIDE by fn_record_llm_attempt and cannot be set by this caller.
     // That is deliberate: it is what makes first-attempt success un-fakeable from up here.
@@ -714,7 +763,7 @@ async function handle(req: Request): Promise<Response> {
           // "this attempt was free" indistinguishable from "nobody recorded what it cost".
           prompt_tokens: u?.prompt_tokens ?? null,
           output_tokens: u?.completion_tokens ?? null,
-          cached_in_tokens: det.cached_tokens ?? u?.cache_read_input_tokens ?? u?.cached_tokens ?? 0,
+          cached_in_tokens: u ? (det.cached_tokens ?? u?.cache_read_input_tokens ?? u?.cached_tokens ?? 0) : null,
         }});
       } catch (_e) { /* the ledger must not take down the call; its absence shows in the report */ }
     };
@@ -811,26 +860,50 @@ async function handle(req: Request): Promise<Response> {
           if (body.plugins && body.plugins.length) payload.plugins = body.plugins;
           if (body.tools && body.tools.length) payload.tools = body.tools;
           if (body.tool_choice != null) payload.tool_choice = body.tool_choice;
+          // Refuse providers that collect or train on data (provider_privacy.ts).
+          withDataDeny(payload, m);
 
-          const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload), signal: ac.signal,
-          });
+          // THE 1-HOUR TIER IS ASKED FOR, NEVER REQUIRED (13 Oct 2026): if the route refuses the ttl field, the same
+          // request goes once more on the default 5-minute tier, breakpoints kept (system_message.ts).
+          const r = await sendWithTtlFallback((msgs) => {
+            payload.messages = msgs;
+            return fetch('https://openrouter.ai/api/v1/chat/completions', {
+              method: 'POST',
+              headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload), signal: ac.signal,
+            });
+          }, outbound, cacheTtl);
 
           if (wantStream) {
             // Hand the stream straight back. The caller can abandon it, which stops generation
             // and stops billing - that is the whole point of streaming for cost.
             clearTimeout(to);
             if (r.ok && r.body) {
-              await llmLog({
-                p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
-                p_task_class: route.task_class ?? null, p_model: m,
-                p_because: route.why + ' | streamed (token counts not available on the stream path)',
-                p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
-                p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
+              // The real usage comes in the stream's final chunk (stream_usage.ts): the ledger is written
+              // when the stream ends or is abandoned, with the tokens, cache reads/writes and OpenRouter's charge.
+              const startedAt = attemptStartedAt;
+              const tapped = tapUsage(r.body, async (s) => {
+                const u = s.usage;
+                const { cachedIn: sIn, cacheWrite: sWr } = cacheTokens(u);
+                // Only a real stream error is a failure (it may trip the breaker). A stream that ended or was
+                // abandoned without its usage chunk delivered its words: ok, with the tokens unknown (null).
+                const okStream = !s.error;
+                await recordAttempt(m, okStream, Date.now() - startedAt, s.error ?? '', s.finish ?? undefined, u ?? undefined);
+                await llmLog({
+                  p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
+                  p_task_class: route.task_class ?? null, p_model: m,
+                  p_because: route.why + ' | streamed'
+                             + (useCache ? ' | prompt cache on (' + cacheBlock.length + ' stable chars): ' + sIn + ' tokens read from cache, ' + sWr + ' written' : '')
+                             + (s.cancelled ? ' | abandoned by the caller' : '')
+                             + (u ? '' : ' | NO USAGE CHUNK: tokens and cost unknown, not zero')
+                             + (s.finish === 'length' ? ' | TRUNCATED at the ' + sentMaxTok + '-token ceiling' : ''),
+                  p_tier: route.tier ?? null, p_prompt_tokens: u?.prompt_tokens ?? null, p_output_tokens: u?.completion_tokens ?? null,
+                  p_cached: false, p_cached_in: sIn ?? 0, p_cache_write: sWr ?? 0,
+                  p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: okStream,
+                  p_generation_id: s.id, p_cost_usd_reported: Number.isFinite(Number(u?.cost)) ? Number(u!.cost) : null,
+                });
               });
-              return new Response(r.body, {
+              return new Response(tapped, {
                 headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache',
                            'X-QD-Model': m, 'X-QD-Tier': String(route.tier) },
               });
@@ -861,7 +934,11 @@ async function handle(req: Request): Promise<Response> {
             await recordAttempt(m, true, Date.now() - attemptStartedAt, '', finishReason, j?.usage);
             break attempts;
           }
-          lastErr = JSON.stringify(j?.error || j).slice(0, 200);
+          // An empty completion says WHY first (ceo, 19 Oct 2026): the first 200 characters of the envelope were all
+          // id/object/model, so 365 empty Luna Pro replies in one day never showed their finish_reason or token count.
+          lastErr = j?.error ? JSON.stringify(j.error).slice(0, 200)
+            : ('empty completion: finish_reason=' + String(j?.choices?.[0]?.finish_reason ?? j?.choices?.[0]?.native_finish_reason ?? 'none')
+               + ' completion_tokens=' + String(j?.usage?.completion_tokens ?? '?') + ' max_tokens=' + String(payload.max_tokens)).slice(0, 200);
           // An empty completion IS a failure even though the HTTP call succeeded. This is exactly
           // the 220-of-228 case: a valid chat.completion body carrying no content, which every
           // monitor read as a healthy response.

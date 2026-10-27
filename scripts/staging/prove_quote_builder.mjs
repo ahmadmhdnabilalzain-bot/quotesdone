@@ -17,11 +17,12 @@
 //  3. Demo rows must be invisible to a real supplier. The competitor count for a live HVAC lead is
 //     recomputed from leads and must EXCLUDE the six fixtures. This is the fence that protects a
 //     real supplier's numbers, and it is the one no amount of reading the source can confirm.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 
 const ref = process.argv[2];
 if (!ref) { console.error('usage: prove_quote_builder.mjs <ref>'); process.exit(2); }
-const token = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 const H = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
 // RETRY, AND NEVER LET A TRANSPORT FAILURE BE READ AS A FACT ABOUT THE DATA. The first version was
 // a bare fetch whose result was indexed straight into (`?.[0]?.claimed_by`), so a 429 from the

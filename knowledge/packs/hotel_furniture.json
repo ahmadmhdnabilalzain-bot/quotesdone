@@ -59,6 +59,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "hotel_furniture:product-distinctions",
+      "topic": "Hotel FF&E: contract-grade furniture and what makes it last",
+      "topic_ar": "أثاث الفنادق: أثاث بدرجة تعاقدية وما يجعله يدوم",
+      "kind": "product_distinctions",
+      "body_en": "Hotel furniture (FF&E: furniture, fixtures and equipment) covers guestroom casegoods (beds and headboards, wardrobes, desks, minibars and luggage racks, usually veneered or lacquered MDF and plywood on hardwood frames), seating (lounge chairs, sofas, dining and banquet chairs), lobby and restaurant furniture, outdoor pool furniture, lighting and decorative items. Contract grade differs from residential: stronger joinery and metal fixings, edge banding and corners designed for knocks, finishes such as PU or acid-catalysed lacquer that resist water, alcohol and heat marks, fabrics with high rub counts (often 50,000+ Martindale double rubs for public areas) that are fire-retardant to the required test, and replaceable parts. Projects follow the interior designer's FF&E specification and drawings: shop drawings, finish and fabric samples and a prototype or mock-up room are approved before production. Packaging, delivery sequencing by floor, and installation with snagging are part of the scope. Offers differ on materials and finishes to the specification, compliance with fire tests, prototype cost, production capacity for the room count, warranty and spares.",
+      "body_ar": "يشمل أثاث الفنادق (الأثاث والتجهيزات والمعدات) أثاث غرف الضيوف الخشبي (الأسرّة وظهورها، الخزائن، المكاتب، الثلاجات الصغيرة وحوامل الحقائب، عادة من MDF والأبلكاش بقشرة خشبية أو مطلي بالورنيش على إطارات من الخشب الصلب)، والمقاعد (كراسي الاسترخاء، الكنب، كراسي الطعام والولائم)، وأثاث اللوبي والمطاعم، وأثاث المسابح الخارجي، والإنارة والقطع الزخرفية. وتختلف الدرجة التعاقدية عن السكنية: نجارة ووصلات معدنية أقوى، وحواف وزوايا مصممة لتحمل الصدمات، وتشطيبات مثل ورنيش البولي يوريثان أو الورنيش المحفز بالحمض تقاوم الماء والكحول وعلامات الحرارة، وأقمشة بعدد احتكاك عالٍ (غالباً 50000 دورة مارتنديل فأكثر للمناطق العامة) ومقاومة للحريق وفق الاختبار المطلوب، وأجزاء قابلة للاستبدال. وتتبع المشاريع مواصفة ومخططات المصمم الداخلي للأثاث والتجهيزات: تُعتمد الرسومات التنفيذية وعينات التشطيبات والأقمشة وغرفة نموذجية قبل الإنتاج. والتغليف وتسلسل التسليم حسب الطوابق والتركيب مع معالجة الملاحظات جزء من النطاق. وتختلف العروض في المواد والتشطيبات وفق المواصفة، والامتثال لاختبارات الحريق، وتكلفة النموذج، والقدرة الإنتاجية لعدد الغرف، والضمان وقطع الغيار.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Wood_finishing"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: sanding, staining, lacquer and polyurethane finishes; varnish stripping with removers -> confirmed."
+    },
+    {
+      "id": "hotel_furniture:lead-times-and-quoting",
+      "topic": "Hotel & FF&E furniture - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "أثاث الفنادق والتجهيزات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Prototype: 4-8 weeks; production for a full hotel 10-20 weeks after approval; imported lines add shipping. A manufacturer needs the FF&E specification and drawings, quantities per room type, finish and fabric schedules, fire-test requirements, programme and delivery sequence. A quote states per item materials, finishes, fabrics and their test certificates, prototype cost, unit prices by type, packaging, delivery and installation, warranty and validity.",
+      "body_ar": "النموذج: 4-8 أسابيع؛ والإنتاج لفندق كامل 10-20 أسبوعاً بعد الاعتماد؛ والخطوط المستوردة تضيف الشحن. ويحتاج المصنع مواصفة ومخططات الأثاث والتجهيزات، والكميات لكل نوع غرفة، وجداول التشطيبات والأقمشة، ومتطلبات اختبار الحريق، والبرنامج وتسلسل التسليم. ويذكر العرض لكل قطعة المواد والتشطيبات والأقمشة وشهادات اختبارها وتكلفة النموذج وأسعار الوحدات حسب النوع والتغليف والتسليم والتركيب والضمان والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -84,6 +114,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry gives rub-count (Martindale) targets or upholstery fire standards (BS 5852 / CAL 117); spec-checklist only lists fire performance as a field). hotel_furniture:contract-upholstery-abrasion-and-ignition was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from hotel_furniture.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What makes hotel-grade furniture different from what we would buy for a home?",
+      "q_ar": "وش يفرق أثاث الفنادق عن الأثاث اللي نشتريه للبيت؟",
+      "expected_entry_ids": [
+        "hotel_furniture:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -103,6 +141,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "hotel_furniture:contract-upholstery-abrasion-and-ignition"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "hotel_furniture:product-distinctions"
+      ],
+      "stored_not_served": [
+        "hotel_furniture:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Wood_finishing"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
