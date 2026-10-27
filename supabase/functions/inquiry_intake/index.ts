@@ -210,7 +210,9 @@ Deno.serve(siteCors(observe('inquiry_intake', async (req) => {
     const started = <T,>(f: () => PromiseLike<T>): Promise<T> => Promise.resolve().then(f);
     const specsP = tradeSlugsForChecklist.length ? started(() => admin.from('category_specs').select('category,label,fields').in('category', tradeSlugsForChecklist)) : null;
     const questionsP = category ? started(() => admin.rpc('fn_category_questions', { p_category: category, p_lang: ar ? 'ar' : 'en', p_limit: 14 })) : null;
-    const agentP = category && category !== 'general' ? started(() => admin.from('category_agents').select('slug,name,persona').eq('active', true).eq('slug', category).maybeSingle()) : null;
+    // The specialist is the agent whose key IS the trade (decision point inquiry_intake.specialist, below).
+    const agentQ = () => admin.from('category_agents').select('slug,name,persona').eq('active', true).eq('slug', category).maybeSingle();
+    const agentP = category && category !== 'general' ? started(agentQ) : null;
     const kbP = tradeSlugsForChecklist.length && text ? Promise.all(tradeSlugsForChecklist.slice(0, 2).map((s) => kbFor(s, text))) : null;
     let checklist: any[] = [];
     const perTradeChecklists: { slug: string; label: string; fields: any[] }[] = [];
@@ -407,11 +409,15 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // changes is read again below only if the clock allows.
     const heldDetails = (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object') ? draft.brief.details : {};
     const toRead = checklist.filter((f: any) => f && f.required && f.key && !(String(f.key) in heldDetails));
-    const startReading = (cat: string, fields: any[]) => statedSpecs(defaultDeps(admin, 'inquiry_intake'), {
-      conversation: allText, category: cat, dedupeKey: 'intake_spec:' + (draft.id ?? email) + ':' + turns.length,
-      fields: fields.map((f: any) => ({ key: String(f.key), question: String(f.question || f.key) })),
-      deadline: clock.deadline(),
-    }).catch(() => null);
+    const startReading = async (cat: string, fields: any[]) => {
+      try {
+        return await statedSpecs(defaultDeps(admin, 'inquiry_intake'), {
+          conversation: allText, category: cat, dedupeKey: 'intake_spec:' + (draft.id ?? email) + ':' + turns.length,
+          fields: fields.map((f: any) => ({ key: String(f.key), question: String(f.question || f.key) })),
+          deadline: clock.deadline(),
+        });
+      } catch (_e) { return null; }   // an unread spec is asked, never filled
+    };
     const specRead = category && toRead.length && allText.trim() && clock.canStart() ? { category, p: startReading(category, toRead) } : null;
     const raw = await llm([{ role: 'system', content: sys }, { role: 'user', content: user_msg }], { email, customer_id: cust?.id || null }, llmFail, clock.deadline());
     clock.lap('model');
