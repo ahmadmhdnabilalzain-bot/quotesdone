@@ -1,6 +1,7 @@
 // A WHATSAPP PHONE CODE WE SEND OURSELVES (ledger 1252: "USD 0.17 per OTP is way too much"). _shared/wa_code.ts.
 import { assert, assertEquals, assertNotEquals } from 'jsr:@std/assert@1';
 import { checkOwnCode, loginTemplateSid, macInput, newCode, ownMarker, ownMessageStatus, ownSent, sendOwnWhatsAppCode, type WaCodeDeps } from './wa_code.ts';
+import { statusCallbackUrl } from './twilio_status.ts';
 import { channelOfRow, isOwnRow, nextChannel, sidOfRow } from './whatsapp_choice.ts';
 
 const SM = 'SM' + 'a'.repeat(32), HX_EN = 'HX' + '1'.repeat(32), HX_AR = 'HX' + '2'.repeat(32);
@@ -55,6 +56,10 @@ Deno.test('a clean send: the code goes by the login_code template, only its MAC 
   assert(http[0].url.endsWith('/Messages.json') && !http[0].url.includes('verify.twilio.com'));
   const form = new URLSearchParams(http[0].body);
   assertEquals([form.get('ContentSid'), form.get('To'), form.get('From')], [HX_AR, 'whatsapp:' + PHONE, 'whatsapp:+97140000000']);
+  // every Twilio send reports its status (scripts/checks/every_twilio_send_reports_its_status.test.mjs): the code message
+  // names the one URL wa_status verifies Twilio's signature against.
+  assertEquals(form.get('StatusCallback'), statusCallbackUrl());
+  assert(form.get('StatusCallback')!.endsWith('/functions/v1/wa_status'));
   const code = JSON.parse(form.get('ContentVariables')!)['1'];
   assert(/^\d{6}$/.test(code));
   const issue = rpcs.find((x) => x.fn === 'fn_phone_code_issue')!;
