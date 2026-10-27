@@ -1237,6 +1237,82 @@ const delCount = async (label, sql) => {
   return Number(rows?.[0]?.n ?? 0);
 };
 
+// ---- what each chat turn writes ----------------------------------------------------------------
+// A RUN'S CHAT TURNS (it_engineer, 27 Oct 2026). One sandbox run left 273 assistant_logs, 269 sales_decision_log,
+// 273 support_reply_readability, 97 sales_knowledge_gap and the 97 org_tasks those gaps opened after teardown said
+// clean; they were removed by hand, and the 97 tasks were work nobody confirmed. None of the four tables names a
+// customer or a run, so the scope below was missing. It is, in order of strength:
+//   - e2e_run_tag on assistant_logs, sales_decision_log and support_reply_readability: stamped at insert from the
+//     request's proven run tag (scripts/sql/a_harness_chat_turn_carries_its_run_tag_and_files_no_gap_or_task.sql,
+//     applied at merge). Used only where the column exists, so this runs before and after that apply.
+//   - assistant_logs of the run's own parties: audience 'customer:<id>' / 'supplier:<lead id>' and the account key
+//     conv_id 'a-c-<id>' / 'a-s-<lead id>' (_shared/widget_reply_effects.ts logParty, _shared/chat_history.ts accountKey).
+//   - a knowledge gap, and the task it opened, only when the run's own turns name its task (gap_task_id), the task is
+//     a knowledge_gap task created inside the run's rehearsal window, and every ask on the gap is one of the run's own
+//     turns. A gap a person also asked is never removed. Since the same SQL file, a tagged turn files no gap at all;
+//     this branch is for a turn the tag could not reach (a demo identity outside its window).
+// A counter the run bumped on a gap that already existed cannot be un-bumped from here (nothing says by how much);
+// that is stopped at the source by the same SQL file.
+export const CHAT_TURN_TABLES = ['assistant_logs', 'sales_decision_log', 'support_reply_readability'];
+/**
+ * The run's chat-turn scope as SQL only, with no read of its own, so a check can replay exactly these statements in an
+ * aborted transaction (scripts/checks/a_harness_chat_turn_files_no_gap_and_is_torn_down_by_its_tag.test.mjs).
+ * `tagged`: the CHAT_TURN_TABLES that have e2e_run_tag. `taskChildren`: [table, column] foreign keys into org_tasks.
+ */
+export function chatTurnSql(tag, tagged, taskChildren = []) {
+  const s = scopeForRun(tag);
+  const byTag = (t, a) => (tagged.has(t) ? `${a}.e2e_run_tag = ${q(tag)}` : 'false');
+  const logsOf = (a) => `(${byTag('assistant_logs', a)}
+      or ${a}.audience in (select 'customer:' || id::text from public.customers where ${s.cust})
+      or ${a}.audience in (select 'supplier:' || id::text from public.leads where ${s.lead})
+      or ${a}.conv_id in (select 'a-c-' || id::text from public.customers where ${s.cust})
+      or ${a}.conv_id in (select 'a-s-' || id::text from public.leads where ${s.lead}))`;
+  const started = `(select min(w.started_at) from public.rehearsal_window w where w.run_tag = ${q('qd_run:' + tag)})`;
+  // knowledge_gap tasks opened inside the run's window and named by the run's own turns
+  const tasks = `(select t.id from public.org_tasks t where t.action_class = 'knowledge_gap' and t.created_at >= ${started}
+      and t.id in (select a.gap_task_id from public.assistant_logs a where ${logsOf('a')} and a.gap_task_id is not null))`;
+  // a gap is the run's when its task is, it was first asked inside the window, and every ask is one of the run's turns
+  const gapIsRun = (g) => `(${g}.task_id in ${tasks} and ${g}.first_asked_at >= ${started}
+      and ${g}.asks <= (select count(*) from public.assistant_logs a where ${logsOf('a')} and a.gap_task_id = ${g}.task_id))`;
+  // the run's tasks that no person's gap holds
+  const runTasks = `(select x.id from ${tasks} x where not exists
+      (select 1 from public.sales_knowledge_gap g where g.task_id = x.id and not ${gapIsRun('g')}))`;
+  const where = { assistant_logs: logsOf('x'), sales_decision_log: byTag('sales_decision_log', 'x'), support_reply_readability: byTag('support_reply_readability', 'x') };
+  // Children before parents: the gap names its task (sales_knowledge_gap_task_id_fkey), any other child and the task's
+  // trace name the task, deleting a task writes its undo row (trg_undo_capture), and the turns that name the task go last.
+  const steps = [
+    ['sales_knowledge_gap (run)', `delete from public.sales_knowledge_gap x where ${gapIsRun('x')}`],
+    ...taskChildren.filter(([t]) => t !== 'sales_knowledge_gap').map(([t, col]) => [`${t} (fk ${col} -> org_tasks, run gap task)`,
+      `delete from public.${t} where ${col} in ${runTasks}`]),
+    ['decision_trace (run gap task)', `delete from public.decision_trace where entity_type = 'org_task' and entity_id in (select id::text from ${runTasks} r)`],
+    ['org_tasks (run gap task)', `delete from public.org_tasks where id in ${runTasks}`],
+    ['undo_log (run gap task)', `delete from public.undo_log u where u.table_name = 'org_tasks' and u.created_at >= ${started}
+       and u.row_id in (select a.gap_task_id::text from public.assistant_logs a where ${logsOf('a')} and a.gap_task_id is not null)
+       and not exists (select 1 from public.org_tasks t where t.id::text = u.row_id)`],
+    ...CHAT_TURN_TABLES.map((t) => [`${t} (run chat turns)`, `delete from public.${t} x where ${where[t]}`]),
+  ];
+  const count = `select
+      (select count(*) from public.assistant_logs x where ${where.assistant_logs})::int assistant_logs,
+      (select count(*) from public.sales_decision_log x where ${where.sales_decision_log})::int sales_decision_log,
+      (select count(*) from public.support_reply_readability x where ${where.support_reply_readability})::int support_reply_readability,
+      (select count(*) from public.sales_knowledge_gap x where ${gapIsRun('x')})::int sales_knowledge_gap,
+      (select count(*) from ${runTasks} r)::int org_tasks`;
+  return { steps, count };
+}
+async function chatTurnTagged() {
+  return new Set((await mgmtRead(REF, `select table_name t from information_schema.columns
+      where table_schema = 'public' and column_name = 'e2e_run_tag' and table_name in (${CHAT_TURN_TABLES.map(q).join(',')})`)).map((r) => r.t));
+}
+/** Rows of the run's chat turns still present, per table. Read by stage2 --verify-clean. */
+export async function chatTurnCounts(tag) {
+  const tagged = await chatTurnTagged();
+  const r = (await mgmtRead(REF, chatTurnSql(tag, tagged).count))[0];
+  return { ...r, tag_column: [...tagged].sort() };
+}
+export async function chatTurnSteps(tag) {
+  return chatTurnSql(tag, await chatTurnTagged(), await fkChildren('org_tasks')).steps;
+}
+
 /**
  * Delete everything this run created, in foreign-key order, including the storage objects and the
  * auth users. Safe to call twice.
@@ -1311,6 +1387,8 @@ export async function teardown(run) {
     // the revealed supplier, and on 21 Sep 2026 its first run stopped teardown here with 23503.
     ['reviews', `delete from public.reviews where transaction_id in ${TX} or customer_id in ${CUST} or supplier_id in ${LEAD}`],
     ['transactions', `delete from public.transactions where quote_id in ${QUO} or inquiry_id in ${INQ} or customer_id in ${CUST} or supplier_id in ${LEAD}`],
+    // The run's chat turns (chatTurnSql above): scoped through the run's customers and leads, so while they still exist.
+    ...(await chatTurnSteps(tag)),
     // notifications names all three parents (inquiry_id, lead_id, quote_id) and has no children of
     // its own, so it goes first - after the quote is deleted the quote_id clause matches nothing.
     ['notifications', `delete from public.notifications where inquiry_id in ${INQ} or lead_id in ${LEAD} or quote_id in ${QUO} or to_email like 'qd-${tag}-%@example.%'`],
@@ -1362,7 +1440,9 @@ export async function teardown(run) {
     // supplier_product.catalog_id references supplier_catalog: products first (23503 on 19 Oct 2026, S20).
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${LEAD}`],
     // sanitizeAndScan records each supplier upload in file_scan keyed by the lead id as text.
-    ['file_scan', `delete from public.file_scan where source = 'supplier_catalog_ingest' and subject in ${LEAD_T}`],
+    // Every supplier door scans under its own source ('supplier_portal.license', 'supplier_api.*', ...), not only the
+    // catalogue ingest: run 390dafcc (27 Oct) left its licence's 'supplier_portal.license' row and failed verify-clean.
+    ['file_scan', `delete from public.file_scan where source like 'supplier%' and subject in ${LEAD_T}`],
     ['supplier_catalog', `delete from public.supplier_catalog where supplier_id in ${LEAD}`],
     ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${LEAD}`],
     // EVERY OTHER TABLE THAT POINTS AT leads (12 Oct 2026, stage2 run 1c94fa6a: licence_renewal_ask, added that day,

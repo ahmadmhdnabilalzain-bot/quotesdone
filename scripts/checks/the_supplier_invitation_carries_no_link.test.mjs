@@ -54,9 +54,20 @@ test('the builders accept a body with no {{link}} and still refuse an empty one'
   assert.match(routine('fn_supplier_invite_candidates'), /'\{\{link\}\}', public\.fn_supplier_invite_link\(/);
 });
 
+// 27 Oct 2026 (it_engineer): the copy moved to variant A in its own file. The stored body is read from the LAST
+// MANIFEST file that writes invite_body (falling back to the newest copy file while it awaits its MANIFEST line), so
+// the next copy change is held to the same rule instead of silently comparing against a superseded file.
+const COPY_FILES = [FILE, 'scripts/sql/the_supplier_invitation_asks_one_question_and_makes_no_offer.sql'];
+function latestCopyFile() {
+  const writes = (f) => { try { return /update public\.app_secrets set value = \$body\$[\s\S]*?\$body\$[^;]*where key = 'invite_body'/.test(read(f)); } catch { return false; } };
+  const inManifest = manifest.filter((f) => f.endsWith('.sql') && writes(f));
+  return inManifest.length ? inManifest[inManifest.length - 1] : COPY_FILES[COPY_FILES.length - 1];
+}
+
 test('the stored invitation is the approved text: no link, no Al Furjan, no permit, the stop line last', async () => {
-  const stored = (/update public\.app_secrets set value = \$body\$([\s\S]*?)\$body\$/.exec(sql) || [])[1];
-  assert.ok(stored, 'the invite_body update is gone');
+  const copyFile = latestCopyFile();
+  const stored = (/update public\.app_secrets set value = \$body\$([\s\S]*?)\$body\$/.exec(read(copyFile)) || [])[1];
+  assert.ok(stored, `the invite_body update is gone from ${copyFile}`);
   assert.doesNotMatch(stored, /https?:\/\/|www\.|\{\{link\}\}/i);
   assert.doesNotMatch(stored, /al[\s-]*furjan|NOL-|TDRA/i);
   globalThis.Deno ??= { env: { get: () => '' } };
