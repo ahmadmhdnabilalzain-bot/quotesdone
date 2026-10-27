@@ -1,0 +1,4 @@
+Committed, not applied (marketing, 27 Oct 2026). Apply at merge, never before (apply-at-merge; the supplier campaign is paused, ledger 1312).
+Order: apply this file FIRST, then deploy send_whatsapp, wa_inbound and wa_template_setup (the new code reads wa_sender_quality_reading and calls fn_marketing_files_wa_invite_reply / fn_wa_sender_quality_record, which this file creates; the old deployed code calls nothing this file drops, since nothing called the two-argument queue). Then append the file to the END of MANIFEST.txt and delete this note in the same commit.
+Applying it changes no app_secrets value; wa_supplier_invite_golive and invite_enabled stay as the founder left them. Nothing sends until both are 'true', a lead has opted in, and the sender reads HIGH.
+Proof before apply: node --test scripts/checks/the_supplier_whatsapp_invitation_waits_for_opt_in_and_both_switches.test.mjs (7/7, rolled-back replays on ZZ DEMO leads only).

@@ -544,6 +544,16 @@ async function handleInbound(req: Request): Promise<Response> {
         return TW(200);
       }
     }
+    // ---- A SUPPLIER LEAD THAT WRITES TO US IS AN OPT-IN, AND AN INVITED ONE REACHES THE SALES ENGINEER ----
+    // (marketing, 27 Oct 2026, ruling 1184.) Meta lets a business send a template only to a person who opted in, and a
+    // person writing to us first is that opt-in: fn_marketing_files_wa_invite_reply records it for every lead on this
+    // number (supplier_whatsapp_optin), and when the lead was invited on any channel and has no company page yet it
+    // files the reply as 'invite.reply' marketing -> sales_engineer, exactly as an email reply does. It never ends the
+    // turn: the supplier still gets the normal answer. A failure is logged and the turn goes on.
+    if (!isStop(Body)) {
+      const { error: repErr } = await admin.rpc('fn_marketing_files_wa_invite_reply', { p_from: From, p_body: Body.slice(0, 4000) });
+      if (repErr) await logRun('error', { invite_reply: 0 }, 'a WhatsApp message from a possible supplier lead was not filed: ' + repErr.message + '; the turn continues.');
+    }
 
 
     // ---- THE WORDS OF EVERY CONVERSATION REPLY (rulings 1195/1196/1197, 12 Oct 2026) ----------------------------
