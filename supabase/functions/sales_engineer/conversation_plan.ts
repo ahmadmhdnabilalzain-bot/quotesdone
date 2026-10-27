@@ -119,7 +119,7 @@ export const CATALOGUE: SlotSpec[] = [
     ask: rx(String.raw`\bhandles?\b[^?]{0,30}\bor\b[^?]{0,30}\b(push|handle-?less|gola|touch|j-?pull)|\b(push[- ]to[- ]open|handle-?less)\b[^?]{0,30}\bor\b[^?]{0,30}\bhandles?\b|مقابض[^؟]{0,20}(او|ام)|(بالضغط|اللمس)[^؟]{0,20}(او|ام)[^؟]{0,20}مقابض`) },
   { id: 'system', label: 'the system or type',
     fill: rx(String.raw`\b(split|ducted|concealed|cassette|vrf|package unit|inverter|wall split|window unit|wired|wireless|knx|zigbee|wi-?fi|addressable|conventional|grid[- ](tied|connected)|off[- ]grid|batter(y|ies)|hybrid|framed|frameless|membrane|bitumen|polyurethane|cementitious|ip cameras?|poe|nvr|dvr|full (system|replacement|waterproofing)|patch|design and build|blackout|black-out|sheer|chiffon|roller|motori[sz]ed|manual|ppm|visits?|follow[- ]?up|one[- ]off|24/7|emergency|comprehensive|bmu|rope access|wall-to-wall|carpet tiles|broadloom|rugs?|double[- ]glaz\w*|thermal break|toughened|tempered|laminated)\b|سبليت|مخفي|دكت|كاسيت|انفرتر|سلكي|لاسلكي|واي فاي|عنونة|تقليدي|بطاريات|بدون اطار|باطار|ممبرين|بيتومين|عزل كامل|موضعي|بلاك ?اوت|شيفون|كهربائي|يدوي|زيارة|متابعة|مزدوج|مقسى`),
-    ask: rx(String.raw`\b(which system|what system|system type|type of system|kind of system|type of (unit|ac|panel|glass|glazing|curtain|blind|membrane|waterproofing|carpet|cleaning|treatment|contract)|which type|split or|ducted|wired or wireless|wireless or wired|addressable|grid|batter(y|ies)|framed or|frameless or|blackout|sheer|motori[sz]ed or|manual or|one visit|follow[- ]?up|contract|glazing|single or double|full (system|replacement)|local repair)\b|نظام|النظام|نوع (المكيف|التكييف|اللوحة|الزجاج|الستائر|العزل|القماش|المعالجة)|سلكي|لاسلكي|(مخفي|سبليت)[^؟]{0,15}(ام|او)|بلاك ?اوت|كهربائي[^؟]{0,15}(ام|او)|زيارة واحدة|عقد`) },
+    ask: rx(String.raw`\b(which system|what system|system type|type of system|kind of system|type of (unit|ac|panel|glass|glazing|curtain|blind|membrane|waterproofing|carpet|cleaning|treatment|contract)|which type|split or|ducted|wired or wireless|wireless or wired|addressable|grid|batter(y|ies)|framed or|frameless or|blackout|sheer|motori[sz]ed or|manual or|one visit|follow[- ]?up|contract|glazing|single or double|full (system|replacement)|local repair)\b|نظام|النظام|نوع (المكيف|التكييف|اللوحة|الزجاج|الستائر|العزل|القماش|المعالجة)|سلكي|لاسلكي|(مخفي|سبليت)[^؟]{0,15}(ام|او)|بلاك ?اوت|كهربائي[^؟]{0,15}(ام|او)|زيارة واحدة|عقد|عزل كامل|اعادة عزل|معالجة موضعية|موضعي|ترقيع|الضمان|ضمان|كفالة`) },
   { id: 'scope', label: 'what the job includes',
     fill: rx(String.raw`\b(chillers?|pumps?|fire alarm|fire fighting|lifts?|elevators?|plumbing and|electrical and|lighting|curtains|intercom|all (systems|rooms)|ceilings (too|as well)|walls and ceilings|inside only|outside only|interior|exterior|inside of|outside of|facade|cockroach\w*|bed ?bugs|ants|termites|rodents|rats|mice|sprinklers?|suppression|fm-?200|hose reels?|extinguishers?|post[- ]construction|deep clean|move[- ](in|out) clean\w*|design only|design and execution|re-?upholster\w*|new (pieces|pool|roof|kitchen)|leak\w*|blockage|blocked|low pressure|no hot water|replumb\w*|redo|lawn|plants|paving|pergola|lighting|charger|wall charger|\d+ ?kw|points|rewir\w*)\b|الجدران|الاسقف|النوافذ|من داخل|من برا|من الخارج|خارجي|داخلي|واجهة|صراصير|بق|نمل|نمل ابيض|فئران|رشاشات|اطفاء|مضخة|خراطيم|طفايات|بعد التشطيب|تفصيل|تنجيد|يسرب|تسريب|انسداد|ضعف الضغط|اغيره|تغيير|عشب|اضاءة|جلسة|برجولا|ممر|نباتات|اشجار|مكيفات|ستائر|شاحن`),
     ask: rx(String.raw`\b(scope|include|included|including|which (systems|items|parts|rooms|areas|walls)|what should be (smart|included|covered)|ceilings? (too|as well|included)|interior or exterior|inside or outside|which pest|what pest|sprinklers?|suppression|hose reels?|what kind of (clean|cleaning|work|job)|what needs doing|design only)\b|تشمل|يشمل|اي (الانظمة|الغرف|الاجزاء|الحشرات)|ما نوع الحشرات|داخلي ام خارجي|داخل ام خارج|رشاشات|اطفاء|ما المطلوب|ايش المطلوب`) },
@@ -158,6 +158,20 @@ export const CATALOGUE: SlotSpec[] = [
     ask: rx(String.raw`\bwhen (do|would|should|can|are|is|will) (you|it|the work|this)\b|\btimeline\b|\btime ?frame\b|\bhow soon\b|\bdeadline\b|\btarget (date|completion)\b|\bstart date\b|\bby when\b|\bwhen\b[^?]{0,40}\b(start|done|finished|complete|ready|installed|open|move)\b|متى|الموعد|الاطار الزمني|المدة المطلوبة|موعد`) },
 ];
 const SPEC = new Map(CATALOGUE.map((s) => [s.id, s]));
+
+// THE ARTICLE IS NOT THE WORD (run e1 of 27 Oct, roof_waterproofing_ar: "هل يوجد عزل حالي" and "عزل قديم" were placed on no
+// slot because the detectors spelled الحالي and القديم). Every detector is matched a second time with the article taken
+// off both the text and the pattern, so الحالي also reads حالي and the other way round.
+const AR_ARTICLE = /(^|[^\p{L}])(?:وال|بال|فال|كال|لل|ال)(?=\p{L}{2})/gu;
+const bareText = (n: string) => n.replace(AR_ARTICLE, '$1');
+const BARE = new Map<RegExp, RegExp>();
+const bareOf = (re: RegExp) => {
+  let b = BARE.get(re);
+  if (!b) { b = new RegExp(re.source.replace(/(^|[|(\s])(?:ال)(?=[ء-ي])/g, '$1'), re.flags); BARE.set(re, b); }
+  return b;
+};
+/** A detector on normalised text, with or without the Arabic article. */
+export const hits = (re: RegExp, n: string) => re.test(n) || bareOf(re).test(bareText(n));
 
 // ── the plan, read from the playbooks in the compiled brief ───────────────────────────────────────────────────────
 export interface PlanSlot { id: string; label: string }
@@ -259,14 +273,14 @@ export const isQuestion = (s: string) => /[?؟]["')\]”’]*\s*$/.test(s.trim()
 /** The slots a customer sentence gives a value for. */
 export function fillsOf(sentence: string): string[] {
   const n = normalise(sentence);
-  return CATALOGUE.filter((s) => s.fill.test(n)).map((s) => s.id);
+  return CATALOGUE.filter((s) => hits(s.fill, n)).map((s) => s.id);
 }
 /** The slots a QUESTION asks for: the catalogue's ask patterns or, when none matches, the plan's own label for its
  *  slots (a question sharing two content stems with "the wall width, height and depth available" asks that slot, in
  *  any word form). */
 export function targets(question: string, plan: Plan | null): string[] {
   const n = normalise(question);
-  const out = new Set(CATALOGUE.filter((s) => s.ask.test(n)).map((s) => s.id));
+  const out = new Set(CATALOGUE.filter((s) => hits(s.ask, n)).map((s) => s.id));
   // the labels place only what the catalogue cannot ("handles or push-to-open" is the handles slot, not the doors label)
   if (plan && !out.size) {
     const Q = stems(question);

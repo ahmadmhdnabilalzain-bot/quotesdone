@@ -416,3 +416,16 @@ Deno.test('a sentence saying anyone is unsure or does not know is never shown', 
   assertEquals(unaskedOf("If you're not sure, I recommend keeping the hob where it is.", h), 'it says someone does not know or is unsure');
   assertEquals(unaskedOf('أنصح بإبقاء الموقد الحالي وموقعه لتجنب تعديل التوصيلات.', h), null);
 });
+
+// The 22-scenario run on the plan, roof_waterproofing_ar: "عزل حالي" and "عزل قديم" (no article) were placed on no slot,
+// so after "مو متأكد" the existing waterproofing stayed the next must-have and the conversation stalled.
+Deno.test('a slot is read with or without the Arabic article: حالي is الحالي', () => {
+  const past: Turn[] = [u('عندي تسريب مياه من السطح إلى غرفة النوم بعد المطر.'),
+    a('كم مساحة السطح تقريباً بالمتر المربع؟ وهل يوجد عزل حالي على السطح، وما عمره التقريبي؟'),
+    u('السطح خرسانة مستوي تقريباً 150 متر مربع. فيلا في الشارقة.'),
+    a('هل يوجد على السطح عزل قديم أو طبقة بلاط فوق الخرسانة، وما عمره إن عُرف؟')];
+  const h = heldState(past, 'مو متأكد، شو تنصحني؟');
+  assert(h.plan.toConfirm.has('existing'), [...h.plan.toConfirm].join(','));
+  assertEquals(h.plan.next, 'system');
+  assertEquals(reaskOf('هل العزل الحالي قديم؟', h), 'asks the existing condition again');
+});
