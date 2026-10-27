@@ -1,0 +1,895 @@
+{
+ "via": "none",
+ "read_at": "2026-10-07T02:27:06.325Z",
+ "docs": [
+  {
+   "id": "lic_dubai_ded_old_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": "ZZ DEMO Falcon Aluminium LLC",
+    "expiry_date": "2027-01-28",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "legal_name_en": "code",
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_dubai_ded_old_scan_pdf",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_dubai_det_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": "2028-03-02",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_dubai_det_png",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_abu_dhabi_added_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": "ZZ DEMO Horizon Floor LLC",
+    "expiry_date": "2027-05-04",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "legal_name_en": "code",
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_abu_dhabi_added_jpg",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_adgm_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": "2027-07-06",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_adgm_rotated90",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_sharjah_sedd_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": "2028-09-08",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_sharjah_sedd_skewed",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_ajman_ded_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": "ZZ DEMO Sidra Lifts",
+    "expiry_date": "2027-02-10",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "legal_name_en": "code",
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_ajman_ded_lowdpi",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_rak_ded_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": "ZZ DEMO Corniche Aluminium LLC",
+    "expiry_date": "2027-04-12",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "legal_name_en": "code",
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_rak_ded_phone",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_rakez_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": "2028-06-14",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_rakez_scan_pdf",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_uaq_ded_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": "ZZ DEMO Najm Floor LLC",
+    "expiry_date": "2027-08-16",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "legal_name_en": "code",
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_uaq_ded_png",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_fujairah_ded_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": "ZZ DEMO Falcon Painting LLC",
+    "expiry_date": "2027-01-18",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "legal_name_en": "code",
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_fujairah_ded_jpg",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_jafza_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": "2028-03-20",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_jafza_rotated90",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_dmcc_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": "ZZ DEMO Horizon Lifts DMCC",
+    "expiry_date": "2027-05-22",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "legal_name_en": "code",
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_dmcc_skewed",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_dafza_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": "2027-07-24",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_dafza_lowdpi",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_dso_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": "ZZ DEMO Ghaf Plumbing FZ LLC",
+    "expiry_date": "2028-09-26",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "legal_name_en": "code",
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_dso_phone",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_ifza_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": "2027-02-01",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_ifza_scan_pdf",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_meydan_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": "ZZ DEMO Corniche Painting FZ LLC",
+    "expiry_date": "2027-04-03",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "legal_name_en": "code",
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_meydan_png",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_shams_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": "2028-06-05",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_shams_jpg",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_difc_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": "ZZ DEMO Najm Lifts Ltd",
+    "expiry_date": "2027-08-07",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "legal_name_en": "code",
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_difc_rotated90",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_dubai_det_bi_jpg",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_sharjah_sedd_bi_phone",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_abu_dhabi_added_bi_scan_pdf",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_ajman_ded_ar_png",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_fujairah_ded_ar_jpg",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_dmcc_multipage",
+   "asked": false,
+   "merged": {
+    "legal_name_en": "ZZ DEMO Saker Carpentry DMCC",
+    "expiry_date": "2029-06-14",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "legal_name_en": "code",
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_jafza_multipage",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": "2027-07-15",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_expired_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": "2025-06-30",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_expired_scan",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_mismatch_text",
+   "asked": false,
+   "merged": {
+    "legal_name_en": "ZZ DEMO Mirage Contracting LLC",
+    "expiry_date": "2027-01-18",
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {
+    "legal_name_en": "code",
+    "expiry_date": "code"
+   }
+  },
+  {
+   "id": "lic_mismatch_scan",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_blank_pdf",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_blank_photo",
+   "asked": false,
+   "merged": {
+    "legal_name_en": null,
+    "expiry_date": null,
+    "licence_no": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "activities": null,
+    "trade_name": null,
+    "legal_form": null,
+    "legal_name_ar": null
+   },
+   "source": {}
+  }
+ ]
+}

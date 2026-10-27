@@ -1,0 +1,4060 @@
+{
+ "summary": {
+  "total": 575,
+  "tested": 508,
+  "justified": 59,
+  "uncovered": 8,
+  "pct_tested_or_justified": 98.6,
+  "by_kind": {
+   "action": {
+    "total": 311,
+    "tested": 253,
+    "justified": 50,
+    "uncovered": 8
+   },
+   "duty": {
+    "total": 157,
+    "tested": 157,
+    "justified": 0,
+    "uncovered": 0
+   },
+   "notice": {
+    "total": 28,
+    "tested": 19,
+    "justified": 9,
+    "uncovered": 0
+   },
+   "route": {
+    "total": 63,
+    "tested": 63,
+    "justified": 0,
+    "uncovered": 0
+   },
+   "tab": {
+    "total": 16,
+    "tested": 16,
+    "justified": 0,
+    "uncovered": 0
+   }
+  }
+ },
+ "items": [
+  {
+   "kind": "route",
+   "id": "/api/resilience-ping",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\api\\resilience-ping\\route.ts",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/robots.txt",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\robots.txt\\route.ts",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/sitemap.xml",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\sitemap.xml\\route.ts",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/u/followup",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\u\\followup\\route.ts",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/u/unsubscribe",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\u\\unsubscribe\\route.ts",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/about",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\about\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/about",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\about\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/acceptable-use",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\acceptable-use\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/acceptable-use",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\acceptable-use\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/blog",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\blog\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/blog",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\blog\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/blog/[slug]",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\blog\\[slug]\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/blog/[slug]",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\blog\\[slug]\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/brand",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\brand\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/brand",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\brand\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/complaints",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\complaints\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/complaints",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\complaints\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/complaints/status",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\complaints\\status\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/complaints/status",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\complaints\\status\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/contact",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\contact\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/contact",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\contact\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/cookie-policy",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\cookie-policy\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/cookie-policy",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\cookie-policy\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/disclaimer",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\disclaimer\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/disclaimer",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\disclaimer\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/faq",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\faq\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/faq",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\faq\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/how-it-works",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\how-it-works\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/how-it-works",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\how-it-works\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/how-we-verify",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\how-we-verify\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/how-we-verify",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\how-we-verify\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/me",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\me\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/me",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\me\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/portal",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\portal\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/portal",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\portal\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/privacy",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\privacy\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/privacy",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\privacy\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/refund-policy",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\refund-policy\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/refund-policy",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\refund-policy\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/services",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\services\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/services",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\services\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/services/[slug]",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\services\\[slug]\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/services/[slug]",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\services\\[slug]\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/supplier",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\supplier\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/supplier",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\supplier\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/supplier-agreement",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\supplier-agreement\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/supplier-agreement",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\supplier-agreement\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/supplier-agreement/v10",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\supplier-agreement\\v10\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/supplier-agreement/v10",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\supplier-agreement\\v10\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/supplier-agreement/v11",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\supplier-agreement\\v11\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/supplier-agreement/v11",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\supplier-agreement\\v11\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/supplier-agreement/v12",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\supplier-agreement\\v12\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/supplier-agreement/v12",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\supplier-agreement\\v12\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/supplier-agreement/v13",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\supplier-agreement\\v13\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/supplier-agreement/v13",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\supplier-agreement\\v13\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/supplier-agreement/v14",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\supplier-agreement\\v14\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/supplier-agreement/v14",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\supplier-agreement\\v14\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/terms",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\terms\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/terms",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\terms\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/terms/v9",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\terms\\v9\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "route",
+   "id": "/ar/terms/v9",
+   "src": "C:\\Users\\Opera\\quotesdone\\.claude\\worktrees\\agent-adcba637ca474f695\\src\\app\\[locale]\\terms\\v9\\page.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "tab",
+   "id": "customer:home",
+   "src": "PortalShell.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "tab",
+   "id": "customer:requests",
+   "src": "PortalShell.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "tab",
+   "id": "customer:documents",
+   "src": "PortalShell.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "tab",
+   "id": "customer:orders",
+   "src": "PortalShell.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "tab",
+   "id": "customer:messages",
+   "src": "PortalShell.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "tab",
+   "id": "customer:projects",
+   "src": "PortalShell.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "tab",
+   "id": "customer:spatial",
+   "src": "PortalShell.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "tab",
+   "id": "customer:predict",
+   "src": "PortalShell.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "tab",
+   "id": "customer:profile",
+   "src": "PortalShell.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "tab",
+   "id": "customer:account",
+   "src": "PortalShell.tsx",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "tab",
+   "id": "supplier:billing",
+   "src": "src/components/portal",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "tab",
+   "id": "supplier:insights",
+   "src": "src/components/portal",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "tab",
+   "id": "supplier:profile",
+   "src": "src/components/portal",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "tab",
+   "id": "supplier:quotes",
+   "src": "src/components/portal",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "tab",
+   "id": "supplier:rfqs",
+   "src": "src/components/portal",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "tab",
+   "id": "supplier:services",
+   "src": "src/components/portal",
+   "status": "tested",
+   "scenario": "S16"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.assist",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.bank_statement",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.charge_resolve",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.complete_handoff",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.court_step",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.document",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.documents",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.duties",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.execute_refunds",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.expense_sweep",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.filing_outcome",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.grants",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.handoffs",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.health",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.ledger",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.refund_document",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.refund_documents",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.refund_request",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.revenue_document",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.revenue_documents",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "accountant.spend_report",
+   "src": "accountant",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "ai_gateway.embed",
+   "src": "ai_gateway",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "backup.prune",
+   "src": "backup",
+   "status": "justified",
+   "reason": "Writes company-wide archives to Dropbox and storage. Running it would archive or erase real rows together with the demo ones; it has no per-run scope."
+  },
+  {
+   "kind": "action",
+   "id": "cad_convert",
+   "src": "cad_convert",
+   "status": "tested",
+   "scenario": "S05"
+  },
+  {
+   "kind": "action",
+   "id": "ceo_agent.accept",
+   "src": "ceo_agent",
+   "status": "justified",
+   "reason": "Acts as the CEO or IT seat on the company's live queue and real findings, and pages the founder. The CEO's decisions on the run's own cases are tested in S11 (refund decision) and S18 (every duty)."
+  },
+  {
+   "kind": "action",
+   "id": "ceo_agent.board",
+   "src": "ceo_agent",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "ceo_agent.command",
+   "src": "ceo_agent",
+   "status": "justified",
+   "reason": "Acts as the CEO or IT seat on the company's live queue and real findings, and pages the founder. The CEO's decisions on the run's own cases are tested in S11 (refund decision) and S18 (every duty)."
+  },
+  {
+   "kind": "action",
+   "id": "ceo_agent.context",
+   "src": "ceo_agent",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "ceo_agent.decide",
+   "src": "ceo_agent",
+   "status": "justified",
+   "reason": "Acts as the CEO or IT seat on the company's live queue and real findings, and pages the founder. The CEO's decisions on the run's own cases are tested in S11 (refund decision) and S18 (every duty)."
+  },
+  {
+   "kind": "action",
+   "id": "ceo_agent.inbox",
+   "src": "ceo_agent",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "ceo_agent.judgement",
+   "src": "ceo_agent",
+   "status": "justified",
+   "reason": "Acts as the CEO or IT seat on the company's live queue and real findings, and pages the founder. The CEO's decisions on the run's own cases are tested in S11 (refund decision) and S18 (every duty)."
+  },
+  {
+   "kind": "action",
+   "id": "ceo_agent.review_refund",
+   "src": "ceo_agent",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "ceo_agent.review_requests",
+   "src": "ceo_agent",
+   "status": "uncovered"
+  },
+  {
+   "kind": "action",
+   "id": "ceo_agent.seats",
+   "src": "ceo_agent",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "ceo_agent.task",
+   "src": "ceo_agent",
+   "status": "justified",
+   "reason": "Acts as the CEO or IT seat on the company's live queue and real findings, and pages the founder. The CEO's decisions on the run's own cases are tested in S11 (refund decision) and S18 (every duty)."
+  },
+  {
+   "kind": "action",
+   "id": "claim_lookup",
+   "src": "claim_lookup",
+   "status": "tested",
+   "scenario": "S14"
+  },
+  {
+   "kind": "action",
+   "id": "complaint_status",
+   "src": "complaint_status",
+   "status": "tested",
+   "scenario": "S14"
+  },
+  {
+   "kind": "action",
+   "id": "compliance_archive.ping",
+   "src": "compliance_archive",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "compliance_archive.register",
+   "src": "compliance_archive",
+   "status": "tested",
+   "scenario": "S22"
+  },
+  {
+   "kind": "action",
+   "id": "compliance_archive.sign",
+   "src": "compliance_archive",
+   "status": "tested",
+   "scenario": "S22"
+  },
+  {
+   "kind": "action",
+   "id": "contact_submit",
+   "src": "contact_submit",
+   "status": "tested",
+   "scenario": "S14"
+  },
+  {
+   "kind": "action",
+   "id": "conversation_archive.resend_backfill",
+   "src": "conversation_archive",
+   "status": "justified",
+   "reason": "Writes company-wide archives to Dropbox and storage. Running it would archive or erase real rows together with the demo ones; it has no per-run scope."
+  },
+  {
+   "kind": "action",
+   "id": "conversation_archive.sandbox",
+   "src": "conversation_archive",
+   "status": "justified",
+   "reason": "Writes company-wide archives to Dropbox and storage. Running it would archive or erase real rows together with the demo ones; it has no per-run scope."
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.accept_terms",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S22"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.activity",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.add_missing_specs",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.analyze_boq",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S05"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.analyze_document",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S05"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.analyze_drawing",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S05"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.brief_pdf",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S05"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.cad_read_status",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S05"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.cancel_inquiry",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.compare_csv",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S09"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.compare_pdf",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S09"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.complete_inquiry",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.concierge",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S09"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.create_inquiry",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.discover",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S09"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.edit_inquiry",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.me",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.missing_specs",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.my_inquiries",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.preferences",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.quote_pdf",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S09"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.rate_supplier",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S14"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.repeat_inquiry",
+   "src": "customer_api",
+   "status": "uncovered"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.request_refund",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.reveal",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S10"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.rfq_note",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S09"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.save_preferences",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.set_locale",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.spec_offer_reply",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S09"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.supplier_history",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S09"
+  },
+  {
+   "kind": "action",
+   "id": "customer_api.trades",
+   "src": "customer_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "customer_documents.ask",
+   "src": "customer_documents",
+   "status": "tested",
+   "scenario": "S10"
+  },
+  {
+   "kind": "action",
+   "id": "customer_documents.documents",
+   "src": "customer_documents",
+   "status": "tested",
+   "scenario": "S10"
+  },
+  {
+   "kind": "action",
+   "id": "customer_documents.download",
+   "src": "customer_documents",
+   "status": "tested",
+   "scenario": "S10"
+  },
+  {
+   "kind": "action",
+   "id": "customer_documents.get",
+   "src": "customer_documents",
+   "status": "tested",
+   "scenario": "S10"
+  },
+  {
+   "kind": "action",
+   "id": "customer_documents.list",
+   "src": "customer_documents",
+   "status": "tested",
+   "scenario": "S10"
+  },
+  {
+   "kind": "action",
+   "id": "customer_documents.my_documents",
+   "src": "customer_documents",
+   "status": "tested",
+   "scenario": "S10"
+  },
+  {
+   "kind": "action",
+   "id": "customer_documents.search",
+   "src": "customer_documents",
+   "status": "tested",
+   "scenario": "S10"
+  },
+  {
+   "kind": "action",
+   "id": "customer_documents.vault",
+   "src": "customer_documents",
+   "status": "tested",
+   "scenario": "S10"
+  },
+  {
+   "kind": "action",
+   "id": "customer_followup",
+   "src": "customer_followup",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "action",
+   "id": "customer_intelligence.forecast",
+   "src": "customer_intelligence",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "customer_intelligence.savings",
+   "src": "customer_intelligence",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "customer_intelligence.supplier_performance",
+   "src": "customer_intelligence",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "customer_intelligence.supplier_relationship",
+   "src": "customer_intelligence",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "customer_portal.decision_support",
+   "src": "customer_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "customer_portal.overview",
+   "src": "customer_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "customer_portal.save_layout",
+   "src": "customer_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "doc_extract",
+   "src": "doc_extract",
+   "status": "tested",
+   "scenario": "S02"
+  },
+  {
+   "kind": "action",
+   "id": "drawing_boq",
+   "src": "drawing_boq",
+   "status": "tested",
+   "scenario": "S05"
+  },
+  {
+   "kind": "action",
+   "id": "drawing_redact",
+   "src": "drawing_redact",
+   "status": "tested",
+   "scenario": "S05"
+  },
+  {
+   "kind": "action",
+   "id": "dropbox_backup.health",
+   "src": "dropbox_backup",
+   "status": "justified",
+   "reason": "Writes company-wide archives to Dropbox and storage. Running it would archive or erase real rows together with the demo ones; it has no per-run scope."
+  },
+  {
+   "kind": "action",
+   "id": "dropbox_backup.pdpl_erase",
+   "src": "dropbox_backup",
+   "status": "justified",
+   "reason": "Writes company-wide archives to Dropbox and storage. Running it would archive or erase real rows together with the demo ones; it has no per-run scope."
+  },
+  {
+   "kind": "action",
+   "id": "dropbox_backup.prune",
+   "src": "dropbox_backup",
+   "status": "justified",
+   "reason": "Writes company-wide archives to Dropbox and storage. Running it would archive or erase real rows together with the demo ones; it has no per-run scope."
+  },
+  {
+   "kind": "action",
+   "id": "dropbox_backup.sandbox",
+   "src": "dropbox_backup",
+   "status": "tested",
+   "scenario": "S23"
+  },
+  {
+   "kind": "action",
+   "id": "dropbox_backup.sandbox_cleanup",
+   "src": "dropbox_backup",
+   "status": "tested",
+   "scenario": "S23"
+  },
+  {
+   "kind": "action",
+   "id": "dropbox_backup.sandbox_verify",
+   "src": "dropbox_backup",
+   "status": "tested",
+   "scenario": "S23"
+  },
+  {
+   "kind": "action",
+   "id": "dropbox_backup.selftest_large",
+   "src": "dropbox_backup",
+   "status": "justified",
+   "reason": "Writes company-wide archives to Dropbox and storage. Running it would archive or erase real rows together with the demo ones; it has no per-run scope."
+  },
+  {
+   "kind": "action",
+   "id": "email_cron",
+   "src": "email_cron",
+   "status": "justified",
+   "reason": "Sends the live supplier campaign to the real leads pool."
+  },
+  {
+   "kind": "action",
+   "id": "email_triage",
+   "src": "email_triage",
+   "status": "justified",
+   "reason": "Triages the real company mailbox (the founder and support inboxes). Demo email enters through the Svix-signed resend_inbound path in S19."
+  },
+  {
+   "kind": "action",
+   "id": "embed_ml.gte",
+   "src": "embed_ml",
+   "status": "justified",
+   "reason": "The batch embedder over every pending row in the company (cases, knowledge). The run reaches embeddings through embed_ml.query in S20; a tick would embed real rows too."
+  },
+  {
+   "kind": "action",
+   "id": "embed_ml.query",
+   "src": "embed_ml",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "embed_ml.tick",
+   "src": "embed_ml",
+   "status": "justified",
+   "reason": "The batch embedder over every pending row in the company (cases, knowledge). The run reaches embeddings through embed_ml.query in S20; a tick would embed real rows too."
+  },
+  {
+   "kind": "action",
+   "id": "extract_text",
+   "src": "extract_text",
+   "status": "tested",
+   "scenario": "S05"
+  },
+  {
+   "kind": "action",
+   "id": "inbound_email",
+   "src": "inbound_email",
+   "status": "tested",
+   "scenario": "S19"
+  },
+  {
+   "kind": "action",
+   "id": "inquiry_intake",
+   "src": "inquiry_intake",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "it_engineer.assist",
+   "src": "it_engineer",
+   "status": "justified",
+   "reason": "Acts as the CEO or IT seat on the company's live queue and real findings, and pages the founder. The CEO's decisions on the run's own cases are tested in S11 (refund decision) and S18 (every duty)."
+  },
+  {
+   "kind": "action",
+   "id": "it_engineer.authority",
+   "src": "it_engineer",
+   "status": "justified",
+   "reason": "Acts as the CEO or IT seat on the company's live queue and real findings, and pages the founder. The CEO's decisions on the run's own cases are tested in S11 (refund decision) and S18 (every duty)."
+  },
+  {
+   "kind": "action",
+   "id": "it_engineer.health",
+   "src": "it_engineer",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "it_engineer.inbox_placement",
+   "src": "it_engineer",
+   "status": "justified",
+   "reason": "Acts as the CEO or IT seat on the company's live queue and real findings, and pages the founder. The CEO's decisions on the run's own cases are tested in S11 (refund decision) and S18 (every duty)."
+  },
+  {
+   "kind": "action",
+   "id": "it_engineer.incident_pdf",
+   "src": "it_engineer",
+   "status": "justified",
+   "reason": "Acts as the CEO or IT seat on the company's live queue and real findings, and pages the founder. The CEO's decisions on the run's own cases are tested in S11 (refund decision) and S18 (every duty)."
+  },
+  {
+   "kind": "action",
+   "id": "it_engineer.status",
+   "src": "it_engineer",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "it_engineer.triage",
+   "src": "it_engineer",
+   "status": "justified",
+   "reason": "Acts as the CEO or IT seat on the company's live queue and real findings, and pages the founder. The CEO's decisions on the run's own cases are tested in S11 (refund decision) and S18 (every duty)."
+  },
+  {
+   "kind": "action",
+   "id": "kyc.accept_terms",
+   "src": "kyc",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "kyc.phone_failover",
+   "src": "kyc",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "kyc.save_customer",
+   "src": "kyc",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "kyc.send_email",
+   "src": "kyc",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "kyc.send_sms",
+   "src": "kyc",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "kyc.state",
+   "src": "kyc",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "kyc.verify_email",
+   "src": "kyc",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "kyc.verify_sms",
+   "src": "kyc",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "kyc.whatsapp_choose",
+   "src": "kyc",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "kyc.whatsapp_later",
+   "src": "kyc",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "kyc.whatsapp_send_code",
+   "src": "kyc",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "kyc.whatsapp_verify",
+   "src": "kyc",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "license_extract",
+   "src": "license_extract",
+   "status": "tested",
+   "scenario": "S02"
+  },
+  {
+   "kind": "action",
+   "id": "login_otp.failover",
+   "src": "login_otp",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "login_otp.send",
+   "src": "login_otp",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "login_otp.verify",
+   "src": "login_otp",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "marketing.assist",
+   "src": "marketing",
+   "status": "tested",
+   "scenario": "S17"
+  },
+  {
+   "kind": "action",
+   "id": "marketing.duties",
+   "src": "marketing",
+   "status": "tested",
+   "scenario": "S17"
+  },
+  {
+   "kind": "action",
+   "id": "marketing.health",
+   "src": "marketing",
+   "status": "tested",
+   "scenario": "S17"
+  },
+  {
+   "kind": "action",
+   "id": "marketing.lead_sourcing",
+   "src": "marketing",
+   "status": "tested",
+   "scenario": "S17"
+  },
+  {
+   "kind": "action",
+   "id": "marketing.status",
+   "src": "marketing",
+   "status": "tested",
+   "scenario": "S17"
+  },
+  {
+   "kind": "action",
+   "id": "marketing_channels.access_check",
+   "src": "marketing_channels",
+   "status": "justified",
+   "reason": "Connects or reads a real Meta/Google account. The founder forbids posting to Meta; S17 renders the social plan to the Desktop folder instead."
+  },
+  {
+   "kind": "action",
+   "id": "marketing_channels.calendar_send",
+   "src": "marketing_channels",
+   "status": "justified",
+   "reason": "Connects or reads a real Meta/Google account. The founder forbids posting to Meta; S17 renders the social plan to the Desktop folder instead."
+  },
+  {
+   "kind": "action",
+   "id": "marketing_channels.cancel",
+   "src": "marketing_channels",
+   "status": "justified",
+   "reason": "Connects or reads a real Meta/Google account. The founder forbids posting to Meta; S17 renders the social plan to the Desktop folder instead."
+  },
+  {
+   "kind": "action",
+   "id": "marketing_channels.channel_results",
+   "src": "marketing_channels",
+   "status": "justified",
+   "reason": "Connects or reads a real Meta/Google account. The founder forbids posting to Meta; S17 renders the social plan to the Desktop folder instead."
+  },
+  {
+   "kind": "action",
+   "id": "marketing_channels.ingest",
+   "src": "marketing_channels",
+   "status": "justified",
+   "reason": "Connects or reads a real Meta/Google account. The founder forbids posting to Meta; S17 renders the social plan to the Desktop folder instead."
+  },
+  {
+   "kind": "action",
+   "id": "marketing_channels.integration_watch",
+   "src": "marketing_channels",
+   "status": "justified",
+   "reason": "Connects or reads a real Meta/Google account. The founder forbids posting to Meta; S17 renders the social plan to the Desktop folder instead."
+  },
+  {
+   "kind": "action",
+   "id": "marketing_channels.publish_due",
+   "src": "marketing_channels",
+   "status": "justified",
+   "reason": "Connects or reads a real Meta/Google account. The founder forbids posting to Meta; S17 renders the social plan to the Desktop folder instead."
+  },
+  {
+   "kind": "action",
+   "id": "marketing_channels.pull_ad_spend",
+   "src": "marketing_channels",
+   "status": "justified",
+   "reason": "Connects or reads a real Meta/Google account. The founder forbids posting to Meta; S17 renders the social plan to the Desktop folder instead."
+  },
+  {
+   "kind": "action",
+   "id": "marketing_channels.pull_insights",
+   "src": "marketing_channels",
+   "status": "justified",
+   "reason": "Connects or reads a real Meta/Google account. The founder forbids posting to Meta; S17 renders the social plan to the Desktop folder instead."
+  },
+  {
+   "kind": "action",
+   "id": "marketing_channels.requeue",
+   "src": "marketing_channels",
+   "status": "justified",
+   "reason": "Connects or reads a real Meta/Google account. The founder forbids posting to Meta; S17 renders the social plan to the Desktop folder instead."
+  },
+  {
+   "kind": "action",
+   "id": "marketing_channels.reschedule",
+   "src": "marketing_channels",
+   "status": "justified",
+   "reason": "Connects or reads a real Meta/Google account. The founder forbids posting to Meta; S17 renders the social plan to the Desktop folder instead."
+  },
+  {
+   "kind": "action",
+   "id": "marketing_outreach.ingest_prospects",
+   "src": "marketing_outreach",
+   "status": "tested",
+   "scenario": "S17"
+  },
+  {
+   "kind": "action",
+   "id": "marketing_social_connect",
+   "src": "marketing_social_connect",
+   "status": "justified",
+   "reason": "Connects or reads a real Meta/Google account. The founder forbids posting to Meta; S17 renders the social plan to the Desktop folder instead."
+  },
+  {
+   "kind": "action",
+   "id": "marketing_social_inbox.reasoned_handoff",
+   "src": "marketing_social_inbox",
+   "status": "justified",
+   "reason": "Connects or reads a real Meta/Google account. The founder forbids posting to Meta; S17 renders the social plan to the Desktop folder instead."
+  },
+  {
+   "kind": "action",
+   "id": "marketing_social_inbox.reasoned_reply",
+   "src": "marketing_social_inbox",
+   "status": "justified",
+   "reason": "Connects or reads a real Meta/Google account. The founder forbids posting to Meta; S17 renders the social plan to the Desktop folder instead."
+  },
+  {
+   "kind": "action",
+   "id": "messages_api.channel_thread",
+   "src": "messages_api",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "messages_api.clarify_answer",
+   "src": "messages_api",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "messages_api.clarify_ask",
+   "src": "messages_api",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "messages_api.clarify_list",
+   "src": "messages_api",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "messages_api.mailbox",
+   "src": "messages_api",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "messages_api.request_chat",
+   "src": "messages_api",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "messages_api.send",
+   "src": "messages_api",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "messages_api.thread",
+   "src": "messages_api",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "messages_api.threads",
+   "src": "messages_api",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "mobile_otp.diag",
+   "src": "mobile_otp",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "mobile_otp.send",
+   "src": "mobile_otp",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "mobile_otp.status",
+   "src": "mobile_otp",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "mobile_otp.verify",
+   "src": "mobile_otp",
+   "status": "tested",
+   "scenario": "S03"
+  },
+  {
+   "kind": "action",
+   "id": "oauth_connect",
+   "src": "oauth_connect",
+   "status": "justified",
+   "reason": "Connects or reads a real Meta/Google account. The founder forbids posting to Meta; S17 renders the social plan to the Desktop folder instead."
+  },
+  {
+   "kind": "action",
+   "id": "pdf_native",
+   "src": "pdf_native",
+   "status": "tested",
+   "scenario": "S05"
+  },
+  {
+   "kind": "action",
+   "id": "procurement_api.orders",
+   "src": "procurement_api",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "project_api.create",
+   "src": "project_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "project_api.dashboard",
+   "src": "project_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "project_api.detail",
+   "src": "project_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "project_api.link",
+   "src": "project_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "project_api.list",
+   "src": "project_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "project_api.unlink",
+   "src": "project_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "project_api.update",
+   "src": "project_api",
+   "status": "tested",
+   "scenario": "S04"
+  },
+  {
+   "kind": "action",
+   "id": "public_site.counters",
+   "src": "public_site",
+   "status": "tested",
+   "scenario": "S14"
+  },
+  {
+   "kind": "action",
+   "id": "public_site.guarantee_terms",
+   "src": "public_site",
+   "status": "tested",
+   "scenario": "S14"
+  },
+  {
+   "kind": "action",
+   "id": "public_site.price_guidance",
+   "src": "public_site",
+   "status": "tested",
+   "scenario": "S14"
+  },
+  {
+   "kind": "action",
+   "id": "public_site.route_brief",
+   "src": "public_site",
+   "status": "tested",
+   "scenario": "S14"
+  },
+  {
+   "kind": "action",
+   "id": "public_site.trade_needs",
+   "src": "public_site",
+   "status": "tested",
+   "scenario": "S14"
+  },
+  {
+   "kind": "action",
+   "id": "public_site.worked_case",
+   "src": "public_site",
+   "status": "tested",
+   "scenario": "S14"
+  },
+  {
+   "kind": "action",
+   "id": "quote_compare",
+   "src": "quote_compare",
+   "status": "tested",
+   "scenario": "S09"
+  },
+  {
+   "kind": "action",
+   "id": "quote_extract",
+   "src": "quote_extract",
+   "status": "tested",
+   "scenario": "S07"
+  },
+  {
+   "kind": "action",
+   "id": "refunds_api.list_pending",
+   "src": "refunds_api",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "refunds_api.list_recent",
+   "src": "refunds_api",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "refunds_api.resolve",
+   "src": "refunds_api",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "refund_flow.list",
+   "src": "refund_flow",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "refund_flow.notify",
+   "src": "refund_flow",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "refund_flow.state",
+   "src": "refund_flow",
+   "status": "tested",
+   "scenario": "S11"
+  },
+  {
+   "kind": "action",
+   "id": "resend_inbound",
+   "src": "resend_inbound",
+   "status": "tested",
+   "scenario": "S19"
+  },
+  {
+   "kind": "action",
+   "id": "resend_webhook",
+   "src": "resend_webhook",
+   "status": "tested",
+   "scenario": "S19"
+  },
+  {
+   "kind": "action",
+   "id": "resilience_ping.raise",
+   "src": "resilience_ping",
+   "status": "justified",
+   "reason": "The scheduler endpoint drains the REAL outbox (send_outbox) on every call. Each routine it ticks is tested one by one in S18 instead."
+  },
+  {
+   "kind": "action",
+   "id": "reveal_invoice",
+   "src": "reveal_invoice",
+   "status": "tested",
+   "scenario": "S10"
+  },
+  {
+   "kind": "action",
+   "id": "rfq_flag",
+   "src": "rfq_flag",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "role_guard",
+   "src": "role_guard",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.ask_accountant",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.assist",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.assist_history",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.capability",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.close_no_reply",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.complete_handoff",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.conversations",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.grants",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.handoffs",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.health",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.match",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.obligations",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.remind",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.report",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.sectors",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.spec_offer_sweep",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.support_rating",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sales_engineer.support_rating_due",
+   "src": "sales_engineer",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "action",
+   "id": "sanctions_screen",
+   "src": "sanctions_screen",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "send_outbox",
+   "src": "send_outbox",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "action",
+   "id": "send_sms",
+   "src": "send_sms",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "action",
+   "id": "send_whatsapp.cancel",
+   "src": "send_whatsapp",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "action",
+   "id": "send_whatsapp.hold",
+   "src": "send_whatsapp",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "action",
+   "id": "site_assistant.history",
+   "src": "site_assistant",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "site_error_ingest",
+   "src": "site_error_ingest",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "sms_inbound",
+   "src": "sms_inbound",
+   "status": "tested",
+   "scenario": "S19"
+  },
+  {
+   "kind": "action",
+   "id": "stripe_checkout.element_init",
+   "src": "stripe_checkout",
+   "status": "tested",
+   "scenario": "S10"
+  },
+  {
+   "kind": "action",
+   "id": "stripe_checkout.element_pay",
+   "src": "stripe_checkout",
+   "status": "tested",
+   "scenario": "S10"
+  },
+  {
+   "kind": "action",
+   "id": "stripe_checkout.element_quote",
+   "src": "stripe_checkout",
+   "status": "tested",
+   "scenario": "S10"
+  },
+  {
+   "kind": "action",
+   "id": "stripe_checkout.element_settle",
+   "src": "stripe_checkout",
+   "status": "tested",
+   "scenario": "S10"
+  },
+  {
+   "kind": "action",
+   "id": "stripe_confirm",
+   "src": "stripe_confirm",
+   "status": "tested",
+   "scenario": "S10"
+  },
+  {
+   "kind": "action",
+   "id": "stripe_setup",
+   "src": "stripe_setup",
+   "status": "justified",
+   "reason": "Creates Stripe Connect / registration-payment objects. The code holds no demo-to-test-key switch for these (stripeKeyNames is used only by stripe_checkout), so a call would act on the LIVE company Stripe account."
+  },
+  {
+   "kind": "action",
+   "id": "stripe_setup_page",
+   "src": "stripe_setup_page",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "stripe_webhook.other_invoice",
+   "src": "stripe_webhook",
+   "status": "tested",
+   "scenario": "S10"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_ack",
+   "src": "supplier_ack",
+   "status": "tested",
+   "scenario": "S12"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.accept_terms",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S01"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.ack_contact",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S12"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.capability_confirm",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S01"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.capability_state",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S01"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.claim",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S01"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.create_company",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S01"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.dispute_charge",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S12"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.docs_reread",
+   "src": "supplier_api",
+   "status": "uncovered"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.extract_quote",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S07"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.inbox",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S07"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.inquiry_pdf",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S07"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.me",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S01"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.pay_registration",
+   "src": "supplier_api",
+   "status": "justified",
+   "reason": "Charges a supplier registration fee. Suppliers register free under the current offer, so a demo run does not take this payment path."
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.process_docs",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S02"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.projects",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S07"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.quote_pdf",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S07"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.receipt_pdf",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S12"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.receipts",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S12"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.save_profile",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S01"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.save_settings",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S01"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.search",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S07"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.services_resolve",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S01"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.services_rewrite",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S01"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.services_save_rewrite",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S01"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.services_state",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S01"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.set_availability",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S01"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.settings",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S01"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.spec_approve",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S07"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.spec_arabic_finish",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S07"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.spec_fill",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S07"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.spec_hold",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S07"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.submit_quote",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S07"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.support_rating",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S14"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.support_rating_due",
+   "src": "supplier_api",
+   "status": "tested",
+   "scenario": "S14"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.template_delete",
+   "src": "supplier_api",
+   "status": "uncovered"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.template_list",
+   "src": "supplier_api",
+   "status": "uncovered"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.template_save",
+   "src": "supplier_api",
+   "status": "uncovered"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.transcribe_service_note",
+   "src": "supplier_api",
+   "status": "justified",
+   "reason": "Places a real phone call or needs recorded audio from one."
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.upload_url",
+   "src": "supplier_api",
+   "status": "uncovered"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_api.withdraw_quote",
+   "src": "supplier_api",
+   "status": "uncovered"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_catalog_ingest",
+   "src": "supplier_catalog_ingest",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_onboard",
+   "src": "supplier_onboard",
+   "status": "tested",
+   "scenario": "S20"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_pay.list",
+   "src": "supplier_pay",
+   "status": "justified",
+   "reason": "Creates Stripe Connect / registration-payment objects. The code holds no demo-to-test-key switch for these (stripeKeyNames is used only by stripe_checkout), so a call would act on the LIVE company Stripe account."
+  },
+  {
+   "kind": "action",
+   "id": "supplier_pay.registration",
+   "src": "supplier_pay",
+   "status": "justified",
+   "reason": "Creates Stripe Connect / registration-payment objects. The code holds no demo-to-test-key switch for these (stripeKeyNames is used only by stripe_checkout), so a call would act on the LIVE company Stripe account."
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.advisor",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.certifications",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.dashboard",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.document_impact",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.documents",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.eligibility",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.insights",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.insights_summary",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.knowledge_graph",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.market",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.notifications",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.opportunities",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.overview",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.product_match",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.products",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.quote_recommend",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.remove_document",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.save_documents",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.scorecard",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.set_expiry",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.supporting_document_delete",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.supporting_document_save",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.supporting_document_url",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.supporting_documents",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.tier",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.twin",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "supplier_portal.workspaces",
+   "src": "supplier_portal",
+   "status": "tested",
+   "scenario": "S13"
+  },
+  {
+   "kind": "action",
+   "id": "transcribe",
+   "src": "transcribe",
+   "status": "justified",
+   "reason": "Places a real phone call or needs recorded audio from one."
+  },
+  {
+   "kind": "action",
+   "id": "unsubscribe",
+   "src": "unsubscribe",
+   "status": "tested",
+   "scenario": "S14"
+  },
+  {
+   "kind": "action",
+   "id": "voice_otp",
+   "src": "voice_otp",
+   "status": "justified",
+   "reason": "Places a real phone call or needs recorded audio from one."
+  },
+  {
+   "kind": "action",
+   "id": "voice_otp_capture",
+   "src": "voice_otp_capture",
+   "status": "justified",
+   "reason": "Places a real phone call or needs recorded audio from one."
+  },
+  {
+   "kind": "action",
+   "id": "wa_inbound",
+   "src": "wa_inbound",
+   "status": "tested",
+   "scenario": "S19"
+  },
+  {
+   "kind": "action",
+   "id": "wa_status",
+   "src": "wa_status",
+   "status": "tested",
+   "scenario": "S19"
+  },
+  {
+   "kind": "action",
+   "id": "wa_templates_watch",
+   "src": "wa_templates_watch",
+   "status": "justified",
+   "reason": "Registers or polls message templates on the real Meta WhatsApp Business account. A demo run may not create, delete or re-submit company templates. Every message the run causes is rendered from those templates and asserted in S15."
+  },
+  {
+   "kind": "action",
+   "id": "wa_template_setup.create",
+   "src": "wa_template_setup",
+   "status": "justified",
+   "reason": "Registers or polls message templates on the real Meta WhatsApp Business account. A demo run may not create, delete or re-submit company templates. Every message the run causes is rendered from those templates and asserted in S15."
+  },
+  {
+   "kind": "action",
+   "id": "wa_template_setup.delete",
+   "src": "wa_template_setup",
+   "status": "justified",
+   "reason": "Registers or polls message templates on the real Meta WhatsApp Business account. A demo run may not create, delete or re-submit company templates. Every message the run causes is rendered from those templates and asserted in S15."
+  },
+  {
+   "kind": "action",
+   "id": "wa_template_setup.msg_check",
+   "src": "wa_template_setup",
+   "status": "justified",
+   "reason": "Registers or polls message templates on the real Meta WhatsApp Business account. A demo run may not create, delete or re-submit company templates. Every message the run causes is rendered from those templates and asserted in S15."
+  },
+  {
+   "kind": "action",
+   "id": "wa_template_setup.status",
+   "src": "wa_template_setup",
+   "status": "justified",
+   "reason": "Registers or polls message templates on the real Meta WhatsApp Business account. A demo run may not create, delete or re-submit company templates. Every message the run causes is rendered from those templates and asserted in S15."
+  },
+  {
+   "kind": "notice",
+   "id": "accountant_spend_report",
+   "src": "notifications",
+   "status": "justified",
+   "reason": "Goes to the founder or a seat, not to a customer or supplier; a demo run must never page the founder (rehearsal window)."
+  },
+  {
+   "kind": "notice",
+   "id": "accountant_weekly_report",
+   "src": "notifications",
+   "status": "justified",
+   "reason": "Goes to the founder or a seat, not to a customer or supplier; a demo run must never page the founder (rehearsal window)."
+  },
+  {
+   "kind": "notice",
+   "id": "board_report",
+   "src": "notifications",
+   "status": "justified",
+   "reason": "Goes to the founder or a seat, not to a customer or supplier; a demo run must never page the founder (rehearsal window)."
+  },
+  {
+   "kind": "notice",
+   "id": "clarification_requested",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "notice",
+   "id": "contact_message",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S14"
+  },
+  {
+   "kind": "notice",
+   "id": "delivery_feedback_canary",
+   "src": "notifications",
+   "status": "justified",
+   "reason": "Goes to the founder or a seat, not to a customer or supplier; a demo run must never page the founder (rehearsal window)."
+  },
+  {
+   "kind": "notice",
+   "id": "duty_activation_first_request",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "notice",
+   "id": "founder_alert",
+   "src": "notifications",
+   "status": "justified",
+   "reason": "Goes to the founder or a seat, not to a customer or supplier; a demo run must never page the founder (rehearsal window)."
+  },
+  {
+   "kind": "notice",
+   "id": "founder_brief",
+   "src": "notifications",
+   "status": "justified",
+   "reason": "Goes to the founder or a seat, not to a customer or supplier; a demo run must never page the founder (rehearsal window)."
+  },
+  {
+   "kind": "notice",
+   "id": "inbound_reply",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "notice",
+   "id": "invoice_ready",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "notice",
+   "id": "it_engineer_handover",
+   "src": "notifications",
+   "status": "justified",
+   "reason": "Goes to the founder or a seat, not to a customer or supplier; a demo run must never page the founder (rehearsal window)."
+  },
+  {
+   "kind": "notice",
+   "id": "marketing_article_approval",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S17"
+  },
+  {
+   "kind": "notice",
+   "id": "marketing_calendar",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S17"
+  },
+  {
+   "kind": "notice",
+   "id": "marketing_calendar_reply",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S17"
+  },
+  {
+   "kind": "notice",
+   "id": "new_inquiry",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S06"
+  },
+  {
+   "kind": "notice",
+   "id": "new_message",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "notice",
+   "id": "new_quote",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "notice",
+   "id": "quote_accepted",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "notice",
+   "id": "quote_coaching",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "notice",
+   "id": "registration_received",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "notice",
+   "id": "reveal_receipt",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "notice",
+   "id": "rfq_addendum",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "notice",
+   "id": "spec_offer_offer",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "notice",
+   "id": "supplier_campaign_daily_list",
+   "src": "notifications",
+   "status": "justified",
+   "reason": "Supplier campaign to the real leads pool; the composer is covered by the_supplier_campaign_honours_unsubscribe and S14 asserts the unsubscribe effect."
+  },
+  {
+   "kind": "notice",
+   "id": "supplier_invite_seed",
+   "src": "notifications",
+   "status": "justified",
+   "reason": "Supplier campaign to the real leads pool; the composer is covered by the_supplier_campaign_honours_unsubscribe and S14 asserts the unsubscribe effect."
+  },
+  {
+   "kind": "notice",
+   "id": "supplier_registered",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S15"
+  },
+  {
+   "kind": "notice",
+   "id": "support_reply",
+   "src": "notifications",
+   "status": "tested",
+   "scenario": "S14"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.ad_spend_reconcile",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.budget_variance",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.cash_forecast_weekly",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.cash_truth",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.charge_recovery",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.close_by_day_five",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.finance_week",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.founder_close_pack",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.fraud_watch",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.receipt_bank_match",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.receipt_intake",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.refund_correctness",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.reveal_invoice_filing",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.risk_screen",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.runway_report",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.sanctions_rescreen",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.self_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.stripe_email_setting",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.stripe_reconcile",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.ubo_rescreen",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.ubo_watch",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.vat_threshold",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "accountant.year_end",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.company_stage",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.constraint_lever",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.daily_run",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.directive",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.directive_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.experiment_month",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.experiment_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.forecast_counter_action",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.improvement",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.improvement_burn_down",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.improvement_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.launch_readiness",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.management_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.marketing_plan",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.month_close",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.month_plan",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.pricing_evidence",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.pricing_monitor",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.queue_work",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.refund_decision_metric",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.register_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.report_answer",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.seat_audit",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.self_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.strategy_memo",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.supplier_target",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.target_forecast",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "ceo.target_verdict",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "customer_support.case_idle_close",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "customer_support.case_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "customer_support.decision_objection_escalate",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "customer_support.monthly_self_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "customer_support.root_cause_loop",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "customer_support.self_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.advisory_triage",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.backup_objectives",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.capacity_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.code_health",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.cost_watch",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.credential_rotation_age",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.data_quality",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.dr_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.duty_pause_expiry",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.finding_chase",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.game_day",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.knowledge_exam",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.knowledge_pass_rate",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.knowledge_recall",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.knowledge_refresh",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.latency_closure",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.latency_slo",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.load_test",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.model_spend",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.model_spend_closure",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.perimeter_freshness",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.postmortem",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.self_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "it_engineer.uptime_slo",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "marketing.article_release",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "marketing.competitor_refresh",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "marketing.competitor_scan",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "marketing.gap_recruitment_plans",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "marketing.geo_check",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "marketing.launch_plan",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "marketing.month_plan",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "marketing.recruitment_funnel",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "marketing.reputation",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "marketing.self_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.activation",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.comparison_kpi",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.comparison_report",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.concierge",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.disputes",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.followup",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.framework_proposal",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.knowledge_gap_sweep",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.licence_expiry_watch",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.negotiation_round",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.onboarding_conversion",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.quote_quality_hold",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.self_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.stalled_inquiry_rescue",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.supplier_availability",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.supplier_onboarding",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.supplier_performance",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.supplier_scorecard",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.supply_gap",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.supply_gap_recruitment",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.weekly_quality_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.win_loss_review",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "sales_engineer.winback",
+   "src": "seat_duty",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_accountant_openrouter_tick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_accountant_vat_threshold_check",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_accountant_weekly_report_tick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_backup_prune_tick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_case_embed_claim",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_ceo_daily_digest_tick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_ceo_decisions_evaluate",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_ceo_plan_tick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_ceo_support_reply_due",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_ceo_weekly_report_tick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_ceo_weekly_review_tick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_customer_support_campaign_list_tick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_delivery_feedback_canary_tick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_dropbox_backup_due",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_it_backup_tick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_it_change_revisions_due",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_it_deliberation_independence_watch",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_it_detect",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_it_dropbox_health_due",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_it_duties_due",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_it_engineer_alert_tick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_it_renewal_watch",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_it_restore_table_due",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_it_restore_table_overdue",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_it_restore_table_pick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_it_review_independence_watch",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_it_scheduled_due",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_it_whatsapp_delivery_health",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_lead_reclassify_tick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_org_task_consume_tick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_prune_website_error_events",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_reason_held_escalate",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_reason_held_notice_due",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_refund_ladder_sweep",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_resilience_orphan_steps_due",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_sales_engineer_supplier_documents_tick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_sales_engineer_supplier_outreach_tick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_seat_clocks_tick",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_seat_learning_measure",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_supplier_doc_reading_escalate",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_support_request_ratings_due",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_table_export_due",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  },
+  {
+   "kind": "duty",
+   "id": "tick.fn_wa_arrival_sweep",
+   "src": "resilience_ping",
+   "status": "tested",
+   "scenario": "S18"
+  }
+ ]
+}
