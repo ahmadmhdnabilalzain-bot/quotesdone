@@ -38,7 +38,7 @@ import { answerFromBrief } from '../_shared/brief_answer.ts';
 import { acceptImages } from '../_shared/chat_images.ts';
 import { logWithAttempts } from '../_shared/reply_attempts.ts';
 import { accountKey, clientHistory, fitHistory, openConversation, visitorIdOf } from '../_shared/chat_history.ts';
-import { STATUS, streamReply, wantsStream } from './stream_reply.ts';
+import { STATUS, streamReply, wantsStream } from '../_shared/stream_reply.ts';
 import { VISITOR_CAP, capReply, capReplyByModel, pastVisitorCap, signupAction, visitorRules } from './visitor_scope.ts';
 import { modelOrOutage } from '../_shared/openrouter_down.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -152,7 +152,7 @@ const plain = observe('site_assistant', async (req) => {
   T.total = Date.now() - t0;
   return annotate(res, { ms: T });
 });
-// THE STREAMED ANSWER (stream_reply.ts): the status line leaves at once; each checked sentence follows as the model writes it.
+// THE STREAMED ANSWER (_shared/stream_reply.ts): the status line leaves at once; each checked sentence follows as the model writes it.
 // The same handler answers both, so the observe row and every side effect are identical for either caller. One chain
 // per request, as before: streaming adds no concurrent reasoning to the worker (546, #1327).
 Deno.serve(async (req) => {
@@ -414,7 +414,7 @@ ${who ? '- Answer what they asked, directly and exactly; then, where it helps, a
       brief, sys, input: [...past, { role: 'user', content: turnText }], max: photos.images.length ? 1200 : live ? 900 : 700, images: photos.images,
       rateKey: rlKey, rateLimit: rlLimit, subject: who ? { email: who.email, ...(/^ZZ ?DEMO/i.test(message) ? { fixture: true } : {}) } : (/^ZZ ?DEMO/i.test(message) ? { fixture: true, conv } : undefined),   // our own test traffic is named so the gateway never bills or counts it
       check: (s: string) => guardSupportReply(s, replyLang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
-    }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential' };
+    }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential', outage: true };
     lap('reply');
     const reply = a.reply.trim();
     const fx = await fileEffects({ grounded: !!reply, answered: !!reply, refusal: a.error || '' });
@@ -425,7 +425,7 @@ ${who ? '- Answer what they asked, directly and exactly; then, where it helps, a
     T.rewrites = a.rewrites; T.attempts = a.attempts.length;
     // The gateway's rate limit for this visitor: the same polite system notice the local limiter gives (not a reply).
     if (!reply && a.error === 'rate_limited') return J({ reply: RL_REPLY, rate_limited: true });
-    if (!reply) { await logRun('error', { no_answer: 1, attempts: a.attempts }, 'site_assistant: no model produced an answer: ' + a.attempts.join(' | ')); return J({ error: 'no_answer', attempts: a.attempts }, 503); }
+    if (!reply) { await logRun('error', { no_answer: 1, attempts: a.attempts }, 'site_assistant: no model produced an answer: ' + a.attempts.join(' | ')); return J({ error: 'no_answer', outage: a.outage === true, attempts: a.attempts }, 503); }   // outage: OpenRouter was down (1339)
     return J({ reply, scope: live ? audience : 'public', routed: 'brief', routed_seat: seatForSurface ?? 'customer_support', model: a.model, attempts: a.attempts, ...(signup ? { signup } : {}) });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 }

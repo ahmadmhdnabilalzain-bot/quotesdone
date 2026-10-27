@@ -120,7 +120,7 @@ export function ChatWidget() {
     try {
       const r = await fetch(FN, {
         method: 'POST',
-        // THE ANSWER STREAMS (12 Oct 2026, site_assistant/stream_reply.ts): a status line at once, then the finished,
+        // THE ANSWER STREAMS (12 Oct 2026, _shared/stream_reply.ts): a status line at once, then the finished,
         // checked reply a few words at a time. A server that does not stream answers JSON, read below as before.
         headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson, application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
         // lang WAS NEVER SENT until 9 Sep 2026, so site_assistant resolved uiLang to 'en' on every

@@ -3199,6 +3199,7 @@
   "ab32250b9ce6",
   "ac6da840ea78",
   "ad4af4c1027c",
+  "ae298ac9ee24",
   "ae41461c0e53",
   "af4f103f60f7",
   "b1118af1d5cd",
@@ -3243,6 +3244,7 @@
   "d466a6a5871c",
   "d83ee5b92b13",
   "d90bc276f4d6",
+  "db49f39b569d",
   "db55605ea27a",
   "dc8e37e88336",
   "dd145da3a71d",
@@ -6376,6 +6378,9 @@
  "supabase/functions/sales_engineer/index.ts": [
   "326fac240e11"
  ],
+ "supabase/functions/sales_engineer/portal_turn.ts": [
+  "5e2e73b04acf"
+ ],
  "supabase/functions/send_outbox/arabic_frame.ts": [
   "0ef7f2caa346",
   "6a8e44761ee6",
@@ -6424,7 +6429,7 @@
   "f34fd00dad6c",
   "f40cee86aeb4"
  ],
- "supabase/functions/site_assistant/stream_reply.ts": [
+ "supabase/functions/_shared/stream_reply.ts": [
   "aeb58bdf5c4d"
  ],
  "supabase/functions/stripe_checkout/index.ts": [
