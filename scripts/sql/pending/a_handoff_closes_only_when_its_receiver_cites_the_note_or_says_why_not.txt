@@ -1,4 +1,0 @@
-Committed 27 Oct 2026 on ceo/senior-seat-audit-27-oct (founder ledger 1013). Applied by the release operator at merge,
-never before (apply-at-merge rule). Apply off-hours: the trigger takes a brief lock on public.agent_actions.
-Proved by scripts/sql/a_handoff_closes_only_when_its_receiver_cites_the_note_or_says_why_not_probe.sql: PROBE OK on
-htdblwldjkcgjvmqkbeh, 27 Oct 2026, in one rolled-back transaction with this file.

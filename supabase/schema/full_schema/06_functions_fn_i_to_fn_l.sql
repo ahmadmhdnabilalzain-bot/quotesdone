@@ -6423,6 +6423,81 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_run_clusters()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  v_prefix text := case when coalesce(current_setting('qd.duty_fixtures', true), '') = 'on' then 'duty:run_cluster:fixture:' else 'duty:run_cluster:' end;
+  r record; v_owner text; v_subject text; v_key text; v_res jsonb;
+  v_labels text[] := '{}'; n_found int := 0; n_new int := 0; n_unowned int := 0; n_closed int := 0; f record;
+begin
+  for r in
+    with runs as (
+      select ar.agent as label, coalesce(ar.status, 'none') as status, ar.note
+        from public.agent_runs ar
+       where ar.started_at > now() - interval '7 days'
+         and (coalesce(ar.counts->>'fixture', '0') in ('1', 'true')
+              or coalesce(ar.counts->>'caller', '') = 'fixture'
+              or coalesce(ar.note, '') ilike '%example.invalid%'
+              or coalesce(ar.note, '') like '%ZZ DEMO%') = v_fx)
+    select label, count(*) as runs, count(*) filter (where status <> 'ok') as non_ok,
+           (select jsonb_object_agg(s, n) from (select status s, count(*) n from runs r2 where r2.label = runs.label group by 1) z) as statuses,
+           (select jsonb_agg(x) from (select distinct left(r3.note, 200) x from runs r3
+              where r3.label = runs.label and r3.status <> 'ok' and r3.note is not null limit 3) z) as notes
+      from runs
+     group by label
+    having count(*) > 5 and count(*) filter (where status <> 'ok') * 2 > count(*)
+     order by count(*) filter (where status <> 'ok') desc
+  loop
+    n_found := n_found + 1;
+    v_labels := v_labels || r.label;
+    v_subject := regexp_replace(r.label, '^fn:', '');
+    v_owner := coalesce(
+      (select o.owner from public.function_owner o join public.org_role s on s.role_id = o.owner and s.status = 'active'
+        where o.function_slug = v_subject),
+      (select d.owner_seat from public.seat_duty d join public.org_role s on s.role_id = d.owner_seat and s.status = 'active'
+        where d.routine = v_subject or d.routine = 'fn_' || v_subject limit 1));
+    if v_owner is null then n_unowned := n_unowned + 1; end if;
+    v_key := v_prefix || r.label;
+    v_res := public.fn_it_engineer_finding_upsert(
+      v_key,
+      format('%s%s failed %s of %s runs in 7 days (%s)%s', case when v_fx then 'ZZ DEMO ' else '' end, r.label, r.non_ok, r.runs,
+             (select string_agg(k || ' ' || v, ', ' order by k) from jsonb_each_text(r.statuses) e(k, v)),
+             case when v_owner is null then ' - no seat owns this run label' else '' end),
+      'agent_runs label ' || r.label,
+      'internal',
+      r.non_ok::int,
+      jsonb_strip_nulls(jsonb_build_object(
+        'duty', 'it_engineer.run_clusters', 'subject', v_subject, 'owner_seat', v_owner, 'unowned', v_owner is null,
+        'runs_7d', r.runs, 'non_ok_7d', r.non_ok, 'statuses', r.statuses, 'sample_notes', r.notes,
+        'rule', 'more than 5 runs and more than half not ok in 7 days (IT-C14)', 'demo', v_fx)),
+      array['fixture runs counted apart'],
+      case when v_owner is null then array['which seat owns this run label'] else '{}'::text[] end,
+      'it_engineer');
+    if (v_res->>'seen_count')::int = 1 or coalesce((v_res->>'reopened')::boolean, false) then n_new := n_new + 1; end if;
+  end loop;
+
+  -- a label that is no longer a cluster: its finding is closed with the reading that cleared it
+  for f in select e.issue_key, substr(e.issue_key, length(v_prefix) + 1) as label from public.it_engineer_finding e
+            where e.closed_at is null and e.issue_key like v_prefix || '%'
+              and (v_fx or e.issue_key not like 'duty:run_cluster:fixture:%') loop
+    continue when f.label = any (v_labels);
+    perform public.fn_it_engineer_finding_close(f.issue_key, format('cleared: %s now has %s non-ok of %s runs in 7 days (rule: more than 5 runs and more than half not ok)',
+      f.label,
+      (select count(*) filter (where coalesce(status, 'none') <> 'ok') from public.agent_runs where agent = f.label and started_at > now() - interval '7 days'),
+      (select count(*) from public.agent_runs where agent = f.label and started_at > now() - interval '7 days')));
+    n_closed := n_closed + 1;
+  end loop;
+
+  return jsonb_build_object('clusters', n_found, 'new_or_reopened', n_new, 'unowned', n_unowned, 'closed', n_closed,
+                            'labels', to_jsonb(v_labels), 'fixture', v_fx);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_scanner_beat(p_scanner text, p_error text DEFAULT NULL::text, p_max_gap_minutes integer DEFAULT 60)
  RETURNS jsonb
  LANGUAGE plpgsql
