@@ -553,12 +553,15 @@ async function handleInbound(req: Request): Promise<Response> {
     // modelEscalate: the model's own reading that a person is needed (a complaint, a dispute, a request for one), OR-ed
     // with fn_wa_route's needs_a_person, so a complaint the router misses still reaches a person (review of #1335).
     let modelEscalate = false;
-    const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en') => {
+    // OPENROUTER DOWN ON THIS TURN (founder_instruction 1339): set by the last say; heldTurn sends its fixed notice only then.
+    let sayOutage = false;
+    const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[]) => {
       const r = await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
         budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
         rateKey: 'wa:' + From,   // the per-number ceiling (20/hour) the old prompt path had
-        subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From } });
+        subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}) });
       modelEscalate = modelEscalate || r.escalate;
+      sayOutage = !r.text && r.outage;
       return r.text;
     };
     // `audience` is resolved further down; `say` is only called after that (the spec-offer branch uses sayFor('customer')).
@@ -569,7 +572,7 @@ async function handleInbound(req: Request): Promise<Response> {
     // sends the written answer here (reasoned_delivery.ts); still unanswered after 15 minutes it is escalated to
     // customer_support (fn_reason_held_escalate, scripts/sql/an_unwritten_conversation_reply_reaches_its_seat_in_fifteen_minutes.sql).
     const heldTurn = (aud: 'customer' | 'supplier' | 'visitor' | 'founder', lang: 'en' | 'ar', situation: string, why: string) =>
-      holdUnwritten({ from: From, body: Body, messageSid: MessageSid || null, audience: aud, lang, situation, why,
+      holdUnwritten({ from: From, body: Body, messageSid: MessageSid || null, audience: aud, lang, situation, why, outage: sayOutage,
         enabled: async () => (await sec('wa_autoreply_enabled')) === 'true', send: (t) => sendWa(From, t),
         rpc: async (f, a) => { const r = await admin.rpc(f, a); return { data: r.data, error: r.error }; } });
 
@@ -594,8 +597,10 @@ async function handleInbound(req: Request): Promise<Response> {
         let lang: 'en' | 'ar' = 'en';
         if (so.customer_id) lang = await registeredLocale(admin, { role: 'customer', customerId: String(so.customer_id) });
         let text = '';
-        const sayC = (situation: string) => sayFor('customer')(situation, lang);
-        let notice = false;   // the accepted-offer confirmation is a NOTIFICATION (kept templated); everything else is the model's
+        const sayC = (situation: string, must?: string[]) => sayFor('customer')(situation, lang, must);
+        // notice: the templated confirmation went out because OpenRouter was down (founder_instruction 1339). The accepted
+        // offer's confirmation is a reply to their message, so the model writes it from the template; never otherwise.
+        let notice = false;
         if (so.ok === true) {
           const { data: offer } = await admin.from('spec_alternative_offer')
             .select('item,label_en,label_ar,requested,alternatives,accepted_value,inquiry_id').eq('id', so.offer_id).single();
@@ -616,7 +621,11 @@ async function handleInbound(req: Request): Promise<Response> {
                 const { error: pErr } = await admin.rpc('fn_arabic_outbound_park', { p_texts: msg.untranslated, p_rows: rows });
                 if (pErr) await logRun('error', { route: 'spec_offer_reply', parked: 0 }, 'the Arabic confirmation could not be parked: ' + pErr.message);
               }
-            } else if (so.state === 'accepted') { text = msg.body; notice = true; }
+            } else if (so.state === 'accepted') {
+              text = await sayC('They chose an alternative and it is recorded. Our written confirmation, to convey accurately in your own words (keep the job number, the item and the accepted value exactly):\n' + msg.body,
+                inq?.rfq_no ? [String(inq.rfq_no)] : undefined);
+              if (!text && sayOutage) { text = msg.body; notice = true; }   // OpenRouter down: the template is the outage fallback
+            }
             else text = await sayC('They declined the alternatives offered for job ' + String(inq?.rfq_no ?? '') + '. What we tell them about it (convey it accurately):\n' + msg.body);
           }
         } else if (so.error === 'unknown_option') {
@@ -809,7 +818,8 @@ async function handleInbound(req: Request): Promise<Response> {
       },
       // A customer or supplier reply passes support_reply_guard.ts (FAQ rows can carry the licence number);
       // the founder's own command channel is not a customer surface and is left as it is.
-      write: (r) => sayFor(r.audience === 'unknown' ? 'visitor' : r.audience)(r.situation, r.lang),
+      write: (r) => sayFor(r.audience === 'unknown' ? 'visitor' : r.audience)(r.situation, r.lang, r.must),
+      outage: () => sayOutage,
       held: (r) => heldTurn(r.audience === 'unknown' ? 'visitor' : r.audience, r.lang, r.situation, r.route),
       send: (to: string, text: string, content?: Content) => {
         const guarded = content ? text : (audience === 'founder' ? bidiSafe(text.slice(0, 1500)) : toContact(text.slice(0, 1500)));
@@ -1322,9 +1332,9 @@ async function handleInbound(req: Request): Promise<Response> {
     let heldNotice = false;
     if (reply) { if (enabled) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; } }
     else {
-      // NOBODY IS LEFT SILENT: the held notice (a notification) now, the model's answer from the queue later.
-      const h = await heldTurn(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', lang, situation, llmFailed ? 'no_model_answer' : 'guard_refused');
-      reply = h.notice; sent = h.sent; sendErr = h.err ?? undefined; heldNotice = true;
+      // The turn is queued for the model's answer; the fixed held notice goes out now only if OpenRouter is down (1339).
+      const h = await heldTurn(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', lang, situation, sayOutage ? 'no_model_answer' : 'guard_refused');
+      reply = h.notice; sent = h.sent; sendErr = h.err ?? undefined; heldNotice = !!h.notice;
     }
 
     let rowSaved = true;
