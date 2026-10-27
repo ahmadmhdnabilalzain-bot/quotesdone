@@ -41,7 +41,10 @@ const WASM_URL = `https://cdn.jsdelivr.net/npm/${PKG}/wasm/libredwg-web.wasm`;
 // registry.npmjs.org is reachable there, and it is where the `npm:` import itself comes from. The tarball's
 // package/wasm/libredwg-web.wasm hashes to WASM_SHA256 exactly (measured), so the checksum below is unchanged
 // and either source is the one pinned binary. jsdelivr stays first: it is one 9.5 MB GET, the tarball 2.4 MB
-// gzip that has to be unpacked.
+// gzip that has to be unpacked, and the unpacking is CPU the edge's 2 s cap pays on every cold isolate (measured
+// 27 Oct 2026, Deno 2.9.4: gunzip 163-321 ms, untar 4-36 ms, SHA-256 36-68 ms, three runs). The gate and the
+// checks grant only the npm registry (no cdn.jsdelivr.net in --allow-net), so the jsDelivr fetch is refused at once
+// and every DWG read there takes the npm source: the check proves the source that needs no jsDelivr at all.
 const WASM_TGZ = 'https://registry.npmjs.org/@mlightcad/libredwg-web/-/libredwg-web-0.7.14.tgz';
 const WASM_IN_TGZ = 'package/wasm/libredwg-web.wasm';
 const WASM_SHA256 = '431576487027122a28e5ac99d91fe6366f81ecda743a4676878c75c85fe82c53';
