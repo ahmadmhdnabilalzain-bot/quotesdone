@@ -1,9 +1,10 @@
 // A held question, reasoned after the hold lifts, is delivered on its own channel under the channel's rules.
 import { assertEquals, assertMatch } from 'jsr:@std/assert';
-import { casSecrets, deliverReasoned, holdingNotice, liveDeliveryIO, replayHeldComment, sendHeldNotices, type CommentReplayIO, type DeliveryIO } from './reasoned_delivery.ts';
+import { casSecrets, deliverReasoned, HOLDING_NOTICE, HOLDING_RULES, holdingNotice, liveDeliveryIO, PERSON_NOTICE, replayHeldComment, sendHeldNotices, type CommentReplayIO, type DeliveryIO } from './reasoned_delivery.ts';
 import { call, processComment, replyRequest, type CommentEvent, type Store } from './marketing_social_comments.ts';
 import { accessToken, open, seal, type SocialPlatform } from './marketing_social_oauth.ts';
-import type { HeldRow, ThinkResult } from './think.ts';
+import type { HeldRow, LlmReply, ThinkDeps, ThinkResult } from './think.ts';
+import { aiReply } from './ai_reply.ts';
 
 function io(windowOpen: boolean) {
   const log: string[] = [];
@@ -16,6 +17,8 @@ function io(windowOpen: boolean) {
     socialHandoff: (s) => { log.push('social ' + s.platform + ' ' + s.message_id); return Promise.resolve({ ok: true }); },
     socialCommentHandoff: (s) => { log.push('comment ' + s.platform + ' ' + s.message_id); return Promise.resolve({ ok: true }); },
     writeReply: (q, lang, o) => { log.push('write ' + lang + ' ' + (o?.channel ?? '') + ' ' + q); return Promise.resolve('MODEL: ' + q); },
+    // a model that is up: it writes the notice (1339), carrying what it must carry
+    writeNotice: (o) => Promise.resolve({ reply: ('MODEL NOTICE (' + o.lang + ') ' + (o.must ?? []).join(' ')).trim(), outage: false }),
     socialReply: (s, meaning) => { log.push('reply ' + s.platform + ' ' + s.message_id + ' ' + meaning); return Promise.resolve({ ok: true }); },
     accountantSweep: (id) => { log.push('sweep ' + id); return Promise.resolve({ ok: true, found: true, verdict: 'booked' }); },
     receiptToBookkeeper: (id) => { log.push('bookkeeper ' + id); return Promise.resolve({ ok: true }); },
@@ -39,14 +42,14 @@ Deno.test('WhatsApp, inside the 24-hour window: the contact goes as free text, a
   const d = await deliverReasoned(row('wa_inbound.needs_a_person', 'you took my money and vanished', { phone: 'whatsapp:+971500000001' }), answered('needs_a_person'), x);
   assertEquals([d.delivered, d.via], [true, 'whatsapp_text']);
   assertEquals(log[0], 'ceo reasoned:person:7');
-  assertMatch(log[1], /^text whatsapp:\+971500000001 Thank you for your patience.*\+971 50 000 0000/);
+  assertEquals(log[1], 'text whatsapp:+971500000001 MODEL NOTICE (en) +971 50 000 0000', 'the model wrote it and it carries the contact');
 });
 
 Deno.test('WhatsApp, outside the window: only an approved template is allowed, so a support_reply row is queued', async () => {
   const { x, log } = io(false);
   const d = await deliverReasoned(row('wa_inbound.needs_a_person', 'نصبتوا علي', { phone: '+971500000001' }), answered('needs_a_person'), x);
   assertEquals([d.delivered, d.via], [true, 'whatsapp_template']);
-  assertMatch(log[1], /^template \+971500000001 ar \[نصبتوا علي\] شكرًا لصبركم/);
+  assertEquals(log[1], 'template +971500000001 ar [نصبتوا علي] MODEL NOTICE (ar) +971 50 000 0000');
   assertEquals(log.some((l) => l.startsWith('text')), false, 'no free text outside the window');
 });
 
@@ -77,7 +80,7 @@ Deno.test('escalated at 48 hours: a WhatsApp customer is told a person is handli
   const { x, log } = io(true);
   const d = await holdingNotice({ id: 9, surface: 'wa_inbound.needs_a_person', question: 'where is my quote?', subject: { phone: '+971500000001' } }, x);
   assertEquals([d.delivered, d.via], [true, 'whatsapp_text']);
-  assertMatch(log[0], /^text \+971500000001 Thank you for your patience\. Your question is now with our team/);
+  assertEquals(log[0], 'text +971500000001 MODEL NOTICE (en)', 'the model writes the holding notice when it is up (1339)');
   const none = await holdingNotice({ id: 10, surface: 'ceo.command_intent', question: 'stop the campaign', subject: { command_id: 1 } }, x);
   assertEquals([none.delivered, none.via], [false, 'none']);
   assertEquals(log.length, 1);
@@ -452,4 +455,84 @@ Deno.test('e-mail: an unverified answer is not sent; a reasoned request for a pe
   const d3 = await deliverReasoned(row('email_triage.needs_a_person', 'when do I pay', { message_id: 42, channel: 'email' }), answered('no_person'), x);
   assertEquals(d3.delivered, false);
   assertEquals(log.length, 2);
+});
+
+// ── 1339: THE WHATSAPP NOTICES ARE THE MODEL'S; THE CODE TEXT ONLY ON A TRUE OPENROUTER OUTAGE (27 Oct 2026) ─────────
+// Founder, ledger 1339: "the engineer and customer support never replies without llm unless the server of open router is
+// down". writeNotice here is the real aiReply over a stubbed gateway (no network, no paid call): a 5xx or a network
+// failure is an outage (HOLDING_NOTICE / PERSON_NOTICE go out), a 4xx is an answer (nothing code-written is sent).
+function gateway(reply: (n: number) => LlmReply) {
+  const seen: { system: string; input: string }[] = [];
+  const deps = {
+    gate: () => Promise.resolve(null), embed: () => Promise.resolve(null),
+    rpc: () => Promise.resolve({ data: null, error: null }),
+    llm: (_p: string, system: string, input: string) => { seen.push({ system, input }); return Promise.resolve(reply(seen.length)); },
+  } as unknown as ThinkDeps;
+  const writeNotice: DeliveryIO['writeNotice'] = async (o) => {
+    const a = await aiReply(deps, { seat: 'customer_support', channel: 'WhatsApp', audience: 'customer', lang: o.lang, message: o.message, rules: o.rules, facts: o.facts, must: o.must });
+    return { reply: a.reply, outage: a.outage };
+  };
+  return { writeNotice, seen };
+}
+const say = (answer: string): LlmReply => ({ content: JSON.stringify({ answer }), model: 'stub' } as LlmReply);
+const fail = (error: string): LlmReply => ({ content: null, error } as LlmReply);
+const held = { id: 9, surface: 'wa_inbound.needs_a_person', question: 'where is my quote?', subject: { phone: '+971500000001' } };
+
+Deno.test('1339: the holding notice is written by the model when it is up, and the code text never goes', async () => {
+  const { x, log } = io(true);
+  const g = gateway(() => say('Thank you for waiting. A member of our team now has your question and will answer it here.'));
+  const d = await holdingNotice(held, { ...x, writeNotice: g.writeNotice });
+  assertEquals([d.delivered, d.via], [true, 'whatsapp_text']);
+  assertEquals(log, ['text +971500000001 Thank you for waiting. A member of our team now has your question and will answer it here.']);
+  assertEquals(log.some((l) => l.includes(HOLDING_NOTICE.en)), false);
+  assertMatch(g.seen[0].system, /two sentences at most/, 'the model is told what to write (HOLDING_RULES)');
+  assertEquals(HOLDING_RULES.includes('never mention a queue, a system, a model'), true);
+});
+
+Deno.test('1339: only a TRUE outage (5xx, network, timeout) sends the code-written holding notice', async () => {
+  for (const err of ['gateway_http_503', 'gateway_http_502 upstream', 'client_error: error sending request', 'client_timeout_25000ms']) {
+    const { x, log } = io(true);
+    const d = await holdingNotice(held, { ...x, writeNotice: gateway(() => fail(err)).writeNotice });
+    assertEquals([d.delivered, log], [true, ['text +971500000001 ' + HOLDING_NOTICE.en]], err);
+  }
+  const { x, log } = io(true);
+  const ar = await holdingNotice({ ...held, question: 'وين عرض السعر؟' }, { ...x, writeNotice: gateway(() => fail('gateway_http_500')).writeNotice });
+  assertEquals([ar.delivered, log], [true, ['text +971500000001 ' + HOLDING_NOTICE.ar]]);
+});
+
+Deno.test('1339: a 4xx is never an outage: nothing code-written is sent, the notice is offered again later', async () => {
+  for (const err of ['gateway_http_400 upstream timeout', 'gateway_http_401', 'gateway_http_429 rate limited', 'HTTP 404 connection']) {
+    const { x, log } = io(true);
+    const d = await holdingNotice(held, { ...x, writeNotice: gateway(() => fail(err)).writeNotice });
+    assertEquals([d.delivered, d.via, log], [false, 'none', []], err);
+    assertMatch(String(d.detail), /model is up/);
+  }
+  // a model that answered but whose every draft is refused is not an outage either
+  const { x, log } = io(true);
+  const d = await holdingNotice(held, { ...x, writeNotice: gateway(() => say('Your quote costs AED 9,999.')).writeNotice });
+  assertEquals([d.delivered, log], [false, []]);
+});
+
+Deno.test('1339: customer-safe: an internal sentence the model writes is dropped, never sent (ledger 1338)', async () => {
+  const { x, log } = io(true);
+  const draft = 'Thank you for waiting, a member of our team now has your question and will answer it here. Our openrouter queue was slow.';
+  const d = await holdingNotice(held, { ...x, writeNotice: gateway(() => say(draft)).writeNotice });
+  assertEquals(d.delivered, true);
+  assertEquals(log.length, 1);
+  assertEquals(/openrouter|queue/i.test(log[0]), false, log[0]);
+});
+
+Deno.test('1339: the person contact notice is the model\'s and must carry the contact; code text only on an outage', async () => {
+  const contact = '+971 50 000 0000';
+  const up = io(true);
+  const g = gateway((n) => n === 1 ? say('Thank you for your patience. The owner will speak to you.') : say('Thank you for your patience. You can call or message the owner on ' + contact + '.'));
+  const d = await deliverReasoned(row('wa_inbound.needs_a_person', 'you took my money', { phone: '+971500000001' }), answered('needs_a_person'), { ...up.x, writeNotice: g.writeNotice });
+  assertEquals(d.delivered, true);
+  assertEquals(up.log[1], 'text +971500000001 Thank you for your patience. You can call or message the owner on ' + contact + '.', 'the draft without the contact was rewritten by the model');
+  const down = io(true);
+  await deliverReasoned(row('wa_inbound.needs_a_person', 'you took my money', { phone: '+971500000001' }), answered('needs_a_person'), { ...down.x, writeNotice: gateway(() => fail('gateway_http_504')).writeNotice });
+  assertEquals(down.log[1], 'text +971500000001 ' + PERSON_NOTICE('en', contact));
+  const four = io(true);
+  const f = await deliverReasoned(row('wa_inbound.needs_a_person', 'you took my money', { phone: '+971500000001' }), answered('needs_a_person'), { ...four.x, writeNotice: gateway(() => fail('gateway_http_403')).writeNotice });
+  assertEquals([f.delivered, four.log.filter((l) => l.startsWith('text'))], [false, []]);
 });

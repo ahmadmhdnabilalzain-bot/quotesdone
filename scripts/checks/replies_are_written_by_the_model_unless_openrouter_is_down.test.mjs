@@ -18,6 +18,8 @@
 //       with no outage gate within three lines either side (the draft may be built just before its gated send).
 //   R3  inquiry_intake (the request chat) has its own check, landed with the intake turn clock on PR #1646:
 //       scripts/checks/the_intake_reply_is_the_models_unless_openrouter_is_down.test.mjs. Its files are not scanned here.
+//   R5  the WhatsApp holding notice and person-contact notice (_shared/reasoned_delivery.ts, 27 Oct 2026) come from
+//       modelOrOutage(await io.writeNotice(…)) and carry no literal sentence (reasonedNoticeFindings).
 //   R4  the fixed notices themselves are gated at their source: holdUnwritten sends only `io.outage ? …`, the quote
 //       review adds QR_HELD_NOTICE only when `outage`, and every holdUnwritten call passes `outage:`.
 // Each rule has a KNOWN-BAD CONTROL below: the exact line main carried before this fix must fail it.
@@ -76,6 +78,26 @@ export function noticeFindings(files) {
   if (/await held\(repo, deps, [^;]*\)\.catch/.test(qr)) out.push('supplier_api/quote_review_flow.ts: R4 a failed/killed review adds the held notice without asking the model first');
   const wa = stripComments(files['wa_inbound/index.ts'] || '').join('\n');
   for (const m of wa.matchAll(/holdUnwritten\(\{([^}]*)/g)) if (!/outage:/.test(m[1])) out.push('wa_inbound/index.ts: R4 holdUnwritten called without outage');
+  out.push(...reasonedNoticeFindings(files['_shared/reasoned_delivery.ts'] || ''));
+  return out;
+}
+
+/** R5 (27 Oct 2026, the WhatsApp holding notice and the person-contact notice in _shared/reasoned_delivery.ts): each is
+ *  written by the model and its code text reaches the send only through modelOrOutage. Main carried both as literal
+ *  sentences in a ternary, sent on every escalation whatever the model's state. Checked inside each function body: no
+ *  literal sentence of 30+ characters, and the text comes from modelOrOutage(await io.writeNotice(...)). */
+export function reasonedNoticeFindings(src) {
+  const code = stripComments(src).join('\n');
+  const out = [];
+  const bodies = {
+    holdingNotice: code.match(/export async function holdingNotice\([\s\S]*?\n\}\n/)?.[0] ?? '',
+    needs_a_person: code.match(/row\.surface === 'wa_inbound\.needs_a_person'[\s\S]*?\n {2}\}\n/)?.[0] ?? '',
+  };
+  for (const [name, body] of Object.entries(bodies)) {
+    if (!body) { out.push(`_shared/reasoned_delivery.ts: R5 ${name} not found (renamed? re-register it here)`); continue; }
+    if (!/modelOrOutage\(await io\.writeNotice\(/.test(body)) out.push(`_shared/reasoned_delivery.ts: R5 ${name} does not send the model's notice through modelOrOutage`);
+    if (/(['"`])[^'"`\n]{30,}[.؟?]\1/.test(body.replace(/rules: [A-Z_]+|'[a-z_.]+'/g, ''))) out.push(`_shared/reasoned_delivery.ts: R5 ${name} carries a literal sentence (a code-written notice outside modelOrOutage)`);
+  }
   return out;
 }
 
@@ -109,6 +131,17 @@ test('known-bad: the old fallbacks are caught', () => {
   assert.equal(replyFindings('x.ts', '  return modelOrOutage(r, HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en);\n').length, 0);
   assert.equal(replyFindings('x.ts', '  if (!text && sayOutage) { text = msg.body; notice = true; }\n').length, 0);
   assert.equal(replyFindings('x.ts', '  // return r.reply || HELD_FOR_SPECS[lang]; was the bug\n').length, 0, 'a comment never trips it');
+});
+test('known-bad (R5): the WhatsApp holding notice and person notice as main carried them are caught', () => {
+  const mainHolding = "export async function holdingNotice(row, io) {\n  const q = String(row.question ?? '');\n  const text = isAr(q)\n    ? 'شكرًا لصبركم. سؤالكم لدى فريقنا الآن ويتابعه شخص مختص، وسنعود إليكم بالإجابة هنا.'\n    : 'Thank you for your patience. Your question is now with our team and a person is handling it; we will reply here.';\n  return await whatsapp(io, phone, q, text);\n}\n";
+  const mainPerson = "  if (row.surface === 'wa_inbound.needs_a_person') {\n    const text = isAr(question)\n      ? `x`\n      : `Thank you for your patience. If you would rather speak to someone directly, call or message ${contact}, which is answered by the owner.`;\n    return await whatsapp(io, phone, question, text);\n  }\n";
+  const f = reasonedNoticeFindings(mainHolding + mainPerson);
+  assert.ok(f.some((x) => x.includes('R5 holdingNotice does not send')) && f.some((x) => x.includes('R5 holdingNotice carries a literal')), f.join('\n'));
+  assert.ok(f.some((x) => x.includes('R5 needs_a_person does not send')) && f.some((x) => x.includes('R5 needs_a_person carries a literal')), f.join('\n'));
+  // the sanctioned form passes
+  const ok = "export async function holdingNotice(row, io) {\n  const text = modelOrOutage(await io.writeNotice({ message: q, lang, rules: HOLDING_RULES }), HOLDING_NOTICE[lang]);\n}\n"
+    + "  if (row.surface === 'wa_inbound.needs_a_person') {\n    const text = modelOrOutage(await io.writeNotice({ message: question, lang, subject, rules: PERSON_RULES }), PERSON_NOTICE(lang, contact));\n  }\n";
+  assert.deepEqual(reasonedNoticeFindings(ok), []);
 });
 test('known-bad: an ungated notice at its source is caught', () => {
   const ms = "export async function holdUnwritten(io) {\n  const notice = HELD_NOTICE[lang];\n}\n";

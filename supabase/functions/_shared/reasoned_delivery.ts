@@ -31,6 +31,7 @@ import { composeMailReply } from './customer_mail.ts';
 // a LinkedIn reply's reasoned class drafts its follow-up. Their branches live with their decisions.
 import { deliverBooks, liveBooksIO, type BooksIO } from './reasoned_books.ts';
 import { deliverOutreach, liveOutreachIO, type OutreachIO } from './reasoned_outreach.ts';
+import { modelOrOutage } from './openrouter_down.ts';
 
 /** skipped: nothing was attempted and the subject is left as it was, for a later run (e.g. 'linkedin token missing'). */
 export type Sent = { ok: boolean; err?: string; skipped?: string };
@@ -47,6 +48,10 @@ export interface DeliveryIO extends BooksIO, OutreachIO {
    *  ladder; rulings 1195/1196). null when no model answered — then nothing is sent. */
   writeReply(question: string, lang: 'en' | 'ar', o?: { channel?: string; note?: string; subject?: Record<string, unknown>;
     audience?: 'customer' | 'supplier' | 'visitor' | 'founder'; facts?: string; seat?: 'customer_support' | 'sales_engineer' }): Promise<string | null>;
+  /** A customer_support NOTICE on WhatsApp (the holding notice, the person's contact), WRITTEN BY THE MODEL (aiReply,
+   *  founder_instruction 1339). Returns aiReply's own `reply` and `outage`: the caller passes them to modelOrOutage, so
+   *  the code-written notice goes out only when no call reached a model. */
+  writeNotice(o: { message: string; lang: 'en' | 'ar'; rules: string; facts?: string; must?: string[]; subject?: Record<string, unknown> }): Promise<{ reply: string; outage?: boolean }>;
   /** A model-written, guarded reply posted into a supplier's quotation thread (never one that is submitted or closed). */
   postQuoteReview?(reviewId: string, text: string): Promise<Sent>;
   /** A held DM's grounded reply, sent by marketing_social_inbox on the platform (reasoned_reply). */
@@ -97,11 +102,13 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
     const phone = String(subject.phone ?? '');
     if (!phone) return { delivered: false, via: 'none', detail: 'no phone on the held row' };
     const contact = (await io.founderContact()) ?? '';
-    const text = isAr(question)
-      ? `شكرًا لصبركم. إن كنتم تفضّلون التحدث مع شخص مباشرةً، يمكنكم الاتصال أو المراسلة على ${contact}، ويجيب عليه مالك الشركة.`
-      : `Thank you for your patience. If you would rather speak to someone directly, call or message ${contact}, which is answered by the owner.`;
+    const lang = isAr(question) ? 'ar' : 'en';
     await io.reportToCeo('reasoned:person:' + row.id, 'A held WhatsApp message was reasoned to need a person and was given the public contact',
       { held_id: row.id, message: question.slice(0, 300), reasoning: r.answer.slice(0, 500) });
+    // The words are the model's (1339); PERSON_NOTICE only when no call reached a model. The contact must appear exactly.
+    const text = modelOrOutage(await io.writeNotice({ message: question, lang, subject, rules: PERSON_RULES,
+      facts: 'THE CONTACT TO GIVE (answered by the owner): ' + contact, must: contact ? [contact] : [] }), PERSON_NOTICE(lang, contact));
+    if (!text) return { delivered: false, via: 'none', detail: 'the model is up and no notice it wrote passed the guard; nothing was sent' };
     return await whatsapp(io, phone, question, text);
   }
 
@@ -265,11 +272,31 @@ export async function holdingNotice(row: { id: number; surface: string; question
   const phone = String(row.subject?.phone ?? '');
   if (!phone) return { delivered: false, via: 'none', detail: 'no customer channel on ' + row.surface };
   const q = String(row.question ?? '');
-  const text = isAr(q)
-    ? 'شكرًا لصبركم. سؤالكم لدى فريقنا الآن ويتابعه شخص مختص، وسنعود إليكم بالإجابة هنا.'
-    : 'Thank you for your patience. Your question is now with our team and a person is handling it; we will reply here.';
+  const lang = isAr(q) ? 'ar' : 'en';
+  // THE HOLDING NOTICE IS THE MODEL'S (founder_instruction 1339, 27 Oct 2026). Until then this function sent the fixed
+  // sentence below on every escalation, model up or not. Now the model writes it from HOLDING_RULES; HOLDING_NOTICE goes
+  // out only when no call reached a model (a 5xx, network, timeout, open circuit — never a 4xx). Model up and nothing
+  // passed: nothing is sent and the attempt is recorded undelivered, so fn_reason_held_notice_due offers it again in
+  // 30 minutes (a_customer_notice_that_failed_is_sent_again.sql).
+  const text = modelOrOutage(await io.writeNotice({ message: q, lang, rules: HOLDING_RULES, subject: row.subject ?? undefined }), HOLDING_NOTICE[lang]);
+  if (!text) return { delivered: false, via: 'none', detail: 'the model is up and no notice it wrote passed the guard; offered again on a later tick' };
   return await whatsapp(io, phone, q, text);
 }
+
+// The code-written notices: sent ONLY on an OpenRouter outage, through modelOrOutage (founder_instruction 1339).
+// prevented by: scripts/checks/replies_are_written_by_the_model_unless_openrouter_is_down.test.mjs (R5), reasoned_delivery.test.ts
+export const HOLDING_NOTICE = {
+  ar: 'شكرًا لصبركم. سؤالكم لدى فريقنا الآن ويتابعه شخص مختص، وسنعود إليكم بالإجابة هنا.',
+  en: 'Thank you for your patience. Your question is now with our team and a person is handling it; we will reply here.',
+} as const;
+export const PERSON_NOTICE = (lang: 'en' | 'ar', contact: string) => lang === 'ar'
+  ? `شكرًا لصبركم. إن كنتم تفضّلون التحدث مع شخص مباشرةً، يمكنكم الاتصال أو المراسلة على ${contact}، ويجيب عليه مالك الشركة.`
+  : `Thank you for your patience. If you would rather speak to someone directly, call or message ${contact}, which is answered by the owner.`;
+// What the model is told to write. WHAT to say is decided here (code); the words are the model's. Nothing internal is
+// given to it (ledger 1338): only their own message and, for the person notice, the published contact.
+const NOTICE_FORMAT = 'This is a short WhatsApp notice, not an answer: two sentences at most, plain text. Do not answer or discuss their question, give no price, figure or time promise, and never mention a queue, a system, a model, a delay reason or anything internal.';
+export const HOLDING_RULES = NOTICE_FORMAT + ' Their message below waited and has now been handed to a member of our team. Thank them for their patience and tell them a person on our team now has their question and will answer it here in this chat.';
+export const PERSON_RULES = NOTICE_FORMAT + ' They want to speak to a person. Thank them for their patience and give them the contact in the facts exactly as written, saying it is answered by the owner and they can call or message it.';
 
 /** Every owed holding notice (fn_reason_held_notice_due: escalated, a customer phone, not yet delivered, not tried in
  *  30 minutes) is sent, and EACH ATTEMPT IS RECORDED (fn_reason_held_notice_record), so a failed send comes back on a
@@ -401,6 +428,13 @@ export function liveDeliveryIO(admin: Admin, seams: { master?: string; fetch?: F
       const a = await aiReply(defaultDeps(admin, 'reasoned_delivery'), { seat: o.seat ?? 'customer_support', channel: o.channel ?? 'WhatsApp', audience: o.audience ?? 'customer', lang,
         message: question, rules: o.note, facts: o.facts, subject: o.subject });
       return a.reply || null;
+    },
+    writeNotice: async (o) => {
+      const { aiReply } = await import('./ai_reply.ts');
+      const { defaultDeps } = await import('./think.ts');
+      const a = await aiReply(defaultDeps(admin, 'reasoned_delivery'), { seat: 'customer_support', channel: 'WhatsApp', audience: 'customer',
+        lang: o.lang, message: o.message, rules: o.rules, facts: o.facts, must: o.must, subject: o.subject });
+      return { reply: a.reply, outage: a.outage };
     },
     postQuoteReview: async (reviewId, text) => {
       const { data: rv } = await admin.from('quote_reviews').select('id,status').eq('id', reviewId).maybeSingle();
