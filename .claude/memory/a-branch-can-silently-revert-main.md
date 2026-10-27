@@ -6,8 +6,9 @@ metadata:
   modified: 2026-10-27
 ---
 
-#1672 meant to add 8 lines to an alarm register. Its branch had been built from a tree in which #1661 and #1670 were
-not yet merged, and the author committed that tree wholesale. Against main, the PR therefore:
+#1672 meant to add 8 lines to an alarm register. Its one commit sat directly on current main (444a084bd), which already
+carried #1661 and #1670, but the author committed a working tree that predated them, wholesale. Against main, the PR
+therefore:
 - deleted #1661's applied data file and its probe;
 - removed the MANIFEST lines for #1661 and #1670;
 - re-created #1670's pending note;
@@ -19,5 +20,5 @@ The reviewer caught it and restored 7 paths from main.
 turns every file the author did not mean to touch into a silent revert.
 
 **How to apply:** a reviewer reads `git diff origin/main...HEAD --stat` first, and every path that is not in the PR's stated scope
-is a finding until explained. An author re-merges main before pushing and never commits a whole tree they did not change.
+is a finding until explained. An author never commits a whole tree they did not change (re-merging main does not help when the stale files are in the working tree), and re-merges main before pushing.
 See [[diff-sql-against-live-production-not-the-mirror]].
