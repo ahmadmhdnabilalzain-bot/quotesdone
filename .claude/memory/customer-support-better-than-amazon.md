@@ -53,5 +53,25 @@ The founder, 22 Sep 2026, after two WhatsApp replies leaked internal wording:
   `sales_decision_log`, `support_reply_readability`, and every unanswered question opens a `sales_knowledge_gap`
   row AND an `org_tasks` row (fn_sales_assist) - tasks nobody confirmed. Remove them after a run, matched by the md5
   of the bank's scripted texts (the read guard refuses the word "do" in plain text), then recount to 0.
+- **27 Oct, late: what the portal asks next is CODE's, per trade (`sales_engineer/conversation_plan.ts`).** Every
+  playbook section in `knowledge/brief/conversation/*.md` has a "Must-haves" line (slot ids, location and timing in
+  each; `id [a|b]` = only once the customer's words name a or b). After each customer turn code computes filled slots,
+  "to confirm" (asked, then unsure or skipped; or required next for two replies and still open), and the single next
+  must-have (+1 optional); all in, or 6 replies, = the summary turn, which must ask "is this correct?". Re-asks are
+  compared by the SLOT a question targets (Arabic normalised and stemmed, article-insensitive), not its words. Add a
+  word to a detector in `CATALOGUE` when a run shows a question placed on no slot - that is how every deadlock began.
+- **The bank's own fact patterns are the rubric, not the product.** Some must-haves fail `must_asked` because the
+  bank's regex wants one wording (fire_alarm_office's tie-in wants "main panel"/"connect"; roof_waterproofing_ar's
+  existing system wants الحالي, not حالي). Read the transcript before "fixing" the seat; never edit the bank to pass.
+- **json_extraction runs on gpt-6-luna-pro in 7-13 s** (27 Oct): too slow for every portal turn; it is called only
+  when two slots were asked and no detector read the answer. A fast route would need a model_policy row (SQL).
+- **Founder ruling 27 Oct: the seat never replies without the model unless OpenRouter is down.** Code decides what is
+  asked; every shown sentence is the model's (tested in portal_conversation.test.ts).
+- **Measured 27 Oct, late (the plan, 6cf746dea, local serve):** the same 22: 0 stalls (was 8), timeline 21/22 (was 16),
+  re-ask flags 14 (was 57), p50/p95 10.1/17.7 s; but 20/22 code gates, 0/22 >= 95 %, mean 76 % (was 83 %). The whole
+  bank: 0/43, mean 76.5 %. What cost points: detector gaps that deadlock a turn (44-64 s, then a bare reply), "to
+  confirm" items from other trades, and rigid labels (a doors-only job asked the kitchen layout). Next: when every
+  question in a reply is dropped as a re-ask, skip the rewrite and move the slot to "to confirm". Evidence:
+  `docs/reports/adaptive-conversations-2026-10-27/`.
 - **Audit the filter's drops in agent_runs (`counts.dropped`, "<reason> | <sentence>") after every run.** The first
   audit found 4 false drops in 15.

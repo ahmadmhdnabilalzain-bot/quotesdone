@@ -13,7 +13,113 @@ Method:
   `keeps`. No paid judge was used.
 - A scenario's score is overall × 10, and only when every code gate passes. The target is ≥ 95 for every scenario.
 
-## Results
+## 27 Oct, late: code decides what is asked (the plan per trade)
+
+**The 95 % bar is still not met: 0 of 22, and 0 of the whole 43-scenario bank. The mean fell from 83 % to 76 %.**
+The three point losses the plan was built for are mostly gone. The plan also introduced flaws of its own, and two
+conversations failed a code gate (scored 0). Each finding is listed below.
+
+What changed (PR #1635, agent customer_support):
+- **Plan source.** Every playbook section in `knowledge/brief/conversation/*.md` carries a "Must-haves" line.
+  `sales_engineer/conversation_plan.ts` reads it from the compiled brief: 51 sections, each with location and timing.
+  A slot written `id [a|b]` applies only once the customer's words name `a` or `b`.
+- **State machine, per customer turn.** Code works out which slots are filled. Slots asked and then answered unsure
+  or skipped become "to confirm at the site visit". So does a slot required next for two replies that is still open.
+  Code then picks the single next must-have, plus one optional. When all are in, or after 6 replies, the reply is the
+  summary and must ask "is this correct?". Once confirmed, the reply tells them to press New request.
+- **Slot extraction.** Detectors run on normalised Arabic and English: diacritics removed, alef, ya and ta marbuta
+  unified, light stems (كاميرا / الكاميرات), with or without the article. A bounded `json_extraction` call covers the
+  one case code cannot decide: two slots were asked and no detector read the answer.
+- **Re-asks.** A question is compared by the slot it targets, not by its words (`portal_conversation.replyFilter`).
+- **Founder ruling 1339.** Every word shown is the model's. A test proves it while the model is up.
+  #1640's `outage` and salvage were merged; salvage never brings back a sentence the filter dropped.
+
+### Before and after (the same 22 scenarios, scored against the bank's rubric exactly as before)
+
+| | before: #1635 at 1e64a9eca (3de61aa6 + ecb6b6b2) | after: 6cf746dea (26c1ea71) |
+|---|---|---|
+| per-turn p50 / p95 / max | 11.5 s / 25.6 s / 65.0 s | **10.1 s / 17.7 s / 51.7 s** |
+| code gates pass | 22/22 | 20/22 |
+| ≥ 95 % | 0/22 | **0/22** |
+| mean | 83 % | **76 %** |
+| stalled before the summary (counted from the transcript) | 8/22 (the judge counted 10) | **0/22** |
+| timeline asked (the bank's `when` fact released) | 16/22 (the judge counted 17) | **21/22** |
+| re-asks named by the judge | 4 conversations | 2 conversations |
+| re-ask flags (harness, the bank's broad fact patterns) | 57 | 14 |
+
+The rest of the bank, on the same commit (ae4f48c0, 21 scenarios):
+- code gates 19/21;
+- 0/21 at 95 %, mean 77 %;
+- 19/21 summaries confirmed;
+- timeline asked 21/21;
+- per-turn p50 / p95 / max: 12.3 s / **32.0 s** / 64.3 s. That is over the 30 s budget, from two rewrite deadlocks and
+  the photo turns.
+
+Whole bank: 0/43 at 95 %, best 90 %, mean 76.5 %. Without the code gates, the judged mean is 82.3 %.
+
+Interim run 34e94ae3 (commit 9b2f83013, before the #1640 merge and the article fix), not judged:
+- 19/22 gates;
+- 21/22 summaries;
+- 20/22 timeline;
+- 11 flags;
+- p50 / p95: 11.5 s / 21.1 s.
+
+### Why the mean fell, and what is fixed after the measured commit
+
+The four code-gate zeros:
+- **fire_alarm_office.** The seat did ask the tie-in to the building panel. The bank's must-have pattern needs "main
+  panel" or "connect", so the fact was never released. This is the rubric, and the bank was not edited to pass.
+- **water_tank_ar** (the rest of the bank). The capacity was asked as سعة, which the bank's size pattern does not
+  know. Fixed after the measured commit: the plumbing plan's bathroom slot no longer applies to a tank.
+- **smart_home_ar** (the rest of the bank). The room count was asked as عدد الغرف والأدوار, which the bank's pattern
+  does not know. Fixed after the measured commit: the detector deadlock that sent a bare "تم، خلال شهر.".
+- **painting_ar.** A rewrite deadlock (52 s) ended in a bare acknowledgement. Two detector gaps caused it: مساحتها and
+  the wall-condition words placed on no slot.
+
+The flaws the plan introduced:
+- **"To confirm" items that do not belong to the job.** "Material, finish and colour" on a fire alarm. Fixed in
+  e25b809b8: only the plan's own slots are listed.
+- **A rigid label.** A doors-only kitchen job was asked the wall lengths and appliances. e25b809b8 tells the model to
+  word the question for the job. **The spot check shows that this is not enough.**
+- **"Empty until we move in" read as the timeline.** Fixed in e25b809b8.
+- **An instruction spoken aloud** ("ما راح أكرر التصحيح"). Fixed in e25b809b8.
+
+Every deadlock began with a seat question that the detectors placed on no slot, or on a filled one. One turn of the
+ladder then cost 44-64 s. The guard (a slot required next twice becomes "to confirm") ends the loop, but only after
+that one turn. **The next step:** when every question in a reply is dropped as a re-ask, skip the rewrite and move the
+next slot to "to confirm".
+
+Spot check of the final commit 4f508df60 (d7287478, 5 of the scenarios the fixes target):
+- 4/5 code gates pass, where the same five scored 2/5 in the measured runs. smart_home_ar still fails on the bank's
+  room-count wording.
+- painting_ar is clean: no re-ask, no bare reply, and the summary carries the damp advice.
+- kitchen_cabinets_en still asks a doors-only job the layout.
+- The transcript file was lost to a full disk (ENOSPC), so this run is read from `assistant_logs`, not scored.
+
+### json_extraction does not fit a portal turn
+It runs on gpt-6-luna-pro in 7-13 s (8962e747). When it ran beside every turn, it held each turn 3 s and never
+returned inside the bound. It is now called only for the undecided case, with up to 12 s. A faster route would need a
+model_policy row, which is SQL, so it was not applied here.
+
+### Spend and cleanup (this session)
+- **Spend: AED 30.02 (USD 8.17), USD 0.17 over the USD 8 cap.** Source: `ai_cost_log`, fn `sales_engineer`, from
+  13:55Z. Tagged runs 8962e747, 19a21e1c, fafbabb3, 34e94ae3, 26c1ea71, ae4f48c0 and d7287478 account for AED 26.53.
+  67 untagged portal calls inside those windows, AED 3.49, are counted as this session's.
+- **Fixtures.** Every run was torn down by its exact tag. The two stopped runs (19a21e1c, fafbabb3) were torn down
+  with the harness's `closeRun`. Counts by tag read 0 for auth users, customers, email verifications, leads,
+  inquiries, storage objects and open rehearsal windows.
+- **Chat side effects.** Matched to the bank's scripted texts inside the run windows, then recounted by id:
+
+| rows deleted | table |
+|---:|---|
+| 329 | `assistant_logs` |
+| 329 | `sales_decision_log` |
+| 329 | `support_reply_readability` |
+| 210 | `sales_knowledge_gap`, with the 210 `org_tasks` they opened |
+
+  A recount reads 0 on each. Not reverted: 25 gap rows from before the session had their `asks` counted up.
+
+## Results (27 Oct, evening: before the plan)
 
 | | conversations | code gates pass | ≥ 95 % | mean | turns | p50 / p95 / max per turn | no answer |
 |---|---:|---:|---:|---:|---:|---|---:|
@@ -92,6 +198,9 @@ A recount reads 0 on each.
 
 | file | what it is |
 |---|---|
+| `live_seat_conversations_26c1ea71.json`, `judged_26c1ea71.json`, `.scored.json` | **after**: the same 22 on 6cf746dea (the plan) |
+| `live_seat_conversations_ae4f48c0.json`, `judged_ae4f48c0.json`, `.scored.json` | the rest of the bank, 21 scenarios on 6cf746dea |
+| `live_seat_conversations_34e94ae3.json` | interim: the 22 on 9b2f83013 (not judged) |
 | `live_seat_conversations_3de61aa6.json`, `judged_3de61aa6.json`, `.scored.json` | final run, the same 10 scenarios |
 | `live_seat_conversations_ecb6b6b2.json`, `judged_ecb6b6b2.json`, `.scored.json` | final run, 12 more scenarios |
 | `live_seat_conversations_143372b1.json`, `judged_143372b1.json`, `.scored.json` | interim run (first filter, before the summary and shape fixes) |
