@@ -67,7 +67,8 @@ import { BrandMark } from '@/components/BrandMark';
 
 // Same as the customer portal: an inline production fallback meant an unconfigured preview let
 // suppliers upload trade licences into the LIVE database. See supaEnv.
-import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
+import { SUPA_ANON as ANON, SUPA_FN as FN, SUPA_URL } from '@/lib/supaEnv';
+import { uploadToSignedUrl } from '@/lib/signedUpload';
 import { Ltr } from '@/lib/Ltr';
 const SB = () => supaClient('qd-portal-auth');
 
@@ -131,10 +132,12 @@ const QUOTE_ACCEPT = 'image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,.
 // UPLOADS UP TO 100 MB GO STRAIGHT TO STORAGE (19 Oct 2026, sales_engineer). Vercel caps a request body at 4.5 MB, so a
 // company profile or catalogue is not sent as base64: supplier_api upload_url signs a path in the supplier's own folder,
 // the file goes to it, and process_docs / save_documents are given the path (the server gates the stored bytes).
+// SB() is AUTH-ONLY (src/lib/supaClient.ts), so the file goes up by hand on the signed URL (src/lib/signedUpload.ts).
+// SB().storage was undefined: every profile and catalogue threw before upload and "Uploading..." never ended (27 Oct).
 const uploadDirect = async (kind, file, token) => {
   const u = await call('supplier_api', { action: 'upload_url', kind, filename: file.name, mime: file.type }, token);
   if (!(u && u.ok && u.path && u.token)) return { error: u };
-  const { error } = await SB().storage.from('supplier-docs').uploadToSignedUrl(u.path, u.token, file, { contentType: file.type });
+  const { error } = await uploadToSignedUrl(SUPA_URL, ANON, 'supplier-docs', u.path, u.token, file, file.type);
   return error ? { error: { code: 'direct_upload_failed' } } : { path: u.path, filename: file.name, mime: file.type };
 };
 const fileToB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.readAsDataURL(f); });
