@@ -9,6 +9,7 @@ import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
 import { notSureKeys, specHandoffArgs } from './spec_handoff.ts';
 import { parseRatingInput } from './rating_input.ts';
 import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
+import { isPhotoOrScan, visionCountBody, applyVisionCounts } from './vision_count_wire.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
 import { repeatCheck, repeatPlan } from './repeat.ts';
 import { HELD_NOTICE, hasArabic, holdForEnglish, mailMatched, supplierMail } from '../_shared/supplier_english.ts';
@@ -886,13 +887,30 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
     if (action === 'cad_read_status') {
       const id = String(body.job_id || '');
       if (!/^[0-9a-f-]{36}$/i.test(id)) return J({ ok: false, error: 'not_found' }, 404);
-      const { data: job } = await admin.from('cad_read_jobs').select('status, result, finished_at, created_at, claimed_at').eq('id', id).eq('customer_id', cust.id).maybeSingle();
+      const { data: job } = await admin.from('cad_read_jobs').select('status, result, boq_in, finished_at, created_at, claimed_at').eq('id', id).eq('customer_id', cust.id).maybeSingle();
       if (!job) return J({ ok: false, error: 'not_found' }, 404);
       // 24 Sep 2026: the worker also DRAWS a CAD file the edge could not, for suppliers (cad_read_worker.ts
       // supplierDrawing); its recorded page comes back here so the customer's request can carry it.
       const res = job.status === 'done' ? (job.result as any) : null;
       const pages = res?.redaction_complete === true && Array.isArray(res.drawing_redacted_paths) ? res.drawing_redacted_paths.map((p: unknown) => String(p)) : [];
-      return J({ ok: true, status: job.status, ...(job.status === 'queued' || job.status === 'running' ? { held_for: 'sales_engineer' } : {}), boq: res?.boq ?? null, ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_job_ids: Array.isArray(res.redaction_job_ids) ? res.redaction_job_ids.map((x: unknown) => String(x)) : [String(res.redaction_job_id || '')], redaction_complete: true, drawing_held: false } : {}) });
+      // THE PHOTO'S LEGEND, COUNTED ON THE PAGE THE WORKER PROVED CLEAN (27 Oct 2026, ledger 580; ./vision_count_wire.ts).
+      // Once per job: the reply is kept on the job's result, so a poll every 15 s does not pay for it again.
+      const vcIn = (job.boq_in as any)?.vision_count;
+      let counted: { boq: unknown; vision_count: unknown } | null = null;
+      if (res && pages.length && vcIn && Array.isArray((job.boq_in as any)?.vision_lines)) {
+        let vj = res.vision_count ?? null;
+        if (!vj) {
+          try {
+            // 60 s: one vision call on one page (VISION_COUNT_MAX_TOKENS 600); past it the code's counts stand and the next poll retries.
+            const vr = await timedFetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: await getSecret('cred_fn_customer_api'), mode: 'vision_count', redaction_job_id: String(res.redaction_job_id || ''), ...vcIn }) }, 60_000);
+            vj = await vr.json().catch(() => null);
+          } catch (_e) { vj = null; }
+          vj = vj && typeof vj === 'object' ? { ok: vj.ok === true, counts: vj.counts ?? null, source: vj.source ?? null, agrees: vj.agrees ?? null, vision: vj.vision ?? null, why: vj.why ?? null } : { ok: false, why: 'no_reply' };
+          if (vj.ok) await admin.from('cad_read_jobs').update({ result: { ...res, vision_count: vj } }).eq('id', id);
+        }
+        counted = { boq: applyVisionCounts((job.boq_in as any).vision_lines, vj), vision_count: { source: vj?.source ?? null, why: vj?.why ?? null, agrees: vj?.agrees ?? null } };
+      }
+      return J({ ok: true, status: job.status, ...(job.status === 'queued' || job.status === 'running' ? { held_for: 'sales_engineer' } : {}), boq: res?.boq ?? null, ...(counted ? { counted_boq: counted.boq, vision_count: counted.vision_count } : {}), ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_job_ids: Array.isArray(res.redaction_job_ids) ? res.redaction_job_ids.map((x: unknown) => String(x)) : [String(res.redaction_job_id || '')], redaction_complete: true, drawing_held: false } : {}) });
     }
 
     if (action === 'analyze_boq') {
@@ -1168,6 +1186,16 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
             if (lj?.ok && lj.boq && Array.isArray(lj.boq.boq)) Object.assign(boqOut, lj.boq);
             else if (!lengthsJob && Array.isArray(boqOut.boq) && boqOut.boq.some((l: any) => /^(duct|pipe):/.test(String(l?.type || '')) && l?.qty == null)) boqOut.missing_info = [LENGTHS_FAILED_NOTE, ...(Array.isArray(boqOut.missing_info) ? boqOut.missing_info : [])];
           } catch (_e) { /* the counted take-off stands */ }
+        }
+        // THE VISION COUNT FOR A PHOTO OR A SCAN (27 Oct 2026, ledger 580; ./vision_count_wire.ts says what was measured).
+        // Its page is redacted later, by the CAD worker's OCR (scanJob above): this edge holds every photo and scan page.
+        // So the legend's count request rides on that job, and cad_read_status runs it once the worker's run is recorded.
+        if (scanJob && boqOut && isPhotoOrScan(mime, pdfWords, isCad)) {
+          const vcBody = visionCountBody(boqOut.boq);
+          if (vcBody) {
+            const { data: jr } = await admin.from('cad_read_jobs').select('boq_in').eq('id', scanJob).maybeSingle();
+            await admin.from('cad_read_jobs').update({ boq_in: { ...((jr?.boq_in as Record<string, unknown>) || {}), vision_count: vcBody, vision_lines: boqOut.boq } }).eq('id', scanJob);
+          }
         }
         if (boqOut && Array.isArray(boqOut.boq) && boqOut.boq.length) {
           try {
