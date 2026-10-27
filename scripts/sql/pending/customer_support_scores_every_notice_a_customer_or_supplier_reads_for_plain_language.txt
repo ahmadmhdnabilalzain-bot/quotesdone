@@ -1,0 +1,6 @@
+Committed 27 Oct 2026 on ceo/senior-seat-audit-27-oct (founder ledger 1013 item 7). Seat: customer_support. Applied by
+the release operator at merge, never before (apply-at-merge rule). Proved by
+scripts/sql/customer_support_scores_every_notice_a_customer_or_supplier_reads_for_plain_language_probe.sql: PROBE OK on
+htdblwldjkcgjvmqkbeh, 27 Oct 2026, in one rolled-back transaction with this file. A rolled-back run on real data
+(normal mode) scored 395 notices of the last 35 days: 382 demo, 13 real; one real cause would open (supplier_invite_seed,
+4 of 4 failing on a 34-word sentence; written by customer_support itself, so no handoff).
