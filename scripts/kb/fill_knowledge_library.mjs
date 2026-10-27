@@ -4,7 +4,7 @@
 // in public.knowledge_library, then prints fn_knowledge_library_reconcile(). SQL:
 // scripts/sql/one_knowledge_library_is_built_beside_the_nine_stores_and_read_behind_a_flag.sql.
 //
-//   node scripts/kb/fill_knowledge_library.mjs            # plan: what is left per store, nothing written
+//   node scripts/kb/fill_knowledge_library.mjs            # plan: what is left per store; writes only the verdict row
 //   node scripts/kb/fill_knowledge_library.mjs --run      # fill, 23:00-06:00 Asia/Dubai only
 //   --limit=N (1..5000, default 2000)   --force-hours (outside the night window; never in a campaign hour)
 //
@@ -17,6 +17,10 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+// THE SWITCH (27 Oct 2026, ledger 889; scripts/sql/the_seats_read_the_knowledge_library_once_it_holds_every_row.sql):
+// every reconciliation this script runs is RECORDED in knowledge_library_state, and the seats read the library exactly
+// while the recorded verdict says reconciled. The run that maps the last page is therefore the run that switches every
+// seat to the library; a later NOT reconciled verdict switches them back. Nobody sets a flag.
 import { sql, PROJECT_REF } from '../lib/db.mjs';
 import { BATCH_DEFAULT, BATCH_MAX, PAUSE_MS, loadVerdict, inNightWindow } from './purge_guard.mjs';
 
@@ -44,8 +48,17 @@ async function q(text) {
   }
 }
 
+// Before that file is applied the recorder does not exist; the verdict is then printed, not recorded.
+async function reconcile(timeout) {
+  const has = (await q(`select to_regprocedure('public.fn_knowledge_library_record_reconcile()') is not null ok`))[0].ok;
+  const fn = has ? 'fn_knowledge_library_record_reconcile' : 'fn_knowledge_library_reconcile';
+  const r = (await q(`set statement_timeout = '${timeout}'; select public.${fn}() r`))[0].r;
+  if (!has) console.error('(verdict NOT recorded: fn_knowledge_library_record_reconcile is not applied yet)');
+  return r;
+}
+
 if (!RUN) {
-  const r = await q(`select public.fn_knowledge_library_reconcile() r`);
+  const r = [{ r: await reconcile('110s') }];
   console.log(JSON.stringify(r[0].r, null, 2));
   console.log('Plan only. Re-run with --run (23:00-06:00 Dubai).');
   process.exit(0);
@@ -63,7 +76,7 @@ for (const store of STORES) {
     await sleep(PAUSE_MS);
   }
 }
-const rec = (await q(`set statement_timeout = '110s'; select public.fn_knowledge_library_reconcile() r`))[0].r;
+const rec = await reconcile('110s');
 console.log(JSON.stringify(rec, null, 2));
 if (!rec.reconciled) { console.error('NOT RECONCILED: a store holds rows or citations the library does not map'); process.exit(2); }
-console.log('reconciled: every row and citation of the nine stores is in the library');
+console.log('reconciled: every row and citation of the nine stores is in the library; recorded, so the seats now read it');
