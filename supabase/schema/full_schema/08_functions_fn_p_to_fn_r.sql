@@ -3562,9 +3562,9 @@ begin
   ), due as (
     select h.id from public.reasoning_held_question h
      where h.id in (select id from lead where last_attempt_at is null or last_attempt_at < now() - interval '10 minutes')
-     -- 6 Oct: the NEWEST due question first; a retry (last_attempt_at set) still waits its 10 minutes, then goes
-     -- behind untried rows exactly as before, so it is never starved past its three tries.
-     order by h.last_attempt_at nulls first, h.created_at desc
+     -- 27 Oct: the OLDEST due question first (was: untried first, then newest, 6 Oct). A retry still waits its 10
+     -- minutes; after that its age alone decides. The three-try bound keeps one failing row from holding the head.
+     order by h.created_at, h.id
      limit greatest(1, least(coalesce(p_limit, 3), 10))
      for update skip locked
   ), claimed as (
