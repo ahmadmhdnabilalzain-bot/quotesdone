@@ -33,7 +33,7 @@ begin
   select s.row_id, md5(coalesce(s.title,'') || E'
 ' || coalesce(s.body,'')) into ceo_id, ceo_hash from public.v_knowledge_ml_source s where s.src = 'ceo_knowledge' limit 1;
   w := public.fn_ml_embed_write('ceo_knowledge', ceo_id, ceo_hash, v::vector(384), v::vector(384));
-  rr := public.fn_reason_retrieve_ml('ceo', v::vector(384), v::vector(384), 6);
+  rr := public.fn_reason_retrieve_ml('ceo', v::vector(384), v::vector(384), 6, p_audience => 'internal');
   -- a stale write is refused
   w := public.fn_ml_embed_write((c->'rows'->0->>'src'), (c->'rows'->0->>'row_id'), 'not-the-hash', v::vector(384), null);
   -- the trigger: touching the case's situation drops its vectors (same text written back, so nothing changes)

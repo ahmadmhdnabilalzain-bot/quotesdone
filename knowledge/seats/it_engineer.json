@@ -2447,6 +2447,36 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-19"
+    },
+    {
+      "id": "it_engineer:launchpath-probe-is-hourly",
+      "topic": "The invited-supplier launch path probe (launchpath) runs every hour",
+      "topic_ar": "فحص مسار الإطلاق للموردين المدعوين (launchpath) يعمل كل ساعة",
+      "kind": "checklist",
+      "area": "seat_duties",
+      "body_en": "The launchpath probe, which walks the invited-supplier and customer launch path read-only, runs hourly from resilience_ping (public.resilience_step).",
+      "body_ar": "فحص launchpath، الذي يمر على مسار إطلاق الموردين المدعوين والعملاء للقراءة فقط، يعمل كل ساعة من resilience_ping (public.resilience_step).",
+      "sources": [
+        "internal:public.resilience_step (measured 2026-09-28)"
+      ],
+      "confidence": "high",
+      "as_of": "2026-10-19",
+      "source_note": "Focused entry split from a multi-fact entry the model-on exam missed (ledger 1084, run b2f80d4d)."
+    },
+    {
+      "id": "it_engineer:page-data-budget-and-the-30-run-floor",
+      "topic": "Page data loads in under 2.5 seconds at p95; a function needs at least 30 runs before a finding",
+      "topic_ar": "تحميل بيانات الصفحة أقل من 2.5 ثانية عند p95، والدالة تحتاج 30 تشغيلًا على الأقل قبل اعتبارها مشكلة",
+      "kind": "decision_rule",
+      "area": "seat_duties",
+      "body_en": "Page data must load in under 2.5 seconds, judged on the p95 (the 95th percentile), not the mean. The hourly duty it_engineer.latency_slo raises a finding only for a function with at least 30 runs in 24 hours whose p95 exceeds its budget; the 30-run floor stops one slow cold start from becoming a finding.",
+      "body_ar": "يجب أن تُحمَّل بيانات الصفحة في أقل من 2.5 ثانية، ويُحكم على ذلك بقيمة p95 لا بالمتوسط. الواجب الساعي it_engineer.latency_slo يرفع مشكلة فقط لدالة لها 30 تشغيلًا على الأقل خلال 24 ساعة وتتجاوز p95 لها الميزانية؛ حد الثلاثين تشغيلًا يمنع بدءًا باردًا واحدًا من أن يصبح مشكلة.",
+      "sources": [
+        "internal:public.seat_duty/it_engineer.latency_slo"
+      ],
+      "confidence": "high",
+      "as_of": "2026-10-19",
+      "source_note": "Focused entry split from a multi-fact entry the model-on exam missed (ledger 1084, run b2f80d4d)."
     }
   ],
   "eval": [

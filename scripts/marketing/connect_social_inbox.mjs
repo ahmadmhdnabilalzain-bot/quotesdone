@@ -16,6 +16,7 @@
 //
 //   node scripts/marketing/connect_social_inbox.mjs            # all four steps
 //   node scripts/marketing/connect_social_inbox.mjs --check    # d only (reads; writes nothing)
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { PROD_REF } from '../lib/qd_guard.mjs';
@@ -26,7 +27,7 @@ const CALLBACK = `https://${PROD_REF}.supabase.co/functions/v1/marketing_social_
 const PAGE_FIELDS = ['messages', 'message_echoes', 'feed'];
 const IG_FIELDS = ['messages', 'comments'];
 
-const mgmt = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const mgmt = supabaseAccessToken();
 async function sql(query) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${PROD_REF}/database/query`, {
     method: 'POST', headers: { Authorization: 'Bearer ' + mgmt, 'Content-Type': 'application/json' }, body: JSON.stringify({ query }),

@@ -96,10 +96,12 @@ do $$ declare o jsonb; v jsonb; h bigint; begin
   create or replace function public.fn_zz_demo_duty_ok() returns jsonb language sql as $f$ select '{"did":1}'::jsonb $f$;
   create or replace function public.fn_zz_demo_duty_bad() returns jsonb language plpgsql as $f$ begin raise exception 'boom'; end $f$;
   update public.seat_duty set last_started_at = now() where true;   -- only the ZZ DEMO duties are due in this probe
-  insert into public.seat_duty(duty, owner_seat, every, routine, what, owner_file) values
-   ('it_engineer.zz_demo_ok','it_engineer','15 minutes','fn_zz_demo_duty_ok','ZZ DEMO ok','scripts/sql/x.sql'),
-   ('it_engineer.zz_demo_bad','it_engineer','15 minutes','fn_zz_demo_duty_bad','ZZ DEMO bad','scripts/sql/x.sql'),
-   ('it_engineer.zz_demo_missing','it_engineer','15 minutes','fn_zz_demo_nope','ZZ DEMO missing','scripts/sql/x.sql');
+  -- avg_ms is given: since one_slow_duty_never_wedges_the_seat_duty_tick.sql (634a8952, 18 Oct 2026) the tick moves an
+  -- UNMEASURED duty to its own cron job instead of running it inline, so a probe duty must be a measured, fast one
+  insert into public.seat_duty(duty, owner_seat, every, routine, what, owner_file, avg_ms) values
+   ('it_engineer.zz_demo_ok','it_engineer','15 minutes','fn_zz_demo_duty_ok','ZZ DEMO ok','scripts/sql/x.sql', 10),
+   ('it_engineer.zz_demo_bad','it_engineer','15 minutes','fn_zz_demo_duty_bad','ZZ DEMO bad','scripts/sql/x.sql', 10),
+   ('it_engineer.zz_demo_missing','it_engineer','15 minutes','fn_zz_demo_nope','ZZ DEMO missing','scripts/sql/x.sql', 10);
   update public.seat_duty set failures = 2 where duty = 'it_engineer.zz_demo_bad';
   perform public.fn_it_engineer_finding_upsert('seat_duty:it_engineer.zz_demo_ok', 'ZZ DEMO stale', 'x', 'agent_facing');
   v := public.fn_seat_duties_tick(30);

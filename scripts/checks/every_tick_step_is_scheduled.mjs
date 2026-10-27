@@ -8,11 +8,11 @@
 //
 // This asserts both directions against PRODUCTION, so it fails on a schedule that was never applied as
 // well as on a code change that forgot its row.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 
 async function db(query, attempt = 0) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {

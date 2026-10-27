@@ -51,6 +51,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "waste_management:product-distinctions",
+      "topic": "Waste management: waste streams, containers and collection",
+      "topic_ar": "إدارة النفايات: تيارات النفايات والحاويات والجمع",
+      "kind": "product_distinctions",
+      "body_en": "Waste services follow the waste hierarchy: reduce, reuse, recycle, recover energy, and only then dispose to landfill. Streams: general (mixed) commercial waste, segregated recyclables (cardboard, paper, plastics, metals, glass), organic and food waste, construction and demolition debris, green waste, bulky items, e-waste, and hazardous or medical waste, which needs licensed handling. Containers: wheelie bins (120-1,100 L), front-end loader bins, roll-on/roll-off skips (for example 10-40 cubic yards) for sites and bulky waste, compactors and balers (reduce volume and collection trips for high-volume generators such as malls and warehouses), and underground or smart bins with fill-level sensors. Collection is scheduled (daily, alternate days, weekly) or on call, by licensed waste carriers to authorised facilities (material recovery facilities, composting, waste-to-energy, landfill). Commercial buyers increasingly need waste audits, segregation at source, diversion-rate reports and recycling certificates for sustainability reporting. Offers differ on container types and rental, collection frequency, price per lift, per tonne or per trip, landfill and gate fees included or extra, licences, and reporting.",
+      "body_ar": "تتبع خدمات النفايات هرم النفايات: التقليل، وإعادة الاستخدام، وإعادة التدوير، واستعادة الطاقة، ثم التخلص في المرادم فقط في النهاية. والتيارات: النفايات التجارية العامة (المختلطة)، والمواد القابلة للتدوير المفروزة (الكرتون، الورق، البلاستيك، المعادن، الزجاج)، والنفايات العضوية والطعام، ومخلفات البناء والهدم، والنفايات الخضراء، والقطع الكبيرة، والنفايات الإلكترونية، والنفايات الخطرة أو الطبية التي تحتاج تعاملاً مرخصاً. والحاويات: الحاويات ذات العجلات (120-1100 لتر)، وحاويات التحميل الأمامي، والحاويات الكبيرة القابلة للسحب (مثل 10-40 ياردة مكعبة) للمواقع والقطع الكبيرة، والمكابس وآلات الكبس في بالات (تقلل الحجم ورحلات الجمع للمولدين الكبار مثل المراكز التجارية والمستودعات)، والحاويات المدفونة أو الذكية بحساسات مستوى الامتلاء. ويكون الجمع مجدولاً (يومياً، يوماً بعد يوم، أسبوعياً) أو عند الطلب، عبر ناقلي نفايات مرخصين إلى منشآت معتمدة (مرافق استرداد المواد، التسميد، تحويل النفايات إلى طاقة، المرادم). ويحتاج المشترون التجاريون بشكل متزايد تدقيقات النفايات، والفرز عند المصدر، وتقارير نسبة التحويل، وشهادات إعادة التدوير لتقارير الاستدامة. وتختلف العروض في أنواع الحاويات وإيجارها، وتكرار الجمع، والسعر لكل رفعة أو طن أو رحلة، وشمول رسوم المرادم والبوابة أو إضافتها، والتراخيص، والتقارير.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Waste_management"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: the waste hierarchy, separation and recycling, compaction and landfill -> confirmed."
+    },
+    {
+      "id": "waste_management:lead-times-and-quoting",
+      "topic": "Waste management & skip hire - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "إدارة النفايات وتأجير الحاويات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Skips and bins: usually delivered within 1-2 days; contracts start within a week; compactors 2-6 weeks. A provider needs the waste types and volumes, site and access, number and type of containers, frequency, recycling goals and reporting needs. A quote states containers and rental, collection schedule, price per lift, tonne or trip, disposal fees, licences, recycling certificates and reporting, and validity.",
+      "body_ar": "الحاويات: تُسلم عادة خلال 1-2 يوم؛ والعقود تبدأ خلال أسبوع؛ والمكابس 2-6 أسابيع. ويحتاج المزود أنواع النفايات وأحجامها، والموقع والوصول، وعدد الحاويات ونوعها، والتكرار، وأهداف إعادة التدوير، واحتياجات التقارير. ويذكر العرض الحاويات وإيجارها، وجدول الجمع، والسعر لكل رفعة أو طن أو رحلة، ورسوم التخلص، والتراخيص، وشهادات إعادة التدوير والتقارير، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -76,6 +106,14 @@
       ],
       "why": "No entry of this pack answered it (no entry lists skip sizes; the checklist only lists skip sizes as a field to state). waste_management:skip-and-roro-container-sizes was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from waste_management.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Would a cardboard baler save money for a warehouse that fills two skips a week?",
+      "q_ar": "هل آلة كبس الكرتون توفر لمستودع يعبي حاويتين بالأسبوع؟",
+      "expected_entry_ids": [
+        "waste_management:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -95,6 +133,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "waste_management:skip-and-roro-container-sizes"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "waste_management:product-distinctions"
+      ],
+      "stored_not_served": [
+        "waste_management:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Waste_management"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

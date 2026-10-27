@@ -17,14 +17,14 @@
 // IT CANNOT BE RUN TODAY AND THAT IS DELIBERATE: it makes live agent calls, and every provider
 // route is held open-circuit in llm_route_health at the founder's instruction. Rehoming it is not
 // releasing it. When the hold is lifted, this needs QD_FIXTURES=1 like every other fixture path.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { mgmtFixture } from '../lib/qd_guard.mjs';
 import { REF } from '../lib/demo_factory.mjs';
 import { readFileSync } from 'node:fs';
 
 const BASE = `https://${REF}.supabase.co`;
 const KEEP = process.argv.includes('--keep');
-const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const mgmtToken = supabaseAccessToken();
 
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`,
   { headers: { Authorization: 'Bearer ' + mgmtToken } })).json();

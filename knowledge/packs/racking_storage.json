@@ -54,6 +54,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "racking_storage:product-distinctions",
+      "topic": "Racking systems: types, load ratings and safety inspection",
+      "topic_ar": "أنظمة الرفوف: الأنواع وتصنيفات الأحمال والفحص للسلامة",
+      "kind": "product_distinctions",
+      "body_en": "Pallet racking types: selective (adjustable) racking, direct access to every pallet, the most common; double-deep (more density, needs deep-reach trucks); drive-in and drive-through (forklifts enter the rack, high density for few SKUs, last-in-first-out or first-in-first-out); push-back (pallets on carts, several deep per level); pallet flow (gravity rollers, first-in-first-out for dated stock); very narrow aisle (VNA) racking with guided trucks; mobile racking on motorised bases; cantilever racking for long items (pipes, timber, steel); and mezzanines. Light-duty options: longspan shelving, boltless shelving, and carton flow for picking. Design follows pallet size and weight, the forklift type and its lift height, aisle widths, floor slab capacity and flatness, and fire-sprinkler clearances. Every bay carries a load notice stating the maximum load per beam level and per bay, beams are rated as pairs at a specified uniformly distributed load, and uprights depend on beam spacing. Damage from forklift impact is the main risk: column guards, end-of-aisle protectors and regular rack inspections by a qualified inspector, with damaged components replaced, keep racking safe. Racking above certain heights may need structural calculations and approvals.",
+      "body_ar": "أنواع رفوف المنصات: الرفوف الانتقائية (القابلة للتعديل) بوصول مباشر لكل منصة وهي الأكثر شيوعاً؛ والعمق المزدوج (كثافة أكبر وتحتاج رافعات وصول عميق)؛ والرفوف التي تدخلها الرافعات أو تعبرها (كثافة عالية لأصناف قليلة، الداخل أخيراً يخرج أولاً أو الداخل أولاً يخرج أولاً)؛ والدفع للخلف (منصات على عربات، عدة منصات بالعمق في كل مستوى)؛ والانسياب (بكرات بالجاذبية، الداخل أولاً يخرج أولاً للبضاعة المؤرخة)؛ والممرات الضيقة جداً مع رافعات موجهة؛ والرفوف المتحركة على قواعد بمحركات؛ والرفوف الكابولية للأصناف الطويلة (الأنابيب، الخشب، الحديد)؛ والطوابق الوسطية. والخيارات الخفيفة: أرفف البحر الطويل، والأرفف دون براغي، وانسياب الكراتين للانتقاء. ويتبع التصميم مقاس المنصة ووزنها، ونوع الرافعة وارتفاع رفعها، وعرض الممرات، وقدرة بلاطة الأرضية واستواءها، ومسافات رشاشات الحريق. وكل وحدة تحمل لوحة أحمال تبين الحمل الأقصى لكل مستوى عوارض ولكل وحدة، وتُصنف العوارض كأزواج عند حمل موزع بانتظام محدد، والقوائم تعتمد على المسافة بين العوارض. وأضرار اصطدام الرافعات هي الخطر الرئيسي: واقيات القوائم وواقيات نهايات الممرات والفحص المنتظم للرفوف من مفتش مؤهل مع استبدال المكونات المتضررة تحافظ على سلامة الرفوف. وقد تحتاج الرفوف فوق ارتفاعات معينة حسابات إنشائية وموافقات.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Pallet_racking"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: selective, drive-in, push-back and pallet-flow racking; regular rack audits by a qualified inspector -> confirmed."
+    },
+    {
+      "id": "racking_storage:lead-times-and-quoting",
+      "topic": "Racking & storage systems - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "أنظمة الرفوف والتخزين: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Standard racking: 2-6 weeks; imported or large systems 6-12 weeks plus installation. A supplier needs the warehouse drawing and clear height, pallet size and weights, number of pallet positions, forklift type, floor details, and sprinkler layout. A quote states the layout, system type, beam and upright sections, load ratings per level and bay, accessories and protection, installation, load signs, certificates, warranty and validity.",
+      "body_ar": "الرفوف القياسية: 2-6 أسابيع؛ والأنظمة المستوردة أو الكبيرة 6-12 أسبوعاً إضافة إلى التركيب. ويحتاج المورد مخطط المستودع والارتفاع الصافي، ومقاس المنصات وأوزانها، وعدد مواقع المنصات، ونوع الرافعة، وتفاصيل الأرضية، وتخطيط الرشاشات. ويذكر العرض التخطيط ونوع النظام ومقاطع العوارض والقوائم وتصنيفات الحمل لكل مستوى ووحدة والملحقات والحماية والتركيب ولوحات الأحمال والشهادات والضمان والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (No entry covers pallet racking price drivers; missing). racking_storage:pallet-racking-price-drivers was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from racking_storage.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Selective or drive-in racking for 600 pallets of only 8 products?",
+      "q_ar": "رفوف انتقائية ولا رفوف تدخلها الرافعة لـ 600 منصة من 8 منتجات بس؟",
+      "expected_entry_ids": [
+        "racking_storage:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "racking_storage:pallet-racking-price-drivers"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "racking_storage:product-distinctions"
+      ],
+      "stored_not_served": [
+        "racking_storage:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Pallet_racking"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

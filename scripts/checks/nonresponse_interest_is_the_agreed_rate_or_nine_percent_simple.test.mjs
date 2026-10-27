@@ -96,11 +96,14 @@ begin
     values (vp, now() - interval '420 days', 300, 300, 300, 'refunded', now() - interval '410 days') returning id into tp;
   insert into public.supplier_dues (transaction_id, supplier_id, amount_due, admin_fee, status) values (tp, vp, 300, 250, 'open') returning id into dp;
   -- the delivered notice the charge dates from, as a bare row: its triggers (handoff notes, outbox) are held for this
-  -- one insert, so the aborted probe can never reach a delivery path or a real person
+  -- one insert, so the aborted probe can never reach a delivery path or a real person. The CHECK
+  -- agent_actions_handoff_note_states_four_fields (#1578, founder ledger 1013) still holds with triggers off, so the
+  -- note states its context, decision, open asks and deadline like any handoff.
   set local session_replication_role = replica;
   insert into public.agent_actions (agent, kind, status, target_id, decided_at, evidence, detail)
     values ('customer_support', 'handoff', 'done', 'delivery.request:nonresponse_charge:' || dp, now() - interval '400 days', '{"delivered": true}',
-            '{"summary": {"known": "ZZ DEMO probe fixture", "tried": [], "needed": "nothing, aborted probe", "evidence": "ZZ DEMO"}}');
+            '{"summary": {"known": "ZZ DEMO probe fixture", "tried": [], "needed": "nothing, aborted probe", "evidence": "ZZ DEMO",
+                          "context": "ZZ DEMO probe fixture", "decision": "none, aborted probe", "open_asks": ["nothing, aborted probe"], "deadline": null}}');
   set local session_replication_role = origin;
   pre := public.fn_accountant_nonresponse_charge(tp, null);
   rec := public.fn_accountant_record_supplier_payment(dp, 275, (pre->>'due_date')::date + 100, 'ZZ-DEMO-BANK-TRANSFER-1');
@@ -154,7 +157,8 @@ begin
   set local session_replication_role = replica;
   insert into public.agent_actions (agent, kind, status, target_id, decided_at, evidence, detail)
     values ('customer_support', 'handoff', 'done', 'delivery.request:nonresponse_charge:' || dr, now() - interval '400 days', '{"delivered": true}',
-            '{"summary": {"known": "ZZ DEMO probe fixture", "tried": [], "needed": "nothing, aborted probe", "evidence": "ZZ DEMO"}}');
+            '{"summary": {"known": "ZZ DEMO probe fixture", "tried": [], "needed": "nothing, aborted probe", "evidence": "ZZ DEMO",
+                          "context": "ZZ DEMO probe fixture", "decision": "none, aborted probe", "open_asks": ["nothing, aborted probe"], "deadline": null}}');
   set local session_replication_role = origin;
   r_prev := (public.fn_supplier_dues_outstanding(array[dr], d - 1) -> dr::text ->> 'owed_aed')::numeric;
   r_today := (public.fn_supplier_dues_outstanding(array[dr], d) -> dr::text ->> 'owed_aed')::numeric;

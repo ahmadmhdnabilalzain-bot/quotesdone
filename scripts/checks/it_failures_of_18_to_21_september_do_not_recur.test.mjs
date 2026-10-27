@@ -50,7 +50,14 @@ test('the liveness check reads the scheduler from its own rows, not the detector
                                 public.fn_cron_liveness() live`);
   assert.ok(r.d.includes(`where agent = 'fn:resilience_ping'`), 'fn_cron_liveness does not read agent_runs fn:resilience_ping');
   assert.ok(!r.d.includes('from public.it_watch_tick'), 'fn_cron_liveness reads it_watch_tick, which is the detector, not the scheduler');
-  assert.ok(String(r.live.source || '').startsWith('resilience tick'), `liveness source is ${r.live.source}`);
+  // 27 Oct 2026: either of the routine's two SCHEDULER sources, never the detector. fn_cron_liveness takes the later
+  // of the resilience tick and cron.job_run_details ("taking pg_cron as the later of the two sources if it is ever
+  // revived", scripts/sql/the_liveness_check_reads_the_scheduler_not_the_detector.sql). pg_cron was empty when this
+  // was written (21 Sep); it was revived with the seat duties' own jobs (one_slow_duty_never_wedges_the_seat_duty_tick.sql,
+  // 18 Oct, 42 seat_duty:* jobs) and the schedules moved off GitHub (#1597), so outside the minutes just after a
+  // quarter-hour tick a */5 job is newer and the source reads pg_cron by design (27 Oct run: "pg_cron
+  // (cron.job_run_details)"). What this test guards - the detector is not read - is the two assertions above.
+  assert.match(String(r.live.source || ''), /^(resilience tick|pg_cron \(cron\.job_run_details\))/, `liveness source is ${r.live.source}`);
 });
 
 test('fn_it_detect finishes under 6 s even when one subject floods agent_runs', { skip: SKIP }, async () => {

@@ -1,0 +1,11 @@
+{
+ "id": 101514,
+ "type": "quote_spec_released",
+ "channel": "email",
+ "status": "suppressed",
+ "to_email": "qd-321d13ae-sup11@example.invalid",
+ "lang": "en",
+ "subject": "Your quote is approved — RFQ 158711",
+ "body": "Hello,\n\nThank you for confirming. Your quote is now with the customer.\n\nQuotesDone sales engineer",
+ "html": null
+}

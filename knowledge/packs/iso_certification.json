@@ -42,6 +42,36 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "iso_certification:product-distinctions",
+      "topic": "Certification: system certification versus product certification, and accredited versus not",
+      "topic_ar": "منح الشهادات: شهادة النظام مقابل شهادة المنتج، والمعتمدة مقابل غير المعتمدة",
+      "kind": "product_distinctions",
+      "body_en": "Management system certification audits how an organisation works against a standard: ISO 9001 (quality), ISO 14001 (environment), ISO 45001 (occupational health and safety), ISO 22000/FSSC (food safety, outside this trade), ISO 27001 (information security), ISO 50001 (energy), ISO 37001 (anti-bribery). Product certification tests and certifies a product or its factory production against a product standard or regulation (conformity marks, type approval). The certificate is issued by a third-party certification body; its value depends on whether that body is accredited for the scope by a recognised accreditation body that is a signatory to the international recognition arrangements, so the certificate can be checked on the public register. The cycle is a two-stage initial audit (documentation readiness, then implementation), then annual surveillance audits and recertification on a roughly three-year cycle. Consultancy that builds the system and certification that audits it must be separate companies; a firm offering both for one client is a conflict of interest and a warning sign. Audit days depend on headcount, sites, scope and risk, and a quote with far fewer audit days than the accreditation rules require usually means a certificate that will not stand scrutiny.",
+      "body_ar": "شهادة نظام الإدارة تدقق طريقة عمل المؤسسة مقابل مواصفة: ISO 9001 (الجودة)، وISO 14001 (البيئة)، وISO 45001 (الصحة والسلامة المهنية)، وISO 27001 (أمن المعلومات)، وISO 50001 (الطاقة)، وISO 37001 (مكافحة الرشوة). أما شهادة المنتج فتختبر المنتج أو إنتاجه في المصنع وتمنحه الشهادة مقابل مواصفة أو لائحة للمنتج (علامات المطابقة، اعتماد النوع). وتصدر الشهادة عن جهة منح شهادات مستقلة من طرف ثالث، وتعتمد قيمتها على اعتماد هذه الجهة للنطاق من جهة اعتماد معترف بها موقّعة على اتفاقيات الاعتراف الدولية، بحيث يمكن التحقق من الشهادة في السجل العام. والدورة تبدأ بتدقيق أولي من مرحلتين (جاهزية التوثيق ثم التطبيق)، ثم تدقيقات مراقبة سنوية وإعادة منح على دورة تقارب ثلاث سنوات. ويجب أن تكون الاستشارة التي تبني النظام وجهة الشهادة التي تدققه شركتين منفصلتين؛ والجهة التي تعرض الأمرين لعميل واحد في تعارض مصالح، وهذه علامة تحذير. وعدد أيام التدقيق يعتمد على عدد الموظفين والمواقع والنطاق والمخاطر، والعرض بأيام تدقيق أقل كثيراً مما تشترطه قواعد الاعتماد يعني غالباً شهادة لا تصمد أمام التحقق.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/ISO_9000_family"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: ISO 9001 certification by accredited third-party certification bodies on a roughly three-year cycle -> confirmed (surveillance audits not on the page)."
+    },
+    {
+      "id": "iso_certification:lead-times-and-quoting",
+      "topic": "Certification bodies (ISO & product) - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "جهات منح الشهادات (الأيزو والمنتجات): المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stage 1 and stage 2 audits can usually be scheduled within 2-6 weeks of the contract; the certificate issues 2-6 weeks after stage 2 once nonconformities are closed; a full first certification with system implementation takes 3-6 months. The body needs the standard(s), scope of activities, headcount (including shifts and contractors), number of sites and addresses, any outsourced processes, the current state of the system, and any transfer from another body. A complete quote states the accreditation body and the accredited scope code, audit days per stage and per surveillance, the three-year fee schedule, travel costs, the certificate scope wording, and validity.",
+      "body_ar": "يمكن عادة جدولة تدقيق المرحلتين الأولى والثانية خلال 2-6 أسابيع من التعاقد؛ وتصدر الشهادة بعد 2-6 أسابيع من المرحلة الثانية بعد إغلاق حالات عدم المطابقة؛ والشهادة الأولى الكاملة مع تطبيق النظام 3-6 أشهر. وتحتاج الجهة المواصفة أو المواصفات، ونطاق الأنشطة، وعدد الموظفين (مع الورديات والمقاولين)، وعدد المواقع وعناوينها، وأي عمليات مسندة لجهات خارجية، والحالة الراهنة للنظام، وأي نقل من جهة أخرى. ويذكر العرض الكامل جهة الاعتماد ورمز النطاق المعتمد، وأيام التدقيق لكل مرحلة ولكل تدقيق مراقبة، وجدول الرسوم لثلاث سنوات، وتكاليف السفر، وصياغة نطاق الشهادة، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -67,6 +97,14 @@
       ],
       "why": "States a certificate is recognised only when the certification body is accredited by a mutual-recognition signatory (now GAC, ex-IAF) and names EIAC, which is how to verify it.",
       "origin": "real buyer question, moved from iso_certification.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "A company offered to write our ISO 9001 system and certify it too in two weeks. Is that a problem?",
+      "q_ar": "شركة عرضت تكتب لنا نظام الأيزو 9001 وتعطينا الشهادة بعد في أسبوعين، هل فيها مشكلة؟",
+      "expected_entry_ids": [
+        "iso_certification:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -83,6 +121,27 @@
       "iso_certification:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "iso_certification:product-distinctions"
+      ],
+      "stored_not_served": [
+        "iso_certification:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/ISO_9000_family"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

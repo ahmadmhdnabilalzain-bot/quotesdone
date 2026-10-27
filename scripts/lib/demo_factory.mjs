@@ -42,6 +42,7 @@
 //     node scripts/lib/demo_factory.mjs --purge       delete the accumulated litter
 //     node scripts/lib/demo_factory.mjs --purge --dry-run
 //     node scripts/lib/demo_factory.mjs --corpus 100  build a matching corpus (add --keep)
+import { supabaseAccessToken } from './supabase_token.mjs';
 import { assertNotProduction, mgmtRead, mgmtFixture, PROD_REF } from './qd_guard.mjs';
 import { demoPdf, demoTradeLicence } from './demo_pdf.mjs';
 import { readFileSync } from 'node:fs';
@@ -80,8 +81,7 @@ export const bool = (v) => (v === null || v === undefined) ? 'null' : (v ? 'true
 let _keys = null;
 export async function keys() {
   if (_keys) return _keys;
-  const mgmt = (process.env.SUPABASE_ACCESS_TOKEN
-    || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+  const mgmt = supabaseAccessToken();
   // 14 SEP 2026, smoke run 34885431255: in CI this answered with something that was not an array and
   // the harness died on "k.find is not a function", which names neither the status nor the reason.
   // The same token ran /database/query in the same job, so it is the api-keys call itself (a scope, or
@@ -1170,7 +1170,10 @@ const BUCKET_SOURCES = (s) => [
        union select regexp_replace(company_profile_doc_path, '^supplier-docs/', '') from public.leads
         where ${s.lead} and company_profile_doc_path is not null
        union select regexp_replace(unnest(coalesce(catalog_doc_paths, '{}'::text[])), '^supplier-docs/', '')
-         from public.leads where ${s.lead}`,
+         from public.leads where ${s.lead}
+       -- supplier_catalog_ingest stores catalog/<lead>/<ts>-<name> and names it only on its catalogue row (19 Oct 2026, S20).
+       union select c.source_document_path from public.supplier_catalog c
+        where c.source_document_path is not null and c.supplier_id in (select id from public.leads where ${s.lead})`,
   },
   {
     // The comparison PDF is the one output whose path NOTHING records: comparison_run_v2 has no
@@ -1355,8 +1358,11 @@ export async function teardown(run) {
     ['inquiries', `delete from public.inquiries where id in ${INQ}`],
     ['doc_reviews', `delete from public.doc_reviews where lead_id in ${LEAD}`],
     ['inbound_messages', `delete from public.inbound_messages where lead_id in ${LEAD}`],
-    ['supplier_catalog', `delete from public.supplier_catalog where supplier_id in ${LEAD}`],
+    // supplier_product.catalog_id references supplier_catalog: products first (23503 on 19 Oct 2026, S20).
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${LEAD}`],
+    // sanitizeAndScan records each supplier upload in file_scan keyed by the lead id as text.
+    ['file_scan', `delete from public.file_scan where source = 'supplier_catalog_ingest' and subject in ${LEAD_T}`],
+    ['supplier_catalog', `delete from public.supplier_catalog where supplier_id in ${LEAD}`],
     ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${LEAD}`],
     // EVERY OTHER TABLE THAT POINTS AT leads (12 Oct 2026, stage2 run 1c94fa6a: licence_renewal_ask, added that day,
     // refused the leads delete and stranded the run). Found from the catalogue at teardown time, so a table added
@@ -1449,8 +1455,8 @@ export async function purge(opts = {}) {
     ['inquiries', `delete from public.inquiries where id in ${P_INQ}`],
     ['doc_reviews', `delete from public.doc_reviews where lead_id in ${P_LEAD}`],
     ['inbound_messages', `delete from public.inbound_messages where lead_id in ${P_LEAD}`],
-    ['supplier_catalog', `delete from public.supplier_catalog where supplier_id in ${P_LEAD}`],
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${P_LEAD}`],
+    ['supplier_catalog', `delete from public.supplier_catalog where supplier_id in ${P_LEAD}`],
     ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${P_LEAD} or supplier_id not in (select id from public.leads)`],
     ['leads', `with im as (delete from public.inbound_messages where lead_id in ${P_LEAD}) delete from public.leads where id in ${P_LEAD}`],
     ['drawing_redaction_runs', `delete from public.drawing_redaction_runs where customer_id is null or customer_id not in (select id from public.customers) or owner_email like 'qd-%@example.%'`],

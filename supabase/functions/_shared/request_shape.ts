@@ -20,6 +20,9 @@ export const THINKING_HEADROOM = 4000;
 export const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
 export type Effort = typeof EFFORTS[number];
 
+// Reasoning models outside Claude, used only when OpenRouter's catalogue could not be read for this attempt.
+export const REASONING_ID = /^openai\/(gpt-6|o\d)/;
+
 export function isClaude(model: string): boolean {
   return /^anthropic\/claude-/.test(model);
 }
@@ -42,11 +45,18 @@ export function shapeRequest(s: ShapeIn): Record<string, unknown> {
     const effort = (EFFORTS as readonly string[]).includes(String(s.effort)) ? String(s.effort) : 'medium';
     out.reasoning = { effort };
     out.max_tokens = s.maxTokens + THINKING_HEADROOM;
+  } else if (s.supported ? s.supported.has('reasoning') : REASONING_ID.test(s.model)) {
+    // an unknown catalogue (null) falls back to the model id (ceo, #1585: Luna Pro reviews came back empty at 600)
+    // ANY REASONING MODEL, NOT ONLY CLAUDE (it_engineer, 19 Oct 2026). Matrix v3 (18 Oct) moved the internal classes to
+    // GPT-6 Luna Pro, which reasons before it answers and spends that inside max_tokens. Measured in the model-on exam
+    // (runs b2f80d4d, cdd95305): 6 of 60 seat answers held because the JSON answer was cut off mid-sentence at the
+    // 900-token budget, and planner calls ran to the 45 s wall. The answer budget is the caller's; thinking gets its own.
+    out.max_tokens = s.maxTokens + THINKING_HEADROOM;
+    // A CALLER'S EXPLICIT EFFORT REACHES A REASONING MODEL OF ANOTHER FAMILY TOO (customer_support, 19 Oct 2026), only where
+    // OpenRouter lists `reasoning` for it. Measured: a WhatsApp classification on Luna Pro wrote 800-1800 reasoning tokens
+    // (10-20 s) at the default effort. No effort given = the model's own default, exactly as before.
+    if (s.effort && (EFFORTS as readonly string[]).includes(String(s.effort))) out.reasoning = { effort: String(s.effort) };
   }
-  // A CALLER'S EXPLICIT EFFORT REACHES A REASONING MODEL OF ANOTHER FAMILY TOO (customer_support, 19 Oct 2026), only where
-  // OpenRouter lists `reasoning` for it. Measured: a WhatsApp classification on Luna Pro wrote 800-1800 reasoning tokens
-  // (10-20 s) at the default effort. No effort given = the model's own default, exactly as before.
-  else if (s.effort && (EFFORTS as readonly string[]).includes(String(s.effort)) && s.supported?.has('reasoning')) out.reasoning = { effort: String(s.effort) };
   if (s.responseFormat != null && s.supported?.has('response_format')) out.response_format = s.responseFormat;
   return out;
 }

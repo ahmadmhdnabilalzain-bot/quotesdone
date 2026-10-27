@@ -21,6 +21,7 @@
 // because it guards migration and fixture tooling against reaching production by accident.
 // This import is founder-ordered onto BOTH projects, so it carries its own door — --ref is
 // mandatory, has no default, and the target is echoed before the first write.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { createHash } from 'node:crypto';
 import { createReadStream, readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -34,8 +35,7 @@ if (!/^[a-z]{20}$/.test(REF)) throw new Error('--ref=<20-char project ref> is re
 if (!['ops', 'kb'].includes(CORPUS)) throw new Error('--corpus=ops|kb is required');
 if (!ROOT) throw new Error('--root=<extracted pack dir> is required');
 
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 async function q(sql, attempt = 0) {
