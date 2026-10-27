@@ -1,0 +1,2875 @@
+[
+ {
+  "doc": "lic_dubai_ded_old_text",
+  "format": "text_pdf_colon",
+  "authority": "dubai_ded_old",
+  "expected": "approve",
+  "truth": {
+   "licence_no": "507919",
+   "legal_name_en": "ZZ DEMO Falcon Aluminium LLC",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Falcon Aluminium",
+   "activities": [
+    "Aluminium Works Contracting",
+    "Carpentry and Joinery Works"
+   ],
+   "trades": [
+    "aluminium",
+    "joinery"
+   ],
+   "authority": "Dubai Department of Economic Development",
+   "legal_form": "Limited Liability Company",
+   "issue_date": "2024-01-01",
+   "expiry_date": "2027-01-28",
+   "emirate": "Dubai"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Falcon Aluminium LLC",
+   "trade_license_no": "507919",
+   "licence_legal_name": "ZZ DEMO Falcon Aluminium LLC",
+   "license_expiry": "2027-01-28",
+   "license_authority": "Dubai Department of Economic Development",
+   "approval_status": "approved",
+   "licence_gate_reason": null,
+   "license_doc_path": "licenses/145502/1792353414652_qd-321d13ae-lic_dubai_ded_old_text.pdf",
+   "company_profile_doc_path": "profiles/145502/1792353415249_qd-321d13ae-profile_pdf.pdf",
+   "catalog_doc_paths": [
+    "catalogs/145502/1792353415799_qd-321d13ae-catalogue_pdf.pdf"
+   ],
+   "proposed_trades": [
+    "aluminium",
+    "glazing",
+    "joinery"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license": {
+     "expiry": "2027-01-28",
+     "source": "text",
+     "keyword": "Expiry Date",
+     "read_by": "code",
+     "licence_name": "ZZ DEMO Falcon Aluminium LLC"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "aluminium",
+      "glazing",
+      "joinery"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145502/1792353414652_qd-321d13ae-lic_dubai_ded_old_text.pdf",
+       "name": "qd-321d13ae-lic_dubai_ded_old_text.pdf",
+       "kind": "licence",
+       "read_at": "2026-10-18T19:56:57.159Z",
+       "status": "read",
+       "format": "pdf",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "aluminium",
+         "via": "meaning",
+         "phrases": [
+          "aluminium windows & doors"
+         ],
+         "snippet": "Aluminium Works Contracting",
+         "similarity": 0.836
+        },
+        {
+         "code": "joinery",
+         "via": "meaning",
+         "phrases": [
+          "wood panelling"
+         ],
+         "snippet": "Carpentry and Joinery Works",
+         "similarity": 0.854
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145502/1792353415249_qd-321d13ae-profile_pdf.pdf",
+       "name": "qd-321d13ae-profile_pdf.pdf",
+       "kind": "profile",
+       "read_at": "2026-10-18T19:56:57.965Z",
+       "status": "read",
+       "format": "pdf",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "aluminium",
+         "via": "meaning",
+         "phrases": [
+          "aluminium windows & doors"
+         ],
+         "snippet": "- Aluminium works",
+         "similarity": 0.866
+        },
+        {
+         "code": "glazing",
+         "via": "meaning",
+         "phrases": [
+          "frameless glazing"
+         ],
+         "snippet": "- Glazing works",
+         "similarity": 0.881
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "catalogs/145502/1792353415799_qd-321d13ae-catalogue_pdf.pdf",
+       "name": "qd-321d13ae-catalogue_pdf.pdf",
+       "kind": "catalogue",
+       "read_at": "2026-10-18T19:56:58.971Z",
+       "status": "read",
+       "format": "pdf",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "aluminium",
+         "via": "meaning",
+         "phrases": [
+          "aluminium windows & doors"
+         ],
+         "snippet": "Section 1: Aluminium Works",
+         "similarity": 0.862
+        },
+        {
+         "code": "glazing",
+         "via": "meaning",
+         "phrases": [
+          "glass façades"
+         ],
+         "snippet": "Section 2: Glazing Works",
+         "similarity": 0.868
+        }
+       ],
+       "exact": "on",
+       "meaning": "on",
+       "supply_only": false
+      }
+     ]
+    }
+   }
+  },
+  "route": ""
+ },
+ {
+  "doc": "lic_dubai_ded_old_scan_pdf",
+  "format": "scan_pdf",
+  "authority": "dubai_ded_old",
+  "expected": "approve",
+  "truth": {
+   "licence_no": "515838",
+   "legal_name_en": "ZZ DEMO Pearl Electrical LLC",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Pearl Electrical",
+   "activities": [
+    "Electrical Fitting Contracting",
+    "Painting Contracting"
+   ],
+   "trades": [
+    "electrical",
+    "painting"
+   ],
+   "authority": "Dubai Department of Economic Development",
+   "legal_form": "Limited Liability Company",
+   "issue_date": "2025-02-02",
+   "expiry_date": "2028-02-01",
+   "emirate": "Dubai"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Pearl Electrical LLC",
+   "trade_license_no": "515838",
+   "licence_legal_name": "ZZ DEMO Pearl Electrical LLC",
+   "license_expiry": "2028-02-01",
+   "license_authority": "Dubai Department of Economic Development",
+   "approval_status": "approved",
+   "licence_gate_reason": null,
+   "license_doc_path": "licenses/145503/1792353423935_qd-321d13ae-lic_dubai_ded_old_scan_pdf.pdf",
+   "company_profile_doc_path": "profiles/145503/1792353429299_qd-321d13ae-profile_docx.docx",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "electrical",
+    "fire_fighting",
+    "painting"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license_expiry_note": "We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.",
+    "license_expiry_note_ar": "لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.",
+    "license": {
+     "legal_name": "ZZ DEMO Pearl Electrical LLC",
+     "license_number": "515838",
+     "authority": "Dubai Department of Economic Development",
+     "city": "Dubai",
+     "expiry": "2028-02-01",
+     "model_expiry": "2028-02-01",
+     "emirate": "Dubai",
+     "trn": "",
+     "licence_name": "ZZ DEMO Pearl Electrical LLC",
+     "confidence": "high"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "electrical",
+      "fire_fighting",
+      "painting"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145503/1792353423935_qd-321d13ae-lic_dubai_ded_old_scan_pdf.pdf",
+       "name": "qd-321d13ae-lic_dubai_ded_old_scan_pdf.pdf",
+       "kind": "licence",
+       "read_at": "2026-10-18T19:57:11.441Z",
+       "status": "read",
+       "format": "pdf",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "electrical",
+         "via": "meaning",
+         "phrases": [
+          "wiring & electrical installation"
+         ],
+         "snippet": "Electrical Fitting Contracting",
+         "similarity": 0.879
+        },
+        {
+         "code": "painting",
+         "via": "meaning",
+         "phrases": [
+          "exterior painting"
+         ],
+         "snippet": "Painting Contracting",
+         "similarity": 0.85
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145503/1792353429299_qd-321d13ae-profile_docx.docx",
+       "name": "qd-321d13ae-profile_docx.docx",
+       "kind": "profile",
+       "read_at": "2026-10-18T19:57:12.162Z",
+       "status": "read",
+       "format": "docx",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "electrical",
+         "via": "meaning",
+         "phrases": [
+          "electrical maintenance"
+         ],
+         "snippet": "- Electrical works",
+         "similarity": 0.886
+        },
+        {
+         "code": "fire_fighting",
+         "via": "meaning",
+         "phrases": [
+          "fire alarm systems"
+         ],
+         "snippet": "- Fire fighting systems",
+         "similarity": 0.898
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": "sales_engineer__document_extraction:openai/gpt-6-luna"
+ },
+ {
+  "doc": "lic_dubai_det_text",
+  "format": "text_pdf_table",
+  "authority": "dubai_det",
+  "expected": "approve",
+  "truth": {
+   "licence_no": "1023757",
+   "legal_name_en": "ZZ DEMO Dune Plumbing LLC",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Dune Plumbing",
+   "activities": [
+    "Plumbing and Sanitary Installation",
+    "Building Waterproofing Works"
+   ],
+   "trades": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "authority": "Dubai Department of Economy and Tourism",
+   "legal_form": "Limited Liability Company",
+   "issue_date": "2026-03-03",
+   "expiry_date": "2028-03-02",
+   "emirate": "Dubai"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Dune Plumbing LLC",
+   "trade_license_no": "1023757",
+   "licence_legal_name": "ZZ DEMO Dune Plumbing LLC",
+   "license_expiry": "2028-03-02",
+   "license_authority": "Dubai Department of Economy and Tourism",
+   "approval_status": "approved",
+   "licence_gate_reason": null,
+   "license_doc_path": "licenses/145504/1792353438432_qd-321d13ae-lic_dubai_det_text.pdf",
+   "company_profile_doc_path": "profiles/145504/1792353439790_qd-321d13ae-profile_pptx.pptx",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "hvac",
+    "plumbing",
+    "waterproofing"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license": {
+     "expiry": "2028-03-02",
+     "source": "text",
+     "keyword": "Expiry Date",
+     "read_by": "code",
+     "licence_name": "ZZ DEMO Dune Plumbing LLC"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "hvac",
+      "plumbing",
+      "waterproofing"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145504/1792353438432_qd-321d13ae-lic_dubai_det_text.pdf",
+       "name": "qd-321d13ae-lic_dubai_det_text.pdf",
+       "kind": "licence",
+       "read_at": "2026-10-18T19:57:22.062Z",
+       "status": "read",
+       "format": "pdf",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "plumbing",
+         "via": "meaning",
+         "phrases": [
+          "sanitary fixtures installation"
+         ],
+         "snippet": "Plumbing and Sanitary Installation",
+         "similarity": 0.912
+        },
+        {
+         "code": "waterproofing",
+         "via": "meaning",
+         "phrases": [
+          "wet-area waterproofing"
+         ],
+         "snippet": "Building Waterproofing Works",
+         "similarity": 0.869
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145504/1792353439790_qd-321d13ae-profile_pptx.pptx",
+       "name": "qd-321d13ae-profile_pptx.pptx",
+       "kind": "profile",
+       "read_at": "2026-10-18T19:57:22.826Z",
+       "status": "read",
+       "format": "pptx",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "hvac",
+         "via": "meaning",
+         "phrases": [
+          "testing & commissioning"
+         ],
+         "snippet": "- HVAC works",
+         "similarity": 0.882
+        },
+        {
+         "code": "plumbing",
+         "via": "meaning",
+         "phrases": [
+          "plumbing maintenance"
+         ],
+         "snippet": "- Plumbing works",
+         "similarity": 0.895
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": ""
+ },
+ {
+  "doc": "lic_dubai_det_png",
+  "format": "png",
+  "authority": "dubai_det",
+  "expected": "approve",
+  "truth": {
+   "licence_no": "1031676",
+   "legal_name_en": "ZZ DEMO Oasis Air LLC",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Oasis Air",
+   "activities": [
+    "Air Conditioning and Ventilation Systems Installation",
+    "Landscaping Works"
+   ],
+   "trades": [
+    "hvac",
+    "landscaping"
+   ],
+   "authority": "Dubai Department of Economy and Tourism",
+   "legal_form": "Limited Liability Company",
+   "issue_date": "2024-04-04",
+   "expiry_date": "2027-04-03",
+   "emirate": "Dubai"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Oasis Air LLC",
+   "trade_license_no": "1031676",
+   "licence_legal_name": "ZZ DEMO Oasis Air LLC",
+   "license_expiry": "2027-04-03",
+   "license_authority": "Dubai Department of Economy and Tourism",
+   "approval_status": "approved",
+   "licence_gate_reason": null,
+   "license_doc_path": "licenses/145505/1792353448400_qd-321d13ae-lic_dubai_det_png.png",
+   "company_profile_doc_path": "profiles/145505/1792353453799_qd-321d13ae-profile_png.png",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "flooring",
+    "hvac",
+    "joinery",
+    "landscaping"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license_expiry_note": "We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.",
+    "license_expiry_note_ar": "لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.",
+    "license": {
+     "legal_name": "ZZ DEMO Oasis Air LLC",
+     "license_number": "1031676",
+     "authority": "Dubai Department of Economy and Tourism",
+     "city": "Dubai",
+     "expiry": "2027-04-03",
+     "model_expiry": "2027-04-03",
+     "emirate": "Dubai",
+     "trn": "",
+     "licence_name": "ZZ DEMO Oasis Air LLC",
+     "confidence": "high"
+    },
+    "profile": {
+     "summary": "ZZ DEMO Marina Projects LLC is a UAE contractor established in 2013, serving Dubai. It provides joinery and flooring works, working with Egger and Tarkett. The company reports 70 skilled staff, five project teams, capacity for projects up to AED 2,500,000, and ISO 9001:2015 quality management certification.",
+     "sectors": [
+      "Joinery",
+      "Flooring"
+     ],
+     "confidence": "high"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "flooring",
+      "hvac",
+      "joinery",
+      "landscaping"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145505/1792353448400_qd-321d13ae-lic_dubai_det_png.png",
+       "name": "qd-321d13ae-lic_dubai_det_png.png",
+       "kind": "licence",
+       "read_at": "2026-10-18T19:57:40.943Z",
+       "status": "read",
+       "format": "image",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "hvac",
+         "via": "meaning",
+         "phrases": [
+          "supply & installation of ac units",
+          "ducting & ventilation"
+         ],
+         "snippet": "Air Conditioning and Ventilation Systems Installation",
+         "similarity": 0.88
+        },
+        {
+         "code": "landscaping",
+         "via": "meaning",
+         "phrases": [
+          "softscape & planting"
+         ],
+         "snippet": "Landscaping Works",
+         "similarity": 0.865
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145505/1792353453799_qd-321d13ae-profile_png.png",
+       "name": "qd-321d13ae-profile_png.png",
+       "kind": "profile",
+       "read_at": "2026-10-18T19:57:41.729Z",
+       "status": "read",
+       "format": "image",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "flooring",
+         "via": "meaning",
+         "phrases": [
+          "epoxy flooring"
+         ],
+         "snippet": "Flooring works",
+         "similarity": 0.876
+        },
+        {
+         "code": "joinery",
+         "via": "meaning",
+         "phrases": [
+          "wood panelling"
+         ],
+         "snippet": "Joinery works",
+         "similarity": 0.854
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    },
+    "services_crosscheck": {
+     "verdict": "conflict",
+     "overlap": 0,
+     "note": "CONFLICT: documents say \"Joinery works, Flooring works\", supplier typed \"Supply and installation of aluminium & cladding.\" (0% overlap, nothing in common). Documents are the source of truth; the typed text is kept as the declared value.",
+     "extracted_services": [
+      "Joinery works",
+      "Flooring works"
+     ],
+     "declared_services": "Supply and installation of aluminium & cladding."
+    }
+   }
+  },
+  "route": "sales_engineer__document_extraction:openai/gpt-6-luna sales_engineer__document_extraction:openai/gpt-6-luna"
+ },
+ {
+  "doc": "lic_abu_dhabi_added_jpg",
+  "format": "jpg",
+  "authority": "abu_dhabi_added",
+  "expected": "approve",
+  "truth": {
+   "licence_no": "CN-1628374",
+   "legal_name_en": "ZZ DEMO Saker Carpentry LLC",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Saker Carpentry",
+   "activities": [
+    "Carpentry and Joinery Works",
+    "Lifts and Escalators Installation and Maintenance"
+   ],
+   "trades": [
+    "elevators",
+    "joinery"
+   ],
+   "authority": "Abu Dhabi Department of Economic Development",
+   "legal_form": "Limited Liability Company",
+   "issue_date": "2026-06-06",
+   "expiry_date": "2029-06-05",
+   "emirate": "Abu Dhabi"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Saker Carpentry LLC",
+   "trade_license_no": "CN-1628374",
+   "licence_legal_name": "ZZ DEMO Saker Carpentry LLC",
+   "license_expiry": "2029-06-05",
+   "license_authority": "Abu Dhabi Department of Economic Development",
+   "approval_status": "approved",
+   "licence_gate_reason": null,
+   "license_doc_path": "licenses/145506/1792353466839_qd-321d13ae-lic_abu_dhabi_added_jpg.jpg",
+   "company_profile_doc_path": "profiles/145506/1792353474090_qd-321d13ae-profile_pdf_paint.pdf",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "elevators",
+    "joinery",
+    "painting",
+    "waterproofing"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license_expiry_note": "We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.",
+    "license_expiry_note_ar": "لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.",
+    "license": {
+     "legal_name": "ZZ DEMO Saker Carpentry LLC",
+     "license_number": "CN-1628374",
+     "authority": "Abu Dhabi Department of Economic Development",
+     "city": "Abu Dhabi",
+     "expiry": "2029-06-05",
+     "model_expiry": "2029-06-05",
+     "emirate": "Abu Dhabi",
+     "trn": "",
+     "licence_name": "ZZ DEMO Saker Carpentry LLC",
+     "confidence": "high"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "elevators",
+      "joinery",
+      "painting",
+      "waterproofing"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145506/1792353466839_qd-321d13ae-lic_abu_dhabi_added_jpg.jpg",
+       "name": "qd-321d13ae-lic_abu_dhabi_added_jpg.jpg",
+       "kind": "licence",
+       "read_at": "2026-10-18T19:57:55.576Z",
+       "status": "read",
+       "format": "image",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "elevators",
+         "via": "meaning",
+         "phrases": [
+          "elevator supply & installation"
+         ],
+         "snippet": "Lifts and Escalators Installation and Maintenance",
+         "similarity": 0.884
+        },
+        {
+         "code": "joinery",
+         "via": "meaning",
+         "phrases": [
+          "wood panelling"
+         ],
+         "snippet": "Carpentry and Joinery Works",
+         "similarity": 0.854
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145506/1792353474090_qd-321d13ae-profile_pdf_paint.pdf",
+       "name": "qd-321d13ae-profile_pdf_paint.pdf",
+       "kind": "profile",
+       "read_at": "2026-10-18T19:57:56.384Z",
+       "status": "read",
+       "format": "pdf",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "painting",
+         "via": "meaning",
+         "phrases": [
+          "interior painting"
+         ],
+         "snippet": "- Painting works",
+         "similarity": 0.867
+        },
+        {
+         "code": "waterproofing",
+         "via": "meaning",
+         "phrases": [
+          "wet-area waterproofing"
+         ],
+         "snippet": "- Waterproofing works",
+         "similarity": 0.879
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": "sales_engineer__document_extraction:openai/gpt-6-luna"
+ },
+ {
+  "doc": "lic_adgm_rotated90",
+  "format": "rotated90",
+  "authority": "adgm",
+  "expected": "approve",
+  "truth": {
+   "licence_no": "000010296",
+   "legal_name_en": "ZZ DEMO Crescent Building Ltd",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Crescent Building",
+   "activities": [
+    "Building Waterproofing Works",
+    "Aluminium Works Contracting"
+   ],
+   "trades": [
+    "aluminium",
+    "waterproofing"
+   ],
+   "authority": "Abu Dhabi Global Market Registration Authority",
+   "legal_form": "Private Company Limited by Shares",
+   "issue_date": "2025-08-08",
+   "expiry_date": "2028-08-07",
+   "emirate": "Abu Dhabi"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Crescent Building Ltd",
+   "trade_license_no": "000010296",
+   "licence_legal_name": "ZZ DEMO Crescent Building Ltd",
+   "license_expiry": "2028-08-07",
+   "license_authority": "Abu Dhabi Global Market Registration Authority",
+   "approval_status": "approved",
+   "licence_gate_reason": null,
+   "license_doc_path": "licenses/145507/1792353482151_qd-321d13ae-lic_adgm_rotated90.jpg",
+   "company_profile_doc_path": "profiles/145507/1792353489076_qd-321d13ae-profile_docx_land.docx",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "aluminium",
+    "landscaping",
+    "waterproofing"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license_expiry_note": "We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.",
+    "license_expiry_note_ar": "لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.",
+    "license": {
+     "legal_name": "ZZ DEMO Crescent Building Ltd",
+     "license_number": "000010296",
+     "authority": "Abu Dhabi Global Market Registration Authority",
+     "city": "Abu Dhabi",
+     "expiry": "2028-08-07",
+     "model_expiry": "2028-08-07",
+     "emirate": "Abu Dhabi",
+     "trn": "",
+     "licence_name": "ZZ DEMO Crescent Building Ltd",
+     "confidence": "high"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "aluminium",
+      "landscaping",
+      "waterproofing"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145507/1792353482151_qd-321d13ae-lic_adgm_rotated90.jpg",
+       "name": "qd-321d13ae-lic_adgm_rotated90.jpg",
+       "kind": "licence",
+       "read_at": "2026-10-18T19:58:10.627Z",
+       "status": "read",
+       "format": "image",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "aluminium",
+         "via": "meaning",
+         "phrases": [
+          "aluminium windows & doors"
+         ],
+         "snippet": "Aluminium Works Contracting",
+         "similarity": 0.836
+        },
+        {
+         "code": "waterproofing",
+         "via": "meaning",
+         "phrases": [
+          "wet-area waterproofing"
+         ],
+         "snippet": "Building Waterproofing Works",
+         "similarity": 0.869
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145507/1792353489076_qd-321d13ae-profile_docx_land.docx",
+       "name": "qd-321d13ae-profile_docx_land.docx",
+       "kind": "profile",
+       "read_at": "2026-10-18T19:58:11.328Z",
+       "status": "read",
+       "format": "docx",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "landscaping",
+         "via": "meaning",
+         "phrases": [
+          "garden maintenance"
+         ],
+         "snippet": "- Landscaping works",
+         "similarity": 0.875
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": "sales_engineer__document_extraction:openai/gpt-6-luna"
+ },
+ {
+  "doc": "lic_sharjah_sedd_skewed",
+  "format": "skewed",
+  "authority": "sharjah_sedd",
+  "expected": "approve",
+  "truth": {
+   "licence_no": "706130",
+   "legal_name_en": "ZZ DEMO Palm Glass LLC",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Palm Glass",
+   "activities": [
+    "Glass and Glazing Works",
+    "Plumbing and Sanitary Installation"
+   ],
+   "trades": [
+    "glazing",
+    "plumbing"
+   ],
+   "authority": "Sharjah Economic Development Department",
+   "legal_form": "Limited Liability Company",
+   "issue_date": "2024-01-10",
+   "expiry_date": "2027-01-09",
+   "emirate": "Sharjah"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Palm Glass LLC",
+   "trade_license_no": "706130",
+   "licence_legal_name": "ZZ DEMO Palm Glass LLC",
+   "license_expiry": "2027-01-09",
+   "license_authority": "Sharjah Economic Development Department",
+   "approval_status": "approved",
+   "licence_gate_reason": null,
+   "license_doc_path": "licenses/145508/1792353496655_qd-321d13ae-lic_sharjah_sedd_skewed.jpg",
+   "company_profile_doc_path": "profiles/145508/1792353501680_qd-321d13ae-profile_docx_unsuffixed_name.docx",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "glazing",
+    "painting",
+    "plumbing"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license_expiry_note": "We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.",
+    "license_expiry_note_ar": "لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.",
+    "license": {
+     "legal_name": "ZZ DEMO Palm Glass LLC",
+     "license_number": "706130",
+     "authority": "Sharjah Economic Development Department",
+     "city": "Sharjah",
+     "expiry": "2027-01-09",
+     "model_expiry": "2027-01-09",
+     "emirate": "Sharjah",
+     "trn": "",
+     "licence_name": "ZZ DEMO Palm Glass LLC",
+     "confidence": "high"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "glazing",
+      "painting",
+      "plumbing"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145508/1792353496655_qd-321d13ae-lic_sharjah_sedd_skewed.jpg",
+       "name": "qd-321d13ae-lic_sharjah_sedd_skewed.jpg",
+       "kind": "licence",
+       "read_at": "2026-10-18T19:58:23.065Z",
+       "status": "read",
+       "format": "image",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "glazing",
+         "via": "meaning",
+         "phrases": [
+          "frameless glazing"
+         ],
+         "snippet": "Glass and Glazing Works",
+         "similarity": 0.872
+        },
+        {
+         "code": "plumbing",
+         "via": "meaning",
+         "phrases": [
+          "sanitary fixtures installation"
+         ],
+         "snippet": "Plumbing and Sanitary Installation",
+         "similarity": 0.912
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145508/1792353501680_qd-321d13ae-profile_docx_unsuffixed_name.docx",
+       "name": "qd-321d13ae-profile_docx_unsuffixed_name.docx",
+       "kind": "profile",
+       "read_at": "2026-10-18T19:58:24.047Z",
+       "status": "read",
+       "format": "docx",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "painting",
+         "via": "meaning",
+         "phrases": [
+          "interior painting"
+         ],
+         "snippet": "- Painting works",
+         "similarity": 0.867
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": "sales_engineer__document_extraction:openai/gpt-6-luna"
+ },
+ {
+  "doc": "lic_ajman_ded_lowdpi",
+  "format": "lowdpi",
+  "authority": "ajman_ded",
+  "expected": "approve",
+  "truth": {
+   "licence_no": "13252",
+   "legal_name_en": "ZZ DEMO Nakheel Fire Est",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Nakheel Fire",
+   "activities": [
+    "Fire Fighting Equipment Installation",
+    "Floor and Wall Tiling Works"
+   ],
+   "trades": [
+    "fire_fighting",
+    "flooring"
+   ],
+   "authority": "Ajman Department of Economic Development",
+   "legal_form": "Sole Establishment",
+   "issue_date": "2026-03-12",
+   "expiry_date": "2029-03-11",
+   "emirate": "Ajman"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Nakheel Fire Est",
+   "trade_license_no": "13252",
+   "licence_legal_name": "ZZ DEMO Nakheel Fire Est",
+   "license_expiry": "2029-03-11",
+   "license_authority": "Ajman Department of Economic Development",
+   "approval_status": "approved",
+   "licence_gate_reason": null,
+   "license_doc_path": "licenses/145509/1792353509057_qd-321d13ae-lic_ajman_ded_lowdpi.jpg",
+   "company_profile_doc_path": "profiles/145509/1792353514719_qd-321d13ae-profile_pdf.pdf",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "aluminium",
+    "fire_fighting",
+    "flooring",
+    "glazing"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license_expiry_note": "We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.",
+    "license_expiry_note_ar": "لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.",
+    "license": {
+     "legal_name": "ZZ DEMO Nakheel Fire Est",
+     "license_number": "13252",
+     "authority": "Ajman Department of Economic Development",
+     "city": "Ajman",
+     "expiry": "2029-03-11",
+     "model_expiry": "2029-03-11",
+     "emirate": "Ajman",
+     "trn": "",
+     "licence_name": "ZZ DEMO Nakheel Fire Est",
+     "confidence": "high"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "aluminium",
+      "fire_fighting",
+      "flooring",
+      "glazing"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145509/1792353509057_qd-321d13ae-lic_ajman_ded_lowdpi.jpg",
+       "name": "qd-321d13ae-lic_ajman_ded_lowdpi.jpg",
+       "kind": "licence",
+       "read_at": "2026-10-18T19:58:36.181Z",
+       "status": "read",
+       "format": "image",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "fire_fighting",
+         "via": "meaning",
+         "phrases": [
+          "civil defence approvals & maintenance"
+         ],
+         "snippet": "Fire Fighting Equipment Installation",
+         "similarity": 0.863
+        },
+        {
+         "code": "flooring",
+         "via": "meaning",
+         "phrases": [
+          "tiling"
+         ],
+         "snippet": "Floor and Wall Tiling Works",
+         "similarity": 0.881
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145509/1792353514719_qd-321d13ae-profile_pdf.pdf",
+       "name": "qd-321d13ae-profile_pdf.pdf",
+       "kind": "profile",
+       "read_at": "2026-10-18T19:58:37.027Z",
+       "status": "read",
+       "format": "pdf",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "aluminium",
+         "via": "meaning",
+         "phrases": [
+          "aluminium windows & doors"
+         ],
+         "snippet": "- Aluminium works",
+         "similarity": 0.866
+        },
+        {
+         "code": "glazing",
+         "via": "meaning",
+         "phrases": [
+          "frameless glazing"
+         ],
+         "snippet": "- Glazing works",
+         "similarity": 0.881
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": "sales_engineer__document_extraction:openai/gpt-6-luna"
+ },
+ {
+  "doc": "lic_rak_ded_phone",
+  "format": "phone",
+  "authority": "rak_ded",
+  "expected": "approve",
+  "truth": {
+   "licence_no": "24634",
+   "legal_name_en": "ZZ DEMO Lulu Electrical LLC",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Lulu Electrical",
+   "activities": [
+    "Electrical Fitting Contracting",
+    "Painting Contracting"
+   ],
+   "trades": [
+    "electrical",
+    "painting"
+   ],
+   "authority": "Ras Al Khaimah Department of Economic Development",
+   "legal_form": "Limited Liability Company",
+   "issue_date": "2025-05-14",
+   "expiry_date": "2028-05-13",
+   "emirate": "Ras Al Khaimah"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Lulu Electrical LLC",
+   "trade_license_no": "24634",
+   "licence_legal_name": "ZZ DEMO Lulu Electrical LLC",
+   "license_expiry": "2028-05-13",
+   "license_authority": "Ras Al Khaimah Department of Economic Development",
+   "approval_status": "approved",
+   "licence_gate_reason": null,
+   "license_doc_path": "licenses/145510/1792353522996_qd-321d13ae-lic_rak_ded_phone.jpg",
+   "company_profile_doc_path": "profiles/145510/1792353528993_qd-321d13ae-profile_docx.docx",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "electrical",
+    "fire_fighting",
+    "painting"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license_expiry_note": "We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.",
+    "license_expiry_note_ar": "لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.",
+    "license": {
+     "legal_name": "ZZ DEMO Lulu Electrical LLC",
+     "license_number": "24634",
+     "authority": "Ras Al Khaimah Department of Economic Development",
+     "city": "Ras Al Khaimah",
+     "expiry": "2028-05-13",
+     "model_expiry": "2028-05-13",
+     "emirate": "Ras Al Khaimah",
+     "trn": "",
+     "licence_name": "ZZ DEMO Lulu Electrical LLC",
+     "confidence": "high"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "electrical",
+      "fire_fighting",
+      "painting"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145510/1792353522996_qd-321d13ae-lic_rak_ded_phone.jpg",
+       "name": "qd-321d13ae-lic_rak_ded_phone.jpg",
+       "kind": "licence",
+       "read_at": "2026-10-18T19:58:50.522Z",
+       "status": "read",
+       "format": "image",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "electrical",
+         "via": "meaning",
+         "phrases": [
+          "wiring & electrical installation"
+         ],
+         "snippet": "Electrical Fitting Contracting",
+         "similarity": 0.879
+        },
+        {
+         "code": "painting",
+         "via": "meaning",
+         "phrases": [
+          "exterior painting"
+         ],
+         "snippet": "Painting Contracting",
+         "similarity": 0.85
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145510/1792353528993_qd-321d13ae-profile_docx.docx",
+       "name": "qd-321d13ae-profile_docx.docx",
+       "kind": "profile",
+       "read_at": "2026-10-18T19:58:51.305Z",
+       "status": "read",
+       "format": "docx",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "electrical",
+         "via": "meaning",
+         "phrases": [
+          "electrical maintenance"
+         ],
+         "snippet": "- Electrical works",
+         "similarity": 0.886
+        },
+        {
+         "code": "fire_fighting",
+         "via": "meaning",
+         "phrases": [
+          "fire alarm systems"
+         ],
+         "snippet": "- Fire fighting systems",
+         "similarity": 0.898
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": "sales_engineer__document_extraction:openai/gpt-6-luna"
+ },
+ {
+  "doc": "lic_dubai_det_bi_jpg",
+  "format": "bilingual_jpg",
+  "authority": "dubai_det",
+  "expected": "approve",
+  "truth": {
+   "licence_no": "1293003",
+   "legal_name_en": "ZZ DEMO Falcon Aluminium LLC",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Falcon Aluminium",
+   "activities": [
+    "Aluminium Works Contracting",
+    "Carpentry and Joinery Works"
+   ],
+   "trades": [
+    "aluminium",
+    "joinery"
+   ],
+   "authority": "Dubai Department of Economy and Tourism",
+   "legal_form": "Limited Liability Company",
+   "issue_date": "2024-01-10",
+   "expiry_date": "2027-01-09",
+   "emirate": "Dubai"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Falcon Aluminium LLC",
+   "trade_license_no": "1293003",
+   "licence_legal_name": "ZZ DEMO Falcon Aluminium LLC",
+   "license_expiry": "2027-01-09",
+   "license_authority": "Dubai Department of Economy and Tourism",
+   "approval_status": "approved",
+   "licence_gate_reason": null,
+   "license_doc_path": "licenses/145511/1792353537164_qd-321d13ae-lic_dubai_det_bi_jpg.jpg",
+   "company_profile_doc_path": "profiles/145511/1792353542877_qd-321d13ae-profile_pptx.pptx",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "aluminium",
+    "hvac",
+    "joinery",
+    "plumbing"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license_expiry_note": "We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.",
+    "license_expiry_note_ar": "لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.",
+    "license": {
+     "legal_name": "ZZ DEMO Falcon Aluminium LLC",
+     "license_number": "1293003",
+     "authority": "Dubai Department of Economy and Tourism",
+     "city": "Dubai",
+     "expiry": "2027-01-09",
+     "model_expiry": "2027-01-09",
+     "emirate": "Dubai",
+     "trn": "",
+     "licence_name": "ZZ DEMO Falcon Aluminium LLC",
+     "confidence": "high"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "aluminium",
+      "hvac",
+      "joinery",
+      "plumbing"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145511/1792353537164_qd-321d13ae-lic_dubai_det_bi_jpg.jpg",
+       "name": "qd-321d13ae-lic_dubai_det_bi_jpg.jpg",
+       "kind": "licence",
+       "read_at": "2026-10-18T19:59:04.367Z",
+       "status": "read",
+       "format": "image",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "aluminium",
+         "via": "meaning",
+         "phrases": [
+          "aluminium windows & doors"
+         ],
+         "snippet": "Aluminium Works Contracting",
+         "similarity": 0.836
+        },
+        {
+         "code": "joinery",
+         "via": "meaning",
+         "phrases": [
+          "wood panelling"
+         ],
+         "snippet": "Carpentry and Joinery Works",
+         "similarity": 0.854
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145511/1792353542877_qd-321d13ae-profile_pptx.pptx",
+       "name": "qd-321d13ae-profile_pptx.pptx",
+       "kind": "profile",
+       "read_at": "2026-10-18T19:59:05.239Z",
+       "status": "read",
+       "format": "pptx",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "hvac",
+         "via": "meaning",
+         "phrases": [
+          "testing & commissioning"
+         ],
+         "snippet": "- HVAC works",
+         "similarity": 0.882
+        },
+        {
+         "code": "plumbing",
+         "via": "meaning",
+         "phrases": [
+          "plumbing maintenance"
+         ],
+         "snippet": "- Plumbing works",
+         "similarity": 0.895
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": "sales_engineer__document_extraction:openai/gpt-6-luna"
+ },
+ {
+  "doc": "lic_sharjah_sedd_bi_phone",
+  "format": "bilingual_phone",
+  "authority": "sharjah_sedd",
+  "expected": "approve",
+  "truth": {
+   "licence_no": "723294",
+   "legal_name_en": "ZZ DEMO Pearl Electrical LLC",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Pearl Electrical",
+   "activities": [
+    "Electrical Fitting Contracting",
+    "Painting Contracting"
+   ],
+   "trades": [
+    "electrical",
+    "painting"
+   ],
+   "authority": "Sharjah Economic Development Department",
+   "legal_form": "Limited Liability Company",
+   "issue_date": "2025-02-11",
+   "expiry_date": "2028-02-10",
+   "emirate": "Sharjah"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Pearl Electrical LLC",
+   "trade_license_no": "723294",
+   "licence_legal_name": "ZZ DEMO Pearl Electrical LLC",
+   "license_expiry": "2028-02-10",
+   "license_authority": "Sharjah Economic Development Department",
+   "approval_status": "approved",
+   "licence_gate_reason": null,
+   "license_doc_path": "licenses/145512/1792353551188_qd-321d13ae-lic_sharjah_sedd_bi_phone.jpg",
+   "company_profile_doc_path": "profiles/145512/1792353558950_qd-321d13ae-profile_png.png",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "electrical",
+    "flooring",
+    "joinery",
+    "painting"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license_expiry_note": "We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.",
+    "license_expiry_note_ar": "لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.",
+    "license": {
+     "legal_name": "ZZ DEMO Pearl Electrical LLC",
+     "license_number": "723294",
+     "authority": "Sharjah Economic Development Department",
+     "city": "Sharjah",
+     "expiry": "2028-02-10",
+     "model_expiry": "2028-02-10",
+     "emirate": "Sharjah",
+     "trn": "",
+     "licence_name": "ZZ DEMO Pearl Electrical LLC",
+     "confidence": "high"
+    },
+    "profile": {
+     "summary": "ZZ DEMO Marina Projects LLC is a UAE contractor established in 2013, serving Dubai. It carries out joinery and flooring works, with 70 skilled staff, five project teams and stated capacity for projects up to AED 2,500,000; it reports ISO 9001:2015 quality management certification.",
+     "sectors": [
+      "Joinery",
+      "Flooring"
+     ],
+     "confidence": "high"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "electrical",
+      "flooring",
+      "joinery",
+      "painting"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145512/1792353551188_qd-321d13ae-lic_sharjah_sedd_bi_phone.jpg",
+       "name": "qd-321d13ae-lic_sharjah_sedd_bi_phone.jpg",
+       "kind": "licence",
+       "read_at": "2026-10-18T19:59:25.949Z",
+       "status": "read",
+       "format": "image",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "electrical",
+         "via": "meaning",
+         "phrases": [
+          "wiring & electrical installation"
+         ],
+         "snippet": "Electrical Fitting Contracting",
+         "similarity": 0.879
+        },
+        {
+         "code": "painting",
+         "via": "meaning",
+         "phrases": [
+          "exterior painting"
+         ],
+         "snippet": "Painting Contracting",
+         "similarity": 0.85
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145512/1792353558950_qd-321d13ae-profile_png.png",
+       "name": "qd-321d13ae-profile_png.png",
+       "kind": "profile",
+       "read_at": "2026-10-18T19:59:26.799Z",
+       "status": "read",
+       "format": "image",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "flooring",
+         "via": "meaning",
+         "phrases": [
+          "epoxy flooring"
+         ],
+         "snippet": "Flooring works",
+         "similarity": 0.876
+        },
+        {
+         "code": "joinery",
+         "via": "meaning",
+         "phrases": [
+          "wood panelling"
+         ],
+         "snippet": "Joinery works",
+         "similarity": 0.854
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    },
+    "services_crosscheck": {
+     "verdict": "conflict",
+     "overlap": 0,
+     "note": "CONFLICT: documents say \"Joinery works, Flooring works\", supplier typed \"Supply and installation of aluminium & cladding.\" (0% overlap, nothing in common). Documents are the source of truth; the typed text is kept as the declared value.",
+     "extracted_services": [
+      "Joinery works",
+      "Flooring works"
+     ],
+     "declared_services": "Supply and installation of aluminium & cladding."
+    }
+   }
+  },
+  "route": "sales_engineer__document_extraction:openai/gpt-6-luna sales_engineer__document_extraction:openai/gpt-6-luna"
+ },
+ {
+  "doc": "lic_abu_dhabi_added_bi_scan_pdf",
+  "format": "bilingual_scan_pdf",
+  "authority": "abu_dhabi_added",
+  "expected": "approve",
+  "truth": {
+   "licence_no": "CN-5084431",
+   "legal_name_en": "ZZ DEMO Dune Plumbing LLC",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Dune Plumbing",
+   "activities": [
+    "Plumbing and Sanitary Installation",
+    "Building Waterproofing Works"
+   ],
+   "trades": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "authority": "Abu Dhabi Department of Economic Development",
+   "legal_form": "Limited Liability Company",
+   "issue_date": "2026-03-12",
+   "expiry_date": "2028-03-11",
+   "emirate": "Abu Dhabi"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Dune Plumbing LLC",
+   "trade_license_no": "CN-5084431",
+   "licence_legal_name": "ZZ DEMO Dune Plumbing LLC",
+   "license_expiry": "2028-03-11",
+   "license_authority": "Abu Dhabi Department of Economic Development",
+   "approval_status": "approved",
+   "licence_gate_reason": null,
+   "license_doc_path": "licenses/145513/1792353572415_qd-321d13ae-lic_abu_dhabi_added_bi_scan_pdf.pdf",
+   "company_profile_doc_path": "profiles/145513/1792353577355_qd-321d13ae-profile_pdf_paint.pdf",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "painting",
+    "plumbing",
+    "waterproofing"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license_expiry_note": "We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.",
+    "license_expiry_note_ar": "لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.",
+    "license": {
+     "legal_name": "ZZ DEMO Dune Plumbing LLC",
+     "license_number": "CN-5084431",
+     "authority": "Abu Dhabi Department of Economic Development",
+     "city": "Abu Dhabi",
+     "expiry": "2028-03-11",
+     "model_expiry": "2028-03-11",
+     "emirate": "Abu Dhabi",
+     "trn": "",
+     "licence_name": "ZZ DEMO Dune Plumbing LLC",
+     "confidence": "high"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "painting",
+      "plumbing",
+      "waterproofing"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145513/1792353572415_qd-321d13ae-lic_abu_dhabi_added_bi_scan_pdf.pdf",
+       "name": "qd-321d13ae-lic_abu_dhabi_added_bi_scan_pdf.pdf",
+       "kind": "licence",
+       "read_at": "2026-10-18T19:59:38.712Z",
+       "status": "read",
+       "format": "pdf",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "plumbing",
+         "via": "meaning",
+         "phrases": [
+          "sanitary fixtures installation"
+         ],
+         "snippet": "Plumbing and Sanitary Installation",
+         "similarity": 0.912
+        },
+        {
+         "code": "waterproofing",
+         "via": "meaning",
+         "phrases": [
+          "wet-area waterproofing"
+         ],
+         "snippet": "Building Waterproofing Works",
+         "similarity": 0.869
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145513/1792353577355_qd-321d13ae-profile_pdf_paint.pdf",
+       "name": "qd-321d13ae-profile_pdf_paint.pdf",
+       "kind": "profile",
+       "read_at": "2026-10-18T19:59:39.364Z",
+       "status": "read",
+       "format": "pdf",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "painting",
+         "via": "meaning",
+         "phrases": [
+          "interior painting"
+         ],
+         "snippet": "- Painting works",
+         "similarity": 0.867
+        },
+        {
+         "code": "waterproofing",
+         "via": "meaning",
+         "phrases": [
+          "wet-area waterproofing"
+         ],
+         "snippet": "- Waterproofing works",
+         "similarity": 0.879
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": "sales_engineer__document_extraction:openai/gpt-6-luna"
+ },
+ {
+  "doc": "lic_ajman_ded_ar_png",
+  "format": "arabic_only_png",
+  "authority": "ajman_ded",
+  "expected": "hold_name",
+  "truth": {
+   "licence_no": "20840",
+   "legal_name_en": null,
+   "legal_name_ar": "زد زد ديمو الواحة",
+   "trade_name": "زد زد ديمو الواحة",
+   "activities": [
+    "تركيب أنظمة التكييف والتهوية",
+    "أعمال تنسيق الحدائق"
+   ],
+   "trades": [
+    "hvac",
+    "landscaping"
+   ],
+   "authority": "Ajman Department of Economic Development",
+   "legal_form": "مؤسسة فردية",
+   "issue_date": "2024-04-13",
+   "expiry_date": "2027-04-12",
+   "emirate": "Ajman"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Oasis Air Est",
+   "trade_license_no": "20840",
+   "licence_legal_name": null,
+   "license_expiry": "2027-04-12",
+   "license_authority": "دائرة التنمية الاقتصادية - عجمان",
+   "approval_status": "pending",
+   "licence_gate_reason": "licence_unreadable",
+   "license_doc_path": "licenses/145514/1792353584970_qd-321d13ae-lic_ajman_ded_ar_png.png",
+   "company_profile_doc_path": "profiles/145514/1792353595040_qd-321d13ae-profile_docx_land.docx",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "hvac",
+    "landscaping"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "held",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license_expiry_note": "We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.",
+    "license_expiry_note_ar": "لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.",
+    "license": {
+     "legal_name": "",
+     "license_number": "20840",
+     "authority": "دائرة التنمية الاقتصادية - عجمان",
+     "city": "Ajman",
+     "expiry": "2027-04-12",
+     "model_expiry": "2027-04-12",
+     "emirate": "Ajman",
+     "trn": "",
+     "licence_name": null,
+     "confidence": "low"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "hvac",
+      "landscaping"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145514/1792353584970_qd-321d13ae-lic_ajman_ded_ar_png.png",
+       "name": "qd-321d13ae-lic_ajman_ded_ar_png.png",
+       "kind": "licence",
+       "read_at": "2026-10-18T19:59:56.317Z",
+       "status": "read",
+       "format": "image",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "hvac",
+         "via": "exact_name",
+         "phrases": [
+          "تكييف"
+         ],
+         "snippet": "تركيب أنظمة التكييف والتهوية"
+        },
+        {
+         "code": "landscaping",
+         "via": "exact_name",
+         "phrases": [
+          "تنسيق حدايق",
+          "garden maintenance"
+         ],
+         "snippet": "أعمال تنسيق الحدائق"
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145514/1792353595040_qd-321d13ae-profile_docx_land.docx",
+       "name": "qd-321d13ae-profile_docx_land.docx",
+       "kind": "profile",
+       "read_at": "2026-10-18T19:59:57.851Z",
+       "status": "read",
+       "format": "docx",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "landscaping",
+         "via": "meaning",
+         "phrases": [
+          "garden maintenance"
+         ],
+         "snippet": "- Landscaping works",
+         "similarity": 0.875
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": "sales_engineer__document_extraction:openai/gpt-6-luna"
+ },
+ {
+  "doc": "lic_fujairah_ded_ar_jpg",
+  "format": "arabic_only_jpg",
+  "authority": "fujairah_ded",
+  "expected": "hold_name",
+  "truth": {
+   "licence_no": "44633",
+   "legal_name_en": null,
+   "legal_name_ar": "زد زد ديمو الأفق",
+   "trade_name": "زد زد ديمو الأفق",
+   "activities": [
+    "أعمال تبليط الأرضيات والجدران",
+    "أعمال الزجاج"
+   ],
+   "trades": [
+    "flooring",
+    "glazing"
+   ],
+   "authority": "Fujairah Department of Industry and Economy",
+   "legal_form": "شركة ذات مسؤولية محدودة",
+   "issue_date": "2025-05-14",
+   "expiry_date": "2027-05-13",
+   "emirate": "Fujairah"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Horizon Floor LLC",
+   "trade_license_no": "44633",
+   "licence_legal_name": null,
+   "license_expiry": "2027-05-13",
+   "license_authority": "دائرة الصناعة والاقتصاد - الفجيرة",
+   "approval_status": "pending",
+   "licence_gate_reason": "licence_unreadable",
+   "license_doc_path": "licenses/145515/1792353604179_qd-321d13ae-lic_fujairah_ded_ar_jpg.jpg",
+   "company_profile_doc_path": "profiles/145515/1792353613977_qd-321d13ae-profile_docx_unsuffixed_name.docx",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "flooring",
+    "glazing",
+    "painting"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "held",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license_expiry_note": "We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.",
+    "license_expiry_note_ar": "لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.",
+    "license": {
+     "legal_name": "",
+     "license_number": "44633",
+     "authority": "دائرة الصناعة والاقتصاد - الفجيرة",
+     "city": "Fujairah",
+     "expiry": "2027-05-13",
+     "model_expiry": "2027-05-13",
+     "emirate": "Fujairah",
+     "trn": "",
+     "licence_name": null,
+     "confidence": "high"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "flooring",
+      "glazing",
+      "painting"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145515/1792353604179_qd-321d13ae-lic_fujairah_ded_ar_jpg.jpg",
+       "name": "qd-321d13ae-lic_fujairah_ded_ar_jpg.jpg",
+       "kind": "licence",
+       "read_at": "2026-10-18T20:00:15.212Z",
+       "status": "read",
+       "format": "image",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "flooring",
+         "via": "exact_name",
+         "phrases": [
+          "ارضيات",
+          "tiling"
+         ],
+         "snippet": "أعمال تبليط الأرضيات والجدران"
+        },
+        {
+         "code": "glazing",
+         "via": "exact_name",
+         "phrases": [
+          "زجاج"
+         ],
+         "snippet": "أعمال الزجاج"
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145515/1792353613977_qd-321d13ae-profile_docx_unsuffixed_name.docx",
+       "name": "qd-321d13ae-profile_docx_unsuffixed_name.docx",
+       "kind": "profile",
+       "read_at": "2026-10-18T20:00:16.411Z",
+       "status": "read",
+       "format": "docx",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "painting",
+         "via": "meaning",
+         "phrases": [
+          "interior painting"
+         ],
+         "snippet": "- Painting works",
+         "similarity": 0.867
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": "sales_engineer__document_extraction:openai/gpt-6-luna"
+ },
+ {
+  "doc": "lic_dmcc_multipage",
+  "format": "multipage_pdf",
+  "authority": "dmcc",
+  "expected": "approve",
+  "truth": {
+   "licence_no": "DMCC-352294",
+   "legal_name_en": "ZZ DEMO Saker Carpentry DMCC",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Saker Carpentry",
+   "activities": [
+    "Carpentry and Joinery Works",
+    "Lifts and Escalators Installation and Maintenance"
+   ],
+   "trades": [
+    "elevators",
+    "joinery"
+   ],
+   "authority": "Dubai Multi Commodities Centre Authority",
+   "legal_form": "DMCC Company",
+   "issue_date": "2026-06-15",
+   "expiry_date": "2029-06-14",
+   "emirate": "Dubai"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Saker Carpentry DMCC",
+   "trade_license_no": "DMCC-352294",
+   "licence_legal_name": "ZZ DEMO Saker Carpentry DMCC",
+   "license_expiry": "2029-06-14",
+   "license_authority": "Dubai Multi Commodities Centre Authority",
+   "approval_status": "approved",
+   "licence_gate_reason": null,
+   "license_doc_path": "licenses/145516/1792353622199_qd-321d13ae-lic_dmcc_multipage.pdf",
+   "company_profile_doc_path": "profiles/145516/1792353623091_qd-321d13ae-profile_pdf.pdf",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "aluminium",
+    "elevators",
+    "glazing",
+    "joinery"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license": {
+     "expiry": "2029-06-14",
+     "source": "text",
+     "keyword": "Expiry Date",
+     "read_by": "code",
+     "licence_name": "ZZ DEMO Saker Carpentry DMCC"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "aluminium",
+      "elevators",
+      "glazing",
+      "joinery"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145516/1792353622199_qd-321d13ae-lic_dmcc_multipage.pdf",
+       "name": "qd-321d13ae-lic_dmcc_multipage.pdf",
+       "kind": "licence",
+       "read_at": "2026-10-18T20:00:24.483Z",
+       "status": "read",
+       "format": "pdf",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "elevators",
+         "via": "meaning",
+         "phrases": [
+          "elevator supply & installation"
+         ],
+         "snippet": "Lifts and Escalators Installation and Maintenance",
+         "similarity": 0.884
+        },
+        {
+         "code": "joinery",
+         "via": "meaning",
+         "phrases": [
+          "wood panelling"
+         ],
+         "snippet": "Carpentry and Joinery Works",
+         "similarity": 0.854
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145516/1792353623091_qd-321d13ae-profile_pdf.pdf",
+       "name": "qd-321d13ae-profile_pdf.pdf",
+       "kind": "profile",
+       "read_at": "2026-10-18T20:00:25.263Z",
+       "status": "read",
+       "format": "pdf",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "aluminium",
+         "via": "meaning",
+         "phrases": [
+          "aluminium windows & doors"
+         ],
+         "snippet": "- Aluminium works",
+         "similarity": 0.866
+        },
+        {
+         "code": "glazing",
+         "via": "meaning",
+         "phrases": [
+          "frameless glazing"
+         ],
+         "snippet": "- Glazing works",
+         "similarity": 0.881
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": ""
+ },
+ {
+  "doc": "lic_expired_text",
+  "format": "text_pdf_table",
+  "authority": "dubai_det",
+  "expected": "licence_expired",
+  "truth": {
+   "licence_no": "1348436",
+   "legal_name_en": "ZZ DEMO Crescent Building LLC",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Crescent Building",
+   "activities": [
+    "Building Waterproofing Works",
+    "Aluminium Works Contracting"
+   ],
+   "trades": [
+    "aluminium",
+    "waterproofing"
+   ],
+   "authority": "Dubai Department of Economy and Tourism",
+   "legal_form": "Limited Liability Company",
+   "issue_date": "2024-07-01",
+   "expiry_date": "2025-06-30",
+   "emirate": "Dubai"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Crescent Building LLC",
+   "trade_license_no": "1348436",
+   "licence_legal_name": "ZZ DEMO Crescent Building LLC",
+   "license_expiry": "2025-06-30",
+   "license_authority": "Dubai Department of Economy and Tourism",
+   "approval_status": "action_required",
+   "licence_gate_reason": "licence_expired",
+   "license_doc_path": "licenses/145517/1792353631247_qd-321d13ae-lic_expired_text.pdf",
+   "company_profile_doc_path": "profiles/145517/1792353631924_qd-321d13ae-profile_docx.docx",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "aluminium",
+    "electrical",
+    "fire_fighting",
+    "waterproofing"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license": {
+     "expiry": "2025-06-30",
+     "source": "text",
+     "keyword": "Expiry Date",
+     "read_by": "code",
+     "licence_name": "ZZ DEMO Crescent Building LLC"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "aluminium",
+      "electrical",
+      "fire_fighting",
+      "waterproofing"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145517/1792353631247_qd-321d13ae-lic_expired_text.pdf",
+       "name": "qd-321d13ae-lic_expired_text.pdf",
+       "kind": "licence",
+       "read_at": "2026-10-18T20:00:33.411Z",
+       "status": "read",
+       "format": "pdf",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "aluminium",
+         "via": "meaning",
+         "phrases": [
+          "aluminium windows & doors"
+         ],
+         "snippet": "Aluminium Works Contracting",
+         "similarity": 0.836
+        },
+        {
+         "code": "waterproofing",
+         "via": "meaning",
+         "phrases": [
+          "wet-area waterproofing"
+         ],
+         "snippet": "Building Waterproofing Works",
+         "similarity": 0.869
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145517/1792353631924_qd-321d13ae-profile_docx.docx",
+       "name": "qd-321d13ae-profile_docx.docx",
+       "kind": "profile",
+       "read_at": "2026-10-18T20:00:34.098Z",
+       "status": "read",
+       "format": "docx",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "electrical",
+         "via": "meaning",
+         "phrases": [
+          "electrical maintenance"
+         ],
+         "snippet": "- Electrical works",
+         "similarity": 0.886
+        },
+        {
+         "code": "fire_fighting",
+         "via": "meaning",
+         "phrases": [
+          "fire alarm systems"
+         ],
+         "snippet": "- Fire fighting systems",
+         "similarity": 0.898
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": ""
+ },
+ {
+  "doc": "lic_expired_scan",
+  "format": "jpg",
+  "authority": "sharjah_sedd",
+  "expected": "licence_expired",
+  "truth": {
+   "licence_no": "727585",
+   "legal_name_en": "ZZ DEMO Ghaf Landscaping LLC",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Ghaf Landscaping",
+   "activities": [
+    "Landscaping Works",
+    "Electrical Fitting Contracting"
+   ],
+   "trades": [
+    "electrical",
+    "landscaping"
+   ],
+   "authority": "Sharjah Economic Development Department",
+   "legal_form": "Limited Liability Company",
+   "issue_date": "2024-02-11",
+   "expiry_date": "2026-02-10",
+   "emirate": "Sharjah"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Ghaf Landscaping LLC",
+   "trade_license_no": "727585",
+   "licence_legal_name": "ZZ DEMO Ghaf Landscaping LLC",
+   "license_expiry": "2026-02-10",
+   "license_authority": "Sharjah Economic Development Department",
+   "approval_status": "action_required",
+   "licence_gate_reason": "licence_expired",
+   "license_doc_path": "licenses/145518/1792353639989_qd-321d13ae-lic_expired_scan.jpg",
+   "company_profile_doc_path": "profiles/145518/1792353647449_qd-321d13ae-profile_pptx.pptx",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "electrical",
+    "hvac",
+    "landscaping",
+    "plumbing"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license_expiry_note": "We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.",
+    "license_expiry_note_ar": "لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.",
+    "license": {
+     "legal_name": "ZZ DEMO Ghaf Landscaping LLC",
+     "license_number": "727585",
+     "authority": "Sharjah Economic Development Department",
+     "city": "Sharjah",
+     "expiry": "2026-02-10",
+     "model_expiry": "2026-02-10",
+     "emirate": "Sharjah",
+     "trn": "",
+     "licence_name": "ZZ DEMO Ghaf Landscaping LLC",
+     "confidence": "high"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "electrical",
+      "hvac",
+      "landscaping",
+      "plumbing"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145518/1792353639989_qd-321d13ae-lic_expired_scan.jpg",
+       "name": "qd-321d13ae-lic_expired_scan.jpg",
+       "kind": "licence",
+       "read_at": "2026-10-18T20:00:48.712Z",
+       "status": "read",
+       "format": "image",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "electrical",
+         "via": "meaning",
+         "phrases": [
+          "wiring & electrical installation"
+         ],
+         "snippet": "Electrical Fitting Contracting",
+         "similarity": 0.879
+        },
+        {
+         "code": "landscaping",
+         "via": "meaning",
+         "phrases": [
+          "softscape & planting"
+         ],
+         "snippet": "Landscaping Works",
+         "similarity": 0.865
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145518/1792353647449_qd-321d13ae-profile_pptx.pptx",
+       "name": "qd-321d13ae-profile_pptx.pptx",
+       "kind": "profile",
+       "read_at": "2026-10-18T20:00:49.396Z",
+       "status": "read",
+       "format": "pptx",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "hvac",
+         "via": "meaning",
+         "phrases": [
+          "testing & commissioning"
+         ],
+         "snippet": "- HVAC works",
+         "similarity": 0.882
+        },
+        {
+         "code": "plumbing",
+         "via": "meaning",
+         "phrases": [
+          "plumbing maintenance"
+         ],
+         "snippet": "- Plumbing works",
+         "similarity": 0.895
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": "sales_engineer__document_extraction:openai/gpt-6-luna"
+ },
+ {
+  "doc": "lic_mismatch_text",
+  "format": "text_pdf_colon",
+  "authority": "dubai_ded_old",
+  "expected": "name_autofilled",
+  "truth": {
+   "licence_no": "864274",
+   "legal_name_en": "ZZ DEMO Mirage Contracting LLC",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Palm Glass",
+   "activities": [
+    "Glass and Glazing Works",
+    "Plumbing and Sanitary Installation"
+   ],
+   "trades": [
+    "glazing",
+    "plumbing"
+   ],
+   "authority": "Dubai Department of Economic Development",
+   "legal_form": "Limited Liability Company",
+   "issue_date": "2024-01-19",
+   "expiry_date": "2027-01-18",
+   "emirate": "Dubai"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Mirage Contracting LLC",
+   "trade_license_no": "864274",
+   "licence_legal_name": "ZZ DEMO Mirage Contracting LLC",
+   "license_expiry": "2027-01-18",
+   "license_authority": "Dubai Department of Economic Development",
+   "approval_status": "approved",
+   "licence_gate_reason": null,
+   "license_doc_path": "licenses/145519/1792353655081_qd-321d13ae-lic_mismatch_text.pdf",
+   "company_profile_doc_path": "profiles/145519/1792353655829_qd-321d13ae-profile_png.png",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "flooring",
+    "glazing",
+    "joinery",
+    "plumbing"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license": {
+     "expiry": "2027-01-18",
+     "source": "text",
+     "keyword": "Expiry Date",
+     "read_by": "code",
+     "licence_name": "ZZ DEMO Mirage Contracting LLC"
+    },
+    "profile": {
+     "summary": "ZZ DEMO Marina Projects LLC is presented as a UAE contractor established in 2013, serving Dubai and undertaking joinery and flooring works. The profile states it has 70 skilled staff, five project teams, capacity for projects up to AED 2,500,000, and ISO 9001:2015 quality management certification. The document identifies the company as a synthetic fixture, not a real company.",
+     "sectors": [
+      "Joinery",
+      "Flooring"
+     ],
+     "confidence": "high"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "flooring",
+      "glazing",
+      "joinery",
+      "plumbing"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145519/1792353655081_qd-321d13ae-lic_mismatch_text.pdf",
+       "name": "qd-321d13ae-lic_mismatch_text.pdf",
+       "kind": "licence",
+       "read_at": "2026-10-18T20:01:04.526Z",
+       "status": "read",
+       "format": "pdf",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "glazing",
+         "via": "meaning",
+         "phrases": [
+          "frameless glazing"
+         ],
+         "snippet": "Glass and Glazing Works",
+         "similarity": 0.872
+        },
+        {
+         "code": "plumbing",
+         "via": "meaning",
+         "phrases": [
+          "sanitary fixtures installation"
+         ],
+         "snippet": "Plumbing and Sanitary Installation",
+         "similarity": 0.912
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145519/1792353655829_qd-321d13ae-profile_png.png",
+       "name": "qd-321d13ae-profile_png.png",
+       "kind": "profile",
+       "read_at": "2026-10-18T20:01:05.289Z",
+       "status": "read",
+       "format": "image",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "flooring",
+         "via": "meaning",
+         "phrases": [
+          "epoxy flooring"
+         ],
+         "snippet": "Flooring works",
+         "similarity": 0.876
+        },
+        {
+         "code": "joinery",
+         "via": "meaning",
+         "phrases": [
+          "wood panelling"
+         ],
+         "snippet": "Joinery works",
+         "similarity": 0.854
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    },
+    "services_crosscheck": {
+     "verdict": "conflict",
+     "overlap": 0,
+     "note": "CONFLICT: documents say \"Joinery works, Flooring works\", supplier typed \"Supply and installation of aluminium & cladding.\" (0% overlap, nothing in common). Documents are the source of truth; the typed text is kept as the declared value.",
+     "extracted_services": [
+      "Joinery works",
+      "Flooring works"
+     ],
+     "declared_services": "Supply and installation of aluminium & cladding."
+    }
+   }
+  },
+  "route": "sales_engineer__document_extraction:openai/gpt-6-luna"
+ },
+ {
+  "doc": "lic_mismatch_scan",
+  "format": "png",
+  "authority": "rakez",
+  "expected": "name_autofilled",
+  "truth": {
+   "licence_no": "5362699",
+   "legal_name_en": "ZZ DEMO Atlas Building Works FZ LLC",
+   "legal_name_ar": null,
+   "trade_name": "ZZ DEMO Sidra Lifts",
+   "activities": [
+    "Lifts and Escalators Installation and Maintenance",
+    "Air Conditioning and Ventilation Systems Installation"
+   ],
+   "trades": [
+    "elevators",
+    "hvac"
+   ],
+   "authority": "Ras Al Khaimah Economic Zone Authority",
+   "legal_form": "Free Zone Limited Liability Company",
+   "issue_date": "2025-02-20",
+   "expiry_date": "2027-02-19",
+   "emirate": "Ras Al Khaimah"
+  },
+  "row": {
+   "company_name": "ZZ DEMO Atlas Building Works FZ LLC",
+   "trade_license_no": "5362699",
+   "licence_legal_name": "ZZ DEMO Atlas Building Works FZ LLC",
+   "license_expiry": "2027-02-19",
+   "license_authority": "Ras Al Khaimah Economic Zone Authority",
+   "approval_status": "approved",
+   "licence_gate_reason": null,
+   "license_doc_path": "licenses/145520/1792353671045_qd-321d13ae-lic_mismatch_scan.png",
+   "company_profile_doc_path": "profiles/145520/1792353677731_qd-321d13ae-profile_pdf_paint.pdf",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "elevators",
+    "hvac",
+    "painting",
+    "waterproofing"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "correct",
+   "legal_name": "correct",
+   "expiry": "correct"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license_expiry_note": "We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.",
+    "license_expiry_note_ar": "لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.",
+    "license": {
+     "legal_name": "ZZ DEMO Atlas Building Works FZ LLC",
+     "license_number": "5362699",
+     "authority": "Ras Al Khaimah Economic Zone Authority",
+     "city": "Ras Al Khaimah",
+     "expiry": "2027-02-19",
+     "model_expiry": "2027-02-19",
+     "emirate": "Ras Al Khaimah",
+     "trn": "",
+     "licence_name": "ZZ DEMO Atlas Building Works FZ LLC",
+     "confidence": "high"
+    },
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "elevators",
+      "hvac",
+      "painting",
+      "waterproofing"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145520/1792353671045_qd-321d13ae-lic_mismatch_scan.png",
+       "name": "qd-321d13ae-lic_mismatch_scan.png",
+       "kind": "licence",
+       "read_at": "2026-10-18T20:01:19.513Z",
+       "status": "read",
+       "format": "image",
+       "source": "photo_text",
+       "trades": [
+        {
+         "code": "elevators",
+         "via": "meaning",
+         "phrases": [
+          "elevator supply & installation"
+         ],
+         "snippet": "Lifts and Escalators Installation and Maintenance",
+         "similarity": 0.884
+        },
+        {
+         "code": "hvac",
+         "via": "meaning",
+         "phrases": [
+          "supply & installation of ac units",
+          "ducting & ventilation"
+         ],
+         "snippet": "Air Conditioning and Ventilation Systems Installation",
+         "similarity": 0.88
+        }
+       ],
+       "exact": "nothing_to_read",
+       "meaning": "on"
+      },
+      {
+       "path": "profiles/145520/1792353677731_qd-321d13ae-profile_pdf_paint.pdf",
+       "name": "qd-321d13ae-profile_pdf_paint.pdf",
+       "kind": "profile",
+       "read_at": "2026-10-18T20:01:20.193Z",
+       "status": "read",
+       "format": "pdf",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "painting",
+         "via": "meaning",
+         "phrases": [
+          "interior painting"
+         ],
+         "snippet": "- Painting works",
+         "similarity": 0.867
+        },
+        {
+         "code": "waterproofing",
+         "via": "meaning",
+         "phrases": [
+          "wet-area waterproofing"
+         ],
+         "snippet": "- Waterproofing works",
+         "similarity": 0.879
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": "sales_engineer__document_extraction:openai/gpt-6-luna"
+ },
+ {
+  "doc": "lic_blank_pdf",
+  "format": "blank_pdf",
+  "authority": "none",
+  "expected": "licence_unreadable",
+  "truth": {
+   "licence_no": null,
+   "legal_name_en": null,
+   "legal_name_ar": null,
+   "trade_name": null,
+   "activities": [],
+   "trades": [],
+   "authority": null,
+   "legal_form": null,
+   "issue_date": null,
+   "expiry_date": null,
+   "emirate": null
+  },
+  "row": {
+   "company_name": "ZZ DEMO Blank Page LLC",
+   "trade_license_no": null,
+   "licence_legal_name": null,
+   "license_expiry": null,
+   "license_authority": null,
+   "approval_status": "pending",
+   "licence_gate_reason": "licence_unreadable",
+   "license_doc_path": "licenses/145521/1792353685793_qd-321d13ae-lic_blank_pdf.pdf",
+   "company_profile_doc_path": "profiles/145521/1792353690170_qd-321d13ae-profile_docx_land.docx",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "landscaping"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "n/a",
+   "legal_name": "n/a",
+   "expiry": "n/a"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license_expiry_note": "We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.",
+    "license_expiry_note_ar": "لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.",
+    "license_error": "licence_unreadable",
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "landscaping"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145521/1792353685793_qd-321d13ae-lic_blank_pdf.pdf",
+       "name": "qd-321d13ae-lic_blank_pdf.pdf",
+       "kind": "licence",
+       "read_at": "2026-10-18T20:01:31.495Z",
+       "status": "needs_ocr",
+       "format": "pdf",
+       "reason": "This PDF has no text layer (a scan, or CAD exported as lines); its words need OCR.",
+       "trades": []
+      },
+      {
+       "path": "profiles/145521/1792353690170_qd-321d13ae-profile_docx_land.docx",
+       "name": "qd-321d13ae-profile_docx_land.docx",
+       "kind": "profile",
+       "read_at": "2026-10-18T20:01:31.499Z",
+       "status": "read",
+       "format": "docx",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "landscaping",
+         "via": "meaning",
+         "phrases": [
+          "garden maintenance"
+         ],
+         "snippet": "- Landscaping works",
+         "similarity": 0.875
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": "sales_engineer__document_extraction:openai/gpt-6-luna"
+ },
+ {
+  "doc": "lic_blank_photo",
+  "format": "blank_photo",
+  "authority": "none",
+  "expected": "licence_unreadable",
+  "truth": {
+   "licence_no": null,
+   "legal_name_en": null,
+   "legal_name_ar": null,
+   "trade_name": null,
+   "activities": [],
+   "trades": [],
+   "authority": null,
+   "legal_form": null,
+   "issue_date": null,
+   "expiry_date": null,
+   "emirate": null
+  },
+  "row": {
+   "company_name": "ZZ DEMO Blank Photo LLC",
+   "trade_license_no": null,
+   "licence_legal_name": null,
+   "license_expiry": null,
+   "license_authority": null,
+   "approval_status": "pending",
+   "licence_gate_reason": "licence_unreadable",
+   "license_doc_path": "licenses/145522/1792353697373_qd-321d13ae-lic_blank_photo.jpg",
+   "company_profile_doc_path": "profiles/145522/1792353698477_qd-321d13ae-profile_docx_unsuffixed_name.docx",
+   "catalog_doc_paths": null,
+   "proposed_trades": [
+    "painting"
+   ]
+  },
+  "verdicts": {
+   "licence_no": "n/a",
+   "legal_name": "n/a",
+   "expiry": "n/a"
+  },
+  "gate": "correct",
+  "process_docs": {
+   "ok": true,
+   "extracted": {
+    "license_expiry_note": "We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.",
+    "license_expiry_note_ar": "لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.",
+    "license_error": "licence_unreadable",
+    "documents_read": {
+     "ok": true,
+     "proposed_trades": [
+      "painting"
+     ],
+     "docs": [
+      {
+       "path": "licenses/145522/1792353697373_qd-321d13ae-lic_blank_photo.jpg",
+       "name": "qd-321d13ae-lic_blank_photo.jpg",
+       "kind": "licence",
+       "read_at": "2026-10-18T20:01:39.781Z",
+       "status": "needs_ocr",
+       "format": "image",
+       "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+       "trades": []
+      },
+      {
+       "path": "profiles/145522/1792353698477_qd-321d13ae-profile_docx_unsuffixed_name.docx",
+       "name": "qd-321d13ae-profile_docx_unsuffixed_name.docx",
+       "kind": "profile",
+       "read_at": "2026-10-18T20:01:39.782Z",
+       "status": "read",
+       "format": "docx",
+       "source": "document_text",
+       "trades": [
+        {
+         "code": "painting",
+         "via": "meaning",
+         "phrases": [
+          "interior painting"
+         ],
+         "snippet": "- Painting works",
+         "similarity": 0.867
+        }
+       ],
+       "exact": "on",
+       "meaning": "on"
+      }
+     ]
+    }
+   }
+  },
+  "route": ""
+ }
+]

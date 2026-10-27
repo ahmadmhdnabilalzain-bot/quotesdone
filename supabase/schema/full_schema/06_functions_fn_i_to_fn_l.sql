@@ -3740,6 +3740,19 @@ begin
   -- within_its_window.sql). Cannot see: a conversation that was never started -- only one that stalled.
   v_out := v_out || jsonb_build_object('handoff_sla', public.fn_it_duty_settle('handoff_sla', public.fn_it_handoff_sla_items()));
 
+  -- ── 4c. EVERY PACK ROW HAS ITS MULTILINGUAL VECTOR ──
+  -- Reads: fn_pack_rows_without_fresh_ml_vector, the eligible verified_pack rows of the six seat tables whose
+  -- ml vector is missing or stale for over an hour since their load. Cannot see: why the queue is slow.
+  v_items := '[]'::jsonb;
+  for x in select * from public.fn_pack_rows_without_fresh_ml_vector(interval '1 hour') p where p.overdue > 0 loop
+    v_items := v_items || jsonb_build_object('item', x.src, 'owner_seat', 'it_engineer', 'subject', 'knowledge_ml',
+      'title', x.overdue || ' ' || x.src || ' pack rows have had no fresh multilingual vector for over an hour',
+      'blast', 'agent_facing', 'affected', x.overdue,
+      'evidence', jsonb_build_object('pack_rows', x.pack_rows, 'without_fresh', x.without_fresh, 'overdue', x.overdue,
+        'oldest_due', x.oldest_due, 'remedy', 'gh workflow run ml-embed-backfill.yml; fn_ml_embed_claim serves the rows'));
+  end loop;
+  v_out := v_out || jsonb_build_object('pack_ml_vectors', public.fn_it_duty_settle('pack_ml_vectors', v_items));
+
   -- ── 5. PAYMENT RECONCILIATION ──
   -- Reads: Stripe live and test — completed Checkout Sessions and refunds of the last 72 hours, and the
   -- webhook endpoints' enabled events against HANDLED_STRIPE_EVENTS (passed in from
@@ -6007,8 +6020,13 @@ begin
     if (j->>'budget_breach')::boolean then
       v_items := v_items || jsonb_build_object('item', x.fn || ':error_budget', 'subject', x.fn, 'blast', 'customer_facing',
         'affected', x.bad_24h, 'owner_seat', v_owner,
-        'title', x.fn || ' is burning its error budget at ' || (j->>'burn_rate_24h') || 'x over 24 h; 30-day availability '
-                 || round((j->>'availability')::numeric * 100, 2) || ' % against a 99.9 % objective',
+        -- the 30-day window can breach on a day with no runs: burn_rate_24h is then null, and so would the title be
+        'title', x.fn || case when j->>'burn_rate_24h' is not null
+                              then ' is burning its error budget at ' || (j->>'burn_rate_24h') || 'x over 24 h'
+                              else ' had no runs in the last 24 h and has spent ' || coalesce(j->>'budget_spent', '?')
+                                   || 'x its 30-day error budget' end
+                 || '; 30-day availability '
+                 || coalesce(round((j->>'availability')::numeric * 100, 2)::text, '?') || ' % against a 99.9 % objective',
         'evidence', j || jsonb_build_object('runs_24h', x.runs_24h, 'bad_24h', x.bad_24h, 'runs_30d', x.runs_30d,
                                             'bad_30d', x.bad_30d, 'server_errors_30d', x.err_30d));
     end if;
@@ -9839,6 +9857,7 @@ declare
   v_tag     text;
   v_cap     numeric;
   v_spent   numeric;
+  v_est     numeric;
   v_rehearsal boolean := false;
 begin
   -- An EMPTY STRING is not a deterministic path, it is a caller that did not say. Denied, with its
@@ -9851,8 +9870,7 @@ begin
              || 'that no provider call is being made', 'model', p_model);
   end if;
 
-  -- A deterministic path is not a provider call and never was. It is named explicitly rather than
-  -- reached by falling off the end of the checks.
+  -- A deterministic path is not a provider call and never was.
   if v_model is null or v_model in ('none', 'none/deterministic') then
     return jsonb_build_object('allowed', true, 'gate', 'kernel_k12',
       'rule', 'deterministic_path', 'reason', 'no provider call is being made', 'model', p_model);
@@ -9868,10 +9886,17 @@ begin
     end if;
     select w.cap_usd into v_cap from public.rehearsal_window w
      where w.run_tag = 'qd_run:' || v_tag and w.ended_at is null order by w.started_at desc limit 1;
-    select coalesce(sum(cost_aed), 0) / 3.6725 into v_spent from public.ai_cost_log where e2e_run_tag = v_tag;
-    if v_spent >= v_cap then
+    v_spent := public.fn_rehearsal_committed_usd(v_tag);
+    v_est := public.fn_rehearsal_call_estimate_usd(v_tag);
+    -- NULL >= cap is not true; an unreadable cap or spend used to pass here. It is a refusal.
+    if v_cap is null or v_spent is null or v_est is null then
+      return jsonb_build_object('allowed', false, 'gate', 'kernel_k12', 'rule', 'rehearsal_cap_unreadable',
+        'reason', 'sandbox run ' || v_tag || ': the window cap or its committed spend could not be read', 'model', v_model);
+    end if;
+    if v_spent + v_est >= v_cap then
       return jsonb_build_object('allowed', false, 'gate', 'kernel_k12', 'rule', 'rehearsal_cap',
-        'reason', 'sandbox run ' || v_tag || ' has spent USD ' || round(v_spent, 4) || ' of its USD ' || v_cap || ' cap',
+        'reason', 'sandbox run ' || v_tag || ' has committed USD ' || round(v_spent, 4) || ' (spent + reserved) of its USD ' || v_cap
+               || ' cap; one more call (' || round(v_est, 4) || ') would reach it',
         'model', v_model);
     end if;
     v_rehearsal := true;
@@ -9887,8 +9912,7 @@ begin
       'model', v_model);
   end if;
 
-  -- 2. empty route state is DENIED, not permitted. An absent hold is not a permission — this is the
-  --    "what does it print when its input is absent?" case, answered on purpose.
+  -- 2. empty route state is DENIED, not permitted.
   select count(*) into v_routes from public.llm_route_health;
   if v_routes = 0 then
     return jsonb_build_object('allowed', false, 'gate', 'kernel_k12',
@@ -9897,9 +9921,7 @@ begin
              || 'route is permitted', 'model', v_model);
   end if;
 
-  -- 3. the founder's hold, on ANY route. He held the whole estate on 15 Aug 2026; holding one route
-  --    and leaving the others open would not be what he asked for. A sandbox run inside its open
-  --    window passes the hold; it does not lift it.
+  -- 3. the founder's hold, on ANY route. A sandbox run inside its open window passes the hold; it does not lift it.
   select count(*) into v_held from public.llm_route_health where open_until is not null and open_until > now() + interval '1 year';
   if v_held > 0 and not v_rehearsal then
     return jsonb_build_object('allowed', false, 'gate', 'kernel_k12',
@@ -9917,10 +9939,7 @@ begin
       'reason', 'model ' || v_model || ' is not an active row in model_registry', 'model', v_model);
   end if;
 
-  -- 5. this route's own breaker. For a sandbox run, a route held by the hold is not a breaker. Measured
-  --    6 Oct 2026: every route is held to 2126-08-15, with opened_reason either 'HELD BY THE FOUNDER' or
-  --    'held with the rest of the fleet'. A real breaker opens for cooldown_seconds (900). So 'held' is
-  --    read from the date (more than a year out), never from the reason text, which has two spellings.
+  -- 5. this route's own breaker. For a sandbox run, a route held by the hold (more than a year out) is not a breaker.
   select open_until into v_open from public.llm_route_health where model_id = v_model;
   if v_open is not null and v_open > now()
      and not (v_rehearsal and v_open > now() + interval '365 days') then
@@ -9931,16 +9950,13 @@ begin
   if v_rehearsal then
     return jsonb_build_object('allowed', true, 'gate', 'kernel_k12',
       'rule', 'rehearsal_window', 'reason', 'sandbox run ' || v_tag || ' inside its open window, USD '
-             || round(v_spent, 4) || ' of ' || v_cap || ' spent; the founder''s hold stays on for all other traffic',
+             || round(v_spent, 4) || ' of ' || v_cap || ' committed; the founder''s hold stays on for all other traffic',
       'model', v_model);
   end if;
   return jsonb_build_object('allowed', true, 'gate', 'kernel_k12',
     'rule', 'registered_breaker_closed', 'reason', 'switch off, no hold, route registered, breaker closed',
     'model', v_model);
 exception
-  -- The gate itself failing is the most dangerous case, because it is the one a try/catch upstream
-  -- used to swallow. It answers DENIED, in its own voice, rather than throwing into a caller that
-  -- might interpret an exception as "carry on".
   when others then
     return jsonb_build_object('allowed', false, 'gate', 'kernel_k12',
       'rule', 'gate_unreadable',

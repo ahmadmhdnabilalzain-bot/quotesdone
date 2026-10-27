@@ -1,0 +1,435 @@
+{
+ "mode": "apply records + moves",
+ "date": "2026-10-19",
+ "before": {
+  "merge": 0,
+  "ownerless": 51,
+  "demo": 0,
+  "superseded": 0,
+  "record": 0,
+  "collisions": 0
+ },
+ "excluded_kinds": [],
+ "records_held_by_cap": 0,
+ "records": [],
+ "records_failed": 0,
+ "moves": [
+  {
+   "kind": "ownerless",
+   "id": 447389,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/141522/6d0e251d-b45f-4e66-9e48-ffc4af213c91/regenerated/1791805477391_quotation_d122b0c1_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/141522/6d0e251d-b45f-4e66-9e48-ffc4af213c91/regenerated/1791805477391_quotation_d122b0c1_option1_en.pdf",
+   "hash": "52f555e6280e3253efd40d6cdde8282b0d9a2ff8a4aabead35defb40c4671fae",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 448150,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/141578/43aa28de-c2fb-4818-9d76-783eb928dd88/regenerated/1791806821104_quotation_085806f9_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/141578/43aa28de-c2fb-4818-9d76-783eb928dd88/regenerated/1791806821104_quotation_085806f9_option1_en.pdf",
+   "hash": "e66e03ca23f0516c3b6dd4cc72437ba3da4f952592132ef6421b1c9d866deb04",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 493320,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/143271/1a0efa95-474a-43e2-9bac-ed219115c59c/regenerated/1791840340359_quotation_d2b1529f_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/143271/1a0efa95-474a-43e2-9bac-ed219115c59c/regenerated/1791840340359_quotation_d2b1529f_option1_en.pdf",
+   "hash": "f7b360551e400880aff8f75a577fe7ec5ca5731d1b3afcb643e29ca1a986ea8c",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 494297,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/143345/34edc5a2-4444-4765-9449-fb7a89a4e74f/regenerated/1791840940224_quotation_8ef4dde8_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/143345/34edc5a2-4444-4765-9449-fb7a89a4e74f/regenerated/1791840940224_quotation_8ef4dde8_option1_en.pdf",
+   "hash": "6f69080b4113297b97f0d5e941f156652edc6e9e6ef19e8b2250303a3f2be8fa",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 495249,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/143357/1d8f5586-4786-4d05-83c8-e329786d1810/regenerated/1791841458109_quotation_ddea6fbe_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/143357/1d8f5586-4786-4d05-83c8-e329786d1810/regenerated/1791841458109_quotation_ddea6fbe_option1_en.pdf",
+   "hash": "a2b6faff229dd248ec32107a6bb49fe2bd18e11137063ca0d4e9adbaed090783",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 491946,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/143141/1fb77c88-01a9-4797-a5f9-f64f050dd2db/regenerated/1791838625274_quotation_5bef33a2_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/143141/1fb77c88-01a9-4797-a5f9-f64f050dd2db/regenerated/1791838625274_quotation_5bef33a2_option1_en.pdf",
+   "hash": "e56e7e16775f3270d4ea91558399f07b37040afd8abf9823180960ef4df7fec9",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 449155,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/141662/70e98806-bdb8-4976-a5d3-c24a988ac73e/regenerated/1791809274308_quotation_de582da8_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/141662/70e98806-bdb8-4976-a5d3-c24a988ac73e/regenerated/1791809274308_quotation_de582da8_option1_en.pdf",
+   "hash": "e7775c1a110f9957a0032648700ec7882af4ab9209011bbd20ede57d81ce556f",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 453963,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/142169/2565554e-2602-4dcf-8835-1d8ab9bee3f7/regenerated/1791815937239_quotation_99964c35_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/142169/2565554e-2602-4dcf-8835-1d8ab9bee3f7/regenerated/1791815937239_quotation_99964c35_option1_en.pdf",
+   "hash": "78c72608b7781aa3e7fc62b8b1b3178828dce94d82e2c5d4980c0d71eb2a0365",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 454219,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/142174/4ca5b0ae-f643-449e-8f84-df1d6af536a0/regenerated/1791816184064_quotation_1161918d_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/142174/4ca5b0ae-f643-449e-8f84-df1d6af536a0/regenerated/1791816184064_quotation_1161918d_option1_en.pdf",
+   "hash": "c72c2e366525e5de66837dccc767601b82e19aa4367e0a3814738febb14a2c8e",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 456455,
+   "from": "/QuotesDone Backup/Storage/supplier-docs/licenses/142191/1791816973712_qd-42412480-lic_dubai_ded_old_scan_pdf.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/supplier-docs/licenses/142191/1791816973712_qd-42412480-lic_dubai_ded_old_scan_pdf.pdf",
+   "hash": "23688229a1bdc39b544c1324af66b6d7970276ceb30b43213dfacdb1d0b2730e",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 456568,
+   "from": "/QuotesDone Backup/Storage/supplier-docs/licenses/142192/1791816993460_qd-42412480-lic_dubai_det_text.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/supplier-docs/licenses/142192/1791816993460_qd-42412480-lic_dubai_det_text.pdf",
+   "hash": "e3b99dab5d971d67bed5ab94285f492f859b8e6d36189301927f944970a31c5a",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 456569,
+   "from": "/QuotesDone Backup/Storage/supplier-docs/licenses/142193/1791817006721_qd-42412480-lic_adgm_rotated90.jpg",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/supplier-docs/licenses/142193/1791817006721_qd-42412480-lic_adgm_rotated90.jpg",
+   "hash": "2b7085bb8a00fccc79dba0f1a76fdce5875f17e7aae17a3165d453aecddcfc53",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 456570,
+   "from": "/QuotesDone Backup/Storage/supplier-docs/licenses/142195/1791817025794_qd-42412480-lic_ajman_ded_lowdpi.jpg",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/supplier-docs/licenses/142195/1791817025794_qd-42412480-lic_ajman_ded_lowdpi.jpg",
+   "hash": "270c20bddf6ae2787d5fb0fcaade572e916ad7ed5f53e6d0b9576945494fb984",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 456571,
+   "from": "/QuotesDone Backup/Storage/supplier-docs/licenses/142196/1791817043892_qd-42412480-lic_rak_ded_phone.jpg",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/supplier-docs/licenses/142196/1791817043892_qd-42412480-lic_rak_ded_phone.jpg",
+   "hash": "20ce0b7b91d1d0f0d728a31519a564d70644a0015a400294517363abb955b23d",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 446307,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/141384/2d3a0d21-562b-4ef1-9da7-ab03fca3c738/regenerated/1791801426885_quotation_b3a8eebd_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/141384/2d3a0d21-562b-4ef1-9da7-ab03fca3c738/regenerated/1791801426885_quotation_b3a8eebd_option1_en.pdf",
+   "hash": "4511696c893ee91ae449f8775720cb726f556c3018e3626d3ae591f91dfcda07",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 445843,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/141259/179adeb9-b99e-4139-94ca-1819080e0c36/regenerated/1791798345267_quotation_7e336d0b_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/141259/179adeb9-b99e-4139-94ca-1819080e0c36/regenerated/1791798345267_quotation_7e336d0b_option1_en.pdf",
+   "hash": "c95284235dd0f116d0f8d539f3942d72085da408f1f0cf2077e39798a30781d4",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 558812,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/145234/d71dbeab-1aeb-458c-94d6-494f3dfad649/regenerated/1791878675374_quotation_ea7ba8d6_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/145234/d71dbeab-1aeb-458c-94d6-494f3dfad649/regenerated/1791878675374_quotation_ea7ba8d6_option1_en.pdf",
+   "hash": "385f1df096692ef171e85ec3b0671909a3caba3497473b01fe9dd99604ed10fb",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 496108,
+   "from": "/QuotesDone Backup/Storage/backups/generated/1791845578785_supplier_details_143431.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/backups/generated/1791845578785_supplier_details_143431.pdf",
+   "hash": "ecacb0f2f2c5adeb34fa7667f168c8be13137f175e0abddfcaac55f5cea060ce",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 505411,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/144219/f23870f1-8364-4301-a515-12163ab87c43/regenerated/1791861021019_quotation_85fee85f_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/144219/f23870f1-8364-4301-a515-12163ab87c43/regenerated/1791861021019_quotation_85fee85f_option1_en.pdf",
+   "hash": "45165f0f4faa5c8ffaa994c697d0e56346a0ef44c20983d35bd26c53f319a624",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 445722,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/141228/3b5b92b5-55bd-4e21-a4bc-a8718f6db222/regenerated/1791796840054_quotation_36f350db_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/141228/3b5b92b5-55bd-4e21-a4bc-a8718f6db222/regenerated/1791796840054_quotation_36f350db_option1_en.pdf",
+   "hash": "71fb56d252cbf33020d1c73210fb45b9816649095cc2a1564e73ccd2ae05b1f5",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 498348,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/143725/d01a2d91-c48b-4d80-ada2-9903af54b71d/regenerated/1791854192716_quotation_816f4471_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/143725/d01a2d91-c48b-4d80-ada2-9903af54b71d/regenerated/1791854192716_quotation_816f4471_option1_en.pdf",
+   "hash": "0199cdee828f71efa96d4fd2c5da624c10a650eeb03906e5aa8b7510a2596431",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 505412,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/144215/e32887b4-118e-4c7d-9f71-33bb62c052e9/regenerated/1791861052725_quotation_6f2bfe22_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/144215/e32887b4-118e-4c7d-9f71-33bb62c052e9/regenerated/1791861052725_quotation_6f2bfe22_option1_en.pdf",
+   "hash": "1f72265884228d4fe8b0d1660aceb1c6f5afc13b727eb30b8a012254d22fd06d",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 507051,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/144228/9595354a-6646-46d5-bc2f-d3b163dbb194/regenerated/1791862853574_quotation_d566fdab_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/144228/9595354a-6646-46d5-bc2f-d3b163dbb194/regenerated/1791862853574_quotation_d566fdab_option1_en.pdf",
+   "hash": "1edfbd4b96f5fab3d1cc2a730ae0b6bf6600912b3f76c8622219e07a9d77b96a",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 500361,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/143763/5531ec27-3111-4cc1-ba57-2064627dc19e/regenerated/1791856032492_quotation_9424f607_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/143763/5531ec27-3111-4cc1-ba57-2064627dc19e/regenerated/1791856032492_quotation_9424f607_option1_en.pdf",
+   "hash": "9ceba44121797669f9d1c4e95afdd86f5a77e5623a60e57180294ae7b5aa10d3",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 507185,
+   "from": "/QuotesDone Backup/Storage/drawing-files/redacted/c96ca8de-c1ce-4434-90df-9a517849a902/page_p0.jpg",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/drawing-files/redacted/c96ca8de-c1ce-4434-90df-9a517849a902/page_p0.jpg",
+   "hash": "53fc82ffeb7f0c5d894cb6d3fbfd564869e193723daa8bbf0e177f0f9ad7cb11",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 507190,
+   "from": "/QuotesDone Backup/Storage/drawing-files/redacted/6c3473ae-bfc2-4062-ba98-80ad73d81a89/page_drawing.dxf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/drawing-files/redacted/6c3473ae-bfc2-4062-ba98-80ad73d81a89/page_drawing.dxf",
+   "hash": "eda374e2dd083f07db72b1feed6bb370daa246f076aba371967f01778269813e",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 507191,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/144406/f82161aa-406d-46d6-8bc1-4d740aa0d906/regenerated/1791863856365_quotation_6f1935b2_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/144406/f82161aa-406d-46d6-8bc1-4d740aa0d906/regenerated/1791863856365_quotation_6f1935b2_option1_en.pdf",
+   "hash": "4e2a79b12bfdc5002d8f39f6f4cf730b85c34747bf9da31e0a3c0b0c7d8a36d2",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 501898,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/143779/244ea76f-7908-4203-92bd-f8054800e167/regenerated/1791857347637_quotation_fa736daf_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/143779/244ea76f-7908-4203-92bd-f8054800e167/regenerated/1791857347637_quotation_fa736daf_option1_en.pdf",
+   "hash": "848b50ed7a1589dcd8fab2293333638654d1a062a215488b107de6d06e1c2cc9",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 507187,
+   "from": "/QuotesDone Backup/Storage/drawing-files/redacted/93ea7283-280b-4279-98ca-e0e095f31ad7/page_p0.jpg",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/drawing-files/redacted/93ea7283-280b-4279-98ca-e0e095f31ad7/page_p0.jpg",
+   "hash": "53fc82ffeb7f0c5d894cb6d3fbfd564869e193723daa8bbf0e177f0f9ad7cb11",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 507188,
+   "from": "/QuotesDone Backup/Storage/drawing-files/redacted/7201cfee-c246-416d-ac4d-3f1dfed5ed38/page_drawing.dxf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/drawing-files/redacted/7201cfee-c246-416d-ac4d-3f1dfed5ed38/page_drawing.dxf",
+   "hash": "7f5e02f3287239fab6fcd8200b44715391c2bb7d9726eb1577b44f9578e06c29",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 507189,
+   "from": "/QuotesDone Backup/Storage/drawing-files/redacted/fa682f84-0d5e-475c-8252-086743545398/page_p0.jpg",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/drawing-files/redacted/fa682f84-0d5e-475c-8252-086743545398/page_p0.jpg",
+   "hash": "d5e5f2e4217f00c7f75ff4e222b67425ca1590bbaeb787cd428e0b20ff0d838a",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 507183,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/144016/dd1fbfd4-12cd-40bf-80a7-925dc161960a/regenerated/1791859529918_quotation_12130cb9_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/144016/dd1fbfd4-12cd-40bf-80a7-925dc161960a/regenerated/1791859529918_quotation_12130cb9_option1_en.pdf",
+   "hash": "14d82f082ab866dcd7409a31faf84acd5ee50ca46a2218af868b9ff18d3831b1",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 507184,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/144137/5a6240df-46a3-45b4-862a-a54afa0f3ab0/regenerated/1791859918143_quotation_db7b7ef4_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/144137/5a6240df-46a3-45b4-862a-a54afa0f3ab0/regenerated/1791859918143_quotation_db7b7ef4_option1_en.pdf",
+   "hash": "332065a0808e99d74d63d9b17e3d209f1103bd56226f36f9e82c2b5fe70cc9ba",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 507186,
+   "from": "/QuotesDone Backup/Storage/drawing-files/redacted/3df8dbff-0e84-41fc-94ea-a7abb4ae997f/page_drawing.dxf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/drawing-files/redacted/3df8dbff-0e84-41fc-94ea-a7abb4ae997f/page_drawing.dxf",
+   "hash": "7f5e02f3287239fab6fcd8200b44715391c2bb7d9726eb1577b44f9578e06c29",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 507594,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/143978/97bb49ff-fe6b-4331-abb9-ae96a4d12b37/regenerated/1791859427883_quotation_43db7fc3_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/143978/97bb49ff-fe6b-4331-abb9-ae96a4d12b37/regenerated/1791859427883_quotation_43db7fc3_option1_en.pdf",
+   "hash": "98382a13706f3945065a6639bdf21933d59abec1ebaccbade993971d7b714c2b",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 507595,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/144440/cfaaa3f6-37f0-4511-9909-63de15e85e90/regenerated/1791864029543_quotation_81826437_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/144440/cfaaa3f6-37f0-4511-9909-63de15e85e90/regenerated/1791864029543_quotation_81826437_option1_en.pdf",
+   "hash": "9491596bbe72a70924e8c9b8287df0eac717e6c92b8e9a28d131e24deb315f7f",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 490291,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/143115/8b599bfa-32cc-49ef-9aff-9fc59c64cbe3/regenerated/1791836468620_quotation_499fe46c_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/143115/8b599bfa-32cc-49ef-9aff-9fc59c64cbe3/regenerated/1791836468620_quotation_499fe46c_option1_en.pdf",
+   "hash": "31c41959ce795fc4b07280f44f86bf80c3dfc5a3c4d0d7b9551ee80ac920d5e2",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 490567,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/143119/65888692-b565-4c97-a391-6413448b3bc6/regenerated/1791836851000_quotation_3137a0ab_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/143119/65888692-b565-4c97-a391-6413448b3bc6/regenerated/1791836851000_quotation_3137a0ab_option1_en.pdf",
+   "hash": "69a07bc3526b44391fb0a019583e9ee7154bbff6d3b42f05de51759efc382118",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 447213,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/141412/d751d290-461a-4cef-ab75-cca12f557b54/regenerated/1791803695993_quotation_71ef7f0c_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/141412/d751d290-461a-4cef-ab75-cca12f557b54/regenerated/1791803695993_quotation_71ef7f0c_option1_en.pdf",
+   "hash": "05eea8feb8e3fd31da8355579f9ea47d3744027059083fa465fee5b31b86c73b",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 517718,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/145245/474a37be-4dd5-47ec-be6a-a12f1800d20c/regenerated/1792023900069_quotation_b14ef8db_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/145245/474a37be-4dd5-47ec-be6a-a12f1800d20c/regenerated/1792023900069_quotation_b14ef8db_option1_en.pdf",
+   "hash": "e28b63c5cb3e63003e4bac1af1ff928f72c43bf64f9780e08e9ac23badcc9dfc",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 511552,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/144475/51a15329-3950-4bae-ac6b-bb77af64df2d/regenerated/1791866089615_quotation_dcd21df5_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/144475/51a15329-3950-4bae-ac6b-bb77af64df2d/regenerated/1791866089615_quotation_dcd21df5_option1_en.pdf",
+   "hash": "4aa57e849f612a3e630a175409d25ca328165da3a5ee5d81e9d723eca97fefd7",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 511553,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/144692/95745f74-9e32-4b51-b3ef-a7873e52d436/regenerated/1791870019171_quotation_774044cc_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/144692/95745f74-9e32-4b51-b3ef-a7873e52d436/regenerated/1791870019171_quotation_774044cc_option1_en.pdf",
+   "hash": "b39cf13e0925fe503f887232a8be11db52c25148e42825d4b89351b5d31dccec",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 511607,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/144478/5b7b67f2-0192-4339-b575-6a96a8694dad/regenerated/1791866069777_quotation_67ffd081_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/144478/5b7b67f2-0192-4339-b575-6a96a8694dad/regenerated/1791866069777_quotation_67ffd081_option1_en.pdf",
+   "hash": "4d3a4a146bbd9af52f01e061e93ab18492c77d9f27abb4d2d1eb14b49c2a902a",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 511608,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/144697/07d7e38c-e7fd-467a-9857-6823fb2171db/regenerated/1791870435034_quotation_db09eac0_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/144697/07d7e38c-e7fd-467a-9857-6823fb2171db/regenerated/1791870435034_quotation_db09eac0_option1_en.pdf",
+   "hash": "160b5d1605e0658d9ef4d3edadd3c2795d71a9ab93ac0a9331da76475abd978a",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 523092,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/145259/823383fc-f0ba-4846-a0c9-0642c43fa166/regenerated/1792196227323_quotation_8956001e_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/145259/823383fc-f0ba-4846-a0c9-0642c43fa166/regenerated/1792196227323_quotation_8956001e_option1_en.pdf",
+   "hash": "43875ee327fb73fcb17ca0d0b9304553bc442bb9c7f1b9ce6329fc32ccf1cb98",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 514064,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/145238/0bd67536-7c00-4dc3-b54c-cbd2077f69fa/regenerated/1791939501064_quotation_b73788e6_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/145238/0bd67536-7c00-4dc3-b54c-cbd2077f69fa/regenerated/1791939501064_quotation_b73788e6_option1_en.pdf",
+   "hash": "9cfa2ebd047d544ad11b191f69bfee97b3741053f91d2dce8b5ca84c6929b72c",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 543093,
+   "from": "/QuotesDone Backup/Storage/drawing-files/drawings/a0c6e503-7a6b-4b68-9b9f-da0441ca66d3/1792347566999_ZZ mechanical layout.dxf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/drawing-files/drawings/a0c6e503-7a6b-4b68-9b9f-da0441ca66d3/1792347566999_ZZ mechanical layout.dxf",
+   "hash": "79b2dfd943e90bc2736572de10b62cf6186f21d790d718e3540b16ebd817f66f",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 543094,
+   "from": "/QuotesDone Backup/Storage/drawing-files/redacted/dc4cc818-1e31-445f-ad9e-42befd31d4fb/page_p0.jpg",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/drawing-files/redacted/dc4cc818-1e31-445f-ad9e-42befd31d4fb/page_p0.jpg",
+   "hash": "66c3478f7f81efecf3153864c912d6cc77319b4f30f81c0cb3dc81580131de84",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 543095,
+   "from": "/QuotesDone Backup/Storage/drawing-files/redacted/5368189e-7fd6-4eed-b99a-418d83f70047/page_drawing.dxf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/drawing-files/redacted/5368189e-7fd6-4eed-b99a-418d83f70047/page_drawing.dxf",
+   "hash": "175a2429371ff27b719ebbddd096e1c828938524f13c3347bc0fee79bf540ac7",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 520381,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/145252/2a2b757a-af08-45d1-9412-fdd6cf03d824/regenerated/1792109528316_quotation_b8ff06d8_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/145252/2a2b757a-af08-45d1-9412-fdd6cf03d824/regenerated/1792109528316_quotation_b8ff06d8_option1_en.pdf",
+   "hash": "8ab69885b992ea87931aefffa74e672dd9c512ac705cddee294a880631b540a7",
+   "result": "moved, hash verified"
+  },
+  {
+   "kind": "ownerless",
+   "id": 525716,
+   "from": "/QuotesDone Backup/Storage/quote-files/quotes/145266/bf2df7ff-a20c-42cb-a6c6-2cfdd2820239/regenerated/1792281075480_quotation_90afbe33_option1_en.pdf",
+   "to": "/QuotesDone Backup/_archive/ownerless-2026-10-19/Storage/quote-files/quotes/145266/bf2df7ff-a20c-42cb-a6c6-2cfdd2820239/regenerated/1792281075480_quotation_90afbe33_option1_en.pdf",
+   "hash": "eae11a57a52ca68a88143d867a0f105537209396e510fc8e90b651c58519d70c",
+   "result": "moved, hash verified"
+  }
+ ],
+ "founder_ok": "1180",
+ "after": {
+  "merge": 0,
+  "ownerless": 0,
+  "demo": 0,
+  "superseded": 0,
+  "record": 0,
+  "collisions": 0
+ }
+}

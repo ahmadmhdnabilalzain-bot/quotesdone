@@ -1,0 +1,11 @@
+{
+ "mode": "dry-run",
+ "date": "2026-10-07",
+ "before": {
+  "merge": 5,
+  "ownerless": 421,
+  "demo": 4,
+  "record": 14,
+  "collisions": 0
+ }
+}

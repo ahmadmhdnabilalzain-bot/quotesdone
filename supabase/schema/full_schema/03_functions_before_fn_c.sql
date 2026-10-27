@@ -10175,6 +10175,23 @@ exception when others then
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ai_cost_log_releases_rehearsal_reservation()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if new.e2e_run_tag is not null and new.model_used is distinct from 'none' and not coalesce(new.cached, false)
+     and greatest(coalesce(new.cost_usd_reported, 0), coalesce(new.cost_aed, 0)) > 0 then
+    delete from public.rehearsal_spend_reservation
+     where id = (select id from public.rehearsal_spend_reservation
+                  where e2e_run_tag = new.e2e_run_tag order by created_at limit 1);
+  end if;
+  return null;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ai_quality_watch()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -12160,6 +12177,7 @@ AS $function$
     ('social-media',     'bucket', 'social-media',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (generated post cards and avatars; not in the repository)', null),
     ('brand',            'bucket', 'brand',            true, 'fn_enqueue_doc_backups: STORAGE SWEEP (brand kit, signature and stamp images; not in the repository)', null),
     ('company-seal',     'bucket', 'company-seal',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the company stamp and signature, private since 6 Oct 2026; read by pdf_native with the service role)', null),
+    ('evidence',         'bucket', 'evidence',         true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the laptop''s sandbox and campaign evidence moved off the Desktop on 26 Oct 2026: screenshots, recordings, files over 5 MB and real third parties'' documents kept out of git; private, service role only; indexed by sha256 in docs/reports/EVIDENCE_INDEX.md)', null),
     ('kb-import-assets', 'bucket', 'kb-import-assets', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (knowledge import runs; only part of it is in the repository)', null),
     ('site',             'bucket', 'site',             true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the static website pages as first published)', null),
     ('marketing-media',  'bucket', 'marketing-media',  true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the media of the posts the founder and Claude ingest to the marketing seat; private, not in the repository)', null),
