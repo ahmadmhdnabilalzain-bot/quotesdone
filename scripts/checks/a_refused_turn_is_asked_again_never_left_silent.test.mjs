@@ -73,7 +73,12 @@ test('W2: one list of re-ask surfaces in TypeScript and SQL; the replay leaves t
   for (const fn of ['fn_reask_surfaces()', 'fn_reask_due(integer)', 'fn_reask_record(bigint, jsonb)', 'fn_reask_hand_off(bigint)', 'fn_reask_reviewed_reply(bigint, text, text)', 'fn_reask_kick()']) {
     assert.ok(sql.includes('revoke execute on function public.' + fn + ' from public, anon, authenticated;'), 'no revoke for ' + fn);
   }
-  assert.ok(existsSync(new URL('../../scripts/sql/pending/a_refused_turn_is_asked_again_within_minutes_never_left_silent.txt', import.meta.url)), 'a pending file needs its note');
+  // A committed file waits for merge with a pending note, or is applied and has its MANIFEST line - never both, never
+  // neither (quotesdone-apply-discipline 1). Until 27 Oct this asserted the note alone, so it went red the moment #1657
+  // was applied and its note removed (a4870c56f), which is the state the rule asks for.
+  const pending = existsSync(new URL('../../scripts/sql/pending/a_refused_turn_is_asked_again_within_minutes_never_left_silent.txt', import.meta.url));
+  const listed = read('scripts/sql/MANIFEST.txt').split(/\r?\n/).some((l) => l.trim() === SQL);
+  assert.ok(pending !== listed, pending ? 'a pending file that is also in MANIFEST' : 'the file is neither pending with a note nor in MANIFEST');
   assert.match(code(read('supabase/functions/sales_engineer/index.ts')), /if \(action === 'reask_turns'\) \{/);
   assert.match(ts, /otherFamilyFirst: true, effort: 'high'/, 'the re-ask must ask differently, not repeat the refused call');
   assert.match(ts, /const safe = await customerSafe\(/, 'customerSafe must run again on the portal re-ask');
