@@ -55,12 +55,15 @@ test('the canonical morning seed writes nothing, and the gate cannot pass', () =
   assert.match(due.body, /'action', 'idle'/);
   const gate = canonical('fn_invite_placement_gate');
   assert.equal(gate.path, FILE, `${gate.path} redefines fn_invite_placement_gate`);
-  assert.doesNotMatch(gate.body, /'pass'/, 'the retired gate can pass without the GlockApps verdict');
+  assert.doesNotMatch(gate.body, /'pass'/i, 'the retired gate can pass without the GlockApps verdict');
+  // PL/pgSQL keywords are case-insensitive, and a string or comment is not code (review of #1696): count the returns of the
+  // body with its literals and block comments emptied, in any case, so an upper-case RETURN cannot hide a second way out.
+  const bare = gate.body.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/'(?:[^']|'')*'/g, "''");
   // THE OPEN-DAY BRANCH, PROVED FROM THE CODE (review of #1696): the probe never switches the campaign on, so the branch
   // that runs on an open day is read here. Its only statement is the finding relay inside an if, and the body's one
   // return, after that if, is unconditional: no day, open or held, can answer anything but fail:seed_retired.
-  assert.equal((gate.body.match(/\breturn\b/g) || []).length, 1, 'the retired gate has a second way out');
-  assert.match(gate.body, /end if;\s+return 'fail:seed_retired';\s+end\s*$/, 'the gate does not end in an unconditional fail:seed_retired');
+  assert.equal((bare.match(/\breturn\b/gi) || []).length, 1, 'the retired gate has a second way out');
+  assert.match(gate.body, /end if;\s+return 'fail:seed_retired';\s+end\s*$/i, 'the gate does not end in an unconditional fail:seed_retired');
   const branch = gate.body.slice(gate.body.indexOf('if public.fn_invite_placement_day_closed'), gate.body.lastIndexOf('end if;'));
   assert.equal((branch.replace(/'(?:[^']|'')*'/g, "''").match(/;/g) || []).length, 1, 'the open-day branch does more than file the one finding');
   assert.match(gate.body, /fn_invite_placement_day_closed\(p_now\) is null then\s+perform public\.fn_invite_placement_finding\(v_day, 'seed_retired',/, 'the finding is filed while the campaign is held, or not through the registered relay');
@@ -86,7 +89,7 @@ test('the refusal is a trigger on every seed row, before the founder-mail policy
 test('the change is applied or pending, and the probe is never applied', () => {
   // Neither the probe nor this check may write a campaign switch, even inside a rolled-back transaction (review of #1696).
   for (const f of [PROBE, 'scripts/checks/no_test_mail_goes_to_the_founders_own_inboxes.test.mjs']) {
-    assert.doesNotMatch(code(R(f)).replace(/doesNotMatch\([^\n]*/g, ''), /(update|insert into|delete from)\s+(public\.)?app_secrets/i, `${f} writes app_secrets`);
+    assert.doesNotMatch(code(R(f)).replace(/doesNotMatch\([^\n]*/g, ''), /(update|insert\s+into|delete\s+from|merge\s+into|truncate)\s+(only\s+)?(table\s+)?("?public"?\.)?"?app_secrets/i, `${f} writes app_secrets`);
   }
   const notes = pendingNotes();
   const inManifest = R('scripts/sql/MANIFEST.txt').split(/\r?\n/).map((l) => l.trim()).includes(FILE);
