@@ -16,6 +16,14 @@
 // FAIL SOFT, NEVER WRONG. Anything that goes wrong returns null and the caller uses the gte-small path with
 // the gte routines. A vector is never returned for the wrong space. The pipeline is built once per worker
 // (module scope): building it per request is what killed kb_embed with WORKER_RESOURCE_LIMIT on 28 Jul.
+//
+// THE TYPES COME FROM NPM, THE CODE FROM JSDELIVR (27 Oct 2026, it_engineer). The local gate runs behind an egress
+// proxy that refuses cdn.jsdelivr.net, so `deno check` of every function failed on fetching this URL. `deno check`
+// builds a types-only graph: with @ts-types it reads the .d.ts of the SAME version from npm and never fetches the
+// +esm (measured: deno-all passes with jsDelivr refused). The edge bundler (supabase/edge-runtime, deno_facade ->
+// create_graph_and_maybe_check) builds with TypeCheckMode::None, a code-only graph, which does not follow @ts-types,
+// so the deployed bundle still holds only the jsDelivr +esm above: the 24 Sep measurements stand unchanged.
+// @ts-types="npm:@huggingface/transformers@3.8.1"
 import * as TJS from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/+esm';
 import { ML_MODEL, ML_MODEL_PATH, mlQueryText, mlRowText, rowText } from './ml_embed_recipe.ts';
 import { embedLine } from './gte_embed.ts';

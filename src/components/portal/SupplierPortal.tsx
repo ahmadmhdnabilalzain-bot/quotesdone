@@ -1742,6 +1742,13 @@ function Projects({ token, lang, openChat, onExpired }) {
             {!c.phone && !c.email ? <span className={S.sub}>{ar ? 'يمكنكم التواصل معه عبر الرسائل أدناه.' : 'Use the messages below to reach them.'}</span> : null}
           </div>
         </div>
+        {/* The customer's post-job review (T2). Suppliers read English only (ruling 28 Sep 2026). */}
+        {p.review ? <div className="mt-3 rounded-md border border-border px-3.5 py-3" dir="ltr" lang="en">
+          <div className="font-mono text-label uppercase tracking-caps text-muted-foreground">Customer review</div>
+          <div className="mt-1 text-[14px] font-semibold text-foreground"><span className="text-amber-500" aria-hidden="true">{'★'.repeat(p.review.rating)}{'☆'.repeat(Math.max(0, 5 - p.review.rating))}</span> <span className="sr-only">{p.review.rating} of 5 stars</span></div>
+          {p.review.comment ? <p className="mt-1 text-[13px] text-foreground break-words"><bdi>{p.review.comment}</bdi></p> : null}
+          {(p.review.photo_urls || []).length ? <div className="mt-2 flex flex-wrap gap-2">{p.review.photo_urls.map((u: string, i: number) => <a key={u} href={u} target="_blank" rel="noopener noreferrer"><img src={u} alt={'Customer job photo ' + (i + 1)} width={80} height={80} loading="lazy" className="size-20 rounded-md border border-border object-cover" /></a>)}</div> : null}
+        </div> : null}
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <div className="text-[13px]">
             {p.acknowledged_at
