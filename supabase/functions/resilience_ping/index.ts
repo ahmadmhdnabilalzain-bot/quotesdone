@@ -14,7 +14,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { embedLine } from '../_shared/gte_embed.ts';
-import { carriedFailures, detachedItems, type Failure, failureOf, httpHopError, runSteps, type Step, type StepState, stepRows } from './steps.ts';
+import { carriedFailures, detachedItems, type Failure, failureOf, httpHopError, runSteps, type Step, type StepClock, stepClock, type StepState, stepRows } from './steps.ts';
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 import { takeProviderReadings } from '../_shared/it_provider_readings.ts';
@@ -276,6 +276,15 @@ async function heldReplayTick(): Promise<unknown> {
   const deadline = Date.now() + DETACHED_MS;
   return await replayHeld(admin, REPLAY_CLAIM, heartbeatDeps(admin), (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin)),
     { maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS, deadline });
+}
+
+// THE ROUTINE JUDGEMENTS, IN THEIR OWN DETACHED RUN (it_engineer, 27 Oct 2026). Kicked by itlater's routine_judgements
+// step. Handed this run's deadline, so a claim starts only while a whole judgement fits and no model call outlives it
+// (_shared/routine_judgements.ts drain, JUDGE_ROW_MS / JUDGE_RESERVE_MS). heartbeatDeps: gte-small runs in embed_ml.
+// prevented by: _shared/routine_judgements_keep_a_deadline.test.ts, resilience_ping/held_replay_runs_detached.test.ts
+async function routineJudgementsTick(): Promise<unknown> {
+  const deadline = Date.now() + DETACHED_MS;
+  return await drainRoutineJudgements(heartbeatDeps(admin), 5, null, { deadline });
 }
 
 async function supportVoiceTick(): Promise<unknown> {
@@ -1250,7 +1259,7 @@ async function itScheduledTick(): Promise<unknown> {
 // Duty 19's file half is duty 9's sample (itScheduledTick); 21 is duty 10's sender check; 23's patch PR
 // runs in .github/workflows/it-weekly-readings.yml. Runs before the alert tick, so anything raised here
 // goes round the IT loop on this same pass.
-async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
+async function itLaterDutiesTick(clock: StepClock = stepClock()): Promise<Record<string, unknown>> {
   const out: Record<string, unknown> = {};
   const rpc = async (fn: string, args?: Record<string, unknown>) => {
     const { data, error } = await admin.rpc(fn, args);
@@ -1260,7 +1269,10 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   const pause = await pausedDuties(admin);
   const step = async (name: string, run: () => Promise<unknown>) => {
     if (pause.has('resilience_ping.' + name)) { out[name] = PAUSED; return; }
+    // every step is timed on the run's clock, which outlives the 120 s race (steps.ts stepClock)
+    clock.begin(name);
     try { out[name] = await run(); } catch (e) { out[name] = { ok: false, error: String((e as Error)?.message || e).slice(0, 300) }; }
+    clock.end(name, !failureOf(out[name]));
   };
   await step('renewal', async () => { await rpc('fn_it_renewal_watch'); return { ok: true }; });
   await step('changes', async () => {
@@ -1350,7 +1362,10 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // The four routine judgements (quote spec match, repeat requests, supplier trade words, unknown-sender mail) queued by
   // their callers and not judged inline: five a tick, no per-day limit; three failed readings end a row. Held rows stay queued
   // (scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql).
-  await step('routine_judgements', async () => drainRoutineJudgements(heartbeatDeps(admin), 5));   // gte-small in embed_ml: the replay's worker, see heartbeatDeps
+  // 27 Oct 2026 (it_engineer): KICKED into its own detached run (routineJudgementsTick), the same move #1688 made for the
+  // replay. Measured: the 22:01:12Z itlater run claimed five rows here at 22:01:27 and judged them one after another at
+  // ~60 s each (two model calls of 19-31 s apiece); the run's cap fired at 22:03:12 with this step still going.
+  await step('routine_judgements', async () => kickDetached('routineJudgements'));
   // A WHATSAPP TURN THAT CRASHED (customer_support, 19 Oct 2026): a wa_messages row still at stage 'received' after 5 minutes
   // goes to customer_support once and into the held-question queue (so reasoning_escalate below sends the holding notice in the same tick); never replayed
   // (scripts/sql/a_whatsapp_message_whose_turn_crashed_reaches_customer_support_in_five_minutes.sql).
@@ -1714,11 +1729,12 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
 // 120 s for the run itself, raced in runDetached so a hung RPC is cut off with time left inside the ~150 s
 // wall clock for fn_it_duty_settle to record it; the marketing fetch waits the same 120 s.
 const DETACHED_MS = 120_000;
-const DETACHED: Record<string, { run: () => Promise<unknown>; nested?: boolean }> = {
+const DETACHED: Record<string, { run: (clock: StepClock) => Promise<unknown>; nested?: boolean }> = {
   marketing: { run: marketingTick },
   supportVoice: { run: supportVoiceTick },
   itlater: { run: itLaterDutiesTick, nested: true },
   heldReplay: { run: heldReplayTick },
+  routineJudgements: { run: routineJudgementsTick },
 };
 async function kickDetached(name: string): Promise<unknown> {
   try {
@@ -1734,10 +1750,14 @@ async function runDetached(name: string): Promise<void> {
   const d = DETACHED[name];
   let out: unknown;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const clock = stepClock();
   const cap = new Promise<unknown>((res) => { timer = setTimeout(() => res({ ok: false, error: 'detached ' + name + ' passed its ' + DETACHED_MS + ' ms limit' }), DETACHED_MS); });
-  try { out = await Promise.race([d.run(), cap]); } catch (e) { out = { ok: false, error: String((e as Error)?.message || e) }; }
+  try { out = await Promise.race([d.run(clock), cap]); } catch (e) { out = { ok: false, error: String((e as Error)?.message || e) }; }
   finally { clearTimeout(timer); }
-  try { await admin.rpc('fn_it_duty_settle', { p_duty: 'detached_' + name, p_items: detachedItems(name, out, !!d.nested) }); }
+  // read the clock where the race left it: on an overrun, `running` is the step that was still going
+  const timing = clock.snapshot();
+  console.log(JSON.stringify({ detached_timing: name, ok: !failureOf(out), ...timing }));
+  try { await admin.rpc('fn_it_duty_settle', { p_duty: 'detached_' + name, p_items: detachedItems(name, out, !!d.nested, timing) }); }
   catch (_e) { /* the next run settles again; a failed settle must not throw out of waitUntil */ }
 }
 
