@@ -1,6 +1,6 @@
 ---
 name: checkpoint-27-oct-night-merge-train-and-the-held-queue
-description: "27 Oct 2026 night (founder away, ledger 1348): 25 PRs #1672-#1693 merged and live, parity 78/0; resilience_ping CPU kill fixed then two overrun causes found; held-question queue was newest-first and starved the November-plan revisions; what is still open"
+description: "27 Oct 2026 night (founder away, ledger 1348): 25 PRs #1669-#1693 merged and live, parity 78/0; resilience_ping CPU kill fixed then two overrun causes found; held-question queue was newest-first and starved the November-plan revisions; what is still open"
 metadata:
   node_type: memory
   type: project
@@ -10,7 +10,7 @@ metadata:
 **READ FIRST after the 27 Oct checkpoint.** Written at 22:45Z when the founder came back.
 
 **Shipped (all reviewed by an independent agent, gate red only on otp-race = no Postgres in the container):**
-- #1672–#1683, #1685–#1693 merged; SQL applied for #1675, #1679, #1681, #1684 (by accident, then bookkeeping only), #1686, #1691, #1693. `verify_deploy_parity --all` = MATCH 78 / STALE 0 after #1688's staged deploy (resilience_ping v409, then 10 back-office, then 11 customer-facing; 0 4xx/5xx after).
+- #1669–#1693 merged (25); SQL applied for #1669, #1670, #1675, #1679, #1681, #1684 (by accident, then bookkeeping only), #1686, #1691, #1693, plus #1690's data repair (rows 28985–28988 re-opened 20:28Z). `verify_deploy_parity --all` = MATCH 78 / STALE 0 after #1688's staged deploy (resilience_ping v409, then 10 back-office, then 11 customer-facing; 0 4xx/5xx after).
 - it.finding handoffs past their window: 210 (20:36Z) → 171 (21:43Z).
 
 **The resilience_ping chain, in order — each fix exposed the next cause:**
