@@ -1,6 +1,6 @@
 // THE FOUNDER SHIPPED 3,959 OPERATIONAL RECORDS AND NEITHER PROJECT HAD A TABLE FOR THEM.
 //
-// `QuotesDone_COMPANY_OPERATIONS_KNOWLEDGE_v2026.07.31` sits in C:\Users\Opera\qd-packs\ and is a
+// `QuotesDone_COMPANY_OPERATIONS_KNOWLEDGE_v2026.07.31` sits outside the repo (QD_OPS_PACK names its folder; default ~/qd-packs/) and is a
 // SEPARATE corpus from the 86-category supplier knowledge that sessions 10-11 imported — its own
 // START_HERE.md says so in its second line. It carries 24 target departments and, measured:
 //
@@ -48,10 +48,12 @@
 // refuses production through qd_guard like every other writer in the repo, so loading production is
 // a deliberate act somebody has to take, not a default.
 import { createReadStream, existsSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { createInterface } from 'node:readline';
 import { mgmtRead, mgmtWrite, resolveStagingRef } from './lib/qd_guard.mjs';
 
-const PACK = 'C:/Users/Opera/qd-packs/QuotesDone_COMPANY_OPERATIONS_KNOWLEDGE_v2026.07.31/QuotesDone_COMPANY_OPERATIONS_KNOWLEDGE_v2026.07.31';
+const PACK = process.env.QD_OPS_PACK
+  || `${homedir()}/qd-packs/QuotesDone_COMPANY_OPERATIONS_KNOWLEDGE_v2026.07.31/QuotesDone_COMPANY_OPERATIONS_KNOWLEDGE_v2026.07.31`;
 const RECORDS = `${PACK}/06_ALL_RECORDS/01_ALL_OPERATIONAL_RECORDS.jsonl`;
 
 // target department (pack scope_key) -> production org_departments.dept_key

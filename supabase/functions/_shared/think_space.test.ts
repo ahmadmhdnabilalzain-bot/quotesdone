@@ -23,8 +23,8 @@ const called = (rpcs: [string, unknown][]) => rpcs.map(([f]) => f).filter((f) =>
 
 Deno.test('ml space: the question and every step are embedded multilingual and read by the _ml routines', async () => {
   const m = deps('ml', true);
-  await think(m.d, { seat: 'accountant', surface: 'think.answer', question: 'متى يستحق إقرار ضريبة الشركات؟' });
-  assertEquals(called(m.rpcs), ['fn_case_recall_ml', 'fn_reason_retrieve_ml']);
+  await think(m.d, { context: { audience: 'internal' }, seat: 'accountant', surface: 'think.answer', question: 'متى يستحق إقرار ضريبة الشركات؟' });
+  assertEquals(called(m.rpcs), ['fn_case_recall_ml', 'fn_reason_retrieve_ml', 'fn_reason_retrieve_ml']);   // the step, then the question as asked
   assertEquals(m.rpcs.find(([f]) => f === 'fn_case_recall_ml')![1].p_embedding, '[0.9,0.2]');
   // an Arabic step gets no gte-small vector (English-only model; gteReads, 6 Oct 2026): the multilingual space ranks it
   const r = m.rpcs.find(([f]) => f === 'fn_reason_retrieve_ml')![1];
@@ -35,33 +35,33 @@ Deno.test('ml space, an English step: the fused search gets both vectors, each f
   const m = deps('ml', true);
   m.d.llm = (phase) => Promise.resolve({ content: phase === 'decompose' ? J({ steps: [{ id: 's1', goal: 'g', query: 'UAE VAT registration threshold' }], facts: [] })
     : phase === 'verify' ? J({ verdict: 'agree', problems: [] }) : J({ answer: 'a', reasoning: [], cited: [], confidence: 0.9 }), model: 'm' });
-  await think(m.d, { seat: 'accountant', surface: 'think.answer', question: 'when is the CT return due?' });
+  await think(m.d, { context: { audience: 'internal' }, seat: 'accountant', surface: 'think.answer', question: 'when is the CT return due?' });
   const r = m.rpcs.find(([f]) => f === 'fn_reason_retrieve_ml')![1];
   assertEquals([r.p_embedding, r.p_embedding_gte], ['[0.9,0.2]', '[0.1,0.2]']);
 });
 
 Deno.test('ml space but the multilingual embedder fails: gte vector, gte routines — never a gte vector to an _ml routine', async () => {
   const m = deps('ml', false);
-  await think(m.d, { seat: 'accountant', surface: 'think.answer', question: 'when is the CT return due?' });
-  assertEquals(called(m.rpcs), ['fn_case_recall', 'fn_reason_retrieve']);
+  await think(m.d, { context: { audience: 'internal' }, seat: 'accountant', surface: 'think.answer', question: 'when is the CT return due?' });
+  assertEquals(called(m.rpcs), ['fn_case_recall', 'fn_reason_retrieve', 'fn_reason_retrieve']);
   for (const [, a] of m.rpcs.filter(([f]) => /recall|retrieve/.test(f))) assertEquals(a.p_embedding, '[0.1,0.2]');
 });
 
 Deno.test('no space dependency (every existing caller and test): gte, exactly as before', async () => {
   const m = deps(undefined, true);
-  await think(m.d, { seat: 'ceo', surface: 'think.answer', question: 'are we on track?' });
-  assertEquals(called(m.rpcs), ['fn_case_recall', 'fn_reason_retrieve']);
+  await think(m.d, { context: { audience: 'internal' }, seat: 'ceo', surface: 'think.answer', question: 'are we on track?' });
+  assertEquals(called(m.rpcs), ['fn_case_recall', 'fn_reason_retrieve', 'fn_reason_retrieve']);
   assertEquals(m.embeds.includes('ml'), false);
 });
 
 Deno.test('the trade and area of the case go to retrieval in both spaces; none known sends none (the call it always was)', async () => {
   for (const space of ['ml', undefined] as const) {
     const m = deps(space, true);
-    await think(m.d, { seat: 'sales_engineer', surface: 'think.answer', question: 'what does a VRF quote need?', context: { trade: 'hvac', area: 'takeoff' } });
+    await think(m.d, { seat: 'sales_engineer', surface: 'think.answer', question: 'what does a VRF quote need?', context: { audience: 'internal', trade: 'hvac', area: 'takeoff' } });
     const r = m.rpcs.find(([f]) => /retrieve/.test(f))![1];
     assertEquals([r.p_trade, r.p_area], ['hvac', 'takeoff']);
     const n = deps(space, true);
-    await think(n.d, { seat: 'sales_engineer', surface: 'think.answer', question: 'what does a VRF quote need?' });
+    await think(n.d, { context: { audience: 'internal' }, seat: 'sales_engineer', surface: 'think.answer', question: 'what does a VRF quote need?' });
     const r2 = n.rpcs.find(([f]) => /retrieve/.test(f))![1];
     assertEquals(['p_trade' in r2, 'p_area' in r2], [false, false]);
   }
@@ -85,7 +85,7 @@ Deno.test("the planner's trade and kind reach retrieval; the caller's trade wins
       embed: () => Promise.resolve([0.1, 0.2]),
       rpc: (fn, args) => { rpcs.push([fn, args]); return Promise.resolve({ data: fn.startsWith('fn_case_recall') ? { cases: [] } : [], error: null }); },
     };
-    await think(d, { seat: 'sales_engineer', surface: 'think.answer', question: 'What must a VRF submittal include?', ...(context ? { context } : {}) });
+    await think(d, { seat: 'sales_engineer', surface: 'think.answer', question: 'What must a VRF submittal include?', context: { audience: 'internal', ...(context ?? {}) } });
     const r = rpcs.find(([f]) => /retrieve/.test(f))![1];
     return [r.p_trade ?? null, r.p_kind ?? null];
   };

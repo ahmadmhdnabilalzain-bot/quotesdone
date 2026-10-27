@@ -278,7 +278,7 @@
       "www.stripestatus.com": "Stripe public status page, read hourly by it_provider_readings.ts", "resend-status.com": "Resend public status page, read hourly", "status.twilio.com": "Twilio public status page, read hourly", "www.vercel-status.com": "Vercel public status page, read hourly", "status.dropbox.com": "Dropbox public status page, read hourly",
       "schema.org": "structured-data vocabulary in page markup", "www.w3.org": "SVG/XML namespace", "www.sitemaps.org": "sitemap XML namespace",
       "schemas.openxmlformats.org": "Office XML namespace in a parser fixture", "www.gaeb.de": "GAEB XML namespace in a parser fixture",
-      "evil.example": "reserved test domain in a fixture", "example.invalid": "reserved test domain", "db.invalid": "reserved test domain in a harness", "fn.invalid": "reserved test domain in a harness",
+      "zz-noor.example.invalid": "reserved test domain in the drawing bench fixture (bench.fixtures.ts)", "evil.example": "reserved test domain in a fixture", "example.invalid": "reserved test domain", "db.invalid": "reserved test domain in a harness", "fn.invalid": "reserved test domain in a harness",
       "wa.me": "a click-to-chat link shown to people", "x.com": "footer link", "www.instagram.com": "footer link", "www.facebook.com": "footer link",
       "consumerrights.ae": "a link shown to a complainant", "status.supabase.com": "the status page named in this registry", "status.esm.sh": "the status page named in this registry"
     }
@@ -287,10 +287,11 @@
     "_about": "Secrets and env the company mints itself or plain settings stored beside the credentials. Nothing outside answers for them, so there is nothing external to probe; internal credentials are rotated by fn_it_credential_rotate.",
     "prefixes": { "cred_": "an internal credential between our own functions (internal_credential)" },
     "secrets": {
-      "lead_sourcing_daily_quota": "setting", "lead_sourcing_daily_serper_usd": "setting", "lead_sourcing_daily_llm_usd": "setting", "lead_sourcing_usd_per_credit": "setting",
+      "lead_sourcing_daily_quota": "setting",
+      "wa_supplier_invite_golive": "setting", "lead_sourcing_daily_serper_usd": "setting", "lead_sourcing_daily_llm_usd": "setting", "lead_sourcing_usd_per_credit": "setting",
       "admin_emails": "setting", "backup_prune_mode": "setting", "conversation_retention_mode": "setting", "document_expiry_ai": "setting", "admin_mfa_phone": "setting", "email_triage_enabled": "setting", "invite_preheader": "setting", "ceo_model_slot": "setting", "compliance_ref": "setting",
       "customer_terms_label": "setting", "customer_terms_version": "setting", "supplier_terms_html": "setting", "supplier_terms_label": "setting",
-      "supplier_terms_version": "setting", "terms_version": "setting", "daily_send_cap": "setting", "drawing_boq_confirm_enabled": "setting",
+      "supplier_terms_version": "setting", "terms_version": "setting", "daily_send_cap": "setting", "drawing_boq_confirm_enabled": "setting", "drawing_vision_count_enabled": "setting",
       "email_asset_public_base": "setting", "email_enabled": "setting", "email_from_info": "setting", "email_from_supplier": "setting",
       "email_logo_url": "setting", "email_reply_info": "setting", "email_reply_supplier": "setting", "email_reply_supplier_docs": "setting",
       "email_signature_name": "setting", "email_signature_name_ar": "setting", "email_signature_title": "setting", "email_stale_hours": "setting",

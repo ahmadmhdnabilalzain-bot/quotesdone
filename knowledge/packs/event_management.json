@@ -42,6 +42,36 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "event_management:product-distinctions",
+      "topic": "Event management: engagement models and what an event manager actually delivers",
+      "topic_ar": "إدارة الفعاليات: نماذج التعاقد وما يقدمه منظم الفعاليات فعلاً",
+      "kind": "product_distinctions",
+      "body_en": "Event management ranges from conferences and exhibitions, corporate launches, gala dinners and award nights, team-building and incentive trips, and festivals and public events, to weddings and private celebrations, sports events and hybrid or virtual events. The engagement model is the first choice: a full-service agency that delivers concept, creative, production and on-the-day management under one budget; production-only (staging, sound, lighting, AV and build to another's concept); a logistics or DMC role (venue, transport, hotels, guest management); or a planner and coordinator who manages the buyer's own vendors. The work itself spans venue selection and contracting, the run-of-show, budgeting and cost control, vendor coordination (catering, AV, décor, entertainment, security, cleaning), transport and parking, registration and guest management, permits and liability insurance, health, safety and crowd management, emergency planning, and post-event reporting. Offers differ most on whether third-party costs are passed through at cost with a management fee or bundled with a margin, and on what the contingency and change process is.",
+      "body_ar": "تتراوح إدارة الفعاليات بين المؤتمرات والمعارض، وإطلاقات الشركات، وحفلات العشاء الرسمية وحفلات الجوائز، وبناء الفرق ورحلات التحفيز، والمهرجانات والفعاليات العامة، والأعراس والاحتفالات الخاصة، والفعاليات الرياضية، والفعاليات الهجينة أو الافتراضية. ونموذج التعاقد هو الخيار الأول: وكالة متكاملة تقدم الفكرة والإبداع والإنتاج وإدارة يوم الفعالية ضمن ميزانية واحدة؛ أو الإنتاج فقط (المسرح، الصوت، الإضاءة، الأجهزة المرئية والسمعية والبناء وفق فكرة جهة أخرى)؛ أو دور لوجستي أو شركة إدارة وجهات (المكان، المواصلات، الفنادق، إدارة الضيوف)؛ أو مخطط ومنسق يدير موردي المشتري أنفسهم. ويشمل العمل اختيار المكان والتعاقد معه، وجدول سير الفعالية، والميزانية وضبط التكاليف، وتنسيق الموردين (الضيافة، الأجهزة، الديكور، الترفيه، الأمن، النظافة)، والمواصلات والمواقف، والتسجيل وإدارة الضيوف، والتصاريح وتأمين المسؤولية، والصحة والسلامة وإدارة الحشود، وخطط الطوارئ، وتقرير ما بعد الفعالية. وأكثر ما تختلف فيه العروض: هل تُمرر تكاليف الأطراف الثالثة بتكلفتها مع رسوم إدارة أم تُجمع بهامش ربح، وما آلية الاحتياطي والتغييرات.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Event_management"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: event management covers the venue, liability insurance, logistics (transport, parking, vendors), budgeting and emergency planning -> confirmed."
+    },
+    {
+      "id": "event_management:lead-times-and-quoting",
+      "topic": "Event management - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "إدارة الفعاليات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A corporate event of a few hundred guests usually needs 4-8 weeks of planning; large conferences, festivals and outdoor events 3-6 months or more, because venues, permits and international speakers book early; peak season and public holidays shorten availability. An agency needs the objective, date, city and venue (or venue search), guest numbers and profile, format and run-of-show idea, the services in scope, the brand guidelines, the budget band, and the decision timeline. A complete proposal states the concept, a line-by-line budget (venue, production, catering, AV, décor, entertainment, staffing, permits, insurance), whether third-party costs are pass-through or marked up, the management fee, the contingency, the payment schedule, cancellation terms and validity.",
+      "body_ar": "تحتاج فعالية شركات لبضع مئات من الضيوف عادة 4-8 أسابيع من التخطيط؛ والمؤتمرات الكبيرة والمهرجانات والفعاليات الخارجية 3-6 أشهر أو أكثر لأن الأماكن والتصاريح والمتحدثين الدوليين يُحجزون مبكراً؛ وموسم الذروة والعطلات الرسمية يقللان التوفر. وتحتاج الوكالة الهدف، والتاريخ، والمدينة والمكان (أو البحث عن مكان)، وعدد الضيوف ونوعهم، والشكل وتصور سير الفعالية، والخدمات المشمولة، وإرشادات العلامة التجارية، ونطاق الميزانية، وموعد القرار. ويذكر العرض الكامل الفكرة، وميزانية مفصلة بنداً بنداً (المكان، الإنتاج، الضيافة، الأجهزة، الديكور، الترفيه، الكوادر، التصاريح، التأمين)، وهل تُمرر تكاليف الأطراف الثالثة بتكلفتها أم بهامش، ورسوم الإدارة، والاحتياطي، وجدول الدفع، وشروط الإلغاء، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -67,6 +97,14 @@
       ],
       "why": "The standards entry states Dubai DET requires an event permit via its ePermits system for business events.",
       "origin": "real buyer question, moved from event_management.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Should we hire a full-service event agency or just a coordinator who manages our own vendors?",
+      "q_ar": "نتعاقد مع وكالة فعاليات متكاملة ولا منسق يدير الموردين حقنا؟",
+      "expected_entry_ids": [
+        "event_management:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -82,6 +120,27 @@
       "event_management:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "event_management:product-distinctions"
+      ],
+      "stored_not_served": [
+        "event_management:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Event_management"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

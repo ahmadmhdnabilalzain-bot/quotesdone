@@ -52,6 +52,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "tool_equipment_rental:product-distinctions",
+      "topic": "Tool and equipment rental: equipment classes and rental terms",
+      "topic_ar": "تأجير العدد والمعدات: فئات المعدات وشروط التأجير",
+      "kind": "product_distinctions",
+      "body_en": "Hire fleets cover power tools (breakers, drills, saws, grinders), access equipment (mobile scaffold towers, scissor lifts, boom lifts, ladders), compaction (plate compactors, rammers, small rollers), concrete equipment (mixers, vibrators, power floats, core drills), pumps (dewatering and submersible pumps), generators and lighting towers, welders, air compressors and air tools, cleaning equipment (pressure washers, floor scrubbers, carpet extractors), heating, cooling and dehumidifiers (spot coolers matter on hot sites), surveying instruments, and small earthmoving (mini excavators, skid steers, dumpers). Rental terms: hourly, daily, weekly or monthly rates (weekly and monthly are much cheaper per day), dry hire (equipment only, the customer operates) versus operated hire (with a trained operator), delivery and collection charges, fuel policy, damage waiver or insurance (from none to full cover), deposit, and who handles maintenance and breakdown replacement. Safety: equipment should come serviced, with test certificates for lifting and access equipment, operator manuals, and trained or certified operators for powered access and plant.",
+      "body_ar": "تغطي أساطيل التأجير العدد الكهربائية (الكسارات، المثاقب، المناشير، الصواريخ)، ومعدات الوصول (أبراج السقالات المتنقلة، الرافعات المقصية، الرافعات ذات الذراع، السلالم)، والدمك (الدكاكات اللوحية، الدكاكات القافزة، الهراسات الصغيرة)، ومعدات الخرسانة (الخلاطات، الهزازات، آلات التنعيم، الثقب اللبي)، والمضخات (مضخات سحب المياه والغاطسة)، والمولدات وأبراج الإنارة، وآلات اللحام، وضواغط الهواء والعدد الهوائية، ومعدات التنظيف (الغسالات بالضغط، آلات تنظيف الأرضيات، مستخلصات السجاد)، والتدفئة والتبريد ومزيلات الرطوبة (المبردات الموضعية مهمة في المواقع الحارة)، وأجهزة المساحة، ومعدات الحفر الصغيرة (الحفارات الصغيرة، اللوادر الصغيرة، القلابات). وشروط التأجير: أسعار بالساعة أو اليوم أو الأسبوع أو الشهر (الأسبوعي والشهري أرخص بكثير لليوم)، والتأجير الجاف (المعدة فقط ويشغلها العميل) مقابل التأجير بالمشغل (مع مشغل مدرب)، ورسوم التوصيل والاستلام، وسياسة الوقود، وإعفاء الأضرار أو التأمين (من لا تغطية إلى تغطية كاملة)، والتأمين النقدي، ومن يتولى الصيانة واستبدال المعدة عند العطل. والسلامة: يجب أن تأتي المعدات مصانة، مع شهادات اختبار لمعدات الرفع والوصول، وأدلة التشغيل، ومشغلين مدربين أو معتمدين لمعدات الوصول الآلية والمعدات الثقيلة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Equipment_rental"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: rental conditions should state damage protection, transport, maintenance and downtime; operated rental with trained operators -> confirmed."
+    },
+    {
+      "id": "tool_equipment_rental:lead-times-and-quoting",
+      "topic": "Tools & light equipment rental - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "تأجير العدد والمعدات الخفيفة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Most items are available same day to 2 days; specialist items by booking. A rental company needs the equipment and specs, hire period, site and access, operated or dry hire, and delivery needs. A quote states equipment model, rate per period, delivery and collection, damage waiver and insurance, fuel and consumables, deposit, certificates, breakdown support and validity.",
+      "body_ar": "معظم الأصناف متاحة في نفس اليوم حتى يومين؛ والأصناف المتخصصة بالحجز. وتحتاج شركة التأجير المعدة ومواصفاتها، ومدة التأجير، والموقع والوصول، والتأجير بالمشغل أو الجاف، واحتياجات التوصيل. ويذكر العرض موديل المعدة والسعر لكل فترة والتوصيل والاستلام وإعفاء الأضرار والتأمين والوقود والمستهلكات والتأمين النقدي والشهادات ودعم الأعطال والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -77,6 +107,14 @@
       ],
       "why": "No entry of this pack answered it (no entry on weekly rental pricing; the checklist only lists rate basis as a field). tool_equipment_rental:weekly-hire-rate-structure was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from tool_equipment_rental.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Is it cheaper to rent a scissor lift weekly or daily for a nine-day job?",
+      "q_ar": "أرخص نستأجر رافعة مقصية بالأسبوع ولا باليوم لشغل تسعة أيام؟",
+      "expected_entry_ids": [
+        "tool_equipment_rental:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "tool_equipment_rental:weekly-hire-rate-structure"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "tool_equipment_rental:product-distinctions"
+      ],
+      "stored_not_served": [
+        "tool_equipment_rental:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Equipment_rental"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

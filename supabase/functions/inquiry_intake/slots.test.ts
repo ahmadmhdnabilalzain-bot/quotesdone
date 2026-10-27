@@ -9,7 +9,7 @@
 // Fails on the old code: there, a needs_info turn persisted `prevBrief.details || {}` and the model's
 // own status, missing and sentence, so every assertion on details, missing and the reply breaks.
 import { assert, assertEquals, assertNotEquals } from 'jsr:@std/assert@1';
-import { settleModelTurn, replyFromState, openTurnsByKey, MAX_OPEN_TURNS, HELD_FOR_SPECS } from './slots.ts';
+import { settleModelTurn, replyFromState, openTurnsByKey, MAX_OPEN_TURNS, HELD_FOR_SPECS, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldQuestions } from './slots.ts';
 import type { SpecField } from './interview.ts';
 
 // production category_specs.fields for `aluminium`, required flags and keys as read on 7 Oct 2026
@@ -231,4 +231,56 @@ Deno.test('a key the customer answers is kept whatever the count', () => {
   assertEquals(s.details.issue, 'No leak, preventive');
   assertEquals(s.exhausted, []);
   assertEquals(out.status, 'ready');
+});
+
+// Stage-2 run 321d13ae (18 Oct 2026): a spec hold returned no reason and next_question.key was null
+// before every ready. The reason is for our harness only; the key goes with the state's own question only.
+Deno.test('held_reason is given to an @example.invalid subject only, never to a real customer', () => {
+  assertEquals(heldReasonFor('held', 'qd-321d13ae-cust17@example.invalid', ['system_type']), { held_reason: 'specs_unanswered: system_type' });
+  assertEquals(heldReasonFor('held', 'QD-X@EXAMPLE.INVALID', []), { held_reason: 'specs_unanswered: unknown' });
+  for (const email of ['customer@gmail.com', 'a@example.invalid.ae', 'example.invalid@gmail.com', '']) {
+    assertEquals(heldReasonFor('held', email, ['system_type']), {}, email);
+  }
+  assertEquals(heldReasonFor('needs_info', 'x@example.invalid', ['system_type']), {});
+});
+
+Deno.test('next_question.key is set only on an exact match with the slot state\'s first open question', () => {
+  const sl = { details: {}, missingKeys: ['system_type', 'scope'], missing: ['What type of system?', 'Supply or install?'], complete: false, exhausted: [], held: false };
+  const ask = slotAskOf(sl);
+  assertEquals(ask, { key: 'system_type', text: 'What type of system?' });
+  assertEquals(slotKeyFor(ask, 'What type of system?'), 'system_type');
+  for (const q of ['What type of system? ', 'what type of system?', 'Which AC system do you want?', 'Supply or install?']) assertEquals(slotKeyFor(ask, q), null, q);
+  assertEquals(slotKeyFor(null, 'What type of system?'), null);
+  // An exhausted key is never the asked key: the next askable one is.
+  assertEquals(slotAskOf({ ...sl, exhausted: ['system_type'], missing: ['Supply or install?'] }), { key: 'scope', text: 'Supply or install?' });
+  assertEquals(slotAskOf({ ...sl, exhausted: ['system_type', 'scope'], missing: [] }), null);
+});
+
+// THE HELD REPLY NAMES THE OPEN QUESTION (19 Oct 2026): HELD_FOR_SPECS said only "a few specifications are still open".
+// The model (ruling 1196) is now given each exhausted question in the inquiry language and writes the reply; the deps
+// below record what the model was GIVEN, which is the property under test. Fails on the old code: no heldReply existed.
+Deno.test('a held intake: the model is given the still-open question in Arabic and its reply is what the customer sees', async () => {
+  const seen: { system: string; input: string }[] = [];
+  const deps = {
+    gate: () => Promise.resolve(null), embed: () => Promise.resolve(null),
+    rpc: () => Promise.resolve({ data: { block: 'REVEAL FEE: 3.00%.' }, error: null }),
+    llm: (_p: string, system: string, input: string) => { seen.push({ system, input }); return Promise.resolve({ content: JSON.stringify({ answer: 'شكرًا لكم. ما زال سؤال واحد مفتوحًا: كم قطعة تحتاج، وما العرض والارتفاع التقريبي لكل قطعة؟ سيساعدكم مهندس المبيعات هنا.' }), model: 'm' }); },
+  } as any;
+  const reply = await heldReply(deps, ALUMINIUM, ['dimensions_qty'], 'ar', 'لا أعرف', [{ role: 'user', text: 'نوافذ ألمنيوم' }]);
+  const q = heldQuestions(ALUMINIUM, ['dimensions_qty'], 'ar')[0];
+  assertEquals(q, ALUMINIUM[1].question_plain_ar);
+  assert(seen[0].input.includes(q), 'the open question rides in the facts, in the inquiry language');
+  assert(seen[0].system.includes('Arabic'), 'the reply is asked for in Arabic');
+  assert(reply.includes('كم قطعة'), 'the customer sees the model reply naming the open question');
+  assertNotEquals(reply, HELD_FOR_SPECS.ar);
+});
+Deno.test('a held field with no question text never sends its raw key to the model', () => {
+  const fields: SpecField[] = [{ key: 'area', required: true } as SpecField, ALUMINIUM[2]];
+  assertEquals(heldQuestions(fields, ['area', 'system_finish'], 'en'), ['System & finish preference?']);
+  assertEquals(heldQuestions(fields, ['area'], 'ar'), []);
+});
+Deno.test('a held intake with no acceptable model reply in time falls back to the handover notice, never an empty chat bubble', async () => {
+  const deps = { gate: () => Promise.resolve(null), embed: () => Promise.resolve(null), rpc: () => Promise.resolve({ data: null, error: null }),
+    llm: () => Promise.resolve({ content: null, error: 'down' }) } as any;
+  assertEquals(await heldReply(deps, ALUMINIUM, ['scope'], 'en', 'x', []), HELD_FOR_SPECS.en);
 });

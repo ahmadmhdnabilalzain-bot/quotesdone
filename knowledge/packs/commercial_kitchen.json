@@ -63,6 +63,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "commercial_kitchen:product-distinctions",
+      "topic": "Commercial kitchen equipment: equipment families, fuel and the ventilation that goes with it",
+      "topic_ar": "معدات المطابخ التجارية: عائلات المعدات والوقود والتهوية المصاحبة",
+      "kind": "product_distinctions",
+      "body_en": "Commercial kitchens are built from cooking equipment (ranges and open burners, griddles, chargrills, fryers, tilting braising pans, kettles, combi ovens, convection and deck ovens, pizza ovens, salamanders, induction hobs, tandoors), refrigeration (reach-in and undercounter fridges and freezers, blast chillers, cold rooms, prep counters), dishwashing (undercounter, pass-through hood and rack conveyor machines with water softeners), food preparation (mixers, slicers, vegetable prep, vacuum packers), holding and display (bain-maries, heated cabinets, display counters), stainless steel fabrication (worktables, sinks, shelving, trolleys, typically grade 304), and the ventilation and safety system: extract hoods with baffle grease filters, make-up air, ductwork, and a wet-chemical fire suppression system over cooking lines. Choices: gas (LPG or natural gas) versus electric and induction, which changes ventilation load and safety requirements; heavy-duty versus light-duty lines; and imported brands versus locally fabricated stainless items. Design matters as much as equipment: workflow from receiving to service, drainage and grease traps, power and gas loads, and the approvals the kitchen needs before opening.",
+      "body_ar": "تُبنى المطابخ التجارية من معدات الطبخ (المواقد والشعلات المفتوحة، والصاج، والشوايات، والقلايات، وأحواض التحمير القلابة، والقدور، والأفران المركبة، وأفران الحمل الحراري والأرضية، وأفران البيتزا، والسلمندر، والمواقد الحثية، والتنور)، والتبريد (الثلاجات والمجمدات القائمة وتحت الطاولة، ومبردات الصدمة، وغرف التبريد، وطاولات التحضير)، وغسيل الصحون (آلات تحت الطاولة، وبغطاء عابر، وبسير ناقل مع ملطفات المياه)، وتحضير الطعام (العجانات، القطاعات، تحضير الخضار، آلات التفريغ)، والحفظ والعرض (حمامات مائية، خزائن ساخنة، كاونترات عرض)، وتصنيع الستانلس (طاولات العمل، المغاسل، الأرفف، العربات، عادة من درجة 304)، ونظام التهوية والسلامة: شفاطات بفلاتر دهون، وهواء تعويضي، ومجاري هواء، ونظام إطفاء بالمواد الكيميائية الرطبة فوق خطوط الطبخ. والخيارات: الغاز (غاز البترول المسال أو الطبيعي) مقابل الكهرباء والحث، مما يغير حمل التهوية ومتطلبات السلامة؛ وخطوط الخدمة الشاقة مقابل الخفيفة؛ والعلامات المستوردة مقابل أعمال الستانلس المصنعة محلياً. والتصميم مهم بقدر المعدات: انسياب العمل من الاستلام حتى الخدمة، والصرف ومصائد الشحوم، وأحمال الكهرباء والغاز، والموافقات التي يحتاجها المطبخ قبل الافتتاح.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Kitchen_ventilation"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: commercial extractor hoods and grease filters; fat build-up as a hazard -> confirmed."
+    },
+    {
+      "id": "commercial_kitchen:lead-times-and-quoting",
+      "topic": "Commercial kitchen equipment - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "معدات المطابخ التجارية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stocked items: days; imported cooking lines and dishwashers 4-12 weeks; fabricated stainless 2-4 weeks; full kitchen projects 2-4 months with design and approvals. A supplier needs the menu and covers, the layout and drawings, fuel and power available, brand preferences, and whether design and installation are in scope. A quote states per item make, model, origin, power or gas rating, dimensions, installation and commissioning, hood and suppression system, warranty and service, delivery and validity.",
+      "body_ar": "الأصناف المتوفرة: أيام؛ وخطوط الطبخ وغسالات الصحون المستوردة 4-12 أسبوعاً؛ والستانلس المصنع 2-4 أسابيع؛ ومشاريع المطابخ الكاملة 2-4 أشهر مع التصميم والموافقات. ويحتاج المورد قائمة الطعام وعدد الوجبات، والتخطيط والمخططات، والوقود والكهرباء المتاحة، والعلامات المفضلة، وهل التصميم والتركيب ضمن النطاق. ويذكر العرض لكل صنف الماركة والموديل والمنشأ وقدرة الكهرباء أو الغاز والأبعاد والتركيب والتشغيل ونظام الشفاط والإطفاء والضمان والخدمة والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -88,6 +118,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: the pack has no hood suppression standard; UL 300 wet chemical is only in fire_fighting:kitchen-wet-chemical, and the spec-checklist only lists \"hood and fire suppression scope\"). commercial_kitchen:hood-wet-chemical-suppression was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from commercial_kitchen.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Gas or induction for a new burger kitchen, and what changes with the hood?",
+      "q_ar": "غاز ولا حث لمطبخ برجر جديد؟ ووش يتغير في الشفاط؟",
+      "expected_entry_ids": [
+        "commercial_kitchen:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -106,6 +144,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "commercial_kitchen:hood-wet-chemical-suppression"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "commercial_kitchen:product-distinctions"
+      ],
+      "stored_not_served": [
+        "commercial_kitchen:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Kitchen_ventilation"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

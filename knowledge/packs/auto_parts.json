@@ -55,6 +55,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "auto_parts:product-distinctions",
+      "topic": "Auto parts: genuine, OES, aftermarket and used, and how to match a part",
+      "topic_ar": "قطع غيار السيارات: الأصلية والمورد الأصلي والتجارية والمستعملة وكيفية مطابقة القطعة",
+      "kind": "product_distinctions",
+      "body_en": "Parts come in grades: genuine OEM (in the vehicle maker's box, from the franchise network, highest price and the reference for fit and warranty), OES or OE-supplier brand (made by the same supplier that makes the original, such as the maker of the brake pads or the alternator, in the supplier's own box, usually equal quality for less), quality aftermarket (independent manufacturers to equivalent specifications, cross-referenced to the OEM number), economy aftermarket (lower cost, variable fit and life), remanufactured exchange units (alternators, starters, turbos, gearboxes, with a core charge), and used or salvage parts. Matching a part needs the VIN or the chassis number, make, model, year and engine and gearbox codes, and the OEM part number, because the same model can carry different parts by market specification and production date. Wear parts (filters, brake pads and discs, belts, plugs, bulbs, wipers, suspension bushes) are where aftermarket is most used; safety and engine-critical parts are where grade matters most. Counterfeit parts copy the packaging of known brands; buy through traceable channels and check the packaging, the markings and the price.",
+      "body_ar": "تأتي القطع بدرجات: أصلية من الشركة المصنعة (في علبة صانع السيارة، من شبكة الوكيل، الأعلى سعراً والمرجع في المقاس والضمان)، أو قطع المورد الأصلي (يصنعها المورد نفسه الذي يصنع القطعة الأصلية، مثل صانع فحمات المكابح أو الدينامو، في علبة المورد، وعادة بجودة مماثلة وسعر أقل)، أو قطع تجارية جيدة (مصنعون مستقلون بمواصفات مكافئة مع مطابقة لرقم الشركة المصنعة)، أو قطع تجارية اقتصادية (أقل تكلفة ومتفاوتة في المقاس والعمر)، أو وحدات مجددة بالاستبدال (الدينامو، السلف، التيربو، القير، مع رسم مقابل القطعة القديمة)، أو قطع مستعملة أو من التشليح. ومطابقة القطعة تحتاج رقم الهيكل، والماركة، والموديل، والسنة، ورموز المحرك وناقل الحركة، ورقم القطعة من الشركة المصنعة، لأن الموديل نفسه قد يحمل قطعاً مختلفة حسب مواصفة السوق وتاريخ الإنتاج. وقطع الاستهلاك (الفلاتر، فحمات وأقراص المكابح، السيور، البواجي، اللمبات، المساحات، جلب التعليق) هي الأكثر استخداماً للقطع التجارية؛ أما قطع السلامة والقطع الحرجة للمحرك فالدرجة فيها أهم. والقطع المقلدة تقلد عبوات العلامات المعروفة؛ فاشترِ عبر قنوات يمكن تتبعها وافحص العبوة والعلامات والسعر.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Automotive_aftermarket"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: OEM versus aftermarket parts, aftermarket parts made by the OEM or others -> confirmed."
+    },
+    {
+      "id": "auto_parts:lead-times-and-quoting",
+      "topic": "Auto spare parts - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "قطع غيار السيارات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Common parts in stock: same day to 2 days; dealer-ordered genuine parts 3-14 days; parts from overseas warehouses 1-4 weeks by air. A supplier needs the VIN, the part name or OEM number, the grade wanted, quantity, and the delivery point. A quote states per line the part number and cross-reference, brand, grade, origin, warranty, availability, delivery and validity.",
+      "body_ar": "القطع الشائعة المتوفرة: في نفس اليوم حتى يومين؛ والقطع الأصلية المطلوبة من الوكيل 3-14 يوماً؛ والقطع من مستودعات خارجية 1-4 أسابيع جواً. ويحتاج المورد رقم الهيكل، واسم القطعة أو رقمها من الشركة المصنعة، والدرجة المطلوبة، والكمية، ونقطة التسليم. ويذكر العرض لكل بند رقم القطعة والمطابقة والعلامة والدرجة والمنشأ والضمان والتوفر والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (no entry explains genuine vs OES vs aftermarket parts; the checklist only asks for origin). auto_parts:genuine-oes-aftermarket-grades was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from auto_parts.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Is an OES brake pad as good as the genuine one from the dealer?",
+      "q_ar": "هل فحمات المكابح من المورد الأصلي بنفس جودة الأصلية من الوكالة؟",
+      "expected_entry_ids": [
+        "auto_parts:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "auto_parts:genuine-oes-aftermarket-grades"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "auto_parts:product-distinctions"
+      ],
+      "stored_not_served": [
+        "auto_parts:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Automotive_aftermarket"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

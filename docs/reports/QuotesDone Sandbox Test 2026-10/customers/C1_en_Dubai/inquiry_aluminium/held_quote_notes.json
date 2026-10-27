@@ -1,0 +1,90 @@
+{
+ "state": "open",
+ "missing": [
+  {
+   "attr": "glass_type",
+   "type": "text",
+   "scope": "line",
+   "line_no": 1,
+   "label_ar": "نوع الزجاج",
+   "label_en": "Glass type",
+   "description": "Supply and installation as specified"
+  },
+  {
+   "attr": "glass_thickness",
+   "type": "text",
+   "scope": "line",
+   "line_no": 1,
+   "label_ar": "سماكة الزجاج / تركيبه",
+   "label_en": "Glass thickness / build-up",
+   "description": "Supply and installation as specified"
+  },
+  {
+   "attr": "profile_system",
+   "type": "text",
+   "scope": "line",
+   "line_no": 1,
+   "label_ar": "نظام / سلسلة الألمنيوم",
+   "label_en": "Aluminium system / series",
+   "description": "Supply and installation as specified"
+  },
+  {
+   "attr": "component:profile",
+   "type": "text",
+   "scope": "quote",
+   "line_no": null,
+   "label_ar": "المادة — نظام قطاعات الألمنيوم",
+   "label_en": "Material — Aluminium profile system",
+   "description": null
+  },
+  {
+   "attr": "component:glass",
+   "type": "text",
+   "scope": "quote",
+   "line_no": null,
+   "label_ar": "المادة — الزجاج",
+   "label_en": "Material — Glass",
+   "description": null
+  },
+  {
+   "attr": "delivery",
+   "type": "text",
+   "scope": "quote",
+   "line_no": null,
+   "label_ar": "تاريخ التسليم أو مدة التنفيذ (مثل 21 يومًا أو 30 أكتوبر 2026)",
+   "label_en": "Delivery date or lead time (e.g. 21 days, or 30 Oct 2026)",
+   "description": null
+  },
+  {
+   "attr": "warranty_period",
+   "type": "text",
+   "scope": "quote",
+   "line_no": null,
+   "label_ar": "مدة الضمان",
+   "label_en": "Warranty period",
+   "description": null
+  },
+  {
+   "attr": "warranty_coverage",
+   "type": "text",
+   "scope": "quote",
+   "line_no": null,
+   "label_ar": "ما يغطيه الضمان",
+   "label_en": "What the warranty covers",
+   "description": null
+  },
+  {
+   "attr": "price_ex_vat",
+   "type": "number",
+   "unit": "AED",
+   "scope": "quote",
+   "line_no": null,
+   "unit_ar": "درهم",
+   "label_ar": "السعر الإجمالي غير شامل ضريبة القيمة المضافة",
+   "label_en": "Total price excluding VAT",
+   "description": null
+  }
+ ],
+ "note_en": "Hello,\n\nYour quote for RFQ 159257 is on hold and will not be shown to the customer until the following exact details are stated:\n\n• Line 1 (Supply and installation as specified): Glass type\n• Line 1 (Supply and installation as specified): Glass thickness / build-up\n• Line 1 (Supply and installation as specified): Aluminium system / series\n• Material — Aluminium profile system\n• Material — Glass\n• Delivery date or lead time (e.g. 21 days, or 30 Oct 2026)\n• Warranty period\n• What the warranty covers\n• Total price excluding VAT\n\nYou have two ways to release it:\n1) Fill in the missing details on the supplier portal. We will regenerate your quotation in the standard format for you to check and confirm it is correct, and it is then sent to the customer.\n2) Or upload a new revised quote that states these details.\n\nThe quote stays saved and you can complete it at any time until the customer chooses a quote.\n\nQuotesDone sales engineer",
+ "quote_id": "634894a4-56f7-4b62-bf97-875304e301d8"
+}

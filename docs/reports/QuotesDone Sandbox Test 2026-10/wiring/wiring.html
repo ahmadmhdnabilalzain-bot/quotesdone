@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Company Wiring Map</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--mut:#666;--line:#ddd;--pass:#1b7f3b;--fail:#b3261e;--warn:#9a6700}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141414;--fg:#eee;--mut:#aaa;--line:#333;--pass:#5fd38a;--fail:#ff8a80;--warn:#e3b341}}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 system-ui,sans-serif;margin:0;padding:16px;max-width:1200px}
+table{border-collapse:collapse;width:100%;margin:8px 0 24px}td,th{border:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
+.P{color:var(--pass);font-weight:600}.F{color:var(--fail);font-weight:600}.W{color:var(--warn);font-weight:600}small{color:var(--mut)}
+.wrap{overflow-x:auto}
+</style></head><body>
+<h1>QuotesDone company wiring, measured from production</h1>
+<p><small>Project htdblwldjkcgjvmqkbeh, read 7 Oct 2026 01:00-01:40 UTC. Six active seats: ceo, customer_support, sales_engineer, accountant, it_engineer, marketing.
+Sources: <code>seat_handoff_kind</code> (127 rows), <code>seat_duty</code> (84 duties), <code>agent_actions kind='handoff'</code> (the last 30 days), <code>cron.job</code>, <code>writer_seat</code>, <code>founder_mail_policy</code>.</small></p>
+
+<h2>1. Handoff map (who hands what to whom)</h2>
+<div class="wrap"><pre class="mermaid">
+flowchart LR
+  CEO((ceo)); CS((customer_support)); SE((sales_engineer)); AC((accountant)); IT((it_engineer)); MK((marketing))
+  CEO -- "directive / month_directive / improvement / revise / root_cause / decision_closed (to all 5)" --> SE
+  SE & CS & AC & IT & MK -- "ceo.decision_owed, deliberation.review" --> CEO
+  SE -- "sales.escalation" --> CEO
+  SE -- "refund.requested, charge.disputed, billing.question" --> AC
+  AC -- "refund.request_checked / in_progress / paid / declined, reveal.paid, payment.*, nonresponse.*, subscription.*, charge.*, billing.answer" --> SE
+  CEO -- "refund.remediate" --> SE
+  CEO -- "refund.remediate, incident.fix" --> AC
+  CEO -- "backup.remediate, delivery.remediate" --> SE
+  IT -- "backup.refile" --> SE
+  IT -- "it.finding (to all 5)" --> CEO
+  IT -- "renewal.due" --> AC
+  IT -- "deliverability.inbox_placement" --> MK
+  CS -- "spec.not_sure" --> SE
+  CS -- "support.root_cause (to all 5)" --> IT
+  SE -- "supplier.portfolio_incomplete" --> CS
+  AC -- "fraud.money_held / released" --> CS
+  ALL["every seat"] -- "delivery.request" --> CS
+  CS -- "delivery.result (back to the originator)" --> ALL
+  MK -- "adspend.recorded" --> AC
+  AC -- "adspend.booked" --> MK
+  MK -- "marketing.report / review" --> CEO
+  MK -- "social.lead" --> SE
+  MK -- "social.escalation" --> CS
+</pre></div>
+<p><small>The founder is not a seat: 0 of 127 handoff kinds name him. He receives only the informational mail allowed by founder_mail_policy (7 days: founder_brief 8, it_daily_digest 6, supplier_campaign_daily_list 5, board/weekly/close-pack reports 1 each). Every approval, refunds included, is a CEO handoff (refund.remediate, ceo.decision_owed).</small></p>
+
+<h2>2. Duties per seat (seat_duty, run by fn_seat_duties_tick from the resilience_ping sweep)</h2>
+<table><tr><th>seat</th><th>duties</th><th>pause switch</th><th>health 7 Oct</th></tr>
+<tr><td>ceo</td><td>19 (directive 1h, report_answer 1h, improvement_review 1h, daily_run, month_plan, strategy_memo, target_verdict, management_review 7d, seat_audit 7d ...)</td><td>seat_duty.enabled</td><td>management_review last ok 24 Sep, failed 1 Oct (request &gt; 60k chars); bounded 5 Oct, this week already filed (probe)</td></tr>
+<tr><td>sales_engineer</td><td>19 (quote_quality_hold 15m, supplier_availability 15m, concierge 30m, disputes 30m, stalled_inquiry_rescue 30m, activation, followup, winback, supplier_onboarding, licence_expiry_watch ...)</td><td>enabled</td><td>all ok, 0 failures</td></tr>
+<tr><td>accountant</td><td>15 (cash_truth, refund_correctness, stripe_reconcile, reveal_invoice_filing, fraud_watch 6h, risk_screen 6h, close_by_day_five ...)</td><td>enabled</td><td>all ok</td></tr>
+<tr><td>it_engineer</td><td>20 (finding_chase 1h, uptime_slo 1h, latency_slo 1h, model_spend 1h, postmortem 1h, knowledge_recall 30m, backup_objectives, dr_review 90d ...)</td><td>enabled</td><td>knowledge_exam paused (enabled=false); rest ok</td></tr>
+<tr><td>customer_support</td><td>5 (case_idle_close 1h, case_review, root_cause_loop, self_review, monthly_self_review)</td><td>enabled</td><td>all ok</td></tr>
+<tr><td>marketing</td><td>10 (competitor_scan 1h, article_release, month_plan, launch_plan, geo_check, recruitment_funnel, reputation ...)</td><td>enabled</td><td>all ok</td></tr>
+</table>
+
+<h2>3. Static checks</h2>
+<table><tr><th>check</th><th>result</th><th>measured</th></tr>
+<tr><td>every handoff kind has a handler routine</td><td class="P">PASS</td><td>0 of 127 handlers missing from pg_proc</td></tr>
+<tr><td>every handoff kind has an opener</td><td class="P">PASS</td><td>125 opened by a routine; sales.escalation, spec.not_sure, complaint.due, support.case_open opened from edge code (_shared/payment_handoffs.ts, customer_api/spec_handoff.ts)</td></tr>
+<tr><td>every handoff kind has a closer</td><td class="P">PASS</td><td>originator_closes=true: closed by the originator's re-verify (fn_originators_reverify_handoffs, fn_it_loop_reverify); false: closed by the handler</td></tr>
+<tr><td>every handoff kind names live seats</td><td class="P">PASS</td><td>0 rows with an inactive from/to seat</td></tr>
+<tr><td>every duty has an owner seat and a pause switch</td><td class="P">PASS</td><td>84/84 owner in the six seats; every row has enabled</td></tr>
+<tr><td>every duty routine exists</td><td class="P">PASS</td><td>0 missing</td></tr>
+<tr><td>no task without a seat</td><td class="P">PASS</td><td>org_tasks 71, all assigned to a seat; 0 pending agent_actions on an inactive agent</td></tr>
+<tr><td>no job without a seat</td><td class="F">FAIL &rarr; fixed in PR</td><td>fn_writers_without_a_seat(7) = 4: crons conversation_retention_daily, pdpl_erasure_daily, inquiry_conversation_summary_daily; run label llm_gateway_auth</td></tr>
+<tr><td>no duplicate open handoff</td><td class="F">FAIL &rarr; fixed in PR</td><td>it.finding: 358 pending on 81 open findings, one occurrence each (up to 10 per finding: the daily chase never closed its predecessor)</td></tr>
+</table>
+
+<h2>4. Lifecycle paths, end to end</h2>
+<p><small>Evidence = the production handoff history of the last 30 days (opened &rarr; handler reply &rarr; originator re-verify &rarr; done) plus rolled-back probes where stated. No new demo rows were written. "Not exercised" means the path has its wiring (kind, handler, opener) but no handoff of that kind exists in 30 days to trace.</small></p>
+<table><tr><th>#</th><th>path</th><th>handoffs / duties</th><th>production evidence</th><th>verdict</th></tr>
+<tr><td>1</td><td>registration</td><td>sales_engineer.supplier_onboarding, activation; ceo.directive (verification)</td><td>duties ok; ceo.directive verification open by design until the CEO re-measures 8 Oct</td><td class="P">PASS</td></tr>
+<tr><td>2</td><td>verification</td><td>sales_engineer.licence_expiry_watch; accountant.sanctions_rescreen, ubo_watch</td><td>duties ok, 0 failures</td><td class="P">PASS</td></tr>
+<tr><td>3</td><td>matching</td><td>stalled_inquiry_rescue, supply_gap; sales.escalation (thin_supply) &rarr; ceo</td><td>duties ok; sales.escalation not exercised (opener in edge code, handler fn_ceo_takes_sales_escalation)</td><td class="W">PASS (not exercised)</td></tr>
+<tr><td>4</td><td>inquiry intake</td><td>delivery.request &rarr; customer_support &rarr; delivery.result &rarr; originator</td><td>4,888 requests done, 5,439 results done; 3 pending since 6 Oct 15:16 waiting for the daily IT digest</td><td class="P">PASS</td></tr>
+<tr><td>5</td><td>spec Q&amp;A</td><td>spec.not_sure customer_support &rarr; sales_engineer</td><td>not exercised in 30 days; handler present, test the_not_sure_spec_handoff_has_a_sales_engineer_handler passes</td><td class="W">PASS (not exercised)</td></tr>
+<tr><td>6</td><td>quote</td><td>sales_engineer.quote_quality_hold (15 min)</td><td>duty ok</td><td class="P">PASS</td></tr>
+<tr><td>7</td><td>held quote + revision</td><td>ceo.revise (all seats), quote_quality_hold</td><td>no ceo.revise pending; duty ok</td><td class="P">PASS</td></tr>
+<tr><td>8</td><td>comparison report</td><td>sales_engineer.comparison_kpi</td><td>duty ok</td><td class="P">PASS</td></tr>
+<tr><td>9</td><td>reveal + payment</td><td>reveal.paid, payment.received/failed accountant &rarr; sales_engineer</td><td>reveal.paid 26 done, payment.failed 2 done, 0 pending</td><td class="P">PASS</td></tr>
+<tr><td>10</td><td>both parties notified</td><td>delivery.request/result</td><td>see 4; reveal notifies both parties via customer_support</td><td class="P">PASS</td></tr>
+<tr><td>11</td><td>rating</td><td>sales_engineer.followup (6h)</td><td>duty ok</td><td class="P">PASS</td></tr>
+<tr><td>12</td><td>non-response</td><td>nonresponse.charge_raised / reminder / final_demand</td><td>charge_raised 21 done, 0 pending</td><td class="P">PASS</td></tr>
+<tr><td>13</td><td>refund</td><td>refund.requested &rarr; accountant; request_checked / paid / declined &rarr; sales_engineer</td><td>requested 20 done, request_checked 20 done, paid 19 done, 0 pending</td><td class="P">PASS</td></tr>
+<tr><td>14</td><td>CEO decision</td><td>ceo.decision_owed &rarr; ceo &rarr; ceo.decision_closed &rarr; seat; deliberation.review</td><td>decision_closed 38 done; 1 deliberation.review and 3 ceo.root_cause wait on held reasoning: all 17 model routes are held (the founder's OpenRouter hold)</td><td class="W">BLOCKED by the OpenRouter hold</td></tr>
+<tr><td>15</td><td>accountant books</td><td>accountant duties; adspend.recorded / booked</td><td>duties ok</td><td class="P">PASS</td></tr>
+<tr><td>16</td><td>backups</td><td>backup.refile it_engineer &rarr; sales_engineer; backup.remediate ceo &rarr; sales_engineer</td><td>refile 2 done, remediate 1 done; it_engineer.backup_objectives ok</td><td class="P">PASS</td></tr>
+<tr><td>17</td><td>retention</td><td>cron conversation_retention_daily, pdpl_erasure_daily, inquiry_conversation_summary_daily</td><td>ran outside any seat: no owner in writer_seat</td><td class="F">FAIL &rarr; fixed in PR</td></tr>
+<tr><td>18</td><td>IT finding loop (cross-cutting)</td><td>it.finding &rarr; owning seat &rarr; it_engineer re-verifies</td><td>387 pending: 358 duplicates of 81 open findings (chase defect); 29 cleared but waiting at the learning gate since 22-29 Sep</td><td class="F">FAIL &rarr; duplicates fixed in PR; learning gate open</td></tr>
+<tr><td>19</td><td>human requested on WhatsApp</td><td>support.human_requested</td><td>1 pending since 22 Sep 14:41 waiting for a person to answer a WhatsApp number</td><td class="F">FAIL (open)</td></tr>
+</table>
+<p><small>Nothing routes to the founder: 0 handoff kinds address him; approvals are CEO handoffs. Cross-family reviewer rule: deliberation.review kinds exist from every seat to the CEO (and sales_engineer to marketing), defined in every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql; the reviews currently hold because the model routes are held.</small></p>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true,theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'default'});</script>
+</body></html>

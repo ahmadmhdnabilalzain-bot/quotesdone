@@ -5,10 +5,11 @@
 // same VALUES list applied in scripts/sql/org_reorg_02_departments.sql.
 //
 //   node scripts/agents/export_org_docs.mjs [--ref=htdblwldjkcgjvmqkbeh]
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 
 const REF = (process.argv.find((a) => a.startsWith('--ref=')) || '--ref=htdblwldjkcgjvmqkbeh').slice(6);
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 if (!token) { console.error('no SUPABASE_ACCESS_TOKEN'); process.exit(2); }

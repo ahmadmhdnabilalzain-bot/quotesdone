@@ -1,5 +1,5 @@
 import { setRequestLocale, getTranslations } from 'next-intl/server';
-import { buildMeta } from '@/lib/seo';
+import { buildMeta, howToLd, ldHtml, SITE } from '@/lib/seo';
 import { Link } from '@/i18n/routing';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
@@ -42,6 +42,8 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
   const time = t.raw('time') as string[];
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={ldHtml(howToLd({ name: t('title'), description: t('metaDesc'),
+        url: `${SITE}${lang === 'ar' ? '/ar' : ''}/how-it-works`, steps, locale }))} />
       <SiteHeader />
       <main id="main">
         <PageHero

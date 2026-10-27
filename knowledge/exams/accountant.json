@@ -4,7 +4,7 @@
   "items": [
     {
       "id": "accountant-exam-01",
-      "checklist": "ACC-01",
+      "checklist": "ACC-CL-044",
       "q_en": "A customer has just paid for a reveal. Walk me through what the accountant does.",
       "q_ar": "دفع عميل للتو مقابل كشف، اشرح لي ما يفعله المحاسب.",
       "expected_entry_ids": [
@@ -13,23 +13,32 @@
       "expected_facts": [
         "file it in the books",
         "Dropbox"
+      ],
+      "q_reworded": "Someone just paid to unlock a supplier. What does finance do next?",
+      "answer_must": [
+        "Confirm the payment in Stripe and book it",
+        "File the invoice with a Dropbox backup and make it visible in the portal"
       ]
     },
     {
       "id": "accountant-exam-02",
-      "checklist": "ACC-01",
+      "checklist": "ACC-CL-011",
       "q_en": "Does the reveal fee carry VAT?",
       "q_ar": "هل تخضع رسوم الكشف لضريبة القيمة المضافة؟",
       "expected_entry_ids": [
-        "accountant:company-hard-rules"
+        "accountant:vat-no-vat-on-fee-and-after-registration"
       ],
       "expected_facts": [
-        "No VAT on the fee"
+        "carries no VAT"
+      ],
+      "q_reworded": "Do we add 5% tax on top of our unlock charge?",
+      "answer_must": [
+        "No VAT is charged on the fee while QuotesDone is not VAT-registered"
       ]
     },
     {
       "id": "accountant-exam-03",
-      "checklist": "ACC-02",
+      "checklist": "ACC-CL-045",
       "q_en": "Is anything added to the reveal fee for paying by card, and who bears Stripe's fee?",
       "q_ar": "هل يُضاف أي مبلغ على رسوم الكشف عند الدفع بالبطاقة، ومن يتحمّل رسوم Stripe؟",
       "expected_entry_ids": [
@@ -38,11 +47,16 @@
       "expected_facts": [
         "nothing is added for paying by card",
         "2.9% plus AED 1"
+      ],
+      "q_reworded": "If a buyer pays with a credit card, do they pay extra, and who eats the processing cost?",
+      "answer_must": [
+        "No card surcharge is added",
+        "QuotesDone bears the Stripe fee (about 2.9% plus AED 1)"
       ]
     },
     {
       "id": "accountant-exam-04",
-      "checklist": "ACC-02",
+      "checklist": "ACC-CL-045",
       "q_en": "On an AED 100,000 quotation, what fee does QuotesDone net?",
       "q_ar": "على عرض بقيمة 100,000 درهم، كم تصافي كويتس دن من الرسوم؟",
       "expected_entry_ids": [
@@ -50,11 +64,15 @@
       ],
       "expected_facts": [
         "AED 3,000"
+      ],
+      "q_reworded": "A quote comes in at a hundred thousand dirhams. What do we keep?",
+      "answer_must": [
+        "QuotesDone nets AED 3,000 (3%)"
       ]
     },
     {
       "id": "accountant-exam-05",
-      "checklist": "ACC-03",
+      "checklist": "ACC-CL-044",
       "q_en": "Can a customer open their Stripe invoice later from the portal?",
       "q_ar": "هل يستطيع العميل فتح فاتورة Stripe لاحقاً من البوابة؟",
       "expected_entry_ids": [
@@ -62,11 +80,15 @@
       ],
       "expected_facts": [
         "customer's portal"
+      ],
+      "q_reworded": "A buyer lost their receipt. Where can they find it again?",
+      "answer_must": [
+        "The Stripe invoice is available in the customer's portal"
       ]
     },
     {
       "id": "accountant-exam-06",
-      "checklist": "ACC-03",
+      "checklist": "ACC-CL-044",
       "q_en": "Who tells the customer that the payment went through?",
       "q_ar": "من يبلغ العميل بأن الدفع تم؟",
       "expected_entry_ids": [
@@ -74,11 +96,15 @@
       ],
       "expected_facts": [
         "sales engineer"
+      ],
+      "q_reworded": "Which seat lets the buyer know their card charge succeeded?",
+      "answer_must": [
+        "The sales engineer tells the customer, not Stripe"
       ]
     },
     {
       "id": "accountant-exam-07",
-      "checklist": "ACC-04",
+      "checklist": "ACC-CL-046",
       "q_en": "The CEO signed off one refund. Is that good for the next few as well?",
       "q_ar": "وافق الرئيس التنفيذي على استرداد واحد، هل تكفي الموافقة للاستردادات التالية؟",
       "expected_entry_ids": [
@@ -86,11 +112,16 @@
       ],
       "expected_facts": [
         "exact invoice ID"
+      ],
+      "q_reworded": "The boss okayed a refund yesterday. Can I process the other three pending ones too?",
+      "answer_must": [
+        "Each refund needs its own CEO approval",
+        "It is executed against the exact Stripe invoice ID"
       ]
     },
     {
       "id": "accountant-exam-08",
-      "checklist": "ACC-04",
+      "checklist": "ACC-CL-046",
       "q_en": "How much does the customer get back on a refunded reveal?",
       "q_ar": "كم يسترد العميل عند استرداد رسوم كشف؟",
       "expected_entry_ids": [
@@ -99,11 +130,16 @@
       "expected_facts": [
         "everything the customer paid",
         "absorbs Stripe"
+      ],
+      "q_reworded": "If we give a buyer their money back, do we deduct the card fee?",
+      "answer_must": [
+        "The customer gets back everything they paid",
+        "QuotesDone absorbs the Stripe fee"
       ]
     },
     {
       "id": "accountant-exam-09",
-      "checklist": "ACC-04",
+      "checklist": "ACC-CL-046",
       "q_en": "How often do approved refunds get executed?",
       "q_ar": "كم مرة تُنفّذ الاستردادات المعتمدة؟",
       "expected_entry_ids": [
@@ -111,11 +147,15 @@
       ],
       "expected_facts": [
         "every 15 minutes"
+      ],
+      "q_reworded": "After approval, how fast does a refund actually go out?",
+      "answer_must": [
+        "Approved refunds are executed on a 15-minute cycle"
       ]
     },
     {
       "id": "accountant-exam-10",
-      "checklist": "ACC-05",
+      "checklist": "ACC-CL-047",
       "q_en": "How do we book a refund in the ledger?",
       "q_ar": "كيف نقيد الاسترداد في الدفاتر؟",
       "expected_entry_ids": [
@@ -123,11 +163,15 @@
       ],
       "expected_facts": [
         "4900 Refunds"
+      ],
+      "q_reworded": "Which ledger account takes the money we hand back?",
+      "answer_must": [
+        "Refunds are booked to 4900 Refunds, not netted silently"
       ]
     },
     {
       "id": "accountant-exam-11",
-      "checklist": "ACC-05",
+      "checklist": "ACC-CL-047",
       "q_en": "Could a retried refund job pay the customer twice?",
       "q_ar": "هل يمكن لمهمة استرداد أعيد تشغيلها أن تدفع للعميل مرتين؟",
       "expected_entry_ids": [
@@ -135,24 +179,33 @@
       ],
       "expected_facts": [
         "query Stripe for existing refunds"
+      ],
+      "q_reworded": "The refund job crashed and restarted. Could the buyer be paid back twice?",
+      "answer_must": [
+        "Before refunding, Stripe is checked for an existing refund so it is idempotent"
       ]
     },
     {
       "id": "accountant-exam-12",
-      "checklist": "ACC-06",
+      "checklist": "ACC-CL-022",
       "q_en": "A supplier stayed silent and we refunded. What does the supplier owe us?",
       "q_ar": "لم يرد المورّد فاسترددنا للعميل، ماذا يدين لنا المورّد؟",
       "expected_entry_ids": [
         "accountant:non-response-charge-accounting"
       ],
       "expected_facts": [
-        "9% per annum simple interest",
+        "12% per annum simple interest",
         "AED 500 admin fee"
+      ],
+      "q_reworded": "A supplier ignored a paid unlock and we refunded the buyer. What can we bill the supplier?",
+      "answer_must": [
+        "The supplier owes the exact amount refunded plus the processor fee QuotesDone could not recover, an AED 500 admin fee and 12% a year simple interest (Supplier Agreement v14/v15)",
+        "An earlier accepted version keeps its own terms: v13 AED 500 and 9%, v10-v12 AED 250 and 9%"
       ]
     },
     {
       "id": "accountant-exam-13",
-      "checklist": "ACC-06",
+      "checklist": "ACC-CL-022",
       "q_en": "Which admin fee applies to a supplier on Supplier Agreement v12?",
       "q_ar": "ما رسوم الإدارة المطبقة على مورّد وقّع اتفاقية المورد الإصدار 12؟",
       "expected_entry_ids": [
@@ -160,11 +213,15 @@
       ],
       "expected_facts": [
         "AED 250"
+      ],
+      "q_reworded": "For a supplier signed on version 12 of the agreement, how much is the admin charge?",
+      "answer_must": [
+        "AED 250"
       ]
     },
     {
       "id": "accountant-exam-14",
-      "checklist": "ACC-07",
+      "checklist": "ACC-CL-062",
       "q_en": "The supplier never paid the charge. Is this a police matter?",
       "q_ar": "المورّد لم يدفع المطالبة أبداً، هل هذه قضية شرطة؟",
       "expected_entry_ids": [
@@ -173,11 +230,16 @@
       "expected_facts": [
         "not to Dubai Police",
         "payment order"
+      ],
+      "q_reworded": "The supplier still has not paid us. Do we file a police complaint?",
+      "answer_must": [
+        "No, it is a civil debt, not a police matter",
+        "Recovery goes through a court payment order"
       ]
     },
     {
       "id": "accountant-exam-15",
-      "checklist": "ACC-07",
+      "checklist": "ACC-CL-062",
       "q_en": "How long a payment notice must we give before going to court?",
       "q_ar": "ما مدة إنذار الوفاء قبل اللجوء للمحكمة؟",
       "expected_entry_ids": [
@@ -185,11 +247,15 @@
       ],
       "expected_facts": [
         "at least 5 days"
+      ],
+      "q_reworded": "How much warning must the supplier get before we apply to the judge?",
+      "answer_must": [
+        "A written payment notice of at least 5 days"
       ]
     },
     {
       "id": "accountant-exam-16",
-      "checklist": "ACC-07",
+      "checklist": "ACC-CL-062",
       "q_en": "Once the judge issues the payment order, how long do we have to serve it?",
       "q_ar": "بعد صدور أمر الأداء، ما المهلة لإعلانه؟",
       "expected_entry_ids": [
@@ -197,11 +263,15 @@
       ],
       "expected_facts": [
         "within 3 months"
+      ],
+      "q_reworded": "The court issued the order. What is the deadline to deliver it to the supplier?",
+      "answer_must": [
+        "It must be served within 3 months"
       ]
     },
     {
       "id": "accountant-exam-17",
-      "checklist": "ACC-07",
+      "checklist": "ACC-CL-062",
       "q_en": "Can we charge interest on the interest the supplier owes?",
       "q_ar": "هل يمكن احتساب فائدة على الفائدة المستحقة على المورّد؟",
       "expected_entry_ids": [
@@ -209,11 +279,15 @@
       ],
       "expected_facts": [
         "never compounded"
+      ],
+      "q_reworded": "Can late interest itself attract more interest?",
+      "answer_must": [
+        "No, interest is simple and never compounded"
       ]
     },
     {
       "id": "accountant-exam-18",
-      "checklist": "ACC-08",
+      "checklist": "ACC-CL-048",
       "q_en": "A customer disputed a card payment. What happens to the money?",
       "q_ar": "اعترض عميل على دفعة بطاقته، ماذا يحدث للمبلغ؟",
       "expected_entry_ids": [
@@ -221,11 +295,16 @@
       ],
       "expected_facts": [
         "dispute"
+      ],
+      "q_reworded": "A buyer told their bank they did not recognise our charge. What happens to the funds?",
+      "answer_must": [
+        "Stripe opens a dispute and withdraws the amount plus fee",
+        "Evidence must be submitted before the deadline"
       ]
     },
     {
       "id": "accountant-exam-19",
-      "checklist": "ACC-09",
+      "checklist": "ACC-CL-049",
       "q_en": "Why did the customer not receive Stripe's receipt email?",
       "q_ar": "لماذا لم يصل العميل بريد إيصال Stripe؟",
       "expected_entry_ids": [
@@ -234,11 +313,15 @@
       "expected_facts": [
         "Customer emails",
         "Successful payments"
+      ],
+      "q_reworded": "Why did a buyer get our receipt but nothing from Stripe?",
+      "answer_must": [
+        "Stripe customer emails, including successful-payment emails, are deliberately off"
       ]
     },
     {
       "id": "accountant-exam-20",
-      "checklist": "ACC-10",
+      "checklist": "ACC-CL-063",
       "q_en": "Someone opened a second account with the same phone number. What does the seat check?",
       "q_ar": "فتح شخص حساباً ثانياً برقم الهاتف نفسه، ماذا يفحص المقعد؟",
       "expected_entry_ids": [
@@ -246,11 +329,16 @@
       ],
       "expected_facts": [
         "linked"
+      ],
+      "q_reworded": "Two sign-ups share a mobile number. What does finance look at?",
+      "answer_must": [
+        "Whether the accounts are linked by equal identifiers",
+        "A link is flagged as a possible duplicate account"
       ]
     },
     {
       "id": "accountant-exam-21",
-      "checklist": "ACC-10",
+      "checklist": "ACC-CL-063",
       "q_en": "What signs suggest a supplier is dodging our fee?",
       "q_ar": "ما العلامات التي تشير إلى أن مورّداً يتهرب من رسومنا؟",
       "expected_entry_ids": [
@@ -258,11 +346,15 @@
       ],
       "expected_facts": [
         "circumvention"
+      ],
+      "q_reworded": "What behaviour suggests a vendor is trying to avoid paying our commission?",
+      "answer_must": [
+        "Signals of off-platform dealing are treated as circumvention and investigated"
       ]
     },
     {
       "id": "accountant-exam-22",
-      "checklist": "ACC-10",
+      "checklist": "ACC-CL-022",
       "q_en": "A supplier dealt with the customer off-platform before the reveal. What is the penalty?",
       "q_ar": "تعامل مورّد مع العميل خارج المنصة قبل الكشف، ما الغرامة؟",
       "expected_entry_ids": [
@@ -270,11 +362,15 @@
       ],
       "expected_facts": [
         "AED 20,000 per incident"
+      ],
+      "q_reworded": "A vendor contacted the buyer directly before unlocking. What do we charge?",
+      "answer_must": [
+        "AED 20,000 per incident under the anti-circumvention clause"
       ]
     },
     {
       "id": "accountant-exam-23",
-      "checklist": "ACC-11",
+      "checklist": "ACC-CL-052",
       "q_en": "Where do receipts need to be sent so they get booked?",
       "q_ar": "إلى أين تُرسل الإيصالات لكي تُقيد؟",
       "expected_entry_ids": [
@@ -282,11 +378,15 @@
       ],
       "expected_facts": [
         "expenses@mail.quotesdone.com"
+      ],
+      "q_reworded": "I have a receipt from a software vendor. Where do I forward it?",
+      "answer_must": [
+        "To expenses@mail.quotesdone.com"
       ]
     },
     {
       "id": "accountant-exam-24",
-      "checklist": "ACC-11",
+      "checklist": "ACC-CL-052",
       "q_en": "Some old forwarded receipts are missing from Resend. Were they lost?",
       "q_ar": "بعض الإيصالات القديمة المحوّلة غير موجودة في Resend، هل ضاعت؟",
       "expected_entry_ids": [
@@ -295,11 +395,16 @@
       "expected_facts": [
         "about one month",
         "inbound_messages"
+      ],
+      "q_reworded": "Some forwarded receipts from months ago are not in Resend anymore. Are they gone?",
+      "answer_must": [
+        "Resend keeps inbound mail only about one month",
+        "They were captured in inbound_messages, so not lost"
       ]
     },
     {
       "id": "accountant-exam-25",
-      "checklist": "ACC-11",
+      "checklist": "ACC-CL-052",
       "q_en": "The OpenAI bill is not on the bank statement. Should that be flagged?",
       "q_ar": "فاتورة OpenAI غير موجودة في كشف البنك، هل نبلغ عن ذلك؟",
       "expected_entry_ids": [
@@ -307,11 +412,16 @@
       ],
       "expected_facts": [
         "personal card"
+      ],
+      "q_reworded": "Our AI subscription does not appear on the bank statement. Problem?",
+      "answer_must": [
+        "It is paid on the founder's personal card, so its absence from the bank is expected",
+        "It is still a company expense"
       ]
     },
     {
       "id": "accountant-exam-26",
-      "checklist": "ACC-12",
+      "checklist": "ACC-CL-053",
       "q_en": "A receipt image is blurry and the amount cannot be read. Do we estimate it?",
       "q_ar": "صورة إيصال غير واضحة ولا يُقرأ المبلغ، هل نقدّره؟",
       "expected_entry_ids": [
@@ -319,11 +429,15 @@
       ],
       "expected_facts": [
         "held"
+      ],
+      "q_reworded": "The amount on a photo of a receipt is unreadable. Do we guess?",
+      "answer_must": [
+        "No estimate is booked; the receipt is held until resolved"
       ]
     },
     {
       "id": "accountant-exam-27",
-      "checklist": "ACC-13",
+      "checklist": "ACC-CL-050",
       "q_en": "How do we tie a Stripe payout to the bank?",
       "q_ar": "كيف نربط دفعة Stripe بالبنك؟",
       "expected_entry_ids": [
@@ -331,11 +445,15 @@
       ],
       "expected_facts": [
         "payout"
+      ],
+      "q_reworded": "How do we prove the money Stripe sent matches what landed in the bank?",
+      "answer_must": [
+        "Each payout is matched to the bank line and to its balance transactions"
       ]
     },
     {
       "id": "accountant-exam-28",
-      "checklist": "ACC-13",
+      "checklist": "ACC-CL-050",
       "q_en": "What is the accounting source of truth inside Stripe?",
       "q_ar": "ما مرجع المحاسبة الموثوق داخل Stripe؟",
       "expected_entry_ids": [
@@ -343,11 +461,15 @@
       ],
       "expected_facts": [
         "balance transactions"
+      ],
+      "q_reworded": "Inside Stripe, which records do the books rely on?",
+      "answer_must": [
+        "Balance transactions are the accounting source of truth"
       ]
     },
     {
       "id": "accountant-exam-29",
-      "checklist": "ACC-14",
+      "checklist": "ACC-CL-065",
       "q_en": "A name on our supplier list matches the UN list. Can we delete the account?",
       "q_ar": "اسم في قائمة موردينا يطابق قائمة الأمم المتحدة، هل نحذف الحساب؟",
       "expected_entry_ids": [
@@ -355,11 +477,15 @@
       ],
       "expected_facts": [
         "banned and sealed"
+      ],
+      "q_reworded": "A supplier name hits the UN list. Should we just remove them?",
+      "answer_must": [
+        "No deletion: the party is banned and sealed, records kept"
       ]
     },
     {
       "id": "accountant-exam-30",
-      "checklist": "ACC-14",
+      "checklist": "ACC-CL-065",
       "q_en": "Which sanctions lists does the daily re-screen use?",
       "q_ar": "ما قوائم العقوبات التي يستخدمها الفحص اليومي؟",
       "expected_entry_ids": [
@@ -367,11 +493,15 @@
       ],
       "expected_facts": [
         "UN Consolidated List"
+      ],
+      "q_reworded": "Against which lists do we check suppliers every day?",
+      "answer_must": [
+        "The UN Consolidated List and the UAE local terrorist list"
       ]
     },
     {
       "id": "accountant-exam-31",
-      "checklist": "ACC-14",
+      "checklist": "ACC-CL-065",
       "q_en": "A screen shows a partial name match. How is it dispositioned?",
       "q_ar": "أظهر الفحص تطابقاً جزئياً في الاسم، كيف يُعالج؟",
       "expected_entry_ids": [
@@ -379,11 +509,15 @@
       ],
       "expected_facts": [
         "partial"
+      ],
+      "q_reworded": "The screen found a similar but not identical name. What now?",
+      "answer_must": [
+        "It is a partial match that is investigated and dispositioned, with activity suspended meanwhile"
       ]
     },
     {
       "id": "accountant-exam-32",
-      "checklist": "ACC-15",
+      "checklist": "ACC-CL-059",
       "q_en": "What goes into the weekly finance report to the CEO?",
       "q_ar": "ماذا يتضمن التقرير المالي الأسبوعي للرئيس التنفيذي؟",
       "expected_entry_ids": [
@@ -392,11 +526,16 @@
       "expected_facts": [
         "cash",
         "decisions needed"
+      ],
+      "q_reworded": "What does the CEO get from finance every week?",
+      "answer_must": [
+        "Cash position",
+        "Decisions needed from the CEO"
       ]
     },
     {
       "id": "accountant-exam-33",
-      "checklist": "ACC-16",
+      "checklist": "ACC-CL-051",
       "q_en": "The bank statement PDF would not parse. Do we ask the founder to resend?",
       "q_ar": "لم يُقرأ ملف كشف البنك، هل نطلب من المؤسس إعادة الإرسال؟",
       "expected_entry_ids": [
@@ -404,11 +543,15 @@
       ],
       "expected_facts": [
         "our own defect"
+      ],
+      "q_reworded": "The monthly bank PDF failed to parse. Do we ask the owner to send it again?",
+      "answer_must": [
+        "No, a parse failure is treated as our own defect to fix"
       ]
     },
     {
       "id": "accountant-exam-34",
-      "checklist": "ACC-16",
+      "checklist": "ACC-CL-051",
       "q_en": "What does Mashreq charge us each month?",
       "q_ar": "كم يتقاضى مشرق منا شهرياً؟",
       "expected_entry_ids": [
@@ -416,23 +559,31 @@
       ],
       "expected_facts": [
         "AED 199 plus AED 9.95 VAT"
+      ],
+      "q_reworded": "What is the monthly account fee at our bank?",
+      "answer_must": [
+        "AED 199 plus AED 9.95 VAT"
       ]
     },
     {
       "id": "accountant-exam-35",
-      "checklist": "ACC-16",
+      "checklist": "ACC-CL-051",
       "q_en": "The founder transferred AED 5,000 into the company account. Is that a loan?",
       "q_ar": "حوّل المؤسس 5,000 درهم إلى حساب الشركة، هل هي قرض؟",
       "expected_entry_ids": [
-        "accountant:company-mashreq-statement-monthly"
+        "accountant:capital-vs-loan-iban"
       ],
       "expected_facts": [
-        "capital, not a loan"
+        "capital contribution"
+      ],
+      "q_reworded": "The owner sent five thousand dirhams to the company. Do we record a loan to him?",
+      "answer_must": [
+        "It is capital, not a loan, unless he says otherwise"
       ]
     },
     {
       "id": "accountant-exam-36",
-      "checklist": "ACC-17",
+      "checklist": "ACC-CL-038",
       "q_en": "What does the month-end close involve?",
       "q_ar": "ماذا يشمل الإقفال في نهاية الشهر؟",
       "expected_entry_ids": [
@@ -440,11 +591,15 @@
       ],
       "expected_facts": [
         "close"
+      ],
+      "q_reworded": "What happens at the end of every month in the books?",
+      "answer_must": [
+        "A close: reconciliations, accruals, review, then the period is closed"
       ]
     },
     {
       "id": "accountant-exam-37",
-      "checklist": "ACC-17",
+      "checklist": "ACC-CL-038",
       "q_en": "Can a closed month be edited afterwards?",
       "q_ar": "هل يمكن تعديل شهر مقفل لاحقاً؟",
       "expected_entry_ids": [
@@ -452,11 +607,15 @@
       ],
       "expected_facts": [
         "postings dated in that month must be blocked"
+      ],
+      "q_reworded": "Can someone post a correction into a month that is already closed?",
+      "answer_must": [
+        "No, postings dated in a locked month are blocked; corrections go in the open period"
       ]
     },
     {
       "id": "accountant-exam-38",
-      "checklist": "ACC-18",
+      "checklist": "ACC-CL-056",
       "q_en": "How is runway worked out for the CEO?",
       "q_ar": "كيف تُحسب المدة التشغيلية المتاحة للرئيس التنفيذي؟",
       "expected_entry_ids": [
@@ -464,11 +623,15 @@
       ],
       "expected_facts": [
         "runway"
+      ],
+      "q_reworded": "How many months can we keep going with the cash we have?",
+      "answer_must": [
+        "Runway = cash divided by monthly net burn, reported to the CEO"
       ]
     },
     {
       "id": "accountant-exam-39",
-      "checklist": "ACC-19",
+      "checklist": "ACC-CL-054",
       "q_en": "We had no ad spend this month. Does the Meta reconciliation still run?",
       "q_ar": "لم يكن لدينا إنفاق إعلاني هذا الشهر، هل تعمل مطابقة Meta مع ذلك؟",
       "expected_entry_ids": [
@@ -476,11 +639,15 @@
       ],
       "expected_facts": [
         "organic"
+      ],
+      "q_reworded": "Marketing spent nothing on ads this month. Is the ad reconciliation skipped?",
+      "answer_must": [
+        "No, it still runs at zero spend during the organic-only period"
       ]
     },
     {
       "id": "accountant-exam-40",
-      "checklist": "ACC-20",
+      "checklist": "ACC-CL-058",
       "q_en": "What should be budgeted for the eTrader licence?",
       "q_ar": "كم يجب رصده لرخصة التاجر الإلكتروني؟",
       "expected_entry_ids": [
@@ -488,11 +655,15 @@
       ],
       "expected_facts": [
         "AED 1,200"
+      ],
+      "q_reworded": "How much do we set aside for renewing the eTrader licence?",
+      "answer_must": [
+        "AED 1,200"
       ]
     },
     {
       "id": "accountant-exam-41",
-      "checklist": "ACC-20",
+      "checklist": "ACC-CL-058",
       "q_en": "When does the trade licence expire?",
       "q_ar": "متى تنتهي الرخصة التجارية؟",
       "expected_entry_ids": [
@@ -500,11 +671,15 @@
       ],
       "expected_facts": [
         "24 June 2027"
+      ],
+      "q_reworded": "When is our trade licence up for renewal?",
+      "answer_must": [
+        "24 June 2027"
       ]
     },
     {
       "id": "accountant-exam-42",
-      "checklist": "ACC-21",
+      "checklist": "ACC-CL-010",
       "q_en": "At what revenue do we have to register for VAT?",
       "q_ar": "عند أي إيراد يجب التسجيل في ضريبة القيمة المضافة؟",
       "expected_entry_ids": [
@@ -512,11 +687,15 @@
       ],
       "expected_facts": [
         "375,000"
+      ],
+      "q_reworded": "What turnover forces us to register for VAT?",
+      "answer_must": [
+        "AED 375,000 of taxable supplies"
       ]
     },
     {
       "id": "accountant-exam-43",
-      "checklist": "ACC-21",
+      "checklist": "ACC-CL-010",
       "q_en": "Once we cross the threshold, how long to apply?",
       "q_ar": "بعد تجاوز الحد، ما المهلة لتقديم طلب التسجيل؟",
       "expected_entry_ids": [
@@ -524,11 +703,15 @@
       ],
       "expected_facts": [
         "within 30 days"
+      ],
+      "q_reworded": "We just passed the VAT line. What is the deadline to apply?",
+      "answer_must": [
+        "Within 30 days"
       ]
     },
     {
       "id": "accountant-exam-44",
-      "checklist": "ACC-22",
+      "checklist": "ACC-CL-009",
       "q_en": "Should the accountant keep a corporate-tax calendar?",
       "q_ar": "هل يحتفظ المحاسب بتقويم لضريبة الشركات؟",
       "expected_entry_ids": [
@@ -536,11 +719,16 @@
       ],
       "expected_facts": [
         "ignore the corporate tax matter"
+      ],
+      "q_reworded": "Should finance be running a corporate tax filing schedule?",
+      "answer_must": [
+        "No; the founder said to ignore the corporate tax matter (instruction 344)",
+        "The VAT threshold is the tax duty the seat watches"
       ]
     },
     {
       "id": "accountant-exam-45",
-      "checklist": "ACC-23",
+      "checklist": "ACC-CL-036",
       "q_en": "What does the year-end pack contain?",
       "q_ar": "ماذا تتضمن حزمة نهاية السنة؟",
       "expected_entry_ids": [
@@ -548,11 +736,15 @@
       ],
       "expected_facts": [
         "statement of cash flows"
+      ],
+      "q_reworded": "What is in the annual accounts package?",
+      "answer_must": [
+        "Statement of financial position, income statement, statement of cash flows and notes"
       ]
     },
     {
       "id": "accountant-exam-46",
-      "checklist": "ACC-24",
+      "checklist": "ACC-CL-041",
       "q_en": "What can the accountant decide without the CEO?",
       "q_ar": "ما الذي يقرره المحاسب دون الرئيس التنفيذي؟",
       "expected_entry_ids": [
@@ -560,11 +752,16 @@
       ],
       "expected_facts": [
         "booking, categorisation"
+      ],
+      "q_reworded": "Which things can finance decide alone?",
+      "answer_must": [
+        "Booking, categorisation and reconciliation decisions",
+        "Money-out and policy decisions go to the CEO"
       ]
     },
     {
       "id": "accountant-exam-47",
-      "checklist": "ACC-24",
+      "checklist": "ACC-CL-041",
       "q_en": "Can the accountant email a supplier the charge notice directly?",
       "q_ar": "هل يرسل المحاسب إشعار المطالبة للمورّد بالبريد مباشرة؟",
       "expected_entry_ids": [
@@ -572,11 +769,15 @@
       ],
       "expected_facts": [
         "only customer_support sends email"
+      ],
+      "q_reworded": "Can finance write to a supplier directly about what they owe?",
+      "answer_must": [
+        "No, only customer_support sends email; finance hands the notice over"
       ]
     },
     {
       "id": "accountant-exam-48",
-      "checklist": "ACC-25",
+      "checklist": "ACC-CL-039",
       "q_en": "Books current within how long?",
       "q_ar": "خلال كم من الوقت يجب أن تكون الدفاتر محدّثة؟",
       "expected_entry_ids": [
@@ -585,11 +786,16 @@
       "expected_facts": [
         "within 24 hours",
         "by day 5"
+      ],
+      "q_reworded": "How fresh must the books be, and when must the month be closed?",
+      "answer_must": [
+        "Within 24 hours",
+        "Closed by day 5"
       ]
     },
     {
       "id": "accountant-exam-49",
-      "checklist": "ACC-25",
+      "checklist": "ACC-CL-039",
       "q_en": "How often is Stripe matched to the books?",
       "q_ar": "كم مرة تُطابق Stripe مع الدفاتر؟",
       "expected_entry_ids": [
@@ -597,11 +803,15 @@
       ],
       "expected_facts": [
         "reconciled daily"
+      ],
+      "q_reworded": "How often is Stripe tied out to the ledger?",
+      "answer_must": [
+        "Daily"
       ]
     },
     {
       "id": "accountant-exam-50",
-      "checklist": "ACC-26",
+      "checklist": "ACC-CL-061",
       "q_en": "When will the first reveal revenue come in?",
       "q_ar": "متى يصل أول إيراد من الكشوف؟",
       "expected_entry_ids": [
@@ -609,11 +819,15 @@
       ],
       "expected_facts": [
         "January 2027"
+      ],
+      "q_reworded": "When do we expect the first unlock income?",
+      "answer_must": [
+        "From January 2027, when customers start"
       ]
     },
     {
       "id": "accountant-exam-51",
-      "checklist": "ACC-26",
+      "checklist": "ACC-CL-061",
       "q_en": "Which supplier is the first to pay a subscription?",
       "q_ar": "من أول مورّد يدفع اشتراكاً؟",
       "expected_entry_ids": [
@@ -622,11 +836,15 @@
       "expected_facts": [
         "supplier 1,001",
         "AED 1,000 a year"
+      ],
+      "q_reworded": "Who pays a subscription first and how much?",
+      "answer_must": [
+        "Supplier 1,001 onwards pays AED 1,000 a year"
       ]
     },
     {
       "id": "accountant-exam-52",
-      "checklist": "ACC-27",
+      "checklist": "ACC-CL-055",
       "q_en": "We find a revenue line in November 2026. What is it likely to be?",
       "q_ar": "وجدنا بند إيراد في نوفمبر 2026، ما الأرجح أن يكون؟",
       "expected_entry_ids": [
@@ -634,11 +852,15 @@
       ],
       "expected_facts": [
         "anomaly"
+      ],
+      "q_reworded": "An income line appears in November 2026 although customers start later. What is it?",
+      "answer_must": [
+        "It is an anomaly to investigate, since reveal revenue starts in January 2027"
       ]
     },
     {
       "id": "accountant-exam-53",
-      "checklist": "ACC-28",
+      "checklist": "ACC-CL-023",
       "q_en": "How should a new expense be classified?",
       "q_ar": "كيف يُصنّف مصروف جديد؟",
       "expected_entry_ids": [
@@ -646,11 +868,15 @@
       ],
       "expected_facts": [
         "what the cost is for"
+      ],
+      "q_reworded": "How do we decide which account a new bill belongs to?",
+      "answer_must": [
+        "By what the cost is for, reasoned from the document, not by keyword"
       ]
     },
     {
       "id": "accountant-exam-54",
-      "checklist": "ACC-28",
+      "checklist": "ACC-CL-023",
       "q_en": "Where does a bank charge go in the chart of accounts?",
       "q_ar": "أين يُقيد رسم البنك في دليل الحسابات؟",
       "expected_entry_ids": [
@@ -658,11 +884,15 @@
       ],
       "expected_facts": [
         "6300 General and Administrative"
+      ],
+      "q_reworded": "Where is the monthly bank fee recorded?",
+      "answer_must": [
+        "6300 General and Administrative"
       ]
     },
     {
       "id": "accountant-exam-55",
-      "checklist": "ACC-29",
+      "checklist": "ACC-CL-025",
       "q_en": "We paid a Google Ads bill in USD. At what rate do we book it?",
       "q_ar": "دفعنا فاتورة إعلانات بالدولار، بأي سعر نقيدها؟",
       "expected_entry_ids": [
@@ -670,11 +900,15 @@
       ],
       "expected_facts": [
         "3.6725"
+      ],
+      "q_reworded": "A dollar ad invoice was paid. Which exchange rate do we use?",
+      "answer_must": [
+        "3.6725 AED per USD, the pegged rate"
       ]
     },
     {
       "id": "accountant-exam-56",
-      "checklist": "ACC-31",
+      "checklist": "ACC-CL-026",
       "q_en": "We booked this vendor last month. Does the seat remember how?",
       "q_ar": "قيدنا هذا المورّد الشهر الماضي، هل يتذكر المقعد كيف؟",
       "expected_entry_ids": [
@@ -682,11 +916,15 @@
       ],
       "expected_facts": [
         "remembers how each vendor was treated"
+      ],
+      "q_reworded": "A vendor billed us again. Does finance reuse how it booked them last time?",
+      "answer_must": [
+        "Yes, the seat remembers how each vendor was treated and reuses it unless facts changed"
       ]
     },
     {
       "id": "accountant-exam-57",
-      "checklist": "ACC-30",
+      "checklist": "ACC-CL-051",
       "q_en": "ما رسوم حساب مشرق الشهرية وعلى أي حساب تُقيد؟ أجب بالعربية.",
       "q_ar": "ما رسوم حساب مشرق الشهرية وعلى أي حساب تُقيد؟",
       "expected_entry_ids": [
@@ -694,11 +932,16 @@
       ],
       "expected_facts": [
         "AED 199"
+      ],
+      "q_reworded": "What does Mashreq charge monthly and to which account? Answer in Arabic.",
+      "answer_must": [
+        "AED 199 a month (plus VAT)",
+        "Booked to general and administrative"
       ]
     },
     {
       "id": "accountant-exam-58",
-      "checklist": "ACC-PRO",
+      "checklist": "ACC-CL-035",
       "q_en": "When may QuotesDone recognise a deferred tax asset for its pre-revenue tax losses?",
       "q_ar": "متى يجوز لكوتس دن إثبات أصل ضريبي مؤجل عن خسائرها الضريبية قبل الإيراد؟",
       "expected_entry_ids": [
@@ -706,11 +949,15 @@
       ],
       "expected_facts": [
         "future taxable profit is probable"
+      ],
+      "q_reworded": "Can we put our start-up tax losses on the balance sheet as an asset?",
+      "answer_must": [
+        "Only when future taxable profit is probable"
       ]
     },
     {
       "id": "accountant-exam-59",
-      "checklist": "ACC-PRO",
+      "checklist": "ACC-CL-027",
       "q_en": "Can the cost of building the QuotesDone platform in-house be capitalised under IFRS for SMEs?",
       "q_ar": "هل يمكن رسملة تكلفة بناء منصة كوتس دن داخلياً وفق معيار المنشآت الصغيرة والمتوسطة؟",
       "expected_entry_ids": [
@@ -718,11 +965,15 @@
       ],
       "expected_facts": [
         "expense when incurred"
+      ],
+      "q_reworded": "Our developers built the platform. Can we capitalise that cost?",
+      "answer_must": [
+        "No, under IFRS for SMEs development cost is an expense when incurred"
       ]
     },
     {
       "id": "accountant-exam-60",
-      "checklist": "ACC-PRO",
+      "checklist": "ACC-CL-029",
       "q_en": "Where does the founder's capital injection go in the statement of cash flows?",
       "q_ar": "أين تُصنّف مساهمة المؤسس الرأسمالية في قائمة التدفقات النقدية؟",
       "expected_entry_ids": [
@@ -730,11 +981,15 @@
       ],
       "expected_facts": [
         "financing, never operating"
+      ],
+      "q_reworded": "The owner put money in. Which part of the cash flow statement shows it?",
+      "answer_must": [
+        "Financing activities, never operating"
       ]
     },
     {
       "id": "accountant-exam-61",
-      "checklist": "ACC-PRO",
+      "checklist": "ACC-CL-030",
       "q_en": "A disputed charge open at year end settled in January at a different amount. Adjust or disclose?",
       "q_ar": "رسم متنازع عليه في نهاية السنة سُوّي في يناير بمبلغ مختلف. هل نعدّل أم نفصح؟",
       "expected_entry_ids": [
@@ -742,11 +997,15 @@
       ],
       "expected_facts": [
         "Adjusting events"
+      ],
+      "q_reworded": "A dispute at year-end settled in January for a different amount. Do we change the year-end numbers?",
+      "answer_must": [
+        "Yes if it gives evidence of conditions at year end: an adjusting event"
       ]
     },
     {
       "id": "accountant-exam-62",
-      "checklist": "ACC-PRO",
+      "checklist": "ACC-CL-031",
       "q_en": "Are subscriptions the founder pays on his personal card related party transactions?",
       "q_ar": "هل الاشتراكات التي يدفعها المؤسس على بطاقته الشخصية معاملات أطراف ذات علاقة؟",
       "expected_entry_ids": [
@@ -754,11 +1013,15 @@
       ],
       "expected_facts": [
         "related party transactions by definition"
+      ],
+      "q_reworded": "Subscriptions the owner pays on his own card: are they related party items?",
+      "answer_must": [
+        "Yes, they are related party transactions by definition and disclosed"
       ]
     },
     {
       "id": "accountant-exam-63",
-      "checklist": "ACC-PRO",
+      "checklist": "ACC-CL-032",
       "q_en": "How far ahead must the going concern assessment look?",
       "q_ar": "إلى أي مدى يجب أن يمتد تقييم الاستمرارية؟",
       "expected_entry_ids": [
@@ -766,11 +1029,15 @@
       ],
       "expected_facts": [
         "at least twelve months"
+      ],
+      "q_reworded": "How far forward must we look when judging if the company can continue?",
+      "answer_must": [
+        "At least twelve months from the reporting date"
       ]
     },
     {
       "id": "accountant-exam-64",
-      "checklist": "ACC-PRO",
+      "checklist": "ACC-CL-033",
       "q_en": "A refund provision rate is revised. Do we restate the prior period?",
       "q_ar": "عُدّلت نسبة مخصص الاستردادات. هل نعيد عرض الفترة السابقة؟",
       "expected_entry_ids": [
@@ -778,11 +1045,15 @@
       ],
       "expected_facts": [
         "applied prospectively"
+      ],
+      "q_reworded": "We changed our expected refund rate. Do we restate last year?",
+      "answer_must": [
+        "No, a change in estimate is applied prospectively"
       ]
     },
     {
       "id": "accountant-exam-65",
-      "checklist": "ACC-PRO",
+      "checklist": "ACC-CL-034",
       "q_en": "Can the non-response charge we are pursuing through legal recovery be booked as income?",
       "q_ar": "هل يمكن قيد رسم عدم الاستجابة الذي نلاحقه قانونياً كإيراد؟",
       "expected_entry_ids": [
@@ -790,11 +1061,15 @@
       ],
       "expected_facts": [
         "contingent asset, not income"
+      ],
+      "q_reworded": "We are suing a supplier for an unpaid charge. Can we record it as income now?",
+      "answer_must": [
+        "No, it is a contingent asset, not income, until virtually certain"
       ]
     },
     {
       "id": "accountant-exam-66",
-      "checklist": "ACC-PRO",
+      "checklist": "ACC-CL-008",
       "q_en": "What is the de minimis threshold under the Corporate Tax interest limitation rule?",
       "q_ar": "ما حد الإعفاء الأدنى في قاعدة تقييد خصم الفائدة في ضريبة الشركات؟",
       "expected_entry_ids": [
@@ -802,11 +1077,15 @@
       ],
       "expected_facts": [
         "AED 12 million"
+      ],
+      "q_reworded": "Below what interest expense does the interest cap not bite?",
+      "answer_must": [
+        "Net interest up to AED 12 million is deductible regardless (30% of EBITDA above)"
       ]
     },
     {
       "id": "accountant-exam-67",
-      "checklist": "ACC-PRO",
+      "checklist": "ACC-CL-015",
       "q_en": "How long after the supply before VAT bad debt relief can be claimed?",
       "q_ar": "كم يجب أن يمضي من تاريخ التوريد قبل المطالبة بإعفاء الديون المعدومة؟",
       "expected_entry_ids": [
@@ -814,6 +1093,701 @@
       ],
       "expected_facts": [
         "more than six months"
+      ],
+      "q_reworded": "When can we reclaim VAT on an invoice a customer never paid?",
+      "answer_must": [
+        "Only after more than six months from the supply, with the other Article 64 conditions met"
+      ]
+    },
+    {
+      "id": "accountant-exam-68",
+      "checklist": "ACC-CL-001",
+      "q_en": "What corporate tax rate applies to QuotesDone's profit?",
+      "q_ar": "ما نسبة ضريبة الشركات المطبقة على أرباح كوتس دن؟",
+      "expected_entry_ids": [
+        "accountant:ct-rates-and-scope"
+      ],
+      "expected_facts": [
+        "0% rate on taxable income up to AED 375,000",
+        "9%"
+      ],
+      "q_reworded": "If we make a profit next year, how much tax do we pay on it?",
+      "answer_must": [
+        "0% up to AED 375,000 of taxable income",
+        "9% on the excess"
+      ]
+    },
+    {
+      "id": "accountant-exam-69",
+      "checklist": "ACC-CL-002",
+      "q_en": "Does a sole establishment have to register for corporate tax?",
+      "q_ar": "هل يجب على المؤسسة الفردية التسجيل في ضريبة الشركات؟",
+      "expected_entry_ids": [
+        "accountant:ct-registration-duty"
+      ],
+      "expected_facts": [
+        "AED 1,000,000"
+      ],
+      "q_reworded": "The founder owns the licence personally. When must it get a tax number?",
+      "answer_must": [
+        "A natural person registers once business turnover exceeds AED 1,000,000 in a calendar year"
+      ]
+    },
+    {
+      "id": "accountant-exam-70",
+      "checklist": "ACC-CL-002",
+      "q_en": "What does it cost us if we register for corporate tax late?",
+      "q_ar": "ما تكلفة التأخر في التسجيل لضريبة الشركات؟",
+      "expected_entry_ids": [
+        "accountant:ct-late-registration-penalty-and-waiver"
+      ],
+      "expected_facts": [
+        "AED 10,000"
+      ],
+      "q_reworded": "We missed the tax sign-up date. How bad is it?",
+      "answer_must": [
+        "An AED 10,000 penalty",
+        "The FTA waiver removes it if the first return is filed within seven months of the period end"
+      ]
+    },
+    {
+      "id": "accountant-exam-71",
+      "checklist": "ACC-CL-003",
+      "q_en": "For a December year-end, when are the corporate tax return and payment due?",
+      "q_ar": "لسنة مالية تنتهي في ديسمبر، متى يستحق إقرار ضريبة الشركات والدفع؟",
+      "expected_entry_ids": [
+        "accountant:ct-return-and-payment-deadline"
+      ],
+      "expected_facts": [
+        "within 9 months",
+        "30 September"
+      ],
+      "q_reworded": "Our books end in December. By when must tax be filed and paid?",
+      "answer_must": [
+        "Within 9 months: 30 September of the next year",
+        "Even if no tax is payable"
+      ]
+    },
+    {
+      "id": "accountant-exam-72",
+      "checklist": "ACC-CL-004",
+      "q_en": "Can we elect Small Business Relief, and until when is it available?",
+      "q_ar": "هل يمكننا اختيار إعفاء الأعمال الصغيرة، وحتى متى هو متاح؟",
+      "expected_entry_ids": [
+        "accountant:ct-small-business-relief"
+      ],
+      "expected_facts": [
+        "AED 3 million",
+        "31 December 2029"
+      ],
+      "q_reworded": "Our turnover is small. Can we be treated as having no taxable income?",
+      "answer_must": [
+        "Yes if revenue is at or below AED 3 million",
+        "For periods ending by 31 December 2029"
+      ]
+    },
+    {
+      "id": "accountant-exam-73",
+      "checklist": "ACC-CL-005",
+      "q_en": "How do we get from the profit in the accounts to the taxable income figure?",
+      "q_ar": "كيف ننتقل من الربح في الحسابات إلى الدخل الخاضع للضريبة؟",
+      "expected_entry_ids": [
+        "accountant:ct-taxable-income-bridge"
+      ],
+      "expected_facts": [
+        "accounting net profit"
+      ],
+      "q_reworded": "The accounts show a profit. Is that the number we pay tax on?",
+      "answer_must": [
+        "Start from accounting net profit and adjust for non-deductible items, exempt income and related-party adjustments"
+      ]
+    },
+    {
+      "id": "accountant-exam-74",
+      "checklist": "ACC-CL-005",
+      "q_en": "How much of a client dinner is deductible for corporate tax?",
+      "q_ar": "ما الجزء القابل للخصم من عشاء عمل مع عميل لأغراض ضريبة الشركات؟",
+      "expected_entry_ids": [
+        "accountant:ct-deductible-and-non-deductible-expenses"
+      ],
+      "expected_facts": [
+        "50%"
+      ],
+      "q_reworded": "I took a supplier to lunch. Can the company deduct all of it?",
+      "answer_must": [
+        "Only 50% of client entertainment is deductible"
+      ]
+    },
+    {
+      "id": "accountant-exam-75",
+      "checklist": "ACC-CL-006",
+      "q_en": "Which transfer pricing methods does the corporate tax law name?",
+      "q_ar": "ما طرق تسعير التحويل التي ينص عليها قانون ضريبة الشركات؟",
+      "expected_entry_ids": [
+        "accountant:ct-transfer-pricing-arms-length"
+      ],
+      "expected_facts": [
+        "arm's length",
+        "cost plus"
+      ],
+      "q_reworded": "How do we prove a deal with the owner was priced fairly?",
+      "answer_must": [
+        "Apply the arm's length standard",
+        "Using one of five methods: CUP, resale price, cost plus, TNMM, profit split"
+      ]
+    },
+    {
+      "id": "accountant-exam-76",
+      "checklist": "ACC-CL-007",
+      "q_en": "We will make losses this year. How much of them can we use against later profit?",
+      "q_ar": "سنحقق خسائر هذا العام، كم منها يمكن استخدامه مقابل أرباح لاحقة؟",
+      "expected_entry_ids": [
+        "accountant:ct-tax-loss-relief"
+      ],
+      "expected_facts": [
+        "75%"
+      ],
+      "q_reworded": "When we turn profitable, can the old losses wipe out all the tax?",
+      "answer_must": [
+        "Losses carry forward but can offset at most 75% of taxable income in a period"
+      ]
+    },
+    {
+      "id": "accountant-exam-77",
+      "checklist": "ACC-CL-012",
+      "q_en": "We pay VAT on a local software subscription. Can we book it as recoverable?",
+      "q_ar": "ندفع ضريبة قيمة مضافة على اشتراك برمجيات محلي، هل نقيدها كضريبة قابلة للاسترداد؟",
+      "expected_entry_ids": [
+        "accountant:vat-unregistered-input-tax"
+      ],
+      "expected_facts": [
+        "part of the cost"
+      ],
+      "q_reworded": "A Dubai vendor charged us 5%. Can we claim it back?",
+      "answer_must": [
+        "No, while unregistered the VAT is part of the cost of the expense"
+      ]
+    },
+    {
+      "id": "accountant-exam-78",
+      "checklist": "ACC-CL-012",
+      "q_en": "How is VAT handled on a cloud bill from a foreign provider once we are registered?",
+      "q_ar": "كيف تُعالج ضريبة القيمة المضافة على فاتورة سحابية من مزود أجنبي بعد تسجيلنا؟",
+      "expected_entry_ids": [
+        "accountant:vat-reverse-charge-imported-services"
+      ],
+      "expected_facts": [
+        "reverse charged"
+      ],
+      "q_reworded": "After registering, what about tax on our overseas SaaS bills?",
+      "answer_must": [
+        "They are reverse charged: we declare 5% output tax and recover it as input where allowed"
+      ]
+    },
+    {
+      "id": "accountant-exam-79",
+      "checklist": "ACC-CL-013",
+      "q_en": "Where is our service supplied for VAT purposes as a general rule?",
+      "q_ar": "أين يُعتبر مكان توريد خدمتنا لأغراض ضريبة القيمة المضافة كقاعدة عامة؟",
+      "expected_entry_ids": [
+        "accountant:vat-place-of-supply-services"
+      ],
+      "expected_facts": [
+        "supplier's place of residence"
+      ],
+      "q_reworded": "For tax, in which country is our service treated as provided?",
+      "answer_must": [
+        "The supplier's place of residence, i.e. the UAE, as a general rule"
+      ]
+    },
+    {
+      "id": "accountant-exam-80",
+      "checklist": "ACC-CL-013",
+      "q_en": "Can a fee charged to a customer abroad be zero-rated?",
+      "q_ar": "هل يمكن إخضاع رسوم محصلة من عميل في الخارج لنسبة الصفر؟",
+      "expected_entry_ids": [
+        "accountant:vat-zero-rated-export-of-services"
+      ],
+      "expected_facts": [
+        "zero-rates"
+      ],
+      "q_reworded": "A buyer based in Oman paid a fee. Do we charge 5%?",
+      "answer_must": [
+        "No VAT is charged: QuotesDone is not VAT-registered, so neither 5% nor zero-rating applies today",
+        "Once registered, a fee to a non-resident outside the UAE can be zero-rated if the service is not tied to UAE real estate or goods"
+      ]
+    },
+    {
+      "id": "accountant-exam-81",
+      "checklist": "ACC-CL-014",
+      "q_en": "Once VAT-registered, how soon after the supply must the tax invoice be issued?",
+      "q_ar": "بعد التسجيل في الضريبة، خلال كم يوماً من التوريد يجب إصدار الفاتورة الضريبية؟",
+      "expected_entry_ids": [
+        "accountant:vat-tax-invoice-content-and-timing"
+      ],
+      "expected_facts": [
+        "within 14 days"
+      ],
+      "q_reworded": "After we register, how long do we have to send a proper tax invoice?",
+      "answer_must": [
+        "Within 14 days of the supply"
+      ]
+    },
+    {
+      "id": "accountant-exam-82",
+      "checklist": "ACC-CL-014",
+      "q_en": "When is the VAT201 return due after the period ends?",
+      "q_ar": "متى يستحق إقرار ضريبة القيمة المضافة 201 بعد نهاية الفترة؟",
+      "expected_entry_ids": [
+        "accountant:vat-return-vat201-method"
+      ],
+      "expected_facts": [
+        "within 28"
+      ],
+      "q_reworded": "When must the VAT return be filed and paid?",
+      "answer_must": [
+        "Within 28 days after the end of the tax period"
+      ]
+    },
+    {
+      "id": "accountant-exam-83",
+      "checklist": "ACC-CL-016",
+      "q_en": "If we pay tax late, what is the penalty now?",
+      "q_ar": "إذا تأخرنا في سداد الضريبة، ما الغرامة حالياً؟",
+      "expected_entry_ids": [
+        "accountant:tax-penalties-cabinet-decision-129-2025"
+      ],
+      "expected_facts": [
+        "14% per annum"
+      ],
+      "q_reworded": "Our VAT payment was a month late. What is the charge?",
+      "answer_must": [
+        "14% per annum, applied monthly, since 14 April 2026"
+      ]
+    },
+    {
+      "id": "accountant-exam-84",
+      "checklist": "ACC-CL-017",
+      "q_en": "How will UAE e-invoicing actually move our invoices?",
+      "q_ar": "كيف سينقل نظام الفوترة الإلكترونية في الإمارات فواتيرنا فعلياً؟",
+      "expected_entry_ids": [
+        "accountant:einvoicing-roadmap"
+      ],
+      "expected_facts": [
+        "Peppol",
+        "Accredited Service Provider"
+      ],
+      "q_reworded": "What system will carry electronic invoices in the UAE?",
+      "answer_must": [
+        "Through the Peppol network",
+        "Via an Accredited Service Provider"
+      ]
+    },
+    {
+      "id": "accountant-exam-85",
+      "checklist": "ACC-CL-018",
+      "q_en": "How long must we keep the records behind a corporate tax return?",
+      "q_ar": "كم من الوقت يجب الاحتفاظ بالسجلات المؤيدة لإقرار ضريبة الشركات؟",
+      "expected_entry_ids": [
+        "accountant:record-retention-periods"
+      ],
+      "expected_facts": [
+        "seven years"
+      ],
+      "q_reworded": "Can we delete old receipts after a few years?",
+      "answer_must": [
+        "Keep corporate tax records seven years after the period"
+      ]
+    },
+    {
+      "id": "accountant-exam-86",
+      "checklist": "ACC-CL-018",
+      "q_en": "A bank asks for our Economic Substance report. Do we have to file one?",
+      "q_ar": "طلب البنك تقرير المادة الاقتصادية، هل يجب أن نقدمه؟",
+      "expected_entry_ids": [
+        "accountant:esr-repealed"
+      ],
+      "expected_facts": [
+        "Cabinet Decision 98 of 2024"
+      ],
+      "q_reworded": "An adviser says we need an ESR filing. True?",
+      "answer_must": [
+        "No, ESR ceased for years ending after 31 December 2022 (Cabinet Decision 98 of 2024)"
+      ]
+    },
+    {
+      "id": "accountant-exam-87",
+      "checklist": "ACC-CL-019",
+      "q_en": "Which accounting framework do we report under, and which edition?",
+      "q_ar": "ما إطار المحاسبة الذي نعد تقاريرنا وفقه، وأي إصدار؟",
+      "expected_entry_ids": [
+        "accountant:ifrs-for-smes-framework"
+      ],
+      "expected_facts": [
+        "third edition",
+        "1 January 2027"
+      ],
+      "q_reworded": "What standards do our financial statements follow?",
+      "answer_must": [
+        "IFRS for SMEs",
+        "The 2025 third edition, effective 1 January 2027"
+      ]
+    },
+    {
+      "id": "accountant-exam-88",
+      "checklist": "ACC-CL-020",
+      "q_en": "Walk me through how we decide when a fee becomes revenue.",
+      "q_ar": "اشرح لي كيف نقرر متى تصبح الرسوم إيراداً.",
+      "expected_entry_ids": [
+        "accountant:revenue-five-step"
+      ],
+      "expected_facts": [
+        "five steps"
+      ],
+      "q_reworded": "When exactly can we count an unlock payment as earned?",
+      "answer_must": [
+        "Apply the five steps: contract, obligations, price, allocation, recognition when satisfied"
+      ]
+    },
+    {
+      "id": "accountant-exam-89",
+      "checklist": "ACC-CL-020",
+      "q_en": "Do we book the full quotation value as our revenue?",
+      "q_ar": "هل نقيد قيمة عرض السعر كاملة كإيراد لنا؟",
+      "expected_entry_ids": [
+        "accountant:vat-marketplace-supply-base"
+      ],
+      "expected_facts": [
+        "platform's own supply is its service"
+      ],
+      "q_reworded": "The deal is worth AED 200,000. Is that our sales figure?",
+      "answer_must": [
+        "No, QuotesDone is agent and records only its fee"
+      ]
+    },
+    {
+      "id": "accountant-exam-90",
+      "checklist": "ACC-CL-021",
+      "q_en": "A customer prepaid for reveal credits they may never use. How is the cash held?",
+      "q_ar": "دفع عميل مسبقاً مقابل أرصدة كشف قد لا يستخدمها، كيف يُعالج النقد؟",
+      "expected_entry_ids": [
+        "accountant:ifrs15-breakage-unused-credits"
+      ],
+      "expected_facts": [
+        "contract liability"
+      ],
+      "q_reworded": "If a buyer prepays and never uses the credits, when do we earn it?",
+      "answer_must": [
+        "Cash is a contract liability",
+        "Expected breakage is recognised in proportion to use"
+      ]
+    },
+    {
+      "id": "accountant-exam-91",
+      "checklist": "ACC-CL-024",
+      "q_en": "We paid an annual SaaS plan upfront. Do we expense it all this month?",
+      "q_ar": "دفعنا اشتراكاً سنوياً مقدماً، هل نصرفه كله هذا الشهر؟",
+      "expected_entry_ids": [
+        "accountant:prepayments-annual-subscriptions"
+      ],
+      "expected_facts": [
+        "prepayment"
+      ],
+      "q_reworded": "We bought a yearly tool licence today. Full cost hits this month?",
+      "answer_must": [
+        "No, it is a prepayment expensed over the service period"
+      ]
+    },
+    {
+      "id": "accountant-exam-92",
+      "checklist": "ACC-CL-024",
+      "q_en": "The usage bill for this month arrives next month. What do we do at month end?",
+      "q_ar": "فاتورة الاستخدام لهذا الشهر تصل الشهر القادم، ماذا نفعل في نهاية الشهر؟",
+      "expected_entry_ids": [
+        "accountant:accruals"
+      ],
+      "expected_facts": [
+        "usage-billed"
+      ],
+      "q_reworded": "The API bill for October only comes in November. How is October right?",
+      "answer_must": [
+        "Accrue the estimated usage-billed cost in October"
+      ]
+    },
+    {
+      "id": "accountant-exam-93",
+      "checklist": "ACC-CL-028",
+      "q_en": "We are taking a co-working desk for six months. Does it go on the balance sheet?",
+      "q_ar": "سنستأجر مكتباً في مساحة عمل مشتركة لستة أشهر، هل يظهر في الميزانية؟",
+      "expected_entry_ids": [
+        "accountant:ifrs16-leases-policy"
+      ],
+      "expected_facts": [
+        "12 months"
+      ],
+      "q_reworded": "A short desk rental: asset and liability or just expense?",
+      "answer_must": [
+        "A lease of 12 months or less can be expensed straight-line"
+      ]
+    },
+    {
+      "id": "accountant-exam-94",
+      "checklist": "ACC-CL-037",
+      "q_en": "Do we need an external auditor for our accounts?",
+      "q_ar": "هل نحتاج إلى مدقق خارجي لحساباتنا؟",
+      "expected_entry_ids": [
+        "accountant:audit-duty-companies-law-and-ct"
+      ],
+      "expected_facts": [
+        "one or more auditors"
+      ],
+      "q_reworded": "Does the law require someone to audit our books yearly?",
+      "answer_must": [
+        "No external audit is legally required today: QuotesDone is a sole establishment, not an LLC, so the company-law auditor duty does not apply, and CT needs audited statements only above AED 50 million revenue or for a Qualifying Free Zone Person",
+        "Keep the year-end pack audit-ready and re-check if revenue nears AED 50 million or the legal form changes"
+      ]
+    },
+    {
+      "id": "accountant-exam-95",
+      "checklist": "ACC-CL-040",
+      "q_en": "What must every journal entry carry so it can be traced?",
+      "q_ar": "ما الذي يجب أن يحمله كل قيد يومية ليمكن تتبعه؟",
+      "expected_entry_ids": [
+        "accountant:audit-trail-standard"
+      ],
+      "expected_facts": [
+        "source document"
+      ],
+      "q_reworded": "If an auditor picks a number, how do we show where it came from?",
+      "answer_must": [
+        "Each entry links to its source document with IDs, dates, accounts and actor"
+      ]
+    },
+    {
+      "id": "accountant-exam-96",
+      "checklist": "ACC-CL-042",
+      "q_en": "Who approves and who executes a refund among the seats?",
+      "q_ar": "من يوافق ومن ينفذ الاسترداد بين المقاعد؟",
+      "expected_entry_ids": [
+        "accountant:segregation-of-duties-ai-seats"
+      ],
+      "expected_facts": [
+        "CEO seat approves"
+      ],
+      "q_reworded": "Can one seat both decide and pay a refund?",
+      "answer_must": [
+        "No: the CEO seat approves, the accountant executes, reconciliation checks independently"
+      ]
+    },
+    {
+      "id": "accountant-exam-97",
+      "checklist": "ACC-CL-043",
+      "q_en": "An email asks us to send a refund to a new bank account. What do we do?",
+      "q_ar": "وصلتنا رسالة تطلب إرسال استرداد إلى حساب بنكي جديد، ماذا نفعل؟",
+      "expected_entry_ids": [
+        "accountant:vendor-bank-detail-change-control"
+      ],
+      "expected_facts": [
+        "call-back",
+        "new IBAN"
+      ],
+      "q_reworded": "A supplier emailed new bank details and wants payment there urgently. Proceed?",
+      "answer_must": [
+        "Do not pay until verified by call-back to a number on file",
+        "Refunds go only to the original Stripe charge"
+      ]
+    },
+    {
+      "id": "accountant-exam-98",
+      "checklist": "ACC-CL-057",
+      "q_en": "How many weeks ahead does our cash forecast run, and what is opening cash?",
+      "q_ar": "كم أسبوعاً يغطي توقع النقد لدينا، وما النقد الافتتاحي؟",
+      "expected_entry_ids": [
+        "accountant:thirteen-week-cash-flow-forecast"
+      ],
+      "expected_facts": [
+        "13 weeks"
+      ],
+      "q_reworded": "How far ahead do we plan cash, week by week?",
+      "answer_must": [
+        "13 weeks",
+        "Opening cash is Mashreq plus Stripe available balance"
+      ]
+    },
+    {
+      "id": "accountant-exam-99",
+      "checklist": "ACC-CL-058",
+      "q_en": "How should next year's revenue budget be built?",
+      "q_ar": "كيف يجب إعداد موازنة إيرادات العام القادم؟",
+      "expected_entry_ids": [
+        "accountant:budget-and-variance-review"
+      ],
+      "expected_facts": [
+        "never from a top-down total"
+      ],
+      "q_reworded": "Can we just budget a round revenue number for 2027?",
+      "answer_must": [
+        "No, build revenue from drivers, never a top-down total"
+      ]
+    },
+    {
+      "id": "accountant-exam-100",
+      "checklist": "ACC-CL-060",
+      "q_en": "How do we calculate our take rate?",
+      "q_ar": "كيف نحسب نسبة الاقتطاع لدينا؟",
+      "expected_entry_ids": [
+        "accountant:unit-economics-inputs"
+      ],
+      "expected_facts": [
+        "Take rate"
+      ],
+      "q_reworded": "What share of deal value are we actually keeping?",
+      "answer_must": [
+        "Take rate = fee revenue divided by GMV for the same transactions"
+      ]
+    },
+    {
+      "id": "accountant-exam-101",
+      "checklist": "ACC-CL-060",
+      "q_en": "What net fee rate per reveal should the accountant see?",
+      "q_ar": "ما صافي نسبة الرسوم لكل كشف الذي يجب أن يراه المحاسب؟",
+      "expected_entry_ids": [
+        "accountant:company-accountant-kpis"
+      ],
+      "expected_facts": [
+        "3.00%"
+      ],
+      "q_reworded": "Out of every reveal we collect, what share should land as our net fee?",
+      "answer_must": [
+        "The net fee rate per reveal is 3.00% of the quotation value"
+      ]
+    },
+    {
+      "id": "accountant-exam-102",
+      "checklist": "ACC-CL-064",
+      "q_en": "How do we stop stolen cards being used to pay for reveals?",
+      "q_ar": "كيف نمنع استخدام بطاقات مسروقة لدفع رسوم الكشف؟",
+      "expected_entry_ids": [
+        "accountant:payment-fraud-controls"
+      ],
+      "expected_facts": [
+        "3D Secure"
+      ],
+      "q_reworded": "How do we keep fraudsters with stolen cards from paying for unlocks?",
+      "answer_must": [
+        "Use 3D Secure (Strong Customer Authentication) on card payments, with Stripe Radar rules"
+      ]
+    },
+    {
+      "id": "accountant-exam-103",
+      "checklist": "ACC-CL-066",
+      "q_en": "What ownership level makes someone a beneficial owner in the UAE?",
+      "q_ar": "ما نسبة الملكية التي تجعل الشخص مالكاً مستفيداً في الإمارات؟",
+      "expected_entry_ids": [
+        "accountant:ubo-rules-uae"
+      ],
+      "expected_facts": [
+        "25% or more"
+      ],
+      "q_reworded": "At what stake does a shareholder count as the real owner we must record?",
+      "answer_must": [
+        "A beneficial owner holds 25% or more of the ownership or voting rights, or otherwise controls the entity"
+      ]
+    },
+    {
+      "id": "accountant-exam-104",
+      "checklist": "ACC-CL-067",
+      "q_en": "Are we a designated non-financial business under the AML rules?",
+      "q_ar": "هل نحن من الأعمال والمهن غير المالية المحددة بموجب قواعد مكافحة غسل الأموال؟",
+      "expected_entry_ids": [
+        "accountant:aml-dnfbp-status-quotesdone"
+      ],
+      "expected_facts": [
+        "Cabinet Resolution 134 of 2025"
+      ],
+      "q_reworded": "Do the anti-money-laundering rules treat a business like ours as a designated non-financial business?",
+      "answer_must": [
+        "Answer by the current DNFBP list under Cabinet Resolution 134 of 2025, not by assumption"
+      ]
+    },
+    {
+      "id": "accountant-exam-105",
+      "checklist": "ACC-CL-067",
+      "q_en": "If we suspect money laundering, can we warn the customer?",
+      "q_ar": "إذا اشتبهنا في غسل أموال، هل يمكننا تنبيه العميل؟",
+      "expected_entry_ids": [
+        "accountant:aml-goaml-str-practice"
+      ],
+      "expected_facts": [
+        "tip off"
+      ],
+      "q_reworded": "We think a buyer may be laundering money. Should we let them know we are looking into it?",
+      "answer_must": [
+        "No: it is an offence to tip off the customer; report through goAML and say nothing to them"
+      ]
+    },
+    {
+      "id": "accountant-exam-106",
+      "checklist": "ACC-CL-068",
+      "q_en": "What gratuity does an employee earn for the first five years?",
+      "q_ar": "ما مكافأة نهاية الخدمة التي يستحقها الموظف عن السنوات الخمس الأولى؟",
+      "expected_entry_ids": [
+        "accountant:gratuity-accrual-labour-law"
+      ],
+      "expected_facts": [
+        "21 days"
+      ],
+      "q_reworded": "When we hire, what end-of-service pay builds up in an employee's first five years?",
+      "answer_must": [
+        "21 days of basic wage for each year of the first five years"
+      ]
+    },
+    {
+      "id": "accountant-exam-107",
+      "checklist": "ACC-CL-068",
+      "q_en": "How must salaries be paid once we hire?",
+      "q_ar": "كيف يجب دفع الرواتب بعد التوظيف؟",
+      "expected_entry_ids": [
+        "accountant:wps-payroll-if-staff-hired"
+      ],
+      "expected_facts": [
+        "Wage Protection System"
+      ],
+      "q_reworded": "Once we have staff, through what system must their salaries be paid?",
+      "answer_must": [
+        "Through the Wage Protection System (WPS)"
+      ]
+    },
+    {
+      "id": "accountant-exam-108",
+      "checklist": "ACC-CL-069",
+      "q_en": "Can the company pay the founder a salary and deduct it?",
+      "q_ar": "هل يمكن للشركة دفع راتب للمؤسس وخصمه؟",
+      "expected_entry_ids": [
+        "accountant:owner-salary-drawings-and-market-value"
+      ],
+      "expected_facts": [
+        "market value"
+      ],
+      "q_reworded": "Can the owner draw a salary from the company and count it as a deductible expense?",
+      "answer_must": [
+        "Only at market value for real work done, documented; anything above is not deductible"
+      ]
+    },
+    {
+      "id": "accountant-exam-109",
+      "checklist": "ACC-CL-070",
+      "q_en": "How do you approach a tax question you have not seen before?",
+      "q_ar": "كيف تتعامل مع سؤال ضريبي لم تره من قبل؟",
+      "expected_entry_ids": [
+        "accountant:reasoning-sequence-tax-question"
+      ],
+      "expected_facts": [
+        "Reasoning sequence the accountant follow"
+      ],
+      "q_reworded": "A tax question comes up that nobody here has seen before. How do you work it out?",
+      "answer_must": [
+        "Follow the accountant's reasoning sequence: identify the law and article, the facts, apply, state the conclusion and its confidence, and escalate what cannot be settled"
       ]
     }
   ]

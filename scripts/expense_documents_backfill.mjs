@@ -31,6 +31,7 @@
 //   node scripts/expense_documents_backfill.mjs --messages <dir> [--apply]
 //   node scripts/expense_documents_backfill.mjs --verify
 //   node scripts/expense_documents_backfill.mjs --prune [--apply]
+import { supabaseAccessToken } from './lib/supabase_token.mjs';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { sql, PROJECT_REF } from './lib/db.mjs';
@@ -49,8 +50,7 @@ const nul = (s) => (s === null || s === undefined ? 'null' : q(s));
 let _k = null;
 async function keys() {
   if (_k) return _k;
-  const mgmt = (process.env.SUPABASE_ACCESS_TOKEN
-    || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+  const mgmt = supabaseAccessToken();
   const r = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/api-keys?reveal=true`,
     { headers: { Authorization: 'Bearer ' + mgmt } });
   const j = await r.json();

@@ -37,6 +37,7 @@ import { cn } from '@/lib/utils';
 import { render } from '@/components/ChatWidget';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import { BrandMark } from '@/components/BrandMark';
+import { forgetWidgetConv, readWidgetConv } from '@/lib/widgetConv';
 
 // THE INFORMATION ARCHITECTURE, WRITTEN DOWN.
 //
@@ -101,6 +102,9 @@ const MOBILE_PRIMARY = ['home', 'requests', 'messages', 'documents'];
 // 0.86 similarity floor corroborated by a lexical match, and REFUSES when nothing clears it. A
 // refusal arrives as a normal reply that says so and hands off to Support; the widget needs no
 // special case for it.
+// THE CUSTOMER'S ONE CONVERSATION (founder ruling 1255): sales_engineer keeps every turn under the account, and the
+// website-widget chat they had before signing up (its id in localStorage) is adopted once, by assist_history on mount.
+const widgetConv = () => readWidgetConv();
 async function askAssistant(message, history, token, lang, path, images = []) {
   const r = await fetch(fnUrl('sales_engineer'), {
     method: 'POST',
@@ -125,6 +129,16 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
   const fileRef = useRef(null);
   const [photo, setPhoto] = useState('');
   const sentSeed = useRef('');
+  // redrawn from the database on every visit: a reload, another device or days later shows the whole conversation
+  useEffect(() => {
+    if (!token) return;
+    const wc = widgetConv();   // adopt is sent on this mount after sign-in; the widget id is removed only after it succeeds
+    fetch(fnUrl('sales_engineer'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ action: 'assist_history', ...(wc ? { widget_conv: wc, adopt: true } : {}) }) })
+      // the widget id is cleared only once the server answered and nothing is left to adopt (moved now, or already moved)
+      .then((r) => (r.ok ? r.json() : null)).then((j) => { if (wc && j && !j.error && !j.pending) { forgetWidgetConv(); } if (Array.isArray(j?.turns) && j.turns.length) setMsgs(j.turns); })
+      .catch(() => { /* the next turn still reads the whole conversation on the server */ });
+  }, [token]);
 
   useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy, open]);
   useEffect(() => { if (open) setTimeout(() => inpRef.current && inpRef.current.focus(), 80); }, [open]);

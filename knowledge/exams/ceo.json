@@ -4,7 +4,7 @@
   "items": [
     {
       "id": "ceo-exam-01",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-010",
       "q_en": "Do we have one network effect across the whole marketplace?",
       "q_ar": "هل لدينا أثر شبكة واحد على مستوى السوق كله؟",
       "expected_entry_ids": [
@@ -12,11 +12,16 @@
       ],
       "expected_facts": [
         "one network per trade and area"
+      ],
+      "q_reworded": "Is our marketplace one big network where every new user helps everyone?",
+      "answer_must": [
+        "No: network effects are local, one network per trade and area",
+        "Defensibility is built cell by cell"
       ]
     },
     {
       "id": "ceo-exam-02",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-011",
       "q_en": "Should we add escrow so the marketplace is more managed?",
       "q_ar": "هل نضيف حساب ضمان لتصبح المنصة أكثر إدارة؟",
       "expected_entry_ids": [
@@ -25,11 +30,16 @@
       "expected_facts": [
         "lightly managed",
         "founder"
+      ],
+      "q_reworded": "A buyer wants us to hold the money until the job is done. Should we start doing that?",
+      "answer_must": [
+        "QuotesDone is deliberately lightly managed",
+        "Adding escrow is a founder decision with licence and cost implications"
       ]
     },
     {
       "id": "ceo-exam-03",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-007",
       "q_en": "What is the burn multiple and what counts as bad?",
       "q_ar": "ما هو مضاعف الحرق ومتى يُعد سيئاً؟",
       "expected_entry_ids": [
@@ -38,11 +48,16 @@
       "expected_facts": [
         "net burn divided by net new",
         "above 3 bad"
+      ],
+      "q_reworded": "We burned AED 200k to add AED 50k of new annual revenue. Is that efficient?",
+      "answer_must": [
+        "Burn multiple = net burn divided by net new annualised revenue",
+        "Here it is 4; above 3 is bad"
       ]
     },
     {
       "id": "ceo-exam-04",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-054",
       "q_en": "An investor puts in AED 500,000 at AED 2,000,000 pre-money. What does he own?",
       "q_ar": "مستثمر يضع 500,000 درهم بتقييم قبل الاستثمار 2,000,000 درهم، ما حصته؟",
       "expected_entry_ids": [
@@ -50,11 +65,16 @@
       ],
       "expected_facts": [
         "the investor 20%"
+      ],
+      "q_reworded": "If someone invests half a million at a two million valuation before the money, what stake does he get?",
+      "answer_must": [
+        "Post-money is 2.5M, so he owns 20%",
+        "The founder is diluted to 80%"
       ]
     },
     {
       "id": "ceo-exam-05",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-057",
       "q_en": "How should subscription revenue be reported each month?",
       "q_ar": "كيف تُعرض إيرادات الاشتراكات كل شهر؟",
       "expected_entry_ids": [
@@ -62,11 +82,16 @@
       ],
       "expected_facts": [
         "bridge of the four movements"
+      ],
+      "q_reworded": "How do I show the subscription money in the monthly numbers?",
+      "answer_must": [
+        "Report MRR as a bridge of the four movements (new, expansion, contraction, churn), never one number",
+        "Measure retention by monthly cohort"
       ]
     },
     {
       "id": "ceo-exam-06",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-057",
       "q_en": "What does net revenue retention above 100% mean?",
       "q_ar": "ماذا يعني الاحتفاظ الصافي بالإيراد فوق 100%؟",
       "expected_entry_ids": [
@@ -74,11 +99,16 @@
       ],
       "expected_facts": [
         "existing base grows on its own"
+      ],
+      "q_reworded": "Existing subscribers paid us more this year than last even after cancellations. What does that tell us?",
+      "answer_must": [
+        "NRR above 100% means expansion outweighs churn and contraction",
+        "Revenue grows from existing customers without new sales"
       ]
     },
     {
       "id": "ceo-exam-07",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-056",
       "q_en": "What goes into a board-quality monthly pack?",
       "q_ar": "ماذا تتضمن الحزمة الشهرية بمستوى مجلس الإدارة؟",
       "expected_entry_ids": [
@@ -87,11 +117,16 @@
       "expected_facts": [
         "decisions requested",
         "runway"
+      ],
+      "q_reworded": "What should I expect in the monthly pack you send me?",
+      "answer_must": [
+        "Headline numbers with definitions, actual versus plan, cash and runway, risks",
+        "Decisions needed, recorded with outcomes"
       ]
     },
     {
       "id": "ceo-exam-08",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-045",
       "q_en": "Can a seat sign a guarantee on behalf of the company?",
       "q_ar": "هل يجوز لمقعد توقيع كفالة نيابة عن الشركة؟",
       "expected_entry_ids": [
@@ -100,11 +135,16 @@
       "expected_facts": [
         "Federal Decree-Law No. 32 of 2021",
         "written authority"
+      ],
+      "q_reworded": "A supplier wants a written guarantee signed by us. Can the CEO software seat sign it?",
+      "answer_must": [
+        "No: a seat cannot sign a guarantee; only the licence holder, or someone with his written authority, binds QuotesDone (a sole establishment). The Companies Law (Federal Decree-Law No. 32 of 2021) manager rules apply to an LLC, not to us",
+        "A software seat gives no legal commitments"
       ]
     },
     {
       "id": "ceo-exam-09",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-010",
       "q_en": "Which strategic powers can QuotesDone realistically build first?",
       "q_ar": "ما القوى الاستراتيجية التي يمكن لكوتس دن بناؤها أولاً بواقعية؟",
       "expected_entry_ids": [
@@ -112,11 +152,16 @@
       ],
       "expected_facts": [
         "counter-positioning"
+      ],
+      "q_reworded": "Which kind of lasting advantage can a small marketplace like ours realistically start with?",
+      "answer_must": [
+        "Network economies built cell by cell, counter-positioning and switching costs are the realistic early powers",
+        "Scale economies and brand come later"
       ]
     },
     {
       "id": "ceo-exam-10",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-031",
       "q_en": "What is the buyer really hiring QuotesDone to do?",
       "q_ar": "ما المهمة التي يوظف المشتري كوتس دن لإنجازها فعلاً؟",
       "expected_entry_ids": [
@@ -124,11 +169,16 @@
       ],
       "expected_facts": [
         "comparable, compliant quotations"
+      ],
+      "q_reworded": "When a contractor posts a request, what is he really trying to get done?",
+      "answer_must": [
+        "Get comparable, trustworthy quotes fast without chasing suppliers",
+        "The job, not the feature, decides what to build"
       ]
     },
     {
       "id": "ceo-exam-11",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-057",
       "q_en": "Can we count on a Dubai SME grant in the forecast?",
       "q_ar": "هل يمكن احتساب منحة دبي للمشاريع الصغيرة في التوقعات؟",
       "expected_entry_ids": [
@@ -136,11 +186,16 @@
       ],
       "expected_facts": [
         "treat anything unconfirmed as zero"
+      ],
+      "q_reworded": "Can we put the SME fund money into next year's numbers?",
+      "answer_must": [
+        "Treat any grant not confirmed as zero in the forecast",
+        "Check the programme's current published terms and record eligibility as a measured yes or no"
       ]
     },
     {
       "id": "ceo-exam-12",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-001",
       "q_en": "Is GMV our revenue?",
       "q_ar": "هل إجمالي قيمة المعاملات هو إيرادنا؟",
       "expected_entry_ids": [
@@ -148,11 +203,16 @@
       ],
       "expected_facts": [
         "it is not revenue"
+      ],
+      "q_reworded": "A report says we did two million last month. Is that what we earned?",
+      "answer_must": [
+        "No: GMV is transaction value, not revenue",
+        "Revenue is the collected reveal fee after refunds"
       ]
     },
     {
       "id": "ceo-exam-13",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-002",
       "q_en": "How is customer acquisition cost calculated?",
       "q_ar": "كيف تُحسب تكلفة اكتساب العميل؟",
       "expected_entry_ids": [
@@ -160,11 +220,16 @@
       ],
       "expected_facts": [
         "divided by the customers acquired"
+      ],
+      "q_reworded": "How much do we spend to win one paying customer, and how do we count it?",
+      "answer_must": [
+        "CAC = acquisition spend divided by new paying customers in the period",
+        "Include all acquisition costs"
       ]
     },
     {
       "id": "ceo-exam-14",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-003",
       "q_en": "Does each reveal leave money after its direct costs?",
       "q_ar": "هل يترك كل كشف مالاً بعد تكاليفه المباشرة؟",
       "expected_entry_ids": [
@@ -172,11 +237,16 @@
       ],
       "expected_facts": [
         "card-processing fee"
+      ],
+      "q_reworded": "After Stripe and other direct costs, does a reveal make us money?",
+      "answer_must": [
+        "Contribution = fee minus processor fees, refunds and direct variable costs",
+        "It must be positive per reveal"
       ]
     },
     {
       "id": "ceo-exam-15",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-004",
       "q_en": "Should newer customer cohorts retain better than older ones?",
       "q_ar": "هل يجب أن تحتفظ الدفعات الأحدث بالعملاء أفضل من الأقدم؟",
       "expected_entry_ids": [
@@ -184,11 +254,16 @@
       ],
       "expected_facts": [
         "newer cohorts should retain better"
+      ],
+      "q_reworded": "Customers who joined in September came back more than the July ones. Is that what we want?",
+      "answer_must": [
+        "Yes: newer cohorts should retain better as the product improves",
+        "Flat or worse cohorts signal a problem"
       ]
     },
     {
       "id": "ceo-exam-16",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-005",
       "q_en": "Why not set the highest take rate the market will bear?",
       "q_ar": "لماذا لا نضع أعلى نسبة عمولة يتحملها السوق؟",
       "expected_entry_ids": [
@@ -196,11 +271,16 @@
       ],
       "expected_facts": [
         "A Rake Too Far"
+      ],
+      "q_reworded": "Why don't we just charge as much as buyers will tolerate?",
+      "answer_must": [
+        "A high rake invites leakage and competitors",
+        "A modest rate keeps the platform worth returning to"
       ]
     },
     {
       "id": "ceo-exam-17",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-017",
       "q_en": "How can we survey what buyers would pay for a reveal?",
       "q_ar": "كيف نستطلع ما يدفعه المشترون مقابل الكشف؟",
       "expected_entry_ids": [
@@ -208,11 +288,16 @@
       ],
       "expected_facts": [
         "Van Westendorp"
+      ],
+      "q_reworded": "How do we find out what buyers think a fair reveal fee is without changing it?",
+      "answer_must": [
+        "Use the Van Westendorp price sensitivity questions",
+        "Too cheap, cheap, expensive, too expensive"
       ]
     },
     {
       "id": "ceo-exam-18",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-017",
       "q_en": "What is second-degree price discrimination?",
       "q_ar": "ما هو التمييز السعري من الدرجة الثانية؟",
       "expected_entry_ids": [
@@ -220,11 +305,16 @@
       ],
       "expected_facts": [
         "second-degree"
+      ],
+      "q_reworded": "What is it called when buyers pay different prices depending on the quantity or tier they pick?",
+      "answer_must": [
+        "Second-degree price discrimination: the customer self-selects among offers",
+        "Such as volume tiers"
       ]
     },
     {
       "id": "ceo-exam-19",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-018",
       "q_en": "Can a seat test a different fee percentage without the founder?",
       "q_ar": "هل يجوز لمقعد اختبار نسبة رسوم مختلفة دون المؤسس؟",
       "expected_entry_ids": [
@@ -232,11 +322,16 @@
       ],
       "expected_facts": [
         "founder hard rule"
+      ],
+      "q_reworded": "Marketing wants to try a 2% fee in Sharjah next week. Can it go ahead?",
+      "answer_must": [
+        "No: the 3% fee is a hard rule; any fee test needs the founder",
+        "Tests must be fair and disclosed"
       ]
     },
     {
       "id": "ceo-exam-20",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-008",
       "q_en": "How do we know if the marketplace is liquid?",
       "q_ar": "كيف نعرف أن السوق يتمتع بالسيولة؟",
       "expected_entry_ids": [
@@ -244,11 +339,16 @@
       ],
       "expected_facts": [
         "match rate"
+      ],
+      "q_reworded": "How can I tell if buyers here actually get served quickly?",
+      "answer_must": [
+        "Liquidity is the likelihood a request is matched quickly",
+        "Measure match rate and time to quote per trade and area"
       ]
     },
     {
       "id": "ceo-exam-21",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-009",
       "q_en": "Which side reaches boiling point first in a new marketplace?",
       "q_ar": "أي جانب يبلغ نقطة الغليان أولاً في سوق جديد؟",
       "expected_entry_ids": [
@@ -256,11 +356,16 @@
       ],
       "expected_facts": [
         "boiling point"
+      ],
+      "q_reworded": "In a brand-new market, which group tips into self-sustaining growth first?",
+      "answer_must": [
+        "The harder side must reach its boiling point first",
+        "Then the easier side follows"
       ]
     },
     {
       "id": "ceo-exam-22",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-029",
       "q_en": "What are the five focusing steps for the binding constraint?",
       "q_ar": "ما خطوات التركيز الخمس للقيد الحاكم؟",
       "expected_entry_ids": [
@@ -268,11 +373,16 @@
       ],
       "expected_facts": [
         "five focusing steps"
+      ],
+      "q_reworded": "What steps do we follow once we know what is holding the company back?",
+      "answer_must": [
+        "Identify, exploit, subordinate, elevate, repeat",
+        "Do not let inertia become the constraint"
       ]
     },
     {
       "id": "ceo-exam-23",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-009",
       "q_en": "What is an atomic network?",
       "q_ar": "ما هي الشبكة الذرية؟",
       "expected_entry_ids": [
@@ -280,11 +390,16 @@
       ],
       "expected_facts": [
         "Andrew Chen"
+      ],
+      "q_reworded": "What is the smallest group of buyers and suppliers that can work on its own?",
+      "answer_must": [
+        "The atomic network is the smallest stable network",
+        "Build one before expanding"
       ]
     },
     {
       "id": "ceo-exam-24",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-026",
       "q_en": "How do we recognise product/market fit?",
       "q_ar": "كيف نتعرف على ملاءمة المنتج للسوق؟",
       "expected_entry_ids": [
@@ -292,11 +407,16 @@
       ],
       "expected_facts": [
         "Marc Andreessen"
+      ],
+      "q_reworded": "How will we know buyers really want this?",
+      "answer_must": [
+        "Pull from the market: usage grows and customers return without pushing",
+        "Measured by retention and organic demand"
       ]
     },
     {
       "id": "ceo-exam-25",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-012",
       "q_en": "Why is concentration of GMV in a few buyers a risk?",
       "q_ar": "لماذا يُعد تركز قيمة المعاملات في قلة من المشترين خطراً؟",
       "expected_entry_ids": [
@@ -304,11 +424,16 @@
       ],
       "expected_facts": [
         "lower concentration as more defensible"
+      ],
+      "q_reworded": "Half our revenue comes from two contractors. Should that worry us?",
+      "answer_must": [
+        "Yes: losing one would swing the business",
+        "Concentration is tracked and diversified"
       ]
     },
     {
       "id": "ceo-exam-26",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-033",
       "q_en": "How do we run a pre-mortem on the launch plan?",
       "q_ar": "كيف نجري تحليلاً استباقياً للفشل على خطة الإطلاق؟",
       "expected_entry_ids": [
@@ -316,11 +441,16 @@
       ],
       "expected_facts": [
         "Gary Klein"
+      ],
+      "q_reworded": "Before we commit to the January opening, how do we find what could sink it?",
+      "answer_must": [
+        "Imagine it has failed and list why",
+        "Turn the reasons into mitigations with owners"
       ]
     },
     {
       "id": "ceo-exam-27",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-034",
       "q_en": "Which third-party dependencies are critical for QuotesDone?",
       "q_ar": "ما الاعتماديات الخارجية الحرجة لكوتس دن؟",
       "expected_entry_ids": [
@@ -328,11 +458,16 @@
       ],
       "expected_facts": [
         "Stripe"
+      ],
+      "q_reworded": "If one outside service went down tomorrow, which would hurt us most?",
+      "answer_must": [
+        "Stripe, WhatsApp/Twilio, email, hosting and database are critical",
+        "Each needs a fallback and owner"
       ]
     },
     {
       "id": "ceo-exam-28",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-033",
       "q_en": "What does each line of the risk register contain?",
       "q_ar": "ماذا يتضمن كل سطر في سجل المخاطر؟",
       "expected_entry_ids": [
@@ -340,11 +475,16 @@
       ],
       "expected_facts": [
         "who owns it"
+      ],
+      "q_reworded": "When you add a risk to the list, what fields do you fill in?",
+      "answer_must": [
+        "Description, likelihood, impact, owner, mitigation",
+        "Review date and status"
       ]
     },
     {
       "id": "ceo-exam-29",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-038",
       "q_en": "How is runway computed?",
       "q_ar": "كيف يُحسب المدرج النقدي؟",
       "expected_entry_ids": [
@@ -352,11 +492,16 @@
       ],
       "expected_facts": [
         "cash at bank"
+      ],
+      "q_reworded": "How many months can we keep going at today's spending?",
+      "answer_must": [
+        "Runway = cash divided by monthly net burn",
+        "From reconciled bank cash"
       ]
     },
     {
       "id": "ceo-exam-30",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-055",
       "q_en": "Is a SAFE a loan?",
       "q_ar": "هل اتفاقية SAFE قرض؟",
       "expected_entry_ids": [
@@ -364,11 +509,16 @@
       ],
       "expected_facts": [
         "it is not debt"
+      ],
+      "q_reworded": "If we sign a SAFE, do we owe that money back?",
+      "answer_must": [
+        "No: a SAFE is not debt; it converts to equity later",
+        "There is a UAE enforceability caveat"
       ]
     },
     {
       "id": "ceo-exam-31",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-055",
       "q_en": "What does a 1x liquidation preference mean?",
       "q_ar": "ماذا يعني تفضيل التصفية بمقدار 1x؟",
       "expected_entry_ids": [
@@ -376,11 +526,16 @@
       ],
       "expected_facts": [
         "Liquidation preference"
+      ],
+      "q_reworded": "If the company is sold, what does \"one times preference\" give the investor?",
+      "answer_must": [
+        "The investor gets his money back first before others",
+        "Then the rest is shared per terms"
       ]
     },
     {
       "id": "ceo-exam-32",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-038",
       "q_en": "Which bank does the company use and what is the account fee?",
       "q_ar": "ما البنك الذي تتعامل معه الشركة وما رسوم الحساب؟",
       "expected_entry_ids": [
@@ -389,11 +544,16 @@
       "expected_facts": [
         "Mashreq",
         "AED 199"
+      ],
+      "q_reworded": "Where is our bank account and what does it cost us monthly?",
+      "answer_must": [
+        "Mashreq",
+        "AED 199 plus VAT 9.95"
       ]
     },
     {
       "id": "ceo-exam-33",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-056",
       "q_en": "How should the founder be reported to each month?",
       "q_ar": "كيف يُرفع التقرير إلى المؤسس كل شهر؟",
       "expected_entry_ids": [
@@ -401,11 +561,16 @@
       ],
       "expected_facts": [
         "bad news first"
+      ],
+      "q_reworded": "What should the monthly email to you as owner contain?",
+      "answer_must": [
+        "One page, same structure monthly, bad news first and with numbers",
+        "Headline names which scenario the month tracked"
       ]
     },
     {
       "id": "ceo-exam-34",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-025",
       "q_en": "What weekly growth rate counts as good for a startup?",
       "q_ar": "ما معدل النمو الأسبوعي الجيد لشركة ناشئة؟",
       "expected_entry_ids": [
@@ -413,11 +578,16 @@
       ],
       "expected_facts": [
         "5-7% a week"
+      ],
+      "q_reworded": "What week-on-week growth should a young company aim for?",
+      "answer_must": [
+        "5 to 7% a week is good; 10% exceptional",
+        "Measured on the key metric"
       ]
     },
     {
       "id": "ceo-exam-35",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-022",
       "q_en": "How do we measure whether our forecasts are any good?",
       "q_ar": "كيف نقيس جودة توقعاتنا؟",
       "expected_entry_ids": [
@@ -425,11 +595,16 @@
       ],
       "expected_facts": [
         "compare forecast with actual"
+      ],
+      "q_reworded": "How do we tell whether our predictions have been any good?",
+      "answer_must": [
+        "Compare forecast to actual: absolute percentage error",
+        "Track bias over months"
       ]
     },
     {
       "id": "ceo-exam-36",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-022",
       "q_en": "How do we find which assumption matters most in the plan?",
       "q_ar": "كيف نعرف أي افتراض هو الأهم في الخطة؟",
       "expected_entry_ids": [
@@ -437,11 +612,16 @@
       ],
       "expected_facts": [
         "plus and minus 20%"
+      ],
+      "q_reworded": "Which plan assumption, if wrong, would hurt us most?",
+      "answer_must": [
+        "Change one driver at a time by a set amount (for example plus and minus 20%) and record the effect",
+        "The driver with the biggest effect is where evidence is most valuable"
       ]
     },
     {
       "id": "ceo-exam-37",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-020",
       "q_en": "What are the plan scenarios now that the AED 1M target is withdrawn?",
       "q_ar": "ما سيناريوهات الخطة بعد سحب هدف المليون درهم؟",
       "expected_entry_ids": [
@@ -449,11 +629,16 @@
       ],
       "expected_facts": [
         "base about AED 245k"
+      ],
+      "q_reworded": "With no fixed revenue target, what outcomes does the plan expect by next August?",
+      "answer_must": [
+        "Conservative about AED 50k, base about AED 245k, stretch about AED 857k",
+        "Read as scenarios"
       ]
     },
     {
       "id": "ceo-exam-38",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-023",
       "q_en": "How does monthly collected revenue break down into drivers?",
       "q_ar": "كيف يتفكك الإيراد الشهري المحصل إلى محركات؟",
       "expected_entry_ids": [
@@ -461,11 +646,16 @@
       ],
       "expected_facts": [
         "monthly collected revenue ="
+      ],
+      "q_reworded": "What pieces multiply together to give monthly collected revenue?",
+      "answer_must": [
+        "Requests x share quoted x reveal conversion x average value x 3% less refunds",
+        "Each driver has an owner seat"
       ]
     },
     {
       "id": "ceo-exam-39",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-027",
       "q_en": "How many key results should an objective have?",
       "q_ar": "كم نتيجة رئيسية يجب أن يكون لكل هدف؟",
       "expected_entry_ids": [
@@ -473,11 +663,16 @@
       ],
       "expected_facts": [
         "three to five measurable"
+      ],
+      "q_reworded": "How many measurable outcomes should sit under one goal?",
+      "answer_must": [
+        "Three to five key results",
+        "Each measurable"
       ]
     },
     {
       "id": "ceo-exam-40",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-008",
       "q_en": "What is fill rate?",
       "q_ar": "ما هو معدل الإنجاز؟",
       "expected_entry_ids": [
@@ -485,11 +680,16 @@
       ],
       "expected_facts": [
         "fill rate"
+      ],
+      "q_reworded": "What share of requests actually end up with quotes?",
+      "answer_must": [
+        "Fill rate is the share of requests that get filled/quoted",
+        "Tracked per trade"
       ]
     },
     {
       "id": "ceo-exam-41",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-039",
       "q_en": "When must a business register for UAE VAT?",
       "q_ar": "متى يجب على المنشأة التسجيل في ضريبة القيمة المضافة؟",
       "expected_entry_ids": [
@@ -497,11 +697,16 @@
       ],
       "expected_facts": [
         "AED 375,000"
+      ],
+      "q_reworded": "At what sales level must the company sign up for VAT?",
+      "answer_must": [
+        "Mandatory above AED 375,000 taxable supplies in 12 months",
+        "Voluntary from AED 187,500"
       ]
     },
     {
       "id": "ceo-exam-42",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-043",
       "q_en": "Which decision requires a beneficial owner register?",
       "q_ar": "أي قرار يُلزم بسجل المستفيد الحقيقي؟",
       "expected_entry_ids": [
@@ -509,11 +714,16 @@
       ],
       "expected_facts": [
         "Cabinet Decision No. 109 of 2023"
+      ],
+      "q_reworded": "Under which rule must we keep a record of who ultimately owns the company?",
+      "answer_must": [
+        "Cabinet Decision No. 109 of 2023",
+        "Kept and updated"
       ]
     },
     {
       "id": "ceo-exam-43",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-041",
       "q_en": "When does the trade licence expire?",
       "q_ar": "متى تنتهي الرخصة التجارية؟",
       "expected_entry_ids": [
@@ -521,11 +731,16 @@
       ],
       "expected_facts": [
         "24 June 2027"
+      ],
+      "q_reworded": "When does our DET licence run out?",
+      "answer_must": [
+        "24 June 2027",
+        "Renewal owner is the accountant with the founder signing"
       ]
     },
     {
       "id": "ceo-exam-44",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-042",
       "q_en": "When does the UAE e-invoicing pilot start?",
       "q_ar": "متى يبدأ تجريب الفوترة الإلكترونية في الإمارات؟",
       "expected_entry_ids": [
@@ -533,11 +748,16 @@
       ],
       "expected_facts": [
         "1 July 2026"
+      ],
+      "q_reworded": "When do electronic invoices start being piloted in the UAE?",
+      "answer_must": [
+        "Pilot with a taxpayer working group from 1 July 2026",
+        "Phase 1 for businesses with revenue of AED 50 million or more from 1 January 2027"
       ]
     },
     {
       "id": "ceo-exam-45",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-044",
       "q_en": "Which law governs personal data in the UAE mainland?",
       "q_ar": "أي قانون يحكم البيانات الشخصية في البر الرئيسي؟",
       "expected_entry_ids": [
@@ -545,11 +765,16 @@
       ],
       "expected_facts": [
         "Federal Decree-Law No. 45 of 2021"
+      ],
+      "q_reworded": "What law protects customers' personal data for a Dubai mainland company?",
+      "answer_must": [
+        "Federal Decree-Law No. 45 of 2021 (PDPL)",
+        "DIFC and ADGM have their own laws"
       ]
     },
     {
       "id": "ceo-exam-46",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-048",
       "q_en": "Which law regulates commercial agencies?",
       "q_ar": "أي قانون ينظم الوكالات التجارية؟",
       "expected_entry_ids": [
@@ -557,11 +782,16 @@
       ],
       "expected_facts": [
         "Federal Law No. 3 of 2022"
+      ],
+      "q_reworded": "A supplier calls us his agent. Which law governs commercial agents?",
+      "answer_must": [
+        "Federal Law No. 3 of 2022 regulating Commercial Agencies",
+        "QuotesDone is not an agent and must not sign like one"
       ]
     },
     {
       "id": "ceo-exam-47",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-050",
       "q_en": "How many principles does the UAE AI charter have?",
       "q_ar": "كم عدد مبادئ ميثاق الذكاء الاصطناعي في الإمارات؟",
       "expected_entry_ids": [
@@ -569,11 +799,16 @@
       ],
       "expected_facts": [
         "twelve principles"
+      ],
+      "q_reworded": "How many principles are in the UAE's charter on artificial intelligence?",
+      "answer_must": [
+        "Twelve principles",
+        "Including human oversight and accountability"
       ]
     },
     {
       "id": "ceo-exam-48",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-061",
       "q_en": "How fast should a reversible decision be made?",
       "q_ar": "بأي سرعة يُتخذ القرار القابل للتراجع؟",
       "expected_entry_ids": [
@@ -581,11 +816,16 @@
       ],
       "expected_facts": [
         "two-way doors"
+      ],
+      "q_reworded": "For a decision we can easily undo, how much time should we spend?",
+      "answer_must": [
+        "Reversible (two-way door) decisions should be made quickly by small groups",
+        "Heavy process is for irreversible decisions"
       ]
     },
     {
       "id": "ceo-exam-49",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-046",
       "q_en": "How much profit must go to the statutory reserve?",
       "q_ar": "كم من الأرباح يجب تحويله إلى الاحتياطي القانوني؟",
       "expected_entry_ids": [
@@ -593,11 +833,16 @@
       ],
       "expected_facts": [
         "5% of its net profits"
+      ],
+      "q_reworded": "How much of each year's profit must we set aside by law?",
+      "answer_must": [
+        "5% to the statutory reserve",
+        "Until it reaches half the capital"
       ]
     },
     {
       "id": "ceo-exam-50",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-046",
       "q_en": "When must the general assembly meet?",
       "q_ar": "متى يجب أن تنعقد الجمعية العمومية؟",
       "expected_entry_ids": [
@@ -605,11 +850,16 @@
       ],
       "expected_facts": [
         "four months"
+      ],
+      "q_reworded": "How often must the partners formally meet?",
+      "answer_must": [
+        "At least once a year within four months of year end",
+        "Approves accounts"
       ]
     },
     {
       "id": "ceo-exam-51",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-060",
       "q_en": "Who approves refunds?",
       "q_ar": "من يعتمد الاستردادات؟",
       "expected_entry_ids": [
@@ -617,11 +867,16 @@
       ],
       "expected_facts": [
         "refunds included, belong to the CEO seat"
+      ],
+      "q_reworded": "A customer wants his reveal fee back. Who gives the final yes?",
+      "answer_must": [
+        "The CEO seat approves refunds within the hard rules",
+        "Not the founder"
       ]
     },
     {
       "id": "ceo-exam-52",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-067",
       "q_en": "What format does the weekly management review follow?",
       "q_ar": "ما الشكل الذي تتبعه المراجعة الإدارية الأسبوعية؟",
       "expected_entry_ids": [
@@ -629,11 +884,16 @@
       ],
       "expected_facts": [
         "Weekly Business Review"
+      ],
+      "q_reworded": "How is the weekly review laid out?",
+      "answer_must": [
+        "Per seat, inputs before outputs, verdict and binding constraint",
+        "Challenged by another model family"
       ]
     },
     {
       "id": "ceo-exam-53",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-068",
       "q_en": "What goes on the first line of the founder's summary?",
       "q_ar": "ماذا يوضع في السطر الأول من ملخص المؤسس؟",
       "expected_entry_ids": [
@@ -641,11 +901,16 @@
       ],
       "expected_facts": [
         "First line: on track or not on track"
+      ],
+      "q_reworded": "What should I see first when I open your summary?",
+      "answer_must": [
+        "On track or not on track, with the one number that proves it",
+        "Then the binding constraint in plain words"
       ]
     },
     {
       "id": "ceo-exam-54",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-062",
       "q_en": "What must every directive to another seat have?",
       "q_ar": "ما الذي يجب أن يتضمنه كل توجيه لمقعد آخر؟",
       "expected_entry_ids": [
@@ -653,11 +918,16 @@
       ],
       "expected_facts": [
         "Owner: exactly one seat"
+      ],
+      "q_reworded": "When you instruct another seat, what makes the instruction complete?",
+      "answer_must": [
+        "Exactly one owner seat",
+        "A controllable input metric with its current value, a target and a due date, so anyone can tell if it was met"
       ]
     },
     {
       "id": "ceo-exam-55",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-062",
       "q_en": "What framework does the seat scorecard use?",
       "q_ar": "ما الإطار الذي تستخدمه بطاقة أداء المقعد؟",
       "expected_entry_ids": [
@@ -665,11 +935,16 @@
       ],
       "expected_facts": [
         "balanced scorecard"
+      ],
+      "q_reworded": "What method is used to grade how each seat is performing?",
+      "answer_must": [
+        "A balanced scorecard",
+        "Measured from system data"
       ]
     },
     {
       "id": "ceo-exam-56",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-052",
       "q_en": "How is end-of-service gratuity calculated?",
       "q_ar": "كيف تُحسب مكافأة نهاية الخدمة؟",
       "expected_entry_ids": [
@@ -677,23 +952,34 @@
       ],
       "expected_facts": [
         "21 days' basic wage"
+      ],
+      "q_reworded": "How much end-of-service pay does an employee earn?",
+      "answer_must": [
+        "21 days basic pay per year for the first five years, 30 days after",
+        "After one year of service"
       ]
     },
     {
       "id": "ceo-exam-57",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-019",
       "q_en": "What fee does the customer pay?",
       "q_ar": "ما الرسوم التي يدفعها العميل؟",
       "expected_entry_ids": [
-        "ceo:company-hard-rules"
+        "ceo:company-hard-rules",
+        "ceo:company-pricing"
       ],
       "expected_facts": [
         "3% Reveal Fee"
+      ],
+      "q_reworded": "What does a buyer pay us to see the supplier?",
+      "answer_must": [
+        "3% of the chosen quotation before VAT",
+        "Uncapped"
       ]
     },
     {
       "id": "ceo-exam-58",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-016",
       "q_en": "Can the CEO seat change a price by itself?",
       "q_ar": "هل يستطيع مقعد الرئيس التنفيذي تغيير السعر بنفسه؟",
       "expected_entry_ids": [
@@ -701,11 +987,16 @@
       ],
       "expected_facts": [
         "never changes a price"
+      ],
+      "q_reworded": "Can you lower the fee yourself if you think it will help?",
+      "answer_must": [
+        "No: price is a founder hard rule",
+        "The seat proposes with evidence"
       ]
     },
     {
       "id": "ceo-exam-59",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-026",
       "q_en": "How is a percentage variance on the P&L calculated?",
       "q_ar": "كيف يُحسب الانحراف بالنسبة المئوية في قائمة الأرباح والخسائر؟",
       "expected_entry_ids": [
@@ -713,11 +1004,16 @@
       ],
       "expected_facts": [
         "divided by the absolute value"
+      ],
+      "q_reworded": "How do I express the gap between budget and actual as a percentage?",
+      "answer_must": [
+        "(current minus comparison) divided by the absolute value of the comparison",
+        "Margin changes are stated in percentage points or basis points"
       ]
     },
     {
       "id": "ceo-exam-60",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-026",
       "q_en": "Revenue fell this month. How do we break the variance down?",
       "q_ar": "انخفض الإيراد هذا الشهر، كيف نحلل الانحراف؟",
       "expected_entry_ids": [
@@ -726,11 +1022,16 @@
       "expected_facts": [
         "volume",
         "mix"
+      ],
+      "q_reworded": "Income dropped this month; how do you work out why?",
+      "answer_must": [
+        "Check materiality, then decompose into volume, rate, mix, one-offs and timing",
+        "Each driver explained"
       ]
     },
     {
       "id": "ceo-exam-61",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-033",
       "q_en": "A risk is high likelihood and high impact. What level is it?",
       "q_ar": "خطر احتماله مرتفع وأثره مرتفع، ما مستواه؟",
       "expected_entry_ids": [
@@ -738,11 +1039,16 @@
       ],
       "expected_facts": [
         "is critical"
+      ],
+      "q_reworded": "Something is both likely and damaging. How do we rate it?",
+      "answer_must": [
+        "It is critical",
+        "It needs a named mitigation, owner and date and weekly review"
       ]
     },
     {
       "id": "ceo-exam-62",
-      "checklist": "CEO-PRO",
+      "checklist": "CEO-CL-033",
       "q_en": "How often are high risks reviewed?",
       "q_ar": "كم مرة تُراجع المخاطر العالية؟",
       "expected_entry_ids": [
@@ -750,6 +1056,984 @@
       ],
       "expected_facts": [
         "reviewed weekly"
+      ],
+      "q_reworded": "How frequently are the top risks looked at again?",
+      "answer_must": [
+        "Critical and high risks are reviewed weekly with a named mitigation and date",
+        "Medium risks monthly"
+      ]
+    },
+    {
+      "id": "ceo-exam-63",
+      "checklist": "CEO-CL-001",
+      "q_en": "When we quote a take rate, which value is it divided by?",
+      "q_ar": "عند ذكر نسبة العمولة، على أي قيمة نقسم؟",
+      "expected_entry_ids": [
+        "ceo:take-rate-two-sided"
+      ],
+      "expected_facts": [
+        "three denominators exist"
+      ],
+      "q_reworded": "An investor asks what percentage of deal value we keep. What number do you put underneath that percentage?",
+      "answer_must": [
+        "There are several possible denominators (requested, revealed, transacted value) and the one used must be named",
+        "QuotesDone collects 3% of the revealed quotation value, so revenue over revealed value is the honest rate"
+      ]
+    },
+    {
+      "id": "ceo-exam-64",
+      "checklist": "CEO-CL-002",
+      "q_en": "Does paid acquisition of household buyers pay back?",
+      "q_ar": "هل يسترد الاستحواذ المدفوع على المشترين من الأسر تكلفته؟",
+      "expected_entry_ids": [
+        "ceo:cac-ltv-two-sided"
+      ],
+      "expected_facts": [
+        "AED 1,956"
+      ],
+      "q_reworded": "Marketing wants to run paid ads for villa owners. Is each villa owner worth what we would pay to get them?",
+      "answer_must": [
+        "At the plan benchmark a revealing customer costs about AED 1,956 to acquire",
+        "A one-time household buyer is worth roughly a single fee, so paid household acquisition does not pay back"
+      ]
+    },
+    {
+      "id": "ceo-exam-65",
+      "checklist": "CEO-CL-003",
+      "q_en": "How do we work out what one posted request is worth by category?",
+      "q_ar": "كيف نحسب قيمة الطلب المنشور الواحد حسب الفئة؟",
+      "expected_entry_ids": [
+        "ceo:contribution-by-category"
+      ],
+      "expected_facts": [
+        "net fee per posted request"
+      ],
+      "q_reworded": "Sales asks which kinds of request deserve the most chasing. How do you rank them in money terms?",
+      "answer_must": [
+        "Rank by expected net fee per posted request: share released x share quoted x reveal conversion x average quote value x 3% less refunds",
+        "Categories with large quote values (fit-out, joinery, steel) are worth more effort"
+      ]
+    },
+    {
+      "id": "ceo-exam-66",
+      "checklist": "CEO-CL-005",
+      "q_en": "What does \"A Rake Too Far\" warn about?",
+      "q_ar": "بماذا يحذر مقال \"A Rake Too Far\"؟",
+      "expected_entry_ids": [
+        "ceo:take-rate-benchmarks"
+      ],
+      "expected_facts": [
+        "A Rake Too Far"
+      ],
+      "q_reworded": "Someone on the team says other marketplaces take 20%, so our 3% leaves money on the table. What do you tell them?",
+      "answer_must": [
+        "A high rake invites disintermediation and competitors",
+        "Durable platforms keep the rake low relative to the value they add, so 3% on the buyer is defensible"
+      ]
+    },
+    {
+      "id": "ceo-exam-67",
+      "checklist": "CEO-CL-006",
+      "q_en": "How does our model protect the first transaction against leakage?",
+      "q_ar": "كيف يحمي نموذجنا المعاملة الأولى من التسرب؟",
+      "expected_entry_ids": [
+        "ceo:disintermediation-defence"
+      ],
+      "expected_facts": [
+        "charged at reveal, before the parties talk"
+      ],
+      "q_reworded": "A supplier and a buyer met through us and will probably deal directly next time. What protects us?",
+      "answer_must": [
+        "The fee is charged at reveal before the parties talk, so the first deal is always paid",
+        "The defence for repeat deals is making the platform the easiest way to get the next quote"
+      ]
+    },
+    {
+      "id": "ceo-exam-68",
+      "checklist": "CEO-CL-008",
+      "q_en": "How many marketplace metrics does the a16z list contain?",
+      "q_ar": "كم عدد مقاييس الأسواق في قائمة a16z؟",
+      "expected_entry_ids": [
+        "ceo:marketplace-metric-set"
+      ],
+      "expected_facts": [
+        "thirteen marketplace metrics"
+      ],
+      "q_reworded": "Before the board meeting, how do you check that our dashboard is not missing an important marketplace health number?",
+      "answer_must": [
+        "Check against the a16z list of thirteen marketplace metrics (match rate, depth, time to match, concentration, take rate, GMV, retention...)",
+        "Use the shorter day-to-day set such as fill rate for routine health"
+      ]
+    },
+    {
+      "id": "ceo-exam-69",
+      "checklist": "CEO-CL-009",
+      "q_en": "Which side should we build first?",
+      "q_ar": "أي جانب نبنيه أولاً؟",
+      "expected_entry_ids": [
+        "ceo:supply-first-or-demand-first"
+      ],
+      "expected_facts": [
+        "harder side"
+      ],
+      "q_reworded": "The founder asks whether to spend this quarter finding buyers or finding suppliers. What principle decides it?",
+      "answer_must": [
+        "Identify the harder side and build it first",
+        "For QuotesDone that is verified suppliers per trade, then buyers become easier to attract"
+      ]
+    },
+    {
+      "id": "ceo-exam-70",
+      "checklist": "CEO-CL-013",
+      "q_en": "Which cells count as thin supply?",
+      "q_ar": "ما الخلايا التي تُعدّ ضعيفة العرض؟",
+      "expected_entry_ids": [
+        "ceo:supply-gap-to-recruitment"
+      ],
+      "expected_facts": [
+        "fewer than three verified"
+      ],
+      "q_reworded": "Sales says steel in Ajman has hardly any suppliers. How do you decide whether it gets recruited before other gaps?",
+      "answer_must": [
+        "A cell is thin with fewer than three verified, active suppliers",
+        "Rank thin cells by requested value and held inquiries, then give marketing the recruitment target"
+      ]
+    },
+    {
+      "id": "ceo-exam-71",
+      "checklist": "CEO-CL-014",
+      "q_en": "What must be true before customers can open?",
+      "q_ar": "ما الذي يجب أن يتحقق قبل فتح المنصة للعملاء؟",
+      "expected_entry_ids": [
+        "ceo:launch-go-no-go"
+      ],
+      "expected_facts": [
+        "about 1,000 verified suppliers",
+        "at least ten verified"
+      ],
+      "q_reworded": "The founder messages: can we switch the customer side on next week? What has to be shown first?",
+      "answer_must": [
+        "About 1,000 verified suppliers and at least ten per live trade, measured the same day",
+        "Quote, money and support paths must work end to end; otherwise the answer is not ready with the binding gate named"
+      ]
+    },
+    {
+      "id": "ceo-exam-72",
+      "checklist": "CEO-CL-015",
+      "q_en": "Can the CEO seat change the price when the monitor shows a signal?",
+      "q_ar": "هل يستطيع مقعد الرئيس التنفيذي تغيير السعر عندما يظهر مؤشر؟",
+      "expected_entry_ids": [
+        "ceo:pricing-monitoring"
+      ],
+      "expected_facts": [
+        "The seat does not change prices"
+      ],
+      "q_reworded": "Conversion on small jobs looks weak; can you just lower the fee for them this week?",
+      "answer_must": [
+        "No: the seat watches the evidence and proposes; the founder decides price",
+        "Bring a proposal with the evidence instead"
+      ]
+    },
+    {
+      "id": "ceo-exam-73",
+      "checklist": "CEO-CL-016",
+      "q_en": "What is the structure of a pricing proposal?",
+      "q_ar": "ما هيكل مقترح التسعير؟",
+      "expected_entry_ids": [
+        "ceo:pricing-proposal"
+      ],
+      "expected_facts": [
+        "Observation",
+        "Diagnosis"
+      ],
+      "q_reworded": "You think the fee should change. How do you lay out the case for the founder?",
+      "answer_must": [
+        "Observation with the persisting signal, then diagnosis with alternatives rejected",
+        "Options with expected effect on reveals, revenue and leakage, then a recommendation for the founder to decide"
+      ]
+    },
+    {
+      "id": "ceo-exam-74",
+      "checklist": "CEO-CL-017",
+      "q_en": "Which side should a marketplace charge?",
+      "q_ar": "أي جانب يجب أن يدفع في السوق؟",
+      "expected_entry_ids": [
+        "ceo:pricing-strategy-principles"
+      ],
+      "expected_facts": [
+        "Charge the side that gets the clearest value"
+      ],
+      "q_reworded": "Why do buyers pay us and suppliers do not?",
+      "answer_must": [
+        "Charge the side that gets the clearest value at the moment it is realised: the buyer at reveal",
+        "Keep the other side free while liquidity is built"
+      ]
+    },
+    {
+      "id": "ceo-exam-75",
+      "checklist": "CEO-CL-018",
+      "q_en": "What metric should a pricing test optimise?",
+      "q_ar": "ما المقياس الذي يجب أن يحسّنه اختبار التسعير؟",
+      "expected_entry_ids": [
+        "ceo:pricing-experiment-design"
+      ],
+      "expected_facts": [
+        "one primary metric"
+      ],
+      "q_reworded": "If we try a lower fee and more people reveal, is that a win?",
+      "answer_must": [
+        "Define one primary metric such as collected revenue per inquiry, not conversion alone",
+        "A lower fee can raise conversion and still lose money"
+      ]
+    },
+    {
+      "id": "ceo-exam-76",
+      "checklist": "CEO-CL-019",
+      "q_en": "Can we add a surcharge when a customer pays by card?",
+      "q_ar": "هل يمكن إضافة رسوم عند الدفع بالبطاقة؟",
+      "expected_entry_ids": [
+        "ceo:company-pricing"
+      ],
+      "expected_facts": [
+        "Nothing is added for paying by card"
+      ],
+      "q_reworded": "A customer asks why the card total is the same as the fee; should we pass Stripe’s cost on?",
+      "answer_must": [
+        "No surcharge is added for card payment; QuotesDone absorbs the processor cost",
+        "The fee is 3% of the chosen quotation before VAT, uncapped"
+      ]
+    },
+    {
+      "id": "ceo-exam-77",
+      "checklist": "CEO-CL-020",
+      "q_en": "What is the base scenario for cumulative reveal fees to 31 Aug 2027?",
+      "q_ar": "ما السيناريو الأساسي للرسوم التراكمية حتى 31 أغسطس 2027؟",
+      "expected_entry_ids": [
+        "ceo:company-plan-scenarios"
+      ],
+      "expected_facts": [
+        "AED 245,000"
+      ],
+      "q_reworded": "Roughly how much fee income does our own model expect by end of August next year in the middle case?",
+      "answer_must": [
+        "About AED 245,000 in the base case, with conservative about AED 50,000 and stretch about AED 857,000",
+        "The AED 1M target is withdrawn; the plan is read as scenarios"
+      ]
+    },
+    {
+      "id": "ceo-exam-78",
+      "checklist": "CEO-CL-021",
+      "q_en": "How is the required weekly run rate for a scenario computed?",
+      "q_ar": "كيف يُحسب معدل التشغيل الأسبوعي المطلوب لسيناريو ما؟",
+      "expected_entry_ids": [
+        "ceo:required-run-rate"
+      ],
+      "expected_facts": [
+        "remaining weeks"
+      ],
+      "q_reworded": "Given where fees are today, what do we need per week to still reach the base curve?",
+      "answer_must": [
+        "Remaining amount (scenario minus collected to date) divided by remaining weeks",
+        "Done for each scenario every week, not against a withdrawn target"
+      ]
+    },
+    {
+      "id": "ceo-exam-79",
+      "checklist": "CEO-CL-023",
+      "q_en": "Which metrics should the weekly meeting spend its time on?",
+      "q_ar": "على أي مقاييس يجب أن يركز الاجتماع الأسبوعي؟",
+      "expected_entry_ids": [
+        "ceo:input-vs-output-metrics"
+      ],
+      "expected_facts": [
+        "controllable input metrics"
+      ],
+      "q_reworded": "Revenue is an outcome we cannot push directly; what should the team look at each week instead?",
+      "answer_must": [
+        "Controllable input metrics, the things a team can directly change this week",
+        "Outputs such as revenue follow from inputs"
+      ]
+    },
+    {
+      "id": "ceo-exam-80",
+      "checklist": "CEO-CL-024",
+      "q_en": "What does each line of the KPI pack carry?",
+      "q_ar": "ماذا يتضمن كل سطر في حزمة مؤشرات الأداء؟",
+      "expected_entry_ids": [
+        "ceo:kpi-pack"
+      ],
+      "expected_facts": [
+        "one written definition per number"
+      ],
+      "q_reworded": "Two seats report different \"conversion\" numbers for the same week. How do you stop that?",
+      "answer_must": [
+        "One written definition per number with numerator, denominator and window",
+        "Each KPI names its query and owner seat"
+      ]
+    },
+    {
+      "id": "ceo-exam-81",
+      "checklist": "CEO-CL-025",
+      "q_en": "How do we avoid overreacting to a weekly swing?",
+      "q_ar": "كيف نتجنب المبالغة في رد الفعل على تقلب أسبوعي؟",
+      "expected_entry_ids": [
+        "ceo:wbr-variation"
+      ],
+      "expected_facts": [
+        "nothing to see here"
+      ],
+      "q_reworded": "Reveals dropped 40% this week from five to three. Do we call an emergency?",
+      "answer_must": [
+        "Compare against the metric's normal range; within it there is nothing to discuss",
+        "Small numbers swing wildly on one inquiry"
+      ]
+    },
+    {
+      "id": "ceo-exam-82",
+      "checklist": "CEO-CL-027",
+      "q_en": "What are the key results of a quarterly OKR built from?",
+      "q_ar": "مم تتكون النتائج الرئيسية لهدف ربع سنوي؟",
+      "expected_entry_ids": [
+        "ceo:okr-cascade-from-drivers"
+      ],
+      "expected_facts": [
+        "driver numbers with a baseline"
+      ],
+      "q_reworded": "Now that there is no headline number, how do you write next quarter's goals for the seats?",
+      "answer_must": [
+        "Key results are driver numbers with a baseline and a measurement",
+        "The objective is a marketplace state such as reliable liquidity in the top fee trades"
+      ]
+    },
+    {
+      "id": "ceo-exam-83",
+      "checklist": "CEO-CL-028",
+      "q_en": "What is the liquidity bar for every live trade?",
+      "q_ar": "ما مستوى السيولة المطلوب لكل تخصص مفتوح؟",
+      "expected_entry_ids": [
+        "ceo:company-what-winning-looks-like"
+      ],
+      "expected_facts": [
+        "at least ten verified, responsive suppliers"
+      ],
+      "q_reworded": "Without a revenue number, how would you know the company is winning?",
+      "answer_must": [
+        "Every live trade has at least ten verified, responsive suppliers and most requests get three or more complete quotes",
+        "Buyers come back"
+      ]
+    },
+    {
+      "id": "ceo-exam-84",
+      "checklist": "CEO-CL-030",
+      "q_en": "Where do Dubai government entities publish tenders?",
+      "q_ar": "أين تنشر الجهات الحكومية في دبي مناقصاتها؟",
+      "expected_entry_ids": [
+        "ceo:uae-procurement-landscape"
+      ],
+      "expected_facts": [
+        "eSupply"
+      ],
+      "q_reworded": "A contractor says he already gets work from government tender portals. Which portal does Dubai use?",
+      "answer_must": [
+        "Dubai Government entities use eSupply, the official supply portal",
+        "Some entities such as DEWA run their own systems"
+      ]
+    },
+    {
+      "id": "ceo-exam-85",
+      "checklist": "CEO-CL-031",
+      "q_en": "Which buyers should QuotesDone target first?",
+      "q_ar": "أي المشترين يجب أن تستهدفهم QuotesDone أولاً؟",
+      "expected_entry_ids": [
+        "ceo:competitive-strategy-b2b"
+      ],
+      "expected_facts": [
+        "Private-sector buyers with repeat needs"
+      ],
+      "q_reworded": "If you could only win one kind of buyer this year, which kind?",
+      "answer_must": [
+        "Private-sector buyers with repeat needs such as contractors, fit-out firms and facilities managers",
+        "In the categories that carry the fee"
+      ]
+    },
+    {
+      "id": "ceo-exam-86",
+      "checklist": "CEO-CL-032",
+      "q_en": "What principle guides which cells to focus on next quarter?",
+      "q_ar": "ما المبدأ الذي يحدد الخلايا التي نركز عليها في الربع القادم؟",
+      "expected_entry_ids": [
+        "ceo:quarterly-strategy"
+      ],
+      "expected_facts": [
+        "constrain before expanding"
+      ],
+      "q_reworded": "Should we open five new trades next quarter or deepen the ones we have?",
+      "answer_must": [
+        "Constrain before expanding: deepen the strongest cells first",
+        "Check where product/market fit evidence is strongest"
+      ]
+    },
+    {
+      "id": "ceo-exam-87",
+      "checklist": "CEO-CL-034",
+      "q_en": "What does the CEO seat keep for vendors and how often is it reviewed?",
+      "q_ar": "ماذا يحتفظ مقعد الرئيس التنفيذي للموردين التقنيين وكم مرة يُراجع؟",
+      "expected_entry_ids": [
+        "ceo:vendor-contract-management"
+      ],
+      "expected_facts": [
+        "vendor register"
+      ],
+      "q_reworded": "If our messaging provider changed its terms tomorrow, where would we look to see what breaks?",
+      "answer_must": [
+        "A vendor register with owner seat, what breaks if it disappears, cost and terms",
+        "Reviewed quarterly"
+      ]
+    },
+    {
+      "id": "ceo-exam-88",
+      "checklist": "CEO-CL-035",
+      "q_en": "What is the first action in the first hour of a crisis?",
+      "q_ar": "ما أول إجراء في الساعة الأولى من الأزمة؟",
+      "expected_entry_ids": [
+        "ceo:crisis-leadership"
+      ],
+      "expected_facts": [
+        "stop the harm"
+      ],
+      "q_reworded": "A wrong message just went to 500 suppliers. What do you do before anything else?",
+      "answer_must": [
+        "Stop the harm first: pause the job or disable the send before diagnosing",
+        "Then tell the founder and run business command while IT owns the technical side"
+      ]
+    },
+    {
+      "id": "ceo-exam-89",
+      "checklist": "CEO-CL-036",
+      "q_en": "Who owns supplier identity fraud?",
+      "q_ar": "من المسؤول عن احتيال هوية المورد؟",
+      "expected_entry_ids": [
+        "ceo:trust-and-safety-framework"
+      ],
+      "expected_facts": [
+        "Supplier identity fraud"
+      ],
+      "q_reworded": "Someone uploaded a copied trade licence to quote as a supplier. Whose job is that and what stops it?",
+      "answer_must": [
+        "Supplier identity fraud is handled by verifying trade licence details before a supplier can quote",
+        "Owned by sales_engineer and customer_support"
+      ]
+    },
+    {
+      "id": "ceo-exam-90",
+      "checklist": "CEO-CL-037",
+      "q_en": "Is professional indemnity insurance legally required for QuotesDone?",
+      "q_ar": "هل تأمين المسؤولية المهنية مطلوب قانوناً لـ QuotesDone؟",
+      "expected_entry_ids": [
+        "ceo:insurance-review"
+      ],
+      "expected_facts": [
+        "not established"
+      ],
+      "q_reworded": "A bank form asks for our cyber insurance policy number. Are we obliged to have one?",
+      "answer_must": [
+        "A statutory requirement for indemnity, cyber or liability cover is not established for this activity",
+        "Mandatory cover appears once there are employees (Dubai health insurance); counterparties may still require cover"
+      ]
+    },
+    {
+      "id": "ceo-exam-91",
+      "checklist": "CEO-CL-040",
+      "q_en": "When is the Corporate Tax return due?",
+      "q_ar": "متى يجب تقديم إقرار ضريبة الشركات؟",
+      "expected_entry_ids": [
+        "ceo:ct-return-and-relief"
+      ],
+      "expected_facts": [
+        "within nine months of the end of the tax period"
+      ],
+      "q_reworded": "Our financial year closes in December. By when must the tax filing and payment be done?",
+      "answer_must": [
+        "Within nine months of the end of the tax period",
+        "0% up to AED 375,000 taxable income and 9% above"
+      ]
+    },
+    {
+      "id": "ceo-exam-92",
+      "checklist": "CEO-CL-041",
+      "q_en": "What does every line of the compliance calendar carry?",
+      "q_ar": "ماذا يتضمن كل سطر في تقويم الامتثال؟",
+      "expected_entry_ids": [
+        "ceo:compliance-calendar-annual"
+      ],
+      "expected_facts": [
+        "owner, lead time and evidence"
+      ],
+      "q_reworded": "How do you make sure nothing like a licence or domain renewal is missed this year?",
+      "answer_must": [
+        "One calendar where each obligation has an owner, a lead time and evidence of completion",
+        "Reviewed monthly"
+      ]
+    },
+    {
+      "id": "ceo-exam-93",
+      "checklist": "CEO-CL-042",
+      "q_en": "Do we still need to file Economic Substance reports?",
+      "q_ar": "هل ما زلنا بحاجة لتقديم تقارير المادة الاقتصادية؟",
+      "expected_entry_ids": [
+        "ceo:esr-status"
+      ],
+      "expected_facts": [
+        "Cabinet Decision No. 98 of 2024"
+      ],
+      "q_reworded": "An adviser sends a reminder to file our economic substance notification for this year. Is it needed?",
+      "answer_must": [
+        "Cabinet Decision No. 98 of 2024 limited ESR obligations to years up to 2022",
+        "Later years have no filing"
+      ]
+    },
+    {
+      "id": "ceo-exam-94",
+      "checklist": "CEO-CL-044",
+      "q_en": "Are the PDPL executive regulations published?",
+      "q_ar": "هل نُشرت اللائحة التنفيذية لقانون حماية البيانات الشخصية؟",
+      "expected_entry_ids": [
+        "ceo:pdpl-executive-regulations-status"
+      ],
+      "expected_facts": [
+        "not established"
+      ],
+      "q_reworded": "Legal asks how many days we have to notify a data breach under the UAE regulations. What can you say?",
+      "answer_must": [
+        "Publication of the executive regulations on an official source is not established",
+        "So details like breach-notification timing must not be stated as settled"
+      ]
+    },
+    {
+      "id": "ceo-exam-95",
+      "checklist": "CEO-CL-045",
+      "q_en": "How many partners can a UAE LLC have?",
+      "q_ar": "كم عدد الشركاء في الشركة ذات المسؤولية المحدودة؟",
+      "expected_entry_ids": [
+        "ceo:llc-legal-form-basics"
+      ],
+      "expected_facts": [
+        "between 2 and 50 partners"
+      ],
+      "q_reworded": "Could the founder own the LLC alone, and what is the usual partner range?",
+      "answer_must": [
+        "Between 2 and 50 partners, each liable only to his share",
+        "A single person may own an LLC alone"
+      ]
+    },
+    {
+      "id": "ceo-exam-96",
+      "checklist": "CEO-CL-046",
+      "q_en": "How long must the accounting registers be kept?",
+      "q_ar": "ما مدة الاحتفاظ بالسجلات المحاسبية؟",
+      "expected_entry_ids": [
+        "ceo:llc-auditor-and-books"
+      ],
+      "expected_facts": [
+        "at least five years"
+      ],
+      "q_reworded": "Can we delete the 2026 ledger files once the audit is done?",
+      "answer_must": [
+        "Accounting registers and their supporting documents are kept for at least five years",
+        "The LLC auditor rule does not apply to a sole establishment"
+      ]
+    },
+    {
+      "id": "ceo-exam-97",
+      "checklist": "CEO-CL-047",
+      "q_en": "What happens when an LLC loses half its capital?",
+      "q_ar": "ماذا يحدث عندما تخسر الشركة ذات المسؤولية المحدودة نصف رأس مالها؟",
+      "expected_entry_ids": [
+        "ceo:llc-losses-half-capital"
+      ],
+      "expected_facts": [
+        "half of its capital"
+      ],
+      "q_reworded": "Accumulated losses are getting close to the paid-in capital. Is there a legal trigger we should know?",
+      "answer_must": [
+        "When losses reach half of capital the managers must refer dissolution to the general assembly",
+        "At three quarters, holders of a quarter of capital may request dissolution"
+      ]
+    },
+    {
+      "id": "ceo-exam-98",
+      "checklist": "CEO-CL-048",
+      "q_en": "Can we start a new line of business not on the licence?",
+      "q_ar": "هل يمكننا بدء نشاط جديد غير مدرج في الرخصة؟",
+      "expected_entry_ids": [
+        "ceo:det-licensed-activities"
+      ],
+      "expected_facts": [
+        "activities printed on its Department of Economy and Tourism"
+      ],
+      "q_reworded": "Sales wants us to collect payments for suppliers starting next month. What do you check first?",
+      "answer_must": [
+        "A Dubai mainland company operates under the activities printed on its DET licence",
+        "A new activity may need a licence amendment before it is a product question"
+      ]
+    },
+    {
+      "id": "ceo-exam-99",
+      "checklist": "CEO-CL-049",
+      "q_en": "Which law regulates trading through websites and platforms?",
+      "q_ar": "ما القانون الذي ينظم التجارة عبر المواقع والمنصات؟",
+      "expected_entry_ids": [
+        "ceo:e-commerce-law-2023"
+      ],
+      "expected_facts": [
+        "Federal Decree-Law No. 14 of 2023"
+      ],
+      "q_reworded": "Which UAE law governs us as an online platform selling a service through a website?",
+      "answer_must": [
+        "Federal Decree-Law No. 14 of 2023 on Trading by Modern Technological Means",
+        "It replaced the 2006 e-commerce law"
+      ]
+    },
+    {
+      "id": "ceo-exam-100",
+      "checklist": "CEO-CL-050",
+      "q_en": "What four functions does the NIST risk framework use?",
+      "q_ar": "ما الوظائف الأربع لإطار NIST لإدارة المخاطر؟",
+      "expected_entry_ids": [
+        "ceo:ai-seat-governance"
+      ],
+      "expected_facts": [
+        "Govern, Map, Measure and Manage"
+      ],
+      "q_reworded": "How would you structure a risk review of the software seats making decisions?",
+      "answer_must": [
+        "Organise it into Govern, Map, Measure and Manage",
+        "Reserved decisions are blocked in code and each decision is logged"
+      ]
+    },
+    {
+      "id": "ceo-exam-101",
+      "checklist": "CEO-CL-051",
+      "q_en": "What is the first step before answering an \"are we allowed\" question?",
+      "q_ar": "ما الخطوة الأولى قبل الإجابة عن سؤال \"هل يُسمح لنا\"؟",
+      "expected_entry_ids": [
+        "ceo:reasoning-regulatory-question"
+      ],
+      "expected_facts": [
+        "which emirate and which zone"
+      ],
+      "q_reworded": "A supplier in a free zone asks if we can list him. How do you begin working that out?",
+      "answer_must": [
+        "First establish which emirate and which zone the question sits in",
+        "Then which authority owns the subject and what its law says"
+      ]
+    },
+    {
+      "id": "ceo-exam-102",
+      "checklist": "CEO-CL-052",
+      "q_en": "What is the maximum probation period under UAE labour law?",
+      "q_ar": "ما الحد الأقصى لفترة التجربة في قانون العمل الإماراتي؟",
+      "expected_entry_ids": [
+        "ceo:labour-law-hiring-basics"
+      ],
+      "expected_facts": [
+        "six months"
+      ],
+      "q_reworded": "We want to try a new hire for eight months before deciding. Is that allowed?",
+      "answer_must": [
+        "Probation may not exceed six months and applies once",
+        "Either side gives at least 14 days written notice during probation"
+      ]
+    },
+    {
+      "id": "ceo-exam-103",
+      "checklist": "CEO-CL-053",
+      "q_en": "Who decides a human hire?",
+      "q_ar": "من يقرر تعيين موظف بشري؟",
+      "expected_entry_ids": [
+        "ceo:reasoning-first-human-hire"
+      ],
+      "expected_facts": [
+        "hiring is the founder's decision"
+      ],
+      "q_reworded": "The IT seat says it needs a person. Can you approve the hire?",
+      "answer_must": [
+        "Hiring is the founder's decision; the seat prepares the case",
+        "First prove the failing duty cannot be done by code, a seat or a contractor"
+      ]
+    },
+    {
+      "id": "ceo-exam-104",
+      "checklist": "CEO-CL-054",
+      "q_en": "Who owns fundraising decisions?",
+      "q_ar": "من يملك قرارات جمع التمويل؟",
+      "expected_entry_ids": [
+        "ceo:fundraising-basics"
+      ],
+      "expected_facts": [
+        "founder-reserved subject"
+      ],
+      "q_reworded": "Should the CEO seat start talking to investors to raise money?",
+      "answer_must": [
+        "Fundraising is founder-reserved",
+        "The seat keeps the company ready with clean, reconciled numbers"
+      ]
+    },
+    {
+      "id": "ceo-exam-105",
+      "checklist": "CEO-CL-055",
+      "q_en": "What is the legal cap table?",
+      "q_ar": "ما هو جدول الملكية القانوني؟",
+      "expected_entry_ids": [
+        "ceo:cap-table-hygiene"
+      ],
+      "expected_facts": [
+        "Memorandum of Association"
+      ],
+      "q_reworded": "Our spreadsheet of who owns what differs from the documents. Which one is right?",
+      "answer_must": [
+        "The legal cap table is the Memorandum of Association and the licence record",
+        "The working spreadsheet must be reconciled to them after every change"
+      ]
+    },
+    {
+      "id": "ceo-exam-106",
+      "checklist": "CEO-CL-056",
+      "q_en": "Who sends investor-facing reports?",
+      "q_ar": "من يرسل التقارير الموجهة للمستثمرين؟",
+      "expected_entry_ids": [
+        "ceo:investor-reporting-standard"
+      ],
+      "expected_facts": [
+        "the seat drafts, he sends"
+      ],
+      "q_reworded": "An investor wants our numbers by Friday. Do you email them directly?",
+      "answer_must": [
+        "No: the seat drafts the report and the founder sends it",
+        "Headline numbers carry their definitions"
+      ]
+    },
+    {
+      "id": "ceo-exam-107",
+      "checklist": "CEO-CL-058",
+      "q_en": "Which subjects can the CEO seat not decide alone?",
+      "q_ar": "ما المواضيع التي لا يستطيع مقعد الرئيس التنفيذي البت فيها وحده؟",
+      "expected_entry_ids": [
+        "ceo:founder-reserved-subjects"
+      ],
+      "expected_facts": [
+        "campaign go-live decisions"
+      ],
+      "q_reworded": "Marketing is ready; can you press go on the campaign yourself?",
+      "answer_must": [
+        "Campaign go-live is founder-reserved, along with the hard rules, subscriptions and paid media",
+        "Check every action against the reserved list before acting"
+      ]
+    },
+    {
+      "id": "ceo-exam-108",
+      "checklist": "CEO-CL-059",
+      "q_en": "Why does a one-owner company need a governance rhythm?",
+      "q_ar": "لماذا تحتاج شركة بمالك واحد إلى إيقاع حوكمة؟",
+      "expected_entry_ids": [
+        "ceo:governance-cadence"
+      ],
+      "expected_facts": [
+        "board-like rhythm"
+      ],
+      "q_reworded": "The founder owns everything; why bother with formal monthly governance?",
+      "answer_must": [
+        "A board-like rhythm keeps the record a bank, a tax audit and future investors will ask for, even with one owner",
+        "Weekly review, monthly governance block"
+      ]
+    },
+    {
+      "id": "ceo-exam-109",
+      "checklist": "CEO-CL-060",
+      "q_en": "What is the first step when a refund reaches the CEO?",
+      "q_ar": "ما الخطوة الأولى عندما يصل طلب استرداد إلى الرئيس التنفيذي؟",
+      "expected_entry_ids": [
+        "ceo:reasoning-refund-escalation"
+      ],
+      "expected_facts": [
+        "Never decide from the complaint text alone"
+      ],
+      "q_reworded": "A buyer writes angrily demanding his fee back. How do you start?",
+      "answer_must": [
+        "Pull the facts from the record: request, quotes, reveal time and amount, messages",
+        "Never decide from the complaint text alone; then apply the signed terms"
+      ]
+    },
+    {
+      "id": "ceo-exam-110",
+      "checklist": "CEO-CL-061",
+      "q_en": "What must a decision log entry eventually record?",
+      "q_ar": "ماذا يجب أن يسجل قيد سجل القرارات في النهاية؟",
+      "expected_entry_ids": [
+        "ceo:decision-log-outcomes"
+      ],
+      "expected_facts": [
+        "check date"
+      ],
+      "q_reworded": "Six months from now, how will we know whether this month's decisions were right?",
+      "answer_must": [
+        "Each entry holds the expected result, an indicator and a check date",
+        "Later the actual result and a verdict are recorded"
+      ]
+    },
+    {
+      "id": "ceo-exam-111",
+      "checklist": "CEO-CL-062",
+      "q_en": "Who closes a handoff?",
+      "q_ar": "من يغلق عملية التسليم؟",
+      "expected_entry_ids": [
+        "ceo:closed-loop-handoffs"
+      ],
+      "expected_facts": [
+        "Nothing is one-way"
+      ],
+      "q_reworded": "The accountant says she sent you a report last week. Is the job finished once you read it?",
+      "answer_must": [
+        "Nothing is one-way: every handoff is tracked, answered, re-verified and closed by the originator",
+        "Reading is not acting"
+      ]
+    },
+    {
+      "id": "ceo-exam-112",
+      "checklist": "CEO-CL-063",
+      "q_en": "Who reviews a seat-to-seat judgement?",
+      "q_ar": "من يراجع حكماً بين المقاعد؟",
+      "expected_entry_ids": [
+        "ceo:cross-family-review"
+      ],
+      "expected_facts": [
+        "different model family"
+      ],
+      "q_reworded": "Should the same model that wrote the weekly review also check it?",
+      "answer_must": [
+        "No: a reviewer from a different model family, given the same evidence",
+        "Ask it specific challenge questions such as which headline number would change the conclusion"
+      ]
+    },
+    {
+      "id": "ceo-exam-113",
+      "checklist": "CEO-CL-064",
+      "q_en": "How does the CEO seat allocate spend?",
+      "q_ar": "كيف يوزع مقعد الرئيس التنفيذي الإنفاق؟",
+      "expected_entry_ids": [
+        "ceo:budget-allocation"
+      ],
+      "expected_facts": [
+        "money follows the binding constraint"
+      ],
+      "q_reworded": "Three seats each want more model budget this month. Who gets it?",
+      "answer_must": [
+        "Money follows the binding constraint, ranked by revenue unlocked per AED",
+        "Within the founder-approved envelope; paid media and subscriptions are founder-reserved"
+      ]
+    },
+    {
+      "id": "ceo-exam-114",
+      "checklist": "CEO-CL-065",
+      "q_en": "What does the CEO check first in the marketing plan for next month?",
+      "q_ar": "ما أول ما يتحقق منه الرئيس التنفيذي في خطة التسويق للشهر القادم؟",
+      "expected_entry_ids": [
+        "ceo:marketing-plan-review"
+      ],
+      "expected_facts": [
+        "Constraint fit",
+        "supply only"
+      ],
+      "q_reworded": "Marketing sent a plan full of buyer ads for November. Do you approve it?",
+      "answer_must": [
+        "First check it serves the binding constraint; through December the focus is supply only",
+        "Each campaign needs one measured objective, a budget inside the envelope and a stop rule; rejection comes with reasons and a resubmission"
+      ]
+    },
+    {
+      "id": "ceo-exam-115",
+      "checklist": "CEO-CL-066",
+      "q_en": "What does the seat do when its model is held?",
+      "q_ar": "ماذا يفعل المقعد عندما يتوقف نموذجه؟",
+      "expected_entry_ids": [
+        "ceo:model-hold-behaviour"
+      ],
+      "expected_facts": [
+        "hold or escalate under model hold, never guess"
+      ],
+      "q_reworded": "The language model is switched off by budget for two days. Do you keep issuing judgements?",
+      "answer_must": [
+        "Hold or escalate, never guess",
+        "Deterministic work such as measurement continues"
+      ]
+    },
+    {
+      "id": "ceo-exam-116",
+      "checklist": "CEO-CL-067",
+      "q_en": "How many weeks must a direction hold before it is a trend?",
+      "q_ar": "كم أسبوعاً يجب أن يستمر اتجاه ما ليُعدّ نمطاً؟",
+      "expected_entry_ids": [
+        "ceo:weekly-review-scenario-lens"
+      ],
+      "expected_facts": [
+        "a direction held for four weeks"
+      ],
+      "q_reworded": "Fees moved toward the stretch curve this week. Do we tell the founder we are on stretch?",
+      "answer_must": [
+        "One week is noise; a direction held for four weeks is a trend",
+        "State which curve the company is nearest each week"
+      ]
+    },
+    {
+      "id": "ceo-exam-117",
+      "checklist": "CEO-CL-068",
+      "q_en": "When is the monthly business review run?",
+      "q_ar": "متى تُجرى مراجعة الأعمال الشهرية؟",
+      "expected_entry_ids": [
+        "ceo:monthly-business-review"
+      ],
+      "expected_facts": [
+        "after the accountant closes the books"
+      ],
+      "q_reworded": "It is the 1st; can you send the monthly numbers review before the books close?",
+      "answer_must": [
+        "The monthly review runs after the accountant closes the books",
+        "It explains actual versus plan by driver"
+      ]
+    },
+    {
+      "id": "ceo-exam-118",
+      "checklist": "CEO-CL-069",
+      "q_en": "What must every experiment end with?",
+      "q_ar": "بماذا يجب أن تنتهي كل تجربة؟",
+      "expected_entry_ids": [
+        "ceo:experiment-governance"
+      ],
+      "expected_facts": [
+        "kept, killed or iterated",
+        "guardrail"
+      ],
+      "q_reworded": "We tried a new supplier invitation message for two weeks. What do we do with it now?",
+      "answer_must": [
+        "Record a verdict: kept, killed or iterated, filed as a case",
+        "Judge it on its one primary metric and guardrail against the pre-set run length; a month with no experiment is a finding"
+      ]
+    },
+    {
+      "id": "ceo-exam-119",
+      "checklist": "CEO-CL-070",
+      "q_en": "What is the founder's rule about reporting numbers?",
+      "q_ar": "ما قاعدة المؤسس في الإبلاغ عن الأرقام؟",
+      "expected_entry_ids": [
+        "ceo:measurement-integrity"
+      ],
+      "expected_facts": [
+        "never to state what has not been measured"
+      ],
+      "q_reworded": "The leads table says 171 suppliers were invited. Can you report that 171 were emailed?",
+      "answer_must": [
+        "Never state what has not been measured",
+        "A status column is not a delivery record; name the source of every number"
       ]
     }
   ]

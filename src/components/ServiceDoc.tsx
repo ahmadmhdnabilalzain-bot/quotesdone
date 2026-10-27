@@ -53,6 +53,7 @@ export function svcMeta(slug: string, locale: string) {
 const L = {
   en: {
     sample: 'Sample flow', frame: 'request', status: 'Sealed',
+    independent: 'QuotesDone is independent and is not affiliated with or endorsed by any authority named here.',
     steps: [
       { title: 'Describe the job once', body: 'Text, photos, a drawing or a BOQ.' },
       { title: 'Verified suppliers quote blind', body: 'Only verified suppliers who confirm that trade, and they never see your name.' },
@@ -62,6 +63,7 @@ const L = {
   },
   ar: {
     sample: 'مسار نموذجي', frame: 'طلب', status: 'مختوم',
+    independent: 'QuotesDone جهة مستقلة، وليست تابعة لأي جهة رسمية مذكورة هنا ولا معتمدة منها.',
     steps: [
       { title: 'صِف المشروع مرة واحدة', body: 'نصًا أو صورًا أو مخططًا أو جدول كميات.' },
       { title: 'يسعّر المورّدون الموثّقون دون أن يعرفوا هويتك', body: 'لا يُدعى إلا المورّدون الموثّقون الذين أكّدوا هذا النشاط، ولا يرون اسمك أبدًا.' },
@@ -101,6 +103,8 @@ export function ServiceDoc({ slug, locale, children }: { slug: string; locale: s
         {/* styles: globals.css §9 (.mk). The article column is held to a reading measure. */}
         <div className="mk pb-8 [&_.wrap]:max-w-[900px]!" dangerouslySetInnerHTML={{ __html: hero.rest }} />
         {children}
+        {/* Legal review 19 Oct, finding 13: service pages name authorities (DEWA, SIRA, Civil Defence). */}
+        <p className="container-x pb-8 text-sm text-muted-foreground">{t.independent}</p>
       </main>
       <SiteFooter />
     </>

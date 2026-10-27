@@ -6,12 +6,13 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
  * is now native:
  *   /blog/:slug   -> src/app/[locale]/blog/[slug]        (from src/content/blog.json)
  *   /robots.txt   -> src/app/robots.txt/route.ts
+ *   /llms.txt     -> src/app/llms.txt/route.ts (served since 5 Oct 2026, from src/content/geo.json)
  *   /ar/app       -> redirect to /ar/me
  * The old catch-all rewrite is gone; unmatched paths now return a normal 404
  * instead of proxying to a host that no longer exists.
  *
  * Still parked in the database and NOT served: /preview, /workspace,
- * /setup-stripe, /llms.txt. Nothing on the site links to them.
+ * /setup-stripe. Nothing on the site links to them.
  */
 
 // ── SECURITY HEADERS (website audit 14 Sep 2026) ──────────────────────────────────────────────────
@@ -128,6 +129,13 @@ const nextConfig = {
   },
   async redirects() {
     return [
+      // /en is the default locale, served unprefixed. next-intl sent /en and /en/* with a 307, a
+      // TEMPORARY redirect, so search engines kept the /en URLs ("Page with redirect") instead of
+      // folding them into the unprefixed page. Measured 19 Oct 2026: /en/about -> 307 /about.
+      { source: '/en', destination: '/', permanent: true },
+      // Social-card image routes (/en/opengraph-image, /en/blog/x/opengraph-image) are real /en URLs
+      // that every page's og:image names, so they are left out.
+      { source: '/en/:path((?!(?:.*/)?(?:opengraph|twitter)-image(?:/|$)).*)', destination: '/:path', permanent: true },
       // Audit 14 Sep: Supplier Agreement §16 linked /legal?doc=privacy, a 404. The text is fixed,
       // but copies accepted before the fix still carry the old link, so the old URL resolves too.
       { source: '/legal', has: [{ type: 'query', key: 'doc', value: 'privacy' }], destination: '/privacy', permanent: true },

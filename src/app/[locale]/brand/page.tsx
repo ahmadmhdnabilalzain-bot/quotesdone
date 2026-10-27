@@ -201,9 +201,9 @@ export default async function BrandPage({ params }: { params: Promise<{ locale: 
         {/* ── 03 THE SEAL ───────────────────────────────────────────────── */}
         <Section id="seal" n="03" title="The Seal" kicker="Redaction is the motif, the loading state and the promise">
           <div className="grid gap-4 md:grid-cols-3">
-            <Card><CardHeader><Kicker>Sealed</Kicker><CardTitle>Supplier <Seal>Al Noor Flooring LLC</Seal></CardTitle><CardDescription>The identity is withheld. The bar is drawn, never text-hidden.</CardDescription></CardHeader></Card>
-            <Card className="qd-gold-edge"><CardHeader><Kicker>Unsealed</Kicker><CardTitle>Supplier <Seal open className="qd-revealed">Al Noor Flooring LLC</Seal></CardTitle><CardDescription>Gold appears only here: a hairline sweeps the bar and it slides off toward inline-end, 320 ms expo-out.</CardDescription></CardHeader></Card>
-            <Card><CardHeader><Kicker>Loop</Kicker><CardTitle>Supplier <Seal loop>Al Noor Flooring LLC</Seal></CardTitle><CardDescription>The demonstration loop. Under reduced motion it rests open.</CardDescription></CardHeader></Card>
+            <Card><CardHeader><Kicker>Sealed</Kicker><CardTitle>Supplier <Seal>Sample Flooring Co.</Seal></CardTitle><CardDescription>The identity is withheld. The bar is drawn, never text-hidden.</CardDescription></CardHeader></Card>
+            <Card className="qd-gold-edge"><CardHeader><Kicker>Unsealed</Kicker><CardTitle>Supplier <Seal open className="qd-revealed">Sample Flooring Co.</Seal></CardTitle><CardDescription>Gold appears only here: a hairline sweeps the bar and it slides off toward inline-end, 320 ms expo-out.</CardDescription></CardHeader></Card>
+            <Card><CardHeader><Kicker>Loop</Kicker><CardTitle>Supplier <Seal loop>Sample Flooring Co.</Seal></CardTitle><CardDescription>The demonstration loop. Under reduced motion it rests open.</CardDescription></CardHeader></Card>
             <Card className="md:col-span-3"><CardHeader><Kicker>Skeleton = redaction</Kicker></CardHeader><CardContent className="flex flex-col gap-3"><Skeleton className="w-2/5" /><Skeleton className="w-4/5 h-2!" /><Skeleton className="w-3/5 h-2!" /><div className="flex gap-3"><Skeleton className="h-9! w-9!" /><Skeleton className="h-9! w-32" /></div></CardContent></Card>
           </div>
         </Section>
@@ -275,7 +275,7 @@ export default async function BrandPage({ params }: { params: Promise<{ locale: 
                     {[['Q-0412', false, 'ok', 'Complete', '38,750'], ['Q-0415', false, 'warn', 'Missing item', '34,200'], ['Q-0419', true, 'revealed', 'Revealed', '41,900']].map(([q, open, v, s, a]) => (
                       <TableRow key={q as string}>
                         <TableCell className="font-mono text-teal-light">{q as string}</TableCell>
-                        <TableCell><Seal open={open as boolean} className={open ? 'qd-revealed' : undefined}>Al Noor Flooring LLC</Seal></TableCell>
+                        <TableCell><Seal open={open as boolean} className={open ? 'qd-revealed' : undefined}>Sample Flooring Co.</Seal></TableCell>
                         <TableCell><Badge variant={v as 'ok'} dot>{s as string}</Badge></TableCell>
                         <TableCell className="text-end font-mono" dir="ltr">{a as string}</TableCell>
                       </TableRow>
@@ -301,7 +301,7 @@ export default async function BrandPage({ params }: { params: Promise<{ locale: 
                     rows={[{ item: 'Gypsum partitions', values: ['9,400', '9,100', '8,800'] }, { item: 'Ceiling works', values: ['7,250', '6,900', '7,000'] }, { item: 'Paint & finishes', values: ['5,600', '5,400', '5,900'] }, { item: 'MEP first fix', values: ['16,500', '15,500', null] }]} />
                 </ProductFrame>
               }>Every supplier lists scope in their own order. We align it, flag what is missing, and say why one fits best.</BentoTile>
-              <BentoTile span={2} kicker="Anonymity" title="Your name never enters the room" visual={<div className="grid h-full place-items-center p-6"><div className="flex flex-col gap-3"><Seal>Customer: Villa 14</Seal><Seal>Supplier: Al Noor LLC</Seal></div></div>}>Both sides stay sealed until one reveal.</BentoTile>
+              <BentoTile span={2} kicker="Anonymity" title="Your name never enters the room" visual={<div className="grid h-full place-items-center p-6"><div className="flex flex-col gap-3"><Seal>Customer: Villa 14</Seal><Seal>Supplier: Sample Co.</Seal></div></div>}>Both sides stay sealed until one reveal.</BentoTile>
               <BentoTile span={2} kicker="Verification" title="Licence-checked, every time">We verify trade licences before a supplier can quote.</BentoTile>
               <BentoTile span={3} kicker="Price" title="3% only on reveal">Nothing to pay to post, compare or decline.</BentoTile>
               <BentoTile span={3} kicker="Coverage" title="All seven emirates">Suppliers matched by trade and area.</BentoTile>
@@ -319,9 +319,9 @@ export default async function BrandPage({ params }: { params: Promise<{ locale: 
               </ProductFrame>
               <ProductFrame title="match / flooring · Dubai" sampleLabel={t.sample} status="3 of 12">
                 <MatchShowcase labels={{ match: 'Match' }} matches={[
-                  { name: 'Al Noor Flooring LLC', score: 94, facts: 'Licence verified · 11 years · Al Quoz', revealed: true },
-                  { name: 'Gulf Surface Works', score: 88, facts: 'Licence verified · 7 years · Jebel Ali' },
-                  { name: 'Marina Tiling Co.', score: 81, facts: 'Licence verified · 4 years · Sharjah' },
+                  { name: 'Sample Flooring Co.', score: 94, facts: 'Licence verified · 11 years · Al Quoz', revealed: true },
+                  { name: 'Sample Supplier B', score: 88, facts: 'Licence verified · 7 years · Jebel Ali' },
+                  { name: 'Sample Supplier C', score: 81, facts: 'Licence verified · 4 years · Sharjah' },
                 ]} />
               </ProductFrame>
             </div>
