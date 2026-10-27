@@ -61,9 +61,12 @@ test('the model writes every reply: the clock never cuts a reply-writing call sh
   assert.ok(modelWait > num(CLOCK, 'TURN_BUDGET_MS') && modelWait <= wait - 2_000, `MODEL_WAIT_MS ${modelWait} must exceed the turn budget and sit inside the portal's ${wait} ms`);
   assert.ok(replyMin >= 10_000, `REPLY_MIN_MS ${replyMin} is too short for a real model attempt`);
   assert.match(CLOCK, /replyDeadline\(minMs = REPLY_MIN_MS\): number \{ return Math\.max\(this\.deadline\(\), this\.now\(\) \+ minMs\); \}/, 'a reply deadline can be shorter than REPLY_MIN_MS');
-  // A guard refusal is written again by the model; the state's code text only when that call failed.
-  assert.match(INDEX, /const rewrite = await aiReply\(defaultDeps\(admin, 'inquiry_intake'\), \{[\s\S]{0,900}?deadline: clock\.replyDeadline\(\)/, 'a refused reply is not sent back to the model');
-  assert.match(INDEX, /out\.assistant_message = rewrite\?\.reply \|\| replyFromState\(/, 'a refused reply is replaced by code text without asking the model');
+  // Every code-composed reply (and a guard refusal) is written by the model on the reply deadline (slots.ts intakeVoice);
+  // the state's code text only when OpenRouter is down (founder_instruction 1339; the full rule is
+  // scripts/checks/the_intake_reply_is_the_models_unless_openrouter_is_down.test.mjs).
+  assert.match(INDEX, /const v = await intakeVoice\(defaultDeps\(admin, 'inquiry_intake'\), \{[\s\S]{0,400}?deadline: clock\.replyDeadline\(\)/, 'a code-composed reply is not sent to the model on the reply deadline');
+  assert.match(INDEX, /out\.assistant_message = await voice\(replyFromState\(/, 'a refused reply is replaced by code text without asking the model');
+  assert.doesNotMatch(INDEX, /rewrite\?\.reply \|\| replyFromState\(/, 'the old fallback (code text whenever the model call gave nothing) is back');
 });
 
 test('the two intake decisions have nothing to plan or look up', () => {

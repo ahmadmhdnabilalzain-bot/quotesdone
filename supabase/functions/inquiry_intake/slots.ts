@@ -26,6 +26,7 @@
 // the customer's text is matched here (ruling 890): only keys and values the model returned are read.
 import { orderFields, questionText, parseAnswer, isUnknown, type Lang, type SpecField } from './interview.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
+import { isOpenRouterDown } from '../_shared/openrouter_down.ts';
 import type { ThinkDeps } from '../_shared/think.ts';
 import { requirementQuestions, isValidAnswer, NO_PREFERENCE, type Answers, type Ans } from '../_shared/intake_requirements.ts';
 
@@ -54,8 +55,8 @@ export const HELD_FOR_SPECS: Record<Lang, string> = {
 // THE HELD REPLY NAMES WHAT IS STILL OPEN (customer_support, 19 Oct 2026). settleModelTurn clears `missing` on a hold,
 // and HELD_FOR_SPECS said only "a few specifications are still open": a real customer was never told WHICH. The reply
 // is now written by the model (ruling 1196) with the exhausted questions, in the inquiry language, as its facts.
-// HELD_FOR_SPECS stays only as the handover when aiReply returns no acceptable reply in time: the deadline passed, the
-// models errored, or every draft was refused by the reply guards.
+// HELD_FOR_SPECS (with the open questions listed) goes out as it stands only when OpenRouter is down: no call reached a
+// model (founder_instruction 1339). Every draft refused by the reply guards, model up, is NOT that case: '' comes back.
 // The request chat is a portal surface, so the reply is the sales engineer's (the_portals_are_the_sales_engineer).
 /** The plain questions still open on a held intake, in the customer's language, in checklist order. A field with no
  *  question text is skipped: a raw key ('area') never reaches the model. */
@@ -64,8 +65,15 @@ export function heldQuestions(checklist: SpecField[], exhausted: string[], lang:
     .map((o) => String((lang === 'ar' ? o.f.question_plain_ar || o.f.question_plain_en : o.f.question_plain_en) || o.f.question || '').trim())
     .filter(Boolean);
 }
-/** The held reply, written by the model, naming every still-open question. */
-export async function heldReply(deps: ThinkDeps, checklist: SpecField[], exhausted: string[], lang: Lang, message: string, conversation: { role: string; text: string }[], deadline?: number): Promise<string> {
+/** The code draft of the held reply: the handover sentence and the open questions listed. Sent as it stands only when
+ *  OpenRouter is down (founder_instruction 1339); otherwise it is the draft the model writes from (intakeVoice). */
+export function heldDraftOf(checklist: SpecField[], exhausted: string[], lang: Lang): string {
+  const open = heldQuestions(checklist, exhausted, lang);
+  return `${HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en}${open.length ? '\n- ' + open.join('\n- ') : ''}`;
+}
+/** The held reply, written by the model, naming every still-open question. by: 'model' | 'outage_fallback' (OpenRouter
+ *  down: the code draft) | 'none' (the model answered but nothing it wrote passed: text '', index.ts asks it again). */
+export async function heldReply(deps: ThinkDeps, checklist: SpecField[], exhausted: string[], lang: Lang, message: string, conversation: { role: string; text: string }[], deadline?: number): Promise<IntakeVoice> {
   const open = heldQuestions(checklist, exhausted, lang);
   const r = await aiReply(deps, {
     seat: 'sales_engineer', channel: 'the website request chat', audience: 'customer', lang, message, deadline,
@@ -73,9 +81,50 @@ export async function heldReply(deps: ThinkDeps, checklist: SpecField[], exhaust
     facts: 'This request is HELD: it goes to no supplier yet. These questions were asked three times and are still unanswered:\n- ' + open.join('\n- ') +
       '\nThe customer can answer them here in this chat; our sales engineer will help settle any they are unsure of.',
     rules: 'Thank them, name EACH still-open question above in plain words and ask them to answer here (the first one is offered below with options to tap), and say our sales engineer will help settle anything they are unsure of before it goes to suppliers. Two to four sentences. Do not ask anything else.',
+  }).catch(() => ({ reply: '', attempts: ['threw'] } as { reply: string; attempts: string[]; outage?: boolean }));
+  const text = String(r.reply || '').trim();
+  if (text) return { text, outage: false, by: 'model' };
+  // the code list of open questions only when OpenRouter is down (1339)
+  return replyDown(r) ? { text: heldDraftOf(checklist, exhausted, lang), outage: true, by: 'outage_fallback' } : { text: '', outage: false, by: 'none' };
+}
+
+// ── THE INTAKE'S WORDS ARE THE MODEL'S (founder_instruction 1339, 27 Oct 2026) ──────────────────────────────────────
+// "the engineer and customer support never replies without llm unless the server of open router is down".
+// Code decides WHAT is said (the status, the one question, its options); intakeVoice hands that draft to the model as
+// facts and the model writes it. The draft is sent as it stands only when no call reached a model (OpenRouter down);
+// a model that answered but whose words were all refused leaves the reply '' (the question card and its options still
+// show the question; the next turn asks again).
+export interface IntakeVoice { text: string; outage: boolean; by: 'model' | 'outage_fallback' | 'none' }
+/** Whether an aiReply result says OpenRouter was down: its own `outage` flag where aiReply carries one, else read from
+ *  its attempts — no attempt produced text and every failure is an outage (openrouter_down.ts). */
+export function replyDown(r: { reply?: string | null; outage?: boolean; attempts?: string[] }): boolean {
+  if (String(r.reply ?? '').trim()) return false;
+  if (typeof r.outage === 'boolean') return r.outage;
+  const a = (r.attempts ?? []).filter((x) => !/^salvaged/.test(x));
+  if (!a.length || a.some((x) => /:ok\b/.test(x))) return false;
+  return a.every((x) => {
+    if (/^deadline/.test(x)) return true;
+    const m = x.match(/^[\w-]+:failed\s*(.*)$/);
+    // 'no answer': the call returned nothing at all (it threw, or the deadline stopped it) — never a model's answer
+    return !!m && !/^\[/.test(m[1]) && (m[1].trim() === 'no answer' || isOpenRouterDown(m[1]));
   });
-  // The handover sentence alone named nothing; when no model reply arrives the open questions are listed by code.
-  return r.reply || `${HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en}${open.length ? '\n- ' + open.join('\n- ') : ''}`;
+}
+export async function intakeVoice(deps: ThinkDeps, o: { draft: string; lang: Lang; message: string; conversation: { role: string; text: string }[];
+  next?: { text: string; options?: string[] | null } | null; deadline?: number }): Promise<IntakeVoice> {
+  const ask = o.next && String(o.next.text || '').trim()
+    ? '\nTHE ONE QUESTION TO ASK NOW (ask exactly this, in plain words; no other question): ' + String(o.next.text).trim()
+      + (o.next.options?.length ? '\nThey can tap one of: ' + o.next.options.join(' | ') : '')
+    : '\nAsk no question unless the message above asks one.';
+  const r = await aiReply(deps, {
+    seat: 'sales_engineer', channel: 'the website request chat', audience: 'customer', lang: o.lang, message: o.message || '(they sent a file or tapped an option)',
+    conversation: o.conversation.slice(-12).map((t) => ({ role: t.role === 'assistant' ? 'seat' as const : 'customer' as const, text: String(t.text || '') })),
+    facts: 'WHAT TO SAY ON THIS TURN (decided by our systems from the request\'s state; convey it in your own words, change nothing in its meaning, add nothing):\n' + o.draft + ask,
+    rules: 'One to three short sentences for the request chat. Never say the request is ready, complete or sent unless the facts above say so. Never repeat a question they already answered.',
+    deadline: o.deadline,
+  }).catch(() => ({ reply: '', attempts: ['threw'] } as { reply: string; attempts: string[]; outage?: boolean }));
+  const text = String(r.reply || '').trim();
+  if (text) return { text, outage: false, by: 'model' };
+  return replyDown(r) ? { text: o.draft, outage: true, by: 'outage_fallback' } : { text: '', outage: false, by: 'none' };
 }
 
 // ── A HELD INTAKE ASKS ONE SPEC AT A TIME AND READS THE ANSWER BY CODE (27 Oct 2026, sales_engineer) ─────────

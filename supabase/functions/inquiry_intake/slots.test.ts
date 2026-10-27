@@ -9,7 +9,7 @@
 // Fails on the old code: there, a needs_info turn persisted `prevBrief.details || {}` and the model's
 // own status, missing and sentence, so every assertion on details, missing and the reply breaks.
 import { assert, assertEquals, assertNotEquals } from 'jsr:@std/assert@1';
-import { settleModelTurn, replyFromState, openTurnsByKey, MAX_OPEN_TURNS, HELD_FOR_SPECS, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldQuestions, heldAsk, readHeldAnswer } from './slots.ts';
+import { settleModelTurn, replyFromState, openTurnsByKey, MAX_OPEN_TURNS, HELD_FOR_SPECS, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldQuestions, heldAsk, readHeldAnswer, intakeVoice, replyDown } from './slots.ts';
 import type { SpecField } from './interview.ts';
 
 // production category_specs.fields for `aluminium`, required flags and keys as read on 7 Oct 2026
@@ -266,7 +266,7 @@ Deno.test('a held intake: the model is given the still-open question in Arabic a
     rpc: () => Promise.resolve({ data: { block: 'REVEAL FEE: 3.00%.' }, error: null }),
     llm: (_p: string, system: string, input: string) => { seen.push({ system, input }); return Promise.resolve({ content: JSON.stringify({ answer: 'شكرًا لكم. ما زال سؤال واحد مفتوحًا: كم قطعة تحتاج، وما العرض والارتفاع التقريبي لكل قطعة؟ سيساعدكم مهندس المبيعات هنا.' }), model: 'm' }); },
   } as any;
-  const reply = await heldReply(deps, ALUMINIUM, ['dimensions_qty'], 'ar', 'لا أعرف', [{ role: 'user', text: 'نوافذ ألمنيوم' }]);
+  const reply = (await heldReply(deps, ALUMINIUM, ['dimensions_qty'], 'ar', 'لا أعرف', [{ role: 'user', text: 'نوافذ ألمنيوم' }])).text;
   const q = heldQuestions(ALUMINIUM, ['dimensions_qty'], 'ar')[0];
   assertEquals(q, ALUMINIUM[1].question_plain_ar);
   assert(seen[0].input.includes(q), 'the open question rides in the facts, in the inquiry language');
@@ -279,12 +279,43 @@ Deno.test('a held field with no question text never sends its raw key to the mod
   assertEquals(heldQuestions(fields, ['area', 'system_finish'], 'en'), ['System & finish preference?']);
   assertEquals(heldQuestions(fields, ['area'], 'ar'), []);
 });
-Deno.test('a held intake with no acceptable model reply in time falls back to the handover notice, never an empty chat bubble', async () => {
-  const deps = { gate: () => Promise.resolve(null), embed: () => Promise.resolve(null), rpc: () => Promise.resolve({ data: null, error: null }),
-    llm: () => Promise.resolve({ content: null, error: 'down' }) } as any;
-  const reply = await heldReply(deps, ALUMINIUM, ['scope'], 'en', 'x', []);
-  assert(reply.startsWith(HELD_FOR_SPECS.en), reply);
-  assert(reply.includes(ALUMINIUM[4].question_plain_en!), 'the fallback names the open question too (27 Oct 2026)');
+// founder_instruction 1339 (27 Oct 2026): "the engineer and customer support never replies without llm unless the server of
+// open router is down". The code list (handover + open questions) is the OUTAGE fallback only; a model that answered and
+// was refused, or a 4xx, gives '' and index.ts has the model say it again.
+Deno.test('1339: a held intake lists the open questions in code only when OpenRouter is down', async () => {
+  const deps = (llm: () => Promise<unknown>) => ({ gate: () => Promise.resolve(null), embed: () => Promise.resolve(null), rpc: () => Promise.resolve({ data: null, error: null }), llm }) as any;
+  for (const error of ['gateway_http_502', 'client_timeout_30000ms']) {
+    const r = await heldReply(deps(() => Promise.resolve({ content: null, error })), ALUMINIUM, ['scope'], 'en', 'x', []);
+    assertEquals(r.by, 'outage_fallback', error);
+    assert(r.text.startsWith(HELD_FOR_SPECS.en), r.text);
+    assert(r.text.includes(ALUMINIUM[4].question_plain_en!), 'the outage fallback names the open question too');
+  }
+  const refused = await heldReply(deps(() => Promise.resolve({ content: JSON.stringify({ answer: 'circuit_open from openrouter' }), model: 'm' })), ALUMINIUM, ['scope'], 'en', 'x', []);
+  assertEquals([refused.text, refused.by], ['', 'none'], 'model up: no code-written reply');
+  const fourxx = await heldReply(deps(() => Promise.resolve({ content: null, error: 'gateway_http_400:bad request' })), ALUMINIUM, ['scope'], 'en', 'x', []);
+  assertEquals(fourxx.by, 'none', 'a 4xx is not an outage');
+});
+Deno.test('1339: intakeVoice — the model writes the code-decided reply; the draft only when OpenRouter is down', async () => {
+  const seen: string[] = [];
+  const mk = (llm: (s: string, i: string) => Promise<unknown>) => ({ gate: () => Promise.resolve(null), embed: () => Promise.resolve(null),
+    rpc: () => Promise.resolve({ data: null, error: null }), llm: (_p: string, s: string, i: string) => llm(s, i) }) as any;
+  const draft = 'Thanks, noted. A few quick questions about materials, installation, warranty and timing. Do you need installation?';
+  const up = await intakeVoice(mk((_s, i) => { seen.push(i); return Promise.resolve({ content: JSON.stringify({ answer: 'Got it. Would you like the supplier to install them as well?' }), model: 'm' }); }),
+    { draft, lang: 'en', message: 'aluminium windows, villa in Dubai', conversation: [], next: { text: 'Do you need installation?', options: ['Yes', 'Supply only'] } });
+  assertEquals(up, { text: 'Got it. Would you like the supplier to install them as well?', outage: false, by: 'model' });
+  assert(seen[0].includes(draft) && seen[0].includes('Do you need installation?') && seen[0].includes('Yes | Supply only'), 'the draft, the one question and its options ride as facts');
+  const down = await intakeVoice(mk(() => Promise.resolve({ content: null, error: 'gateway_http_503:circuit_open' })), { draft, lang: 'en', message: 'x', conversation: [] });
+  assertEquals(down, { text: draft, outage: true, by: 'outage_fallback' });
+  const refused = await intakeVoice(mk(() => Promise.resolve({ content: JSON.stringify({ answer: 'ai_gateway SQLSTATE error' }), model: 'm' })), { draft, lang: 'en', message: 'x', conversation: [] });
+  assertEquals(refused, { text: '', outage: false, by: 'none' }, 'model up, nothing safe: no code-written reply');
+});
+Deno.test('1339: replyDown reads an aiReply result without an outage flag from its attempts', () => {
+  assertEquals(replyDown({ reply: '', attempts: ['route:failed gateway_http_502', 'other-family:failed client_timeout_30000ms'] }), true);
+  assertEquals(replyDown({ reply: '', attempts: ['deadline: no time left for another call', 'route:failed no answer'] }), true);
+  assertEquals(replyDown({ reply: '', attempts: ['route:ok', 'rewrite:failed [it breaks the reply rule "internal"]'] }), false);
+  assertEquals(replyDown({ reply: '', attempts: ['route:failed gateway_http_400'] }), false);
+  assertEquals(replyDown({ reply: '', attempts: [] }), false);
+  assertEquals(replyDown({ reply: '', outage: true, attempts: [] }), true, 'aiReply\'s own flag wins where it exists');
 });
 
 // ── HELD WITH 0 QUESTIONS (27 Oct 2026, founder ledger 580, run 6dd2316c) ─────────────────────────────────────
