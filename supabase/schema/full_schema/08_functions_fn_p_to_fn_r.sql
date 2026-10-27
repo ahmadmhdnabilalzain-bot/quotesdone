@@ -2082,6 +2082,269 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reask_any_due()
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_gate jsonb;
+begin
+  if exists (select 1 from public.reasoning_held_question
+              where surface = any(public.fn_reask_surfaces()) and status in ('held', 'failed')
+                and (result ->> 'reask_sending_at')::timestamptz < now() - interval '5 minutes') then
+    return true;   -- a stale send to hand to the seat (fn_reask_due's first statement; no model call)
+  end if;
+  v_gate := public.fn_kernel_paid_provider_gate('hold-probe/not-a-model');
+  if coalesce(v_gate->>'rule', '') in ('founder_hold', 'no_paid_ai_switch', 'empty_route_state') then
+    return false;
+  end if;
+  return exists (select 1 from public.reasoning_held_question h
+                  where h.surface = any(public.fn_reask_surfaces())
+                    and h.result ->> 'reask_sending_at' is null
+                    and (   (h.status = 'held' and h.attempts < 3 and h.created_at <= now() - interval '30 seconds'
+                             and (h.last_attempt_at is null or h.last_attempt_at <= now() - interval '50 seconds'))
+                         or (h.status in ('held', 'failed') and h.result ->> 'reviewed_state' = 'due')));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reask_due(p_limit integer DEFAULT 5)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_gate jsonb; v jsonb;
+begin
+  -- a send that started and never recorded is never repeated: the seat has it (one reply per turn). The marker moves to
+  -- reask_send_unrecorded_at (review of #1657, 27 Oct 2026): left in place, this row matched the kick's predicate for ever,
+  -- and the kick posted to sales_engineer every minute while this update rewrote the same row every minute.
+  update public.reasoning_held_question
+     set status = 'failed',
+         result = coalesce(result, '{}'::jsonb) - 'reask_sending_at'
+                  || jsonb_build_object('reask_send_unrecorded_at', result ->> 'reask_sending_at',
+                                        'reask_handed_off', 'its send started at '
+                  || (result ->> 'reask_sending_at') || ' and never recorded an outcome; not sent again'),
+         notice_delivered_at = coalesce(notice_delivered_at, now())   -- the person may have the answer: no notice on top
+   where surface = any(public.fn_reask_surfaces()) and status in ('held', 'failed')
+     and (result ->> 'reask_sending_at')::timestamptz < now() - interval '5 minutes';
+
+  v_gate := public.fn_kernel_paid_provider_gate('hold-probe/not-a-model');
+  if coalesce(v_gate->>'rule', '') in ('founder_hold', 'no_paid_ai_switch', 'empty_route_state') then
+    return '[]'::jsonb;
+  end if;
+  with due as (
+    select h.id from public.reasoning_held_question h
+     where h.surface = any(public.fn_reask_surfaces())
+       and h.result ->> 'reask_sending_at' is null
+       and (   (h.status = 'held' and h.attempts < 3 and h.created_at <= now() - interval '30 seconds'
+                and (h.last_attempt_at is null or h.last_attempt_at <= now() - interval '50 seconds'))
+            -- a reviewed reply after the hand-off: the row is 'failed' (handed off) or 'held'; fn_reason_held_sweep turns
+            -- a held row at 3 attempts into 'failed', so both are open here
+            or  (h.status in ('held', 'failed') and h.result ->> 'reviewed_state' = 'due'))
+     order by h.created_at
+     limit greatest(1, least(coalesce(p_limit, 5), 20))
+     for update skip locked
+  ), claimed as (
+    update public.reasoning_held_question h
+       set attempts = h.attempts + case when h.result ->> 'reviewed_state' = 'due' then 0 else 1 end, last_attempt_at = now()
+      from due where h.id = due.id
+    returning h.id, h.seat, h.surface, h.request, h.subject, h.attempts, h.result, h.created_at
+  )
+  select coalesce(jsonb_agg(to_jsonb(claimed)), '[]'::jsonb) into v from claimed;
+  return v;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reask_hand_off(p_id bigint)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h public.reasoning_held_question;
+begin
+  update public.reasoning_held_question set escalated_at = now()
+   where id = p_id and escalated_at is null
+  returning * into h;
+  if h.id is null then return; end if;
+  insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
+  values (h.seat, 'held_question', 'pending', 'medium',
+          left('A ' || coalesce(h.request -> 'context' ->> 'audience', 'customer') || ' on ' || h.surface
+               || ' has no reply: every model answer was refused. Write the reply.', 200),
+          jsonb_build_object('held_id', h.id, 'surface', h.surface, 'question', left(h.question, 1000), 'subject', h.subject,
+                             'held_since', h.created_at, 'status', h.status,
+                             'refused_for', coalesce(h.result -> 'reask_problems', '[]'::jsonb),
+                             'needed', 'write the reply and pass it to public.fn_reask_reviewed_reply(' || h.id
+                                       || ', <reply>, <who>): it is checked by the same gates and delivered into the same conversation'),
+          'reasoning_held_question', h.id::text);
+  if h.subject ->> 'log_id' ~ '^[0-9]+$' then
+    update public.assistant_logs set path = 'portal:with_team'
+     where id = (h.subject ->> 'log_id')::bigint and reply is null and path = 'portal:pending';
+  end if;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reask_kick()
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_ref text; v_key text; v_cred text;
+begin
+  -- no request unless fn_reask_due would act: no edge call, no cost
+  if not public.fn_reask_any_due() then
+    return null;
+  end if;
+  select value into v_ref  from public.app_secrets where key = 'project_ref';
+  -- the gateway key through the one helper (the_lead_sourcing_kick_sends_the_publishable_key_not_the_legacy_anon_jwt.sql):
+  -- the legacy anon JWT is signed with the leaked HS256 secret, which can be revoked only once no routine sends it
+  v_key := public.fn_gateway_client_key();
+  select value into v_cred from public.app_secrets where key = 'cred_fn_sales_engineer';
+  if v_ref is null or v_key is null or v_cred is null then
+    raise exception 'fn_reask_kick: project_ref, publishable_key (or anon_key) or cred_fn_sales_engineer missing from app_secrets';
+  end if;
+  return net.http_post(url := 'https://' || v_ref || '.supabase.co/functions/v1/sales_engineer',
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_key, 'apikey', v_key),
+    body := jsonb_build_object('__secret', v_cred, 'action', 'reask_turns'), timeout_milliseconds := 140000);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reask_record(p_id bigint, p_outcome jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h public.reasoning_held_question; v_problems jsonb; v_log text; v_title text;
+begin
+  select * into h from public.reasoning_held_question where id = p_id for update;
+  if h.id is null then return jsonb_build_object('id', p_id, 'status', 'missing'); end if;
+  if not (h.surface = any(public.fn_reask_surfaces())) then
+    raise exception 'fn_reask_record: % is not a re-ask surface', h.surface using errcode = '22023';
+  end if;
+  v_log := h.subject ->> 'log_id';
+
+  -- 0. a run that LOST the 'sending' claim to another run sent nothing and owns nothing: no change (review of #1657, 27 Oct
+  --    2026). Recorded as an ordinary failure, it fell into branch 3 below on the WINNER's marker: the row was failed and
+  --    handed to the seat while the winner was still delivering, and the winner's own failure could no longer be told.
+  if p_outcome ->> 'via' = 'not_yours' then
+    return jsonb_build_object('id', p_id, 'status', 'not_yours');
+  end if;
+
+  -- 1. claimed for ONE send: an open row nobody else is sending. 'failed' is open too: fn_reason_held_sweep turns a held
+  --    row at 3 attempts into 'failed' while its third re-ask is running, and a reviewed reply is sent from 'failed'.
+  if p_outcome ->> 'phase' = 'sending' then
+    if h.status not in ('held', 'failed') or h.result ? 'reask_sending_at' then
+      return jsonb_build_object('id', p_id, 'status', 'not_yours');
+    end if;
+    update public.reasoning_held_question set result = coalesce(result, '{}'::jsonb) || jsonb_build_object('reask_sending_at', now())
+     where id = p_id;
+    return jsonb_build_object('id', p_id, 'status', 'sending');
+  end if;
+
+  -- 2. delivered into the conversation: the turn is answered, no holding notice is owed
+  if coalesce((p_outcome ->> 'delivered')::boolean, false) then
+    update public.reasoning_held_question
+       set status = 'applied', applied_at = now(), notice_delivered_at = coalesce(notice_delivered_at, now()),
+           result = coalesce(result, '{}'::jsonb) - 'reask_sending_at'
+                    || jsonb_build_object('reask_delivery', p_outcome, 'reask_delivered_at', now(),
+                                          'reviewed_state', case when h.result ->> 'reviewed_state' = 'due' then 'sent' else h.result ->> 'reviewed_state' end)
+     where id = p_id;
+    -- the seat's open item for this turn (if it was handed off) is done: the person has their reply
+    update public.agent_actions set status = 'done', decided_at = now(), decided_by = 'fn_reask_record'
+     where target_table = 'reasoning_held_question' and target_id = p_id::text and kind = 'held_question' and status = 'pending';
+    return jsonb_build_object('id', p_id, 'status', 'delivered');
+  end if;
+
+  -- 3. a send that started and failed (the channel refused it): the seat has it, never sent a second time
+  if h.result ? 'reask_sending_at' then
+    update public.reasoning_held_question
+       set status = 'failed', result = result - 'reask_sending_at' || jsonb_build_object('reask_delivery', p_outcome,
+             'reask_handed_off', 'the send failed: ' || coalesce(p_outcome ->> 'detail', p_outcome ->> 'via', '?'))
+     where id = p_id;
+    perform public.fn_reask_hand_off(p_id);
+    return jsonb_build_object('id', p_id, 'status', 'handed_off');
+  end if;
+
+  -- 4. a reviewed reply the gates refused: it stays with the seat, with what was wrong
+  if coalesce((p_outcome ->> 'reviewed')::boolean, false) then
+    update public.reasoning_held_question
+       set status = 'failed', result = coalesce(result, '{}'::jsonb) || jsonb_build_object('reviewed_state', 'refused',
+             'reviewed_problems', coalesce(p_outcome -> 'problems', '[]'::jsonb), 'reviewed_refused_at', now())
+     where id = p_id;
+    perform public.fn_reask_hand_off(p_id);
+    return jsonb_build_object('id', p_id, 'status', 'handed_off');
+  end if;
+
+  -- 5. OpenRouter down: the attempt is given back; nothing code-written goes out from here (the turn's own notice did).
+  --    BOUNDED (review of #1657, 27 Oct 2026): for the turn's first 24 hours only. A re-ask row has no expires_at (only
+  --    fn_reason_held_due sets one, and it no longer claims these surfaces), and 'deadline' counts as an outage, so a
+  --    model that kept answering past the 45 s clock was asked every minute for ever, each call possibly billed. After
+  --    24 hours an outage spends its attempt like a refusal; at 3 the sweep fails the row and the seat has it.
+  if coalesce((p_outcome ->> 'outage')::boolean, false) then
+    update public.reasoning_held_question
+       set attempts = case when created_at > now() - interval '24 hours' then greatest(attempts - 1, 0) else attempts end,
+           result = coalesce(result, '{}'::jsonb) || jsonb_build_object('reask_last', p_outcome, 'reask_last_at', now())
+     where id = p_id;
+    return jsonb_build_object('id', p_id, 'status', 'outage');
+  end if;
+
+  -- 6. the model answered and nothing passed: keep its problems for the next ask; the last attempt hands it off
+  select coalesce(jsonb_agg(distinct x), '[]'::jsonb) into v_problems
+    from (select x from jsonb_array_elements_text(coalesce(h.result -> 'reask_problems', '[]'::jsonb)) x
+          union select x from jsonb_array_elements_text(case when jsonb_typeof(p_outcome -> 'problems') = 'array' then p_outcome -> 'problems' else '[]'::jsonb end) x) z;
+  update public.reasoning_held_question
+     set result = coalesce(result, '{}'::jsonb) || jsonb_build_object('reask_problems', v_problems, 'reask_last', p_outcome, 'reask_last_at', now())
+   where id = p_id;
+  if h.attempts >= 3 then
+    update public.reasoning_held_question
+       set status = 'failed', result = result || jsonb_build_object('reask_handed_off', h.attempts || ' re-asks, every answer refused by the guards')
+     where id = p_id;
+    perform public.fn_reask_hand_off(p_id);
+    return jsonb_build_object('id', p_id, 'status', 'handed_off');
+  end if;
+  return jsonb_build_object('id', p_id, 'status', 'asked_again_later', 'attempts', h.attempts);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reask_reviewed_reply(p_id bigint, p_reply text, p_by text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h public.reasoning_held_question;
+begin
+  if btrim(coalesce(p_reply, '')) = '' or btrim(coalesce(p_by, '')) = '' then
+    raise exception 'fn_reask_reviewed_reply: a reply and who wrote it are required' using errcode = '22023';
+  end if;
+  select * into h from public.reasoning_held_question where id = p_id for update;
+  if h.id is null or not (h.surface = any(public.fn_reask_surfaces())) then
+    raise exception 'fn_reask_reviewed_reply: % is not a held re-ask turn', p_id using errcode = '22023';
+  end if;
+  if h.status not in ('held', 'failed') then return jsonb_build_object('id', p_id, 'status', 'closed: ' || h.status); end if;
+  update public.reasoning_held_question
+     set result = coalesce(result, '{}'::jsonb) - 'reask_sending_at'
+                  || jsonb_build_object('reviewed_reply', left(p_reply, 4000), 'reviewed_by', left(p_by, 120),
+                                        'reviewed_at', now(), 'reviewed_state', 'due')
+   where id = p_id;
+  return jsonb_build_object('id', p_id, 'status', 'queued_for_the_gates');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reask_surfaces()
+ RETURNS text[]
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select array['wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten', 'sales_engineer.portal_unwritten',
+               'inquiry_intake.unwritten_reply']::text[];
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_accountant__bank_line(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -3291,6 +3554,7 @@ begin
     select distinct on (surface, coalesce(qhash, id::text)) id, attempts, last_attempt_at, created_at
       from public.reasoning_held_question
      where status = 'held' and attempts < 3
+       and not (surface = any(public.fn_reask_surfaces()))   -- 27 Oct 2026: asked again by fn_reask_due, every minute
      order by surface, coalesce(qhash, id::text), attempts desc, id
   ), due as (
     select h.id from public.reasoning_held_question h
@@ -3327,7 +3591,7 @@ begin
        and (status = 'failed'
             or (status = 'held' and created_at <= now() - interval '48 hours')
             -- a person is waiting on a conversation reply no model could write: 15 minutes, not 48 hours
-            or (status = 'held' and surface in ('wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten')
+            or (status = 'held' and surface = any(public.fn_reask_surfaces())
                 and created_at <= now() - interval '15 minutes'))
      order by created_at
      limit greatest(1, least(coalesce(p_limit, 20), 100))
@@ -3340,8 +3604,8 @@ begin
     insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
     select m.seat, 'held_question', 'pending', 'low',
            left('A question held ' || case when m.status = 'failed' then 'after 5 failed reasonings'
-                                           when m.surface in ('wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten')
-                                             then '15 minutes with no model-written reply (the person has only the held notice)'
+                                           when m.surface = any(public.fn_reask_surfaces())
+                                             then '15 minutes with no model-written reply'
                                            else 'for 48 hours' end
                 || ' on ' || m.surface || ' needs you', 200),
            jsonb_build_object('held_id', m.id, 'surface', m.surface, 'question', left(m.question, 1000), 'subject', m.subject,
@@ -3354,6 +3618,12 @@ begin
   select coalesce(jsonb_agg(jsonb_build_object('id', m.id, 'seat', m.seat, 'surface', m.surface, 'question', left(m.question, 500),
                                               'subject', m.subject, 'status', m.status)), '[]'::jsonb)
     into v from marked m where (select count(*) from filed) >= 0;
+  -- the portal turn reads 'with_team' once its seat has it
+  update public.assistant_logs l set path = 'portal:with_team'
+    from public.reasoning_held_question h
+   where h.surface = 'sales_engineer.portal_unwritten' and h.escalated_at is not null and h.status <> 'applied'
+     and h.subject ->> 'log_id' ~ '^[0-9]+$' and l.id = (h.subject ->> 'log_id')::bigint
+     and l.reply is null and l.path = 'portal:pending';
   return v;
 end $function$
 

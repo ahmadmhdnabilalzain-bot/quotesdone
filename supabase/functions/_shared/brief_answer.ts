@@ -45,7 +45,8 @@ export const MIN_CALL_MS = 8_000;
 export const RESERVE_MS = MIN_CALL_MS + 2_000;
 /** outage: no call reached a model, and every failure was a provider failure (openrouter_down.ts). Only then may a caller
  *  show its own fixed line (founder_instruction 1339); with the model up and nothing sendable, the caller shows nothing. */
-export interface BriefAnswer { reply: string; model: string | null; attempts: string[]; rewrites: number; streamed: boolean; error?: string; outage?: boolean }
+/** problems: why the last draft was refused when no reply passed (the asynchronous re-ask names them; _shared/reask.ts). */
+export interface BriefAnswer { reply: string; model: string | null; attempts: string[]; rewrites: number; streamed: boolean; error?: string; outage?: boolean; problems?: string[] }
 /** One call's outcome, as the outage rule reads it: `answered` when a model replied even though nothing usable came back
  *  (cut off at the output limit); `http` is the gateway's status (a 5xx is an outage whatever its error text says). */
 type Call = { text: string; model: string | null; error?: string; http?: number; answered?: boolean };
@@ -212,5 +213,6 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
   }
   const outage = !answered && failures.length > 0 && failures.every((x) => isOpenRouterDown(x.error, x.http));
   return { reply: '', model: null, attempts, rewrites, streamed: false, outage,
+    problems: lastBad.length ? lastBad : (lastDraft ? whole(lastDraft) : []),
     error: outage ? 'openrouter_down' : 'no model produced an answer that passes the figure check' };
 }

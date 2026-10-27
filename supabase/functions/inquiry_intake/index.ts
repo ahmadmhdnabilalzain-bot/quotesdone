@@ -10,7 +10,7 @@ import { observe } from '../_shared/observe.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
-import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn, openTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply } from './slots.ts';
+import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn, openTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldAsk, readHeldAnswer, intakeVoice, heldDraftOf } from './slots.ts';
 import { detectEmirate, detectUrgency, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
@@ -19,6 +19,9 @@ import { remoteEmbedder } from '../_shared/meaning_embed.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { statedSpecs, tradeOf } from '../_shared/reasoned_decisions.ts';
 import { kbChunkIsCustomerFacing } from '../_shared/customer_facing_knowledge.ts';
+import { guardSupportReply } from '../_shared/support_reply_guard.ts';
+import { isOpenRouterDown } from '../_shared/openrouter_down.ts';
+import { TurnClock, keptFor, placeUserTurn, storedReply, turnIdOf, within } from './turn_clock.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -39,19 +42,27 @@ function sanitizeInput(text: string): string { return String(text || '').replace
 // with a no-cost stub instead of a paid call (founder instruction 705, _shared/spend_guards.ts).
 // Why the gateway call failed; filled by llm() into the caller's own object, so concurrent requests in one isolate never share it.
 type LlmFailure = { http: number; error: string; detail: string };
-async function llm(messages: any[], subject: { email?: string; customer_id?: string | null } = {}, fail: { v: LlmFailure | null } = { v: null }): Promise<string | null> {
+async function llm(messages: any[], subject: { email?: string; customer_id?: string | null } = {}, fail: { v: LlmFailure | null }, deadline: number): Promise<string | null> {
   // THE HOLD IS ASKED BEFORE THE GATEWAY IS CALLED (22 Sep 2026, SEATS-08/CP-14). Under the
   // founder's OpenRouter hold every route in llm_route_health is open until 2126, so this call
   // could only ever come back empty — 592 pointless gateway round trips in 72 h, each logged
   // below as agent_runs status 'error' although the deterministic interview ran exactly as built.
-  if (await modelHeld(admin)) return null;
-  const key = await sec('cred_fn_ai'); if (!key) return null;
+  // The hold and the credential are two independent reads, asked together (turn_clock.ts).
+  const [held, key] = await Promise.all([modelHeld(admin), sec('cred_fn_ai')]);
+  // Both early exits say why, so the caller can tell "OpenRouter down" (a code-written reply is allowed) from a model
+  // that answered (founder_instruction 1339, _shared/openrouter_down.ts).
+  if (held) { fail.v = { http: 503, error: 'circuit_open: founder_hold', detail: '' }; return null; }
+  if (!key) { fail.v = { http: 0, error: 'no_credential', detail: '' }; return null; }
   // Prompt caching is now applied by ai_gateway on the system prompt it receives.
   const sys = messages.filter((m: any) => m && m.role === 'system').map((m: any) => String(m.content || '')).join('\n\n');
   const input = messages.filter((m: any) => !m || m.role !== 'system');
   {
     try {
-      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'inquiry_intake', subject, sys, input, response_format: { type: 'json_object' }, max: 4000, temperature: 0.1 }) });
+      // ON THE TURN'S CLOCK (27 Oct 2026, turn_clock.ts): this fetch had no timeout, so a slow gateway held the whole
+      // turn. It is cut at the deadline, and the gateway is told how long we wait (client_timeout_ms) so it finishes
+      // inside it. A call cut here fails like any other: the deterministic interview runs instead.
+      const waitMs = Math.max(1_000, deadline - Date.now());
+      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', signal: AbortSignal.timeout(waitMs), headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'inquiry_intake', subject, sys, input, response_format: { type: 'json_object' }, max: 4000, temperature: 0.1, client_timeout_ms: waitMs }) });
       // A FAILED TURN SAYS WHY (12 Oct 2026, sales_engineer). Sandbox run 1c94fa6a: the OpenRouter key hit
       // its $200 total limit at 16:39 UTC, every gateway call came back 502, and this function turned each
       // into a 'held' turn with readiness 0 and no reason, so C6-C10 read as 14 turns of nothing.
@@ -62,15 +73,72 @@ async function llm(messages: any[], subject: { email?: string; customer_id?: str
   }
   return null;
 }
+// A BUDGET, AND A MISS THAT IS SAID OUT LOUD (22 Sep 2026, it_engineer, CONN-01). kb_query
+// seq-scanned 148k rows and cancelled on the statement timeout 379 times in 48 hours; this read
+// runs up to twice a turn and its `catch (_e) {}` swallowed every one, so a customer waited up to
+// 16 s per turn for knowledge that never arrived and nothing anywhere recorded it. The routine is
+// fixed (scripts/sql/kb_query_reads_the_index_instead_of_scanning_every_chunk.sql); this is the
+// caller's half — retrieval is an enrichment and a customer never waits more than 3 s for it, and
+// when it does not arrive the reason is logged instead of vanishing. Returns the trade's passage block, or null.
+async function kbFor(s: string, text: string): Promise<string | null> {
+  const t0 = Date.now();
+  // The timer is CLEARED whichever side wins (22 Sep 2026, independent review). Left running, a
+  // 3 s timer per call kept the isolate alive after the handler had answered, and a rejected
+  // promise nobody is awaiting any more is an unhandled rejection in waiting.
+  let budget: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const chunks = await Promise.race([
+      admin.rpc('kb_query', { p_query: text.slice(0, 500), p_category: s, p_limit: 8 })
+        .then((r: { data: unknown; error: { message: string } | null }) => { if (r.error) throw new Error(r.error.message); return r.data; }),
+      new Promise((_ok, no) => { budget = setTimeout(() => no(new Error('kb_query did not answer within 3s')), 3000); }),
+    ]).finally(() => clearTimeout(budget));
+    // WITHHELD FROM THE CUSTOMER (founder ruling 1338, 27 Oct 2026, "Withhold from customers."; #1640): a passage the
+    // model or an agent wrote (kb_chunks source_kind 'generated' / 'memory') was never read on a source page, and this
+    // specialist talks to the customer. kb_query returns source_kind; one shared rule decides, and a row without one is
+    // withheld. Eight are asked for so five read sources can still fill the block.
+    const items = ((chunks as any[]) || []).filter((c: any) => kbChunkIsCustomerFacing(c?.source_kind)).slice(0, 5).map((c: any) => (c.title ? c.title + ': ' : '') + String(c.snippet || c.content || '').trim()).filter(Boolean);
+    if (items.length) return s + ':\n' + items.join('\n\n');
+    console.warn('kb_query returned nothing for category', s, 'in', Date.now() - t0, 'ms');
+  } catch (e) {
+    // Best-effort still, but NAMED: the flat trade brief is used instead, and the reason
+    // this turn went without cited field knowledge is in the logs.
+    console.error('kb_query miss for category', s, 'after', Date.now() - t0, 'ms:', String((e as Error)?.message || e));
+  }
+  return null;
+}
+// THE SERVICE VOCABULARY IS READ ONCE PER WARM WORKER, NOT ON EVERY READY TURN (27 Oct 2026, turn_clock.ts). The
+// supplier count reads every active service with both of its vectors (about 1,047 rows twice, in pages); measured on a
+// local serve against production that was 10.7-10.9 s of each turn that reached ready, after the model. The list
+// changes when a service is added, which is rare: a worker keeps it 5 minutes, it is fetched while the interview call
+// runs, and dispatch itself always reads it fresh, so the inquiry still reaches exactly the suppliers it matches.
+const serviceVocabKept = keptFor(5 * 60_000, () => serviceVocab(admin));
 function parseJson(s: string): any { try { return JSON.parse(s); } catch (_e) {} const m = String(s || '').match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch (_e2) {} } return null; }
 
 Deno.serve(siteCors(observe('inquiry_intake', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  // ONE CLOCK FOR THE WHOLE TURN (27 Oct 2026, turn_clock.ts): every model step below is cut at it, and its laps
+  // say where the time went (agent_runs counts.laps; `timing` in the response to our own @example.invalid harness).
+  const clock = new TurnClock();
   try {
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-    const { data: { user } } = await admin.auth.getUser(jwt);
+    // The body is read while the user is resolved: neither waits for the other.
+    const [{ data: { user } }, b] = await Promise.all([admin.auth.getUser(jwt), req.json().catch(() => ({} as any))]);
     if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
     const email = user.email.toLowerCase();
+    // A TURN STILL OWED THE MODEL'S ANSWER IS READ, NEVER RECOMPUTED (_shared/reask.ts). When the model was up and refused
+    // every draft, the turn was filed for the re-ask and the portal shows "still working on your answer"; it asks here,
+    // by the turn's id, until the re-asked reply is on the row (reask_of). A read only: no rate-limit slot, nothing written.
+    const pollId = turnIdOf(b?.poll_turn_id);
+    if (pollId && b.intake_id) {
+      const { data: row } = await admin.from('inquiry_intake').select('id,email,status,turns').eq('id', b.intake_id).maybeSingle();
+      if (!row || row.email !== email) return J({ error: 'not_found' }, 404);
+      const a = (Array.isArray(row.turns) ? row.turns : []).find((t: any) => t && t.role === 'assistant' && t.reask_of === pollId);
+      // handed to the sales engineer after the last refused re-ask: the portal says it is with them (still UI state)
+      const { data: h } = a ? { data: null } : await admin.from('reasoning_held_question').select('escalated_at,status')
+        .eq('dedupe_key', 'intake_unwritten:' + row.id + ':' + pollId).maybeSingle();
+      return J({ ok: true, polled: true, intake_id: row.id, pending: !a, state: a ? 'answered' : h?.escalated_at ? 'with_team' : 'working',
+                 assistant_message: a ? String(a.text || '') : '', status: row.status, agent: ACTOR });
+    }
     try { const { data: ok } = await admin.rpc('rl_check', { p_key: 'intake:' + email, p_limit: 60, p_seconds: 3600 }); if (ok === false) { await logRun('ok', { rate_limited: 1, intake_persisted: 0 }, 'Customer hit the intake rate limit (60/hour) and was turned away before their request was captured — their RFQ was not created and no supplier will ever see it unless they retry.'); return J({ error: 'You are sending requests too quickly. Please wait a moment and try again.' }, 429); } } catch (_e) { /* */ }
     // THE CUSTOMER RECORD IS CREATED HERE, NOT LOOKED UP AND ABANDONED.
     // This line used to be a select only. When it missed — which it did for everyone who came in
@@ -78,14 +146,20 @@ Deno.serve(siteCors(observe('inquiry_intake', async (req) => {
     // no customer row ever appeared. Production shows the result: 7 inquiries, every one with a
     // null customer_id, and public.customers empty. The person is already AUTHENTICATED at this
     // point, so this materialises a customer that genuinely exists rather than inventing one.
-    const b = await req.json().catch(() => ({} as any));
     // 14 Sep 2026. A FOLLOW-UP ON A POSTED RFQ IS NOT AN INTAKE. The portal's "Ask the assistant
     // about this request" posted {text, inquiry_id} here with no intake_id; this function never read
     // inquiry_id, so every follow-up inserted a fresh orphan inquiry_intake draft and got a first-turn
     // intake prompt back — nothing reached the RFQ or a supplier (website audit 14 Sep, finding 9).
     // Follow-ups belong to customer_api rfq_note. Refused before any customer or draft row is written.
     if (b && b.inquiry_id && !b.intake_id) return J({ ok: false, error: 'use_rfq_note', message: 'Questions about a request you have already sent go on that request, not into a new one.' }, 200);
-    let cust = (await admin.from('customers').select('id,locale').eq('email', email).maybeSingle()).data;
+    // Three independent reads, asked together (turn_clock.ts): the customer, the trade list, and the draft this turn
+    // continues. Each is used exactly as it was when they were asked one after another.
+    const [custRead, specsRead, draftRead] = await Promise.all([
+      admin.from('customers').select('id,locale').eq('email', email).maybeSingle(),
+      admin.from('category_specs').select('category'),
+      b.intake_id ? admin.from('inquiry_intake').select('*').eq('id', b.intake_id).maybeSingle() : Promise.resolve({ data: null }),
+    ]);
+    let cust = custRead.data;
     if (!cust) {
       // Created here, so this IS the registration: the page language they are using is what registers.
       const { data: made } = await admin.from('customers')
@@ -96,12 +170,12 @@ Deno.serve(siteCors(observe('inquiry_intake', async (req) => {
     const text = sanitizeInput(String(b.text || '').trim()).slice(0, 4000);
     const drawingBoq = b.drawing_boq || null;
 
-    const { data: allSpecs, error: specsErr } = await admin.from('category_specs').select('category');
+    const { data: allSpecs, error: specsErr } = specsRead;
     const validSlugs = (allSpecs || []).map((s: any) => String(s.category));
     if (specsErr || !validSlugs.length) { await logRun('error', { category_specs_loaded: validSlugs.length, specs_query_failed: specsErr ? 1 : 0 }, 'category_specs could not be loaded (' + String(specsErr?.message || 'query returned no rows') + ') — with no valid category slugs every trade is treated as invalid, so this customer request will be filed as \'general\' with no checklist and routed to the wrong suppliers or to none at all.'); }
 
     let draft: any = null;
-    if (b.intake_id) { const { data } = await admin.from('inquiry_intake').select('*').eq('id', b.intake_id).maybeSingle(); if (data && (data.email === email)) draft = data; }
+    if (b.intake_id) { const data = (draftRead as { data: any }).data; if (data && (data.email === email)) draft = data; }
     if (!draft) { const { data, error: draftErr } = await admin.from('inquiry_intake').insert({ customer_id: cust?.id || null, email, status: 'needs_info', turns: [] }).select('*').single(); draft = data; if (draftErr || !draft) { await logRun('error', { intake_persisted: 0 }, 'A customer-submitted inquiry failed to persist: insert into inquiry_intake returned ' + String(draftErr?.message || 'no row') + ' — this RFQ is lost at the front door, it will never be routed and no supplier will ever quote it.'); } }
 
     // The insert above logs a precise diagnostic when it fails - "this RFQ is lost at the front
@@ -116,7 +190,10 @@ Deno.serve(siteCors(observe('inquiry_intake', async (req) => {
     }
 
     const turns: any[] = Array.isArray(draft.turns) ? draft.turns : [];
-    if (text) turns.push({ role: 'user', text });
+    // A RETRY IS NOT A SECOND MESSAGE (27 Oct 2026, turn_clock.ts placeUserTurn). The portal retries a turn it stopped
+    // waiting for with the same turn_id; a message the server already recorded is answered again, never added twice.
+    const placed = placeUserTurn(turns, text, turnIdOf(b.turn_id));
+    clock.lap('read');
     // Every customer message, once. raw_input is saved as this same text below, so appending it here
     // doubled the whole conversation on every turn (measured 21 Sep 2026, inquiry_intake c99beee8:
     // the first message appeared three times in raw_input) and the 4000-character cut then lost the
@@ -127,6 +204,33 @@ Deno.serve(siteCors(observe('inquiry_intake', async (req) => {
     // English was interviewed in English from then on. customers.locale decides; what they type in
     // either language is still understood.
     const ar = asLocale((cust as any)?.locale) === 'ar';
+    // NEVER LEFT SILENT (founder ruling 1339; the independent review of #1646). When the model was up and refused every
+    // draft (intakeVoice by 'none'), the turn is not left with an empty bubble and no code text is sent: it is filed for
+    // the asynchronous re-ask (_shared/reask.ts, surface inquiry_intake.unwritten_reply). Within about a minute the model
+    // is asked again (another family, these problems named, every guard again) and its answer is appended to this
+    // conversation as the reply to this turn (reask_of); three refusals hand it to sales_engineer (held_question, the
+    // 15-minute rule as a backstop). The portal shows "still working on your answer" (UI state) and polls by the turn's
+    // id. Returns the turn id when filed. A harness turn (@example.invalid) and a retry of a turn are never filed.
+    const fileReask = async (draftText: string, problems: string[] | undefined): Promise<string | null> => {
+      const tid = placed === 'added' ? turnIdOf(b.turn_id) : null;
+      if (!tid || email.endsWith('@example.invalid')) return null;
+      const asked = (text ? text : '(they sent a file)').slice(0, 4000);   // what they wrote: the message, never a reply
+      const subject = { channel: 'request_chat', intake_id: draft.id, turn_id: tid };
+      const { data: hid } = await admin.rpc('fn_reason_hold', { p_seat: 'sales_engineer', p_surface: 'inquiry_intake.unwritten_reply', p_question: asked,
+        p_request: { seat: 'sales_engineer', surface: 'inquiry_intake.unwritten_reply', subject, research: false, question: asked,
+          context: { audience: 'customer', language: ar ? 'ar' : 'en', turn_id: 'intake:' + tid },
+          reask: { message: asked, audience: 'customer', lang: ar ? 'ar' : 'en', channel: 'the website request chat',
+            facts: 'WHAT TO SAY ON THIS TURN (decided by our systems from the request\'s state; convey it in your own words, change nothing in its meaning, add nothing):\n' + draftText.slice(0, 3000),
+            problems: (problems ?? []).slice(0, 12) } },
+        p_plan: {}, p_subject: subject, p_reason: 'model_up_no_safe_reply', p_dedupe_key: 'intake_unwritten:' + draft.id + ':' + tid }).then((r: { data: unknown }) => r, () => ({ data: null }));
+      return Number(hid) ? tid : null;
+    };
+    // A retry of a turn that already landed is answered from the row, never recomputed (turn_clock.ts storedReply).
+    if (placed === 'landed') {
+      await logRun('ok', { intake_saved: 0, retry_replayed: 1, ms: clock.lap('replayed') }, 'the portal retried a turn that had already been answered; the stored reply was returned and nothing was recomputed');
+      return J({ ...storedReply(draft),
+      agent: ACTOR, agent_name: ar ? 'مهندس مبيعات QuotesDone' : 'QuotesDone sales engineer' });
+    }
 
     // The trade is never read off words (founder_instruction 886-903; the keyword map, _shared/trade_classify.ts,
     // is deleted): it is the one a previous turn stored, the drawing's, the model's reading below, or — when the
@@ -143,10 +247,21 @@ Deno.serve(siteCors(observe('inquiry_intake', async (req) => {
     // Gather checklist(s). For a multi-trade request, include EACH detected trade's REQUIRED fields so the
     // model does not anchor on one category and re-ask details already given for the other trades.
     const tradeSlugsForChecklist = Array.from(new Set([category].filter((c) => c && validSlugs.includes(c as string)))).slice(0, 4) as string[];
+    // THE TRADE'S FOUR READS START TOGETHER (27 Oct 2026, turn_clock.ts). The checklist, the ordered questions, the
+    // specialist and the field knowledge depend only on the trade and the message, and were asked one after another
+    // (the knowledge alone up to 3 s). Each is started here and awaited exactly where it was read before; what each
+    // block does with its answer is unchanged.
+    const started = <T,>(f: () => PromiseLike<T>): Promise<T> => Promise.resolve().then(f);
+    const specsP = tradeSlugsForChecklist.length ? started(() => admin.from('category_specs').select('category,label,fields').in('category', tradeSlugsForChecklist)) : null;
+    const questionsP = category ? started(() => admin.rpc('fn_category_questions', { p_category: category, p_lang: ar ? 'ar' : 'en', p_limit: 14 })) : null;
+    // The specialist is the agent whose key IS the trade (decision point inquiry_intake.specialist, below).
+    const agentQ = () => admin.from('category_agents').select('slug,name,persona').eq('active', true).eq('slug', category).maybeSingle();
+    const agentP = category && category !== 'general' ? started(agentQ) : null;
+    const kbP = tradeSlugsForChecklist.length && text ? Promise.all(tradeSlugsForChecklist.slice(0, 2).map((s) => kbFor(s, text))) : null;
     let checklist: any[] = [];
     const perTradeChecklists: { slug: string; label: string; fields: any[] }[] = [];
-    if (tradeSlugsForChecklist.length) {
-      const { data: specs } = await admin.from('category_specs').select('category,label,fields').in('category', tradeSlugsForChecklist);
+    if (specsP) {
+      const { data: specs } = await specsP;
       for (const slug of tradeSlugsForChecklist) {
         const spec = (specs || []).find((s: any) => String(s.category) === slug);
         if (spec && Array.isArray(spec.fields)) { perTradeChecklists.push({ slug, label: spec.label || slug, fields: spec.fields }); if (slug === category) checklist = spec.fields; }
@@ -171,10 +286,9 @@ Deno.serve(siteCors(observe('inquiry_intake', async (req) => {
     // three more at 999), so for almost every field the spec's own order decides. It is applied
     // anyway so the interview follows the desks' order wherever the two vocabularies do meet.
     const askOrder: Record<string, number> = {};
-    if (category) {
+    if (questionsP) {
       try {
-        const { data: qs } = await admin.rpc('fn_category_questions',
-          { p_category: category, p_lang: ar ? 'ar' : 'en', p_limit: 14 });
+        const { data: qs } = await questionsP;
         const list = ((qs as any[]) || []).filter((q: any) => q && q.question);
         for (const q of list) if (q.field_key && askOrder[q.field_key] === undefined) askOrder[q.field_key] = Number(q.ask_order) || 999;
         if (list.length) {
@@ -203,15 +317,15 @@ Deno.serve(siteCors(observe('inquiry_intake', async (req) => {
     const catLabel = (perTradeChecklists.find((c) => c.slug === category)?.label) || category || '';
     let specialist: { slug: string; name: string; persona: string } | null = null;
     let specialistIsNew = false;
-    if (category && category !== 'general') {
+    if (agentP) {
       try {
         // The specialist is the one whose key IS the reasoned category (23 Sep 2026, decision point
         // inquiry_intake.specialist): the shared-token score over slugs and names that picked a "nearest" persona is
         // gone. No agent with exactly this key: the generic sales engineer answers — never a neighbour's persona.
-        const { data: best } = await admin.from('category_agents').select('slug,name').eq('active', true).eq('slug', category).maybeSingle();
+        // One read now carries the persona too (it was a second read of the same row by the same key).
+        const { data: best } = await agentP;
         if (best) {
-          const { data: full } = await admin.from('category_agents').select('slug,name,persona').eq('slug', best.slug).maybeSingle();
-          const sp = { slug: String(best.slug), name: String((full?.name) || best.name || best.slug), persona: String((full?.persona) || '') };
+          const sp = { slug: String(best.slug), name: String(best.name || best.slug), persona: String(best.persona || '') };
           specialist = sp;
           // First turn where this specialist is in charge → it introduces itself once (the visible hand-over).
           specialistIsNew = !turns.some((t: any) => t && t.role === 'assistant' && t.agent === sp.slug);
@@ -224,40 +338,9 @@ Deno.serve(siteCors(observe('inquiry_intake', async (req) => {
     // relevant to this request (authorities, standards, specs, price drivers, the sharp qualifying
     // questions). Falls back to the flat trade brief if retrieval is empty.
     let specialistKB = '';
-    if (tradeSlugsForChecklist.length && text) {
-      const parts: string[] = [];
-      // A BUDGET, AND A MISS THAT IS SAID OUT LOUD (22 Sep 2026, it_engineer, CONN-01). kb_query
-      // seq-scanned 148k rows and cancelled on the statement timeout 379 times in 48 hours; this loop
-      // runs up to twice a turn and its `catch (_e) {}` swallowed every one, so a customer waited up to
-      // 16 s per turn for knowledge that never arrived and nothing anywhere recorded it. The routine is
-      // fixed (scripts/sql/kb_query_reads_the_index_instead_of_scanning_every_chunk.sql); this is the
-      // caller's half — retrieval is an enrichment and a customer never waits more than 3 s for it, and
-      // when it does not arrive the reason is logged instead of vanishing.
-      for (const s of tradeSlugsForChecklist.slice(0, 2)) {
-        const t0 = Date.now();
-        // The timer is CLEARED whichever side wins (22 Sep 2026, independent review). Left running, a
-        // 3 s timer per call kept the isolate alive after the handler had answered, and a rejected
-        // promise nobody is awaiting any more is an unhandled rejection in waiting.
-        let budget: ReturnType<typeof setTimeout> | undefined;
-        try {
-          const chunks = await Promise.race([
-            admin.rpc('kb_query', { p_query: text.slice(0, 500), p_category: s, p_limit: 8 })
-              .then((r: { data: unknown; error: { message: string } | null }) => { if (r.error) throw new Error(r.error.message); return r.data; }),
-            new Promise((_ok, no) => { budget = setTimeout(() => no(new Error('kb_query did not answer within 3s')), 3000); }),
-          ]).finally(() => clearTimeout(budget));
-          // WITHHELD FROM THE CUSTOMER (founder ruling 1338, 27 Oct 2026, "Withhold from customers."): a passage the
-          // model or an agent wrote (kb_chunks source_kind 'generated' / 'memory') was never read on a source page, and
-          // this specialist talks to the customer. kb_query returns source_kind; one shared rule decides, and a row
-          // without one is withheld. Eight are asked for so five read sources can still fill the block.
-          const items = ((chunks as any[]) || []).filter((c: any) => kbChunkIsCustomerFacing(c?.source_kind)).slice(0, 5).map((c: any) => (c.title ? c.title + ': ' : '') + String(c.snippet || c.content || '').trim()).filter(Boolean);
-          if (items.length) parts.push(s + ':\n' + items.join('\n\n'));
-          else console.warn('kb_query returned nothing for category', s, 'in', Date.now() - t0, 'ms');
-        } catch (e) {
-          // Best-effort still, but NAMED: the flat trade brief below is used instead, and the reason
-          // this turn went without cited field knowledge is in the logs.
-          console.error('kb_query miss for category', s, 'after', Date.now() - t0, 'ms:', String((e as Error)?.message || e));
-        }
-      }
+    if (kbP) {
+      // kbFor (below the handler) is the 3 s budgeted kb_query read; it was started with the trade's other reads.
+      const parts = (await kbP).filter((p): p is string => !!p);
       specialistKB = parts.join('\n\n').slice(0, 3800);
       if (!specialistKB) {
         // 6 Aug 2026. THIS FALLBACK COULD NOT FIRE FOR 53 OF 56 CATEGORIES, AND THAT WAS INVISIBLE.
@@ -359,10 +442,39 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
 
     const user_msg = `Conversation so far:\n${convo}${drawingNote}\n\nAnalyse and respond with the JSON.`;
     const llmFail: { v: LlmFailure | null } = { v: null };
-    const raw = await llm([{ role: 'system', content: sys }, { role: 'user', content: user_msg }], { email, customer_id: cust?.id || null }, llmFail);
+    clock.lap('prompt');
+    // Fetched while the interview call runs, so a turn that becomes ready does not wait for it after (see above).
+    if (category) void serviceVocabKept();
+    // THE EXACT-SPEC READING RUNS ALONGSIDE THE INTERVIEW CALL (27 Oct 2026; reasoned_decisions.ts statedSpecs has the
+    // measurements). It used to start only after the interview call said ready, as a second serial model call of
+    // 13-17 s (60-125 s with its old planner). It is started here, over the trade's required specs this row does not
+    // hold yet, on the turn's clock, and its answer is used exactly where it was before: on a ready turn, for a
+    // required spec the brief left blank. Unused (the turn is not ready), it fills nothing. A trade the interview call
+    // changes is read again below only if the clock allows.
+    const heldDetails = (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object') ? draft.brief.details : {};
+    const toRead = checklist.filter((f: any) => f && f.required && f.key && !(String(f.key) in heldDetails));
+    const startReading = async (cat: string, fields: any[]) => {
+      try {
+        return await statedSpecs(defaultDeps(admin, 'inquiry_intake'), {
+          conversation: allText, category: cat, dedupeKey: 'intake_spec:' + (draft.id ?? email) + ':' + turns.length,
+          fields: fields.map((f: any) => ({ key: String(f.key), question: String(f.question || f.key) })),
+          deadline: clock.deadline(),
+        });
+      } catch (_e) { return null; }   // an unread spec is asked, never filled
+    };
+    const specRead = category && toRead.length && allText.trim() && clock.canStart() ? { category, p: startReading(category, toRead) } : null;
+    const raw = await llm([{ role: 'system', content: sys }, { role: 'user', content: user_msg }], { email, customer_id: cust?.id || null }, llmFail, clock.modelDeadline());
+    clock.lap('model');
     let out = raw ? parseJson(raw) : null;
     const llmCallOk = raw !== null;
     const llmParseOk = out !== null;
+    // OPENROUTER DOWN FOR THIS TURN (founder_instruction 1339, 27 Oct 2026): "the engineer and customer support never
+    // replies without llm unless the server of open router is down". Only then may the customer read a code-written
+    // draft (the interview's question, the state's sentence). A model that answered, even with JSON we could not parse,
+    // is up: the draft is voiced by the model (slots.ts intakeVoice) before the reply leaves.
+    let llmDown = !llmCallOk && isOpenRouterDown(llmFail.v?.error, llmFail.v?.http);
+    // The model's own sentence as it wrote it. A reply that is not exactly this was composed by code and is voiced.
+    let modelWrote: string | null = out && llmParseOk && typeof out.assistant_message === 'string' ? out.assistant_message : null;
     // A RUN THE FOUNDER'S HOLD SHAPED IS NOT A FAILED RUN (22 Sep 2026, SEATS-08/CP-14). While the
     // hold is on there is no model to call, the deterministic interview below IS the designed path,
     // and logging it as 'error' put 592 false faults into agent_runs in 72 h — the watchers page on
@@ -380,10 +492,13 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // is held the inquiry is HELD: status 'held', nothing is decided, the customer is told it is being
     // reviewed, and fn_reason_held_resolve sets the reasoned trade the moment the hold lifts (the portal
     // then continues the interview). A trade already reasoned for this draft (brief.category_by) stands.
-    if (!out && allText.trim() && !(draft.brief && draft.brief.category_by === 'reasoning')) {
+    // ONLY WHEN THERE IS NO TRADE (27 Oct 2026, turn_clock.ts). This reasoned the trade again on every turn the model
+    // call failed, even when an earlier turn had stored one, which per the rule above already stands: production turn
+    // 27 Oct 10:28 UTC spent 73 s here. A trade stored, or the drawing's, is kept and the interview continues on it.
+    if (!out && !category && allText.trim() && !(draft.brief && draft.brief.category_by === 'reasoning')) {
       const t = await tradeOf(defaultDeps(admin, 'inquiry_intake'), {
         conversation: allText, candidates: validSlugs.map((slug: string) => ({ slug, label: slug.replace(/[-_]/g, ' ') })),
-        dedupeKey: 'intake_trade:' + draft.id,
+        dedupeKey: 'intake_trade:' + draft.id, deadline: clock.deadline(),
         // a harness customer's question is never queued for a paid replay (think.ts isFixtureRequest)
         subject: { intake_id: draft.id, ...(email.endsWith('@example.invalid') ? { fixture: true } : {}) },
       });
@@ -394,15 +509,22 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
         checklist = Array.isArray(cs?.fields) ? cs.fields : [];
         draft.brief = { ...(draft.brief && typeof draft.brief === 'object' ? draft.brief : {}), category_by: 'reasoning' };
       } else {
-        const heldMsg = ar
+        const heldDraft = ar
           ? 'شكرًا لكم. استلمنا طلبكم، ويراجعه الآن مهندس المبيعات لدينا لتحديد التخصص المناسب بدقة. سنكمل معكم هنا فور الانتهاء، ولا حاجة إلى إعادة كتابة أي شيء.'
           : 'Thank you — we have your request and our sales engineer is reviewing it now to identify exactly the right trade. We will continue with you here as soon as that is done; there is no need to type anything again.';
-        turns.push({ role: 'assistant', text: heldMsg, agent: ACTOR });
+        // the model says it (1339); the draft itself only when OpenRouter is down. A reply-writing call: replyDeadline.
+        const hv = llmDown ? { text: heldDraft, by: 'outage_fallback' as const }
+          : await intakeVoice(defaultDeps(admin, 'inquiry_intake'), { draft: heldDraft, lang: ar ? 'ar' : 'en', message: text, conversation: turns, deadline: clock.replyDeadline() });
+        const heldMsg = hv.text;
+        // a refused turn is filed for the re-ask (fileReask above): no empty message, no code text
+        const reaskTid = hv.by === 'none' ? await fileReask(heldDraft + '\nAsk no question unless the message above asks one.', hv.problems) : null;
+        if (heldMsg) turns.push({ role: 'assistant', text: heldMsg, agent: ACTOR });
         await admin.from('inquiry_intake').update({ status: 'held', raw_input: allText.slice(0, 4000), turns, updated_at: new Date().toISOString() }).eq('id', draft.id);
         await logRun('ok', { model_held: 1, intake_held: 1, llm_http: llmFail.v?.http ?? null, llm_error: llmFail.v?.error ?? null }, 'the trade could not be reasoned (' + (t.result.reason ?? 'held') + '), so the intake is held for review rather than guessed from keywords' + (llmFail.v ? '; gateway HTTP ' + llmFail.v.http + ' ' + llmFail.v.error + ' ' + llmFail.v.detail : ''));
         return J({ ok: true, intake_id: draft.id, status: 'held', category: null, trades: [], assistant_message: heldMsg, questions: [], next_question: null,
                    readiness: { filled: 0, required: 0, score: 0 }, readiness_score: 0, missing: [], brief: null, held_id: t.result.held_id ?? null, // The gateway's reason goes back only to our own harness subject; a customer never sees upstream detail.
-                   ...(email.endsWith('@example.invalid') ? { held_reason: t.result.reason ?? 'held', llm_failure: llmFail.v } : {}), agent: ACTOR });
+                   ...(email.endsWith('@example.invalid') ? { held_reason: t.result.reason ?? 'held', llm_failure: llmFail.v } : {}), reply_by: hv.by,
+                   pending: reaskTid !== null, ...(reaskTid ? { reask_turn_id: reaskTid } : {}), agent: ACTOR });
       }
     }
 
@@ -413,6 +535,9 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     let slotMissingKeys: string[] = [];
     let slotExhausted: string[] = [];
     let slotAsk: { key: string; text: string } | null = null;
+    // The spec a held intake asks this turn (slots.ts heldAsk); remembered on the row so the next message is read
+    // as its answer by code (readHeldAnswer), the way the deterministic interview reads asked_key.
+    let heldNext: { key: string; text: string; options: string[] | null } | null = null;
     const slotLang = ar ? 'ar' : 'en';
     // Turn 1 has no stored trade, so the checklist is empty until the model names one: load the model's
     // trade's checklist here, or what the first message states is read against nothing and lost.
@@ -421,7 +546,11 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       if (Array.isArray(cs1?.fields)) checklist = cs1.fields;
     }
     if (out && llmParseOk && checklist.length && out.status !== 'rejected') {
-      const prevDet = (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object') ? draft.brief.details : {};
+      const prevDet0 = (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object') ? draft.brief.details : {};
+      // THE ANSWER TO THE SPEC A HOLD ASKED IS READ BY CODE FIRST (27 Oct 2026, ledger 580; slots.ts says why).
+      const heldKey = draft.brief && draft.brief.asked_on_hold === true ? String(draft.brief.asked_key || '') : '';
+      const heldVal = heldKey && !(heldKey in prevDet0) ? readHeldAnswer(checklist, heldKey, text) : null;
+      const prevDet = heldVal ? { ...prevDet0, [heldKey]: heldVal } : prevDet0;
       const firstUser0 = String(turns.find((t: any) => t.role === 'user')?.text || allText);
       const settled = settleModelTurn(checklist, prevDet, out, slotLang, (d) => buildBrief(String(category || out.category || ''), d, allText, emirate, firstUser0), openTurnsByKey(turns));
       slotDetails = settled.details; slotMissingKeys = settled.missingKeys; slotExhausted = settled.held ? settled.exhausted : [];
@@ -538,8 +667,19 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
         p_payload: { intake_id: draft.id, customer_id: cust?.id || null, not_sure: slotExhausted, category,
           waiting_for: 'sales_engineer to help the customer settle these specs; asked three times without an answer' } });
       if (hErr) await logRun('error', { spec_handoff_failed: 1 }, 'intake held for unanswered specs but the sales_engineer handoff failed: ' + hErr.message);
+      // The hold asks: the first open spec goes out as next_question with the checklist's options to tap, and every
+      // open spec stays in questions / missing (slots.ts settleModelTurn), so a held turn never asks nothing.
+      heldNext = heldAsk(checklist, slotExhausted, slotLang);
+      if (heldNext) nextQuestion = heldNext;
       // The customer is told WHICH questions are still open, by the model, in the inquiry language (slots.ts heldReply).
-      out.assistant_message = await heldReply(defaultDeps(admin, 'inquiry_intake'), checklist, slotExhausted, slotLang, text, turns, Date.now() + 40_000);
+      // On the turn's clock (it had its own 40 s), but a reply always gets a real model attempt (turn_clock.ts
+      // replyDeadline, the founder's ruling of 27 Oct): the open questions are listed by code only if the model fails.
+      const hr = await heldReply(defaultDeps(admin, 'inquiry_intake'), checklist, slotExhausted, slotLang, text, turns, clock.replyDeadline());
+      // the model's held reply; the code list back means OpenRouter was down (1339); '' means the model is up but nothing
+      // it wrote passed, so it is asked again below (intakeVoice) with the hold as its draft
+      if (hr.by === 'outage_fallback') llmDown = true; else if (hr.by === 'model') modelWrote = hr.text;
+      out.assistant_message = hr.text || heldDraftOf(checklist, slotExhausted, slotLang);
+      clock.lap('held_reply');
     }
     // Stamp the answering agent on the turn so the next turn knows the specialist has already introduced itself.
     turns.push({ role: 'assistant', text: out.assistant_message || '', agent: ACTOR });
@@ -580,13 +720,20 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       // is asked of think(): has the customer ALREADY stated it? It is filled only with the customer's own
       // words as evidence (the validator refuses a value it cannot find verbatim), and marked 'reasoned'.
       // Held: nothing is filled, and the field is simply asked.
+      // ON THE TURN'S CLOCK (27 Oct 2026, turn_clock.ts): this reading was 60-125 s of every turn the model called
+      // ready. It is now one reader pass (reasoned_decisions.ts statedSpecs), started alongside the interview call
+      // (specRead) and cut at the clock. Not run, or not finished: nothing is filled and every blank field is asked
+      // below — the gate holds.
       const blank = required.filter(isAbsent);
-      if (blank.length) {
-        const stated = await statedSpecs(defaultDeps(admin, 'inquiry_intake'), {
-          conversation: allText, category, dedupeKey: 'intake_spec:' + (draft.id ?? email) + ':' + turns.length,
-          fields: blank.map((f: any) => ({ key: String(f.key), question: String(f.question || f.key) })),
-        });
-        for (const [k, v] of Object.entries(stated.value ?? {})) {
+      // The reading started alongside the interview call answers for this trade; a trade the call changed is read
+      // now, and only with MIN_STEP_MS left on the clock.
+      const reading = !blank.length ? null
+        : specRead && specRead.category === category ? specRead.p
+        : clock.canStart() ? startReading(category, blank) : null;
+      if (reading) {
+        const stated = await reading;
+        clock.lap('exact_spec');
+        for (const [k, v] of Object.entries(stated?.value ?? {})) {
           if (v.value && blank.some((f: any) => f.key === k)) { det[k] = v.value; provenance = { ...(provenance || {}), [k]: 'reasoned' }; out.provenance = provenance; }
         }
       }
@@ -710,7 +857,8 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       // will be held to. A category with no checklist emits an EMPTY ARRAY, never a placeholder:
       // 21 of 56 categories carry one, and inventing three lines for the other 35 would be telling
       // the customer we require things we do not.
-      try {
+      // The documents list and the supplier count read different things and run together (27 Oct 2026, turn_clock.ts).
+      const docsP = (async () => { try {
         const { data: cs } = await admin.from('category_specs').select('compliance_checklist').eq('category', category).maybeSingle();
         const cl = (cs as any)?.compliance_checklist;
         const list = Array.isArray(cl?.list) ? cl.list : (Array.isArray(cl) ? cl : []);
@@ -725,7 +873,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
           notes: x?.notes ? String(x.notes).slice(0, 160) : null,
         })).filter((x: any) => x.item);
         brief.required_documents_source = brief.required_documents.length ? 'category_specs.compliance_checklist' : 'no checklist published for this category';
-      } catch (_e) { brief.required_documents = []; brief.required_documents_source = 'checklist lookup failed'; }
+      } catch (_e) { brief.required_documents = []; brief.required_documents_source = 'checklist lookup failed'; } })();
 
       // THE SUPPLIER COUNT IS THE REAL FAN-OUT, RUN BEFORE DISPATCH. fn_match_capability is the
       // same routine the dispatch path uses, called with the same trades and emirate, so the number
@@ -740,8 +888,8 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       // and the drawing's BOQ exactly or by meaning (_shared/service_vocabulary.ts; no alias word since
       // 29 Sep 2026, ruling 890); a brief that names no known service, or one too long to read whole,
       // sends '{}' and the count stays trade-level, as before.
-      try {
-        const services = (await serviceKeysOf(allText, drawingBoq?.boq ?? null, { services: await serviceVocab(admin), embed: remoteEmbedder(admin, 'inquiry_intake') })).keys;
+      const countP = (async () => { try {
+        const services = (await serviceKeysOf(allText, drawingBoq?.boq ?? null, { services: await serviceVocabKept(), embed: remoteEmbedder(admin, 'inquiry_intake') })).keys;
         const { data: cand } = await admin.rpc('fn_match_capability', {
           p_trades: (trades.length ? trades : [category]).filter(Boolean),
           p_need: 'executes', p_products: [], p_brands: [],
@@ -751,7 +899,14 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
         brief.supplier_count = Array.isArray(cand) ? cand.length : 0;
         brief.supplier_count_basis = 'fn_match_capability, the routine dispatch itself uses, over trades [' + (trades.join(',') || category) + ']'
           + (services.length ? ' for services [' + services.join(',') + ']' : '') + (emirate ? ' in ' + emirate : '');
-      } catch (_e) { brief.supplier_count = null; brief.supplier_count_basis = 'matcher unavailable at intake time'; }
+      } catch (_e) { brief.supplier_count = null; brief.supplier_count_basis = 'matcher unavailable at intake time'; } })();
+      // Both are shown on the summary card, neither decides anything: if they are not done by the clock the turn
+      // answers without them (create_inquiry copies the documents list itself, and dispatch counts for itself).
+      if (!(await within(Promise.all([docsP, countP]), clock.left(1_000)))) {
+        if (brief.supplier_count === undefined) { brief.supplier_count = null; brief.supplier_count_basis = 'not counted within the turn; dispatch counts for itself'; }
+        if (brief.required_documents === undefined) { brief.required_documents = []; brief.required_documents_source = 'not read within the turn; create_inquiry copies the checklist itself'; }
+      }
+      clock.lap('ready_reads');
     }
 
     // While the deterministic interview is running, `brief` carries its state — the answers so far
@@ -762,7 +917,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     const drawingState = { ...(boqCheck ? { boq_check: boqCheck } : {}), boq_asked: boqAsked, cad_asked: cadAsked };
     const briefToSave = brief
       ? { ...brief, req_answers: reqAnswers, ...drawingState }
-      : { details: interview ? interview.details : (slotDetails || prevBrief.details || {}), asked_key: interview ? interview.asked_key : null, state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, ...drawingState };
+      : { details: interview ? interview.details : (slotDetails || prevBrief.details || {}), asked_key: interview ? interview.asked_key : (heldNext ? heldNext.key : null), ...(heldNext ? { asked_on_hold: true } : {}), state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, ...drawingState };
     // The two additions the portal renders (14 Sep 2026). On the model path they are derived from
     // what the model and the canonical gate returned; on the interview path they are exact.
     const reqCount = checklist.filter((f: any) => f && f.required).length;
@@ -786,16 +941,61 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // The reply is final only here (the canonical gate, the four questions and the drawing check all
     // rewrite it after the assistant turn was pushed). Save the CORRECTED reply, so a false "ready" is
     // neither kept in the history nor fed back to the model next turn (review of #1277).
-    for (let i = turns.length - 1; i >= 0; i--) if (turns[i] && turns[i].role === 'assistant') { turns[i].text = out.assistant_message || ''; break; }
-    const missingKeys: string[] = status === 'ready' ? [] : (requiredGate ? requiredGate.missing_keys : slotMissingKeys);
-    stampTurn(turns, { status, details: (briefToSave as any).details || {}, req_answers: reqAnswers, missing: Array.isArray(out.missing) ? out.missing.map(String) : [], missing_keys: missingKeys });
-    const { error: saveErr } = await admin.from('inquiry_intake').update({ category, status, raw_input: allText.slice(0, 4000), turns, brief: briefToSave, readiness: Math.max(0, Math.min(100, Number(out.readiness) || 0)), missing: out.missing || [], updated_at: new Date().toISOString() }).eq('id', draft.id);
-    if (saveErr) { await logRun('error', { intake_saved: 0, status_computed: status, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0 }, 'Intake result could not be saved back to inquiry_intake (' + String(saveErr.message) + ') — the customer was told their request was accepted but the brief was never persisted, so the RFQ cannot be dispatched and this looks like the customer simply never finished intake.'); }
-
-    try { await admin.from('ai_qa_log').insert({ email, kind: 'intake', model: 'anthropic/claude-sonnet-5', input: { text: allText.slice(0, 1500), category }, output: { status, category, trades, urgency, readiness: Number(out.readiness) || 0, agent: ACTOR, knowledge: specialist ? specialist.slug : null }, flags: { plausibility, multi_trade: trades.length > 1, specialist: specialist ? specialist.slug : null } }); } catch (_e) { /* */ }
-
-    if (!saveErr) { await logRun(llmCallOk && llmParseOk ? 'ok' : 'error', { intake_saved: 1, status_computed: status, readiness: Number(out.readiness) || 0, trades: trades.length, questions: Array.isArray(out.questions) ? out.questions.length : 0, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0, llm_parse_ok: llmParseOk ? 1 : 0, category_specs_loaded: validSlugs.length, specialist: specialist ? specialist.slug : null }, (llmCallOk && llmParseOk) ? ('Intake turn completed normally: status=' + status + ', category=' + String(category) + ', trades=' + trades.length + ', agent=' + String(specialist ? specialist.slug : 'generic') + '. ' + (status === 'ready' ? 'Brief is supplier-ready and can be dispatched.' : 'RFQ is NOT yet dispatchable — it stays parked until the customer replies.')) : ('Intake turn completed but only via the keyword fallback (LLM unavailable/unparseable): status=' + status + ', category=' + String(category) + ' — this brief was not written by the model, so a request that is actually complete may be wrongly held at needs_info and never reach a supplier.'));
+    // THE WORDS ARE THE MODEL'S (founder_instruction 1339). Everything above decided WHAT this turn says. A reply that is
+    // not the model's own sentence, untouched, was composed by code — replyFromState (the slots or the canonical gate
+    // disagreed with the model's status), the "Thanks, noted. A few quick questions…" lead before the four questions, the
+    // drawing confirm question and the CAD ask appended to it, HELD_FOR_SPECS, or the deterministic interview — and is
+    // written now by the model from that draft and the one question to ask (slots.ts intakeVoice). A reply-writing call
+    // gets clock.replyDeadline() (turn_clock.ts: the clock never turns a reply into code text). The draft goes out only
+    // when OpenRouter is down.
+    let replyBy = 'model' as 'model' | 'outage_fallback' | 'none';   // asserted, not narrowed: voice() sets it in a closure
+    let voiced: { draft: string; problems: string[] } = { draft: '', problems: [] };   // the last draft the model refused
+    const voice = async (draftMsg: string) => {
+      if (llmDown) { replyBy = 'outage_fallback'; return draftMsg; }
+      const v = await intakeVoice(defaultDeps(admin, 'inquiry_intake'), { draft: draftMsg, lang: slotLang, message: text,
+        conversation: turns.slice(0, -1), next: nextQuestion ? { text: nextQuestion.text, options: nextQuestion.options } : null, deadline: clock.replyDeadline() });
+      clock.lap('voice');
+      replyBy = v.by;
+      if (v.by === 'none') voiced = { draft: draftMsg, problems: v.problems ?? [] };
+      return v.text;
+    };
+    {
+      const draftMsg = String(out.assistant_message || '').trim();
+      if (draftMsg && draftMsg !== String(modelWrote ?? '').trim()) out.assistant_message = await voice(draftMsg);
     }
+    // THE REPLY GUARD RUNS ON THIS REPLY TOO (27 Oct 2026). The founder's rule (23 Sep) is that no reply names the licence
+    // number or says "AI": the licence sentence is dropped and "AI" becomes "smart" (the model's own words, edited). A reply
+    // carrying internal or prompt text is REFUSED and written again BY THE MODEL; the state's code text only when
+    // OpenRouter is down (1339).
+    const guarded = guardSupportReply(String(out.assistant_message || ''), slotLang);
+    if (guarded.violations.length) {
+      if (guarded.text) out.assistant_message = guarded.text;
+      else {
+        const ask = nextQuestion?.text ?? (Array.isArray(out.questions) && out.questions[0] ? String(out.questions[0]) : null);
+        out.assistant_message = await voice(replyFromState(status, ask, slotLang));
+        clock.lap('guard_rewrite');
+      }
+    }
+    // THE BUBBLE IS NEVER LEFT EMPTY WHILE THE MODEL IS UP (1339; the review of #1646): every draft refused, so the turn is
+    // filed for the re-ask and its answer is appended when it is written; the question card below still shows.
+    const reaskTid = !String(out.assistant_message || '').trim() && replyBy === 'none'
+      ? await fileReask(voiced.draft + (nextQuestion ? '\nTHE ONE QUESTION TO ASK NOW: ' + nextQuestion.text : '\nAsk no question unless the message above asks one.'), voiced.problems)
+      : null;
+    for (let i = turns.length - 1; i >= 0; i--) if (turns[i] && turns[i].role === 'assistant') { turns[i].text = out.assistant_message || ''; if (reaskTid) turns[i].reask_pending = reaskTid; break; }
+    const missingKeys: string[] = status === 'ready' ? [] : (requiredGate ? requiredGate.missing_keys : slotMissingKeys);
+    stampTurn(turns, { status, details: (briefToSave as any).details || {}, req_answers: reqAnswers, missing: Array.isArray(out.missing) ? out.missing.map(String) : [], missing_keys: missingKeys,
+      reply: { next_question: nextQuestion, remaining_questions: remainingQuestions, readiness: readinessFields } });
+    const { error: saveErr } = await admin.from('inquiry_intake').update({ category, status, raw_input: allText.slice(0, 4000), turns, brief: briefToSave, readiness: Math.max(0, Math.min(100, Number(out.readiness) || 0)), missing: out.missing || [], updated_at: new Date().toISOString() }).eq('id', draft.id);
+    clock.lap('saved');
+    // Where this turn's time went, on the run log (turn_clock.ts): read, prompt, model, exact_spec / held_reply, saved.
+    const timing = { turn_ms: clock.lap('done'), laps: clock.laps, guard: guarded.violations, placed, reply_by: replyBy };
+    if (saveErr) { await logRun('error', { intake_saved: 0, status_computed: status, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0, ...timing }, 'Intake result could not be saved back to inquiry_intake (' + String(saveErr.message) + ') — the customer was told their request was accepted but the brief was never persisted, so the RFQ cannot be dispatched and this looks like the customer simply never finished intake.'); }
+
+    // The QA line and the run log are two independent writes: together, not one after the other.
+    await Promise.all([
+      (async () => { try { await admin.from('ai_qa_log').insert({ email, kind: 'intake', model: 'anthropic/claude-sonnet-5', input: { text: allText.slice(0, 1500), category }, output: { status, category, trades, urgency, readiness: Number(out.readiness) || 0, agent: ACTOR, knowledge: specialist ? specialist.slug : null }, flags: { plausibility, multi_trade: trades.length > 1, specialist: specialist ? specialist.slug : null } }); } catch (_e) { /* */ } })(),
+      saveErr ? Promise.resolve() : logRun(llmCallOk && llmParseOk ? 'ok' : 'error', { intake_saved: 1, status_computed: status, readiness: Number(out.readiness) || 0, trades: trades.length, questions: Array.isArray(out.questions) ? out.questions.length : 0, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0, llm_parse_ok: llmParseOk ? 1 : 0, category_specs_loaded: validSlugs.length, specialist: specialist ? specialist.slug : null, ...timing }, (llmCallOk && llmParseOk) ? ('Intake turn completed normally: status=' + status + ', category=' + String(category) + ', trades=' + trades.length + ', agent=' + String(specialist ? specialist.slug : 'generic') + '. ' + (status === 'ready' ? 'Brief is supplier-ready and can be dispatched.' : 'RFQ is NOT yet dispatchable — it stays parked until the customer replies.')) : ('Intake turn completed but only via the keyword fallback (LLM unavailable/unparseable): status=' + status + ', category=' + String(category) + ' — this brief was not written by the model, so a request that is actually complete may be wrongly held at needs_info and never reach a supplier.')),
+    ]);
 
     return J({ ok: true, intake_id: draft.id, category, trades, classifier_override: classifierOverride, required_gate: requiredGate, urgency, plausibility, provenance, status, assistant_message: out.assistant_message || '', questions: Array.isArray(out.questions) ? out.questions.slice(0, 4) : [], next_question: nextQuestion, readiness: { filled: readinessFields.filled, required: readinessFields.required, score: Number(out.readiness) || 0 }, readiness_score: Number(out.readiness) || 0, missing: out.missing || [], brief, remaining_questions: remainingQuestions,
       // THE OPEN KEYS AND THE HOLD'S REASON GO BACK (stage2 run 321d13ae, 18 Oct 2026). Before a ready the
@@ -803,7 +1003,11 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       // harness answered hvac "system_type" and plumbing "fixture_count" with its whole sheet three times,
       // slots.ts held the intake for unanswered specs, and the run printed "held (held)" with no reason.
       missing_keys: missingKeys,
+      reply_by: replyBy,   // who wrote assistant_message: the model, or the code draft because OpenRouter was down (1339)
+      pending: reaskTid !== null, ...(reaskTid ? { reask_turn_id: reaskTid } : {}),   // filed for the re-ask: the portal waits for it
       ...heldReasonFor(status, email, slotExhausted),
+      // Where the time went goes back only to our own harness (scripts/e2e/intake_turn_latency.mjs).
+      ...(email.endsWith('@example.invalid') ? { timing } : {}),
       agent: ACTOR, agent_name: ar ? 'مهندس مبيعات QuotesDone' : 'QuotesDone sales engineer' });
   } catch (e) { await logRun('error', { unhandled_exception: 1, intake_saved: 0 }, 'inquiry_intake threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e) + ' — the customer\'s RFQ was not captured or not updated, so it will never be routed to suppliers.'); return J({ error: String((e as Error)?.message || e) }, 500); }
 })));

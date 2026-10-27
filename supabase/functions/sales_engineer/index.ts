@@ -48,6 +48,7 @@ import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { STATUS, streamReply, wantsStream } from '../_shared/stream_reply.ts';
 import { PORTAL_TURN_MS, portalRules, portalFacts, wrappedReply, plainLanguage, customerSafe } from './portal_turn.ts';
 import { checkReadability } from '../_shared/readability.ts';
+import { REASK_CLAIM, reaskDue } from '../_shared/reask.ts';
 import { tradeSlugsOf, matchEmirate } from '../_shared/match_criteria.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -387,7 +388,22 @@ const plain = observe('sales_engineer', async (req) => {
       const acct = caller.kind === 'customer' ? accountKey('customer', caller.customerId) : '';
       if (!acct) return J({ turns: [] });
       const c = await openConversation(admin, { account: acct, visitorConv: body.widget_conv, adopt: body.adopt === true });   // the portal sends adopt once, right after sign-in
-      return J({ turns: c.turns ?? [], adopted: c.adopted, pending: !!c.pending });
+      // THE TURNS STILL OWED AN ANSWER (_shared/reask.ts): the portal shows "still working on your answer" for 'working' and
+      // "with your sales engineer" for 'with_team' until the reply fills the row. UI state, never a turn of the conversation.
+      const { data: owedRows } = await admin.from('assistant_logs').select('id,message,path,created_at').eq('conv_id', acct).is('reply', null)
+        .in('path', ['portal:pending', 'portal:with_team']).order('id', { ascending: false }).limit(5);
+      const waiting = (owedRows ?? []).map((w: { id: number; message: string | null; path: string; created_at: string }) =>
+        ({ id: w.id, message: w.message ?? '', state: w.path === 'portal:with_team' ? 'with_team' : 'working', since: w.created_at }));
+      return J({ turns: c.turns ?? [], adopted: c.adopted, pending: !!c.pending, waiting });
+    }
+    // THE ASYNCHRONOUS RE-ASK (_shared/reask.ts): called by pg_cron (fn_reask_kick, every minute, only when a turn is due)
+    // with this seat's own credential. Refused turns of the portal, WhatsApp and the supplier quotation thread are asked
+    // again and delivered into their own conversation; a turn refused REASK_MAX_ATTEMPTS times is handed to its seat.
+    if (action === 'reask_turns') {
+      if (caller.kind !== 'sales_engineer' && caller.kind !== 'founder') return J({ error: 'forbidden' }, 403);
+      const res = await reaskDue(admin, { limit: Math.max(1, Math.min(REASK_CLAIM, Number(body.limit) || REASK_CLAIM)) });
+      await run('reask_turns', res.ok === false ? 'error' : 'ok', { claimed: res.claimed ?? 0, rows: res.rows ?? null }, res.ok === false ? String(res.error) : undefined);
+      return J(res);
     }
     if (action === 'assist') {
       // ── ONE TURN, ON A CLOCK (customer_support owns the conversation, it_engineer the latency; 27 Oct 2026) ──
@@ -483,10 +499,14 @@ const plain = observe('sales_engineer', async (req) => {
       }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential', outage: true };
       lap('reply');
       const reply = a.reply.trim();
+      // the model was up and nothing it wrote passed: this turn is owed the model's answer (the re-ask below)
+      const owed = !reply && a.outage !== true;
+      let logId: number | null = null;
       try {
-        await admin.from('assistant_logs').insert({ message, reply: reply || null, seat: 'sales_engineer', answered: !!reply, ...(convKey ? { conv_id: convKey } : {}),
-          audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind, path: reply ? 'portal:reasoned' : 'portal',
-          gap_task_id: (r.task_id as number | undefined) ?? null });  // the gap fn_sales_assist filed stays linked (review of #1043)
+        const { data: logged } = await admin.from('assistant_logs').insert({ message, reply: reply || null, seat: 'sales_engineer', answered: !!reply, ...(convKey ? { conv_id: convKey } : {}),
+          audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind, path: reply ? 'portal:reasoned' : owed ? 'portal:pending' : 'portal',
+          gap_task_id: (r.task_id as number | undefined) ?? null }).select('id').maybeSingle();  // the gap fn_sales_assist filed stays linked (review of #1043)
+        logId = Number(logged?.id) || null;
       } catch { /* the customer already has the answer; logging must not change the outcome */ }
       if (reply) {
         // the plain-language score of the reply that went out, for the monthly self-review, as supportReply recorded it
@@ -504,8 +524,35 @@ const plain = observe('sales_engineer', async (req) => {
       // model up and every draft refused (answerFromBrief already kept its passing sentences and asked it once more), the
       // portal shows no code-written text.
       const outage = a.outage === true;
-      await run('assist', 'error', { answered: false, outage, attempts: a.attempts, ms: T, task_id: r.task_id ?? null, precedent: recallTrace(memory) });
-      return J({ ok: false, seat: 'sales_engineer', answered: false, error: 'no_answer', outage, attempts: a.attempts, task_id: r.task_id ?? null }, 503);
+      // NEVER LEFT SILENT (independent review of #1640, 27 Oct 2026). With the model up and every draft refused, the turn is
+      // filed for the asynchronous re-ask (_shared/reask.ts): within about a minute the model is asked again on another
+      // family with these problems named, every guard runs again (customerSafe re-run on these records, the plain-language
+      // gate, the figure check, the reply guard), and the answer fills THIS assistant_logs row, so the portal shows it
+      // under the question. After its last refused attempt the turn goes to this seat (held_question). The portal shows
+      // "still working on your answer" meanwhile: UI state, not a reply. A turn the server could not log is not filed.
+      let held_id: number | null = null;
+      if (owed && logId) {
+        try {
+          const subject = { channel: 'portal', log_id: logId, ...(convKey ? { conv_id: convKey } : {}), ...(caller.kind === 'customer' ? { customer_id: caller.customerId } : {}) };
+          const { data: hid } = await admin.rpc('fn_reason_hold', { p_seat: 'sales_engineer', p_surface: 'sales_engineer.portal_unwritten', p_question: message.slice(0, 4000),
+            p_request: { seat: 'sales_engineer', surface: 'sales_engineer.portal_unwritten', subject, research: false,
+              question: message.slice(0, 4000),
+              context: { audience: 'customer', language: lang, turn_id: 'portal:' + logId },
+              reask: { message: message.slice(0, 4000), own_facts: ownQuote ? 'THEIR OWN QUOTES (scoped in SQL to this customer):\n' + ownQuote : '',
+                passages: all.slice(0, 12).map((x) => ({ title: x.title, content: String(x.content ?? '').slice(0, 1200), corpus: x.corpus, record_id: x.record_id })),
+                audience: 'customer', lang, channel: 'the signed-in customer portal', problems: (a.problems ?? []).slice(0, 12) } },
+            p_plan: {}, p_subject: subject, p_reason: 'model_up_no_safe_reply', p_dedupe_key: 'portal_unwritten:' + logId });
+          held_id = Number(hid) || null;
+        } catch { /* unfiled: the 503 below still says no answer; the panel keeps its pending state only when held_id is set */ }
+      }
+      // NOT FILED: the row must not keep 'portal:pending', or assist_history would show "still working on your answer" under
+      // a turn nothing will ever answer (review of #1657, 27 Oct 2026). Conditional: a reply that landed meanwhile is kept.
+      if (owed && logId && held_id === null) {
+        try { await admin.from('assistant_logs').update({ path: 'portal' }).eq('id', logId).is('reply', null).eq('path', 'portal:pending'); } catch { /* best effort */ }
+      }
+      const pending = held_id !== null;
+      await run('assist', 'error', { answered: false, outage, pending, held_id, attempts: a.attempts, ms: T, task_id: r.task_id ?? null, precedent: recallTrace(memory) });
+      return J({ ok: false, seat: 'sales_engineer', answered: false, error: 'no_answer', outage, attempts: a.attempts, pending, held_id, task_id: r.task_id ?? null }, 503);
     }
 
     // ── CONVERSATIONS ──────────────────────────────────────────────────────────────────────────
