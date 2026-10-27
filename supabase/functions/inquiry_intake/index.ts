@@ -18,6 +18,7 @@ import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
 import { remoteEmbedder } from '../_shared/meaning_embed.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { statedSpecs, tradeOf } from '../_shared/reasoned_decisions.ts';
+import { kbChunkIsCustomerFacing } from '../_shared/customer_facing_knowledge.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -240,11 +241,15 @@ Deno.serve(siteCors(observe('inquiry_intake', async (req) => {
         let budget: ReturnType<typeof setTimeout> | undefined;
         try {
           const chunks = await Promise.race([
-            admin.rpc('kb_query', { p_query: text.slice(0, 500), p_category: s, p_limit: 5 })
+            admin.rpc('kb_query', { p_query: text.slice(0, 500), p_category: s, p_limit: 8 })
               .then((r: { data: unknown; error: { message: string } | null }) => { if (r.error) throw new Error(r.error.message); return r.data; }),
             new Promise((_ok, no) => { budget = setTimeout(() => no(new Error('kb_query did not answer within 3s')), 3000); }),
           ]).finally(() => clearTimeout(budget));
-          const items = ((chunks as any[]) || []).map((c: any) => (c.title ? c.title + ': ' : '') + String(c.snippet || c.content || '').trim()).filter(Boolean);
+          // WITHHELD FROM THE CUSTOMER (founder ruling 1338, 27 Oct 2026, "Withhold from customers."): a passage the
+          // model or an agent wrote (kb_chunks source_kind 'generated' / 'memory') was never read on a source page, and
+          // this specialist talks to the customer. kb_query returns source_kind; one shared rule decides, and a row
+          // without one is withheld. Eight are asked for so five read sources can still fill the block.
+          const items = ((chunks as any[]) || []).filter((c: any) => kbChunkIsCustomerFacing(c?.source_kind)).slice(0, 5).map((c: any) => (c.title ? c.title + ': ' : '') + String(c.snippet || c.content || '').trim()).filter(Boolean);
           if (items.length) parts.push(s + ':\n' + items.join('\n\n'));
           else console.warn('kb_query returned nothing for category', s, 'in', Date.now() - t0, 'ms');
         } catch (e) {

@@ -8,6 +8,7 @@
 // another family) so even a caller that does not stream gets its JSON well inside the wall.
 // prevented by: sales_engineer/portal_turn.test.ts, _shared/brief_answer.test.ts
 import { checkReadability, MAX_SENTENCE_WORDS } from '../_shared/readability.ts';
+import { kbChunkIsCustomerFacing } from '../_shared/customer_facing_knowledge.ts';
 
 /** Every model call of one portal turn starts and ends inside this, counted from the request's arrival. Under half the
  *  150 s edge wall, so a non-streaming caller also has its answer (or its notice) long before a 504 could happen. */
@@ -67,8 +68,9 @@ export interface Record_ { title?: unknown; content?: unknown; corpus?: unknown;
  *   - support_knowledge (722, all readable by fn_sales_assist): 90 tagged audience:internal (88 sourced from founder
  *     instructions or memory, 30 kind:company), e.g. the activation and win-back playbook. Same rule.
  *   - kb_chunks: 53 rows of source_kind 'memory' are agent_memory notes (internal working notes, e.g. "KB submissions
- *     require Knowledge Curator review"). Withheld. The 1,317 'generated' rows are left as the estate's own rule
- *     (fn_knowledge_library_source_sql) marks every kb_chunks row verified; that is a policy question, not this code's.
+ *     require Knowledge Curator review"). Withheld. The 1,317 'generated' rows (model-written trade knowledge, incl.
+ *     "Typical Cost Ranges (AED)" per trade) are withheld too: founder ruling 1338, 27 Oct 2026, "Withhold from
+ *     customers." The rule is _shared/customer_facing_knowledge.ts, shared with every other customer-facing reader.
  *   - company_faq (638 rows, all 'approved', the filter fn_sales_assist applies), category_specs (56) and
  *     category_quote_specs (141) carry customer-facing requirement facts and pass (PASS_THROUGH).
  *  A corpus with neither a rule nor a PASS_THROUGH entry is WITHHELD: a corpus fn_sales_assist starts returning later
@@ -89,8 +91,9 @@ export const CUSTOMER_SAFE: Record<string, SafetyRule> = {
     safe: (f) => !internalToCustomer(f) && f.runtime_index_eligible === true },
   support_knowledge: { table: 'support_knowledge', key: 'record_id', select: 'record_id, tags, source_ids, runtime_index_eligible',
     safe: (f) => !internalToCustomer(f) && f.runtime_index_eligible === true },
+  // primary-key lookup (kb_chunks_pkey); 'generated' and 'memory' withheld (founder ruling 1338, 27 Oct 2026)
   kb_chunks: { table: 'kb_chunks', key: 'id', select: 'id, source_kind',
-    safe: (f) => typeof f.source_kind === 'string' && f.source_kind !== 'memory' },
+    safe: (f) => kbChunkIsCustomerFacing(f.source_kind) },
   ops_knowledge: { table: 'ops_knowledge', key: 'record_id', select: 'record_id, scope_type, dept_key, runtime_eligible, supersession_state, validation_status',
     safe: (f) => f.runtime_eligible === true && f.supersession_state === 'current' && f.dept_key == null
       && ['company', 'external_source', 'category'].includes(String(f.scope_type)) && typeof f.validation_status === 'string' && f.validation_status !== 'draft' },

@@ -163,6 +163,22 @@ Deno.test('internal support playbooks, agent memory in kb_chunks and internal-so
     ['support_knowledge:su-ok', 'kb_chunks:70', 'sales_knowledge:sk-ok']);
 });
 
+// Founder ruling 1338 (27 Oct 2026): "Withhold from customers." kb_chunks 'generated' (1,317 model-written rows, incl.
+// "Typical Cost Ranges (AED)" per trade) passed customerSafe on ae4f96913, which withheld only 'memory'. Fails there.
+flags.kb_chunks.push({ id: 73, source_kind: 'generated' }, { id: 74, source_kind: 'regulation' }, { id: 75, source_kind: '' });
+
+Deno.test('model-written kb_chunks rows (source_kind generated) never reach a customer; read sources still do', async () => {
+  const records = ['70', '71', '72', '73', '74', '75'].map((i) => rec('kb_chunks', i));
+  const kept = await customerSafe(records, fake);
+  assertEquals(kept.map((x) => x.record_id), ['70', '74']);
+  assert(!portalFacts({ passages: kept }).includes('(73)'), 'a generated row reached the facts');
+  // the lookup the portal makes is by primary key and reads only source_kind
+  assertEquals([CUSTOMER_SAFE.kb_chunks.key, CUSTOMER_SAFE.kb_chunks.select], ['id', 'id, source_kind']);
+  // and it still fails closed: a failed kb_chunks lookup withholds every kb_chunks record
+  const erroring: FlagLookup = (rule, ids) => rule.table === 'kb_chunks' ? Promise.resolve({ data: null, error: { message: 'timeout' } }) : fake(rule, ids);
+  assertEquals(await customerSafe(records, erroring), []);
+});
+
 Deno.test('a corpus with no rule and no pass-through entry is withheld, not trusted', async () => {
   assertEquals(await customerSafe([rec('ceo_knowledge', 'x'), rec('', 'y'), rec('company_faq', '1')], fake), [rec('company_faq', '1')]);
 });
