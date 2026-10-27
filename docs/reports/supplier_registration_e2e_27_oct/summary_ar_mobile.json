@@ -1,0 +1,206 @@
+{
+  "tag": "d7f57502",
+  "site": "https://quotesdone.com",
+  "journey": [
+    {
+      "m": "ar/mobile",
+      "step": 1,
+      "name": "supplier landing page and sign-up form",
+      "status": "PASS",
+      "ms": 6059,
+      "detail": "landing h1 \"قدّموا عروضكم على مشاريع حقيقية في الإمارات، واحتفظوا بكامل \"; CTA shown -> /portal; form \"Register as a supplier\""
+    },
+    {
+      "m": "ar/mobile",
+      "step": 2,
+      "name": "e-mail verification (form refuses the reserved domain before sending; code verified through login_otp)",
+      "status": "PASS",
+      "ms": 11735,
+      "detail": "reserved-domain refusal on screen: true; login_otp HTTP 200 ok=true; session issued"
+    },
+    {
+      "m": "ar/mobile",
+      "step": 3,
+      "name": "company details + trade; emirates optional with \"All emirates\" (no restriction)",
+      "status": "PASS",
+      "ms": 15808,
+      "detail": "lead 150069 sector=aluminium; legend \"Emirates you serveOptional\"; \"All emirates\" present; 8/8 boxes ticked"
+    },
+    {
+      "m": "ar/mobile",
+      "step": 4,
+      "name": "company profile upload completes (stored, object in supplier-docs)",
+      "status": "PASS",
+      "ms": 32483,
+      "detail": "licence stored in 16546 ms (request sent at 1334 ms after the file was picked, answered at 14169 ms); Submit ended in 15937 ms; profile profiles/150069/1793123312100_d7f57502_0_company_profile.pdf (object 1)"
+    },
+    {
+      "m": "ar/mobile",
+      "step": 5,
+      "name": "catalogue upload completes (stored, object in supplier-docs)",
+      "status": "PASS",
+      "ms": 15937,
+      "detail": "catalog_doc_paths 1, objects 1"
+    },
+    {
+      "m": "ar/mobile",
+      "step": 6,
+      "name": "page set up: services rewritten by the sales engineer and confirmed",
+      "status": "FAIL",
+      "ms": 78256,
+      "detail": "\"Set up my page\" control on screen: NO — no such control exists in the portal; the Services tab confirm is the step that publishes what the supplier offers; confirm enabled true; saved note false; server request FAILED in the browser after 31017 ms: net::ERR_FAILED | network: status null, allow-origin undefined, failure null; capability confirmations 1"
+    },
+    {
+      "m": "ar/mobile",
+      "step": 7,
+      "name": "dashboard loads; \"Inquiries received\" opens and settles",
+      "status": "PASS",
+      "ms": 3264,
+      "detail": "tabs [\"Services\",\"Inquiries received\",\"Quotations submitted\",\"Messages\",\"Documents\",\"Insights\"]; settled 3002 ms; panel text \"SUPPLIER PORTAL 2 Account ▾ ZZ DEMO Walk d7f57502 ar mobile 0 Approved Licence expires · 14 Mar 2028 Services Inquiries received Quotations \"; page errors none"
+    }
+  ],
+  "results": [
+    {
+      "m": "ar/mobile",
+      "name": "STEP 1 supplier landing page and sign-up form",
+      "ok": true,
+      "detail": "6059 ms — landing h1 \"قدّموا عروضكم على مشاريع حقيقية في الإمارات، واحتفظوا بكامل \"; CTA shown -> /portal; form \"Register as a supplier\""
+    },
+    {
+      "m": "ar/mobile",
+      "name": "STEP 2 e-mail verification (form refuses the reserved domain before sending; code verified through login_otp)",
+      "ok": true,
+      "detail": "11735 ms — reserved-domain refusal on screen: true; login_otp HTTP 200 ok=true; session issued"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "STEP 3 company details + trade; emirates optional with \"All emirates\" (no restriction)",
+      "ok": true,
+      "detail": "15808 ms — lead 150069 sector=aluminium; legend \"Emirates you serveOptional\"; \"All emirates\" present; 8/8 boxes ticked"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "STEP 4 company profile upload completes (stored, object in supplier-docs)",
+      "ok": true,
+      "detail": "32483 ms — licence stored in 16546 ms (request sent at 1334 ms after the file was picked, answered at 14169 ms); Submit ended in 15937 ms; profile profiles/150069/1793123312100_d7f57502_0_company_profile.pdf (object 1)"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "STEP 5 catalogue upload completes (stored, object in supplier-docs)",
+      "ok": true,
+      "detail": "15937 ms — catalog_doc_paths 1, objects 1"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "a fixture mobile is refused before any SMS",
+      "ok": true,
+      "detail": "{\"ok\":false,\"captured\":true,\"code\":\"fixture_number\",\"error\":\"This is a reserved test numbe"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "the form shows the mobile verified",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "ar/mobile",
+      "name": "ruling 1230: registration completes 100% — approved, signed certificate, mobile + e-mail verified, acceptance hashed, all 7 emirates",
+      "ok": true,
+      "detail": "{\"approval_status\":\"approved\",\"signed_terms_path\":\"suppliers/1793123324239_ZZ_DEMO_Walk_d7f57502_ar_mobile_0_TnC-Acceptance.pdf\",\"licence_gate_reason\":null,\"pv\":true,\"ev\":true,\"ip\":true,\"sha\":true,\"service_emirates\":[\"Abu Dhabi\",\"Dubai\",\"Sharjah\",\"Ajman\",\"Umm Al Quwain\",\"Ras Al Khaimah\",\"Fujairah\"],\"contact_name\":\"ZZ DEMO Contact\"}; approved 46546 ms after Submit returned"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "STEP 6 page set up: services rewritten by the sales engineer and confirmed",
+      "ok": false,
+      "detail": "78256 ms — \"Set up my page\" control on screen: NO — no such control exists in the portal; the Services tab confirm is the step that publishes what the supplier offers; confirm enabled true; saved note false; server request FAILED in the browser after 31017 ms: net::ERR_FAILED | network: status null, allow-origin undefined, failure null; capability confirmations 1"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "STEP 7 dashboard loads; \"Inquiries received\" opens and settles",
+      "ok": true,
+      "detail": "3264 ms — tabs [\"Services\",\"Inquiries received\",\"Quotations submitted\",\"Messages\",\"Documents\",\"Insights\"]; settled 3002 ms; panel text \"SUPPLIER PORTAL 2 Account ▾ ZZ DEMO Walk d7f57502 ar mobile 0 Approved Licence expires · 14 Mar 2028 Services Inquiries received Quotations \"; page errors none"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Services\" settles",
+      "ok": true,
+      "detail": "3150 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Inquiries received\" settles",
+      "ok": true,
+      "detail": "3431 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Quotations submitted\" settles",
+      "ok": true,
+      "detail": "1316 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Messages\" settles",
+      "ok": true,
+      "detail": "78 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Documents\" settles",
+      "ok": true,
+      "detail": "3689 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Insights\" settles",
+      "ok": true,
+      "detail": "4691 ms"
+    }
+  ],
+  "teardown": {
+    "removed": {
+      "counts": {
+        "notifications": 4,
+        "comparison_candidate_v2 (table no longer exists)": 0,
+        "agent_actions": 4,
+        "documents": 3,
+        "company_event (lead)": 2,
+        "file_scan": 3,
+        "supplier_capability_confirmation": 1,
+        "supplier_capabilities (fk supplier_id -> leads)": 1,
+        "taxonomy_trade_proposal (fk supplier_id -> leads)": 1,
+        "leads": 1,
+        "customer_organization (table no longer exists)": 0,
+        "email_verifications": 1,
+        "auth_users": 1,
+        "storage_objects": 7
+      },
+      "objects": {
+        "drawing-files": 0,
+        "quote-files": 0,
+        "signed-terms": 1,
+        "supplier-docs": 6,
+        "agent-docs": 0
+      },
+      "summary": "notifications 4, comparison_candidate_v2 (table no longer exists) 0, agent_actions 4, documents 3, company_event (lead) 2, file_scan 3, supplier_capability_confirmation 1, supplier_capabilities (fk supplier_id -> leads) 1, taxonomy_trade_proposal (fk supplier_id -> leads) 1, leads 1, customer_organization (table no longer exists) 0, email_verifications 1, auth_users 1, storage_objects 7"
+    },
+    "leftovers": {
+      "auth_users": 0,
+      "customers": 0,
+      "leads": 0,
+      "inquiries": 0,
+      "quotes": 0,
+      "quote_spec_hold": 0,
+      "quote_reviews": 0,
+      "notifications": 0,
+      "transactions": 0,
+      "refunds": 0,
+      "supplier_dues": 0,
+      "refund_case": 0,
+      "inquiry_intake": 0,
+      "email_verifications": 0,
+      "storage_objects": 0,
+      "total": 0
+    }
+  }
+}
