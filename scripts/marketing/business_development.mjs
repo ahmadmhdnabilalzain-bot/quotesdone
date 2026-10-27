@@ -24,6 +24,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sanitizeBlogHtml } from '../lib/sanitize_blog_html.mjs';   // published HTML is allow-listed (Aikido, 19 Oct 2026)
+import { pickApiKey } from '../lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
@@ -42,7 +43,7 @@ async function sql(query) {
 
 async function call(action, payload) {
   const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: 'Bearer ' + mgmtToken() } })).json();
-  const service = keys.find?.((k) => k.name === 'service_role')?.api_key;
+  const service = pickApiKey(keys, 'secret');
   const cred = (await sql("select value from public.app_secrets where key = 'cred_fn_marketing_outreach'"))[0]?.value;
   if (!service || !cred) throw new Error('could not read the service key or cred_fn_marketing_outreach');
   const r = await fetch(`https://${REF}.supabase.co/functions/v1/marketing_outreach`, {

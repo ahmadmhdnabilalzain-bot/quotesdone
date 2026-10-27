@@ -38,7 +38,7 @@ import { render } from '@/components/ChatWidget';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import { BrandMark } from '@/components/BrandMark';
 import { forgetWidgetConv, readWidgetConv } from '@/lib/widgetConv';
-import { answerAfter, noVerdict, readReply, savedLineDue } from '@/lib/portalReply';
+import { answerAfter, answerRightAfter, noVerdict, pendingDue, readReply, savedLineDue, waitingOf, PENDING_EVERY_MS, PENDING_FOR_MS } from '@/lib/portalReply';
 
 // THE INFORMATION ARCHITECTURE, WRITTEN DOWN.
 //
@@ -159,6 +159,36 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
   const fileRef = useRef(null);
   const [photo, setPhoto] = useState('');
   const sentSeed = useRef('');
+  // A TURN STILL OWED THE MODEL'S ANSWER (src/lib/portalReply.ts pendingDue; supabase/functions/_shared/reask.ts). Its
+  // marker (role 'pending') is UI state: "still working on your answer", or "with your sales engineer" once handed off.
+  // It is replaced by the answer when the re-ask fills that turn's row, read back from assist_history every 10 s.
+  const watching = useRef(new Set());
+  const alive = useRef(true);
+  useEffect(() => () => { alive.current = false; }, []);
+  const pendingText = (state) => t(state === 'with_team' ? 'asst_with_team' : 'asst_working');
+  const watch = (question) => {
+    if (!token || watching.current.has(question)) return;
+    watching.current.add(question);
+    (async () => {
+      const until = Date.now() + PENDING_FOR_MS;
+      while (alive.current && Date.now() < until) {
+        await new Promise((res) => setTimeout(res, PENDING_EVERY_MS));
+        try {
+          const r = await fetch(fnUrl('sales_engineer'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+            body: JSON.stringify({ action: 'assist_history' }) });
+          const j = r.ok ? await r.json() : null;
+          const a = answerRightAfter(j && j.turns, question);
+          if (a) {
+            setMsgs((m) => m.map((x) => (x.role === 'pending' && x.q === question ? { role: 'assistant', content: a } : x)));
+            break;
+          }
+          const w = waitingOf(j).find((x) => x.message.trim() === question.trim());
+          if (w) setMsgs((m) => m.map((x) => (x.role === 'pending' && x.q === question ? { ...x, content: pendingText(w.state) } : x)));
+        } catch (_e) { /* asked again on the next tick */ }
+      }
+      watching.current.delete(question);
+    })();
+  };
   // redrawn from the database on every visit: a reload, another device or days later shows the whole conversation
   useEffect(() => {
     if (!token) return;
@@ -166,7 +196,20 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
     fetch(fnUrl('sales_engineer'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
       body: JSON.stringify({ action: 'assist_history', ...(wc ? { widget_conv: wc, adopt: true } : {}) }) })
       // the widget id is cleared only once the server answered and nothing is left to adopt (moved now, or already moved)
-      .then((r) => (r.ok ? r.json() : null)).then((j) => { if (wc && j && !j.error && !j.pending) { forgetWidgetConv(); } if (Array.isArray(j?.turns) && j.turns.length) setMsgs(j.turns); })
+      .then((r) => (r.ok ? r.json() : null)).then((j) => {
+        if (wc && j && !j.error && !j.pending) { forgetWidgetConv(); }
+        if (!(Array.isArray(j?.turns) && j.turns.length)) return;
+        // a turn still owed its answer gets its pending marker right under the question, and is watched
+        const shown = [...j.turns];
+        for (const w of waitingOf(j)) {
+          let k = -1;
+          for (let i = shown.length - 1; i >= 0; i--) if (shown[i].role === 'user' && String(shown[i].content || '').trim() === w.message.trim()) { k = i; break; }
+          if (k < 0 || (shown[k + 1] && shown[k + 1].role === 'assistant')) continue;
+          shown.splice(k + 1, 0, { role: 'pending', q: w.message, content: pendingText(w.state) });
+          watch(w.message);
+        }
+        setMsgs(shown);
+      })
       .catch(() => { /* the next turn still reads the whole conversation on the server */ });
   }, [token]);
 
@@ -180,7 +223,7 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
     setPhoto('');
     setVal(''); setBusy(true);
     // a notice is the panel's own line, never a turn of the conversation: it is not sent back as history
-    const history = msgs.filter((m) => m.role !== 'notice').map((m) => ({ role: m.role, content: m.content }));
+    const history = msgs.filter((m) => m.role === 'user' || m.role === 'assistant').map((m) => ({ role: m.role, content: m.content }));
     setMsgs((m) => [...m, { role: 'user', content: q }]);
     setStatus(''); setLive('');
     const j = await askAssistant(q, history, token, lang, '/me', images, { status: setStatus, text: setLive });
@@ -193,10 +236,13 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
     setLive(''); setStatus('');
     // the saved line only on a transport failure or when OpenRouter was down (1339, savedLineDue); with the model up and
     // nothing sendable, no code-written text is shown
+    // a turn filed for the re-ask (model up, every draft refused): the pending state, then the model's answer (never silence)
     setMsgs((m) => reply
       ? [...m, { role: 'assistant', content: reply, scope: j.done && j.done.scope }]
+      : pendingDue(j) ? [...m, { role: 'pending', q, content: t('asst_working') }]
       : savedLineDue(j, reply) ? [...m, { role: 'notice', content: t('asst_saved') }] : m);
     setBusy(false);
+    if (!reply && pendingDue(j)) watch(q);
   };
 
   // A question typed into the top bar opens this panel already carrying it, so the widest element
@@ -255,6 +301,13 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
               {m.role === 'assistant'
                 ? <span dangerouslySetInnerHTML={{ __html: render(m.content) }} />
                 : m.role === 'notice' ? <span className="italic text-muted-foreground">{m.content}</span>
+                : m.role === 'pending' ? (
+                  <span className="flex items-center gap-1.5 italic text-muted-foreground" aria-live="polite">
+                    {[0, 1, 2].map((d) => (
+                      <span key={d} className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70 motion-safe:animate-pulse" style={{ animationDelay: d * 180 + 'ms' }} />
+                    ))}
+                    <span className="ms-1">{m.content}</span>
+                  </span>)
                 : m.content}
             </div>
           </div>

@@ -112,6 +112,37 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_support_reply_watch_tick()',
     asOf: { inbound_messages: 'created_at', wa_messages: 'created_at', assistant_logs: 'created_at' },
   },
+  // 19 Oct 2026 (customer_support, #1549, CS-C08). Raises delivery_outcome_unreturned: a delivery.request done or
+  // failed more than 2 h before the instant with no delivery.result returned and no open watch window. It runs
+  // fn_customer_support_delivery_watch first (its returns are written inside the rolled-back replay). A request's
+  // status and result_handoff_id are PRESENT state (same ceiling as fn_support_reply_watch_tick): one returned
+  // after the instant reads as returned then, so it can under-fire, never over-fire.
+  // The watch is stubbed in the replay (review of #1549 after main's row-lock walk): it returns results through
+  // fn_seat_handoff -> act -> complete, which can lock a LIVE refunds or refund_incident row when the asking seat is the
+  // accountant. The alarm's decision does not need it here: result_handoff_id is present state, so a request the watch
+  // returned after the instant already reads as returned, and stubbing can only under-fire.
+  fn_customer_support_delivery_outcome_tick: {
+    stub: { 'public.fn_customer_support_delivery_watch': `'{}'::jsonb` },
+    replay: 'pg_temp.qd_replay_fn_customer_support_delivery_outcome_tick()',
+    asOf: { agent_actions: 'created_at', notifications: 'created_at' },
+  },
+  // 19 Oct 2026 (customer_support, #1549, CS-C06). Raises support_reply_quality:<readability_avg|tone_avg|scored_share>
+  // over the 7 days to the instant. scored_share judges only replies sent after support_reply_scoring_complete_since
+  // (the day every road scores), so an instant before it cannot fire on the gap that file fixed.
+  fn_customer_support_reply_quality_week: {
+    replay: 'pg_temp.qd_replay_fn_customer_support_reply_quality_week()',
+    asOf: { support_reply_readability: 'created_at', assistant_logs: 'created_at', wa_messages: 'created_at', inbound_messages: 'created_at' },
+  },
+  // 19 Oct 2026 (customer_support, #1549, CS-C09). Raises delivery_health:<send_failures|whatsapp_failures|
+  // template_watch|unsubscribe_refusals> over the 24 h to the instant: failures over 5% of 20+ sends, a template
+  // watcher run not ok (or none), a refused unsubscribe from a real address.
+  // Sending the signed opt-out confirmation is the follow-on action, not the alarm: stubbed, so the replay neither
+  // queues a message nor walks fn_customer_support_takes_delivery's handoff chain into a live row lock.
+  fn_customer_support_delivery_health_tick: {
+    stub: { 'public.fn_customer_support_duty_send': `'{}'::jsonb` },
+    replay: 'pg_temp.qd_replay_fn_customer_support_delivery_health_tick()',
+    asOf: { notifications: 'created_at', agent_runs: 'started_at', email_suppressions: 'created_at', inbound_messages: 'created_at' },
+  },
   // 23 Sep 2026 (sales_engineer, #869). Raises two findings: a reminder whose handler failed three times,
   // and a reminder whose delivery never became final in 3 days. Both read handoffs and leads that existed
   // at the instant; p_include_fixtures false, so a healthy day with no failing or stuck reminder is quiet.
@@ -186,6 +217,12 @@ export const REGISTER = {
   fn_it_engineer_duty_pause_expiry: {
     replay: 'pg_temp.qd_replay_fn_it_engineer_duty_pause_expiry()',
     asOf: { duty_pause: 'paused_at' },
+  },
+  // 27 Oct 2026 (it_engineer, 68046f265, ledger 1003 IT-C14). A run label with more than 5 runs in 7 days and more than
+  // half of them not ok is one owned finding. Runs that existed at the instant.
+  fn_it_engineer_run_clusters: {
+    replay: 'pg_temp.qd_replay_fn_it_engineer_run_clusters()',
+    asOf: { agent_runs: 'started_at' },
   },
   fn_ceo_report_answer_sweep: { stub: { 'public.fn_ceo_decide_report': 'null', 'public.fn_ceo_backup_heartbeat_decide': 'null' }, replay: 'pg_temp.qd_replay_fn_ceo_report_answer_sweep()', asOf: {} },
   fn_ceo_constraint_lever: { stub: { 'public.fn_ceo_improvement_close': 'null' }, replay: 'pg_temp.qd_replay_fn_ceo_constraint_lever()', asOf: {} },
@@ -288,6 +325,8 @@ export const REGISTER = {
   fn_it_loop_stage: { relay: 'records that an IT loop stage raised; the error is the finding' },
   fn_seat_duty_cross_review: { relay: 'records that a cross-family review could not be opened; the error from fn_seat_deliberation_open is the finding' },
   fn_seat_handoff: { relay: 'records a handoff that could not be opened; the error is the finding' },
+  // 27 Oct 2026 (#1607, accountant): the reveal-invoice trigger raises only in the exception arm of its handoff insert.
+  fn_accountant_files_reveal_invoice: { relay: 'records that the invoice.issued handoff to the sales engineer could not be filed for a transaction whose invoice it just filed; fires only when that insert is refused (the error is the finding), and a healthy day has none' },
   fn_ceo_accountant_notice_report_decide: { relay: 'the CEO\'s decision on an accountant report' },
   fn_ceo_sales_engineer_report_decide: { relay: 'the CEO\'s decision on a sales engineer report' },
   fn_it_journey_ingest: { relay: 'writes the failed steps a nightly journey or smoke run reports' },

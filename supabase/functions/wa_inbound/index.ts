@@ -544,6 +544,18 @@ async function handleInbound(req: Request): Promise<Response> {
         return TW(200);
       }
     }
+    // ---- A SUPPLIER LEAD'S OPT-IN IS THE BUTTON OR A YES TO THE CONSENT QUESTION, NEVER JUST A MESSAGE ----
+    // (marketing, 27 Oct 2026, rulings 1184 and 1341.) Meta lets a business send a template only to a person who opted
+    // in. Founder ledger 1341: an opt-in counts only when the supplier taps "Set up my page" (ButtonPayload
+    // 'supplier_invite_yes') or answers yes to a message that asked the consent question; "who is this?" is not one.
+    // fn_marketing_files_wa_invite_reply decides with fn_wa_optin_rule (the one shared check) and records an opt-in only
+    // then. ButtonPayload is passed as Twilio sent it, so a typed "Set up my page" (no payload) is not a tap. When the
+    // lead was invited on any channel and has no company page yet the message is still filed as 'invite.reply'
+    // marketing -> sales_engineer. It never ends the turn: the supplier still gets the normal answer.
+    if (!isStop(Body)) {
+      const { error: repErr } = await admin.rpc('fn_marketing_files_wa_invite_reply', { p_from: From, p_body: Body.slice(0, 4000), p_button_payload: ButtonPayload || null });
+      if (repErr) await logRun('error', { invite_reply: 0 }, 'a WhatsApp message from a possible supplier lead was not filed: ' + repErr.message + '; the turn continues.');
+    }
 
 
     // ---- THE WORDS OF EVERY CONVERSATION REPLY (rulings 1195/1196/1197, 12 Oct 2026) ----------------------------
@@ -555,6 +567,8 @@ async function handleInbound(req: Request): Promise<Response> {
     let modelEscalate = false;
     // OPENROUTER DOWN ON THIS TURN (founder_instruction 1339): set by the last say; heldTurn sends its fixed notice only then.
     let sayOutage = false;
+    // WHY THE LAST SAY'S DRAFTS WERE REFUSED (aiReply.problems): filed with the turn so the re-ask names them (_shared/reask.ts).
+    let sayProblems: string[] = [];
     const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[]) => {
       const r = await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
         budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
@@ -562,6 +576,7 @@ async function handleInbound(req: Request): Promise<Response> {
         subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}) });
       modelEscalate = modelEscalate || r.escalate;
       sayOutage = !r.text && r.outage;
+      sayProblems = r.text ? [] : (r.problems ?? []);
       return r.text;
     };
     // `audience` is resolved further down; `say` is only called after that (the spec-offer branch uses sayFor('customer')).
@@ -572,7 +587,7 @@ async function handleInbound(req: Request): Promise<Response> {
     // sends the written answer here (reasoned_delivery.ts); still unanswered after 15 minutes it is escalated to
     // customer_support (fn_reason_held_escalate, scripts/sql/an_unwritten_conversation_reply_reaches_its_seat_in_fifteen_minutes.sql).
     const heldTurn = (aud: 'customer' | 'supplier' | 'visitor' | 'founder', lang: 'en' | 'ar', situation: string, why: string) =>
-      holdUnwritten({ from: From, body: Body, messageSid: MessageSid || null, audience: aud, lang, situation, why, outage: sayOutage,
+      holdUnwritten({ from: From, body: Body, messageSid: MessageSid || null, audience: aud, lang, situation, why, outage: sayOutage, problems: sayProblems,
         enabled: async () => (await sec('wa_autoreply_enabled')) === 'true', send: (t) => sendWa(From, t),
         rpc: async (f, a) => { const r = await admin.rpc(f, a); return { data: r.data, error: r.error }; } });
 

@@ -55,9 +55,13 @@ export async function activeServiceRows<T = Record<string, unknown>>(admin: Admi
  *  The multilingual vector (embedding_ml) is read separately so that a database without that column yet (its SQL
  *  is applied at release) still answers everything else. */
 export async function serviceVocab(admin: Admin): Promise<MeaningService[]> {
-  const { data, error } = await activeServiceRows(admin, 'trade_code,code,label_en,label_ar,aliases,embedding_gte');
+  // The two spaces are two independent reads, asked together (27 Oct 2026: ~1,047 rows each, the slowest part of an
+  // intake turn that reached ready, inquiry_intake/turn_clock.ts).
+  const [{ data, error }, ml] = await Promise.all([
+    activeServiceRows(admin, 'trade_code,code,label_en,label_ar,aliases,embedding_gte'),
+    activeServiceRows(admin, 'trade_code,code,embedding_ml'),
+  ]);
   if (error) return [];
-  const ml = await activeServiceRows(admin, 'trade_code,code,embedding_ml');
   const mlOf = new Map<string, number[] | null>((ml.error ? [] : ml.data || [])
     .map((r: Record<string, unknown>) => [`${r.trade_code}.${r.code}`, parseVec(r.embedding_ml)] as [string, number[] | null]));
   return (data || []).map(({ embedding_gte, ...s }: Record<string, unknown>) =>

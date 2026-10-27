@@ -84,7 +84,10 @@ test('no migrated decision point is decided by a word list again, and each one a
   assert.ok(th.includes('await recallCases(deps, '), 'think.ts lost its case recall (recallCases)');
   assert.ok(read('supabase/functions/_shared/case_recall.ts').includes("admin.rpc(ml ? 'fn_case_recall_ml' : 'fn_case_recall', {"), 'case_recall.ts lost fn_case_recall');
   // 7 Oct 2026 (ledger 1175), 12 Oct: REPLAY_CLAIM a claim, concurrently, bounded by REPLAY_MAX_ROWS and REPLAY_BUDGET_MS per tick.
-  assert.match(read('supabase/functions/resilience_ping/index.ts'), /step\('reasoning_held', async \(\) => replayHeld\(admin, REPLAY_CLAIM, undefined, \(row, r\) => deliverReasoned\(row, r, liveDeliveryIO\(admin\)\),\s*\{ maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS \}\)\)/);
+  // 27 Oct (#1687, #1688): on heartbeatDeps(admin), in its own detached run kicked by reasoning_held, handed that run's deadline.
+  const rp = read('supabase/functions/resilience_ping/index.ts');
+  assert.match(rp, /step\('reasoning_held', async \(\) => kickDetached\('heldReplay'\)\)/);
+  assert.match(rp, /replayHeld\(admin, REPLAY_CLAIM, heartbeatDeps\(admin\), \(row, r\) => deliverReasoned\(row, r, liveDeliveryIO\(admin\)\),\s*\{ maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS, deadline \}\)/);
 });
 
 test('provider webhooks are acknowledged at once and handled after (reasoning never runs inside Twilio\'s or Meta\'s deadline)', () => {

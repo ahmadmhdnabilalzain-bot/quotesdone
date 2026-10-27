@@ -1169,6 +1169,22 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_is_machine_sender(p_from text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE PARALLEL SAFE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(l.v ~ '(^|[-_=])(no[-_.]?reply|do[-_.]?not[-_.]?reply|mailer[-_]?daemon)([-_+.0-9]|$)'
+               or l.v ~ '^postmaster(\+.*)?$'
+               or l.v ~ '(^|=)bounces?([+=].*|-[0-9].*)?$'
+               or l.v ~ '-bounces$',
+           false)
+    from (select lower(coalesce(substring(s.v from '<([^<>\s"]+)@'), substring(s.v from '([^<>\s"]+)@'))) as v
+            from (select regexp_replace(coalesce(p_from, ''), '"[^"]*"', '', 'g') as v) s) l
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_is_matchable(p_verified boolean, p_banned boolean, p_matching_blocked boolean, p_approval_status text, p_permanently_closed boolean, p_chat_strikes integer)
  RETURNS boolean
  LANGUAGE sql
@@ -6303,6 +6319,65 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_mystery_shopper_heartbeat()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_last timestamptz; v_since timestamptz;
+begin
+  select max(finished_at) into v_last from public.agent_runs
+   where agent = 'it_engineer' and counts->>'job' = 'mystery_shopper';
+  -- before the first run the clock starts when the duty was installed, so a fresh install is not a finding
+  v_since := coalesce(v_last, (select created_at from public.seat_duty where duty = 'it_engineer.mystery_shopper_heartbeat'), now());
+  return jsonb_build_object('last_run', v_last, 'settled', public.fn_it_duty_settle('mystery_shopper_heartbeat',
+    case when v_since < now() - interval '26 hours' then jsonb_build_array(jsonb_build_object(
+      'item', 'no_run', 'owner_seat', 'it_engineer', 'subject', '.github/workflows/mystery-shopper.yml',
+      'title', 'The daily mystery shopper has not reported since ' || coalesce(to_char(v_last at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' (Dubai)', 'it was installed'),
+      'blast', 'agent_facing', 'affected', 1, 'evidence', jsonb_build_object('last_run', v_last)))
+    else '[]'::jsonb end));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_mystery_shopper_ingest(p_report jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare x jsonb; v_items jsonb := '[]'::jsonb; v_res jsonb; v_failed int := 0;
+  -- the step's owner: the funnel is the sales engineer's, the comparison report too; the harness itself is IT's
+  v_owner constant jsonb := jsonb_build_object('preflight', 'it_engineer', 'signup', 'customer_support', 'suppliers', 'sales_engineer',
+    'intake', 'sales_engineer', 'matching', 'sales_engineer', 'quote', 'sales_engineer', 'comparison', 'sales_engineer', 'cleanup', 'it_engineer');
+begin
+  if jsonb_typeof(p_report->'steps') is distinct from 'array' or coalesce(btrim(p_report->>'tag'), '') = '' then
+    raise exception 'fn_it_engineer_mystery_shopper_ingest takes {tag, steps:[{step, status, error}]} from scripts/e2e/mystery_shopper.mjs';
+  end if;
+  for x in select e from jsonb_array_elements(p_report->'steps') e loop
+    continue when x->>'status' not in ('FAIL', 'SKIP') or not (v_owner ? (x->>'step'));
+    if x->>'status' = 'FAIL' then v_failed := v_failed + 1; end if;
+    v_items := v_items || jsonb_build_object(
+      'item', x->>'step', 'carried', x->>'status' = 'SKIP',
+      'owner_seat', v_owner->>(x->>'step'), 'subject', 'mystery shopper ' || (x->>'step'),
+      'title', left('Mystery shopper: step ' || (x->>'step') || ' broke: ' || coalesce(nullif(btrim(x->>'error'), ''), 'no error text'), 300),
+      'blast', 'customer_facing', 'affected', 0, 'demo', true,
+      'evidence', jsonb_build_object('tag', p_report->>'tag', 'step', x->>'step', 'error', left(x->>'error', 600)));
+  end loop;
+  -- a SKIP is carried: held if open, never raised on its own (fn_it_duty_settle raises a carried item that has no open
+  -- finding, so a skip with nothing open is left out rather than filed as a break it did not observe)
+  select coalesce(jsonb_agg(e), '[]'::jsonb) into v_items from jsonb_array_elements(v_items) e
+   where not (e->>'carried')::boolean
+      or exists (select 1 from public.it_engineer_finding f where f.issue_key = 'duty:mystery_shopper:' || (e->>'item') and f.closed_at is null);
+  v_res := public.fn_it_duty_settle('mystery_shopper', v_items);
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', case when v_failed = 0 then 'ok' else 'warn' end, now(), now(),
+          jsonb_build_object('job', 'mystery_shopper', 'tag', p_report->>'tag', 'failed', v_failed,
+                             'steps', jsonb_array_length(p_report->'steps')), null);
+  return v_res || jsonb_build_object('failed_steps', v_failed);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_perimeter_freshness()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -6420,6 +6495,84 @@ begin
   return jsonb_build_object('opened', n_open, 'from_playbook', n_play, 'asked', n_asked, 'cause_already_known', n_known,
                             'waiting_on_its_fault', n_waiting,
                             'historical_without_postmortem', v_hist, 'settled', public.fn_it_duty_settle('postmortem', v_items));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_run_clusters()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  v_prefix text := case when coalesce(current_setting('qd.duty_fixtures', true), '') = 'on' then 'duty:run_cluster:fixture:' else 'duty:run_cluster:' end;
+  r record; v_owner text; v_subject text; v_key text; v_res jsonb;
+  v_labels text[] := '{}'; n_found int := 0; n_new int := 0; n_unowned int := 0; n_closed int := 0; f record;
+begin
+  for r in
+    with runs as (
+      select ar.agent as label, coalesce(ar.status, 'none') as status, ar.note
+        from public.agent_runs ar
+       where ar.started_at > now() - interval '7 days'
+         and (coalesce(ar.counts->>'fixture', '0') in ('1', 'true')
+              or coalesce(ar.counts->>'caller', '') = 'fixture'
+              or coalesce(ar.note, '') ilike '%example.invalid%'
+              or coalesce(ar.note, '') like '%ZZ DEMO%') = v_fx)
+    -- A FAILED RUN is any run but an ok, a skipped (a guard refusing correctly) or a warn whose note starts 'HTTP 4xx'
+    -- (a request correctly answered 4xx). A warn with any other note - or none - is an outage reported softly
+    -- (dropbox_backup, it_engineer) and counts; so does a missing status ('none'). 'not ok' was the old rule.
+    select label, count(*) as runs, count(*) filter (where status not in ('ok', 'skipped') and not (status = 'warn' and coalesce(note, '') ~ '^HTTP 4[0-9][0-9]')) as non_ok,
+           (select jsonb_object_agg(s, n) from (select status s, count(*) n from runs r2 where r2.label = runs.label group by 1) z) as statuses,
+           (select jsonb_agg(x) from (select distinct left(r3.note, 200) x from runs r3
+              where r3.label = runs.label and r3.status not in ('ok', 'skipped') and not (r3.status = 'warn' and coalesce(r3.note, '') ~ '^HTTP 4[0-9][0-9]') and r3.note is not null limit 3) z) as notes
+      from runs
+     group by label
+    having count(*) > 5 and count(*) filter (where status not in ('ok', 'skipped') and not (status = 'warn' and coalesce(note, '') ~ '^HTTP 4[0-9][0-9]')) * 2 > count(*)
+     order by count(*) filter (where status not in ('ok', 'skipped') and not (status = 'warn' and coalesce(note, '') ~ '^HTTP 4[0-9][0-9]')) desc
+  loop
+    n_found := n_found + 1;
+    v_labels := v_labels || r.label;
+    v_subject := regexp_replace(r.label, '^fn:', '');
+    v_owner := coalesce(
+      (select o.owner from public.function_owner o join public.org_role s on s.role_id = o.owner and s.status = 'active'
+        where o.function_slug = v_subject),
+      (select d.owner_seat from public.seat_duty d join public.org_role s on s.role_id = d.owner_seat and s.status = 'active'
+        where d.routine = v_subject or d.routine = 'fn_' || v_subject limit 1));
+    if v_owner is null then n_unowned := n_unowned + 1; end if;
+    v_key := v_prefix || r.label;
+    v_res := public.fn_it_engineer_finding_upsert(
+      v_key,
+      format('%s%s failed %s of %s runs in 7 days (%s)%s', case when v_fx then 'ZZ DEMO ' else '' end, r.label, r.non_ok, r.runs,
+             (select string_agg(k || ' ' || v, ', ' order by k) from jsonb_each_text(r.statuses) e(k, v)),
+             case when v_owner is null then ' - no seat owns this run label' else '' end),
+      'agent_runs label ' || r.label,
+      'internal',
+      r.non_ok::int,
+      jsonb_strip_nulls(jsonb_build_object(
+        'duty', 'it_engineer.run_clusters', 'subject', v_subject, 'owner_seat', v_owner, 'unowned', v_owner is null,
+        'runs_7d', r.runs, 'failed_7d', r.non_ok, 'statuses', r.statuses, 'sample_notes', r.notes,
+        'rule', 'more than 5 runs and more than half failed in 7 days; ok, skipped and a warn noted HTTP 4xx are not failures (IT-C14)', 'demo', v_fx)),
+      array['fixture runs counted apart'],
+      case when v_owner is null then array['which seat owns this run label'] else '{}'::text[] end,
+      'it_engineer');
+    if (v_res->>'seen_count')::int = 1 or coalesce((v_res->>'reopened')::boolean, false) then n_new := n_new + 1; end if;
+  end loop;
+
+  -- a label that is no longer a cluster: its finding is closed with the reading that cleared it
+  for f in select e.issue_key, substr(e.issue_key, length(v_prefix) + 1) as label from public.it_engineer_finding e
+            where e.closed_at is null and e.issue_key like v_prefix || '%'
+              and (v_fx or e.issue_key not like 'duty:run_cluster:fixture:%') loop
+    continue when f.label = any (v_labels);
+    perform public.fn_it_engineer_finding_close(f.issue_key, format('cleared: %s now has %s failed of %s runs in 7 days (rule: more than 5 runs and more than half failed; ok, skipped and a warn noted HTTP 4xx are not failures)',
+      f.label,
+      (select count(*) filter (where coalesce(status, 'none') not in ('ok', 'skipped') and not (coalesce(status, 'none') = 'warn' and coalesce(note, '') ~ '^HTTP 4[0-9][0-9]')) from public.agent_runs where agent = f.label and started_at > now() - interval '7 days'),
+      (select count(*) from public.agent_runs where agent = f.label and started_at > now() - interval '7 days')));
+    n_closed := n_closed + 1;
+  end loop;
+
+  return jsonb_build_object('clusters', n_found, 'new_or_reopened', n_new, 'unowned', n_unowned, 'closed', n_closed,
+                            'labels', to_jsonb(v_labels), 'fixture', v_fx);
 end $function$
 
 
@@ -7432,9 +7585,15 @@ begin
      and a.id = substr(r.idempotency_key, 9)::bigint and a.kind = 'handoff' and a.status = 'done';
   get diagnostics n_reports = row_count;
 
-  for h in select * from public.agent_actions
-            where kind = 'handoff' and detail->>'type' = 'it.finding' and detail->>'from' = 'it_engineer'
-              and status in ('pending', 'failed') order by id loop
+  -- 27 Oct 2026: CLEARED FINDINGS FIRST (see the file header). The key mirrors v_cleared below exactly; a row whose
+  -- finding is still open (or whose occurrence cannot be read) sorts after every cleared one, then by id as before.
+  for h in select a.* from public.agent_actions a
+             left join public.it_engineer_finding f0 on f0.issue_key = a.detail->>'issue_key'
+            where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.detail->>'from' = 'it_engineer'
+              and a.status in ('pending', 'failed')
+            order by coalesce(f0.issue_key is null or f0.closed_at is not null
+                              or f0.started_at > (a.detail->>'occurrence_started_at')::timestamptz, false) desc,
+                     a.id loop
     if clock_timestamp() > v_until then n_left := n_left + 1; continue; end if;
     select * into f from public.it_engineer_finding where issue_key = h.detail->>'issue_key';
     -- The occurrence this loop tracked is over when the finding is closed, or when it has since
@@ -10136,6 +10295,21 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_knowledge_internal_figures_withheld()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if exists (select 1 from public.knowledge_internal_figure_record r where r.record_id = new.record_id) then
+    new.supersession_state := 'withdrawn';
+    new.runtime_eligible := false;
+  end if;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_knowledge_library_detach(p_store text, p_id text)
  RETURNS void
  LANGUAGE plpgsql
@@ -10935,10 +11109,10 @@ begin
   t := public.fn_lead_sourcing_today();
   if t->>'stop' is not null then return null; end if;   -- lead quota, Serper cap or model cap reached (or set to 0)
   select value into v_ref  from public.app_secrets where key = 'project_ref';
-  select value into v_anon from public.app_secrets where key = 'anon_key';
+  v_anon := public.fn_gateway_client_key();   -- publishable_key, else the legacy anon_key (27 Oct 2026)
   select value into v_cred from public.app_secrets where key = 'cred_fn_marketing';
   if v_ref is null or v_anon is null or v_cred is null then
-    raise exception 'fn_lead_sourcing_kick: project_ref, anon_key or cred_fn_marketing missing from app_secrets';
+    raise exception 'fn_lead_sourcing_kick: project_ref, publishable_key (or anon_key) or cred_fn_marketing missing from app_secrets';
   end if;
   return net.http_post(url := 'https://' || v_ref || '.supabase.co/functions/v1/marketing',
     headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_anon, 'apikey', v_anon),

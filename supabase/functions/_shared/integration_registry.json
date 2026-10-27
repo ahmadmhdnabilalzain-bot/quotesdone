@@ -141,8 +141,8 @@
     },
     "supabase": {
       "what": "the database, auth, storage and every edge function",
-      "hosts": ["htdblwldjkcgjvmqkbeh.supabase.co"], "secrets": ["anon_key", "project_ref"],
-      "env": ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SB_REGION", "QD_OTP_RACE_PG"],
+      "hosts": ["htdblwldjkcgjvmqkbeh.supabase.co"], "secrets": ["anon_key", "publishable_key", "project_ref"],
+      "env": ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SECRET_KEY", "SB_REGION", "QD_OTP_RACE_PG"],
       "owner_seat": "it_engineer", "blast": "customer_facing",
       "probe": { "kind": "http", "method": "GET", "url": "{env:SUPABASE_URL}/auth/v1/health", "auth": "apikey:SUPABASE_ANON_KEY", "ok": [200] },
       "self_fix": "retried once after 3 s",
@@ -234,8 +234,8 @@
       "action": "Store the TikTok business account token and id in app_secrets (tiktok_business_token, tiktok_business_id)"
     },
     "code_cdns": {
-      "what": "modules and model files the edge functions load at boot",
-      "hosts": ["esm.sh", "cdn.jsdelivr.net", "deno.land", "huggingface.co"], "secrets": [],
+      "what": "modules and model files the edge functions load at boot, and the pinned LibreDWG .wasm doc_read/dwg.ts fetches on first DWG (cdn.jsdelivr.net, else the same checksum-verified file out of its registry.npmjs.org tarball)",
+      "hosts": ["esm.sh", "cdn.jsdelivr.net", "deno.land", "huggingface.co", "registry.npmjs.org"], "secrets": [],
       "owner_seat": "it_engineer", "blast": "internal",
       "notify_founder": false, "notify_why": "nothing he can do about a public CDN; the finding stays with the IT engineer",
       "probe": { "kind": "http", "method": "GET", "url": "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/package.json", "auth": "none", "ok": [200], "every_minutes": 60 },

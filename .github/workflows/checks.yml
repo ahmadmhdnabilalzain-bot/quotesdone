@@ -93,13 +93,14 @@ jobs:
       # 22 SEP 2026 — a DWG is READ, not pictured (founder instructions 31, 63, 64). Nine real DWGs
       # (R14 to 2018) from LibreDWG's test data, fetched at a pinned commit and checked by hash, must give
       # the same take-off as the AutoCAD-written DXF of the same drawing. It needs the network (the
-      # drawings are not ours to commit, and the WASM comes from jsDelivr, else the npm registry tarball),
-      # which the `npm test` Deno suite does not grant, so it is its own step with --allow-net limited to
-      # those three hosts.
+      # drawings are not ours to commit, and the WASM comes from the npm registry tarball), which the
+      # `npm test` Deno suite does not grant, so it is its own step with --allow-net limited to those two
+      # hosts. cdn.jsdelivr.net is deliberately NOT granted (27 Oct 2026): the reader's jsDelivr fetch is
+      # refused at once and every read takes the npm source, so the check never depends on jsDelivr.
       - name: A DWG is read into the same take-off as its DXF
         run: >-
           deno test --no-lock --node-modules-dir=auto --allow-read=.
-          --allow-net=raw.githubusercontent.com,cdn.jsdelivr.net,registry.npmjs.org
+          --allow-net=raw.githubusercontent.com,registry.npmjs.org
           supabase/functions/_shared/doc_read/dwg_samples.check.ts
       # 24 SEP 2026 — THE PAGE A SUPPLIER SEES, PIXEL BY PIXEL (founder instructions 580, 703). drawing_redact
       # decodes and encodes with imagescript, whose Deno build fetches its codec .wasm from deno.land on

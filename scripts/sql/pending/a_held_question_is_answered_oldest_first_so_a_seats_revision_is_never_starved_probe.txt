@@ -1,0 +1,4 @@
+A PROBE (pure, no DDL, no write, no lock; ends in raise exception CHK<<...>> on every path, verdict first). Run alone,
+before or after its .sql is applied, through node scripts/qsql.mjs or any read-only session: it orders the due held
+rows both ways and says whether the live order passes over older rows. Never applied; kept as the proof named in the
+.sql's header. This note stays for the life of the file. Seat: it_engineer.

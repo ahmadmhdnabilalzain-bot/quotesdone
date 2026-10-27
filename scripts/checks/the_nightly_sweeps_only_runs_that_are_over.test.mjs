@@ -35,3 +35,25 @@ test('only runs whose every window has ended, past the grace, are stale', () => 
 test('run.mjs sweeps before it creates its own fixtures', () => {
   assert.ok(RUN.indexOf('await sweepStaleRuns()') > 0 && RUN.indexOf('await sweepStaleRuns()') < RUN.indexOf('await makeDemoCustomer(run'));
 });
+
+// A RUN THAT IS ENDED EARLY STILL LEAVES NOTHING (it_engineer, 27 Oct 2026). Measured that day: 10 withRun runs since
+// 26 Oct 19:47Z (the holds probe, probe 857.2) and two e2e runs left a ZZ DEMO lead or customer, every window closed
+// only by the expiry sweep, i.e. by no process. The exit handlers closed the window and never tore the run down, and
+// withRun never swept runs that were over. This fails if either comes back.
+const FACTORY = readFileSync(join(ROOT, 'scripts/lib/demo_factory.mjs'), 'utf8');
+const withRunSrc = FACTORY.slice(FACTORY.indexOf('export async function withRun'), FACTORY.indexOf('// ---- auth'));
+
+test('withRun sweeps runs that are over before its own run starts, a few per start', () => {
+  const sweep = withRunSrc.indexOf('sweepStaleRuns({ limit: ');
+  assert.ok(sweep > 0, 'withRun does not sweep runs that are over (scripts/e2e/fixtures.mjs sweepStaleRuns)');
+  assert.ok(sweep < withRunSrc.indexOf('return await fn(run)'), 'withRun must sweep before it runs its own fixtures');
+  assert.match(FIX.slice(FIX.indexOf('export async function sweepStaleRuns')), /for \(const tag of \(await staleRunTags\(opts\)\)\.slice\(0, opts\.limit \?\? Infinity\)\)/,
+    'sweepStaleRuns must take only the stale tags staleRunTags returns (NEVER_SWEPT already filtered out)');
+});
+
+test('a terminated run is torn down by its exit handler, not only its window closed', () => {
+  const handler = withRunSrc.slice(withRunSrc.indexOf('closeOnExit('), withRunSrc.indexOf('return await fn(run)'));
+  assert.match(handler, /if \(!run\.keep\) await teardown\(run\)/, "withRun's exit handler does not tear the run down");
+  assert.match(handler, /finally \{ await closeRehearsalWindow\(run\.tag\); \}/, "withRun's exit handler must still close the window when teardown throws");
+  assert.match(RUN, /const disarm = closeOnExit\(\(\) => closeRun\(run, \{ keep: KEEP \}\)\);/, "run.mjs's exit handler does not tear the run down (closeRun)");
+});

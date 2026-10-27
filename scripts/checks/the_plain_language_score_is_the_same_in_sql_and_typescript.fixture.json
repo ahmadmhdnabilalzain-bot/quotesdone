@@ -1,0 +1,266 @@
+{
+ "about": "fn_plain_language_score (customer_support_scores_every_notice_a_customer_or_supplier_reads_for_plain_language.sql) run on htdblwldjkcgjvmqkbeh inside a rolled-back transaction, 27 Oct 2026, over these samples. The check replays the samples through checkReadability() in supabase/functions/_shared/readability.ts and requires the same verdict, score, tone and issues. When the TypeScript changes, change the SQL to match, re-run the probe and re-record this file.",
+ "measured_at": "2026-10-27",
+ "cases": [
+  {
+   "lang": "en",
+   "text": "Thank you for your request. A supplier will reply within two days.",
+   "sql": {
+    "ok": true,
+    "score": 100,
+    "tone": 100,
+    "issues": []
+   }
+  },
+  {
+   "lang": "en",
+   "text": "You describe the job once, we send it anonymously to every matching supplier and you compare their quotes side by side before you decide.",
+   "sql": {
+    "ok": true,
+    "score": 100,
+    "tone": 100,
+    "issues": []
+   }
+  },
+  {
+   "lang": "en",
+   "text": "Pursuant to clause 4 herein, the RFQ was routed through our backend workflow and the SLA applies.",
+   "sql": {
+    "ok": false,
+    "score": 40,
+    "tone": 100,
+    "issues": [
+     "jargon:pursuant,herein,workflow,backend,rfq"
+    ]
+   }
+  },
+  {
+   "lang": "en",
+   "text": "Your quote_compare report is ready. Open fn_quote_compare to see it.",
+   "sql": {
+    "ok": false,
+    "score": 80,
+    "tone": 100,
+    "issues": [
+     "jargon:quote_compare,fn_quote_compare"
+    ]
+   }
+  },
+  {
+   "lang": "en",
+   "text": "This is a very long sentence that keeps going and going without any pause at all because the writer never stopped to think about the person reading it on a small phone screen in the middle of a busy working day.",
+   "sql": {
+    "ok": false,
+    "score": 74,
+    "tone": 100,
+    "issues": [
+     "long_sentence:41"
+    ]
+   }
+  },
+  {
+   "lang": "en",
+   "text": "One. Two words here. This sentence has exactly twenty one words in it so that the average lands somewhere above the twenty word limit we set today. And another fairly long sentence that also has many many words inside it to push the average well past the limit now.",
+   "sql": {
+    "ok": true,
+    "score": 100,
+    "tone": 100,
+    "issues": []
+   }
+  },
+  {
+   "lang": "en",
+   "text": "The fee is AED 500 or 12% of the job, capped at 1,000. It is paid once.",
+   "sql": {
+    "ok": true,
+    "score": 100,
+    "tone": 100,
+    "issues": []
+   }
+  },
+  {
+   "lang": "en",
+   "text": "PLEASE READ THIS NOW!! You failed to attach the drawing, as we already said.",
+   "sql": {
+    "ok": true,
+    "score": 100,
+    "tone": 20,
+    "issues": []
+   }
+  },
+  {
+   "lang": "en",
+   "text": "Obviously your fault. The UAE VAT is 5% and the PDF is attached. OK?",
+   "sql": {
+    "ok": true,
+    "score": 100,
+    "tone": 60,
+    "issues": []
+   }
+  },
+  {
+   "lang": "en",
+   "text": "Visit https://www.quotesdone.com/help or write to help@quotesdone.com for anything else.",
+   "sql": {
+    "ok": true,
+    "score": 100,
+    "tone": 100,
+    "issues": []
+   }
+  },
+  {
+   "lang": "en",
+   "text": "مرحبا، تم استلام طلبك وسنعود إليك قريبا.",
+   "sql": {
+    "ok": false,
+    "score": 50,
+    "tone": 100,
+    "issues": [
+     "wrong_language:expected_en"
+    ]
+   }
+  },
+  {
+   "lang": "ar",
+   "text": "مرحبا، تم استلام طلبك وسنعود إليك قريبا. شكرا لك.",
+   "sql": {
+    "ok": true,
+    "score": 100,
+    "tone": 100,
+    "issues": []
+   }
+  },
+  {
+   "lang": "ar",
+   "text": "Hello, your request was received and we will reply soon.",
+   "sql": {
+    "ok": false,
+    "score": 50,
+    "tone": 100,
+    "issues": [
+     "wrong_language:expected_ar"
+    ]
+   }
+  },
+  {
+   "lang": "ar",
+   "text": "بموجب الشروط المذكور أعلاه، تم تحويل طلبك إلى قاعدة البيانات.",
+   "sql": {
+    "ok": false,
+    "score": 70,
+    "tone": 100,
+    "issues": [
+     "jargon:بموجب,المذكور أعلاه,قاعدة البيانات"
+    ]
+   }
+  },
+  {
+   "lang": "ar",
+   "text": "كما ذكرنا سابقا، يجب إرفاق المخطط. هذا خطؤك.",
+   "sql": {
+    "ok": true,
+    "score": 100,
+    "tone": 60,
+    "issues": []
+   }
+  },
+  {
+   "lang": "en",
+   "text": "Line one without a stop\nLine two also without a stop\nLine three is here",
+   "sql": {
+    "ok": true,
+    "score": 100,
+    "tone": 100,
+    "issues": []
+   }
+  },
+  {
+   "lang": "en",
+   "text": "Version 3.5 of the price list is live. Totals like 1,234.50 do not end a sentence.",
+   "sql": {
+    "ok": true,
+    "score": 100,
+    "tone": 100,
+    "issues": []
+   }
+  },
+  {
+   "lang": "en",
+   "text": "Dear supplier,\n\nA customer in Dubai needs MEP work. Please log in to quote by Thursday. The API and the webhook are internal terms we should not use.",
+   "sql": {
+    "ok": false,
+    "score": 80,
+    "tone": 100,
+    "issues": [
+     "jargon:webhook,api"
+    ]
+   }
+  },
+  {
+   "lang": "en",
+   "text": "",
+   "sql": {
+    "ok": true,
+    "score": 100,
+    "tone": 100,
+    "issues": []
+   }
+  },
+  {
+   "lang": "en",
+   "text": "ZZ DEMO the null and undefined values leaked into this notice database",
+   "sql": {
+    "ok": false,
+    "score": 70,
+    "tone": 90,
+    "issues": [
+     "jargon:database,null,undefined"
+    ]
+   }
+  },
+  {
+   "lang": "ar",
+   "text": "عزيزي العميل، يرجى رفع ملف PDF للمخطط. الرسوم 500 درهم فقط.",
+   "sql": {
+    "ok": true,
+    "score": 100,
+    "tone": 100,
+    "issues": []
+   }
+  },
+  {
+   "lang": "en",
+   "text": "Your request #1234 is closed. Reply to this email to reopen it within 7 days.",
+   "sql": {
+    "ok": true,
+    "score": 100,
+    "tone": 100,
+    "issues": []
+   }
+  },
+  {
+   "lang": "en",
+   "text": "First wordb wordc wordd worde wordf wordg wordh wordi wordj wordk wordl wordm wordn wordo wordp wordq wordr words wordt wordu wordv. Second wordb wordc wordd worde wordf wordg wordh wordi wordj wordk wordl wordm wordn wordo wordp wordq wordr words wordt wordu wordv. Third wordb wordc wordd worde wordf wordg wordh wordi wordj wordk wordl wordm wordn wordo wordp wordq wordr words wordt wordu wordv.",
+   "sql": {
+    "ok": false,
+    "score": 94,
+    "tone": 100,
+    "issues": [
+     "long_average:22"
+    ]
+   }
+  },
+  {
+   "lang": "en",
+   "text": "Alpha wordb wordc wordd worde wordf wordg wordh wordi wordj wordk wordl wordm wordn wordo wordp wordq wordr words wordt wordu. Beta wordb wordc wordd worde wordf wordg wordh wordi wordj wordk wordl wordm wordn wordo wordp wordq wordr words wordt wordu wordv wordw. Gamma wordb wordc wordd worde wordf wordg wordh wordi wordj wordk wordl wordm wordn wordo wordp wordq wordr words wordt wordu wordv wordw.",
+   "sql": {
+    "ok": false,
+    "score": 93,
+    "tone": 100,
+    "issues": [
+     "long_average:22.3"
+    ]
+   }
+  }
+ ]
+}

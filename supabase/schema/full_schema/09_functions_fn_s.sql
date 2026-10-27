@@ -87,6 +87,9 @@ declare
   v_best_rank numeric;
   v_best_corp text;
   v_handoff   text;
+  -- TEST TRAFFIC FILES NOTHING (27 Oct 2026): a request carrying a sandbox run tag, or a ZZ DEMO question, records no
+  -- gap, bumps no ask counter and opens or raises no task. Both tests are the estate's own (see the file header).
+  v_test      boolean := public.fn_e2e_run_tag_current() is not null or public.fn_seat_work_is_demo(p_text, null);
 begin
   if coalesce(btrim(p_text), '') = '' then
     return jsonb_build_object(
@@ -190,6 +193,10 @@ begin
       from ops_knowledge o
      where o.embedding_gte is not null
        and coalesce(o.supersession_state, 'current') = 'current'   -- never quote a superseded rule
+       -- founder ruling 1338: this routine's one production caller is the portal chat (customers and suppliers), so
+       -- an operations row reaches it only when it is confidentiality 'public'. Internal seats read ops_knowledge
+       -- through fn_reason_retrieve(_ml) with an internal audience, fn_ops_knowledge_search and fn_agent_context.
+       and o.confidentiality = 'public'
      order by o.embedding_gte <=> p_embedding
      limit v_wide;
   end if;
@@ -260,6 +267,8 @@ begin
     from support_knowledge s
    where s.search @@ v_tq
      and coalesce(s.runtime_index_eligible, true)
+     -- a support row tagged internal is never handed to the portal (fn_reason_retrieve's outside-audience test)
+     and not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))
    order by ts_rank(s.search, v_tq) desc
    limit v_wide;
 
@@ -427,49 +436,55 @@ begin
     -- happening afterwards. Something happens now: the question is kept, counted, and owned.
     v_norm := left(lower(regexp_replace(btrim(p_text), '\s+', ' ', 'g')), 400);
 
-    select * into v_gap from sales_knowledge_gap where question_norm = v_norm;
-
-    if not found then
-      insert into org_tasks (title, detail, status, tier, action_class, assigned_agent,
-                             priority, requires_evidence, needs_founder)
-      values (
-        left('Answer an unanswered portal question: ' || btrim(p_text), 160),
-        'A customer or supplier asked this in the portal and the Sales Engineer could not source an '
-          || 'answer from any corpus it searches (sales_knowledge, ops_knowledge, kb_chunks, '
-          || 'agent_knowledge, support_knowledge, company_faq, category_specs, category_quote_specs).' || E'\n\n'
-          || 'QUESTION: ' || btrim(p_text) || E'\n'
-          || 'REFUSAL: ' || v_refusal || E'\n'
-          || 'CLOSEST THE ESTATE GOT: corpus ' || coalesce(v_best_corp, 'none')
-          || ', cosine ' || coalesce(round(v_best_sim, 4)::text, 'n/a')
-          || ', lexical rank ' || coalesce(round(v_best_rank, 4)::text, 'n/a')
-          || ' (floors: cosine ' || p_min_similarity || ', lexical corroboration ' || p_min_rank
-          || ', lexical-only ' || c_lex_only || ').' || E'\n\n'
-          || 'DONE MEANS: the knowledge exists in a searchable corpus and this question returns it. '
-          || 'Then set sales_knowledge_gap.status to knowledge_added.',
-        'assigned', 'advisory', 'knowledge_gap', 'sales_engineer', 3, true, false)
-      returning id into v_task;
-
-      insert into sales_knowledge_gap
-        (question_norm, question, refusal, best_similarity, best_lexical_rank, nearest_corpus, task_id)
-      values (v_norm, left(btrim(p_text), 2000), v_refusal,
-              round(v_best_sim, 4), round(v_best_rank, 4), v_best_corp, v_task);
+    if v_test then
+      -- Our own test asked it. The question stays in sales_decision_log (stamped with its run, removed by teardown);
+      -- no gap, no counter and no task, because no person asked and nobody confirmed the work.
+      v_handoff := 'I have not got a sourced answer to that yet, and I will not guess at a procurement question.';
     else
-      v_task := v_gap.task_id;
-      update sales_knowledge_gap
-         set asks = asks + 1, last_asked_at = now(), refusal = v_refusal,
-             best_similarity = greatest(coalesce(best_similarity, 0), coalesce(round(v_best_sim, 4), 0)),
-             best_lexical_rank = greatest(coalesce(best_lexical_rank, 0), coalesce(round(v_best_rank, 4), 0))
-       where id = v_gap.id;
-      -- Asked repeatedly is the definition of urgent. The task's priority follows the demand.
-      update org_tasks set priority = least(9, greatest(priority, 3 + v_gap.asks)), updated_at = now()
-       where id = v_task and status not in ('done', 'cancelled');
-    end if;
+      select * into v_gap from sales_knowledge_gap where question_norm = v_norm;
 
-    v_handoff :=
-      'I have not got a sourced answer to that yet, and I will not guess at a procurement question. '
-      || 'I have recorded it and opened task #' || coalesce(v_task::text, '?')
-      || ', owned by the Sales Engineer, with your question kept word for word. '
-      || 'It is being looked into and you will get an answer on it.';
+      if not found then
+        insert into org_tasks (title, detail, status, tier, action_class, assigned_agent,
+                               priority, requires_evidence, needs_founder)
+        values (
+          left('Answer an unanswered portal question: ' || btrim(p_text), 160),
+          'A customer or supplier asked this in the portal and the Sales Engineer could not source an '
+            || 'answer from any corpus it searches (sales_knowledge, ops_knowledge, kb_chunks, '
+            || 'agent_knowledge, support_knowledge, company_faq, category_specs, category_quote_specs).' || E'\n\n'
+            || 'QUESTION: ' || btrim(p_text) || E'\n'
+            || 'REFUSAL: ' || v_refusal || E'\n'
+            || 'CLOSEST THE ESTATE GOT: corpus ' || coalesce(v_best_corp, 'none')
+            || ', cosine ' || coalesce(round(v_best_sim, 4)::text, 'n/a')
+            || ', lexical rank ' || coalesce(round(v_best_rank, 4)::text, 'n/a')
+            || ' (floors: cosine ' || p_min_similarity || ', lexical corroboration ' || p_min_rank
+            || ', lexical-only ' || c_lex_only || ').' || E'\n\n'
+            || 'DONE MEANS: the knowledge exists in a searchable corpus and this question returns it. '
+            || 'Then set sales_knowledge_gap.status to knowledge_added.',
+          'assigned', 'advisory', 'knowledge_gap', 'sales_engineer', 3, true, false)
+        returning id into v_task;
+
+        insert into sales_knowledge_gap
+          (question_norm, question, refusal, best_similarity, best_lexical_rank, nearest_corpus, task_id)
+        values (v_norm, left(btrim(p_text), 2000), v_refusal,
+                round(v_best_sim, 4), round(v_best_rank, 4), v_best_corp, v_task);
+      else
+        v_task := v_gap.task_id;
+        update sales_knowledge_gap
+           set asks = asks + 1, last_asked_at = now(), refusal = v_refusal,
+               best_similarity = greatest(coalesce(best_similarity, 0), coalesce(round(v_best_sim, 4), 0)),
+               best_lexical_rank = greatest(coalesce(best_lexical_rank, 0), coalesce(round(v_best_rank, 4), 0))
+         where id = v_gap.id;
+        -- Asked repeatedly is the definition of urgent. The task's priority follows the demand.
+        update org_tasks set priority = least(9, greatest(priority, 3 + v_gap.asks)), updated_at = now()
+         where id = v_task and status not in ('done', 'cancelled');
+      end if;
+
+      v_handoff :=
+        'I have not got a sourced answer to that yet, and I will not guess at a procurement question. '
+        || 'I have recorded it and opened task #' || coalesce(v_task::text, '?')
+        || ', owned by the Sales Engineer, with your question kept word for word. '
+        || 'It is being looked into and you will get an answer on it.';
+    end if;
   end if;
 
   insert into sales_decision_log
@@ -496,7 +511,8 @@ begin
       'lexemes_in_question', coalesce(cardinality(v_lex), 0), 'lexeme_overlap_needed', v_need, 'k', v_k,
       'rule', 'a row with an embedding must clear the cosine floor AND match the all-terms lexical query at ts_rank >= min_rank. A row with no embedding cannot be put to the vector floor at all and must clear the stricter lexical-only bar instead. lexeme_overlap_needed is reported as a diagnostic only: admitting on partial overlap was measured and returned a topically wrong passage, so it does not admit. A nearest neighbour is always found; a lexical match is not.'),
     'refusal', v_refusal,
-    'gap_recorded', case when cardinality(v_cited) = 0 then true else false end,
+    'gap_recorded', cardinality(v_cited) = 0 and not v_test,
+    'test_traffic', v_test,
     'task_id', v_task,
     'handoff', v_handoff);
 end
@@ -5211,6 +5227,30 @@ begin
   return jsonb_build_object('accepted', true, 'seat', a.agent, 'month', a.detail->>'month', 'targets', a.detail->'targets', 'actions', a.detail->'actions',
     'waiting', 'the CEO reads each target daily and closes this at month end, met or missed');
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_takes_data_request(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('accepted', true, 'seat', a.agent, 'request_id', a.detail->'request_id',
+    'waiting', coalesce(a.detail->>'waiting_for', 'the correction of the person''s data, by the due date'))
+    from public.agent_actions a where a.id = p_id
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_takes_knowledge_request(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('accepted', true, 'seat', a.agent, 'gap_id', a.detail->'gap_id',
+    'waiting', coalesce(a.detail->>'waiting_for', 'a knowledge entry that answers the question'))
+    from public.agent_actions a where a.id = p_id
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_seat_takes_support_root_cause(p_id bigint)
@@ -10390,6 +10430,65 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_whatsapp_consent_ask_record(p_phone text, p_question text, p_asked_by text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_phone text := '+' || regexp_replace(coalesce(p_phone, ''), '\D', '', 'g'); v_id bigint;
+begin
+  if v_phone !~ '^\+[0-9]{8,15}$' then return jsonb_build_object('ok', false, 'reason', 'no usable number'); end if;
+  if position(lower(public.fn_wa_consent_question()) in lower(regexp_replace(coalesce(p_question, ''), '\s+', ' ', 'g'))) = 0 then
+    return jsonb_build_object('ok', false, 'reason', 'the text does not carry the consent question (fn_wa_consent_question)'); end if;
+  if coalesce(btrim(p_asked_by), '') = '' then return jsonb_build_object('ok', false, 'reason', 'name the seat that asked'); end if;
+  insert into public.supplier_whatsapp_consent_ask (phone, question, asked_by) values (v_phone, p_question, btrim(p_asked_by))
+  returning id into v_id;
+  return jsonb_build_object('ok', true, 'ask_id', v_id, 'phone', v_phone);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_whatsapp_optin_obeys_the_rule()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb := public.fn_wa_optin_rule(new.source, new.button_payload, new.consent_question, new.consent_answer);
+begin
+  if not (v->>'counts')::boolean then
+    raise exception 'supplier_whatsapp_optin refused (ledger 1341): %', v->>'why' using errcode = 'check_violation';
+  end if;
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_whatsapp_optin_record(p_lead_id bigint, p_source text, p_question text, p_answer text, p_phone text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare l public.leads; v_phone text; v_id bigint;
+  v_rule jsonb := public.fn_wa_optin_rule(p_source, null, p_question, p_answer);
+begin
+  if p_source not in ('email_consent_reply', 'call_consent_reply') then
+    return jsonb_build_object('ok', false, 'reason', 'p_source is email_consent_reply or call_consent_reply'); end if;
+  if not (v_rule->>'counts')::boolean then return jsonb_build_object('ok', false, 'reason', v_rule->>'why'); end if;
+  select * into l from public.leads where id = p_lead_id;
+  if l.id is null then return jsonb_build_object('ok', false, 'reason', 'no such lead'); end if;
+  if coalesce(l.whatsapp_opt, '') = 'none' then return jsonb_build_object('ok', false, 'reason', 'the lead opted out of WhatsApp'); end if;
+  v_phone := '+' || regexp_replace(coalesce(p_phone, l.phone_e164, ''), '\D', '', 'g');
+  if v_phone !~ '^\+[0-9]{8,15}$' then return jsonb_build_object('ok', false, 'reason', 'no usable number'); end if;
+  insert into public.supplier_whatsapp_optin (lead_id, phone, source, consent_question, consent_answer, evidence)
+  values (l.id, v_phone, p_source, p_question, p_answer,
+          'answered yes to the consent question (' || replace(p_source, '_consent_reply', '') || ') at '
+          || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD HH24:MI') || ' Dubai')
+  on conflict (lead_id, phone) do nothing
+  returning id into v_id;
+  return jsonb_build_object('ok', true, 'lead_id', l.id, 'phone', v_phone, 'new', v_id is not null, 'why', v_rule->>'why');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_workspaces(p_lead_id bigint)
  RETURNS jsonb
  LANGUAGE sql
@@ -11050,7 +11149,7 @@ CREATE OR REPLACE FUNCTION public.fn_support_corpus_search(p_query text, p_publi
  RETURNS TABLE(src text, src_id text, title text, content text, citation text, rank real)
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
   with q as (
     select websearch_to_tsquery('english', coalesce(p_query, '')) as qe,
@@ -11079,7 +11178,16 @@ AS $function$
            to_tsvector('simple',  coalesce(c.title,'') || ' ' || coalesce(c.content,'')) as ts,
            to_tsvector('arabic',  public.fn_ar_norm(coalesce(c.title,'') || ' ' || coalesce(c.content,''))) as ta
       from public.v_support_corpus c
-     where (case when p_public then c.is_public else true end)
+     -- p_public = false is the SIGNED-IN PORTAL: a customer or a supplier, never staff (support_reply.ts, channel
+     -- 'portal'). It used to read every row of the view. Founder ruling 1338: only public knowledge reaches them, so an
+     -- operations row must be confidentiality 'public' and a support row must not be tagged internal (the same test
+     -- fn_reason_retrieve applies to every outside audience).
+     where (case when p_public then c.is_public
+                 else (c.src <> 'ops' or exists (select 1 from public.ops_knowledge k
+                                                  where k.record_id = c.src_id and k.confidentiality = 'public'))
+                  and (c.src <> 'supportkb' or not exists (select 1 from public.support_knowledge s
+                                                  where s.record_id = c.src_id and (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))))
+            end)
   ),
   strict as (
     select h.src, h.src_id, h.title, h.content, h.citation,
@@ -11192,7 +11300,7 @@ CREATE OR REPLACE FUNCTION public.fn_support_email_is_a_customer_contact(p_from 
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select coalesce(p_from, '') !~* '^[^@]*(mailer-daemon|postmaster|no-?reply|do-?not-?reply|bounces?)[^@]*@'
+  select not public.fn_is_machine_sender(p_from)
      and coalesce(p_to, '') !~* '^(expenses@|calendar\+|approve\+)'
      and coalesce(p_owner_role, '') <> 'accountant'
      and lower(btrim(coalesce(p_from, ''))) <> all (
@@ -11322,7 +11430,10 @@ declare
   v_norm text;
   v_gap  public.sales_knowledge_gap%rowtype;
   v_task bigint;
-  v_asks int;
+  v_asks int := 0;
+  -- TEST TRAFFIC FILES NOTHING (27 Oct 2026): a request carrying a sandbox run tag, or a ZZ DEMO question. The caller
+  -- still gets ok and its reply text, with no task number, so its own reply path does not change.
+  v_test boolean := public.fn_e2e_run_tag_current() is not null or public.fn_seat_work_is_demo(p_question, null);
 begin
   if coalesce(btrim(p_question), '') = '' then
     return jsonb_build_object('ok', false, 'reason', 'empty_question');
@@ -11348,46 +11459,48 @@ begin
                   || public.fn_text_did_not_survive_reply('en'));
   end if;
 
-  v_norm := left(lower(regexp_replace(btrim(p_question), '\s+', ' ', 'g')), 400);
-  select * into v_gap from public.sales_knowledge_gap where question_norm = v_norm;
+  if not v_test then
+    v_norm := left(lower(regexp_replace(btrim(p_question), '\s+', ' ', 'g')), 400);
+    select * into v_gap from public.sales_knowledge_gap where question_norm = v_norm;
 
-  if not found then
-    insert into public.org_tasks (title, detail, status, tier, action_class, assigned_agent,
-                                  priority, requires_evidence, needs_founder)
-    values (
-      left('Answer an unanswered support question: ' || btrim(p_question), 160),
-      'Someone who was NOT signed in asked this on the ' || coalesce(nullif(btrim(p_surface), ''), 'website_widget')
-        || ' and Customer Support could not source an answer from company knowledge.' || E'\n\n'
-        || 'QUESTION: ' || btrim(p_question) || E'\n'
-        || 'REFUSAL: ' || coalesce(nullif(btrim(p_refusal), ''), 'no_grounded_answer') || E'\n\n'
-        || 'THERE IS NO ESCALATION TO A HUMAN -- founder ruling, 9 Sep 2026. This task IS what '
-        || 'happens instead, and it is the only thing that happens.' || E'\n\n'
-        || 'DONE MEANS: the answer exists in a corpus fn_support_corpus_search reads (company_faq, '
-        || 'support_knowledge, ops_knowledge) and this question returns it. Then set '
-        || 'sales_knowledge_gap.status to knowledge_added.',
-      'assigned', 'advisory', 'knowledge_gap', 'customer_support', 3, true, false)
-    returning id into v_task;
+    if not found then
+      insert into public.org_tasks (title, detail, status, tier, action_class, assigned_agent,
+                                    priority, requires_evidence, needs_founder)
+      values (
+        left('Answer an unanswered support question: ' || btrim(p_question), 160),
+        'Someone who was NOT signed in asked this on the ' || coalesce(nullif(btrim(p_surface), ''), 'website_widget')
+          || ' and Customer Support could not source an answer from company knowledge.' || E'\n\n'
+          || 'QUESTION: ' || btrim(p_question) || E'\n'
+          || 'REFUSAL: ' || coalesce(nullif(btrim(p_refusal), ''), 'no_grounded_answer') || E'\n\n'
+          || 'THERE IS NO ESCALATION TO A HUMAN -- founder ruling, 9 Sep 2026. This task IS what '
+          || 'happens instead, and it is the only thing that happens.' || E'\n\n'
+          || 'DONE MEANS: the answer exists in a corpus fn_support_corpus_search reads (company_faq, '
+          || 'support_knowledge, ops_knowledge) and this question returns it. Then set '
+          || 'sales_knowledge_gap.status to knowledge_added.',
+        'assigned', 'advisory', 'knowledge_gap', 'customer_support', 3, true, false)
+      returning id into v_task;
 
-    insert into public.sales_knowledge_gap (question_norm, question, refusal, nearest_corpus, task_id)
-    values (v_norm, left(btrim(p_question), 2000),
-            coalesce(nullif(btrim(p_refusal), ''), 'no_grounded_answer'),
-            'support_corpus', v_task);
-    v_asks := 1;
-  else
-    v_task := v_gap.task_id;
-    v_asks := v_gap.asks + 1;
-    update public.sales_knowledge_gap
-       set asks = asks + 1, last_asked_at = now(),
-           refusal = coalesce(nullif(btrim(p_refusal), ''), refusal)
-     where id = v_gap.id;
-    -- Asked repeatedly is the definition of urgent, exactly as on the sales side.
-    update public.org_tasks
-       set priority = least(9, greatest(priority, 3 + v_gap.asks)), updated_at = now()
-     where id = v_task and status not in ('done', 'cancelled');
+      insert into public.sales_knowledge_gap (question_norm, question, refusal, nearest_corpus, task_id)
+      values (v_norm, left(btrim(p_question), 2000),
+              coalesce(nullif(btrim(p_refusal), ''), 'no_grounded_answer'),
+              'support_corpus', v_task);
+      v_asks := 1;
+    else
+      v_task := v_gap.task_id;
+      v_asks := v_gap.asks + 1;
+      update public.sales_knowledge_gap
+         set asks = asks + 1, last_asked_at = now(),
+             refusal = coalesce(nullif(btrim(p_refusal), ''), refusal)
+       where id = v_gap.id;
+      -- Asked repeatedly is the definition of urgent, exactly as on the sales side.
+      update public.org_tasks
+         set priority = least(9, greatest(priority, 3 + v_gap.asks)), updated_at = now()
+       where id = v_task and status not in ('done', 'cancelled');
+    end if;
   end if;
 
   return jsonb_build_object(
-    'ok', true, 'task_id', v_task, 'asks', v_asks,
+    'ok', true, 'task_id', v_task, 'asks', v_asks, 'test_traffic', v_test,
     'reply_en', 'I do not have a sourced answer to that yet, and I will not guess at it. I have '
       || 'recorded your question exactly as you asked it so it gets answered properly. If you need '
       || 'it now, call or WhatsApp +971 50 931 9355 (Mon-Fri, 9am-6pm GST) or email '
@@ -12031,6 +12144,68 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_support_reply_watch_close_note(p_channel text, p_evidence jsonb, p_sla numeric)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_ids bigint[] := array(select x::bigint from jsonb_array_elements_text(coalesce(p_evidence->'ids', '[]'::jsonb)) x);
+  v_listed int; v_waiting int; v_found int := 0;
+  v_replied int := 0; v_aged int := 0; v_other int := 0; v_gone int;
+  v_window timestamptz := now() - interval '30 days';
+  v_parts text[] := '{}'; v_head text; v_tail text := '';
+begin
+  v_listed := coalesce(cardinality(v_ids), 0);
+  v_waiting := greatest(coalesce((p_evidence->>'waiting')::int, v_listed), v_listed);
+
+  if p_channel = 'email' then
+    select count(*), count(*) filter (where m.replied_at is not null),
+           count(*) filter (where m.replied_at is null and m.created_at <= v_window)
+      into v_found, v_replied, v_aged
+      from public.inbound_messages m where m.id = any (v_ids);
+  elsif p_channel = 'whatsapp' then
+    select count(*), count(*) filter (where w.reply is not null and coalesce(w.sent, false)),
+           count(*) filter (where not (w.reply is not null and coalesce(w.sent, false)) and w.created_at <= v_window)
+      into v_found, v_replied, v_aged
+      from public.wa_messages w where w.id = any (v_ids);
+  else
+    select count(*), count(*) filter (where coalesce(g.answered, false) or coalesce(t.status, '') = 'done'),
+           count(*) filter (where not (coalesce(g.answered, false) or coalesce(t.status, '') = 'done') and g.created_at <= v_window)
+      into v_found, v_replied, v_aged
+      from public.assistant_logs g left join public.org_tasks t on t.id = g.gap_task_id
+     where g.id = any (v_ids);
+  end if;
+  v_other := v_found - v_replied - v_aged;     -- unanswered, inside the window, and no longer counted by the watch
+  v_gone := v_listed - v_found;
+
+  if v_replied > 0 then v_parts := v_parts || (v_replied || ' got a first reply'); end if;
+  if v_aged > 0 then v_parts := v_parts || (v_aged || ' aged out of the 30-day window with no reply'); end if;
+  if v_other > 0 then v_parts := v_parts || (v_other || ' are no longer counted (now exempt or excluded) and have no reply'); end if;
+  if v_gone > 0 then v_parts := v_parts || (v_gone || ' are no longer on record'); end if;
+
+  if v_listed = 0 then
+    v_head := 'cleared: the earlier list of waiting messages was not recorded, so whether they were answered is not known';
+  elsif v_replied = v_listed and v_waiting = v_listed then
+    v_head := 'cleared by replies: every one of the ' || v_listed || ' waiting message(s) got a first reply';
+  elsif v_replied = 0 and v_aged > 0 and v_aged = v_listed then
+    v_head := 'cleared because the ' || v_listed || ' waiting message(s) aged out of the 30-day window, NOT because they were answered: none got a first reply';
+  elsif v_replied = 0 then
+    v_head := 'cleared without a reply: of the ' || v_listed || ' message(s) listed, ' || array_to_string(v_parts, ', ');
+  else
+    v_head := 'cleared: of the ' || v_listed || ' message(s) listed, ' || array_to_string(v_parts, ', ');
+  end if;
+  if v_waiting > v_listed then
+    v_tail := '. The other ' || (v_waiting - v_listed) || ' that were waiting were not listed, so how they cleared is not recorded';
+  end if;
+
+  return 'no ' || p_channel || ' message older than ' || p_sla || ' h is waiting inside the 30-day window; '
+      || v_head || v_tail;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_support_reply_watch_tick()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -12054,10 +12229,16 @@ begin
         from public.inbound_messages m
        where m.created_at > now() - interval '30 days' and m.created_at < v_cut and m.replied_at is null
          and coalesce(m.to_email, '') !~* '^expenses@' and coalesce(m.owner_role, '') <> 'accountant'
-         -- 19 Oct 2026: a no-reply sender cannot be answered, and calendar+ is the founder's own approval inbox.
-         -- Only the sender's local part is matched, so a real customer whose address merely contains the word stays counted.
+         -- 19 Oct 2026: a machine sender cannot be answered, and calendar+ is the founder's own approval inbox.
+         -- 27 Oct 2026: the machine word is matched anywhere in the sender's LOCAL PART as a whole token (start,
+         -- or bounded by hyphen/underscore), not only at its start: security-noreply@ waited 30 days as a customer.
+         -- A dot does not bound it on the left, so a person whose name merely contains the word stays counted.
+         -- 27 Oct 2026 (review of #1684): the local part is read from the address inside <...> first, so a quoted
+         -- display name that itself looks like a machine address cannot hide the real sender, and the word must
+         -- END at a separator, digit or the end of the local part, so a longer word that merely starts with it is
+         -- a person.
          and coalesce(m.to_email, '') !~* '^calendar\+'
-         and coalesce(substring(m.from_email from '([^<>\s"]+)@'), '') !~* '^(no-?reply|do-?not-?reply)'
+         and not public.fn_is_machine_sender(m.from_email)
          and not public.fn_is_demo_email(m.from_email);
       select percentile_cont(0.5) within group (order by extract(epoch from m.replied_at - m.created_at) / 60) into v_median
         from public.inbound_messages m
@@ -12093,8 +12274,12 @@ begin
                            'median_first_reply_minutes_7d', round(v_median), 'owner_seat', 'customer_support', 'duty', 'reply_time'),
         '{}'::text[], array['whether the customer was answered on another channel'], 'customer_support');
     elsif exists (select 1 from public.it_engineer_finding where issue_key = 'support_reply_sla:' || c and closed_at is null) then
+      -- 27 Oct 2026: the note says what cleared each message it last listed (answered, aged out, no longer
+      -- counted, gone), never a reply that did not happen.
       perform public.fn_it_engineer_finding_close('support_reply_sla:' || c,
-        'every ' || c || ' message older than ' || v_sla || ' h has a first reply');
+        public.fn_support_reply_watch_close_note(c,
+          (select f.evidence from public.it_engineer_finding f where f.issue_key = 'support_reply_sla:' || c and f.closed_at is null),
+          v_sla));
     end if;
     v_out := v_out || jsonb_build_object(c, jsonb_build_object('over_sla', v_n, 'median_first_reply_minutes_7d', round(v_median)));
   end loop;
