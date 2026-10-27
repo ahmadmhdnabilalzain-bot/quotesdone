@@ -3721,6 +3721,8 @@ begin
     (select 'kb_chunks' src, c.id::text id, c.title, left(c.content, 1200) excerpt, c.citation,
             1 - (c.embedding_gte <=> p_embedding) sim, 'reviewed' trust, false mine
        from public.kb_chunks c where c.embedding_gte is not null
+        -- founder ruling 1338 (27 Oct 2026): a row a model or an agent wrote is never told to an outside audience
+        and (v_internal or coalesce(c.source_kind not in ('generated', 'memory'), false))
       order by c.embedding_gte <=> p_embedding limit k)
     union all
     (select 'ops_knowledge', o.record_id, o.title, left(o.content, 1200), o.source_path,
@@ -4052,6 +4054,8 @@ begin
     -- a bigint key is cast only inside its own source's rows (scored is materialised; the filter runs first)
     (select 'kb_chunks' src, c.id::text id, c.title, left(c.content, 1200) excerpt, c.citation, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed' trust, false mine
        from (select *, row_id::bigint key from scored where src = 'kb_chunks') sc join public.kb_chunks c on c.id = sc.key
+      -- founder ruling 1338 (27 Oct 2026): a row a model or an agent wrote is never told to an outside audience
+      where v_internal or coalesce(c.source_kind not in ('generated', 'memory'), false)
       order by sc.score desc limit k)
     union all
     (select 'ops_knowledge', o.record_id, o.title, left(o.content, 1200), o.source_path, coalesce(sc.s_ml, sc.s_gte) s_ml, sc.score, 'reviewed', false
