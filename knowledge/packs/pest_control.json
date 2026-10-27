@@ -71,6 +71,41 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "pest_control:dubai-municipality-approval-and-scopes",
+      "topic": "Dubai Municipality approval of pest control companies, and what it does not cover",
+      "topic_ar": "اعتماد بلدية دبي لشركات مكافحة الآفات وما لا يشمله",
+      "kind": "authority_approval",
+      "body_en": "Every pest control company that intends to work in Dubai must obtain a No Objection Certificate from the Public Health Pest Control Section of Dubai Municipality's Public Health Services Department; the NOC shows the company meets the minimum professional requirements, it is a prerequisite for the trade licence, and it is not a recommendation of the company. The section inspects companies periodically (staff performance, pesticide stores, vehicles, materials and equipment), and every technician must carry a Pest Control ID card issued by the section. The municipality publishes a monthly list of authorised companies, grouped by the number of qualified staff; those companies are licensed for general pest control only, EXCLUDING fumigation, termite control and bird control, which need their own authorisation. Pesticides used must meet the specifications approved by Dubai Municipality, and federally a Ministry of Environment resolution bars distributing a pesticide without ministry registration. So before accepting a quote: find the company on the current authorised list, and for fumigation, termite or bird work ask for that specific approval; ask the technician's ID card on the day. Outside Dubai, each emirate's municipality applies its own rules, not checked here.",
+      "body_ar": "يجب على كل شركة مكافحة آفات تنوي العمل في دبي الحصول على شهادة عدم ممانعة من قسم مكافحة آفات الصحة العامة في إدارة خدمات الصحة العامة ببلدية دبي؛ وتثبت الشهادة أن الشركة تستوفي الحد الأدنى من المتطلبات المهنية، وهي شرط مسبق للرخصة التجارية، وليست توصية بالشركة. ويفتش القسم الشركات دورياً (أداء الموظفين ومخازن المبيدات والمركبات والمواد والمعدات)، ويجب أن يحمل كل فني بطاقة هوية مكافحة آفات يصدرها القسم. وتنشر البلدية قائمة شهرية بالشركات المصرح لها مقسمة حسب عدد الموظفين المؤهلين؛ وهذه الشركات مرخصة لمكافحة الآفات العامة فقط، باستثناء التبخير ومكافحة النمل الأبيض ومكافحة الطيور، التي تحتاج تصريحاً خاصاً بها. ويجب أن تطابق المبيدات المستخدمة المواصفات المعتمدة من بلدية دبي، واتحادياً يمنع قرار من وزارة البيئة توزيع أي مبيد دون تسجيله لدى الوزارة. لذا قبل قبول عرض السعر: ابحث عن الشركة في القائمة الحالية للشركات المصرح لها، واطلب للتبخير أو النمل الأبيض أو الطيور التصريح الخاص بذلك، واطلب بطاقة هوية الفني يوم العمل. وخارج دبي تطبّق بلدية كل إمارة قواعدها الخاصة، ولم تُفحص هنا.",
+      "sources": [
+        "https://www.dm.gov.ae/?p=7618",
+        "https://dmpmedia.dm.gov.ae/uploads/2023/06/قائمة-شركات-مكافحة-الحشرات-المصرح-لها-بالعمل-يوليو2026.pdf",
+        "https://www.khaleejtimes.com/news/general/pest-control-in-dubai-things-you-need-to-know"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-27",
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts of dm.gov.ae and its published authorised-company lists (to July 2026): NOC from the Public Health Pest Control Section, prerequisite for trade licence, not a recommendation; periodic inspection; staff ID cards; list grouped by qualified staff; licensed for general pest control excluding fumigation, termite and bird control; pesticides to DM-approved specifications; Ministry of Environment registration resolution (Khaleej Times) -> confirmed. A free-zone guide's MOHAP claim was not used. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
+    },
+    {
+      "id": "pest_control:termite-pre-vs-post-construction",
+      "topic": "Termite treatment: pre-construction soil treatment vs post-construction liquid vs baiting",
+      "topic_ar": "معالجة النمل الأبيض: معالجة التربة قبل البناء مقابل السائل بعد البناء مقابل الطعوم",
+      "kind": "comparison",
+      "body_en": "Pre-construction treatment is applied to the soil under the future slab before it is poured: a liquid termiticide creates a treated zone under the building's footprint, usually with a non-repellent product that foraging termites do not detect. It must be timed to the pour, because once the slab is cast the soil can only be reached by drilling through concrete, which costs far more and gives less uniform coverage; warranties for builder-supplied treatments vary widely, so ask for the product, rate and warranty in writing. Post-construction treatment of an existing building is either liquid (trenching or trenching-and-rodding along the foundation, or drilling and injecting into voids and through slabs), which gives faster control with fewer visits, or baiting: stations placed in the ground around the perimeter, inspected roughly every three months, loaded with bait once termites are found; baits use far less insecticide and suit sensitive sites but are much slower, and can take a year or longer to eliminate an active colony. In Dubai, termite control needs its own municipal authorisation beyond general pest control (see the approval entry). A quote should state the method, the product and its registration, the area or linear metres treated, the inspection schedule and the warranty period and what it covers.",
+      "body_ar": "تُطبَّق المعالجة قبل البناء على التربة تحت البلاطة المستقبلية قبل صبها: إذ يكوّن مبيد النمل الأبيض السائل منطقة معالجة تحت مسقط المبنى، عادةً بمنتج غير طارد لا تكتشفه حشرات النمل الأبيض الباحثة عن الغذاء. ويجب أن تُنسَّق مع موعد الصب، لأنه بعد صب البلاطة لا يمكن بلوغ التربة إلا بالحفر عبر الخرسانة، وهو أغلى بكثير ويعطي تغطية أقل انتظاماً؛ وتتفاوت ضمانات المعالجات التي يوفرها المقاولون كثيراً، فاطلب المنتج والمعدل والضمان كتابةً. أما معالجة مبنى قائم بعد البناء فإما سائلة (حفر خندق أو خندق مع حقن على طول الأساسات، أو ثقب وحقن في الفراغات وعبر البلاطات) وتعطي سيطرة أسرع بزيارات أقل، أو بالطعوم: محطات توضع في الأرض حول محيط المبنى تُفحص كل ثلاثة أشهر تقريباً ويوضع فيها الطعم عند العثور على النمل الأبيض؛ وتستخدم الطعوم مبيداً أقل بكثير وتناسب المواقع الحساسة لكنها أبطأ بكثير، وقد تستغرق سنة أو أكثر للقضاء على مستعمرة نشطة. وفي دبي تحتاج مكافحة النمل الأبيض تصريحاً بلدياً خاصاً غير تصريح مكافحة الآفات العامة (انظر بند الاعتماد). ويجب أن يذكر عرض السعر الطريقة والمنتج وتسجيله، والمساحة أو الأمتار الطولية المعالجة، وجدول الفحص، ومدة الضمان وما يغطيه.",
+      "sources": [
+        "https://www.trulynolen.com/pest-expert-tips/pre-construction-termite-treatment-guide",
+        "https://ncagr.gov/divisions/structural-pest-control-and-pesticides/structural/consumer-information/post-construction-subterranean-termite-control",
+        "https://aces.edu/blog/topics/home/subterranean-termite-control-products-for-alabamians/",
+        "https://www.dm.gov.ae/?p=7618"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-27",
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: pre-construction treated zone, non-repellents, drilling through slab after pour costlier and less uniform, warranties vary; post-construction trenching/rodding; drill-and-inject into voids; bait stations checked about every three months, less insecticide, slower, a year or longer; liquids faster with fewer visits -> confirmed. Dubai termite authorisation from the DM entry's excerpts. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     }
   ],
   "eval": [
@@ -140,6 +175,38 @@
         903,
         1198,
         1209
+      ]
+    },
+    "authored_27_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-27",
+      "pages_opened": [],
+      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". Independent review of #1632 (27 Oct 2026): the 7 Oct stating rule requires a page actually opened, so every id above is stored verified=false and its eval questions are held in held_eval; move each back (verified:true, question into eval, bank item into items) only after its cited pages are opened and every fact is confirmed.",
+      "reason": "Trade had 4 entries against 87 invited leads (measured 27 Oct 2026); the deep packs of comparable trades hold 30-58.",
+      "ledger": [
+        893,
+        899
+      ],
+      "held_unverified": [
+        "pest_control:dubai-municipality-approval-and-scopes",
+        "pest_control:termite-pre-vs-post-construction"
+      ],
+      "served": [],
+      "held_eval": [
+        {
+          "q_en": "How do I know a pest control company is allowed to fumigate in Dubai?",
+          "q_ar": "كيف أعرف أن شركة مكافحة آفات مسموح لها بالتبخير في دبي؟",
+          "expected_entry_ids": [
+            "pest_control:dubai-municipality-approval-and-scopes"
+          ]
+        },
+        {
+          "q_en": "The slab is poured next week. Is it too late to treat for termites?",
+          "q_ar": "ستُصب البلاطة الأسبوع القادم، فهل فات أوان معالجة النمل الأبيض؟",
+          "expected_entry_ids": [
+            "pest_control:termite-pre-vs-post-construction"
+          ]
+        }
       ]
     }
   }
