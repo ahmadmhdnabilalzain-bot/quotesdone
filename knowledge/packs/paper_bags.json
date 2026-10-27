@@ -53,6 +53,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "paper_bags:product-distinctions",
+      "topic": "Paper and carrier bags: bag styles, papers and handles",
+      "topic_ar": "الأكياس الورقية وأكياس التسوق: الأنواع والأوراق والمقابض",
+      "kind": "product_distinctions",
+      "body_en": "Bag styles: SOS (self-opening square-bottom) bags without handles for take-away and grocery, flat or merchandise bags, and carrier bags with handles: twisted-paper cord handles, flat paper handles, die-cut handles, and rope or ribbon handles on luxury bags. Papers: brown or white kraft (virgin fibre for strength, recycled for cost and sustainability), by weight in gsm (around 70-120 gsm for shopping bags, heavier for luxury), coated art paper or board for luxury retail bags with lamination (matt, gloss, soft-touch), and speciality papers. Luxury bags add hot-foil stamping, embossing, spot UV, reinforced bottoms and tops, and eyelets. Non-woven polypropylene and cotton or jute reusable bags are adjacent formats. Specification points: size (width x gusset x height), paper type and gsm, handle type and load capacity, print colours (flexo for kraft runs, offset for luxury), finishing, food-contact compliance for food bags, and quantities. Machine-made kraft bags are economical in large runs; handmade luxury bags have higher unit cost and longer lead times.",
+      "body_ar": "أنواع الأكياس: أكياس SOS ذاتية الفتح بقاع مربع دون مقابض للوجبات الخارجية والبقالة، والأكياس المسطحة، وأكياس التسوق بمقابض: مقابض حبل ورقي مجدول، ومقابض ورقية مسطحة، ومقابض مقصوصة، ومقابض حبال أو شرائط في الأكياس الفاخرة. والأوراق: الكرافت البني أو الأبيض (ألياف خام للقوة، ومعاد تدويره للتكلفة والاستدامة)، حسب الوزن بالغرام للمتر المربع (نحو 70-120 غراماً لأكياس التسوق، وأثقل للفاخرة)، وورق فني مطلي أو كرتون لأكياس التجزئة الفاخرة مع التغليف (مطفي، لامع، ناعم الملمس)، والأوراق الخاصة. وتضيف الأكياس الفاخرة الختم بالرقائق الساخنة، والنقش البارز، والورنيش الموضعي، وتقوية القاع والأعلى، والحلقات المعدنية. وأكياس البولي بروبيلين غير المنسوج والقطن أو الجوت القابلة لإعادة الاستخدام أشكال مجاورة. ونقاط المواصفة: المقاس (العرض × الجانب × الارتفاع)، ونوع الورق ووزنه، ونوع المقبض وقدرة التحمل، وألوان الطباعة (فلكسو لكميات الكرافت، أوفست للفاخرة)، والتشطيب، والامتثال لملامسة الأغذية لأكياس الطعام، والكميات. والأكياس الكرافت المصنوعة آلياً اقتصادية في الكميات الكبيرة؛ والأكياس الفاخرة اليدوية أعلى تكلفة للوحدة وأطول مدة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Paper_bag"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: kraft paper bags, flat and cord (twisted) handles, SOS self-opening sacks -> confirmed."
+    },
+    {
+      "id": "paper_bags:lead-times-and-quoting",
+      "topic": "Paper bags & carrier bags - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الأكياس الورقية وأكياس التسوق: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock plain bags: days; printed machine-made bags 2-4 weeks; luxury handmade bags 4-8 weeks. A supplier needs the size, style, paper and gsm, handle, print and finish, quantity, and food-contact need. A quote states construction, paper, handle, print process and colours, finishing, plate or tooling costs, unit price at quantities, MOQ, delivery and validity.",
+      "body_ar": "الأكياس السادة المتوفرة: أيام؛ والأكياس المطبوعة المصنوعة آلياً 2-4 أسابيع؛ والأكياس الفاخرة اليدوية 4-8 أسابيع. ويحتاج المورد المقاس، والنوع، والورق ووزنه، والمقبض، والطباعة والتشطيب، والكمية، والحاجة لملامسة الأغذية. ويذكر العرض الصنع والورق والمقبض وعملية الطباعة والألوان والتشطيب وتكاليف الألواح أو القوالب وسعر الوحدة عند الكميات والحد الأدنى للطلب والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -78,6 +108,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry gives typical kraft GSM for retail bags (about 80-150 gsm); spec-checklist only lists \"Paper grade and weight\"). paper_bags:kraft-gsm-for-retail-bags was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from paper_bags.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What paper weight and handle should a boutique use for bags that carry shoe boxes?",
+      "q_ar": "وش وزن الورق ونوع المقبض المناسب لأكياس محل تحمل علب أحذية؟",
+      "expected_entry_ids": [
+        "paper_bags:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "paper_bags:kraft-gsm-for-retail-bags"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "paper_bags:product-distinctions"
+      ],
+      "stored_not_served": [
+        "paper_bags:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Paper_bag"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

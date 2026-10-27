@@ -46,3 +46,20 @@ export async function sendWithTtlFallback(send: (messages: any[]) => Promise<Res
   const body = await r.clone().text().catch(() => '');
   return ttlRejected(r.status, body) ? await send(withoutTtl(messages)) : r;
 }
+
+/** THE CONVERSATION SO FAR IS CACHED TOO (18 Oct 2026, founder ruling: no turn limit, the stable prefix cached). A caller
+ *  that sends cache_history marks the message BEFORE the newest one as a third breakpoint (Anthropic allows four), so a
+ *  long chat reads its earlier turns from the cache and pays full price only for the newest pair. Only applied where
+ *  the route caches at all (Google refuses cache_control). Messages are returned new; the input is not mutated. */
+// deno-lint-ignore no-explicit-any
+export function withHistoryBreakpoint(messages: any[], ttl: '1h' | null): any[] {
+  if (!Array.isArray(messages) || messages.length < 2) return messages;
+  const cc = ttl ? { type: 'ephemeral', ttl } : { type: 'ephemeral' };
+  const i = messages.length - 2;
+  const m = messages[i];
+  const content = typeof m?.content === 'string'
+    ? (m.content ? [{ type: 'text', text: m.content, cache_control: cc }] : m.content)
+    // deno-lint-ignore no-explicit-any
+    : Array.isArray(m?.content) ? m.content.map((b: any, k: number, a: any[]) => k === a.length - 1 && b?.type === 'text' ? { ...b, cache_control: cc } : b) : m?.content;
+  return [...messages.slice(0, i), { ...m, content }, messages[i + 1]];
+}

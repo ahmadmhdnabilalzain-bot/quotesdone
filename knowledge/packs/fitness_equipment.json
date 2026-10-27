@@ -55,6 +55,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "fitness_equipment:product-distinctions",
+      "topic": "Fitness equipment: commercial versus home grade and equipment families",
+      "topic_ar": "معدات اللياقة: الفئة التجارية مقابل المنزلية وعائلات المعدات",
+      "kind": "product_distinctions",
+      "body_en": "Equipment families: cardio (treadmills, cross-trainers, bikes upright and recumbent, spin bikes, rowers, stair climbers, air bikes), selectorised strength machines, plate-loaded machines, multi-gyms and functional trainers, racks and rigs, benches, free weights (dumbbells, plates, kettlebells), and accessories, flooring and mirrors. The key distinction is grade. Commercial equipment is built for many users and long daily hours: treadmills with continuous-duty motors (often 3-5 HP AC), larger decks (about 150 x 50 cm or more), higher user-weight ratings and heavier frames; it costs more and carries commercial warranties. Light-commercial suits hotel and residential-building gyms with moderate use. Home equipment uses smaller DC motors and lighter frames and warranties may be void if used commercially. Other choices: self-powered versus mains-powered cardio, console features and connectivity, and the floor load and space each piece needs. Gym fit-outs add rubber flooring by thickness (thicker under free-weight areas), acoustic and vibration treatment, layout and safety clearances. Service matters: preventive maintenance visits and parts availability keep a commercial gym running.",
+      "body_ar": "عائلات المعدات: أجهزة الكارديو (أجهزة المشي، الأوبتيكال، الدراجات العمودية والمائلة، دراجات السبين، التجديف، صعود الدرج، الدراجات الهوائية)، وأجهزة القوة بالأوزان المختارة، وأجهزة الأقراص، والأجهزة المتعددة وأجهزة التدريب الوظيفي، والرفوف والهياكل، والمقاعد، والأوزان الحرة (الدمبلز، الأقراص، الكيتلبل)، والملحقات والأرضيات والمرايا. والفرق الأساسي هو الفئة. المعدات التجارية مصنوعة لمستخدمين كثيرين وساعات يومية طويلة: أجهزة مشي بمحركات تشغيل مستمر (غالباً 3-5 أحصنة تيار متردد)، وأسطح أكبر (نحو 150×50 سم أو أكثر)، وتصنيفات وزن مستخدم أعلى وهياكل أثقل؛ وتكلف أكثر وتحمل ضمانات تجارية. والفئة التجارية الخفيفة تناسب صالات الفنادق والمباني السكنية ذات الاستخدام المعتدل. أما المنزلية فتستخدم محركات تيار مستمر أصغر وهياكل أخف، وقد يسقط الضمان إذا استُخدمت تجارياً. وخيارات أخرى: أجهزة كارديو ذاتية الطاقة مقابل الموصولة بالكهرباء، وخصائص الشاشة والاتصال، وحمل الأرضية والمساحة التي تحتاجها كل قطعة. وتضيف تجهيزات الصالات الأرضيات المطاطية حسب السماكة (أسمك تحت مناطق الأوزان الحرة)، ومعالجة الصوت والاهتزاز، والتخطيط ومسافات السلامة. والخدمة مهمة: زيارات الصيانة الوقائية وتوفر القطع تبقي الصالة التجارية تعمل.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Treadmill"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: professional treadmill deck about 150 x 50 cm and motor power of medical units -> confirmed (home versus commercial ratings not on the page)."
+    },
+    {
+      "id": "fitness_equipment:lead-times-and-quoting",
+      "topic": "Fitness & gym equipment - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "معدات اللياقة والصالات الرياضية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stocked items: days; full gym packages and imported commercial lines 4-12 weeks. A supplier needs the gym type and expected users, space and layout, floor loading, power, brand preferences and budget band. A quote states make, model, grade, warranty per component, flooring, layout design, delivery and installation, service plan and validity.",
+      "body_ar": "الأصناف المتوفرة: أيام؛ وباقات الصالات الكاملة والخطوط التجارية المستوردة 4-12 أسبوعاً. ويحتاج المورد نوع الصالة والمستخدمين المتوقعين، والمساحة والتخطيط، وحمل الأرضية، والكهرباء، والعلامات المفضلة، ونطاق الميزانية. ويذكر العرض الماركة والموديل والفئة والضمان لكل مكون والأرضيات وتصميم التخطيط والتسليم والتركيب وخطة الخدمة والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither explains commercial vs home treadmill differences; spec checklist only says to state 'commercial or home rating' and ISO 20957; missing: commercial vs home rating explainer). fitness_equipment:treadmill-usage-class-s-vs-h was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from fitness_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Can we use home treadmills in our residential building gym?",
+      "q_ar": "نقدر نستخدم أجهزة مشي منزلية في صالة المبنى السكني؟",
+      "expected_entry_ids": [
+        "fitness_equipment:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "fitness_equipment:treadmill-usage-class-s-vs-h"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "fitness_equipment:product-distinctions"
+      ],
+      "stored_not_served": [
+        "fitness_equipment:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Treadmill"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

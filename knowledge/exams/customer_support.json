@@ -4,7 +4,7 @@
   "items": [
     {
       "id": "customer_support-exam-01",
-      "checklist": "CS-01",
+      "checklist": "CS-CL-001",
       "q_en": "Who is allowed to send email and WhatsApp for QuotesDone?",
       "q_ar": "من المسموح له بإرسال البريد ورسائل واتساب باسم كوتس دن؟",
       "expected_entry_ids": [
@@ -12,23 +12,34 @@
       ],
       "expected_facts": [
         "only seat with WhatsApp"
+      ],
+      "q_reworded": "Can the sales engineer just WhatsApp a supplier himself instead of asking us?",
+      "answer_must": [
+        "Only customer support sends email and WhatsApp for QuotesDone",
+        "Other seats hand the message to support to deliver"
       ]
     },
     {
       "id": "customer_support-exam-02",
-      "checklist": "CS-01",
+      "checklist": "CS-CL-001",
       "q_en": "Does customer support handle reveals?",
       "q_ar": "هل تتولى خدمة العملاء عمليات الكشف؟",
       "expected_entry_ids": [
-        "customer_support:seat-mission-communication"
+        "customer_support:seat-mission-communication",
+        "customer_support:post-reveal-dispute-evidence"
       ],
       "expected_facts": [
         "does NOT own reveals"
+      ],
+      "q_reworded": "A customer wants us to unlock the supplier's phone number after paying. Is that our job in support?",
+      "answer_must": [
+        "Reveals are not owned by customer support",
+        "Support routes the reveal question to the owning seat"
       ]
     },
     {
       "id": "customer_support-exam-03",
-      "checklist": "CS-01",
+      "checklist": "CS-CL-001",
       "q_en": "What standard did the founder set for the support chat?",
       "q_ar": "ما المعيار الذي حدده المؤسس لمحادثة الدعم؟",
       "expected_entry_ids": [
@@ -36,11 +47,16 @@
       ],
       "expected_facts": [
         "Amazon chat bot"
+      ],
+      "q_reworded": "What bar did the founder set for how good our website chat must be?",
+      "answer_must": [
+        "Better than an Amazon chat bot",
+        "Always answers, reasoned, professional"
       ]
     },
     {
       "id": "customer_support-exam-04",
-      "checklist": "CS-02",
+      "checklist": "CS-CL-002",
       "q_en": "A visitor opens WhatsApp for the first time. What does he see?",
       "q_ar": "زائر يفتح واتساب لأول مرة، ماذا يرى؟",
       "expected_entry_ids": [
@@ -49,11 +65,16 @@
       "expected_facts": [
         "Report a problem",
         "Existing inquiry"
+      ],
+      "q_reworded": "When someone messages our WhatsApp number for the very first time, what greets them?",
+      "answer_must": [
+        "A professional welcome with a four-option menu",
+        "Options include reporting a problem and an existing inquiry"
       ]
     },
     {
       "id": "customer_support-exam-05",
-      "checklist": "CS-02",
+      "checklist": "CS-CL-002",
       "q_en": "A person ignores the menu and types a question. What do we do?",
       "q_ar": "شخص تجاهل القائمة وكتب سؤالاً، ماذا نفعل؟",
       "expected_entry_ids": [
@@ -61,11 +82,16 @@
       ],
       "expected_facts": [
         "not by matching words"
+      ],
+      "q_reworded": "The person skipped the options and wrote a long paragraph. How do we work out what he wants?",
+      "answer_must": [
+        "Answer the question directly",
+        "Intent is understood by reasoning, not by matching words"
       ]
     },
     {
       "id": "customer_support-exam-06",
-      "checklist": "CS-03",
+      "checklist": "CS-CL-003",
       "q_en": "A supplier asks how many suppliers we have registered. Can we tell him?",
       "q_ar": "مورد يسأل كم عدد الموردين المسجلين لدينا، هل نخبره؟",
       "expected_entry_ids": [
@@ -73,11 +99,15 @@
       ],
       "expected_facts": [
         "never reveals internal numbers"
+      ],
+      "q_reworded": "A supplier wants to know how big our supplier base is before joining. Do we give the figure?",
+      "answer_must": [
+        "Support never reveals internal numbers"
       ]
     },
     {
       "id": "customer_support-exam-07",
-      "checklist": "CS-03",
+      "checklist": "CS-CL-003",
       "q_en": "The chat showed an error message with a table name. Is that allowed?",
       "q_ar": "ظهرت في المحادثة رسالة خطأ فيها اسم جدول، هل هذا مسموح؟",
       "expected_entry_ids": [
@@ -85,11 +115,16 @@
       ],
       "expected_facts": [
         "technical error text"
+      ],
+      "q_reworded": "A customer screenshot shows the chat printed a database error. Acceptable?",
+      "answer_must": [
+        "Technical error text must never reach a customer",
+        "It is a leak and a defect to fix"
       ]
     },
     {
       "id": "customer_support-exam-08",
-      "checklist": "CS-03",
+      "checklist": "CS-CL-003",
       "q_en": "Why were the leak rules tightened in September?",
       "q_ar": "لماذا شُددت قواعد منع التسريب في سبتمبر؟",
       "expected_entry_ids": [
@@ -97,11 +132,16 @@
       ],
       "expected_facts": [
         "22 Sep 2026"
+      ],
+      "q_reworded": "When and why did the rules on internal-number leaks get stricter?",
+      "answer_must": [
+        "They were tightened on 22 Sep 2026",
+        "Because internal detail leaked into replies"
       ]
     },
     {
       "id": "customer_support-exam-09",
-      "checklist": "CS-04",
+      "checklist": "CS-CL-004",
       "q_en": "An angry customer on email demands a manager. Do we hand over to a human?",
       "q_ar": "عميل غاضب عبر البريد يطلب مديراً، هل نحوله إلى إنسان؟",
       "expected_entry_ids": [
@@ -109,11 +149,16 @@
       ],
       "expected_facts": [
         "no escalation to a human"
+      ],
+      "q_reworded": "A furious buyer emails asking for a supervisor. Do we pass him to someone?",
+      "answer_must": [
+        "There is no escalation to a human on email",
+        "Support resolves it itself"
       ]
     },
     {
       "id": "customer_support-exam-10",
-      "checklist": "CS-04",
+      "checklist": "CS-CL-004",
       "q_en": "A customer on WhatsApp asks to talk to a person. What happens?",
       "q_ar": "عميل على واتساب يطلب التحدث إلى شخص، ماذا يحدث؟",
       "expected_entry_ids": [
@@ -121,11 +166,16 @@
       ],
       "expected_facts": [
         "founder is then emailed"
+      ],
+      "q_reworded": "On WhatsApp a client types \"let me speak to a real person\". What happens next?",
+      "answer_must": [
+        "An explicit request for a person on WhatsApp is the one exception",
+        "The founder is emailed and carries on the conversation himself"
       ]
     },
     {
       "id": "customer_support-exam-11",
-      "checklist": "CS-04",
+      "checklist": "CS-CL-004",
       "q_en": "The customer wrote \"I don't need a human\". Is that a handoff request?",
       "q_ar": "كتب العميل \"لا أحتاج إلى موظف\"، هل هذا طلب تحويل؟",
       "expected_entry_ids": [
@@ -133,11 +183,16 @@
       ],
       "expected_facts": [
         "not a request"
+      ],
+      "q_reworded": "A user said \"no need for a human, just tell me the price\". Do we hand off?",
+      "answer_must": [
+        "Mentioning a human negatively is not a request for one",
+        "No handoff"
       ]
     },
     {
       "id": "customer_support-exam-12",
-      "checklist": "CS-05",
+      "checklist": "CS-CL-005",
       "q_en": "The sales engineer asks support to send a final call to a supplier. What must come back?",
       "q_ar": "طلب مهندس المبيعات من الدعم إرسال إشعار أخير لمورد، ما الذي يجب أن يعود إليه؟",
       "expected_entry_ids": [
@@ -146,11 +201,16 @@
       "expected_facts": [
         "delivery outcome",
         "proof of response"
+      ],
+      "q_reworded": "Sales asked us to deliver a last reminder to a supplier. What do we owe sales afterwards?",
+      "answer_must": [
+        "A delivery outcome returned to the originating seat",
+        "Proof of the response where one came"
       ]
     },
     {
       "id": "customer_support-exam-13",
-      "checklist": "CS-05",
+      "checklist": "CS-CL-005",
       "q_en": "The lead row says \"invited\". Does that prove the invitation went out?",
       "q_ar": "سجل العميل المحتمل يقول \"مدعو\"، هل يثبت ذلك إرسال الدعوة؟",
       "expected_entry_ids": [
@@ -159,23 +219,33 @@
       "expected_facts": [
         "verified through the outbox",
         "171 leads"
+      ],
+      "q_reworded": "The CRM shows a supplier as \"invited\". Does that mean he got the message?",
+      "answer_must": [
+        "No; delivery is verified through the outbox, not a status column",
+        "171 leads read invited with no email sent"
       ]
     },
     {
       "id": "customer_support-exam-14",
-      "checklist": "CS-05",
+      "checklist": "CS-CL-005",
       "q_en": "Who closes a handoff between seats?",
       "q_ar": "من يغلق الإحالة بين المقاعد؟",
       "expected_entry_ids": [
-        "customer_support:delivering-for-other-seats"
+        "customer_support:delivering-for-other-seats",
+        "customer_support:cross-seat-handoff-contract"
       ],
       "expected_facts": [
         "only the originator closes"
+      ],
+      "q_reworded": "After support delivers a message for another seat, who marks the handoff closed?",
+      "answer_must": [
+        "Only the originating seat closes it"
       ]
     },
     {
       "id": "customer_support-exam-15",
-      "checklist": "CS-06",
+      "checklist": "CS-CL-006",
       "q_en": "A supplier reports the portal upload failing again. What first?",
       "q_ar": "مورد يبلغ مجدداً عن تعطل الرفع في البوابة، ما الخطوة الأولى؟",
       "expected_entry_ids": [
@@ -183,11 +253,15 @@
       ],
       "expected_facts": [
         "looks up earlier reports"
+      ],
+      "q_reworded": "The same supplier reports for the third time that his upload breaks. What do we do before answering?",
+      "answer_must": [
+        "Look up the person's earlier reports first"
       ]
     },
     {
       "id": "customer_support-exam-16",
-      "checklist": "CS-06",
+      "checklist": "CS-CL-006",
       "q_en": "Can we identify a reporter by phone number alone?",
       "q_ar": "هل يمكن تحديد صاحب البلاغ برقم الهاتف وحده؟",
       "expected_entry_ids": [
@@ -195,11 +269,15 @@
       ],
       "expected_facts": [
         "email is the identity"
+      ],
+      "q_reworded": "A WhatsApp number matches two accounts. Can we decide who is reporting from the number?",
+      "answer_must": [
+        "Email is the identity; a phone may confirm but not select"
       ]
     },
     {
       "id": "customer_support-exam-17",
-      "checklist": "CS-06",
+      "checklist": "CS-CL-006",
       "q_en": "A report about WhatsApp not delivering: who gets it?",
       "q_ar": "بلاغ عن عدم وصول رسائل واتساب، إلى من يُحال؟",
       "expected_entry_ids": [
@@ -207,11 +285,15 @@
       ],
       "expected_facts": [
         "to the IT engineer"
+      ],
+      "q_reworded": "Someone reports WhatsApp messages are not arriving. Which seat owns the fix?",
+      "answer_must": [
+        "Technical faults go to the IT engineer seat"
       ]
     },
     {
       "id": "customer_support-exam-18",
-      "checklist": "CS-07",
+      "checklist": "CS-CL-007",
       "q_en": "Can old conversations be purged after a year?",
       "q_ar": "هل يمكن حذف المحادثات القديمة بعد سنة؟",
       "expected_entry_ids": [
@@ -219,11 +301,15 @@
       ],
       "expected_facts": [
         "no purge"
+      ],
+      "q_reworded": "Can we clear chat logs older than twelve months to save space?",
+      "answer_must": [
+        "No; conversations are kept, there is no purge"
       ]
     },
     {
       "id": "customer_support-exam-19",
-      "checklist": "CS-07",
+      "checklist": "CS-CL-007",
       "q_en": "How long does Resend keep inbound mail, and what do we do about it?",
       "q_ar": "كم يحتفظ Resend بالبريد الوارد، وماذا نفعل حيال ذلك؟",
       "expected_entry_ids": [
@@ -232,11 +318,16 @@
       "expected_facts": [
         "about 1 month",
         "PDF"
+      ],
+      "q_reworded": "Our mail provider deletes inbound mail after a while. What protects us?",
+      "answer_must": [
+        "Resend keeps inbound mail about a month",
+        "Support saves a PDF of it before then"
       ]
     },
     {
       "id": "customer_support-exam-20",
-      "checklist": "CS-07",
+      "checklist": "CS-CL-007",
       "q_en": "Where are the email PDFs backed up?",
       "q_ar": "أين تُحفظ نسخ البريد بصيغة PDF؟",
       "expected_entry_ids": [
@@ -244,11 +335,15 @@
       ],
       "expected_facts": [
         "Dropbox"
+      ],
+      "q_reworded": "Where do the PDF copies of emails end up?",
+      "answer_must": [
+        "They are backed up to Dropbox"
       ]
     },
     {
       "id": "customer_support-exam-21",
-      "checklist": "CS-07",
+      "checklist": "CS-CL-007",
       "q_en": "Which conversations may be deleted?",
       "q_ar": "ما المحادثات التي يجوز حذفها؟",
       "expected_entry_ids": [
@@ -256,11 +351,15 @@
       ],
       "expected_facts": [
         "provably test data"
+      ],
+      "q_reworded": "Is any conversation ever allowed to be deleted?",
+      "answer_must": [
+        "Only conversations that are provably test data"
       ]
     },
     {
       "id": "customer_support-exam-22",
-      "checklist": "CS-08",
+      "checklist": "CS-CL-008",
       "q_en": "What time does the founder receive tomorrow's supplier list?",
       "q_ar": "في أي ساعة يتلقى المؤسس قائمة موردي الغد؟",
       "expected_entry_ids": [
@@ -268,11 +367,15 @@
       ],
       "expected_facts": [
         "18:00 Dubai time"
+      ],
+      "q_reworded": "At what hour does the founder get the list of suppliers to be invited next day?",
+      "answer_must": [
+        "18:00 Dubai time, as a PDF"
       ]
     },
     {
       "id": "customer_support-exam-23",
-      "checklist": "CS-08",
+      "checklist": "CS-CL-008",
       "q_en": "Can support start sending invitations on its own?",
       "q_ar": "هل يستطيع الدعم بدء إرسال الدعوات من تلقاء نفسه؟",
       "expected_entry_ids": [
@@ -280,11 +383,15 @@
       ],
       "expected_facts": [
         "founder says go"
+      ],
+      "q_reworded": "The list is ready. Can support fire off the invitations straight away?",
+      "answer_must": [
+        "No; invitations go only after the founder says go"
       ]
     },
     {
       "id": "customer_support-exam-24",
-      "checklist": "CS-08",
+      "checklist": "CS-CL-008",
       "q_en": "How many suppliers before customers launch?",
       "q_ar": "كم عدد الموردين المطلوب قبل إطلاق العملاء؟",
       "expected_entry_ids": [
@@ -292,11 +399,15 @@
       ],
       "expected_facts": [
         "1,000 suppliers"
+      ],
+      "q_reworded": "How many suppliers do we want registered before opening to customers?",
+      "answer_must": [
+        "1,000 suppliers"
       ]
     },
     {
       "id": "customer_support-exam-25",
-      "checklist": "CS-09",
+      "checklist": "CS-CL-009",
       "q_en": "How do we know Resend is still reporting bounces?",
       "q_ar": "كيف نعرف أن Resend ما زال يبلغ عن الرسائل المرتدة؟",
       "expected_entry_ids": [
@@ -305,11 +416,16 @@
       "expected_facts": [
         "test bounce",
         "30 minutes of silence"
+      ],
+      "q_reworded": "How would we notice that bounce reports from Resend stopped arriving?",
+      "answer_must": [
+        "A daily test bounce proves the webhook still reports",
+        "30 minutes of silence is a finding"
       ]
     },
     {
       "id": "customer_support-exam-26",
-      "checklist": "CS-09",
+      "checklist": "CS-CL-009",
       "q_en": "An address hard-bounced last week. Can we retry it?",
       "q_ar": "عنوان ارتد نهائياً الأسبوع الماضي، هل نعيد الإرسال إليه؟",
       "expected_entry_ids": [
@@ -317,11 +433,15 @@
       ],
       "expected_facts": [
         "email_suppressions"
+      ],
+      "q_reworded": "A supplier's email bounced hard last week; marketing wants to try again. Allowed?",
+      "answer_must": [
+        "No; a hard bounce is suppressed (email_suppressions) and never retried"
       ]
     },
     {
       "id": "customer_support-exam-27",
-      "checklist": "CS-09",
+      "checklist": "CS-CL-009",
       "q_en": "What is the delivery KPI?",
       "q_ar": "ما مؤشر التسليم؟",
       "expected_entry_ids": [
@@ -329,11 +449,15 @@
       ],
       "expected_facts": [
         "delivery success rate, per channel"
+      ],
+      "q_reworded": "What single number tells us our sends are healthy?",
+      "answer_must": [
+        "Delivery success rate, per channel"
       ]
     },
     {
       "id": "customer_support-exam-28",
-      "checklist": "CS-10",
+      "checklist": "CS-CL-010",
       "q_en": "A customer signed up three days ago with no request. What happens?",
       "q_ar": "عميل سجّل قبل ثلاثة أيام ولم يقدم طلباً، ماذا يحدث؟",
       "expected_entry_ids": [
@@ -341,11 +465,15 @@
       ],
       "expected_facts": [
         "written to once"
+      ],
+      "q_reworded": "A buyer joined three days ago and posted nothing. Will he hear from us?",
+      "answer_must": [
+        "Yes, an activation message, and a person is written to once per step"
       ]
     },
     {
       "id": "customer_support-exam-29",
-      "checklist": "CS-10",
+      "checklist": "CS-CL-010",
       "q_en": "When does a win-back message go out?",
       "q_ar": "متى تُرسل رسالة الاستعادة؟",
       "expected_entry_ids": [
@@ -353,11 +481,15 @@
       ],
       "expected_facts": [
         "60 to 90 days"
+      ],
+      "q_reworded": "After how long without activity does a customer get a come-back message?",
+      "answer_must": [
+        "60 to 90 days of dormancy"
       ]
     },
     {
       "id": "customer_support-exam-30",
-      "checklist": "CS-10",
+      "checklist": "CS-CL-010",
       "q_en": "Are activation messages running now?",
       "q_ar": "هل رسائل التفعيل تعمل حالياً؟",
       "expected_entry_ids": [
@@ -365,11 +497,15 @@
       ],
       "expected_facts": [
         "January 2027"
+      ],
+      "q_reworded": "Are we sending activation messages to customers today?",
+      "answer_must": [
+        "No; they are dormant until January 2027 when customers start"
       ]
     },
     {
       "id": "customer_support-exam-31",
-      "checklist": "CS-11",
+      "checklist": "CS-CL-011",
       "q_en": "How long does each party have to send dispute evidence?",
       "q_ar": "كم يوماً لدى كل طرف لتقديم أدلة النزاع؟",
       "expected_entry_ids": [
@@ -377,11 +513,15 @@
       ],
       "expected_facts": [
         "5 working days"
+      ],
+      "q_reworded": "A dispute has been opened after a reveal. How long do the buyer and supplier have to send their evidence?",
+      "answer_must": [
+        "5 working days"
       ]
     },
     {
       "id": "customer_support-exam-32",
-      "checklist": "CS-11",
+      "checklist": "CS-CL-011",
       "q_en": "Who decides a post-reveal dispute and how fast?",
       "q_ar": "من يبت في النزاع بعد الكشف وخلال كم؟",
       "expected_entry_ids": [
@@ -389,11 +529,16 @@
       ],
       "expected_facts": [
         "3 working days"
+      ],
+      "q_reworded": "Who rules on a dispute after a reveal and within what time?",
+      "answer_must": [
+        "The CEO decides the dispute, not support",
+        "Within 3 working days"
       ]
     },
     {
       "id": "customer_support-exam-33",
-      "checklist": "CS-11",
+      "checklist": "CS-CL-011",
       "q_en": "Can support promise a refund in a dispute?",
       "q_ar": "هل يستطيع الدعم أن يَعِد باسترداد في نزاع؟",
       "expected_entry_ids": [
@@ -401,11 +546,15 @@
       ],
       "expected_facts": [
         "never promises a refund"
+      ],
+      "q_reworded": "In a dispute, the buyer asks support to confirm he will be refunded. Can we?",
+      "answer_must": [
+        "Support never promises a refund"
       ]
     },
     {
       "id": "customer_support-exam-34",
-      "checklist": "CS-12",
+      "checklist": "CS-CL-012",
       "q_en": "What happens to a question the chat could not answer?",
       "q_ar": "ماذا يحدث للسؤال الذي لم تستطع المحادثة الإجابة عنه؟",
       "expected_entry_ids": [
@@ -413,11 +562,15 @@
       ],
       "expected_facts": [
         "knowledge request"
+      ],
+      "q_reworded": "The chat could not answer something a supplier asked. What happens to that question?",
+      "answer_must": [
+        "It is filed as a knowledge request"
       ]
     },
     {
       "id": "customer_support-exam-35",
-      "checklist": "CS-12",
+      "checklist": "CS-CL-012",
       "q_en": "How many chat questions went unanswered in the week ending 24 Sep?",
       "q_ar": "كم سؤالاً في المحادثة بقي بلا إجابة في الأسبوع المنتهي 24 سبتمبر؟",
       "expected_entry_ids": [
@@ -425,11 +578,15 @@
       ],
       "expected_facts": [
         "12 not answered"
+      ],
+      "q_reworded": "In the week to 24 September, how many chat questions went without an answer?",
+      "answer_must": [
+        "12 not answered"
       ]
     },
     {
       "id": "customer_support-exam-36",
-      "checklist": "CS-12",
+      "checklist": "CS-CL-012",
       "q_en": "Why is WhatsApp first-reply time missing from the review?",
       "q_ar": "لماذا لا يظهر زمن الرد الأول على واتساب في المراجعة؟",
       "expected_entry_ids": [
@@ -437,11 +594,15 @@
       ],
       "expected_facts": [
         "no reply time"
+      ],
+      "q_reworded": "Why does the weekly review not show how fast we reply on WhatsApp?",
+      "answer_must": [
+        "WhatsApp replies were written with no reply time, so first-reply time was not recorded"
       ]
     },
     {
       "id": "customer_support-exam-37",
-      "checklist": "CS-13",
+      "checklist": "CS-CL-013",
       "q_en": "A customer asks about a drawing specification. Who answers?",
       "q_ar": "عميل يسأل عن مواصفة في مخطط، من يجيب؟",
       "expected_entry_ids": [
@@ -449,11 +610,15 @@
       ],
       "expected_facts": [
         "go to the sales engineer"
+      ],
+      "q_reworded": "A buyer asks whether 12mm or 15mm board meets his drawing. Do we answer that in support?",
+      "answer_must": [
+        "Specification questions go to the sales engineer"
       ]
     },
     {
       "id": "customer_support-exam-38",
-      "checklist": "CS-13",
+      "checklist": "CS-CL-013",
       "q_en": "What can support decide without anyone else?",
       "q_ar": "ما الذي يقرره الدعم دون الرجوع إلى أحد؟",
       "expected_entry_ids": [
@@ -461,11 +626,15 @@
       ],
       "expected_facts": [
         "when a case is closed"
+      ],
+      "q_reworded": "Give an example of something support settles on its own authority.",
+      "answer_must": [
+        "Support decides alone things like when a case is closed"
       ]
     },
     {
       "id": "customer_support-exam-39",
-      "checklist": "CS-13",
+      "checklist": "CS-CL-014",
       "q_en": "Can support reply \"I need to check and get back to you\"?",
       "q_ar": "هل يجوز للدعم أن يرد \"سأتحقق وأعود إليكم\"؟",
       "expected_entry_ids": [
@@ -473,11 +642,15 @@
       ],
       "expected_facts": [
         "not acceptable"
+      ],
+      "q_reworded": "Is \"let me find out and come back to you\" an acceptable reply from our chat?",
+      "answer_must": [
+        "No; it is not acceptable, support answers in the same reply"
       ]
     },
     {
       "id": "customer_support-exam-40",
-      "checklist": "CS-14",
+      "checklist": "CS-CL-015",
       "q_en": "What is the first-response target for chat?",
       "q_ar": "ما هدف زمن الرد الأول في المحادثة؟",
       "expected_entry_ids": [
@@ -485,11 +658,15 @@
       ],
       "expected_facts": [
         "under a minute"
+      ],
+      "q_reworded": "How fast should the chat respond to a new message?",
+      "answer_must": [
+        "First response in under a minute"
       ]
     },
     {
       "id": "customer_support-exam-41",
-      "checklist": "CS-14",
+      "checklist": "CS-CL-015",
       "q_en": "How is support proven ready?",
       "q_ar": "كيف يثبت أن الدعم جاهز؟",
       "expected_entry_ids": [
@@ -497,11 +674,15 @@
       ],
       "expected_facts": [
         "automated scenario suite"
+      ],
+      "q_reworded": "How do we prove the support seat is ready rather than say it?",
+      "answer_must": [
+        "By the automated scenario suite score"
       ]
     },
     {
       "id": "customer_support-exam-42",
-      "checklist": "CS-14",
+      "checklist": "CS-CL-015",
       "q_en": "What are the supplier campaign KPIs?",
       "q_ar": "ما مؤشرات حملة الموردين؟",
       "expected_entry_ids": [
@@ -509,11 +690,15 @@
       ],
       "expected_facts": [
         "reply rate and registrations"
+      ],
+      "q_reworded": "What numbers judge the supplier invitation campaign?",
+      "answer_must": [
+        "Reply rate and registrations"
       ]
     },
     {
       "id": "customer_support-exam-43",
-      "checklist": "CS-15",
+      "checklist": "CS-CL-016",
       "q_en": "A customer registered in English writes in Arabic. Which language is the reply?",
       "q_ar": "عميل سجّل بالإنجليزية وكتب بالعربية، بأي لغة يكون الرد؟",
       "expected_entry_ids": [
@@ -521,11 +706,15 @@
       ],
       "expected_facts": [
         "language the person registered in"
+      ],
+      "q_reworded": "She signed up in English but now writes to us in Arabic. What language goes back?",
+      "answer_must": [
+        "The language the person registered in"
       ]
     },
     {
       "id": "customer_support-exam-44",
-      "checklist": "CS-15",
+      "checklist": "CS-CL-016",
       "q_en": "Should Arabic replies be translated from English drafts?",
       "q_ar": "هل تُترجم الردود العربية من مسودات إنجليزية؟",
       "expected_entry_ids": [
@@ -533,11 +722,15 @@
       ],
       "expected_facts": [
         "not translated from English"
+      ],
+      "q_reworded": "Can we write the English reply first and run it through translation for Arabic customers?",
+      "answer_must": [
+        "No; Arabic is written natively, not translated from English"
       ]
     },
     {
       "id": "customer_support-exam-45",
-      "checklist": "CS-15",
+      "checklist": "CS-CL-017",
       "q_en": "How should an Arabic reply greet someone who said السلام عليكم?",
       "q_ar": "كيف يرد الدعم على من قال السلام عليكم؟",
       "expected_entry_ids": [
@@ -545,11 +738,15 @@
       ],
       "expected_facts": [
         "وعليكم السلام ورحمة الله"
+      ],
+      "q_reworded": "A supplier opens with السلام عليكم. How do we greet him back?",
+      "answer_must": [
+        "وعليكم السلام ورحمة الله, the full correct reply"
       ]
     },
     {
       "id": "customer_support-exam-46",
-      "checklist": "CS-16",
+      "checklist": "CS-CL-018",
       "q_en": "What must the WhatsApp profile never say?",
       "q_ar": "ما الذي يجب ألا يرد أبداً في ملف واتساب؟",
       "expected_entry_ids": [
@@ -557,11 +754,16 @@
       ],
       "expected_facts": [
         "no trade-licence number"
+      ],
+      "q_reworded": "What must never appear on our WhatsApp business profile?",
+      "answer_must": [
+        "No trade-licence number",
+        "Never describes itself as AI"
       ]
     },
     {
       "id": "customer_support-exam-47",
-      "checklist": "CS-16",
+      "checklist": "CS-CL-018",
       "q_en": "Who else shares the profile consistency duty?",
       "q_ar": "من يشارك مهمة اتساق الملفات التعريفية؟",
       "expected_entry_ids": [
@@ -569,11 +771,15 @@
       ],
       "expected_facts": [
         "marketing seat"
+      ],
+      "q_reworded": "Which other seat must keep its profiles consistent with ours?",
+      "answer_must": [
+        "The marketing seat"
       ]
     },
     {
       "id": "customer_support-exam-48",
-      "checklist": "CS-17",
+      "checklist": "CS-CL-019",
       "q_en": "A supplier has not responded 3 working days after the reveal. What now?",
       "q_ar": "مورد لم يرد بعد 3 أيام عمل من الكشف، ماذا الآن؟",
       "expected_entry_ids": [
@@ -582,11 +788,16 @@
       "expected_facts": [
         "Working day 3",
         "customer copied"
+      ],
+      "q_reworded": "Three working days after the reveal the supplier still has not contacted the buyer. Next step?",
+      "answer_must": [
+        "Working day 3: the supplier is chased with the customer copied",
+        "At 5 working days the refund rule applies"
       ]
     },
     {
       "id": "customer_support-exam-49",
-      "checklist": "CS-18",
+      "checklist": "CS-CL-020",
       "q_en": "What is the Reveal Fee?",
       "q_ar": "ما رسوم الكشف؟",
       "expected_entry_ids": [
@@ -594,11 +805,15 @@
       ],
       "expected_facts": [
         "3% of the value"
+      ],
+      "q_reworded": "How much does a buyer pay to see the chosen supplier's contact details?",
+      "answer_must": [
+        "The Reveal Fee is 3% of the value"
       ]
     },
     {
       "id": "customer_support-exam-50",
-      "checklist": "CS-18",
+      "checklist": "CS-CL-020",
       "q_en": "Is VAT charged on the Reveal Fee?",
       "q_ar": "هل تُفرض ضريبة القيمة المضافة على رسوم الكشف؟",
       "expected_entry_ids": [
@@ -606,11 +821,15 @@
       ],
       "expected_facts": [
         "no VAT on the Reveal Fee"
+      ],
+      "q_reworded": "Does the 3% fee carry VAT on top?",
+      "answer_must": [
+        "There is no VAT on the Reveal Fee"
       ]
     },
     {
       "id": "customer_support-exam-51",
-      "checklist": "CS-19",
+      "checklist": "CS-CL-021",
       "q_en": "A buyer asks which supplier offered the lowest price before choosing. Can we say?",
       "q_ar": "مشترٍ يسأل قبل الاختيار أي مورد قدم أقل سعر، هل نخبره؟",
       "expected_entry_ids": [
@@ -618,11 +837,15 @@
       ],
       "expected_facts": [
         "never discloses"
+      ],
+      "q_reworded": "Before choosing, the buyer wants to know which company quoted lowest. Can we name it?",
+      "answer_must": [
+        "No; support never discloses identities before reveal"
       ]
     },
     {
       "id": "customer_support-exam-52",
-      "checklist": "CS-20",
+      "checklist": "CS-CL-022",
       "q_en": "We have not heard from a customer for two days on WhatsApp. Can we send free text?",
       "q_ar": "لم يراسلنا العميل على واتساب منذ يومين، هل نرسل نصاً حراً؟",
       "expected_entry_ids": [
@@ -631,11 +854,16 @@
       "expected_facts": [
         "24-hour customer service window",
         "pre-approved message templates"
+      ],
+      "q_reworded": "The customer went quiet two days ago on WhatsApp. Can we just type him a normal follow-up?",
+      "answer_must": [
+        "Free text is only allowed inside the 24-hour customer service window",
+        "Outside it, only pre-approved message templates"
       ]
     },
     {
       "id": "customer_support-exam-53",
-      "checklist": "CS-21",
+      "checklist": "CS-CL-023",
       "q_en": "A supplier asks us to delete all his personal data. Which law applies?",
       "q_ar": "مورد يطلب حذف جميع بياناته الشخصية، أي قانون ينطبق؟",
       "expected_entry_ids": [
@@ -643,11 +871,15 @@
       ],
       "expected_facts": [
         "Decree-Law No. 45 of 2021"
+      ],
+      "q_reworded": "A supplier wants all his personal details wiped. Which UAE law governs that?",
+      "answer_must": [
+        "The PDPL, Federal Decree-Law No. 45 of 2021"
       ]
     },
     {
       "id": "customer_support-exam-54",
-      "checklist": "CS-22",
+      "checklist": "CS-CL-024",
       "q_en": "A customer says the supplier's bank account changed. What do we advise?",
       "q_ar": "عميل يقول إن الحساب البنكي للمورد تغيّر، بماذا ننصحه؟",
       "expected_entry_ids": [
@@ -655,11 +887,16 @@
       ],
       "expected_facts": [
         "Do not pay to the new details yet"
+      ],
+      "q_reworded": "The buyer got a letter saying the supplier's bank details changed. What should he do?",
+      "answer_must": [
+        "Do not pay to the new details yet",
+        "Verify by a known contact through an independent channel"
       ]
     },
     {
       "id": "customer_support-exam-55",
-      "checklist": "CS-23",
+      "checklist": "CS-CL-025",
       "q_en": "Which days are the UAE government working days?",
       "q_ar": "ما أيام عمل الجهات الحكومية في الإمارات؟",
       "expected_entry_ids": [
@@ -667,11 +904,15 @@
       ],
       "expected_facts": [
         "Monday to Friday"
+      ],
+      "q_reworded": "Which days do UAE government offices work?",
+      "answer_must": [
+        "Monday to Friday"
       ]
     },
     {
       "id": "customer_support-exam-56",
-      "checklist": "CS-24",
+      "checklist": "CS-CL-026",
       "q_en": "How do we convert a VAT-inclusive quote to exclusive?",
       "q_ar": "كيف نحوّل عرضاً شاملاً للضريبة إلى غير شامل؟",
       "expected_entry_ids": [
@@ -679,11 +920,15 @@
       ],
       "expected_facts": [
         "divide by 1.05"
+      ],
+      "q_reworded": "A quote of AED 10,500 includes VAT. What is it before VAT?",
+      "answer_must": [
+        "Divide by 1.05 (AED 10,000)"
       ]
     },
     {
       "id": "customer_support-exam-57",
-      "checklist": "CS-25",
+      "checklist": "CS-CL-027",
       "q_en": "How does support use past cases before replying?",
       "q_ar": "كيف يستفيد الدعم من الحالات السابقة قبل الرد؟",
       "expected_entry_ids": [
@@ -691,11 +936,15 @@
       ],
       "expected_facts": [
         "retrieve the most similar resolved cases"
+      ],
+      "q_reworded": "Before answering a tricky case, how does the chat use earlier tickets?",
+      "answer_must": [
+        "It retrieves the most similar resolved cases first"
       ]
     },
     {
       "id": "customer_support-exam-58",
-      "checklist": "CS-PRO",
+      "checklist": "CS-CL-028",
       "q_en": "Does a low complaint count mean customers are satisfied?",
       "q_ar": "هل يعني انخفاض عدد الشكاوى أن العملاء راضون؟",
       "expected_entry_ids": [
@@ -703,11 +952,15 @@
       ],
       "expected_facts": [
         "Silence is not satisfaction"
+      ],
+      "q_reworded": "We had almost no complaints last month. Does that prove customers are happy?",
+      "answer_must": [
+        "No; silence is not satisfaction"
       ]
     },
     {
       "id": "customer_support-exam-59",
-      "checklist": "CS-PRO",
+      "checklist": "CS-CL-029",
       "q_en": "A buyer and supplier disagree on work quality after the reveal. Does Support decide who is right?",
       "q_ar": "اختلف مشترٍ ومورد على جودة العمل بعد الكشف. هل يقرر الدعم من المحق؟",
       "expected_entry_ids": [
@@ -715,11 +968,16 @@
       ],
       "expected_facts": [
         "never acts as arbitrator"
+      ],
+      "q_reworded": "Buyer and contractor argue about workmanship after the reveal. Is support the judge?",
+      "answer_must": [
+        "No; support never acts as arbitrator",
+        "It points to external dispute resolution"
       ]
     },
     {
       "id": "customer_support-exam-60",
-      "checklist": "CS-PRO",
+      "checklist": "CS-CL-030",
       "q_en": "What must a support channel have before it is opened to customers?",
       "q_ar": "ما الذي يجب أن يتوفر لقناة دعم قبل فتحها للعملاء؟",
       "expected_entry_ids": [
@@ -727,11 +985,16 @@
       ],
       "expected_facts": [
         "published contact route"
+      ],
+      "q_reworded": "Before we switch on a new support channel, what has to be in place?",
+      "answer_must": [
+        "A published contact route, stated hours, a measured response commitment and a complaint path",
+        "A channel missing any of the four is not opened"
       ]
     },
     {
       "id": "customer_support-exam-61",
-      "checklist": "CS-PRO",
+      "checklist": "CS-CL-031",
       "q_en": "What does a service blueprint add to a customer journey map?",
       "q_ar": "ماذا يضيف مخطط الخدمة إلى خريطة رحلة العميل؟",
       "expected_entry_ids": [
@@ -739,11 +1002,15 @@
       ],
       "expected_facts": [
         "line of visibility"
+      ],
+      "q_reworded": "What does a service blueprint show that a journey map does not?",
+      "answer_must": [
+        "The line of visibility: behind-the-scenes processes supporting each step"
       ]
     },
     {
       "id": "customer_support-exam-62",
-      "checklist": "CS-PRO",
+      "checklist": "CS-CL-032",
       "q_en": "What is a voice-of-the-customer programme?",
       "q_ar": "ما برنامج صوت العميل؟",
       "expected_entry_ids": [
@@ -751,11 +1018,15 @@
       ],
       "expected_facts": [
         "programme is the system that turns"
+      ],
+      "q_reworded": "What do we mean by a voice-of-the-customer programme?",
+      "answer_must": [
+        "A programme is the system that turns feedback into action and closes the loop"
       ]
     },
     {
       "id": "customer_support-exam-63",
-      "checklist": "CS-PRO",
+      "checklist": "CS-CL-033",
       "q_en": "When should a buyer be asked the satisfaction survey?",
       "q_ar": "متى يُطرح استبيان الرضا على المشتري؟",
       "expected_entry_ids": [
@@ -763,11 +1034,15 @@
       ],
       "expected_facts": [
         "after the outcome"
+      ],
+      "q_reworded": "At what point do we ask the buyer to rate us?",
+      "answer_must": [
+        "After the outcome, not before"
       ]
     },
     {
       "id": "customer_support-exam-64",
-      "checklist": "CS-PRO",
+      "checklist": "CS-CL-034",
       "q_en": "Why normalise weekly complaint counts?",
       "q_ar": "لماذا تُطبّع أعداد الشكاوى الأسبوعية؟",
       "expected_entry_ids": [
@@ -775,11 +1050,16 @@
       ],
       "expected_facts": [
         "more users mean more complaints"
+      ],
+      "q_reworded": "Complaints doubled this quarter. Why is that not yet bad news?",
+      "answer_must": [
+        "More users mean more complaints",
+        "Normalise counts per user or transaction"
       ]
     },
     {
       "id": "customer_support-exam-65",
-      "checklist": "CS-PRO",
+      "checklist": "CS-CL-035",
       "q_en": "What is the first technique of active listening in a written reply?",
       "q_ar": "ما أول تقنيات الإصغاء الفعّال في الرد المكتوب؟",
       "expected_entry_ids": [
@@ -787,11 +1067,15 @@
       ],
       "expected_facts": [
         "Reflect"
+      ],
+      "q_reworded": "What is the first thing active listening looks like in a written reply?",
+      "answer_must": [
+        "Reflect back what the customer said"
       ]
     },
     {
       "id": "customer_support-exam-66",
-      "checklist": "CS-PRO",
+      "checklist": "CS-CL-036",
       "q_en": "What may the service charter commit to?",
       "q_ar": "بماذا يجوز أن يلتزم ميثاق الخدمة؟",
       "expected_entry_ids": [
@@ -799,11 +1083,15 @@
       ],
       "expected_facts": [
         "commits only to measured standards"
+      ],
+      "q_reworded": "What are we allowed to promise in our customer service charter?",
+      "answer_must": [
+        "Only standards we measure"
       ]
     },
     {
       "id": "customer_support-exam-67",
-      "checklist": "CS-PRO",
+      "checklist": "CS-CL-037",
       "q_en": "What is a customer satisfaction code of conduct under ISO 10001?",
       "q_ar": "ما مدونة سلوك رضا العملاء وفق ISO 10001؟",
       "expected_entry_ids": [
@@ -811,6 +1099,561 @@
       ],
       "expected_facts": [
         "set of promises"
+      ],
+      "q_reworded": "Under ISO 10001, what is a customer satisfaction code of conduct?",
+      "answer_must": [
+        "A set of promises to customers with the rules that support them"
+      ]
+    },
+    {
+      "id": "customer_support-exam-68",
+      "checklist": "CS-CL-038",
+      "q_en": "A supplier asks for a copy of all the personal data we hold about him. What rights does the PDPL give him?",
+      "q_ar": "طلب مورد نسخة من جميع بياناته الشخصية لدينا. ما الحقوق التي يمنحه إياها قانون حماية البيانات؟",
+      "expected_entry_ids": [
+        "customer_support:pdpl-data-subject-rights"
+      ],
+      "expected_facts": [
+        "portability",
+        "right to erasure"
+      ],
+      "q_reworded": "Ahmed from a fit-out company wants to know everything we keep on him and wants it in a file he can take elsewhere. What is he entitled to?",
+      "answer_must": [
+        "He has a right of access and of portability (structured, machine-readable copy)",
+        "Other rights include correction, erasure in defined cases, restriction and objection to processing",
+        "Identity is verified before anything is disclosed"
+      ]
+    },
+    {
+      "id": "customer_support-exam-69",
+      "checklist": "CS-CL-039",
+      "q_en": "A supplier says he received another company's quotation by email. What does support do first?",
+      "q_ar": "يقول مورد إنه استلم عرض سعر شركة أخرى بالبريد. ما أول ما يفعله الدعم؟",
+      "expected_entry_ids": [
+        "customer_support:pdpl-breach-and-support"
+      ],
+      "expected_facts": [
+        "UAE Data Office",
+        "act as if hours matter"
+      ],
+      "q_reworded": "Someone just messaged that a PDF we sent him shows a different buyer's name and phone. How fast and to whom does this go?",
+      "answer_must": [
+        "Treat it as a possible personal-data breach and escalate immediately",
+        "The PDPL requires notifying the UAE Data Office and affected people; hours matter",
+        "Do not delete evidence; record what was exposed and to whom"
+      ]
+    },
+    {
+      "id": "customer_support-exam-70",
+      "checklist": "CS-CL-040",
+      "q_en": "A villa owner and a facilities company both complain about a supplier. Do the same consumer rules apply to both?",
+      "q_ar": "يشتكي مالك فيلا وشركة إدارة مرافق من مورد. هل تنطبق قواعد حماية المستهلك نفسها على الاثنين؟",
+      "expected_entry_ids": [
+        "customer_support:consumer-or-commercial-buyer"
+      ],
+      "expected_facts": [
+        "Federal Law 15/2020",
+        "Cabinet Resolution 66/2023"
+      ],
+      "q_reworded": "My colleague says every buyer on the platform is protected as a consumer. Is that right for a company buying maintenance for its building?",
+      "answer_must": [
+        "An individual buying for personal or household use is a consumer under Law 15/2020 and Resolution 66/2023",
+        "A company buying for its business is a commercial buyer and its contract and commercial law frame the answer",
+        "Decide which one is asking before framing a complaint or refund answer"
+      ]
+    },
+    {
+      "id": "customer_support-exam-71",
+      "checklist": "CS-CL-041",
+      "q_en": "An individual customer wants to complain about a supplier to the government. Where can he go?",
+      "q_ar": "يريد عميل فرد تقديم شكوى ضد مورد إلى جهة حكومية. أين يذهب؟",
+      "expected_entry_ids": [
+        "customer_support:consumer-complaint-channels-uae"
+      ],
+      "expected_facts": [
+        "800 1222",
+        "consumerrights.ae"
+      ],
+      "q_reworded": "A homeowner in Dubai says he will report the contractor to the authorities. Which official routes exist?",
+      "answer_must": [
+        "The Ministry of Economy (800 1222, website, U.Ask)",
+        "The local economic department; in Dubai the consumer rights portal consumerrights.ae",
+        "Support gives the route honestly and keeps handling the case"
+      ]
+    },
+    {
+      "id": "customer_support-exam-72",
+      "checklist": "CS-CL-042",
+      "q_en": "A buyer says QuotesDone is responsible for the bad tiling work. What is our role?",
+      "q_ar": "يقول مشترٍ إن كوتس دن مسؤولة عن سوء أعمال البلاط. ما دورنا؟",
+      "expected_entry_ids": [
+        "customer_support:marketplace-role-clarity"
+      ],
+      "expected_facts": [
+        "QuotesDone is a marketplace",
+        "no supplier commission"
+      ],
+      "q_reworded": "The customer insists we did the job because he found the tiler through us. How do we explain who is responsible for the quality?",
+      "answer_must": [
+        "QuotesDone is a marketplace, not the contractor",
+        "The supplier performs the work and is responsible for quality, warranty and timelines under its contract with the buyer",
+        "QuotesDone is responsible for its own service: matching, comparison, reveal and the fee"
+      ]
+    },
+    {
+      "id": "customer_support-exam-73",
+      "checklist": "CS-CL-043",
+      "q_en": "How are WhatsApp messaging limits set and how does a business move from 250 to higher tiers?",
+      "q_ar": "كيف تُحدد حدود المراسلة في واتساب وكيف تنتقل الشركة من 250 إلى مستويات أعلى؟",
+      "expected_entry_ids": [
+        "customer_support:whatsapp-quality-rating"
+      ],
+      "expected_facts": [
+        "starting at 250",
+        "2,000"
+      ],
+      "q_reworded": "Marketing wants to send a template to 5,000 suppliers tomorrow on WhatsApp. Can our number reach that many and what decides it?",
+      "answer_must": [
+        "Limits count unique users reached outside service windows in a rolling 24 hours, set per business portfolio",
+        "They start at 250 and scale to 2,000 then 10,000, 100,000 or unlimited",
+        "Low quality ratings pause templates and block scaling"
+      ]
+    },
+    {
+      "id": "customer_support-exam-74",
+      "checklist": "CS-CL-044",
+      "q_en": "Is a message telling a customer about a new category a service message or a marketing message?",
+      "q_ar": "هل الرسالة التي تخبر العميل بفئة جديدة رسالة خدمة أم تسويق؟",
+      "expected_entry_ids": [
+        "customer_support:service-vs-marketing-message"
+      ],
+      "expected_facts": [
+        "Cabinet Resolution 56/2024",
+        "MARKETING when"
+      ],
+      "q_reworded": "Can we drop a quick WhatsApp to past buyers saying we now cover HVAC, since they already talked to us before?",
+      "answer_must": [
+        "That is marketing, because it asks them to do something new",
+        "Service messages are about something the person started or is owed",
+        "Marketing needs consent and the WhatsApp marketing category and the telemarketing rules (56/2024)"
+      ]
+    },
+    {
+      "id": "customer_support-exam-75",
+      "checklist": "CS-CL-045",
+      "q_en": "How quickly must support acknowledge a complaint and give a first update?",
+      "q_ar": "ما سرعة إقرار الدعم باستلام الشكوى وتقديم أول تحديث؟",
+      "expected_entry_ids": [
+        "customer_support:complaint-service-levels"
+      ],
+      "expected_facts": [
+        "within 1 hour",
+        "reference number"
+      ],
+      "q_reworded": "A contractor lodged a formal complaint at 4pm on Thursday by email. What does he hear from us and when?",
+      "answer_must": [
+        "Acknowledge within 1 hour on chat or WhatsApp in staffed hours, within 1 business day on email or out of hours, with a reference number",
+        "These are QuotesDone's internal commitments, not legal deadlines",
+        "Business days are UAE working days, Monday to Friday"
+      ]
+    },
+    {
+      "id": "customer_support-exam-76",
+      "checklist": "CS-CL-046",
+      "q_en": "A calm customer writes \"I think I was charged twice\". What priority is it?",
+      "q_ar": "كتب عميل بهدوء: أظن أنني دفعت مرتين. ما الأولوية؟",
+      "expected_entry_ids": [
+        "customer_support:priority-triage"
+      ],
+      "expected_facts": [
+        "impact and urgency",
+        "not by the customer's tone"
+      ],
+      "q_reworded": "Two messages arrive: an angry one about the form layout and a polite one about a double charge. Which do you handle first and why?",
+      "answer_must": [
+        "Priority is set by impact and urgency, not tone",
+        "Money, data, safety or a live deadline raise impact",
+        "A possible double charge is high priority even if written calmly"
+      ]
+    },
+    {
+      "id": "customer_support-exam-77",
+      "checklist": "CS-CL-047",
+      "q_en": "What makes a good apology after we failed a customer?",
+      "q_ar": "ما الذي يجعل الاعتذار جيداً بعد أن أخفقنا مع العميل؟",
+      "expected_entry_ids": [
+        "customer_support:apology-and-service-recovery"
+      ],
+      "expected_facts": [
+        "three parts",
+        "sorry if you felt"
+      ],
+      "q_reworded": "We sent a buyer the wrong supplier details and he lost a day. How should our reply say sorry and what can we offer?",
+      "answer_must": [
+        "State specifically what went wrong, accept our part, and say what prevents a repeat",
+        "Avoid conditional apologies and blaming systems",
+        "Offer recovery in proportion: fix and explain, expedite, then goodwill"
+      ]
+    },
+    {
+      "id": "customer_support-exam-78",
+      "checklist": "CS-CL-048",
+      "q_en": "How should first contact resolution be defined so the number means something?",
+      "q_ar": "كيف يُعرّف الحل من أول تواصل حتى يكون للرقم معنى؟",
+      "expected_entry_ids": [
+        "customer_support:metric-fcr"
+      ],
+      "expected_facts": [
+        "First contact resolution",
+        "7 days"
+      ],
+      "q_reworded": "The weekly report says 90% FCR. What would you ask before believing it?",
+      "answer_must": [
+        "Write down what counts as a contact, what counts as resolved and what is excluded",
+        "Resolved means no repeat contact on the same issue within a window such as 7 days",
+        "Repeat contacts are customer effort, so FCR drives satisfaction"
+      ]
+    },
+    {
+      "id": "customer_support-exam-79",
+      "checklist": "CS-CL-049",
+      "q_en": "What does a support QA rubric check in a conversation?",
+      "q_ar": "ما الذي تتحقق منه قائمة تقييم الجودة في محادثة الدعم؟",
+      "expected_entry_ids": [
+        "customer_support:qa-review-rubric"
+      ],
+      "expected_facts": [
+        "Correctness",
+        "Completeness"
+      ],
+      "q_reworded": "The CEO asks how we know the chat answers are good and not just fluent. What do we review and against what?",
+      "answer_must": [
+        "A sample of real conversations is reviewed against a fixed rubric",
+        "Correctness against approved sources, completeness, policy and role boundaries, tone",
+        "Models can be fluent and wrong, so quality is measured, not assumed"
+      ]
+    },
+    {
+      "id": "customer_support-exam-80",
+      "checklist": "CS-CL-050",
+      "q_en": "What grounding rules stop the automated assistant inventing facts?",
+      "q_ar": "ما قواعد الاستناد التي تمنع المساعد الآلي من اختلاق الحقائق؟",
+      "expected_entry_ids": [
+        "customer_support:answer-grounding-rules"
+      ],
+      "expected_facts": [
+        "retrieved approved source",
+        "misinformation"
+      ],
+      "q_reworded": "The chat told a customer a fee we never published. What rule was broken and what should it do next time?",
+      "answer_must": [
+        "Every factual claim must come from a retrieved approved source and the source is logged",
+        "If nothing is retrieved, the assistant does not invent an answer",
+        "Misinformation and prompt injection are recognised LLM risks (OWASP)"
+      ]
+    },
+    {
+      "id": "customer_support-exam-81",
+      "checklist": "CS-CL-051",
+      "q_en": "The portal is down and customers are messaging. What does support do?",
+      "q_ar": "البوابة متوقفة والعملاء يراسلوننا. ماذا يفعل الدعم؟",
+      "expected_entry_ids": [
+        "customer_support:incident-communication"
+      ],
+      "expected_facts": [
+        "do not speculate about cause",
+        "holding reply"
+      ],
+      "q_reworded": "Uploads have been failing for an hour and three suppliers asked what is going on. What do we tell them?",
+      "answer_must": [
+        "Confirm the incident with the IT engineer seat first and do not speculate on cause",
+        "Send a holding reply in English and Arabic saying what is affected and when the next update comes",
+        "IT leads the fix, support leads customer communication, the CEO decides broad announcements"
+      ]
+    },
+    {
+      "id": "customer_support-exam-82",
+      "checklist": "CS-CL-052",
+      "q_en": "How do private-sector working hours change in Ramadan and what does support do about it?",
+      "q_ar": "كيف تتغير ساعات العمل في القطاع الخاص في رمضان، وماذا يفعل الدعم؟",
+      "expected_entry_ids": [
+        "customer_support:ramadan-service-conduct"
+      ],
+      "expected_facts": [
+        "reduced by two hours",
+        "Federal Decree-Law No. 33 of 2021"
+      ],
+      "q_reworded": "A buyer complains the supplier is slow to answer during Ramadan. What should we know about working hours this month?",
+      "answer_must": [
+        "Private-sector hours are reduced by two hours a day in Ramadan, for all employees",
+        "MoHRE announces it each year under Decree-Law 33/2021",
+        "Support plans coverage and deadlines for it rather than reacting"
+      ]
+    },
+    {
+      "id": "customer_support-exam-83",
+      "checklist": "CS-CL-053",
+      "q_en": "What signs show a customer is distressed or vulnerable and how should support adapt?",
+      "q_ar": "ما العلامات التي تدل على أن العميل في ضائقة أو وضع هش، وكيف يتكيف الدعم؟",
+      "expected_entry_ids": [
+        "customer_support:vulnerable-or-distressed-customer"
+      ],
+      "expected_facts": [
+        "Slow down and simplify",
+        "repeated messages within minutes"
+      ],
+      "q_reworded": "An elderly man keeps writing that he already paid a contractor who disappeared and cannot lose more money. How do we handle him?",
+      "answer_must": [
+        "Notice signs: repeated messages, money they cannot lose, confusion, health or bereavement, a third person writing",
+        "Slow down and simplify: one topic per message and confirm understanding",
+        "Adapt the conversation rather than labelling the person"
+      ]
+    },
+    {
+      "id": "customer_support-exam-84",
+      "checklist": "CS-CL-054",
+      "q_en": "When will the customer see the Reveal Fee refund and can it go to another card?",
+      "q_ar": "متى يرى العميل استرداد رسوم الكشف، وهل يمكن تحويله إلى بطاقة أخرى؟",
+      "expected_entry_ids": [
+        "customer_support:refund-timing-and-tracing"
+      ],
+      "expected_facts": [
+        "original payment method",
+        "5 to 10 business days"
+      ],
+      "q_reworded": "We refunded her yesterday and she says nothing shows on her statement and asks us to send it to her husband's card instead. What do we say?",
+      "answer_must": [
+        "A refund only goes back to the original payment method",
+        "It usually appears 5 to 10 business days after issue, depending on the bank",
+        "An early refund can be a reversal where the charge simply disappears"
+      ]
+    },
+    {
+      "id": "customer_support-exam-85",
+      "checklist": "CS-CL-055",
+      "q_en": "How does support verify a Dubai supplier's trade licence?",
+      "q_ar": "كيف يتحقق الدعم من الرخصة التجارية لمورد في دبي؟",
+      "expected_entry_ids": [
+        "customer_support:trade-licence-verification-by-emirate"
+      ],
+      "expected_facts": [
+        "never accepted on the strength of a PDF alone",
+        "eservices.dubaided.gov.ae"
+      ],
+      "q_reworded": "A new supplier uploaded a licence PDF that looks fine. Is that enough to approve him?",
+      "answer_must": [
+        "A PDF alone is never enough; the licence is checked on the issuing authority's register",
+        "Each emirate has its own lookup (Dubai DET, Abu Dhabi TAMM, Sharjah SEDD, federal NER)",
+        "A valid licence is part of mandatory supplier verification"
+      ]
+    },
+    {
+      "id": "customer_support-exam-86",
+      "checklist": "CS-CL-056",
+      "q_en": "A buyer asks why one quotation is much cheaper than the others. How does support explain it?",
+      "q_ar": "يسأل مشترٍ لماذا عرض سعر أرخص بكثير من غيره. كيف يشرح الدعم ذلك؟",
+      "expected_entry_ids": [
+        "customer_support:explaining-quote-comparison"
+      ],
+      "expected_facts": [
+        "Scope",
+        "VAT basis"
+      ],
+      "q_reworded": "The cheapest of three offers is 40% lower. The client wants to know if he is being tricked. Walk him through it.",
+      "answer_must": [
+        "Check scope first: same items, quantities, specification and exclusions",
+        "Put VAT on one basis, then compare validity and payment terms",
+        "Comparison is on eight points, not price alone"
+      ]
+    },
+    {
+      "id": "customer_support-exam-87",
+      "checklist": "CS-CL-057",
+      "q_en": "What are the warning signs that a supplier account is fake?",
+      "q_ar": "ما العلامات التحذيرية على أن حساب المورد مزيف؟",
+      "expected_entry_ids": [
+        "customer_support:fraud-fake-supplier-patterns"
+      ],
+      "expected_facts": [
+        "look-alike domains",
+        "Pressure to move off the platform"
+      ],
+      "q_reworded": "A supplier with a gmail address and a price far below everyone keeps asking the buyer to WhatsApp him directly. Should we worry?",
+      "answer_must": [
+        "A licence or TRN that does not match the register is a red flag",
+        "Free or look-alike email domains and pressure to move off the platform are warning signs",
+        "Prices far below every other quotation combined with other signs need checking"
+      ]
+    },
+    {
+      "id": "customer_support-exam-88",
+      "checklist": "CS-CL-058",
+      "q_en": "When does frustration become abuse, and what does support do at the first instance?",
+      "q_ar": "متى يتحول الإحباط إلى إساءة، وماذا يفعل الدعم عند أول مرة؟",
+      "expected_entry_ids": [
+        "customer_support:abusive-contact-policy"
+      ],
+      "expected_facts": [
+        "frustration",
+        "reply once, calmly"
+      ],
+      "q_reworded": "A customer has started swearing at the chat and calling us thieves. Do we keep going, warn him or stop?",
+      "answer_must": [
+        "Frustration gets de-escalation, never a warning",
+        "Abuse is insults, slurs, sexual content or threats",
+        "At the first abuse reply once calmly that we continue if it stays respectful, and keep the evidence"
+      ]
+    },
+    {
+      "id": "customer_support-exam-89",
+      "checklist": "CS-CL-059",
+      "q_en": "A supplier demands we remove a one-star rating. What does support do?",
+      "q_ar": "يطالب مورد بإزالة تقييم بنجمة واحدة. ماذا يفعل الدعم؟",
+      "expected_entry_ids": [
+        "customer_support:rating-disputes"
+      ],
+      "expected_facts": [
+        "without promising removal",
+        "three weeks after the reveal"
+      ],
+      "q_reworded": "An electrical contractor says a bad review is killing his business and wants it gone today. How do we handle it?",
+      "answer_must": [
+        "Acknowledge without promising removal",
+        "Check the rating against the published rules: right buyer, right job, window, no abuse or personal data",
+        "Only ratings that break the rules are removed, consistently"
+      ]
+    },
+    {
+      "id": "customer_support-exam-90",
+      "checklist": "CS-CL-060",
+      "q_en": "An inbound email may belong to an existing case. How does support triage it?",
+      "q_ar": "قد تكون رسالة البريد الواردة تابعة لحالة قائمة. كيف يفرزها الدعم؟",
+      "expected_entry_ids": [
+        "customer_support:email-support-standard"
+      ],
+      "expected_facts": [
+        "merge rather than open duplicates",
+        "auto-replies"
+      ],
+      "q_reworded": "Three emails from the same supplier about the same RFQ landed overnight, one is an out-of-office. What do we do with them?",
+      "answer_must": [
+        "Classify each email by intent and owner",
+        "Detect an existing case and merge rather than open duplicates",
+        "Do not answer auto-replies, bounces or out-of-office as if a person wrote them"
+      ]
+    },
+    {
+      "id": "customer_support-exam-91",
+      "checklist": "CS-CL-061",
+      "q_en": "A site supervisor writes in Urdu. Which language do we reply in?",
+      "q_ar": "كتب مشرف موقع بالأردية. بأي لغة نرد؟",
+      "expected_entry_ids": [
+        "customer_support:multilingual-site-staff"
+      ],
+      "expected_facts": [
+        "simple English",
+        "Hindi, Urdu"
+      ],
+      "q_reworded": "A technician sent a voice note and short broken English about a delivery. How should our reply be written?",
+      "answer_must": [
+        "Reply in the person's language when it can be done accurately",
+        "Otherwise reply in simple English: short sentences, no idioms, no abbreviations",
+        "Add Arabic where appropriate"
+      ]
+    },
+    {
+      "id": "customer_support-exam-92",
+      "checklist": "CS-CL-062",
+      "q_en": "Is an electronically signed quotation legally valid in the UAE?",
+      "q_ar": "هل عرض السعر الموقّع إلكترونياً صالح قانونياً في الإمارات؟",
+      "expected_entry_ids": [
+        "customer_support:electronic-transactions-law-46-2021"
+      ],
+      "expected_facts": [
+        "Federal Decree-Law No. 46 of 2021",
+        "does not lose legal validity"
+      ],
+      "q_reworded": "The buyer asks if accepting the supplier's offer by clicking in the portal counts as much as a wet signature.",
+      "answer_must": [
+        "Decree-Law 46/2021 makes electronic documents and signatures legally effective",
+        "An electronic document does not lose validity or evidential value because it is electronic",
+        "TDRA licenses trust service providers"
+      ]
+    },
+    {
+      "id": "customer_support-exam-93",
+      "checklist": "CS-CL-063",
+      "q_en": "A customer writes \"I want my money back\". What does support check before replying?",
+      "q_ar": "كتب عميل: أريد استرداد أموالي. ما الذي يتحقق منه الدعم قبل الرد؟",
+      "expected_entry_ids": [
+        "customer_support:reasoning-sequence-refund-request"
+      ],
+      "expected_facts": [
+        "Is a bank dispute already open",
+        "Never ask for full card data"
+      ],
+      "q_reworded": "Someone on WhatsApp just said \"refund me now\". Walk through what you look at before you answer.",
+      "answer_must": [
+        "Identify the payment from the account and never ask for full card data",
+        "If a bank dispute is open, stop: no parallel refund",
+        "Check whether an automatic rule (supplier non-response) already applies, then match the refund scenario"
+      ]
+    },
+    {
+      "id": "customer_support-exam-94",
+      "checklist": "CS-CL-064",
+      "q_en": "What must our email domain have so Gmail delivers our bulk mail?",
+      "q_ar": "ما الذي يجب أن يتوفر في نطاق بريدنا حتى يسلّم Gmail رسائلنا الكثيرة؟",
+      "expected_entry_ids": [
+        "customer_support:email-sender-authentication-bulk-rules"
+      ],
+      "expected_facts": [
+        "DMARC",
+        "0.3%"
+      ],
+      "q_reworded": "Our supplier invitations started landing in spam at Gmail. What would a senior check on our sending setup?",
+      "answer_must": [
+        "SPF, DKIM and a DMARC record with the From domain aligned",
+        "Keep the spam rate below 0.3% (aim under 0.1%)",
+        "Bulk marketing needs one-click unsubscribe honoured within 2 days"
+      ]
+    },
+    {
+      "id": "customer_support-exam-95",
+      "checklist": "CS-CL-065",
+      "q_en": "How does one-click unsubscribe work and why does a failing endpoint matter?",
+      "q_ar": "كيف يعمل إلغاء الاشتراك بنقرة واحدة ولماذا يهم تعطل الوظيفة؟",
+      "expected_entry_ids": [
+        "customer_support:one-click-unsubscribe-handling"
+      ],
+      "expected_facts": [
+        "List-Unsubscribe-Post",
+        "125 of 146"
+      ],
+      "q_reworded": "A supplier says he clicked unsubscribe twice and still gets our campaign emails. What has gone wrong and what do we do?",
+      "answer_must": [
+        "The provider POSTs to the List-Unsubscribe URI and the sender must act with no further step",
+        "A failing endpoint means opt-outs are lost and later marketing is unwanted mail",
+        "Record and suppress the opt-out immediately; service messages may continue, marketing never"
+      ]
+    },
+    {
+      "id": "customer_support-exam-96",
+      "checklist": "CS-CL-066",
+      "q_en": "How should support measure whether self-service actually works?",
+      "q_ar": "كيف يقيس الدعم ما إذا كانت الخدمة الذاتية تنجح فعلاً؟",
+      "expected_entry_ids": [
+        "customer_support:self-service-and-deflection"
+      ],
+      "expected_facts": [
+        "Deflection is NOT success",
+        "7 days"
+      ],
+      "q_reworded": "The dashboard says the FAQ deflected 300 contacts this month. Is that good news?",
+      "answer_must": [
+        "Deflection is not success: someone who gave up looks deflected",
+        "Count success only if there was no contact on the same issue within 7 days and the journey was not abandoned",
+        "Never hide the contact route to push self-service"
       ]
     }
   ]

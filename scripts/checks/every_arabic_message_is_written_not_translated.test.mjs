@@ -342,7 +342,7 @@ if (MAIN && process.argv.includes('--write')) {
   test('new Arabic stored by a SQL file writes the tanwin fathatan-first', () => {
     const hits = [];
     for (const { file, ranges } of scanned()) {
-      if (!file.startsWith('scripts/sql/')) continue;   // SQL_ONLY — see the paragraph above
+      if (!file.startsWith('scripts/sql/') && file !== 'knowledge/brief/gulf_arabic_guide.md') continue;   // SQL_ONLY (+ the Gulf Arabic guide, ruling 1209) — see the paragraph above
       for (const l of arabicLines(file, ranges)) if (WRONG_TANWIN.test(l.text)) hits.push(`${file}:${l.line} ${l.text.trim().slice(0, 100)}`);
     }
     assert.deepEqual(hits, [], 'write the fathatan before the alif (the order the reviewed corpus uses)');

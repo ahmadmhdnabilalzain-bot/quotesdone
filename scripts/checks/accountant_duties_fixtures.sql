@@ -99,8 +99,21 @@ declare h public.agent_actions;
 begin
   update public.it_engineer_finding set started_at = now() - interval '7 hours' where issue_key = p_key and closed_at is null
      and blast = 'internal';                                   -- internal findings are quiet for six hours by design
+  -- Since 18 Oct 2026 the tick opens oldest first inside a budget measured from statement_timestamp(). This
+  -- fixture is ONE statement, so a few seconds in, every tick here has no budget left and opens nothing; at
+  -- its start the tick spends the budget on production's older backlog. Measured 19 Oct 02:32 Dubai: the tick
+  -- opened 30, left 5, and the bank finding (raised a second earlier, so last in line) was never reached; with
+  -- that one aged to the front, collections (~6 s into the batch) read "no handoff" the same way. The check
+  -- said "no handoff" on a correct loop. So the tick runs as before, and a finding it left for a later tick
+  -- is opened here by the routine the tick itself calls, after the same playbook-first step.
   perform public.fn_it_loop_tick();
   h := pg_temp.zz_handoff(p_key);
+  if h.id is null and not public.fn_it_playbook_first(p_key,
+       (select f.started_at from public.it_engineer_finding f where f.issue_key = p_key and f.closed_at is null
+         order by f.started_at desc limit 1)) then
+    perform public.fn_it_loop_open(p_key);
+    h := pg_temp.zz_handoff(p_key);
+  end if;
   perform pg_temp.zz_assert(h.id is not null, 'no it.finding handoff opened for ' || p_key);
   perform pg_temp.zz_assert(h.agent = p_owner, p_key || ' was handed to ' || coalesce(h.agent, '?') || ', not ' || p_owner);
   return h.id;
@@ -395,7 +408,9 @@ begin
   t3 := pg_temp.zz_case('acct3', 3433.33, 103.00, 108.82);
   perform pg_temp.zz_assert(exists (select 1 from public.fn_accountant_charge_audit_candidates(500) c where c.transaction_id = t3),
     'charge audit: the reveal is not a candidate');
-  v := public.fn_accountant_charge_audit_record(jsonb_build_array(jsonb_build_object('transaction_id', t3, 'livemode', false,
+  -- livemode true: since 19 Oct 2026 a Stripe test-mode charge moved no money and raises nothing
+  -- (detectors_stop_escalating_what_is_not_a_fault.sql, #1496); the ZZ DEMO customer still marks the finding demo
+  v := public.fn_accountant_charge_audit_record(jsonb_build_array(jsonb_build_object('transaction_id', t3, 'livemode', true,
     'basis', 'international', 'quote_amount', 3433.33, 'rate', 0.03, 'expected_total', 108.82, 'expected_processing', 5.82,
     'actual_total', 108.87, 'actual_fee_fils', 540, 'shortfall_aed', 0, 'evidence', '{}'::jsonb)));
   perform pg_temp.zz_assert(pg_temp.zz_open('acct:charge_audit:charge:' || t3), 'charge audit: a 0.05 overcharge raised no finding');

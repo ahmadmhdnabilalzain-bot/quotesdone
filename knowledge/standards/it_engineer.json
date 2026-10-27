@@ -1,0 +1,1235 @@
+{
+  "seat": "it_engineer",
+  "role": "Head of Infrastructure, Reliability and Security (senior SRE / platform security lead)",
+  "bar": "20 years senior human, ledger 1003 stage 1",
+  "as_of": "2026-10-19",
+  "qualifications": [
+    {
+      "id": "IT-Q01",
+      "qualification": "Designs and runs SLO-based observability: SLIs from user journeys, error budgets, golden signals, black-box probes, tracing and logs",
+      "checklist": [
+        "IT-CL-001",
+        "IT-CL-002",
+        "IT-CL-003",
+        "IT-CL-004",
+        "IT-CL-005",
+        "IT-CL-006",
+        "IT-CL-007",
+        "IT-CL-008",
+        "IT-CL-009"
+      ]
+    },
+    {
+      "id": "IT-Q02",
+      "qualification": "Commands incidents end to end: declaration, severity, roles, communication, blameless postmortems, MTTA/MTTR and regression checks",
+      "checklist": [
+        "IT-CL-010",
+        "IT-CL-011",
+        "IT-CL-012",
+        "IT-CL-013",
+        "IT-CL-014",
+        "IT-CL-015",
+        "IT-CL-016",
+        "IT-CL-017",
+        "IT-CL-018",
+        "IT-CL-019",
+        "IT-CL-020"
+      ]
+    },
+    {
+      "id": "IT-Q03",
+      "qualification": "Builds reliable systems on serverless limits: backoff, circuits, load shedding, edge/Vercel limits, capacity forecasting and load tests",
+      "checklist": [
+        "IT-CL-021",
+        "IT-CL-022",
+        "IT-CL-023",
+        "IT-CL-024",
+        "IT-CL-025"
+      ]
+    },
+    {
+      "id": "IT-Q04",
+      "qualification": "Ships change safely: risk-tiered change control, drift guard, DORA metrics, rollbacks, rolling releases and smoke tests",
+      "checklist": [
+        "IT-CL-026",
+        "IT-CL-027"
+      ]
+    },
+    {
+      "id": "IT-Q05",
+      "qualification": "Owns backup and disaster recovery with measured RPO/RTO and scheduled restore drills",
+      "checklist": [
+        "IT-CL-028",
+        "IT-CL-029",
+        "IT-CL-030",
+        "IT-CL-031",
+        "IT-CL-032"
+      ]
+    },
+    {
+      "id": "IT-Q06",
+      "qualification": "Operates Postgres/Supabase at senior DBA level: vacuum, wraparound, locks, migrations, indexing, pooling, RLS and advisors",
+      "checklist": [
+        "IT-CL-033",
+        "IT-CL-034",
+        "IT-CL-035",
+        "IT-CL-036",
+        "IT-CL-037",
+        "IT-CL-038",
+        "IT-CL-039"
+      ]
+    },
+    {
+      "id": "IT-Q07",
+      "qualification": "Secures a two-sided marketplace against OWASP web, API and LLM risks, including webhooks, uploads, secrets and supply chain",
+      "checklist": [
+        "IT-CL-040",
+        "IT-CL-041",
+        "IT-CL-042",
+        "IT-CL-043",
+        "IT-CL-044",
+        "IT-CL-045",
+        "IT-CL-046",
+        "IT-CL-047",
+        "IT-CL-048",
+        "IT-CL-049",
+        "IT-CL-050",
+        "IT-CL-051",
+        "IT-CL-052"
+      ]
+    },
+    {
+      "id": "IT-Q08",
+      "qualification": "Governs security: threat modelling, MFA and least privilege, CIS/ISO/SOC 2 literacy, vendor risk and offboarding",
+      "checklist": [
+        "IT-CL-053",
+        "IT-CL-054",
+        "IT-CL-055",
+        "IT-CL-056"
+      ]
+    },
+    {
+      "id": "IT-Q09",
+      "qualification": "Keeps email and WhatsApp deliverable: SPF/DKIM/DMARC, Gmail bulk rules, suppression, Twilio status and Meta limits",
+      "checklist": [
+        "IT-CL-057",
+        "IT-CL-058",
+        "IT-CL-059"
+      ]
+    },
+    {
+      "id": "IT-Q10",
+      "qualification": "Applies UAE law and authority requirements: PDPL breach, cross-border and retention, free-zone regimes, TDRA/DESC, cyber reporting, licences",
+      "checklist": [
+        "IT-CL-060",
+        "IT-CL-061",
+        "IT-CL-062",
+        "IT-CL-063",
+        "IT-CL-064"
+      ]
+    },
+    {
+      "id": "IT-Q11",
+      "qualification": "Controls cost and data integrity: provider and model spend anomalies, spend caps, demo leakage and orphans",
+      "checklist": [
+        "IT-CL-065",
+        "IT-CL-066"
+      ]
+    },
+    {
+      "id": "IT-Q12",
+      "qualification": "Keeps every seat's knowledge measured and fresh",
+      "checklist": [
+        "IT-CL-067"
+      ]
+    },
+    {
+      "id": "IT-Q13",
+      "qualification": "Works inside QuotesDone's mandate: mission, escalation, KPIs, duty calendar, hard rules and deterministic-first doctrine",
+      "checklist": [
+        "IT-CL-068",
+        "IT-CL-069",
+        "IT-CL-070"
+      ]
+    }
+  ],
+  "checklist": [
+    {
+      "id": "IT-CL-001",
+      "area": "sre_observability",
+      "item": "Defines SLIs from user journeys, sets SLOs (not 100%), and knows SLO vs SLA",
+      "entry_ids": [
+        "it_engineer:sli-slo-sla"
+      ],
+      "exam_items": [
+        "it_engineer-exam-81"
+      ]
+    },
+    {
+      "id": "IT-CL-002",
+      "area": "sre_observability",
+      "item": "Runs error budgets and multiwindow burn-rate alerts",
+      "entry_ids": [
+        "it_engineer:error-budget-policy",
+        "it_engineer:burn-rate-alerting"
+      ],
+      "exam_items": [
+        "it_engineer-exam-69"
+      ]
+    },
+    {
+      "id": "IT-CL-003",
+      "area": "sre_observability",
+      "item": "Watches the four golden signals on every user-facing service",
+      "entry_ids": [
+        "it_engineer:four-golden-signals"
+      ],
+      "exam_items": [
+        "it_engineer-exam-05"
+      ]
+    },
+    {
+      "id": "IT-CL-004",
+      "area": "sre_observability",
+      "item": "Measures availability black-box from outside, against 99.9% (43.2 min a month)",
+      "entry_ids": [
+        "it_engineer:synthetic-probes-uptime",
+        "it_engineer:jd-kpi-targets"
+      ],
+      "exam_items": [
+        "it_engineer-exam-01",
+        "it_engineer-exam-67"
+      ]
+    },
+    {
+      "id": "IT-CL-005",
+      "area": "sre_observability",
+      "item": "Holds the 2.5 s p95 page-data budget and judges it only on enough runs",
+      "entry_ids": [
+        "it_engineer:latency-budget-duty"
+      ],
+      "exam_items": [
+        "it_engineer-exam-03",
+        "it_engineer-exam-04"
+      ]
+    },
+    {
+      "id": "IT-CL-006",
+      "area": "sre_observability",
+      "item": "Knows every duty cadence and detects a silent scheduler or runner",
+      "entry_ids": [
+        "it_engineer:duty-cadence-map",
+        "it_engineer:scheduler-silence-detection"
+      ],
+      "exam_items": [
+        "it_engineer-exam-02",
+        "it_engineer-exam-06",
+        "it_engineer-exam-07",
+        "it_engineer-exam-08"
+      ]
+    },
+    {
+      "id": "IT-CL-007",
+      "area": "sre_observability",
+      "item": "Pages on symptoms, and every alert links to a runbook",
+      "entry_ids": [
+        "it_engineer:symptom-vs-cause-paging",
+        "it_engineer:oncall-and-runbook-standard"
+      ],
+      "exam_items": [
+        "it_engineer-exam-72"
+      ]
+    },
+    {
+      "id": "IT-CL-008",
+      "area": "sre_observability",
+      "item": "Traces one inquiry across Vercel, edge functions and Postgres with one trace id",
+      "entry_ids": [
+        "it_engineer:opentelemetry-signals",
+        "it_engineer:w3c-trace-context"
+      ],
+      "exam_items": [
+        "it_engineer-exam-78"
+      ]
+    },
+    {
+      "id": "IT-CL-009",
+      "area": "sre_observability",
+      "item": "Uses Supabase logs, Logs Explorer, log drains and Vercel observability for triage",
+      "entry_ids": [
+        "it_engineer:supabase-logs-and-drains",
+        "it_engineer:vercel-observability"
+      ],
+      "exam_items": [
+        "it_engineer-exam-82"
+      ]
+    },
+    {
+      "id": "IT-CL-010",
+      "area": "incident_response",
+      "item": "Declares incidents by criteria and assigns a severity from the ladder",
+      "entry_ids": [
+        "it_engineer:incident-declaration-criteria",
+        "it_engineer:severity-ladder"
+      ],
+      "exam_items": [
+        "it_engineer-exam-23"
+      ]
+    },
+    {
+      "id": "IT-CL-011",
+      "area": "incident_response",
+      "item": "Runs incident roles, a live timeline and customer/supplier communication cadence",
+      "entry_ids": [
+        "it_engineer:incident-roles",
+        "it_engineer:incident-timeline-comms",
+        "it_engineer:incident-comms-customers"
+      ],
+      "exam_items": [
+        "it_engineer-exam-83"
+      ]
+    },
+    {
+      "id": "IT-CL-012",
+      "area": "incident_response",
+      "item": "Writes blameless postmortems with closable actions and tracks MTTA/MTTR",
+      "entry_ids": [
+        "it_engineer:blameless-postmortem",
+        "it_engineer:postmortem-action-items",
+        "it_engineer:mtta-mttr"
+      ],
+      "exam_items": [
+        "it_engineer-exam-22"
+      ]
+    },
+    {
+      "id": "IT-CL-013",
+      "area": "incident_response",
+      "item": "Never closes a fix without a regression check; playbook first",
+      "entry_ids": [
+        "it_engineer:fix-carries-regression-check"
+      ],
+      "exam_items": [
+        "it_engineer-exam-20",
+        "it_engineer-exam-21"
+      ]
+    },
+    {
+      "id": "IT-CL-014",
+      "area": "incident_response",
+      "item": "Escalates a repeating failure instead of re-logging it, using incident memory",
+      "entry_ids": [
+        "it_engineer:repeating-failure-escalation",
+        "it_engineer:incident-memory-retrieval"
+      ],
+      "exam_items": [
+        "it_engineer-exam-84"
+      ]
+    },
+    {
+      "id": "IT-CL-015",
+      "area": "incident_response",
+      "item": "Tells an intended refusal from a fault",
+      "entry_ids": [
+        "it_engineer:refusals-visible-to-it"
+      ],
+      "exam_items": [
+        "it_engineer-exam-24",
+        "it_engineer-exam-25"
+      ]
+    },
+    {
+      "id": "IT-CL-016",
+      "area": "incident_response",
+      "item": "Follows a reasoning sequence for alerts and bad releases; rolls back first",
+      "entry_ids": [
+        "it_engineer:reasoning-alert-triage",
+        "it_engineer:reasoning-bad-release",
+        "it_engineer:vercel-instant-rollback"
+      ],
+      "exam_items": [
+        "it_engineer-exam-45"
+      ]
+    },
+    {
+      "id": "IT-CL-017",
+      "area": "incident_response",
+      "item": "Engineers toil away with safe auto-remediation playbooks",
+      "entry_ids": [
+        "it_engineer:toil-and-automation",
+        "it_engineer:auto-remediation-playbooks"
+      ],
+      "exam_items": [
+        "it_engineer-exam-85"
+      ]
+    },
+    {
+      "id": "IT-CL-018",
+      "area": "incident_response",
+      "item": "Proves recovery with game days and chaos experiments",
+      "entry_ids": [
+        "it_engineer:game-days-chaos-testing"
+      ],
+      "exam_items": [
+        "it_engineer-exam-73"
+      ]
+    },
+    {
+      "id": "IT-CL-019",
+      "area": "incident_response",
+      "item": "Knows NIST SP 800-61 Rev. 3 as the incident-response benchmark",
+      "entry_ids": [
+        "it_engineer:nist-800-61r3"
+      ],
+      "exam_items": [
+        "it_engineer-exam-86"
+      ]
+    },
+    {
+      "id": "IT-CL-020",
+      "area": "incident_response",
+      "item": "Turns failure clusters in the run log into owned findings",
+      "entry_ids": [
+        "it_engineer:failure-cluster-triage"
+      ],
+      "exam_items": [
+        "it_engineer-exam-87"
+      ]
+    },
+    {
+      "id": "IT-CL-021",
+      "area": "reliability_engineering",
+      "item": "Prevents cascades with backoff, jitter, retry budgets, circuits and load shedding",
+      "entry_ids": [
+        "it_engineer:retries-backoff-cascades",
+        "it_engineer:load-shedding-degradation"
+      ],
+      "exam_items": [
+        "it_engineer-exam-88"
+      ]
+    },
+    {
+      "id": "IT-CL-022",
+      "area": "reliability_engineering",
+      "item": "Designs edge functions inside the CPU, wall-clock and memory limits",
+      "entry_ids": [
+        "it_engineer:edge-function-limits",
+        "it_engineer:edge-function-limits-design"
+      ],
+      "exam_items": [
+        "it_engineer-exam-89"
+      ]
+    },
+    {
+      "id": "IT-CL-023",
+      "area": "reliability_engineering",
+      "item": "Knows Vercel function limits and Vercel cron delivery semantics",
+      "entry_ids": [
+        "it_engineer:vercel-function-limits",
+        "it_engineer:vercel-cron-jobs"
+      ],
+      "exam_items": [
+        "it_engineer-exam-90"
+      ]
+    },
+    {
+      "id": "IT-CL-024",
+      "area": "reliability_engineering",
+      "item": "Forecasts days-to-limit and load-tests to the breakpoint",
+      "entry_ids": [
+        "it_engineer:capacity-days-to-limit",
+        "it_engineer:load-testing-method",
+        "it_engineer:compute-size-connection-limits"
+      ],
+      "exam_items": [
+        "it_engineer-exam-28",
+        "it_engineer-exam-77"
+      ]
+    },
+    {
+      "id": "IT-CL-025",
+      "area": "reliability_engineering",
+      "item": "Uses feature flags, kill switches and rolling releases",
+      "entry_ids": [
+        "it_engineer:feature-flags-kill-switches",
+        "it_engineer:vercel-rolling-releases"
+      ],
+      "exam_items": [
+        "it_engineer-exam-80"
+      ]
+    },
+    {
+      "id": "IT-CL-026",
+      "area": "change_delivery",
+      "item": "Runs risk-tiered change management, guards deploy drift and measures DORA",
+      "entry_ids": [
+        "it_engineer:change-management-small-team",
+        "it_engineer:deploy-drift-guard",
+        "it_engineer:dora-delivery-metrics"
+      ],
+      "exam_items": [
+        "it_engineer-exam-43",
+        "it_engineer-exam-44"
+      ]
+    },
+    {
+      "id": "IT-CL-027",
+      "area": "change_delivery",
+      "item": "Runs the nightly full journey and the post-deploy smoke test",
+      "entry_ids": [
+        "it_engineer:journey-and-smoke"
+      ],
+      "exam_items": [
+        "it_engineer-exam-46",
+        "it_engineer-exam-47"
+      ]
+    },
+    {
+      "id": "IT-CL-028",
+      "area": "backup_dr",
+      "item": "Knows Supabase daily backups and PITR, their retention and gaps",
+      "entry_ids": [
+        "it_engineer:supabase-backups",
+        "it_engineer:supabase-pitr"
+      ],
+      "exam_items": [
+        "it_engineer-exam-31"
+      ]
+    },
+    {
+      "id": "IT-CL-029",
+      "area": "backup_dr",
+      "item": "Sets and measures RPO and RTO",
+      "entry_ids": [
+        "it_engineer:rpo-rto-targets"
+      ],
+      "exam_items": [
+        "it_engineer-exam-32"
+      ]
+    },
+    {
+      "id": "IT-CL-030",
+      "area": "backup_dr",
+      "item": "Restores on a schedule: weekly table, monthly sample, quarterly full rehearsal",
+      "entry_ids": [
+        "it_engineer:restore-drill",
+        "it_engineer:restore-drill-cadence",
+        "it_engineer:full-restore-rehearsal"
+      ],
+      "exam_items": [
+        "it_engineer-exam-54"
+      ]
+    },
+    {
+      "id": "IT-CL-031",
+      "area": "backup_dr",
+      "item": "Keeps 3-2-1 copies in Supabase and Dropbox and watches export age",
+      "entry_ids": [
+        "it_engineer:backup-supabase-dropbox",
+        "it_engineer:backup-321-immutability"
+      ],
+      "exam_items": [
+        "it_engineer-exam-29",
+        "it_engineer-exam-30",
+        "it_engineer-exam-53"
+      ]
+    },
+    {
+      "id": "IT-CL-032",
+      "area": "backup_dr",
+      "item": "Executes the DR runbook and the Supabase restore procedure",
+      "entry_ids": [
+        "it_engineer:dr-runbook",
+        "it_engineer:restore-procedure-supabase"
+      ],
+      "exam_items": [
+        "it_engineer-exam-61"
+      ]
+    },
+    {
+      "id": "IT-CL-033",
+      "area": "database",
+      "item": "Manages vacuum, bloat, autovacuum tuning and XID wraparound",
+      "entry_ids": [
+        "it_engineer:vacuum-bloat",
+        "it_engineer:xid-wraparound",
+        "it_engineer:autovacuum-tuning"
+      ],
+      "exam_items": [
+        "it_engineer-exam-91"
+      ]
+    },
+    {
+      "id": "IT-CL-034",
+      "area": "database",
+      "item": "Applies migrations safely: lock modes, timeouts, deadlocks",
+      "entry_ids": [
+        "it_engineer:lock-modes-ddl",
+        "it_engineer:safe-migration-checklist",
+        "it_engineer:deadlocks"
+      ],
+      "exam_items": [
+        "it_engineer-exam-92"
+      ]
+    },
+    {
+      "id": "IT-CL-035",
+      "area": "database",
+      "item": "Serialises scheduled work with advisory locks and runs pg_cron safely",
+      "entry_ids": [
+        "it_engineer:advisory-locks",
+        "it_engineer:pg-cron-operations"
+      ],
+      "exam_items": [
+        "it_engineer-exam-93"
+      ]
+    },
+    {
+      "id": "IT-CL-036",
+      "area": "database",
+      "item": "Triages slow queries with pg_stat_statements, EXPLAIN ANALYZE and inspect",
+      "entry_ids": [
+        "it_engineer:pg-stat-statements-triage",
+        "it_engineer:explain-analyze",
+        "it_engineer:supabase-inspect-toolkit"
+      ],
+      "exam_items": [
+        "it_engineer-exam-26"
+      ]
+    },
+    {
+      "id": "IT-CL-037",
+      "area": "database",
+      "item": "Chooses index types, partial indexes and pgvector indexes",
+      "entry_ids": [
+        "it_engineer:postgres-index-types",
+        "it_engineer:partial-indexes",
+        "it_engineer:pgvector-hnsw-ivfflat"
+      ],
+      "exam_items": [
+        "it_engineer-exam-94"
+      ]
+    },
+    {
+      "id": "IT-CL-038",
+      "area": "database",
+      "item": "Sizes the pooler and prevents connection exhaustion and idle-in-transaction",
+      "entry_ids": [
+        "it_engineer:connection-pool-exhaustion",
+        "it_engineer:supavisor-pooling-modes",
+        "it_engineer:idle-in-transaction"
+      ],
+      "exam_items": [
+        "it_engineer-exam-27"
+      ]
+    },
+    {
+      "id": "IT-CL-039",
+      "area": "database",
+      "item": "Enforces RLS with grants, pinned search_path on definer routines, and advisor lints",
+      "entry_ids": [
+        "it_engineer:rls-grants-policies",
+        "it_engineer:security-definer-search-path",
+        "it_engineer:rls-performance",
+        "it_engineer:database-advisor-lints"
+      ],
+      "exam_items": [
+        "it_engineer-exam-95"
+      ]
+    },
+    {
+      "id": "IT-CL-040",
+      "area": "application_security",
+      "item": "Applies OWASP Top 10 2025, API Top 10 and ASVS to the stack",
+      "entry_ids": [
+        "it_engineer:owasp-top10-2025",
+        "it_engineer:owasp-api-top10-2023",
+        "it_engineer:owasp-top10-2021-vs-2025",
+        "it_engineer:asvs"
+      ],
+      "exam_items": [
+        "it_engineer-exam-96"
+      ]
+    },
+    {
+      "id": "IT-CL-041",
+      "area": "application_security",
+      "item": "Reviews access control so suppliers and buyers stay isolated",
+      "entry_ids": [
+        "it_engineer:access-control-review"
+      ],
+      "exam_items": [
+        "it_engineer-exam-19"
+      ]
+    },
+    {
+      "id": "IT-CL-042",
+      "area": "application_security",
+      "item": "Protects OTP from brute force and pumping (limits, CAPTCHA, BotID, Fraud Guard)",
+      "entry_ids": [
+        "it_engineer:otp-brute-force-pumping",
+        "it_engineer:otp-usage-provider-watch",
+        "it_engineer:twilio-verify-fraud-guard",
+        "it_engineer:supabase-auth-captcha",
+        "it_engineer:auth-rate-limits",
+        "it_engineer:vercel-botid"
+      ],
+      "exam_items": [
+        "it_engineer-exam-09",
+        "it_engineer-exam-10",
+        "it_engineer-exam-11",
+        "it_engineer-exam-12",
+        "it_engineer-exam-42"
+      ]
+    },
+    {
+      "id": "IT-CL-043",
+      "area": "application_security",
+      "item": "Logs security events and never logs secrets or personal data",
+      "entry_ids": [
+        "it_engineer:security-logging",
+        "it_engineer:what-not-to-log"
+      ],
+      "exam_items": [
+        "it_engineer-exam-18"
+      ]
+    },
+    {
+      "id": "IT-CL-044",
+      "area": "application_security",
+      "item": "Runs the secrets lifecycle and proves every rotation",
+      "entry_ids": [
+        "it_engineer:secrets-lifecycle",
+        "it_engineer:prove-rotation",
+        "it_engineer:secret-scanning",
+        "it_engineer:edge-function-secrets",
+        "it_engineer:vercel-sensitive-env-vars"
+      ],
+      "exam_items": [
+        "it_engineer-exam-40",
+        "it_engineer-exam-41"
+      ]
+    },
+    {
+      "id": "IT-CL-045",
+      "area": "application_security",
+      "item": "Rotates Supabase API keys and JWT signing keys without an outage",
+      "entry_ids": [
+        "it_engineer:supabase-api-keys",
+        "it_engineer:jwt-signing-key-rotation",
+        "it_engineer:supabase-key-migration-legacy"
+      ],
+      "exam_items": [
+        "it_engineer-exam-97"
+      ]
+    },
+    {
+      "id": "IT-CL-046",
+      "area": "application_security",
+      "item": "Verifies Stripe webhooks, rotates Stripe keys and secrets, tunes Radar",
+      "entry_ids": [
+        "it_engineer:stripe-webhook-verification",
+        "it_engineer:stripe-api-key-rotation",
+        "it_engineer:stripe-webhook-secret-roll",
+        "it_engineer:stripe-radar-rules"
+      ],
+      "exam_items": [
+        "it_engineer-exam-98"
+      ]
+    },
+    {
+      "id": "IT-CL-047",
+      "area": "application_security",
+      "item": "Verifies Resend, Twilio and Meta webhooks idempotently and rotates their tokens",
+      "entry_ids": [
+        "it_engineer:provider-webhook-signatures",
+        "it_engineer:webhook-idempotency-ordering",
+        "it_engineer:whatsapp-webhook-verification",
+        "it_engineer:resend-webhooks-delivery",
+        "it_engineer:resend-whatsapp-token-rotation"
+      ],
+      "exam_items": [
+        "it_engineer-exam-99"
+      ]
+    },
+    {
+      "id": "IT-CL-048",
+      "area": "application_security",
+      "item": "Hardens the software supply chain and GitHub Actions",
+      "entry_ids": [
+        "it_engineer:software-supply-chain",
+        "it_engineer:github-actions-hardening",
+        "it_engineer:github-actions-untrusted-input",
+        "it_engineer:dependabot-security-vs-version",
+        "it_engineer:npm-provenance-and-lockfiles"
+      ],
+      "exam_items": [
+        "it_engineer-exam-100"
+      ]
+    },
+    {
+      "id": "IT-CL-049",
+      "area": "application_security",
+      "item": "Triages vulnerabilities by deployment, CVSS v4 and EPSS",
+      "entry_ids": [
+        "it_engineer:vuln-triage-rule",
+        "it_engineer:cvss-v4",
+        "it_engineer:epss-prioritisation"
+      ],
+      "exam_items": [
+        "it_engineer-exam-57"
+      ]
+    },
+    {
+      "id": "IT-CL-050",
+      "area": "application_security",
+      "item": "Sets headers, CSP, WAF, TLS, HSTS and DNS hardening",
+      "entry_ids": [
+        "it_engineer:security-headers-baseline",
+        "it_engineer:nextjs-csp-nonce",
+        "it_engineer:vercel-firewall-waf",
+        "it_engineer:tls-dns-domain-hardening"
+      ],
+      "exam_items": [
+        "it_engineer-exam-17",
+        "it_engineer-exam-79"
+      ]
+    },
+    {
+      "id": "IT-CL-051",
+      "area": "application_security",
+      "item": "Validates uploads and scans PDF and Office attachments",
+      "entry_ids": [
+        "it_engineer:file-upload-validation",
+        "it_engineer:document-malware-scanning"
+      ],
+      "exam_items": [
+        "it_engineer-exam-101"
+      ]
+    },
+    {
+      "id": "IT-CL-052",
+      "area": "application_security",
+      "item": "Defends LLM seats against prompt injection and excessive agency",
+      "entry_ids": [
+        "it_engineer:owasp-llm-top10-2025",
+        "it_engineer:prompt-injection-defences",
+        "it_engineer:excessive-agency-controls"
+      ],
+      "exam_items": [
+        "it_engineer-exam-102"
+      ]
+    },
+    {
+      "id": "IT-CL-053",
+      "area": "security_governance",
+      "item": "Threat-models new integrations (STRIDE) and enforces phishing-resistant MFA",
+      "entry_ids": [
+        "it_engineer:threat-modelling-stride",
+        "it_engineer:mfa-and-least-privilege-admin"
+      ],
+      "exam_items": [
+        "it_engineer-exam-71",
+        "it_engineer-exam-74"
+      ]
+    },
+    {
+      "id": "IT-CL-054",
+      "area": "security_governance",
+      "item": "Knows CIS IG1, ISO 27001 and SOC 2, and never claims a certification",
+      "entry_ids": [
+        "it_engineer:cis-controls-v8-ig1",
+        "it_engineer:iso27001-and-soc2-overview"
+      ],
+      "exam_items": [
+        "it_engineer-exam-75",
+        "it_engineer-exam-76"
+      ]
+    },
+    {
+      "id": "IT-CL-055",
+      "area": "security_governance",
+      "item": "Knows what Supabase network restrictions do and do not protect",
+      "entry_ids": [
+        "it_engineer:supabase-network-restrictions"
+      ],
+      "exam_items": [
+        "it_engineer-exam-103"
+      ]
+    },
+    {
+      "id": "IT-CL-056",
+      "area": "security_governance",
+      "item": "Manages vendor risk and same-day access offboarding",
+      "entry_ids": [
+        "it_engineer:vendor-risk-and-offboarding",
+        "it_engineer:mfa-and-least-privilege-admin"
+      ],
+      "exam_items": [
+        "it_engineer-exam-104"
+      ]
+    },
+    {
+      "id": "IT-CL-057",
+      "area": "messaging_deliverability",
+      "item": "Configures SPF, DKIM and DMARC correctly",
+      "entry_ids": [
+        "it_engineer:spf",
+        "it_engineer:dkim",
+        "it_engineer:dmarc"
+      ],
+      "exam_items": [
+        "it_engineer-exam-35",
+        "it_engineer-exam-36"
+      ]
+    },
+    {
+      "id": "IT-CL-058",
+      "area": "messaging_deliverability",
+      "item": "Meets Gmail bulk-sender rules and watches sender health and suppressions",
+      "entry_ids": [
+        "it_engineer:gmail-bulk-sender",
+        "it_engineer:sender-health-duty",
+        "it_engineer:resend-suppression-list"
+      ],
+      "exam_items": [
+        "it_engineer-exam-33",
+        "it_engineer-exam-34",
+        "it_engineer-exam-37"
+      ]
+    },
+    {
+      "id": "IT-CL-059",
+      "area": "messaging_deliverability",
+      "item": "Reads Twilio/WhatsApp delivery status and knows messaging limits",
+      "entry_ids": [
+        "it_engineer:twilio-delivery-status",
+        "it_engineer:whatsapp-messaging-limits"
+      ],
+      "exam_items": [
+        "it_engineer-exam-13",
+        "it_engineer-exam-14",
+        "it_engineer-exam-15",
+        "it_engineer-exam-16"
+      ]
+    },
+    {
+      "id": "IT-CL-060",
+      "area": "compliance_uae",
+      "item": "Handles a personal-data breach under UAE PDPL with the playbook",
+      "entry_ids": [
+        "it_engineer:pdpl-breach-notification",
+        "it_engineer:breach-response-playbook"
+      ],
+      "exam_items": [
+        "it_engineer-exam-70"
+      ]
+    },
+    {
+      "id": "IT-CL-061",
+      "area": "compliance_uae",
+      "item": "Knows which regime applies (onshore vs DIFC/ADGM) and PDPL cross-border rules",
+      "entry_ids": [
+        "it_engineer:uae-free-zone-regimes",
+        "it_engineer:pdpl-cross-border-transfer"
+      ],
+      "exam_items": [
+        "it_engineer-exam-105"
+      ]
+    },
+    {
+      "id": "IT-CL-062",
+      "area": "compliance_uae",
+      "item": "Knows UAE cyber bodies, the IA Regulation, DESC ISR and incident reporting routes",
+      "entry_ids": [
+        "it_engineer:uae-ia-regulation",
+        "it_engineer:desc-isr",
+        "it_engineer:uae-cybersecurity-council",
+        "it_engineer:uae-cyber-incident-reporting"
+      ],
+      "exam_items": [
+        "it_engineer-exam-106"
+      ]
+    },
+    {
+      "id": "IT-CL-063",
+      "area": "compliance_uae",
+      "item": "Knows licence verification sources and the licence-expiry watch",
+      "entry_ids": [
+        "it_engineer:licence-verification-sources",
+        "it_engineer:licence-expiry-watch"
+      ],
+      "exam_items": [
+        "it_engineer-exam-107"
+      ]
+    },
+    {
+      "id": "IT-CL-064",
+      "area": "compliance_uae",
+      "item": "Implements retention and safe batched deletion",
+      "entry_ids": [
+        "it_engineer:data-retention-and-deletion"
+      ],
+      "exam_items": [
+        "it_engineer-exam-108"
+      ]
+    },
+    {
+      "id": "IT-CL-065",
+      "area": "cost_data",
+      "item": "Watches provider cost and model spend against baselines and caps",
+      "entry_ids": [
+        "it_engineer:data-quality-and-model-spend",
+        "it_engineer:supabase-spend-cap",
+        "it_engineer:reasoning-cost-spike"
+      ],
+      "exam_items": [
+        "it_engineer-exam-38",
+        "it_engineer-exam-39",
+        "it_engineer-exam-51",
+        "it_engineer-exam-52"
+      ]
+    },
+    {
+      "id": "IT-CL-066",
+      "area": "cost_data",
+      "item": "Detects data-integrity faults and demo leakage",
+      "entry_ids": [
+        "it_engineer:data-quality-and-model-spend",
+        "it_engineer:reasoning-data-integrity"
+      ],
+      "exam_items": [
+        "it_engineer-exam-48"
+      ]
+    },
+    {
+      "id": "IT-CL-067",
+      "area": "knowledge",
+      "item": "Monitors each seat's knowledge pass rate and the quarterly refresh",
+      "entry_ids": [
+        "it_engineer:knowledge-pass-rate-monitor",
+        "it_engineer:quarterly-knowledge-refresh"
+      ],
+      "exam_items": [
+        "it_engineer-exam-49",
+        "it_engineer-exam-50"
+      ]
+    },
+    {
+      "id": "IT-CL-068",
+      "area": "role_company",
+      "item": "Knows the seat mission, what it decides alone, escalation and KPIs",
+      "entry_ids": [
+        "it_engineer:jd-mission-escalation",
+        "it_engineer:jd-kpi-targets",
+        "it_engineer:company-kpis",
+        "it_engineer:it-decides-alone"
+      ],
+      "exam_items": [
+        "it_engineer-exam-64",
+        "it_engineer-exam-65",
+        "it_engineer-exam-66",
+        "it_engineer-exam-68"
+      ]
+    },
+    {
+      "id": "IT-CL-069",
+      "area": "role_company",
+      "item": "Runs the monthly and quarterly duty list",
+      "entry_ids": [
+        "it_engineer:monthly-quarterly-duties",
+        "it_engineer:renewal-dates",
+        "it_engineer:quarterly-reviews"
+      ],
+      "exam_items": [
+        "it_engineer-exam-55",
+        "it_engineer-exam-56",
+        "it_engineer-exam-58",
+        "it_engineer-exam-59",
+        "it_engineer-exam-60",
+        "it_engineer-exam-62",
+        "it_engineer-exam-63"
+      ]
+    },
+    {
+      "id": "IT-CL-070",
+      "area": "role_company",
+      "item": "Enforces the founder's hard rules and the operating doctrine in code",
+      "entry_ids": [
+        "it_engineer:company-hard-rules",
+        "it_engineer:company-operating-doctrine",
+        "it_engineer:company-vision"
+      ],
+      "exam_items": [
+        "it_engineer-exam-109"
+      ]
+    }
+  ],
+  "contributions": [
+    {
+      "id": "IT-C01",
+      "what": "Measures 30-day uptime of every public URL from external 15-minute probes against 99.9% and raises a finding below target",
+      "cadence": "daily",
+      "duties": [
+        "it_engineer.uptime_slo"
+      ],
+      "status": "live",
+      "gap": ""
+    },
+    {
+      "id": "IT-C02",
+      "what": "Holds the 2.5 s p95 budget for every portal data function and the home page, handing breaches to the owning seat",
+      "cadence": "daily",
+      "duties": [
+        "it_engineer.latency_slo"
+      ],
+      "status": "partial",
+      "gap": "Duty runs hourly (last ok 19 Oct 2026) but its last result shows 10 failing latency findings still open; measurement is live, the budget is not yet met."
+    },
+    {
+      "id": "IT-C03",
+      "what": "Keeps backups in Supabase and Dropbox, measures achieved RPO/RTO daily and restores a table weekly and a sample monthly",
+      "cadence": "daily",
+      "duties": [
+        "it_engineer.backup_objectives"
+      ],
+      "status": "live",
+      "gap": "Weekly/monthly restores run from it_duty_schedule (restore_table, restore, backup_gap), which has no last_ok column; their freshness is evidenced only through backup_objectives."
+    },
+    {
+      "id": "IT-C04",
+      "what": "Rehearses a full-database restore into scratch each quarter and reviews DR",
+      "cadence": "monthly",
+      "duties": [
+        "it_engineer.dr_review"
+      ],
+      "status": "partial",
+      "gap": "Last run 29 Sep 2026 settled with 1 failing finding; a passing full-restore comparison inside 92 days was not confirmed in this read."
+    },
+    {
+      "id": "IT-C05",
+      "what": "Rotates every internal credential on schedule and proves each rotation",
+      "cadence": "daily",
+      "duties": [
+        "it_engineer.credential_rotation_age"
+      ],
+      "status": "live",
+      "gap": ""
+    },
+    {
+      "id": "IT-C06",
+      "what": "Watches provider cost weekly and model spend hourly (unlisted consumers, loops, repeated paid prompts, class over budget)",
+      "cadence": "weekly",
+      "duties": [
+        "it_engineer.cost_watch",
+        "it_engineer.model_spend"
+      ],
+      "status": "partial",
+      "gap": "Both duties run, but model_spend reports 45 failing findings and cost_watch 1; detection works, the spend anomalies are not being closed."
+    },
+    {
+      "id": "IT-C07",
+      "what": "Writes an incident record with root cause and a regression check for every closed critical/high fault",
+      "cadence": "event",
+      "duties": [
+        "it_engineer.postmortem"
+      ],
+      "status": "live",
+      "gap": ""
+    },
+    {
+      "id": "IT-C08",
+      "what": "Chases every non-demo finding older than 24 hours back to its owning seat once a day",
+      "cadence": "daily",
+      "duties": [
+        "it_engineer.finding_chase"
+      ],
+      "status": "live",
+      "gap": "Live, but 40 findings were chased on 19 Oct 2026 (ceo 15, sales_engineer 13, accountant 9): the KPI of no finding older than 24 h is not met."
+    },
+    {
+      "id": "IT-C09",
+      "what": "Runs a monthly game day injecting five faults on fixture traffic and timing detection and recovery",
+      "cadence": "monthly",
+      "duties": [
+        "it_engineer.game_day"
+      ],
+      "status": "live",
+      "gap": ""
+    },
+    {
+      "id": "IT-C10",
+      "what": "Reviews capacity against disk/storage limits and code health (definer search_path, RLS without policy, failing duties) monthly",
+      "cadence": "monthly",
+      "duties": [
+        "it_engineer.capacity_review",
+        "it_engineer.code_health"
+      ],
+      "status": "live",
+      "gap": ""
+    },
+    {
+      "id": "IT-C11",
+      "what": "Detects data-quality faults daily: demo rows crossing into real parties, orphans, transaction-quote mismatches",
+      "cadence": "daily",
+      "duties": [
+        "it_engineer.data_quality"
+      ],
+      "status": "live",
+      "gap": ""
+    },
+    {
+      "id": "IT-C12",
+      "what": "Keeps all seats' knowledge measured: recall every 30 min, pass-rate trend daily, quarterly refresh, monthly self-review",
+      "cadence": "daily",
+      "duties": [
+        "it_engineer.knowledge_recall",
+        "it_engineer.knowledge_pass_rate",
+        "it_engineer.knowledge_refresh",
+        "it_engineer.self_review"
+      ],
+      "status": "live",
+      "gap": "The retired it_engineer.knowledge_exam row (enabled=false since 24 Sep 2026) is still registered and should be removed."
+    },
+    {
+      "id": "IT-C13",
+      "what": "Guards the perimeter hourly/daily: OTP pumping, provider usage caps, provider status, sender health, Postmaster, DB health, monthly access review",
+      "cadence": "daily",
+      "duties": [],
+      "status": "partial",
+      "gap": "Runs from it_duty_schedule (otp, usage, provider_status, sender, postmaster, db_health, access), not seat_duty; no last_ok_at is recorded there, so freshness cannot be proven from the duty register."
+    },
+    {
+      "id": "IT-C14",
+      "what": "Turns failure clusters in agent_runs (over 50% non-ok, more than 5 runs in 7 days) into owned findings, and flags run labels with no owner",
+      "cadence": "daily",
+      "duties": [],
+      "status": "missing",
+      "gap": "No duty exists. The 30 Sep audit found quote_extract 8/8, compliance_archive 118/118, wa_templates_watch 314/352 and login_otp 507/700 failing with no finding."
+    },
+    {
+      "id": "IT-C15",
+      "what": "Triages dependency and platform advisories (deployed? CVSS v4, EPSS) and audits GitHub workflows for unpinned actions and excess token permissions",
+      "cadence": "monthly",
+      "duties": [],
+      "status": "missing",
+      "gap": "No seat_duty or it_duty_schedule key performs advisory triage or workflow-pinning audit; the knowledge exists, the duty does not."
+    },
+    {
+      "id": "IT-C16",
+      "what": "Load-tests the inquiry, quote and reveal journeys to the breakpoint before customers arrive in January 2027 and records the ceiling",
+      "cadence": "event",
+      "duties": [],
+      "status": "missing",
+      "gap": "No load-test duty or recorded breakpoint result exists."
+    },
+    {
+      "id": "IT-C17",
+      "what": "Removes suppliers with an expired trade licence from matching automatically",
+      "cadence": "daily",
+      "duties": [],
+      "status": "partial",
+      "gap": "Performed by sales_engineer (it_duty_schedule supplier_docs), not by an it_engineer duty; the IT knowledge entry still names IT as owner."
+    }
+  ]
+}

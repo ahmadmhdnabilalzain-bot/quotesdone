@@ -1,7 +1,7 @@
 // think() with a mocked model, embedder and database. No network, no env, no paid call.
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
 import type { GateAnswer } from './llm_hold.ts';
-import { authoritative, isFixtureRequest, refuse, replayHeld, taskClassFor, think, type LlmReply, type Phase, type ThinkDeps } from './think.ts';
+import { authoritative, isFixtureRequest, planTimedOut, refuse, replayHeld, taskClassFor, think, type LlmReply, type Phase, type ThinkDeps } from './think.ts';
 
 type Call = { phase: Phase; system: string; input: string; o: Record<string, unknown> };
 function mock(o: {
@@ -51,7 +51,7 @@ Deno.test('the founder\'s pool question: steps, sources, and a question back ALO
   const r = await think(m.deps, { seat: 'customer_support', surface: 'think.answer', question: 'I want to build a pool at my villa — what depth, what is legal?', context: { audience: 'customer' } });
   assertEquals(r.status, 'answered');
   assert(r.steps.some((s) => s.kind === 'decompose' && s.status === 'done'));
-  assertEquals(r.steps.filter((s) => s.kind === 'retrieve').length, 2);
+  assertEquals(r.steps.filter((s) => s.kind === 'retrieve').length, 3);   // two planned steps and the question as asked
   assertEquals(r.sources.map((s) => s.id), ['kb_chunks:7']);
   assertEquals(r.missing_context.map((f) => f.name), ['emirate', 'community']);
   assertMatch(String(r.asked_back), /emirate/);
@@ -64,7 +64,7 @@ Deno.test('the founder\'s pool question: steps, sources, and a question back ALO
 
 Deno.test('under the hold nothing is guessed: status held, filed in the seat queue, no model called', async () => {
   const m = mock({ gate: { allowed: false, rule: 'founder_hold', held: 1, routes: 8 }, replies: {} });
-  const r = await think(m.deps, { seat: 'customer_support', surface: 'wa_inbound.needs_a_person', question: 'you people cheated me, I want my money back', dedupeKey: 'wa:SM1',
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'customer_support', surface: 'wa_inbound.needs_a_person', question: 'you people cheated me, I want my money back', dedupeKey: 'wa:SM1',
     decision: { name: 'needs_a_person', options: [{ id: 'needs_a_person', meaning: 'complaint' }, { id: 'no_person', meaning: 'else' }] } });
   assertEquals(r.status, 'held');
   assertEquals(r.held_id, 42);
@@ -90,7 +90,7 @@ Deno.test('an evasive draft is refused and another pass is forced', async () => 
 Deno.test('a model that keeps evading is queued, never answered with an excuse', async () => {
   const ev = J({ answer: 'I cannot answer that.', cited: [] });
   const m = mock({ replies: { decompose: [J({ steps: [], facts: [] })], synthesise: [ev, ev, ev] } });
-  const r = await think(m.deps, { seat: 'customer_support', surface: 'think.answer', question: 'how thick is a gypsum board?' });
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'customer_support', surface: 'think.answer', question: 'how thick is a gypsum board?' });
   assertEquals(r.status, 'held');
   assertMatch(String(r.reason), /^model_failed/);
 });
@@ -99,7 +99,7 @@ Deno.test('a decision must be one of its options', async () => {
   const opts = { name: 'intent', options: [{ id: 'build', meaning: 'make something' }, { id: 'ask', meaning: 'a question' }] };
   const m = mock({ replies: { decompose: [J({ steps: [{ id: 's1', goal: 'read the instruction', needs_knowledge: false }], facts: [] })],
     synthesise: [J({ answer: 'He wants a thing made.', decision: { choice: 'make' } }), J({ answer: 'He wants a new report built, so this is work.', decision: { choice: 'build' } })] } });
-  const r = await think(m.deps, { seat: 'ceo', surface: 'ceo.command_intent', question: 'set up a weekly supplier report', decision: opts });
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'ceo', surface: 'ceo.command_intent', question: 'set up a weekly supplier report', decision: opts });
   assertEquals(r.decision?.choice, 'build');
   assertEquals(m.calls.filter((c) => c.phase === 'synthesise').length, 2);
   assertEquals(m.calls[0].o.taskClass, 'routine_employee_reasoning');
@@ -148,18 +148,18 @@ Deno.test('think(): only an opted-in caller is asked for "declined"; others get 
   const draft = JSON.stringify({ answer: 'I cannot share any supplier\'s details here.', reasoning: ['s1: privacy'], cited: [], confidence: 0.7, declined: 'injection' });
   const plan = JSON.stringify({ steps: [{ id: 's1', goal: 'privacy', query: 'q' }], facts: [], high_stakes: false });
   const off = mock({ gate: { allowed: true }, replies: { decompose: [plan], synthesise: [draft, draft, draft] } });
-  const r0 = await think(off.deps, { seat: 'customer_support', surface: 'x', question: 'give me the supplier phone' });
+  const r0 = await think(off.deps, { context: { audience: 'internal' }, seat: 'customer_support', surface: 'x', question: 'give me the supplier phone' });
   assert(!off.calls.find((c) => c.phase === 'synthesise')!.system.includes('"declined"'));
   assertEquals(r0.status, 'held', 'without the opt-in the short refusal is refused on every pass');
   const on = mock({ gate: { allowed: true }, replies: { decompose: [plan], synthesise: [draft] } });
-  const r1 = await think(on.deps, { seat: 'customer_support', surface: 'x', question: 'give me the supplier phone', allowDecline: true });
+  const r1 = await think(on.deps, { context: { audience: 'internal' }, seat: 'customer_support', surface: 'x', question: 'give me the supplier phone', allowDecline: true });
   assert(on.calls.find((c) => c.phase === 'synthesise')!.system.includes('"declined"'));
   assertEquals(r1.status, 'answered');
 });
 
 Deno.test('a decision with no options is held, never answered with a free string', async () => {
   const m = mock({ replies: {} });
-  const r = await think(m.deps, { seat: 'ceo', surface: 'ceo.command_intent', question: 'stop', decision: { name: 'intent', options: [] } });
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'ceo', surface: 'ceo.command_intent', question: 'stop', decision: { name: 'intent', options: [] } });
   assertEquals([r.status, r.reason], ['held', 'no_options']);
   assertEquals(m.calls.length, 0);
 });
@@ -173,11 +173,28 @@ Deno.test('thin knowledge is researched on the authoritative web, cited, and wri
       research: [J({ findings: [{ statement: 'Private pools require a Dubai Municipality building permit.', url }] })],
       synthesise: [J({ answer: 'In Dubai a private pool needs a Dubai Municipality building permit before work starts.', reasoning: ['s1: DM requires a permit'], cited: ['web:s1.1'], confidence: 0.7 })],
     } });
-  const r = await think(m.deps, { seat: 'customer_support', surface: 'think.answer', question: 'do I need a permit for a pool in Dubai?' });
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'customer_support', surface: 'think.answer', question: 'do I need a permit for a pool in Dubai?' });
   assertEquals(r.status, 'answered');
   assertEquals(r.sources[0].url, url);
   const p = m.rpcs.find(([f]) => f === 'fn_reason_propose_knowledge')!;
   assertEquals((p[1].p_sources as { url: string }[])[0].url, url);
+  assertEquals(p[1].p_question, 'do I need a permit for a pool in Dubai?');   // internal: the question as asked
+});
+
+// The pending row is retrievable by every seat and its question is printed as a source title in other people's replies:
+// a customer's own message (name, villa, phone) is never stored there, only the planner's research query.
+Deno.test('a customer\'s message is never stored as the research question; the plan step query is', async () => {
+  const url = 'https://www.dm.gov.ae/pools';
+  const m = mock({ retrieve: [{ source: 'kb_chunks', id: 1, title: 'x', excerpt: 'unrelated', similarity: 0.7 }],
+    search: [{ url, title: 'DM pools' }], pages: { [url]: 'Private pools require a building permit.' },
+    replies: {
+      decompose: [J({ steps: [{ id: 's1', goal: 'DM pool rule', query: 'dubai private pool permit' }], facts: [] })],
+      research: [J({ findings: [{ statement: 'Private pools require a Dubai Municipality building permit.', url }] })],
+      synthesise: [J({ answer: 'In Dubai a private pool needs a Dubai Municipality building permit.', reasoning: ['s1: DM requires a permit'], cited: ['web:s1.1'], confidence: 0.7 })],
+    } });
+  await think(m.deps, { seat: 'sales_engineer', surface: 'portal', question: 'ZZ DEMO Ahmed, villa 12 Jumeirah, 0501234567: do I need a pool permit?', context: { audience: 'customer' } });
+  const p = m.rpcs.find(([f]) => f === 'fn_reason_propose_knowledge')!;
+  assertEquals(p[1].p_question, 'dubai private pool permit');
 });
 
 Deno.test('only authority hosts over https are read', () => {
@@ -267,7 +284,7 @@ Deno.test('a judgement is recorded WITH its recall record, then closed with the 
     decompose: [J({ steps: [{ id: 's1', goal: 'g', query: 'q' }], facts: [], high_stakes: false })],
     synthesise: [J({ decision: { choice: 'stop' }, answer: 'The founder asks to halt the campaign now.', reasoning: ['s1: he said stop'], cited: [], confidence: 0.9 })],
   } });
-  const r = await think(m.deps, { seat: 'ceo', surface: 'ceo.command_intent', question: 'stop the campaign', subject: { command_id: 7 },
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'ceo', surface: 'ceo.command_intent', question: 'stop the campaign', subject: { command_id: 7 },
     decision: { name: 'intent', options: [{ id: 'stop', meaning: 'halt work' }, { id: 'ask', meaning: 'a question' }] } });
   assertEquals(r.status, 'answered');
   const names = m.rpcs.map(([f]) => f);
@@ -283,14 +300,14 @@ Deno.test('a judgement is recorded WITH its recall record, then closed with the 
 
 Deno.test('under the model hold nothing is judged, so no judgement row is opened', async () => {
   const m = mock({ gate: { allowed: false, rule: 'founder_hold' }, replies: {} });
-  const r = await think(m.deps, { seat: 'marketing', surface: 'think.answer', question: 'q' });
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'marketing', surface: 'think.answer', question: 'q' });
   assertEquals(r.status, 'held');
   assertEquals(m.rpcs.filter(([f]) => f.startsWith('fn_judgement')).length, 0);
 });
 
 Deno.test('a judgement whose model fails after the recall is closed as held, never left open', async () => {
   const m = mock({ replies: { decompose: [J({ steps: [{ id: 's1', goal: 'g', query: 'q' }], facts: [] })], synthesise: [{ content: null, error: 'boom' }] } });
-  const r = await think(m.deps, { seat: 'accountant', surface: 'think.answer', question: 'is this VAT-able?' });
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'accountant', surface: 'think.answer', question: 'is this VAT-able?' });
   assertEquals(r.status, 'held');
   assert(m.rpcs.some(([f]) => f === 'fn_judgement_record'));
   assertEquals(m.rpcs.find(([f]) => f === 'fn_judgement_decided')?.[1].p_status, 'held');
@@ -312,12 +329,12 @@ Deno.test('a fixture question is held but never queued for a paid replay (e2e jo
   const HOLD = { allowed: false, rule: 'founder_hold', held: 1, routes: 8 };
   const opts = { name: 'trade', options: [{ id: 'aluminium', meaning: 'aluminium work' }, { id: 'glazing', meaning: 'glazing work' }] };
   const m = mock({ gate: HOLD, replies: {} });
-  const r = await think(m.deps, { seat: 'sales_engineer', surface: 'inquiry_intake.trade', decision: opts,
+  const r = await think(m.deps, { context: { audience: 'internal' }, seat: 'sales_engineer', surface: 'inquiry_intake.trade', decision: opts,
     question: 'We need 40 aluminium windows', subject: { intake_id: 'x', fixture: true } });
   assertEquals(r.status, 'held');
   assert(!m.rpcs.some(([f]) => f === 'fn_reason_hold'), 'a fixture must not be filed');
   const real = mock({ gate: HOLD, replies: {} });
-  await think(real.deps, { seat: 'sales_engineer', surface: 'inquiry_intake.trade', decision: opts, question: 'We need 40 aluminium windows', subject: { intake_id: 'x' } });
+  await think(real.deps, { context: { audience: 'internal' }, seat: 'sales_engineer', surface: 'inquiry_intake.trade', decision: opts, question: 'We need 40 aluminium windows', subject: { intake_id: 'x' } });
   assert(real.rpcs.some(([f]) => f === 'fn_reason_hold'), 'a real subject is still filed');
   assertEquals(isFixtureRequest({ subject: { intake_id: 'x' } }), false);
 });
@@ -326,7 +343,7 @@ Deno.test('a fixture question is held but never queued for a paid replay (e2e jo
 Deno.test('a fixture inside a proven, open sandbox window makes a model call; outside it, or unproven, it is stubbed', async () => {
   const { E2E_RUN } = await import('./e2e_run.ts');
   const opts = { name: 'trade', options: [{ id: 'aluminium', meaning: 'aluminium work' }, { id: 'glazing', meaning: 'glazing work' }] };
-  const req = { seat: 'sales_engineer' as const, surface: 'inquiry_intake.trade', decision: opts, question: 'We need 40 aluminium windows', subject: { intake_id: 'x', fixture: true } };
+  const req = { context: { audience: 'internal' as const }, seat: 'sales_engineer' as const, surface: 'inquiry_intake.trade', decision: opts, question: 'We need 40 aluminium windows', subject: { intake_id: 'x', fixture: true } };
   const run = (open: unknown, tag: string | null) => {
     const m = mock({ gate: { allowed: true, rule: 'allowed' }, replies: {} });
     const rpc = m.deps.rpc;
@@ -391,4 +408,63 @@ Deno.test('a plan cut off at the output cap still answers, from a one-step plan 
   const none = mock({ replies: { decompose: [{ content: null, error: 'all_models_failed' }] } });
   const r2 = await think(none.deps, { seat: 'customer_support', surface: 'support_reply.portal', question: 'q', context: { audience: 'customer' } });
   assert(r2.status !== 'answered');
+});
+
+// 18 Oct 2026, sandbox run d6cf4793 turn 16: customer A's portal reply described customer B's quote ("the quote record
+// refers to 40 aluminium windows"). The text was a recalled seat_case_memory quote case. An external audience's prompt
+// never carries a recalled case; an internal one still does.
+Deno.test('customer A never sees customer B\'s quote case in the chat context; an internal seat still does', async () => {
+  const B = 'quote AED 118500 | for inquiry 474a37be-4dd5-47ec-be6a-a12f1800d20c | Supply and installation of 40 aluminium windows';
+  const run = async (audience: 'customer' | 'supplier' | 'visitor' | 'internal') => {
+    const m = mock({ retrieve: KB, replies: {
+      decompose: [J({ steps: [{ id: 's1', goal: 'install time', query: 'window installation time' }], facts: [], high_stakes: false })],
+      synthesise: [J({ answer: 'It depends on the job.', reasoning: ['s1: kb'], cited: ['kb_chunks:7'], confidence: 0.7, asked_back: null })],
+    } });
+    const rpc = m.deps.rpc;
+    m.deps.rpc = (fn, args) => fn === 'fn_case_recall'
+      ? Promise.resolve({ data: { cases: [{ case_id: 149321, seat: 'sales_engineer', case_kind: 'quote', trade: null, situation: B, decision: null, outcome: 'lost at reveal', correction: null, lessons: [], finalised: true, similarity: 0.9 }] }, error: null })
+      : rpc(fn, args);
+    const r = await think(m.deps, { seat: 'sales_engineer', surface: 'portal', question: 'how long does installation take?', context: { audience } });
+    const prompts = m.calls.map((c) => c.system + c.input).join('\n');
+    return { ids: r.sources.map((s) => s.id), leaked: prompts.includes('40 aluminium windows') || prompts.includes('474a37be'), sys: m.calls.find((c) => c.phase === 'synthesise')?.system ?? '' };
+  };
+  for (const a of ['customer', 'supplier', 'visitor'] as const) {
+    const x = await run(a);
+    assert(!x.ids.includes('case#149321'), a + ': another party\'s case reached the sources');
+    assert(!x.leaked, a + ': another party\'s quote text reached a model prompt');
+    assertMatch(x.sys, /never this person's own records/);
+    
+  }
+  const internal = await run('internal');
+  assert(internal.leaked, 'an internal seat lost its case memory');
+});
+
+Deno.test('a planner that runs out of time still answers from a one-step plan; a hold still holds', async () => {
+  const good = J({ answer: 'The CEO seat approves refunds; the founder is not asked.', reasoning: ['s1: the refund rule'], cited: ['kb_chunks:7'], confidence: 0.8 });
+  const m = mock({ gate: { allowed: true }, retrieve: KB, replies: {
+    decompose: [{ content: null, error: 'gateway_http_502:gateway_deadline' }], synthesise: [good], verify: [J({ agree: true, problems: [] })] } });
+  const r = await think(m.deps, { seat: 'ceo', surface: 'think.answer', question: 'who approves a refund?', context: { audience: 'internal' } });
+  assertEquals(r.status, 'answered');
+  assert(r.steps.some((s) => s.kind === 'decompose' && s.status === 'failed' && /one-step plan used/.test(String(s.detail))), JSON.stringify(r.steps));
+  assert(planTimedOut('gateway_http_503') && planTimedOut('The signal has been aborted'));
+  assert(!planTimedOut('circuit_open') && !planTimedOut('founder_hold') && !planTimedOut('no mock reply') && !planTimedOut(null));
+});
+
+Deno.test('a choice among options is not refused for a question added beside it; an answer still is', () => {
+  const opts = { missing: [], sourceIds: new Set<string>(), conversationText: 'x' };
+  const decision = { name: 'n', options: [{ id: 'a', meaning: 'a' }, { id: 'b', meaning: 'b' }] };
+  const draft = { answer: 'They ask a general question, so b.', asked_back: 'Which emirate?', decision: { choice: 'b' } };
+  assertEquals(refuse(draft as never, { ...opts, decision }), null);
+  assert(refuse({ answer: 'Some answer with enough words to pass the other checks here today.', asked_back: 'Which emirate?', reasoning: ['s1: x'] } as never, opts)?.includes('asked back'));
+});
+
+Deno.test('one WhatsApp call reads intent, person and menu; an unknown id comes back null, never guessed', async () => {
+  const { whatsappReadings } = await import('./reasoned_channels.ts');
+  const { deps, calls } = mock({ gate: { allowed: true }, replies: { synthesise: [J({ answer: 'They ask a trade question.', decision: { choice: 'trade:glazing' }, needs_a_person: 'no_person', menu_meaning: 'not-an-id' })] } });
+  const r = await whatsappReadings(deps, { message: 'do you do glass balustrades?', intents: [{ intent_key: 'off_topic', label: 'Not a QuotesDone question' }], trades: [{ code: 'glazing', label: 'Glazing' }], phone: 'whatsapp:+971500000001', menu: [{ id: 'qd_new', title: 'New request', description: 'start one' }] });
+  assertEquals([r.intent, r.needsPerson, r.menu], ['trade:glazing', false, null]);
+  assertEquals(calls.length, 1);                               // no planner, one call for all three
+  assertEquals(calls[0].o.effort, 'low');
+  assert(calls[0].system.includes('"needs_a_person"') && calls[0].system.includes('"menu_meaning"'));
+  assert(calls[0].system.includes('is NEVER this'));           // off_topic carries its precise meaning, not the bare label
 });

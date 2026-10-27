@@ -1,0 +1,61 @@
+{
+ "learning": {
+  "seat_lesson_cluster": 0,
+  "seat_case_memory": 0,
+  "seat_case_memory_miss": 0,
+  "institutional_memory": 0,
+  "agent_memory": 0,
+  "org_memory": 0,
+  "reasoning_knowledge_candidate": 0,
+  "sales_knowledge_gap": 0,
+  "email_suppressions": 0,
+  "supplier_score": 0,
+  "supplier_document_cache": 0,
+  "qd_compare_cache": 0,
+  "storage_by_id": 0,
+  "ai_cost_log": 0
+ },
+ "removed": "comparison_candidate_v2 (table no longer exists) 0, customer_organization (table no longer exists) 0",
+ "swept": {
+  "support_case": 0
+ },
+ "dropbox": {
+  "folder": {
+   "status": 200,
+   "folder_gone": true
+  },
+  "records_removed": 0,
+  "generated_removed": 0
+ },
+ "leftovers": {
+  "auth_users": 0,
+  "customers": 0,
+  "leads": 0,
+  "inquiries": 0,
+  "quotes": 0,
+  "quote_spec_hold": 0,
+  "quote_reviews": 0,
+  "notifications": 0,
+  "transactions": 0,
+  "refunds": 0,
+  "supplier_dues": 0,
+  "refund_case": 0,
+  "inquiry_intake": 0,
+  "email_verifications": 0,
+  "storage_objects": 0,
+  "total": 0
+ },
+ "verify": {
+  "tables_scanned": 712,
+  "tables_in_registry": 712,
+  "found": [],
+  "unverified": [],
+  "storage": [],
+  "auth_users": 0,
+  "dropbox": {
+   "listed": 0,
+   "records": 0
+  },
+  "clean": true
+ }
+}

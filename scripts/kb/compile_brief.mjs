@@ -7,8 +7,10 @@
 //
 //   node scripts/kb/compile_brief.mjs           # write supabase/functions/_shared/brief.generated.ts
 //   node scripts/kb/compile_brief.mjs --check   # exit 1 if the generated file is stale (CI)
-import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { isOwnEntry } from './verified_packs.mjs';
+export { isOwnEntry };
 import { join } from 'node:path';
 
 const ROOT = new URL('../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
@@ -20,11 +22,15 @@ export function compileBrief() {
   // conversation_style.md + conversation/<trade_group>.md: the sales_engineer's conversation method and per-trade
   // playbooks (rulings 1195-1200: adaptive, expert follow-up questions). Same cached block, always included.
   const convo = readdirSync(join(DIR, 'conversation')).filter((f) => f.endsWith('.md')).sort();
+  // Ruling 1209 (13 Oct 2026): contract practice, the Gulf Arabic reading guide, the supplier how-to and the
+  // per-trade materials/brands digests join the same always-included block (~120k-token ceiling).
+  const mats = readdirSync(join(DIR, 'uae_materials_brands')).filter((f) => f.endsWith('.md')).sort();
+  const top = ['company.md', 'conversation_style.md', 'uae_contract_practice.md', 'supplier_howto.md', 'gulf_arabic_guide.md'];
   const parts = [
-    ['company.md', readFileSync(join(DIR, 'company.md'), 'utf8')],
-    ['conversation_style.md', readFileSync(join(DIR, 'conversation_style.md'), 'utf8')],
+    ...top.map((f) => [f, readFileSync(join(DIR, f), 'utf8')]),
     ...regs.map((f) => [`uae_regulations/${f}`, readFileSync(join(DIR, 'uae_regulations', f), 'utf8')]),
     ...convo.map((f) => [`conversation/${f}`, readFileSync(join(DIR, 'conversation', f), 'utf8')]),
+    ...mats.map((f) => [`uae_materials_brands/${f}`, readFileSync(join(DIR, 'uae_materials_brands', f), 'utf8')]),
   ];
   const text = parts
     .map(([name, body]) => `<<<FILE knowledge/brief/${name}>>>\n${body.replace(/\r\n/g, '\n').trim()}\n<<<END>>>`)
@@ -41,7 +47,73 @@ export function renderModule(b) {
     `export const BRIEF_FILES: string[] = ${JSON.stringify(b.files)};\n` +
     `export const BRIEF_APPROX_TOKENS = ${b.approxTokens};\n` +
     `export const CONVERSATION_STYLE: string = ${JSON.stringify(readFileSync(join(DIR, 'conversation_style.md'), 'utf8').replace(/\r\n/g, '\n').trim())};\n` +
-    `export const BRIEF_TEXT: string = ${JSON.stringify(b.text)};\n`;
+    `export const BRIEF_TEXT: string = ${JSON.stringify(b.text)};\n` +
+    `export const SEAT_FACTS_EXTERNAL: string = ${JSON.stringify(seatFacts(false))};\n` +
+    `export const SEAT_FACTS_INTERNAL: string = ${JSON.stringify(seatFacts(true))};\n` +
+    // one string per seat: the generated module stays data only (every_external_host_and_secret_is_registered)
+    SEATS.map((s) => `export const SEAT_CARD_${s.toUpperCase()}: string = ${JSON.stringify(seatCard(s).text)};\n`).join('');
+}
+
+// THE SETTLED FACTS EVERY SEAT REASONS FROM (ceo, ledger 1003 stage 2, 19 Oct 2026). think(), the engine every seat
+// uses, never carried the company brief: measured on the real-model seat exam, seats said the founder approves refunds,
+// did not know the bank or the licence expiry, and used AED 187,500 for VAT. company.md (what the customer brief says)
+// rides in every think() call; seats.md (internal facts and rulings) only when the audience is internal. Neither changes
+// BRIEF_TEXT, so the customer chat's cached prefix is unchanged.
+export function seatFacts(internal) {
+  const md = (f) => readFileSync(join(DIR, f), 'utf8').replace(/\r\n/g, '\n').trim();
+  return [md('company.md'), ...(internal ? [md('seats.md')] : [])].join('\n\n');
+}
+
+// EVERY SEAT CARRIES ITS OWN OPERATING FACTS (ceo, ledger 1003 stage 2, 19 Oct 2026). Measured on the after-exam
+// (think() on the seats' real models, reworded questions): ceo 63/119, customer_support 35/96, accountant 53/109,
+// it_engineer 42/109, marketing 38/78. Most misses were "not established" for a number, cadence, owner or rule that IS
+// in the seat's pack (it_engineer:otp-usage-provider-watch holds cap_resend_emails_month 50000): retrieval returned
+// generic kb_chunks at ~0.85 and the pack's short fact never reached the prompt. The card puts the pack's OWN facts in
+// the cached prefix of every internal think() call, so they no longer depend on winning a ranking.
+// Compiled by code from knowledge/seats/<seat>.json only -- a fact absent from the pack is absent from the card:
+//   an entry is the company's own when its kind is 'company' or a source is internal:founder_instruction/... or
+//   internal:memory/...; each sentence of it that carries a number, cadence, owner or rule word becomes one line,
+//   verbatim (provenance parentheses such as "(instr 324)" dropped), tagged with its entry id. Duplicates are dropped.
+//   Lines are chosen round-robin over the entries (each entry's numbered sentences first) to CARD_BUDGET characters (~4k tokens), then
+//   printed in pack order. Byte-stable: same pack, same card.
+//   prevented by: scripts/checks/every_seat_card_comes_from_its_pack.test.mjs
+export const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing'];
+export const CARD_BUDGET = 16000;
+const CARRIES = /\d|\b(daily|weekly|monthly|hourly|quarterly|yearly|annual(ly)?|every|never|always|only|owns?|owner|approves?|approval|must|ceo|founder|accountant|it_engineer|customer_support|sales_engineer|marketing)\b/i;
+const PROVENANCE = /\s*\([^()]*\b(instr|instruction|instructions|ledger|PR|duty)\b[^()]*\)/gi;
+export const cardSentences = (body) => String(body ?? '').replace(/\r\n/g, '\n').replace(PROVENANCE, '')
+  .split(/\n+|(?<=[.;])\s+(?=[A-Z(])/).map((t) => t.replace(/\s+/g, ' ').trim()).filter((t) => t.length >= 25 && CARRIES.test(t));
+
+export function seatCard(seat, pack = JSON.parse(readFileSync(join(ROOT, 'knowledge/seats', seat + '.json'), 'utf8'))) {
+  const own = pack.entries.filter(isOwnEntry);
+  const seen = new Set();
+  const cands = [];
+  own.forEach((e, ei) => cardSentences(e.body_en).map((t, si) => ({ t, si, d: /\d/.test(t) ? 0 : 1 })).sort((a, b) => a.d - b.d || a.si - b.si).forEach(({ t, si }, rank) => {
+    if (seen.has(t.toLowerCase())) return;
+    seen.add(t.toLowerCase());
+    cands.push({ ei, si, line: `- ${t} [${e.id}]`, pri: rank });
+  }));
+  const head = `# ${seat}: operating facts from its own verified pack (internal; settled, they override any SOURCE)\n`;
+  let n = head.length;
+  // Round-robin: every entry's first line before any entry's second, so a long entry cannot crowd out a short one.
+  const keep = cands.slice().sort((a, b) => a.pri - b.pri || a.ei - b.ei || a.si - b.si)
+    .filter((c) => (n + c.line.length + 1 <= CARD_BUDGET ? ((n += c.line.length + 1), true) : false))
+    .sort((a, b) => a.ei - b.ei || a.si - b.si);
+  const text = keep.length ? head + keep.map((c) => c.line).join('\n') : '';
+  return { text, entries: own.length, lines: keep.length, dropped: cands.length - keep.length };
+}
+
+/** Writes knowledge/brief/seats/<seat>.md, or (check) returns the paths that differ from what the packs compile to. */
+export function writeSeatCards(check = false) {
+  const dir = join(DIR, 'seats');
+  if (!check) mkdirSync(dir, { recursive: true });
+  const stale = [];
+  for (const s of SEATS) {
+    const f = join(dir, s + '.md');
+    const want = seatCard(s).text + '\n';
+    if (check) { if ((existsSync(f) ? readFileSync(f, 'utf8') : '') !== want) stale.push(f); } else writeFileSync(f, want);
+  }
+  return stale;
 }
 
 if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/kb/compile_brief.mjs')) {
@@ -49,10 +121,13 @@ if (process.argv[1]?.replaceAll('\\', '/').endsWith('scripts/kb/compile_brief.mj
   const mod = renderModule(b);
   if (process.argv.includes('--check')) {
     const cur = existsSync(OUT) ? readFileSync(OUT, 'utf8') : '';
-    if (cur !== mod) { console.error('brief.generated.ts is stale: run node scripts/kb/compile_brief.mjs'); process.exit(1); }
+    const stale = writeSeatCards(true);
+    if (cur !== mod || stale.length) { console.error('brief.generated.ts or a seat card is stale: run node scripts/kb/compile_brief.mjs', stale.join(' ')); process.exit(1); }
     console.log(`brief up to date: ${b.files.length} files, ~${b.approxTokens} tokens, ${b.sha.slice(0, 12)}`);
   } else {
     writeFileSync(OUT, mod);
+    writeSeatCards();
+    for (const s of SEATS) { const c = seatCard(s); console.log(`  card ${s}: ${c.entries} own entries, ${c.lines} lines, ${c.text.length} chars, ~${Math.round(c.text.length / 4)} tokens, ${c.dropped} lines over budget`); }
     console.log(`wrote ${OUT}: ${b.files.length} files, ${b.text.length} chars, ~${b.approxTokens} tokens, ${b.sha.slice(0, 12)}`);
   }
 }

@@ -21,6 +21,7 @@ import { createHash } from 'node:crypto';
 import { openRun, closeRun, leftovers, makeDemoCustomer, read, write, call } from './fixtures.mjs';
 import { dxfBinaryFrom, dxfFixture, dxfFixturePairs } from '../../supabase/functions/_shared/doc_read/cad.fixtures.ts';
 import { boqNoteAr } from '../../src/lib/boqNotes.ts';
+import { cadRedactionShape } from './cad_redacted_paths.mjs';
 import { CFB } from '../../supabase/functions/_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
 
 const KEEP = process.argv.includes('--keep');
@@ -60,8 +61,10 @@ try {
   const small = await drawing(await sample('sample_2000.dwg', '4b8d9b1396a6d0de'), 'ZZ DEMO small.dwg');
   check('a small DWG is read on the edge (not 546)', small.json?.ok && lines(small).length > 0, `HTTP ${small.status}, ${lines(small).length} lines`);
   // 24 Sep 2026: and DRAWN for suppliers from its own entities, identity left out (drawing_redact mode 'cad').
-  check('the small DWG is drawn for suppliers: one recorded redacted page, not held', small.json?.redaction_complete === true && (small.json?.drawing_redacted_paths || []).length === 1 && small.json?.drawing_held === false,
-    `redaction_complete ${small.json?.redaction_complete}, held ${small.json?.drawing_held}, note ${small.json?.note}`);
+  // Since #1056 the anonymised DXF rides beside the preview, so 1 or 2 recorded paths (cad_redacted_paths.mjs).
+  const smallShape = cadRedactionShape(small.json?.drawing_redacted_paths);
+  check('the small DWG is drawn for suppliers: one recorded redacted preview page (plus its anonymised file), not held', small.json?.redaction_complete === true && smallShape.ok && small.json?.drawing_held === false,
+    `redaction_complete ${small.json?.redaction_complete}, ${smallShape.detail}, held ${small.json?.drawing_held}, note ${small.json?.note}`);
 
   // DWG, large: queued, read by the worker, fetched by the customer.
   const bigBytes = await sample('2018/Dynblocks.dwg', '95cc558d02a2596d');
@@ -76,7 +79,10 @@ try {
       console.log('INFO  worker:', (w.stdout || '').trim().split('\n').filter((l) => !/peer|resolved|Learn more|──/.test(l)).join(' | '));
     }
     let st = null; const t0 = Date.now();
-    for (let i = 0; i < 60 && !(st?.json?.status === 'done' || st?.json?.status === 'failed'); i++) {
+    // 4 minutes, not 10 (18 Oct 2026): 60 x 10 s of polling plus the run's calls and teardown passed the parent's
+    // 12-minute ceiling (drawing_journeys_into_report PER_SCRIPT_MS), the process was SIGTERMed inside its finally and
+    // its rehearsal window stayed open every night 13-18 Oct. A job the worker has not taken in 4 minutes is the finding.
+    for (let i = 0; i < 24 && !(st?.json?.status === 'done' || st?.json?.status === 'failed'); i++) {
       if (i) await new Promise((r) => setTimeout(r, 10000));
       st = await call('customer_api', cust.jwt, { action: 'cad_read_status', job_id: job });
     }

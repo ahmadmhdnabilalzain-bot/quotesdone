@@ -22,9 +22,11 @@ import { observe } from '../_shared/observe.ts';
 import { drain as drainJudgements } from '../_shared/routine_judgements.ts';
 import { defaultDeps, think, type ThinkDeps } from '../_shared/think.ts';
 import { knownSenderCategory } from '../_shared/triage_known_sender.ts';
+import { mailFacts } from './account_facts.ts';
 import { composeMailReply, noAutoReply } from '../_shared/customer_mail.ts';
 import { langOf } from '../_shared/chat_answers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { fileReviewRequest } from '../_shared/review_request.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -32,34 +34,42 @@ const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, 
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 const llm = makeLlm(SONNET_FIRST, { max: 700 }); // shared OpenRouter client (Sonnet-first ladder + 25s timeout)
 
-const SYS = `You are the inbox assistant for QuotesDone, a UAE B2B anonymous quotation marketplace (customers post a job, get matched to vetted suppliers, compare anonymised quotes, and pay a small reveal fee to unlock the supplier they choose; suppliers pay no commission). You triage an incoming email addressed to the company and draft a reply the founder can send.\nReturn STRICT JSON ONLY: {"category":"supplier_document|supplier_question|customer_question|complaint|billing|partnership|spam|other","summary":"one factual sentence","reply":"a short, warm, professional reply in plain text, signed 'The QuotesDone Team'. Do not invent facts, prices, or commitments. If a document was sent, acknowledge receipt and say records will be updated. If it needs info you don't have, ask politely. If it is spam, set reply to an empty string."}\nReply with JSON only, no preamble.`;
+const SYS = `You are the inbox assistant for QuotesDone, a UAE B2B anonymous quotation marketplace (customers post a job, get matched to vetted suppliers, compare anonymised quotes, and pay a small reveal fee to unlock the supplier they choose; suppliers pay no commission). You triage an incoming email addressed to the company and draft a reply the founder can send.\nReturn STRICT JSON ONLY: {"category":"supplier_document|supplier_question|customer_question|complaint|automated_decision_objection|automated_decision_person_review_request|billing|partnership|spam|other","summary":"one factual sentence","reply":"a short, warm, professional reply in plain text, signed 'The QuotesDone Team'. Do not invent facts, prices, or commitments. If a document was sent, acknowledge receipt and say records will be updated. If it needs info you don't have, ask politely. If it is spam, set reply to an empty string. Use automated_decision_person_review_request only when the sender explicitly asks that a person, rather than the system, review a decision the platform made automatically; the reply for it is the same as for automated_decision_objection. Use automated_decision_objection when the sender objects to, or asks for a review of, a decision the platform made automatically (a refund, a dispute or a verification); for either of those two categories the reply is exactly, in English: "QuotesDone Customer Support has received your objection and will reply within 10 working days. If it is not resolved, the QuotesDone operations team takes it up." or, when the email is in Arabic, exactly: "تسلّم فريق دعم العملاء في QuotesDone اعتراضكم، وسيردّ عليكم خلال 10 أيام عمل. وإن لم يُحسم، يتولاه فريق العمليات في QuotesDone.""}\nReply with JSON only, no preamble.`;
 
 type Mail = { id: number; from_email: string | null; to_email: string | null; subject: string | null; body: string | null; owner_role: string | null; raw: Record<string, unknown> | null };
 
 /** customer_support answers the mail in its thread. Returns how it was answered. */
-async function answer(m: Mail, deps: ThinkDeps): Promise<string> {
+// WHO WROTE IS A FACT, NOT A GUESS (QA channels run, 19 Oct 2026). Every mail was answered with audience 'customer': a
+// ZZ DEMO supplier's emailed quotation (inbound_messages 483) was answered as a customer question and told about the
+// reveal fee. fn_mail_sender_known already names the sender's relation; a supplier is answered as a supplier, in English.
+export function audienceOf(relation: unknown): 'customer' | 'supplier' { return relation === 'supplier' ? 'supplier' : 'customer'; }
+
+async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier' = 'customer', facts = ''): Promise<string> {
   const q = ('Subject: ' + (m.subject || '') + '\n\n' + String(m.body || '')).slice(0, 4000);
-  const lang = langOf(q);
+  const lang = audience === 'supplier' ? 'en' : langOf(q);   // suppliers always English (28 Sep 2026)
   // A fixture (@example.invalid, the ZZ DEMO convention) is never queued for the replay (think.ts isFixtureRequest).
   const subject = { message_id: m.id, channel: 'email', ...(/@example\.invalid$/i.test(String(m.from_email || '')) ? { fixture: true } : {}) };
   const person = await needsAPerson(deps, { seat: 'customer_support', surface: 'email_triage.needs_a_person', message: q,
-    audience: 'customer', dedupeKey: 'email_person:' + m.id, subject });
+    audience, dedupeKey: 'email_person:' + m.id, subject });
   // EVERY E-MAIL REPLY IS WRITTEN BY A MODEL (rulings 1195/1196, 12 Oct 2026): the reasoned, independently checked answer
   // when it agrees; otherwise a direct model reply from the company brief (aiReply). The quoted knowledge passage, the
   // person-handoff sentence and the "we received it" receipt are gone. No model at all: nothing is sent (it throws, and
   // the message stays unanswered for the next run).
   let text: string, how: string;
-  const direct = async (note: string) => (await aiReply(deps, { seat: 'customer_support', channel: 'e-mail', audience: 'customer', lang, message: q,
-    subject, rules: 'An e-mail body without a greeting or a sign-off (they are added). Never promise a date.' + note })).reply;
+  const direct = async (note: string) => (await aiReply(deps, { seat: 'customer_support', channel: 'e-mail', audience, lang, message: q,
+    subject, ...(facts ? { facts } : {}), rules: 'An e-mail body without a greeting or a sign-off (they are added). Never promise a date.' + note })).reply;
   if (person.value === true) {
     const body = await direct(' They asked to speak to a person: say plainly that a member of the team will reply to them in this same thread, and answer whatever else they asked.');
     if (!body) throw new Error('no model answered the e-mail');
     text = composeMailReply({ lang, answer: body }); how = 'person';
+    // a person asked to review an automated decision (ledger 1152): filed with the seat that owns it (review_route)
+    await fileReviewRequest(admin, deps, { channel: 'email', requester: String(m.from_email || 'unknown sender'), message: q,
+      surface: 'email_triage.review_of_decision', dedupeKey: String(m.id), subjectTable: 'inbound_messages', subjectId: String(m.id) });
   } else {
     const r = await think(deps, { seat: 'customer_support', surface: 'email_triage.reply', stakes: 'high', dedupeKey: 'email_reply:' + m.id, subject,
       question: `Answer this e-mail to QuotesDone as its customer support, in ${lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}, plain text, `
         + 'without a greeting or a sign-off (they are added). Never name another customer or supplier, never quote an unpublished price, never promise a date.\n\n' + q,
-      context: { audience: 'customer', language: lang } });
+      context: { audience, language: lang, ...(facts ? { profile: { own_account: facts } } : {}) } });
     const verified = r.status === 'answered' && r.verified?.status === 'agreed' && r.answer.trim() ? r.answer.trim() : null;
     const body = verified ?? await direct('');
     if (!body) throw new Error('no model answered the e-mail');
@@ -93,8 +103,8 @@ Deno.serve(observe('email_triage', async (req) => {
       .eq('needs_review', true).is('triaged_at', null).is('replied_at', null).is('owner_role', null).or('ai_category.is.null,ai_category.neq.routine_queued');
     if (Number(body?.message_id) > 0) sel = sel.eq('id', Number(body.message_id));
     const { data: msgs } = await sel.order('created_at', { ascending: true }).limit(20);
-    const reply1 = async (m: Mail) => {
-      try { const how = await answer(m, deps); counts.answered++; counts['answered_' + how] = (counts['answered_' + how] || 0) + 1; }
+    const reply1 = async (m: Mail, audience: 'customer' | 'supplier' = 'customer', facts = '') => {
+      try { const how = await answer(m, deps, audience, facts); counts.answered++; counts['answered_' + how] = (counts['answered_' + how] || 0) + 1; }
       catch (e) { counts.answer_failed++; console.error('email_triage answer', m.id, String((e as Error)?.message || e)); }
     };
     for (const m of ((msgs || []) as Mail[])) {
@@ -139,9 +149,16 @@ Deno.serve(observe('email_triage', async (req) => {
       // 705): stop the batch rather than read the rest of the inbox into the same failing write.
       if (markErr) { if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: 'error', counts, note: 'email_triage stopped: could not record the triage of inbound message ' + m.id + ' (' + String(markErr.message).slice(0, 160) + '); continuing would re-read and re-pay for it on every run.' }).eq('id', run.id); return J({ ok: false, error: 'mark_failed', counts }, 500); }
       counts.triaged++;
+      // An explicit request that a person review an automated decision (ruling 1264) goes through #1519's one door,
+      // fileReviewRequest; same dedupe key as the answer path, so the request is filed once.
+      if (category === 'automated_decision_person_review_request') {
+        await fileReviewRequest(admin, deps, { channel: 'email', requester: String(m.from_email || 'unknown sender'),
+          message: String(m.body || '').slice(0, 4000), surface: 'email_triage.review_of_decision', dedupeKey: String(m.id),
+          subjectTable: 'inbound_messages', subjectId: String(m.id) });
+      }
       if (category === 'spam') { counts.spam++; continue; }
       if (reply) counts.drafted++;
-      await reply1(m);
+      await reply1(m, audienceOf(relation), await mailFacts(admin, String(m.from_email || ''), relation, (m as { raw?: unknown }).raw));
     }
     // THE REPLY LEAVES NOW, not on the outbox's 2-minute poll (the founder's "under a minute").
     if (counts.answered) {

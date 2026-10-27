@@ -23,6 +23,7 @@
 // of those needs a capability the estate does not currently have (see `capability` below, which
 // reports the honest per-format status the build prompt demands rather than a list of intentions).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { NOT_LIVE_QUOTE_IN } from '../_shared/quote_live.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
@@ -41,6 +42,7 @@ import { acceptImages } from '../_shared/chat_images.ts';
 import { quoteQuestion } from '../_shared/reasoned_channels.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 import { supportReply } from '../_shared/support_reply.ts';
+import { accountKey, clientHistory, openConversation } from '../_shared/chat_history.ts';
 import { tradeSlugsOf, matchEmirate } from '../_shared/match_criteria.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -254,7 +256,7 @@ async function answerFromOwnQuotes(customerId: string, message: string, lang: 'e
     if (!ids.length) return null;
     const [{ data: qs }, { data: tx }] = await Promise.all([
       admin.from('quotes').select('id,inquiry_id,supplier_id,quote_amount,status,exclusions,scope,conditions,warranty,lead_time,payment_terms,validity,notes,committed_items,created_at')
-        .in('inquiry_id', ids).neq('status', 'draft').order('quote_amount', { ascending: true }).limit(60),
+        .in('inquiry_id', ids).not('status', 'in', NOT_LIVE_QUOTE_IN).order('quote_amount', { ascending: true }).limit(60),
       admin.from('transactions').select('inquiry_id,supplier_id').eq('customer_id', customerId).not('revealed_at', 'is', null),
     ]);
     if (!qs || !qs.length) return null;
@@ -369,10 +371,26 @@ Deno.serve(observe('sales_engineer', async (req) => {
       return error ? J({ error: 'rating_failed' }, 400) : J(data);
     }
 
+    // THE PORTAL CHAT IS REDRAWN FROM THE DATABASE (ruling 1255): every turn of the customer's one conversation, including
+    // what they said on the website widget before signing up (widget_conv, adopted into the account here).
+    if (action === 'assist_history') {
+      const acct = caller.kind === 'customer' ? accountKey('customer', caller.customerId) : '';
+      if (!acct) return J({ turns: [] });
+      const c = await openConversation(admin, { account: acct, visitorConv: body.widget_conv, adopt: body.adopt === true });   // the portal sends adopt once, right after sign-in
+      return J({ turns: c.turns ?? [], adopted: c.adopted, pending: !!c.pending });
+    }
     if (action === 'assist') {
       const message = String(body.message || '').trim();
       if (!message) return J({ error: 'message_required' }, 400);
       const lang = langOf(message, String(body.lang || ''));
+      // THE WHOLE CONVERSATION (_shared/chat_history.ts, 18 Oct 2026). PortalShell always sent its history and this
+      // handler never read it: every portal turn reached the model alone, so on 14 Oct the founder's 2 m x 1.2 m wardrobe
+      // was asked for again one turn later (assistant_logs 3695). Every turn is stored under conv_id, scoped to the
+      // caller the session resolved (never the body), and read back whole; the browser's copy only fills the first turn.
+      // ruling 1255: ONE conversation per customer (the same key the widget writes when they are signed in), and the
+      // visitor chat from before sign-up was adopted into it by assist_history (adopt flag), never here.
+      const acct = caller.kind === 'customer' ? accountKey('customer', caller.customerId) : '';
+      const pConvo = acct ? openConversation(admin, { account: acct }) : Promise.resolve({ key: '', turns: null, adopted: 0 });
 
       // ── A QUESTION ABOUT THE CUSTOMER'S OWN QUOTE IS ANSWERED FROM THAT QUOTE (21 Sep 2026) ──
       // Measured in the portal audit: "the quote excludes scaffolding above 4 m, but my ceilings
@@ -415,9 +433,12 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // shared word decided it until 23 Sep 2026. Held (the model hold), none is chosen: the gap is recorded and
       // the honest sentence goes out with its task number; nothing is guessed.
       const all = (r.records || []) as Array<Record<string, unknown>>;
+      const convo = await pConvo; const convKey = convo.key; const stored = convo.turns;
+      const transcript = stored && stored.length ? stored : clientHistory(body.history).filter((h, i, a) => !(i === a.length - 1 && h.role === 'user' && h.content === message));
       {
         const sr = await supportReply(defaultDeps(admin, 'sales_engineer'), {
           channel: 'portal', message, lang, seat: 'sales_engineer', audience: 'customer',
+          conversation: transcript.map((t) => ({ role: t.role === 'assistant' ? 'seat' as const : 'customer' as const, text: t.content })),
           passages: all.map((x) => ({ content: String(x.title || '') + '\n' + String(x.content || ''), citation: String(x.corpus || '') + ':' + String(x.record_id || '') })),
           facts: ownQuote ? 'THEIR OWN QUOTE (scoped in SQL to this customer):\n' + ownQuote : undefined,
           // a photo or drawing the customer sent (ruling 1200): only what chat_images accepts reaches the model
@@ -425,7 +446,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
         }, () => Promise.resolve(null));
         if (sr.path === 'reasoned' && sr.reply) {
           try {
-            await admin.from('assistant_logs').insert({ message, reply: sr.reply, seat: 'sales_engineer', answered: true,
+            await admin.from('assistant_logs').insert({ message, reply: sr.reply, seat: 'sales_engineer', answered: true, ...(convKey ? { conv_id: convKey } : {}),
               audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind, path: 'portal:reasoned', gap_task_id: (r.task_id as number | undefined) ?? null });  // the gap fn_sales_assist filed stays linked (review of #1043)
           } catch { /* the customer already has the answer */ }
           await run('assist', 'ok', { answered: true, basis: 'reasoned', routed_seat: sr.seat, precedent: recallTrace(memory) });
@@ -436,7 +457,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // by a model, directly if its chain cannot. Only when no model answered at all does the customer get no text; the
       // question is logged and the gap fn_sales_assist filed stays linked.
       try {
-        await admin.from('assistant_logs').insert({ message, reply: null, seat: 'sales_engineer', answered: false,
+        await admin.from('assistant_logs').insert({ message, reply: null, seat: 'sales_engineer', answered: false, ...(convKey ? { conv_id: convKey } : {}),
           audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind, path: 'portal', gap_task_id: (r.task_id as number | undefined) ?? null });
       } catch { /* logging must not change the outcome */ }
       await run('assist', 'error', { answered: false, no_model: true, task_id: r.task_id ?? null, precedent: recallTrace(memory) });

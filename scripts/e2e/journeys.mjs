@@ -17,6 +17,10 @@ export const MATRIX = [
   { lang: 'en', viewport: 'mobile' }, { lang: 'ar', viewport: 'mobile' },
 ];
 const tag = (m) => `${m.lang}-${m.viewport}`;
+// SUPPLIERS ARE ENGLISH ONLY (founder ruling 1008, #1409): the supplier portal never renders Arabic, so an Arabic
+// supplier pass asserted a portal the product deliberately does not build - 24 of the 36 failures on 18 Oct
+// (run 39079803518) were the supplier ar-desktop / ar-mobile passes reading "ltr/en". Customers keep both.
+export const matrixFor = (kind) => MATRIX.filter((m) => kind !== 'supplier' || m.lang === 'en');
 
 // ---- the quotations each supplier sends ---------------------------------------------------------
 // COMPLETE: every detail the sales engineer's hold desk requires for a glazing line
@@ -336,18 +340,21 @@ export async function journeySuppliers(ctx) {
     `${routing ? ' — routing ' + JSON.stringify({ outcome: routing.outcome, fanout: routing.fanout, verdict: routing.router_verdict, note: routing.note, trades: routing.trades, error: routing.error }).slice(0, 300) : ''}`);
 
   const identity = [fx.customer.fullName, fx.customer.email, fx.customer.phone, fx.customer.phone.replace('+', '')];
-  // The supplier portal, once signed in, opens in leads.locale (PR #629), so each pass registers
-  // supplier A in that pass's language; without it the Arabic pass ran the English portal.
+  // SUPPLIERS ARE ALWAYS ENGLISH (founder ruling 1008, 12 Oct 2026). Each pass still registers
+  // supplier A in that pass's language, so the Arabic pass proves a supplier registered in Arabic
+  // gets the English, left-to-right portal and the English tab names. No Arabic label is clicked.
   // Demo lead at example.invalid only.
   const setSupplierLocale = (lang) => write(`update public.leads set locale = ${q(lang)} where id = ${Number(A.leadId)} and is_demo = true`, 'e2e supplier portal language');
-  for (const m of MATRIX) {
+  for (const m of matrixFor('supplier')) {
     await setSupplierLocale(m.lang);
     const s = await signedInPage(browser, A, m);
     try {
       await openPortal(s.page, portalUrl('supplier', m.lang), s.calls);
+      const supDir = await s.page.evaluate(() => document.documentElement.dir + '/' + document.documentElement.lang).catch(() => '?');
+      rep.step(J, `the supplier portal is English, left-to-right, registered ${m.lang} (${tag(m)})`, supDir === 'ltr/en' ? 'PASS' : 'FAIL', `dir/lang = ${supDir}`);
       // The tab is REACHED, and a tab that cannot be reached is the finding — not something to
       // swallow and then assert against whatever screen was left open.
-      const inqTab = supplierTab(m.lang, 'rfqs');
+      const inqTab = supplierTab('en', 'rfqs');
       const opened = await s.page.getByRole('button', { name: new RegExp('^' + esc(inqTab)) })
         .first().click({ timeout: 15000 }).then(() => true).catch(() => false);
       await s.page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
@@ -603,18 +610,16 @@ export async function journeyPayment(ctx) {
   rep.step(J, 'the reveal is recorded from a real TEST payment', tx?.fee_status === 'paid' ? 'PASS' : 'FAIL',
     JSON.stringify({ fee_status: tx?.fee_status, payment_ref: String(tx?.payment_ref || '').slice(0, 5) + '…' }));
   if (!tx) return;
-  // #616's formula (_shared/reveal_fee.ts revealCharge on main): base = round(rate x quote) to the fils;
-  // total = ceil((base + fixed) / (1 - pct)), where the Checkout Session charges the safest
-  // (international) basis: pct = (3.9% card + 0.5% invoicing) x 1.05 VAT on Stripe's fees = 4.62%,
-  // fixed = AED 1.00 x 1.05 = AED 1.05. Measured 14 Sep 2026: 118,500 x 3% = 3,555 -> 3,728.30.
+  // #919's product behaviour (_shared/reveal_fee.ts, CARD_FEE_CHARGED_TO_BUYER = false; Cabinet
+  // Res. 66/2023 Art. 5(3) forbids a card surcharge): the buyer pays the BASE fee only,
+  // base = round(rate x quote) to the fils, processing_fee = 0, total_charged = base. QuotesDone
+  // absorbs Stripe's cost. #616's grossed-up "3% + card processing" total is retired.
   const rate = Number((await read('select standard_reveal_rate r from public.pricing_config where id = 1'))[0].r);
-  const PCT = (0.039 + 0.005) * 1.05, FIXED_F = 105;
   const baseF = Math.round(Number(tx.quote_amount) * rate * 100);
-  const totalF = Math.ceil((baseF + FIXED_F) / (1 - PCT) - 1e-9);
-  const ok = Math.round(Number(tx.reveal_fee) * 100) === baseF && Math.round(Number(tx.total_charged) * 100) === totalF
-    && Math.round((Number(tx.reveal_fee) + Number(tx.processing_fee)) * 100) === totalF;
-  rep.step(J, "the fee matches #616's formula (3% + card processing, no VAT)", ok ? 'PASS' : 'FAIL',
-    `quote ${tx.quote_amount} x ${rate}: expected base ${baseF / 100} + processing ${(totalF - baseF) / 100} = ${totalF / 100}; recorded ${tx.reveal_fee} + ${tx.processing_fee} = ${tx.total_charged}`);
+  const ok = Math.round(Number(tx.reveal_fee) * 100) === baseF && Math.round(Number(tx.processing_fee) * 100) === 0
+    && Math.round(Number(tx.total_charged) * 100) === baseF;
+  rep.step(J, "the fee matches #919's formula (3% base only, no card fee, no VAT)", ok ? 'PASS' : 'FAIL',
+    `quote ${tx.quote_amount} x ${rate}: expected base ${baseF / 100} + processing 0 = ${baseF / 100}; recorded ${tx.reveal_fee} + ${tx.processing_fee} = ${tx.total_charged}`);
 }
 
 // ---- e. invoice and refund ladder ------------------------------------------------------------------
@@ -788,6 +793,9 @@ const ACCOUNT_MENU = {
   ar: { menu: 'الحساب', items: ['الملف التعريفي', 'الفواتير', 'الإعدادات'] },
 };
 const accountMenu = (kind, lang) => (kind === 'supplier' ? ACCOUNT_MENU[lang] : null);
+// The language a portal RENDERS for an account registered in `lang`: suppliers are always English
+// (founder ruling 1008), customers follow their registration language.
+const uiLang = (kind, lang) => (kind === 'supplier' ? 'en' : lang);
 // Buttons a crawler must never press: they spend, send, delete or sign out. Everything else is pressed.
 // …and one a crawler must never press for a different reason: #729's Services tab has a microphone
 // ("Speak your services" / "سجّل خدماتك صوتيًا"). Pressing it opens a recording, which is a side
@@ -903,15 +911,15 @@ export async function journeyCrawl(ctx) {
    // journey's last Arabic pass. run.mjs catches at the journey level, so without this finally the
    // restore below would be skipped on the one path that needs it.
    try {
-    for (const m of MATRIX) {
+    for (const m of matrixFor(who.kind)) {
       if (stop()) { rep.step(J, `${who.kind} ${tag(m)}: not crawled`, 'SKIP', 'the harness deadline passed before this viewport; the run still tears down and reports'); continue; }
       await setPortalLocale(who, m.lang);
-      const lang = m.lang;
+      const lang = uiLang(who.kind, m.lang);
       const labels = [...NAV[who.kind][lang], ...(accountMenu(who.kind, lang)?.items || [])];
       const s = await signedInPage(browser, who, m);
       const before = s.consoleErrors.length;
       try {
-        await openPortal(s.page, portalUrl(who.kind, lang), s.calls);
+        await openPortal(s.page, portalUrl(who.kind, m.lang), s.calls);
         // The portal is in the language this pass is about, and it offers every destination it
         // should. Both are asserted BEFORE the clicking, so a rename is one FAIL with the words in
         // it rather than N clicks that each wait out their timeout.

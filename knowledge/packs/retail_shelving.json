@@ -54,6 +54,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "retail_shelving:product-distinctions",
+      "topic": "Retail fixtures: shelving systems and display options",
+      "topic_ar": "تجهيزات التجزئة: أنظمة الأرفف وخيارات العرض",
+      "kind": "product_distinctions",
+      "body_en": "Retail shelving centres on gondolas (freestanding double-sided units with a base and an upright back panel, solid, pegboard or slatwall, holding adjustable shelves, hooks and baskets), wall-bay shelving, end caps and promotional displays, checkout counters, supermarket fixtures (produce stands, bakery racks, refrigerated display integration), pharmacy shelving with drawers, clothing displays (rails, wall systems with slatwall or slotted channels, nesting tables, mannequin platforms), and electronics and mobile accessory displays with security. Specifications: height and depth, bay width (often 1,000 or 1,250 mm), shelf load per level, back-panel type, finish (powder-coat colour, wood or laminate), accessories (price-tag strips, dividers, wire baskets, hooks), and for custom fixtures, materials such as MDF with laminate, metal, glass and acrylic with LED lighting. Store layouts follow planograms and customer flow; fixtures must be stable, anchored where tall, and safe at edges. Offers differ on system compatibility for future expansion, steel gauge and load ratings, finish quality, lead time for custom joinery, installation, and spare parts.",
+      "body_ar": "تتمحور أرفف التجزئة حول الجندولات (وحدات قائمة بذاتها مزدوجة الجهة بقاعدة ولوح خلفي قائم، مصمت أو مثقب أو مشقوق، تحمل أرففاً قابلة للضبط وخطافات وسلالاً)، وأرفف الجدران، ونهايات الممرات وعروض الترويج، وكاونترات الدفع، وتجهيزات السوبرماركت (منصات الخضار، أرفف المخبوزات، التكامل مع ثلاجات العرض)، وأرفف الصيدليات بالأدراج، وعروض الملابس (العلاقات، الأنظمة الجدارية بالألواح المشقوقة أو القنوات، الطاولات المتداخلة، منصات المانيكان)، وعروض الإلكترونيات وملحقات الجوال مع الحماية. والمواصفات: الارتفاع والعمق، وعرض الوحدة (غالباً 1000 أو 1250 مم)، وحمل الرف لكل مستوى، ونوع اللوح الخلفي، والتشطيب (لون الطلاء بالبودرة، الخشب أو الرقائق)، والملحقات (شرائط الأسعار، الفواصل، السلال السلكية، الخطافات)، وللتجهيزات المخصصة مواد مثل MDF بالرقائق والمعدن والزجاج والأكريليك مع إضاءة LED. وتتبع تخطيطات المحلات مخططات توزيع المنتجات وحركة العملاء؛ ويجب أن تكون التجهيزات ثابتة ومثبتة حيث تكون عالية وآمنة عند الحواف. وتختلف العروض في توافق النظام للتوسع مستقبلاً، وسماكة الحديد وتصنيفات الأحمال، وجودة التشطيب، ومدة النجارة المخصصة، والتركيب، وقطع الغيار.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Gondola_(retail)"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: gondolas as freestanding fixtures with a base and an upright holding shelves, hooks or pegboard -> confirmed."
+    },
+    {
+      "id": "retail_shelving:lead-times-and-quoting",
+      "topic": "Retail shelving & display fixtures - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "أرفف التجزئة وتجهيزات العرض: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Standard gondolas: 1-4 weeks; custom fixtures 4-10 weeks. A supplier needs the store layout and dimensions, product categories, number of bays and heights, finish and branding, and opening date. A quote states the system, dimensions, shelf loads, accessories, finishes, custom items, installation, delivery and validity.",
+      "body_ar": "الجندولات القياسية: 1-4 أسابيع؛ والتجهيزات المخصصة 4-10 أسابيع. ويحتاج المورد تخطيط المحل وأبعاده، وفئات المنتجات، وعدد الوحدات وارتفاعاتها، والتشطيب والعلامة، وتاريخ الافتتاح. ويذكر العرض النظام والأبعاد وأحمال الأرفف والملحقات والتشطيبات والأصناف المخصصة والتركيب والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (No entry gives standard gondola bay widths or shelf loads; missing). retail_shelving:gondola-bay-dimensions-and-loads was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from retail_shelving.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What should we specify for gondola shelving in a new mini-market?",
+      "q_ar": "وش نحدد في مواصفات أرفف الجندولا لميني ماركت جديد؟",
+      "expected_entry_ids": [
+        "retail_shelving:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "retail_shelving:gondola-bay-dimensions-and-loads"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "retail_shelving:product-distinctions"
+      ],
+      "stored_not_served": [
+        "retail_shelving:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Gondola_(retail)"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

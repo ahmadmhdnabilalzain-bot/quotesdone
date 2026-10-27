@@ -58,6 +58,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "hydraulics_pneumatics:product-distinctions",
+      "topic": "Hydraulics and pneumatics: components, ratings and cleanliness",
+      "topic_ar": "الهيدروليك والهوائيات: المكونات والتصنيفات والنظافة",
+      "kind": "product_distinctions",
+      "body_en": "Hydraulic systems use pumps (gear for simple low-cost circuits, vane for quiet medium pressure, axial and radial piston for high pressure and variable displacement), cylinders (tie-rod or welded, by bore, rod, stroke, mounting and pressure rating), valves (directional, pressure and flow control; manual, solenoid or proportional and servo), motors, accumulators, power units, filters, coolers and hoses and fittings. Hoses are specified by size, pressure rating and construction (for example SAE 100R2 or EN 853 2SN two-wire braid, 4SH spiral for high pressure), with fittings to match thread standards (BSP, JIC, ORFS, metric DIN). Fluid cleanliness drives component life: hydraulic oil is specified by viscosity grade (ISO VG 32/46/68), and cleanliness is measured to ISO 4406 codes, with filtration rated by beta ratio. Pneumatics uses compressed air at lower pressure (typically 6-8 bar) with cylinders (ISO 15552, compact, rodless), valves and manifolds, air preparation units (filter, regulator, lubricator), fittings and tubing, vacuum components, and grippers. Selection depends on force, speed, duty cycle, environment and the control system; matching existing machine parts needs the maker's part number.",
+      "body_ar": "تستخدم الأنظمة الهيدروليكية المضخات (التروس للدوائر البسيطة منخفضة التكلفة، والريشية للضغط المتوسط الهادئ، والمكبسية المحورية والقطرية للضغط العالي والإزاحة المتغيرة)، والأسطوانات (بقضبان شد أو ملحومة، حسب القطر والعمود والشوط وطريقة التثبيت وتصنيف الضغط)، والصمامات (الاتجاهية، والتحكم بالضغط والتدفق؛ يدوية أو بالملف أو تناسبية وسيرفو)، والمحركات، والمراكم، ووحدات القدرة، والفلاتر، والمبردات، والخراطيم والوصلات. وتُحدد الخراطيم بالمقاس وتصنيف الضغط والبنية (مثل SAE 100R2 أو EN 853 2SN بجديلتين، و4SH الحلزوني للضغط العالي)، مع وصلات تطابق معايير الأسنان (BSP، JIC، ORFS، DIN المترية). ونظافة السائل تحدد عمر المكونات: يُحدد الزيت الهيدروليكي بدرجة اللزوجة (ISO VG 32/46/68)، وتُقاس النظافة برموز ISO 4406، وتُصنف الفلترة بنسبة بيتا. وتستخدم الأنظمة الهوائية الهواء المضغوط بضغط أقل (عادة 6-8 بار) مع الأسطوانات (ISO 15552، المدمجة، بلا عمود)، والصمامات والمشعبات، ووحدات تجهيز الهواء (الفلتر، المنظم، المزيت)، والوصلات والأنابيب، ومكونات التفريغ، والقابضات. ويعتمد الاختيار على القوة والسرعة ودورة التشغيل والبيئة ونظام التحكم؛ ومطابقة قطع الآلات القائمة تحتاج رقم قطعة الصانع.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Hydraulic_machinery"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: hydraulic pumps, cylinders and actuators, control valves, hose construction, filtration of the fluid -> confirmed."
+    },
+    {
+      "id": "hydraulics_pneumatics:lead-times-and-quoting",
+      "topic": "Hydraulics & pneumatics - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الهيدروليك والهوائيات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock hoses, fittings and common components: same day; hose assemblies made while you wait; cylinders and power units made to order 2-8 weeks. A supplier needs part numbers or full specs (pressure, flow, bore, stroke, mounting, thread type), the machine, quantity, and urgency. A quote states make, model or code, ratings, materials, certificates, availability, delivery and validity.",
+      "body_ar": "الخراطيم والوصلات والمكونات الشائعة المتوفرة: في نفس اليوم؛ وتجميع الخراطيم أثناء الانتظار؛ والأسطوانات ووحدات القدرة المصنعة بالطلب 2-8 أسابيع. ويحتاج المورد أرقام القطع أو المواصفات الكاملة (الضغط، التدفق، القطر، الشوط، التثبيت، نوع السن)، والآلة، والكمية، والاستعجال. ويذكر العرض الماركة والموديل أو الرمز والتصنيفات والمواد والشهادات والتوفر والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -83,6 +113,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry explains the EN 853 2SN vs EN 856 4SH hose constructions and pressure ratings). hydraulics_pneumatics:en853-2sn-vs-en856-4sh-hose was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from hydraulics_pneumatics.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Our hydraulic pumps keep failing early. Could oil cleanliness be the cause?",
+      "q_ar": "مضخاتنا الهيدروليكية تخرب بسرعة، ممكن السبب نظافة الزيت؟",
+      "expected_entry_ids": [
+        "hydraulics_pneumatics:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -102,6 +140,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "hydraulics_pneumatics:en853-2sn-vs-en856-4sh-hose"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "hydraulics_pneumatics:product-distinctions"
+      ],
+      "stored_not_served": [
+        "hydraulics_pneumatics:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Hydraulic_machinery"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
