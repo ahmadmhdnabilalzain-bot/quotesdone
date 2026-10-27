@@ -1375,9 +1375,11 @@ begin
   if l.id is null then return jsonb_build_object('due', false, 'reason', 'the sender is no lead'); end if;
   if l.invited_at is null and l.invite_status is null then return jsonb_build_object('due', false, 'reason', 'the lead was never invited'); end if;
   if coalesce(l.claimed, false) then return jsonb_build_object('due', false, 'reason', 'the lead already has its company page'); end if;
-  if lower(coalesce(m.raw->>'auto_submitted', 'no')) <> 'no' then return jsonb_build_object('due', false, 'reason', 'an automatic reply'); end if;
+  -- 27 Oct 2026: an out-of-office or help-desk acknowledgement never takes the lead's one handoff
+  if public.fn_inbound_is_auto_reply(m.subject, m.body, m.raw) then return jsonb_build_object('due', false, 'reason', 'an automatic reply'); end if;
   -- the supplier's own words: everything above the quoted original
-  v_reply := btrim(regexp_replace(coalesce(m.body, ''), E'(\\n|^)\\s*(>|On [^\\n]{0,200}wrote:|-{2,}\\s*Original Message|From:\\s).*$', ''));
+  -- (CRLF folded first: a Graph text body ends its lines with \r, measured 27 Oct 2026 end to end)
+  v_reply := btrim(regexp_replace(replace(coalesce(m.body, ''), E'\r', ''), E'(\\n|^)\\s*(>|On [^\\n]{0,200}wrote:|-{2,}\\s*Original Message|From:\\s).*$', ''));
   v_first := lower(btrim(regexp_replace(split_part(v_reply, E'\n', 1), '[[:punct:][:space:]]+', ' ', 'g')));
   -- "stop" is an unsubscribe (resend_inbound), never a request for a page
   if v_first in ('stop', 'unsubscribe', 'stopall', 'end', 'cancel', 'opt out', 'optout', 'remove', 'remove me', 'please remove', 'not interested') then

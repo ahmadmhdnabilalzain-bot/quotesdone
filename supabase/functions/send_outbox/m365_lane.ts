@@ -137,6 +137,9 @@ export function companyName(raw: unknown): string {
   let s = String(raw || '').replace(/&(#0?\d+|[a-z]+);/gi, (m, k) => ENTITY[String(k).toLowerCase()] ?? m);
   s = s.split(/\s[|–—-]\s/)[0].replace(/\s+/g, ' ').trim();
   if (/[؀-ۿ]/.test(s) || /^zz\s*demo/i.test(s) || s.length < 2) return '';
+  // a registered name carrying a web address ("www.khaazay.com online division of ...") gets the neutral greeting:
+  // the founder's email carries no link, and the name is never cut into something the company did not write
+  if (/https?:\/\/|\bwww\.|\b[a-z0-9-]+\.(?:com|ae|net|org|co|biz|info)\b/i.test(s)) return '';
   if (s === s.toUpperCase() && /[A-Z]{4}/.test(s)) {
     s = s.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase()).replace(/\b(Llc|Fze|Fzco|Fzc|Fz)\b/g, (w) => w.toUpperCase());
   }
@@ -199,6 +202,31 @@ export function m365Body(_type: unknown, rowBody: string, kind?: unknown, who: W
   const own = marker ? String(rowBody).trimEnd().slice(0, -marker.length).trimEnd() : (rowBody || '');
   const built = m365InvitationText({ company: who.company ?? companyFromBody(own), trade: who.trade });
   return marker ? built + '\n\n' + marker : built;
+}
+
+/** THE ONE SUPPLIER CAMPAIGN EMAIL, WHICHEVER ROUTE CARRIES IT (27 Oct 2026, coordinator follow-up to #1614).
+ *  send_outbox builds the subject and text here for the Microsoft 365 lane AND the Resend fallback, so switching
+ *  invite_m365_enabled off can never bring back the old email (link, closing question, Al Furjan footer).
+ *  `bad` lists the copy rules the email fails; any failure holds the row on either route. */
+export function campaignMail(row: { type?: unknown; body?: unknown; subject?: unknown; kind?: unknown }, who: Who = {}):
+  { subject: string; text: string; bad: CopyRule[] } {
+  const body = String(row.body || '');
+  const company = who.company ?? companyFromBody(body);
+  const text = m365Body(row.type, body, row.kind, { ...who, company });
+  const subject = withPlacementRef(m365Subject({ company, trade: who.trade }), row);
+  // THE RULES READ OUR COPY, NOT THE SUPPLIER'S OWN NAME (27 Oct 2026, review of #1614). Measured that day: 11 of
+  // 17,401 eligible leads were held because their registered name tripped a copy rule meant for our wording:
+  // "Eastlake Dec.Design" and "... CARPETS & NOV TRADING" read as month names next to the 1,000 offer, "2003 ALUMINIUM
+  // WORKS" and "CHINA 2008 BUILDING MATERIAL" as dates, "AI TRADING EST" as the forbidden word. So the copy rules run
+  // with the rendered name masked, and the no-link rule ALSO runs on the email exactly as sent (a name carrying a web
+  // address never reaches it: companyName gives the neutral greeting instead).
+  const name = companyName(company);
+  const mask = (s: string) => (name ? s.split(name).join('Company') : s);
+  const bad = m365CopyLint({ subject: mask(subject), body: mask(text), seed: row.kind === M365_SEED_KIND }).filter((l) => !l.ok);
+  if (ANY_LINK.test(text) || ANY_LINK.test(subject)) {
+    bad.push({ rule: 'no link anywhere in the email as sent', ok: false, detail: String((text + ' ' + subject).match(ANY_LINK)?.[0] || '') });
+  }
+  return { subject, text, bad };
 }
 
 const DATED = /\b(?:20\d\d|jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|deadline|until|expires?|limited time)\b/i;

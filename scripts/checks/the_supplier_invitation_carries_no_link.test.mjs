@@ -83,3 +83,19 @@ test('a reply to the invitation reaches the sales engineer as an invite.reply ha
   }
   assert.match(read('supabase/functions/_shared/payment_handoffs.ts'), /\{ type: 'invite\.reply', from: 'marketing', to: 'sales_engineer' \}/);
 });
+
+// 27 Oct 2026 (review of #1614): an automatic reply must not take the lead's one invite.reply handoff.
+test('an automatic reply files no handoff: the latest filer asks fn_inbound_is_auto_reply, and resend_inbound stores the marks it reads', () => {
+  const AUTO = 'scripts/sql/an_automatic_reply_never_takes_an_invited_suppliers_handoff.sql';
+  const auto = read(AUTO).split('\n').filter((l) => !/^\s*--/.test(l)).join('\n');
+  const filer = (/create or replace function public\.fn_marketing_files_invite_reply\([^)]*\)[\s\S]*?as \$fn\$([\s\S]*?)\$fn\$/i.exec(auto) || [])[1] || '';
+  assert.match(filer, /if public\.fn_inbound_is_auto_reply\(m\.subject, m\.body, m\.raw\) then return/);
+  assert.ok(filer.indexOf('fn_inbound_is_auto_reply') < filer.indexOf('fn_seat_handoff('), 'the auto-reply test must come before the handoff is filed');
+  for (const k of ['auto_submitted', 'x_auto_response_suppress', 'precedence', 'x_autoreply']) {
+    assert.match(auto, new RegExp(`p_raw->>'${k}'`), `fn_inbound_is_auto_reply no longer reads ${k}`);
+    assert.match(read('supabase/functions/resend_inbound/index.ts'), new RegExp(`${k}: hv\\(`), `resend_inbound no longer stores ${k}`);
+  }
+  assert.match(auto, /revoke execute on function public\.fn_inbound_is_auto_reply\(text, text, jsonb\) from public, anon, authenticated;/);
+  // the verdict row keeps both sides: the two measured machine replies, and a person who thanks us first
+  assert.match(auto, /help-desk acknowledgement \(15 Aug\)/); assert.match(auto, /a person''s reply was taken for a machine/);
+});
