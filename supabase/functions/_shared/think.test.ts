@@ -241,7 +241,7 @@ Deno.test('replayHeld claims again while each claim comes back full, and stops a
   m.deps.rpc = (fn, args) => fn === 'fn_reason_held_due'
     ? (m.rpcs.push([fn, args]), Promise.resolve({ data: Array.from({ length: Number(args.p_limit) }, row), error: null }))
     : base(fn, args);
-  const out = await replayHeld(null, 2, m.deps, undefined, { maxRows: 5 }) as { replayed: number };
+  const out = await replayHeld(null, 2, m.deps, undefined, { maxRows: 5, rowMs: 0 }) as { replayed: number };
   assertEquals(out.replayed, 5, 'two full claims of 2, then a last claim of 1');
   assertEquals(m.rpcs.filter(([f]) => f === 'fn_reason_held_due').map(([, a]) => a.p_limit), [2, 2, 1]);
 });
@@ -253,7 +253,7 @@ Deno.test('replayHeld stops claiming when the time budget is spent', async () =>
   m.deps.rpc = (fn, args) => fn === 'fn_reason_held_due'
     ? (t += 1000, Promise.resolve({ data: [{ id: t, seat: 'ceo', surface: 'ceo.command_intent', request: { seat: 'ceo' } }], error: null }))
     : base(fn, args);
-  const out = await replayHeld(null, 1, m.deps, undefined, { maxRows: 50, budgetMs: 2500, now: () => t }) as { replayed: number };
+  const out = await replayHeld(null, 1, m.deps, undefined, { maxRows: 50, budgetMs: 2500, rowMs: 0, now: () => t }) as { replayed: number };
   assertEquals(out.replayed, 3, 'claims at t=1000, 2000, 3000; the budget (2500) stops the fourth');
 });
 

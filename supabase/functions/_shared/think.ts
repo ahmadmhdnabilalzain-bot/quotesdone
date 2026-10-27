@@ -160,6 +160,8 @@ export interface ThinkDeps {
   llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h'; timeoutMs?: number; history?: { role: 'user' | 'assistant'; content: string }[]; effort?: 'low' | 'medium' | 'high' }): Promise<LlmReply>;
   // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
   embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
+  /** Why the last embed of this text in this space returned null, when the embedder said (ml_embed_client's `why`). */
+  embedFailure?(text: string, space: EmbedSpace): string | null;
   /** Which space retrieval reads (fn_ml_read_space). Absent = 'gte', the path every test and caller had. */
   space?(): Promise<EmbedSpace>;
   rpc(fn: string, args: Record<string, unknown>): Promise<RpcResult>;
@@ -689,7 +691,8 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   for (const s of [...planSteps, ...asked]) {
     if (!s.needs) { steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: 'skipped' }); continue; }
     const { v, r: rt } = await embedIn(s.query);
-    if (!v) { steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: 'failed', detail: 'embedding_unavailable' }); thin.push(s); continue; }
+    // The reason rides in the detail (27 Oct 2026: five rows read 'embedding_unavailable' and nothing said why).
+    if (!v) { const why = deps.embedFailure?.(s.query, 'gte') ?? deps.embedFailure?.(s.query, 'ml') ?? null; steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: 'failed', detail: why ? 'embedding_unavailable: ' + why : 'embedding_unavailable' }); thin.push(s); continue; }
     // The multilingual search fuses both spaces (fn_reason_retrieve_ml), so it takes the gte-small vector too;
     // without one it ranks by the multilingual space alone. An Arabic question gets none: gte-small is English-only
     // and its vector for Arabic text pulled the fused ranking down (gteReads, _shared/ml_embed_recipe.ts).
@@ -852,6 +855,10 @@ export function withDeadline(deps: ThinkDeps, deadline: number, minMs = MIN_STEP
 // prevented by: _shared/held_replay_keeps_gte_out_of_the_worker.test.ts
 export type GtePlacement = 'worker' | 'remote';
 export function defaultDeps(admin: Admin, fn: string, o: { gte?: GtePlacement } = {}): ThinkDeps {
+  // why each remote embed returned null, per space and text, for the step detail (embedFailure); cleared on success
+  const embedFails = new Map<string, string>();
+  const noteFail = (sp: EmbedSpace, t: string) => (why: string) => { embedFails.set(sp + '\u0001' + t, why); };
+  const settle = (sp: EmbedSpace, t: string, v: number[] | null) => { if (v) embedFails.delete(sp + '\u0001' + t); return v; };
   return {
     gate: async () => (await admin.rpc('fn_kernel_paid_provider_gate', { p_model: HOLD_PROBE_MODEL })).data,
     llm: async (phase, system, input, o) => {
@@ -867,14 +874,15 @@ export function defaultDeps(admin: Admin, fn: string, o: { gte?: GtePlacement } 
     },
     embed: async (t, space) => {
       // The model runs in embed_ml, never in this worker (ml_embed_client.ts); 8 s covers its cold start (1.2-2.6 s).
-      if (space === 'ml') { const { embedQueryMlRemote } = await import('./ml_embed_client.ts'); return await embedQueryMlRemote(admin, t, fn, 8000); }
+      if (space === 'ml') { const { embedQueryMlRemote } = await import('./ml_embed_client.ts'); return settle('ml', t, await embedQueryMlRemote(admin, t, fn, 8000, noteFail('ml', t))); }
       const { embedLine } = await import('./gte_embed.ts');
       // Outside the edge runtime (the seat exam on a machine) there is no Supabase.ai: the same gte-small answers from
       // embed_ml instead of null, so a run off the edge retrieves exactly as the edge does (ml_embed_client.embedGteRemote).
       // deno-lint-ignore no-explicit-any
-      if (o.gte === 'remote' || !(globalThis as any).Supabase?.ai) { const { embedGteRemote } = await import('./ml_embed_client.ts'); return await embedGteRemote(admin, t, fn, 8000); }
+      if (o.gte === 'remote' || !(globalThis as any).Supabase?.ai) { const { embedGteRemote } = await import('./ml_embed_client.ts'); return settle('gte', t, await embedGteRemote(admin, t, fn, 8000, noteFail('gte', t))); }
       return await embedLine(t);
     },
+    embedFailure: (t, sp) => embedFails.get(sp + '\u0001' + t) ?? null,
     space: async () => { const { readSpace } = await import('./ml_embed_client.ts'); return await readSpace(admin); },
     rpc: async (f, args) => { const r = await admin.rpc(f, args); return { data: r.data, error: r.error }; },
     search: (q) => webSearch(admin, q),
@@ -930,17 +938,35 @@ export type HeldRow = { id: number; seat: string; surface: string; request: Stor
 // whose cost rose to ewma 84 s / last 119 s, so the tick plan deferred it on most ticks (5 deferrals in a row) and 6 of
 // 32 ticks ended 546 with 10 concurrent think() calls in flight. The held queue fell 253 -> 248 in eight hours.
 // A smaller slice that fits every tick drains faster than a large one that rarely runs.
+// TWO ROWS AT A TIME, ONE CLAIM A TICK, AND NO MODEL CALL PAST THE BUDGET (it_engineer, 27 Oct 2026). Measured on
+// production at 20:30Z: the tick claimed 5 rows (28985-28988, 32248) and reasoned them under one Promise.all. Since
+// #1678 every gte-small vector is its own embed_ml invocation, so that was dozens of function-to-function calls in
+// about 10 s beside the routine-judgements drain: ai_gateway answered 503 after ~10 s with no execution_id (no worker
+// served it), the other fetches threw, and all five rows came back 'model_failed: no reply' - the 12 Oct symptom again.
+// Rows are now reasoned at most REPLAY_CLAIM at a time (a claim never asks for more than that), a claim starts only
+// while a whole row's measured time (REPLAY_ROW_MS) still fits in the budget, and every model call of the replay is
+// cut at the budget's end (withDeadline), so nothing is left in flight when the step returns. Measured per row (13
+// rows applied 21-27 Oct, claim to reasoned_at, one or two at a time): 41-80 s for ten, 105/125/162 s for three that
+// rode a larger burst; a resilience_ping model call takes p50 24-34 s (ai_cost_log, 3 days), and a row makes two or
+// three of them. So budget = row = 90 s: one claim of up to two rows per tick, 8 an hour at the 15-minute tick
+// against a held queue of 9. embed_ml takes one text per call (action 'gte'), so the embeddings are not batched.
+// prevented by: _shared/think_replay_concurrency.test.ts
 export const REPLAY_MAX_ROWS = 20;
-export const REPLAY_BUDGET_MS = 25_000;
-export const REPLAY_CLAIM = 5;
+export const REPLAY_BUDGET_MS = 90_000;
+export const REPLAY_ROW_MS = 90_000;
+export const REPLAY_CLAIM = 2;
 export const REPLAY_STALE_MS = 24 * 3600_000;
 export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deliver?: (row: HeldRow, r: ThinkResult) => Promise<unknown>,
-  opts: { maxRows?: number; budgetMs?: number; staleMs?: number; now?: () => number } = {}): Promise<unknown> {
-  const d = deps ?? heartbeatDeps(admin);
+  opts: { maxRows?: number; budgetMs?: number; rowMs?: number; staleMs?: number; now?: () => number } = {}): Promise<unknown> {
   const now = opts.now ?? Date.now;
   const t0 = now();
   const maxRows = opts.maxRows ?? limit;            // a caller that does not opt in keeps the old one-claim behaviour
   const budget = opts.budgetMs ?? REPLAY_BUDGET_MS;
+  const rowMs = Math.min(opts.rowMs ?? REPLAY_ROW_MS, budget);
+  const claimSize = Math.max(1, Math.min(limit, REPLAY_CLAIM));   // the rows reasoned together, never more than REPLAY_CLAIM
+  // Every model call of every row ends by the budget: a call with under MIN_STEP_MS left is not started and the row
+  // stays held (turn_deadline), so the step never returns over a call still in flight.
+  const d = withDeadline(deps ?? heartbeatDeps(admin), t0 + budget, MIN_STEP_MS, now);
   const staleMs = opts.staleMs ?? REPLAY_STALE_MS;
   // The sweep runs on every tick, hold or not (5 Oct 2026): until then it ran inside fn_reason_held_due, which this
   // function never reached while the hold was on, so fixture and stale rows piled up for the day the hold lifts.
@@ -976,12 +1002,18 @@ export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deli
     return { id: row.id, status: r.status, effect: (res as { status?: string } | null)?.status ?? null, fanned: fanned.length, delivery, error: e?.message };
   };
   let error: string | undefined;
-  while (out.length < maxRows && now() - t0 < budget) {
-    const { data, error: ce } = await d.rpc('fn_reason_held_due', { p_limit: Math.min(limit, maxRows - out.length) });
+  // A claim counts a try on every row it returns, so after the first claim another starts only while a whole row's
+  // time still fits in the budget.
+  while (out.length < maxRows) {
+    const spent = now() - t0;
+    if (spent >= budget || (out.length > 0 && budget - spent < rowMs)) break;
+    const ask = Math.min(claimSize, maxRows - out.length);
+    const { data, error: ce } = await d.rpc('fn_reason_held_due', { p_limit: ask });
     if (ce) { error = ce.message; break; }
+    // never more than claimSize rows in flight, whatever the claim returned; a claimed row is never dropped unreasoned
     const rows = (data ?? []) as HeldRow[];
-    out.push(...await Promise.all(rows.map(one)));
-    if (rows.length < limit) break;               // the queue is drained (or the claim was short)
+    for (let i = 0; i < rows.length; i += claimSize) out.push(...await Promise.all(rows.slice(i, i + claimSize).map(one)));
+    if (rows.length < ask) break;                 // the queue is drained (or the claim was short)
   }
   return error && !out.length ? { replayed: 0, error, swept } : { replayed: out.length, rows: out, swept, ...(error ? { error } : {}) };
 }
