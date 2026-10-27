@@ -56,7 +56,7 @@ taken as done: each closure below names the live object or the run that proves t
 | 1248 | Chat forgets the conversation | done | site_assistant v329 has chat_history/fitHistory/conv_id. ZZ DEMO widget conv v-192a94d6 (27 Oct 07:29-07:31Z): turn 12 restates "2 m high, 1.2 m wide, matte white, JLT" from turn 1. |
 | 1250 | Inquiry box hidden | real gap | Fix merged and on web prod, but stage-2 26 Oct S26 inquiry_box FAIL ("could not open New request"). sales_engineer. |
 | 1251 | Outlook seed and first send day | superseded | By 1312 and 1313. |
-| 1252 | OTP cost too high | real gap | kyc v308 has sendWhatsAppFirst; 0 phone codes sent in 9 days, so cost is unmeasured; the WhatsApp auth template is not approved. it_engineer. |
+| 1252 | OTP cost too high | real gap | kyc v308 has sendWhatsAppFirst; 0 phone codes sent in 9 days, so cost is unmeasured. The estate's own WhatsApp Authentication template login_code IS approved (messaging_template en HX1748.. / ar HXec99.., approved 6 Oct, Twilio read 27 Oct 05:30Z); #1631 (open) sends the WhatsApp code with it, without Verify's USD 0.05 fee. it_engineer. |
 | 1261 | Full three-person browser test, AI on | real gap | Stage-2 26 Oct: 33 FAIL. it_engineer. |
 | 1273 | Turn the campaign on | superseded | By 1312 (paused 27 Oct; invite_enabled = false). |
 | 1276 | Use the lane proven to land in the inbox | superseded | By 1312. |
