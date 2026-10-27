@@ -17,6 +17,14 @@ export function portalRules(): string {
   return 'Plain text for the portal chat window: no markdown, no bullets, no headings, under about 120 words. The person is signed in to their own account: never tell them to log in or to sign up.';
 }
 
+/** A reply wrapped as data is refused sentence by sentence and rewritten by the model, never shown (27 Oct 2026: the first
+ *  streamed portal turns read {"answer":"..."} because the shared rules asked for JSON; aiSystem's plainText now says
+ *  otherwise, and this keeps a model that answers in JSON anyway off the customer's screen). */
+export function wrappedReply(text: string): string[] {
+  return /^\s*(```|\{\s*"|\[\s*\{)/.test(text) || /"answer"\s*:/.test(text)
+    ? ['it wraps the reply in JSON or a code fence; write only the plain reply text'] : [];
+}
+
 /** One retrieved record, as fn_sales_assist returns it. */
 export interface Record_ { title?: unknown; content?: unknown; corpus?: unknown; record_id?: unknown }
 

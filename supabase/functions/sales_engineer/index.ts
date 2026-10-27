@@ -46,7 +46,7 @@ import { briefNumbers, companyBrief, figureSource } from '../_shared/company_bri
 import { aiSystem, replyProblems } from '../_shared/ai_reply.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { STATUS, streamReply, wantsStream } from '../_shared/stream_reply.ts';
-import { PORTAL_TURN_MS, portalRules, portalFacts } from './portal_turn.ts';
+import { PORTAL_TURN_MS, portalRules, portalFacts, wrappedReply } from './portal_turn.ts';
 import { tradeSlugsOf, matchEmirate } from '../_shared/match_criteria.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -455,7 +455,7 @@ const plain = observe('sales_engineer', async (req) => {
       const transcript = stored && stored.length ? stored : clientHistory(body.history).filter((h, i, a) => !(i === a.length - 1 && h.role === 'user' && h.content === message));
       // the facts change per turn, so they ride with the message, after the cached brief, rules and earlier turns
       const facts = portalFacts({ facts: ownQuote ? 'THEIR OWN QUOTES (scoped in SQL to this customer):\n' + ownQuote : '', passages: all });
-      const sys = '\n\n' + aiSystem({ seat: 'sales_engineer', channel: 'the signed-in customer portal', audience: 'customer', lang, message, rules: portalRules() }, lang);
+      const sys = '\n\n' + aiSystem({ seat: 'sales_engineer', channel: 'the signed-in customer portal', audience: 'customer', lang, message, rules: portalRules(), plainText: true }, lang);
       const allowed = figureSource(brief) + '\n' + facts + '\n' + sys;
       const known = briefNumbers(allowed);
       // a photo or drawing the customer sent (ruling 1200): only what chat_images accepts reaches the model
@@ -469,7 +469,7 @@ const plain = observe('sales_engineer', async (req) => {
         // the same rules aiReply holds every conversation reply to (figures, policy, reply guard, another party's identity),
         // sentence by sentence; a deferral is a whole-answer judgement (aiReply), never one sentence's, so it is not run here
         check: (t: string) => [...guardSupportReply(t, lang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
-          ...replyProblems(t, known, { allowed }).filter((p) => !/defers/.test(p))],
+          ...replyProblems(t, known, { allowed }).filter((p) => !/defers/.test(p)), ...wrappedReply(t)],
       }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential' };
       lap('reply');
       const reply = a.reply.trim();

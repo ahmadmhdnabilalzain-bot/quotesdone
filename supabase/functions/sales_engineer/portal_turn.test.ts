@@ -1,6 +1,7 @@
 // The portal chat turn's clock and facts (portal_turn.ts). Run: deno test supabase/functions/sales_engineer/portal_turn.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert';
-import { FACTS_CHARS, MAX_RECORDS, PORTAL_TURN_MS, RECORD_CHARS, portalFacts, portalRules } from './portal_turn.ts';
+import { FACTS_CHARS, MAX_RECORDS, PORTAL_TURN_MS, RECORD_CHARS, portalFacts, portalRules, wrappedReply } from './portal_turn.ts';
+import { aiSystem } from '../_shared/ai_reply.ts';
 import { MIN_CALL_MS, PER_CALL_MS, RESERVE_MS } from '../_shared/brief_answer.ts';
 
 const EDGE_IDLE_WALL_MS = 150_000;   // Supabase answers 504 when a function has sent nothing for 150 s
@@ -32,4 +33,21 @@ Deno.test('facts: nothing to give is an empty string (the message rides alone), 
 Deno.test('rules: plain text for the portal, and a signed-in customer is never told to log in', () => {
   const r = portalRules();
   assert(/no markdown/.test(r) && /120 words/.test(r) && /never tell them to log in/.test(r));
+});
+
+// prevented by: these two tests. 27 Oct 2026, the first measured run of the streamed portal turn: every reply reached the
+// screen as {"answer":"..."} because the shared rules (aiSystem) asked for a JSON object that only aiReply parses.
+Deno.test('the streamed portal prompt asks for plain text, never the JSON object aiReply parses', () => {
+  const base = { seat: 'sales_engineer' as const, channel: 'portal', audience: 'customer' as const, lang: 'en' as const, message: 'q' };
+  const plain = aiSystem({ ...base, rules: portalRules(), plainText: true }, 'en');
+  assert(!/Return ONE JSON object/.test(plain) && /plain text: no JSON/.test(plain), plain.slice(-300));
+  assert(/Return ONE JSON object/.test(aiSystem(base, 'en')), 'aiReply callers keep their JSON contract');
+});
+
+Deno.test('a reply wrapped as JSON or in a code fence is refused; a plain sentence with braces in prose is not', () => {
+  const refused = ['it wraps the reply in JSON or a code fence; write only the plain reply text'];
+  assertEquals(wrappedReply('{"answer":"Plywood holds screws better.'), refused);
+  assertEquals(wrappedReply('```json'), refused);
+  assertEquals(wrappedReply('Plywood holds screws better than MDF.'), []);
+  assertEquals(wrappedReply('Sizes are {width} by {height} on the drawing.'), []);
 });
