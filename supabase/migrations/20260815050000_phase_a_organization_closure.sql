@@ -101,6 +101,10 @@ revoke all on public.org_workflow_ownership from anon, authenticated;
 -- blocks writes for the scan. NOT VALID takes the constraint immediately for new rows, and
 -- VALIDATE then re-reads the existing ones under a lock that does not block readers or writers.
 -- The end state is identical; only the window during which the table is held differs.
+-- 27 OCT 2026 (it_engineer, #1595): squawk-cli 2.70 added ban-drop-constraint and flags the next
+-- line; 2.66 passed this file with 0 issues. The drop is not a lost guarantee: the same constraint
+-- is re-added by the very next statement, stricter. Comment-only change; this migration is applied.
+-- squawk-ignore ban-drop-constraint
 alter table public.org_role_committee drop constraint if exists org_role_committee_seat_ck;
 alter table public.org_role_committee add constraint org_role_committee_seat_ck
   check (seat = any (array['chair','member','observer','secretary','standing_adviser'])) not valid;
