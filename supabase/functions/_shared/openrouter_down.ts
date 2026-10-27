@@ -38,7 +38,12 @@ export const OUTAGE_ERROR = new RegExp([
  *  An empty error with no 5xx/0 status is not an outage: something answered. */
 export function isOpenRouterDown(error: unknown, http?: number | null): boolean {
   if (typeof http === 'number' && (http === 0 || http >= 500)) return true;
+  // A 4xx is an answer, never an outage, whatever words follow it: llm.ts appends the gateway's own outcome and error
+  // text after 'gateway_http_<status>', and that text can say "timeout", "upstream" or "connection" on a 400
+  // (independent review of #1647).
+  if (typeof http === 'number' && http >= 400 && http < 500) return false;
   const e = String(error ?? '').trim();
+  if (/^gateway_http_4\d\d\b|\bHTTP 4\d\d\b/i.test(e)) return false;
   return !!e && OUTAGE_ERROR.test(e);
 }
 

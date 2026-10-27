@@ -19,6 +19,7 @@
 import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 import { basename, extname } from 'node:path';
+import { pickApiKey } from '../lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const TYPES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.mp4': 'video/mp4' };
@@ -34,7 +35,7 @@ const media = mediaFiles.map((f) => {
 
 const mgmt = supabaseAccessToken();
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: 'Bearer ' + mgmt } })).json();
-const service = keys.find?.((k) => k.name === 'service_role')?.api_key;
+const service = pickApiKey(keys, 'secret');
 const credRows = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
   method: 'POST', headers: { Authorization: 'Bearer ' + mgmt, 'Content-Type': 'application/json' },
   body: JSON.stringify({ query: "select value from public.app_secrets where key = 'cred_fn_marketing_channels'" }),

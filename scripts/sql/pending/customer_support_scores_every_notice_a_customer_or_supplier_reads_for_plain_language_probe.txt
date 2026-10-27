@@ -1,0 +1,6 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes (ZZ DEMO notices to
+@example.invalid addresses, run in fixture mode). Run it after
+customer_support_scores_every_notice_a_customer_or_supplier_reads_for_plain_language.sql is live; it must print PROBE OK.
+Measured PROBE OK on htdblwldjkcgjvmqkbeh, 27 Oct 2026, run together with the unapplied file in one rolled-back
+transaction: a failing demo type opened one cause handed to sales_engineer; three plain notices after it closed the cause
+and the handoff, citing its note. Seat: customer_support.

@@ -8,6 +8,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 ## Standing rules and founder facts
 - [GitHub is the single source of truth (26 Oct)](github-is-the-single-source-of-truth.md) — ledger 1278: nothing lives only on the laptop; memory here, text reports in docs/reports/, binaries and third-party files in the private `evidence` bucket, licence PDF stays in Dropbox
 - [CI runs locally; Ubicloud stopped (26 Oct)](ci-runs-locally-ubicloud-stopped.md) — ledger 1279: no paid CI, Actions included, until the bugs are cleared; the session runs the checks
+- [A refused CDN is worked around in the check, not in production (27 Oct)](a-refused-cdn-is-worked-around-in-the-check-not-in-production.md) — cloud proxy refuses cdn.jsdelivr.net: ml_embed type-checked via @ts-types npm, dwg check grants only the npm registry
 - [The founder's user-global CLAUDE.md](user-global-CLAUDE.md) — copy of ~/.claude/CLAUDE.md: skills-and-plugins-first, every session
 - [Supplier campaign sends FROM supplier@quotesdone.com](supplier-campaign-sends-from-supplier-at-quotesdone-com.md) — repeated 19 Oct; never invite@hello
 - [EVERY founder message is an instruction](every-founder-message-is-an-instruction.md) — 22 Sep, instr 644: record each ask in founder_instruction at once; reconcile before any "nothing pending"
@@ -62,6 +63,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Drive the knowledge road alone](drive-the-knowledge-road-alone.md) — founder will not help
 - [Specs are upgrades, not repairs](specs-are-upgrades-not-repairs.md)
 - [Session briefs carry misdiagnoses](session-briefs-carry-misdiagnoses.md) — counts reliable, causes not
+- [A chat turn names no customer, so it carries the run tag](a-chat-turn-names-no-customer-so-it-carries-the-run-tag.md) — 27 Oct: one run left 273+269+273 log rows and 97 gaps + 97 unconfirmed tasks; teardown now deletes by e2e_run_tag and test traffic files no gap
 - [Demo fixtures: ZZ DEMO + example.invalid](demo-fixture-convention.md) · [Safe rehearsal](safe-marketplace-demo-rehearsal.md) · [Probes page the founder](rehearsals-and-probes-page-the-founder.md) · [Test without his credentials](test-without-the-founders-credentials.md)
 - [Use Edge; never rely on him except sign-ins](use-edge-browser-and-act-without-founder.md) — 23 Sep, ledger 925
 - [Walk the OS in his browser](walk-the-os-in-his-browser.md) — Claude in Chrome has his session
@@ -122,6 +124,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A mention is not a reference](a-mention-is-not-a-reference.md) — how to prove a routine is dead
 ## The lenses that keep paying
 - [All audit lenses index](lenses-index.md) — 21 pattern lessons (shadowed aliases, dead guards, heartbeats, fixtures…)
+- [A handoff is answered at replied_at, not decided_at](a-handoff-is-answered-at-replied-at-not-decided-at.md) — 27 Oct: on originator-closed kinds, decided_at is the sender's close; the quarterly audit blamed receivers for IT's 916 open re-verifications
 - [A fix's own check measures the case the fix handles](a-fixs-own-check-measures-the-case-the-fix-handles.md) — 23 Sep, 3 times: ask what case the check measures vs what case the fix handles; same case = green certifies the gap
 - [Instrument measuring the wrong subject is the lens](instrument-measuring-wrong-subject-is-the-lens.md)
 - [CONNECTED is a claim, not a measurement](connected-is-a-claim-not-a-measurement.md) · [A blocker is a claim too](a-blocker-is-a-claim-too.md)
@@ -129,10 +132,12 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A fix that makes the headline fall](a-fix-that-makes-the-headline-fall.md)
 - [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
 ## State of the build
-- [CHECKPOINT 27 Oct — cloud only, invitations HELD for GlockApps](checkpoint-27-oct-cloud-invitations-held.md) — READ FIRST: laptop has no keys; invite_enabled=false; GlockApps blocked by the network; warm-up plan; 16 open PRs by state
+- [CHECKPOINT 27 Oct — cloud only, invitations HELD for GlockApps](checkpoint-27-oct-cloud-invitations-held.md) — READ FIRST: laptop has no keys; invite_enabled=false; GlockApps 27 Oct FAILED (Microsoft 0/18 inbox), copy now variant A, winmail.dat/TNEF on every external copy (admin fix), compressed warm-up, re-test day 3 with the LAST credit; warm-up plan; 16 open PRs by state
+- [Security hardening 27 Oct — SSL, network, legacy JWT, pg_net: state and next steps](security-hardening-27-oct-state.md) — nothing applied (restart / unproven exemptions); legacy JWT secret still trusted until the consumer PR, then disable + revoke; pg_net needs Supabase support
 - [Invitations resume only at ≥80% Outlook inbox](invitations-resume-only-at-80-percent-outlook-inbox.md) — 27 Oct, instr 1312: GlockApps from supplier@; report inbox/spam/promotions per provider
+- [Legacy key move, step 1 (27 Oct)](legacy-key-move-step-1-27-oct.md) — every consumer reads publishable/secret first, legacy as fallback; a new key as Bearer ONLY reads as anon on Storage; watch HS256 24-48 h, then disable, then revoke
 - [Standing approval: merge and deploy reviewed PRs](standing-approval-merge-and-deploy-reviewed-prs.md) — 27 Oct, instr 1340: reviewed + gate-clean PRs ship without asking; policy, real sends, spend and irreversible steps still go to him
-- [Ask before the internal test email management@ → supplier@](ask-before-the-internal-test-email.md) — 27 Oct, instr 1314: his explicit yes first
+- [Ask before the internal test email management@ → supplier@](ask-before-the-internal-test-email.md) — 27 Oct, instr 1314: his explicit yes first; DROPPED later that day (not a prerequisite)
 - [CHECKPOINT 19 Oct — campaign on from 20 Oct, PR drain](checkpoint-19-oct-campaign-on-pr-drain.md) — READ FIRST: caps, open PRs, exam scores, grounding fix
 - [CHECKPOINT 6 Oct evening — pre-launch, resume after restart](checkpoint-6-oct-evening-prelaunch.md) — READ FIRST: open PRs, tonight's jobs, launch checklist, founder end-list
 - [Customer support: LLM always on, better than Amazon](customer-support-better-than-amazon.md) — 22 Sep: automated scenario suite proves it; never say ready without the score
