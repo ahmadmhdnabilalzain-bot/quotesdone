@@ -78,6 +78,13 @@ const BOQ_ERR = { file_too_large: 'nr_boq_err_too_large', unsafe_file_content: '
 // A question may arrive as a sentence or as {key, text|question|label}; the chip needs text.
 const qText = (q) => (q == null ? '' : typeof q === 'string' ? q : String(q.text || q.question || q.label || q.key || ''));
 // readiness is {filled, required} from the rebuilt intake or a 0-100 number from the old one.
+// After this long the indicator says the turn is still being worked on (the server's own budget is 24 s).
+const SLOW_TURN_MS = 12000;
+// One id per customer message, sent again on a retry (inquiry_intake/turn_clock.ts turnIdOf: 6-64 of [A-Za-z0-9_-]).
+const newTurnId = () => 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+// The turn never reached us: the wait ran out, the connection dropped, or the edge answered with a page that is not
+// JSON (a 504). An answer the function itself gave (rate limit, a refusal) is not this, and is shown as before.
+const turnNotReached = (r) => !r || r.error === 'qd_timeout' || r.error === 'qd_network' || (r.error === 'qd_bad_response' && !(Number(r.status) >= 400 && Number(r.status) < 500));
 const readinessPct = (r) => {
   if (r && typeof r === 'object') { const req = Number(r.required); return req > 0 ? Math.round((Math.min(Number(r.filled) || 0, req) / req) * 100) : null; }
   const n = Number(r); return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : null;
@@ -94,6 +101,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const [pages, setPages] = useState(null); // { images, b64, mime, name } kept for the redaction editor
   const [editor, setEditor] = useState(false);
   const [thinking, setThinking] = useState(false);
+  const [slow, setSlow] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [schedPct, setSchedPct] = useState(null); // 0-100 while ocrSchedules reads a PDF's schedules
   const readingText = schedPct != null ? tf(lang, 'nr_reading_schedules', { pct: schedPct }) : t(lang, 'nr_reading');
@@ -149,11 +157,22 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   useEffect(() => { try { endRef.current && endRef.current.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'end' }); } catch (_e) {} }, [messages, thinking, analyzing, ready, editor]);
 
   // drawingNow: the drawing just adopted, passed directly because setDrawing has not landed yet.
-  const runIntake = async (message, drawingNow = null) => {
-    setThinking(true); setMsg('');
+  // A SLOW TURN IS A PROGRESS STATE AND A RETRY, NEVER AN ERROR (27 Oct 2026, sales_engineer). Intake turns measured
+  // 72-130 s on production while this screen waits 30 s, so a customer mid-interview read "something went wrong".
+  // The server now answers inside 24 s (inquiry_intake/turn_clock.ts); if a turn still outlasts the wait, the
+  // indicator says it is still working after SLOW_TURN_MS, and a turn the portal stopped waiting for (timeout, a
+  // dropped connection, a 504 page) offers Try again. The retry carries the same turn_id, so the server never records
+  // the message twice and, if the first attempt landed meanwhile, returns the reply it already wrote.
+  // prevented by: scripts/checks/the_intake_turn_answers_inside_the_portals_wait.test.mjs
+  const runIntake = async (message, drawingNow = null, turnId = null) => {
+    const tid = turnId || newTurnId();
+    setThinking(true); setSlow(false); setMsg('');
+    const slowTimer = setTimeout(() => setSlow(true), SLOW_TURN_MS);
     const dr = drawingNow || drawing;
-    const r = await call('inquiry_intake', { intake_id: intakeId, text: message, drawing_boq: (dr && dr.boq) || null, lang }, token).catch(() => null);
-    setThinking(false);
+    const r = await call('inquiry_intake', { intake_id: intakeId, text: message, drawing_boq: (dr && dr.boq) || null, lang, turn_id: tid }, token).catch(() => null);
+    clearTimeout(slowTimer);
+    setThinking(false); setSlow(false);
+    if (turnNotReached(r)) { push({ role: 'assistant', text: t(lang, 'nr_late'), retry: { message, turnId: tid } }); return; }
     if (!r || r.error) { push({ role: 'assistant', text: errText(r, lang, 'nr_err_generic') }); return; }
     if (r.intake_id) setIntakeId(r.intake_id);
     // remaining_questions (14 Sep 2026): every question still open, the category's and the sales
@@ -515,6 +534,14 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
               : <div className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
                   <div className={cn('max-w-[85%] whitespace-pre-wrap rounded-card px-3.5 py-2.5 text-copy leading-relaxed', m.role === 'user' ? 'bg-primary text-primary-foreground shadow-e1' : 'border border-border bg-secondary/40 text-foreground')}>{m.text}</div>
                 </div>}
+            {m === lastAssistant && m.retry && !thinking && (
+              <div className="mt-1.5 ps-1">
+                <button type="button" data-testid="intake-retry" onClick={() => runIntake(m.retry.message, null, m.retry.turnId)}
+                  className="rounded-full border border-primary/45 bg-primary/10 px-3 py-1.5 text-[12.5px] font-semibold text-primary hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {t(lang, 'nr_retry')}
+                </button>
+              </div>
+            )}
             {m === lastAssistant && Array.isArray(m.questions) && m.questions.length > 0 && (
               <QuestionChips questions={m.questions} next={m.next} left={m.left} lang={lang} onPick={answerChip} reduce={reduce} />
             )}
@@ -535,7 +562,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         ) : null}
         {(thinking || analyzing) && (
           <div className="flex justify-start"><div className="flex items-center gap-2 rounded-2xl border border-border bg-secondary/60 px-3.5 py-2 text-[13px] text-muted-foreground">
-            <span className="redact redact-bar" style={{ width: 54 }} aria-hidden />{analyzing ? readingText : t(lang, 'nr_typing')}
+            <span className="redact redact-bar" style={{ width: 54 }} aria-hidden />{analyzing ? readingText : t(lang, slow ? 'nr_slow' : 'nr_typing')}
           </div></div>
         )}
         {editor && pages && pages.images.length > 0 && (

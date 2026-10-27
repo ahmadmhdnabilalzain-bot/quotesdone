@@ -209,6 +209,10 @@ export const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 Object.assign(T.en, {
   nr_title: 'New request', nr_cancel: 'Cancel',
   nr_greeting: "Hi, I'm your QuotesDone sales engineer. Tell me what you need done and which emirate it's in. I'll ask a few quick questions, including materials, installation, warranty and when you need it, so suppliers quote exactly what you want. You can type, or attach a drawing, BOQ, photo or your own quotation. Your identity stays hidden until you choose to reveal a supplier.",
+  // 27 Oct 2026: an intake turn the portal stopped waiting for is a progress state and a retry, never an error line.
+  nr_slow: 'Still working on it — checking every detail of your request…',
+  nr_late: 'This is taking longer than usual. Nothing you wrote is lost — tap Try again and we will pick up where we were.',
+  nr_retry: 'Try again',
   nr_reading: 'Reading your file…', nr_reading_schedules: 'Reading the schedules on your drawings… {pct}%', nr_typing: 'Typing…', nr_ph: 'Message the sales engineer…', nr_listening: 'Listening… tap the mic to stop', nr_send: 'Send',
   nr_attach: 'Attach a drawing, photo or quotation',
   nr_attach_boq: 'Attach a BOQ — Excel, CSV, PDF or a photo', nr_attach_boq_short: 'BOQ',
@@ -368,6 +372,9 @@ Object.assign(T.en, {
 Object.assign(T.ar, {
   nr_title: 'طلب جديد', nr_cancel: 'إلغاء',
   nr_greeting: 'مرحبًا، أنا مهندس المبيعات في QuotesDone. أخبرني بالعمل المطلوب والإمارة التي يُنفَّذ فيها، وسأطرح عليك بضعة أسئلة سريعة عن المواد والتركيب والضمان وموعد التسليم، حتى يسعّر الموردون ما تريده بالضبط. يمكنك الكتابة، أو إرفاق مخطط أو جدول كميات أو صورة أو عرض سعر لديك، وتبقى هويتك مخفية حتى تختار كشف مورّد.',
+  nr_slow: 'ما زلت أعمل على ذلك، وأراجع كل تفاصيل طلبك…',
+  nr_late: 'يستغرق الرد وقتًا أطول من المعتاد. لم يُفقد شيء مما كتبته؛ اضغط «إعادة المحاولة» لنكمل من حيث توقفنا.',
+  nr_retry: 'إعادة المحاولة',
   nr_reading: 'جارٍ قراءة ملفك…', nr_reading_schedules: 'جارٍ قراءة الجداول في مخططاتك… {pct}%', nr_typing: 'يكتب…', nr_ph: 'راسل مهندس المبيعات…', nr_listening: 'أستمع إليك… اضغط الميكروفون للإيقاف', nr_send: 'إرسال',
   nr_attach: 'أرفق مخططًا أو صورة أو عرض سعر',
   nr_attach_boq: 'أرفق جدول كميات — Excel أو CSV أو PDF أو صورة', nr_attach_boq_short: 'جدول الكميات',

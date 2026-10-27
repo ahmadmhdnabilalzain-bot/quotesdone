@@ -266,7 +266,10 @@ export function requirementsFromModel(category: string | null, req: unknown, now
 // The run's transcripts showed what the assistant SAID each turn and only the final row, so nobody
 // could see that turn 1's slots were never stored. Each assistant turn now carries the state saved
 // with it.
-export type TurnSlots = { status: string; details: Record<string, unknown>; req_answers: Answers; missing: string[]; missing_keys?: string[] };
+// reply: what the portal was shown for this turn beyond its text, so a retry of a turn that already landed is answered
+// from the row (turn_clock.ts storedReply) instead of reading the same words as the answer to the next question.
+export type TurnSlots = { status: string; details: Record<string, unknown>; req_answers: Answers; missing: string[]; missing_keys?: string[];
+  reply?: { next_question: unknown; remaining_questions: string[]; readiness: { filled: number; required: number } | null } };
 export function stampTurn(turns: any[], snap: TurnSlots): void {
   for (let i = turns.length - 1; i >= 0; i--) {
     if (turns[i] && turns[i].role === 'assistant') { turns[i].slots = { ...snap, at: new Date().toISOString() }; return; }
