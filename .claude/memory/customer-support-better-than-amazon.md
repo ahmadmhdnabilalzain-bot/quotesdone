@@ -27,3 +27,16 @@ The founder, 22 Sep 2026, after two WhatsApp replies leaked internal wording:
 - Report the suite's score, not an opinion.
 - Never say "ready" without it.
 - Related: [[founder-plan-audit-then-llm-then-full-test]], [[code-extremely-well-built]].
+
+## 27 Oct 2026 — the adaptive conversation bank (ledger 1200), customer_support
+- The bank is `scripts/e2e/adaptive_conversation_bank.mjs` (43 scenarios, EN + Gulf Arabic, expert follow-ups,
+  must-haves, wrong-spec traps, a changed mind). The harness is `scripts/e2e/live_seat_conversations.mjs`; the daily
+  job runs `--slice today` (7 slices = the whole bank weekly), the weekly audit re-runs the gaps.
+- **The portal chat is `sales_engineer {action:'assist'}`** (PortalShell.askAssistant), not `site_assistant` with
+  path '/me'. The harness graded the wrong function until 27 Oct.
+- **think() gives an outside audience company.md only.** Anything a customer-facing text turn must know beyond that
+  (the trade playbooks in knowledge/brief/conversation) goes in think's `guide`; aiReply (photo turns, the website
+  chat) already gets the whole BRIEF_TEXT.
+- **A portal turn has 150 s.** Measured 27 Oct: plan + answer + check + corrective re-pass + plain-language rewrite
+  ran past it on 9 of 10 conversations (HTTP 546 / no reply). Count the calls before adding one to the portal path.
+- Spend: a text turn is about USD 0.05-0.07, a photo turn about USD 0.58 uncached; a full bank run does not fit USD 5.
