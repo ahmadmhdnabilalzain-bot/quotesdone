@@ -31,6 +31,7 @@ import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { fileReviewRequest } from '../_shared/review_request.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
+import { checkReadability } from '../_shared/readability.ts';
 import { logParty, widgetReplyEffects } from '../_shared/widget_reply_effects.ts';
 import { companyBrief } from '../_shared/company_brief.ts';
 import { recallCases } from '../_shared/case_recall.ts';
@@ -417,6 +418,15 @@ ${who ? '- Answer what they asked, directly and exactly; then, where it helps, a
     }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential', outage: true };
     lap('reply');
     const reply = a.reply.trim();
+    // EVERY SENT REPLY IS SCORED (19 Oct 2026, customer_support, CS-C06). This road (answerFromBrief) is the widget's and the
+    // portal's main road and never passed supportReply, so the monthly tone review read 89 scored replies against 331 sent
+    // in the week of 12 Oct (and 0 for August). The score is logged here; a failed write never blocks the reply.
+    if (reply) {
+      const rd = checkReadability(reply, replyLang);
+      admin.rpc('fn_support_reply_readability_log', { p_channel: live ? 'portal' : 'widget', p_lang: replyLang, p_path: 'reasoned',
+        p_rewritten: (a.rewrites || 0) > 0, p_score: rd.score, p_tone: rd.tone, p_issues: rd.issues, p_reason: 'brief', p_demo: /^ZZ ?DEMO/i.test(message) })
+        .then(() => {}, () => {});
+    }
     const fx = await fileEffects({ grounded: !!reply, answered: !!reply, refusal: a.error || '' });
     // reply_attempts: every model attempt and what was refused, for sales_engineer's daily knowledge-gap check. Until the
     // column is live (applied at merge) the row is written without it rather than lost.

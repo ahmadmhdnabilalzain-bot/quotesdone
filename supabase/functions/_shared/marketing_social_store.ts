@@ -3,7 +3,7 @@
 // 'social_comments' (retry sweep, handoff close; YouTube via Postiz when connected — X removed 23 Sep 2026). Every comment read is a row in social_message (direction 'in', with
 // its classification, outcome, who decided and any handoff); every reply is a row (direction 'out') with
 // its send status. Kept forever, like every conversation (founder, 14 Sep).
-import { defaultDeps } from './think.ts';
+import { defaultDeps, type ThinkDeps } from './think.ts';
 import type { Lang } from './chat_answers.ts';
 import { aiReply } from './ai_reply.ts';
 import { pickPage, type PageAccount } from '../marketing_social_inbox/meta.ts';
@@ -14,7 +14,12 @@ import { recallCases } from './case_recall.ts';
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
-export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) => Promise<string | null>, _gateway?: string): Store {
+// `deps`: the reply writer's and the recall's deps. Absent (the Meta webhook, the marketing duty) they are
+// defaultDeps(admin, 'marketing'), as before. The held replay (reasoned_delivery.ts socialCommentClassified, run in the
+// resilience_ping heartbeat) passes deps with gte-small in embed_ml, and the recall then embeds through them: until
+// 27 Oct 2026 it called recallCases with no vector, which embeds the comment in-process whenever the multilingual call
+// returns nothing or the read space is gte - inside the worker whose 2 s CPU cap killed the replay (it_engineer).
+export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) => Promise<string | null>, _gateway?: string, deps?: ThinkDeps): Store {
   const sec = async (k: string) => {
     const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle();
     return String(data?.value ?? '').trim() || undefined;
@@ -83,7 +88,7 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
     // EVERY PUBLIC REPLY IS WRITTEN BY A MODEL (rulings 1195/1196, 12 Oct 2026): the comment_* library rows, the FAQ, the
     // passages and the social_model_enabled gate are no longer used here. The recalled cases go with the comment.
     async write(ev, lang, kind, problems) {
-      await recallCases(admin, { seat: 'marketing', path: 'comment_reply', caseKind: 'social_reply', otherSeats: false, situation: ev.text });
+      await recallCases(admin, { seat: 'marketing', path: 'comment_reply', caseKind: 'social_reply', otherSeats: false, situation: ev.text, ...(deps ? { embed: deps.embed } : {}) });
       const what: Record<string, string> = {
         complaint: 'They complained, asked for a person or raised something sensitive: say briefly that a member of the team will contact them privately; give no detail of any case in public.',
         supplier: 'A supplier asks about joining: answer briefly how to register (from the brief).',
@@ -91,7 +96,7 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
         praise: 'They praise us: thank them briefly and warmly.',
         question: 'Answer their public question briefly.',
       };
-      const a = await aiReply(defaultDeps(admin, 'marketing'), { seat: 'marketing', channel: 'a public ' + ev.platform + ' comment', audience: 'visitor', lang,
+      const a = await aiReply(deps ?? defaultDeps(admin, 'marketing'), { seat: 'marketing', channel: 'a public ' + ev.platform + ' comment', audience: 'visitor', lang,
         message: String(ev.text || '').slice(0, 4000), subject: { platform: ev.platform, message_id: ev.commentId },
         // no past-case text in a public reply (18 Oct 2026, run d6cf4793): another person's message is a case's situation;
         // the recall above is kept so the judgement records it

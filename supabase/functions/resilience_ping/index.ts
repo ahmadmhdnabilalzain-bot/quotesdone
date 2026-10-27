@@ -29,7 +29,7 @@ import { placementTick } from '../_shared/inbox_placement.ts';
 import { pollReplyInbox, PROOF_LABEL } from '../_shared/m365_reply_inbox.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
-import { defaultDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROWS } from '../_shared/think.ts';
+import { heartbeatDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROWS } from '../_shared/think.ts';
 import { drain as drainRoutineJudgements } from '../_shared/routine_judgements.ts';
 import { distilLessons } from '../_shared/learning_loop.ts';
 import { deliverReasoned, liveDeliveryIO, sendHeldNotices } from '../_shared/reasoned_delivery.ts';
@@ -261,6 +261,16 @@ async function seatDutiesTick(): Promise<unknown> {
     if (error) return { ok: false, error: error.message };
     return data;
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// CUSTOMER SUPPORT'S DUTY UPDATES ARE THE MODEL'S (27 Oct 2026, customer_support; founder_instruction 1339: "the
+// engineer and customer support never replies without llm unless the server of open router is down"). The complaint
+// update and the incident holding/resolved notices are recorded as owed by their SQL duties; this writes them with the
+// model and sends the recorded draft only on an OpenRouter outage (_shared/duty_voice.ts). Three voice groups a run.
+async function supportVoiceTick(): Promise<unknown> {
+  const { writeOwedDutyMessages, liveVoiceIO } = await import('../_shared/duty_voice.ts');
+  // heartbeatDeps: any embedding this step ever asks for runs in embed_ml, never in this worker (2 s CPU cap, #1678)
+  return await writeOwedDutyMessages(liveVoiceIO(admin, heartbeatDeps(admin)), 3);
 }
 
 async function outboxTick(): Promise<unknown> {
@@ -497,11 +507,13 @@ async function learningMeasureTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 // Hourly, no model: embed + group in SQL. Weekly (learningDistil): reason only what crossed the threshold.
+// Both on heartbeatDeps (27 Oct 2026, it_engineer): each unembedded finding (up to 8 a tick) is embedded in embed_ml,
+// never in this worker, whose 2 s CPU cap killed the held replay (_shared/think.ts, above defaultDeps).
 async function learningGroupTick(): Promise<unknown> {
-  try { return await distilLessons(admin, undefined, 2, { reason: false }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+  try { return await distilLessons(admin, heartbeatDeps(admin), 2, { reason: false }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 async function learningDistilTick(): Promise<unknown> {
-  try { return await distilLessons(admin, undefined, 2, { reason: true }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+  try { return await distilLessons(admin, heartbeatDeps(admin), 2, { reason: true }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
 async function refundLadderTick(): Promise<unknown> {
@@ -1319,12 +1331,12 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // (founder_instruction 886-903; _shared/think.ts replayHeld). Under the hold fn_reason_held_due
   // returns nothing and no model is asked, so this step costs one gate read. Since 7 Oct (ledger 1175) a tick claims REPLAY_CLAIM
   // at a time, concurrently, up to REPLAY_MAX_ROWS within REPLAY_BUDGET_MS, a slice that fits every tick (12 Oct).
-  await step('reasoning_held', async () => replayHeld(admin, REPLAY_CLAIM, undefined, (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin)),
+  await step('reasoning_held', async () => replayHeld(admin, REPLAY_CLAIM, heartbeatDeps(admin), (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin)),
     { maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS }));
   // The four routine judgements (quote spec match, repeat requests, supplier trade words, unknown-sender mail) queued by
   // their callers and not judged inline: five a tick, no per-day limit; three failed readings end a row. Held rows stay queued
   // (scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql).
-  await step('routine_judgements', async () => drainRoutineJudgements(defaultDeps(admin, 'resilience_ping'), 5));
+  await step('routine_judgements', async () => drainRoutineJudgements(heartbeatDeps(admin), 5));   // gte-small in embed_ml: the replay's worker, see heartbeatDeps
   // A WHATSAPP TURN THAT CRASHED (customer_support, 19 Oct 2026): a wa_messages row still at stage 'received' after 5 minutes
   // goes to customer_support once and into the held-question queue (so reasoning_escalate below sends the holding notice in the same tick); never replayed
   // (scripts/sql/a_whatsapp_message_whose_turn_crashed_reaches_customer_support_in_five_minutes.sql).
@@ -1652,6 +1664,8 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   deliveryCanary: { run: deliveryCanaryTick },
   seatClocks: { run: seatClocksTick },
   seatDuties: { run: seatDutiesTick },
+  // customer_support's duty updates written by the model (founder_instruction 1339): detached, its own 120 s.
+  supportVoice: { run: () => kickDetached('supportVoice') },
   // `nested` because it returns one entry per function it called: without it runSteps would ask
   // failureOf about the map itself, which has neither `ok` nor `status`, and a 500 from email_cron
   // would be invisible.
@@ -1688,6 +1702,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
 const DETACHED_MS = 120_000;
 const DETACHED: Record<string, { run: () => Promise<unknown>; nested?: boolean }> = {
   marketing: { run: marketingTick },
+  supportVoice: { run: supportVoiceTick },
   itlater: { run: itLaterDutiesTick, nested: true },
 };
 async function kickDetached(name: string): Promise<unknown> {

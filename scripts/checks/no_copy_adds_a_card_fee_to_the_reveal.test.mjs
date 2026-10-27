@@ -38,11 +38,19 @@ const walk = (dir, out = []) => {
 test('the rule catches the wordings found on 30 Sep and lets "no card fee" through', () => {
   for (const bad of ['3% to reveal, plus the card fee', 'Reveal for AED 1,162.50 (3%) + card fee', 'card fees are grossed up',
     'Card-processing charges are added on top', '3% للكشف، مضافًا إليها رسوم البطاقة', 'اكشف (3%) + رسوم البطاقة',
-    'وتُضاف رسوم معالجة البطاقة فوقها', 'بما في ذلك رسوم البطاقة المضافة'])
+    'وتُضاف رسوم معالجة البطاقة فوقها', 'بما في ذلك رسوم البطاقة المضافة',
+    // 27 Oct 2026: the same surcharge without the word "card", in 15 seat-pack entries every pattern above let through
+    'gives an AED 600 Reveal Fee plus the processing charge shown at payment', 'the 3% fee and the processing charge',
+    'a refund is everything the customer paid (fee plus processing)', 'the 3% and the processing part together',
+    'with processing passed through to the customer', 'the exact amount refunded including processing',
+    'رسوم كشف 600 درهم مضافاً إليها رسوم المعالجة الظاهرة عند الدفع', 'مع تحميل رسوم المعالجة على العميل',
+    'كل ما دفعه العميل، أي الـ 3% ورسوم المعالجة', 'المبلغ المسترد كاملاً مع المعالجة', 'أي الـ3% وجزء المعالجة معاً'])
     assert.notEqual(surcharges(bad).length, 0, bad);
   for (const ok of ['3% of the selected quotation, nothing added for paying by card', 'No card fee, no VAT.', 'with no card fee on top',
     'Card fee — none: QuotesDone pays it', 'دون أي مبلغ إضافي على الدفع بالبطاقة', 'رسوم البطاقة — لا شيء: تتحمّلها QuotesDone',
-    'وتتحمّل الشركة رسوم Stripe', 'تتحمّل QuotesDone رسوم Stripe'])
+    'وتتحمّل الشركة رسوم Stripe', 'تتحمّل QuotesDone رسوم Stripe',
+    'Stripe does not return its own processing fee, and QuotesDone absorbs it', "plus the processor's fee QuotesDone paid on it and could not recover",
+    'وتتحمل كوتس دن رسوم جهة الدفع بنفسها', 'وبرسوم معالج الدفع التي دفعتها كوتس دن عنه ولم تستردها'])
     assert.deepEqual(surcharges(ok), [], ok);
 });
 

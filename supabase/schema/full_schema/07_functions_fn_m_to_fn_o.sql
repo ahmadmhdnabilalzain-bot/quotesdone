@@ -1396,6 +1396,65 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_files_wa_invite_reply(p_from text, p_body text, p_button_payload text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_phone text := '+' || regexp_replace(coalesce(p_from, ''), '\D', '', 'g');
+  v_optins int := 0; l public.leads; v_reply text := btrim(coalesce(p_body, '')); v_id bigint;
+  v_ask public.supplier_whatsapp_consent_ask; v_source text; v_rule jsonb;
+begin
+  if v_phone !~ '^\+[0-9]{8,15}$' then return jsonb_build_object('due', false, 'reason', 'no number'); end if;
+  -- (a) the button
+  if btrim(coalesce(p_button_payload, '')) <> '' then
+    v_source := 'wa_button'; v_rule := public.fn_wa_optin_rule('wa_button', p_button_payload, null, null);
+  else
+    -- (b) the first reply after an open consent ask on this number (7 days) answers it, yes or not; the ask closes
+    select * into v_ask from public.supplier_whatsapp_consent_ask
+     where phone = v_phone and answered_at is null and asked_at > now() - interval '7 days'
+     order by asked_at desc, id desc limit 1 for update;
+    if v_ask.id is not null then
+      update public.supplier_whatsapp_consent_ask set answered_at = now(), answer = left(v_reply, 500)
+       where phone = v_phone and answered_at is null;
+      v_source := 'wa_consent_reply'; v_rule := public.fn_wa_optin_rule('wa_consent_reply', null, v_ask.question, v_reply);
+    else
+      v_rule := jsonb_build_object('counts', false, 'why', 'a message that is neither the button nor a reply to the consent question');
+    end if;
+  end if;
+  if (v_rule->>'counts')::boolean then
+    insert into public.supplier_whatsapp_optin (lead_id, phone, source, button_payload, consent_question, consent_answer, evidence)
+    select x.id, v_phone, v_source, nullif(btrim(coalesce(p_button_payload, '')), ''), v_ask.question,
+           case when v_source = 'wa_consent_reply' then left(v_reply, 500) end,
+           (v_rule->>'why') || ' on WhatsApp at ' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD HH24:MI') || ' Dubai'
+      from public.leads x
+     where (x.phone_e164 = v_phone or x.whatsapp_phone = v_phone) and coalesce(x.whatsapp_opt, '') <> 'none'
+    on conflict (lead_id, phone) do nothing;
+    get diagnostics v_optins = row_count;
+  end if;
+
+  select * into l from public.leads x
+   where (x.phone_e164 = v_phone or x.whatsapp_phone = v_phone)
+     and not coalesce(x.claimed, false)
+     and (x.invited_at is not null or x.invite_status is not null
+          or exists (select 1 from public.notifications n where n.type = 'supplier_invite_wa' and n.lead_id = x.id and n.status = 'sent'))
+   order by x.id limit 1;
+  if l.id is null then return jsonb_build_object('due', false, 'reason', 'no invited lead without a company page on this number',
+                                                 'optins', v_optins, 'optin_why', v_rule->>'why'); end if;
+  if v_reply = '' then return jsonb_build_object('due', false, 'reason', 'an empty message', 'optins', v_optins, 'optin_why', v_rule->>'why'); end if;
+  v_id := public.fn_seat_handoff('marketing', 'sales_engineer', 'invite.reply', 'leads', l.id::text,
+    jsonb_build_object('lead_id', l.id, 'company_name', l.company_name, 'channel', 'whatsapp', 'from_phone', v_phone,
+                       'reply_text', left(v_reply, 4000), 'opted_in', (v_rule->>'counts')::boolean,
+                       'ask', case when (v_rule->>'counts')::boolean
+                                   then 'Set up the company page for this supplier from the trades it listed in its WhatsApp reply.'
+                                   else 'Answer this supplier. This message is not a WhatsApp opt-in (ledger 1341); to message it later, ask the consent question and record the ask with fn_supplier_whatsapp_consent_ask_record.' end));
+  -- null = a demo lead (ruling 1199: a demo row files no handoff)
+  return jsonb_build_object('due', true, 'reason', 'an invited supplier wrote on WhatsApp', 'lead_id', l.id,
+                            'handoff_id', v_id, 'optins', v_optins, 'optin_why', v_rule->>'why');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_first_touch_record(p_lead_id bigint, p_touch jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1946,6 +2005,16 @@ begin
   returning id into v_id;
   return v_id;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_manual_outreach_targets()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_marketing_supplier_outreach_targets(3)
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_month_covered_by_approved_calendar(p_month date)
@@ -4082,6 +4151,37 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_supplier_outreach_targets(p_per_trade integer DEFAULT 3)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb;
+begin
+  with trades as (
+    select g.trade, min(g.rank) rank from public.marketing_gap_recruitment_plan g group by g.trade order by 2 limit 15
+  ), pool as (
+    select t.trade, t.rank, l.id, l.company_name, l.emirate, l.website, l.linkedin, l.instagram, l.facebook,
+           row_number() over (partition by t.trade order by (coalesce(l.linkedin, '') = ''), l.id) rn
+      from trades t join public.leads l on coalesce(l.invite_trades[1], l.sector) = t.trade
+     where not coalesce(l.is_demo, false) and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)
+       and not coalesce(l.claimed, false) and l.invited_at is null and l.invite_status is null
+       and coalesce(l.whatsapp_opt, '') <> 'none'
+       and (l.email is null or not exists (select 1 from public.email_suppressions s where lower(s.email) = lower(l.email)))
+       and coalesce(l.linkedin, l.instagram, l.facebook, '') <> ''
+  )
+  select jsonb_build_object('built_at', now(), 'per_trade', p_per_trade,
+           'rule', 'manual outreach from the company''s own LinkedIn / Instagram / Facebook accounts; no automation, no scraping, English only, no link in a first message',
+           'trades', coalesce(jsonb_agg(jsonb_build_object('trade', x.trade, 'rank', x.rank, 'targets', x.targets) order by x.rank), '[]'::jsonb))
+    into v
+    from (select trade, rank, jsonb_agg(jsonb_build_object('lead_id', id, 'company', company_name, 'emirate', emirate,
+                   'website', website, 'linkedin', linkedin, 'instagram', instagram, 'facebook', facebook) order by rn) targets
+            from pool where rn <= greatest(1, least(coalesce(p_per_trade, 3), 10)) group by trade, rank) x;
+  return v;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_takes_the_ceo_review(p_month date)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -4365,6 +4465,17 @@ AS $function$
      limit p_n) x
   order by d
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_wa_supplier_invites()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  return public.fn_wa_supplier_invite_queue(20, now(), false);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketplace_analytics()

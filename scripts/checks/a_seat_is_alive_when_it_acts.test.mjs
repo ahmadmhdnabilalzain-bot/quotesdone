@@ -39,7 +39,7 @@ test('production: every active seat has a verdict; a ZZ DEMO seat with overdue w
   let out;
   try {
     await sql(`do $p$
-      declare v1 text; v2 text; v3 text; n_seats int; n_rows int;
+      declare v1 text; v2 text; v3 text; n_seats int; n_rows int; v_act bigint;
         -- Since #1578 (every_handoff_note_states_context_decision_open_asks_and_deadline_and_its_receiver_cites_it.sql,
         -- founder ledger 1013) a handoff row states context, decision, open asks and deadline, or the a01 trigger and
         -- the CHECK refuse it; zz_demo.kind is no registered type the trigger can build a note from, so the probe's
@@ -55,8 +55,17 @@ test('production: every active seat has a verdict; a ZZ DEMO seat with overdue w
         insert into public.agent_actions (agent, kind, status, title, detail, target_id, created_at)
         values ('zz_demo_seat', 'handoff', 'pending', 'ZZ DEMO probe', jsonb_build_object('type', 'zz_demo.kind', 'summary', v_note), 'zz_demo:1', now() - interval '2 days');
         select verdict into v2 from public.fn_seat_liveness(true) where seat = 'zz_demo_seat';
-        insert into public.agent_actions (agent, kind, status, title, detail, target_id, created_at, decided_at, decided_by)
-        values ('zz_demo_seat', 'handoff', 'done', 'ZZ DEMO probe', jsonb_build_object('type', 'zz_demo.kind', 'summary', v_note), 'zz_demo:2', now(), now(), 'zz_demo_seat');
+        -- The seat ACTS: it closes a handoff the way every seat does, through fn_seat_handoff_complete, which cites the
+        -- handover note. Since 27 Oct (a_handoff_closes_only_when_its_receiver_cites_the_note_or_says_why_not.sql,
+        -- ledger 1013) trigger a02 refuses a handoff that reaches 'done' citing nothing, so the old insert-as-done
+        -- fixture was refused with 23514; the guard is right, and the probe now acts through the real door.
+        insert into public.agent_actions (agent, kind, status, title, detail, target_id, created_at)
+        values ('zz_demo_seat', 'handoff', 'pending', 'ZZ DEMO probe', jsonb_build_object('type', 'zz_demo.kind', 'summary', v_note), 'zz_demo:2', now())
+        returning id into v_act;
+        perform set_config('qd.handoff_closer', 'zz_demo_seat', true);
+        if not coalesce((public.fn_seat_handoff_complete(v_act, '{}'::jsonb)->>'ok')::boolean, false) then
+          raise exception 'ZZ DEMO probe: fn_seat_handoff_complete did not close handoff %', v_act;
+        end if;
         select verdict into v3 from public.fn_seat_liveness(true) where seat = 'zz_demo_seat';
         raise exception 'CHK<<%>>', json_build_object('seats', n_seats, 'rows', n_rows, 'idle', v1, 'stopped', v2, 'behind', v3);
       end $p$;`);
