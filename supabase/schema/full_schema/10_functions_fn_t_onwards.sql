@@ -5391,6 +5391,9 @@ AS $function$
     from cron.job j
    where not exists (select 1 from public.writer_seat o join public.org_role r on r.role_id = o.owner_seat and r.status = 'active'
                       where o.kind = 'cron_job' and o.name = j.jobname)
+     -- a duty's own job (fn_seat_duty_isolate): owned by the duty's seat while that seat is active
+     and not exists (select 1 from public.seat_duty d join public.org_role r on r.role_id = d.owner_seat and r.status = 'active'
+                      where j.jobname = 'seat_duty:' || d.duty)
 $function$
 
 
