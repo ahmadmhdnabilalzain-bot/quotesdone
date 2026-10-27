@@ -94,7 +94,23 @@ The batch has been held since 20 Oct, so the plan restarts low and stays under t
 
 Resume only after gate 1 passes:
 
-1. **Replace `fn_invite_placement_gate`** with a reader of the GlockApps verdict (ledger 1312; #1649 files it). Once `no_test_mail_goes_to_the_founders_own_inboxes.sql` is applied it answers `fail:seed_retired` on every day, because the morning seed that opened it is retired. Without this step the batch and the nudges stay held even with `invite_enabled = 'true'`, and an it_engineer finding `deliverability:inbox_placement` (verdict `seed_retired`) is filed each open day.
+1. **Record a fresh GlockApps result; the gate reads it.** The gate is built:
+   `scripts/sql/the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.sql`, applied right AFTER
+   `no_test_mail_goes_to_the_founders_own_inboxes.sql` (#1696; that file alone leaves the gate answering
+   `fail:seed_retired` for ever). No API key is needed: run the test through the GlockApps connector (`create_test`,
+   send from supplier@ with the marker, `wait_for_test`, then `get_results` with `detail: 'providers'`), save the answer
+   in the scratchpad, and record it:
+   `node scripts/record_inbox_placement_verdict.mjs --file <answer.json> --dry-run`, then again without `--dry-run`.
+   - **The bar** is the one row in `public.invite_placement_bar`: Microsoft inbox ≥ 80% (1312); Google spam ≤ 20% with
+     inbox + Promotions ≥ 80%; Yahoo/AOL inbox ≥ 80%; the verdict is good for **7 days**; the sender is supplier@.
+   - **Per mailbox provider.** Each recipient's provider comes from its cached MX host (`email_domain_mx`). A provider
+     that passes is invited; one that fails is skipped, not failed. A host we cannot name (`other`) follows Microsoft.
+     Nothing goes while no provider passes, there is no verdict, or it is older than 7 days. Each open day files one
+     it_engineer finding `deliverability:inbox_placement` naming the verdict (`fail:no_verdict`, `fail:stale_verdict`,
+     `fail:below_bar:<provider>`); a full pass closes it.
+   - **The 27 Oct result, if recorded, opens Google only** (5 inbox + 20 Promotions of 25, 0 spam), until 3 Nov 09:33Z;
+     Microsoft 0/18, Yahoo/AOL 0/17 and every `other` host stay skipped.
+   - Recording turns nothing on. Steps 2 and 3 stay as they are.
 2. Set `invite_warmup.window_end_hour` back to 17.
 3. Set `invite_enabled = 'true'` by hand. `fn_invite_campaign_pause` says this resume is a
    deliberate act.

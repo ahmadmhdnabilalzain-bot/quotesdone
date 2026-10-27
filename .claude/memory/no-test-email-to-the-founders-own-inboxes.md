@@ -23,10 +23,10 @@ management@doratajewelries.com, djzaino@outlook.com, bookings@djzaino.com, fati.
 - What enforces it (once the file is applied): trigger `a01_notifications_no_test_mail_to_the_founder` raises on any
   `supplier_invite_seed` row, or kind `invite_m365_seed` / `supplier_invite_seed`, addressed to him in to or cc;
   `fn_invite_placement_due` queues nothing; `scripts/invitation_inbox_check.mjs` has no founder allowlist.
-- **Resuming invitations has one more step.** `fn_invite_placement_gate` answers `fail:seed_retired` every day,
-  because the morning seed that opened it is gone. Resume = replace that gate with a reader of the GlockApps verdict
-  (#1649), in the same change that sets `invite_enabled` back to true. Otherwise the batch and the nudges stay held
-  and a `deliverability:inbox_placement` (verdict `seed_retired`) finding is filed each open day.
+- **Resuming invitations has one more step.** On its own, this file leaves `fn_invite_placement_gate` answering
+  `fail:seed_retired` every day, because the morning seed that opened it is gone. The replacement is built:
+  `the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.sql`, stacked on this PR and applied right after
+  it, which reads the GlockApps verdict per mailbox provider. See [[the-invitation-gate-reads-the-glockapps-verdict]].
 - Prevented by: `scripts/checks/no_test_mail_goes_to_the_founders_own_inboxes.test.mjs`.
 
 Related: [[invitations-resume-only-at-80-percent-outlook-inbox]], [[checkpoint-27-oct-cloud-invitations-held]]

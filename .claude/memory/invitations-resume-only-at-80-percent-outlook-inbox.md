@@ -24,4 +24,8 @@ Report inbox, spam and promotions for each provider.
   test is **Fri 30 Oct 2026** (day 3 of the compressed warm-up; day 0 ran 27 Oct 15:16Z), through the
   `deliverability_test` loop, using the last credit.
 
+- **The gate enforces this (27 Oct night):** the GlockApps verdict is recorded from the connector, and the gate reads
+  it per mailbox provider against `public.invite_placement_bar`. Microsoft must reach ≥ 80% inbox; a host we cannot
+  name counts as Microsoft. See [[the-invitation-gate-reads-the-glockapps-verdict]].
+
 Related: [[checkpoint-27-oct-cloud-invitations-held]], [[ask-before-the-internal-test-email]]
