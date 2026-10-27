@@ -381,3 +381,38 @@ Deno.test('the portal turn returns only the model\'s answer: no reply text is wr
   const plan = await Deno.readTextFile(new URL('./conversation_plan.ts', import.meta.url));
   assert(!/reply\s*[:=]\s*['"`]/.test(plan), 'the plan module writes a reply');
 });
+
+// Run fafbabb3 (27 Oct 2026, the first 22-scenario run on the plan), kitchen_villa_ar: the sink and hob question was
+// placed on no slot, so it never became "to confirm"; every rewrite that asked it was dropped (الحالي read as the existing
+// condition), two turns took 54 s and the shape-only fallback sent "تمام، خلال شهرين." with no question.
+Deno.test('the kitchen deadlock: the sink and hob question is the services slot, and it is never asked three times', () => {
+  const past: Turn[] = [u('السلام عليكم، أريد تجديد مطبخ الفيلا بالكامل.'),
+    a('ما شكل المطبخ وما أطوال الجدران؟ وهل المطلوب إزالة المطبخ القديم؟'),
+    u('المطبخ على شكل L تقريباً 4 في 3 متر. المطبخ القديم يجب إزالته. فيلا ملك في البرشاء.'),
+    a('ما نوع أبواب الخزائن، وأي خامة للأسطح تريد؟'),
+    u('خزائن لامعة هاي جلوس، وسطح كوارتز.'),
+    a('هل ستكون الأجهزة مدمجة أم منفصلة؟ وأين موقع الحوض والموقد حالياً، وهل يوجد خط غاز؟')];
+  const h = heldState(past, 'أبقي الأجهزة الحالية إلا فرن مدمج جديد وشفاط.');
+  // asked with the appliances and not answered: to confirm, so code moves on to the timing
+  assert(h.plan.toConfirm.has('services'), [...h.plan.toConfirm].join(','));
+  assertEquals(h.plan.next, 'timing');
+  // a question on the open slot is not dropped for also naming what is "current"
+  const k = heldState(past.slice(0, 5), 'خزائن لامعة هاي جلوس، وسطح كوارتز.');
+  assertEquals(k.plan.next, 'appliances');
+  assertEquals(reaskOf('هل سيبقى الحوض والموقد في مكانهما الحالي أم ستنقلهما؟', heldState(past.slice(0, 5), 'خزائن لامعة هاي جلوس، وسطح كوارتز. أبقي الأجهزة الحالية إلا فرن مدمج جديد وشفاط.')), null);
+});
+
+// Run fafbabb3, roof_waterproofing_ar: the opening's "تسريب" (a leak) was read as the existing waterproofing, so its age
+// and condition, a must-have, were never asked.
+Deno.test('a leak is the problem, not the existing system: the current waterproofing is still asked', () => {
+  const h = heldState([], 'عندي تسريب مياه من السطح إلى غرفة النوم بعد المطر.');
+  assert(h.plan.open.includes('existing'), h.plan.open.join(','));
+});
+
+// Run fafbabb3, kitchen_villa_ar: "إذا كنت غير متأكد، أنصح..." echoed the customer and read as the seat being unsure.
+Deno.test('a sentence saying anyone is unsure or does not know is never shown', () => {
+  const h = heldState([u('أريد تجديد مطبخ الفيلا.'), a('هل يعمل الموقد على الغاز؟')], 'مو متأكد، شو تنصحني؟');
+  assertEquals(unaskedOf('إذا كنت غير متأكد، أنصح بإبقاء الموقد الحالي.', h), 'it says someone does not know or is unsure');
+  assertEquals(unaskedOf("If you're not sure, I recommend keeping the hob where it is.", h), 'it says someone does not know or is unsure');
+  assertEquals(unaskedOf('أنصح بإبقاء الموقد الحالي وموقعه لتجنب تعديل التوصيلات.', h), null);
+});

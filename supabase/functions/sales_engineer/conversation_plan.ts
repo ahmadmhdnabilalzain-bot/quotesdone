@@ -102,7 +102,7 @@ export const CATALOGUE: SlotSpec[] = [
     fill: rx(String.raw`\b(permits?|noc|approvals?|approved contractor|building management|management|association|developer|municipality|civil defen[cs]e|dewa|sira|community (rules|guidelines)|work(ing)? hours|landlord (approval|consent)|allowed|guidelines|drawings first)\b|تصريح|موافقة|عدم ممانعة|ادارة المبنى|الادارة|المطور|البلدية|الدفاع المدني|لوائح`),
     ask: rx(String.raw`\b(permits?|noc|approvals?|approve|building management|management company|association|developer|municipality|landlord'?s? (approval|consent)|work(ing)? hours|community rules|allowed hours)\b|تصريح|موافقة|عدم ممانعة|ادارة المبنى|المطور|البلدية|ساعات العمل|لوائح`) },
   { id: 'existing', label: 'what is there now (the existing condition, removal, or a new installation)',
-    fill: rx(String.raw`\b(existing|currently|current|old|older|no (existing|unit|system|cabling|wiring)|nothing (there|now)|new installation|new build|first time|bare|shell and core|peeling|cracked|cracks|broken|damaged|leak\w*|hollow|faded|\d+[- ]years?[- ]old|years old|temporary hoarding|(is|are) [a-z ]{1,30} now)\b|القديم|القديمة|الحالي|الحالية|موجود|ما فيه|ما في|لا يوجد|§جديد|ازالة|متقشر|تقشر|متشقق|شروخ|باهت|تسريب|يسرب|قبل \d+ سن|متهالك`),
+    fill: rx(String.raw`\b(existing|currently|current|old|older|no (existing|unit|system|cabling|wiring)|nothing (there|now)|new installation|new build|first time|bare|shell and core|peeling|cracked|cracks|broken|damaged|hollow|faded|\d+[- ]years?[- ]old|years old|temporary hoarding|(is|are) [a-z ]{1,30} now)\b|القديم|القديمة|الحالي|الحالية|موجود|ما فيه|ما في|لا يوجد|§جديد|ازالة|متقشر|تقشر|متشقق|شروخ|باهت|قبل \d+ سن|متهالك`),
     ask: rx(String.raw`\b(existing|current|currently|old|remove|removal|replace|replacing|replacement|new install\w*|already (there|have)|condition)\b|الحالي|الحالية|القديم|القديمة|موجود|ازالة|استبدال|§جديد (ام|او)|حالة`) },
   { id: 'finish', label: 'the material, finish and colour',
     fill: rx(String.raw`\b(white|black|grey|gray|beige|walnut|oak|sage|green|blue|charcoal|sand|off-white|cream|ivory|brown|gold|silver|mdf|plywood|laminate|lacquer|gloss|glossy|matt|matte|satin|quartz|granite|marble|porcelain|ceramic|vinyl|spc|lvt|nylon|rubber|aluminium|aluminum|steel|galvani[sz]ed|powder[- ]coated|timber|wood|wooden|fibreglass|fiberglass|plastic|velvet|fabric|acrylic|textured?|smooth|mosaic|louvred|louvered|stone|interlock|engineered|elastomeric|emulsion)\b|لون|ابيض|اسود|رمادي|بيج|جوزي|رملي|ذهبي|خشب|لامع|مطفي|هاي جلوس|كوارتز|رخام|بورسلين|سيراميك|مخمل|قماش|المنيوم|ستيل|فايبر|بلاستيك|تكستشر|ناعم|mdf`),
@@ -134,7 +134,7 @@ export const CATALOGUE: SlotSpec[] = [
     ask: rx(String.raw`\b(record|recording|retention|how many days|remote view\w*|phone|app|playback|storage|nvr)\b|تسجيل|مدة التسجيل|كم يوم|الجوال|تطبيق|المشاهدة`) },
   { id: 'services', label: 'the services and routes (pipes, cables, sockets, drains, AC grilles)',
     fill: rx(String.raw`\b(sink|plumbing|pipes?|drains?|sockets?|power points?|isolator|hob|gas|cable run|distance|from the (main )?board|main board|db|meter|ac pipes|grilles?|vents?|outdoor unit|condenser|balcony|copper)\b|مواسير|سباكة|مغسلة|كهرباء|فتحات (التكييف|تكييف)|فتحات|التمديدات|تمديدات|كيبل|اسلاك|المسافة|الطبلون|لوحة الكهرباء`),
-    ask: rx(String.raw`\b(plumbing|pipes?|pipework|drains?|sockets?|power points?|gas|cables?|cabling|wiring|distance|route|outdoor unit|condenser|vents|grilles|isolator|services|how far|main (electrical )?board|distribution board)\b|السباكة|المواسير|الكهرباء|التمديد|التمديدات|الاسلاك|المسافة|الوحدة الخارجية|فتحات`) },
+    ask: rx(String.raw`\b(plumbing|pipes?|pipework|drains?|sockets?|power points?|gas|cables?|cabling|wiring|distance|route|outdoor unit|condenser|vents|grilles|isolator|services|how far|main (electrical )?board|distribution board|sink|hob|stove|cooker position)\b|السباكة|المواسير|الكهرباء|التمديد|التمديدات|الاسلاك|المسافة|الوحدة الخارجية|فتحات|الحوض|حوض|المغسلة|مغسلة|المجلى|الموقد|موقد|الغاز|غاز`) },
   { id: 'appliances', label: 'the appliances',
     fill: rx(String.raw`\b(oven|hob|cooker|hood|extractor|dishwasher|fridge|refrigerator|microwave|built-?in|freestanding)\b|فرن|شفاط|ثلاجة|غسالة صحون|مايكرويف|اجهزة|الاجهزة`),
     ask: rx(String.raw`\b(appliances?|oven|hob|cooker|hood|fridge|dishwasher|built-?in or|freestanding)\b|الاجهزة|فرن|شفاط|ثلاجة`) },
@@ -325,7 +325,7 @@ export function jobStart(turns: Turn[]): number {
 }
 
 /** The state after the customer's latest message. `past` is every earlier turn, oldest first. */
-export function planState(past: Turn[], message: string, extracted: Extracted | null = null): State {
+export function planState(past: Turn[], message: string, extracted: Extracted | null = null, guard = true): State {
   const all: Turn[] = [...past, { role: 'user', content: message }];
   const turns = all.slice(jobStart(all));
   const plan = tradeOf(turns.filter((t) => t.role === 'user').map((t) => t.content));
@@ -379,6 +379,18 @@ export function planState(past: Turn[], message: string, extracted: Extracted | 
     for (const id of got) toConfirm.delete(id);
     if (!latest) lastWasSummary = false;
   });
+  // A SLOT IS NEVER ASKED THREE TIMES (run fafbabb3, kitchen_villa_ar: the sink and hob positions were the next
+  // must-have for three replies; the detectors placed none of the seat's Arabic questions on that slot, so it never
+  // became "to confirm", every rewrite was dropped as a re-ask, and two turns took 54 s). A slot code required as the
+  // next must-have for each of the last two replies that is still open was asked and not answered: it is to confirm.
+  if (plan && guard) {
+    const seatIdx = turns.map((t, i) => (t.role === 'assistant' ? i : -1)).filter((i) => i > 0);
+    if (seatIdx.length >= 2) {
+      const chosenAt = (i: number) => { const b = planState(turns.slice(0, i - 1), turns[i - 1].content, null, false); return [b.next].filter(Boolean) as string[]; };
+      const [a1, a2] = [chosenAt(seatIdx.at(-2)!), chosenAt(seatIdx.at(-1)!)];
+      for (const id of a1) if (a2.includes(id) && !given(filled, id)) toConfirm.add(id);
+    }
+  }
   const open = plan ? plan.slots.map((s) => s.id).filter((id) => !given(filled, id) && !toConfirm.has(id)) : [];
   let mode: Mode = 'none';
   if (plan) {
@@ -406,7 +418,7 @@ export function stateBlock(st: State): string {
     + [...st.toConfirm].map((id) => '- ' + labelOf(st, id)).join('\n'));
   if (st.mode === 'ask') {
     lines.push(`ASK NOW: one short question about ${labelOf(st, st.next!)}.` + (st.also ? ` You may add one more short question about ${labelOf(st, st.also)}.` : '')
-      + ' Ask nothing else: no other question, and nothing listed above.' + (st.unsure ? ' They were unsure about your last question: first recommend an answer to it in one sentence.' : ''));
+      + ' Ask nothing else: no other question, and nothing listed above.' + (st.unsure ? ' They were unsure about your last question: first recommend an answer to it in one sentence, without repeating that they are unsure.' : ''));
   } else if (st.mode === 'summary') {
     lines.push('THIS REPLY IS THE SUMMARY. Open with a short phrase such as "Here is your request as I have it:" (Arabic: "هذا ملخص طلبك:"), then the job in short sentences of under 20 words each, with every value above (only the latest choice where they changed one), then the items to confirm at the site visit, if any. End with one question asking whether it is correct, such as "Is this correct?" (Arabic: "هل هذا صحيح؟"). No other question.');
   } else {

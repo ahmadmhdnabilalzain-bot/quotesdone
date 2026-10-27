@@ -179,7 +179,9 @@ export function reaskOf(q: string, h: Held): string | null {
 function reaskOne(q: string, h: Held): string | null {
   const filled = new Set(h.slots.map((s) => s.slot));
   // the slot a question targets, in any wording or word form: a filled or to-confirm slot is never asked again
-  for (const id of targets(q, h.plan.plan)) if (id !== 'size' && filled.has(id)) return `asks the ${slotName(id)} again`;
+  const t = targets(q, h.plan.plan);
+  const onOpen = h.plan.mode === 'ask' && t.some((id) => h.plan.open.includes(id));
+  if (!onOpen) for (const id of t) if (id !== 'size' && filled.has(id)) return `asks the ${slotName(id)} again`;
   // a question that quotes a figure ("Is the 85 square metres the dry areas only?") asks ABOUT what they gave, not for it
   if (DIM_ASK.test(q) && h.dims.length && !/\d/.test(q)) {
     const objs = objectsOf(q); const kinds = kindsOf(q);
@@ -243,7 +245,9 @@ export function newClauseOf(q: string, h: Held): string | null {
 }
 
 /** Why a NON-question sentence is a line nobody asked for. null when it may stay. */
+const UNSURE_SEAT = /\b(i don'?t know|i do not know|(i'?m|i am|you'?re|you are) (not sure|unsure)|i'?ll (check|find out|get back)|i will (check|find out|get back))\b|لا أعرف|ما أعرف|لست متأكد|مو متأكد|غير متأكد|سأتحقق|راح أتأكد/i;
 export function unaskedOf(s: string, h: Held, inSummary = false): string | null {
+  if (UNSURE_SEAT.test(s)) return 'it says someone does not know or is unsure';
   if (!h.firstReply && GREETING.test(s)) return 'a greeting after the first reply';
   for (const [topic, re, licence] of UNASKED) {
     // "If that is correct, press New request" closes the summary (PORTAL_INTAKE step 4): asking them to confirm is never
