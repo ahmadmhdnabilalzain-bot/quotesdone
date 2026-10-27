@@ -41,10 +41,10 @@ test('the code gates catch a hedge, a yes/no-only reply and the wrong language',
   assert.equal(codeGates(en, ['Thanks, we will arrange it.']).asks_first, false);
 });
 
-test('the suite holds at least 30 scenarios, both seats, both languages', () => {
+test('the suite holds at least 30 scenarios in both languages, all in the portal (ruling 1249)', () => {
   assert.ok(S.length >= 30, `${S.length} scenarios`);
-  assert.ok(S.some((s) => s.lang === 'ar' && s.seat === 'sales') && S.some((s) => s.lang === 'ar' && s.seat === 'support'));
-  assert.ok(S.some((s) => s.lang === 'en' && s.seat === 'sales') && S.some((s) => s.lang === 'en' && s.seat === 'support'));
+  assert.ok(S.some((s) => s.lang === 'ar') && S.some((s) => s.lang === 'en'));
+  assert.ok(S.every((s) => s.seat === 'sales'), 'the homepage widget holds no job conversation since ruling 1249');
   assert.equal(new Set(S.map((s) => s.id)).size, S.length);
 });
 
