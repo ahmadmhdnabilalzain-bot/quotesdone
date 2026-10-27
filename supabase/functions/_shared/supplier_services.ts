@@ -38,6 +38,7 @@ import { allText, type DocEvidence } from './supplier_doc_trades.ts';
 import { readDocument } from './doc_read/index.ts';
 import { tradeOfWords } from './reasoned_matching.ts';
 import { defaultDeps } from './think.ts';
+import { runtimeWaitUntil } from './async_webhook.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -181,8 +182,17 @@ const liveTaxonomy = async (admin: Admin): Promise<{ code: string; label: string
  * alias match). Held: `held` is true and no code is claimed; the words go to the sales engineer as a proposal.
  */
 export async function resolveText(admin: Admin, text: string, taxonomy?: { code: string; label: string }[]): Promise<{ codes: string[]; held: boolean }> {
+  const exact = await exactTradesOfText(admin, text);
+  if (exact.length) return { codes: exact, held: false };
+  return reasonTradesOf(admin, text, taxonomy);
+}
+/** The exact half of resolveText: a slug or code (fn_norm_trades). No model; [] when nothing matches exactly. */
+export async function exactTradesOfText(admin: Admin, text: string): Promise<string[]> {
   const { data, error } = await admin.rpc('fn_norm_trades', { p_text: text });
-  if (!error && Array.isArray(data) && data.length) return { codes: data.map(String), held: false };
+  return !error && Array.isArray(data) && data.length ? data.map(String) : [];
+}
+/** The reasoning half of resolveText (tradeOfWords over the live taxonomy): one plan call and one answer call. */
+export async function reasonTradesOf(admin: Admin, text: string, taxonomy?: { code: string; label: string }[]): Promise<{ codes: string[]; held: boolean }> {
   const r = await tradeOfWords(defaultDeps(admin, 'supplier_api'), { text, trades: taxonomy ?? await liveTaxonomy(admin) });
   return { codes: r.value ?? [], held: r.value == null };
 }
@@ -430,7 +440,13 @@ export async function servicesRewrite(admin: Admin, supplierId: number, body: Re
 /** Save the confirmed rewrite. The supplier's OWN WORDS are kept for anything no service was found for
  *  -- never dropped, never guessed -- and each becomes a taxonomy_trade_proposal the sales
  *  engineer decides. The raw text, the kept implications and the removed ones are stored separately. */
-export async function servicesSaveRewrite(admin: Admin, supplierId: number, body: Record<string, unknown>, declaredEmirates: string[] = []): Promise<[number, Record<string, unknown>]> {
+/** Test seams for servicesSaveRewrite: where background work is handed (EdgeRuntime.waitUntil in production) and how a
+ *  word is read by reasoning (reasonTradesOf in production). */
+export type SaveRewriteOpts = {
+  waitUntil?: ((p: Promise<unknown>) => void) | null;
+  reason?: (text: string, taxonomy: { code: string; label: string }[]) => Promise<{ codes: string[]; held: boolean }>;
+};
+export async function servicesSaveRewrite(admin: Admin, supplierId: number, body: Record<string, unknown>, declaredEmirates: string[] = [], opts: SaveRewriteOpts = {}): Promise<[number, Record<string, unknown>]> {
   const rows = await serviceRows(admin);
   const known = new Set(rows.map((r) => serviceKey(r.trade_code, r.code)));
   const arr = (v: unknown) => (Array.isArray(v) ? (v as unknown[]).map((s) => String(s ?? '')) : []);
@@ -468,14 +484,29 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
   const storedOwn = new Set(splitServices(prevCap?.services, known).extras.map((w) => w.toLowerCase()));
   const freshOwn = own.filter((w) => !storedOwn.has(w.toLowerCase()));
   const resolved: Record<string, string[]> = {}; const proposals: string[] = [];
+  // EXACT FIRST, REASONING ONLY WHERE NEEDED, AND OFF THE CLOCK WHEN IT CAN BE (27 Oct 2026, sales_engineer; supplier
+  // registration walk on production). Reading an own word by reasoning is a plan call and an answer call; with three
+  // words the confirm took 37-67 s (measured, HTTP 200 every time) and the supplier waited on "Saving..." throughout. A
+  // browser behind an intermediary that gives up near 30 s (the walk's container did: net::ERR_FAILED,
+  // MissingAllowOriginHeader at 30.2 s, while Node and curl got the 200) is told "Could not save your services." for a
+  // save that landed. So a word that resolves EXACTLY (fn_norm_trades, no model) counts now; when the save already names
+  // a trade, the confirm is written and answered at once and the remaining words are read by reasoning AFTER the
+  // response (EdgeRuntime.waitUntil). A trade they name is added by a second confirm of the same body; words no trade is
+  // found for become the sales engineer's proposals exactly as before. When nothing names a trade yet, the words are
+  // still read before answering, because without them there is nothing to confirm.
+  // Guard: supabase/functions/_shared/supplier_services_save.test.ts ("a confirm with a trade answers before reasoning").
+  const exactFor = await Promise.all(freshOwn.map((w) => exactTradesOfText(admin, w)));
+  const toReason: string[] = [];
+  freshOwn.forEach((w, i) => { if (exactFor[i].length) { resolved[w] = exactFor[i]; exactFor[i].forEach((c) => trades.add(c)); } else toReason.push(w); });
+  const waitUntil = opts.waitUntil === undefined ? runtimeWaitUntil() : opts.waitUntil;
+  const reason = opts.reason ?? ((t: string, tax: { code: string; label: string }[]) => reasonTradesOf(admin, t, tax));
+  const defer = toReason.length > 0 && [...trades].some((t) => !removedTrades.has(t)) && !!waitUntil;
   // Independent lookups, so one round trip rather than up to 25 in series.
-  const taxonomy = freshOwn.length ? await liveTaxonomy(admin) : [];
-  const codesFor = (await Promise.all(freshOwn.map((w) => resolveText(admin, w, taxonomy)))).map((r) => r.codes);
-  freshOwn.forEach((w, i) => {
-    const codes = codesFor[i];
-    resolved[w] = codes;
-    if (codes.length) codes.forEach((c) => trades.add(c)); else proposals.push(w);
-  });
+  const taxonomy = toReason.length ? await liveTaxonomy(admin) : [];
+  if (!defer && toReason.length) {
+    const codesFor = (await Promise.all(toReason.map((w) => reason(w, taxonomy)))).map((r) => r.codes);
+    toReason.forEach((w, i) => { const codes = codesFor[i]; resolved[w] = codes; if (codes.length) codes.forEach((c) => trades.add(c)); else proposals.push(w); });
+  }
   for (const t of removedTrades) trades.delete(t);
   if (!trades.size) return [400, { error: 'nothing_recognised', code: 'services_nothing_recognised' }];
 
@@ -494,24 +525,48 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
   }, { onConflict: 'supplier_id' });
   if (upErr) return [500, { error: 'services_rewrite_write_failed', code: 'services_rewrite_write_failed', detail: upErr.message }];
 
-  const [status, out] = await capabilityConfirm(admin, supplierId, {
+  const confirmBody = {
     trades: [...trades], roles: body.roles,
     services: [...stated, ...own],
     products: cap?.products_norm || [], coverage_emirates: coverage || [],
     brands: cap?.brands || [], project_types: cap?.project_types || [], exclusions: cap?.exclusions || [],
-  });
+  };
+  const [status, out] = await capabilityConfirm(admin, supplierId, confirmBody);
   if (status !== 200) return [status, out];
 
-  const fresh = proposals.map((p) => ({ words: p, code: tradeCode(p) })).filter((p) => p.code);
-  if (fresh.length) {
-    // A pending taxonomy item that never reaches the sales engineer is the supplier's words lost, so
-    // the failure is logged rather than swallowed (TypeScript review, 18 Sep 2026). It does not fail
-    // the confirm: the words are already stored in `services`, and this row is the review queue.
+  // A pending taxonomy item that never reaches the sales engineer is the supplier's words lost, so
+  // the failure is logged rather than swallowed (TypeScript review, 18 Sep 2026). It does not fail
+  // the confirm: the words are already stored in `services`, and this row is the review queue.
+  const propose = async (words: string[]) => {
+    const fresh = words.map((p) => ({ words: p, code: tradeCode(p) })).filter((p) => p.code);
+    if (!fresh.length) return fresh;
     const { error: propErr } = await admin.from('taxonomy_trade_proposal').upsert(fresh.map(({ words, code }) => {
       const isAr = langOf(words) === 'ar';
       return { supplier_id: supplierId, code, label_en: isAr ? null : words, label_ar: isAr ? words : null, note: 'services free text: pending taxonomy item' };
     }), { onConflict: 'supplier_id,code', ignoreDuplicates: true });
     if (propErr) console.error('taxonomy_trade_proposal upsert failed', supplierId, propErr.message);
+    return fresh;
+  };
+  if (defer) {
+    // After the answer: the same reading and the same outcome, written as a second confirm of the same body plus what
+    // the words named. A removed trade stays removed; a failure is logged, never thrown into a response already sent.
+    waitUntil!((async () => {
+      try {
+        const codesFor = (await Promise.all(toReason.map((w) => reason(w, taxonomy)))).map((r) => r.codes);
+        const more = new Set<string>(); const unnamed: string[] = [];
+        toReason.forEach((w, i) => {
+          if (!codesFor[i].length) { unnamed.push(w); return; }
+          for (const c of codesFor[i]) if (!removedTrades.has(c) && !trades.has(c)) more.add(c);
+        });
+        if (more.size) {
+          const [s2, o2] = await capabilityConfirm(admin, supplierId, { ...confirmBody, trades: [...trades, ...more] });
+          if (s2 !== 200) console.error('services_save_rewrite: the trades the words named were not added', supplierId, JSON.stringify(o2).slice(0, 300));
+        }
+        await propose(unnamed);
+      } catch (e) { console.error('services_save_rewrite background reading failed', supplierId, String((e as Error)?.message || e)); }
+    })());
+    return [200, { ...out, services: stated, implied, removed, own_words: own, resolved, proposed_trades: [], reading_words: toReason }];
   }
+  const fresh = await propose(proposals);
   return [200, { ...out, services: stated, implied, removed, own_words: own, resolved, proposed_trades: fresh.map((p) => p.code) }];
 }
