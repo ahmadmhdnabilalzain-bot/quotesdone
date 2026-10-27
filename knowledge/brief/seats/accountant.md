@@ -37,7 +37,7 @@
 - The seat's KPI is to file the application within 30 days of the crossing. [accountant:vat-no-vat-on-fee-and-after-registration]
 - A supplier breach costs AED 20,000 per incident or five times the fee, whichever is higher, and the protection runs for 24 months from the introduction. [accountant:anti-circumvention-penalty-accounting]
 - Computation: "the fee" is the reveal fee that would apply to the introduced quotation, 3% of the ex-VAT quotation value. [accountant:anti-circumvention-penalty-accounting]
-- Three times the fee is therefore 9% of the quotation value, which exceeds AED 15,000 only when the quotation is above about AED 166,667; below that, AED 15,000 applies. [accountant:anti-circumvention-penalty-accounting]
+- Five times the fee is therefore 15% of the quotation value, which exceeds AED 20,000 only when the quotation is above about AED 133,333; below that, AED 20,000 applies. [accountant:anti-circumvention-penalty-accounting]
 - The charge is 3% of the selected quotation, nothing added for paying by card (Cabinet Resolution 66/2023 Art. 5(3); instructions 87, 88 and 169, which passed service charges to the customer, are superseded since 24 Sep 2026), with no VAT because QuotesDone is not VAT-registered. [accountant:company-reveal-payment-confirmation]
 - Then four steps, all owned by the accountant: (1) retrieve the Stripe invoice and file it in the books; [accountant:company-reveal-payment-confirmation]
 - (2) back the invoice up to Dropbox; [accountant:company-reveal-payment-confirmation]
