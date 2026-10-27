@@ -604,7 +604,6 @@ async function realRun(pre) {
         arInq ? `${arReceipts.length} reveal_receipt(s), langs ${[...new Set(arReceipts.map((x) => x.lang))].join(',') || 'none'}` : 'no Arabic request with an exact-trade supplier reached S10');
       fx.revealedAr = arReceipts;
       fx.arQuoted = arInq?.cu;   // S26's Arabic journey walks this customer: Arabic-registered, with its own quoted request
-      fx.arQuoted = arInq?.cu;   // S26's Arabic journey walks this customer: Arabic-registered, with its own quoted request
     },
     S11: async () => {
       const { tx, inq } = need(fx.revealed?.tx && fx.revealed, 'no paid reveal (S10), so there is no transaction to refund');
