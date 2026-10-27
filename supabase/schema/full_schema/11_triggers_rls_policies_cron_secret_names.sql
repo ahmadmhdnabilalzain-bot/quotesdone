@@ -47,6 +47,7 @@ CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.
 CREATE TRIGGER trg_autonomy_control_guard BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_autonomy_control_guard();
 CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
 CREATE TRIGGER a00_artifact_review_author_is_not_reviewer BEFORE INSERT OR UPDATE ON public.artifact_review FOR EACH ROW EXECUTE FUNCTION fn_artifact_review_valid();
+CREATE TRIGGER a00_assistant_logs_e2e_run_tag BEFORE INSERT ON public.assistant_logs FOR EACH ROW EXECUTE FUNCTION fn_ai_cost_log_e2e_run_tag();
 CREATE TRIGGER z50_support_wire_widget AFTER INSERT ON public.assistant_logs FOR EACH ROW EXECUTE FUNCTION fn_support_wire_widget();
 CREATE TRIGGER z51_support_classify_widget AFTER INSERT OR UPDATE OF answered, matched_ids ON public.assistant_logs FOR EACH ROW EXECUTE FUNCTION fn_support_classify_widget();
 CREATE TRIGGER a06_names_no_supplier BEFORE INSERT OR UPDATE OF title, excerpt, meta_desc, body_html ON public.blog_posts FOR EACH ROW EXECUTE FUNCTION trg_published_text_names_no_supplier();
@@ -318,6 +319,7 @@ CREATE TRIGGER z92_outcome_learning AFTER INSERT ON public.reviews FOR EACH ROW 
 CREATE TRIGGER ingest_case_lessons AFTER INSERT OR UPDATE OF ai_summary ON public.rfq_archives FOR EACH ROW EXECUTE FUNCTION trg_ingest_case_lessons();
 CREATE TRIGGER trg_audit_roles AFTER INSERT OR DELETE OR UPDATE ON public.roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER z10_it_judge_routine_change AFTER INSERT ON public.routine_change_log FOR EACH ROW EXECUTE FUNCTION trg_it_judge_routine_change();
+CREATE TRIGGER a00_sales_decision_log_e2e_run_tag BEFORE INSERT ON public.sales_decision_log FOR EACH ROW EXECUTE FUNCTION fn_ai_cost_log_e2e_run_tag();
 CREATE TRIGGER zz_knowledge_library_mirror_citation AFTER INSERT OR DELETE OR UPDATE OF cited ON public.sales_decision_log FOR EACH ROW EXECUTE FUNCTION fn_knowledge_library_mirror_citation();
 CREATE TRIGGER a10_sales_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.sales_knowledge FOR EACH ROW EXECUTE FUNCTION fn_sales_knowledge_search_vector();
 CREATE TRIGGER z90_sales_knowledge_export_change_del AFTER DELETE ON public.sales_knowledge REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('record_id', 'record_id,record_type,domain,title,content,structured_data,source_ids,epistemic_status,jurisdiction,pack_id,pack_version,record_version,body_sha256,content_sha256,runtime_index_eligible,authority_effect,tags,updated_at,ingested_at,search');
@@ -367,6 +369,7 @@ CREATE TRIGGER z_ml_vectors_stale AFTER UPDATE OF title, body ON public.support_
 CREATE TRIGGER z_ml_vectors_stale_del AFTER DELETE ON public.support_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ml_vectors_stale('support_knowledge', 'record_id');
 CREATE TRIGGER zz_knowledge_library_mirror AFTER INSERT OR DELETE OR UPDATE OF record_id, title, body, tags, language, source_path, pack_id, source_ids, review_status, runtime_index_eligible, embedding_gte ON public.support_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_library_mirror();
 CREATE TRIGGER z50_support_notification_to_outbox BEFORE INSERT ON public.support_notification FOR EACH ROW EXECUTE FUNCTION fn_support_notification_to_outbox();
+CREATE TRIGGER a00_support_reply_readability_e2e_run_tag BEFORE INSERT ON public.support_reply_readability FOR EACH ROW EXECUTE FUNCTION fn_ai_cost_log_e2e_run_tag();
 CREATE TRIGGER z91_judgement_outcome AFTER INSERT ON public.target_verdict FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
 CREATE TRIGGER z20_routine_trade_words_enqueue AFTER INSERT ON public.taxonomy_trade_proposal FOR EACH ROW EXECUTE FUNCTION trg_routine_trade_words_enqueue();
 CREATE TRIGGER trg_accountant_files_reveal_invoice AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_accountant_files_reveal_invoice();

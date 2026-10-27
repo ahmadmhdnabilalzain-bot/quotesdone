@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-27T16:39:14.872Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-27T16:52:24.896Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -1044,7 +1044,8 @@ CREATE TABLE IF NOT EXISTS public.assistant_logs (
   answered boolean,
   gap_task_id bigint,
   reply_attempts jsonb,
-  conv_id text
+  conv_id text,
+  e2e_run_tag text
 );
 
 CREATE TABLE IF NOT EXISTS public.autonomy_control_audit (
@@ -8203,7 +8204,8 @@ CREATE TABLE IF NOT EXISTS public.sales_decision_log (
   cited text[] DEFAULT '{}'::text[] NOT NULL,
   answered boolean NOT NULL,
   refusal text,
-  subject text
+  subject text,
+  e2e_run_tag text
 );
 
 CREATE TABLE IF NOT EXISTS public.sales_engineer_comparison_report (
@@ -9815,7 +9817,8 @@ CREATE TABLE IF NOT EXISTS public.support_reply_readability (
   tone smallint NOT NULL,
   issues text[] DEFAULT '{}'::text[] NOT NULL,
   reason text,
-  demo boolean DEFAULT false NOT NULL
+  demo boolean DEFAULT false NOT NULL,
+  e2e_run_tag text
 );
 
 CREATE TABLE IF NOT EXISTS public.support_root_cause (
@@ -12758,6 +12761,7 @@ CREATE INDEX arabic_outbound_hold_held_idx ON public.arabic_outbound_hold USING 
 CREATE UNIQUE INDEX artifact_review_bytes ON public.artifact_review USING btree (subject_type, subject_id, artifact_sha256, revision);
 CREATE INDEX artifact_review_subject ON public.artifact_review USING btree (subject_type, subject_id, created_at DESC);
 CREATE INDEX assistant_logs_conv_id_id ON public.assistant_logs USING btree (conv_id, id) WHERE (conv_id IS NOT NULL);
+CREATE INDEX assistant_logs_e2e_run_tag_idx ON public.assistant_logs USING btree (e2e_run_tag) WHERE (e2e_run_tag IS NOT NULL);
 CREATE UNIQUE INDEX backup_prune_log_open_uidx ON public.backup_prune_log USING btree (day) WHERE ((mode = 'delete'::text) AND (storage_deleted_at IS NULL) AND (cancelled_at IS NULL));
 CREATE UNIQUE INDEX backup_prune_log_pass_uidx ON public.backup_prune_log USING btree (decided_for, day, mode);
 CREATE INDEX bank_statement_line_match_idx ON public.bank_statement_line USING btree (account, amount_aed, value_date);
@@ -13190,6 +13194,7 @@ CREATE INDEX routine_change_log_object_at ON public.routine_change_log USING btr
 CREATE INDEX routine_judgement_due_idx ON public.routine_judgement USING btree (id) WHERE (status = 'queued'::text);
 CREATE INDEX sales_decision_log_action_idx ON public.sales_decision_log USING btree (action, created_at DESC);
 CREATE INDEX sales_decision_log_created_idx ON public.sales_decision_log USING btree (created_at DESC);
+CREATE INDEX sales_decision_log_e2e_run_tag_idx ON public.sales_decision_log USING btree (e2e_run_tag) WHERE (e2e_run_tag IS NOT NULL);
 CREATE INDEX sales_knowledge_emb_hnsw ON public.sales_knowledge USING hnsw (embedding_gte vector_cosine_ops);
 CREATE INDEX sales_knowledge_gap_open_idx ON public.sales_knowledge_gap USING btree (asks DESC, last_asked_at DESC) WHERE (status = 'open'::text);
 CREATE INDEX sales_knowledge_pack_idx ON public.sales_knowledge USING btree (pack_id);
@@ -13254,6 +13259,7 @@ CREATE INDEX support_knowledge_search_idx ON public.support_knowledge USING gin 
 CREATE INDEX support_notification_pending_idx ON public.support_notification USING btree (state, queued_at) WHERE (state = ANY (ARRAY['queued'::text, 'failed'::text]));
 CREATE INDEX support_notification_unbridged_idx ON public.support_notification USING btree (queued_at) WHERE (bridged_at IS NULL);
 CREATE INDEX support_reply_readability_created_at ON public.support_reply_readability USING btree (created_at);
+CREATE INDEX support_reply_readability_e2e_run_tag_idx ON public.support_reply_readability USING btree (e2e_run_tag) WHERE (e2e_run_tag IS NOT NULL);
 CREATE UNIQUE INDEX support_root_cause_one_live_idx ON public.support_root_cause USING btree (cause_key, fixture) WHERE (status = ANY (ARRAY['open'::text, 'handed_off'::text, 'measuring'::text, 'not_fallen'::text]));
 CREATE INDEX table_export_change_table_changed_idx ON public.table_export_change USING btree (table_name, changed_at, row_key);
 CREATE UNIQUE INDEX target_contract_key_version ON public.target_contract USING btree (contract_key, version);
