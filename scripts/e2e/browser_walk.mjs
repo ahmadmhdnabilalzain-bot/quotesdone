@@ -356,6 +356,10 @@ async function walkPortals(browser, idsFile) {
 const DECLINE_CARD = '4000 0000 0000 0002';
 const sq = (v) => `'${String(v).replace(/'/g, "''")}'`;
 
+// The customer's request cards load after networkidle (run 5, run 0a717394). Wait this long for the quoted one, and
+// name anything over CARDS_SLOW_MS as slow in the step's detail.
+export const CARDS_WAIT_MS = 60000, CARDS_SLOW_MS = 10000;
+
 async function jstep(rep, J, page, dir, name, fn) {
   const t0 = Date.now(); let ok = false, detail = '';
   try { [ok, detail] = await fn(); } catch (e) { detail = 'threw: ' + String(e.message).slice(0, 200); }
@@ -494,13 +498,20 @@ async function customerJourney(browser, w, lang, view) {
     const card = page.locator('[id^="inq-"]').filter({ hasText: lang === 'ar' ? /[1-9]\d*\s*عر(ض|وض)/ : /\b[1-9]\d* quotes?\b/ }).first();
     // WAIT FOR THE CARDS (run 5, 321d13ae): requests load after networkidle; the step read the page 2 s in and
     // failed C1, whose "4 quotes" card was on the screenshot taken moments later.
-    await card.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
-    if (!(await card.count())) return [false, 'no request of this customer has a quote on screen (were quotes released for this customer?)'];
+    // WAIT LONGER, AND SAY HOW LONG (run 0a717394, 19 Oct): C1's step gave up at 20 s (step 22,480 ms) and its own
+    // screenshot, taken right after, shows the "Revealed · Aluminium · Dubai · 4 quotes" card. The list arrived late,
+    // it was not missing. The walk now waits up to 60 s and reports the wait, so a slow list is named as slow
+    // (CARDS_SLOW_MS) instead of as "no quote on screen". Guard: scripts/e2e/browser_walk.test.mjs.
+    const tCards = Date.now();
+    await card.waitFor({ state: 'visible', timeout: CARDS_WAIT_MS }).catch(() => {});
+    const cardsMs = Date.now() - tCards;
+    if (!(await card.count())) return [false, `no request of this customer has a quote on screen after ${cardsMs} ms (were quotes released for this customer?)`];
+    const slowNote = cardsMs > CARDS_SLOW_MS ? `; SLOW: the quoted card took ${cardsMs} ms to appear (over ${CARDS_SLOW_MS} ms)` : `; card on screen in ${cardsMs} ms`;
     const head = card.locator('[role=button][aria-expanded]').first();
     if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click();
     await page.waitForTimeout(3000);
     const body = await card.innerText();
-    return [/AED|درهم/.test(body), `prices on screen: ${/AED|درهم/.test(body)}; comparison words: ${/top|compare|best|مقارنة|أفضل/i.test(body)}`];
+    return [/AED|درهم/.test(body), `prices on screen: ${/AED|درهم/.test(body)}; comparison words: ${/top|compare|best|مقارنة|أفضل/i.test(body)}${slowNote}`];
   });
 
   // 4-5. Reveal checkout: success (4242) then decline (0002), Stripe TEST only.

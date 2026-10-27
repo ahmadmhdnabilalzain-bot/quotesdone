@@ -1439,7 +1439,9 @@ export async function teardown(run) {
     // supplier_product.catalog_id references supplier_catalog: products first (23503 on 19 Oct 2026, S20).
     ['supplier_product', `delete from public.supplier_product where supplier_id in ${LEAD}`],
     // sanitizeAndScan records each supplier upload in file_scan keyed by the lead id as text.
-    ['file_scan', `delete from public.file_scan where source = 'supplier_catalog_ingest' and subject in ${LEAD_T}`],
+    // Every supplier door scans under its own source ('supplier_portal.license', 'supplier_api.*', ...), not only the
+    // catalogue ingest: run 390dafcc (27 Oct) left its licence's 'supplier_portal.license' row and failed verify-clean.
+    ['file_scan', `delete from public.file_scan where source like 'supplier%' and subject in ${LEAD_T}`],
     ['supplier_catalog', `delete from public.supplier_catalog where supplier_id in ${LEAD}`],
     ['supplier_capability_confirmation', `delete from public.supplier_capability_confirmation where supplier_id in ${LEAD}`],
     // EVERY OTHER TABLE THAT POINTS AT leads (12 Oct 2026, stage2 run 1c94fa6a: licence_renewal_ask, added that day,
