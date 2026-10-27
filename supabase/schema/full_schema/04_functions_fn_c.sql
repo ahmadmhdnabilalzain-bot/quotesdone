@@ -3067,8 +3067,12 @@ begin
   -- Close, then propose, and repeat until a pass changes nothing. Closing one improvement completes its handoff,
   -- which can finalise the cases another lesson waits on, and frees a capped slot; a single close-then-propose
   -- still left 11 closes and 11 proposals for the next run (measured 30 Sep 2026). The last pass is the proof.
-  -- ponytail: 10 passes and 2 s bound the loop (it runs inside the seat duty tick's 8 s statement, 18 Oct 2026:
-  -- 9.3 s unbounded); what is left finishes on the next run, every step being idempotent.
+  -- ponytail: 50 passes and 30 s bound the loop. It runs only on its own pg_cron job seat_duty:ceo.improvement, under
+  -- that job's 60 s statement_timeout; the 2 s it had was sized for the shared 8 s tick it no longer runs in, and left
+  -- a weekly sweep that never settled (25 Oct 2026: passes 1, stopped_at_budget true). Measured 27 Oct 2026, rolled
+  -- back: 10 passes hit the old bound unsettled in 12.1 s; with 50 it settles on pass 11 and a second run proposes 0.
+  -- What is left past 30 s finishes on the next run,
+  -- every step being idempotent.
   loop
   v_pass := v_pass + 1;
   v_before := n_new + n_done;
@@ -3077,7 +3081,7 @@ begin
   for r in select i.*, coalesce(i.evidence->>'lesson',
                                 (select m.lessons[1] from public.seat_case_memory m where m.id = (i.evidence->>'case_memory_id')::bigint)) as lesson
              from public.ceo_improvement i where i.status in ('open', 'assigned') loop
-    exit when clock_timestamp() - v_t0 > interval '2 seconds';
+    exit when clock_timestamp() - v_t0 > interval '30 seconds';
     if r.source_kind in ('recurring_miss', 'month_miss')
        and (select count(*) filter (where d.status in ('on_track', 'within_tolerance')) = 7 and count(*) = 7
               from public.target_daily_verdict d where d.contract_id = c_id and d.metric_key = r.evidence->>'metric'
@@ -3114,7 +3118,7 @@ begin
            having count(*) filter (where d.status = 'miss') >= 7
               and not (count(*) filter (where d.day > current_date - 7 and d.status in ('on_track', 'within_tolerance')) = 7
                        and count(*) filter (where d.day > current_date - 7) = 7) loop
-    exit when clock_timestamp() - v_t0 > interval '2 seconds';
+    exit when clock_timestamp() - v_t0 > interval '30 seconds';
     continue when exists (select 1 from public.ceo_improvement i where i.source_kind = 'recurring_miss'
                              and i.status in ('open', 'assigned') and i.evidence->>'metric' = r.metric_key);
     v := public.fn_ceo_improvement_open('recurring_miss', r.metric_key || ':' || to_char(current_date, 'YYYY-MM'), r.owner_seat,
@@ -3130,7 +3134,7 @@ begin
             where cardinality(m.lessons) > 0 and coalesce(m.updated_at, m.opened_at) > now() - interval '30 days'
               and exists (select 1 from public.org_role o where o.role_id = m.seat and o.status = 'active')
             group by 1, 2, 3 loop
-    exit when clock_timestamp() - v_t0 > interval '2 seconds';
+    exit when clock_timestamp() - v_t0 > interval '30 seconds';
     v := public.fn_ceo_improvement_open('lesson', 'lesson:' || r.seat || ':' || md5(r.case_kind || '|' || r.lesson), r.seat,
       format('Make this lesson part of the routine, so the same case does not come back: %s', r.lesson),
       jsonb_build_object('case_memory_id', r.last_case, 'case_kind', r.case_kind, 'lesson', r.lesson, 'cases', r.cases));
@@ -3140,7 +3144,7 @@ begin
   -- an open finding seen three or more times is a process fault, not a one-off
   for r in select f.issue_key, f.title, f.seen_count, coalesce(nullif(f.evidence->>'owner_seat', ''), f.raised_by) as seat
              from public.it_engineer_finding f where f.closed_at is null and f.seen_count >= 3 loop
-    exit when clock_timestamp() - v_t0 > interval '2 seconds';
+    exit when clock_timestamp() - v_t0 > interval '30 seconds';
     if exists (select 1 from public.org_role o where o.role_id = r.seat and o.status = 'active') then
       v := public.fn_ceo_improvement_open('recurring_finding', r.issue_key, r.seat,
         format('Remove the cause of a finding seen %s times: %s', r.seen_count, left(r.title, 300)),
@@ -3149,11 +3153,11 @@ begin
     end if;
   end loop;
 
-  exit when n_new + n_done = v_before or v_pass >= 10 or clock_timestamp() - v_t0 > interval '2 seconds';
+  exit when n_new + n_done = v_before or v_pass >= 50 or clock_timestamp() - v_t0 > interval '30 seconds';
   end loop;
 
   return jsonb_build_object('proposed', n_new, 'closed', n_done, 'passes', v_pass,
-    'stopped_at_budget', clock_timestamp() - v_t0 > interval '2 seconds',
+    'stopped_at_budget', clock_timestamp() - v_t0 > interval '30 seconds',
     'open', (select count(*) from public.ceo_improvement where status in ('open', 'assigned')));
 end $function$
 
