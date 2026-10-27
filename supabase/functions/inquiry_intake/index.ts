@@ -19,6 +19,7 @@ import { remoteEmbedder } from '../_shared/meaning_embed.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { statedSpecs, tradeOf } from '../_shared/reasoned_decisions.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
+import { aiReply } from '../_shared/ai_reply.ts';
 import { TurnClock, keptFor, placeUserTurn, storedReply, turnIdOf, within } from './turn_clock.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
@@ -419,7 +420,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       } catch (_e) { return null; }   // an unread spec is asked, never filled
     };
     const specRead = category && toRead.length && allText.trim() && clock.canStart() ? { category, p: startReading(category, toRead) } : null;
-    const raw = await llm([{ role: 'system', content: sys }, { role: 'user', content: user_msg }], { email, customer_id: cust?.id || null }, llmFail, clock.deadline());
+    const raw = await llm([{ role: 'system', content: sys }, { role: 'user', content: user_msg }], { email, customer_id: cust?.id || null }, llmFail, clock.modelDeadline());
     clock.lap('model');
     let out = raw ? parseJson(raw) : null;
     const llmCallOk = raw !== null;
@@ -614,9 +615,9 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       heldNext = heldAsk(checklist, slotExhausted, slotLang);
       if (heldNext) nextQuestion = heldNext;
       // The customer is told WHICH questions are still open, by the model, in the inquiry language (slots.ts heldReply).
-      // On the turn's clock (it had its own 40 s): with too little left, aiReply makes no call and the open questions
-      // are listed by code (slots.ts heldReply), so the customer is still told exactly what is open.
-      out.assistant_message = await heldReply(defaultDeps(admin, 'inquiry_intake'), checklist, slotExhausted, slotLang, text, turns, clock.deadline());
+      // On the turn's clock (it had its own 40 s), but a reply always gets a real model attempt (turn_clock.ts
+      // replyDeadline, the founder's ruling of 27 Oct): the open questions are listed by code only if the model fails.
+      out.assistant_message = await heldReply(defaultDeps(admin, 'inquiry_intake'), checklist, slotExhausted, slotLang, text, turns, clock.replyDeadline());
       clock.lap('held_reply');
     }
     // Stamp the answering agent on the turn so the next turn knows the specialist has already introduced itself.
@@ -882,9 +883,25 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     // THE REPLY GUARD RUNS ON THIS REPLY TOO (27 Oct 2026). The interview's own reply is written by a model and was
     // sent as written; only the held reply (aiReply) passed the guard. The founder's rule (23 Sep) is that no reply
     // names the licence number or says "AI": the licence sentence is dropped and "AI" becomes "smart"; a reply carrying
-    // internal or prompt text is replaced by the state's own reply (support_reply_guard.ts).
+    // internal or prompt text is REFUSED and written again BY THE MODEL (aiReply, with its own guard), per the founder's
+    // ruling of 27 Oct: "never replies without llm unless the server of open router is down". The state's code text is
+    // used only when that model call fails (support_reply_guard.ts, ai_reply.ts).
     const guarded = guardSupportReply(String(out.assistant_message || ''), slotLang);
-    if (guarded.violations.length) out.assistant_message = guarded.text || replyFromState(status, nextQuestion?.text ?? (Array.isArray(out.questions) && out.questions[0] ? String(out.questions[0]) : null), slotLang);
+    if (guarded.violations.length) {
+      if (guarded.text) out.assistant_message = guarded.text;   // the model's own words, the licence sentence or the word "AI" edited out
+      else {
+        const ask = nextQuestion?.text ?? (Array.isArray(out.questions) && out.questions[0] ? String(out.questions[0]) : null);
+        const rewrite = await aiReply(defaultDeps(admin, 'inquiry_intake'), {
+          seat: 'sales_engineer', channel: 'the website request chat', audience: 'customer', lang: slotLang, message: text,
+          conversation: turns.slice(0, -1).map((t: any) => ({ role: t.role === 'assistant' ? 'seat' as const : 'customer' as const, text: String(t.text || '') })),
+          facts: `This request is ${status === 'ready' ? 'complete and ready to send to suppliers' : 'still being specified'}.` + (ask ? ` The next question to ask the customer: ${ask}` : ''),
+          rules: 'One or two short sentences: acknowledge what they said and, if there is a next question, ask it in plain words. Plain text only.',
+          deadline: clock.replyDeadline(),
+        }).catch(() => null);
+        out.assistant_message = rewrite?.reply || replyFromState(status, ask, slotLang);   // code text only when the model failed
+        clock.lap('guard_rewrite');
+      }
+    }
     for (let i = turns.length - 1; i >= 0; i--) if (turns[i] && turns[i].role === 'assistant') { turns[i].text = out.assistant_message || ''; break; }
     const missingKeys: string[] = status === 'ready' ? [] : (requiredGate ? requiredGate.missing_keys : slotMissingKeys);
     stampTurn(turns, { status, details: (briefToSave as any).details || {}, req_answers: reqAnswers, missing: Array.isArray(out.missing) ? out.missing.map(String) : [], missing_keys: missingKeys,

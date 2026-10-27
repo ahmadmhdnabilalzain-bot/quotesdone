@@ -40,7 +40,7 @@ test('the turn budget fits inside the portal wait, with room for the edge and th
 
 test('every model step of the turn runs on the one clock', () => {
   assert.match(INDEX, /const clock = new TurnClock\(\)/, 'the turn has no clock');
-  assert.match(INDEX, /await llm\(\[[^\n]*llmFail, clock\.deadline\(\)\)/, 'the interview call is not cut at the clock');
+  assert.match(INDEX, /await llm\(\[[^\n]*llmFail, clock\.modelDeadline\(\)\)/, 'the interview call is not on its MODEL_WAIT_MS deadline');
   assert.match(INDEX, /signal: AbortSignal\.timeout\(waitMs\)/, 'the gateway fetch has no timeout');
   assert.match(INDEX, /client_timeout_ms: waitMs/, 'the gateway is not told how long the turn waits');
   assert.match(INDEX, /await tradeOf\(defaultDeps\(admin, 'inquiry_intake'\), \{[\s\S]{0,400}?deadline: clock\.deadline\(\)/, 'the trade reasoning is not on the clock');
@@ -48,8 +48,22 @@ test('every model step of the turn runs on the one clock', () => {
   const started = INDEX.indexOf('const specRead = category && toRead.length && allText.trim() && clock.canStart()');
   assert.ok(started > 0 && started < INDEX.indexOf('const raw = await llm('), 'the exact-spec reading is not started alongside the interview call');
   assert.match(INDEX, /: clock\.canStart\(\) \? startReading\(category, blank\) : null/, 'a reading after the interview call starts without checking the clock');
-  assert.match(INDEX, /await heldReply\([^\n]*clock\.deadline\(\)\)/, 'the held reply has its own clock instead of the turn\'s');
+  assert.match(INDEX, /await heldReply\([^\n]*clock\.replyDeadline\(\)\)/, 'the held reply has its own clock instead of the turn\'s reply deadline');
   assert.doesNotMatch(INDEX, /Date\.now\(\) \+ \d{2}_?\d{3}\)/, 'a model step was given its own fixed allowance again');
+});
+
+// The founder, 27 Oct 2026: "the engineer and customer support never replies without llm unless the server of open
+// router is down". The clock may skip a step that writes no reply; it never turns a reply into code text.
+test('the model writes every reply: the clock never cuts a reply-writing call short', () => {
+  const wait = num(PORTAL, 'CALL_TIMEOUT_MS');
+  const modelWait = num(CLOCK, 'MODEL_WAIT_MS');
+  const replyMin = num(CLOCK, 'REPLY_MIN_MS');
+  assert.ok(modelWait > num(CLOCK, 'TURN_BUDGET_MS') && modelWait <= wait - 2_000, `MODEL_WAIT_MS ${modelWait} must exceed the turn budget and sit inside the portal's ${wait} ms`);
+  assert.ok(replyMin >= 10_000, `REPLY_MIN_MS ${replyMin} is too short for a real model attempt`);
+  assert.match(CLOCK, /replyDeadline\(minMs = REPLY_MIN_MS\): number \{ return Math\.max\(this\.deadline\(\), this\.now\(\) \+ minMs\); \}/, 'a reply deadline can be shorter than REPLY_MIN_MS');
+  // A guard refusal is written again by the model; the state's code text only when that call failed.
+  assert.match(INDEX, /const rewrite = await aiReply\(defaultDeps\(admin, 'inquiry_intake'\), \{[\s\S]{0,900}?deadline: clock\.replyDeadline\(\)/, 'a refused reply is not sent back to the model');
+  assert.match(INDEX, /out\.assistant_message = rewrite\?\.reply \|\| replyFromState\(/, 'a refused reply is replaced by code text without asking the model');
 });
 
 test('the two intake decisions have nothing to plan or look up', () => {

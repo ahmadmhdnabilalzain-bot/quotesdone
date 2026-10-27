@@ -1,7 +1,7 @@
 // turn_clock — one clock per intake turn, inside the portal's 30 s wait, and a retried turn is one message, not two.
 // deno test supabase/functions/inquiry_intake/turn_clock.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { MIN_STEP_MS, RESERVE_MS, TURN_BUDGET_MS, TurnClock, keptFor, placeUserTurn, storedReply, turnIdOf, within } from './turn_clock.ts';
+import { MIN_STEP_MS, MODEL_WAIT_MS, REPLY_MIN_MS, RESERVE_MS, TURN_BUDGET_MS, TurnClock, keptFor, placeUserTurn, storedReply, turnIdOf, within } from './turn_clock.ts';
 
 // The portal's wait (src/components/me/CustomerPortal.tsx CALL_TIMEOUT_MS). The static check
 // scripts/checks/the_intake_turn_answers_inside_the_portals_wait.test.mjs reads the real constant.
@@ -11,6 +11,19 @@ Deno.test('the turn budget sits inside the portal wait with room for the edge an
   assert(TURN_BUDGET_MS + 5_000 <= PORTAL_WAIT_MS, `${TURN_BUDGET_MS} ms leaves under 5 s of the portal's ${PORTAL_WAIT_MS} ms`);
   assert(TURN_BUDGET_MS < 25_000, 'the target is a p95 turn under 25 s');
   assert(MIN_STEP_MS + RESERVE_MS < TURN_BUDGET_MS);
+});
+
+// The founder's ruling of 27 Oct 2026: a reply is written by the model unless OpenRouter fails, never by code for time.
+Deno.test('a reply-writing call is never cut short by the turn budget', () => {
+  let now = 0;
+  const c = new TurnClock(now, TURN_BUDGET_MS, () => now);
+  assertEquals(c.modelDeadline(), MODEL_WAIT_MS);
+  assert(MODEL_WAIT_MS > TURN_BUDGET_MS && MODEL_WAIT_MS <= PORTAL_WAIT_MS - 2_000);
+  now = 20_000;                                   // the turn budget is almost spent
+  assert(!c.canStart(), 'a step that writes no reply may be skipped here');
+  assertEquals(c.replyDeadline(), now + REPLY_MIN_MS, 'the held reply was given less than REPLY_MIN_MS');
+  now = 1_000;
+  assertEquals(c.replyDeadline(), c.deadline(), 'early in the turn the reply keeps the turn deadline');
 });
 
 Deno.test('TurnClock: laps from the request, a deadline that keeps the reserve, and no step started too late', () => {

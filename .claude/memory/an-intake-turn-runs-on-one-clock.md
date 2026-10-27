@@ -37,6 +37,22 @@ fields are dropped and asked.
 - It is started alongside the interview call, over the trade's required specs the row lacks, and applied only where it
   was before.
 
+**The model writes every reply** (founder ruling, 27 Oct 2026, verbatim: "the engineer and customer support never
+replies without llm unless the server of open router is down"). The clock may skip or cut a step that writes NO
+reply: the exact-spec reading and the supplier count. It never turns a reply into code text because time ran short:
+
+- The interview call waits `MODEL_WAIT_MS` (27 s), not the 24 s turn budget.
+- The held reply and a guard rewrite get at least `REPLY_MIN_MS` (15 s, `clock.replyDeadline()`).
+- A guard refusal goes back to the model (`aiReply`).
+
+Code text is used only when the model call itself fails. Never speed a turn up by replacing a model reply with a
+template. Cut inside the model path: fewer calls, smaller prompts, lower effort, parallel steps.
+
+Still open when this was written (not changed by this PR): `index.ts` composes some customer text in code on the
+MODEL path. These are the canonical gate's `replyFromState` when the model said ready too early, the "Thanks, noted. A
+few quick questions…" lead before the sales engineer's four questions, and the drawing/CAD sentences appended to the
+reply. Under the ruling these need the model to write them.
+
 **A clock can only make a turn ASK, never let a spec through.** A step that does not finish fills nothing, and the
 canonical gate (`absent` → needs_info) is untouched.
 

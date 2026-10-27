@@ -24,6 +24,16 @@ export { MIN_STEP_MS };
 
 /** The whole turn, from the request arriving to the response. The portal waits 30 s; 6 s is left for the edge and network. */
 export const TURN_BUDGET_MS = 24_000;
+// THE MODEL WRITES EVERY REPLY (founder ruling, 27 Oct 2026: "the engineer and customer support never replies without
+// llm unless the server of open router is down"). The clock may skip or cut a step whose answer is NOT a reply (the
+// exact-spec reading, the supplier count). It never turns a reply-writing call into code text because time ran short:
+//   - the interview call waits up to MODEL_WAIT_MS (inside the portal's 30 s), not TURN_BUDGET_MS;
+//   - the held reply and a guard rewrite always get at least REPLY_MIN_MS.
+// Code text is used only when the model call itself fails.
+/** How long the interview call may take, from the request: inside the portal's 30 s wait, never cut by the turn budget. */
+export const MODEL_WAIT_MS = 27_000;
+/** A reply-writing call always gets at least this long, whatever the turn budget says (held reply p95 measured 8 s). */
+export const REPLY_MIN_MS = 15_000;
 /** Kept back for the save, the QA log and the response after the last model step. */
 export const RESERVE_MS = 2_500;
 
@@ -35,6 +45,10 @@ export class TurnClock {
   lap(name: string): number { const ms = this.now() - this.t0; this.laps[name] = ms; return ms; }
   /** The epoch ms by which a model step must be done, keeping `reserve` for what follows it. */
   deadline(reserve = RESERVE_MS): number { return this.t0 + this.budgetMs - reserve; }
+  /** The interview call's deadline: MODEL_WAIT_MS from the request (a reply is never cut short by the turn budget). */
+  modelDeadline(): number { return this.t0 + MODEL_WAIT_MS; }
+  /** A reply-writing step's deadline: the turn's, but never less than `minMs` from now. */
+  replyDeadline(minMs = REPLY_MIN_MS): number { return Math.max(this.deadline(), this.now() + minMs); }
   /** Milliseconds a model step may still take. */
   left(reserve = RESERVE_MS): number { return this.deadline(reserve) - this.now(); }
   /** Whether a model step may start now. */
