@@ -43,7 +43,8 @@ test("the portal's own reads go through the region-pinned call(), warmed beside 
   // one-line body, so it went red on 22 Sep 2026 when call() grew an AbortController and a JSON
   // parse guard (CP-08) while still fetching fnUrl(path). It now asserts the property: the portal's
   // shared helper is declared, and the URL it fetches is the pinned one.
-  assert.match(s, /async function call\(path, body, token\) \{/);
+  // (27 Oct 2026, PR #1574: an optional fourth parameter, the deadline, is allowed; the URL below is still the subject.)
+  assert.match(s, /async function call\(path, body, token(, timeoutMs = CALL_TIMEOUT_MS)?\) \{/);
   assert.match(s, /await fetch\(fnUrl\(path\),/);
   assert.doesNotMatch(s, /\bSUPA_FN\b|FN \+ '\//, 'an unpinned functions URL is back in CustomerPortal');
   for (const [fn, action] of SIX) assert.match(s, new RegExp(`warm\\(tk, '\\w+', \\(\\) => call\\('${fn}', \\{ action: '${action}'`), `warmDashboard lost ${fn}:${action}`);

@@ -8,46 +8,49 @@
       "id": "home_automation:uae-market-products",
       "topic": "Home & Building Automation: products, variants and grades sold in the UAE",
       "kind": "uae_market_products",
-      "body_en": "Home and building automation in the UAE: villa smart-home systems (lighting control and dimming, curtain and blind motors, AC control, audio, scenes, security integration, voice assistants), KNX-based wired systems (the standard for premium villas and hotels), proprietary wired/wireless platforms, Zigbee/Z-Wave/Wi-Fi consumer systems, hotel guest room management systems (GRMS), and building management systems (BMS) for commercial buildings on BACnet/Modbus (HVAC, chillers, pumps, lighting, energy metering, integration with fire alarm and access control). Dubai's green building rules and DEWA's efficiency programmes push BMS and metering. Buyers specify protocol (KNX, BACnet), number of points/zones, keypads and touch panels, app control and integration list.",
-      "body_ar": "أتمتة المنازل والمباني في الإمارات: أنظمة المنزل الذكي للفلل (التحكم بالإنارة والتعتيم، ومحركات الستائر والشتر، والتحكم بالتكييف، والصوتيات، والمشاهد، والتكامل الأمني، والمساعدات الصوتية)، والأنظمة السلكية القائمة على KNX (المعيار للفلل الفاخرة والفنادق)، والمنصات السلكية واللاسلكية الخاصة بالمصنّعين، والأنظمة الاستهلاكية Zigbee وZ-Wave وWi-Fi، وأنظمة إدارة غرف الضيوف في الفنادق GRMS، وأنظمة إدارة المباني BMS للمباني التجارية عبر BACnet/Modbus (التكييف، والمبردات، والمضخات، والإنارة، وقياس الطاقة، والتكامل مع إنذار الحريق والتحكم بالدخول). وتدفع قواعد المباني الخضراء في دبي وبرامج كفاءة الطاقة لدى هيئة الكهرباء نحو أنظمة BMS والقياس. يحدد المشتري البروتوكول (KNX أو BACnet)، وعدد النقاط/المناطق، ولوحات المفاتيح واللمس، والتحكم بالتطبيق، وقائمة التكامل.",
+      "body_en": "Home and building automation sold in the UAE: villa smart-home systems (lighting control and dimming, curtain and blind motors, AC control, audio, scenes, security integration), KNX wired systems, proprietary wired and wireless platforms, Zigbee/Z-Wave/Wi-Fi consumer systems, hotel guest room management systems (GRMS), and building management systems (BMS) for commercial buildings, commonly on the open BACnet protocol (HVAC, chillers, pumps, lighting, energy metering, interfaces to fire alarm and access control). A wired KNX system is realistically installed at a villa fit-out or before an off-plan handover, when cables can still be run; with KNX, any certified integrator can later service the installation, so ask for the KNX certification of the integrator and the handover of the ETS project file. Buyers specify the protocol (KNX, BACnet, or the platform), the number of points or zones, keypads and touch panels, app control and the integration list.",
+      "body_ar": "أتمتة المنازل والمباني المباعة في الإمارات: أنظمة المنازل الذكية للفلل (التحكم بالإضاءة والتعتيم، ومحركات الستائر والشترات، والتحكم بالتكييف، والصوت، والمشاهد، والربط مع الأمن)، وأنظمة KNX السلكية، والمنصات السلكية واللاسلكية الخاصة بالمصنعين، وأنظمة المستهلك Zigbee/Z-Wave/Wi-Fi، وأنظمة إدارة غرف الفنادق (GRMS)، وأنظمة إدارة المباني (BMS) للمباني التجارية وغالباً على البروتوكول المفتوح BACnet (التكييف والمبردات والمضخات والإضاءة وقياس الطاقة والربط مع إنذار الحريق والتحكم بالدخول). ويُركَّب نظام KNX السلكي عملياً أثناء تجهيز الفيلا أو قبل تسليم العقار على المخطط، حين يمكن مد الكابلات؛ ومع KNX يستطيع أي مُكامِل معتمد صيانة التركيب لاحقاً، فاطلب شهادة KNX للمُكامِل وتسليم ملف مشروع ETS. ويحدد المشتري البروتوكول (KNX أو BACnet أو المنصة)، وعدد النقاط أو المناطق، ولوحات المفاتيح وشاشات اللمس، والتحكم بالتطبيق، وقائمة الأنظمة المطلوب ربطها.",
       "sources": [
-        "https://www.knx.org",
-        "https://www.bacnet.org",
-        "https://www.dm.gov.ae"
+        "https://realestateclubdubai.com/blog/property-management/best-smart-home-automation-installers-dubai-2026",
+        "https://www.tradearabia.com/news/CONS_260269.html",
+        "https://www.knx.org/certified-knx-training?page=27"
       ],
-      "confidence": "low",
+      "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "NOT VERIFIED: written from named sources that were not opened. Current KNX partner lists in the UAE and local distributors of each brand were not verified."
+      "source_note": "Checked 2026-10-27 against search-result excerpts: villa fit-out / off-plan handover is the realistic window for wired KNX; any certified integrator can service KNX; ETS project file handover; BACnet as the open BMS standard (Alerton/BMTS release) -> confirmed. Earlier claims that KNX is \"the standard for premium villas and hotels\" and that Dubai green-building rules push BMS -> removed (not confirmed in this pass)."
     },
     {
       "id": "home_automation:uae-market-brands",
       "topic": "Home & Building Automation: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "KNX and lighting control: ABB, Schneider Electric (Wiser, SpaceLogic KNX), Siemens, Gira, Jung, Hager, Legrand/BTicino, Zennio, Basalte, Lutron (RA3, HomeWorks, also hotels), Crestron, Control4 (Snap One), Savant, Somfy (motors), and Chinese brands (e.g. Tuya-based, Orvibo). BMS: Honeywell, Johnson Controls (Metasys), Siemens (Desigo), Schneider (EcoStruxure), Trend, Distech. Integrators are concentrated in Dubai (Al Quoz, Business Bay, Dubai Investments Park) and Abu Dhabi; many are KNX-certified partners. Origins: Germany, Spain, Belgium, USA-brand products, China.",
-      "body_ar": "KNX والتحكم بالإنارة: ABB وSchneider Electric (Wiser وSpaceLogic KNX) وSiemens وGira وJung وHager وLegrand/BTicino وZennio وBasalte وLutron (RA3 وHomeWorks وللفنادق أيضاً) وCrestron وControl4 (Snap One) وSavant وSomfy (المحركات) وعلامات صينية. أنظمة إدارة المباني: Honeywell وJohnson Controls (Metasys) وSiemens (Desigo) وSchneider (EcoStruxure) وTrend وDistech. ويتركز المكاملون في دبي (القوز والخليج التجاري ومجمع دبي للاستثمار) وأبوظبي؛ وكثير منهم شركاء معتمدون لـKNX. المنشأ: ألمانيا، إسبانيا، بلجيكا، منتجات علامات أمريكية، الصين.",
+      "body_en": "Makes with a UAE presence confirmed in this pass: Hager (Hager Middle East FZE, Jebel Ali Free Zone, since 1997, with a KNX training centre in Dubai Silicon Oasis); ABB (opened a KNX training centre in Dubai, reported 2010; whether it still operates was not confirmed); Honeywell's Alerton (BACnet-based Ascent BMS launched in the UAE through the integrator Bahri & Mazroei Technical Systems, reported 2014); Johnson Controls (Metasys; a Dubai office is listed in a UAE directory and the company advertises UAE BMS roles). Other KNX, lighting-control and BMS makes are sold in the market (for example Schneider Electric, Siemens Desigo, Legrand, Lutron, Crestron, Control4, Somfy motors), but their current UAE distributors were not confirmed here: ask the integrator to show it is an authorised source for the brand it quotes. Integrator listings for villas exist in Dubai, Abu Dhabi and Sharjah; check each one's KNX or platform certification rather than relying on a listing.",
+      "body_ar": "الماركات التي تأكد وجودها في الإمارات في هذا التحقق: هاجر (Hager Middle East FZE في المنطقة الحرة لجبل علي منذ 1997، ولديها مركز تدريب KNX في واحة دبي للسيليكون)؛ وABB (افتتحت مركز تدريب KNX في دبي وفق تقرير عام 2010، ولم يتأكد استمرار عمله)؛ وAlerton التابعة لهانيويل (أُطلق نظام إدارة المباني Ascent المبني على BACnet في الإمارات عبر المُكامِل بحري ومزروعي للأنظمة الفنية وفق تقرير عام 2014)؛ وجونسون كونترولز (Metasys؛ مكتبها في دبي مدرج في دليل إماراتي والشركة تعلن عن وظائف أنظمة إدارة مبانٍ في الإمارات). وتُباع في السوق ماركات أخرى لـKNX والتحكم بالإضاءة وإدارة المباني (مثل شنايدر إلكتريك وسيمنز Desigo وليغراند ولوترون وكريسترون وكونترول4 ومحركات سومفي)، لكن لم يتأكد هنا موزعوها الحاليون في الإمارات: اطلب من المُكامِل إثبات أنه مصدر معتمد للماركة التي يعرضها. وتوجد قوائم مُكاملين للفلل في دبي وأبوظبي والشارقة؛ تحقق من شهادة KNX أو المنصة لكل منهم بدل الاعتماد على القائمة.",
       "sources": [
-        "https://www.knx.org",
-        "https://www.bacnet.org",
-        "https://www.dm.gov.ae"
+        "https://www.knx.org/certified-knx-training?page=27",
+        "https://www.tradearabia.com/news/EDU_180344.html",
+        "https://www.tradearabia.com/news/CONS_260269.html",
+        "https://www.yellowpages-uae.com/uae/metasys-building-automation-system",
+        "https://jobs.johnsoncontrols.com/pt-br/job/WD30267859"
       ],
-      "confidence": "low",
+      "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "NOT VERIFIED: written from named sources that were not opened. Current KNX partner lists in the UAE and local distributors of each brand were not verified."
+      "source_note": "Checked 2026-10-27 against search-result excerpts: Hager Middle East FZE JAFZA 1997 + KNX training centre DSO (knx.org listing); ABB KNX training centre Dubai (TradeArabia, 2010); Alerton Ascent via BMTS (TradeArabia/Zawya, 2014); Johnson Controls Dubai listing and UAE BMS job -> confirmed as dated. Integrator concentration in Al Quoz/Business Bay/DIP and \"many are KNX-certified partners\" -> removed. Other brands kept only as \"sold, distributor not confirmed\"."
     },
     {
       "id": "home_automation:uae-market-sizes",
       "topic": "Home & Building Automation: typical sizes, units and how it is quoted in the UAE",
       "kind": "uae_market_sizes",
-      "body_en": "Smart-home projects are quoted per villa package or per point (lighting circuit, dimmer channel, curtain motor, AC zone, keypad), with programming, commissioning, app setup and handover training as separate lines, plus an optional annual support contract. BMS is priced per I/O point and per controller, with integration (third-party interfaces per system) and graphics as extras. Warranty commonly 1-2 years on hardware; motors per maker (e.g. Somfy 5 years).",
-      "body_ar": "تُسعّر مشاريع المنزل الذكي بباقة الفيلا أو بالنقطة (دائرة إنارة، قناة تعتيم، محرك ستارة، منطقة تكييف، لوحة مفاتيح)، مع البرمجة والتشغيل وإعداد التطبيق والتدريب عند التسليم كبنود مستقلة، وعقد دعم سنوي اختياري. ويُسعّر نظام إدارة المباني بنقطة الإدخال/الإخراج وبالمتحكم، مع التكامل (واجهات لكل نظام خارجي) والرسوميات كإضافات. والضمان عادة 1-2 سنة على الأجهزة؛ والمحركات حسب المصنع (مثل 5 سنوات لـSomfy).",
+      "body_en": "How automation is priced, as a commercial structure (no prices are stated): smart-home projects are quoted per villa package or per point (lighting circuit, dimmer channel, curtain motor, AC zone, keypad), with programming, commissioning, app setup and handover training as separate lines, plus an optional annual support contract; BMS is quoted per I/O point and per controller, with each third-party integration and the graphics as extras. Warranty periods vary by maker and are not established here; ask for the hardware warranty, the motor warranty and the programming support period in writing.",
+      "body_ar": "كيفية تسعير الأتمتة كهيكل تجاري (دون ذكر أسعار): تُسعَّر مشاريع المنازل الذكية كباقة لكل فيلا أو لكل نقطة (دائرة إضاءة، قناة تعتيم، محرك ستارة، منطقة تكييف، لوحة مفاتيح)، مع البرمجة والتشغيل وإعداد التطبيق وتدريب التسليم كبنود منفصلة، وعقد دعم سنوي اختياري؛ وتُسعَّر أنظمة إدارة المباني لكل نقطة إدخال/إخراج ولكل وحدة تحكم، مع كل ربط بنظام طرف ثالث والواجهات الرسومية كإضافات. وتختلف مدد الضمان حسب المصنع ولم تُثبت هنا؛ اطلب كتابةً ضمان الأجهزة وضمان المحركات ومدة دعم البرمجة.",
       "sources": [
         "https://www.knx.org",
         "https://www.bacnet.org",
         "https://www.dm.gov.ae"
       ],
-      "confidence": "low",
+      "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "NOT VERIFIED: written from named sources that were not opened. Current KNX partner lists in the UAE and local distributors of each brand were not verified."
+      "source_note": "A commercial pricing structure, not a technical claim (gap_kind commercial). The earlier \"1-2 years hardware; Somfy 5 years\" warranty figures -> removed (not confirmed).",
+      "gap_kind": "commercial"
     }
   ],
   "eval": [
@@ -59,9 +62,51 @@
       ]
     }
   ],
-  "not_verified": {
-    "on": "2026-09-28",
-    "reason": "no lookup record yet; never loaded (draft)",
-    "unverified": "Current KNX partner lists in the UAE and local distributors of each brand were not verified."
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-10-27",
+    "method": "Promoted from home_automation.market.draft.json. Each claim checked against search-result excerpts of the cited pages on 2026-10-27 (the hosts refuse this session's egress); claims no excerpt confirmed were removed, dated reports are stated with their year. Independent review of #1632 (27 Oct 2026): no cited page was opened, so under the 7 Oct stating rule the layer is not served; it stays a draft (home_automation.market.draft.json) with these corrections until its pages are opened.",
+    "checks": [
+      {
+        "claim": "KNX wired at fit-out/off-plan; any certified integrator can service; ETS file",
+        "url": "https://realestateclubdubai.com/blog/property-management/best-smart-home-automation-installers-dubai-2026",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Hager Middle East JAFZA 1997, KNX training centre Dubai",
+        "url": "https://www.knx.org/certified-knx-training?page=27",
+        "result": "confirmed"
+      },
+      {
+        "claim": "ABB KNX training centre Dubai",
+        "url": "https://www.tradearabia.com/news/EDU_180344.html",
+        "result": "confirmed (2010 report; current status not confirmed)"
+      },
+      {
+        "claim": "Alerton Ascent BACnet BMS via BMTS",
+        "url": "https://www.tradearabia.com/news/CONS_260269.html",
+        "result": "confirmed (2014 report)"
+      },
+      {
+        "claim": "Johnson Controls Metasys in Dubai",
+        "url": "https://www.yellowpages-uae.com/uae/metasys-building-automation-system",
+        "result": "confirmed (directory listing, undated)"
+      },
+      {
+        "claim": "KNX is the standard for premium villas and hotels; integrators in Al Quoz/Business Bay/DIP",
+        "url": null,
+        "result": "removed (not confirmed)"
+      },
+      {
+        "claim": "Warranty 1-2 years hardware, Somfy 5 years",
+        "url": null,
+        "result": "removed (not confirmed)"
+      }
+    ],
+    "unverified": "Current UAE distributors of Schneider, Siemens, Legrand, Lutron, Crestron, Control4 and Somfy; a current UAE KNX partner list.",
+    "ledger": [
+      899,
+      1209
+    ]
   }
 }

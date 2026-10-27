@@ -8,7 +8,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { t, transportFailed } from './portalText.ts';
+import { errText, t, transportFailed } from './portalText.ts';
 
 const SRC = fs.readFileSync(new URL('./CustomerPortal.tsx', import.meta.url), 'utf8');
 const body = SRC.split(/\r?\n/).filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
@@ -31,7 +31,9 @@ test('CP-07: a failed overview is rendered, and does not leave skeletons pulsing
 test('CP-08: call() times out, never throws, and never returns a half-parsed answer', () => {
   const fn = body.slice(body.indexOf('async function call('), body.indexOf('const warmDashboard'));
   assert.match(fn, /new AbortController\(\)/);
-  assert.match(fn, /setTimeout\(\(\) => ac\.abort\(\), CALL_TIMEOUT_MS\)/);
+  // every call has a deadline: 30 s unless the caller names a longer one (the comparison report, PR #1574)
+  assert.match(fn, /async function call\(path, body, token, timeoutMs = CALL_TIMEOUT_MS\)/);
+  assert.match(fn, /setTimeout\(\(\) => ac\.abort\(\), timeoutMs\)/);
   assert.match(fn, /'qd_timeout'/);
   assert.match(fn, /'qd_network'/);
   assert.match(fn, /JSON\.parse\(text\)/);
@@ -63,4 +65,21 @@ test('CP-12: both upload paths go through the same 20 MB guard', () => {
   assert.match(nr, /const tooBig = \(file\) =>/);
   assert.equal((nr.match(/tooBig\(file\)/g) || []).length, 2, 'both entry points call the one guard');
   assert.match(nr, /MAX_UPLOAD_BYTES = 20 \* 1024 \* 1024/);
+});
+
+test('PR #1574: a held Arabic comparison report reaches the customer as a clear Arabic status, not a timeout', () => {
+  // The report call waits as long as the edge function may run, so the 202 arrives instead of qd_timeout at 30 s.
+  assert.match(body, /const COMPARE_PDF_TIMEOUT_MS = 150000;/);
+  assert.match(body, /action: 'compare_pdf'[^\n]*\}, token, COMPARE_PDF_TIMEOUT_MS\)/);
+  // The 202 the server sends (customer_api heldReply) is rendered as its own Arabic sentence by errText.
+  const api = fs.readFileSync(new URL('../../../supabase/functions/customer_api/index.ts', import.meta.url), 'utf8');
+  const held = api.match(/const heldReply = \(\) => J\(\{ ok: false, held: true, code: 'arabic_held',\s*message: '([^']+)',\s*message_ar: '([^']+)' \}, 202\);/);
+  assert.ok(held, 'customer_api heldReply keeps its bilingual 202 shape');
+  const reply = { ok: false, held: true, code: 'arabic_held', message: held[1], message_ar: held[2] };
+  const ar = errText(reply, 'ar', 'cmp_save_fail');
+  assert.equal(ar, held[2]);
+  assert.match(ar, /[\u0600-\u06FF]/, 'Arabic text');
+  assert.match(ar, /سنرسلها/, 'it tells the customer the report will be sent to them');
+  assert.notEqual(ar, t('ar', 'cmp_save_fail'), 'not the generic failure line');
+  assert.equal(errText(reply, 'en', 'cmp_save_fail'), held[1]);
 });

@@ -22,7 +22,6 @@ import { call } from './api';
 // The one count formatter: a bare toLocaleString() follows the VIEWER's browser, not the page.
 import { num } from './money';
 import { PanelError, PanelLoading, panelErrorCode } from './PanelState';
-import { arDays } from '@/lib/durationLabel';
 
 type Variant = {
   sku?: string | null; attributes?: Record<string, unknown> | null;
@@ -52,20 +51,12 @@ const T = {
     compatible: 'Compatible Projects', certs: 'Certifications', catalogues: 'Catalogues',
     empty: 'No products yet. Upload a catalogue and it will be extracted here.',
     loading: 'Reading your catalogue…', leadTime: 'Lead time', days: 'days',
-    aiMatch: 'AI Match', noMatch: 'no opportunity to match against yet', source: 'Source',
-  },
-  ar: {
-    title: 'ذكاء المنتجات', products: 'المنتجات', categories: 'الفئات',
-    specs: 'المواصفات', searchable: 'قابل للبحث', yes: 'نعم', no: 'لا',
-    search: 'البحث في المنتجات أو العلامات التجارية أو المواصفات…', matches: 'مطابق',
-    available: 'متوفر', notRecorded: 'غير مسجل', units: 'وحدة',
-    compatible: 'المشاريع المناسبة', certs: 'الشهادات', catalogues: 'الكتالوجات',
-    empty: 'لا توجد منتجات بعد. ارفعوا كتالوجًا لتظهر هنا المنتجات المستخرجة منه.',
-    loading: 'جارٍ قراءة الكتالوج…', leadTime: 'مدة التوريد', days: 'يوم',
-    aiMatch: 'المطابقة بالذكاء الاصطناعي', noMatch: 'لا توجد فرص مطابقة بعد', source: 'المصدر',
+    aiMatch: 'Best match', noMatch: 'no opportunity to match against yet', source: 'Source',
   },
 };
-const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
+// Suppliers read English only (founder ruling 1008; review of #1369, 19 Oct 2026): the Arabic table
+// was deleted, so `lang` no longer selects a copy and every label is the English one.
+const t = (_lang: Lang, k: keyof typeof T.en): string => T.en[k] || String(k);
 
 function Count({ label, value }: { label: string; value: number | undefined }) {
   return (
@@ -139,7 +130,7 @@ export function ProductCard({ p, lang }: { p: Product; lang: Lang }) {
           {p.available_units != null
             ? `${num(p.available_units)} ${t(lang, 'units')}`
             : t(lang, 'notRecorded')}
-          {lead != null && <span className="opacity-50"> · {t(lang, 'leadTime')} {lang === 'ar' ? arDays(lead) : `${lead} ${t(lang, 'days')}`}</span>}
+          {lead != null && <span className="opacity-50"> · {t(lang, 'leadTime')} {`${lead} ${t(lang, 'days')}`}</span>}
         </span>
       </footer>
     </article>
@@ -173,7 +164,7 @@ export default function ProductIntelligence({ token, lang = 'en' }: { token?: st
 
   return (
     <div className="space-y-4">
-      {/* Catalog AI — the only door that WRITES the product store from a file the supplier already has. */}
+      {/* Product catalogue — the only door that WRITES the product store from a file the supplier already has. */}
       <SupplierCatalogUpload token={token} lang={lang} onDone={() => setReload((n) => n + 1)} />
 
       {/* §7's "After" panel: the three counts the spec draws, over real rows. */}

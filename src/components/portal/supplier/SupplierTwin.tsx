@@ -62,30 +62,18 @@ const T = {
     risk: 'Risk Level', quality: 'Quality', delivery: 'Delivery', response: 'Response',
     pricing: 'Pricing', overall: 'Overall', score: 'Supplier Intelligence Score',
     established: 'Established', employees: 'Employees', emirates: 'Emirates',
-    confidence: 'AI Confidence', map: 'Capability Map', documents: 'Documents',
+    confidence: 'Profile confidence', map: 'Capability Map', documents: 'Documents',
     notRated: 'not rated yet', estimate: 'estimated', perYear: 'units/year',
     verified: 'Verified Supplier', unverified: 'Not yet verified', demo: 'DEMO FIXTURE — not a real company',
     loading: 'Reading your company intelligence…', none: 'none on file', unknown: 'unknown',
     notAssessed: 'Not rated yet — no measurement',
     riskLOW: 'Low', riskMEDIUM: 'Medium', riskHIGH: 'High', riskCRITICAL: 'Critical',
   },
-  ar: {
-    twin: 'التوأم الرقمي للمورّد', health: 'صحة المورّد', profile: 'معلومات الشركة',
-    strength: 'قوة الشركة', capabilities: 'القدرات', products: 'المنتجات',
-    certifications: 'الشهادات', capacity: 'الطاقة الإنتاجية', opportunities: 'أفضل الفرص',
-    risk: 'مستوى المخاطر', quality: 'الجودة', delivery: 'التسليم', response: 'الاستجابة',
-    pricing: 'التسعير', overall: 'الإجمالي', score: 'مؤشر تقييم المورّد',
-    established: 'سنة التأسيس', employees: 'الموظفون', emirates: 'الإمارات',
-    confidence: 'ثقة الذكاء الاصطناعي', map: 'خريطة القدرات', documents: 'المستندات',
-    notRated: 'لم يُقيَّم بعد', estimate: 'تقديري', perYear: 'وحدة/سنة',
-    verified: 'مورّد موثّق', unverified: 'غير موثّق بعد', demo: 'نموذج تجريبي — ليست شركة حقيقية',
-    loading: 'جارٍ تحليل بيانات شركتكم…', none: 'لا يوجد', unknown: 'غير معروف',
-    notAssessed: 'لم يُقيَّم بعد — لا يوجد قياس',
-    riskLOW: 'منخفض', riskMEDIUM: 'متوسط', riskHIGH: 'مرتفع', riskCRITICAL: 'حرج',
-  },
 };
 type Lang = 'en' | 'ar';
-const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
+// Suppliers read English only (founder ruling 1008; review of #1369, 19 Oct 2026): the Arabic table
+// was deleted, so `lang` no longer selects a copy and every label is the English one.
+const t = (_lang: Lang, k: keyof typeof T.en): string => T.en[k] || String(k);
 
 // No measurement, no verdict: a NULL risk_level reads "not rated yet", never a default grade
 // (audit 21 Sep 2026: a supplier with no licence and no history was shown as low risk).
@@ -275,7 +263,7 @@ export default function SupplierTwin({ token, lang = 'en' }: { token?: string | 
           <Stat
             label={t(lang, 'emirates')}
             value={emirates.length
-              ? emirates.map((e) => emirateLabel(lang, e)).join(lang === 'ar' ? '، ' : ', ')
+              ? emirates.map((e) => emirateLabel(lang, e)).join(', ')
               : t(lang, 'unknown')}
           />
           <Stat
