@@ -23,6 +23,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => (existsSync(join(ROOT, p)) ? readFileSync(join(ROOT, p), 'utf8') : '');
@@ -116,7 +117,10 @@ test('send_whatsapp re-reads the portfolio before this reminder leaves', () => {
 test('the rolled-back rehearsal on production answers PROBE OK', { skip: SKIP }, async () => {
   assert.ok(PROBE, 'no probe file');
   const { sql } = await import('../lib/db.mjs');
-  const r = await replaySql(PROBE, { retry: false, rows: true });
+  // Ruling 1199 (#1479, demo_activity_files_no_seat_task_or_handoff.sql) files no handoff for a ZZ DEMO
+  // supplier; this rehearsal proves the sales_engineer -> customer_support handoff on one, so it switches
+  // that guard off for its own rolled-back transaction (scripts/lib/seat_work_fixtures.mjs).
+  const r = await replaySql(seatWorkFixtures() + '\n;\n' + PROBE, { retry: false, rows: true });
   const verdict = String(r?.[0]?.verdict ?? JSON.stringify(r));
   console.log(verdict);
   assert.match(verdict, /^PROBE OK/, verdict);

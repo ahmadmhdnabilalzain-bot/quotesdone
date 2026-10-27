@@ -1,0 +1,152 @@
+{
+  "rect": {
+    "top": 699,
+    "left": 152,
+    "width": 640,
+    "height": 76
+  },
+  "visible": {
+    "w": 640,
+    "h": 69
+  },
+  "textarea": {
+    "display": "block",
+    "visibility": "visible",
+    "opacity": "1",
+    "height": "75.5px",
+    "minH": "48px",
+    "lineHeight": "24.75px",
+    "zIndex": "auto"
+  },
+  "window": {
+    "w": 1366,
+    "h": 768,
+    "scrollY": 45
+  },
+  "chain": [
+    {
+      "tag": "div",
+      "cls": "flex items-end gap-2",
+      "display": "flex",
+      "position": "static",
+      "overflow": "visible/visible",
+      "height": 76,
+      "minH": "0px",
+      "maxH": "none",
+      "top": 699,
+      "bottom": 774
+    },
+    {
+      "tag": "div",
+      "cls": "shrink-0 border-t border-border bg-secondary/20 px-3 py-3 sm:px-4",
+      "display": "block",
+      "position": "static",
+      "overflow": "visible/visible",
+      "height": 179,
+      "minH": "auto",
+      "maxH": "none",
+      "top": 608,
+      "bottom": 786
+    },
+    {
+      "tag": "section",
+      "cls": "qd-panel qd-grain mb-3.5 flex flex-col overflow-hidden shadow-e2",
+      "display": "flex",
+      "position": "relative",
+      "overflow": "hidden/hidden",
+      "height": 599,
+      "minH": "0px",
+      "maxH": "none",
+      "top": 182,
+      "bottom": 781
+    },
+    {
+      "tag": "div",
+      "cls": "mb-5",
+      "display": "block",
+      "position": "static",
+      "overflow": "visible/visible",
+      "height": 599,
+      "minH": "0px",
+      "maxH": "none",
+      "top": 182,
+      "bottom": 781
+    },
+    {
+      "tag": "div",
+      "cls": "mx-auto w-full max-w-[1240px] px-4 py-5 sm:px-6",
+      "display": "block",
+      "position": "static",
+      "overflow": "visible/visible",
+      "height": 2351,
+      "minH": "0px",
+      "maxH": "none",
+      "top": 20,
+      "bottom": 2371
+    },
+    {
+      "tag": "main",
+      "id": "main",
+      "cls": "min-w-0 flex-1 pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-8",
+      "display": "block",
+      "position": "static",
+      "overflow": "visible/visible",
+      "height": 2383,
+      "minH": "auto",
+      "maxH": "none",
+      "top": 20,
+      "bottom": 2403
+    },
+    {
+      "tag": "div",
+      "cls": "flex min-w-0 flex-1 flex-col",
+      "display": "flex",
+      "position": "static",
+      "overflow": "visible/visible",
+      "height": 2448,
+      "minH": "auto",
+      "maxH": "none",
+      "top": -45,
+      "bottom": 2403
+    },
+    {
+      "tag": "div",
+      "cls": "flex min-h-screen w-full",
+      "display": "flex",
+      "position": "static",
+      "overflow": "visible/visible",
+      "height": 2448,
+      "minH": "768px",
+      "maxH": "none",
+      "top": -45,
+      "bottom": 2403
+    },
+    {
+      "tag": "div",
+      "cls": "osx min-h-screen bg-background text-foreground",
+      "display": "block",
+      "position": "static",
+      "overflow": "visible/visible",
+      "height": 2448,
+      "minH": "768px",
+      "maxH": "none",
+      "top": -45,
+      "bottom": 2403
+    },
+    {
+      "tag": "body",
+      "cls": "font-sans",
+      "display": "block",
+      "position": "static",
+      "overflow": "clip/visible",
+      "height": 2448,
+      "minH": "768px",
+      "maxH": "none",
+      "top": -45,
+      "bottom": 2403
+    }
+  ],
+  "problems": [
+    "only 640x69 of the 640x76 box can be seen (clipped by an overflow ancestor or the window)"
+  ]
+}

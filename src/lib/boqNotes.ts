@@ -62,6 +62,9 @@ const RULES: Rule[] = [
   R(/^The binary DXF has more than (.+?) group-code pairs; reading stopped there, so totals are partial\.$/, (m) => `يتضمن ملف DXF الثنائي أكثر من ${m[1]} زوج من رموز المجموعات؛ وتوقفت القراءة عند هذا الحد، لذا المجاميع جزئية.`),
   R(/^(.+?) line\(s\) of the drawing's take-off were withheld because they still named a party after redaction; please add them by hand if they are needed\.$/, (m) => `حُجب ${m[1]} من بنود حصر الكميات في المخطط لأنها بقيت تذكر اسم جهة بعد إخفاء البيانات؛ يُرجى إضافتها يدويًا إن لزم.`),
   // _shared/drawing_format.ts (founder ruling 1000, 28 Sep 2026: drawings are PDF or CAD only)
+  // _shared/doc_read/pdf.ts, a words-only read that stopped at its CPU budget (13 Oct 2026)
+  R(/^This PDF has no text layer \(a scan, or CAD exported as lines\); its words need OCR\.$/, () => 'لا يحتوي ملف PDF هذا على طبقة نص (مستند ممسوح ضوئيًا، أو رسم CAD مُصدَّر كخطوط)؛ وتحتاج كلماته إلى التعرّف الضوئي على النصوص.'),
+  R(/^Read (\d+) of (\d+) pages within the reading budget\.$/, (m) => `قُرئت ${m[1]} صفحة من أصل ${m[2]} ضمن حدّ القراءة.`),
   R(/^Please upload your drawing as PDF or CAD \(DWG\/DXF\)\.$/, () => 'يُرجى رفع المخطط بصيغة PDF أو CAD ‏(DWG/DXF).'),
   R(/^A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed\.$/, () => 'لا تحتوي الصورة أو المستند الممسوح ضوئيًا على طبقة نص؛ فتُقرأ كلماته بتقنية التعرّف الضوئي على النصوص في متصفحك، أو بنموذج رؤية حين يُسمح بذلك.'),
   R(/^The PDF could not be opened \(encrypted, damaged or not a PDF\)\.$/, () => 'تعذّر فتح ملف PDF (فهو مشفّر أو تالف أو ليس ملف PDF).'),
@@ -79,6 +82,8 @@ const RULES: Rule[] = [
   R(/^(.+?) quantities found; the first (.+?) are kept\.$/, (m) => `عُثر على ${m[1]} كمية؛ واحتُفظ بأول ${m[2]} منها.`),
   R(/^(.+?) anonymous block inserts \(dimensions, hatches, dynamic blocks\) were not counted\.$/, (m) => `لم تُحتسب الكتل غير المسمّاة (الأبعاد والتظليل والكتل الديناميكية)، وعددها ${m[1]}.`),
   // doc_read/cad.ts, 24 Sep 2026: the legend's own sample symbols are not work anyone prices.
+  R(/^(.+?) dynamic block variant\(s\) \(\*U\) were counted as the block they are drawn from\.$/, (m) => `احتُسبت الكتل الديناميكية المعدّلة ضمن الكتلة الأصلية التي رُسمت منها، وعددها ${m[1]}.`),
+  R(/^(.+?) block insert\(s\) nested inside other blocks were counted once per placement of their parent\.$/, (m) => `احتُسبت الكتل الموضوعة داخل كتل أخرى مرة لكل موضع للكتلة الأم، وعددها ${m[1]}.`),
   R(/^(.+?) block insert\(s\) drawn as legend samples beside their descriptions were not counted\.$/, (m) => `لم تُحتسب رموز مفتاح الرسم المرسومة بجانب أوصافها، وعددها ${m[1]}.`),
   R(/^The drawing has more than (.+?) entities; reading stopped there, so totals are partial\.$/, (m) => `يتضمن المخطط أكثر من ${m[1]} عنصر؛ وتوقفت القراءة عند هذا الحد، لذا المجاميع جزئية.`),
   R(/^Lengths are per layer as drawn; block contents are not exploded and viewport scales are not applied\.$/, () => 'الأطوال محسوبة لكل طبقة كما رُسمت؛ ولم تُفكَّك محتويات الكتل ولم تُطبَّق مقاييس نوافذ العرض.'),

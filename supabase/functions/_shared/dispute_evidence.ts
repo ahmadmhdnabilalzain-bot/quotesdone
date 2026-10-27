@@ -10,7 +10,7 @@ export const DISPUTE_TEXT_FIELDS = ['access_activity_log', 'billing_address', 'c
 // Stripe caps the combined text of a dispute's evidence at 150,000 characters; each field is kept well inside it.
 export const MAX_FIELD_CHARS = 20000;
 
-export function disputeEvidenceForm(fields: Record<string, unknown>, files: { receipt?: string } = {}, submit = true): URLSearchParams {
+export function disputeEvidenceForm(fields: Record<string, unknown>, files: { receipt?: string; customer_signature?: string } = {}, submit = true): URLSearchParams {
   const f = new URLSearchParams();
   for (const k of DISPUTE_TEXT_FIELDS) {
     const v = fields?.[k];
@@ -18,6 +18,8 @@ export function disputeEvidenceForm(fields: Record<string, unknown>, files: { re
     f.set(`evidence[${k}]`, String(v).slice(0, MAX_FIELD_CHARS));
   }
   if (files.receipt && /^file_/.test(files.receipt)) f.set('evidence[receipt]', files.receipt);
+  // the customer's signed-terms acceptance certificate (13 Oct 2026)
+  if (files.customer_signature && /^file_/.test(files.customer_signature)) f.set('evidence[customer_signature]', files.customer_signature);
   f.set('submit', submit ? 'true' : 'false');
   f.set('metadata[answered_by]', 'accountant');
   return f;

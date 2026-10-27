@@ -51,6 +51,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "furniture_repair:product-distinctions",
+      "topic": "Furniture repair: repair types and refinishing systems",
+      "topic_ar": "إصلاح الأثاث: أنواع الإصلاح وأنظمة إعادة التشطيب",
+      "kind": "product_distinctions",
+      "body_en": "Furniture repair and refurbishment covers structural repair (loose joints re-glued, broken legs and frames rebuilt, drawer runners and hinges replaced), refinishing wood (stripping the old finish, sanding, filling, staining, then a new finish: lacquer such as nitrocellulose or PU for durable sheen, oil and wax for a natural look, or paint), re-upholstery (new foam by density, fabric or leather, springs and webbing), leather repair and recolouring, office-chair repair (gas lifts, mechanisms, castors, armrests), metal furniture repainting or powder coating, and hotel FF&E refurbishment cycles done room by room. Choices: restore (keep and repair original material and character, for antiques and good solid wood), refurbish (renew finish and fabric for a like-new look), or replace parts with new components. On-site work suits fixed or large items and offices out of hours; workshop work gives better finish quality, especially for spray lacquer. Offers differ on the finish system and sheen, foam density and fabric grade (rub count, fire rating for commercial use), colour matching, collection and delivery, and warranty.",
+      "body_ar": "يشمل إصلاح وتجديد الأثاث الإصلاح الإنشائي (إعادة لصق الوصلات المرتخية، وإعادة بناء الأرجل والإطارات المكسورة، واستبدال مجاري الأدراج والمفصلات)، وإعادة تشطيب الخشب (إزالة التشطيب القديم، والصنفرة، والتعبئة، والصبغ، ثم تشطيب جديد: ورنيش مثل النيتروسليلوز أو البولي يوريثان لمعان متين، أو زيت وشمع لمظهر طبيعي، أو دهان)، وإعادة التنجيد (إسفنج جديد حسب الكثافة، قماش أو جلد، نوابض وأحزمة)، وإصلاح الجلد وإعادة صبغه، وإصلاح كراسي المكاتب (رافعات الغاز، الآليات، العجلات، مساند الذراعين)، وإعادة دهان الأثاث المعدني أو طلائه بالبودرة، ودورات تجديد أثاث الفنادق غرفة بغرفة. والخيارات: الترميم (الحفاظ على المادة الأصلية وطابعها وإصلاحها، للتحف والخشب الصلب الجيد)، أو التجديد (تجديد التشطيب والقماش لمظهر كالجديد)، أو استبدال الأجزاء بمكونات جديدة. والعمل في الموقع يناسب القطع الثابتة أو الكبيرة والمكاتب خارج الدوام؛ والعمل في الورشة يعطي جودة تشطيب أفضل خاصة للورنيش بالرش. وتختلف العروض في نظام التشطيب ودرجة اللمعان، وكثافة الإسفنج ودرجة القماش (عدد دورات الاحتكاك، وتصنيف الحريق للاستخدام التجاري)، ومطابقة الألوان، والاستلام والتسليم، والضمان.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Wood_finishing"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: sanding, staining, lacquer and polyurethane finishes; varnish stripping with removers -> confirmed."
+    },
+    {
+      "id": "furniture_repair:lead-times-and-quoting",
+      "topic": "Furniture repair & refurbishment - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "إصلاح وتجديد الأثاث: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Small repairs: days; refinishing and re-upholstery 1-3 weeks; hotel refurbishment programmes are phased by floor. A workshop needs photos and dimensions, the item and material, the damage, the finish or fabric wanted, quantity, and whether on-site work is needed. A quote states the work per item, finish system and sheen, materials (foam, fabric code), colour matching, collection and delivery, duration, warranty and validity.",
+      "body_ar": "الإصلاحات الصغيرة: أيام؛ وإعادة التشطيب والتنجيد 1-3 أسابيع؛ وبرامج تجديد الفنادق مرحلية حسب الطوابق. وتحتاج الورشة الصور والأبعاد، والقطعة والمادة، والضرر، والتشطيب أو القماش المطلوب، والكمية، وهل يلزم العمل في الموقع. ويذكر العرض العمل لكل قطعة، ونظام التشطيب واللمعان، والمواد (الإسفنج، رمز القماش)، ومطابقة الألوان، والاستلام والتسليم، والمدة، والضمان، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -76,6 +106,14 @@
       ],
       "why": "No entry of this pack answered it (no entry on whether fabric is included or fabric metres for a three-seater). furniture_repair:three-seater-reupholstery-fabric-metres was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from furniture_repair.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Our solid wood dining table has white heat marks and scratches. Refinish or replace?",
+      "q_ar": "طاولة الطعام الخشب الصلب عندنا فيها علامات حرارة بيضاء وخدوش، نعيد تشطيبها ولا نغيرها؟",
+      "expected_entry_ids": [
+        "furniture_repair:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -95,6 +133,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "furniture_repair:three-seater-reupholstery-fabric-metres"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "furniture_repair:product-distinctions"
+      ],
+      "stored_not_served": [
+        "furniture_repair:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Wood_finishing"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

@@ -39,6 +39,9 @@ test('the matcher was read', () => {
 test('every page under [locale] is reachable with and without the /ar prefix', () => {
   const missing = [];
   for (const r of pages(APP)) {
+    // A catch-all ([...rest], #1455) is the not-found page for every unknown path. It has no URL of its own to route,
+    // so it is skipped here. Every named page is still checked.
+    if (/\[\.\.\.[^\]]+\]/.test(r)) continue;
     const path = r.replace(/\[[^\]]+\]/g, 'x');
     for (const url of [path, path === '/' ? '/ar' : '/ar' + path]) if (!routed(url)) missing.push(url);
   }
@@ -48,7 +51,7 @@ test('every page under [locale] is reachable with and without the /ar prefix', (
 test('every legal.json version the sitemap lists is a page and is routed', () => {
   const legal = JSON.parse(readFileSync(join(ROOT, 'src', 'content', 'legal.json'), 'utf8'));
   for (const slug of Object.keys(legal)) {
-    const path = '/' + slug.replace(/-(v\d+)$/, '/$1'); // the same rewrite src/app/sitemap.xml/route.ts applies
+    const path = '/' + slug.replace(/-(v\d+(?:\.\d+)?)$/, '/$1'); // the same rewrite src/app/sitemap.xml/route.ts applies
     assert.ok(existsSync(join(APP, ...path.split('/').filter(Boolean), 'page.tsx')), `${path} is in the sitemap but has no page`);
     assert.ok(routed(path), `${path} is in the sitemap but the middleware does not route it`);
   }

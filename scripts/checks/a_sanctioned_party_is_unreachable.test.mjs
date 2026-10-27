@@ -34,6 +34,7 @@
 // That is a real red, not a nuisance: until it is applied, nothing below is true in production.
 //
 //   node --test scripts/checks/a_sanctioned_party_is_unreachable.test.mjs
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -41,7 +42,7 @@ import { sql } from '../lib/db.mjs';
 import { replaySql } from '../lib/safe_replay.mjs';
 
 const PROJECT = 'htdblwldjkcgjvmqkbeh';
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 

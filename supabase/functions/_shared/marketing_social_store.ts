@@ -9,7 +9,7 @@ import { aiReply } from './ai_reply.ts';
 import { pickPage, type PageAccount } from '../marketing_social_inbox/meta.ts';
 import { call, hideRequest, replyRequest, type CommentEvent, type Fetch, type Store } from './marketing_social_comments.ts';
 import { raiseSocialHandoff } from '../marketing/social_handoffs.ts';
-import { precedentBlock, recallCases } from './case_recall.ts';
+import { recallCases } from './case_recall.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -83,7 +83,7 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
     // EVERY PUBLIC REPLY IS WRITTEN BY A MODEL (rulings 1195/1196, 12 Oct 2026): the comment_* library rows, the FAQ, the
     // passages and the social_model_enabled gate are no longer used here. The recalled cases go with the comment.
     async write(ev, lang, kind, problems) {
-      const memory = await recallCases(admin, { seat: 'marketing', path: 'comment_reply', caseKind: 'social_reply', otherSeats: false, situation: ev.text });
+      await recallCases(admin, { seat: 'marketing', path: 'comment_reply', caseKind: 'social_reply', otherSeats: false, situation: ev.text });
       const what: Record<string, string> = {
         complaint: 'They complained, asked for a person or raised something sensitive: say briefly that a member of the team will contact them privately; give no detail of any case in public.',
         supplier: 'A supplier asks about joining: answer briefly how to register (from the brief).',
@@ -93,7 +93,8 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
       };
       const a = await aiReply(defaultDeps(admin, 'marketing'), { seat: 'marketing', channel: 'a public ' + ev.platform + ' comment', audience: 'visitor', lang,
         message: String(ev.text || '').slice(0, 4000), subject: { platform: ev.platform, message_id: ev.commentId },
-        facts: (memory.cases.length || memory.handoffs?.length) ? precedentBlock(memory) : undefined,
+        // no past-case text in a public reply (18 Oct 2026, run d6cf4793): another person's message is a case's situation;
+        // the recall above is kept so the judgement records it
         rules: 'A PUBLIC comment reply, under about 40 words. Never a phone number, e-mail, link, DM instruction or a supplier name. ' + what[kind]
           + (problems.length ? ' YOUR LAST REPLY WAS REFUSED for: ' + problems.join(', ') + '. Write it again without those.' : '') });
       return a.reply;

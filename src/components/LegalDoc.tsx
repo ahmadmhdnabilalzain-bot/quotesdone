@@ -14,7 +14,7 @@ const DOCS = legal as unknown as Record<string, { en: Doc; ar: Doc }>;
 // canonical and hreflang URLs of /supplier-agreement-v10 and /supplier-agreement-v11 — both 404. The
 // path is now rebuilt from the slug, the superseded copies are noindex (the live agreement is the one
 // to index), and the version is in the title so the two are never mistaken for the same document.
-const ARCHIVED = /^(.*)-(v\d+)$/;
+const ARCHIVED = /^(.*)-(v\d+(?:\.\d+)?)$/; // 19 Oct 2026: also /privacy/v1.6
 
 export function metaFor(slug: string, locale: string) {
   const e = DOCS[slug];

@@ -48,9 +48,10 @@
 // Deterministic and zero-cost: no model is called on any of these paths.
 //
 //   node scripts/checks/active_signal_types_are_executable.test.mjs
+import { SUPABASE_TOKEN_FILE } from '../../lib/supabase_token.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 const PROD = 'htdblwldjkcgjvmqkbeh';
-const LOCAL = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN || (existsSync(LOCAL) ? readFileSync(LOCAL, 'utf8') : '')).trim();
 if (!token) { console.log('SKIPPED: no management token, so this asserted nothing.'); process.exit(0); }
 // A SQL string literal, never a JS one. JSON.stringify gives double quotes, which Postgres reads as

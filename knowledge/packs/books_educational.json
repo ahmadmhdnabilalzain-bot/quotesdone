@@ -54,6 +54,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "books_educational:product-distinctions",
+      "topic": "Books and educational materials: what schools and institutions buy and how editions matter",
+      "topic_ar": "الكتب والمواد التعليمية: ما تشتريه المدارس والمؤسسات وأهمية الطبعات",
+      "kind": "product_distinctions",
+      "body_en": "Institutional book supply covers curriculum textbooks (by curriculum: British, American, IB, Indian, national and others), workbooks and teacher guides, readers and library books, dictionaries and reference, exam preparation, higher-education and professional titles, and e-textbooks and digital platform licences. Editions change every few years, and each edition and format carries its own ISBN, so an order must state the ISBN, not just the title, or the wrong edition arrives. Formats: paperback, hardback, student and teacher editions, and digital access codes (single-use, often time-limited per student). Major international publishers distribute through regional distributors; local printers handle custom and Arabic-language material. Educational materials beyond books: stationery packs, classroom resources and manipulatives, science kits, art supplies, posters and charts, early-years learning toys, and assessment materials. Imported books may need content approval before sale or distribution in some markets. Offers differ on edition accuracy, availability by the start of term, discount off list price, returns policy for unsold or wrong copies, and digital licence terms.",
+      "body_ar": "تشمل توريدات الكتب للمؤسسات الكتب المدرسية حسب المنهج (البريطاني، الأمريكي، البكالوريا الدولية، الهندي، الوطني وغيرها)، وكتب التمارين وأدلة المعلم، وكتب القراءة والمكتبات، والقواميس والمراجع، والتحضير للاختبارات، وكتب التعليم العالي والكتب المهنية، والكتب الإلكترونية وتراخيص المنصات الرقمية. وتتغير الطبعات كل بضع سنوات، ولكل طبعة وشكل رقم ISBN خاص به، لذلك يجب أن يذكر الطلب رقم ISBN لا العنوان فقط، وإلا وصلت طبعة خاطئة. والأشكال: غلاف ورقي، وغلاف مقوى، وطبعات الطالب والمعلم، ورموز الوصول الرقمي (لمرة واحدة، وغالباً محدودة المدة لكل طالب). ويوزع الناشرون الدوليون الكبار عبر موزعين إقليميين؛ وتتولى المطابع المحلية المواد المخصصة والعربية. والمواد التعليمية غير الكتب: حزم القرطاسية، وموارد الفصل والوسائل التعليمية، وأطقم العلوم، ومستلزمات الفنون، والملصقات واللوحات، وألعاب التعلم للمراحل المبكرة، ومواد التقييم. وقد تحتاج الكتب المستوردة موافقة على المحتوى قبل البيع أو التوزيع في بعض الأسواق. وتختلف العروض في دقة الطبعة، والتوفر قبل بداية الفصل، والخصم من سعر القائمة، وسياسة إرجاع النسخ غير المباعة أو الخاطئة، وشروط التراخيص الرقمية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Textbook"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: textbook editions, ISBN per version, print and e-textbook formats, major publishers -> confirmed."
+    },
+    {
+      "id": "books_educational:lead-times-and-quoting",
+      "topic": "Books & educational materials - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الكتب والمواد التعليمية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Distributor stock: 1-2 weeks; titles ordered from publishers 3-8 weeks; back-to-school peaks need orders months ahead. A supplier needs the book list with ISBNs, quantities per grade, format, delivery schedule and points, and digital licence needs. A quote states per ISBN the title, edition, format, availability, list price and discount, delivery, returns policy, payment terms and validity.",
+      "body_ar": "مخزون الموزع: 1-2 أسبوع؛ والعناوين المطلوبة من الناشرين 3-8 أسابيع؛ وذروة العودة للمدارس تتطلب الطلب قبل أشهر. ويحتاج المورد قائمة الكتب بأرقام ISBN، والكميات لكل صف، والشكل، وجدول التسليم ونقاطه، واحتياجات التراخيص الرقمية. ويذكر العرض لكل رقم ISBN العنوان والطبعة والشكل والتوفر وسعر القائمة والخصم والتسليم وسياسة الإرجاع وشروط الدفع والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (Standards entry covers MoIAT/ECAS product conformity only; nothing on UAE Media Council content approval for imported books; missing). books_educational:media-content-import-permit was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from books_educational.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Why did our school receive the wrong edition of a maths textbook, and how do we avoid it next term?",
+      "q_ar": "ليش وصلت مدرستنا طبعة غلط من كتاب الرياضيات؟ وكيف نتجنب هذا الفصل الجاي؟",
+      "expected_entry_ids": [
+        "books_educational:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -97,6 +135,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "books_educational:media-content-import-permit"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "books_educational:product-distinctions"
+      ],
+      "stored_not_served": [
+        "books_educational:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Textbook"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

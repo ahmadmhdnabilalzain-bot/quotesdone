@@ -22,7 +22,7 @@
 //          cosine), calls the same routine, raises the top-5 ids back; nothing commits. The excerpt of a staged row is
 //          left(body_en, 1200) of the repository entry, i.e. exactly what the loader would write.
 //
-//   node scripts/eval/seat_qualification_exam.mjs [--mode live|staged] [--seat ceo] [--out results.json]
+//   node scripts/eval/seat_qualification_exam.mjs [--mode live|staged] [--seat ceo] [--out results.json] [--with-sql pending.sql ...]
 //   node scripts/eval/seat_qualification_exam.mjs --load [--seat ceo]   (writes public.seat_exam_item; see below)
 //
 // Exit 1 when an exam file is malformed (an expected id missing, or a fact that is not in the first 1,200 characters
@@ -81,6 +81,13 @@ async function main() {
   const { readPacks, rowsOf, upsertSql, makeEmbedder, cosine, vecLit, SEAT_TABLE } = await import('../kb/verified_packs.mjs');
   const { sql, PROJECT_REF } = await import('../lib/db.mjs');
   const mode = at('--mode') ?? 'live';
+  // --with-sql <file> (staged only, ceo 19 Oct 2026): run a not-yet-applied routine file inside the SAME aborted
+  // transaction, so a pending retrieval change is graded before merge and nothing commits. Repeatable, in order.
+  const withSql = process.argv.flatMap((a, i) => (a === '--with-sql' ? [readFileSync(process.argv[i + 1], 'utf8')] : [])).join('\n');
+  // --audience <a> (ceo 19 Oct 2026, #1567): pass p_audience to the routine. The daily and monthly SQL exams pass
+  // 'internal'; 'customer' shows what an outside audience is given. Omitted: the call is made without it.
+  const aud = at('--audience') ? `, p_audience => '${at('--audience').replace(/[^a-z_]/g, '')}'` : `, p_audience => 'visitor'`;
+  if (withSql && mode !== 'staged') { console.error('--with-sql needs --mode staged (live never runs DDL)'); process.exit(1); }
   const packs = readPacks(join(REPO, 'knowledge'));
   const exams = readExams().filter((x) => !at('--seat') || x.seat === at('--seat'));
 
@@ -116,7 +123,7 @@ async function main() {
     }
     return;
   }
-  const topExpr = (seat, vec) => `(select coalesce(jsonb_agg(x->>'id' order by n), '[]'::jsonb) from jsonb_array_elements(public.fn_reason_retrieve('${seat}', ${vecLit(vec)}, ${K_RETRIEVE})) with ordinality t(x, n) where n <= ${TOP})`;
+  const topExpr = (seat, vec) => `(select coalesce(jsonb_agg(left(x->>'id', 64) order by n), '[]'::jsonb) from jsonb_array_elements(public.fn_reason_retrieve('${seat}', ${vecLit(vec)}, ${K_RETRIEVE}${aud})) with ordinality t(x, n) where n <= ${TOP})`;
   console.log(`mode: ${mode}`);
   const report = { mode, at: new Date().toISOString(), top: TOP, seats: [] };
 
@@ -128,20 +135,26 @@ async function main() {
       for (let c = 0; c < x.items.length; c += 10) {
         const part = x.items.slice(c, c + 10);
         // The routine is STABLE and this is one SELECT; the API read_only role cannot EXECUTE it (42501, 23 Sep 2026).
-        const [r] = await sql(`select jsonb_build_array(${part.map((it) => `(select coalesce(jsonb_agg(jsonb_build_object('id', x->>'id', 'excerpt', x->>'excerpt') order by n), '[]'::jsonb) from jsonb_array_elements(public.fn_reason_retrieve('${x.seat}', ${vecLit(it.vec)}, ${K_RETRIEVE})) with ordinality t(x, n) where n <= ${TOP})`).join(',')}) got`);
+        const [r] = await sql(`select jsonb_build_array(${part.map((it) => `(select coalesce(jsonb_agg(jsonb_build_object('id', x->>'id', 'excerpt', x->>'excerpt') order by n), '[]'::jsonb) from jsonb_array_elements(public.fn_reason_retrieve('${x.seat}', ${vecLit(it.vec)}, ${K_RETRIEVE}${aud})) with ordinality t(x, n) where n <= ${TOP})`).join(',')}) got`);
         part.forEach((it, j) => { it.top = r.got[j]; });
       }
     } else {
       const rows = rowsOf(x.pack).filter((r) => r.table === SEAT_TABLE[x.seat]);
       const rv = await embedder.many(rows.map((r) => r.text));
       rows.forEach((r, i) => { r.vec = rv[i]; });
-      // 8 questions a chunk: the answer comes back through an error message the management API cuts at ~2,000 characters.
-      for (let c = 0; c < x.items.length; c += 8) {
-        const part = x.items.slice(c, c + 8);
+      // 4 questions a chunk: the answer comes back through an error message the management API cuts at ~2,000 characters (8
+      // overflowed once the entry ids grew longer, 19 Oct 2026); ids are cut to 64 characters (an ops_knowledge path is longer).
+      for (let c = 0; c < x.items.length; c += 4) {
+        const part = x.items.slice(c, c + 4);
         const stage = new Map();
         for (const it of part) rows.map((r) => [r, cosine(it.vec, r.vec)]).sort((a, b) => b[1] - a[1]).slice(0, K_RETRIEVE).forEach(([r]) => stage.set(r.record_id, r));
         const block = `do $qdexam$ declare o jsonb := '[]'::jsonb; begin\n${part.map((it) => `o := o || jsonb_build_array(${topExpr(x.seat, it.vec)});`).join('\n')}\nraise exception 'CHK<<%>>', o::text; end $qdexam$;`;
-        try { await sql(upsertSql(SEAT_TABLE[x.seat], [...stage.values()]) + block, { retry: false }); throw new Error('the probe committed instead of rolling back'); }
+        // A 429 from the management API ran nothing; the block always aborts, so sending it again is safe.
+        const probe = async (tries = 6) => {
+          try { await sql(withSql + '\n' + upsertSql(SEAT_TABLE[x.seat], [...stage.values()]) + block, { retry: false }); }
+          catch (e) { if (tries > 1 && /HTTP 429/.test(String(e.message))) { await new Promise((r) => setTimeout(r, 15000)); return probe(tries - 1); } throw e; }
+        };
+        try { await probe(); throw new Error('the probe committed instead of rolling back'); }
         catch (e) {
           const m = String(e.message).match(/CHK<<(.*?)>>/s);
           if (!m) throw new Error(`${x.seat}: the probe failed before it could report: ${String(e.message).slice(0, 400)}`);

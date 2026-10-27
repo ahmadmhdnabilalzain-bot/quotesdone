@@ -7,11 +7,11 @@
 // so production is read-only in effect: the row the guard refuses is never committed, and neither
 // is the one it permits. A guard verified by reading its source text is a guard nobody has ever
 // seen fire — that is the failure this whole spec file is about.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
 import { readFileSync } from 'node:fs';
 
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 
 // qd_guard refuses any statement carrying a write keyword, which is correct for the read path and
 // wrong for a probe whose entire purpose is to attempt a write and be refused. The transaction is

@@ -27,8 +27,8 @@ comment on column public.reviews.photo_paths is
 
 -- 3. The backup registry: review-photos is swept like every other customer-file bucket, and
 --    reviews.photo_paths is filed through that sweep. fn_backup_source_registry is copied from its
---    current definition (the_company_seal_bucket_is_registered_for_backup.sql, MANIFEST 1973) with
---    these two rows added.
+--    current definition (the_laptops_evidence_lives_in_a_private_bucket_not_in_git.sql, MANIFEST 2116,
+--    rebuilt 27 Oct 2026 after main added the evidence bucket) with these two rows added.
 --    Prevented by: scripts/checks/every_storage_path_is_in_the_backup_registry.test.mjs
 CREATE OR REPLACE FUNCTION public.fn_backup_source_registry()
  RETURNS TABLE(source text, kind text, bucket text, backed_up boolean, enqueue_rule text, reason text)
@@ -75,6 +75,7 @@ AS $function$
     ('social-media',     'bucket', 'social-media',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (generated post cards and avatars; not in the repository)', null),
     ('brand',            'bucket', 'brand',            true, 'fn_enqueue_doc_backups: STORAGE SWEEP (brand kit, signature and stamp images; not in the repository)', null),
     ('company-seal',     'bucket', 'company-seal',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the company stamp and signature, private since 6 Oct 2026; read by pdf_native with the service role)', null),
+    ('evidence',         'bucket', 'evidence',         true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the laptop''s sandbox and campaign evidence moved off the Desktop on 26 Oct 2026: screenshots, recordings, files over 5 MB and real third parties'' documents kept out of git; private, service role only; indexed by sha256 in docs/reports/EVIDENCE_INDEX.md)', null),
     ('review-photos',    'bucket', 'review-photos',    true, 'fn_enqueue_doc_backups: STORAGE SWEEP (customers'' post-job review photos, EXIF stripped; private, signed links only)', null),
     ('reviews.photo_paths',                  'column', 'review-photos', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (review-photos)', null),
     ('kb-import-assets', 'bucket', 'kb-import-assets', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (knowledge import runs; only part of it is in the repository)', null),

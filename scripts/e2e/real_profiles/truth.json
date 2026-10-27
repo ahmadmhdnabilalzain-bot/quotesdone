@@ -1,0 +1,1176 @@
+{
+ "written_by": "it_engineer, by hand from reading each file on 13 Oct 2026 (no model). trades = what the document plainly offers as its core services or products: each must be proposed. trades_also = what it offers in passing: proposing it is not wrong, missing it is not a miss. Exact codes of public.taxonomy_trade.",
+ "docs": [
+  {
+   "id": "A01",
+   "file": "A01_skm_product_full_range.pdf",
+   "mime": "application/pdf",
+   "kind": "catalogue",
+   "format": "text_pdf_catalogue_8p",
+   "registered_name": "SKM Air Conditioning LLC",
+   "truth": {
+    "trades": [
+     "hvac"
+    ],
+    "trades_also": [
+     "refrigeration_cold_rooms"
+    ],
+    "company": "SKM Air Conditioning",
+    "emirate": "Sharjah",
+    "products": [
+     "air cooled chillers",
+     "air handling units",
+     "fan coil units",
+     "packaged units"
+    ],
+    "certifications": []
+   }
+  },
+  {
+   "id": "A02",
+   "file": "A02_emirates_glass_clearvue.pdf",
+   "mime": "application/pdf",
+   "kind": "catalogue",
+   "format": "text_pdf_design_heavy_54p",
+   "registered_name": "Emirates Glass LLC",
+   "truth": {
+    "trades": [
+     "glazing"
+    ],
+    "trades_also": [
+     "solar",
+     "aluminium"
+    ],
+    "company": "Emirates Glass (ClearVue)",
+    "emirate": "Dubai",
+    "products": [
+     "solar vision glass",
+     "spandrel",
+     "skylight and balustrade glass",
+     "PV cladding"
+    ],
+    "certifications": []
+   }
+  },
+  {
+   "id": "A03",
+   "file": "A03_almadar_aluminium_glass_catalogue.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_prequal_25p",
+   "registered_name": "Al Madar Aluminium and Glass LLC",
+   "truth": {
+    "trades": [
+     "aluminium",
+     "glazing"
+    ],
+    "trades_also": [
+     "joinery",
+     "interior_fitout",
+     "doors",
+     "steel"
+    ],
+    "company": "Al Madar Aluminium and Glass LLC",
+    "emirate": "Ajman",
+    "products": [
+     "aluminium doors and windows",
+     "curtain walls",
+     "frameless glass",
+     "ACP cladding",
+     "skylights",
+     "kitchen cabinets and wardrobes"
+    ],
+    "certifications": []
+   }
+  },
+  {
+   "id": "A04",
+   "file": "A04_arco_interiors_profile_2024.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_design_heavy_162p",
+   "registered_name": "Arco Interiors LLC",
+   "truth": {
+    "trades": [
+     "interior_fitout",
+     "design_consultancy",
+     "joinery"
+    ],
+    "trades_also": [
+     "flooring",
+     "curtains_blinds",
+     "office_furniture",
+     "school_furniture",
+     "av_it",
+     "mep_general",
+     "electrical",
+     "wallpaper",
+     "gypsum",
+     "it_services"
+    ],
+    "company": "Arco Interiors LLC",
+    "emirate": "Abu Dhabi",
+    "products": [
+     "interior design",
+     "fit-out",
+     "joinery",
+     "flooring",
+     "curtains",
+     "partitions",
+     "acoustics",
+     "office furniture",
+     "raised flooring",
+     "wallcovering",
+     "audio/visual"
+    ],
+    "certifications": [
+     "ISO 9001:2015",
+     "ISO 14001:2015",
+     "OHSAS 18001:2007"
+    ]
+   }
+  },
+  {
+   "id": "A05",
+   "file": "A05_royal_joinery_profile_2024.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_88p",
+   "registered_name": "Royal Joinery",
+   "truth": {
+    "trades": [
+     "joinery",
+     "interior_fitout"
+    ],
+    "trades_also": [
+     "doors",
+     "hotel_furniture",
+     "furniture_repair",
+     "design_consultancy"
+    ],
+    "company": "Royal Joinery (Royal Wood Factory)",
+    "emirate": "Abu Dhabi",
+    "products": [
+     "wooden doors",
+     "kitchens",
+     "wardrobes",
+     "vanities",
+     "custom furniture"
+    ],
+    "certifications": [
+     "ISO 9001"
+    ]
+   }
+  },
+  {
+   "id": "A06",
+   "file": "A06_taac_profile_prequal.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_prequal_95p",
+   "registered_name": "Temperatures Asia Air Conditioning",
+   "truth": {
+    "trades": [
+     "hvac"
+    ],
+    "trades_also": [
+     "refrigeration_cold_rooms",
+     "machinery_repair",
+     "swimming_pools",
+     "industrial_machinery"
+    ],
+    "company": "Temperatures Asia (TAAC)",
+    "emirate": "Sharjah",
+    "products": [
+     "process chillers",
+     "swimming pool heat pumps",
+     "chiller service and refurbishment",
+     "AC maintenance"
+    ],
+    "certifications": []
+   }
+  },
+  {
+   "id": "A07",
+   "file": "A07_linklight_electrical_profile_2017.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_31p",
+   "registered_name": "Link Light Electrical Works LLC",
+   "truth": {
+    "trades": [
+     "electrical",
+     "solar"
+    ],
+    "trades_also": [
+     "electrical_wholesale",
+     "fire_fighting",
+     "av_it",
+     "security_systems",
+     "lighting_fixtures",
+     "power_generators"
+    ],
+    "company": "Link Light Electrical Works",
+    "emirate": "Dubai",
+    "products": [
+     "electrical installation",
+     "DRRG solar PV",
+     "switchgear panels",
+     "structured cabling",
+     "fire alarm"
+    ],
+    "certifications": [
+     "ISO 9001:2015",
+     "DEWA approved"
+    ]
+   }
+  },
+  {
+   "id": "A08",
+   "file": "A08_emt_electromechanical_prequal_2022.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_prequal_183p",
+   "registered_name": "EMT Electromechanical Works LLC",
+   "truth": {
+    "trades": [
+     "mep_general",
+     "electrical",
+     "hvac",
+     "plumbing",
+     "fire_fighting"
+    ],
+    "trades_also": [
+     "security_systems",
+     "lpg_gas",
+     "instrumentation_automation",
+     "home_automation"
+    ],
+    "company": "EMT Electromechanical Works",
+    "emirate": "Dubai",
+    "products": [
+     "MEP design and installation",
+     "fire protection and detection",
+     "HVAC",
+     "plumbing and drainage",
+     "low current",
+     "BMS"
+    ],
+    "certifications": [
+     "ISO 9001:2015"
+    ]
+   }
+  },
+  {
+   "id": "A09",
+   "file": "A09_align_emw_mep_profile.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_45p",
+   "registered_name": "Align Electromechanical Work LLC",
+   "truth": {
+    "trades": [
+     "mep_general",
+     "hvac",
+     "electrical",
+     "plumbing",
+     "fire_fighting"
+    ],
+    "trades_also": [
+     "water_treatment",
+     "refrigeration_cold_rooms",
+     "security_systems",
+     "instrumentation_automation",
+     "industrial_pumps",
+     "home_automation",
+     "av_it"
+    ],
+    "company": "Align Electromechanical Work LLC",
+    "emirate": "Dubai",
+    "products": [
+     "HVAC",
+     "electrical",
+     "plumbing and drainage",
+     "fire fighting",
+     "low current"
+    ],
+    "certifications": [
+     "ISO 9001:2015",
+     "ISO 14001:2015",
+     "OHSAS 18001"
+    ]
+   }
+  },
+  {
+   "id": "A10",
+   "file": "A10_pluto_emc_profile.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_59p",
+   "registered_name": "Pluto Electro-Mechanical Cont. LLC",
+   "truth": {
+    "trades": [
+     "mep_general",
+     "electrical",
+     "hvac",
+     "plumbing",
+     "fire_fighting"
+    ],
+    "trades_also": [
+     "security_systems",
+     "power_generators",
+     "instrumentation_automation",
+     "home_automation",
+     "av_it"
+    ],
+    "company": "Pluto Electro-Mechanical Contracting LLC SP",
+    "emirate": "Sharjah",
+    "products": [
+     "electrical",
+     "low current",
+     "HVAC",
+     "fire alarm and fire fighting",
+     "drainage and plumbing"
+    ],
+    "certifications": [
+     "ISO 9001:2008"
+    ]
+   }
+  },
+  {
+   "id": "B01",
+   "file": "B01_emirates-fire-profile.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_38p",
+   "registered_name": "Emirates Fire and Rescue Company",
+   "truth": {
+    "trades": [
+     "corporate_training",
+     "hse_consultancy"
+    ],
+    "trades_also": [
+     "fire_fighting",
+     "safety_equipment",
+     "labour_supply"
+    ],
+    "company": "Emirates Fire and Rescue Company",
+    "emirate": "Abu Dhabi",
+    "products": [
+     "fire and safety training",
+     "life safety consultancy"
+    ],
+    "certifications": [
+     "Civil Defence accredited House of Expertise"
+    ]
+   }
+  },
+  {
+   "id": "B02",
+   "file": "B02_maxfire-company-profile.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_23p",
+   "registered_name": "Maxfire Protection Systems LLC",
+   "truth": {
+    "trades": [
+     "fire_fighting"
+    ],
+    "trades_also": [
+     "safety_equipment",
+     "mep_general",
+     "security_systems"
+    ],
+    "company": "Maxfire Protection Systems LLC",
+    "emirate": "Dubai",
+    "products": [
+     "sprinklers",
+     "fire pumps",
+     "fire alarm",
+     "clean agent systems",
+     "extinguishers",
+     "hydrants"
+    ],
+    "certifications": [
+     "Civil Defence approved (Dubai, Abu Dhabi)"
+    ]
+   }
+  },
+  {
+   "id": "B03",
+   "file": "B03_floorworld-company-profile.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_41p",
+   "registered_name": "Floorworld LLC",
+   "truth": {
+    "trades": [
+     "flooring"
+    ],
+    "trades_also": [
+     "building_materials",
+     "masonry_blockwork"
+    ],
+    "company": "Floorworld LLC",
+    "emirate": "Dubai",
+    "products": [
+     "solid wood",
+     "parquet",
+     "LVT",
+     "SPC",
+     "carpet",
+     "laminate"
+    ],
+    "certifications": [
+     "ISO 14001"
+    ]
+   }
+  },
+  {
+   "id": "B04",
+   "file": "B04_dubai-vinyl-flooring-profile.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_design_heavy_11p",
+   "registered_name": "Dubai Vinyl Flooring",
+   "truth": {
+    "trades": [
+     "flooring"
+    ],
+    "trades_also": [],
+    "company": "Dubai Vinyl Flooring",
+    "emirate": "Dubai",
+    "products": [
+     "vinyl",
+     "parquet",
+     "laminate",
+     "rubber flooring",
+     "carpets",
+     "skirting"
+    ],
+    "certifications": []
+   }
+  },
+  {
+   "id": "B05",
+   "file": "B05_al-shirawi-group-brochure.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_group_brochure_89MB",
+   "registered_name": "Al Shirawi Group",
+   "truth": {
+    "trades": [
+     "waterproofing",
+     "fire_fighting",
+     "hvac",
+     "mep_general",
+     "interior_fitout",
+     "facilities_management",
+     "solar"
+    ],
+    "trades_also": [
+     "electrical",
+     "plumbing",
+     "steel",
+     "fencing_shades",
+     "logistics_moving",
+     "commercial_printing",
+     "refrigeration_cold_rooms",
+     "water_treatment",
+     "heavy_equipment",
+     "tool_equipment_rental",
+     "medical_equipment",
+     "laboratory_equipment",
+     "civil_works",
+     "infrastructure_utilities",
+     "general_contracting",
+     "thermal_insulation",
+     "plastics_pipes",
+     "rigid_plastic_packaging",
+     "building_materials",
+     "security_guarding",
+     "engineering_consultancy",
+     "non_ferrous_metals",
+     "metal_packaging",
+     "marine",
+     "road_works",
+     "prefab_buildings",
+     "cold_chain_logistics",
+     "machinery_repair",
+     "industrial_machinery",
+     "security_systems",
+     "commercial_kitchen",
+     "scaffolding",
+     "flexible_packaging",
+     "packaging"
+    ],
+    "company": "Al Shirawi Group",
+    "emirate": "Dubai",
+    "products": [
+     "contracting incl. waterproofing",
+     "MEP",
+     "fire fighting",
+     "interiors",
+     "air conditioning manufacturing",
+     "solar",
+     "facilities management"
+    ],
+    "certifications": [
+     "ISO 9001:2015",
+     "ISO 14001:2015",
+     "ISO 45001:2018"
+    ]
+   }
+  },
+  {
+   "id": "B06",
+   "file": "B06_vanity-waterproofing-profile.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_6p",
+   "registered_name": "Vanity Technical Services LLC",
+   "truth": {
+    "trades": [
+     "waterproofing",
+     "flooring",
+     "painting"
+    ],
+    "trades_also": [
+     "thermal_insulation",
+     "corrosion_insulation"
+    ],
+    "company": "Vanity Technical Services LLC",
+    "emirate": "Dubai",
+    "products": [
+     "roof waterproofing",
+     "basement waterproofing",
+     "injection",
+     "epoxy flooring",
+     "painting"
+    ],
+    "certifications": []
+   }
+  },
+  {
+   "id": "B07",
+   "file": "B07_mas-paints-ebrochure.pdf",
+   "mime": "application/pdf",
+   "kind": "catalogue",
+   "format": "text_pdf_catalogue_48p",
+   "registered_name": "MAS Paints",
+   "truth": {
+    "trades": [
+     "painting"
+    ],
+    "trades_also": [
+     "chemicals",
+     "building_materials",
+     "wallpaper"
+    ],
+    "company": "MAS Paints (MAS Paint and Chemical Industry)",
+    "emirate": "Sharjah",
+    "products": [
+     "wood paints",
+     "wood top coatings",
+     "decorative textured paints",
+     "dyes"
+    ],
+    "certifications": [
+     "UNI EN ISO 9001:2000"
+    ]
+   }
+  },
+  {
+   "id": "B08",
+   "file": "B08_abuhail-paint-services-profile.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_12p",
+   "registered_name": "Abu Hail Technical & Cleaning Services LLC",
+   "truth": {
+    "trades": [
+     "painting"
+    ],
+    "trades_also": [
+     "cleaning",
+     "waterproofing"
+    ],
+    "company": "Abu Hail Technical & Cleaning Services LLC",
+    "emirate": "Dubai",
+    "products": [
+     "interior painting",
+     "exterior painting"
+    ],
+    "certifications": []
+   }
+  },
+  {
+   "id": "B09",
+   "file": "B09_lsg-uae-landscaping-profile.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_18p",
+   "registered_name": "Landscaping Group LLC",
+   "truth": {
+    "trades": [
+     "landscaping"
+    ],
+    "trades_also": [
+     "interior_fitout",
+     "swimming_pools",
+     "design_consultancy",
+     "agri_inputs",
+     "fencing_shades",
+     "joinery",
+     "lighting_fixtures",
+     "road_works",
+     "tents_shades",
+     "steel"
+    ],
+    "company": "Landscaping Group LLC",
+    "emirate": "Abu Dhabi",
+    "products": [
+     "landscaping",
+     "irrigation",
+     "hardscape",
+     "fit-out"
+    ],
+    "certifications": []
+   }
+  },
+  {
+   "id": "B10",
+   "file": "B10_gulf-gardens-landscape-profile.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_prequal_115p",
+   "registered_name": "Gulf Gardens Landscape LLC",
+   "truth": {
+    "trades": [
+     "landscaping",
+     "swimming_pools"
+    ],
+    "trades_also": [
+     "civil_works",
+     "lighting_fixtures",
+     "agri_inputs",
+     "playground_equipment"
+    ],
+    "company": "Gulf Gardens Landscape LLC",
+    "emirate": "Dubai",
+    "products": [
+     "landscaping",
+     "irrigation",
+     "water features",
+     "swimming pools",
+     "plant supply",
+     "maintenance"
+    ],
+    "certifications": [
+     "ISO 9001:2015"
+    ]
+   }
+  },
+  {
+   "id": "C01",
+   "file": "C01_rona-elevators-profile.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_24p",
+   "registered_name": "Rona Elevators & Escalators LLC",
+   "truth": {
+    "trades": [
+     "elevators"
+    ],
+    "trades_also": [],
+    "company": "Rona Elevators & Escalators LLC",
+    "emirate": "Dubai",
+    "products": [
+     "passenger elevators",
+     "escalators",
+     "hospital elevators",
+     "dumb waiters",
+     "maintenance"
+    ],
+    "certifications": [
+     "ISO certified"
+    ]
+   }
+  },
+  {
+   "id": "C02",
+   "file": "C02_alnas-elevator-group-profile.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_bilingual_name_28p",
+   "registered_name": "Al Nas Elevator Contracting LLC",
+   "truth": {
+    "trades": [
+     "elevators"
+    ],
+    "trades_also": [],
+    "company": "Al Nas Elevator Contracting LLC",
+    "emirate": "Sharjah",
+    "products": [
+     "passenger, bed, freight, hydraulic and home elevators",
+     "escalators",
+     "moving walks",
+     "modernisation",
+     "maintenance"
+    ],
+    "certifications": [
+     "ISO certified"
+    ]
+   }
+  },
+  {
+   "id": "C03",
+   "file": "C03_summertown-interiors-profile.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_36p",
+   "registered_name": "Summertown Interiors",
+   "truth": {
+    "trades": [
+     "interior_fitout",
+     "joinery"
+    ],
+    "trades_also": [
+     "design_consultancy",
+     "environmental_consultancy"
+    ],
+    "company": "Summertown Interiors",
+    "emirate": "Dubai",
+    "products": [
+     "office, healthcare and education fit-out",
+     "joinery",
+     "LEED fit-out"
+    ],
+    "certifications": [
+     "ISO 9001:2015",
+     "ISO 45001:2018",
+     "LEED Gold"
+    ]
+   }
+  },
+  {
+   "id": "C04",
+   "file": "C04_jaan-contracting-interiors-profile.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_garbled_36p",
+   "registered_name": "JAAN Contracting & Interiors",
+   "truth": {
+    "trades": [
+     "general_contracting",
+     "interior_fitout",
+     "landscaping"
+    ],
+    "trades_also": [
+     "mep_general",
+     "civil_works",
+     "masonry_blockwork"
+    ],
+    "company": "JAAN Contracting & Interiors",
+    "emirate": "Dubai",
+    "products": [
+     "building contracting",
+     "fit-out",
+     "hard landscaping"
+    ],
+    "certifications": []
+   }
+  },
+  {
+   "id": "C05",
+   "file": "C05_bcg-uae-brochure-arabic.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "arabic_pdf_design_heavy_69p",
+   "registered_name": "Binladin Contracting Group UAE",
+   "truth": {
+    "trades": [
+     "general_contracting"
+    ],
+    "trades_also": [
+     "civil_works",
+     "road_works",
+     "infrastructure_utilities",
+     "engineering_consultancy",
+     "management_consultancy",
+     "design_consultancy"
+    ],
+    "company": "Binladin Contracting Group (BCG)",
+    "emirate": "Dubai",
+    "products": [
+     "building construction",
+     "project management",
+     "engineering"
+    ],
+    "certifications": [
+     "ISO 9001:2015"
+    ]
+   }
+  },
+  {
+   "id": "C06",
+   "file": "C06_altaameer-group-profile-bilingual.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "bilingual_pdf_38p",
+   "registered_name": "Al Taameer General Contracting Company",
+   "truth": {
+    "trades": [
+     "general_contracting",
+     "aluminium",
+     "joinery",
+     "interior_fitout"
+    ],
+    "trades_also": [
+     "glazing",
+     "mep_general",
+     "electrical",
+     "plumbing",
+     "painting",
+     "hvac",
+     "masonry_blockwork",
+     "demolition_works",
+     "doors",
+     "signage",
+     "civil_works",
+     "design_consultancy",
+     "gypsum",
+     "steel",
+     "commercial_kitchen",
+     "fencing_shades",
+     "facilities_management",
+     "flooring",
+     "marble_stone"
+    ],
+    "company": "Al Taameer Group / Al Taameer General Contracting Co.",
+    "emirate": null,
+    "products": [
+     "building and civil works",
+     "wood and decor works",
+     "aluminium and glass",
+     "interior design",
+     "MEP maintenance"
+    ],
+    "certifications": [
+     "ISO 9001:2008",
+     "OHSAS 18001"
+    ]
+   }
+  },
+  {
+   "id": "C07",
+   "file": "C07_menasco-profile-scanned.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "no_text_layer_pdf_87p",
+   "registered_name": "Menasco Mechanical Contracting LLC",
+   "truth": {
+    "trades": [
+     "mep_general",
+     "hvac",
+     "plumbing",
+     "fire_fighting",
+     "electrical"
+    ],
+    "trades_also": [
+     "road_works",
+     "infrastructure_utilities",
+     "engineering_consultancy",
+     "facilities_management",
+     "av_it"
+    ],
+    "company": "Menasco Mechanical Contracting LLC",
+    "emirate": null,
+    "products": [
+     "ventilation and heating",
+     "air conditioning",
+     "plumbing and drainage",
+     "firefighting",
+     "electrical"
+    ],
+    "certifications": []
+   }
+  },
+  {
+   "id": "C08",
+   "file": "C08_rona-steel-profile-cover.png",
+   "mime": "image/png",
+   "kind": "profile",
+   "format": "png_cover_no_services",
+   "registered_name": "Rona Steel",
+   "truth": {
+    "trades": [],
+    "trades_also": [
+     "steel"
+    ],
+    "company": "Rona Steel",
+    "emirate": null,
+    "products": [],
+    "certifications": []
+   }
+  },
+  {
+   "id": "C09",
+   "file": "C09_asgc-group-brochure.pdf",
+   "mime": "application/pdf",
+   "kind": "profile",
+   "format": "text_pdf_design_heavy_58p",
+   "registered_name": "ASGC Group",
+   "truth": {
+    "trades": [
+     "general_contracting",
+     "mep_general",
+     "interior_fitout",
+     "joinery",
+     "glazing",
+     "steel"
+    ],
+    "trades_also": [
+     "aluminium",
+     "building_materials",
+     "masonry_blockwork",
+     "oilfield",
+     "civil_works",
+     "prefab_buildings",
+     "management_consultancy",
+     "engineering_consultancy",
+     "infrastructure_utilities",
+     "heavy_equipment",
+     "electrical",
+     "hvac",
+     "plumbing",
+     "road_works"
+    ],
+    "company": "ASGC Group",
+    "emirate": "Dubai",
+    "products": [
+     "construction",
+     "MEP",
+     "fit-out and joinery",
+     "facades and glazing",
+     "structural steel",
+     "precast",
+     "ready-mix concrete",
+     "blocks"
+    ],
+    "certifications": [
+     "ISO 9001:2015",
+     "ISO 14001:2015",
+     "OHSAS 18001"
+    ]
+   }
+  }
+ ],
+ "audit": "13 Oct 2026, independent re-judgement of the 34 truth corrections by #1412's reviewer: OVERTURNED and removed from trades_also: A04 thermal_insulation, C06 real_estate_services, C08 general_contracting, B01 hazardous_waste, A08 av_it, B08 facade_access_maintenance. Two of the author's rejections were overturned and allowed: A06 industrial_machinery, B03 masonry_blockwork. C07 (scan) kept with quotes read off the rendered pages: page 9 \"MEP WORKS ... ELV\" (av_it), \"FACILITY MANAGEMENT ... Building Maintenance Services\" (facilities_management); page 11 \"ENGINEERING SERVICES ... MEP Design Review And Verification\" (engineering_consultancy).",
+ "corrections_log": {
+  "note": "Truth corrections the author made AFTER seeing model answers (a scoring-bias risk), each re-judged independently by #1412's reviewer against the document line and the trade definition. Only verdict \"kept\" or \"allowed\" entries are in the truth.",
+  "additions": [
+   {
+    "id": "A08",
+    "code": "home_automation",
+    "quote": "BMS Installation",
+    "verdict": "kept"
+   },
+   {
+    "id": "A09",
+    "code": "home_automation",
+    "quote": "BMS Installation",
+    "verdict": "kept"
+   },
+   {
+    "id": "A10",
+    "code": "home_automation",
+    "quote": "BMS Installation",
+    "verdict": "kept"
+   },
+   {
+    "id": "B01",
+    "code": "labour_supply",
+    "quote": "Provision of manpower for",
+    "verdict": "kept"
+   },
+   {
+    "id": "C06",
+    "code": "facilities_management",
+    "quote": "MAINTENANCE & FACILITY MANAGEMENT SERVICES",
+    "verdict": "kept"
+   },
+   {
+    "id": "C06",
+    "code": "flooring",
+    "quote": "Timber Floorings for Gymnasium Halls",
+    "verdict": "kept"
+   },
+   {
+    "id": "A06",
+    "code": "swimming_pools",
+    "quote": "Swimming pool Heat Pump",
+    "verdict": "kept"
+   },
+   {
+    "id": "A09",
+    "code": "av_it",
+    "quote": "Low Current System & Low Voltage System",
+    "verdict": "kept"
+   },
+   {
+    "id": "B01",
+    "code": "hazardous_waste",
+    "quote": "HAZMAT OPERATIONS",
+    "verdict": "OVERTURNED (removed)"
+   },
+   {
+    "id": "B09",
+    "code": "agri_inputs",
+    "quote": "INDOOR AND OUTDOOR PLANTS AND ACCESSORIES FOR LANDSCAPE TRADING",
+    "verdict": "kept"
+   },
+   {
+    "id": "B09",
+    "code": "fencing_shades",
+    "quote": "SHADED STRUCTURE",
+    "verdict": "kept"
+   },
+   {
+    "id": "B10",
+    "code": "playground_equipment",
+    "quote": "Play Equipments",
+    "verdict": "kept"
+   },
+   {
+    "id": "C06",
+    "code": "marble_stone",
+    "quote": "Marble & granite Works",
+    "verdict": "kept"
+   },
+   {
+    "id": "C06",
+    "code": "real_estate_services",
+    "quote": "Rentals and real state of Al-Taameer Group",
+    "verdict": "OVERTURNED (removed)"
+   },
+   {
+    "id": "A04",
+    "code": "thermal_insulation",
+    "quote": "ACOUSTIC",
+    "verdict": "OVERTURNED (removed)"
+   },
+   {
+    "id": "A08",
+    "code": "av_it",
+    "quote": "Low Current System",
+    "verdict": "OVERTURNED (removed)"
+   },
+   {
+    "id": "A10",
+    "code": "av_it",
+    "quote": "Low Current System",
+    "verdict": "kept"
+   },
+   {
+    "id": "B08",
+    "code": "facade_access_maintenance",
+    "quote": "By Rope Access",
+    "verdict": "OVERTURNED (removed)"
+   },
+   {
+    "id": "B09",
+    "code": "joinery",
+    "quote": "AND OTHER WOOD WORKS",
+    "verdict": "kept"
+   },
+   {
+    "id": "B09",
+    "code": "lighting_fixtures",
+    "quote": "LANDSCAPE AND INTERIOR LIGHTING SUPPLY AND INSTALLATION",
+    "verdict": "kept"
+   },
+   {
+    "id": "B09",
+    "code": "road_works",
+    "quote": "HARDSCAPE, PAVING",
+    "verdict": "kept"
+   },
+   {
+    "id": "B09",
+    "code": "tents_shades",
+    "quote": "SHADED STRUCTURE",
+    "verdict": "kept"
+   },
+   {
+    "id": "C07",
+    "code": "engineering_consultancy",
+    "quote": "ENGINEERING SERVICES ... MEP Design Review And Verification (scan, page 11)",
+    "verdict": "kept"
+   },
+   {
+    "id": "C07",
+    "code": "facilities_management",
+    "quote": "FACILITY MANAGEMENT ... Building Maintenance Services (scan, page 9)",
+    "verdict": "kept"
+   },
+   {
+    "id": "A05",
+    "code": "design_consultancy",
+    "quote": "Home Design Hotel Design Privat Villa Design Office Design",
+    "verdict": "kept"
+   },
+   {
+    "id": "B09",
+    "code": "steel",
+    "quote": "AND STEEL STRUCTURES",
+    "verdict": "kept"
+   },
+   {
+    "id": "A07",
+    "code": "power_generators",
+    "quote": "Uninterruptible Power Systems",
+    "verdict": "kept"
+   },
+   {
+    "id": "C07",
+    "code": "av_it",
+    "quote": "MEP WORKS ... ELV (scan, page 9)",
+    "verdict": "kept"
+   },
+   {
+    "id": "C08",
+    "code": "general_contracting",
+    "quote": "DESIGN & BUILD (in the logo)",
+    "verdict": "OVERTURNED (removed)"
+   }
+  ],
+  "author_rejections": [
+   {
+    "id": "A06",
+    "code": "industrial_machinery",
+    "verdict": "OVERTURNED (allowed, in trades_also)"
+   },
+   {
+    "id": "A07",
+    "code": "interior_fitout",
+    "verdict": "kept wrong"
+   },
+   {
+    "id": "B01",
+    "code": "inspection_ndt",
+    "verdict": "kept wrong"
+   },
+   {
+    "id": "B03",
+    "code": "masonry_blockwork",
+    "verdict": "OVERTURNED (allowed, in trades_also)"
+   },
+   {
+    "id": "C09",
+    "code": "additive_manufacturing",
+    "verdict": "kept wrong"
+   }
+  ]
+ }
+}

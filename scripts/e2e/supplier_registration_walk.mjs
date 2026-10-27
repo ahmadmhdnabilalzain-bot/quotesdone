@@ -23,8 +23,9 @@
 //   2. the WhatsApp question is on screen whenever registration demands it (the edit-mode dead end);
 //   3. terms + Save end in approved with a signed certificate (and a failed certificate heals on Save);
 //   4. every tab, the bell and the account menu settle (no endless "Loading…").
+import { SANDBOX_OUT } from '../lib/sandbox_out.mjs';
 import { launch, SITE } from './browser.mjs';
-import { openRun, closeRun, read, write, call, BASE } from './fixtures.mjs';
+import { openRun, closeRun, read, write, call, BASE, waitFor } from './fixtures.mjs';
 import { keys, verifyEmailByOtp, mkAuthUser } from '../lib/demo_factory.mjs';
 import { demoPdf, demoTradeLicence } from '../lib/demo_pdf.mjs';
 import { writeFileSync, mkdtempSync, readFileSync } from 'node:fs';
@@ -39,7 +40,11 @@ const KEEP = argv.includes('--keep');
 const SHOTS = val('--shots', ''); let shotN = 0;
 const shot = async (p, m, name) => { if (!SHOTS) return; const f = join(SHOTS, `${m.replace('/', '_')}_${String(++shotN).padStart(2, '0')}_${name}.png`); await p.screenshot({ path: f, fullPage: true }).catch(() => {}); console.log('  shot', f); };
 const TMP = mkdtempSync(join(tmpdir(), 'qd-regwalk-'));
-const AR = (l) => l === 'ar';
+// SUPPLIERS ARE ALWAYS ENGLISH (founder, 28 Sep 2026): SupplierPortal rewrites /ar/portal to /portal and renders
+// English. The ar leg is kept to prove an /ar/ invitation link still lands, signs up and registers, so every
+// on-screen assertion expects English (19 Oct 2026, sales_engineer, ruling 1230 walk: the ar leg failed on
+// "Register as a supplier", then timed out on an Arabic Upload button the portal never shows).
+const AR = () => false;
 const results = [];
 const step = (m, name, ok, detail = '') => { results.push({ m, name, ok, detail }); console.log(`${ok ? 'PASS' : 'FAIL'} [${m}] ${name}${detail ? ' — ' + detail : ''}`); };
 
@@ -47,17 +52,17 @@ const step = (m, name, ok, detail = '') => { results.push({ m, name, ok, detail 
 // licence (default corpus: the 12 Oct accuracy run) under an invited name that DIFFERS from it, and assert ruling
 // 1176 (the read licence name becomes the company name), the licence number and expiry, the profile + catalogue
 // (ruling 1177), and the outcome the corpus truth expects: approved, or held with a reason. Scans and Arabic-only
-// licences need the vision model, so this run's own rehearsal window is opened to models (cap USD 1, 1 hour).
+// licences need the vision model; openRun's window has models on for every run (ruling 1260).
 const CASES = val('--case', '').split(',').filter(Boolean);
-const CORPUS = val('--corpus', 'C:/Users/Opera/Desktop/QuotesDone Sandbox Test 2026-10/documents/run-final-12-oct-model-on/corpus');
+const CORPUS = val('--corpus', join(SANDBOX_OUT, 'documents/run-final-12-oct-model-on/corpus'));
 const TRUTH = CASES.length ? JSON.parse(readFileSync(join(CORPUS, 'truth.json'), 'utf8')).docs : [];
 const MATRIX = CASES.length ? CASES.map((c, i) => ({ lang: 'en', vp: VPS[i % VPS.length], c: TRUTH.find((d) => d.id === c) || (() => { throw new Error('no corpus case ' + c); })() }))
   : LANGS.flatMap((lang) => VPS.map((vp) => ({ lang, vp, c: null })));
 const esc = (x) => String(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const run = await openRun();
-if (CASES.length) await write(`update public.rehearsal_window set models_allowed = true, cap_usd = 1, expires_at = now() + interval '1 hour'
-  where run_tag = 'qd_run:${run.tag}' and ended_at is null`, 'case walk: models on for this run only');
+// Ruling 1260 (19 Oct 2026): every run has the AI on. openRun opens the capped model window for every leg, so the
+// case-only override (USD 1, 1 hour) is gone: it only ever LOWERED the run's ceiling below openRun's.
 const browser = await launch();
 try {
   for (const { lang, vp, c } of MATRIX) {
@@ -69,7 +74,7 @@ try {
       returning id, claim_token::text t`, 'invited demo lead'))[0];
     run.ids.leads.add(String(lead.id));
     const mobile = vp === 'mobile';
-    const ctxOpts = { viewport: mobile ? { width: Number(val('--mobile-width', '390')), height: 844 } : { width: 1440, height: 900 }, locale: AR(lang) ? 'ar-AE' : 'en-GB', ...(mobile ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) };
+    const ctxOpts = { viewport: mobile ? { width: Number(val('--mobile-width', '390')), height: 844 } : { width: 1440, height: 900 }, locale: lang === 'ar' ? 'ar-AE' : 'en-GB', ...(mobile ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) };
     const consent = () => localStorage.setItem('qd-cookie-consent', JSON.stringify({ necessary: true, analytics: false, marketing: false, ts: Date.now() }));
     const url = `${SITE}/${lang}/portal?t=${lead.t}`;
 
@@ -201,11 +206,25 @@ try {
       const aa = (await read(`select count(*)::int n from public.agent_actions where kind='supplier_name_from_licence' and target_id::text='${lead.id}'`))[0];
       step(m, 'ruling 1176: the read licence name became the company name, the old name logged', tr.company_name === c.truth.legal_name_en && aa.n > 0, `company_name=${tr.company_name}; log rows ${aa.n}`);
     }
-    // the decision reaches the supplier: written, and fenced for an @example.invalid fixture (suppressed, never sent)
+    // THE DECISION REACHES THE SUPPLIER. A demo delivery request writes its notification as status 'suppressed' with its
+    // dedupe_key (#1497, on top of ruling 1199), so the walk requires the row itself: exactly one suppressed e-mail
+    // supplier_approved notice for an approval, and suppressed notice rows plus the reason on the supplier's own screen
+    // (#1406) for a hold. Every row must be suppressed, never sent. The sales engineer's decision record
+    // (agent_actions supplier_approved_notice) is asserted as well, in addition, never instead.
     await new Promise((r) => setTimeout(r, 4000));
     const nt = await read(`select type, channel, status from public.notifications where lead_id=${lead.id} order by id`);
-    const want = approveCase ? nt.some((x) => x.type === 'supplier_approved' && x.channel === 'email') : nt.length > 0;
-    step(m, `the ${approveCase ? 'approval' : 'hold'} notice is written (fixture: suppressed, never sent)`, want && nt.every((x) => x.status === 'suppressed'), JSON.stringify(nt));
+    const allSuppressed = nt.every((x) => x.status === 'suppressed');
+    if (approveCase) {
+      const approvedMail = nt.filter((x) => x.type === 'supplier_approved' && x.channel === 'email');
+      step(m, 'exactly one approval notice is written, suppressed (fixture: never sent)', approvedMail.length === 1 && allSuppressed, JSON.stringify(nt));
+      const decided = (await read(`select count(*)::int n from public.agent_actions where kind='supplier_approved_notice' and status in ('auto_done','skipped') and target_table='leads' and target_id='${lead.id}'`))[0].n;
+      step(m, 'the approval notice decision is on record', decided > 0, `agent_actions rows ${decided}`);
+    } else {
+      step(m, 'the hold notice is written, suppressed (fixture: never sent)', nt.length > 0 && allSuppressed, JSON.stringify(nt));
+      await p.reload({ waitUntil: 'domcontentloaded' }); await heading.waitFor({ timeout: 30000 }).catch(() => {});
+      const said = await p.getByText(/^Why: /).first().innerText({ timeout: 15000 }).catch(() => '');
+      step(m, 'the hold reason is on the supplier screen', !!said, said);
+    }
     await shot(p, m, 'after_submit');
     if (reg?.signed_terms_path) run.ids.storage.push('signed-terms/' + reg.signed_terms_path);
 

@@ -55,6 +55,36 @@
       "confidence": "high",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "design_consultancy:product-distinctions",
+      "topic": "Design consultancy: design stages, deliverables and fee bases",
+      "topic_ar": "الاستشارات التصميمية: مراحل التصميم والمخرجات وأسس الأتعاب",
+      "kind": "product_distinctions",
+      "body_en": "Architectural and interior design work moves through stages: brief and space programme, concept design (layouts, mood boards, massing or 3D views), schematic and design development (coordinated layouts, materials and finishes, lighting, joinery design, engineering input), construction or tender documents (detailed drawings, specifications, schedules, BOQ input), tender support, and site supervision or design-intent monitoring through construction and handover. Interior projects also specify FF&E (furniture, fixtures and equipment): selections, specifications and procurement schedules, sometimes with procurement managed by the designer. Deliverables to agree: drawing sets and formats (DWG, PDF, BIM/Revit), 3D renders and walkthroughs, material sample boards, number of revision rounds per stage, and authority submission drawings (which need a licensed consultant). Fee bases: lump sum per stage, percentage of construction cost, rate per m2, or hourly for small advisory work. Design-only, design-and-supervision, and design-and-build (designer and contractor in one) are different risk models for the client.",
+      "body_ar": "يمر العمل المعماري والتصميم الداخلي بمراحل: الموجز وبرنامج المساحات، والتصميم المبدئي (المخططات، لوحات الإلهام، الكتل أو المناظير ثلاثية الأبعاد)، والتصميم التخطيطي وتطوير التصميم (مخططات منسقة، المواد والتشطيبات، الإضاءة، تصميم النجارة، مدخلات الهندسة)، ووثائق الإنشاء أو المناقصة (رسومات تفصيلية، مواصفات، جداول، مدخلات جدول الكميات)، ودعم المناقصة، والإشراف على الموقع أو متابعة مطابقة التصميم خلال التنفيذ والتسليم. وتحدد المشاريع الداخلية أيضاً الأثاث والتجهيزات والمعدات: الاختيارات والمواصفات وجداول الشراء، وأحياناً يدير المصمم الشراء. والمخرجات التي يُتفق عليها: مجموعات الرسومات وصيغها (DWG، PDF، نمذجة معلومات البناء)، والمناظير والجولات ثلاثية الأبعاد، ولوحات عينات المواد، وعدد جولات التعديل لكل مرحلة، ورسومات التقديم للجهات (وتحتاج استشارياً مرخصاً). وأسس الأتعاب: مبلغ مقطوع لكل مرحلة، أو نسبة من تكلفة الإنشاء، أو سعر للمتر المربع، أو بالساعة للأعمال الاستشارية الصغيرة. والتصميم فقط، والتصميم مع الإشراف، والتصميم والبناء (المصمم والمقاول جهة واحدة) نماذج مخاطر مختلفة للعميل.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Interior_design"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: conceptual development and construction documents as parts of interior design work -> confirmed (stage names and FF&E not on the page)."
+    },
+    {
+      "id": "design_consultancy:lead-times-and-quoting",
+      "topic": "Architectural & interior design - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "التصميم المعماري والداخلي: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A concept usually takes 2-4 weeks; full design documents for a villa or office fit-out 6-12 weeks; authority approvals add time. A designer needs the site and existing drawings, brief and budget, area, style references, the stages and deliverables wanted, and programme. A quote states scope per stage, deliverables, revision rounds, fee basis and payment per stage, exclusions (authority fees, specialist engineering), licence for submissions, and validity.",
+      "body_ar": "يستغرق التصميم المبدئي عادة 2-4 أسابيع؛ ووثائق التصميم الكاملة لفيلا أو تجهيز مكتب 6-12 أسبوعاً؛ وموافقات الجهات تضيف وقتاً. ويحتاج المصمم الموقع والمخططات القائمة، والموجز والميزانية، والمساحة، ومراجع الأسلوب، والمراحل والمخرجات المطلوبة، والبرنامج الزمني. ويذكر العرض النطاق لكل مرحلة، والمخرجات، وجولات التعديل، وأساس الأتعاب والدفع لكل مرحلة، والاستثناءات (رسوم الجهات، الهندسة المتخصصة)، والترخيص للتقديم، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry covers fee models (percentage of construction cost, per sq ft, lump sum)). design_consultancy:design-fee-models was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from design_consultancy.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What is the difference between hiring a designer for design-only and a design-and-build company?",
+      "q_ar": "وش الفرق بين التعاقد مع مصمم للتصميم فقط وشركة تصميم وتنفيذ؟",
+      "expected_entry_ids": [
+        "design_consultancy:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "design_consultancy:design-fee-models"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "design_consultancy:product-distinctions"
+      ],
+      "stored_not_served": [
+        "design_consultancy:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Interior_design"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

@@ -1,0 +1,52 @@
+[
+  {
+    "step": "1440x900_en",
+    "status": "PASS",
+    "issues": []
+  },
+  {
+    "step": "1366x768_en",
+    "status": "PASS",
+    "issues": []
+  },
+  {
+    "step": "1280x720_en",
+    "status": "PASS",
+    "issues": []
+  },
+  {
+    "step": "768x1024_en",
+    "status": "PASS",
+    "issues": []
+  },
+  {
+    "step": "375x812_en",
+    "status": "PASS",
+    "issues": []
+  },
+  {
+    "step": "1440x900_ar",
+    "status": "PASS",
+    "issues": []
+  },
+  {
+    "step": "1366x768_ar",
+    "status": "PASS",
+    "issues": []
+  },
+  {
+    "step": "1280x720_ar",
+    "status": "PASS",
+    "issues": []
+  },
+  {
+    "step": "768x1024_ar",
+    "status": "PASS",
+    "issues": []
+  },
+  {
+    "step": "375x812_ar",
+    "status": "PASS",
+    "issues": []
+  }
+]
