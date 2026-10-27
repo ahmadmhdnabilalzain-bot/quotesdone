@@ -1,0 +1,8 @@
+Pending until its PR merges (apply at merge, never before). Seat: it_engineer. It creates public.deliverability_test and
+public.deliverability_test_provider, the duty it_engineer.deliverability_test (fn_deliverability_test_tick, every 15 min),
+fn_deliverability_test_file / _request / fn_deliverability_known_parties, the scoped credential cred_fn_deliverability_test,
+the founder_mail_policy kind deliverability_verdict, app_secrets deliverability_retest_weekly = 'false', and adopts the
+founder's GlockApps test of 27 Oct (2026-10-27-09:33:53:634t). Apply it in the SAME step as deploying the edge function
+deliverability_test (the duty kicks that function), then delete this note and append the file to the END of MANIFEST.txt.
+Proved before merge: replayed with its probe in one rolled-back transaction against production, PROBE OK and 15/15 steps
+(scripts/checks/the_glockapps_test_runs_and_files_its_verdict_without_the_founder.test.mjs).

@@ -1,0 +1,6 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes, and the
+net.http_post its tick calls with it. It is run after the_it_engineer_runs_the_glockapps_test_and_files_its_verdict_without_the_founder.sql
+(or with it in the same rolled-back transaction while that file is pending), by
+scripts/checks/the_glockapps_test_runs_and_files_its_verdict_without_the_founder.test.mjs through scripts/lib/safe_replay.mjs,
+and every step must be true. It stubs the founder email (app.qd_stub_founder_notify) and queues no notification.
+This note therefore stays for the life of the file. Seat: it_engineer.

@@ -1,0 +1,191 @@
+{
+ "results": [
+  {
+   "seedAccountRegionId": "1",
+   "seedAccountRegionName": "North America",
+   "seedAccountGroups": [
+    {
+     "countryCode": "us",
+     "id": "3",
+     "name": "US Popular",
+     "seedAccounts": [
+      {
+       "id": "100",
+       "name": "Outlook a",
+       "providerGroupId": "3",
+       "providerGroupName": "Outlook",
+       "seedEmail": "zzseed.outlook.a@outlook.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "101",
+       "name": "Outlook b",
+       "providerGroupId": "3",
+       "providerGroupName": "Outlook",
+       "seedEmail": "zzseed.outlook.b@outlook.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "102",
+       "name": "Outlook c",
+       "providerGroupId": "3",
+       "providerGroupName": "Outlook",
+       "seedEmail": "zzseed.outlook.c@outlook.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "103",
+       "name": "Outlook d",
+       "providerGroupId": "3",
+       "providerGroupName": "Outlook",
+       "seedEmail": "zzseed.outlook.d@outlook.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "104",
+       "name": "Outlook e",
+       "providerGroupId": "3",
+       "providerGroupName": "Outlook",
+       "seedEmail": "zzseed.outlook.e@outlook.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "105",
+       "name": "Outlook f",
+       "providerGroupId": "3",
+       "providerGroupName": "Outlook",
+       "seedEmail": "zzseed.outlook.f@outlook.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "110",
+       "name": "Hotmail a",
+       "providerGroupId": "3",
+       "providerGroupName": "Outlook",
+       "seedEmail": "zzseed.hotmail.a@hotmail.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "111",
+       "name": "Hotmail b",
+       "providerGroupId": "3",
+       "providerGroupName": "Outlook",
+       "seedEmail": "zzseed.hotmail.b@hotmail.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "112",
+       "name": "Hotmail c",
+       "providerGroupId": "3",
+       "providerGroupName": "Outlook",
+       "seedEmail": "zzseed.hotmail.c@hotmail.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "120",
+       "name": "Office 365 a",
+       "providerGroupId": "17",
+       "providerGroupName": "Exchange (Office365)",
+       "seedEmail": "zzseed.o365.a@glockeasymail.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "121",
+       "name": "Office 365 b",
+       "providerGroupId": "17",
+       "providerGroupName": "Exchange (Office365)",
+       "seedEmail": "zzseed.o365.b@glockeasymail.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "122",
+       "name": "Office 365 c",
+       "providerGroupId": "17",
+       "providerGroupName": "Exchange (Office365)",
+       "seedEmail": "zzseed.o365.c@glockeasymail.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "123",
+       "name": "Office 365 d",
+       "providerGroupId": "17",
+       "providerGroupName": "Exchange (Office365)",
+       "seedEmail": "zzseed.o365.d@glockeasymail.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "130",
+       "name": "Gmail a",
+       "providerGroupId": "5",
+       "providerGroupName": "Gmail (non-interactive)",
+       "seedEmail": "zzseed.gmail.a@gmail.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "131",
+       "name": "Gmail b",
+       "providerGroupId": "5",
+       "providerGroupName": "Gmail (non-interactive)",
+       "seedEmail": "zzseed.gmail.b@gmail.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "132",
+       "name": "Gmail c",
+       "providerGroupId": "5",
+       "providerGroupName": "Gmail (non-interactive)",
+       "seedEmail": "zzseed.gmail.c@gmail.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "133",
+       "name": "Gmail d",
+       "providerGroupId": "5",
+       "providerGroupName": "Gmail (non-interactive)",
+       "seedEmail": "zzseed.gmail.d@gmail.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "140",
+       "name": "Yahoo a",
+       "providerGroupId": "4",
+       "providerGroupName": "Yahoo",
+       "seedEmail": "zzseed.yahoo.a@yahoo.com",
+       "providerGroupDescription": "some description"
+      },
+      {
+       "id": "141",
+       "name": "Yahoo b",
+       "providerGroupId": "4",
+       "providerGroupName": "Yahoo",
+       "seedEmail": "zzseed.yahoo.b@yahoo.com",
+       "providerGroupDescription": "some description"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "seedAccountRegionId": "3",
+   "seedAccountRegionName": "Other",
+   "seedAccountGroups": [
+    {
+     "countryCode": "",
+     "id": "2",
+     "name": "Spam Filter Check",
+     "seedAccounts": [
+      {
+       "id": "93",
+       "name": "SpamAssasin",
+       "providerGroupId": "39",
+       "providerGroupName": "Custom",
+       "seedEmail": "sagapps@justlan.com",
+       "providerGroupDescription": "some description"
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "status": "success"
+}

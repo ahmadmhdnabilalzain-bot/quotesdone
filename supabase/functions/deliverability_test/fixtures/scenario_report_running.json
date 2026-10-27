@@ -1,0 +1,522 @@
+{
+ "status": "success",
+ "result": {
+  "authenticationResult": {
+   "bimi": "",
+   "dkimAuth": "pass",
+   "dmarcAuth": "pass",
+   "dmarcRecord": {
+    "byDefault": [],
+    "dmarcNotFound": "false",
+    "domain": "gmail.com",
+    "error": "",
+    "fix": [],
+    "hasRua": "false",
+    "inGlockApps": "false",
+    "policy": "unknown",
+    "record": "",
+    "ruaCount": 0,
+    "rufCount": 0,
+    "toManyRecords": "false",
+    "valid": "true"
+   },
+   "email": "",
+   "finished": "true",
+   "helo": "mail-yb1-f181.google.com",
+   "heloToIPStatus": "pass",
+   "isp": "google.com",
+   "mtasts": {
+    "error": "",
+    "policy": {
+     "maxAge": 86400,
+     "mode": "enforce",
+     "mx": [
+      "gmail-smtp-in.l.google.com",
+      "*.gmail-smtp-in.l.google.com"
+     ],
+     "version": "STSv1"
+    },
+    "valid": "true"
+   },
+   "rDNSStatus": "pass",
+   "rdns": "mail-yb1-f181.google.com",
+   "returnPath": "glocksmtp@gmail.com",
+   "reverseHelo": "209.85.219.181",
+   "reverseIp": "209.85.219.181",
+   "senderDomain": "gmail.com",
+   "senderIp": "209.85.219.181",
+   "senderScore": -1,
+   "spfAuth": "pass",
+   "spfRecord": {
+    "error": "",
+    "exp": [],
+    "fix": "",
+    "lookupCount": 0,
+    "record": "",
+    "valid": "false"
+   }
+  },
+  "autoTestId": "",
+  "barracuda": {
+   "active": "true",
+   "deliveredIn": "11s",
+   "finished": "true",
+   "headers": [
+    {
+     "description": "META: Missing Subject: header",
+     "score": 0.01,
+     "tag": "MISSING_SUBJECT"
+    },
+    {
+     "description": "META: Envelope rcpt doesn't match header",
+     "score": 0,
+     "tag": "BSF_SC0_MISMATCH_TO"
+    },
+    {
+     "description": "BODY: HTML included in message",
+     "score": 0,
+     "tag": "HTML_MESSAGE"
+    },
+    {
+     "description": "META: Custom rule BSF_SC0_SA1034",
+     "score": 0.1,
+     "tag": "BSF_SC0_SA1034"
+    },
+    {
+     "description": "META: Missing Subject: header",
+     "score": 1.28,
+     "tag": "MISSING_SUBJECT_2"
+    }
+   ],
+   "reason": "",
+   "reasonExtra": "",
+   "received": "2023-07-26T18:17:35Z",
+   "score": 1.39
+  },
+  "created": "2026-10-28T08:00:00.000Z",
+  "dnsbl": {
+   "finished": "true",
+   "results": [
+    {
+     "ipAddress": "209.85.219.173",
+     "listedCount": 0,
+     "rdns": "n/a",
+     "results": [],
+     "senderScore": -1
+    },
+    {
+     "ipAddress": "209.85.219.181",
+     "listedCount": 0,
+     "rdns": "n/a",
+     "results": [],
+     "senderScore": -1
+    },
+    {
+     "ipAddress": "209.85.219.182",
+     "listedCount": 0,
+     "rdns": "n/a",
+     "results": [],
+     "senderScore": -1
+    },
+    {
+     "ipAddress": "209.85.219.177",
+     "listedCount": 0,
+     "rdns": "n/a",
+     "results": [],
+     "senderScore": -1
+    },
+    {
+     "ipAddress": "209.85.219.172",
+     "listedCount": 0,
+     "rdns": "n/a",
+     "results": [],
+     "senderScore": -1
+    },
+    {
+     "ipAddress": "209.85.219.179",
+     "listedCount": 0,
+     "rdns": "n/a",
+     "results": [],
+     "senderScore": -1
+    },
+    {
+     "ipAddress": "209.85.219.178",
+     "listedCount": 0,
+     "rdns": "n/a",
+     "results": [],
+     "senderScore": -1
+    },
+    {
+     "ipAddress": "209.85.220.41",
+     "listedCount": 0,
+     "rdns": "n/a",
+     "results": [],
+     "senderScore": -1
+    },
+    {
+     "ipAddress": "209.85.219.178",
+     "listedCount": 3,
+     "rdns": "mail-yb1-f178.google.com",
+     "results": [
+      {
+       "link": "vote.drbl.gremlin.ru",
+       "responses": [
+        "127.0.0.2"
+       ],
+       "server": "vote.drbl.gremlin.ru",
+       "txt": [
+        "Spamtrap hit"
+       ]
+      },
+      {
+       "link": "http://www.sorbs.net/lookup.shtml?209.85.219.178",
+       "responses": [
+        "127.0.0.6"
+       ],
+       "server": "SORBS Spamhost (any time)",
+       "txt": [
+        "Spam Received See: http://www.sorbs.net/lookup.shtml?209.85.219.178"
+       ]
+      },
+      {
+       "link": "http://www.sorbs.net/lookup.shtml?209.85.219.178",
+       "responses": [
+        "127.0.0.6"
+       ],
+       "server": "SORBS Aggregate zone (problems)",
+       "txt": [
+        "Spam Received withing last 12 months See: http://www.sorbs.net/lookup.shtml?209.85.219.178",
+        "Spam Received Recently See: http://www.sorbs.net/lookup.shtml?209.85.219.178"
+       ]
+      }
+     ],
+     "senderScore": 85
+    }
+   ]
+  },
+  "errorReport": {},
+  "externalUserId": "",
+  "failedReport": "false",
+  "finished": "false",
+  "firstModified": "2023-07-26T18:18:57.113Z",
+  "folderId": "",
+  "gappsFlags": [
+   {
+    "GAPPS_SENDER_SCORE": {
+     "data": {
+      "value": -1
+     },
+     "type": "GAPPS_SENDER_SCORE"
+    }
+   }
+  ],
+  "googleApps": {
+   "active": "true",
+   "deliveredIn": "253s",
+   "finished": "true",
+   "phishy": "false",
+   "received": "2023-07-26T18:17:35Z",
+   "spam": "false"
+  },
+  "hwBarracuda": {
+   "active": "true",
+   "deliveredIn": "15s",
+   "finished": "true",
+   "headers": [],
+   "received": "2026-10-28T08:01:00Z",
+   "score": 0,
+   "status": "clean"
+  },
+  "inboxes": [
+   {
+    "bimi": "",
+    "delay": "12s",
+    "deliveredIn": 3410065408,
+    "dkim": "",
+    "dmarc": "",
+    "email": "zzseed.outlook.a@outlook.com",
+    "finished": "true",
+    "gappsFlags": [
+     {
+      "GAPPS_SENDER_SCORE": {
+       "data": {
+        "value": -1
+       },
+       "type": "GAPPS_SENDER_SCORE"
+      }
+     }
+    ],
+    "iType": "Spam",
+    "ip": "209.85.219.177",
+    "providerGroupId": "3",
+    "received": "2023-07-26T18:19:57.706Z",
+    "seedAccountGroupId": "12",
+    "seedAccountId": "100",
+    "seedAccountRegionId": "2",
+    "seedName": "Outlook a",
+    "spf": "pass",
+    "visible": "true"
+   },
+   {
+    "bimi": "",
+    "delay": "12s",
+    "deliveredIn": 3410065408,
+    "dkim": "",
+    "dmarc": "",
+    "email": "zzseed.outlook.b@outlook.com",
+    "finished": "true",
+    "gappsFlags": [
+     {
+      "GAPPS_SENDER_SCORE": {
+       "data": {
+        "value": -1
+       },
+       "type": "GAPPS_SENDER_SCORE"
+      }
+     }
+    ],
+    "iType": "Spam",
+    "ip": "209.85.219.177",
+    "providerGroupId": "3",
+    "received": "2023-07-26T18:19:57.706Z",
+    "seedAccountGroupId": "12",
+    "seedAccountId": "101",
+    "seedAccountRegionId": "2",
+    "seedName": "Outlook b",
+    "spf": "pass",
+    "visible": "true"
+   },
+   {
+    "bimi": "",
+    "delay": "12s",
+    "deliveredIn": 3410065408,
+    "dkim": "",
+    "dmarc": "",
+    "email": "zzseed.outlook.c@outlook.com",
+    "finished": "true",
+    "gappsFlags": [
+     {
+      "GAPPS_SENDER_SCORE": {
+       "data": {
+        "value": -1
+       },
+       "type": "GAPPS_SENDER_SCORE"
+      }
+     }
+    ],
+    "iType": "Spam",
+    "ip": "209.85.219.177",
+    "providerGroupId": "3",
+    "received": "2023-07-26T18:19:57.706Z",
+    "seedAccountGroupId": "12",
+    "seedAccountId": "102",
+    "seedAccountRegionId": "2",
+    "seedName": "Outlook c",
+    "spf": "pass",
+    "visible": "true"
+   },
+   {
+    "bimi": "",
+    "delay": "12s",
+    "deliveredIn": 3410065408,
+    "dkim": "",
+    "dmarc": "",
+    "email": "zzseed.outlook.d@outlook.com",
+    "finished": "true",
+    "gappsFlags": [
+     {
+      "GAPPS_SENDER_SCORE": {
+       "data": {
+        "value": -1
+       },
+       "type": "GAPPS_SENDER_SCORE"
+      }
+     }
+    ],
+    "iType": "Spam",
+    "ip": "209.85.219.177",
+    "providerGroupId": "3",
+    "received": "2023-07-26T18:19:57.706Z",
+    "seedAccountGroupId": "12",
+    "seedAccountId": "103",
+    "seedAccountRegionId": "2",
+    "seedName": "Outlook d",
+    "spf": "pass",
+    "visible": "true"
+   },
+   {
+    "bimi": "",
+    "delay": "12s",
+    "deliveredIn": 3410065408,
+    "dkim": "",
+    "dmarc": "",
+    "email": "zzseed.outlook.e@outlook.com",
+    "finished": "true",
+    "gappsFlags": [
+     {
+      "GAPPS_SENDER_SCORE": {
+       "data": {
+        "value": -1
+       },
+       "type": "GAPPS_SENDER_SCORE"
+      }
+     }
+    ],
+    "iType": "Spam",
+    "ip": "209.85.219.177",
+    "providerGroupId": "3",
+    "received": "2023-07-26T18:19:57.706Z",
+    "seedAccountGroupId": "12",
+    "seedAccountId": "104",
+    "seedAccountRegionId": "2",
+    "seedName": "Outlook e",
+    "spf": "pass",
+    "visible": "true"
+   }
+  ],
+  "integrationType": "",
+  "ipListed": "false",
+  "ipTestFinished": "false",
+  "letter": {
+   "created": "2023-07-26T18:19:28.071Z",
+   "folderId": "",
+   "from": "Jon Jon <example@gmail.com>",
+   "id": "64c163b03fdfed2da4adde40",
+   "name": "",
+   "previewImageUrl": "https://glockapps.letter.preview.images.dev.s3.amazonaws.com/fd5b3fdb1f.png",
+   "subject": "",
+   "to": [
+    "danielethompsonn@yahoo.com"
+   ],
+   "type": "manual"
+  },
+  "linkChecker": "false",
+  "meta": "",
+  "note": "big letter",
+  "notificationConditionIds": [],
+  "projectId": "45",
+  "seedListId": "1",
+  "sendEmailStatuses": [],
+  "sendingAccount": {},
+  "spamAssassin": {
+   "active": "true",
+   "deliveredIn": "56s",
+   "finished": "true",
+   "headers": [
+    {
+     "description": "Message has a blank Subject",
+     "score": 0.2,
+     "tag": "KAM_BLANKSUBJECT"
+    },
+    {
+     "description": "ADMINISTRATOR NOTICE: The query to URIBL was blocked. See http://wiki.apache.org/spamassassin/DnsBlocklists#dnsbl-block for more information. [URIs: bizrevtraining.com]",
+     "score": 0,
+     "tag": "URIBL_BLOCKED"
+    },
+    {
+     "description": "Sender email is commonly abused enduser mail provider [glocksmtp[at]gmail.com]",
+     "score": 0,
+     "tag": "FREEMAIL_FROM"
+    },
+    {
+     "description": "SPF: sender matches SPF record",
+     "score": 0,
+     "tag": "SPF_PASS"
+    },
+    {
+     "description": "BODY: HTML included in message",
+     "score": 0,
+     "tag": "HTML_MESSAGE"
+    },
+    {
+     "description": "Message has a DKIM or DK signature, not necessarily valid",
+     "score": 0.1,
+     "tag": "DKIM_SIGNED"
+    },
+    {
+     "description": "Message has a valid DKIM or DK signature from author's domain",
+     "score": -0.1,
+     "tag": "DKIM_VALID_AU"
+    },
+    {
+     "description": "Message has a valid DKIM or DK signature from envelope-from domain",
+     "score": -0.1,
+     "tag": "DKIM_VALID_EF"
+    },
+    {
+     "description": "Message has at least one valid DKIM or DK signature",
+     "score": -0.1,
+     "tag": "DKIM_VALID"
+    },
+    {
+     "description": "Listed in Pyzor (https://pyzor.readthedocs.io/en/latest/)",
+     "score": 2,
+     "tag": "PYZOR_CHECK"
+    },
+    {
+     "description": "No description available.",
+     "score": 0,
+     "tag": "TVD_SPACE_RATIO"
+    },
+    {
+     "description": "No description available.",
+     "score": 0,
+     "tag": "T_SCC_BODY_TEXT_LINE"
+    },
+    {
+     "description": "Bulk signature with no Unsubscribe",
+     "score": 0,
+     "tag": "FSL_BULK_SIG"
+    }
+   ],
+   "received": "2023-07-26T18:17:55Z",
+   "score": "2"
+  },
+  "stats": {
+   "inbox": 11,
+   "inboxAndOtherRates": 84.6,
+   "inboxRate": 84.6,
+   "notDelivered": 0,
+   "notDeliveredRate": 0,
+   "other": 0,
+   "otherRate": 0,
+   "spam": 2,
+   "spamRate": 15.4
+  },
+  "testId": "2026-10-28-08:00:00:001t",
+  "testType": "ManualTest",
+  "uribl": {
+   "finished": "true",
+   "results": [
+    {
+     "domain": "bizrevtraining.com",
+     "listedCount": 0,
+     "results": []
+    },
+    {
+     "domain": "more-4-business.co.uk",
+     "listedCount": 1,
+     "results": [
+      {
+       "link": "http://lookup.uribl.com/?domain=more-4-business.co.uk",
+       "responses": [
+        "127.0.0.2"
+       ],
+       "server": "uribl.com",
+       "txt": [
+        "Blacklisted, see http://lookup.uribl.com/?domain=more-4-business.co.uk"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  "proofPoint": {
+   "active": "true",
+   "deliveredIn": "20s",
+   "finished": "true",
+   "received": "2026-10-28T08:01:00Z",
+   "spam": "false"
+  }
+ }
+}

@@ -1,0 +1,1017 @@
+{
+ "_source": "GlockApps Spam Test API v2 Swagger 2.0, https://docs.spamtest.prod-k8s.glockapps.com/swagger.json (linked from https://glockapps.com/api-documentation-v2/), fetched 27 Oct 2026 through pg_net from the Supabase project because this container cannot reach glockapps.com. These are the documented example responses, verbatim.",
+ "host": "api.glockapps.com/gateway/spamtest-v2",
+ "basePath": "/api/",
+ "securityDefinitions": {
+  "ApiKeyAuth": {
+   "type": "apiKey",
+   "name": "x-api-key",
+   "in": "header"
+  }
+ },
+ "projects": {
+  "page": {
+   "next": "2",
+   "page": "1",
+   "perPage": "2",
+   "prev": "0",
+   "total": "10",
+   "totalPage": "5"
+  },
+  "results": [
+   {
+    "accountId": "100",
+    "autoTestEmail": "ipm2s_a8d0@at.spamtestv2-dev2.glockapps.com",
+    "blocklistIds": [],
+    "createdAt": "2023-07-27T09:37:56.474Z",
+    "description": "description",
+    "id": "165",
+    "name": "Example project1",
+    "prevAutoTestEmail": "",
+    "timezone": "Asia/Tbilisi"
+   },
+   {
+    "accountId": "100",
+    "autoTestEmail": "ipm2s_0df7@at.spamtestv2-dev2.glockapps.com",
+    "blocklistIds": [],
+    "createdAt": "2023-06-21T16:09:42.230Z",
+    "description": "Default",
+    "id": "81",
+    "name": "Default project 2",
+    "prevAutoTestEmail": "",
+    "timezone": "Europe/Warsaw"
+   }
+  ],
+  "status": "success"
+ },
+ "providers": {
+  "results": [
+   {
+    "seedAccountGroups": [
+     {
+      "countryCode": "us",
+      "id": "3",
+      "name": "US Popular",
+      "seedAccounts": [
+       {
+        "id": "95",
+        "name": "Jason Cribs",
+        "providerGroupDescription": "some description",
+        "providerGroupId": "5",
+        "providerGroupName": "Gmail (non-interactive)",
+        "seedEmail": "jasoncribson@gmail.com"
+       }
+      ]
+     },
+     {
+      "countryCode": "us",
+      "id": "6",
+      "name": "US Business",
+      "seedAccounts": [
+       {
+        "id": "91",
+        "name": "Office 365",
+        "providerGroupDescription": "some description",
+        "providerGroupId": "17",
+        "providerGroupName": "Exchange (Office365)",
+        "seedEmail": "exosf@glockeasymail.com"
+       }
+      ]
+     }
+    ],
+    "seedAccountRegionId": "1",
+    "seedAccountRegionName": "North America"
+   },
+   {
+    "seedAccountGroups": [
+     {
+      "countryCode": "pl",
+      "id": "12",
+      "name": "Poland",
+      "seedAccounts": [
+       {
+        "id": "70",
+        "name": "Hainrich Kucharski",
+        "providerGroupDescription": "some description",
+        "providerGroupId": "35",
+        "providerGroupName": "o2.pl",
+        "seedEmail": "HainrichKucharski@o2.pl"
+       },
+       {
+        "id": "71",
+        "name": "Teodozja Majewska",
+        "providerGroupDescription": "some description",
+        "providerGroupId": "35",
+        "providerGroupName": "o2.pl",
+        "seedEmail": "TeodozjaMajewska_1@o2.pl"
+       }
+      ]
+     }
+    ],
+    "seedAccountRegionId": "2",
+    "seedAccountRegionName": "Europe"
+   },
+   {
+    "seedAccountGroups": [
+     {
+      "countryCode": "",
+      "id": "1",
+      "name": "Always On",
+      "seedAccounts": [
+       {
+        "id": "34",
+        "name": "Test glockdb",
+        "providerGroupDescription": "some description",
+        "providerGroupId": "4",
+        "providerGroupName": "Yahoo",
+        "seedEmail": "postmaster@test.glockdb.com"
+       }
+      ]
+     },
+     {
+      "countryCode": "",
+      "id": "2",
+      "name": "Spam Filter Check",
+      "seedAccounts": [
+       {
+        "id": "93",
+        "name": "SpamAssasin",
+        "providerGroupDescription": "some description",
+        "providerGroupId": "39",
+        "providerGroupName": "Custom",
+        "seedEmail": "sagapps@justlan.com"
+       },
+       {
+        "id": "94",
+        "name": "Barracuda",
+        "providerGroupDescription": "some description",
+        "providerGroupId": "39",
+        "providerGroupName": "Custom",
+        "seedEmail": "bcc3@spamcombat.com"
+       },
+       {
+        "id": "97",
+        "name": "google spam filter",
+        "providerGroupDescription": "some description",
+        "providerGroupId": "53",
+        "providerGroupName": "Test",
+        "seedEmail": "support@fastdirectorysubmitter.com"
+       }
+      ]
+     },
+     {
+      "countryCode": "",
+      "id": "17",
+      "name": "Other",
+      "seedAccounts": [
+       {
+        "id": "81",
+        "name": "Rafał Pawłowski",
+        "providerGroupDescription": "some description",
+        "providerGroupId": "34",
+        "providerGroupName": "Wp.pl",
+        "seedEmail": "RafalPawlowski_1@wp.pl"
+       },
+       {
+        "id": "83",
+        "name": "Weston Steeves",
+        "providerGroupDescription": "some description",
+        "providerGroupId": "2",
+        "providerGroupName": "AOL",
+        "seedEmail": "westondsteeves@aol.com"
+       },
+       {
+        "id": "87",
+        "name": "Jay Sanchez",
+        "providerGroupDescription": "some description",
+        "providerGroupId": "3",
+        "providerGroupName": "Outlook",
+        "seedEmail": "jayesanchez@outlook.com"
+       },
+       {
+        "id": "88",
+        "name": "Daniel Thompsonn",
+        "providerGroupDescription": "some description",
+        "providerGroupId": "4",
+        "providerGroupName": "Yahoo",
+        "seedEmail": "danielethompsonn@yahoo.com"
+       },
+       {
+        "id": "89",
+        "name": "Robert Daniels",
+        "providerGroupDescription": "some description",
+        "providerGroupId": "2",
+        "providerGroupName": "AOL",
+        "seedEmail": "danielethompsonn@yahoo.com"
+       },
+       {
+        "id": "96",
+        "name": "John Krom",
+        "providerGroupDescription": "some description",
+        "providerGroupId": "3",
+        "providerGroupName": "Outlook",
+        "seedEmail": "johnkkrom@outlook.com"
+       }
+      ]
+     }
+    ],
+    "seedAccountRegionId": "5",
+    "seedAccountRegionName": "Other"
+   }
+  ],
+  "status": "success"
+ },
+ "manualTestRequest": {
+  "folderId": "6448ce22c6ba97a08c72a81a",
+  "linkChecker": "true",
+  "note": "my note",
+  "providerGroupIds": [
+   "2",
+   "3",
+   "4",
+   "5",
+   "8",
+   "9",
+   "11",
+   "13",
+   "14",
+   "15",
+   "17",
+   "23",
+   "24",
+   "33",
+   "34",
+   "35"
+  ],
+  "testType": "ManualTest"
+ },
+ "manualTest": {
+  "emails": [
+   "josephsaur@gmail.com",
+   "johnman@yahoo.com",
+   "william@yahoo.com",
+   "kathleen@gmail.com",
+   "jesse@naver.com",
+   "mbell@gmail.com"
+  ],
+  "insertHeader": "X-API-Campaign-id: 2023-09-24-11:09:04:723t",
+  "insertInBody": "id: 2023-09-24-11:09:04:723t",
+  "seedListLatestUpdate": "2024-03-01T00:00:00Z",
+  "status": "success",
+  "testId": "2023-09-24-11:09:04:723t"
+ },
+ "seedAccounts": {
+  "result": {
+   "emails": [
+    "jarekmichalski_1@o2.pl",
+    "postmaster@test.glockdb.com",
+    "robertldaniels@aol.com",
+    "westondsteeves@aol.com"
+   ],
+   "insertHeader": "X-API-Campaign-id: 2023-08-27-10:00:00:095t",
+   "insertInBody": "id: 2023-08-27-10:00:00:095t"
+  },
+  "status": "success"
+ },
+ "testReport": {
+  "result": {
+   "authenticationResult": {
+    "bimi": "",
+    "dkimAuth": "pass",
+    "dmarcAuth": "pass",
+    "dmarcRecord": {
+     "byDefault": [],
+     "dmarcNotFound": "false",
+     "domain": "gmail.com",
+     "error": "",
+     "fix": [],
+     "hasRua": "false",
+     "inGlockApps": "false",
+     "policy": "unknown",
+     "record": "",
+     "ruaCount": 0,
+     "rufCount": 0,
+     "toManyRecords": "false",
+     "valid": "true"
+    },
+    "email": "",
+    "finished": "true",
+    "helo": "mail-yb1-f181.google.com",
+    "heloToIPStatus": "pass",
+    "isp": "google.com",
+    "mtasts": {
+     "error": "",
+     "policy": {
+      "maxAge": 86400,
+      "mode": "enforce",
+      "mx": [
+       "gmail-smtp-in.l.google.com",
+       "*.gmail-smtp-in.l.google.com"
+      ],
+      "version": "STSv1"
+     },
+     "valid": "true"
+    },
+    "rDNSStatus": "pass",
+    "rdns": "mail-yb1-f181.google.com",
+    "returnPath": "glocksmtp@gmail.com",
+    "reverseHelo": "209.85.219.181",
+    "reverseIp": "209.85.219.181",
+    "senderDomain": "gmail.com",
+    "senderIp": "209.85.219.181",
+    "senderScore": -1,
+    "spfAuth": "pass",
+    "spfRecord": {
+     "error": "",
+     "exp": [],
+     "fix": "",
+     "lookupCount": 0,
+     "record": "",
+     "valid": "false"
+    }
+   },
+   "autoTestId": "",
+   "barracuda": {
+    "active": "true",
+    "deliveredIn": "11s",
+    "finished": "true",
+    "headers": [
+     {
+      "description": "META: Missing Subject: header",
+      "score": 0.01,
+      "tag": "MISSING_SUBJECT"
+     },
+     {
+      "description": "META: Envelope rcpt doesn't match header",
+      "score": 0,
+      "tag": "BSF_SC0_MISMATCH_TO"
+     },
+     {
+      "description": "BODY: HTML included in message",
+      "score": 0,
+      "tag": "HTML_MESSAGE"
+     },
+     {
+      "description": "META: Custom rule BSF_SC0_SA1034",
+      "score": 0.1,
+      "tag": "BSF_SC0_SA1034"
+     },
+     {
+      "description": "META: Missing Subject: header",
+      "score": 1.28,
+      "tag": "MISSING_SUBJECT_2"
+     }
+    ],
+    "reason": "",
+    "reasonExtra": "",
+    "received": "2023-07-26T18:17:35Z",
+    "score": 1.39
+   },
+   "created": "2023-07-26T18:16:11.876Z",
+   "dnsbl": {
+    "finished": "true",
+    "results": [
+     {
+      "ipAddress": "209.85.219.173",
+      "listedCount": 0,
+      "rdns": "n/a",
+      "results": [],
+      "senderScore": -1
+     },
+     {
+      "ipAddress": "209.85.219.181",
+      "listedCount": 0,
+      "rdns": "n/a",
+      "results": [],
+      "senderScore": -1
+     },
+     {
+      "ipAddress": "209.85.219.182",
+      "listedCount": 0,
+      "rdns": "n/a",
+      "results": [],
+      "senderScore": -1
+     },
+     {
+      "ipAddress": "209.85.219.177",
+      "listedCount": 0,
+      "rdns": "n/a",
+      "results": [],
+      "senderScore": -1
+     },
+     {
+      "ipAddress": "209.85.219.172",
+      "listedCount": 0,
+      "rdns": "n/a",
+      "results": [],
+      "senderScore": -1
+     },
+     {
+      "ipAddress": "209.85.219.179",
+      "listedCount": 0,
+      "rdns": "n/a",
+      "results": [],
+      "senderScore": -1
+     },
+     {
+      "ipAddress": "209.85.219.178",
+      "listedCount": 0,
+      "rdns": "n/a",
+      "results": [],
+      "senderScore": -1
+     },
+     {
+      "ipAddress": "209.85.220.41",
+      "listedCount": 0,
+      "rdns": "n/a",
+      "results": [],
+      "senderScore": -1
+     },
+     {
+      "ipAddress": "209.85.219.178",
+      "listedCount": 3,
+      "rdns": "mail-yb1-f178.google.com",
+      "results": [
+       {
+        "link": "vote.drbl.gremlin.ru",
+        "responses": [
+         "127.0.0.2"
+        ],
+        "server": "vote.drbl.gremlin.ru",
+        "txt": [
+         "Spamtrap hit"
+        ]
+       },
+       {
+        "link": "http://www.sorbs.net/lookup.shtml?209.85.219.178",
+        "responses": [
+         "127.0.0.6"
+        ],
+        "server": "SORBS Spamhost (any time)",
+        "txt": [
+         "Spam Received See: http://www.sorbs.net/lookup.shtml?209.85.219.178"
+        ]
+       },
+       {
+        "link": "http://www.sorbs.net/lookup.shtml?209.85.219.178",
+        "responses": [
+         "127.0.0.6"
+        ],
+        "server": "SORBS Aggregate zone (problems)",
+        "txt": [
+         "Spam Received withing last 12 months See: http://www.sorbs.net/lookup.shtml?209.85.219.178",
+         "Spam Received Recently See: http://www.sorbs.net/lookup.shtml?209.85.219.178"
+        ]
+       }
+      ],
+      "senderScore": 85
+     }
+    ]
+   },
+   "errorReport": {},
+   "externalUserId": "",
+   "failedReport": "false",
+   "finished": "true",
+   "firstModified": "2023-07-26T18:18:57.113Z",
+   "folderId": "",
+   "gappsFlags": [
+    {
+     "GAPPS_SENDER_SCORE": {
+      "data": {
+       "value": -1
+      },
+      "type": "GAPPS_SENDER_SCORE"
+     }
+    }
+   ],
+   "googleApps": {
+    "active": "true",
+    "deliveredIn": "253s",
+    "finished": "true",
+    "phishy": "false",
+    "received": "2023-07-26T18:17:35Z",
+    "spam": "false"
+   },
+   "hwBarracuda": {
+    "active": "false",
+    "brtsUrls": [],
+    "deliveredIn": "0s",
+    "evidence": [],
+    "finished": "false",
+    "gappsFlags": [],
+    "headers": [],
+    "received": {},
+    "score": 0,
+    "status": ""
+   },
+   "inboxes": [
+    {
+     "bimi": "",
+     "delay": "12s",
+     "deliveredIn": 3410065408,
+     "dkim": "",
+     "dmarc": "",
+     "email": "TeodozjaMajewska_1@o2.pl",
+     "finished": "true",
+     "gappsFlags": [
+      {
+       "GAPPS_SENDER_SCORE": {
+        "data": {
+         "value": -1
+        },
+        "type": "GAPPS_SENDER_SCORE"
+       }
+      }
+     ],
+     "iType": "Spam",
+     "ip": "209.85.219.177",
+     "providerGroupId": "35",
+     "received": "2023-07-26T18:19:57.706Z",
+     "seedAccountGroupId": "12",
+     "seedAccountId": "71",
+     "seedAccountRegionId": "2",
+     "seedName": "Teodozja Majewska",
+     "spf": "pass",
+     "visible": "true"
+    },
+    {
+     "bimi": "",
+     "delay": "12s",
+     "deliveredIn": 3410065408,
+     "dkim": "",
+     "dmarc": "",
+     "email": "JolantaKowalska_1@wp.pl",
+     "finished": "true",
+     "gappsFlags": [
+      {
+       "GAPPS_SENDER_SCORE": {
+        "data": {
+         "value": -1
+        },
+        "type": "GAPPS_SENDER_SCORE"
+       }
+      }
+     ],
+     "iType": "Inbox",
+     "ip": "209.85.219.178",
+     "providerGroupId": "34",
+     "received": "2023-07-26T18:20:57.846Z",
+     "seedAccountGroupId": "12",
+     "seedAccountId": "80",
+     "seedAccountRegionId": "2",
+     "seedName": "Jolanta Kowalska",
+     "spf": "pass",
+     "visible": "true"
+    },
+    {
+     "bimi": "",
+     "delay": "12s",
+     "deliveredIn": 3410065408,
+     "dkim": "",
+     "dmarc": "",
+     "email": "RafalPawlowski_1@wp.pl",
+     "finished": "true",
+     "gappsFlags": [
+      {
+       "GAPPS_SENDER_SCORE": {
+        "data": {
+         "value": -1
+        },
+        "type": "GAPPS_SENDER_SCORE"
+       }
+      }
+     ],
+     "iType": "Inbox",
+     "ip": "209.85.219.178",
+     "providerGroupId": "34",
+     "received": "2023-07-26T18:20:57.846Z",
+     "seedAccountGroupId": "17",
+     "seedAccountId": "81",
+     "seedAccountRegionId": "5",
+     "seedName": "Rafał Pawłowski",
+     "spf": "pass",
+     "visible": "true"
+    },
+    {
+     "bimi": "",
+     "delay": "11s",
+     "deliveredIn": 2410065408,
+     "dkim": "pass",
+     "dmarc": "",
+     "email": "danielethompsonn@yahoo.com",
+     "finished": "true",
+     "gappsFlags": [
+      {
+       "GAPPS_SENDER_SCORE": {
+        "data": {
+         "value": -1
+        },
+        "type": "GAPPS_SENDER_SCORE"
+       }
+      }
+     ],
+     "iType": "Inbox",
+     "ip": "209.85.219.173",
+     "providerGroupId": "4",
+     "received": "2023-07-26T18:19:28.044Z",
+     "seedAccountGroupId": "17",
+     "seedAccountId": "88",
+     "seedAccountRegionId": "5",
+     "seedName": "Daniel Thompsonn",
+     "spf": "pass",
+     "visible": "true"
+    },
+    {
+     "bimi": "",
+     "delay": "56s",
+     "deliveredIn": 165425152,
+     "dkim": "",
+     "dmarc": "",
+     "email": "sagapps@justlan.com",
+     "finished": "true",
+     "gappsFlags": [
+      {
+       "GAPPS_SENDER_SCORE": {
+        "data": {
+         "value": -1
+        },
+        "type": "GAPPS_SENDER_SCORE"
+       }
+      }
+     ],
+     "iType": "Inbox",
+     "ip": "209.85.219.172",
+     "providerGroupId": "39",
+     "received": "2023-07-26T18:20:27.766Z",
+     "seedAccountGroupId": "2",
+     "seedAccountId": "93",
+     "seedAccountRegionId": "5",
+     "seedName": "SpamAssassin",
+     "spf": "pass",
+     "visible": "false"
+    },
+    {
+     "bimi": "",
+     "delay": "12s",
+     "deliveredIn": 3410065408,
+     "dkim": "",
+     "dmarc": "",
+     "email": "jarekmichalski_1@o2.pl",
+     "finished": "true",
+     "gappsFlags": [
+      {
+       "GAPPS_SENDER_SCORE": {
+        "data": {
+         "value": -1
+        },
+        "type": "GAPPS_SENDER_SCORE"
+       }
+      }
+     ],
+     "iType": "Inbox",
+     "ip": "209.85.219.177",
+     "providerGroupId": "35",
+     "received": "2023-07-26T18:19:57.706Z",
+     "seedAccountGroupId": "12",
+     "seedAccountId": "69",
+     "seedAccountRegionId": "2",
+     "seedName": "Jarek Michalski",
+     "spf": "pass",
+     "visible": "true"
+    },
+    {
+     "bimi": "",
+     "delay": "12s",
+     "deliveredIn": 3410065408,
+     "dkim": "",
+     "dmarc": "",
+     "email": "HainrichKucharski@o2.pl",
+     "finished": "true",
+     "gappsFlags": [
+      {
+       "GAPPS_SENDER_SCORE": {
+        "data": {
+         "value": -1
+        },
+        "type": "GAPPS_SENDER_SCORE"
+       }
+      }
+     ],
+     "iType": "Spam",
+     "ip": "209.85.219.177",
+     "providerGroupId": "35",
+     "received": "2023-07-26T18:19:57.707Z",
+     "seedAccountGroupId": "12",
+     "seedAccountId": "70",
+     "seedAccountRegionId": "2",
+     "seedName": "Hainrich Kucharski",
+     "spf": "pass",
+     "visible": "true"
+    },
+    {
+     "bimi": "",
+     "delay": "12s",
+     "deliveredIn": 3410065408,
+     "dkim": "",
+     "dmarc": "",
+     "email": "DobroslawaWojciechowska1@wp.pl",
+     "finished": "true",
+     "gappsFlags": [],
+     "iType": "Inbox",
+     "ip": "209.85.219.178",
+     "providerGroupId": "34",
+     "received": "2023-10-20T13:07:19.220Z",
+     "seedAccountGroupId": "12",
+     "seedAccountId": "79",
+     "seedAccountRegionId": "2",
+     "seedName": "Dobrosława Wojciechowska",
+     "spf": "pass",
+     "visible": "true"
+    },
+    {
+     "bimi": "",
+     "delay": "11s",
+     "deliveredIn": 2410065408,
+     "dkim": "pass",
+     "dmarc": "",
+     "email": "westondsteeves@aol.com",
+     "finished": "true",
+     "gappsFlags": [
+      {
+       "GAPPS_SENDER_SCORE": {
+        "data": {
+         "value": -1
+        },
+        "type": "GAPPS_SENDER_SCORE"
+       }
+      }
+     ],
+     "iType": "Inbox",
+     "ip": "209.85.219.182",
+     "providerGroupId": "2",
+     "received": "2023-07-26T18:19:42.945Z",
+     "seedAccountGroupId": "17",
+     "seedAccountId": "83",
+     "seedAccountRegionId": "5",
+     "seedName": "Weston Steeves",
+     "spf": "pass",
+     "visible": "true"
+    },
+    {
+     "bimi": "",
+     "delay": "11s",
+     "deliveredIn": 2410065408,
+     "dkim": "pass",
+     "dmarc": "",
+     "email": "robertldaniels@aol.com",
+     "finished": "true",
+     "gappsFlags": [
+      {
+       "GAPPS_SENDER_SCORE": {
+        "data": {
+         "value": -1
+        },
+        "type": "GAPPS_SENDER_SCORE"
+       }
+      }
+     ],
+     "iType": "Inbox",
+     "ip": "209.85.219.182",
+     "providerGroupId": "2",
+     "received": "2023-07-26T18:19:42.945Z",
+     "seedAccountGroupId": "17",
+     "seedAccountId": "89",
+     "seedAccountRegionId": "5",
+     "seedName": "Robert Daniels",
+     "spf": "pass",
+     "visible": "true"
+    },
+    {
+     "bimi": "",
+     "delay": "4m13s",
+     "deliveredIn": 3891896832,
+     "dkim": "pass",
+     "dmarc": "pass",
+     "email": "mbell@fastdirectorysubmitter.com",
+     "finished": "true",
+     "gappsFlags": [
+      {
+       "GAPPS_SENDER_SCORE": {
+        "data": {
+         "value": -1
+        },
+        "type": "GAPPS_SENDER_SCORE"
+       }
+      }
+     ],
+     "iType": "Inbox",
+     "ip": "209.85.220.41",
+     "providerGroupId": "1",
+     "received": "2023-07-26T18:22:12.090Z",
+     "seedAccountGroupId": "2",
+     "seedAccountId": "92",
+     "seedAccountRegionId": "5",
+     "seedName": "",
+     "spf": "pass",
+     "visible": "false"
+    },
+    {
+     "bimi": "",
+     "delay": "11s",
+     "deliveredIn": 2410065408,
+     "dkim": "",
+     "dmarc": "",
+     "email": "bcc3@spamcombat.com",
+     "finished": "true",
+     "gappsFlags": [
+      {
+       "GAPPS_SENDER_SCORE": {
+        "data": {
+         "value": -1
+        },
+        "type": "GAPPS_SENDER_SCORE"
+       }
+      }
+     ],
+     "iType": "Inbox",
+     "ip": "209.85.219.179",
+     "providerGroupId": "39",
+     "received": "2023-07-26T18:20:57.771Z",
+     "seedAccountGroupId": "2",
+     "seedAccountId": "94",
+     "seedAccountRegionId": "5",
+     "seedName": "Barracuda",
+     "spf": "pass",
+     "visible": "false"
+    },
+    {
+     "bimi": "",
+     "delay": "15s",
+     "deliveredIn": 2115098112,
+     "dkim": "",
+     "dmarc": "pass",
+     "email": "postmaster@test.glockdb.com",
+     "finished": "true",
+     "gappsFlags": [
+      {
+       "GAPPS_SENDER_SCORE": {
+        "data": {
+         "value": -1
+        },
+        "type": "GAPPS_SENDER_SCORE"
+       }
+      }
+     ],
+     "iType": "Inbox",
+     "ip": "209.85.219.181",
+     "providerGroupId": "4",
+     "received": "2023-07-26T18:19:42.761Z",
+     "seedAccountGroupId": "1",
+     "seedAccountId": "34",
+     "seedAccountRegionId": "5",
+     "seedName": "Test glockdb",
+     "spf": "pass",
+     "visible": "false"
+    }
+   ],
+   "integrationType": "",
+   "ipListed": "false",
+   "ipTestFinished": "false",
+   "letter": {
+    "created": "2023-07-26T18:19:28.071Z",
+    "folderId": "",
+    "from": "Jon Jon <example@gmail.com>",
+    "id": "64c163b03fdfed2da4adde40",
+    "name": "",
+    "previewImageUrl": "https://glockapps.letter.preview.images.dev.s3.amazonaws.com/fd5b3fdb1f.png",
+    "subject": "",
+    "to": [
+     "danielethompsonn@yahoo.com"
+    ],
+    "type": "manual"
+   },
+   "linkChecker": "false",
+   "meta": "",
+   "note": "big letter",
+   "notificationConditionIds": [],
+   "projectId": "45",
+   "seedListId": "1",
+   "sendEmailStatuses": [],
+   "sendingAccount": {},
+   "spamAssassin": {
+    "active": "true",
+    "deliveredIn": "56s",
+    "finished": "true",
+    "headers": [
+     {
+      "description": "Message has a blank Subject",
+      "score": 0.2,
+      "tag": "KAM_BLANKSUBJECT"
+     },
+     {
+      "description": "ADMINISTRATOR NOTICE: The query to URIBL was blocked. See http://wiki.apache.org/spamassassin/DnsBlocklists#dnsbl-block for more information. [URIs: bizrevtraining.com]",
+      "score": 0,
+      "tag": "URIBL_BLOCKED"
+     },
+     {
+      "description": "Sender email is commonly abused enduser mail provider [glocksmtp[at]gmail.com]",
+      "score": 0,
+      "tag": "FREEMAIL_FROM"
+     },
+     {
+      "description": "SPF: sender matches SPF record",
+      "score": 0,
+      "tag": "SPF_PASS"
+     },
+     {
+      "description": "BODY: HTML included in message",
+      "score": 0,
+      "tag": "HTML_MESSAGE"
+     },
+     {
+      "description": "Message has a DKIM or DK signature, not necessarily valid",
+      "score": 0.1,
+      "tag": "DKIM_SIGNED"
+     },
+     {
+      "description": "Message has a valid DKIM or DK signature from author's domain",
+      "score": -0.1,
+      "tag": "DKIM_VALID_AU"
+     },
+     {
+      "description": "Message has a valid DKIM or DK signature from envelope-from domain",
+      "score": -0.1,
+      "tag": "DKIM_VALID_EF"
+     },
+     {
+      "description": "Message has at least one valid DKIM or DK signature",
+      "score": -0.1,
+      "tag": "DKIM_VALID"
+     },
+     {
+      "description": "Listed in Pyzor (https://pyzor.readthedocs.io/en/latest/)",
+      "score": 2,
+      "tag": "PYZOR_CHECK"
+     },
+     {
+      "description": "No description available.",
+      "score": 0,
+      "tag": "TVD_SPACE_RATIO"
+     },
+     {
+      "description": "No description available.",
+      "score": 0,
+      "tag": "T_SCC_BODY_TEXT_LINE"
+     },
+     {
+      "description": "Bulk signature with no Unsubscribe",
+      "score": 0,
+      "tag": "FSL_BULK_SIG"
+     }
+    ],
+    "received": "2023-07-26T18:17:55Z",
+    "score": "2"
+   },
+   "stats": {
+    "inbox": 11,
+    "inboxAndOtherRates": 84.6,
+    "inboxRate": 84.6,
+    "notDelivered": 0,
+    "notDeliveredRate": 0,
+    "other": 0,
+    "otherRate": 0,
+    "spam": 2,
+    "spamRate": 15.4
+   },
+   "testId": "2023-07-26-18:16:11:876t",
+   "testType": "ManualTest",
+   "uribl": {
+    "finished": "true",
+    "results": [
+     {
+      "domain": "bizrevtraining.com",
+      "listedCount": 0,
+      "results": []
+     },
+     {
+      "domain": "more-4-business.co.uk",
+      "listedCount": 1,
+      "results": [
+       {
+        "link": "http://lookup.uribl.com/?domain=more-4-business.co.uk",
+        "responses": [
+         "127.0.0.2"
+        ],
+        "server": "uribl.com",
+        "txt": [
+         "Blacklisted, see http://lookup.uribl.com/?domain=more-4-business.co.uk"
+        ]
+       }
+      ]
+     }
+    ]
+   }
+  },
+  "status": "success"
+ }
+}

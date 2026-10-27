@@ -130,6 +130,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 ## State of the build
 - [CHECKPOINT 27 Oct — cloud only, invitations HELD for GlockApps](checkpoint-27-oct-cloud-invitations-held.md) — READ FIRST: laptop has no keys; invite_enabled=false; GlockApps blocked by the network; warm-up plan; 16 open PRs by state
 - [Invitations resume only at ≥80% Outlook inbox](invitations-resume-only-at-80-percent-outlook-inbox.md) — 27 Oct, instr 1312: GlockApps from supplier@; report inbox/spam/promotions per provider
+- [The GlockApps test runs itself](glockapps-test-runs-itself.md) — 27 Oct: deliverability_test edge fn + it_engineer duty; API v2 facts from the Swagger; founder adds GLOCKAPPS_API_KEY; re-test via fn_deliverability_test_request
 - [Standing approval: merge and deploy reviewed PRs](standing-approval-merge-and-deploy-reviewed-prs.md) — 27 Oct, instr 1340: reviewed + gate-clean PRs ship without asking; policy, real sends, spend and irreversible steps still go to him
 - [Ask before the internal test email management@ → supplier@](ask-before-the-internal-test-email.md) — 27 Oct, instr 1314: his explicit yes first
 - [CHECKPOINT 19 Oct — campaign on from 20 Oct, PR drain](checkpoint-19-oct-campaign-on-pr-drain.md) — READ FIRST: caps, open PRs, exam scores, grounding fix

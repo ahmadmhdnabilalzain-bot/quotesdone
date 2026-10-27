@@ -75,6 +75,9 @@ verify_jwt = true
 [functions.customer_portal]
 verify_jwt = false
 
+[functions.deliverability_test]
+verify_jwt = false
+
 [functions.doc_extract]
 verify_jwt = false
 

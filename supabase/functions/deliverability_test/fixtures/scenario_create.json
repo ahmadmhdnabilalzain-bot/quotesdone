@@ -1,0 +1,29 @@
+{
+ "emails": [
+  "zzseed.outlook.a@outlook.com",
+  "zzseed.outlook.b@outlook.com",
+  "zzseed.outlook.c@outlook.com",
+  "zzseed.outlook.d@outlook.com",
+  "zzseed.outlook.e@outlook.com",
+  "zzseed.outlook.f@outlook.com",
+  "zzseed.hotmail.a@hotmail.com",
+  "zzseed.hotmail.b@hotmail.com",
+  "zzseed.hotmail.c@hotmail.com",
+  "zzseed.o365.a@glockeasymail.com",
+  "zzseed.o365.b@glockeasymail.com",
+  "zzseed.o365.c@glockeasymail.com",
+  "zzseed.o365.d@glockeasymail.com",
+  "zzseed.gmail.a@gmail.com",
+  "zzseed.gmail.b@gmail.com",
+  "zzseed.gmail.c@gmail.com",
+  "zzseed.gmail.d@gmail.com",
+  "zzseed.yahoo.a@yahoo.com",
+  "zzseed.yahoo.b@yahoo.com",
+  "sagapps@justlan.com"
+ ],
+ "insertHeader": "X-API-Campaign-id: 2026-10-28-08:00:00:001t",
+ "insertInBody": "id: 2026-10-28-08:00:00:001t",
+ "seedListLatestUpdate": "2024-03-01T00:00:00Z",
+ "status": "success",
+ "testId": "2026-10-28-08:00:00:001t"
+}
