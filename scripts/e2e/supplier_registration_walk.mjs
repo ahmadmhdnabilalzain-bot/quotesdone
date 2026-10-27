@@ -60,15 +60,211 @@ const MATRIX = CASES.length ? CASES.map((c, i) => ({ lang: 'en', vp: VPS[i % VPS
   : LANGS.flatMap((lang) => VPS.map((vp) => ({ lang, vp, c: null })));
 const esc = (x) => String(x).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const run = await openRun();
+// --fresh (27 Oct 2026, it_engineer, founder: "is the browser test for the supplier register journey done?"): a
+// supplier who was NOT invited, from the public /supplier page through the sign-up form, "Register your company"
+// with its trade, the registration form (emirates, licence, company profile, catalogue, mobile, WhatsApp, terms),
+// Submit, the Services tab (the sales engineer's rewrite, confirmed) and the Inquiries received tab. Each of the
+// founder's seven steps is timed and written to --summary <file>. The invited legs are unchanged.
+const FRESH = argv.includes('--fresh');
+const SUMMARY = val('--summary', '');
+// --cap-usd: the run's rehearsal-window ceiling on tagged model spend (fn_kernel_paid_provider_gate). openRun's default stays.
+const CAP = val('--cap-usd', '');
+const journey = [];
+const jstep = (m, no, name, ok, ms, detail = '') => { journey.push({ m, step: no, name, status: ok ? 'PASS' : 'FAIL', ms, detail }); step(m, `STEP ${no} ${name}`, ok, `${ms} ms${detail ? ' — ' + detail : ''}`); };
+
+async function freshLeg({ run, browser, m, n, lang, vp, email, company }) {
+  const mobile = vp === 'mobile';
+  const ctxOpts = { viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 }, locale: 'en-GB', ...(mobile ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) };
+  const consent = () => localStorage.setItem('qd-cookie-consent', JSON.stringify({ necessary: true, analytics: false, marketing: false, ts: Date.now() }));
+  const pre = lang === 'ar' ? '/ar' : '';
+  const fixtureMobile = `+9715000000${String(10 + n).padStart(2, '0')}`;
+
+  // STEP 1. The supplier landing page, its call to action, and the sign-up form it opens.
+  let refusal = { ok: false, ms: 0 };
+  { const ctx = await browser.newContext(ctxOpts); await ctx.addInitScript(consent); const p = await ctx.newPage(); const t0 = Date.now();
+    await p.goto(`${SITE}${pre}/supplier`, { waitUntil: 'domcontentloaded' });
+    const h1 = await p.locator('h1').first().innerText({ timeout: 20000 }).catch(() => '');
+    await shot(p, m, 'step1_supplier_landing');
+    const cta = p.getByRole('link', { name: /Open the supplier portal|بوابة الموردين|بوابة المورد/ }).first();
+    const ctaSeen = await cta.isVisible().catch(() => false);
+    if (ctaSeen) await cta.click();
+    await p.waitForURL(/\/portal/, { timeout: 20000 }).catch(() => {});
+    await p.locator('#qd-supplier-signin').waitFor({ timeout: 20000 }).catch(() => {});
+    const tab = p.locator('#qd-supplier-signin').getByRole('button', { name: /^(Create account|إنشاء حساب)$/ }).first();
+    if (await tab.isVisible().catch(() => false)) await tab.click();
+    const form = await p.locator('#qd-supplier-signin h1').innerText({ timeout: 10000 }).catch(() => '');
+    await shot(p, m, 'step1_signup_form');
+    jstep(m, 1, 'supplier landing page and sign-up form', !!h1 && ctaSeen && /\/portal/.test(p.url()) && /Register as a supplier/.test(form), Date.now() - t0,
+      `landing h1 "${h1.slice(0, 60)}"; CTA ${ctaSeen ? 'shown' : 'MISSING'} -> ${p.url().replace(SITE, '')}; form "${form}"`);
+
+    // STEP 2a. The real form refuses a reserved test domain BEFORE any code is sent (no OTP bypass in production code).
+    const t1 = Date.now();
+    await p.locator('#qd-supplier-signin input').first().fill(email);
+    await p.locator('#qd-supplier-signin').getByRole('button', { name: /^(Create my account|إنشاء حسابي)$/ }).click();
+    const refused = await p.getByText(/reserved for examples and testing|محجوز للأمثلة/).first().waitFor({ timeout: 10000 }).then(() => true).catch(() => false);
+    await shot(p, m, 'step2_reserved_domain_refused');
+    refusal = { ok: refused, ms: Date.now() - t1 };
+    await ctx.close(); }
+
+  // STEP 2b. The e-mail code: seeded hashed and verified through the real login_otp endpoint (the harness's OTP path).
+  const t2 = Date.now();
+  const u = await mkAuthUser(run, email);
+  const v = await verifyEmailByOtp(email, 'supplier');
+  const { ANON } = await keys();
+  const s = await (await fetch(`${BASE}/auth/v1/token?grant_type=password`, { method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: u.password }) })).json();
+  jstep(m, 2, 'e-mail verification (form refuses the reserved domain before sending; code verified through login_otp)', refusal.ok && v.json?.ok === true && !!s.access_token, refusal.ms + (Date.now() - t2),
+    `reserved-domain refusal on screen: ${refusal.ok}; login_otp HTTP ${v.status} ok=${v.json?.ok}; session ${s.access_token ? 'issued' : 'MISSING'}`);
+  if (!s.access_token) return;
+
+  const ctx = await browser.newContext(ctxOpts); await ctx.addInitScript(consent);
+  await ctx.addInitScript(([s]) => {
+    localStorage.setItem('qd-sup-token', s.access_token); localStorage.setItem('qd-sup-refresh', s.refresh_token);
+    localStorage.setItem('qd-portal-auth', JSON.stringify({ access_token: s.access_token, refresh_token: s.refresh_token, expires_in: s.expires_in, expires_at: s.expires_at, token_type: 'bearer', user: s.user }));
+  }, [s]);
+  const p = await ctx.newPage(); const M = p.locator('main');
+  // The workspace's own tab strip (the site header has a navigation landmark too).
+  const wsNav = () => p.getByRole('navigation').filter({ has: p.getByRole('button', { name: /^(Inquiries received|الاستفسارات الواردة)$/ }) }).first();
+  const errs = []; p.on('pageerror', (e) => errs.push(String(e.message).slice(0, 160)));
+  try {
+    // STEP 3. Company details and trade, then the emirates: every UAE supplier covers the whole country.
+    const t3 = Date.now();
+    await p.goto(`${SITE}${pre}/portal`, { waitUntil: 'domcontentloaded' });
+    const reg = await M.getByText(/^(Register your company|تسجيل الشركة)$/).first().waitFor({ timeout: 30000 }).then(() => true).catch(() => false);
+    await shot(p, m, 'step3_register_company');
+    let lead = null, sms = { json: null, text: 'not sent' };
+    if (reg) {
+      await M.getByRole('textbox', { name: /Company name|اسم الشركة/ }).first().fill(company);
+      await M.locator('select').first().selectOption('aluminium');
+      await shot(p, m, 'step3_company_and_trade_filled');
+      // THE FIXTURE MOBILE, WITHOUT LEAVING THE FORM. A +971 50 000 00xx number is refused before any SMS, so it is
+      // recorded verified in the database, as fixtures.makeDemoSupplier does. The registration form reads that state
+      // once, when it mounts (kyc state), and a reload sends a supplier whose company exists to the workspace instead
+      // of this form (measured 27 Oct, pre-fix run). So the form's first kyc state request is HELD — never answered by
+      // the test — until the row says verified, then sent to the real server unchanged.
+      let release; const phoneReady = new Promise((r) => { release = r; });
+      await p.route('**/functions/v1/kyc**', async (route) => { if (/"action"\s*:\s*"state"/.test(route.request().postData() || '')) await phoneReady; await route.continue(); });
+      await M.getByRole('button', { name: /^(Create company|إنشاء الشركة)$/ }).click();
+      lead = await waitFor(async () => (await read(`select id, sector, company_name from public.leads where lower(claimed_by)=lower('${email}') order by id desc limit 1`))[0] || null, { timeoutMs: 30000 }).catch(() => null);
+      // Scope the new row to this run at once, so teardown reaches it whatever happens next.
+      if (lead) {
+        run.ids.leads.add(String(lead.id)); await write(`update public.leads set tags = array(select distinct unnest(coalesce(tags,'{}') || ARRAY['qd_demo','qd_run:${run.tag}'])) where id=${lead.id}`, 'tag the run\'s new lead');
+        sms = await call('kyc', s.access_token, { action: 'send_sms', phone: fixtureMobile });
+        await write(`update public.leads set phone='${fixtureMobile}', owner_phone_verified=true where id=${lead.id}`, 'fixture mobile verified');
+        await call('kyc', s.access_token, { action: 'whatsapp_choose', user_kind: 'supplier', email, opt: 'same' });
+      }
+      release();
+      await M.getByText(/Emirates you serve|الإمارات التي تخدمونها/).first().waitFor({ timeout: 30000 }).catch(() => {});
+      await p.unroute('**/functions/v1/kyc**');
+    }
+    const legend = await M.locator('fieldset legend').filter({ hasText: /Emirates you serve|الإمارات/ }).first().innerText().catch(() => '');
+    const allBox = M.getByRole('checkbox', { name: /^(All emirates|كل الإمارات)$/ });
+    const hasAll = await allBox.isVisible().catch(() => false);
+    if (hasAll) await allBox.check();
+    const ticked = await M.locator('fieldset').filter({ hasText: /Emirates you serve|الإمارات/ }).locator('input[type=checkbox]:checked').count();
+    await shot(p, m, 'step3_emirates_all_uae');
+    const optional = /Optional|اختياري/.test(legend) && !/Required|مطلوب/.test(legend);
+    jstep(m, 3, 'company details + trade; emirates optional with "All emirates" (no restriction)', reg && !!lead && lead.sector === 'aluminium' && hasAll && ticked === 8 && optional, Date.now() - t3,
+      `lead ${lead?.id} sector=${lead?.sector}; legend "${legend.replace(/\s+/g, ' ')}"; "All emirates" ${hasAll ? 'present' : 'MISSING'}; ${ticked}/8 boxes ticked`);
+    if (!lead) return;
+
+    // The licence (required), then the fixture mobile: refused before any SMS, then recorded verified.
+    const lic = join(TMP, `${run.tag}_${n}_trade_licence.pdf`), prof = join(TMP, `${run.tag}_${n}_company_profile.pdf`), cat = join(TMP, `${run.tag}_${n}_catalogue.pdf`);
+    writeFileSync(lic, demoTradeLicence({ company, licenceNo: `ZZDEMO-${run.tag}-${n}`.toUpperCase(), activity: 'Aluminium and Glass Works' }));
+    writeFileSync(prof, demoPdf([['COMPANY PROFILE (ZZ DEMO FIXTURE - NOT A REAL COMPANY)', 14], [company, 12], ['Aluminium windows, doors, curtain walls and glass facades across the UAE.', 11]]));
+    writeFileSync(cat, demoPdf([['PRODUCT CATALOGUE (ZZ DEMO FIXTURE - NOT A REAL COMPANY)', 14], [company, 12], ['Sliding windows, casement windows, aluminium doors, shopfronts, skylights.', 11]]));
+    const tLic = Date.now();
+    await M.locator('input[type=file]').nth(0).setInputFiles(lic);
+    await M.getByText(/Reading your licence|جارٍ قراءة/).first().waitFor({ state: 'detached', timeout: 120000 }).catch(() => {});
+    const licRow = await waitFor(async () => { const x = (await read(`select license_doc_path from public.leads where id=${lead.id}`))[0]; return x?.license_doc_path ? x : null; }, { timeoutMs: 60000 }).catch(() => null);
+    const licMs = Date.now() - tLic;
+    const mobileOk = await M.getByText(/Mobile verified|تم التحقق من الجوال/).first().isVisible().catch(() => false);
+    await M.getByRole('textbox', { name: /Contact name|جهة الاتصال/ }).first().fill('ZZ DEMO Contact');
+
+    // STEP 4 + 5. Company profile and catalogue picked on the form; Submit uploads both straight to storage
+    // (supplier_api upload_url + the signed PUT that #1642 repaired) and must END, not hang on "Submitting…".
+    await M.locator('input[type=file]').nth(1).setInputFiles(prof);
+    await M.locator('input[type=file]').nth(2).setInputFiles(cat);
+    await M.getByRole('checkbox', { name: /I accept the QuotesDone|أوافق/ }).check();
+    await shot(p, m, 'step4_profile_and_catalogue_picked');
+    const t4 = Date.now();
+    await M.getByRole('button', { name: /^(Submit for approval|إرسال للموافقة)/ }).click();
+    const done = await wsNav().waitFor({ timeout: 120000 }).then(() => true).catch(() => false);
+    const submitMs = Date.now() - t4;
+    const alertTxt = done ? '' : await M.getByRole('alert').first().innerText({ timeout: 1000 }).catch(() => '');
+    const hung = !done && await M.getByRole('button', { name: /Submitting|جارٍ/ }).isVisible().catch(() => false);
+    await shot(p, m, 'step4_after_submit');
+    const docs = (await read(`select company_profile_doc_path prof, coalesce(array_length(catalog_doc_paths,1),0) cats, license_doc_path lic,
+        (select count(*)::int from storage.objects o where o.bucket_id='supplier-docs' and (o.name = l.company_profile_doc_path)) prof_obj,
+        (select count(*)::int from storage.objects o where o.bucket_id='supplier-docs' and o.name = any(coalesce(l.catalog_doc_paths,'{}'))) cat_obj
+      from public.leads l where id=${lead.id}`))[0];
+    jstep(m, 4, 'company profile upload completes (stored, object in supplier-docs)', done && !!docs?.prof && docs.prof_obj === 1, submitMs + licMs,
+      `licence ${licRow ? 'stored' : 'NOT stored'} in ${licMs} ms; Submit ended in ${submitMs} ms${hung ? ' — STILL "Submitting…"' : ''}${alertTxt ? ' — alert: ' + alertTxt.slice(0, 160) : ''}; profile ${docs?.prof || 'none'} (object ${docs?.prof_obj})`);
+    jstep(m, 5, 'catalogue upload completes (stored, object in supplier-docs)', done && docs?.cats >= 1 && docs.cat_obj >= 1, submitMs,
+      `catalog_doc_paths ${docs?.cats}, objects ${docs?.cat_obj}`);
+    for (const d of await read(`select license_doc_path p from public.leads where id=${lead.id} union all select company_profile_doc_path from public.leads where id=${lead.id} union all select unnest(catalog_doc_paths) from public.leads where id=${lead.id}`)) if (d.p) run.ids.storage.push('supplier-docs/' + d.p);
+    step(m, 'a fixture mobile is refused before any SMS', sms.json?.ok !== true, sms.text.slice(0, 90));
+    step(m, 'the form shows the mobile verified', mobileOk);
+
+    // Ruling 1230: registration completes 100% on ZZ DEMO — approved, signed certificate, every mandatory field stored.
+    const t5 = Date.now(); let r;
+    for (;;) { r = (await read(`select approval_status, signed_terms_path, licence_gate_reason, owner_phone_verified pv, owner_email_verified ev, accepted_terms_ip is not null ip,
+        accepted_terms_sha256 is not null sha, service_emirates, contact_name from public.leads where id=${lead.id}`))[0];
+      if ((r.approval_status === 'approved' && r.signed_terms_path) || Date.now() - t5 > 90000) break; await new Promise((x) => setTimeout(x, 3000)); }
+    if (r?.signed_terms_path) run.ids.storage.push('signed-terms/' + r.signed_terms_path);
+    const allUae = ['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'].every((e) => JSON.stringify(r.service_emirates || []).includes(e));
+    step(m, 'ruling 1230: registration completes 100% — approved, signed certificate, mobile + e-mail verified, acceptance hashed, all 7 emirates',
+      r.approval_status === 'approved' && !!r.signed_terms_path && !r.licence_gate_reason && r.pv && r.ev && r.ip && r.sha && allUae, `${JSON.stringify(r)}; approved ${Date.now() - t5} ms after Submit returned`);
+
+    // STEP 6. "Set up my page": the supplier's services, rewritten by the sales engineer and confirmed.
+    const t6 = Date.now();
+    await p.reload({ waitUntil: 'domcontentloaded' }); const nav = wsNav(); await nav.waitFor({ timeout: 30000 });
+    const setupBtn = await p.getByRole('button', { name: /set up my page/i }).or(p.getByRole('link', { name: /set up my page/i })).count();
+    await nav.getByRole('button', { name: /^(Services|الخدمات)$/ }).click();
+    const ta = M.locator('textarea').first(); await ta.waitFor({ timeout: 30000 });
+    await ta.fill('We supply and install aluminium sliding and casement windows, aluminium doors, shopfronts and glass curtain walls for villas and offices.');
+    await M.getByRole('button', { name: /^(Rewrite my services|إعادة صياغة خدماتي)$/ }).click();
+    await M.getByRole('button', { name: /Our sales engineer is reading it|يقرأ مهندس المبيعات/ }).waitFor({ state: 'detached', timeout: 150000 }).catch(() => {});
+    await shot(p, m, 'step6_sales_engineer_rewrite');
+    const roleBoxes = M.locator('fieldset').filter({ hasText: /role|دور/i }).locator('input[type=checkbox]');
+    if ((await roleBoxes.count()) && !(await roleBoxes.locator(':checked').count().catch(() => 0))) await roleBoxes.first().check().catch(() => {});
+    const confirm = M.getByRole('button', { name: /^(Confirm my services|Update my services|تأكيد خدماتي|تحديث خدماتي)$/ });
+    const canConfirm = await confirm.isEnabled().catch(() => false);
+    // The server's own answer to the confirm is kept, so a refusal is named by its code, not only by the screen.
+    const saveAns = canConfirm ? p.waitForResponse((r) => /\/functions\/v1\/supplier_api/.test(r.url()) && /services_save_rewrite/.test(r.request().postData() || ''), { timeout: 90000 })
+      .then(async (r) => `HTTP ${r.status()} ${(await r.text().catch(() => '')).slice(0, 300)}`).catch((e) => 'no answer: ' + String(e.message).slice(0, 80)) : Promise.resolve('not pressed');
+    if (canConfirm) await confirm.click();
+    const savedAns = await saveAns;
+    const savedNote = await M.getByText(/^Saved\. Your services are confirmed|^تم الحفظ/).first().waitFor({ timeout: 30000 }).then(() => true).catch(() => false);
+    await shot(p, m, 'step6_services_confirmed');
+    const capn = (await read(`select count(*)::int n from public.supplier_capability_confirmation where supplier_id=${lead.id}`))[0].n;
+    jstep(m, 6, 'page set up: services rewritten by the sales engineer and confirmed', canConfirm && savedNote && capn > 0, Date.now() - t6,
+      `"Set up my page" control on screen: ${setupBtn ? 'yes' : 'NO — no such control exists in the portal; the Services tab confirm is the step that publishes what the supplier offers'}; confirm enabled ${canConfirm}; saved note ${savedNote}; server ${savedAns}; capability confirmations ${capn}`);
+
+    // STEP 7. The dashboard loads, and the supplier can see the inquiries area.
+    const t7 = Date.now();
+    await nav.getByRole('button', { name: /^(Inquiries received|الاستفسارات الواردة)$/ }).click();
+    const settle = async () => { const t0 = Date.now(); while (Date.now() - t0 < 25000) { if (!(await M.evaluate((el) => /Loading|Measuring|جارٍ/.test(el.innerText) || !!el.querySelector('[aria-busy="true"]')))) return Date.now() - t0; await p.waitForTimeout(250); } return -1; };
+    const ms = await settle();
+    const body = (await M.innerText().catch(() => '')).replace(/\s+/g, ' ');
+    await shot(p, m, 'step7_inquiries_received');
+    const tabs = await nav.getByRole('button').allInnerTexts();
+    jstep(m, 7, 'dashboard loads; "Inquiries received" opens and settles', ms >= 0 && tabs.length >= 5 && !/something went wrong|تعذّر/i.test(body), Date.now() - t7,
+      `tabs ${JSON.stringify(tabs)}; settled ${ms} ms; panel text "${body.slice(0, 140)}"; page errors ${errs.length ? errs.join(' | ') : 'none'}`);
+    for (const name of tabs) { await nav.getByRole('button', { name, exact: true }).click(); const t = await settle(); step(m, `tab "${name}" settles`, t >= 0, `${t} ms`); await shot(p, m, 'tab_' + name.replace(/[^a-z0-9]+/gi, '_').slice(0, 20)); }
+  } finally { await ctx.close(); }
+}
+
+const run = await openRun(CAP ? { capUsd: Number(CAP) } : {});
 // Ruling 1260 (19 Oct 2026): every run has the AI on. openRun opens the capped model window for every leg, so the
 // case-only override (USD 1, 1 hour) is gone: it only ever LOWERED the run's ceiling below openRun's.
 const browser = await launch();
+let teardownOut = null;
 try {
   for (const { lang, vp, c } of MATRIX) {
     const m = `${lang}/${vp}${c ? '/' + c.id : ''}`, n = run.seq++;
     const approveCase = !c || ['approve', 'name_autofilled'].includes(c.expected);
     const email = `qd-${run.tag}-sup${n}@example.invalid`, company = `ZZ DEMO Walk ${run.tag} ${lang} ${vp} ${n}`;
+    if (FRESH) { await freshLeg({ run, browser, m, n, lang, vp, email, company }); continue; }
     const lead = (await write(`insert into public.leads (company_name, email, emirate, source, invite_status, invited_at, locale, tags)
       values ('${company}', '${email}', 'Dubai', 'directory', 'sent', now(), '${lang}', ARRAY['qd_demo','qd_run:${run.tag}'])
       returning id, claim_token::text t`, 'invited demo lead'))[0];
@@ -243,9 +439,10 @@ try {
   }
 } finally {
   await browser.close();
-  const c = await closeRun(run, { keep: KEEP });
+  const c = await closeRun(run, { keep: KEEP }); teardownOut = c;
   console.log('teardown:', JSON.stringify(c.leftovers || 'kept'));
 }
 const failed = results.filter((r) => !r.ok);
+if (SUMMARY) writeFileSync(SUMMARY, JSON.stringify({ tag: run.tag, site: SITE, journey, results, teardown: teardownOut }, null, 2));
 console.log(`${results.length - failed.length}/${results.length} passed`);
 process.exit(failed.length ? 1 : 0);

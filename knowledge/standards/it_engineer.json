@@ -1195,33 +1195,33 @@
       "id": "IT-C13",
       "what": "Guards the perimeter hourly/daily: OTP pumping, provider usage caps, provider status, sender health, Postmaster, DB health, monthly access review",
       "cadence": "daily",
-      "duties": [],
-      "status": "partial",
-      "gap": "Runs from it_duty_schedule (otp, usage, provider_status, sender, postmaster, db_health, access), not seat_duty; no last_ok_at is recorded there, so freshness cannot be proven from the duty register."
+      "duties": ["it_engineer.perimeter_freshness"],
+      "status": "live",
+      "gap": "Closed by it_engineer.perimeter_freshness (scripts/sql/the_it_engineer_closes_the_loops_a_senior_it_engineer_closes.sql), built 19 Oct 2026; measured 27 Oct 2026: enabled, last ok 2026-10-27. The standard still said \"no duty\" until this correction."
     },
     {
       "id": "IT-C14",
       "what": "Turns failure clusters in agent_runs (over 50% non-ok, more than 5 runs in 7 days) into owned findings, and flags run labels with no owner",
       "cadence": "daily",
-      "duties": [],
-      "status": "missing",
-      "gap": "No duty exists. The 30 Sep audit found quote_extract 8/8, compliance_archive 118/118, wa_templates_watch 314/352 and login_otp 507/700 failing with no finding."
+      "duties": ["it_engineer.run_clusters"],
+      "status": "partial",
+      "gap": "Built 27 Oct 2026: it_engineer.run_clusters (scripts/sql/the_it_engineer_turns_every_failing_run_label_into_an_owned_finding.sql), proved by a rolled-back probe; live once applied at merge. Until then no duty runs it."
     },
     {
       "id": "IT-C15",
       "what": "Triages dependency and platform advisories (deployed? CVSS v4, EPSS) and audits GitHub workflows for unpinned actions and excess token permissions",
       "cadence": "monthly",
-      "duties": [],
-      "status": "missing",
-      "gap": "No seat_duty or it_duty_schedule key performs advisory triage or workflow-pinning audit; the knowledge exists, the duty does not."
+      "duties": ["it_engineer.advisory_triage"],
+      "status": "live",
+      "gap": "Closed by it_engineer.advisory_triage (scripts/sql/the_it_engineer_closes_the_loops_a_senior_it_engineer_closes.sql), built 19 Oct 2026; measured 27 Oct 2026: enabled, last ok 2026-10-26. The standard still said \"no duty\" until this correction."
     },
     {
       "id": "IT-C16",
       "what": "Load-tests the inquiry, quote and reveal journeys to the breakpoint before customers arrive in January 2027 and records the ceiling",
       "cadence": "event",
-      "duties": [],
-      "status": "missing",
-      "gap": "No load-test duty or recorded breakpoint result exists."
+      "duties": ["it_engineer.load_test"],
+      "status": "live",
+      "gap": "Closed by it_engineer.load_test (scripts/sql/the_it_engineer_closes_the_loops_a_senior_it_engineer_closes.sql), built 19 Oct 2026; measured 27 Oct 2026: enabled, last ok 2026-10-19. The standard still said \"no duty\" until this correction."
     },
     {
       "id": "IT-C17",
@@ -1229,7 +1229,7 @@
       "cadence": "daily",
       "duties": [],
       "status": "partial",
-      "gap": "Performed by sales_engineer (it_duty_schedule supplier_docs), not by an it_engineer duty; the IT knowledge entry still names IT as owner."
+      "gap": "Performed daily, but not by this seat: it_duty_schedule supplier_docs (owner sales_engineer, last ok 26 Oct 2026) runs fn_reconcile_doc_blocks, which pauses matching on a licence's expiry day; fn_match_capability itself does not read the expiry (measured 27 Oct 2026). Suppliers are the sales engineer's (24 Sep ownership map); the IT part is that the schedule keeps running, which perimeter_freshness (IT-C13) watches."
     }
   ]
 }

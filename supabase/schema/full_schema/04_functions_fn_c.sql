@@ -6347,6 +6347,149 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_seat_senior_verdict(p_at timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c_senior_exam  constant numeric := 0.95;   -- SENIOR_BAR in scripts/eval/seat_senior_audit.mjs
+  c_mid_exam     constant numeric := 0.80;   -- mid-level exam bar in seat_senior_audit.mjs
+  c_mid_contrib  constant numeric := 0.90;   -- mid-level contribution bar
+  c_on_clock     constant numeric := 0.95;
+  c_on_time      constant numeric := 0.90;
+  c_judged_min   constant int     := 20;
+  c_judged_bar   constant numeric := 0.80;
+  v_week date := date_trunc('week', p_at at time zone 'Asia/Dubai')::date;
+  s record; v_s1 jsonb; v_s2 jsonb; v_short text[]; v_level text; v_prev text; v_id bigint;
+  v_exam numeric; v_items int; v_passed int; v_judged_n int; v_judged_ok numeric;
+  v_contrib int; v_live int; v_not_live jsonb; v_duties int; v_on_clock int;
+  v_win int; v_in_time int; v_late_open int; v_own int; v_sent int; v_owed int;
+  n_seats int := 0; n_fell int := 0; v_levels jsonb := '{}'::jsonb;
+begin
+  for s in select role_id from public.org_role where status = 'active' order by role_id loop
+    n_seats := n_seats + 1;
+
+    -- STAGE 1: qualification
+    select e.items, e.passed into v_items, v_passed from public.seat_senior_exam e
+     where e.seat = s.role_id order by e.judged_on desc limit 1;
+    v_exam := case when v_items > 0 then round(v_passed::numeric / v_items, 3) end;
+    select count(*), round(avg(j.outcome_correct::int), 3) into v_judged_n, v_judged_ok
+      from public.seat_judgement j
+     where j.seat = s.role_id and j.outcome_correct is not null and j.made_at > p_at - interval '90 days';
+    v_s1 := jsonb_build_object(
+      'exam_items', v_items, 'exam_passed', v_passed, 'exam_rate', v_exam,
+      'judged_outcomes_90d', v_judged_n, 'judged_correct_rate', v_judged_ok,
+      'recall', (select jsonb_build_object('day', r.day, 'questions', r.questions, 'en', r.recall_en, 'ar', r.recall_ar)
+                   from public.seat_knowledge_recall r where r.seat = s.role_id order by r.day desc limit 1));
+
+    -- STAGE 2: contribution
+    with c as (
+      select sc.contribution_id, sc.what, sc.duties,
+             cardinality(sc.duties) > 0 and not exists (
+               select 1 from unnest(sc.duties) k
+                where not exists (select 1 from public.seat_duty d
+                                   where d.duty = k and d.enabled and d.last_ok_at is not null
+                                     and d.last_ok_at >= p_at - (d.every * 2 + interval '1 day'))) as live
+        from public.seat_senior_contribution sc where sc.seat = s.role_id)
+    select count(*), count(*) filter (where live),
+           coalesce(jsonb_agg(contribution_id || ' ' || left(what, 120) order by contribution_id) filter (where not live), '[]'::jsonb)
+      into v_contrib, v_live, v_not_live from c;
+    select count(*), count(*) filter (where d.last_ok_at >= p_at - (d.every * 2 + interval '1 day'))
+      into v_duties, v_on_clock from public.seat_duty d where d.owner_seat = s.role_id and d.enabled;
+    -- THE RECEIVER'S ANSWER, not the close. Measured 27 Oct 2026: on a kind the originator closes, decided_at is the
+    -- originator's re-verification and detail.replied_at is the receiver's reply; sales_engineer's it.finding handoffs
+    -- (4-hour window) were replied in time 414 of 414 and closed in time 21 of 414. A handoff already answered and
+    -- waiting for its originator is not late on the receiver.
+    select count(*) filter (where a.status = 'done' or a.detail ? 'replied_at'),
+           count(*) filter (where (a.status = 'done' or a.detail ? 'replied_at')
+                              and coalesce((a.detail->>'replied_at')::timestamptz, a.decided_at) <= a.created_at + k.reply_within),
+           count(*) filter (where a.status = 'pending' and not a.detail ? 'replied_at' and a.created_at < p_at - k.reply_within)
+      into v_win, v_in_time, v_late_open
+      from public.agent_actions a
+      join public.seat_handoff_kind k on k.type = a.detail->>'type' and k.from_seat = a.detail->>'from' and k.to_seat = a.agent
+     where a.kind = 'handoff' and a.agent = s.role_id and k.reply_within is not null
+       and a.created_at > p_at - interval '30 days' and coalesce(a.title, '') not like '%ZZ DEMO%';
+    -- The other half of a loop (nothing is one-way): handoffs THIS seat sent, answered, and still waiting for this seat to
+    -- re-verify and close, past one more reply window. Informational: an it.finding legitimately waits on its fix.
+    select count(*) into v_owed
+      from public.agent_actions a
+      join public.seat_handoff_kind k on k.type = a.detail->>'type' and k.from_seat = a.detail->>'from' and k.to_seat = a.agent
+     where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'from' = s.role_id and k.originator_closes
+       and k.reply_within is not null and a.detail ? 'replied_at'
+       and (a.detail->>'replied_at')::timestamptz < p_at - k.reply_within and coalesce(a.title, '') not like '%ZZ DEMO%';
+    select count(*) filter (where a.agent = s.role_id and a.kind <> 'handoff'),
+           count(*) filter (where a.kind = 'handoff' and a.detail->>'from' = s.role_id and a.agent <> s.role_id)
+      into v_own, v_sent
+      from public.agent_actions a where a.created_at > p_at - interval '30 days';
+    v_s2 := jsonb_build_object(
+      'contributions', v_contrib, 'contributions_live', v_live,
+      'contributions_live_rate', case when v_contrib > 0 then round(v_live::numeric / v_contrib, 3) end,
+      'contributions_not_live', v_not_live,
+      'duties', v_duties, 'duties_on_clock', v_on_clock,
+      'duties_on_clock_rate', case when v_duties > 0 then round(v_on_clock::numeric / v_duties, 3) end,
+      'windowed_handoffs_answered_30d', v_win, 'answered_in_window_30d', v_in_time,
+      'answered_in_window_rate', case when v_win > 0 then round(v_in_time::numeric / v_win, 3) end,
+      'handoffs_unanswered_past_window_now', v_late_open, 'closes_owed_past_window_now', v_owed,
+      'own_actions_30d', v_own, 'handoffs_sent_30d', v_sent);
+
+    -- THE LEVEL, and every shortfall with its number. No measurement is never a pass.
+    v_short := '{}';
+    if v_exam is null then v_short := v_short || 'stage 1: no judged exam'::text;
+    elsif v_exam < c_senior_exam then
+      v_short := v_short || format('stage 1: exam %s%% (%s of %s) below the senior 95%%', round(v_exam * 100, 1), v_passed, v_items);
+    end if;
+    if v_judged_n >= c_judged_min and v_judged_ok < c_judged_bar then
+      v_short := v_short || format('stage 1: %s%% of %s graded judgements right (bar 80%%)', round(v_judged_ok * 100), v_judged_n);
+    end if;
+    if v_contrib = 0 then v_short := v_short || 'stage 2: no senior contributions defined'::text;
+    elsif v_live < v_contrib then
+      v_short := v_short || format('stage 2: %s of %s senior contributions live', v_live, v_contrib);
+    end if;
+    if v_duties = 0 or v_on_clock::numeric / v_duties < c_on_clock then
+      v_short := v_short || format('stage 2: %s of %s duties on their clock', v_on_clock, v_duties);
+    end if;
+    if v_win > 0 and v_in_time::numeric / v_win < c_on_time then
+      v_short := v_short || format('stage 2: %s of %s windowed handoffs answered within their window in 30 days', v_in_time, v_win);
+    end if;
+    if v_late_open > 0 then v_short := v_short || format('stage 2: %s handoffs unanswered past their window now', v_late_open); end if;
+
+    v_level := case
+      when cardinality(v_short) = 0 then 'senior'
+      when v_exam >= c_mid_exam and v_contrib > 0 and v_live::numeric / v_contrib >= c_mid_contrib then 'mid'
+      else 'junior' end;
+
+    -- a level that FELL since the last verdict is the CEO's to act on, once
+    select v.level into v_prev from public.seat_senior_verdict v where v.seat = s.role_id and v.week < v_week order by v.week desc limit 1;
+    v_id := null;
+    if v_prev is not null and array_position(array['junior', 'mid', 'senior'], v_level) < array_position(array['junior', 'mid', 'senior'], v_prev) then
+      v_id := public.fn_ceo_improvement_open('seat_audit', 'senior:' || s.role_id || ':' || v_week, s.role_id,
+        format('Senior verdict for %s fell from %s to %s in the week of %s. ', s.role_id, v_prev, v_level, to_char(v_week, 'DD Mon YYYY'))
+          || array_to_string(v_short, '; ') || '. Restore each measure that fell before the next weekly verdict.',
+        jsonb_build_object('week', v_week, 'stage1', v_s1, 'stage2', v_s2, 'from', v_prev, 'to', v_level));
+      n_fell := n_fell + 1;
+    end if;
+
+    insert into public.seat_senior_verdict (week, seat, stage1, stage2, level, shortfalls, improvement_id, measured_at)
+    values (v_week, s.role_id, v_s1, v_s2, v_level, v_short, v_id, now())
+    on conflict (week, seat) do update set stage1 = excluded.stage1, stage2 = excluded.stage2, level = excluded.level,
+      shortfalls = excluded.shortfalls, improvement_id = coalesce(public.seat_senior_verdict.improvement_id, excluded.improvement_id),
+      measured_at = excluded.measured_at;
+    v_levels := v_levels || jsonb_build_object(s.role_id, v_level);
+  end loop;
+  return jsonb_build_object('week', v_week, 'seats', n_seats, 'levels', v_levels, 'fell', n_fell);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_seat_senior_verdict_now()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_ceo_seat_senior_verdict(now()) $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_self_review()
  RETURNS jsonb
  LANGUAGE sql
@@ -11831,7 +11974,11 @@ begin
                                'subject_table', 'notifications', 'subject_id', NEW.id::text, 'adopted', true,
                                'msg_type', NEW.type, 'recipient_role', NEW.to_role, 'to_email', NEW.to_email,
                                'supplier_id', NEW.lead_id, 'inquiry_id', NEW.inquiry_id, 'quote_id', NEW.quote_id),
-            jsonb_build_object('queued', true, 'adopted', true, 'notification_id', NEW.id, 'channel', NEW.channel),
+            jsonb_build_object('queued', true, 'adopted', true, 'notification_id', NEW.id, 'channel', NEW.channel,
+                               -- 1013, 27 Oct 2026: this closure cannot cite a note, and says so.
+                               'not_cited', jsonb_build_object(
+                                 'reason', v_from || ' queued this send itself before any handoff existed; the request is filed after the fact, so no receiver read a note before acting',
+                                 'by', 'fn_customer_support_adopts_untracked_send')),
             'notifications', 'delivery.request:notification:' || NEW.id, now(), 'customer_support')
     returning id into v_id;
     perform public.fn_seat_handoff_event(v_id, 'sent');
@@ -12687,6 +12834,112 @@ begin
                                       fixture = excluded.fixture, reviewed_at = now();
   end if;
   return v_m || jsonb_build_object('below_target', to_jsonb(v_below), 'fixture', v_fx);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_support_notice_plain_language()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  n_scored int := 0; n_opened int := 0; n_handed int := 0; n_closed int := 0;
+  r record; v_id bigint; v_hid bigint; v_since jsonb; v_owner text;
+begin
+  -- 1. score what has not been scored
+  with todo as (
+    select n.id, n.type, n.to_role, n.requested_by, n.channel, coalesce(n.sent_at, n.created_at) as sent_at,
+           case when n.to_role = 'supplier' then 'en'
+                when n.lang in ('en', 'ar') then n.lang
+                when length(regexp_replace(n.body, '[^؀-ۿ]', '', 'g')) > length(regexp_replace(n.body, '[^A-Za-z]', '', 'g')) then 'ar'
+                else 'en' end as lang,
+           -- measured 27 Oct: fixture invitations greet "Hi ZZ DEMO Supplier team" / "السادة/ ZZ DEMO Supplier", so the
+           -- marker is looked for anywhere in the body, not only at its start
+           (position('ZZ DEMO' in n.body) > 0 or position('ZZ DEMO' in coalesce(n.subject, '')) > 0
+            or coalesce(public.fn_is_demo_email(n.to_email), false)) as demo,
+           n.body
+      from public.notifications n
+     where n.to_role in ('customer', 'supplier') and n.created_at > now() - interval '35 days'
+       and nullif(btrim(n.body), '') is not null
+       and not exists (select 1 from public.notice_plain_language p where p.notification_id = n.id)
+     order by n.id limit 2000),
+  scored as (select t.*, public.fn_plain_language_score(t.body, t.lang) s from todo t)
+  insert into public.notice_plain_language (notification_id, sent_at, type, to_role, requested_by, channel, lang, ok, score, tone, issues, demo)
+  select id, sent_at, type, to_role, requested_by, channel, lang, (s->>'ok')::boolean, (s->>'score')::int, (s->>'tone')::int,
+         coalesce((select array_agg(x) from jsonb_array_elements_text(s->'issues') x), '{}'), demo
+    from scored
+  on conflict (notification_id) do nothing;
+  get diagnostics n_scored = row_count;
+
+  -- 2. a failing type opens one cause, handed to the seat that writes it
+  for r in
+    select p.type, count(*) n, count(*) filter (where not p.ok) failing, round(avg(p.score), 1) score_avg,
+           -- the kinds of failure, most frequent first: 'long_sentence (12)', 'jargon (3)'
+           (select array_agg(k || ' (' || c || ')' order by c desc, k) from (
+              select split_part(i, ':', 1) k, count(*) c from public.notice_plain_language q, unnest(q.issues) i
+               where q.type = p.type and q.demo = v_fx and coalesce(q.sent_at, q.scored_at) > now() - interval '30 days'
+               group by 1) z) as top_issues,
+           (select q.requested_by from public.notice_plain_language q where q.type = p.type and q.demo = v_fx
+             group by q.requested_by order by count(*) desc limit 1) as writer,
+           (select q.notification_id from public.notice_plain_language q where q.type = p.type and q.demo = v_fx
+             order by q.score, q.notification_id desc limit 1) as worst_id
+      from public.notice_plain_language p
+     where p.demo = v_fx and coalesce(p.sent_at, p.scored_at) > now() - interval '30 days'
+     group by p.type
+    having count(*) >= 3 and count(*) filter (where not p.ok) * 5 > count(*)
+  loop
+    continue when exists (select 1 from public.notice_plain_language_cause c where c.type = r.type and c.fixture = v_fx and c.status <> 'closed');
+    v_owner := case when r.writer in (select role_id from public.org_role where status = 'active') then r.writer else 'customer_support' end;
+    insert into public.notice_plain_language_cause (type, owner_seat, baseline, fixture)
+    values (r.type, v_owner,
+            jsonb_build_object('notices_30d', r.n, 'failing', r.failing, 'score_avg', r.score_avg, 'top_issues', to_jsonb(r.top_issues),
+                               'worst_notification_id', r.worst_id,
+                               -- the watermark: only notices written AFTER this one can show the template was fixed
+                               'after_notification_id', (select max(q.notification_id) from public.notice_plain_language q
+                                                          where q.type = r.type and q.demo = v_fx),
+                               'worst_issues', (select to_jsonb(q.issues) from public.notice_plain_language q where q.notification_id = r.worst_id)),
+            v_fx)
+    returning id into v_id;
+    n_opened := n_opened + 1;
+    if v_owner <> 'customer_support' then
+      v_hid := public.fn_seat_handoff('customer_support', v_owner, 'support.root_cause', 'notice_plain_language_cause', v_id::text,
+        jsonb_build_object('cause_key', 'plain_language:' || r.type, 'category', 'plain_language', 'topic_tag', r.type,
+                           'notice_type', r.type, 'notices_30d', r.n, 'failing', r.failing, 'score_avg', r.score_avg,
+                           'top_issues', to_jsonb(r.top_issues), 'worst_notification_id', r.worst_id,
+                           'decision', format('customer_support decided the %s template is not plain language: %s of %s notices in 30 days failed (%s)',
+                                              r.type, r.failing, r.n, array_to_string(r.top_issues, ', ')),
+                           'asks', jsonb_build_array(format('Rewrite the %s template: sentences under 28 words, no internal terms, the reader''s language. customer_support re-reads the scores and closes this.', r.type))));
+      update public.notice_plain_language_cause set status = 'handed_off', handoff_id = v_hid where id = v_id;
+      n_handed := n_handed + 1;
+    end if;
+  end loop;
+
+  -- 3. customer_support re-reads and closes a cause whose type passes again
+  for r in select c.* from public.notice_plain_language_cause c where c.fixture = v_fx and c.status <> 'closed' loop
+    select jsonb_build_object('at', now(), 'notices', count(*), 'passing', count(*) filter (where p.ok),
+                              'score_avg', round(avg(p.score), 1))
+      into v_since
+      from public.notice_plain_language p
+     where p.type = r.type and p.demo = v_fx and p.notification_id > coalesce((r.baseline->>'after_notification_id')::bigint, 0);
+    update public.notice_plain_language_cause set measurements = measurements || jsonb_build_array(v_since) where id = r.id;
+    if (v_since->>'notices')::int >= 3 and (v_since->>'passing')::int * 5 >= (v_since->>'notices')::int * 4 then
+      update public.notice_plain_language_cause set status = 'closed', closed_at = now() where id = r.id;
+      if r.handoff_id is not null and exists (select 1 from public.agent_actions a where a.id = r.handoff_id and a.status <> 'done') then
+        perform set_config('qd.handoff_closer', 'customer_support', true);
+        perform public.fn_seat_handoff_complete(r.handoff_id, jsonb_build_object(
+          'verified_by', 'customer_support', 'verified_at', now(),
+          'verdict', format('the %s notices pass again: %s of %s since the cause opened', r.type, v_since->>'passing', v_since->>'notices'),
+          'measurement', v_since));
+      end if;
+      n_closed := n_closed + 1;
+    end if;
+  end loop;
+
+  return jsonb_build_object('scored', n_scored, 'causes_opened', n_opened, 'handed_off', n_handed, 'closed', n_closed,
+    'open_causes', (select count(*) from public.notice_plain_language_cause where fixture = v_fx and status <> 'closed'),
+    'fixture', v_fx);
 end $function$
 
 

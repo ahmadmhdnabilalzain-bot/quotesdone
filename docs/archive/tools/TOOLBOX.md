@@ -28,10 +28,27 @@ venv/Scripts/python.exe -m pip install ./book-to-skill
 | **public-apis** | reference | see `PUBLIC_APIS_REFERENCE.md` | Not software — a directory of free public APIs (https://github.com/public-apis/public-apis). Vendored as a reference bookmark, not cloned, because its value is the list, not code. Candidate free data sources for agent knowledge and enrichment. |
 
 Extractor quality packs installed so book-to-skill produces cert-grade output: `pypdf`,
-`pdfminer.six`, `ebooklib`, `beautifulsoup4`, `python-docx`, and **`docling` 2.123.0** — the
+`pdfminer.six`, `ebooklib`, `beautifulsoup4`, `python-docx`, and **`docling`** (2.123.0 when
+installed, pinned 2.143.0 since 27 Oct) — the
 best-in-class table/formula/layout extractor, book-to-skill's `--mode technical` backend, installed
 27 Aug on the founder's instruction because certification standards are dense with tables. System
-`pdftotext` (poppler) is also present. The full pinned set is `venv-requirements.txt` (129 packages).
+`pdftotext` (poppler) is also present. The full pinned set is `venv-requirements.txt` (129 pins plus
+the local `book-to-skill` line).
+
+**Security re-pin, 27 Oct 2026 (it_engineer).** GitHub's dependency graph reads
+`venv-requirements.txt` as a pip manifest, and the 27 Aug freeze carried every critical and high
+Dependabot alert in the repository: reconstructed from the GHSA records, 94 advisories (6 critical,
+42 high, 39 moderate, 7 low) across pillow 41, pypdf 19, docling + docling-slim 16, aiohttp 8,
+urllib3 3, filelock 3, certifi 1, accelerate 1, multidict 1, setuptools 1. GitHub showed 93 alerts with
+the same critical/high/low counts; the alerts API is not readable from a session, so the two-moderate
+difference was not reconciled. None of it reaches production: nothing in the
+web app, the edge functions or the gate installs this set; it is the laptop's offline extraction
+venv. It does parse third-party PDFs and images, which is exactly what the pillow/pypdf/docling
+advisories are about, so the pins were raised to the first fixed releases and the whole set was
+re-resolved for Windows / Python 3.14 (`uv pip compile --python-platform windows --python-version
+3.14`, 129 pins, no conflict). Re-checked against PyPI's advisory feed and the OSV PyPI dump: 0
+advisories. **The installed venv on the laptop is unchanged until it is reinstalled** with
+`venv/Scripts/python.exe -m pip install -r venv-requirements.txt`.
 
 ## The line these tools do NOT cross on their own
 

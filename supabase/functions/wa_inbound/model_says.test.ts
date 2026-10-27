@@ -45,10 +45,10 @@ Deno.test('a thrown model is the same as no model: empty, nothing invented', asy
 });
 
 import { HELD_NOTICE, holdUnwritten, UNWRITTEN_SURFACE } from './model_says.ts';
-Deno.test('no model: the held notice is sent (supplier in English) and the turn is filed for a model retry', async () => {
+Deno.test('OpenRouter down: the held notice is sent (supplier in English) and the turn is filed for a model retry', async () => {
   const sent: string[] = []; const filed: Record<string, unknown>[] = [];
   const r = await holdUnwritten({ from: 'whatsapp:+971500000021', body: 'ZZ DEMO: هل تدفعون عمولة؟', messageSid: 'SMzz', audience: 'supplier', lang: 'ar',
-    situation: 'a supplier asked about commission', why: 'no_model_answer', enabled: () => Promise.resolve(true),
+    situation: 'a supplier asked about commission', why: 'no_model_answer', outage: true, enabled: () => Promise.resolve(true),
     send: (t) => { sent.push(t); return Promise.resolve({ ok: true }); },
     rpc: (fn, a) => { filed.push({ fn, ...a }); return Promise.resolve({ data: 7, error: null }); } });
   assertEquals(sent, [HELD_NOTICE.en]);
@@ -109,4 +109,24 @@ Deno.test('no budget left: no model call starts and the text is empty, so the ca
   const said = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'hi', situation: 'x', budgetMs: 0 });
   assertEquals(calls.length, 0);
   assertEquals(said.text, '');
+});
+
+// founder_instruction 1339 (27 Oct 2026): "the engineer and customer support never replies without llm unless the server of
+// open router is down". A model that answered and was refused: the turn is filed for the model, NO fixed notice goes out.
+Deno.test('1339: model up, nothing safe to send: no code-written notice, the turn is still filed for the model', async () => {
+  const sent: string[] = []; const filed: Record<string, unknown>[] = [];
+  const r = await holdUnwritten({ from: 'whatsapp:+971500000022', body: 'ZZ DEMO: question', messageSid: 'SMzy', audience: 'customer', lang: 'en',
+    situation: 'a customer asked a question', why: 'guard_refused', outage: false, enabled: () => Promise.resolve(true),
+    send: (t) => { sent.push(t); return Promise.resolve({ ok: true }); },
+    rpc: (fn, a) => { filed.push({ fn, ...a }); return Promise.resolve({ data: 8, error: null }); } });
+  assertEquals(sent, [], 'a code-written notice went out while the model was up');
+  assertEquals(r.notice, '');
+  assertEquals(r.held_id, 8);
+  assertEquals(filed[0].fn, 'fn_reason_hold');
+});
+Deno.test('1339: modelSays reports an outage only when no call reached a model', async () => {
+  const mk = (res: unknown) => ({ gate: () => Promise.resolve(null), embed: () => Promise.resolve(null),
+    rpc: () => Promise.resolve({ data: null, error: null }), llm: () => Promise.resolve(res) }) as unknown as ThinkDeps;
+  assertEquals((await modelSays(mk({ content: null, error: 'gateway_http_502' }), { audience: 'visitor', lang: 'en', message: 'x', situation: 'y' })).outage, true);
+  assertEquals((await modelSays(mk({ content: JSON.stringify({ answer: 'openrouter circuit_open' }), model: 'm' }), { audience: 'visitor', lang: 'en', message: 'x', situation: 'y' })).outage, false);
 });

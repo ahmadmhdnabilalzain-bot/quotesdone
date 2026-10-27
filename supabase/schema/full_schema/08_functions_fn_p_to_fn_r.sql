@@ -413,6 +413,71 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_phone_code_issue(p_phone text, p_purpose text, p_hash text, p_kind text, p_email text, p_ttl_seconds integer DEFAULT 600)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_id bigint;
+begin
+  perform pg_advisory_xact_lock(hashtext('phone_code:' || p_purpose || ':' || p_phone));
+  update public.phone_code set used_at = now()
+   where phone = p_phone and purpose = p_purpose and used_at is null;
+  insert into public.phone_code (phone, purpose, user_kind, email, code_hash, expires_at)
+  values (p_phone, p_purpose, p_kind, p_email, p_hash, now() + make_interval(secs => p_ttl_seconds))
+  returning id into v_id;
+  return v_id;
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_phone_code_sent(p_id bigint, p_message_sid text, p_accepted boolean)
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  update public.phone_code
+     set message_sid = p_message_sid,
+         used_at = case when p_accepted then used_at else coalesce(used_at, now()) end
+   where id = p_id;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_phone_code_verify(p_phone text, p_purpose text, p_hash text, p_max_attempts integer DEFAULT 5)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r record;
+begin
+  select id, expires_at, attempts, code_hash
+    into r
+    from public.phone_code
+   where phone = p_phone and purpose = p_purpose and used_at is null
+   order by created_at desc, id desc
+   limit 1
+   for update;
+  if not found then return 'no_code'; end if;
+  if r.expires_at < now() then return 'expired'; end if;
+  if r.attempts >= p_max_attempts then
+    update public.phone_code set used_at = now() where id = r.id and used_at is null;
+    return 'burned';
+  end if;
+  update public.phone_code set attempts = attempts + 1 where id = r.id;
+  if r.code_hash = p_hash then
+    update public.phone_code set used_at = now() where id = r.id and used_at is null;
+    if found then return 'ok'; end if;
+  end if;
+  return 'wrong';
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_pick_reviewer(p_dept_key text, p_author text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -537,6 +602,101 @@ begin
     'delegated_from', v_head, 'basis', coalesce(v_basis, 'delegation'));
 end;
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_plain_language_score(p_text text, p_lang text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ IMMUTABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  c_max_sentence constant int := 28;      -- MAX_SENTENCE_WORDS
+  c_max_avg      constant int := 20;      -- MAX_AVG_SENTENCE_WORDS
+  c_min_for_avg  constant int := 3;       -- MIN_SENTENCES_FOR_AVERAGE
+  c_jargon_en constant text[] := array['pursuant', 'herein', 'hereby', 'aforementioned', 'heretofore', 'notwithstanding',
+    'utilise', 'utilize', 'leverage', 'synergy', 'facilitate', 'escalation matrix', 'ticket id', 'workflow', 'backend',
+    'endpoint', 'payload', 'webhook', 'database', 'null', 'undefined', 'rfq', 'sla', 'kyc', 'api', 'rls', 'sku', 'moq',
+    'incoterm'];
+  c_jargon_ar constant text[] := array['بموجب', 'المذكور أعلاه', 'آنف الذكر', 'حيثما ينطبق', 'قاعدة البيانات'];
+  c_acronyms constant text[] := array['UAE', 'AED', 'VAT', 'FAQ', 'PDF', 'OTP', 'USD', 'GCC', 'DED', 'LLC', 'FZE', 'FZCO', 'OK'];
+  -- letters: any alphabetic character (Latin, accented, Arabic)
+  c_letter constant text := '[[:alpha:]]';
+  v_body text; v_lower text;
+  v_counts int[] := '{}'; v_s text; v_n int; v_max int := 0; v_avg numeric := 0; v_sentences int := 0;
+  v_jargon text[] := '{}'; j text;
+  v_ar int; v_la int; v_share numeric := 0;
+  v_issues text[] := '{}'; v_score numeric := 100; v_tone numeric := 100; v_averaged boolean;
+  v_shout int := 0;
+begin
+  v_body := btrim(regexp_replace(coalesce(p_text, ''), 'https?://\S+|www\.\S+|\S+@\S+\.\S+', ' ', 'g'));
+
+  -- a sentence ends at . ! ? ؟ or a line break; a decimal point inside a number is not an end
+  for v_s in select btrim(x) from regexp_split_to_table(v_body, '(?<![0-9])[.!?؟]+(?![0-9])|\n+') x loop
+    continue when v_s !~ '[[:alnum:]]';
+    select count(*) into v_n from regexp_split_to_table(v_s, '\s+') w where w ~ c_letter;
+    v_counts := v_counts || v_n;
+  end loop;
+  v_sentences := coalesce(cardinality(v_counts), 0);
+  if v_sentences > 0 then
+    select max(c), round(avg(c), 1) into v_max, v_avg from unnest(v_counts) c;
+  end if;
+
+  v_lower := lower(v_body);
+  foreach j in array c_jargon_en loop
+    if v_lower ~ ('(^|[^[:alpha:]])' || replace(j, ' ', '\s+') || '([^[:alpha:]]|$)') then v_jargon := v_jargon || j; end if;
+  end loop;
+  foreach j in array c_jargon_ar loop
+    if position(j in v_body) > 0 then v_jargon := v_jargon || j; end if;
+  end loop;
+  -- anything shaped like an internal identifier (snake_case, fn_ names)
+  v_jargon := v_jargon || coalesce((select array_agg(x[1]) from regexp_matches(v_body, '(\m[a-z]+(?:_[a-z0-9]+)+\M)', 'g') x), '{}');
+  -- distinct, first-seen order kept (the TypeScript reports [...new Set(jargon)])
+  select coalesce(array_agg(x order by o), '{}') into v_jargon
+    from (select x, min(o) o from unnest(v_jargon) with ordinality u(x, o) where x is not null group by x) d;
+
+  v_ar := length(regexp_replace(v_body, '[^؀-ۿ]', '', 'g'));
+  v_la := length(regexp_replace(v_body, '[^A-Za-z]', '', 'g'));
+  if v_ar + v_la > 0 then v_share := round(v_ar::numeric / (v_ar + v_la), 2); end if;
+
+  v_averaged := v_sentences >= c_min_for_avg;
+  if v_max > c_max_sentence then v_issues := v_issues || ('long_sentence:' || v_max); end if;
+  -- printed as JavaScript prints a number: 22, not 22.0
+  if v_averaged and v_avg > c_max_avg then
+    v_issues := v_issues || ('long_average:' || case when v_avg = trunc(v_avg) then trunc(v_avg)::text else v_avg::text end);
+  end if;
+  if cardinality(v_jargon) > 0 then
+    v_issues := v_issues || ('jargon:' || array_to_string((select array_agg(x) from (select x from unnest(v_jargon) x limit 5) z), ','));
+  end if;
+  if v_ar + v_la > 0 and p_lang = 'ar' and v_share < 0.6 then v_issues := v_issues || 'wrong_language:expected_ar'::text; end if;
+  if v_ar + v_la > 0 and p_lang = 'en' and v_share > 0.1 then v_issues := v_issues || 'wrong_language:expected_en'::text; end if;
+
+  v_score := v_score - greatest(0, v_max - c_max_sentence) * 2;
+  if v_averaged then v_score := v_score - greatest(0, v_avg - c_max_avg) * 3; end if;
+  v_score := v_score - cardinality(v_jargon) * 10;
+  if exists (select 1 from unnest(v_issues) i where i like 'wrong_language%') then v_score := v_score - 50; end if;
+
+  select count(*) into v_shout from regexp_matches(v_body, '\m([A-Z]{4,})\M', 'g') x where not (x[1] = any (c_acronyms));
+  v_tone := v_tone - v_shout * 10;
+  v_tone := v_tone - (select count(*) from regexp_matches(v_body, '!{2,}', 'g')) * 10;
+  v_tone := v_tone - 20 * ((v_body ~* '\myou (failed|forgot|should have|must have|did not read|didn''?t read)\M')::int
+                         + (v_body ~* '\myour fault\M')::int
+                         + (v_body ~* '\mobviously\M')::int
+                         + (v_body ~* '\mas (i|we) (already )?(said|explained|told you)\M')::int
+                         + (v_body ~ 'كما ذكرنا سابقا')::int
+                         + (v_body ~ 'خطؤك')::int);
+
+  return jsonb_build_object(
+    'ok', cardinality(v_issues) = 0,
+    'score', greatest(0, least(100, round(v_score)))::int,
+    'tone', greatest(0, least(100, round(v_tone)))::int,
+    'issues', to_jsonb(v_issues),
+    'sentences', v_sentences,
+    'max_sentence_words', v_max,
+    'avg_sentence_words', v_avg,
+    'jargon', to_jsonb(v_jargon),
+    'arabic_share', v_share);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_po_approve(p_po bigint, p_by text DEFAULT NULL::text)
