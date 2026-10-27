@@ -47,3 +47,14 @@ test('the delivery watch loop is bounded', () => {
   const loop = text.slice(text.indexOf('for q in'), text.indexOf('loop', text.indexOf('for q in')));
   assert.ok(/\blimit\b/i.test(loop), `fn_customer_support_delivery_watch (${file}) loops with no LIMIT`);
 });
+
+// 27 Oct 2026: LIMIT 50 alone stopped bounding the TIME. A result came to cost ~300 ms, so the 50-row walk took
+// 15,464 ms, every resilience_ping ladder tick was cancelled at 8 s and rolled back, and no delivery.result committed
+// from 19 Oct (the_delivery_watch_returns_results_within_a_time_budget_so_the_ladder_tick_commits.sql). A row count
+// bounds work only while each row is cheap; the walk must stop on a clock.
+test('the delivery watch walk stops on a clock budget, not only a row count', () => {
+  const { file, text } = body('fn_customer_support_delivery_watch');
+  assert.match(text, /v_until timestamptz := clock_timestamp\(\) \+ interval '\d+ seconds?'/, `fn_customer_support_delivery_watch (${file}) has no clock budget`);
+  assert.match(text, /if p_request_id is null and clock_timestamp\(\) > v_until then/, `fn_customer_support_delivery_watch (${file}) never checks its budget in the walk`);
+  assert.match(text, /'left_for_next_tick', v_left/, `fn_customer_support_delivery_watch (${file}) does not report what it left for the next tick`);
+});
