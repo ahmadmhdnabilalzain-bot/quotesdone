@@ -72,9 +72,20 @@ export function callShared(path: string, body: Record<string, unknown>, token?: 
  */
 const TIMEOUT_MS = 20000;
 
-export async function call(path: string, body: Record<string, unknown>, token?: string | null): Promise<any> {
+/**
+ * AN ACTION THAT READS BY REASONING WAITS FOR ITS ANSWER (27 Oct 2026, it_engineer; supplier registration walk on
+ * production). services_save_rewrite resolves each of the supplier's own words by reasoning (supplier_services.ts
+ * resolveText -> tradeOfWords: a plan call and an answer call per word, the words in parallel). Measured on a ZZ DEMO
+ * supplier with three own words: 36,959 ms, HTTP 200, capability confirmed. The portal had aborted at 20 s and told
+ * him "Could not save your services." — a save that succeeded, reported as failed. The rewrite preview can reason the
+ * same way. These two wait REASONING_TIMEOUT_MS; every other call keeps 20 s.
+ * Guard: scripts/checks/a_services_save_that_reasons_is_not_cut_off_by_the_portal.test.mjs
+ */
+export const REASONING_TIMEOUT_MS = 90000;
+
+export async function call(path: string, body: Record<string, unknown>, token?: string | null, opts: { timeoutMs?: number } = {}): Promise<any> {
   const ac = new AbortController();
-  const timer = setTimeout(() => ac.abort(), TIMEOUT_MS);
+  const timer = setTimeout(() => ac.abort(), opts.timeoutMs && opts.timeoutMs > 0 ? opts.timeoutMs : TIMEOUT_MS);
   let r: Response;
   try {
     r = await fetch(fnUrl(path), {

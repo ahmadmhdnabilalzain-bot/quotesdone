@@ -31,6 +31,7 @@
 //   node --test scripts/checks/
 import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { test, before, after } from 'node:test';
+import { pickApiKey } from '../lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 
@@ -183,7 +184,7 @@ function assertQaIdentity(email, adminList) {
 }
 const anonKey = async (project) => {
   const r = await fetch(`https://api.supabase.com/v1/projects/${project}/api-keys?reveal=true`, { headers: { Authorization: 'Bearer ' + mgmtToken } });
-  const k = (await r.json().catch(() => [])).find?.((x) => x.name === 'anon')?.api_key;
+  const k = pickApiKey(await r.json().catch(() => []), 'publishable');
   assert.ok(k, `could not read the anon key: ${r.status}`);
   return k;
 };

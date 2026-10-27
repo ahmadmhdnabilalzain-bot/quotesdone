@@ -87,6 +87,9 @@ declare
   v_best_rank numeric;
   v_best_corp text;
   v_handoff   text;
+  -- TEST TRAFFIC FILES NOTHING (27 Oct 2026): a request carrying a sandbox run tag, or a ZZ DEMO question, records no
+  -- gap, bumps no ask counter and opens or raises no task. Both tests are the estate's own (see the file header).
+  v_test      boolean := public.fn_e2e_run_tag_current() is not null or public.fn_seat_work_is_demo(p_text, null);
 begin
   if coalesce(btrim(p_text), '') = '' then
     return jsonb_build_object(
@@ -427,49 +430,55 @@ begin
     -- happening afterwards. Something happens now: the question is kept, counted, and owned.
     v_norm := left(lower(regexp_replace(btrim(p_text), '\s+', ' ', 'g')), 400);
 
-    select * into v_gap from sales_knowledge_gap where question_norm = v_norm;
-
-    if not found then
-      insert into org_tasks (title, detail, status, tier, action_class, assigned_agent,
-                             priority, requires_evidence, needs_founder)
-      values (
-        left('Answer an unanswered portal question: ' || btrim(p_text), 160),
-        'A customer or supplier asked this in the portal and the Sales Engineer could not source an '
-          || 'answer from any corpus it searches (sales_knowledge, ops_knowledge, kb_chunks, '
-          || 'agent_knowledge, support_knowledge, company_faq, category_specs, category_quote_specs).' || E'\n\n'
-          || 'QUESTION: ' || btrim(p_text) || E'\n'
-          || 'REFUSAL: ' || v_refusal || E'\n'
-          || 'CLOSEST THE ESTATE GOT: corpus ' || coalesce(v_best_corp, 'none')
-          || ', cosine ' || coalesce(round(v_best_sim, 4)::text, 'n/a')
-          || ', lexical rank ' || coalesce(round(v_best_rank, 4)::text, 'n/a')
-          || ' (floors: cosine ' || p_min_similarity || ', lexical corroboration ' || p_min_rank
-          || ', lexical-only ' || c_lex_only || ').' || E'\n\n'
-          || 'DONE MEANS: the knowledge exists in a searchable corpus and this question returns it. '
-          || 'Then set sales_knowledge_gap.status to knowledge_added.',
-        'assigned', 'advisory', 'knowledge_gap', 'sales_engineer', 3, true, false)
-      returning id into v_task;
-
-      insert into sales_knowledge_gap
-        (question_norm, question, refusal, best_similarity, best_lexical_rank, nearest_corpus, task_id)
-      values (v_norm, left(btrim(p_text), 2000), v_refusal,
-              round(v_best_sim, 4), round(v_best_rank, 4), v_best_corp, v_task);
+    if v_test then
+      -- Our own test asked it. The question stays in sales_decision_log (stamped with its run, removed by teardown);
+      -- no gap, no counter and no task, because no person asked and nobody confirmed the work.
+      v_handoff := 'I have not got a sourced answer to that yet, and I will not guess at a procurement question.';
     else
-      v_task := v_gap.task_id;
-      update sales_knowledge_gap
-         set asks = asks + 1, last_asked_at = now(), refusal = v_refusal,
-             best_similarity = greatest(coalesce(best_similarity, 0), coalesce(round(v_best_sim, 4), 0)),
-             best_lexical_rank = greatest(coalesce(best_lexical_rank, 0), coalesce(round(v_best_rank, 4), 0))
-       where id = v_gap.id;
-      -- Asked repeatedly is the definition of urgent. The task's priority follows the demand.
-      update org_tasks set priority = least(9, greatest(priority, 3 + v_gap.asks)), updated_at = now()
-       where id = v_task and status not in ('done', 'cancelled');
-    end if;
+      select * into v_gap from sales_knowledge_gap where question_norm = v_norm;
 
-    v_handoff :=
-      'I have not got a sourced answer to that yet, and I will not guess at a procurement question. '
-      || 'I have recorded it and opened task #' || coalesce(v_task::text, '?')
-      || ', owned by the Sales Engineer, with your question kept word for word. '
-      || 'It is being looked into and you will get an answer on it.';
+      if not found then
+        insert into org_tasks (title, detail, status, tier, action_class, assigned_agent,
+                               priority, requires_evidence, needs_founder)
+        values (
+          left('Answer an unanswered portal question: ' || btrim(p_text), 160),
+          'A customer or supplier asked this in the portal and the Sales Engineer could not source an '
+            || 'answer from any corpus it searches (sales_knowledge, ops_knowledge, kb_chunks, '
+            || 'agent_knowledge, support_knowledge, company_faq, category_specs, category_quote_specs).' || E'\n\n'
+            || 'QUESTION: ' || btrim(p_text) || E'\n'
+            || 'REFUSAL: ' || v_refusal || E'\n'
+            || 'CLOSEST THE ESTATE GOT: corpus ' || coalesce(v_best_corp, 'none')
+            || ', cosine ' || coalesce(round(v_best_sim, 4)::text, 'n/a')
+            || ', lexical rank ' || coalesce(round(v_best_rank, 4)::text, 'n/a')
+            || ' (floors: cosine ' || p_min_similarity || ', lexical corroboration ' || p_min_rank
+            || ', lexical-only ' || c_lex_only || ').' || E'\n\n'
+            || 'DONE MEANS: the knowledge exists in a searchable corpus and this question returns it. '
+            || 'Then set sales_knowledge_gap.status to knowledge_added.',
+          'assigned', 'advisory', 'knowledge_gap', 'sales_engineer', 3, true, false)
+        returning id into v_task;
+
+        insert into sales_knowledge_gap
+          (question_norm, question, refusal, best_similarity, best_lexical_rank, nearest_corpus, task_id)
+        values (v_norm, left(btrim(p_text), 2000), v_refusal,
+                round(v_best_sim, 4), round(v_best_rank, 4), v_best_corp, v_task);
+      else
+        v_task := v_gap.task_id;
+        update sales_knowledge_gap
+           set asks = asks + 1, last_asked_at = now(), refusal = v_refusal,
+               best_similarity = greatest(coalesce(best_similarity, 0), coalesce(round(v_best_sim, 4), 0)),
+               best_lexical_rank = greatest(coalesce(best_lexical_rank, 0), coalesce(round(v_best_rank, 4), 0))
+         where id = v_gap.id;
+        -- Asked repeatedly is the definition of urgent. The task's priority follows the demand.
+        update org_tasks set priority = least(9, greatest(priority, 3 + v_gap.asks)), updated_at = now()
+         where id = v_task and status not in ('done', 'cancelled');
+      end if;
+
+      v_handoff :=
+        'I have not got a sourced answer to that yet, and I will not guess at a procurement question. '
+        || 'I have recorded it and opened task #' || coalesce(v_task::text, '?')
+        || ', owned by the Sales Engineer, with your question kept word for word. '
+        || 'It is being looked into and you will get an answer on it.';
+    end if;
   end if;
 
   insert into sales_decision_log
@@ -496,7 +505,8 @@ begin
       'lexemes_in_question', coalesce(cardinality(v_lex), 0), 'lexeme_overlap_needed', v_need, 'k', v_k,
       'rule', 'a row with an embedding must clear the cosine floor AND match the all-terms lexical query at ts_rank >= min_rank. A row with no embedding cannot be put to the vector floor at all and must clear the stricter lexical-only bar instead. lexeme_overlap_needed is reported as a diagnostic only: admitting on partial overlap was measured and returned a topically wrong passage, so it does not admit. A nearest neighbour is always found; a lexical match is not.'),
     'refusal', v_refusal,
-    'gap_recorded', case when cardinality(v_cited) = 0 then true else false end,
+    'gap_recorded', cardinality(v_cited) = 0 and not v_test,
+    'test_traffic', v_test,
     'task_id', v_task,
     'handoff', v_handoff);
 end
@@ -2430,7 +2440,7 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_supply_gap(p_reason_limit in
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_target int := coalesce((select category_open_min_suppliers from public.pricing_config order by id limit 1), 10);
-  v_rule int; v_closed int; v_reopened int; v_settled int; v_nobody int; v_held_settled int;
+  v_rule int; v_closed int; v_reopened int; v_settled int; v_nobody int; v_held_settled int; v_forecast_settled int;
   v_emirates text[] := array['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'];
 begin
   with sup as materialized (   -- every matchable supplier with his trades and the emirates he states (none stated = UAE-wide)
@@ -2490,6 +2500,16 @@ begin
    where status = 'recruit' and decided_by = 'rule:customer_waiting' and short_open = 0 and demand_90d = 0;
   get diagnostics v_settled = row_count;
 
+  -- A FORECAST THAT NO LONGER SHOWS DEMAND IS UNDONE (review of #1182): a gap fn_demand_forecast_tick recruited for
+  -- goes back to open once no forecast from the last two days shows demand there (or the forecast stopped running),
+  -- and is decided again below like any gap nobody waits on.
+  update public.supply_gap g set status = 'open', decided_by = null, decided_at = null, held_id = null
+   where g.status = 'recruit' and g.decided_by = 'rule:forecast_demand'
+     and not exists (select 1 from public.demand_forecast f
+                      where f.trade = g.trade and f.emirate = g.emirate and f.forecast_90d >= 1
+                        and f.run_on > (now() at time zone 'Asia/Dubai')::date - 2);
+  get diagnostics v_forecast_settled = row_count;
+
   -- A CUSTOMER IS ALREADY WAITING: recruited for at once, by rule. No judgement to make, so nothing waits on one.
   update public.supply_gap set status = 'recruit', decided_by = 'rule:customer_waiting', decided_at = now()
    where status in ('open', 'deciding', 'deferred') and (short_open > 0 or demand_90d > 0);
@@ -2511,7 +2531,7 @@ begin
    where status in ('open', 'deciding') and short_open = 0 and demand_90d = 0;
   get diagnostics v_nobody = row_count;
 
-  return jsonb_build_object('target', v_target, 'closed', v_closed, 'reopened', v_reopened, 'recruit_by_rule', v_rule, 'customer_rule_undone', v_settled,
+  return jsonb_build_object('target', v_target, 'closed', v_closed, 'reopened', v_reopened, 'recruit_by_rule', v_rule, 'customer_rule_undone', v_settled, 'forecast_rule_undone', v_forecast_settled,
     'deferred_nobody_waiting', v_nobody, 'held_questions_settled', v_held_settled, 'filed_for_reasoning', 0,
     'by_status', (select coalesce(jsonb_object_agg(status, n), '{}'::jsonb) from (select status, count(*) n from public.supply_gap group by status) x));
 end $function$
@@ -3438,8 +3458,8 @@ select
   ||E'\n\n-- ===== CONSTRAINTS =====\n'|| coalesce((select string_agg('ALTER TABLE public.'||quote_ident(c.relname)||' ADD CONSTRAINT '||quote_ident(con.conname)||' '||pg_get_constraintdef(con.oid)||';', E'\n' order by case con.contype when 'p' then 1 when 'u' then 2 when 'c' then 3 else 9 end, c.relname, con.conname) from pg_constraint con join pg_class c on c.oid=con.conrelid join pg_namespace n on n.oid=c.relnamespace and n.nspname='public' where con.contype in ('p','u','c','f')),'')
   ||E'\n\n-- ===== INDEXES =====\n'|| coalesce((select string_agg(pg_get_indexdef(i.indexrelid)||';', E'\n' order by ic.relname) from pg_index i join pg_class ic on ic.oid=i.indexrelid join pg_namespace n on n.oid=ic.relnamespace and n.nspname='public' where not exists(select 1 from pg_constraint con where con.conindid=i.indexrelid) and not exists(select 1 from pg_depend d where d.objid=ic.oid and d.deptype='e')),'')
   ||E'\n\n-- ===== VIEWS =====\n'|| coalesce((select string_agg('CREATE OR REPLACE VIEW public.'||quote_ident(viewname)||' AS '||definition, E'\n\n' order by viewname) from pg_views where schemaname='public'),'')
-  ||E'\n\n-- ===== FUNCTIONS =====\n'|| coalesce((select string_agg(pg_get_functiondef(p.oid), E'\n\n' order by p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace and n.nspname='public' where p.prokind in ('f','p') and not exists(select 1 from pg_depend d where d.objid=p.oid and d.deptype='e')),'')
-  ||E'\n\n-- ===== TRIGGERS =====\n'|| coalesce((select string_agg(pg_get_triggerdef(tg.oid)||';', E'\n' order by c.relname) from pg_trigger tg join pg_class c on c.oid=tg.tgrelid join pg_namespace n on n.oid=c.relnamespace and n.nspname='public' where not tg.tgisinternal),'')
+  ||E'\n\n-- ===== FUNCTIONS =====\n'|| coalesce((select string_agg(pg_get_functiondef(p.oid), E'\n\n' order by p.proname, pg_get_function_identity_arguments(p.oid)) from pg_proc p join pg_namespace n on n.oid=p.pronamespace and n.nspname='public' where p.prokind in ('f','p') and not exists(select 1 from pg_depend d where d.objid=p.oid and d.deptype='e')),'')
+  ||E'\n\n-- ===== TRIGGERS =====\n'|| coalesce((select string_agg(pg_get_triggerdef(tg.oid)||';', E'\n' order by c.relname, tg.tgname) from pg_trigger tg join pg_class c on c.oid=tg.tgrelid join pg_namespace n on n.oid=c.relnamespace and n.nspname='public' where not tg.tgisinternal),'')
   ||E'\n\n-- ===== ROW LEVEL SECURITY (enable) =====\n'|| coalesce((select string_agg('ALTER TABLE public.'||quote_ident(relname)||' ENABLE ROW LEVEL SECURITY;', E'\n' order by relname) from pg_class c join pg_namespace n on n.oid=c.relnamespace and n.nspname='public' where relkind='r' and relrowsecurity),'')
   ||E'\n\n-- ===== POLICIES =====\n'|| coalesce((select string_agg('CREATE POLICY '||quote_ident(policyname)||' ON public.'||quote_ident(tablename)||' AS '||permissive||' FOR '||cmd||' TO '||array_to_string(roles,', ')||coalesce(' USING ('||qual||')','')||coalesce(' WITH CHECK ('||with_check||')','')||';', E'\n' order by tablename,policyname) from pg_policies where schemaname='public'),'')
   ||E'\n\n-- ===== CRON JOBS =====\n'|| coalesce((select string_agg('select cron.schedule('||quote_literal(jobname)||','||quote_literal(schedule)||',$CRON$'||command||'$CRON$);', E'\n' order by jobid) from cron.job),'')
@@ -11312,7 +11332,10 @@ declare
   v_norm text;
   v_gap  public.sales_knowledge_gap%rowtype;
   v_task bigint;
-  v_asks int;
+  v_asks int := 0;
+  -- TEST TRAFFIC FILES NOTHING (27 Oct 2026): a request carrying a sandbox run tag, or a ZZ DEMO question. The caller
+  -- still gets ok and its reply text, with no task number, so its own reply path does not change.
+  v_test boolean := public.fn_e2e_run_tag_current() is not null or public.fn_seat_work_is_demo(p_question, null);
 begin
   if coalesce(btrim(p_question), '') = '' then
     return jsonb_build_object('ok', false, 'reason', 'empty_question');
@@ -11338,46 +11361,48 @@ begin
                   || public.fn_text_did_not_survive_reply('en'));
   end if;
 
-  v_norm := left(lower(regexp_replace(btrim(p_question), '\s+', ' ', 'g')), 400);
-  select * into v_gap from public.sales_knowledge_gap where question_norm = v_norm;
+  if not v_test then
+    v_norm := left(lower(regexp_replace(btrim(p_question), '\s+', ' ', 'g')), 400);
+    select * into v_gap from public.sales_knowledge_gap where question_norm = v_norm;
 
-  if not found then
-    insert into public.org_tasks (title, detail, status, tier, action_class, assigned_agent,
-                                  priority, requires_evidence, needs_founder)
-    values (
-      left('Answer an unanswered support question: ' || btrim(p_question), 160),
-      'Someone who was NOT signed in asked this on the ' || coalesce(nullif(btrim(p_surface), ''), 'website_widget')
-        || ' and Customer Support could not source an answer from company knowledge.' || E'\n\n'
-        || 'QUESTION: ' || btrim(p_question) || E'\n'
-        || 'REFUSAL: ' || coalesce(nullif(btrim(p_refusal), ''), 'no_grounded_answer') || E'\n\n'
-        || 'THERE IS NO ESCALATION TO A HUMAN -- founder ruling, 9 Sep 2026. This task IS what '
-        || 'happens instead, and it is the only thing that happens.' || E'\n\n'
-        || 'DONE MEANS: the answer exists in a corpus fn_support_corpus_search reads (company_faq, '
-        || 'support_knowledge, ops_knowledge) and this question returns it. Then set '
-        || 'sales_knowledge_gap.status to knowledge_added.',
-      'assigned', 'advisory', 'knowledge_gap', 'customer_support', 3, true, false)
-    returning id into v_task;
+    if not found then
+      insert into public.org_tasks (title, detail, status, tier, action_class, assigned_agent,
+                                    priority, requires_evidence, needs_founder)
+      values (
+        left('Answer an unanswered support question: ' || btrim(p_question), 160),
+        'Someone who was NOT signed in asked this on the ' || coalesce(nullif(btrim(p_surface), ''), 'website_widget')
+          || ' and Customer Support could not source an answer from company knowledge.' || E'\n\n'
+          || 'QUESTION: ' || btrim(p_question) || E'\n'
+          || 'REFUSAL: ' || coalesce(nullif(btrim(p_refusal), ''), 'no_grounded_answer') || E'\n\n'
+          || 'THERE IS NO ESCALATION TO A HUMAN -- founder ruling, 9 Sep 2026. This task IS what '
+          || 'happens instead, and it is the only thing that happens.' || E'\n\n'
+          || 'DONE MEANS: the answer exists in a corpus fn_support_corpus_search reads (company_faq, '
+          || 'support_knowledge, ops_knowledge) and this question returns it. Then set '
+          || 'sales_knowledge_gap.status to knowledge_added.',
+        'assigned', 'advisory', 'knowledge_gap', 'customer_support', 3, true, false)
+      returning id into v_task;
 
-    insert into public.sales_knowledge_gap (question_norm, question, refusal, nearest_corpus, task_id)
-    values (v_norm, left(btrim(p_question), 2000),
-            coalesce(nullif(btrim(p_refusal), ''), 'no_grounded_answer'),
-            'support_corpus', v_task);
-    v_asks := 1;
-  else
-    v_task := v_gap.task_id;
-    v_asks := v_gap.asks + 1;
-    update public.sales_knowledge_gap
-       set asks = asks + 1, last_asked_at = now(),
-           refusal = coalesce(nullif(btrim(p_refusal), ''), refusal)
-     where id = v_gap.id;
-    -- Asked repeatedly is the definition of urgent, exactly as on the sales side.
-    update public.org_tasks
-       set priority = least(9, greatest(priority, 3 + v_gap.asks)), updated_at = now()
-     where id = v_task and status not in ('done', 'cancelled');
+      insert into public.sales_knowledge_gap (question_norm, question, refusal, nearest_corpus, task_id)
+      values (v_norm, left(btrim(p_question), 2000),
+              coalesce(nullif(btrim(p_refusal), ''), 'no_grounded_answer'),
+              'support_corpus', v_task);
+      v_asks := 1;
+    else
+      v_task := v_gap.task_id;
+      v_asks := v_gap.asks + 1;
+      update public.sales_knowledge_gap
+         set asks = asks + 1, last_asked_at = now(),
+             refusal = coalesce(nullif(btrim(p_refusal), ''), refusal)
+       where id = v_gap.id;
+      -- Asked repeatedly is the definition of urgent, exactly as on the sales side.
+      update public.org_tasks
+         set priority = least(9, greatest(priority, 3 + v_gap.asks)), updated_at = now()
+       where id = v_task and status not in ('done', 'cancelled');
+    end if;
   end if;
 
   return jsonb_build_object(
-    'ok', true, 'task_id', v_task, 'asks', v_asks,
+    'ok', true, 'task_id', v_task, 'asks', v_asks, 'test_traffic', v_test,
     'reply_en', 'I do not have a sourced answer to that yet, and I will not guess at it. I have '
       || 'recorded your question exactly as you asked it so it gets answered properly. If you need '
       || 'it now, call or WhatsApp +971 50 931 9355 (Mon-Fri, 9am-6pm GST) or email '

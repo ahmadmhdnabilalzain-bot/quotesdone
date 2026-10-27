@@ -28,6 +28,13 @@ test('a signed-in customer portal is judged in the registered language, and the 
   assert.match(SRC, /registered language \$\{want\} but the URL stayed/);
 });
 
+test('the Arabic journey identity is an Arabic-registered customer (run 2, 19 Oct: C1 en walked /ar/me in English)', () => {
+  const S2 = readFileSync(new URL('./stage2.mjs', import.meta.url), 'utf8');
+  assert.match(S2, /const qc = alu\?\.cu\?\.cfg\.locale === 'ar' \? alu\.cu : \(fx\.arQuoted \|\| ar\);/);
+  assert.equal(S2.match(/fx\.arQuoted = arInq\?\.cu;/g)?.length, 1, 'the Arabic customer with its own quoted request (S10) is handed to S26, once');
+  assert.match(S2, /customerAr: who\(qc, 'customer', qc\.cfg\.label\)/);
+});
+
 test('only visible nav items are pressed, on a real phone context, with the sheet opened only when needed', () => {
   assert.match(SRC, /const navSel = 'nav a:visible, nav button:visible';/);
   assert.match(SRC, /signedInPage\(browser, who, \{ lang, viewport: view \}\)/);
@@ -46,4 +53,12 @@ test('the journey opens "New request" before it types or attaches', () => {
   assert.ok(fill > 0 && attach > 0 && attach !== fill);
   assert.doesNotMatch(SRC, /const input = page\.locator\('input\[type=file\]'\)\.first\(\)/, 'never the first file input anywhere on the page');
   assert.doesNotMatch(SRC, /page\.locator\('textarea:visible'\)\.first\(\);\n\s+await box\.fill/);
+});
+
+// Run 0a717394 (19 Oct): the quotes step gave up at 20 s; its own screenshot then showed C1's "4 quotes" card.
+test('the quotes step waits long enough for the request cards and names a slow list as slow', () => {
+  assert.match(SRC, /export const CARDS_WAIT_MS = 60000, CARDS_SLOW_MS = 10000;/);
+  assert.match(SRC, /await card\.waitFor\(\{ state: 'visible', timeout: CARDS_WAIT_MS \}\)/);
+  assert.doesNotMatch(SRC, /await card\.waitFor\(\{ state: 'visible', timeout: 20000 \}\)/);
+  assert.match(SRC, /SLOW: the quoted card took \$\{cardsMs\} ms/);
 });

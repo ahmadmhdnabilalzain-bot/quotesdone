@@ -54,6 +54,9 @@ export interface DeliveryIO extends BooksIO, OutreachIO {
   /** Every regenerated Arabic quotation whose lines are now all reasoned (fn_arabic_waiters_ready): render it and send
    *  the approval request (supplier_api spec_arabic_finish -> workflow.ts finishArabic). Decision point trade_glossary_ar. */
   arabicFinishReady?(): Promise<Sent>;
+  /** Every held Arabic comparison report whose lines are now all reasoned (fn_arabic_compare_waiters_ready): customer_api
+   *  compare_arabic_finish renders it and sends it to the customer, once (customer_api/compare_arabic.ts). */
+  compareArabicReady?(): Promise<Sent>;
   /** A customer's Arabic answer or note, now reasoned into English: store it as the supplier copy and e-mail every
    *  matched supplier (_shared/supplier_english.ts finishEnglish). Surface sales_engineer.supplier_english. */
   supplierEnglish?(clarificationId: number, answer: string): Promise<Sent>;
@@ -143,10 +146,14 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
   // parked message; what is left is a regenerated quotation, which needs a render (a PDF) before its approval request.
   // The waiting quotations are found by the QUOTE (arabic_document_waiter), not by this row's subject: the same lines
   // may have been filed first by another document, and a held row keeps its first subject.
+  // A held Arabic COMPARISON REPORT (customer_api compare_pdf answered 202) waits by its inquiry the same way and goes to
+  // the customer from customer_api (compare_arabic.ts), so both renderers are asked; one failing never skips the other.
   if (row.surface === 'sales_engineer.document_arabic') {
-    if (!io.arabicFinishReady) return { delivered: false, via: 'none', detail: 'stored; no renderer wired' };
-    const s = await io.arabicFinishReady();
-    return { delivered: s.ok, via: 'none', detail: s.ok ? 'every quotation whose Arabic is complete was rendered and asked for approval' : s.err };
+    if (!io.arabicFinishReady && !io.compareArabicReady) return { delivered: false, via: 'none', detail: 'stored; no renderer wired' };
+    const q = io.arabicFinishReady ? await io.arabicFinishReady().catch((e) => ({ ok: false, err: String(e) } as Sent)) : { ok: true };
+    const c = io.compareArabicReady ? await io.compareArabicReady().catch((e) => ({ ok: false, err: String(e) } as Sent)) : { ok: true };
+    const err = [q.err && 'quotations: ' + q.err, c.err && 'comparison reports: ' + c.err].filter(Boolean).join('; ');
+    return { delivered: q.ok && c.ok, via: 'none', detail: err || 'every quotation and comparison report whose Arabic is complete was rendered and sent on' };
   }
 
   // A customer's Arabic text held for its supplier copy: the English goes to every matched supplier now.
@@ -355,6 +362,22 @@ export function liveDeliveryIO(admin: Admin, seams: { master?: string; fetch?: F
       }, 60_000);
       const j = await r.json().catch(() => ({}));
       if (!(r.ok && j?.ok)) errs.push(quoteId + ': ' + String(j?.code ?? j?.error ?? r.status));
+      }
+      return errs.length ? { ok: false, err: errs.join('; ') } : { ok: true };
+    },
+    compareArabicReady: async () => {
+      const { data: ids, error } = await admin.rpc('fn_arabic_compare_waiters_ready', { p_limit: 10 });
+      if (error) return { ok: false, err: error.message };
+      const errs: string[] = [];
+      const { timedFetch } = await import('./timed_fetch.ts');
+      for (const inquiryId of (Array.isArray(ids) ? ids : []) as string[]) {
+        // customer_api acknowledges at once (202) and renders after its answer, so this tick waits seconds, not a render.
+        const r = await timedFetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/customer_api', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '') },
+          body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), action: 'compare_arabic_finish', inquiry_id: String(inquiryId) }),
+        }, 15_000).catch((e) => ({ ok: false, status: String(e), json: () => Promise.resolve({}) } as unknown as Response));
+        const j = await r.json().catch(() => ({}));
+        if (!(r.ok && j?.ok)) errs.push(inquiryId + ': ' + String(j?.error ?? r.status));
       }
       return errs.length ? { ok: false, err: errs.join('; ') } : { ok: true };
     },
