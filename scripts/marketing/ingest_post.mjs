@@ -16,6 +16,7 @@
 // Re-running with the same ingest_key edits the post while it is still a draft or scheduled. Nothing is
 // published by ingesting: the seat publishes at scheduled_at, and only while app_secrets.marketing_golive
 // is 'true'. The script prints the result row; it never prints a key.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 import { basename, extname } from 'node:path';
 
@@ -31,7 +32,7 @@ const media = mediaFiles.map((f) => {
   return { name: basename(f), type, base64: readFileSync(f).toString('base64') };
 });
 
-const mgmt = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const mgmt = supabaseAccessToken();
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: 'Bearer ' + mgmt } })).json();
 const service = keys.find?.((k) => k.name === 'service_role')?.api_key;
 const credRows = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {

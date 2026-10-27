@@ -19,6 +19,7 @@
 //
 //   node scripts/checks/export_from_either_source_is_identical.mjs            # report
 //   node scripts/checks/export_from_either_source_is_identical.mjs --write    # refresh the dump
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 // The repository's SQL reader, with the one retry policy this endpoint has. It adds no dependency
 // (node:fs and fetch only), and the token probe below stays because db.mjs THROWS when there is no
@@ -27,7 +28,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { sql } from '../lib/db.mjs';
 import { SCHEMA_MIRROR, readSchemaMirror, writeSchemaMirror } from '../lib/schema_mirror.mjs';
 
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 if (!token) { console.log('SKIP: no SUPABASE_ACCESS_TOKEN'); process.exit(0); }

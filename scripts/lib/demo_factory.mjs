@@ -42,6 +42,7 @@
 //     node scripts/lib/demo_factory.mjs --purge       delete the accumulated litter
 //     node scripts/lib/demo_factory.mjs --purge --dry-run
 //     node scripts/lib/demo_factory.mjs --corpus 100  build a matching corpus (add --keep)
+import { supabaseAccessToken } from './supabase_token.mjs';
 import { assertNotProduction, mgmtRead, mgmtFixture, PROD_REF } from './qd_guard.mjs';
 import { demoPdf, demoTradeLicence } from './demo_pdf.mjs';
 import { readFileSync } from 'node:fs';
@@ -80,8 +81,7 @@ export const bool = (v) => (v === null || v === undefined) ? 'null' : (v ? 'true
 let _keys = null;
 export async function keys() {
   if (_keys) return _keys;
-  const mgmt = (process.env.SUPABASE_ACCESS_TOKEN
-    || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+  const mgmt = supabaseAccessToken();
   // 14 SEP 2026, smoke run 34885431255: in CI this answered with something that was not an array and
   // the harness died on "k.find is not a function", which names neither the status nor the reason.
   // The same token ran /database/query in the same job, so it is the api-keys call itself (a scope, or

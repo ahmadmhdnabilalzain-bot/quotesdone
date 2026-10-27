@@ -19,6 +19,7 @@
 // Then run: node scripts/checks/blog_index_matches_data.mjs
 //
 // UTF-8 throughout (a Windows-shell curl once sent Arabic as question marks). Never prints a key.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -27,7 +28,7 @@ import { sanitizeBlogHtml } from '../lib/sanitize_blog_html.mjs';   // published
 const REF = 'htdblwldjkcgjvmqkbeh';
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const [cmd, a1] = process.argv.slice(2);
-const mgmtToken = () => (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const mgmtToken = () => supabaseAccessToken();
 
 async function sql(query) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {

@@ -23,6 +23,7 @@
 //   2. the WhatsApp question is on screen whenever registration demands it (the edit-mode dead end);
 //   3. terms + Save end in approved with a signed certificate (and a failed certificate heals on Save);
 //   4. every tab, the bell and the account menu settle (no endless "Loading…").
+import { SANDBOX_OUT } from '../lib/sandbox_out.mjs';
 import { launch, SITE } from './browser.mjs';
 import { openRun, closeRun, read, write, call, BASE, waitFor } from './fixtures.mjs';
 import { keys, verifyEmailByOtp, mkAuthUser } from '../lib/demo_factory.mjs';
@@ -53,7 +54,7 @@ const step = (m, name, ok, detail = '') => { results.push({ m, name, ok, detail 
 // (ruling 1177), and the outcome the corpus truth expects: approved, or held with a reason. Scans and Arabic-only
 // licences need the vision model; openRun's window has models on for every run (ruling 1260).
 const CASES = val('--case', '').split(',').filter(Boolean);
-const CORPUS = val('--corpus', 'C:/Users/Opera/Desktop/QuotesDone Sandbox Test 2026-10/documents/run-final-12-oct-model-on/corpus');
+const CORPUS = val('--corpus', join(SANDBOX_OUT, 'documents/run-final-12-oct-model-on/corpus'));
 const TRUTH = CASES.length ? JSON.parse(readFileSync(join(CORPUS, 'truth.json'), 'utf8')).docs : [];
 const MATRIX = CASES.length ? CASES.map((c, i) => ({ lang: 'en', vp: VPS[i % VPS.length], c: TRUTH.find((d) => d.id === c) || (() => { throw new Error('no corpus case ' + c); })() }))
   : LANGS.flatMap((lang) => VPS.map((vp) => ({ lang, vp, c: null })));

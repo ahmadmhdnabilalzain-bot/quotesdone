@@ -225,8 +225,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     setDrawing(merged);
     return merged;
   };
-  // The queued CAD read, polled every 15 s for up to 12 minutes (the worker is dispatched at once; a
-  // GitHub runner starts in ~20-60 s and reads a multi-MB DWG in seconds). Not awaited: the chat stays usable.
+  // The queued CAD read, polled every 15 s for up to 12 minutes. No runner starts on its own (27 Oct 2026: GitHub
+  // Actions is off); the job is held for the sales_engineer, who runs the worker. Not awaited: the chat stays usable.
   const pollCad = async (res, name, source, lengths = false) => {
     for (let i = 0; i < 48; i++) {
       await new Promise((r) => setTimeout(r, 15000));

@@ -102,7 +102,7 @@ test('the dump says when it was captured and where the real rebuild path is', ()
   const head = dump.slice(0, 3000);
   assert.match(head, /Captured \d{4}-\d{2}-\d{2}T[\d:.]+Z/,
     'the schema mirror does not state its capture time, so nobody can tell whether it is current. ' +
-    'Regenerate with: node C:/Users/Opera/qd-check/regen_schema.mjs --apply');
+    'Regenerate with: node scripts/checks/export_from_either_source_is_identical.mjs --write');
   // Was /replay supabase\/migrations\/ in order/ until 5 Aug 2026 — this ratchet REQUIRED the false
   // claim to be present, so correcting the header turned npm test red. A guard that pins a lie in
   // place is worse than no guard: it makes the honest fix look like the regression.

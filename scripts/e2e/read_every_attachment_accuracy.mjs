@@ -10,6 +10,7 @@
 // Nothing real is read, written or contacted. Results: <out>/READ_EVERY_ATTACHMENT_RESULTS.{json,md}.
 //
 //   node scripts/e2e/read_every_attachment_accuracy.mjs [--cap-usd 2] [--no-model] [--out <dir>]
+import { SANDBOX_OUT } from '../lib/sandbox_out.mjs';
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,7 +24,7 @@ const val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : nu
 const CAP_USD = Number(val('--cap-usd') || 2);
 if (!(CAP_USD > 0 && CAP_USD <= 4)) { console.error('REFUSED: --cap-usd must be in (0, 4]'); process.exit(2); }
 const HERE = dirname(fileURLToPath(import.meta.url)), REPO = resolve(HERE, '..', '..');
-const OUT = val('--out') || 'C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\documents';
+const OUT = val('--out') || join(SANDBOX_OUT, 'documents');
 const WORK = join(OUT, 'run-read-every-attachment');
 mkdirSync(WORK, { recursive: true });
 process.env.QD_FIXTURES = '1';

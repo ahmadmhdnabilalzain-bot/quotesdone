@@ -3,8 +3,9 @@
 // yes/no, never "I don't know". Seats: customer_support (suite owner), sales_engineer (knowledge). Harness: it_engineer.
 //
 // THE REAL SEATS, LIVE. Every agent turn is the DEPLOYED site_assistant, the code a customer reaches:
-//   seat 'support'  path '/'    an anonymous visitor on the homepage widget  -> customer_support
-//   seat 'sales'    path '/me'  a signed-in ZZ DEMO customer in the portal    -> sales_engineer
+//   path '/me' (or '/ar/me'): a signed-in ZZ DEMO customer in the portal -> sales_engineer. Since ruling 1249 (19 Oct 2026)
+//   the homepage widget answers general questions only and sends a job to the portal, so a job conversation is never
+//   held there; customer_support's job conversations are on WhatsApp, which this harness does not drive yet.
 // The reply is written by the model there (ruling 1196: no canned reply exists to be measured). Calls carry this run's
 // tag and are let through only inside its capped rehearsal window; demo accounts are torn down in the finally.
 //
@@ -22,6 +23,7 @@
 // Every scenario below its target is a gap for the weekly audit (scripts/e2e/knowledge_gap_audit.mjs).
 //
 //   node scripts/e2e/live_seat_conversations.mjs run [--only a,b] [--cap-usd 6] [--out <dir>]
+//   SITE_ASSISTANT_URL=http://localhost:8000 ... run   proves a branch before deploy: the function served locally (deno run) against production.
 //   node scripts/e2e/live_seat_conversations.mjs score --results <run.json> --judged <judged.json>
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -58,16 +60,16 @@ const S = [
     facts: [f('size', 'المطبخ على شكل L تقريباً 4 في 3 متر.'), f(/خزائن|كبائن|دواليب|خشب|لون|تشطيب|مواد|نوع/i, 'خزائن لامعة هاي جلوس، وسطح كوارتز.'),
       f(/أجهزة|فرن|شفاط|ثلاجة/i, 'أبقي الأجهزة الحالية إلا فرن مدمج جديد وشفاط.'), f(/سباكة|مواسير|مغسلة|كهرباء/i, 'السباكة تبقى في مكانها.'),
       f('existing', 'المطبخ القديم يجب إزالته.'), f('where', 'فيلا ملك في البرشاء.'), f('when', 'خلال شهرين.'), f('budget', 'متوسطة.')] },
-  { id: 'ac_replacement', seat: 'support', lang: 'en', trade: 'hvac',
+  { id: 'ac_replacement', seat: 'sales', lang: 'en', trade: 'hvac',
     open: 'My AC in the bedroom stopped cooling, I think I need to replace it.',
     facts: [f('size', 'The master bedroom is about 4 m by 4.5 m with a big west-facing window.'), f(/type|split|ducted|window unit|existing|current|old|brand|age/i, 'It is a 12-year-old wall split; the outdoor unit is on the balcony.'),
       f(/inverter|efficien|capacity|ton|btu/i, 'I want an inverter split.'), f(/pipe|copper|drain/i, 'The copper pipes look fine.'), f('where', '2-bedroom apartment in Dubai Marina.'),
       f('access', 'Building management needs a work permit.'), f('when', 'This week please.')] },
-  { id: 'roof_waterproofing_ar', seat: 'support', lang: 'ar', trade: 'waterproofing',
+  { id: 'roof_waterproofing_ar', seat: 'sales', lang: 'ar', trade: 'waterproofing',
     open: 'عندي تسريب مياه من السطح إلى غرفة النوم بعد المطر.',
     facts: [f('size', 'السطح خرسانة مستوي تقريباً 150 متر مربع.'), f('existing', 'آخر عزل قبل 10 سنوات بممبرين بيتومين، والبلاط متشقق في أماكن.'),
       f(/ضمان|كفالة/i, 'أبي عزل كامل مع ضمان.'), f(/مكيف|خزان|معدات|أجهزة على السطح/i, 'فيه وحدات مكيفات وخزان ماء على السطح.'), f('where', 'فيلا في الشارقة.'), f('when', 'مرن، قبل الشتاء.')] },
-  { id: 'cctv_shop', seat: 'support', lang: 'en', trade: 'security',
+  { id: 'cctv_shop', seat: 'sales', lang: 'en', trade: 'security',
     open: 'I need CCTV for my shop.',
     facts: [f('size', 'About 60 square metres, one entrance, one stock room and a cash counter.'), f(/face|cover|camera|view|see|where.*camera|record|retention|days|storage/i, 'I need to see faces at the entrance and the cash counter, view on my phone, and keep recordings as the law requires.'),
       f('existing', 'There is no existing system.'), f('where', 'A phone accessories shop in a Deira mall.'), f('access', 'Mall management requires an approved contractor.'), f('when', 'Within 2 weeks.')] },
@@ -84,7 +86,7 @@ const S = [
     open: 'We want to build a swimming pool in our garden.',
     facts: [f('size', 'Garden is about 12 m by 8 m; pool about 8 m by 4 m, 1.2 to 1.6 m deep.'), f(/finish|tile|mosaic|feature|shelf|light|heat|chill|temperature/i, 'Mosaic tiles, a small sun shelf, a heater-chiller and LED lights.'),
       f('where', 'Our villa in Arabian Ranches.'), f('access', 'The community needs a developer NOC and engineer drawings.'), f(/safety|child|kids|fence|cover/i, 'We have young kids, so safety matters.'), f('when', 'Before next summer.')] },
-  { id: 'glass_partition_ar', seat: 'support', lang: 'ar', trade: 'glass',
+  { id: 'glass_partition_ar', seat: 'sales', lang: 'ar', trade: 'glass',
     open: 'نحتاج قواطع زجاج لمكتبنا.',
     facts: [f('size', 'ثلاث غرف اجتماعات، الطول الكلي حوالي 18 متر، والارتفاع 2.8 متر.'), f(/إطار|فريم|بدون|نوع|سماكة|مطفي|مصنفر|خصوصية/i, 'بدون إطار مع شريط مصنفر.'),
       f(/باب|أبواب|منزلق|مفصلي/i, 'باب منزلق لغرفة وبابين مفصليين.'), f(/صوت|عزل/i, 'العزل الصوتي مهم.'), f('where', 'الطابق 14 في الخليج التجاري.'), f('access', 'لوائح المبنى والدفاع المدني تنطبق.'), f('when', 'خلال 6 أسابيع.')] },
@@ -92,7 +94,7 @@ const S = [
     open: 'Is it worth putting solar panels on my villa?',
     facts: [f('size', 'Flat roof about 120 square metres, some shade from a water tank.'), f(/bill|consum|usage|dewa|kwh/i, 'Summer DEWA bills are around AED 3,500 a month.'),
       f(/battery|grid|off.?grid|net/i, 'Grid-connected, no batteries.'), f('where', 'Owned villa in Dubai.'), f('when', 'I want a proposal within a month.')] },
-  { id: 'bathroom_refit', seat: 'support', lang: 'en', trade: 'bathrooms',
+  { id: 'bathroom_refit', seat: 'sales', lang: 'en', trade: 'bathrooms',
     open: 'I want to redo my bathroom completely.',
     facts: [f('size', 'About 2.5 m by 2 m, ceiling 2.6 m.'), f(/shower|bath|tub|vanity|toilet|wc|fixture|layout/i, 'Swap the bathtub for a walk-in shower, wall-hung WC, new vanity.'),
       f('material', 'Porcelain wall and floor tiles, matt black fittings.'), f(/water ?proof|leak/i, 'There was a small leak to the flat below last year.'), f('where', 'Apartment in Al Nahda, Sharjah. I own it.'), f('access', 'Building needs a permit and work hours 9 to 5.'), f('when', 'Within 6 weeks.')] },
@@ -104,7 +106,7 @@ const S = [
     open: 'Our villa windows let in dust and heat, we want to change them.',
     facts: [f('size', '14 windows, mostly 1.5 m by 1.8 m, and two sliding doors 3 m by 2.4 m.'), f(/glass|glaz|double|thermal|break|profile|system|sound|noise/i, 'Double glazed with thermal break, it is noisy near the road too.'),
       f('material', 'Dark grey frames.'), f('existing', 'Old single-glazed aluminium, about 18 years old, to be removed.'), f('where', 'Villa in Mirdif, owned.'), f('when', 'Within 2 months.')] },
-  { id: 'villa_painting_ext_ar', seat: 'support', lang: 'ar', trade: 'painting',
+  { id: 'villa_painting_ext_ar', seat: 'sales', lang: 'ar', trade: 'painting',
     open: 'نبي نصبغ واجهة الفيلا من برا.',
     facts: [f('size', 'فيلا دورين، الواجهات حوالي 400 متر مربع.'), f('existing', 'الصبغ الحالي متقشر وفيه شروخ صغيرة.'), f(/لون|نوع|تكستشر|ملمس|مواد/i, 'نفس اللون البيج، تكستشر.'),
       f(/سقالة|ارتفاع|وصول/i, 'لازم سقالة، الارتفاع حوالي 8 متر.'), f('where', 'الراشدية، دبي.'), f('access', 'الفيلا ملك.'), f('when', 'الشهر الجاي.')] },
@@ -112,7 +114,7 @@ const S = [
     open: 'We just leased an office and need it fitted out.',
     facts: [f('size', 'About 220 square metres shell and core.'), f(/layout|room|seat|people|staff|workstation|meeting|pantry/i, '25 workstations, 2 meeting rooms, a manager office and a pantry.'),
       f(/design|drawing|plan|concept/i, 'We have no design yet; we need design and build.'), f('where', 'JLT Cluster X, Dubai.'), f('access', 'Landlord and DMCC approvals plus Civil Defence apply.'), f('when', 'Move in within 3 months.'), f('budget', 'Mid-range.')] },
-  { id: 'pest_control_ar', seat: 'support', lang: 'ar', trade: 'pest-control',
+  { id: 'pest_control_ar', seat: 'sales', lang: 'ar', trade: 'pest-control',
     open: 'عندي صراصير في المطبخ ما راحت.',
     facts: [f('size', 'شقة 3 غرف.'), f(/أطفال|حيوان|قطط|أمان/i, 'عندي أطفال صغار وقطة.'), f(/متى بدأ|مدة|منذ|كم صار/i, 'من شهرين تقريباً.'), f('where', 'شقة في المجاز، الشارقة.'), f('when', 'هالأسبوع.'), f(/مرة|عقد|زيارات|متابعة/i, 'أبي معالجة مع زيارة متابعة.')] },
   { id: 'electrical_ev', seat: 'sales', lang: 'en', trade: 'electrical',
@@ -123,15 +125,15 @@ const S = [
     open: 'أبغى أرتب الحديقة، عشب وإضاءة وجلسة.',
     facts: [f('size', 'الحديقة حوالي 200 متر مربع.'), f(/عشب|طبيعي|صناعي|نباتات|أشجار/i, 'عشب صناعي في جزء وطبيعي في جزء، وكم شجرة.'), f(/ري|سقي|تنقيط/i, 'نظام ري بالتنقيط أوتوماتيك.'),
       f(/جلسة|برجولا|مظلة|ممر/i, 'برجولا خشب وممر حجر.'), f('where', 'فيلا في خليفة سيتي، أبوظبي.'), f('when', 'قبل الشتاء.'), f('budget', 'متوسطة.')] },
-  { id: 'carpet_office', seat: 'support', lang: 'en', trade: 'flooring',
+  { id: 'carpet_office', seat: 'sales', lang: 'en', trade: 'flooring',
     open: 'We need new carpet tiles for our office.',
     facts: [f('size', 'About 300 square metres open plan.'), f('existing', 'Old carpet glued down, needs removing; raised floor underneath.'), f('material', 'Commercial nylon carpet tiles, dark grey, heavy traffic.'),
       f(/night|weekend|hours|operating|occupied/i, 'Work must happen on weekends while we keep operating.'), f('where', 'Office in Business Bay, 9th floor.'), f('access', 'Building management needs a permit.'), f('when', 'Next month.')] },
-  { id: 'water_tank_ar', seat: 'support', lang: 'ar', trade: 'plumbing',
+  { id: 'water_tank_ar', seat: 'sales', lang: 'ar', trade: 'plumbing',
     open: 'خزان الماء عندي يسرب وأبي أغيره.',
     facts: [f('size', 'خزان علوي 1000 جالون.'), f('material', 'أبي خزان فايبر جلاس أو بلاستيك مزدوج الطبقات.'), f('existing', 'الخزان الحالي فايبر قديم، والقاعدة بحالة جيدة.'),
       f(/مضخة|ضغط|مواسير/i, 'المضخة شغالة بس ضعيفة.'), f('where', 'فيلا في عجمان.'), f('when', 'بأسرع وقت.')] },
-  { id: 'kitchen_cabinets_en', seat: 'support', lang: 'en', trade: 'kitchens',
+  { id: 'kitchen_cabinets_en', seat: 'sales', lang: 'en', trade: 'kitchens',
     open: 'Can I just replace my kitchen cabinet doors?',
     facts: [f('size', 'About 14 doors and 6 drawer fronts.'), f('existing', 'The carcasses are fine, the doors are peeling foil.'), f('material', 'Matt sage green, handle-less with J-pull.'),
       f(/hinge|soft|close/i, 'Yes, soft-close hinges please.'), f('where', 'Townhouse in Town Square, owned.'), f('when', 'Within a month.')] },
@@ -143,11 +145,11 @@ const S = [
     open: 'أبغى بيتي يكون سمارت، إضاءة ومكيفات وستائر.',
     facts: [f('size', 'فيلا 5 غرف، دورين.'), f(/سلكي|لاسلكي|واي فاي|نظام|منصة|تطبيق/i, 'أفضل نظام لاسلكي يشتغل من تطبيق واحد.'), f(/ستائر|ستارة/i, '8 ستائر كهربائية.'),
       f(/مكيف|تكييف/i, 'مكيفات سبليت في كل غرفة.'), f('existing', 'الفيلا مسكونة وما أبي تكسير.'), f('where', 'الخوانيج، دبي.'), f('when', 'خلال شهر.')] },
-  { id: 'fence_gate', seat: 'support', lang: 'en', trade: 'metal-works',
+  { id: 'fence_gate', seat: 'sales', lang: 'en', trade: 'metal-works',
     open: 'I need a new gate and fence for my villa.',
     facts: [f('size', 'Front boundary about 22 m; gate opening 4.5 m.'), f(/automat|motor|remote|manual|sliding|swing/i, 'An automatic sliding gate with a remote.'), f('material', 'Galvanised steel, powder-coated black, privacy panels.'),
       f('existing', 'The old fence is a low wall with railings, to be removed.'), f('where', 'Villa in Al Barsha South, owned.'), f('access', 'Community guidelines restrict the height.'), f('when', 'Within 6 weeks.')] },
-  { id: 'deep_clean_ar', seat: 'support', lang: 'ar', trade: 'cleaning',
+  { id: 'deep_clean_ar', seat: 'sales', lang: 'ar', trade: 'cleaning',
     open: 'أبي تنظيف عميق للشقة بعد التشطيب.',
     facts: [f('size', 'شقة 3 غرف تقريباً 160 متر.'), f(/غبار|بقايا|أسمنت|دهان|نوع الأوساخ/i, 'غبار جبس وبقع دهان على الأرضيات والزجاج.'), f(/زجاج|نوافذ|واجهة/i, 'النوافذ من داخل فقط.'),
       f('where', 'جميرا فيلج سيركل.'), f('when', 'يوم الخميس.'), f(/مواد|معدات|أدوات/i, 'تجيبون موادكم.')] },
@@ -159,7 +161,7 @@ const S = [
     open: 'أبغى ستائر للمجلس وغرف النوم.',
     facts: [f('size', 'المجلس فيه 3 نوافذ كل وحدة 2.5 متر عرض، وغرف النوم 4 نوافذ 1.8 متر.'), f(/نوع|قماش|بلاك ?أوت|شفاف|طبقة|خامة/i, 'بلاك أوت مع طبقة شيفون.'), f(/كهرب|يدوي|موتور|ريموت/i, 'المجلس كهربائي والغرف يدوي.'),
       f('material', 'لون رمادي فاتح.'), f('size', 'الارتفاع من السقف 3 متر.'), f('where', 'فيلا في الشارقة، الرحمانية.'), f('when', 'خلال 3 أسابيع.')] },
-  { id: 'roof_pergola', seat: 'support', lang: 'en', trade: 'carpentry-joinery',
+  { id: 'roof_pergola', seat: 'sales', lang: 'en', trade: 'carpentry-joinery',
     open: 'Can you get me a pergola for my roof terrace?',
     facts: [f('size', 'About 5 m by 4 m.'), f('material', 'Aluminium louvred, white.'), f(/wind|fix|anchor|load|slab|waterproof/i, 'The terrace is waterproofed, so I do not want it drilled through.'),
       f(/light|fan|motor|heater|electric/i, 'Motorised louvres with LED lighting.'), f('where', 'Penthouse in Al Reem, Abu Dhabi.'), f('access', 'Building owners association approval needed.'), f('when', 'Before the cool season.')] },
@@ -167,7 +169,7 @@ const S = [
     open: 'I am opening a small gym and need the right floor.',
     facts: [f('size', 'About 180 square metres.'), f(/zone|weight|free|cardio|drop|impact|activity|use/i, 'A free-weights zone with dropping, and a cardio area.'), f('material', 'Rubber tiles, 30 mm in the weights zone.'),
       f('existing', 'Bare concrete screed, level.'), f('where', 'Ground floor unit in Al Quoz.'), f('access', 'Landlord approval in hand.'), f('when', 'Within 5 weeks.')] },
-  { id: 'majlis_furniture_ar', seat: 'support', lang: 'ar', trade: 'furniture',
+  { id: 'majlis_furniture_ar', seat: 'sales', lang: 'ar', trade: 'furniture',
     open: 'أبغى تفصيل جلسة مجلس عربي.',
     facts: [f('size', 'المجلس 7 في 5 متر.'), f(/شكل|توزيع|حرف|ضلع|جهات|تصميم/i, 'جلسة على ثلاث جهات بشكل U.'), f('material', 'قماش مخمل لون بيج مع ذهبي.'),
       f(/ارتفاع|عمق|جلسة أرضية|كنب/i, 'جلسة أرضية بارتفاع 25 سم.'), f('where', 'رأس الخيمة.'), f('when', 'قبل رمضان.'), f('budget', 'متوسطة إلى عالية.')] },
@@ -175,7 +177,9 @@ const S = [
 
 const IDK = /\b(i don'?t know|i do not know|(i'?m|i am) (not sure|unsure)|i'?ll (check|find out|get back)|i will (check|find out|get back)|can'?t help|cannot help|unable to help)\b|لا أعرف|ما أعرف|لست متأكد|مو متأكد|غير متأكد|سأتحقق|راح أتأكد|لا أستطيع المساعدة/i;
 const YESNO_ONLY = /^\s*(yes|no|yeah|nope|sure|ok(ay)?|نعم|لا|أكيد|تمام|ايوه)[\s.!،,]*([^\s]+\s*){0,3}$/i;
-const CONFIRM_ASK = /confirm|summary|summar|correct\?|is that right|shall i (send|submit|post)|ready to send|ملخص|أكد|تأكيد|صحيح؟|هل هذا صحيح|نرسل|أرسل الطلب/i;
+// A READ-BACK ASKED TO BE CONFIRMED, not any sentence with 'confirm' in it (run a8ad5ed7: 'to confirm at the site visit' and
+// 'للتأكيد' ended 11 conversations early as if the customer had confirmed a summary that was never given).
+const CONFIRM_ASK = /(here is|here's|summary|summar|request as i have it|ملخص)[\s\S]*(correct|right|confirm)[^.?!؟]*[?؟]|(صحيح|تؤكد|أكد)[^.?!؟]*[؟?]/i;
 const arabicShare = (t) => { const a = (t.match(/[؀-ۿ]/g) || []).length, l = (t.match(/[A-Za-z]/g) || []).length; return a / Math.max(1, a + l); };
 
 export function customerTurn(s, agentText, given) {
@@ -216,19 +220,19 @@ async function runSuite() {
   const image = await studioSketch();
   const run = await openRun({ capUsd: cap, minutes: 120 });
   try {
-    const jwt = { en: (await makeDemoCustomer(run, { locale: 'en' })).jwt, ar: (await makeDemoCustomer(run, { locale: 'ar' })).jwt };
     const secret = await internalCred();
     const results = [];
     for (const [n, s] of list.entries()) {
-      const path = s.seat === 'sales' ? (s.lang === 'ar' ? '/ar/me' : '/me') : (s.lang === 'ar' ? '/ar' : '/');
-      const tok = s.seat === 'sales' ? jwt[s.lang] : ANON;
+      const path = s.lang === 'ar' ? '/ar/me' : '/me';
+      // one fresh account per conversation: no earlier request bleeds in, and no account's hourly bucket is shared
+      const tok = (await makeDemoCustomer(run, { locale: s.lang })).jwt;
       const conv = `qdlsc${run.tag}${n}`.slice(0, 64);
       const history = [], turns = [{ role: 'customer', text: s.open, image: !!s.image }], given = new Set();
       let stalls = 0;
       for (let t = 0; t < MAX_AGENT_TURNS; t++) {
         const message = turns.at(-1).text;
         const body = { message, lang: s.lang, path, conv, history: [...history, { role: 'user', content: message }], ...(t === 0 && s.image ? { images: [image] } : {}) };
-        const r = await fetch(`${BASE}/functions/v1/site_assistant?forceFunctionRegion=ap-southeast-1`, { method: 'POST', signal: AbortSignal.timeout(120000),
+        const r = await fetch(process.env.SITE_ASSISTANT_URL || `${BASE}/functions/v1/site_assistant?forceFunctionRegion=ap-southeast-1`, { method: 'POST', signal: AbortSignal.timeout(120000),
           headers: { apikey: ANON, Authorization: 'Bearer ' + tok, 'Content-Type': 'application/json', 'x-qd-e2e-run': run.tag, 'x-qd-e2e-secret': secret,
             // one documentation address (RFC 5737) per conversation, so 30 conversations do not share one visitor bucket
             'x-forwarded-for': `198.51.100.${1 + (n % 254)}` }, body: JSON.stringify(body) })

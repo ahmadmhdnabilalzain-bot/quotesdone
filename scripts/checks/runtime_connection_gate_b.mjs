@@ -12,6 +12,7 @@
 // A run that cannot read the ledger does not start.
 //
 //   node scripts/checks/runtime_connection_gate_b.mjs --ref=<project> [--cases=30] [--usd=3]
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
 const arg = (k, d) => {
@@ -27,7 +28,7 @@ const USD_CAP = Number(arg('usd', '3'));
 const AED_CAP = USD_CAP * 3.6725;          // AED is pegged to USD at 3.6725
 const OUT = arg('out', 'docs/agents/runtime_connection_test_evidence.md');
 
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 if (!token) { console.log('SKIP gate B: no SUPABASE_ACCESS_TOKEN'); process.exit(0); }

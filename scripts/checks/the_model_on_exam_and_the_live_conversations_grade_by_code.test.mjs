@@ -28,7 +28,8 @@ test('the scripted customer answers only what was asked, once', () => {
   assert.equal(customerTurn(w, 'Thanks for the photo, it helps.', given), null);
   assert.match(customerTurn(w, 'How wide is the wall?', given), /2\.4 m wide/);
   assert.equal(customerTurn(w, 'And how wide again?', given), null);
-  assert.match(customerTurn(w, 'Here is the summary, please confirm.', given), /correct/);
+  assert.match(customerTurn(w, 'Here is the summary: a 2.4 m wardrobe. Is that correct?', given), /correct/);
+  assert.equal(customerTurn(w, 'The depth is to confirm at the site visit. Anything else on the wall?', given), null);
 });
 
 test('the code gates catch a hedge, a yes/no-only reply and the wrong language', () => {
@@ -41,10 +42,10 @@ test('the code gates catch a hedge, a yes/no-only reply and the wrong language',
   assert.equal(codeGates(en, ['Thanks, we will arrange it.']).asks_first, false);
 });
 
-test('the suite holds at least 30 scenarios, both seats, both languages', () => {
+test('the suite holds at least 30 scenarios in both languages, all in the portal (ruling 1249)', () => {
   assert.ok(S.length >= 30, `${S.length} scenarios`);
-  assert.ok(S.some((s) => s.lang === 'ar' && s.seat === 'sales') && S.some((s) => s.lang === 'ar' && s.seat === 'support'));
-  assert.ok(S.some((s) => s.lang === 'en' && s.seat === 'sales') && S.some((s) => s.lang === 'en' && s.seat === 'support'));
+  assert.ok(S.some((s) => s.lang === 'ar') && S.some((s) => s.lang === 'en'));
+  assert.ok(S.every((s) => s.seat === 'sales'), 'the homepage widget holds no job conversation since ruling 1249');
   assert.equal(new Set(S.map((s) => s.id)).size, S.length);
 });
 

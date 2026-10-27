@@ -11,6 +11,7 @@
 // leads.json: [{company_name, website, domain, email, phone_e164, contact_name, contact_title, emirate,
 //               trade_code, source_urls[]}]  -- public business listings only; every field required.
 // --dry runs the whole thing in a transaction that is rolled back and prints what WOULD be promoted.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
@@ -49,7 +50,7 @@ const query = dry
   ? `do $d$ declare r jsonb; begin r := ${expr}; raise exception 'DRY<<%>>', r; end $d$;`
   : `select ${expr} r`;
 
-const mgmt = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const mgmt = supabaseAccessToken();
 const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
   method: 'POST', headers: { Authorization: 'Bearer ' + mgmt, 'Content-Type': 'application/json' }, body: JSON.stringify({ query }),
 });

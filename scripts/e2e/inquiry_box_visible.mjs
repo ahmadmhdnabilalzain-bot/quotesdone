@@ -14,6 +14,7 @@
 //   node scripts/e2e/inquiry_box_visible.mjs            # own ZZ DEMO customers, cleaned up after
 //   node scripts/e2e/inquiry_box_visible.mjs <ids.json> # the S26 walk's identities (customer + customerAr)
 // Screenshots + computed styles: QD_WALK_OUT (default the Desktop sandbox folder)/inquiry_box/.
+import { SANDBOX_OUT } from '../lib/sandbox_out.mjs';
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { launch, signedInPage, SITE, measureInquiryBox } from './browser.mjs';
@@ -23,7 +24,7 @@ export const BOX_VIEWPORTS = [
   { width: 1440, height: 900 }, { width: 1366, height: 768 }, { width: 1280, height: 720 },
   { width: 768, height: 1024 }, { width: 375, height: 812 },
 ];
-const OUT = join(process.env.QD_WALK_OUT || 'C:/Users/Opera/Desktop/QuotesDone Sandbox Test 2026-10/browser', 'inquiry_box');
+const OUT = join(process.env.QD_WALK_OUT || join(SANDBOX_OUT, 'browser'), 'inquiry_box');
 
 /** The whole assertion for one page: open New request, measure, focus, type. Returns { ok, facts }. */
 export async function assertBoxUsable(page, lang) {

@@ -1,0 +1,35 @@
+{
+ "tag": "0a717394",
+ "customer": {
+  "kind": "customer",
+  "email": "qd-0a717394-cust14@example.invalid",
+  "label": "C1"
+ },
+ "customerAr": {
+  "kind": "customer",
+  "email": "qd-0a717394-cust14@example.invalid",
+  "label": "C1"
+ },
+ "supplier": {
+  "kind": "supplier",
+  "email": "qd-0a717394-sup0@example.invalid",
+  "label": "AL"
+ },
+ "walk": [
+  {
+   "kind": "customer",
+   "email": "qd-0a717394-cust14@example.invalid",
+   "label": "C1"
+  },
+  {
+   "kind": "customer",
+   "email": "qd-0a717394-cust15@example.invalid",
+   "label": "C2"
+  },
+  {
+   "kind": "supplier",
+   "email": "qd-0a717394-sup0@example.invalid",
+   "label": "AL"
+  }
+ ]
+}

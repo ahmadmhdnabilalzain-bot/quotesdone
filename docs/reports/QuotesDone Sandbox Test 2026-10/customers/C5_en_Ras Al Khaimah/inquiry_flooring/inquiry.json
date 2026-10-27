@@ -1,0 +1,75 @@
+{
+ "fact_sheet": {
+  "element": "Flooring: porcelain tiles, vinyl flooring and epoxy flooring",
+  "lines": "Line 1: porcelain tiles x 20, 1200 x 1500 mm each; Line 2: vinyl flooring x 10, 900 x 2100 mm each; Line 3: epoxy flooring x 5, 3000 x 2400 mm each",
+  "purpose": "Line 1 is for the bedrooms, line 2 for the main entrance and balconies, line 3 for the living-room facade",
+  "location": "Villa in Ras Al Khaimah, ground and first floor, clear road access, no crane needed",
+  "area": "About 450 m2 built-up, 6 rooms",
+  "scope": "Supply and install, including removal and disposal of the existing items",
+  "new_or_replace": "Replacement of existing items in an occupied villa",
+  "timeline": "Within 1 month",
+  "warranty": "At least 2 years",
+  "supply_phase": "Three-phase 400 V supply",
+  "surface_prep": "Previously painted walls in fair condition, minor crack repair",
+  "stops": "4 stops (G+3)",
+  "capacity": "8 persons, 630 kg",
+  "design": "Design is ready",
+  "material": "Standard commercial grade, Tarkett",
+  "leak": "No leak at the moment, this is preventive",
+  "finish": "Laminate / melamine",
+  "system_type": "Central chilled-water system: ducted concealed fan coil units with air handling units",
+  "fixtures": "4 bathrooms and 1 kitchen"
+ },
+ "intake": {
+  "intakeId": "c596a700-4ad0-48ef-b22c-d3b2ee8e3d8c",
+  "status": "ready",
+  "readiness": 72,
+  "missing": [],
+  "turns": 5,
+  "log": [
+   {
+    "turn": 1,
+    "answer": "Flooring: porcelain tiles, vinyl flooring and epoxy flooring. Line 1: porcelain tiles x 20, 1200 x 1500 mm each; Line 2: vinyl flooring x 10, 900 x 2100 mm each; Line 3: epoxy flooring x 5, 3000 x 2400 mm each. Villa in Ras Al Khaimah, ground and first floor, clear road access, no crane needed.",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 2,
+    "answer": "floor_type: Flooring: porcelain tiles, vinyl flooring and epoxy flooring. area_sqm: About 450 m2 built-up, 6 rooms. areas: Line 1 is for the bedrooms, line 2 for the main entrance and balconies, line 3 for the living-room facade. supply_install: Supply and install, including removal and disposal of the existing items. removal_levelling: Replacement of existing items in an occupied villa.",
+    "asked_key": "material.grade",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 3,
+    "answer": "Premium brands",
+    "asked_key": "warranty",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 4,
+    "answer": "yes_24",
+    "asked_key": "required_by",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 5,
+    "answer": "m1",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "ready"
+   }
+  ],
+  "sent": 200
+ },
+ "inquiry": {
+  "id": "8f8b5764-0fa8-4082-93e3-290419bba46e",
+  "status": "sent",
+  "trades": null,
+  "lang": "en",
+  "emirate": "Ras Al Khaimah"
+ }
+}

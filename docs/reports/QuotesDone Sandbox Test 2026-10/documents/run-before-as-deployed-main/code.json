@@ -1,0 +1,1409 @@
+{
+ "read_at": "2026-10-07T02:27:04.755Z",
+ "field_reader": false,
+ "docs": [
+  {
+   "id": "lic_dubai_ded_old_text",
+   "text_chars": 458,
+   "code": {
+    "legal_name_en": "ZZ DEMO Falcon Aluminium LLC",
+    "expiry_date": "2027-01-28"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [],
+    "hits": [],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_dubai_ded_old_scan_pdf",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "This PDF has no text layer (a scan, or CAD exported as lines); its words need OCR.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_dubai_det_text",
+   "text_chars": 485,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": "2028-03-02"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "plumbing",
+     "waterproofing"
+    ],
+    "hits": [
+     {
+      "code": "plumbing",
+      "via": "meaning",
+      "phrases": [
+       "sanitary fixtures installation"
+      ],
+      "snippet": "Business Activities Plumbing and Sanitary Installation, Building Waterproofing Works",
+      "similarity": 0.912
+     },
+     {
+      "code": "waterproofing",
+      "via": "meaning",
+      "phrases": [
+       "wet-area waterproofing"
+      ],
+      "snippet": "Business Activities Plumbing and Sanitary Installation, Building Waterproofing Works",
+      "similarity": 0.869
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_dubai_det_png",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_abu_dhabi_added_text",
+   "text_chars": 458,
+   "code": {
+    "legal_name_en": "ZZ DEMO Horizon Floor LLC",
+    "expiry_date": "2027-05-04"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "cleaning_chemicals",
+     "flooring",
+     "glass_containers",
+     "glazing",
+     "racking_storage"
+    ],
+    "hits": [
+     {
+      "code": "cleaning_chemicals",
+      "via": "meaning",
+      "phrases": [
+       "floor & surface cleaners"
+      ],
+      "snippet": "Company Name: ZZ DEMO Horizon Floor LLC",
+      "similarity": 0.841
+     },
+     {
+      "code": "flooring",
+      "via": "meaning",
+      "phrases": [
+       "tiling"
+      ],
+      "snippet": "Activities: Floor and Wall Tiling Works, Glass and Glazing Works",
+      "similarity": 0.881
+     },
+     {
+      "code": "glass_containers",
+      "via": "meaning",
+      "phrases": [
+       "cosmetic & perfume glass"
+      ],
+      "snippet": "Activities: Floor and Wall Tiling Works, Glass and Glazing Works",
+      "similarity": 0.904
+     },
+     {
+      "code": "glazing",
+      "via": "meaning",
+      "phrases": [
+       "frameless glazing"
+      ],
+      "snippet": "Activities: Floor and Wall Tiling Works, Glass and Glazing Works",
+      "similarity": 0.872
+     },
+     {
+      "code": "racking_storage",
+      "via": "meaning",
+      "phrases": [
+       "mezzanine floors"
+      ],
+      "snippet": "Trade Name: ZZ DEMO Horizon Floor",
+      "similarity": 0.842
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_abu_dhabi_added_jpg",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_adgm_text",
+   "text_chars": 492,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": "2027-07-06"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [],
+    "hits": [],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_adgm_rotated90",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_sharjah_sedd_text",
+   "text_chars": 463,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": "2028-09-08"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "electrical"
+    ],
+    "hits": [
+     {
+      "code": "electrical",
+      "via": "meaning",
+      "phrases": [
+       "wiring & electrical installation"
+      ],
+      "snippet": "Activity Landscaping Works, Electrical Fitting Contracting",
+      "similarity": 0.879
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_sharjah_sedd_skewed",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_ajman_ded_text",
+   "text_chars": 497,
+   "code": {
+    "legal_name_en": "ZZ DEMO Sidra Lifts",
+    "expiry_date": "2027-02-10"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "hvac"
+    ],
+    "hits": [
+     {
+      "code": "hvac",
+      "via": "meaning",
+      "phrases": [
+       "ducting & ventilation"
+      ],
+      "snippet": "Activities: Lifts and Escalators Installation and Maintenance, Air Conditioning and Ventilation Systems Installation",
+      "similarity": 0.86
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_ajman_ded_lowdpi",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_rak_ded_text",
+   "text_chars": 493,
+   "code": {
+    "legal_name_en": "ZZ DEMO Corniche Aluminium LLC",
+    "expiry_date": "2027-04-12"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [],
+    "hits": [],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_rak_ded_phone",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_rakez_text",
+   "text_chars": 451,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": "2028-06-14"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "plumbing",
+     "waterproofing"
+    ],
+    "hits": [
+     {
+      "code": "plumbing",
+      "via": "meaning",
+      "phrases": [
+       "sanitary fixtures installation"
+      ],
+      "snippet": "Activities Plumbing and Sanitary Installation, Building Waterproofing Works",
+      "similarity": 0.912
+     },
+     {
+      "code": "waterproofing",
+      "via": "meaning",
+      "phrases": [
+       "wet-area waterproofing"
+      ],
+      "snippet": "Activities Plumbing and Sanitary Installation, Building Waterproofing Works",
+      "similarity": 0.869
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_rakez_scan_pdf",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "This PDF has no text layer (a scan, or CAD exported as lines); its words need OCR.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_uaq_ded_text",
+   "text_chars": 467,
+   "code": {
+    "legal_name_en": "ZZ DEMO Najm Floor LLC",
+    "expiry_date": "2027-08-16"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "cleaning_chemicals",
+     "flooring",
+     "glass_containers",
+     "glazing"
+    ],
+    "hits": [
+     {
+      "code": "cleaning_chemicals",
+      "via": "meaning",
+      "phrases": [
+       "floor & surface cleaners"
+      ],
+      "snippet": "Company Name: ZZ DEMO Najm Floor LLC",
+      "similarity": 0.843
+     },
+     {
+      "code": "flooring",
+      "via": "meaning",
+      "phrases": [
+       "tiling"
+      ],
+      "snippet": "Activities: Floor and Wall Tiling Works, Glass and Glazing Works",
+      "similarity": 0.881
+     },
+     {
+      "code": "glass_containers",
+      "via": "meaning",
+      "phrases": [
+       "cosmetic & perfume glass"
+      ],
+      "snippet": "Activities: Floor and Wall Tiling Works, Glass and Glazing Works",
+      "similarity": 0.904
+     },
+     {
+      "code": "glazing",
+      "via": "meaning",
+      "phrases": [
+       "frameless glazing"
+      ],
+      "snippet": "Activities: Floor and Wall Tiling Works, Glass and Glazing Works",
+      "similarity": 0.872
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_uaq_ded_png",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_fujairah_ded_text",
+   "text_chars": 469,
+   "code": {
+    "legal_name_en": "ZZ DEMO Falcon Painting LLC",
+    "expiry_date": "2027-01-18"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [],
+    "hits": [],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_fujairah_ded_jpg",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_jafza_text",
+   "text_chars": 427,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": "2028-03-20"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "electrical"
+    ],
+    "hits": [
+     {
+      "code": "electrical",
+      "via": "meaning",
+      "phrases": [
+       "wiring & electrical installation"
+      ],
+      "snippet": "Licensed Activities Landscaping Works, Electrical Fitting Contracting",
+      "similarity": 0.879
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_jafza_rotated90",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_dmcc_text",
+   "text_chars": 489,
+   "code": {
+    "legal_name_en": "ZZ DEMO Horizon Lifts DMCC",
+    "expiry_date": "2027-05-22"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "hvac"
+    ],
+    "hits": [
+     {
+      "code": "hvac",
+      "via": "meaning",
+      "phrases": [
+       "ducting & ventilation"
+      ],
+      "snippet": "Licensed Activities: Lifts and Escalators Installation and Maintenance, Air Conditioning and Ventilation Systems Installation",
+      "similarity": 0.86
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_dmcc_skewed",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_dafza_text",
+   "text_chars": 427,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": "2027-07-24"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [],
+    "hits": [],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_dafza_lowdpi",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_dso_text",
+   "text_chars": 428,
+   "code": {
+    "legal_name_en": "ZZ DEMO Ghaf Plumbing FZ LLC",
+    "expiry_date": "2028-09-26"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "plumbing",
+     "waterproofing"
+    ],
+    "hits": [
+     {
+      "code": "plumbing",
+      "via": "meaning",
+      "phrases": [
+       "sanitary fixtures installation"
+      ],
+      "snippet": "Activities: Plumbing and Sanitary Installation, Building Waterproofing Works",
+      "similarity": 0.912
+     },
+     {
+      "code": "waterproofing",
+      "via": "meaning",
+      "phrases": [
+       "wet-area waterproofing"
+      ],
+      "snippet": "Activities: Plumbing and Sanitary Installation, Building Waterproofing Works",
+      "similarity": 0.869
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_dso_phone",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_ifza_text",
+   "text_chars": 441,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": "2027-02-01"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "cleaning_chemicals",
+     "flooring",
+     "glass_containers",
+     "glazing",
+     "racking_storage"
+    ],
+    "hits": [
+     {
+      "code": "cleaning_chemicals",
+      "via": "meaning",
+      "phrases": [
+       "floor & surface cleaners"
+      ],
+      "snippet": "Trade Name ZZ DEMO Sidra Floor",
+      "similarity": 0.831
+     },
+     {
+      "code": "flooring",
+      "via": "meaning",
+      "phrases": [
+       "tiling"
+      ],
+      "snippet": "Activities Floor and Wall Tiling Works, Glass and Glazing Works",
+      "similarity": 0.881
+     },
+     {
+      "code": "glass_containers",
+      "via": "meaning",
+      "phrases": [
+       "cosmetic & perfume glass"
+      ],
+      "snippet": "Activities Floor and Wall Tiling Works, Glass and Glazing Works",
+      "similarity": 0.904
+     },
+     {
+      "code": "glazing",
+      "via": "meaning",
+      "phrases": [
+       "frameless glazing"
+      ],
+      "snippet": "Activities Floor and Wall Tiling Works, Glass and Glazing Works",
+      "similarity": 0.872
+     },
+     {
+      "code": "racking_storage",
+      "via": "meaning",
+      "phrases": [
+       "mezzanine floors"
+      ],
+      "snippet": "Company Name ZZ DEMO Sidra Floor FZ LLC",
+      "similarity": 0.829
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_ifza_scan_pdf",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "This PDF has no text layer (a scan, or CAD exported as lines); its words need OCR.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_meydan_text",
+   "text_chars": 429,
+   "code": {
+    "legal_name_en": "ZZ DEMO Corniche Painting FZ LLC",
+    "expiry_date": "2027-04-03"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [],
+    "hits": [],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_meydan_png",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_shams_text",
+   "text_chars": 417,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": "2028-06-05"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "electrical"
+    ],
+    "hits": [
+     {
+      "code": "electrical",
+      "via": "meaning",
+      "phrases": [
+       "wiring & electrical installation"
+      ],
+      "snippet": "Activities Landscaping Works, Electrical Fitting Contracting",
+      "similarity": 0.879
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_shams_jpg",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_difc_text",
+   "text_chars": 516,
+   "code": {
+    "legal_name_en": "ZZ DEMO Najm Lifts Ltd",
+    "expiry_date": "2027-08-07"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "hvac"
+    ],
+    "hits": [
+     {
+      "code": "hvac",
+      "via": "meaning",
+      "phrases": [
+       "ducting & ventilation"
+      ],
+      "snippet": "Licensed Activities: Lifts and Escalators Installation and Maintenance, Air Conditioning and Ventilation Systems Installation",
+      "similarity": 0.86
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_difc_rotated90",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_dubai_det_bi_jpg",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_sharjah_sedd_bi_phone",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_abu_dhabi_added_bi_scan_pdf",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "This PDF has no text layer (a scan, or CAD exported as lines); its words need OCR.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_ajman_ded_ar_png",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_fujairah_ded_ar_jpg",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_dmcc_multipage",
+   "text_chars": 556,
+   "code": {
+    "legal_name_en": "ZZ DEMO Saker Carpentry DMCC",
+    "expiry_date": "2029-06-14"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "elevators"
+    ],
+    "hits": [
+     {
+      "code": "elevators",
+      "via": "meaning",
+      "phrases": [
+       "home lifts"
+      ],
+      "snippet": "Licensed Activities: Carpentry and Joinery Works, Lifts and Escalators Installation and Maintenance",
+      "similarity": 0.889
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_jafza_multipage",
+   "text_chars": 498,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": "2027-07-15"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [],
+    "hits": [],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_expired_text",
+   "text_chars": 486,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": "2025-06-30"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "waterproofing"
+    ],
+    "hits": [
+     {
+      "code": "waterproofing",
+      "via": "meaning",
+      "phrases": [
+       "wet-area waterproofing"
+      ],
+      "snippet": "Business Activities Building Waterproofing Works, Aluminium Works Contracting",
+      "similarity": 0.857
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_expired_scan",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_mismatch_text",
+   "text_chars": 457,
+   "code": {
+    "legal_name_en": "ZZ DEMO Mirage Contracting LLC",
+    "expiry_date": "2027-01-18"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "glass_containers",
+     "glazing",
+     "plumbing"
+    ],
+    "hits": [
+     {
+      "code": "glass_containers",
+      "via": "meaning",
+      "phrases": [
+       "decoration & printing on glass",
+       "cosmetic & perfume glass"
+      ],
+      "snippet": "Activities: Glass and Glazing Works, Plumbing and Sanitary Installation",
+      "similarity": 0.893
+     },
+     {
+      "code": "glazing",
+      "via": "meaning",
+      "phrases": [
+       "frameless glazing"
+      ],
+      "snippet": "Activities: Glass and Glazing Works, Plumbing and Sanitary Installation",
+      "similarity": 0.872
+     },
+     {
+      "code": "plumbing",
+      "via": "meaning",
+      "phrases": [
+       "sanitary fixtures installation"
+      ],
+      "snippet": "Activities: Glass and Glazing Works, Plumbing and Sanitary Installation",
+      "similarity": 0.912
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "lic_mismatch_scan",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_blank_pdf",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "This PDF has no text layer (a scan, or CAD exported as lines); its words need OCR.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_blank_photo",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "lic_missing",
+   "code": null,
+   "trades": null
+  },
+  {
+   "id": "profile_pdf",
+   "text_chars": 421,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "glazing",
+     "iso_certification"
+    ],
+    "hits": [
+     {
+      "code": "glazing",
+      "via": "meaning",
+      "phrases": [
+       "frameless glazing"
+      ],
+      "snippet": "- Glazing works",
+      "similarity": 0.881
+     },
+     {
+      "code": "iso_certification",
+      "via": "meaning",
+      "phrases": [
+       "iso 9001",
+       "product conformity certification"
+      ],
+      "snippet": "- ISO 9001:2015 quality management",
+      "similarity": 0.871
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "profile_docx",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "iso_certification"
+    ],
+    "hits": [
+     {
+      "code": "iso_certification",
+      "via": "meaning",
+      "phrases": [
+       "iso 9001",
+       "product conformity certification"
+      ],
+      "snippet": "- ISO 9001:2015 quality management",
+      "similarity": 0.871
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "profile_pptx",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "iso_certification"
+    ],
+    "hits": [
+     {
+      "code": "iso_certification",
+      "via": "meaning",
+      "phrases": [
+       "iso 9001",
+       "product conformity certification"
+      ],
+      "snippet": "- ISO 9001:2015 quality management",
+      "similarity": 0.871
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "profile_png",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "needs_ocr",
+    "reason": "A photo or scan has no text layer; its words are read by OCR in the customer’s browser, or by a vision model when inference is allowed.",
+    "codes": [],
+    "hits": [],
+    "exact": null,
+    "meaning": null
+   }
+  },
+  {
+   "id": "profile_pdf_paint",
+   "text_chars": 427,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "iso_certification",
+     "painting",
+     "waterproofing"
+    ],
+    "hits": [
+     {
+      "code": "iso_certification",
+      "via": "meaning",
+      "phrases": [
+       "iso 9001",
+       "product conformity certification"
+      ],
+      "snippet": "- ISO 9001:2015 quality management",
+      "similarity": 0.871
+     },
+     {
+      "code": "painting",
+      "via": "meaning",
+      "phrases": [
+       "interior painting"
+      ],
+      "snippet": "- Painting works",
+      "similarity": 0.867
+     },
+     {
+      "code": "waterproofing",
+      "via": "meaning",
+      "phrases": [
+       "wet-area waterproofing"
+      ],
+      "snippet": "- Waterproofing works",
+      "similarity": 0.879
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "profile_docx_land",
+   "text_chars": 0,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "iso_certification"
+    ],
+    "hits": [
+     {
+      "code": "iso_certification",
+      "via": "meaning",
+      "phrases": [
+       "iso 9001",
+       "product conformity certification"
+      ],
+      "snippet": "- ISO 9001:2015 quality management",
+      "similarity": 0.871
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "catalogue_pdf",
+   "text_chars": 320,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [],
+    "hits": [],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "vat_certificate",
+   "text_chars": 260,
+   "code": {
+    "legal_name_en": "ZZ DEMO Falcon Aluminium LLC",
+    "expiry_date": null
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "tax_advisory"
+    ],
+    "hits": [
+     {
+      "code": "tax_advisory",
+      "via": "meaning",
+      "phrases": [
+       "corporate tax registration & filing"
+      ],
+      "snippet": "TAX REGISTRATION CERTIFICATE",
+      "similarity": 0.872
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  },
+  {
+   "id": "iso_certificate",
+   "text_chars": 242,
+   "code": {
+    "legal_name_en": null,
+    "expiry_date": "2028-05-11"
+   },
+   "trades": {
+    "status": "read",
+    "reason": null,
+    "codes": [
+     "corporate_training",
+     "iso_certification"
+    ],
+    "hits": [
+     {
+      "code": "corporate_training",
+      "via": "meaning",
+      "phrases": [
+       "it & professional certification"
+      ],
+      "snippet": "CERTIFICATE OF REGISTRATION",
+      "similarity": 0.852
+     },
+     {
+      "code": "iso_certification",
+      "via": "meaning",
+      "phrases": [
+       "iso 9001"
+      ],
+      "snippet": "ISO 9001:2015",
+      "similarity": 0.883
+     }
+    ],
+    "exact": "on",
+    "meaning": "on"
+   }
+  }
+ ]
+}
