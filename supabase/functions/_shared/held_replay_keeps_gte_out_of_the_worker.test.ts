@@ -91,3 +91,142 @@ Deno.test('the heartbeat\'s embedder asks embed_ml for gte-small, the same 384-d
   await heartbeatDeps(a).embed('a research finding with no space named');
   assertEquals(inWorker.runs, 0);
 });
+
+// EVERY STEP OF THE HEARTBEAT HANDS ITS DEPS OVER AS heartbeatDeps (it_engineer, 27 Oct 2026).
+// #1685 grepped resilience_ping for the literal defaultDeps call, and an independent review found what that misses: a deps-taking
+// call given `undefined` (or nothing) falls back to whatever deps its callee defaults to. learningGroupTick and learningDistilTick
+// called distilLessons that way, and distilLessons defaulted to defaultDeps - gte-small in this worker for up to 8 findings a tick.
+// So the guard reads the shape instead of one spelling. It finds every exported _shared function that takes a ThinkDeps
+// parameter, follows resilience_ping's imports (aliases and dynamic imports too), and requires that each such call hands
+// heartbeatDeps(admin) at that parameter. A call that passes nothing, `undefined` or any other deps is named with its line.
+// Break it once to see: put `undefined` back in learningGroupTick and this names line and callee.
+type Taker = { file: string; name: string; index: number };
+const SHARED = new URL('./', import.meta.url);
+
+/** Arguments (or parameters) of the parenthesised list opening at `open`, split at depth 0; strings are skipped. */
+function argsAt(src: string, open: number): { args: string[]; end: number } {
+  const args: string[] = []; let depth = 0; let cur = ''; let q: string | null = null;
+  for (let i = open; i < src.length; i++) {
+    const c = src[i];
+    if (q) { cur += c; if (c === '\\') { cur += src[++i] ?? ''; continue; } if (c === q) q = null; continue; }
+    if (c === '\'' || c === '"' || c === '`') { q = c; cur += c; continue; }
+    if (c === '(' || c === '{' || c === '[' || (c === '<' && depth > 0)) { if (depth++ > 0) cur += c; continue; }
+    if (c === ')' || c === '}' || c === ']' || (c === '>' && depth > 1 && src[i - 1] !== '=')) {
+      if (--depth === 0) { if (cur.trim()) args.push(cur.trim()); return { args, end: i }; }
+      cur += c; continue;
+    }
+    if (c === ',' && depth === 1) { args.push(cur.trim()); cur = ''; continue; }
+    cur += c;
+  }
+  return { args, end: src.length };
+}
+/** The source with // comments removed (not inside strings), so prose never counts as a call. */
+function code(src: string): string {
+  return src.split('\n').map((l) => {
+    let q: string | null = null;
+    for (let i = 0; i < l.length; i++) {
+      const c = l[i];
+      if (q) { if (c === '\\') i++; else if (c === q) q = null; continue; }
+      if (c === '\'' || c === '"' || c === '`') q = c;
+      else if (c === '/' && l[i + 1] === '/') return l.slice(0, i);
+    }
+    return l;
+  }).join('\n');
+}
+async function depsTakers(): Promise<Map<string, Taker>> {
+  const out = new Map<string, Taker>();
+  const walk = async (dir: URL, rel: string) => {
+    for await (const e of Deno.readDir(dir)) {
+      if (e.isDirectory) { await walk(new URL(e.name + '/', dir), rel + e.name + '/'); continue; }
+      if (!e.name.endsWith('.ts') || e.name.endsWith('.test.ts')) continue;
+      const src = code(await Deno.readTextFile(new URL(e.name, dir)));
+      for (const m of src.matchAll(/export\s+(?:async\s+)?function\s+(\w+)\s*(?:<[^(]*>)?\s*\(/g)) {
+        const { args } = argsAt(src, m.index! + m[0].length - 1);
+        const index = args.findIndex((p) => /^\w+\??\s*:\s*ThinkDeps\b/.test(p));
+        if (index >= 0) out.set(rel + e.name + '::' + m[1], { file: rel + e.name, name: m[1], index });
+      }
+    }
+  };
+  await walk(SHARED, '');
+  return out;
+}
+/** local name -> the _shared file and exported name it is bound to, from static and dynamic imports. */
+function importsOf(src: string): Map<string, { file: string; name: string }> {
+  const out = new Map<string, { file: string; name: string }>();
+  const bind = (list: string, file: string, sep: RegExp) => {
+    for (const part of list.split(',').map((x) => x.trim()).filter(Boolean)) {
+      const [orig, local] = part.replace(/^type\s+/, '').split(sep).map((x) => x.trim());
+      out.set(local || orig, { file, name: orig });
+    }
+  };
+  for (const m of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*'\.\.\/_shared\/([^']+)'/g)) bind(m[1], m[2], /\s+as\s+/);
+  for (const m of src.matchAll(/const\s*\{([^}]*)\}\s*=\s*await\s+import\(\s*'\.\.\/_shared\/([^']+)'\s*\)/g)) bind(m[1], m[2], /\s*:\s*/);
+  return out;
+}
+
+Deno.test('resilience_ping hands heartbeatDeps to every deps-taking call: never defaultDeps, never undefined, never left to a default', async () => {
+  const raw = await Deno.readTextFile(new URL('../resilience_ping/index.ts', import.meta.url));
+  const src = code(raw);
+  const lineOf = (i: number) => src.slice(0, i).split('\n').length;
+  const inWorkerAt = [...src.matchAll(/\bdefaultDeps\s*\(/g)].map((m) => lineOf(m.index!));
+  assertEquals(inWorkerAt, [], `resilience_ping calls defaultDeps (gte-small in its own worker) at line(s) ${inWorkerAt.join(', ')}; use heartbeatDeps(admin)`);
+  const takers = await depsTakers();
+  const bound = importsOf(src);
+  const calls: string[] = []; const wrong: string[] = [];
+  for (const [local, at] of bound) {
+    const t = takers.get(at.file + '::' + at.name);
+    if (!t) continue;
+    for (const m of src.matchAll(new RegExp(`(?<![\\w.])${local}\\s*\\(`, 'g'))) {
+      const { args } = argsAt(src, m.index! + m[0].length - 1);
+      const given = args[t.index];
+      calls.push(local);
+      if (!given || !/^heartbeatDeps\(admin\)$/.test(given)) {
+        wrong.push(`line ${lineOf(m.index!)}: ${local}(…) parameter ${t.index + 1} is ${given ?? 'not passed'} (${t.file} ${t.name} falls back to its own deps)`);
+      }
+    }
+  }
+  assertEquals(wrong, [], 'each deps-taking call in resilience_ping must pass heartbeatDeps(admin):\n' + wrong.join('\n'));
+  // The scan must SEE the call sites it guards, or it passes over nothing.
+  for (const must of ['replayHeld', 'drainRoutineJudgements', 'distilLessons', 'liveVoiceIO']) assert(calls.includes(must), `the guard found no ${must} call: ${J(calls)}`);
+  assertEquals(calls.filter((c) => c === 'distilLessons').length, 2, 'the hourly group and the weekly distil both call distilLessons');
+});
+
+// THE DEFAULT ITSELF: distilLessons with no deps (its only caller is the heartbeat) embeds through embed_ml.
+Deno.test('distilLessons without deps embeds each finding outside the worker', async () => {
+  const { distilLessons } = await import('./learning_loop.ts');
+  const a = admin();
+  const rpc = a.rpc;
+  // fn_lesson_unembedded is asked for 8 at most: one learning tick makes at most 8 embed_ml calls.
+  const findings = Array.from({ length: 8 }, (_, i) => ({ id: i + 1, finding: 'lesson finding ' + (i + 1) }));
+  const stub = { ...a, rpc: (fn: string) => fn === 'fn_lesson_unembedded' ? Promise.resolve({ data: findings, error: null })
+    : fn === 'fn_lesson_clusters' ? Promise.resolve({ data: [], error: null }) : rpc(fn) };
+  inWorker.runs = 0; inWorker.sessions = 0;
+  const out = await distilLessons(stub, undefined, 2, { reason: false }) as { ok: boolean };
+  assert(out.ok, J(out));
+  assertEquals(inWorker.runs, 0, `distilLessons' own default ran gte-small ${inWorker.runs} times in the heartbeat's worker`);
+  // ONE AT A TIME (27 Oct 2026, 20:30Z): a concurrent burst of embed_ml calls from the replay, with ai_gateway calls, met a
+  // gateway 503 with no worker and thrown fetches. The learning tick's embeds stay sequential: never more than one in flight.
+  let inFlight = 0, peak = 0, asked = 0;
+  const embed = async () => { asked++; peak = Math.max(peak, ++inFlight); await new Promise((r) => setTimeout(r, 2)); inFlight--; return Array.from({ length: 384 }, () => 0.03); };
+  const seq = await distilLessons(stub, { ...heartbeatDeps(stub), embed }, 2, { reason: false }) as { embedded: number };
+  assertEquals(asked, 8, 'one embed_ml call per unembedded finding, 8 at most a tick');
+  assertEquals(seq.embedded, 8);
+  assertEquals(peak, 1, `the learning tick had ${peak} embed_ml calls in flight at once`);
+});
+
+// THE HELD REPLAY'S SOCIAL COMMENT (reasoned_delivery.ts socialCommentClassified -> marketing_social_store.ts write). The live
+// read space is ml (fn_ml_read_space, read 27 Oct 2026), but the recall fell back to in-process gte-small whenever the multilingual
+// call came back empty. Here the remote embedder answers nothing (no network in the test), which is exactly that fallback.
+Deno.test('the replayed social comment recalls without gte-small in the worker, even when the multilingual call fails', async () => {
+  const { adminStore } = await import('./marketing_social_store.ts');
+  const a = admin();
+  inWorker.runs = 0; inWorker.sessions = 0;
+  const deps = { ...heartbeatDeps(a), llm: model };
+  const store = adminStore(a, (() => Promise.reject(new Error('no network'))) as never, () => Promise.resolve(null), undefined, deps);
+  const ev = { platform: 'instagram', accountId: 'acc', commentId: 'c1', authorId: 'u1', handle: null, text: 'How do I post a request for kitchen cabinets?', at: new Date(), threadId: 'c1' };
+  await store.write(ev as never, 'en', 'question', []).catch(() => '');
+  assert(a.rpcs.includes('fn_ml_read_space') || a.rpcs.includes('fn_judgement_record'), 'the recall ran: ' + J(a.rpcs));
+  assertEquals(inWorker.runs, 0, `the replayed comment's recall ran gte-small ${inWorker.runs} times in the replay's worker`);
+  const delivery = await Deno.readTextFile(new URL('./reasoned_delivery.ts', import.meta.url));
+  assert(/adminStore\([^;]*defaultDeps\(admin, 'marketing', \{ gte: 'remote' \}\)\)/.test(code(delivery)), 'the held replay hands the comment store deps with gte-small in embed_ml');
+});

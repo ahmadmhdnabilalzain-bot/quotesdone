@@ -10,7 +10,7 @@
 // UNDER THE MODEL HOLD think() files the question in the seat's queue with the group as its subject, and
 // replayHeld reasons it when the hold lifts; fn_reason_held_resolve then calls the same apply routine.
 // No lesson is ever written from a word list.
-import { defaultDeps, think, type Seat, type ThinkDeps } from './think.ts';
+import { heartbeatDeps, think, type Seat, type ThinkDeps } from './think.ts';
 
 export type Cluster = { seat: Seat; cluster_key: string; cases: { case_id: number; case_kind: string; situation: string; decision: string | null; outcome: string | null; finalised: boolean; correction: string | null }[] };
 
@@ -27,7 +27,10 @@ type Admin = any;
 // (fn_lesson_clusters_to_reason: minCases or more, reasonLimit a week, never one already asked).
 export type DistilOpts = { reason: boolean; minCases?: number; reasonLimit?: number };
 export async function distilLessons(admin: Admin, deps?: ThinkDeps, limit = 2, opts: DistilOpts = { reason: true }): Promise<unknown> {
-  const d = deps ?? defaultDeps(admin, 'resilience_ping');
+  // The only caller is the resilience_ping heartbeat (hourly group, weekly distil), so a call without deps gets the
+  // heartbeat's: each finding is embedded in embed_ml, never in the worker whose 2 s CPU cap killed the held replay
+  // (27 Oct 2026, it_engineer; the header above defaultDeps in think.ts). Up to 8 findings a tick ran in-process until then.
+  const d = deps ?? heartbeatDeps(admin);
   // Lessons already written get their vector first, so they are retrievable by meaning (gte-small, free).
   let embedded = 0;
   const { data: todo } = await d.rpc('fn_lesson_unembedded', { p_limit: 8 });
