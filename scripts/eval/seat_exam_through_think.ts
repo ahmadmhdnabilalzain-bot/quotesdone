@@ -21,6 +21,7 @@
 //     [--tag <run>] [--exam file.json] [--concurrency 4] [--limit 10] [--out r.json]
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import type { ThinkDeps } from '../../supabase/functions/_shared/think.ts';
+import { pickApiKey } from '../lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const arg = (f: string) => { const i = Deno.args.indexOf(f); return i >= 0 ? Deno.args[i + 1] : null; };
@@ -36,7 +37,7 @@ const home = Deno.env.get('USERPROFILE') ?? Deno.env.get('HOME') ?? '';
 const mgmt = (Deno.env.get('SUPABASE_ACCESS_TOKEN') ?? await Deno.readTextFile(`${home}/.supabase/access-token`).catch(() => '')).trim();
 if (!mgmt) throw new Error('SUPABASE_ACCESS_TOKEN is not set (docs/runbooks/cloud-sessions.md)');
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: `Bearer ${mgmt}` } })).json();
-const service = keys.find((k: { name: string }) => k.name === 'service_role')?.api_key;
+const service = pickApiKey(keys, 'secret');
 if (!service) throw new Error('no service_role key from the management API');
 const admin = createClient(`https://${REF}.supabase.co`, service, { auth: { persistSession: false } });
 // The gateway client (llm.ts) and the run-tag fetch forwarder (e2e_run.ts) read these at import, so they are set first.

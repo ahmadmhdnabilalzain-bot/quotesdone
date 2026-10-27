@@ -21,6 +21,7 @@ import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { mgmtFixture } from '../lib/qd_guard.mjs';
 import { REF } from '../lib/demo_factory.mjs';
 import { readFileSync } from 'node:fs';
+import { pickApiKey } from '../lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 const BASE = `https://${REF}.supabase.co`;
 const KEEP = process.argv.includes('--keep');
@@ -28,8 +29,8 @@ const mgmtToken = supabaseAccessToken();
 
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`,
   { headers: { Authorization: 'Bearer ' + mgmtToken } })).json();
-const ANON = keys.find(k => k.name === 'anon')?.api_key;
-const SERVICE = keys.find(k => k.name === 'service_role')?.api_key;
+const ANON = pickApiKey(keys, 'publishable');
+const SERVICE = pickApiKey(keys, 'secret');
 if (!ANON || !SERVICE) { console.error('FAIL: could not read staging api keys'); process.exit(1); }
 
 const results = [];
