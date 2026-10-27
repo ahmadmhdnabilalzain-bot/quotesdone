@@ -35,20 +35,57 @@ const row = (surface: string, question: string, subject: Record<string, unknown>
 const answered = (choice: string | null, answer = 'They accuse us of taking money: a person is needed.'): ThinkResult =>
   ({ status: 'answered', answer, decision: { choice, fields: {} }, steps: [], context_used: {}, missing_context: [], sources: [], confidence: 0.8 });
 
-Deno.test('WhatsApp, inside the 24-hour window: the contact goes as free text, and the CEO sees it', async () => {
+Deno.test('WhatsApp, inside the 24-hour window: the contact goes as free text in the MODEL\'s words, and the CEO sees it', async () => {
   const { x, log } = io(true);
+  const asked: { q: string; lang: string; o?: Record<string, unknown> }[] = [];
+  x.writeNotice = (q, lang, o) => { asked.push({ q, lang, o }); return Promise.resolve({ reply: 'MODEL: a person will follow up; call +971 50 000 0000', outage: false }); };
   const d = await deliverReasoned(row('wa_inbound.needs_a_person', 'you took my money and vanished', { phone: 'whatsapp:+971500000001' }), answered('needs_a_person'), x);
   assertEquals([d.delivered, d.via], [true, 'whatsapp_text']);
   assertEquals(log[0], 'ceo reasoned:person:7');
-  assertMatch(log[1], /^text whatsapp:\+971500000001 Thank you for your patience.*\+971 50 000 0000/);
+  assertEquals(log[1], 'text whatsapp:+971500000001 MODEL: a person will follow up; call +971 50 000 0000');
+  // the facts are code's and the number must be carried exactly (ruling 1339 / ledger 1348)
+  assertEquals(asked.length, 1);
+  assertEquals([asked[0].q, asked[0].lang, asked[0].o?.must], ['you took my money and vanished', 'en', ['+971 50 000 0000']]);
+  assertMatch(String(asked[0].o?.facts), /A person from our team will follow up.*\+971 50 000 0000.*owner/);
 });
 
-Deno.test('WhatsApp, outside the window: only an approved template is allowed, so a support_reply row is queued', async () => {
+Deno.test('WhatsApp, outside the window: only an approved template is allowed, so a support_reply row is queued (Arabic, model-written)', async () => {
   const { x, log } = io(false);
+  let lang = '';
+  x.writeNotice = (_q, l) => { lang = l; return Promise.resolve({ reply: 'شكرًا لصبركم، سيتابع معكم أحد أعضاء فريقنا: +971 50 000 0000', outage: false }); };
   const d = await deliverReasoned(row('wa_inbound.needs_a_person', 'نصبتوا علي', { phone: '+971500000001' }), answered('needs_a_person'), x);
   assertEquals([d.delivered, d.via], [true, 'whatsapp_template']);
-  assertMatch(log[1], /^template \+971500000001 ar \[نصبتوا علي\] شكرًا لصبركم/);
+  assertEquals(lang, 'ar', 'Arabic in, Arabic out');
+  assertMatch(log[1], /^template \+971500000001 ar \[نصبتوا علي\] شكرًا لصبركم، سيتابع/);
   assertEquals(log.some((l) => l.startsWith('text')), false, 'no free text outside the window');
+});
+
+Deno.test('1339: the person-contact notice in code words goes ONLY when OpenRouter is down', async () => {
+  // down: no call reached a model -> the fixed notice, with the contact
+  const down = io(true);
+  down.x.writeNotice = () => Promise.resolve({ reply: '', outage: true });
+  const d1 = await deliverReasoned(row('wa_inbound.needs_a_person', 'you took my money and vanished', { phone: '+971500000001' }), answered('needs_a_person'), down.x);
+  assertEquals([d1.delivered, d1.via], [true, 'whatsapp_text']);
+  assertMatch(down.log[1], /^text \+971500000001 Thank you for your patience.*\+971 50 000 0000/);
+  // up, every draft refused (a 4xx is never an outage): nothing code-written; the row stays open ('unwritten', not 'none')
+  const up = io(true);
+  up.x.writeNotice = () => Promise.resolve({ reply: '', outage: false });
+  const d2 = await deliverReasoned(row('wa_inbound.needs_a_person', 'you took my money and vanished', { phone: '+971500000001' }), answered('needs_a_person'), up.x);
+  assertEquals([d2.delivered, d2.via], [false, 'unwritten']);
+  assertEquals(up.log.filter((l) => /^(text|template)/.test(l)), []);
+  assertEquals(up.log[0], 'ceo reasoned:person:7', 'the CEO still sees a person is owed');
+  // no model writer at all: it cannot tell up from down, so nothing is sent blind
+  const blind = io(true);
+  delete blind.x.writeNotice;
+  const d3 = await deliverReasoned(row('wa_inbound.needs_a_person', 'you took my money and vanished', { phone: '+971500000001' }), answered('needs_a_person'), blind.x);
+  assertEquals([d3.delivered, d3.via], [false, 'unwritten']);
+  assertEquals(blind.log.filter((l) => /^(text|template)/.test(l)), []);
+  // down with no published line: the holding notice, never a blank number
+  const noLine = io(true);
+  noLine.x.founderContact = () => Promise.resolve(null);
+  noLine.x.writeNotice = (_q, _l, o) => { assertEquals(o?.must, undefined); return Promise.resolve({ reply: '', outage: true }); };
+  await deliverReasoned(row('wa_inbound.needs_a_person', 'you took my money and vanished', { phone: '+971500000001' }), answered('needs_a_person'), noLine.x);
+  assertMatch(noLine.log[1], /^text \+971500000001 Thank you for your patience\. Your question is now with our team/);
 });
 
 Deno.test('reasoned to need no person: nothing is sent again', async () => {

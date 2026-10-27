@@ -20,8 +20,13 @@
 //       scripts/checks/the_intake_reply_is_the_models_unless_openrouter_is_down.test.mjs. Its files are not scanned here.
 //   R4  the fixed notices themselves are gated at their source: holdUnwritten sends only `io.outage ? …`, the quote
 //       review adds QR_HELD_NOTICE only when `outage`, and every holdUnwritten call passes `outage:`.
+//   R5  a reply sentence written inline as a literal (`const text = <cond> ? 'Thank you…' : …`, ARABIC as well) with no
+//       outage gate within the statement or three lines either side. Ledger 1348 extended 1339 to every message a person
+//       reads as a reply; the WhatsApp "needs a person" contact notice (_shared/reasoned_delivery.ts, surface
+//       wa_inbound.needs_a_person) was such a literal, sent whatever the model's state. The file was already scanned, yet
+//       R1/R2 never saw it: no `||` and no registered constant. R5 sees it, and R4 pins its gate at the source.
 // Each rule has a KNOWN-BAD CONTROL below: the exact line main carried before this fix must fail it.
-// prevented by: this file.
+// prevented by: this file, _shared/reasoned_delivery.test.ts (the 1339 person-contact test).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -55,12 +60,17 @@ export function replyFindings(file, src) {
       out.push(`${file}:${i + 1}: R1 code fallback after a model reply, no outage gate: ${l.trim().slice(0, 140)}`);
     }
     // R2: a registered code-written reply used outside its definition, with no gate nearby
-    const uses = /\b(?:QR_HELD_NOTICE|HELD_NOTICE\[|caseConfirm\(|capReply\()/.test(l) || (file === 'wa_inbound/index.ts' && /\btext\s*=\s*msg\.body\b/.test(l));
+    const uses = /\b(?:QR_HELD_NOTICE|HELD_NOTICE\[|caseConfirm\(|capReply\(|personContactNotice\()/.test(l) || (file === 'wa_inbound/index.ts' && /\btext\s*=\s*msg\.body\b/.test(l));
     const compares = /(?:===|!==)\s*\w*HELD_NOTICE|HELD_NOTICE\S*\s*(?:===|!==)|\.includes\(/.test(l);
     // a draft held in a local (`const confirm = caseConfirm(…)`) must meet its gate before the block ends (8 lines)
     const draftLocal = /^\s*const \w+ = /.test(l) && GATE.test(lines.slice(i, i + 9).join('\n'));
     if (uses && !compares && !draftLocal && !GATE.test(near(i))) {
       out.push(`${file}:${i + 1}: R2 a code-written reply is sent with no outage gate: ${l.trim().slice(0, 140)}`);
+    }
+    // R5: a reply sentence written inline as a literal, English or Arabic, with no outage gate in the statement or near it
+    const stmt = /^\s*(?:const|let)\s+(?:text|reply|notice|body|msg|message|answer)\s*=/.test(l) ? lines.slice(i, i + 4).join(' ').split(';')[0] : '';
+    if (stmt && /=\s*(?:[^;=]*\?\s*)?['"`](?:[A-Z]|[\u0600-\u06FF])[^'"`]{30,}/.test(stmt) && !GATE.test(stmt) && !GATE.test(near(i))) {
+      out.push(`${file}:${i + 1}: R5 a reply sentence written in code, no outage gate: ${stmt.trim().replace(/\s+/g, ' ').slice(0, 140)}`);
     }
   });
   return out;
@@ -76,12 +86,21 @@ export function noticeFindings(files) {
   if (/await held\(repo, deps, [^;]*\)\.catch/.test(qr)) out.push('supplier_api/quote_review_flow.ts: R4 a failed/killed review adds the held notice without asking the model first');
   const wa = stripComments(files['wa_inbound/index.ts'] || '').join('\n');
   for (const m of wa.matchAll(/holdUnwritten\(\{([^}]*)/g)) if (!/outage:/.test(m[1])) out.push('wa_inbound/index.ts: R4 holdUnwritten called without outage');
+  // the WhatsApp "needs a person" contact notice (ledger 1348): the model writes it, code's words only on the outage
+  const rd = stripComments(files['_shared/reasoned_delivery.ts'] || '').join('\n');
+  const at = rd.indexOf("if (row.surface === 'wa_inbound.needs_a_person') {");
+  const branch = at < 0 ? '' : rd.slice(at, rd.indexOf('\n  }\n', at));
+  if (at < 0) out.push('_shared/reasoned_delivery.ts: R4 the wa_inbound.needs_a_person branch moved; re-anchor this check');
+  else {
+    if (!/await io\.writeNotice\(/.test(branch)) out.push('_shared/reasoned_delivery.ts: R4 the person-contact notice is not written by the model (writeNotice)');
+    if (!/const text = w\.reply\.trim\(\) \|\| \(w\.outage \? personContactNotice\(lang, contact\) : ''\);/.test(branch)) out.push('_shared/reasoned_delivery.ts: R4 the person-contact notice in code words is not gated on the outage');
+  }
   return out;
 }
 
 const read = (p) => fs.readFileSync(FN(p), 'utf8');
 
-test('1339: no reply path sends a code-written sentence unless OpenRouter is down (R1, R2)', () => {
+test('1339: no reply path sends a code-written sentence unless OpenRouter is down (R1, R2, R5)', () => {
   const found = REPLY_PATHS.flatMap((p) => replyFindings(p, read(p)));
   assert.deepEqual(found, []);
 });
@@ -128,4 +147,28 @@ test('known-bad: an ungated notice at its source is caught', () => {
   const qr = "  const r = await repo.addMessage({ review_id: reviewId, role: SEAT, kind: 'notice', body: QR_HELD_NOTICE });\n    await held(repo, deps, r.id, 'x', null).catch(() => {});\n";
   const f = noticeFindings({ 'supplier_api/quote_review_flow.ts': qr });
   assert.ok(f.some((x) => x.includes('without outage')) && f.some((x) => x.includes('without asking the model')));
+});
+
+// ledger 1348: the WhatsApp "needs a person" contact notice, exactly as main carried it before this fix (0b9e2425e).
+const PERSON_NOTICE_BEFORE = [
+  "  if (row.surface === 'wa_inbound.needs_a_person') {",
+  "    if (choice !== 'needs_a_person') return { delivered: false, via: 'none', detail: 'reasoned: no person is needed; the reply already went' };",
+  "    const contact = (await io.founderContact()) ?? '';",
+  '    const text = isAr(question)',
+  '      ? `شكرًا لصبركم. إن كنتم تفضّلون التحدث مع شخص مباشرةً، يمكنكم الاتصال أو المراسلة على ${contact}، ويجيب عليه مالك الشركة.`',
+  '      : `Thank you for your patience. If you would rather speak to someone directly, call or message ${contact}, which is answered by the owner.`;',
+  '    return await whatsapp(io, phone, question, text);',
+  '  }',
+].join('\n') + '\n';
+test('known-bad (R5, ledger 1348): the needs-a-person contact notice written in code is caught', () => {
+  const f = replyFindings('_shared/reasoned_delivery.ts', PERSON_NOTICE_BEFORE);
+  assert.equal(f.filter((x) => x.includes('R5')).length, 1, f.join('\n'));
+  const r4 = noticeFindings({ '_shared/reasoned_delivery.ts': PERSON_NOTICE_BEFORE });
+  assert.ok(r4.some((x) => x.includes('not written by the model')) && r4.some((x) => x.includes('not gated on the outage')), r4.join('\n'));
+  // an Arabic-only literal is caught as well (the register: it is still code's words)
+  assert.equal(replyFindings('x.ts', "    const reply = 'شكرًا لكم، سيتواصل معكم أحد أعضاء فريقنا على هذا الرقم قريبًا جدًا';\n").filter((x) => x.includes('R5')).length, 1);
+  // ...and the sanctioned forms pass
+  assert.equal(replyFindings('x.ts', "    const text = w.reply.trim() || (w.outage ? personContactNotice(lang, contact) : '');\n").length, 0);
+  assert.equal(replyFindings('x.ts', "    const text = said || (outage ? 'Thank you for your patience, a person will follow up.' : '');\n").length, 0);
+  assert.equal(replyFindings('x.ts', "    const reply = personContactNotice(lang, contact);\n").filter((x) => x.includes('R2')).length, 1, 'the fixed notice used with no gate');
 });
