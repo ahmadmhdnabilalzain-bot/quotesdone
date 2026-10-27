@@ -1,3 +1,0 @@
-Committed, not applied: applied at merge by the release operator, then this note is deleted and the file appended to the END of MANIFEST.txt.
-It redefines fn_writers_without_a_seat (a seat_duty:<duty> job is owned by its duty's active seat) and registers cs_held_question_route under customer_support.
-Until then scripts/checks/every_run_label_and_cron_job_names_its_seat.test.mjs replays it in a rolled-back request. Seat: it_engineer.
