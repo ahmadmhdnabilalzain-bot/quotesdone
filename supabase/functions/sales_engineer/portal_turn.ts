@@ -60,12 +60,37 @@ export interface Record_ { title?: unknown; content?: unknown; corpus?: unknown;
  *   - agent_knowledge (2,078 readable of 2,570): 1,969 are another key's notes (fn_reason_retrieve gives a customer
  *     only '_global'; this includes the 1,627 'cat:' rows, 287 of them author_verified), 1,796 unvalidated or
  *     unsourced; 1 admitted.
- *  A corpus with no rule here is passed through as fn_sales_assist returned it. */
+ *  Independent review, third round (27 Oct 2026), measured on production read-only the same day:
+ *   - sales_knowledge: the customer branch of fn_reason_retrieve also withholds 'kind:company' and a source under
+ *     internal:founder_instruction/ or internal:memory/ (INTERNAL_TO_CUSTOMER). 0 such rows are eligible today; the rule
+ *     now matches so a future row cannot slip through.
+ *   - support_knowledge (722, all readable by fn_sales_assist): 90 tagged audience:internal (88 sourced from founder
+ *     instructions or memory, 30 kind:company), e.g. the activation and win-back playbook. Same rule.
+ *   - kb_chunks: 53 rows of source_kind 'memory' are agent_memory notes (internal working notes, e.g. "KB submissions
+ *     require Knowledge Curator review"). Withheld. The 1,317 'generated' rows are left as the estate's own rule
+ *     (fn_knowledge_library_source_sql) marks every kb_chunks row verified; that is a policy question, not this code's.
+ *   - company_faq (638 rows, all 'approved', the filter fn_sales_assist applies), category_specs (56) and
+ *     category_quote_specs (141) carry customer-facing requirement facts and pass (PASS_THROUGH).
+ *  A corpus with neither a rule nor a PASS_THROUGH entry is WITHHELD: a corpus fn_sales_assist starts returning later
+ *  does not reach a customer until someone decides it may. */
 export interface SafetyRule { table: string; key: string; select: string; safe: (row: Record<string, unknown>) => boolean }
 const VERIFIED_AGENT_STATUS = new Set(['author_verified', 'source_verified', 'validated', 'reviewed', 'approved']);
+/** fn_reason_retrieve's customer-branch exclusion (v_internal = false), for the stores that carry tags and source_ids. */
+export function internalToCustomer(f: Record<string, unknown>): boolean {
+  const tags = (f.tags as string[] | null) ?? [];
+  const src = (f.source_ids as string[] | null) ?? [];
+  return tags.includes('audience:internal') || tags.includes('kind:company')
+    || src.some((x) => String(x).startsWith('internal:founder_instruction/') || String(x).startsWith('internal:memory/'));
+}
+/** Corpora fn_sales_assist returns whose rows are customer-facing as filtered there (measured 27 Oct 2026, above). */
+export const PASS_THROUGH = new Set(['company_faq', 'category_specs', 'category_quote_specs']);
 export const CUSTOMER_SAFE: Record<string, SafetyRule> = {
-  sales_knowledge: { table: 'sales_knowledge', key: 'record_id', select: 'record_id, tags, runtime_index_eligible',
-    safe: (f) => !((f.tags as string[] | null) ?? []).includes('audience:internal') && f.runtime_index_eligible === true },
+  sales_knowledge: { table: 'sales_knowledge', key: 'record_id', select: 'record_id, tags, source_ids, runtime_index_eligible',
+    safe: (f) => !internalToCustomer(f) && f.runtime_index_eligible === true },
+  support_knowledge: { table: 'support_knowledge', key: 'record_id', select: 'record_id, tags, source_ids, runtime_index_eligible',
+    safe: (f) => !internalToCustomer(f) && f.runtime_index_eligible === true },
+  kb_chunks: { table: 'kb_chunks', key: 'id', select: 'id, source_kind',
+    safe: (f) => typeof f.source_kind === 'string' && f.source_kind !== 'memory' },
   ops_knowledge: { table: 'ops_knowledge', key: 'record_id', select: 'record_id, scope_type, dept_key, runtime_eligible, supersession_state, validation_status',
     safe: (f) => f.runtime_eligible === true && f.supersession_state === 'current' && f.dept_key == null
       && ['company', 'external_source', 'category'].includes(String(f.scope_type)) && typeof f.validation_status === 'string' && f.validation_status !== 'draft' },
@@ -90,7 +115,7 @@ export async function customerSafe<T extends Record_>(records: T[], lookup: Flag
       for (const f of data) if (rule.safe(f)) keep.add(corpus + ':' + String(f[rule.key]));
     } catch { /* withheld: nothing unread reaches a customer */ }
   }));
-  return records.filter((x) => !Object.hasOwn(CUSTOMER_SAFE, String(x.corpus)) || keep.has(String(x.corpus) + ':' + String(x.record_id ?? '')));
+  return records.filter((x) => PASS_THROUGH.has(String(x.corpus)) || keep.has(String(x.corpus) + ':' + String(x.record_id ?? '')));
 }
 
 /** At most this many retrieved records, each at most RECORD_CHARS, ride with the message. The old turn sent the plan's

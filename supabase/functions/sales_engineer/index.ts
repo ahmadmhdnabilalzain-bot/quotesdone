@@ -449,10 +449,11 @@ const plain = observe('sales_engineer', async (req) => {
       if (error) return J({ ok: false, error: 'retrieval_failed', detail: error.message }, 503);
       const r = data as Record<string, unknown>;
       // NOTHING INTERNAL OR UNVERIFIED REACHES A CUSTOMER (#1567/#1569, the 7 Oct stating rule; independent review of #1640,
-      // 27 Oct 2026). fn_sales_assist reads sales_knowledge, ops_knowledge and agent_knowledge without the audience and
-      // eligibility rules fn_reason_retrieve applies; a record's text would ride in the facts AND make its figures "known"
-      // to the figure check. portal_turn.customerSafe drops them here, before the call, and fails closed (a failed lookup
-      // withholds that corpus's every record). The rules and the 27 Oct counts are in portal_turn.ts.
+      // 27 Oct 2026). fn_sales_assist reads sales_knowledge, ops_knowledge, agent_knowledge, support_knowledge and kb_chunks
+      // without the audience and eligibility rules fn_reason_retrieve applies; a record's text would ride in the facts AND
+      // make its figures "known" to the figure check. portal_turn.customerSafe drops them here, before the call, and fails
+      // closed (a failed lookup withholds that corpus's every record; a corpus with no rule is withheld unless it is named
+      // in PASS_THROUGH). The rules and the 27 Oct counts are in portal_turn.ts.
       const all = await customerSafe((r.records || []) as Array<Record<string, unknown>>, async (rule, ids) => {
         const x = await admin.from(rule.table).select(rule.select).in(rule.key, ids);
         return { data: x.data as Record<string, unknown>[] | null, error: x.error };

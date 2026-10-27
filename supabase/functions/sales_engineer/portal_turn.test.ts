@@ -128,9 +128,41 @@ Deno.test('customerSafe fails closed: an error, a throw or a missing row withhol
 });
 
 Deno.test('one rule per corpus the portal reads unfiltered, and no lookup when none of them was retrieved', async () => {
-  assertEquals(Object.keys(CUSTOMER_SAFE).sort(), ['agent_knowledge', 'ops_knowledge', 'sales_knowledge']);
+  assertEquals(Object.keys(CUSTOMER_SAFE).sort(), ['agent_knowledge', 'kb_chunks', 'ops_knowledge', 'sales_knowledge', 'support_knowledge']);
   let calls = 0;
   const counting: FlagLookup = (rule, ids) => { calls++; return fake(rule, ids); };
-  assertEquals((await customerSafe([rec('kb_chunks', '7')], counting)).length, 1);
+  assertEquals((await customerSafe([rec('company_faq', '7'), rec('category_specs', 'glass'), rec('category_quote_specs', '3')], counting)).length, 3);
   assertEquals(calls, 0);
+});
+
+// Independent review, third round (27 Oct 2026). Measured on production read-only: support_knowledge had 90 of 722 rows
+// tagged audience:internal (staff playbooks such as activation and win-back, sourced from founder instructions and memory)
+// and kb_chunks 53 rows of agent memory, all reaching the customer prompt unfiltered; sales_knowledge's rule lacked the
+// 'kind:company' and internal-source exclusions of fn_reason_retrieve's customer branch; and any corpus without a rule
+// passed. These fail on b830ee0dc.
+Object.assign(flags, {
+  support_knowledge: [
+    { record_id: 'su-ok', tags: ['area:billing'], source_ids: ['https://example.invalid/terms'], runtime_index_eligible: true },
+    { record_id: 'su-int', tags: ['audience:internal'], source_ids: [], runtime_index_eligible: true },
+    { record_id: 'su-mem', tags: [], source_ids: ['internal:memory/the-only-hard-rules-and-operating-doctrine.md'], runtime_index_eligible: true },
+  ],
+  kb_chunks: [{ id: 70, source_kind: 'standard' }, { id: 71, source_kind: 'memory' }, { id: 72, source_kind: null }],
+});
+flags.sales_knowledge.push(
+  { record_id: 'sk-co', tags: ['kind:company'], source_ids: [], runtime_index_eligible: true },
+  { record_id: 'sk-fi', tags: [], source_ids: ['internal:founder_instruction/898'], runtime_index_eligible: true },
+);
+
+Deno.test('internal support playbooks, agent memory in kb_chunks and internal-sourced sales rows never reach the facts', async () => {
+  const records = [
+    ...['su-ok', 'su-int', 'su-mem'].map((i) => rec('support_knowledge', i)),
+    ...['70', '71', '72'].map((i) => rec('kb_chunks', i)),
+    ...['sk-ok', 'sk-co', 'sk-fi'].map((i) => rec('sales_knowledge', i)),
+  ];
+  assertEquals((await customerSafe(records, fake)).map((x) => x.corpus + ':' + x.record_id),
+    ['support_knowledge:su-ok', 'kb_chunks:70', 'sales_knowledge:sk-ok']);
+});
+
+Deno.test('a corpus with no rule and no pass-through entry is withheld, not trusted', async () => {
+  assertEquals(await customerSafe([rec('ceo_knowledge', 'x'), rec('', 'y'), rec('company_faq', '1')], fake), [rec('company_faq', '1')]);
 });
