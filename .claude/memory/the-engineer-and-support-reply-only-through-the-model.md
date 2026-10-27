@@ -27,12 +27,16 @@ status notice, not a reply).
   `modelOrOutage(r, codeText)` is the one sanctioned door for a code fallback.
 - `aiReply` returns `outage` (true only when no call reached a model), keeps the model's own passing sentences when no
   whole draft passes (`salvage`), and takes `must` (a reference or job number the reply has to carry).
-- WhatsApp's HELD_NOTICE, the supplier quote review's QR_HELD_NOTICE, the intake's HELD_FOR_SPECS and every other
-  intake sentence code composes (interview, replyFromState, the four questions' lead, drawing confirm, CAD ask,
-  held-for-trade) go out only on an outage; otherwise the model writes them (`intakeVoice`) or nothing conversational is
-  sent and the turn is queued for the model.
-- The guard: `scripts/checks/replies_are_written_by_the_model_unless_openrouter_is_down.test.mjs` (13 findings on the
-  pre-fix main, 0 after; known-bad controls inside).
+- WhatsApp's HELD_NOTICE and the supplier quote review's QR_HELD_NOTICE go out only on an outage; otherwise nothing
+  conversational is sent and the turn is queued for the model replay. The WhatsApp case and accepted-offer
+  confirmations are written by the model (`must` carries the reference).
+- The request chat (inquiry_intake) landed with the intake turn clock on PR #1646 (commit a78b6e731): HELD_FOR_SPECS
+  and every sentence code composes (interview, replyFromState, the four questions' lead, drawing confirm, CAD ask,
+  held-for-trade) are written by the model through `slots.ts intakeVoice` on `clock.replyDeadline()`; the draft only
+  `if (llmDown)`.
+- The guards: `scripts/checks/replies_are_written_by_the_model_unless_openrouter_is_down.test.mjs` (WhatsApp, supplier
+  thread, shared writer) and `scripts/checks/the_intake_reply_is_the_models_unless_openrouter_is_down.test.mjs` (the
+  intake, on #1646). Each fails on the pre-fix code and has known-bad controls.
 
 **Notifications stay templated and are not replies**: OTP, receipts, status pages, proactive spec-offer/reminder
 messages, the supplier's submission receipt, the closed-thread notice, the founder's FIGURES, menu list frames that
