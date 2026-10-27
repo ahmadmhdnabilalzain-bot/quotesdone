@@ -127,6 +127,43 @@ test('the supplier English (e-mailed to every matched supplier) is reasoned for 
   assert.match(hold, /context: \{ audience: 'supplier', language: 'en' \}/, 'the supplier copy is reasoned with the internal brief and internal knowledge');
 });
 
+// REVIEW OF #1660, 27 Oct 2026: the first version of this file redefined fn_sales_assist from a body that predated
+// #1644 (a_harness_chat_turn_carries_its_run_tag_and_files_no_gap_or_task.sql), so applying it would have dropped
+// #1644's v_test branch: sandbox and ZZ DEMO traffic would have filed knowledge gaps and opened org_tasks again. The
+// static tests above only asked that the new predicates be present; nothing asked that everything else survive.
+//   1. each body THIS file defines keeps every code line of the body it replaces (the newest definition before it in
+//      apply order), except the one line the fix deliberately rewrites;
+//   2. whatever file defines fn_sales_assist last keeps #1644's test-traffic branch.
+// Mutated once each: this file rebuilt from the pre-#1644 body fails both.
+function definitions(fn) {   // [{ file, body }] in apply order (MANIFEST, then pending), comments removed
+  const re = new RegExp(`create or replace function public\\.${fn}\\(`, 'i');
+  return [...manifestWithPending()].filter((f) => existsSync(join(ROOT, f)) && re.test(R(f))).map((file) => {
+    const src = R(file); const from = src.search(re);
+    const tag = src.slice(from).match(/\bas\s+(\$[a-z_]*\$)/i)[1];
+    return { file, body: code(src.slice(from).split(tag)[1] || '') };
+  });
+}
+const codeLines = (body) => body.split('\n').map((l) => l.trim()).filter(Boolean);
+// the lines the ruling-1338 fix rewrites on purpose (everything else in a replaced body must survive)
+const REWRITTEN = new Set(['where (case when p_public then c.is_public else true end)']);
+test('every body this file defines keeps every code line of the body it replaces (review of #1660)', () => {
+  for (const fn of ['fn_support_corpus_search', 'fn_sales_assist', 'fn_reason_retrieve', 'fn_reason_retrieve_ml']) {
+    const defs = definitions(fn);
+    const at = defs.findIndex((d) => d.file === FILE);
+    assert.ok(at > 0, `${fn}: ${FILE} is not a later definition of an existing routine`);
+    const mine = new Set(codeLines(defs[at].body));
+    const lost = codeLines(defs[at - 1].body).filter((l) => !mine.has(l) && !REWRITTEN.has(l));
+    assert.deepEqual(lost, [], `${fn}: ${FILE} drops lines of ${defs[at - 1].file}, the body it replaces`);
+  }
+});
+test('the canonical fn_sales_assist keeps #1644: test traffic files no gap and opens no task', () => {
+  const { owner, body } = canonical('fn_sales_assist');
+  assert.match(body, /v_test\s+boolean := public\.fn_e2e_run_tag_current\(\) is not null or public\.fn_seat_work_is_demo\(p_text, null\);/, `${owner}: the v_test declaration is gone`);
+  assert.match(body, /\bif v_test then\b/, `${owner}: the test-traffic branch is gone`);
+  assert.match(body, /'gap_recorded', cardinality\(v_cited\) = 0 and not v_test,/, `${owner}: gap_recorded counts test traffic`);
+  assert.match(body, /'test_traffic', v_test,/, `${owner}: test_traffic is no longer reported`);
+});
+
 test('the change is pending until the release applies it, and the probe is never applied', () => {
   const notes = pendingNotes();
   const inManifest = R('scripts/sql/MANIFEST.txt').split(/\r?\n/).map((l) => l.trim()).includes(FILE);
