@@ -544,14 +544,16 @@ async function handleInbound(req: Request): Promise<Response> {
         return TW(200);
       }
     }
-    // ---- A SUPPLIER LEAD THAT WRITES TO US IS AN OPT-IN, AND AN INVITED ONE REACHES THE SALES ENGINEER ----
-    // (marketing, 27 Oct 2026, ruling 1184.) Meta lets a business send a template only to a person who opted in, and a
-    // person writing to us first is that opt-in: fn_marketing_files_wa_invite_reply records it for every lead on this
-    // number (supplier_whatsapp_optin), and when the lead was invited on any channel and has no company page yet it
-    // files the reply as 'invite.reply' marketing -> sales_engineer, exactly as an email reply does. It never ends the
-    // turn: the supplier still gets the normal answer. A failure is logged and the turn goes on.
+    // ---- A SUPPLIER LEAD'S OPT-IN IS THE BUTTON OR A YES TO THE CONSENT QUESTION, NEVER JUST A MESSAGE ----
+    // (marketing, 27 Oct 2026, rulings 1184 and 1341.) Meta lets a business send a template only to a person who opted
+    // in. Founder ledger 1341: an opt-in counts only when the supplier taps "Set up my page" (ButtonPayload
+    // 'supplier_invite_yes') or answers yes to a message that asked the consent question; "who is this?" is not one.
+    // fn_marketing_files_wa_invite_reply decides with fn_wa_optin_rule (the one shared check) and records an opt-in only
+    // then. ButtonPayload is passed as Twilio sent it, so a typed "Set up my page" (no payload) is not a tap. When the
+    // lead was invited on any channel and has no company page yet the message is still filed as 'invite.reply'
+    // marketing -> sales_engineer. It never ends the turn: the supplier still gets the normal answer.
     if (!isStop(Body)) {
-      const { error: repErr } = await admin.rpc('fn_marketing_files_wa_invite_reply', { p_from: From, p_body: Body.slice(0, 4000) });
+      const { error: repErr } = await admin.rpc('fn_marketing_files_wa_invite_reply', { p_from: From, p_body: Body.slice(0, 4000), p_button_payload: ButtonPayload || null });
       if (repErr) await logRun('error', { invite_reply: 0 }, 'a WhatsApp message from a possible supplier lead was not filed: ' + repErr.message + '; the turn continues.');
     }
 

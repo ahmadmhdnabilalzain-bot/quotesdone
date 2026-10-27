@@ -6,7 +6,9 @@
 //     Dubai weekday window, or for a lead with no opt-in; or a lead / number is invited twice (production replay,
 //     rolled back, DEMO LEADS ONLY: p_demo_only = true selects nothing but ZZ DEMO / example.invalid rows);
 //   - a LOW quality reading does not brake and cancel what is queued;
-//   - a WhatsApp message from an invited lead is not recorded as an opt-in and handed to the sales engineer.
+//   - an opt-in is recorded from anything but the "Set up my page" button or a yes to the consent question (founder
+//     ledger 1341): "who is this?" never opts in, the button does, a yes (English or Arabic) to the consent question
+//     does, a yes to anything else does not, and a direct insert that bypasses the writers is refused.
 //   node --test scripts/checks/the_supplier_whatsapp_invitation_waits_for_opt_in_and_both_switches.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -47,12 +49,14 @@ test('one queue signature, every routine revoked, both new tables service-role o
   assert.match(sqlText, /drop function if exists public\.fn_wa_supplier_invite_queue\(int, timestamptz\);/);
   for (const sig of ['fn_wa_supplier_invite_brake(text, jsonb)', 'fn_wa_sender_quality_record(text, text, text, jsonb)',
     'fn_wa_supplier_invite_gate(timestamptz)', 'fn_wa_supplier_invite_queue(int, timestamptz, boolean)',
-    'fn_marketing_wa_supplier_invites()', 'fn_supplier_whatsapp_optin_record(bigint, text, text, text)',
-    'fn_marketing_files_wa_invite_reply(text, text)', 'fn_marketing_supplier_outreach_targets(int)',
+    'fn_marketing_wa_supplier_invites()', 'fn_supplier_whatsapp_optin_record(bigint, text, text, text, text)',
+    'fn_marketing_files_wa_invite_reply(text, text, text)', 'fn_wa_consent_question()', 'fn_wa_is_affirmative(text)',
+    'fn_wa_optin_rule(text, text, text, text)', 'fn_supplier_whatsapp_optin_obeys_the_rule()',
+    'fn_supplier_whatsapp_consent_ask_record(text, text, text)', 'fn_marketing_supplier_outreach_targets(int)',
     'fn_marketing_manual_outreach_targets()']) {
     assert.ok(sqlText.includes(`revoke execute on function public.${sig} from public, anon, authenticated;`), sig);
   }
-  for (const t of ['supplier_whatsapp_optin', 'wa_sender_quality_reading']) {
+  for (const t of ['supplier_whatsapp_optin', 'wa_sender_quality_reading', 'supplier_whatsapp_consent_ask']) {
     assert.ok(sqlText.includes(`alter table public.${t} enable row level security;`), t);
     assert.ok(sqlText.includes(`revoke all on public.${t} from anon, authenticated;`), t);
   }
@@ -64,8 +68,9 @@ test('one queue signature, every routine revoked, both new tables service-role o
 const DEMO = (n, opt = true, trade = 'painting') => `
   insert into public.leads (company_name, email, phone_e164, sector)
   values ('ZZ DEMO wa invite ${n}', 'zz-wa-${n}@example.invalid', '+97150000007${n}', '${trade}');
-  ${opt ? `insert into public.supplier_whatsapp_optin (lead_id, phone, source, evidence)
-           select id, phone_e164, 'sales_engineer', 'ZZ DEMO probe' from public.leads where company_name = 'ZZ DEMO wa invite ${n}';` : ''}`;
+  ${opt ? `insert into public.supplier_whatsapp_optin (lead_id, phone, source, consent_question, consent_answer, evidence)
+           select id, phone_e164, 'call_consent_reply', public.fn_wa_consent_question(), 'yes', 'ZZ DEMO probe'
+             from public.leads where company_name = 'ZZ DEMO wa invite ${n}';` : ''}`;
 const ON = `update public.app_secrets set value = 'true' where key in ('wa_supplier_invite_golive', 'invite_enabled');
   update public.it_watch_finding set status = 'resolved' where detector_key = 'deliverability:supplier_invite_wa';
   insert into public.wa_sender_quality_reading (rating, status, ok) values ('HIGH', 'ONLINE', true);`;
@@ -129,8 +134,9 @@ test('each missing condition holds; all on queues the opted-in demo lead once, w
 // the case the queue handled. An opt-in is a (lead, number) pair; this one names ANOTHER number.
 test('the invitation goes to the number that opted in, never to a lead number nobody opted in from', { skip: SKIP }, async () => {
   const [r] = await replaySql(sqlText + DEMO(6, false) + ON + `
-    insert into public.supplier_whatsapp_optin (lead_id, phone, source, evidence)
-    select id, '+971500000099', 'sales_engineer', 'ZZ DEMO probe: asked for WhatsApp on another number'
+    insert into public.supplier_whatsapp_optin (lead_id, phone, source, consent_question, consent_answer, evidence)
+    select id, '+971500000099', 'email_consent_reply', public.fn_wa_consent_question(), 'yes please',
+           'ZZ DEMO probe: said yes to WhatsApp on another number'
       from public.leads where company_name = 'ZZ DEMO wa invite 6';
     create temp table _a as select ${q(TUE_NOON)} first;
     select (select first from _a) first,
@@ -197,19 +203,117 @@ test('the manual outreach list names uninvited, real, unsuppressed suppliers wit
   assert.equal(Number(r.queued), 0);
 });
 
-test('a WhatsApp message from an invited lead is an opt-in and reaches the sales engineer', { skip: SKIP }, async () => {
+// ---- WHAT COUNTS AS AN OPT-IN (founder ledger 1341, 27 Oct 2026): "count an opt-in only when the supplier taps 'Set up
+// my page' or answers yes to a question that asks for consent, not from any message a supplier sends" -- "approved".
+const optins = (n) => `(select count(*) from public.supplier_whatsapp_optin o join public.leads l on l.id = o.lead_id
+  where l.company_name = 'ZZ DEMO wa invite ${n}')`;
+const optinSource = (n) => `(select string_agg(o.source, ',') from public.supplier_whatsapp_optin o join public.leads l on l.id = o.lead_id
+  where l.company_name = 'ZZ DEMO wa invite ${n}')`;
+const ASK = (n) => `public.fn_supplier_whatsapp_consent_ask_record('whatsapp:+97150000007${n}', 'Thanks for your message. ' || public.fn_wa_consent_question(), 'sales_engineer')`;
+
+test('wa_inbound hands the button payload to the one rule, and nothing else in it records an opt-in', () => {
+  const src = read('supabase/functions/wa_inbound/index.ts');
+  assert.match(src, /rpc\('fn_marketing_files_wa_invite_reply', \{ p_from: From, p_body: Body\.slice\(0, 4000\), p_button_payload: ButtonPayload \|\| null \}\)/);
+  assert.doesNotMatch(src, /from\('supplier_whatsapp_optin'\)\.(insert|upsert)/, 'wa_inbound writes opt-ins only through the rule');
+  assert.ok(gateTs.includes("{ id: 'supplier_invite_yes', title: 'Set up my page' }"), 'the button id the SQL rule matches');
+  assert.ok(sqlText.includes("= 'supplier_invite_yes' then"), 'the SQL rule matches the same payload');
+  assert.match(sqlText, /create trigger a00_supplier_whatsapp_optin_obeys_the_rule before insert or update on public\.supplier_whatsapp_optin/);
+});
+
+test('"who is this?" never opts in, even with a consent question open, and a later yes to something else does not either', { skip: SKIP }, async () => {
   const [r] = await replaySql(sqlText + DEMO(4, false) + `
     update public.leads set invited_at = now(), invite_status = 'sent' where company_name = 'ZZ DEMO wa invite 4';
     select set_config('qd.probe_files_demo_handoff', 'on', true);
-    create temp table _f as select public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000074', 'We do painting and gypsum') f;
-    select (select f from _f)::text f,
-           (select count(*) from public.supplier_whatsapp_optin o join public.leads l on l.id = o.lead_id
-             where l.company_name = 'ZZ DEMO wa invite 4' and o.source = 'inbound_whatsapp') optins,
-           (select a.agent || '|' || (a.detail->>'type') || '|' || (a.detail->>'channel') from public.agent_actions a
+    create temp table _f as select public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000074', 'Hi, who is this?', null) f;
+    create temp table _n0 as select ${optins(4)} n;
+    create temp table _a as select ${ASK(4)} a;
+    create temp table _g as select public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000074', 'who is this?', null) g;
+    create temp table _h as select public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000074', 'yes', null) h;
+    select (select f from _f)::text f, (select n from _n0) before_ask, (select (a->>'ok')::boolean from _a) ask_ok,
+           ${optins(4)} after_all,
+           (select count(*) from public.supplier_whatsapp_consent_ask where phone = '+971500000074' and answer = 'who is this?') closed_by,
+           (select (a.detail->>'opted_in') || '|' || (a.detail->>'type') from public.agent_actions a
              where a.id = ((select f from _f)->>'handoff_id')::bigint) handoff;`,
-  { label: 'wa invite reply', rows: true });
+  { label: 'who is this', rows: true });
   const f = JSON.parse(r.f);
-  assert.equal(f.due, true, r.f);
-  assert.equal(Number(r.optins), 1);
-  assert.equal(r.handoff, 'sales_engineer|invite.reply|whatsapp');
+  assert.equal(Number(r.before_ask), 0, '"who is this?" recorded an opt-in: ' + r.f);
+  assert.equal(r.ask_ok, true);
+  assert.equal(Number(r.closed_by), 1, 'the first reply after the ask closes it');
+  assert.equal(Number(r.after_all), 0, 'a yes after the consent question was already answered by "who is this?" counted');
+  assert.equal(f.due, true, 'the reply still reaches the sales engineer: ' + r.f);
+  assert.equal(r.handoff, 'false|invite.reply', 'the handoff says it is not an opt-in');
 });
+
+test('the "Set up my page" button opts in; the same words typed, or another button, do not', { skip: SKIP }, async () => {
+  const [r] = await replaySql(sqlText + DEMO(7, false) + DEMO(8, false) + `
+    create temp table _x as select
+      public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000077', 'Set up my page', 'supplier_invite_yes') tap,
+      public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000078', 'Set up my page', null) typed,
+      public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000078', 'Main menu', 'menu_main') other;
+    select ${optins(7)} tapped, ${optinSource(7)} src,
+           (select button_payload from public.supplier_whatsapp_optin o join public.leads l on l.id = o.lead_id
+             where l.company_name = 'ZZ DEMO wa invite 7') payload,
+           ${optins(8)} typed_or_other;`,
+  { label: 'button opt-in', rows: true });
+  assert.equal(Number(r.tapped), 1, 'the button did not opt in');
+  assert.equal(r.src, 'wa_button'); assert.equal(r.payload, 'supplier_invite_yes');
+  assert.equal(Number(r.typed_or_other), 0, 'typed words or another button recorded an opt-in');
+});
+
+test('a yes to the consent question opts in, in English and in Arabic; a yes with no question asked does not', { skip: SKIP }, async () => {
+  const [r] = await replaySql(sqlText + DEMO(9, false) + DEMO(3, false) + DEMO(1, false) + `
+    create temp table _a as select ${ASK(9)} a9, ${ASK(3)} a3;
+    create temp table _x as select
+      public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000079', 'Yes please', null) en,
+      public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000073', 'نعم، موافق', null) ar,
+      public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000071', 'yes', null) unasked;
+    select ${optins(9)} en, ${optinSource(9)} en_src, ${optins(3)} ar, ${optins(1)} unasked,
+           (select consent_answer from public.supplier_whatsapp_optin o join public.leads l on l.id = o.lead_id
+             where l.company_name = 'ZZ DEMO wa invite 3') ar_answer;`,
+  { label: 'consent yes', rows: true });
+  assert.equal(Number(r.en), 1, 'an English yes to the consent question did not opt in');
+  assert.equal(r.en_src, 'wa_consent_reply');
+  assert.equal(Number(r.ar), 1, 'an Arabic yes to the consent question did not opt in');
+  assert.equal(r.ar_answer, 'نعم، موافق');
+  assert.equal(Number(r.unasked), 0, 'a yes with no consent question asked recorded an opt-in');
+});
+
+test('the sales engineer\'s writer and a direct insert obey the same rule', { skip: SKIP }, async () => {
+  const [r] = await replaySql(sqlText + DEMO(2, false) + `
+    create temp table _x as select
+      public.fn_supplier_whatsapp_optin_record((select id from public.leads where company_name = 'ZZ DEMO wa invite 2'),
+        'email_consent_reply', 'Can we chat on WhatsApp?', 'yes') wrong_q,
+      public.fn_supplier_whatsapp_optin_record((select id from public.leads where company_name = 'ZZ DEMO wa invite 2'),
+        'email_consent_reply', public.fn_wa_consent_question(), 'maybe later') not_yes;
+    create temp table _y as select public.fn_supplier_whatsapp_optin_record((select id from public.leads where company_name = 'ZZ DEMO wa invite 2'),
+        'call_consent_reply', public.fn_wa_consent_question(), 'Sure') ok;
+    create temp table _d (refused text);
+    do $d$ begin
+      insert into public.supplier_whatsapp_optin (lead_id, phone, source, evidence)
+      select id, '+971500000098', 'wa_consent_reply', 'ZZ DEMO probe: no question, no answer' from public.leads where company_name = 'ZZ DEMO wa invite 2';
+      insert into _d values ('NOT REFUSED');
+    exception when check_violation then insert into _d values (sqlerrm); end $d$;
+    select (select wrong_q->>'ok' from _x) wrong_q, (select not_yes->>'ok' from _x) not_yes, (select ok->>'ok' from _y) ok,
+           (select refused from _d) refused, ${optins(2)} n;`,
+  { label: 'writers obey the rule', rows: true });
+  assert.equal(r.wrong_q, 'false', 'a yes to a question that is not the consent question was recorded');
+  assert.equal(r.not_yes, 'false', '"maybe later" was recorded as consent');
+  assert.equal(r.ok, 'true');
+  assert.match(r.refused, /refused \(ledger 1341\)/, 'a direct insert bypassing the writers was accepted: ' + r.refused);
+  assert.equal(Number(r.n), 1);
+});
+
+test('what reads as a yes: English and Arabic yes words, never a question or a sentence', { skip: SKIP }, async () => {
+  const YES = ['yes', 'Yes!', 'YES please', 'yeah', 'ok', 'Okay, thanks', 'sure', 'Of course', 'go ahead', 'I agree', '👍',
+    'نعم', 'أكيد', 'تمام', 'موافق', 'موافقة', 'ايوه', 'طبعاً', 'نعم شكرا'];
+  const NO = ['who is this?', 'Hi, who is this', 'what is quotesdone', 'yes but who are you', 'ok?', 'no', 'No thanks',
+    'not now', 'maybe later', 'STOP', 'hello', 'Set up my page', 'من أنت؟', 'لا', 'ايه', 'مين معي', 'لا شكرا', '', '123'];
+  const arr = (a) => `array[${a.map((s) => `'${s.replace(/'/g, "''")}'`).join(', ')}]::text[]`;
+  const [r] = await replaySql(sqlText + `
+    select (select coalesce(string_agg(x, ' | '), '') from unnest(${arr(YES)}) x where not public.fn_wa_is_affirmative(x)) missed,
+           (select coalesce(string_agg(x, ' | '), '') from unnest(${arr(NO)}) x where public.fn_wa_is_affirmative(x)) wrong;`,
+  { label: 'affirmatives', rows: true });
+  assert.equal(r.missed, '', 'a yes not read as a yes');
+  assert.equal(r.wrong, '', 'read as a yes');
+});
+

@@ -71,8 +71,10 @@ export function pickSender(list: unknown, from: string): { sid: string; status: 
 // promotional under Meta's rules, so it is never dressed up as UTILITY. English only (suppliers, 28 Sep). No link
 // (ruling 1301): the supplier replies, or registers at the bare domain, exactly as the approved email says.
 // {{1}} is the trade label and sits mid-sentence (Meta refuses a variable at either end). Two quick-reply buttons:
-// "Set up my page" (a reply, handed to the sales engineer by fn_marketing_files_wa_invite_reply) and "Stop" (an
-// opt-out: isStop -> fn_wa_supplier_invite_opt_out). The body still names STOP for a client that hides buttons.
+// "Set up my page" (payload supplier_invite_yes: an opt-in under ledger 1341, recorded by fn_marketing_files_wa_invite_reply
+// through fn_wa_optin_rule, and handed to the sales engineer) and "Stop" (an opt-out: isStop ->
+// fn_wa_supplier_invite_opt_out). The body still names STOP for a client that hides buttons. The id below is the
+// payload the SQL rule matches; change both together.
 export const WA_INVITE_TEMPLATE_EN =
   'Hello from QuotesDone. We connect companies in the UAE with qualified suppliers: each request for quotation reaches ' +
   'only the suppliers registered for that exact trade. We are now onboarding {{1}} suppliers ahead of our buyer launch. ' +

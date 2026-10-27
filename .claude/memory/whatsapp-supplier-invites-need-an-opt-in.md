@@ -18,9 +18,9 @@ quality rating, cuts its messaging limit and can cost the one number customer su
 Ruling 1184 says "nothing that risks bans".
 
 **How to apply:** `fn_wa_supplier_invite_queue` selects only leads with a row in `supplier_whatsapp_optin`. Those rows
-come from a lead writing to us first (wa_inbound), from an email reply or a call (the sales engineer, through
-`fn_supplier_whatsapp_optin_record`), or from the web form. Never relax this filter to make the pool bigger. To grow the
-pool, collect opt-ins: click-to-WhatsApp, lead forms with a consent line, or the email reply. The invitation also needs
+come only from the "Set up my page" button or a yes to the consent question, on WhatsApp, by email or on a call. A
+message the supplier sends is not an opt-in: see [[whatsapp-opt-in-is-the-button-or-a-yes-to-consent]] (ledger 1341).
+Never relax this filter to make the pool bigger. To grow the pool, ask the consent question. The invitation also needs
 `wa_supplier_invite_golive` **and** `invite_enabled`, a sender reading HIGH and ONLINE, and no open
 `deliverability:supplier_invite_wa` brake. Details are in docs/marketing/supplier_channels_beyond_email.md.
 

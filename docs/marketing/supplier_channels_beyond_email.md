@@ -44,14 +44,29 @@ lead with an opt-in on record. Today that pool is 0, and it fills from the opt-i
 
 The hourly seat duty `marketing.whatsapp_supplier_invites` calls the queue. While either switch is off it writes nothing.
 
-**Where opt-ins come from.** No cold messages are sent to collect them.
-1. **The supplier writes to us first.** `wa_inbound` records an `inbound_whatsapp` opt-in for every lead on that number.
-   If the lead was already invited and has no company page, the message becomes an `invite.reply` handoff to the sales
-   engineer, the same conversation an email reply starts.
-2. **An email reply or a call that asks for WhatsApp.** The sales engineer records it with
-   `fn_supplier_whatsapp_optin_record(lead_id, 'email_reply' | 'sales_engineer', '<evidence>')`.
-3. **The website** (`web_form`). This route is not built yet. It needs a "Become a supplier: message us on WhatsApp"
-   click-to-chat on the supplier pages, which is route 1 in practice.
+**What counts as an opt-in (founder ledger 1341, 27 Oct 2026).** Recommended to him: "count an opt-in only when the
+supplier taps 'Set up my page' or answers yes to a question that asks for consent, not from any message a supplier
+sends". His reply: "approved. dont ask me". So a supplier writing to us, a "who is this?", or a "yes" to anything other
+than the consent question is **not** an opt-in. One routine, `fn_wa_optin_rule`, decides for every writer, and a
+trigger on `supplier_whatsapp_optin` refuses any row it does not count, including a direct insert.
+
+1. **The "Set up my page" button.** Twilio sends `ButtonPayload = 'supplier_invite_yes'`; `wa_inbound` passes it to
+   `fn_marketing_files_wa_invite_reply`, which records a `wa_button` opt-in. The same words typed are not a tap.
+2. **A yes to the consent question on WhatsApp.** The consent question is `fn_wa_consent_question()`, word for word:
+   > May QuotesDone send you WhatsApp messages about requests for quotation in your trade? Reply YES to agree, or STOP
+   > if you do not want them.
+
+   The seat that sends it (inside the 24-hour window the supplier's own message opens) records the ask with
+   `fn_supplier_whatsapp_consent_ask_record(phone, text_sent, seat)`. The **first** reply after the ask closes it. If
+   that reply is a yes (`fn_wa_is_affirmative`: English or Arabic yes words plus courtesy words, no question mark,
+   nothing else; code only, no model), a `wa_consent_reply` opt-in is recorded with the question and the answer.
+3. **A yes to the consent question by email or on a call.** The sales engineer records it with
+   `fn_supplier_whatsapp_optin_record(lead_id, 'email_consent_reply' | 'call_consent_reply', question_asked, answer)`.
+   It is refused unless the question carries the consent question and the answer is a yes.
+
+Any WhatsApp message from an invited lead with no company page still becomes an `invite.reply` handoff to the sales
+engineer (`opted_in` says whether it counted), the same conversation an email reply starts. No cold messages are sent
+to collect opt-ins.
 
 **The template (draft, not submitted to Meta).** It is MARKETING category, English only, with no link, one variable,
 and two quick-reply buttons: **Set up my page** and **Stop**. Its source is

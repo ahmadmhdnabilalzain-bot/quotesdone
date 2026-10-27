@@ -11,6 +11,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [The founder's user-global CLAUDE.md](user-global-CLAUDE.md) — copy of ~/.claude/CLAUDE.md: skills-and-plugins-first, every session
 - [Supplier campaign sends FROM supplier@quotesdone.com](supplier-campaign-sends-from-supplier-at-quotesdone-com.md) — repeated 19 Oct; never invite@hello
 - [WhatsApp supplier invites need an opt-in](whatsapp-supplier-invites-need-an-opt-in.md) — 27 Oct: Meta policy; scraped mobiles are not opt-ins (0 of 2,863); both switches + HIGH sender + brake; #1511 WAS merged
+- [WhatsApp opt-in = the button or a yes to consent (27 Oct)](whatsapp-opt-in-is-the-button-or-a-yes-to-consent.md) — ledger 1341: "Set up my page" or a yes to fn_wa_consent_question; a message they send is never one; one rule, fn_wa_optin_rule
 - [EVERY founder message is an instruction](every-founder-message-is-an-instruction.md) — 22 Sep, instr 644: record each ask in founder_instruction at once; reconcile before any "nothing pending"
 - [US law out of scope](us-law-out-of-scope-for-uae.md) — UAE/GCC/international only
 - [Autonomy and staging rules](quotesdone-autonomy-and-staging-rules.md) — fix defects without asking
