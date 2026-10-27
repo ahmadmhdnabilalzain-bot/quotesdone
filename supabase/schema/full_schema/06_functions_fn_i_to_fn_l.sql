@@ -7396,6 +7396,8 @@ AS $function$
 declare
   h public.agent_actions; f public.it_engineer_finding; v_window interval; v_rep jsonb; v_cleared boolean;
   n_closed int := 0; n_esc int := 0; n_wait int := 0; n_playbook int := 0; v_class text; n_reports int := 0;
+  -- 27 Oct 2026: the walk stops 1 s after it began; the rest waits for the next tick (see the file header)
+  v_until timestamptz := clock_timestamp() + interval '1 second'; n_left int := 0;
 begin
   select max(reply_within) into v_window from public.seat_handoff_kind where type = 'it.finding' and from_seat = 'it_engineer';
   -- Review finding, 18 Sep 2026: with no such row v_window is null, `now() > created_at + null` is
@@ -7418,6 +7420,7 @@ begin
   for h in select * from public.agent_actions
             where kind = 'handoff' and detail->>'type' = 'it.finding' and detail->>'from' = 'it_engineer'
               and status in ('pending', 'failed') order by id loop
+    if clock_timestamp() > v_until then n_left := n_left + 1; continue; end if;
     select * into f from public.it_engineer_finding where issue_key = h.detail->>'issue_key';
     -- The occurrence this loop tracked is over when the finding is closed, or when it has since
     -- closed and reopened (a later started_at is a different occurrence with its own loop).
@@ -7490,7 +7493,7 @@ begin
     end if;
   end loop;
   return jsonb_build_object('closed', n_closed, 'escalated', n_esc, 'waiting', n_wait, 'learned_from_playbook', n_playbook,
-                            'reports_completed', n_reports);
+                            'reports_completed', n_reports, 'left_for_next_tick', n_left);
 end $function$
 
 
