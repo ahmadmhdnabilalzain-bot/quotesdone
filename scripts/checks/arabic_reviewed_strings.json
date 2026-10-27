@@ -3284,7 +3284,9 @@
   "fc644b0eb14a",
   "fe7e984490db",
   "fed9f6096feb",
-  "ff0cc7c9de41"
+  "ff0cc7c9de41",
+  "89c6b2f490e6",
+  "dc3ee77b163f"
  ],
  "src/components/me/quoteExpiry.ts": [
   "124fb2c05c50",
@@ -4426,16 +4428,6 @@
   "a2a959ec5db4",
   "ac3e20e6edf7"
  ],
- "src/components/portal/supplier/ProductIntelligence.tsx": [
-  "128d08e1bad8",
-  "31227f9c7009",
-  "3db290931c32",
-  "4d1eab26a9cd",
-  "78cce824937c",
-  "b3e2dbd91ce2",
-  "de0b2ea1357b",
-  "e646d1bf3f40"
- ],
  "src/components/portal/supplier/QuotationsTab.tsx": [
   "1a4c027ad6a0",
   "28d650e3603b",
@@ -4998,18 +4990,6 @@
   "702ae240425b",
   "b4acfe583e3e"
  ],
- "src/components/portal/supplier/SupplierCatalogUpload.tsx": [
-  "410891bd6f08",
-  "4ec6ed2981b8",
-  "5e44d9452342",
-  "739c1a5cc8c3",
-  "7d42323153da",
-  "7fd69b7c6643",
-  "b6d49d8ad10a",
-  "c6465d24ce9a",
-  "d3319643634a",
-  "f4af52f37af8"
- ],
  "src/components/portal/supplier/SupplierCertifications.tsx": [
   "19433cc9da86",
   "33c12fd68e02",
@@ -5152,21 +5132,6 @@
   "d3a3773f4324",
   "da77c67d5132",
   "fe2f85d333ab"
- ],
- "src/components/portal/supplier/SupplierTwin.tsx": [
-  "0e93a7338c87",
-  "29eadb4ef1a3",
-  "3fd31fd57e38",
-  "602fdebde626",
-  "6448f83829f5",
-  "7e74cdc76c01",
-  "88266af72e38",
-  "9fa76f1e2582",
-  "b08f85b35a54",
-  "bbf58b1fdf49",
-  "ccc9ddf8c368",
-  "e522690ad19c",
-  "f5d7c6969098"
  ],
  "src/components/portal/supplier/workspaceCopy.ts": [
   "056f9d47a1bc",
@@ -6222,7 +6187,8 @@
   "e13e073561a2",
   "f5175202b419",
   "fe9667777dfb",
-  "cc83c7932429"
+  "cc83c7932429",
+  "2afa9b47ecd8"
  ],
  "supabase/functions/customer_documents/index.ts": [
   "45f92e2a0325"
@@ -6969,5 +6935,17 @@
   "25831966a970",
   "71425d07f632",
   "735f3f9ff862"
+ ],
+ "scripts/sql/a_held_arabic_comparison_report_is_sent_to_the_customer_once_its_lines_exist.sql": [
+  "62f6ef32f259"
+ ],
+ "supabase/functions/customer_api/compare_arabic.ts": [
+  "1f59eb7d1f70",
+  "352101993da8",
+  "9b60908584eb",
+  "a0d0bbed08ae",
+  "a3d4eca833be",
+  "cfb5e8d946af",
+  "d0d0d99474e2"
  ]
 }
