@@ -9,14 +9,19 @@
 -- (a_verified_supplier_is_told_what_his_portfolio_is_missing), "no it.finding handoff opened"
 -- (the_accountant_closes_every_loop_it_opens) and more. A probe that cannot see the loop cannot catch it breaking.
 --
--- THE SWITCH. qd.seat_work_fixtures = 'on' makes fn_seat_work_is_demo answer false, so a ZZ DEMO subject files its
+-- THE SWITCH. qd.probe_files_demo_handoff = 'on' makes fn_seat_work_is_demo answer false, so a ZZ DEMO subject files its
 -- handoff and its task like a real one. It is the same shape as qd.duty_fixtures (a_fenced_seat_duty_keeps_its_
 -- fixture_switch.sql): a custom setting no role, cron job or edge function sets. A probe sets it with
--- set_config('qd.seat_work_fixtures', 'on', true) - transaction-local - inside a request that safe_replay always
+-- set_config('qd.probe_files_demo_handoff', 'on', true) - transaction-local - inside a request that safe_replay always
 -- rolls back, so nothing it files survives and pg_net (the only outbound path; the http extension is not
 -- installed) sends nothing from a rolled-back transaction. It is a separate name from qd.duty_fixtures ON PURPOSE:
 -- the_sales_engineer_closes_the_loops_a_senior_sales_engineer_closes_probe.sql sets qd.duty_fixtures and asserts
 -- that its demo rounds file NO handoff; reusing that switch would have turned that guard off under it.
+--
+-- ONE SWITCH, NOT TWO. #1587 (applied 27 Oct 00:0x UTC) already gave fn_seat_handoff this exact name for the IT duty
+-- probes, but only there: the org_tasks trigger (a000_org_task_demo_files_nothing) still dropped a ZZ DEMO task under
+-- it, which is why the rescreen, week-review and founder-mail probes stayed blind. Reading the same name in the one
+-- guard both doors call extends #1587 to the task door; fn_seat_handoff's own check becomes redundant, not different.
 --
 -- Unset, or anything but 'on', the guard is byte-for-byte the 19 Oct body.
 -- Prevented by: scripts/checks/a_rolled_back_probe_may_file_demo_seat_work_under_its_own_switch.test.mjs.
@@ -30,7 +35,7 @@ declare
   v_ref jsonb := case when jsonb_typeof(p_ref) = 'object' then p_ref else '{}'::jsonb end;
 begin
   -- a rolled-back probe proving a seat loop on ZZ DEMO fixtures (never set outside one)
-  if coalesce(current_setting('qd.seat_work_fixtures', true), '') = 'on' then return false; end if;
+  if coalesce(current_setting('qd.probe_files_demo_handoff', true), '') = 'on' then return false; end if;
 
   if coalesce(p_text, '') ~* '(^|[^a-z])zz\s*demo' then return true; end if;
 

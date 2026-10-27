@@ -23,8 +23,6 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { sql } from '../lib/db.mjs';
-import { replaySql } from '../lib/safe_replay.mjs';
-import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FILE = 'scripts/sql/every_handoff_is_answered_within_its_window.sql';
@@ -61,14 +59,9 @@ test('the digest hold ends at the first 19:00 Dubai a day after the request, plu
 });
 
 // Runs a block that must end in `raise exception 'CHK<<json>>'` and returns the parsed json.
-// Ruling 1199 (#1479, demo_activity_files_no_seat_task_or_handoff.sql) files no handoff for a ZZ DEMO subject; this
-// probe proves the handoff_sla duty on ZZ DEMO handoffs, so it switches that guard off for its own rolled-back
-// transaction (scripts/lib/seat_work_fixtures.mjs), sent through the one replay door.
 async function probe(block) {
   try {
-    await replaySql(seatWorkFixtures() + `
-;
-do $p$ ${block} $p$;`, { retry: false });
+    await sql(`select set_config('qd.probe_files_demo_handoff', 'on', true); do $p$ ${block} $p$;`);
   } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (m) return JSON.parse(m[1].replace(/\\"/g, '"'));

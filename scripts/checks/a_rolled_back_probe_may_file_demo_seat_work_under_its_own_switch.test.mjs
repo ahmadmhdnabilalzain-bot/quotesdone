@@ -24,7 +24,7 @@ const body = (s) => s.slice(s.indexOf('create or replace function public.fn_seat
 
 test('the switch is one line in front of the unchanged 1199 guard', () => {
   const now = body(R(FILE)), was = body(R(BEFORE));
-  const line = "  if coalesce(current_setting('qd.seat_work_fixtures', true), '') = 'on' then return false; end if;";
+  const line = "  if coalesce(current_setting('qd.probe_files_demo_handoff', true), '') = 'on' then return false; end if;";
   assert.ok(now.includes(line), 'the switch line is missing or changed');
   assert.equal(now.replace(line + '\n', ''), was, 'the 1199 guard itself changed, not only the switch in front of it');
   assert.equal((R(FILE).match(/current_setting\(/g) || []).length, 1, 'a second setting reaches the guard');
@@ -34,14 +34,14 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 test('production, rolled back: off, ZZ DEMO files nothing; on, it files the handoff and the task', { skip: hasToken ? false : 'no Supabase management token', timeout: 300000 }, async () => {
   // the prelude replays the file (while pending) and turns the switch ON; the first half turns it off again
   const rows = await replaySql(seatWorkFixtures() + `
-;select set_config('qd.seat_work_fixtures', 'off', true)
+;select set_config('qd.probe_files_demo_handoff', 'off', true)
 ;create temp table zz_sw (k text, v text) on commit drop
 ;insert into zz_sw select 'off_guard', public.fn_seat_work_is_demo('ZZ DEMO switch probe', '{}'::jsonb)::text
 ;insert into zz_sw select 'off_handoff', public.fn_seat_handoff('customer_support', 'sales_engineer', 'spec.not_sure',
     'inquiries', 'zz-switch-probe-off', '{"note":"ZZ DEMO switch probe"}'::jsonb)::text
 ;insert into public.org_tasks (title, detail, status, assigned_agent) values ('ZZ DEMO switch probe off', 'probe', 'assigned', 'sales_engineer')
 ;insert into zz_sw select 'off_task', count(*)::text from public.org_tasks where title = 'ZZ DEMO switch probe off'
-;select set_config('qd.seat_work_fixtures', 'on', true)
+;select set_config('qd.probe_files_demo_handoff', 'on', true)
 ;insert into zz_sw select 'on_guard', public.fn_seat_work_is_demo('ZZ DEMO switch probe', '{}'::jsonb)::text
 ;insert into zz_sw select 'on_handoff', (public.fn_seat_handoff('customer_support', 'sales_engineer', 'spec.not_sure',
     'inquiries', 'zz-switch-probe-on', '{"note":"ZZ DEMO switch probe"}'::jsonb) is not null)::text

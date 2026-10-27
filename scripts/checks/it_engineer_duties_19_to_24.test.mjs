@@ -32,8 +32,6 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 import { advisoryCount } from '../it/open_dependency_patch_pr.mjs';
-import { replaySql } from '../lib/safe_replay.mjs';
-import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FILES = [
@@ -165,14 +163,8 @@ if (!OVERDUE_SKIP) {
   if (!o.ok) OVERDUE_SKIP = 'NOT_APPLIED: fn_it_restore_table_overdue is not on production yet';
 }
 
-// fixtures: ruling 1199 (#1479, demo_activity_files_no_seat_task_or_handoff.sql) files no handoff for a ZZ DEMO subject;
-// a probe that proves a renewal handoff on one switches that guard off for its own rolled-back transaction
-// (scripts/lib/seat_work_fixtures.mjs).
-async function probe(body, { fixtures = false } = {}) {
-  try {
-    if (fixtures) await replaySql(seatWorkFixtures() + `\n;\ndo $p$ ${body} $p$;`);
-    else await sql(`do $p$ ${body} $p$;`);
-  } catch (e) {
+async function probe(body) {
+  try { await sql(`select set_config('qd.probe_files_demo_handoff', 'on', true); do $p$ ${body} $p$;`); } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     // The payload arrives JSON-escaped inside the error text: unescape it as one JSON string first, so a
     // nested value that itself carries quotes survives (the crude \" replace broke on fn_it_usage_watch's
@@ -222,7 +214,7 @@ test('a renewal 45 days out is warned to the accountant, who cannot close it; th
       raise exception 'CHK<<%>>', json_build_object('to', h.agent, 'stage', h.stage, 'replied', h.replied, 'refused', v_refused,
         'after', (select status from public.agent_actions where id = h.id),
         'finding_open', (select closed_at is null from public.it_engineer_finding where issue_key = 'duty:renewal:zz_demo_licence'));
-    end`, { fixtures: true });
+    end`);
   assert.deepEqual(r, { to: 'accountant', stage: '60', replied: true, refused: true, after: 'done', finding_open: false });
 });
 
@@ -241,7 +233,7 @@ test('the last renewal stage past its reply window reaches the ceo', { skip: SKI
         'escalated', (select detail ? 'escalated_report_id' from public.agent_actions where id = v_id),
         'report', (select json_build_object('source', source_agent, 'severity', severity) from public.support_ceo_report
                     where idempotency_key = 'renewal:zz_demo_domain@' || (current_date + 20)));
-    end`, { fixtures: true });
+    end`);
   assert.equal(r.escalated, true);
   assert.deepEqual(r.report, { source: 'it_engineer', severity: 'serious' });
 });
