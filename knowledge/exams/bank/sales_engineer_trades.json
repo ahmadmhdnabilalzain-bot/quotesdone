@@ -3,7 +3,7 @@
   "bank": "trade_distinctions",
   "ledger": [893, 899],
   "standard": "founder ledger 893 and 899: the sales engineer knows the product and technical distinctions of every trade (everything except F&B) and what is actually sold in the UAE",
-  "how_it_is_used": "scripts/eval/seat_exam_llm_on.mjs reads this bank beside knowledge/exams/sales_engineer.json. `bank` picks for each due item the first wording in `wordings` that was never asked, so the daily run needs no newly authored wording until a bank is used up; `score` reports ledger 893/899 from these items. Every expected fact is a phrase of the expected trade-pack entry (checked by scripts/checks/the_seat_exam_bank_scores_every_ledger.test.mjs), so an item is passable from the knowledge the seat holds. The trades are the 20 with the most invited leads (measured 27 Oct 2026) plus the six packs deepened that day.",
+  "how_it_is_used": "scripts/eval/seat_exam_llm_on.mjs reads this bank beside knowledge/exams/sales_engineer.json. `bank` picks for each due item the first wording in `wordings` that was never asked, so the daily run needs no newly authored wording until a bank is used up; `score` reports ledger 893/899 from these items. Every expected fact is a phrase of the expected trade-pack entry (checked by scripts/checks/the_seat_exam_bank_scores_every_ledger.test.mjs), so an item is passable from the knowledge the seat holds. The trades are those of the 20 with the most invited leads (measured 27 Oct 2026) whose distinction entry is served; the six packs deepened that day are in held_items until their entries are verified.",
   "items": [
     {
       "id": "se-trade-01", "trade": "security_systems", "ledger": [893, 899],
@@ -32,6 +32,54 @@
       "expected_facts": ["molybdenum", "chloride"],
       "answer_must": ["316 adds molybdenum, which improves resistance to chloride pitting", "304 is for interiors and sheltered inland exteriors; 316/316L for coastal"]
     },
+    {
+      "id": "se-trade-20", "trade": "hvac", "ledger": [893, 899],
+      "q_en": "Split units, ducted splits or VRF for a five-bedroom villa?",
+      "q_ar": "وحدات سبليت أم سبليت مخفي بدكت أم VRF لفيلا بخمس غرف نوم؟",
+      "wordings": ["What does a VRF system give that ducted splits do not?", "Why does one thermostat control several rooms on a ducted split?", "Which AC system suits a villa with little outdoor space for condensers?"],
+      "expected_entry_ids": ["hvac:split-vs-ducted-vs-vrf"],
+      "expected_facts": ["VRF", "ducted"],
+      "answer_must": ["Ducted splits serve a zone from one unit with one thermostat", "VRF connects many indoor units with individual control to one outdoor module"]
+    },
+    {
+      "id": "se-trade-21", "trade": "electrical", "ledger": [893, 899],
+      "q_en": "Can a PVC cable replace an XLPE cable of the same size?",
+      "q_ar": "هل يمكن استبدال كابل XLPE بكابل PVC بالمقاس نفسه؟",
+      "wordings": ["Why does XLPE cable carry more current than PVC of the same copper size?", "A contractor quotes PVC where the schedule says XLPE. Problem?", "What conductor temperatures are PVC and XLPE rated for?"],
+      "expected_entry_ids": ["electrical:xlpe-vs-pvc-insulation"],
+      "expected_facts": ["90", "70"],
+      "answer_must": ["XLPE is rated about 90 C continuous, PVC about 70 C", "A same-size swap needs re-checking current capacity, voltage drop and fault withstand"]
+    },
+    {
+      "id": "se-trade-22", "trade": "glazing", "ledger": [893, 899],
+      "q_en": "Tempered or heat-strengthened glass for a facade?",
+      "q_ar": "زجاج مقسّى أم مقوّى حرارياً لواجهة؟",
+      "wordings": ["Why does tempered glass sometimes break by itself years later?", "Can tempered glass be cut on site?", "How much stronger is toughened glass than annealed?"],
+      "expected_entry_ids": ["glazing:tempered-vs-heat-strengthened-vs-annealed"],
+      "expected_facts": ["four times", "heat-soak"],
+      "answer_must": ["Tempered is about four times annealed strength and breaks into small fragments", "Nickel sulphide inclusions cause spontaneous breakage unless heat-soaked; cut before tempering"]
+    },
+    {
+      "id": "se-trade-23", "trade": "aluminium", "ledger": [893, 899],
+      "q_en": "Can PE-core aluminium composite panel be used on a building facade in the UAE?",
+      "q_ar": "هل يمكن استخدام ألواح الألمنيوم المركبة ذات القلب PE على واجهة مبنى في الإمارات؟",
+      "wordings": ["What is the difference between PE, FR and A2 core ACP?", "Why did the UAE stop allowing polyethylene-core cladding?", "Which ACP core is for high-rise facades?"],
+      "expected_entry_ids": ["aluminium:acp-core-pe-fr-a2"],
+      "expected_facts": ["PE core", "A2"],
+      "answer_must": ["PE core is highly combustible and not acceptable on facades under the UAE Fire and Life Safety Code", "FR and A2 cores replace polymer with mineral filler; A2 is the least combustible"]
+    },
+    {
+      "id": "se-trade-24", "trade": "gypsum", "ledger": [893, 899],
+      "q_en": "Is moisture-resistant gypsum board waterproof for a shower wall?",
+      "q_ar": "هل لوح الجبس المقاوم للرطوبة مقاوم للماء لجدار دش؟",
+      "wordings": ["Green MR board or cement board inside a shower?", "When do you specify fire-rated versus impact-resistant gypsum board?", "Does one fire-rated board make a partition fire-rated?"],
+      "expected_entry_ids": ["gypsum:standard-vs-mr-vs-fire-vs-impact"],
+      "expected_facts": ["not waterproof", "cement board"],
+      "answer_must": ["MR board is moisture-resistant, not waterproof; in showers it needs tanking or cement board", "A fire rating belongs to the tested system, not a single board"]
+    }
+  ],
+  "held_items_why": "Items whose expected entry is stored verified=false (authored 27 Oct 2026 from search-result excerpts; no cited page opened). An unserved entry cannot be answered from knowledge, so these are not asked. Move one back into items when its entry is verified.",
+  "held_items": [
     {
       "id": "se-trade-04", "trade": "joinery", "ledger": [893, 899],
       "q_en": "MDF, plywood or solid wood for kitchen cabinets?",
@@ -175,51 +223,6 @@
       "expected_entry_ids": ["solar:shams-dubai-equipment-and-contractor"],
       "expected_facts": ["DRRG", "enrolled"],
       "answer_must": ["The PDF list is obsolete; equipment is registered through the DRRG Equipment Portal", "A DEWA-enrolled contractor or consultant submits; NOC, design approval, installation, inspection and connection"]
-    },
-    {
-      "id": "se-trade-20", "trade": "hvac", "ledger": [893, 899],
-      "q_en": "Split units, ducted splits or VRF for a five-bedroom villa?",
-      "q_ar": "وحدات سبليت أم سبليت مخفي بدكت أم VRF لفيلا بخمس غرف نوم؟",
-      "wordings": ["What does a VRF system give that ducted splits do not?", "Why does one thermostat control several rooms on a ducted split?", "Which AC system suits a villa with little outdoor space for condensers?"],
-      "expected_entry_ids": ["hvac:split-vs-ducted-vs-vrf"],
-      "expected_facts": ["VRF", "ducted"],
-      "answer_must": ["Ducted splits serve a zone from one unit with one thermostat", "VRF connects many indoor units with individual control to one outdoor module"]
-    },
-    {
-      "id": "se-trade-21", "trade": "electrical", "ledger": [893, 899],
-      "q_en": "Can a PVC cable replace an XLPE cable of the same size?",
-      "q_ar": "هل يمكن استبدال كابل XLPE بكابل PVC بالمقاس نفسه؟",
-      "wordings": ["Why does XLPE cable carry more current than PVC of the same copper size?", "A contractor quotes PVC where the schedule says XLPE. Problem?", "What conductor temperatures are PVC and XLPE rated for?"],
-      "expected_entry_ids": ["electrical:xlpe-vs-pvc-insulation"],
-      "expected_facts": ["90", "70"],
-      "answer_must": ["XLPE is rated about 90 C continuous, PVC about 70 C", "A same-size swap needs re-checking current capacity, voltage drop and fault withstand"]
-    },
-    {
-      "id": "se-trade-22", "trade": "glazing", "ledger": [893, 899],
-      "q_en": "Tempered or heat-strengthened glass for a facade?",
-      "q_ar": "زجاج مقسّى أم مقوّى حرارياً لواجهة؟",
-      "wordings": ["Why does tempered glass sometimes break by itself years later?", "Can tempered glass be cut on site?", "How much stronger is toughened glass than annealed?"],
-      "expected_entry_ids": ["glazing:tempered-vs-heat-strengthened-vs-annealed"],
-      "expected_facts": ["four times", "heat-soak"],
-      "answer_must": ["Tempered is about four times annealed strength and breaks into small fragments", "Nickel sulphide inclusions cause spontaneous breakage unless heat-soaked; cut before tempering"]
-    },
-    {
-      "id": "se-trade-23", "trade": "aluminium", "ledger": [893, 899],
-      "q_en": "Can PE-core aluminium composite panel be used on a building facade in the UAE?",
-      "q_ar": "هل يمكن استخدام ألواح الألمنيوم المركبة ذات القلب PE على واجهة مبنى في الإمارات؟",
-      "wordings": ["What is the difference between PE, FR and A2 core ACP?", "Why did the UAE stop allowing polyethylene-core cladding?", "Which ACP core is for high-rise facades?"],
-      "expected_entry_ids": ["aluminium:acp-core-pe-fr-a2"],
-      "expected_facts": ["PE core", "A2"],
-      "answer_must": ["PE core is highly combustible and not acceptable on facades under the UAE Fire and Life Safety Code", "FR and A2 cores replace polymer with mineral filler; A2 is the least combustible"]
-    },
-    {
-      "id": "se-trade-24", "trade": "gypsum", "ledger": [893, 899],
-      "q_en": "Is moisture-resistant gypsum board waterproof for a shower wall?",
-      "q_ar": "هل لوح الجبس المقاوم للرطوبة مقاوم للماء لجدار دش؟",
-      "wordings": ["Green MR board or cement board inside a shower?", "When do you specify fire-rated versus impact-resistant gypsum board?", "Does one fire-rated board make a partition fire-rated?"],
-      "expected_entry_ids": ["gypsum:standard-vs-mr-vs-fire-vs-impact"],
-      "expected_facts": ["not waterproof", "cement board"],
-      "answer_must": ["MR board is moisture-resistant, not waterproof; in showers it needs tanking or cement board", "A fire rating belongs to the tested system, not a single board"]
     }
   ]
 }

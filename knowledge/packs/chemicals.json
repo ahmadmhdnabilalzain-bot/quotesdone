@@ -103,8 +103,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-27",
-      "verified": true,
-      "source_note": "Checked 2026-10-27 against search-result excerpts: seven admixtures / six Italian cements, PCE better average water reduction and 60-min flow retention than NSF; PCE more dependent on cement type; PCE generally lower dosage (review; marketing-grade) -> confirmed. Admixture type classes are not stated here (not in the excerpts read)."
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: seven admixtures / six Italian cements, PCE better average water reduction and 60-min flow retention than NSF; PCE more dependent on cement type; PCE generally lower dosage (review; marketing-grade) -> confirmed. Admixture type classes are not stated here (not in the excerpts read). Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     },
     {
       "id": "chemicals:sealants-silicone-vs-polyurethane-vs-hybrid",
@@ -120,8 +120,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-27",
-      "verified": true,
-      "source_note": "Checked 2026-10-27 against search-result excerpts: silicone UV/temperature resistance, highest movement (Class 50-100), longer life, not paintable; PU paintable, adhesion, Class 12.5/25/50, less UV-stable, priming, stiffer, not for structural glass; hybrids silyl-modified combining strengths; polysulphide named as high-performance -> confirmed."
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: silicone UV/temperature resistance, highest movement (Class 50-100), longer life, not paintable; PU paintable, adhesion, Class 12.5/25/50, less UV-stable, priming, stiffer, not for structural glass; hybrids silyl-modified combining strengths; polysulphide named as high-performance -> confirmed. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     }
   ],
   "eval": [
@@ -155,20 +155,6 @@
         "chemicals:product-distinctions"
       ],
       "written_blind": true
-    },
-    {
-      "q_en": "The ready-mix plant offers a PCE admixture instead of naphthalene. What changes?",
-      "q_ar": "مصنع الخرسانة الجاهزة يعرض مضافاً من PCE بدل النفثالين، فما الذي يتغير؟",
-      "expected_entry_ids": [
-        "chemicals:pce-vs-snf-superplasticiser"
-      ]
-    },
-    {
-      "q_en": "Which sealant can I paint over on an exterior expansion joint?",
-      "q_ar": "أي مانع تسرب يمكن دهانه فوق فاصل تمدد خارجي؟",
-      "expected_entry_ids": [
-        "chemicals:sealants-silicone-vs-polyurethane-vs-hybrid"
-      ]
     }
   ],
   "verified": {
@@ -213,16 +199,33 @@
     "authored_27_oct": {
       "by": "sales_engineer",
       "on": "2026-10-27",
-      "served": [
-        "chemicals:pce-vs-snf-superplasticiser",
-        "chemicals:sealants-silicone-vs-polyurethane-vs-hybrid"
-      ],
       "pages_opened": [],
-      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". A reviewer applying the stricter reading of the 7 Oct stating rule (page actually opened) sets verified:false on these ids.",
+      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". Independent review of #1632 (27 Oct 2026): the 7 Oct stating rule requires a page actually opened, so every id above is stored verified=false and its eval questions are held in held_eval; move each back (verified:true, question into eval, bank item into items) only after its cited pages are opened and every fact is confirmed.",
       "reason": "Trade had 5 entries against 317 invited leads (measured 27 Oct 2026); the deep packs of comparable trades hold 30-58.",
       "ledger": [
         893,
         899
+      ],
+      "held_unverified": [
+        "chemicals:pce-vs-snf-superplasticiser",
+        "chemicals:sealants-silicone-vs-polyurethane-vs-hybrid"
+      ],
+      "served": [],
+      "held_eval": [
+        {
+          "q_en": "The ready-mix plant offers a PCE admixture instead of naphthalene. What changes?",
+          "q_ar": "مصنع الخرسانة الجاهزة يعرض مضافاً من PCE بدل النفثالين، فما الذي يتغير؟",
+          "expected_entry_ids": [
+            "chemicals:pce-vs-snf-superplasticiser"
+          ]
+        },
+        {
+          "q_en": "Which sealant can I paint over on an exterior expansion joint?",
+          "q_ar": "أي مانع تسرب يمكن دهانه فوق فاصل تمدد خارجي؟",
+          "expected_entry_ids": [
+            "chemicals:sealants-silicone-vs-polyurethane-vs-hybrid"
+          ]
+        }
       ]
     }
   }

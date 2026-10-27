@@ -100,8 +100,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-27",
-      "verified": true,
-      "source_note": "Checked 2026-10-27 against search-result excerpts of the cited pages (the pages themselves refused this session's egress): BIa <= 0.5% porcelain, BIb 0.5-3%, BIIa 3-6%, BIII > 10% wall tile, AIa/BIa porcelain threshold, average over samples, 'vitrified' used inconsistently -> confirmed."
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts of the cited pages (the pages themselves refused this session's egress): BIa <= 0.5% porcelain, BIb 0.5-3%, BIIa 3-6%, BIII > 10% wall tile, AIa/BIa porcelain threshold, average over samples, 'vitrified' used inconsistently -> confirmed. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     },
     {
       "id": "flooring:lvt-vs-spc-vs-laminate",
@@ -117,8 +117,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-27",
-      "verified": true,
-      "source_note": "Checked 2026-10-27 against search-result excerpts: LVT flexible vinyl; SPC rigid limestone-PVC core, most stable, waterproof; laminate HDF core 8-12 mm swells if water sits in joints; vinyl wear layer in mil (12 mil = 0.3 mm); AC4/AC5 laminate -> confirmed. EN 13329 is named as the laminate standard but its test method was not read."
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: LVT flexible vinyl; SPC rigid limestone-PVC core, most stable, waterproof; laminate HDF core 8-12 mm swells if water sits in joints; vinyl wear layer in mil (12 mil = 0.3 mm); AC4/AC5 laminate -> confirmed. EN 13329 is named as the laminate standard but its test method was not read. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     },
     {
       "id": "flooring:epoxy-vs-pu-vs-urethane-cement",
@@ -134,8 +134,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-27",
-      "verified": true,
-      "source_note": "Checked 2026-10-27 against search-result excerpts: epoxy cracks under thermal shock from hot washdowns; urethane cement chemistry close to concrete, handles steam/boiling water; F&B moved from epoxy and dairy brick to urethane cement (ProFood World, quoting Flowcrete); thicker, higher upfront cost; life depends on preparation and matching -> confirmed."
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: epoxy cracks under thermal shock from hot washdowns; urethane cement chemistry close to concrete, handles steam/boiling water; F&B moved from epoxy and dairy brick to urethane cement (ProFood World, quoting Flowcrete); thicker, higher upfront cost; life depends on preparation and matching -> confirmed. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     },
     {
       "id": "flooring:slip-ratings-r9-to-r13",
@@ -151,8 +151,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-27",
-      "verified": true,
-      "source_note": "Checked 2026-10-27 against search-result excerpts: walker forwards/backwards, engine oil, angle bands R9 6-10 ... R13 > 35, R9 lowest R13 highest, treaded test shoes favour raised relief and results may not transfer to non-treaded footwear on wet floors -> confirmed. The barefoot test (DIN 51097) was not in the excerpts and is not stated."
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: walker forwards/backwards, engine oil, angle bands R9 6-10 ... R13 > 35, R9 lowest R13 highest, treaded test shoes favour raised relief and results may not transfer to non-treaded footwear on wet floors -> confirmed. The barefoot test (DIN 51097) was not in the excerpts and is not stated. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     }
   ],
   "eval": [
@@ -186,34 +186,6 @@
         "flooring:product-distinctions"
       ],
       "written_blind": true
-    },
-    {
-      "q_en": "Is a 'vitrified' tile the same as porcelain?",
-      "q_ar": "هل البلاط 'الفيتريفايد' هو نفسه البورسلان؟",
-      "expected_entry_ids": [
-        "flooring:porcelain-vs-ceramic-water-absorption"
-      ]
-    },
-    {
-      "q_en": "Should I put SPC or laminate in a kitchen that gets mopped every day?",
-      "q_ar": "هل أركّب SPC أم لامينيت في مطبخ يُمسح يومياً بالماء؟",
-      "expected_entry_ids": [
-        "flooring:lvt-vs-spc-vs-laminate"
-      ]
-    },
-    {
-      "q_en": "Our restaurant kitchen floor is hosed with hot water nightly; epoxy or something else?",
-      "q_ar": "أرضية مطبخ مطعمنا تُغسل بالماء الساخن كل ليلة؛ إيبوكسي أم شيء آخر؟",
-      "expected_entry_ids": [
-        "flooring:epoxy-vs-pu-vs-urethane-cement"
-      ]
-    },
-    {
-      "q_en": "What does R11 on a tile data sheet mean?",
-      "q_ar": "ماذا يعني R11 في ورقة بيانات البلاط؟",
-      "expected_entry_ids": [
-        "flooring:slip-ratings-r9-to-r13"
-      ]
     }
   ],
   "verified": {
@@ -258,18 +230,49 @@
     "authored_27_oct": {
       "by": "sales_engineer",
       "on": "2026-10-27",
-      "served": [
+      "pages_opened": [],
+      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". Independent review of #1632 (27 Oct 2026): the 7 Oct stating rule requires a page actually opened, so every id above is stored verified=false and its eval questions are held in held_eval; move each back (verified:true, question into eval, bank item into items) only after its cited pages are opened and every fact is confirmed.",
+      "reason": "Trade had 5 entries against 1216 invited leads (measured 27 Oct 2026); the deep packs of comparable trades hold 30-58.",
+      "ledger": [
+        893,
+        899
+      ],
+      "held_unverified": [
         "flooring:porcelain-vs-ceramic-water-absorption",
         "flooring:lvt-vs-spc-vs-laminate",
         "flooring:epoxy-vs-pu-vs-urethane-cement",
         "flooring:slip-ratings-r9-to-r13"
       ],
-      "pages_opened": [],
-      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". A reviewer applying the stricter reading of the 7 Oct stating rule (page actually opened) sets verified:false on these ids.",
-      "reason": "Trade had 5 entries against 1216 invited leads (measured 27 Oct 2026); the deep packs of comparable trades hold 30-58.",
-      "ledger": [
-        893,
-        899
+      "served": [],
+      "held_eval": [
+        {
+          "q_en": "Is a 'vitrified' tile the same as porcelain?",
+          "q_ar": "هل البلاط 'الفيتريفايد' هو نفسه البورسلان؟",
+          "expected_entry_ids": [
+            "flooring:porcelain-vs-ceramic-water-absorption"
+          ]
+        },
+        {
+          "q_en": "Should I put SPC or laminate in a kitchen that gets mopped every day?",
+          "q_ar": "هل أركّب SPC أم لامينيت في مطبخ يُمسح يومياً بالماء؟",
+          "expected_entry_ids": [
+            "flooring:lvt-vs-spc-vs-laminate"
+          ]
+        },
+        {
+          "q_en": "Our restaurant kitchen floor is hosed with hot water nightly; epoxy or something else?",
+          "q_ar": "أرضية مطبخ مطعمنا تُغسل بالماء الساخن كل ليلة؛ إيبوكسي أم شيء آخر؟",
+          "expected_entry_ids": [
+            "flooring:epoxy-vs-pu-vs-urethane-cement"
+          ]
+        },
+        {
+          "q_en": "What does R11 on a tile data sheet mean?",
+          "q_ar": "ماذا يعني R11 في ورقة بيانات البلاط؟",
+          "expected_entry_ids": [
+            "flooring:slip-ratings-r9-to-r13"
+          ]
+        }
       ]
     }
   }

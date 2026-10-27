@@ -106,8 +106,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-27",
-      "verified": true,
-      "source_note": "Checked 2026-10-27 against search-result excerpts: plywood cross-grain strong and stable, resists shrink/swell/warp better than solid wood, best screw holding; MDF weaker screw holding, swells/crumbles at unsealed edges, preferred for paint-grade doors; solid wood moves with humidity; common split plywood boxes / MDF doors / hardwood frames -> confirmed. One source's claim that MDF warps less than solid wood was not used."
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: plywood cross-grain strong and stable, resists shrink/swell/warp better than solid wood, best screw holding; MDF weaker screw holding, swells/crumbles at unsealed edges, preferred for paint-grade doors; solid wood moves with humidity; common split plywood boxes / MDF doors / hardwood frames -> confirmed. One source's claim that MDF warps less than solid wood was not used. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     },
     {
       "id": "joinery:hpl-vs-melamine-faced-board",
@@ -124,8 +124,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-27",
-      "verified": true,
-      "source_note": "Checked 2026-10-27 against search-result excerpts: LPL bonded at lower pressure with no adhesive, aka melamine face board (Wilsonart); HPL protective overlay gives higher impact/scratch/abrasion; HPL nominal 0.6-0.8 mm (Swiss Krono EN 438-3 datasheet); EN 438-2 small/large ball impact; makers publish results (Polyrey) -> confirmed."
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: LPL bonded at lower pressure with no adhesive, aka melamine face board (Wilsonart); HPL protective overlay gives higher impact/scratch/abrasion; HPL nominal 0.6-0.8 mm (Swiss Krono EN 438-3 datasheet); EN 438-2 small/large ball impact; makers publish results (Polyrey) -> confirmed. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     },
     {
       "id": "joinery:formaldehyde-e1-e0-carb",
@@ -141,8 +141,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-27",
-      "verified": true,
-      "source_note": "Checked 2026-10-27 against search-result excerpts: EN 13986 Annex B E1 <= 0.1 ppm (0.124 mg/m3) 28-day EN 717-1 chamber; EN 13986 defines E1 and E2; E0/E0.5 unofficial, cannot be certified; CARB P2 and TSCA Title VI named as certification schemes (CATAS) -> confirmed. CARB numeric limit deliberately not stated."
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: EN 13986 Annex B E1 <= 0.1 ppm (0.124 mg/m3) 28-day EN 717-1 chamber; EN 13986 defines E1 and E2; E0/E0.5 unofficial, cannot be certified; CARB P2 and TSCA Title VI named as certification schemes (CATAS) -> confirmed. CARB numeric limit deliberately not stated. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     }
   ],
   "eval": [
@@ -176,27 +176,6 @@
         "joinery:product-distinctions"
       ],
       "written_blind": true
-    },
-    {
-      "q_en": "Is MDF or plywood better for the cabinet under a kitchen sink?",
-      "q_ar": "أيهما أفضل للخزانة تحت مغسلة المطبخ: الـMDF أم البلايوود؟",
-      "expected_entry_ids": [
-        "joinery:mdf-vs-plywood-vs-solid-wood"
-      ]
-    },
-    {
-      "q_en": "What is the difference between HPL and melamine on a reception desk?",
-      "q_ar": "ما الفرق بين HPL والميلامين لمكتب استقبال؟",
-      "expected_entry_ids": [
-        "joinery:hpl-vs-melamine-faced-board"
-      ]
-    },
-    {
-      "q_en": "The carpenter says the boards are E0. Is that a real certificate?",
-      "q_ar": "يقول النجار إن الألواح E0، فهل هذه شهادة حقيقية؟",
-      "expected_entry_ids": [
-        "joinery:formaldehyde-e1-e0-carb"
-      ]
     }
   ],
   "verified": {
@@ -240,17 +219,41 @@
     "authored_27_oct": {
       "by": "sales_engineer",
       "on": "2026-10-27",
-      "served": [
-        "joinery:mdf-vs-plywood-vs-solid-wood",
-        "joinery:hpl-vs-melamine-faced-board",
-        "joinery:formaldehyde-e1-e0-carb"
-      ],
       "pages_opened": [],
-      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". A reviewer applying the stricter reading of the 7 Oct stating rule (page actually opened) sets verified:false on these ids.",
+      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". Independent review of #1632 (27 Oct 2026): the 7 Oct stating rule requires a page actually opened, so every id above is stored verified=false and its eval questions are held in held_eval; move each back (verified:true, question into eval, bank item into items) only after its cited pages are opened and every fact is confirmed.",
       "reason": "Trade had 5 entries against 560 invited leads (measured 27 Oct 2026); the deep packs of comparable trades hold 30-58.",
       "ledger": [
         893,
         899
+      ],
+      "held_unverified": [
+        "joinery:mdf-vs-plywood-vs-solid-wood",
+        "joinery:hpl-vs-melamine-faced-board",
+        "joinery:formaldehyde-e1-e0-carb"
+      ],
+      "served": [],
+      "held_eval": [
+        {
+          "q_en": "Is MDF or plywood better for the cabinet under a kitchen sink?",
+          "q_ar": "أيهما أفضل للخزانة تحت مغسلة المطبخ: الـMDF أم البلايوود؟",
+          "expected_entry_ids": [
+            "joinery:mdf-vs-plywood-vs-solid-wood"
+          ]
+        },
+        {
+          "q_en": "What is the difference between HPL and melamine on a reception desk?",
+          "q_ar": "ما الفرق بين HPL والميلامين لمكتب استقبال؟",
+          "expected_entry_ids": [
+            "joinery:hpl-vs-melamine-faced-board"
+          ]
+        },
+        {
+          "q_en": "The carpenter says the boards are E0. Is that a real certificate?",
+          "q_ar": "يقول النجار إن الألواح E0، فهل هذه شهادة حقيقية؟",
+          "expected_entry_ids": [
+            "joinery:formaldehyde-e1-e0-carb"
+          ]
+        }
       ]
     }
   }

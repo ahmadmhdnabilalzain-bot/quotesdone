@@ -65,7 +65,7 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-10-27",
-    "method": "Promoted from home_automation.market.draft.json. Each claim checked against search-result excerpts of the cited pages on 2026-10-27 (the hosts refuse this session's egress); claims no excerpt confirmed were removed, dated reports are stated with their year.",
+    "method": "Promoted from home_automation.market.draft.json. Each claim checked against search-result excerpts of the cited pages on 2026-10-27 (the hosts refuse this session's egress); claims no excerpt confirmed were removed, dated reports are stated with their year. Independent review of #1632 (27 Oct 2026): no cited page was opened, so under the 7 Oct stating rule the layer is not served; it stays a draft (home_automation.market.draft.json) with these corrections until its pages are opened.",
     "checks": [
       {
         "claim": "KNX wired at fit-out/off-plan; any certified integrator can service; ETS file",

@@ -89,8 +89,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-27",
-      "verified": true,
-      "source_note": "Checked 2026-10-27 against search-result excerpts: PVEL 2024 average temperature coefficients -0.32/-0.30/-0.26 %/C and bifaciality 69.3/75.4/86.7%; desert field test HJT 8.73% loss, TOPCon-M2 0.14%; TOPCon volume standard, HJT premium niche, PERC share falling; cell vs module efficiency differ -> confirmed. PERC p-type vs TOPCon/HJT n-type: stated in one excerpt (n-type avoids LID of legacy p-type PERC); medium."
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: PVEL 2024 average temperature coefficients -0.32/-0.30/-0.26 %/C and bifaciality 69.3/75.4/86.7%; desert field test HJT 8.73% loss, TOPCon-M2 0.14%; TOPCon volume standard, HJT premium niche, PERC share falling; cell vs module efficiency differ -> confirmed. PERC p-type vs TOPCon/HJT n-type: stated in one excerpt (n-type avoids LID of legacy p-type PERC); medium. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     },
     {
       "id": "solar:shams-dubai-equipment-and-contractor",
@@ -107,8 +107,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-27",
-      "verified": true,
-      "source_note": "Checked 2026-10-27 against search-result excerpts of dewa.gov.ae: PDF list obsolete, registration through the DRRG Equipment Portal by manufacturers or local authorised representatives for modules, inverters and interface protection -> confirmed (DEWA). Enrolled contractor/consultant submits; four stages NOC, design approval, installation, inspection/connection; export credited, no cash -> from third-party guides, consistent with each other. Size cap and ground-mount ban conflicted -> removed."
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts of dewa.gov.ae: PDF list obsolete, registration through the DRRG Equipment Portal by manufacturers or local authorised representatives for modules, inverters and interface protection -> confirmed (DEWA). Enrolled contractor/consultant submits; four stages NOC, design approval, installation, inspection/connection; export credited, no cash -> from third-party guides, consistent with each other. Size cap and ground-mount ban conflicted -> removed. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     }
   ],
   "eval": [
@@ -142,20 +142,6 @@
         "solar:product-distinctions"
       ],
       "written_blind": true
-    },
-    {
-      "q_en": "TOPCon or HJT panels for a villa roof in Dubai, given the heat?",
-      "q_ar": "ألواح TOPCon أم HJT لسطح فيلا في دبي مع الحرارة؟",
-      "expected_entry_ids": [
-        "solar:perc-vs-topcon-vs-hjt"
-      ]
-    },
-    {
-      "q_en": "The installer sent DEWA's eligible equipment PDF. Is that enough to prove the inverter is approved?",
-      "q_ar": "أرسل المركّب ملف PDF للمعدات المؤهلة من الهيئة، فهل يكفي لإثبات اعتماد العاكس؟",
-      "expected_entry_ids": [
-        "solar:shams-dubai-equipment-and-contractor"
-      ]
     }
   ],
   "verified": {
@@ -197,16 +183,33 @@
     "authored_27_oct": {
       "by": "sales_engineer",
       "on": "2026-10-27",
-      "served": [
-        "solar:perc-vs-topcon-vs-hjt",
-        "solar:shams-dubai-equipment-and-contractor"
-      ],
       "pages_opened": [],
-      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". A reviewer applying the stricter reading of the 7 Oct stating rule (page actually opened) sets verified:false on these ids.",
+      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". Independent review of #1632 (27 Oct 2026): the 7 Oct stating rule requires a page actually opened, so every id above is stored verified=false and its eval questions are held in held_eval; move each back (verified:true, question into eval, bank item into items) only after its cited pages are opened and every fact is confirmed.",
       "reason": "Trade had 4 entries against 77 invited leads (measured 27 Oct 2026); the deep packs of comparable trades hold 30-58.",
       "ledger": [
         893,
         899
+      ],
+      "held_unverified": [
+        "solar:perc-vs-topcon-vs-hjt",
+        "solar:shams-dubai-equipment-and-contractor"
+      ],
+      "served": [],
+      "held_eval": [
+        {
+          "q_en": "TOPCon or HJT panels for a villa roof in Dubai, given the heat?",
+          "q_ar": "ألواح TOPCon أم HJT لسطح فيلا في دبي مع الحرارة؟",
+          "expected_entry_ids": [
+            "solar:perc-vs-topcon-vs-hjt"
+          ]
+        },
+        {
+          "q_en": "The installer sent DEWA's eligible equipment PDF. Is that enough to prove the inverter is approved?",
+          "q_ar": "أرسل المركّب ملف PDF للمعدات المؤهلة من الهيئة، فهل يكفي لإثبات اعتماد العاكس؟",
+          "expected_entry_ids": [
+            "solar:shams-dubai-equipment-and-contractor"
+          ]
+        }
       ]
     }
   }

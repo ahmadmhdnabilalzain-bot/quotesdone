@@ -6,8 +6,9 @@
 //     another trade's entry, or a fact its entry does not hold (an item that could never be answered from knowledge);
 //   * a bank item has fewer than two pre-written wordings, or a wording repeats the question (the exam rule: never the
 //     same wording twice);
-//   * the bank stops covering the trades with the most invited leads (the 20 measured 27 Oct 2026) or a trade deepened
-//     that day;
+//   * the bank stops covering the trades with the most invited leads (the 20 measured 27 Oct 2026), or a trade deepened
+//     that day has no item asked or held; a held item names only served entries (it should be asked) or would fail
+//     validation once its entry is verified;
 //   * `bank` hands out a wording already asked, or the source question; `score` stops reporting 893/899 for bank items
 //     and 894 for seat-exam items.
 //
@@ -29,11 +30,29 @@ test('every bank item is answerable from a served trade-pack entry', () => {
   for (const b of banks) assert.deepEqual(validateBank(b, entries), [], b.file);
 });
 
-test('the trade bank covers the top-lead trades and the six deepened on 27 Oct', () => {
+// The six packs deepened on 27 Oct were checked against search-result excerpts only, so their new entries are stored
+// verified=false (the 7 Oct stating rule: a fact not read on a page actually opened is never stated) and their items
+// wait in held_items. Independent review of #1632, 27 Oct 2026.
+const DEEPENED_27_OCT = ['joinery', 'flooring', 'cleaning', 'chemicals', 'pest_control', 'solar'];
+test('the trade bank covers the top-lead trades, and the six deepened on 27 Oct wait in held_items', () => {
   const trades = new Set(bankItemsFor('sales_engineer').map((i) => i.trade));
-  for (const t of ['security_systems', 'fire_fighting', 'steel', 'joinery', 'flooring', 'cleaning', 'chemicals',
-    'pest_control', 'solar', 'hvac', 'electrical', 'glazing', 'aluminium', 'gypsum']) assert.ok(trades.has(t), `no bank item for ${t}`);
+  for (const t of ['security_systems', 'fire_fighting', 'steel', 'hvac', 'electrical', 'glazing', 'aluminium', 'gypsum'])
+    assert.ok(trades.has(t), `no bank item for ${t}`);
   assert.ok(bankItemsFor('sales_engineer').every((i) => ledgersOf(i).includes(893) && ledgersOf(i).includes(899)));
+  const held = bankFiles().flatMap((b) => b.held_items ?? []);
+  for (const t of DEEPENED_27_OCT) assert.ok(held.some((i) => i.trade === t) || trades.has(t), `no item, asked or held, for ${t}`);
+});
+
+test('a held item waits only on an unverified entry, and is otherwise ready to ask', () => {
+  for (const b of bankFiles()) {
+    for (const it of b.held_items ?? []) {
+      const ids = it.expected_entry_ids ?? [];
+      assert.ok(ids.some((id) => entries.get(id)?.verified === false), `${it.id} is held but its entries are served: move it into items`);
+      // the same validation as an asked item, with the entries treated as served (what it will be once verified)
+      const asIfServed = new Map(ids.map((id) => [id, { ...entries.get(id), verified: true }]));
+      assert.deepEqual(validateBank({ items: [it] }, asIfServed), [], it.id);
+    }
+  }
 });
 
 test('bank hands out a fresh wording, never the question or one already asked', () => {

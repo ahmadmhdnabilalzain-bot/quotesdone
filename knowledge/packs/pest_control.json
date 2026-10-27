@@ -86,8 +86,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-27",
-      "verified": true,
-      "source_note": "Checked 2026-10-27 against search-result excerpts of dm.gov.ae and its published authorised-company lists (to July 2026): NOC from the Public Health Pest Control Section, prerequisite for trade licence, not a recommendation; periodic inspection; staff ID cards; list grouped by qualified staff; licensed for general pest control excluding fumigation, termite and bird control; pesticides to DM-approved specifications; Ministry of Environment registration resolution (Khaleej Times) -> confirmed. A free-zone guide's MOHAP claim was not used."
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts of dm.gov.ae and its published authorised-company lists (to July 2026): NOC from the Public Health Pest Control Section, prerequisite for trade licence, not a recommendation; periodic inspection; staff ID cards; list grouped by qualified staff; licensed for general pest control excluding fumigation, termite and bird control; pesticides to DM-approved specifications; Ministry of Environment registration resolution (Khaleej Times) -> confirmed. A free-zone guide's MOHAP claim was not used. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     },
     {
       "id": "pest_control:termite-pre-vs-post-construction",
@@ -104,8 +104,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-27",
-      "verified": true,
-      "source_note": "Checked 2026-10-27 against search-result excerpts: pre-construction treated zone, non-repellents, drilling through slab after pour costlier and less uniform, warranties vary; post-construction trenching/rodding; drill-and-inject into voids; bait stations checked about every three months, less insecticide, slower, a year or longer; liquids faster with fewer visits -> confirmed. Dubai termite authorisation from the DM entry's excerpts."
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: pre-construction treated zone, non-repellents, drilling through slab after pour costlier and less uniform, warranties vary; post-construction trenching/rodding; drill-and-inject into voids; bait stations checked about every three months, less insecticide, slower, a year or longer; liquids faster with fewer visits -> confirmed. Dubai termite authorisation from the DM entry's excerpts. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     }
   ],
   "eval": [
@@ -139,20 +139,6 @@
         "pest_control:product-distinctions"
       ],
       "written_blind": true
-    },
-    {
-      "q_en": "How do I know a pest control company is allowed to fumigate in Dubai?",
-      "q_ar": "كيف أعرف أن شركة مكافحة آفات مسموح لها بالتبخير في دبي؟",
-      "expected_entry_ids": [
-        "pest_control:dubai-municipality-approval-and-scopes"
-      ]
-    },
-    {
-      "q_en": "The slab is poured next week. Is it too late to treat for termites?",
-      "q_ar": "ستُصب البلاطة الأسبوع القادم، فهل فات أوان معالجة النمل الأبيض؟",
-      "expected_entry_ids": [
-        "pest_control:termite-pre-vs-post-construction"
-      ]
     }
   ],
   "verified": {
@@ -194,16 +180,33 @@
     "authored_27_oct": {
       "by": "sales_engineer",
       "on": "2026-10-27",
-      "served": [
-        "pest_control:dubai-municipality-approval-and-scopes",
-        "pest_control:termite-pre-vs-post-construction"
-      ],
       "pages_opened": [],
-      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". A reviewer applying the stricter reading of the 7 Oct stating rule (page actually opened) sets verified:false on these ids.",
+      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". Independent review of #1632 (27 Oct 2026): the 7 Oct stating rule requires a page actually opened, so every id above is stored verified=false and its eval questions are held in held_eval; move each back (verified:true, question into eval, bank item into items) only after its cited pages are opened and every fact is confirmed.",
       "reason": "Trade had 4 entries against 87 invited leads (measured 27 Oct 2026); the deep packs of comparable trades hold 30-58.",
       "ledger": [
         893,
         899
+      ],
+      "held_unverified": [
+        "pest_control:dubai-municipality-approval-and-scopes",
+        "pest_control:termite-pre-vs-post-construction"
+      ],
+      "served": [],
+      "held_eval": [
+        {
+          "q_en": "How do I know a pest control company is allowed to fumigate in Dubai?",
+          "q_ar": "كيف أعرف أن شركة مكافحة آفات مسموح لها بالتبخير في دبي؟",
+          "expected_entry_ids": [
+            "pest_control:dubai-municipality-approval-and-scopes"
+          ]
+        },
+        {
+          "q_en": "The slab is poured next week. Is it too late to treat for termites?",
+          "q_ar": "ستُصب البلاطة الأسبوع القادم، فهل فات أوان معالجة النمل الأبيض؟",
+          "expected_entry_ids": [
+            "pest_control:termite-pre-vs-post-construction"
+          ]
+        }
       ]
     }
   }

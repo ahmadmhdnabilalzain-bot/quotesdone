@@ -97,8 +97,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-27",
-      "verified": true,
-      "source_note": "Checked 2026-10-27 against search-result excerpts: solid fuel monthly, high volume (24-hour, charbroiling, wok) quarterly, moderate semiannual, low volume (churches, day camps, seasonal, senior centers) annual; table is inspection frequency, cleaning when deposits found -> confirmed (NFPA 96 2017 summary and an IFC 2015 table). UAE adoption of NFPA 96 not checked."
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: solid fuel monthly, high volume (24-hour, charbroiling, wok) quarterly, moderate semiannual, low volume (churches, day camps, seasonal, senior centers) annual; table is inspection frequency, cleaning when deposits found -> confirmed (NFPA 96 2017 summary and an IFC 2015 table). UAE adoption of NFPA 96 not checked. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     },
     {
       "id": "cleaning:marble-grinding-honing-polishing-crystallisation",
@@ -115,8 +115,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-27",
-      "verified": true,
-      "source_note": "Checked 2026-10-27 against search-result excerpts: grinding with coarse-to-fine diamond pads removes irregularities; honing 100-200 grit removes scratches and stains; polishing 400-1500 grit; crystallisation is a chemical reaction with calcium carbonate plus abrasion, aka vitrification (SAQA unit standard); recrystallised floors: powder polish or hone 400/600; terminology conflict -> confirmed."
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: grinding with coarse-to-fine diamond pads removes irregularities; honing 100-200 grit removes scratches and stains; polishing 400-1500 grit; crystallisation is a chemical reaction with calcium carbonate plus abrasion, aka vitrification (SAQA unit standard); recrystallised floors: powder polish or hone 400/600; terminology conflict -> confirmed. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     },
     {
       "id": "cleaning:carpet-hot-water-extraction-vs-encapsulation",
@@ -132,8 +132,8 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-27",
-      "verified": true,
-      "source_note": "Checked 2026-10-27 against search-result excerpts: HWE removes most embedded soil, 4-12 h drying; encapsulation low-moisture polymers crystallise around soil, vacuumed when dry, 30-60 min; extraction cleans heavily soiled carpet better; bonnet a maintenance/appearance method; daily/interim/periodic cycle (CleanLink, one author's view) -> confirmed."
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: HWE removes most embedded soil, 4-12 h drying; encapsulation low-moisture polymers crystallise around soil, vacuumed when dry, 30-60 min; extraction cleans heavily soiled carpet better; bonnet a maintenance/appearance method; daily/interim/periodic cycle (CleanLink, one author's view) -> confirmed. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     }
   ],
   "eval": [
@@ -167,27 +167,6 @@
         "cleaning:product-distinctions"
       ],
       "written_blind": true
-    },
-    {
-      "q_en": "How often must a busy shawarma restaurant have its kitchen hood and duct checked for grease?",
-      "q_ar": "كم مرة يجب فحص شفاط ودكت مطبخ مطعم شاورما مزدحم من الشحوم؟",
-      "expected_entry_ids": [
-        "cleaning:kitchen-exhaust-inspection-frequency"
-      ]
-    },
-    {
-      "q_en": "One company quotes marble crystallisation and another quotes grinding and polishing. Are they the same job?",
-      "q_ar": "شركة تعرض بلورة الرخام وأخرى تعرض جلخاً وتلميعاً، فهل هما العمل نفسه؟",
-      "expected_entry_ids": [
-        "cleaning:marble-grinding-honing-polishing-crystallisation"
-      ]
-    },
-    {
-      "q_en": "Our office carpet tiles must be usable next morning. Which cleaning method?",
-      "q_ar": "يجب أن يكون سجاد مكتبنا صالحاً للاستخدام صباح اليوم التالي، فأي طريقة تنظيف نختار؟",
-      "expected_entry_ids": [
-        "cleaning:carpet-hot-water-extraction-vs-encapsulation"
-      ]
     }
   ],
   "verified": {
@@ -232,17 +211,41 @@
     "authored_27_oct": {
       "by": "sales_engineer",
       "on": "2026-10-27",
-      "served": [
-        "cleaning:kitchen-exhaust-inspection-frequency",
-        "cleaning:marble-grinding-honing-polishing-crystallisation",
-        "cleaning:carpet-hot-water-extraction-vs-encapsulation"
-      ],
       "pages_opened": [],
-      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". A reviewer applying the stricter reading of the 7 Oct stating rule (page actually opened) sets verified:false on these ids.",
+      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". Independent review of #1632 (27 Oct 2026): the 7 Oct stating rule requires a page actually opened, so every id above is stored verified=false and its eval questions are held in held_eval; move each back (verified:true, question into eval, bank item into items) only after its cited pages are opened and every fact is confirmed.",
       "reason": "Trade had 5 entries against 630 invited leads (measured 27 Oct 2026); the deep packs of comparable trades hold 30-58.",
       "ledger": [
         893,
         899
+      ],
+      "held_unverified": [
+        "cleaning:kitchen-exhaust-inspection-frequency",
+        "cleaning:marble-grinding-honing-polishing-crystallisation",
+        "cleaning:carpet-hot-water-extraction-vs-encapsulation"
+      ],
+      "served": [],
+      "held_eval": [
+        {
+          "q_en": "How often must a busy shawarma restaurant have its kitchen hood and duct checked for grease?",
+          "q_ar": "كم مرة يجب فحص شفاط ودكت مطبخ مطعم شاورما مزدحم من الشحوم؟",
+          "expected_entry_ids": [
+            "cleaning:kitchen-exhaust-inspection-frequency"
+          ]
+        },
+        {
+          "q_en": "One company quotes marble crystallisation and another quotes grinding and polishing. Are they the same job?",
+          "q_ar": "شركة تعرض بلورة الرخام وأخرى تعرض جلخاً وتلميعاً، فهل هما العمل نفسه؟",
+          "expected_entry_ids": [
+            "cleaning:marble-grinding-honing-polishing-crystallisation"
+          ]
+        },
+        {
+          "q_en": "Our office carpet tiles must be usable next morning. Which cleaning method?",
+          "q_ar": "يجب أن يكون سجاد مكتبنا صالحاً للاستخدام صباح اليوم التالي، فأي طريقة تنظيف نختار؟",
+          "expected_entry_ids": [
+            "cleaning:carpet-hot-water-extraction-vs-encapsulation"
+          ]
+        }
       ]
     }
   }
