@@ -7,14 +7,14 @@
 // throughput comes from invocations, never from a bigger batch.
 //
 //   node scripts/kb/drain_authoritative_embeddings.mjs [--kinds=trade,regulation,material] [--max=600]
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 
 const PROD = 'htdblwldjkcgjvmqkbeh';
 const arg = (n, d) => (process.argv.find(a => a.startsWith(`--${n}=`)) || `--${n}=${d}`).split('=').slice(1).join('=');
 const KINDS = arg('kinds', 'trade,regulation,material').split(',').filter(Boolean);
 const MAX = Number(arg('max', 600));
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 
 const q = async (sql) => {
   const r = await fetch(`https://api.supabase.com/v1/projects/${PROD}/database/query`, {

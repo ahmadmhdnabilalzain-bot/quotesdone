@@ -12,6 +12,7 @@
 // than by copying production, so the corpus stays the single source of truth.
 //
 //   node scripts/kb/import_rules.mjs --ref=<project> --root=<extracted _kbpkgs dir> [--dry]
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -19,8 +20,7 @@ const arg = (n) => (process.argv.find(a => a.startsWith(`--${n}=`)) || '').split
 const REF = arg('ref'), ROOT = arg('root');
 const DRY = process.argv.includes('--dry');
 if (!/^[a-z]{20}$/.test(REF) || !ROOT) throw new Error('--ref and --root are required');
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 async function q(sql, attempt = 0) {

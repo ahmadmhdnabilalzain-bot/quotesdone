@@ -20,6 +20,7 @@
 //
 // Runs with the Node built-in test runner, no dependency to install:
 //   node --test scripts/checks/
+import { SUPABASE_TOKEN_FILE } from '../../lib/supabase_token.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -61,7 +62,7 @@ test('every dispatched action is explicitly classified', () => {
 // file cannot see the whole of the other side and an assertion that it can would fail for a
 // non-reason on every run. The direction that matters is checked: an action the code will dispatch
 // and the database will refuse is the one that reaches a human as a challenge.
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 

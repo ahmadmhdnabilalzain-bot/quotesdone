@@ -16,13 +16,14 @@
 // The defects are the ten the Phase B master prompt names, plus the three this estate has
 // actually shipped before: an owner addressed to a name nobody models, a handoff naming
 // parties who do not own the steps it joins, and an exception escalating to its own detector.
+import { SUPABASE_TOKEN_FILE } from '../../lib/supabase_token.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 
 // Reads and writes PRODUCTION (inside aborted transactions), so it cannot run without a
 // management token, and CI has none. Skipping loudly beats failing the build on a missing
 // credential; the guards it exercises are database constraints, and the next session that runs
 // the sweep exercises them again.
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 if (!(process.env.SUPABASE_ACCESS_TOKEN
       || (existsSync(LOCAL_TOKEN) && readFileSync(LOCAL_TOKEN, 'utf8').trim()))) {
   console.log('SKIPPED: no SUPABASE_ACCESS_TOKEN and no local access token, so the Phase B '

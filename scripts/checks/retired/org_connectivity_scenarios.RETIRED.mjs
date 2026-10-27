@@ -36,9 +36,10 @@
 // No model is called; nothing goes outbound. Verified after authoring: 0 residue on production.
 //
 //   node scripts/checks/org_connectivity_scenarios.test.mjs
+import { SUPABASE_TOKEN_FILE } from '../../lib/supabase_token.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 const PROD = 'htdblwldjkcgjvmqkbeh';
-const LOCAL = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN || (existsSync(LOCAL) ? readFileSync(LOCAL, 'utf8') : '')).trim();
 if (!token) { console.log('SKIPPED: no management token, so this asserted nothing.'); process.exit(0); }
 

@@ -1,0 +1,82 @@
+name: Seat exam (daily) and knowledge-gap audit (weekly)
+
+# Ledgers 1084 and 1200 (19 Oct 2026). Seats: it_engineer (exam), customer_support (audit). The work is Claude's on the
+# SUBSCRIPTION (rulings 1084, 1198: never a paid judge, knowledge authored by Claude): claude-code-action runs with
+# CLAUDE_CODE_OAUTH_TOKEN, the founder's subscription token from `claude setup-token`. The seats' own answers go
+# through production ai_gateway inside each run's capped rehearsal window, as every rehearsal does.
+#
+# Needs two repository secrets: SUPABASE_ACCESS_TOKEN (present) and CLAUDE_CODE_OAUTH_TOKEN (NOT YET SET). Without
+# either the job skips with a notice; nothing runs half-way.
+
+# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
+on:
+  # schedule:
+    # - cron: '0 2 * * *'    # daily 06:00 Dubai: the exam
+    # - cron: '0 3 * * 1'    # Mondays 07:00 Dubai: the gap audit
+  workflow_dispatch:
+    inputs:
+      job: { description: 'exam or audit', required: true, default: 'exam' }
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  run:
+    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    timeout-minutes: 90
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+      JOB: ${{ github.event.inputs.job || (github.event.schedule == '0 3 * * 1' && 'audit' || 'exam') }}
+    steps:
+      - id: gate
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            echo "::notice::CLAUDE_CODE_OAUTH_TOKEN or SUPABASE_ACCESS_TOKEN is not set; the $JOB run is skipped"
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.gate.outputs.skip != '1'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - if: steps.gate.outputs.skip != '1'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with: { node-version: 24 }
+      - if: steps.gate.outputs.skip != '1'
+        uses: denoland/setup-deno@v2
+        with: { deno-version: v2.x }
+      - if: steps.gate.outputs.skip != '1'
+        run: |
+          npm ci --no-audit --no-fund
+          mkdir -p ~/.supabase && printf '%s' "$SUPABASE_ACCESS_TOKEN" > ~/.supabase/access-token
+      - if: steps.gate.outputs.skip != '1' && env.JOB == 'exam'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--allowedTools Bash,Read,Edit,Write,Glob,Grep --max-turns 120'
+          prompt: |
+            You are the it_engineer seat of QuotesDone running the daily model-on knowledge exam (ledger 1084).
+            Follow the header of scripts/eval/seat_exam_llm_on.mjs exactly:
+            1. node scripts/eval/seat_exam_llm_on.mjs plan --per-seat 5 > plan.json
+            2. Write w.json: one FRESH wording per item, different from its question and every used_wording, never hinting at the answer.
+            3. node scripts/eval/seat_exam_llm_on.mjs ask --wordings w.json --cap-usd 3
+            4. For each answer code failed, judge whether it states every expected fact in other words; write j.json {id:{pass,note}}.
+            5. node scripts/eval/seat_exam_llm_on.mjs record --results <results file> --judged j.json
+            6. For every open fix: find why the seat missed (the entry not retrieved, a missing fact, a wrong prompt), make the fix in
+               knowledge/seats/*.json or the prompt, open ONE pull request signed "it_engineer:" with the fixes, and run
+               record --fixed <item>=<knowledge_ingest|prompt>:<PR url> for each. Never edit knowledge/exams to make an item pass.
+            End with one line: "exam <pass>/<asked>, open fixes <n>, PR <url or none>".
+      - if: steps.gate.outputs.skip != '1' && env.JOB == 'audit'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: '--allowedTools Bash,Read,Edit,Write,Glob,Grep --max-turns 150'
+          prompt: |
+            You are the customer_support seat of QuotesDone running the weekly knowledge-gap audit (ledger 1200).
+            1. node scripts/e2e/live_seat_conversations.mjs run --cap-usd 12, then score every transcript yourself (strict senior UAE
+               sales-engineering assessor, 0-10 overall, issues) into judged.json and run score --results <file> --judged judged.json.
+            2. node scripts/e2e/knowledge_gap_audit.mjs list --scored <the .scored.json> > gaps.json
+            3. Confirm each proposed not_a_gap and close it (close --ids ... --status not_a_gap). For every real gap, author the
+               missing knowledge (knowledge/seats or knowledge/packs or the brief), open ONE pull request signed "customer_support:".
+               Close a gap as knowledge_added only after its ingest is live, naming it with --ref.
+            End with one line: "conversations <met>/<n> at 95%, gaps open <n>, PR <url or none>".

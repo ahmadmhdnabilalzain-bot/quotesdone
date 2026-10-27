@@ -6,10 +6,11 @@
 //
 //   node scripts/marketing/social_connect_link.mjs youtube linkedin
 //   node scripts/marketing/social_connect_link.mjs --status      # which clients and tokens are stored (no values)
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 import { PROD_REF } from '../lib/qd_guard.mjs';
 
-const mgmt = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const mgmt = supabaseAccessToken();
 async function sql(query) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${PROD_REF}/database/query`, {
     method: 'POST', headers: { Authorization: 'Bearer ' + mgmt, 'Content-Type': 'application/json' }, body: JSON.stringify({ query }),
