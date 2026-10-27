@@ -1193,9 +1193,9 @@
    "id": "CEO-C14",
    "what": "Keeps the risk register, compliance calendar and vendor register reviewed every month",
    "cadence": "monthly",
-   "duties": [],
-   "status": "missing",
-   "gap": "No ceo.* seat_duty reviews the risk register, the compliance/regulatory calendar or the vendor register; the knowledge exists (ceo:risk-register, ceo:compliance-calendar-annual, ceo:vendor-contract-management) but nothing runs it."
+   "duties": ["ceo.register_review"],
+   "status": "live",
+   "gap": "Closed by ceo.register_review (scripts/sql/the_ceo_closes_the_loops_a_senior_chief_executive_closes.sql), built 19 Oct 2026; measured 27 Oct 2026: enabled, last ok 2026-10-26. The standard still said \"no duty\" until this correction."
   }
  ]
 }

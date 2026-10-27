@@ -8,6 +8,7 @@ CREATE TRIGGER t10_action_execution_set_author BEFORE INSERT ON public.action_ex
 CREATE TRIGGER a00_ad_spend_ceiling_guard BEFORE INSERT ON public.ad_decision FOR EACH ROW EXECUTE FUNCTION fn_ad_spend_ceiling_guard();
 CREATE TRIGGER a00_agent_action_resolve_addressee BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_action_resolve_addressee();
 CREATE TRIGGER a01_handoff_carries_its_note BEFORE INSERT OR UPDATE ON public.agent_actions FOR EACH ROW WHEN (((new.kind = 'handoff'::text) AND (NOT (COALESCE((new.detail -> 'summary'::text), '{}'::jsonb) ?& ARRAY['known'::text, 'tried'::text, 'needed'::text, 'evidence'::text, 'context'::text, 'decision'::text, 'open_asks'::text, 'deadline'::text])))) EXECUTE FUNCTION trg_handoff_carries_its_note();
+CREATE TRIGGER a02_handoff_close_cites_its_note BEFORE INSERT OR UPDATE OF status, evidence ON public.agent_actions FOR EACH ROW WHEN (((new.kind = 'handoff'::text) AND (new.status = 'done'::text))) EXECUTE FUNCTION trg_handoff_close_cites_its_note();
 CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
 CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
 CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
@@ -46,6 +47,7 @@ CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.
 CREATE TRIGGER trg_autonomy_control_guard BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_autonomy_control_guard();
 CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
 CREATE TRIGGER a00_artifact_review_author_is_not_reviewer BEFORE INSERT OR UPDATE ON public.artifact_review FOR EACH ROW EXECUTE FUNCTION fn_artifact_review_valid();
+CREATE TRIGGER a00_assistant_logs_e2e_run_tag BEFORE INSERT ON public.assistant_logs FOR EACH ROW EXECUTE FUNCTION fn_ai_cost_log_e2e_run_tag();
 CREATE TRIGGER z50_support_wire_widget AFTER INSERT ON public.assistant_logs FOR EACH ROW EXECUTE FUNCTION fn_support_wire_widget();
 CREATE TRIGGER z51_support_classify_widget AFTER INSERT OR UPDATE OF answered, matched_ids ON public.assistant_logs FOR EACH ROW EXECUTE FUNCTION fn_support_classify_widget();
 CREATE TRIGGER a06_names_no_supplier BEFORE INSERT OR UPDATE OF title, excerpt, meta_desc, body_html ON public.blog_posts FOR EACH ROW EXECUTE FUNCTION trg_published_text_names_no_supplier();
@@ -317,6 +319,7 @@ CREATE TRIGGER z92_outcome_learning AFTER INSERT ON public.reviews FOR EACH ROW 
 CREATE TRIGGER ingest_case_lessons AFTER INSERT OR UPDATE OF ai_summary ON public.rfq_archives FOR EACH ROW EXECUTE FUNCTION trg_ingest_case_lessons();
 CREATE TRIGGER trg_audit_roles AFTER INSERT OR DELETE OR UPDATE ON public.roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER z10_it_judge_routine_change AFTER INSERT ON public.routine_change_log FOR EACH ROW EXECUTE FUNCTION trg_it_judge_routine_change();
+CREATE TRIGGER a00_sales_decision_log_e2e_run_tag BEFORE INSERT ON public.sales_decision_log FOR EACH ROW EXECUTE FUNCTION fn_ai_cost_log_e2e_run_tag();
 CREATE TRIGGER zz_knowledge_library_mirror_citation AFTER INSERT OR DELETE OR UPDATE OF cited ON public.sales_decision_log FOR EACH ROW EXECUTE FUNCTION fn_knowledge_library_mirror_citation();
 CREATE TRIGGER a10_sales_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.sales_knowledge FOR EACH ROW EXECUTE FUNCTION fn_sales_knowledge_search_vector();
 CREATE TRIGGER z90_sales_knowledge_export_change_del AFTER DELETE ON public.sales_knowledge REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('record_id', 'record_id,record_type,domain,title,content,structured_data,source_ids,epistemic_status,jurisdiction,pack_id,pack_version,record_version,body_sha256,content_sha256,runtime_index_eligible,authority_effect,tags,updated_at,ingested_at,search');
@@ -366,6 +369,7 @@ CREATE TRIGGER z_ml_vectors_stale AFTER UPDATE OF title, body ON public.support_
 CREATE TRIGGER z_ml_vectors_stale_del AFTER DELETE ON public.support_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ml_vectors_stale('support_knowledge', 'record_id');
 CREATE TRIGGER zz_knowledge_library_mirror AFTER INSERT OR DELETE OR UPDATE OF record_id, title, body, tags, language, source_path, pack_id, source_ids, review_status, runtime_index_eligible, embedding_gte ON public.support_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_library_mirror();
 CREATE TRIGGER z50_support_notification_to_outbox BEFORE INSERT ON public.support_notification FOR EACH ROW EXECUTE FUNCTION fn_support_notification_to_outbox();
+CREATE TRIGGER a00_support_reply_readability_e2e_run_tag BEFORE INSERT ON public.support_reply_readability FOR EACH ROW EXECUTE FUNCTION fn_ai_cost_log_e2e_run_tag();
 CREATE TRIGGER z91_judgement_outcome AFTER INSERT ON public.target_verdict FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
 CREATE TRIGGER z20_routine_trade_words_enqueue AFTER INSERT ON public.taxonomy_trade_proposal FOR EACH ROW EXECUTE FUNCTION trg_routine_trade_words_enqueue();
 CREATE TRIGGER trg_accountant_files_reveal_invoice AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_accountant_files_reveal_invoice();
@@ -853,6 +857,8 @@ ALTER TABLE public.model_policy_by_identity ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.model_rate ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.model_registry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.money_move_hold ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notice_plain_language ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notice_plain_language_cause ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notification_copy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notification_type_severity ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
@@ -1018,6 +1024,9 @@ ALTER TABLE public.seat_learning_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_lesson_cluster ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_playbook ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_self_review ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seat_senior_contribution ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seat_senior_exam ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seat_senior_verdict ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_advisor_baseline ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_events ENABLE ROW LEVEL SECURITY;
@@ -1329,6 +1338,8 @@ CREATE POLICY marketing_trend_source_service_role_only ON public.marketing_trend
 CREATE POLICY marketing_video_idea_service_role_only ON public.marketing_video_idea AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY model_catalogue_change_service_role_only ON public.model_catalogue_change AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY money_move_hold_service_role_only ON public.money_move_hold AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY notice_plain_language_service_role_only ON public.notice_plain_language AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY notice_plain_language_cause_service_role_only ON public.notice_plain_language_cause AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY notification_copy_service_role_only ON public.notification_copy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY notification_type_severity_service_role_only ON public.notification_type_severity AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.org_agents AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
@@ -1398,6 +1409,9 @@ CREATE POLICY seat_learning_daily_service_role_only ON public.seat_learning_dail
 CREATE POLICY seat_lesson_cluster_service_role_only ON public.seat_lesson_cluster AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_playbook_service_role_only ON public.seat_playbook AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_self_review_service_role_only ON public.seat_self_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY seat_senior_contribution_service_role_only ON public.seat_senior_contribution AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY seat_senior_exam_service_role_only ON public.seat_senior_exam AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY seat_senior_verdict_service_role_only ON public.seat_senior_verdict AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY service_implication_service_role_only ON public.service_implication AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY signup_purge_service_role_only ON public.signup_purge AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY signup_purge_dropbox_service_role_only ON public.signup_purge_dropbox AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1512,6 +1526,9 @@ select cron.schedule('kb_embed_daily','20 2 * * *',$CRON$set statement_timeout =
 select cron.schedule('seat_duty:ceo.revision_refile','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.revision_refile');$CRON$);
 select cron.schedule('seat_duty:it_engineer.latency_slo','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.latency_slo');$CRON$);
 select cron.schedule('seat_duty:sales_engineer.demand_forecast','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.demand_forecast');$CRON$);
+select cron.schedule('seat_duty:customer_support.notice_plain_language','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.notice_plain_language');$CRON$);
+select cron.schedule('seat_duty:it_engineer.run_clusters','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.run_clusters');$CRON$);
+select cron.schedule('seat_duty:ceo.senior_verdict','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.senior_verdict');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
@@ -1725,6 +1742,7 @@ select cron.schedule('seat_duty:sales_engineer.demand_forecast','*/5 * * * *',$C
 --   postiz_publish_key
 --   project_ref
 --   public_site_url
+--   publishable_key
 --   qa_customer_email
 --   qa_mint_enabled
 --   rating_request_days_after_reveal
