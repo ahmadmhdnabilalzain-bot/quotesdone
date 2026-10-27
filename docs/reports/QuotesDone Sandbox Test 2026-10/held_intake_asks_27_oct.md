@@ -52,7 +52,7 @@ customer typed was never read back by code. Every later turn was the same hold.
   The guards that make this so already existed (`scripts/sql/demo_identities_are_marked_and_never_reach_a_real_person.sql`:
   a demo inquiry and a real supplier are never paired, and every notice about a demo row is captured as suppressed).
 - The ZZ DEMO HVAC supplier downloaded the BOQ PDF: HTTP 200, 99,968 bytes, `%PDF-`.
-- All 16 checks passed.
+- All 13 checks passed (the reproduction run on the deployed function passed 3 of 6).
 
 ## vision_count
 
@@ -70,4 +70,10 @@ worker in this session. GitHub Actions is off, so the worker runs only when the 
 
 ## Spend and cleanup
 
-Spend and cleanup figures are in the PR description, measured after every teardown.
+- Model spend, from `ai_cost_log` by run tag: 6e7828da USD 0.1118 (6 calls), d61c6df5 USD 0.0937 (5 calls),
+  a2af1892 USD 0.2692 (19 calls). **Total USD 0.4747.** Each run's cap was USD 3.
+- Run 6e7828da was killed by its runner's time limit during teardown. It was then torn down by its exact tag with
+  the harness's own teardown.
+- **Counted afterwards for all three tags and both inquiry ids, 0 on every line:** auth users, customers, leads,
+  inquiries, inquiry_matches, intakes, notifications, storage objects naming a tag, an inquiry id or an RFQ number,
+  `spec.not_sure` handoffs, and open rehearsal windows.
