@@ -31,6 +31,8 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';
+import { manifestLines, manifestWithPending } from '../lib/pending_sql.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const REF = 'htdblwldjkcgjvmqkbeh';
@@ -98,13 +100,14 @@ begin
     perform public.fn_customer_support_acts_on_handoff(h);
   exception when others then errs := errs || to_jsonb('sales engineer / customer_support path: ' || sqlerrm);
   end;
-  -- the invoice-ready notice (trg_sales_engineer_tells_customer_invoice_ready on the accountant's handoff)
-  -- (30 Sep 2026) a handoff names its case since #1072 (every_handoff_carries_a_note...); the real one names its transaction
+  -- the invoice-ready notice, through the REAL door: the stored Stripe PDF lands on a sale (doc_path), the
+  -- accountant files it (fn_accountant_files_reveal_invoice) and hands it to the sales engineer, who tells
+  -- the customer. (27 Oct 2026, accountant) This used to hand-write the handoff row; that imitation carried
+  -- no sender, so the 1013 note refused it while the real door worked - the walk measured its own fixture.
   begin
-    insert into public.agent_actions (agent, kind, status, title, detail, target_table, target_id)
-    values ('sales_engineer', 'handoff', 'pending', 'lang walk', jsonb_build_object('subject', 'reveal_invoice', 'customer_id', c_ar), 'transactions', gen_random_uuid()::text);
-    insert into public.agent_actions (agent, kind, status, title, detail, target_table, target_id)
-    values ('sales_engineer', 'handoff', 'pending', 'lang walk', jsonb_build_object('subject', 'reveal_invoice', 'customer_id', c_en), 'transactions', gen_random_uuid()::text);
+    insert into public.transactions (customer_id, doc_path, doc_name)
+    values (c_ar, 'invoices/zz-demo-lang-walk/' || tag || '-ar.pdf', 'ZZ DEMO lang walk invoice.pdf'),
+           (c_en, 'invoices/zz-demo-lang-walk/' || tag || '-en.pdf', 'ZZ DEMO lang walk invoice.pdf');
   exception when others then errs := errs || to_jsonb('invoice-ready path: ' || sqlerrm);
   end;
 
@@ -141,10 +144,28 @@ if (!TOKEN) {
   console.log('  Parts 1 and 2 read production and are NOT asserted in this run. Part 3 (the documents,');
   console.log('  the edge functions and the portals) runs below and still fails this check.');
 } else {
-  const r = await sql(WALK);
-  let msg = r.text; try { const j = JSON.parse(r.text); msg = String(j.message || j.error || r.text); } catch (_e) { /* raw */ }
+  // THE WALK AS IT WILL BE (accountant, 27 Oct 2026). A committed-but-unapplied file that changes a routine on the
+  // walk's path is replayed first, in the same rolled-back request (safe_replay), so a PR is measured against what it
+  // will apply - not only against what production runs today.
+  const applied = new Set(manifestLines());
+  const onPath = /seat_handoff_kind|fn_accountant_files_reveal_invoice|fn_sales_engineer_tells_customer_invoice_ready|fn_sales_engineer_writes|fn_customer_support_acts_on_handoff|fn_supplier_notice|fn_registered_locale|fn_language_mismatch|fn_handoff_summary/;
+  const pendingOnPath = manifestWithPending().filter((f) => !applied.has(f) && !/_probe\.sql$/.test(f) && onPath.test(src(f)));
+  let msg;
+  if (pendingOnPath.length) {
+    console.log(`walk: replayed after ${pendingOnPath.length} pending file(s) on its path: ${pendingOnPath.join(', ')}`);
+    try { await replaySql([...pendingOnPath.map(src), WALK].join('\n;\n'), { label: 'language walk after pending files' }); msg = 'the walk returned without raising'; }
+    catch (e) {
+      msg = String(e?.body ?? e?.message ?? e);
+      const brace = msg.indexOf('{');
+      if (brace >= 0) { try { msg = String(JSON.parse(msg.slice(brace)).message ?? msg); } catch (_e) { /* raw */ } }
+    }
+  } else {
+    const r = await sql(WALK);
+    msg = r.text; try { const j = JSON.parse(r.text); msg = String(j.message || j.error || r.text); } catch (_e) { /* raw */ }
+    if (!/CHK<</.test(msg)) msg = `HTTP ${r.status}: ${msg}`;
+  }
   const m = msg.match(/CHK<<(.*)>>/s);
-  if (!m) fails.push('the walk did not report (HTTP ' + r.status + '): ' + msg.slice(0, 400));
+  if (!m) fails.push('the walk did not report: ' + msg.slice(0, 400));
   else {
     const out = JSON.parse(m[1]);
     for (const e of out.errors) fails.push(e);

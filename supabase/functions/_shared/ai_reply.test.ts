@@ -24,25 +24,28 @@ const req = { seat: 'customer_support' as const, channel: 'email', audience: 'cu
 // prevented by: this test. The brief is given, the model writes the reply, a wrong figure is rewritten BY THE MODEL,
 // and when no model answers the reply is '' — code never supplies text.
 Deno.test('the model writes the reply from the brief', async () => {
-  const s = stub([A('The reveal fee is 3% of the quote you choose, and no card fee is added.')]);
+  const s = stub([A('The reveal fee is 3% of the quote you choose; no card fee is added and no VAT is charged on it.')]);
   const r = await aiReply(s.deps, req);
-  assertEquals(r.reply, 'The reveal fee is 3% of the quote you choose, and no card fee is added.');
-  assert(s.calls[0].system.includes(COMPANY), 'the company brief is in the system prompt');
+  assertEquals(r.reply, 'The reveal fee is 3% of the quote you choose; no card fee is added and no VAT is charged on it.');
+  // founder ruling 1219: the reply class (Sonnet 5.5 > Gemini) and the brief as the cached sys_stable prefix
+  assert(String(s.calls[0].o.sysStable).includes(COMPANY), 'the company brief rides as the cacheable sys_stable block');
+  assert(!s.calls[0].system.includes(COMPANY), 'the varying half does not repeat the brief');
+  assertEquals(s.calls[0].o.taskClass, 'conversation_reply');
 });
 Deno.test('a figure the brief does not state is rewritten by the model', async () => {
-  const s = stub([A('The reveal fee is 5%.'), A('The reveal fee is 3%.')]);
+  const s = stub([A('The reveal fee is 5%.'), A('The reveal fee is 3%, with no card fee and no VAT.')]);
   const r = await aiReply(s.deps, req);
-  assertEquals(r.reply, 'The reveal fee is 3%.');
+  assertEquals(r.reply, 'The reveal fee is 3%, with no card fee and no VAT.');
   assert(s.calls[1].input.includes('the figure 5'));
 });
 Deno.test('a reply that names our machinery is rewritten, never replaced with a canned line', async () => {
-  const s = stub([A('Sorry, circuit_open from openrouter.'), A('The reveal fee is 3%.')]);
-  assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%.');
+  const s = stub([A('Sorry, circuit_open from openrouter.'), A('The reveal fee is 3%, with no card fee and no VAT.')]);
+  assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%, with no card fee and no VAT.');
 });
 Deno.test('the model ladder: route, then another family; nothing answers -> no text', async () => {
-  const s1 = stub([null, A('The reveal fee is 3%.')]);
+  const s1 = stub([null, A('The reveal fee is 3%, with no card fee and no VAT.')]);
   const r1 = await aiReply(s1.deps, req);
-  assertEquals(r1.reply, 'The reveal fee is 3%.');
+  assertEquals(r1.reply, 'The reveal fee is 3%, with no card fee and no VAT.');
   assert('counterpartModel' in s1.calls[1].o);
   const r2 = await aiReply(stub([null, null]).deps, req);
   assertEquals(r2.reply, '');
@@ -65,8 +68,8 @@ Deno.test('another party identity or an unpublished contact is rewritten; the pu
   assert(s.calls[1].input.includes("reveals another party's identity") && s.calls[1].input.includes('contact or licence details'));
 });
 Deno.test('a deferral is rewritten (903)', async () => {
-  const s = stub([A("I'll check and get back to you."), A('The reveal fee is 3%.')]);
-  assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%.');
+  const s = stub([A("I'll check and get back to you."), A('The reveal fee is 3%, with no card fee and no VAT.')]);
+  assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%, with no card fee and no VAT.');
 });
 Deno.test('at most 4 model calls per reply, then no text', async () => {
   const s = stub([A('5% fee.'), A('5% fee.'), A('5% fee.'), A('5% fee.'), A('5% fee.'), A('5% fee.')]);
@@ -79,4 +82,64 @@ Deno.test('escalate and the rate bucket ride on the same call', async () => {
   const r = await aiReply(s.deps, { ...req, askEscalate: true, rateKey: 'wa:+971500000001' });
   assertEquals(r.escalate, true);
   assertEquals(s.calls[0].o.rateKey, 'wa:+971500000001');
+});
+
+// prevented by: this test (sales_engineer, 13 Oct 2026). The knowledge block (BRIEF_TEXT) is in every brief, and its
+// regulation digests state a 5% VAT; a wrong 5% reveal fee must still be refused.
+Deno.test('the knowledge block never licenses a fee figure', async () => {
+  const { BRIEF_TEXT } = await import('./brief.generated.ts');
+  assert(BRIEF_TEXT.includes('5%'), 'precondition: the knowledge block states a 5% figure');
+  const s = stub([A('The reveal fee is 5%.'), A('The reveal fee is 3%, with no card fee and no VAT.')]);
+  assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%, with no card fee and no VAT.');
+  const stable = String(s.calls[0].o.sysShared ?? '') + String(s.calls[0].o.sysStable ?? '');
+  assert(stable.includes('# Conversation playbook:') && stable.includes('How you hold a conversation'), 'the playbooks ride in the cached blocks (sys_shared)');
+  assert(!s.calls[0].system.includes('# Conversation playbook:'), 'and not again in the varying sys');
+});
+
+// prevented by: these tests (review of #1382). The style is sent once (inside BRIEF_TEXT), and nothing written only in
+// the knowledge block -- a figure, a licence-like number -- is licensed by it.
+Deno.test('the conversation style reaches the model exactly once (sys_shared + sys_stable + sys)', async () => {
+  const { CONVERSATION_STYLE } = await import('./brief.generated.ts');
+  const s = stub([A('The reveal fee is 3%, with no card fee and no VAT.')]);
+  await aiReply(s.deps, req);
+  const whole = String(s.calls[0].o.sysShared ?? '') + String(s.calls[0].o.sysStable ?? '') + s.calls[0].system;
+  assertEquals(whole.split(CONVERSATION_STYLE.slice(0, 60)).length - 1, 1);
+});
+Deno.test('a licence number that only the knowledge block states is still refused', async () => {
+  const s = stub([A('Our trade licence is 1633275.'), A('The reveal fee is 3%, with no card fee and no VAT.')]);
+  assertEquals((await aiReply(s.deps, req)).reply, 'The reveal fee is 3%, with no card fee and no VAT.');
+});
+
+// prevented by: this test (13 Oct 2026). Every reply sends the knowledge block as the shared cached block, the rest of
+// the brief as the stable one, on the 1-hour tier; the reply language is in the uncached system text.
+Deno.test('the knowledge block rides as the shared cached block on the 1-hour tier, the language after it', async () => {
+  const { BRIEF_TEXT } = await import('./brief.generated.ts');
+  const s = stub([A('هذا رد.')]);
+  await aiReply(s.deps, { ...req, lang: 'ar' });
+  assertEquals(s.calls[0].o.sysShared, BRIEF_TEXT);
+  assertEquals(s.calls[0].o.cacheTtl, '1h');
+  assert(!String(s.calls[0].o.sysStable).includes(BRIEF_TEXT));
+  assert(s.calls[0].system.includes('Arabic') && !String(s.calls[0].o.sysStable).includes('Gulf Arabic'));
+});
+
+// prevented by: this test. Run c89dc272 (WhatsApp, 18 Oct 2026): conversation_reply came back ok and the customer got
+// the held notice, because an answer wrapped in a fence with surrounding newlines, or after a lead-in sentence, did
+// not JSON.parse and read as "no model answered". Each shape below must yield the answer on the FIRST call.
+Deno.test('an ok answer in a fence, with newlines or a lead-in sentence, is used, not discarded', async () => {
+  const body = 'Installation of aluminium windows on a villa usually takes a few days, depending on the area.';
+  for (const content of [
+    '\n```json\n' + A(body) + '\n```\n',
+    'Here is my reply:\n' + A(body),
+    '  ' + A(body) + '\n',
+  ]) {
+    const s = stub([content]);
+    const r = await aiReply(s.deps, req);
+    assertEquals(r.reply, body, 'discarded: ' + JSON.stringify(content));
+    assertEquals(s.calls.length, 1, 'no second model was asked for an answer we already had');
+  }
+});
+Deno.test('an answer cut at the output cap is still refused, never sent half-written', async () => {
+  const s = stub(['{"answer":"Installation usually takes a few days, depending on', null, null, null]);
+  assertEquals((await aiReply(s.deps, req)).reply, '');
+  assertEquals(s.calls[0].o.max, 900);
 });

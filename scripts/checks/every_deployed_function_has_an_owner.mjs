@@ -23,22 +23,45 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
-const REF = 'htdblwldjkcgjvmqkbeh';
-const mgmt = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync(join(homedir(), '.supabase', 'access-token'), 'utf8')).trim();
+import { pathToFileURL } from 'node:url';
 
-async function sql(q) {
-  const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
-    method: 'POST', headers: { Authorization: 'Bearer ' + mgmt, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: q }),
-  });
-  const t = await r.text();
-  try { return JSON.parse(t); } catch { throw new Error(t.slice(0, 300)); }
+import { sql, THROTTLED } from '../lib/db.mjs';
+import { withRetry } from '../lib/retry.mjs';
+
+const REF = 'htdblwldjkcgjvmqkbeh';
+
+// A READ THAT IS NOT A LIST IS NEVER A RESULT (19 Oct 2026, PR #1210's parity run). The management API
+// answered 429 and the error body reached `owned.map`, which crashed with "owned.map is not a
+// function": red for the wrong reason, and one refactor away from green for the wrong reason (an
+// error body defaulted to [] reads as "nothing owned"). Both reads now retry a throttle (db.mjs sql
+// backs off on 429/5xx; the functions list goes through withRetry), and anything still not an array
+// stops the check with exit 2 and a message naming what was not measured. Never a pass.
+export function mustBeList(what, value) {
+  // An EMPTY list is not measured either: a wrong ref, a token that lists nothing or a blank page would pass vacuously.
+  if (Array.isArray(value) && value.length > 0) return value;
+  throw new Error(`${what} did not return a non-empty list, so nothing was measured: ${JSON.stringify(value).slice(0, 300)}`);
 }
 
-const deployed = (await (await fetch(`https://api.supabase.com/v1/projects/${REF}/functions`,
-  { headers: { Authorization: 'Bearer ' + mgmt } })).json()).map((f) => f.slug);
-const owned = await sql('select function_slug, owner from public.function_owner');
+async function listFunctions() {
+  const mgmt = (process.env.SUPABASE_ACCESS_TOKEN
+    || readFileSync(join(homedir(), '.supabase', 'access-token'), 'utf8')).trim();
+  return withRetry(async () => {
+    const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/functions`, { headers: { Authorization: 'Bearer ' + mgmt } });
+    const t = await r.text();
+    if (!r.ok) throw new Error(`${r.status === 429 ? THROTTLED + ' ' : ''}functions list HTTP ${r.status}: ${t.slice(0, 300)}`);
+    return mustBeList('the deployed functions list', JSON.parse(t));
+  }, 6, 3000);
+}
+
+async function main() {
+let deployed; let owned;
+try {
+  deployed = (await listFunctions()).map((f) => f.slug);
+  owned = mustBeList('public.function_owner', await sql('select function_slug, owner from public.function_owner'));
+} catch (e) {
+  console.error(`\nNOT MEASURED: ${e.message}`);
+  process.exit(2);
+}
 const ownerOf = new Map(owned.map((r) => [r.function_slug, r.owner]));
 
 const unowned = deployed.filter((s) => !ownerOf.has(s)).sort();
@@ -64,3 +87,6 @@ if (!unowned.length && !stale.length) {
   console.log('\nEvery deployed function names an owner, and every owner has a subject.');
 }
 process.exit(unowned.length || stale.length ? 1 : 0);
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1]).href) await main();

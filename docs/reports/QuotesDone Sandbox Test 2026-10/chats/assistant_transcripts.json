@@ -1,0 +1,90 @@
+[
+ {
+  "who": "visitor",
+  "lang": "en",
+  "msg": "How much does it cost to reveal a supplier?",
+  "reply": {
+   "reply": "Revealing a supplier costs a 3% reveal fee on the final quoted price of the quote you choose, calculated after any discount the supplier states and before VAT. There is no cap. For example, if a supplier's quote is AED 2,000 and AED 1,700 after discount, the fee is 3% of 1,700, which is AED 51.\n\nYou see the full amount before you pay. No card fee and no VAT are added to it, and posting and comparing quotes is free.\n\nAre you planning to post a job, or looking at how it works for suppliers?",
+   "scope": "public",
+   "routed": "brief",
+   "routed_seat": "customer_support",
+   "model": "anthropic/claude-sonnet-5.5",
+   "attempts": [
+    "stream:ok"
+   ]
+  },
+  "ms": 11602,
+  "route": "visitor_chat:anthropic/claude-sonnet-5.5"
+ },
+ {
+  "who": "visitor",
+  "lang": "ar",
+  "msg": "كم رسوم كشف بيانات المورد؟",
+  "reply": {
+   "reply": "رسوم كشف بيانات المورد 3٪ من السعر النهائي للعرض الذي تختاره، قبل ضريبة القيمة المضافة وبعد أي خصم يذكره المورد، دون حد أقصى. مثال: عرض 2,000 درهم، وبعد الخصم 1,700 درهم، تكون الرسوم 51 درهمًا.\n\nيظهر المبلغ كاملًا قبل الدفع، ولا تُضاف رسوم بطاقة ولا ضريبة قيمة مضافة على هذه الرسوم. نشر الطلب ومقارنة العروض مجانيان، ولا تدفع إلا عند اختيارك الكشف عن مورد.\n\nهل تريد أن أشرح لك كيف تتم المقارنة قبل الكشف؟",
+   "scope": "public",
+   "routed": "brief",
+   "routed_seat": "customer_support",
+   "model": "anthropic/claude-sonnet-5.5",
+   "attempts": [
+    "stream:ok"
+   ]
+  },
+  "ms": 7472,
+  "route": "visitor_chat:anthropic/claude-sonnet-5.5"
+ },
+ {
+  "who": "customer",
+  "lang": "en",
+  "msg": "Where do I see my quotes?",
+  "reply": {
+   "reply": "Open \"My requests\" in your portal and select your Dubai aluminium request. All 3 quotes received for it are listed there, anonymous, with the top-3 comparison report.\n\nYou have already paid the 3% reveal fee on the quote you chose. No card fee was added to it and no VAT is charged on it. That one supplier's name and contact details are now unlocked on the request.\n\nYour timeline also shows a refund request was logged against this reveal (reference 77478, supplier unresponsive). Every refund is decided by QuotesDone's CEO and none is automatic, so I can't promise the outcome. If approved, banks take 7-14 working days to show it.\n\nDo you want me to compare the quotes for you, or explain how the refund process works?",
+   "scope": "customer",
+   "routed": "brief",
+   "routed_seat": "sales_engineer",
+   "model": "anthropic/claude-sonnet-5.5",
+   "attempts": [
+    "stream:figures it states the 3% fee without saying, in so many words, that no card fee is added,it states the 3% fee without saying, in so many words, that no VAT is charged on it",
+    "rewrite:ok"
+   ]
+  },
+  "ms": 23141,
+  "route": "routine_employee_reasoning:openai/gpt-6-luna-pro customer_portal_assistant:anthropic/claude-sonnet-5.5 routine_employee_reasoning:openai/gpt-6-luna-pro"
+ },
+ {
+  "who": "customer",
+  "lang": "ar",
+  "msg": "أين أجد عروض الأسعار؟",
+  "reply": {
+   "reply": "طلبك (توريد وتركيب لوحات توزيع ومجاري كابلات في فيلا بأبوظبي) حالته \"مُرسَل\"، ولم يصلك أي عرض حتى الآن، ولم يصل الطلب إلى أي مورد بعد. عند وصول العروض ستجدها في بوابتك: افتح \"طلباتي\" ثم اختر الطلب، وستظهر كل العروض دون كشف هوية الموردين، مع تقرير المقارنة لأفضل ثلاثة عروض، وتصلك إشعارات عند وصول كل عرض. المعتاد أن تصل العروض خلال 3 إلى 5 أيام عمل.\n\nالاطلاع على العروض ومقارنتها مجاني. ولا يظهر اسم المورد وبيانات التواصل معه إلا إذا اخترت عرضاً ودفعت رسوم الكشف البالغة 3٪ من السعر النهائي للعرض بعد أي خصم وقبل ضريبة القيمة المضافة. ولا تُضاف إلى هذه الرسوم أي رسوم بطاقة، ولا تُفرض عليها ضريبة قيمة مضافة، ويظهر لك المبلغ كاملاً قبل الدفع.",
+   "scope": "customer",
+   "routed": "brief",
+   "routed_seat": "sales_engineer",
+   "model": "anthropic/claude-sonnet-5.5",
+   "attempts": [
+    "stream:figures it states the 3% fee without saying, in so many words, that no card fee is added,it states the 3% fee without saying, in so many words, that no VAT is charged on it",
+    "rewrite:ok"
+   ]
+  },
+  "ms": 16094,
+  "route": "customer_communication:openai/gpt-6-luna-pro routine_employee_reasoning:openai/gpt-6-luna-pro customer_communication:openai/gpt-6-luna-pro customer_portal_assistant:anthropic/claude-sonnet-5.5"
+ },
+ {
+  "who": "supplier",
+  "lang": "en",
+  "msg": "How do I submit a revised quote?",
+  "reply": {
+   "reply": "Your quote on RFQ 159257 has already been revealed, so it can no longer be refreshed or withdrawn through the portal. Once a customer reveals a supplier, the revealed quotation binds you within its validity, and any change is agreed directly with the customer.\n\nFor a quote that has not yet been revealed, the steps are: in the supplier portal, open \"Inquiries received\" and open the job. Either press \"Send your quotation to the sales engineer\" and attach the revised file, then press \"Submit to Job <job number>\", or press \"Or type it into the quote form\" and send it from the form. The new submission replaces the earlier one for that option, and it is checked again.\n\nDo you need to change something on the revealed quote, such as scope or timing? If so, I can tell you how to raise it with the customer.",
+   "scope": "supplier",
+   "routed": "brief",
+   "routed_seat": "sales_engineer",
+   "model": "anthropic/claude-sonnet-5.5",
+   "attempts": [
+    "stream:figures the figure AED 118500 (the brief states no such fee, price or rate)",
+    "rewrite:ok"
+   ]
+  },
+  "ms": 13713,
+  "route": "customer_communication:openai/gpt-6-luna-pro customer_portal_assistant:anthropic/claude-sonnet-5.5"
+ }
+]

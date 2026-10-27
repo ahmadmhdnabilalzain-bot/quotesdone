@@ -25,16 +25,21 @@
 import type { Cell, Extracted } from '../_shared/doc_read/types.ts';
 import { scrubIdentity } from '../drawing_boq/boq_from_text.ts';
 import { OPTION_HEAD, optionAmount, optionNumber, splitOptions } from '../_shared/line_specs/options.ts';
-import { readVat, type VatTreatment } from '../_shared/line_specs/vat.ts';
+import type { VatTreatment } from '../_shared/line_specs/vat.ts';
+import { AFTER_DISCOUNT, statedPrice } from '../_shared/stated_price.ts';
 import type { QuoteTermKey } from '../_shared/reasoned_suppliers.ts';
 
 export type QuoteLine = { description: string; qty: string; amount: number | null; option?: number; /** A "Specification" column, when the file has one. */ specification?: string };
 export type Proposal = {
+  /** Why no amount was taken although figures were found: the total is held for the supplier to state (#1562). */
+  review_reason?: 'total_without_currency' | 'conflicting_totals' | 'option_total_mismatch' | null;
   amount: number | null; currency: 'AED'; line_items: QuoteLine[]; lead_time: string; validity: string;
   payment_terms: string; warranty: string; scope: string; conditions: string; exclusions: string; notes: string;
   description_anonymized: string; masked_terms: string[]; confidence: 'low'; method: 'document';
   /** Internal record only; never shown to a customer. */
   subtotal: number | null; vat_amount: number | null; total_incl_vat: number | null; vat_treatment: VatTreatment; price_ex_vat: number | null; trn: string | null;
+  /** Ruling 1207: the supplier's discount exactly as stated (null when none). */
+  gross_amount: number | null; discount_amount: number | null; discount_label: string | null;
   options: { option_no: number; amount: number | null }[]; option_totals: Record<string, number>;
 };
 
@@ -62,7 +67,11 @@ const SUBTOTAL = /sub\s*-?\s*total|total\s*(?:before|excl\w*\.?)\s*(?:of\s*)?vat
 const TOTAL = /(grand\s*total|net\s*total|total\s*amount|total\s*\(?incl|^\s*total\b|الإجمالي|المجموع)/i;
 const VAT = /(vat|tax|ضريبة)/i;
 
-type Table = { lines: QuoteLine[]; totals: Record<string, number>; subtotal: number | null; vat: number | null };
+// A discount row (ruling 1207): kept as the supplier's discount, never a priced line and never folded into the terms.
+// `total_first`: the only total written came before the discount, so it is the price before the discount.
+type Disc = { amount: number; label: string; net: number | null; total_first: boolean };
+type Table = { lines: QuoteLine[]; totals: Record<string, number>; subtotal: number | null; vat: number | null; discount?: Disc | null };
+const DISCOUNT = /discount|rebate|\u062E\u0635\u0645/i;
 function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null {
   for (let r = 0; r < Math.min(rows.length, 30); r++) {
     const cols: Partial<Record<Col, number>> = {};
@@ -71,6 +80,7 @@ function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null 
     const lines: QuoteLine[] = [];
     const totals: Record<string, number> = {}; const grand: Record<string, boolean> = {};
     let subtotal: number | null = null, vat: number | null = null, cur: number | null = null, seq = 0;
+    let discount: Disc | null = null;
     for (const row of rows.slice(r + 1)) {
       const at = (k: Col) => (cols[k] === undefined ? '' : row[cols[k]!]);
       const raw = String(at('desc') ?? '').trim();
@@ -85,6 +95,12 @@ function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null 
         lines.push({ description: desc.slice(0, 300), qty: '', amount: null, option: cur });
         continue;
       }
+      if (DISCOUNT.test(label) && !AFTER_DISCOUNT.test(label)) {
+        const v = lastNum();
+        if (v != null && cur == null) discount = { amount: Math.abs(v), label: clean(raw || label).replace(/[\s:–-]+$/, '').slice(0, 80), net: null, total_first: totals.all != null };
+        continue;
+      }
+      if (discount && AFTER_DISCOUNT.test(label)) { const v = lastNum(); if (v != null && cur == null) { discount.net = v; discount.total_first = false; } }
       if (SUBTOTAL.test(label)) { const v = lastNum(); if (v != null && cur == null) subtotal = v; continue; }
       if (VAT.test(label) && !/incl/i.test(label) && !TOTAL.test(label)) { const v = lastNum(); if (v != null && cur == null) vat = v; continue; }
       if (TOTAL.test(label)) {
@@ -97,7 +113,7 @@ function tableQuote(rows: Cell[][], clean: (s: string) => string): Table | null 
       const spec = clean(String(at('spec') ?? '').trim()).slice(0, 300);
       lines.push({ description: desc.slice(0, 300), qty: [at('qty'), at('unit')].map((x) => String(x ?? '').trim()).filter(Boolean).join(' ').slice(0, 40), amount, ...(spec ? { specification: spec } : {}), ...(cur != null ? { option: cur } : {}) });
     }
-    if (lines.some((l) => l.amount != null || l.qty)) return { lines, totals, subtotal, vat };
+    if (lines.some((l) => l.amount != null || l.qty)) return { lines, totals, subtotal, vat, discount };
   }
   return null;
 }
@@ -119,10 +135,14 @@ const TEXT_LINE = new RegExp(String.raw`^\s*(?:(\d{1,3})[.)]?\s+)?(.+?)\s{1,}${N
 const TOTAL_ROW = /^\s*(?:sub\s*-?\s*total|total|grand\s*total|net\s*total|vat|tax|discount|الإجمالي|المجموع|ضريبة|خصم)\b/i;
 export function linesFromText(text: string, clean: (s: string) => string = (s) => s): QuoteLine[] {
   const out: QuoteLine[] = [];
+  // An option heading in the text ("Option 2 - National Paints") numbers the priced lines under it, as the table
+  // reader does; without it a two-option PDF came back as one quotation (QA walk, 19 Oct 2026).
+  let cur: number | null = null, seq = 0;
   for (const raw of String(text || '').split('\n')) {
     const line = raw.replace(/\s+/g, ' ').trim();
     if (!line || TOTAL_ROW.test(line)) continue;
     const m = line.match(TEXT_LINE);
+    if (!m && OPTION_HEAD.test(line)) { cur = optionNumber(line, seq + 1); seq = Math.max(seq, cur); out.push({ description: line.slice(0, 300), qty: '', amount: null, option: cur }); continue; }
     if (!m) continue;
     const desc = clean(m[2].replace(/[\s,;:–-]+$/, ''));
     if (!/\p{L}{3,}/u.test(desc)) continue;
@@ -131,24 +151,64 @@ export function linesFromText(text: string, clean: (s: string) => string = (s) =
     // two figures: rate then amount; one figure: the amount (a rate alone would need a quantity to multiply)
     const amount = b != null ? b : (a != null && qty != null ? Math.round(a * qty * 100) / 100 : a);
     if (qty == null || amount == null) continue;
-    out.push({ description: desc.slice(0, 300), qty: `${qty} ${unit}`.slice(0, 40), amount });
+    out.push({ description: desc.slice(0, 300), qty: `${qty} ${unit}`.slice(0, 40), amount, ...(cur != null ? { option: cur } : {}) });
   }
   return out;
 }
-/** Subtotal, VAT amount and total written in prose, even side by side on one line. */
-function totalsFromText(text: string): { subtotal: number | null; vat: number | null; total: number | null } {
+const LABEL_BEFORE = /(?:option|opt\.?|alternative|alt\.?|item|line|no\.?|#|البديل|الخيار|خيار|بديل|رقم)\s*$/i;
+const OPTION_IN_LINE = /(?:option|alternative|alt\.?|choice|offer)\s*(?:no\.?|#)?\s*(?:\d{1,2}|[a-e]\b|one|two|three|four|five)|(?:البديل|الخيار|خيار|بديل)\s*(?:رقم\s*)?(?:[0-9٠-٩]{1,2}|الأول|الاول|الثاني|الثالث|الرابع)/i;
+// THE FIGURE AFTER A TOTAL LABEL (QA walk, 19 Oct 2026; #1562 review). "Total Option 1: AED 11730" was read as AED 1.
+// A total is the figure written WITH its currency; with none, the first figure that is not a label (option / item /
+// line / no. / #), a reference ("QD-10234"), a year ("(2026)"), a quantity with its unit ("450 m2") or a rate ("5%").
+// A total read without any currency is reported as such, so the caller holds it for review instead of guessing.
+const CUR_BEFORE = new RegExp(CUR.replace(/\)\?$/, ')') + String.raw`\s*$`, 'i');
+const CUR_AFTER = new RegExp(String.raw`^\s*` + CUR.replace(/\)\?$/, ')'), 'i');
+const UNIT_AFTER = /^\s*(?:m2|m²|m3|sq\.?\s*m|sqm|sqft|lm|rm|m\b|nos?\b|pcs\b|pieces\b|units?\b|kg\b|l\b|ltrs?\b|tons?\b|coats?\b|days?\b|weeks?\b|months?\b|years?\b|%)/i;
+const REF_BEFORE = /[A-Za-z]{1,8}[-/]\s*$/;
+const YEAR = /^(?:19|20)\d{2}$/;
+export function figureOf(rest: string): { value: number; currency: boolean } | null {
+  const s = String(rest || '');
+  let first: number | null = null;
+  for (const m of s.matchAll(new RegExp(NUM, 'g'))) {
+    const at = m.index ?? 0, before = s.slice(0, at), after = s.slice(at + m[0].length);
+    if (CUR_BEFORE.test(before) || CUR_AFTER.test(after)) return { value: num(m[0])!, currency: true };
+    if (first != null) continue;
+    if (/[A-Za-z]$/.test(before) || LABEL_BEFORE.test(before) || REF_BEFORE.test(before) || UNIT_AFTER.test(after) || (YEAR.test(m[0]) && (/[(/]\s*$/.test(before) || /^\s*[)/]/.test(after)))) continue;
+    first = num(m[0]);
+  }
+  return first == null ? null : { value: first, currency: false };
+}
+export const figureAfter = (rest: string): number | null => figureOf(rest)?.value ?? null;
+/** Subtotal, VAT amount and total written in prose, even side by side on one line; a per-option total by its option. */
+export type TextTotals = { subtotal: number | null; vat: number | null; total: number | null; options: Record<string, number>; ambiguous: string | null };
+export function totalsFromText(text: string): TextTotals {
   const t = String(text || '');
   const pick = (re: RegExp) => { const m = t.match(re); return m ? num(m[1]) : null; };
   const subtotal = pick(new RegExp(String.raw`(?:sub\s*-?\s*total|total\s*(?:before|excl\w*\.?)\s*(?:of\s*)?vat|المجموع الفرعي|الإجمالي قبل الضريبة|الإجمالي غير شامل)\s*:?\s*${CUR}\s*${NUM}`, 'i'));
   const vat = pick(new RegExp(String.raw`\b(?:vat|tax|ضريبة(?:\s*القيمة\s*المضافة)?)\s*(?:@|at|بنسبة)?\s*(?:\d+(?:\.\d+)?\s*%)?\s*:?\s*${CUR}\s*${NUM}`, 'i'));
-  let total: number | null = null;
-  for (const m of t.matchAll(/(grand\s*total|net\s*total|total\s*amount|total\s*\(?incl[^\n:]*|\btotal\b|الإجمالي|المجموع)[^\d\n]{0,40}([\d][\d,]*(?:\.\d+)?)/gi)) {
-    if (VAT.test(m[0]) && !/incl/i.test(m[0])) continue;
-    if (SUBTOTAL.test(m[0])) continue;
-    const v = num(m[2]);
-    if (v != null && (total == null || /grand|net|incl/i.test(m[1]))) total = v;
+  let total: number | null = null, noCurrency = false;
+  const options: Record<string, number> = {};
+  const seen: { v: number; decisive: boolean }[] = [];
+  for (const m of t.matchAll(/(grand\s*total|net\s*total|total\s*amount|total\s*\(?incl[^\n:]*|\btotal\b|الإجمالي|المجموع)([^\n]*)/gi)) {
+    const head = m[1] + m[2].slice(0, 40);
+    if (VAT.test(head) && !/incl/i.test(head)) continue;
+    if (SUBTOTAL.test(head)) continue;
+    const f = figureOf(m[2]);
+    if (f == null) continue;
+    const v = f.value;
+    if (!f.currency) noCurrency = true;
+    // "Total Option 2 - National Paints: AED 8,940" is that option's total, never the quotation's.
+    const opt = m[2].match(OPTION_IN_LINE);
+    if (opt) { options[String(optionNumber(opt[0].trim(), Object.keys(options).length + 1))] = v; continue; }
+    seen.push({ v, decisive: /grand|net|incl/i.test(m[1]) });
+    if (total == null || /grand|net|incl/i.test(m[1])) total = v;
   }
-  return { subtotal, vat, total };
+  // HELD, NEVER GUESSED (#1562 review): a total with no currency, or totals that disagree with nothing to decide
+  // between them (not exactly one grand / net / incl. total), is not taken as the price.
+  const values = new Set(seen.map((x) => x.v)), decisive = new Set(seen.filter((x) => x.decisive).map((x) => x.v));
+  // A conflict is recorded before a missing currency: corroboration by the lines may excuse a missing currency, never a conflict.
+  const ambiguous = values.size > 1 && decisive.size !== 1 ? 'conflicting_totals' : (noCurrency ? 'total_without_currency' : null);
+  return { subtotal, vat, total, options, ambiguous };
 }
 
 // A note row ("Exclusions: electrical fittings, painting of walls, scaffolding above 4m") is one
@@ -207,11 +267,14 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
   const textTotal = tt.total;
   // No table at all (a PDF's text layer, a plain email): the priced lines are read from the text.
   let b = best as Table | null;
-  if (!b) { const tl = linesFromText(text, clean); if (tl.length) b = { lines: tl, totals: {}, subtotal: null, vat: null }; }
+  if (!b) { const tl = linesFromText(text, clean); if (tl.length) b = { lines: tl, totals: { ...tt.options }, subtotal: null, vat: null }; }
   const plain = b ? b.lines.filter((l) => l.amount != null || l.qty) : [];
   const sum = plain.reduce((s, l) => s + (l.amount || 0), 0);
   const gross = b?.totals.all ?? textTotal ?? (sum > 0 ? Math.round(sum * 100) / 100 : null);
-  const vat = readVat({ amount: gross, subtotal: b?.subtotal ?? tt.subtotal, vat_amount: b?.vat ?? tt.vat, text });
+  const dsc = b?.discount ?? null;
+  // Ruling 1208: the price after the stated discount, excluding VAT, is the price compared and the fee base.
+  const vat = statedPrice({ amount: gross, subtotal: b?.subtotal ?? tt.subtotal, vat_amount: b?.vat ?? tt.vat, text,
+    discount_amount: dsc?.amount ?? null, discount_label: dsc?.label ?? null, net_amount: dsc?.net ?? null, amount_is_gross: !!dsc?.total_first });
   const option_totals: Record<string, number> = {};
   for (const [k, v] of Object.entries(b?.totals ?? {})) if (k !== 'all') option_totals[k] = v;
   const split = b && b.lines.some((l) => l.option != null) ? splitOptions(b.lines, option_totals) : [];
@@ -220,9 +283,26 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
     amount: options.length ? options[0].amount : (vat.price_ex_vat ?? gross), currency: 'AED', line_items: b ? b.lines.slice(0, 200) : [],
     lead_time: '', validity: '', payment_terms: '', warranty: '', scope: '', conditions: '', exclusions: '', description_anonymized: '', masked_terms: [], confidence: 'low', method: 'document',
     notes: `Read from the ${ex.kind.toUpperCase()} file with no model${b ? `: ${plain.length} priced line(s)` : ''}${options.length ? `, ${options.length} options (each is sent as its own quotation)` : ''}. Please check every figure before sending.`,
-    subtotal: b?.subtotal ?? null, vat_amount: vat.vat_amount, total_incl_vat: vat.vat_amount && gross ? gross : null, vat_treatment: vat.treatment,
+    subtotal: b?.subtotal ?? null, vat_amount: vat.vat_amount, total_incl_vat: vat.vat_amount && vat.total_as_stated ? vat.total_as_stated : null, vat_treatment: vat.treatment,
     price_ex_vat: options.length ? null : vat.price_ex_vat, trn: vat.trn, options, option_totals,
+    gross_amount: options.length ? null : vat.gross_amount, discount_amount: options.length ? null : vat.discount_amount, discount_label: options.length ? null : vat.discount_label,
   };
+  // HELD FOR REVIEW, NEVER GUESSED (#1562 review). An option whose stated total disagrees with the sum of its own
+  // lines, or a text total read with no currency or among totals that disagree, is not pre-filled as the price.
+  const sumOf = (k: string) => (b?.lines ?? []).filter((l) => String(l.option) === k).reduce((x, l) => x + (l.amount || 0), 0);
+  const mismatch = options.length > 0 && Object.entries(option_totals).some(([k, v]) => { const t = sumOf(k); return t > 0 && Math.abs(t - v) > 1; });
+  // A total written without a currency is still taken when the priced lines add up to it: the lines corroborate
+  // it ("Total 15000" under lines of 11,400 and 3,600). Uncorroborated, it is held.
+  // The same file's table text and plain text can both carry a line, so the lines are counted once each.
+  const uniqueSum = [...new Map(plain.map((l) => [`${l.description}|${l.qty}|${l.amount}`, l.amount || 0])).values()].reduce((x, y) => x + y, 0);
+  const corroborated = uniqueSum > 0 && textTotal != null && Math.abs(uniqueSum - textTotal) <= 1;
+  const textDoubt = tt.ambiguous === 'total_without_currency' && corroborated ? null : tt.ambiguous;
+  const review = mismatch ? 'option_total_mismatch' : (!best && textTotal != null && gross === textTotal ? textDoubt : null);
+  if (review) {
+    p.review_reason = review as Proposal['review_reason'];
+    p.amount = null; p.price_ex_vat = null; p.gross_amount = null; p.options = [];
+    p.notes += ' The total could not be read with certainty (' + review.replace(/_/g, ' ') + '): please type the total yourself.';
+  }
   // THE TERMS (lead time, validity, payment, warranty, exclusions, installation / conditions) are what the
   // file MEANS, so they are not read here by label patterns (founder_instruction 886-903): quote_extract
   // reasons them from quoteText() (_shared/reasoned_suppliers.ts quoteTerms) and passes them in as `read`.

@@ -1,0 +1,97 @@
+{
+  "trade": "optical_eyewear",
+  "entries": [
+    {
+      "id": "optical_eyewear:spec-checklist",
+      "topic": "Optical & eyewear - what the buyer must state",
+      "topic_ar": "البصريات والنظارات: ما يجب أن يحدده المشتري",
+      "kind": "spec_checklist",
+      "body_en": "For optical & eyewear (trade code optical_eyewear only), every quoted line must state: Product type (frames, ophthalmic lenses, contact lenses, sunglasses, equipment); Brand and model or design; Material; Lens index, design and coatings; Prescription range or power availability; Sizes and colours; Quantity; Registration or conformity documents; Expiry or sterility for contact lenses; Warranty; Delivery terms; Lead time. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط البصريات والنظارات (رمز النشاط optical_eyewear فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المنتج (إطارات، عدسات طبية، عدسات لاصقة، نظارات شمسية، معدات)؛ العلامة والموديل أو التصميم؛ المادة؛ معامل العدسة وتصميمها وطلاءاتها؛ مدى الوصفة أو توفر القوة؛ المقاسات والألوان؛ الكمية؛ مستندات التسجيل أو المطابقة؛ تاريخ الانتهاء أو التعقيم للعدسات اللاصقة؛ الضمان؛ شروط التسليم؛ مدة التوريد. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Product type (frames, ophthalmic lenses, contact lenses, sunglasses, equipment)",
+        "Brand and model or design",
+        "Material",
+        "Lens index, design and coatings",
+        "Prescription range or power availability",
+        "Sizes and colours",
+        "Quantity",
+        "Registration or conformity documents",
+        "Expiry or sterility for contact lenses",
+        "Warranty",
+        "Delivery terms",
+        "Lead time"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Contact_lens"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
+      "source_note": "Checklist authored from sales-engineering practice; the product attributes it names were checked against the page opened 2026-10-19: soft hydrogel and silicone hydrogel versus rigid gas permeable lenses; coloured lenses need a prescription."
+    },
+    {
+      "id": "optical_eyewear:product-distinctions",
+      "topic": "Eyewear: frames, ophthalmic lenses, contact lenses and sunglasses",
+      "topic_ar": "النظارات: الإطارات والعدسات الطبية والعدسات اللاصقة والنظارات الشمسية",
+      "kind": "product_distinctions",
+      "body_en": "Frames come in acetate, metal (stainless, monel, titanium, beta-titanium), TR90 and other light plastics, rimless and semi-rimless, sized by eye size, bridge and temple length. Ophthalmic lenses are chosen by material and index (CR-39 at 1.50, polycarbonate and Trivex for impact resistance, high-index 1.60-1.74 for thinner strong prescriptions), design (single vision, bifocal, progressive or varifocal, office lenses) and coatings (anti-reflective, scratch-resistant, blue-light filtering, photochromic, polarised for sun). Contact lenses are soft (hydrogel, and silicone hydrogel with higher oxygen permeability) or rigid gas permeable, in daily, two-weekly and monthly replacement, toric for astigmatism and multifocal; coloured contact lenses also require a prescription because they are a medical product, and lens care solutions match the lens type. Sunglasses are judged by UV protection (UV400), lens category for light transmission and polarisation. Optical shops also buy edging machines, auto-refractors, lensmeters and slit lamps. Contact lenses and solutions are medical products that need registration and are sold under prescription; buyers check expiry and sterility.",
+      "body_ar": "تأتي الإطارات من الأسيتات، أو المعدن (الستانلس، المونيل، التيتانيوم، البيتا تيتانيوم)، أو TR90 وغيره من البلاستيك الخفيف، وبدون إطار أو بنصف إطار، وتُحدد بمقاس العين والجسر وطول الذراع. وتُختار العدسات الطبية حسب المادة والمعامل (CR-39 عند 1.50، والبولي كربونات وTrivex لمقاومة الصدم، والمعامل العالي 1.60-1.74 للوصفات القوية الأرق)، والتصميم (رؤية واحدة، ثنائية البؤرة، متعددة البؤر أو تدريجية، عدسات المكتب)، والطلاءات (مضاد للانعكاس، مقاوم للخدش، مرشح للضوء الأزرق، متغير اللون، مستقطب للشمس). والعدسات اللاصقة لينة (هيدروجيل، وسيليكون هيدروجيل بنفاذية أكسجين أعلى) أو صلبة نافذة للغاز، بتغيير يومي أو كل أسبوعين أو شهري، وتوريكية للاستجماتيزم ومتعددة البؤر؛ والعدسات الملونة تحتاج وصفة أيضاً لأنها منتج طبي، ومحاليل العناية تطابق نوع العدسة. وتُقيّم النظارات الشمسية بالحماية من الأشعة فوق البنفسجية (UV400)، وفئة العدسة لنفاذ الضوء، والاستقطاب. ومحلات البصريات تشتري أيضاً آلات قص العدسات، وأجهزة قياس الانكسار الآلية، ومقاييس العدسات، والمصابيح الشقية. والعدسات اللاصقة ومحاليلها منتجات طبية تحتاج تسجيلاً وتُباع بوصفة؛ ويتحقق المشترون من تاريخ الانتهاء والتعقيم.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Contact_lens"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The product attributes and distinctions were checked against the page in sources, opened that day; the rest is the seat's expertise. The entry makes no UAE-specific claim beyond what the page states.",
+      "source_note": "Page opened 2026-10-19: soft hydrogel and silicone hydrogel versus rigid gas permeable lenses; coloured lenses need a prescription -> confirmed."
+    },
+    {
+      "id": "optical_eyewear:lead-times-and-quoting",
+      "topic": "Optical & eyewear - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "البصريات والنظارات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "body_en": "Stock frames and lenses: days; surfaced prescription lenses 2-7 days; imported collections 3-8 weeks. A supplier needs product types, brands or designs, lens specs and powers, quantities and registration needs. A quote states brand, model, material, lens index and coatings, quantities, registration, warranty, delivery and validity.",
+      "body_ar": "الإطارات والعدسات المتوفرة: أيام؛ والعدسات الطبية المصنعة حسب الوصفة 2-7 أيام؛ والمجموعات المستوردة 3-8 أسابيع. ويحتاج المورد أنواع المنتجات، والعلامات أو التصاميم، ومواصفات العدسات وقوتها، والكميات، واحتياجات التسجيل. ويذكر العرض العلامة والموديل والمادة ومعامل العدسة والطلاءات والكميات والتسجيل والضمان والتسليم والصلاحية.",
+      "gap_kind": "commercial",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page, so the entry is stored verified=false and never stated until sourced.",
+      "source_note": "Authored practice; not read from a page."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which lens material is best for a strong prescription that should stay thin?",
+      "q_ar": "وش مادة العدسة الأفضل لوصفة قوية وأبيها تكون رقيقة؟",
+      "expected_entry_ids": [
+        "optical_eyewear:product-distinctions"
+      ],
+      "written_blind": true
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-10-19",
+    "method": "New trade added by scripts/sql/ten_uae_trades_the_taxonomy_still_missed_join_it.sql; pack authored by Claude on the subscription (ledger 1198/1209), no paid model.",
+    "pages_opened": [
+      "https://en.wikipedia.org/wiki/Contact_lens"
+    ],
+    "served": [
+      "optical_eyewear:spec-checklist",
+      "optical_eyewear:product-distinctions"
+    ],
+    "stored_not_served": [
+      "optical_eyewear:lead-times-and-quoting"
+    ],
+    "ledger": [
+      893,
+      899,
+      900,
+      903,
+      1198,
+      1209
+    ]
+  }
+}

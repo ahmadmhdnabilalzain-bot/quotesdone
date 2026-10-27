@@ -17,6 +17,7 @@
 // added here is the mapping from database rows to its input, which quote_compare, my_inquiries and
 // this guard all now share.
 import { rankable } from './line_specs/compare.ts';
+import { isLiveQuote } from './quote_live.ts';
 import { requirementsOf, type Line, type Terms } from './line_specs/assess.ts';
 import { sanctionedLead } from './sanctioned.ts';
 
@@ -133,7 +134,7 @@ export async function canReveal(
     .select('id,inquiry_id,supplier_id,status,quote_amount,price_ex_vat,lead_time,warranty,scope,exclusions,conditions,notes,terms_spec,original_file_path,original_file_name')
     .eq('id', qid).maybeSingle();
   // A draft is not a quote the customer has (customer_api never lists one), so it has no reveal.
-  if (!q || String(q.status || '') === 'draft') return refuse('quote_not_found');
+  if (!q || !isLiveQuote(q.status)) return refuse('quote_not_found');
   // rfq_no and summary travel with the row because the callers print them (the Stripe line item's
   // reference, the supplier's notice); one read, not three.
   const { data: inq } = await admin.from('inquiries').select('id,customer_id,status,category,spec,rfq_no,summary').eq('id', q.inquiry_id).maybeSingle();

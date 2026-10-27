@@ -67,8 +67,12 @@ export default function SupportRatingPrompt({ token, lang, api }: { token: strin
   useEffect(() => {
     if (!token) return;
     let live = true;
-    post(api, token, { action: 'support_rating_due' }).then((j) => { if (live && j && j.ok && Array.isArray(j.due)) setDue(j.due); }).catch(() => {});
-    return () => { live = false; };
+    // OFF THE CRITICAL PATH (19 Oct 2026, platform-on simulation): on a cold sales_engineer this call took
+    // 3.1 s and held the customer overview at 4.1 s against the 2.5 s target, while the RPC itself runs in
+    // 3 ms. A rating prompt is never the page's data, so it is asked for once the overview has settled.
+    const ask = () => post(api, token, { action: 'support_rating_due' }).then((j) => { if (live && j && j.ok && Array.isArray(j.due)) setDue(j.due); }).catch(() => {});
+    const timer = window.setTimeout(ask, 3000);
+    return () => { live = false; window.clearTimeout(timer); };
   }, [api, token]);
 
   const cur = due[0];

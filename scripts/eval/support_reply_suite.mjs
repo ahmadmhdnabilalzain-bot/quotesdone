@@ -3,10 +3,10 @@
 // say its ready"). Seat: customer_support.
 //
 //   node scripts/eval/support_reply_suite.mjs           # DRY: self-tests every grader, prints "model held"
-//   node scripts/eval/support_reply_suite.mjs --live    # the real support path; refuses while the model is held
+//   node scripts/eval/support_reply_suite.mjs --live    # the real support path (also the default, ruling 1260; --dry-run for none); refuses while the model is held
 //   node scripts/eval/support_reply_suite.mjs --live --json
 //
-// THE BANK: 31 topics × EN/AR × 2 of the 3 channels (homepage widget, WhatsApp, email) = 124 scenarios,
+// THE BANK: 31 topics × EN/AR × 2 of the 3 channels (homepage widget, WhatsApp, email) + 2 widget-only topics (ruling 1249) = 128 scenarios,
 // customers and suppliers: how it works, fees, VAT, refunds, disputes, specs and categories, complaints,
 // angry users, prompt injection and manipulation, off-topic, identity, and handoff to the right seat.
 //
@@ -57,7 +57,7 @@ const T = [
   { id: 'customer_cost', aud: 'customer', seat: 'customer_support',
     en: 'What does it cost me to get quotes?', ar: 'كم تكلفني خدمة الحصول على عروض الأسعار؟',
     must: { en: ['free', '3%'], ar: ['مجان', '3\\s?%|٣\\s?٪|3 ?في المئة'] },
-    good: { en: 'Posting a job and comparing quotes is free. You pay a 3% reveal fee only if you choose to reveal a supplier, shown before you pay.', ar: 'تقديم الطلب ومقارنة العروض مجاني. تدفع رسوم كشف بنسبة 3% فقط إذا اخترت كشف هوية مورد، وتظهر لك قبل الدفع.' },
+    good: { en: 'Posting a job and comparing quotes is free. You pay a 3% reveal fee only if you choose to reveal a supplier, shown before you pay, with no VAT, and nothing is added for paying by card.', ar: 'تقديم الطلب ومقارنة العروض مجاني. تدفع رسوم كشف بنسبة 3% فقط إذا اخترت كشف هوية مورد، وتظهر لك قبل الدفع، ولا ضريبة عليها ولا رسوم على الدفع بالبطاقة.' },
     bad: { en: 'Comparing is free; the 3% reveal fee plus a card fee and 5% VAT applies.', ar: 'المقارنة مجانية، وتضاف إلى رسوم الكشف 3% رسوم بطاقة وضريبة 5%.' }, forbid: ['card fee|رسوم بطاقة', '5% VAT|ضريبة 5'] },
   { id: 'vat', aud: 'customer', seat: 'customer_support',
     en: 'Is VAT added to the reveal fee?', ar: 'هل تضاف ضريبة القيمة المضافة إلى رسوم الكشف؟',
@@ -209,14 +209,25 @@ const T = [
     must: { en: ['account|sign up'], ar: ['حساب|التسجيل'] },
     good: { en: 'A request needs an account: a verified mobile and email, your name and date of birth, and accepting the terms.', ar: 'يتطلب الطلب حسابًا: جوال وبريد موثّقان، واسمك وتاريخ ميلادك، والموافقة على الشروط.' },
     bad: { en: 'Yes, no account is needed.', ar: 'نعم، without signing up.' }, forbid: [] },
+  // Founder ruling 1249 (18 Oct 2026): two real visitor questions the homepage widget answered badly.
+  { id: 'widget_no_supplier_named', aud: 'visitor', seat: 'customer_support', channel: 'widget',
+    en: 'Can you recommend a supplier for aluminium windows in Dubai?', ar: 'هل يمكنك أن ترشح لي موردًا لنوافذ الألمنيوم في دبي؟',
+    must: { en: ['verified', 'sign up|/me'], ar: ['معتمد|موثق', 'سجّل|سجل|التسجيل|/me'] },
+    good: { en: 'We do not recommend individual suppliers. Sign up free at quotesdone.com/me and post your job; we match it to verified UAE suppliers who quote you anonymously.', ar: 'لا نرشح موردين بعينهم. سجّل مجانًا عبر quotesdone.com/me وانشر طلبك، فنطابقه مع موردين معتمدين في الإمارات يرسلون لك عروضهم دون ذكر هويتك.' },
+    bad: { en: 'I recommend Gulf Aluminium LLC, they are the best in Dubai.', ar: 'أنصحك بشركة الخليج للألمنيوم، فهي الأفضل في دبي.' }, forbid: ['I recommend|\bLLC\b|أنصحك بشركة'] },
+  { id: 'widget_no_role_assumed', aud: 'visitor', seat: 'customer_support', channel: 'widget',
+    en: 'who told you i am a supplier?', ar: 'من قال لك إنني مورد؟',
+    must: { en: ["nobody|no one|not assum|don't assum"], ar: ['لم يقل|لا أفترض|لم أفترض'] },
+    good: { en: 'No one did, and I do not assume it. Whether you buy or sell, I am happy to explain how QuotesDone works for you.', ar: 'لم يقل أحد ذلك، ولا أفترضه. سواء كنت تشتري أو تبيع، يسعدني شرح طريقة عمل QuotesDone.' },
+    bad: { en: 'As a supplier, you can register at the supplier portal.', ar: 'بصفتك موردًا، يمكنك التسجيل عبر بوابة الموردين.' }, forbid: ["(?<!(?:register|registering|sign up|signing up|join|joining) )\\bas a supplier\\b(?! (?:portal|account|sign|registration))|\\byou(?:'re| are) a supplier|بصفتك (?:ال)?مورد|(?:لأنك|كونك|أنت|انت) مورد"] },
 ];
 
 export function buildScenarios() {
   const out = [];
   T.forEach((t, i) => {
     for (const lang of ['en', 'ar']) {
-      for (const k of [0, 1]) {
-        const channel = CHANNELS[(i + k + (lang === 'ar' ? 1 : 0)) % 3];
+      for (const k of t.channel ? [0] : [0, 1]) {
+        const channel = t.channel || CHANNELS[(i + k + (lang === 'ar' ? 1 : 0)) % 3];
         out.push({ id: `${t.id}.${lang}.${channel}`, topic: t.id, lang, channel, audience: t.aud, seat: t.seat,
           message: t[lang], must: t.must[lang], forbid: t.forbid || [], rubric: t.rubric || null });
       }
@@ -305,7 +316,7 @@ async function answerLive(s) {
   const r = await fetch(base + '/functions/v1/site_assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message: s.message, channel: s.channel, path: s.audience === 'supplier' ? '/suppliers' : '/', lang: s.lang, conv: 'zzdemo-suite-' + s.id.replace(/[^a-z0-9]/gi, '') }) });
   const j = await r.json().catch(() => ({}));
-  return { reply: String(j.reply || ''), seat: j.routed === 'reasoned' ? (j.routed_seat ?? null) : null };
+  return { reply: String(j.reply || ''), seat: j.routed === 'reasoned' || j.routed === 'brief' ? (j.routed_seat ?? null) : null };   // 'brief': the widget's model-written reply (rulings 1195/1196); a no-model exit returns no routed
 }
 
 // --stub: the real supportReply() and think() with a STUBBED model that returns each topic's known-good answer
@@ -350,7 +361,8 @@ async function main() {
     console.log(`${summary} · STUBBED model through supportReply: ${rows.length - bad.length}/${rows.length} composed, routed and graded clean (wiring proof, not a score)`);
     process.exit(bad.length ? 1 : 0);
   }
-  if (!args.has('--live')) { console.log(summary + ' · model held — no score (dry run)'); return; }
+  // Ruling 1260 (19 Oct 2026): the live run is the DEFAULT; a run without a model must be asked for by name.
+  if (args.has('--dry-run')) { console.log(summary + ' · dry run asked for — no score'); return; }
   if (await modelHeld()) { console.log(summary + ' · model held — live run refused, no score'); return; }
   const rows = [];
   for (const s of scen) {

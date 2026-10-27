@@ -40,6 +40,51 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "packaging_tapes_strapping:product-distinctions",
+      "topic": "Packaging tapes and strapping: materials and grades",
+      "topic_ar": "أشرطة التغليف والتربيط: المواد والدرجات",
+      "kind": "product_distinctions",
+      "body_en": "Carton-sealing tapes are BOPP film with an acrylic (water-based) adhesive, cheapest and good for general cartons and heat; hot-melt (synthetic rubber), which has a stronger grab on recycled board; or natural rubber (solvent), which works on dusty or cold surfaces. Thickness is quoted in microns (38-55 µm total is typical) and widths in mm (48 and 72 mm), with roll lengths of 50-1,000 m. Printed tapes carry a logo. Other tapes: masking (crepe paper, by temperature grade), duct (cloth), double-sided, filament or reinforced (for heavy cartons), aluminium foil (HVAC, UL 181), and PVC electrical. Strapping comes in polypropylene (PP: light loads, manual or semi-auto machines, 5-15.5 mm), polyester (PET: replaces steel on bricks, blocks, timber and steel coils, high retained tension), cord or woven polyester (with buckles, for manual export loads), and steel strap (blue-painted or galvanised, for the heaviest loads, coils and metal). PP and PET strap are specified by width x thickness and break strength in kgf or kN. Stretch film is a neighbouring line (hand or machine, 17-30 µm, cast or blown).",
+      "body_ar": "أشرطة إغلاق الكراتين من غشاء BOPP بمادة لاصقة أكريليك (مائية) وهي الأرخص ومناسبة للكراتين العامة والحرارة، أو بلاصق حار (مطاط صناعي) أقوى التصاقاً على الكرتون المعاد تدويره، أو بمطاط طبيعي (مذيب) يعمل على الأسطح المغبرة أو الباردة. يُذكر السمك بالميكرون (38-55 ميكرون إجمالي هو المعتاد) والعرض بالمليمتر (48 و72 مم)، وطول اللفة 50-1000 متر. والأشرطة المطبوعة تحمل الشعار. أشرطة أخرى: شريط الماسكنج (ورق مجعد حسب درجة الحرارة)، وشريط الدكت (قماشي)، والوجهين، والمقوّى بالألياف (للكراتين الثقيلة)، وشريط الألمنيوم (للتكييف، UL 181)، وشريط PVC الكهربائي. أما أشرطة التربيط فمنها: بولي بروبيلين PP (للأحمال الخفيفة، بالآلات اليدوية أو نصف الآلية، 5-15.5 مم)، وبوليستر PET (يحل محل الحديد في الطابوق والبلوك والأخشاب ولفائف الحديد، ويحتفظ بشد عالٍ)، والبوليستر المجدول أو المنسوج (مع أبازيم، لأحمال التصدير اليدوية)، وشريط الحديد (مطلي أزرق أو مجلفن، لأثقل الأحمال واللفائف والمعادن). ويُحدد شريط PP وPET بالعرض×السمك وقوة الكسر بالكيلوغرام قوة أو الكيلونيوتن. وغشاء التغليف المطاطي خط مجاور (يدوي أو آلي، 17-30 ميكرون، مصبوب أو منفوخ).",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Strapping"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "source_note": "Pages opened 2026-10-19: strapping materials steel, polypropylene, polyester, nylon, corded/woven, paper, composite -> confirmed. Everything else is Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model).",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed). The entry makes no UAE-specific claim."
+    },
+    {
+      "id": "packaging_tapes_strapping:lead-times",
+      "topic": "Packaging tapes & strapping - typical lead times in the UAE",
+      "topic_ar": "أشرطة التغليف والتربيط: المدد المعتادة للتوريد والتنفيذ في الإمارات",
+      "kind": "lead_time",
+      "body_en": "Plain BOPP tape, PP and PET strap, seals and stretch film are ex-stock with UAE converters and traders (Sharjah, Ajman, Dubai Industrial City, Jebel Ali), usually delivered in 1-3 days. Printed tape needs artwork approval and a print cylinder or plate: 7-15 days, and longer for multi-colour. Custom widths and lengths: 1-2 weeks. Strapping machines: ex-stock to 4 weeks. Specialist tapes (UL-listed foil, high-temperature masking) may be imported: 2-6 weeks.",
+      "body_ar": "شريط BOPP العادي وأشرطة تربيط PP وPET والأقفال وغشاء التغليف المطاطي متوفرة لدى المحوّلين والتجار في الإمارات (الشارقة، عجمان، مدينة دبي الصناعية، جبل علي)، وتسلم عادة خلال 1-3 أيام. والشريط المطبوع يتطلب اعتماد التصميم وأسطوانة أو لوح طباعة: 7-15 يوماً، وأطول للألوان المتعددة. والعروض والأطوال الخاصة: 1-2 أسبوع. وآلات التربيط: متوفرة حتى 4 أسابيع. والأشرطة المتخصصة (ألمنيوم معتمد UL، ماسكنج حراري) قد تُستورد: 2-6 أسابيع.",
+      "sources": [],
+      "confidence": "low",
+      "as_of": "2026-10-19",
+      "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
+      "gap_kind": "commercial",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
+    },
+    {
+      "id": "packaging_tapes_strapping:quotation-requirements",
+      "topic": "Packaging tapes & strapping - what a supplier needs to quote and what a quote must state",
+      "topic_ar": "أشرطة التغليف والتربيط: ما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "body_en": "A supplier needs: the tape type and adhesive (acrylic, hot-melt, natural rubber), width, length per roll, total thickness in microns, colour (clear, brown, white) or a print design with the number of colours, cartons per month, the application (manual dispenser or machine, carton weight, recycled board, cold store); and for strapping, the material (PP, PET, steel), width x thickness, break strength, core size and coil length, and whether it runs in a hand tool, a semi-automatic or a fully automatic machine. A complete quote states: per line the full spec, rolls per carton, price basis per roll or per carton (or per kg for strap), the print set-up charge shown separately, MOQ, delivery, validity and payment terms. Red flags: \"45 micron\" quoted without saying whether that is film or total thickness, short roll length (a 100 m roll that measures 85 m), strap with no break-strength figure, or recycled black strap passed off as virgin.",
+      "body_ar": "يحتاج المورد: نوع الشريط واللاصق (أكريليك، لاصق حار، مطاط طبيعي)، والعرض، وطول اللفة، والسمك الإجمالي بالميكرون، واللون (شفاف، بني، أبيض) أو تصميم الطباعة وعدد الألوان، وعدد الكراتين شهرياً، والاستخدام (موزع يدوي أو آلة، وزن الكرتون، كرتون معاد تدويره، مخزن مبرد)؛ وللتربيط: المادة (PP، PET، حديد)، والعرض×السمك، وقوة الكسر، ومقاس القلب وطول اللفة، وهل يعمل بأداة يدوية أو آلة نصف آلية أو آلية بالكامل. ويذكر العرض الكامل: لكل بند المواصفة كاملة، وعدد اللفات في الكرتون، وأساس السعر للفة أو للكرتون (أو للكيلوغرام للتربيط)، ورسوم تجهيز الطباعة منفصلة، والحد الأدنى للطلب، والتسليم، والصلاحية، وشروط الدفع. علامات التحذير: ذكر \"45 ميكرون\" دون بيان هل هو سمك الغشاء أم الإجمالي، أو لفة أقصر من المعلن (لفة 100 متر تقاس 85 متراً)، أو شريط تربيط بلا قوة كسر، أو شريط أسود معاد تدويره يُقدّم على أنه خام.",
+      "sources": [],
+      "confidence": "low",
+      "as_of": "2026-10-19",
+      "source_note": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model). Not read from a page; commercial practice.",
+      "gap_kind": "commercial",
+      "verified": false,
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). It carries UAE-specific statements (locations, makes, UAE practice) that were not read on a page opened that day, so it is stored verified=false and is never stated to a customer or supplier until each such statement is sourced."
     }
   ],
   "eval": [
@@ -56,6 +101,14 @@
       "expected_entry_ids": [
         "packaging_tapes_strapping:uae-standards-and-approvals"
       ]
+    },
+    {
+      "q_en": "We pack heavy block pallets. Should we use PET strap or keep steel?",
+      "q_ar": "نحزم طبليات بلوك ثقيلة، هل نستخدم شريط PET ولا نكمل على الحديد؟",
+      "expected_entry_ids": [
+        "packaging_tapes_strapping:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -71,6 +124,34 @@
       "packaging_tapes_strapping:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "added": [
+        "packaging_tapes_strapping:product-distinctions",
+        "packaging_tapes_strapping:lead-times",
+        "packaging_tapes_strapping:quotation-requirements"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Strapping"
+      ],
+      "method": "Authored sales-engineering knowledge (ledger 1198/1209: written by Claude on the subscription, not collected by a model).",
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ],
+      "served": [
+        "packaging_tapes_strapping:product-distinctions"
+      ],
+      "stored_not_served": [
+        "packaging_tapes_strapping:lead-times",
+        "packaging_tapes_strapping:quotation-requirements"
+      ]
+    }
   }
 }

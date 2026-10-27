@@ -55,6 +55,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "additive_manufacturing:product-distinctions",
+      "topic": "3D printing: processes, materials and what each is good for",
+      "topic_ar": "الطباعة ثلاثية الأبعاد: العمليات والمواد وما يناسب كلاً منها",
+      "kind": "product_distinctions",
+      "body_en": "Material extrusion (FDM/FFF) prints thermoplastic filament (PLA, PETG, ABS, ASA, nylon, carbon-filled, TPU): cheapest, good for concept models, jigs and fixtures, visible layer lines. Vat photopolymerisation (SLA, DLP) cures resin with light: fine detail and smooth surfaces for dental, jewellery patterns and presentation models, with more brittle parts. Powder bed fusion in polymer (SLS, MJF) sinters nylon PA12/PA11 powder: strong functional parts with no supports, good for short production runs. Metal powder bed fusion (DMLS/SLM) melts stainless, tool steel, aluminium, titanium or nickel alloys for functional metal parts, needing support removal, heat treatment and machining of critical faces. Binder jetting prints sand moulds, full-colour models or metal parts that are then sintered. Other routes: material jetting (multi-material, colour), directed energy deposition for repair, and large-format printing for architecture. What a buyer decides: function versus appearance, mechanical and temperature needs, tolerance (typically ±0.1-0.3 mm or ±0.2% before post-machining), surface finish and post-processing (sanding, painting, vapour smoothing, dyeing), and quantity, since moulding becomes cheaper beyond a few hundred parts.",
+      "body_ar": "تطبع عملية بثق المادة (FDM/FFF) خيوطاً من اللدائن الحرارية (PLA، PETG، ABS، ASA، النايلون، المدعم بالكربون، TPU): الأرخص، ومناسبة لنماذج الفكرة والمثبتات والقوالب، مع ظهور خطوط الطبقات. وتصلّب البلمرة الضوئية في الحوض (SLA، DLP) الراتنج بالضوء: تفاصيل دقيقة وأسطح ناعمة لطب الأسنان ونماذج المجوهرات ونماذج العرض، مع قطع أكثر هشاشة. ويلبّد الانصهار في طبقة المسحوق البلاستيكي (SLS، MJF) مسحوق النايلون PA12/PA11: قطع وظيفية قوية بلا دعامات، مناسبة لدفعات الإنتاج القصيرة. والانصهار المعدني في طبقة المسحوق (DMLS/SLM) يصهر الستانلس وفولاذ الأدوات والألمنيوم والتيتانيوم وسبائك النيكل لقطع معدنية وظيفية، ويحتاج إزالة الدعامات والمعالجة الحرارية وتشغيل الأسطح الحرجة. ويطبع النفث بالمادة الرابطة قوالب الرمل أو نماذج كاملة الألوان أو قطعاً معدنية تُلبد لاحقاً. ومن الطرق الأخرى: النفث بالمادة (متعدد المواد والألوان)، والترسيب بالطاقة الموجهة للإصلاح، والطباعة كبيرة الحجم للعمارة. وما يقرره المشتري: الوظيفة مقابل الشكل، والمتطلبات الميكانيكية والحرارية، والتفاوت (عادة ±0.1-0.3 مم أو ±0.2% قبل التشغيل اللاحق)، وتشطيب السطح والمعالجة اللاحقة (الصنفرة، الطلاء، التنعيم بالبخار، الصبغ)، والكمية، إذ يصبح الحقن في القوالب أرخص بعد بضع مئات من القطع.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/3D_printing_processes"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: process families: material extrusion (FDM/FFF), vat photopolymerisation (SLA), powder bed fusion (SLS, MJF, DMLS/SLM), binder jetting -> confirmed."
+    },
+    {
+      "id": "additive_manufacturing:lead-times-and-quoting",
+      "topic": "3D printing & rapid prototyping - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الطباعة ثلاثية الأبعاد والنماذج السريعة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Polymer prototypes: 1-5 working days; finished and painted models 1-2 weeks; metal parts 1-4 weeks including heat treatment and machining. A bureau needs the 3D file (STEP or STL), the use, material and colour, quantity, tolerance on critical features, finish, and deadline. A quote states the process and machine class, material, layer height or resolution, post-processing, the price basis per part or per build, lead time and validity.",
+      "body_ar": "النماذج البلاستيكية: 1-5 أيام عمل؛ والنماذج المشطبة والمطلية 1-2 أسبوع؛ والقطع المعدنية 1-4 أسابيع شاملة المعالجة الحرارية والتشغيل. ويحتاج المكتب الملف ثلاثي الأبعاد (STEP أو STL)، والاستخدام، والمادة واللون، والكمية، والتفاوت على الأجزاء الحرجة، والتشطيب، والموعد. ويذكر العرض العملية وفئة الآلة والمادة وارتفاع الطبقة أو الدقة والمعالجة اللاحقة وأساس السعر للقطعة أو لدورة الطباعة والمدة والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry compares SLS/MJF/FDM processes for nylon strength; spec-checklist only lists \"printing process\" as a field). additive_manufacturing:nylon-process-sls-mjf-fdm was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from additive_manufacturing.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "We need 50 tough nylon brackets for a trial. SLS or FDM?",
+      "q_ar": "نحتاج 50 قاعدة نايلون قوية للتجربة، نطبعها SLS ولا FDM؟",
+      "expected_entry_ids": [
+        "additive_manufacturing:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "additive_manufacturing:nylon-process-sls-mjf-fdm"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "additive_manufacturing:product-distinctions"
+      ],
+      "stored_not_served": [
+        "additive_manufacturing:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/3D_printing_processes"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

@@ -12,7 +12,10 @@
 //   * the name appears in a routine body or name on production (read live when a management token exists),
 //     or anywhere in the committed schema mirror of production.
 // NOT SCANNED, ON PURPOSE: scripts/sql (the applied history - an applied file is a record and is never
-// edited), lock files and binary assets (hashes and base64 contain any three letters sooner or later).
+// edited), lock files and binary assets (hashes and base64 contain any three letters sooner or later), and
+// supabase/functions/_shared/vendor/ (13 Oct 2026, #1373): third-party bytes - imagescript's codec embedded as
+// base64, which matched by chance on five lines - pinned by sha256 in licence_page_ink.test.ts, so nothing there
+// can change unseen. ONLY that directory is excluded; a control test proves a name anywhere else is still caught.
 // While the retiring file is still pending (its note is in scripts/sql/pending/), production and the mirror
 // still hold the old names by definition, so that half reports and waits; the moment the note is deleted at
 // apply, it is strict.
@@ -22,9 +25,9 @@
 //   node --test scripts/checks/the_retired_model_is_named_nowhere_in_live_code.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
-import { join, relative, extname } from 'node:path';
-import { homedir } from 'node:os';
+import { readFileSync, readdirSync, statSync, existsSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { join, relative, extname, dirname } from 'node:path';
+import { homedir, tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
@@ -34,12 +37,14 @@ const TEXT = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs', '.jsx', '.json', '.s
 const RETIRING = 'the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does';
 const PENDING = existsSync(join(REPO, 'scripts/sql/pending', `${RETIRING}.txt`));
 
-function* files(dir) {
+// The one excluded directory, relative to the root being scanned (see the header).
+const VENDOR = 'supabase/functions/_shared/vendor';
+function* files(dir, root = REPO) {
   if (!existsSync(dir)) return;
   for (const e of readdirSync(dir)) {
     if (e === 'node_modules' || e.startsWith('.')) continue;
     const p = join(dir, e);
-    if (statSync(p).isDirectory()) yield* files(p);
+    if (statSync(p).isDirectory()) { if (relative(root, p).replace(/\\/g, '/') !== VENDOR) yield* files(p, root); }
     else if (TEXT.has(extname(e).toLowerCase())) yield p;
   }
 }
@@ -53,13 +58,34 @@ test('the pattern catches the name in every spelling it was written in (positive
   assert.ok(!NAME.test('routine_judgement google/gemini-3.8-flash deepseek/deepseek-v4.1-flash'));
 });
 
-test('no live code path names the retired model', () => {
+function liveHits(root) {
   const found = [];
   for (const d of LIVE_DIRS) {
-    for (const f of files(join(REPO, d))) {
-      for (const [n, l] of hits(readFileSync(f, 'utf8'))) found.push(`${relative(REPO, f).replace(/\\/g, '/')}:${n}: ${l.trim().slice(0, 120)}`);
+    for (const f of files(join(root, d), root)) {
+      for (const [n, l] of hits(readFileSync(f, 'utf8'))) found.push(`${relative(root, f).replace(/\\/g, '/')}:${n}: ${l.trim().slice(0, 120)}`);
     }
   }
+  return found;
+}
+
+test('the vendor exclusion is that one directory: a name in any other file is still caught (control)', () => {
+  const root = mkdtempSync(join(tmpdir(), 'retired-model-'));
+  try {
+    const name = 'z-ai/' + 'g' + 'lm-5.3-flash';
+    const put = (rel) => { mkdirSync(dirname(join(root, rel)), { recursive: true }); writeFileSync(join(root, rel), `const m = '${name}';\n`); };
+    put('supabase/functions/_shared/vendor/x/blob.ts');      // the excluded directory
+    put('supabase/functions/_shared/vendored_helper.ts');    // a sibling whose name only starts like it
+    put('supabase/functions/_shared/x/vendor/inner.ts');     // a "vendor" folder anywhere else
+    put('supabase/functions/license_extract/index.ts');
+    put('scripts/lib/helper.mjs');
+    assert.deepEqual(liveHits(root).map((h) => h.split(':')[0]).sort(), [
+      'scripts/lib/helper.mjs', 'supabase/functions/_shared/vendored_helper.ts',
+      'supabase/functions/_shared/x/vendor/inner.ts', 'supabase/functions/license_extract/index.ts']);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('no live code path names the retired model', () => {
+  const found = liveHits(REPO);
   assert.deepEqual(found, [], 'the retired model (founder_instruction 1068) is named in live code. Rename it to what it '
     + 'does, or where it was a model choice put the matrix model in its place (founder_instruction 1056):\n  ' + found.join('\n  '));
 });

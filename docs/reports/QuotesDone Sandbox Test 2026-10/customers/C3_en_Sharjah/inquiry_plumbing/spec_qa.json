@@ -1,0 +1,18 @@
+{
+ "hold_check_missing": [],
+ "asked": {
+  "ok": true,
+  "held": false,
+  "lang": "en",
+  "ready": true,
+  "missing": [],
+  "reached_suppliers": false
+ },
+ "answered": {},
+ "not_sure": [],
+ "reply": {
+  "ok": false,
+  "error": "nothing_to_add",
+  "missing": []
+ }
+}

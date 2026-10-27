@@ -1,0 +1,1123 @@
+{
+ "seat": "marketing",
+ "role": "Senior Marketing and Growth Manager (B2B marketplace, UAE/GCC construction and facilities procurement)",
+ "bar": "20 years senior human, ledger 1003 stage 1",
+ "as_of": "2026-10-19",
+ "qualifications": [
+  {
+   "id": "MKT-Q01",
+   "qualification": "Runs generative engine optimisation so answer engines cite QuotesDone correctly",
+   "checklist": [
+    "MKT-CL-001",
+    "MKT-CL-002",
+    "MKT-CL-003",
+    "MKT-CL-004",
+    "MKT-CL-005",
+    "MKT-CL-006",
+    "MKT-CL-008",
+    "MKT-CL-009"
+   ]
+  },
+  {
+   "id": "MKT-Q02",
+   "qualification": "Runs bilingual technical and content SEO to senior standard",
+   "checklist": [
+    "MKT-CL-007",
+    "MKT-CL-010",
+    "MKT-CL-011",
+    "MKT-CL-012",
+    "MKT-CL-013",
+    "MKT-CL-014",
+    "MKT-CL-015",
+    "MKT-CL-016"
+   ]
+  },
+  {
+   "id": "MKT-Q03",
+   "qualification": "Plans and runs campaigns by type with one objective, KPI and stop rule",
+   "checklist": [
+    "MKT-CL-017",
+    "MKT-CL-025",
+    "MKT-CL-032"
+   ]
+  },
+  {
+   "id": "MKT-Q04",
+   "qualification": "Directs video: types, hooks, short-form metrics",
+   "checklist": [
+    "MKT-CL-018",
+    "MKT-CL-019",
+    "MKT-CL-029"
+   ]
+  },
+  {
+   "id": "MKT-Q05",
+   "qualification": "Writes captions and copy with frameworks, native Arabic and the brand voice",
+   "checklist": [
+    "MKT-CL-020",
+    "MKT-CL-021",
+    "MKT-CL-042",
+    "MKT-CL-043"
+   ]
+  },
+  {
+   "id": "MKT-Q06",
+   "qualification": "Tracks trends, listens socially and watches competitors",
+   "checklist": [
+    "MKT-CL-022",
+    "MKT-CL-023"
+   ]
+  },
+  {
+   "id": "MKT-Q07",
+   "qualification": "Sets and enforces posting standards and platform craft across every network",
+   "checklist": [
+    "MKT-CL-024",
+    "MKT-CL-026",
+    "MKT-CL-027",
+    "MKT-CL-028",
+    "MKT-CL-030",
+    "MKT-CL-031"
+   ]
+  },
+  {
+   "id": "MKT-Q08",
+   "qualification": "Knows UAE advertising, media, privacy, telemarketing and promotion law and platform ad policies",
+   "checklist": [
+    "MKT-CL-033",
+    "MKT-CL-034",
+    "MKT-CL-035",
+    "MKT-CL-036",
+    "MKT-CL-037",
+    "MKT-CL-038",
+    "MKT-CL-039",
+    "MKT-CL-040"
+   ]
+  },
+  {
+   "id": "MKT-Q09",
+   "qualification": "Owns positioning, ICPs, brand safety and crisis response",
+   "checklist": [
+    "MKT-CL-041",
+    "MKT-CL-044"
+   ]
+  },
+  {
+   "id": "MKT-Q10",
+   "qualification": "Grows a two-sided marketplace from cold start: supplier acquisition, referrals, landing pages, journey content, speed to lead",
+   "checklist": [
+    "MKT-CL-045",
+    "MKT-CL-046",
+    "MKT-CL-047",
+    "MKT-CL-048",
+    "MKT-CL-049",
+    "MKT-CL-050"
+   ]
+  },
+  {
+   "id": "MKT-Q11",
+   "qualification": "Runs owned channels: email and WhatsApp within sender and consent rules",
+   "checklist": [
+    "MKT-CL-051",
+    "MKT-CL-052"
+   ]
+  },
+  {
+   "id": "MKT-Q12",
+   "qualification": "Runs paid media economically when budget is approved: Meta, Google, LinkedIn, TikTok/Snap, CTWA",
+   "checklist": [
+    "MKT-CL-053",
+    "MKT-CL-054",
+    "MKT-CL-055",
+    "MKT-CL-056",
+    "MKT-CL-057",
+    "MKT-CL-058"
+   ]
+  },
+  {
+   "id": "MKT-Q13",
+   "qualification": "Measures honestly: tagging, attribution, incrementality, scorecards and experiments",
+   "checklist": [
+    "MKT-CL-059",
+    "MKT-CL-060",
+    "MKT-CL-061"
+   ]
+  },
+  {
+   "id": "MKT-Q14",
+   "qualification": "Builds reputation, PR and events, and states the company rules exactly in public",
+   "checklist": [
+    "MKT-CL-062",
+    "MKT-CL-063",
+    "MKT-CL-064"
+   ]
+  },
+  {
+   "id": "MKT-Q15",
+   "qualification": "Works as a seat: handoffs, glossary and reasoning sequences before acting",
+   "checklist": [
+    "MKT-CL-065",
+    "MKT-CL-066"
+   ]
+  }
+ ],
+ "checklist": [
+  {
+   "id": "MKT-CL-001",
+   "area": "GEO",
+   "item": "Explains GEO versus classic SEO and how answer engines pick and cite sources",
+   "entry_ids": [
+    "marketing:geo-definition",
+    "marketing:geo-how-engines-choose-sources"
+   ],
+   "exam_items": [
+    "marketing-exam-13"
+   ]
+  },
+  {
+   "id": "MKT-CL-002",
+   "area": "GEO",
+   "item": "Knows which index and crawler each answer engine uses and how to keep them allowed (OAI-SearchBot, Bingbot, IndexNow)",
+   "entry_ids": [
+    "marketing:geo-engine-retrieval-map",
+    "marketing:geo-bing-indexnow"
+   ],
+   "exam_items": [
+    "marketing-exam-14"
+   ]
+  },
+  {
+   "id": "MKT-CL-003",
+   "area": "GEO",
+   "item": "Writes answer-first, liftable passages in formats engines cite",
+   "entry_ids": [
+    "marketing:geo-answer-first-content",
+    "marketing:geo-content-formats-that-get-cited"
+   ],
+   "exam_items": [
+    "marketing-exam-15"
+   ]
+  },
+  {
+   "id": "MKT-CL-004",
+   "area": "GEO",
+   "item": "Specifies Organization/Service/Article JSON-LD and keeps one entity identity everywhere (sameAs, Wikidata)",
+   "entry_ids": [
+    "marketing:geo-structured-data",
+    "marketing:geo-organization-markup",
+    "marketing:geo-entity-consistency",
+    "marketing:geo-wikidata-entity"
+   ],
+   "exam_items": [
+    "marketing-exam-60"
+   ]
+  },
+  {
+   "id": "MKT-CL-005",
+   "area": "GEO",
+   "item": "Knows what llms.txt is and is not",
+   "entry_ids": [
+    "marketing:geo-llms-txt"
+   ],
+   "exam_items": [
+    "marketing-exam-16"
+   ]
+  },
+  {
+   "id": "MKT-CL-006",
+   "area": "GEO",
+   "item": "Measures share of answer with a prompt panel and acts on findings",
+   "entry_ids": [
+    "marketing:geo-measurement",
+    "marketing:geo-prompt-panel-operations"
+   ],
+   "exam_items": [
+    "marketing-exam-17"
+   ]
+  },
+  {
+   "id": "MKT-CL-007",
+   "area": "GEO",
+   "item": "Runs Arabic GEO/SEO correctly: hreflang, no forced redirects, no cross-language canonical",
+   "entry_ids": [
+    "marketing:geo-arabic",
+    "marketing:hreflang-bilingual-seo"
+   ],
+   "exam_items": [
+    "marketing-exam-01",
+    "marketing-exam-02",
+    "marketing-exam-18"
+   ]
+  },
+  {
+   "id": "MKT-CL-008",
+   "area": "GEO",
+   "item": "Earns third-party citations, directory/review presence and honest comparison pages",
+   "entry_ids": [
+    "marketing:geo-authoritative-citations",
+    "marketing:geo-reviews-directories",
+    "marketing:geo-comparison-and-alternatives-pages"
+   ],
+   "exam_items": [
+    "marketing-exam-61"
+   ]
+  },
+  {
+   "id": "MKT-CL-009",
+   "area": "GEO",
+   "item": "Keeps every quotable fact in a fact register and propagates changes the same day",
+   "entry_ids": [
+    "marketing:geo-content-freshness-facts"
+   ],
+   "exam_items": [
+    "marketing-exam-62"
+   ]
+  },
+  {
+   "id": "MKT-CL-010",
+   "area": "SEO",
+   "item": "Holds the technical SEO baseline and Core Web Vitals thresholds",
+   "entry_ids": [
+    "marketing:seo-technical-baseline",
+    "marketing:core-web-vitals"
+   ],
+   "exam_items": [
+    "marketing-exam-03",
+    "marketing-exam-19"
+   ]
+  },
+  {
+   "id": "MKT-CL-011",
+   "area": "SEO",
+   "item": "Does intent-based keyword research per marketplace side, English and Arabic",
+   "entry_ids": [
+    "marketing:seo-keyword-research",
+    "marketing:google-ads-arabic-keywords"
+   ],
+   "exam_items": [
+    "marketing-exam-20"
+   ]
+  },
+  {
+   "id": "MKT-CL-012",
+   "area": "SEO",
+   "item": "Builds trade x city pages without thin or scaled-abuse content",
+   "entry_ids": [
+    "marketing:seo-programmatic-trade-city"
+   ],
+   "exam_items": [
+    "marketing-exam-21"
+   ]
+  },
+  {
+   "id": "MKT-CL-013",
+   "area": "SEO",
+   "item": "Builds E-E-A-T for a young marketplace",
+   "entry_ids": [
+    "marketing:seo-eeat"
+   ],
+   "exam_items": [
+    "marketing-exam-22"
+   ]
+  },
+  {
+   "id": "MKT-CL-014",
+   "area": "SEO",
+   "item": "Earns links through digital PR and avoids link spam",
+   "entry_ids": [
+    "marketing:digital-pr-link-earning"
+   ],
+   "exam_items": [
+    "marketing-exam-04"
+   ]
+  },
+  {
+   "id": "MKT-CL-015",
+   "area": "SEO",
+   "item": "Targets featured snippets, People Also Ask and voice answers",
+   "entry_ids": [
+    "marketing:aeo-featured-snippets-voice"
+   ],
+   "exam_items": [
+    "marketing-exam-63"
+   ]
+  },
+  {
+   "id": "MKT-CL-016",
+   "area": "SEO",
+   "item": "Gets videos indexed (VideoObject, key moments, YouTube)",
+   "entry_ids": [
+    "marketing:video-seo"
+   ],
+   "exam_items": [
+    "marketing-exam-05"
+   ]
+  },
+  {
+   "id": "MKT-CL-017",
+   "area": "Campaigns",
+   "item": "Chooses the right campaign type with one objective, audience, KPI and stop rule",
+   "entry_ids": [
+    "marketing:campaign-types"
+   ],
+   "exam_items": [
+    "marketing-exam-64"
+   ]
+  },
+  {
+   "id": "MKT-CL-018",
+   "area": "Video",
+   "item": "Knows the video types and lengths that work for a B2B services marketplace",
+   "entry_ids": [
+    "marketing:video-types"
+   ],
+   "exam_items": [
+    "marketing-exam-40"
+   ]
+  },
+  {
+   "id": "MKT-CL-019",
+   "area": "Video",
+   "item": "Writes hooks for the first 1-3 seconds and first two lines",
+   "entry_ids": [
+    "marketing:hooks"
+   ],
+   "exam_items": [
+    "marketing-exam-41"
+   ]
+  },
+  {
+   "id": "MKT-CL-020",
+   "area": "Captions",
+   "item": "Uses caption frameworks (AIDA, PAS, BAB, Hook-Value-CTA, FAB) deliberately",
+   "entry_ids": [
+    "marketing:caption-frameworks"
+   ],
+   "exam_items": [
+    "marketing-exam-65"
+   ]
+  },
+  {
+   "id": "MKT-CL-021",
+   "area": "Social",
+   "item": "Uses hashtags correctly per platform",
+   "entry_ids": [
+    "marketing:hashtag-strategy"
+   ],
+   "exam_items": [
+    "marketing-exam-37"
+   ]
+  },
+  {
+   "id": "MKT-CL-022",
+   "area": "Trends",
+   "item": "Detects trends weekly from named sources and decides within 48 hours with a safety check",
+   "entry_ids": [
+    "marketing:trend-detection",
+    "marketing:reasoning-trend-response"
+   ],
+   "exam_items": [
+    "marketing-exam-66"
+   ]
+  },
+  {
+   "id": "MKT-CL-023",
+   "area": "Social",
+   "item": "Runs social listening, competitor analysis and share of voice",
+   "entry_ids": [
+    "marketing:social-listening",
+    "marketing:competitor-analysis",
+    "marketing:share-of-voice-brand-tracking"
+   ],
+   "exam_items": [
+    "marketing-exam-10"
+   ]
+  },
+  {
+   "id": "MKT-CL-024",
+   "area": "Posting",
+   "item": "Applies the pre-publication quality checklist to every post",
+   "entry_ids": [
+    "marketing:post-quality-checklist"
+   ],
+   "exam_items": [
+    "marketing-exam-38"
+   ]
+  },
+  {
+   "id": "MKT-CL-025",
+   "area": "Posting",
+   "item": "Keeps posting standards: founder approval, no weekend/holiday posting, cadence and timing",
+   "entry_ids": [
+    "marketing:posting-standards-and-approval"
+   ],
+   "exam_items": [
+    "marketing-exam-67"
+   ]
+  },
+  {
+   "id": "MKT-CL-026",
+   "area": "Social",
+   "item": "Plans pillars, a monthly calendar and a repurposing system",
+   "entry_ids": [
+    "marketing:content-pillars-calendar",
+    "marketing:repurposing-system"
+   ],
+   "exam_items": [
+    "marketing-exam-68"
+   ]
+  },
+  {
+   "id": "MKT-CL-027",
+   "area": "Social",
+   "item": "Knows LinkedIn craft and founder/employee advocacy",
+   "entry_ids": [
+    "marketing:platform-linkedin",
+    "marketing:employee-advocacy-founder-brand"
+   ],
+   "exam_items": [
+    "marketing-exam-36"
+   ]
+  },
+  {
+   "id": "MKT-CL-028",
+   "area": "Social",
+   "item": "Knows Instagram/Facebook, TikTok, YouTube and X ranking signals and formats",
+   "entry_ids": [
+    "marketing:platform-instagram-facebook",
+    "marketing:platform-tiktok-youtube-x",
+    "marketing:platform-specs-quick"
+   ],
+   "exam_items": [
+    "marketing-exam-69"
+   ]
+  },
+  {
+   "id": "MKT-CL-029",
+   "area": "Video",
+   "item": "Reads short-form video metrics and acts on them",
+   "entry_ids": [
+    "marketing:short-form-video-metrics"
+   ],
+   "exam_items": [
+    "marketing-exam-06"
+   ]
+  },
+  {
+   "id": "MKT-CL-030",
+   "area": "Social",
+   "item": "Runs UGC and community management with response standards and routing",
+   "entry_ids": [
+    "marketing:ugc-programme",
+    "marketing:community-management"
+   ],
+   "exam_items": [
+    "marketing-exam-70"
+   ]
+  },
+  {
+   "id": "MKT-CL-031",
+   "area": "Social",
+   "item": "Makes content accessible (alt text, captions, contrast, CamelCase hashtags)",
+   "entry_ids": [
+    "marketing:accessibility-content"
+   ],
+   "exam_items": [
+    "marketing-exam-71"
+   ]
+  },
+  {
+   "id": "MKT-CL-032",
+   "area": "Calendar",
+   "item": "Plans Ramadan, Eid and National Day content to UAE norms",
+   "entry_ids": [
+    "marketing:ramadan-uae-calendar",
+    "marketing:national-day-campaign-norms"
+   ],
+   "exam_items": [
+    "marketing-exam-35",
+    "marketing-exam-39"
+   ]
+  },
+  {
+   "id": "MKT-CL-033",
+   "area": "Law",
+   "item": "Knows the UAE Advertiser Permit regime and creator/influencer rules",
+   "entry_ids": [
+    "marketing:uae-media-council-advertiser-permit",
+    "marketing:advertiser-permit-2026-update",
+    "marketing:influencer-creator-rules"
+   ],
+   "exam_items": [
+    "marketing-exam-23",
+    "marketing-exam-25"
+   ]
+  },
+  {
+   "id": "MKT-CL-034",
+   "area": "Law",
+   "item": "Applies UAE media content standards and knows the penalty regime",
+   "entry_ids": [
+    "marketing:uae-media-content-standards",
+    "marketing:media-law-penalties-42-2025"
+   ],
+   "exam_items": [
+    "marketing-exam-72"
+   ]
+  },
+  {
+   "id": "MKT-CL-035",
+   "area": "Law",
+   "item": "Applies PDPL consent to marketing messages and retargeting",
+   "entry_ids": [
+    "marketing:pdpl-marketing",
+    "marketing:retargeting-pdpl-consent"
+   ],
+   "exam_items": [
+    "marketing-exam-24"
+   ]
+  },
+  {
+   "id": "MKT-CL-036",
+   "area": "Law",
+   "item": "Applies the telemarketing rules and penalties",
+   "entry_ids": [
+    "marketing:telemarketing-rules-56-2024",
+    "marketing:telemarketing-penalties-57-2024"
+   ],
+   "exam_items": [
+    "marketing-exam-26"
+   ]
+  },
+  {
+   "id": "MKT-CL-037",
+   "area": "Law",
+   "item": "Keeps advertising truthful and comparative claims lawful",
+   "entry_ids": [
+    "marketing:consumer-protection-advertising",
+    "marketing:comparative-advertising-rules"
+   ],
+   "exam_items": [
+    "marketing-exam-27"
+   ]
+  },
+  {
+   "id": "MKT-CL-038",
+   "area": "Law",
+   "item": "Knows when a Dubai promotion needs a DET permit",
+   "entry_ids": [
+    "marketing:det-promotion-permits"
+   ],
+   "exam_items": [
+    "marketing-exam-11"
+   ]
+  },
+  {
+   "id": "MKT-CL-039",
+   "area": "Law",
+   "item": "Follows machine-assisted content quality and disclosure rules",
+   "entry_ids": [
+    "marketing:ai-generated-content-disclosure"
+   ],
+   "exam_items": [
+    "marketing-exam-73"
+   ]
+  },
+  {
+   "id": "MKT-CL-040",
+   "area": "Law",
+   "item": "Knows Meta, LinkedIn, Google, TikTok and X ad policies that reject B2B ads",
+   "entry_ids": [
+    "marketing:meta-ad-standards",
+    "marketing:linkedin-ads-policy",
+    "marketing:google-ads-policy",
+    "marketing:tiktok-and-x-ads"
+   ],
+   "exam_items": [
+    "marketing-exam-74"
+   ]
+  },
+  {
+   "id": "MKT-CL-041",
+   "area": "Strategy",
+   "item": "Defines buyer and supplier ICPs and personas",
+   "entry_ids": [
+    "marketing:icp-buyers",
+    "marketing:icp-suppliers"
+   ],
+   "exam_items": [
+    "marketing-exam-28"
+   ]
+  },
+  {
+   "id": "MKT-CL-042",
+   "area": "Brand",
+   "item": "Owns positioning, the messaging house and brand voice",
+   "entry_ids": [
+    "marketing:positioning",
+    "marketing:messaging-house-and-funnel-content",
+    "marketing:brand-voice-guidelines"
+   ],
+   "exam_items": [
+    "marketing-exam-12",
+    "marketing-exam-32",
+    "marketing-exam-34"
+   ]
+  },
+  {
+   "id": "MKT-CL-043",
+   "area": "Brand",
+   "item": "Writes native Arabic and English copy in the right register",
+   "entry_ids": [
+    "marketing:arabic-english-copy-norms",
+    "marketing:arabic-dialect-vs-msa"
+   ],
+   "exam_items": [
+    "marketing-exam-33"
+   ]
+  },
+  {
+   "id": "MKT-CL-044",
+   "area": "Brand",
+   "item": "Protects brand safety and runs the crisis playbook",
+   "entry_ids": [
+    "marketing:brand-safety",
+    "marketing:crisis-reputation-playbook"
+   ],
+   "exam_items": [
+    "marketing-exam-75"
+   ]
+  },
+  {
+   "id": "MKT-CL-045",
+   "area": "Growth",
+   "item": "Solves marketplace cold start: constrained side first, category priority, UAE demand-gen channel plan",
+   "entry_ids": [
+    "marketing:marketplace-cold-start",
+    "marketing:category-priority",
+    "marketing:b2b-demand-gen-uae"
+   ],
+   "exam_items": [
+    "marketing-exam-29"
+   ]
+  },
+  {
+   "id": "MKT-CL-046",
+   "area": "Growth",
+   "item": "Runs the supplier acquisition funnel and recruitment outreach",
+   "entry_ids": [
+    "marketing:supplier-acquisition-funnel",
+    "marketing:supplier-recruitment-outreach"
+   ],
+   "exam_items": [
+    "marketing-exam-76"
+   ]
+  },
+  {
+   "id": "MKT-CL-047",
+   "area": "Growth",
+   "item": "Designs a compliant referral programme",
+   "entry_ids": [
+    "marketing:referral-programme"
+   ],
+   "exam_items": [
+    "marketing-exam-30"
+   ]
+  },
+  {
+   "id": "MKT-CL-048",
+   "area": "Growth",
+   "item": "Builds separate buyer and supplier landing pages and runs CRO",
+   "entry_ids": [
+    "marketing:two-sided-landing-pages",
+    "marketing:landing-page-cro"
+   ],
+   "exam_items": [
+    "marketing-exam-77"
+   ]
+  },
+  {
+   "id": "MKT-CL-049",
+   "area": "Growth",
+   "item": "Maps content to the B2B buying journey: buyer guides and case studies",
+   "entry_ids": [
+    "marketing:b2b-buying-journey",
+    "marketing:buyer-guides-per-trade",
+    "marketing:case-studies-standard"
+   ],
+   "exam_items": [
+    "marketing-exam-31"
+   ]
+  },
+  {
+   "id": "MKT-CL-050",
+   "area": "Growth",
+   "item": "Scores leads and enforces speed to lead",
+   "entry_ids": [
+    "marketing:lead-scoring-and-speed-to-lead"
+   ],
+   "exam_items": [
+    "marketing-exam-09"
+   ]
+  },
+  {
+   "id": "MKT-CL-051",
+   "area": "Email",
+   "item": "Runs email nurture, newsletters and lifecycle mail within bulk-sender rules",
+   "entry_ids": [
+    "marketing:email-marketing",
+    "marketing:email-authentication-bulk-sender-rules",
+    "marketing:newsletter-craft",
+    "marketing:lifecycle-onboarding-emails"
+   ],
+   "exam_items": [
+    "marketing-exam-08",
+    "marketing-exam-47"
+   ]
+  },
+  {
+   "id": "MKT-CL-052",
+   "area": "WhatsApp",
+   "item": "Uses WhatsApp templates, opt-in, quality rating and pricing correctly",
+   "entry_ids": [
+    "marketing:whatsapp-template-categories",
+    "marketing:whatsapp-opt-in-and-quality",
+    "marketing:whatsapp-pricing-model",
+    "marketing:platform-whatsapp-marketing"
+   ],
+   "exam_items": [
+    "marketing-exam-46"
+   ]
+  },
+  {
+   "id": "MKT-CL-053",
+   "area": "Paid",
+   "item": "Applies paid-media economics, gates and the kill line before any spend",
+   "entry_ids": [
+    "marketing:paid-media-economics",
+    "marketing:marketing-budget-benchmarks",
+    "marketing:reasoning-paid-spend",
+    "marketing:paid-social-basics"
+   ],
+   "exam_items": [
+    "marketing-exam-59"
+   ]
+  },
+  {
+   "id": "MKT-CL-054",
+   "area": "Paid",
+   "item": "Structures Meta campaigns, Pixel+CAPI and respects the learning phase",
+   "entry_ids": [
+    "marketing:meta-advantage-plus-structure",
+    "marketing:meta-pixel-capi-events",
+    "marketing:meta-learning-phase"
+   ],
+   "exam_items": [
+    "marketing-exam-50"
+   ]
+  },
+  {
+   "id": "MKT-CL-055",
+   "area": "Paid",
+   "item": "Runs Google Search vs PMax, match types and negatives",
+   "entry_ids": [
+    "marketing:google-ads-search-vs-pmax",
+    "marketing:google-ads-negative-keywords"
+   ],
+   "exam_items": [
+    "marketing-exam-51"
+   ]
+  },
+  {
+   "id": "MKT-CL-056",
+   "area": "Paid",
+   "item": "Runs LinkedIn Lead Gen Forms and account-based audiences",
+   "entry_ids": [
+    "marketing:linkedin-lead-gen-forms",
+    "marketing:linkedin-matched-audiences-abm"
+   ],
+   "exam_items": [
+    "marketing-exam-53"
+   ]
+  },
+  {
+   "id": "MKT-CL-057",
+   "area": "Paid",
+   "item": "Tests creative, paces budget and manages frequency and fatigue",
+   "entry_ids": [
+    "marketing:creative-testing-framework",
+    "marketing:budget-pacing-bidding",
+    "marketing:frequency-creative-fatigue"
+   ],
+   "exam_items": [
+    "marketing-exam-52"
+   ]
+  },
+  {
+   "id": "MKT-CL-058",
+   "area": "Paid",
+   "item": "Uses TikTok/Snapchat and click-to-WhatsApp ads where they fit",
+   "entry_ids": [
+    "marketing:tiktok-snapchat-uae",
+    "marketing:whatsapp-click-to-chat-ads"
+   ],
+   "exam_items": [
+    "marketing-exam-78"
+   ]
+  },
+  {
+   "id": "MKT-CL-059",
+   "area": "Analytics",
+   "item": "Tags with UTMs, plans GA4 key events, consent mode v2 and server-side tagging",
+   "entry_ids": [
+    "marketing:utm-standard",
+    "marketing:ga4-key-events-plan",
+    "marketing:consent-mode-v2",
+    "marketing:server-side-tagging"
+   ],
+   "exam_items": [
+    "marketing-exam-44"
+   ]
+  },
+  {
+   "id": "MKT-CL-060",
+   "area": "Analytics",
+   "item": "Understands attribution models and proves incrementality",
+   "entry_ids": [
+    "marketing:attribution-models",
+    "marketing:incrementality-lift-and-mmm"
+   ],
+   "exam_items": [
+    "marketing-exam-07"
+   ]
+  },
+  {
+   "id": "MKT-CL-061",
+   "area": "Analytics",
+   "item": "Keeps a KPI scorecard and designs experiments honest about small samples",
+   "entry_ids": [
+    "marketing:marketing-kpis-scorecard",
+    "marketing:company-seat-kpis",
+    "marketing:experiment-design",
+    "marketing:small-sample-decision-rule"
+   ],
+   "exam_items": [
+    "marketing-exam-45"
+   ]
+  },
+  {
+   "id": "MKT-CL-062",
+   "area": "Reputation",
+   "item": "Runs Google Business Profile and review solicitation and responses within the rules",
+   "entry_ids": [
+    "marketing:google-business-profile-policy",
+    "marketing:review-solicitation-rules",
+    "marketing:responding-to-reviews-and-complaints",
+    "marketing:gbp-review-operations"
+   ],
+   "exam_items": [
+    "marketing-exam-42",
+    "marketing-exam-43"
+   ]
+  },
+  {
+   "id": "MKT-CL-063",
+   "area": "PR",
+   "item": "Runs UAE PR and trade-show/event marketing",
+   "entry_ids": [
+    "marketing:pr-press",
+    "marketing:events-uae-trade-shows",
+    "marketing:event-marketing-playbook"
+   ],
+   "exam_items": [
+    "marketing-exam-48",
+    "marketing-exam-49"
+   ]
+  },
+  {
+   "id": "MKT-CL-064",
+   "area": "Company",
+   "item": "States the hard rules and pricing exactly in every public text",
+   "entry_ids": [
+    "marketing:company-hard-rules-in-copy",
+    "marketing:company-pricing-message",
+    "marketing:company-vision",
+    "marketing:company-plan-scenarios",
+    "marketing:company-what-winning-looks-like"
+   ],
+   "exam_items": [
+    "marketing-exam-56",
+    "marketing-exam-57"
+   ]
+  },
+  {
+   "id": "MKT-CL-065",
+   "area": "Governance",
+   "item": "Knows handoffs to other seats and the shared glossary",
+   "entry_ids": [
+    "marketing:handoffs-and-governance",
+    "marketing:marketing-glossary"
+   ],
+   "exam_items": [
+    "marketing-exam-54",
+    "marketing-exam-55"
+   ]
+  },
+  {
+   "id": "MKT-CL-066",
+   "area": "Reasoning",
+   "item": "Reasons before proposing a campaign, approving a post or answering a question",
+   "entry_ids": [
+    "marketing:reasoning-campaign-idea",
+    "marketing:reasoning-post-review",
+    "marketing:reasoning-answer-marketing-question"
+   ],
+   "exam_items": [
+    "marketing-exam-58"
+   ]
+  }
+ ],
+ "contributions": [
+  {
+   "id": "MKT-C01",
+   "what": "Monthly marketing plan drafted, reviewed by the CEO seat and sent to the founder for one-shot approval on the 1st",
+   "cadence": "monthly",
+   "duties": [
+    "marketing.month_plan"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "MKT-C02",
+   "what": "One SEO/GEO article a week, released only on the founder's approval on a UAE working day",
+   "cadence": "weekly",
+   "duties": [
+    "marketing.article_release"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "MKT-C03",
+   "what": "Monthly answer-engine (GEO) prompt panel: are we cited, by which engine, and what to fix",
+   "cadence": "monthly",
+   "duties": [
+    "marketing.geo_check"
+   ],
+   "status": "partial",
+   "gap": "Checks run (24 checked in Oct) but 0 citations and no recorded fix action per uncited question; findings are not turned into content or entity fixes."
+  },
+  {
+   "id": "MKT-C04",
+   "what": "Supplier recruitment plan per thin trade: ranked by gap and demand, where its suppliers gather, an English invitation variant",
+   "cadence": "daily",
+   "duties": [
+    "marketing.gap_recruitment_plans"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "MKT-C05",
+   "what": "Supplier acquisition funnel analytics per recruit gap (invited, registered, verified, quoting) with diagnosis",
+   "cadence": "daily",
+   "duties": [
+    "marketing.recruitment_funnel"
+   ],
+   "status": "partial",
+   "gap": "Last result shows funnel totals all null (pool, invited, registered, quoting); stage conversion is not actually measured from delivered invitations."
+  },
+  {
+   "id": "MKT-C06",
+   "what": "Competitor watch: home and pricing pages, social posts, material changes raised to the CEO, weekly brief",
+   "cadence": "weekly",
+   "duties": [
+    "marketing.competitor_scan",
+    "marketing.competitor_refresh"
+   ],
+   "status": "partial",
+   "gap": "36 competitors watched but the scan requests and collects 0 pages and sees 0 social posts; the weekly brief is built on no data."
+  },
+  {
+   "id": "MKT-C07",
+   "what": "Reputation: ask every revealed customer for a public review 3 weeks after reveal, daily review snapshot, reply to reviews",
+   "cadence": "daily",
+   "duties": [
+    "marketing.reputation"
+   ],
+   "status": "partial",
+   "gap": "waiting_for_link: true and asks_sent 0 - the Google review link is not configured, so no review is ever requested."
+  },
+  {
+   "id": "MKT-C08",
+   "what": "January 2027 launch plan redrawn from category readiness, organic only until every category is open, sent for approval from 1 December",
+   "cadence": "daily",
+   "duties": [
+    "marketing.launch_plan"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "MKT-C09",
+   "what": "Monthly self-review against the qualification exam and senior checklist, opening the seat's own improvements",
+   "cadence": "monthly",
+   "duties": [
+    "marketing.self_review"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "MKT-C10",
+   "what": "Publish the approved social calendar natively per platform (LinkedIn, Instagram/Facebook, TikTok, YouTube, X) on working days, with UTM links",
+   "cadence": "daily",
+   "duties": [],
+   "status": "missing",
+   "gap": "No seat_duty publishes or schedules social posts; posting is not automated or tracked as a duty."
+  },
+  {
+   "id": "MKT-C11",
+   "what": "Community management: classify and answer comments and DMs within 1-2 working hours, route leads and complaints",
+   "cadence": "daily",
+   "duties": [],
+   "status": "missing",
+   "gap": "No marketing seat_duty owns the social inbox; the audit found fn:marketing_social_inbox failing about half its runs with no owner duty."
+  },
+  {
+   "id": "MKT-C12",
+   "what": "Weekly trend scan (TikTok Creative Center, Google Trends UAE, regulatory news) with a 48-hour accept/reject decision",
+   "cadence": "weekly",
+   "duties": [],
+   "status": "missing",
+   "gap": "No duty collects or decides on trends."
+  },
+  {
+   "id": "MKT-C13",
+   "what": "Monthly marketing scorecard: suppliers registered per campaign, cost per registered supplier, GEO citations, share of voice, post performance by pillar",
+   "cadence": "monthly",
+   "duties": [],
+   "status": "missing",
+   "gap": "No duty produces the KPI scorecard; KPIs exist only in knowledge entries."
+  },
+  {
+   "id": "MKT-C14",
+   "what": "Fact register kept in sync: a changed fee or policy updates every page, schema, llms.txt and profile the same day",
+   "cadence": "event",
+   "duties": [],
+   "status": "missing",
+   "gap": "No duty watches canonical facts and re-publishes or requests recrawl when one changes."
+  },
+  {
+   "id": "MKT-C15",
+   "what": "Ad-spend reporting to the accountant and paid campaigns once a budget is approved (creative tests, pacing, kill line)",
+   "cadence": "event",
+   "duties": [
+    "marketing.launch_plan"
+   ],
+   "status": "partial",
+   "gap": "Paid is correctly gated off (paid_allowed false); there is no duty yet that runs, paces or reports paid spend once approved."
+  }
+ ]
+}

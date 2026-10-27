@@ -16,7 +16,7 @@
 //     * for ANY review class R, ANY author class A it judges, and EACH of A's primary and fallback models m:
 //       the route the gateway would take (fn_ai_route_review when R is declared, fn_ai_route when it is not)
 //       gives R no model, or a primary OR a fallback of m's family;
-//     * the redaction verify has no third-family fallback;
+//     * the redaction verify has no fallback over an OpenAI author (matrix v3, #1479: an Anthropic author has one reviewer);
 //     * ai_cost_log holds a flagged review call (review_violation) in the last 30 days.
 //
 // PROOF IT FAILS ON THE POLICY BEFORE THE FILE: XFAM_NO_REPLAY=1 evaluates production exactly as it is, with no
@@ -169,7 +169,10 @@ begin
         end if;
         if mf = fam then o := o || to_jsonb(r.task_class || ' PRIMARY ' || (v->>'model') || ' shares ' || fam || ' with ' || a.task_class || ' on ' || m); end if;
         if ff = fam then o := o || to_jsonb(r.task_class || ' FALLBACK ' || (v->>'fallback') || ' shares ' || fam || ' with ' || a.task_class || ' on ' || m); end if;
-        if routed and r.task_class = 'identity_redaction_verify' and v->>'fallback' is null then
+        -- matrix v3 (#1479; ruling 1241 Gemini only hears, 1240 Sol removed): two judgement families remain, so an author on
+        -- Anthropic has ONE reviewer (Luna Pro) and no fallback by design; the verify must keep a fallback only where
+        -- its author writes on OpenAI (the same rule every_seat_runs_the_founders_model_matrix_probe.sql asserts).
+        if routed and r.task_class = 'identity_redaction_verify' and v->>'fallback' is null and fam = 'openai' then
           o := o || to_jsonb('identity_redaction_verify over ' || m || ' has no fallback'); end if;
         if routed and r.task_class = 'identity_redaction_verify' then
           ex := ex || jsonb_build_object(m, (v->>'model') || ' then ' || coalesce(v->>'fallback', 'none')); end if;

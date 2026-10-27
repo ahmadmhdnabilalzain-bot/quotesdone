@@ -19,12 +19,13 @@
 // Portal walks use ONLY identities on @example.invalid (refused otherwise); a session for an existing
 // demo user is obtained by the Auth admin API setting a fresh password on THAT demo user, which sends
 // nothing. Builds on browser.mjs (signedInPage, shot, realErrors) rather than beside it.
+import { SANDBOX_OUT } from '../lib/sandbox_out.mjs';
 import { chromium, devices } from 'playwright';
 import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
-import { launch, signedInPage, realErrors, IGNORABLE_CONSOLE } from './browser.mjs';
+import { launch, signedInPage, realErrors, IGNORABLE_CONSOLE, measureInquiryBox } from './browser.mjs';
 
-export const OUT = process.env.QD_WALK_OUT || 'C:/Users/Opera/Desktop/QuotesDone Sandbox Test 2026-10/browser';
+export const OUT = process.env.QD_WALK_OUT || join(SANDBOX_OUT, 'browser');
 const SITE = process.env.QD_SITE || 'https://quotesdone.com';
 const SLOW_MS = 4000;
 export const VIEWS = {
@@ -381,6 +382,15 @@ export async function openNewRequest(page, lang) {
     await page.getByRole('button', { name: lang === 'ar' ? /طلب جديد/ : /new request/i }).first().click({ timeout: 10000 });
     await box.waitFor({ state: 'visible', timeout: 20000 });
   }
+  // PLAYWRIGHT "VISIBLE" IS NOT SEEN (founder, 18 Oct 2026). waitFor visible means a non-empty bounding box and
+  // no visibility:hidden; a textarea clipped to 7px by the panel's overflow:hidden passed it, so S26 walked a
+  // page whose box the founder could not see. The box is now measured as a person sees it and a hidden one
+  // fails the step that opened it (scripts/e2e/inquiry_box_visible.mjs walks all five viewports, both languages).
+  // 'nearest' honours the box's scroll-margin (it clears the phone's fixed tab bar), as focusing it does.
+  await box.evaluate((el) => el.scrollIntoView({ block: 'nearest' })).catch(() => {});
+  await page.waitForTimeout(400);
+  const { problems } = await page.evaluate(measureInquiryBox);
+  if (problems.length) throw new Error('the inquiry box is not usable: ' + problems.join(' | '));
   return box;
 }
 
@@ -461,8 +471,12 @@ async function customerJourney(browser, w, lang, view) {
   // 2. Drawing/photo upload on a new request (spec questions incl. "not sure" follow in the chat).
   await jstep(rep, J, page, dir, 'new request: drawing upload + spec answer "not sure"', async () => {
     const png = join(dir, 'zz_demo_plan.png'); writeFileSync(png, demoOfficePlanPng());
-    await openNewRequest(page, lang);
-    const input = page.locator('input[type=file]').first();
+    // A FRESH PAGE (run 71b75b60): the terms step's Send now succeeds, and the portal moves to "My requests" while
+    // this step was already attaching — the file went into a composer that then closed, so the chip never showed.
+    await page.goto(me, { waitUntil: 'load' }); await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    const box = await openNewRequest(page, lang);
+    // The composer's own input, not the first file input anywhere on the page.
+    const input = box.locator('xpath=ancestor::*[.//input[@type="file"]][1]').locator('input[type=file]').first();
     if (!(await input.count())) return [false, 'no file input on the new-request screen'];
     await input.setInputFiles(png); await page.waitForTimeout(15000);
     const notSure = page.getByRole('button').filter({ hasText: lang === 'ar' ? /لست متأكد|غير متأكد/ : /not sure/i }).first();
@@ -474,18 +488,35 @@ async function customerJourney(browser, w, lang, view) {
 
   // 3. Quotes and the comparison report (top-3 + full list).
   await jstep(rep, J, page, dir, 'quotes and comparison report', async () => {
-    await page.locator('nav a, nav button').filter({ hasText: lang === 'ar' ? /طلبات|عروض/ : /request|quote/i }).first().click().catch(() => {});
-    await page.waitForTimeout(4000);
-    const body = await page.locator('body').innerText();
-    return [/AED|درهم/.test(body), `prices on screen: ${/AED|درهم/.test(body)}; comparison words: ${/top|compare|مقارنة|أفضل/i.test(body)}`];
+    await page.goto(me, { waitUntil: 'load' }); await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+    // OPEN THE REQUEST THAT HAS QUOTES (run 71b75b60): the cards are collapsed, and prices render only inside an
+    // opened card (CustomerPortal.tsx RequestCard), so the walk read a list of closed cards and found no AED.
+    const card = page.locator('[id^="inq-"]').filter({ hasText: lang === 'ar' ? /[1-9]\d*\s*عر(ض|وض)/ : /\b[1-9]\d* quotes?\b/ }).first();
+    // WAIT FOR THE CARDS (run 5, 321d13ae): requests load after networkidle; the step read the page 2 s in and
+    // failed C1, whose "4 quotes" card was on the screenshot taken moments later.
+    await card.waitFor({ state: 'visible', timeout: 20000 }).catch(() => {});
+    if (!(await card.count())) return [false, 'no request of this customer has a quote on screen (were quotes released for this customer?)'];
+    const head = card.locator('[role=button][aria-expanded]').first();
+    if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click();
+    await page.waitForTimeout(3000);
+    const body = await card.innerText();
+    return [/AED|درهم/.test(body), `prices on screen: ${/AED|درهم/.test(body)}; comparison words: ${/top|compare|best|مقارنة|أفضل/i.test(body)}`];
   });
 
   // 4-5. Reveal checkout: success (4242) then decline (0002), Stripe TEST only.
   for (const [name, card] of [['reveal checkout: test card success', TEST_CARD.number], ['reveal checkout: test card decline', DECLINE_CARD]]) {
     await jstep(rep, J, page, dir, name, async () => {
-      const btn = page.getByRole('button').filter({ hasText: lang === 'ar' ? /كشف|اكشف|ادفع/ : /reveal|unlock|pay/i }).first();
-      if (!(await btn.count())) return ['SKIP', 'no reveal button visible (needs an unrevealed quote)'];
-      const [pop] = await Promise.all([page.waitForEvent('popup', { timeout: 8000 }).catch(() => null), btn.click()]);
+      // THE REVEAL BUTTON ITSELF, THEN ITS CONFIRMATION (run 71b75b60): /reveal|unlock|pay/ first matched the
+      // "N quotes to review … reveal the supplier" notice, and the in-page confirm (q_confirm_pay) was never pressed,
+      // so nothing navigated and waitForURL timed out. Open the quoted card, press "Reveal & contact", confirm.
+      const card = page.locator('[id^="inq-"]').filter({ hasText: lang === 'ar' ? /[1-9]\d*\s*عر(ض|وض)/ : /\b[1-9]\d* quotes?\b/ }).first();
+      if (await card.count()) { const head = card.locator('[role=button][aria-expanded]').first(); if ((await head.getAttribute('aria-expanded')) !== 'true') { await head.click(); await page.waitForTimeout(2000); } }
+      const btn = page.getByRole('button', { name: lang === 'ar' ? /اكشف وتواصل/ : /Reveal & contact/ }).and(page.locator(':enabled')).first();
+      if (!(await btn.count())) return ['SKIP', 'no "Reveal & contact" button visible (needs an unrevealed quote)'];
+      await btn.click();
+      const confirm = page.getByRole('button', { name: lang === 'ar' ? /متابعة إلى الدفع الآمن/ : /Continue to secure payment/ }).first();
+      await confirm.waitFor({ timeout: 10000 });
+      const [pop] = await Promise.all([page.waitForEvent('popup', { timeout: 8000 }).catch(() => null), confirm.click()]);
       const sp = pop || page;
       await sp.waitForURL(/checkout\.stripe\.com/, { timeout: 30000 });
       if (!/cs_test_/.test(sp.url())) return [false, 'refused: checkout is not a TEST session'];

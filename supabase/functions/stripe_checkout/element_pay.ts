@@ -14,6 +14,7 @@
 //      the portal displayed on the final confirm line, and a different total is returned as
 //      'repriced' with nothing created at Stripe.
 //   2. A payment that fails leaves no open invoice behind: the invoice is voided.
+import { revealDescriptorSuffix } from '../_shared/statement_descriptor.ts';
 import { feeBasisFromPreview, revealChargeFor, type FeeBasis, type RevealCharge } from '../_shared/reveal_fee.ts';
 
 export type StripeResult = { ok: boolean; status: number; j: any };
@@ -50,6 +51,8 @@ export async function payReveal(stripe: StripeCall, a: PayArgs): Promise<PayResu
   const p = await priceToken(stripe, a.ct, a.quoteAmount, a.rate);
   if (!p.ok) return { status: 'failed', error: p.error };
   const { priced } = p;
+  // An unreadable rate prices at 0 (revealCharge): refuse before any Stripe write, never charge a guess.
+  if (!(priced.charge.total_charged > 0)) return { status: 'failed', priced, error: 'invalid_fee' };
   if (fils(priced.charge.total_charged) !== Math.round(Number(a.expectedTotalFils))) return { status: 'repriced', priced };
 
   // One Stripe customer per QuotesDone customer, found by our id rather than by email.
@@ -97,6 +100,10 @@ export async function payReveal(stripe: StripeCall, a: PayArgs): Promise<PayResu
     return { status: 'failed', priced, invoice, error: 'invoice_finalize_failed' };
   }
 
+  // An invoice takes no statement_descriptor_suffix (HTTP 400, measured 13 Oct 2026), but its
+  // PaymentIntent does, before confirmation: the card statement reads QUOTESDONE* <suffix>.
+  // A refusal here leaves the account's own descriptor and never blocks the payment.
+  await stripe('payment_intents/' + pi, new URLSearchParams({ statement_descriptor_suffix: revealDescriptorSuffix(a.requestRef) }), 'qd-sds-' + a.ct);
   const conf = await stripe('payment_intents/' + pi + '/confirm', new URLSearchParams({ confirmation_token: a.ct, return_url: a.returnUrl }), 'qd-confirm-' + a.ct);
   const st = String(conf.j?.status || '');
   if (conf.ok && (st === 'succeeded' || st === 'processing')) return { status: st, priced, invoice, payment_intent: pi };

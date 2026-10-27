@@ -55,6 +55,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "water_treatment_services:product-distinctions",
+      "topic": "Water and wastewater O&M: plant types and service scopes",
+      "topic_ar": "تشغيل وصيانة محطات المياه والصرف: أنواع المحطات ونطاقات الخدمة",
+      "kind": "product_distinctions",
+      "body_en": "Operation and maintenance services run treatment plants for clients: sewage treatment plants (STPs, often packaged units for communities, camps, hotels and industrial sites, using activated sludge, sequencing batch reactors, or membrane bioreactors (MBR) that give higher-quality effluent for irrigation reuse), RO and water treatment plants, cooling-tower and closed-loop chemical treatment (scale and corrosion inhibitors, biocides, legionella control), and swimming-pool plants. O&M scope covers daily operation by trained operators, chemical supply and dosing, sludge handling and removal, routine and preventive maintenance of pumps, blowers and membranes, laboratory testing of influent and effluent against the discharge or reuse limits, reporting to the client and authorities, and emergency response. Water-tank cleaning and disinfection services clean potable water tanks (draining, sludge removal, scrubbing, chlorination, and bacteriological testing after cleaning), typically at least twice a year for buildings, with certificates. Offers differ on staffing and qualifications, response times, chemical and spares inclusion, testing frequency and accredited labs, performance guarantees on effluent quality, and penalties.",
+      "body_ar": "تشغّل خدمات التشغيل والصيانة محطات المعالجة لصالح العملاء: محطات معالجة الصرف الصحي (غالباً وحدات مدمجة للمجمعات والسكن والفنادق والمواقع الصناعية، بالحمأة المنشطة أو المفاعلات المتتابعة أو المفاعلات الحيوية الغشائية التي تعطي مياهاً معالجة أعلى جودة لإعادة الاستخدام في الري)، ومحطات التناضح العكسي ومعالجة المياه، والمعالجة الكيميائية لأبراج التبريد والدوائر المغلقة (مثبطات الترسب والتآكل، المبيدات الحيوية، مكافحة الليجيونيلا)، ومحطات المسابح. ويغطي نطاق التشغيل والصيانة التشغيل اليومي بمشغلين مدربين، وتوريد الكيماويات وجرعاتها، والتعامل مع الحمأة وإزالتها، والصيانة الروتينية والوقائية للمضخات والنافخات والأغشية، والفحص المخبري للمياه الداخلة والخارجة مقابل حدود التصريف أو إعادة الاستخدام، والتقارير للعميل والجهات، والاستجابة للطوارئ. وخدمات تنظيف وتعقيم الخزانات تنظف خزانات مياه الشرب (التفريغ، إزالة الرواسب، الفرك، الكلورة، والفحص البكتيري بعد التنظيف)، عادة مرتين سنوياً على الأقل للمباني، مع شهادات. وتختلف العروض في الكوادر ومؤهلاتها، وأزمنة الاستجابة، وشمول الكيماويات وقطع الغيار، وتكرار الفحص والمختبرات المعتمدة، وضمانات الأداء لجودة المياه المعالجة، والغرامات.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Sewage_treatment"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: activated sludge and membrane bioreactors; operation and maintenance costs -> confirmed."
+    },
+    {
+      "id": "water_treatment_services:lead-times-and-quoting",
+      "topic": "Water treatment plant O&M & tank cleaning - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "تشغيل وصيانة محطات المعالجة وتنظيف الخزانات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "O&M contracts mobilise in 1-4 weeks after a plant survey; tank cleaning is scheduled within days. A provider needs the plant type, capacity and condition, influent characteristics, effluent standard, current problems, and for tanks the number, sizes and access. A quote states the scope, staffing, chemicals and spares, testing and reporting, performance guarantees, monthly fee or per-tank price, certificates and validity.",
+      "body_ar": "تبدأ عقود التشغيل والصيانة خلال 1-4 أسابيع بعد معاينة المحطة؛ وتنظيف الخزانات يُجدول خلال أيام. ويحتاج المزود نوع المحطة وسعتها وحالتها، وخصائص المياه الداخلة، ومعيار المياه المعالجة، والمشاكل الحالية، وللخزانات العدد والأحجام والوصول. ويذكر العرض النطاق والكوادر والكيماويات وقطع الغيار والفحص والتقارير وضمانات الأداء والرسوم الشهرية أو السعر لكل خزان والشهادات والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (Standards entry explicitly says the Dubai Municipality page does not give cleaning frequencies; missing: tank cleaning frequency rule (plumbing:tank-cleaning-dm exists in another trade)). water_treatment_services:potable-tank-cleaning-frequency was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from water_treatment_services.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "How often should our building's drinking water tanks be cleaned, and what should the certificate show?",
+      "q_ar": "كل كم مرة لازم تنظف خزانات مياه الشرب في المبنى؟ ووش لازم تبين الشهادة؟",
+      "expected_entry_ids": [
+        "water_treatment_services:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "water_treatment_services:potable-tank-cleaning-frequency"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "water_treatment_services:product-distinctions"
+      ],
+      "stored_not_served": [
+        "water_treatment_services:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Sewage_treatment"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

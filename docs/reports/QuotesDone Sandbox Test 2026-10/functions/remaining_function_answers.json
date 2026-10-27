@@ -1,0 +1,104 @@
+[
+ {
+  "slug": "customer_intelligence",
+  "action": "forecast",
+  "status": 401,
+  "body": "{\"code\":\"UNAUTHORIZED_ASYMMETRIC_JWT\",\"message\":\"Invalid JWT\"}"
+ },
+ {
+  "slug": "customer_intelligence",
+  "action": "savings",
+  "status": 401,
+  "body": "{\"code\":\"UNAUTHORIZED_ASYMMETRIC_JWT\",\"message\":\"Invalid JWT\"}"
+ },
+ {
+  "slug": "customer_intelligence",
+  "action": "supplier_performance",
+  "status": 401,
+  "body": "{\"code\":\"UNAUTHORIZED_ASYMMETRIC_JWT\",\"message\":\"Invalid JWT\"}"
+ },
+ {
+  "slug": "customer_intelligence",
+  "action": "supplier_relationship",
+  "status": 401,
+  "body": "{\"code\":\"UNAUTHORIZED_ASYMMETRIC_JWT\",\"message\":\"Invalid JWT\"}"
+ },
+ {
+  "slug": "ceo_agent",
+  "action": "board",
+  "status": 200,
+  "body": "{\"ok\":true,\"board\":{\"basis\":\"Every figure is a count of rows that exist, over the window for activity and lifetime for achievement. Nothing here is scored or rated. A zero means the thing has not happ"
+ },
+ {
+  "slug": "ceo_agent",
+  "action": "seats",
+  "status": 200,
+  "body": "{\"ok\":true,\"board\":{\"basis\":\"Every figure is a count of rows that exist, over the window for activity and lifetime for achievement. Nothing here is scored or rated. A zero means the thing has not happ"
+ },
+ {
+  "slug": "ceo_agent",
+  "action": "inbox",
+  "status": 200,
+  "body": "{\"ok\":true,\"commands\":[{\"command_id\":18,\"received_at\":\"2026-09-08T20:44:54.524809+00:00\",\"channel\":\"api\",\"body\":\"build the ceo edge function and verify it end to end\",\"intent_id\":\"build\",\"state\":\"task"
+ },
+ {
+  "slug": "ceo_agent",
+  "action": "context",
+  "status": 400,
+  "body": "{\"error\":\"query_required\"}"
+ },
+ {
+  "slug": "it_engineer",
+  "action": "health",
+  "status": 200,
+  "body": "{\"ok\":true,\"seat\":\"it_engineer\",\"caller\":\"it_engineer\",\"authenticated_by\":\"fn.it_engineer\",\"seated\":true,\"agent\":{\"agent_key\":\"it_engineer\",\"active\":true,\"available\":true,\"title\":\"IT Engineer\",\"routin"
+ },
+ {
+  "slug": "it_engineer",
+  "action": "status",
+  "status": 200,
+  "body": "{\"ok\":true,\"seat\":\"it_engineer\",\"caller\":\"it_engineer\",\"authenticated_by\":\"fn.it_engineer\",\"seated\":true,\"agent\":{\"agent_key\":\"it_engineer\",\"active\":true,\"available\":true,\"title\":\"IT Engineer\",\"routin"
+ },
+ {
+  "slug": "compliance_archive",
+  "action": "ping",
+  "status": 200,
+  "body": "{\"ok\":true,\"dropbox_ready\":true}"
+ },
+ {
+  "slug": "embed_ml",
+  "action": "query",
+  "status": 403,
+  "body": "{\"ok\":false,\"error\":\"forbidden\"}"
+ },
+ {
+  "slug": "site_error_ingest",
+  "action": null,
+  "status": 401,
+  "body": "{\"error\":\"unauthorized\"}"
+ },
+ {
+  "slug": "sanctions_screen",
+  "action": null,
+  "status": 403,
+  "body": "{\"error\":\"forbidden\"}"
+ },
+ {
+  "slug": "role_guard",
+  "action": null,
+  "status": 200,
+  "body": "{\"ok\":true,\"kind\":\"customer\",\"conflict\":null}"
+ },
+ {
+  "slug": "supplier_onboard",
+  "action": null,
+  "status": 401,
+  "body": "{\"code\":\"UNAUTHORIZED_ASYMMETRIC_JWT\",\"message\":\"Invalid JWT\"}"
+ },
+ {
+  "slug": "supplier_catalog_ingest",
+  "action": null,
+  "status": 401,
+  "body": "{\"code\":\"UNAUTHORIZED_ASYMMETRIC_JWT\",\"message\":\"Invalid JWT\"}"
+ }
+]

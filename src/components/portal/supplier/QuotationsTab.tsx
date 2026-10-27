@@ -25,6 +25,7 @@ const COPY = {
     option: (n: number) => `Option ${n}`, loading: 'Loading…', err: 'Something went wrong. Please try again.',
     pdf: 'Your quotation (PDF)', pdfEn: 'English', pdfAr: 'Arabic', preparing: 'Preparing…', pdfHeld: 'The Arabic version is being prepared by our sales engineer and will be ready shortly. The English version is available now.', pdfFailed: 'The document could not be prepared. Please try again.',
     lost: (o: string) => `Why ${o} was not chosen`, thisQuote: 'this quotation',
+    withdraw: 'Withdraw', confirmWithdraw: 'Confirm withdraw', cancel: 'Cancel', withdrawFailed: 'The quotation could not be withdrawn. Please try again.',
     qst: { draft: 'Held — not sent yet', submitted: 'Sent to the customer', accepted: 'Customer revealed you', withdrawn: 'Withdrawn', expired: 'Expired' } as Record<string, string>,
   },
   ar: {
@@ -35,6 +36,7 @@ const COPY = {
     pdf: 'عرض سعركم (PDF)', pdfEn: 'بالإنجليزية', pdfAr: 'بالعربية', preparing: 'جارٍ التحضير…', pdfHeld: 'يُعدّ مهندس المبيعات لدينا النسخة العربية وستكون جاهزة قريبًا. النسخة الإنجليزية متاحة الآن.', pdfFailed: 'تعذّر تحضير المستند. يُرجى المحاولة مرة أخرى.',
     // Suppliers are English only (founder, 28 Sep 2026): the loss reasons are English, so is their label.
     lost: (o: string) => `Why ${o} was not chosen`, thisQuote: 'this quotation',
+    withdraw: 'Withdraw', confirmWithdraw: 'Confirm withdraw', cancel: 'Cancel', withdrawFailed: 'The quotation could not be withdrawn. Please try again.',
     qst: { draft: 'محجوز — لم يُرسل بعد', submitted: 'أُرسل إلى العميل', accepted: 'كشف العميل عن عرضكم', withdrawn: 'مسحوب', expired: 'منتهي الصلاحية' } as Record<string, string>,
   },
 };
@@ -44,6 +46,25 @@ const COPY = {
 // "Quotations submitted" list itself offered no document. Each option now offers the standardised
 // quotation in English and in Arabic, from the same supplier_api quote_pdf (cached there). It carries
 // no customer identity — letter 'S', no request text — so it needs no reveal gate.
+// WITHDRAW BEFORE THE REVEAL (QA walk, 19 Oct 2026): the status "Withdrawn" existed with no way to reach it.
+// Two presses, because a withdrawn quotation leaves the customer's comparison. Suppliers are English (ruling 1008).
+function Withdraw({ token, lang, quoteId, title, onDone }: { token: string; lang: Lang; quoteId: string; title: string | null; onDone: () => void }) {
+  const t = COPY[lang];
+  const [ask, setAsk] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const go = async () => { setBusy(true); setErr(''); const j = await qr.withdraw(token, quoteId); setBusy(false); if (j && j.ok) { setAsk(false); onDone(); } else setErr(srvMsg(lang, j, t.withdrawFailed)); };
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px]" lang="en" dir="ltr">
+      {title ? <span className="text-muted-foreground">{title}</span> : null}
+      {!ask
+        ? <Button size="sm" variant="ghost" onClick={() => setAsk(true)}>{t.withdraw}</Button>
+        : <><Button size="sm" variant="destructive" disabled={busy} onClick={go}>{t.confirmWithdraw}</Button><Button size="sm" variant="ghost" disabled={busy} onClick={() => setAsk(false)}>{t.cancel}</Button></>}
+      {err ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{err}</span> : null}
+    </div>
+  );
+}
+
 function QuotePdf({ token, lang, quoteId, title }: { token: string; lang: Lang; quoteId: string; title: string | null }) {
   const t = COPY[lang];
   const [busy, setBusy] = useState<Lang | null>(null);
@@ -53,8 +74,7 @@ function QuotePdf({ token, lang, quoteId, title }: { token: string; lang: Lang; 
     <div className="mt-2 flex flex-wrap items-center gap-2 text-[12.5px]">
       <span className="text-muted-foreground">{title ? `${title} · ` : ''}{t.pdf}</span>
       <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => open('en')} lang="en">{busy === 'en' ? t.preparing : t.pdfEn}</Button>
-      <Button size="sm" variant="ghost" disabled={!!busy} onClick={() => open('ar')} lang="ar">{busy === 'ar' ? t.preparing : t.pdfAr}</Button>
-      {err ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{err === 'held' ? t.pdfHeld : t.pdfFailed}</span> : null}
+      {err ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{t.pdfFailed}</span> : null}
     </div>
   );
 }
@@ -119,6 +139,9 @@ export function QuotationsTab({ token, lang, focus = null, onFocused, openInquir
                 </div>
               </div>
               {i.quotes.map((q) => <QuotePdf key={'pdf-' + q.id} token={token} lang={lang} quoteId={q.id} title={i.quotes.length > 1 ? t.option(q.option_no) : null} />)}
+              {!i.revealed && !i.concluded ? i.quotes.filter((q) => q.status === 'draft' || q.status === 'submitted').map((q) => (
+                <Withdraw key={'wd-' + q.id} token={token} lang={lang} quoteId={q.id} title={i.quotes.length > 1 ? t.option(q.option_no) : null} onDone={load} />
+              )) : null}
               {i.quotes.filter((q) => q.loss_feedback?.length).map((q) => (
                 <div key={'lf-' + q.id} lang="en" dir="ltr" className="mt-2 rounded-chip border border-[var(--line2)] px-3 py-2 text-[12.5px]">
                   <p className="font-semibold text-foreground">{t.lost(i.quotes.length > 1 ? `Option ${q.option_no}` : t.thisQuote)}</p>

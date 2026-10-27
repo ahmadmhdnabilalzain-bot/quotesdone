@@ -8,7 +8,6 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 async function secret(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
-async function signedFile(path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from('quote-files').createSignedUrl(path, 3600); return data?.signedUrl || null; } catch { return null; } }
 
 // Observability: this is the browser-side confirmation path that records a paid reveal.
 // It duplicates stripe_webhook, so a failure here can still be covered by the webhook -
@@ -48,7 +47,7 @@ Deno.serve(siteCors(observe('stripe_confirm', async (req) => {
     const md = s.metadata || {};
     const qid = String(md.quote_id || '');
     if (!qid) { await logRun('error', { session_id: sid, payment_status: String(s?.payment_status || '') }, 'session has no metadata.quote_id - cannot record reveal'); return J({ error: 'no quote in session' }, 400); }
-    const { data: q } = await admin.from('quotes').select('id,inquiry_id,supplier_id,quote_amount,original_file_path,original_file_name').eq('id', qid).maybeSingle();
+    const { data: q } = await admin.from('quotes').select('id,inquiry_id,supplier_id,quote_amount').eq('id', qid).maybeSingle();
     if (!q) { await logRun('error', { quote_id: qid, session_id: sid }, 'quote_id from Stripe session not found in quotes'); return J({ error: 'Quote not found' }, 404); }
     const { data: inq } = await admin.from('inquiries').select('id,customer_id,summary').eq('id', q.inquiry_id).maybeSingle();
     if (!inq || inq.customer_id !== cust.id) { await logRun('error', { quote_id: qid }, 'ownership violation: customer confirmed another customer inquiry'); return J({ error: 'Not your inquiry' }, 403); }
@@ -64,11 +63,11 @@ Deno.serve(siteCors(observe('stripe_confirm', async (req) => {
     // signed URL to the supplier's OWN quotation PDF was not, so a refusal handed back nothing but
     // a one-hour link to the letterhead it had just refused to name. One function now returns the
     // whole disclosure — contact, file URL and file name — or nothing at all.
-    const disclose = async (): Promise<{ supplier: unknown; original_file_url: string | null; original_file_name: string | null }> => {
+    const disclose = async (): Promise<{ supplier: unknown }> => {
       const g = await canReveal(admin, { quoteId: qid, customerId: String(cust.id) });
-      if (!g.ok) { await logRun('error', { quote_id: qid, disclosure_refused: g.code }, 'the payment is recorded but the supplier was NOT disclosed (' + g.code + '); the customer must be refunded or told.'); return { supplier: null, original_file_url: null, original_file_name: null }; }
+      if (!g.ok) { await logRun('error', { quote_id: qid, disclosure_refused: g.code }, 'the payment is recorded but the supplier was NOT disclosed (' + g.code + '); the customer must be refunded or told.'); return { supplier: null }; }
       const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle();
-      return { supplier: sup, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null };
+      return { supplier: sup }; /* rulings 1228/1229: the customer only ever gets our template quotation as a PDF, never the supplier's own file */
     };
     const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
     if (existing) { await logRun('ok', { quote_id: qid, already_revealed: true }, 'already recorded (likely by stripe_webhook)'); return J({ ok: true, already_revealed: true, ...(await disclose()) }); }

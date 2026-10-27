@@ -22,7 +22,7 @@ import { mandatorySixMissing, registrationChecklist } from '../_shared/supplier_
 type Admin = any;
 // deno-lint-ignore no-explicit-any
 type Row = Record<string, any>;
-export type Supplier = { id: number; company_name: string; approval_status: string | null; registration_status: string | null; license_expiry: string | null; name_corrected_from: string | null };
+export type Supplier = { id: number; company_name: string; approval_status: string | null; registration_status: string | null; license_expiry: string | null; name_corrected_from: string | null; licence_gate_reason?: string | null; exception_due_at?: string | null };
 
 // Inquiry states in which an unquoted match is still an RFQ waiting for this supplier.
 const OPEN_INQ = ['sent', 'open', 'active', 'collecting', 'live', 'quoted'];
@@ -177,7 +177,10 @@ export async function buildEligibility(admin: Admin, supId: number): Promise<Row
     note: 'Each request goes to a shortlist of up to 8 suppliers, ranked by how well your listing matches what the customer asked for. Suppliers anywhere in the UAE are eligible; being in the customer’s emirate only breaks a tie.' };
 }
 
-export const supplierCard = (sup: Supplier) => ({ id: sup.id, company_name: sup.company_name, approval_status: sup.approval_status, registration_status: sup.registration_status, license_expiry: sup.license_expiry || null, name_corrected: !!sup.name_corrected_from });
+export const supplierCard = (sup: Supplier) => ({ id: sup.id, company_name: sup.company_name, approval_status: sup.approval_status, registration_status: sup.registration_status, license_expiry: sup.license_expiry || null, name_corrected: !!sup.name_corrected_from,
+  // 13 Oct 2026 (ruling 1230 walk): the header renders why a registration is held and how long is left; neither field was sent, so
+  // neither line ever showed. Prevented by scripts/checks/a_held_supplier_is_never_told_nothing_is_needed.test.mjs.
+  licence_gate_reason: sup.licence_gate_reason ?? null, exception_due_at: sup.exception_due_at ?? null });
 
 // THE NOTICES THE ESTATE WROTE TO THIS SUPPLIER, AND THE TAB EACH ONE IS DEALT WITH IN (audit
 // 21 Sep 2026, findings 5 and 6). Every message the company sends a supplier is a public.notifications

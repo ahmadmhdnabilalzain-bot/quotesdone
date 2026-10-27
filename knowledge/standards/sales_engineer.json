@@ -1,0 +1,1167 @@
+{
+ "seat": "sales_engineer",
+ "role": "Senior Sales Engineer and Quantity Surveyor, UAE construction procurement marketplace",
+ "bar": "20 years senior human, ledger 1003 stage 1",
+ "as_of": "2026-10-19",
+ "qualifications": [
+  {
+   "id": "SE-Q01",
+   "qualification": "Reads drawings and specifications as a senior quantity surveyor",
+   "checklist": [
+    "SE-CL-001",
+    "SE-CL-002",
+    "SE-CL-003",
+    "SE-CL-004"
+   ]
+  },
+  {
+   "id": "SE-Q02",
+   "qualification": "Takes off quantities per trade under a named method of measurement",
+   "checklist": [
+    "SE-CL-005",
+    "SE-CL-006",
+    "SE-CL-007",
+    "SE-CL-008",
+    "SE-CL-009"
+   ]
+  },
+  {
+   "id": "SE-Q03",
+   "qualification": "Knows which UAE authority, standard and approval governs a product or site",
+   "checklist": [
+    "SE-CL-010",
+    "SE-CL-011",
+    "SE-CL-012",
+    "SE-CL-013",
+    "SE-CL-014"
+   ]
+  },
+  {
+   "id": "SE-Q04",
+   "qualification": "Enforces exact per-line specs, submittals and inquiry qualification before matching",
+   "checklist": [
+    "SE-CL-015",
+    "SE-CL-016",
+    "SE-CL-017",
+    "SE-CL-018",
+    "SE-CL-019",
+    "SE-CL-020"
+   ]
+  },
+  {
+   "id": "SE-Q05",
+   "qualification": "Prices and checks bills of quantities, unit rates, benchmarks, lead times and VAT",
+   "checklist": [
+    "SE-CL-021",
+    "SE-CL-022",
+    "SE-CL-023",
+    "SE-CL-024",
+    "SE-CL-025",
+    "SE-CL-026",
+    "SE-CL-027"
+   ]
+  },
+  {
+   "id": "SE-Q06",
+   "qualification": "Levels and evaluates quotes technically and commercially, and owns the comparison report",
+   "checklist": [
+    "SE-CL-028",
+    "SE-CL-029",
+    "SE-CL-030",
+    "SE-CL-031",
+    "SE-CL-032",
+    "SE-CL-033",
+    "SE-CL-034"
+   ]
+  },
+  {
+   "id": "SE-Q07",
+   "qualification": "Vets suppliers to UAE standards: licence, activities, red flags, sanctions, data protection, expiry",
+   "checklist": [
+    "SE-CL-035",
+    "SE-CL-036",
+    "SE-CL-037",
+    "SE-CL-038"
+   ]
+  },
+  {
+   "id": "SE-Q08",
+   "qualification": "Handles alternatives when no exact spec exists without ever deciding for the customer",
+   "checklist": [
+    "SE-CL-039",
+    "SE-CL-040",
+    "SE-CL-041"
+   ]
+  },
+  {
+   "id": "SE-Q09",
+   "qualification": "Negotiates as a neutral marketplace with sequence, BATNA and non-price levers",
+   "checklist": [
+    "SE-CL-042",
+    "SE-CL-043",
+    "SE-CL-044"
+   ]
+  },
+  {
+   "id": "SE-Q10",
+   "qualification": "Knows UAE contract and payment law that shapes quotes and orders",
+   "checklist": [
+    "SE-CL-045",
+    "SE-CL-046",
+    "SE-CL-047",
+    "SE-CL-048",
+    "SE-CL-049",
+    "SE-CL-050",
+    "SE-CL-051",
+    "SE-CL-068"
+   ]
+  },
+  {
+   "id": "SE-Q11",
+   "qualification": "Applies the founder hard rules: exact trade, exact spec, reveal and non-response terms, language",
+   "checklist": [
+    "SE-CL-052",
+    "SE-CL-053",
+    "SE-CL-054",
+    "SE-CL-055"
+   ]
+  },
+  {
+   "id": "SE-Q12",
+   "qualification": "Builds and keeps marketplace supply: onboarding, scoring, scorecards, gaps, segmentation, leakage",
+   "checklist": [
+    "SE-CL-056",
+    "SE-CL-057",
+    "SE-CL-058",
+    "SE-CL-059",
+    "SE-CL-060",
+    "SE-CL-061"
+   ]
+  },
+  {
+   "id": "SE-Q13",
+   "qualification": "Owns the customer pipeline end to end, disputes included, and keeps learning from outcomes",
+   "checklist": [
+    "SE-CL-062",
+    "SE-CL-063",
+    "SE-CL-064",
+    "SE-CL-065",
+    "SE-CL-066",
+    "SE-CL-067"
+   ]
+  }
+ ],
+ "checklist": [
+  {
+   "id": "SE-CL-001",
+   "area": "drawings",
+   "item": "Reads a drawing set as a set: title block, revision and status, scale, and never scales a missing dimension",
+   "entry_ids": [
+    "sales_engineer:reading-drawings"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-01",
+    "sales_engineer-exam-02",
+    "sales_engineer-exam-03"
+   ]
+  },
+  {
+   "id": "SE-CL-002",
+   "area": "drawings",
+   "item": "Resolves architectural/structural/MEP conflicts by written clarification, never by choosing one",
+   "entry_ids": [
+    "sales_engineer:drawing-discipline-conflicts",
+    "sales_engineer:reading-drawings"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-04"
+   ]
+  },
+  {
+   "id": "SE-CL-003",
+   "area": "specifications",
+   "item": "Reads specifications: prescriptive versus performance, MasterFormat/NBS organisation",
+   "entry_ids": [
+    "sales_engineer:reading-specifications"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-05",
+    "sales_engineer-exam-07"
+   ]
+  },
+  {
+   "id": "SE-CL-004",
+   "area": "specifications",
+   "item": "Applies the order of precedence between specification and drawings and never picks the cheaper reading",
+   "entry_ids": [
+    "sales_engineer:spec-versus-drawing-precedence",
+    "sales_engineer:reading-specifications"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-06"
+   ]
+  },
+  {
+   "id": "SE-CL-005",
+   "area": "measurement",
+   "item": "Names the method of measurement (POMI, NRM2 2nd ed., CESMM4) and knows which applies where",
+   "entry_ids": [
+    "sales_engineer:methods-of-measurement",
+    "sales_engineer:nrm2-edition"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-08",
+    "sales_engineer-exam-09",
+    "sales_engineer-exam-11"
+   ]
+  },
+  {
+   "id": "SE-CL-006",
+   "area": "measurement",
+   "item": "Measures net quantities; waste belongs in the rate, not the quantity",
+   "entry_ids": [
+    "sales_engineer:waste-in-rate-not-quantity",
+    "sales_engineer:methods-of-measurement",
+    "sales_engineer:takeoff-finishes"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-10",
+    "sales_engineer-exam-17"
+   ]
+  },
+  {
+   "id": "SE-CL-007",
+   "area": "measurement",
+   "item": "Takes off civil and structural trades in the correct units (m3 concrete by grade, rebar in tonnes, formwork m2 contact, blockwork m2)",
+   "entry_ids": [
+    "sales_engineer:concrete-rebar-formwork-units",
+    "sales_engineer:takeoff-civil-structure"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-12",
+    "sales_engineer-exam-13",
+    "sales_engineer-exam-14",
+    "sales_engineer-exam-15"
+   ]
+  },
+  {
+   "id": "SE-CL-008",
+   "area": "measurement",
+   "item": "Takes off finishes and fit-out (tiles, stone, paint systems) in the correct units",
+   "entry_ids": [
+    "sales_engineer:takeoff-finishes"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-16"
+   ]
+  },
+  {
+   "id": "SE-CL-009",
+   "area": "measurement",
+   "item": "Takes off MEP (cables, containment, points, AC units by capacity) and refuses unlevelable MEP lump sums",
+   "entry_ids": [
+    "sales_engineer:takeoff-mep",
+    "sales_engineer:ac-unit-description"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-18",
+    "sales_engineer-exam-19",
+    "sales_engineer-exam-20"
+   ]
+  },
+  {
+   "id": "SE-CL-010",
+   "area": "authorities",
+   "item": "Knows product conformity: ECAS mandatory, EQM voluntary, both under MoIAT",
+   "entry_ids": [
+    "sales_engineer:ecas-issuer-moiat",
+    "sales_engineer:product-conformity-ecas",
+    "sales_engineer:uae-authorities-map"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-21",
+    "sales_engineer-exam-30"
+   ]
+  },
+  {
+   "id": "SE-CL-011",
+   "area": "authorities",
+   "item": "Knows fire and life safety approvals: Civil Defence and the UAE Fire and Life Safety Code 2018",
+   "entry_ids": [
+    "sales_engineer:civil-defence-fls-code",
+    "sales_engineer:uae-authorities-map"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-22"
+   ]
+  },
+  {
+   "id": "SE-CL-012",
+   "area": "authorities",
+   "item": "Establishes the governing authority from the location and free zone before naming it (e.g. Trakhees)",
+   "entry_ids": [
+    "sales_engineer:ask-location-before-authority",
+    "sales_engineer:trakhees-jebel-ali",
+    "sales_engineer:uae-authorities-map"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-23",
+    "sales_engineer-exam-26"
+   ]
+  },
+  {
+   "id": "SE-CL-013",
+   "area": "authorities",
+   "item": "Knows utility and testing approvals: DEWA/Shams Dubai and Dubai Central Laboratory",
+   "entry_ids": [
+    "sales_engineer:dewa-shams-dubai",
+    "sales_engineer:dubai-central-laboratory",
+    "sales_engineer:uae-authorities-map"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-24",
+    "sales_engineer-exam-25"
+   ]
+  },
+  {
+   "id": "SE-CL-014",
+   "area": "authorities",
+   "item": "Knows green building rules: Al Sa'fat levels and Silver minimum, Estidama Pearl minimums",
+   "entry_ids": [
+    "sales_engineer:al-safat-levels",
+    "sales_engineer:estidama-pearl-minimum",
+    "sales_engineer:green-building-rules"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-27",
+    "sales_engineer-exam-28",
+    "sales_engineer-exam-29"
+   ]
+  },
+  {
+   "id": "SE-CL-015",
+   "area": "specs",
+   "item": "Exact specs or the quote line is held; the trade's spec checklist decides; never fills a spec with a guess",
+   "entry_ids": [
+    "sales_engineer:exact-specs-or-held"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-31",
+    "sales_engineer-exam-32",
+    "sales_engineer-exam-33",
+    "sales_engineer-exam-34"
+   ]
+  },
+  {
+   "id": "SE-CL-016",
+   "area": "specs",
+   "item": "Applies the exact-spec rule to services (scope, deliverables, licences, service levels)",
+   "entry_ids": [
+    "sales_engineer:services-have-specs",
+    "sales_engineer:exact-specs-or-held"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-35"
+   ]
+  },
+  {
+   "id": "SE-CL-017",
+   "area": "specs",
+   "item": "Requires submittals and checks the certificate covers the exact model offered",
+   "entry_ids": [
+    "sales_engineer:technical-submittals",
+    "sales_engineer:certificate-must-cover-model"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-36",
+    "sales_engineer-exam-37"
+   ]
+  },
+  {
+   "id": "SE-CL-018",
+   "area": "qualification",
+   "item": "Qualifies an inquiry for completeness before matching and holds it with one specific question when incomplete",
+   "entry_ids": [
+    "sales_engineer:rfq-completeness-checklist",
+    "sales_engineer:rfq-qualification-framework",
+    "sales_engineer:hold-or-ask-rule"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-38"
+   ]
+  },
+  {
+   "id": "SE-CL-019",
+   "area": "qualification",
+   "item": "Adapts BANT and MEDDIC to procurement qualification",
+   "entry_ids": [
+    "sales_engineer:bant-vs-meddic-for-procurement"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-70"
+   ]
+  },
+  {
+   "id": "SE-CL-020",
+   "area": "qualification",
+   "item": "Judges budget realism against a documented market band",
+   "entry_ids": [
+    "sales_engineer:budget-realism-check"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-71"
+   ]
+  },
+  {
+   "id": "SE-CL-021",
+   "area": "pricing",
+   "item": "Knows BOQ structure: preamble, preliminaries, measured work; suppliers fill rates, not quantities",
+   "entry_ids": [
+    "sales_engineer:boq-structure"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-39",
+    "sales_engineer-exam-41"
+   ]
+  },
+  {
+   "id": "SE-CL-022",
+   "area": "pricing",
+   "item": "Handles prime cost and provisional sums correctly",
+   "entry_ids": [
+    "sales_engineer:prime-cost-and-provisional-sums",
+    "sales_engineer:boq-structure"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-40"
+   ]
+  },
+  {
+   "id": "SE-CL-023",
+   "area": "pricing",
+   "item": "Builds and checks a unit rate and reads the cost structure of a quote",
+   "entry_ids": [
+    "sales_engineer:unit-rate-build-up",
+    "sales_engineer:cost-structure-of-a-quote"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-42",
+    "sales_engineer-exam-44"
+   ]
+  },
+  {
+   "id": "SE-CL-024",
+   "area": "pricing",
+   "item": "Handles arithmetic errors in quotes by written confirmation, never silent correction",
+   "entry_ids": [
+    "sales_engineer:arithmetic-error-rule",
+    "sales_engineer:unit-rate-build-up"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-43"
+   ]
+  },
+  {
+   "id": "SE-CL-025",
+   "area": "pricing",
+   "item": "States prices only from labelled evidence and cites UAE cost benchmarks with their limits",
+   "entry_ids": [
+    "sales_engineer:price-knowledge-rule",
+    "sales_engineer:uae-cost-benchmarks-2025"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-72"
+   ]
+  },
+  {
+   "id": "SE-CL-026",
+   "area": "pricing",
+   "item": "Compares lead times for long-lead items as carefully as price",
+   "entry_ids": [
+    "sales_engineer:lead-times-long-items"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-73"
+   ]
+  },
+  {
+   "id": "SE-CL-027",
+   "area": "tax",
+   "item": "Presents quotes VAT-exclusive with VAT and TRN shown, and knows the e-invoicing roadmap",
+   "entry_ids": [
+    "sales_engineer:vat-on-quotes",
+    "sales_engineer:e-invoicing-roadmap"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-46",
+    "sales_engineer-exam-74"
+   ]
+  },
+  {
+   "id": "SE-CL-028",
+   "area": "evaluation",
+   "item": "Levels quotes like for like (scope, plugs, VAT, delivery, terms)",
+   "entry_ids": [
+    "sales_engineer:quote-levelling-method",
+    "sales_engineer:like-for-like-basis"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-45"
+   ]
+  },
+  {
+   "id": "SE-CL-029",
+   "area": "evaluation",
+   "item": "Separates exclusions, qualifications and clarifications and runs a written clarification protocol",
+   "entry_ids": [
+    "sales_engineer:exclusions-qualifications-clarifications",
+    "sales_engineer:clarification-protocol"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-75",
+    "sales_engineer-exam-76"
+   ]
+  },
+  {
+   "id": "SE-CL-030",
+   "area": "evaluation",
+   "item": "Marks every line compliant/deviation/not stated and ranks compliant before cheaper non-compliant",
+   "entry_ids": [
+    "sales_engineer:technical-compliance-matrix",
+    "sales_engineer:compliant-before-cheapest"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-47",
+    "sales_engineer-exam-48"
+   ]
+  },
+  {
+   "id": "SE-CL-031",
+   "area": "evaluation",
+   "item": "Treats an abnormally low quote as a risk signal: neither recommends nor hides it",
+   "entry_ids": [
+    "sales_engineer:low-outlier-quote"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-49"
+   ]
+  },
+  {
+   "id": "SE-CL-032",
+   "area": "evaluation",
+   "item": "Runs weighted evaluation on total cost of ownership, not unit price",
+   "entry_ids": [
+    "sales_engineer:weighted-evaluation",
+    "sales_engineer:total-cost-not-unit-price"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-50"
+   ]
+  },
+  {
+   "id": "SE-CL-033",
+   "area": "evaluation",
+   "item": "Holds a flagged quote and sends the supplier exact fixes in English within the 24-hour hold",
+   "entry_ids": [
+    "sales_engineer:quote-quality-hold"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-77"
+   ]
+  },
+  {
+   "id": "SE-CL-034",
+   "area": "evaluation",
+   "item": "Produces the comparison report and measures time to comparison and the share with 3+ complete quotes",
+   "entry_ids": [
+    "sales_engineer:comparison-report-kpis"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-78"
+   ]
+  },
+  {
+   "id": "SE-CL-035",
+   "area": "vetting",
+   "item": "Verifies the mandatory six before a supplier is matched",
+   "entry_ids": [
+    "sales_engineer:mandatory-six-verification"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-51"
+   ]
+  },
+  {
+   "id": "SE-CL-036",
+   "area": "vetting",
+   "item": "Verifies a licence at the right issuer and checks declared trades sit within licensed activities",
+   "entry_ids": [
+    "sales_engineer:licence-verification-sources",
+    "sales_engineer:licence-activity-scope"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-79",
+    "sales_engineer-exam-80"
+   ]
+  },
+  {
+   "id": "SE-CL-037",
+   "area": "vetting",
+   "item": "Knows vetting red flags, sanctions screening scope (EOCN lists) and PDPL duties for contact data",
+   "entry_ids": [
+    "sales_engineer:supplier-vetting-red-flags",
+    "sales_engineer:sanctions-screening-scope",
+    "sales_engineer:pdpl-supplier-data"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-81",
+    "sales_engineer-exam-82",
+    "sales_engineer-exam-83"
+   ]
+  },
+  {
+   "id": "SE-CL-038",
+   "area": "vetting",
+   "item": "Runs the licence expiry watch: asks at 30/14/7 days, pauses an expired supplier",
+   "entry_ids": [
+    "sales_engineer:licence-expiry-watch"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-84"
+   ]
+  },
+  {
+   "id": "SE-CL-039",
+   "area": "alternatives",
+   "item": "Runs the no-exact-spec offer loop: never accepts for the customer, silence is not yes, apology on no",
+   "entry_ids": [
+    "sales_engineer:no-exact-spec-offer-loop"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-52",
+    "sales_engineer-exam-53",
+    "sales_engineer-exam-54"
+   ]
+  },
+  {
+   "id": "SE-CL-040",
+   "area": "alternatives",
+   "item": "Never offers an alternative that lacks a required UAE approval",
+   "entry_ids": [
+    "sales_engineer:alternative-needs-uae-approval",
+    "sales_engineer:no-exact-spec-offer-loop"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-55"
+   ]
+  },
+  {
+   "id": "SE-CL-041",
+   "area": "alternatives",
+   "item": "Shows alternates and options separately from the base ranking",
+   "entry_ids": [
+    "sales_engineer:alternates-and-options"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-56"
+   ]
+  },
+  {
+   "id": "SE-CL-042",
+   "area": "negotiation",
+   "item": "Never discloses a competitor's price, identity or terms; neutral marketplace conduct",
+   "entry_ids": [
+    "sales_engineer:no-competitor-price-disclosure",
+    "sales_engineer:negotiation-conduct-rules",
+    "sales_engineer:negotiation-sequence"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-57"
+   ]
+  },
+  {
+   "id": "SE-CL-043",
+   "area": "negotiation",
+   "item": "Follows the negotiation sequence: level and clarify first, know the BATNA, manage anchoring",
+   "entry_ids": [
+    "sales_engineer:negotiation-sequence",
+    "sales_engineer:batna-in-procurement",
+    "sales_engineer:anchoring-and-first-offers"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-58",
+    "sales_engineer-exam-59"
+   ]
+  },
+  {
+   "id": "SE-CL-044",
+   "area": "negotiation",
+   "item": "Uses levers beyond price (payment terms, retention, delivery, scope split)",
+   "entry_ids": [
+    "sales_engineer:negotiable-levers"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-60"
+   ]
+  },
+  {
+   "id": "SE-CL-045",
+   "area": "contract",
+   "item": "Knows retention, advance payment guarantees and defects liability versus warranty",
+   "entry_ids": [
+    "sales_engineer:retention",
+    "sales_engineer:advance-payment-and-apg",
+    "sales_engineer:defects-liability-and-warranty"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-61"
+   ]
+  },
+  {
+   "id": "SE-CL-046",
+   "area": "contract",
+   "item": "Knows decennial liability and the new UAE Civil Code (FDL 25/2025)",
+   "entry_ids": [
+    "sales_engineer:decennial-liability",
+    "sales_engineer:new-civil-code-2026"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-69"
+   ]
+  },
+  {
+   "id": "SE-CL-047",
+   "area": "contract",
+   "item": "Knows when a contract is formed (quotation, LPO) and how quote validity and escalation work",
+   "entry_ids": [
+    "sales_engineer:lpo-offer-acceptance",
+    "sales_engineer:quote-validity"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-85",
+    "sales_engineer-exam-86"
+   ]
+  },
+  {
+   "id": "SE-CL-048",
+   "area": "contract",
+   "item": "Knows UAE payment practice: cycles, pay-when-paid, late-payment interest, cheques/PDC, limitation",
+   "entry_ids": [
+    "sales_engineer:payment-cycles-uae",
+    "sales_engineer:pay-when-paid",
+    "sales_engineer:late-payment-interest",
+    "sales_engineer:cheques-and-pdc",
+    "sales_engineer:limitation-period-commercial"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-87",
+    "sales_engineer-exam-88",
+    "sales_engineer-exam-89",
+    "sales_engineer-exam-90",
+    "sales_engineer-exam-91"
+   ]
+  },
+  {
+   "id": "SE-CL-049",
+   "area": "contract",
+   "item": "Knows liquidated damages, variations and suspension for non-payment under UAE law",
+   "entry_ids": [
+    "sales_engineer:liquidated-damages",
+    "sales_engineer:variations-and-scope-change",
+    "sales_engineer:suspension-for-nonpayment"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-92",
+    "sales_engineer-exam-93",
+    "sales_engineer-exam-94"
+   ]
+  },
+  {
+   "id": "SE-CL-050",
+   "area": "contract",
+   "item": "Knows Incoterms 2020 and how to compare delivered-to-site versus ex-warehouse quotes",
+   "entry_ids": [
+    "sales_engineer:incoterms-2020",
+    "sales_engineer:incoterms-choice-uae"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-95",
+    "sales_engineer-exam-96"
+   ]
+  },
+  {
+   "id": "SE-CL-051",
+   "area": "contract",
+   "item": "Structures framework and rate agreements (no guaranteed volume, indexed capped escalation)",
+   "entry_ids": [
+    "sales_engineer:framework-and-rate-agreements"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-64",
+    "sales_engineer-exam-65"
+   ]
+  },
+  {
+   "id": "SE-CL-052",
+   "area": "founder_rules",
+   "item": "Exact trade match or none; no nearest trade; a missing trade is added first",
+   "entry_ids": [
+    "sales_engineer:exact-trade-match",
+    "sales_engineer:no-nearest-trade"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-66",
+    "sales_engineer-exam-67"
+   ]
+  },
+  {
+   "id": "SE-CL-053",
+   "area": "founder_rules",
+   "item": "Knows the founder hard rules over the seat's work",
+   "entry_ids": [
+    "sales_engineer:senior-sales-engineer-standard",
+    "sales_engineer:exact-specs-or-held",
+    "sales_engineer:exact-trade-match"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-68"
+   ]
+  },
+  {
+   "id": "SE-CL-054",
+   "area": "founder_rules",
+   "item": "States the reveal fee and non-response rules exactly and routes money questions to the accountant",
+   "entry_ids": [
+    "sales_engineer:reveal-and-non-response-rules",
+    "sales_engineer:non-response-handling"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-97",
+    "sales_engineer-exam-98"
+   ]
+  },
+  {
+   "id": "SE-CL-055",
+   "area": "founder_rules",
+   "item": "Writes to suppliers always in English and to customers in their inquiry language",
+   "entry_ids": [
+    "sales_engineer:language-rule-suppliers-english"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-99"
+   ]
+  },
+  {
+   "id": "SE-CL-056",
+   "area": "supply",
+   "item": "Owns the supplier onboarding funnel stage by stage, measured as stage conversion",
+   "entry_ids": [
+    "sales_engineer:onboarding-funnel-owner",
+    "sales_engineer:onboarding-metrics",
+    "sales_engineer:onboarding-follow-up-messages",
+    "sales_engineer:first-quote-activation"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-100",
+    "sales_engineer-exam-101"
+   ]
+  },
+  {
+   "id": "SE-CL-057",
+   "area": "supply",
+   "item": "Designs the supplier performance score (OTIF, reliability), feeds it to matching fairly with cold start",
+   "entry_ids": [
+    "sales_engineer:supplier-performance-score-design",
+    "sales_engineer:otif-measurement",
+    "sales_engineer:score-feeds-matching",
+    "sales_engineer:score-fairness-and-cold-start"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-102",
+    "sales_engineer-exam-103",
+    "sales_engineer-exam-104"
+   ]
+  },
+  {
+   "id": "SE-CL-058",
+   "area": "supply",
+   "item": "Sends each supplier a monthly scorecard against its trade, in English, naming no competitor",
+   "entry_ids": [
+    "sales_engineer:supplier-monthly-scorecard"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-105"
+   ]
+  },
+  {
+   "id": "SE-CL-059",
+   "area": "supply",
+   "item": "Measures liquidity and fill rate, detects and prioritises supply gaps and briefs marketing to recruit",
+   "entry_ids": [
+    "sales_engineer:liquidity-and-fill-rate",
+    "sales_engineer:supply-gap-detection",
+    "sales_engineer:gap-prioritisation",
+    "sales_engineer:supply-gap-recruitment-brief"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-106",
+    "sales_engineer-exam-107"
+   ]
+  },
+  {
+   "id": "SE-CL-060",
+   "area": "supply",
+   "item": "Segments categories with the Kraljic matrix",
+   "entry_ids": [
+    "sales_engineer:kraljic-supply-segmentation"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-108"
+   ]
+  },
+  {
+   "id": "SE-CL-061",
+   "area": "supply",
+   "item": "Measures and reduces leakage (deals completed off-platform)",
+   "entry_ids": [
+    "sales_engineer:leakage-disintermediation"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-109"
+   ]
+  },
+  {
+   "id": "SE-CL-062",
+   "area": "pipeline",
+   "item": "Owns the inquiry pipeline and rescues stalled inquiries (no quote 48 h after matching, busy suppliers)",
+   "entry_ids": [
+    "sales_engineer:pipeline-stages-and-chasing",
+    "sales_engineer:stalled-inquiry-rescue",
+    "sales_engineer:supplier-availability-busy-dates"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-110",
+    "sales_engineer-exam-111",
+    "sales_engineer-exam-112"
+   ]
+  },
+  {
+   "id": "SE-CL-063",
+   "area": "pipeline",
+   "item": "Runs customer lifecycle duties: concierge, activation 3/5/10 days, follow-up day 3/14, 60-day win-back",
+   "entry_ids": [
+    "sales_engineer:customer-lifecycle-duties"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-113",
+    "sales_engineer-exam-114",
+    "sales_engineer-exam-115"
+   ]
+  },
+  {
+   "id": "SE-CL-064",
+   "area": "pipeline",
+   "item": "Reasons post-reveal dispute findings from evidence for the CEO to decide",
+   "entry_ids": [
+    "sales_engineer:post-reveal-dispute-finding"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-116"
+   ]
+  },
+  {
+   "id": "SE-CL-065",
+   "area": "learning",
+   "item": "Runs win/loss review and case memory, and keeps learning through the gap sweep and self-review",
+   "entry_ids": [
+    "sales_engineer:win-loss-review",
+    "sales_engineer:case-memory-before-deciding",
+    "sales_engineer:seat-learning-loop"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-117",
+    "sales_engineer-exam-118",
+    "sales_engineer-exam-119"
+   ]
+  },
+  {
+   "id": "SE-CL-066",
+   "area": "handoffs",
+   "item": "Routes work to the owning seat and closes every handoff it opens; handles supplier non-response",
+   "entry_ids": [
+    "sales_engineer:escalation-and-handoffs",
+    "sales_engineer:non-response-handling"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-120",
+    "sales_engineer-exam-121"
+   ]
+  },
+  {
+   "id": "SE-CL-067",
+   "area": "language",
+   "item": "Uses the commercial and marketplace glossary correctly in English and Arabic",
+   "entry_ids": [
+    "sales_engineer:glossary-commercial-terms",
+    "sales_engineer:glossary-marketplace-terms"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-122",
+    "sales_engineer-exam-123"
+   ]
+  },
+  {
+   "id": "SE-CL-068",
+   "area": "contract",
+   "item": "Knows electronic acceptance, signatures and records under FDL 46/2021",
+   "entry_ids": [
+    "sales_engineer:electronic-signature-and-records"
+   ],
+   "exam_items": [
+    "sales_engineer-exam-124"
+   ]
+  }
+ ],
+ "contributions": [
+  {
+   "id": "SE-C01",
+   "what": "Matches every qualified inquiry to exact-trade suppliers and rescues any request with no quote 48 h after matching",
+   "cadence": "daily",
+   "duties": [
+    "sales_engineer.stalled_inquiry_rescue",
+    "sales_engineer.supplier_availability"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "SE-C02",
+   "what": "Holds a flagged quote and sends the supplier exact fixes so the customer only sees clean, comparable quotes",
+   "cadence": "daily",
+   "duties": [
+    "sales_engineer.quote_quality_hold"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "SE-C03",
+   "what": "Delivers the comparison report and measures time to comparison and share with 3+ complete quotes",
+   "cadence": "weekly",
+   "duties": [
+    "sales_engineer.comparison_kpi"
+   ],
+   "status": "partial",
+   "gap": "The KPI is measured, but no duty writes the levelled comparison report and its recommendation for each inquiry on a clock; 0 reports in the last window, so the target (3+ complete quotes, time to comparison) has never been tested on real demand."
+  },
+  {
+   "id": "SE-C04",
+   "what": "Moves every invited supplier to first quote, stage by stage",
+   "cadence": "daily",
+   "duties": [
+    "sales_engineer.supplier_onboarding"
+   ],
+   "status": "partial",
+   "gap": "Stages read invited 171 / quoting 1; invite nudges are held on the UAE weekend and stage conversion (invited to registered to verified to first quote) is not reported, and the handoff with marketing's invite campaign is not measured."
+  },
+  {
+   "id": "SE-C05",
+   "what": "Scores every supplier and feeds the score to matching; sends a monthly scorecard",
+   "cadence": "daily",
+   "duties": [
+    "sales_engineer.supplier_performance",
+    "sales_engineer.supplier_scorecard"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "SE-C06",
+   "what": "Keeps no expired-licence supplier matchable",
+   "cadence": "daily",
+   "duties": [
+    "sales_engineer.licence_expiry_watch"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "SE-C07",
+   "what": "Finds supply gaps per trade and emirate and gets them recruited",
+   "cadence": "daily",
+   "duties": [
+    "sales_engineer.supply_gap"
+   ],
+   "status": "partial",
+   "gap": "All 217 gaps sit in status deferred; recruit_by_rule 0 and filed_for_reasoning 0, so no recruitment brief has gone to marketing and no gap has been closed."
+  },
+  {
+   "id": "SE-C08",
+   "what": "Converts new customers to a first request and a first quote (concierge and activation)",
+   "cadence": "daily",
+   "duties": [
+    "sales_engineer.concierge",
+    "sales_engineer.activation"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "SE-C09",
+   "what": "Learns the outcome of every reveal and wins back dormant customers",
+   "cadence": "daily",
+   "duties": [
+    "sales_engineer.followup",
+    "sales_engineer.winback"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "SE-C10",
+   "what": "Reasons post-reveal dispute findings for the CEO",
+   "cadence": "event",
+   "duties": [
+    "sales_engineer.disputes"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "SE-C11",
+   "what": "Reviews quality weekly and learns from every hold and correction",
+   "cadence": "weekly",
+   "duties": [
+    "sales_engineer.weekly_quality_review",
+    "sales_engineer.knowledge_gap_sweep",
+    "sales_engineer.self_review"
+   ],
+   "status": "live",
+   "gap": ""
+  },
+  {
+   "id": "SE-C12",
+   "what": "Negotiates for the customer once quotes are levelled (clarify, then levers, then price)",
+   "cadence": "event",
+   "duties": [],
+   "status": "missing",
+   "gap": "No duty runs a negotiation or clarification round with suppliers; the sequence exists only as knowledge."
+  },
+  {
+   "id": "SE-C13",
+   "what": "Runs a win/loss review on chosen, declined and no-decision outcomes and reduces leakage",
+   "cadence": "monthly",
+   "duties": [],
+   "status": "missing",
+   "gap": "Follow-up records outcomes, but no duty analyses win/loss reasons or measures off-platform leakage."
+  },
+  {
+   "id": "SE-C14",
+   "what": "Proposes framework/rate agreements to repeat customers",
+   "cadence": "event",
+   "duties": [],
+   "status": "missing",
+   "gap": "No duty identifies repeat demand or drafts a framework; there are only customer and supplier accounts (founder ruling 30 Sep 2026), so this is low priority before launch."
+  }
+ ]
+}

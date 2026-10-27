@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
+import { isLiveQuote, NOT_LIVE_QUOTE_IN } from '../_shared/quote_live.ts';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_CAD, SAFE_SHEET, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms, redactBoq, titleBlockBoxes } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
@@ -9,6 +10,7 @@ import { notSureKeys, specHandoffArgs } from './spec_handoff.ts';
 import { parseRatingInput } from './rating_input.ts';
 import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
+import { repeatCheck, repeatPlan } from './repeat.ts';
 import { HELD_NOTICE, hasArabic, holdForEnglish, mailMatched, supplierMail } from '../_shared/supplier_english.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { NONE, tradeOfText } from '../_shared/reasoned_trades.ts';
@@ -30,6 +32,7 @@ import { currentCustomerTermsVersion, needsReacceptance, customerTermsRecord, RE
 import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requirements.ts';
 import { portalLink, siteCors } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
+import { feeBaseOf, feeBasisLine, priceStated, vatStated } from '../_shared/stated_price.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { arabicOf, arabicTextsFor, nativeArabic } from '../_shared/reasoned_governance.ts';
@@ -37,6 +40,8 @@ import { SANCTIONED_REFUSAL, sanctionedLead, sanctionedLeads } from '../_shared/
 // One door decides whether a supplier may be revealed, and one predicate decides whether a quote is
 // complete enough to be listed, ranked or revealed (customer-portal audit CP-01 / CP-09).
 import { canReveal, heldQuoteIds, itemsByQuote } from '../_shared/reveal_guard.ts';
+import { verifiedBadges } from '../_shared/verified_badges.ts';
+import { readRevealRate, recordRateUnreadable } from '../_shared/reveal_rate.ts';
 import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from '../_shared/drawing_format.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -68,7 +73,6 @@ const EDIT_WINDOW_MS = 60 * 60e3;
 // emits '[', '\\', ']' from the 27th, so a customer with 30 quotes saw "Supplier [" and the
 // comparison report referenced a label that did not exist in their list.
 function supplierLabel(i: number): string { let n = Number(i) || 0, out = ''; do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0); return out; }
-async function signedFile(path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from('quote-files').createSignedUrl(path, 3600); return data?.signedUrl || null; } catch { return null; } }
 async function signedDrawing(path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from('drawing-files').createSignedUrl(path, 3600); return data?.signedUrl || null; } catch { return null; } }
 async function signedDoc(bucket: string | null | undefined, path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from(bucket || 'agent-docs').createSignedUrl(path, 7 * 24 * 3600); return data?.signedUrl || null; } catch { return null; } }
 async function getSecret(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
@@ -384,11 +388,12 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
 }
 
 type Cfg = { standard_reveal_rate: number; refund_window_working_days: number };
-async function getCfg(): Promise<Cfg> { const { data } = await admin.from('pricing_config').select('*').eq('id', 1).maybeSingle(); return (data as Cfg) || { standard_reveal_rate: 0.03, refund_window_working_days: 3 }; }
+// Never a guessed rate (../_shared/reveal_rate.ts): null when pricing_config cannot be read, and the caller decides.
+async function getCfg(): Promise<Cfg | null> { const r = await readRevealRate(admin); if (r.ok) return r.cfg as Cfg; await recordRateUnreadable(admin, 'customer_api getCfg -> pricing_config', r.error); return null; }
 // 6 Sep 2026 (founder): the reveal fee is 3% of the quotation value with NO discount, NO promotional rate
 // and NO cap. This copy computes the standard rate and nothing else, the same as public.reveal_fee();
 // pricing_config forbids a promo or a cap by constraint (pricing_config_no_discount_no_cap_ck).
-function revealFee(amount: number, cfg: Cfg): number { if (!amount || amount <= 0) return 0; return Math.round(amount * Number(cfg.standard_reveal_rate) * 100) / 100; }
+function revealFee(amount: number, cfg: Cfg | null): number | null { if (!cfg) return null; if (!amount || amount <= 0) return 0; return Math.round(amount * Number(cfg.standard_reveal_rate) * 100) / 100; }
 // A RATING IS EARNED HERE OR IT DOES NOT EXIST (founder, 9 Sep 2026): "supplier rating should be
 // from customers after they tried them", "google review shouldnt be counted". This used to fall
 // back to leads.rating ?? leads.rating_maps — the Google Maps star of a business QuotesDone has
@@ -420,7 +425,7 @@ function yearsBand(v: unknown): string | null { if (v == null) return null; cons
 // not its size (a 562 KB drawing took 1.9 s of CPU against the 2 s cap). drawing_boq is a SEPARATE worker,
 // so its death reaches this function as a 546 answer, not a silent kill. On that answer, or when dwg.ts
 // says the drawing is past its edge ceiling, the stored original is queued in public.cad_read_jobs and the
-// CAD worker (scripts/cad_read_worker.ts on a GitHub runner, the same reader code, no CPU cap) reads it;
+// CAD worker (scripts/cad_read_worker.ts, the same reader code, no CPU cap; run by the sales_engineer, see cadReadHeld) reads it;
 // 'cad_read_status' hands the take-off to the customer's screen. Prevented from regressing by
 // scripts/checks/a_cad_upload_reaches_the_cad_reader.test.mjs.
 function cadQueueReason(status: number, jd: any): 'over_edge_ceiling' | 'edge_worker_died' | 'edge_reader_failed' | null {
@@ -434,30 +439,28 @@ async function queueCadRead(o: { customerId: string; email: string; path: string
   const { data, error } = await admin.from('cad_read_jobs').insert({ customer_id: o.customerId, owner_email: o.email, source_path: o.path,
     file_name: o.name, mime: o.mime, bytes: Math.floor(o.b64Len * 3 / 4), why: o.why, boq_in: o.boqIn ?? null }).select('id').maybeSingle();
   if (error || !data?.id) { console.warn(`[cad] could not queue ${o.path}: ${error?.message || 'no id'}`); return null; }
-  await dispatchCadWorker(String(data.id));
+  await cadReadHeld(String(data.id), o.why);
   return String(data.id);
 }
-// THE QUEUE STARTS ITS OWN WORKER. A new job dispatches .github/workflows/cad-read-worker.yml at once, and
-// while the customer's screen polls cad_read_status (every 15 s) a job still waiting - the dispatch was
-// lost - or whose runner went silent is dispatched again (at most once a minute per job). The workflow's
-// 6-hourly schedule is only the last resort for a job nobody is polling: a lost dispatch after the
-// customer closed the page, or a runner that died after the polling stopped.
-async function dispatchCadWorker(jobId: string): Promise<void> {
+// NO RUNNER STARTS ON ITS OWN (27 Oct 2026, it_engineer). This used to dispatch .github/workflows/cad-read-worker.yml
+// and re-dispatch it while the customer's screen polled. GitHub Actions is off, so every dispatch reached nothing and a
+// queued drawing waited for a runner that never came while the customer was told "a few minutes". The reader cannot run
+// on the edge (2 s CPU cap; a scanned drawing is OCR'd for up to 30 minutes) nor in pg_cron (no Deno, no LibreDWG), so a
+// queued job is HELD FOR THE SALES ENGINEER: one finding per hour (the worker reads every queued job in one run, and a
+// run of scans must not flood the queue), raised the moment a job is queued, naming the latest job and why. The sales_engineer reads it with scripts/cad_read_worker.ts (fn_cad_read_claim still takes it), and the
+// customer's screen says an engineer is reading it (cad_read_status answers held_for). Never silent: a finding that
+// cannot be written is logged as an error, and the job stays queued for the worker either way.
+async function cadReadHeld(jobId: string, why: string): Promise<void> {
   try {
-    const gh = await getSecret('github_token');
-    if (!gh) { console.warn(`[cad] no github_token; job ${jobId} waits for the worker's schedule`); return; }
-    const r = await fetch('https://api.github.com/repos/ahmadmhdnabilalzain-bot/quotesdone/actions/workflows/cad-read-worker.yml/dispatches', {
-      method: 'POST', headers: { Authorization: `Bearer ${gh}`, Accept: 'application/vnd.github+json', 'User-Agent': 'quotesdone-customer-api' },
-      body: JSON.stringify({ ref: 'main' }), signal: AbortSignal.timeout(5000) });
-    if (r.status !== 204) console.warn(`[cad] worker dispatch answered ${r.status} for job ${jobId}`);
-  } catch (_e) { console.warn(`[cad] worker dispatch failed for job ${jobId}`); }
-}
-/** A polled job that should have started by now: queued past 2 minutes, or running with no word for 30. */
-function cadJobNeedsRedispatch(job: { status: string; created_at: string; claimed_at: string | null }, now = Date.now()): boolean {
-  const age = (t: string | null) => (t ? now - Date.parse(t) : 0);
-  const stuck = (job.status === 'queued' && age(job.created_at) > 120_000) || (job.status === 'running' && age(job.claimed_at) > 30 * 60_000);
-  // At most once a minute per job: the 15 s poll lands in the first 15 s of a minute once in four.
-  return stuck && Math.floor(age(job.created_at) / 1000) % 60 < 15;
+    const { error } = await admin.rpc('fn_it_engineer_finding_upsert', {
+      p_issue_key: 'sales_engineer:cad_read_held:' + new Date().toISOString().slice(0, 13),
+      p_title: 'A customer CAD drawing is queued for the CAD reader and no runner starts on its own: read it with scripts/cad_read_worker.ts',
+      p_where: 'customer_api queueCadRead -> public.cad_read_jobs', p_blast: 'customer_facing', p_affected: 1,
+      p_evidence: { job_id: jobId, why, run: 'SUPABASE_ACCESS_TOKEN=... deno run --no-lock --node-modules-dir=auto --allow-net --allow-env --allow-read scripts/cad_read_worker.ts', at: new Date().toISOString() },
+      p_raised_by: 'sales_engineer',
+    });
+    if (error) console.error(`[cad] job ${jobId} is queued but its sales_engineer finding was not written: ${error.message}`);
+  } catch (e) { console.error(`[cad] job ${jobId} is queued but its sales_engineer finding was not written: ${String((e as Error)?.message || e)}`); }
 }
 
 // A CAD DRAWING IS DRAWN FOR SUPPLIERS FROM ITS OWN ENTITIES (24 Sep 2026, sales_engineer; founder
@@ -571,7 +574,7 @@ async function storeOriginal(custId: string, email: string, name: string, mime: 
 // my_inquiries and quote_compare both use. This used to count drafts too, so a draft priced below a
 // quote made its PDF say "Supplier C" on a card the customer sees as "Supplier B".
 async function letterOf(q: any): Promise<string> {
-  const { data: sibs } = await admin.from('quotes').select('id,quote_amount').eq('inquiry_id', q.inquiry_id).neq('status', 'draft').order('quote_amount', { ascending: true });
+  const { data: sibs } = await admin.from('quotes').select('id,quote_amount').eq('inquiry_id', q.inquiry_id).not('status', 'in', NOT_LIVE_QUOTE_IN).order('quote_amount', { ascending: true });
   const idx = (sibs || []).findIndex((s: any) => s.id === q.id); return supplierLabel(idx >= 0 ? idx : 0);
 }
 // The strings that must not appear on a customer's document before the reveal.
@@ -617,7 +620,11 @@ async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   const maskNames = partyName ? [] : await supplierIdentities([q.supplier_id]);
   // The Arabic of the supplier's own words is reasoned (decision point trade_glossary_ar); a line not yet
   // translated HOLDS the Arabic document — it is never printed half-translated.
-  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, partyName, maskNames, requestUrl: portalLink(lang, inq.id, q.id), arTexts }), { subject: { quote_id: q.id } });
+  // The fee line prints pricing_config's rate (the one reveal_fee() charges); unread, the PDF is refused, never guessed.
+  const rateRead = await readRevealRate(admin);
+  if (!rateRead.ok) { await recordRateUnreadable(admin, 'customer_api quotation PDF -> pricing_config', rateRead.error, { quote_id: q.id }); return { j: { ok: false, error: 'reveal_rate_unread' }, ref: quoteRef(inq, letter) }; }
+  const revealRate = rateRead.cfg.standard_reveal_rate;
+  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, partyName, maskNames, requestUrl: portalLink(lang, inq.id, q.id), arTexts, revealRate }), { subject: { quote_id: q.id } });
   if (!doc.doc) return { j: ARABIC_HELD, ref: quoteRef(inq, letter) };
   const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');
@@ -836,14 +843,14 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
     // condition ('No customer profile', 403) rather than inventing a new vocabulary for it.
     const { data: cust } = await admin.from('customers').select('*').eq('email', email).maybeSingle();
     if (!cust) return J({ error: 'No customer profile', hint: 'This signed-in identity has no customer account. Customer accounts are created when a buyer verifies their sign-in code, not by reading this endpoint.' }, 403);
-    const body = await req.json().catch(() => ({})); const action = String(body.action || '');
+    let body = await req.json().catch(() => ({})); let action = String(body.action || '');
     // BANNED CUSTOMER (27 Jul 2026). messages_api auto-bans a buyer who pushes contact details
     // off-platform (it writes customers.banned = true) but customer_api never read that column,
     // so the ban only ever closed the chat: the same person could still post RFQs, reveal
     // suppliers, request refunds and rate them from the main buyer surface. Every mutating
     // action is refused now. 'me' and 'my_inquiries' stay open on purpose so the person can
     // still see their own account state and existing requests rather than hitting a dead wall.
-    const MUTATING = ['create_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'complete_inquiry', 'cancel_inquiry', 'rfq_note', 'add_missing_specs'];
+    const MUTATING = ['create_inquiry', 'repeat_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'complete_inquiry', 'cancel_inquiry', 'rfq_note', 'add_missing_specs'];
     if (cust?.banned === true && MUTATING.includes(action)) return J({ error: 'Your account is suspended. Please contact support@quotesdone.com if you believe this is a mistake.' }, 403);
 
     // RE-ACCEPTANCE OF A NEW TERMS VERSION (6 Oct 2026, release review of #1240). Recorded the same way as sign-up
@@ -881,12 +888,11 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       if (!/^[0-9a-f-]{36}$/i.test(id)) return J({ ok: false, error: 'not_found' }, 404);
       const { data: job } = await admin.from('cad_read_jobs').select('status, result, finished_at, created_at, claimed_at').eq('id', id).eq('customer_id', cust.id).maybeSingle();
       if (!job) return J({ ok: false, error: 'not_found' }, 404);
-      if (cadJobNeedsRedispatch(job as any)) await dispatchCadWorker(id);
       // 24 Sep 2026: the worker also DRAWS a CAD file the edge could not, for suppliers (cad_read_worker.ts
       // supplierDrawing); its recorded page comes back here so the customer's request can carry it.
       const res = job.status === 'done' ? (job.result as any) : null;
       const pages = res?.redaction_complete === true && Array.isArray(res.drawing_redacted_paths) ? res.drawing_redacted_paths.map((p: unknown) => String(p)) : [];
-      return J({ ok: true, status: job.status, boq: res?.boq ?? null, ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_job_ids: Array.isArray(res.redaction_job_ids) ? res.redaction_job_ids.map((x: unknown) => String(x)) : [String(res.redaction_job_id || '')], redaction_complete: true, drawing_held: false } : {}) });
+      return J({ ok: true, status: job.status, ...(job.status === 'queued' || job.status === 'running' ? { held_for: 'sales_engineer' } : {}), boq: res?.boq ?? null, ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_job_ids: Array.isArray(res.redaction_job_ids) ? res.redaction_job_ids.map((x: unknown) => String(x)) : [String(res.redaction_job_id || '')], redaction_complete: true, drawing_held: false } : {}) });
     }
 
     if (action === 'analyze_boq') {
@@ -1185,6 +1191,40 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       return J({ ok: true, concierge: data });
     }
 
+    // REPEAT A PAST REQUEST IN ONE CLICK (founder_instruction 1028; ./repeat.ts). It builds a ready intake from
+    // the customer's own earlier request and then falls through to create_inquiry, the one posting door.
+    if (action === 'repeat_inquiry') {
+      const { data: o } = await admin.from('inquiries').select('id,customer_id,parent_inquiry_id,category,emirate,raw_input,spec,summary,budget,scope_type,trades,floor,project_id,lang,created_at').eq('id', String(body.inquiry_id || '')).maybeSingle();
+      if (!o || o.customer_id !== cust.id) return J({ error: 'not_found' }, 404);
+      if (o.parent_inquiry_id) return J({ error: 'repeat_the_whole_request', message: 'This is one trade of a larger request. Repeat the whole request instead.' }, 409);
+      const now = new Date();
+      const cats = [...new Set([o.category, ...(Array.isArray(o.trades) ? o.trades : [])].filter(Boolean).map(String))];
+      const { data: cs } = cats.length ? await admin.from('category_specs').select('fields').in('category', cats) : { data: [] };
+      const checklistKeys = (cs || []).flatMap((r: any) => Array.isArray(r.fields) ? r.fields.map((f: any) => String(f?.key || '')).filter(Boolean) : []);
+      const plan = repeatPlan(o, now, body.edits && typeof body.edits === 'object' ? body.edits : {}, checklistKeys);
+      // Checked before anything is written, so a refusal leaves no intake row (release review of #1180).
+      const chk = repeatCheck(plan, now);
+      if (!chk.ok) return J({ error: 'nothing_to_repeat', missing: chk.missing, message: 'This request has no saved answers to repeat. Please start a new request instead.' }, 422);
+      // The edit step (founder_instruction 1028): the customer sees the copy and changes it before anything is posted.
+      if (body.preview === true) return J({ ok: true, draft: { summary: plan.brief.summary, budget: plan.brief.budget, emirate: plan.brief.emirate, required_by: chk.required_by } });
+      // Double-click guard: one copy of the same request per customer within three minutes.
+      // ponytail: read-then-insert, so two calls in the same instant can both pass; add a unique key if that is ever seen.
+      const since = new Date(now.getTime() - 3 * 60e3).toISOString();
+      const { count: dup } = await admin.from('inquiry_intake').select('id', { count: 'exact', head: true }).eq('customer_id', cust.id).eq('brief->>repeat_of', o.id).gte('created_at', since);
+      if ((dup || 0) > 0) return J({ error: 'already_repeated', message: 'This request was just posted again. Check your requests list.' }, 409);
+      // A repeat draft that never posted (create_inquiry refused it) is retired after the window, so the
+      // database guard below never blocks a later repeat of the same request.
+      await admin.from('inquiry_intake').update({ status: 'expired' }).eq('customer_id', cust.id).eq('status', 'ready').eq('brief->>repeat_of', o.id).lt('created_at', since);
+      // IDEMPOTENT IN THE DATABASE (release review of #1180): inquiry_intake_one_open_repeat is a unique partial index
+      // on (customer_id, brief->>'repeat_of') while 'ready', so two concurrent clicks cannot both insert; 23505 = 409.
+      const { data: it, error: ie } = await admin.from('inquiry_intake').insert({ customer_id: cust.id, email, category: plan.category, status: 'ready', raw_input: plan.raw_input, brief: plan.brief, readiness: 100, missing: [], turns: [] }).select('id').single();
+      if (ie?.code === '23505') return J({ error: 'already_repeated', message: 'This request was just posted again. Check your requests list.' }, 409);
+      if (ie || !it) return J({ error: 'save_failed' }, 500);
+      // A NEW body built only from the server's plan: nothing else the client sent reaches create_inquiry.
+      body = { ...plan.body, intake_id: it.id };
+      action = 'create_inquiry';
+    }
+
     if (action === 'create_inquiry') {
       // THE FIRST CONFIRMATION MESSAGE (same build). The moment a request is posted, customer_support e-mails a
       // first request its number and the steps, or a later request held for its specs exactly what is missing
@@ -1402,7 +1442,8 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
           return list && list.length ? { list, source: 'category_specs', category: cat, attached_at: new Date().toISOString() } : null;
         } catch (_e) { return null; }
       };
-      const briefCols = { floor: floorTxt, delivery_window: timelineTxt, required_by: requiredBy, project_id: projectId };
+      // A repeated request is linked to the one it copies (founder_instruction 1028); read from the server-side intake only.
+      const briefCols = { floor: floorTxt, delivery_window: timelineTxt, required_by: requiredBy, project_id: projectId, ...(briefObj?.repeat_of ? { repeat_of: String(briefObj.repeat_of) } : {}) };
 
       if (wantSplit) {
         // ALL OR NOTHING (_shared/inquiry_split.ts; review of #653). Parent and every child are saved
@@ -1589,7 +1630,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       if (ids.length && txRes.error) console.error('my_inquiries: transactions read failed —', txRes.error.message);
       const txIds = txs.map((t) => t.id);
       const [qsRes, msRes, sosRes, rfsRes] = await Promise.all([
-        ids.length ? admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,quote_amount,price_ex_vat,terms_spec,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,original_file_path,created_at,expires_at').in('inquiry_id', ids).neq('status', 'draft').order('quote_amount', { ascending: true }) : null,
+        ids.length ? admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,quote_amount,price_ex_vat,gross_amount,discount_amount,discount_label,vat_treatment,vat_amount,amount_as_stated,terms_spec,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,created_at,expires_at').in('inquiry_id', ids).not('status', 'in', NOT_LIVE_QUOTE_IN).order('quote_amount', { ascending: true }) : null,
         ids.length ? admin.from('inquiry_matches').select('inquiry_id,supplier_id,similarity,match_reason').in('inquiry_id', ids) : null,
         ids.length ? admin.from('spec_alternative_offer').select('id,inquiry_id,line_no,item,attr,label_en,label_ar,requested,alternatives,state,reply_by').in('inquiry_id', ids).eq('customer_id', cust.id).eq('state', 'open').order('opened_at', { ascending: true }) : null,
         txIds.length ? admin.from('refunds').select('id,transaction_id,refund_decision_id').in('transaction_id', txIds) : null,
@@ -1607,9 +1648,19 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       // because a quote that vanished with no explanation is its own defect. A quote the customer
       // has already paid to reveal is never withdrawn: that disclosure is theirs.
       const paidQuoteIds = new Set(txs.map((t) => String(t.quote_id)));
-      const sanctionedSup = await sanctionedLeads(admin, [...new Set(allQuotes.map((q) => q.supplier_id).filter((x) => x != null))] as (string | number)[]);
+      // THE LAST THREE WAVES ARE ONE (coordinator ruling G5, 19 Oct 2026). The sanctions read, the
+      // quote lines and the supplier rows each waited for the one before, though all three need only
+      // the quote list. In Postgres each is under 4 ms (pg_stat_statements max); what they cost was
+      // three edge-to-database round trips back to back. The supplier rows are now read for every
+      // quoting supplier — a superset of the listed ones, used only through supMeta lookups of quotes
+      // that survive the filters, so the answer is unchanged.
+      const allSupIds = [...new Set(allQuotes.map((q) => q.supplier_id).filter((x) => x != null))] as (string | number)[];
+      const [sanctionedSup, itemsOf, supRows] = await Promise.all([
+        sanctionedLeads(admin, allSupIds),
+        itemsByQuote(admin, allQuotes.map((q) => String(q.id))),
+        allSupIds.length ? Promise.all([admin.from('leads').select('id,company_name,app_rating,app_reviews,emirate,founded_year,rv_response_rate,rv_reveals,verified,licence_gate_reason,license_doc_path,license_expiry,company_profile_doc_path').in('id', allSupIds), admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', allSupIds)]) : null,
+      ]);
       const inqById = new Map<string, any>([...(tops || []), ...kids].map((i: any) => [String(i.id), i]));
-      const itemsOf = await itemsByQuote(admin, allQuotes.map((q) => String(q.id)));
       const heldIds = new Set<string>();
       for (const [iid, row] of inqById) {
         const mine = allQuotes.filter((q) => String(q.inquiry_id) === iid && !paidQuoteIds.has(String(q.id)));
@@ -1654,7 +1705,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       try { const ms = msRes?.data; for (const m of (ms || [])) { matchedBy[String(m.inquiry_id)] = (matchedBy[String(m.inquiry_id)] || 0) + 1; if (m.match_reason) reasonBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = String(m.match_reason); const sim = m.similarity == null ? null : Number(m.similarity); if (sim != null && Number.isFinite(sim)) { const pct = Math.round(sim * 100); pctBySup[String(m.inquiry_id) + ':' + String(m.supplier_id)] = pct; if (pct > (bestPct[String(m.inquiry_id)] ?? -1)) bestPct[String(m.inquiry_id)] = pct; } } } catch (_e) { /* */ }
       const supIds = [...new Set(quotes.map((q) => q.supplier_id))];
       const supMeta: Record<string, any> = {};
-      if (supIds.length) { const [{ data: ls }, { data: perf }] = await Promise.all([admin.from('leads').select('id,company_name,app_rating,app_reviews,emirate,verified,founded_year,rv_response_rate,rv_reveals').in('id', supIds), admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', supIds)]); const perfById: Record<string, any> = {}; for (const p of (perf||[])) perfById[String(p.supplier_id)] = p; const _yr = new Date().getFullYear(); for (const l of ls || []) supMeta[String(l.id)] = { r: ratingOf(l), name: l.company_name || null, emirate: l.emirate, verified: !!l.verified, years_active: l.founded_year ? Math.max(0, _yr - Number(l.founded_year)) : null, jobs_won: (perfById[String(l.id)]||{}).won ?? 0, win_rate: (perfById[String(l.id)]||{}).win_rate ?? null, rr: Number(l.rv_reveals) > 0 && l.rv_response_rate != null ? Number(l.rv_response_rate) : null }; }
+      if (supIds.length && supRows) { const [{ data: ls }, { data: perf }] = supRows; const perfById: Record<string, any> = {}; for (const p of (perf||[])) perfById[String(p.supplier_id)] = p; const _yr = new Date().getFullYear(); for (const l of ls || []) supMeta[String(l.id)] = { r: ratingOf(l), name: l.company_name || null, emirate: l.emirate, verified: !!l.verified, vb: verifiedBadges(l), years_active: l.founded_year ? Math.max(0, _yr - Number(l.founded_year)) : null, jobs_won: (perfById[String(l.id)]||{}).won ?? 0, win_rate: (perfById[String(l.id)]||{}).win_rate ?? null, rr: Number(l.rv_reveals) > 0 && l.rv_response_rate != null ? Number(l.rv_response_rate) : null }; }
       const revealedQ = new Set<string>(); const txByQuote: Record<string, string> = {}; const revealAtByQuote: Record<string, string | null> = {};
       // 21 Sep 2026 (customer audit, finding 17): the portal said "AED 778 paid" for a card charged
       // AED 816.37 — it printed the 3% fee, not transactions.total_charged (fee + card processing).
@@ -1709,11 +1760,11 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
         // from 60, so the portal offered an Edit button for 23 hours that the server always refused.
         editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < EDIT_WINDOW_MS), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((EDIT_WINDOW_MS - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0,
         // How many quotes are on hold for missing details and are therefore not in the list below.
-        on_hold: onHoldByInq[String(i.id)] || 0, drawing_file_url: await signedDrawing(i.drawing_file_path), spec_offers: offersBy[String(i.id)] || [], quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx, arr) => { const lab = labelQuotes(arr.map((x: any) => ({ id: String(x.id), supplier_id: x.supplier_id, option_no: x.option_no }))).get(String(q.id)); const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: lab ? lab.en : 'Supplier ' + supplierLabel(idx), label_ar: lab ? lab.ar : null, option_no: q.option_no ?? 1, price: q.quote_amount, reveal_fee: revealFee(Number(q.quote_amount), cfg), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', has_original: !!q.original_file_path, status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, supplier_name: revealed ? (m.name ?? null) : undefined, total_charged: revealed ? (chargedByQuote[String(q.id)] ?? null) : undefined, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
+        on_hold: onHoldByInq[String(i.id)] || 0, drawing_file_url: await signedDrawing(i.drawing_file_path), spec_offers: offersBy[String(i.id)] || [], quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx, arr) => { const lab = labelQuotes(arr.map((x: any) => ({ id: String(x.id), supplier_id: x.supplier_id, option_no: x.option_no }))).get(String(q.id)); const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: lab ? lab.en : 'Supplier ' + supplierLabel(idx), label_ar: lab ? lab.ar : null, option_no: q.option_no ?? 1, price: q.quote_amount, reveal_fee: revealFee(Number(feeBaseOf(q) ?? 0), cfg), price_stated: priceStated(q, 'en'), price_stated_ar: priceStated(q, 'ar'), gross_amount: q.gross_amount ?? null, discount_amount: q.discount_amount ?? null, discount_label: q.discount_label ?? null, vat_treatment: q.vat_treatment ?? null, vat_stated: vatStated(q, 'en'), vat_stated_ar: vatStated(q, 'ar'), fee_basis: feeBasisLine(feeBaseOf(q), cfg ? cfg.standard_reveal_rate : null, 'en'), fee_basis_ar: feeBasisLine(feeBaseOf(q), cfg ? cfg.standard_reveal_rate : null, 'ar'), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, source: q.source || 'form', status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, supplier_name: revealed ? (m.name ?? null) : undefined, total_charged: revealed ? (chargedByQuote[String(q.id)] ?? null) : undefined, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
           // W9 badges: only measured facts, null when absent. Pre-reveal the response rate is floored
           // to a 10% band and the rating stays out (the banded rating above already shows it), so a
           // badge can never be an exact fingerprint of one company.
-          badges: { licence_verified: m.verified === true, response_rate: m.rr == null ? null : (revealed ? m.rr : Math.floor((m.rr <= 1 ? m.rr : m.rr / 100) * 10) / 10), jobs_completed: Number(m.jobs_won) > 0 ? Number(m.jobs_won) : null, rating: revealed && typeof r.value === 'number' ? r.value : null } }; }) });
+          badges: { licence_verified: m.vb ? m.vb.licence_verified : false, documents_complete: m.vb ? m.vb.documents_complete : false, response_rate: m.rr == null ? null : (revealed ? m.rr : Math.floor((m.rr <= 1 ? m.rr : m.rr / 100) * 10) / 10), jobs_completed: Number(m.jobs_won) > 0 ? Number(m.jobs_won) : null, rating: revealed && typeof r.value === 'number' ? r.value : null } }; }) });
       // EACH mapRow AWAITS A STORAGE ROUND TRIP (signedDrawing) THAT THE OLD LOOP SERIALISED. Up to
       // 25 top-level rows plus every child were signed one at a time — an N+1 sequential-await chain
       // on the Overview's critical path (e2e run 6, 14 Sep 2026: 6.5s vs run 5's 1.6-1.8s, growing
@@ -1738,7 +1789,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       // promo is always false: there is no promotional reveal rate (founder, 6 Sep 2026); the key stays so no reader breaks.
       // The ladder's numbers, from the same row the refund sweep and the supplier email read, so the
       // portal's timeline cannot drift from what is actually enforced (5 / 3 / 7-14 on 14 Sep 2026).
-      const pc = cfg as unknown as Record<string, number | null | undefined>;
+      const pc = (cfg || {}) as unknown as Record<string, number | null | undefined>;
       const guarantee_terms = { window_days: pc.refund_window_working_days ?? null, chase_after_days: pc.chase_after_working_days ?? null, bank_min_days: pc.bank_settlement_working_days_min ?? null, bank_max_days: pc.bank_settlement_working_days_max ?? null };
       return J({ inquiries: out, locale: cust.locale || null, promo: false, guarantee_terms });
     }
@@ -1880,7 +1931,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       const { data: inq } = await admin.from('inquiries').select('id,rfq_no,customer_id,category,summary,emirate,boq').eq('id', q.inquiry_id).maybeSingle();
       if (!inq || inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
       // A draft is not a quote the customer has; it has no letter and no document.
-      if (q.status === 'draft') return J({ error: 'Quote not found' }, 404);
+      if (!isLiveQuote(q.status)) return J({ error: 'Quote not found' }, 404);
       const { data: cached } = await admin.from('quote_pdf_cache').select('bucket,path,created_at').eq('quote_id', qid).eq('lang', lang).maybeSingle();
       const touched = q.updated_at ? new Date(q.updated_at) : (q.created_at ? new Date(q.created_at) : null);
       // A cached file is served only if it was rendered by THIS layout (isCurrentDoc: DOC_VERSION is in the
@@ -1914,8 +1965,10 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       const gate = await canReveal(admin, { quoteId: qid, customerId: String(cust.id) });
       if (!gate.ok) return J({ ok: false, error: gate.error, code: gate.code, message: gate.message, message_ar: gate.message_ar }, gate.status);
       const q = gate.quote;
-      if (gate.already_revealed) { const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return J({ ok: true, already_revealed: true, supplier: sup, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null }); }
+      if (gate.already_revealed) { const { data: sup } = await admin.from('leads').select('company_name,phone,whatsapp,email,website,emirate').eq('id', q.supplier_id).maybeSingle(); return J({ ok: true, already_revealed: true, supplier: sup /* rulings 1228/1229: the customer only ever gets our template quotation as a PDF, never the supplier's own file */ }); }
       // The breakdown the confirm dialog prints is the one stripe_checkout charges: one module.
+      // No readable rate, no price and no payment: never a guessed 3% (./reveal_rate.ts; getCfg filed the finding).
+      if (!cfg) return J({ ok: false, error: 'reveal_rate_unavailable', code: 'reveal_rate_unavailable', message: 'Card payments are briefly unavailable. Your quotes are safe — please try again shortly.', message_ar: 'الدفع بالبطاقة غير متاح مؤقتًا. عروضك محفوظة — يُرجى المحاولة بعد قليل.' }, 503);
       const ch = revealCharge(Number(q.quote_amount), Number(cfg.standard_reveal_rate));
       return J({ ok: true, payment_required: true, quote_id: qid, quote_amount: q.quote_amount, reveal_fee: ch.base_fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, currency: 'AED' });
     }
@@ -2052,7 +2105,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
 
     if (action === 'supplier_history') {
       const qid = String(body.quote_id || '');
-      const { data: q } = await admin.from('quotes').select('id,supplier_id,original_file_path,original_file_name').eq('id', qid).maybeSingle(); if (!q) return J({ error: 'Quote not found' }, 404);
+      const { data: q } = await admin.from('quotes').select('id,supplier_id').eq('id', qid).maybeSingle(); if (!q) return J({ error: 'Quote not found' }, 404);
       if (await sanctionedLead(admin, q.supplier_id)) return J(SANCTIONED_REFUSAL, 403);  // founder instruction 516: never shown to a customer
       // The reveal check gates what is RETURNED, not what may be read, so the three reads that only
       // need q.supplier_id run beside it instead of one after another (14 Sep 2026: four sequential
@@ -2085,7 +2138,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       if (myInqIds.length) {
         const [{ count: sent }, { count: back }] = await Promise.all([
           admin.from('inquiry_matches').select('inquiry_id', { count: 'exact', head: true }).eq('supplier_id', q.supplier_id).in('inquiry_id', myInqIds),
-          admin.from('quotes').select('id', { count: 'exact', head: true }).eq('supplier_id', q.supplier_id).in('inquiry_id', myInqIds).neq('status', 'draft'),
+          admin.from('quotes').select('id', { count: 'exact', head: true }).eq('supplier_id', q.supplier_id).in('inquiry_id', myInqIds).not('status', 'in', NOT_LIVE_QUOTE_IN),
         ]);
         rfqsSent = sent || 0;
         quotesBack = back || 0;
@@ -2096,7 +2149,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
         scope: 'this customer',
         rfqs_sent_platform_wide: sentAll || 0,
       };
-      return J({ ok: true, supplier: sup ? { ...sup, rating_display: ratingOf(sup) } : null, projects, projects_count: projects.length, relationship, original_file_url: await signedFile(q.original_file_path), original_file_name: q.original_file_name || null });
+      return J({ ok: true, supplier: sup ? { ...sup, rating_display: ratingOf(sup) } : null, projects, projects_count: projects.length, relationship /* rulings 1228/1229: the customer only ever gets our template quotation as a PDF, never the supplier's own file */ });
     }
 
 

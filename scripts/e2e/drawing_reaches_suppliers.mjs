@@ -23,6 +23,7 @@
 //
 // NOTHING HERE CAN REACH A REAL PERSON: identities are ZZ DEMO / @example.invalid / +9715000000xx, the
 // database's demo guards capture every notice, and a demo account is never matched to a real one.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import http from 'node:http';
 import zlib from 'node:zlib';
 import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, read, call, waitFor } from './fixtures.mjs';
@@ -111,7 +112,8 @@ async function rasterise(pdf) {
   const images = await pg.evaluate(async () => {
     const pdfjs = await import('/pdfjs/pdf.min.mjs');
     pdfjs.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.min.mjs';
-    const pdf = await pdfjs.getDocument('/doc.pdf').promise; const out = [];
+    // pdfjs-dist 6 refuses a bare string ("getDocument - expected either data, range, or url"): 18 Oct, run 39079803518.
+    const pdf = await pdfjs.getDocument({ url: '/doc.pdf' }).promise; const out = [];
     for (let p = 1; p <= Math.min(pdf.numPages, 20); p++) {
       const page = await pdf.getPage(p); const v1 = page.getViewport({ scale: 1 });
       const vp = page.getViewport({ scale: Math.min(1.8, 2600 / Math.max(v1.width, v1.height)) });
@@ -132,7 +134,7 @@ async function edgeTimes(fn, sinceIso) {
   // metadata flattened into log_attributes (keys measured live that day: execution_time_ms,
   // response.status_code, request.pathname). See scripts/checks/edge_requests_show_no_attack_pattern.mjs.
   const { readFileSync } = await import('node:fs');
-  const tok = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+  const tok = supabaseAccessToken();
   const sql = `select timestamp, toFloat64OrZero(log_attributes['execution_time_ms']) as ms, toInt32OrZero(log_attributes['response.status_code']) as st from logs where source = 'function_edge_logs' and log_attributes['request.pathname'] = '/functions/v1/${fn}' order by timestamp`;
   const r = await fetch(`https://api.supabase.com/v1/projects/htdblwldjkcgjvmqkbeh/analytics/endpoints/logs?sql=${encodeURIComponent(sql)}&iso_timestamp_start=${encodeURIComponent(sinceIso)}&iso_timestamp_end=${encodeURIComponent(new Date().toISOString())}`, { headers: { Authorization: 'Bearer ' + tok } });
   const text = await r.text();

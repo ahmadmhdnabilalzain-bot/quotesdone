@@ -27,7 +27,8 @@ const CEO = 'scripts/sql/the_ceo_reviews_the_week_watches_pricing_and_forecasts_
 const FILES = ['scripts/sql/every_seat_duty_has_an_owner_a_clock_and_a_check.sql', CEO,
   'scripts/sql/routine_work_is_code_and_the_model_answers_only_real_judgement.sql',
   'scripts/sql/the_ceo_management_review_request_fits_the_reasoning_limit.sql',
-  'scripts/sql/the_ceo_review_proves_its_author_on_the_class_think_bills.sql'];
+  'scripts/sql/the_ceo_review_proves_its_author_on_the_class_think_bills.sql',
+  'scripts/sql/a_fenced_seat_duty_keeps_its_fixture_switch.sql'];
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 
 test('the reveal fee is out of the pricing review, and no price is written', () => {
@@ -119,6 +120,9 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; n bigint; wk date := public.fn
       values (cust, 'zz_demo_pricing_trade', 'Dubai', 'en', 'quoted', 'ZZ DEMO pricing probe ' || i) returning id into iq;
     insert into public.quotes (inquiry_id, supplier_id, quote_amount, status) values (iq, sup, 1000 + i, 'draft');
   end loop;
+  -- FIXTURE RUN (13 Oct 2026, a_fenced_seat_duty_keeps_its_fixture_switch.sql): since #1348 (ruling 1199) a real run
+  -- counts no ZZ DEMO request; qd.duty_fixtures makes this one count ONLY the 20 built above.
+  perform set_config('qd.duty_fixtures', 'on', true);
   update public.ceo_review set held_id = null, decision = null, decided_at = null, review = null where period = wk and kind = 'pricing_monitor';
   v := public.fn_ceo_pricing_monitor();
   select held_id into h from public.ceo_review where kind = 'pricing_monitor' and period = wk;

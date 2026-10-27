@@ -9,7 +9,9 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 // The licence request and its reading live in one module so the accuracy suite measures exactly this (7 Oct 2026).
-import { SYS_LICENSE, parseJson, normDate, normEmirate, documentContent, normaliseLicence } from '../_shared/licence_extract.ts';
+import { SYS_LICENSE, SYS_PROFILE, parseJson, normDate, normEmirate, documentContent, normaliseLicence, imagesTooSmallToRead, UNREADABLE_LICENCE, lowReadProven, licencePages } from '../_shared/licence_extract.ts';
+import { pagesBlank } from '../_shared/licence_page_ink.ts';
+import { pdfText } from '../_shared/document_expiry.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
@@ -37,7 +39,6 @@ const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().
 //
 // The approval gate itself is NOT touched — another effort owns that. This only stops the input
 // to it from claiming a read that did not happen.
-const SYS_PROFILE = `You read a UAE supplier's COMPANY PROFILE and/or PRODUCT CATALOG and summarise what the company actually does, so QuotesDone can match it to relevant customer requests. Be factual; use only what the documents show. Return STRICT JSON only:\n{\"summary\":string,\"services\":[string],\"products\":[string],\"sectors\":[string],\"emirates\":[string],\"confidence\":\"low\"|\"medium\"|\"high\"}\nsummary = 2-4 plain sentences describing the business, its core offering and strengths. services = the services they provide. products = product lines they supply (generic, no need to keep brand names). sectors = the trade categories they fit (e.g. joinery, MEP, fit-out, flooring, signage, landscaping). emirates = areas/emirates they serve if stated. Keep arrays concise (max ~12 each).`;
 const SYS_CERT = `You read a supplier's CERTIFICATE or LETTER - typically an insurance policy schedule, an ISO certificate, or a manufacturer/authorised-dealer letter - and pull out the dates and identifying details so the supplier never has to type them by hand.\n\nRULES\n1. expiry_date is the date the document STOPS being valid. On insurance schedules this is the 'period of insurance' TO date. On ISO certificates it is the 'expiry' or 'valid until' date, NOT the certification or surveillance-audit date. On dealer letters it is the stated validity end, if any.\n2. If several dates appear, choose the one that governs when this document lapses. Do not return an issue date as an expiry.\n3. If NO expiry is printed anywhere, return an empty string and set confidence 'low'. Never invent or estimate a date - a wrong expiry either suspends a valid supplier or lets a lapsed one keep trading.\n4. Dates may be printed as DD/MM/YYYY, DD-MMM-YYYY or written out. Output YYYY-MM-DD.\n\nReturn STRICT JSON only:\n{\"doc_type\":\"insurance\"|\"iso\"|\"manufacturer\"|\"other\",\"issuer\":string,\"reference\":string,\"issue_date\":\"YYYY-MM-DD\",\"expiry_date\":\"YYYY-MM-DD\",\"covers\":string,\"confidence\":\"low\"|\"medium\"|\"high\"}\nissuer = the insurer, certification body, or manufacturer. reference = policy/certificate number. covers = one short line on what it covers or authorises.`;
 
 function buildContent(mode: string, images: any[], body: any): any[] {
@@ -60,6 +61,16 @@ Deno.serve(observe('license_extract', async (req) => {
     const mode = body.mode === 'profile' ? 'profile' : body.mode === 'cert' ? 'cert' : 'license';
     const images: any[] = Array.isArray(body.images) ? body.images : [];
     if (!images.length && !body.file_b64) return J({ error: 'no file' }, 400);
+    // The blank-image guard runs first, in code: no model is asked to read a page too small to hold print.
+    if (mode === 'license' && imagesTooSmallToRead(images, body)) return J({ ok: true, mode, doc: UNREADABLE_LICENCE(), guard: 'image_too_small' });
+    // ...and a page-sized image that carries no print (a white scan, a photo of a wall) is blank, measured by
+    // code (licence_page_ink): the model is not asked. inkProven = every image page decoded and one is printed.
+    let inkProven = false;
+    if (mode === 'license') {
+      const blank = await pagesBlank(licencePages(images, body));
+      if (blank === true) return J({ ok: true, mode, doc: UNREADABLE_LICENCE(), guard: 'image_blank' });
+      inkProven = blank === false;
+    }
     const content = buildContent(mode, images, body);
     const sys = mode === 'license' ? SYS_LICENSE : mode === 'cert' ? SYS_CERT : SYS_PROFILE;
     let ai: any = {};
@@ -89,7 +100,17 @@ Deno.serve(observe('license_extract', async (req) => {
       ai = parsed;
     } catch (e) { return J({ error: 'ai_exception', detail: String((e as Error)?.message || e) }, 502); }
 
-    if (mode === 'license') return J({ ok: true, mode, doc: normaliseLicence(ai) });
+    if (mode === 'license') {
+      const doc = normaliseLicence(ai);
+      // A 'low' read is stored only when code proved a real page was read: printed ink measured above, or its
+      // licence number found in the document's own text layer. Otherwise it is held for a person (unreadable).
+      let text: string | null = null;
+      if (doc.confidence === 'low' && !doc.unreadable && !inkProven && body.file_b64 && !/^image\//.test(String(body.mime || ''))) {
+        try { text = await pdfText(Uint8Array.from(atob(String(body.file_b64).replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0))); } catch { text = null; }
+      }
+      if (!lowReadProven(doc, inkProven, text)) return J({ ok: true, mode, doc: UNREADABLE_LICENCE(), guard: 'low_read_unproven' });
+      return J({ ok: true, mode, doc });
+    }
 
     if (mode === 'cert') {
       const expiry = normDate(ai.expiry_date);
@@ -114,6 +135,8 @@ Deno.serve(observe('license_extract', async (req) => {
       sectors: Array.isArray(ai.sectors) ? ai.sectors.map((s: any) => String(s).slice(0, 60)).slice(0, 12) : [],
       emirates: Array.isArray(ai.emirates) ? ai.emirates.map((s: any) => normEmirate(s)).filter(Boolean) : [],
       confidence: ['low', 'medium', 'high'].includes(ai.confidence) ? ai.confidence : 'low',
+      // The printed lines, verbatim: the ONLY text a picture's trades are chosen from (review of #1412, 18 Oct 2026).
+      lines: Array.isArray(ai.lines) ? ai.lines.map((s: any) => String(s).trim().slice(0, 120)).filter(Boolean).slice(0, 30) : [],
     };
     return J({ ok: true, mode, profile });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }

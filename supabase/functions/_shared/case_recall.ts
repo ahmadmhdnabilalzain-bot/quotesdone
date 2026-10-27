@@ -45,7 +45,11 @@ export type CaseMemory = {
 // before its past cases, the way a colleague reads the note on the file before anything else.
 export type HandoffNote = {
   handoff_id: number; from: string | null; conversation: string | null; opened_at: string; status: string;
-  summary: { known: Record<string, unknown>; tried: Record<string, unknown>; needed: Record<string, unknown>; evidence: string[] };
+  summary: {
+    // ledger 1013 (19 Oct 2026): the four fields every note states, built by code in fn_handoff_summary
+    context?: string; decision?: string; open_asks?: string[]; deadline?: string; deadline_source?: string;
+    known: Record<string, unknown>; tried: Record<string, unknown>; needed: Record<string, unknown>; evidence: string[];
+  };
 };
 
 export const RECALL_EMBED_MS = 1500;
@@ -134,12 +138,16 @@ export function handoffBlock(m: CaseMemory): string {
   if (!m.handoffs?.length) return '';
   const lines = m.handoffs.map((h) => [
     `handoff #${h.handoff_id} from ${h.from ?? 'a colleague'} (${h.conversation ?? 'handoff'}):`,
+    `  context: ${String(h.summary?.context ?? '').slice(0, 400)}`,
+    `  decision: ${String(h.summary?.decision ?? '').slice(0, 300)}`,
+    `  open asks: ${(h.summary?.open_asks ?? []).slice(0, 5).join(' | ').slice(0, 500)}`,
+    `  deadline: ${h.summary?.deadline ?? 'not stated'}`,
     `  known: ${JSON.stringify(h.summary?.known ?? {}).slice(0, 500)}`,
     `  tried: ${JSON.stringify(h.summary?.tried ?? {}).slice(0, 500)}`,
     `  needed: ${JSON.stringify(h.summary?.needed ?? {}).slice(0, 400)}`,
     `  evidence: ${(h.summary?.evidence ?? []).slice(0, 8).join(', ')}`,
   ].join('\n'));
-  return `\n\nHANDOFF NOTES ON THIS CASE (read these first; internal, never quoted to a customer):\n${lines.join('\n')}`;
+  return `\n\nHANDOFF NOTES ON THIS CASE (read these first; internal, never quoted to a customer). Answer every open ask before its deadline and cite the note you acted on as "handoff #<number>":\n${lines.join('\n')}`;
 }
 
 /**

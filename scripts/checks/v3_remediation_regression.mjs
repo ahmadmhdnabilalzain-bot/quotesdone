@@ -22,6 +22,8 @@
 //   node scripts/checks/v3_remediation_regression.mjs --behavioural --trials=3 --area=tools
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { execSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+const REPO = fileURLToPath(new URL('../../', import.meta.url));
 import { mgmtRead } from '../lib/qd_guard.mjs';
 
 // 15 Aug 2026: was 'pglpqrhvozwepymcuunn', deleted that morning. This makes live agent calls and
@@ -43,8 +45,8 @@ const rec = (layer, area, id, passed, detail, measured) =>
 // PROVENANCE — recorded on every run so a score is never quotable without its configuration
 // ════════════════════════════════════════════════════════════════════════════════════════════
 async function provenance() {
-  const commit = execSync('git rev-parse HEAD', { cwd: 'C:/Users/Opera/quotesdone' }).toString().trim();
-  const dirty = execSync('git status --porcelain --untracked-files=no', { cwd: 'C:/Users/Opera/quotesdone' }).toString().trim().length > 0;
+  const commit = execSync('git rev-parse HEAD', { cwd: REPO }).toString().trim();
+  const dirty = execSync('git status --porcelain --untracked-files=no', { cwd: REPO }).toString().trim().length > 0;
   const env = await one(`select
       (select count(*) from ops_knowledge)                              as ops_knowledge_rows,
       (select count(*) from kb_chunks)                                  as kb_chunks,
@@ -301,7 +303,7 @@ async function hasFn(name) {
 // BEHAVIOURAL LAYER — live agent calls, asserted on the database
 // ════════════════════════════════════════════════════════════════════════════════════════════
 async function behavioural() {
-  const path = 'C:/Users/Opera/quotesdone/scripts/checks/v3_regression_cases.json';
+  const path = REPO + 'scripts/checks/v3_regression_cases.json';
   if (!existsSync(path)) { console.log('\n[behavioural] no cases file at', path, '- skipping'); return []; }
   const cases = JSON.parse(readFileSync(path, 'utf8')).cases
     .filter(c => !ONLY_AREA || c.area === ONLY_AREA);
@@ -433,7 +435,7 @@ async function main() {
     summary.unauthorised_tool_attempts_blocked = Number(u.n);
   } catch (_e) {}
 
-  writeFileSync('C:/Users/Opera/quotesdone/scripts/checks/v3_regression_last_run.json', JSON.stringify(summary, null, 1));
+  writeFileSync(REPO + 'scripts/checks/v3_regression_last_run.json', JSON.stringify(summary, null, 1));
   console.log('\n── SUMMARY ──');
   console.log(`structural   ${summary.structural.numerator}/${summary.structural.denominator} (${summary.structural.pct}%)`);
   if (summary.behavioural) {

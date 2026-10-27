@@ -2,21 +2,79 @@
   "seat": "sales_engineer",
   "standard": "knowledge/seats/sales_engineer.json#sales_engineer:senior-sales-engineer-standard (founder instruction 1005, 28 Sep 2026)",
   "checklist": {
-    "SE-01": "Reads drawings and specifications",
-    "SE-02": "Quantity take-off per trade under a named method of measurement",
-    "SE-03": "UAE and GCC authorities, standards and approvals",
-    "SE-04": "Per-trade, per-line spec checklists; exact specs or held",
-    "SE-05": "Pricing and bills of quantities",
-    "SE-06": "Supplier evaluation",
-    "SE-07": "Alternatives when no exact spec exists",
-    "SE-08": "Negotiation",
-    "SE-09": "Framework and rate agreements",
-    "SE-10": "Founder hard rules (exact trade, exact spec, UAE law)"
+    "SE-CL-001": "Reads a drawing set as a set: title block, revision and status, scale, and never scales a missing dimension",
+    "SE-CL-002": "Resolves architectural/structural/MEP conflicts by written clarification, never by choosing one",
+    "SE-CL-003": "Reads specifications: prescriptive versus performance, MasterFormat/NBS organisation",
+    "SE-CL-004": "Applies the order of precedence between specification and drawings and never picks the cheaper reading",
+    "SE-CL-005": "Names the method of measurement (POMI, NRM2 2nd ed., CESMM4) and knows which applies where",
+    "SE-CL-006": "Measures net quantities; waste belongs in the rate, not the quantity",
+    "SE-CL-007": "Takes off civil and structural trades in the correct units (m3 concrete by grade, rebar in tonnes, formwork m2 contact, blockwork m2)",
+    "SE-CL-008": "Takes off finishes and fit-out (tiles, stone, paint systems) in the correct units",
+    "SE-CL-009": "Takes off MEP (cables, containment, points, AC units by capacity) and refuses unlevelable MEP lump sums",
+    "SE-CL-010": "Knows product conformity: ECAS mandatory, EQM voluntary, both under MoIAT",
+    "SE-CL-011": "Knows fire and life safety approvals: Civil Defence and the UAE Fire and Life Safety Code 2018",
+    "SE-CL-012": "Establishes the governing authority from the location and free zone before naming it (e.g. Trakhees)",
+    "SE-CL-013": "Knows utility and testing approvals: DEWA/Shams Dubai and Dubai Central Laboratory",
+    "SE-CL-014": "Knows green building rules: Al Sa'fat levels and Silver minimum, Estidama Pearl minimums",
+    "SE-CL-015": "Exact specs or the quote line is held; the trade's spec checklist decides; never fills a spec with a guess",
+    "SE-CL-016": "Applies the exact-spec rule to services (scope, deliverables, licences, service levels)",
+    "SE-CL-017": "Requires submittals and checks the certificate covers the exact model offered",
+    "SE-CL-018": "Qualifies an inquiry for completeness before matching and holds it with one specific question when incomplete",
+    "SE-CL-019": "Adapts BANT and MEDDIC to procurement qualification",
+    "SE-CL-020": "Judges budget realism against a documented market band",
+    "SE-CL-021": "Knows BOQ structure: preamble, preliminaries, measured work; suppliers fill rates, not quantities",
+    "SE-CL-022": "Handles prime cost and provisional sums correctly",
+    "SE-CL-023": "Builds and checks a unit rate and reads the cost structure of a quote",
+    "SE-CL-024": "Handles arithmetic errors in quotes by written confirmation, never silent correction",
+    "SE-CL-025": "States prices only from labelled evidence and cites UAE cost benchmarks with their limits",
+    "SE-CL-026": "Compares lead times for long-lead items as carefully as price",
+    "SE-CL-027": "Presents quotes VAT-exclusive with VAT and TRN shown, and knows the e-invoicing roadmap",
+    "SE-CL-028": "Levels quotes like for like (scope, plugs, VAT, delivery, terms)",
+    "SE-CL-029": "Separates exclusions, qualifications and clarifications and runs a written clarification protocol",
+    "SE-CL-030": "Marks every line compliant/deviation/not stated and ranks compliant before cheaper non-compliant",
+    "SE-CL-031": "Treats an abnormally low quote as a risk signal: neither recommends nor hides it",
+    "SE-CL-032": "Runs weighted evaluation on total cost of ownership, not unit price",
+    "SE-CL-033": "Holds a flagged quote and sends the supplier exact fixes in English within the 24-hour hold",
+    "SE-CL-034": "Produces the comparison report and measures time to comparison and the share with 3+ complete quotes",
+    "SE-CL-035": "Verifies the mandatory six before a supplier is matched",
+    "SE-CL-036": "Verifies a licence at the right issuer and checks declared trades sit within licensed activities",
+    "SE-CL-037": "Knows vetting red flags, sanctions screening scope (EOCN lists) and PDPL duties for contact data",
+    "SE-CL-038": "Runs the licence expiry watch: asks at 30/14/7 days, pauses an expired supplier",
+    "SE-CL-039": "Runs the no-exact-spec offer loop: never accepts for the customer, silence is not yes, apology on no",
+    "SE-CL-040": "Never offers an alternative that lacks a required UAE approval",
+    "SE-CL-041": "Shows alternates and options separately from the base ranking",
+    "SE-CL-042": "Never discloses a competitor's price, identity or terms; neutral marketplace conduct",
+    "SE-CL-043": "Follows the negotiation sequence: level and clarify first, know the BATNA, manage anchoring",
+    "SE-CL-044": "Uses levers beyond price (payment terms, retention, delivery, scope split)",
+    "SE-CL-045": "Knows retention, advance payment guarantees and defects liability versus warranty",
+    "SE-CL-046": "Knows decennial liability and the new UAE Civil Code (FDL 25/2025)",
+    "SE-CL-047": "Knows when a contract is formed (quotation, LPO) and how quote validity and escalation work",
+    "SE-CL-048": "Knows UAE payment practice: cycles, pay-when-paid, late-payment interest, cheques/PDC, limitation",
+    "SE-CL-049": "Knows liquidated damages, variations and suspension for non-payment under UAE law",
+    "SE-CL-050": "Knows Incoterms 2020 and how to compare delivered-to-site versus ex-warehouse quotes",
+    "SE-CL-051": "Structures framework and rate agreements (no guaranteed volume, indexed capped escalation)",
+    "SE-CL-052": "Exact trade match or none; no nearest trade; a missing trade is added first",
+    "SE-CL-053": "Knows the founder hard rules over the seat's work",
+    "SE-CL-054": "States the reveal fee and non-response rules exactly and routes money questions to the accountant",
+    "SE-CL-055": "Writes to suppliers always in English and to customers in their inquiry language",
+    "SE-CL-056": "Owns the supplier onboarding funnel stage by stage, measured as stage conversion",
+    "SE-CL-057": "Designs the supplier performance score (OTIF, reliability), feeds it to matching fairly with cold start",
+    "SE-CL-058": "Sends each supplier a monthly scorecard against its trade, in English, naming no competitor",
+    "SE-CL-059": "Measures liquidity and fill rate, detects and prioritises supply gaps and briefs marketing to recruit",
+    "SE-CL-060": "Segments categories with the Kraljic matrix",
+    "SE-CL-061": "Measures and reduces leakage (deals completed off-platform)",
+    "SE-CL-062": "Owns the inquiry pipeline and rescues stalled inquiries (no quote 48 h after matching, busy suppliers)",
+    "SE-CL-063": "Runs customer lifecycle duties: concierge, activation 3/5/10 days, follow-up day 3/14, 60-day win-back",
+    "SE-CL-064": "Reasons post-reveal dispute findings from evidence for the CEO to decide",
+    "SE-CL-065": "Runs win/loss review and case memory, and keeps learning through the gap sweep and self-review",
+    "SE-CL-066": "Routes work to the owning seat and closes every handoff it opens; handles supplier non-response",
+    "SE-CL-067": "Uses the commercial and marketplace glossary correctly in English and Arabic",
+    "SE-CL-068": "Knows electronic acceptance, signatures and records under FDL 46/2021"
   },
   "items": [
     {
       "id": "sales_engineer-exam-01",
-      "checklist": "SE-01",
+      "checklist": "SE-CL-001",
       "q_en": "What do I read first on a drawing before taking quantities?",
       "q_ar": "ماذا أقرأ أولاً في المخطط قبل حصر الكميات؟",
       "expected_entry_ids": [
@@ -25,11 +83,16 @@
       "expected_facts": [
         "title block",
         "revision"
+      ],
+      "q_reworded": "A contractor just emailed us a set of PDFs for a tender. Before anyone counts anything, what should be checked on each sheet?",
+      "answer_must": [
+        "Check the title block: drawing number, discipline, scale and status",
+        "Check the revision and its date so the latest issue is priced"
       ]
     },
     {
       "id": "sales_engineer-exam-02",
-      "checklist": "SE-01",
+      "checklist": "SE-CL-001",
       "q_en": "The drawing says do not scale. The dimension is missing. What do I do?",
       "q_ar": "المخطط يقول لا تقس بالمسطرة والبُعد مفقود. ماذا أفعل؟",
       "expected_entry_ids": [
@@ -37,23 +100,32 @@
       ],
       "expected_facts": [
         "never scale a dimension - ask"
+      ],
+      "q_reworded": "One wall on the plan has no length written and the sheet is marked NTS. Can I just measure it with a ruler?",
+      "answer_must": [
+        "No - a missing dimension is never scaled off the drawing",
+        "Ask the customer or designer in writing for the dimension"
       ]
     },
     {
       "id": "sales_engineer-exam-03",
-      "checklist": "SE-01",
+      "checklist": "SE-CL-001",
       "q_en": "Which drawing file formats can a customer upload?",
       "q_ar": "ما صيغ ملفات المخططات التي يمكن للعميل رفعها؟",
       "expected_entry_ids": [
         "sales_engineer:reading-drawings"
       ],
       "expected_facts": [
-        "PDF or CAD (DWG/DXF) only"
+        "DWG/DXF"
+      ],
+      "q_reworded": "The client wants to send us his Revit model and some JPG photos of sketches. What will the platform accept?",
+      "answer_must": [
+        "Only PDF or CAD files (DWG/DXF) are accepted for drawings"
       ]
     },
     {
       "id": "sales_engineer-exam-04",
-      "checklist": "SE-01",
+      "checklist": "SE-CL-002",
       "q_en": "The architectural and MEP drawings disagree. Which one do I price?",
       "q_ar": "المخططات المعمارية والكهروميكانيكية متعارضة. أيهما أسعّر؟",
       "expected_entry_ids": [
@@ -62,11 +134,16 @@
       ],
       "expected_facts": [
         "written clarification rather than choosing one"
+      ],
+      "q_reworded": "The ceiling height on the interiors sheet does not match the duct routing on the mechanical layout. Which should the supplier quote against?",
+      "answer_must": [
+        "Neither by choice: list the conflict with drawing numbers and revisions",
+        "Send a written clarification to the customer before pricing"
       ]
     },
     {
       "id": "sales_engineer-exam-05",
-      "checklist": "SE-01",
+      "checklist": "SE-CL-003",
       "q_en": "What is the difference between a prescriptive and a performance specification?",
       "q_ar": "ما الفرق بين المواصفة الوصفية والمواصفة الأدائية؟",
       "expected_entry_ids": [
@@ -75,11 +152,16 @@
       "expected_facts": [
         "performance-based",
         "leaving the product to the supplier"
+      ],
+      "q_reworded": "The spec for the pumps says 'achieve 5 bar at the top floor' and names no brand. What kind of spec is that and what does it mean for quotes?",
+      "answer_must": [
+        "It is a performance specification",
+        "The supplier chooses the product, so quotes must be checked against the performance required"
       ]
     },
     {
       "id": "sales_engineer-exam-06",
-      "checklist": "SE-01",
+      "checklist": "SE-CL-004",
       "q_en": "The specification and the drawings conflict. Which prevails?",
       "q_ar": "المواصفة والمخططات متعارضة. أيهما يسود؟",
       "expected_entry_ids": [
@@ -89,11 +171,16 @@
       "expected_facts": [
         "order of precedence decides",
         "never pick the cheaper reading"
+      ],
+      "q_reworded": "The written spec calls for 20 mm porcelain but the floor plan legend says 10 mm. The client asks which we should price.",
+      "answer_must": [
+        "The contract's order of precedence decides",
+        "Without one, ask in writing; never choose the cheaper reading"
       ]
     },
     {
       "id": "sales_engineer-exam-07",
-      "checklist": "SE-01",
+      "checklist": "SE-CL-003",
       "q_en": "How are specifications usually organised?",
       "q_ar": "كيف تُنظَّم المواصفات عادة؟",
       "expected_entry_ids": [
@@ -102,11 +189,15 @@
       "expected_facts": [
         "MasterFormat",
         "NBS"
+      ],
+      "q_reworded": "I opened a 300-page spec book and I'm lost. How is it normally laid out?",
+      "answer_must": [
+        "By work section, typically CSI MasterFormat divisions or the UK NBS structure"
       ]
     },
     {
       "id": "sales_engineer-exam-08",
-      "checklist": "SE-02",
+      "checklist": "SE-CL-005",
       "q_en": "Which methods of measurement are common in the UAE?",
       "q_ar": "ما طرق القياس الشائعة في الإمارات؟",
       "expected_entry_ids": [
@@ -116,11 +207,15 @@
         "POMI",
         "NRM2",
         "CESMM4"
+      ],
+      "q_reworded": "A consultant's BOQ preamble names the rules the quantities follow. Which rule books would you expect to see here in the Emirates?",
+      "answer_must": [
+        "POMI, NRM2 and CESMM4"
       ]
     },
     {
       "id": "sales_engineer-exam-09",
-      "checklist": "SE-02",
+      "checklist": "SE-CL-005",
       "q_en": "When did the second edition of NRM2 take effect?",
       "q_ar": "متى سرت الطبعة الثانية من NRM2؟",
       "expected_entry_ids": [
@@ -129,11 +224,16 @@
       ],
       "expected_facts": [
         "effective 1 December 2021"
+      ],
+      "q_reworded": "Which version of the RICS detailed measurement rules is current and since when?",
+      "answer_must": [
+        "NRM2 second edition",
+        "Effective from 1 December 2021"
       ]
     },
     {
       "id": "sales_engineer-exam-10",
-      "checklist": "SE-02",
+      "checklist": "SE-CL-006",
       "q_en": "Should waste be added to the measured quantity?",
       "q_ar": "هل يُضاف الهدر إلى الكمية المقيسة؟",
       "expected_entry_ids": [
@@ -142,11 +242,16 @@
       ],
       "expected_facts": [
         "allowed for in the rate, not added to the quantity"
+      ],
+      "q_reworded": "Our steel fixer wants 5% extra on the tonnage for offcuts. Do we bump up the BOQ number?",
+      "answer_must": [
+        "No: quantities are measured net",
+        "Waste and offcuts are allowed for in the rate, not the quantity"
       ]
     },
     {
       "id": "sales_engineer-exam-11",
-      "checklist": "SE-02",
+      "checklist": "SE-CL-005",
       "q_en": "Which measurement method is used for civil and infrastructure works?",
       "q_ar": "ما طريقة القياس المستخدمة للأعمال المدنية والبنية التحتية؟",
       "expected_entry_ids": [
@@ -154,11 +259,15 @@
       ],
       "expected_facts": [
         "CESMM4"
+      ],
+      "q_reworded": "The road and drainage package comes with its own bill. What rules is that bill likely measured under?",
+      "answer_must": [
+        "CESMM4, the civil engineering method"
       ]
     },
     {
       "id": "sales_engineer-exam-12",
-      "checklist": "SE-02",
+      "checklist": "SE-CL-007",
       "q_en": "In what unit is reinforcement steel measured?",
       "q_ar": "بأي وحدة يُقاس حديد التسليح؟",
       "expected_entry_ids": [
@@ -167,11 +276,15 @@
       ],
       "expected_facts": [
         "reinforcement in tonnes"
+      ],
+      "q_reworded": "What unit should rebar appear in on a bill?",
+      "answer_must": [
+        "Tonnes, by bar type and diameter, from the bar bending schedule"
       ]
     },
     {
       "id": "sales_engineer-exam-13",
-      "checklist": "SE-02",
+      "checklist": "SE-CL-007",
       "q_en": "How is formwork measured?",
       "q_ar": "كيف تُقاس الشدات؟",
       "expected_entry_ids": [
@@ -180,11 +293,15 @@
       ],
       "expected_facts": [
         "formwork in m2 of contact area"
+      ],
+      "q_reworded": "How do we quantify shuttering for the slabs and columns?",
+      "answer_must": [
+        "In m2 of contact area, by type of formwork"
       ]
     },
     {
       "id": "sales_engineer-exam-14",
-      "checklist": "SE-02",
+      "checklist": "SE-CL-007",
       "q_en": "A supplier priced concrete per truck. Is that comparable?",
       "q_ar": "سعّر مورد الخرسانة بالشاحنة. هل هذا قابل للمقارنة؟",
       "expected_entry_ids": [
@@ -193,11 +310,16 @@
       ],
       "expected_facts": [
         "concrete priced per truck rather than per m3"
+      ],
+      "q_reworded": "One ready-mix supplier sent a price for 40 loads instead of cubic metres. Can I put it next to the others?",
+      "answer_must": [
+        "Not as it stands: concrete is compared per m3 by grade",
+        "Ask the supplier to restate per m3"
       ]
     },
     {
       "id": "sales_engineer-exam-15",
-      "checklist": "SE-02",
+      "checklist": "SE-CL-007",
       "q_en": "How is blockwork measured?",
       "q_ar": "كيف يُقاس البلوك؟",
       "expected_entry_ids": [
@@ -205,11 +327,15 @@
       ],
       "expected_facts": [
         "blockwork in m2 by block thickness"
+      ],
+      "q_reworded": "The mason priced block walls per piece. What unit should a take-off use?",
+      "answer_must": [
+        "Square metres, stating the block thickness"
       ]
     },
     {
       "id": "sales_engineer-exam-16",
-      "checklist": "SE-02",
+      "checklist": "SE-CL-008",
       "q_en": "How is paint measured in a take-off?",
       "q_ar": "كيف يُقاس الدهان في حصر الكميات؟",
       "expected_entry_ids": [
@@ -217,11 +343,16 @@
       ],
       "expected_facts": [
         "paint in m2 of surface stating the full system"
+      ],
+      "q_reworded": "What should a painting line in the take-off say, apart from the area?",
+      "answer_must": [
+        "Paint in m2 of surface",
+        "State the full system: primer, coats and product"
       ]
     },
     {
       "id": "sales_engineer-exam-17",
-      "checklist": "SE-02",
+      "checklist": "SE-CL-006",
       "q_en": "A tiling supplier added 10% to my quantity. Is that right?",
       "q_ar": "أضاف مورد البلاط 10% إلى كميتي. هل هذا صحيح؟",
       "expected_entry_ids": [
@@ -229,11 +360,16 @@
       ],
       "expected_facts": [
         "changed the quantity, not the rate"
+      ],
+      "q_reworded": "The ceramic contractor's quantity is 10% higher than our measured area. Is that acceptable?",
+      "answer_must": [
+        "No: he changed the quantity rather than the rate",
+        "Waste is priced in the rate; the measured quantity stays net"
       ]
     },
     {
       "id": "sales_engineer-exam-18",
-      "checklist": "SE-02",
+      "checklist": "SE-CL-009",
       "q_en": "How are cables measured?",
       "q_ar": "كيف تُقاس الكابلات؟",
       "expected_entry_ids": [
@@ -241,11 +377,15 @@
       ],
       "expected_facts": [
         "cables in linear metres by size"
+      ],
+      "q_reworded": "How does the electrical bill quantify the wiring runs?",
+      "answer_must": [
+        "Cables in linear metres by size, cores and type"
       ]
     },
     {
       "id": "sales_engineer-exam-19",
-      "checklist": "SE-02",
+      "checklist": "SE-CL-009",
       "q_en": "A supplier quoted complete MEP as one lump sum. What do I do?",
       "q_ar": "سعّر مورد الأعمال الكهروميكانيكية كاملة بمبلغ مقطوع واحد. ماذا أفعل؟",
       "expected_entry_ids": [
@@ -254,11 +394,16 @@
       "expected_facts": [
         "cannot be levelled",
         "breakdown by system"
+      ],
+      "q_reworded": "The MEP contractor sent one number for electrical, plumbing and HVAC together. Is that usable for comparison?",
+      "answer_must": [
+        "A single MEP lump sum cannot be levelled against other quotes",
+        "Ask for a breakdown by system and item"
       ]
     },
     {
       "id": "sales_engineer-exam-20",
-      "checklist": "SE-02",
+      "checklist": "SE-CL-009",
       "q_en": "How are air-conditioning units described in a take-off?",
       "q_ar": "كيف توصف وحدات التكييف في حصر الكميات؟",
       "expected_entry_ids": [
@@ -267,11 +412,16 @@
       ],
       "expected_facts": [
         "cooling capacity in kW or TR"
+      ],
+      "q_reworded": "Two quotes both say '10 split units'. What details must be stated before comparing them?",
+      "answer_must": [
+        "Each unit's type and cooling capacity in kW or TR",
+        "Also refrigerant, efficiency rating and power supply"
       ]
     },
     {
       "id": "sales_engineer-exam-21",
-      "checklist": "SE-03",
+      "checklist": "SE-CL-010",
       "q_en": "Who issues ECAS certificates for regulated products?",
       "q_ar": "من يصدر شهادات ECAS للمنتجات المنظمة؟",
       "expected_entry_ids": [
@@ -281,11 +431,16 @@
       "expected_facts": [
         "MoIAT",
         "absorbed ESMA in 2020"
+      ],
+      "q_reworded": "A water heater importer asks which government body certifies his products for sale here. Who is it?",
+      "answer_must": [
+        "MoIAT, the Ministry of Industry and Advanced Technology",
+        "MoIAT absorbed ESMA in 2020"
       ]
     },
     {
       "id": "sales_engineer-exam-22",
-      "checklist": "SE-03",
+      "checklist": "SE-CL-011",
       "q_en": "Which code does Dubai Civil Defence apply to fire systems?",
       "q_ar": "ما الكود الذي يطبقه الدفاع المدني بدبي على أنظمة الحريق؟",
       "expected_entry_ids": [
@@ -294,11 +449,15 @@
       ],
       "expected_facts": [
         "UAE Fire and Life Safety Code of Practice (2018 edition)"
+      ],
+      "q_reworded": "For sprinklers and alarms in a Dubai building, which rulebook does the fire authority use?",
+      "answer_must": [
+        "The UAE Fire and Life Safety Code of Practice, 2018 edition, applied by Dubai Civil Defence"
       ]
     },
     {
       "id": "sales_engineer-exam-23",
-      "checklist": "SE-03",
+      "checklist": "SE-CL-012",
       "q_en": "Who approves building work in Jebel Ali?",
       "q_ar": "من يعتمد أعمال البناء في جبل علي؟",
       "expected_entry_ids": [
@@ -307,11 +466,15 @@
       ],
       "expected_facts": [
         "Trakhees"
+      ],
+      "q_reworded": "The warehouse fit-out is inside JAFZA. Do we go to Dubai Municipality for the permit?",
+      "answer_must": [
+        "No: in Jebel Ali and other PCFC zones Trakhees issues building permits"
       ]
     },
     {
       "id": "sales_engineer-exam-24",
-      "checklist": "SE-03",
+      "checklist": "SE-CL-013",
       "q_en": "Who approves a solar connection in Dubai?",
       "q_ar": "من يعتمد توصيل الطاقة الشمسية في دبي؟",
       "expected_entry_ids": [
@@ -320,11 +483,16 @@
       ],
       "expected_facts": [
         "Shams Dubai"
+      ],
+      "q_reworded": "A villa owner wants rooftop panels connected to the grid in Dubai. Who signs that off?",
+      "answer_must": [
+        "DEWA, under the Shams Dubai initiative",
+        "Through a DEWA-enrolled solar contractor"
       ]
     },
     {
       "id": "sales_engineer-exam-25",
-      "checklist": "SE-03",
+      "checklist": "SE-CL-013",
       "q_en": "Where are building materials tested in Dubai?",
       "q_ar": "أين تُفحص مواد البناء في دبي؟",
       "expected_entry_ids": [
@@ -333,11 +501,15 @@
       ],
       "expected_facts": [
         "Dubai Central Laboratory"
+      ],
+      "q_reworded": "The consultant wants lab test certificates for the blocks we supply in Dubai. Where are they usually issued?",
+      "answer_must": [
+        "Dubai Central Laboratory of Dubai Municipality"
       ]
     },
     {
       "id": "sales_engineer-exam-26",
-      "checklist": "SE-03",
+      "checklist": "SE-CL-012",
       "q_en": "Which authority governs this plot? The customer did not say.",
       "q_ar": "أي جهة تحكم قطعة الأرض هذه؟ لم يذكر العميل.",
       "expected_entry_ids": [
@@ -346,11 +518,15 @@
       ],
       "expected_facts": [
         "ask the location and the free zone"
+      ],
+      "q_reworded": "A customer asks which permit authority applies to his project but only says 'Dubai'. What do you do?",
+      "answer_must": [
+        "Ask the exact location and whether it is in a free zone before naming an authority"
       ]
     },
     {
       "id": "sales_engineer-exam-27",
-      "checklist": "SE-03",
+      "checklist": "SE-CL-014",
       "q_en": "What levels does Al Sa'fat certify?",
       "q_ar": "ما المستويات التي يمنحها نظام السعفات؟",
       "expected_entry_ids": [
@@ -359,11 +535,15 @@
       ],
       "expected_facts": [
         "Bronze, Silver, Gold and Platinum"
+      ],
+      "q_reworded": "What grades does Dubai's green building rating have?",
+      "answer_must": [
+        "Bronze, Silver, Gold and Platinum"
       ]
     },
     {
       "id": "sales_engineer-exam-28",
-      "checklist": "SE-03",
+      "checklist": "SE-CL-014",
       "q_en": "What Al Sa'fat level must a new building in Dubai reach?",
       "q_ar": "ما مستوى السعفات الذي يجب أن يبلغه مبنى جديد في دبي؟",
       "expected_entry_ids": [
@@ -372,11 +552,15 @@
       ],
       "expected_facts": [
         "at least the Silver level"
+      ],
+      "q_reworded": "What is the lowest green rating a new Dubai building is allowed to achieve?",
+      "answer_must": [
+        "At least Al Sa'fat Silver"
       ]
     },
     {
       "id": "sales_engineer-exam-29",
-      "checklist": "SE-03",
+      "checklist": "SE-CL-014",
       "q_en": "What is the minimum Estidama rating for a new building in Abu Dhabi?",
       "q_ar": "ما الحد الأدنى لتقييم استدامة لمبنى جديد في أبوظبي؟",
       "expected_entry_ids": [
@@ -385,11 +569,16 @@
       ],
       "expected_facts": [
         "1 Pearl is the minimum for new buildings"
+      ],
+      "q_reworded": "A new private villa in Abu Dhabi: how many Pearls does it need at minimum?",
+      "answer_must": [
+        "1 Pearl minimum for new buildings",
+        "2 Pearls for government-funded buildings"
       ]
     },
     {
       "id": "sales_engineer-exam-30",
-      "checklist": "SE-03",
+      "checklist": "SE-CL-010",
       "q_en": "Is EQM the same as ECAS?",
       "q_ar": "هل علامة الجودة EQM هي نفسها شهادة ECAS؟",
       "expected_entry_ids": [
@@ -397,11 +586,16 @@
       ],
       "expected_facts": [
         "EQM (Emirates Quality Mark) is voluntary"
+      ],
+      "q_reworded": "A supplier says his cable has the Emirates Quality Mark so it is the same as the mandatory certificate. True?",
+      "answer_must": [
+        "No: EQM is voluntary",
+        "ECAS is the mandatory conformity scheme for regulated products"
       ]
     },
     {
       "id": "sales_engineer-exam-31",
-      "checklist": "SE-04",
+      "checklist": "SE-CL-015",
       "q_en": "A quote line is missing a spec the trade requires. Can it be released?",
       "q_ar": "بند في العرض ينقصه مواصفة تتطلبها الحرفة. هل يُطلق؟",
       "expected_entry_ids": [
@@ -409,11 +603,16 @@
       ],
       "expected_facts": [
         "otherwise it is held"
+      ],
+      "q_reworded": "A supplier left the tile thickness blank on two lines. Can those lines go to the customer?",
+      "answer_must": [
+        "No: a line missing a required spec is held",
+        "Ask for the missing spec"
       ]
     },
     {
       "id": "sales_engineer-exam-32",
-      "checklist": "SE-04",
+      "checklist": "SE-CL-015",
       "q_en": "Where does the list of required specs for a trade come from?",
       "q_ar": "من أين تأتي قائمة المواصفات المطلوبة للحرفة؟",
       "expected_entry_ids": [
@@ -421,11 +620,16 @@
       ],
       "expected_facts": [
         "trade_spec_checklist"
+      ],
+      "q_reworded": "Who decides which specs a plumbing quote line must state?",
+      "answer_must": [
+        "The trade's own spec checklist",
+        "Loaded in trade_spec_checklist from the trade's knowledge pack"
       ]
     },
     {
       "id": "sales_engineer-exam-33",
-      "checklist": "SE-04",
+      "checklist": "SE-CL-015",
       "q_en": "How many trades have a spec checklist after the September build?",
       "q_ar": "كم حرفة لها قائمة مواصفات بعد بناء سبتمبر؟",
       "expected_entry_ids": [
@@ -433,11 +637,15 @@
       ],
       "expected_facts": [
         "213 trades"
+      ],
+      "q_reworded": "How many trades in the taxonomy now carry a required-spec list?",
+      "answer_must": [
+        "All 213 trades"
       ]
     },
     {
       "id": "sales_engineer-exam-34",
-      "checklist": "SE-04",
+      "checklist": "SE-CL-015",
       "q_en": "Can I fill a missing spec with the standard grade?",
       "q_ar": "هل يمكنني ملء مواصفة ناقصة بالدرجة القياسية؟",
       "expected_entry_ids": [
@@ -445,11 +653,16 @@
       ],
       "expected_facts": [
         "never fills a missing spec with a guess"
+      ],
+      "q_reworded": "The paint quote doesn't say the grade. Can we assume the usual interior emulsion?",
+      "answer_must": [
+        "No: never fill a missing spec with a guess or a standard grade",
+        "Ask the supplier"
       ]
     },
     {
       "id": "sales_engineer-exam-35",
-      "checklist": "SE-04",
+      "checklist": "SE-CL-016",
       "q_en": "Do services have specs too?",
       "q_ar": "هل للخدمات مواصفات أيضاً؟",
       "expected_entry_ids": [
@@ -458,11 +671,16 @@
       ],
       "expected_facts": [
         "The rule applies to services too"
+      ],
+      "q_reworded": "A cleaning company quoted just a monthly price. Is that enough since it's a service, not a product?",
+      "answer_must": [
+        "No: services have specs too",
+        "Scope, deliverables, licences, service levels and duration must be stated"
       ]
     },
     {
       "id": "sales_engineer-exam-36",
-      "checklist": "SE-04",
+      "checklist": "SE-CL-017",
       "q_en": "What submittals should a quote for a specified product carry?",
       "q_ar": "ما المستندات التي يجب أن يحملها عرض لمنتج محدد؟",
       "expected_entry_ids": [
@@ -471,11 +689,16 @@
       "expected_facts": [
         "manufacturer's datasheet",
         "country of origin"
+      ],
+      "q_reworded": "A supplier quoted a brand of fire door. What documents should come with that price?",
+      "answer_must": [
+        "The manufacturer's datasheet for the exact model",
+        "Country of origin and manufacturer, plus test reports or certificates"
       ]
     },
     {
       "id": "sales_engineer-exam-37",
-      "checklist": "SE-04",
+      "checklist": "SE-CL-017",
       "q_en": "The certificate names a product family, not the model offered. Is that enough?",
       "q_ar": "الشهادة تسمي عائلة المنتج لا الطراز المعروض. هل يكفي؟",
       "expected_entry_ids": [
@@ -484,11 +707,15 @@
       ],
       "expected_facts": [
         "not only a family name"
+      ],
+      "q_reworded": "The approval letter mentions the 'X-series' range, but the quote is for model X-450. Is that covered?",
+      "answer_must": [
+        "Not necessarily: the certificate must cover the exact model offered, not only a family name"
       ]
     },
     {
       "id": "sales_engineer-exam-38",
-      "checklist": "SE-04",
+      "checklist": "SE-CL-018",
       "q_en": "What must an inquiry state before matching?",
       "q_ar": "ماذا يجب أن يذكر الاستفسار قبل المطابقة؟",
       "expected_entry_ids": [
@@ -496,11 +723,16 @@
       ],
       "expected_facts": [
         "quantities with units"
+      ],
+      "q_reworded": "A homeowner typed 'need tiling done, call me'. What is missing before we send it out?",
+      "answer_must": [
+        "The trade and items, quantities with units, specification and location",
+        "Hold it and ask for what is missing"
       ]
     },
     {
       "id": "sales_engineer-exam-39",
-      "checklist": "SE-05",
+      "checklist": "SE-CL-021",
       "q_en": "What goes in the preliminaries of a BOQ?",
       "q_ar": "ماذا يتضمن قسم الأعمال التمهيدية في جدول الكميات؟",
       "expected_entry_ids": [
@@ -508,11 +740,15 @@
       ],
       "expected_facts": [
         "preliminaries (site set-up, supervision"
+      ],
+      "q_reworded": "What sits at the front of a bill before the measured items?",
+      "answer_must": [
+        "The preamble and the preliminaries: site set-up, supervision and general costs"
       ]
     },
     {
       "id": "sales_engineer-exam-40",
-      "checklist": "SE-05",
+      "checklist": "SE-CL-022",
       "q_en": "What is a prime cost sum?",
       "q_ar": "ما هو مبلغ التكلفة الأولية؟",
       "expected_entry_ids": [
@@ -521,11 +757,16 @@
       ],
       "expected_facts": [
         "prime cost (PC) sums"
+      ],
+      "q_reworded": "The bill has 'AED 50,000 for sanitary ware from the nominated supplier'. What is that?",
+      "answer_must": [
+        "A prime cost (PC) sum: a named amount for nominated goods or work",
+        "The contractor adds profit and attendance"
       ]
     },
     {
       "id": "sales_engineer-exam-41",
-      "checklist": "SE-05",
+      "checklist": "SE-CL-021",
       "q_en": "Can a supplier change the quantities in our BOQ?",
       "q_ar": "هل يمكن للمورد تغيير الكميات في جدول كمياتنا؟",
       "expected_entry_ids": [
@@ -533,11 +774,16 @@
       ],
       "expected_facts": [
         "A supplier fills rates, not quantities"
+      ],
+      "q_reworded": "A contractor reduced three of our quantities because he thinks they are over-measured. Is that allowed?",
+      "answer_must": [
+        "No: a supplier fills rates, not quantities",
+        "He raises the query in writing instead"
       ]
     },
     {
       "id": "sales_engineer-exam-42",
-      "checklist": "SE-05",
+      "checklist": "SE-CL-023",
       "q_en": "How is a unit rate built up?",
       "q_ar": "كيف يُبنى سعر الوحدة؟",
       "expected_entry_ids": [
@@ -545,11 +791,16 @@
       ],
       "expected_facts": [
         "materials (quantity per unit plus waste"
+      ],
+      "q_reworded": "How would you build up a rate for laying one square metre of block work?",
+      "answer_must": [
+        "Materials per unit plus waste at delivered cost",
+        "Plus labour, plant and a share of overheads and profit"
       ]
     },
     {
       "id": "sales_engineer-exam-43",
-      "checklist": "SE-05",
+      "checklist": "SE-CL-024",
       "q_en": "Rate times quantity does not equal the amount on a quote line. What do I do?",
       "q_ar": "السعر × الكمية لا يساوي المبلغ في بند العرض. ماذا أفعل؟",
       "expected_entry_ids": [
@@ -558,11 +809,16 @@
       ],
       "expected_facts": [
         "never correct it silently"
+      ],
+      "q_reworded": "On line 12 the quantity times the rate gives AED 4,500 but the amount column says 5,400. Do I just fix it?",
+      "answer_must": [
+        "Never correct it silently",
+        "Ask the supplier to confirm in writing which figure stands, per the tender rules"
       ]
     },
     {
       "id": "sales_engineer-exam-44",
-      "checklist": "SE-05",
+      "checklist": "SE-CL-023",
       "q_en": "What share of UAE construction cost is materials?",
       "q_ar": "ما حصة المواد من تكلفة البناء في الإمارات؟",
       "expected_entry_ids": [
@@ -570,11 +826,15 @@
       ],
       "expected_facts": [
         "around 60%"
+      ],
+      "q_reworded": "Roughly how much of a typical UAE build cost is materials?",
+      "answer_must": [
+        "Around 60%"
       ]
     },
     {
       "id": "sales_engineer-exam-45",
-      "checklist": "SE-05",
+      "checklist": "SE-CL-028",
       "q_en": "How do I compare quotes that look different?",
       "q_ar": "كيف أقارن عروضاً تبدو مختلفة؟",
       "expected_entry_ids": [
@@ -582,11 +842,16 @@
       ],
       "expected_facts": [
         "plug"
+      ],
+      "q_reworded": "Three quotes for the same fit-out look totally different in layout and totals. How do I make them comparable?",
+      "answer_must": [
+        "Level them: confirm scope per line, list exclusions",
+        "Plug missing items so the comparison is like for like"
       ]
     },
     {
       "id": "sales_engineer-exam-46",
-      "checklist": "SE-05",
+      "checklist": "SE-CL-027",
       "q_en": "Should I show prices with or without VAT?",
       "q_ar": "هل أعرض الأسعار مع ضريبة القيمة المضافة أم دونها؟",
       "expected_entry_ids": [
@@ -594,11 +859,16 @@
       ],
       "expected_facts": [
         "VAT-exclusive"
+      ],
+      "q_reworded": "Should the comparison table show prices including the 5% tax?",
+      "answer_must": [
+        "Show prices VAT-exclusive",
+        "Show VAT separately"
       ]
     },
     {
       "id": "sales_engineer-exam-47",
-      "checklist": "SE-06",
+      "checklist": "SE-CL-030",
       "q_en": "How do I mark each quote line in a technical evaluation?",
       "q_ar": "كيف أصنف كل بند في التقييم الفني؟",
       "expected_entry_ids": [
@@ -609,11 +879,15 @@
         "compliant",
         "deviation",
         "not stated"
+      ],
+      "q_reworded": "What labels do you put on each line when checking a quote technically against the request?",
+      "answer_must": [
+        "Compliant, deviation, or not stated"
       ]
     },
     {
       "id": "sales_engineer-exam-48",
-      "checklist": "SE-06",
+      "checklist": "SE-CL-030",
       "q_en": "Can a cheaper non-compliant quote be ranked first?",
       "q_ar": "هل يمكن ترتيب عرض أرخص غير مطابق أولاً؟",
       "expected_entry_ids": [
@@ -622,11 +896,16 @@
       ],
       "expected_facts": [
         "never ranked above a compliant one"
+      ],
+      "q_reworded": "The cheapest quote uses a different cable type than requested. Can it still top the ranking?",
+      "answer_must": [
+        "No: a non-compliant quote is never ranked above a compliant one",
+        "Show its deviations and let the customer decide"
       ]
     },
     {
       "id": "sales_engineer-exam-49",
-      "checklist": "SE-06",
+      "checklist": "SE-CL-031",
       "q_en": "One quote is 25% below the others. Do we recommend it?",
       "q_ar": "عرض أقل من الآخرين بنسبة 25%. هل نوصي به؟",
       "expected_entry_ids": [
@@ -634,11 +913,16 @@
       ],
       "expected_facts": [
         "do not recommend it and do not hide it"
+      ],
+      "q_reworded": "A quote came in a quarter cheaper than everyone else. Should we tell the customer it's the best deal?",
+      "answer_must": [
+        "Do not recommend it and do not hide it",
+        "Investigate scope misses and show the risk"
       ]
     },
     {
       "id": "sales_engineer-exam-50",
-      "checklist": "SE-06",
+      "checklist": "SE-CL-032",
       "q_en": "What does a weighted evaluation do?",
       "q_ar": "ماذا يفعل التقييم المرجّح؟",
       "expected_entry_ids": [
@@ -646,11 +930,15 @@
       ],
       "expected_facts": [
         "multiplies each score by a weight"
+      ],
+      "q_reworded": "How do we choose between quotes when price is not the only thing that matters?",
+      "answer_must": [
+        "Score each quote on criteria, multiply each score by a weight and sum"
       ]
     },
     {
       "id": "sales_engineer-exam-51",
-      "checklist": "SE-06",
+      "checklist": "SE-CL-035",
       "q_en": "Which six items must be verified before a supplier is matched?",
       "q_ar": "ما البنود الستة التي يجب التحقق منها قبل مطابقة المورد؟",
       "expected_entry_ids": [
@@ -659,11 +947,16 @@
       "expected_facts": [
         "trade licence",
         "signed platform terms"
+      ],
+      "q_reworded": "Before a new supplier gets requests, what must we have confirmed about him?",
+      "answer_must": [
+        "The mandatory six including name, OTP mobile, email and trade licence",
+        "Signed platform terms among them"
       ]
     },
     {
       "id": "sales_engineer-exam-52",
-      "checklist": "SE-07",
+      "checklist": "SE-CL-039",
       "q_en": "No supplier can meet the exact spec. Can the seat accept the alternative for the customer?",
       "q_ar": "لا مورد يستوفي المواصفة بالضبط. هل يقبل المقعد البديل عن العميل؟",
       "expected_entry_ids": [
@@ -671,11 +964,16 @@
       ],
       "expected_facts": [
         "never accepted on the customer's behalf"
+      ],
+      "q_reworded": "None of the bidders can supply the exact chiller model. Can we just pick the closest one for the customer?",
+      "answer_must": [
+        "Never accept an alternative on the customer's behalf",
+        "The customer decides yes or no on the stated alternative"
       ]
     },
     {
       "id": "sales_engineer-exam-53",
-      "checklist": "SE-07",
+      "checklist": "SE-CL-039",
       "q_en": "The customer did not answer about the alternative. Is that a yes?",
       "q_ar": "لم يرد العميل بشأن البديل. هل هذه موافقة؟",
       "expected_entry_ids": [
@@ -683,11 +981,16 @@
       ],
       "expected_facts": [
         "Silence is not yes"
+      ],
+      "q_reworded": "We sent the alternative to the customer three days ago and heard nothing. Can we proceed?",
+      "answer_must": [
+        "Silence is not yes",
+        "Wait for an explicit answer"
       ]
     },
     {
       "id": "sales_engineer-exam-54",
-      "checklist": "SE-07",
+      "checklist": "SE-CL-039",
       "q_en": "The customer said no to the alternative. What happens to the supplier?",
       "q_ar": "رفض العميل البديل. ماذا يحدث للمورد؟",
       "expected_entry_ids": [
@@ -695,11 +998,15 @@
       ],
       "expected_facts": [
         "polite apology"
+      ],
+      "q_reworded": "The customer refused the substitute brand. What do we tell the supplier who offered it?",
+      "answer_must": [
+        "A polite apology; the alternative is not accepted"
       ]
     },
     {
       "id": "sales_engineer-exam-55",
-      "checklist": "SE-07",
+      "checklist": "SE-CL-040",
       "q_en": "The alternative lacks Civil Defence approval. Do we offer it?",
       "q_ar": "البديل يفتقد موافقة الدفاع المدني. هل نعرضه؟",
       "expected_entry_ids": [
@@ -708,11 +1015,15 @@
       ],
       "expected_facts": [
         "is not offered at all"
+      ],
+      "q_reworded": "The substitute sprinkler head has no Civil Defence approval but is cheaper. Should we put it to the customer?",
+      "answer_must": [
+        "No: it is not offered at all"
       ]
     },
     {
       "id": "sales_engineer-exam-56",
-      "checklist": "SE-07",
+      "checklist": "SE-CL-041",
       "q_en": "How is an alternate shown next to the base quote?",
       "q_ar": "كيف يُعرض البديل بجانب العرض الأساسي؟",
       "expected_entry_ids": [
@@ -720,11 +1031,16 @@
       ],
       "expected_facts": [
         "never folded into the base ranking"
+      ],
+      "q_reworded": "A supplier added a cheaper 'option B' brand at the bottom of his quote. How does it appear in the comparison?",
+      "answer_must": [
+        "Separately from the base quote",
+        "Never folded into the base ranking"
       ]
     },
     {
       "id": "sales_engineer-exam-57",
-      "checklist": "SE-08",
+      "checklist": "SE-CL-042",
       "q_en": "Can I tell a supplier that a competitor is cheaper and by how much?",
       "q_ar": "هل أخبر مورداً أن منافساً أرخص وبكم؟",
       "expected_entry_ids": [
@@ -733,11 +1049,16 @@
       ],
       "expected_facts": [
         "Never disclose one supplier's price"
+      ],
+      "q_reworded": "To push the price down, can I let supplier A know that B came in 8% lower?",
+      "answer_must": [
+        "Never disclose one supplier's price or by how much",
+        "You may only say the offer is not yet competitive"
       ]
     },
     {
       "id": "sales_engineer-exam-58",
-      "checklist": "SE-08",
+      "checklist": "SE-CL-043",
       "q_en": "What comes before bargaining on price?",
       "q_ar": "ماذا يأتي قبل المساومة على السعر؟",
       "expected_entry_ids": [
@@ -745,11 +1066,15 @@
       ],
       "expected_facts": [
         "Clarify before bargaining"
+      ],
+      "q_reworded": "Before we start pushing for discounts, what has to happen first?",
+      "answer_must": [
+        "Level the quotes and clarify scope before bargaining on price"
       ]
     },
     {
       "id": "sales_engineer-exam-59",
-      "checklist": "SE-08",
+      "checklist": "SE-CL-043",
       "q_en": "What is the customer's real BATNA?",
       "q_ar": "ما هو البديل الأفضل الحقيقي للعميل؟",
       "expected_entry_ids": [
@@ -757,11 +1082,15 @@
       ],
       "expected_facts": [
         "next-best levelled quote"
+      ],
+      "q_reworded": "If talks with the preferred supplier fail, what is the customer's real fallback?",
+      "answer_must": [
+        "The next-best levelled quote"
       ]
     },
     {
       "id": "sales_engineer-exam-60",
-      "checklist": "SE-08",
+      "checklist": "SE-CL-044",
       "q_en": "Besides price, what can we negotiate?",
       "q_ar": "غير السعر، على ماذا يمكن أن نتفاوض؟",
       "expected_entry_ids": [
@@ -770,11 +1099,16 @@
       "expected_facts": [
         "payment terms",
         "retention"
+      ],
+      "q_reworded": "The supplier won't move on price. What else can we ask for?",
+      "answer_must": [
+        "Non-price levers such as payment terms and retention",
+        "Also delivery schedule or scope split"
       ]
     },
     {
       "id": "sales_engineer-exam-61",
-      "checklist": "SE-08",
+      "checklist": "SE-CL-045",
       "q_en": "How much retention is typical and when is it released?",
       "q_ar": "كم نسبة المحتجزات المعتادة ومتى تُفرج؟",
       "expected_entry_ids": [
@@ -783,11 +1117,16 @@
       "expected_facts": [
         "10% withheld",
         "defects notification period"
+      ],
+      "q_reworded": "The main contractor wants to hold back part of each payment. How much is normal and when is it given back?",
+      "answer_must": [
+        "About 10% withheld from each payment, often capped",
+        "Released in parts at completion and after the defects notification period"
       ]
     },
     {
       "id": "sales_engineer-exam-64",
-      "checklist": "SE-09",
+      "checklist": "SE-CL-051",
       "q_en": "Does a rate contract guarantee volume?",
       "q_ar": "هل يضمن عقد الأسعار حجماً معيناً؟",
       "expected_entry_ids": [
@@ -795,11 +1134,15 @@
       ],
       "expected_facts": [
         "usually no guaranteed volume"
+      ],
+      "q_reworded": "If a customer signs a one-year rate contract with a supplier, is the supplier promised a minimum order?",
+      "answer_must": [
+        "Usually no guaranteed volume"
       ]
     },
     {
       "id": "sales_engineer-exam-65",
-      "checklist": "SE-09",
+      "checklist": "SE-CL-051",
       "q_en": "What escalation clause is acceptable in a framework?",
       "q_ar": "ما بند تعديل الأسعار المقبول في اتفاقية إطارية؟",
       "expected_entry_ids": [
@@ -808,11 +1151,16 @@
       "expected_facts": [
         "tied to a named index",
         "with a cap"
+      ],
+      "q_reworded": "A supplier wants prices in the yearly agreement to rise with steel prices. What clause is reasonable?",
+      "answer_must": [
+        "Escalation tied to a named index",
+        "With a cap"
       ]
     },
     {
       "id": "sales_engineer-exam-66",
-      "checklist": "SE-10",
+      "checklist": "SE-CL-052",
       "q_en": "Can a swimming pool request go to plumbing suppliers?",
       "q_ar": "هل يمكن إرسال طلب مسبح إلى موردي السباكة؟",
       "expected_entry_ids": [
@@ -821,11 +1169,16 @@
       ],
       "expected_facts": [
         "There is no nearest mapping"
+      ],
+      "q_reworded": "The customer needs a pool built. Can I send it to plumbers since pools involve pipes?",
+      "answer_must": [
+        "No: there is no nearest mapping",
+        "Only swimming pool suppliers"
       ]
     },
     {
       "id": "sales_engineer-exam-67",
-      "checklist": "SE-10",
+      "checklist": "SE-CL-052",
       "q_en": "No trade in the taxonomy fits the request. What now?",
       "q_ar": "لا توجد حرفة في التصنيف تناسب الطلب. ماذا الآن؟",
       "expected_entry_ids": [
@@ -833,11 +1186,16 @@
       ],
       "expected_facts": [
         "a trade is added before anything is matched to it"
+      ],
+      "q_reworded": "The request is for a trade we don't have in our list at all. What happens?",
+      "answer_must": [
+        "The trade is added before anything is matched to it",
+        "Never match to a nearest trade"
       ]
     },
     {
       "id": "sales_engineer-exam-68",
-      "checklist": "SE-10",
+      "checklist": "SE-CL-053",
       "q_en": "What are the hard rules over the sales engineer's work?",
       "q_ar": "ما القواعد الثابتة على عمل مهندس المبيعات؟",
       "expected_entry_ids": [
@@ -846,11 +1204,16 @@
       "expected_facts": [
         "exact trade match or none",
         "exact specs or the quote is held"
+      ],
+      "q_reworded": "What are the non-negotiable rules our sales engineer must follow on every request?",
+      "answer_must": [
+        "Exact trade match or none",
+        "Exact specs or the quote is held"
       ]
     },
     {
       "id": "sales_engineer-exam-69",
-      "checklist": "SE-10",
+      "checklist": "SE-CL-046",
       "q_en": "Is decennial liability still in the new Civil Code?",
       "q_ar": "هل ما زالت المسؤولية العشرية في قانون المعاملات المدنية الجديد؟",
       "expected_entry_ids": [
@@ -858,6 +1221,950 @@
       ],
       "expected_facts": [
         "Articles 821-824"
+      ],
+      "q_reworded": "A builder asks whether the ten-year structural liability survived the 2026 civil law change. What do you say?",
+      "answer_must": [
+        "Yes, it is retained in the new Civil Code",
+        "The 1985 code had it in Articles 880-883; the new code is cited as Articles 821-824"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-70",
+      "checklist": "SE-CL-019",
+      "q_en": "How do BANT and MEDDIC differ when qualifying a procurement inquiry?",
+      "q_ar": "ما الفرق بين BANT وMEDDIC عند تأهيل استفسار شراء؟",
+      "expected_entry_ids": [
+        "sales_engineer:bant-vs-meddic-for-procurement"
+      ],
+      "expected_facts": [
+        "BANT (Budget, Authority, Need, Timeline)"
+      ],
+      "q_reworded": "Our team uses a four-letter sales checklist for simple leads and a longer one for complex deals. Which is which, and when do we use each?",
+      "answer_must": [
+        "BANT is a fast screen of budget, authority, need and timeline for simple high-volume cases",
+        "MEDDIC is a deeper method for complex decisions with several stakeholders"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-71",
+      "checklist": "SE-CL-020",
+      "q_en": "The customer says his budget is AED 20,000 for the whole fit-out. How do I judge if that is realistic?",
+      "q_ar": "يقول العميل إن ميزانيته 20 ألف درهم للتشطيب كاملاً. كيف أحكم إن كانت واقعية؟",
+      "expected_entry_ids": [
+        "sales_engineer:budget-realism-check"
+      ],
+      "expected_facts": [
+        "documented market band"
+      ],
+      "q_reworded": "A villa owner insists the job must not cost more than a figure that seems low to me. How should I check his number before matching?",
+      "answer_must": [
+        "Compare it with a documented market band, preferring prices actually quoted on the platform",
+        "Tell the customer if it is far below, without letting it silently shape the match"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-72",
+      "checklist": "SE-CL-025",
+      "q_en": "A customer asks how much a square metre of construction costs in Dubai. What may I say?",
+      "q_ar": "عميل يسأل كم تكلفة المتر المربع من البناء في دبي. ماذا يحق لي أن أقول؟",
+      "expected_entry_ids": [
+        "sales_engineer:price-knowledge-rule"
+      ],
+      "expected_facts": [
+        "answers only from evidence"
+      ],
+      "q_reworded": "Someone on the phone wants a ballpark build cost per metre before he sends any drawings. How do you respond?",
+      "answer_must": [
+        "Answer only from labelled evidence: platform quotes first, then published benchmarks",
+        "State the source and its limits; never invent a number"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-73",
+      "checklist": "SE-CL-026",
+      "q_en": "What lead time should I expect for structural steel in Dubai?",
+      "q_ar": "ما مدة التوريد المتوقعة للحديد الإنشائي في دبي؟",
+      "expected_entry_ids": [
+        "sales_engineer:lead-times-long-items"
+      ],
+      "expected_facts": [
+        "structural steel 12-18 weeks"
+      ],
+      "q_reworded": "The client needs the steel frame on site in a month. Is that realistic, and how do lead times affect which quote wins?",
+      "answer_must": [
+        "Published 2025 survey reports structural steel at about 12-18 weeks in Dubai",
+        "Lead time is compared as carefully as price"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-74",
+      "checklist": "SE-CL-027",
+      "q_en": "When will mandatory e-invoicing affect our suppliers, and on what model?",
+      "q_ar": "متى سيؤثر الفوترة الإلكترونية الإلزامية على موردينا، وعلى أي نموذج؟",
+      "expected_entry_ids": [
+        "sales_engineer:e-invoicing-roadmap"
+      ],
+      "expected_facts": [
+        "Peppol"
+      ],
+      "q_reworded": "A supplier asks whether he will need new invoicing software soon in the UAE. What do you tell him?",
+      "answer_must": [
+        "The UAE is moving to mandatory e-invoicing on a Peppol-based model through accredited service providers",
+        "Invoices are reported to the Federal Tax Authority"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-75",
+      "checklist": "SE-CL-029",
+      "q_en": "What is the difference between an exclusion and a qualification in a quote?",
+      "q_ar": "ما الفرق بين الاستثناء والتحفظ في عرض السعر؟",
+      "expected_entry_ids": [
+        "sales_engineer:exclusions-qualifications-clarifications"
+      ],
+      "expected_facts": [
+        "An exclusion removes an item"
+      ],
+      "q_reworded": "The fine print says \"price excludes scaffolding\" on one quote and \"price assumes access from ground floor\" on another. How do I treat each?",
+      "answer_must": [
+        "An exclusion removes the item from scope so it must be plugged when levelling",
+        "A qualification keeps the item priced only if an assumption holds, so it is clarified in writing"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-76",
+      "checklist": "SE-CL-029",
+      "q_en": "How should a clarification question to a supplier be written?",
+      "q_ar": "كيف ينبغي كتابة سؤال استيضاح إلى مورد؟",
+      "expected_entry_ids": [
+        "sales_engineer:clarification-protocol"
+      ],
+      "expected_facts": [
+        "written, specific, time-bound and recorded"
+      ],
+      "q_reworded": "I want to ask a bidder about some unclear lines on the phone. Is that fine?",
+      "answer_must": [
+        "Clarifications are written, specific, time-bound and recorded",
+        "Each question names the quote reference and the line"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-77",
+      "checklist": "SE-CL-033",
+      "q_en": "The quality check flagged a supplier quote. What happens next and in which language?",
+      "q_ar": "رصد فحص الجودة عرض مورد. ماذا يحدث بعد ذلك وبأي لغة؟",
+      "expected_entry_ids": [
+        "sales_engineer:quote-quality-hold"
+      ],
+      "expected_facts": [
+        "in English",
+        "24 hours"
+      ],
+      "q_reworded": "A bid has errors the system caught. Does the customer see it now, and how is the supplier told?",
+      "answer_must": [
+        "The quote is held and not shown as it stands",
+        "The supplier gets the exact fixes in English; the hold lasts 24 hours"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-78",
+      "checklist": "SE-CL-034",
+      "q_en": "What does the weekly comparison KPI measure?",
+      "q_ar": "ماذا يقيس مؤشر المقارنة الأسبوعي؟",
+      "expected_entry_ids": [
+        "sales_engineer:comparison-report-kpis"
+      ],
+      "expected_facts": [
+        "median and p90",
+        "3 or more complete quotes"
+      ],
+      "q_reworded": "The CEO wants to know if our comparisons are fast and complete enough. Which numbers do we report?",
+      "answer_must": [
+        "Hours from inquiry to comparison report, median and p90",
+        "Share of reports with 3 or more complete quotes, and exclusions flagged"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-79",
+      "checklist": "SE-CL-036",
+      "q_en": "Where do I verify a supplier's UAE trade licence?",
+      "q_ar": "أين أتحقق من الرخصة التجارية لمورد في الإمارات؟",
+      "expected_entry_ids": [
+        "sales_engineer:licence-verification-sources"
+      ],
+      "expected_facts": [
+        "economic department or by free-zone authorities"
+      ],
+      "q_reworded": "A new supplier uploaded a licence scan. How do I know it is real and covers what he wants to quote?",
+      "answer_must": [
+        "Verify with the issuer: the emirate economic department or the free-zone authority",
+        "Check the declared trades are within the licensed activities"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-80",
+      "checklist": "SE-CL-036",
+      "q_en": "A company licensed for building materials trading wants to quote for installation. Can it?",
+      "q_ar": "شركة مرخصة لتجارة مواد البناء تريد تقديم عرض للتركيب. هل يجوز؟",
+      "expected_entry_ids": [
+        "sales_engineer:licence-activity-scope"
+      ],
+      "expected_facts": [
+        "within the activities listed on its licence"
+      ],
+      "q_reworded": "A trader of tiles wants to also offer laying tiles on our platform. What do we check?",
+      "answer_must": [
+        "Declared trades must be within the activities listed on the licence",
+        "A trading licence does not by itself cover installation work"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-81",
+      "checklist": "SE-CL-037",
+      "q_en": "Which signs during supplier vetting justify holding activation?",
+      "q_ar": "ما العلامات أثناء تدقيق المورد التي تبرر تعليق التفعيل؟",
+      "expected_entry_ids": [
+        "sales_engineer:supplier-vetting-red-flags"
+      ],
+      "expected_facts": [
+        "licence name differs from the profile"
+      ],
+      "q_reworded": "Something feels off about a supplier who just registered. What would make you pause him?",
+      "answer_must": [
+        "Mismatched names between licence, profile, bank or invoice",
+        "Expired or wrongly issued licence; red flags justify questions, not proof of wrongdoing"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-82",
+      "checklist": "SE-CL-037",
+      "q_en": "Who runs the UAE local sanctions lists and does the platform screen suppliers?",
+      "q_ar": "من يدير قوائم العقوبات المحلية في الإمارات وهل تفحص المنصة الموردين؟",
+      "expected_entry_ids": [
+        "sales_engineer:sanctions-screening-scope"
+      ],
+      "expected_facts": [
+        "Executive Office for Control and Non-Proliferation"
+      ],
+      "q_reworded": "An investor asks whether we check suppliers against terrorist lists. Which UAE body keeps those lists?",
+      "answer_must": [
+        "The Executive Office for Control and Non-Proliferation (EOCN)",
+        "It administers the Local Terrorist List and related lists"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-83",
+      "checklist": "SE-CL-037",
+      "q_en": "Which law governs the personal data of supplier and customer contacts?",
+      "q_ar": "ما القانون الذي يحكم البيانات الشخصية لجهات اتصال الموردين والعملاء؟",
+      "expected_entry_ids": [
+        "sales_engineer:pdpl-supplier-data"
+      ],
+      "expected_facts": [
+        "Federal Decree-Law No. 45 of 2021"
+      ],
+      "q_reworded": "A supplier wants us to delete his mobile number from our records. Which UAE law applies?",
+      "answer_must": [
+        "The Personal Data Protection Law, Federal Decree-Law No. 45 of 2021",
+        "Processing needs consent or another lawful basis"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-84",
+      "checklist": "SE-CL-038",
+      "q_en": "When does the platform ask a supplier to renew his trade licence, and what happens on expiry?",
+      "q_ar": "متى تطلب المنصة من المورد تجديد رخصته، وماذا يحدث عند انتهائها؟",
+      "expected_entry_ids": [
+        "sales_engineer:licence-expiry-watch"
+      ],
+      "expected_facts": [
+        "30, 14 and 7 days"
+      ],
+      "q_reworded": "A supplier's licence runs out next week. What has he already received, and can he still get requests after it lapses?",
+      "answer_must": [
+        "Renewal asks at 30, 14 and 7 days before expiry",
+        "On expiry he is paused and told; the ask closes only when a new document arrives"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-85",
+      "checklist": "SE-CL-047",
+      "q_en": "Is a supplier's quotation an offer, and when is a contract formed?",
+      "q_ar": "هل عرض سعر المورد إيجاب، ومتى ينعقد العقد؟",
+      "expected_entry_ids": [
+        "sales_engineer:lpo-offer-acceptance"
+      ],
+      "expected_facts": [
+        "is the acceptance"
+      ],
+      "q_reworded": "The customer sent an LPO after the supplier quoted. Do they now have a binding deal?",
+      "answer_must": [
+        "The quotation is normally the offer and the LPO the acceptance",
+        "Terms on each document matter; the LPO can itself be an offer"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-86",
+      "checklist": "SE-CL-047",
+      "q_en": "Why must every quote state its validity period?",
+      "q_ar": "لماذا يجب أن يذكر كل عرض مدة صلاحيته؟",
+      "expected_entry_ids": [
+        "sales_engineer:quote-validity"
+      ],
+      "expected_facts": [
+        "how long its price holds"
+      ],
+      "q_reworded": "A customer wants to accept a quote from two months ago at the same price. Can he?",
+      "answer_must": [
+        "Only if still within the stated validity period",
+        "Costs are rising, so validity and escalation must be stated"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-87",
+      "checklist": "SE-CL-048",
+      "q_en": "How long do UAE government entities typically take to pay suppliers?",
+      "q_ar": "كم تستغرق الجهات الحكومية في الإمارات عادة للدفع للموردين؟",
+      "expected_entry_ids": [
+        "sales_engineer:payment-cycles-uae"
+      ],
+      "expected_facts": [
+        "45-60 days"
+      ],
+      "q_reworded": "A supplier asks whether a ministry job will tie up his cash for long. What is typical?",
+      "answer_must": [
+        "About 45-60 days for federal and Abu Dhabi government, per a practitioner source",
+        "Payment timing is a real cost reflected in prices"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-88",
+      "checklist": "SE-CL-048",
+      "q_en": "Is a pay-when-paid clause enforceable in the UAE?",
+      "q_ar": "هل شرط الدفع عند القبض قابل للتنفيذ في الإمارات؟",
+      "expected_entry_ids": [
+        "sales_engineer:pay-when-paid"
+      ],
+      "expected_facts": [
+        "pay-if-paid"
+      ],
+      "q_reworded": "The main contractor's order says the supplier gets paid only once the client pays him. Is that normal and valid?",
+      "answer_must": [
+        "Distinguish pay-when-paid (timing) from pay-if-paid (condition)",
+        "UAE has no statute banning them; enforceability depends on the wording and courts"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-89",
+      "checklist": "SE-CL-048",
+      "q_en": "Can a supplier claim interest on a late commercial payment in the UAE?",
+      "q_ar": "هل يحق للمورد المطالبة بفائدة على دفعة تجارية متأخرة في الإمارات؟",
+      "expected_entry_ids": [
+        "sales_engineer:late-payment-interest"
+      ],
+      "expected_facts": [
+        "Federal Decree-Law No. 50 of 2022"
+      ],
+      "q_reworded": "A customer paid a supplier four months late. Can the supplier add interest?",
+      "answer_must": [
+        "Yes under the Commercial Transactions Law, Federal Decree-Law No. 50 of 2022",
+        "Interest runs from the maturity date"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-90",
+      "checklist": "SE-CL-048",
+      "q_en": "Is a bounced cheque still a crime in the UAE?",
+      "q_ar": "هل لا يزال الشيك المرتجع جريمة في الإمارات؟",
+      "expected_entry_ids": [
+        "sales_engineer:cheques-and-pdc"
+      ],
+      "expected_facts": [
+        "Federal Decree-Law No. 14 of 2020"
+      ],
+      "q_reworded": "A supplier wants post-dated cheques from a customer for security. What changed in the law?",
+      "answer_must": [
+        "Federal Decree-Law No. 14 of 2020 decriminalised cheques bounced for insufficient funds",
+        "The cheque can be enforced directly as an executory instrument"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-91",
+      "checklist": "SE-CL-048",
+      "q_en": "How long does a supplier have to sue for an unpaid commercial debt?",
+      "q_ar": "كم من الوقت لدى المورد لرفع دعوى على دين تجاري غير مدفوع؟",
+      "expected_entry_ids": [
+        "sales_engineer:limitation-period-commercial"
+      ],
+      "expected_facts": [
+        "within five years"
+      ],
+      "q_reworded": "An invoice from 2021 was never paid. Is it too late to claim?",
+      "answer_must": [
+        "Commercial claims between merchants generally must be brought within five years"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-92",
+      "checklist": "SE-CL-049",
+      "q_en": "Can a UAE court change a liquidated damages amount?",
+      "q_ar": "هل يجوز للمحكمة الإماراتية تعديل مبلغ التعويض الاتفاقي؟",
+      "expected_entry_ids": [
+        "sales_engineer:liquidated-damages"
+      ],
+      "expected_facts": [
+        "subject to judicial review"
+      ],
+      "q_reworded": "The order has a delay penalty of 1% per day. Is the supplier stuck with it whatever the actual loss?",
+      "answer_must": [
+        "Liquidated damages are subject to judicial review",
+        "A court may adjust them to the actual loss"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-93",
+      "checklist": "SE-CL-049",
+      "q_en": "What is a variation and how should it be handled after the order?",
+      "q_ar": "ما التغيير في الأعمال وكيف يُعالَج بعد الأمر؟",
+      "expected_entry_ids": [
+        "sales_engineer:variations-and-scope-change"
+      ],
+      "expected_facts": [
+        "added, omitted or changed"
+      ],
+      "q_reworded": "Halfway through, the customer wants extra sockets. How is that priced and agreed?",
+      "answer_must": [
+        "A variation is added, omitted or changed scope",
+        "It is instructed and priced in writing before the work"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-94",
+      "checklist": "SE-CL-049",
+      "q_en": "The customer is not paying. Can the supplier stop work?",
+      "q_ar": "العميل لا يدفع. هل يجوز للمورد إيقاف العمل؟",
+      "expected_entry_ids": [
+        "sales_engineer:suspension-for-nonpayment"
+      ],
+      "expected_facts": [
+        "exception of non-performance"
+      ],
+      "q_reworded": "A supplier has not been paid for two invoices and wants to down tools. What can he do?",
+      "answer_must": [
+        "Suspension under the exception of non-performance",
+        "Give notice and follow the contract terms first"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-95",
+      "checklist": "SE-CL-050",
+      "q_en": "How many Incoterms 2020 rules are there?",
+      "q_ar": "كم عدد قواعد إنكوترمز 2020؟",
+      "expected_entry_ids": [
+        "sales_engineer:incoterms-2020"
+      ],
+      "expected_facts": [
+        "11 rules"
+      ],
+      "q_reworded": "An importer quoted CIF Jebel Ali and another DDP site. What framework explains the difference?",
+      "answer_must": [
+        "Incoterms 2020 from the ICC, with 11 rules",
+        "They define where risk passes and who pays carriage, insurance and duties"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-96",
+      "checklist": "SE-CL-050",
+      "q_en": "Most of our quotes are local. Which delivery terms really matter to compare?",
+      "q_ar": "معظم عروضنا محلية. أي شروط تسليم تهم فعلاً في المقارنة؟",
+      "expected_entry_ids": [
+        "sales_engineer:incoterms-choice-uae"
+      ],
+      "expected_facts": [
+        "delivered to site"
+      ],
+      "q_reworded": "One supplier quotes ex-warehouse Sharjah and another delivered. How do I compare them?",
+      "answer_must": [
+        "Delivered to site versus ex-warehouse or collection, and who offloads",
+        "Add delivery and offloading to the ex-warehouse price to compare"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-97",
+      "checklist": "SE-CL-054",
+      "q_en": "How much is the reveal fee and is VAT or a card fee added?",
+      "q_ar": "كم رسم الكشف وهل تُضاف ضريبة أو رسوم بطاقة؟",
+      "expected_entry_ids": [
+        "sales_engineer:reveal-and-non-response-rules"
+      ],
+      "expected_facts": [
+        "3%",
+        "no cap"
+      ],
+      "q_reworded": "A customer is about to unlock a AED 200,000 quote. What will he pay on top, exactly?",
+      "answer_must": [
+        "3% of the quote value with no cap and no discount",
+        "Nothing added for card payment and no VAT because QuotesDone is not VAT registered"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-98",
+      "checklist": "SE-CL-054",
+      "q_en": "The supplier did not respond after the customer paid to reveal. What happens?",
+      "q_ar": "لم يرد المورد بعد أن دفع العميل للكشف. ماذا يحدث؟",
+      "expected_entry_ids": [
+        "sales_engineer:reveal-and-non-response-rules"
+      ],
+      "expected_facts": [
+        "5 working days",
+        "AED 500 administrative fee"
+      ],
+      "q_reworded": "I paid to unlock a contractor a week ago and he is ignoring my calls. Do I lose my money?",
+      "answer_must": [
+        "The supplier has 5 working days; chased at 3, CEO decides at day 5",
+        "The customer is refunded in full; the supplier owes the refunded amount, the unrecovered processor fee, an AED 500 administrative fee and 12% a year simple interest"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-99",
+      "checklist": "SE-CL-055",
+      "q_en": "In what language do we write to a supplier who wrote to us in Arabic?",
+      "q_ar": "بأي لغة نكتب لمورد راسلنا بالعربية؟",
+      "expected_entry_ids": [
+        "sales_engineer:language-rule-suppliers-english"
+      ],
+      "expected_facts": [
+        "always written to in English"
+      ],
+      "q_reworded": "A Sharjah contractor messages us on WhatsApp in Arabic about his quote. How do we reply, and what about customers?",
+      "answer_must": [
+        "Suppliers are always written to in English, on every channel",
+        "Customers are answered in their inquiry language"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-100",
+      "checklist": "SE-CL-056",
+      "q_en": "How does the seat report supplier onboarding?",
+      "q_ar": "كيف يُبلغ المقعد عن تأهيل الموردين؟",
+      "expected_entry_ids": [
+        "sales_engineer:onboarding-metrics"
+      ],
+      "expected_facts": [
+        "stage conversion"
+      ],
+      "q_reworded": "We invited 170 suppliers and only one quotes. How should this be reported and fixed?",
+      "answer_must": [
+        "Report stage conversion: delivered, registered, verified, activated, first quote",
+        "Delivery is verified in the outbox; a status column is not proof"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-101",
+      "checklist": "SE-CL-056",
+      "q_en": "A supplier was just activated. What does the seat do next?",
+      "q_ar": "تم تفعيل مورد للتو. ماذا يفعل المقعد بعد ذلك؟",
+      "expected_entry_ids": [
+        "sales_engineer:first-quote-activation"
+      ],
+      "expected_facts": [
+        "a supplier who never quotes adds nothing"
+      ],
+      "q_reworded": "A newly approved supplier has had no work for three weeks. Why does that matter and what do we do?",
+      "answer_must": [
+        "Activation is not the goal; a supplier who never quotes adds nothing to liquidity",
+        "Check his trades and emirates are set and get him a suitable first inquiry quickly"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-102",
+      "checklist": "SE-CL-057",
+      "q_en": "How is OTIF calculated?",
+      "q_ar": "كيف يُحسب مؤشر التسليم في الوقت وبالكامل؟",
+      "expected_entry_ids": [
+        "sales_engineer:otif-measurement"
+      ],
+      "expected_facts": [
+        "OTIF = deliveries on time and in full / total deliveries"
+      ],
+      "q_reworded": "The customer wants to know how reliable a supplier is on deliveries. Which measure would you use and how is it computed?",
+      "answer_must": [
+        "OTIF: deliveries both on time and in full divided by total deliveries"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-103",
+      "checklist": "SE-CL-057",
+      "q_en": "Can a high performance score let a supplier be matched outside his trade?",
+      "q_ar": "هل تسمح درجة الأداء العالية بمطابقة مورد خارج حرفته؟",
+      "expected_entry_ids": [
+        "sales_engineer:score-feeds-matching"
+      ],
+      "expected_facts": [
+        "never lets a supplier bypass a gate"
+      ],
+      "q_reworded": "Our best-rated electrician wants requests for plumbing too. Does his score help?",
+      "answer_must": [
+        "No: the score ranks only suppliers who passed every hard gate",
+        "It never lets a supplier bypass a gate such as exact trade or emirate"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-104",
+      "checklist": "SE-CL-057",
+      "q_en": "How do we stop the performance score from favouring only established suppliers?",
+      "q_ar": "كيف نمنع درجة الأداء من تفضيل الموردين القدامى فقط؟",
+      "expected_entry_ids": [
+        "sales_engineer:score-fairness-and-cold-start"
+      ],
+      "expected_facts": [
+        "self-reinforcing"
+      ],
+      "q_reworded": "New suppliers complain they never get a chance because old ones always rank higher. What is the fix?",
+      "answer_must": [
+        "A score rewarding only past wins becomes self-reinforcing",
+        "Give newcomers a cold-start allowance so they can build a record"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-105",
+      "checklist": "SE-CL-058",
+      "q_en": "What does a supplier's monthly scorecard contain and how is it sent?",
+      "q_ar": "ماذا تحتوي بطاقة الأداء الشهرية للمورد وكيف تُرسل؟",
+      "expected_entry_ids": [
+        "sales_engineer:supplier-monthly-scorecard"
+      ],
+      "expected_facts": [
+        "in English",
+        "names no competitor"
+      ],
+      "q_reworded": "A supplier asks how he is doing compared with others in his trade. What does he get from us and when?",
+      "answer_must": [
+        "A monthly e-mail scorecard in English comparing him with his trade",
+        "It names no competitor and shows no competitor price"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-106",
+      "checklist": "SE-CL-059",
+      "q_en": "How is marketplace liquidity measured?",
+      "q_ar": "كيف تُقاس سيولة السوق؟",
+      "expected_entry_ids": [
+        "sales_engineer:liquidity-and-fill-rate"
+      ],
+      "expected_facts": [
+        "fill rate"
+      ],
+      "q_reworded": "The founder asks whether the marketplace is working for customers. Which single measure answers that?",
+      "answer_must": [
+        "Fill rate (match rate): the share of demand that finds suitable supply"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-107",
+      "checklist": "SE-CL-059",
+      "q_en": "What is a supply gap and who recruits to fill it?",
+      "q_ar": "ما فجوة العرض ومن يستقطب لسدّها؟",
+      "expected_entry_ids": [
+        "sales_engineer:supply-gap-detection"
+      ],
+      "expected_facts": [
+        "trade-and-emirate segment"
+      ],
+      "q_reworded": "Requests for glazing in Fujairah keep getting no bidders. Whose job is it and what happens?",
+      "answer_must": [
+        "A gap is a trade-and-emirate segment where demand cannot be served well",
+        "The sales engineer finds it and briefs marketing, which runs recruitment"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-108",
+      "checklist": "SE-CL-060",
+      "q_en": "What does the Kraljic matrix classify?",
+      "q_ar": "ماذا تصنّف مصفوفة كرالييتش؟",
+      "expected_entry_ids": [
+        "sales_engineer:kraljic-supply-segmentation"
+      ],
+      "expected_facts": [
+        "profit impact and supply risk"
+      ],
+      "q_reworded": "How do I decide which categories need careful supplier development versus simple catalogue buying?",
+      "answer_must": [
+        "The Kraljic matrix classifies categories by profit impact and supply risk",
+        "Four groups: non-critical, leverage, bottleneck, strategic"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-109",
+      "checklist": "SE-CL-061",
+      "q_en": "What is leakage in a marketplace?",
+      "q_ar": "ما التسرّب في السوق الإلكتروني؟",
+      "expected_entry_ids": [
+        "sales_engineer:leakage-disintermediation"
+      ],
+      "expected_facts": [
+        "complete the transaction outside it"
+      ],
+      "q_reworded": "We suspect customers find suppliers here and then deal with them directly next time. What is that called and why does it matter?",
+      "answer_must": [
+        "Leakage: buyers and suppliers use the marketplace to meet, then complete the transaction outside it",
+        "It stunts growth and monetisation"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-110",
+      "checklist": "SE-CL-062",
+      "q_en": "A request has had no quote 48 hours after matching. What does the seat do?",
+      "q_ar": "طلب لم يصله عرض بعد 48 ساعة من المطابقة. ماذا يفعل المقعد؟",
+      "expected_entry_ids": [
+        "sales_engineer:stalled-inquiry-rescue"
+      ],
+      "expected_facts": [
+        "48 hours after matching"
+      ],
+      "q_reworded": "The customer posted his job two days ago and still sees zero bids. What is happening behind the scenes?",
+      "answer_must": [
+        "It is flagged and the invitation is widened to uninvited suppliers in the exact trade and emirate",
+        "The customer is told honestly; never widened to a nearest trade"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-111",
+      "checklist": "SE-CL-062",
+      "q_en": "A supplier marked himself busy until next Sunday. Is he matched meanwhile?",
+      "q_ar": "أعلن مورد انشغاله حتى الأحد القادم. هل يُطابَق في الأثناء؟",
+      "expected_entry_ids": [
+        "sales_engineer:supplier-availability-busy-dates"
+      ],
+      "expected_facts": [
+        "not matched while busy"
+      ],
+      "q_reworded": "One of our installers is on another big job for two weeks. How does the platform treat him?",
+      "answer_must": [
+        "He is not matched while busy and returns to available on the date",
+        "Busy is not counted as non-response"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-112",
+      "checklist": "SE-CL-062",
+      "q_en": "Which pipeline stages does the seat own?",
+      "q_ar": "ما مراحل خط الطلبات التي يملكها المقعد؟",
+      "expected_entry_ids": [
+        "sales_engineer:pipeline-stages-and-chasing"
+      ],
+      "expected_facts": [
+        "chases anything stalled"
+      ],
+      "q_reworded": "Who makes sure a request moves from intake to a hired supplier without waiting for instructions?",
+      "answer_must": [
+        "The sales engineer owns every stage from intake to delivered job",
+        "It chases anything stalled rather than waiting for a directive"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-113",
+      "checklist": "SE-CL-063",
+      "q_en": "What happens when a new customer has not posted a request after 3 days?",
+      "q_ar": "ماذا يحدث حين لا ينشر عميل جديد طلباً بعد 3 أيام؟",
+      "expected_entry_ids": [
+        "sales_engineer:customer-lifecycle-duties"
+      ],
+      "expected_facts": [
+        "no request after 3 days"
+      ],
+      "q_reworded": "A company signed up last week but never asked for anything. Do we contact them, and how?",
+      "answer_must": [
+        "A nudge at 3 days with no request; a request with no quote is acted on at 5 days",
+        "A reasoned message at 10 days"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-114",
+      "checklist": "SE-CL-063",
+      "q_en": "After a reveal, when do we ask the customer whether he hired the supplier?",
+      "q_ar": "بعد الكشف، متى نسأل العميل هل تعاقد مع المورد؟",
+      "expected_entry_ids": [
+        "sales_engineer:customer-lifecycle-duties"
+      ],
+      "expected_facts": [
+        "day 3 and day 14"
+      ],
+      "q_reworded": "A customer unlocked a supplier last month. Do we ever check how it went?",
+      "answer_must": [
+        "Yes, on day 3 and day 14 after the reveal",
+        "The answer is recorded as an outcome feeding the supplier score"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-115",
+      "checklist": "SE-CL-063",
+      "q_en": "Which customers get a win-back message?",
+      "q_ar": "أي العملاء يتلقون رسالة استعادة؟",
+      "expected_entry_ids": [
+        "sales_engineer:customer-lifecycle-duties"
+      ],
+      "expected_facts": [
+        "60 days"
+      ],
+      "q_reworded": "A customer has gone quiet for two months. Do we send him the newsletter?",
+      "answer_must": [
+        "One nudge about his own trades after 60 days with no request and no reveal",
+        "Not a generic campaign; campaigns are marketing's"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-116",
+      "checklist": "SE-CL-064",
+      "q_en": "Who decides a post-reveal dispute and what does the sales engineer contribute?",
+      "q_ar": "من يقرر في نزاع ما بعد الكشف وما دور مهندس المبيعات؟",
+      "expected_entry_ids": [
+        "sales_engineer:post-reveal-dispute-finding"
+      ],
+      "expected_facts": [
+        "customer_upheld",
+        "CEO seat"
+      ],
+      "q_reworded": "A customer says the contractor did half the job; the contractor says the customer changed the scope. Who rules?",
+      "answer_must": [
+        "The sales engineer reasons a finding from both sides' evidence",
+        "The CEO seat decides; the sales engineer never decides a refund itself"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-117",
+      "checklist": "SE-CL-065",
+      "q_en": "How does the seat learn from closed outcomes?",
+      "q_ar": "كيف يتعلم المقعد من النتائج المغلقة؟",
+      "expected_entry_ids": [
+        "sales_engineer:win-loss-review"
+      ],
+      "expected_facts": [
+        "the buyer's own account is needed"
+      ],
+      "q_reworded": "We lost five customers who chose not to reveal anyone. How do we find out why?",
+      "answer_must": [
+        "Run a win/loss review on chosen, declined and no-decision outcomes",
+        "Use the buyer's own account, not only internal reason codes"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-118",
+      "checklist": "SE-CL-065",
+      "q_en": "What must the seat do before deciding a case?",
+      "q_ar": "ماذا يجب على المقعد فعله قبل الحسم في حالة؟",
+      "expected_entry_ids": [
+        "sales_engineer:case-memory-before-deciding"
+      ],
+      "expected_facts": [
+        "decided as if it were the first"
+      ],
+      "q_reworded": "A supplier dispute looks like one we handled last month. Should the seat remember that?",
+      "answer_must": [
+        "Retrieve similar past cases from case memory before deciding",
+        "Never decide as if it were the first case"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-119",
+      "checklist": "SE-CL-065",
+      "q_en": "How does the seat find and fix gaps in its own knowledge?",
+      "q_ar": "كيف يكتشف المقعد فجوات معرفته ويصلحها؟",
+      "expected_entry_ids": [
+        "sales_engineer:seat-learning-loop"
+      ],
+      "expected_facts": [
+        "knowledge-gap sweep",
+        "self-review"
+      ],
+      "q_reworded": "The seat gave a customer a hedged answer and was corrected. What makes sure that does not happen again?",
+      "answer_must": [
+        "The daily knowledge-gap sweep files it and it is filled with a sourced entry",
+        "Weekly quality review and monthly self-review re-run the exam and track the trend"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-120",
+      "checklist": "SE-CL-066",
+      "q_en": "A supplier asks about a refund of a non-response charge. Who handles it?",
+      "q_ar": "مورد يسأل عن استرداد رسم عدم الاستجابة. من يتولى ذلك؟",
+      "expected_entry_ids": [
+        "sales_engineer:escalation-and-handoffs",
+        "sales_engineer:non-response-handling"
+      ],
+      "expected_facts": [
+        "to the accountant seat"
+      ],
+      "q_reworded": "Who should answer a supplier asking for his money back on a penalty?",
+      "answer_must": [
+        "The accountant seat, through a handoff the originator closes",
+        "The sales engineer does not decide money matters"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-121",
+      "checklist": "SE-CL-066",
+      "q_en": "How should the seat treat a supplier who keeps ignoring matched requests?",
+      "q_ar": "كيف يتعامل المقعد مع مورد يتجاهل الطلبات المطابقة باستمرار؟",
+      "expected_entry_ids": [
+        "sales_engineer:non-response-handling"
+      ],
+      "expected_facts": [
+        "declined with a reason"
+      ],
+      "q_reworded": "One contractor gets requests every week and never answers. What do we do?",
+      "answer_must": [
+        "Measure non-response per supplier, separating declined with a reason from silence",
+        "Make declining easy, remind once, then message him with facts"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-122",
+      "checklist": "SE-CL-067",
+      "q_en": "What do RFQ, BOQ and LPO stand for?",
+      "q_ar": "إلامَ تشير الاختصارات RFQ وBOQ وLPO؟",
+      "expected_entry_ids": [
+        "sales_engineer:glossary-commercial-terms"
+      ],
+      "expected_facts": [
+        "LPO - local purchase order"
+      ],
+      "q_reworded": "A new customer keeps seeing these three-letter abbreviations on quotes. How would you explain them?",
+      "answer_must": [
+        "RFQ request for quotation, BOQ bill of quantities",
+        "LPO local purchase order"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-123",
+      "checklist": "SE-CL-067",
+      "q_en": "What is time to match?",
+      "q_ar": "ما زمن المطابقة؟",
+      "expected_entry_ids": [
+        "sales_engineer:glossary-marketplace-terms"
+      ],
+      "expected_facts": [
+        "Time to match"
+      ],
+      "q_reworded": "Which marketplace term describes how long a customer waits for usable suppliers?",
+      "answer_must": [
+        "Time to match: time from inquiry to a usable match"
+      ]
+    },
+    {
+      "id": "sales_engineer-exam-124",
+      "checklist": "SE-CL-068",
+      "q_en": "Is an electronic acceptance of a quote valid in the UAE?",
+      "q_ar": "هل القبول الإلكتروني لعرض السعر صحيح في الإمارات؟",
+      "expected_entry_ids": [
+        "sales_engineer:electronic-signature-and-records"
+      ],
+      "expected_facts": [
+        "Federal Decree-Law No. 46 of 2021"
+      ],
+      "q_reworded": "The customer clicked accept on the portal instead of signing paper. Is that binding?",
+      "answer_must": [
+        "Electronic documents and signatures are valid under Federal Decree-Law No. 46 of 2021",
+        "TDRA regulates trust services"
       ]
     }
   ]
