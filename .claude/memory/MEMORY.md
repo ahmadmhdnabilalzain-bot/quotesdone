@@ -38,7 +38,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Never ask about campaign go or subscriptions](do-not-ask-about-campaign-go-or-subscriptions.md) — 22 Sep: he decides go; WhatsApp templates + deliverability tests are Claude's
 - [Launch only when perfect; test in a sandbox](launch-only-when-perfect-sandbox.md)
 - [Launch governance loop closed](launch-governance-loop-closed.md) + [All approvals are the CEO's, refunds included](refunds-belong-to-the-ceo.md) — 8 Sep: nothing goes to the founder
-- [The only hard rules + operating doctrine](the-only-hard-rules-and-operating-doctrine.md) — 3% reveal, top-3, non-response 3%, AED15k/3x; ~95/5 deterministic
+- [The only hard rules + operating doctrine](the-only-hard-rules-and-operating-doctrine.md) — 3% reveal, top-3, non-response 3%, AED 20k/5× (was 15k/3×); ~95/5 deterministic
 - [Autonomous company is the standard](autonomous-company-is-the-standard.md) — AED 1M by Aug 2027
 - [Surfaces are held for future agents](payments-are-held-for-the-accountant-agent.md) — delete only what no agent will own
 - [Keep only five things from before 7 Sep](keep-only-five-things-from-before-7-september.md) — website content, FAQ, knowledge, leads, secrets
@@ -80,6 +80,9 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [TDRA NOL received](tdra-nol-received.md) — NOL-26-100000665 for www.quotesdone.ae, expires 14 Sep 2027
 - [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
 ## Working the estate
+- [Diff SQL against live production, not the mirror (27 Oct)](diff-sql-against-live-production-not-the-mirror.md) — #1660 nearly reverted #1644's live code
+- [quotesdone2 is the live publishable key (27 Oct)](quotesdone2-is-the-live-publishable-key.md) — never revoke it; fn_gateway_client_key() is the one source
+- [Exchange strips List-Unsubscribe-Post (27 Oct)](exchange-strips-list-unsubscribe-post.md) — fix is a transport rule; TNEF already fixed
 - [End-of-session log sweep](end-of-session-log-sweep.md) — GitHub Actions, edge logs, cron
 - [Supabase access has three paths](supabase-access-has-three-paths.md)
 - [Check a PR's base before merging](check-a-prs-base-before-merging.md) — verify baseRefName and main's head
