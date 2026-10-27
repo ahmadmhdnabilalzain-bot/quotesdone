@@ -521,7 +521,7 @@ const handle = async (req: Request): Promise<Response> => {
             rules: 'Plain text for the portal chat, no markdown headings. Keep every job number, figure, numbered point and button name from the facts exactly; a short numbered list is right when the facts list points.',
             subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) },
           });
-          return { text: r.reply, action: r.action ?? null };
+          return { text: r.reply, action: r.action ?? null, outage: r.outage === true };   // outage: OpenRouter down (1339)
         },
         // THE REVIEW RUNS OFF THE REQUEST (quote_review_flow.ts offRequest): the turn answers at once in 'reviewing',
         // and the runtime keeps the job alive after the response. The portal polls while it is reviewing.
