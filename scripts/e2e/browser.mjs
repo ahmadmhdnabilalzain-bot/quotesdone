@@ -20,8 +20,11 @@ export const portalUrl = (kind, lang, query = '') => `${SITE}${lang === 'ar' ? '
 
 export async function launch() {
   const headless = process.env.QD_HEADED !== '1';
+  // QD_CHROMIUM_ARGS: extra Chromium switches for a diagnostic run, e.g. "--disable-http2" (27 Oct 2026: separating a
+  // cloud container's egress proxy from production when a long request failed at 30 s with net::ERR_FAILED).
+  const args = (process.env.QD_CHROMIUM_ARGS || '').split(/\s+/).filter(Boolean);
   try {
-    return await chromium.launch({ headless });
+    return await chromium.launch({ headless, ...(args.length ? { args } : {}) });
   } catch (e) {
     // `playwright install chromium` on this machine fetched the full build but not the headless shell
     // (measured 14 Sep 2026: ms-playwright held chromium-1148 only). Fall back to the full build.
