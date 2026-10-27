@@ -6841,5 +6841,9 @@
   "d20c7b61f790",
   "2e61942d939f",
   "ab7473df79f4"
+ ],
+ "scripts/sql/the_supplier_invitation_carries_no_link_and_a_reply_with_trades_reaches_the_sales_engineer.sql": [
+  "8625d60560f4",
+  "92d2d9b357a7"
  ]
 }
