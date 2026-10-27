@@ -297,7 +297,9 @@ export function m365ReplyTo(o: { proofAt: string | null | undefined; now: Date; 
 // THE TEXT PART IS QUOTED-PRINTABLE, NOT BASE64 (it_engineer, 27 Oct 2026). A person's mail client writes a plain
 // English note as 7bit or quoted-printable; a base64-encoded text/plain body that is almost all ASCII is what bulk
 // tools emit, and content filters score it (SpamAssassin's MIME_BASE64_TEXT is the public example). Quoted-printable
-// keeps every ASCII character readable on the wire and encodes only the few UTF-8 ones ("·", "–"). RFC 2045 §6.7:
+// keeps every ASCII character readable and encodes only the few UTF-8 ones ("·", "–"). MEASURED the same day on a
+// received copy (founder's Gmail, raw): Exchange rebuilds the MIME on the way out and re-encodes the text part itself,
+// so this changes what we SUBMIT, not what arrives; it is kept because it is harmless and tested. RFC 2045 §6.7:
 // "=" and non-ASCII bytes as =XX, a space or tab before a line break as =20/=09, lines at most 76 characters with a
 // soft break "=". The envelope itself stays base64: that is sendMail's own text/plain input format, not a MIME part.
 const QP_HEX = (b: number) => '=' + b.toString(16).toUpperCase().padStart(2, '0');

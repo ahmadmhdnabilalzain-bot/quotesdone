@@ -33,8 +33,14 @@ conversation. Report: `docs/reports/QuotesDone Campaign/GLOCKAPPS_27_OCT_RESULT_
 - **Copy is now variant A**, "one question, no offer": `app_secrets` and `m365_lane.ts`. The founder delegated the
   choice ("approved. dont ask me").
 - The lane sends **quoted-printable** and at most **5 per run**.
-- **Re-test**: the `deliverability_test` GlockApps API loop (another agent's) runs it on Wed 4 Nov, after week 1's
-  conversation days. Hold it until `send_outbox` with the variant-A code is deployed.
+- **The received copy (Gmail, raw) carries a `winmail.dat` TNEF attachment and has lost `List-Unsubscribe-Post`.**
+  Fix: Exchange admin center → Remote domains → Default → rich-text **Never**. This needs the founder's M365 admin
+  sign-in; Graph cannot set it.
+- **Warm-up is COMPRESSED** (the founder: "we cant wait for a week"):
+  - day 0 = the deploy day: his 5 mailboxes open, mark "not junk" and reply;
+  - days 1–3: ~10/15/20 person-to-person messages;
+  - **re-test on day 3 with the LAST GlockApps credit** (balance 1), through `deliverability_test`.
+  - A pass is possible, not likely. If it fails, there is no credit left, and a top-up is his spend.
 
 **(Superseded by the update above.) GlockApps is NOT yet run.** The cloud network policy refuses app.glockapps.com and
 api.glockapps.com (proxy 403), and no GlockApps API key is stored anywhere. Either he adds those

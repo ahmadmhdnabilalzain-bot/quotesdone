@@ -27,6 +27,32 @@ So the batch is held twice over: by the switch and by the zero-width window.
 2. **The founder's yes to the internal test email** from management@ to supplier@ (instruction 1314).
    Nothing in Week 1 sends before that yes.
 
+## COMPRESSED, 27 Oct 2026 afternoon: this replaces Week 1 below
+
+The founder, 27 Oct: *"do the warm up immediately after the fix. we cant wait for a week"*. GlockApps
+`id:2026-10-27-09:33:53:634t` measured Microsoft at **0 of 18 inbox** (EOP SCL 5 on every Microsoft seed;
+SpamAssassin 0.4; `GAPPS_WARM_UP` raised), so gate 1 failed. The evidence and the fixes are in
+`GLOCKAPPS_27_OCT_RESULT_AND_FIX_PLAN.md`.
+
+**Before day 0:**
+1. PR #1648 is merged and `send_outbox` deployed (variant-A copy, 5 lane sends per run).
+2. The founder sets **Exchange admin center → Mail flow → Remote domains → Default → rich-text format: Never**. Today
+   every external copy arrives with a `winmail.dat` attachment and without `List-Unsubscribe-Post`.
+3. One copy in his Gmail is checked for both.
+
+| Day | supplier@ writes to | Volume | The other side |
+|---|---|---|---|
+| 0 (deploy day) | the founder's 5 mailboxes (copies queued by the coordinator) | 5 | opens, "Not junk" / "Move to Primary", adds the contact, **replies**; supplier@ answers |
+| 1 | people who know Ahmad, Outlook / Hotmail / Office 365 and Yahoo / AOL addresses first, his Dorata mailbox included; short personal notes that ask something | ~10 | open, reply, rescue from Junk |
+| 2 | the same circle, widened | ~15 | the same |
+| 3 | the same | ~20 | the same; **GlockApps re-test that afternoon** with the last credit, through `deliverability_test`, paced, only if about 30 two-way threads exist |
+
+- Never a real supplier and never a cold address: `invite_enabled` stays `false` until the re-test passes (Outlook
+  ≥ 80% inbox).
+- The honest risk: nothing measured says three days is enough for Microsoft. If day 3 fails, the original weeks below
+  apply.
+- A failed re-test leaves no credit, and a top-up is the founder's spend.
+
 ## The plan (working days only; the UAE weekend and `company_calendar` holidays do not count)
 
 | week | days | what supplier@ sends | daily volume | moves on when |

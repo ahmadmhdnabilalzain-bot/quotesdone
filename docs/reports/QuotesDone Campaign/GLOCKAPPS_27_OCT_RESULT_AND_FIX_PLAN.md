@@ -2,177 +2,174 @@
 
 Seat: `it_engineer`. Founder instruction 1312: supplier invitations stay held until a GlockApps test of the
 invitation from supplier@quotesdone.com shows Outlook at 80% inbox or more. This report covers four things:
-- the 27 Oct test result, and where it is recorded;
+- the 27 Oct result, and where it is recorded;
 - the measured causes;
 - what changed in code and in `app_secrets`;
-- the re-test the automated GlockApps loop (`deliverability_test`, built by another agent) should run.
+- the compressed warm-up and the single remaining re-test.
 
 ## 1. The result: FAIL, invitations stay held
 
-GlockApps test `id:2026-10-27-09:33:53:634t`, supplied by the founder. 112 seeds left from supplier@quotesdone.com
-through the Microsoft 365 lane between 09:46:19 and 11:02:02Z (`notifications`, `kind='invite_m365_seed'`, 112 rows,
-all `sent`; measured).
+The GlockApps test is `id:2026-10-27-09:33:53:634t` (project 163001). The founder supplied the result, and it was
+re-read through the GlockApps API on 27 Oct, read-only, with no credit spent. The test has not formally "finished";
+that is normal while slow providers report.
+
+The send: 112 seeds left from supplier@quotesdone.com through the Microsoft 365 lane between 09:46:19 and 11:02:02Z
+(`notifications`, `kind='invite_m365_seed'`: 112 rows, all `sent`). GlockApps tracks 111; the 112th is its own
+monitoring address.
 
 | Provider | Inbox | Spam |
 |---|---:|---:|
-| Outlook US (8 seeds) | 0 | 8 |
+| Outlook (8) | 0 | 8 |
 | Outlook.fr | 0 | 1 |
 | Outlook.de | 0 | 1 |
 | Hotmail (6) | 0 | 6 |
 | Exchange / Office 365 (2) | 0 | 2 |
 | **All Microsoft (18)** | **0** | **18 (100%)** |
 
-- Gmail put every seed in Promotions. Yahoo and AOL put every seed in spam.
-- Overall: 39.6% inbox, 18.9% tabs, 36.9% spam, 4.6% missing.
-- The ledger 1312 bar is Outlook at 80% inbox or more. Outlook scored 0%, so **invitations stay held**.
+Other providers:
+- **All Gmail** (20 consumer seeds) went to **Promotions**.
+- **100% spam:** Yahoo (9), AOL (8), att.net (2), Yandex (2).
+- **100% inbox:** Google Workspace (5), Apple, Proton, Web.de, GMX, T-online, Freenet, Laposte, Libero/Virgilio, Mail.ru,
+  Amazon WorkMail and the other smaller EU providers.
+- **Not delivered:** Interia.pl (3) and Onet.pl (2).
+
+Totals: 44 inbox, 21 tabs, 41 spam, 5 not delivered. That is 39.6% inbox, 18.9% tabs, 36.9% spam and 4.6% missing.
+
+**The ledger 1312 bar is Outlook at 80% inbox or more. Outlook scored 0%, so invitations stay held.**
 
 **Where it is recorded.** The applied file is
 `scripts/sql/glockapps_27_oct_microsoft_0_of_18_inbox_is_recorded_and_the_invitations_stay_held.sql` (verdict
 `PROBE OK`). It wrote two things:
-- a per-provider note on the 27 Oct row of `invite_placement_check`;
+- a per-provider note on the 27 Oct `invite_placement_check` row;
 - the dated note *"GlockApps 27 Oct: Microsoft 0/18 inbox — FAIL; invitations stay held"* on ledger row 1312, which
   stays `open`.
 
-**Why a note and not new rows.** `invite_placement_check` is the daily two-mailbox seed:
-- its primary key is `dubai_day`;
-- CHECK constraints pin `gmail_to` to the founder's Gmail and `outlook_to` to management@quotesdone.com.
+`invite_placement_check` is the daily two-mailbox seed table: its primary key is `dubai_day`, and CHECK constraints pin
+its two recipients. So it takes a note, not one row per provider. Per-provider rows belong to the `deliverability_test`
+loop that another agent is building. The row's own `verdict`, which `fn_invite_placement_gate` reads, is untouched.
 
-So it cannot hold one row per GlockApps provider without a schema change. That change belongs to the
-`deliverability_test` loop being built by another agent. The row's own `verdict` (`inbox`, from the in-tenant seed)
-was left alone, because `fn_invite_placement_gate` reads it.
-
-**Read-back of both invite switches** (27 Oct 2026, ~14:37Z, after every write in this report):
+**Read-back of both invite switches** (27 Oct, after every write in this report):
 
 | key | value |
 |---|---|
 | `invite_enabled` | `false` |
 | `wa_supplier_invite_golive` | `false` |
 | `supplier_outreach_golive` | `true` (unchanged) |
-| `invite_m365_enabled` | `true` (unchanged; the lane is on, but nothing is queued) |
+| `invite_m365_enabled` | `true` (unchanged) |
 | queued `supplier_invite` rows | 0 |
 
-## 2. Diagnosis: what EOP scored, and the evidence for each finding
+## 2. Diagnosis
 
-EOP's verdict was **Spam**, not phishing. Microsoft Learn ("Frequently asked questions – Anti-spam protection",
-Spam vs. high-confidence spam) gives the common triggers for a Spam verdict as *"promotional content patterns,
-suspicious links, low sender reputation"*. Each one is checked below, along with every other signal in the brief.
+### 2a. What the filters said (GlockApps API, 27 Oct)
 
-### 2a. Ruled out, with evidence
+- **Microsoft:** Exchange/EOP stamped **SCL 5** ("Suspected Spam") on **19** seeds, and Forefront stamped SCL 5 on 3 more.
+  EOP's verdict was Spam, not phishing.
+- **The content filters see nothing wrong:**
+  - SpamAssassin scored **0.4**; Barracuda scored **0**.
+  - Content analysis: 0 links, 0 images, nothing broken.
+- **GlockApps' own flag `GAPPS_WARM_UP`:** inbox was under 50% at the 20-minute check. GlockApps reads that as *"the
+  sending IP or domain has not built enough reputation for its current volume"*.
+- **Authentication:** SPF, DKIM and DMARC all pass. Sender IP 40.107.54.87, rDNS
+  `mail-uaenorthazon11021087.outbound.protection.outlook.com`.
+
+### 2b. What actually reached a recipient (the received headers)
+
+The GlockApps API exposes no headers. So the received copy of the lane's mail was read, read-only, from the founder's
+Gmail: the 27 Oct 04:31Z morning seed, the same lane and the same `m365Mime`. Exchange did **not** deliver what the lane
+submitted.
+
+| What we submitted (Graph `sendMail`, MIME) | What arrived at Gmail |
+|---|---|
+| one `text/plain` part | **`multipart/mixed`** with the text part **plus `application/ms-tnef; name="winmail.dat"`** (`Content-Disposition: attachment`). About 32 KB for an 80-word note |
+| `List-Unsubscribe` and `List-Unsubscribe-Post` | `List-Unsubscribe` arrived. **`List-Unsubscribe-Post` was dropped**: it is not in the headers and not in Google's ARC `h=` list, which names `list-unsubscribe`. So RFC 8058 one-click is gone |
+| text part `base64` | text part re-encoded by Exchange (`Content-ID`, `base64`), so our transfer encoding does not reach the wire |
+| — | our own outbound EOP scored it clean: `X-Forefront-Antispam-Report: … SCL:1; SFV:NSPM; CAT:NONE; DIR:OUT`, `BCL:0` |
+
+**Why the `winmail.dat`.** Microsoft Learn ("TNEF conversion options"; "How to specify the email message format … to
+prevent Winmail.dat attachments") says the default remote domain's `TNEFEnabled` is `$null`, "Follow user settings".
+Exchange then decides per message, and here it chose TNEF. The fix is a tenant setting:
+- Exchange admin center: **Mail flow → Remote domains → Default → Use rich-text format: Never**;
+- or `Set-RemoteDomain -Identity Default -TNEFEnabled $false`.
+
+**Who can make it.** That needs an Exchange administrator sign-in. This session's Microsoft 365 app holds Graph
+application permissions only, and Graph cannot set remote domains, so the founder (or whoever holds the M365 admin
+sign-in) has to make the change.
+
+**Effect, measured vs unmeasured.** It is not measured that the attachment caused the SCL 5. But a cold one-to-one
+note carrying an unexplained binary `winmail.dat` attachment is exactly the kind of thing a filter weighs. It is also
+what Gmail's and Yahoo's receivers see, and it is the likeliest reason `List-Unsubscribe-Post` is lost in the rebuild.
+
+### 2c. Ruled out, with evidence
 
 | Signal | Evidence (measured 27 Oct 2026) | Verdict |
 |---|---|---|
-| SPF | `quotesdone.com TXT v=spf1 include:secureserver.net include:spf.protection.outlook.com ~all`. Gmail's Authentication-Results on today's seed: `spf=pass … smtp.mailfrom=supplier@quotesdone.com`. Return-Path and From are the same domain. | aligned, pass |
-| DKIM | `selector1._domainkey.quotesdone.com CNAME selector1-quotesdone-com._domainkey.netorgft20811795.n-v1.dkim.mail.microsoft` (selector2 likewise). Gmail: `dkim=pass header.i=@quotesdone.com header.s=selector1`. The signature is quotesdone.com, **not** onmicrosoft.com. | aligned, pass |
-| DMARC | `_dmarc.quotesdone.com TXT v=DMARC1; p=quarantine; rua=mailto:management@quotesdone.com`. Gmail: `dmarc=pass (p=QUARANTINE sp=QUARANTINE)`. A passing message is not affected by `p=quarantine` vs `p=none`. | pass; not a cause |
+| SPF | `quotesdone.com TXT v=spf1 include:secureserver.net include:spf.protection.outlook.com ~all`. It takes **4 DNS lookups** (secureserver.net → spf-0.secureserver.net → spf.protection.outlook.com, plus the top-level outlook include), under the RFC 7208 limit of 10, and the syntax is valid. Gmail: `spf=pass smtp.mailfrom=supplier@quotesdone.com`. GlockApps' `SPF_RECORD_ERROR` names an **empty** domain, record and error, so it is a probe artefact | pass, aligned |
+| DKIM | `selector1._domainkey.quotesdone.com CNAME selector1-quotesdone-com._domainkey.netorgft20811795.n-v1.dkim.mail.microsoft`. Gmail: `dkim=pass header.i=@quotesdone.com header.s=selector1`, so the signature is quotesdone.com, not onmicrosoft.com | pass, aligned |
+| DMARC | `_dmarc.quotesdone.com v=DMARC1; p=quarantine; rua=mailto:management@quotesdone.com`. Gmail: `dmarc=pass`. A passing message is not affected by `p=quarantine` vs `p=none` | not a cause |
 | MX | `0 quotesdone-com.mail.protection.outlook.com` | correct |
-| Domain blocklists | `quotesdone.com.dbl.spamhaus.org`, `.multi.surbl.org` and `.multi.uribl.com` each answered **NXDOMAIN** from the list's own servers. Those lists answer a refusal code (127.255.255.x / 127.0.0.1), not NXDOMAIN, when they refuse a public resolver, so NXDOMAIN is a real "not listed". | not listed |
-| Sending IP | `87.54.107.40.zen.spamhaus.org` NXDOMAIN. GlockApps also reported no IP listing. | not listed |
-| "HELO to IP (40.107.54.87): Fail" | PTR `87.54.107.40.in-addr.arpa → mail-uaenorthazon11021087.outbound.protection.outlook.com`, which resolves forward to `40.107.54.87` (forward-confirmed). 40.107.0.0/16 is in `spf.protection.outlook.com`. The HELO name is chosen by Exchange Online Protection's outbound server, which is Microsoft's host, not ours. | **confirmed Microsoft's, not ours to fix** |
-| Link domain, link count, shorteners, tracking redirects | The body carries no URL (the lane's copy rule `no link anywhere in the email` holds rows that break it). The only URL is in the `List-Unsubscribe` header (`https://quotesdone.com/u/unsubscribe?...`, our own domain, not a redirect). No tracking pixel, since there is no HTML. | none |
-| HTML-only or image-heavy | The MIME is a single `text/plain; charset=utf-8` part with no HTML (`m365Mime`). | no |
-| Cross-domain Reply-To (a phishing signal measured on 6 Oct) | The lane drops Reply-To while the reply reader is proven. The proof rows (`agent_runs`, `resend_inbound`, `counts.m365_inbox=1`, status `ok`) ran every 15 minutes from 07:30 to 11:00Z, so every seed went with **no** Reply-To. | absent |
-| `List-Unsubscribe` + `List-Unsubscribe-Post` | Both present as real MIME headers (one-click URL plus a mailto). The body also ends with the reply-"stop" line. | present, as Yahoo/Gmail want |
-| `Precedence: bulk` or similar bulk headers | None written by `m365Mime`. | absent |
-| From display name | `Ahmad Alzain at QuotesDone <supplier@quotesdone.com>`, a named person at a real domain | fine |
-| Physical address | The signature says `QuotesDone Technologies · Dubai, UAE`, with no street, by the founder's 27 Oct ruling. CAN-SPAM's street-address rule is US law, which is out of scope for the company. | not changed |
+| Domain blocklists | Spamhaus DBL, SURBL and URIBL each answered **NXDOMAIN** from their own servers. A refused public-resolver query answers 127.255.255.x / 127.0.0.1, not NXDOMAIN | not listed |
+| Sending IP | Spamhaus ZEN: NXDOMAIN; GlockApps: no IP listing | not listed |
+| "HELO to IP (40.107.54.87): Fail" | PTR → `mail-uaenorthazon11021087.outbound.protection.outlook.com` → A `40.107.54.87` (forward-confirmed). 40.107.0.0/16 is inside `spf.protection.outlook.com`. The HELO name is chosen by Exchange Online's outbound server | **confirmed Microsoft's host, not ours to fix** |
+| Links, shorteners, tracking | 0 links (GlockApps and the lane's copy rule agree). The only URL is our own `List-Unsubscribe` | none |
+| HTML-only, image-heavy | Plain text, 0 images | no |
+| Cross-domain Reply-To | Dropped while the reply reader is proven. The reader proved itself every 15 minutes from 07:30 to 11:00Z, so no seed carried one | absent |
+| `Precedence: bulk` and the like | None, on the submitted or on the received copy | absent |
+| From display name | It arrived as `Ahmad Alzain <supplier@quotesdone.com>` (Exchange uses the mailbox's own name) | fine |
+| Physical address | `QuotesDone Technologies · Dubai, UAE`, with no street, by the founder's 27 Oct ruling | unchanged |
 
-### 2b. Causes, ranked by the weight of evidence
+### 2d. Causes, ranked by the weight of evidence
 
-1. **Sender reputation: a mailbox whose only history is bursts to strangers (primary cause).**
-   - supplier@ has sent **317 messages ever**, every one a placement seed:
-     - 81 on 5 Oct, 110 on 19 Oct and 112 on 27 Oct, all to GlockApps seed lists;
-     - 2 a day to the two internal mailboxes.
-   - It has never held a two-way conversation, and none of its mail has ever been replied to.
-   - The decisive comparison is between the two GlockApps tests over this same lane:
-     - 19 Oct (`2026-10-19-02:51:47:497t`, recorded in the `m365_lane.ts` header comment): Outlook, Yahoo and AOL were
-       100% spam (EOP SCL 5). That plain-text mail carried a portal link in its body and the earlier wording.
-     - 27 Oct: Microsoft was again 18 of 18 spam. By then the link was gone and the text had been rewritten (#1614).
-   - So a substantial content change moved Microsoft by zero. That is what a reputation-driven verdict looks like.
-   - Yahoo and AOL, which weigh sender history most, were also 100% spam both times.
-2. **The send pattern: bursts of 20.**
-   - All 112 seeds were queued at once (09:41Z, no `not_before`).
-   - `send_outbox` runs every 15 minutes (`agent_runs`: 09:46:14, 10:01:18, 10:16:28 …) and sent 20 per run back to
-     back, about 4 seconds apart. Per minute: 09:46 → 20; 10:01 → 20; 10:16 → 20; 10:31/32 → 3+17; 10:46/47 → 14+6;
-     11:01/02 → 8+4.
-   - Microsoft Learn ("Troubleshoot outbound sending limits", best practices for bulk senders): *"Spread bulk sends
-     over time rather than sending all at once"*. The same page notes *"Exchange Online isn't designed for bulk
-     mailing scenarios"*.
-3. **Promotional content (contributing; also the Gmail Promotions cause).**
-   - The 27 Oct text was a marketing layout:
-     - a "What you get:" list of four dashed bullets;
-     - "Free registration for our first 1,000 suppliers" and "No commission on work you win";
-     - "To join, register at quotesdone.com".
-   - "Promotional content patterns" is Microsoft's first named Spam trigger.
-   - Gmail filed both the GlockApps seeds and the founder's own copy (`invite_placement_check` 27 Oct, labels
-     `CATEGORY_PROMOTIONS`) under Promotions.
-   - The bare `quotesdone.com` in the body is not a link, but clients turn it into one, and URL filters extract it.
-4. **Base64 text part (minor, plausible, unmeasured).**
-   - `m365Mime` wrote the text part as `Content-Transfer-Encoding: base64`.
-   - Nearly-all-ASCII text in base64 is what bulk tools emit; a person's client writes 7bit or quoted-printable.
-     SpamAssassin's `MIME_BASE64_TEXT` is the public example of this being scored.
-   - Microsoft does not publish its own rule, so this is ranked last.
-
-**Not measured, and what would settle it.**
-- The GlockApps report's raw headers for the Microsoft seeds would show three things:
-  - the `X-Microsoft-Antispam: BCL:` value. A BCL at or above 7 means "bulk"; 4–7 means "mixed complaints" (Microsoft
-    Learn, Bulk complaint level);
-  - `CAT:` (SPM vs BULK) in `X-Forefront-Antispam-Report`;
-  - whether the message was routed through the high-risk outbound pool. An Exchange admin can see that in Message
-    trace (`OutboundIpPoolName`).
-- None of these were available to this session. The `deliverability_test` loop should store the Microsoft seeds'
-  `X-Forefront-Antispam-Report` and `X-Microsoft-Antispam` headers with each result, so the next test answers the
-  BCL-vs-SPM question directly.
+1. **Sender reputation and volume (primary cause).**
+   - supplier@ has sent 317 messages ever, all placement seeds: 81 on 5 Oct, 110 on 19 Oct and 112 on 27 Oct, plus 2 a
+     day to the two internal mailboxes. It has never held a conversation, and nothing it sent has been replied to.
+   - The content filters score the mail clean (SpamAssassin 0.4, Barracuda 0, outbound EOP SCL 1).
+   - EOP inbound scored SCL 5 at every Microsoft seed, and GlockApps raised `GAPPS_WARM_UP`.
+   - Providers that weigh sender history most (Microsoft, Yahoo/AOL) junked 100%, while Google Workspace, Apple, Proton
+     and most EU providers inboxed 100%.
+   - The 19 Oct test over the same lane was also 100% Microsoft spam, despite a substantial content change since.
+2. **The burst.** All 112 seeds were queued at once (09:41Z). `send_outbox` runs every 15 minutes and sent 20 per run,
+   about 4 seconds apart (09:46 → 20; 10:01 → 20; 10:16 → 20; 10:31/32 → 20; 10:46/47 → 20; 11:01/02 → 12). Microsoft
+   Learn, bulk-sender best practice: *"Spread bulk sends over time rather than sending all at once"*.
+3. **The `winmail.dat` attachment on every external copy, and the lost one-click unsubscribe header** (2b). These are
+   measured on the received copy. Their weight in the SCL is unmeasured, but they are cheap to remove and affect every
+   provider.
+4. **Promotional layout (secondary; mainly Gmail Promotions).** The old text was an offer list ("What you get", "Free
+   registration…", "No commission"). The content filters did not object to it, so this is not the Microsoft cause.
+   Gmail's Promotions tab, however, follows tone and engagement.
 
 ## 3. Fix plan, ranked by expected impact
 
 | # | Fix | Status |
 |---|---|---|
-| a | **Week 1 of the warm-up: real two-way conversation only** (reputation, cause 1) | planned; dates below. Needs the founder's yes to the internal test email (1314): not recorded yet |
-| b | **Copy variant A**: plain text, no offer, no link or domain, short, ends in one question that invites a reply (cause 3) | **applied** to `app_secrets` and the lane code (this PR) |
-| c | **Headers**: the text part is quoted-printable instead of base64 (cause 4). List-Unsubscribe and -Post stay, no Precedence header, no Reply-To while the reader is proven (all verified above) | in code (this PR) |
-| d | **Pacing**: at most 5 lane sends per `send_outbox` run, the rest re-queued 10 minutes on (cause 2) | in code (this PR) |
-| e | **Re-test** through the `deliverability_test` loop after week 1, then before week 3 | schedule below |
+| a | **Warm-up: engaged person-to-person mail before the re-test** (cause 1) | compressed plan in §4; starts the day this PR deploys |
+| b | **Turn TNEF off for external mail**: Exchange admin center → Mail flow → Remote domains → Default → rich-text **Never** (cause 3) | **needs the founder's M365 admin sign-in**; 1 minute; must be done **before day 0** |
+| c | **Pacing: at most 5 lane sends per `send_outbox` run**, the rest re-queued 10 minutes on (cause 2) | in code (this PR) |
+| d | **Copy variant A**, "one question, no offer": plain, personal, ends in a question that invites a reply (cause 4) | **applied** to `app_secrets` and the lane code (this PR) |
+| e | Headers: `List-Unsubscribe` and `List-Unsubscribe-Post` are submitted, with no Precedence header. The text part is now submitted quoted-printable, **but Exchange re-encodes the part, so expect no wire effect**; it is kept only because it is harmless and tested | in code (this PR). Whether `-Post` survives once TNEF is off must be checked on the day-0 copies |
+| f | **Re-test with the last GlockApps credit**, around day 3 | §4 |
 
-### a. Week 1: conversation only (warm-up plan 1313)
+### c. Pacing (code)
 
-Microsoft's verdict follows the mailbox's history, so week 1 gives supplier@ a history of mail that people answer.
+- `M365_PER_RUN = 5` (`m365_lane.ts`). Once a run has sent 5 through the lane, each further lane row goes back to
+  `queued` with `not_before = now + 10 min`. It is never dropped and never diverted to Resend.
+- At one run per 15 minutes that is 20 an hour, so a 112-seed test takes about 6 hours instead of 76 minutes.
+- The cap applies to seeds too, so the re-test measures the same pattern real invitations will have.
+- The seed path (`seedMarker`, `withPlacementRef`, `M365_SEED_KIND`) is untouched, so nothing conflicts with the
+  `deliverability_test` agent.
 
-- **Who it writes to:**
-  - The founder's **Dorata mailbox** (`doratajewelries.com MX 0 doratajewelries-com.mail.protection.outlook.com`,
-    measured). This is a separate Microsoft 365 tenant, so it is real external Microsoft traffic, and the most useful
-    partner for the Outlook score.
-  - His **Gmail**.
-  - **management@quotesdone.com.** This is in-tenant and builds little external reputation, but it is the agreed day-1
-    message.
-- **What happens each day:**
-  - 3–5 messages a day, each one answered from the other side.
-  - Any copy that lands in Junk is moved to the inbox and marked "Not junk".
-- **Gate:** day 1 is the internal test email, which still needs the founder's yes (instruction 1314; that yes is not
-  recorded in the ledger as of this report).
-- **Days:** working days only (Saturday and Sunday off). `company_calendar` has no public holiday from 28 Oct to 20 Nov
-  (measured):
+### d. Invitation copy: three variants, A chosen and applied
 
-| Week 1 day | Date |
-|---|---|
-| 1 | Wed 28 Oct (or the first working day after his yes) |
-| 2 | Thu 29 Oct |
-| 3 | Fri 30 Oct |
-| 4 | Mon 2 Nov |
-| 5 | Tue 3 Nov |
-
-### b. Invitation copy: three variants, A chosen and applied
-
-The founder delegated the choice on 27 Oct ("approved. dont ask me", relayed by the coordinator). All three variants:
+The founder delegated the choice on 27 Oct ("approved. dont ask me"). All three variants:
 - are English only;
-- never use the word "AI" (`profile-copy-rules`);
+- never use the word "AI";
 - carry no link, no date, no licence or permit number and no street;
 - keep the `QuotesDone Technologies · Dubai, UAE` signature and end with the reply-"stop" line;
-- pass every rule in `m365CopyLint`.
+- pass `m365CopyLint`.
 
 **Variant A, "one question, no offer" (CHOSEN, APPLIED).** Ranked first because:
-- it removes every promotional pattern that was in the junked text;
+- it carries no offer phrase;
 - it is honest about the pre-launch state;
-- its only call to action is a reply, which is the strongest positive signal a new mailbox can earn.
+- its only call to action is a reply, which is the engagement signal Gmail and Microsoft both reward.
 
 > Subject (trade known): `A question about your {trade} work`
 > Subject (company only): `A question for {Company}` · (neither): `A question about your work in the UAE`
@@ -193,8 +190,7 @@ The founder delegated the choice on 27 Oct ("approved. dont ask me", relayed by 
 With no trade known, the question reads "…receive the requests that match your trade when they come in?". With no
 company, the greeting is "Hello,". About 80 words.
 
-**Variant B, "short, one benefit, ask for trades" (not applied, ranked second).** It keeps "no commission", which is
-an offer phrase, so it carries some of the promotional pattern that A drops.
+**Variant B, "short, one benefit, ask for trades" (ranked second).** It keeps "no commission", which is an offer phrase.
 
 > Subject: `{Trade} quote requests for {Company}`
 >
@@ -206,9 +202,8 @@ an offer phrase, so it carries some of the promotional pattern that A drops.
 >
 > (signature, stop line)
 
-**Variant C, "two sentences" (not applied, ranked third).** It is the shortest, but "to send our buyers' requests to"
-implies buyers are already sending requests, which is not yet true (pre-launch). An opening question with no context
-also reads like a cold-pitch template.
+**Variant C, "two sentences" (ranked third).** It implies buyers are already sending requests, which is not yet true,
+and its context-free opening reads like a template.
 
 > Subject: `{Trade} work in the UAE`
 >
@@ -219,22 +214,21 @@ also reads like a cold-pitch template.
 > (signature, stop line)
 
 **What was applied, exactly.**
-- `scripts/sql/the_supplier_invitation_asks_one_question_and_makes_no_offer.sql`, applied 27 Oct, verdict `PROBE OK`:
+- `scripts/sql/the_supplier_invitation_asks_one_question_and_makes_no_offer.sql` (applied 27 Oct, `PROBE OK`, read
+  back identical):
   - `invite_subject` = `A question about your work in the UAE`;
-  - `invite_body` = variant A with the `{{company}}` placeholder and the no-trade wording.
-- Read back from production after the apply: identical.
-- **The email itself is built in code, not from those keys.** `send_outbox/m365_lane.ts` `m365InvitationText` /
-  `m365Subject`, used by both the Microsoft 365 lane and the Resend fallback through `campaignMail`, now writes
-  variant A.
-- That code reaches production when this PR is merged and `send_outbox` is deployed. Until then the deployed lane
-  would still send the old text. **The re-test must not run before that deploy.**
+  - `invite_body` = variant A with `{{company}}` and the no-trade wording.
+- **The email itself is built in code.** `send_outbox/m365_lane.ts` `m365InvitationText` / `m365Subject`, used by both
+  the Microsoft 365 lane and the Resend fallback through `campaignMail`, now writes variant A.
+- That code reaches production only when this PR is merged and `send_outbox` is deployed. **Until then the deployed lane
+  sends the old text in bursts.**
 - `scripts/checks/the_supplier_invitation_carries_no_link.test.mjs` now fails if the stored body and the lane's text
-  drift apart. It reads the last MANIFEST file that writes `invite_body`.
+  drift apart.
 
 **Rollback (previous values).** Re-applying the update block of
 `scripts/sql/the_supplier_invitation_carries_no_link_and_a_reply_with_trades_reaches_the_sales_engineer.sql` restores
-the previous keys, and reverting this PR's `m365_lane.ts` hunk restores the previous code. Previous `invite_subject`:
-`Quote requests in the UAE`. Previous `invite_body`:
+the previous keys, and reverting this PR's `m365_lane.ts` copy hunk restores the previous code. Previous
+`invite_subject`: `Quote requests in the UAE`. Previous `invite_body`:
 
 ```
 Hi {{company}} team,
@@ -259,52 +253,64 @@ QuotesDone Technologies · Dubai, UAE
 If this isn't relevant, reply "stop" and we won't contact you again.
 ```
 
-### c. Headers: quoted-printable text part (code)
+## 4. Compressed warm-up and the one re-test (founder, 27 Oct: "do the warm up immediately after the fix. we cant wait for a week")
 
-- `m365Mime` now writes the text part as `Content-Transfer-Encoding: quoted-printable` through `qpEncode` (RFC 2045
-  §6.7):
-  - ASCII stays readable on the wire;
-  - `=` and the UTF-8 characters `·` and `–` become `=XX`;
-  - a trailing space or tab is encoded;
-  - lines are at most 76 characters.
-- The outer base64 is untouched: it is Graph `sendMail`'s own input format, not a MIME part.
-- Unchanged, because they are verified correct: `List-Unsubscribe` + `List-Unsubscribe-Post`, no `Precedence`, the
-  Message-ID at `@quotesdone.com`, no Reply-To while the reader is proven.
-- The seed path (`seedMarker`, `withPlacementRef`, `M365_SEED_KIND`) is untouched, so nothing conflicts with the
-  `deliverability_test` agent.
+**Day 0 is the day this PR's `send_outbox` is deployed.** Before day 0, two things must be true:
+1. TNEF is off (3b).
+2. One copy is checked in the founder's Gmail: **no `winmail.dat`**, and `List-Unsubscribe-Post` present.
 
-### d. Pacing (code)
+| Day | Who supplier@ writes to | Volume | What the other side does |
+|---|---|---|---|
+| **0** | The founder's own 5 mailboxes (the coordinator has queued the invitation copies) | 5 | He opens each one, moves it out of Junk or Promotions ("Not junk" / "Move to Primary"), adds supplier@ to contacts, and **replies** with a line or two. supplier@ answers each reply, so every one becomes a thread |
+| **1** | People who know Ahmad personally or through business, chosen for **Outlook.com / Hotmail / Live / Office 365 and Yahoo / AOL** addresses first (that is where the score is). Includes his Dorata mailbox (`doratajewelries.com` is its own Microsoft 365 tenant, measured: real external Microsoft traffic). A short personal note from supplier@, not the invitation template, that asks something they will answer | about 10 | open, reply, rescue from Junk if needed |
+| **2** | the same circle plus new contacts | about 15 | the same; supplier@ answers every reply the same day |
+| **3** | the same | about 20 | the same. **Re-test that afternoon** (below), only if the replies came in |
 
-- `M365_PER_RUN = 5`. Once a `send_outbox` run has sent 5 through the lane, each further lane row in that run goes back
-  to `queued` with `not_before = now + 10 min` and the note "paced: …". It is never dropped and never diverted to
-  Resend.
-- At one run per 15 minutes that is 20 an hour:
-  - week 2's 10–15 invitations a day finish within the hour;
-  - a 112-seed GlockApps test takes about 6 hours instead of 76 minutes.
-- The cap applies to seeds as well, so the re-test measures the same pattern real invitations will have.
+Rules for every day:
+- **Never a real supplier, never a cold address.** Invitations stay held (`invite_enabled=false`).
+- Messages go through the paced lane: at most 5 per 15 minutes.
+- Any copy that lands in Junk is rescued by its reader. A rescued message is worth more than a new one.
 
-### e. Re-test: date and method
+**The re-test (day 3, the single remaining credit; balance read 27 Oct: 1 test available).**
+- It runs through `deliverability_test` with the live variant-A invitation over the M365 lane, paced 5 per run (about 6
+  hours for 112 seeds).
+- It stores per-provider placement, plus the Microsoft seeds' `X-Forefront-Antispam-Report` / `X-Microsoft-Antispam`
+  (SCL, BCL, CAT), so a second failure says whether it was reputation (SCL with BCL 0) or bulk (BCL).
+- Pass: Outlook (outlook.com + hotmail + Office 365 seeds together) **≥ 80% inbox**, as ledger 1312 requires.
+- Hold the re-test if day 0–3 produced fewer than about 30 two-way threads. A credit spent too early is lost.
 
-| When | What | Passes when |
-|---|---|---|
-| **Wed 4 Nov 2026, from 10:00 Dubai** (the working day after week 1 ends; it moves day for day if week 1 starts late) | One GlockApps test through `deliverability_test`: the live invitation (variant A, deployed), M365 lane, paced 5 per run. Store per-provider inbox/spam/tabs, plus the Microsoft seeds' `X-Forefront-Antispam-Report` and `X-Microsoft-Antispam` headers | Outlook (outlook.com + hotmail.com + Office 365 seeds together) **≥ 80% inbox** (ledger 1312) |
-| If 4 Nov fails | 5 more working days of conversation mail, then re-test **Wed 11 Nov** | same |
-| Start of week 3 (before volume passes 20/day) | The second GlockApps test the warm-up plan already requires | same |
+**The honest risk of compressing it.**
+- Nothing measured says Microsoft rebuilds a new mailbox's reputation in three days. GlockApps' own guidance for this
+  flag is "increase gradually over several weeks", and Microsoft's is to spread volume over time.
+- The 112-seed test is itself a cold send to mailboxes that never engage. On day 3 it would still be the majority of
+  everything supplier@ has ever sent to strangers.
+- On this evidence, **a day-3 pass at Microsoft is possible but not likely.**
+- Two of the four fixes do not depend on time and could move the result on their own: TNEF off and pacing. Copy mainly
+  moves Gmail.
 
-Preconditions for the 4 Nov run:
-1. This PR is merged and `send_outbox` is deployed. Check with `verify_deploy_parity`, then call the lane on a seed and
-   read the MIME's `Content-Transfer-Encoding: quoted-printable`.
-2. Week 1's five conversation days have run.
-3. A GlockApps credit remains. 3 were bought (ledger 1120); count them in the dashboard rather than assuming.
+**What would make the re-test fail again:**
+1. TNEF still on: the `winmail.dat` attachment is still on every copy.
+2. This PR not deployed: the old text, and bursts of 20.
+3. Too little engagement: the founder's copies left in Junk, replies not sent or not answered, recipients mostly at
+   Gmail rather than Outlook / Hotmail / Yahoo.
+4. The seeds sent unpaced (queued with a lane that ignores `M365_PER_RUN`).
+5. Simply too little history. Microsoft's verdict on a mailbox with three days of conversation may still be SCL 5.
+   Then the honest plan is two to three more weeks of the same, as in the original plan.
 
-Resumption itself is unchanged and stays a deliberate act. Only after a pass:
-- `invite_warmup.window_end_hour` goes back to 17;
-- `invite_enabled` is set to `'true'` by hand.
+**A failed re-test leaves zero credits.** A top-up is new spend, so it goes to the founder.
 
-### What remains a risk after all of this
-
-Copy, encoding and pacing remove the measurable content and pattern signals. They do not create reputation. If 4 Nov
-still shows Microsoft below 80%, the evidence above points to the mailbox's history. In that case the next lever is
-more weeks of genuine two-way mail, not further copy edits. Microsoft's own guidance for bulk sending is a dedicated
-sender on a separate subdomain; that is a commercial choice the founder has already made the other way (ledger 1115:
-send from a real mailbox).
+**Paid warm-up services (named for the founder's decision; nothing was signed up for).**
+- They connect to the mailbox and exchange automated conversations with a network of inboxes: opening, replying, and
+  rescuing from spam.
+- Two of the established ones, at public list prices as last known; **not re-checked today, because this sandbox cannot
+  reach vendor sites**:
+  - **Warmup Inbox**, from about USD 15–19 a month per inbox;
+  - **Mailwarm**, from about USD 69 a month per inbox.
+- What they can and cannot do:
+  - They raise daily engaged volume from the 10–20 a person-to-person circle can give to 30–50, much of it at
+    Outlook / Hotmail / Gmail.
+  - The vendors themselves still quote two to four weeks, so they would not make day 3.
+  - They need standing access to supplier@ (IMAP/SMTP or OAuth consent), which is a security decision for the
+    founder.
+  - Automated engagement is something Microsoft does not endorse.
+- **This is new spend, so it is the founder's decision.**
