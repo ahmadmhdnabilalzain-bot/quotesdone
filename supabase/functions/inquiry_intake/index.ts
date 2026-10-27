@@ -10,7 +10,8 @@ import { observe } from '../_shared/observe.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
-import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn, openTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply } from './slots.ts';
+import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn, openTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, intakeVoice, HELD_FOR_SPECS } from './slots.ts';
+import { isOpenRouterDown } from '../_shared/openrouter_down.ts';
 import { detectEmirate, detectUrgency, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
@@ -43,8 +44,10 @@ async function llm(messages: any[], subject: { email?: string; customer_id?: str
   // founder's OpenRouter hold every route in llm_route_health is open until 2126, so this call
   // could only ever come back empty — 592 pointless gateway round trips in 72 h, each logged
   // below as agent_runs status 'error' although the deterministic interview ran exactly as built.
-  if (await modelHeld(admin)) return null;
-  const key = await sec('cred_fn_ai'); if (!key) return null;
+  // Both early exits say why, so the caller can tell "OpenRouter down" (a code-written reply is allowed) from a model that
+  // answered (founder_instruction 1339, _shared/openrouter_down.ts).
+  if (await modelHeld(admin)) { fail.v = { http: 503, error: 'circuit_open: founder_hold', detail: '' }; return null; }
+  const key = await sec('cred_fn_ai'); if (!key) { fail.v = { http: 0, error: 'no_credential', detail: '' }; return null; }
   // Prompt caching is now applied by ai_gateway on the system prompt it receives.
   const sys = messages.filter((m: any) => m && m.role === 'system').map((m: any) => String(m.content || '')).join('\n\n');
   const input = messages.filter((m: any) => !m || m.role !== 'system');
@@ -358,6 +361,13 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     let out = raw ? parseJson(raw) : null;
     const llmCallOk = raw !== null;
     const llmParseOk = out !== null;
+    // OPENROUTER DOWN FOR THIS TURN (founder_instruction 1339, 27 Oct 2026): "the engineer and customer support never
+    // replies without llm unless the server of open router is down". Only then may the customer read the code-written
+    // draft below (the interview's question, the state's sentence). A model that answered, even with JSON we could not
+    // parse, is up: its draft is voiced by the model (slots.ts intakeVoice) before the reply leaves.
+    let llmDown = !llmCallOk && isOpenRouterDown(llmFail.v?.error, llmFail.v?.http);
+    // The model's own sentence as it wrote it. Any reply that is not exactly this was composed by code and is voiced.
+    let modelWrote: string | null = out && llmParseOk && typeof out.assistant_message === 'string' ? out.assistant_message : null;
     // A RUN THE FOUNDER'S HOLD SHAPED IS NOT A FAILED RUN (22 Sep 2026, SEATS-08/CP-14). While the
     // hold is on there is no model to call, the deterministic interview below IS the designed path,
     // and logging it as 'error' put 592 false faults into agent_runs in 72 h — the watchers page on
@@ -389,15 +399,19 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
         checklist = Array.isArray(cs?.fields) ? cs.fields : [];
         draft.brief = { ...(draft.brief && typeof draft.brief === 'object' ? draft.brief : {}), category_by: 'reasoning' };
       } else {
-        const heldMsg = ar
+        const heldDraft = ar
           ? 'شكرًا لكم. استلمنا طلبكم، ويراجعه الآن مهندس المبيعات لدينا لتحديد التخصص المناسب بدقة. سنكمل معكم هنا فور الانتهاء، ولا حاجة إلى إعادة كتابة أي شيء.'
           : 'Thank you — we have your request and our sales engineer is reviewing it now to identify exactly the right trade. We will continue with you here as soon as that is done; there is no need to type anything again.';
+        // the model says it (1339); the draft itself only when OpenRouter is down
+        const hv = llmDown ? { text: heldDraft, by: 'outage_fallback' as const }
+          : await intakeVoice(defaultDeps(admin, 'inquiry_intake'), { draft: heldDraft, lang: ar ? 'ar' : 'en', message: text, conversation: turns, deadline: Date.now() + 25_000 });
+        const heldMsg = hv.text;
         turns.push({ role: 'assistant', text: heldMsg, agent: ACTOR });
         await admin.from('inquiry_intake').update({ status: 'held', raw_input: allText.slice(0, 4000), turns, updated_at: new Date().toISOString() }).eq('id', draft.id);
         await logRun('ok', { model_held: 1, intake_held: 1, llm_http: llmFail.v?.http ?? null, llm_error: llmFail.v?.error ?? null }, 'the trade could not be reasoned (' + (t.result.reason ?? 'held') + '), so the intake is held for review rather than guessed from keywords' + (llmFail.v ? '; gateway HTTP ' + llmFail.v.http + ' ' + llmFail.v.error + ' ' + llmFail.v.detail : ''));
         return J({ ok: true, intake_id: draft.id, status: 'held', category: null, trades: [], assistant_message: heldMsg, questions: [], next_question: null,
                    readiness: { filled: 0, required: 0, score: 0 }, readiness_score: 0, missing: [], brief: null, held_id: t.result.held_id ?? null, // The gateway's reason goes back only to our own harness subject; a customer never sees upstream detail.
-                   ...(email.endsWith('@example.invalid') ? { held_reason: t.result.reason ?? 'held', llm_failure: llmFail.v } : {}), agent: ACTOR });
+                   ...(email.endsWith('@example.invalid') ? { held_reason: t.result.reason ?? 'held', llm_failure: llmFail.v } : {}), reply_by: hv.by, agent: ACTOR });
       }
     }
 
@@ -534,7 +548,11 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
           waiting_for: 'sales_engineer to help the customer settle these specs; asked three times without an answer' } });
       if (hErr) await logRun('error', { spec_handoff_failed: 1 }, 'intake held for unanswered specs but the sales_engineer handoff failed: ' + hErr.message);
       // The customer is told WHICH questions are still open, by the model, in the inquiry language (slots.ts heldReply).
-      out.assistant_message = await heldReply(defaultDeps(admin, 'inquiry_intake'), checklist, slotExhausted, slotLang, text, turns, Date.now() + 40_000);
+      const hr = await heldReply(defaultDeps(admin, 'inquiry_intake'), checklist, slotExhausted, slotLang, text, turns, Date.now() + 40_000);
+      // the model's held reply; HELD_FOR_SPECS back means OpenRouter was down (1339); '' means the model is up and is asked
+      // again below (intakeVoice) with the hold as its draft
+      if (hr === HELD_FOR_SPECS[slotLang]) llmDown = true; else if (hr) modelWrote = hr;
+      out.assistant_message = hr || HELD_FOR_SPECS[slotLang];
     }
     // Stamp the answering agent on the turn so the next turn knows the specialist has already introduced itself.
     turns.push({ role: 'assistant', text: out.assistant_message || '', agent: ACTOR });
@@ -778,6 +796,22 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       else readinessFields = { filled: readinessFields.filled, required: readinessFields.required + reqTotal };
     }
     const remainingQuestions: string[] = status === 'ready' ? [] : Array.from(new Set([...(Array.isArray(out.missing) ? out.missing.map((m: any) => String(m)) : []), ...reqRemaining])).slice(0, 12);
+    // THE WORDS ARE THE MODEL'S (founder_instruction 1339). Everything above decided WHAT this turn says; any reply that is
+    // not the model's own sentence, untouched, was composed by code (the interview, replyFromState, the canonical gate,
+    // the four questions' lead, the drawing confirm and CAD asks, HELD_FOR_SPECS) and is now written by the model from
+    // that draft and the one question to ask. The draft itself goes out only when OpenRouter is down.
+    let replyBy: 'model' | 'outage_fallback' | 'none' = 'model';
+    {
+      const draftMsg = String(out.assistant_message || '').trim();
+      if (draftMsg && draftMsg !== String(modelWrote ?? '').trim()) {
+        if (llmDown) replyBy = 'outage_fallback';
+        else {
+          const v = await intakeVoice(defaultDeps(admin, 'inquiry_intake'), { draft: draftMsg, lang: ar ? 'ar' : 'en', message: text,
+            conversation: turns.slice(0, -1), next: nextQuestion ? { text: nextQuestion.text, options: nextQuestion.options } : null, deadline: Date.now() + 25_000 });
+          out.assistant_message = v.text; replyBy = v.by;
+        }
+      }
+    }
     // The reply is final only here (the canonical gate, the four questions and the drawing check all
     // rewrite it after the assistant turn was pushed). Save the CORRECTED reply, so a false "ready" is
     // neither kept in the history nor fed back to the model next turn (review of #1277).
@@ -798,6 +832,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       // harness answered hvac "system_type" and plumbing "fixture_count" with its whole sheet three times,
       // slots.ts held the intake for unanswered specs, and the run printed "held (held)" with no reason.
       missing_keys: missingKeys,
+      reply_by: replyBy,   // who wrote assistant_message: the model, or the code draft because OpenRouter was down (1339)
       ...heldReasonFor(status, email, slotExhausted),
       agent: ACTOR, agent_name: ar ? 'مهندس مبيعات QuotesDone' : 'QuotesDone sales engineer' });
   } catch (e) { await logRun('error', { unhandled_exception: 1, intake_saved: 0 }, 'inquiry_intake threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e) + ' — the customer\'s RFQ was not captured or not updated, so it will never be routed to suppliers.'); return J({ error: String((e as Error)?.message || e) }, 500); }

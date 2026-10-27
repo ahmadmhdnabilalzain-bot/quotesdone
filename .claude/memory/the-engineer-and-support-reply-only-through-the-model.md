@@ -1,0 +1,44 @@
+---
+name: the-engineer-and-support-reply-only-through-the-model
+description: "27 Oct 2026, founder_instruction 1339 — every customer/supplier reply from sales_engineer and customer_support is written by the model via OpenRouter; a code-written reply only when the OpenRouter call failed"
+metadata:
+  node_type: memory
+  type: feedback
+  modified: 2026-10-27T15:00:00.000Z
+---
+
+The founder, 27 Oct 2026 ~14:15Z (ledger 1339), verbatim:
+
+> "the engineer and customer support never replies without llm unless the server of open router is down"
+
+**Meaning.** Every message the `sales_engineer` or `customer_support` seat sends to a customer or supplier is written by
+the model, called through ai_gateway → OpenRouter. Code may still decide WHAT to say (the question, the slot, the
+checklist options, a routine's result), compute data, validate and filter the model's output, and drop an unsafe
+sentence. The words the person reads are the model's. A code-written or templated reply is allowed ONLY when the
+model call FAILED: a network error, a 5xx, a timeout or the turn's deadline, an open provider circuit (the founder's hold
+included), or no credential to reach the gateway.
+
+**Not an outage** (so never a licence for code text): a model that answered and whose answer was refused by a guard,
+was unparseable, was wrapped in JSON, or was dropped sentence by sentence; a 4xx; one sender's rate limit (that is a
+status notice, not a reply).
+
+**How it is built (PR "replies only through the model", 27 Oct 2026):**
+- `supabase/functions/_shared/openrouter_down.ts`: `isOpenRouterDown(error, http)` is the one test;
+  `modelOrOutage(r, codeText)` is the one sanctioned door for a code fallback.
+- `aiReply` returns `outage` (true only when no call reached a model), keeps the model's own passing sentences when no
+  whole draft passes (`salvage`), and takes `must` (a reference or job number the reply has to carry).
+- WhatsApp's HELD_NOTICE, the supplier quote review's QR_HELD_NOTICE, the intake's HELD_FOR_SPECS and every other
+  intake sentence code composes (interview, replyFromState, the four questions' lead, drawing confirm, CAD ask,
+  held-for-trade) go out only on an outage; otherwise the model writes them (`intakeVoice`) or nothing conversational is
+  sent and the turn is queued for the model.
+- The guard: `scripts/checks/replies_are_written_by_the_model_unless_openrouter_is_down.test.mjs` (13 findings on the
+  pre-fix main, 0 after; known-bad controls inside).
+
+**Notifications stay templated and are not replies**: OTP, receipts, status pages, proactive spec-offer/reminder
+messages, the supplier's submission receipt, the closed-thread notice, the founder's FIGURES, menu list frames that
+Meta's approved Content template fixes. If a new path answers a person's message, it is a reply and this rule applies.
+
+**How to apply:** before adding any text a customer or supplier reads in answer to their message, route it through the
+model with the decided content as facts; keep a code fallback only behind `outage` / `modelOrOutage`. Related:
+[[customer-support-better-than-amazon]], [[openrouter-stays-on-all-tests-with-ai]], [[routine-work-is-code-not-llm]]
+(routine operations stay code; conversation is the model's).

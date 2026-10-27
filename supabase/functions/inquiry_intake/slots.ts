@@ -26,6 +26,7 @@
 // the customer's text is matched here (ruling 890): only keys and values the model returned are read.
 import { orderFields, questionText, type Lang, type SpecField } from './interview.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
+import { modelOrOutage } from '../_shared/openrouter_down.ts';
 import type { ThinkDeps } from '../_shared/think.ts';
 import { requirementQuestions, isValidAnswer, NO_PREFERENCE, type Answers, type Ans } from '../_shared/intake_requirements.ts';
 
@@ -54,8 +55,8 @@ export const HELD_FOR_SPECS: Record<Lang, string> = {
 // THE HELD REPLY NAMES WHAT IS STILL OPEN (customer_support, 19 Oct 2026). settleModelTurn clears `missing` on a hold,
 // and HELD_FOR_SPECS said only "a few specifications are still open": a real customer was never told WHICH. The reply
 // is now written by the model (ruling 1196) with the exhausted questions, in the inquiry language, as its facts.
-// HELD_FOR_SPECS stays only as the handover when aiReply returns no acceptable reply in time: the deadline passed, the
-// models errored, or every draft was refused by the reply guards.
+// HELD_FOR_SPECS stays only as the handover when OpenRouter is down (no call reached a model: the deadline passed or the
+// models errored; founder_instruction 1339). Every draft refused by the guards, model up, is NOT that case: '' comes back.
 // The request chat is a portal surface, so the reply is the sales engineer's (the_portals_are_the_sales_engineer).
 /** The plain questions still open on a held intake, in the customer's language, in checklist order. A field with no
  *  question text is skipped: a raw key ('area') never reaches the model. */
@@ -74,7 +75,38 @@ export async function heldReply(deps: ThinkDeps, checklist: SpecField[], exhaust
       '\nOur sales engineer will help the customer settle them here in this chat; nothing needs to be typed again.',
     rules: 'Thank them, name EACH still-open question above in plain words, say our sales engineer will help settle them in this chat before it goes to suppliers. Two to four sentences. Do not ask anything else.',
   });
-  return r.reply || HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en;
+  // HELD_FOR_SPECS only when OpenRouter is down (founder_instruction 1339); a model that answered and was refused gives ''
+  // and index.ts has the model say the hold again (intakeVoice), never this line.
+  return modelOrOutage(r, HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en);
+}
+
+// ── THE INTAKE'S WORDS ARE THE MODEL'S (founder_instruction 1339, 27 Oct 2026) ──────────────────────────────────────
+// "the engineer and customer support never replies without llm unless the server of open router is down".
+// MEASURED on main before this (read from index.ts): the customer read code-written text on every turn where code
+// decided the reply — the deterministic interview's question (taken whenever the model's JSON did not parse, model up),
+// replyFromState (every turn the slots or the canonical gate disagreed with the model's status), HELD_FOR_SPECS, the
+// "Thanks, noted. A few quick questions about materials…" lead before the four requirement questions, the drawing
+// confirm question and the CAD ask appended to the reply, and the held-for-trade notice. Code still decides WHAT is
+// said (the status, the one question, its options); intakeVoice hands that to the model as facts and the model writes
+// it. The code draft is sent only when no call reached a model (outage); a model that answered but whose words were all
+// refused leaves the reply '' (the question card and its options still show it; the next turn asks again).
+export interface IntakeVoice { text: string; outage: boolean; by: 'model' | 'outage_fallback' | 'none' }
+export async function intakeVoice(deps: ThinkDeps, o: { draft: string; lang: Lang; message: string; conversation: { role: string; text: string }[];
+  next?: { text: string; options?: string[] | null } | null; deadline?: number }): Promise<IntakeVoice> {
+  const ask = o.next && String(o.next.text || '').trim()
+    ? '\nTHE ONE QUESTION TO ASK NOW (ask exactly this, in plain words; no other question): ' + String(o.next.text).trim()
+      + (o.next.options?.length ? '\nThey can tap one of: ' + o.next.options.join(' | ') : '')
+    : '\nAsk no question unless the message above asks one.';
+  const r = await aiReply(deps, {
+    seat: 'sales_engineer', channel: 'the website request chat', audience: 'customer', lang: o.lang, message: o.message || '(they sent a file or tapped an option)',
+    conversation: o.conversation.slice(-12).map((t) => ({ role: t.role === 'assistant' ? 'seat' as const : 'customer' as const, text: String(t.text || '') })),
+    facts: 'WHAT TO SAY ON THIS TURN (decided by our systems from the request\'s state; convey it in your own words, change nothing in its meaning, add nothing):\n' + o.draft + ask,
+    rules: 'One to three short sentences for the request chat. Never say the request is ready, complete or sent unless the facts above say so. Never repeat a question they already answered.',
+    deadline: o.deadline,
+  }).catch(() => ({ reply: '', outage: false } as { reply: string; outage?: boolean }));
+  const text = String(r.reply || '').trim();
+  if (text) return { text, outage: false, by: 'model' };
+  return r.outage === true ? { text: o.draft, outage: true, by: 'outage_fallback' } : { text: '', outage: false, by: 'none' };
 }
 
 /** How many earlier assistant turns each required key stayed open on (stampTurn's missing_keys). */

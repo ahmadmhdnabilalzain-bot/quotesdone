@@ -13,13 +13,13 @@
 //      a spec the sales engineer — the scored suite grades it (scripts/eval/support_reply_suite.mjs).
 //   3. THE OUTGOING GUARD (support_reply_guard.ts) on the composed text, as on every other reply.
 //
-// THE ONLY FALLBACK IS "NO MODEL CAN ANSWER": the founder's hold, the gateway down, or a model that failed
-// every pass. Then — and only then — the caller's old deterministic road runs (fallback()). Nothing is
-// queued from here: the caller already answered, and a replay would send a second reply and pay for it.
+// NO DETERMINISTIC ROAD (rulings 1195/1196, 12 Oct; founder_instruction 1339, 27 Oct 2026): when the reasoned chain
+// cannot send its reply, aiReply writes it directly. Only when no model answers at all is the reply '' (`outage` says
+// whether OpenRouter was down), and the caller sends nothing; the caller's `fallback` argument is never called.
 //
 // THE PLAIN-LANGUAGE GATE (founder instruction 1013 item 7): the guarded reply is scored by readability.ts
 // (sentence length, jargon, the customer's language). A failure is rewritten once through the model; a
-// second failure, or the hold, sends the plain canned answer. Every reply's scores are logged for the
+// second failure goes to aiReply, which writes the reply again (never a canned answer; founder_instruction 1339). Every reply's scores are logged for the
 // monthly customer_support self-review (fn_customer_support_monthly_self_review).
 //
 // Tested with a stubbed model (support_reply.test.ts); the model hold is never lifted to test it.
@@ -76,6 +76,7 @@ export interface SupportReply {
   grounded: boolean;              // company knowledge was found for this message, or the reply cited a source
   verified?: string | null;       // the independent check's verdict on the reply that went out ('agreed' on every widget reply)
   priceTrade?: string | null;     // the published trade the visitor asks the price of, chosen in the answering call (widget)
+  outage?: boolean;               // reply '' because OpenRouter was down (no call reached a model); founder_instruction 1339
 }
 
 /** The composed reply, or the caller's deterministic road when no model can answer. Never throws. */
@@ -100,9 +101,9 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
   const fall = async (reason: string): Promise<SupportReply> => {
     const a = await aiReply(deps, { seat: req.seat ?? 'customer_support', channel: req.channel, audience: req.audience, lang: req.lang,
       message: req.message, conversation: req.conversation, facts: [req.profile ? 'THEIR OWN RECORD: ' + JSON.stringify(req.profile) : '', req.facts ?? ''].filter(Boolean).join('\n\n'),
-      rules: FORMAT[req.channel], images: req.images }).catch(() => ({ reply: '', model: null, attempts: ['threw'] }));
+      rules: FORMAT[req.channel], images: req.images }).catch(() => ({ reply: '', model: null, attempts: ['threw'], outage: false }));
     if (a.reply) return await logged({ reply: a.reply, path: 'reasoned', seat: null, reason: 'direct: ' + reason, model: a.model, grounded: true, readability: checkReadability(a.reply, req.lang) });
-    return await logged({ reply: '', path: 'fallback', seat: null, reason: reason + ' | no model answered: ' + a.attempts.join(', '), grounded: false });
+    return await logged({ reply: '', path: 'fallback', seat: null, reason: reason + ' | no model answered: ' + a.attempts.join(', '), grounded: false, outage: a.outage === true });
   };
   try {
     let passages = (req.passages ?? []).filter((p) => p && String(p.content || '').trim());
@@ -159,8 +160,8 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
     let rewritten = r.steps.some((s) => s.id === 'polish');
     if (!rd.ok && checked) return await fall('readability: ' + rd.issues.join(' '));
     if (!rd.ok) {
-      // THE PLAIN-LANGUAGE GATE (1013 item 7): one rewrite through the reasoning path; if that still fails,
-      // the approved canned answer goes out instead of a reply the customer cannot read.
+      // THE PLAIN-LANGUAGE GATE (1013 item 7): one rewrite through the reasoning path; if that still fails, the reply is
+      // written again by the model (fall → aiReply). No canned answer goes out (rulings 1195/1196; 1339).
       const rw = await deps.llm('synthesise', rewritePrompt(req.lang), JSON.stringify({ reply: g.text, problems: rd.issues }),
         { taskClass: taskClassFor('synthesise', req.audience, false, req.lang), seat: req.seat ?? 'customer_support', max: 600 });
       let answer = '';
