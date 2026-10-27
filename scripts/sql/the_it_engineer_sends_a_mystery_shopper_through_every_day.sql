@@ -1,9 +1,9 @@
 -- THE IT ENGINEER SENDS A MYSTERY SHOPPER THROUGH EVERY DAY (founder ruling 1209, 13 Oct 2026).
--- Assigned: it_engineer. Deterministic: no model anywhere in the run or here.
+-- Assigned: it_engineer. No model is called here; the run's comparison step uses the real model (ruling 1260).
 --
 -- Once a day .github/workflows/mystery-shopper.yml runs scripts/e2e/mystery_shopper.mjs: one ZZ DEMO customer on
 -- @example.invalid signs up, makes a request, is matched to ZZ DEMO suppliers only, gets two quotes and the
--- deterministic comparison report, and the run tears itself down and counts 0 leftovers. It reuses the stage-2
+-- comparison report written by the model, and the run tears itself down and counts 0 leftovers. It reuses the stage-2
 -- harness pieces (demo_factory makeCustomer/makeSupplier/makeInquiry/makeQuote, fixtures openRun/closeRun/leftovers,
 -- the demo-guard preflight) and the duty ledger (fn_it_duty_settle) rather than building a second of either.
 --

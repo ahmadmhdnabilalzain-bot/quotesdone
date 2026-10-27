@@ -9,8 +9,10 @@
 //   matching    fn_match_capability, the matcher's SQL core, on the request's own trades, need and emirate; it must find
 //               BOTH run suppliers, and only they are written to inquiry_matches (demo pairs with demo only)
 //   quote       two complete quotes (demo_factory makeQuote 'sql')
-//   comparison  quote_compare as the customer, deterministic_only: the report is the deterministic ranking, never a
-//               paid model, whether or not the founder's hold is on; it must list both quotes and rank a top 3
+//   comparison  quote_compare as the customer, on the real model (ruling 1260, 19 Oct 2026: "all tests need to be done
+//               with AI. from now on open router stays on"): the call carries the run tag, so the model call is let
+//               through inside the run's rehearsal window and costed against it. The report must list both quotes, be
+//               the model's (a deterministic fallback, degraded, is the finding) and rank a top 3 or hold it for review
 //   cleanup     the run's own teardown by its tag, then every table counted by the run's handles must read 0
 // Every broken step is handed to public.fn_it_engineer_mystery_shopper_ingest, which files an IT finding naming the step
 // and the error (and closes the step's finding when it passes again) and writes the heartbeat the IT engineer's
@@ -18,7 +20,8 @@
 //
 // INCAPABLE OF REACHING A REAL PERSON: it refuses to start without the demo capture and the demo/real pairing guards
 // (the same preflight as scripts/e2e/run.mjs), every identity is qd-<tag>-*@example.invalid or the reserved
-// +971 50 000 00xx block, it opens a rehearsal window, and it never reveals, so nothing is ever charged.
+// +971 50 000 00xx block, it opens a rehearsal window, and it never reveals or pays, so no customer is ever charged.
+// The one paid call is the comparison's model, tagged with the run and inside its window (ruling 1260).
 //
 //   node scripts/e2e/mystery_shopper.mjs                 the daily run (reports to the IT engineer)
 //   node scripts/e2e/mystery_shopper.mjs --no-report     run and print, report nothing
@@ -147,13 +150,18 @@ try {
   });
 
   await step('comparison', async () => {
-    const r = await call('quote_compare', fx.cust.jwt, { inquiry_id: fx.inq.id, lang: 'en', deterministic_only: true }, 120000);
+    must(process.env.QD_E2E_RUN_TAG === run.tag, 'the run tag is not set, so the model call would be refused as untagged test traffic');
+    const r = await call('quote_compare', fx.cust.jwt, { inquiry_id: fx.inq.id, lang: 'en' }, 180000);
     must(r.status === 200 && r.json?.ok === true, `quote_compare HTTP ${r.status} ${String(r.text).slice(0, 300)}`);
-    must(r.json.deterministic_only === true, 'the comparison was not the deterministic one (a paid model may have been asked)');
+    // A model failure still answers 200 with the deterministic ranking and degraded: true. For the customer that is a
+    // safe fallback; for the shopper it is the broken step, with the model's own detail as the error.
+    must(r.json.degraded !== true, `the model did not write the comparison (degraded: ${String(r.json.detail ?? '').slice(0, 300)})`);
     const a = r.json.analysis || {};
     must(Array.isArray(a.all_quotes) && a.all_quotes.length === 2, `the report lists ${a.all_quotes?.length ?? 0} of 2 quotes`);
-    must(Array.isArray(a.top3) && a.top3.length >= 1, 'the report ranks no quote');
-    return `comparison report: ${a.all_quotes.length} quotes listed, top ${a.top3.length} ranked, no model`;
+    // Both quotes exceed the large-choice threshold, so the second seat may hold the recommendation for review: that
+    // is the product working, and it must say so (on_review with its second_seat record), never an empty ranking.
+    must((Array.isArray(a.top3) && a.top3.length >= 1) || (a.on_review === true && a.second_seat), 'the report ranks no quote and holds none for review');
+    return `comparison report by the model: ${a.all_quotes.length} quotes listed, ${a.on_review ? 'recommendation held for second-seat review' : `top ${a.top3.length} ranked`}`;
   });
 } finally {
   let closed = null;

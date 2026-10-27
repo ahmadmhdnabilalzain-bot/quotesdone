@@ -2,16 +2,18 @@ name: Daily mystery shopper (ZZ DEMO)
 
 # The IT engineer's daily mystery shopper (founder ruling 1209, 13 Oct 2026). Drives scripts/e2e/mystery_shopper.mjs:
 # one ZZ DEMO customer on @example.invalid signs up, makes a request, is matched to ZZ DEMO suppliers only, gets two
-# quotes and the deterministic comparison report (no paid model), and the run tears itself down to 0 leftovers. The
-# script hands every step to public.fn_it_engineer_mystery_shopper_ingest, which files an IT finding naming the broken
-# step and its error; it_engineer.mystery_shopper_heartbeat reports a missing run after 26 hours.
+# quotes and the comparison report written by the real model inside the run's window (ruling 1260), and the run tears
+# itself down to 0 leftovers. The script hands every step to public.fn_it_engineer_mystery_shopper_ingest, which files
+# an IT finding naming the broken step and its error; it_engineer.mystery_shopper_heartbeat reports a missing run after
+# 26 hours. While Actions are off (ledger 1279) a session runs it by hand (workflow_dispatch or the node command).
 #
 # Uses the repository secret SUPABASE_ACCESS_TOKEN, as nightly-journey.yml does. If it is missing the job skips with a
 # notice and the heartbeat duty reports the silence itself.
 
+# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
 on:
-  schedule:
-    - cron: '30 4 * * *'   # 08:30 Dubai, clear of the 02:00 nightly journey
+  # schedule:
+    # - cron: '30 4 * * *'   # 08:30 Dubai, clear of the 02:00 nightly journey
   workflow_dispatch: {}
 
 concurrency:
