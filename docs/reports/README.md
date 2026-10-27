@@ -97,3 +97,9 @@ in the bucket and must never come into git:
 
 The trade licence PDF stays in the founder's Dropbox, at
 `Dropbox/QuotesDone Backup/Assets/639183403868888392.pdf` (192,892 bytes).
+
+## Session reports written here directly
+
+| folder | what it proves |
+|---|---|
+| `chat-turn-latency-2026-10-27/` | portal assistant turns before and after the one-call, 70 s clock fix: p95 150.3 s with two 504s, then 13.0 s with none (12 EN + 12 AR ZZ DEMO turns each) |

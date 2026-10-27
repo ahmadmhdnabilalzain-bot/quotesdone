@@ -32,6 +32,18 @@ ruling 1219.
 `think()` is for deliberate seat decisions, never for a chat turn. Its planner alone costs more than a whole streamed
 answer.
 
+**Measured on the same 12 EN + 12 AR script** (`docs/reports/chat-turn-latency-2026-10-27/`):
+
+| | before | after |
+|---|---|---|
+| p50 | 78.6 s | 10.2 s |
+| p95 | 150.3 s, two 504s | 13.0 s, 0 failures |
+| first words | none until the turn ended | 7.6 s |
+| cost per turn | AED 0.062 | AED 0.072 |
+
+**A streamed reply must be plain text.** `aiSystem` asks for JSON unless it is passed `plainText`; the first run showed
+`{"answer":...}` on screen.
+
 **How to apply:**
 - Before adding any model call to a chat turn, add up the worst case of every serial call against the 150 s edge wall.
   A per-call timeout is not a turn budget.
