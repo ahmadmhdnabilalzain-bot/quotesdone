@@ -141,7 +141,7 @@ what Gmail's and Yahoo's receivers see, and it is the likeliest reason `List-Uns
 
 | # | Fix | Status |
 |---|---|---|
-| a | **Warm-up: engaged person-to-person mail before the re-test** (cause 1) | compressed plan in §4; starts the day this PR deploys |
+| a | **Warm-up: engaged person-to-person mail before the re-test** (cause 1) | compressed plan in §4; day 0 done 27 Oct 15:16Z, ramp Wed 28 to Fri 30 Oct |
 | b | **Turn TNEF off for external mail**: Exchange admin center → Mail flow → Remote domains → Default → rich-text **Never** (cause 3) | **needs the founder's M365 admin sign-in**; 1 minute; must be done **before day 0** |
 | c | **Pacing: at most 5 lane sends per `send_outbox` run**, the rest re-queued 10 minutes on (cause 2) | in code (this PR) |
 | d | **Copy variant A**, "one question, no offer": plain, personal, ends in a question that invites a reply (cause 4) | **applied** to `app_secrets` and the lane code (this PR) |
@@ -255,23 +255,29 @@ If this isn't relevant, reply "stop" and we won't contact you again.
 
 ## 4. Compressed warm-up and the one re-test (founder, 27 Oct: "do the warm up immediately after the fix. we cant wait for a week")
 
-**Day 0 is the day this PR's `send_outbox` is deployed.** Before day 0, two things must be true:
+**The internal management@ → supplier@ test email (ledger 1314) is dropped** (coordinator, 27 Oct). It cannot be sent
+from this estate, and GlockApps already covered it. It is noted on ledgers 1314 and 1313
+(`scripts/sql/the_internal_test_email_is_dropped_and_the_warm_up_is_compressed.sql`, `PROBE OK`), and it is no longer
+a prerequisite.
+
+**Before the re-test**, ideally before day 1, two things must be true:
 1. TNEF is off (3b).
 2. One copy is checked in the founder's Gmail: **no `winmail.dat`**, and `List-Unsubscribe-Post` present.
 
-| Day | Who supplier@ writes to | Volume | What the other side does |
-|---|---|---|---|
-| **0** | The founder's own 5 mailboxes (the coordinator has queued the invitation copies) | 5 | He opens each one, moves it out of Junk or Promotions ("Not junk" / "Move to Primary"), adds supplier@ to contacts, and **replies** with a line or two. supplier@ answers each reply, so every one becomes a thread |
-| **1** | People who know Ahmad personally or through business, chosen for **Outlook.com / Hotmail / Live / Office 365 and Yahoo / AOL** addresses first (that is where the score is). Includes his Dorata mailbox (`doratajewelries.com` is its own Microsoft 365 tenant, measured: real external Microsoft traffic). A short personal note from supplier@, not the invitation template, that asks something they will answer | about 10 | open, reply, rescue from Junk if needed |
-| **2** | the same circle plus new contacts | about 15 | the same; supplier@ answers every reply the same day |
-| **3** | the same | about 20 | the same. **Re-test that afternoon** (below), only if the replies came in |
+| Day | Date | Who supplier@ writes to | Volume | What the other side does |
+|---|---|---|---|---|
+| **0** | **Tue 27 Oct, DONE at 15:16Z** | The founder's own 5 mailboxes: djzaino@outlook.com, ahmadmhdnabilalzain@gmail.com, management@doratajewelries.com, bookings@djzaino.com, fati.labib@icloud.com | 5 | He is replying. Each copy should also be moved out of Junk or Promotions and supplier@ added to contacts. supplier@ answers each reply, so every one becomes a thread. These left before #1648 deployed (old text, `winmail.dat`); the engagement counts all the same |
+| **1** | **Wed 28 Oct** | People who know Ahmad personally or through business, **Outlook.com / Hotmail / Live / Office 365 and Yahoo / AOL** addresses first (that is where the score is). His Dorata mailbox counts: `doratajewelries.com` is its own Microsoft 365 tenant, so it is real external Microsoft traffic. A short personal note from supplier@, not the invitation template, that asks something they will answer | about 10 | open, reply, rescue from Junk if needed |
+| **2** | **Thu 29 Oct** | the same circle plus new contacts | about 15 | the same; supplier@ answers every reply the same day |
+| **3** | **Fri 30 Oct**, morning | the same | about 20 | the same |
+| **Re-test** | **Fri 30 Oct 2026, seeds from 13:00 Dubai (09:00Z)** | the GlockApps seed list, last credit, `deliverability_test`, paced 5 per run (about 6 hours) | 112 | moves to **Mon 2 Nov** if TNEF is still on, or if fewer than about 30 two-way threads exist by Friday noon |
 
 Rules for every day:
 - **Never a real supplier, never a cold address.** Invitations stay held (`invite_enabled=false`).
 - Messages go through the paced lane: at most 5 per 15 minutes.
 - Any copy that lands in Junk is rescued by its reader. A rescued message is worth more than a new one.
 
-**The re-test (day 3, the single remaining credit; balance read 27 Oct: 1 test available).**
+**The re-test (Fri 30 Oct 2026; the single remaining credit; balance read 27 Oct: 1 test available).**
 - It runs through `deliverability_test` with the live variant-A invitation over the M365 lane, paced 5 per run (about 6
   hours for 112 seeds).
 - It stores per-provider placement, plus the Microsoft seeds' `X-Forefront-Antispam-Report` / `X-Microsoft-Antispam`

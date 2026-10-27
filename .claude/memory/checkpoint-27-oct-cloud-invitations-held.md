@@ -37,10 +37,13 @@ conversation. Report: `docs/reports/QuotesDone Campaign/GLOCKAPPS_27_OCT_RESULT_
   Fix: Exchange admin center → Remote domains → Default → rich-text **Never**. This needs the founder's M365 admin
   sign-in; Graph cannot set it.
 - **Warm-up is COMPRESSED** (the founder: "we cant wait for a week"):
-  - day 0 = the deploy day: his 5 mailboxes open, mark "not junk" and reply;
-  - days 1–3: ~10/15/20 person-to-person messages;
-  - **re-test on day 3 with the LAST GlockApps credit** (balance 1), through `deliverability_test`.
+  - day 0 DONE Tue 27 Oct 15:16Z: supplier@ wrote to his 5 mailboxes, and he is replying;
+  - Wed 28 / Thu 29 / Fri 30 Oct: ~10/15/20 person-to-person messages;
+  - **re-test Fri 30 Oct, from 13:00 Dubai, with the LAST GlockApps credit** (balance 1), through
+    `deliverability_test`. It moves to Mon 2 Nov if TNEF is still on or the replies are thin.
   - A pass is possible, not likely. If it fails, there is no credit left, and a top-up is his spend.
+- **The internal management@ → supplier@ test email (1314) is DROPPED.** It is noted on ledger 1314 and is not a
+  prerequisite.
 
 **(Superseded by the update above.) GlockApps is NOT yet run.** The cloud network policy refuses app.glockapps.com and
 api.glockapps.com (proxy 403), and no GlockApps API key is stored anywhere. Either he adds those
