@@ -31,3 +31,21 @@ test('every regulation digest names its sources and access date', () => {
     assert.match(t, /2026-10-12/, `${f} has no access date`);
   }
 });
+
+// Ruling 1209 (13 Oct 2026): the contract-practice and materials digests carry sources and an access date the
+// same way, and the whole always-included block stays under the ~120k-token ceiling the ruling set.
+test('contract practice and every materials digest name sources and access date', () => {
+  const dir = new URL('../../knowledge/brief/uae_materials_brands/', import.meta.url);
+  const files = readdirSync(dir).filter((x) => x.endsWith('.md')).map((f) => new URL(f, dir));
+  assert.equal(files.length, 10, 'one materials digest per trade group');
+  for (const u of [new URL('../../knowledge/brief/uae_contract_practice.md', import.meta.url), ...files]) {
+    const t = readFileSync(u, 'utf8');
+    assert.match(t, /https?:\/\//, `${u.pathname} has no source URL`);
+    assert.match(t, /2026-10-13/, `${u.pathname} has no access date`);
+  }
+});
+
+test('the compiled brief stays under 120k tokens', () => {
+  const { approxTokens } = compileBrief();
+  assert.ok(approxTokens < 120000, `brief is ~${approxTokens} tokens`);
+});
