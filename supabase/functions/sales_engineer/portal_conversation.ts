@@ -21,7 +21,12 @@
 //     third. A dropped sentence is never shown; brief_answer.ts has the model rewrite when nothing is left.
 // What this deliberately does NOT do: decide what the reply should ask next (the model, with the trade playbooks in
 // the compiled brief, does that), or reword a sentence (code writes no reply text: rulings 1195/1196).
-// prevented by: sales_engineer/portal_conversation.test.ts
+// 27 Oct 2026, evening (22 scenarios: 0/22 at 95 %, mean 83 %): the text-overlap re-ask match missed paraphrase and
+// Arabic word forms, and the model still chose what to ask. Since then the order of the brief is code's
+// (conversation_plan.ts): in a job conversation heldState carries the plan's state, heldBlock shows it to the model,
+// and replyFilter compares a question by the SLOT it targets, keeps only the next must-have (plus one more), and holds
+// the summary turn to the summary and its confirm question. Outside a job conversation the rules below stand alone.
+// prevented by: sales_engineer/portal_conversation.test.ts, sales_engineer/conversation_plan.test.ts
 
 /** HOW A SENIOR UAE ESTIMATOR TAKES A JOB BRIEF in the portal chat (moved here from support_reply.ts on 27 Oct 2026, when
  *  the portal turn became one streamed call (#1640) and stopped going through supportReply). */
@@ -39,6 +44,9 @@ export const REPLY_SHAPE = 'SHAPE OF EVERY REPLY: (a) at most one or two short s
   + 'Every reply ends with a question for them: the next missing specification or, once the essentials are known, the summary and "Is this correct?". '
   + 'Do not add the fee, "posting is free", how long quotes or the work take, what suppliers will do or how the request is sent unless their message asks about it. Never mention passing anything to a team.';
 
+import { CATALOGUE, CONFIRM_ASK as PLAN_CONFIRM_ASK, labelOf, planState, sentencesOf as planSentences, stateBlock, stems, targets,
+  type Extracted, type State } from './conversation_plan.ts';
+
 export type Lang = 'en' | 'ar';
 export interface Turn { role: 'user' | 'assistant'; content: string }
 export interface Slot { slot: string; said: string }
@@ -55,38 +63,17 @@ export interface Held {
   firstReply: boolean;
   /** the customer's message this turn */
   message: string;
+  /** the job conversation's plan state (conversation_plan.ts); mode 'none' outside a job */
+  plan: State;
 }
 
 // ── text helpers ──────────────────────────────────────────────────────────────────────────────────────────────────
 /** Sentences of a text, each with its terminator; a trailing piece without one is a sentence too. */
-export function sentencesOf(text: string): string[] {
-  const out: string[] = [];
-  // a full stop between digits ("2.6 m") is not the end of a sentence
-  const re = /(?:[^.!?؟\n]|(?<=\d)\.(?=\d)|[.!?؟]+(?!["')\]”’]*(?:\s|$)))*(?:[.!?؟]+["')\]”’]*(?=\s|$)|\n+|$)/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(String(text || ''))) && m[0] !== '') { if (/[\p{L}\p{N}]/u.test(m[0])) out.push(m[0].trim()); }
-  return out;
-}
+export const sentencesOf = planSentences;
 export const isQuestion = (s: string) => /[?؟]["')\]”’]*\s*$/.test(s.trim());
 
-const STOP = new Set(('a an the and or of to for in on at is are be been do does did you your yours we our us i me my it its this that these those would '
-  + 'could should will can may might what which how when where who whom whose any some each every per with by from as if about into please also just '
-  + 'there here have has had want like need prefer more much many than then so not no yes ok let know tell share give get make sure one two '
-  + 'من في على الى إلى عن ما ماذا هل كم اي أي التي الذي هذا هذه هو هي انت أنت لك لديك عندك تريد تفضل او أو و ثم مع لا نعم كل اذا إذا').split(' '));
-const norm = (s: string) => s.toLowerCase().normalize('NFKC').replace(/[ً-ْـ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي');
-const stem = (w: string) => /[a-z]/.test(w)
-  ? w.replace(/(ings?|ers?|ed|es|s)$/, (x) => (w.length - x.length >= 3 ? '' : x))
-  : w.replace(/^(وال|بال|لل|فال|ال)/, (x) => (w.length - x.length >= 2 ? '' : x));
-/** The content words of a text, normalised and stemmed. */
-export function contentWords(s: string): Set<string> {
-  const out = new Set<string>();
-  for (const w of norm(s).split(/[^\p{L}\p{N}]+/u)) {
-    if (!w || STOP.has(w)) continue;
-    const t = stem(w);
-    if (t.length >= (/[a-z]/.test(t) ? 3 : 2) && !STOP.has(t)) out.add(t);
-  }
-  return out;
-}
+/** The content words of a text, normalised and stemmed (conversation_plan.stems: كاميرا and الكاميرات are one word). */
+export const contentWords = stems;
 const overlap = (a: Set<string>, b: Set<string>) => { let n = 0; for (const x of a) if (b.has(x)) n++; return n; };
 /** The clauses of a question: "What width, and do you want sliding doors?" asks two things. A clause starts only where
  *  a new question word does: a list ("استوديو، أو غرفة، أو غرفتان") or "a wall split, or a ducted unit" is ONE ask
@@ -103,43 +90,14 @@ export function sameAsk(a: string, b: string): boolean {
   return n >= 2 && (n / m >= 0.6 || (n >= 3 && n / m >= 0.4));
 }
 
-// ── the typed slots a customer fills ──────────────────────────────────────────────────────────────────────────────
-// fill: the customer's text gives a value for it. ask: a QUESTION asks for it. Both narrow on purpose: a missed slot
-// costs one re-ask the earlier-question match may still catch; a wrong one would drop a question the job needs.
-interface SlotDef { slot: string; fill: RegExp; ask: RegExp }
-const MONTHS = 'jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?';
-const PLACES = 'dubai|abu dhabi|sharjah|ajman|ras al khaimah|rak|fujairah|umm al quwain|al ain|jlt|jvc|marina|deira|bur dubai|mirdif|al barsha|jumeirah|downtown|business bay|silicon oasis|al nahda|khalifa city|reem|yas|saadiyat|motor city|sports city|arabian ranches|palm|karama|al qusais|international city|discovery gardens'
-  + '|دبي|أبوظبي|ابوظبي|أبو ظبي|ابو ظبي|الشارقة|الشارقه|عجمان|رأس الخيمة|راس الخيمه|الفجيرة|الفجيره|أم القيوين|ام القيوين|العين|البرشاء|ديرة|ديره|مردف|جميرا|الخوانيج|النهدة|خليفة';
-export const SLOTS: SlotDef[] = [
-  { slot: 'property type',
-    fill: /\b(villa|apartment|flat|studio|townhouse|penthouse|office|shop|warehouse|restaurant|clinic|school|hotel|showroom)\b|فيلا|فيله|شقة|شقه|مكتب|محل|مستودع|مطعم|عيادة|مدرسة|فندق/i,
-    ask: /\b(villa|apartment|flat|townhouse|office|shop|house)\b[^?]{0,25}\bor\b[^?]{0,25}\b(villa|apartment|flat|townhouse|office|shop|house|another|other)\b|\b(type|kind) of (property|premises|building)\b|(فيلا|شقة|شقه)[^؟]{0,15}(أو|او|أم|ام)[^؟]{0,15}(فيلا|شقة|شقه|مكتب)|نوع العقار/i },
-  { slot: 'ownership',
-    fill: /\b(own|owned|owner|rent|rented|renting|tenant|landlord|leased?)\b|ملك|مالك|إيجار|ايجار|مستأجر|مستاجر/i,
-    ask: /\b(do|are) you (own|rent|the owner|a tenant)|\bown(ed)? or rent|\bowner or (a )?tenant|تملك|مالك (أم|او|أو) مستأجر|ملك (أم|او|أو) (إيجار|ايجار)/i },
-  { slot: 'location',
-    fill: new RegExp(`\\b(${PLACES})\\b|(${PLACES})`, 'i'),
-    ask: /\b(which|what) (emirate|area|community|city|location|part of)\b|\bwhere is (it|the|your)\b|\bwhere are you\b|\blocated\b|في أي (إمارة|امارة|منطقة|منطقه)|وين (موقع|المكان|تقع|يقع)|أين (يقع|تقع|الموقع)|ما (هي )?المنطقة/i },
-  { slot: 'timing',
-    fill: new RegExp(`\\b(within|in) (\\d+|a|one|two|three|four|five|six|eight|few|couple of) (days?|weeks?|months?)\\b|\\b(this|next) (week|month)\\b|\\basap\\b|\\burgent|\\bby (the )?(end of )?(${MONTHS})\\b|\\bbefore (summer|winter|ramadan|eid)\\b|\\bflexible\\b|\\bno rush\\b|خلال|هذا الأسبوع|الاسبوع|الأسبوع القادم|الشهر القادم|مستعجل|قبل (الشتاء|الصيف|رمضان|العيد)|مرن`, 'i'),
-    ask: /\bwhen (do|would|should|can|are) you\b|\btimeline\b|\btime ?frame\b|\bhow soon\b|\bdeadline\b|\btarget (date|completion)\b|\bstart date\b|متى|الموعد|الإطار الزمني|الاطار الزمني|المدة المطلوبة/i },
-  { slot: 'budget',
-    fill: /\bbudget\b|\beconomy\b|\bmid-?range\b|\bpremium\b|\bluxury\b|\bmoderate\b|\baffordable\b|\bAED\s?\d|\d[\d,.]*\s?(k|aed|dirhams?)\b|ميزانية|الميزانية|متوسطة|متوسطه|اقتصادي|فاخر|درهم/i,
-    ask: /\bbudget\b|\bprice range\b|\beconomy,? mid-?range\b|الميزانية|ميزانية|فئة السعر/i },
-  { slot: 'door type',
-    fill: /\b(sliding|hinged|push[- ]to[- ]open|bi-?fold|pocket)\b|سحاب|منزلق|منزلقة|مفصل|مفصلات|بالضغط|ضغط/i,
-    // two door types offered as the choice; "handles or push-to-open" is the handle slot below (run 91fb819d dropped it here)
-    ask: /\b(sliding|hinged|bi-?fold)\b[^?]{0,40}\bor\b[^?]{0,20}\b(sliding|hinged|bi-?fold|push[- ]to[- ]open)\b|\b(door|doors) type\b|\btype of doors?\b|نوع الأبواب|نوع الابواب|(سحاب|منزلق)[^؟]{0,20}(أو|او|أم|ام)[^؟]{0,20}(مفصل|عادي)/i },
-  { slot: 'handles',
-    fill: /\bhandle-?less\b|\bwith handles\b|\bhandles\b|\bpush[- ]to[- ]open\b|\bgola\b|بدون مقابض|مقابض|بالضغط/i,
-    ask: /\bhandles?\b[^?]{0,30}\bor\b[^?]{0,30}\b(push|handle-?less|gola|touch)|\b(push[- ]to[- ]open|handle-?less)\b[^?]{0,30}\bor\b[^?]{0,30}\bhandles?\b|مقابض[^؟]{0,20}(أو|او|أم|ام)|(بالضغط|اللمس)[^؟]{0,20}(أو|او|أم|ام)[^؟]{0,20}مقابض/i },
-  { slot: 'internal layout',
-    fill: /\b(hanging|shelves|shelving|drawers)\b|تعليق|رفوف|أدراج|ادراج/i,
-    ask: /\binternal layout\b|\blayout inside\b|\b(long|short|double) (or (long|short|double) )?hanging\b|\b(hanging|shelves|drawers)\b[^?]{0,30}\b(or|and)\b[^?]{0,30}\b(hanging|shelves|drawers)\b|الترتيب الداخلي|(تعليق|رفوف|أدراج)[^؟]{0,20}(أو|او|و)[^؟]{0,20}(تعليق|رفوف|أدراج)/i },
-  { slot: 'existing',
-    fill: /\b(no existing|there is no|new installation|nothing there|existing (one|unit|system|kitchen|wardrobe)|(remove|replace|demolish) the (old|existing))\b|لا يوجد|جديد بالكامل|إزالة|ازالة|القديم/i,
-    ask: /\b(is there|do you have) an? (existing|current)\b|\breplacing an existing\b|\bremove (and dispose of )?(the |any )?(existing|old)\b|هل (يوجد|في|فيه) (نظام|مطبخ|وحدة)? ?(حالي|قديم|موجود)|إزالة (القديم|المطبخ القديم)/i },
-];
+// ── the typed slots a customer fills: the shared catalogue (conversation_plan.CATALOGUE) ─────────────────────────
+// fill: the customer's text gives a value for it. ask: a QUESTION asks for it. 'size' is never dropped on the slot
+// alone: a measured object can still be asked another dimension (the per-object rule below decides).
+const NAME: Record<string, string> = { size: 'sizes', count: 'count', property: 'property type', location: 'location', ownership: 'ownership',
+  permits: 'permits', existing: 'existing condition', finish: 'finish', layout: 'internal layout', doors: 'door type', handles: 'handles',
+  system: 'system', scope: 'scope', coverage: 'coverage', performance: 'performance', recording: 'recording', services: 'services',
+  appliances: 'appliances', design: 'design', usage: 'use', occupancy: 'occupancy', fixing: 'fixing', budget: 'budget', timing: 'timing' };
+export const slotName = (id: string) => NAME[id] ?? id;
 
 // Dimensions are a slot per OBJECT and KIND: "the wall is 2.4 m wide" fills the wall's width, not the door's.
 const MEASURE = /\d+(?:[.,]\d+)?\s*(?:mm|cm|m|metres?|meters?|ft|feet|foot|sq\.?\s?m|sqm|m2|m²|square)\b|\d+(?:[.,]\d+)?\s*(?:x|by|×|في)\s*\d+|\d+(?:[.,]\d+)?\s*(?:متر|م٢|م2|سم|مم)|(?:متر|مترين)/i;
@@ -164,13 +122,15 @@ const kindsOf = (s: string) => {
   return [...new Set(k)];
 };
 
-/** What the conversation already holds. `past` is every earlier turn (oldest first); `message` this turn's message. */
-export function heldState(past: Turn[], message: string): Held {
+/** What the conversation already holds. `past` is every earlier turn (oldest first); `message` this turn's message;
+ *  `extracted` what the bounded extraction call read from the message (conversation_plan.parseExtraction). */
+export function heldState(past: Turn[], message: string, extracted: Extracted | null = null): Held {
+  const plan = planState(past, message, extracted);
   const customer = [...past.filter((t) => t.role === 'user').map((t) => t.content), message].filter(Boolean);
   const slots: Slot[] = []; const dims: Held['dims'] = [];
   for (const text of customer) {
     for (const s of sentencesOf(text)) {
-      for (const d of SLOTS) if (d.fill.test(s) && !slots.some((x) => x.slot === d.slot)) slots.push({ slot: d.slot, said: s.slice(0, 160) });
+      for (const d of CATALOGUE) if (d.id !== 'size' && d.fill.test(normalised(s)) && !slots.some((x) => x.slot === d.id)) slots.push({ slot: d.id, said: s.slice(0, 160) });
       if (MEASURE.test(s)) {
         // "about 12 m of partition in total, 2.7 m high": two figures, one named; the unnamed one is the main extent
         const kinds = kindsOf(s);
@@ -178,18 +138,28 @@ export function heldState(past: Turn[], message: string): Held {
         if (figures > kinds.filter((k) => k !== 'area').length) kinds.push('size');
         const objs = objectsOf(s);
         for (const o of objs.length ? objs : ['']) dims.push({ object: o, kinds: [...new Set(kinds)] });
-        if (!slots.some((x) => x.slot === 'sizes')) slots.push({ slot: 'sizes', said: s.slice(0, 160) });
-        else { const i = slots.findIndex((x) => x.slot === 'sizes'); if (!slots[i].said.includes(s.slice(0, 40))) slots[i] = { slot: 'sizes', said: (slots[i].said + ' ' + s).slice(0, 240) }; }
+        if (!slots.some((x) => x.slot === 'size')) slots.push({ slot: 'size', said: s.slice(0, 160) });
+        else { const i = slots.findIndex((x) => x.slot === 'size'); if (!slots[i].said.includes(s.slice(0, 40))) slots[i] = { slot: 'size', said: (slots[i].said + ' ' + s).slice(0, 240) }; }
       }
     }
   }
+  // the plan's to-confirm slots are held too: asked once, unsure or skipped, never asked again
+  for (const id of plan.toConfirm) if (!slots.some((x) => x.slot === id)) slots.push({ slot: id, said: 'to confirm at the site visit' });
+  for (const [id, v] of plan.filled) if (!slots.some((x) => x.slot === id)) slots.push({ slot: id, said: v.slice(0, 160) });
   const seat = past.filter((t) => t.role === 'assistant').flatMap((t) => sentencesOf(t.content));
-  return { slots, dims, asked: seat.filter(isQuestion), said: seat.filter((s) => !isQuestion(s)), firstReply: !past.some((t) => t.role === 'assistant'), message };
+  return { slots, dims, asked: seat.filter(isQuestion), said: seat.filter((s) => !isQuestion(s)), firstReply: !past.some((t) => t.role === 'assistant'), message, plan };
 }
+const normalised = (s: string) => s.normalize('NFKC').toLowerCase().replace(/[ً-ٰٟـ]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي');
 
 /** The model is shown what it must not ask again, in the customer's own words. '' when nothing is held yet. */
 export function heldBlock(h: Held): string {
   const lines: string[] = [];
+  const state = stateBlock(h.plan);
+  if (state) {
+    lines.push(state);
+    if (h.asked.length) lines.push('QUESTIONS ALREADY ASKED IN THIS CONVERSATION (never ask any of them again, in any wording):\n' + h.asked.slice(-12).map((q) => '- ' + q.slice(0, 200)).join('\n'));
+    return lines.join('\n\n');
+  }
   if (h.slots.length) lines.push('ALREADY GIVEN BY THE CUSTOMER (never ask for these again, in any wording):\n' + h.slots.map((s) => `- ${s.slot}: "${s.said}"`).join('\n'));
   if (h.asked.length) lines.push('QUESTIONS ALREADY ASKED IN THIS CONVERSATION (answered, skipped or unsure: never ask any of them again):\n' + h.asked.slice(-12).map((q) => '- ' + q.slice(0, 200)).join('\n'));
   return lines.join('\n\n');
@@ -197,8 +167,19 @@ export function heldBlock(h: Held): string {
 
 /** Why a QUESTION re-asks: a filled slot, a measured dimension, or an earlier question. null when it asks something new. */
 export function reaskOf(q: string, h: Held): string | null {
+  // a question of two asks re-asks only when both do; newClauseOf keeps the new one (run 143372b1, cctv_shop turn 3)
+  const parts = clausesOf(q);
+  if (parts.length >= 2) {
+    const why = parts.map((c) => reaskOne(c.replace(/[?؟.]*\s*$/, '') + (/[؀-ۿ]/.test(c) ? '؟' : '?'), h));
+    if (why.every(Boolean)) return why[0];
+    if (why.some(Boolean)) return null;
+  }
+  return reaskOne(q, h);
+}
+function reaskOne(q: string, h: Held): string | null {
   const filled = new Set(h.slots.map((s) => s.slot));
-  for (const d of SLOTS) if (filled.has(d.slot) && d.ask.test(q)) return `asks the ${d.slot} again`;
+  // the slot a question targets, in any wording or word form: a filled or to-confirm slot is never asked again
+  for (const id of targets(q, h.plan.plan)) if (id !== 'size' && filled.has(id)) return `asks the ${slotName(id)} again`;
   // a question that quotes a figure ("Is the 85 square metres the dry areas only?") asks ABOUT what they gave, not for it
   if (DIM_ASK.test(q) && h.dims.length && !/\d/.test(q)) {
     const objs = objectsOf(q); const kinds = kindsOf(q);
@@ -279,6 +260,7 @@ export function unaskedOf(s: string, h: Held, inSummary = false): string | null 
 /** A fresh filter for ONE reply: called on each sentence in order, it says why a sentence is dropped, or null to keep it.
  *  It counts the questions it kept, so a fourth is dropped (the shape allows two; a third is tolerated). */
 export function replyFilter(h: Held): ReplyFilter {
+  if (h.plan.plan && h.plan.mode !== 'none') return planFilter(h);
   let kept = 0; let reasked = 0; let inSummary = false;
   const f = (sentence: string): Verdict => {
     const s = sentence.trim();
@@ -316,4 +298,61 @@ export function stripReply(text: string, h: Held): { text: string; dropped: { se
     else kept.push(s);
   }
   return { text: kept.join(' ').trim(), dropped, end: f.end() };
+}
+
+// ── THE FILTER IN A JOB CONVERSATION: code decides what is asked (conversation_plan.ts) ───────────────────────────
+/** In a job conversation a reply asks at most this many questions: the next must-have and one more. */
+export const MAX_PLAN_QUESTIONS = 2;
+export const SUMMARY_NEEDS_CONFIRM = 'this reply must be the summary of the job as they told it, ending with one question asking whether it is correct';
+export const askTheNext = (h: Held) => `it does not ask about ${labelOf(h.plan, h.plan.next!)}; ask one short question about that and nothing already given`;
+/** The filter for one reply in a job conversation (h.plan.mode is 'ask', 'summary' or 'confirmed'):
+ *   ask       a question on a filled or to-confirm slot, or repeating an earlier question, is dropped (reaskOf);
+ *             a question on another must-have than the next two is dropped (it is asked in its turn); one question
+ *             on something outside the plan (an expert follow-up) may stay; at most MAX_PLAN_QUESTIONS; a reply
+ *             asking neither the next must-have nor anything code cannot place is rewritten (end()).
+ *   summary   every statement stays (the read-back restates on purpose); the only question kept is the one asking
+ *             whether it is correct, and a summary without it is rewritten.
+ *   confirmed nothing is asked; the reply tells them to press New request. */
+function planFilter(h: Held): ReplyFilter {
+  const st = h.plan; const plan = st.plan!;
+  const inPlan = (id: string) => plan.slots.some((s) => s.id === id);
+  const chosen = new Set([st.next, st.also].filter(Boolean) as string[]);
+  if (chosen.has('size')) chosen.add('count');
+  let kept = 0; let onPlan = 0; let unplaced = 0; let extra = 0; let reasked = 0; let confirmAsk = 0; let inSummary = st.mode === 'summary';
+  const f = (sentence: string): Verdict => {
+    const s = sentence.trim();
+    if (!s) return null;
+    if (SUMMARY.test(s)) inSummary = true;
+    if (!isQuestion(s)) return unaskedOf(s, h, inSummary);
+    if (st.mode === 'confirmed') return 'they confirmed the summary: nothing more is asked';
+    if (st.mode === 'summary') {
+      if (confirmAsk === 0 && (PLAN_CONFIRM_ASK.test(s) || CONFIRM_ASK.test(s))) { confirmAsk++; kept++; return null; }
+      return 'the summary asks only whether it is correct';
+    }
+    if (PLAN_CONFIRM_ASK.test(s) || CONFIRM_ASK.test(s)) return 'a read-back before the essentials are in';
+    const r = reaskOf(s, h);
+    if (r) { reasked++; return r; }
+    const one = newClauseOf(s, h);
+    const q = one ?? s;
+    const t = targets(q, plan).filter((id) => !(id === 'size' && /\d/.test(q)));
+    if (t.some((id) => chosen.has(id))) onPlan++;
+    else if (t.some(inPlan)) {
+      const id = t.find(inPlan)!;
+      return `asks the ${slotName(id)} before the ${slotName(st.next!)}: code asks the ${slotName(st.next!)} now`;
+    } else {
+      if (extra >= 1) return 'more than one question beyond the must-have code chose';
+      extra++;
+      if (!t.length) unplaced++;
+    }
+    if (kept >= MAX_PLAN_QUESTIONS) return `more than ${MAX_PLAN_QUESTIONS} questions`;
+    kept++;
+    return one ? { text: one, why: 'part of the question was asked before' } : null;
+  };
+  return Object.assign(f, { end: () => {
+    if (st.mode === 'confirmed') return null;
+    if (st.mode === 'summary') return confirmAsk ? null : SUMMARY_NEEDS_CONFIRM;
+    if (kept === 0) return reasked ? ALL_QUESTIONS_DROPPED + ` (the next one: ${labelOf(st, st.next!)})` : askTheNext(h);
+    // a question code cannot place may be the next must-have in other words; one placed elsewhere is not
+    return onPlan || unplaced ? null : askTheNext(h);
+  } });
 }

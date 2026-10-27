@@ -35,6 +35,8 @@
 //   PORTAL_ASSIST_URL=http://localhost:8000 ... run   proves a branch before deploy: sales_engineer served locally
 //                                                     (deno run) against production.
 //   node scripts/e2e/live_seat_conversations.mjs score --results <run.json> --judged <judged.json>
+//   node scripts/e2e/live_seat_conversations.mjs outcomes --results <run.json>[,<run.json>...]   the outcome counts
+//     below for stored runs, read from their transcripts (so a run from before a change compares like for like)
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import sharp from 'sharp';
@@ -124,6 +126,28 @@ export function turnLatency(results) {
   return { turns: turns.length, p50_s: at(0.5), p95_s: at(0.95), max_s: at(1), no_answer: turns.filter((x) => /^\(NO ANSWER/.test(x.text)).length };
 }
 
+/** THE THREE POINT LOSSES OF 27 OCT, COUNTED FROM THE TRANSCRIPT (customer_support, 27 Oct 2026, evening). The judge
+ *  named them in prose; these count them the same way for every run:
+ *   stalled_before_summary  the conversation ended without the customer confirming a read-back (it ran out of turns,
+ *                           or the scripted customer had nothing to answer twice);
+ *   timeline_asked          the scenario's 'when' fact was released, i.e. some agent turn asked the timing (scenarios
+ *                           without one are not counted);
+ *   reask_flags             questions matching a fact the customer had already given (codeGates' reask_flagged). */
+export function outcomes(results) {
+  const CONFIRMED = /^(Yes, that is correct\.|نعم، صحيح\.)$/;
+  const rows = results.map((r) => {
+    const sc = S.find((s) => s.id === r.id);
+    const whenIdx = sc ? sc.facts.findIndex(([k]) => k === 'when') : -1;
+    const released = new Set((r.released ?? []).map(([i]) => i));
+    const last = r.transcript.at(-1);
+    return { id: r.id, confirmed: last?.role === 'customer' && CONFIRMED.test(last.text), timeline: whenIdx < 0 ? null : released.has(whenIdx), reasks: (r.gates?.reask_flagged ?? []).length };
+  });
+  const t = rows.filter((x) => x.timeline !== null);
+  return { conversations: rows.length, confirmed_summary: rows.filter((x) => x.confirmed).length, stalled_before_summary: rows.filter((x) => !x.confirmed).map((x) => x.id),
+    timeline_asked: t.filter((x) => x.timeline).length, timeline_scenarios: t.length, timeline_never_asked: t.filter((x) => !x.timeline).map((x) => x.id),
+    reask_flags: rows.reduce((n, x) => n + x.reasks, 0), reask_conversations: rows.filter((x) => x.reasks).map((x) => x.id) };
+}
+
 async function photo(kind) {
   return 'data:image/png;base64,' + (await sharp(Buffer.from(PHOTOS[kind])).png().toBuffer()).toString('base64');
 }
@@ -178,9 +202,10 @@ async function runSuite() {
     }
     const spend = (await read(`select count(*)::int calls, coalesce(sum(cost_aed),0)::numeric(12,4) aed, string_agg(distinct model_used, ',') models from public.ai_cost_log where e2e_run_tag = ${q(run.tag)}`))[0];
     const latency = turnLatency(results);
+    const outcome = outcomes(results);
     const file = join(OUT, `live_seat_conversations_${run.tag}.json`);
-    writeFileSync(file, JSON.stringify({ ledger: 1200, surface: 'portal: sales_engineer assist', url, run_tag: run.tag, measured_at: new Date().toISOString(), spend, latency, results }, null, 1));
-    console.log(`spend ${JSON.stringify(spend)}\nlatency ${JSON.stringify(latency)}\ntranscripts: ${file}\nnext: a Claude session scores each transcript -> score --results ${file} --judged <judged.json>`);
+    writeFileSync(file, JSON.stringify({ ledger: 1200, surface: 'portal: sales_engineer assist', url, run_tag: run.tag, measured_at: new Date().toISOString(), spend, latency, outcomes: outcome, results }, null, 1));
+    console.log(`spend ${JSON.stringify(spend)}\nlatency ${JSON.stringify(latency)}\noutcomes ${JSON.stringify(outcome)}\ntranscripts: ${file}\nnext: a Claude session scores each transcript -> score --results ${file} --judged <judged.json>`);
   } finally { await closeRun(run).catch((e) => console.error('teardown: ' + e.message)); }
 }
 
@@ -202,7 +227,7 @@ function score() {
   const idk = R0.results.filter((r) => !r.gates.no_idk).length, yn = R0.results.filter((r) => !r.gates.no_yesno_only).length;
   for (const r of rows) console.log(`${r.met ? 'MET ' : 'GAP '} ${r.id} [${r.lang}] ${r.pct}%${r.issues.length ? ' - ' + r.issues.join('; ') : ''}`);
   const met = rows.filter((r) => r.met).length;
-  const summary = { run_tag: R0.run_tag, scenarios: rows.length, met, mean_pct: Math.round(rows.reduce((a, r) => a + r.pct, 0) / rows.length), idk_conversations: idk, yesno_only_conversations: yn,
+  const summary = { run_tag: R0.run_tag, outcomes: outcomes(R0.results), scenarios: rows.length, met, mean_pct: Math.round(rows.reduce((a, r) => a + r.pct, 0) / rows.length), idk_conversations: idk, yesno_only_conversations: yn,
     acceptance: rows.length >= 30 && met === rows.length && idk === 0 && yn === 0 ? 'MET' : 'NOT MET',
     gaps: rows.filter((r) => !r.met).map((r) => ({ id: r.id, seat: 'sales_engineer', lang: r.lang, pct: r.pct, issues: r.issues })) };
   writeFileSync(val('--results').replace(/\.json$/, '.scored.json'), JSON.stringify(summary, null, 1));
@@ -212,6 +237,12 @@ function score() {
 if (process.argv[1]?.endsWith('live_seat_conversations.mjs')) {
   if (argv[0] === 'run') await runSuite();
   else if (argv[0] === 'score') score();
-  else { console.error('usage: live_seat_conversations.mjs run|score (see the header)'); process.exit(2); }
+  else if (argv[0] === 'outcomes') {
+    const all = val('--results').split(',').flatMap((f) => JSON.parse(readFileSync(f, 'utf8')).results);
+    // the gates are recomputed from the transcript, as score does, so a stored run is counted by today's rules
+    for (const r of all) { const sc = S.find((s) => s.id === r.id); if (sc) r.gates = codeGates(sc, r.transcript.filter((x) => x.role === 'agent').map((x) => x.text), r.released ? new Map(r.released) : null); }
+    console.log(JSON.stringify({ latency: turnLatency(all), ...outcomes(all) }, null, 1));
+  }
+  else { console.error('usage: live_seat_conversations.mjs run|score|outcomes (see the header)'); process.exit(2); }
 }
 export { S };

@@ -11,6 +11,7 @@ General rules for this group:
 ## Flooring (flooring)
 Covers vinyl/LVT/SPC, laminate, engineered and solid wood, raised access floors, rubber, and general floor replacement. Tile, stone and epoxy have their own sections.
 - **Open:** Which space and roughly how big (m2 or room dimensions)? What finish do you want, and what is on the floor now?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: the area and which rooms; usage: how the floor is used (traffic, heavy impact zones, wet areas); existing: what is on the floor now and its condition; finish: the flooring type, thickness and colour; occupancy: occupied or empty during the work; location; timing
 - **Then ask (in order, one or two at a time):**
   - Property type (villa, apartment, office, shop, warehouse) and floor level; lift access for materials?
   - Existing floor: tile, marble, screed, old carpet, old wood? Keep and lay over, or remove?
@@ -33,6 +34,7 @@ Covers vinyl/LVT/SPC, laminate, engineered and solid wood, raised access floors,
 
 ## Tiling (tiling)
 - **Open:** Floors, walls, or both, and in which rooms? Are you replacing old tiles or tiling a new/bare surface?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: the area and which rooms (floors, walls or both); existing: old tiles to remove or tile over; finish: tile size, type and finish; occupancy: occupied or empty during the work; location; timing
 - **Then ask (in order, one or two at a time):**
   - Area per room (m2) or room dimensions and wall height to be tiled (full height or half).
   - Wet area? Bathrooms, kitchens, balconies, pool decks need waterproofing; is it included or already done?
@@ -57,6 +59,7 @@ Covers vinyl/LVT/SPC, laminate, engineered and solid wood, raised access floors,
 ## Marble and granite (marble-granite)
 Covers marble, granite, quartz/engineered stone, travertine and other natural stone for floors, walls, stairs, countertops, vanity tops, cladding, and polishing/restoration.
 - **Open:** Is this new stone installation, or polishing/restoration of existing stone? Where: floor, stairs, kitchen top, vanity, wall or outdoor?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: new stone or polishing existing stone, and where; size; finish: stone type and finish; location; timing
 - **Then ask (in order, one or two at a time):**
   - For new stone: material (marble, granite, quartz, travertine, porcelain slab as alternative) and colour/name if known; customer supplies or supplier supplies?
   - Dimensions: floor m2; countertop length x depth and number of pieces; stairs count, tread and riser sizes, landings.
@@ -79,6 +82,7 @@ Covers marble, granite, quartz/engineered stone, travertine and other natural st
 ## Epoxy flooring (epoxy-flooring)
 Covers epoxy, PU and PU-cement resin floors, self-levelling, roller coats, anti-slip, ESD, decorative metallic/flake, car parks and garages.
 - **Open:** What is the space used for (garage, warehouse, factory, kitchen, car park, showroom, home)? Roughly how many m2?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** usage: what the space is used for; size; existing: the floor's condition; location; timing
 - **Then ask (in order, one or two at a time):**
   - Substrate: new concrete (how old), old concrete, existing tiles, old coating to remove?
   - Traffic: foot only, cars, forklifts, pallet trucks, chemicals, hot water, steam cleaning?

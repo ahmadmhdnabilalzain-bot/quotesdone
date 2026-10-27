@@ -4,6 +4,7 @@
 
 ## Security systems: CCTV, access control, intrusion (security)
 - **Open:** What do you need to protect and why: home, shop, office, warehouse, building? New system, extension, or replacing an old one? Which emirate?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** coverage: the areas to cover and how many cameras; performance: the detail needed (faces, number plates) and night vision; recording: recording days and phone viewing; existing: any existing system or cabling; location; timing
 - **Then ask, CCTV (in order, one or two at a time):**
   - Coverage: which areas must be seen (entrances, gate, parking, cash counter, stock, corridors, lift lobbies, perimeter)? Count the cameras, or the number of doors/zones.
   - Indoor vs outdoor per camera; outdoor needs weatherproof, heat- and dust-rated housings and sun glare consideration.
@@ -34,6 +35,7 @@
 
 ## IT networking and structured cabling (it-networking)
 - **Open:** Is this new office cabling, Wi-Fi coverage improvement, a server/rack room, or a fault? How many users and workstations?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: new cabling, Wi-Fi, a rack or a fault; size: users and points; existing; location; timing
 - **Then ask (in order, one or two at a time):**
   - Data points: count per desk, plus printers, phones, cameras, access points, TVs.
   - Cable category (Cat6, Cat6A) and whether fibre is needed between floors or buildings.
@@ -53,6 +55,7 @@
 
 ## Audio-visual systems (av-systems)
 - **Open:** Which space and use: meeting room, boardroom, home cinema, retail/restaurant music, event hall, digital signage? How many rooms?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** usage: the space and its use; size: how many rooms; scope: the equipment wanted; location; timing
 - **Then ask (in order, one or two at a time):**
   - Room size and seating; ceiling height and type.
   - Display: TV or projector and screen; size; video wall; outdoor display?
@@ -72,6 +75,7 @@
 
 ## Fire and life safety (safety)
 - **Open:** What is it: new installation for a fit-out, an extension/modification, a Civil Defence inspection observation, annual maintenance, or extinguisher refill? Which emirate?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: floor area, rooms and ceiling height; system: the system type and the tie-in to the building panel; usage: what is stored or done there; scope: suppression needed (sprinklers, gas, hose reels); design: approved Civil Defence drawings; location; timing
 - **Then ask (in order, one or two at a time):**
   - Premises type, area, floors, and occupancy (office, restaurant, warehouse, villa, labour accommodation).
   - Systems involved: fire alarm (addressable or conventional, detector count), sprinklers, hose reels, FM-200/other suppression for kitchens or server rooms, kitchen hood suppression, extinguishers, emergency and exit lighting, fire doors.

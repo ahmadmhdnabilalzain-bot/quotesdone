@@ -4,6 +4,7 @@
 
 ## Residential and office fit-out (fitout)
 - **Open:** "What space is it (villa, apartment, office), and roughly how many square metres or feet?" then "Is it a shell-and-core unit, or a renovation of an existing finish?"
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: the area and its condition (shell and core or a renovation); layout: the rooms and headcount; design: a design ready, or design and build; permits: landlord, free zone and Civil Defence approvals; location; timing
 - **Then ask (in order, one or two at a time):**
   1. Location: emirate, community/free zone or mainland, building name. This decides the approving authority (DM, DDA, Trakhees, other emirates' municipality) and the developer/landlord NOC.
   2. Scope list: partitions, ceilings, flooring, painting, joinery, doors, MEP (AC ducts/diffusers, lighting, power, data), sprinklers/fire alarm changes, toilets/pantry.
@@ -19,6 +20,7 @@
 
 ## Commercial and retail fit-out: shops, restaurants, clinics, showrooms (commercial-retail-fitout)
 - **Open:** "What business is going in (retail, F&B, clinic, salon, showroom), and where: mall, street shop, or free zone?" then "Unit area, and do you have the landlord's fit-out guide/design criteria?"
+- **Must-haves (asked in this order, one or two a turn, then the summary):** usage: the business going in; size: the unit area; design: the landlord's fit-out guide and a design; permits; location; timing
 - **Then ask (in order, one or two at a time):**
   1. Mall or landlord fit-out manual: approved contractors list, design approval, bond or deposit rules, working hours.
   2. Concept: brand pack/drawings, or design-and-build?
@@ -33,6 +35,7 @@
 
 ## Interior design (interior-design)
 - **Open:** "Design only, or design plus execution?" then "Which space and size, and what style are you after?"
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: design only, or design and execution; size; finish: the style; location; timing
 - **Then ask (in order, one or two at a time):** deliverables (moodboard, 2D layouts, 3D renders, material/furniture schedule, authority drawings, supervision); number of rooms/area; style references (photos, Pinterest); users and use; existing furniture to keep; sourcing included?; revision rounds; timeline; budget for the design and, separately, for the build.
 - **Photo/drawing tells you:** current state, the taste behind the references. **It cannot tell you:** dimensions, services positions, structural limits. Designer measures on site.
 - **Price drivers (spec decisions):** area and room count; deliverables depth (3D renders and authority drawings add work); revision rounds; procurement and site supervision; project type (residential vs commercial).
@@ -41,6 +44,7 @@
 
 ## Gypsum: ceilings, partitions, bulkheads, cornices (gypsum)
 - **Open:** "Ceiling, partition, or decorative work (cornice, cove, niche)?" then "Which rooms, and the area or room sizes?"
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: ceiling, partition or decorative work; size: room sizes and height; layout: the design (levels, cove light, spotlights); services: AC grilles, sprinklers and access panels to keep; location; timing
 - **Then ask (in order, one or two at a time):** ceiling type (flat board, 600x600 tile grid, bulkhead with cove light, mouldings); partition height, length, single or double board, acoustic insulation, door openings; board type (standard, moisture-resistant for bathrooms/kitchens, fire-rated); ceiling height and drop required; light fittings, AC diffusers and access panels to cut in; painting included?; timeline; budget.
 - **Photo/drawing tells you:** design idea, room shape, existing ceiling. **It cannot tell you:** room dimensions, ceiling void depth, AC duct positions. Supplier measures on site.
 - **Price drivers (spec decisions):** area or running metres; board type (MR and fire-rated cost more); design complexity (curves, layers, cove lighting); insulation; access panels and cut-outs; finishing and paint; height/scaffold; removal of the old ceiling; building NOC.
@@ -49,6 +53,7 @@
 
 ## Painting (painting)
 - **Open:** "Interior or exterior, and which rooms or areas?" then "Repaint the same colour, or a colour change?"
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: interior or exterior, walls and ceilings; size: the rooms or area; finish: colours and paint type; existing: the walls' condition (cracks, damp, peeling); occupancy: occupied or empty, and furniture; location; timing
 - **Then ask (in order, one or two at a time):** area, ceiling height; walls, ceilings, doors, frames or metal; surface condition (cracks, damp, peeling); colour change dark-to-light (extra coats); finish (matt to gloss), washable or anti-mould for wet areas; special finishes (texture, feature wall); exterior: height, scaffold/rope access, UV-resistant system; furnished or empty; timeline; budget.
 - **Photo/drawing tells you:** wall condition, existing colour, room type. **It cannot tell you:** exact area, moisture sources, how many coats are needed. Supplier inspects damp/cracks on site.
 - **Price drivers (spec decisions):** area; number of coats and primer; colour change; surface repair; paint grade (standard vs premium washable); special finishes; height and access; furniture protection; exterior system and scaffold.
@@ -57,6 +62,7 @@
 
 ## Wallpaper (wallpaper)
 - **Open:** "Which walls, and how big (width x height of each)?" then "Do you already have the wallpaper, or should the supplier provide it?"
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: the walls, each width and height; finish: the wallpaper (theirs or supplied) and type; existing: the walls' condition; location; timing
 - **Then ask (in order, one or two at a time):** wall count and dimensions; type (vinyl, non-woven, fabric, custom mural); pattern repeat and matching; wall condition (smooth paint, textured, damp); old wallpaper to strip; wet or sunny wall; catalogue code; timeline; budget.
 - **Photo/drawing tells you:** wall layout, style wanted, surface condition. **It cannot tell you:** exact sizes, moisture, roll quantity. Supplier calculates rolls incl. repeat waste.
 - **Price drivers (spec decisions):** wall area; paper type and source; pattern matching waste; stripping and wall prep; custom murals (printing to size); height/access.
@@ -65,6 +71,7 @@
 
 ## Blinds and curtains (blinds-curtains)
 - **Open:** "How many windows, and which rooms?" then "Blinds, curtains, or both?"
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: how many windows, their sizes and the height; system: blinds or curtains, blackout or sheer, motorised or manual; finish: fabric and colour; location; timing
 - **Then ask (in order, one or two at a time):** each window's width and height, recess or face-fix; type (roller, sunscreen, blackout, Roman, wooden Venetian, zebra, sheer + blackout curtains); fabric/colour; light control (blackout or sunscreen); operation (manual or motorised; motors need a nearby power point); track/rod, ceiling or wall fixing, gypsum pocket; tall windows (access); timeline; budget.
 - **Photo/drawing tells you:** window style, room use, existing fittings. **It cannot tell you:** exact sizes or fixing surface. Final fit from a **site measure by the supplier**.
 - **Price drivers (spec decisions):** number and size of windows; type and fabric grade (blackout and sunscreen vary); motorisation and wiring; track/rod system; lining; pelmets; installation height.
@@ -73,6 +80,7 @@
 
 ## Carpets (carpets)
 - **Open:** "Wall-to-wall carpet, carpet tiles, or loose rugs?" then "Which rooms, and their sizes?"
+- **Must-haves (asked in this order, one or two a turn, then the summary):** system: wall-to-wall, carpet tiles or rugs; size; existing: the current floor and its removal; occupancy: working hours while the space is in use; location; timing
 - **Then ask (in order, one or two at a time):** area per room; use (home, majlis, office, hotel, mosque); type (broadloom cut pile, loop, carpet tiles for offices, custom rugs); fibre (nylon, polypropylene, wool, blends); underlay; stain/fire rating for commercial use; old flooring to remove; subfloor condition; stairs; timeline; budget.
 - **Photo/drawing tells you:** room shape, existing floor, style. **It cannot tell you:** exact area, subfloor level, moisture. Supplier measures for seams and waste.
 - **Price drivers (spec decisions):** area; carpet type and fibre; underlay; commercial ratings; removal of the old floor; subfloor levelling; stairs and cutting; after-hours office installs.

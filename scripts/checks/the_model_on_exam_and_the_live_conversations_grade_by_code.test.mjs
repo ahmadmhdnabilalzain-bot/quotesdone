@@ -17,7 +17,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { missingFacts } from '../eval/seat_exam_llm_on.mjs';
-import { S, customerTurn, codeGates, pick, turnLatency } from '../e2e/live_seat_conversations.mjs';
+import { S, customerTurn, codeGates, pick, turnLatency, outcomes } from '../e2e/live_seat_conversations.mjs';
 import { proposeNotAGap } from '../e2e/knowledge_gap_audit.mjs';
 
 test('the exam grader needs every expected fact, in any case or hyphenation', () => {
@@ -120,4 +120,21 @@ test('the weekly audit never proposes a real question as not a gap', () => {
 test('every run records per-turn latency: p50, p95 and the turns that got no answer', () => {
   const r = turnLatency([{ transcript: [{ role: 'customer', text: 'x' }, ...[4000, 9000, 12000, 30000].map((ms) => ({ role: 'agent', text: 'ok', ms })), { role: 'agent', text: '(NO ANSWER: 503 no_answer)', ms: 70000 }] }]);
   assert.deepEqual(r, { turns: 5, p50_s: 12, p95_s: 70, max_s: 70, no_answer: 1 });
+});
+
+// 27 Oct 2026, evening: the three point losses (stalls before the summary, the timeline never asked, re-asks) are counted
+// from the transcript, the same way for a run before a change and after it
+test('every run counts the conversations that stalled before the summary, the timeline asked, and the re-ask flags', () => {
+  const w = S.find((s) => s.id === 'wardrobe_photo');
+  const whenIdx = w.facts.findIndex(([k]) => k === 'when');
+  const done = { id: 'wardrobe_photo', released: [[whenIdx, 3]], gates: { reask_flagged: [{ turn: 4 }] },
+    transcript: [{ role: 'customer', text: w.open }, { role: 'agent', text: 'Here is your request. Is this correct?' }, { role: 'customer', text: 'Yes, that is correct.' }] };
+  const stalled = { id: 'wardrobe_photo', released: [], gates: { reask_flagged: [] },
+    transcript: [{ role: 'customer', text: w.open }, { role: 'agent', text: 'Anything else?' }] };
+  const o = outcomes([done, stalled]);
+  assert.equal(o.confirmed_summary, 1);
+  assert.deepEqual(o.stalled_before_summary, ['wardrobe_photo']);
+  assert.equal(o.timeline_asked, 1);
+  assert.equal(o.timeline_scenarios, 2);
+  assert.equal(o.reask_flags, 1);
 });
