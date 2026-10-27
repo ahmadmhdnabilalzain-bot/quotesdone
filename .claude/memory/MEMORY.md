@@ -103,6 +103,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A merge chain must read status contexts by state](a-merge-chain-must-read-status-contexts-by-state.md) — Vercel has state, no status/conclusion; gate the merge on 0 pending + 0 failed
 - [Parallel helpers need their own scratch folders](parallel-helpers-need-their-own-scratch-folders.md) — same-named q.mjs got overwritten; one helper ran another's script against production
 - [Post-deploy smokes overlap manual E2E](post-deploy-smokes-overlap-manual-e2e.md) — every main deploy starts a production E2E smoke; check none is running before a manual E2E
+- [Chromium in the cloud container cuts a request at ~30 s](chromium-in-the-cloud-container-cuts-requests-at-30-seconds.md) — 27 Oct: net::ERR_FAILED/MissingAllowOriginHeader while the server answers 200; check function_edge_logs and repeat from Node before calling it a defect; teardown needs 4-12 min
 - [An edge function has a CPU cap a deadline doesn't bound](an-edge-function-has-a-cpu-cap-a-deadline-does-not-bound.md) — #686's escaping hit 546 CPU-exceeded; the kill skips every finding path, so the job hung silently
 - [A dry run doesn't parse a file whose dependencies aren't live](a-dry-run-does-not-parse-a-file-whose-dependencies-are-not-live.md) — two extra `)` found only at apply
 - [Agent worktrees fill the founder's disk](agent-worktrees-fill-the-founders-disk.md) — 22 Sep: 341 × ~1 GB left 46 GB free; remove each worktree when its PR merges
@@ -147,6 +148,8 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Trade licence and VAT status are closed](trade-licence-and-vat-status-are-closed.md) — DET 1633275 (exp 24 Jun 2027); no VAT till AED 375k; never ask again
 - [Build history index](build-history-index.md) — older build-state pointers (portal spec, audits, loop, funnel, knowledge plan)
 - [Idle LLM spend ≤ USD 1-2/day](idle-llm-spend-max-two-dollars.md) — 24 Sep, instr 986: internal-only ceiling ~AED 7; verify on production
+- [A chat turn is one streamed call on a clock](a-chat-turn-is-one-streamed-call-on-a-clock.md) — 27 Oct: portal turns 58-150 s + a 504 from think()'s serial calls; one conversation-route call, PORTAL_TURN_MS, client never r.json()s raw
+- [An intake turn runs on one clock](an-intake-turn-runs-on-one-clock.md) — 27 Oct: interview turns 72-130 s (p95 98.5 s) vs a 30 s portal wait from think()'s serial exact-spec chain; 24 s clock, slow reads start alongside, portal retries with turn_id
 - [Chat model candidates only](chat-model-candidates-only.md) — 13 Oct, ledger 1217: Sonnet 5.5 / GPT-6.1 Sol / GPT-6 Luna Pro only; same price = always Pro (1218); never name the two excluded models to him
 - [Microsoft 365 app already exists](m365-app-already-exists.md) — 18 Oct: reuse the quotesdone.com M365 app (M365_* edge secrets); never ask him to register a new one
 - [OpenRouter stays on; all tests with AI](openrouter-stays-on-all-tests-with-ai.md) — 19 Oct, ledger 1260: no model holds, no stubbed tests

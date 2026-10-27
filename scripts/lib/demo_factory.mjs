@@ -259,13 +259,18 @@ export async function withRun(fn, opts = {}) {
     return await fn(run);
   } finally {
     disarm();
-    if (run.keep) run.log(`run ${run.tag} KEPT (teardown skipped) - tear down later with --purge`);
-    else {
-      const t = await teardown(run);
-      run.log(`run ${run.tag} torn down: ${t.summary}`);
+    // A teardown that throws still closes the window (18 Oct 2026): an open window keeps its run's models on
+    // and silences the failed-run watcher until it expires. The teardown error still propagates.
+    try {
+      if (run.keep) run.log(`run ${run.tag} KEPT (teardown skipped) - tear down later with --purge`);
+      else {
+        const t = await teardown(run);
+        run.log(`run ${run.tag} torn down: ${t.summary}`);
+      }
+    } finally {
+      try { await closeRehearsalWindow(run.tag); }
+      catch (e) { run.log(`(rehearsal window not closed: ${String(e.message || e).slice(0, 120)})`); }
     }
-    try { await closeRehearsalWindow(run.tag); }
-    catch (e) { run.log(`(rehearsal window not closed: ${String(e.message || e).slice(0, 120)})`); }
   }
 }
 

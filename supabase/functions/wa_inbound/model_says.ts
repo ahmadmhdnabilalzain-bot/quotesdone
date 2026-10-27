@@ -35,7 +35,7 @@ export function budgetLeft(arrivedAtMs: number, nowMs: number = Date.now()): num
   return Math.max(0, WA_REPLY_BUDGET_MS - WA_SEND_MARGIN_MS - (nowMs - arrivedAtMs));
 }
 /** outage: no call reached a model (openrouter_down.ts) — the only case the held notice, a code-written line, may go out. */
-export interface Said { text: string; model: string | null; attempts: string[]; ms: number; escalate: boolean; outage: boolean }
+export interface Said { text: string; model: string | null; attempts: string[]; ms: number; escalate: boolean; outage: boolean; problems?: string[] }
 
 export const WA_RULES = 'Plain text for WhatsApp (no markdown), under about 90 words; put each phone number, email or link on its own line, exactly as given in the facts.';
 
@@ -51,7 +51,7 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
       rules: WA_RULES, subject: r.subject, rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, must: r.must,
       deadline: t0 + (r.budgetMs ?? WA_REPLY_BUDGET_MS),
     });
-    return { text: String(out.reply || '').trim(), model: out.model, attempts: out.attempts, ms: Date.now() - t0, escalate: out.escalate === true, outage: out.outage === true };
+    return { text: String(out.reply || '').trim(), model: out.model, attempts: out.attempts, ms: Date.now() - t0, escalate: out.escalate === true, outage: out.outage === true, problems: out.problems ?? [] };
   } catch (e) {
     // aiReply never throws on a model failure; a throw here is our own fault, not a provider outage
     return { text: '', model: null, attempts: ['error: ' + String((e as Error)?.message || e).slice(0, 120)], ms: Date.now() - t0, escalate: false, outage: false };
@@ -73,12 +73,17 @@ export interface HoldIO {
   audience: SayAudience; lang: 'en' | 'ar'; situation: string; why: string;
   /** OpenRouter was down for this turn (Said.outage): only then is the fixed notice sent. */
   outage: boolean;
+  /** Why the model's drafts were refused (aiReply.problems): the re-ask names them to the model (_shared/reask.ts). */
+  problems?: string[];
   enabled(): Promise<boolean>;
   send(text: string): Promise<{ ok: boolean; err?: string }>;
   rpc(fn: string, args: Record<string, unknown>): Promise<{ data: unknown; error: { message: string } | null }>;
 }
-/** Sends the held notice and files the turn in customer_support's queue; resilience_ping replays it through the model
- *  and delivers the written answer on WhatsApp, and escalates it to customer_support after 15 minutes. */
+/** Sends the held notice (outage only) and files the turn in customer_support's queue. The re-ask (_shared/reask.ts, a
+ *  pg_cron check every minute) asks the model again within about a minute, on another family with the refused drafts'
+ *  problems named, and delivers the written answer here; after REASK_MAX_ATTEMPTS refusals the turn is handed to
+ *  customer_support. request.reask carries the turn as data; context.turn_id makes each turn its own question (two
+ *  people sending the same words were one qhash, and a failed one swallowed the other's turn in fn_reason_hold). */
 export async function holdUnwritten(io: HoldIO): Promise<{ notice: string; sent: boolean; err: string | null; held_id: number | null }> {
   const lang = io.audience === 'supplier' ? 'en' : io.lang;
   const notice = io.outage ? HELD_NOTICE[lang] : '';
@@ -94,7 +99,9 @@ export async function holdUnwritten(io: HoldIO): Promise<{ notice: string; sent:
       p_seat: 'customer_support', p_surface: UNWRITTEN_SURFACE, p_question: question,
       p_request: { seat: 'customer_support', surface: UNWRITTEN_SURFACE, subject,
         question: `Reply on WhatsApp to this ${io.audience} message, in ${lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}${io.audience === 'supplier' ? ' (suppliers are always answered in English)' : ''}. ${notice ? 'They were told we received it and will reply shortly.' : 'They have not had a reply yet.'}\n\nWHAT HAPPENED ON THAT TURN (facts):\n${io.situation.slice(0, 3000)}\n\nMESSAGE:\n${question}`,
-        context: { audience: io.audience === 'founder' ? 'founder' : io.audience, language: lang }, research: false },
+        context: { audience: io.audience === 'founder' ? 'founder' : io.audience, language: lang, turn_id: 'wa:' + (io.messageSid || io.from + ':' + question.slice(0, 40)) }, research: false,
+        reask: { message: question, facts: 'WHAT HAS HAPPENED ON THIS TURN (decided by our systems; convey it accurately, do not change or add to it):\n' + io.situation.slice(0, 3000),
+          audience: io.audience, lang, channel: 'WhatsApp', problems: (io.problems ?? []).slice(0, 12) } },
       p_plan: {}, p_subject: subject, p_reason: io.why, p_dedupe_key: 'wa_unwritten:' + (io.messageSid || io.from + ':' + question.slice(0, 40)),
     });
     held_id = Number(data) || null;
