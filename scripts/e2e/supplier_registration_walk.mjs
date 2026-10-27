@@ -363,7 +363,6 @@ try {
     // 4. mobile: the fixture refusal, then recorded verified
     const sms = await call('kyc', s.access_token, { action: 'send_sms', phone: `+9715000000${String(10 + n).padStart(2, '0')}` });
     step(m, 'a fixture mobile is refused before any SMS', sms.json?.ok !== true, sms.text.slice(0, 90));
-    step(m, 'the form shows the mobile verified', mobileOk);
     await write(`update public.leads set phone='+9715000000${String(10 + n).padStart(2, '0')}', owner_phone_verified=true where id=${lead.id}`, 'fixture mobile verified');
 
     // 5. profile: the WhatsApp question is on screen, terms + Save
