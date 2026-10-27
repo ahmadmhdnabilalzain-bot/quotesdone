@@ -6648,7 +6648,8 @@
   "caa8dfdaf4f5",
   "cb974acf7755",
   "e687fbf0ba76",
-  "f00b7f659d1a"
+  "f00b7f659d1a",
+  "37463229efc9"
  ],
  "supabase/functions/wa_inbound/menu.ts": [
   "027ef5367e8d",
@@ -6975,5 +6976,19 @@
   "a3d4eca833be",
   "cfb5e8d946af",
   "d0d0d99474e2"
+ ],
+ "scripts/sql/a_harness_chat_turn_carries_its_run_tag_and_files_no_gap_or_task.sql": [
+  "67e0d864b486",
+  "6ece79da1cbc",
+  "d0479646925c",
+  "9dad2edb1e3e"
+ ],
+ "scripts/sql/customer_support_scores_every_notice_a_customer_or_supplier_reads_for_plain_language.sql": [
+  "ec995542ff06",
+  "4acb0073c176",
+  "a48a49d05b4a",
+  "9fc2962e0b12",
+  "345c57857eb7",
+  "099b7e22ed50"
  ]
 }

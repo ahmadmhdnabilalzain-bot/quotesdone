@@ -652,7 +652,9 @@ async function dropboxVerifyTick(): Promise<unknown> {
 // Read only: the project, its domains, its env var NAMES (never decrypted, and vercel_snapshot.ts drops every value
 // again) and its crons. The JSON goes to the private backups bucket and is filed for Dropbox under Company/Vercel/.
 // The env vars the site reads are the names in the site's own code (src/: process.env.*), listed here.
-const SITE_ENV_NAMES = ['CRON_SECRET', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'SITE_ERROR_INGEST_SECRET', 'SUPABASE_SERVICE_ROLE_KEY'];
+// 27 Oct 2026: the site reads the new keys first (NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY) and the legacy
+// ones only as the temporary fallback; drop the two legacy names with that fallback.
+const SITE_ENV_NAMES = ['CRON_SECRET', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'SITE_ERROR_INGEST_SECRET', 'SUPABASE_SECRET_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
 async function vercelSnapshotTick(): Promise<unknown> {
   try {
     const [token, pid, team] = await Promise.all([sec('vercel_token'), sec('vercel_project_id'), sec('vercel_team_id')]);

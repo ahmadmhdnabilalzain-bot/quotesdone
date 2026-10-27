@@ -63,6 +63,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Drive the knowledge road alone](drive-the-knowledge-road-alone.md) — founder will not help
 - [Specs are upgrades, not repairs](specs-are-upgrades-not-repairs.md)
 - [Session briefs carry misdiagnoses](session-briefs-carry-misdiagnoses.md) — counts reliable, causes not
+- [A chat turn names no customer, so it carries the run tag](a-chat-turn-names-no-customer-so-it-carries-the-run-tag.md) — 27 Oct: one run left 273+269+273 log rows and 97 gaps + 97 unconfirmed tasks; teardown now deletes by e2e_run_tag and test traffic files no gap
 - [Demo fixtures: ZZ DEMO + example.invalid](demo-fixture-convention.md) · [Safe rehearsal](safe-marketplace-demo-rehearsal.md) · [Probes page the founder](rehearsals-and-probes-page-the-founder.md) · [Test without his credentials](test-without-the-founders-credentials.md)
 - [Use Edge; never rely on him except sign-ins](use-edge-browser-and-act-without-founder.md) — 23 Sep, ledger 925
 - [Walk the OS in his browser](walk-the-os-in-his-browser.md) — Claude in Chrome has his session
@@ -134,6 +135,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [CHECKPOINT 27 Oct — cloud only, invitations HELD for GlockApps](checkpoint-27-oct-cloud-invitations-held.md) — READ FIRST: laptop has no keys; invite_enabled=false; GlockApps 27 Oct FAILED (Microsoft 0/18 inbox), copy now variant A, winmail.dat/TNEF on every external copy (admin fix), compressed warm-up, re-test day 3 with the LAST credit; warm-up plan; 16 open PRs by state
 - [Security hardening 27 Oct — SSL, network, legacy JWT, pg_net: state and next steps](security-hardening-27-oct-state.md) — nothing applied (restart / unproven exemptions); legacy JWT secret still trusted until the consumer PR, then disable + revoke; pg_net needs Supabase support
 - [Invitations resume only at ≥80% Outlook inbox](invitations-resume-only-at-80-percent-outlook-inbox.md) — 27 Oct, instr 1312: GlockApps from supplier@; report inbox/spam/promotions per provider
+- [Legacy key move, step 1 (27 Oct)](legacy-key-move-step-1-27-oct.md) — every consumer reads publishable/secret first, legacy as fallback; a new key as Bearer ONLY reads as anon on Storage; watch HS256 24-48 h, then disable, then revoke
 - [Standing approval: merge and deploy reviewed PRs](standing-approval-merge-and-deploy-reviewed-prs.md) — 27 Oct, instr 1340: reviewed + gate-clean PRs ship without asking; policy, real sends, spend and irreversible steps still go to him
 - [Ask before the internal test email management@ → supplier@](ask-before-the-internal-test-email.md) — 27 Oct, instr 1314: his explicit yes first; DROPPED later that day (not a prerequisite)
 - [CHECKPOINT 19 Oct — campaign on from 20 Oct, PR drain](checkpoint-19-oct-campaign-on-pr-drain.md) — READ FIRST: caps, open PRs, exam scores, grounding fix
