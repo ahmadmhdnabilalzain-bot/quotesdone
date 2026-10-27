@@ -71,9 +71,12 @@ export type MenuDeps = {
   send(to: string, body: string, content?: Content): Promise<SendResult>;
   /** THE WORDS (rulings 1195-1197): a model writes every conversation reply in this turn from `situation` (what code
    *  decided) — wa_inbound/model_says.ts. '' when no model answered: then nothing conversational is sent. */
-  write(r: { situation: string; lang: Lang; audience: Audience; message: string }): Promise<string>;
-  /** No model answer: the HELD NOTICE (a fixed receipt, a notification) is sent and the turn is queued for a model
-   *  retry, escalated to customer_support after 15 minutes (model_says.ts holdUnwritten). Never silence. */
+  write(r: { situation: string; lang: Lang; audience: Audience; message: string; must?: string[] }): Promise<string>;
+  /** True when the last write got no text because OpenRouter was down (no call reached a model; founder_instruction
+   *  1339). Only then may a code-written line (the case confirmation) be sent in place of the model's words. */
+  outage?(): boolean;
+  /** No model answer: the turn is queued for a model retry, escalated to customer_support after 15 minutes
+   *  (model_says.ts holdUnwritten); the fixed HELD NOTICE goes out only when OpenRouter is down (1339). */
   held(r: { situation: string; lang: Lang; audience: Audience; route: string }): Promise<{ notice: string; sent: boolean; err: string | null }>;
   record(row: { inbound: string; reply: string; lang: Lang; sent: boolean; route: string; await: string | null;
                 send_error: string | null; extra: Record<string, unknown> }): Promise<void>;
@@ -111,7 +114,7 @@ async function talk(d: MenuDeps, inp: MenuInput, lang: Lang, route: string, situ
   if (!text) {
     const h = await d.held({ situation, lang, audience: inp.audience, route });
     await d.record({ inbound: String(inp.body || '').trim(), reply: h.notice, lang, sent: h.sent, route, await: awaitNext,
-                     send_error: h.err, extra: { ...extra, held_notice: true, autoreply_enabled: await d.autoreplyEnabled() } });
+                     send_error: h.err, extra: { ...extra, held_notice: !!h.notice, autoreply_enabled: await d.autoreplyEnabled() } });
     return false;
   }
   await reply(d, inp, lang, route, text, awaitNext, { ...extra, model_written: true });
@@ -145,7 +148,7 @@ async function sendMenu(d: MenuDeps, inp: MenuInput, lang: Lang, ctx: MenuContex
   if (!line) {
     const h = await d.held({ situation: lead ?? 'They greeted us or asked for the menu.', lang, audience: ctx.audience, route });
     await d.record({ inbound: String(inp.body || '').trim(), reply: h.notice, lang, sent: h.sent, route, await: null,
-                     send_error: h.err, extra: { ...more, held_notice: true, autoreply_enabled: await d.autoreplyEnabled() } });
+                     send_error: h.err, extra: { ...more, held_notice: !!h.notice, autoreply_enabled: await d.autoreplyEnabled() } });
     return;
   }
   line = line.replace(/\s*\n+\s*/g, ' '); // a Content variable carries no line break
@@ -239,7 +242,19 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
   //    message REASONED to be a hello or something else is not filed.
   if (!picked && awaiting === 'problem' && body && (meaning === 'problem' || meaning === null)) {
     const c = await d.openCase(inp.from, body, lang);
-    await reply(d, inp, lang, 'menu_case', caseConfirm(lang, c), null, { case_ref: c.ref, case_appended: !!c.appended, meaning: meaning ?? 'held' });
+    // THE CONFIRMATION IS THE MODEL'S (founder_instruction 1339): the case and its reference are code's facts; the words
+    // are written by the model and must carry the reference. The fixed caseConfirm goes out only when OpenRouter is down.
+    const confirm = caseConfirm(lang, c);
+    const extra = { case_ref: c.ref, case_appended: !!c.appended, meaning: meaning ?? 'held' };
+    const said = await d.write({ lang, audience: inp.audience, message: body, must: c.ref ? [String(c.ref)] : undefined,
+      situation: 'They described a problem and it is filed as a support case. Our confirmation, to convey accurately in your own words (keep the reference exactly):\n' + confirm });
+    if (said) await reply(d, inp, lang, 'menu_case', said, null, { ...extra, model_written: true });
+    else if (d.outage?.()) await reply(d, inp, lang, 'menu_case', confirm, null, { ...extra, outage_fallback: true });
+    else {
+      const h = await d.held({ situation: confirm, lang, audience: inp.audience, route: 'menu_case' });
+      await d.record({ inbound: body, reply: h.notice, lang, sent: h.sent, route: 'menu_case', await: null, send_error: h.err,
+                       extra: { ...extra, held_notice: !!h.notice, autoreply_enabled: await d.autoreplyEnabled() } });
+    }
     return { handled: true, route: 'menu_case' };
   }
 

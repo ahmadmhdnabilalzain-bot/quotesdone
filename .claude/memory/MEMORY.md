@@ -27,6 +27,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Founder rulings are the holy book; any number quote, top-3 = report](founder-rulings-are-the-holy-book.md) — 24 Sep
 - [Subscriptions now on the company account; personal-card history kept](subscriptions-paid-from-personal-card.md) — 29 Sep: statement is the source going forward; keep the ~8,155 personal history
 - [Routine work is code, not LLM (90%+)](routine-work-is-code-not-llm.md) — 24 Sep
+- [The engineer and support reply only through the model (27 Oct)](the-engineer-and-support-reply-only-through-the-model.md) — ledger 1339: a code-written reply only when the OpenRouter call failed; `modelOrOutage`, `AiReply.outage`
 - [Marketing one-shot approval; no posting weekends/holidays; daily supplier-list PDF](marketing-month-approval-flow.md) — 24 Sep
 - [Batch work on the subscription, not paid LLM; no lead study](do-batch-work-on-the-subscription-not-paid-llm.md) — 24 Sep
 - [Investor pack: founder rulings 24 Sep](investor-pack-founder-rulings.md) — subs main revenue, ≤250k costs, 200k for 50%, brand design
