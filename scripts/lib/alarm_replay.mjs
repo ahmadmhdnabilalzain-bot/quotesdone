@@ -51,7 +51,21 @@ export function stubCalls(sql, fn, value) {
 export const stripRowLocks = (sql) =>
   sql.replace(/\bfor\s+(?:no\s+key\s+)?(?:update|share|key\s+share)(?:\s+of\s+[\w.]+(?:\s*,\s*[\w.]+)*)?(?:\s+(?:skip\s+locked|nowait))?/gi, '');
 
-export function replaySql(name, def, entry, at, stage = '', prelude = '') {
+// entry.callees (27 Oct 2026): public routines the alarm's DECISION is made in, called from its body. A callee runs as
+// the live routine, so it read the live tables at today's clock, not the as-of views at the instant: fn_seat_duties_tick
+// raises what fn_seat_duty_health returns, and that read today's seat_duty, so a duty registered on 29 Sep and failing
+// on 27 Oct "fired" at 14 Sep. Each callee named here is rebuilt the same way as the routine (clock, as-of views,
+// capture, stubs, no row locks) as pg_temp.qd_replay_<callee>, and every call to it is sent to the copy.
+// calleeDefs = { name: pg_get_functiondef text }.
+export function replaySql(name, def, entry, at, stage = '', prelude = '', calleeDefs = {}) {
+  const callees = (entry.callees ?? []).map((c) => {
+    assert.ok(calleeDefs[c], `${name}: callee ${c} has no definition to replay`);
+    return `${rewrite(c, calleeDefs[c], entry, Object.keys(calleeDefs))};`;
+  }).join('\n');
+  return replayWith(name, rewrite(name, def, entry, Object.keys(calleeDefs)), entry, at, stage, prelude, callees);
+}
+
+function rewrite(name, def, entry, callees = []) {
   let body = def
     .replace(new RegExp(`create\\s+or\\s+replace\\s+function\\s+public\\.${name}\\s*\\(`, 'i'), `create function pg_temp.qd_replay_${name}(`)
     .replace(/\bnow\(\)|\bclock_timestamp\(\)|\bcurrent_timestamp\b|\btransaction_timestamp\(\)|\bstatement_timestamp\(\)/gi, 'pg_temp.qd_asof()')
@@ -66,8 +80,13 @@ export function replaySql(name, def, entry, at, stage = '', prelude = '') {
   body = stripRowLocks(body);
   // entry.shadow: live tables the replayed body itself writes; it writes a temp copy instead, so it holds no live row.
   for (const t of entry.shadow ?? []) body = body.replace(new RegExp(`\\bpublic\\.${t}\\b`, 'g'), `pg_temp.qd_shadow_${t}`);
-  const shadows = (entry.shadow ?? []).map((t) => `create temp table qd_shadow_${t} as select * from public.${t};`).join('\n');
   for (const t of Object.keys(entry.asOf ?? {})) body = body.replace(new RegExp(`\\bpublic\\.${t}\\b`, 'g'), `pg_temp.qd_asof_${t}`);
+  for (const c of callees) if (c !== name) body = body.replace(new RegExp(`\\bpublic\\.${c}\\s*\\(`, 'gi'), `pg_temp.qd_replay_${c}(`);
+  return body;
+}
+
+function replayWith(name, body, entry, at, stage, prelude, callees) {
+  const shadows = (entry.shadow ?? []).map((t) => `create temp table qd_shadow_${t} as select * from public.${t};`).join('\n');
   const views = Object.entries(entry.asOf ?? {})
     .map(([t, c]) => `create temp view qd_asof_${t} as select * from public.${t} where ${c} < ${lit(at)}::timestamptz;`).join('\n');
   const fromResult = entry.findings
@@ -82,6 +101,7 @@ create function pg_temp.qd_quiet_capture(p_issue_key text, p_title text, p_where
 returns jsonb language plpgsql as $c$ begin insert into qd_quiet_fired values (p_issue_key, p_title); return '{}'::jsonb; end $c$;
 ${views}
 ${shadows}
+${callees}
 ${body};
 do $q$
 declare v jsonb;
@@ -103,12 +123,18 @@ export async function replay(sql, name, entry, at, stage = '', pending = null) {
                            where n.nspname = 'public' and p.proname = ${lit(name)}`))?.[0]?.d;
   const def = pending?.def ?? live;
   assert.ok(def, `${name} is not in production`);
+  const calleeDefs = {};
+  for (const c of entry.callees ?? []) {
+    calleeDefs[c] = (await sql(`select pg_get_functiondef(p.oid) d from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                                where n.nspname = 'public' and p.proname = ${lit(c)}`))?.[0]?.d;
+    assert.ok(calleeDefs[c], `${name}: its callee ${c} is not in production`);
+  }
   let message = '';
   // A LIVE routine's replay is retried on 429/5xx like any read: it is seconds long, writes only temp objects and
   // rows the raise rolls back, so a second copy cannot deadlock the first. A PENDING routine's replay is NOT retried:
   // its prelude is the whole pending file - ALTER TABLE, DROP/CREATE TRIGGER, routine replacements and any at-apply
   // step - all rolled back by the same raise, but DDL taking table locks, which is the replay hazard db.mjs names.
-  try { await sql(replaySql(name, def, entry, at, stage, pending?.file ?? ''), { retry: !pending }); message = 'the replay returned without raising, so it did not roll back'; }
+  try { await sql(replaySql(name, def, entry, at, stage, pending?.file ?? '', calleeDefs), { retry: !pending }); message = 'the replay returned without raising, so it did not roll back'; }
   catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, `${name} at ${at}: ${message.slice(0, 1500)}`);

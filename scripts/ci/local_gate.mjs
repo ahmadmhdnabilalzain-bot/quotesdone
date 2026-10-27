@@ -18,7 +18,7 @@
 // management API's 429 budget, and the kernel gate's serial rule in project-parity.yml).
 // Logs and summary.md: <tmp>/qd-gate-<time>-<random>/, one folder per run.
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs';
+import { lstatSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync, existsSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { tmpdir, homedir, totalmem } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -36,7 +36,12 @@ const T0 = Date.now();
 const LOGS = mkdtempSync(join(tmpdir(), `qd-gate-${new Date(T0).toISOString().replace(/[:.]/g, '-')}-`));
 
 const TOKEN = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
-const DENO = 'deno test --no-lock --node-modules-dir=auto --allow-read=.';
+// A worktree whose node_modules is a symlink to the main checkout's resolves every package OUTSIDE ".", so
+// --allow-read=. refused tesseract's .wasm and scan-takeoff failed with NotCapable (27 Oct 2026, reproduced). The
+// read grant then names the link's real target as well: the same dependency tree, nothing wider.
+const NM_LINK = (() => { try { const p = join(REPO, 'node_modules'); if (!lstatSync(p).isSymbolicLink()) return null;
+  const real = realpathSync(p); return real.startsWith(REPO) ? null : real; } catch { return null; } })();
+const DENO = `deno test --no-lock --node-modules-dir=auto --allow-read=.${NM_LINK ? `,${NM_LINK}` : ''}`;
 const env = { DENO_NO_PACKAGE_JSON: '1' };   // checks.yml / project-parity.yml workflow env (12 Oct 2026)
 // A production check that answers SKIP has asserted nothing; in the kernel gate that is a failure (project-parity.yml).
 const SKIPPED = /^SKIP|^SKIPPED|NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL|# SKIPPED/m;
@@ -210,6 +215,7 @@ if (PR !== null) {
   if (!prHead || prHead !== execOut('git rev-parse HEAD')) { console.error(`--pr refused: HEAD is not PR #${PR}'s head (${prHead || 'unreadable'})`); process.exit(2); }
 }
 console.log(`local gate on ${branch} @ ${head}; logs in ${LOGS}`);
+if (NM_LINK) console.log(`node_modules is a link to ${NM_LINK}: the deno steps may read it too`);
 
 // With a token, npm test is itself a production caller, so it runs FIRST in the one serial production chain:
 // two callers sharing the management API's request budget is how 10 of 19 failures became 429s
