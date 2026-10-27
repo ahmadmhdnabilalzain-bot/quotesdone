@@ -1,5 +1,0 @@
-Committed, not applied: apply at merge (rule: never apply before merge). Until it is live the shopper's report call
-fails (no ingest routine). quote_compare is unchanged by this PR (its deterministic_only branch was removed on review,
-ruling 1260), so no function deploy goes with it. Moves when the release operator runs
-`node scripts/apply_sql.mjs scripts/sql/the_it_engineer_sends_a_mystery_shopper_through_every_day.sql --apply --ddl`, reads PROBE OK, runs scripts/sql/the_it_engineer_sends_a_mystery_shopper_through_every_day_probe.sql
-(CHK<<PROBE OK ...>>), then deletes this note and appends the file to the END of scripts/sql/MANIFEST.txt. Seat: it_engineer. Ruling 1209.
