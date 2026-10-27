@@ -1,9 +1,0 @@
-Not applied. Applied at merge, never before (ledger: apply-at-merge-never-before), then MANIFEST gets its line:
-  node scripts/apply_sql.mjs scripts/sql/the_seats_read_the_knowledge_library_once_it_holds_every_row.sql --apply --ddl
-Applying it changes nothing a seat reads: with no recorded verdict fn_knowledge_library_read() stays 'legacy'
-(probed 27 Oct 2026 in a rolled-back transaction: before=legacy, after recording today's verdict (56 rows, not
-reconciled)=legacy, verdict forced true=library, forced false=legacy).
-What moves the seats onto the library afterwards: the first night run of
-  node scripts/kb/fill_knowledge_library.mjs --run      (23:00-06:00 Dubai; carries on across nights)
-whose final reconciliation is recorded; when it says reconciled, every seat reads the library.
-Delete this note in the commit that records the apply. Seat: it_engineer.
