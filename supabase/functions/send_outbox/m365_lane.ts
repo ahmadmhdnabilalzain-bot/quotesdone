@@ -113,6 +113,7 @@ export function holdForM365(o: { m365: M365; type: unknown; cappedSentToday: num
 }
 
 // ---------------------------------------------------------------- the plain-text invitation (marketing)
+// (The wording itself was replaced the same day by variant A, below; the rules in this paragraph still hold.)
 // THE FOUNDER'S EMAIL (27 Oct 2026, founder_instruction 1298-1301): "the wording sounds fine to me"; pitched the way
 // a very large company writes to a business partner; "safer to not send links"; the signature is "just QuotesDone
 // Technologies, Dubai, UAE". So: NO link in the body (quotesdone.com is plain text, no scheme, no path), no HTML frame,
@@ -148,21 +149,28 @@ export function companyName(raw: unknown): string {
 /** "fire_fighting" -> "fire fighting"; '' when there is none. */
 export function tradeLabel(slug: unknown): string { return String(slug || '').replace(/[_-]+/g, ' ').trim().toLowerCase(); }
 const cap1 = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-/** The subject names the company (and the trade when known). Never "invitation", "free", "commission" or "exclusive". */
+// VARIANT A, "ONE QUESTION, NO OFFER" (it_engineer, 27 Oct 2026; founder: "approved. dont ask me", the choice delegated).
+// MEASURED: GlockApps 2026-10-27-09:33:53:634t placed the 27 Oct text above (bullet list "What you get", "Free
+// registration", "No commission", "To join, register at quotesdone.com") in Junk at 18 of 18 Microsoft seeds, SPF/DKIM/DMARC
+// passing and no blocklist, so content and reputation were what was left. This text keeps the founder's rules (no link, no
+// domain written out, English, never the word AI, the signature, the stop line) and drops every offer phrase: no list, no
+// "free", "join", "register", "commission" or "1,000". It is short (~80 words) and asks one question a supplier answers by
+// replying, because a reply is the strongest positive signal a new mailbox can earn. Report:
+// docs/reports/QuotesDone Campaign/GLOCKAPPS_27_OCT_RESULT_AND_FIX_PLAN.md (variants B and C are there, unapplied).
+/** The subject asks; it names the trade when known, else the company. Never "invitation", "free", "commission" or "exclusive". */
 export function m365Subject(who: Who = {}): string {
   const c = companyName(who.company); const t = tradeLabel(who.trade);
-  const what = t ? `${cap1(t)} quote requests` : 'Quote requests';
-  return c ? `${what} for ${c}` : `${what} in the UAE`;
+  if (t) return `A question about your ${t} work`;
+  return c ? `A question for ${c}` : 'A question about your work in the UAE';
 }
-/** The founder's approved text (27 Oct 2026), word for word. Company and trade when known, else the neutral variant. */
+/** Variant A (27 Oct 2026). Company and trade when known, else the neutral wording. */
 export function m365InvitationText(who: Who = {}): string {
   const c = companyName(who.company); const t = tradeLabel(who.trade);
   return [
     c ? `Hi ${c} team,` : 'Hello,',
-    "I'm Ahmad, founder of QuotesDone. QuotesDone connects companies in the UAE with qualified suppliers: buyers post a request for quotation, and each request reaches only the suppliers registered for that exact trade.",
-    `We are now onboarding ${t ? t + ' ' : ''}suppliers ahead of our buyer launch.`,
-    'What you get:\n– Requests that match your trade, delivered directly to you.\n– You choose which ones to quote on.\n– No commission on work you win.\n– Free registration for our first 1,000 suppliers.',
-    'To join, register at quotesdone.com, or simply reply with the trades you cover and our team will set up your company page for you.',
+    "I'm Ahmad, founder of QuotesDone in Dubai. QuotesDone is a platform where companies in the UAE post requests for quotation, and each request goes only to suppliers who work in that exact trade.",
+    `We are putting together our list of ${t ? t + ' ' : ''}suppliers now, before buyers start sending requests. ` +
+      `Would your company like to receive ${t ? t + ' requests' : 'the requests that match your trade'} when they come in?`,
     SIGNATURE,
     STOP_LINE,
   ].join('\n\n');
@@ -262,7 +270,6 @@ export function m365CopyLint(o: { subject: string; body: string; preheader?: str
 
 // ---------------------------------------------------------------- MIME and the send
 const b64 = (s: string) => { const bytes = new TextEncoder().encode(s); let bin = ''; for (const b of bytes) bin += String.fromCharCode(b); return btoa(bin); };
-const wrap76 = (s: string) => s.replace(/.{1,76}/g, (m) => m + '\r\n').trimEnd();
 const hdr = (s: string) => (/^[\x20-\x7e]*$/.test(s) ? s : `=?UTF-8?B?${b64(s)}?=`);
 const clean = (s: string) => String(s || '').replace(/[\r\n]+/g, ' ').trim();
 
@@ -287,6 +294,32 @@ export function m365ReplyTo(o: { proofAt: string | null | undefined; now: Date; 
   return Number.isFinite(t) && age <= M365_INBOX_PROOF_MAX_AGE_MS && age >= -60_000 ? '' : o.fallback;
 }
 
+// THE TEXT PART IS QUOTED-PRINTABLE, NOT BASE64 (it_engineer, 27 Oct 2026). A person's mail client writes a plain
+// English note as 7bit or quoted-printable; a base64-encoded text/plain body that is almost all ASCII is what bulk
+// tools emit, and content filters score it (SpamAssassin's MIME_BASE64_TEXT is the public example). Quoted-printable
+// keeps every ASCII character readable and encodes only the few UTF-8 ones ("·", "–"). MEASURED the same day on a
+// received copy (founder's Gmail, raw): Exchange rebuilds the MIME on the way out and re-encodes the text part itself,
+// so this changes what we SUBMIT, not what arrives; it is kept because it is harmless and tested. RFC 2045 §6.7:
+// "=" and non-ASCII bytes as =XX, a space or tab before a line break as =20/=09, lines at most 76 characters with a
+// soft break "=". The envelope itself stays base64: that is sendMail's own text/plain input format, not a MIME part.
+const QP_HEX = (b: number) => '=' + b.toString(16).toUpperCase().padStart(2, '0');
+export function qpEncode(text: string): string {
+  return text.replace(/\r?\n/g, '\n').split('\n').map((line) => {
+    const bytes = new TextEncoder().encode(line);
+    const tokens: string[] = [];
+    bytes.forEach((b, i) => {
+      const last = i === bytes.length - 1;
+      if ((b === 0x20 || b === 0x09) && last) tokens.push(QP_HEX(b));
+      else if (b === 0x09 || (b >= 0x20 && b <= 0x7e && b !== 0x3d)) tokens.push(String.fromCharCode(b));
+      else tokens.push(QP_HEX(b));
+    });
+    const out: string[] = []; let cur = '';
+    for (const t of tokens) { if (cur.length + t.length > 75) { out.push(cur + '='); cur = ''; } cur += t; }
+    out.push(cur);
+    return out.join('\r\n');
+  }).join('\r\n');
+}
+
 /** The whole message as MIME (base64, as sendMail's text/plain mode wants it). An empty reply writes no Reply-To. */
 export function m365Mime(o: { from: string; to: string; reply: string; subject: string; text: string; unsub: string; unsubMailto: string; messageId: string; now: Date }): string {
   const lines = [
@@ -294,9 +327,21 @@ export function m365Mime(o: { from: string; to: string; reply: string; subject: 
     `Date: ${o.now.toUTCString()}`, `Message-ID: ${o.messageId}`, 'MIME-Version: 1.0',
   ];
   if (o.unsub) lines.push(`List-Unsubscribe: <${clean(o.unsub)}>, <mailto:${o.unsubMailto}?subject=unsubscribe>`, 'List-Unsubscribe-Post: List-Unsubscribe=One-Click');
-  lines.push('Content-Type: text/plain; charset=utf-8', 'Content-Transfer-Encoding: base64', '', wrap76(b64(o.text.replace(/\r?\n/g, '\r\n'))));
+  lines.push('Content-Type: text/plain; charset=utf-8', 'Content-Transfer-Encoding: quoted-printable', '', qpEncode(o.text));
   return b64(lines.join('\r\n'));
 }
+
+// PACING (it_engineer, 27 Oct 2026). MEASURED: the 112 GlockApps seeds of 27 Oct were queued at once at 09:41Z and
+// send_outbox, which runs every 15 minutes, sent 20 of them back to back in each run (09:46, 10:01, 10:16, 10:31-32,
+// 10:46-47; about 4 s apart). A new mailbox whose whole history is bursts of 20 to strangers looks like a bulk tool.
+// Microsoft Learn ("Troubleshoot outbound sending limits", best practices for bulk senders): "Spread bulk sends over
+// time rather than sending all at once". So the lane sends at most M365_PER_RUN messages a run; the rest of the run's
+// lane rows go back to the queue (not_before = now + M365_PACE_MS) for a later run. At one run per 15 minutes that is
+// 20 an hour, which still finishes Week 2's 10-15 invitations in under an hour and a 112-seed test in about 6 hours.
+export const M365_PER_RUN = 5;
+export const M365_PACE_MS = 10 * 60_000;
+/** Hold this lane row for pacing? true once this run has already sent M365_PER_RUN through the lane. */
+export function paceM365(sentThisRun: number): boolean { return sentThisRun >= M365_PER_RUN; }
 
 export type SendResult = { ok: true; providerId: string } | { ok: false; refused: true; status: string } | { ok: false; refused: false; status: string };
 
