@@ -76,7 +76,9 @@ export const T = {
     asst_ph:'Ask anything about your account…', asst_send:'Send', asst_thinking:'Thinking',
     asst_greet:'I can see your account, so ask me about your own requests, the quotes on them, your documents or your verification — as well as how QuotesDone works.',
     asst_s1:'What is the status of my requests?', asst_s2:'How many quotes have I received?', asst_s3:'What do I need to do next?',
-    asst_err:'Something went wrong. Please try that again.',
+    // 27 Oct 2026: a slow or dropped turn is never an error line (ledger 1200); the answer is looked for, then this is said
+    asst_late:'Your answer is taking a little longer. It will appear here.',
+    asst_saved:'Your question is saved with your sales engineer, but the answer did not reach this chat. Please send it again in a moment; nothing you wrote is lost.',
     // ── request lifecycle ──
     st_matching:'Matching', st_quoting:'Quoting', st_quotes_in:'Quotes in', st_revealed:'Revealed', st_closed:'Closed',
     k_awaiting:'Awaiting your decision', k_reveals:'Reveals',
@@ -172,7 +174,8 @@ export const T = {
     asst_ph:'اسأل أي شيء عن حسابك…', asst_send:'إرسال', asst_thinking:'جارٍ التفكير',
     asst_greet:'أطّلع على بيانات حسابك مباشرة، فاسألني عن طلباتك والعروض الواردة عليها ومستنداتك وحالة التحقق، أو عن طريقة عمل QuotesDone.',
     asst_s1:'ما حالة طلباتي؟', asst_s2:'كم عرض سعر وصلني؟', asst_s3:'ما الخطوة التالية المطلوبة مني؟',
-    asst_err:'حدث خطأ. يُرجى المحاولة مرة أخرى.',
+    asst_late:'تستغرق إجابتك وقتًا أطول قليلًا، وستظهر هنا.',
+    asst_saved:'سؤالك محفوظ لدى مهندس المبيعات، لكن الإجابة لم تصل إلى هذه المحادثة. يُرجى إرساله مرة أخرى بعد قليل، ولم يُفقد شيء مما كتبته.',
     // ── دورة حياة الطلب ──
     st_matching:'قيد المطابقة', st_quoting:'قيد التسعير', st_quotes_in:'وردت العروض', st_revealed:'تم الكشف', st_closed:'مغلق',
     k_awaiting:'بانتظار قرارك', k_reveals:'عمليات الكشف',

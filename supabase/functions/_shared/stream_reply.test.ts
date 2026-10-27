@@ -1,4 +1,4 @@
-// The widget's stream contract (stream_reply.ts). Run: deno test supabase/functions/site_assistant/stream_reply.test.ts
+// The widget's stream contract (stream_reply.ts). Run: deno test supabase/functions/_shared/stream_reply.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert';
 import { pieces, STATUS, streamReply } from './stream_reply.ts';
 
