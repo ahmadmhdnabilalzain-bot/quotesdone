@@ -1,6 +1,7 @@
 // The portal chat turn's clock and facts (portal_turn.ts). Run: deno test supabase/functions/sales_engineer/portal_turn.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert';
-import { FACTS_CHARS, MAX_RECORDS, PORTAL_TURN_MS, RECORD_CHARS, plainLanguage, portalFacts, portalRules, wrappedReply } from './portal_turn.ts';
+import { CUSTOMER_SAFE, FACTS_CHARS, MAX_RECORDS, PORTAL_TURN_MS, RECORD_CHARS, customerSafe, plainLanguage, portalFacts, portalRules, wrappedReply } from './portal_turn.ts';
+import type { FlagLookup } from './portal_turn.ts';
 import { aiSystem } from '../_shared/ai_reply.ts';
 import { MIN_CALL_MS, PER_CALL_MS, RESERVE_MS } from '../_shared/brief_answer.ts';
 
@@ -66,6 +67,70 @@ Deno.test('the portal turn applies the plain-language gate, records the score, a
   const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
   assert(src.includes('...wrappedReply(t), ...plainLanguage(t, lang)]'), 'the check no longer runs the plain-language gate');
   assert(src.includes("admin.rpc('fn_support_reply_readability_log'"), 'the reply score is no longer recorded');
-  assert(src.includes("(f.tags ?? []).includes('audience:internal') || f.runtime_index_eligible === false"), 'internal / unverified rows are no longer withheld');
-  assert(src.includes('let withheld = new Set<string>(skIds);'), 'a failed lookup must withhold every sales_knowledge record (fail closed)');
+  // the records reach the facts only through customerSafe (its behaviour is the cases below)
+  const at = src.indexOf('const all = await customerSafe((r.records || [])');
+  assert(at > 0, 'the retrieved records no longer pass through customerSafe');
+  assert(at < src.indexOf('portalFacts({ facts: ownQuote'), 'customerSafe must run before the facts (and the known figures) are built');
+});
+
+// Independent review of #1640, second round (27 Oct 2026): the first fix covered sales_knowledge only, while ops_knowledge
+// and agent_knowledge records from fn_sales_assist still reached the customer prompt and the figure check unfiltered
+// (measured: 7,705 of 9,107 readable ops rows outside the customer scope, 2,077 of 2,078 readable agent rows another
+// key's notes or unverified). These fail on the PR's 3fea670db head, which has no customerSafe.
+const flags: Record<string, Record<string, unknown>[]> = {
+  sales_knowledge: [
+    { record_id: 'sk-ok', tags: ['trade:joinery'], runtime_index_eligible: true },
+    { record_id: 'sk-int', tags: ['audience:internal'], runtime_index_eligible: true },
+    { record_id: 'sk-inel', tags: [], runtime_index_eligible: false },
+  ],
+  ops_knowledge: [
+    { record_id: 'op-ok', scope_type: 'category', dept_key: null, runtime_eligible: true, supersession_state: 'current', validation_status: 'author_verified' },
+    { record_id: 'op-dept', scope_type: 'department', dept_key: 'sales', runtime_eligible: true, supersession_state: 'current', validation_status: 'reviewed' },
+    { record_id: 'op-role', scope_type: 'role', dept_key: null, runtime_eligible: true, supersession_state: 'current', validation_status: 'reviewed' },
+    { record_id: 'op-draft', scope_type: 'company', dept_key: null, runtime_eligible: true, supersession_state: 'current', validation_status: 'draft' },
+    { record_id: 'op-inel', scope_type: 'company', dept_key: null, runtime_eligible: false, supersession_state: 'current', validation_status: 'validated' },
+    { record_id: 'op-old', scope_type: 'company', dept_key: null, runtime_eligible: true, supersession_state: 'superseded', validation_status: 'validated' },
+  ],
+  agent_knowledge: [
+    { id: 1, agent_key: '_global', validation_status: 'author_verified' },
+    { id: 2, agent_key: '_global', validation_status: 'unvalidated' },
+    { id: 3, agent_key: 'it_engineer', validation_status: 'author_verified' },
+    { id: 4, agent_key: 'cat:joinery-suppliers', validation_status: 'unsourced' },
+    { id: 5, agent_key: '_global', validation_status: 'quarantined' },
+  ],
+};
+const fake: FlagLookup = (rule, ids) => Promise.resolve({ data: (flags[rule.table] ?? []).filter((f) => ids.includes(String(f[rule.key]))), error: null });
+const rec = (corpus: string, record_id: string) => ({ corpus, record_id, title: corpus + ' ' + record_id, content: 'AED 999 per metre (' + record_id + ')' });
+
+Deno.test('ops_knowledge and agent_knowledge records that are internal, ineligible or unverified never reach the facts', async () => {
+  const records = [
+    rec('sales_knowledge', 'sk-ok'), rec('sales_knowledge', 'sk-int'), rec('sales_knowledge', 'sk-inel'),
+    ...['op-ok', 'op-dept', 'op-role', 'op-draft', 'op-inel', 'op-old'].map((i) => rec('ops_knowledge', i)),
+    ...['1', '2', '3', '4', '5'].map((i) => rec('agent_knowledge', i)),
+    rec('company_faq', '624'),
+  ];
+  const kept = await customerSafe(records, fake);
+  assertEquals(kept.map((x) => x.corpus + ':' + x.record_id),
+    ['sales_knowledge:sk-ok', 'ops_knowledge:op-ok', 'agent_knowledge:1', 'company_faq:624']);
+  // so their text (and its figures, which briefNumbers would make "known") is not in the facts
+  const facts = portalFacts({ passages: kept });
+  for (const bad of ['op-dept', 'op-role', 'op-draft', 'op-inel', 'op-old', '(2)', '(3)', '(4)', '(5)', 'sk-int', 'sk-inel']) assert(!facts.includes(bad), bad);
+});
+
+Deno.test('customerSafe fails closed: an error, a throw or a missing row withholds the record, per corpus', async () => {
+  const records = [rec('ops_knowledge', 'op-ok'), rec('agent_knowledge', '1'), rec('sales_knowledge', 'sk-ok'), rec('ops_knowledge', 'op-unknown')];
+  const erroring: FlagLookup = (rule, ids) => rule.table === 'ops_knowledge' ? Promise.resolve({ data: null, error: { message: 'timeout' } }) : fake(rule, ids);
+  assertEquals((await customerSafe(records, erroring)).map((x) => x.record_id), ['1', 'sk-ok']);
+  const throwing: FlagLookup = (rule, ids) => rule.table === 'agent_knowledge' ? Promise.reject(new Error('network')) : fake(rule, ids);
+  assertEquals((await customerSafe(records, throwing)).map((x) => x.record_id), ['op-ok', 'sk-ok']);
+  // op-unknown has no row to read back, so it is not trusted
+  assertEquals((await customerSafe(records, fake)).map((x) => x.record_id), ['op-ok', '1', 'sk-ok']);
+});
+
+Deno.test('one rule per corpus the portal reads unfiltered, and no lookup when none of them was retrieved', async () => {
+  assertEquals(Object.keys(CUSTOMER_SAFE).sort(), ['agent_knowledge', 'ops_knowledge', 'sales_knowledge']);
+  let calls = 0;
+  const counting: FlagLookup = (rule, ids) => { calls++; return fake(rule, ids); };
+  assertEquals((await customerSafe([rec('kb_chunks', '7')], counting)).length, 1);
+  assertEquals(calls, 0);
 });

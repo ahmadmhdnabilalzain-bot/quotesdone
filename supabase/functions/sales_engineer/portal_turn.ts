@@ -46,6 +46,53 @@ export function plainLanguage(text: string, lang: 'en' | 'ar'): string[] {
 /** One retrieved record, as fn_sales_assist returns it. */
 export interface Record_ { title?: unknown; content?: unknown; corpus?: unknown; record_id?: unknown }
 
+/** NOTHING INTERNAL OR UNVERIFIED REACHES A CUSTOMER (#1567/#1569, the founder's 7 Oct stating rule: a fact not read on a
+ *  page actually opened is never stated to a customer or supplier; independent review of #1640, 27 Oct 2026).
+ *  fn_sales_assist reads its corpora without the audience and eligibility rules fn_reason_retrieve applies to a customer
+ *  audience, and a withheld record's text would ride in the facts AND make its figures "known" to the figure check
+ *  (briefNumbers over the facts). One rule per corpus, each the estate's own (fn_reason_retrieve's customer branch for
+ *  the audience, fn_knowledge_library_source_sql for "verified"). Measured on production 27 Oct 2026, of the rows
+ *  fn_sales_assist can return:
+ *   - sales_knowledge (6,536): 8 tagged audience:internal, 434 runtime_index_eligible = false.
+ *   - ops_knowledge (9,107 readable of 9,143): 7,705 outside fn_reason_retrieve's customer scope (scope_type department,
+ *     role, workflow or agent, or a dept_key), 6 'draft', 0 runtime-ineligible; 1,402 admitted. confidentiality is
+ *     'internal' on all 9,143 rows, so it carries no signal and is not read (no reader in the estate reads it).
+ *   - agent_knowledge (2,078 readable of 2,570): 1,969 are another key's notes (fn_reason_retrieve gives a customer
+ *     only '_global'; this includes the 1,627 'cat:' rows, 287 of them author_verified), 1,796 unvalidated or
+ *     unsourced; 1 admitted.
+ *  A corpus with no rule here is passed through as fn_sales_assist returned it. */
+export interface SafetyRule { table: string; key: string; select: string; safe: (row: Record<string, unknown>) => boolean }
+const VERIFIED_AGENT_STATUS = new Set(['author_verified', 'source_verified', 'validated', 'reviewed', 'approved']);
+export const CUSTOMER_SAFE: Record<string, SafetyRule> = {
+  sales_knowledge: { table: 'sales_knowledge', key: 'record_id', select: 'record_id, tags, runtime_index_eligible',
+    safe: (f) => !((f.tags as string[] | null) ?? []).includes('audience:internal') && f.runtime_index_eligible === true },
+  ops_knowledge: { table: 'ops_knowledge', key: 'record_id', select: 'record_id, scope_type, dept_key, runtime_eligible, supersession_state, validation_status',
+    safe: (f) => f.runtime_eligible === true && f.supersession_state === 'current' && f.dept_key == null
+      && ['company', 'external_source', 'category'].includes(String(f.scope_type)) && typeof f.validation_status === 'string' && f.validation_status !== 'draft' },
+  agent_knowledge: { table: 'agent_knowledge', key: 'id', select: 'id, agent_key, validation_status',
+    safe: (f) => f.agent_key === '_global' && VERIFIED_AGENT_STATUS.has(String(f.validation_status)) },
+};
+
+/** Reads one corpus's flag rows for the given ids (the caller's database client; a fake in the tests). */
+export type FlagLookup = (rule: SafetyRule, ids: string[]) => Promise<{ data: Record<string, unknown>[] | null; error: unknown }>;
+
+/** The records a customer prompt may carry. FAILS CLOSED: a record is kept only when its row was read back and passes
+ *  its corpus's rule; a lookup that errors or throws withholds every record of that corpus, and a row that was not
+ *  returned is withheld too. */
+export async function customerSafe<T extends Record_>(records: T[], lookup: FlagLookup): Promise<T[]> {
+  const keep = new Set<string>();
+  await Promise.all(Object.entries(CUSTOMER_SAFE).map(async ([corpus, rule]) => {
+    const ids = [...new Set(records.filter((x) => x.corpus === corpus).map((x) => String(x.record_id ?? '')))];
+    if (!ids.length) return;
+    try {
+      const { data, error } = await lookup(rule, ids);
+      if (error || !Array.isArray(data)) return;
+      for (const f of data) if (rule.safe(f)) keep.add(corpus + ':' + String(f[rule.key]));
+    } catch { /* withheld: nothing unread reaches a customer */ }
+  }));
+  return records.filter((x) => !Object.hasOwn(CUSTOMER_SAFE, String(x.corpus)) || keep.has(String(x.corpus) + ':' + String(x.record_id ?? '')));
+}
+
 /** At most this many retrieved records, each at most RECORD_CHARS, ride with the message. The old turn sent the plan's
  *  per-step retrieval as well (up to 36 sources of 2,400 characters); the answer prompt reached 62k tokens. */
 export const MAX_RECORDS = 5;

@@ -46,7 +46,7 @@ import { briefNumbers, companyBrief, figureSource } from '../_shared/company_bri
 import { aiSystem, replyProblems } from '../_shared/ai_reply.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { STATUS, streamReply, wantsStream } from '../_shared/stream_reply.ts';
-import { PORTAL_TURN_MS, portalRules, portalFacts, wrappedReply, plainLanguage } from './portal_turn.ts';
+import { PORTAL_TURN_MS, portalRules, portalFacts, wrappedReply, plainLanguage, customerSafe } from './portal_turn.ts';
 import { checkReadability } from '../_shared/readability.ts';
 import { tradeSlugsOf, matchEmirate } from '../_shared/match_criteria.ts';
 
@@ -449,19 +449,14 @@ const plain = observe('sales_engineer', async (req) => {
       if (error) return J({ ok: false, error: 'retrieval_failed', detail: error.message }, 503);
       const r = data as Record<string, unknown>;
       // NOTHING INTERNAL OR UNVERIFIED REACHES A CUSTOMER (#1567/#1569, the 7 Oct stating rule; independent review of #1640,
-      // 27 Oct 2026). fn_sales_assist reads sales_knowledge without the audience or eligibility filter fn_reason_retrieve
-      // applies: measured 27 Oct, 8 rows tagged audience:internal and 434 with runtime_index_eligible = false. Their text
-      // would ride in the facts AND make their figures "known" to the figure check. They are dropped here, before the
-      // call; a lookup that fails drops every sales_knowledge record rather than trusting one unread (fails closed).
-      const fetched = (r.records || []) as Array<Record<string, unknown>>;
-      const skIds = fetched.filter((x) => x.corpus === 'sales_knowledge').map((x) => String(x.record_id ?? ''));
-      let withheld = new Set<string>(skIds);
-      if (skIds.length) {
-        const { data: flags, error: fErr } = await admin.from('sales_knowledge').select('record_id, tags, runtime_index_eligible').in('record_id', skIds);
-        if (!fErr) withheld = new Set(((flags ?? []) as { record_id: string; tags: string[] | null; runtime_index_eligible: boolean | null }[])
-          .filter((f) => (f.tags ?? []).includes('audience:internal') || f.runtime_index_eligible === false).map((f) => String(f.record_id)));
-      }
-      const all = fetched.filter((x) => !(x.corpus === 'sales_knowledge' && withheld.has(String(x.record_id ?? ''))));
+      // 27 Oct 2026). fn_sales_assist reads sales_knowledge, ops_knowledge and agent_knowledge without the audience and
+      // eligibility rules fn_reason_retrieve applies; a record's text would ride in the facts AND make its figures "known"
+      // to the figure check. portal_turn.customerSafe drops them here, before the call, and fails closed (a failed lookup
+      // withholds that corpus's every record). The rules and the 27 Oct counts are in portal_turn.ts.
+      const all = await customerSafe((r.records || []) as Array<Record<string, unknown>>, async (rule, ids) => {
+        const x = await admin.from(rule.table).select(rule.select).in(rule.key, ids);
+        return { data: x.data as Record<string, unknown>[] | null, error: x.error };
+      });
       const [own, convo, brief, key] = await Promise.all([pOwn, pConvo, pBrief, pKey]);
       lap('reads');
       const ownQuote = own?.facts ?? null;
