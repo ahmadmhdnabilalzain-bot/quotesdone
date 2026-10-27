@@ -1,0 +1,45 @@
+{
+ "learning": {
+  "seat_lesson_cluster": 0,
+  "seat_case_memory": 0,
+  "seat_case_memory_miss": 0,
+  "institutional_memory": 0,
+  "agent_memory": 0,
+  "org_memory": 0,
+  "reasoning_knowledge_candidate": 0,
+  "sales_knowledge_gap": 0,
+  "email_suppressions": 0,
+  "ai_cost_log": 0
+ },
+ "removed": "notifications 26, comparison_candidate_v2 (table no longer exists) 0, agent_actions 39, documents 28, company_event (lead) 13, supplier_capability_confirmation 5, leads 14, customer_organization (table no longer exists) 0, auth_users 14, storage_objects 70",
+ "swept": {
+  "agent_actions": 13
+ },
+ "leftovers": {
+  "auth_users": 0,
+  "customers": 0,
+  "leads": 0,
+  "inquiries": 0,
+  "quotes": 0,
+  "quote_spec_hold": 0,
+  "quote_reviews": 0,
+  "notifications": 0,
+  "transactions": 0,
+  "refunds": 0,
+  "supplier_dues": 0,
+  "refund_case": 0,
+  "inquiry_intake": 0,
+  "email_verifications": 0,
+  "storage_objects": 0,
+  "total": 0
+ },
+ "verify": {
+  "tables_scanned": 707,
+  "tables_in_registry": 707,
+  "found": [],
+  "unverified": [],
+  "storage": [],
+  "auth_users": 0,
+  "clean": true
+ }
+}

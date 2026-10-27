@@ -392,7 +392,11 @@ const RULINGS = `Standing rulings of the founder of QuotesDone (a UAE procuremen
 // (knowledge_lookup_goes_to_the_trade_first.sql), so a value that is not a live code or tag narrows nothing.
 export const ENTRY_KINDS = ['authority_approval', 'benchmark', 'buyer_mistake', 'checklist', 'comparison', 'concept', 'decision_rule',
   'glossary', 'installation', 'law', 'lead_time', 'method', 'playbook', 'price_driver', 'product', 'quote_red_flag', 'spec_checklist',
-  'standard', 'warranty'] as const;
+  'standard', 'warranty',
+  // A trade's UAE market file (knowledge/packs/<trade>.market.json): what is sold, which makes, which sizes. Named by the
+  // planner from the question's meaning; fn_reason_retrieve(_ml) then lets the trade's market and pricing rows lead
+  // (a_trade_question_reads_its_own_trade_pack.sql). Without these the planner could not ask for the market file.
+  'uae_market_products', 'uae_market_brands', 'uae_market_sizes'] as const;
 
 export function decomposePrompt(seat: Seat, decision?: DecisionSpec): string {
   return `${RULINGS}

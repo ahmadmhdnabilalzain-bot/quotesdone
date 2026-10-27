@@ -1,0 +1,142 @@
+# Claude's operating memory for QuotesDone
+
+Moved into the repository on 26 Oct 2026 (founder ledger 1278, 1281). Before that it lived only in
+`~/.claude/projects/C--Users-Opera-quotesdone/memory/` on the founder's laptop. This folder is now the
+one copy: read this index first, and change these files by PR when you learn something.
+Links of the form `[[name]]` inside the files point at `name.md` in this folder.
+
+## Standing rules and founder facts
+- [GitHub is the single source of truth (26 Oct)](github-is-the-single-source-of-truth.md) — ledger 1278: nothing lives only on the laptop; memory here, text reports in docs/reports/, binaries and third-party files in the private `evidence` bucket, licence PDF stays in Dropbox
+- [CI runs locally; Ubicloud stopped (26 Oct)](ci-runs-locally-ubicloud-stopped.md) — ledger 1279: no paid CI, Actions included, until the bugs are cleared; the session runs the checks
+- [The founder's user-global CLAUDE.md](user-global-CLAUDE.md) — copy of ~/.claude/CLAUDE.md: skills-and-plugins-first, every session
+- [Supplier campaign sends FROM supplier@quotesdone.com](supplier-campaign-sends-from-supplier-at-quotesdone-com.md) — repeated 19 Oct; never invite@hello
+- [EVERY founder message is an instruction](every-founder-message-is-an-instruction.md) — 22 Sep, instr 644: record each ask in founder_instruction at once; reconcile before any "nothing pending"
+- [US law out of scope](us-law-out-of-scope-for-uae.md) — UAE/GCC/international only
+- [Autonomy and staging rules](quotesdone-autonomy-and-staging-rules.md) — fix defects without asking
+- [Build until done, then one line](build-until-done-then-one-line.md) + [Definition of done](quotesdone-definition-of-done.md) — fixed = deployed + proven
+- [Work without check-ins](quotesdone-work-without-checkins.md) · [Decide, do not present options](decide-dont-present-options.md) · [No technical questions to him](dont-ask-him-technical-questions.md)
+- [Never state what you have not measured](never-state-what-you-have-not-measured.md) — founder's standing rule
+- [Ready means every gate measured](ready-means-every-gate-measured.md) — 6 Oct: founder relies fully; "ready" only with a same-day measured go/no-go checklist
+- [The agent delivers its own work](the-agent-delivers-its-own-work.md) — never hand-deliver a seat's output; the delivery IS the test
+- [A status column is not a delivery record](a-status-column-is-not-a-delivery-record.md) — verify sends through the outbox; 171 leads read "invited" with 0 emails ever sent
+- [MAX 10 agents at once (26 Oct)](max-ten-agents.md) — ledger 1280; the 23 Sep raises to 12 and 15 are gone
+- [Always use max parallel agents](always-max-parallel-agents.md) + [no git in a shared tree](parallel-agents-must-not-do-git-in-a-shared-tree.md) — reads/applies parallelise; checkout/add/commit do not
+- [Founder sets boundaries, not methods](founder-sets-boundaries-not-methods.md)
+- [Next phases: marketing seat, then LLM per seat](next-phases-marketing-then-llm-per-seat.md) — 22 Sep: REMIND him of LLM A/B/C after marketing; Meta/social only for marketing
+- [SEAT OWNERSHIP MAP 24 Sep; customers from Jan 2027](seat-ownership-map-24-sep.md) — READ before any seat work
+- [Founder rulings are the holy book; any number quote, top-3 = report](founder-rulings-are-the-holy-book.md) — 24 Sep
+- [Subscriptions now on the company account; personal-card history kept](subscriptions-paid-from-personal-card.md) — 29 Sep: statement is the source going forward; keep the ~8,155 personal history
+- [Routine work is code, not LLM (90%+)](routine-work-is-code-not-llm.md) — 24 Sep
+- [Marketing one-shot approval; no posting weekends/holidays; daily supplier-list PDF](marketing-month-approval-flow.md) — 24 Sep
+- [Batch work on the subscription, not paid LLM; no lead study](do-batch-work-on-the-subscription-not-paid-llm.md) — 24 Sep
+- [Investor pack: founder rulings 24 Sep](investor-pack-founder-rulings.md) — subs main revenue, ≤250k costs, 200k for 50%, brand design
+- [Company knowledge stays in sync everywhere; no lawyer](company-knowledge-stays-in-sync-everywhere.md) — 23 Sep
+- [Profile copy: English only, no licence number, never "AI"](profile-copy-rules.md) — 23 Sep
+- [WhatsApp templates are mine, never his](whatsapp-templates-are-claudes.md) — repeated 23 Sep
+- [Never ask about campaign go or subscriptions](do-not-ask-about-campaign-go-or-subscriptions.md) — 22 Sep: he decides go; WhatsApp templates + deliverability tests are Claude's
+- [Launch only when perfect; test in a sandbox](launch-only-when-perfect-sandbox.md)
+- [Launch governance loop closed](launch-governance-loop-closed.md) + [All approvals are the CEO's, refunds included](refunds-belong-to-the-ceo.md) — 8 Sep: nothing goes to the founder
+- [The only hard rules + operating doctrine](the-only-hard-rules-and-operating-doctrine.md) — 3% reveal, top-3, non-response 3%, AED15k/3x; ~95/5 deterministic
+- [Autonomous company is the standard](autonomous-company-is-the-standard.md) — AED 1M by Aug 2027
+- [Surfaces are held for future agents](payments-are-held-for-the-accountant-agent.md) — delete only what no agent will own
+- [Keep only five things from before 7 Sep](keep-only-five-things-from-before-7-september.md) — website content, FAQ, knowledge, leads, secrets
+- [The capable-machine target](the-capable-machine-target.md) · [Every agent is an expert human staff who acts](agents-are-expert-human-staff-who-act.md)
+- [Phase freezes removed](phase-freezes-removed-totally.md) · [Never raise OpenRouter again](never-raise-openrouter-again.md) · [All limits lifted except OpenRouter](all-founder-system-limits-lifted-except-openrouter.md) — deterministic-first is the architecture
+- [Mirror gates are retired](mirror-gates-are-retired.md) — production proves properties; never --emit a CSV to green a check
+- [WhatsApp is the founder's command channel](whatsapp-founder-command-channel.md)
+- [Founder mail goes through founder_mail_policy](founder-mail-goes-through-founder-mail-policy.md) — fn_notify_founder needs p_kind
+- [The estate could not email a file](the-estate-could-not-email-a-file.md) — fixed 9 Sep: notifications.attachments + send_outbox v43
+- [Founder's landline and mobile](founder-landline-and-mobile.md)
+- [No observe mode — plain login](no-observe-mode-plain-login.md) — mobile number + OTP
+- [Links he shares are standing, not per-task](links-he-shares-are-standing-not-per-task.md)
+- [Expenses email is the source of truth](expenses-email-source-of-truth.md) · [Resend inbound keeps ~1 month](resend-inbound-retention-is-about-a-month.md) · [Accountant only sees what was forwarded](the-accountant-only-sees-what-was-forwarded.md)
+- [Owner money in is capital](owner-money-in-is-capital.md) — 14 Sep: founder's own transfers are capital unless he says loan; Aug 2026 AED 1,000
+- [The bank is Mashreq; statements come monthly](the-bank-is-mashreq-and-statements-come-monthly.md) — forwarded to the expenses mailbox each month end; fee is AED 199 + 9.95 VAT; hold lifted 14 Sep
+- [Reveal notifies both parties](reveal-notifies-both-parties.md)
+- [Terms say CC us, the platform already knows](terms-say-cc-us-and-the-platform-already-knows.md)
+- [Rating solicitation timing](rating-solicitation-timing.md) — SUPERSEDED 9 Sep: Support emails 3 weeks after the reveal date
+- [Sales and Support divide by surface and by truth](sales-and-support-divide-by-surface-and-by-truth.md) — homepage widget is Support, either portal is Sales; supplier questions always via Support
+- [A phone may confirm, never select](a-phone-may-confirm-never-select.md) — email is the identity
+- [The sidebar is approved — do not "fix" the red](founder-approved-the-portal-sidebar.md)
+- [Drive the knowledge road alone](drive-the-knowledge-road-alone.md) — founder will not help
+- [Specs are upgrades, not repairs](specs-are-upgrades-not-repairs.md)
+- [Session briefs carry misdiagnoses](session-briefs-carry-misdiagnoses.md) — counts reliable, causes not
+- [Demo fixtures: ZZ DEMO + example.invalid](demo-fixture-convention.md) · [Safe rehearsal](safe-marketplace-demo-rehearsal.md) · [Probes page the founder](rehearsals-and-probes-page-the-founder.md) · [Test without his credentials](test-without-the-founders-credentials.md)
+- [Use Edge; never rely on him except sign-ins](use-edge-browser-and-act-without-founder.md) — 23 Sep, ledger 925
+- [Walk the OS in his browser](walk-the-os-in-his-browser.md) — Claude in Chrome has his session
+- [Quote the cost before spending](quote-the-cost-before-spending.md)
+- [Payments are the accountant; talks to sales](payments-are-the-accountant-and-talk-to-sales.md) — payment paths owned by accountant, portals speak only as sales engineer
+- [No exact spec → offer alternatives](no-exact-spec-offer-alternatives.md) — support asks; yes = accepted spec, no = apology
+- [Exact specs or the quote is held](exact-specs-or-the-quote-is-held.md) — per-line specs per trade; missing → hold; PDFs pro + fully Arabic
+- [Code extremely well built](code-extremely-well-built.md) — PERMANENT: independent review before EVERY merge; code first, LLM only where code can't
+- [Nothing is one-way](nothing-is-one-way.md) — every handoff/report tracked, replied, re-verified and closed by the originator
+- [Always name the seat](always-name-the-seat.md) — never say "an agent"; commits signed by the owning seat
+- [All conversations are kept for sales](all-conversations-are-kept-for-sales.md) — kept while active + 5 years after closure if lawful (6 Oct, ledger 1126), then purged
+- [Exact trade match or none; categories open](exact-trade-match-or-none-categories-open.md) — no nearest mapping; new trades welcome
+- [WhatsApp notices go to the confirmed number](whatsapp-notices-go-to-the-confirmed-number.md) — clause 21 → v12; confirmed inside sign-up with OTP (instruction 391)
+- [TDRA NOL received](tdra-nol-received.md) — NOL-26-100000665 for www.quotesdone.ae, expires 14 Sep 2027
+- [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
+## Working the estate
+- [End-of-session log sweep](end-of-session-log-sweep.md) — GitHub Actions, edge logs, cron
+- [Supabase access has three paths](supabase-access-has-three-paths.md)
+- [Check a PR's base before merging](check-a-prs-base-before-merging.md) — verify baseRefName and main's head
+- [A big batch delete restarted production](a-big-batch-delete-restarted-production.md) — 21 Sep: 50k purge batch seq-scanned, retried on 524, memory >4 GB, hard restart
+- [An apply can lock sign-in](an-apply-can-lock-sign-in.md) — 21 Sep: a 75 s apply locked login; no applies in a campaign hour
+- [Upgrade backlog after queue = 0](upgrade-backlog-after-queue-zero.md) — ledger 1019, trimmed 29 Sep; never name suppliers publicly; ask before splitting trades
+- [Round-3 upgrades wait for queue < 20](round-3-upgrades-wait-for-queue-below-20.md) — ledger 1018: stalled-inquiry rescue, quote QC, fraud, concierge, capacity, trade_words fix
+- [Suppliers always English](suppliers-always-english.md) — 28 Sep: never Arabic to suppliers on any channel; customers get their inquiry language
+- [Blogs: CEO reviews, founder only notified; market topics; 1/week; no blog emails](blogs-ceo-reviews-founder-only-notified.md) — 29 Sep, ledger 1058
+- [A rejection never ends the cycle](a-rejection-never-ends-the-cycle.md) — 29 Sep, ledger 1059: CEO gives reasons; originator revises and resubmits until approved
+- [Open follow-ups 29 Sep](open-follow-ups-29-sep.md) — article email full text, held-specs email, export-list read-back, blog Arabic question
+- [Use the installed skills](use-the-installed-skills.md) — 28 Sep: pick fitting skills for every task and every agent; map inside
+- [Apply at merge, never before](apply-at-merge-never-before.md) — 28 Sep: pre-merge applies turned the drift check red on every PR for 3 h
+- [Two applied PRs deadlock each other's DB check](two-applied-prs-deadlock-each-others-database-check.md) — serialize applies: apply, merge, then next; if stuck, merge one branch into the other
+- [Close a finding by its exact key, never by title match](close-a-finding-by-its-exact-key-never-by-title-match.md) — 15 Sep: an ilike sweep closed the unfixed Stripe TEST-webhook finding
+- [A check that replays SQL can commit it](a-check-that-replays-sql-can-commit-it.md) — 30 Sep: a file's own COMMIT made a "rolled-back" replay live
+- [Only the release operator labels review-approved](only-the-release-operator-labels.md) — 30 Sep: authors self-labelled, the train merged before review
+- [Never push to a green labelled PR](never-push-to-a-green-labelled-pr.md) — 30 Sep: the train merged the old head; unlabel → push → relabel
+- [Never merge on a red check](never-merge-on-a-red-check.md) — 22 Sep: `...; gh pr merge` merged #817 red; gate with [ -z "$FAILURES" ] &&
+- [CI ran on Ubicloud — SUPERSEDED 26 Oct](ci-runs-on-ubicloud.md) — history only; see ci-runs-locally-ubicloud-stopped
+- [A merge chain must read status contexts by state](a-merge-chain-must-read-status-contexts-by-state.md) — Vercel has state, no status/conclusion; gate the merge on 0 pending + 0 failed
+- [Parallel helpers need their own scratch folders](parallel-helpers-need-their-own-scratch-folders.md) — same-named q.mjs got overwritten; one helper ran another's script against production
+- [Post-deploy smokes overlap manual E2E](post-deploy-smokes-overlap-manual-e2e.md) — every main deploy starts a production E2E smoke; check none is running before a manual E2E
+- [An edge function has a CPU cap a deadline doesn't bound](an-edge-function-has-a-cpu-cap-a-deadline-does-not-bound.md) — #686's escaping hit 546 CPU-exceeded; the kill skips every finding path, so the job hung silently
+- [A dry run doesn't parse a file whose dependencies aren't live](a-dry-run-does-not-parse-a-file-whose-dependencies-are-not-live.md) — two extra `)` found only at apply
+- [Agent worktrees fill the founder's disk](agent-worktrees-fill-the-founders-disk.md) — 22 Sep: 341 × ~1 GB left 46 GB free; remove each worktree when its PR merges
+- [Stage paths, never git add -A](stage-paths-never-git-add-all.md) · [A hook rewrites shell redirect targets](a-hook-rewrites-shell-redirect-targets.md) · [New scripts/sql file needs a MANIFEST line](new-sql-file-needs-a-manifest-line.md)
+- [Against-production gates vs a running company](against-production-gates-vs-a-running-company.md) — disclose, never weaken
+- [Gateway caps output ~900 tokens](ai-gateway-caps-output-at-900-tokens.md) · [Out of credit looks like judgement](out-of-credit-looks-like-model-judgement.md) · [The tier is the bill](the-tier-is-the-bill-not-the-prompt.md)
+- [Embedding is free, not OpenRouter](embedding-is-free-not-openrouter.md) — gte-small in-region
+- [Credentials rotate themselves](credentials-rotate-themselves.md) — cron 334, 30d ahead
+- [Deactivation is not death](deactivation-is-not-death.md)
+- [agent_runs is a cron log, not an employee log](agent-runs-is-a-cron-log-not-an-employee-log.md)
+- [No job or task without an agent](no-job-or-task-without-an-agent.md) — his rule, 7 Sep
+- [The org is two agents and no departments](the-org-is-two-agents-and-no-departments.md) — 7 Sep; since grown to 5 seats (ceo, customer_support, sales_engineer, accountant, it_engineer)
+- [CI green is not npm test green](ci-green-does-not-mean-npm-test-green.md) — the checks job has no token
+- [Checks retired with their subject](checks-retired-with-their-subject.md) — 13 retired; never soften a check to green
+- [Apify paused until ~Feb 2027](apify-paused-until-2027.md)
+- [The OS dashboard is still basic](os-dashboard-still-basic.md)
+- [Lessons — measurement, guards, checks, audits, identity](lessons-measurement-guards-and-audits.md) — 75 pattern lessons, grouped
+- [Lessons — Postgres, kernel, deploy, phase machinery](lessons-postgres-kernel-and-deploy.md) — 60 pattern lessons, grouped
+- [A mention is not a reference](a-mention-is-not-a-reference.md) — how to prove a routine is dead
+## The lenses that keep paying
+- [All audit lenses index](lenses-index.md) — 21 pattern lessons (shadowed aliases, dead guards, heartbeats, fixtures…)
+- [A fix's own check measures the case the fix handles](a-fixs-own-check-measures-the-case-the-fix-handles.md) — 23 Sep, 3 times: ask what case the check measures vs what case the fix handles; same case = green certifies the gap
+- [Instrument measuring the wrong subject is the lens](instrument-measuring-wrong-subject-is-the-lens.md)
+- [CONNECTED is a claim, not a measurement](connected-is-a-claim-not-a-measurement.md) · [A blocker is a claim too](a-blocker-is-a-claim-too.md)
+- [Group per class, not in aggregate](group-per-class-not-in-aggregate.md) · [One number, three causes](one-number-three-causes.md) · [A 30-day total is not a run rate](a-30-day-total-is-not-a-run-rate.md)
+- [A fix that makes the headline fall](a-fix-that-makes-the-headline-fall.md)
+- [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
+## State of the build
+- [CHECKPOINT 19 Oct — campaign on from 20 Oct, PR drain](checkpoint-19-oct-campaign-on-pr-drain.md) — READ FIRST: caps, open PRs, exam scores, grounding fix
+- [CHECKPOINT 6 Oct evening — pre-launch, resume after restart](checkpoint-6-oct-evening-prelaunch.md) — READ FIRST: open PRs, tonight's jobs, launch checklist, founder end-list
+- [Customer support: LLM always on, better than Amazon](customer-support-better-than-amazon.md) — 22 Sep: automated scenario suite proves it; never say ready without the score
+- [The model ruling (now ledger 1056, 29 Sep)](the-model-ruling-23-sep.md) — CEO Opus hard/Gemini easy, SE Gemini + Opus comparison (plan B GPT 6 Luna); others Gemini, plan B DeepSeek v4.1 Flash
+- [Applying an old file resurrects a superseded routine](applying-an-old-file-resurrects-a-superseded-routine.md) — 23 Sep: #848's older file restored a second IT-digest overload; the highest MANIFEST key is canonical, not the file you apply
+- [UAE authority source facts, 18 Sep](uae-authority-source-facts-18-sep.md) — verified primary-source facts for the knowledge rebuild, including what each document does NOT say
+- [Trade licence and VAT status are closed](trade-licence-and-vat-status-are-closed.md) — DET 1633275 (exp 24 Jun 2027); no VAT till AED 375k; never ask again
+- [Build history index](build-history-index.md) — older build-state pointers (portal spec, audits, loop, funnel, knowledge plan)
+- [Idle LLM spend ≤ USD 1-2/day](idle-llm-spend-max-two-dollars.md) — 24 Sep, instr 986: internal-only ceiling ~AED 7; verify on production
+- [Chat model candidates only](chat-model-candidates-only.md) — 13 Oct, ledger 1217: Sonnet 5.5 / GPT-6.1 Sol / GPT-6 Luna Pro only; same price = always Pro (1218); never name the two excluded models to him
+- [Microsoft 365 app already exists](m365-app-already-exists.md) — 18 Oct: reuse the quotesdone.com M365 app (M365_* edge secrets); never ask him to register a new one
+- [OpenRouter stays on; all tests with AI](openrouter-stays-on-all-tests-with-ai.md) — 19 Oct, ledger 1260: no model holds, no stubbed tests

@@ -1,0 +1,289 @@
+[
+ {
+  "at": "2026-10-19T12:18:49.229Z",
+  "journey": "customer_C2_desktop_en",
+  "step": "landing",
+  "url": "https://quotesdone.com/ar/me",
+  "status": "PASS",
+  "ms": 581,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 2,
+   "arabicN": 316,
+   "wordsN": 325,
+   "latinSample": [
+    "DEMO"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "طلباتي — QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_desktop_en\\00_landing.png",
+  "note": "opened https://quotesdone.com/me; account registered ar, so judged as ar"
+ },
+ {
+  "at": "2026-10-19T12:18:49.787Z",
+  "journey": "customer_C2_desktop_en",
+  "step": "tab: نظرة عامة",
+  "url": "https://quotesdone.com/ar/me",
+  "status": "PASS",
+  "ms": 528,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 2,
+   "arabicN": 316,
+   "wordsN": 325,
+   "latinSample": [
+    "DEMO"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "طلباتي — QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_desktop_en\\01__.png"
+ },
+ {
+  "at": "2026-10-19T12:18:49.940Z",
+  "journey": "customer_C2_desktop_en",
+  "step": "tab: طلباتي",
+  "url": "https://quotesdone.com/ar/me#requests",
+  "status": "PASS",
+  "ms": 148,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 1,
+   "arabicN": 70,
+   "wordsN": 73,
+   "latinSample": [
+    "DEMO"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "طلباتي — QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_desktop_en\\02__.png"
+ },
+ {
+  "at": "2026-10-19T12:18:50.079Z",
+  "journey": "customer_C2_desktop_en",
+  "step": "tab: المستندات",
+  "url": "https://quotesdone.com/ar/me#documents",
+  "status": "PASS",
+  "ms": 133,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 1,
+   "arabicN": 33,
+   "wordsN": 35,
+   "latinSample": [
+    "DEMO"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "طلباتي — QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_desktop_en\\03__.png"
+ },
+ {
+  "at": "2026-10-19T12:18:50.206Z",
+  "journey": "customer_C2_desktop_en",
+  "step": "tab: أوامر الشراء",
+  "url": "https://quotesdone.com/ar/me#orders",
+  "status": "PASS",
+  "ms": 123,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 1,
+   "arabicN": 34,
+   "wordsN": 36,
+   "latinSample": [
+    "DEMO"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "طلباتي — QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_desktop_en\\04__.png"
+ },
+ {
+  "at": "2026-10-19T12:18:50.337Z",
+  "journey": "customer_C2_desktop_en",
+  "step": "tab: الرسائل",
+  "url": "https://quotesdone.com/ar/me#messages",
+  "status": "PASS",
+  "ms": 126,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 1,
+   "arabicN": 33,
+   "wordsN": 35,
+   "latinSample": [
+    "DEMO"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "طلباتي — QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_desktop_en\\05__.png"
+ },
+ {
+  "at": "2026-10-19T12:18:50.474Z",
+  "journey": "customer_C2_desktop_en",
+  "step": "tab: المشاريع",
+  "url": "https://quotesdone.com/ar/me#projects",
+  "status": "PASS",
+  "ms": 133,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 1,
+   "arabicN": 33,
+   "wordsN": 35,
+   "latinSample": [
+    "DEMO"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "طلباتي — QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_desktop_en\\06__.png"
+ },
+ {
+  "at": "2026-10-19T12:18:50.635Z",
+  "journey": "customer_C2_desktop_en",
+  "step": "tab: غرفة المشروع",
+  "url": "https://quotesdone.com/ar/me#spatial",
+  "status": "PASS",
+  "ms": 154,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 1,
+   "arabicN": 34,
+   "wordsN": 36,
+   "latinSample": [
+    "DEMO"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "طلباتي — QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_desktop_en\\07__.png"
+ },
+ {
+  "at": "2026-10-19T12:18:50.774Z",
+  "journey": "customer_C2_desktop_en",
+  "step": "tab: ما قد تحتاجه لاحقًا",
+  "url": "https://quotesdone.com/ar/me#predict",
+  "status": "PASS",
+  "ms": 135,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 1,
+   "arabicN": 34,
+   "wordsN": 36,
+   "latinSample": [
+    "DEMO"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "طلباتي — QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_desktop_en\\08__.png"
+ },
+ {
+  "at": "2026-10-19T12:18:51.030Z",
+  "journey": "customer_C2_desktop_en",
+  "step": "tab: ملف المشتريات",
+  "url": "https://quotesdone.com/ar/me#profile",
+  "status": "PASS",
+  "ms": 252,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 1,
+   "arabicN": 62,
+   "wordsN": 65,
+   "latinSample": [
+    "DEMO"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "طلباتي — QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_desktop_en\\09__.png"
+ },
+ {
+  "at": "2026-10-19T12:18:51.135Z",
+  "journey": "customer_C2_desktop_en",
+  "step": "tab: الحساب",
+  "url": "https://quotesdone.com/ar/me#account",
+  "status": "PASS",
+  "ms": 101,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 1,
+   "arabicN": 33,
+   "wordsN": 35,
+   "latinSample": [
+    "DEMO"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "طلباتي — QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_desktop_en\\10__.png"
+ }
+]
