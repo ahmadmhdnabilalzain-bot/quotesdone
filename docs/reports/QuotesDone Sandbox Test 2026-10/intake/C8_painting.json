@@ -1,0 +1,81 @@
+{
+ "customer": "C8",
+ "email": "qd-fe7ba9c4-cust21@example.invalid",
+ "category": "painting",
+ "final_status": "needs_info",
+ "final_readiness": 67,
+ "final_missing": [
+  "هل لديك تفضيل في درجة لمعان الدهان؟ اختر أحد الخيارات، أو اكتب ما تفضّله.",
+  "هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟",
+  "متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ."
+ ],
+ "final_brief": {
+  "state": "interview",
+  "details": {},
+  "asked_key": null,
+  "boq_asked": false,
+  "cad_asked": false,
+  "req_asked": "material.finish",
+  "req_answers": {
+   "installation": {
+    "v": "yes"
+   },
+   "material.brand": {
+    "v": "other_brand"
+   }
+  }
+ },
+ "turns": [
+  {
+   "turn": 1,
+   "harness_answer": "نحتاج Painting & Finishes لفيلا في Dubai: البند الأول interior painting عدد 20، البند الثاني exterior painting عدد 10.",
+   "ai_reply": "شكراً، وصلتنا تفاصيل الدهان الداخلي والخارجي في دبي. فقط نحتاج توضيح الكميات وحالة الفيلا الحالية حتى يتمكن المقاولون من تسعير العمل بدقة."
+  },
+  {
+   "turn": 2,
+   "harness_answer": "المقاسات: غير متأكد، أرجو اقتراح المقاس القياسي.",
+   "ai_reply": "شكراً، سجلنا أن المطلوب دهان داخلي وخارجي لفيلا في دبي، وأن المقاسات غير معروفة. لتسعير العمل، نحتاج توضيح ما تمثله الكميات وحالة الأسطح الحالية."
+  },
+  {
+   "turn": 3,
+   "harness_answer": "التوريد والتركيب، خلال ستة أسابيع.",
+   "ai_reply": "سجلنا طلب الدهان الداخلي والخارجي للفيلا في دبي، مع التوريد والتركيب خلال ستة أسابيع. بقي توضيح ما تعنيه الأعداد وحالة الأسطح الحالية."
+  },
+  {
+   "turn": 4,
+   "harness_answer": "المواصفات: غير متأكد من العلامة التجارية، درجة تجارية قياسية.",
+   "ai_reply": "سجلنا طلب الدهان الداخلي والخارجي لفيلا في دبي، مع التوريد والتركيب خلال ستة أسابيع. لتجهيز الطلب للتسعير، نحتاج توضيح ما الذي تشير إليه أعداد 20 و10، وحالة الأسطح الحالية."
+  },
+  {
+   "turn": 5,
+   "harness_answer": "Details: area: standard specification, please assume typical values; surface_prep: standard specification, please assume typical values.",
+   "ai_reply": "سجلنا الدهان الداخلي والخارجي للفيلا في دبي، مع التوريد والتركيب خلال ستة أسابيع. ما الذي تشير إليه كميتا 20 للداخلي و10 للخارجي: عدد غرف أو مساحات، أم أمتار مربعة، أم شيء آخر؟"
+  },
+  {
+   "turn": 6,
+   "harness_answer": "Details: area: standard specification, please assume typical values.",
+   "ai_reply": "سجلنا الدهان الداخلي والخارجي للفيلا في دبي، مع التنفيذ خلال ستة أسابيع، وسنترك حالة الأسطح لتقدير الموردين. بقي فقط توضيح وحدة الكميتين حتى يتمكنوا من التسعير."
+  },
+  {
+   "turn": 7,
+   "harness_answer": "Details: area: standard specification, please assume typical values.",
+   "ai_reply": "تم تجهيز طلب الدهان الداخلي والخارجي في دبي للتسعير، مع توضيح أن المساحات وحالة الأسطح غير معروفة وأن على الموردين تقديم السعر بناءً على افتراضات قياسية واضحة."
+  },
+  {
+   "turn": 8,
+   "harness_answer": "Details: هل لديك تفضيل في ماركة الدهان؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل لديك تفضيل في درجة لمعان الدهان؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟: standard specification, please assume typical values; متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.: standard specification, please assume typical values.",
+   "ai_reply": "تم تجهيز طلب الدهان للتسعير. المساحات ووحدة الكميتين وحالة الأسطح غير معروفة، لذا يُرجى من الموردين توضيح الافتراضات التي يعتمدونها في عروضهم."
+  },
+  {
+   "turn": 9,
+   "harness_answer": "Details: هل لديك تفضيل في درجة لمعان الدهان؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟: standard specification, please assume typical values; متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.: standard specification, please assume typical values.",
+   "ai_reply": "تم تجهيز الطلب للتسعير، مع توضيح أن المساحات ووحدة الكميتين غير معروفة وأن العميل يطلب اعتماد افتراضات نموذجية. يُرجى من الموردين ذكر افتراضاتهم بوضوح في العرض."
+  },
+  {
+   "turn": 10,
+   "harness_answer": "Details: هل لديك تفضيل في درجة لمعان الدهان؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟: standard specification, please assume typical values; متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.: standard specification, please assume typical values.",
+   "ai_reply": "تم تجهيز الطلب للتسعير. المساحة ووحدة الكميتين وحالة الأسطح غير محددة، لذا يُرجى من الموردين توضيح افتراضاتهم بشأنها في العرض."
+  }
+ ],
+ "note": "per-turn slots are not stored by inquiry_intake; only the final brief/missing survive"
+}
