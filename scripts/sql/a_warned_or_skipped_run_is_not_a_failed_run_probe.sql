@@ -1,10 +1,12 @@
 -- PROBE for a_warned_or_skipped_run_is_not_a_failed_run.sql (it_engineer, 27 Oct 2026). A pure probe: it always raises
 -- CHK<<...>>, so every row it writes is rolled back. Fixture mode only (qd.duty_fixtures = on), on ZZ DEMO labels, so
 -- only 'duty:run_cluster:fixture:' findings can move; the real ones are counted before and after.
---   a. a HEALTHY label - 4 ok, 4 warn, 2 skipped: six of ten not ok, none failed - opens NO finding;
---   b. a FAILING label - 6 error, 2 warn - opens one finding with failed_7d = 6;
+--   a. a HEALTHY label - 4 ok, 4 warn noted 'HTTP 4xx', 2 skipped: six of ten not ok, none failed - opens NO finding;
+--   b. a FAILING label - 6 error, 2 warn noted 'HTTP 4xx' - opens one finding with failed_7d = 6;
 --   c. a label whose 6 runs carry no status still opens one (a missing status fails closed);
---   d. no real (non-fixture) run-cluster finding was opened or closed.
+--   d. no real (non-fixture) run-cluster finding was opened or closed;
+--   e. a SOFT-OUTAGE label - 2 ok, 4 warn whose note is not a 4xx (the dropbox_backup shape) and 2 warn with no note -
+--      opens one finding with failed_7d = 6: only a 4xx warn is excused (review of #1679).
 -- RED on the live body (the old rule counts warn and skipped, so a. fails); GREEN when run after the file in one
 -- rolled-back transaction. Neither run changes production: the raise rolls back the file and the rows together.
 do $probe$
@@ -18,17 +20,24 @@ begin
     insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
     values ('zz_demo_run_healthy_probe', now() - make_interval(hours => i), now() - make_interval(hours => i),
             case when i <= 4 then 'ok' when i <= 8 then 'warn' else 'skipped' end,
-            '{"fixture": 1, "caller": "fixture"}'::jsonb, 'ZZ DEMO probe run ' || i);
+            '{"fixture": 1, "caller": "fixture"}'::jsonb, case when i between 5 and 8 then 'HTTP 409 — ZZ DEMO probe run ' else 'ZZ DEMO probe run ' end || i);
   end loop;
   for i in 1..8 loop
     insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
     values ('zz_demo_run_failing_probe', now() - make_interval(hours => i), now() - make_interval(hours => i),
-            case when i <= 6 then 'error' else 'warn' end, '{"fixture": 1, "caller": "fixture"}'::jsonb, 'ZZ DEMO probe run ' || i);
+            case when i <= 6 then 'error' else 'warn' end, '{"fixture": 1, "caller": "fixture"}'::jsonb,
+            case when i > 6 then 'HTTP 400 — ZZ DEMO probe run ' else 'ZZ DEMO probe run ' end || i);
   end loop;
   for i in 1..6 loop
     insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
     values ('zz_demo_run_nostatus_probe', now() - make_interval(hours => i), now() - make_interval(hours => i), null,
             '{"fixture": 1, "caller": "fixture"}'::jsonb, 'ZZ DEMO probe run ' || i);
+  end loop;
+  for i in 1..8 loop
+    insert into public.agent_runs (agent, started_at, finished_at, status, counts, note)
+    values ('zz_demo_run_softwarn_probe', now() - make_interval(hours => i), now() - make_interval(hours => i),
+            case when i <= 2 then 'ok' else 'warn' end, '{"fixture": 1, "caller": "fixture"}'::jsonb,
+            case when i <= 2 then 'ZZ DEMO probe run ' || i when i <= 6 then 'ZZ DEMO the token endpoint did not answer usefully ' || i else null end);
   end loop;
 
   v_r := public.fn_it_engineer_run_clusters();
@@ -42,6 +51,10 @@ begin
   end if;
   if not exists (select 1 from public.it_engineer_finding where issue_key = 'duty:run_cluster:fixture:zz_demo_run_nostatus_probe' and closed_at is null) then
     v_fail := v_fail || ' c(runs with no status opened no finding)';
+  end if;
+  select * into f from public.it_engineer_finding where issue_key = 'duty:run_cluster:fixture:zz_demo_run_softwarn_probe';
+  if f.issue_key is null or f.closed_at is not null then v_fail := v_fail || ' e(6 non-4xx warns of 8 opened no finding)';
+  elsif coalesce((f.evidence->>'failed_7d')::int, -1) <> 6 then v_fail := v_fail || ' e(evidence ' || f.evidence::text || ')';
   end if;
   if (select coalesce(string_agg(issue_key || ':' || coalesce(closed_at::text, 'open'), ',' order by issue_key), '')
         from public.it_engineer_finding where issue_key like 'duty:run_cluster:%' and issue_key not like 'duty:run_cluster:fixture:%') <> v_real_before then

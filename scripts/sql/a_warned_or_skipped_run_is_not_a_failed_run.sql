@@ -18,7 +18,11 @@
 --   number with no single account). Each is a guard or a 4xx doing its job.
 --
 -- ══ WHAT CHANGES ══════════════════════════════════════════════════════════════════════════════════════════════════
---   A run is FAILED when its status is none of ok, warn and skipped. A missing status ('none') and any status not
+--   A run is FAILED unless it is ok, skipped, or a warn whose note starts 'HTTP 4' plus two digits (the edge functions' own
+--   log of a 4xx answer). Review of #1679 (27 Oct): internal agents record real degradation as warn - dropbox_backup 18
+--   ("The Dropbox token endpoint did not answer usefully"), it_engineer 19 ("HELD: the inbox placement seed ... was not
+--   found") - so excusing every warn would let a backup that warns on every run never form a cluster. A warn with any
+--   other note, or a NULL note (coalesce), still counts. A missing status ('none') and any status not
 --   named here (error today; held and refused, seen in the history, are not in the last 7 days) still count, so a new
 --   status fails closed. The cluster rule, the 7 days, the fixture split, the owner, the unowned flag and the close
 --   loop are unchanged. The evidence key non_ok_7d becomes failed_7d (no reader: grep of scripts/, supabase/, src/).
@@ -51,16 +55,17 @@ begin
               or coalesce(ar.counts->>'caller', '') = 'fixture'
               or coalesce(ar.note, '') ilike '%example.invalid%'
               or coalesce(ar.note, '') like '%ZZ DEMO%') = v_fx)
-    -- A FAILED RUN is one whose status is none of ok, warn and skipped (a missing status is 'none', so it counts):
-    -- warn is a request correctly answered 4xx, skipped is a guard refusing correctly. 'not ok' was the old rule.
-    select label, count(*) as runs, count(*) filter (where status not in ('ok', 'warn', 'skipped')) as non_ok,
+    -- A FAILED RUN is any run but an ok, a skipped (a guard refusing correctly) or a warn whose note starts 'HTTP 4xx'
+    -- (a request correctly answered 4xx). A warn with any other note - or none - is an outage reported softly
+    -- (dropbox_backup, it_engineer) and counts; so does a missing status ('none'). 'not ok' was the old rule.
+    select label, count(*) as runs, count(*) filter (where status not in ('ok', 'skipped') and not (status = 'warn' and coalesce(note, '') ~ '^HTTP 4[0-9][0-9]')) as non_ok,
            (select jsonb_object_agg(s, n) from (select status s, count(*) n from runs r2 where r2.label = runs.label group by 1) z) as statuses,
            (select jsonb_agg(x) from (select distinct left(r3.note, 200) x from runs r3
-              where r3.label = runs.label and r3.status not in ('ok', 'warn', 'skipped') and r3.note is not null limit 3) z) as notes
+              where r3.label = runs.label and r3.status not in ('ok', 'skipped') and not (r3.status = 'warn' and coalesce(r3.note, '') ~ '^HTTP 4[0-9][0-9]') and r3.note is not null limit 3) z) as notes
       from runs
      group by label
-    having count(*) > 5 and count(*) filter (where status not in ('ok', 'warn', 'skipped')) * 2 > count(*)
-     order by count(*) filter (where status not in ('ok', 'warn', 'skipped')) desc
+    having count(*) > 5 and count(*) filter (where status not in ('ok', 'skipped') and not (status = 'warn' and coalesce(note, '') ~ '^HTTP 4[0-9][0-9]')) * 2 > count(*)
+     order by count(*) filter (where status not in ('ok', 'skipped') and not (status = 'warn' and coalesce(note, '') ~ '^HTTP 4[0-9][0-9]')) desc
   loop
     n_found := n_found + 1;
     v_labels := v_labels || r.label;
@@ -83,7 +88,7 @@ begin
       jsonb_strip_nulls(jsonb_build_object(
         'duty', 'it_engineer.run_clusters', 'subject', v_subject, 'owner_seat', v_owner, 'unowned', v_owner is null,
         'runs_7d', r.runs, 'failed_7d', r.non_ok, 'statuses', r.statuses, 'sample_notes', r.notes,
-        'rule', 'more than 5 runs and more than half failed (a status other than ok, warn or skipped) in 7 days (IT-C14)', 'demo', v_fx)),
+        'rule', 'more than 5 runs and more than half failed in 7 days; ok, skipped and a warn noted HTTP 4xx are not failures (IT-C14)', 'demo', v_fx)),
       array['fixture runs counted apart'],
       case when v_owner is null then array['which seat owns this run label'] else '{}'::text[] end,
       'it_engineer');
@@ -95,9 +100,9 @@ begin
             where e.closed_at is null and e.issue_key like v_prefix || '%'
               and (v_fx or e.issue_key not like 'duty:run_cluster:fixture:%') loop
     continue when f.label = any (v_labels);
-    perform public.fn_it_engineer_finding_close(f.issue_key, format('cleared: %s now has %s failed of %s runs in 7 days (rule: more than 5 runs and more than half failed; ok, warn and skipped are not failures)',
+    perform public.fn_it_engineer_finding_close(f.issue_key, format('cleared: %s now has %s failed of %s runs in 7 days (rule: more than 5 runs and more than half failed; ok, skipped and a warn noted HTTP 4xx are not failures)',
       f.label,
-      (select count(*) filter (where coalesce(status, 'none') not in ('ok', 'warn', 'skipped')) from public.agent_runs where agent = f.label and started_at > now() - interval '7 days'),
+      (select count(*) filter (where coalesce(status, 'none') not in ('ok', 'skipped') and not (coalesce(status, 'none') = 'warn' and coalesce(note, '') ~ '^HTTP 4[0-9][0-9]')) from public.agent_runs where agent = f.label and started_at > now() - interval '7 days'),
       (select count(*) from public.agent_runs where agent = f.label and started_at > now() - interval '7 days')));
     n_closed := n_closed + 1;
   end loop;
@@ -109,6 +114,6 @@ end $fn$;
 revoke execute on function public.fn_it_engineer_run_clusters() from public, anon, authenticated;
 
 update public.seat_duty
-   set what = 'IT-C14: every run label with more than 5 runs and more than half failed in 7 days (a status other than ok, warn or skipped; fixture runs apart) is one owned finding, handed to its owner by the IT loop; a label no seat owns says so; a cleared label''s finding is closed with its reading.',
+   set what = 'IT-C14: every run label with more than 5 runs and more than half failed in 7 days (anything but ok, skipped or a warn noted HTTP 4xx; fixture runs apart) is one owned finding, handed to its owner by the IT loop; a label no seat owns says so; a cleared label''s finding is closed with its reading.',
        owner_file = 'scripts/sql/a_warned_or_skipped_run_is_not_a_failed_run.sql'
  where duty = 'it_engineer.run_clusters';
