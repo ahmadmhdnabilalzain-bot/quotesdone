@@ -175,6 +175,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       if (!p.pending) return;
     }
   };
+  // busy-exempt: setThinking is the busy state; it shows the typing indicator (nr_typing, then nr_slow) and hides the Try again button while the turn waits.
   const runIntake = async (message, drawingNow = null, turnId = null) => {
     const tid = turnId || newTurnId();
     setThinking(true); setSlow(false); setMsg('');
