@@ -42,6 +42,12 @@ test('the weekly brief states its inputs and claims nothing from none', () => {
   assert.match(body, /NO INPUT THIS WEEK/, `${file}: a brief on nothing does not say so`);
 });
 
+test('a feed link is kept only when it is on the competitor\'s own site (pg_net fetches it from inside the database network)', () => {
+  const { file, body } = newest('fn_competitor_public_links');
+  assert.match(body, /feed_host = site or right\(feed_host, length\(site\) \+ 1\) = '\.' \|\| site/, `${file}: a feed on another host can be fetched`);
+  assert.match(body, /m !~ '\^https:\/\/\[\^\/\?#\]\*@'/, `${file}: a userinfo URL can disguise the host`);
+});
+
 test('the scan comes back weekly and retries a failure after a day', () => {
   const { file, body } = newest('fn_marketing_competitor_scan');
   assert.match(body, /z\.requested_at > now\(\) - interval '7 days'/, `${file}: pages wait longer than a week`);

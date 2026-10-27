@@ -27,6 +27,8 @@
 --      Facebook, X, TikTok, YouTube) and its RSS/Atom feed, and fills competitor.social_handles where a key is empty.
 --      That gives competitor_study real handles, and gives the watch a POST source that needs no login and no Apify:
 --      the competitor's public feed (page_kind 'feed'), whose items are stored in market_intel (platform 'rss').
+--      Only a feed on the competitor's own site (its host or a subdomain) is kept: the href comes from a page we do not
+--      control and pg_net would fetch it from inside the database's network (review of #1551).
 --   3. fn_marketing_competitor_scan: home, pricing and feed weekly; a failed page retried after a day; three
 --      failures in 30 days back that page off for the rest of the 30 days (a site that blocks us is not hammered).
 --   4. fn_marketing_competitor_refresh_duty: the brief states its INPUTS (pages read this week, readable pages on
@@ -46,6 +48,7 @@ alter table public.competitor_scan add constraint competitor_scan_page_kind_chec
 create or replace function public.fn_competitor_public_links(p_html text, p_base_url text)
 returns jsonb language plpgsql immutable security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v jsonb := '{}'::jsonb; m text; tag text; origin text := substring(p_base_url from '^(https://[^/]+)');
+  site text := lower(regexp_replace(substring(p_base_url from '^https://([^/:?#]+)'), '^www\.', '')); feed_host text;
 begin
   if coalesce(p_html, '') = '' then return v; end if;
   m := substring(p_html from 'instagram\.com/([A-Za-z0-9_.]{2,30})');
@@ -66,7 +69,14 @@ begin
   if m is not null then
     m := replace(m, '&amp;', '&');
     if m ~ '^/' and origin is not null then m := origin || m; end if;
-    if m ~ '^https://' then v := v || jsonb_build_object('rss', m); end if;
+    -- THE COMPETITOR'S OWN SITE ONLY (review of #1551). The href is written by a page we do not control, and
+    -- fn_marketing_competitor_scan fetches it with pg_net from inside the database's network: a feed on any other
+    -- host (an internal name, a metadata address) is never stored, so it is never fetched. Subdomains pass.
+    feed_host := lower(regexp_replace(substring(m from '^https://([^/:?#@]+)(?:[/:?#]|$)'), '^www\.', ''));
+    if m ~ '^https://' and site is not null and feed_host is not null and m !~ '^https://[^/?#]*@'
+       and (feed_host = site or right(feed_host, length(site) + 1) = '.' || site) then
+      v := v || jsonb_build_object('rss', m);
+    end if;
   end if;
   return v;
 end $fn$;
