@@ -558,9 +558,18 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
           if (!codesFor[i].length) { unnamed.push(w); return; }
           for (const c of codesFor[i]) if (!removedTrades.has(c) && !trades.has(c)) more.add(c);
         });
+        // Only while THIS save is still the latest confirm. The reading takes 37-67 s and the tab reloads at once, so the
+        // supplier can save again inside that window; confirmBody is this save's body, and confirming it then would put
+        // back what the newer save changed and write a ledger version he never confirmed (reviewer, 27 Oct 2026).
+        // Guard: supplier_services_save.test.ts ("a newer save inside the reading window is not overwritten").
         if (more.size) {
-          const [s2, o2] = await capabilityConfirm(admin, supplierId, { ...confirmBody, trades: [...trades, ...more] });
-          if (s2 !== 200) console.error('services_save_rewrite: the trades the words named were not added', supplierId, JSON.stringify(o2).slice(0, 300));
+          const { data: latest } = await admin.from('supplier_capabilities').select('confirmed_version').eq('supplier_id', supplierId).maybeSingle();
+          if (Number(latest?.confirmed_version) !== Number(out.version)) {
+            console.warn('services_save_rewrite: a newer confirm landed while the words were read; not overwriting it', supplierId, [...more].join(','));
+          } else {
+            const [s2, o2] = await capabilityConfirm(admin, supplierId, { ...confirmBody, trades: [...trades, ...more] });
+            if (s2 !== 200) console.error('services_save_rewrite: the trades the words named were not added', supplierId, JSON.stringify(o2).slice(0, 300));
+          }
         }
         await propose(unnamed);
       } catch (e) { console.error('services_save_rewrite background reading failed', supplierId, String((e as Error)?.message || e)); }

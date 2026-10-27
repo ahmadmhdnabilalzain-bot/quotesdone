@@ -25,6 +25,8 @@ function fakeDb(normTrades: Record<string, string[]>, confirmedAt: string | null
     taxonomy_trade: [{ code: 'gypsum', label: 'Gypsum', label_ar: 'جبس' }, { code: 'painting', label: 'Painting & finishes', label_ar: 'دهانات' }],
     taxonomy_role: [{ code: 'contractor', label: 'Contractor' }],
     supplier_capabilities: [cap],
+    // The confirmation ledger, newest last: capabilityConfirm reads the latest version and inserts the next one.
+    supplier_capability_confirmation: [],
   };
   const q = (table: string) => {
     let write: Row | null = null;
@@ -34,9 +36,9 @@ function fakeDb(normTrades: Record<string, string[]>, confirmedAt: string | null
     Object.assign(b, {
       select: chain, eq: chain, in: chain, order: chain, limit: chain,
       range: (a: number, z: number) => { lo = a; hi = z; return b; },
-      maybeSingle: async () => ({ data: table === 'supplier_capabilities' ? cap : (tables[table] || [])[0] ?? null, error: null }),
+      maybeSingle: async () => ({ data: table === 'supplier_capabilities' ? cap : table === 'supplier_capability_confirmation' ? tables[table].at(-1) ?? null : (tables[table] || [])[0] ?? null, error: null }),
       upsert: (r: Row | Row[]) => { if (table === 'supplier_capabilities') Object.assign(cap, r as Row); write = r as Row; return b; },
-      insert: (r: Row) => { write = r; return b; },
+      insert: (r: Row) => { if (table === 'supplier_capability_confirmation') tables[table].push(r); write = r; return b; },
       update: (r: Row) => { write = r; return b; },
       then: (res: (v: unknown) => void) => res(write ? { error: null } : { data: (tables[table] || []).slice(lo, hi + 1), error: null }),
     });
@@ -194,4 +196,24 @@ Deno.test('a word that resolves exactly counts at once, with no reasoning and no
   assertEquals(s, 200);
   assertEquals([...(cap.trades as string[])].sort(), ['gypsum', 'painting']);
   assertEquals(reads, 0); assertEquals(bg.length, 0);
+});
+
+// ── THE DEFERRED READING NEVER OVERWRITES A NEWER CONFIRM (27 Oct 2026, reviewer) ─────────────────────────────
+// The reading runs for 37-67 s after the answer, and the tab reloads at once, so the supplier can save again inside
+// that window. The second confirm used to be built from the FIRST save's body, which put back what the newer save had
+// changed (services, roles, coverage) and wrote a ledger row for a version he never confirmed. It now adds the trades
+// the words named only while the first save is still the latest confirm; otherwise it leaves the newer confirm alone.
+Deno.test('a newer save inside the reading window is not overwritten by the deferred confirm', async () => {
+  const { admin, cap } = fakeDb({});
+  const g = gate(); const bg: Promise<unknown>[] = [];
+  const [s1] = await servicesSaveRewrite(admin, 7, { ...base, trades: ['gypsum'], services: ['gypsum.false_ceiling'], own_words: ['Painting works'] }, [],
+    { waitUntil: (p) => { bg.push(p); }, reason: async () => { await g.p; return { codes: ['painting'], held: false }; } });
+  assertEquals(s1, 200);
+  const [s2] = await servicesSaveRewrite(admin, 7, { ...base, trades: ['gypsum'], services: ['gypsum.partitions'], own_words: ['Painting works'] }, [],
+    { waitUntil: (p) => { bg.push(p); }, reason: async () => ({ codes: [], held: true }) });
+  assertEquals(s2, 200);
+  const newer = cap.confirmed_version;
+  g.open(); await Promise.all(bg);
+  assertEquals(cap.confirmed_version, newer, 'no confirm was written over the newer one');
+  assert((cap.services as string[]).includes('gypsum.partitions') && !(cap.services as string[]).includes('gypsum.false_ceiling'), JSON.stringify(cap.services));
 });
