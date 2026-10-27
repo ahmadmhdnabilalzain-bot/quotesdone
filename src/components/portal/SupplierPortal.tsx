@@ -1,6 +1,6 @@
 // @ts-nocheck
 'use client';
-import { useDeferredValue, useEffect, useRef, useState } from 'react';
+import { Fragment, useDeferredValue, useEffect, useRef, useState } from 'react';
 import { useFailover } from '@/lib/otpFailover';
 import { localisedPath, applyDocumentLocale, applyShellChrome } from '@/lib/documentLocale';
 import { arDays } from '@/lib/durationLabel';
@@ -343,7 +343,7 @@ const T = {
     create_my_account:'Create my account', send_code:'Send me a code', sending:'Sending…', code_placeholder:'6-digit code',
     verify_continue:'Verify & continue', verify_signin:'Verify & sign in', verifying:'Verifying…', use_diff:'Use a different email/number',
     wa_note:'We sent the code to this number on WhatsApp. Not there after a minute? Send it by SMS instead.', send_by_sms:'Send it by SMS instead',
-    junk_note:'The code can take a minute — please check your spam/junk folder too.', err_code_send:'Could not send a code.', err_incorrect:'Incorrect code.',
+    code_sent_to:'We sent a 6-digit code to {id}. Enter it below.', junk_note:'The code can take a minute — please check your spam/junk folder too.', err_code_send:'Could not send a code.', err_incorrect:'Incorrect code.',
     signup_email_only:"Please sign up with your work email — you'll register your company and verify your mobile next.",
     signup_email_reserved:'That email domain is reserved for examples and testing and cannot receive mail, so no code can reach it. Please use your real work email.', err_need_email:'Please enter your work email first.', err_need_id:'Please enter your email or mobile number first.',
     conflict_customer:'This email is registered as a customer. Please use the customer app to sign in.',
@@ -696,9 +696,9 @@ export function SupplierPortal() {
       <main id="main">
       {!mounted ? <div className={S.center}>{t(lang, 'loading')}</div> : (<>
         {/* An invited supplier is told whose listing this is, before anything else on the page. */}
-        {phase === 'login' && invite && <InviteBanner invite={invite} lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
+        {phase === 'login' && invite && <InviteBanner invite={invite} lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); (document.querySelector('#qd-supplier-signin input') as HTMLInputElement | null)?.focus({ preventScroll: true }); } catch (_e) {} }} />}
         {/* §1 — the supplier meets the product before the sign-in box, not after it. */}
-        {phase === 'login' && <SupplierEntryHero lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
+        {phase === 'login' && <SupplierEntryHero lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); (document.querySelector('#qd-supplier-signin input') as HTMLInputElement | null)?.focus({ preventScroll: true }); } catch (_e) {} }} />}
         {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} startMode={invite && (invite.claimable || invite.invalid) ? 'signup' : 'signin'} /></div>}
         {phase === 'app' && (claiming
           ? <div className={S.center} aria-busy="true" role="status">{t(lang, 'claiming_listing')}</div>
@@ -814,7 +814,12 @@ function Login({ onAuth, lang, startMode }) {
       <div className="mb-5 flex flex-col items-center text-center">
         <span className="qd-brandbadge mb-4 grid h-12 w-12 place-items-center rounded-2xl"><BrandMark className="h-6 w-6" /></span>
         <h1 className={cn(S.h1, 'qd-grad-text font-[family-name:var(--font-head)]')}>{isSignup ? t(lang, 'register_title') : t(lang, 'welcome_back')}</h1>
-        <div className={cn(S.sub, 'mx-auto mt-2')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</div>
+        {/* THE CODE STEP SAYS WHERE THE CODE WENT (28 Oct 2026, sales_engineer, production browser walk at 1366 and 390 px):
+            after "Create my account" the subtitle still read "Enter your work email and we'll create your account", and
+            nothing on the screen named the address, so a typo could only be found by waiting for a code that never came. */}
+        <div className={cn(S.sub, 'mx-auto mt-2')}>{step === 'code' && ident
+          ? t(lang, 'code_sent_to').split('{id}').map((part, i) => i === 0 ? part : <Fragment key={i}><bdi dir="ltr" className="font-semibold text-foreground">{ident}</bdi>{part}</Fragment>)
+          : (isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub'))}</div>
       </div>
       <div className={cn(S.tabsWrap, 'mb-4 flex w-full')}><button className={cn(S.tab, 'flex-1', !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button><button className={cn(S.tab, 'flex-1', isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button></div>
       {step === 'id' ? (<>
