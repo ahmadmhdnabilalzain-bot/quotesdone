@@ -10,7 +10,7 @@ import { observe } from '../_shared/observe.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
-import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn, openTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply } from './slots.ts';
+import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, stampTurn, openTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldAsk, readHeldAnswer } from './slots.ts';
 import { detectEmirate, detectUrgency, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
@@ -408,6 +408,9 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     let slotMissingKeys: string[] = [];
     let slotExhausted: string[] = [];
     let slotAsk: { key: string; text: string } | null = null;
+    // The spec a held intake asks this turn (slots.ts heldAsk); remembered on the row so the next message is read
+    // as its answer by code (readHeldAnswer), the way the deterministic interview reads asked_key.
+    let heldNext: { key: string; text: string; options: string[] | null } | null = null;
     const slotLang = ar ? 'ar' : 'en';
     // Turn 1 has no stored trade, so the checklist is empty until the model names one: load the model's
     // trade's checklist here, or what the first message states is read against nothing and lost.
@@ -416,7 +419,11 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
       if (Array.isArray(cs1?.fields)) checklist = cs1.fields;
     }
     if (out && llmParseOk && checklist.length && out.status !== 'rejected') {
-      const prevDet = (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object') ? draft.brief.details : {};
+      const prevDet0 = (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object') ? draft.brief.details : {};
+      // THE ANSWER TO THE SPEC A HOLD ASKED IS READ BY CODE FIRST (27 Oct 2026, ledger 580; slots.ts says why).
+      const heldKey = draft.brief && draft.brief.asked_on_hold === true ? String(draft.brief.asked_key || '') : '';
+      const heldVal = heldKey && !(heldKey in prevDet0) ? readHeldAnswer(checklist, heldKey, text) : null;
+      const prevDet = heldVal ? { ...prevDet0, [heldKey]: heldVal } : prevDet0;
       const firstUser0 = String(turns.find((t: any) => t.role === 'user')?.text || allText);
       const settled = settleModelTurn(checklist, prevDet, out, slotLang, (d) => buildBrief(String(category || out.category || ''), d, allText, emirate, firstUser0), openTurnsByKey(turns));
       slotDetails = settled.details; slotMissingKeys = settled.missingKeys; slotExhausted = settled.held ? settled.exhausted : [];
@@ -533,6 +540,10 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
         p_payload: { intake_id: draft.id, customer_id: cust?.id || null, not_sure: slotExhausted, category,
           waiting_for: 'sales_engineer to help the customer settle these specs; asked three times without an answer' } });
       if (hErr) await logRun('error', { spec_handoff_failed: 1 }, 'intake held for unanswered specs but the sales_engineer handoff failed: ' + hErr.message);
+      // The hold asks: the first open spec goes out as next_question with the checklist's options to tap, and every
+      // open spec stays in questions / missing (slots.ts settleModelTurn), so a held turn never asks nothing.
+      heldNext = heldAsk(checklist, slotExhausted, slotLang);
+      if (heldNext) nextQuestion = heldNext;
       // The customer is told WHICH questions are still open, by the model, in the inquiry language (slots.ts heldReply).
       out.assistant_message = await heldReply(defaultDeps(admin, 'inquiry_intake'), checklist, slotExhausted, slotLang, text, turns, Date.now() + 40_000);
     }
@@ -757,7 +768,7 @@ ${requirementsContract(category)} Keep questions concise so the whole JSON stays
     const drawingState = { ...(boqCheck ? { boq_check: boqCheck } : {}), boq_asked: boqAsked, cad_asked: cadAsked };
     const briefToSave = brief
       ? { ...brief, req_answers: reqAnswers, ...drawingState }
-      : { details: interview ? interview.details : (slotDetails || prevBrief.details || {}), asked_key: interview ? interview.asked_key : null, state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, ...drawingState };
+      : { details: interview ? interview.details : (slotDetails || prevBrief.details || {}), asked_key: interview ? interview.asked_key : (heldNext ? heldNext.key : null), ...(heldNext ? { asked_on_hold: true } : {}), state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, ...drawingState };
     // The two additions the portal renders (14 Sep 2026). On the model path they are derived from
     // what the model and the canonical gate returned; on the interview path they are exact.
     const reqCount = checklist.filter((f: any) => f && f.required).length;

@@ -24,7 +24,7 @@
 // status differs from the status the model wrote its sentence for, the sentence is replaced by one
 // built from the state, so the customer is never told "ready" while the row says otherwise. No word of
 // the customer's text is matched here (ruling 890): only keys and values the model returned are read.
-import { orderFields, questionText, type Lang, type SpecField } from './interview.ts';
+import { orderFields, questionText, parseAnswer, isUnknown, type Lang, type SpecField } from './interview.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
 import type { ThinkDeps } from '../_shared/think.ts';
 import { requirementQuestions, isValidAnswer, NO_PREFERENCE, type Answers, type Ans } from '../_shared/intake_requirements.ts';
@@ -47,8 +47,8 @@ export type SlotState = { details: Record<string, string>; missingKeys: string[]
 // sales engineer (index.ts opens the spec.not_sure handoff, the same door the not-sure path uses).
 export const MAX_OPEN_TURNS = 3;
 export const HELD_FOR_SPECS: Record<Lang, string> = {
-  en: 'Thank you. A few specifications are still open, so our sales engineer will help you settle them before this goes to suppliers. We will continue with you here; there is no need to type anything again.',
-  ar: 'شكرًا لكم. ما زالت بعض المواصفات غير محددة، لذلك سيساعدكم مهندس المبيعات لدينا على تحديدها قبل إرسال الطلب إلى الموردين. سنكمل معكم هنا، ولا حاجة إلى إعادة كتابة أي شيء.',
+  en: 'Thank you. A few specifications are still open, and this goes to suppliers once they are settled. Please answer them here; our sales engineer will help with any you are unsure of.',
+  ar: 'شكرًا لكم. ما زالت بعض المواصفات غير محددة، وسيُرسل الطلب إلى الموردين بعد تحديدها. يُرجى الإجابة عنها هنا، وسيساعدكم مهندس المبيعات لدينا في أي منها لستم متأكدين منه.',
 };
 
 // THE HELD REPLY NAMES WHAT IS STILL OPEN (customer_support, 19 Oct 2026). settleModelTurn clears `missing` on a hold,
@@ -71,10 +71,62 @@ export async function heldReply(deps: ThinkDeps, checklist: SpecField[], exhaust
     seat: 'sales_engineer', channel: 'the website request chat', audience: 'customer', lang, message, deadline,
     conversation: conversation.map((t) => ({ role: t.role === 'assistant' ? 'seat' as const : 'customer' as const, text: String(t.text || '') })),
     facts: 'This request is HELD: it goes to no supplier yet. These questions were asked three times and are still unanswered:\n- ' + open.join('\n- ') +
-      '\nOur sales engineer will help the customer settle them here in this chat; nothing needs to be typed again.',
-    rules: 'Thank them, name EACH still-open question above in plain words, say our sales engineer will help settle them in this chat before it goes to suppliers. Two to four sentences. Do not ask anything else.',
+      '\nThe customer can answer them here in this chat; our sales engineer will help settle any they are unsure of.',
+    rules: 'Thank them, name EACH still-open question above in plain words and ask them to answer here (the first one is offered below with options to tap), and say our sales engineer will help settle anything they are unsure of before it goes to suppliers. Two to four sentences. Do not ask anything else.',
   });
-  return r.reply || HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en;
+  // The handover sentence alone named nothing; when no model reply arrives the open questions are listed by code.
+  return r.reply || `${HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en}${open.length ? '\n- ' + open.join('\n- ') : ''}`;
+}
+
+// ── A HELD INTAKE ASKS ONE SPEC AT A TIME AND READS THE ANSWER BY CODE (27 Oct 2026, sales_engineer) ─────────
+// MEASURED on production, founder ledger 580, run 6dd2316c (agent_runs inquiry_intake 27 Oct 07:52-07:54 UTC): a
+// ZZ DEMO customer's HVAC drawing intake asked 4, 4 and 3 questions on its first three turns, then answered
+// status=held with questions=0 on every turn after (readiness 55..80). settleModelTurn cleared `questions` and
+// `missing` on a hold and index.ts left next_question null, so the portal (NewRequest.tsx renders next_question and
+// remaining_questions) had nothing to show, create_inquiry answered 428 intake_required, and no inquiry, BOQ PDF or
+// supplier was ever reached. A real customer would have been stuck exactly so.
+//
+// The hold stays: exact specs or nothing goes to a supplier (founder, 14 Sep 2026). What changes is that a held
+// intake names the specific spec it is waiting for and asks it, with the checklist's own options to tap, and the
+// answer to THAT question is read by code (interview.ts parseAnswer, targeted), because the hold exists precisely
+// where the model did not file three answers under the key. A bare "not sure" fills nothing (the key stays missing
+// and the sales_engineer handoff opened by index.ts helps settle it); an option the checklist itself offers, such
+// as "Not sure - need site survey", is a spec the trade defined and is recorded as the answer.
+
+/** The first still-open spec of a held intake, in checklist order, as the question to ask now. */
+export function heldAsk(checklist: SpecField[], exhausted: string[], lang: Lang): { key: string; text: string; options: string[] | null } | null {
+  const o = orderFields(checklist).find((x) => exhausted.includes(String(x.f.key)) && questionText(x.f, lang));
+  if (!o) return null;
+  const opts = Array.isArray(o.f.options) ? o.f.options.filter((x) => typeof x === 'string' && x) : [];
+  return { key: String(o.f.key), text: questionText(o.f, lang), options: opts.length ? opts : null };
+}
+
+// A DEFERRAL IS NOT A SPEC (independent review of #1641, 27 Oct 2026). The hold exists because the customer answered
+// "As per the attached drawings." three times (run 6dd2316c). parseAnswer, targeted, takes a short free-text reply as
+// the answer to a text field and to a tap question that names none of its options, so the fourth "as per the drawings"
+// was stored as system_type and the intake went ready with no spec. A reply that only points elsewhere, defers, or says
+// nothing fills nothing here: the spec stays held and the sales_engineer handoff settles it.
+const DEFERRAL = new RegExp([
+  String.raw`^(as|according to|refer to|see|check|per|same as|like)\b.*\b(drawing|drawings|plan|plans|attach\w*|file|files|boq|document|pdf|photo|picture|image|before|above|previous)\b`,
+  String.raw`^(attached|in the (drawing|attachment|file)s?|on the (drawing|plan)s?)\b`,
+  String.raw`^(ok|okay|k|yes|yeah|yep|no|nope|sure|fine|any|anything|whatever|either|both|all|none|na|n/?a|tbd|tbc|later|soon|asap|same|normal|standard|usual|default|good|best|cheap|cheapest|\?+|\.+|-+)[\s.!?]*$`,
+  String.raw`(حسب|كما في|راجع|انظر|شوف)\s*(ال)?(مخطط|مخططات|رسم|رسومات|مرفق|المرفق|الملف|الصور)`,
+  String.raw`^(مرفق|نعم|لا|اوكي|أوكي|تمام|ماشي|أي شي|اي شي|أي شيء|اي شيء|عادي|بعدين|لاحقا|لاحقاً)[\s.!؟]*$`,
+].join('|'), 'i');
+export const isDeferral = (text: string) => DEFERRAL.test(String(text || '').trim());
+
+/** The customer's answer to the spec a hold asked, read by code, or null when it did not answer it. */
+export function readHeldAnswer(checklist: SpecField[], askedKey: string | null | undefined, text: string): string | null {
+  if (!askedKey || !String(text || '').trim()) return null;
+  const f = checklist.find((x) => x && String(x.key) === String(askedKey));
+  if (!f) return null;
+  const v = parseAnswer(f, text, true);
+  if (!v) return null;
+  const listed = Array.isArray(f.options) && f.options.includes(v);
+  if (listed) return v;   // an option the trade itself defines (a bare yes/no only reaches here as a listed Yes/No option)
+  // not listed: a not-sure of any wording, or a reply that only defers, is no spec
+  if (/^not sure$/i.test(v.trim()) || isUnknown(text) || isDeferral(text)) return null;
+  return v;
 }
 
 /** How many earlier assistant turns each required key stayed open on (stampTurn's missing_keys). */
@@ -139,7 +191,10 @@ export function settleModelTurn(checklist: SpecField[], prevDetails: Record<stri
     out.brief = { ...base, details: { ...(base.details || {}), ...sl.details } };
     out.missing = [];
   } else if (sl.held) {
-    out.missing = []; out.questions = []; out.brief = null;
+    // A HELD INTAKE STILL ASKS (27 Oct 2026, ledger 580): the open questions travel with the hold. This branch used
+    // to clear both lists, so every held turn answered questions=0, missing=[] and no next_question (see heldAsk).
+    const open = heldQuestions(checklist, sl.exhausted, lang);
+    out.missing = open; out.questions = open; out.brief = null;
     out.assistant_message = HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en;
     return sl;
   } else {

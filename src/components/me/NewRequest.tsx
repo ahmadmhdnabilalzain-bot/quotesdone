@@ -256,7 +256,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       if (s && s.ok && s.status === 'done') {
         const pages = Array.isArray(s.drawing_redacted_paths) ? s.drawing_redacted_paths : [];
         if (!pages.length) return;
-        adopt({ ...res, drawing_redacted_paths: pages, drawing_held: false }, name, source);
+        // The legend's devices, counted on the redacted page by the vision count (27 Oct 2026): still estimates to confirm.
+        const counted = Array.isArray(s.counted_boq) && res.boq && typeof res.boq === 'object' ? { boq: { ...res.boq, boq: s.counted_boq, vision_count: s.vision_count || null } } : {};
+        adopt({ ...res, ...counted, drawing_redacted_paths: pages, drawing_held: false }, name, source);
         push({ role: 'assistant', text: tf(lang, 'nr_scan_pages_ready', { n: pages.length, c: countPhrase(lang, pages.length, 'page', { oblique: true }) }) });
         return;
       }
