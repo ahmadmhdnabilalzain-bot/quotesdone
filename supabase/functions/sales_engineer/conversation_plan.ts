@@ -85,7 +85,7 @@ const COUNT = rx(String.raw`\b\d+\s*(?:rooms?|bedrooms?|bed|br|windows?|doors?|u
 export const CATALOGUE: SlotSpec[] = [
   { id: 'size', label: 'the sizes (dimensions or area)',
     fill: rx(MEASURE.source),
-    ask: rx(String.raw`\b(size|sizes|dimensions?|measurements?|width|wide|height|high|tall|length|long|depth|deep|area|square met|sqm|m2|how (big|large))\b|قياس|مقاس|ابعاد|مساحة|المساحة|عرض|ارتفاع|طول|عمق|حجم`) },
+    ask: rx(String.raw`\b(size|sizes|dimensions?|measurements?|width|wide|height|high|tall|length|long|depth|deep|area|square met|sqm|m2|how (big|large))\b|قياس|مقاس|ابعاد|مساحة|المساحة|مساحت|عرض|ارتفاع|طول|عمق|حجم`) },
   { id: 'count', label: 'how many (rooms, units, windows, points)',
     fill: COUNT,
     ask: rx(String.raw`\bhow many (rooms|bedrooms|windows|doors|units|floors|storeys|tanks|workstations|people|staff|seats|fronts|panels|points|wardrobes|cameras)\b|\b(type|size) of (flat|apartment|home|house|villa|unit)\b|\b(studio|1-bed|one-bed|bedroom)\b[^?]{0,40}\bor\b|كم (عدد )?(غرف|غرفة|الغرف|نافذة|نوافذ|باب|ابواب|طابق|دور|خزان|وحدة|كاميرا)|عدد (الغرف|النوافذ|الابواب|الطوابق|الادوار|الوحدات|الكاميرات)|كم غرفة|استوديو[^؟]{0,40}(او|ام)|نوع الشقة|حجم الشقة`) },
@@ -103,7 +103,7 @@ export const CATALOGUE: SlotSpec[] = [
     ask: rx(String.raw`\b(permits?|noc|approvals?|approve|building management|management company|association|developer|municipality|landlord'?s? (approval|consent)|work(ing)? hours|community rules|allowed hours)\b|تصريح|موافقة|عدم ممانعة|ادارة المبنى|المطور|البلدية|ساعات العمل|لوائح`) },
   { id: 'existing', label: 'what is there now (the existing condition, removal, or a new installation)',
     fill: rx(String.raw`\b(existing|currently|current|old|older|no (existing|unit|system|cabling|wiring)|nothing (there|now)|new installation|new build|first time|bare|shell and core|peeling|cracked|cracks|broken|damaged|hollow|faded|\d+[- ]years?[- ]old|years old|temporary hoarding|(is|are) [a-z ]{1,30} now)\b|القديم|القديمة|الحالي|الحالية|موجود|ما فيه|ما في|لا يوجد|§جديد|ازالة|متقشر|تقشر|متشقق|شروخ|باهت|قبل \d+ سن|متهالك`),
-    ask: rx(String.raw`\b(existing|current|currently|old|remove|removal|replace|replacing|replacement|new install\w*|already (there|have)|condition)\b|الحالي|الحالية|القديم|القديمة|موجود|ازالة|استبدال|§جديد (ام|او)|حالة`) },
+    ask: rx(String.raw`\b(existing|current|currently|old|remove|removal|replace|replacing|replacement|new install\w*|already (there|have)|condition)\b|الحالي|الحالية|القديم|القديمة|موجود|ازالة|استبدال|§جديد (ام|او)|حالة|شقوق|تشققات|رطوبة|تقشر|ثقوب|cracks?|damp|peeling`) },
   { id: 'finish', label: 'the material, finish and colour',
     fill: rx(String.raw`\b(white|black|grey|gray|beige|walnut|oak|sage|green|blue|charcoal|sand|off-white|cream|ivory|brown|gold|silver|mdf|plywood|laminate|lacquer|gloss|glossy|matt|matte|satin|quartz|granite|marble|porcelain|ceramic|vinyl|spc|lvt|nylon|rubber|aluminium|aluminum|steel|galvani[sz]ed|powder[- ]coated|timber|wood|wooden|fibreglass|fiberglass|plastic|velvet|fabric|acrylic|textured?|smooth|mosaic|louvred|louvered|stone|interlock|engineered|elastomeric|emulsion)\b|لون|ابيض|اسود|رمادي|بيج|جوزي|رملي|ذهبي|خشب|لامع|مطفي|هاي جلوس|كوارتز|رخام|بورسلين|سيراميك|مخمل|قماش|المنيوم|ستيل|فايبر|بلاستيك|تكستشر|ناعم|mdf`),
     ask: rx(String.raw`\b(material|materials|finish|finishes|colou?rs?|grade|thickness|brand|style|which board|type of board|board (type|and colou?r|and finish))\b|\bwhat (type|kind) of (tile|tiles|paint|board|wood|glass|fabric|stone|carpet|worktop|flooring)\b|مادة|المواد|المادة|خامة|الخامة|تشطيب|التشطيب|لون|اللون|الالوان|نوع (الخشب|البلاط|الصبغ|الدهان|القماش|الزجاج|الحجر)|سماكة|ستايل`) },
@@ -154,7 +154,7 @@ export const CATALOGUE: SlotSpec[] = [
     fill: rx(String.raw`\bbudget\b|\beconomy\b|\bmid-?range\b|\bpremium\b|\bluxury\b|\bmoderate\b|\baffordable\b|\baed\s?\d|\d[\d,.]*\s?(k|aed|dirhams?)\b|ميزانية|الميزانية|متوسطة|اقتصادي|فاخر|درهم|عالية`),
     ask: rx(String.raw`\bbudget\b|\bprice range\b|\beconomy,? mid-?range\b|\bmid-?range or\b|الميزانية|ميزانية|فئة السعر`) },
   { id: 'timing', label: 'when they need it done',
-    fill: rx(String.raw`\b(within|in) (\d+|a|an|one|two|three|four|five|six|eight|few|couple of) (days?|weeks?|months?)\b|\b(this|next) (week|month|year)\b|\basap\b|\burgent\w*|\bby (the )?(end of )?(${MONTHS})\b|\bbefore (summer|winter|ramadan|eid|the cool season|the hot season|next summer|we open|we move|opening)\b|\bflexible\b|\bno rush\b|\bmove in\b|\bstart on\b|\bon (monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b|\b\d+ (january|february|march|april|may|june|july|august|september|october|november|december)\b|\b(1|first) (${MONTHS})\b|خلال|هذا الاسبوع|هالاسبوع|الاسبوع (القادم|الجاي)|الشهر (القادم|الجاي)|مستعجل|قبل (الشتاء|الصيف|رمضان|العيد)|مرن|باسرع وقت|اسرع وقت|يوم (الخميس|الجمعة|السبت|الاحد|الاثنين|الثلاثاء|الاربعاء)`),
+    fill: rx(String.raw`\b(within|in) (\d+|a|an|one|two|three|four|five|six|eight|few|couple of) (days?|weeks?|months?)\b|\b(this|next) (week|month|year)\b|\basap\b|\burgent\w*|\bby (the )?(end of )?(${MONTHS})\b|\bbefore (summer|winter|ramadan|eid|the cool season|the hot season|next summer|we open|we move|opening)\b|\bflexible\b|\bno rush\b|\bmove in (on|by|within|next|in)\b|\bstart on\b|\bon (monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b|\b\d+ (january|february|march|april|may|june|july|august|september|october|november|december)\b|\b(1|first) (${MONTHS})\b|خلال|هذا الاسبوع|هالاسبوع|الاسبوع (القادم|الجاي)|الشهر (القادم|الجاي)|مستعجل|قبل (الشتاء|الصيف|رمضان|العيد)|مرن|باسرع وقت|اسرع وقت|يوم (الخميس|الجمعة|السبت|الاحد|الاثنين|الثلاثاء|الاربعاء)`),
     ask: rx(String.raw`\bwhen (do|would|should|can|are|is|will) (you|it|the work|this)\b|\btimeline\b|\btime ?frame\b|\bhow soon\b|\bdeadline\b|\btarget (date|completion)\b|\bstart date\b|\bby when\b|\bwhen\b[^?]{0,40}\b(start|done|finished|complete|ready|installed|open|move)\b|متى|الموعد|الاطار الزمني|المدة المطلوبة|موعد`) },
 ];
 const SPEC = new Map(CATALOGUE.map((s) => [s.id, s]));
@@ -411,7 +411,7 @@ export function planState(past: Turn[], message: string, extracted: Extracted | 
       for (const id of a1) if (a2.includes(id) && !given(filled, id)) toConfirm.add(id);
     }
   }
-  const open = plan ? plan.slots.map((s) => s.id).filter((id) => !given(filled, id) && !toConfirm.has(id)) : [];
+  const open = plan ? plan.slots.map((s) => s.id).filter((id) => !given(filled, id) && !toConfirm.has(id) && !(id === 'size' && toConfirm.has('count'))) : [];
   let mode: Mode = 'none';
   if (plan) {
     if (lastWasSummary && CONFIRMED.test(message) && !CHANGE.test(normalise(message))) mode = 'confirmed';
@@ -434,10 +434,13 @@ export function stateBlock(st: State): string {
   const given = [...st.filled].filter(([id]) => st.plan!.slots.some((s) => s.id === id) || ['property', 'ownership', 'budget', 'permits'].includes(id));
   if (given.length) lines.push('ALREADY GIVEN BY THE CUSTOMER (never ask for any of these again, in any wording):\n'
     + given.map(([id, v]) => `- ${labelOf(st, id)}: "${v.slice(0, 200)}"` + (st.changed.has(id) ? ` (they changed this; earlier: "${st.changed.get(id)!.slice(0, 120)}"; only the latest choice counts)` : '')).join('\n'));
-  if (st.toConfirm.size) lines.push('TO CONFIRM AT THE SUPPLIER\'S SITE VISIT (they were unsure or skipped it; never ask again):\n'
-    + [...st.toConfirm].map((id) => '- ' + labelOf(st, id)).join('\n'));
+  // only this job's must-haves: a slot an expert follow-up touched in passing is not the customer's to confirm
+  const pending = st.plan.slots.map((x) => x.id).filter((id) => st.toConfirm.has(id) || (id === 'size' && st.toConfirm.has('count')));
+  if (pending.length) lines.push('TO CONFIRM AT THE SUPPLIER\'S SITE VISIT (they were unsure or skipped it; never ask again):\n'
+    + pending.map((id) => '- ' + labelOf(st, id)).join('\n'));
   if (st.mode === 'ask') {
     lines.push(`ASK NOW: one short question about ${labelOf(st, st.next!)}.` + (st.also ? ` You may add one more short question about ${labelOf(st, st.also)}.` : '')
+      + ' Word it for this job as they described it, and leave out any part of it that does not apply to this job.'
       + ' Ask nothing else: no other question, and nothing listed above.' + (st.unsure ? ' They were unsure about your last question: first recommend an answer to it in one sentence, without repeating that they are unsure.' : ''));
   } else if (st.mode === 'summary') {
     lines.push('THIS REPLY IS THE SUMMARY. Open with a short phrase such as "Here is your request as I have it:" (Arabic: "هذا ملخص طلبك:"), then the job in short sentences of under 20 words each, with every value above (only the latest choice where they changed one), then the items to confirm at the site visit, if any. End with one question asking whether it is correct, such as "Is this correct?" (Arabic: "هل هذا صحيح؟"). No other question.');

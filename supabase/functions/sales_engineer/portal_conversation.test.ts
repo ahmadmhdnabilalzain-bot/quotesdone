@@ -293,7 +293,8 @@ Deno.test('re-ask by slot: a question they were unsure of is to confirm and neve
     u('Whatever Civil Defence accepts; we have no preference.'),
     a('When do you need it completed by?')], 'Before we open in 8 weeks.');
   assertEquals(reaskOf('Are you the tenant?', h), 'asks the ownership again');
-  assert(heldBlock(h).includes("TO CONFIRM AT THE SUPPLIER'S SITE VISIT") && heldBlock(h).includes('whether they own or rent'), heldBlock(h));
+  // ownership is no fire-alarm must-have, so it is not listed to confirm (run 26c1ea71), but it is listed as already asked
+  assert(heldBlock(h).includes('QUESTIONS ALREADY ASKED') && heldBlock(h).includes('Are you the tenant of the unit or the owner?'), heldBlock(h));
 });
 
 // office_fitout (ecb6b6b2): the finish level (economy, mid-range or premium) asked in turn 2, skipped, asked in turn 3
@@ -445,4 +446,23 @@ Deno.test('the plan filter and the outage rule: refused drafts are never an outa
     new Response('{"error":"upstream"}', { status: 503 }), new Response('{"error":"upstream"}', { status: 503 })]);
   const d = await answerFromBrief(CALL(h), () => {}, down.f);
   assertEquals([d.reply, d.outage], ['', true]);
+});
+
+// The final 22-scenario run (26c1ea71, 6cf746dea), judged: the flaws behind the points the plan itself cost.
+Deno.test('run 26c1ea71: to-confirm is this job only, move-in is not a date, the area and wall words, no instruction aloud', () => {
+  // fire_alarm_warehouse_ar: a finish slot an expert follow-up touched is not listed for a fire alarm
+  const fa = heldState([u('عندنا مستودع جديد ونبي نظام إنذار حريق معتمد من الدفاع المدني.'), a('ما لون اللوحة والتشطيب المفضل؟')], 'مو متأكد، شو تنصحني؟');
+  assert(!/finish and colour/.test(heldBlock(fa)), heldBlock(fa));
+  // parquet_wet_area_trap_en: "empty until we move in" is occupancy, not the timeline
+  const pq = heldState([u('I want engineered wood flooring in my apartment, about 85 square metres.')], 'The flat is empty until we move in.');
+  assert(pq.plan.open.includes('timing'), pq.plan.open.join(','));
+  // painting_ar: "مساحتها" is the size; the wall condition question is the existing slot; a skipped count holds the size
+  const pa = heldState([u('أبي صباغة شقتي قبل ما أسلم المفتاح.'), a('كم عدد الغرف في الشقة، أو مساحتها التقريبية؟ وهل الجدران فيها شقوق أو رطوبة أو تقشر؟')], 'المالك يبي الجدران والأسقف أبيض.');
+  assert(!pa.plan.open.includes('size') && !pa.plan.open.includes('existing'), pa.plan.open.join(','));
+  assertEquals(reaskOf('ما مساحتها التقريبية بالمتر المربع؟', pa), 'asks the sizes again');
+  // boundary_wall_paint_trap_ar: an instruction is never spoken aloud
+  assertEquals(unaskedOf('ما راح أكرر التصحيح.', pa), 'it speaks an instruction aloud');
+  assertEquals(unaskedOf("I won't repeat the correction.", pa), 'it speaks an instruction aloud');
+  // kitchen_cabinets_en: the model is told to word the question for this job
+  assert(/Word it for this job as they described it/.test(heldBlock(heldState([], 'Can I just replace my kitchen cabinet doors?'))));
 });
