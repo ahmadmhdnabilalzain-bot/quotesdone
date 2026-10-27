@@ -302,6 +302,12 @@ export const REGISTER = {
   // findings; with fn_seat_playbook_build replaced by one that raises, the same insert raised 1. It reads no clock,
   // so the HEALTHY instants change nothing for it.
   trg_seat_playbook_learns: { relay: 'records that fn_seat_playbook_build raised while learning from a lesson; the error is the finding, and a healthy day rebuilds every seat without one' },
+  // 27 Oct 2026 (it_engineer; the alarm came with #1607, accountant). A trigger function on transactions.doc_path,
+  // so it cannot be called as a replay, and it reads no clock. It decides nothing: it raises
+  // monitor:reveal_invoice_handoff_not_filed:<transaction> only in the exception handler around its own handoff
+  // insert, i.e. when filing the invoice.issued handoff to the sales engineer itself errored, so the invoice stays
+  // filed. Measured by #1607 (its file's header): a real attach on a ZZ DEMO transaction did not raise.
+  fn_accountant_files_reveal_invoice: { relay: 'records that the invoice.issued handoff for a filed reveal invoice could not be inserted; the insert\'s error is the finding, and a healthy day files every handoff without one' },
   // 29 Sep 2026 (it_engineer, #1062, instruction 1009). The monthly game day. Each game_day:<scenario> finding is the
   // verdict of a scenario routine (fn_it_game_day_<scenario>) that injected a fault in a rolled-back savepoint and saw
   // the REAL detector miss it or fail to clear; the rule is those detectors', each replayed or relayed above. Not
