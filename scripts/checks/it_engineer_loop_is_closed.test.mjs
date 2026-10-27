@@ -120,15 +120,24 @@ test('a receiving seat cannot close an it_engineer handoff; the it_engineer can'
         values (t.to_seat, 'handoff', 'pending', 'low', 'ZZ DEMO close probe',
                 jsonb_build_object('type', t.type, 'from', 'it_engineer', 'to', t.to_seat), 'probe', 'zz_probe:' || n)
         returning id into v_id;
+        -- Both attempts CITE the handover note (evidence.cites_note from fn_handoff_note_citation, what
+        -- fn_seat_handoff_complete writes). Since 27 Oct (a_handoff_closes_only_when_its_receiver_cites_the_note_or_
+        -- says_why_not.sql, ledger 1013) trigger a02 refuses an uncited close with 23514, which failed the
+        -- originator's close here AND would have let a02, not z61, account for the receiver's refusal. With the note
+        -- cited, z61 is the only thing that can refuse the receiver, which is what this test is about.
         begin
           perform set_config('qd.handoff_closer', t.to_seat, true);
           perform set_config('qd.backup_closer', t.to_seat, true);
-          update public.agent_actions set status = 'done' where id = v_id;
+          update public.agent_actions set status = 'done', evidence = coalesce(evidence, '{}'::jsonb)
+                 || jsonb_build_object('cites_note', public.fn_handoff_note_citation(v_id))
+           where id = v_id;
         exception when others then refused := refused + 1; end;
         -- qd.backup_closer too: the backup build's own trigger (z60) reads that name for its two types.
         perform set_config('qd.handoff_closer', 'it_engineer', true);
         perform set_config('qd.backup_closer', 'it_engineer', true);
-        update public.agent_actions set status = 'done' where id = v_id and status <> 'done';
+        update public.agent_actions set status = 'done', evidence = coalesce(evidence, '{}'::jsonb)
+               || jsonb_build_object('cites_note', public.fn_handoff_note_citation(v_id))
+         where id = v_id and status <> 'done';
         if found then closed := closed + 1; end if;
       end loop;
       raise exception 'CHK<<%>>', json_build_object('conversations', n, 'refused', refused, 'originator_closed', closed);

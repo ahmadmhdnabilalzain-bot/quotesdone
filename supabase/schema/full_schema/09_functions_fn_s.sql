@@ -5229,6 +5229,30 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_seat_takes_data_request(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('accepted', true, 'seat', a.agent, 'request_id', a.detail->'request_id',
+    'waiting', coalesce(a.detail->>'waiting_for', 'the correction of the person''s data, by the due date'))
+    from public.agent_actions a where a.id = p_id
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_takes_knowledge_request(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('accepted', true, 'seat', a.agent, 'gap_id', a.detail->'gap_id',
+    'waiting', coalesce(a.detail->>'waiting_for', 'a knowledge entry that answers the question'))
+    from public.agent_actions a where a.id = p_id
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_seat_takes_support_root_cause(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -10404,6 +10428,65 @@ AS $function$
                           l.approval_status, l.permanently_closed, l.chat_strikes) from l)
   );
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_whatsapp_consent_ask_record(p_phone text, p_question text, p_asked_by text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_phone text := '+' || regexp_replace(coalesce(p_phone, ''), '\D', '', 'g'); v_id bigint;
+begin
+  if v_phone !~ '^\+[0-9]{8,15}$' then return jsonb_build_object('ok', false, 'reason', 'no usable number'); end if;
+  if position(lower(public.fn_wa_consent_question()) in lower(regexp_replace(coalesce(p_question, ''), '\s+', ' ', 'g'))) = 0 then
+    return jsonb_build_object('ok', false, 'reason', 'the text does not carry the consent question (fn_wa_consent_question)'); end if;
+  if coalesce(btrim(p_asked_by), '') = '' then return jsonb_build_object('ok', false, 'reason', 'name the seat that asked'); end if;
+  insert into public.supplier_whatsapp_consent_ask (phone, question, asked_by) values (v_phone, p_question, btrim(p_asked_by))
+  returning id into v_id;
+  return jsonb_build_object('ok', true, 'ask_id', v_id, 'phone', v_phone);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_whatsapp_optin_obeys_the_rule()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb := public.fn_wa_optin_rule(new.source, new.button_payload, new.consent_question, new.consent_answer);
+begin
+  if not (v->>'counts')::boolean then
+    raise exception 'supplier_whatsapp_optin refused (ledger 1341): %', v->>'why' using errcode = 'check_violation';
+  end if;
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_whatsapp_optin_record(p_lead_id bigint, p_source text, p_question text, p_answer text, p_phone text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare l public.leads; v_phone text; v_id bigint;
+  v_rule jsonb := public.fn_wa_optin_rule(p_source, null, p_question, p_answer);
+begin
+  if p_source not in ('email_consent_reply', 'call_consent_reply') then
+    return jsonb_build_object('ok', false, 'reason', 'p_source is email_consent_reply or call_consent_reply'); end if;
+  if not (v_rule->>'counts')::boolean then return jsonb_build_object('ok', false, 'reason', v_rule->>'why'); end if;
+  select * into l from public.leads where id = p_lead_id;
+  if l.id is null then return jsonb_build_object('ok', false, 'reason', 'no such lead'); end if;
+  if coalesce(l.whatsapp_opt, '') = 'none' then return jsonb_build_object('ok', false, 'reason', 'the lead opted out of WhatsApp'); end if;
+  v_phone := '+' || regexp_replace(coalesce(p_phone, l.phone_e164, ''), '\D', '', 'g');
+  if v_phone !~ '^\+[0-9]{8,15}$' then return jsonb_build_object('ok', false, 'reason', 'no usable number'); end if;
+  insert into public.supplier_whatsapp_optin (lead_id, phone, source, consent_question, consent_answer, evidence)
+  values (l.id, v_phone, p_source, p_question, p_answer,
+          'answered yes to the consent question (' || replace(p_source, '_consent_reply', '') || ') at '
+          || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD HH24:MI') || ' Dubai')
+  on conflict (lead_id, phone) do nothing
+  returning id into v_id;
+  return jsonb_build_object('ok', true, 'lead_id', l.id, 'phone', v_phone, 'new', v_id is not null, 'why', v_rule->>'why');
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_supplier_workspaces(p_lead_id bigint)
