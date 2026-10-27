@@ -132,15 +132,19 @@ export function failoverStep(messageStatus: unknown, ageMs: number): 'none' | 's
   if (s === 'UNDELIVERED' || s === 'FAILED') return 'sms';
   return ageMs >= FAILOVER_AFTER_S * 1000 ? 'sms' : 'wait';
 }
-// phone_verifications.code holds 'twilio:<delivered channel>[:<Verify verification SID>]'.
+// phone_verifications.code holds 'twilio:<delivered channel>[:<Verify verification SID>]' for a Verify send, and
+// 'qd:whatsapp:<message SID>' for a WhatsApp code QuotesDone sent itself (_shared/wa_code.ts, ledger 1252). An SMS
+// failover after our own WhatsApp code is a Verify send keyed by that message SID: 'twilio:sms:<SM...>'.
 export function channelOfRow(code: string | null | undefined): string | null {
-  const m = /^twilio:(\w+)(?::(VE\w+))?$/.exec(String(code || ''));
-  return m ? m[1] : null;
+  const m = /^(?:twilio:(\w+)(?::(?:VE|SM|MM)\w+)?|qd:(whatsapp):(?:SM|MM)\w+)$/.exec(String(code || ''));
+  return m ? (m[1] || m[2]) : null;
 }
 export function sidOfRow(code: string | null | undefined): string | null {
-  const m = /^twilio:\w+:(VE\w+)$/.exec(String(code || ''));
+  const m = /^(?:twilio:\w+|qd:whatsapp):((?:VE|SM|MM)\w+)$/.exec(String(code || ''));
   return m ? m[1] : null;
 }
+/** True when the row is a WhatsApp code we sent ourselves (its delivery is read from the Messages API, not Verify). */
+export const isOwnRow = (code: string | null | undefined) => /^qd:whatsapp:(?:SM|MM)\w+$/.test(String(code || ''));
 
 export type Patch = Record<string, string | boolean | null>;
 

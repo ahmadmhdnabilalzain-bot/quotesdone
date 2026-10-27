@@ -26,4 +26,9 @@ Sending supplier@ → management@ instead is a different email, and his yes does
 deliver it, either sign the Microsoft 365 connector in as management@, or he sends the one email
 himself. Ledger 1314 carries the state.
 
+**Update, later 27 Oct 2026: DROPPED** (relayed by the coordinator). The email cannot be sent from this estate, and the
+GlockApps test of the same day already measured the mail. It is no longer a warm-up prerequisite. The compressed
+warm-up started instead: on day 0, supplier@ wrote to 5 of the founder's own mailboxes and he replied. This is noted on
+ledgers 1314 and 1313.
+
 Related: [[checkpoint-27-oct-cloud-invitations-held]]

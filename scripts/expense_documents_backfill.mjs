@@ -35,6 +35,7 @@ import { supabaseAccessToken } from './lib/supabase_token.mjs';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { sql, PROJECT_REF } from './lib/db.mjs';
+import { pickApiKey } from './lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 const ARG = process.argv.slice(2);
 const has = (f) => ARG.includes(f);
@@ -54,8 +55,8 @@ async function keys() {
   const r = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/api-keys?reveal=true`,
     { headers: { Authorization: 'Bearer ' + mgmt } });
   const j = await r.json();
-  const ANON = j.find?.((x) => x.name === 'anon')?.api_key;
-  const SERVICE = j.find?.((x) => x.name === 'service_role')?.api_key;
+  const ANON = pickApiKey(j, 'publishable');
+  const SERVICE = pickApiKey(j, 'secret');
   if (!ANON || !SERVICE) throw new Error('could not read the project api keys');
   _k = { ANON, SERVICE };
   return _k;
@@ -73,7 +74,7 @@ async function upload(path, bytes, contentType) {
   const { SERVICE } = await keys();
   const r = await fetch(`${BASE}/storage/v1/object/${BUCKET}/${path}`, {
     method: 'POST',
-    headers: { Authorization: 'Bearer ' + SERVICE, 'Content-Type': contentType, 'x-upsert': 'true' },
+    headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': contentType, 'x-upsert': 'true' },
     body: bytes,
   });
   if (!r.ok) throw new Error(`upload ${path} -> HTTP ${r.status} ${(await r.text()).slice(0, 200)}`);
@@ -82,7 +83,7 @@ async function upload(path, bytes, contentType) {
 async function download(path) {
   const { SERVICE } = await keys();
   const r = await fetch(`${BASE}/storage/v1/object/${BUCKET}/${encodeURI(path)}`,
-    { headers: { Authorization: 'Bearer ' + SERVICE } });
+    { headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE } });
   if (!r.ok) return { ok: false, status: r.status, bytes: null };
   return { ok: true, status: 200, bytes: new Uint8Array(await r.arrayBuffer()) };
 }
@@ -387,7 +388,7 @@ async function prune() {
   for (const prefix of prefixes) {
     const r = await fetch(`${BASE}/storage/v1/object/list/${BUCKET}`, {
       method: 'POST',
-      headers: { Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' },
+      headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' },
       body: JSON.stringify({ prefix: prefix + '/', limit: 1000 }),
     });
     if (!r.ok) { console.log(`list ${prefix}: HTTP ${r.status}`); continue; }
@@ -397,7 +398,7 @@ async function prune() {
       orphans++;
       if (!APPLY) { console.log(`orphan (would delete): ${path}`); continue; }
       const del = await fetch(`${BASE}/storage/v1/object/${BUCKET}/${encodeURI(path)}`,
-        { method: 'DELETE', headers: { Authorization: 'Bearer ' + SERVICE } });
+        { method: 'DELETE', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE } });
       if (del.ok) { removed++; console.log(`deleted orphan: ${path}`); }
       else console.log(`could not delete ${path}: HTTP ${del.status}`);
     }

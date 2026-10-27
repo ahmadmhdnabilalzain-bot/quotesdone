@@ -24,8 +24,43 @@ So the batch is held twice over: by the switch and by the zero-width window.
    Report inbox, spam and promotions for each provider. If Outlook (outlook.com, hotmail.com and
    the Office 365 seeds together) is below 80% inbox, the batch stays held and the cause is fixed
    first.
-2. **The founder's yes to the internal test email** from management@ to supplier@ (instruction 1314).
-   Nothing in Week 1 sends before that yes.
+2. ~~The founder's yes to the internal test email from management@ to supplier@ (instruction 1314).~~ **Dropped
+   27 Oct**: the email cannot be sent from this estate, and GlockApps already covered it. Not a prerequisite.
+
+## COMPRESSED, 27 Oct 2026 afternoon: this replaces Week 1 below
+
+The founder, 27 Oct: *"do the warm up immediately after the fix. we cant wait for a week"*. GlockApps
+`id:2026-10-27-09:33:53:634t` measured Microsoft at **0 of 18 inbox** (EOP SCL 5 on every Microsoft seed;
+SpamAssassin 0.4; `GAPPS_WARM_UP` raised), so gate 1 failed. The evidence and the fixes are in
+`GLOCKAPPS_27_OCT_RESULT_AND_FIX_PLAN.md`.
+
+**The internal management@ → supplier@ test email (ledger 1314) is DROPPED** (coordinator, 27 Oct). It cannot be
+sent from this estate, and the GlockApps test already measured the same mail. It is no longer a prerequisite; gate 2
+below is void.
+
+**Before the re-test (day 3):**
+1. PR #1648 is merged and `send_outbox` deployed (variant-A copy, 5 lane sends per run).
+2. The founder sets **Exchange admin center → Mail flow → Remote domains → Default → rich-text format: Never**.
+   Every external copy measured so far arrived with a `winmail.dat` attachment and without `List-Unsubscribe-Post`.
+   This should be done **before day 1**.
+3. One copy in his Gmail is checked for both.
+
+| Day | Date | supplier@ writes to | Volume | The other side |
+|---|---|---|---|---|
+| 0 | **Tue 27 Oct, DONE at 15:16Z** | the founder's 5 mailboxes: djzaino@outlook.com, ahmadmhdnabilalzain@gmail.com, management@doratajewelries.com, bookings@djzaino.com, fati.labib@icloud.com | 5 | he is replying. Each copy is also moved out of Junk / Promotions and the sender added to contacts. supplier@ answers each reply |
+| 1 | **Wed 28 Oct** | people who know Ahmad, Outlook / Hotmail / Office 365 and Yahoo / AOL addresses first; short personal notes that ask something | ~10 | open, reply, rescue from Junk |
+| 2 | **Thu 29 Oct** | the same circle, widened | ~15 | the same |
+| 3 | **Fri 30 Oct** | the same, sent in the morning | ~20 | the same |
+| re-test | **Fri 30 Oct 2026, seeds from 13:00 Dubai (09:00Z)** | the GlockApps seed list, with the last credit, through `deliverability_test`, paced 5 per run (about 6 hours) | 112 | pass = Outlook ≥ 80% inbox. If fewer than about 30 two-way threads exist by Friday noon, or TNEF is still on, it moves to **Mon 2 Nov** instead of spending the credit |
+
+Day 0 left before #1648 deployed, so those 5 copies carried the old text and the `winmail.dat` attachment. That does not
+matter for engagement: his replies count all the same.
+
+- Never a real supplier and never a cold address: `invite_enabled` stays `false` until the re-test passes (Outlook
+  ≥ 80% inbox).
+- The honest risk: nothing measured says three days is enough for Microsoft. If day 3 fails, the original weeks below
+  apply.
+- A failed re-test leaves no credit, and a top-up is the founder's spend.
 
 ## The plan (working days only; the UAE weekend and `company_calendar` holidays do not count)
 
