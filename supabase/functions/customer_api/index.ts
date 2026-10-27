@@ -34,6 +34,9 @@ import { portalLink, siteCors } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
 import { feeBaseOf, feeBasisLine, priceStated, vatStated } from '../_shared/stated_price.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
+import { requireInternal } from '../_shared/internal_auth.ts';
+import { ackThenWork } from '../_shared/async_webhook.ts';
+import { finishCompareArabic, MAX_ATTEMPTS as MAX_COMPARE_ATTEMPTS, type CompareFinishIO } from './compare_arabic.ts';
 import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { arabicOf, arabicTextsFor, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { SANCTIONED_REFUSAL, sanctionedLead, sanctionedLeads } from '../_shared/sanctioned.ts';
@@ -719,17 +722,24 @@ async function fetchCompareAnalysis(iid: string, lang: 'en' | 'ar'): Promise<{ a
 /** An Arabic document with a line not yet translated by reasoning (under the founder's model hold). */
 const ARABIC_HELD = { ok: false, held: true, error: 'arabic_held' } as const;
 const heldReply = () => J({ ok: false, held: true, code: 'arabic_held',
-  message: 'The Arabic version is being prepared by our sales engineer and will be ready shortly. The English version is available now.',
-  message_ar: 'يُعدّ مهندس المبيعات لدينا النسخة العربية وستكون جاهزة قريبًا. النسخة الإنجليزية متاحة الآن.' }, 202);
+  message: 'The Arabic version is being prepared by our sales engineer. We will send it to you by email and WhatsApp as soon as it is ready. The English version is available now.',
+  message_ar: 'يُعدّ مهندس المبيعات لدينا النسخة العربية، وسنرسلها إليكم بالبريد الإلكتروني وواتساب فور جاهزيتها. النسخة الإنجليزية متاحة الآن.' }, 202);
 // The edge wall is 150 s; one think() batch can run ~47 s (the gateway wall). A batch may START only before
 // started + 90 s, so the request always answers (the 202 held reply) instead of a 504.
 const ARABIC_COMPARE_BUDGET_MS = 90_000;
-async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar', started = Date.now()) {
+// deadline (epoch ms): past it a missing line is FILED for the replay, never reasoned. compare_pdf passes its start
+// + ARABIC_COMPARE_BUDGET_MS; the replay's finisher (compare_arabic.ts) passes Date.now(), so it never calls a model.
+// A held Arabic report records its waiter, and the replay sends it to the customer once its lines exist.
+async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar', deadline: number) {
   const { data: sq } = await admin.from('quotes').select('supplier_id').eq('inquiry_id', inq.id);
   const maskNames = await supplierIdentities((sq || []).map((r: any) => r.supplier_id));
   const portalUrl = portalLink(lang, inq.id);
-  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => compareDocument({ analysis: a, inquiry: inq, lang, maskNames, portalUrl, linkFor: (qid) => portalLink(lang, inq.id, qid), arTexts }), { subject: { inquiry_id: inq.id }, deadline: started + ARABIC_COMPARE_BUDGET_MS });
-  if (!doc.doc) return { j: ARABIC_HELD, ref: 'QD-' + jobNoOf(inq) + '-CMP' };
+  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => compareDocument({ analysis: a, inquiry: inq, lang, maskNames, portalUrl, linkFor: (qid) => portalLink(lang, inq.id, qid), arTexts }), { subject: { inquiry_id: inq.id }, deadline });
+  if (!doc.doc) {
+    const { error: wErr } = await admin.rpc('fn_arabic_compare_wait', { p_inquiry: String(inq.id), p_texts: doc.missing });
+    if (wErr) console.error('compare_pdf: the Arabic report waiter was not recorded:', wErr.message);
+    return { j: ARABIC_HELD, ref: 'QD-' + jobNoOf(inq) + '-CMP' };
+  }
   const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -737,6 +747,30 @@ async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar', started = Da
     body: JSON.stringify({ ...body, __secret: secret, folder: 'compare/' + inq.id }) });
   const j = await r.json();
   return { j, ref };
+}
+// The live IO of the held Arabic report's finisher (compare_arabic.ts holds the decisions and their tests).
+const COMPARE_INQ_COLS = 'id,rfq_no,customer_id,category,summary,emirate';
+function compareFinishIO(): CompareFinishIO {
+  return {
+    waiter: async (iid) => { const { data } = await admin.from('arabic_compare_waiter').select('inquiry_id,created_at,attempts').eq('inquiry_id', iid).maybeSingle(); return (data as any) ?? null; },
+    inquiry: async (iid) => { const { data } = await admin.from('inquiries').select(COMPARE_INQ_COLS).eq('id', iid).maybeSingle(); return (data as any) ?? null; },
+    customer: async (cid) => { const { data } = await admin.from('customers').select('email').eq('id', cid).maybeSingle(); return (data as any) ?? null; },
+    render: async (inq) => {
+      const got = await fetchCompareAnalysis(inq.id, 'ar');
+      if (!got.analysis) return { error: got.error || 'comparison_unavailable' };
+      // deadline = now: every line is read from the cache; one still missing is filed, never reasoned here.
+      const { j, ref } = await buildComparePdf(got.analysis, inq, 'ar', Date.now());
+      if ((j as any)?.held) return { held: true };
+      return j?.ok && j.url ? { url: String(j.url), ref } : { error: String(j?.error || j?.detail || 'pdf_failed') };
+    },
+    deliver: async (rows) => { const { error } = await requestDelivery(admin, rows); return error ? { ok: false, err: error.message } : { ok: true }; },
+    done: async (iid) => { await admin.from('arabic_compare_waiter').delete().eq('inquiry_id', iid); },
+    tried: async (iid, attempts) => { await admin.from('arabic_compare_waiter').update({ attempts, last_tried_at: new Date().toISOString() }).eq('inquiry_id', iid); },
+    tellSalesEngineer: async (iid, last) => {
+      await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'arabic_comparison_render_failed', status: 'pending', risk: 'medium',
+        title: `The Arabic comparison report could not be sent after ${MAX_COMPARE_ATTEMPTS} tries`, detail: { inquiry_id: iid, last }, target_table: 'inquiries', target_id: iid });
+    },
+  };
 }
 
 // REDACTION PROVENANCE 2 Aug 2026 (external security review). WHY: QuotesDone sells anonymity —
@@ -820,6 +854,22 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
   // what needs exercising, not a real answer. See the header of resilience_ping/index.ts.
   if (req.headers.get('x-qd-warm') === '1') return new Response(null, { status: 204 });
   try {
+    // THE REPLAY'S ONE DOOR IN (compare_arabic.ts): a held Arabic comparison report whose lines now all exist is
+    // rendered and sent to its customer. Internal credential only (fn.resilience_ping, scope customer_api). The work
+    // runs after the answer, so the replay's tick never waits on a render. Only a caller presenting the service key
+    // (which passes the gateway; __secret decides the caller) has its body read twice: a customer's upload is not.
+    const bearer = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+    const peek = bearer === SERVICE ? await req.clone().json().catch(() => ({})) : null;
+    if (peek?.__secret && peek.action === 'compare_arabic_finish') {
+      const ok = await requireInternal(admin, String(peek.__secret), 'customer_api');
+      if (!ok.ok) return J({ error: 'forbidden' }, 403);
+      const iid = String(peek.inquiry_id || '');
+      if (!iid) return J({ error: 'bad_request' }, 400);
+      return ackThenWork(J({ ok: true, accepted: iid }, 202), async () => {
+        const r = await finishCompareArabic(compareFinishIO(), iid);
+        console.log(JSON.stringify({ at: 'customer_api.compare_arabic_finish', inquiry_id: iid, ...r }));
+      }, 'customer_api.compare_arabic_finish');
+    }
     const auth = req.headers.get('Authorization') || ''; const jwt = auth.replace(/^Bearer\s+/i, '');
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user || !user.email) return J({ error: 'Not signed in' }, 401);
@@ -1870,8 +1920,10 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
         if (got.analysis) analysis = got.analysis; else return J({ ok: false, error: got.error, code: got.error, message: 'The comparison report is not available yet. Your quotes are unaffected.', message_ar: 'تقرير المقارنة غير متاح بعد. عروضك لم تتأثر.' }, 409);
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 502); }
       try {
-        const { j, ref } = await buildComparePdf(analysis, inq, lang, started);
+        const { j, ref } = await buildComparePdf(analysis, inq, lang, started + ARABIC_COMPARE_BUDGET_MS);
         if ((j as any)?.held) return heldReply();
+        // The Arabic report is in the customer's hands now: a waiter from an earlier held press is not sent again.
+        if (j?.ok && j.url && lang === 'ar') await admin.from('arabic_compare_waiter').delete().eq('inquiry_id', iid);
         if (j?.ok && j.url) return J({ ok: true, url: j.url, ref });
         return J({ error: 'pdf_failed', detail: j?.error || j?.detail || '' }, 502);
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }

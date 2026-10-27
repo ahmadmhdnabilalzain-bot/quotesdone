@@ -136,9 +136,13 @@ const tokenAlive = (t) => {
   catch (_e) { return true; } // unparseable: let the endpoint be the judge, do not lock anyone out
 };
 const CALL_TIMEOUT_MS = 30000; // longer than any endpoint's own budget; this is the hang, not the slow answer
-async function call(path, body, token) {
+// The comparison report is the one call whose own budget is longer: quote_compare can take ~56 s on its own and the
+// Arabic build may then reason until 90 s (customer_api ARABIC_COMPARE_BUDGET_MS), inside the 150 s edge wall. Cut
+// at 30 s, the customer saw "timed out" instead of the 202 that says the Arabic report will be sent (PR #1574).
+const COMPARE_PDF_TIMEOUT_MS = 150000;
+async function call(path, body, token, timeoutMs = CALL_TIMEOUT_MS) {
   const ac = typeof AbortController === 'function' ? new AbortController() : null;
-  const timer = ac ? setTimeout(() => ac.abort(), CALL_TIMEOUT_MS) : null;
+  const timer = ac ? setTimeout(() => ac.abort(), timeoutMs) : null;
   let r;
   try {
     r = await fetch(fnUrl(path), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body), signal: ac ? ac.signal : undefined });
@@ -1503,7 +1507,7 @@ function ExportComparison({ inqId, token, lang }) {
   const go = (docLang) => async () => {
     setBusy(true); setErr(''); let j = null;
     try {
-      const ok = await openDocument(lang, async () => { j = await call('customer_api', { action: 'compare_pdf', inquiry_id: inqId, lang: docLang }, token); return j && (j.url || j.pdf_url || j.file_url) || null; });
+      const ok = await openDocument(lang, async () => { j = await call('customer_api', { action: 'compare_pdf', inquiry_id: inqId, lang: docLang }, token, COMPARE_PDF_TIMEOUT_MS); return j && (j.url || j.pdf_url || j.file_url) || null; });
       if (!ok) setErr(errText(j, lang, 'cmp_save_fail'));
     } catch (_e) {
       setErr(t(lang, 'cmp_save_fail'));

@@ -112,8 +112,24 @@ Deno.test('a passed deadline files the lines instead of reasoning them (run 0a71
 
 Deno.test('customer_api compare_pdf passes its request deadline to the Arabic build', async () => {
   const src = await Deno.readTextFile(new URL('../customer_api/index.ts', import.meta.url));
-  assert(/compareDocument\([\s\S]{0,400}deadline: started \+ ARABIC_COMPARE_BUDGET_MS/.test(src), 'buildComparePdf must bound the Arabic reasoning');
-  assert(/buildComparePdf\(analysis, inq, lang, started\)/.test(src), 'compare_pdf must hand buildComparePdf its start time');
+  assert(/compareDocument\([\s\S]{0,400}\{ subject: \{ inquiry_id: inq\.id \}, deadline \}\)/.test(src), 'buildComparePdf must bound the Arabic reasoning');
+  assert(/buildComparePdf\(analysis, inq, lang, started \+ ARABIC_COMPARE_BUDGET_MS\)/.test(src), 'compare_pdf must hand buildComparePdf its deadline');
+});
+
+Deno.test('a line already translated is never translated again: past the deadline only the missing lines are filed, and the replay\'s render calls no model', async () => {
+  // compare_pdf, first press: line 1 was reasoned and stored earlier; the budget is spent, so line 2 alone is filed.
+  const first = mock({ cached: { [LINES[0]]: 'خزائن' } });
+  const r1 = await nativeArabic(first.deps, build, { subject: { inquiry_id: 'zz-demo' }, deadline: Date.now() - 1 });
+  assertEquals([r1.held, r1.missing], [true, [LINES[1]]]);
+  const filed = first.rpcs.filter(([f]) => f === 'fn_reason_hold');
+  assertEquals(filed.map(([, a]) => (a.p_subject as { sources: string[] }).sources), [[LINES[1]]], 'the cached line is not filed');
+  assertEquals(first.llm, []);
+  // The replay stored line 2. The finisher renders with deadline = now: every line comes from the cache, no model runs.
+  const replay = mock({ cached: { [LINES[0]]: 'خزائن', [LINES[1]]: 'دهان' } });
+  const r2 = await nativeArabic(replay.deps, build, { subject: { inquiry_id: 'zz-demo' }, deadline: Date.now() });
+  assertEquals([r2.held, r2.doc!.body], [false, ['خزائن', 'دهان', 'مطابق']]);
+  assertEquals(replay.llm, [], 'no line is reasoned twice');
+  assertEquals(replay.rpcs.some(([f]) => f === 'fn_reason_hold' || f === 'fn_arabic_translation_store'), false);
 });
 
 Deno.test('arabicOf de-duplicates and trims before it reasons', async () => {
