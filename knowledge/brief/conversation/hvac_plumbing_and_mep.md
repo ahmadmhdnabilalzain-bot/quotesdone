@@ -55,7 +55,7 @@ Covers split, ducted, package, VRF/VRV, chilled-water FCUs, ventilation, AC repa
 
 ## Plumbing (plumbing)
 - **Open:** What is the problem or job: leak, blockage, low pressure, no hot water, new fixtures, or full bathroom/kitchen replumbing?
-- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: the problem or the job; size: how many fixtures, or the size or capacity; existing: what is there now and its condition; layout: the fixtures and where they go; location; timing
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: the problem or the job; size: how many fixtures, or the size or capacity; existing: what is there now and its condition; layout [bathroom|kitchen|shower|toilet|sink|basin|حمام|مطبخ|دش|مغسلة]: the fixtures and where they go; location; timing
 - **Then ask (in order, one or two at a time):**
   - Where is it: bathroom, kitchen, roof tank, pump room, outside? Villa or apartment?
   - For leaks: visible water, wet wall or ceiling below, high water bill? Neighbour's ceiling affected?

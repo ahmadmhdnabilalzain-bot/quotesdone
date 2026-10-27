@@ -172,3 +172,13 @@ Deno.test('a conditional must-have: drawings for a ducted villa, never for a bed
   assert(!split.plan!.slots.some((x) => x.id === 'design'), split.plan!.slots.map((x) => x.id).join(','));
   assert(PLANS.get('hvac')!.slots.find((x) => x.id === 'design')?.when, 'the playbook marks it conditional');
 });
+
+// The 21-scenario run on 6cf746dea: water_tank_ar was asked "the fixtures and where they go" twice (the plumbing plan's
+// bathroom slot) and stalled; smart_home_ar's "new build or finished home?" was read only as the finish and deadlocked.
+Deno.test('a tank is never asked about fixtures; "new build or finished home" is the existing condition', () => {
+  const tank = planState([], 'خزان الماء عندي يسرب وأبي أغيره.');
+  assert(!tank.plan!.slots.some((x) => x.id === 'layout'), tank.plan!.slots.map((x) => x.id).join(','));
+  const bath = planState([], 'I want to redo my bathroom completely.');
+  assert(bath.plan!.slots.some((x) => x.id === 'layout'));
+  assert(targets('هل البيت جديد تحت التشطيب، أم جاهز ومسكون؟', PLANS.get('smart-home')!).includes('existing'));
+});
