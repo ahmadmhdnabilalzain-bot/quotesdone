@@ -10,7 +10,10 @@
 --   demand_search          one row per brief-box text the router recognised (trade + emirate, no text kept).
 --   demand_forecast        one row per run, trade and emirate (and a 'UAE' roll-up): 30/90-day counts,
 --                          the projection, basis = 'estimate' always (a CHECK), method and sample size.
---   fn_demand_forecast_tick  code only, no model. Demo inquiries (customers.is_demo) are excluded.
+--   fn_demand_forecast_tick  code only, no model. Only an inquiry with a customer who is not a fixture is counted
+--                          (fn_seat_clock_customer_is_fixture: is_demo, a ZZ DEMO name or an @example.invalid email),
+--                          the rule a_demo_request_is_never_supply_gap_demand.sql set for the supply gap.
+--                          demand_search rows older than 90 days are purged on every run: nothing reads them.
 --   seat_duty sales_engineer.demand_forecast, daily.
 --
 -- THE METHOD (stated in every row): daily rate r30 over the last 30 days and r90 over the last 90; the
@@ -23,6 +26,14 @@
 -- they are anonymous, and public_site records at most 5 per IP per day), while its supply_gap row is below target and not already being recruited for, is
 -- moved to 'recruit' (decided_by 'rule:forecast_demand') - the same path a waiting customer takes, so
 -- marketing.gap_recruitment_plans and the recruitment funnel start before the customer arrives.
+-- It never recruits where nobody is left to invite (uninvited_pool = 0) and never overrides a deferral made by
+-- rule:no_uninvited_leads (review of #1182, 26 Oct 2026).
+--
+-- IT IS RELEASED: fn_sales_engineer_supply_gap (redefined at the end of this file from its canonical
+-- a_held_question_is_paid_for_once_and_test_traffic_never_waits_for_a_model.sql, MANIFEST 1951; only the release
+-- step is new) sends a rule:forecast_demand gap back to 'open' once no forecast from the last two days still
+-- shows demand there, so it is decided again like any gap nobody waits on. Before this, the canonical release
+-- undid only rule:customer_waiting and a forecast recruitment was permanent (review of #1182, 26 Oct 2026).
 
 create table if not exists public.demand_search (
   id          bigserial primary key,
@@ -37,6 +48,7 @@ alter table public.demand_search enable row level security;
 drop policy if exists demand_search_service_role_only on public.demand_search;
 create policy demand_search_service_role_only on public.demand_search as permissive for all to public using (false) with check (false);
 revoke all on public.demand_search from anon, authenticated;
+revoke all on sequence public.demand_search_id_seq from anon, authenticated;
 
 create table if not exists public.demand_forecast (
   run_on          date not null,
@@ -95,6 +107,7 @@ declare
   v_rows int; v_acted int;
 begin
   delete from public.demand_forecast where run_on = v_today;   -- a re-run the same day replaces its own rows
+  delete from public.demand_search where searched_at < now() - interval '90 days';   -- nothing reads older rows
 
   with inq as (
     -- distinct: an inquiry's trades usually already contain its category's code, and must count once
@@ -102,7 +115,9 @@ begin
       from public.inquiries i
       left join public.customers c on c.id = i.customer_id
      where i.created_at > now() - interval '90 days' and i.parent_inquiry_id is null
-       and not coalesce(c.is_demo, false)
+       -- DEMO IS NEVER DEMAND (a_demo_request_is_never_supply_gap_demand.sql): a request with no customer, or a
+       -- fixture customer's (is_demo, ZZ DEMO name, @example.invalid email), never starts real recruitment
+       and i.customer_id is not null and not coalesce(public.fn_seat_clock_customer_is_fixture(c), false)
   ), srch as (
     select s.searched_at as created_at, s.trades, s.emirate
       from public.demand_search s where s.searched_at > now() - interval '90 days' and s.source <> 'fixture'
@@ -138,6 +153,7 @@ begin
       from public.demand_forecast f
      where f.run_on = v_today and f.trade = g.trade and f.emirate = g.emirate
        and g.matchable < g.target and g.status in ('open', 'deciding', 'deferred')
+       and g.uninvited_pool > 0 and g.decided_by is distinct from 'rule:no_uninvited_leads'   -- nobody to invite: stays deferred
        and f.forecast_90d >= 1   -- real inquiries only: searches are anonymous and never start recruitment
     returning g.trade, g.emirate
   )
@@ -158,3 +174,110 @@ values ('sales_engineer.demand_forecast', 'sales_engineer', '1 day', 'fn_demand_
   '30/90-day demand per trade and emirate from inquiries and brief-box searches, labelled an estimate; a trade below target with forecast demand is recruited for before the customer arrives.',
   'scripts/sql/the_sales_engineer_forecasts_thirty_and_ninety_days_of_demand_per_trade_and_emirate.sql', true)
 on conflict (duty) do update set routine = excluded.routine, what = excluded.what, owner_file = excluded.owner_file, every = excluded.every;
+
+-- ── the canonical supply-gap tick releases a forecast recruitment ───────────────────────────────────────────
+-- From a_held_question_is_paid_for_once_and_test_traffic_never_waits_for_a_model.sql (canonical, MANIFEST 1951).
+-- Only the "A FORECAST THAT NO LONGER SHOWS DEMAND IS UNDONE" step and its 'forecast_rule_undone' count are new.
+create or replace function public.fn_sales_engineer_supply_gap(p_reason_limit integer default 10)
+returns jsonb
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_target int := coalesce((select category_open_min_suppliers from public.pricing_config order by id limit 1), 10);
+  v_rule int; v_closed int; v_reopened int; v_settled int; v_nobody int; v_held_settled int; v_forecast_settled int;
+  v_emirates text[] := array['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'];
+begin
+  with sup as materialized (   -- every matchable supplier with his trades and the emirates he states (none stated = UAE-wide)
+    select sc.supplier_id, sc.trades,
+           array(select distinct lower(btrim(e)) from unnest(coalesce(sc.coverage_emirates, '{}'::text[]) || coalesce(l.service_emirates, '{}'::text[])) e
+                  where nullif(btrim(e), '') is not null) as stated
+      from public.supplier_capabilities sc join public.leads l on l.id = sc.supplier_id
+     where sc.confirmed_at is not null
+       and public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes)
+  ), inq as materialized (
+    select i.id, i.emirate, i.trades, i.created_at,
+           (i.created_at > now() - interval '30 days' and i.status not in ('revealed', 'closed', 'cancelled', 'completed', 'expired', 'lost')
+            and (select count(*) from public.quotes q where q.inquiry_id = i.id) < 3) as short
+      from public.inquiries i left join public.customers c on c.id = i.customer_id
+     where i.created_at > now() - interval '90 days'
+       -- DEMO IS NEVER DEMAND: a fixture customer's request never starts real recruitment (the predicate the
+       -- stalled-inquiry rescue already uses)
+       and not coalesce(public.fn_seat_clock_customer_is_fixture(c), false)
+  ), pool as materialized (
+    select t, l.emirate, count(*) as n from public.leads l, unnest(l.invite_trades) t
+     where l.invite_status is null and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)
+       and coalesce(l.is_demo, false) = false
+     group by t, l.emirate
+  ), keys as (
+    select tt.code as trade, 'UAE'::text as emirate from public.taxonomy_trade tt where tt.active
+    union
+    select distinct t, i.emirate from inq i, unnest(i.trades) t
+     where i.emirate = any(v_emirates) and t in (select code from public.taxonomy_trade where active)
+  ), m as (
+    select k.trade, k.emirate,
+           (select count(*) from sup s where k.trade = any(s.trades)
+             and (k.emirate = 'UAE' or cardinality(s.stated) = 0 or lower(k.emirate) = any(s.stated)))::int as matchable,
+           (select count(*) from inq i where k.trade = any(i.trades) and (k.emirate = 'UAE' or i.emirate = k.emirate))::int as demand,
+           (select count(*) from inq i where i.short and k.trade = any(i.trades) and (k.emirate = 'UAE' or i.emirate = k.emirate))::int as short,
+           (select coalesce(sum(p.n), 0) from pool p where p.t = k.trade and (k.emirate = 'UAE' or p.emirate = k.emirate))::int as pool
+      from keys k
+  )
+  insert into public.supply_gap as sg (trade, emirate, matchable, target, demand_90d, short_open, uninvited_pool, measured_at)
+  select trade, emirate, matchable, v_target, demand, short, pool, now() from m
+  on conflict (trade, emirate) do update set matchable = excluded.matchable, target = excluded.target,
+    demand_90d = excluded.demand_90d, short_open = excluded.short_open, uninvited_pool = excluded.uninvited_pool, measured_at = now();
+
+  -- An area row that no counted request names any more (its only requests were demo) was not re-measured above:
+  -- it has no demand now, not the demand it had last run.
+  update public.supply_gap set demand_90d = 0, short_open = 0, measured_at = now()
+   where measured_at < now() and (demand_90d <> 0 or short_open <> 0);
+
+  update public.supply_gap set status = 'closed', closed_at = now() where status <> 'closed' and matchable >= target;
+  get diagnostics v_closed = row_count;
+  update public.supply_gap set status = 'open', opened_at = now(), closed_at = null, decided_by = null, decided_at = null, held_id = null
+   where (status = 'closed' and matchable < target) or (status = 'deferred' and decided_at < now() - interval '30 days');
+  get diagnostics v_reopened = row_count;
+
+  -- A RULE WHOSE CUSTOMER IS GONE IS UNDONE: a gap recruited for because a customer was waiting, where no counted
+  -- (non-demo) request remains, goes back to open and is decided again below like any gap nobody waits on.
+  update public.supply_gap set status = 'open', decided_by = null, decided_at = null, held_id = null
+   where status = 'recruit' and decided_by = 'rule:customer_waiting' and short_open = 0 and demand_90d = 0;
+  get diagnostics v_settled = row_count;
+
+  -- A FORECAST THAT NO LONGER SHOWS DEMAND IS UNDONE (review of #1182): a gap fn_demand_forecast_tick recruited for
+  -- goes back to open once no forecast from the last two days shows demand there (or the forecast stopped running),
+  -- and is decided again below like any gap nobody waits on.
+  update public.supply_gap g set status = 'open', decided_by = null, decided_at = null, held_id = null
+   where g.status = 'recruit' and g.decided_by = 'rule:forecast_demand'
+     and not exists (select 1 from public.demand_forecast f
+                      where f.trade = g.trade and f.emirate = g.emirate and f.forecast_90d >= 1
+                        and f.run_on > (now() at time zone 'Asia/Dubai')::date - 2);
+  get diagnostics v_forecast_settled = row_count;
+
+  -- A CUSTOMER IS ALREADY WAITING: recruited for at once, by rule. No judgement to make, so nothing waits on one.
+  update public.supply_gap set status = 'recruit', decided_by = 'rule:customer_waiting', decided_at = now()
+   where status in ('open', 'deciding', 'deferred') and (short_open > 0 or demand_90d > 0);
+  get diagnostics v_rule = row_count;
+
+  -- NO UNINVITED LEAD LEFT: nobody for marketing to recruit, so "defer" is the only answer - by rule, at no cost.
+  update public.supply_gap set status = 'deferred', decided_by = 'rule:no_uninvited_leads', decided_at = now()
+   where status = 'open' and uninvited_pool = 0;
+
+  -- NOBODY IS WAITING: deferred by rule, at no cost (R8). A decision already held for the model is settled the same
+  -- way, and the question it waited on is expired with the reason.
+  update public.reasoning_held_question h
+     set status = 'expired', result = coalesce(h.result, '{}'::jsonb) || jsonb_build_object('expired_by', 'fn_sales_engineer_supply_gap',
+           'why', 'decided by code: nobody is waiting on this trade and area (rule:nobody_waiting)')
+    from public.supply_gap s
+   where s.status = 'deciding' and s.short_open = 0 and s.demand_90d = 0 and h.id = s.held_id and h.status = 'held';
+  get diagnostics v_held_settled = row_count;
+  update public.supply_gap set status = 'deferred', decided_by = 'rule:nobody_waiting', decided_at = now(), held_id = null
+   where status in ('open', 'deciding') and short_open = 0 and demand_90d = 0;
+  get diagnostics v_nobody = row_count;
+
+  return jsonb_build_object('target', v_target, 'closed', v_closed, 'reopened', v_reopened, 'recruit_by_rule', v_rule, 'customer_rule_undone', v_settled, 'forecast_rule_undone', v_forecast_settled,
+    'deferred_nobody_waiting', v_nobody, 'held_questions_settled', v_held_settled, 'filed_for_reasoning', 0,
+    'by_status', (select coalesce(jsonb_object_agg(status, n), '{}'::jsonb) from (select status, count(*) n from public.supply_gap group by status) x));
+end $fn$;
+revoke execute on function public.fn_sales_engineer_supply_gap(integer) from public, anon, authenticated;
+grant execute on function public.fn_sales_engineer_supply_gap(integer) to service_role;
