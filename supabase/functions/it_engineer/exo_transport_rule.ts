@@ -42,6 +42,13 @@ export const RULE_NAME = 'QuotesDone supplier@ one-click unsubscribe';
 export const RULE_FROM = 'supplier@quotesdone.com';
 export const RULE_HEADER_NAME = 'List-Unsubscribe-Post';
 export const RULE_HEADER_VALUE = 'List-Unsubscribe=One-Click';
+// ONLY ON MAIL THAT ALREADY CARRIES List-Unsubscribe (review of #1695, 27 Oct 2026). supplier@ also sends one-to-one
+// replies, and RFC 8058 pairs List-Unsubscribe-Post with an HTTPS List-Unsubscribe: a Post header on a message with no
+// List-Unsubscribe is meaningless at best. The lane writes List-Unsubscribe only when the notification carries an
+// unsubscribe link (send_outbox/m365_lane.ts m365Mime), and Exchange keeps that header (only the Post one is lost:
+// .claude/memory/exchange-strips-list-unsubscribe-post.md), so the rule matches exactly the mail that needs it.
+export const RULE_IF_HEADER = 'List-Unsubscribe';
+export const RULE_IF_PATTERN = '.';
 
 const TIMEOUT_MS = 20_000;
 // The well-known system mailbox the v3 module anchors app-only admin calls to.
@@ -137,6 +144,8 @@ export function ruleDiff(rule: Record<string, unknown>): string[] {
   if (!asList(rule.From).includes(RULE_FROM)) d.push(`From is ${JSON.stringify(rule.From ?? null)}, want ${RULE_FROM}`);
   if (String(rule.SetHeaderName ?? '').toLowerCase() !== RULE_HEADER_NAME.toLowerCase()) d.push(`SetHeaderName is ${JSON.stringify(rule.SetHeaderName ?? null)}`);
   if (String(rule.SetHeaderValue ?? '') !== RULE_HEADER_VALUE) d.push(`SetHeaderValue is ${JSON.stringify(rule.SetHeaderValue ?? null)}`);
+  if (String(rule.HeaderMatchesMessageHeader ?? '').toLowerCase() !== RULE_IF_HEADER.toLowerCase()) d.push(`HeaderMatchesMessageHeader is ${JSON.stringify(rule.HeaderMatchesMessageHeader ?? null)}, want ${RULE_IF_HEADER}`);
+  if (JSON.stringify(Array.isArray(rule.HeaderMatchesPatterns) ? rule.HeaderMatchesPatterns.map(String) : rule.HeaderMatchesPatterns == null ? [] : [String(rule.HeaderMatchesPatterns)]) !== JSON.stringify([RULE_IF_PATTERN])) d.push(`HeaderMatchesPatterns is ${JSON.stringify(rule.HeaderMatchesPatterns ?? null)}, want ["${RULE_IF_PATTERN}"]`);
   if (rule.State != null && String(rule.State) !== 'Enabled') d.push(`State is ${String(rule.State)}`);
   return d;
 }
@@ -144,6 +153,7 @@ export function ruleDiff(rule: Record<string, unknown>): string[] {
 const ruleView = (r: Record<string, unknown> | null) => r && {
   name: r.Name ?? r.Identity ?? null, state: r.State ?? null, mode: r.Mode ?? null, from: r.From ?? null,
   set_header_name: r.SetHeaderName ?? null, set_header_value: r.SetHeaderValue ?? null, priority: r.Priority ?? null,
+  if_header: r.HeaderMatchesMessageHeader ?? null, if_patterns: r.HeaderMatchesPatterns ?? null,
 };
 
 export type Probe = {
@@ -219,6 +229,8 @@ export async function applyRule(env: Env, fetchFn: Fetch): Promise<Apply> {
   const made = await invoke(fetchFn, k.c.tenant, x.token, 'New-TransportRule', {
     Name: RULE_NAME,
     From: [RULE_FROM],
+    HeaderMatchesMessageHeader: RULE_IF_HEADER,
+    HeaderMatchesPatterns: [RULE_IF_PATTERN],
     SetHeaderName: RULE_HEADER_NAME,
     SetHeaderValue: RULE_HEADER_VALUE,
     Comments: 'QuotesDone it_engineer: Exchange drops List-Unsubscribe-Post from the M365 lane (measured 27 Oct 2026); '

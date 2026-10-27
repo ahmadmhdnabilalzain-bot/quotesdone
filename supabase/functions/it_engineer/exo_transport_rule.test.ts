@@ -21,7 +21,7 @@ const GRAPH_TOKEN = jwt({ aud: 'https://graph.microsoft.com', roles: ['Mail.Send
 const EXO_WITH = jwt({ aud: 'https://outlook.office365.com', roles: [MANAGE_AS_APP] });
 const EXO_WITHOUT = jwt({ aud: 'https://outlook.office365.com' });
 
-const OURS = { Name: RULE_NAME, State: 'Enabled', Mode: 'Enforce', From: [RULE_FROM], SetHeaderName: RULE_HEADER_NAME, SetHeaderValue: RULE_HEADER_VALUE, Priority: 0 };
+const OURS = { Name: RULE_NAME, State: 'Enabled', Mode: 'Enforce', From: [RULE_FROM], SetHeaderName: RULE_HEADER_NAME, SetHeaderValue: RULE_HEADER_VALUE, HeaderMatchesMessageHeader: 'List-Unsubscribe', HeaderMatchesPatterns: ['.'], Priority: 0 };
 
 type Call = { url: string; scope?: string; cmdlet?: string; params?: Record<string, unknown>; headers?: Record<string, string> };
 /** A fake Microsoft: tokens by scope, InvokeCommand by cmdlet. `rules` is the tenant's rule list (mutable). */
@@ -50,7 +50,7 @@ function microsoft(o: { exoToken?: string | null; graphToken?: string; rules?: R
     if (cmdlet === 'New-TransportRule') {
       if (o.newStatus && o.newStatus >= 400) return new Response(JSON.stringify({ error: { code: 'BadRequest', message: 'nope' } }), { status: o.newStatus });
       const p = j.CmdletInput.Parameters;
-      if (!o.newDoesNotLand) rules.push({ Name: p.Name, State: 'Enabled', Mode: 'Enforce', From: p.From, SetHeaderName: p.SetHeaderName, SetHeaderValue: p.SetHeaderValue });
+      if (!o.newDoesNotLand) rules.push({ Name: p.Name, State: 'Enabled', Mode: 'Enforce', From: p.From, SetHeaderName: p.SetHeaderName, SetHeaderValue: p.SetHeaderValue, HeaderMatchesMessageHeader: p.HeaderMatchesMessageHeader, HeaderMatchesPatterns: p.HeaderMatchesPatterns });
       return new Response(JSON.stringify({ value: [] }), { status: 200 });
     }
     return new Response('{}', { status: 404 });
@@ -148,6 +148,9 @@ Deno.test('apply creates the rule when absent, with the exact parameters, and sa
   assertEquals(made.From, ['supplier@quotesdone.com']);
   assertEquals(made.SetHeaderName, 'List-Unsubscribe-Post');
   assertEquals(made.SetHeaderValue, 'List-Unsubscribe=One-Click');
+  // only on mail that already carries List-Unsubscribe: a one-to-one reply from supplier@ gets no Post header (RFC 8058)
+  assertEquals(made.HeaderMatchesMessageHeader, 'List-Unsubscribe');
+  assertEquals(made.HeaderMatchesPatterns, ['.']);
   assertEquals(leaks(a), []);
 });
 
@@ -197,4 +200,11 @@ Deno.test('it_engineer routes both EXO actions through the service_role gate bef
   assert(src.includes("'exo_roles'") && src.includes("'exo_transport_rule_apply'"));
   const cfg = await Deno.readTextFile(new URL('../../config.toml', import.meta.url));
   assert(/\[functions\.it_engineer\]\s*\r?\nverify_jwt = true/.test(cfg), 'it_engineer must keep verify_jwt = true');
+});
+
+Deno.test('ruleDiff: a rule without the List-Unsubscribe condition is not ours (it would stamp one-to-one replies)', () => {
+  const { HeaderMatchesMessageHeader: _h, HeaderMatchesPatterns: _p, ...noCondition } = OURS;
+  const d = ruleDiff(noCondition);
+  assertEquals(d.length, 2);
+  assert(d[0].startsWith('HeaderMatchesMessageHeader is null'));
 });

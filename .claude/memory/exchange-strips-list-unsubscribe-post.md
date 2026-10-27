@@ -27,5 +27,5 @@ probe says `missing_manage_as_app` or `missing_exchange_role`, the founder needs
 Online → Exchange.ManageAsApp (Application) + admin consent, and the Entra role Exchange Administrator on the app.
 
 **How to apply:** do not chase this in code. The founder sets it in Exchange admin → Mail flow → Rules: if the sender is
-supplier@quotesdone.com, set the message header `List-Unsubscribe-Post` to `List-Unsubscribe=One-Click`. Re-measure
+supplier@quotesdone.com **and the message header `List-Unsubscribe` matches `.`** (it is present), set the message header `List-Unsubscribe-Post` to `List-Unsubscribe=One-Click`. The condition matters: supplier@ also sends one-to-one replies, and RFC 8058 pairs the Post header with an HTTPS List-Unsubscribe; Exchange keeps List-Unsubscribe (https + mailto arrived at Gmail), so the condition matches exactly the list mail. Re-measure
 it with a seed send. Until that is done the opt-out is the "reply stop" line plus List-Unsubscribe.
