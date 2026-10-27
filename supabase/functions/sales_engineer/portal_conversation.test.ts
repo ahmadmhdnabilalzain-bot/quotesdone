@@ -230,3 +230,12 @@ Deno.test('a question about a figure they gave, and handles vs push-to-open, are
   // the customer who said "handle-less" is not asked handles vs push-to-open again
   assertEquals(reaskOf('Would you like handles or push-to-open?', heldState([u('Sliding doors, handle-less.')], 'Matte white.')), 'asks the handles again');
 });
+
+// Run ecb6b6b2 (painting_ar): the room count was asked three times; list commas had split it into fragments.
+Deno.test('a list inside a question is one ask: the Arabic room-count question is caught the second time', () => {
+  const h = heldState([u('أبي صباغة شقتي قبل ما أسلم المفتاح.'), a('وكم عدد غرف الشقة تقريباً (استوديو أو غرفة أو غرفتان أو ثلاث)، وهل الدهان للجدران والأسقف معاً؟'),
+    u('المالك يبي الجدران والأسقف أبيض.')], 'مو متأكد، شو تنصحني؟');
+  assertEquals(reaskOf('كم عدد غرف الشقة تقريباً: استوديو، أو غرفة، أو غرفتان، أو ثلاث؟', h), 'repeats an earlier question');
+  // two real asks are still two clauses: one new, one repeated
+  assertEquals(newClauseOf('كم عدد غرف الشقة تقريباً، ومتى موعد تسليم المفتاح؟', h), 'متى موعد تسليم المفتاح؟');
+});

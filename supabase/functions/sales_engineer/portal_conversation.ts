@@ -88,9 +88,14 @@ export function contentWords(s: string): Set<string> {
   return out;
 }
 const overlap = (a: Set<string>, b: Set<string>) => { let n = 0; for (const x of a) if (b.has(x)) n++; return n; };
-/** The clauses of a question: "What width, and do you want sliding doors?" asks two things. */
-const clausesOf = (q: string) => q.split(/,\s*(?:and|or)\s+|;\s*|\s+and (?=(?:do|does|is|are|would|will|should|can|what|which|how|when|where)\b)|،\s*(?:و|أو)?/i)
-  .map((x) => x.trim()).filter((x) => contentWords(x).size > 0);
+/** The clauses of a question: "What width, and do you want sliding doors?" asks two things. A clause starts only where
+ *  a new question word does: a list ("استوديو، أو غرفة، أو غرفتان") or "a wall split, or a ducted unit" is ONE ask
+ *  (run ecb6b6b2, painting_ar: split at every Arabic comma, the room-count question became one-word fragments that
+ *  never matched, and it was asked three times). */
+const QWORD_EN = '(?:do|does|did|is|are|would|will|should|can|could|what|which|how|when|where|who|whose|have|has)\\b';
+const QWORD_AR = '(?:هل|ماذا|متى|كم |كيف|أين|وين|أي |ما )';
+const CLAUSE = new RegExp(`,\\s*(?:and|or)\\s+(?=${QWORD_EN})|;\\s*|\\s+and (?=${QWORD_EN})|،\\s*(?:و|أو|ف)?\\s*(?=${QWORD_AR})|\\s+و(?=${QWORD_AR})`, 'i');
+const clausesOf = (q: string) => q.split(CLAUSE).map((x) => x.trim()).filter((x) => contentWords(x).size > 0);
 /** Two questions ask the same thing: they share at least two content words, and most of the shorter one. */
 export function sameAsk(a: string, b: string): boolean {
   const A = contentWords(a), B = contentWords(b);
