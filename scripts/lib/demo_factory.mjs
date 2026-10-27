@@ -47,6 +47,7 @@ import { assertNotProduction, mgmtRead, mgmtFixture, PROD_REF } from './qd_guard
 import { demoPdf, demoTradeLicence } from './demo_pdf.mjs';
 import { readFileSync } from 'node:fs';
 import { randomBytes, createHmac } from 'node:crypto';
+import { pickApiKey } from './supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 // THE TARGET, REHOMED 15 AUG 2026 — AND WHY THIS ONE LINE MATTERED MORE THAN IT LOOKS.
 //
@@ -101,8 +102,8 @@ export async function keys() {
   if (!Array.isArray(k)) {
     throw new Error(`the management api refused the project's api keys: HTTP ${r.status} ${text.slice(0, 300)}`);
   }
-  const ANON = k.find((x) => x.name === 'anon')?.api_key;
-  const SERVICE = k.find((x) => x.name === 'service_role')?.api_key;
+  const ANON = pickApiKey(k, 'publishable');
+  const SERVICE = pickApiKey(k, 'secret');
   if (!ANON || !SERVICE) throw new Error('could not read staging api keys');
   _keys = { ANON, SERVICE };
   return _keys;

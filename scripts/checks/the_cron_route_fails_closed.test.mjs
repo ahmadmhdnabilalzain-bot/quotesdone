@@ -26,7 +26,9 @@ test('the route checks the door before it pings, records uptime or touches the s
   const get = src.slice(src.indexOf('export async function GET'));
   const door = get.indexOf('if (!cronAuthorized(req, process.env.CRON_SECRET))');
   assert.ok(door > 0, 'GET must open with the cron door');
-  for (const after of ['checkOrigins()', 'fetch(PING', 'SUPABASE_SERVICE_ROLE_KEY'])
+  // serviceKey() is the one read of the key (SUPABASE_SECRET_KEY, legacy SUPABASE_SERVICE_ROLE_KEY as fallback, 27 Oct 2026)
+  for (const after of ['checkOrigins()', 'fetch(PING', 'serviceKey()'])
     assert.ok(get.indexOf(after) > door, after + ' runs before the door');
   assert.ok(!/if \(secret && /.test(src), 'the open-when-unset form is back');
+  assert.ok(!/process\.env\.SUPABASE_(SECRET|SERVICE_ROLE)_KEY/.test(get), 'GET reads the key only through serviceKey()');
 });
