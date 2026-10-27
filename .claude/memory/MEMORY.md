@@ -129,6 +129,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
 ## State of the build
 - [CHECKPOINT 27 Oct — cloud only, invitations HELD for GlockApps](checkpoint-27-oct-cloud-invitations-held.md) — READ FIRST: laptop has no keys; invite_enabled=false; GlockApps blocked by the network; warm-up plan; 16 open PRs by state
+- [Security hardening 27 Oct — SSL, network, legacy JWT, pg_net: state and next steps](security-hardening-27-oct-state.md) — nothing applied (restart / unproven exemptions); legacy JWT secret still trusted until the consumer PR, then disable + revoke; pg_net needs Supabase support
 - [Invitations resume only at ≥80% Outlook inbox](invitations-resume-only-at-80-percent-outlook-inbox.md) — 27 Oct, instr 1312: GlockApps from supplier@; report inbox/spam/promotions per provider
 - [Standing approval: merge and deploy reviewed PRs](standing-approval-merge-and-deploy-reviewed-prs.md) — 27 Oct, instr 1340: reviewed + gate-clean PRs ship without asking; policy, real sends, spend and irreversible steps still go to him
 - [Ask before the internal test email management@ → supplier@](ask-before-the-internal-test-email.md) — 27 Oct, instr 1314: his explicit yes first
