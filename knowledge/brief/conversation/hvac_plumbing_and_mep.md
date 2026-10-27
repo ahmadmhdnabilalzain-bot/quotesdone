@@ -42,6 +42,7 @@ Covers split, ducted, package, VRF/VRV, chilled-water FCUs, ventilation, AC repa
   - A unit that "does not cool" may have a gas leak, dirty coil, blocked filter or leaky duct; repair may beat replacement.
   - Reusing old pipes is not always possible with a different refrigerant or capacity.
   - Inverter units save running energy but still need correct sizing.
+  - Undersizing is the commoner mistake: a 1-ton (12,000 BTU/h) split suits a small bedroom. In UAE heat allow roughly 1 ton per 10-14 m2 of ordinary room, more for west or south sun, a top floor or large glazing; a 28 m2 sunny living room is about 2 to 2.5 tons. The supplier's heat-load check fixes the size; an undersized unit runs flat out and never reaches the set temperature. When a customer names a capacity that is clearly too small, say so first. (Ledger 1200 scenario bank, 27 Oct 2026.)
   - Outdoor units in enclosed, unshaded spots lose capacity in summer heat.
 - **Complete quotable request (replacement) =** emirate, property type, floor; number of units; per unit: room use, size, exposure, existing type/capacity, new type, capacity if known, star rating; pipe and drain reuse or new; outdoor unit location and distance; electrical supply; removal and disposal; access/crane; controls; NOC/working hours; start date.
 

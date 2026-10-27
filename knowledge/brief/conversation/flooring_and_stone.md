@@ -26,6 +26,7 @@ Covers vinyl/LVT/SPC, laminate, engineered and solid wood, raised access floors,
 - **Misconceptions to correct:**
   - "Waterproof" SPC/LVT survives spills, not standing water or a leaking subfloor; joints and edges still need care.
   - Solid wood moves with humidity; in UAE AC-on/AC-off homes engineered wood is usually the safer choice.
+  - Engineered wood and laminate are not for bathrooms or other wet areas: standing water and steam swell and lift them. To keep the look continuous, use a wood-effect porcelain tile in the bathrooms (waterproofed beneath), with a transition profile at the door. Say this before asking anything else. (Ledger 1200 scenario bank, 27 Oct 2026.)
   - Laying over old tile is possible only if the tile is sound and flat; hollow tiles must be fixed first.
   - Floor height rise affects doors, wardrobes, kitchen plinths and thresholds.
 - **Complete quotable request =** location/emirate and property type; area per room (m2) or dimensions; existing finish and removal yes/no; product type, thickness/wear layer, colour/size; pattern; underlay; skirting and trims; door trimming; furniture moving; occupied or empty; working-hour limits and NOC status; target start date.

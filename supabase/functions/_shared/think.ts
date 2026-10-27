@@ -126,6 +126,10 @@ export interface ThinkRequest {
   reader?: boolean;
   // The reasoning effort asked of the model for the answer or decision (a choice among a few options needs little).
   effort?: 'low' | 'medium' | 'high';
+  // HOW THIS CHANNEL ANSWERS, given to the answering call only (customer_support, 27 Oct 2026): appended to the synthesis
+  // system prompt, never to the question (which is embedded for retrieval) and never stored with the judgement. The
+  // portal sends its intake rule and the trade conversation playbooks here (support_reply.ts, portalGuide).
+  guide?: string;
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
 export interface Fact { name: string; why: string; changes_answer: boolean; value: string | null; from: string | null }
@@ -560,7 +564,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     else if (req.queueWhenHeld !== false) {
       const { data, error } = await deps.rpc('fn_reason_hold', {
         p_seat: req.seat, p_surface: req.surface, p_question: req.question.slice(0, 8000),
-        p_request: JSON.parse(JSON.stringify({ ...req, question: req.question.slice(0, 8000) })),
+        p_request: JSON.parse(JSON.stringify({ ...req, guide: undefined, question: req.question.slice(0, 8000) })),   // the guide is the caller's, re-sent on replay
         p_plan: { ...plan, steps_done: steps }, p_subject: req.subject ?? null, p_reason: reason, p_dedupe_key: req.dedupeKey ?? null,
       });
       held_id = error ? null : Number(data) || null;
@@ -737,7 +741,8 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     + (req.ask && !deciding ? `
 Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.` : '')
     + (req.also ?? []).map((a) => `
-Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.`).join('');
+Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.`).join('')
+    + (req.guide && !deciding ? '\n\nHOW TO ANSWER ON THIS CHANNEL (it governs the shape of "answer"):\n' + req.guide : '');
   const payload = { question: req.question, context: ctx, plan: planSteps, facts_known: facts.filter((f) => f.value), facts_missing: missing, sources };
   let draft: Draft | null = null; let model: string | null = null; let refusal: string | null = null;
   for (let pass = 1; pass <= (deciding ? 2 : MAX_SYNTH_PASSES); pass++) {

@@ -87,4 +87,5 @@
   - Moving a sprinkler or detector during fit-out still needs approved drawings.
   - Extinguishers alone do not satisfy an inspection; the observation list sets the scope.
   - Maintenance is a legal obligation for the premises, not optional after handover.
+  - "Normal cable will do for the fire alarm": no. Fire alarm and emergency circuits are wired in fire-resistant cable (standard or enhanced fire-resistant, low-smoke, e.g. FP200-class, as BS 5839-1 and the UAE Fire and Life Safety Code require and the approved drawings state). Civil Defence does not accept ordinary building cable, so it is not a saving; say so first, then ask the rest. (Ledger 1200 scenario bank, 27 Oct 2026.)
 - **Complete quotable request =** emirate; premises type, area, floors, occupancy; systems and device counts; new/modify/maintenance; drawings status and who submits; Civil Defence notice or deadline; base-build tie-in and landlord contractor rule; ceiling type and height; maintenance scope; NOC/working hours; photos; timeline.

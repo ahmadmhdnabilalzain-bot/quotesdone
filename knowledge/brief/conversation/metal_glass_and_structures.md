@@ -29,7 +29,7 @@
   - Replacement: broken unit only, or the whole sash?
 - **Photo/drawing tells you:** layout, fitting style, finish. **It cannot tell you:** exact dimensions or fixing substrate. Supplier measures on site before cutting; tempered glass cannot be cut after toughening.
 - **Price drivers:** type and thickness, size, edge work and holes, fittings and finish, coatings, height/access, removal of old glass, safety certification (DM glass certification where required), installation.
-- **Misconceptions to correct:** balustrades and overhead glass need safety glass (laminated/tempered as the code and consultant require); tempered glass cannot be altered once made; slight tint is normal in standard clear glass.
+- **Misconceptions to correct:** balustrades and overhead glass need safety glass (laminated/tempered as the code and consultant require); tempered glass cannot be altered once made; slight tint is normal in standard clear glass. Frameless partitions, glass doors and shower enclosures are toughened (tempered) safety glass, commonly 10-12 mm for frameless office partitions and 8-10 mm for showers; 6 mm ordinary (annealed) glass is not safety glass and is not used for them, so correct it before asking sizes. A frameless partition also needs a visible manifestation band. (Ledger 1200 scenario bank, 27 Oct 2026.)
 - **Complete quotable request =** application; sizes and quantity; glass type/thickness; fittings and finish; location (indoor/outdoor, floor); removal yes/no; timeline; photos.
 
 ## Steel and structural steel fabrication (steel, structural-steel-fabrication)
