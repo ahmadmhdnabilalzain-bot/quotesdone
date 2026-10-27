@@ -17,10 +17,10 @@ On 30 Sep 2026, running `every_model_class_is_on_the_founders_matrix.test.mjs` l
 - Any check that replays SQL must strip or refuse transaction control first (#1152 did this for the matrix test).
 - If drift appears with no applied PR behind it, suspect a replaying check before blaming a person.
 
-**27 Oct 2026, the same failure by a second route.** A reviewer tried PR #1684 by running the routine file and its probe in one session. The probe ended by *returning* a `PROBE OK` row rather than raising, so nothing rolled back. `fn_support_reply_watch_tick` and its new helper went live before merge; the fingerprint moved from 8007ad0e to af022966. It was caught by diffing against live `pg_get_functiondef`. The PR was then merged with bookkeeping only (MANIFEST line added, pending note deleted) and no re-apply.
+**27 Oct 2026, the same failure by a second route.** A reviewer tried PR #1684 by sending the routine file and its probe as one request (one implicit transaction). The probe ended by *returning* a `PROBE OK` row rather than raising, so nothing rolled back. `fn_support_reply_watch_tick` and its new helper went live before merge; the fingerprint moved from 8007ad0e to af022966. It was caught by diffing against live `pg_get_functiondef`. The PR was then merged with bookkeeping only (MANIFEST line added, pending note deleted) and no re-apply.
 
 - A probe that is ever run together with the DDL it tests must end in `raise exception` on every path. It carries its verdict in the message, e.g. `raise exception 'CHK<<PROBE OK>>'`. Pass and fail both raise; the caller reads the text inside `CHK<<…>>`.
-- When trying a PR's SQL against production, wrap the file and the probe in one explicit transaction that ends in that raise. Never run them as separate statements with autocommit on.
+- When trying a PR's SQL against production, wrap the file and the probe in one explicit transaction that ends in that raise. The failure on 27 Oct was not autocommit: it was one request that ended without an error, so it committed.
 - Afterwards, read the live definition (md5 of `pg_get_functiondef`) and confirm it is unchanged.
 - #1686's probe follows this form; #1684's does not and was left as merged.
 
