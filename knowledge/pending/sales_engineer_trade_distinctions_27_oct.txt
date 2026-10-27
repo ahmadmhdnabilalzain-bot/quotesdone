@@ -1,0 +1,9 @@
+Not loaded. Founder ledger 893 and 899 (27 Oct 2026): 16 new technical-distinction entries (English and Arabic) in the
+six thinnest packs of the trades with the most invited leads: flooring (+4), joinery (+3), cleaning (+3), chemicals (+2),
+pest_control (+2), solar (+2), each with eval questions. They reach production only when this runs AFTER the PR merges:
+  node scripts/kb/load_verified_packs.mjs --apply
+Then: node scripts/eval/knowledge_pack_eval.mjs, and the daily seat exam (scripts/eval/seat_exam_llm_on.mjs) asks the
+new sales_engineer bank items.
+Verification method: search-result excerpts of the cited pages, 27 Oct 2026 (the pages refused this session's egress);
+each pack's verified.authored_27_oct says so, so a reviewer can apply the stricter reading.
+Delete this note in the commit that records the load. Seat: sales_engineer.

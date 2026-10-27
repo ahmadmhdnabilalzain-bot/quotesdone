@@ -73,6 +73,42 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "solar:perc-vs-topcon-vs-hjt",
+      "topic": "Solar module cell technology: PERC vs TOPCon vs HJT",
+      "topic_ar": "تقنية خلايا الألواح الشمسية: PERC مقابل TOPCon مقابل HJT",
+      "kind": "comparison",
+      "body_en": "Three crystalline-silicon cell technologies are offered today. PERC is the older mainstream, built on p-type wafers, and its share of shipments has fallen; TOPCon (n-type) is now the volume standard; HJT (heterojunction, n-type) is a premium niche with the highest efficiency ceiling. In the UAE heat, the temperature coefficient of power matters as much as the headline efficiency, because modules run far above 25 degrees C: PVEL's 2024 scorecard measured average coefficients of about -0.32 %/degree C for PERC, -0.30 for TOPCon and -0.26 for HJT (HJT from a smaller sample). Bifaciality (rear-side gain on bright roofs and car-park canopies) follows the same order: PVEL measured about 69% PERC, 75% TOPCon, 87% HJT. Reliability in desert climates is still being measured: a three-year desert field test found one HJT module losing 8.7% while a TOPCon module lost 0.14%, so a long performance warranty and a recent independent test report matter more than the label. Read whether a datasheet quotes cell or module efficiency; they differ by several points. On a quote ask: cell technology, module power and efficiency, temperature coefficient of Pmax, bifaciality if bifacial, degradation per year and the product and performance warranties.",
+      "body_ar": "تُعرض اليوم ثلاث تقنيات لخلايا السيليكون البلوري. فالـPERC هي السائدة الأقدم، مبنية على رقائق من النوع p، وتراجعت حصتها من الشحنات؛ والـTOPCon (من النوع n) هي المعيار الحالي من حيث الكميات؛ والـHJT (الوصلة غير المتجانسة، من النوع n) فئة متميزة ذات أعلى سقف للكفاءة. وفي حرارة الإمارات يهم معامل الحرارة للقدرة بقدر الكفاءة المعلنة، لأن الألواح تعمل بحرارة أعلى بكثير من 25 درجة مئوية: وقد قاست بطاقة PVEL لعام 2024 متوسط معاملات بنحو -0.32% لكل درجة مئوية للـPERC و-0.30 للـTOPCon و-0.26 للـHJT (الـHJT من عينة أصغر). وتتبع ثنائية الوجه (الكسب من الوجه الخلفي على الأسطح الفاتحة ومظلات المواقف) الترتيب نفسه: قاست PVEL نحو 69% للـPERC و75% للـTOPCon و87% للـHJT. أما الموثوقية في المناخ الصحراوي فما زالت تُقاس: إذ وجد اختبار ميداني صحراوي لثلاث سنوات أن لوح HJT فقد 8.7% بينما فقد لوح TOPCon نسبة 0.14%، فضمان الأداء الطويل وتقرير اختبار مستقل حديث أهم من التسمية. وانتبه هل تذكر ورقة البيانات كفاءة الخلية أم اللوح، فالفرق بينهما عدة نقاط. اطلب في عرض السعر: تقنية الخلية، وقدرة اللوح وكفاءته، ومعامل الحرارة لـPmax، وثنائية الوجه إن كان ثنائي الوجه، والتدهور السنوي، وضماني المنتج والأداء.",
+      "sources": [
+        "https://2024modulescorecard.pvel.com/pan-performance/",
+        "https://www.pv-magazine-australia.com/?p=10860",
+        "https://www.pv-magazine.com/press-releases/risen-energy-global-power-generation-gains-comparison-map-and-technical-analysis-of-different-cell-technologies/",
+        "https://www.surgepv.com/blog/perc-vs-topcon-vs-hjt-field-performance"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-27",
+      "verified": true,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: PVEL 2024 average temperature coefficients -0.32/-0.30/-0.26 %/C and bifaciality 69.3/75.4/86.7%; desert field test HJT 8.73% loss, TOPCon-M2 0.14%; TOPCon volume standard, HJT premium niche, PERC share falling; cell vs module efficiency differ -> confirmed. PERC p-type vs TOPCon/HJT n-type: stated in one excerpt (n-type avoids LID of legacy p-type PERC); medium."
+    },
+    {
+      "id": "solar:shams-dubai-equipment-and-contractor",
+      "topic": "Shams Dubai: eligible equipment through the DRRG portal, enrolled contractors and the connection stages",
+      "topic_ar": "شمس دبي: المعدات المؤهلة عبر بوابة DRRG والمقاولون المسجلون ومراحل التوصيل",
+      "kind": "authority_approval",
+      "body_en": "A rooftop solar system connected to DEWA's grid under Shams Dubai must use eligible equipment: DEWA states that its old PDF list of eligible equipment is obsolete and must not be used, and that manufacturers of PV modules, PV inverters and interface protection (or their local authorised representatives) register equipment through the DRRG Equipment Portal to be added to the Shams Dubai list of eligible equipment. So a quote must name the exact module, inverter and protection models, and the supplier should show they are on the current list, not on an old PDF. Design, installation and connection are done through a DEWA-enrolled solar PV contractor or consultant, who submits the application; the process runs in four stages: NOC, design approval, installation, and inspection and connection. Under net metering, exported energy is credited against the customer's consumption rather than paid in cash. Not established here (secondary sources disagreed or were not confirmed on DEWA's own pages): the current maximum system size per plot, any ban on ground-mounted systems, and the exact enrolment criteria for contractors; check DEWA's current DRRG connection conditions before quoting.",
+      "body_ar": "يجب أن يستخدم نظام الطاقة الشمسية على السطح الموصول بشبكة هيئة كهرباء ومياه دبي ضمن برنامج شمس دبي معداتٍ مؤهلة: إذ تذكر الهيئة أن قائمة المعدات المؤهلة القديمة بصيغة PDF لم تعد صالحة ويجب عدم استخدامها، وأن مصنعي الألواح الكهروضوئية والعاكسات وأجهزة حماية الربط (أو ممثليهم المحليين المعتمدين) يسجلون المعدات عبر بوابة معدات DRRG لإضافتها إلى قائمة المعدات المؤهلة لشمس دبي. لذا يجب أن يذكر عرض السعر طرازات الألواح والعاكس وجهاز الحماية بالضبط، وأن يثبت المورد وجودها في القائمة الحالية لا في ملف PDF قديم. ويتم التصميم والتركيب والتوصيل عبر مقاول أو استشاري طاقة شمسية مسجل لدى الهيئة يقدّم الطلب؛ وتمر العملية بأربع مراحل: شهادة عدم الممانعة، واعتماد التصميم، والتركيب، والفحص والتوصيل. وفي نظام صافي القياس تُحتسب الطاقة المصدَّرة رصيداً مقابل استهلاك العميل لا دفعاً نقدياً. لم يُثبت هنا (اختلفت المصادر الثانوية أو لم يُتحقق منها في صفحات الهيئة نفسها): الحد الأقصى الحالي لحجم النظام لكل قطعة أرض، وأي منع للأنظمة المثبتة على الأرض، والمعايير الدقيقة لتسجيل المقاولين؛ راجع اشتراطات التوصيل الحالية لـDRRG لدى الهيئة قبل التسعير.",
+      "sources": [
+        "https://www.dewa.gov.ae/en/builder/shams-dubai-guides-tools/drrg/eligible-equipment-list",
+        "https://dewa.gov.ae/en/builder/shams-dubai-guides-tools/pv-equipment-eligibility",
+        "https://www.surgepv.com/solar-compliance/uae/guides/dewa-shams-dubai",
+        "https://www.propertyfinder.ae/blog/shams-dubai-solar-power-homes/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-27",
+      "verified": true,
+      "source_note": "Checked 2026-10-27 against search-result excerpts of dewa.gov.ae: PDF list obsolete, registration through the DRRG Equipment Portal by manufacturers or local authorised representatives for modules, inverters and interface protection -> confirmed (DEWA). Enrolled contractor/consultant submits; four stages NOC, design approval, installation, inspection/connection; export credited, no cash -> from third-party guides, consistent with each other. Size cap and ground-mount ban conflicted -> removed."
     }
   ],
   "eval": [
@@ -106,6 +142,20 @@
         "solar:product-distinctions"
       ],
       "written_blind": true
+    },
+    {
+      "q_en": "TOPCon or HJT panels for a villa roof in Dubai, given the heat?",
+      "q_ar": "ألواح TOPCon أم HJT لسطح فيلا في دبي مع الحرارة؟",
+      "expected_entry_ids": [
+        "solar:perc-vs-topcon-vs-hjt"
+      ]
+    },
+    {
+      "q_en": "The installer sent DEWA's eligible equipment PDF. Is that enough to prove the inverter is approved?",
+      "q_ar": "أرسل المركّب ملف PDF للمعدات المؤهلة من الهيئة، فهل يكفي لإثبات اعتماد العاكس؟",
+      "expected_entry_ids": [
+        "solar:shams-dubai-equipment-and-contractor"
+      ]
     }
   ],
   "verified": {
@@ -142,6 +192,21 @@
         903,
         1198,
         1209
+      ]
+    },
+    "authored_27_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-27",
+      "served": [
+        "solar:perc-vs-topcon-vs-hjt",
+        "solar:shams-dubai-equipment-and-contractor"
+      ],
+      "pages_opened": [],
+      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". A reviewer applying the stricter reading of the 7 Oct stating rule (page actually opened) sets verified:false on these ids.",
+      "reason": "Trade had 4 entries against 77 invited leads (measured 27 Oct 2026); the deep packs of comparable trades hold 30-58.",
+      "ledger": [
+        893,
+        899
       ]
     }
   }
