@@ -44,7 +44,7 @@ export const REPLY_SHAPE = 'SHAPE OF EVERY REPLY: (a) at most one or two short s
   + 'Every reply ends with a question for them: the next missing specification or, once the essentials are known, the summary and "Is this correct?". '
   + 'Do not add the fee, "posting is free", how long quotes or the work take, what suppliers will do or how the request is sent unless their message asks about it. Never mention passing anything to a team.';
 
-import { CATALOGUE, CONFIRM_ASK as PLAN_CONFIRM_ASK, labelOf, planState, sentencesOf as planSentences, stateBlock, stems, targets,
+import { CATALOGUE, CONFIRMED, CONFIRM_ASK as PLAN_CONFIRM_ASK, labelOf, planState, sentencesOf as planSentences, stateBlock, stems, targets,
   type Extracted, type State } from './conversation_plan.ts';
 
 export type Lang = 'en' | 'ar';
@@ -233,7 +233,9 @@ export type Verdict = string | null | { text: string; why: string };
 export type ReplyFilter = ((sentence: string) => Verdict) & { end: () => string | null };
 export const ENDS_WITHOUT_A_QUESTION = 'it ends without asking them anything; end with the next missing specification as a question or, when the essentials are known, the summary and "Is this correct?"';
 const ASKS = /^\s*(do|does|did|is|are|was|were|would|will|should|can|could|have|has|what|which|how|when|where|who|whose|هل|ما|ماذا|كم|متى|أين|اين|وين|كيف|أي|اي|شو|ايش)\b|^\s*(هل|ما|ماذا|كم|متى|أين|وين|كيف|أي|شو)/i;
-const CONFIRMED = /^\s*(yes|yeah|yep|correct|that is correct|confirmed?)\b|^\s*(نعم|صحيح|تمام|أكيد|أكد)/i;
+// What counts as "they confirmed" is ONE definition, conversation_plan.CONFIRMED. Until the review of 27 Oct 2026 this file
+// kept a narrower copy, so "Perfect, thanks" put the plan in `confirmed` mode while the filter still dropped the one line
+// that mode exists to give ("press New request") as an unasked line on what suppliers will do.
 /** A two-part question whose other parts are re-asks keeps its one new part, when that part is a question on its own
  *  (run 143372b1: "Does the mall need its own installer, and do you want economy, mid-range or premium?" one turn after
  *  the budget was asked). Returns that clause as a question, or null when no clean single clause is left. */
@@ -247,13 +249,24 @@ export function newClauseOf(q: string, h: Held): string | null {
 }
 
 /** Why a NON-question sentence is a line nobody asked for. null when it may stay. */
+// A sentence naming a regulator, a permit or a penalty is a regulatory correction (PORTAL_INTAKE 2 requires it, firmly), not
+// a line on QuotesDone's fee, even when it quotes an amount (review of #1635, 27 Oct 2026: "Dubai Municipality must
+// approve any facade change ... fined AED 5,000" was dropped for its bare AED, leaving only "Who manages the building?").
+const REGULATORY = /\bmunicipalit(y|ies)\b|\bcivil defen[cs]e\b|\b(DEWA|SEWA|FEWA|ADDC|AADC|RERA|Trakhees|DCD|NOC)\b|\bpermits?\b|\bapprov(al|als|e|ed)\b|\bfined?\b|\bfines\b|\bpenalt(y|ies)\b|\b(building|fire|electrical|plumbing) codes?\b|\bcode of practice\b|\bregulations?\b|\bauthorit(y|ies)\b|بلدية|البلدية|الدفاع المدني|هيئة كهرباء|ديوا|تصريح|ترخيص|موافقة|غرامة|غرامتها|مخالفة|الكود|اشتراطات|الجهة المختصة|الجهات المختصة/i;
 const UNSURE_SEAT = /\b(i don'?t know|i do not know|(i'?m|i am|you'?re|you are) (not sure|unsure)|i'?ll (check|find out|get back)|i will (check|find out|get back))\b|لا أعرف|ما أعرف|لست متأكد|مو متأكد|غير متأكد|سأتحقق|راح أتأكد/i;
 const META = /\bI (won'?t|will not|shall not) (repeat|restate|mention (that|it) again)\b|\bas (instructed|per my instructions)\b|ما راح أكرر|لن أكرر|ما رح أعيد|لن أعيد ذكر/i;
 export function unaskedOf(s: string, h: Held, inSummary = false): string | null {
   if (UNSURE_SEAT.test(s)) return 'it says someone does not know or is unsure';
   if (META.test(s)) return 'it speaks an instruction aloud';
   if (!h.firstReply && GREETING.test(s)) return 'a greeting after the first reply';
+  // A READ-BACK AND ITS CLOSE ARE NEVER "UNASKED" (review of #1635, 27 Oct 2026): the summary restates the budget and the
+  // timing THEY gave ("Your budget is AED 15,000. You want it done in 2-3 weeks." were both dropped from the read-back they
+  // were asked to confirm), and a confirmed turn exists to say "press New request". Only the hand-off rule still applies.
+  const closing = inSummary || h.plan.mode === 'summary' || h.plan.mode === 'confirmed';
   for (const [topic, re, licence] of UNASKED) {
+    if (closing && licence) continue;
+    if (topic === 'the fee' && REGULATORY.test(s)) continue;
+    if (topic === 'what suppliers will do' && CONFIRMED.test(h.message)) continue;
     // "If that is correct, press New request" closes the summary (PORTAL_INTAKE step 4): asking them to confirm is never
     // an unasked process line (run 143372b1: two summaries lost their confirm request this way and the conversation stalled)
     if (topic === 'what suppliers will do' && CONFIRM.test(s)) continue;

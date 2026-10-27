@@ -466,3 +466,48 @@ Deno.test('run 26c1ea71: to-confirm is this job only, move-in is not a date, the
   // kitchen_cabinets_en: the model is told to word the question for this job
   assert(/Word it for this job as they described it/.test(heldBlock(heldState([], 'Can I just replace my kitchen cabinet doors?'))));
 });
+
+// ── Review of #1635 (comment 6455627485, 27 Oct 2026): the filter dropped lines it must never drop ─────────────────
+// The reviewer ran heldState + stripReply offline on a split-AC job. Each case below failed on d9933d099.
+const READBACK = a('Here is your request as I have it: four inverter splits for your owned apartment in Al Nahda, Dubai. Is this correct?');
+Deno.test('review 1: "Perfect, thanks" confirms the summary, and the press-New-request line is kept', () => {
+  const h = heldState([...AC, READBACK], 'Perfect, thanks');
+  assertEquals(h.plan.mode, 'confirmed');
+  const r = stripReply('Thank you. Please press New request to send it to verified suppliers.', h);
+  assertEquals(r.text, 'Thank you. Please press New request to send it to verified suppliers.', JSON.stringify(r.dropped));
+});
+Deno.test('review 2: "All good" confirms the summary, and the press-New-request line is kept', () => {
+  const h = heldState([...AC, READBACK], 'All good');
+  assertEquals(h.plan.mode, 'confirmed');
+  const r = stripReply('Thank you. Press "New request" so verified suppliers can quote.', h);
+  assertEquals(r.text, 'Thank you. Press "New request" so verified suppliers can quote.', JSON.stringify(r.dropped));
+});
+Deno.test('review 3: a plain "yes" confirmation still keeps the press-New-request line (control)', () => {
+  const h = heldState([...AC, READBACK], 'yes');
+  assertEquals(h.plan.mode, 'confirmed');
+  assertEquals(stripReply('Thank you. Please press New request to send it to verified suppliers.', h).text,
+    'Thank you. Please press New request to send it to verified suppliers.');
+});
+Deno.test('review 4: a regulatory warning that quotes a fine in AED is never dropped as an unasked fee line', () => {
+  const h = heldState(AC, 'Can I move the outdoor unit to the facade myself?');
+  const warning = 'No: the building and Dubai Municipality must approve any facade change, and unapproved work can be fined AED 5,000 or more.';
+  assertEquals(unaskedOf(warning, h), null);
+  assertEquals(stripReply(warning + ' Who manages the building?', h).text, warning + ' Who manages the building?');
+  assertEquals(unaskedOf('A Civil Defence permit is needed first; the approval fee is about 500 dirhams.', h), null);
+  assertEquals(unaskedOf('تحتاج موافقة البلدية أولاً، والمخالفة غرامتها 5000 درهم.', h), null);
+  // QuotesDone's own fee, unasked, is still a line nobody asked for
+  assertEquals(unaskedOf('Posting a request is free of charge.', h), 'a line on the fee they did not ask about');
+});
+Deno.test('review 5: the summary keeps the budget and the timing the customer gave', () => {
+  const h = heldState([...AC, u('It is a new installation; there is no unit there now. Within 2 weeks.'),
+    a('One ton is likely too small for this room. Where will the outdoor unit go, and how long is the pipe run?')], 'On the balcony, about 5 m of pipe.');
+  assertEquals(h.plan.mode, 'summary');
+  const reply = 'Here is the job as you told it: four inverter splits for your owned apartment in Al Nahda, Dubai. Your budget is AED 15,000. You want it done in 2-3 weeks. Is that correct?';
+  const r = stripReply(reply, h);
+  assertEquals(r.text, reply, JSON.stringify(r.dropped));
+  assertEquals(r.end, null);
+  // the same lines outside a summary, unasked, are still dropped
+  const ask = heldState(AC, 'Inverter please.');
+  assertEquals(ask.plan.mode, 'ask');
+  assertEquals(unaskedOf('Quotes usually take 3-5 working days.', ask), 'a line on how long it takes they did not ask about');
+});
