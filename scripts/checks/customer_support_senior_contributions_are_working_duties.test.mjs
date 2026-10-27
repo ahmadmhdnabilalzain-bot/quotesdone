@@ -89,6 +89,15 @@ test('static: the leak fix withholds live-figure rows, filters the corpus, and t
   assert.ok(dh.includes("'confirmed_by_reply'") && dh.includes('fn_unsubscribe_signed_link(r.email)') && dh.includes('a00_unsubscribe_refusal_throttle'), 'the ownership proof or the throttle is gone');
 });
 
+// FOUNDER RULING 1339 (27 Oct 2026): "the engineer and customer support never replies without llm unless the server of
+// open router is down". An unanswered email is put into a case for the model's reply (email_triage -> think()); the duty
+// itself never answers the sender with a code-written acknowledgement (independent review of #1549).
+test('static CS-C01: the unanswered-message duty sends the sender no code-written reply (ruling 1339)', () => {
+  const src = code(read('scripts/sql/customer_support_drives_every_unanswered_message_to_a_reply_or_a_case.sql'));
+  assert.doesNotMatch(src, /fn_customer_support_duty_send\s*\(/, 'the duty answers the customer with a templated message instead of the model');
+  assert.doesNotMatch(src, /'inbound\.ack'/, 'the duty still writes a templated acknowledgement');
+});
+
 test('static: every road that sends a widget or portal reply scores it, and a refused opt-out is kept', () => {
   assert.ok(read('supabase/functions/site_assistant/index.ts').includes("admin.rpc('fn_support_reply_readability_log'"), 'site_assistant sends unscored replies again');
   assert.ok(read('supabase/functions/unsubscribe/index.ts').includes("from('unsubscribe_refusal').insert"), 'a refused opt-out is no longer recorded');
@@ -110,7 +119,8 @@ test('production, aborted: every duty acts on its fixture, and nothing reaches t
   assert.ok(o, 'the probe committed instead of rolling back');
   console.log(JSON.stringify(o));
   assert.equal(o.duties, 10, 'not every duty is on customer_support\'s clock');
-  assert.ok(o.c01.email_driven >= 1 && o.c01_ack >= 1 && o.c01_case, 'C01: the unanswered email was not put into a case and acknowledged: ' + JSON.stringify(o.c01));
+  assert.ok(o.c01.email_driven >= 1 && o.c01_case, 'C01: the unanswered email was not put into a case: ' + JSON.stringify(o.c01));
+  assert.equal(o.c01_ack, 0, 'C01: the duty sent the customer a code-written acknowledgement (founder ruling 1339: replies are the model\'s)');
   assert.ok(o.c01.whatsapp_driven >= 1, 'C01: the unanswered WhatsApp message was not put into a case');
   assert.equal(o.c01_again, 0, 'C01: a message was driven twice');
   assert.ok(o.c03 >= 1 && o.c03_owner === 'sales_engineer' && o.c03_due, 'C03: the request was not routed with a deadline');
