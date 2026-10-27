@@ -309,6 +309,12 @@ export const REGISTER = {
   // ── RELAYS: they pass on what another routine decided ─────────────────────────────────────────
   trg_high_stakes_review: { relay: 'records the disagreement a second seat recorded with a high-stakes decision that already went ahead; the verdict is the reviewer\'s (seat_deliberation_turn), and a healthy day has none' },
   fn_spec_offer_failed: { relay: 'records a spec comparison the sales_engineer sweep reported failed; raises only after its fifth backed-off failure, never on a healthy day' },
+  // 27 Oct 2026 (it_engineer for marketing): the WhatsApp supplier invitation brake (#1634) writes it_watch_finding
+  // directly, and main went red on this check because nobody registered it. It decides nothing itself: its two callers
+  // decide (fn_wa_sender_quality_record on Twilio's own quality reading, fn_wa_supplier_invite_gate on >= 2 STOP replies
+  // and >= 5% of the invitations sent in 7 days), and fn_it_engineer_ingest_watch_findings carries the open row into
+  // the finding ledger. With 0 invitations sent and no reading below HIGH, a healthy day raises nothing.
+  fn_wa_supplier_invite_brake: { relay: 'records the WhatsApp invitation brake that fn_wa_sender_quality_record (a Twilio quality reading below HIGH / ONLINE) or fn_wa_supplier_invite_gate (>= 2 STOPs and >= 5% of 7-day invitations) decided; a healthy day sends no invitation below HIGH and has no STOPs, so it raises nothing' },
   fn_wa_signature_watch: { relay: 'records a WhatsApp webhook wa_inbound itself refused for a bad X-Twilio-Signature; the refusal is the decision of the signature check, and nothing fires on a healthy day with no refused inbound' },
   fn_seat_clock_deliver: { relay: 'records a message the send door refused; the refusal is the door\'s decision' },
   fn_it_engineer_ingest_watch_findings: { relay: 'copies fn_it_detect\'s open it_watch_finding rows into the finding ledger' },
