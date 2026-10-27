@@ -28,6 +28,7 @@ import { isTransientDeployFailure } from './lib/retry.mjs';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { sql } from './lib/db.mjs';
 import { warmable, warmFunctions } from './lib/warm_functions.mjs';
+import { pickApiKey } from './lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 const PROD_REF = 'htdblwldjkcgjvmqkbeh';
 const args = process.argv.slice(2);
@@ -274,8 +275,9 @@ try {
 try {
   const hot = warmable(slugs, (s) => readFileSync(`supabase/functions/${s}/index.ts`, 'utf8'));
   if (hot.length) {
-    const anon = (await api('/api-keys')).find((k) => k.name === 'anon')?.api_key;
-    if (!anon) throw new Error('no anon key listed for the project');
+    // The publishable key is listed in full without ?reveal=true; a masked secret key is never picked.
+    const anon = pickApiKey(await api('/api-keys'), 'publishable');
+    if (!anon) throw new Error('no publishable (or legacy anon) key listed for the project');
     const w = await warmFunctions({ url: `https://${ref}.supabase.co`, anon, slugs: hot });
     for (const [s, r] of Object.entries(w)) console.log(`warmed ${s.padEnd(24)} ${r.ok}/${r.calls} answered, slowest per round ${r.slowest_ms.join(' / ')} ms`);
   }
