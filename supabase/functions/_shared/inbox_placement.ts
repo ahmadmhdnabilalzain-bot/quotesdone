@@ -1,5 +1,11 @@
 // INBOX PLACEMENT, READ BACK FROM THE TWO SEED MAILBOXES (it_engineer, 24 Sep 2026).
 //
+// RETIRED AT THE SOURCE, 27 Oct 2026. The founder: "stop doing tests on my email. thats extremely useless".
+// scripts/sql/no_test_mail_goes_to_the_founders_own_inboxes.sql makes fn_invite_placement_due queue nothing, so
+// placementTick only ever sees 'idle' and reads no mailbox; a trigger refuses any seed addressed to him. The reader is
+// kept read-only below until the GlockApps verdict (ledger 1312, #1649) replaces the gate. The description that follows
+// is the mechanism as it was, and the FOUNDER_INBOXES list it names no longer exists.
+//
 // Each sending day, fn_invite_placement_due queues one supplier_invite_seed to the founder's Gmail and to his
 // Microsoft 365 mailbox from 04:30 UTC, 90 minutes before the batch window opens at 06:00 UTC. It goes through
 // the real send path: send_outbox, the effective From (the #963 invitation lane when it is on), Reply-To and
