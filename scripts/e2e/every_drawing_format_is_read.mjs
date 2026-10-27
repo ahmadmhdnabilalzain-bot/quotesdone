@@ -15,7 +15,19 @@
 // The DWG samples are LibreDWG test data, fetched at run time at a pinned commit and checked by hash;
 // nothing is committed. Everything the run made is torn down and the teardown is proved.
 //
-//   node scripts/e2e/every_drawing_format_is_read.mjs [--run-worker] [--keep]
+// THE ELEMENT SCORE PER FORMAT (27 Oct 2026, founder ledger 31: "read drawings in every format ... and understand their
+// elements"). A file that is READ is not a file that is UNDERSTOOD, and until then this run only asserted that each format
+// gave some lines. Now each format carries elements whose count is known, sent the way the portal sends it, through the
+// live customer_api with the run's models ON (ruling 1260), and every element is scored exact or not:
+//   DXF ascii / binary   the ZZ DEMO power + fire-alarm plan: SD x7, SKT x5 (legend samples not counted)
+//   DWG                  LibreDWG's example_2018.dwg against the take-off of the AutoCAD-written DXF of the same drawing
+//   PDF vector           the ZZ DEMO plumbing + HVAC sheet: FD-1 x7, WC-1 x5, FCU-1..3
+//   PDF scanned          the same sheet as a speckled, turned raster in a scanner's JPEG PDF, no text layer and no browser
+//                        OCR sent: the server routes it to the vision model (ruling 1177)
+//   image (PNG / JPEG)   the same raster as a picture, through the same path as the scan (ruling 1177)
+// --json <file> writes the per-format score.
+//
+//   node scripts/e2e/every_drawing_format_is_read.mjs [--run-worker] [--keep] [--json <file>]
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { openRun, closeRun, leftovers, makeDemoCustomer, read, write, call } from './fixtures.mjs';
@@ -23,6 +35,7 @@ import { dxfBinaryFrom, dxfFixture, dxfFixturePairs } from '../../supabase/funct
 import { boqNoteAr } from '../../src/lib/boqNotes.ts';
 import { cadRedactionShape } from './cad_redacted_paths.mjs';
 import { CFB } from '../../supabase/functions/_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
+import { zzDxf, zzDxfBinary, zzPdfSheet, zzScanRgba, zzScanText, CAD_COUNTS, PDF_COUNTS } from '../../supabase/functions/_shared/doc_read/zz_demo_drawings.fixtures.ts';
 
 const KEEP = process.argv.includes('--keep');
 const RUN_WORKER = process.argv.includes('--run-worker');
@@ -38,6 +51,44 @@ const u16 = (s) => Buffer.from(s, 'utf16le');
 function ole(streams) { const c = CFB.utils.cfb_new(); for (const [p, b] of Object.entries(streams)) CFB.utils.cfb_add(c, '/' + p, b); return Buffer.from(CFB.write(c, { type: 'array' })); }
 const allArabic = (notes) => (notes || []).every((n) => /[؀-ۿ]/.test(boqNoteAr(n) || ''));
 const lines = (r) => r.json?.boq?.boq || [];
+const JSON_OUT = process.argv.includes('--json') ? process.argv[process.argv.indexOf('--json') + 1] : null;
+const SCORE = [];
+/** Score one format: per element, the summed quantity of the lines that name it against the known count. */
+function score(format, r, truth, how) {
+  const ls = lines(r);
+  const els = Object.entries(truth).map(([el, { re, qty, unit }]) => {
+    const ms = ls.filter((l) => re.test(`${l.item || ''} ${l.description || ''}`) && (!unit || String(l.unit || '').toLowerCase() === unit));
+    const read = ms.length ? +ms.reduce((a, l) => a + Number(l.qty ?? l.estimate ?? 0), 0).toFixed(2) : null;
+    return { element: el, truth: qty, read, exact: read === qty };
+  });
+  const row = { format, how, http: r.status, read: r.json?.ok === true && ls.length > 0, lines: ls.length, elements: els,
+    exact: `${els.filter((e) => e.exact).length}/${els.length}`, models: r.json?.boq?.author_model || r.json?.boq?.method || null };
+  SCORE.push(row);
+  if (!els.every((e) => e.exact)) console.log(`INFO  ${format} lines: ${JSON.stringify(ls.map((l) => [l.description, l.qty ?? l.estimate, l.unit])).slice(0, 900)} ${r.json?.error || ''} ${(r.json?.boq?.missing_info || []).join(' | ').slice(0, 300)}`);
+  check(`elements understood: ${format} ${row.exact}`, els.every((e) => e.exact), els.map((e) => `${e.element} ${e.read ?? '-'}/${e.truth}`).join(', '));
+  return row;
+}
+// The ZZ DEMO scan with its tags, as scan_takeoff.check.ts draws it: FD-1 x7, WC-1 x5, FCU-1..3.
+const SCAN_FD = [[160, 230], [330, 300], [520, 230], [650, 560], [900, 280], [1100, 560], [1420, 280]];
+const SCAN_WC = [[160, 600], [420, 600], [1000, 230], [1200, 600], [1500, 560]];
+async function zzScanJpeg() {
+  const sharp = (await import('sharp')).default;
+  const img = zzScanRgba({ rotateDeg: 0.3, noise: 0.001 });
+  for (const [x, y] of SCAN_FD) zzScanText(img, x, y, 26, 'FD-1');
+  for (const [x, y] of SCAN_WC) zzScanText(img, x, y, 26, 'WC-1');
+  ['FCU-1', 'FCU-2', 'FCU-3'].forEach((f, i) => zzScanText(img, 850 + i * 170, 470, 26, f));
+  zzScanText(img, 600, 820, 34, 'GROUND FLOOR PLUMBING AND HVAC PLAN');
+  return { w: img.w, h: img.h, jpeg: await sharp(Buffer.from(img.rgba.buffer), { raw: { width: img.w, height: img.h, channels: 4 } }).flatten({ background: '#ffffff' }).jpeg({ quality: 85 }).toBuffer() };
+}
+/** A scanner's PDF: one JPEG painted over the page, no text layer. */
+function jpegPdf({ w, h, jpeg }) {
+  const cs = `q ${w} 0 0 ${h} 0 0 cm /Im1 Do Q`;
+  const head = '%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n'
+    + `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${w} ${h}] /Resources << /XObject << /Im1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`
+    + `4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${w} /Height ${h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`;
+  const tail = `\nendstream\nendobj\n5 0 obj\n<< /Length ${cs.length} >>\nstream\n${cs}\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n`;
+  return Buffer.concat([Buffer.from(head, 'latin1'), jpeg, Buffer.from(tail, 'latin1')]);
+}
 
 const run = await openRun();
 let exitCode = 1;
@@ -92,6 +143,31 @@ try {
     check('nobody else can read the job', other.status === 401 || other.status === 403 || other.status === 404 || other.json?.ok !== true, `HTTP ${other.status}`);
   }
 
+  // ── THE ELEMENT SCORE PER FORMAT ─────────────────────────────────────────────────────────────────────
+  const tag = (t) => new RegExp(`(^|[^A-Z0-9])${t.replace('-', '-?')}([^0-9]|$)`, 'i');
+  const cadTruth = { SD: { re: /\bblock SD\b|smoke detector/i, qty: CAD_COUNTS.SD }, SKT: { re: /\bblock SKT\b|socket/i, qty: CAD_COUNTS.SKT } };
+  const pdfTruth = { 'FD-1': { re: tag('FD-1'), qty: PDF_COUNTS['FD-1'] }, 'WC-1': { re: tag('WC-1'), qty: PDF_COUNTS['WC-1'] }, FCU: { re: /FCU-?\d/i, qty: PDF_COUNTS.FCU } };
+  score('DXF ascii', await doc(Buffer.from(zzDxf()), 'ZZ DEMO E-101.dxf'), cadTruth, 'analyze_document');
+  score('DXF binary', await doc(Buffer.from(zzDxfBinary()), 'ZZ DEMO E-101 binary.dxf'), cadTruth, 'analyze_document');
+  // DWG: the truth is the AutoCAD DXF of the same drawing (dwg_samples.check.ts pins it): blocks 8 + 2, layer lengths.
+  const ex18 = await drawing(await sample('example_2018.dwg', '7bc7721224003062'), 'ZZ DEMO example_2018.dwg');
+  score('DWG (AutoCAD 2018)', ex18, { 'block CIRKLO_PUNKTOJ': { re: /CIRKLO_PUNKTOJ/i, qty: 8 }, 'block bloko': { re: /\bbloko\b/i, qty: 2 },
+    'Tavolo 3 sqm': { re: /Tavolo 3/i, qty: 129.36, unit: 'sqm' }, 'Tavolo 3 m': { re: /Tavolo 3/i, qty: 80.56, unit: 'm' }, 'Tavolo 2 m': { re: /Tavolo 2/i, qty: 12.64, unit: 'm' } }, 'analyze_drawing');
+  score('PDF vector', await doc(Buffer.from(zzPdfSheet()), 'ZZ DEMO P-101.pdf'), pdfTruth, 'analyze_document');
+  const scan = await zzScanJpeg();
+  const sc = await doc(jpegPdf(scan), 'ZZ DEMO P-101 scan.pdf');
+  score('PDF scanned (no text layer, model reads it)', sc, pdfTruth, 'analyze_document, no ocr_text');
+  // A photo or a picture of the sheet: no extension refusal applies to images (drawing_format.ts refuses BIM formats),
+  // so it is read like the scan (ruling 1177) and scored the same way; a refusal is recorded as what it is.
+  for (const [buf, name] of [[scan.jpeg, 'ZZ DEMO P-101 photo.jpg'], [await (await import('sharp')).default(scan.jpeg).png().toBuffer(), 'ZZ DEMO P-101.png']]) {
+    const x = await doc(buf, name);
+    const fmt = `image ${name.split('.').pop().toUpperCase()}`;
+    if (x.json?.ok === true) score(fmt, x, pdfTruth, 'analyze_document, no ocr_text');
+    else { SCORE.push({ format: fmt, how: 'analyze_document', http: x.status, read: false, error: x.json?.error || null, elements: [], exact: `refused: ${x.json?.error || x.status}` });
+      check(`${fmt} is read`, false, `HTTP ${x.status} ${x.json?.error || ''} ${x.json?.detail || ''}`); }
+  }
+  console.table(SCORE.map((r) => ({ format: r.format, read: r.read, lines: r.lines ?? '-', exact: r.exact, elements: (r.elements || []).map((e) => `${e.element} ${e.read ?? '-'}/${e.truth}`).join(', ') })));
+
   // Founder ruling 1000 (28 Sep 2026): Revit, IFC and DGN are never accepted.
   const rvt = ole({ BasicFileInfo: Buffer.concat([Buffer.from([7]), u16('Worksharing: Not enabled\r\nFormat: 2024\r\n')]), ProjectInformation: Buffer.alloc(8) });
   const ifc = Buffer.from("ISO-10303-21;\nHEADER;\nFILE_NAME('zz-demo.ifc','2026-09-28',('ZZ DEMO'),('ZZ DEMO'),'','','');\nENDSEC;\nDATA;\nENDSEC;\nEND-ISO-10303-21;\n");
@@ -114,5 +190,6 @@ try {
     if (left.total || jobs) exitCode = 1;
   }
   console.log(`\n${results.filter((x) => x.ok).length}/${results.length} checks passed`);
+  if (JSON_OUT) { const { writeFileSync } = await import('node:fs'); writeFileSync(JSON_OUT, JSON.stringify({ ledger: 31, measured_at: new Date().toISOString(), score: SCORE, checks: `${results.filter((x) => x.ok).length}/${results.length}`, failed: results.filter((x) => !x.ok) }, null, 1)); }
   process.exit(exitCode);
 }

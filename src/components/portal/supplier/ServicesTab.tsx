@@ -30,7 +30,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { blobToWav } from '@/lib/wavEncode';
-import { call } from './api';
+import { call, REASONING_TIMEOUT_MS } from './api';
 import { panelErrorText } from './PanelState';
 import { srvMsg, vocabLabel } from './serverCopy';
 import { countServices, sc, scCount } from './servicesCopy';
@@ -228,7 +228,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       action: 'services_rewrite', removed: [...dropped],
       ...(fromCatalogue ? { from_catalogue: true } : { text }),
       ...(o.supplyOnly !== undefined ? { supply_only: o.supplyOnly } : {}),
-    }, token).catch(() => null);
+    }, token, { timeoutMs: REASONING_TIMEOUT_MS }).catch(() => null);
     if (j && j.code === 'services_no_catalogue') { setRwBusy(false); setRwMsg(sc(lang, 'no_catalogue')); return; }
     if (!mounted.current) return;
     setRwBusy(false);
@@ -278,7 +278,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       action: 'services_save_rewrite', trades: activeTrades.filter((c) => sourceOf(c) !== 'refine' || statedKeys.some((k) => k.startsWith(c + '.'))), removed_trades: [...removedTrades], roles,
       services: statedKeys, implied: rwImplied, removed: rwRemoved,
       own_words: rwOwnWords, raw_text: rawText.trim(),
-    }, token).catch(() => null);
+    // The save reasons over each own word (~37 s measured, 27 Oct): see REASONING_TIMEOUT_MS in ./api.
+    }, token, { timeoutMs: REASONING_TIMEOUT_MS }).catch(() => null);
     if (!mounted.current) return;
     setBusy(false);
     if (j && j.ok) {

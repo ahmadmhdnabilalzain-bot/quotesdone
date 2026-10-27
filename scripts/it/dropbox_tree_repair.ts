@@ -12,6 +12,7 @@
 // Run by the release operator after merge. The plan, the before/after counts and every operation's result
 // are written to --out (default: the Desktop sandbox-evidence folder). No token or secret is printed.
 import { DropboxClient, memoryStore, refreshAccessToken, TokenCache } from '../../supabase/functions/dropbox_backup/dropbox.ts';
+import { pickApiKey } from '../lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 import { approvedMoves, capRecords, counts, founderApprovesMoves, plan, recordOutcome, recordStatement, ROOT, type Listed, type Row, type Ruling } from './dropbox_tree_repair_plan.ts';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
@@ -44,7 +45,7 @@ if (MOVES) {
   RULING = r[0];
 }
 const sec = Object.fromEntries((await sql<{ key: string; value: string }>("select key, value from public.app_secrets where key in ('dropbox_refresh_token', 'dropbox_app_key', 'dropbox_app_secret')")).map((r) => [r.key, r.value]));
-const SERVICE = (await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: 'Bearer ' + mgmt } })).json()).find((k: { name: string }) => k.name === 'service_role')?.api_key ?? '';
+const SERVICE = pickApiKey(await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: 'Bearer ' + mgmt } })).json(), 'secret');
 const dbx = new DropboxClient(new TokenCache(memoryStore(), () => refreshAccessToken(sec.dropbox_refresh_token, sec.dropbox_app_key, sec.dropbox_app_secret)));
 
 async function list(root: string): Promise<Listed[]> {

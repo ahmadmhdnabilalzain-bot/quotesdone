@@ -7,6 +7,7 @@
 //
 //   deno run -A --node-modules-dir=none scripts/eval/seat_exam_llm_on.ts <in.json> <out.json>
 //   in.json: [{ "id": "...", "seat": "sales_engineer", "wording": "..." }]   env: QD_E2E_RUN_TAG, QD_E2E_SECRET
+import { pickApiKey } from '../lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 const REF = 'htdblwldjkcgjvmqkbeh';
 const [inFile, outFile] = Deno.args;
 const tag = Deno.env.get('QD_E2E_RUN_TAG') ?? '';
@@ -17,7 +18,7 @@ const home = Deno.env.get('USERPROFILE') ?? Deno.env.get('HOME') ?? '';
 const mgmt = (Deno.env.get('SUPABASE_ACCESS_TOKEN') ?? await Deno.readTextFile(`${home}/.supabase/access-token`).catch(() => '')).trim();
 if (!mgmt) throw new Error('SUPABASE_ACCESS_TOKEN is not set (docs/runbooks/cloud-sessions.md)');
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: `Bearer ${mgmt}` } })).json();
-const service = keys.find((k: { name: string }) => k.name === 'service_role')?.api_key;
+const service = pickApiKey(keys, 'secret');
 if (!service) throw new Error('no service_role key from the management API');
 // llm.ts and e2e_run.ts read these at import, so they are set before the dynamic imports below.
 Deno.env.set('SUPABASE_URL', `https://${REF}.supabase.co`);
