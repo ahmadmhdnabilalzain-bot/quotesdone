@@ -8,6 +8,7 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test": "node scripts/checks/run.mjs",
+    "gate": "node scripts/ci/local_gate.mjs",
     "test:phase-d": "node scripts/checks/run.mjs --profile=phase-d",
     "regen:canonical-manifest": "node scripts/checks/canonical_routine_manifest.mjs --all --emit"
   },

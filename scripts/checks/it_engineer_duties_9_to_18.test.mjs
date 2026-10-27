@@ -18,7 +18,7 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 
 async function probe(body) {
-  try { await sql(`do $p$ ${body} $p$;`); }
+  try { await sql(`select set_config('qd.probe_files_demo_handoff', 'on', true); do $p$ ${body} $p$;`); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (m) return JSON.parse(m[1].replace(/\\"/g, '"'));
