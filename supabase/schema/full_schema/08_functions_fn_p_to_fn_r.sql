@@ -3519,7 +3519,10 @@ declare v_n int; v_ids jsonb;
 begin
   update public.reasoning_held_question
      set result = coalesce(result, '{}'::jsonb) || jsonb_build_object('delivery', p_delivery),
-         status = case when coalesce((p_delivery->>'delivered')::boolean, false) or p_delivery->>'via' = 'none' then 'applied' else status end,
+         status = case when coalesce((p_delivery->>'delivered')::boolean, false) or p_delivery->>'via' = 'none' then 'applied'
+                       -- the model was up and nothing it wrote passed: asked again by the replay, escalated at its last try
+                       when p_delivery->>'via' = 'unwritten' then case when attempts >= 3 then 'failed' else 'held' end
+                       else status end,
          applied_at = case when coalesce((p_delivery->>'delivered')::boolean, false) or p_delivery->>'via' = 'none' then now() else applied_at end
    where id = p_id;
   if p_delivery->>'via' = 'held_for_review' then

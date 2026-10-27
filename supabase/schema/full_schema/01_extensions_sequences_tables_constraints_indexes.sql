@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-27T19:30:08.875Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-27T19:44:47.304Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -221,7 +221,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (760) =====
+-- ===== TABLES (761) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -2783,6 +2783,26 @@ CREATE TABLE IF NOT EXISTS public.customer_support_voc_month (
   reported_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.customer_support_voice_owed (
+  stage text NOT NULL,
+  subject_key text NOT NULL,
+  voice_key text NOT NULL,
+  to_role text NOT NULL,
+  to_email text NOT NULL,
+  lang text NOT NULL,
+  subject text NOT NULL,
+  draft text NOT NULL,
+  situation text NOT NULL,
+  facts text DEFAULT ''::text NOT NULL,
+  must text[] DEFAULT '{}'::text[] NOT NULL,
+  attempts integer DEFAULT 0 NOT NULL,
+  last_error text,
+  written_by text,
+  written_at timestamp with time zone,
+  result jsonb,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.customers (
   id uuid DEFAULT gen_random_uuid() NOT NULL,
   full_name text,
@@ -4613,7 +4633,10 @@ CREATE TABLE IF NOT EXISTS public.it_incident (
   recorded_by text,
   pdf_path text,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  customer_impact text,
+  customer_note_en text,
+  customer_note_ar text
 );
 
 CREATE TABLE IF NOT EXISTS public.it_integration_external_cause (
@@ -10678,6 +10701,7 @@ ALTER TABLE public.customer_support_inbound_drive ADD CONSTRAINT customer_suppor
 ALTER TABLE public.customer_support_monthly_review ADD CONSTRAINT customer_support_monthly_review_pkey PRIMARY KEY (month);
 ALTER TABLE public.customer_support_reply_quality_week ADD CONSTRAINT customer_support_reply_quality_week_pkey PRIMARY KEY (week_ending);
 ALTER TABLE public.customer_support_voc_month ADD CONSTRAINT customer_support_voc_month_pkey PRIMARY KEY (month);
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_pkey PRIMARY KEY (stage, subject_key);
 ALTER TABLE public.customers ADD CONSTRAINT customers_pkey PRIMARY KEY (id);
 ALTER TABLE public.dead_letter ADD CONSTRAINT dead_letter_pkey PRIMARY KEY (id);
 ALTER TABLE public.decision_log ADD CONSTRAINT decision_log_pkey PRIMARY KEY (id);
@@ -11603,6 +11627,14 @@ ALTER TABLE public.customer_support_duty_message ADD CONSTRAINT customer_support
 ALTER TABLE public.customer_support_inbound_drive ADD CONSTRAINT customer_support_inbound_drive_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'whatsapp'::text])));
 ALTER TABLE public.customer_support_monthly_review ADD CONSTRAINT customer_support_monthly_review_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
 ALTER TABLE public.customer_support_voc_month ADD CONSTRAINT customer_support_voc_month_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_draft_check CHECK ((btrim(draft) <> ''::text));
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_lang_check CHECK ((lang = ANY (ARRAY['en'::text, 'ar'::text])));
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_situation_check CHECK ((btrim(situation) <> ''::text));
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_stage_check CHECK ((stage ~ '^[a-z_]+\.[a-z_]+$'::text));
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_subject_key_check CHECK ((btrim(subject_key) <> ''::text));
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_to_role_check CHECK ((to_role = ANY (ARRAY['customer'::text, 'supplier'::text])));
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_voice_key_check CHECK ((btrim(voice_key) <> ''::text));
+ALTER TABLE public.customer_support_voice_owed ADD CONSTRAINT customer_support_voice_owed_written_by_check CHECK ((written_by = ANY (ARRAY['model'::text, 'outage_fallback'::text])));
 ALTER TABLE public.customers ADD CONSTRAINT customers_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
 ALTER TABLE public.customers ADD CONSTRAINT customers_whatsapp_opt_known CHECK (((whatsapp_opt IS NULL) OR (whatsapp_opt = ANY (ARRAY['same'::text, 'other'::text, 'none'::text]))));
 ALTER TABLE public.customers ADD CONSTRAINT customers_whatsapp_phone_is_verified CHECK (((whatsapp_phone IS NULL) OR (whatsapp_verified_at IS NOT NULL)));
@@ -11722,6 +11754,7 @@ ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_warn_days_ck CHECK (((card
 ALTER TABLE public.it_founder_decision_class ADD CONSTRAINT it_founder_decision_class_only_his_categories CHECK (((NOT to_founder) OR (founder_category = ANY (ARRAY['money'::text, 'destructive_production_change'::text, 'fact_only_he_holds'::text]))));
 ALTER TABLE public.it_game_day_run ADD CONSTRAINT it_game_day_run_run_month_check CHECK ((run_month = (date_trunc('month'::text, (run_month)::timestamp with time zone))::date));
 ALTER TABLE public.it_game_day_run ADD CONSTRAINT it_game_day_run_scenario_check CHECK ((scenario = ANY (ARRAY['email_provider_down'::text, 'whatsapp_down'::text, 'edge_function_slow'::text, 'db_connection'::text, 'credential_expired'::text])));
+ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_customer_impact_check CHECK (((customer_impact IS NULL) OR (customer_impact = ANY (ARRAY['customers'::text, 'suppliers'::text, 'everyone'::text]))));
 ALTER TABLE public.it_model_consumer ADD CONSTRAINT it_model_consumer_consumer_check CHECK ((consumer ~ '^[a-z0-9_]+[:.][a-z0-9_]+$'::text));
 ALTER TABLE public.it_model_consumer ADD CONSTRAINT it_model_consumer_why_a_model_check CHECK ((btrim(why_a_model) <> ''::text));
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_added_by_check CHECK ((btrim(added_by) <> ''::text));
@@ -12887,6 +12920,7 @@ CREATE INDEX customer_calls_inquiry_idx ON public.customer_calls USING btree (in
 CREATE UNIQUE INDEX customer_kpi_snap_day ON public.customer_kpi_snapshots USING btree (snapshot_date);
 CREATE UNIQUE INDEX customer_support_data_request_one_open ON public.customer_support_data_request USING btree (lower(email), kind) WHERE (status = 'open'::text);
 CREATE UNIQUE INDEX customer_support_data_request_pdpl ON public.customer_support_data_request USING btree (pdpl_request_id) WHERE (pdpl_request_id IS NOT NULL);
+CREATE INDEX customer_support_voice_owed_due ON public.customer_support_voice_owed USING btree (created_at) WHERE (written_at IS NULL);
 CREATE UNIQUE INDEX customers_email_lower_uidx ON public.customers USING btree (lower(btrim(email))) WHERE ((email IS NOT NULL) AND (btrim(email) <> ''::text));
 CREATE INDEX dead_letter_open_idx ON public.dead_letter USING btree (source, created_at DESC) WHERE (resolved_at IS NULL);
 CREATE INDEX decision_review_request_open_idx ON public.decision_review_request USING btree (owner_seat) WHERE (status = 'open'::text);

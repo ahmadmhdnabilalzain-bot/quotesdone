@@ -593,6 +593,7 @@ ALTER TABLE public.customer_support_inbound_drive ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_support_monthly_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_support_reply_quality_week ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_support_voc_month ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.customer_support_voice_owed ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dead_letter ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.decision_log ENABLE ROW LEVEL SECURITY;
@@ -1230,6 +1231,7 @@ CREATE POLICY customer_support_inbound_drive_service_role_only ON public.custome
 CREATE POLICY customer_support_monthly_review_service_role_only ON public.customer_support_monthly_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY customer_support_reply_quality_week_service_role_only ON public.customer_support_reply_quality_week AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY customer_support_voc_month_service_role_only ON public.customer_support_voc_month AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY customer_support_voice_owed_service_role_only ON public.customer_support_voice_owed AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.customers AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY decision_review_request_service_role_only ON public.decision_review_request AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY demand_forecast_service_role_only ON public.demand_forecast AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
