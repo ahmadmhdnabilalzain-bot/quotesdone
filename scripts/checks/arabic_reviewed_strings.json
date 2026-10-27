@@ -6373,7 +6373,20 @@
   "622dc4a7b5b1",
   "713903274b9b",
   "1c124ac36381",
-  "24c91058ee6f"
+  "24c91058ee6f",
+  "0120928e90da",
+  "19ec6fc142e3",
+  "1e6f868612d3",
+  "257170f24a6b",
+  "402880b5bac6",
+  "43ed9305f18f",
+  "4dbb82dfe80d",
+  "576d6d000dbd",
+  "823f816ac3e8",
+  "b348c619f966",
+  "d6cdcf2bd9b8",
+  "e1b77c471881",
+  "96a3b3cca4ae"
  ],
  "supabase/functions/_shared/think.ts": [
   "4e2156827796"
@@ -6984,5 +6997,46 @@
  "supabase/functions/site_assistant/visitor_scope.ts": [
   "0b3fc2f067e7",
   "76a20e04cca9"
+ ],
+ "scripts/sql/customer_support_acts_on_a_complaint_before_its_deadline.sql": [
+  "21bf22d9fb43",
+  "2a26f033805e",
+  "438552204aa8",
+  "511e912b1936",
+  "7dcd7ec7bc41"
+ ],
+ "scripts/sql/customer_support_drives_every_unanswered_message_to_a_reply_or_a_case.sql": [
+  "6de42329426c",
+  "91c9a9424878",
+  "96bad3c13490",
+  "fddd63953767"
+ ],
+ "scripts/sql/customer_support_tells_affected_customers_during_an_incident.sql": [
+  "127ad0f5549e",
+  "4f4316223d73",
+  "8089bad6b642",
+  "8171cc5a692f",
+  "b94cdb4a8cae",
+  "ff0d382f2b27"
+ ],
+ "scripts/sql/customers_and_suppliers_are_never_given_internal_knowledge.sql": [
+  "3cbc1543d65e",
+  "67e0d864b486"
+ ],
+ "scripts/sql/customers_are_given_the_published_faq_and_the_published_prices_again.sql": [
+  "59070b19da0d"
+ ],
+ "supabase/functions/_shared/duty_voice.ts": [
+  "233fb854bada"
+ ],
+ "scripts/sql/the_supplier_whatsapp_invitation_waits_for_opt_in_both_switches_and_a_high_quality_sender.sql": [
+  "12ba36f3ca11",
+  "2a02ef990137",
+  "2f989f677852",
+  "5dc6e56e2ded",
+  "77f9955284a2",
+  "b0870bd5044a",
+  "bcfeae685a9a",
+  "c309658866ea"
  ]
 }
