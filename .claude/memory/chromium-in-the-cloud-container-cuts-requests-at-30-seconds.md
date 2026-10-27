@@ -1,3 +1,10 @@
+---
+name: chromium-in-the-cloud-container-cuts-requests-at-30-seconds
+description: "27 Oct 2026: in a cloud session container, Playwright Chromium fails a request longer than ~30 s with net::ERR_FAILED / MissingAllowOriginHeader while the server answers 200. Check function_edge_logs and repeat from Node before calling it a product defect."
+metadata:
+  type: feedback
+  modified: 2026-10-27
+---
 # Chromium in the cloud container cuts a request at ~30 s
 
 Measured 27 Oct 2026 (it_engineer, supplier registration walk; report
