@@ -10175,6 +10175,23 @@ exception when others then
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ai_cost_log_releases_rehearsal_reservation()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if new.e2e_run_tag is not null and new.model_used is distinct from 'none' and not coalesce(new.cached, false)
+     and greatest(coalesce(new.cost_usd_reported, 0), coalesce(new.cost_aed, 0)) > 0 then
+    delete from public.rehearsal_spend_reservation
+     where id = (select id from public.rehearsal_spend_reservation
+                  where e2e_run_tag = new.e2e_run_tag order by created_at limit 1);
+  end if;
+  return null;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ai_quality_watch()
  RETURNS jsonb
  LANGUAGE plpgsql
