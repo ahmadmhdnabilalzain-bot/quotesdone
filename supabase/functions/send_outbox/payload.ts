@@ -17,7 +17,9 @@ export function resendPayload(o: {
   /** notifications.in_reply_to: the Message-ID this answers, so the reply lands in the customer's own thread. */
   inReplyTo?: string | null;
 }): ResendMail {
+  // An empty html sends a plain-text-only message (the supplier campaign email, 27 Oct 2026): no html key at all.
   const mail: ResendMail = { from: o.from, to: [o.to], reply_to: o.reply, subject: o.subject || 'QuotesDone', html: o.html, text: o.text };
+  if (!o.html) delete (mail as Partial<ResendMail>).html;
   const irt = String(o.inReplyTo ?? '').trim();
   if (irt) {
     const id = irt.startsWith('<') ? irt : '<' + irt + '>';

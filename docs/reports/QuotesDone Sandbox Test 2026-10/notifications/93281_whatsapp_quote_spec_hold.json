@@ -1,0 +1,11 @@
+{
+ "id": 93281,
+ "type": "quote_spec_hold",
+ "channel": "whatsapp",
+ "status": "suppressed",
+ "to_email": "qd-1c94fa6a-sup0@example.invalid",
+ "lang": "en",
+ "subject": "Your quote is on hold until the exact details are stated — RFQ 157711",
+ "body": "Hello,\n\nYour quote for RFQ 157711 is on hold and will not be shown to the customer until the following exact details are stated:\n\n• Line 1 (Supply and installation as specified): Glass type\n• Line 1 (Supply and installation as specified): Glass thickness / build-up\n• Line 1 (Supply and installation as specified): Aluminium system / series\n• Material — Aluminium profile system\n• Material — Glass\n• Is installation included?\n• What the warranty covers\n• Total price excluding VAT\n\nYou have two ways to release it:\n1) Fill in the missing details on the supplier portal. We will regenerate your quotation in the standard format for you to check and confirm it is correct, and it is then sent to the customer.\n2) Or upload a new revised quote that states these details.\n\nThe quote stays saved and you can complete it at any time until the customer chooses a quote.\n\nQuotesDone sales engineer",
+ "html": null
+}

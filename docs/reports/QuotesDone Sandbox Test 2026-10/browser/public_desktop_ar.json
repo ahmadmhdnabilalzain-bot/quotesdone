@@ -1,0 +1,1294 @@
+[
+ {
+  "at": "2026-10-06T20:22:14.712Z",
+  "journey": "public_desktop_ar",
+  "step": "/",
+  "url": "https://quotesdone.com/ar",
+  "status": "PASS",
+  "ms": 588,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 7,
+   "arabicN": 1036,
+   "wordsN": 1078,
+   "latinSample": [
+    "English",
+    "SPC",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "QuotesDone — عروض أسعار دون كشف الهوية لكل الأنشطة في الإمارات"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\home.png"
+ },
+ {
+  "at": "2026-10-06T20:22:16.064Z",
+  "journey": "public_desktop_ar",
+  "step": "home: cookie_banner",
+  "status": "PASS",
+  "detail": "banner visible; decline button pressed; hidden after: true",
+  "issues": [],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\home_cookie_banner.png"
+ },
+ {
+  "at": "2026-10-06T20:22:21.404Z",
+  "journey": "public_desktop_ar",
+  "step": "home: job_check_box",
+  "status": "PASS",
+  "detail": "pressed \"افحص طلبي\"; url unchanged",
+  "issues": [],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\home_job_check_box.png"
+ },
+ {
+  "at": "2026-10-06T20:22:38.380Z",
+  "journey": "public_desktop_ar",
+  "step": "home: support_chat",
+  "status": "PASS",
+  "detail": "asked; arabic words on page after reply: 1228",
+  "issues": [],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\home_support_chat.png"
+ },
+ {
+  "at": "2026-10-06T20:22:40.559Z",
+  "journey": "public_desktop_ar",
+  "step": "/how-it-works",
+  "url": "https://quotesdone.com/ar/how-it-works",
+  "status": "PASS",
+  "ms": 117,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 3,
+   "arabicN": 405,
+   "wordsN": 418,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "كيف تعمل QuotesDone — عروض أسعار دون كشف الهوية من البداية إلى النهاية"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\how_it_works.png"
+ },
+ {
+  "at": "2026-10-06T20:22:42.183Z",
+  "journey": "public_desktop_ar",
+  "step": "/services",
+  "url": "https://quotesdone.com/ar/services",
+  "status": "PASS",
+  "ms": 105,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 3,
+   "arabicN": 567,
+   "wordsN": 581,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "كل الأنشطة في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services.png"
+ },
+ {
+  "at": "2026-10-06T20:22:45.803Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/aluminium-glass",
+  "url": "https://quotesdone.com/ar/services/aluminium-glass",
+  "status": "PASS",
+  "ms": 164,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 3,
+   "arabicN": 778,
+   "wordsN": 791,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "أعمال الألمنيوم والزجاج في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_aluminium_glass.png"
+ },
+ {
+  "at": "2026-10-06T20:22:49.960Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/ac-maintenance",
+  "url": "https://quotesdone.com/ar/services/ac-maintenance",
+  "status": "PASS",
+  "ms": 142,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 3,
+   "arabicN": 772,
+   "wordsN": 786,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "إصلاح وصيانة المكيفات في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_ac_maintenance.png"
+ },
+ {
+  "at": "2026-10-06T20:22:53.360Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/ac-duct-cleaning",
+  "url": "https://quotesdone.com/ar/services/ac-duct-cleaning",
+  "status": "PASS",
+  "ms": 109,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 4,
+   "arabicN": 806,
+   "wordsN": 820,
+   "latinSample": [
+    "English",
+    "HEPA",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "تنظيف مجاري الهواء في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_ac_duct_cleaning.png"
+ },
+ {
+  "at": "2026-10-06T20:22:57.090Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/cctv-security",
+  "url": "https://quotesdone.com/ar/services/cctv-security",
+  "status": "PASS",
+  "ms": 116,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 6,
+   "arabicN": 818,
+   "wordsN": 836,
+   "latinSample": [
+    "English",
+    "DVR",
+    "NVR",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "كاميرات المراقبة (CCTV) وأنظمة الأمن في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_cctv_security.png"
+ },
+ {
+  "at": "2026-10-06T20:23:01.047Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/cleaning",
+  "url": "https://quotesdone.com/ar/services/cleaning",
+  "status": "PASS",
+  "ms": 105,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 3,
+   "arabicN": 751,
+   "wordsN": 764,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "خدمات التنظيف في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_cleaning.png"
+ },
+ {
+  "at": "2026-10-06T20:23:04.526Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/curtains-blinds",
+  "url": "https://quotesdone.com/ar/services/curtains-blinds",
+  "status": "PASS",
+  "ms": 115,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 3,
+   "arabicN": 732,
+   "wordsN": 745,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "الستائر والبلايندز في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_curtains_blinds.png"
+ },
+ {
+  "at": "2026-10-06T20:23:08.621Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/electrical",
+  "url": "https://quotesdone.com/ar/services/electrical",
+  "status": "PASS",
+  "ms": 96,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 10,
+   "arabicN": 805,
+   "wordsN": 828,
+   "latinSample": [
+    "English",
+    "LED",
+    "DEWA",
+    "ADDC",
+    "ADDC.",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "الأعمال الكهربائية والمقاولون في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_electrical.png"
+ },
+ {
+  "at": "2026-10-06T20:23:10.943Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/facilities-management",
+  "url": "https://quotesdone.com/ar/services/facilities-management",
+  "status": "PASS",
+  "ms": 166,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 5,
+   "arabicN": 776,
+   "wordsN": 792,
+   "latinSample": [
+    "English",
+    "MEP",
+    "CCTV",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "إدارة المرافق في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_facilities_management.png"
+ },
+ {
+  "at": "2026-10-06T20:23:15.357Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/false-ceiling",
+  "url": "https://quotesdone.com/ar/services/false-ceiling",
+  "status": "PASS",
+  "ms": 146,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 6,
+   "arabicN": 791,
+   "wordsN": 807,
+   "latinSample": [
+    "English",
+    "LED.",
+    "LED",
+    "MEP",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "الأسقف المعلّقة وقواطع الجبس في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_false_ceiling.png"
+ },
+ {
+  "at": "2026-10-06T20:23:19.614Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/flooring",
+  "url": "https://quotesdone.com/ar/services/flooring",
+  "status": "PASS",
+  "ms": 145,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 4,
+   "arabicN": 802,
+   "wordsN": 816,
+   "latinSample": [
+    "English",
+    "SPC",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "الأرضيات (بلاط، باركيه، إيبوكسي) في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_flooring.png"
+ },
+ {
+  "at": "2026-10-06T20:23:21.955Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/handyman",
+  "url": "https://quotesdone.com/ar/services/handyman",
+  "status": "PASS",
+  "ms": 139,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 4,
+   "arabicN": 769,
+   "wordsN": 783,
+   "latinSample": [
+    "English",
+    "IKEA",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "الفنّي متعدد المهام والصيانة في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_handyman.png"
+ },
+ {
+  "at": "2026-10-06T20:23:26.447Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/interior-design",
+  "url": "https://quotesdone.com/ar/services/interior-design",
+  "status": "PASS",
+  "ms": 238,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 4,
+   "arabicN": 810,
+   "wordsN": 825,
+   "latinSample": [
+    "English",
+    "MEP",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "التصميم الداخلي والتجهيز في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_interior_design.png"
+ },
+ {
+  "at": "2026-10-06T20:23:30.042Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/joinery-kitchens",
+  "url": "https://quotesdone.com/ar/services/joinery-kitchens",
+  "status": "PASS",
+  "ms": 123,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 5,
+   "arabicN": 778,
+   "wordsN": 795,
+   "latinSample": [
+    "English",
+    "MDF",
+    "Surface)",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "النجارة وخزائن المطابخ في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_joinery_kitchens.png"
+ },
+ {
+  "at": "2026-10-06T20:23:33.622Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/landscaping",
+  "url": "https://quotesdone.com/ar/services/landscaping",
+  "status": "PASS",
+  "ms": 140,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 3,
+   "arabicN": 760,
+   "wordsN": 773,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "تنسيق الحدائق وتصميمها في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_landscaping.png"
+ },
+ {
+  "at": "2026-10-06T20:23:37.176Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/movers",
+  "url": "https://quotesdone.com/ar/services/movers",
+  "status": "PASS",
+  "ms": 129,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 3,
+   "arabicN": 760,
+   "wordsN": 773,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "شركات النقل والتغليف في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_movers.png"
+ },
+ {
+  "at": "2026-10-06T20:23:41.260Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/painting",
+  "url": "https://quotesdone.com/ar/services/painting",
+  "status": "PASS",
+  "ms": 122,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 3,
+   "arabicN": 806,
+   "wordsN": 819,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "الدهان والديكور في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_painting.png"
+ },
+ {
+  "at": "2026-10-06T20:23:44.689Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/pest-control",
+  "url": "https://quotesdone.com/ar/services/pest-control",
+  "status": "PASS",
+  "ms": 133,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 3,
+   "arabicN": 755,
+   "wordsN": 768,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "مكافحة الآفات في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_pest_control.png"
+ },
+ {
+  "at": "2026-10-06T20:23:48.244Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/plumbing",
+  "url": "https://quotesdone.com/ar/services/plumbing",
+  "status": "PASS",
+  "ms": 113,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 3,
+   "arabicN": 729,
+   "wordsN": 742,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "خدمات السباكة في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_plumbing.png"
+ },
+ {
+  "at": "2026-10-06T20:23:52.470Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/signage",
+  "url": "https://quotesdone.com/ar/services/signage",
+  "status": "PASS",
+  "ms": 101,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 4,
+   "arabicN": 773,
+   "wordsN": 788,
+   "latinSample": [
+    "English",
+    "LED",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "اللافتات وحروف 3D في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_signage.png"
+ },
+ {
+  "at": "2026-10-06T20:23:56.461Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/smart-home",
+  "url": "https://quotesdone.com/ar/services/smart-home",
+  "status": "PASS",
+  "ms": 132,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 5,
+   "arabicN": 811,
+   "wordsN": 827,
+   "latinSample": [
+    "English",
+    "KNX",
+    "Crestron.",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "أنظمة المنزل الذكي في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_smart_home.png"
+ },
+ {
+  "at": "2026-10-06T20:24:00.200Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/solar",
+  "url": "https://quotesdone.com/ar/services/solar",
+  "status": "PASS",
+  "ms": 117,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 9,
+   "arabicN": 807,
+   "wordsN": 827,
+   "latinSample": [
+    "English",
+    "DEWA",
+    "SEWA",
+    "ADDC",
+    "ADDC.",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "أنظمة الطاقة الشمسية في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_solar.png"
+ },
+ {
+  "at": "2026-10-06T20:24:04.097Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/swimming-pools",
+  "url": "https://quotesdone.com/ar/services/swimming-pools",
+  "status": "PASS",
+  "ms": 115,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 4,
+   "arabicN": 781,
+   "wordsN": 796,
+   "latinSample": [
+    "English",
+    "LED",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "إنشاء وصيانة المسابح في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_swimming_pools.png"
+ },
+ {
+  "at": "2026-10-06T20:24:08.636Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/tiling-marble",
+  "url": "https://quotesdone.com/ar/services/tiling-marble",
+  "status": "PASS",
+  "ms": 127,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 3,
+   "arabicN": 766,
+   "wordsN": 779,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "أعمال البلاط والرخام في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_tiling_marble.png"
+ },
+ {
+  "at": "2026-10-06T20:24:12.859Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/waterproofing",
+  "url": "https://quotesdone.com/ar/services/waterproofing",
+  "status": "PASS",
+  "ms": 161,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 3,
+   "arabicN": 763,
+   "wordsN": 776,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "خدمات العزل المائي في الإمارات — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_waterproofing.png"
+ },
+ {
+  "at": "2026-10-06T20:24:17.188Z",
+  "journey": "public_desktop_ar",
+  "step": "/services/aluminium-glass-in-dubai",
+  "url": "https://quotesdone.com/ar/services/aluminium-glass-in-dubai",
+  "status": "PASS",
+  "ms": 175,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 3,
+   "arabicN": 778,
+   "wordsN": 791,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "أعمال الألمنيوم والزجاج في دبي — احصل على عروض أسعار مجانية | QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\services_aluminium_glass_in_dubai.png"
+ },
+ {
+  "at": "2026-10-06T20:24:19.717Z",
+  "journey": "public_desktop_ar",
+  "step": "/supplier",
+  "url": "https://quotesdone.com/ar/supplier",
+  "status": "PASS",
+  "ms": 193,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 3,
+   "arabicN": 510,
+   "wordsN": 531,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "للمورّدين — QuotesDone، عروض أسعار دون كشف الهوية لكل الأنشطة في الإمارات"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\supplier.png"
+ },
+ {
+  "at": "2026-10-06T20:24:22.222Z",
+  "journey": "public_desktop_ar",
+  "step": "/about",
+  "url": "https://quotesdone.com/ar/about",
+  "status": "PASS",
+  "ms": 134,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 8,
+   "arabicN": 679,
+   "wordsN": 708,
+   "latinSample": [
+    "English",
+    "QUOTESDONE",
+    "ELV",
+    "LinkedIn",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "من نحن — QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\about.png"
+ },
+ {
+  "at": "2026-10-06T20:24:26.147Z",
+  "journey": "public_desktop_ar",
+  "step": "/faq",
+  "url": "https://quotesdone.com/ar/faq",
+  "status": "PASS",
+  "ms": 202,
+  "issues": [
+   {
+    "sev": "low",
+    "what": "2 control(s) with no accessible name: <a href=\"/ar/how-we-verify\">كيف نتحقق من المورّدين</a> <a href=\"/ar/how-we-verify\">كيف نتحقق من المورّدين</a>"
+   }
+  ],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 3,
+   "arabicN": 768,
+   "wordsN": 786,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [
+    "<a href=\"/ar/how-we-verify\">كيف نتحقق من المورّدين</a>",
+    "<a href=\"/ar/how-we-verify\">كيف نتحقق من المورّدين</a>"
+   ],
+   "unnamedN": 2,
+   "title": "الأسئلة الشائعة — QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\faq.png"
+ },
+ {
+  "at": "2026-10-06T20:24:28.483Z",
+  "journey": "public_desktop_ar",
+  "step": "/how-we-verify",
+  "url": "https://quotesdone.com/ar/how-we-verify",
+  "status": "PASS",
+  "ms": 184,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 5,
+   "arabicN": 346,
+   "wordsN": 362,
+   "latinSample": [
+    "English",
+    "Noor",
+    "Flooring",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "كيف نتحقق من المورّدين — QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\how_we_verify.png"
+ },
+ {
+  "at": "2026-10-06T20:24:30.276Z",
+  "journey": "public_desktop_ar",
+  "step": "/contact",
+  "url": "https://quotesdone.com/ar/contact",
+  "status": "PASS",
+  "ms": 247,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 4,
+   "arabicN": 281,
+   "wordsN": 305,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "تواصل مع QuotesDone — اتصل بنا"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\contact.png"
+ },
+ {
+  "at": "2026-10-06T20:24:31.134Z",
+  "journey": "public_desktop_ar",
+  "step": "contact form (filled, not submitted)",
+  "status": "PASS",
+  "detail": "6 fields, 1 buttons",
+  "issues": [],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\contact_filled_not_sent.png"
+ },
+ {
+  "at": "2026-10-06T20:24:33.750Z",
+  "journey": "public_desktop_ar",
+  "step": "/terms",
+  "url": "https://quotesdone.com/ar/terms",
+  "status": "PASS",
+  "ms": 109,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 9,
+   "arabicN": 2924,
+   "wordsN": 3003,
+   "latinSample": [
+    "English",
+    "Technologies",
+    "Apple",
+    "Pay)",
+    "Pay"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "شروط الخدمة — مركز QuotesDone القانوني"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\terms.png"
+ },
+ {
+  "at": "2026-10-06T20:24:40.318Z",
+  "journey": "public_desktop_ar",
+  "step": "/supplier-agreement",
+  "url": "https://quotesdone.com/ar/supplier-agreement",
+  "status": "PASS",
+  "ms": 160,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 7,
+   "arabicN": 3896,
+   "wordsN": 4025,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "اتفاقية المورد — مركز قانوني QuotesDone"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\supplier_agreement.png"
+ },
+ {
+  "at": "2026-10-06T20:24:43.762Z",
+  "journey": "public_desktop_ar",
+  "step": "/privacy",
+  "url": "https://quotesdone.com/ar/privacy",
+  "status": "PASS",
+  "ms": 235,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 19,
+   "arabicN": 1558,
+   "wordsN": 1621,
+   "latinSample": [
+    "English",
+    "Technologies",
+    "PDPL",
+    "Pay.",
+    "PDPL:",
+    "Apple",
+    "Pay)",
+    "PDPL.",
+    "KYC",
+    "OTP",
+    "PCI"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "سياسة الخصوصية — مركز QuotesDone القانوني"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\privacy.png"
+ },
+ {
+  "at": "2026-10-06T20:24:50.976Z",
+  "journey": "public_desktop_ar",
+  "step": "/cookie-policy",
+  "url": "https://quotesdone.com/ar/cookie-policy",
+  "status": "PASS",
+  "ms": 776,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 9,
+   "arabicN": 923,
+   "wordsN": 956,
+   "latinSample": [
+    "English",
+    "Technologies",
+    "qd-first-touch):",
+    "PDPL:",
+    "Pay"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "سياسة ملفات تعريف الارتباط — مركز QuotesDone القانوني"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\cookie_policy.png"
+ },
+ {
+  "at": "2026-10-06T20:24:56.857Z",
+  "journey": "public_desktop_ar",
+  "step": "/refund-policy",
+  "url": "https://quotesdone.com/ar/refund-policy",
+  "status": "PASS",
+  "ms": 2617,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 9,
+   "arabicN": 1238,
+   "wordsN": 1274,
+   "latinSample": [
+    "English",
+    "Technologies",
+    "PCI",
+    "DSS.",
+    "Apple",
+    "Pay"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "استرداد الأموال والإلغاء — مركز QuotesDone القانوني"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\refund_policy.png"
+ },
+ {
+  "at": "2026-10-06T20:24:59.976Z",
+  "journey": "public_desktop_ar",
+  "step": "/acceptable-use",
+  "url": "https://quotesdone.com/ar/acceptable-use",
+  "status": "PASS",
+  "ms": 377,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 5,
+   "arabicN": 822,
+   "wordsN": 843,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "الاستخدام المقبول — مركز QuotesDone القانوني"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\acceptable_use.png"
+ },
+ {
+  "at": "2026-10-06T20:25:02.903Z",
+  "journey": "public_desktop_ar",
+  "step": "/disclaimer",
+  "url": "https://quotesdone.com/ar/disclaimer",
+  "status": "PASS",
+  "ms": 200,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 5,
+   "arabicN": 847,
+   "wordsN": 869,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "إخلاء المسؤولية — مركز QuotesDone القانوني"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\disclaimer.png"
+ },
+ {
+  "at": "2026-10-06T20:25:07.147Z",
+  "journey": "public_desktop_ar",
+  "step": "/complaints",
+  "url": "https://quotesdone.com/ar/complaints",
+  "status": "PASS",
+  "ms": 190,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 5,
+   "arabicN": 844,
+   "wordsN": 873,
+   "latinSample": [
+    "English",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "الشكاوى والنزاعات — مركز QuotesDone القانوني"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\complaints.png"
+ },
+ {
+  "at": "2026-10-06T20:25:16.969Z",
+  "journey": "public_desktop_ar",
+  "step": "/blog",
+  "url": "https://quotesdone.com/ar/blog",
+  "status": "PASS",
+  "ms": 573,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 16,
+   "arabicN": 1634,
+   "wordsN": 1775,
+   "latinSample": [
+    "English",
+    "NFPA",
+    "CCTV",
+    "SIRA",
+    "kWp",
+    "kWp.",
+    "MEP",
+    "MDF",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "مدونة QuotesDone — أدلة التوريد والمشتريات في الإمارات"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\blog.png"
+ },
+ {
+  "at": "2026-10-06T20:25:19.080Z",
+  "journey": "public_desktop_ar",
+  "step": "/u/unsubscribe",
+  "url": "https://quotesdone.com/u/unsubscribe",
+  "status": "FAIL",
+  "ms": 1495,
+  "issues": [
+   {
+    "sev": "medium",
+    "what": "1 console error(s): Failed to load resource: the server responded with a status of 400 ()"
+   },
+   {
+    "sev": "medium",
+    "what": "2 failed request(s): 400 GET https://quotesdone.com/u/unsubscribe | 400 DOCUMENT https://quotesdone.com/u/unsubscribe"
+   },
+   {
+    "sev": "high",
+    "what": "Arabic page not RTL (dir=ltr)"
+   },
+   {
+    "sev": "medium",
+    "what": "English on an Arabic page: 100% Latin words, e.g. This unsubscribe link invalid has expired. you keep receiving emails, write from that address and"
+   }
+  ],
+  "facts": {
+   "dir": "ltr",
+   "lang": "",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 19,
+   "arabicN": 0,
+   "wordsN": 19,
+   "latinSample": [
+    "This",
+    "unsubscribe",
+    "link",
+    "invalid",
+    "has",
+    "expired.",
+    "you",
+    "keep",
+    "receiving",
+    "emails,",
+    "write",
+    "from",
+    "that",
+    "address",
+    "and"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "Invalid link"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\desktop_ar\\u_unsubscribe.png"
+ }
+]

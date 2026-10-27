@@ -3067,8 +3067,12 @@ begin
   -- Close, then propose, and repeat until a pass changes nothing. Closing one improvement completes its handoff,
   -- which can finalise the cases another lesson waits on, and frees a capped slot; a single close-then-propose
   -- still left 11 closes and 11 proposals for the next run (measured 30 Sep 2026). The last pass is the proof.
-  -- ponytail: 10 passes and 2 s bound the loop (it runs inside the seat duty tick's 8 s statement, 18 Oct 2026:
-  -- 9.3 s unbounded); what is left finishes on the next run, every step being idempotent.
+  -- ponytail: 50 passes and 30 s bound the loop. It runs only on its own pg_cron job seat_duty:ceo.improvement, under
+  -- that job's 60 s statement_timeout; the 2 s it had was sized for the shared 8 s tick it no longer runs in, and left
+  -- a weekly sweep that never settled (25 Oct 2026: passes 1, stopped_at_budget true). Measured 27 Oct 2026, rolled
+  -- back: 10 passes hit the old bound unsettled in 12.1 s; with 50 it settles on pass 11 and a second run proposes 0.
+  -- What is left past 30 s finishes on the next run,
+  -- every step being idempotent.
   loop
   v_pass := v_pass + 1;
   v_before := n_new + n_done;
@@ -3077,7 +3081,7 @@ begin
   for r in select i.*, coalesce(i.evidence->>'lesson',
                                 (select m.lessons[1] from public.seat_case_memory m where m.id = (i.evidence->>'case_memory_id')::bigint)) as lesson
              from public.ceo_improvement i where i.status in ('open', 'assigned') loop
-    exit when clock_timestamp() - v_t0 > interval '2 seconds';
+    exit when clock_timestamp() - v_t0 > interval '30 seconds';
     if r.source_kind in ('recurring_miss', 'month_miss')
        and (select count(*) filter (where d.status in ('on_track', 'within_tolerance')) = 7 and count(*) = 7
               from public.target_daily_verdict d where d.contract_id = c_id and d.metric_key = r.evidence->>'metric'
@@ -3114,7 +3118,7 @@ begin
            having count(*) filter (where d.status = 'miss') >= 7
               and not (count(*) filter (where d.day > current_date - 7 and d.status in ('on_track', 'within_tolerance')) = 7
                        and count(*) filter (where d.day > current_date - 7) = 7) loop
-    exit when clock_timestamp() - v_t0 > interval '2 seconds';
+    exit when clock_timestamp() - v_t0 > interval '30 seconds';
     continue when exists (select 1 from public.ceo_improvement i where i.source_kind = 'recurring_miss'
                              and i.status in ('open', 'assigned') and i.evidence->>'metric' = r.metric_key);
     v := public.fn_ceo_improvement_open('recurring_miss', r.metric_key || ':' || to_char(current_date, 'YYYY-MM'), r.owner_seat,
@@ -3130,7 +3134,7 @@ begin
             where cardinality(m.lessons) > 0 and coalesce(m.updated_at, m.opened_at) > now() - interval '30 days'
               and exists (select 1 from public.org_role o where o.role_id = m.seat and o.status = 'active')
             group by 1, 2, 3 loop
-    exit when clock_timestamp() - v_t0 > interval '2 seconds';
+    exit when clock_timestamp() - v_t0 > interval '30 seconds';
     v := public.fn_ceo_improvement_open('lesson', 'lesson:' || r.seat || ':' || md5(r.case_kind || '|' || r.lesson), r.seat,
       format('Make this lesson part of the routine, so the same case does not come back: %s', r.lesson),
       jsonb_build_object('case_memory_id', r.last_case, 'case_kind', r.case_kind, 'lesson', r.lesson, 'cases', r.cases));
@@ -3140,7 +3144,7 @@ begin
   -- an open finding seen three or more times is a process fault, not a one-off
   for r in select f.issue_key, f.title, f.seen_count, coalesce(nullif(f.evidence->>'owner_seat', ''), f.raised_by) as seat
              from public.it_engineer_finding f where f.closed_at is null and f.seen_count >= 3 loop
-    exit when clock_timestamp() - v_t0 > interval '2 seconds';
+    exit when clock_timestamp() - v_t0 > interval '30 seconds';
     if exists (select 1 from public.org_role o where o.role_id = r.seat and o.status = 'active') then
       v := public.fn_ceo_improvement_open('recurring_finding', r.issue_key, r.seat,
         format('Remove the cause of a finding seen %s times: %s', r.seen_count, left(r.title, 300)),
@@ -3149,11 +3153,11 @@ begin
     end if;
   end loop;
 
-  exit when n_new + n_done = v_before or v_pass >= 10 or clock_timestamp() - v_t0 > interval '2 seconds';
+  exit when n_new + n_done = v_before or v_pass >= 50 or clock_timestamp() - v_t0 > interval '30 seconds';
   end loop;
 
   return jsonb_build_object('proposed', n_new, 'closed', n_done, 'passes', v_pass,
-    'stopped_at_budget', clock_timestamp() - v_t0 > interval '2 seconds',
+    'stopped_at_budget', clock_timestamp() - v_t0 > interval '30 seconds',
     'open', (select count(*) from public.ceo_improvement where status in ('open', 'assigned')));
 end $function$
 
@@ -4628,17 +4632,20 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_pricing_evidence()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_week date := date_trunc('week', now() at time zone 'Asia/Dubai')::date; v public.ceo_pricing_evidence;
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';   -- fixture run: ONLY demo rows
 begin
-  with q as (select i.id, (select count(*) from public.quotes x where x.inquiry_id = i.id) n from public.inquiries i where i.created_at > now() - interval '90 days'),
-       t as (select * from public.transactions where revealed_at > now() - interval '90 days')
+  with q as (select i.id, (select count(*) from public.quotes x where x.inquiry_id = i.id) n from public.inquiries i
+              where i.created_at > now() - interval '90 days' and public.fn_inquiry_is_demo(i.id) = v_fx),
+       t as (select * from public.transactions where revealed_at > now() - interval '90 days' and public.fn_transaction_is_demo(id) = v_fx)
   select v_week, (select count(*) from q), (select count(*) from q where n > 0), (select coalesce(sum(n), 0) from q), (select count(*) from t),
          round(100.0 * (select count(*) from t) / nullif((select count(*) from q where n > 0), 0), 1),
-         (select round(avg(quote_amount), 2) from public.quotes where created_at > now() - interval '90 days' and quote_amount > 0),
+         (select round(avg(quote_amount), 2) from public.quotes where created_at > now() - interval '90 days' and quote_amount > 0
+             and public.fn_quote_is_demo(id) = v_fx),
          (select round(avg(reveal_fee), 2) from t),
          (select round(100.0 * sum(reveal_fee) / nullif(sum(quote_amount), 0), 2) from t where quote_amount > 0),
          (select count(*) from t where refund_requested_at is not null),
          round(100.0 * (select count(*) from t where refund_requested_at is not null) / nullif((select count(*) from t), 0), 1),
-         (select count(*) from public.leads where registration_paid_at is not null),
+         (select count(*) from public.leads where registration_paid_at is not null and coalesce(is_demo, false) = v_fx),
          (select count(*) from q where n > 0) >= 20, now()
     into v;
   insert into public.ceo_pricing_evidence select v.*
@@ -5822,6 +5829,7 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_revision_applies(p_id bigint, p_result 
 AS $function$
 declare r public.reasoning_held_question; a public.agent_actions; v_choice text; v_f jsonb; v_problem text; v jsonb;
   d public.seat_deliberation; e public.ceo_experiment; v_model text; v_target numeric; v_days int; v_revised jsonb;
+  v_ideas jsonb; v_month date;
 begin
   v_choice := public.fn_ambition_choice(p_id, p_result);
   select * into r from public.reasoning_held_question where id = p_id;
@@ -5866,14 +5874,37 @@ begin
            coalesce(nullif(btrim(v_f->>'hypothesis'), ''), e.hypothesis), e.metric_key, e.metric_definition, e.baseline, e.baseline_note,
            v_target, e.direction, coalesce(nullif(btrim(v_f->>'approach'), ''), e.approach), e.starts_on, v_days));
   elsif a.detail->>'path' = 'marketing_month_plan' then
+    -- THE REVISED LIST REPLACES THE IDEAS (27 Oct 2026): the CEO rejected round 2 of November because the 12 ideas
+    -- were word for word round 1 - a revision could only add a note, never change the plan. A list that cannot be read
+    -- is refused like an unanswered revision (the row is reasoned again); a blank one keeps the current list.
+    v_month := (a.detail->'version'->>'month')::date;
+    if coalesce(btrim(v_f->>'ideas'), '') <> '' then
+      begin
+        v_ideas := (v_f->>'ideas')::jsonb;
+      exception when others then
+        v_ideas := null;
+      end;
+      if v_ideas is null or jsonb_typeof(v_ideas) <> 'array' or jsonb_array_length(v_ideas) = 0
+         or exists (select 1 from jsonb_array_elements(v_ideas) x
+                     where jsonb_typeof(x) <> 'object' or coalesce(x->>'n', '') !~ '^[0-9]{1,2}$'
+                        or coalesce(btrim(x->>'title'), '') = ''
+                        or coalesce(x->>'date', '') !~ ('^' || to_char(v_month, 'YYYY-MM') || '-(0[1-9]|[12][0-9]|3[01])$')) then
+        raise exception using errcode = 'check_violation', message = 'UNREADABLE_IDEAS: the revised idea list must be a JSON array of '
+          || 'objects, each with a number n, a title and a date in ' || to_char(v_month, 'YYYY-MM');
+      end if;
+      perform (x->>'date')::date from jsonb_array_elements(v_ideas) x;   -- 2026-11-31 is refused here (22008), and retried
+    end if;
     -- the revision rides on the plan (the founder sees it with the ideas) and goes to the CEO as the next round
     update public.marketing_month_plan
-       set plan = jsonb_set(plan, '{revisions}', coalesce(plan->'revisions', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+       set content_brief = case when v_ideas is null then content_brief
+                                else coalesce(content_brief, '{}'::jsonb) || jsonb_build_object('videos', jsonb_build_object('count', jsonb_array_length(v_ideas)), 'ideas', v_ideas) end,
+           plan = jsonb_set(case when v_ideas is null then plan else jsonb_set(plan, '{ideas}', v_ideas) end,
+                    '{revisions}', coalesce(plan->'revisions', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
                     'round', a.detail->'round', 'ceo_reasons', left(a.detail->>'reasons', 3000),
                     'revision', left(coalesce(v_f->>'revision', p_result->>'answer'), 6000), 'answers', left(v_f->>'answers', 3000),
-                    'choice', v_choice, 'model', v_model))),
+                    'choice', v_choice, 'model', v_model, 'ideas_revised', v_ideas is not null))),
            updated_at = now()
-     where month = (a.detail->'version'->>'month')::date and status = 'ceo_reviewing';
+     where month = v_month and status = 'ceo_reviewing';
     if not found then   -- the plan left the CEO (withdrawn, replaced by a new draft, sent): nothing to resubmit
       return jsonb_build_object('applied', true, 'already', 'the plan is no longer with the CEO');
     end if;
@@ -5887,6 +5918,48 @@ begin
          detail = detail || jsonb_build_object('awaiting', 'the CEO decides the resubmitted round')
    where id = a.id;
   return jsonb_build_object('applied', true, 'item_key', a.detail->>'item_key', 'choice', v_choice, 'resubmission', v);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_revision_refile()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; h public.reasoning_held_question; v jsonb; v_n int; v_owe bigint;
+  n_refiled int := 0; n_owed int := 0; n_waiting int := 0;
+begin
+  for a in select * from public.agent_actions
+            where kind = 'handoff' and status = 'pending' and detail->>'type' = 'ceo.revise'
+              and not coalesce(evidence, '{}'::jsonb) ? 'resubmitted_at'
+            order by id
+  loop
+    select * into h from public.reasoning_held_question where id = (a.evidence->>'held_id')::bigint;
+    -- a live question is the seat still working; a failed one inside its 7-day window has spent its 3 tries for now
+    if h.id is null or h.status not in ('failed', 'expired') then n_waiting := n_waiting + 1; continue; end if;
+    if coalesce(h.last_attempt_at, h.created_at) > now() - interval '7 days' then n_waiting := n_waiting + 1; continue; end if;
+    v_n := coalesce((a.evidence->>'refiles')::int, 0);
+    if v_n >= 3 then
+      -- four questions of three tries each could not produce a revision: the CEO replaces or withdraws (never the founder)
+      if not coalesce(a.evidence, '{}'::jsonb) ? 'decision_owed' then
+        v_owe := public.fn_ceo_decision_owe(a.detail->>'path', a.detail->>'item_key', a.agent, coalesce((a.detail->>'generation')::int, 1),
+          'the seat''s revision could not be reasoned: 4 questions, 3 tries each (last held question ' || h.id || ', ' || h.status || ')',
+          a.detail->>'reasons', a.detail->'version');
+        update public.agent_actions set evidence = evidence || jsonb_build_object('decision_owed', v_owe, 'decision_owed_at', now()) where id = a.id;
+        n_owed := n_owed + 1;
+      end if;
+      continue;
+    end if;
+    update public.agent_actions set evidence = coalesce(evidence, '{}'::jsonb) || jsonb_build_object('refiles', v_n + 1) where id = a.id;
+    v := public.fn_seat_revises_for_the_ceo(a.id);
+    update public.agent_actions
+       set evidence = evidence || jsonb_build_object('held_id', v->'held_id', 'waiting', v->>'waiting', 'refiled_at', now(),
+                                                     'refiled_after', jsonb_build_object('held_id', h.id, 'status', h.status))
+     where id = a.id;
+    n_refiled := n_refiled + 1;
+  end loop;
+  return jsonb_build_object('refiled', n_refiled, 'decision_owed', n_owed, 'still_with_the_seat', n_waiting);
 end $function$
 
 

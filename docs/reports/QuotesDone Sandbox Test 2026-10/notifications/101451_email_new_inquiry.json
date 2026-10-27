@@ -1,0 +1,11 @@
+{
+ "id": 101451,
+ "type": "new_inquiry",
+ "channel": "email",
+ "status": "suppressed",
+ "to_email": "qd-321d13ae-sup6@example.invalid",
+ "lang": "en",
+ "subject": "New job request on QuotesDone",
+ "body": "A customer is requesting quotes for: Replacement of villa glazing in Umm Al Quwain: 20 double glazed units, 10 tempered panels and 5 laminated panels, aluminium framed, supply and install with removal of old glass. (Umm Al Quwain). The customer asks for: Frame: Aluminium framed; Installation: Yes, install it; Warranty: Yes, at least 2 years; Needed by: By 2026-11-17. Log in to your QuotesDone supplier portal to quote.",
+ "html": null
+}

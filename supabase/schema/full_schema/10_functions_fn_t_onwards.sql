@@ -5391,6 +5391,9 @@ AS $function$
     from cron.job j
    where not exists (select 1 from public.writer_seat o join public.org_role r on r.role_id = o.owner_seat and r.status = 'active'
                       where o.kind = 'cron_job' and o.name = j.jobname)
+     -- a duty's own job (fn_seat_duty_isolate): owned by the duty's seat while that seat is active
+     and not exists (select 1 from public.seat_duty d join public.org_role r on r.role_id = d.owner_seat and r.status = 'active'
+                      where j.jobname = 'seat_duty:' || d.duty)
 $function$
 
 
@@ -9098,6 +9101,23 @@ begin
   return new;
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_invite_reply_reaches_sales_engineer()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  -- never costs the mail it rides on: a failure is a warning, the inbound row is kept
+  begin
+    perform public.fn_marketing_files_invite_reply(new.id);
+  exception when others then
+    raise warning 'trg_invite_reply_reaches_sales_engineer: inbound_messages % not handed to the sales engineer: %', new.id, sqlerrm;
+  end;
+  return null;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.trg_it_judge_routine_change()

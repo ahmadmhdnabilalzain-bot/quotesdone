@@ -3,6 +3,11 @@
 // not tied to a chat session. Code, not a model. Run by .github/workflows/release-train.yml every
 // 10 minutes and on every check completion; one run releases at most ONE pull request.
 //
+// 26 OCT 2026: NOT USABLE WHILE CI IS OFF, AND NEVER IN A CLOUD OR PHONE SESSION. The workflow is dispatch-only
+// (founder: no paid CI until the bugs clear), REQUIRED_CHECKS no longer report, so every PR is refused. It also
+// calls `gh pr`, which is GraphQL, and a cloud session's proxy answers GraphQL with 403. Release by hand over
+// REST: docs/runbooks/release-without-ci.md, sections 1b and 2.
+//
 // Each run:
 //   1. DRIFT FIRST. canonical_routine_manifest.mjs against production; every canonical file whose
 //      body is not deployed is applied (apply_sql.mjs --apply --ddl), then the check runs again.
