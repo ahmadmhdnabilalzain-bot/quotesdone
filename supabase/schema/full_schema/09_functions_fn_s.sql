@@ -12232,9 +12232,13 @@ begin
          -- 19 Oct 2026: a machine sender cannot be answered, and calendar+ is the founder's own approval inbox.
          -- 27 Oct 2026: the machine word is matched anywhere in the sender's LOCAL PART as a whole token (start,
          -- or bounded by hyphen/underscore), not only at its start: security-noreply@ waited 30 days as a customer.
-         -- A dot does not bound it, so a person whose name merely contains the word stays counted.
+         -- A dot does not bound it on the left, so a person whose name merely contains the word stays counted.
+         -- 27 Oct 2026 (review of #1684): the local part is read from the address inside <...> first, so a quoted
+         -- display name that itself looks like a machine address cannot hide the real sender, and the word must
+         -- END at a separator, digit or the end of the local part, so a longer word that merely starts with it is
+         -- a person.
          and coalesce(m.to_email, '') !~* '^calendar\+'
-         and coalesce(substring(m.from_email from '([^<>\s"]+)@'), '') !~* '^(no[-_]?reply|do[-_]?not[-_]?reply|mailer[-_]?daemon)|[-_](no[-_]?reply|do[-_]?not[-_]?reply|mailer[-_]?daemon)([-_+]|$)'
+         and coalesce(substring(m.from_email from '<([^<>\s"]+)@'), substring(m.from_email from '([^<>\s"]+)@'), '') !~* '(^|[-_])(no[-_]?reply|do[-_]?not[-_]?reply|mailer[-_]?daemon)([-_+.0-9]|$)'
          and not public.fn_is_demo_email(m.from_email);
       select percentile_cont(0.5) within group (order by extract(epoch from m.replied_at - m.created_at) / 60) into v_median
         from public.inbound_messages m
