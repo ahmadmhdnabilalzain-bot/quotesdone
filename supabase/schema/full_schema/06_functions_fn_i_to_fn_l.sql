@@ -3197,7 +3197,12 @@ begin
     -- FAILING NOW: the archiver recorded a failure inside the window. failed_count is cumulative
     -- and would be true forever after one bad hour in May, so the test is the TIME of the last
     -- failure, not the count.
-    if v_arch_fail_at is not null and v_arch_fail_at > v_now - c_win then
+    -- 27 Oct 2026: and only while no segment has been archived SINCE that failure. The archiver retries the same
+    -- segment in order, so a later last_archived_time means the failed one went through (27 Oct: failed 23:55:18,
+    -- archived again by 01:23; the alarm fired for the hour between on a healthy chain). A real stop is still caught
+    -- here while the failure is the newest event, and by STALLED below once nothing is archived for an hour.
+    if v_arch_fail_at is not null and v_arch_fail_at > v_now - c_win
+       and (v_arch_at is null or v_arch_fail_at >= v_arch_at) then
       v_key  := 'backup_chain:wal_archiving_failing';
       v_keys := v_keys || v_key;
       v_find := v_find || jsonb_build_object(
