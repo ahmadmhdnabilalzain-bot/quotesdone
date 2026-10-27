@@ -53,6 +53,12 @@ export interface AiReplyRequest {
   // the JSON object aiReply parses: on 27 Oct 2026 the portal's first streamed turns read {"answer":"..."} on screen.
   plainText?: boolean;
   must?: string[];          // text the reply must carry exactly (a case reference, a job number, a link); a draft without one is rewritten
+  // THE ASYNCHRONOUS RE-ASK (_shared/reask.ts, ledger 1339 review, 27 Oct 2026): a turn whose every draft was refused is
+  // asked again a minute later. These make that second ask a different one, not the same call repeated:
+  priorProblems?: string[]; // why the earlier drafts for this same message were refused; named in the prompt
+  otherFamilyFirst?: boolean; // start on another model family (the counterpart of REPLY_MODEL), the route after it
+  effort?: 'low' | 'medium' | 'high'; // reasoning effort asked of the model
+  extraCheck?: (text: string) => string[]; // the caller's own rules (the portal's plain-language gate, English for suppliers)
 }
 /** outage: no call reached a model — every one failed with a network error, 5xx, timeout/deadline or an open circuit
  *  (openrouter_down.ts). Only then may a caller send its code-written fallback (founder_instruction 1339). */
@@ -140,15 +146,19 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   const allowed = figureSource(brief) + '\n' + (r.facts ?? '') + '\n' + aiSystem(r, replyLang);   // the published contact is in the rules
   const known = briefNumbers(allowed);
   const must = (r.must ?? []).map((m) => String(m || '').trim()).filter(Boolean);
-  const check = (t: string) => [...replyProblems(t, known, { allowed, forbidden: r.forbidden }),
+  const check = (t: string) => [...replyProblems(t, known, { allowed, forbidden: r.forbidden }), ...(r.extraCheck?.(t) ?? []),
     ...must.filter((m) => !t.includes(m)).map((m) => 'it leaves out "' + m + '", which must appear exactly as given')];
+  const sentenceCheck = (t: string) => [...replyProblems(t, known, { allowed, forbidden: r.forbidden }), ...(r.extraCheck?.(t) ?? [])];
   // THE WHOLE CONVERSATION (chat_history.ts, 18 Oct 2026): it was cut to the last 8 turns here. Every turn now rides as a
   // real message before this one, cached by the gateway; the facts, which can change per turn, follow the history so the
   // cached prefix (brief, rules, earlier turns) stays byte-identical from one turn to the next.
   const sys = '\n\n' + aiSystem({ ...r, facts: undefined }, replyLang);   // after the brief, which rides as the cached sys_stable block
   const history = fitHistory((r.conversation ?? []).map((t) => ({ role: t.role === 'seat' ? 'assistant' as const : 'user' as const, content: t.text })), r.message);
-  const input = (r.facts ? 'THIS CONVERSATION\'S FACTS:\n' + r.facts.slice(0, 6000) + '\n\n' : '') + 'MESSAGE:\n' + r.message.slice(0, 4000);
-  const opts = { taskClass: REPLY_CLASS, ...(history.length ? { history } : {}), sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable, cacheTtl: '1h' as const, seat: r.seat, max: 900 /* c89dc272: Gemini stopped at 696 of 700, the JSON cut mid-answer; 900 is the gateway cap */, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
+  const prior = (r.priorProblems ?? []).map((p) => String(p || '').trim()).filter(Boolean).slice(0, 12);
+  const input = (r.facts ? 'THIS CONVERSATION\'S FACTS:\n' + r.facts.slice(0, 6000) + '\n\n' : '') + 'MESSAGE:\n' + r.message.slice(0, 4000)
+    + (prior.length ? '\n\nAN EARLIER ANSWER TO THIS MESSAGE COULD NOT BE SENT. It had these problems: ' + [...new Set(prior)].join('; ')
+      + '. Write a complete answer that avoids every one of them and follows every rule in your instructions.' : '');
+  const opts = { taskClass: REPLY_CLASS, ...(r.effort ? { effort: r.effort } : {}), ...(history.length ? { history } : {}), sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable, cacheTtl: '1h' as const, seat: r.seat, max: 900 /* c89dc272: Gemini stopped at 696 of 700, the JSON cut mid-answer; 900 is the gateway cap */, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
   const attempts: string[] = [];
   let calls = 0; let lastProblems: string[] = [];
   const left = () => (r.deadline ?? Infinity) - Date.now();
@@ -173,7 +183,8 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
     else failures.push(res ? String(res.error ?? '') : (left() < MIN_CALL_MS ? 'deadline' : 'threw'));
   };
   // the gateway's route (its own ladder), then a counterpart of another family; MAX_CALLS in all
-  for (const counterpartModel of [null, REPLY_MODEL]) {
+  const rungs = r.otherFamilyFirst ? [REPLY_MODEL, null] : [null, REPLY_MODEL];
+  for (const [rung, counterpartModel] of rungs.entries()) {
     if (calls >= MAX_CALLS) break;
     let res = await call(input, counterpartModel);
     let text = parse(res?.content);
@@ -183,8 +194,8 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
       const bad = check(text);
       if (!bad.length) return done(text, res?.content, res?.model ?? null);
       lastProblems = bad;
-      if (calls >= MAX_CALLS || calls >= (counterpartModel ? MAX_CALLS : 3)) break;
-      res = await call(input + `\n\nYOUR ANSWER WAS:\n${text}\n\nIt has these problems: ${bad.join('; ')}. Write the whole answer again, correcting them.`, null);
+      if (calls >= MAX_CALLS || calls >= (rung > 0 ? MAX_CALLS : 3)) break;   // the first rung leaves a call for the second
+      res = await call(input + `\n\nYOUR ANSWER WAS:\n${text}\n\nIt has these problems: ${bad.join('; ')}. Write the whole answer again, correcting them.`, r.otherFamilyFirst ? counterpartModel : null);
       text = parse(res?.content);
       seen(res, text);
       attempts.push('rewrite:' + (text ? 'ok' : 'failed') + ' [' + bad.join('; ').slice(0, 300) + ']');
@@ -193,7 +204,7 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   // THE MODEL'S OWN SAFE SENTENCES (1339). The model answered but no whole draft passed: its sentences that pass every
   // check are kept and the rest dropped — code removes words, it never adds any. Nothing safe left: no text.
   if (lastDraft) {
-    const kept = salvage(lastDraft, (t) => replyProblems(t, known, { allowed, forbidden: r.forbidden }), check);
+    const kept = salvage(lastDraft, sentenceCheck, check);
     if (kept) { attempts.push('salvaged: the passing sentences of the last draft'); return { ...done(kept, lastContent, lastModel), outage: false }; }
   }
   const outage = !answered && failures.length > 0 && failures.every((e) => isOpenRouterDown(e));
