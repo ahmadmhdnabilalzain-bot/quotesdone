@@ -5829,6 +5829,7 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_revision_applies(p_id bigint, p_result 
 AS $function$
 declare r public.reasoning_held_question; a public.agent_actions; v_choice text; v_f jsonb; v_problem text; v jsonb;
   d public.seat_deliberation; e public.ceo_experiment; v_model text; v_target numeric; v_days int; v_revised jsonb;
+  v_ideas jsonb; v_month date;
 begin
   v_choice := public.fn_ambition_choice(p_id, p_result);
   select * into r from public.reasoning_held_question where id = p_id;
@@ -5873,14 +5874,37 @@ begin
            coalesce(nullif(btrim(v_f->>'hypothesis'), ''), e.hypothesis), e.metric_key, e.metric_definition, e.baseline, e.baseline_note,
            v_target, e.direction, coalesce(nullif(btrim(v_f->>'approach'), ''), e.approach), e.starts_on, v_days));
   elsif a.detail->>'path' = 'marketing_month_plan' then
+    -- THE REVISED LIST REPLACES THE IDEAS (27 Oct 2026): the CEO rejected round 2 of November because the 12 ideas
+    -- were word for word round 1 - a revision could only add a note, never change the plan. A list that cannot be read
+    -- is refused like an unanswered revision (the row is reasoned again); a blank one keeps the current list.
+    v_month := (a.detail->'version'->>'month')::date;
+    if coalesce(btrim(v_f->>'ideas'), '') <> '' then
+      begin
+        v_ideas := (v_f->>'ideas')::jsonb;
+      exception when others then
+        v_ideas := null;
+      end;
+      if v_ideas is null or jsonb_typeof(v_ideas) <> 'array' or jsonb_array_length(v_ideas) = 0
+         or exists (select 1 from jsonb_array_elements(v_ideas) x
+                     where jsonb_typeof(x) <> 'object' or coalesce(x->>'n', '') !~ '^[0-9]{1,2}$'
+                        or coalesce(btrim(x->>'title'), '') = ''
+                        or coalesce(x->>'date', '') !~ ('^' || to_char(v_month, 'YYYY-MM') || '-(0[1-9]|[12][0-9]|3[01])$')) then
+        raise exception using errcode = 'check_violation', message = 'UNREADABLE_IDEAS: the revised idea list must be a JSON array of '
+          || 'objects, each with a number n, a title and a date in ' || to_char(v_month, 'YYYY-MM');
+      end if;
+      perform (x->>'date')::date from jsonb_array_elements(v_ideas) x;   -- 2026-11-31 is refused here (22008), and retried
+    end if;
     -- the revision rides on the plan (the founder sees it with the ideas) and goes to the CEO as the next round
     update public.marketing_month_plan
-       set plan = jsonb_set(plan, '{revisions}', coalesce(plan->'revisions', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+       set content_brief = case when v_ideas is null then content_brief
+                                else coalesce(content_brief, '{}'::jsonb) || jsonb_build_object('videos', jsonb_build_object('count', jsonb_array_length(v_ideas)), 'ideas', v_ideas) end,
+           plan = jsonb_set(case when v_ideas is null then plan else jsonb_set(plan, '{ideas}', v_ideas) end,
+                    '{revisions}', coalesce(plan->'revisions', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
                     'round', a.detail->'round', 'ceo_reasons', left(a.detail->>'reasons', 3000),
                     'revision', left(coalesce(v_f->>'revision', p_result->>'answer'), 6000), 'answers', left(v_f->>'answers', 3000),
-                    'choice', v_choice, 'model', v_model))),
+                    'choice', v_choice, 'model', v_model, 'ideas_revised', v_ideas is not null))),
            updated_at = now()
-     where month = (a.detail->'version'->>'month')::date and status = 'ceo_reviewing';
+     where month = v_month and status = 'ceo_reviewing';
     if not found then   -- the plan left the CEO (withdrawn, replaced by a new draft, sent): nothing to resubmit
       return jsonb_build_object('applied', true, 'already', 'the plan is no longer with the CEO');
     end if;
@@ -5894,6 +5918,48 @@ begin
          detail = detail || jsonb_build_object('awaiting', 'the CEO decides the resubmitted round')
    where id = a.id;
   return jsonb_build_object('applied', true, 'item_key', a.detail->>'item_key', 'choice', v_choice, 'resubmission', v);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_revision_refile()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; h public.reasoning_held_question; v jsonb; v_n int; v_owe bigint;
+  n_refiled int := 0; n_owed int := 0; n_waiting int := 0;
+begin
+  for a in select * from public.agent_actions
+            where kind = 'handoff' and status = 'pending' and detail->>'type' = 'ceo.revise'
+              and not coalesce(evidence, '{}'::jsonb) ? 'resubmitted_at'
+            order by id
+  loop
+    select * into h from public.reasoning_held_question where id = (a.evidence->>'held_id')::bigint;
+    -- a live question is the seat still working; a failed one inside its 7-day window has spent its 3 tries for now
+    if h.id is null or h.status not in ('failed', 'expired') then n_waiting := n_waiting + 1; continue; end if;
+    if coalesce(h.last_attempt_at, h.created_at) > now() - interval '7 days' then n_waiting := n_waiting + 1; continue; end if;
+    v_n := coalesce((a.evidence->>'refiles')::int, 0);
+    if v_n >= 3 then
+      -- four questions of three tries each could not produce a revision: the CEO replaces or withdraws (never the founder)
+      if not coalesce(a.evidence, '{}'::jsonb) ? 'decision_owed' then
+        v_owe := public.fn_ceo_decision_owe(a.detail->>'path', a.detail->>'item_key', a.agent, coalesce((a.detail->>'generation')::int, 1),
+          'the seat''s revision could not be reasoned: 4 questions, 3 tries each (last held question ' || h.id || ', ' || h.status || ')',
+          a.detail->>'reasons', a.detail->'version');
+        update public.agent_actions set evidence = evidence || jsonb_build_object('decision_owed', v_owe, 'decision_owed_at', now()) where id = a.id;
+        n_owed := n_owed + 1;
+      end if;
+      continue;
+    end if;
+    update public.agent_actions set evidence = coalesce(evidence, '{}'::jsonb) || jsonb_build_object('refiles', v_n + 1) where id = a.id;
+    v := public.fn_seat_revises_for_the_ceo(a.id);
+    update public.agent_actions
+       set evidence = evidence || jsonb_build_object('held_id', v->'held_id', 'waiting', v->>'waiting', 'refiled_at', now(),
+                                                     'refiled_after', jsonb_build_object('held_id', h.id, 'status', h.status))
+     where id = a.id;
+    n_refiled := n_refiled + 1;
+  end loop;
+  return jsonb_build_object('refiled', n_refiled, 'decision_owed', n_owed, 'still_with_the_seat', n_waiting);
 end $function$
 
 
