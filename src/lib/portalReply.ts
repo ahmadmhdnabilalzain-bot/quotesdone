@@ -83,3 +83,36 @@ export function answerAfter(turns: { role?: string; content?: string }[] | null 
   const a = turns.slice(i + 1).find((x) => x?.role === 'assistant' && String(x?.content || '').trim());
   return a ? String(a.content).trim() : '';
 }
+
+// THE TURN STILL OWED THE MODEL'S ANSWER (27 Oct 2026; supabase/functions/_shared/reask.ts). With the model up and every
+// draft refused, the server files the turn for the asynchronous re-ask and says done.pending. The panel then shows
+// "still working on your answer" — UI state, never a turn of the conversation and never sent back as history — and polls
+// assist_history until the re-asked reply fills that turn (answerRightAfter), or shows that the turn is with the team.
+// prevented by: scripts/checks/a_refused_turn_is_asked_again_never_left_silent.test.mjs
+/** The server filed this turn for the re-ask: show the pending state and wait for its answer. */
+export function pendingDue(r: ReadReply): boolean {
+  return !String(r.reply || '').trim() && r.done?.pending === true;
+}
+/** The reply stored DIRECTLY under the customer's message (before their next message), '' when none yet. A pending turn
+ *  is answered in its own row, so a reply to a LATER message is never taken for it (answerAfter would). */
+export function answerRightAfter(turns: { role?: string; content?: string }[] | null | undefined, question: string): string {
+  if (!Array.isArray(turns)) return '';
+  for (let k = turns.length - 1; k >= 0; k--) {
+    if (turns[k]?.role !== 'user' || String(turns[k]?.content || '').trim() !== question.trim()) continue;
+    const n = turns[k + 1];
+    return n && n.role === 'assistant' ? String(n.content || '').trim() : '';
+  }
+  return '';
+}
+export type Waiting = { id?: number; message: string; state: 'working' | 'with_team'; since?: string };
+/** assist_history's waiting list (newest first), read defensively. */
+export function waitingOf(j: unknown): Waiting[] {
+  const w = (j as { waiting?: unknown } | null)?.waiting;
+  return Array.isArray(w)
+    ? w.filter((x) => x && typeof x.message === 'string' && x.message.trim())
+      .map((x) => ({ id: x.id, message: String(x.message), state: x.state === 'with_team' ? 'with_team' as const : 'working' as const, since: x.since }))
+    : [];
+}
+/** How often, and for how long, the panel asks while a turn is pending (the re-ask runs each minute, three times). */
+export const PENDING_EVERY_MS = 10_000;
+export const PENDING_FOR_MS = 20 * 60_000;

@@ -1,0 +1,4 @@
+A PROBE (pure, no DDL, ends in raise exception CHK<<...>>). Run after its .sql in the SAME transaction (begin; <the .sql>;
+<this probe>) through node scripts/qsql.mjs, so the raise rolls everything back; or alone after the .sql is applied. Never
+applied on its own; kept as the proof named in the .sql's header. This note stays for the life of the file. Seats:
+customer_support and sales_engineer.
