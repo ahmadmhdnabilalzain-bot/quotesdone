@@ -300,7 +300,14 @@ test('a parked handoff closes from the playbook, and an unknown class still refu
        where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.detail->>'from' = 'it_engineer'
          and a.status in ('pending','failed')
          and (f.issue_key is null or f.closed_at is not null
-              or f.started_at > (a.detail->>'occurrence_started_at')::timestamptz);
+              or f.started_at > (a.detail->>'occurrence_started_at')::timestamptz)
+         -- 27 Oct 2026: and only a handoff that BECAME an incident. fn_it_learning_from_playbook returns null for
+         -- one with no it_incident row ("No incident row -- the handoff never became a new bug. Nothing to learn,
+         -- and nothing is wrong."; the row is opened by fn_ceo_it_escalation_decide on escalation), and reverify
+         -- simply closes it. Counting those made it learned 42 / covered 108 on 27 Oct: the 66 extra were cleared,
+         -- never-escalated handoffs piled up while the alert tick was rolled back every tick (#1613), not a gate
+         -- that failed to open. Measured the same day: cleared + covered + with an incident = 42 = learned.
+         and exists (select 1 from public.it_incident i where i.handoff_id = a.id);
       v := public.fn_it_loop_reverify();
       select count(*),
              count(*) filter (where (public.fn_it_playbook_for(a.detail->>'issue_key')).failure_class is not null)
@@ -312,6 +319,7 @@ test('a parked handoff closes from the playbook, and an unknown class still refu
         'parked_after', v_after, 'parked_after_but_covered', v_parked_covered,
         'covered_by_playbook', v_known, 'not_covered', v_unknown,
         'closed', (v->>'closed')::int, 'learned_from_playbook', (v->>'learned_from_playbook')::int,
+        'left_for_next_tick', coalesce((v->>'left_for_next_tick')::int, 0),
         'known_class', (public.fn_it_playbook_for('duty:heartbeat:ZZ DEMO probe step')).failure_class,
         'narrower_class_without_a_cause', (public.fn_it_playbook_for('duty:demo:window:ZZ DEMO')).failure_class,
         'unknown_class_opened', (public.fn_it_playbook_for('duty:zz_demo_no_such_class:ZZ DEMO')).failure_class);
@@ -321,8 +329,11 @@ test('a parked handoff closes from the playbook, and an unknown class still refu
   assert.equal(r.narrower_class_without_a_cause, null,
     'a key whose own class has no written cause borrowed a broader class: the gate opened on a guess');
   assert.equal(r.known_class, 'heartbeat_step', 'the playbook no longer covers duty:heartbeat:');
+  // STRICT, ALWAYS (release review of #1618, 27 Oct): one pass must learn every covered handoff and leave none parked.
+  // A pass that stops early (#1613's budget, left_for_next_tick > 0) is red here until the walk reaches every
+  // handoff in one pass - never a weaker "no more than covered".
   assert.equal(r.learned_from_playbook, r.covered_by_playbook,
-    'a cleared handoff whose class the playbook covers was not filled from it');
+    `a cleared handoff whose class the playbook covers was not filled from it (left for next tick: ${r.left_for_next_tick})`);
   assert.equal(r.parked_after_but_covered, 0, 'a handoff the playbook covers is still parked after the pass');
   // Deliberately NO assertion that either count is above zero. Both are a snapshot of production's
   // backlog: a floor on them would turn a drained queue -- the thing this build is for -- into a red

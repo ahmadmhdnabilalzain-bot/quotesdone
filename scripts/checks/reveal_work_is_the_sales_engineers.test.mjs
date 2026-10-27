@@ -22,6 +22,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -57,7 +58,10 @@ test('production, aborted: the sales_engineer asks the 7-day question and suppor
   const { sql } = await import('../lib/db.mjs');
   const replay = pending(FILE) ? read(FILE) : '';
   let o;
-  try { await replaySql(replay + '\n' + PROBE, { retry: false }); }
+  // Ruling 1199 (#1479, demo_activity_files_no_seat_task_or_handoff.sql) files no handoff for a ZZ DEMO subject;
+  // this probe proves the delivery handoff on one, so it switches that guard off for its own rolled-back
+  // transaction (scripts/lib/seat_work_fixtures.mjs).
+  try { await replaySql(seatWorkFixtures() + '\n;\n' + replay + '\n' + PROBE, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 800));

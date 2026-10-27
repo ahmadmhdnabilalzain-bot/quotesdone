@@ -35,6 +35,7 @@ import { join, relative } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FNS = join(REPO, 'supabase', 'functions');
@@ -381,7 +382,11 @@ end $probe$;`;
 test('production: every send comes back and the asking seat closes or acts (aborted transaction)', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
   let message = '';
-  try { await replaySql(PROBE); message = 'the probe returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
+  // Ruling 1199 (#1479, demo_activity_files_no_seat_task_or_handoff.sql) files no handoff for a ZZ DEMO subject, so
+  // a_demo_delivery_request_is_captured_not_refused.sql (#1479) answers 'demo_captured' with no handoff. This probe
+  // proves the delivery loop's handoffs on ZZ DEMO fixtures, so it switches that guard off for its own rolled-back
+  // transaction (scripts/lib/seat_work_fixtures.mjs).
+  try { await replaySql(seatWorkFixtures() + '\n;\n' + PROBE); message = 'the probe returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, message.slice(0, 2000));
   const res = JSON.parse(chk[1].replace(/\\"/g, '"'));

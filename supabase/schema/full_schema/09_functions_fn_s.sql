@@ -5311,6 +5311,9 @@ declare
   v_id text := split_part(coalesce(p_subject_id, ''), ':', 1);
   v_ref jsonb := case when jsonb_typeof(p_ref) = 'object' then p_ref else '{}'::jsonb end;
 begin
+  -- a rolled-back probe proving a seat loop on ZZ DEMO fixtures (never set outside one)
+  if coalesce(current_setting('qd.probe_files_demo_handoff', true), '') = 'on' then return false; end if;
+
   if coalesce(p_text, '') ~* '(^|[^a-z])zz\s*demo' then return true; end if;
 
   -- the subject a handoff names, folded into the reference set
