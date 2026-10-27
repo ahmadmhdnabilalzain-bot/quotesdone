@@ -1,9 +1,10 @@
 // THE ROUTINE JUDGEMENTS KEEP THEIR CALLER'S DEADLINE (it_engineer, 27 Oct 2026).
 // Measured on production: the detached itlater run of 22:01:12Z claimed five supplier_trade_words rows at 22:01:27 and
 // judged them one after another at ~60 s each (two model calls of 19-31 s, ai_cost_log); its 120 s cap fired at 22:03:12
-// with the drain still going, and rows 334 and 346 were never settled. With a deadline, the drain claims at most
-// JUDGE_CLAIM rows at a time, judges them together, starts a claim only while a whole row still fits before
-// deadline - JUDGE_RESERVE_MS, and never lets a model call run past that line. Without one it is unchanged.
+// with the drain still going, and rows 334 and 346 were never settled. With a deadline, the drain claims one row at a
+// time (JUDGE_CLAIM = 1: beside heldReplay's two, more concurrent calls failed every one at 20:30Z and 21:31Z, review of
+// #1693), starts a claim only while a whole row still fits before deadline - JUDGE_RESERVE_MS, and never lets a model
+// call run past that line. Without one it is unchanged.
 //   deno test --no-lock supabase/functions/_shared/routine_judgements_keep_a_deadline.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import type { GateAnswer } from './llm_hold.ts';
@@ -47,12 +48,13 @@ function harness(n: number, callMs: number) {
   return { deps, now, claims, calls, left: () => queue.length, maxInFlight: () => maxInFlight, advance: (ms: number) => { t += ms; } };
 }
 
-Deno.test('with a deadline: claims of at most JUDGE_CLAIM, judged together, and no claim without a whole row of time', async () => {
+Deno.test('with a deadline: one row a claim, one judgement in flight, and no claim without a whole row of time', async () => {
   const h = harness(5, 30_000);
   const deadline = 120_000;                            // the detached run's DETACHED_MS, started at t = 0
   await drain(h.deps, 5, null, { deadline, now: h.now });
-  assert(h.claims.every((k) => k <= JUDGE_CLAIM), `a claim asked for more than ${JUDGE_CLAIM}: ${h.claims}`);
-  assert(h.maxInFlight() > 1, 'the rows of one claim were judged one after another');
+  assertEquals(JUDGE_CLAIM, 1, 'a claim of more than one row puts more think() calls beside the replay\'s two');
+  assert(h.claims.length > 0 && h.claims.every((k) => k === 1), `a claim asked for more than one row: ${h.claims}`);
+  assertEquals(h.maxInFlight(), 1, 'more than one judgement was in flight at once');
   // every model call started before the line, and none was allowed to run past it
   const line = deadline - JUDGE_RESERVE_MS;
   for (const c of h.calls) {

@@ -172,11 +172,14 @@ export async function judge(deps: ThinkDeps, row: Row, taxonomy: () => Promise<{
 // 21.2 and 19.3 s). Rows 344, 327 and 341 were decided at 22:02:30, 22:03:31 and 22:04:29, about 60 s apiece; the run's
 // 120 s cap fired at 22:03:12 (duty:detached_itlater:itlater, seen 53) and every step after this one went with it.
 // Rows 334 and 346 were never settled. With a `deadline`, a claim of at most JUDGE_CLAIM rows starts only while a whole
-// row (JUDGE_ROW_MS) still fits before deadline - JUDGE_RESERVE_MS, the rows of a claim are judged together, and
-// withDeadline cuts any model call at that line, so the drain returns before its caller's cap with time to record.
+// row (JUDGE_ROW_MS) still fits before deadline - JUDGE_RESERVE_MS, and withDeadline cuts any model call at that line,
+// so the drain returns before its caller's cap with time to record.
+// JUDGE_CLAIM IS 1 (review of #1693): this run and heldReplay are kicked seconds apart, and the gateway failed every
+// call when five ran at once (20:30Z, 5 of 5) and when four did (21:31Z, 4 of 4); 22:01Z, one judgement beside the
+// replay's two, worked. A claim of 3 would put five think() calls in flight again.
 // Without a deadline (email_triage, the tests) it behaves exactly as before.
 // prevented by: _shared/routine_judgements_keep_a_deadline.test.ts
-export const JUDGE_CLAIM = 3;
+export const JUDGE_CLAIM = 1;
 export const JUDGE_ROW_MS = 65_000;
 export const JUDGE_RESERVE_MS = 25_000;
 
