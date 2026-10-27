@@ -11300,7 +11300,7 @@ CREATE OR REPLACE FUNCTION public.fn_support_email_is_a_customer_contact(p_from 
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select coalesce(p_from, '') !~* '^[^@]*(mailer-daemon|postmaster|no-?reply|do-?not-?reply|bounces?)[^@]*@'
+  select not public.fn_is_machine_sender(p_from)
      and coalesce(p_to, '') !~* '^(expenses@|calendar\+|approve\+)'
      and coalesce(p_owner_role, '') <> 'accountant'
      and lower(btrim(coalesce(p_from, ''))) <> all (
@@ -12238,7 +12238,7 @@ begin
          -- END at a separator, digit or the end of the local part, so a longer word that merely starts with it is
          -- a person.
          and coalesce(m.to_email, '') !~* '^calendar\+'
-         and coalesce(substring(m.from_email from '<([^<>\s"]+)@'), substring(m.from_email from '([^<>\s"]+)@'), '') !~* '(^|[-_])(no[-_]?reply|do[-_]?not[-_]?reply|mailer[-_]?daemon)([-_+.0-9]|$)'
+         and not public.fn_is_machine_sender(m.from_email)
          and not public.fn_is_demo_email(m.from_email);
       select percentile_cont(0.5) within group (order by extract(epoch from m.replied_at - m.created_at) / 60) into v_median
         from public.inbound_messages m

@@ -1169,6 +1169,22 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_is_machine_sender(p_from text)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE PARALLEL SAFE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(l.v ~ '(^|[-_=])(no[-_.]?reply|do[-_.]?not[-_.]?reply|mailer[-_]?daemon)([-_+.0-9]|$)'
+               or l.v ~ '^postmaster(\+.*)?$'
+               or l.v ~ '(^|=)bounces?([+=].*|-[0-9].*)?$'
+               or l.v ~ '-bounces$',
+           false)
+    from (select lower(coalesce(substring(s.v from '<([^<>\s"]+)@'), substring(s.v from '([^<>\s"]+)@'))) as v
+            from (select regexp_replace(coalesce(p_from, ''), '"[^"]*"', '', 'g') as v) s) l
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_is_matchable(p_verified boolean, p_banned boolean, p_matching_blocked boolean, p_approval_status text, p_permanently_closed boolean, p_chat_strikes integer)
  RETURNS boolean
  LANGUAGE sql
