@@ -59,6 +59,8 @@ export const config = {
     '/supplier-agreement/:path*', '/(ar|en)/supplier-agreement/:path*',
     // Superseded Customer Terms versions (/terms/v9 from 6 Oct 2026), for the same reason.
     '/terms/:path*', '/(ar|en)/terms/:path*',
+    // Superseded Privacy, Refund and Disclaimer versions (/privacy/v1.6 etc. from 19 Oct 2026), for the same reason.
+    '/privacy/:path*', '/(ar|en)/privacy/:path*', '/refund-policy/:path*', '/(ar|en)/refund-policy/:path*', '/disclaimer/:path*', '/(ar|en)/disclaimer/:path*',
     '/blog/:path*', '/(ar|en)/blog/:path*'
   ]
 };

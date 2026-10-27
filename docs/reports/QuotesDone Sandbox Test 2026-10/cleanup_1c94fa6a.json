@@ -1,0 +1,20 @@
+{
+ "verify": {
+  "tables_scanned": 713,
+  "tables_in_registry": 713,
+  "found": [
+   {
+    "table": "routine_change_log",
+    "rows": 2
+   }
+  ],
+  "unverified": [],
+  "storage": [],
+  "auth_users": 0,
+  "dropbox": {
+   "listed": 0,
+   "records": 0
+  },
+  "clean": false
+ }
+}

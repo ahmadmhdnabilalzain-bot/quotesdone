@@ -1,0 +1,84 @@
+{
+ "fact_sheet": {
+  "element": "Glass & Glazing: double glazed units, tempered glass and laminated glass",
+  "lines": "Line 1: double glazed units x 20, 1200 x 1500 mm each; Line 2: tempered glass x 10, 900 x 2100 mm each; Line 3: laminated glass x 5, 3000 x 2400 mm each",
+  "purpose": "Line 1 is for the bedrooms, line 2 for the main entrance and balconies, line 3 for the living-room facade",
+  "location": "Villa in Umm Al Quwain, ground and first floor, clear road access, no crane needed",
+  "area": "About 450 m2 built-up, 6 rooms",
+  "scope": "Supply and install, including removal and disposal of the existing items",
+  "new_or_replace": "Replacement of existing items in an occupied villa",
+  "timeline": "Within 1 month",
+  "warranty": "At least 2 years",
+  "supply_phase": "Three-phase 400 V supply",
+  "surface_prep": "Previously painted walls in fair condition, minor crack repair",
+  "stops": "4 stops (G+3)",
+  "capacity": "8 persons, 630 kg",
+  "design": "Design is ready",
+  "material": "Standard commercial grade, Guardian",
+  "leak": "No leak at the moment, this is preventive",
+  "finish": "Laminate / melamine",
+  "system_type": "Central chilled-water system: ducted concealed fan coil units with air handling units",
+  "fixtures": "4 bathrooms and 1 kitchen"
+ },
+ "intake": {
+  "intakeId": "e2ab56fa-e970-49a1-b017-57bd3d29894c",
+  "status": "ready",
+  "readiness": 88,
+  "missing": [],
+  "turns": 6,
+  "log": [
+   {
+    "turn": 1,
+    "answer": "Glass & Glazing: double glazed units, tempered glass and laminated glass. Line 1: double glazed units x 20, 1200 x 1500 mm each; Line 2: tempered glass x 10, 900 x 2100 mm each; Line 3: laminated glass x 5, 3000 x 2400 mm each. Villa in Umm Al Quwain, ground and first floor, clear road access, no crane needed.",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 2,
+    "answer": "element: Glass & Glazing: double glazed units, tempered glass and laminated glass. dimensions_qty: Line 1: double glazed units x 20, 1200 x 1500 mm each; Line 2: tempered glass x 10, 900 x 2100 mm each; Line 3: laminated glass x 5, 3000 x 2400 mm each. glazing_performance: Standard commercial grade, Guardian.",
+    "asked_key": "scope",
+    "missing_keys": [
+     "scope"
+    ],
+    "status": "needs_info"
+   },
+   {
+    "turn": 3,
+    "answer": "scope: Supply and install, including removal and disposal of the existing items.",
+    "asked_key": "material.frame",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 4,
+    "answer": "Aluminium framed",
+    "asked_key": "warranty",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 5,
+    "answer": "yes_24",
+    "asked_key": "required_by",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 6,
+    "answer": "m1",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "ready"
+   }
+  ],
+  "sent": 200
+ },
+ "inquiry": {
+  "id": "0d0e4683-9115-46e3-963f-5fcfe3ae5041",
+  "status": "sent",
+  "trades": null,
+  "lang": "en",
+  "emirate": "Umm Al Quwain"
+ }
+}

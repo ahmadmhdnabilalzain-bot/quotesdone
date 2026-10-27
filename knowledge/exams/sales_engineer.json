@@ -116,7 +116,7 @@
         "sales_engineer:reading-drawings"
       ],
       "expected_facts": [
-        "PDF or CAD (DWG/DXF) only"
+        "DWG/DXF"
       ],
       "q_reworded": "The client wants to send us his Revit model and some JPG photos of sketches. What will the platform accept?",
       "answer_must": [

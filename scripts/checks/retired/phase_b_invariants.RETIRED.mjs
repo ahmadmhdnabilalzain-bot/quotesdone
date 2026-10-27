@@ -12,6 +12,7 @@
 // disagree about what passed.  It adds three things the SQL function cannot check for itself:
 // the package checksums, that the committed migration still regenerates byte-identically from
 // the package, and that Phase B activated nothing.
+import { SUPABASE_TOKEN_FILE } from '../../lib/supabase_token.mjs';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -22,7 +23,7 @@ import { createHash } from 'node:crypto';
 // scoped, not weakened: the registry it verifies is written only by an applied migration, and
 // the next session that runs the sweep catches any drift.  The skip happens before the database
 // module is imported so a missing token cannot throw on the way in.
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 if (!(process.env.SUPABASE_ACCESS_TOKEN
       || (existsSync(LOCAL_TOKEN) && readFileSync(LOCAL_TOKEN, 'utf8').trim()))) {
   console.log('SKIPPED: no SUPABASE_ACCESS_TOKEN and no local access token, so the Phase B '

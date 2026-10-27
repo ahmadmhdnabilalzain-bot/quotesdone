@@ -42,9 +42,10 @@
 // prove the guard against the one identity it is least meant to stop. `set local role` makes the
 // session those roles for the duration of the aborted transaction, which is the closest thing to
 // an Edge Function holding the service key that can be done from here.
+import { SUPABASE_TOKEN_FILE } from '../../lib/supabase_token.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 if (!(process.env.SUPABASE_ACCESS_TOKEN
       || (existsSync(LOCAL_TOKEN) && readFileSync(LOCAL_TOKEN, 'utf8').trim()))) {
   console.log('SKIPPED: no management token, so production cannot be read. Not asserting anything.');

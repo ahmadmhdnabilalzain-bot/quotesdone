@@ -117,9 +117,11 @@ select v.type, v.from_seat, v.to_seat, v.meaning,
     ('it.finding',               'it_engineer',      'customer_support', 'The IT engineer found a fault in something customer support owns: apply your remedy or say you have none. The IT engineer re-verifies and closes.'),
     ('it.finding',               'it_engineer',      'ceo',              'The IT engineer found a fault in something only the CEO owns: decide the remedy or say there is none. The IT engineer re-verifies and closes.')
   ) v(type, from_seat, to_seat, meaning)
-on conflict (type, from_seat, to_seat) do update
-  set meaning = excluded.meaning, handler = excluded.handler, reply_within = excluded.reply_within,
-      originator_closes = excluded.originator_closes, owner_file = excluded.owner_file;
+-- DO NOTHING, never DO UPDATE (27 Oct 2026): re-applying this file for #1587 rewrote reply_within and originator_closes
+-- on 15 kinds that the_ceo_decides_every_sales_engineer_report_and_every_sender_closes_its_handoff.sql had since set
+-- (restored by the_handoff_reply_windows_come_back_after_the_loop_file_was_reapplied.sql). A re-apply registers a
+-- missing kind; it never overwrites a later file's values.
+on conflict (type, from_seat, to_seat) do nothing;
 
 drop table if exists public.seat_handoff_window;
 
@@ -144,8 +146,11 @@ returns bigint language plpgsql security definer set search_path to 'public', 'p
 declare v_id bigint; v_key text := p_type || ':' || p_subject_id; v_known boolean;
 begin
   if coalesce(btrim(p_subject_id), '') = '' then raise exception 'a handoff must name its subject'; end if;
-  -- ruling 1199: a handoff raised from a demo row is not filed at all
-  if public.fn_seat_work_is_demo(p_payload::text, p_payload, p_subject_table, p_subject_id) then return null; end if;
+  -- ruling 1199: a handoff raised from a demo row is not filed at all. One exception: a probe that sets
+  -- qd.probe_files_demo_handoff for its own transaction and always rolls back. The IT duty checks walk a
+  -- ZZ DEMO handoff end to end; without it fn_it_loop_open handed fn_it_incident_open a NULL id (19 Oct 2026).
+  if public.fn_seat_work_is_demo(p_payload::text, p_payload, p_subject_table, p_subject_id)
+     and coalesce(current_setting('qd.probe_files_demo_handoff', true), '') <> 'on' then return null; end if;
   v_known := exists (select 1 from public.seat_handoff_kind k
                       where k.type = p_type and k.from_seat = p_from and k.to_seat = p_to);
 
@@ -234,8 +239,14 @@ revoke execute on function public.fn_delivery_result_acts(bigint) from public, a
 
 -- The receiving seat answers with the handler its row names. An answer on a conversation its row
 -- marks originator-closed is stored as the reply (detail.replied_at) instead of completing the handoff.
+-- 1013 (19 Oct 2026): the receiver's answer cites the note it was handed (fn_handoff_note_citation, defined in
+-- every_handoff_note_states_context_decision_open_asks_and_deadline_and_its_receiver_cites_it.sql).
 create or replace function public.fn_seat_handoff_act(p_id bigint)
-returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+ returns jsonb
+ language plpgsql
+ security definer
+ set search_path to 'public', 'pg_temp'
+as $function$
 declare a public.agent_actions; k public.seat_handoff_kind; v jsonb;
 begin
   select * into a from public.agent_actions where id = p_id and kind = 'handoff' for update;
@@ -249,6 +260,10 @@ begin
   end if;
   execute format('select public.%I($1)', k.handler) into v using p_id;
   if v is null then raise exception '% answered nothing for handoff %', k.handler, p_id; end if;
+  -- 1013: the receiver's answer cites the note it was handed.
+  if jsonb_typeof(v) = 'object' and not v ? 'cites_note' then
+    v := v || jsonb_build_object('cites_note', public.fn_handoff_note_citation(p_id));
+  end if;
 
   if v ? 'waiting' or k.originator_closes then
     update public.agent_actions
@@ -261,7 +276,10 @@ begin
   end if;
   perform public.fn_seat_handoff_complete(p_id, v);
   return v;
-end $fn$;
+end $function$;
+
+-- CREATE OR REPLACE of an existing routine keeps its ACL (production 19 Oct: postgres + service_role only);
+-- the revoke is repeated so the file stands alone and a future DROP/CREATE cannot reopen it.
 revoke execute on function public.fn_seat_handoff_act(bigint) from public, anon, authenticated;
 
 -- ── 5. EACH SEAT'S ANSWER TO THE IT ENGINEER ──────────────────────────────────────────────────────
@@ -632,7 +650,10 @@ revoke execute on function public.fn_it_loop_tick() from public, anon, authentic
 insert into public.founder_mail_policy (kind, allowed_to_email, owner_role, reason)
 values ('it_new_bug', true, 'it_engineer',
         'Founder, 14 Sep 2026: "for new bugs i just need to be notified on email". Sent by customer_support only after the owning seat and the CEO could not fix it; deduped per issue for 24 hours, repeats folded into the IT daily line.')
-on conflict (kind) do update set allowed_to_email = excluded.allowed_to_email, owner_role = excluded.owner_role, reason = excluded.reason;
+-- DO NOTHING, never DO UPDATE (27 Oct 2026): founder instruction 642 (the_founder_hears_from_it_once_a_day.sql) turned
+-- this kind OFF on 22 Sep. Re-applying this file for #1587 on 27 Oct turned it back on through this upsert
+-- (the_new_bug_email_stays_off_when_the_loop_file_is_reapplied.sql). A re-apply registers the kind; it never re-opens it.
+on conflict (kind) do nothing;
 
 -- ── 13. THE FOUNDER HANDOVER EMAIL BODY IS RETIRED WITH THE PATH THAT SENT IT ──────────────────────
 -- Its only caller was sections C and D of fn_it_engineer_alert_tick, replaced by fn_it_loop_tick.

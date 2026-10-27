@@ -34,6 +34,10 @@ const AI_AR = /(?:ال)?ذكاء\s+(?:ال)?اصطناعي/g;
 const INTERNAL = /circuit_open|openrouter|supabase|service_role|app_secrets|\bfn_[a-z0-9_]{3,}\b|\bai_gateway\b|\bedge function\b|\bSQLSTATE\b|\b(?:Type|Reference|Syntax)Error\b|\bat [\w$.]+ \([^)]*:\d+:\d+\)|\bHTTP [45]\d\d\b|\bjwt\b|\bnull pointer\b|\bundefined is not\b|\bstack trace\b/i;
 // Headings and phrases that exist only inside our system prompts.
 const PROMPT = /SHARED FACTS|CUSTOMER-SIDE FACTS|SUPPLIER-SIDE FACTS|AUDIENCE RULES|FORMAT RULES|GENERAL RULES|COMPANY BLOCK|FAQ CONTEXT|PRICE GUIDANCE:|system prompt|my instructions (?:are|say)|I (?:was|am) instructed to/i;
+// THE MODEL'S OWN REASONING IS NEVER A REPLY (live conversation suite run a8ad5ed7, 19 Oct 2026: 2 of 30 Arabic
+// conversations showed the customer a "<reasoning>...</reasoning>" block in English). Caught in the first sentence it
+// opens, before anything is shown, so the attempt is written again.
+const REASONING = /<\/?(?:reasoning|thinking|think|scratchpad)\b[^>]*>/i;
 
 
 // INTERNAL NUMBER (19 Oct 2026; second review of #1549). Two rules, judged per sentence:
@@ -88,7 +92,7 @@ export function replyViolations(text: string): Violation[] {
   if (LICENCE.test(s)) v.push('licence');
   if (new RegExp(AI_EN.source, 'i').test(s) || new RegExp(AI_AR.source).test(s)) v.push('ai_word');
   if (INTERNAL.test(s)) v.push('internal');
-  if (PROMPT.test(s)) v.push('prompt');
+  if (PROMPT.test(s) || REASONING.test(s)) v.push('prompt');
   if (hasInternalNumber(s)) v.push('internal_number');
   return v;
 }

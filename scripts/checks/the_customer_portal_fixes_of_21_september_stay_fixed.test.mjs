@@ -50,11 +50,12 @@ test('item 14: a wrong URL gets a bilingual page inside the site chrome, not the
   assert.match(s, /dir=\{/, 'the page no longer sets its direction');
 });
 
-test('#761 a customer who revealed a supplier sees "Reveal" lit, from the reveal itself', () => {
+test('#761 a customer who revealed a supplier sees "Reveal" lit, from the reveal itself', async () => {
   // rfqStageIdx reaches its last stage only when a supplier is HIRED, so a customer who had just paid
   // to reveal was shown the reveal step greyed out.
-  const s = code(readFileSync(join(SRC, 'components', 'me', 'CustomerPortal.tsx'), 'utf8'));
-  assert.match(s, /function Journey\(\{[^}]*\brevealed\b/, 'Journey no longer takes the reveal as its own fact');
-  assert.match(s, /const step = revealed \? JOURNEY\.length - 1/, 'the last node is no longer lit from the reveal');
-  assert.match(s, /<Journey [^>]*revealed=\{/, 'the caller no longer passes the reveal to Journey');
+  // 5 Oct 2026: the rail is now the request tracker (requestTracker.ts); executed, not grepped.
+  const { trackerOf } = await import('../../src/components/me/requestTracker.ts');
+  const tr = trackerOf({ status: 'quoted' }, [{ revealed: true }, {}], 'en');
+  assert.equal(tr.stages.find((x) => x.key === 'revealed').done, true, 'the reveal no longer lights its own stage');
+  assert.equal(tr.stages.find((x) => x.key === 'done').done, false, 'a reveal is being claimed as a hire');
 });

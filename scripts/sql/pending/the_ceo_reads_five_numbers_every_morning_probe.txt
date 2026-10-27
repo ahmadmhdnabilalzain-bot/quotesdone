@@ -1,0 +1,4 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run after
+the_ceo_reads_five_numbers_every_morning.sql is applied (or with it in the same rolled-back query: measured 13 Oct 2026 with both files concatenated
+through scripts/qsql.mjs -> CHK<<PROBE OK requests 0->1 (demo excluded); handoff to ceo, read; same handoff on
+re-run; 0 to the founder>>, and nothing survived). This note therefore stays for the life of the file. Seat: ceo.

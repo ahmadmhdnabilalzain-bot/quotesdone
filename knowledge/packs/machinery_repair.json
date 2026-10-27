@@ -53,6 +53,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "machinery_repair:product-distinctions",
+      "topic": "Machinery repair: maintenance strategies and repair services",
+      "topic_ar": "إصلاح الآلات: استراتيجيات الصيانة وخدمات الإصلاح",
+      "kind": "product_distinctions",
+      "body_en": "Maintenance strategies: reactive (repair after failure, highest downtime), preventive (time- or hours-based servicing to the maker's schedule), predictive or condition-based (vibration analysis, thermography, oil analysis, ultrasound and motor-current analysis to detect bearing wear, misalignment, imbalance and lubrication problems before failure), and reliability-centred programmes. Repair services: on-site breakdown repair, workshop overhaul of pumps, gearboxes, compressors, fans and motors (rewinding, bearing replacement, balancing), machining and fabrication of replacement parts, laser alignment and dynamic balancing, hydraulic and pneumatic system repair, PLC and drive fault-finding, welding repair and metal stitching of castings, and planned shutdown maintenance. Offers differ on the technicians' competence with the specific equipment and brand, access to genuine or equivalent parts, response time commitments, workshop capability (lathes, balancing machines, test benches), reports with root cause and measurements, and warranty on the repair. Annual maintenance contracts (AMCs) fix visit frequency, scope, response times, and whether parts are included.",
+      "body_ar": "استراتيجيات الصيانة: التفاعلية (الإصلاح بعد العطل، أعلى توقف)، والوقائية (الخدمة حسب الزمن أو الساعات وفق جدول الصانع)، والتنبؤية أو المبنية على الحالة (تحليل الاهتزاز، التصوير الحراري، تحليل الزيت، الموجات فوق الصوتية، وتحليل تيار المحرك لاكتشاف تآكل المحامل وعدم المحاذاة وعدم الاتزان ومشاكل التزييت قبل العطل)، وبرامج الصيانة المرتكزة على الموثوقية. وخدمات الإصلاح: إصلاح الأعطال في الموقع، وعمرة المضخات وصناديق التروس والضواغط والمراوح والمحركات في الورشة (إعادة اللف، استبدال المحامل، الموازنة)، وتشغيل وتصنيع قطع بديلة، والمحاذاة بالليزر والموازنة الديناميكية، وإصلاح الأنظمة الهيدروليكية والهوائية، وتشخيص أعطال وحدات التحكم والمحركات، وإصلاح اللحام وخياطة المسبوكات المعدنية، وصيانة التوقفات المخططة. وتختلف العروض في كفاءة الفنيين مع المعدة والعلامة المحددة، والوصول إلى قطع أصلية أو مكافئة، والتزامات زمن الاستجابة، وقدرات الورشة (المخارط، آلات الموازنة، منصات الاختبار)، والتقارير مع السبب الجذري والقياسات، وضمان الإصلاح. وتحدد عقود الصيانة السنوية تكرار الزيارات والنطاق وأزمنة الاستجابة وهل القطع مشمولة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Predictive_maintenance"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: predictive versus time-based preventive maintenance; vibration analysis for condition monitoring -> confirmed."
+    },
+    {
+      "id": "machinery_repair:lead-times-and-quoting",
+      "topic": "Industrial machinery repair & maintenance - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "إصلاح وصيانة الآلات الصناعية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Breakdown response: hours to a day; workshop overhauls 1-4 weeks depending on parts; AMCs start within weeks. A provider needs the equipment make, model and duty, the fault or service history, site access and shutdown windows, and the scope. A quote states the work scope, labour and parts, response times, workshop process, testing and reports, warranty, AMC visit schedule and validity.",
+      "body_ar": "الاستجابة للأعطال: ساعات إلى يوم؛ والعمرات في الورشة 1-4 أسابيع حسب القطع؛ وعقود الصيانة السنوية تبدأ خلال أسابيع. ويحتاج المزود ماركة المعدة وموديلها وتشغيلها، والعطل أو سجل الخدمة، والوصول إلى الموقع ونوافذ التوقف، والنطاق. ويذكر العرض نطاق العمل والعمالة والقطع وأزمنة الاستجابة وطريقة العمل في الورشة والاختبارات والتقارير والضمان وجدول زيارات العقد السنوي والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -78,6 +108,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither explains motor rewind pricing (by kW/frame, poles, voltage, extras); missing: rewind pricing entry). machinery_repair:motor-rewind-scope-and-price-drivers was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from machinery_repair.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Is vibration monitoring worth adding to our pump maintenance contract?",
+      "q_ar": "هل يستاهل نضيف مراقبة الاهتزاز لعقد صيانة المضخات؟",
+      "expected_entry_ids": [
+        "machinery_repair:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "machinery_repair:motor-rewind-scope-and-price-drivers"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "machinery_repair:product-distinctions"
+      ],
+      "stored_not_served": [
+        "machinery_repair:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Predictive_maintenance"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

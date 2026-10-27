@@ -2104,6 +2104,38 @@
       ],
       "confidence": "medium",
       "as_of": "2026-10-19"
+    },
+    {
+      "id": "accountant:card-payment-adds-nothing-stripe-cost",
+      "topic": "Paying the reveal by card adds nothing; QuotesDone bears Stripe's 2.9% plus AED 1",
+      "topic_ar": "الدفع بالبطاقة لا يضيف شيئًا؛ QuotesDone تتحمل رسوم Stripe البالغة 2.9% زائد درهم واحد",
+      "kind": "decision_rule",
+      "area": "company",
+      "body_en": "Nothing is added for paying by card: the customer pays exactly the 3% reveal fee (Cabinet Resolution 66/2023 Art. 5(3)). QuotesDone bears Stripe's fee as its own cost: 2.9% plus AED 1 for domestic cards, 3.9% plus AED 1 for other cards, booked separately from revenue.",
+      "body_ar": "لا يُضاف شيء عند الدفع بالبطاقة: يدفع العميل رسوم الكشف البالغة 3% فقط (قرار مجلس الوزراء 66/2023 المادة 5(3)). تتحمل QuotesDone رسوم Stripe كتكلفة عليها: 2.9% زائد درهم واحد للبطاقات المحلية، و3.9% زائد درهم واحد للبطاقات الأخرى، وتُقيّد منفصلة عن الإيراد.",
+      "sources": [
+        "internal:memory/the-only-hard-rules-and-operating-doctrine.md",
+        "internal:plan/plan.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-10-19",
+      "source_note": "Focused entry split from a multi-fact entry the model-on exam missed (ledger 1084, run b2f80d4d)."
+    },
+    {
+      "id": "accountant:reveal-invoice-in-the-customers-portal",
+      "topic": "The reveal's Stripe invoice stays openable in the customer's portal",
+      "topic_ar": "فاتورة Stripe الخاصة بالكشف متاحة دائمًا في بوابة العميل",
+      "kind": "decision_rule",
+      "area": "company",
+      "body_en": "Yes: after every reveal the accountant makes the Stripe invoice PDF visible in the customer's portal, in the right tab, openable at any time later (instruction 85). The accountant also files it in the books and backs it up to Dropbox (instruction 28).",
+      "body_ar": "نعم: بعد كل كشف يجعل المحاسب ملف فاتورة Stripe ظاهرًا في بوابة العميل في التبويب الصحيح، ويمكن فتحه في أي وقت لاحقًا (التعليمة 85). ويقيّدها المحاسب أيضًا في الدفاتر وينسخها احتياطيًا إلى Dropbox (التعليمة 28).",
+      "sources": [
+        "internal:founder_instruction/85",
+        "internal:founder_instruction/28"
+      ],
+      "confidence": "high",
+      "as_of": "2026-10-19",
+      "source_note": "Focused entry split from a multi-fact entry the model-on exam missed (ledger 1084, run b2f80d4d)."
     }
   ],
   "eval": [

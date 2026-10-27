@@ -991,12 +991,11 @@
         "marketing:company-pricing-message"
       ],
       "expected_facts": [
-        "within 5 working days",
-        "refunded automatically"
+        "within 5 working days"
       ],
       "q_reworded": "A buyer asks what happens if the supplier he unlocked never calls back.",
       "answer_must": [
-        "If the supplier does not respond within 5 working days the buyer is refunded automatically",
+        "If the supplier does not respond within 5 working days the buyer's reveal fee is refunded in full, on the CEO seat's approval",
         "The supplier owes the non-response charge"
       ]
     },
@@ -1048,7 +1047,7 @@
       ],
       "q_reworded": "Google is showing our company name inconsistently. What markup do we add to the homepage to fix who we are?",
       "answer_must": [
-        "Use Organization schema in JSON-LD with the legal name exactly as licensed and the brand name",
+        "Use Organization schema in JSON-LD with legalName exactly as on the DET licence (quotesdone technologies / كوتس دن للتكنولوجيا) and the brand name QuotesDone",
         "List all official profiles in sameAs",
         "Validate it with Google Rich Results Test / schema validator"
       ]

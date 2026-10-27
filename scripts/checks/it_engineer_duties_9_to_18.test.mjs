@@ -18,7 +18,7 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 
 async function probe(body) {
-  try { await sql(`do $p$ ${body} $p$;`); }
+  try { await sql(`select set_config('qd.probe_files_demo_handoff', 'on', true); do $p$ ${body} $p$;`); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (m) return JSON.parse(m[1].replace(/\\"/g, '"'));
@@ -132,15 +132,17 @@ test('OTP override: only the ceo or founder lifts a block, it sticks, and a newl
   assert.deepEqual(r, { refused_other_seat: true, lifted_by_ceo: true, allowed_sticks: true, lifted_by_expansion: true });
 });
 
-test('dependencies: a high advisory can reach the founder; a moderate one never does', { skip: SKIP }, async () => {
+// Ruling 1254 (founder_instruction 1254, 19 Oct 2026): nothing technical is the founder's to decide, so no
+// advisory emails him, high/critical included. A high one goes to the ceo as a security finding.
+test('dependencies: a high advisory goes to the ceo as security, a moderate one is internal; neither reaches the founder', { skip: SKIP }, async () => {
   const r = await probe(`begin
     perform public.fn_it_dependency_ingest('{"advisories":[{"ecosystem":"app","package":"zz-high","severity":"high","id":"ZZ-1","title":"ZZ DEMO"},
                                                         {"ecosystem":"app","package":"zz-mod","severity":"moderate","id":"ZZ-2","title":"ZZ DEMO"}]}');
     raise exception 'CHK<<%>>', json_build_object(
-      'high', (select jsonb_build_object('blast', blast, 'quiet', evidence->>'no_founder_email') from public.it_engineer_finding where issue_key = 'duty:dependency:app:zz-high:ZZ-1'),
+      'high', (select jsonb_build_object('blast', blast, 'quiet', evidence->>'no_founder_email', 'owner', evidence->>'owner_seat') from public.it_engineer_finding where issue_key = 'duty:dependency:app:zz-high:ZZ-1'),
       'moderate', (select jsonb_build_object('blast', blast, 'quiet', evidence->>'no_founder_email') from public.it_engineer_finding where issue_key = 'duty:dependency:app:zz-mod:ZZ-2'));
   end`);
-  assert.deepEqual(r.high, { blast: 'security', quiet: 'false' });
+  assert.deepEqual(r.high, { blast: 'security', quiet: 'true', owner: 'ceo' });
   assert.deepEqual(r.moderate, { blast: 'internal', quiet: 'true' });
 });
 

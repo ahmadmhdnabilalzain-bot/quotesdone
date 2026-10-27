@@ -55,6 +55,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "laundry_equipment:product-distinctions",
+      "topic": "Commercial laundry equipment: machine types and how a laundry is sized",
+      "topic_ar": "معدات المغاسل التجارية: أنواع الآلات وكيفية تحديد حجم المغسلة",
+      "kind": "product_distinctions",
+      "body_en": "Commercial laundries are built from washer-extractors (by dry-load capacity, typically 10-120 kg; hard-mount machines extract at lower G-force and need a foundation, soft-mount suspended machines reach higher G-force, leaving less moisture and saving drying energy), tunnel washers (continuous batch systems for high-volume hotel and hospital laundries), tumble dryers (gas, electric or steam, by capacity matched to the washers, with moisture sensors), flatwork ironers (roll diameter and width decide output for sheets and table linen), feeders and folders, finishing equipment (form finishers, presses and steam tables for garments), dry-cleaning machines (solvent or wet-cleaning systems), and chemical dosing pumps, plus laundry trolleys, carts and sorting systems. Sizing starts from the daily kilograms of linen and garments, the shifts, and the mix (flatwork versus towels versus garments), and checks utilities: power, gas or steam, hot water, water hardness and drainage. Hygiene laundries for healthcare need barrier washers that separate soiled and clean sides and validated thermal disinfection. Offers differ on make and capacity, G-force, controls and programmable cycles, energy and water use per kg, installation, training, spare parts and service.",
+      "body_ar": "تُبنى المغاسل التجارية من غسالات عصارة (حسب سعة الحمولة الجافة عادة 10-120 كغ؛ الآلات المثبتة صلباً تعصر بقوة طرد أقل وتحتاج قاعدة، والآلات المعلقة تصل إلى قوة طرد أعلى فتترك رطوبة أقل وتوفر طاقة التجفيف)، وغسالات النفق (أنظمة دفعات مستمرة لمغاسل الفنادق والمستشفيات عالية الحجم)، ومجففات دوارة (غاز أو كهرباء أو بخار، بسعة تطابق الغسالات، مع حساسات رطوبة)، ومكاوي المفروشات المسطحة (قطر الأسطوانة وعرضها يحددان الإنتاج للشراشف ومفارش الطاولات)، والمغذيات والطاويات، ومعدات التشطيب (مشكلات الملابس، المكابس، طاولات البخار)، وآلات التنظيف الجاف (بالمذيبات أو أنظمة الغسيل الرطب)، ومضخات جرعات الكيماويات، إضافة إلى عربات الغسيل وأنظمة الفرز. ويبدأ تحديد الحجم من كيلوغرامات المفروشات والملابس اليومية، والورديات، والخليط (مفروشات مسطحة مقابل مناشف مقابل ملابس)، ويتحقق من المرافق: الكهرباء، والغاز أو البخار، والماء الساخن، وعسر الماء، والصرف. وتحتاج مغاسل الرعاية الصحية الصحية غسالات حاجزة تفصل الجهة المتسخة عن النظيفة وتطهيراً حرارياً مُصادقاً عليه. وتختلف العروض في الماركة والسعة وقوة الطرد ووحدات التحكم والدورات القابلة للبرمجة واستهلاك الطاقة والماء لكل كيلوغرام والتركيب والتدريب وقطع الغيار والخدمة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Laundry"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: commercial laundries outside the home, mangles and ironing -> confirmed (washer-extractor and ironer detail not on the page)."
+    },
+    {
+      "id": "laundry_equipment:lead-times-and-quoting",
+      "topic": "Commercial laundry equipment - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "معدات المغاسل التجارية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock machines: 1-4 weeks; imported large machines and tunnel systems 8-16 weeks plus installation. A supplier needs daily kg by item type, operating hours, utilities, space and floor, and hygiene needs. A quote states make, model, capacity, G-force, utility consumption, installation and utilities scope, training, warranty, spares and service, delivery and validity.",
+      "body_ar": "الآلات المتوفرة: 1-4 أسابيع؛ والآلات الكبيرة المستوردة وأنظمة النفق 8-16 أسبوعاً إضافة إلى التركيب. ويحتاج المورد الكيلوغرامات اليومية حسب نوع الصنف، وساعات التشغيل، والمرافق، والمساحة والأرضية، واحتياجات النظافة الصحية. ويذكر العرض الماركة والموديل والسعة وقوة الطرد واستهلاك المرافق ونطاق التركيب والمرافق والتدريب والضمان وقطع الغيار والخدمة والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry gives sizing of washer-extractor capacity per room count or kg of linen per day). laundry_equipment:hotel-laundry-capacity-sizing was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from laundry_equipment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Hard-mount or soft-mount washer-extractor for an upper-floor hotel laundry?",
+      "q_ar": "غسالة عصارة مثبتة صلباً ولا معلقة لمغسلة فندق في دور علوي؟",
+      "expected_entry_ids": [
+        "laundry_equipment:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "laundry_equipment:hotel-laundry-capacity-sizing"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "laundry_equipment:product-distinctions"
+      ],
+      "stored_not_served": [
+        "laundry_equipment:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Laundry"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

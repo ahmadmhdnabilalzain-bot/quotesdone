@@ -7,9 +7,11 @@
 //   docs/knowledge/certification/V3_CERTIFICATION_RESULTS_BY_CATEGORY.csv   (aggregate)
 // No answer key, no gold answers, no certification question text is read or emitted.
 import { readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+const REPO = fileURLToPath(new URL('../../', import.meta.url));
 
-const C = 'C:/Users/Opera/quotesdone/docs/knowledge/certification/';
-const OUT = 'C:/Users/Opera/quotesdone/docs/knowledge/remediation/V3_REMEDIATION_REQUIREMENT_MATRIX.csv';
+const C = REPO + 'docs/knowledge/certification/';
+const OUT = REPO + 'docs/knowledge/remediation/V3_REMEDIATION_REQUIREMENT_MATRIX.csv';
 
 const csv = (p) => {
   const lines = readFileSync(C + p, 'utf8').trim().split('\n');

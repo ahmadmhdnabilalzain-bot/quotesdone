@@ -1,0 +1,11 @@
+{
+ "id": 93103,
+ "type": "new_inquiry",
+ "channel": "email",
+ "status": "suppressed",
+ "to_email": "qd-4cf353a2-sup9@example.invalid",
+ "lang": "en",
+ "subject": "New job request on QuotesDone",
+ "body": "A customer is requesting quotes for work that matches your business QD-157709. Sign in to your QuotesDone supplier portal to quote.",
+ "html": null
+}

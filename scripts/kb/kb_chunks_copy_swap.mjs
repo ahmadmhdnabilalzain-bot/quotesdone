@@ -298,8 +298,8 @@ async function snapshot() {
       jsonb_array_length(r) r, jsonb_array_length(ml) ml,
       (select count(*)::int from jsonb_array_elements(r) x where x->>'source' = '${T}') r_kb,
       (select count(*)::int from jsonb_array_elements(ml) x where x->>'source' = '${T}') ml_kb
-    from (select q.seat, public.fn_reason_retrieve(q.seat, q.embedding) r,
-                 public.fn_reason_retrieve_ml(q.seat, q.embedding, q.embedding_ml) ml
+    from (select q.seat, public.fn_reason_retrieve(q.seat, q.embedding, p_audience => 'visitor') r,
+                 public.fn_reason_retrieve_ml(q.seat, q.embedding, q.embedding_ml, p_audience => 'visitor') ml
             from (select distinct on (seat) seat, embedding, embedding_ml from public.seat_knowledge_eval_question
                   where embedding is not null order by seat, id) q) s`);
   return Object.fromEntries(rows.map((x) => [x.seat, x]));
