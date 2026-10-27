@@ -103,7 +103,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Apply at merge, never before](apply-at-merge-never-before.md) — 28 Sep: pre-merge applies turned the drift check red on every PR for 3 h
 - [Two applied PRs deadlock each other's DB check](two-applied-prs-deadlock-each-others-database-check.md) — serialize applies: apply, merge, then next; if stuck, merge one branch into the other
 - [Close a finding by its exact key, never by title match](close-a-finding-by-its-exact-key-never-by-title-match.md) — 15 Sep: an ilike sweep closed the unfixed Stripe TEST-webhook finding
-- [A check that replays SQL can commit it](a-check-that-replays-sql-can-commit-it.md) — 30 Sep: a file's own COMMIT made a "rolled-back" replay live
+- [A check that replays SQL can commit it](a-check-that-replays-sql-can-commit-it.md) — 30 Sep: a file's own COMMIT made a "rolled-back" replay live; 27 Oct: a probe that returned PROBE OK instead of raising made #1684 live before merge, so every probe raises
 - [Only the release operator labels review-approved](only-the-release-operator-labels.md) — 30 Sep: authors self-labelled, the train merged before review
 - [Never push to a green labelled PR](never-push-to-a-green-labelled-pr.md) — 30 Sep: the train merged the old head; unlabel → push → relabel
 - [Never merge on a red check](never-merge-on-a-red-check.md) — 22 Sep: `...; gh pr merge` merged #817 red; gate with [ -z "$FAILURES" ] &&
