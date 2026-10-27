@@ -1,4 +1,0 @@
-Committed, not applied: the release operator applies it at merge (node scripts/apply_sql.mjs <file> --apply --ddl), then
-deletes this note and appends the file to the END of MANIFEST.txt in the same commit. Measured before apply, 27 Oct 2026,
-in rolled-back transactions on htdblwldjkcgjvmqkbeh with this file: one reverify call closed 21 (0 with the live body),
-escalated 5, 1,008 ms; the accountant loop fixtures closed their own newest handoff. Seat: it_engineer.
