@@ -40,16 +40,23 @@ test('production: every active seat has a verdict; a ZZ DEMO seat with overdue w
   try {
     await sql(`do $p$
       declare v1 text; v2 text; v3 text; n_seats int; n_rows int;
+        -- Since #1578 (every_handoff_note_states_context_decision_open_asks_and_deadline_and_its_receiver_cites_it.sql,
+        -- founder ledger 1013) a handoff row states context, decision, open asks and deadline, or the a01 trigger and
+        -- the CHECK refuse it; zz_demo.kind is no registered type the trigger can build a note from, so the probe's
+        -- hand-made rows carry their own note (deadline past for the overdue one).
+        v_note jsonb := jsonb_build_object('context', 'ZZ DEMO probe: work waiting on the demo seat',
+          'decision', 'the probe handed it to zz_demo_seat', 'open_asks', jsonb_build_array('ZZ DEMO act on it'),
+          'deadline', now() - interval '1 day', 'known', '{}'::jsonb, 'tried', '{}'::jsonb, 'needed', '{}'::jsonb, 'evidence', '[]'::jsonb);
       begin
         select count(*) into n_seats from public.org_agents where active;
         select count(*) into n_rows from public.fn_seat_liveness();
         insert into public.org_agents (agent_key, kind, active) values ('zz_demo_seat', 'brain', true);
         select verdict into v1 from public.fn_seat_liveness(true) where seat = 'zz_demo_seat';
         insert into public.agent_actions (agent, kind, status, title, detail, target_id, created_at)
-        values ('zz_demo_seat', 'handoff', 'pending', 'ZZ DEMO probe', '{"type":"zz_demo.kind"}', 'zz_demo:1', now() - interval '2 days');
+        values ('zz_demo_seat', 'handoff', 'pending', 'ZZ DEMO probe', jsonb_build_object('type', 'zz_demo.kind', 'summary', v_note), 'zz_demo:1', now() - interval '2 days');
         select verdict into v2 from public.fn_seat_liveness(true) where seat = 'zz_demo_seat';
         insert into public.agent_actions (agent, kind, status, title, detail, target_id, created_at, decided_at, decided_by)
-        values ('zz_demo_seat', 'handoff', 'done', 'ZZ DEMO probe', '{"type":"zz_demo.kind"}', 'zz_demo:2', now(), now(), 'zz_demo_seat');
+        values ('zz_demo_seat', 'handoff', 'done', 'ZZ DEMO probe', jsonb_build_object('type', 'zz_demo.kind', 'summary', v_note), 'zz_demo:2', now(), now(), 'zz_demo_seat');
         select verdict into v3 from public.fn_seat_liveness(true) where seat = 'zz_demo_seat';
         raise exception 'CHK<<%>>', json_build_object('seats', n_seats, 'rows', n_rows, 'idle', v1, 'stopped', v2, 'behind', v3);
       end $p$;`);

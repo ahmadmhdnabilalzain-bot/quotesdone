@@ -828,6 +828,42 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_answers_reveal_invoice(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  a public.agent_actions;
+  c record;
+  v_ar boolean;
+  v_nid bigint;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found or a.detail->>'type' is distinct from 'invoice.issued' then
+    raise exception 'fn_sales_engineer_answers_reveal_invoice: % is not an invoice.issued handoff', p_id;
+  end if;
+  select id, email into c from public.customers where id = (a.detail->>'customer_id')::uuid;
+  if c.email is null or c.email !~ '@' then
+    return jsonb_build_object('told', false, 'reason', 'no email address on file for the customer');
+  end if;
+  v_ar := public.fn_customer_notice_locale((a.detail->>'inquiry_id')::uuid, c.id) = 'ar';
+  insert into public.notifications (type, to_email, to_role, inquiry_id, quote_id, subject, body, lang)
+  values ('invoice_ready', c.email, 'customer',
+          (a.detail->>'inquiry_id')::uuid, (a.detail->>'quote_id')::uuid,
+          case when v_ar then 'فاتورتكم جاهزة' else 'Your invoice is ready' end,
+          case when v_ar
+            then 'أصبحت فاتورة رسوم الكشف التي سددتموها متاحة في حسابكم على QuotesDone، ويمكنكم فتحها في أي وقت من زر «الفاتورة» على العرض الذي كشفتموه، أو من «المستندات» ضمن «الفواتير».'
+            else 'The invoice for the reveal fee you paid is now in your QuotesDone account. Open it any time from the "Invoice (PDF)" button on the quote you revealed, or under Invoices in Documents.'
+          end,
+          case when v_ar then 'ar' else 'en' end)
+  returning id into v_nid;
+  return jsonb_build_object('told', true, 'notification_id', v_nid, 'language', case when v_ar then 'ar' else 'en' end);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_attaches_delivery_result(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -2600,27 +2636,18 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_tells_customer_invoice_ready
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare
-  c record;
-  v_ar boolean;
 begin
-  if new.kind <> 'handoff' or coalesce(new.detail->>'subject', '') <> 'reveal_invoice' then return new; end if;
-  select id, email into c from public.customers where id = (new.detail->>'customer_id')::uuid;
-  if c.email is not null and c.email ~ '@' then
-    v_ar := public.fn_customer_notice_locale((new.detail->>'inquiry_id')::uuid, c.id) = 'ar';
-    insert into public.notifications (type, to_email, to_role, inquiry_id, quote_id, subject, body, lang)
-    values ('invoice_ready', c.email, 'customer',
-            (new.detail->>'inquiry_id')::uuid, (new.detail->>'quote_id')::uuid,
-            case when v_ar then 'فاتورتكم جاهزة' else 'Your invoice is ready' end,
-            case when v_ar
-              then 'أصبحت فاتورة رسوم الكشف التي سددتموها متاحة في حسابكم على QuotesDone، ويمكنكم فتحها في أي وقت من زر «الفاتورة» على العرض الذي كشفتموه، أو من «المستندات» ضمن «الفواتير».'
-              else 'The invoice for the reveal fee you paid is now in your QuotesDone account. Open it any time from the "Invoice (PDF)" button on the quote you revealed, or under Invoices in Documents.'
-            end,
-            case when v_ar then 'ar' else 'en' end);
-  end if;
-  update public.agent_actions
-     set status = 'done', decided_at = now(), decided_by = 'sales_engineer'
-   where id = new.id;
+  if new.kind <> 'handoff' or new.detail->>'type' is distinct from 'invoice.issued' then return new; end if;
+  -- A failed answer is recorded on the row and in the stream; it never rolls back the filed invoice.
+  begin
+    perform public.fn_seat_handoff_act(new.id);
+  exception when others then
+    update public.agent_actions
+       set status = 'failed', decided_at = now(),
+           detail = detail || jsonb_build_object('error', left(sqlerrm, 500))
+     where id = new.id;
+    perform public.fn_seat_handoff_event(new.id, 'failed');
+  end;
   return new;
 end
 $function$
@@ -2907,13 +2934,13 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_writes(p_msg_type text, p_ro
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_locale text;
+declare v_locale text; v_h bigint; v_ar boolean;
 begin
   -- A supplier: always English (fn_registered_locale answers 'en'). A customer: fn_customer_notice_locale
   -- (the inquiry's language, else the registered one, else English).
   v_locale := case when p_role = 'customer' then public.fn_customer_notice_locale(p_inquiry, p_customer)
                    else coalesce(public.fn_registered_locale(p_role, p_customer, p_lead, p_email), 'en') end;
-  return public.fn_seat_handoff('sales_engineer', 'customer_support', 'delivery.request', 'notifications',
+  v_h := public.fn_seat_handoff('sales_engineer', 'customer_support', 'delivery.request', 'notifications',
     coalesce(p_subject_id, p_msg_type || ':' || coalesce(p_quote::text, p_inquiry::text, p_lead::text, p_customer::text, 'x')),
     coalesce(p_extra, '{}'::jsonb) || jsonb_build_object(
       'msg_type', p_msg_type, 'recipient_role', p_role, 'to_email', p_email, 'cc', to_jsonb(coalesce(p_cc, '{}'::text[])),
@@ -2923,6 +2950,18 @@ begin
       'subject_ar', p_subject_ar,
       'body_ar', case when p_body_ar is null then null else p_body_ar || E'\n\nمهندس المبيعات في QuotesDone' end,
       'watch_until', p_watch_until));
+
+  -- demo work (ruling 1199): no handoff was filed; the message is written for the record and captured, never sent
+  if v_h is null and coalesce(p_email, '') ~ '@' then
+    v_ar := v_locale = 'ar' and p_body_ar is not null;
+    insert into public.notifications (type, kind, to_email, cc_emails, to_role, lead_id, inquiry_id, quote_id, channel,
+                                      subject, body, status, last_error, requested_by)
+    values (p_msg_type, p_msg_type, p_email, coalesce(p_cc, '{}'::text[]), p_role, p_lead, p_inquiry, p_quote, 'email',
+            case when v_ar then coalesce(p_subject_ar, p_subject_en) else p_subject_en end,
+            case when v_ar then p_body_ar || E'\n\nمهندس المبيعات في QuotesDone' else p_body_en || E'\n\nQuotesDone sales engineer' end,
+            'suppressed', 'demo work (ruling 1199): written for the record, never sent', 'sales_engineer');
+  end if;
+  return v_h;
 end $function$
 
 
@@ -4983,7 +5022,9 @@ begin
     jsonb_build_object('path', a.detail->>'path', 'item_key', a.detail->>'item_key', 'round', a.detail->'round',
                        'ceo_reasons', a.detail->>'reasons', 'submission', a.detail->'version'),
     jsonb_build_object('handoff_id', p_id, 'path', a.detail->>'path', 'item_key', a.detail->>'item_key'),
-    'ceo_revision:' || (a.detail->>'item_key') || ':g' || coalesce(a.detail->>'generation', '1') || ':r' || coalesce(a.detail->>'round', '1'));
+    'ceo_revision:' || (a.detail->>'item_key') || ':g' || coalesce(a.detail->>'generation', '1') || ':r' || coalesce(a.detail->>'round', '1')
+      -- a re-filed question (fn_ceo_revision_refile, after the last one failed) is a new question, not the closed one
+      || coalesce(':t' || (a.evidence->>'refiles'), ''));
   v_fields := jsonb_build_array(
     jsonb_build_object('key', 'revision', 'question', 'the revised submission, complete, as the CEO should now review it'),
     jsonb_build_object('key', 'answers', 'question', 'for each of the CEO''s reasons: what changed, or the evidence that answers it'));
@@ -4993,6 +5034,13 @@ begin
       jsonb_build_object('key', 'approach', 'question', 'the revised approach (blank keeps it)'),
       jsonb_build_object('key', 'target', 'question', 'the revised target, a number (blank keeps it)'),
       jsonb_build_object('key', 'days', 'question', 'the revised run length in days, 7 to 365 (blank keeps it)'));
+  end if;
+  if a.detail->>'path' = 'marketing_month_plan' then
+    -- the CEO reviews the idea list itself, so a revision that changes the plan must carry the changed list
+    v_fields := v_fields || jsonb_build_array(jsonb_build_object('key', 'ideas', 'question',
+      'the complete revised idea list as a JSON array, one object per video with n (1, 2, ...), date (YYYY-MM-DD, a UAE '
+      || 'working day in the plan''s month), idea_key, title, hook, film_plan, cta, audience (supplier, customer or both) '
+      || 'and why; every change the CEO asked for must be in it. Blank keeps the current list.'));
   end if;
   perform public.fn_ambition_ask_fields(v_held, v_fields);
   return jsonb_build_object('waiting', a.agent || ' revises and resubmits ' || coalesce(a.detail->>'item_key', '?') || ' (held question ' || v_held || ')',
@@ -5263,6 +5311,9 @@ declare
   v_id text := split_part(coalesce(p_subject_id, ''), ':', 1);
   v_ref jsonb := case when jsonb_typeof(p_ref) = 'object' then p_ref else '{}'::jsonb end;
 begin
+  -- a rolled-back probe proving a seat loop on ZZ DEMO fixtures (never set outside one)
+  if coalesce(current_setting('qd.probe_files_demo_handoff', true), '') = 'on' then return false; end if;
+
   if coalesce(p_text, '') ~* '(^|[^a-z])zz\s*demo' then return true; end if;
 
   -- the subject a handoff names, folded into the reference set
@@ -10769,14 +10820,15 @@ CREATE OR REPLACE FUNCTION public.fn_support_case_idle_close()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_days int := greatest(1, public.fn_seat_clock_policy('support_case_append_days', 7)::int); n int;
+declare v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';   -- fixture run: ONLY demo cases
+  v_days int := greatest(1, public.fn_seat_clock_policy('support_case_append_days', 7)::int); n int;
 begin
   update public.support_case
      set state = 'closed', closed_at = now(),
          close_reason = 'resolved — answered, and no reply from the customer in ' || v_days || ' days (closed by customer_support)'
    where state = 'waiting_customer' and last_activity_at < now() - make_interval(days => v_days)
      and category is distinct from 'automated_decision_objection'   -- legal finding 1: closed only by a reply
-     and not public.fn_party_is_demo(party_kind, party_id);
+     and public.fn_party_is_demo(party_kind, party_id) = v_fx;       -- a fixture run can never close a real case
   get diagnostics n = row_count;
   return jsonb_build_object('closed', n);
 end $function$

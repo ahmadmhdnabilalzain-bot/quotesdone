@@ -12,6 +12,7 @@
 // Production reads skip without a management token (CI's checks job has none).
 //
 //   node --test scripts/checks/the_refund_rail_leaves_no_residue.test.mjs
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
@@ -21,7 +22,7 @@ import { sql } from '../lib/db.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(root, p), 'utf8');
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 // The same backoff-less transport that turned five other checks red on the throttled night of

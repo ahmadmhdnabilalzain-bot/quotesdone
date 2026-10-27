@@ -117,9 +117,11 @@ select v.type, v.from_seat, v.to_seat, v.meaning,
     ('it.finding',               'it_engineer',      'customer_support', 'The IT engineer found a fault in something customer support owns: apply your remedy or say you have none. The IT engineer re-verifies and closes.'),
     ('it.finding',               'it_engineer',      'ceo',              'The IT engineer found a fault in something only the CEO owns: decide the remedy or say there is none. The IT engineer re-verifies and closes.')
   ) v(type, from_seat, to_seat, meaning)
-on conflict (type, from_seat, to_seat) do update
-  set meaning = excluded.meaning, handler = excluded.handler, reply_within = excluded.reply_within,
-      originator_closes = excluded.originator_closes, owner_file = excluded.owner_file;
+-- DO NOTHING, never DO UPDATE (27 Oct 2026): re-applying this file for #1587 rewrote reply_within and originator_closes
+-- on 15 kinds that the_ceo_decides_every_sales_engineer_report_and_every_sender_closes_its_handoff.sql had since set
+-- (restored by the_handoff_reply_windows_come_back_after_the_loop_file_was_reapplied.sql). A re-apply registers a
+-- missing kind; it never overwrites a later file's values.
+on conflict (type, from_seat, to_seat) do nothing;
 
 drop table if exists public.seat_handoff_window;
 
@@ -648,7 +650,10 @@ revoke execute on function public.fn_it_loop_tick() from public, anon, authentic
 insert into public.founder_mail_policy (kind, allowed_to_email, owner_role, reason)
 values ('it_new_bug', true, 'it_engineer',
         'Founder, 14 Sep 2026: "for new bugs i just need to be notified on email". Sent by customer_support only after the owning seat and the CEO could not fix it; deduped per issue for 24 hours, repeats folded into the IT daily line.')
-on conflict (kind) do update set allowed_to_email = excluded.allowed_to_email, owner_role = excluded.owner_role, reason = excluded.reason;
+-- DO NOTHING, never DO UPDATE (27 Oct 2026): founder instruction 642 (the_founder_hears_from_it_once_a_day.sql) turned
+-- this kind OFF on 22 Sep. Re-applying this file for #1587 on 27 Oct turned it back on through this upsert
+-- (the_new_bug_email_stays_off_when_the_loop_file_is_reapplied.sql). A re-apply registers the kind; it never re-opens it.
+on conflict (kind) do nothing;
 
 -- ── 13. THE FOUNDER HANDOVER EMAIL BODY IS RETIRED WITH THE PATH THAT SENT IT ──────────────────────
 -- Its only caller was sections C and D of fn_it_engineer_alert_tick, replaced by fn_it_loop_tick.

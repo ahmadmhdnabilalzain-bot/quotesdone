@@ -26,6 +26,7 @@ import { manifestWithPending } from '../lib/pending_sql.mjs';
 import { definitions, canonicalReplay } from '../lib/canonical_sql.mjs';
 import { exportedTables } from '../lib/table_export_registry.mjs';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FILE = 'scripts/sql/a_rejection_never_ends_the_cycle_the_ceo_gives_reasons_and_the_seat_revises.sql';
@@ -81,7 +82,7 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 test('production, aborted: the probe answers PROBE OK', { skip: hasToken ? false : 'no Supabase management token in this environment', timeout: 600000 }, async () => {
   const { sql } = await import('../lib/db.mjs');
   const read = (f) => readFileSync(join(REPO, f), 'utf8');
-  const text = [read(FILE), read(EVAL), canonicalReplay([FILE, EVAL].map((f) => f.replace('scripts/sql/', ''))), read(PROBE)].join('\n;\n');
+  const text = [seatWorkFixtures(), read(FILE), read(EVAL), canonicalReplay([FILE, EVAL].map((f) => f.replace('scripts/sql/', ''))), read(PROBE)].join('\n;\n');
   let msg = '';
   for (let attempt = 0; attempt < 2; attempt++) {
     try { await replaySql(text, { retry: false }); msg = 'the probe did not raise'; break; }

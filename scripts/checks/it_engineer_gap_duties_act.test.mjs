@@ -123,14 +123,17 @@ do $$ declare o jsonb := '{}'; v jsonb; qid uuid; hid bigint; inc public.it_inci
     exit when (v->>'asked')::int = 0 and (v->>'opened')::int = 0;
   end loop;
   -- postmortem: a high-severity fault of a known class, closed after the duty went live
-  -- a handoff names its case and what it needs (trg_handoff_carries_its_note refuses one that does not), so the fixture does too
+  -- a handoff names its case and what it needs (trg_handoff_carries_its_note refuses one that does not), so the fixture does too;
+  -- since #1578 (every_handoff_note_states_context_decision_open_asks_and_deadline_and_its_receiver_cites_it.sql,
+  -- ledger 1013) it must also name its sender, or the note has no decision and a01_handoff_carries_its_note refuses it.
+  -- An it.finding handoff is the it_engineer's.
   insert into public.agent_actions (agent, kind, status, target_id, title, detail, decided_at, evidence)
-  values ('sales_engineer', 'handoff', 'done', 'it.finding:duty:latency_slo:zz_demo_portal', 'ZZ DEMO slow', jsonb_build_object('type', 'it.finding', 'severity', 'high',
+  values ('sales_engineer', 'handoff', 'done', 'it.finding:duty:latency_slo:zz_demo_portal', 'ZZ DEMO slow', jsonb_build_object('type', 'it.finding', 'from', 'it_engineer', 'severity', 'high',
           'issue_key', 'duty:latency_slo:zz_demo_portal', 'title', 'ZZ DEMO slow', 'occurrence_started_at', now() - interval '2 hours'),
           now(), '{"answer":"ZZ DEMO bounded"}')
   returning id into hid;
   insert into public.agent_actions (agent, kind, status, target_id, title, detail, decided_at)
-  select 'ceo', 'handoff', 'done', 'it.finding:zz_demo_new_class:' || g, 'ZZ DEMO new class ' || g, jsonb_build_object('type', 'it.finding', 'severity', 'critical',
+  select 'ceo', 'handoff', 'done', 'it.finding:zz_demo_new_class:' || g, 'ZZ DEMO new class ' || g, jsonb_build_object('type', 'it.finding', 'from', 'it_engineer', 'severity', 'critical',
           'issue_key', 'zz_demo_new_class:' || chr(96 + g), 'title', 'ZZ DEMO new class ' || g, 'occurrence_started_at', now() - interval '2 hours'), now()
     from generate_series(1, 4) g;  -- four distinct faults: one postmortem per fault keys on the issue_key with digits stripped
   v := public.fn_it_engineer_postmortem();

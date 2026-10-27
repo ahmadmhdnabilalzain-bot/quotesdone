@@ -14,6 +14,7 @@
 //      The 22 Sep defect this also replays: a JSON null directive read as present by the act.
 //
 //   node --test scripts/checks/the_ceo_plans_every_day.test.mjs
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -96,7 +97,7 @@ test('F. the founder brief carries the plan in item 7', () => {
   assert.match(brief, /v_plan := public\.fn_ceo_plan_brief_lines\(\) \|\| v_plan;/);
 });
 
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 
 test('G. the decision names the right lever and escalates a stall (pure, replayed in pg_temp)', async (t) => {

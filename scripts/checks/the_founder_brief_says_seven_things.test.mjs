@@ -19,6 +19,7 @@
 //      evidence is litter fails the day the litter is cleaned.
 //
 //   node --test scripts/checks/the_founder_brief_says_seven_things.test.mjs
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -113,7 +114,7 @@ test('E. the customer PDF is rendered on the heartbeat and attached, never skipp
 
 // F. Live replay of the fixture day. The three pure functions are created in pg_temp inside one
 //    implicit transaction on the one project; nothing persistent is written, no row is touched.
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 
 test('F. the 18 Sep 2026 fixture day (the founder demo accounts) reads zero, with its demo rows counted as excluded', async (t) => {

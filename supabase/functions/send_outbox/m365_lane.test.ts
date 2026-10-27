@@ -7,8 +7,9 @@ import { assert, assertEquals, assertFalse } from 'jsr:@std/assert@1';
 import {
   M365_HARD_CEILING, M365_ID_PREFIX, M365_OFF, M365_REFUSED_ISSUE, M365_SEED_KIND, graphSend, holdForM365, m365Body, m365Carries,
   companyName, m365CopyLint, m365InvitationText, m365Mime, m365Subject, messageIdFor, resolveM365, scrub, switchOn, type Fetch, type M365, STOP_LINE,
-  M365_INBOX_AGENT, M365_INBOX_PROOF_MAX_AGE_MS, m365ReplyTo, withPlacementRef,
+  M365_INBOX_AGENT, M365_INBOX_PROOF_MAX_AGE_MS, m365ReplyTo, withPlacementRef, campaignMail,
 } from './m365_lane.ts';
+import { resendPayload } from './payload.ts';
 import { INVITE_LANE_TYPES } from './invite_lane.ts';
 
 const SECRET = 'zz-demo-client-secret-value-1234567890';
@@ -243,7 +244,8 @@ Deno.test('wiring: send_outbox passes the lane Reply-To through m365ReplyTo, rea
   // 27 Oct 2026: the MIME text is the built body itself (no second signature or opt-out appended), and every lane row,
   // the nudge included, takes the one subject function; only withPlacementRef can add a token, and only to a seed.
   assert(/subject: mSubject, text: mBody, unsub/.test(src), 'the lane MIME no longer sends the built body as is');
-  assert(/const mSubject = withPlacementRef\(m365Subject\(/.test(src), 'the lane subject is no longer m365Subject + withPlacementRef for every row');
+  const lane = Deno.readTextFileSync(new URL('./m365_lane.ts', import.meta.url));
+  assert(/const subject = withPlacementRef\(m365Subject\(/.test(lane), 'the campaign subject is no longer m365Subject + withPlacementRef for every row');
 });
 
 Deno.test('the refusal finding closes on a 2xx sendMail, never on a token alone (review of #1473)', async () => {
@@ -315,4 +317,67 @@ Deno.test('the morning placement seed keeps its (ref QD…) token on the rebuilt
   assertEquals(withPlacementRef('X', { type: 'supplier_invite_nudge', subject: 'Y (ref QD8F6C46AE93)' }), 'X', 'a nudge never carries a token');
   assertEquals(withPlacementRef('X', { type: 'supplier_invite_seed', subject: 'no token' }), 'X');
   assertEquals(withPlacementRef('X (ref QD8F6C46AE93)', row), 'X (ref QD8F6C46AE93)', 'never doubled');
+});
+
+// 27 Oct 2026 (coordinator, follow-up to #1614): a lane switch can never send the old email. Both routes build the
+// supplier campaign email with campaignMail; the Resend fallback sends it as plain text with no HTML frame.
+Deno.test('both routes send the identical approved body and subject: Microsoft 365 MIME and the Resend fallback payload', () => {
+  const who = { company: 'Sigma Ceramics', trade: 'tiling' };
+  const unsub = 'https://quotesdone.com/u/unsubscribe?e=zz&t=1';
+  const OLD = 'Dear {{company}},\n\nRegister here: ' + LINK + '\n\nWe look forward to welcoming you.';
+  const rows = [
+    { type: 'supplier_invite', subject: 'Invitation: become a founding supplier', body: OLD, kind: null },
+    { type: 'supplier_invite_nudge', subject: 'Reminder', body: 'Reminder ' + LINK, kind: null },
+    { type: 'supplier_invite_seed', subject: 'Invitation (ref QD8F6C46AE93)', body: 'Hi ZZ DEMO Supplier team,\n\nx', kind: 'supplier_invite_seed' },
+  ];
+  for (const row of rows) {
+    const c = campaignMail(row, row.type === 'supplier_invite_seed' ? {} : who);
+    assertEquals(c.bad, [], `${row.type} fails a copy rule`);
+    // route 1: the Microsoft 365 MIME, as index.ts builds it
+    const raw = unb64(m365Mime({ from: 'Ahmad Alzain at QuotesDone <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '', subject: c.subject,
+      text: c.text, unsub, unsubMailto: 'unsubscribe@mail.quotesdone.com', messageId: '<m@q>', now: new Date('2026-10-27T04:30:00Z') }));
+    const [head, b64] = raw.split('\r\n\r\n');
+    const m365Text = unb64(b64.replace(/\r\n/g, '')).replace(/\r\n/g, '\n');
+    // route 2: the Resend fallback payload, as index.ts builds it for a campaign row
+    const mail = resendPayload({ from: 'QuotesDone <invite@hello.quotesdone.com>', to: 'zz-demo@example.invalid', reply: 'suppliers@mail.quotesdone.com',
+      subject: c.subject, html: '', text: c.text, unsub, unsubMailto: 'unsubscribe@mail.quotesdone.com' });
+    assertEquals(mail.text, m365Text, `${row.type}: the two routes send different bodies`);
+    assert(head.includes('Subject: ' + c.subject) && mail.subject === c.subject, `${row.type}: the two routes send different subjects`);
+    assertFalse('html' in mail, 'the fallback sends no HTML frame (no logo or unsubscribe link, no Al Furjan footer)');
+    assertFalse(/https?:\/\/|www\.|al furjan|NOL-|which trades does your company cover/i.test(mail.text), 'an old-email trace reached the fallback');
+    assert(mail.text.trimEnd().endsWith(STOP_LINE));
+    assertEquals(mail.headers?.['List-Unsubscribe-Post'], 'List-Unsubscribe=One-Click');
+  }
+  assertEquals(campaignMail(rows[0], who).text, APPROVED, 'the invitation on either route is the founder\'s text word for word');
+  assert(campaignMail(rows[2]).subject.endsWith('(ref QD8F6C46AE93)') && !campaignMail({ ...rows[0], subject: 'x (ref QD8F6C46AE93)' }, who).subject.includes('ref QD'));
+});
+
+Deno.test('wiring: index.ts builds the campaign email with campaignMail on BOTH routes, and the fallback sends it text-only', () => {
+  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  assert(/const \{ subject: mSubject, text: mBody, bad \} = await campaignFor\(n\);/.test(src), 'the Microsoft 365 lane no longer uses campaignMail');
+  assert(/const camp = supplierSide && isLaneType\(n\.type\) \? await campaignFor\(n\) : null;/.test(src), 'the Resend fallback no longer uses campaignMail');
+  assert(/camp\s*\? resendPayload\(\{ from, to: n\.to_email, reply, subject: camp\.subject, html: '', text: camp\.text, unsub,/.test(src), 'the fallback no longer sends the campaign text without HTML');
+  assert(/return campaignMail\(n, /.test(src));
+});
+
+// 27 Oct 2026 (review of #1614): the copy rules read OUR copy, not the supplier's registered name. Measured that day,
+// 11 of 17,401 eligible leads were held for their own names; each is replayed here and must now pass and be sent.
+Deno.test('a supplier\'s own name never holds its email: dates, month-like words and "AI" in a name pass; a web address in a name gives "Hello,"', () => {
+  const HELD_27_OCT = [
+    ['Eastlake Dec.Design & Fitout LLC', 'interior_fitout'], ['ROYAL TALENT INTERIOR DEC CO LLC', 'interior_fitout'],
+    ['2003 ALUMINIUM WORKS & CARPENTRY LLC', 'aluminium'], ['WELCOME ARTS 2000', 'signage'], ['PETRO SEP MEMBRANE TECHNOLOGIES INC', 'chemicals'],
+    ['QARYAT AL FAAN AL KASHMIRI NOV &#038; CARPETS', 'flooring'], ['CHINA 2008 BUILDING MATERIAL LLC', 'building_materials'],
+    ['AI TRADING EST', 'steel'], ['AL FAYAD CARPETS &#038; NOV TRADING', 'flooring'], ['JAN DE NUL DREDGING LTD', undefined],
+  ] as const;
+  for (const [company, trade] of HELD_27_OCT) {
+    const c = campaignMail({ type: 'supplier_invite', body: '' }, { company, trade });
+    assertEquals(c.bad, [], `${company} is still held`);
+    assert(c.text.startsWith(`Hi ${companyName(company)} team,`), `${company}: not greeted by name`);
+  }
+  const web = campaignMail({ type: 'supplier_invite', body: '' }, { company: 'www.khaazay.com online division of Al Twat Trading LLC', trade: 'building_materials' });
+  assertEquals(web.bad, []); assert(web.text.startsWith('Hello,\n\n') && !/khaazay/.test(web.text + web.subject), 'a web address in a name reached the email');
+  assertEquals(companyName('Acme.ae Trading'), '');
+  // the masking is only of the name: our own copy is still held for the same faults
+  const t = campaignMail({ type: 'supplier_invite', body: '' }, { company: 'AI TRADING EST', trade: 'steel' }).text;
+  assert(m365CopyLint({ subject: 'x', body: t.replace('register at quotesdone.com', 'register by December 2026 at quotesdone.com') }).some((l) => !l.ok && l.rule.includes('date')));
 });

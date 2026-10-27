@@ -15,6 +15,7 @@
 // moves nothing that was not public.
 //
 //   node scripts/staging/sync_staging_assets.mjs [--dry]
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { resolveStagingRef, PROD_REF, mgmtRead } from '../lib/qd_guard.mjs';
 import { readFileSync } from 'node:fs';
 
@@ -26,8 +27,7 @@ const REF = resolveStagingRef(process.env.QD_STAGING_REF);
 const DRY = process.argv.includes('--dry');
 const BUCKET = 'brand';
 
-const mgmt = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const mgmt = supabaseAccessToken();
 
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`,
   { headers: { Authorization: 'Bearer ' + mgmt } })).json();

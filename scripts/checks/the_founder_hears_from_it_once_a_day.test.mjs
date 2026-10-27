@@ -27,6 +27,8 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
+import { manifestWithPending } from '../lib/pending_sql.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FILE = 'scripts/sql/the_founder_hears_from_it_once_a_day.sql';
@@ -44,6 +46,15 @@ for (const f of files) {
   heads.forEach((m, i) => canonical.set(m[1].toLowerCase(), src.slice(m.index, heads[i + 1]?.index ?? src.length)));
 }
 const body = (n) => { const b = canonical.get(n); assert.ok(b, `${n} is defined by no file in MANIFEST.txt`); return b; };
+
+// 27 Oct 2026: re-applying the_it_engineer_closes_every_loop_it_opens.sql (for #1587) re-ran its 14 Sep upsert and turned
+// it_new_bug back ON in production, against instruction 642. No applied or pending file may upsert the kind open again.
+test('no SQL file can re-open the per-issue it_new_bug email (instruction 642)', () => {
+  const all = manifestWithPending().filter((f) => existsSync(join(REPO, f)));
+  const bad = all.filter((f) => /values\s*\(\s*'it_new_bug'\s*,\s*true[\s\S]{0,600}?on conflict \(kind\) do update/i
+    .test(readFileSync(join(REPO, f), 'utf8').replace(/--[^\n]*/g, '')));
+  assert.deepEqual(bad, [], 'these files upsert it_new_bug open again on a re-apply');
+});
 
 test('support holds a founder it_new_bug request before anything can notify him', () => {
   const b = body('fn_customer_support_acts_on_handoff');
@@ -124,7 +135,10 @@ begin
   insert into public.founder_alerts (level, event, detail, channel, dedupe_key) values ('info', 'ZZ DEMO', 'ZZ DEMO', 'os', v->>'digest_key');
   d := public.fn_customer_support_sends_the_it_digest(v_at + interval '1 hour');
   raise exception 'CHK<<%>>', jsonb_build_object('held', k, 'early', w->>'reason', 'again', d->>'reason', 'states', e,
-    'event', v->>'event', 'told_decision', v->>'detail' ~ 'DECISION: ZZ DEMO credential refused. Only you can decide this',
+    -- a decision line is the title in whole words, then why only he can act (#1566,
+    -- the_it_digest_reaches_the_founder_only_with_his_kind_of_decision_in_whole_words.sql, replaced the
+    -- "DECISION: ... Only you can decide this" wording on 19 Oct 2026)
+    'event', v->>'event', 'told_decision', v->>'detail' ~ 'ZZ DEMO credential refused\\.?\\s+Why this needs you: ',
     'told_old', v->>'detail' ~ 'ZZ DEMO old fault',
     'told_young_or_closed', v->>'detail' ~ 'ZZ DEMO (young|closed)', 'told_ruled_out', v->>'detail' ~ 'ZZ DEMO (no cap|campaign)',
     'founder_rows', (select count(*) from public.notifications where id > v_max))::text;
@@ -146,7 +160,10 @@ test('production: one digest a day carries only his decisions, and reaches nobod
   // Not applied yet: rehearse the file itself in the same rolled-back transaction.
   const pre = live ? '' : `begin;\n${readFileSync(join(REPO, FILE), 'utf8')}\n`;
   let message = '';
-  try { await replaySql(pre + PROBE, { retry: false }); message = 'the probe returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
+  // Ruling 1199 (demo_activity_files_no_seat_task_or_handoff.sql, #1479) files no handoff for a ZZ DEMO subject, so the
+  // seven requests were never filed and 0 were held (27 Oct 2026). The probe proves the hold, so it switches that guard
+  // off for its own rolled-back transaction (a_rolled_back_probe_may_file_demo_seat_work_under_its_own_switch.sql).
+  try { await replaySql(pre + seatWorkFixtures() + PROBE, { retry: false }); message = 'the probe returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, message.slice(0, 1500));
   const o = JSON.parse(chk[1].replace(/\\"/g, '"'));

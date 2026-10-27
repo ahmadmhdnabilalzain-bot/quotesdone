@@ -33,7 +33,8 @@ const TRACE = Deno.args.includes('--trace');
 const idArg = arg('--ids');
 const IDS = idArg ? (idArg.startsWith('@') ? await Deno.readTextFile(idArg.slice(1)) : idArg).split(/[\s,]+/).filter(Boolean) : null;
 const home = Deno.env.get('USERPROFILE') ?? Deno.env.get('HOME') ?? '';
-const mgmt = (Deno.env.get('SUPABASE_ACCESS_TOKEN') ?? await Deno.readTextFile(`${home}/.supabase/access-token`)).trim();
+const mgmt = (Deno.env.get('SUPABASE_ACCESS_TOKEN') ?? await Deno.readTextFile(`${home}/.supabase/access-token`).catch(() => '')).trim();
+if (!mgmt) throw new Error('SUPABASE_ACCESS_TOKEN is not set (docs/runbooks/cloud-sessions.md)');
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: `Bearer ${mgmt}` } })).json();
 const service = keys.find((k: { name: string }) => k.name === 'service_role')?.api_key;
 if (!service) throw new Error('no service_role key from the management API');
@@ -48,7 +49,14 @@ const { E2E_RUN } = await import('../../supabase/functions/_shared/e2e_run.ts');
 const TAG = arg('--tag');
 // The gateway admits only a caller holding its own credential (app_secrets.cred_fn_<fn>). The exam calls as
 // knowledge_exam, the credential that exists for exactly this, so exam spend is never booked as a seat's live work.
-const inRun = <T>(f: () => Promise<T>) => (TAG ? E2E_RUN.run({ tag: TAG, secret: null }, f) : f());
+// The tag must be PROVEN at the gateway or it is refused (19 Oct 2026: qd_run:ceodiag1 sent it with secret null,
+// the gateway dropped it, and USD 13.86 ran untagged past a USD 5 cap). The hop to ai_gateway uses knowledge_exam's
+// own credential, not the service bearer, so it carries the internal secret as x-qd-e2e-secret.
+const RUN_SECRET = TAG
+  ? ((await admin.from('app_secrets').select('value').eq('key', 'cred_db_internal').maybeSingle()).data?.value ?? null) as string | null
+  : null;
+if (TAG && !RUN_SECRET) throw new Error('--tag given but app_secrets.cred_db_internal could not be read; the run could not prove its tag');
+const inRun = <T>(f: () => Promise<T>) => (TAG ? E2E_RUN.run({ tag: TAG, secret: RUN_SECRET }, f) : f());
 
 type Item = { id: string; checklist: string; q_en: string; q_reworded?: string; answer_must?: string[]; expected_entry_ids: string[]; expected_facts: string[] };
 const exam = JSON.parse(await Deno.readTextFile(arg('--exam') ?? `knowledge/exams/${seat}.json`)) as { items: Item[] };
