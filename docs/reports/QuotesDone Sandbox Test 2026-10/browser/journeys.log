@@ -1,0 +1,44 @@
+PASS journey_customer_C1_desktop_en terms re-accept inline prompt — prompt shown, ticked and accepted; tos_version after accept v10 (want v10); restored to v10 (verified)
+PASS journey_customer_C1_desktop_en new request: drawing upload + spec answer "not sure" — drawing named on screen: true; "not sure" offered: false
+FAIL journey_customer_C1_desktop_en quotes and comparison report — no request of this customer has a quote on screen (were quotes released for this customer?)
+SKIP journey_customer_C1_desktop_en reveal checkout: test card success — no "Reveal & contact" button visible (needs an unrevealed quote)
+SKIP journey_customer_C1_desktop_en reveal checkout: test card decline — no "Reveal & contact" button visible (needs an unrevealed quote)
+SKIP journey_customer_C1_desktop_en post-reveal supplier details and rating — no rating stars visible (needs a revealed supplier); contact details shown: false
+PASS journey_customer_C1_desktop_en account: terms version + data export request (stopped before code) — terms version shown: true; export downloaded: true; erase code box shown: true (not filled, nothing erased)
+FAIL journey_customer_C1_desktop_ar terms re-accept inline prompt — threw: locator.click: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('button', { name: /طلب جديد/ }).first()[22m
+
+FAIL journey_customer_C1_desktop_ar new request: drawing upload + spec answer "not sure" — threw: locator.click: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('button', { name: /طلب جديد/ }).first()[22m
+
+FAIL journey_customer_C1_desktop_ar quotes and comparison report — no request of this customer has a quote on screen (were quotes released for this customer?)
+SKIP journey_customer_C1_desktop_ar reveal checkout: test card success — no "Reveal & contact" button visible (needs an unrevealed quote)
+SKIP journey_customer_C1_desktop_ar reveal checkout: test card decline — no "Reveal & contact" button visible (needs an unrevealed quote)
+SKIP journey_customer_C1_desktop_ar post-reveal supplier details and rating — no rating stars visible (needs a revealed supplier); contact details shown: false
+FAIL journey_customer_C1_desktop_ar account: terms version + data export request (stopped before code) — terms version shown: false; NO data export/erase control on the account page
+PASS journey_customer_C1_mobile_en terms re-accept inline prompt — prompt shown, ticked and accepted; tos_version after accept v10 (want v10); restored to v10 (verified)
+PASS journey_customer_C1_mobile_en new request: drawing upload + spec answer "not sure" — drawing named on screen: true; "not sure" offered: false
+FAIL journey_customer_C1_mobile_en quotes and comparison report — no request of this customer has a quote on screen (were quotes released for this customer?)
+SKIP journey_customer_C1_mobile_en reveal checkout: test card success — no "Reveal & contact" button visible (needs an unrevealed quote)
+SKIP journey_customer_C1_mobile_en reveal checkout: test card decline — no "Reveal & contact" button visible (needs an unrevealed quote)
+SKIP journey_customer_C1_mobile_en post-reveal supplier details and rating — no rating stars visible (needs a revealed supplier); contact details shown: false
+PASS journey_customer_C1_mobile_en account: terms version + data export request (stopped before code) — terms version shown: true; export downloaded: true; erase code box shown: true (not filled, nothing erased)
+FAIL journey_customer_C1_mobile_ar terms re-accept inline prompt — threw: locator.click: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('button', { name: /طلب جديد/ }).first()[22m
+
+FAIL journey_customer_C1_mobile_ar new request: drawing upload + spec answer "not sure" — threw: locator.click: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for getByRole('button', { name: /طلب جديد/ }).first()[22m
+
+FAIL journey_customer_C1_mobile_ar quotes and comparison report — no request of this customer has a quote on screen (were quotes released for this customer?)
+SKIP journey_customer_C1_mobile_ar reveal checkout: test card success — no "Reveal & contact" button visible (needs an unrevealed quote)
+SKIP journey_customer_C1_mobile_ar reveal checkout: test card decline — no "Reveal & contact" button visible (needs an unrevealed quote)
+SKIP journey_customer_C1_mobile_ar post-reveal supplier details and rating — no rating stars visible (needs a revealed supplier); contact details shown: false
+FAIL journey_customer_C1_mobile_ar account: terms version + data export request (stopped before code) — terms version shown: false; NO data export/erase control on the account page
+PASS unsubscribe desktop QuotesDone Please confirm you want to stop receiving invitations and reminders at qd-0a717394-sup0@e
+PASS unsubscribe mobile QuotesDone Please confirm you want to stop receiving invitations and reminders at qd-0a717394-sup0@e
+supplier registration walk exit 1
+index: 306 PASS, 35 FAIL

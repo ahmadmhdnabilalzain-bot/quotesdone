@@ -1,0 +1,82 @@
+{
+ "learning": {
+  "seat_lesson_cluster": 0,
+  "seat_case_memory": 12,
+  "seat_case_memory_miss": 0,
+  "institutional_memory": 0,
+  "agent_memory": 0,
+  "org_memory": 0,
+  "reasoning_knowledge_candidate": 0,
+  "sales_knowledge_gap": 0,
+  "email_suppressions": 1,
+  "supplier_score": 0,
+  "supplier_document_cache": 1,
+  "ai_cost_log": 95
+ },
+ "removed": "notifications 165, comparison_candidate_v2 (table no longer exists) 0, agent_actions 107, doc_versions 8, doc_versions (rfq) 11, quote_items 4, documents 72, company_event (quote) 4, quotes 4, inquiry_matches 14, company_event (lead) 29, company_event (inquiry) 22, inquiries 11, supplier_capability_confirmation 5, supplier_capabilities (fk supplier_id -> leads) 35, supplier_public_name (fk lead_id -> leads) 20, support_customer_profile (fk lead_id -> leads) (deferred: still referenced) 0, leads 35, drawing_redaction_runs 8, customer_preference 10, customer_organization (table no longer exists) 0, company_event (customer) 10, projects (fk customer_id -> customers) 1, support_customer_profile (fk customer_id -> customers) (deferred: still referenced) 0, customers 10, inquiry_intake 15, email_verifications 10, auth_users 45, storage_objects 196",
+ "swept": {
+  "support_case": 2,
+  "agent_actions": 109,
+  "agent_runs": 74,
+  "ai_cost_log": 26,
+  "ai_qa_log": 34,
+  "ai_rate_limit": 1,
+  "company_event": 34,
+  "customer_support_duty_message": 11,
+  "file_scan": 43,
+  "inbound_messages": 1,
+  "leads": 1,
+  "os_audit_log": 74,
+  "pdpl_operator_log": 8,
+  "pdpl_requests": 8,
+  "reasoning_held_question": 1,
+  "rl_hits": 75,
+  "seat_judgement": 6,
+  "sms_messages": 1,
+  "support_ceo_report": 52,
+  "support_customer_profile": 2,
+  "wa_answer_log": 1,
+  "wa_inbound_seen": 1,
+  "wa_messages": 1,
+  "wa_turn": 1
+ },
+ "dropbox": {
+  "folder": {
+   "status": 200,
+   "folder_gone": true
+  },
+  "records_removed": 168,
+  "generated_removed": 54
+ },
+ "leftovers": {
+  "auth_users": 0,
+  "customers": 0,
+  "leads": 1,
+  "inquiries": 0,
+  "quotes": 0,
+  "quote_spec_hold": 0,
+  "quote_reviews": 0,
+  "notifications": 0,
+  "transactions": 0,
+  "refunds": 0,
+  "supplier_dues": 0,
+  "refund_case": 0,
+  "inquiry_intake": 0,
+  "email_verifications": 0,
+  "storage_objects": 0,
+  "total": 1
+ },
+ "verify": {
+  "tables_scanned": 712,
+  "tables_in_registry": 712,
+  "found": [],
+  "unverified": [],
+  "storage": [],
+  "auth_users": 0,
+  "dropbox": {
+   "listed": 0,
+   "records": 0
+  },
+  "clean": true
+ }
+}

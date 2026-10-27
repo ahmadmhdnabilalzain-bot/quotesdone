@@ -1,0 +1,101 @@
+{
+ "built_at": "2026-10-11T22:04:34.257Z",
+ "docs": [
+  {
+   "id": "boq_text_pdf",
+   "file": "zz_boq_text.pdf",
+   "mime": "application/pdf",
+   "path": "customer BOQ (customer_api analyze_document)",
+   "must": [
+    "gypsum",
+    "120",
+    "paint",
+    "300",
+    "split"
+   ],
+   "degraded": false
+  },
+  {
+   "id": "boq_scan_jpg",
+   "file": "zz_boq_scan.jpg",
+   "mime": "image/jpeg",
+   "path": "customer BOQ photo (drawing_boq document mode)",
+   "must": [
+    "gypsum",
+    "120",
+    "paint",
+    "300",
+    "split"
+   ],
+   "degraded": false
+  },
+  {
+   "id": "boq_scan_pdf",
+   "file": "zz_boq_scan.pdf",
+   "mime": "application/pdf",
+   "path": "scanned BOQ PDF (doc_extract / drawing_boq)",
+   "must": [
+    "gypsum",
+    "120",
+    "paint",
+    "300",
+    "split"
+   ],
+   "degraded": false
+  },
+  {
+   "id": "drawing_pdf",
+   "file": "zz_plan.pdf",
+   "mime": "application/pdf",
+   "path": "drawing PDF (drawing_boq)",
+   "must": [
+    "meeting",
+    "room"
+   ],
+   "degraded": false
+  },
+  {
+   "id": "drawing_png",
+   "file": "zz_plan.png",
+   "mime": "image/png",
+   "path": "drawing PNG (drawing_boq photo)",
+   "must": [
+    "meeting",
+    "room"
+   ],
+   "degraded": false
+  },
+  {
+   "id": "quote_text_pdf",
+   "file": "zz_quote_text.pdf",
+   "mime": "application/pdf",
+   "path": "supplier quotation (quote review / quote_extract)",
+   "must": [
+    "gypsum",
+    "15000"
+   ],
+   "total": 15000,
+   "degraded": false
+  },
+  {
+   "id": "quote_scan_jpg",
+   "file": "zz_quote_scan.jpg",
+   "mime": "image/jpeg",
+   "path": "supplier quotation photo (quote review)",
+   "must": [
+    "gypsum",
+    "15000"
+   ],
+   "total": 15000,
+   "degraded": false
+  },
+  {
+   "id": "degraded_jpg",
+   "file": "zz_degraded.jpg",
+   "mime": "image/jpeg",
+   "path": "deliberately degraded scan",
+   "must": [],
+   "degraded": true
+  }
+ ]
+}

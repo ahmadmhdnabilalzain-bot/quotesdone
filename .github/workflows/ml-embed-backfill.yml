@@ -12,10 +12,11 @@
 
 name: ml embedding backfill
 
+# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
 on:
-  schedule:
+  # schedule:
     # 02:50 UTC = 06:50 Dubai, after kb-embed-backfill (02:20) and before the working day.
-    - cron: '50 2 * * *'
+    # - cron: '50 2 * * *'
   workflow_dispatch:
     inputs:
       minutes:

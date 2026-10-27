@@ -1,0 +1,142 @@
+[
+ {
+  "tag": "com_en_375",
+  "ms": 5657,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "com_en_414",
+  "ms": 1881,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "com_en_768",
+  "ms": 1663,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "com_en_1280",
+  "ms": 20918,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "com_en_1920",
+  "ms": 1936,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "com_ar_375",
+  "ms": 1963,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "com_ar_414",
+  "ms": 1820,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "com_ar_768",
+  "ms": 1776,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "com_ar_1280",
+  "ms": 15827,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "com_ar_1920",
+  "ms": 1972,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "ae_en_375",
+  "ms": 1908,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "ae_en_414",
+  "ms": 1840,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "ae_en_768",
+  "ms": 1834,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "ae_en_1280",
+  "ms": 13009,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "ae_en_1920",
+  "ms": 1879,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "ae_ar_375",
+  "ms": 2074,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "ae_ar_414",
+  "ms": 1956,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "ae_ar_768",
+  "ms": 1920,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "ae_ar_1280",
+  "ms": 12910,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ },
+ {
+  "tag": "ae_ar_1920",
+  "ms": 1937,
+  "chatBtn": false,
+  "status": "PASS",
+  "issues": []
+ }
+]
