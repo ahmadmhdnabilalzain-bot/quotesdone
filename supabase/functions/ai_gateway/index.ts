@@ -43,6 +43,7 @@ import { attemptPlan, failureKind, fixtureVerdict, nextAttempt, ownWorkByName, r
 import { e2eRunTag } from '../_shared/e2e_run.ts';
 import { embedAnswer } from '../_shared/embed_answer.ts';
 import { shapeRequest } from '../_shared/request_shape.ts';
+import { cacheHitServesRoute } from './cache_hit.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) =>
@@ -473,7 +474,7 @@ async function handle(req: Request): Promise<Response> {
         p_key: cacheKey, p_embedding: promptEmb,
         p_task_class: route.task_class ?? null, p_min_similarity: 0.95,
       });
-      if (hit && hit.hit === true) {
+      if (hit && hit.hit === true && cacheHitServesRoute(hit.model, model, fallback)) {
         await llmLog({
           p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
           p_task_class: route.task_class ?? null, p_model: hit.model ?? model,
