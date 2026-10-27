@@ -7566,9 +7566,15 @@ begin
      and a.id = substr(r.idempotency_key, 9)::bigint and a.kind = 'handoff' and a.status = 'done';
   get diagnostics n_reports = row_count;
 
-  for h in select * from public.agent_actions
-            where kind = 'handoff' and detail->>'type' = 'it.finding' and detail->>'from' = 'it_engineer'
-              and status in ('pending', 'failed') order by id loop
+  -- 27 Oct 2026: CLEARED FINDINGS FIRST (see the file header). The key mirrors v_cleared below exactly; a row whose
+  -- finding is still open (or whose occurrence cannot be read) sorts after every cleared one, then by id as before.
+  for h in select a.* from public.agent_actions a
+             left join public.it_engineer_finding f0 on f0.issue_key = a.detail->>'issue_key'
+            where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.detail->>'from' = 'it_engineer'
+              and a.status in ('pending', 'failed')
+            order by coalesce(f0.issue_key is null or f0.closed_at is not null
+                              or f0.started_at > (a.detail->>'occurrence_started_at')::timestamptz, false) desc,
+                     a.id loop
     if clock_timestamp() > v_until then n_left := n_left + 1; continue; end if;
     select * into f from public.it_engineer_finding where issue_key = h.detail->>'issue_key';
     -- The occurrence this loop tracked is over when the finding is closed, or when it has since
@@ -10268,6 +10274,21 @@ AS $function$
     'employees', public.fn_employee_knowledge_freshness(30, 1)
   );
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_internal_figures_withheld()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if exists (select 1 from public.knowledge_internal_figure_record r where r.record_id = new.record_id) then
+    new.supersession_state := 'withdrawn';
+    new.runtime_eligible := false;
+  end if;
+  return new;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_knowledge_library_detach(p_store text, p_id text)

@@ -5229,6 +5229,30 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_seat_takes_data_request(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('accepted', true, 'seat', a.agent, 'request_id', a.detail->'request_id',
+    'waiting', coalesce(a.detail->>'waiting_for', 'the correction of the person''s data, by the due date'))
+    from public.agent_actions a where a.id = p_id
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_takes_knowledge_request(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('accepted', true, 'seat', a.agent, 'gap_id', a.detail->'gap_id',
+    'waiting', coalesce(a.detail->>'waiting_for', 'a knowledge entry that answers the question'))
+    from public.agent_actions a where a.id = p_id
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_seat_takes_support_root_cause(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -10406,6 +10430,65 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_whatsapp_consent_ask_record(p_phone text, p_question text, p_asked_by text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_phone text := '+' || regexp_replace(coalesce(p_phone, ''), '\D', '', 'g'); v_id bigint;
+begin
+  if v_phone !~ '^\+[0-9]{8,15}$' then return jsonb_build_object('ok', false, 'reason', 'no usable number'); end if;
+  if position(lower(public.fn_wa_consent_question()) in lower(regexp_replace(coalesce(p_question, ''), '\s+', ' ', 'g'))) = 0 then
+    return jsonb_build_object('ok', false, 'reason', 'the text does not carry the consent question (fn_wa_consent_question)'); end if;
+  if coalesce(btrim(p_asked_by), '') = '' then return jsonb_build_object('ok', false, 'reason', 'name the seat that asked'); end if;
+  insert into public.supplier_whatsapp_consent_ask (phone, question, asked_by) values (v_phone, p_question, btrim(p_asked_by))
+  returning id into v_id;
+  return jsonb_build_object('ok', true, 'ask_id', v_id, 'phone', v_phone);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_whatsapp_optin_obeys_the_rule()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v jsonb := public.fn_wa_optin_rule(new.source, new.button_payload, new.consent_question, new.consent_answer);
+begin
+  if not (v->>'counts')::boolean then
+    raise exception 'supplier_whatsapp_optin refused (ledger 1341): %', v->>'why' using errcode = 'check_violation';
+  end if;
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_whatsapp_optin_record(p_lead_id bigint, p_source text, p_question text, p_answer text, p_phone text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare l public.leads; v_phone text; v_id bigint;
+  v_rule jsonb := public.fn_wa_optin_rule(p_source, null, p_question, p_answer);
+begin
+  if p_source not in ('email_consent_reply', 'call_consent_reply') then
+    return jsonb_build_object('ok', false, 'reason', 'p_source is email_consent_reply or call_consent_reply'); end if;
+  if not (v_rule->>'counts')::boolean then return jsonb_build_object('ok', false, 'reason', v_rule->>'why'); end if;
+  select * into l from public.leads where id = p_lead_id;
+  if l.id is null then return jsonb_build_object('ok', false, 'reason', 'no such lead'); end if;
+  if coalesce(l.whatsapp_opt, '') = 'none' then return jsonb_build_object('ok', false, 'reason', 'the lead opted out of WhatsApp'); end if;
+  v_phone := '+' || regexp_replace(coalesce(p_phone, l.phone_e164, ''), '\D', '', 'g');
+  if v_phone !~ '^\+[0-9]{8,15}$' then return jsonb_build_object('ok', false, 'reason', 'no usable number'); end if;
+  insert into public.supplier_whatsapp_optin (lead_id, phone, source, consent_question, consent_answer, evidence)
+  values (l.id, v_phone, p_source, p_question, p_answer,
+          'answered yes to the consent question (' || replace(p_source, '_consent_reply', '') || ') at '
+          || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD HH24:MI') || ' Dubai')
+  on conflict (lead_id, phone) do nothing
+  returning id into v_id;
+  return jsonb_build_object('ok', true, 'lead_id', l.id, 'phone', v_phone, 'new', v_id is not null, 'why', v_rule->>'why');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_workspaces(p_lead_id bigint)
  RETURNS jsonb
  LANGUAGE sql
@@ -12061,6 +12144,68 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_support_reply_watch_close_note(p_channel text, p_evidence jsonb, p_sla numeric)
+ RETURNS text
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_ids bigint[] := array(select x::bigint from jsonb_array_elements_text(coalesce(p_evidence->'ids', '[]'::jsonb)) x);
+  v_listed int; v_waiting int; v_found int := 0;
+  v_replied int := 0; v_aged int := 0; v_other int := 0; v_gone int;
+  v_window timestamptz := now() - interval '30 days';
+  v_parts text[] := '{}'; v_head text; v_tail text := '';
+begin
+  v_listed := coalesce(cardinality(v_ids), 0);
+  v_waiting := greatest(coalesce((p_evidence->>'waiting')::int, v_listed), v_listed);
+
+  if p_channel = 'email' then
+    select count(*), count(*) filter (where m.replied_at is not null),
+           count(*) filter (where m.replied_at is null and m.created_at <= v_window)
+      into v_found, v_replied, v_aged
+      from public.inbound_messages m where m.id = any (v_ids);
+  elsif p_channel = 'whatsapp' then
+    select count(*), count(*) filter (where w.reply is not null and coalesce(w.sent, false)),
+           count(*) filter (where not (w.reply is not null and coalesce(w.sent, false)) and w.created_at <= v_window)
+      into v_found, v_replied, v_aged
+      from public.wa_messages w where w.id = any (v_ids);
+  else
+    select count(*), count(*) filter (where coalesce(g.answered, false) or coalesce(t.status, '') = 'done'),
+           count(*) filter (where not (coalesce(g.answered, false) or coalesce(t.status, '') = 'done') and g.created_at <= v_window)
+      into v_found, v_replied, v_aged
+      from public.assistant_logs g left join public.org_tasks t on t.id = g.gap_task_id
+     where g.id = any (v_ids);
+  end if;
+  v_other := v_found - v_replied - v_aged;     -- unanswered, inside the window, and no longer counted by the watch
+  v_gone := v_listed - v_found;
+
+  if v_replied > 0 then v_parts := v_parts || (v_replied || ' got a first reply'); end if;
+  if v_aged > 0 then v_parts := v_parts || (v_aged || ' aged out of the 30-day window with no reply'); end if;
+  if v_other > 0 then v_parts := v_parts || (v_other || ' are no longer counted (now exempt or excluded) and have no reply'); end if;
+  if v_gone > 0 then v_parts := v_parts || (v_gone || ' are no longer on record'); end if;
+
+  if v_listed = 0 then
+    v_head := 'cleared: the earlier list of waiting messages was not recorded, so whether they were answered is not known';
+  elsif v_replied = v_listed and v_waiting = v_listed then
+    v_head := 'cleared by replies: every one of the ' || v_listed || ' waiting message(s) got a first reply';
+  elsif v_replied = 0 and v_aged > 0 and v_aged = v_listed then
+    v_head := 'cleared because the ' || v_listed || ' waiting message(s) aged out of the 30-day window, NOT because they were answered: none got a first reply';
+  elsif v_replied = 0 then
+    v_head := 'cleared without a reply: of the ' || v_listed || ' message(s) listed, ' || array_to_string(v_parts, ', ');
+  else
+    v_head := 'cleared: of the ' || v_listed || ' message(s) listed, ' || array_to_string(v_parts, ', ');
+  end if;
+  if v_waiting > v_listed then
+    v_tail := '. The other ' || (v_waiting - v_listed) || ' that were waiting were not listed, so how they cleared is not recorded';
+  end if;
+
+  return 'no ' || p_channel || ' message older than ' || p_sla || ' h is waiting inside the 30-day window; '
+      || v_head || v_tail;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_support_reply_watch_tick()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -12084,10 +12229,12 @@ begin
         from public.inbound_messages m
        where m.created_at > now() - interval '30 days' and m.created_at < v_cut and m.replied_at is null
          and coalesce(m.to_email, '') !~* '^expenses@' and coalesce(m.owner_role, '') <> 'accountant'
-         -- 19 Oct 2026: a no-reply sender cannot be answered, and calendar+ is the founder's own approval inbox.
-         -- Only the sender's local part is matched, so a real customer whose address merely contains the word stays counted.
+         -- 19 Oct 2026: a machine sender cannot be answered, and calendar+ is the founder's own approval inbox.
+         -- 27 Oct 2026: the machine word is matched anywhere in the sender's LOCAL PART as a whole token (start,
+         -- or bounded by hyphen/underscore), not only at its start: security-noreply@ waited 30 days as a customer.
+         -- A dot does not bound it, so a person whose name merely contains the word stays counted.
          and coalesce(m.to_email, '') !~* '^calendar\+'
-         and coalesce(substring(m.from_email from '([^<>\s"]+)@'), '') !~* '^(no-?reply|do-?not-?reply)'
+         and coalesce(substring(m.from_email from '([^<>\s"]+)@'), '') !~* '^(no[-_]?reply|do[-_]?not[-_]?reply|mailer[-_]?daemon)|[-_](no[-_]?reply|do[-_]?not[-_]?reply|mailer[-_]?daemon)([-_+]|$)'
          and not public.fn_is_demo_email(m.from_email);
       select percentile_cont(0.5) within group (order by extract(epoch from m.replied_at - m.created_at) / 60) into v_median
         from public.inbound_messages m
@@ -12123,8 +12270,12 @@ begin
                            'median_first_reply_minutes_7d', round(v_median), 'owner_seat', 'customer_support', 'duty', 'reply_time'),
         '{}'::text[], array['whether the customer was answered on another channel'], 'customer_support');
     elsif exists (select 1 from public.it_engineer_finding where issue_key = 'support_reply_sla:' || c and closed_at is null) then
+      -- 27 Oct 2026: the note says what cleared each message it last listed (answered, aged out, no longer
+      -- counted, gone), never a reply that did not happen.
       perform public.fn_it_engineer_finding_close('support_reply_sla:' || c,
-        'every ' || c || ' message older than ' || v_sla || ' h has a first reply');
+        public.fn_support_reply_watch_close_note(c,
+          (select f.evidence from public.it_engineer_finding f where f.issue_key = 'support_reply_sla:' || c and f.closed_at is null),
+          v_sla));
     end if;
     v_out := v_out || jsonb_build_object(c, jsonb_build_object('over_sla', v_n, 'median_first_reply_minutes_7d', round(v_median)));
   end loop;

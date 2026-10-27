@@ -19,6 +19,7 @@
 // prevented by: _shared/wa_code.test.ts, login_otp/own_whatsapp_code.test.ts, login_otp/verify_race.check.ts
 import { timedFetch } from './timed_fetch.ts';
 import { isDemoPhone } from './demo_identity.ts';
+import { statusCallbackUrl } from './twilio_status.ts';
 import type { VerifySent } from './whatsapp_choice.ts';
 
 export type WaPurpose = 'login' | 'kyc_phone' | 'kyc_whatsapp';
@@ -79,7 +80,12 @@ export async function sendOwnWhatsAppCode(d: WaCodeDeps, o: { phone: string; pur
   } catch (_e) { id = null; }   // no otp_hmac_key, no answer
   if (id == null) return { ok: false, why: 'unavailable' };   // the table is not applied yet: Verify carries it
   const form = new URLSearchParams({ From: 'whatsapp:' + (String(from).startsWith('+') ? from : '+' + from), To: 'whatsapp:' + o.phone,
-    ContentSid: contentSid, ContentVariables: JSON.stringify({ 1: code }) });
+    ContentSid: contentSid, StatusCallback: statusCallbackUrl(), ContentVariables: JSON.stringify({ 1: code }) });
+  // StatusCallback, like every other Messages.json send (_shared/twilio_status.ts, 22 Sep 2026): Twilio reports what
+  // became of the code message to wa_status. fn_twilio_status_arrived records it only against a notifications row, and
+  // a code message has none, so it answers matched:false and records nothing; the SMS failover keeps reading the
+  // message itself through ownMessageStatus(). The callback is what lets a refused or undelivered code show up in the
+  // wa_status run log instead of Twilio dropping the report.
   try {
     const r = await (d.fetch ?? timedFetch)(`https://api.twilio.com/2010-04-01/Accounts/${acct}/Messages.json`,
       { method: 'POST', headers: { Authorization: 'Basic ' + btoa(ks + ':' + kk), 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });

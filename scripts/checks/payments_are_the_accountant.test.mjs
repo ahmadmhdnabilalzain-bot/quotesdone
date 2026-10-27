@@ -192,6 +192,9 @@ test('every conversation has a producer and a handler in the receiving seat', ()
       // a recurring support cause goes to the seat support_category names as its owner (instruction 1009)
       || (type === 'support.root_cause' && from === 'customer_support'
           && allSql.includes("fn_seat_handoff('customer_support', r.owner_seat, 'support.root_cause'"))
+      // an unanswerable question goes to the seat that owns the knowledge: kb/sales to sales_engineer, the rest to ceo (#1549)
+      || (type === 'knowledge.request' && from === 'customer_support' && ['sales_engineer', 'ceo'].includes(to)
+          && allSql.includes("fn_seat_handoff('customer_support', v_seat, 'knowledge.request'"))
       // a contested decision goes to the seat review_route names as its owner (ledger 1152, #1566)
       || (type === 'review.requested' && from === 'customer_support'
           && allSql.includes("fn_seat_handoff('customer_support', v_route.owner_seat, 'review.requested'"))
