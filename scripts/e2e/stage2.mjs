@@ -30,6 +30,7 @@ import { internalCred, newRun, teardown, makeLicenceGatedSupplier, makeSupplier,
 import { demoPdf } from '../lib/demo_pdf.mjs';
 import { buildInventory, classify, summarise } from './stage2_coverage.mjs';
 import { liveDuties, probeDuty } from './stage2_duties.mjs';
+import { docIsRead, readingSettled } from './stage2_reading.mjs';
 
 const argv = process.argv.slice(2);
 const val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
@@ -847,6 +848,14 @@ async function realRun(pre) {
       for (let i = 0; i < lic.length; i++) {
         const d = lic[i]; const prof = profiles[i % profiles.length];
         const email = demoEmail(run, 'sup');
+        // A NAME THIS RUN STILL HOLDS IS GIVEN BACK FIRST (run 0a717394, 27 Oct diagnosis). The release at the end of
+        // the previous shape can be undone: a supplier gated 'documents_being_read' is gated again when its profile
+        // read ends (supplier_docs_later.ts), and that gate writes the licence name back over the suffixed one
+        // (a_licence_name_becomes_the_company_name...sql). Dune Plumbing kept its name that way and the next Dune
+        // shape crashed S21 with 23505. Scoped to this run's own ZZ DEMO, example.invalid leads only.
+        if (run.ids.leads.size) await write(`update public.leads set company_name = company_name || ${q(' [' + tag + ' released]')}
+            where id = any(array[${[...run.ids.leads].map(Number).join(',')}]::bigint[]) and claimed_by like '%@example.invalid' and company_name like 'ZZ DEMO%'
+              and public.fn_company_registration_name_key(company_name) = public.fn_company_registration_name_key(${q(d.registered_name)})`, 'S21 release a name this run still holds');
         const s = await makeSupplier(run, { trade: 'aluminium', email, company_name: d.registered_name, approval: 'pending' });
         run.ids.leads.add(String(s.leadId)); fx.docSuppliers = [...(fx.docSuppliers || []), { leadId: s.leadId, doc: d.id }];
         await write(`update public.leads set phone = ${q(demoMobile())}, contact_name = ${q('ZZ DEMO Contact ' + tag)}, owner_dob = '1985-06-01',
@@ -857,7 +866,17 @@ async function realRun(pre) {
         const body = { action: 'process_docs', license: b64(d), company_profile: b64(prof), ...(i === 0 && catalogue ? { catalogs: [b64(catalogue)] } : {}) };
         const r = await call('supplier_api', s.jwt, body, 240000);
         const route = (await costSince(w0)).map((x) => `${x.task_class}:${x.model_used}`).join(' ');
-        const settled = await waitFor(async () => { const x = (await read(`select approval_status, licence_gate_reason from public.leads where id=${Number(s.leadId)}`))[0]; return x && (x.approval_status !== 'pending' || x.licence_gate_reason) ? x : null; }, { timeoutMs: 45000 });
+        // WAIT FOR THE READING TO END, NOT FOR THE FIRST GATE (run 0a717394). process_docs answers before the profile and
+        // catalogue are read (supplier_docs_later.ts reads them after the response), and the first gate parks a supplier
+        // on 'documents_being_read'. The old wait stopped at any reason, so 7 of 11 shapes were asserted while their
+        // profile still said 'reading': proposed trades [] and Dune Plumbing 'pending (documents_being_read)' were the
+        // harness reading too early, not the reader failing. Settled = no document 'reading' and no reading hold.
+        const t0 = Date.now();
+        const settled = await waitFor(async () => {
+          const x = (await read(`select approval_status, licence_gate_reason, c.source_docs from public.leads l left join public.supplier_capabilities c on c.supplier_id = l.id where l.id=${Number(s.leadId)}`))[0];
+          return x && readingSettled(x) ? x : null;
+        }, { timeoutMs: 300000, everyMs: 5000 });
+        const settleNote = settled ? `settled in ${Math.round((Date.now() - t0) / 1000)} s` : 'NOT settled in 300 s';
         const row = (await read(`select l.company_name, l.trade_license_no, l.licence_legal_name, l.license_expiry::text license_expiry, l.license_authority, l.approval_status, l.licence_gate_reason,
             l.license_doc_path, l.company_profile_doc_path, l.catalog_doc_paths, c.proposed_trades, c.source_docs
             from public.leads l left join public.supplier_capabilities c on c.supplier_id = l.id where l.id=${Number(s.leadId)}`))[0];
@@ -877,7 +896,7 @@ async function realRun(pre) {
         const bad = Object.entries(v).filter(([f, x]) => x === 'wrong' || (mustRead && x === 'held' && !(arOnly && f === 'legal_name')));
         A(`${d.id} (${d.format}, ${d.authority}): licence number, legal name and expiry read exactly`, r.status === 200 && bad.length === 0,
           `HTTP ${r.status} no=${row.trade_license_no}/${t.licence_no} name=${row.licence_legal_name}/${arOnly ? t.legal_name_ar : t.legal_name_en} expiry=${row.license_expiry}/${t.expiry_date} ${JSON.stringify(v)}`, route);
-        A(`${d.id}: the gate decides ${exp}`, gate === 'correct', `${row.approval_status}${reason ? ' (' + reason + ')' : ''} company=${row.company_name} -> ${gate}`);
+        A(`${d.id}: the gate decides ${exp}`, gate === 'correct', `${row.approval_status}${reason ? ' (' + reason + ')' : ''} company=${row.company_name} -> ${gate} (${settleNote})`);
         if (exp === 'name_autofilled') {
           const act = (await read(`select count(*)::int n from public.agent_actions where kind='supplier_name_from_licence' and (detail->>'lead_id')::text=${q(String(s.leadId))} or (kind='supplier_name_from_licence' and target_id::text=${q(String(s.leadId))})`).catch(() => [{ n: -1 }]))[0].n;
           A(`${d.id}: the company name is taken from the licence and recorded (1176)`, norm(row.company_name) === norm(t.legal_name_en) && act !== 0, `company=${row.company_name} agent_actions=${act}`);
@@ -885,9 +904,10 @@ async function realRun(pre) {
         // 1177: every attachment read - each uploaded path has a reading on the supplier's row.
         const docsRead = (row.source_docs?.docs || []);
         const uploaded = [row.license_doc_path, row.company_profile_doc_path, ...(row.catalog_doc_paths || [])].filter(Boolean);
-        const unread = uploaded.filter((p) => !docsRead.some((x) => x.path === p && x.status && !/error|unread|failed/i.test(x.status)));
+        // 'reading' is not read (run 0a717394 passed this check with every profile still 'reading').
+        const unread = uploaded.filter((p) => !docsRead.some((x) => x.path === p && docIsRead(x)));
         A(`${d.id}: every attachment read (licence + ${prof.format} profile${i === 0 ? ' + catalogue' : ''}) (1177)`, mustRead ? unread.length === 0 : unread.filter((p) => p !== row.license_doc_path).length === 0,
-          `${uploaded.length} uploaded, unread: ${unread.join(', ') || 'none'} · ${JSON.stringify(docsRead.map((x) => [String(x.path).split('/').pop(), x.status])).slice(0, 220)}`);
+          `${uploaded.length} uploaded, unread: ${unread.join(', ') || 'none'} · ${settleNote} · ${JSON.stringify(docsRead.map((x) => [String(x.path).split('/').pop(), x.status])).slice(0, 220)}`);
         // Cross matching: what the profile does is proposed, and nothing it does not do.
         const truthTrades = new Set([...(t.trades || []), ...(prof.truth.trades || []), ...(i === 0 && catalogue ? catalogue.truth.trades : [])]);
         const prop = row.proposed_trades || [];
