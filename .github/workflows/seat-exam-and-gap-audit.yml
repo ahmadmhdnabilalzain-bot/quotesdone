@@ -8,10 +8,11 @@ name: Seat exam (daily) and knowledge-gap audit (weekly)
 # Needs two repository secrets: SUPABASE_ACCESS_TOKEN (present) and CLAUDE_CODE_OAUTH_TOKEN (NOT YET SET). Without
 # either the job skips with a notice; nothing runs half-way.
 
+# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
 on:
-  schedule:
-    - cron: '0 2 * * *'    # daily 06:00 Dubai: the exam
-    - cron: '0 3 * * 1'    # Mondays 07:00 Dubai: the gap audit
+  # schedule:
+    # - cron: '0 2 * * *'    # daily 06:00 Dubai: the exam
+    # - cron: '0 3 * * 1'    # Mondays 07:00 Dubai: the gap audit
   workflow_dispatch:
     inputs:
       job: { description: 'exam or audit', required: true, default: 'exam' }
