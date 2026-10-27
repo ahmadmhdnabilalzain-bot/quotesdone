@@ -7,9 +7,10 @@ name: Dropbox backup second scheduler
 # a lost pg_net request delays a document by at most six hours instead of losing it.
 # Cost: ~1 Actions-minute per run, 4 a day, ~120 a month. Owner: sales_engineer.
 
+# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
 on:
-  schedule:
-    - cron: '41 */6 * * *'
+  # schedule:
+    # - cron: '41 */6 * * *'
   workflow_dispatch: {}
 
 concurrency:

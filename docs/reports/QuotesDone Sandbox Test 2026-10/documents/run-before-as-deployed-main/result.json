@@ -1,0 +1,3254 @@
+{
+ "label": "before-as-deployed-main",
+ "run_tag": "accxhlmhn",
+ "measured_at": "2026-10-07T02:27:09.742Z",
+ "model_via": "none",
+ "spend": null,
+ "gate_sql": [],
+ "leftovers": {
+  "leads": 0,
+  "objects": 0
+ },
+ "corpus": {
+  "documents": 59,
+  "licences": 50,
+  "readable_licences": 22
+ },
+ "perField": {
+  "activities": {
+   "correct": 0,
+   "held": 47,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 47,
+   "acc": 0
+  },
+  "authority": {
+   "correct": 0,
+   "held": 47,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 47,
+   "acc": 0
+  },
+  "emirate": {
+   "correct": 0,
+   "held": 47,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 47,
+   "acc": 0
+  },
+  "expiry_date": {
+   "correct": 22,
+   "held": 25,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 47,
+   "acc": 46.8
+  },
+  "issue_date": {
+   "correct": 0,
+   "held": 47,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 47,
+   "acc": 0
+  },
+  "legal_form": {
+   "correct": 0,
+   "held": 47,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 47,
+   "acc": 0
+  },
+  "legal_name_ar": {
+   "correct": 0,
+   "held": 2,
+   "wrong": 0,
+   "n/a": 48,
+   "n": 2,
+   "acc": 0
+  },
+  "legal_name_en": {
+   "correct": 11,
+   "held": 33,
+   "wrong": 1,
+   "n/a": 5,
+   "n": 45,
+   "acc": 24.4
+  },
+  "licence_no": {
+   "correct": 0,
+   "held": 47,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 47,
+   "acc": 0
+  },
+  "trade_name": {
+   "correct": 0,
+   "held": 47,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 47,
+   "acc": 0
+  }
+ },
+ "perFieldReadable": {
+  "activities": {
+   "correct": 0,
+   "held": 22,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 22,
+   "acc": 0
+  },
+  "authority": {
+   "correct": 0,
+   "held": 22,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 22,
+   "acc": 0
+  },
+  "emirate": {
+   "correct": 0,
+   "held": 22,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 22,
+   "acc": 0
+  },
+  "expiry_date": {
+   "correct": 22,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 22,
+   "acc": 100
+  },
+  "issue_date": {
+   "correct": 0,
+   "held": 22,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 22,
+   "acc": 0
+  },
+  "legal_form": {
+   "correct": 0,
+   "held": 22,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 22,
+   "acc": 0
+  },
+  "legal_name_ar": {
+   "correct": 0,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 22,
+   "n": 0,
+   "acc": null
+  },
+  "legal_name_en": {
+   "correct": 11,
+   "held": 10,
+   "wrong": 1,
+   "n/a": 0,
+   "n": 22,
+   "acc": 50
+  },
+  "licence_no": {
+   "correct": 0,
+   "held": 22,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 22,
+   "acc": 0
+  },
+  "trade_name": {
+   "correct": 0,
+   "held": 22,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 22,
+   "acc": 0
+  }
+ },
+ "perAuthority": {
+  "abu_dhabi_added": {
+   "correct": 2,
+   "held": 25,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 27,
+   "acc": 7.4,
+   "critical": {
+    "correct": 2,
+    "held": 7,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 9,
+    "acc": 22.2
+   }
+  },
+  "adgm": {
+   "correct": 1,
+   "held": 17,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 5.6,
+   "critical": {
+    "correct": 1,
+    "held": 5,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 16.7
+   }
+  },
+  "ajman_ded": {
+   "correct": 1,
+   "held": 25,
+   "wrong": 1,
+   "n/a": 3,
+   "n": 27,
+   "acc": 3.7,
+   "critical": {
+    "correct": 1,
+    "held": 6,
+    "wrong": 1,
+    "n/a": 1,
+    "n": 8,
+    "acc": 12.5
+   }
+  },
+  "dafza": {
+   "correct": 1,
+   "held": 17,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 5.6,
+   "critical": {
+    "correct": 1,
+    "held": 5,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 16.7
+   }
+  },
+  "difc": {
+   "correct": 2,
+   "held": 16,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 11.1,
+   "critical": {
+    "correct": 2,
+    "held": 4,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 33.3
+   }
+  },
+  "dmcc": {
+   "correct": 4,
+   "held": 23,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 27,
+   "acc": 14.8,
+   "critical": {
+    "correct": 4,
+    "held": 5,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 9,
+    "acc": 44.4
+   }
+  },
+  "dso": {
+   "correct": 2,
+   "held": 16,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 11.1,
+   "critical": {
+    "correct": 2,
+    "held": 4,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 33.3
+   }
+  },
+  "dubai_ded_old": {
+   "correct": 4,
+   "held": 23,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 27,
+   "acc": 14.8,
+   "critical": {
+    "correct": 4,
+    "held": 5,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 9,
+    "acc": 44.4
+   }
+  },
+  "dubai_det": {
+   "correct": 2,
+   "held": 34,
+   "wrong": 0,
+   "n/a": 4,
+   "n": 36,
+   "acc": 5.6,
+   "critical": {
+    "correct": 2,
+    "held": 10,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 12,
+    "acc": 16.7
+   }
+  },
+  "fujairah_ded": {
+   "correct": 2,
+   "held": 25,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 27,
+   "acc": 7.4,
+   "critical": {
+    "correct": 2,
+    "held": 6,
+    "wrong": 0,
+    "n/a": 1,
+    "n": 8,
+    "acc": 25
+   }
+  },
+  "ifza": {
+   "correct": 1,
+   "held": 17,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 5.6,
+   "critical": {
+    "correct": 1,
+    "held": 5,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 16.7
+   }
+  },
+  "jafza": {
+   "correct": 2,
+   "held": 25,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 27,
+   "acc": 7.4,
+   "critical": {
+    "correct": 2,
+    "held": 7,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 9,
+    "acc": 22.2
+   }
+  },
+  "meydan": {
+   "correct": 2,
+   "held": 16,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 11.1,
+   "critical": {
+    "correct": 2,
+    "held": 4,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 33.3
+   }
+  },
+  "none": {
+   "correct": 0,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 30,
+   "n": 0,
+   "acc": null,
+   "critical": {
+    "correct": 0,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 9,
+    "n": 0,
+    "acc": null
+   }
+  },
+  "rak_ded": {
+   "correct": 2,
+   "held": 16,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 11.1,
+   "critical": {
+    "correct": 2,
+    "held": 4,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 33.3
+   }
+  },
+  "rakez": {
+   "correct": 1,
+   "held": 26,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 27,
+   "acc": 3.7,
+   "critical": {
+    "correct": 1,
+    "held": 8,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 9,
+    "acc": 11.1
+   }
+  },
+  "shams": {
+   "correct": 1,
+   "held": 17,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 5.6,
+   "critical": {
+    "correct": 1,
+    "held": 5,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 16.7
+   }
+  },
+  "sharjah_sedd": {
+   "correct": 1,
+   "held": 35,
+   "wrong": 0,
+   "n/a": 4,
+   "n": 36,
+   "acc": 2.8,
+   "critical": {
+    "correct": 1,
+    "held": 11,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 12,
+    "acc": 8.3
+   }
+  },
+  "uaq_ded": {
+   "correct": 2,
+   "held": 16,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 11.1,
+   "critical": {
+    "correct": 2,
+    "held": 4,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 33.3
+   }
+  }
+ },
+ "perFormat": {
+  "arabic_only_jpg": {
+   "correct": 0,
+   "held": 9,
+   "wrong": 0,
+   "n/a": 1,
+   "n": 9,
+   "acc": 0,
+   "critical": {
+    "correct": 0,
+    "held": 2,
+    "wrong": 0,
+    "n/a": 1,
+    "n": 2,
+    "acc": 0
+   }
+  },
+  "arabic_only_png": {
+   "correct": 0,
+   "held": 9,
+   "wrong": 0,
+   "n/a": 1,
+   "n": 9,
+   "acc": 0,
+   "critical": {
+    "correct": 0,
+    "held": 2,
+    "wrong": 0,
+    "n/a": 1,
+    "n": 2,
+    "acc": 0
+   }
+  },
+  "bilingual_jpg": {
+   "correct": 0,
+   "held": 9,
+   "wrong": 0,
+   "n/a": 1,
+   "n": 9,
+   "acc": 0,
+   "critical": {
+    "correct": 0,
+    "held": 3,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 3,
+    "acc": 0
+   }
+  },
+  "bilingual_phone": {
+   "correct": 0,
+   "held": 9,
+   "wrong": 0,
+   "n/a": 1,
+   "n": 9,
+   "acc": 0,
+   "critical": {
+    "correct": 0,
+    "held": 3,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 3,
+    "acc": 0
+   }
+  },
+  "bilingual_scan_pdf": {
+   "correct": 0,
+   "held": 9,
+   "wrong": 0,
+   "n/a": 1,
+   "n": 9,
+   "acc": 0,
+   "critical": {
+    "correct": 0,
+    "held": 3,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 3,
+    "acc": 0
+   }
+  },
+  "blank_pdf": {
+   "correct": 0,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 10,
+   "n": 0,
+   "acc": null,
+   "critical": {
+    "correct": 0,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 3,
+    "n": 0,
+    "acc": null
+   }
+  },
+  "blank_photo": {
+   "correct": 0,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 10,
+   "n": 0,
+   "acc": null,
+   "critical": {
+    "correct": 0,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 3,
+    "n": 0,
+    "acc": null
+   }
+  },
+  "jpg": {
+   "correct": 0,
+   "held": 36,
+   "wrong": 0,
+   "n/a": 4,
+   "n": 36,
+   "acc": 0,
+   "critical": {
+    "correct": 0,
+    "held": 12,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 12,
+    "acc": 0
+   }
+  },
+  "lowdpi": {
+   "correct": 0,
+   "held": 18,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 0,
+   "critical": {
+    "correct": 0,
+    "held": 6,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 0
+   }
+  },
+  "multipage_pdf": {
+   "correct": 3,
+   "held": 15,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 16.7,
+   "critical": {
+    "correct": 3,
+    "held": 3,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 50
+   }
+  },
+  "no_file": {
+   "correct": 0,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 10,
+   "n": 0,
+   "acc": null,
+   "critical": {
+    "correct": 0,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 3,
+    "n": 0,
+    "acc": null
+   }
+  },
+  "phone": {
+   "correct": 0,
+   "held": 18,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 0,
+   "critical": {
+    "correct": 0,
+    "held": 6,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 0
+   }
+  },
+  "png": {
+   "correct": 0,
+   "held": 36,
+   "wrong": 0,
+   "n/a": 4,
+   "n": 36,
+   "acc": 0,
+   "critical": {
+    "correct": 0,
+    "held": 12,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 12,
+    "acc": 0
+   }
+  },
+  "rotated90": {
+   "correct": 0,
+   "held": 27,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 27,
+   "acc": 0,
+   "critical": {
+    "correct": 0,
+    "held": 9,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 9,
+    "acc": 0
+   }
+  },
+  "scan_pdf": {
+   "correct": 0,
+   "held": 27,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 27,
+   "acc": 0,
+   "critical": {
+    "correct": 0,
+    "held": 9,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 9,
+    "acc": 0
+   }
+  },
+  "skewed": {
+   "correct": 0,
+   "held": 18,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 0,
+   "critical": {
+    "correct": 0,
+    "held": 6,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 0
+   }
+  },
+  "text_pdf_colon": {
+   "correct": 21,
+   "held": 77,
+   "wrong": 1,
+   "n/a": 11,
+   "n": 99,
+   "acc": 21.2,
+   "critical": {
+    "correct": 21,
+    "held": 11,
+    "wrong": 1,
+    "n/a": 0,
+    "n": 33,
+    "acc": 63.6
+   }
+  },
+  "text_pdf_table": {
+   "correct": 9,
+   "held": 72,
+   "wrong": 0,
+   "n/a": 9,
+   "n": 81,
+   "acc": 11.1,
+   "critical": {
+    "correct": 9,
+    "held": 18,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 27,
+    "acc": 33.3
+   }
+  }
+ },
+ "gate": {
+  "tally": {
+   "correct": 17,
+   "held": 32,
+   "wrong": 0,
+   "UNSAFE": 1
+  },
+  "rows": [
+   {
+    "id": "lic_dubai_ded_old_text",
+    "authority": "dubai_ded_old",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_dubai_ded_old_scan_pdf",
+    "authority": "dubai_ded_old",
+    "format": "scan_pdf",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_dubai_det_text",
+    "authority": "dubai_det",
+    "format": "text_pdf_table",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_dubai_det_png",
+    "authority": "dubai_det",
+    "format": "png",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_abu_dhabi_added_text",
+    "authority": "abu_dhabi_added",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_abu_dhabi_added_jpg",
+    "authority": "abu_dhabi_added",
+    "format": "jpg",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_adgm_text",
+    "authority": "adgm",
+    "format": "text_pdf_table",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_adgm_rotated90",
+    "authority": "adgm",
+    "format": "rotated90",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_sharjah_sedd_text",
+    "authority": "sharjah_sedd",
+    "format": "text_pdf_table",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_sharjah_sedd_skewed",
+    "authority": "sharjah_sedd",
+    "format": "skewed",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_ajman_ded_text",
+    "authority": "ajman_ded",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "UNSAFE",
+    "critical_wrong": [
+     "legal_name_en"
+    ]
+   },
+   {
+    "id": "lic_ajman_ded_lowdpi",
+    "authority": "ajman_ded",
+    "format": "lowdpi",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_rak_ded_text",
+    "authority": "rak_ded",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_rak_ded_phone",
+    "authority": "rak_ded",
+    "format": "phone",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_rakez_text",
+    "authority": "rakez",
+    "format": "text_pdf_table",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_rakez_scan_pdf",
+    "authority": "rakez",
+    "format": "scan_pdf",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_uaq_ded_text",
+    "authority": "uaq_ded",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_uaq_ded_png",
+    "authority": "uaq_ded",
+    "format": "png",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_fujairah_ded_text",
+    "authority": "fujairah_ded",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_fujairah_ded_jpg",
+    "authority": "fujairah_ded",
+    "format": "jpg",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_jafza_text",
+    "authority": "jafza",
+    "format": "text_pdf_table",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_jafza_rotated90",
+    "authority": "jafza",
+    "format": "rotated90",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_dmcc_text",
+    "authority": "dmcc",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_dmcc_skewed",
+    "authority": "dmcc",
+    "format": "skewed",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_dafza_text",
+    "authority": "dafza",
+    "format": "text_pdf_table",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_dafza_lowdpi",
+    "authority": "dafza",
+    "format": "lowdpi",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_dso_text",
+    "authority": "dso",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_dso_phone",
+    "authority": "dso",
+    "format": "phone",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_ifza_text",
+    "authority": "ifza",
+    "format": "text_pdf_table",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_ifza_scan_pdf",
+    "authority": "ifza",
+    "format": "scan_pdf",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_meydan_text",
+    "authority": "meydan",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_meydan_png",
+    "authority": "meydan",
+    "format": "png",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_shams_text",
+    "authority": "shams",
+    "format": "text_pdf_table",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_shams_jpg",
+    "authority": "shams",
+    "format": "jpg",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_difc_text",
+    "authority": "difc",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_difc_rotated90",
+    "authority": "difc",
+    "format": "rotated90",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_dubai_det_bi_jpg",
+    "authority": "dubai_det",
+    "format": "bilingual_jpg",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_sharjah_sedd_bi_phone",
+    "authority": "sharjah_sedd",
+    "format": "bilingual_phone",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_abu_dhabi_added_bi_scan_pdf",
+    "authority": "abu_dhabi_added",
+    "format": "bilingual_scan_pdf",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_ajman_ded_ar_png",
+    "authority": "ajman_ded",
+    "format": "arabic_only_png",
+    "expected": "hold_name",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "correct",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_fujairah_ded_ar_jpg",
+    "authority": "fujairah_ded",
+    "format": "arabic_only_jpg",
+    "expected": "hold_name",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "correct",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_dmcc_multipage",
+    "authority": "dmcc",
+    "format": "multipage_pdf",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_jafza_multipage",
+    "authority": "jafza",
+    "format": "multipage_pdf",
+    "expected": "approve",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_expired_text",
+    "authority": "dubai_det",
+    "format": "text_pdf_table",
+    "expected": "licence_expired",
+    "status": "action_required",
+    "reason": "licence_expired",
+    "verdict": "correct",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_expired_scan",
+    "authority": "sharjah_sedd",
+    "format": "jpg",
+    "expected": "licence_expired",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_mismatch_text",
+    "authority": "dubai_ded_old",
+    "format": "text_pdf_colon",
+    "expected": "licence_name_mismatch",
+    "status": "action_required",
+    "reason": "licence_name_mismatch",
+    "verdict": "correct",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_mismatch_scan",
+    "authority": "rakez",
+    "format": "png",
+    "expected": "licence_name_mismatch",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "held",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_blank_pdf",
+    "authority": "none",
+    "format": "blank_pdf",
+    "expected": "licence_unreadable",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "correct",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_blank_photo",
+    "authority": "none",
+    "format": "blank_photo",
+    "expected": "licence_unreadable",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "correct",
+    "critical_wrong": []
+   },
+   {
+    "id": "lic_missing",
+    "authority": "none",
+    "format": "no_file",
+    "expected": "reg_licence",
+    "status": "action_required",
+    "reason": "reg_licence",
+    "verdict": "correct",
+    "critical_wrong": []
+   }
+  ]
+ },
+ "match": [
+  {
+   "trade": "hvac",
+   "expected": 7,
+   "reached": 3,
+   "extra": [],
+   "missing_held": [
+    "lic_dubai_det_png",
+    "lic_rakez_scan_pdf",
+    "lic_dso_phone"
+   ],
+   "missing_wrong": [
+    "profile_pptx"
+   ]
+  },
+  {
+   "trade": "glazing",
+   "expected": 8,
+   "reached": 3,
+   "extra": [],
+   "missing_held": [
+    "lic_sharjah_sedd_skewed",
+    "lic_jafza_rotated90",
+    "lic_ifza_text",
+    "lic_shams_jpg",
+    "catalogue_pdf"
+   ],
+   "missing_wrong": []
+  },
+  {
+   "trade": "joinery",
+   "expected": 9,
+   "reached": 0,
+   "extra": [],
+   "missing_held": [
+    "lic_dubai_ded_old_text",
+    "lic_abu_dhabi_added_jpg",
+    "lic_rak_ded_text",
+    "lic_uaq_ded_png",
+    "lic_dafza_text",
+    "lic_ifza_scan_pdf",
+    "lic_dubai_det_bi_jpg",
+    "profile_png"
+   ],
+   "missing_wrong": [
+    "lic_dmcc_multipage"
+   ]
+  },
+  {
+   "trade": "flooring",
+   "expected": 7,
+   "reached": 2,
+   "extra": [],
+   "missing_held": [
+    "lic_ajman_ded_lowdpi",
+    "lic_dmcc_skewed",
+    "lic_ifza_text",
+    "lic_difc_rotated90",
+    "profile_png"
+   ],
+   "missing_wrong": []
+  },
+  {
+   "trade": "painting",
+   "expected": 9,
+   "reached": 1,
+   "extra": [],
+   "missing_held": [
+    "lic_dubai_ded_old_scan_pdf",
+    "lic_adgm_text",
+    "lic_rak_ded_phone",
+    "lic_fujairah_ded_text",
+    "lic_dafza_lowdpi",
+    "lic_meydan_text",
+    "lic_sharjah_sedd_bi_phone",
+    "lic_jafza_multipage"
+   ],
+   "missing_wrong": []
+  },
+  {
+   "trade": "plumbing",
+   "expected": 8,
+   "reached": 1,
+   "extra": [],
+   "missing_held": [
+    "lic_dubai_det_text",
+    "lic_sharjah_sedd_skewed",
+    "lic_rakez_text",
+    "lic_jafza_rotated90",
+    "lic_shams_jpg",
+    "lic_abu_dhabi_added_bi_scan_pdf"
+   ],
+   "missing_wrong": [
+    "profile_pptx"
+   ]
+  },
+  {
+   "trade": "aluminium",
+   "expected": 9,
+   "reached": 0,
+   "extra": [],
+   "missing_held": [
+    "lic_dubai_ded_old_text",
+    "lic_adgm_rotated90",
+    "lic_rak_ded_text",
+    "lic_fujairah_ded_jpg",
+    "lic_dafza_text",
+    "lic_meydan_png",
+    "lic_dubai_det_bi_jpg",
+    "catalogue_pdf"
+   ],
+   "missing_wrong": [
+    "profile_pdf"
+   ]
+  },
+  {
+   "trade": "elevators",
+   "expected": 7,
+   "reached": 1,
+   "extra": [],
+   "missing_held": [
+    "lic_abu_dhabi_added_jpg",
+    "lic_uaq_ded_png",
+    "lic_ifza_scan_pdf"
+   ],
+   "missing_wrong": [
+    "lic_ajman_ded_text",
+    "lic_dmcc_text",
+    "lic_difc_text"
+   ]
+  },
+  {
+   "trade": "electrical",
+   "expected": 8,
+   "reached": 0,
+   "extra": [],
+   "missing_held": [
+    "lic_dubai_ded_old_scan_pdf",
+    "lic_sharjah_sedd_text",
+    "lic_rak_ded_phone",
+    "lic_jafza_text",
+    "lic_dafza_lowdpi",
+    "lic_shams_text",
+    "lic_sharjah_sedd_bi_phone"
+   ],
+   "missing_wrong": [
+    "profile_docx"
+   ]
+  },
+  {
+   "trade": "landscaping",
+   "expected": 7,
+   "reached": 0,
+   "extra": [],
+   "missing_held": [
+    "lic_dubai_det_png",
+    "lic_sharjah_sedd_text",
+    "lic_rakez_scan_pdf",
+    "lic_jafza_text",
+    "lic_dso_phone",
+    "lic_shams_text"
+   ],
+   "missing_wrong": [
+    "profile_docx_land"
+   ]
+  },
+  {
+   "trade": "tax_advisory",
+   "expected": 0,
+   "reached": 0,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "fire_fighting",
+   "expected": 8,
+   "reached": 0,
+   "extra": [],
+   "missing_held": [
+    "lic_adgm_text",
+    "lic_ajman_ded_lowdpi",
+    "lic_fujairah_ded_text",
+    "lic_dmcc_skewed",
+    "lic_meydan_text",
+    "lic_difc_rotated90",
+    "lic_jafza_multipage"
+   ],
+   "missing_wrong": [
+    "profile_docx"
+   ]
+  },
+  {
+   "trade": "waterproofing",
+   "expected": 8,
+   "reached": 2,
+   "extra": [],
+   "missing_held": [
+    "lic_dubai_det_text",
+    "lic_adgm_rotated90",
+    "lic_rakez_text",
+    "lic_fujairah_ded_jpg",
+    "lic_meydan_png",
+    "lic_abu_dhabi_added_bi_scan_pdf"
+   ],
+   "missing_wrong": []
+  },
+  {
+   "trade": "racking_storage",
+   "expected": 0,
+   "reached": 1,
+   "extra": [
+    "lic_abu_dhabi_added_text"
+   ],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "glass_containers",
+   "expected": 0,
+   "reached": 2,
+   "extra": [
+    "lic_abu_dhabi_added_text",
+    "lic_uaq_ded_text"
+   ],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "iso_certification",
+   "expected": 0,
+   "reached": 5,
+   "extra": [
+    "profile_pdf",
+    "profile_docx",
+    "profile_pptx",
+    "profile_pdf_paint",
+    "profile_docx_land"
+   ],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "cleaning_chemicals",
+   "expected": 0,
+   "reached": 2,
+   "extra": [
+    "lic_abu_dhabi_added_text",
+    "lic_uaq_ded_text"
+   ],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "corporate_training",
+   "expected": 0,
+   "reached": 0,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": []
+  }
+ ],
+ "trades": [
+  {
+   "id": "lic_dubai_ded_old_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "aluminium",
+    "joinery"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "aluminium",
+    "joinery"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_dubai_ded_old_scan_pdf",
+   "kind": "licence",
+   "format": "scan_pdf",
+   "truth": [
+    "electrical",
+    "painting"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "electrical",
+    "painting"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_dubai_det_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "proposed": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_dubai_det_png",
+   "kind": "licence",
+   "format": "png",
+   "truth": [
+    "hvac",
+    "landscaping"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "hvac",
+    "landscaping"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_abu_dhabi_added_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "flooring",
+    "glazing"
+   ],
+   "proposed": [
+    "cleaning_chemicals",
+    "flooring",
+    "glass_containers",
+    "glazing",
+    "racking_storage"
+   ],
+   "wrong": [
+    "cleaning_chemicals",
+    "glass_containers",
+    "racking_storage"
+   ],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_abu_dhabi_added_jpg",
+   "kind": "licence",
+   "format": "jpg",
+   "truth": [
+    "elevators",
+    "joinery"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "elevators",
+    "joinery"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_adgm_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "fire_fighting",
+    "painting"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "fire_fighting",
+    "painting"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_adgm_rotated90",
+   "kind": "licence",
+   "format": "rotated90",
+   "truth": [
+    "aluminium",
+    "waterproofing"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "aluminium",
+    "waterproofing"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_sharjah_sedd_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "electrical",
+    "landscaping"
+   ],
+   "proposed": [
+    "electrical"
+   ],
+   "wrong": [],
+   "missing": [
+    "landscaping"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_sharjah_sedd_skewed",
+   "kind": "licence",
+   "format": "skewed",
+   "truth": [
+    "glazing",
+    "plumbing"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "glazing",
+    "plumbing"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_ajman_ded_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "elevators",
+    "hvac"
+   ],
+   "proposed": [
+    "hvac"
+   ],
+   "wrong": [],
+   "missing": [
+    "elevators"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_ajman_ded_lowdpi",
+   "kind": "licence",
+   "format": "lowdpi",
+   "truth": [
+    "fire_fighting",
+    "flooring"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "fire_fighting",
+    "flooring"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_rak_ded_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "aluminium",
+    "joinery"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "aluminium",
+    "joinery"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_rak_ded_phone",
+   "kind": "licence",
+   "format": "phone",
+   "truth": [
+    "electrical",
+    "painting"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "electrical",
+    "painting"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_rakez_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "proposed": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_rakez_scan_pdf",
+   "kind": "licence",
+   "format": "scan_pdf",
+   "truth": [
+    "hvac",
+    "landscaping"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "hvac",
+    "landscaping"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_uaq_ded_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "flooring",
+    "glazing"
+   ],
+   "proposed": [
+    "cleaning_chemicals",
+    "flooring",
+    "glass_containers",
+    "glazing"
+   ],
+   "wrong": [
+    "cleaning_chemicals",
+    "glass_containers"
+   ],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_uaq_ded_png",
+   "kind": "licence",
+   "format": "png",
+   "truth": [
+    "elevators",
+    "joinery"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "elevators",
+    "joinery"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_fujairah_ded_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "fire_fighting",
+    "painting"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "fire_fighting",
+    "painting"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_fujairah_ded_jpg",
+   "kind": "licence",
+   "format": "jpg",
+   "truth": [
+    "aluminium",
+    "waterproofing"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "aluminium",
+    "waterproofing"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_jafza_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "electrical",
+    "landscaping"
+   ],
+   "proposed": [
+    "electrical"
+   ],
+   "wrong": [],
+   "missing": [
+    "landscaping"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_jafza_rotated90",
+   "kind": "licence",
+   "format": "rotated90",
+   "truth": [
+    "glazing",
+    "plumbing"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "glazing",
+    "plumbing"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_dmcc_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "elevators",
+    "hvac"
+   ],
+   "proposed": [
+    "hvac"
+   ],
+   "wrong": [],
+   "missing": [
+    "elevators"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_dmcc_skewed",
+   "kind": "licence",
+   "format": "skewed",
+   "truth": [
+    "fire_fighting",
+    "flooring"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "fire_fighting",
+    "flooring"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_dafza_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "aluminium",
+    "joinery"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "aluminium",
+    "joinery"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_dafza_lowdpi",
+   "kind": "licence",
+   "format": "lowdpi",
+   "truth": [
+    "electrical",
+    "painting"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "electrical",
+    "painting"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_dso_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "proposed": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_dso_phone",
+   "kind": "licence",
+   "format": "phone",
+   "truth": [
+    "hvac",
+    "landscaping"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "hvac",
+    "landscaping"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_ifza_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "flooring",
+    "glazing"
+   ],
+   "proposed": [
+    "cleaning_chemicals",
+    "flooring",
+    "glass_containers",
+    "glazing",
+    "racking_storage"
+   ],
+   "wrong": [
+    "cleaning_chemicals",
+    "glass_containers",
+    "racking_storage"
+   ],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_ifza_scan_pdf",
+   "kind": "licence",
+   "format": "scan_pdf",
+   "truth": [
+    "elevators",
+    "joinery"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "elevators",
+    "joinery"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_meydan_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "fire_fighting",
+    "painting"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "fire_fighting",
+    "painting"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_meydan_png",
+   "kind": "licence",
+   "format": "png",
+   "truth": [
+    "aluminium",
+    "waterproofing"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "aluminium",
+    "waterproofing"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_shams_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "electrical",
+    "landscaping"
+   ],
+   "proposed": [
+    "electrical"
+   ],
+   "wrong": [],
+   "missing": [
+    "landscaping"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_shams_jpg",
+   "kind": "licence",
+   "format": "jpg",
+   "truth": [
+    "glazing",
+    "plumbing"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "glazing",
+    "plumbing"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_difc_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "elevators",
+    "hvac"
+   ],
+   "proposed": [
+    "hvac"
+   ],
+   "wrong": [],
+   "missing": [
+    "elevators"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_difc_rotated90",
+   "kind": "licence",
+   "format": "rotated90",
+   "truth": [
+    "fire_fighting",
+    "flooring"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "fire_fighting",
+    "flooring"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_dubai_det_bi_jpg",
+   "kind": "licence",
+   "format": "bilingual_jpg",
+   "truth": [
+    "aluminium",
+    "joinery"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "aluminium",
+    "joinery"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_sharjah_sedd_bi_phone",
+   "kind": "licence",
+   "format": "bilingual_phone",
+   "truth": [
+    "electrical",
+    "painting"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "electrical",
+    "painting"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_abu_dhabi_added_bi_scan_pdf",
+   "kind": "licence",
+   "format": "bilingual_scan_pdf",
+   "truth": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_ajman_ded_ar_png",
+   "kind": "licence",
+   "format": "arabic_only_png",
+   "truth": [
+    "hvac",
+    "landscaping"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "hvac",
+    "landscaping"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_fujairah_ded_ar_jpg",
+   "kind": "licence",
+   "format": "arabic_only_jpg",
+   "truth": [
+    "flooring",
+    "glazing"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "flooring",
+    "glazing"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_dmcc_multipage",
+   "kind": "licence",
+   "format": "multipage_pdf",
+   "truth": [
+    "elevators",
+    "joinery"
+   ],
+   "proposed": [
+    "elevators"
+   ],
+   "wrong": [],
+   "missing": [
+    "joinery"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_jafza_multipage",
+   "kind": "licence",
+   "format": "multipage_pdf",
+   "truth": [
+    "fire_fighting",
+    "painting"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "fire_fighting",
+    "painting"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_expired_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "aluminium",
+    "waterproofing"
+   ],
+   "proposed": [
+    "waterproofing"
+   ],
+   "wrong": [],
+   "missing": [
+    "aluminium"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_expired_scan",
+   "kind": "licence",
+   "format": "jpg",
+   "truth": [
+    "electrical",
+    "landscaping"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "electrical",
+    "landscaping"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_mismatch_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "glazing",
+    "plumbing"
+   ],
+   "proposed": [
+    "glass_containers",
+    "glazing",
+    "plumbing"
+   ],
+   "wrong": [
+    "glass_containers"
+   ],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_mismatch_scan",
+   "kind": "licence",
+   "format": "png",
+   "truth": [
+    "elevators",
+    "hvac"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "elevators",
+    "hvac"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_blank_pdf",
+   "kind": "licence",
+   "format": "blank_pdf",
+   "truth": [],
+   "proposed": [],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_blank_photo",
+   "kind": "licence",
+   "format": "blank_photo",
+   "truth": [],
+   "proposed": [],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "profile_pdf",
+   "kind": "profile",
+   "format": "pdf",
+   "truth": [
+    "aluminium",
+    "glazing"
+   ],
+   "proposed": [
+    "glazing",
+    "iso_certification"
+   ],
+   "wrong": [
+    "iso_certification"
+   ],
+   "missing": [
+    "aluminium"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "profile_docx",
+   "kind": "profile",
+   "format": "docx",
+   "truth": [
+    "electrical",
+    "fire_fighting"
+   ],
+   "proposed": [
+    "iso_certification"
+   ],
+   "wrong": [
+    "iso_certification"
+   ],
+   "missing": [
+    "electrical",
+    "fire_fighting"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "profile_pptx",
+   "kind": "profile",
+   "format": "pptx",
+   "truth": [
+    "hvac",
+    "plumbing"
+   ],
+   "proposed": [
+    "iso_certification"
+   ],
+   "wrong": [
+    "iso_certification"
+   ],
+   "missing": [
+    "hvac",
+    "plumbing"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "profile_png",
+   "kind": "profile",
+   "format": "png",
+   "truth": [
+    "flooring",
+    "joinery"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "flooring",
+    "joinery"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "profile_pdf_paint",
+   "kind": "profile",
+   "format": "pdf",
+   "truth": [
+    "painting",
+    "waterproofing"
+   ],
+   "proposed": [
+    "iso_certification",
+    "painting",
+    "waterproofing"
+   ],
+   "wrong": [
+    "iso_certification"
+   ],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "profile_docx_land",
+   "kind": "profile",
+   "format": "docx",
+   "truth": [
+    "landscaping"
+   ],
+   "proposed": [
+    "iso_certification"
+   ],
+   "wrong": [
+    "iso_certification"
+   ],
+   "missing": [
+    "landscaping"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "catalogue_pdf",
+   "kind": "catalogue",
+   "format": "pdf",
+   "truth": [
+    "aluminium",
+    "glazing"
+   ],
+   "proposed": [],
+   "wrong": [],
+   "missing": [
+    "aluminium",
+    "glazing"
+   ],
+   "status": "read"
+  }
+ ],
+ "certificates": [
+  {
+   "id": "vat_certificate",
+   "truth": null,
+   "read": null,
+   "verdict": "n/a"
+  },
+  {
+   "id": "iso_certificate",
+   "truth": "2028-05-11",
+   "read": "2028-05-11",
+   "verdict": "correct"
+  }
+ ],
+ "failures": [
+  {
+   "area": "field",
+   "id": "lic_dubai_ded_old_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "507919",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_dubai_det_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "1023757",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_dubai_det_text",
+   "field": "legal_name_en",
+   "verdict": "held",
+   "truth": "ZZ DEMO Dune Plumbing LLC",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_abu_dhabi_added_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "CN-1523645",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_adgm_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "000010259",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_adgm_text",
+   "field": "legal_name_en",
+   "verdict": "held",
+   "truth": "ZZ DEMO Marina Painting Ltd",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_sharjah_sedd_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "705517",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_sharjah_sedd_text",
+   "field": "legal_name_en",
+   "verdict": "held",
+   "truth": "ZZ DEMO Ghaf Landscaping LLC",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_ajman_ded_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "12981",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_ajman_ded_text",
+   "field": "legal_name_en",
+   "verdict": "wrong",
+   "truth": "ZZ DEMO Sidra Lifts Est",
+   "cause": "code read \"ZZ DEMO Sidra Lifts\""
+  },
+  {
+   "area": "field",
+   "id": "lic_rak_ded_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "24303",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_rakez_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "5115755",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_rakez_text",
+   "field": "legal_name_en",
+   "verdict": "held",
+   "truth": "ZZ DEMO Wadi Plumbing FZ LLC",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_uaq_ded_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "4649",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_fujairah_ded_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "42147",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_jafza_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "189691",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_jafza_text",
+   "field": "legal_name_en",
+   "verdict": "held",
+   "truth": "ZZ DEMO Dune Landscaping FZE",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_dmcc_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "DMCC-238161",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_dafza_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "1925",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_dafza_text",
+   "field": "legal_name_en",
+   "verdict": "held",
+   "truth": "ZZ DEMO Marina Aluminium FZ LLC",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_dso_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "21043",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_ifza_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "24587",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_ifza_text",
+   "field": "legal_name_en",
+   "verdict": "held",
+   "truth": "ZZ DEMO Sidra Floor FZ LLC",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_meydan_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "MFZ-7541",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_shams_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "2033429",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_shams_text",
+   "field": "legal_name_en",
+   "verdict": "held",
+   "truth": "ZZ DEMO Wadi Landscaping FZE",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_difc_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "CL2015",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_dmcc_multipage",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "DMCC-352294",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_jafza_multipage",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "183654",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_jafza_multipage",
+   "field": "legal_name_en",
+   "verdict": "held",
+   "truth": "ZZ DEMO Marina Painting FZE",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_expired_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "1348436",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_expired_text",
+   "field": "legal_name_en",
+   "verdict": "held",
+   "truth": "ZZ DEMO Crescent Building LLC",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "field",
+   "id": "lic_mismatch_text",
+   "field": "licence_no",
+   "verdict": "held",
+   "truth": "864274",
+   "cause": "code did not read this label/layout, and the model was not asked"
+  },
+  {
+   "area": "gate",
+   "id": "lic_dubai_ded_old_scan_pdf",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_dubai_det_text",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_dubai_det_png",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_abu_dhabi_added_jpg",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_adgm_text",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_adgm_rotated90",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_sharjah_sedd_text",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_sharjah_sedd_skewed",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_ajman_ded_text",
+   "verdict": "UNSAFE",
+   "expected": "approve",
+   "got": "approved",
+   "cause": "approved on a wrong reading of legal_name_en"
+  },
+  {
+   "area": "gate",
+   "id": "lic_ajman_ded_lowdpi",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_rak_ded_phone",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_rakez_text",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_rakez_scan_pdf",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_uaq_ded_png",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_fujairah_ded_jpg",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_jafza_text",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_jafza_rotated90",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_dmcc_skewed",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_dafza_text",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_dafza_lowdpi",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_dso_phone",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_ifza_text",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_ifza_scan_pdf",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_meydan_png",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_shams_text",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_shams_jpg",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_difc_rotated90",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_dubai_det_bi_jpg",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_sharjah_sedd_bi_phone",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_abu_dhabi_added_bi_scan_pdf",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_jafza_multipage",
+   "verdict": "held",
+   "expected": "approve",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_expired_scan",
+   "verdict": "held",
+   "expected": "licence_expired",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "gate",
+   "id": "lic_mismatch_scan",
+   "verdict": "held",
+   "expected": "licence_name_mismatch",
+   "got": "pending (licence_unreadable)",
+   "cause": "held: licence_unreadable (licence_no, legal_name_en, expiry_date not read)"
+  },
+  {
+   "area": "match",
+   "id": "profile_pptx",
+   "trade": "hvac",
+   "verdict": "MISSING",
+   "cause": "not reached by a hvac request (proposed [\"iso_certification\"])"
+  },
+  {
+   "area": "match",
+   "id": "lic_dmcc_multipage",
+   "trade": "joinery",
+   "verdict": "MISSING",
+   "cause": "not reached by a joinery request (proposed [\"elevators\"])"
+  },
+  {
+   "area": "match",
+   "id": "profile_pptx",
+   "trade": "plumbing",
+   "verdict": "MISSING",
+   "cause": "not reached by a plumbing request (proposed [\"iso_certification\"])"
+  },
+  {
+   "area": "match",
+   "id": "profile_pdf",
+   "trade": "aluminium",
+   "verdict": "MISSING",
+   "cause": "not reached by a aluminium request (proposed [\"glazing\",\"iso_certification\"])"
+  },
+  {
+   "area": "match",
+   "id": "lic_ajman_ded_text",
+   "trade": "elevators",
+   "verdict": "MISSING",
+   "cause": "not reached by a elevators request (proposed [\"hvac\"])"
+  },
+  {
+   "area": "match",
+   "id": "lic_dmcc_text",
+   "trade": "elevators",
+   "verdict": "MISSING",
+   "cause": "not reached by a elevators request (proposed [\"hvac\"])"
+  },
+  {
+   "area": "match",
+   "id": "lic_difc_text",
+   "trade": "elevators",
+   "verdict": "MISSING",
+   "cause": "not reached by a elevators request (proposed [\"hvac\"])"
+  },
+  {
+   "area": "match",
+   "id": "profile_docx",
+   "trade": "electrical",
+   "verdict": "MISSING",
+   "cause": "not reached by a electrical request (proposed [\"iso_certification\"])"
+  },
+  {
+   "area": "match",
+   "id": "profile_docx_land",
+   "trade": "landscaping",
+   "verdict": "MISSING",
+   "cause": "not reached by a landscaping request (proposed [\"iso_certification\"])"
+  },
+  {
+   "area": "match",
+   "id": "profile_docx",
+   "trade": "fire_fighting",
+   "verdict": "MISSING",
+   "cause": "not reached by a fire_fighting request (proposed [\"iso_certification\"])"
+  },
+  {
+   "area": "match",
+   "id": "lic_abu_dhabi_added_text",
+   "trade": "racking_storage",
+   "verdict": "EXTRA",
+   "cause": "reached by a racking_storage request it does not do (proposed [\"cleaning_chemicals\",\"flooring\",\"glass_containers\",\"glazing\",\"racking_storage\"], truth [\"flooring\",\"glazing\"])"
+  },
+  {
+   "area": "match",
+   "id": "lic_abu_dhabi_added_text",
+   "trade": "glass_containers",
+   "verdict": "EXTRA",
+   "cause": "reached by a glass_containers request it does not do (proposed [\"cleaning_chemicals\",\"flooring\",\"glass_containers\",\"glazing\",\"racking_storage\"], truth [\"flooring\",\"glazing\"])"
+  },
+  {
+   "area": "match",
+   "id": "lic_uaq_ded_text",
+   "trade": "glass_containers",
+   "verdict": "EXTRA",
+   "cause": "reached by a glass_containers request it does not do (proposed [\"cleaning_chemicals\",\"flooring\",\"glass_containers\",\"glazing\"], truth [\"flooring\",\"glazing\"])"
+  },
+  {
+   "area": "match",
+   "id": "profile_pdf",
+   "trade": "iso_certification",
+   "verdict": "EXTRA",
+   "cause": "reached by a iso_certification request it does not do (proposed [\"glazing\",\"iso_certification\"], truth [\"aluminium\",\"glazing\"])"
+  },
+  {
+   "area": "match",
+   "id": "profile_docx",
+   "trade": "iso_certification",
+   "verdict": "EXTRA",
+   "cause": "reached by a iso_certification request it does not do (proposed [\"iso_certification\"], truth [\"electrical\",\"fire_fighting\"])"
+  },
+  {
+   "area": "match",
+   "id": "profile_pptx",
+   "trade": "iso_certification",
+   "verdict": "EXTRA",
+   "cause": "reached by a iso_certification request it does not do (proposed [\"iso_certification\"], truth [\"hvac\",\"plumbing\"])"
+  },
+  {
+   "area": "match",
+   "id": "profile_pdf_paint",
+   "trade": "iso_certification",
+   "verdict": "EXTRA",
+   "cause": "reached by a iso_certification request it does not do (proposed [\"iso_certification\",\"painting\",\"waterproofing\"], truth [\"painting\",\"waterproofing\"])"
+  },
+  {
+   "area": "match",
+   "id": "profile_docx_land",
+   "trade": "iso_certification",
+   "verdict": "EXTRA",
+   "cause": "reached by a iso_certification request it does not do (proposed [\"iso_certification\"], truth [\"landscaping\"])"
+  },
+  {
+   "area": "match",
+   "id": "lic_abu_dhabi_added_text",
+   "trade": "cleaning_chemicals",
+   "verdict": "EXTRA",
+   "cause": "reached by a cleaning_chemicals request it does not do (proposed [\"cleaning_chemicals\",\"flooring\",\"glass_containers\",\"glazing\",\"racking_storage\"], truth [\"flooring\",\"glazing\"])"
+  },
+  {
+   "area": "match",
+   "id": "lic_uaq_ded_text",
+   "trade": "cleaning_chemicals",
+   "verdict": "EXTRA",
+   "cause": "reached by a cleaning_chemicals request it does not do (proposed [\"cleaning_chemicals\",\"flooring\",\"glass_containers\",\"glazing\"], truth [\"flooring\",\"glazing\"])"
+  },
+  {
+   "area": "trades",
+   "id": "lic_abu_dhabi_added_text",
+   "verdict": "wrong",
+   "cause": "proposed cleaning_chemicals, glass_containers, racking_storage which the document does not do",
+   "evidence": [
+    "meaning \"Company Name: ZZ DEMO Horizon Floor LLC\" -> floor & surface cleaners",
+    "meaning \"Activities: Floor and Wall Tiling Works, Glass and Glazing Works\" -> cosmetic & perfume glass",
+    "meaning \"Trade Name: ZZ DEMO Horizon Floor\" -> mezzanine floors"
+   ]
+  },
+  {
+   "area": "trades",
+   "id": "lic_uaq_ded_text",
+   "verdict": "wrong",
+   "cause": "proposed cleaning_chemicals, glass_containers which the document does not do",
+   "evidence": [
+    "meaning \"Company Name: ZZ DEMO Najm Floor LLC\" -> floor & surface cleaners",
+    "meaning \"Activities: Floor and Wall Tiling Works, Glass and Glazing Works\" -> cosmetic & perfume glass"
+   ]
+  },
+  {
+   "area": "trades",
+   "id": "lic_ifza_text",
+   "verdict": "wrong",
+   "cause": "proposed cleaning_chemicals, glass_containers, racking_storage which the document does not do",
+   "evidence": [
+    "meaning \"Trade Name ZZ DEMO Sidra Floor\" -> floor & surface cleaners",
+    "meaning \"Activities Floor and Wall Tiling Works, Glass and Glazing Works\" -> cosmetic & perfume glass",
+    "meaning \"Company Name ZZ DEMO Sidra Floor FZ LLC\" -> mezzanine floors"
+   ]
+  },
+  {
+   "area": "trades",
+   "id": "lic_mismatch_text",
+   "verdict": "wrong",
+   "cause": "proposed glass_containers which the document does not do",
+   "evidence": [
+    "meaning \"Activities: Glass and Glazing Works, Plumbing and Sanitary Installation\" -> decoration & printing on glass/cosmetic & perfume glass"
+   ]
+  },
+  {
+   "area": "trades",
+   "id": "profile_pdf",
+   "verdict": "wrong",
+   "cause": "proposed iso_certification which the document does not do",
+   "evidence": [
+    "meaning \"- ISO 9001:2015 quality management\" -> iso 9001/product conformity certification"
+   ]
+  },
+  {
+   "area": "trades",
+   "id": "profile_docx",
+   "verdict": "wrong",
+   "cause": "proposed iso_certification which the document does not do",
+   "evidence": [
+    "meaning \"- ISO 9001:2015 quality management\" -> iso 9001/product conformity certification"
+   ]
+  },
+  {
+   "area": "trades",
+   "id": "profile_pptx",
+   "verdict": "wrong",
+   "cause": "proposed iso_certification which the document does not do",
+   "evidence": [
+    "meaning \"- ISO 9001:2015 quality management\" -> iso 9001/product conformity certification"
+   ]
+  },
+  {
+   "area": "trades",
+   "id": "profile_pdf_paint",
+   "verdict": "wrong",
+   "cause": "proposed iso_certification which the document does not do",
+   "evidence": [
+    "meaning \"- ISO 9001:2015 quality management\" -> iso 9001/product conformity certification"
+   ]
+  },
+  {
+   "area": "trades",
+   "id": "profile_docx_land",
+   "verdict": "wrong",
+   "cause": "proposed iso_certification which the document does not do",
+   "evidence": [
+    "meaning \"- ISO 9001:2015 quality management\" -> iso 9001/product conformity certification"
+   ]
+  }
+ ]
+}

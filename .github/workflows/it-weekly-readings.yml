@@ -8,9 +8,10 @@ name: IT engineer weekly readings
 # the job skips with a notice, and the IT engineer raises the missing readings itself after eight days
 # (fn_it_workflow_heartbeats).
 
+# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
 on:
-  schedule:
-    - cron: '30 4 * * 1'   # Mondays 08:30 Dubai
+  # schedule:
+    # - cron: '30 4 * * 1'   # Mondays 08:30 Dubai
   workflow_dispatch: {}
 
 # Duty 23 (14 Sep 2026): the last step may open ONE pull request, lockfile only, for an independent review.

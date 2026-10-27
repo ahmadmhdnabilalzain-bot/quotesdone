@@ -4628,17 +4628,20 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_pricing_evidence()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_week date := date_trunc('week', now() at time zone 'Asia/Dubai')::date; v public.ceo_pricing_evidence;
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';   -- fixture run: ONLY demo rows
 begin
-  with q as (select i.id, (select count(*) from public.quotes x where x.inquiry_id = i.id) n from public.inquiries i where i.created_at > now() - interval '90 days'),
-       t as (select * from public.transactions where revealed_at > now() - interval '90 days')
+  with q as (select i.id, (select count(*) from public.quotes x where x.inquiry_id = i.id) n from public.inquiries i
+              where i.created_at > now() - interval '90 days' and public.fn_inquiry_is_demo(i.id) = v_fx),
+       t as (select * from public.transactions where revealed_at > now() - interval '90 days' and public.fn_transaction_is_demo(id) = v_fx)
   select v_week, (select count(*) from q), (select count(*) from q where n > 0), (select coalesce(sum(n), 0) from q), (select count(*) from t),
          round(100.0 * (select count(*) from t) / nullif((select count(*) from q where n > 0), 0), 1),
-         (select round(avg(quote_amount), 2) from public.quotes where created_at > now() - interval '90 days' and quote_amount > 0),
+         (select round(avg(quote_amount), 2) from public.quotes where created_at > now() - interval '90 days' and quote_amount > 0
+             and public.fn_quote_is_demo(id) = v_fx),
          (select round(avg(reveal_fee), 2) from t),
          (select round(100.0 * sum(reveal_fee) / nullif(sum(quote_amount), 0), 2) from t where quote_amount > 0),
          (select count(*) from t where refund_requested_at is not null),
          round(100.0 * (select count(*) from t where refund_requested_at is not null) / nullif((select count(*) from t), 0), 1),
-         (select count(*) from public.leads where registration_paid_at is not null),
+         (select count(*) from public.leads where registration_paid_at is not null and coalesce(is_demo, false) = v_fx),
          (select count(*) from q where n > 0) >= 20, now()
     into v;
   insert into public.ceo_pricing_evidence select v.*

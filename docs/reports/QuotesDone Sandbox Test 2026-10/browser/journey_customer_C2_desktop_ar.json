@@ -1,0 +1,92 @@
+[
+ {
+  "at": "2026-10-18T20:06:31.168Z",
+  "journey": "journey_customer_C2_desktop_ar",
+  "step": "terms re-accept inline prompt",
+  "status": "PASS",
+  "ms": 54630,
+  "detail": "prompt shown, ticked and accepted; tos_version after accept v10 (want v10); restored to v10 (verified)",
+  "issues": [],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_journey_desktop_ar\\terms_re_accept_inline_prompt.png"
+ },
+ {
+  "at": "2026-10-18T20:06:49.012Z",
+  "journey": "journey_customer_C2_desktop_ar",
+  "step": "new request: drawing upload + spec answer \"not sure\"",
+  "status": "PASS",
+  "ms": 17842,
+  "detail": "drawing named on screen: true; \"not sure\" offered: false",
+  "issues": [],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_journey_desktop_ar\\new_request_drawing_upload_spec_answer_not_sure_.png"
+ },
+ {
+  "at": "2026-10-18T20:06:50.896Z",
+  "journey": "journey_customer_C2_desktop_ar",
+  "step": "quotes and comparison report",
+  "status": "FAIL",
+  "ms": 1884,
+  "detail": "no request of this customer has a quote on screen (were quotes released for this customer?)",
+  "issues": [
+   {
+    "sev": "high",
+    "what": "no request of this customer has a quote on screen (were quotes released for this customer?)"
+   }
+  ],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_journey_desktop_ar\\quotes_and_comparison_report.png"
+ },
+ {
+  "at": "2026-10-18T20:06:51.378Z",
+  "journey": "journey_customer_C2_desktop_ar",
+  "step": "reveal checkout: test card success",
+  "status": "SKIP",
+  "ms": 481,
+  "detail": "no \"Reveal & contact\" button visible (needs an unrevealed quote)",
+  "issues": [
+   {
+    "sev": "low",
+    "what": "no \"Reveal & contact\" button visible (needs an unrevealed quote)"
+   }
+  ],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_journey_desktop_ar\\reveal_checkout_test_card_success.png"
+ },
+ {
+  "at": "2026-10-18T20:06:51.832Z",
+  "journey": "journey_customer_C2_desktop_ar",
+  "step": "reveal checkout: test card decline",
+  "status": "SKIP",
+  "ms": 453,
+  "detail": "no \"Reveal & contact\" button visible (needs an unrevealed quote)",
+  "issues": [
+   {
+    "sev": "low",
+    "what": "no \"Reveal & contact\" button visible (needs an unrevealed quote)"
+   }
+  ],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_journey_desktop_ar\\reveal_checkout_test_card_decline.png"
+ },
+ {
+  "at": "2026-10-18T20:06:56.674Z",
+  "journey": "journey_customer_C2_desktop_ar",
+  "step": "post-reveal supplier details and rating",
+  "status": "SKIP",
+  "ms": 4841,
+  "detail": "no rating stars visible (needs a revealed supplier); contact details shown: false",
+  "issues": [
+   {
+    "sev": "low",
+    "what": "no rating stars visible (needs a revealed supplier); contact details shown: false"
+   }
+  ],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_journey_desktop_ar\\post_reveal_supplier_details_and_rating.png"
+ },
+ {
+  "at": "2026-10-18T20:07:00.585Z",
+  "journey": "journey_customer_C2_desktop_ar",
+  "step": "account: terms version + data export request (stopped before code)",
+  "status": "PASS",
+  "ms": 3910,
+  "detail": "terms version shown: true; export downloaded: true; erase code box shown: true (not filled, nothing erased)",
+  "issues": [],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C2_journey_desktop_ar\\account_terms_version_data_export_request_stopped_before_cod.png"
+ }
+]

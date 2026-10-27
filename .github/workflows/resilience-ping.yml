@@ -15,9 +15,10 @@ name: External resilience watchdog
 # the service key through the management API with SUPABASE_ACCESS_TOKEN (the one repository secret)
 # and masks it before use. Without it the function answers liveness only and this job fails.
 
+# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
 on:
-  schedule:
-    - cron: '17 7 * * *'
+  # schedule:
+    # - cron: '17 7 * * *'
   workflow_dispatch: {}
 
 jobs:

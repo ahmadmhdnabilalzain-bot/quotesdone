@@ -1,0 +1,20 @@
+{
+ "verify": {
+  "tables_scanned": 734,
+  "tables_in_registry": 734,
+  "found": [
+   {
+    "table": "ai_cost_log",
+    "rows": 3
+   }
+  ],
+  "unverified": [],
+  "storage": [],
+  "auth_users": 0,
+  "dropbox": {
+   "listed": 0,
+   "records": 0
+  },
+  "clean": false
+ }
+}

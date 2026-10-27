@@ -39,7 +39,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
 import { annotate, observe } from '../_shared/observe.ts';
-import { attemptPlan, failureKind, fixtureVerdict, nextAttempt, ownWorkByName, rehearsalLetsFixtureThrough, subjectOf } from '../_shared/spend_guards.ts';
+import { attemptPlan, failureKind, fixtureVerdict, nextAttempt, ownWorkByName, rehearsalLetsFixtureThrough, reservationVerdict, subjectOf, unprovenRunTag } from '../_shared/spend_guards.ts';
 import { e2eRunTag } from '../_shared/e2e_run.ts';
 import { embedAnswer } from '../_shared/embed_answer.ts';
 import { shapeRequest } from '../_shared/request_shape.ts';
@@ -518,6 +518,15 @@ async function handle(req: Request): Promise<Response> {
     // caller takes the deterministic path it already takes today — the harness keeps testing
     // exactly what it tests now, for nothing. Placed after the dry run on purpose: routing and
     // caching are still verified for free; only the paid call is replaced.
+    // A REQUEST THAT NAMES A RUN IT CANNOT PROVE IS REFUSED, NOT RUN UNTAGGED (19 Oct 2026). qd_run:ceodiag1 (cap
+    // USD 5) spent USD 13.86 this way: the tag was dropped here, so no window cap ever saw the calls.
+    {
+      const why = unprovenRunTag(req.headers.get('x-qd-e2e-run'), e2eRunTag());
+      if (why) {
+        return annotate(J({ ok: false, used_llm: false, outcome: 'rehearsal_tag_unproven', error: why,
+          task_class: route.task_class, cost_usd: 0 }, 503), { held: true, outcome: 'rehearsal_tag_unproven' });
+      }
+    }
     {
       const subject = subjectOf((body as { subject?: unknown }).subject);
       let ownWork = ownWorkByName(fnName)
@@ -706,6 +715,26 @@ async function handle(req: Request): Promise<Response> {
       return J({ ok: false, used_llm: false, outcome: 'circuit_open',
         error: 'every model route for this task class is open-circuit',
         routes: skipped, task_class: route.task_class, cost_usd: 0 }, 503);
+    }
+    // A REHEARSAL CALL RESERVES ITS ESTIMATE BEFORE IT IS MADE (19 Oct 2026). The gate above reads committed spend;
+    // N concurrent calls all read the same figure before any logs a cost. One reservation per request, serialised
+    // per run in the database, closes that race. Untagged traffic gets allowed:'not_a_rehearsal' and no row.
+    if (e2eRunTag()) {
+      let rv: unknown = null; let rvErr: unknown = null;
+      try { const res = await admin.rpc('fn_rehearsal_spend_reserve'); rv = res.data; rvErr = res.error; }
+      catch (e) { rvErr = e; }
+      const v = reservationVerdict(rv, rvErr);
+      if (!v.allowed) {
+        await llmLog({
+          p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
+          p_task_class: route.task_class ?? null, p_model: 'none',
+          p_because: route.why + ' | HELD: ' + v.rule + ' - ' + v.reason + ' - no provider call was made',
+          p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
+          p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
+        });
+        return annotate(J({ ok: false, used_llm: false, outcome: v.rule, error: v.reason,
+          task_class: route.task_class, cost_usd: 0 }, 503), { held: true, outcome: v.rule });
+      }
     }
     // attempt_no is assigned SERVER-SIDE by fn_record_llm_attempt and cannot be set by this caller.
     // That is deliberate: it is what makes first-attempt success un-fakeable from up here.

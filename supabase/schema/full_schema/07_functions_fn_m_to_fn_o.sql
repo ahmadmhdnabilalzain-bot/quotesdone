@@ -1352,6 +1352,48 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_files_invite_reply(p_inbound_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare m public.inbound_messages; l public.leads;
+  v_from text; v_boxes text[]; v_first text; v_reply text; v_id bigint;
+begin
+  select * into m from public.inbound_messages where id = p_inbound_id;
+  if not found then return jsonb_build_object('due', false, 'reason', 'no such inbound message'); end if;
+  v_from := lower(substring(coalesce(m.from_email, '') from '([^<>[:space:]"]+@[^<>[:space:]"]+)'));
+  select array_agg(lower(btrim(value))) into v_boxes from public.app_secrets
+   where key in ('invite_m365_mailbox', 'email_reply_supplier') and btrim(coalesce(value, '')) <> '';
+  if v_boxes is null or not exists (select 1 from unnest(v_boxes) b where position(b in lower(coalesce(m.to_email, ''))) > 0) then
+    return jsonb_build_object('due', false, 'reason', 'not addressed to the invitation mailbox');
+  end if;
+  select * into l from public.leads x
+   where (m.lead_id is not null and x.id = m.lead_id) or (m.lead_id is null and lower(btrim(x.email)) = v_from)
+   order by x.id limit 1;
+  if l.id is null then return jsonb_build_object('due', false, 'reason', 'the sender is no lead'); end if;
+  if l.invited_at is null and l.invite_status is null then return jsonb_build_object('due', false, 'reason', 'the lead was never invited'); end if;
+  if coalesce(l.claimed, false) then return jsonb_build_object('due', false, 'reason', 'the lead already has its company page'); end if;
+  if lower(coalesce(m.raw->>'auto_submitted', 'no')) <> 'no' then return jsonb_build_object('due', false, 'reason', 'an automatic reply'); end if;
+  -- the supplier's own words: everything above the quoted original
+  v_reply := btrim(regexp_replace(coalesce(m.body, ''), E'(\\n|^)\\s*(>|On [^\\n]{0,200}wrote:|-{2,}\\s*Original Message|From:\\s).*$', ''));
+  v_first := lower(btrim(regexp_replace(split_part(v_reply, E'\n', 1), '[[:punct:][:space:]]+', ' ', 'g')));
+  -- "stop" is an unsubscribe (resend_inbound), never a request for a page
+  if v_first in ('stop', 'unsubscribe', 'stopall', 'end', 'cancel', 'opt out', 'optout', 'remove', 'remove me', 'please remove', 'not interested') then
+    return jsonb_build_object('due', false, 'reason', 'a stop reply (handled as an unsubscribe)');
+  end if;
+  if v_reply = '' then return jsonb_build_object('due', false, 'reason', 'an empty reply'); end if;
+
+  v_id := public.fn_seat_handoff('marketing', 'sales_engineer', 'invite.reply', 'leads', l.id::text,
+    jsonb_build_object('lead_id', l.id, 'company_name', l.company_name, 'from_email', v_from,
+                       'inbound_message_id', m.id, 'reply_text', left(v_reply, 4000),
+                       'ask', 'Set up the company page for this supplier from the trades it listed in its reply.'));
+  -- null = a demo lead (ruling 1199: a demo row files no handoff)
+  return jsonb_build_object('due', true, 'reason', 'an invited supplier replied', 'lead_id', l.id, 'reply_text', left(v_reply, 4000), 'handoff_id', v_id);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_first_touch_record(p_lead_id bigint, p_touch jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1504,11 +1546,12 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_gap_recruitment_plans()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_body text := (select value from public.app_secrets where key = 'invite_body');
-  v_anchor constant text := 'Whatever your trade or product, if it can be quoted from specifications, drawings or photos, it belongs here.';
   v_rows int; v_dropped int;
 begin
-  if coalesce(v_body, '') not like '%{{link}}%' then
-    raise exception 'app_secrets.invite_body has no {{link}} placeholder: no trade variant is built from it';
+  -- 27 Oct 2026: the founder approved ONE invitation with no link; each plan row stores it (the trade is filled at
+  -- send time by the Microsoft 365 lane). Only an empty template is refused.
+  if btrim(coalesce(v_body, '')) = '' then
+    raise exception 'app_secrets.invite_body is empty: no plan is built from nothing';
   end if;
 
   delete from public.marketing_gap_recruitment_plan p
@@ -1521,32 +1564,6 @@ begin
            row_number() over (order by (g.target - g.matchable) desc, g.demand_90d desc, g.uninvited_pool desc, g.trade, g.emirate) as rk
       from public.supply_gap g left join public.taxonomy_trade t on t.code = g.trade
      where g.closed_at is null and g.status <> 'closed' and g.matchable < g.target
-  ),
-  txt as (
-    select g.*,
-      -- the trade sentence: what was measured, nothing more (demand only where customers asked in 90 days)
-      case when g.demand_90d > 0
-        then 'Clients have already asked for ' || g.label || ' work' || case when g.emirate <> 'UAE' then ' in ' || g.emirate else '' end
-             || ', and fewer than ' || g.target || ' ' || g.label || ' suppliers are registered to quote for it, so a registered '
-             || g.label || ' supplier is matched with little competition.'
-        else 'We are building the ' || g.label || ' supplier list now: fewer than ' || g.target || ' ' || g.label
-             || ' suppliers are registered, so an early ' || g.label || ' supplier is among the first matched when '
-             || g.label || ' requests arrive.' end
-      || ' ' || case g.group_code
-        when 'construction_building'          then 'Requests in your trade usually arrive as a BOQ, drawings or site photos.'
-        when 'mep_building_systems'           then 'Requests in your trade usually arrive as a BOQ, drawings, a schedule of equipment or site photos.'
-        when 'industrial_manufacturing'       then 'Requests in your trade usually arrive as part numbers, datasheets, drawings or photos of the part.'
-        when 'materials_packaging'            then 'Requests in your trade usually arrive as a specification, quantities and a sample photo.'
-        when 'energy_environment'             then 'Requests in your trade usually arrive as a site description, capacities and quantities.'
-        when 'facilities_property'            then 'Requests in your trade usually arrive as a scope of services, areas and frequency.'
-        when 'furniture_hospitality_consumer' then 'Requests in your trade usually arrive as a product list, quantities and reference photos.'
-        when 'health_lab_safety'              then 'Requests in your trade usually arrive as a product list with specifications and quantities.'
-        when 'marketing_media_events'         then 'Requests in your trade usually arrive as a brief, dates, quantities and reference images.'
-        when 'professional_business'          then 'Requests in your trade usually arrive as a scope of work and the deliverables expected.'
-        when 'technology_telecom'             then 'Requests in your trade usually arrive as a list of equipment or a scope of work.'
-        when 'transport_mobility'             then 'Requests in your trade usually arrive as routes, volumes, vehicle or part details.'
-        else 'Requests in your trade arrive as specifications, drawings or photos.' end as trade_line
-    from gaps g
   )
   insert into public.marketing_gap_recruitment_plan as p
     (trade, emirate, rank, matchable, target, gap, demand_90d, uninvited_pool, gap_status, sources, invite_subject, invite_body, built_at)
@@ -1556,13 +1573,10 @@ begin
                                     order by (s.scope = x.trade) desc, (s.scope = x.group_code) desc, s.verified desc, s.kind, s.name)
                      from public.marketing_recruitment_source s
                     where s.scope in ('all', x.trade, coalesce(x.group_code, '-'))), '[]'::jsonb),
-         'Invitation: ' || x.label || ' supplier on QuotesDone (free, no commission)',
-         -- the approved body, with its "whatever your trade" sentence replaced by this trade's; if that sentence is
-         -- ever reworded, the trade sentence goes after the greeting instead, so a variant is never built without it
-         case when position(v_anchor in v_body) > 0 then replace(v_body, v_anchor, x.trade_line)
-              else regexp_replace(v_body, E'^([^\\n]*\\n\\n)', E'\\1' || replace(x.trade_line, '\', '\\') || E'\n\n') end,
+         initcap(x.label) || ' quote requests',
+         v_body,
          now()
-    from txt x
+    from gaps x
   on conflict (trade, emirate) do update set rank = excluded.rank, matchable = excluded.matchable, target = excluded.target,
     gap = excluded.gap, demand_90d = excluded.demand_90d, uninvited_pool = excluded.uninvited_pool, gap_status = excluded.gap_status,
     sources = excluded.sources, invite_subject = excluded.invite_subject, invite_body = excluded.invite_body, built_at = excluded.built_at;
