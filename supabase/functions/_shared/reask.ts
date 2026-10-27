@@ -50,6 +50,8 @@ export const REASK_SURFACES = ['wa_inbound.unwritten_reply', 'supplier_api.quote
 export type ReaskSurface = typeof REASK_SURFACES[number];
 /** Re-asks per turn before it is handed to its seat (fn_reask_record reads the same number). */
 export const REASK_MAX_ATTEMPTS = 3;
+/** The outcome of a run that lost the 'sending' claim to another run: it sent nothing and records nothing. */
+export const NOT_YOURS = 'not_yours';
 /** Rows one tick takes; they run side by side, each on its own clock. */
 export const REASK_CLAIM = 5;
 /** One re-ask's model ladder ends inside this (the edge wall is 150 s; the tick runs its rows concurrently). */
@@ -159,7 +161,8 @@ export async function deliverInto(row: ReaskRow, text: string, io: ReaskIO): Pro
     : row.surface === 'sales_engineer.portal_unwritten' ? String(s.log_id ?? '')
     : row.surface === 'inquiry_intake.unwritten_reply' && s.turn_id ? String(s.intake_id ?? '') : '';
   if (!where) return { delivered: false, via: 'none', detail: 'no conversation on the row for ' + row.surface };
-  if (!(await io.sending(row.id))) return { delivered: false, via: 'none', detail: 'already being sent by another run; never sent twice' };
+  // 'not_yours': another run holds the send; this run sent nothing and records nothing (reaskDue skips fn_reask_record)
+  if (!(await io.sending(row.id))) return { delivered: false, via: NOT_YOURS, detail: 'already being sent by another run; never sent twice' };
   if (row.surface === 'wa_inbound.unwritten_reply') return { ...(await io.whatsapp(where, turnOf(row).message, text)) };
   if (row.surface === 'supplier_api.quote_review_unwritten') { const r = await io.quoteReview(where, text); return { delivered: r.ok, via: 'quote_thread', detail: r.err }; }
   if (row.surface === 'inquiry_intake.unwritten_reply') { const r = await io.intake(where, String(s.turn_id), text); return { delivered: r.ok, via: 'request_chat', detail: r.err }; }
@@ -199,7 +202,10 @@ export async function reaskDue(admin: Admin, o: { limit?: number; io?: ReaskIO }
   const out = await Promise.all(rows.map(async (row) => {
     let outcome: ReaskOutcome;
     try { outcome = await reaskOne(row, io); } catch (e) { outcome = { delivered: false, via: 'error', detail: String((e as Error)?.message || e).slice(0, 200) }; }
-    const rec = await admin.rpc('fn_reask_record', { p_id: row.id, p_outcome: outcome }).then((r: { data: unknown }) => r.data, (e: unknown) => ({ error: String(e) }));
+    // A run that lost the 'sending' claim owns nothing: recording its outcome would fail the row and hand it to the seat
+    // on the WINNER's marker while the winner is still delivering (review of #1657, 27 Oct 2026).
+    const rec = outcome.via === NOT_YOURS ? { id: row.id, status: NOT_YOURS }
+      : await admin.rpc('fn_reask_record', { p_id: row.id, p_outcome: outcome }).then((r: { data: unknown }) => r.data, (e: unknown) => ({ error: String(e) }));
     return { id: row.id, surface: row.surface, delivered: outcome.delivered, via: outcome.via, outage: outcome.outage ?? false, problems: outcome.problems?.length ?? 0, record: rec };
   }));
   // The rows handed to their seat this tick: a WhatsApp person is told now, in the model's words (holdingNotice).

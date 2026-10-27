@@ -545,6 +545,11 @@ const plain = observe('sales_engineer', async (req) => {
           held_id = Number(hid) || null;
         } catch { /* unfiled: the 503 below still says no answer; the panel keeps its pending state only when held_id is set */ }
       }
+      // NOT FILED: the row must not keep 'portal:pending', or assist_history would show "still working on your answer" under
+      // a turn nothing will ever answer (review of #1657, 27 Oct 2026). Conditional: a reply that landed meanwhile is kept.
+      if (owed && logId && held_id === null) {
+        try { await admin.from('assistant_logs').update({ path: 'portal' }).eq('id', logId).is('reply', null).eq('path', 'portal:pending'); } catch { /* best effort */ }
+      }
       const pending = held_id !== null;
       await run('assist', 'error', { answered: false, outage, pending, held_id, attempts: a.attempts, ms: T, task_id: r.task_id ?? null, precedent: recallTrace(memory) });
       return J({ ok: false, seat: 'sales_engineer', answered: false, error: 'no_answer', outage, attempts: a.attempts, pending, held_id, task_id: r.task_id ?? null }, 503);

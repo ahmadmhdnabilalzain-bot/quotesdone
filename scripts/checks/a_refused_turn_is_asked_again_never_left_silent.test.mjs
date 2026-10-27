@@ -111,6 +111,46 @@ test('the portal helpers: pending only when filed; the answer is the one directl
   assert.deepEqual(waitingOf(null), []);
 });
 
+// REVIEW OF #1657 (27 Oct 2026, head e87ab48ca). Five defects, each pinned here:
+//   K1 the kick sent the legacy anon JWT (app_secrets.anon_key), signed with the leaked HS256 secret that can be revoked only
+//      once no routine sends it; main's the_lead_sourcing_kick_sends_the_publishable_key_not_the_legacy_anon_jwt.sql made
+//      fn_gateway_client_key() the one door;
+//   K2 the kick's predicate fired when fn_reask_due could claim nothing (inside the 50 s pause, under the founder's hold,
+//      and for ever on a stale send whose marker fn_reask_due never cleared);
+//   K3 a run that lost the 'sending' claim was recorded as a failed send, handing the WINNER's row to the seat;
+//   K4 a portal turn whose filing failed kept 'portal:pending', so the panel said "still working" for ever;
+//   K5 an outage (a 45 s deadline included) gave its attempt back for ever: a row with no expires_at was asked every minute.
+export function reviewFindings(sql, reask, portal) {
+  const out = [];
+  const body = (name) => { const a = sql.indexOf('create or replace function public.' + name + '('); return a < 0 ? '' : sql.slice(a, sql.indexOf('end $fn$;', a)); };
+  const kick = body('fn_reask_kick');
+  if (/key = 'anon_key'/.test(kick) || !/fn_gateway_client_key\(\)/.test(kick)) out.push('K1: the kick does not take its key from fn_gateway_client_key()');
+  if (!/if not public\.fn_reask_any_due\(\) then/.test(kick)) out.push('K2: the kick does not ask fn_reask_any_due()');
+  const any = body('fn_reask_any_due');
+  if (!/founder_hold/.test(any) || !/last_attempt_at <= now\(\) - interval '50 seconds'/.test(any)) out.push('K2: fn_reask_any_due ignores the hold or the 50 s pause');
+  const due = body('fn_reask_due');
+  if (!/- 'reask_sending_at'\s*\|\| jsonb_build_object\('reask_send_unrecorded_at'/.test(due)) out.push('K2: a stale send keeps its marker');
+  if (!/if p_outcome ->> 'via' = 'not_yours' then\s*return/.test(body('fn_reask_record'))) out.push('K3: fn_reask_record acts on a lost claim');
+  if (!/set attempts = case when created_at > now\(\) - interval '24 hours' then greatest\(attempts - 1, 0\) else attempts end/.test(body('fn_reask_record'))) out.push('K5: an outage gives its attempt back for ever');
+  if (!/outcome\.via === NOT_YOURS \? \{ id: row\.id, status: NOT_YOURS \}/.test(reask)) out.push('K3: reaskDue records a lost claim');
+  if (!/if \(owed && logId && held_id === null\) \{[\s\S]{0,200}update\(\{ path: 'portal' \}\)[\s\S]{0,80}\.is\('reply', null\)/.test(portal)) out.push('K4: an unfiled portal turn keeps portal:pending');
+  return out;
+}
+
+test('review of #1657: the kick sends the publishable key and only when a row is due; a lost claim and an unfiled turn change nothing', () => {
+  assert.deepEqual(reviewFindings(read(SQL), read('supabase/functions/_shared/reask.ts'), code(read('supabase/functions/sales_engineer/index.ts'))), []);
+  assert.ok(read(SQL).includes('revoke execute on function public.fn_reask_any_due() from public, anon, authenticated;'), 'no revoke for fn_reask_any_due()');
+});
+
+test('known-bad (review of #1657): e87ab48ca\'s lines are caught', () => {
+  const sqlBefore = "create or replace function public.fn_reask_kick() as $fn$\n  select value into v_anon from public.app_secrets where key = 'anon_key';\nend $fn$;\n"
+    + "create or replace function public.fn_reask_due(p_limit integer default 5) as $fn$\n  result = coalesce(result, '{}'::jsonb) || jsonb_build_object('reask_handed_off', 'x')\nend $fn$;\n"
+    + "create or replace function public.fn_reask_record(p_id bigint, p_outcome jsonb) as $fn$\n  if p_outcome ->> 'phase' = 'sending' then\nend $fn$;\n";
+  const reaskBefore = "    const rec = await admin.rpc('fn_reask_record', { p_id: row.id, p_outcome: outcome })";
+  const portalBefore = '      const pending = held_id !== null;';
+  assert.equal(reviewFindings(sqlBefore, reaskBefore, portalBefore).length, 8);
+});
+
 // KNOWN-BAD CONTROLS: the lines 4d5c6cfd0 / #1646 carried. Each must be caught.
 test('known-bad: the pre-fix lines are caught', () => {
   const intakeBefore = "        const heldMsg = hv.text;\n        turns.push({ role: 'assistant', text: heldMsg, agent: ACTOR });\n";

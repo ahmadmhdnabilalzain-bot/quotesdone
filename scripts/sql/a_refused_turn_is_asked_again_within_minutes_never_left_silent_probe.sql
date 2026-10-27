@@ -7,7 +7,7 @@
 -- its problems; the third refusal hands it to sales_engineer (held_question item, portal row 'with_team'); a reviewed
 -- reply comes back through the same door; 'sending' is granted once; a delivery closes the row and the seat's item.
 do $probe$
-declare v_log bigint; v_id bigint; v jsonb; r public.reasoning_held_question; v_fail text := ''; n int;
+declare v_log bigint; v_id bigint; v_stale bigint; v jsonb; r public.reasoning_held_question; v_fail text := ''; n int;
 begin
   insert into public.assistant_logs (message, reply, seat, answered, conv_id, audience, path)
   values ('ZZ DEMO reask probe: what thickness for a wardrobe shelf?', null, 'sales_engineer', false, 'a-c-zz-demo-reask-probe', 'customer:zz-demo', 'portal:pending')
@@ -47,12 +47,44 @@ begin
   if not public.fn_reask_due(20) @> jsonb_build_array(jsonb_build_object('id', v_id)) then v_fail := v_fail || ' reviewed-not-claimed;'; end if;
   if public.fn_reask_record(v_id, '{"phase":"sending"}') ->> 'status' <> 'sending' then v_fail := v_fail || ' sending-refused;'; end if;
   if public.fn_reask_record(v_id, '{"phase":"sending"}') ->> 'status' <> 'not_yours' then v_fail := v_fail || ' sending-granted-twice;'; end if;
+  -- review of #1657: the run that LOST the claim records nothing; the winner's marker and the row stay as they were
+  if public.fn_reask_record(v_id, '{"delivered":false,"via":"not_yours","detail":"probe"}') ->> 'status' <> 'not_yours' then v_fail := v_fail || ' lost-claim-recorded;'; end if;
+  select * into r from public.reasoning_held_question where id = v_id;
+  if not (r.result ? 'reask_sending_at') or r.escalated_at is null or r.status <> 'failed' then v_fail := v_fail || ' lost-claim-changed-the-row;'; end if;
   if public.fn_reask_record(v_id, '{"delivered":true,"via":"portal","reviewed":true}') ->> 'status' <> 'delivered' then v_fail := v_fail || ' not-delivered;'; end if;
   select * into r from public.reasoning_held_question where id = v_id;
   if r.status <> 'applied' then v_fail := v_fail || ' not-applied;'; end if;
   if exists (select 1 from public.agent_actions where kind = 'held_question' and status = 'pending' and target_id = v_id::text)
     then v_fail := v_fail || ' seat-item-left-open;'; end if;
 
-  raise exception 'CHK<<%>>', case when v_fail = '' then 'PROBE OK: claimed by the re-ask only, 3 refusals kept and handed to sales_engineer, reviewed reply sent once'
+  -- review of #1657: a send that started and never recorded is handed off ONCE and stops matching the kick (its marker
+  -- moves to reask_send_unrecorded_at); while it was stale, fn_reask_any_due said a request was worth making
+  insert into public.reasoning_held_question (seat, surface, question, request, plan, subject, reason, dedupe_key, created_at, result)
+  values ('sales_engineer', 'sales_engineer.portal_unwritten', 'ZZ DEMO reask probe: stale send', '{}'::jsonb, '{}'::jsonb,
+          jsonb_build_object('channel', 'portal', 'log_id', v_log), 'model_up_no_safe_reply', 'zz_demo_reask_probe_stale:' || v_log,
+          '2000-01-01T00:00:00Z', jsonb_build_object('reask_sending_at', now() - interval '10 minutes'))
+  returning id into v_stale;
+  if not public.fn_reask_any_due() then v_fail := v_fail || ' stale-send-not-due;'; end if;
+  perform public.fn_reask_due(20);
+  select * into r from public.reasoning_held_question where id = v_stale;
+  if r.status <> 'failed' or r.result ? 'reask_sending_at' or not (r.result ? 'reask_send_unrecorded_at') or r.notice_delivered_at is null
+    then v_fail := v_fail || ' stale-send-not-cleared=' || coalesce(r.result::text, 'null') || ';'; end if;
+  if exists (select 1 from public.reasoning_held_question where id = v_stale and (result ->> 'reask_sending_at')::timestamptz < now() - interval '5 minutes')
+    then v_fail := v_fail || ' stale-send-still-matches-the-kick;'; end if;
+
+  -- review of #1657: an outage gives the attempt back only in the turn's first 24 hours (bounded; no expires_at here)
+  insert into public.reasoning_held_question (seat, surface, question, request, plan, subject, reason, dedupe_key, created_at, attempts)
+  values ('sales_engineer', 'sales_engineer.portal_unwritten', 'ZZ DEMO reask probe: old outage', '{}'::jsonb, '{}'::jsonb,
+          jsonb_build_object('channel', 'portal', 'log_id', v_log), 'model_up_no_safe_reply', 'zz_demo_reask_probe_old:' || v_log, '2000-01-01T00:00:00Z', 2),
+         ('sales_engineer', 'sales_engineer.portal_unwritten', 'ZZ DEMO reask probe: new outage', '{}'::jsonb, '{}'::jsonb,
+          jsonb_build_object('channel', 'portal', 'log_id', v_log), 'model_up_no_safe_reply', 'zz_demo_reask_probe_new:' || v_log, now() - interval '1 minute', 2);
+  perform public.fn_reask_record(h.id, '{"delivered":false,"via":"none","outage":true}')
+     from public.reasoning_held_question h where h.dedupe_key in ('zz_demo_reask_probe_old:' || v_log, 'zz_demo_reask_probe_new:' || v_log);
+  if (select attempts from public.reasoning_held_question where dedupe_key = 'zz_demo_reask_probe_old:' || v_log) <> 2
+    then v_fail := v_fail || ' old-outage-gave-the-attempt-back;'; end if;
+  if (select attempts from public.reasoning_held_question where dedupe_key = 'zz_demo_reask_probe_new:' || v_log) <> 1
+    then v_fail := v_fail || ' new-outage-kept-the-attempt;'; end if;
+
+  raise exception 'CHK<<%>>', case when v_fail = '' then 'PROBE OK: claimed by the re-ask only, 3 refusals kept and handed to sales_engineer, reviewed reply sent once, a lost claim changes nothing, a stale send is cleared once, an outage is given back for 24 h only'
                                    else 'PROBE FAILED:' || v_fail end;
 end $probe$;

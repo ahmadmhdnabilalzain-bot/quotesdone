@@ -5,7 +5,7 @@
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
 import { aiReply, REPLY_MODEL } from './ai_reply.ts';
 import type { LlmReply, ThinkDeps } from './think.ts';
-import { englishOnly, extraCheck, priorProblems, reaskOne, reaskRequest, REASK_SURFACES, turnOf, type ReaskIO, type ReaskRow } from './reask.ts';
+import { englishOnly, extraCheck, NOT_YOURS, priorProblems, reaskDue, reaskOne, reaskRequest, REASK_SURFACES, turnOf, type ReaskIO, type ReaskRow } from './reask.ts';
 import { holdingNotice, HOLDING_NOTICE, type DeliveryIO } from './reasoned_delivery.ts';
 
 const COMPANY = 'REVEAL FEE: the customer pays 3.00% of the selected quotation value. No card fee is added.';
@@ -123,6 +123,23 @@ Deno.test('one reply per turn: a row another run is sending is never sent again'
   const out = await reaskOne(portalRow(), x);
   assertEquals(out.delivered, false);
   assertEquals(log, []);
+});
+
+// Review of #1657 (27 Oct 2026): two ticks can hold the same row (a 45 s re-ask plus its send outlasts the 50 s pause).
+// The run that LOSES the 'sending' claim must record nothing: recorded as a failure, fn_reask_record read the WINNER's
+// marker as "this send failed", failed the row and handed it to the seat while the winner was still delivering.
+Deno.test('one reply per turn: the run that loses the sending claim records nothing (the winner keeps the row)', async () => {
+  const rpcs: string[] = [];
+  const admin = { rpc: (fn: string) => { rpcs.push(fn); return Promise.resolve({ data: fn === 'fn_reask_due' ? [portalRow()] : null, error: null }); } };
+  const { x } = io([A(GOOD)], { sending: () => Promise.resolve(false) });
+  const res = await reaskDue(admin, { io: x }) as { rows: { via: string; record: { status: string } }[] };
+  assertEquals(rpcs, ['fn_reask_due'], 'fn_reask_record must not be called for a lost claim');
+  assertEquals([res.rows[0].via, res.rows[0].record.status], [NOT_YOURS, NOT_YOURS]);
+  // the winner's path still records its outcome
+  const rpcs2: string[] = [];
+  const admin2 = { rpc: (fn: string) => { rpcs2.push(fn); return Promise.resolve({ data: fn === 'fn_reask_due' ? [portalRow()] : { status: 'delivered' }, error: null }); } };
+  await reaskDue(admin2, { io: io([A(GOOD)]).x });
+  assertEquals(rpcs2, ['fn_reask_due', 'fn_reask_record']);
 });
 
 Deno.test('after the hand-off, a reviewed reply passes the same gates through the same door; a refused one is not sent', async () => {

@@ -21,3 +21,12 @@ Proved rolled back with a_refused_turn_is_asked_again_within_minutes_never_left_
   - begin; <the .sql>; <the probe> -> CHK<<PROBE OK: claimed by the re-ask only, 3 refusals kept and handed to
     sales_engineer, reviewed reply sent once>>.
   - afterwards: fn_reask_due absent, cron job reask_refused_turns 0, writer_seat row 0, probe assistant_logs 0, probe held rows 0.
+
+Independent review of #1657, 27 Oct 2026 ~17:40 UTC: five fixes (fn_reask_any_due added: 9 routines now; the kick takes
+its key from fn_gateway_client_key(), applied on main by the_lead_sourcing_kick_sends_the_publishable_key_not_the_legacy_anon_jwt.sql;
+a stale send clears its marker; a lost 'sending' claim changes nothing; an outage gives its attempt back for the
+turn's first 24 hours only). Re-proved on production, read and rolled back:
+  - apply_sql.mjs dry run (--seat customer_support): guards passed, 9 routines, the 3 it calls present.
+  - begin; <the .sql>; <the probe> -> CHK<<PROBE OK: ... a lost claim changes nothing, a stale send is cleared once, an outage is given back for 24 h only>>.
+  - begin; <e87ab48ca's .sql>; <the probe> -> ERROR 42883 fn_reask_any_due() does not exist.
+  - afterwards: reask routines 0, cron job 0, writer_seat 0, probe held rows 0, probe assistant_logs 0.
