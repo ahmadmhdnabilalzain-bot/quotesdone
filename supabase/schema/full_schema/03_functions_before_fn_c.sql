@@ -11234,6 +11234,41 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_arabic_compare_wait(p_inquiry text, p_texts text[])
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  insert into public.arabic_compare_waiter (inquiry_id, texts) values (p_inquiry, p_texts)
+  on conflict (inquiry_id) do update set texts = excluded.texts
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_arabic_compare_waiters_ready(p_limit integer DEFAULT 10)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with ready as (
+    select d.inquiry_id from public.arabic_compare_waiter d
+     where d.attempts < 5   -- a render that keeps failing stops costing replays (customer_api tells the sales engineer)
+       and (d.last_offered_at is null or d.last_offered_at < now() - interval '2 minutes')
+       and not exists (select 1 from unnest(d.texts) t
+                        where not exists (select 1 from public.arabic_translation a where a.source_md5 = md5(t)))
+     order by d.attempts, d.last_offered_at nulls first, d.created_at
+     limit greatest(1, least(coalesce(p_limit, 10), 100))
+     for update skip locked
+  ), offered as (
+    update public.arabic_compare_waiter w set last_offered_at = now()
+      from ready where w.inquiry_id = ready.inquiry_id
+    returning w.inquiry_id
+  )
+  select coalesce(jsonb_agg(inquiry_id), '[]'::jsonb) from offered
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_arabic_document_wait(p_quote text, p_texts text[])
  RETURNS void
  LANGUAGE sql
