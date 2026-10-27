@@ -16,6 +16,32 @@
 create function pg_temp.zz_assert(p_cond boolean, p_msg text) returns void language plpgsql as $f$
 begin if not coalesce(p_cond, false) then raise exception 'ZZFAIL: %', p_msg; end if; end $f$;
 
+-- THE SECOND SEAT'S ANSWER. A refund is high stakes (instruction 1009): fn_refund_decide waits at awaiting_second_seat
+-- until the accountant, on a model of another family, records its compare turn. Until 19 Oct that wait was skipped
+-- because the paid-model hold was on (fn_high_stakes_model_held); ruling 1260 (OpenRouter stays on) lifted it, so
+-- the ladder stopped at "requested" and fn_refund_settle found no approved refund (measured 27 Oct 2026). A model
+-- call cannot answer inside this rolled-back transaction, so this records the reviewer's blind and compare turns
+-- through fn_seat_deliberation_record, the routine the edge function calls, on a registered model of another family
+-- than the proposal's; trg_high_stakes_review then decides the refund again - the production path from there on.
+-- Only deliberations this transaction opened (opened_at = now(), the transaction's start) are answered.
+create function pg_temp.zz_second_seat_agrees() returns void language plpgsql as $f$
+declare d public.seat_deliberation; v_model text;
+begin
+  for d in select * from public.seat_deliberation where kind = 'high_stakes.refund' and proceeded_at is null
+                and status = 'open' and opened_at = now() loop
+    select r.model_id into v_model from public.model_registry r
+     where lower(btrim(r.provider)) <> coalesce((select lower(btrim(t.provider)) from public.seat_deliberation_turn t
+                                                  where t.deliberation_id = d.id and t.phase = 'proposal' order by t.id desc limit 1), '')
+       and lower(btrim(r.provider)) <> 'deterministic'
+     order by r.model_id limit 1;
+    perform public.fn_seat_deliberation_record(d.id, 'blind', v_model, jsonb_build_object('verdict', 'approve',
+      'steelman_against', 'ZZ DEMO fixture blind pass: the supplier might still answer before the refund settles'));
+    perform public.fn_seat_deliberation_record(d.id, 'compare', v_model, jsonb_build_object('verdict', 'approve',
+      'steelman_against', 'ZZ DEMO fixture comparison: the customer could have been asked to wait one more day',
+      'agreements', 'ZZ DEMO fixture: the second seat agrees with the refund', 'disagreements', 'none'));
+  end loop;
+end $f$;
+
 create function pg_temp.zz_case(p_tag text, p_days int, p_total numeric, p_fee numeric, p_whatsapp text default null)
 returns uuid language plpgsql as $f$
 declare c uuid; l bigint; i uuid; q uuid; t uuid;
@@ -95,6 +121,9 @@ begin
   rf := (public.fn_refund_open_from_customer(t, 'customer')->>'refund_id')::bigint;
   v := public.fn_ceo_refund_review(rf, 'zz');
   perform pg_temp.zz_assert(v->>'outcome' = 'approved', p_tag || ': the CEO did not approve a clean case ' || v::text);
+  perform pg_temp.zz_second_seat_agrees();
+  perform pg_temp.zz_assert((select status from public.refunds where id = rf) = 'approved',
+    p_tag || ': the refund is not approved after the second seat agreed');
   return t;
 end $f$;
 
@@ -136,6 +165,7 @@ begin
   perform public.fn_customer_support_delivery_watch(r);
   perform pg_temp.zz_assert((select refund_decision_id from public.refunds where id = rf) is not null,
     's1 the CEO did not approve: ' || coalesce((select failed::text from public.refund_ceo_review where refund_id = rf order by cycle desc limit 1), 'no review ran'));
+  perform pg_temp.zz_second_seat_agrees();
   perform public.fn_refund_settle('re_zz_s1', 'succeeded', 10300, 'pi_zz_demo_s1');
   select * into d1 from public.supplier_dues where transaction_id = tx1 and coalesce(status, '') <> 'cancelled';
   perform pg_temp.zz_assert(d1.amount_due = 103.00 and d1.admin_fee = 250.00, 's1 charge figures ' || coalesce(d1.amount_due::text, 'no charge'));

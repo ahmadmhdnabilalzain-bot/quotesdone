@@ -1,0 +1,17 @@
+{
+ "ok": true,
+ "op": "sandbox_verify",
+ "summary": {
+  "roots": 1,
+  "unlisted_roots": 0,
+  "expected": 131,
+  "listed": 131,
+  "missing": 0,
+  "confirmed_missing": 0,
+  "changed": 0,
+  "stray": 0,
+  "files_refreshed": 0,
+  "files_removed": 0
+ },
+ "findings": []
+}

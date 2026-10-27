@@ -23,11 +23,12 @@ name: IT engineer post-deploy smoke
 # never set. The gate still changed: a smoke test that cannot report now FAILS the job. It used to skip
 # quietly and leave a green run over nothing.
 
+# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
 on:
-  workflow_run:
-    workflows: ['deploy edge functions']
-    types: [completed]
-    branches: [main]
+  # workflow_run:
+    # workflows: ['deploy edge functions']
+    # types: [completed]
+    # branches: [main]
   # Re-run the smoke for a merge that already deployed, without another push to main.
   workflow_dispatch:
     inputs:

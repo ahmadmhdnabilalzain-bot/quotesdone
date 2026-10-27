@@ -16,6 +16,7 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { manifestWithPending, pendingNotes } from '../lib/pending_sql.mjs';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -62,7 +63,10 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 
 test('production, rolled back: planted ids, amounts and contacts never reach a stored lesson', { skip: SKIP }, async () => {
-  const pre = pendingNotes().has(FILE) ? R(FILE) + '\n' : '';
+  // The lapse escalation (4b) is a real handoff on a ZZ DEMO lesson; ruling 1199 (demo_activity_files_no_seat_task_or_handoff.sql,
+  // #1479) files none for a demo subject, so fn_seat_handoff_act(null) aborted the probe. seatWorkFixtures() switches that
+  // off for this rolled-back transaction only (a_rolled_back_probe_may_file_demo_seat_work_under_its_own_switch.sql).
+  const pre = seatWorkFixtures() + '\n;\n' + (pendingNotes().has(FILE) ? R(FILE) + '\n' : '');
   let out = null;
   try { await replaySql(pre + R(PROBE), { retry: false }); } catch (e) {
     const m = String(e.message || e).match(/CHK<<([\s\S]*)>>/);

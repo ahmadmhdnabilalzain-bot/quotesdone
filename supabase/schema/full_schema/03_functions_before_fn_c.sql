@@ -2543,6 +2543,7 @@ CREATE OR REPLACE FUNCTION public.fn_accountant_files_reveal_invoice()
 AS $function$
 declare
   v_doc bigint;
+  v_h   bigint;
 begin
   if new.doc_path is null or new.doc_path !~ '^invoices/' then return new; end if;
   if tg_op = 'UPDATE' and old.doc_path is not distinct from new.doc_path then return new; end if;
@@ -2561,15 +2562,32 @@ begin
                        'customer_id', new.customer_id, 'invoice_id', new.stripe_invoice_id,
                        'invoice_number', new.stripe_invoice_number, 'total_charged', new.total_charged));
 
-  insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
-  values ('sales_engineer', 'handoff', 'pending', 'low',
-          'Reveal invoice filed - tell the customer it is ready',
-          'The Stripe invoice is in the customer''s Documents and on the revealed quote card.',
-          jsonb_build_object('from', 'accountant', 'from_name', 'Accountant', 'subject', 'reveal_invoice',
-                             'transaction_id', new.id, 'quote_id', new.quote_id, 'inquiry_id', new.inquiry_id,
-                             'customer_id', new.customer_id, 'document_id', v_doc,
-                             'invoice_number', new.stripe_invoice_number),
-          'transactions', new.id::text);
+  -- The handoff names its conversation, its case, its decision and its ask, so its note can be stated.
+  -- If it still cannot be filed, the invoice stays filed and the IT engineer is told which case lost it.
+  begin
+    insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
+    values ('sales_engineer', 'handoff', 'pending', 'low',
+            'Reveal invoice filed - tell the customer it is ready',
+            'The Stripe invoice is in the customer''s Documents and on the revealed quote card.',
+            jsonb_build_object('type', 'invoice.issued', 'from', 'accountant', 'from_name', 'Accountant', 'to', 'sales_engineer',
+                               'subject', 'reveal_invoice', 'subject_table', 'transactions', 'subject_id', new.id::text,
+                               'decision', 'accountant filed the Stripe reveal invoice into the customer''s Documents (document '
+                                           || v_doc || ') and hands the notice to the sales engineer',
+                               'question', 'Tell the customer their reveal invoice is ready, in the inquiry''s language.',
+                               'transaction_id', new.id, 'quote_id', new.quote_id, 'inquiry_id', new.inquiry_id,
+                               'customer_id', new.customer_id, 'document_id', v_doc,
+                               'invoice_number', new.stripe_invoice_number),
+            'transactions', new.id::text)
+    returning id into v_h;
+    perform public.fn_seat_handoff_event(v_h, 'sent');
+  exception when others then
+    perform public.fn_it_engineer_finding_upsert(
+      'monitor:reveal_invoice_handoff_not_filed:' || new.id,
+      'Reveal invoice filed but its handoff to the sales engineer was refused: ' || left(sqlerrm, 200),
+      'public.fn_accountant_files_reveal_invoice (caller: accountant)', 'customer_facing', 1,
+      jsonb_build_object('transaction_id', new.id, 'document_id', v_doc, 'error', left(sqlerrm, 500), 'owner_seat', 'accountant'),
+      '{}'::text[], array['why the reveal_invoice handoff could not be filed for this transaction'], 'fn_accountant_files_reveal_invoice');
+  end;
   return new;
 end
 $function$
@@ -10175,6 +10193,23 @@ exception when others then
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ai_cost_log_releases_rehearsal_reservation()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if new.e2e_run_tag is not null and new.model_used is distinct from 'none' and not coalesce(new.cached, false)
+     and greatest(coalesce(new.cost_usd_reported, 0), coalesce(new.cost_aed, 0)) > 0 then
+    delete from public.rehearsal_spend_reservation
+     where id = (select id from public.rehearsal_spend_reservation
+                  where e2e_run_tag = new.e2e_run_tag order by created_at limit 1);
+  end if;
+  return null;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ai_quality_watch()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -11727,8 +11762,9 @@ begin
      or exists (select 1 from public.agent_runs where agent = 'backup_kick' and status = 'ok'
                 and started_at > now() - interval '60 seconds') then
     -- 7 Oct 2026: the scheduler's call is recorded, so its heartbeat sees that it ran (dropbox_kick, handoff
-    -- 130872). Only 'github_actions': the per-document trigger kicks debounce in bursts and nothing reads them.
-    if p_reason = 'github_actions' then
+    -- 130872). Only the two second schedulers (GitHub until 26 Oct 2026, pg_cron from then): the per-document
+    -- trigger kicks debounce in bursts and nothing reads them.
+    if p_reason in ('github_actions', 'pg_cron_second_scheduler') then
       insert into public.agent_runs (agent, status, counts, note, started_at, finished_at)
       values ('backup_kick', 'skipped', jsonb_build_object('reason', p_reason, 'mode', p_mode, 'debounced', true),
               left('dropbox_backup not kicked (' || p_mode || '): debounced, a kick in the last 60 seconds is still draining: ' || p_reason, 500),
@@ -12159,6 +12195,7 @@ AS $function$
     ('social-media',     'bucket', 'social-media',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (generated post cards and avatars; not in the repository)', null),
     ('brand',            'bucket', 'brand',            true, 'fn_enqueue_doc_backups: STORAGE SWEEP (brand kit, signature and stamp images; not in the repository)', null),
     ('company-seal',     'bucket', 'company-seal',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the company stamp and signature, private since 6 Oct 2026; read by pdf_native with the service role)', null),
+    ('evidence',         'bucket', 'evidence',         true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the laptop''s sandbox and campaign evidence moved off the Desktop on 26 Oct 2026: screenshots, recordings, files over 5 MB and real third parties'' documents kept out of git; private, service role only; indexed by sha256 in docs/reports/EVIDENCE_INDEX.md)', null),
     ('kb-import-assets', 'bucket', 'kb-import-assets', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (knowledge import runs; only part of it is in the repository)', null),
     ('site',             'bucket', 'site',             true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the static website pages as first published)', null),
     ('marketing-media',  'bucket', 'marketing-media',  true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the media of the posts the founder and Claude ingest to the marketing seat; private, not in the repository)', null),
