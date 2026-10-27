@@ -1,0 +1,12 @@
+PENDING, applied AT MERGE of #1640 by the release operator (memory: apply-at-merge-never-before). Seat: customer_support.
+
+Founder ruling 1338 (27 Oct 2026, "Withhold from customers."): fn_reason_retrieve and fn_reason_retrieve_ml stop giving
+kb_chunks rows of source_kind 'generated' or 'memory' to any audience not named internal or founder. Built on the
+canonical bodies (a_trade_question_reads_its_own_trade_pack.sql, equal to live on 27 Oct 2026). Proved rolled back with
+knowledge_the_ai_wrote_itself_is_withheld_from_customers_probe.sql: PROBE OK.
+
+What moves it: #1640 merges. Then, in one turn:
+  node scripts/apply_sql.mjs scripts/sql/knowledge_the_ai_wrote_itself_is_withheld_from_customers.sql --apply --ddl
+  delete this note, append the .sql to the END of scripts/sql/MANIFEST.txt (Edit tool), and run
+  node scripts/checks/canonical_routine_manifest.mjs and the export --write.
+If another file redefines either routine first, rebuild this one on that body (the check names the predicate).

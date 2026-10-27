@@ -1,0 +1,228 @@
+{
+  "seat": "sales_engineer",
+  "bank": "trade_distinctions",
+  "ledger": [893, 899],
+  "standard": "founder ledger 893 and 899: the sales engineer knows the product and technical distinctions of every trade (everything except F&B) and what is actually sold in the UAE",
+  "how_it_is_used": "scripts/eval/seat_exam_llm_on.mjs reads this bank beside knowledge/exams/sales_engineer.json. `bank` picks for each due item the first wording in `wordings` that was never asked, so the daily run needs no newly authored wording until a bank is used up; `score` reports ledger 893/899 from these items. Every expected fact is a phrase of the expected trade-pack entry (checked by scripts/checks/the_seat_exam_bank_scores_every_ledger.test.mjs), so an item is passable from the knowledge the seat holds. The trades are those of the 20 with the most invited leads (measured 27 Oct 2026) whose distinction entry is served; the six packs deepened that day are in held_items until their entries are verified.",
+  "items": [
+    {
+      "id": "se-trade-01", "trade": "security_systems", "ledger": [893, 899],
+      "q_en": "Should a new office in Dubai buy an NVR or a DVR?",
+      "q_ar": "هل يشتري مكتب جديد في دبي جهاز NVR أم DVR؟",
+      "wordings": ["A client's CCTV quote lists a DVR, another lists an NVR. What is the actual difference?", "We are reusing the old coax cables in a shop. Which recorder type fits, and why?", "What does an NVR do that a DVR does not?"],
+      "expected_entry_ids": ["security_systems:nvr-vs-dvr"],
+      "expected_facts": ["IP cameras", "coax"],
+      "answer_must": ["A DVR takes analogue cameras over coaxial cable and compresses in the recorder", "An NVR records already-encoded streams from IP cameras over the network; new commercial sites are mostly IP"]
+    },
+    {
+      "id": "se-trade-02", "trade": "fire_fighting", "ledger": [893, 899],
+      "q_en": "What is the difference between a conventional and an addressable fire alarm system?",
+      "q_ar": "ما الفرق بين نظام إنذار الحريق التقليدي والنظام القابل للعنونة؟",
+      "wordings": ["A building owner asks why the addressable fire panel costs more than the conventional one. Explain.", "On a conventional fire alarm, how do you know which detector went off?", "When is a zoned (conventional) fire alarm enough, and when do you need addressable?"],
+      "expected_entry_ids": ["fire_fighting:conventional-vs-addressable"],
+      "expected_facts": ["zone", "address"],
+      "answer_must": ["Conventional panels report by zone, not the device", "Addressable devices each have a unique address on a loop, so the panel shows the exact device"]
+    },
+    {
+      "id": "se-trade-03", "trade": "steel", "ledger": [893, 899],
+      "q_en": "Stainless 304 or 316 for a handrail on a beachfront villa in Dubai?",
+      "q_ar": "ستانلس ستيل 304 أم 316 لدرابزين فيلا على الشاطئ في دبي؟",
+      "wordings": ["What does 316 have that 304 does not, and why does it matter by the sea?", "A fabricator offers 304 for a coastal balcony railing to save money. Is that acceptable?", "What does the L in 316L mean?"],
+      "expected_entry_ids": ["steel:ss-304-vs-316-316l"],
+      "expected_facts": ["molybdenum", "chloride"],
+      "answer_must": ["316 adds molybdenum, which improves resistance to chloride pitting", "304 is for interiors and sheltered inland exteriors; 316/316L for coastal"]
+    },
+    {
+      "id": "se-trade-20", "trade": "hvac", "ledger": [893, 899],
+      "q_en": "Split units, ducted splits or VRF for a five-bedroom villa?",
+      "q_ar": "وحدات سبليت أم سبليت مخفي بدكت أم VRF لفيلا بخمس غرف نوم؟",
+      "wordings": ["What does a VRF system give that ducted splits do not?", "Why does one thermostat control several rooms on a ducted split?", "Which AC system suits a villa with little outdoor space for condensers?"],
+      "expected_entry_ids": ["hvac:split-vs-ducted-vs-vrf"],
+      "expected_facts": ["VRF", "ducted"],
+      "answer_must": ["Ducted splits serve a zone from one unit with one thermostat", "VRF connects many indoor units with individual control to one outdoor module"]
+    },
+    {
+      "id": "se-trade-21", "trade": "electrical", "ledger": [893, 899],
+      "q_en": "Can a PVC cable replace an XLPE cable of the same size?",
+      "q_ar": "هل يمكن استبدال كابل XLPE بكابل PVC بالمقاس نفسه؟",
+      "wordings": ["Why does XLPE cable carry more current than PVC of the same copper size?", "A contractor quotes PVC where the schedule says XLPE. Problem?", "What conductor temperatures are PVC and XLPE rated for?"],
+      "expected_entry_ids": ["electrical:xlpe-vs-pvc-insulation"],
+      "expected_facts": ["90", "70"],
+      "answer_must": ["XLPE is rated about 90 C continuous, PVC about 70 C", "A same-size swap needs re-checking current capacity, voltage drop and fault withstand"]
+    },
+    {
+      "id": "se-trade-22", "trade": "glazing", "ledger": [893, 899],
+      "q_en": "Tempered or heat-strengthened glass for a facade?",
+      "q_ar": "زجاج مقسّى أم مقوّى حرارياً لواجهة؟",
+      "wordings": ["Why does tempered glass sometimes break by itself years later?", "Can tempered glass be cut on site?", "How much stronger is toughened glass than annealed?"],
+      "expected_entry_ids": ["glazing:tempered-vs-heat-strengthened-vs-annealed"],
+      "expected_facts": ["four times", "heat-soak"],
+      "answer_must": ["Tempered is about four times annealed strength and breaks into small fragments", "Nickel sulphide inclusions cause spontaneous breakage unless heat-soaked; cut before tempering"]
+    },
+    {
+      "id": "se-trade-23", "trade": "aluminium", "ledger": [893, 899],
+      "q_en": "Can PE-core aluminium composite panel be used on a building facade in the UAE?",
+      "q_ar": "هل يمكن استخدام ألواح الألمنيوم المركبة ذات القلب PE على واجهة مبنى في الإمارات؟",
+      "wordings": ["What is the difference between PE, FR and A2 core ACP?", "Why did the UAE stop allowing polyethylene-core cladding?", "Which ACP core is for high-rise facades?"],
+      "expected_entry_ids": ["aluminium:acp-core-pe-fr-a2"],
+      "expected_facts": ["PE core", "A2"],
+      "answer_must": ["PE core is highly combustible and not acceptable on facades under the UAE Fire and Life Safety Code", "FR and A2 cores replace polymer with mineral filler; A2 is the least combustible"]
+    },
+    {
+      "id": "se-trade-24", "trade": "gypsum", "ledger": [893, 899],
+      "q_en": "Is moisture-resistant gypsum board waterproof for a shower wall?",
+      "q_ar": "هل لوح الجبس المقاوم للرطوبة مقاوم للماء لجدار دش؟",
+      "wordings": ["Green MR board or cement board inside a shower?", "When do you specify fire-rated versus impact-resistant gypsum board?", "Does one fire-rated board make a partition fire-rated?"],
+      "expected_entry_ids": ["gypsum:standard-vs-mr-vs-fire-vs-impact"],
+      "expected_facts": ["not waterproof", "cement board"],
+      "answer_must": ["MR board is moisture-resistant, not waterproof; in showers it needs tanking or cement board", "A fire rating belongs to the tested system, not a single board"]
+    }
+  ],
+  "held_items_why": "Items whose expected entry is stored verified=false (authored 27 Oct 2026 from search-result excerpts; no cited page opened). An unserved entry cannot be answered from knowledge, so these are not asked. Move one back into items when its entry is verified.",
+  "held_items": [
+    {
+      "id": "se-trade-04", "trade": "joinery", "ledger": [893, 899],
+      "q_en": "MDF, plywood or solid wood for kitchen cabinets?",
+      "q_ar": "MDF أم بلايوود أم خشب طبيعي لخزائن المطبخ؟",
+      "wordings": ["Why do some carpenters refuse MDF for the cabinet under the sink?", "Which board holds hinge screws best in a kitchen carcass?", "A buyer wants painted kitchen doors with crisp edges. Which material and why?"],
+      "expected_entry_ids": ["joinery:mdf-vs-plywood-vs-solid-wood"],
+      "expected_facts": ["plywood", "screw"],
+      "answer_must": ["Plywood holds screws best and resists swelling; preferred for boxes and wet units", "MDF suits painted doors but swells at unsealed edges; solid wood moves with humidity"]
+    },
+    {
+      "id": "se-trade-05", "trade": "joinery", "ledger": [893, 899],
+      "q_en": "What is the difference between HPL and melamine-faced board?",
+      "q_ar": "ما الفرق بين HPL والألواح المكسوة بالميلامين؟",
+      "wordings": ["For a reception counter that gets knocked all day, melamine board or HPL?", "Is melamine the same as high-pressure laminate?", "Which laminate finish has the protective overlay and higher impact resistance?"],
+      "expected_entry_ids": ["joinery:hpl-vs-melamine-faced-board"],
+      "expected_facts": ["high-pressure", "impact"],
+      "answer_must": ["Melamine-faced board is low-pressure, fused to the board without glue", "HPL is a separate high-pressure sheet glued on, with higher impact and scratch resistance"]
+    },
+    {
+      "id": "se-trade-06", "trade": "joinery", "ledger": [893, 899],
+      "q_en": "The carpenter says his boards are E0. What should I ask?",
+      "q_ar": "يقول النجار إن ألواحه E0، فماذا أسأل؟",
+      "wordings": ["What does E1 mean on an MDF certificate?", "Is 'E0' a formal European formaldehyde class?", "For a nursery wardrobe, which formaldehyde emission class should the quote state?"],
+      "expected_entry_ids": ["joinery:formaldehyde-e1-e0-carb"],
+      "expected_facts": ["E1", "0.1 ppm"],
+      "answer_must": ["E1 is the EN 13986 class: at or below 0.1 ppm in the EN 717-1 chamber test", "E0 is a market term, not a formal EN class; ask for the test and value"]
+    },
+    {
+      "id": "se-trade-07", "trade": "flooring", "ledger": [893, 899],
+      "q_en": "How do I tell porcelain tile from ceramic tile?",
+      "q_ar": "كيف أفرّق بين بلاط البورسلان وبلاط السيراميك؟",
+      "wordings": ["A supplier calls his tile 'vitrified'. Does that make it porcelain?", "What water absorption makes a tile porcelain?", "Which ISO 13006 group is porcelain?"],
+      "expected_entry_ids": ["flooring:porcelain-vs-ceramic-water-absorption"],
+      "expected_facts": ["0.5%", "water absorption"],
+      "answer_must": ["Porcelain is water absorption at or below 0.5% (group BIa/AIa of ISO 13006 / EN 14411)", "'Vitrified' alone does not prove porcelain; ask for the group on the data sheet"]
+    },
+    {
+      "id": "se-trade-08", "trade": "flooring", "ledger": [893, 899],
+      "q_en": "LVT, SPC or laminate for a rental apartment kitchen?",
+      "q_ar": "LVT أم SPC أم لامينيت لمطبخ شقة للإيجار؟",
+      "wordings": ["Why does laminate swell in kitchens while SPC does not?", "What is inside an SPC plank?", "How is the wear of vinyl plank stated versus laminate?"],
+      "expected_entry_ids": ["flooring:lvt-vs-spc-vs-laminate"],
+      "expected_facts": ["HDF", "SPC"],
+      "answer_must": ["Laminate has an HDF core that swells if water sits in the joints", "SPC has a rigid limestone-PVC core and is waterproof; vinyl wear is a wear-layer thickness, laminate an AC class"]
+    },
+    {
+      "id": "se-trade-09", "trade": "flooring", "ledger": [893, 899],
+      "q_en": "Epoxy or polyurethane screed for a commercial kitchen floor washed with hot water?",
+      "q_ar": "إيبوكسي أم بولي يوريثان لأرضية مطبخ تجاري تُغسل بالماء الساخن؟",
+      "wordings": ["Why does epoxy crack in food plants?", "Which resin floor handles steam and boiling water?", "A caterer's epoxy floor cracked after a year of hot washdowns. What should replace it?"],
+      "expected_entry_ids": ["flooring:epoxy-vs-pu-vs-urethane-cement"],
+      "expected_facts": ["thermal shock", "urethane"],
+      "answer_must": ["Epoxy can crack under thermal shock from hot washdowns", "Cementitious urethane moves with the slab and withstands steam and boiling water"]
+    },
+    {
+      "id": "se-trade-10", "trade": "flooring", "ledger": [893, 899],
+      "q_en": "What does R11 mean on a floor tile?",
+      "q_ar": "ماذا يعني R11 على بلاطة أرضية؟",
+      "wordings": ["How is the R slip class of a tile measured?", "Is R13 more or less slip resistant than R9?", "Which test gives tiles their R9 to R13 rating?"],
+      "expected_entry_ids": ["flooring:slip-ratings-r9-to-r13"],
+      "expected_facts": ["DIN 51130", "ramp"],
+      "answer_must": ["R values come from the DIN 51130 oil-coated ramp test with shod walkers", "R9 is the lowest, R13 the highest; R11 is 19-27 degrees"]
+    },
+    {
+      "id": "se-trade-11", "trade": "cleaning", "ledger": [893, 899],
+      "q_en": "How often must a restaurant's kitchen exhaust be inspected for grease?",
+      "q_ar": "كم مرة يجب فحص شفاط مطبخ المطعم من الشحوم؟",
+      "wordings": ["A charcoal grill restaurant asks how often its hood and duct need checking.", "What does NFPA 96 say about inspection frequency for high-volume cooking?", "A school canteen and a 24-hour wok kitchen: same exhaust inspection interval?"],
+      "expected_entry_ids": ["cleaning:kitchen-exhaust-inspection-frequency"],
+      "expected_facts": ["NFPA 96", "quarterly"],
+      "answer_must": ["NFPA 96: monthly for solid fuel, quarterly for high volume, semi-annually moderate, annually low volume", "Cleaning is required when the inspection finds grease deposits"]
+    },
+    {
+      "id": "se-trade-12", "trade": "cleaning", "ledger": [893, 899],
+      "q_en": "Is marble crystallisation the same as polishing?",
+      "q_ar": "هل بلورة الرخام هي نفسها التلميع؟",
+      "wordings": ["One quote says grinding and honing, another says crystallisation. Which job removes lippage?", "What does a crystalliser actually do to marble?", "Explain grinding, honing, polishing and crystallisation for a marble lobby."],
+      "expected_entry_ids": ["cleaning:marble-grinding-honing-polishing-crystallisation"],
+      "expected_facts": ["grinding", "chemical"],
+      "answer_must": ["Grinding removes stone to flatten lippage; honing and polishing refine with finer diamonds", "Crystallisation is a chemical surface treatment reacting with the calcium carbonate"]
+    },
+    {
+      "id": "se-trade-13", "trade": "cleaning", "ledger": [893, 899],
+      "q_en": "Hot water extraction or encapsulation for office carpet tiles?",
+      "q_ar": "الاستخلاص بالماء الساخن أم الكبسلة لسجاد المكاتب؟",
+      "wordings": ["Our carpet must be dry by the next morning. Which cleaning method?", "Why does steam cleaning of carpet take so long to dry?", "What is low-moisture encapsulation carpet cleaning?"],
+      "expected_entry_ids": ["cleaning:carpet-hot-water-extraction-vs-encapsulation"],
+      "expected_facts": ["extraction", "encapsulation"],
+      "answer_must": ["Hot water extraction is the deep clean but needs hours to dry", "Encapsulation is low-moisture, dries fast, suits interim cleaning"]
+    },
+    {
+      "id": "se-trade-14", "trade": "chemicals", "ledger": [893, 899],
+      "q_en": "What is the difference between a PCE and an SNF superplasticiser?",
+      "q_ar": "ما الفرق بين الملدن الفائق PCE والملدن SNF؟",
+      "wordings": ["Why do ready-mix plants use polycarboxylate admixtures in summer?", "Does a PCE admixture work the same with every cement?", "Naphthalene or polycarboxylate for long hauls in hot weather?"],
+      "expected_entry_ids": ["chemicals:pce-vs-snf-superplasticiser"],
+      "expected_facts": ["polycarboxylate", "cement"],
+      "answer_must": ["PCE gives better water reduction and slump retention than naphthalene on average", "PCE depends more on the cement type, so trial mixes with the project cement decide"]
+    },
+    {
+      "id": "se-trade-15", "trade": "chemicals", "ledger": [893, 899],
+      "q_en": "Silicone or polyurethane sealant for a joint that will be painted?",
+      "q_ar": "مانع تسرب سيليكون أم بولي يوريثان لفاصل سيُدهن؟",
+      "wordings": ["Can I paint over silicone?", "Which sealant has the highest movement capability and UV resistance?", "Why is polyurethane sealant not used in structural glazing?"],
+      "expected_entry_ids": ["chemicals:sealants-silicone-vs-polyurethane-vs-hybrid"],
+      "expected_facts": ["paint", "UV"],
+      "answer_must": ["Pure silicone cannot be painted; it has the best UV resistance and highest movement", "Polyurethane is paintable but less UV-stable and not for structural glass"]
+    },
+    {
+      "id": "se-trade-16", "trade": "pest_control", "ledger": [893, 899],
+      "q_en": "Can any Dubai-approved pest control company do fumigation?",
+      "q_ar": "هل يمكن لأي شركة مكافحة آفات معتمدة في دبي القيام بالتبخير؟",
+      "wordings": ["What approval must a pest control company in Dubai hold?", "Does Dubai Municipality's general pest control approval cover termites?", "How do I check a pest control company in Dubai before hiring it?"],
+      "expected_entry_ids": ["pest_control:dubai-municipality-approval-and-scopes"],
+      "expected_facts": ["Dubai Municipality", "fumigation"],
+      "answer_must": ["The company needs a Dubai Municipality NOC and must be on the authorised list", "That approval is for general pest control; fumigation, termite and bird control need their own authorisation"]
+    },
+    {
+      "id": "se-trade-17", "trade": "pest_control", "ledger": [893, 899],
+      "q_en": "Pre-construction termite treatment or baiting after the building is finished?",
+      "q_ar": "معالجة النمل الأبيض قبل البناء أم الطعوم بعد اكتمال المبنى؟",
+      "wordings": ["Why must termite soil treatment be done before the slab is poured?", "How fast do termite bait stations work compared with liquid treatment?", "Options for termites in an existing villa?"],
+      "expected_entry_ids": ["pest_control:termite-pre-vs-post-construction"],
+      "expected_facts": ["slab", "bait"],
+      "answer_must": ["Pre-construction treatment goes under the slab before pouring; afterwards only drilling through concrete reaches the soil", "Baits use less insecticide but are much slower than liquid treatment"]
+    },
+    {
+      "id": "se-trade-18", "trade": "solar", "ledger": [893, 899],
+      "q_en": "TOPCon or HJT modules for a rooftop in the UAE heat?",
+      "q_ar": "ألواح TOPCon أم HJT لسطح في حرارة الإمارات؟",
+      "wordings": ["Why does the temperature coefficient matter for solar panels in Dubai?", "Is PERC still the mainstream cell technology?", "Which module technology has the highest bifaciality?"],
+      "expected_entry_ids": ["solar:perc-vs-topcon-vs-hjt"],
+      "expected_facts": ["temperature coefficient", "TOPCon"],
+      "answer_must": ["In UAE heat the temperature coefficient matters: HJT lowest loss, then TOPCon, then PERC", "TOPCon is the volume standard; HJT a premium niche; check warranty and independent tests"]
+    },
+    {
+      "id": "se-trade-19", "trade": "solar", "ledger": [893, 899],
+      "q_en": "How do I check that a solar inverter is approved for Shams Dubai?",
+      "q_ar": "كيف أتحقق أن عاكس الطاقة الشمسية معتمد لبرنامج شمس دبي؟",
+      "wordings": ["The installer sent DEWA's old PDF of eligible equipment. Is that enough?", "Who can connect a rooftop solar system to DEWA's grid?", "What are the stages of a Shams Dubai connection?"],
+      "expected_entry_ids": ["solar:shams-dubai-equipment-and-contractor"],
+      "expected_facts": ["DRRG", "enrolled"],
+      "answer_must": ["The PDF list is obsolete; equipment is registered through the DRRG Equipment Portal", "A DEWA-enrolled contractor or consultant submits; NOC, design approval, installation, inspection and connection"]
+    }
+  ]
+}

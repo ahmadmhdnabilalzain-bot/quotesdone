@@ -766,6 +766,7 @@ ALTER TABLE public.knowledge_ingestion_undo ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_library ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_library_origin ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.knowledge_library_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_ml_claim ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_ml_status ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.knowledge_module_standard ENABLE ROW LEVEL SECURITY;
@@ -1275,6 +1276,7 @@ CREATE POLICY kb_trim_hash_service_role_only ON public.kb_trim_hash AS PERMISSIV
 CREATE POLICY kb_trim_plan_service_role_only ON public.kb_trim_plan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY knowledge_library_service_role_only ON public.knowledge_library AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY knowledge_library_origin_service_role_only ON public.knowledge_library_origin AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY knowledge_library_state_service_role_only ON public.knowledge_library_state AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY knowledge_ml_claim_service_role_only ON public.knowledge_ml_claim AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY knowledge_ml_status_service_role_only ON public.knowledge_ml_status AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY knowledge_vector_ml_service_role_only ON public.knowledge_vector_ml AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

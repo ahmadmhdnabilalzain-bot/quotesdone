@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-27T12:25:38.915Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-27T13:43:59.771Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -220,7 +220,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (748) =====
+-- ===== TABLES (749) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -5041,6 +5041,13 @@ CREATE TABLE IF NOT EXISTS public.knowledge_library_origin (
   library_id bigint NOT NULL,
   source_ref text,
   source_ids text[] DEFAULT '{}'::text[] NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.knowledge_library_state (
+  id smallint DEFAULT 1 NOT NULL,
+  reconciled boolean DEFAULT false NOT NULL,
+  verdict jsonb DEFAULT '{}'::jsonb NOT NULL,
+  checked_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.knowledge_ml_claim (
@@ -10719,6 +10726,7 @@ ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_u
 ALTER TABLE public.knowledge_kpi_snapshots ADD CONSTRAINT knowledge_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.knowledge_library ADD CONSTRAINT knowledge_library_pkey PRIMARY KEY (id);
 ALTER TABLE public.knowledge_library_origin ADD CONSTRAINT knowledge_library_origin_pkey PRIMARY KEY (origin_store, origin_id);
+ALTER TABLE public.knowledge_library_state ADD CONSTRAINT knowledge_library_state_pkey PRIMARY KEY (id);
 ALTER TABLE public.knowledge_ml_claim ADD CONSTRAINT knowledge_ml_claim_pkey PRIMARY KEY (src, row_id);
 ALTER TABLE public.knowledge_ml_status ADD CONSTRAINT knowledge_ml_status_pkey PRIMARY KEY (id);
 ALTER TABLE public.knowledge_module_standard ADD CONSTRAINT knowledge_module_standard_pkey PRIMARY KEY (module);
@@ -11603,6 +11611,7 @@ ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_ru
 ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_undo_table_name_check CHECK ((table_name = ANY (ARRAY['ops_knowledge'::text, 'agent_training_case'::text])));
 ALTER TABLE public.knowledge_library ADD CONSTRAINT knowledge_library_seats_ck CHECK ((cardinality(seats) > 0));
 ALTER TABLE public.knowledge_library ADD CONSTRAINT knowledge_library_store_ck CHECK ((origin_store = ANY (ARRAY['kb_chunks'::text, 'ops_knowledge'::text, 'agent_knowledge'::text, 'sales_knowledge'::text, 'accountant_knowledge'::text, 'it_engineer_knowledge'::text, 'marketing_knowledge'::text, 'ceo_knowledge'::text, 'support_knowledge'::text])));
+ALTER TABLE public.knowledge_library_state ADD CONSTRAINT knowledge_library_state_one_row_ck CHECK ((id = 1));
 ALTER TABLE public.knowledge_ml_status ADD CONSTRAINT knowledge_ml_status_id_check CHECK (id);
 ALTER TABLE public.knowledge_vector_ml ADD CONSTRAINT knowledge_vector_ml_src_check CHECK ((src = ANY (ARRAY['seat_case_memory'::text, 'ceo_knowledge'::text, 'support_knowledge'::text, 'accountant_knowledge'::text, 'it_engineer_knowledge'::text, 'marketing_knowledge'::text, 'sales_knowledge'::text, 'company_faq'::text, 'agent_knowledge'::text, 'ops_knowledge'::text, 'reasoning_knowledge_candidate'::text, 'kb_chunks'::text, 'knowledge_library'::text])));
 ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_field_sources_check CHECK ((jsonb_typeof(field_sources) = 'object'::text));
