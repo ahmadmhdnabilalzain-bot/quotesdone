@@ -1684,6 +1684,34 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
   // a customer who writes nothing has still rated and a customer who writes something is adding to
   // a rating that is already counted. Nothing here can block a rating.
   const [note, setNote] = useState(''); const [noteSaved, setNoteSaved] = useState(false); const [noteErr, setNoteErr] = useState('');
+  // PHOTOS OF THE FINISHED JOB (T2): offered once the rating is saved, up to 5, sent ONE request per
+  // photo so no request carries more than one 5 MB image. The server re-checks everything
+  // (customer_api/review_photos.ts); the checks here only spare the customer a wasted upload.
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]); const [phErr, setPhErr] = useState(''); const [phDone, setPhDone] = useState('');
+  // A rated review may already carry photos from an earlier visit: show them and count them.
+  useEffect(() => {
+    if (!rated || !q || !q.id) return;
+    let live = true;
+    call('customer_api', { action: 'review_photos', quote_id: q.id }, token).then((j) => { if (live && j && j.ok) setPhotoUrls(j.photo_urls || []); }).catch(() => {});
+    return () => { live = false; };
+  }, [rated, q && q.id, token]);
+  const addPhotos = (files: FileList | null) => act.run('photos', async () => {
+    setPhErr(''); setPhDone('');
+    const list = Array.from(files || []);
+    if (!list.length) return;
+    if (photoUrls.length + list.length > 5) { setPhErr(t(lang, 'err_photo_count')); return; }
+    for (const f of list) {
+      if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { setPhErr(t(lang, 'err_photo_type')); return; }
+      if (f.size > 5 * 1024 * 1024) { setPhErr(t(lang, 'err_photo_size')); return; }
+    }
+    for (const f of list) {
+      const b64 = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f); }).catch(() => '');
+      const j = await call('customer_api', { action: 'add_review_photos', quote_id: q.id, photos: [{ b64 }] }, token).catch(() => null);
+      if (!(j && j.ok)) { setPhErr(errText(j, lang, 'err_photo_fail')); return; }
+      setPhotoUrls(j.photo_urls || []);
+    }
+    setPhDone(t(lang, 'c_ph_done'));
+  });
   const [dialog, ask] = useConfirm(lang);
   const g = terms || {};
   // The three actions on a revealed supplier are all round trips and none of them said so: the stars
@@ -1747,6 +1775,19 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
           </div>
           <div id={'rv-hint-' + q.id} className={S.hint}>{t(lang, 'c_note_min')}</div>
           {noteErr && <div id={'rv-err-' + q.id} className={S.err} role="alert">{noteErr}</div>}
+        </div>
+      ) : null}
+      {rated ? (
+        <div className="mt-2.5 border-t border-accent/25 pt-2.5">
+          <label className="block text-[12px] font-semibold text-muted-foreground" htmlFor={'rp-' + q.id}>{t(lang, 'c_ph_h')}</label>
+          {photoUrls.length ? <div className="mt-1.5 flex flex-wrap gap-2">{photoUrls.map((u, i) => <img key={u} src={u} alt={tf(lang, 'c_ph_alt', { n: i + 1 })} width={64} height={64} loading="lazy" className="size-16 rounded-md border border-border object-cover" />)}</div> : null}
+          {photoUrls.length < 5 ? <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <input id={'rp-' + q.id} type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={act.pending} aria-describedby={'rp-hint-' + q.id + (phErr ? ' rp-err-' + q.id : '')} aria-invalid={phErr ? true : undefined} onChange={(e) => { addPhotos(e.target.files); e.target.value = ''; }} className="min-w-0 max-w-full text-[13px] file:me-2 file:rounded-md file:border file:border-border file:bg-background file:px-2.5 file:py-1 file:text-[13px] file:font-semibold" />
+            <BusyNote busy={act.busy && act.key === 'photos'}>{t(lang, 'q_wait')}</BusyNote>
+          </div> : null}
+          <div id={'rp-hint-' + q.id} className={S.hint}>{t(lang, 'c_ph_hint')}</div>
+          {phDone && <div className={cn(S.sub, 'mt-1 text-primary')} role="status">{phDone}</div>}
+          {phErr && <div id={'rp-err-' + q.id} className={S.err} role="alert">{phErr}</div>}
         </div>
       ) : null}
       {gq.refund_ref ? <div className={cn(S.sub, 'mt-1.5')}>{tf(lang, 'c_refund_ref', { r: gq.refund_ref })}{' · '}{gq.decision_ref ? tf(lang, 'c_decision_ref', { d: gq.decision_ref }) : t(lang, 'c_decision_wait')}</div> : null}

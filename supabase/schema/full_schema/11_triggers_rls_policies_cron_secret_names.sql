@@ -906,6 +906,7 @@ ALTER TABLE public.pdpl_lead_erase_vault ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pdpl_operator_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pdpl_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase1_rollback_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.phone_code ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phone_verifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.po_lines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.po_orders ENABLE ROW LEVEL SECURITY;
@@ -1336,6 +1337,7 @@ CREATE POLICY otp_served_country_service_role_only ON public.otp_served_country 
 CREATE POLICY paid_route_exception_service_role_only ON public.paid_route_exception AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY pdpl_lead_erase_vault_service_only ON public.pdpl_lead_erase_vault AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY pdpl_operator_log_service_only ON public.pdpl_operator_log AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY phone_code_service_role_only ON public.phone_code AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY post_reveal_dispute_service_role_only ON public.post_reveal_dispute AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY price_benchmark_service_role_only ON public.price_benchmark AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY price_trade_term_service_role_only ON public.price_trade_term AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1507,6 +1509,7 @@ select cron.schedule('dropbox_backup_second_scheduler','41 */6 * * *',$CRON$sele
 select cron.schedule('kb_embed_daily','20 2 * * *',$CRON$set statement_timeout = '120s'; select public.fn_kb_embed_scheduled_run();$CRON$);
 select cron.schedule('seat_duty:ceo.revision_refile','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.revision_refile');$CRON$);
 select cron.schedule('seat_duty:it_engineer.latency_slo','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.latency_slo');$CRON$);
+select cron.schedule('seat_duty:sales_engineer.demand_forecast','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.demand_forecast');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow

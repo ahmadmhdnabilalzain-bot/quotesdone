@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-27T11:58:30.866Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-27T12:25:38.915Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -161,6 +161,7 @@ CREATE SEQUENCE IF NOT EXISTS public.os_review_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.outcome_record_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.pdpl_erase_files_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.phase1_rollback_log_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.phone_code_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.policy_rules_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.price_benchmark_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.prompt_versions_id_seq;
@@ -219,7 +220,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (747) =====
+-- ===== TABLES (748) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -7128,6 +7129,20 @@ CREATE TABLE IF NOT EXISTS public.phase1_rollback_log (
   detail jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.phone_code (
+  id bigint DEFAULT nextval('phone_code_id_seq'::regclass) NOT NULL,
+  phone text NOT NULL,
+  purpose text NOT NULL,
+  user_kind text,
+  email text,
+  code_hash text NOT NULL,
+  message_sid text,
+  attempts integer DEFAULT 0 NOT NULL,
+  expires_at timestamp with time zone NOT NULL,
+  used_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.phone_verifications (
   id uuid DEFAULT gen_random_uuid() NOT NULL,
   email text,
@@ -8049,7 +8064,8 @@ CREATE TABLE IF NOT EXISTS public.reviews (
   r_punctuality smallint,
   r_documentation smallint,
   r_after_sales smallint,
-  r_compliance smallint
+  r_compliance smallint,
+  photo_paths text[] DEFAULT '{}'::text[] NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.rfq_archives (
@@ -10843,6 +10859,7 @@ ALTER TABLE public.pdpl_lead_erase_vault ADD CONSTRAINT pdpl_lead_erase_vault_pk
 ALTER TABLE public.pdpl_operator_log ADD CONSTRAINT pdpl_operator_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.pdpl_requests ADD CONSTRAINT pdpl_requests_pkey PRIMARY KEY (id);
 ALTER TABLE public.phase1_rollback_log ADD CONSTRAINT phase1_rollback_log_pkey PRIMARY KEY (id);
+ALTER TABLE public.phone_code ADD CONSTRAINT phone_code_pkey PRIMARY KEY (id);
 ALTER TABLE public.phone_verifications ADD CONSTRAINT phone_verifications_pkey PRIMARY KEY (id);
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_pkey PRIMARY KEY (id);
 ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_pkey PRIMARY KEY (id);
@@ -11888,6 +11905,7 @@ ALTER TABLE public.paid_route_exception ADD CONSTRAINT paid_route_exception_max_
 ALTER TABLE public.pdpl_requests ADD CONSTRAINT pdpl_requests_kind_check CHECK ((kind = ANY (ARRAY['export'::text, 'delete'::text])));
 ALTER TABLE public.phase1_rollback_log ADD CONSTRAINT phase1_rollback_log_reason_check CHECK ((length(btrim(reason)) >= 8));
 ALTER TABLE public.phase1_rollback_log ADD CONSTRAINT phase1_rollback_log_tier_check CHECK ((tier = ANY (ARRAY['disarm'::text, 'rearm'::text, 'revert'::text, 'teardown'::text, 'rehearse'::text])));
+ALTER TABLE public.phone_code ADD CONSTRAINT phone_code_purpose_check CHECK ((purpose = ANY (ARRAY['login'::text, 'kyc_phone'::text, 'kyc_whatsapp'::text])));
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_qty_check CHECK ((qty > (0)::numeric));
 ALTER TABLE public.po_lines ADD CONSTRAINT po_lines_unit_price_money_ck CHECK ((unit_price >= (0)::numeric));
 ALTER TABLE public.po_orders ADD CONSTRAINT po_orders_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'approved'::text, 'partial'::text, 'received'::text, 'billed'::text, 'closed'::text, 'cancelled'::text])));
@@ -11989,6 +12007,7 @@ ALTER TABLE public.review_pool ADD CONSTRAINT review_pool_note_check CHECK ((btr
 ALTER TABLE public.review_route ADD CONSTRAINT review_route_decision_type_check CHECK ((decision_type ~ '^[a-z_]+$'::text));
 ALTER TABLE public.review_route ADD CONSTRAINT review_route_meaning_check CHECK ((btrim(meaning) <> ''::text));
 ALTER TABLE public.review_route ADD CONSTRAINT review_route_owner_seat_check CHECK ((owner_seat <> 'founder'::text));
+ALTER TABLE public.reviews ADD CONSTRAINT reviews_photo_paths_max_five CHECK ((COALESCE(cardinality(photo_paths), 0) <= 5));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_after_sales_check CHECK (((r_after_sales >= 1) AND (r_after_sales <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_communication_check CHECK (((r_communication >= 1) AND (r_communication <= 5)));
 ALTER TABLE public.reviews ADD CONSTRAINT reviews_r_compliance_check CHECK (((r_compliance >= 1) AND (r_compliance <= 5)));
@@ -13036,6 +13055,7 @@ CREATE INDEX outcome_record_due_idx ON public.outcome_record USING btree (due_at
 CREATE INDEX outcome_record_subject_idx ON public.outcome_record USING btree (subject_type, subject_id);
 CREATE UNIQUE INDEX outreach_lead_uq ON public.outreach USING btree (lead_id) WHERE (lead_id IS NOT NULL);
 CREATE INDEX outreach_status_idx ON public.outreach USING btree (status, id DESC);
+CREATE INDEX phone_code_live ON public.phone_code USING btree (phone, purpose, created_at DESC) WHERE (used_at IS NULL);
 CREATE INDEX po_orders_customer_idx ON public.po_orders USING btree (customer_id) WHERE (customer_id IS NOT NULL);
 CREATE UNIQUE INDEX post_reveal_dispute_one_open_per_transaction ON public.post_reveal_dispute USING btree (transaction_id) WHERE (stage <> 'decided'::text);
 CREATE INDEX price_benchmark_category_idx ON public.price_benchmark USING btree (category) WHERE (source_kind <> 'gap'::text);

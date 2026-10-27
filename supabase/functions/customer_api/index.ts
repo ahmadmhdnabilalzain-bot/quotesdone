@@ -8,6 +8,7 @@ import { cadSupplierBoq, dxfTextOf } from '../_shared/cad_identity.ts';
 import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
 import { notSureKeys, specHandoffArgs } from './spec_handoff.ts';
 import { parseRatingInput } from './rating_input.ts';
+import { parseReviewPhotos } from './review_photos.ts';
 import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
 import { repeatCheck, repeatPlan } from './repeat.ts';
@@ -76,6 +77,7 @@ const EDIT_WINDOW_MS = 60 * 60e3;
 // emits '[', '\\', ']' from the 27th, so a customer with 30 quotes saw "Supplier [" and the
 // comparison report referenced a label that did not exist in their list.
 function supplierLabel(i: number): string { let n = Number(i) || 0, out = ''; do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0); return out; }
+async function signedReviewPhotos(paths: string[]): Promise<string[]> { const urls = await Promise.all(paths.map(async (p) => { try { const { data } = await admin.storage.from('review-photos').createSignedUrl(p, 3600); return data?.signedUrl || null; } catch { return null; } })); return urls.filter((u): u is string => !!u); }
 async function signedDrawing(path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from('drawing-files').createSignedUrl(path, 3600); return data?.signedUrl || null; } catch { return null; } }
 async function signedDoc(bucket: string | null | undefined, path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from(bucket || 'agent-docs').createSignedUrl(path, 7 * 24 * 3600); return data?.signedUrl || null; } catch { return null; } }
 async function getSecret(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
@@ -903,7 +905,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
     // suppliers, request refunds and rate them from the main buyer surface. Every mutating
     // action is refused now. 'me' and 'my_inquiries' stay open on purpose so the person can
     // still see their own account state and existing requests rather than hitting a dead wall.
-    const MUTATING = ['create_inquiry', 'repeat_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'complete_inquiry', 'cancel_inquiry', 'rfq_note', 'add_missing_specs'];
+    const MUTATING = ['create_inquiry', 'repeat_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'add_review_photos', 'complete_inquiry', 'cancel_inquiry', 'rfq_note', 'add_missing_specs'];
     if (cust?.banned === true && MUTATING.includes(action)) return J({ error: 'Your account is suspended. Please contact support@quotesdone.com if you believe this is a mistake.' }, 403);
 
     // RE-ACCEPTANCE OF A NEW TERMS VERSION (6 Oct 2026, release review of #1240). Recorded the same way as sign-up
@@ -2094,6 +2096,44 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       }
       await admin.rpc('recompute_supplier_rating', { p_supplier: q.supplier_id });
       return J({ ok: true });
+    }
+
+    // PHOTOS ON A POST-JOB REVIEW (T2). Only after the customer has rated (a review row exists for
+    // THEIR transaction on this quote), at most 5 per review, images only — the rule is
+    // ./review_photos.ts with its tests. Stored in the PRIVATE review-photos bucket under a random
+    // name (never the customer's file name), camera metadata cut, served back only as signed URLs.
+    // The supplier sees them in its Projects tab, which lists post-reveal jobs only.
+    if (action === 'add_review_photos') {
+      const qid = String(body.quote_id || '');
+      const { data: tx } = await admin.from('transactions').select('id').eq('quote_id', qid).eq('customer_id', cust.id).maybeSingle();
+      if (!tx) return J({ error: 'You can only add photos to a supplier you have revealed and dealt with.', code: 'forbidden' }, 403);
+      const { data: rv } = await admin.from('reviews').select('id,photo_paths').eq('transaction_id', tx.id).maybeSingle();
+      if (!rv) return J({ error: 'Rate the supplier first, then add photos.', code: 'review_required' }, 400);
+      const existing: string[] = Array.isArray(rv.photo_paths) ? rv.photo_paths : [];
+      const parsed = parseReviewPhotos(body.photos, existing.length);
+      if (!parsed.ok) return J({ error: parsed.error, code: parsed.code }, 400);
+      const added: string[] = [];
+      for (const ph of parsed.photos) {
+        const path = tx.id + '/' + crypto.randomUUID() + '.' + ph.ext;
+        const up = await admin.storage.from('review-photos').upload(path, ph.bytes, { contentType: ph.mime, upsert: false });
+        if (up.error) { if (added.length) await admin.storage.from('review-photos').remove(added); console.error('add_review_photos upload', up.error.message); return J({ error: 'Could not save your photos. Please try again in a moment.', code: 'photo_save_failed' }, 500); }
+        added.push(path);
+      }
+      const all = existing.concat(added);
+      // Written only if the row still holds what we read (two tabs, a double submit): otherwise the
+      // later write would drop the earlier one's paths and both would pass the cap. Paths are
+      // <uuid>/<uuid>.<ext>, so the array literal needs no quoting. The database check (max 5) is the
+      // last line either way.
+      const { data: upd, error } = await admin.from('reviews').update({ photo_paths: all }).eq('id', rv.id).filter('photo_paths', 'eq', '{' + existing.join(',') + '}').select('id');
+      if (error || !upd || upd.length !== 1) { await admin.storage.from('review-photos').remove(added); console.error('add_review_photos update', error?.message || 'row changed'); return J({ error: 'Could not save your photos. Please try again in a moment.', code: 'photo_save_failed' }, error ? 500 : 409); }
+      return J({ ok: true, photo_count: all.length, photo_urls: await signedReviewPhotos(all) });
+    }
+    // Read-only: the photos already on the customer's own review, so the picker shows them after a reload.
+    if (action === 'review_photos') {
+      const { data: tx } = await admin.from('transactions').select('id').eq('quote_id', String(body.quote_id || '')).eq('customer_id', cust.id).maybeSingle();
+      if (!tx) return J({ error: 'Not found', code: 'not_found' }, 404);
+      const { data: rv } = await admin.from('reviews').select('photo_paths').eq('transaction_id', tx.id).maybeSingle();
+      return J({ ok: true, photo_urls: await signedReviewPhotos((rv?.photo_paths as string[]) || []) });
     }
 
     if (action === 'complete_inquiry') {
