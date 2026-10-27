@@ -1,0 +1,10 @@
+Committed, not applied (it_engineer, 27 Oct 2026): the release operator applies it after merge with
+  node scripts/apply_sql.mjs scripts/sql/a_warned_or_skipped_run_is_not_a_failed_run.sql --apply --ddl
+then deletes this note and appends the file to the END of MANIFEST.txt in the same commit, and runs
+a_warned_or_skipped_run_is_not_a_failed_run_probe.sql (it must say PROBE OK).
+Why not applied here: the session that wrote it was told to make no production write. Proof before merge, measured
+27 Oct 2026 on htdblwldjkcgjvmqkbeh: the probe said PROBE FAILED on the live body (a label of 4 ok, 4 warn and 2 skipped
+opened a finding) and PROBE OK with this file in the same rolled-back transaction; the live prosrc md5 stayed
+739cd4c2356e723082121175bdcc76b9 and no row survived. A rolled-back real-mode run with this file closed
+duty:run_cluster:fn:unsubscribe and duty:run_cluster:fn:quote_compare (0 failed of 22 and of 18) and kept
+duty:run_cluster:fn:license_extract open.
