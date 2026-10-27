@@ -123,6 +123,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A mention is not a reference](a-mention-is-not-a-reference.md) — how to prove a routine is dead
 ## The lenses that keep paying
 - [All audit lenses index](lenses-index.md) — 21 pattern lessons (shadowed aliases, dead guards, heartbeats, fixtures…)
+- [A handoff is answered at replied_at, not decided_at](a-handoff-is-answered-at-replied-at-not-decided-at.md) — 27 Oct: on originator-closed kinds, decided_at is the sender's close; the quarterly audit blamed receivers for IT's 916 open re-verifications
 - [A fix's own check measures the case the fix handles](a-fixs-own-check-measures-the-case-the-fix-handles.md) — 23 Sep, 3 times: ask what case the check measures vs what case the fix handles; same case = green certifies the gap
 - [Instrument measuring the wrong subject is the lens](instrument-measuring-wrong-subject-is-the-lens.md)
 - [CONNECTED is a claim, not a measurement](connected-is-a-claim-not-a-measurement.md) · [A blocker is a claim too](a-blocker-is-a-claim-too.md)

@@ -1,0 +1,5 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes (ZZ DEMO handoffs and one
+@example.invalid notification). Run it after a_handoff_closes_only_when_its_receiver_cites_the_note_or_says_why_not.sql
+is live; it must print PROBE OK. Measured PROBE OK on htdblwldjkcgjvmqkbeh, 27 Oct 2026 09:17 UTC, run together with the
+unapplied file in one rolled-back transaction: a bare close refused (check_violation); closed_with_note 3, cited 1,
+reason_recorded 2, neither 0; the done-handoff count moved by exactly the 3 probe rows. Seat: ceo.

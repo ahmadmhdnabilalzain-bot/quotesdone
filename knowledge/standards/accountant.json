@@ -1156,17 +1156,17 @@
       "id": "ACC-C11",
       "what": "Books every receipt arriving in the expenses mailbox and holds what it cannot read",
       "cadence": "daily",
-      "duties": [],
-      "status": "partial",
-      "gap": "Routines exist (scripts/sql/a_receipt_forwarded_to_the_expenses_mailbox_reaches_the_ledger.sql, a_receipt_held_for_the_accountants_reasoning_is_the_accountants.sql) but there is no accountant.* seat_duty with its own last_ok_at, so a stalled intake is not visible as a seat failure."
+      "duties": ["accountant.receipt_intake"],
+      "status": "live",
+      "gap": "Closed by accountant.receipt_intake (scripts/sql/the_accountant_closes_the_loops_a_senior_accountant_closes.sql), built 19 Oct 2026; measured 27 Oct 2026: enabled, last ok 2026-10-26. The standard still said \"no duty\" until this correction."
     },
     {
       "id": "ACC-C12",
       "what": "Tracks every supplier non-response charge to payment or court on the UAE clock",
       "cadence": "event",
-      "duties": [],
-      "status": "partial",
-      "gap": "Routine exists (every_supplier_charge_claim_is_tracked_to_payment_or_court_on_the_uae_clock.sql, collections_belong_to_the_accountant.sql) but no accountant.* seat_duty registers it; no last_ok_at evidence."
+      "duties": ["accountant.charge_recovery"],
+      "status": "live",
+      "gap": "Closed by accountant.charge_recovery (scripts/sql/the_accountant_closes_the_loops_a_senior_accountant_closes.sql), built 19 Oct 2026; measured 27 Oct 2026: enabled, last ok 2026-10-26. The standard still said \"no duty\" until this correction."
     },
     {
       "id": "ACC-C13",
@@ -1182,25 +1182,25 @@
       "id": "ACC-C14",
       "what": "Watches revenue against the VAT thresholds (AED 187,500 voluntary, AED 375,000 mandatory) and tells the CEO in time to register within 30 days",
       "cadence": "monthly",
-      "duties": [],
-      "status": "missing",
-      "gap": "No accountant.* seat_duty monitors the VAT threshold; the founder made it the seat's tax duty (instr 9) but nothing with a last_ok_at measures it."
+      "duties": ["accountant.vat_threshold"],
+      "status": "live",
+      "gap": "Closed by accountant.vat_threshold (scripts/sql/the_accountant_closes_the_loops_a_senior_accountant_closes.sql), built 19 Oct 2026; measured 27 Oct 2026: enabled, last ok 2026-10-26. The standard still said \"no duty\" until this correction."
     },
     {
       "id": "ACC-C15",
       "what": "Sends the CEO a weekly finance report: cash, collections, exceptions and decisions needed",
       "cadence": "weekly",
-      "duties": [],
-      "status": "missing",
-      "gap": "No weekly finance report duty; the CEO receives the monthly founder close pack only."
+      "duties": ["accountant.finance_week"],
+      "status": "live",
+      "gap": "Closed by accountant.finance_week (scripts/sql/the_accountant_closes_the_loops_a_senior_accountant_closes.sql), built 19 Oct 2026; measured 27 Oct 2026: enabled, last ok 2026-10-26. The standard still said \"no duty\" until this correction."
     },
     {
       "id": "ACC-C16",
       "what": "Builds the year-end pack and audit-readiness file and raises auditor appointment before the first year-end",
       "cadence": "event",
-      "duties": [],
-      "status": "partial",
-      "gap": "Year-end filing routine exists (the_accountant_files_the_year_end_pack_in_dropbox_and_the_backups_bucket.sql) but no seat_duty, and no auditor is appointed although company law requires one for an LLC (recorded as a gap in audit-duty-companies-law-and-ct)."
+      "duties": ["accountant.year_end"],
+      "status": "live",
+      "gap": "Closed by accountant.year_end (scripts/sql/the_accountant_closes_the_loops_a_senior_accountant_closes.sql), built 19 Oct 2026; measured 27 Oct 2026: enabled, last ok 2026-10-26. The standard still said \"no duty\" until this correction."
     }
   ]
 }
