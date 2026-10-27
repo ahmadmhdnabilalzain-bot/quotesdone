@@ -17,7 +17,8 @@
 --   2. Exactly 16 ops rows are public, and they are the 16 qd-company:faq-* rows.
 --   3. Customers now receive them: each of the 16 by its own multilingual vector to a visitor and by its title in the
 --      portal corpus; the two with a gte vector also to a customer through think() and through the portal chat.
---   4. The 2 retagged entries (en + @ar) reach the portal corpus, the portal chat and think() for a customer.
+--   4. The 2 retagged entries (English rows) reach the portal corpus, the portal chat and think() for a customer; their
+--      Arabic twins (stale penalty, transliterated brand: review of #1661) still reach no outside caller.
 --   5. The held entry what-does-it-cost-published-prices (en + @ar) still reaches no outside caller.
 --   6. Ten customer and supplier questions (the review's set) return no ops row outside the 16.
 do $probe$
@@ -28,10 +29,11 @@ declare
     'qd-company:faq-integrations', 'qd-company:faq-marketplace', 'qd-company:faq-operations', 'qd-company:faq-quotation',
     'qd-company:faq-rfq', 'qd-company:faq-security', 'qd-company:faq-smart-engine', 'qd-company:faq-supplier',
     'qd-company:faq-technical'];
-  c_sup constant text[] := array['customer_support:company-pricing', 'customer_support:company-pricing@ar',
-    'customer_support:company-hard-rules-marketplace', 'customer_support:company-hard-rules-marketplace@ar'];
+  c_sup constant text[] := array['customer_support:company-pricing', 'customer_support:company-hard-rules-marketplace'];
+  c_ar_held constant text[] := array['customer_support:company-pricing@ar', 'customer_support:company-hard-rules-marketplace@ar'];
   c_held constant text[] := array['customer_support:what-does-it-cost-published-prices',
-    'customer_support:what-does-it-cost-published-prices@ar'];
+    'customer_support:what-does-it-cost-published-prices@ar',
+    'customer_support:company-pricing@ar', 'customer_support:company-hard-rules-marketplace@ar'];
   c_questions constant text[] := array[
     'How much is the fee to use QuotesDone?', 'Will the supplier see my name and phone number?',
     'How long until I receive quotes?', 'Can I get a refund of the reveal fee?', 'How many suppliers will quote on my job?',
@@ -168,7 +170,9 @@ begin
       then fails := array_append(fails, 'held_row_in_sales_assist:' || f.record_id); end if;
   end loop;
   select count(*) into n from public.support_knowledge where record_id = any (c_held) and tags @> array['audience:internal'];
-  if n <> 2 then fails := array_append(fails, 'held_rows_changed'); end if;
+  if n <> 4 then fails := array_append(fails, 'held_rows_changed'); end if;
+  if exists (select 1 from public.support_knowledge where record_id = any (c_ar_held) and structured_data ? 'retag')
+    then fails := array_append(fails, 'arabic_twin_retagged'); end if;
 
   -- 6. the review's ten questions: whatever ops rows come back are the published FAQ, nothing else
   faq_hits := 0;
@@ -180,10 +184,10 @@ begin
   end loop;
   res := res || jsonb_build_object('ten_questions_faq_ops_hits', faq_hits);
 
-  -- 20 rows exactly as the data file left them
+  -- 18 rows exactly as the data file left them
   select count(*) into n from public.support_knowledge where record_id = any (c_sup) and tags @> array['kind:published_terms']
      and not tags && array['audience:internal', 'kind:company'] and structured_data ? 'retag';
-  if n <> 4 then fails := array_append(fails, 'support_rows_not_retagged'); end if;
+  if n <> 2 then fails := array_append(fails, 'support_rows_not_retagged'); end if;
 
   res := res || jsonb_build_object('other_ops_to_outside', other_ops, 'ms', round(extract(epoch from clock_timestamp() - t0) * 1000),
                                    'fails', to_jsonb(fails));

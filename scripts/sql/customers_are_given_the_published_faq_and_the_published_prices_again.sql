@@ -1,6 +1,6 @@
 -- CUSTOMERS ARE GIVEN THE PUBLISHED FAQ AND THE PUBLISHED PRICES AGAIN. Seat: customer_support (what a customer or a
 -- supplier is told: the portal chat, the portal corpus and think()'s retrieval). 27 Oct 2026. A DATA file: it defines
--- nothing, it changes 20 rows, matched by record_id literals (never by id ranges), and it refuses if any is not as measured.
+-- nothing, it changes 18 rows, matched by record_id literals (never by id ranges), and it refuses if any is not as measured.
 --
 -- WHY. #1660 (founder ruling 1338, "Withhold from customers") gives a customer, supplier or visitor an ops_knowledge row
 -- only when confidentiality = 'public', and never a support_knowledge row that is tagged 'audience:internal' or
@@ -16,9 +16,15 @@
 --      row is promoted this file recomposes its text from company_faq rows with public = true (strictly true, not the
 --      composer's coalesce(public, true); 0 rows are NULL, measured) and requires it to be byte-equal to what is stored.
 --      Measured 27 Oct 2026: 16 of 16 equal, 302 public FAQ rows, 0 public sections without a row.
---   2. 4 support_knowledge rows retagged: 'customer_support:company-pricing' and '...:company-hard-rules-marketplace',
---      each in English and in its Arabic twin '<id>@ar' (the pack loader writes every entry twice; retagging only the
---      English row would leave an Arabic-speaking customer without it). #1660 excludes them on THREE grounds, not one,
+--   2. 2 support_knowledge rows retagged: 'customer_support:company-pricing' and '...:company-hard-rules-marketplace',
+--      the ENGLISH rows only. THE ARABIC TWINS ('<id>@ar') STAY INTERNAL (independent review of #1661, 27 Oct 2026,
+--      measured on the live rows): company-hard-rules-marketplace@ar states the anti-circumvention penalty as AED 15,000
+--      or three times the fee, the superseded Supplier Agreement v10-v12 figure; the live agreement (EN and AR) says
+--      AED 20,000 or five (5) times. Both twins also write the brand in Arabic letters (1 and 3 times), which the house
+--      register forbids (the brand stays Latin) and which no reply guard catches. They are retagged once
+--      knowledge/seats/customer_support.json carries corrected Arabic and the pack is re-loaded; meanwhile Arabic
+--      speakers are served the same prices by the public FAQ (qd-company:faq-arabic and company_faq). The check below
+--      refuses any retag row whose body carries a superseded figure or a transliterated brand. #1660 excludes them on THREE grounds, not one,
 --      measured on the live rows: the tag 'kind:company', the tag 'audience:internal', and source_ids citing
 --      internal:memory/... . Removing 'kind:company' alone (what the review suggested) changes nothing they are served.
 --      So: both tags come off, 'kind:published_terms' goes on (the kind tag only narrows a TRADE question, never a
@@ -71,9 +77,7 @@ declare
   -- record_id -> the body_sha256 whose text was checked against the published pages on 27 Oct 2026
   c_sup constant jsonb := jsonb_build_object(
     'customer_support:company-pricing',                 'e9ab4488cd258d0214c0a83be64ca6c557d611bf62498d0479ed0e241cb0871a',
-    'customer_support:company-pricing@ar',              '36b800c3adba5aced6bad6624dd7e27babc072bd3735f2855a237034cc762f33',
-    'customer_support:company-hard-rules-marketplace',    'f045b2c3632d9b65a6f64d46ac5d80c7e7ac59f971b2343e49409cf1b309a3e9',
-    'customer_support:company-hard-rules-marketplace@ar', 'f131278a81ef28e4dfb36331d3dc57e355fcba24ce4a5af1227c4e4829b801a5');
+    'customer_support:company-hard-rules-marketplace',    'f045b2c3632d9b65a6f64d46ac5d80c7e7ac59f971b2343e49409cf1b309a3e9');
   c_src_pricing constant text[] := array['https://quotesdone.com/terms', 'https://quotesdone.com/supplier-agreement',
     'https://quotesdone.com/faq'];
   c_src_rules constant text[] := array['https://quotesdone.com/terms', 'https://quotesdone.com/supplier-agreement',
@@ -113,8 +117,16 @@ begin
   -- 2a. exactly the 4 support rows, with the bodies that were checked against the published pages
   select count(*) into n from public.support_knowledge s
    where s.record_id = any (v_sup) and s.pack_id = 'verified:seat:customer_support' and s.body_sha256 = c_sup ->> s.record_id;
-  if n <> 4 then
-    raise exception 'REFUSED: expected 4 customer_support rows (company-pricing, company-hard-rules-marketplace, en + @ar) with the verified bodies, found %', n;
+  if n <> 2 then
+    raise exception 'REFUSED: expected 2 customer_support rows (company-pricing, company-hard-rules-marketplace, English) with the verified bodies, found %', n;
+  end if;
+  -- 2a'. no retagged body may carry a superseded published figure or the brand in Arabic letters (review of #1661: the
+  --      Arabic twin of company-hard-rules-marketplace said AED 15,000 / three times; the agreement says 20,000 / five)
+  select string_agg(s.record_id, ', ') into bad from public.support_knowledge s
+   where s.record_id = any (v_sup)
+     and (s.body ~ '15[,٬]?000|١٥[,٬]?٠٠٠|three \(?3?\)? ?times|ثلاثة أضعاف' or s.body ~ 'كوت[سز] ?دن' or s.record_id like '%@ar');
+  if bad is not null then
+    raise exception 'REFUSED: % carries a superseded figure, a transliterated brand, or is an Arabic twin not yet corrected', bad;
   end if;
 
   -- 1c. promote
@@ -142,7 +154,7 @@ begin
    where s.record_id = any (v_sup)
      and not (s.tags && array['audience:internal', 'kind:company']
               or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'));
-  if n <> 4 then raise exception 'REFUSED: % of 4 retagged rows clear the outside-audience exclusion', n; end if;
+  if n <> 2 then raise exception 'REFUSED: % of 2 retagged rows clear the outside-audience exclusion', n; end if;
 end $apply$;
 
-select 'APPLIED: 16 published-FAQ ops rows public; 4 customer_support rows (2 entries, en + ar) retagged' as verdict;
+select 'APPLIED: 16 published-FAQ ops rows public; 2 customer_support rows (English; the Arabic twins stay internal) retagged' as verdict;
