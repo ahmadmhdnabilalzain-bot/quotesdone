@@ -111,12 +111,13 @@ const machineRule = () => {
   const extract = [...t.code.matchAll(/substring\(s\.v from '([^']+)'\)/g)].map((m) => new RegExp(m[1]));
   assert.ok(extract.length >= 2, `${t.file}: fn_is_machine_sender does not read the <...> address, then a bare one`);
   assert.match(t.code, /lower\(coalesce\(substring\(s\.v/, `${t.file}: the local part is not lower-cased`);
-  const tok = t.code.match(/\)\)\)\s*~ '([^']+)'/);
-  assert.ok(tok, `${t.file}: fn_is_machine_sender has no token pattern`);
-  const rule = new RegExp(tok[1]);
+  // the lower-cased local part l.v is tested against each `l.v ~ '...'` pattern, OR-ed (the noreply family as a
+  // token; postmaster and bounce(s) only as a whole mailbox or VERP-shaped, review of #1691)
+  const pats = [...t.code.matchAll(/\bl\.v ~ '([^']+)'/g)].map((m) => new RegExp(m[1]));
+  assert.ok(pats.length, `${t.file}: fn_is_machine_sender has no machine-word pattern`);
   const stripRe = new RegExp(strip[1], 'g');
   const local = (a) => { const v = String(a ?? '').replace(stripRe, ''); for (const r of extract) { const m = v.match(r); if (m) return m[1]; } return null; };
-  return { file: t.file, code: t.code, machine: (a) => { const l = local(a); return l !== null && rule.test(l.toLowerCase()); } };
+  return { file: t.file, code: t.code, machine: (a) => { const l = local(a); return l !== null && pats.some((r) => r.test(l.toLowerCase())); } };
 };
 // A caller's sender test IS the shared rule: it must call it, and carry no machine-word regex of its own.
 const senderRule = (caller = 'fn_support_reply_watch_tick', call = 'fn_is_machine_sender(m.from_email)') => {
@@ -168,6 +169,10 @@ test('6g. the reply watch and the customer-contact test answer every case of the
   const cases = probeCases();
   assert.ok(cases.length >= 30, `${PROBE}: the case table has ${cases.length} cases, fewer than 30`);
   assert.ok(cases.some(([, m]) => m) && cases.some(([, m]) => !m), `${PROBE}: the case table needs machines and people`);
+  // review of #1691: customers whose own mailbox name is bounce/postmaster must stay in the table, as people
+  for (const lp of ['bounce.fitness', 'bounce-house', 'bounce_kids', 'bounce2024', 'postmaster.general', 'postmaster-ali', 'john_bounce']) {
+    assert.ok(cases.some(([from, m]) => !m && from.startsWith(lp + '@')), `${PROBE}: the customer ${lp}@ is missing from the case table`);
+  }
   for (const [caller, call] of [['fn_support_reply_watch_tick', 'fn_is_machine_sender(m.from_email)'],
     ['fn_support_email_is_a_customer_contact', 'fn_is_machine_sender(p_from)']]) {
     const { file, dropped } = senderRule(caller, call);

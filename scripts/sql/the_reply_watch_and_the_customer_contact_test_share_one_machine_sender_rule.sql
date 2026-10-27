@@ -19,17 +19,26 @@
 --   1. strip quoted strings ("..." in a display name can contain @ and <, and is never the address);
 --   2. the address inside the FIRST <...> if there is one (an unclosed < still counts), else the first bare x@;
 --   3. lower-case the local part;
---   4. a whole token: it starts the local part or follows - or _, and it ends at - _ + . a digit or the end:
---        noreply / no-reply / no_reply, do-not-reply (any of - _ or none), mailer-daemon, postmaster, bounce(s).
+--   4. the machine words, each in the narrowest form that still catches the machine:
+--      - noreply / no-reply / no_reply / no.reply, do-not-reply (- _ . or none), mailer-daemon: a whole token that
+--        starts the local part or follows - _ or = (SRS/BATV: SRS0=...=noreply@), and ends at - _ + . a digit or
+--        the end. No person's name is one of these words, so a token is safe.
+--      - postmaster: the WHOLE mailbox only, optionally +tag. bounce(s): the whole mailbox, or VERP-shaped
+--        (bounces+x=y@, bounce-12345-abc@, msprvs1=...=bounces-1@), or ending -bounces (ops-bounces@).
+--        These ARE words people use: the review of #1691 measured the token form calling bounce.fitness@,
+--        bounce-house@, bounce_kids@, bounce2024@, postmaster.general@, postmaster-ali@ and john_bounce@ machines,
+--        which would have silenced their reply SLA. Live (a) never matched these two words at all.
 --      A dot or a plus does not open a token on the left (alice.noreply.fan@ and alice+noreply@ are people), and a
 --      longer word that merely starts with one is a person (noreplying@, donotreplyteam@, bounced@).
+--      Still read as a person (fails safe, costs only SLA noise): a quoted local part ("noreply"@x).
 --   NULL or no address at all is not a machine (false, never null), so a NOT in a caller keeps the message.
 --   Each routine changes on ONE line, its sender predicate; every other line is the live body read 27 Oct 2026.
 --
 -- DOES NOT CHANGE: (a)'s calendar+/expenses@/accountant/demo exclusions or (b)'s to/owner/founder/fixture tests;
 -- which other tables hold addresses (doc_reviews, chat_violations) - neither routine reads them; and a quoted LOCAL
 -- part ("john doe"@x.com) is stripped with the display names and reads as no address, i.e. not a machine.
--- Measured over all 44 stored inbound_messages, 27 Oct 2026: 0 change side under (a) and 0 under (b).
+-- Measured over all 44 stored inbound_messages, 27 Oct 2026: 0 change side under (a) and 0 under (b) (re-measured
+-- with the narrowed bounce/postmaster forms).
 --
 -- ACL: fn_is_machine_sender is NEW, so CREATE granted EXECUTE to PUBLIC: revoked below from public, anon and
 -- authenticated on its only signature (text). Its callers are SECURITY DEFINER routines owned by postgres and need
@@ -45,11 +54,13 @@ language sql
 immutable parallel safe
 set search_path to 'public', 'pg_temp'
 as $function$
-  select coalesce(
-           lower(coalesce(substring(s.v from '<([^<>\s"]+)@'), substring(s.v from '([^<>\s"]+)@')))
-             ~ '(^|[-_])(no[-_]?reply|do[-_]?not[-_]?reply|mailer[-_]?daemon|postmaster|bounces?)([-_+.0-9]|$)',
+  select coalesce(l.v ~ '(^|[-_=])(no[-_.]?reply|do[-_.]?not[-_.]?reply|mailer[-_]?daemon)([-_+.0-9]|$)'
+               or l.v ~ '^postmaster(\+.*)?$'
+               or l.v ~ '(^|=)bounces?([+=].*|-[0-9].*)?$'
+               or l.v ~ '-bounces$',
            false)
-    from (select regexp_replace(coalesce(p_from, ''), '"[^"]*"', '', 'g') as v) s
+    from (select lower(coalesce(substring(s.v from '<([^<>\s"]+)@'), substring(s.v from '([^<>\s"]+)@'))) as v
+            from (select regexp_replace(coalesce(p_from, ''), '"[^"]*"', '', 'g') as v) s) l
 $function$;
 revoke execute on function public.fn_is_machine_sender(text) from public, anon, authenticated;
 grant execute on function public.fn_is_machine_sender(text) to service_role;

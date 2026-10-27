@@ -51,9 +51,23 @@ declare
     jsonb_build_array('"a@b" <noreply@probe-never-sent.com>', true),                          -- quoted @, machine inside <>
     jsonb_build_array('<noreply@probe-never-sent.com> <bob@probe-never-sent.com>', true),     -- multiple <>: the first decides
     jsonb_build_array('Alerts <noreply@probe-never-sent.com', true),                         -- unclosed <
+    jsonb_build_array('bounce-12345-abc@probe-never-sent.com', true),                         -- VERP
+    jsonb_build_array('team-bounces@lists.probe-never-sent.com', true),
+    jsonb_build_array('postmaster+abuse@probe-never-sent.com', true),
+    jsonb_build_array('no.reply@probe-never-sent.com', true),
+    jsonb_build_array('do.not.reply@probe-never-sent.com', true),
+    jsonb_build_array('SRS0=ab12=cd=probe-never-sent.com=noreply@probe-never-sent.com', true),     -- SRS
+    jsonb_build_array('msprvs1=19abc=bounces-1234@probe-never-sent.com', true),               -- BATV
     -- people
     jsonb_build_array('Bounce Fitness <info@probe-never-sent.com>', false),                   -- the word is in the display name
     jsonb_build_array('Postmaster General <pm@probe-never-sent.com>', false),
+    jsonb_build_array('bounce.fitness@probe-never-sent.com', false),                          -- review of #1691: the word
+    jsonb_build_array('bounce-house@probe-never-sent.com', false),                            -- is a person's own name
+    jsonb_build_array('bounce_kids@probe-never-sent.com', false),
+    jsonb_build_array('bounce2024@probe-never-sent.com', false),
+    jsonb_build_array('postmaster.general@probe-never-sent.com', false),
+    jsonb_build_array('postmaster-ali@probe-never-sent.com', false),
+    jsonb_build_array('john_bounce@probe-never-sent.com', false),
     jsonb_build_array('Alice <alice.noreply.fan@probe-never-sent.com>', false),               -- a dot does not open the word
     jsonb_build_array('noreplying@probe-never-sent.com', false),                              -- a longer word
     jsonb_build_array('donotreplyteam@probe-never-sent.com', false),
@@ -146,10 +160,13 @@ begin
     f := f || ('PROBE ERROR ' || sqlstate || ': ' || sqlerrm);
   end;
 
-  raise exception 'CHK<<%>>', E'\n' || array_to_string(v_rows, E'\n') || E'\n'
-    || format('stored inbound_messages: %s; change side (a) old->shared: %s; (b) old->shared: %s', v_total,
-              coalesce(v_old_a::text, 'n/a'), coalesce(v_old_b::text, 'n/a')) || E'\n'
-    || case when cardinality(f) = 0
+  -- the verdict comes FIRST: the management API cuts an error message at about 2 KB (review of #1691), so whatever
+  -- is cut must be the table, never the verdict
+  raise exception 'CHK<<%>>',
+    case when cardinality(f) = 0
          then 'PROBE OK: fn_is_machine_sender is one immutable overload with a pinned search_path, closed to anon and authenticated; (a) and (b) both call it and agree with it on every case; everything rolled back by this raise'
-         else 'PROBE FAILED: ' || array_to_string(f, '; ') end;
+         else 'PROBE FAILED: ' || array_to_string(f, '; ') end || E'\n'
+    || format('cases: %s; stored inbound_messages: %s; change side (a) old->shared: %s; (b) old->shared: %s',
+              jsonb_array_length(v_cases), v_total, coalesce(v_old_a::text, 'n/a'), coalesce(v_old_b::text, 'n/a'))
+    || E'\n' || array_to_string(v_rows, E'\n');
 end $probe$;
