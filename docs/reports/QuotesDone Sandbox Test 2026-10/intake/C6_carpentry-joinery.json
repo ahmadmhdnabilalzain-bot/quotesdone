@@ -1,0 +1,82 @@
+{
+ "customer": "C6",
+ "email": "qd-fe7ba9c4-cust19@example.invalid",
+ "category": "carpentry-joinery",
+ "final_status": "needs_info",
+ "final_readiness": 64,
+ "final_missing": [
+  "هل لديك تفضيل في الألواح والهيكل؟ اختر أحد الخيارات، أو اكتب ما تفضّله.",
+  "هل لديك تفضيل في التشطيب؟ اختر أحد الخيارات، أو اكتب ما تفضّله.",
+  "هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟",
+  "متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ."
+ ],
+ "final_brief": {
+  "state": "interview",
+  "details": {},
+  "asked_key": null,
+  "boq_asked": false,
+  "cad_asked": false,
+  "req_asked": "material.board",
+  "req_answers": {
+   "installation": {
+    "v": "yes"
+   },
+   "material.hardware": {
+    "v": "standard"
+   }
+  }
+ },
+ "turns": [
+  {
+   "turn": 1,
+   "harness_answer": "نحتاج Joinery & Carpentry لفيلا في Fujairah: البند الأول kitchen cabinets عدد 20، البند الثاني wardrobes عدد 10.",
+   "ai_reply": "شكرًا، سجلت طلب خزائن المطبخ والدواليب في الفيلا بالفجيرة. حتى يحصل الموردون على صورة أوضح للتكلفة، أحتاج بعض التفاصيل البسيطة؛ وإذا لم تكن لديكم مقاسات أو تفضيلات، أخبروني بذلك."
+  },
+  {
+   "turn": 2,
+   "harness_answer": "المقاسات: غير متأكد، أرجو اقتراح المقاس القياسي.",
+   "ai_reply": "سجلت 20 وحدة من خزائن المطبخ و10 دواليب، مع اعتماد مقاسات قياسية يقترحها المورد لأن المقاسات غير محددة. بقيت بعض التفاصيل حتى يتمكن الموردون من إعداد عرض مناسب:"
+  },
+  {
+   "turn": 3,
+   "harness_answer": "التوريد والتركيب، خلال ستة أسابيع.",
+   "ai_reply": "شكرًا، سجلت طلب خزائن المطبخ والدواليب مع التوريد والتركيب خلال ستة أسابيع، واعتماد مقاسات قياسية يقترحها المورد. بقيت تفضيلات التشطيب وطابق الفيلا لتكتمل التفاصيل."
+  },
+  {
+   "turn": 4,
+   "harness_answer": "المواصفات: غير متأكد من العلامة التجارية، درجة تجارية قياسية.",
+   "ai_reply": "سجلت أن العلامة التجارية غير محددة وأن المطلوب مستوى تجاري قياسي. ما زال ينقصنا اختيار التشطيب ومعرفة طابق الفيلا لإكمال الطلب."
+  },
+  {
+   "turn": 5,
+   "harness_answer": "Details: finish: standard specification, please assume typical values; location_floor: standard specification, please assume typical values.",
+   "ai_reply": "تم تجهيز الطلب للموردين، مع ترك اختيار التشطيب والمقاسات القياسية للمورد. طابق الفيلا غير محدد، لذا سيُطلب من المورد التسعير على أساس وصول عادي."
+  },
+  {
+   "turn": 6,
+   "harness_answer": "Details: هل لديك تفضيل في الألواح والهيكل؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل لديك تفضيل في التشطيب؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟: standard specification, please assume typical values; متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.: standard specification, please assume typical values.",
+   "ai_reply": "اكتملت التفاصيل الأساسية، وسنشارك الطلب مع الموردين مع توضيح أن المقاسات والتشطيب القياسيين وطابق التسليم غير محددة ويُرجى التسعير على افتراضات مناسبة."
+  },
+  {
+   "turn": 7,
+   "harness_answer": "Details: هل لديك تفضيل في الألواح والهيكل؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل لديك تفضيل في التشطيب؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟: standard specification, please assume typical values; متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.: standard specification, please assume typical values.",
+   "ai_reply": "سجلت خزائن المطبخ والدواليب في فيلا بالفجيرة، مع التوريد والتركيب خلال ستة أسابيع، وترك المقاسات والتشطيب القياسي لتوصية المورد. ما المنطقة داخل الفجيرة، وفي أي طابق سيتم التسليم والتركيب؟"
+  },
+  {
+   "turn": 8,
+   "harness_answer": "Details: location_floor: standard specification, please assume typical values.",
+   "ai_reply": "اكتملت التفاصيل الأساسية، وسيُطلب من الموردين التسعير على أساس مقاسات وتشطيب قياسيين، مع افتراض وصول عادي لأن الطابق غير محدد."
+  },
+  {
+   "turn": 9,
+   "harness_answer": "Details: هل لديك تفضيل في الألواح والهيكل؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل لديك تفضيل في التشطيب؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟: standard specification, please assume typical values; متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.: standard specification, please assume typical values.",
+   "ai_reply": "اكتملت المعلومات الأساسية: 20 وحدة خزائن مطبخ و10 دواليب، مع التوريد والتركيب خلال ستة أسابيع. سنوضح للموردين أن المقاسات والتشطيب والطابق غير محددة، وأن عليهم التسعير بافتراضات قياسية ووصول عادي."
+  },
+  {
+   "turn": 10,
+   "harness_answer": "Details: هل لديك تفضيل في الألواح والهيكل؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل لديك تفضيل في التشطيب؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟: standard specification, please assume typical values; متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.: standard specification, please assume typical values.",
+   "ai_reply": "شكرًا، اكتملت المعلومات الأساسية وسنشارك الطلب مع الموردين. سنوضح أن المقاسات والتشطيب وطابق التسليم غير محددة، وأن المطلوب تسعيرها بافتراضات قياسية ووصول عادي."
+  }
+ ],
+ "note": "per-turn slots are not stored by inquiry_intake; only the final brief/missing survive"
+}
