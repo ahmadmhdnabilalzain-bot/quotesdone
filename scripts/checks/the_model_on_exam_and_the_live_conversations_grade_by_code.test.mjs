@@ -17,7 +17,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { missingFacts } from '../eval/seat_exam_llm_on.mjs';
-import { S, customerTurn, codeGates, pick } from '../e2e/live_seat_conversations.mjs';
+import { S, customerTurn, codeGates, pick, turnLatency } from '../e2e/live_seat_conversations.mjs';
 import { proposeNotAGap } from '../e2e/knowledge_gap_audit.mjs';
 
 test('the exam grader needs every expected fact, in any case or hyphenation', () => {
@@ -114,4 +114,10 @@ test('the weekly audit never proposes a real question as not a gap', () => {
   assert.equal(proposeNotAGap({ question: 'how do I specify a fire alarm system so suppliers can quote it properly', refusal: 'not_corroborated_lexically' }), null);
   assert.ok(proposeNotAGap({ question: 'what does it cost?', refusal: 'circuit_open' }));
   assert.ok(proposeNotAGap({ question: 'ZZ DEMO - turn 2: what about the back panel?', refusal: 'below_similarity_floor' }));
+});
+
+// 27 Oct 2026: every run records per-turn latency (the portal turn's 150 s wall), and a turn with no answer is counted
+test('every run records per-turn latency: p50, p95 and the turns that got no answer', () => {
+  const r = turnLatency([{ transcript: [{ role: 'customer', text: 'x' }, ...[4000, 9000, 12000, 30000].map((ms) => ({ role: 'agent', text: 'ok', ms })), { role: 'agent', text: '(NO ANSWER: 503 no_answer)', ms: 70000 }] }]);
+  assert.deepEqual(r, { turns: 5, p50_s: 12, p95_s: 70, max_s: 70, no_answer: 1 });
 });

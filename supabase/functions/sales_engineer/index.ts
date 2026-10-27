@@ -47,6 +47,7 @@ import { aiSystem, replyProblems } from '../_shared/ai_reply.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { STATUS, streamReply, wantsStream } from '../_shared/stream_reply.ts';
 import { PORTAL_TURN_MS, portalRules, portalFacts, wrappedReply, plainLanguage } from './portal_turn.ts';
+import { heldBlock, heldState, replyFilter } from './portal_conversation.ts';
 import { checkReadability } from '../_shared/readability.ts';
 import { tradeSlugsOf, matchEmirate } from '../_shared/match_criteria.ts';
 
@@ -474,12 +475,19 @@ const plain = observe('sales_engineer', async (req) => {
       const known = briefNumbers(allowed);
       // a photo or drawing the customer sent (ruling 1200): only what chat_images accepts reaches the model
       const images = acceptImages(body.images, new URL(Deno.env.get('SUPABASE_URL')!).host).images;
-      const past = fitHistory(transcript.map((t) => ({ role: t.role === 'assistant' ? 'assistant' as const : 'user' as const, content: t.content })), message);
+      const turns = transcript.map((t) => ({ role: t.role === 'assistant' ? 'assistant' as const : 'user' as const, content: t.content }));
+      const past = fitHistory(turns, message);
+      // WHAT THE CONVERSATION ALREADY HOLDS (portal_conversation.ts; 27 Oct 2026, the bank's re-asks and unasked lines): read
+      // from the whole stored conversation, not the fitted window, shown to the model as "do not ask again", and enforced
+      // sentence by sentence after it (replyFilter: a re-ask or an unasked line is dropped, never shown).
+      const held = heldState(turns, message);
+      const known_ = heldBlock(held);
       const emit = EMITTERS.get(req) ?? (() => {});
       const a = key ? await answerFromBrief({
         gateway: Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', secret: key, fn: 'sales_engineer', agent: 'sales_engineer',
         taskClass: 'customer_portal_assistant', brief, sys, max: images.length ? 1200 : 900, images, deadline,
-        input: [...past, { role: 'user', content: (facts ? facts + '\n\n' : '') + 'MESSAGE:\n' + message.slice(0, 4000) }],
+        input: [...past, { role: 'user', content: (facts ? facts + '\n\n' : '') + (known_ ? known_ + '\n\n' : '') + 'MESSAGE:\n' + message.slice(0, 4000) }],
+        drop: () => replyFilter(held),
         // the same rules aiReply holds every conversation reply to (figures, policy, reply guard, another party's identity),
         // sentence by sentence; a deferral is a whole-answer judgement (aiReply), never one sentence's, so it is not run here
         check: (t: string) => [...guardSupportReply(t, lang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
@@ -499,7 +507,7 @@ const plain = observe('sales_engineer', async (req) => {
           await admin.rpc('fn_support_reply_readability_log', { p_channel: 'portal', p_lang: lang, p_path: 'reasoned', p_rewritten: a.rewrites > 0,
             p_score: rd.score, p_tone: rd.tone, p_issues: rd.issues, p_reason: null, p_demo: /^ZZ DEMO/.test(message) });
         } catch { /* the reply matters more than its score */ }
-        await run('assist', 'ok', { answered: true, basis: 'reasoned', model: a.model, attempts: a.attempts, ms: T, precedent: recallTrace(memory) });
+        await run('assist', 'ok', { answered: true, basis: 'reasoned', model: a.model, attempts: a.attempts, dropped: a.dropped ?? [], ms: T, precedent: recallTrace(memory) });
         return J({ ok: true, seat: 'sales_engineer', answered: true, reply, basis: 'composed by the model from the brief, the retrieved records and their own quotes', model: a.model });
       }
       // NO MODEL ANSWERED INSIDE THE TURN (rulings 1195/1196: code writes no reply text). The question is logged with the gap

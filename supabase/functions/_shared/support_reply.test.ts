@@ -1,7 +1,7 @@
 // supportReply() with a STUBBED model (founder instruction 781; the model hold stays on). No network, no paid call.
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
 import type { LlmReply, Phase, ThinkDeps } from './think.ts';
-import { briefFiles, jobQuery, PORTAL_INTAKE, portalGuide, supportReply } from './support_reply.ts';
+import { supportReply } from './support_reply.ts';
 
 function stub(o: { gate?: unknown; synth?: (string | LlmReply)[]; corpus?: unknown[]; verify?: string | null }) {
   const calls: { phase: Phase; system: string; input: string }[] = []; const rpcs: string[] = [];
@@ -156,53 +156,4 @@ Deno.test('a photo goes to the direct model reply as an image', async () => {
   assertEquals(r.reply, 'That wall between the door and window suits a sliding wardrobe. What width is it?');
   assertMatch(r.reason ?? '', /^direct: photo/);
   assertEquals(seen[0], ['data:image/jpeg;base64,AAAA']);
-});
-
-// prevented by: these tests (ledger 1200, 27 Oct 2026). The portal takes a job brief like a senior estimator: the intake
-// rule reaches the answering model on BOTH roads (the reasoned chain and the direct reply), never in the retrieval query;
-// the plan is handed over (no planning call), its query carries the job, and every portal answer is independently checked.
-Deno.test('portal: the intake rule rides in the case, the plan is handed over with the job in its query, and the answer is checked', async () => {
-  const s = stub({ gate: { allowed: true }, synth: [JSON.stringify({ answer: 'Sliding doors suit a studio. What is the depth you can spare, and do you want a mirror on one door?', reasoning: ['s1: a studio wardrobe needs its depth and door finish'], cited: [], confidence: 0.8, asked_back: null, route: 'sales_engineer' })], corpus: [] });
-  const conversation = [{ role: 'customer' as const, text: 'I want a custom wardrobe for my studio.' }, { role: 'seat' as const, text: 'What width is the wall, and sliding or hinged doors?' }];
-  const r = await supportReply(s.deps, { channel: 'portal', message: 'Sliding doors, handle-less.', lang: 'en', audience: 'customer', seat: 'sales_engineer', conversation,
-    passages: [{ content: 'Wardrobe spec checklist: carcass board, door type, internal layout', citation: 'pack:joinery' }] }, () => Promise.resolve(null));
-  assertEquals(r.path, 'reasoned');
-  const phases = s.calls.map((c) => c.phase);
-  assert(!phases.includes('decompose'), 'the plan is handed over: no planning call');
-  assert(phases.includes('verify'), 'every portal answer is independently checked');
-  const synth = s.calls.find((c) => c.phase === 'synthesise')!;
-  assertMatch(synth.system, /senior UAE estimator/);
-  assertMatch(synth.system, /Never ask again for anything they already stated/);
-  assertMatch(synth.system, /wrong, unsafe, or not accepted in the UAE/);
-  // the trade playbooks (knowledge/brief/conversation) reach the answering call: the founder's wardrobe example among them
-  assertMatch(synth.system, /Conversation playbook: Joinery and furniture/);
-  assertMatch(synth.system, /Founder's example: wardrobe for a studio/);
-  assertMatch(synth.system, /How you hold a conversation/);
-  assert(!/senior UAE estimator|Conversation playbook/.test(synth.input), 'neither rides in the payload (question, case) that is embedded or stored');
-});
-
-Deno.test('portal: a photo turn is answered by the direct reply with the same intake rule', async () => {
-  const s = stub({ synth: [JSON.stringify({ answer: 'I can see the wall beside the window. What is its width and ceiling height?' })] });
-  await supportReply(s.deps, { channel: 'portal', message: 'wardrobe here?', lang: 'en', audience: 'customer', seat: 'sales_engineer', images: ['data:image/png;base64,AAAA'] }, () => Promise.resolve(null));
-  assertMatch(s.calls[0].system, /senior UAE estimator/);
-});
-
-Deno.test('the widget and WhatsApp do not get the portal intake rule (ruling 1249: the homepage holds no job conversation)', async () => {
-  const s = stub({ gate: { allowed: true }, synth: [ANSWER], corpus: [REFUND] });
-  await supportReply(s.deps, { channel: 'whatsapp', message: 'what does it cost?', lang: 'en', audience: 'customer' }, () => Promise.resolve(null));
-  assert(!s.calls.some((c) => /senior UAE estimator/.test(c.input) || /senior UAE estimator/.test(c.system)));
-});
-
-Deno.test('portalGuide: the intake rule, the method and all ten trade playbooks from the compiled brief, nothing else', () => {
-  const g = portalGuide();
-  assert(g.startsWith(PORTAL_INTAKE));
-  assertEquals((g.match(/^# Conversation playbook:/gm) ?? []).length, 10);
-  assert(!g.includes('company brief for the customer-facing agents'), 'company.md already rides as the settled facts');
-  assertEquals(briefFiles('<<<FILE knowledge/brief/a.md>>>\nA\n<<<FILE knowledge/brief/conversation/b.md>>>\nB\n', /conversation\//), ['B']);
-});
-
-Deno.test('jobQuery: the job and this message; the message alone on the first turn; never past 500 characters', () => {
-  assertEquals(jobQuery({ message: 'Sliding doors.', conversation: [{ role: 'customer', text: 'A wardrobe for my studio.' }, { role: 'seat', text: 'Which doors?' }] }), 'A wardrobe for my studio.\nSliding doors.');
-  assertEquals(jobQuery({ message: 'A wardrobe for my studio.', conversation: [] }), 'A wardrobe for my studio.');
-  assertEquals(jobQuery({ message: 'x'.repeat(900), conversation: [{ role: 'customer', text: 'y'.repeat(900) }] }).length, 500);
 });

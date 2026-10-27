@@ -8,14 +8,18 @@
 // another family) so even a caller that does not stream gets its JSON well inside the wall.
 // prevented by: sales_engineer/portal_turn.test.ts, _shared/brief_answer.test.ts
 import { checkReadability, MAX_SENTENCE_WORDS } from '../_shared/readability.ts';
+import { PORTAL_INTAKE, REPLY_SHAPE } from './portal_conversation.ts';
 
 /** Every model call of one portal turn starts and ends inside this, counted from the request's arrival. Under half the
  *  150 s edge wall, so a non-streaming caller also has its answer (or its notice) long before a 504 could happen. */
 export const PORTAL_TURN_MS = 70_000;
 
-/** The portal's format, added to the shared conversation rules (ai_reply.aiSystem). */
+/** The portal's format, added to the shared conversation rules (ai_reply.aiSystem): the window, then how a senior estimator
+ *  takes a job brief and the shape of every reply (portal_conversation.ts; until 27 Oct 2026 the intake rule reached only
+ *  the old supportReply road, and the one-call turn of #1640 left it behind). */
 export function portalRules(): string {
-  return 'Plain text for the portal chat window: no markdown, no bullets, no headings, under about 120 words. The person is signed in to their own account: never tell them to log in or to sign up.';
+  return 'Plain text for the portal chat window: no markdown, no bullets, no headings, under about 120 words. The person is signed in to their own account: never tell them to log in or to sign up.'
+    + '\n- ' + PORTAL_INTAKE + '\n- ' + REPLY_SHAPE;
 }
 
 /** A reply wrapped as data is refused sentence by sentence and rewritten by the model, never shown (27 Oct 2026: the first

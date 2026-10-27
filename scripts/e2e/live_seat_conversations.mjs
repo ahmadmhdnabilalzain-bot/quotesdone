@@ -114,6 +114,16 @@ export function codeGates(s, agentTurns, released = null, ms = null) {
   return { ...g, pass: Object.values(g).every(Boolean), reask_flagged: reask };
 }
 
+/** Per agent turn, from the request to the full reply (the harness asks for JSON, so this is the time to the WHOLE reply,
+ *  not to the first words): p50, p95, max in seconds, and the turns that got no answer. 27 Oct 2026: the latency fix
+ *  (#1640) was judged on these numbers, so every run records them. */
+export function turnLatency(results) {
+  const turns = results.flatMap((r) => r.transcript.filter((x) => x.role === 'agent'));
+  const ms = turns.map((x) => x.ms).filter(Number.isFinite).sort((a, b) => a - b);
+  const at = (q) => (ms.length ? Math.round(ms[Math.min(ms.length - 1, Math.ceil(q * ms.length) - 1)] / 100) / 10 : null);
+  return { turns: turns.length, p50_s: at(0.5), p95_s: at(0.95), max_s: at(1), no_answer: turns.filter((x) => /^\(NO ANSWER/.test(x.text)).length };
+}
+
 async function photo(kind) {
   return 'data:image/png;base64,' + (await sharp(Buffer.from(PHOTOS[kind])).png().toBuffer()).toString('base64');
 }
@@ -167,9 +177,10 @@ async function runSuite() {
       console.log(`${s.id} [${s.lang}] code ${gates.pass ? 'PASS' : 'FAIL ' + fails.join(',')} facts asked ${facts_released}/${facts_total} turns ${agentTurns.length}${gates.reask_flagged.length ? ' reask? ' + gates.reask_flagged.length : ''}`);
     }
     const spend = (await read(`select count(*)::int calls, coalesce(sum(cost_aed),0)::numeric(12,4) aed, string_agg(distinct model_used, ',') models from public.ai_cost_log where e2e_run_tag = ${q(run.tag)}`))[0];
+    const latency = turnLatency(results);
     const file = join(OUT, `live_seat_conversations_${run.tag}.json`);
-    writeFileSync(file, JSON.stringify({ ledger: 1200, surface: 'portal: sales_engineer assist', url, run_tag: run.tag, measured_at: new Date().toISOString(), spend, results }, null, 1));
-    console.log(`spend ${JSON.stringify(spend)}\ntranscripts: ${file}\nnext: a Claude session scores each transcript -> score --results ${file} --judged <judged.json>`);
+    writeFileSync(file, JSON.stringify({ ledger: 1200, surface: 'portal: sales_engineer assist', url, run_tag: run.tag, measured_at: new Date().toISOString(), spend, latency, results }, null, 1));
+    console.log(`spend ${JSON.stringify(spend)}\nlatency ${JSON.stringify(latency)}\ntranscripts: ${file}\nnext: a Claude session scores each transcript -> score --results ${file} --judged <judged.json>`);
   } finally { await closeRun(run).catch((e) => console.error('teardown: ' + e.message)); }
 }
 

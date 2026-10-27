@@ -28,7 +28,6 @@ import { checkReadability, rewritePrompt, type Readability } from './readability
 import { guardSupportReply, replyViolations, type GuardLang } from './support_reply_guard.ts';
 import { policyProblems, revealFeeIncomplete } from './company_brief.ts';
 import { aiReply } from './ai_reply.ts';
-import { BRIEF_TEXT } from './brief.generated.ts';
 
 export type Channel = 'widget' | 'whatsapp' | 'email' | 'portal';
 export type Passage = { content: string; citation?: string | null };
@@ -49,52 +48,6 @@ const FORMAT: Record<Channel, string> = {
   email: 'Plain text for an e-mail body, without a greeting or a sign-off (they are added).',
   portal: 'Plain text for the portal chat (no markdown), under about 120 words; the person is signed in.',
 };
-
-// THE PORTAL TAKES A JOB BRIEF LIKE A SENIOR ESTIMATOR (ledger 1200, customer_support with sales_engineer, 27 Oct 2026).
-// The portal chat reached think() with one generic line ("Reply to this customer message ... under about 120 words"),
-// while the founder's standard is an adaptive, expert conversation: the wardrobe from a studio photo is asked its
-// dimensions, shelves vs hanging, door type. Measured in the adaptive conversation bank (scripts/e2e/
-// adaptive_conversation_bank.mjs, run on the deployed portal 27 Oct; the report names the runs): the failures this
-// rule targets. The rule rides in the question of every portal reply (the reasoned path) AND in the rules of the direct
-// reply (a photo turn, a held chain), so both roads take the brief the same way. Code writes no reply text here.
-export const PORTAL_INTAKE = 'WHEN THEY DESCRIBE A JOB THEY WANT PRICED, take the brief the way a senior UAE estimator does. '
-  + '(1) Read the whole conversation first: everything they have already said is known. Never ask again for anything they already stated or answered, in any wording; a question they skipped or were unsure about is noted "to confirm at the supplier\'s site visit" and not repeated. When they change something, the change replaces the earlier choice. '
-  + '(2) If a specification they state is wrong, unsafe, or not accepted in the UAE (by code, Civil Defence, the municipality or the building), say so plainly first, then the correct specification and why, in one or two sentences; never go along with it. '
-  + '(3) Then ask the two or three missing specifications that most change the price for THIS trade, as short questions, offering concrete choices where that helps (for example sliding, hinged or push-to-open doors): sizes and quantities, material, finish and type or system, the existing condition and removal, site access, permits and approvals, and timing. A must-have the trade cannot be priced without (sizes, the type of system, the approvals) comes before anything optional. '
-  + '(4) When the essentials are known, give a short summary of the job as they told it, with every change they made, and ask them to confirm it; once confirmed, tell them to press "New request" (Arabic portal: "طلب جديد") to send it to verified suppliers. '
-  + 'Never a robotic yes or no, never "I don\'t know" or "I will check": answer what can be said now. '
-  // baseline 1b6b12b6: both glass turns ended on the same fee paragraph nobody asked for
-  // after-fix run ab519dba: asked "unsure", the seat argued for the sliding doors the customer had just changed away from
-  + 'A choice they made stays made: never reopen it or argue for an option they changed away from. When they say they are unsure, recommend an answer to the question you last asked, then move on. '
-  + 'Do not add the fee, "posting is free" or how long quotes take unless they ask. Write short sentences of at most about 20 words.';
-
-// THE TRADE PLAYBOOKS REACH THE PORTAL'S TEXT TURNS (27 Oct 2026). knowledge/brief/conversation/*.md (what a senior
-// estimator asks per trade, in order, with the misconceptions to correct) and conversation_style.md are compiled into
-// BRIEF_TEXT, which aiReply and the website chat are given. The portal's text turns go through think(), whose outside
-// brief is company.md alone (settledFacts), so the founder's own wardrobe playbook never reached the portal chat that
-// takes the brief. The same compiled files are now its guide: the intake rule first, then the method, then every trade's
-// playbook (about 30k tokens, input-priced; no keyword picks the trade, the model reads the job).
-const PLAYBOOK_FILE = /^knowledge\/brief\/(conversation_style\.md|conversation\/[a-z_]+\.md)$/;
-/** The compiled files of BRIEF_TEXT whose path matches, in compiled order. */
-export function briefFiles(text: string, match: RegExp): string[] {
-  const parts = text.split(/<<<FILE ([^>]+)>>>\n?/);
-  const out: string[] = [];
-  for (let i = 1; i < parts.length; i += 2) if (match.test(parts[i])) out.push(parts[i + 1].trim());
-  return out;
-}
-let guideMemo = '';
-export function portalGuide(): string {
-  if (!guideMemo) guideMemo = [PORTAL_INTAKE, ...briefFiles(BRIEF_TEXT, PLAYBOOK_FILE)].join('\n\n');
-  return guideMemo;
-}
-
-/** The portal's retrieval query: the customer's first message (the job) and this one, when they differ; at most 500 chars. */
-export function jobQuery(req: Pick<SupportReplyRequest, 'message' | 'conversation'>): string {
-  const first = (req.conversation ?? []).find((t) => t.role !== 'seat')?.text?.trim() ?? '';
-  const msg = req.message.trim();
-  const q = first && first !== msg ? first.slice(0, 300) + '\n' + msg : msg;
-  return q.slice(0, 500);
-}
 
 export interface SupportReplyRequest {
   channel: Channel;
@@ -147,7 +100,7 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
   const fall = async (reason: string): Promise<SupportReply> => {
     const a = await aiReply(deps, { seat: req.seat ?? 'customer_support', channel: req.channel, audience: req.audience, lang: req.lang,
       message: req.message, conversation: req.conversation, facts: [req.profile ? 'THEIR OWN RECORD: ' + JSON.stringify(req.profile) : '', req.facts ?? ''].filter(Boolean).join('\n\n'),
-      rules: FORMAT[req.channel] + (req.channel === 'portal' ? '\n- ' + PORTAL_INTAKE : ''), images: req.images }).catch(() => ({ reply: '', model: null, attempts: ['threw'] }));
+      rules: FORMAT[req.channel], images: req.images }).catch(() => ({ reply: '', model: null, attempts: ['threw'] }));
     if (a.reply) return await logged({ reply: a.reply, path: 'reasoned', seat: null, reason: 'direct: ' + reason, model: a.model, grounded: true, readability: checkReadability(a.reply, req.lang) });
     return await logged({ reply: '', path: 'fallback', seat: null, reason: reason + ' | no model answered: ' + a.attempts.join(', '), grounded: false });
   };
@@ -178,8 +131,7 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
       seat: req.seat ?? 'customer_support', surface: `support_reply.${req.channel}`, route: ROUTE_SEATS,
       question: `Reply to this ${req.audience} message to QuotesDone as its ${req.seat ?? 'customer_support'} seat, in ${req.lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}. ${FORMAT[req.channel]} `
         + 'Take every fee, rule and figure from the TOPIC KNOWLEDGE and FACTS in the context and nowhere else. When you state a fee, state with it what the facts say is and is not added on top of it (for example a card fee or VAT). Never promise a refund (management decides it), never name another customer or supplier, never state how many suppliers or customers we have, never say "AI" (say "Smart Engine"), never give a licence number. '
-        + 'If the matter belongs to another seat, say you have passed it to that team and still answer what can be said.'
-        + '\n\nMESSAGE:\n' + req.message.slice(0, 4000),
+        + 'If the matter belongs to another seat, say you have passed it to that team and still answer what can be said.\n\nMESSAGE:\n' + req.message.slice(0, 4000),
       context: { audience: req.audience === 'visitor' ? 'visitor' : req.audience, language: req.lang, conversation: req.conversation, profile: req.profile,
         case: { channel: req.channel, topic_knowledge: passages.slice(0, 6).map((p) => (p.citation ? p.citation + '\n' : '') + p.content.slice(0, 1500)), facts: req.facts ? req.facts.slice(0, 6000) : null } },
       research: false, queueWhenHeld: false, dedupeKey: req.dedupeKey, subject: req.subject,
@@ -193,15 +145,6 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
         maxTokens: { synthesise: 600, verify: 300 },
         ...(req.priceTrades?.length ? { ask: { key: 'price_trade', options: [...req.priceTrades.map((t) => ({ id: t, meaning: `they ask what ${t.replace(/-/g, ' ')} work or material costs` })),
           { id: 'none', meaning: 'they do not ask the price of one of these trades (platform fees, how it works, anything else)' }] } } : {}) } : {}),
-      // THE PORTAL HANDS OVER ITS PLAN TOO (27 Oct 2026, customer_support with sales_engineer). Measured on the deployed portal
-      // (run a91b68b7, ai_cost_log): a text turn was plan 26-33 s + answer 27-31 s + check 5-8 s, and under load the 150 s
-      // request limit cut turns off (the customer got nothing). sales_engineer already retrieved for this message
-      // (fn_sales_assist, the passages above), so the plan is handed over. Its query is the JOB plus this message: a turn
-      // like "Sliding doors, handle-less." retrieves nothing about wardrobes on its own. The independent check runs on every
-      // portal answer (stakes high), because a wrong spec accepted is the failure the founder named zero tolerance for.
-      // The intake rule and the trade playbooks ride in the answering call's system prompt (think's guide), never in the
-      // question: think() embeds and retrieves on the question, and a page of rules there pulls retrieval off the job.
-      ...(req.channel === 'portal' ? { plan: { steps: [{ id: 's1', goal: 'answer the customer and take their job brief', query: jobQuery(req) }] }, stakes: 'high' as const, guide: portalGuide(), effort: 'low' as const } : {}),
       // a short refusal of a manipulation or an out-of-scope ask may be the reply here, and nowhere else (think.ts)
       allowDecline: true,
     });
