@@ -329,18 +329,12 @@ test('a parked handoff closes from the playbook, and an unknown class still refu
   assert.equal(r.narrower_class_without_a_cause, null,
     'a key whose own class has no written cause borrowed a broader class: the gate opened on a guess');
   assert.equal(r.known_class, 'heartbeat_step', 'the playbook no longer covers duty:heartbeat:');
-  // #1613 (the_it_loop_reverify_works_within_a_budget_so_the_alert_tick_commits.sql) stops the walk after 1 s and
-  // reports left_for_next_tick; a pass that did not reach every handoff can only be held to "no more than covered"
-  // and leaves parked rows for the next tick. Once the backlog fits one pass (measured 27 Oct, rolled back: 59
-  // passes drain it, then one pass walks the rest in 106 ms) left is 0 and the full equality applies again.
-  if (r.left_for_next_tick > 0) {
-    assert.ok(r.learned_from_playbook <= r.covered_by_playbook,
-      `the pass learned ${r.learned_from_playbook} from the playbook for ${r.covered_by_playbook} covered handoffs`);
-  } else {
-    assert.equal(r.learned_from_playbook, r.covered_by_playbook,
-      'a cleared handoff whose class the playbook covers was not filled from it');
-    assert.equal(r.parked_after_but_covered, 0, 'a handoff the playbook covers is still parked after the pass');
-  }
+  // STRICT, ALWAYS (release review of #1618, 27 Oct): one pass must learn every covered handoff and leave none parked.
+  // A pass that stops early (#1613's budget, left_for_next_tick > 0) is red here until the walk reaches every
+  // handoff in one pass - never a weaker "no more than covered".
+  assert.equal(r.learned_from_playbook, r.covered_by_playbook,
+    `a cleared handoff whose class the playbook covers was not filled from it (left for next tick: ${r.left_for_next_tick})`);
+  assert.equal(r.parked_after_but_covered, 0, 'a handoff the playbook covers is still parked after the pass');
   // Deliberately NO assertion that either count is above zero. Both are a snapshot of production's
   // backlog: a floor on them would turn a drained queue -- the thing this build is for -- into a red
   // check. The refusal path is proved by the three lookups above, which do not depend on the backlog.
