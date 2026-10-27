@@ -21,7 +21,8 @@
 --   notice_plain_language_cause     one row per notice TYPE that fails: opened, handed to the seat that writes it,
 --                                   measured, closed by customer_support when the type passes again.
 --   customer_support.notice_plain_language (daily) fn_customer_support_notice_plain_language():
---       1. scores every unscored notice of the last 35 days (500 a run);
+--       1. scores every unscored notice of the last 35 days, oldest first, 2,000 a run (measured 27 Oct: 500 a run left
+--          the newest notices unscored on the first run, the 35-day backlog being over 500);
 --       2. a type with 3+ notices in 30 days and more than one in five failing opens ONE cause. If the writer is another
 --          seat (notifications.requested_by, the most frequent one), customer_support hands it over as support.root_cause
 --          (registered: originator closes) with the failing share, the top issues and the worst example's issues;
@@ -85,6 +86,14 @@ drop policy if exists notice_plain_language_cause_service_role_only on public.no
 create policy notice_plain_language_cause_service_role_only on public.notice_plain_language_cause
   as permissive for all to public using (false) with check (false);
 revoke all on public.notice_plain_language_cause from anon, authenticated;
+
+-- The daily export (the_daily_export_reads_a_registry_every_pull_request_adds_rows_to.sql): the scores are a measurement
+-- rebuilt from public.notifications, as support_reply_readability is; a cause is support's own record and is kept.
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('notice_plain_language', false, 'measurement', 'A plain-language score per notice, recomputed from public.notifications by fn_customer_support_notice_plain_language (ledger 1013).', 'customer_support'),
+  ('notice_plain_language_cause', true, 'conversation', 'Each notice type support found failing plain language, who it was handed to and how it closed (ledger 1013).', 'customer_support')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
 
 -- THE SCORE. Every constant and list below is the one in supabase/functions/_shared/readability.ts; the parity check
 -- reads both files and fails when they part.
@@ -212,7 +221,7 @@ begin
      where n.to_role in ('customer', 'supplier') and n.created_at > now() - interval '35 days'
        and nullif(btrim(n.body), '') is not null
        and not exists (select 1 from public.notice_plain_language p where p.notification_id = n.id)
-     order by n.id limit 500),
+     order by n.id limit 2000),
   scored as (select t.*, public.fn_plain_language_score(t.body, t.lang) s from todo t)
   insert into public.notice_plain_language (notification_id, sent_at, type, to_role, requested_by, channel, lang, ok, score, tone, issues, demo)
   select id, sent_at, type, to_role, requested_by, channel, lang, (s->>'ok')::boolean, (s->>'score')::int, (s->>'tone')::int,
