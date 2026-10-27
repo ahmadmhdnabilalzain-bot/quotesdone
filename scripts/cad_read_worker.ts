@@ -29,6 +29,7 @@ import { cadSupplierBoq } from '../supabase/functions/_shared/cad_identity.ts';
 import { lengthsForSet, mergeLengths } from '../supabase/functions/drawing_boq/drawing_set.ts';
 import { pdfPages } from '../supabase/functions/_shared/pdf_text_positions.ts';
 import { seedTerms } from '../supabase/functions/_shared/anonymise.ts';
+import { pickApiKey } from './lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const BASE = `https://${REF}.supabase.co`;
@@ -54,7 +55,7 @@ const lit = (s: string) => { let tag = 'qd'; while (s.includes(`$${tag}$`)) tag 
 async function serviceKey(): Promise<string> {
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: 'Bearer ' + token } });
   const k = await r.json().catch(() => null) as { name: string; api_key: string }[] | null;
-  const s = Array.isArray(k) ? k.find((x) => x.name === 'service_role')?.api_key : undefined;
+  const s = Array.isArray(k) ? pickApiKey(k, 'secret') : undefined;
   if (!s) throw new Error(`the management api did not return the service key (HTTP ${r.status})`);
   return s;
 }
