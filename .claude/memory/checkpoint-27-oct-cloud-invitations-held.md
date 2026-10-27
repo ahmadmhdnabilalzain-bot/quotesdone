@@ -49,4 +49,9 @@ He said yes on 27 Oct, but it is not sent yet: there is no path that sends as ma
 - On hold, do not merge: #1392, #1482.
 - Dependency bumps: #1201, #1224, #1421, #1595.
 
+That grouping is the founder's, given at the start of the session. **Later on 27 Oct**, agents fixed #1182, #1193,
+#1369 and #1574, and the independent reviewer called them ready to merge. #1370 still has one blocker: its intake uses a
+fixture, not the AI interview. Before quoting any PR state, read the PR's latest review, and read the open-PR count
+again rather than copying this one.
+
 Related: [[checkpoint-19-oct-campaign-on-pr-drain]], [[supplier-campaign-sends-from-supplier-at-quotesdone-com]], [[a-status-column-is-not-a-delivery-record]]
