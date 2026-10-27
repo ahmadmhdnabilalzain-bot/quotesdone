@@ -6503,14 +6503,17 @@ begin
               or coalesce(ar.counts->>'caller', '') = 'fixture'
               or coalesce(ar.note, '') ilike '%example.invalid%'
               or coalesce(ar.note, '') like '%ZZ DEMO%') = v_fx)
-    select label, count(*) as runs, count(*) filter (where status <> 'ok') as non_ok,
+    -- A FAILED RUN is any run but an ok, a skipped (a guard refusing correctly) or a warn whose note starts 'HTTP 4xx'
+    -- (a request correctly answered 4xx). A warn with any other note - or none - is an outage reported softly
+    -- (dropbox_backup, it_engineer) and counts; so does a missing status ('none'). 'not ok' was the old rule.
+    select label, count(*) as runs, count(*) filter (where status not in ('ok', 'skipped') and not (status = 'warn' and coalesce(note, '') ~ '^HTTP 4[0-9][0-9]')) as non_ok,
            (select jsonb_object_agg(s, n) from (select status s, count(*) n from runs r2 where r2.label = runs.label group by 1) z) as statuses,
            (select jsonb_agg(x) from (select distinct left(r3.note, 200) x from runs r3
-              where r3.label = runs.label and r3.status <> 'ok' and r3.note is not null limit 3) z) as notes
+              where r3.label = runs.label and r3.status not in ('ok', 'skipped') and not (r3.status = 'warn' and coalesce(r3.note, '') ~ '^HTTP 4[0-9][0-9]') and r3.note is not null limit 3) z) as notes
       from runs
      group by label
-    having count(*) > 5 and count(*) filter (where status <> 'ok') * 2 > count(*)
-     order by count(*) filter (where status <> 'ok') desc
+    having count(*) > 5 and count(*) filter (where status not in ('ok', 'skipped') and not (status = 'warn' and coalesce(note, '') ~ '^HTTP 4[0-9][0-9]')) * 2 > count(*)
+     order by count(*) filter (where status not in ('ok', 'skipped') and not (status = 'warn' and coalesce(note, '') ~ '^HTTP 4[0-9][0-9]')) desc
   loop
     n_found := n_found + 1;
     v_labels := v_labels || r.label;
@@ -6532,8 +6535,8 @@ begin
       r.non_ok::int,
       jsonb_strip_nulls(jsonb_build_object(
         'duty', 'it_engineer.run_clusters', 'subject', v_subject, 'owner_seat', v_owner, 'unowned', v_owner is null,
-        'runs_7d', r.runs, 'non_ok_7d', r.non_ok, 'statuses', r.statuses, 'sample_notes', r.notes,
-        'rule', 'more than 5 runs and more than half not ok in 7 days (IT-C14)', 'demo', v_fx)),
+        'runs_7d', r.runs, 'failed_7d', r.non_ok, 'statuses', r.statuses, 'sample_notes', r.notes,
+        'rule', 'more than 5 runs and more than half failed in 7 days; ok, skipped and a warn noted HTTP 4xx are not failures (IT-C14)', 'demo', v_fx)),
       array['fixture runs counted apart'],
       case when v_owner is null then array['which seat owns this run label'] else '{}'::text[] end,
       'it_engineer');
@@ -6545,9 +6548,9 @@ begin
             where e.closed_at is null and e.issue_key like v_prefix || '%'
               and (v_fx or e.issue_key not like 'duty:run_cluster:fixture:%') loop
     continue when f.label = any (v_labels);
-    perform public.fn_it_engineer_finding_close(f.issue_key, format('cleared: %s now has %s non-ok of %s runs in 7 days (rule: more than 5 runs and more than half not ok)',
+    perform public.fn_it_engineer_finding_close(f.issue_key, format('cleared: %s now has %s failed of %s runs in 7 days (rule: more than 5 runs and more than half failed; ok, skipped and a warn noted HTTP 4xx are not failures)',
       f.label,
-      (select count(*) filter (where coalesce(status, 'none') <> 'ok') from public.agent_runs where agent = f.label and started_at > now() - interval '7 days'),
+      (select count(*) filter (where coalesce(status, 'none') not in ('ok', 'skipped') and not (coalesce(status, 'none') = 'warn' and coalesce(note, '') ~ '^HTTP 4[0-9][0-9]')) from public.agent_runs where agent = f.label and started_at > now() - interval '7 days'),
       (select count(*) from public.agent_runs where agent = f.label and started_at > now() - interval '7 days')));
     n_closed := n_closed + 1;
   end loop;
@@ -7566,9 +7569,15 @@ begin
      and a.id = substr(r.idempotency_key, 9)::bigint and a.kind = 'handoff' and a.status = 'done';
   get diagnostics n_reports = row_count;
 
-  for h in select * from public.agent_actions
-            where kind = 'handoff' and detail->>'type' = 'it.finding' and detail->>'from' = 'it_engineer'
-              and status in ('pending', 'failed') order by id loop
+  -- 27 Oct 2026: CLEARED FINDINGS FIRST (see the file header). The key mirrors v_cleared below exactly; a row whose
+  -- finding is still open (or whose occurrence cannot be read) sorts after every cleared one, then by id as before.
+  for h in select a.* from public.agent_actions a
+             left join public.it_engineer_finding f0 on f0.issue_key = a.detail->>'issue_key'
+            where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.detail->>'from' = 'it_engineer'
+              and a.status in ('pending', 'failed')
+            order by coalesce(f0.issue_key is null or f0.closed_at is not null
+                              or f0.started_at > (a.detail->>'occurrence_started_at')::timestamptz, false) desc,
+                     a.id loop
     if clock_timestamp() > v_until then n_left := n_left + 1; continue; end if;
     select * into f from public.it_engineer_finding where issue_key = h.detail->>'issue_key';
     -- The occurrence this loop tracked is over when the finding is closed, or when it has since

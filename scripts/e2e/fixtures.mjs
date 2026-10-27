@@ -121,9 +121,10 @@ export async function staleRunTags({ graceMinutes = 60 } = {}) {
 }
 
 /** Remove the fixtures of runs that are over, each with the harness's own teardown by its exact tag. */
+// opts.limit bounds how many runs one call removes (withRun sweeps a few per start; run.mjs takes them all).
 export async function sweepStaleRuns(opts = {}) {
   const out = [];
-  for (const tag of await staleRunTags(opts)) {
+  for (const tag of (await staleRunTags(opts)).slice(0, opts.limit ?? Infinity)) {
     if (NEVER_SWEPT.has(tag)) continue;   // belt and braces: never the founder's demo accounts
     const t = await teardown(newRun({ tag, quiet: true }));
     out.push({ tag, summary: t.summary });

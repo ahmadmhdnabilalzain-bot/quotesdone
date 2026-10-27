@@ -29,7 +29,7 @@ import { placementTick } from '../_shared/inbox_placement.ts';
 import { pollReplyInbox, PROOF_LABEL } from '../_shared/m365_reply_inbox.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
-import { defaultDeps, heartbeatDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROWS } from '../_shared/think.ts';
+import { heartbeatDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROWS } from '../_shared/think.ts';
 import { drain as drainRoutineJudgements } from '../_shared/routine_judgements.ts';
 import { distilLessons } from '../_shared/learning_loop.ts';
 import { deliverReasoned, liveDeliveryIO, sendHeldNotices } from '../_shared/reasoned_delivery.ts';
@@ -269,7 +269,8 @@ async function seatDutiesTick(): Promise<unknown> {
 // model and sends the recorded draft only on an OpenRouter outage (_shared/duty_voice.ts). Three voice groups a run.
 async function supportVoiceTick(): Promise<unknown> {
   const { writeOwedDutyMessages, liveVoiceIO } = await import('../_shared/duty_voice.ts');
-  return await writeOwedDutyMessages(liveVoiceIO(admin, defaultDeps(admin, 'resilience_ping')), 3);
+  // heartbeatDeps: any embedding this step ever asks for runs in embed_ml, never in this worker (2 s CPU cap, #1678)
+  return await writeOwedDutyMessages(liveVoiceIO(admin, heartbeatDeps(admin)), 3);
 }
 
 async function outboxTick(): Promise<unknown> {
@@ -506,11 +507,13 @@ async function learningMeasureTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 // Hourly, no model: embed + group in SQL. Weekly (learningDistil): reason only what crossed the threshold.
+// Both on heartbeatDeps (27 Oct 2026, it_engineer): each unembedded finding (up to 8 a tick) is embedded in embed_ml,
+// never in this worker, whose 2 s CPU cap killed the held replay (_shared/think.ts, above defaultDeps).
 async function learningGroupTick(): Promise<unknown> {
-  try { return await distilLessons(admin, undefined, 2, { reason: false }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+  try { return await distilLessons(admin, heartbeatDeps(admin), 2, { reason: false }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 async function learningDistilTick(): Promise<unknown> {
-  try { return await distilLessons(admin, undefined, 2, { reason: true }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+  try { return await distilLessons(admin, heartbeatDeps(admin), 2, { reason: true }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
 async function refundLadderTick(): Promise<unknown> {
@@ -1328,7 +1331,7 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // (founder_instruction 886-903; _shared/think.ts replayHeld). Under the hold fn_reason_held_due
   // returns nothing and no model is asked, so this step costs one gate read. Since 7 Oct (ledger 1175) a tick claims REPLAY_CLAIM
   // at a time, concurrently, up to REPLAY_MAX_ROWS within REPLAY_BUDGET_MS, a slice that fits every tick (12 Oct).
-  await step('reasoning_held', async () => replayHeld(admin, REPLAY_CLAIM, undefined, (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin)),
+  await step('reasoning_held', async () => replayHeld(admin, REPLAY_CLAIM, heartbeatDeps(admin), (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin)),
     { maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS }));
   // The four routine judgements (quote spec match, repeat requests, supplier trade words, unknown-sender mail) queued by
   // their callers and not judged inline: five a tick, no per-day limit; three failed readings end a row. Held rows stay queued

@@ -220,8 +220,8 @@ export async function closeRehearsalWindow(tag) {
 }
 
 /**
- * Close a window when the process is ended before its `finally` can run: SIGTERM (a cancelled CI job),
- * SIGINT, or an uncaught exception / unhandled rejection. 13 Oct 2026: nine smoke and withRun windows
+ * Run `close` (the run's teardown, then its window) when the process is ended before its `finally` can run: SIGTERM
+ * (a cancelled CI job), SIGINT, or an uncaught exception / unhandled rejection. 13 Oct 2026: nine smoke and withRun windows
  * stayed open for hours and blocked stage2. Same pattern as a_phone_cannot_select_an_account.test.mjs
  * (#1362, #1377). Returns a disarm function; call it once the normal `finally` has closed the window.
  * A kill -9 is caught by nothing here: fn_rehearsal_window_sweep is the net for that.
@@ -244,6 +244,20 @@ export async function withRun(fn, opts = {}) {
   const { capUsd = 15, minutes = 120, ...rest } = opts;   // ledger 1247: no spend limit on tests; 15 is the CHECK maximum, 120 min the window limit
   const run = newRun(rest);
   run.log(`demo run ${run.tag} on ${REF}`);
+  // RUNS THAT ARE OVER GO FIRST (it_engineer, 27 Oct 2026). A check killed mid-run (a shell timeout's SIGKILL) never
+  // reaches its finally or its exit handler, and nothing in a process can catch that. Measured 27 Oct: 10 withRun
+  // runs since 26 Oct 19:47Z (holds probe, probe 857.2) left their ZZ DEMO lead, each window closed only by the
+  // 10-minute sweep after it expired, i.e. by no process; the holds check needs 271 s and is torn down cleanly when
+  // allowed to finish. run.mjs already removed such runs before it starts (scripts/e2e/fixtures.mjs sweepStaleRuns,
+  // NEVER_SWEPT keeps the founder demo, an open or recently closed window keeps its run); withRun now does the same,
+  // a few tags per start so a backlog cannot stall one check. QD_NO_STALE_SWEEP=1 skips it for a run that must touch
+  // nothing but its own tag. fixtures.mjs imports this module, so it is imported here at call time.
+  if (process.env.QD_NO_STALE_SWEEP !== '1') {
+    try {
+      const { sweepStaleRuns } = await import('../e2e/fixtures.mjs');
+      for (const s of await sweepStaleRuns({ limit: 3 })) run.log(`run ${s.tag} was over and left fixtures; torn down: ${s.summary}`);
+    } catch (e) { run.log(`(runs that are over not swept: ${String(e.message || e).slice(0, 160)})`); }
+  }
   // DECLARE THE WINDOW (3 Sep 2026). Every function this run exercises logs into agent_runs like a
   // real call, and fn_watch_failed_runs paged the founder twice about one morning's rehearsals.
   // A declared window tells the watcher these rows are the operator's; rows outside it are judged
@@ -254,7 +268,12 @@ export async function withRun(fn, opts = {}) {
     process.env.QD_E2E_RUN_TAG = run.tag;
   }
   catch (e) { run.log(`(rehearsal window not declared: ${String(e.message || e).slice(0, 120)})`); }
-  const disarm = closeOnExit(() => closeRehearsalWindow(run.tag));
+  // A SIGTERM, Ctrl-C or crash tears the run down too, then closes its window (27 Oct 2026: the handler closed the
+  // window only, so a terminated run's rows outlived it). Teardown is by exact tag and idempotent, so racing the
+  // finally below is harmless.
+  const disarm = closeOnExit(async () => {
+    try { if (!run.keep) await teardown(run); } finally { await closeRehearsalWindow(run.tag); }
+  });
   try {
     return await fn(run);
   } finally {
