@@ -4653,7 +4653,7 @@ tbody tr:hover{background:var(--panel2)}
 <script src=''https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2''></script>
 <script>
 var URL_=''https://htdblwldjkcgjvmqkbeh.supabase.co'';
-var ANON=''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo'';
+var ANON=''LEGACY-ANON-KEY-REMOVED-27-OCT-2026'';
 var sb=supabase.createClient(URL_,ANON,{auth:{persistSession:true,autoRefreshToken:true}});
 var TOKEN=null;
 var $=function(id){return document.getElementById(id)};

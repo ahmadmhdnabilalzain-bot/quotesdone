@@ -8757,6 +8757,32 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_handoff_close_cites_its_note()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_cited  boolean := (new.evidence->'cites_note'->>'handoff_id') = new.id::text;
+  v_reason boolean := nullif(btrim(coalesce(new.evidence->'not_cited'->>'reason', '')), '') is not null;
+begin
+  if v_cited or v_reason then return new; end if;
+  -- A row closed before this rule, with neither, may still be written to (the delivery watch records its loop
+  -- verdict on old requests). One that had a citation or a reason may not lose it.
+  if tg_op = 'UPDATE' and old.status = 'done'
+     and (old.evidence->'cites_note'->>'handoff_id') is distinct from old.id::text
+     and nullif(btrim(coalesce(old.evidence->'not_cited'->>'reason', '')), '') is null then
+    return new;
+  end if;
+  raise exception using
+    errcode = 'check_violation',
+    message = format('handoff %s (%s, %s -> %s) closed without its receiver citing the handover note and without a reason why not - refused (founder ledger 1013)',
+                     new.id, coalesce(new.detail->>'type', '?'), coalesce(new.detail->>'from', '?'), new.agent),
+    hint = 'Close it through fn_seat_handoff_complete, which cites the note, or set evidence.not_cited = {"reason": "...", "by": "<routine>"}.';
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_handoff_only_originator_closes()
  RETURNS trigger
  LANGUAGE plpgsql
