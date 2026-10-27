@@ -2828,3 +2828,150 @@ Three folders sat in the laptop checkout, ignored by git and in no bucket. They 
 | `laptop_project_folder/e2e-reports/2026-09-30T01-44-32/result.json` | 2004 | `c30f0e0ab2ea8a2fa63cf6491a27dba09beea4621603b517d4389b523ad617a8` |
 | `laptop_project_folder/e2e-reports/2026-09-30T01-44-32/run.json` | 344 | `0eb0758960c6a4cb5267444af6240f402a81fe6ae7aaf8fc14c5816c00e6861e` |
 | `laptop_project_folder/e2e-reports/2026-09-30T01-44-32/steps.json` | 1483 | `d3fc3550905acb2229a9ff3881eb768af3197f52b60ef4078a71bf68ace98b58` |
+
+## Added 27 Oct 2026: the founder's QuotesDone files from the laptop home folder
+
+Before the laptop was cleared, the ceo seat uploaded these under the prefix `laptop_home/`:
+
+- the QuotesDone documents in `Downloads`: knowledge packs, phase packages, the investor pack, assessments, briefs, the supplier list and the DMARC report.
+- `qd_packs`, which holds the unzipped autonomy and upgrade packs.
+- `quotesdone-wip-backups`.
+- `pr689_review`.
+
+**Verified:** 133 objects and 236,902,832 bytes. All 133 were downloaded back with the service role and match the local sha256 and size. A read without a key returned HTTP 400, so it was refused.
+
+| object key | bytes | sha256 |
+|---|---:|---|
+| `laptop_home/qd_packs/QuotesDone_AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS_PACK_v2026.07.31/00_START_HERE.md` | 2048 | `2f8b7c6174f795cf0b57c27a81e03b49cebeb80d3b3f6f47d1087145183b9b76` |
+| `laptop_home/qd_packs/QuotesDone_AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS_PACK_v2026.07.31/01_REMAINING_TO_AUTONOMY.md` | 4292 | `5c2005f14b4c849e7e12f9b98fd681bb9df03dff7bf22b5588ad3ec31faa0f7d` |
+| `laptop_home/qd_packs/QuotesDone_AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS_PACK_v2026.07.31/02_TOOL_AND_CONNECTOR_MATRIX.csv` | 4819 | `178b9acea99e2c468f216effb67eeb9e9bd1f452da9a1012905612e2ace37062` |
+| `laptop_home/qd_packs/QuotesDone_AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS_PACK_v2026.07.31/03_MODEL_CATALOG_RECOMMENDED.csv` | 2933 | `c72c91345d2b86166c32994ecf21c5afa0e97d1d504c7eb2f3d91873e42e4832` |
+| `laptop_home/qd_packs/QuotesDone_AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS_PACK_v2026.07.31/04_MODEL_POLICY_BY_TASK_CLASS.csv` | 5970 | `d840b3920f4775a1f3b9ec944f7b29c82739f5c9e70f214e6ddca5612490e038` |
+| `laptop_home/qd_packs/QuotesDone_AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS_PACK_v2026.07.31/05_MODEL_POLICY_BY_96_TARGET_EMPLOYEES.csv` | 26873 | `cc6b94671bf4519d5cdefc9eb8f4471456cf49844f7eeda8150398b6b74ad5b7` |
+| `laptop_home/qd_packs/QuotesDone_AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS_PACK_v2026.07.31/06_MODEL_POLICY_BY_CURRENT_PRODUCTION_AGENTS.csv` | 4297 | `f3e7ca3f1746bbbe3fc4b648e175a8eaf59956fe4a386ec1443c6e0f65bae93f` |
+| `laptop_home/qd_packs/QuotesDone_AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS_PACK_v2026.07.31/07_REFERENCE_MODEL_ROUTING.sql` | 4712 | `ca4c3d8dac3d7e5c09e9349e4af778024d22462b32bc3baa287debdff1c89410` |
+| `laptop_home/qd_packs/QuotesDone_AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS_PACK_v2026.07.31/08_EMPLOYEE_AUTONOMY_LOOP.md` | 2751 | `4e2bc5d88ffa1fd7dae7f7ac841be420db22e29614f45d98730afb579c67832e` |
+| `laptop_home/qd_packs/QuotesDone_AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS_PACK_v2026.07.31/09_SUPPLIER_OUTREACH_EXPERIMENT_ENGINE.md` | 3723 | `75f4c093db655f20dfde1f35d18226f3d2ffda4e127c8b33538849ebf4f5c0c2` |
+| `laptop_home/qd_packs/QuotesDone_AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS_PACK_v2026.07.31/10_PASTE_THIS_TO_CLAUDE.md` | 5516 | `16fb036958b2c6f903ded9cb0d7c355243b7e93fc651f8bd0b3d2be2b94d5228` |
+| `laptop_home/qd_packs/QuotesDone_AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS_PACK_v2026.07.31/11_ACCEPTANCE_GATES.md` | 2884 | `af9e7398e0b10dceb35eae02c1cfec4763a625ea592d393d8ea3b2da059819a5` |
+| `laptop_home/qd_packs/QuotesDone_AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS_PACK_v2026.07.31/12_CURRENT_CODE_AUDIT_NOTES.md` | 3856 | `cf0c78a164273c428338fb45475d96b2f6c957e756dfeaf625a523f91c56e638` |
+| `laptop_home/qd_packs/QuotesDone_AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS_PACK_v2026.07.31/99_SHA256.txt` | 1278 | `1bdc3c4fc25dc761645d5d8b9901caa625c8d02161de4f04de574ff3b0d9d666` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/00_START_HERE.md` | 2194 | `92784abd44df319f27bf3bc5a6e2bb7d6f2f4a0a86170c523dd9a5c9e8318158` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/01_MASTER/01_EXECUTIVE_AUDIT.md` | 4824 | `01344549938743a4314a63a5e7cd989995a39c5b64586aafba2fb9f7888f78c8` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/01_MASTER/02_CODE_EVIDENCE_INDEX.csv` | 2252 | `2ad507cde18dff76826b8d1666f0826684c35db6f0630126537771b75bc1caa6` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/01_MASTER/03_FRONTEND_REPOSITORY_AUDIT.md` | 1640 | `8e140a221819a20553f1cc9ebbab6fda214f3e140358dedf0fffb4b8b77cd147` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/01_MASTER/04_RECONCILED_TARGET_ARCHITECTURE.md` | 2303 | `b7fdf96e31aff8de22aad1b251c88a3742b730b50d2057a636e66d20143b27d5` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/01_MASTER/05_PRIORITY_ROADMAP.md` | 1876 | `a3056a20e40900a6613ea284c69201370510b951cfc054c4768b5f1926824db8` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/01_MASTER/06_PASTE_THIS_TO_CLAUDE.md` | 4930 | `6d062403894100210a53f89bed117c00fe850cc1375b0579b337dc8c8246ae0f` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/01_MASTER/07_ACCEPTANCE_GATES.md` | 1500 | `4e6a5807a77db251981bc98a3f0fba5545c6a5124b2e282df1bc28822f9c9921` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/01_MASTER/08_CURRENT_API_ACTION_INVENTORY.json` | 1453 | `33cecece9551395862fcf85188b9bb89b33cb0185583cb028f06b9ea23831701` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/01_MASTER/09_DEPLOYMENT_AND_ROLLBACK.md` | 780 | `9f146eb114d4e76badeeebab9132a440f033777102258b8ae6ec54b042a53019` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/02_OS_COMMAND_CENTER/00_READ_ME.md` | 844 | `c72cd7946e1913a1d4802bcfc9345a9fcf930f5b65cb55024a5afca4f5d8487c` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/02_OS_COMMAND_CENTER/01_OS_REQUIREMENTS_TRACEABILITY.csv` | 8377 | `76642ad5d9052a74b11f3f66a5dcd850f1255eb624746ef82bdbec2fe22c362a` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/02_OS_COMMAND_CENTER/02_TARGET_PRODUCT_SPEC.md` | 1977 | `0d7f54e7e605e1076e73762131881234f85f8fc68d654d05582adf4efbfd808f` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/02_OS_COMMAND_CENTER/03_API_CONTRACT.json` | 2463 | `3d3275a0bdff4347a2ada2d6073f16be56007c2a8780251f4d41441197ec341c` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/02_OS_COMMAND_CENTER/04_FRONTEND_BLUEPRINT.md` | 885 | `d48f0c317b0d873328c0cfe20c434d2cb7cd25aa480a93757e36e84a0518a7bd` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/02_OS_COMMAND_CENTER/05_ACCEPTANCE_TESTS.md` | 825 | `ff8d9f2436dae5d8fc503046d2a2d9a16c103d158ffe9e43f16f2af6759f2405` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/02_OS_COMMAND_CENTER/06_PASTE_THIS_TO_CLAUDE.md` | 937 | `2cb309dad9038bb0fe73d307b79d9dfd4ba1a71f3bf1051e896d9afea741d778` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/03_SUPPLIER_PORTAL/00_READ_ME.md` | 451 | `21ac8b7aba7eacc9648a6c46363ecacbfb8e750ff6d243d6a5b4c02dd243b38e` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/03_SUPPLIER_PORTAL/01_SUPPLIER_REQUIREMENTS_TRACEABILITY.csv` | 4726 | `ea4678411b964199888e71aed7eedec27edc6e9f5f17fdd20bc0d2fcfda64e27` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/03_SUPPLIER_PORTAL/02_IMPROVED_TARGET_SPEC.md` | 1636 | `53e694b25e0489f281e77f4322ada99a9f3a3e7f68e38836a5c9bfe4d0651aa3` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/03_SUPPLIER_PORTAL/03_REFERENCE_MIGRATION_DO_NOT_APPLY_BLINDLY.sql` | 2477 | `588891b60ea5cd36be596c6b96c24a680a309c13947c058ed7f425802ddcd27f` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/03_SUPPLIER_PORTAL/04_API_CONTRACT.json` | 1477 | `f3ad1999f49168f682755139fe20afee86ce1bf034f6855191c762450331f5f3` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/03_SUPPLIER_PORTAL/05_FRONTEND_BLUEPRINT.md` | 706 | `c891f86ca4181e506d87a010e4e78f20a0bb4db3609f60328283abb3fd43f5a8` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/03_SUPPLIER_PORTAL/06_ACCEPTANCE_TESTS.md` | 853 | `9dfb775c6512ac7d7040dcd6c08abcec4b21788f80b9398bf9fb42e92c85a217` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/03_SUPPLIER_PORTAL/07_PASTE_THIS_TO_CLAUDE.md` | 980 | `aebc903d8d290be7e05b9a2a90dc886a21f01e77ec5419a6a7ca80f85e927332` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/04_CUSTOMER_PORTAL/00_READ_ME.md` | 521 | `0d635edd9e8cb22205cca0cdd6be69bc4a093e3284a7be960b3497b26dc1b1d8` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/04_CUSTOMER_PORTAL/01_CUSTOMER_REQUIREMENTS_TRACEABILITY.csv` | 4058 | `08fb7b4ab125dfdd0b8419ac5606f792a6f5289c8b881d80fd6a01623742c171` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/04_CUSTOMER_PORTAL/02_IMPROVED_TARGET_SPEC.md` | 1913 | `c9fb6d77970b649d0aec72e88af619b103e205bb955fccf378e27f8114c28186` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/04_CUSTOMER_PORTAL/03_REFERENCE_MIGRATION_DO_NOT_APPLY_BLINDLY.sql` | 2900 | `99871bf0b03e9ace0fb60f46a24bfa3a034d1f93ad240f4ab3971cd27ed0b392` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/04_CUSTOMER_PORTAL/04_API_CONTRACT.json` | 1488 | `6bad2b8f4248190e59dc3f1c498043ea1636f37a691aa59158f7fc2a45bc5eaf` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/04_CUSTOMER_PORTAL/05_FRONTEND_BLUEPRINT.md` | 774 | `a55d908d6e784301718de68681dd196d69f2353e59a908b071328ecc175bee8b` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/04_CUSTOMER_PORTAL/06_ACCEPTANCE_TESTS.md` | 850 | `657c5b35ddd331a3917e38b5114680b7e85730eee987842337810c35b420e7f2` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/04_CUSTOMER_PORTAL/07_PASTE_THIS_TO_CLAUDE.md` | 930 | `e5efe6ac1f76430975454dbcc74b434334adf9a518462d936a826267824d6ff6` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/05_SHARED_AUTONOMY_FOUNDATION/00_READ_ME.md` | 1087 | `825cc5908b0ac2ea74dcf06d16292c87668a25a47b02d7e9e76df9f2c8da1f17` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/05_SHARED_AUTONOMY_FOUNDATION/01_TARGET_RUNTIME.md` | 1457 | `4307b4dc850d7e596d7ff7011a7a99b92d824cb2910f485963d22e25e29067a0` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/05_SHARED_AUTONOMY_FOUNDATION/02_REFERENCE_MIGRATION_DO_NOT_APPLY_BLINDLY.sql` | 3871 | `5b4e14b2228b952ead2755003428d5d45e59db6e283c9d21b9b8a11684f0c9d5` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/05_SHARED_AUTONOMY_FOUNDATION/03_AUTONOMY_GOVERNANCE.md` | 961 | `1d7ead798650e9d62f957726cf727e31fedc0bdf354bfa237ef6093b8e3a6df9` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/05_SHARED_AUTONOMY_FOUNDATION/04_EXECUTOR_REGISTRY_SPEC.json` | 617 | `6e861f1003400c30f98766fb2eed67b9438d17dec89fd7a358c3db1b4030f735` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/05_SHARED_AUTONOMY_FOUNDATION/05_CLAUDE_PROMPT.md` | 1056 | `a09abc8b7a666da87f6354b2d0a7cc616f67d4aafd70b7657460c31dfcd48197` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/MANIFEST.json` | 8540 | `32579bdebaf33b69ed4ee5d3fde66c0bd819b88212475a6a3f75d458d30f9d4b` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/SOURCE_PLANS/AGENTS_AND_KNOWLEDGE_BLUEPRINT.txt` | 25724 | `5a8e04e048c11b64d28b5ccc753e896843f70e39fec32ba7754d08e7cda6bdba` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/SOURCE_PLANS/AUTONOMOUS_COMPANY_ARCHITECTURE.txt` | 7226 | `01e689da661b703e431e0dab313034d468ae61002a2e97209d3652d0bd025bd9` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/SOURCE_PLANS/CUSTOMER_PORTAL_VISION.txt` | 8995 | `ad77aa82d88b2d7dd1ba2583604c922e8bfe80897d1f88c0a09254be56d061d8` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/SOURCE_PLANS/OS_COMMAND_CENTER_VISION.txt` | 17836 | `9a598f5def8edde1720a11de8e0c2a88ccc73e62fa697c2e9168bd4a1192f017` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/SOURCE_PLANS/PRODUCTION_EXPORT_README.md` | 11800 | `47a1a59ae4729964bda1007d09037e0ee5b8907977b617edacb3deb60cde1966` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/SOURCE_PLANS/SUPPLIER_CATEGORY_BLUEPRINT.txt` | 21611 | `2ffbb89fdf16ffba8d1253ec66e76710929a1d8e4616a3ef64f8ce31432e1855` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/SOURCE_PLANS/SUPPLIER_PORTAL_VISION.txt` | 9227 | `bedb5512f6628b082a0423f075e674565d763fa2cc4d14461f6054bd4c6831e7` |
+| `laptop_home/qd_packs/QuotesDone_Autonomous_Company_Upgrade_v2026.07.31/SOURCE_PLANS/UNIVERSAL_OS_BLUEPRINT.txt` | 6174 | `8db99a2c53fe2eb9dc9d45bee0348580afdb29e803ccdde690a8bbdfe1f2a645` |
+| `laptop_home/quotesdone-wip-backups/chat_agent_midmerge_21sep.base.txt` | 41 | `e474d53309f9470308720347a6f91a68c796116a8fb2c2abb568b1c6abb5396a` |
+| `laptop_home/quotesdone-wip-backups/chat_agent_midmerge_21sep.patch` | 76445 | `16753347cf59f781ee5ccecc0fccd42dc77f9db73aa6d47e850c6d6fa847ed14` |
+| `laptop_home/pr689_review/diff.txt` | 0 | `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` |
+| `laptop_home/Downloads/04_QuotesDone_Financial_Model.xlsx` | 1200160 | `a0a090063c62b1ae30ca6fb15f21ca73fa1014e9ba48977cd88af37fd8a722da` |
+| `laptop_home/Downloads/CEO_Knowledge_Pack_v1_2_Full_Autonomy.zip` | 836570 | `72b9df285ff33d567c026df879cdde73d1de26323d6973fc670b482b95ec5b6e` |
+| `laptop_home/Downloads/CEO_Knowledge_Start_Here_v1_1.md` | 4309 | `e9a228d350680bbe0e7f708ede8d60d7edd25a11fcb925e99bcede11ab396fde` |
+| `laptop_home/Downloads/EMAIL_AUDIT_info_at_quotesdone_20260906.md` | 23285 | `c6311ffdd912353979546d59c21acbf004535639914455c471a90dc81d784401` |
+| `laptop_home/Downloads/KNOWLEDGE_PLAN_20260906.md` | 307482 | `21948b49d3eb1688d1da9fe08fb8eab5fee1453fa07816fe7991087f7056a43f` |
+| `laptop_home/Downloads/MEP_AI_Specialist_UAE_Knowledge_Requirements.docx` | 37621 | `3657a5e1097fcf8cfbd7ccc161d1eea87fa1708cb331fdba25e98e671fd7dfac` |
+| `laptop_home/Downloads/QD_AGENT_V3_CERTIFICATION_ANSWER_KEY_EVALUATOR_ONLY_v2026.08.14.zip` | 259324 | `f2905a51c84103ab5eb43dd7f2212054b02a715873a1a7974259ca670f4cec83` |
+| `laptop_home/Downloads/QD_AGENT_V3_CERTIFICATION_QUESTIONS_ONLY_v2026.08.14.zip` | 313558 | `228f15fcb745f9dfdf07cfff77adfa1112310949daab56452d00a57c7bebab7d` |
+| `laptop_home/Downloads/QUOTESDONE_TECHNOLOGIES.pdf` | 226938 | `ef1809ddd5f81274412bd6c7e4209c4b60d4391242ad6e50d055dc8f936a47e0` |
+| `laptop_home/Downloads/QUOTESDONE_CAPABILITY_COVERAGE.md` | 14699 | `e51d3ac7f912ed0228dc86104194a8fed129cf5a3ed22290c4fe35bd881cb3cb` |
+| `laptop_home/Downloads/QUOTESDONE_CODEBASE.md` | 2747281 | `d3c480196b2bcfa3448b0353d0d00ded34f50ab67d9dd822d8b38f5e51c7b2ce` |
+| `laptop_home/Downloads/QUOTESDONE_FOUNDER_ACTIONS.md` | 4701 | `38d4badf5cddba6df029e4e436790e5b938190f351592ac2fa20c68001e7a32c` |
+| `laptop_home/Downloads/QUOTESDONE_MASTER_HANDOFF.md` | 11497 | `14f8dc32cd48c14ac1dc2f73556545bcca66a3521ee6e145258007c83cfdeee1` |
+| `laptop_home/Downloads/QuotesDone_Customer_Portal_Production_Readiness_Assessment.docx` | 12876 | `ecd0e51c6c44040c6fd1271a87f54bc9af94afa533135d20fe2e3d3037a4aa99` |
+| `laptop_home/Downloads/QuotesDone_End-to-End_Production_Validation_Framework.docx` | 14683 | `35a83830225df16e8032fcb7db15b11ad91499de6bf0b728e16dc966003edd77` |
+| `laptop_home/Downloads/QuotesDone_OS___Project_Consolidation___Comprehensive_Audit.docx` | 14599 | `096795ca574228370b8816e0134e971d1e197332d954de1fed872815f66c2beb` |
+| `laptop_home/Downloads/QuotesDone_Production_Readiness_Validation__1_.docx` | 14217 | `4056bd26f5fb89ae20cc5d13b8380b3fe3f90919db8a7468e47c1254014301c7` |
+| `laptop_home/Downloads/QuotesDone_Production_Readiness_Validation.docx` | 14218 | `2a04b021fe1a5807f243f34d16f7323f165d0edbca83c6aceab61e7cc1db3ba9` |
+| `laptop_home/Downloads/QuotesDone_SUNDAY_20_Sep_2026___session_brief.md` | 10925 | `1a9b26dec8921c2c1337f3d11d34f164cec800365751d0585704d25a5b58fd9e` |
+| `laptop_home/Downloads/QuotesDone_UI-UX_Redesign_Rules.docx` | 11801 | `f6bb0b7736b8bb1bdf1d4b61ea07e5f06876a7c9a39e4cdd8d770e4fedcf52f4` |
+| `laptop_home/Downloads/QuotesDone_agents___tasks_and_gaps.md` | 24217 | `212cb6f610122c96202c2db9969381e6569a4bebcf013ecf94a94d53601993c2` |
+| `laptop_home/Downloads/QuotesDone_AGENT_BY_AGENT_REPORTING_AND_OPERATING_DOSSIERS_v2026.08.16.zip` | 842708 | `5dd17ce925d209d95b63b098dacd9013b6cd274ee15850bceebe688334e72abd` |
+| `laptop_home/Downloads/QuotesDone_AGENT_KNOWLEDGE_V3_RUNTIME_TRAINING_ONLY_v2026.08.14.zip` | 37381742 | `e165bceaacc65d8d58d8611796d477341d4e67567d01dc0d4e46aa43fa3c2854` |
+| `laptop_home/Downloads/QuotesDone_AGENT_RUNTIME_CONNECTION_BLUEPRINT_v2026.08.14.zip` | 50732 | `0ad842b87c5432932e2e19d43a40b5a56e2f0a8341522b5d994f040c3873f5e4` |
+| `laptop_home/Downloads/QuotesDone_AI_AUTONOMY_MODEL_ROUTING_AND_TOOLS_PACK_v2026.07.31.zip` | 28064 | `af576fcce35ba3fcacb713c6711495f9968fa4ca8eb1cc9dd7552f3f44b2e0fa` |
+| `laptop_home/Downloads/QuotesDone_AI_Governance_QA.docx` | 38207 | `949a235b3e9c98534f9685eb7ea94b7582de53808304b474498be77e4613fe0c` |
+| `laptop_home/Downloads/QuotesDone_AI_Resilience_and_Fallback_Validation.docx` | 37935 | `413940210527867dc1ee2ada7c4aabab85d48e5b2106987f83c526220fb7ac5f` |
+| `laptop_home/Downloads/QuotesDone_ALL_KNOWLEDGE_86_CATEGORIES_v2026.07.31.zip` | 27480392 | `fd550722a5aa3aeaf155d92d107567ed4de3a48aff468672ade7c20f66f34e45` |
+| `laptop_home/Downloads/QuotesDone_CLAUDE_COMPANY_OPERATIONS_INGESTION_v2026.07.31.zip` | 51487 | `710760ace72a41b42627d2e33931a2c58e99dd65d4aec906cf3a684e8bdf62d8` |
+| `laptop_home/Downloads/QuotesDone_CLAUDE_INGESTION_INSTRUCTIONS_v2026.07.31.zip` | 65207 | `b079a4426ba999c8ad06ab0ae1014e4f6395d82f736cbbaceb2b9120ca2074ac` |
+| `laptop_home/Downloads/QuotesDone_COMPANY_OPERATIONS_KNOWLEDGE_v2026.07.31.zip` | 1370221 | `feb27a5162f328ffbe71778aa00c7f72250cdd4770d824263748050e82f8e7d2` |
+| `laptop_home/Downloads/QuotesDone_COMPLETE_OS_PORTALS_AUTONOMY_UPDATE_PACKAGE_v2026.07.31.zip` | 90243 | `91dc2ce81a41862d4ef122f9c2186de64c7b09ba273b97fcdb394c4e3fd8cf75` |
+| `laptop_home/Downloads/QuotesDone_Chaos_Engineering_and_Business_Failure_Validation.docx` | 37850 | `930cbd0bf68ee40e400a0c46f6d36d32c3f5110df6009f7f55f3dad6ac37da2b` |
+| `laptop_home/Downloads/QuotesDone_Company_Knowledge_FAQ.md` | 208390 | `7ce881964f415cd664050b6f59a46116eb2aa73de0f2ae243390b3274f88766f` |
+| `laptop_home/Downloads/QuotesDone_Complete_8_Video_Campaign_HQ.zip` | 92933339 | `2100e1e882776784b4b0e45e11074579badabb5f402f51d1992feeb7ffd86e6b` |
+| `laptop_home/Downloads/QuotesDone_First_Month_Launch_Package.zip` | 18499201 | `d85812318bdeaf1b2ff3d2302befb90f4bf9304ba895a8f0348334dfa9599268` |
+| `laptop_home/Downloads/QuotesDone_Full_Autonomy_Master_Update_v1_2.txt` | 8188 | `73de4e52ebba98404ec1898948730c0cd34c22e0c9cf7bc0aa3c94ee3346f64b` |
+| `laptop_home/Downloads/QuotesDone_Integrations_Handover_-_Copy.md` | 11270 | `284ec97f995dab8d281cc65ce181302a532716c1a8c8b55b8b7dda5a24db80cd` |
+| `laptop_home/Downloads/QuotesDone_Integrations_Handover.md` | 11270 | `284ec97f995dab8d281cc65ce181302a532716c1a8c8b55b8b7dda5a24db80cd` |
+| `laptop_home/Downloads/QuotesDone_Investor_Pack_v2.zip` | 36400499 | `8806c25794ab53c0e69cfeabf0881c66b186a9179d0d42c577500d99cf9c8139` |
+| `laptop_home/Downloads/QuotesDone_LAUNCH_READINESS_YES_NO_CENSUS_v2026.08.27.zip` | 38810 | `2ddcf3baec43a7e0fad3d6f83dc4111d4983aa9a38ebcb7476811360702366c5` |
+| `laptop_home/Downloads/QuotesDone_PHASE_A_COMPLETE_ORGANIZATION_PACKAGE_PRODUCTION_DIRECT_v2026.08.15.zip` | 40963 | `6cdbd7430032e74b5103b1b62e5fbf0d9e1d162e17cd3ab530366d30a3cbc06e` |
+| `laptop_home/Downloads/QuotesDone_PHASE_B_COMPLETE_WORKFLOW_ARCHITECTURE_PRODUCTION_DIRECT_v2026.08.15.zip` | 205619 | `d66dc1afc7385e8c3ceb4dc9221db8f995dd3ea9d8c022a30daf517165829b2e` |
+| `laptop_home/Downloads/QuotesDone_PHASE_C_REPORTING_AND_CHAIN_OF_COMMAND_MAP_v2026.08.16.zip` | 4135448 | `ed99719bc095a11fdb5a545cbc999171614943c0ffa414514a4a14bf5930cf55` |
+| `laptop_home/Downloads/QuotesDone_PHASE_C_RUNTIME_CONNECTION_COMMAND_CENTER_PRODUCTION_DIRECT_v2026.08.15.zip` | 98760 | `209689a40fc1ac20c97f00b35342266f0c03ae3234fc6139bca5588eba5f0f8d` |
+| `laptop_home/Downloads/QuotesDone_PHASE_D_DETERMINISTIC_BUSINESS_HANDLER_IMPLEMENTATION_PRODUCTION_DIRECT_v2026.08.17.zip` | 231758 | `10b8bd34da5596b85a3d220856172110f375749682f1a9f0681763ff2d7bdeaa` |
+| `laptop_home/Downloads/QuotesDone_PHASE_E_KNOWLEDGE_CAPABILITIES_TOOLS_MODELS_LEARNING_CERTIFICATION_PRODUCTION_DIRECT_v2026.08.26.zip` | 673007 | `55ea38f9424f3ba74b7e7a82ec9efe369f54a225bf3c71dccf200be5bf128463` |
+| `laptop_home/Downloads/QuotesDone_Platform_AI_Validation_COMPLETED.docx` | 42344 | `78553ce0a12430c99ace9d890bbf8dba7c9ab459c627c777be83d299b4c12e7d` |
+| `laptop_home/Downloads/QuotesDone_Remaining_Enterprise_Gaps_QA.docx` | 37411 | `236be5dffd029472b36e392c9a78e21b23c6f705da865d65975c322f21b9acb5` |
+| `laptop_home/Downloads/QuotesDone_Resilience_Validation_Matrix.pdf` | 126662 | `7d0c59107c20023c68bb65953e6dfffe2e7c0a2538242579c72c90ce1361ff28` |
+| `laptop_home/Downloads/QuotesDone_Review_Concerns.txt` | 2385 | `e1a2c4f4fa770673401811ba17f141ad8b5b640efaab89d16a74ef4acc94b750` |
+| `laptop_home/Downloads/QuotesDone_Sales_Engineer_Build_Prompt_v1.txt` | 24798 | `cbef45b09d13feaaf09c9d879bf327a24f8f19b2dbb0d4bbb0bb6d1575a0692b` |
+| `laptop_home/Downloads/QuotesDone_Sales_Engineer_CEO_Support_Integration_v1.txt` | 3638 | `40875ff7e71b2642360feebf956755e7d963c5b7511956e2a9533f7fe5216d5c` |
+| `laptop_home/Downloads/QuotesDone_Sales_Engineer_Knowledge_v1.zip` | 1433624 | `d350a55e6f77bdfea4b7c828ccc5ac9f956b0d0db2383a37b69c9c0d1001bc6d` |
+| `laptop_home/Downloads/QuotesDone_Sales_Engineer_Start_Here_v1.md` | 3449 | `d460939b5582b40d7446b85155bd808e694151bbe169cae0c5091d889ec8fc27` |
+| `laptop_home/Downloads/QuotesDone_Social_Content_Brief.md` | 4923 | `7c5c314f9ba113af4546de6b9a48fd58e45df646b3af011e18ccfabe3d135ce9` |
+| `laptop_home/Downloads/QuotesDone_Stripe_Authorization_Letter_with_Documents.pdf` | 771860 | `3881040b4bdb527811829673b7b8c8e411c7b7c1323e4fc1660f7b6f4b2250b1` |
+| `laptop_home/Downloads/QuotesDone_Support_Full_Autonomy_Build_Prompt_v1_2.txt` | 37047 | `7f98fe737a7c01026ba2517f5ce7d4a417345167a015c401374853dcbb2cc036` |
+| `laptop_home/Downloads/QuotesDone_Website_OS3_Review.txt` | 3414 | `9c375ea28170df07aa1b12155b72cb2032095a4ae45302826da509d1fa0449ce` |
+| `laptop_home/Downloads/QuotesDone_What_If_Extreme_Validation_Playbook.docx` | 37461 | `2eff88115f65caf81e1847ef1d97d78bb9a1d785336f107ec9e36d2ffdc812ac` |
+| `laptop_home/Downloads/Redesign_QuotesDone_OS.docx` | 11166 | `a199f41eec1984bfad55402c9a7f902f2bd3123ced9b2b9918d5e416cfe6e36a` |
+| `laptop_home/Downloads/SESSION_LOG_2026-07-08_k_supplier_itemized_form.md` | 3718 | `1734a77dbeb636bd7886bc611879c6fa495cb84f72cf9493a3b5b98dcb2d8bcc` |
+| `laptop_home/Downloads/Supplier_Portal_Production_Readiness_Assessment.docx` | 12810 | `b77994673c8ed4547652768e5e3ba98e49f7142cd6d1ffea4d49cb55683ceb86` |
+| `laptop_home/Downloads/Supplier_Portal_Redesign.docx` | 10922 | `8f5ba9eb295db094082258db2d17706a49de6a7ab38b963984c8c2151ae50279` |
+| `laptop_home/Downloads/UAE_Suppliers_List_Enriched_v7_0ad73a802dbc456b80fc3cc27adcd2b5.xlsx` | 4376246 | `0fb37be167e77007297636008643be76879d088e013999cbdd776f56818c32bd` |
+| `laptop_home/Downloads/google.com_quotesdone.com_1782345600_1782431999.zip` | 747 | `d720347fccd124042e64877772dda2ea9ecd1af8ba36d0e42c3c927f68b98116` |
+| `laptop_home/Downloads/quotesdone-export-2026-07-29.zip` | 1957857 | `439d7b1048d19f06d63268fc106a74dbf3dcd159514d2d66d68ba5670c506919` |
+| `laptop_home/Downloads/QuotesDone_Customer_Support_Knowledge_v1_2_Full_Autonomy.zip` | 578659 | `bda2464b1dc81068f81a09b1be98e7c9df7c60764fce84af57ae1a518f202c9e` |
