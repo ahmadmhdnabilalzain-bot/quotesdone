@@ -226,6 +226,10 @@ const GREETING = /^\s*(hi|hello|hey|dear|good (morning|afternoon|evening)|greeti
 const SUMMARY = /^\s*(here is|here's|here are|to summari[sz]e|in summary|summary|your request|the job as)\b|^\s*(ملخص|إليك ملخص|هذا ملخص)/i;
 export const MAX_QUESTIONS = 3;
 const CONFIRM = /\b(confirm|correct|right)\b|صحيح|تأكيد|أكد|أكّد/i;
+// A question asking them to confirm the read-back (PORTAL_INTAKE step 4). It restates the job, so it shares most of its
+// words with the questions that gathered it, and it must never be taken for a re-ask (run 94311f64, ac_replacement:
+// "Here is the job as you told it: ... is that correct?" was dropped as "repeats an earlier question" twice).
+const CONFIRM_ASK = /\b(is (that|this|it|everything|all of (that|this)) (correct|right|accurate)|did I (get|capture)|(can|could) you confirm|please confirm|shall I (send|submit)|(correct|right)\s*[?]\s*$)|(صحيح|تؤكد|أكد|التأكيد)[^؟]*؟\s*$/i;
 export const ALL_QUESTIONS_DROPPED = 'every question it asked was already asked or answered; ask the next missing specification instead, or, when the essentials are known, give the summary and ask them to confirm it';
 /** What the filter says of one sentence: null keep it, a reason drop it, or keep only `text` (the model's own words,
  *  one clause of its question) for `why`. */
@@ -248,7 +252,7 @@ export function newClauseOf(q: string, h: Held): string | null {
 }
 
 /** Why a NON-question sentence is a line nobody asked for. null when it may stay. */
-export function unaskedOf(s: string, h: Held): string | null {
+export function unaskedOf(s: string, h: Held, inSummary = false): string | null {
   if (!h.firstReply && GREETING.test(s)) return 'a greeting after the first reply';
   for (const [topic, re, licence] of UNASKED) {
     // "If that is correct, press New request" closes the summary (PORTAL_INTAKE step 4): asking them to confirm is never
@@ -258,18 +262,21 @@ export function unaskedOf(s: string, h: Held): string | null {
   }
   // the final read-back restates on purpose (PORTAL_INTAKE step 4): it is never dropped as a repeat
   const W = contentWords(s);
-  if (W.size >= 5 && !SUMMARY.test(s)) for (const p of h.said) { const P = contentWords(p); if (overlap(W, P) / W.size >= 0.7) return 'restates a sentence already said'; }
+  if (W.size >= 5 && !inSummary && !SUMMARY.test(s)) for (const p of h.said) { const P = contentWords(p); if (overlap(W, P) / W.size >= 0.7) return 'restates a sentence already said'; }
   return null;
 }
 
 /** A fresh filter for ONE reply: called on each sentence in order, it says why a sentence is dropped, or null to keep it.
  *  It counts the questions it kept, so a fourth is dropped (the shape allows two; a third is tolerated). */
 export function replyFilter(h: Held): ReplyFilter {
-  let kept = 0; let reasked = 0;
+  let kept = 0; let reasked = 0; let inSummary = false;
   const f = (sentence: string): Verdict => {
     const s = sentence.trim();
     if (!s) return null;
+    // once the read-back starts, the rest of the reply restates the job on purpose: nothing in it is a repeat
+    if (SUMMARY.test(s)) inSummary = true;
     if (isQuestion(s)) {
+      if (inSummary || CONFIRM_ASK.test(s)) { kept++; return null; }
       const r = reaskOf(s, h);
       if (r) { reasked++; return r; }
       const one = newClauseOf(s, h);
@@ -277,7 +284,7 @@ export function replyFilter(h: Held): ReplyFilter {
       kept++;
       return one ? { text: one, why: 'part of the question was asked before' } : null;
     }
-    return unaskedOf(s, h);
+    return unaskedOf(s, h, inSummary);
   };
   // A JOB CONVERSATION NEVER ENDS ON A STATEMENT (run 143372b1, 27 Oct 2026: replies whose questions were dropped, or that
   // wrote none, left the customer nothing to answer and the brief was never finished: 5 of 10 conversations stopped

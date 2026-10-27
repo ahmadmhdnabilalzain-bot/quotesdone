@@ -202,3 +202,19 @@ Deno.test('streamed: when no rung writes a new question, the answer is still sen
   assertEquals(r.reply, 'Inverter noted.');
   assert(r.attempts.at(-1)!.startsWith('kept:'), r.attempts.join(','));
 });
+
+// Run 94311f64 (27 Oct 2026, ac_replacement): the read-back ended "... is that correct?" and was dropped twice as
+// "repeats an earlier question" because it restates the questions that gathered the job. A summary is never a re-ask.
+Deno.test('the summary and its confirm question are never dropped as re-asks or restatements', () => {
+  const h = heldState([...AC, u('It is a new installation; there is no unit there now. Within 2 weeks.'),
+    a('One ton is likely too small for this room. Does the apartment use its own air-conditioning units, or central or district cooling?')], 'Own split units.');
+  const f = replyFilter(h);
+  assertEquals(f('Here is the job as you told it: a new inverter split for the 28 m² living room of your owned apartment in Al Nahda, Dubai.'), null);
+  assertEquals(f('One ton is likely too small for this room, so suppliers will size it at about 2 to 2.5 tons.'), null);
+  assertEquals(f('It uses its own split units, not central or district cooling, is that correct?'), null);
+  assertEquals(f.end(), null);
+  // without a read-back, the same restatement is still dropped
+  assertEquals(replyFilter(h)('One ton is likely too small for this room.'), 'restates a sentence already said');
+  assertEquals(replyFilter(h)('Did I get everything right?'), null);
+  assertEquals(replyFilter(heldState([u('أبي أصبغ السور.'), a('كم طول السور؟')], 'السور 60 متر.'))('هل الملخص صحيح؟'), null);
+});
