@@ -435,6 +435,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
       const all = (r.records || []) as Array<Record<string, unknown>>;
       const convo = await pConvo; const convKey = convo.key; const stored = convo.turns;
       const transcript = stored && stored.length ? stored : clientHistory(body.history).filter((h, i, a) => !(i === a.length - 1 && h.role === 'user' && h.content === message));
+      let lastOutage = false;
       {
         const sr = await supportReply(defaultDeps(admin, 'sales_engineer'), {
           channel: 'portal', message, lang, seat: 'sales_engineer', audience: 'customer',
@@ -444,6 +445,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
           // a photo or drawing the customer sent (ruling 1200): only what chat_images accepts reaches the model
           images: acceptImages(body.images, new URL(Deno.env.get('SUPABASE_URL')!).host).images,
         }, () => Promise.resolve(null));
+        lastOutage = sr.outage === true;
         if (sr.path === 'reasoned' && sr.reply) {
           try {
             await admin.from('assistant_logs').insert({ message, reply: sr.reply, seat: 'sales_engineer', answered: true, ...(convKey ? { conv_id: convKey } : {}),
@@ -460,8 +462,9 @@ Deno.serve(observe('sales_engineer', async (req) => {
         await admin.from('assistant_logs').insert({ message, reply: null, seat: 'sales_engineer', answered: false, ...(convKey ? { conv_id: convKey } : {}),
           audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind, path: 'portal', gap_task_id: (r.task_id as number | undefined) ?? null });
       } catch { /* logging must not change the outcome */ }
-      await run('assist', 'error', { answered: false, no_model: true, task_id: r.task_id ?? null, precedent: recallTrace(memory) });
-      return J({ ok: false, seat: 'sales_engineer', answered: false, error: 'no_answer', task_id: r.task_id ?? null }, 503);
+      await run('assist', 'error', { answered: false, no_model: true, outage: lastOutage, task_id: r.task_id ?? null, precedent: recallTrace(memory) });
+      // outage: OpenRouter was down (no call reached a model). Only then may the portal show its own fixed line (1339).
+      return J({ ok: false, seat: 'sales_engineer', answered: false, error: 'no_answer', outage: lastOutage, task_id: r.task_id ?? null }, 503);
     }
 
     // ── CONVERSATIONS ──────────────────────────────────────────────────────────────────────────

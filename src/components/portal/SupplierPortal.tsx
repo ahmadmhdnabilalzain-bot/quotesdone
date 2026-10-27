@@ -67,7 +67,8 @@ import { BrandMark } from '@/components/BrandMark';
 
 // Same as the customer portal: an inline production fallback meant an unconfigured preview let
 // suppliers upload trade licences into the LIVE database. See supaEnv.
-import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
+import { SUPA_ANON as ANON, SUPA_FN as FN, SUPA_URL } from '@/lib/supaEnv';
+import { uploadToSignedUrl } from '@/lib/signedUpload';
 import { Ltr } from '@/lib/Ltr';
 const SB = () => supaClient('qd-portal-auth');
 
@@ -131,10 +132,12 @@ const QUOTE_ACCEPT = 'image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,.
 // UPLOADS UP TO 100 MB GO STRAIGHT TO STORAGE (19 Oct 2026, sales_engineer). Vercel caps a request body at 4.5 MB, so a
 // company profile or catalogue is not sent as base64: supplier_api upload_url signs a path in the supplier's own folder,
 // the file goes to it, and process_docs / save_documents are given the path (the server gates the stored bytes).
+// SB() is AUTH-ONLY (src/lib/supaClient.ts), so the file goes up by hand on the signed URL (src/lib/signedUpload.ts).
+// SB().storage was undefined: every profile and catalogue threw before upload and "Uploading..." never ended (27 Oct).
 const uploadDirect = async (kind, file, token) => {
   const u = await call('supplier_api', { action: 'upload_url', kind, filename: file.name, mime: file.type }, token);
   if (!(u && u.ok && u.path && u.token)) return { error: u };
-  const { error } = await SB().storage.from('supplier-docs').uploadToSignedUrl(u.path, u.token, file, { contentType: file.type });
+  const { error } = await uploadToSignedUrl(SUPA_URL, ANON, 'supplier-docs', u.path, u.token, file, file.type);
   return error ? { error: { code: 'direct_upload_failed' } } : { path: u.path, filename: file.name, mime: file.type };
 };
 const fileToB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.readAsDataURL(f); });
@@ -1739,6 +1742,13 @@ function Projects({ token, lang, openChat, onExpired }) {
             {!c.phone && !c.email ? <span className={S.sub}>{ar ? 'يمكنكم التواصل معه عبر الرسائل أدناه.' : 'Use the messages below to reach them.'}</span> : null}
           </div>
         </div>
+        {/* The customer's post-job review (T2). Suppliers read English only (ruling 28 Sep 2026). */}
+        {p.review ? <div className="mt-3 rounded-md border border-border px-3.5 py-3" dir="ltr" lang="en">
+          <div className="font-mono text-label uppercase tracking-caps text-muted-foreground">Customer review</div>
+          <div className="mt-1 text-[14px] font-semibold text-foreground"><span className="text-amber-500" aria-hidden="true">{'★'.repeat(p.review.rating)}{'☆'.repeat(Math.max(0, 5 - p.review.rating))}</span> <span className="sr-only">{p.review.rating} of 5 stars</span></div>
+          {p.review.comment ? <p className="mt-1 text-[13px] text-foreground break-words"><bdi>{p.review.comment}</bdi></p> : null}
+          {(p.review.photo_urls || []).length ? <div className="mt-2 flex flex-wrap gap-2">{p.review.photo_urls.map((u: string, i: number) => <a key={u} href={u} target="_blank" rel="noopener noreferrer"><img src={u} alt={'Customer job photo ' + (i + 1)} width={80} height={80} loading="lazy" className="size-20 rounded-md border border-border object-cover" /></a>)}</div> : null}
+        </div> : null}
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <div className="text-[13px]">
             {p.acknowledged_at

@@ -2430,7 +2430,7 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_supply_gap(p_reason_limit in
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_target int := coalesce((select category_open_min_suppliers from public.pricing_config order by id limit 1), 10);
-  v_rule int; v_closed int; v_reopened int; v_settled int; v_nobody int; v_held_settled int;
+  v_rule int; v_closed int; v_reopened int; v_settled int; v_nobody int; v_held_settled int; v_forecast_settled int;
   v_emirates text[] := array['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'];
 begin
   with sup as materialized (   -- every matchable supplier with his trades and the emirates he states (none stated = UAE-wide)
@@ -2490,6 +2490,16 @@ begin
    where status = 'recruit' and decided_by = 'rule:customer_waiting' and short_open = 0 and demand_90d = 0;
   get diagnostics v_settled = row_count;
 
+  -- A FORECAST THAT NO LONGER SHOWS DEMAND IS UNDONE (review of #1182): a gap fn_demand_forecast_tick recruited for
+  -- goes back to open once no forecast from the last two days shows demand there (or the forecast stopped running),
+  -- and is decided again below like any gap nobody waits on.
+  update public.supply_gap g set status = 'open', decided_by = null, decided_at = null, held_id = null
+   where g.status = 'recruit' and g.decided_by = 'rule:forecast_demand'
+     and not exists (select 1 from public.demand_forecast f
+                      where f.trade = g.trade and f.emirate = g.emirate and f.forecast_90d >= 1
+                        and f.run_on > (now() at time zone 'Asia/Dubai')::date - 2);
+  get diagnostics v_forecast_settled = row_count;
+
   -- A CUSTOMER IS ALREADY WAITING: recruited for at once, by rule. No judgement to make, so nothing waits on one.
   update public.supply_gap set status = 'recruit', decided_by = 'rule:customer_waiting', decided_at = now()
    where status in ('open', 'deciding', 'deferred') and (short_open > 0 or demand_90d > 0);
@@ -2511,7 +2521,7 @@ begin
    where status in ('open', 'deciding') and short_open = 0 and demand_90d = 0;
   get diagnostics v_nobody = row_count;
 
-  return jsonb_build_object('target', v_target, 'closed', v_closed, 'reopened', v_reopened, 'recruit_by_rule', v_rule, 'customer_rule_undone', v_settled,
+  return jsonb_build_object('target', v_target, 'closed', v_closed, 'reopened', v_reopened, 'recruit_by_rule', v_rule, 'customer_rule_undone', v_settled, 'forecast_rule_undone', v_forecast_settled,
     'deferred_nobody_waiting', v_nobody, 'held_questions_settled', v_held_settled, 'filed_for_reasoning', 0,
     'by_status', (select coalesce(jsonb_object_agg(status, n), '{}'::jsonb) from (select status, count(*) n from public.supply_gap group by status) x));
 end $function$
@@ -3438,8 +3448,8 @@ select
   ||E'\n\n-- ===== CONSTRAINTS =====\n'|| coalesce((select string_agg('ALTER TABLE public.'||quote_ident(c.relname)||' ADD CONSTRAINT '||quote_ident(con.conname)||' '||pg_get_constraintdef(con.oid)||';', E'\n' order by case con.contype when 'p' then 1 when 'u' then 2 when 'c' then 3 else 9 end, c.relname, con.conname) from pg_constraint con join pg_class c on c.oid=con.conrelid join pg_namespace n on n.oid=c.relnamespace and n.nspname='public' where con.contype in ('p','u','c','f')),'')
   ||E'\n\n-- ===== INDEXES =====\n'|| coalesce((select string_agg(pg_get_indexdef(i.indexrelid)||';', E'\n' order by ic.relname) from pg_index i join pg_class ic on ic.oid=i.indexrelid join pg_namespace n on n.oid=ic.relnamespace and n.nspname='public' where not exists(select 1 from pg_constraint con where con.conindid=i.indexrelid) and not exists(select 1 from pg_depend d where d.objid=ic.oid and d.deptype='e')),'')
   ||E'\n\n-- ===== VIEWS =====\n'|| coalesce((select string_agg('CREATE OR REPLACE VIEW public.'||quote_ident(viewname)||' AS '||definition, E'\n\n' order by viewname) from pg_views where schemaname='public'),'')
-  ||E'\n\n-- ===== FUNCTIONS =====\n'|| coalesce((select string_agg(pg_get_functiondef(p.oid), E'\n\n' order by p.proname) from pg_proc p join pg_namespace n on n.oid=p.pronamespace and n.nspname='public' where p.prokind in ('f','p') and not exists(select 1 from pg_depend d where d.objid=p.oid and d.deptype='e')),'')
-  ||E'\n\n-- ===== TRIGGERS =====\n'|| coalesce((select string_agg(pg_get_triggerdef(tg.oid)||';', E'\n' order by c.relname) from pg_trigger tg join pg_class c on c.oid=tg.tgrelid join pg_namespace n on n.oid=c.relnamespace and n.nspname='public' where not tg.tgisinternal),'')
+  ||E'\n\n-- ===== FUNCTIONS =====\n'|| coalesce((select string_agg(pg_get_functiondef(p.oid), E'\n\n' order by p.proname, pg_get_function_identity_arguments(p.oid)) from pg_proc p join pg_namespace n on n.oid=p.pronamespace and n.nspname='public' where p.prokind in ('f','p') and not exists(select 1 from pg_depend d where d.objid=p.oid and d.deptype='e')),'')
+  ||E'\n\n-- ===== TRIGGERS =====\n'|| coalesce((select string_agg(pg_get_triggerdef(tg.oid)||';', E'\n' order by c.relname, tg.tgname) from pg_trigger tg join pg_class c on c.oid=tg.tgrelid join pg_namespace n on n.oid=c.relnamespace and n.nspname='public' where not tg.tgisinternal),'')
   ||E'\n\n-- ===== ROW LEVEL SECURITY (enable) =====\n'|| coalesce((select string_agg('ALTER TABLE public.'||quote_ident(relname)||' ENABLE ROW LEVEL SECURITY;', E'\n' order by relname) from pg_class c join pg_namespace n on n.oid=c.relnamespace and n.nspname='public' where relkind='r' and relrowsecurity),'')
   ||E'\n\n-- ===== POLICIES =====\n'|| coalesce((select string_agg('CREATE POLICY '||quote_ident(policyname)||' ON public.'||quote_ident(tablename)||' AS '||permissive||' FOR '||cmd||' TO '||array_to_string(roles,', ')||coalesce(' USING ('||qual||')','')||coalesce(' WITH CHECK ('||with_check||')','')||';', E'\n' order by tablename,policyname) from pg_policies where schemaname='public'),'')
   ||E'\n\n-- ===== CRON JOBS =====\n'|| coalesce((select string_agg('select cron.schedule('||quote_literal(jobname)||','||quote_literal(schedule)||',$CRON$'||command||'$CRON$);', E'\n' order by jobid) from cron.job),'')

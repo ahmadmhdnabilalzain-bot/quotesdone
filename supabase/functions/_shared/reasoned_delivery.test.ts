@@ -22,6 +22,7 @@ function io(windowOpen: boolean) {
     outreachPage: () => Promise.resolve({ full_name: 'ZZ DEMO Sara', language: 'en' as const }),
     outreachReasoned: (t, c, f) => { log.push(`outreach ${t} ${c} ${f ? 'draft' : 'none'}`); return Promise.resolve({ ok: true }); },
     arabicFinishReady: () => { log.push('arabic ready'); return Promise.resolve({ ok: true }); },
+    compareArabicReady: () => { log.push('compare ready'); return Promise.resolve({ ok: true }); },
     socialCommentClassified: (s, c) => { log.push('classified ' + s.platform + ' ' + s.message_id + ' ' + c); return Promise.resolve({ ok: true }); },
   };
   return { x, log };
@@ -177,9 +178,20 @@ Deno.test('a held Arabic translation: a waiting regenerated quotation is rendere
   const r = (subject: Record<string, unknown>): HeldRow => ({ id: 9, seat: 'sales_engineer', surface: 'sales_engineer.document_arabic', subject, request: { seat: 'sales_engineer', surface: 'sales_engineer.document_arabic', question: 'x' } });
   // whoever filed the lines first (another document, another quote), every waiting quotation is looked up by its own id
   const d = await deliverReasoned(r({ sources: ['a'], inquiry_id: 'zz-other-document' }), answered(null, '{"1":"أ"}'), x);
-  assertEquals([d.delivered, log], [true, ['arabic ready']]);
-  const { x: bare } = io(true); delete (bare as Partial<DeliveryIO>).arabicFinishReady;
+  assertEquals([d.delivered, log], [true, ['arabic ready', 'compare ready']]);
+  const { x: bare } = io(true); delete (bare as Partial<DeliveryIO>).arabicFinishReady; delete (bare as Partial<DeliveryIO>).compareArabicReady;
   assertEquals((await deliverReasoned(r({ sources: ['a'] }), answered(null), bare)).delivered, false);
+});
+
+Deno.test('a held Arabic comparison report (customer_api compare_pdf 202) is handed to its renderer, and a failing quotation renderer never skips it', async () => {
+  const { x, log } = io(true);
+  x.arabicFinishReady = () => { log.push('arabic ready'); return Promise.reject(new Error('supplier_api down')); };
+  const r: HeldRow = { id: 10, seat: 'sales_engineer', surface: 'sales_engineer.document_arabic', subject: { sources: ['b'], inquiry_id: 'zz-demo' },
+    request: { seat: 'sales_engineer', surface: 'sales_engineer.document_arabic', question: 'x' } };
+  const d = await deliverReasoned(r, answered(null, '{"1":"ب"}'), x);
+  assertEquals(log, ['arabic ready', 'compare ready']);
+  assertEquals(d.delivered, false);
+  assertMatch(String(d.detail), /quotations: Error: supplier_api down/);
 });
 
 Deno.test('a public comment whose CLASS was held runs through the comment policy with the reasoned class, once', async () => {
