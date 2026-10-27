@@ -531,7 +531,9 @@ on conflict (surface) do nothing;
 create or replace function public.fn_marketing_public_facts()
 returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
   select jsonb_build_object(
-    'reveal_fee', trim(to_char(standard_reveal_rate * 100, 'FM990.##')) || '%',
+    -- trim_scale keeps the decimals: the earlier to_char mask used '#', which is no digit pattern, so 3.5 printed "4%"
+    -- (independent review of #1551)
+    'reveal_fee', trim_scale(standard_reveal_rate * 100)::text || '%',
     'supplier_subscription', 'AED ' || trim(to_char(supplier_reg_fee, 'FM9,999,990')),
     'nonresponse_admin_fee', 'AED ' || trim(to_char(supplier_nonresponse_admin_fee_aed, 'FM9,999,990')),
     'supplier_period', supplier_reg_period, 'refund_window_working_days', refund_window_working_days)

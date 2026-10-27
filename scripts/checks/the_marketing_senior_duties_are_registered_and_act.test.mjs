@@ -55,3 +55,13 @@ test('C15: nothing in the marketing duties switches paid media on', () => {
     assert.doesNotMatch(body, /update\s+public\.ad_spend_policy|paid_allowed\s*:?=\s*true/i, `${file}: ${fn} touches the paid switch`);
   }
 });
+
+// C14: the fact register states the reveal fee as the site writes it. to_char(…, 'FM990.##') is not a decimal format
+// in Postgres ('#' is not a digit pattern): 3.5 printed "4%", so a fractional fee would be registered wrong and every
+// surface stating the true fee flagged stale (measured on production, 27 Oct 2026, independent review of #1551).
+// trim_scale keeps every significant digit: 3 -> "3%", 3.5 -> "3.5%".
+test('C14: the public reveal fee keeps its decimals (no FM990.## rounding)', () => {
+  const { file, body } = newest('fn_marketing_public_facts');
+  assert.doesNotMatch(body, /'FM990\.##'/, `${file}: the reveal fee is rounded to a whole percent`);
+  assert.match(body, /trim_scale\(standard_reveal_rate \* 100\)::text \|\| '%'/, `${file}: the reveal fee is not written with its decimals`);
+});
