@@ -1,4 +1,6 @@
-// THE WIDGET'S STREAM CONTRACT (customer_support, 12 Oct 2026; founder rulings 1195/1196). A caller that sends
+// THE CHAT STREAM CONTRACT (customer_support, 12 Oct 2026; founder rulings 1195/1196). Spoken by site_assistant (the
+// website widget) and, since 27 Oct 2026, by sales_engineer's portal `assist` (src/lib/portalReply.ts reads it); it moved
+// here from site_assistant/ so both functions import one copy. A caller that sends
 // `Accept: application/x-ndjson` gets one JSON object per line:
 //   {"t":"status","text":…}   at once: a UI status line ("writing your answer"), NOT a reply and never counted as one.
 //   {"t":"delta","text":…}    each sentence of the model's answer the moment it is written and has passed the figure
@@ -7,7 +9,7 @@
 //                               rewritten answer follows as deltas.
 //   {"t":"done", …}           the same object the plain JSON response carries; done.reply is the final text.
 // Any caller without that Accept header gets the JSON response exactly as before.
-// prevented by: site_assistant/stream_reply.test.ts, _shared/brief_answer.test.ts
+// prevented by: _shared/stream_reply.test.ts, _shared/brief_answer.test.ts
 export const STATUS = {
   en: 'Writing your answer…',
   ar: 'جارٍ كتابة الإجابة…',

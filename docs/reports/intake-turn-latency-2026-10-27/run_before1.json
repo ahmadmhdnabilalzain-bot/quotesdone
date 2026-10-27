@@ -1,0 +1,280 @@
+{
+ "label": "before",
+ "door": "local http://127.0.0.1:8101",
+ "measured_at": "2026-10-27T13:31:54.196Z",
+ "conversations": {
+  "C": {
+   "turns": 4,
+   "final_status": "ready",
+   "intake_id": "b0ac2f5d-382f-4506-b481-4508d1f59223"
+  },
+  "A": {
+   "turns": 4,
+   "final_status": "ready",
+   "intake_id": "b349e52b-b6c3-46e3-8f60-b2f0ea452e76"
+  },
+  "B": {
+   "turns": 7,
+   "final_status": "held",
+   "intake_id": "50148450-30de-4e2e-8256-8c3d7d50214e"
+  }
+ },
+ "turns": [
+  {
+   "conv": "B",
+   "n": 1,
+   "http": 200,
+   "ms": 18960,
+   "status": "needs_info",
+   "said": "HVAC works for our building, as per the attached drawings. Please quot",
+   "next_key": null,
+   "timing": null,
+   "error": null
+  },
+  {
+   "conv": "A",
+   "n": 1,
+   "http": 200,
+   "ms": 24372,
+   "status": "needs_info",
+   "said": "Aluminium windows for our villa in Dubai Marina: supply and install 40",
+   "next_key": null,
+   "timing": null,
+   "error": null
+  },
+  {
+   "conv": "C",
+   "n": 1,
+   "http": 200,
+   "ms": 25050,
+   "status": "needs_info",
+   "said": "نحتاج مطبخًا جديدًا لشقة في أبوظبي: خزائن علوية وسفلية بطول 4 أمتار تق",
+   "next_key": "material.board",
+   "timing": null,
+   "error": null
+  },
+  {
+   "conv": "B",
+   "n": 2,
+   "http": 200,
+   "ms": 16985,
+   "status": "needs_info",
+   "said": "Everything is in the attached drawings.",
+   "next_key": null,
+   "timing": null,
+   "error": null
+  },
+  {
+   "conv": "C",
+   "n": 2,
+   "http": 200,
+   "ms": 19104,
+   "status": "needs_info",
+   "said": "MDF مقاوم للرطوبة",
+   "next_key": "material.finish",
+   "timing": null,
+   "error": null
+  },
+  {
+   "conv": "A",
+   "n": 2,
+   "http": 200,
+   "ms": 20959,
+   "status": "needs_info",
+   "said": "Standard commercial specification; the supplier can confirm the rest.",
+   "next_key": "warranty",
+   "timing": null,
+   "error": null
+  },
+  {
+   "conv": "B",
+   "n": 3,
+   "http": 200,
+   "ms": 17621,
+   "status": "needs_info",
+   "said": "Please refer to the drawings, the take-off is attached.",
+   "next_key": null,
+   "timing": null,
+   "error": null
+  },
+  {
+   "conv": "A",
+   "n": 3,
+   "http": 200,
+   "ms": 18263,
+   "status": "needs_info",
+   "said": "Yes, at least 1 year",
+   "next_key": "required_by",
+   "timing": null,
+   "error": null
+  },
+  {
+   "conv": "C",
+   "n": 3,
+   "http": 200,
+   "ms": 19898,
+   "status": "needs_info",
+   "said": "لامينيت",
+   "next_key": "warranty",
+   "timing": null,
+   "error": null
+  },
+  {
+   "conv": "B",
+   "n": 4,
+   "http": 200,
+   "ms": 27697,
+   "status": "held",
+   "said": "As per the drawings.",
+   "next_key": "system_type",
+   "timing": null,
+   "error": null
+  },
+  {
+   "conv": "C",
+   "n": 4,
+   "http": 200,
+   "ms": 29833,
+   "status": "ready",
+   "said": "نعم، سنة على الأقل",
+   "next_key": null,
+   "timing": null,
+   "error": null
+  },
+  {
+   "conv": "A",
+   "n": 4,
+   "http": 200,
+   "ms": 31401,
+   "status": "ready",
+   "said": "By 2026-12-31",
+   "next_key": null,
+   "timing": null,
+   "error": null
+  },
+  {
+   "conv": "B",
+   "n": 5,
+   "http": 200,
+   "ms": 22156,
+   "status": "held",
+   "said": "Package unit",
+   "next_key": "application_area",
+   "timing": null,
+   "error": null
+  },
+  {
+   "conv": "B",
+   "n": 6,
+   "http": 200,
+   "ms": 113516,
+   "status": "needs_info",
+   "said": "Offices and storage, about 1,200 square metres, ceiling height 3 metre",
+   "next_key": "new_or_replace",
+   "timing": null,
+   "error": null
+  },
+  {
+   "conv": "B",
+   "n": 7,
+   "http": 200,
+   "ms": 34225,
+   "status": "held",
+   "said": "New installation",
+   "next_key": "scope",
+   "timing": null,
+   "error": null
+  }
+ ],
+ "run_tag": "78f83512",
+ "turn_ms": {
+  "n": 15,
+  "ok": 15,
+  "p50": 22156,
+  "p95": 113516,
+  "max": 113516,
+  "over_25s": 6,
+  "over_30s": 3,
+  "failed": 0
+ },
+ "model_calls": [
+  {
+   "task_class": "inquiry_qualification_conversation",
+   "model_used": "anthropic/claude-sonnet-5.5",
+   "n": 14,
+   "p50": 10425,
+   "p95": 15288,
+   "max": 15523,
+   "usd": "0.2655"
+  },
+  {
+   "task_class": "conversation_reply",
+   "model_used": "anthropic/claude-sonnet-5.5",
+   "n": 3,
+   "p50": 5456,
+   "p95": 8886,
+   "max": 9267,
+   "usd": "0.3967"
+  },
+  {
+   "task_class": "customer_communication",
+   "model_used": "openai/gpt-6-luna-pro",
+   "n": 2,
+   "p50": 31513,
+   "p95": 33552,
+   "max": 33779,
+   "usd": "0.0110"
+  },
+  {
+   "task_class": "conversation_reply",
+   "model_used": "openai/gpt-6-luna-pro",
+   "n": 1,
+   "p50": 12664,
+   "p95": 12664,
+   "max": 12664,
+   "usd": "0.0200"
+  },
+  {
+   "task_class": "routine_employee_reasoning",
+   "model_used": "openai/gpt-6-luna-pro",
+   "n": 1,
+   "p50": 25487,
+   "p95": 25487,
+   "max": 25487,
+   "usd": "0.0028"
+  }
+ ],
+ "spend_usd": 0.6960000000000001,
+ "extras_before_teardown": {
+  "agent_actions": 0,
+  "reasoning_held_question": 0,
+  "seat_judgement": 1,
+  "ai_qa_log": 15
+ },
+ "teardown": {
+  "fixtures": {
+   "auth_users": 0,
+   "customers": 0,
+   "leads": 0,
+   "inquiries": 0,
+   "quotes": 0,
+   "quote_spec_hold": 0,
+   "quote_reviews": 0,
+   "notifications": 0,
+   "transactions": 0,
+   "refunds": 0,
+   "supplier_dues": 0,
+   "refund_case": 0,
+   "inquiry_intake": 0,
+   "email_verifications": 0,
+   "storage_objects": 0,
+   "total": 0
+  },
+  "extras": {
+   "agent_actions": 0,
+   "reasoning_held_question": 0,
+   "seat_judgement": 0,
+   "ai_qa_log": 0
+  }
+ }
+}

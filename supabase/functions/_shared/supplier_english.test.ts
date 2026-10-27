@@ -60,6 +60,15 @@ Deno.test('the held English is filed in the sales_engineer queue, once per clari
   assertEquals([fn, a.p_seat, a.p_surface, a.p_dedupe_key, a.p_subject], ['fn_reason_hold', 'sales_engineer', 'sales_engineer.supplier_english', 'supplier_english:42', { clarification_id: 42 }]);
 });
 
+// founder ruling 1338 (27 Oct 2026): the English is e-mailed to suppliers, so it is reasoned as for a supplier — the
+// public brief and the outside-audience retrieval — never with the internal brief or internal knowledge rows.
+Deno.test('the supplier copy is reasoned for a supplier audience, never an internal one', async () => {
+  const f = fakeAdmin(null);
+  await holdForEnglish(f.admin, 43, 'نعم');
+  const [, a] = f.rpcs[0];
+  assertEquals(a.p_request.context.audience, 'supplier');
+});
+
 Deno.test('the replay never stores or sends an answer that is still Arabic', async () => {
   const f = fakeAdmin({ id: 42, inquiry_id: 'zz', kind: 'question', question: 'Ceiling height?', english_held_at: '2026-10-05' });
   const r = await finishEnglish(f.admin, 42, 'نعم، 3 أمتار');
