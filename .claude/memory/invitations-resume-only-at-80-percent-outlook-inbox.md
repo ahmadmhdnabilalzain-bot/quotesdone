@@ -19,5 +19,8 @@ Report inbox, spam and promotions for each provider.
 - A pass is a GlockApps report for the live copy over the M365 lane, measured the same day.
 - At or above 80%, resume with the steps in `docs/reports/QuotesDone Campaign/SUPPLIER_WARMUP_PLAN_27_OCT.md`.
 - Below 80%, it stays held and the cause gets fixed.
+- **27 Oct 2026, first measurement:** GlockApps `id:2026-10-27-09:33:53:634t`, Microsoft 0 of 18 inbox, so FAIL.
+  The causes and fixes are in `docs/reports/QuotesDone Campaign/GLOCKAPPS_27_OCT_RESULT_AND_FIX_PLAN.md`. The next
+  test is due Wed 4 Nov, through the `deliverability_test` loop.
 
 Related: [[checkpoint-27-oct-cloud-invitations-held]], [[ask-before-the-internal-test-email]]
