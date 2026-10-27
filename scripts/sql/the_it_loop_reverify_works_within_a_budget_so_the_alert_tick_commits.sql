@@ -24,10 +24,23 @@
 -- ponytail: a time budget, not a cheaper close. If closes ever arrive faster than ~8 a tick, make
 -- fn_seat_handoff_complete cheaper rather than raising the budget.
 --
+-- WHY OLDEST-FIRST DOES NOT STARVE THE TAIL (release review of this PR, 27 Oct 2026). A handoff the walk passes
+-- without closing costs ~19 ms only the FIRST time: that pass writes what it found (awaiting_learning on the
+-- handoff, the playbook's cause/fix on the incident, the escalation), and with the tick committing it is not
+-- written again. After that a waiting handoff is one indexed read: measured, a full walk of 562 pending handoffs
+-- took 77 ms. So each tick's 1 s moves past the rows the last tick settled. MEASURED, one rolled-back transaction,
+-- production's 973 pending handoffs, this body: 48 successive calls, each 0.7-1.2 s, closed 411 and escalated 18
+-- (8 to 29 closes a call, never stalled), left_for_next_tick fell 950 -> 0, 562 stayed pending (waiting on their
+-- owner or on a learning record), and one more call then walked all 562 in 77 ms and closed nothing. A cursor
+-- was not needed. scripts/checks/it_engineer_loop_is_closed.test.mjs ('successive reverify calls reach and close
+-- the closable tail') repeats that measurement on every run.
+--
 -- CREATE OR REPLACE keeps the live ACL (postgres and service_role only, read 27 Oct 2026); no revoke needed.
--- Body: production's, read 27 Oct 2026 with pg_get_functiondef (canonical file every_handoff_is_answered_within_its_window.sql).
+-- Body: production's, read 27 Oct 2026 with pg_get_functiondef (canonical file
+-- detectors_stop_escalating_what_is_not_a_fault.sql, MANIFEST line 2073).
 -- Prevented by: scripts/checks/it_engineer_loop_is_closed.test.mjs ('the alert tick fits the 8 s statement timeout
--- and escalates before it opens'), which now replays a pending fn_it_loop_reverify too, and
+-- and escalates before it opens', and 'successive reverify calls reach and close the closable tail'), which
+-- replay a pending fn_it_loop_reverify, and
 -- scripts/checks/the_accountant_closes_every_loop_it_opens.test.mjs ('one fn_it_loop_tick opens the handoff for
 -- the oldest open finding'): both fail on production as it is (tick cancelled at 8 s / opened 0).
 

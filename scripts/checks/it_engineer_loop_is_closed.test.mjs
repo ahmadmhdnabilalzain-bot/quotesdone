@@ -371,3 +371,42 @@ test('the alert tick fits the 8 s statement timeout and escalates before it open
   assert.equal(r.silence_ran, true, 'the silence watch was due and did not run: the worst case was not measured');
   assert.equal(r.floor_4_5, true, 'the forced open floor is no longer 4.5 s after the statement began');
 });
+
+// RE-VERIFY WORKS WITHIN A BUDGET AND STILL REACHES THE TAIL (it_engineer, 27 Oct 2026). fn_it_loop_reverify stops 1 s
+// after it began (the_it_loop_reverify_works_within_a_budget_so_the_alert_tick_commits.sql) and walks oldest first, so
+// the risk is a head of handoffs it passes without closing, walked again every tick, that keeps the closable ones
+// behind it from ever being reached. This measures it instead of arguing it: successive calls in ONE transaction that
+// always rolls back (each sees what the last wrote, as committed ticks do), on production's real backlog, until a call
+// leaves nothing for the next; then one more call must find nothing left to close or escalate. Measured 27 Oct 2026:
+// 48 calls, 973 pending -> 562, left_for_next_tick 950 -> 0, the last call 77 ms with 0 closed.
+test('successive reverify calls reach and close the closable tail', { skip: SKIP }, async () => {
+  const block = `do $p$
+    declare v jsonb; t timestamptz; n int := 0; slowest int := 0; ms int;
+    begin
+      perform set_config('app.qd_stub_founder_notify', 'on', true);
+      loop
+        n := n + 1;
+        t := clock_timestamp(); v := public.fn_it_loop_reverify();
+        ms := round(extract(epoch from clock_timestamp() - t) * 1000); slowest := greatest(slowest, ms);
+        exit when coalesce((v->>'left_for_next_tick')::int, -1) = 0 or n >= 150;
+      end loop;
+      t := clock_timestamp(); v := public.fn_it_loop_reverify();
+      raise exception 'CHK<<%>>', json_build_object('calls', n, 'slowest_ms', slowest,
+        'final_ms', round(extract(epoch from clock_timestamp() - t) * 1000), 'final_left', v->'left_for_next_tick',
+        'final_closed', v->'closed', 'final_escalated', v->'escalated');
+    end $p$;`;
+  let r;
+  try {
+    await replaySql([...PENDING_TICK, block].join('\n;\n'), { retry: false, label: 'reverify drains' });
+  } catch (e) {
+    const m = String(e.message).match(/CHK<<(.*?)>>/s);
+    if (!m) throw e;
+    r = JSON.parse(m[1].replace(/\\"/g, '"'));
+  }
+  assert.ok(r, 'the probe committed instead of rolling back');
+  assert.ok(r.calls < 150, `150 successive calls still left handoffs for the next one: the walk does not reach the tail ${JSON.stringify(r)}`);
+  assert.equal(r.final_left, 0, `a call after the drain still ran out of budget ${JSON.stringify(r)}`);
+  assert.equal(r.final_closed, 0, `a call after the drain still found handoffs to close: earlier calls never reached them ${JSON.stringify(r)}`);
+  assert.equal(r.final_escalated, 0, `a call after the drain still found handoffs to escalate ${JSON.stringify(r)}`);
+  assert.ok(r.slowest_ms < 3000, `one reverify call took ${r.slowest_ms} ms; its budget is 1 s`);
+});
