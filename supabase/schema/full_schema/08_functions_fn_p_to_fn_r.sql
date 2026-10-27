@@ -413,6 +413,71 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_phone_code_issue(p_phone text, p_purpose text, p_hash text, p_kind text, p_email text, p_ttl_seconds integer DEFAULT 600)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_id bigint;
+begin
+  perform pg_advisory_xact_lock(hashtext('phone_code:' || p_purpose || ':' || p_phone));
+  update public.phone_code set used_at = now()
+   where phone = p_phone and purpose = p_purpose and used_at is null;
+  insert into public.phone_code (phone, purpose, user_kind, email, code_hash, expires_at)
+  values (p_phone, p_purpose, p_kind, p_email, p_hash, now() + make_interval(secs => p_ttl_seconds))
+  returning id into v_id;
+  return v_id;
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_phone_code_sent(p_id bigint, p_message_sid text, p_accepted boolean)
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  update public.phone_code
+     set message_sid = p_message_sid,
+         used_at = case when p_accepted then used_at else coalesce(used_at, now()) end
+   where id = p_id;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_phone_code_verify(p_phone text, p_purpose text, p_hash text, p_max_attempts integer DEFAULT 5)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r record;
+begin
+  select id, expires_at, attempts, code_hash
+    into r
+    from public.phone_code
+   where phone = p_phone and purpose = p_purpose and used_at is null
+   order by created_at desc, id desc
+   limit 1
+   for update;
+  if not found then return 'no_code'; end if;
+  if r.expires_at < now() then return 'expired'; end if;
+  if r.attempts >= p_max_attempts then
+    update public.phone_code set used_at = now() where id = r.id and used_at is null;
+    return 'burned';
+  end if;
+  update public.phone_code set attempts = attempts + 1 where id = r.id;
+  if r.code_hash = p_hash then
+    update public.phone_code set used_at = now() where id = r.id and used_at is null;
+    if found then return 'ok'; end if;
+  end if;
+  return 'wrong';
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_pick_reviewer(p_dept_key text, p_author text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql

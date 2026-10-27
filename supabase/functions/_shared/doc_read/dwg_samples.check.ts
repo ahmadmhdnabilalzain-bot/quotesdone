@@ -10,9 +10,9 @@
 // checks.yml runs it as its own step with --allow-net limited to the two hosts it reads.
 //
 //   deno test --no-lock --node-modules-dir=auto --allow-read=. \
-//     --allow-net=raw.githubusercontent.com,cdn.jsdelivr.net supabase/functions/_shared/doc_read/dwg_samples.check.ts
+//     --allow-net=raw.githubusercontent.com,cdn.jsdelivr.net,registry.npmjs.org supabase/functions/_shared/doc_read/dwg_samples.check.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { lastWasmHeapBytes, lowerMemoryFloor, readDwg, WASM_MIN_PAGES } from './dwg.ts';
+import { lastWasmHeapBytes, LIBREDWG_WASM_SHA256, libreDwgWasmBytes, libreDwgWasmFromNpmTarball, lowerMemoryFloor, readDwg, WASM_MIN_PAGES } from './dwg.ts';
 import { readDxf } from './cad.ts';
 import { redactCadFile, verifyCadRedaction } from '../cad_file_redact.ts';
 import { readStored } from '../../../../scripts/cad_read_worker.ts';
@@ -94,11 +94,19 @@ Deno.test('example_2018: the absolute figures a QS would read', async () => {
 // 67-entity drawing needs more than 64 MB of WASM heap (measured: 16-46 MB for the LibreDWG samples, 99 MB
 // for the 2.1 MB Dynblocks.dwg, dev machine).
 Deno.test('the pinned LibreDWG wasm asks for 1 GB, is lowered to 16 MB, and reads within 64 MB', async () => {
-  const bin = new Uint8Array(await (await fetch('https://cdn.jsdelivr.net/npm/@mlightcad/libredwg-web@0.7.14/wasm/libredwg-web.wasm')).arrayBuffer());
+  const bin = await libreDwgWasmBytes();
   assertEquals(lowerMemoryFloor(bin), { from: 16384, to: WASM_MIN_PAGES });
   good(await readDwg(await get('example_2018.dwg', SAMPLES.example_2018[0]), { filename: 'x.dwg', depth: 0 }));
   const heap = lastWasmHeapBytes();
   assert(heap > 0 && heap <= 64 * 1048576, `WASM heap ${heap} bytes`);
+});
+
+// THE SECOND SOURCE, ALONE (27 Oct 2026). Where cdn.jsdelivr.net answers, every test above takes the first source
+// and the npm-registry path would never run; this one fetches it by itself and asserts it is the pinned binary.
+Deno.test('the npm registry tarball carries the pinned LibreDWG wasm, byte for byte', async () => {
+  const bin = await libreDwgWasmFromNpmTarball();
+  const h = [...new Uint8Array(await crypto.subtle.digest('SHA-256', bin))].map((x) => x.toString(16).padStart(2, '0')).join('');
+  assertEquals([bin.length, h], [9496803, LIBREDWG_WASM_SHA256]);
 });
 
 // A DWG OF ANY SIZE (22 Sep 2026). 2018/Dynblocks.dwg (2.1 MB) is past the edge ceiling: the edge answers
