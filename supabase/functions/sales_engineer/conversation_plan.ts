@@ -174,7 +174,8 @@ const bareOf = (re: RegExp) => {
 export const hits = (re: RegExp, n: string) => re.test(n) || bareOf(re).test(bareText(n));
 
 // ── the plan, read from the playbooks in the compiled brief ───────────────────────────────────────────────────────
-export interface PlanSlot { id: string; label: string }
+/** `when`: the slot applies only once the customer's own words match it (a playbook slot written `id [a|b]`). */
+export interface PlanSlot { id: string; label: string; when?: RegExp }
 export interface Plan { key: string; title: string; slots: PlanSlot[] }
 const MUST = /^- \*\*Must-haves[^*]*\*\*\s*(.+)$/;
 /** Every playbook section's plan, keyed by each of its category codes. Throws on a slot id the catalogue lacks. */
@@ -188,9 +189,10 @@ export function plansFrom(text: string): Map<string, Plan> {
     if (!m || !keys.length) continue;
     const slots = m[1].split(';').map((p) => p.trim()).filter(Boolean).map((p) => {
       const [id, ...rest] = p.split(':');
-      const sid = id.trim();
+      const m = id.trim().match(/^([a-z]+)\s*(?:\[([^\]]+)\])?$/);
+      const sid = m?.[1] ?? id.trim();
       if (!SPEC.has(sid)) throw new Error(`playbook "${title}": unknown slot "${sid}"`);
-      return { id: sid, label: rest.join(':').trim() || SPEC.get(sid)!.label };
+      return { id: sid, label: rest.join(':').trim() || SPEC.get(sid)!.label, ...(m?.[2] ? { when: rx(m[2].split('|').map((w) => w.trim()).filter(Boolean).join('|')) } : {}) };
     });
     for (const k of keys) out.set(k, { key: keys[0], title, slots });
     keys = [];
@@ -342,7 +344,11 @@ export function jobStart(turns: Turn[]): number {
 export function planState(past: Turn[], message: string, extracted: Extracted | null = null, guard = true): State {
   const all: Turn[] = [...past, { role: 'user', content: message }];
   const turns = all.slice(jobStart(all));
-  const plan = tradeOf(turns.filter((t) => t.role === 'user').map((t) => t.content));
+  const said = turns.filter((t) => t.role === 'user').map((t) => t.content);
+  const full = tradeOf(said);
+  // a conditional must-have (drawings for a ducted system) joins the plan once their words call for it
+  const plan = full && full.slots.some((x) => x.when)
+    ? { ...full, slots: full.slots.filter((x) => !x.when || said.some((t) => hits(x.when!, normalise(t)))) } : full;
   const filled = new Map<string, string>(); const changed = new Map<string, string>(); const toConfirm = new Set<string>();
   let lastAsked: string[] = []; let lastWasSummary = false; let seatTurns = 0; let unsure = false; let undecided: string[] = [];
   turns.forEach((t, i) => {

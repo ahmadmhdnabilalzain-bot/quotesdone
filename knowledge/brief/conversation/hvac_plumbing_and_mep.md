@@ -14,7 +14,7 @@ Covers split, ducted, package, VRF/VRV, chilled-water FCUs, ventilation, AC repa
 
 ### AC replacement (most common request; go deep)
 - **Open:** How many units are you replacing, and what type are they now (wall split, ducted/concealed, package, cassette, window, VRF)? Is the old unit dead, or are you upgrading?
-- **Must-haves (asked in this order, one or two a turn, then the summary):** size: the room size and sun (or the area and rooms for a whole home); existing: what is there now (type and age) or a new installation; system: the type wanted (split, ducted) and inverter; services: where the outdoor unit and pipes go, or the ceiling void for ducts; location; timing
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: the room size and sun (or the area and rooms for a whole home); existing: what is there now (type and age) or a new installation; system: the type wanted (split, ducted) and inverter; services: where the outdoor unit and pipes go, or the ceiling void for ducts; design [ducted|concealed|central|whole|دكت|مخفي|مركزي]: drawings or a heat-load calculation (ducted or whole-home systems only); location; timing
 - **Then ask (in order, one or two at a time):**
   1. **Cooling source:** own AC units, or central/district chiller with FCUs (then it is FCU/thermostat work, not new condensers; building management controls the chilled water).
   2. **Rooms served:** room use and size per unit (length x width, ceiling height); bedroom, majlis, living, kitchen, office.

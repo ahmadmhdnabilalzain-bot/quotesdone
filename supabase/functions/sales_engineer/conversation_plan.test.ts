@@ -161,3 +161,14 @@ Deno.test('targets: what the place is used for, and "system" only when the quest
   assert(!targets('When do you need the system completed?', PLANS.get('safety')!).includes('system'));
   assert(targets('When do you need the system completed?', PLANS.get('safety')!).includes('timing'));
 });
+
+// The 22-scenario run of 9b2f83013, ac_ducted_villa_ar: the drawings and load calculation, a must-have for a ducted
+// villa, were not in the HVAC plan, so the plan never asked them. A conditional must-have joins only when the customer
+// names a ducted or whole-home system: a bedroom split replacement is never asked for drawings.
+Deno.test('a conditional must-have: drawings for a ducted villa, never for a bedroom split', () => {
+  const ducted = planState([], 'أبغى أركب تكييف مخفي (دكت) لفيلا جديدة.');
+  assert(ducted.plan!.slots.some((x) => x.id === 'design'), ducted.plan!.slots.map((x) => x.id).join(','));
+  const split = planState([], 'My AC in the bedroom stopped cooling, I think I need to replace it.');
+  assert(!split.plan!.slots.some((x) => x.id === 'design'), split.plan!.slots.map((x) => x.id).join(','));
+  assert(PLANS.get('hvac')!.slots.find((x) => x.id === 'design')?.when, 'the playbook marks it conditional');
+});
