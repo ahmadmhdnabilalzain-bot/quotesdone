@@ -16,7 +16,8 @@ export async function readReply(r: Response, on: ReplyHandlers = {}): Promise<Re
   try {
     if (r.body && (r.headers.get('content-type') || '').includes('ndjson')) {
       const rd = r.body.getReader(); const dec = new TextDecoder();
-      let buf = '', text = '', done: Record<string, unknown> | null = null;
+      let buf = '', text = '';
+      const end: { done: Record<string, unknown> | null } = { done: null };   // set inside line(); an object so the type is not narrowed to null
       const line = (l: string) => {
         if (!l.trim()) return;
         let e: Record<string, unknown>;
@@ -24,12 +25,12 @@ export async function readReply(r: Response, on: ReplyHandlers = {}): Promise<Re
         if (e.t === 'status') on.status?.(String(e.text || ''));
         else if (e.t === 'reset') { text = ''; on.text?.(''); }
         else if (e.t === 'delta') { text += String(e.text || ''); on.status?.(''); on.text?.(text); }
-        else if (e.t === 'done') done = e;
+        else if (e.t === 'done') end.done = e;
       };
       try {
         for (;;) {
-          const { done: end, value } = await rd.read();
-          if (end) break;
+          const { done: fin, value } = await rd.read();
+          if (fin) break;
           buf += dec.decode(value, { stream: true });
           let k: number;
           while ((k = buf.indexOf('\n')) >= 0) { line(buf.slice(0, k)); buf = buf.slice(k + 1); }
@@ -39,7 +40,8 @@ export async function readReply(r: Response, on: ReplyHandlers = {}): Promise<Re
         on.text?.('');
         return { reply: '', streamed: true, done: null, failed: 'stream cut: ' + String((e as Error)?.message || e) };
       }
-      const reply = typeof (done as Record<string, unknown> | null)?.reply === 'string' ? String((done as Record<string, unknown>).reply).trim() : '';
+      const done = end.done;
+      const reply = typeof done?.reply === 'string' ? done.reply.trim() : '';
       if (!reply) on.text?.('');
       return { reply, streamed: true, done, failed: reply ? null : 'no reply in done' };
     }
