@@ -8,7 +8,7 @@
 --   2. searches ALONE move nothing: three identical searches leave a deferred gap deferred (review of #1182:
 --      an anonymous visitor could otherwise start supplier recruitment);
 --   3. one inquiry from a NON-FIXTURE customer moves its below-target gap to 'recruit' by rule:forecast_demand;
---   4. an inquiry from a FIXTURE customer (ZZ DEMO / @example.invalid, is_demo not set) and an inquiry with NO
+--   4. an inquiry from a FIXTURE customer (ZZ DEMO / @example.invalid) and an inquiry with NO
 --      customer are not counted and move nothing (review of #1182, 26 Oct 2026: the convention of
 --      a_demo_request_is_never_supply_gap_demand.sql);
 --   5. a gap with nobody left to invite, deferred by rule:no_uninvited_leads, stays deferred by that rule;
@@ -34,8 +34,11 @@ begin
   insert into public.customers (full_name, email) values ('ZZ DEMO forecast probe', 'forecast-probe@example.invalid') returning id into v_fixture;
   if exists (select 1 from public.customers c where c.id = v_real and public.fn_seat_clock_customer_is_fixture(c))
     then v_fail := v_fail || ' the real probe customer reads as a fixture;'; end if;
-  if exists (select 1 from public.customers c where c.id = v_fixture and coalesce(c.is_demo, false))
-    then v_fail := v_fail || ' the fixture probe customer has is_demo set (the case under test is without it);'; end if;
+  -- customers.is_demo is a GENERATED column on production (fn_is_demo_email / fn_is_demo_phone / a ZZ DEMO name), so a
+  -- fixture customer always has it set and "a fixture without is_demo" cannot exist there. Asserting it did fail the
+  -- production run of 27 Oct (independent review of #1182); the fixture predicate is what is under test, so assert that.
+  if not exists (select 1 from public.customers c where c.id = v_fixture and public.fn_seat_clock_customer_is_fixture(c))
+    then v_fail := v_fail || ' the fixture probe customer does not read as a fixture;'; end if;
 
   insert into public.demand_search (category, trades, emirate) select t[1], array[t[1]], 'Dubai' from generate_series(1, 3);
   insert into public.demand_search (category, trades, emirate, searched_at) values (t[1], array[t[1]], 'Dubai', now() - interval '91 days');
