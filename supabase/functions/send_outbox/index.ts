@@ -15,7 +15,7 @@ import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, ownsChannel } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
-import { M365_HARD_CEILING, M365_ID_PREFIX, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, campaignMail, graphSend, holdForM365, m365Carries, m365Mime, m365ReplyTo, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
+import { M365_HARD_CEILING, M365_ID_PREFIX, M365_PACE_MS, M365_PER_RUN, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, campaignMail, graphSend, holdForM365, m365Carries, m365Mime, m365ReplyTo, messageIdFor, paceM365, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
@@ -200,7 +200,7 @@ Deno.serve(observe('send_outbox', async (req) => {
     // The refusal finding closes on the first 2xx sendMail of the run (graphSend), never on a token alone.
     let m365Closed = false;
     const closeFinding = async (k: string, note: string) => { if (m365Closed) return; const { error } = await admin.rpc('fn_it_engineer_finding_close', { p_issue_key: k, p_note: note }); if (error) throw error; m365Closed = true; };
-    let cappedSentToday = 0, m365SentToday = 0, m365ProofAt: string | null = null;
+    let cappedSentToday = 0, m365SentToday = 0, m365SentRun = 0, m365ProofAt: string | null = null;
     if (m365.active) {
       // Reply-To is dropped only while the reply reader is proven (m365ReplyTo); an unreadable row keeps the old one.
       const p = await admin.from('agent_runs').select('status,finished_at').eq('agent', M365_INBOX_AGENT).eq('counts->>m365_inbox', '1').order('finished_at', { ascending: false }).limit(1).maybeSingle();
@@ -298,6 +298,12 @@ Deno.serve(observe('send_outbox', async (req) => {
                                      : 'held: the Microsoft 365 lane is on but ' + m365.why + '; never sent through Resend' }).eq('id', n.id);
           laneHeld++; continue;
         }
+        // PACING (27 Oct 2026, m365_lane.ts paceM365): at most M365_PER_RUN lane sends a run; the rest go back to the queue.
+        if (paceM365(m365SentRun)) {
+          await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: new Date(Date.now() + M365_PACE_MS).toISOString(),
+            last_error: 'paced: the Microsoft 365 lane sends at most ' + M365_PER_RUN + ' a run; queued for a later run' }).eq('id', n.id);
+          laneHeld++; continue;
+        }
         // 27 Oct 2026: the invitation, its nudge and the seed send one approved email (campaignMail, shared with the
         // Resend fallback below); only the seed keeps its (ref QD…) token.
         const { subject: mSubject, text: mBody, bad } = await campaignFor(n);
@@ -308,7 +314,7 @@ Deno.serve(observe('send_outbox', async (req) => {
           const r = await graphSend((u, i) => timedFetch(u, i || {}, 15_000), m365, mime, mid, closeFinding);
           if (r.ok) {
             await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: r.providerId }).eq('id', n.id);
-            sent++; m365SentToday++; if (LANE_CAPPED_TYPES.includes(n.type)) cappedSentToday++;
+            sent++; m365SentToday++; m365SentRun++; if (LANE_CAPPED_TYPES.includes(n.type)) cappedSentToday++;
           } else {
             // Graph refused: this row and every later one in the run are held, one finding says why.
             m365 = { ...m365, active: false, refused: true, why: 'refused: ' + r.status };
