@@ -1819,24 +1819,46 @@ CREATE OR REPLACE FUNCTION public.fn_it_ceo_silence_watch()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r public.support_ceo_report; n_told int := 0;
+declare r public.support_ceo_report; n_told int := 0; n_answered int := 0; v_window interval; v_dec jsonb; v_status text;
+        v_review jsonb;
 begin
+  select max(reply_within) into v_window from public.seat_handoff_kind where type = 'it.finding' and from_seat = 'it_engineer';
+  if v_window is null then
+    raise exception 'fn_it_ceo_silence_watch: seat_handoff_kind names no reply window for it.finding from it_engineer';
+  end if;
   for r in select * from public.support_ceo_report
-            where source_agent = 'it_engineer' and status = 'sent' and next_review_at < now()
-              and not exists (select 1 from public.agent_actions a
-                               where a.kind = 'handoff' and a.target_id = 'delivery.request:' || support_ceo_report.id)
+            where source_agent = 'it_engineer' and status = 'sent'
+              and least(next_review_at, created_at + v_window) < now()
             order by id loop
+    begin
+      v_dec := public.fn_ceo_decide_report(r.id);
+    exception when others then
+      v_dec := jsonb_build_object('ok', false, 'reason', 'decider raised: ' || sqlerrm);
+    end;
+    select status into v_status from public.support_ceo_report where id = r.id;
+    if v_status <> 'sent' then n_answered := n_answered + 1; continue; end if;
+
+    -- the founder hears about a report once; the CEO keeps being asked every tick
+    continue when exists (select 1 from public.agent_actions a
+                           where a.kind = 'handoff' and a.target_id = 'delivery.request:' || r.id);
+
     perform public.fn_seat_handoff('it_engineer', 'customer_support', 'delivery.request', 'support_ceo_report', r.id::text,
       jsonb_build_object('recipient_role', 'founder', 'kind', 'it_new_bug', 'level', 'high',
         'event', 'The CEO has not answered an IT report: ' || left(r.subject, 120),
         'detail', 'The IT engineer reported this to the CEO at '
                   || to_char(r.created_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' (Dubai) and it was due an answer by '
-                  || to_char(r.next_review_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || E'. Nobody has answered.\n\n'
-                  || 'Report: ' || r.subject || E'\n\nIt stays open until the CEO answers it. Reference: support_ceo_report ' || r.id || '.',
-        'dedupe_key', 'it_ceo_silent:' || r.id));
+                  || to_char(least(r.next_review_at, r.created_at + v_window) at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || E'. Nobody has answered.\n\n'
+                  || 'Report: ' || r.subject || E'\n\nThe CEO''s decider said: ' || coalesce(v_dec ->> 'reason', 'nothing')
+                  || E'.\n\nIt stays open until the CEO answers it. Reference: support_ceo_report ' || r.id || '.',
+        'dedupe_key', 'it_ceo_silent:' || split_part(r.idempotency_key, ':', 1) || ':'
+                      || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD')));
     n_told := n_told + 1;
   end loop;
-  return jsonb_build_object('founder_told', n_told);
+  -- ADDED 22 Sep 2026 (SEATS-01): an ACCEPTED report is reviewed too. Swallowed on purpose — the
+  -- silence watch must keep answering 'sent' reports even if the review pass hits a bad row.
+  begin v_review := public.fn_it_accepted_report_review();
+  exception when others then v_review := jsonb_build_object('error', left(sqlerrm, 300)); end;
+  return jsonb_build_object('founder_told', n_told, 'ceo_answered_first', n_answered, 'accepted_review', v_review);
 end $function$
 
 
@@ -2251,13 +2273,33 @@ begin
                              where agent = 'it_engineer' and counts->>'job' = 'playbook' and started_at >= v_since),
     'new_bugs_today', (select count(*) from public.it_incident where created_at >= v_since),
     'awaiting_learning', (select count(*) from public.agent_actions
-                           where kind = 'handoff' and detail->>'type' = 'it.finding' and status <> 'done' and detail ? 'awaiting_learning'))
+                           where kind = 'handoff' and detail->>'type' = 'it.finding' and status <> 'done' and detail ? 'awaiting_learning'),
+    -- Instruction 979: what the integration watch fixed itself today (recorded here, never mailed), and what is down.
+    'integrations_fixed_today', coalesce((select jsonb_agg(distinct counts->'fix'->>'integration') from public.agent_runs
+                           where agent = 'it_engineer' and counts->>'job' = 'integration_self_fix' and started_at >= v_since), '[]'::jsonb),
+    'integrations_failing', coalesce((select jsonb_agg(regexp_replace(issue_key, '^duty:', '') order by issue_key) from public.it_engineer_finding
+                           where closed_at is null and issue_key like 'duty:integration%'), '[]'::jsonb),
+    'integrations_waiting_on_external', coalesce((select jsonb_agg(jsonb_build_object('integration', integration, 'party', external_party,
+                           'ticket', ticket_ref, 'opened_on', opened_on, 'last_reply_at', last_reply_at,
+                           'reply_needs_founder', reply_needs_founder, 'last_checked_at', last_checked_at) order by integration)
+                           from public.it_integration_external_cause where closed_at is null), '[]'::jsonb),
+    -- The newest Gmail Postmaster reading (duty 'postmaster'); null until the first read. Its numbers are Postmaster's
+    -- day (stats_day), 1-2 days behind read_on; a number Postmaster did not publish is null, never 0.
+    'gmail_postmaster', (select jsonb_build_object('domain', p.domain, 'read_on', p.read_on, 'basis', p.basis, 'stats_day', p.stats_day,
+                           'spam_ratio', p.spam_ratio, 'spam_lower', p.spam_lower, 'spam_upper', p.spam_upper, 'reputation', p.reputation,
+                           'spf_ratio', p.spf_ratio, 'dkim_ratio', p.dkim_ratio, 'dmarc_ratio', p.dmarc_ratio, 'reason', p.reason,
+                           'paused_at', p.paused_at, 'line', p.line)
+                           from public.it_postmaster_reading p order by p.read_on desc, p.read_at desc limit 1))
   into v_ev;
 
   v_rep := public.fn_support_report_to_ceo('it_daily:' || v_day, 'routine',
     'IT engineer daily line ' || v_day || ': ' || (v_ev->>'open_loops') || ' open loop(s), '
       || (v_ev->>'loops_closed_today') || ' closed today, ' || (v_ev->>'founder_emails_today') || ' founder email(s), '
-      || (v_ev->>'repeats_folded_today') || ' repeat(s) folded',
+      || (v_ev->>'repeats_folded_today') || ' repeat(s) folded, '
+      || jsonb_array_length(v_ev->'integrations_fixed_today') || ' integration(s) fixed without anyone, '
+      || jsonb_array_length(v_ev->'integrations_failing') || ' integration(s) down ('
+      || jsonb_array_length(v_ev->'integrations_waiting_on_external') || ' waiting on a provider''s ticket). '
+      || coalesce(v_ev->'gmail_postmaster'->>'line', 'Gmail Postmaster: not read yet (duty postmaster has not run)'),
     v_ev, '[]'::jsonb,
     'Acknowledge the day''s IT position. Nothing else is requested; anything that needs a decision reaches you as its own report.',
     p_review_in => interval '3 hours', p_source_agent => 'it_engineer');
@@ -7343,9 +7385,26 @@ CREATE OR REPLACE FUNCTION public.fn_it_loop_reverify()
 AS $function$
 declare
   h public.agent_actions; f public.it_engineer_finding; v_window interval; v_rep jsonb; v_cleared boolean;
-  n_closed int := 0; n_esc int := 0; n_wait int := 0;
+  n_closed int := 0; n_esc int := 0; n_wait int := 0; n_playbook int := 0; v_class text; n_reports int := 0;
 begin
   select max(reply_within) into v_window from public.seat_handoff_kind where type = 'it.finding' and from_seat = 'it_engineer';
+  -- Review finding, 18 Sep 2026: with no such row v_window is null, `now() > created_at + null` is
+  -- null, and EVERY handoff fell quietly into 'waiting' -- the loop would never escalate again and
+  -- would say nothing about why. A missing conversation row is a configuration fault, not a default.
+  if v_window is null then
+    raise exception 'fn_it_loop_reverify: seat_handoff_kind names no reply window for it.finding from it_engineer';
+  end if;
+  -- 22 Sep 2026: a handoff closed anywhere but the close branch below -- fn_it_attach_learning is the
+  -- one other door -- left its CEO report 'accepted' for good. The report follows its handoff here.
+  update public.support_ceo_report r
+     set status = 'completed', completed_at = now(),
+         completion_note = 'IT engineer re-verified: handoff ' || a.id || ' is closed ('
+           || coalesce(a.evidence->>'verdict', 'learning recorded by ' || coalesce(a.evidence->>'learning_recorded_by', 'an unnamed recorder')) || ').'
+    from public.agent_actions a
+   where r.status = 'accepted' and r.idempotency_key ~ '^it_loop:[0-9]+$'
+     and a.id = substr(r.idempotency_key, 9)::bigint and a.kind = 'handoff' and a.status = 'done';
+  get diagnostics n_reports = row_count;
+
   for h in select * from public.agent_actions
             where kind = 'handoff' and detail->>'type' = 'it.finding' and detail->>'from' = 'it_engineer'
               and status in ('pending', 'failed') order by id loop
@@ -7354,9 +7413,18 @@ begin
     -- closed and reopened (a later started_at is a different occurrence with its own loop).
     v_cleared := f.issue_key is null or f.closed_at is not null
                  or f.started_at > (h.detail->>'occurrence_started_at')::timestamptz;
-    -- A new bug that has cleared waits for what was learned (trigger z62, fn_it_attach_learning).
+
+    if v_cleared then
+      -- A new bug that has cleared needs what was learned (trigger z62). Where the playbook already
+      -- covers this failure class, the IT engineer records it from there and closes now; where it
+      -- does not, the handoff waits for a human, which is what the gate is for.
+      v_class := public.fn_it_learning_from_playbook(h.id);
+      if v_class is not null then n_playbook := n_playbook + 1; end if;
+    end if;
+
     if v_cleared and exists (select 1 from public.it_incident i where i.handoff_id = h.id
-                              and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.regression_check), '') = ''
+                              and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.fix), '') = ''
+                                   or coalesce(btrim(i.regression_check), '') = ''
                                    or (i.playbook_class is null and coalesce(btrim(i.not_automatable_reason), '') = ''))) then
       if not (h.detail ? 'awaiting_learning') then
         update public.agent_actions set detail = detail || jsonb_build_object('awaiting_learning', now()) where id = h.id;
@@ -7369,6 +7437,7 @@ begin
       perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
         'verified_by', 'it_engineer', 'verified_at', now(),
         'verdict', coalesce(f.close_note, 'the finding is no longer open'),
+        'learning_from_playbook', v_class,
         'reply_before_close', h.detail ? 'replied_at'));
       perform set_config('qd.handoff_closer', '', true);
       update public.support_ceo_report
@@ -7376,7 +7445,18 @@ begin
              completion_note = 'IT engineer re-verified: ' || coalesce(f.close_note, 'the finding is no longer open') || ' (handoff ' || h.id || ').'
        where idempotency_key = 'it_loop:' || h.id and status = 'accepted';
       n_closed := n_closed + 1;
-    elsif not (h.detail ? 'escalated_report_id') and now() > h.created_at + v_window then
+    -- 19 Oct 2026: an info finding (affected 0, title 'info:...') is a note, not a fault. Once its handoff is
+    -- answered the note has been read: the finding and the handoff close here, so nothing stays open unwatched.
+    elsif coalesce(f.affected, 1) = 0 and coalesce(f.title, '') ilike 'info:%' and h.detail ? 'replied_at' then
+      perform public.fn_it_engineer_finding_close(f.issue_key, 'info finding: the owning seat answered handoff ' || h.id);
+      perform set_config('qd.handoff_closer', 'it_engineer', true);
+      perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object(
+        'verified_by', 'it_engineer', 'verified_at', now(), 'verdict', 'info finding answered and closed'));
+      perform set_config('qd.handoff_closer', '', true);
+      n_closed := n_closed + 1;
+    -- An unanswered info finding waits for its reply; it never escalates.
+    elsif not (h.detail ? 'escalated_report_id') and now() > h.created_at + v_window
+          and not (coalesce(f.affected, 1) = 0 and coalesce(f.title, '') ilike 'info:%') then
       v_rep := public.fn_support_report_to_ceo(
         'it_loop:' || h.id,
         case when h.detail->>'severity' = 'critical' then 'critical' else 'serious' end,
@@ -7399,7 +7479,8 @@ begin
       n_wait := n_wait + 1;
     end if;
   end loop;
-  return jsonb_build_object('closed', n_closed, 'escalated', n_esc, 'waiting', n_wait);
+  return jsonb_build_object('closed', n_closed, 'escalated', n_esc, 'waiting', n_wait, 'learned_from_playbook', n_playbook,
+                            'reports_completed', n_reports);
 end $function$
 
 
@@ -7430,18 +7511,64 @@ CREATE OR REPLACE FUNCTION public.fn_it_loop_tick()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare f record; o jsonb := '{}'::jsonb; n_open int := 0; v_err jsonb := '[]'::jsonb; v_step text;
+declare f record; o jsonb := '{}'::jsonb; n_open int := 0; n_left int := 0; v_err jsonb := '[]'::jsonb; v_step text; x jsonb;
+        v_deadline timestamptz := statement_timestamp() + interval '3.5 seconds';
+        v_floor_until timestamptz := statement_timestamp() + interval '4.5 seconds';
 begin
-  for f in select x.issue_key, x.started_at from public.it_engineer_finding x
-            where x.closed_at is null and public.fn_it_engineer_severity(x.blast, x.affected, x.started_at) <> 'warn'
-              and not exists (select 1 from public.agent_actions a
+  -- 1. ESCALATION AND THE SWEEPS FIRST. Before 18 Oct 2026 the open step ran first and unbounded; with
+  --    409 findings unopened it took 42 s, PostgREST cancelled the tick at 8 s, and nothing escalated.
+  begin o := o || jsonb_build_object('reverify', public.fn_it_loop_reverify());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'reverify', 'error', sqlerrm); end;
+  begin
+    x := public.fn_originators_reverify_handoffs();
+    o := o || jsonb_build_object('originators', x);
+    if jsonb_array_length(coalesce(x->'errors', '[]'::jsonb)) > 0 then
+      v_err := v_err || jsonb_build_object('step', 'originators', 'error', left((x->'errors')::text, 600));
+    end if;
+  exception when others then v_err := v_err || jsonb_build_object('step', 'originators', 'error', sqlerrm); end;
+  begin o := o || jsonb_build_object('ceo', public.fn_ceo_it_reports_sweep());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'ceo', 'error', sqlerrm); end;
+  begin
+    x := public.fn_ceo_sales_engineer_reports_sweep();
+    o := o || jsonb_build_object('ceo_sales', x, 'sales_engineer_completed', public.fn_sales_engineer_reports_complete());
+    if jsonb_array_length(coalesce(x->'errors', '[]'::jsonb)) > 0 then
+      v_err := v_err || jsonb_build_object('step', 'ceo_sales', 'error', left((x->'errors')::text, 600));
+    end if;
+  exception when others then v_err := v_err || jsonb_build_object('step', 'ceo_sales', 'error', sqlerrm); end;
+  begin o := o || jsonb_build_object('ceo_accountant', public.fn_ceo_accountant_reports_sweep(),
+                                     'accountant_completed', public.fn_accountant_reports_complete());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'ceo_accountant', 'error', sqlerrm); end;
+  -- The silence watch re-asks the CEO decider for every overdue report (2.1 s measured 18 Oct). Hourly is
+  -- enough for a reminder whose founder notice is once a day; its last run is a registered scanner beat,
+  -- so section B of the alert tick raises a finding if it stops running for 2 hours.
+  begin
+    if coalesce((select s.last_beat_at < now() - interval '55 minutes' from public.it_engineer_scanner s
+                  where s.scanner = 'it_ceo_silence_watch'), true) then
+      o := o || jsonb_build_object('ceo_silence', public.fn_it_ceo_silence_watch());
+      perform public.fn_it_engineer_scanner_beat('it_ceo_silence_watch', null, 120);
+    else
+      o := o || jsonb_build_object('ceo_silence', 'not due');
+    end if;
+  exception when others then
+    v_err := v_err || jsonb_build_object('step', 'ceo_silence', 'error', sqlerrm);
+    perform public.fn_it_engineer_scanner_beat('it_ceo_silence_watch', sqlerrm, 120);
+  end;
+  begin o := o || jsonb_build_object('daily', public.fn_it_daily_line());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'daily', 'error', sqlerrm); end;
+
+  -- 2. OPEN, OLDEST FIRST, WITHIN WHAT IS LEFT OF THE BUDGET. One definition of open, called, not copied
+  --    (fn_it_open_findings, 22 Sep 2026). At least one per tick, so a slow day still drains the queue.
+  for f in select q.issue_key, q.started_at from public.fn_it_open_findings() q
+            where not exists (select 1 from public.agent_actions a
                                where a.kind = 'handoff' and a.detail->>'type' = 'it.finding'
-                                 and a.detail->>'issue_key' = x.issue_key
-                                 and (a.detail->>'occurrence_started_at')::timestamptz = x.started_at)
-            order by x.started_at loop
+                                 and a.detail->>'issue_key' = q.issue_key
+                                 and (a.detail->>'occurrence_started_at')::timestamptz = q.started_at)
+            order by q.started_at loop
+    if n_open >= 50 or clock_timestamp() > v_floor_until or (n_open >= 1 and clock_timestamp() > v_deadline) then
+      n_left := n_left + 1;
+      continue;
+    end if;
     begin
-      -- The playbook first: a known remedy runs once per occurrence, and the finding is handed on
-      -- only if it is still open on the next tick.
       continue when public.fn_it_playbook_first(f.issue_key, f.started_at);
       perform public.fn_it_loop_open(f.issue_key);
       n_open := n_open + 1;
@@ -7449,18 +7576,13 @@ begin
       v_err := v_err || jsonb_build_object('step', 'open', 'issue_key', f.issue_key, 'error', sqlerrm);
     end;
   end loop;
-  o := o || jsonb_build_object('opened', n_open);
+  o := o || jsonb_build_object('opened', n_open, 'left_for_next_tick', n_left);
 
-  begin o := o || jsonb_build_object('reverify', public.fn_it_loop_reverify());
-  exception when others then v_err := v_err || jsonb_build_object('step', 'reverify', 'error', sqlerrm); end;
-  begin o := o || jsonb_build_object('ceo', public.fn_ceo_it_reports_sweep());
-  exception when others then v_err := v_err || jsonb_build_object('step', 'ceo', 'error', sqlerrm); end;
-  begin o := o || jsonb_build_object('ceo_silence', public.fn_it_ceo_silence_watch());
-  exception when others then v_err := v_err || jsonb_build_object('step', 'ceo_silence', 'error', sqlerrm); end;
-  begin o := o || jsonb_build_object('daily', public.fn_it_daily_line());
-  exception when others then v_err := v_err || jsonb_build_object('step', 'daily', 'error', sqlerrm); end;
+  -- 3. Last, so everything this tick escalated or opened leaves in the one message.
+  begin o := o || jsonb_build_object('digest', public.fn_customer_support_sends_the_it_digest());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'digest', 'error', sqlerrm); end;
 
-  foreach v_step in array array['open', 'reverify', 'ceo', 'ceo_silence', 'daily'] loop
+  foreach v_step in array array['open', 'reverify', 'originators', 'ceo', 'ceo_sales', 'ceo_accountant', 'ceo_silence', 'daily', 'digest'] loop
     perform public.fn_it_loop_stage(v_step,
       (select string_agg(coalesce(e->>'issue_key' || ': ', '') || (e->>'error'), '; ')
          from jsonb_array_elements(v_err) e where e->>'step' = v_step));
