@@ -23,6 +23,7 @@
 //   node scripts/gen_supabase_config.mjs
 // then `git diff supabase/config.toml`. A line you did not intend to change is the finding.
 
+import { SUPABASE_TOKEN_FILE } from './lib/supabase_token.mjs';
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -30,7 +31,7 @@ import { join } from 'node:path';
 // QD_TARGET_REF lets --check compare against a staging branch, which is the only way to deploy
 // functions anywhere other than production.
 const PROJECT_REF = process.env.QD_TARGET_REF || 'htdblwldjkcgjvmqkbeh';
-const TOKEN_PATH = 'C:/Users/Opera/.supabase/access-token';
+const TOKEN_PATH = SUPABASE_TOKEN_FILE;
 const REPO = process.cwd();
 const OUT = join(REPO, 'supabase', 'config.toml');
 const FN_DIR = join(REPO, 'supabase', 'functions');

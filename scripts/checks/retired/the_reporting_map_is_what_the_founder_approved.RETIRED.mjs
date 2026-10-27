@@ -26,14 +26,14 @@
 // The check asserts its own subject first: an empty authority table reports
 // `authority_not_recorded` rather than agreeing with nothing. Verified by execution — deleting one
 // row, and then all 90, each produced a drift row rather than a green result.
+import { supabaseAccessToken } from '../../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 
 let token;
 try {
-  token = (process.env.SUPABASE_ACCESS_TOKEN
-    || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+  token = supabaseAccessToken();
 } catch { /* fall through to the skip below */ }
 
 if (!token) {

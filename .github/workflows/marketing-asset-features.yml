@@ -8,14 +8,15 @@ name: Marketing asset features
 # a tone), measured twice. Only a push to main's schedule or a dispatch reads production.
 # Cost: ~3 Actions-minutes per run for 12 videos; no model call, no paid API.
 
+# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
 on:
-  schedule:
-    - cron: '41 3 * * 1'
+  # schedule:
+    # - cron: '41 3 * * 1'
   workflow_dispatch: {}
-  pull_request:
-    paths:
-      - 'scripts/media/**'
-      - '.github/workflows/marketing-asset-features.yml'
+  # pull_request:
+    # paths:
+      # - 'scripts/media/**'
+      # - '.github/workflows/marketing-asset-features.yml'
 
 permissions:
   contents: read

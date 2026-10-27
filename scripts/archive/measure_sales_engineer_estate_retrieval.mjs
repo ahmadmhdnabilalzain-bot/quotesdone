@@ -7,10 +7,11 @@
 // through, or the floor is broken and the answer rate means nothing.
 //
 //   node scripts/measure_sales_engineer_estate_retrieval.mjs
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
-const token = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 
 async function sql(query, attempt = 0) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {

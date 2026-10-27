@@ -8,10 +8,9 @@
 // The --ref form exists because "verify by measurement" means BOTH projects, and this reader was
 // production-only: staging could only be read through qd_guard from inside another script.
 //
-// Token: %USERPROFILE%\.supabase\access-token or SUPABASE_ACCESS_TOKEN.
-import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
+// Token: SUPABASE_ACCESS_TOKEN (scripts/lib/supabase_token.mjs).
+import { readFileSync } from 'node:fs';
+import { supabaseAccessToken, MISSING_TOKEN } from './lib/supabase_token.mjs';
 
 const args = process.argv.slice(2);
 const PROJECT_REF = (args.find(a => a.startsWith('--ref='))|| '').slice(6) || 'htdblwldjkcgjvmqkbeh';
@@ -19,10 +18,7 @@ const file = args.find(a => !a.startsWith('--'));
 if (!file) { console.error('usage: node scripts/qsql.mjs <file.sql> [--ref=<ref>]'); process.exit(2); }
 
 function token() {
-  if (process.env.SUPABASE_ACCESS_TOKEN) return process.env.SUPABASE_ACCESS_TOKEN.trim();
-  const p = join(homedir(), '.supabase', 'access-token');
-  if (existsSync(p)) return readFileSync(p, 'utf8').trim();
-  console.error('No Supabase access token.'); process.exit(2);
+  try { return supabaseAccessToken(); } catch { console.error(MISSING_TOKEN); process.exit(2); }
 }
 
 const query = readFileSync(file, 'utf8');

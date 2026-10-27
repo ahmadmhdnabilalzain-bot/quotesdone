@@ -103,8 +103,13 @@ begin
   end if;
   if v_reopened <> 0 then raise exception 'week 2 opened % duplicate improvement(s) for targets already escalated', v_reopened; end if;
   if not coalesce((v_again->>'already')::boolean, false) then raise exception 'a second run of the same week was not a no-op: %', v_again; end if;
-  if v_blocks->0->>'text' is distinct from 'CEO weekly review' or v_blocks::text not like '%ESCALATED x%' then
-    raise exception 'the page does not open with the review title or does not show the escalation: %', left(v_blocks::text, 300);
+  -- The page is the founder's plain note since #1566 (the_founder_reads_a_plain_ceo_note_and_targets_he_has_held_are_paused.sql:
+  -- no directive ids, no metric codes, no counts), so it no longer prints the internal 'ESCALATED x' task title. The
+  -- escalation itself is proved above (v_esc, v_esc_tasks); the page must open with its title, say that what slipped is
+  -- escalated, and carry none of the internal codes.
+  if v_blocks->0->>'text' is distinct from 'CEO weekly review' or v_blocks::text not like '%escalates anything that slipped%'
+     or v_blocks::text ~ 'ESCALATED x|improvement #[0-9]' then
+    raise exception 'the page does not open with the review title, does not say what slipped is escalated, or shows an internal code: %', left(v_blocks::text, 600);
   end if;
   if coalesce((v_bad->>'ok')::boolean, true) or not coalesce((v_bad->>'retained')::boolean, false) then raise exception 'a failed render was not retained: %', v_bad; end if;
   if not coalesce((v_del->>'ok')::boolean, false) then raise exception 'delivery failed: %', v_del; end if;
@@ -114,7 +119,7 @@ begin
   if v_left <> 0 or v_mail_after is distinct from v_mail_before then raise exception 'the rollback left % row(s), or admin_emails changed', v_left; end if;
 
   perform set_config('qd.probe_verdict',
-    format('PROBE OK week1 missed=%s opened=%s carried=%s, one open improvement each (owner, due, check on all; %s handed off); week2 closed=%s escalated=%s (each escalated once more, with a CEO task, due +7) duplicates=0; runway information only, no improvement; rerun=no-op; page shows ESCALATED; failed render retained; delivered kind=%s attachments=%s to the ZZ address, no WhatsApp; left_behind=0',
+    format('PROBE OK week1 missed=%s opened=%s carried=%s, one open improvement each (owner, due, check on all; %s handed off); week2 closed=%s escalated=%s (each escalated once more, with a CEO task, due +7) duplicates=0; runway information only, no improvement; rerun=no-op; page is the plain note (title, escalation line, no internal codes); failed render retained; delivered kind=%s attachments=%s to the ZZ address, no WhatsApp; left_behind=0',
            v_w1->>'missed', v_opened, v_w1->>'carried', v_handoffs, v_w2->>'closed', v_w2->>'escalated', v_kind, v_natt), true);
 exception when others then
   perform set_config('qd.probe_verdict', 'PROBE FAILED ' || sqlerrm, true);

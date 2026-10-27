@@ -1,7 +1,7 @@
 -- PROBE for one_slow_duty_never_wedges_the_seat_duty_tick.sql (it_engineer, 18 Oct 2026). Run after the file in
 -- the same query: an aborted transaction, no DDL of its own, ends in raise exception CHK<<...>>, so nothing commits
 -- (the cron.job rows the file schedules roll back with it). Against production as it is (84 duties overdue):
---   1. fn_ceo_improvement_sweep, cold, on today's backlog, returns inside 3.5 s (its own 2 s budget plus one step);
+--   1. fn_ceo_improvement_sweep, cold, on today's backlog, returns inside 35 s (its own 30 s budget plus one step, on its own job since the_ceo_improvement_sweep_settles_in_one_run_on_its_own_job.sql; it was 2 s and 3.5 s while it shared the tick);
 --   2. fn_seat_duties_tick(8) returns inside 5 s and ran at least one duty, whose last_ok_at moved;
 --   3. no own_job duty ran inside the tick, and every own_job duty has its own active cron job seat_duty:<duty>;
 --   4. STARVATION: a shared duty whose average grows past 1 s (avg_ms forced to 2 900, its routine swapped for a fast harmless one inside this
@@ -13,7 +13,7 @@ begin
   t := clock_timestamp();
   perform public.fn_ceo_improvement_sweep();
   v_sweep_ms := round(extract(epoch from clock_timestamp() - t) * 1000);
-  if v_sweep_ms >= 3500 then v_fail := v_fail || ' sweep took ' || v_sweep_ms || ' ms;'; end if;
+  if v_sweep_ms >= 35000 then v_fail := v_fail || ' sweep took ' || v_sweep_ms || ' ms;'; end if;
 
   t := clock_timestamp();
   v := public.fn_seat_duties_tick(8);

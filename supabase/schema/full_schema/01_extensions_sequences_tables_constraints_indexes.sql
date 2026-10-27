@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-19T17:15:45.334Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-27T02:10:14.213Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -218,7 +218,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (743) =====
+-- ===== TABLES (744) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -7847,6 +7847,13 @@ CREATE TABLE IF NOT EXISTS public.regulations (
   supersedes_id bigint
 );
 
+CREATE TABLE IF NOT EXISTS public.rehearsal_spend_reservation (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  e2e_run_tag text NOT NULL,
+  reserved_usd numeric NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.rehearsal_window (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   run_tag text NOT NULL,
@@ -10842,6 +10849,7 @@ ALTER TABLE public.refund_status_transition ADD CONSTRAINT refund_status_transit
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_pkey PRIMARY KEY (id);
 ALTER TABLE public.reg_catalog ADD CONSTRAINT reg_catalog_pkey PRIMARY KEY (id);
 ALTER TABLE public.regulations ADD CONSTRAINT regulations_pkey PRIMARY KEY (id);
+ALTER TABLE public.rehearsal_spend_reservation ADD CONSTRAINT rehearsal_spend_reservation_pkey PRIMARY KEY (id);
 ALTER TABLE public.rehearsal_window ADD CONSTRAINT rehearsal_window_pkey PRIMARY KEY (id);
 ALTER TABLE public.removed_trigger_log ADD CONSTRAINT removed_trigger_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.resilience_step ADD CONSTRAINT resilience_step_pkey PRIMARY KEY (step);
@@ -11636,7 +11644,7 @@ ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_re
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_names_its_subject CHECK (((campaign_id IS NOT NULL) OR (month IS NOT NULL)));
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_status_check CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'superseded'::text])));
-ALTER TABLE public.marketing_gap_recruitment_plan ADD CONSTRAINT marketing_gap_recruitment_plan_check CHECK (((invite_body ~~ '%{{link}}%'::text) AND (invite_body !~ '[؀-ۿ]'::text) AND (invite_subject !~ '[؀-ۿ]'::text)));
+ALTER TABLE public.marketing_gap_recruitment_plan ADD CONSTRAINT marketing_gap_recruitment_plan_check CHECK (((invite_body !~* '(https?://|www\.|\{\{link\}\})'::text) AND (invite_body !~ '[؀-ۿ]'::text) AND (invite_subject !~ '[؀-ۿ]'::text)));
 ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_engine_check CHECK ((engine = ANY (ARRAY['web'::text, 'model'::text, 'answer_search'::text, 'answer_online'::text])));
 ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_month_check CHECK ((EXTRACT(day FROM month) = (1)::numeric));
 ALTER TABLE public.marketing_geo_question ADD CONSTRAINT marketing_geo_question_audience_check CHECK ((audience = ANY (ARRAY['customer'::text, 'supplier'::text])));
@@ -11922,6 +11930,7 @@ ALTER TABLE public.refunds ADD CONSTRAINT refunds_currency_check CHECK ((currenc
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_reason_code_check CHECK ((reason_code = ANY (ARRAY['supplier_unresponsive'::text, 'supplier_withdrew'::text, 'duplicate_charge'::text, 'customer_cancelled_in_window'::text, 'service_not_delivered'::text, 'fraud_or_dispute'::text, 'goodwill'::text, 'other'::text])));
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_settled_needs_amount CHECK (((status <> 'succeeded'::text) OR (amount_fils IS NOT NULL) OR (reconciliation_note IS NOT NULL)));
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_status_check CHECK ((status = ANY (ARRAY['requested'::text, 'approved'::text, 'rejected'::text, 'processing'::text, 'succeeded'::text, 'failed'::text, 'cancelled'::text])));
+ALTER TABLE public.rehearsal_spend_reservation ADD CONSTRAINT rehearsal_spend_reservation_reserved_usd_check CHECK ((reserved_usd > (0)::numeric));
 ALTER TABLE public.rehearsal_window ADD CONSTRAINT rehearsal_window_at_most_two_hours CHECK ((expires_at <= (started_at + '02:01:00'::interval))) NOT VALID;
 ALTER TABLE public.rehearsal_window ADD CONSTRAINT rehearsal_window_cap_is_small CHECK (((cap_usd > (0)::numeric) AND (cap_usd <= (15)::numeric))) NOT VALID;
 ALTER TABLE public.resilience_step ADD CONSTRAINT resilience_step_budget_ms_check CHECK ((budget_ms > 0));
@@ -13017,6 +13026,7 @@ CREATE INDEX refunds_stripe_pi_idx ON public.refunds USING btree (stripe_payment
 CREATE INDEX refunds_transaction_idx ON public.refunds USING btree (transaction_id);
 CREATE INDEX refunds_unreconciled_idx ON public.refunds USING btree (settled_at) WHERE ((reconciled_at IS NULL) AND (status = 'succeeded'::text));
 CREATE INDEX regulations_cats ON public.regulations USING gin (categories);
+CREATE INDEX rehearsal_spend_reservation_tag_idx ON public.rehearsal_spend_reservation USING btree (e2e_run_tag, created_at);
 CREATE INDEX rehearsal_window_open_idx ON public.rehearsal_window USING btree (started_at, ended_at);
 CREATE INDEX reveal_invoices_bucket_path_idx ON public.reveal_invoices USING btree (bucket, path);
 CREATE INDEX review_chain_subject_idx ON public.review_chain USING btree (subject_type, subject_id, id);

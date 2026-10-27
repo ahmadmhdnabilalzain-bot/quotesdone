@@ -46,6 +46,7 @@ process.exit(0);
 //   says plainly that it asserted nothing about production.
 //
 // READ-ONLY against production. Every statement it sends is a SELECT.
+import { SUPABASE_TOKEN_FILE } from '../../lib/supabase_token.mjs';
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
 
 const ROOT = process.cwd().replace(/\\/g, '/');
@@ -210,7 +211,7 @@ console.log(`B committed crosswalk    : ${crosswalk.size}`);
 console.log(`  rows accepted as historical with a stated reason: ${[...crosswalk.keys()].filter(id => !declared.has(id) && historical.has(id)).length}`);
 
 // ---------------------------------------------------------------- C: production
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 

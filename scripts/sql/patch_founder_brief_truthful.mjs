@@ -26,8 +26,9 @@
 //    hours was therefore closed without ever having appeared in a brief. 34 rows sit 'digested'
 //    today and the founder never saw one subject line. Now: the subjects are printed, and only the
 //    rows actually reported are closed.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
-const token = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 const q = async (ref, sql) => {
   const r = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
     method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },

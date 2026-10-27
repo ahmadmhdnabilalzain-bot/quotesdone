@@ -14,7 +14,8 @@ const secret = Deno.env.get('QD_E2E_SECRET') ?? '';
 if (!inFile || !outFile || !/^[a-z0-9]{4,16}$/.test(tag) || !secret) throw new Error('usage: <in.json> <out.json> with QD_E2E_RUN_TAG and QD_E2E_SECRET set');
 
 const home = Deno.env.get('USERPROFILE') ?? Deno.env.get('HOME') ?? '';
-const mgmt = (Deno.env.get('SUPABASE_ACCESS_TOKEN') ?? await Deno.readTextFile(`${home}/.supabase/access-token`)).trim();
+const mgmt = (Deno.env.get('SUPABASE_ACCESS_TOKEN') ?? await Deno.readTextFile(`${home}/.supabase/access-token`).catch(() => '')).trim();
+if (!mgmt) throw new Error('SUPABASE_ACCESS_TOKEN is not set (docs/runbooks/cloud-sessions.md)');
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: `Bearer ${mgmt}` } })).json();
 const service = keys.find((k: { name: string }) => k.name === 'service_role')?.api_key;
 if (!service) throw new Error('no service_role key from the management API');
