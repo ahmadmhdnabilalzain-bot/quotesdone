@@ -36,7 +36,7 @@ import { answerFromBrief } from '../_shared/brief_answer.ts';
 import { acceptImages } from '../_shared/chat_images.ts';
 import { logWithAttempts } from '../_shared/reply_attempts.ts';
 import { accountKey, clientHistory, fitHistory, openConversation, visitorIdOf } from '../_shared/chat_history.ts';
-import { STATUS, streamReply, wantsStream } from './stream_reply.ts';
+import { STATUS, streamReply, wantsStream } from '../_shared/stream_reply.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -148,7 +148,7 @@ const plain = observe('site_assistant', async (req) => {
   T.total = Date.now() - t0;
   return annotate(res, { ms: T });
 });
-// THE STREAMED ANSWER (stream_reply.ts): the status line leaves at once; each checked sentence follows as the model writes it.
+// THE STREAMED ANSWER (_shared/stream_reply.ts): the status line leaves at once; each checked sentence follows as the model writes it.
 // The same handler answers both, so the observe row and every side effect are identical for either caller. One chain
 // per request, as before: streaming adds no concurrent reasoning to the worker (546, #1327).
 Deno.serve(async (req) => {

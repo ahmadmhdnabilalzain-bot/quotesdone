@@ -8,6 +8,11 @@
 //      it; founder ruling 1219, 13 Oct 2026),
 //      then the same class unstreamed, then a third call routed as a counterpart of the model that failed (the gateway's
 //      review routing picks another family). No canned answer exists: if every model fails, the caller gets no text.
+//   3. KEEPS THE TURN'S CLOCK (customer_support / it_engineer, 27 Oct 2026). A caller that passes `deadline` gets every call
+//      bounded: each one is given min(PER_CALL_MS, time left), the gateway is told the same (client_timeout_ms, so it never
+//      bills an answer we stopped waiting for), and no call starts with under MIN_CALL_MS left. Without a deadline nothing
+//      changes. Measured before it: the ladder above had no bound at all (stream + two rewrites + retry + third, each as long
+//      as the gateway's 55 s wall), and the portal turn it now serves took 58-150 s; one hit the 150 s edge wall as a 504.
 // prevented by: _shared/brief_answer.test.ts
 import { withImages } from './chat_images.ts';
 import { briefNumbers, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, splitBrief, takeSentences } from './company_brief.ts';
@@ -19,7 +24,15 @@ export interface BriefCall {
   rateKey?: string; rateLimit?: number; subject?: Record<string, unknown>;
   check?: (text: string) => string[];   // more rules around the words (the reply guard); each problem is named to the model
   images?: string[];   // photos or drawings with the latest message (chat_images.acceptImages); the gateway routes to a vision model (ruling 1200)
+  deadline?: number;   // epoch ms by which the answer must be settled; no call starts after it (3. above)
 }
+/** The longest one call may take inside a deadline: a streamed Sonnet 5.5 answer of 900-1,200 tokens is written in 10-25 s. */
+export const PER_CALL_MS = 40_000;
+/** No call starts with less than this left: a call cut at 5 s has paid for its prompt and written nothing usable. */
+export const MIN_CALL_MS = 8_000;
+/** What the streamed first call keeps back for the next rung: one minimum call plus slack, so the reserve is never a
+ *  few milliseconds short of MIN_CALL_MS by the time the stream has been cut (measured in brief_answer.test.ts). */
+export const RESERVE_MS = MIN_CALL_MS + 2_000;
 export interface BriefAnswer { reply: string; model: string | null; attempts: string[]; rewrites: number; streamed: boolean; error?: string }
 type Fetch = typeof fetch;
 
@@ -36,9 +49,27 @@ const body = (c: BriefCall, extra: Record<string, unknown>) => JSON.stringify({
   ...(c.rateKey ? { rate_key: c.rateKey, rate_limit: c.rateLimit, rate_window_s: 3600 } : {}), ...extra,
 });
 
+/** This call's share of the turn: null when no deadline was given, 0 when there is no time left to start one.
+ *  `reserve`: time kept back for the next rung when there is enough for both (the streamed first call keeps RESERVE_MS
+ *  back, so a stream that hangs still leaves another model room to answer); with too little for both, this call gets all. */
+export function callBudget(deadline: number | undefined, now = Date.now(), reserve = 0): number | null {
+  if (deadline == null) return null;
+  const left = deadline - now;
+  if (left < MIN_CALL_MS) return 0;
+  return Math.min(PER_CALL_MS, left - reserve >= MIN_CALL_MS ? left - reserve : left);
+}
+const NO_TIME = 'deadline: no time left for another call';
+/** The request for one call: the gateway is told how long we wait, and the fetch stops waiting then. */
+const init = (c: BriefCall, extra: Record<string, unknown>, ms: number | null): RequestInit => ({
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: body(c, ms ? { ...extra, client_timeout_ms: ms } : extra), ...(ms ? { signal: AbortSignal.timeout(ms) } : {}),
+});
+
 async function once(f: Fetch, c: BriefCall, extra: Record<string, unknown>): Promise<{ text: string; model: string | null; error?: string }> {
+  const ms = callBudget(c.deadline);
+  if (ms === 0) return { text: '', model: null, error: NO_TIME };
   try {
-    const r = await f(c.gateway, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body(c, extra) });
+    const r = await f(c.gateway, init(c, extra, ms));
     const j = await r.json().catch(() => null) as { content?: string; model?: string; error?: string; outcome?: string; truncated?: boolean } | null;
     if (j?.truncated) return { text: '', model: j?.model ?? null, error: 'truncated at the output limit' };   // a cut-off answer is never used
     const text = typeof j?.content === 'string' ? j.content.trim() : '';
@@ -49,8 +80,10 @@ async function once(f: Fetch, c: BriefCall, extra: Record<string, unknown>): Pro
 /** The streamed attempt. Emits each finished sentence that passes the figure check; stops at the first that does not. */
 async function streamed(f: Fetch, c: BriefCall, known: Set<string>, emit: (t: string) => void):
   Promise<{ text: string; model: string | null; bad: string[]; error?: string }> {
+  const ms = callBudget(c.deadline, Date.now(), RESERVE_MS);
+  if (ms === 0) return { text: '', model: null, bad: [], error: NO_TIME };
   let r: Response;
-  try { r = await f(c.gateway, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: body(c, { stream: true }) }); }
+  try { r = await f(c.gateway, init(c, { stream: true }, ms)); }
   catch (e) { return { text: '', model: null, bad: [], error: String((e as Error)?.message || e) }; }
   if (!(r.headers.get('content-type') || '').includes('event-stream') || !r.body) {
     const j = await r.json().catch(() => null) as { error?: string; outcome?: string } | null;
@@ -61,7 +94,10 @@ async function streamed(f: Fetch, c: BriefCall, known: Set<string>, emit: (t: st
   let sse = '', pending = '', shown = '', finish = '';
   const check = (s: string) => { const bad = problems(c, s, known); if (!bad.length) { shown += s; emit(s); } return bad; };
   for (;;) {
-    const { done, value } = await rd.read();
+    // a stream the turn's clock cut (AbortSignal) is a failed attempt, never a finished answer: the ladder decides next
+    let chunk: ReadableStreamReadResult<Uint8Array>;
+    try { chunk = await rd.read(); } catch (e) { return { text: '', model, bad: [], error: 'stream cut: ' + String((e as Error)?.message || e).slice(0, 120) }; }
+    const { done, value } = chunk;
     if (done) break;
     sse += dec.decode(value, { stream: true });
     let k: number;

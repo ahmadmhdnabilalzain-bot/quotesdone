@@ -3197,6 +3197,7 @@
   "ab32250b9ce6",
   "ac6da840ea78",
   "ad4af4c1027c",
+  "ae298ac9ee24",
   "ae41461c0e53",
   "af4f103f60f7",
   "b1118af1d5cd",
@@ -3241,6 +3242,7 @@
   "d466a6a5871c",
   "d83ee5b92b13",
   "d90bc276f4d6",
+  "db49f39b569d",
   "db55605ea27a",
   "dc8e37e88336",
   "dd145da3a71d",
@@ -6456,7 +6458,7 @@
   "f34fd00dad6c",
   "f40cee86aeb4"
  ],
- "supabase/functions/site_assistant/stream_reply.ts": [
+ "supabase/functions/_shared/stream_reply.ts": [
   "aeb58bdf5c4d"
  ],
  "supabase/functions/stripe_checkout/index.ts": [

@@ -1,6 +1,6 @@
 // answerFromBrief() against a fake gateway (SSE stream and JSON). No network, no paid call.
 import { assert, assertEquals } from 'jsr:@std/assert';
-import { answerFromBrief, type BriefCall } from './brief_answer.ts';
+import { answerFromBrief, callBudget, MIN_CALL_MS, PER_CALL_MS, RESERVE_MS, type BriefCall } from './brief_answer.ts';
 
 const C: BriefCall = { gateway: 'https://gw', secret: 's', fn: 'site_assistant', agent: 'customer_support', taskClass: 'visitor_chat',
   brief: 'The customer pays a 3% reveal fee. No card fee is added.', sys: 'rules', input: [{ role: 'user', content: 'what is the fee?' }], max: 500 };
@@ -99,4 +99,62 @@ Deno.test('a photo rides on the latest message as an image part', async () => {
   await answerFromBrief({ ...C, images: ['data:image/jpeg;base64,AAAA'] }, () => {}, g.f);
   const last = (g.bodies[0].input as { content: unknown }[]).at(-1)!.content as { type: string }[];
   assertEquals(last.map((p) => p.type), ['text', 'image_url']);
+});
+
+// ── THE TURN'S CLOCK (27 Oct 2026, customer_support / it_engineer) ──────────────────────────────────────────────────
+// prevented by: these tests. The portal turn took 58-150 s on production and one hit the 150 s edge wall as a 504; the
+// ladder here had no bound at all. With a deadline every call is bounded and none starts too late.
+Deno.test('with a deadline the gateway is told how long we wait and the fetch stops waiting then', async () => {
+  const inits: RequestInit[] = [];
+  const f = ((_u: string, init: RequestInit) => { inits.push(init); return Promise.resolve(sse(['Fine. '])); }) as typeof fetch;
+  await answerFromBrief({ ...C, deadline: Date.now() + 60_000 }, () => {}, f);
+  const b = JSON.parse(String(inits[0].body));
+  assert(b.client_timeout_ms > MIN_CALL_MS && b.client_timeout_ms <= PER_CALL_MS, 'client_timeout_ms is this call\'s share: ' + b.client_timeout_ms);
+  assert(inits[0].signal instanceof AbortSignal, 'the fetch carries an abort signal');
+});
+
+Deno.test('without a deadline nothing changes: no client_timeout_ms, no abort signal (the widget as it was)', async () => {
+  const inits: RequestInit[] = [];
+  const f = ((_u: string, init: RequestInit) => { inits.push(init); return Promise.resolve(sse(['Fine. '])); }) as typeof fetch;
+  await answerFromBrief(C, () => {}, f);
+  assertEquals(JSON.parse(String(inits[0].body)).client_timeout_ms, undefined);
+  assertEquals(inits[0].signal, undefined);
+});
+
+Deno.test('no call starts with less than MIN_CALL_MS left: the ladder stops and the caller gets no text, at once', async () => {
+  let calls = 0;
+  const f = (() => { calls++; return Promise.resolve(sse(['Fine. '])); }) as typeof fetch;
+  const t0 = Date.now();
+  const a = await answerFromBrief({ ...C, deadline: Date.now() + MIN_CALL_MS - 1000 }, () => {}, f);
+  assertEquals(calls, 0);
+  assertEquals(a.reply, '');
+  assert(a.attempts.every((x) => /deadline/.test(x)), a.attempts.join(' | '));
+  assert(Date.now() - t0 < 500);
+});
+
+Deno.test('a stream that hangs is cut at its budget, never shown as the answer, and the next rung answers in time', async () => {
+  // the first call streams one sentence then never ends (a model stuck mid-answer); the abort signal must end it
+  const hung = (init: RequestInit) => new Response(new ReadableStream({ start(c) {
+    c.enqueue(new TextEncoder().encode('data: ' + JSON.stringify({ choices: [{ delta: { content: 'Half an answer. ' } }] }) + '\n\n'));
+    init.signal?.addEventListener('abort', () => c.error(new DOMException('aborted', 'AbortError')));
+  } }), { headers: { 'content-type': 'text/event-stream' } });
+  const replies = [(i: RequestInit) => hung(i), () => json({ content: 'The whole answer.', model: 'anthropic/claude-sonnet-5.5' })];
+  const f = ((_u: string, init: RequestInit) => Promise.resolve(replies.shift()!(init))) as typeof fetch;
+  const t0 = Date.now();
+  // budget: the stream keeps RESERVE_MS back for the next rung, so with RESERVE_MS + MIN_CALL_MS + 1 s left it gets ~9 s
+  const a = await answerFromBrief({ ...C, deadline: Date.now() + RESERVE_MS + MIN_CALL_MS + 1000 }, () => {}, f);
+  const ms = Date.now() - t0;
+  assertEquals(a.reply, 'The whole answer.');
+  assert(/stream:failed stream cut/.test(a.attempts[0]), a.attempts.join(' | '));
+  assert(ms >= MIN_CALL_MS + 900 && ms < RESERVE_MS + MIN_CALL_MS + 1000, 'cut at its budget with time left for the next rung, took ' + ms);
+});
+
+Deno.test('callBudget: a share of the time left, capped per call, zero when too little is left', () => {
+  const now = 1_000_000;
+  assertEquals(callBudget(undefined, now), null);
+  assertEquals(callBudget(now + 120_000, now), PER_CALL_MS);
+  assertEquals(callBudget(now + 20_000, now), 20_000);
+  assertEquals(callBudget(now + MIN_CALL_MS - 1, now), 0);
+  assertEquals(callBudget(now + 20_000, now, RESERVE_MS), 20_000 - RESERVE_MS);   // room kept for the next rung
+  assertEquals(callBudget(now + 15_000, now, RESERVE_MS), 15_000);                // too little for both: all of it
 });
