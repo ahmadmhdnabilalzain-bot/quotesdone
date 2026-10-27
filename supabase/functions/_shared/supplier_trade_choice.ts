@@ -20,7 +20,7 @@
 // never given a trade the model did not prove, and the next upload or re-read tries again.
 
 export type TradeDef = { code: string; label: string; services: string[] };
-/** `quotes`: every proven line for the code (up to 3), strongest first; `quote` is the first of them. */
+/** `quotes`: every proven line for the code, strongest first, never more than three lines. The first is `quote`. */
 export type TradeChoice = { code: string; quote: string; reason: string; quotes?: string[] };
 export type ChoiceResult =
   | { ok: true; trades: TradeChoice[]; rejected: { code: string; why: string }[] }
@@ -149,7 +149,7 @@ export function checkChoice(content: string, text: string, defs: TradeDef[]): Ch
   const trades: TradeChoice[] = [], rejected: { code: string; why: string }[] = [];
   for (const t of parsed.trades as Record<string, unknown>[]) {
     const code = String(t?.code ?? '').trim(), reason = String(t?.reason ?? '').trim().slice(0, 300);
-    // "quotes" (up to 3, 19 Oct 2026) or the older single "quote": every line is proven on its own, and the code stands
+    // "quotes" (a list of proven lines since 19 Oct 2026, never more than three lines. Or the older single "quote"): every line is proven on its own, and the code stands
     // when at least one is in the text. One quote only was the H08 miss: the model quoted its weakest line ("complimentary
     // 3D design") and the second look, seeing only that line, dropped a service the profile prints as its own heading.
     // Each quote is {text, form}: the MODEL says what the line is in the document (review of #1483 - no word list decides it).

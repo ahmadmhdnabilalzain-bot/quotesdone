@@ -6,7 +6,7 @@
 -- The luna-pro model_registry and model_rate rows belong to matrix v3
 -- (gemini_only_hears_and_every_other_class_runs_luna_pro_and_the_5_6_generation_leaves.sql, #1433), which must be
 -- applied first; this file only names the route. max_tokens 8000: at 3000 the answer for a multi-trade contractor
--- (up to 3 quotes per code) was cut off and the file proposed nothing (N11, held-out set 2, 19 Oct 2026).
+-- (a list of proven lines per code, never more than three lines. It) was cut off and the file proposed nothing (N11, held-out set 2, 19 Oct 2026).
 -- Applied at merge (release operator).
 -- APPLY ORDER GUARD (review of #1483, 19 Oct 2026). This file must land AFTER #1496's interim Sonnet-first route
 -- (a_supplier_profile_s_trades_are_chosen_by_sonnet_from_our_codes.sql) and after matrix v3 (the luna-pro price row).
