@@ -265,10 +265,14 @@ export function revealFeeIncomplete(text: string): string[] {
   return out;
 }
 
-/** Complete sentences off the front of a growing buffer, and what is left. Newlines end a sentence too. */
+/** Complete sentences off the front of a growing buffer, and what is left. Newlines end a sentence too.
+ *  A full stop between two digits ("2.5 ton", "3.2 m") is part of the number, not the end of a sentence: until 27 Oct
+ *  2026 the sticky match stopped there, so everything after the first decimal stayed in `rest` and was checked (and, for
+ *  the portal, filtered) as ONE piece at the end of the stream (run 91fb819d: a whole recommendation was dropped with the
+ *  question at its end). */
 export function takeSentences(buf: string): { done: string[]; rest: string } {
   const done: string[] = [];
-  const re = /[^.!?؟\n]*(?:[.!?؟]+["')\]]*\s+|\n+)/y;
+  const re = /(?:[^.!?؟\n]|(?<=\d)\.(?=\d))*(?:[.!?؟]+["')\]]*\s+|\n+)/y;
   let i = 0; let m: RegExpExecArray | null;
   re.lastIndex = 0;
   while ((m = re.exec(buf))) { if (!m[0]) break; done.push(m[0]); i = re.lastIndex; }
