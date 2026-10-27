@@ -2929,7 +2929,9 @@
   "a4879318094c",
   "a69c82313935",
   "c8eadf831cf9",
-  "a6b33dd50c2d"
+  "a6b33dd50c2d",
+  "c90195aef20c",
+  "429cb37af1cd"
  ],
  "src/components/CompanyIdentity.tsx": [
   "639ceec6e997"
@@ -6963,5 +6965,9 @@
  "scripts/sql/the_reveal_invoice_handoff_is_a_registered_conversation_that_states_its_note.sql": [
   "0ad679a262b2",
   "6795f24f47d7"
+ ],
+ "supabase/functions/site_assistant/visitor_scope.ts": [
+  "0b3fc2f067e7",
+  "76a20e04cca9"
  ]
 }
