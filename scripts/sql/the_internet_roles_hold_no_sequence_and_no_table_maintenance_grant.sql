@@ -29,7 +29,8 @@
 -- Applied at merge by the release operator only (apply-at-merge-never-before):
 --   node scripts/apply_sql.mjs scripts/sql/the_internet_roles_hold_no_sequence_and_no_table_maintenance_grant.sql --apply --ddl
 -- (--ddl because the file defines no function; a bare --apply reports "nothing to do".)
-begin;
+-- No BEGIN/COMMIT of its own: apply_sql sends the file as one implicit transaction, and a file that commits itself is
+-- committed by any check that replays it inside an aborted transaction (.claude/memory/a-check-that-replays-sql-can-commit-it.md).
 
 revoke all on all sequences in schema public from anon, authenticated;
 
@@ -56,5 +57,3 @@ select case
   when not has_sequence_privilege('service_role', 'public.leads_id_seq', 'USAGE')
     then 'PROBE FAILED: service_role lost a sequence it writes through'
   else 'PROBE OK' end as verdict;
-
-commit;
