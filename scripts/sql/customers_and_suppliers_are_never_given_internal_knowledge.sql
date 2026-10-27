@@ -62,6 +62,11 @@
 --   then delete scripts/sql/pending/customers_and_suppliers_are_never_given_internal_knowledge.txt and append the file to
 --   the END of scripts/sql/MANIFEST.txt. Then run the probe file once (it must print PROBE OK).
 
+-- Load pgvector in this session first, as #1640's file does. Without it, "hnsw.iterative_scan" is an unknown
+-- placeholder, and the SET clauses on fn_reason_retrieve(_ml) fail with 42501. That happened on the first apply,
+-- 27 Oct 18:3xZ, and the whole file rolled back.
+select '[1]'::vector <-> '[1]'::vector as loads_pgvector;
+
 CREATE OR REPLACE FUNCTION public.fn_support_corpus_search(p_query text, p_public boolean, p_limit integer DEFAULT 8)
  RETURNS TABLE(src text, src_id text, title text, content text, citation text, rank real)
  LANGUAGE sql

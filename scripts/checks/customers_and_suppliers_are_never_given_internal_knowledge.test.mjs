@@ -83,6 +83,8 @@ test('fn_reason_retrieve_ml: the final ops hits give an outside audience only pu
 const READERS = {
   // filtered for an outside audience (tests above)
   fn_reason_retrieve: 'filtered', fn_reason_retrieve_ml: 'filtered', fn_sales_assist: 'filtered',
+  // reads ops_knowledge itself once this PR's filter is live (its confidentiality EXISTS for p_public = false; tested above)
+  fn_support_corpus_search: 'filtered',
   // no customer or supplier caller (27 Oct 2026: their SQL callers and every rpc() in supabase/functions)
   fn_accountant_assist: 'accountant edge, seat credential or founder only',
   fn_it_engineer_assist: 'it_engineer edge, seat credential or founder only',
