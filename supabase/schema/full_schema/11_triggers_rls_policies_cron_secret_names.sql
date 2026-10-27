@@ -590,6 +590,8 @@ ALTER TABLE public.decision_record ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.decision_review_request ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.decision_trace ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.delegation_rule ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.demand_forecast ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.demand_search ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.department_budget ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.department_objective ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.deploy_state ENABLE ROW LEVEL SECURITY;
@@ -1205,6 +1207,8 @@ CREATE POLICY customer_support_duty_message_service_role_only ON public.customer
 CREATE POLICY customer_support_monthly_review_service_role_only ON public.customer_support_monthly_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.customers AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY decision_review_request_service_role_only ON public.decision_review_request AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY demand_forecast_service_role_only ON public.demand_forecast AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY demand_search_service_role_only ON public.demand_search AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY documents_customer_select ON public.documents AS PERMISSIVE FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM fn_customer_document_refs() r(ref_table, ref_id, source, supplier_id, supplier_name, revealed)
   WHERE ((r.ref_table = documents.ref_table) AND (r.ref_id = documents.ref_id)))));
