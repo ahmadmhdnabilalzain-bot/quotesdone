@@ -1,0 +1,113 @@
+[
+ {
+  "at": "2026-10-06T20:34:03.910Z",
+  "journey": "public_ae",
+  "step": "https://quotesdone.ae -> https://quotesdone.ae/",
+  "url": "https://quotesdone.ae",
+  "status": "PASS",
+  "ms": 441,
+  "issues": [],
+  "facts": {
+   "dir": "ltr",
+   "lang": "en",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 1130,
+   "arabicN": 7,
+   "wordsN": 1179,
+   "latinSample": [
+    "Skip",
+    "content",
+    "How",
+    "works",
+    "Services",
+    "Categories",
+    "Why",
+    "anonymous",
+    "For",
+    "suppliers",
+    "Blog",
+    "About",
+    "Sign",
+    "Get",
+    "quotes"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "QuotesDone — Anonymous quotes for every trade in the UAE"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\ae\\quotesdone_ae.png",
+  "finalUrl": "https://quotesdone.ae/"
+ },
+ {
+  "at": "2026-10-06T20:34:06.336Z",
+  "journey": "public_ae",
+  "step": "https://www.quotesdone.ae -> https://quotesdone.ae/",
+  "url": "https://www.quotesdone.ae",
+  "status": "PASS",
+  "ms": 565,
+  "issues": [],
+  "facts": {
+   "dir": "ltr",
+   "lang": "en",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 1130,
+   "arabicN": 7,
+   "wordsN": 1179,
+   "latinSample": [
+    "Skip",
+    "content",
+    "How",
+    "works",
+    "Services",
+    "Categories",
+    "Why",
+    "anonymous",
+    "For",
+    "suppliers",
+    "Blog",
+    "About",
+    "Sign",
+    "Get",
+    "quotes"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "QuotesDone — Anonymous quotes for every trade in the UAE"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\ae\\www_quotesdone_ae.png",
+  "finalUrl": "https://quotesdone.ae/"
+ },
+ {
+  "at": "2026-10-06T20:34:08.593Z",
+  "journey": "public_ae",
+  "step": "https://quotesdone.ae/ar -> https://quotesdone.ae/ar",
+  "url": "https://quotesdone.ae/ar",
+  "status": "PASS",
+  "ms": 315,
+  "issues": [],
+  "facts": {
+   "dir": "rtl",
+   "lang": "ar",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 7,
+   "arabicN": 1036,
+   "wordsN": 1078,
+   "latinSample": [
+    "English",
+    "SPC",
+    "Technologies"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "QuotesDone — عروض أسعار دون كشف الهوية لكل الأنشطة في الإمارات"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\public\\ae\\quotesdone_ae_ar.png",
+  "finalUrl": "https://quotesdone.ae/ar"
+ }
+]

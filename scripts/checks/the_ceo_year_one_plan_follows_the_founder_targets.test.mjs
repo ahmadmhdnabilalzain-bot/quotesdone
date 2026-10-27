@@ -26,7 +26,9 @@ const MINE = 'scripts/sql/the_ceo_runs_the_company_on_the_founders_year_one_targ
 const FILES = ['scripts/sql/every_seat_duty_has_an_owner_a_clock_and_a_check.sql',
   'scripts/sql/the_ceo_reviews_the_week_watches_pricing_and_forecasts_the_target.sql',
   'scripts/sql/the_ceo_sets_the_target_runs_experiments_and_watches_competitors.sql', MINE,
-  'scripts/sql/the_ceo_improvement_sweep_closes_before_it_proposes_and_settles_in_one_run.sql'];
+  'scripts/sql/the_ceo_improvement_sweep_closes_before_it_proposes_and_settles_in_one_run.sql',
+  // the sweep's 30 s budget on its own job (27 Oct 2026): with the 2 s one it never settles in one run on production
+  'scripts/sql/the_ceo_improvement_sweep_settles_in_one_run_on_its_own_job.sql'];
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 const code = (p) => read(p).split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 

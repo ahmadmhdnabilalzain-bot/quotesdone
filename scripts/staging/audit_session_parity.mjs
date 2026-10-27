@@ -8,11 +8,12 @@
 // each is checked separately and the evidence names which side is short.
 //
 // Read-only on both projects: qd_guard's mgmtRead refuses anything else.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 import { mgmtRead, PROD_REF } from '../lib/qd_guard.mjs';
 import { REF as STAGE } from '../lib/demo_factory.mjs';
 
-const token = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 const H = { Authorization: 'Bearer ' + token };
 
 // Everything this session created or changed, by name.

@@ -24,6 +24,7 @@
 //   node scripts/expense_documents_backfill.mjs --report
 //
 // Exit 0 = every document that is claimed is really there and really says what it is.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
@@ -55,8 +56,7 @@ ok(Number(C.entries) > 0, 'public.expense_entries holds rows to check');
 // ---------------------------------------------------------------------------------------------
 // 1. Nothing points at nothing. Every stored object is fetched.
 // ---------------------------------------------------------------------------------------------
-const mgmt = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const mgmt = supabaseAccessToken();
 const kj = await (await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/api-keys?reveal=true`,
   { headers: { Authorization: 'Bearer ' + mgmt } })).json();
 const ANON = kj.find((x) => x.name === 'anon')?.api_key;

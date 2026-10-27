@@ -1,0 +1,10 @@
+{
+ "sent": "ZZ DEMO 0a717394 inbound sms_inbound",
+ "response": {
+  "status": 200,
+  "text": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Response></Response>"
+ },
+ "stored_in": [
+  "sms_messages:1"
+ ]
+}

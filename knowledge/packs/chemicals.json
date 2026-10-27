@@ -58,6 +58,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "chemicals:product-distinctions",
+      "topic": "Construction and industrial chemicals: product families and selection",
+      "topic_ar": "الكيماويات الإنشائية والصناعية: عائلات المنتجات والاختيار",
+      "kind": "product_distinctions",
+      "body_en": "Construction chemicals: concrete admixtures (plasticisers and superplasticisers, which cut water by up to 30% or more while keeping flow, in SNF or PCE chemistry; retarders for hot weather and long hauls; accelerators; air entrainers; waterproofing and corrosion-inhibiting admixtures), curing compounds, release agents, waterproofing membranes and coatings (bituminous, cementitious, polyurethane, crystalline), grouts (cementitious non-shrink, epoxy), repair mortars, anchoring resins, joint sealants (polyurethane, polysulphide, silicone), floor coatings and screeds (epoxy, PU, cementitious), tile adhesives and grouts, and bonding agents. Industrial chemicals: acids and alkalis, solvents, water-treatment chemicals, oilfield chemicals, cleaning and degreasing chemicals, coolants, and raw materials for manufacturing. Selection follows the technical data sheet (performance figures, coverage, pot life, cure time at temperature), the standard it meets (for example ASTM C494 or EN 934 for admixtures), compatibility with the substrate and system, the approved product list of the consultant, and the safety data sheet for handling and storage. Heat shortens pot life and speeds cure; many products specify a maximum application temperature.",
+      "body_ar": "الكيماويات الإنشائية: إضافات الخرسانة (الملدنات والملدنات الفائقة التي تخفض الماء حتى 30% أو أكثر مع الحفاظ على الانسيابية بكيمياء SNF أو PCE؛ ومؤخرات الشك للطقس الحار والنقل الطويل؛ والمسرعات؛ ومولدات الهواء؛ وإضافات العزل المائي ومثبطات التآكل)، ومركبات المعالجة، ومواد فك القوالب، وأغشية وطلاءات العزل المائي (بيتومينية، إسمنتية، بولي يوريثان، بلورية)، والجراوت (إسمنتي غير قابل للانكماش، إيبوكسي)، ومونة الإصلاح، وراتنجات التثبيت، ومواد ملء الفواصل (بولي يوريثان، بولي سلفايد، سيليكون)، وطلاءات الأرضيات والطبقات (إيبوكسي، بولي يوريثان، إسمنتية)، ولواصق ومواد ترويب البلاط، ومواد الربط. والكيماويات الصناعية: الأحماض والقلويات، والمذيبات، وكيماويات معالجة المياه، وكيماويات حقول النفط، وكيماويات التنظيف وإزالة الدهون، وسوائل التبريد، والمواد الخام للتصنيع. ويتبع الاختيار النشرة الفنية (أرقام الأداء، التغطية، عمر الخلطة، زمن المعالجة عند درجة الحرارة)، والمواصفة التي يستوفيها (مثل ASTM C494 أو EN 934 للإضافات)، والتوافق مع السطح والنظام، وقائمة المنتجات المعتمدة لدى الاستشاري، وصحيفة بيانات السلامة للتداول والتخزين. والحرارة تقصر عمر الخلطة وتسرع المعالجة؛ وكثير من المنتجات تحدد أقصى حرارة للتطبيق.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Superplasticizer"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: superplasticisers (high-range water reducers) cut water by 30% or more; SNF and PCE types -> confirmed."
+    },
+    {
+      "id": "chemicals:lead-times-and-quoting",
+      "topic": "Industrial & construction chemicals - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الكيماويات الصناعية والإنشائية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock construction chemicals: 1-5 days; project quantities and colours to order 1-4 weeks; imported specialities 4-10 weeks. A supplier needs the application and substrate, the specification or approved product, quantities or areas, site conditions, and approval submittals needed. A quote states product, brand, standard, pack size, coverage or dosage, shelf life, TDS and SDS, technical support and warranty, delivery and validity.",
+      "body_ar": "الكيماويات الإنشائية المتوفرة: 1-5 أيام؛ وكميات المشاريع والألوان بالطلب 1-4 أسابيع؛ والمنتجات المتخصصة المستوردة 4-10 أسابيع. ويحتاج المورد الاستخدام والسطح، والمواصفة أو المنتج المعتمد، والكميات أو المساحات، وظروف الموقع، ومستندات الاعتماد المطلوبة. ويذكر العرض المنتج والعلامة والمواصفة وحجم العبوة والتغطية أو الجرعة ومدة الصلاحية والنشرة الفنية وصحيفة السلامة والدعم الفني والضمان والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -83,6 +113,14 @@
       ],
       "why": "No entry of this pack answered it (Chemicals pack is generic (CAS, SDS, ECAS); no concrete admixture or hot-weather retarder content; missing). chemicals:hot-weather-concrete-retarding-admixtures was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from chemicals.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What admixture helps when pouring concrete in a very hot afternoon with a long truck haul?",
+      "q_ar": "وش الإضافة اللي تساعد لما نصب خرسانة في عصر حار جداً مع مسافة نقل طويلة؟",
+      "expected_entry_ids": [
+        "chemicals:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -102,6 +140,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "chemicals:hot-weather-concrete-retarding-admixtures"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "chemicals:product-distinctions"
+      ],
+      "stored_not_served": [
+        "chemicals:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Superplasticizer"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

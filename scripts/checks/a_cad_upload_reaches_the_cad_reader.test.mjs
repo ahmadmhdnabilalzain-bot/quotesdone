@@ -9,7 +9,7 @@
 //   * a .dwg must still be routed by the portal to one of the two paths that do this.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 
 const api = readFileSync(new URL('../../supabase/functions/customer_api/index.ts', import.meta.url), 'utf8');
 const portal = readFileSync(new URL('../../src/components/me/NewRequest.tsx', import.meta.url), 'utf8');
@@ -47,17 +47,26 @@ test('a CAD drawing the edge cannot read is queued on both paths, and 546 counts
   assert.match(reason, /over_edge_ceiling/);
 });
 
-test('the queue has a worker, the dispatch names it, and the status is the owner\'s only', () => {
-  assert.ok(api.includes('/actions/workflows/cad-read-worker.yml/dispatches'), 'customer_api dispatches the CAD worker workflow');
+test('the queue has a worker, a queued job is held for the sales_engineer, and the status is the owner\'s only', () => {
+  // customer_api no longer dispatches the workflow (Actions is off, 27 Oct); the workflow stays runnable by hand.
   assert.match(worker, /workflow_dispatch/);
-  assert.match(worker, /schedule:/);
+  // The 6-hourly schedule is the last resort for a lost dispatch. Founder, 26 Oct 2026: every automatic
+  // trigger is off until the bugs clear, so it may stand commented out, but only under that note.
+  assert.match(worker, /^ {2}(# )?schedule:/m, 'the CAD worker lost its schedule');
+  if (/^ {2}# schedule:/m.test(worker)) assert.match(worker, /founder 26 Oct: automatic triggers off/, 'the schedule is off without the founder note');
   assert.match(worker, /scripts\/cad_read_worker\.ts/);
   assert.match(workerTs, /fn_cad_read_claim\(/);
   assert.match(workerTs, /readDwg\(bytes, ctx, Infinity\)/);
   const status = api.slice(api.indexOf("action === 'cad_read_status'"), api.indexOf("action === 'analyze_boq'"));
   assert.match(status, /\.eq\('customer_id', cust\.id\)/);
-  // The queue triggers the worker: a polled job that has not started is dispatched again.
-  assert.match(status, /cadJobNeedsRedispatch\([^)]*\)\) await dispatchCadWorker\(id\)/);
+  // 27 Oct 2026: GitHub Actions is off, so nothing starts the worker. A queued job raises the hour's
+  // sales_engineer finding at once (one per hour: the worker reads every queued job in one run), and a polled open job tells the screen who holds it.
+  const queue = api.slice(api.indexOf('async function queueCadRead'), api.indexOf('async function cadReadHeld'));
+  assert.match(queue, /await cadReadHeld\(String\(data\.id\), o\.why\)/);
+  const held = api.slice(api.indexOf('async function cadReadHeld'), api.indexOf('// A CAD DRAWING IS DRAWN FOR SUPPLIERS'));
+  assert.match(held, /fn_it_engineer_finding_upsert[\s\S]{0,200}sales_engineer:cad_read_held:' \+ new Date\(\)\.toISOString\(\)\.slice\(0, 13\)[\s\S]{0,800}p_raised_by: 'sales_engineer'/);
+  assert.match(held, /if \(error\) console\.error\(/, 'a finding that was not written is said, never swallowed');
+  assert.match(status, /held_for: 'sales_engineer'/);
 });
 
 test('a PDF set whose lengths call dies is queued with its counted take-off, and the worker merges them', () => {
@@ -79,11 +88,15 @@ test('the portal refuses Revit, IFC and DGN, accepts DWG/DXF and polls a queued 
   assert.match(portal, /action: 'cad_read_status'/);
 });
 
-// 18 Oct 2026: the dispatch answered 403 for weeks and only console.warn knew. A refused dispatch must
-// raise a sales_engineer finding, or a customer's DWG waits 6 h in silence again.
-test('a refused CAD worker dispatch raises a finding', () => {
-  const fn = api.slice(api.indexOf('async function dispatchCadWorker'), api.indexOf('function cadJobNeedsRedispatch'));
-  assert.match(fn, /r\.status !== 204\)[^\n]*cadDispatchRefused\(/);
-  assert.match(fn, /catch[^\n]*cadDispatchRefused\(/);
-  assert.match(fn, /fn_it_engineer_finding_upsert[\s\S]{0,400}cad_dispatch_refused[\s\S]{0,600}p_raised_by: 'sales_engineer'/);
+// 27 Oct 2026: a dispatch to a GitHub workflow while Actions is off reaches nothing, and the job it was meant
+// to start waits forever. No edge function may hand work to a GitHub workflow.
+test('no edge function dispatches a GitHub workflow', () => {
+  const dir = new URL('../../supabase/functions/', import.meta.url);
+  const hits = [];
+  for (const f of readdirSync(dir, { recursive: true })) {
+    if (!/\.ts$/.test(String(f))) continue;
+    const src = readFileSync(new URL(String(f).replace(/\\/g, '/'), dir), 'utf8');
+    if (/api\.github\.com\/repos\/[^'"`\s]*\/(actions\/workflows\/[^'"`\s]*\/dispatches|dispatches)/.test(src)) hits.push(String(f));
+  }
+  assert.deepEqual(hits, [], 'these edge functions dispatch a GitHub workflow, which does not run: ' + hits.join(', '));
 });

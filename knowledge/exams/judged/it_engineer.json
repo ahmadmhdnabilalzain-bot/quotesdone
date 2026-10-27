@@ -1,0 +1,552 @@
+{
+ "seat": "it_engineer",
+ "judged_by": "ceo session reader (Claude), no paid judge",
+ "source": "C:/Users/Opera/AppData/Local/Temp/claude/ceo1003/after_llm_it_engineer.json",
+ "items": [
+  {
+   "id": "it_engineer-exam-01",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-02",
+   "verdict": "fail",
+   "note": "no launch-path probe cadence; says only invitation visibility checked"
+  },
+  {
+   "id": "it_engineer-exam-03",
+   "verdict": "fail",
+   "note": "no 2.5 s target, does not commit to p95"
+  },
+  {
+   "id": "it_engineer-exam-04",
+   "verdict": "fail",
+   "note": "misses 30-run minimum before p95 counts"
+  },
+  {
+   "id": "it_engineer-exam-05",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-06",
+   "verdict": "fail",
+   "note": "misses false SCHEDULER DOWN page / 17 Sep 2026 incident"
+  },
+  {
+   "id": "it_engineer-exam-07",
+   "verdict": "fail",
+   "note": "no 26-hour heartbeat threshold"
+  },
+  {
+   "id": "it_engineer-exam-08",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-09",
+   "verdict": "fail",
+   "note": "no >5 per prefix per hour rule"
+  },
+  {
+   "id": "it_engineer-exam-10",
+   "verdict": "fail",
+   "note": "no 24-hour block"
+  },
+  {
+   "id": "it_engineer-exam-11",
+   "verdict": "fail",
+   "note": "no 80% warning"
+  },
+  {
+   "id": "it_engineer-exam-12",
+   "verdict": "fail",
+   "note": "no 50,000/month Resend cap"
+  },
+  {
+   "id": "it_engineer-exam-13",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-14",
+   "verdict": "fail",
+   "note": "denies a threshold; 5% missing"
+  },
+  {
+   "id": "it_engineer-exam-15",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-16",
+   "verdict": "fail",
+   "note": "no 250 unique recipients/day"
+  },
+  {
+   "id": "it_engineer-exam-17",
+   "verdict": "fail",
+   "note": "never states automatic DDoS mitigation on every plan"
+  },
+  {
+   "id": "it_engineer-exam-18",
+   "verdict": "fail",
+   "note": "refuses to commit to auth successes/failures as mandatory"
+  },
+  {
+   "id": "it_engineer-exam-19",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-20",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-21",
+   "verdict": "fail",
+   "note": "misses that the playbook raises an exception (no silent pass)"
+  },
+  {
+   "id": "it_engineer-exam-22",
+   "verdict": "fail",
+   "note": "misses blame makes people hide mistakes"
+  },
+  {
+   "id": "it_engineer-exam-23",
+   "verdict": "fail",
+   "note": "names Critical P0 not SEV1"
+  },
+  {
+   "id": "it_engineer-exam-24",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-25",
+   "verdict": "fail",
+   "note": "no it_refusal_policy reference"
+  },
+  {
+   "id": "it_engineer-exam-26",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-27",
+   "verdict": "fail",
+   "note": "no ~80% of max connections"
+  },
+  {
+   "id": "it_engineer-exam-28",
+   "verdict": "fail",
+   "note": "does not commit to \"full in N days\" reporting"
+  },
+  {
+   "id": "it_engineer-exam-29",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-30",
+   "verdict": "fail",
+   "note": "no 2-day export age"
+  },
+  {
+   "id": "it_engineer-exam-31",
+   "verdict": "fail",
+   "note": "no 7 days on Pro"
+  },
+  {
+   "id": "it_engineer-exam-32",
+   "verdict": "fail",
+   "note": "claims PITR off; no ~2 minutes"
+  },
+  {
+   "id": "it_engineer-exam-33",
+   "verdict": "fail",
+   "note": "no 2% bounce threshold"
+  },
+  {
+   "id": "it_engineer-exam-34",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-35",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-36",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-37",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-38",
+   "verdict": "fail",
+   "note": "no 2x baseline + AED 20 floor"
+  },
+  {
+   "id": "it_engineer-exam-39",
+   "verdict": "fail",
+   "note": "does not say further usage is disallowed"
+  },
+  {
+   "id": "it_engineer-exam-40",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-41",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-42",
+   "verdict": "fail",
+   "note": "cannot name the six hourly status pages"
+  },
+  {
+   "id": "it_engineer-exam-43",
+   "verdict": "fail",
+   "note": "no fn_it_change_watch drift check"
+  },
+  {
+   "id": "it_engineer-exam-44",
+   "verdict": "fail",
+   "note": "wrong: says zero drift; truth 602 objects"
+  },
+  {
+   "id": "it_engineer-exam-45",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-46",
+   "verdict": "fail",
+   "note": "no 02:00 Dubai start"
+  },
+  {
+   "id": "it_engineer-exam-47",
+   "verdict": "fail",
+   "note": "wrong: says no automatic post-deploy smoke; misses en/ar comparison PDF"
+  },
+  {
+   "id": "it_engineer-exam-48",
+   "verdict": "fail",
+   "note": "no ZZ DEMO / example.invalid markers"
+  },
+  {
+   "id": "it_engineer-exam-49",
+   "verdict": "fail",
+   "note": "no daily per-seat pass rate 30 vs 30 days"
+  },
+  {
+   "id": "it_engineer-exam-50",
+   "verdict": "fail",
+   "note": "contradicts: says not quarterly; misses knowledge ages"
+  },
+  {
+   "id": "it_engineer-exam-51",
+   "verdict": "fail",
+   "note": "no 5x usual hour rule; says no threshold"
+  },
+  {
+   "id": "it_engineer-exam-52",
+   "verdict": "fail",
+   "note": "wrong: AED 0 instead of USD 1-2/day"
+  },
+  {
+   "id": "it_engineer-exam-53",
+   "verdict": "fail",
+   "note": "no 50 rows"
+  },
+  {
+   "id": "it_engineer-exam-54",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-55",
+   "verdict": "fail",
+   "note": "wrong scope (platform roles), not GitHub/Vercel/Stripe/Dropbox"
+  },
+  {
+   "id": "it_engineer-exam-56",
+   "verdict": "fail",
+   "note": "does not say patches proposed, never auto-merged"
+  },
+  {
+   "id": "it_engineer-exam-57",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-58",
+   "verdict": "fail",
+   "note": "no 2026-11-09 expiry"
+  },
+  {
+   "id": "it_engineer-exam-59",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-60",
+   "verdict": "fail",
+   "note": "misses monthly performance review"
+  },
+  {
+   "id": "it_engineer-exam-61",
+   "verdict": "fail",
+   "note": "does not declare incident and follow DR runbook"
+  },
+  {
+   "id": "it_engineer-exam-62",
+   "verdict": "fail",
+   "note": "misses capacity and cost review"
+  },
+  {
+   "id": "it_engineer-exam-63",
+   "verdict": "fail",
+   "note": "misses quarterly code health review"
+  },
+  {
+   "id": "it_engineer-exam-64",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-65",
+   "verdict": "fail",
+   "note": "omits the genuinely-new-bug exception for founder email"
+  },
+  {
+   "id": "it_engineer-exam-66",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-67",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-68",
+   "verdict": "fail",
+   "note": "no 30"
+  },
+  {
+   "id": "it_engineer-exam-69",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-70",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-71",
+   "verdict": "fail",
+   "note": "no threat model / STRIDE table"
+  },
+  {
+   "id": "it_engineer-exam-72",
+   "verdict": "fail",
+   "note": "misses runbook link per alert and no paging without one"
+  },
+  {
+   "id": "it_engineer-exam-73",
+   "verdict": "fail",
+   "note": "model_failed (held)"
+  },
+  {
+   "id": "it_engineer-exam-74",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-75",
+   "verdict": "fail",
+   "note": "IG1 named but 56 safeguards missing"
+  },
+  {
+   "id": "it_engineer-exam-76",
+   "verdict": "fail",
+   "note": "model_failed (held)"
+  },
+  {
+   "id": "it_engineer-exam-77",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-78",
+   "verdict": "fail",
+   "note": "rejects single trace id; no W3C traceparent"
+  },
+  {
+   "id": "it_engineer-exam-79",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-80",
+   "verdict": "fail",
+   "note": "no switch-without-deploy and fail-safe off"
+  },
+  {
+   "id": "it_engineer-exam-81",
+   "verdict": "fail",
+   "note": "misses SLO set by engineering vs SLA signed by business; never 100%"
+  },
+  {
+   "id": "it_engineer-exam-82",
+   "verdict": "fail",
+   "note": "no Auth logs first; no log drain"
+  },
+  {
+   "id": "it_engineer-exam-83",
+   "verdict": "fail",
+   "note": "no GST+UTC timeline; cadence called not a rule"
+  },
+  {
+   "id": "it_engineer-exam-84",
+   "verdict": "fail",
+   "note": "no hand to owning seat then CEO escalation; no 401/403 credential pointer"
+  },
+  {
+   "id": "it_engineer-exam-85",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-86",
+   "verdict": "fail",
+   "note": "refuses to cite NIST SP 800-61 Rev 3"
+  },
+  {
+   "id": "it_engineer-exam-87",
+   "verdict": "fail",
+   "note": "no >50% non-ok / >5 runs rule; no status-code classification"
+  },
+  {
+   "id": "it_engineer-exam-88",
+   "verdict": "fail",
+   "note": "no circuit breaker / single retry layer"
+  },
+  {
+   "id": "it_engineer-exam-89",
+   "verdict": "fail",
+   "note": "misses 2 s CPU cap and CPU kill skipping error path"
+  },
+  {
+   "id": "it_engineer-exam-90",
+   "verdict": "fail",
+   "note": "misses Vercel no-retry fact and CRON_SECRET"
+  },
+  {
+   "id": "it_engineer-exam-91",
+   "verdict": "fail",
+   "note": "no 200 million default (says do not assume default)"
+  },
+  {
+   "id": "it_engineer-exam-92",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-93",
+   "verdict": "fail",
+   "note": "no advisory lock; structured skip missing"
+  },
+  {
+   "id": "it_engineer-exam-94",
+   "verdict": "fail",
+   "note": "verifies with EXPLAIN only; no idx_scan, no write cost"
+  },
+  {
+   "id": "it_engineer-exam-95",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-96",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-97",
+   "verdict": "fail",
+   "note": "misses signing-key staged rotation with no sign-out"
+  },
+  {
+   "id": "it_engineer-exam-98",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-99",
+   "verdict": "fail",
+   "note": "misses return 2xx fast and async processing"
+  },
+  {
+   "id": "it_engineer-exam-100",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-101",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-102",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-103",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-104",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-105",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-106",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-107",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  },
+  {
+   "id": "it_engineer-exam-108",
+   "verdict": "fail",
+   "note": "retention muddled (last activity / calendar year); no small batch incident lesson"
+  },
+  {
+   "id": "it_engineer-exam-109",
+   "verdict": "pass",
+   "note": "conveys the required points"
+  }
+ ]
+}

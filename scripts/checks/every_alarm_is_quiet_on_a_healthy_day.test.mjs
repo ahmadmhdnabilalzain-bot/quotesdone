@@ -46,7 +46,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { replay } from '../lib/alarm_replay.mjs';
+import { replay, replaySql as replaySqlFor } from '../lib/alarm_replay.mjs';
 import { manifestWithPending, pendingNotes } from '../lib/pending_sql.mjs';
 import { lit } from '../lib/db.mjs';
 
@@ -103,6 +103,7 @@ export const REGISTER = {
   // fn_support_reply_watch_tick below). asOf limits which reports and notifications EXISTED then,
   // which is what decides whether this alarm had anything to be loud about.
   fn_it_accepted_report_review: {
+    stub: { 'public.fn_it_loop_reverify': 'null' },   // the follow-on re-verify of handoffs; the alarm is this review's own finding
     replay: 'pg_temp.qd_replay_fn_it_accepted_report_review(false)',
     asOf: { support_ceo_report: 'created_at', notifications: 'created_at' },
   },
@@ -122,6 +123,7 @@ export const REGISTER = {
   // on one subject. It reads marketing_model_run rows that existed at the instant; a healthy day has no step
   // failing three days in a row, so it is quiet. Its handoffs (the brief) are written inside the rolled-back replay.
   fn_marketing_plan_loop_tick: {
+    stub: { 'public.fn_marketing_plan_to_ceo': 'null' },   // sending the plan to the CEO is the follow-on action
     replay: 'pg_temp.qd_replay_fn_marketing_plan_loop_tick()',
     asOf: { marketing_model_run: 'created_at', marketing_month_plan: 'created_at' },
   },
@@ -136,9 +138,18 @@ export const REGISTER = {
   // 24 Sep 2026 (it_engineer, #901). Raises seat_duty:<duty> when a registered duty is overdue, failing or has no
   // live owner (fn_seat_duty_health). Duties are present state; a healthy day has every duty on its clock. The
   // duties it runs are run inside the rolled-back replay.
+  // 19 Oct 2026: the replay used to RUN the duties through public.fn_seat_duty_run. That took a FOR UPDATE row lock on
+  // the live public.seat_duty row and held it for the replay's whole transaction, and the live tick
+  // ("for update skip locked") then skipped the most overdue duties for as long as CI replays ran: five sales_engineer
+  // duties went 80 minutes without a run. The alarm under test is fn_seat_duty_health, so the duty runs are stubbed.
   fn_seat_duties_tick: {
     replay: 'pg_temp.qd_replay_fn_seat_duties_tick(1)',
-    asOf: { seat_duty: 'created_at' },   // a duty registered after the instant did not exist then
+    // seat_duty_skip (a_seat_duty_skipped_because_its_row_is_locked_is_counted_and_raised.sql): a skip streak that began
+    // after the instant did not exist then; a healthy day has none, so seat_duty_skipped:<duty> is quiet.
+    asOf: { seat_duty: 'created_at', seat_duty_skip: 'first_skipped_at' },
+    stub: { 'public.fn_seat_duty_run': `'{}'::jsonb`, 'public.fn_seat_duty_isolate': 'null' },
+    // its closing UPDATE of it_engineer_finding would hold live finding rows until the rollback
+    shadow: ['it_engineer_finding'],
   },
   // 24 Sep 2026 (it_engineer, #903). Raises held_notice:undelivered when a WhatsApp holding notice owed to a customer
   // failed 8 times. It reads held questions that existed (were escalated) at the instant; a healthy day has none
@@ -176,9 +187,9 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_it_engineer_duty_pause_expiry()',
     asOf: { duty_pause: 'paused_at' },
   },
-  fn_ceo_report_answer_sweep: { replay: 'pg_temp.qd_replay_fn_ceo_report_answer_sweep()', asOf: {} },
-  fn_ceo_constraint_lever: { replay: 'pg_temp.qd_replay_fn_ceo_constraint_lever()', asOf: {} },
-  fn_ceo_marketing_plan_watch: { replay: 'pg_temp.qd_replay_fn_ceo_marketing_plan_watch()', asOf: {} },
+  fn_ceo_report_answer_sweep: { stub: { 'public.fn_ceo_decide_report': 'null', 'public.fn_ceo_backup_heartbeat_decide': 'null' }, replay: 'pg_temp.qd_replay_fn_ceo_report_answer_sweep()', asOf: {} },
+  fn_ceo_constraint_lever: { stub: { 'public.fn_ceo_improvement_close': 'null' }, replay: 'pg_temp.qd_replay_fn_ceo_constraint_lever()', asOf: {} },
+  fn_ceo_marketing_plan_watch: { stub: { 'public.fn_ceo_improvement_open': 'null' }, replay: 'pg_temp.qd_replay_fn_ceo_marketing_plan_watch()', asOf: {} },
   // 24 Sep 2026 (it_engineer, #903). A quarter's knowledge refresh still unverified 45 days after it opened. Refreshes
   // that existed at the instant; the new quarter's refresh it files is written inside the rolled-back replay.
   fn_it_engineer_knowledge_refresh: {
@@ -204,6 +215,7 @@ export const REGISTER = {
   // 24 Sep 2026 (marketing, #905). recruitment:pool_empty when a trade marked for recruitment has no leads left to
   // invite. Gaps opened and leads that existed at the instant; a healthy day has no marked gap with an empty pool.
   fn_marketing_recruitment_funnel: {
+    locksLive: { fn_marketing_funnel_diagnosis: 'the diagnosis IS the alarm decision; its row locks are on the handoff rows it opens through fn_ceo_improvement_open, which no live caller selects skip locked' },
     replay: 'pg_temp.qd_replay_fn_marketing_recruitment_funnel()',
     asOf: { supply_gap: 'opened_at', leads: 'created_at' },
   },
@@ -253,6 +265,7 @@ export const REGISTER = {
   // instant; a healthy day has none waiting that long. The party flags it writes and the holds it re-screens are
   // rolled back with the replay.
   fn_accountant_risk_screen_tick: {
+    locksLive: { fn_accountant_money_screen: 'the money screen IS the alarm decision; no live caller selects the rows it locks skip locked' },
     replay: 'pg_temp.qd_replay_fn_accountant_risk_screen_tick()',
     asOf: { money_move_hold: 'opened_at' },
   },
@@ -264,6 +277,7 @@ export const REGISTER = {
   // healthy day opens its review. Still pending, so the replay runs its pending file first (alarm_replay.mjs, `pending`),
   // without retries. The negative control is the known-bad test below (an unknown kind fires high_stakes_open).
   fn_high_stakes_gate: {
+    locksLive: { fn_high_stakes_challenge: 'the challenge IS the gate under test; it opens a deliberation through handoffs, which no live caller selects skip locked' },
     replay: `pg_temp.qd_replay_fn_high_stakes_gate('refund', 'ceo', 'zz_demo_quiet_day', 'zz_demo_quiet_day:refund',
       'ZZ DEMO should this refund be approved as the CEO decided?', '{"ledger":"ZZ DEMO paid by card"}'::jsonb,
       '{"decision":"ZZ DEMO approve in full"}'::jsonb, null, null, true)`,
@@ -384,6 +398,47 @@ export function unanswered(bodies, register = REGISTER, baseline = BASELINE) {
   }
   return bad;
 }
+
+test('the seat-duty tick replay never runs a live duty (no live row lock)', () => {
+  const def = `create or replace function public.fn_seat_duties_tick(p_limit integer default 8) returns jsonb language plpgsql as $f$
+    begin perform public.fn_seat_duty_isolate(sd.duty) from public.seat_duty sd; v := v || public.fn_seat_duty_run(d.duty); end $f$;`;
+  const sql = replaySqlFor('fn_seat_duties_tick', def, REGISTER.fn_seat_duties_tick, '2026-09-14T01:00:00Z');
+  assert.doesNotMatch(sql, /public\.fn_seat_duty_run\s*\(/, 'the replay would lock and run live seat_duty rows');
+  assert.doesNotMatch(sql, /public\.fn_seat_duty_isolate\s*\(/, 'the replay would isolate a live duty');
+});
+
+// NO REPLAY HOLDS A LIVE ROW (19 Oct 2026). A replay is one transaction rolled back at the end, so any row lock it
+// takes on the way is held for the whole replay. Every replayed entry is walked here: its own body, after the replay's
+// rewrite, and every public routine it still calls, transitively, through the schema mirror. A path that reaches a
+// FOR UPDATE / FOR SHARE must be stubbed (entry.stub, or DEFAULT_STUBS for the pure follow-on actions), or named in
+// entry.locksLive with the reason the alarm's own decision runs through it.
+test('no healthy-day replay can take a row lock on a live table, transitive callees included', async () => {
+  const { readSchemaMirror } = await import('../lib/schema_mirror.mjs');
+  const { routineBodies, lockingCalls, ROW_LOCK } = await import('../lib/replay_locks.mjs');
+  const bodies = routineBodies(readSchemaMirror());
+  const bad = [];
+  for (const [name, entry] of Object.entries(REGISTER).filter(([, e]) => e.replay)) {
+    const pending = pendingSource(name);
+    const defs = pending ? [pending.def] : (bodies.get(name) ?? []);
+    for (const def of defs) {
+      const sql = replaySqlFor(name, def, entry, '2026-09-14T01:00:00Z');
+      const body = sql.slice(sql.indexOf('create function pg_temp.qd_replay_'));
+      if (ROW_LOCK.test(body.replace(/--[^\n]*/g, ''))) bad.push(`${name}: its replayed body still takes a row lock`);
+      const allowed = new Set(Object.keys(entry.locksLive ?? {}));
+      for (const p of lockingCalls(name, body, bodies)) {
+        const via = p.split(' -> ')[1];
+        if (!allowed.has(via)) bad.push(`${name}: ${p}`);
+      }
+    }
+  }
+  assert.deepEqual([...new Set(bad)], [], 'a replay would hold a live row lock until its rollback: stub the call, or name it in locksLive with why');
+});
+
+test('the stub matches a call whose arguments nest parentheses', async () => {
+  const { stubCalls } = await import('../lib/alarm_replay.mjs');
+  assert.equal(stubCalls(`x := public.fn_seat_duty_run(coalesce(a, (b)), 'it''s (x)') + 1;`, 'public.fn_seat_duty_run', 'null'), 'x := null + 1;');
+  assert.equal(stubCalls(`t := 'see public.fn_seat_duty_run (locked)';`, 'public.fn_seat_duty_run', 'null'), `t := 'see public.fn_seat_duty_run (locked)';`);
+});
 
 test('every routine that can raise an IT finding is replayed on a healthy day, or says why not', () => {
   const bad = unanswered(canonicalBodies());

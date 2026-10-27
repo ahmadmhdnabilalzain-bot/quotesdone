@@ -20,13 +20,14 @@
 // Exit non-zero when the orphan count exceeds the recorded baseline, so this is a ratchet: the
 // number may fall without ceremony and cannot rise without someone editing the baseline and saying
 // why in the commit.
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 const REF = (process.argv.find(a => a.startsWith('--ref=')) || '--ref=htdblwldjkcgjvmqkbeh').slice(6);
 const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || (existsSync('C:/Users/Opera/.supabase/access-token')
-      ? readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8') : '')).trim();
+  || (existsSync(SUPABASE_TOKEN_FILE)
+      ? readFileSync(SUPABASE_TOKEN_FILE, 'utf8') : '')).trim();
 if (!token) { console.error('SUPABASE_ACCESS_TOKEN is not set and no local access token was found.'); process.exit(2); }
 
 // 58 is what production MEASURED on 11 Aug 2026, not what it should be. 0 is the goal. It is set

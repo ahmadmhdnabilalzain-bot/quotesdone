@@ -20,10 +20,11 @@
 // is the seat's own liveness signal and the thing being tested in step 6.
 //
 //   node scripts/probe_it_engineer_seat_and_runtime.mjs
+import { supabaseAccessToken } from './lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
-const token = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 
 async function sql(query, attempt = 0) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {

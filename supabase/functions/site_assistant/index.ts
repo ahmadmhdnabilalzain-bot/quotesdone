@@ -23,8 +23,11 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { langOf, type FaqRow } from '../_shared/chat_answers.ts';
 import { annotate, observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
+import { givenTradeKnowledge, givenBlock } from '../_shared/given_trade_knowledge.ts';
+import { gteReads } from '../_shared/ml_embed_recipe.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { fileReviewRequest } from '../_shared/review_request.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { logParty, widgetReplyEffects } from '../_shared/widget_reply_effects.ts';
 import { companyBrief } from '../_shared/company_brief.ts';
@@ -313,10 +316,16 @@ async function handle(req: Request, T: Timer): Promise<Response> {
       const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message)));
       const msgKey = Array.from(digest.slice(0, 8), (b) => b.toString(16).padStart(2, '0')).join('');
       const hour = new Date().toISOString().slice(0, 13);
-      return (await needsAPerson(defaultDeps(admin, 'site_assistant'), {
+      const person = (await needsAPerson(defaultDeps(admin, 'site_assistant'), {
         seat: 'customer_support', surface: 'site_assistant.person', message: message.slice(0, 4000), audience: 'visitor',
         dedupeKey: 'widget:person:' + ip + ':' + hour + ':' + msgKey, subject: { path },
       })).value;
+      // Ledger 1152 / ruling 1264: a contested decision goes to its owning seat; an explicit ask for a person to the founder.
+      if (person === true) {
+        await fileReviewRequest(admin, defaultDeps(admin, 'site_assistant'), { channel: 'site_chat', requester: 'site visitor ' + ip, message,
+          surface: 'site_assistant.review_of_decision', dedupeKey: ip + ':' + hour + ':' + msgKey });
+      }
+      return person;
     };
     const fileEffects = async (o: { grounded: boolean; answered: boolean; refusal: string }) => {
       const fx = await widgetReplyEffects(rpc, { message, live: !!live, ip, path, askedForAPerson, ...o });
@@ -340,9 +349,12 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // did not hold: the portal read one back as "the quote record refers to 40 aluminium windows". Past cases stay for
     // internal seats (think() drops case text for an external audience). The recall still runs, so this judgement is opened
     // with what was recalled and its outcome is learned from; its text is never put in this prompt.
-    const [brief, memory] = await Promise.all([
+    // The verified trade knowledge is GIVEN with the brief (given_trade_knowledge.ts, ruling 1195): fetched in parallel, '' on failure.
+    const tradeDeps = defaultDeps(admin, 'site_assistant');
+    const [brief, memory, given] = await Promise.all([
       companyBrief(rpc, (faqs || []) as FaqRow[], [FACTS_SHARED, FACTS_CUSTOMER, FACTS_SUPPLIER].join('\n\n'), replyLang),
       recallCases(admin, { seat: 'customer_support', path: 'reply', situation: message, otherSeats: false }).catch(() => null),
+      givenTradeKnowledge({ embed: (t, sp) => tradeDeps.embed(t, sp), rpc, gteReads, audience: audience === 'unknown' ? 'visitor' : audience }, message),
     ]);
     lap('brief');
     void memory; // read in parallel with the brief (the fast-answer check pins it); its text never enters this prompt
@@ -353,13 +365,15 @@ async function handle(req: Request, T: Timer): Promise<Response> {
       : `AUDIENCE: not known yet${path ? ' (on ' + path + ')' : ''}. Do not decide whether they buy or sell; if the answer genuinely differs, answer both sides briefly.`;
     const liveBlock = live ? `\n\nTHIS PERSON IS SIGNED IN. Their OWN live account data, scoped in SQL to them alone:\n${JSON.stringify(live)}\nAnswer about their account from it directly; never tell them to log in. Before a reveal, price_band is a rounded band and a count on purpose: never present it as exact and never name or describe a supplier. Their portal is in ${uiLang === 'ar' ? 'ARABIC; name its buttons in Arabic as printed ("طلب جديد", "طلباتي", "المستندات", "الرسائل", "الحساب")' : 'ENGLISH; name its buttons as printed ("New request", "My requests", "Documents", "Messages", "Account")'}.` : '';
     const sys = `You are QuotesDone's ${seatForSurface === 'sales_engineer' ? 'sales engineer' : 'customer support'} on ${live ? 'the signed-in portal' : 'the quotesdone.com website chat'}. Answer the way a senior UAE construction and procurement expert answers a client: one direct, exact answer to what they asked, reasoned with your own expertise. Trade, material, specification and market questions (for example the difference between MDF and plywood) get a clear expert answer from your own knowledge.
-${audienceBlock}${liveBlock}${timelineBlock}
+${audienceBlock}${liveBlock}${timelineBlock}${givenBlock(given)}
 RULES:
-- Everything about QuotesDone itself (fees, terms, liability, how it works, policies, contacts) comes from the COMPANY BRIEF. Every money figure or percentage you write must be one the brief states; never estimate a price, fee or rate the brief does not give — explain without a number instead. For what a trade or item costs, give the range from the PUBLISHED PRICE GUIDE as a range, say it is a guide and not a quotation, and ${live ? 'offer to collect real quotes' : 'say real quotes come once they sign up and post the job'}.
+- Everything about QuotesDone itself (fees, terms, liability, how it works, policies, contacts) comes from the COMPANY BRIEF. Every money figure or percentage you write must be one the brief states; never estimate a price, fee or rate the brief does not give — explain without a number instead. When they ask what a trade or item costs, give the range from the PUBLISHED PRICE GUIDE as a range, say it is a guide and not a quotation, and ${live ? 'offer to collect real quotes' : 'say real quotes come once they sign up and post the job'}; never volunteer it when they did not ask about cost, and give it once per conversation (live conversation suite, ledger 1200: 15 of 26 replies opened with an unasked price range).
+- Never ask again what the conversation already asked: a question they answered is noted, and one they skipped or were unsure of is recorded "to confirm at the supplier's site visit" and not repeated. Speak only to them: never mention your own earlier reply, a correction or a rewrite, and never write a code fence.
 - Never say you will check, confirm or get back to them, and never decline a question about any trade, category or specification (food and beverage excepted): give everything that can be said now.
 - Answer what they asked, directly and exactly; then, where it helps${live ? '' : ' and only about the general question, never their job details'}, ask the one or two follow-up questions that matter most (you may offer two concrete choices when they are unsure). Never a list of "top results", never a robotic yes/no. Plain text for a chat window: no markdown, no bullets, no headings. Under about ${live ? 120 : 90} words.
 - Reply in ${replyLang === 'ar' ? 'formal Gulf Arabic (Western digits; each phone number, email or link on its own line)' : 'UAE English'}${audience === 'supplier' ? ' — suppliers are always answered in English' : ', the language they wrote in'}.
 - If they sent a photo or drawing, use what you see in it: name what is there, what it means for their job, and what you still need to know.
+- Before you write, read every question you asked in your earlier replies. Each one is either answered or, if they skipped it or were unsure, already recorded "to confirm at the supplier's site visit": never ask it again in any wording, and move on to what is still unknown (live conversation suite run a8ad5ed7: 9 of 11 conversations below target re-asked a question).
 - If they ask for a person, give the published contact: +971 50 931 9355 (call or WhatsApp, Mon-Fri 9am-6pm GST), management@quotesdone.com, /contact/.
 - Never assume, state or hint at their role (customer or supplier) unless they told you or they are signed in; never write "as a supplier" or "as a customer" about them otherwise. If asked who said they are a supplier or a customer, say nobody did and you do not assume it.
 - Never recommend, name or rank any supplier, company or brand to hire, and never suggest who to call; QuotesDone matches verified suppliers to a job only after the job is posted as an inquiry.${live ? '' : `

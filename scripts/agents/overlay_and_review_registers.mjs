@@ -7,6 +7,7 @@
 // derived from each overlay's own contract in org_role and from the category record it covers.
 //
 //   node scripts/agents/overlay_and_review_registers.mjs --ref=<project-ref>
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 
 const arg = (k, d) => {
@@ -15,7 +16,7 @@ const arg = (k, d) => {
 };
 const REF = arg('ref', '');
 if (!REF) { console.error('usage: --ref=<project-ref>'); process.exit(2); }
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 if (!token) { console.log('SKIP registers: no SUPABASE_ACCESS_TOKEN'); process.exit(0); }

@@ -95,6 +95,7 @@ const clip = (v: unknown, n: number) => (v == null || String(v).trim() === '') ?
 import { inboxBoq, inboxField, scrubIdentity } from './identity_scrub.ts';
 import { cleanTemplate } from './quote_template.ts';
 import { lossFeedback } from './loss_feedback.ts';
+import { newOptionRefusal } from './new_option.ts';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const numOrNull = (v: unknown) => { const n = Number(v); return isFinite(n) && n !== 0 ? n : (isFinite(n) && String(v).trim() !== '' ? n : null); };
 // EXACT SPECS FOR A TRADE WITH NO LINE READER (23 Sep 2026). The trade's knowledge pack says what a line
@@ -1067,6 +1068,9 @@ ${q}`,
         if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
         Object.assign(upd, rec);
       }
+      // PROMOTIONAL MESSAGES ARE OPT-IN (19 Oct 2026, founder, legal finding 2; seat: ceo): the separate, unticked
+      // box. Exactly true only, never required, written on its own so a missing column cannot fail the save.
+      if (body.marketing_consent === true) await admin.from('leads').update({ marketing_consent: true, marketing_consent_at: new Date().toISOString(), marketing_consent_source: 'registration' }).eq('id', sup.id).then(() => null, () => null);
       const wasApproved = String(sup.approval_status || '') === 'approved';
       // The WhatsApp question is answered in sign-up (founder, 15 Sep 2026). Checked beside the six, not
       // added to them, and before anything is written, as it was. Read on its own so a read error cannot
@@ -1683,6 +1687,8 @@ ${q}`,
       // RULING 1177 (12 Oct 2026): 'fill the form instead' was the answer to every quotation quote_extract could not price.
       // The original now goes through the read-every-attachment helper (the vision model transcribes it, the quotation
       // parser prices it, one more asking); only when that fails too is the supplier asked for a clearer copy, in English.
+      // A total quote_extract held as ambiguous is the supplier's to state; no other reader is asked to guess it (#1562).
+      if (jd?.error === 'total_ambiguous') return J({ error: 'total_ambiguous', code: 'quote_total_ambiguous', review_reason: jd.review_reason ?? null, proposal: jd.proposal ?? null, original_file_path, original_file_name, message: 'We read your quotation but could not be sure of its total (' + String(jd.review_reason || '').replace(/_/g, ' ') + '). Please type the total in the form.' }, 422);
       if (!jd?.ok && orig.b64) {
         const seen = await readQuotationFile(b64Bytes(String(orig.b64)), String(orig.filename || 'quotation'), String(orig.mime || ''), [String((sup as any).company_name || '')].filter(Boolean), undefined, envGatewayVision({ subject: { supplier_id: (sup as any).id, email } })).catch(() => null);
         if (seen?.proposal) jd = { ok: true, proposal: seen.proposal, extracted_by_model: 'read_every_attachment' };
@@ -1761,6 +1767,22 @@ ${q}`,
       if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 409);
       return J(out);
     }
+    // WITHDRAW BEFORE THE REVEAL (QA walk, 19 Oct 2026: the portal showed a "Withdrawn" status but gave the
+    // supplier no way to reach it, and this function had no action for it). Only this supplier's own option,
+    // only on an enquiry we sent them, only while it is a draft or with the customer and nobody has revealed
+    // it. A revealed quote is the customer's paid decision and is never withdrawn from here.
+    if (action === 'withdraw_quote') {
+      const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      const { data: qt } = await admin.from('quotes').select('id,inquiry_id,status').eq('id', String(body.quote_id || '')).eq('supplier_id', sup.id).maybeSingle();
+      if (!qt || !(await matchedInquiry(Number(sup.id), qt.inquiry_id))) return J({ error: 'not_found', code: 'not_found' }, 404);
+      const { count: revealed } = await admin.from('transactions').select('id', { count: 'exact', head: true }).eq('quote_id', qt.id);
+      if (revealed) return J({ error: 'This quotation was already revealed to the customer, so it can no longer be withdrawn.', code: 'already_revealed' }, 409);
+      if (!['draft', 'submitted'].includes(String(qt.status))) return J({ error: 'This quotation cannot be withdrawn now.', code: 'not_withdrawable' }, 409);
+      const { data: done, error: wErr } = await admin.from('quotes').update({ status: 'withdrawn' }).eq('id', qt.id).in('status', ['draft', 'submitted']).select('id');
+      if (wErr) return J({ error: 'could_not_withdraw', code: 'could_not_withdraw' }, 500);
+      return done?.length ? J({ ok: true, status: 'withdrawn' }) : J({ error: 'This quotation cannot be withdrawn now.', code: 'not_withdrawable' }, 409);
+    }
     if (action === 'submit_quote') {
       const { data: sup } = await admin.from('leads').select('id,company_name,locale,whatsapp,phone,accepted_terms_at,registration_status,approval_status,licence_gate_reason,rejection_reason').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
@@ -1830,6 +1852,11 @@ ${q}`,
       const multi = opts.length > 1;
       const { data: mine } = await admin.from('quotes').select('id,option_no,status').eq('inquiry_id', inquiryId).eq('supplier_id', sup.id);
       const maxOpt = Math.max(0, ...(mine || []).map((r: any) => Number(r.option_no) || 1));
+      if (body.new_option === true) {
+        const { count: revealedQuotes } = await admin.from('transactions').select('id', { count: 'exact', head: true }).eq('fee_status', 'paid').in('quote_id', (mine || []).map((r: any) => r.id).concat(['00000000-0000-0000-0000-000000000000']));   // only a PAID reveal counts: a failed or unpaid checkout never blocks an option
+        const refusal = newOptionRefusal(body.new_option, revealedQuotes || 0);
+        if (refusal) return J(refusal.body, refusal.status);
+      }
       const single = Number(body.option_no) >= 1 ? Math.floor(Number(body.option_no)) : (body.new_option === true ? maxOpt + 1 : 1);
       const plan = multi ? opts.map((o) => ({ option_no: o.option_no, lines: o.lines, amount: optionAmount(o) })) : [{ option_no: single, lines: opts[0]?.lines ?? normItems, amount: amt as number | null }];
       if (plan.some((p) => p.option_no > 20)) return J({ error: 'A quote can carry at most 20 options.', code: 'too_many_options' }, 400);
@@ -1924,7 +1951,7 @@ ${q}`,
         }
         let qid: string;
         if (prior) { const { error } = await admin.from('quotes').update(det).eq('id', prior.id); if (error) return J({ error: error.message }, 500); qid = String(prior.id); }
-        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error) return J({ error: error.message }, 500); qid = String(ins.id); }
+        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error) return J({ error: error.message }, 500); qid = String(ins.id); }
         try {
           await admin.from('quote_items').delete().eq('quote_id', qid);
           // A line's own words fill brand / model / specification where the caller sent none; a scope

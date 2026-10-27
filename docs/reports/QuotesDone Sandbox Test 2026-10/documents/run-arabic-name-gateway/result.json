@@ -1,0 +1,2472 @@
+{
+ "label": "arabic-name-gateway",
+ "run_tag": "5e27b5bc",
+ "measured_at": "2026-10-12T13:41:38.945Z",
+ "model_via": "gateway",
+ "spend": {
+  "calls": 28,
+  "aed": "0.0495"
+ },
+ "gate_sql": [],
+ "leftovers": {
+  "leads": 0,
+  "objects": 0
+ },
+ "corpus": {
+  "documents": 60,
+  "licences": 51,
+  "readable_licences": 23
+ },
+ "perField": {
+  "activities": {
+   "correct": 48,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 48,
+   "acc": 100
+  },
+  "authority": {
+   "correct": 48,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 48,
+   "acc": 100
+  },
+  "emirate": {
+   "correct": 48,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 48,
+   "acc": 100
+  },
+  "expiry_date": {
+   "correct": 48,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 48,
+   "acc": 100
+  },
+  "issue_date": {
+   "correct": 48,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 48,
+   "acc": 100
+  },
+  "legal_form": {
+   "correct": 48,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 48,
+   "acc": 100
+  },
+  "legal_name_ar": {
+   "correct": 2,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 49,
+   "n": 2,
+   "acc": 100
+  },
+  "legal_name_en": {
+   "correct": 46,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 5,
+   "n": 46,
+   "acc": 100
+  },
+  "licence_no": {
+   "correct": 48,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 48,
+   "acc": 100
+  },
+  "trade_name": {
+   "correct": 48,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 48,
+   "acc": 100
+  }
+ },
+ "perFieldReadable": {
+  "activities": {
+   "correct": 23,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 23,
+   "acc": 100
+  },
+  "authority": {
+   "correct": 23,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 23,
+   "acc": 100
+  },
+  "emirate": {
+   "correct": 23,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 23,
+   "acc": 100
+  },
+  "expiry_date": {
+   "correct": 23,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 23,
+   "acc": 100
+  },
+  "issue_date": {
+   "correct": 23,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 23,
+   "acc": 100
+  },
+  "legal_form": {
+   "correct": 23,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 23,
+   "acc": 100
+  },
+  "legal_name_ar": {
+   "correct": 0,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 23,
+   "n": 0,
+   "acc": null
+  },
+  "legal_name_en": {
+   "correct": 23,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 23,
+   "acc": 100
+  },
+  "licence_no": {
+   "correct": 23,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 23,
+   "acc": 100
+  },
+  "trade_name": {
+   "correct": 23,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 0,
+   "n": 23,
+   "acc": 100
+  }
+ },
+ "perAuthority": {
+  "abu_dhabi_added": {
+   "correct": 27,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 27,
+   "acc": 100,
+   "critical": {
+    "correct": 9,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 9,
+    "acc": 100
+   }
+  },
+  "adgm": {
+   "correct": 18,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 100,
+   "critical": {
+    "correct": 6,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 100
+   }
+  },
+  "ajman_ded": {
+   "correct": 27,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 27,
+   "acc": 100,
+   "critical": {
+    "correct": 8,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 1,
+    "n": 8,
+    "acc": 100
+   }
+  },
+  "dafza": {
+   "correct": 18,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 100,
+   "critical": {
+    "correct": 6,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 100
+   }
+  },
+  "difc": {
+   "correct": 18,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 100,
+   "critical": {
+    "correct": 6,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 100
+   }
+  },
+  "dmcc": {
+   "correct": 27,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 27,
+   "acc": 100,
+   "critical": {
+    "correct": 9,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 9,
+    "acc": 100
+   }
+  },
+  "dso": {
+   "correct": 18,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 100,
+   "critical": {
+    "correct": 6,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 100
+   }
+  },
+  "dubai_ded_old": {
+   "correct": 36,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 4,
+   "n": 36,
+   "acc": 100,
+   "critical": {
+    "correct": 12,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 12,
+    "acc": 100
+   }
+  },
+  "dubai_det": {
+   "correct": 36,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 4,
+   "n": 36,
+   "acc": 100,
+   "critical": {
+    "correct": 12,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 12,
+    "acc": 100
+   }
+  },
+  "fujairah_ded": {
+   "correct": 27,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 27,
+   "acc": 100,
+   "critical": {
+    "correct": 8,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 1,
+    "n": 8,
+    "acc": 100
+   }
+  },
+  "ifza": {
+   "correct": 18,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 100,
+   "critical": {
+    "correct": 6,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 100
+   }
+  },
+  "jafza": {
+   "correct": 27,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 27,
+   "acc": 100,
+   "critical": {
+    "correct": 9,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 9,
+    "acc": 100
+   }
+  },
+  "meydan": {
+   "correct": 18,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 100,
+   "critical": {
+    "correct": 6,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 100
+   }
+  },
+  "none": {
+   "correct": 0,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 30,
+   "n": 0,
+   "acc": null,
+   "critical": {
+    "correct": 0,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 9,
+    "n": 0,
+    "acc": null
+   }
+  },
+  "rak_ded": {
+   "correct": 18,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 100,
+   "critical": {
+    "correct": 6,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 100
+   }
+  },
+  "rakez": {
+   "correct": 27,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 27,
+   "acc": 100,
+   "critical": {
+    "correct": 9,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 9,
+    "acc": 100
+   }
+  },
+  "shams": {
+   "correct": 18,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 100,
+   "critical": {
+    "correct": 6,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 100
+   }
+  },
+  "sharjah_sedd": {
+   "correct": 36,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 4,
+   "n": 36,
+   "acc": 100,
+   "critical": {
+    "correct": 12,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 12,
+    "acc": 100
+   }
+  },
+  "uaq_ded": {
+   "correct": 18,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 100,
+   "critical": {
+    "correct": 6,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 100
+   }
+  }
+ },
+ "perFormat": {
+  "arabic_only_jpg": {
+   "correct": 9,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 1,
+   "n": 9,
+   "acc": 100,
+   "critical": {
+    "correct": 2,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 1,
+    "n": 2,
+    "acc": 100
+   }
+  },
+  "arabic_only_png": {
+   "correct": 9,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 1,
+   "n": 9,
+   "acc": 100,
+   "critical": {
+    "correct": 2,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 1,
+    "n": 2,
+    "acc": 100
+   }
+  },
+  "bilingual_jpg": {
+   "correct": 9,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 1,
+   "n": 9,
+   "acc": 100,
+   "critical": {
+    "correct": 3,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 3,
+    "acc": 100
+   }
+  },
+  "bilingual_phone": {
+   "correct": 9,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 1,
+   "n": 9,
+   "acc": 100,
+   "critical": {
+    "correct": 3,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 3,
+    "acc": 100
+   }
+  },
+  "bilingual_scan_pdf": {
+   "correct": 9,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 1,
+   "n": 9,
+   "acc": 100,
+   "critical": {
+    "correct": 3,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 3,
+    "acc": 100
+   }
+  },
+  "blank_pdf": {
+   "correct": 0,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 10,
+   "n": 0,
+   "acc": null,
+   "critical": {
+    "correct": 0,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 3,
+    "n": 0,
+    "acc": null
+   }
+  },
+  "blank_photo": {
+   "correct": 0,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 10,
+   "n": 0,
+   "acc": null,
+   "critical": {
+    "correct": 0,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 3,
+    "n": 0,
+    "acc": null
+   }
+  },
+  "jpg": {
+   "correct": 36,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 4,
+   "n": 36,
+   "acc": 100,
+   "critical": {
+    "correct": 12,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 12,
+    "acc": 100
+   }
+  },
+  "lowdpi": {
+   "correct": 18,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 100,
+   "critical": {
+    "correct": 6,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 100
+   }
+  },
+  "multipage_pdf": {
+   "correct": 18,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 100,
+   "critical": {
+    "correct": 6,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 100
+   }
+  },
+  "no_file": {
+   "correct": 0,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 10,
+   "n": 0,
+   "acc": null,
+   "critical": {
+    "correct": 0,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 3,
+    "n": 0,
+    "acc": null
+   }
+  },
+  "phone": {
+   "correct": 18,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 100,
+   "critical": {
+    "correct": 6,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 100
+   }
+  },
+  "png": {
+   "correct": 36,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 4,
+   "n": 36,
+   "acc": 100,
+   "critical": {
+    "correct": 12,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 12,
+    "acc": 100
+   }
+  },
+  "rotated90": {
+   "correct": 27,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 27,
+   "acc": 100,
+   "critical": {
+    "correct": 9,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 9,
+    "acc": 100
+   }
+  },
+  "scan_pdf": {
+   "correct": 27,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 3,
+   "n": 27,
+   "acc": 100,
+   "critical": {
+    "correct": 9,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 9,
+    "acc": 100
+   }
+  },
+  "skewed": {
+   "correct": 18,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 2,
+   "n": 18,
+   "acc": 100,
+   "critical": {
+    "correct": 6,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 6,
+    "acc": 100
+   }
+  },
+  "text_pdf_colon": {
+   "correct": 108,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 12,
+   "n": 108,
+   "acc": 100,
+   "critical": {
+    "correct": 36,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 36,
+    "acc": 100
+   }
+  },
+  "text_pdf_table": {
+   "correct": 81,
+   "held": 0,
+   "wrong": 0,
+   "n/a": 9,
+   "n": 81,
+   "acc": 100,
+   "critical": {
+    "correct": 27,
+    "held": 0,
+    "wrong": 0,
+    "n/a": 0,
+    "n": 27,
+    "acc": 100
+   }
+  }
+ },
+ "gate": {
+  "tally": {
+   "correct": 51,
+   "held": 0,
+   "wrong": 0,
+   "UNSAFE": 0
+  },
+  "rows": [
+   {
+    "id": "lic_dubai_ded_old_text",
+    "authority": "dubai_ded_old",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Falcon Aluminium LLC"
+   },
+   {
+    "id": "lic_dubai_ded_old_scan_pdf",
+    "authority": "dubai_ded_old",
+    "format": "scan_pdf",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Pearl Electrical LLC"
+   },
+   {
+    "id": "lic_dubai_det_text",
+    "authority": "dubai_det",
+    "format": "text_pdf_table",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Dune Plumbing LLC"
+   },
+   {
+    "id": "lic_dubai_det_png",
+    "authority": "dubai_det",
+    "format": "png",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Oasis Air LLC"
+   },
+   {
+    "id": "lic_abu_dhabi_added_text",
+    "authority": "abu_dhabi_added",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Horizon Floor LLC"
+   },
+   {
+    "id": "lic_abu_dhabi_added_jpg",
+    "authority": "abu_dhabi_added",
+    "format": "jpg",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Saker Carpentry LLC"
+   },
+   {
+    "id": "lic_adgm_text",
+    "authority": "adgm",
+    "format": "text_pdf_table",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Marina Painting Ltd"
+   },
+   {
+    "id": "lic_adgm_rotated90",
+    "authority": "adgm",
+    "format": "rotated90",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Crescent Building Ltd"
+   },
+   {
+    "id": "lic_sharjah_sedd_text",
+    "authority": "sharjah_sedd",
+    "format": "text_pdf_table",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Ghaf Landscaping LLC"
+   },
+   {
+    "id": "lic_sharjah_sedd_skewed",
+    "authority": "sharjah_sedd",
+    "format": "skewed",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Palm Glass LLC"
+   },
+   {
+    "id": "lic_ajman_ded_text",
+    "authority": "ajman_ded",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Sidra Lifts Est"
+   },
+   {
+    "id": "lic_ajman_ded_lowdpi",
+    "authority": "ajman_ded",
+    "format": "lowdpi",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Nakheel Fire Est"
+   },
+   {
+    "id": "lic_rak_ded_text",
+    "authority": "rak_ded",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Corniche Aluminium LLC"
+   },
+   {
+    "id": "lic_rak_ded_phone",
+    "authority": "rak_ded",
+    "format": "phone",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Lulu Electrical LLC"
+   },
+   {
+    "id": "lic_rakez_text",
+    "authority": "rakez",
+    "format": "text_pdf_table",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Wadi Plumbing FZ LLC"
+   },
+   {
+    "id": "lic_rakez_scan_pdf",
+    "authority": "rakez",
+    "format": "scan_pdf",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Qamar Air FZ LLC"
+   },
+   {
+    "id": "lic_uaq_ded_text",
+    "authority": "uaq_ded",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Najm Floor LLC"
+   },
+   {
+    "id": "lic_uaq_ded_png",
+    "authority": "uaq_ded",
+    "format": "png",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Reem Carpentry LLC"
+   },
+   {
+    "id": "lic_fujairah_ded_text",
+    "authority": "fujairah_ded",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Falcon Painting LLC"
+   },
+   {
+    "id": "lic_fujairah_ded_jpg",
+    "authority": "fujairah_ded",
+    "format": "jpg",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Pearl Building LLC"
+   },
+   {
+    "id": "lic_jafza_text",
+    "authority": "jafza",
+    "format": "text_pdf_table",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Dune Landscaping FZE"
+   },
+   {
+    "id": "lic_jafza_rotated90",
+    "authority": "jafza",
+    "format": "rotated90",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Oasis Glass FZE"
+   },
+   {
+    "id": "lic_dmcc_text",
+    "authority": "dmcc",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Horizon Lifts DMCC"
+   },
+   {
+    "id": "lic_dmcc_skewed",
+    "authority": "dmcc",
+    "format": "skewed",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Saker Fire DMCC"
+   },
+   {
+    "id": "lic_dafza_text",
+    "authority": "dafza",
+    "format": "text_pdf_table",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Marina Aluminium FZ LLC"
+   },
+   {
+    "id": "lic_dafza_lowdpi",
+    "authority": "dafza",
+    "format": "lowdpi",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Crescent Electrical FZ LLC"
+   },
+   {
+    "id": "lic_dso_text",
+    "authority": "dso",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Ghaf Plumbing FZ LLC"
+   },
+   {
+    "id": "lic_dso_phone",
+    "authority": "dso",
+    "format": "phone",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Palm Air FZ LLC"
+   },
+   {
+    "id": "lic_ifza_text",
+    "authority": "ifza",
+    "format": "text_pdf_table",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Sidra Floor FZ LLC"
+   },
+   {
+    "id": "lic_ifza_scan_pdf",
+    "authority": "ifza",
+    "format": "scan_pdf",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Nakheel Carpentry FZ LLC"
+   },
+   {
+    "id": "lic_meydan_text",
+    "authority": "meydan",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Corniche Painting FZ LLC"
+   },
+   {
+    "id": "lic_meydan_png",
+    "authority": "meydan",
+    "format": "png",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Lulu Building FZ LLC"
+   },
+   {
+    "id": "lic_shams_text",
+    "authority": "shams",
+    "format": "text_pdf_table",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Wadi Landscaping FZE"
+   },
+   {
+    "id": "lic_shams_jpg",
+    "authority": "shams",
+    "format": "jpg",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Qamar Glass FZE"
+   },
+   {
+    "id": "lic_difc_text",
+    "authority": "difc",
+    "format": "text_pdf_colon",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Najm Lifts Ltd"
+   },
+   {
+    "id": "lic_difc_rotated90",
+    "authority": "difc",
+    "format": "rotated90",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Reem Fire Ltd"
+   },
+   {
+    "id": "lic_dubai_det_bi_jpg",
+    "authority": "dubai_det",
+    "format": "bilingual_jpg",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Falcon Aluminium LLC"
+   },
+   {
+    "id": "lic_sharjah_sedd_bi_phone",
+    "authority": "sharjah_sedd",
+    "format": "bilingual_phone",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Pearl Electrical LLC"
+   },
+   {
+    "id": "lic_abu_dhabi_added_bi_scan_pdf",
+    "authority": "abu_dhabi_added",
+    "format": "bilingual_scan_pdf",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Dune Plumbing LLC"
+   },
+   {
+    "id": "lic_ajman_ded_ar_png",
+    "authority": "ajman_ded",
+    "format": "arabic_only_png",
+    "expected": "hold_name",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Oasis Air Est"
+   },
+   {
+    "id": "lic_fujairah_ded_ar_jpg",
+    "authority": "fujairah_ded",
+    "format": "arabic_only_jpg",
+    "expected": "hold_name",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Horizon Floor LLC"
+   },
+   {
+    "id": "lic_dmcc_multipage",
+    "authority": "dmcc",
+    "format": "multipage_pdf",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Saker Carpentry DMCC"
+   },
+   {
+    "id": "lic_jafza_multipage",
+    "authority": "jafza",
+    "format": "multipage_pdf",
+    "expected": "approve",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Marina Painting FZE"
+   },
+   {
+    "id": "lic_expired_text",
+    "authority": "dubai_det",
+    "format": "text_pdf_table",
+    "expected": "licence_expired",
+    "status": "action_required",
+    "reason": "licence_expired",
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Crescent Building LLC"
+   },
+   {
+    "id": "lic_expired_scan",
+    "authority": "sharjah_sedd",
+    "format": "jpg",
+    "expected": "licence_expired",
+    "status": "action_required",
+    "reason": "licence_expired",
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Ghaf Landscaping LLC"
+   },
+   {
+    "id": "lic_mismatch_text",
+    "authority": "dubai_ded_old",
+    "format": "text_pdf_colon",
+    "expected": "name_autofilled",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Mirage Contracting LLC"
+   },
+   {
+    "id": "lic_mismatch_text_approved_swap",
+    "authority": "dubai_ded_old",
+    "format": "text_pdf_colon",
+    "expected": "name_autofilled",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Mirage Contracting LLC"
+   },
+   {
+    "id": "lic_mismatch_scan",
+    "authority": "rakez",
+    "format": "png",
+    "expected": "name_autofilled",
+    "status": "approved",
+    "reason": null,
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Atlas Building Works FZ LLC"
+   },
+   {
+    "id": "lic_blank_pdf",
+    "authority": "none",
+    "format": "blank_pdf",
+    "expected": "licence_unreadable",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Blank Page LLC"
+   },
+   {
+    "id": "lic_blank_photo",
+    "authority": "none",
+    "format": "blank_photo",
+    "expected": "licence_unreadable",
+    "status": "pending",
+    "reason": "licence_unreadable",
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO Blank Photo LLC"
+   },
+   {
+    "id": "lic_missing",
+    "authority": "none",
+    "format": "no_file",
+    "expected": "reg_licence",
+    "status": "action_required",
+    "reason": "reg_licence",
+    "verdict": "correct",
+    "critical_wrong": [],
+    "company_name": "ZZ DEMO No Licence LLC"
+   }
+  ]
+ },
+ "match": [
+  {
+   "trade": "hvac",
+   "expected": 8,
+   "reached": 8,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "glazing",
+   "expected": 10,
+   "reached": 10,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "joinery",
+   "expected": 9,
+   "reached": 9,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "flooring",
+   "expected": 7,
+   "reached": 7,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "painting",
+   "expected": 9,
+   "reached": 9,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "plumbing",
+   "expected": 10,
+   "reached": 10,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "aluminium",
+   "expected": 9,
+   "reached": 0,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": [
+    "lic_dubai_ded_old_text",
+    "lic_adgm_rotated90",
+    "lic_rak_ded_text",
+    "lic_fujairah_ded_jpg",
+    "lic_dafza_text",
+    "lic_meydan_png",
+    "lic_dubai_det_bi_jpg",
+    "profile_pdf",
+    "catalogue_pdf"
+   ]
+  },
+  {
+   "trade": "elevators",
+   "expected": 8,
+   "reached": 8,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "electrical",
+   "expected": 8,
+   "reached": 8,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "landscaping",
+   "expected": 7,
+   "reached": 7,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "tax_advisory",
+   "expected": 0,
+   "reached": 0,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "fire_fighting",
+   "expected": 8,
+   "reached": 8,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "waterproofing",
+   "expected": 8,
+   "reached": 8,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "legal_services",
+   "expected": 0,
+   "reached": 0,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": []
+  },
+  {
+   "trade": "corporate_training",
+   "expected": 0,
+   "reached": 0,
+   "extra": [],
+   "missing_held": [],
+   "missing_wrong": []
+  }
+ ],
+ "trades": [
+  {
+   "id": "lic_dubai_ded_old_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "aluminium",
+    "joinery"
+   ],
+   "proposed": [
+    "joinery"
+   ],
+   "wrong": [],
+   "missing": [
+    "aluminium"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_dubai_ded_old_scan_pdf",
+   "kind": "licence",
+   "format": "scan_pdf",
+   "truth": [
+    "electrical",
+    "painting"
+   ],
+   "proposed": [
+    "electrical",
+    "painting"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_dubai_det_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "proposed": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_dubai_det_png",
+   "kind": "licence",
+   "format": "png",
+   "truth": [
+    "hvac",
+    "landscaping"
+   ],
+   "proposed": [
+    "hvac",
+    "landscaping"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_abu_dhabi_added_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "flooring",
+    "glazing"
+   ],
+   "proposed": [
+    "flooring",
+    "glazing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_abu_dhabi_added_jpg",
+   "kind": "licence",
+   "format": "jpg",
+   "truth": [
+    "elevators",
+    "joinery"
+   ],
+   "proposed": [
+    "elevators",
+    "joinery"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_adgm_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "fire_fighting",
+    "painting"
+   ],
+   "proposed": [
+    "fire_fighting",
+    "painting"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_adgm_rotated90",
+   "kind": "licence",
+   "format": "rotated90",
+   "truth": [
+    "aluminium",
+    "waterproofing"
+   ],
+   "proposed": [
+    "waterproofing"
+   ],
+   "wrong": [],
+   "missing": [
+    "aluminium"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_sharjah_sedd_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "electrical",
+    "landscaping"
+   ],
+   "proposed": [
+    "electrical",
+    "landscaping"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_sharjah_sedd_skewed",
+   "kind": "licence",
+   "format": "skewed",
+   "truth": [
+    "glazing",
+    "plumbing"
+   ],
+   "proposed": [
+    "glazing",
+    "plumbing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_ajman_ded_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "elevators",
+    "hvac"
+   ],
+   "proposed": [
+    "elevators",
+    "hvac"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_ajman_ded_lowdpi",
+   "kind": "licence",
+   "format": "lowdpi",
+   "truth": [
+    "fire_fighting",
+    "flooring"
+   ],
+   "proposed": [
+    "fire_fighting",
+    "flooring"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_rak_ded_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "aluminium",
+    "joinery"
+   ],
+   "proposed": [
+    "joinery"
+   ],
+   "wrong": [],
+   "missing": [
+    "aluminium"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_rak_ded_phone",
+   "kind": "licence",
+   "format": "phone",
+   "truth": [
+    "electrical",
+    "painting"
+   ],
+   "proposed": [
+    "electrical",
+    "painting"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_rakez_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "proposed": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_rakez_scan_pdf",
+   "kind": "licence",
+   "format": "scan_pdf",
+   "truth": [
+    "hvac",
+    "landscaping"
+   ],
+   "proposed": [
+    "hvac",
+    "landscaping"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_uaq_ded_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "flooring",
+    "glazing"
+   ],
+   "proposed": [
+    "flooring",
+    "glazing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_uaq_ded_png",
+   "kind": "licence",
+   "format": "png",
+   "truth": [
+    "elevators",
+    "joinery"
+   ],
+   "proposed": [
+    "elevators",
+    "joinery"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_fujairah_ded_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "fire_fighting",
+    "painting"
+   ],
+   "proposed": [
+    "fire_fighting",
+    "painting"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_fujairah_ded_jpg",
+   "kind": "licence",
+   "format": "jpg",
+   "truth": [
+    "aluminium",
+    "waterproofing"
+   ],
+   "proposed": [
+    "waterproofing"
+   ],
+   "wrong": [],
+   "missing": [
+    "aluminium"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_jafza_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "electrical",
+    "landscaping"
+   ],
+   "proposed": [
+    "electrical",
+    "landscaping"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_jafza_rotated90",
+   "kind": "licence",
+   "format": "rotated90",
+   "truth": [
+    "glazing",
+    "plumbing"
+   ],
+   "proposed": [
+    "glazing",
+    "plumbing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_dmcc_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "elevators",
+    "hvac"
+   ],
+   "proposed": [
+    "elevators",
+    "hvac"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_dmcc_skewed",
+   "kind": "licence",
+   "format": "skewed",
+   "truth": [
+    "fire_fighting",
+    "flooring"
+   ],
+   "proposed": [
+    "fire_fighting",
+    "flooring"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_dafza_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "aluminium",
+    "joinery"
+   ],
+   "proposed": [
+    "joinery"
+   ],
+   "wrong": [],
+   "missing": [
+    "aluminium"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_dafza_lowdpi",
+   "kind": "licence",
+   "format": "lowdpi",
+   "truth": [
+    "electrical",
+    "painting"
+   ],
+   "proposed": [
+    "electrical",
+    "painting"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_dso_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "proposed": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_dso_phone",
+   "kind": "licence",
+   "format": "phone",
+   "truth": [
+    "hvac",
+    "landscaping"
+   ],
+   "proposed": [
+    "hvac",
+    "landscaping"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_ifza_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "flooring",
+    "glazing"
+   ],
+   "proposed": [
+    "flooring",
+    "glazing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_ifza_scan_pdf",
+   "kind": "licence",
+   "format": "scan_pdf",
+   "truth": [
+    "elevators",
+    "joinery"
+   ],
+   "proposed": [
+    "elevators",
+    "joinery"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_meydan_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "fire_fighting",
+    "painting"
+   ],
+   "proposed": [
+    "fire_fighting",
+    "painting"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_meydan_png",
+   "kind": "licence",
+   "format": "png",
+   "truth": [
+    "aluminium",
+    "waterproofing"
+   ],
+   "proposed": [
+    "waterproofing"
+   ],
+   "wrong": [],
+   "missing": [
+    "aluminium"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_shams_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "electrical",
+    "landscaping"
+   ],
+   "proposed": [
+    "electrical",
+    "landscaping"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_shams_jpg",
+   "kind": "licence",
+   "format": "jpg",
+   "truth": [
+    "glazing",
+    "plumbing"
+   ],
+   "proposed": [
+    "glazing",
+    "plumbing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_difc_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "elevators",
+    "hvac"
+   ],
+   "proposed": [
+    "elevators",
+    "hvac"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_difc_rotated90",
+   "kind": "licence",
+   "format": "rotated90",
+   "truth": [
+    "fire_fighting",
+    "flooring"
+   ],
+   "proposed": [
+    "fire_fighting",
+    "flooring"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_dubai_det_bi_jpg",
+   "kind": "licence",
+   "format": "bilingual_jpg",
+   "truth": [
+    "aluminium",
+    "joinery"
+   ],
+   "proposed": [
+    "joinery"
+   ],
+   "wrong": [],
+   "missing": [
+    "aluminium"
+   ],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_sharjah_sedd_bi_phone",
+   "kind": "licence",
+   "format": "bilingual_phone",
+   "truth": [
+    "electrical",
+    "painting"
+   ],
+   "proposed": [
+    "electrical",
+    "painting"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_abu_dhabi_added_bi_scan_pdf",
+   "kind": "licence",
+   "format": "bilingual_scan_pdf",
+   "truth": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "proposed": [
+    "plumbing",
+    "waterproofing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_ajman_ded_ar_png",
+   "kind": "licence",
+   "format": "arabic_only_png",
+   "truth": [
+    "hvac",
+    "landscaping"
+   ],
+   "proposed": [
+    "hvac",
+    "landscaping"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_fujairah_ded_ar_jpg",
+   "kind": "licence",
+   "format": "arabic_only_jpg",
+   "truth": [
+    "flooring",
+    "glazing"
+   ],
+   "proposed": [
+    "flooring",
+    "glazing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_dmcc_multipage",
+   "kind": "licence",
+   "format": "multipage_pdf",
+   "truth": [
+    "elevators",
+    "joinery"
+   ],
+   "proposed": [
+    "elevators",
+    "joinery"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_jafza_multipage",
+   "kind": "licence",
+   "format": "multipage_pdf",
+   "truth": [
+    "fire_fighting",
+    "painting"
+   ],
+   "proposed": [
+    "fire_fighting",
+    "painting"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_expired_text",
+   "kind": "licence",
+   "format": "text_pdf_table",
+   "truth": [
+    "aluminium",
+    "waterproofing"
+   ],
+   "proposed": [
+    "waterproofing"
+   ],
+   "wrong": [],
+   "missing": [
+    "aluminium"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "lic_expired_scan",
+   "kind": "licence",
+   "format": "jpg",
+   "truth": [
+    "electrical",
+    "landscaping"
+   ],
+   "proposed": [
+    "electrical",
+    "landscaping"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_mismatch_text",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "glazing",
+    "plumbing"
+   ],
+   "proposed": [
+    "glazing",
+    "plumbing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_mismatch_text_approved_swap",
+   "kind": "licence",
+   "format": "text_pdf_colon",
+   "truth": [
+    "glazing",
+    "plumbing"
+   ],
+   "proposed": [
+    "glazing",
+    "plumbing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "lic_mismatch_scan",
+   "kind": "licence",
+   "format": "png",
+   "truth": [
+    "elevators",
+    "hvac"
+   ],
+   "proposed": [
+    "elevators",
+    "hvac"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_blank_pdf",
+   "kind": "licence",
+   "format": "blank_pdf",
+   "truth": [],
+   "proposed": [],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "lic_blank_photo",
+   "kind": "licence",
+   "format": "blank_photo",
+   "truth": [],
+   "proposed": [],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "profile_pdf",
+   "kind": "profile",
+   "format": "pdf",
+   "truth": [
+    "aluminium",
+    "glazing"
+   ],
+   "proposed": [
+    "glazing"
+   ],
+   "wrong": [],
+   "missing": [
+    "aluminium"
+   ],
+   "status": "read"
+  },
+  {
+   "id": "profile_docx",
+   "kind": "profile",
+   "format": "docx",
+   "truth": [
+    "electrical",
+    "fire_fighting"
+   ],
+   "proposed": [
+    "electrical",
+    "fire_fighting"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "profile_pptx",
+   "kind": "profile",
+   "format": "pptx",
+   "truth": [
+    "hvac",
+    "plumbing"
+   ],
+   "proposed": [
+    "hvac",
+    "plumbing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "profile_png",
+   "kind": "profile",
+   "format": "png",
+   "truth": [
+    "flooring",
+    "joinery"
+   ],
+   "proposed": [
+    "flooring",
+    "joinery"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "needs_ocr"
+  },
+  {
+   "id": "profile_pdf_paint",
+   "kind": "profile",
+   "format": "pdf",
+   "truth": [
+    "painting",
+    "waterproofing"
+   ],
+   "proposed": [
+    "painting",
+    "waterproofing"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "profile_docx_land",
+   "kind": "profile",
+   "format": "docx",
+   "truth": [
+    "landscaping"
+   ],
+   "proposed": [
+    "landscaping"
+   ],
+   "wrong": [],
+   "missing": [],
+   "status": "read"
+  },
+  {
+   "id": "catalogue_pdf",
+   "kind": "catalogue",
+   "format": "pdf",
+   "truth": [
+    "aluminium",
+    "glazing"
+   ],
+   "proposed": [
+    "glazing"
+   ],
+   "wrong": [],
+   "missing": [
+    "aluminium"
+   ],
+   "status": "read"
+  }
+ ],
+ "certificates": [
+  {
+   "id": "vat_certificate",
+   "truth": null,
+   "read": null,
+   "verdict": "n/a"
+  },
+  {
+   "id": "iso_certificate",
+   "truth": "2028-05-11",
+   "read": "2028-05-11",
+   "verdict": "correct"
+  }
+ ],
+ "failures": [
+  {
+   "area": "match",
+   "id": "lic_dubai_ded_old_text",
+   "trade": "aluminium",
+   "verdict": "MISSING",
+   "cause": "not reached by a aluminium request (proposed [\"joinery\"])"
+  },
+  {
+   "area": "match",
+   "id": "lic_adgm_rotated90",
+   "trade": "aluminium",
+   "verdict": "MISSING",
+   "cause": "not reached by a aluminium request (proposed [\"waterproofing\"])"
+  },
+  {
+   "area": "match",
+   "id": "lic_rak_ded_text",
+   "trade": "aluminium",
+   "verdict": "MISSING",
+   "cause": "not reached by a aluminium request (proposed [\"joinery\"])"
+  },
+  {
+   "area": "match",
+   "id": "lic_fujairah_ded_jpg",
+   "trade": "aluminium",
+   "verdict": "MISSING",
+   "cause": "not reached by a aluminium request (proposed [\"waterproofing\"])"
+  },
+  {
+   "area": "match",
+   "id": "lic_dafza_text",
+   "trade": "aluminium",
+   "verdict": "MISSING",
+   "cause": "not reached by a aluminium request (proposed [\"joinery\"])"
+  },
+  {
+   "area": "match",
+   "id": "lic_meydan_png",
+   "trade": "aluminium",
+   "verdict": "MISSING",
+   "cause": "not reached by a aluminium request (proposed [\"waterproofing\"])"
+  },
+  {
+   "area": "match",
+   "id": "lic_dubai_det_bi_jpg",
+   "trade": "aluminium",
+   "verdict": "MISSING",
+   "cause": "not reached by a aluminium request (proposed [\"joinery\"])"
+  },
+  {
+   "area": "match",
+   "id": "profile_pdf",
+   "trade": "aluminium",
+   "verdict": "MISSING",
+   "cause": "not reached by a aluminium request (proposed [\"glazing\"])"
+  },
+  {
+   "area": "match",
+   "id": "catalogue_pdf",
+   "trade": "aluminium",
+   "verdict": "MISSING",
+   "cause": "not reached by a aluminium request (proposed [\"glazing\"])"
+  }
+ ]
+}

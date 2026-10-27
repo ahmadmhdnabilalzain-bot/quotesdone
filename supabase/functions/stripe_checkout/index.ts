@@ -1,5 +1,7 @@
+import { revealDescriptorSuffix } from '../_shared/statement_descriptor.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { NOT_LIVE_QUOTE_IN } from '../_shared/quote_live.ts';
 import { jobNoOf } from '../_shared/quote_documents.ts';
 import { observe } from '../_shared/observe.ts';
 import { siteReturnBase, siteCors } from '../_shared/site_origins.ts';
@@ -82,7 +84,7 @@ Deno.serve(siteCors(observe('stripe_checkout', async (req) => {
     if (ch.base_fee !== fee) { await logRun('error', { quote_id: qid, fee, base: ch.base_fee }, 'reveal fee disagreement between revealFee and revealCharge - checkout blocked'); return J({ error: 'invalid_fee' }, 400); }
     // "Reveal fee — QD-XXXXXXXX / Supplier B": the letter is the one the customer's card shows,
     // the place among the LIVE quotes by ascending price (customer_api letterOf).
-    const { data: sibs } = await admin.from('quotes').select('id').eq('inquiry_id', q.inquiry_id).neq('status', 'draft').order('quote_amount', { ascending: true });
+    const { data: sibs } = await admin.from('quotes').select('id').eq('inquiry_id', q.inquiry_id).not('status', 'in', NOT_LIVE_QUOTE_IN).order('quote_amount', { ascending: true });
     const idx = Math.max(0, (sibs || []).findIndex((x: { id: string }) => x.id === q.id));
     const letter = String.fromCharCode(65 + (idx % 26));
     // The job number (inquiries.rfq_no): what the customer's card statement says must match the portal (21 Sep 2026).
@@ -229,6 +231,8 @@ Deno.serve(siteCors(observe('stripe_checkout', async (req) => {
     form.set('metadata[total_charged]', String(ch.total_charged));
     form.set('metadata[quote_amount]', String(q.quote_amount));
     form.set('payment_intent_data[metadata][quote_id]', qid);
+    // The card statement reads QUOTESDONE* <suffix> (_shared/statement_descriptor.ts).
+    form.set('payment_intent_data[statement_descriptor_suffix]', revealDescriptorSuffix(requestRef));
     const r = await timedFetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form.toString() });
     const sj = await r.json();
     if (!r.ok) { await logRun('error', { quote_id: qid, fee, http: r.status }, 'stripe session create failed: ' + String(sj?.error?.message || '').slice(0, 250)); return J({ error: 'stripe_error', detail: String(sj?.error?.message || '').slice(0, 300) }, 502); }

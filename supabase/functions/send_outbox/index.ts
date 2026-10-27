@@ -15,7 +15,7 @@ import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, ownsChannel } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
-import { M365_HARD_CEILING, M365_ID_PREFIX, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, graphSend, holdForM365, m365Body, m365Carries, m365CopyLint, m365Mime, m365ReplyTo, m365Text, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
+import { M365_HARD_CEILING, M365_ID_PREFIX, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, campaignMail, graphSend, holdForM365, m365Carries, m365Mime, m365ReplyTo, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
@@ -235,6 +235,13 @@ Deno.serve(observe('send_outbox', async (req) => {
       failed++; if (dead) deadlettered++; else retried++;
     };
     let lastErr = '';
+    // THE SUPPLIER CAMPAIGN EMAIL, BOTH ROUTES (27 Oct 2026): the subject and text come from campaignMail
+    // (m365_lane.ts) whether the Microsoft 365 lane or the Resend fallback carries the row. ledger 1113: the note
+    // names the company and its trade, read from the lead (a seed has none: its body's opening).
+    const campaignFor = async (n: any) => {
+      const { data: lead } = n.kind === M365_SEED_KIND ? { data: null } : await admin.from('leads').select('company_name,invite_trades').ilike('email', String(n.to_email).trim().replace(/[\\%_]/g, '\\$&')).limit(1).maybeSingle();
+      return campaignMail(n, { company: (lead as any)?.company_name ?? undefined, trade: ((lead as any)?.invite_trades || [])[0] });
+    };
     for (const n of rows) {
       // WHATSAPP ROWS EATEN 27 Jul 2026 - the select above pulls every queued row of EVERY channel but
       // this line excluded only 'sms', and the next line marks any row with no to_email as 'skipped'.
@@ -291,11 +298,12 @@ Deno.serve(observe('send_outbox', async (req) => {
                                      : 'held: the Microsoft 365 lane is on but ' + m365.why + '; never sent through Resend' }).eq('id', n.id);
           laneHeld++; continue;
         }
-        const mBody = m365Body(n.type, n.body || '', n.kind);
-        const bad = m365CopyLint({ subject: n.subject || '', body: mBody, seed: n.kind === M365_SEED_KIND }).filter((l) => !l.ok);
+        // 27 Oct 2026: the invitation, its nudge and the seed send one approved email (campaignMail, shared with the
+        // Resend fallback below); only the seed keeps its (ref QD…) token.
+        const { subject: mSubject, text: mBody, bad } = await campaignFor(n);
         if (bad.length) { await admin.from('notifications').update({ status: 'held', last_error: ('held: Microsoft 365 invitation copy rule failed: ' + bad.map((l) => l.rule + ' (' + (l.detail || '') + ')').join('; ')).slice(0, 500) }).eq('id', n.id); held++; continue; }
         const now = new Date(); const mid = messageIdFor(n.id, now);
-        const mime = m365Mime({ from: 'QuotesDone <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: n.subject || 'QuotesDone', text: m365Text(mBody, unsub), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now });
+        const mime = m365Mime({ from: 'Ahmad Alzain at QuotesDone <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: mSubject, text: mBody, unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now });
         try {
           const r = await graphSend((u, i) => timedFetch(u, i || {}, 15_000), m365, mime, mid, closeFinding);
           if (r.ok) {
@@ -333,6 +341,11 @@ Deno.serve(observe('send_outbox', async (req) => {
       // is the desk it sits at, in both languages.
       // THE INVITATION ENDS WITH ONE QUESTION (24 Sep 2026, marketing): an English supplier invitation whose
       // stored body does not end with a question gets invitation_copy.ts's, after the link and before the footer.
+      // 27 Oct 2026: a supplier campaign row on this fallback route sends the SAME plain-text email as the Microsoft
+      // 365 lane (campaignMail): no HTML frame, no link, no closing question, no Al Furjan footer, the opt-out in the
+      // List-Unsubscribe headers and the body's own "stop" line. A copy rule failure holds it, as on that lane.
+      const camp = supplierSide && isLaneType(n.type) ? await campaignFor(n) : null;
+      if (camp?.bad.length) { await admin.from('notifications').update({ status: 'held', last_error: ('held: supplier campaign copy rule failed: ' + camp.bad.map((l) => l.rule + ' (' + (l.detail || '') + ')').join('; ')).slice(0, 500) }).eq('id', n.id); held++; continue; }
       const inviteEn = String(n.type || '').startsWith('supplier_invite') && !arMail;
       const mailBody = inviteEn ? withReplyQuestion(n.body || '') : (n.body || '');
       const htmlBody0 = tmpl({ body: mailBody, logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? sigNameAr : sigName), title: seatMail ? (arMail ? 'فريق المبيعات' : 'Sales team') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '', preheader: inviteEn ? invitePreheader : '' });
@@ -352,7 +365,9 @@ Deno.serve(observe('send_outbox', async (req) => {
         // The text/plain part is written, not left to be derived from the dark HTML frame: it carries
         // the body, the footer and the unsubscribe URL in the recipient's language.
         // payload.ts builds it (22 Sep 2026) so the exact message can be rendered and inbox-linted offline.
-        const mail: Record<string, unknown> = resendPayload({ from, to: n.to_email, reply, subject: n.subject || 'QuotesDone', html: htmlBody,
+        const mail: Record<string, unknown> = camp
+          ? resendPayload({ from, to: n.to_email, reply, subject: camp.subject, html: '', text: camp.text, unsub, unsubMailto: UNSUBSCRIBE_MAILBOX })
+          : resendPayload({ from, to: n.to_email, reply, subject: n.subject || 'QuotesDone', html: htmlBody,
           // The mailto half goes to the mailbox resend_inbound reads (_shared/unsubscribe_mailbox.ts), not to
           // the reply-to address.
           text: plainTextPart({ body: mailBody, unsub, ar: arMail, internal }), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, inReplyTo: n.in_reply_to });

@@ -218,3 +218,10 @@ test('a PR touching .github/workflows/ needs a human merge', () => {
   assert.match(refusal(pr({ files: [{ path: '.github/workflows/release-train.yml' }] })), /needs a human merge: workflow files/);
   assert.equal(refusal(pr({ files: [{ path: 'scripts/it/x.mjs' }] })), null);
 });
+
+test('#1149: a *_probe.sql with an empty pending note is a probe, never applied', async () => {
+  const { isProbe } = await import('./release_train.mjs');
+  assert.equal(isProbe({ sql: 'scripts/sql/x_probe.sql', note: '' }), true);
+  assert.equal(isProbe({ sql: 'scripts/sql/x.sql', note: 'A PROBE, never applied' }), true);
+  assert.equal(isProbe({ sql: 'scripts/sql/x.sql', note: 'applies at merge' }), false);
+});

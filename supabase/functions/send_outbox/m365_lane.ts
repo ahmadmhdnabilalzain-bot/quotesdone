@@ -21,13 +21,12 @@
 // only custom headers whose names begin "x-"/"X-"; Graph refuses List-Unsubscribe there. sendMail ALSO accepts the
 // whole message as base64 MIME (Content-Type: text/plain), and a MIME message carries any RFC 5322 header. So this
 // lane sends MIME: List-Unsubscribe and List-Unsubscribe-Post are real headers, and the body still ends with a
-// plain unsubscribe line (plainTextPart) for any client that ignores them.
+// "reply stop" line (STOP_LINE, the body's own last line) for any client that ignores them.
 // sendMail answers 202 with no body, so the provider id we keep is our own Message-ID, written into the MIME:
 // notifications.provider_message_id = 'm365:<...>' (the prefix also lets the hard ceiling count this lane's sends).
 // Pure apart from the injected fetch and finding writer, so m365_lane.test.ts replays every branch offline.
 import { isLaneType, LANE_CAPPED_TYPES } from './invite_lane.ts';
-import { invitationCopyLint, withReplyQuestion, type CopyRule } from './invitation_copy.ts';
-import { plainTextPart } from './supplier_mail.ts';
+import { invitationCopyLint, type CopyRule } from './invitation_copy.ts';
 
 export const M365_SECRET_NAMES = ['MS_TENANT_ID', 'MS_CLIENT_ID', 'MS_CLIENT_SECRET'] as const;
 export const M365_REFUSED_ISSUE = 'invite_m365_lane_refused';
@@ -114,18 +113,75 @@ export function holdForM365(o: { m365: M365; type: unknown; cappedSentToday: num
 }
 
 // ---------------------------------------------------------------- the plain-text invitation (marketing)
-// One link, no HTML frame, English only, never the word AI, ends with ONE question after the link (invitation_copy.ts).
-// The founder's rules, as ruled: any number of suppliers may quote; "top 3" is ONLY what the buyer's comparison report
-// recommends; free for the first 1,000 suppliers, with no date attached to it.
-export const PORTAL_LINK = /https?:\/\/[^\s<>"]+\/portal\?t=[0-9a-f-]{36}/gi;
+// THE FOUNDER'S EMAIL (27 Oct 2026, founder_instruction 1298-1301): "the wording sounds fine to me"; pitched the way
+// a very large company writes to a business partner; "safer to not send links"; the signature is "just QuotesDone
+// Technologies, Dubai, UAE". So: NO link in the body (quotesdone.com is plain text, no scheme, no path), no HTML frame,
+// English only, never the word AI, no street address and no permit or licence number, and the body closes with the
+// reply-"stop" line. The opt-out is that line plus the List-Unsubscribe headers (m365Mime). The invitation, its
+// day-3/7/14 nudge and the morning placement seed all send this one text, so the placement test measures the real
+// email. Free registration for the first 1,000 suppliers matches knowledge/COMPANY_CANON.md and carries no date.
+/** Anything a mail client would turn into a link: a scheme, a www. host, or a host followed by a path. */
+export const ANY_LINK = /https?:\/\/|\bwww\.|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}\/[^\s]*/i;
+export const STOP_LINE = 'If this isn\'t relevant, reply "stop" and we won\'t contact you again.';
+export const SIGNATURE = 'Best regards,\nAhmad Alzain\nFounder, QuotesDone\nQuotesDone Technologies · Dubai, UAE';
 
-export function m365InvitationText(link: string): string {
+// 19 Oct 2026 (marketing + it_engineer, ledger 1113: no campaign email in spam). MEASURED (GlockApps
+// 2026-10-19-02:51:47:497t, this lane): 33% inbox, Outlook/Yahoo/AOL 100% spam (EOP SCL 5), Gmail 19 of 20 in
+// Promotions, SPF/DKIM/DMARC passing, no blocklist. So the content changed: a short note from a named person,
+// addressed to the company and its trade, no promotional word in the subject or the opening, and the opt-out in the
+// List-Unsubscribe headers plus one "reply stop" line. Since 27 Oct 2026 the body carries no link at all (above).
+export type Who = { company?: string; trade?: string };
+const ENTITY: Record<string, string> = { amp: '&', '#038': '&', '#38': '&', quot: '"', '#039': "'", '#39': "'", apos: "'" };
+/** A company name as a person writes it: entities decoded, a "| tagline" or " - branch" cut, SHOUTING lowered. */
+export function companyName(raw: unknown): string {
+  let s = String(raw || '').replace(/&(#0?\d+|[a-z]+);/gi, (m, k) => ENTITY[String(k).toLowerCase()] ?? m);
+  s = s.split(/\s[|–—-]\s/)[0].replace(/\s+/g, ' ').trim();
+  if (/[؀-ۿ]/.test(s) || /^zz\s*demo/i.test(s) || s.length < 2) return '';
+  // a registered name carrying a web address ("www.khaazay.com online division of ...") gets the neutral greeting:
+  // the founder's email carries no link, and the name is never cut into something the company did not write
+  if (/https?:\/\/|\bwww\.|\b[a-z0-9-]+\.(?:com|ae|net|org|co|biz|info)\b/i.test(s)) return '';
+  if (s === s.toUpperCase() && /[A-Z]{4}/.test(s)) {
+    s = s.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase()).replace(/\b(Llc|Fze|Fzco|Fzc|Fz)\b/g, (w) => w.toUpperCase());
+  }
+  return s;
+}
+/** "fire_fighting" -> "fire fighting"; '' when there is none. */
+export function tradeLabel(slug: unknown): string { return String(slug || '').replace(/[_-]+/g, ' ').trim().toLowerCase(); }
+const cap1 = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+/** The subject names the company (and the trade when known). Never "invitation", "free", "commission" or "exclusive". */
+export function m365Subject(who: Who = {}): string {
+  const c = companyName(who.company); const t = tradeLabel(who.trade);
+  const what = t ? `${cap1(t)} quote requests` : 'Quote requests';
+  return c ? `${what} for ${c}` : `${what} in the UAE`;
+}
+/** The founder's approved text (27 Oct 2026), word for word. Company and trade when known, else the neutral variant. */
+export function m365InvitationText(who: Who = {}): string {
+  const c = companyName(who.company); const t = tradeLabel(who.trade);
   return [
-    'Hello,',
-    'QuotesDone is a UAE marketplace where companies post requests for quotation and suppliers in the matching trade price them. Any number of suppliers can quote on a request, and the buyer receives a comparison report that recommends the top three quotes by value.',
-    'Registration is free permanently for the first 1,000 supplier registrations, and there is no commission. Your company page is ready to claim here:\n' + link,
-    'Which trades does your company cover?',
+    c ? `Hi ${c} team,` : 'Hello,',
+    "I'm Ahmad, founder of QuotesDone. QuotesDone connects companies in the UAE with qualified suppliers: buyers post a request for quotation, and each request reaches only the suppliers registered for that exact trade.",
+    `We are now onboarding ${t ? t + ' ' : ''}suppliers ahead of our buyer launch.`,
+    'What you get:\n– Requests that match your trade, delivered directly to you.\n– You choose which ones to quote on.\n– No commission on work you win.\n– Free registration for our first 1,000 suppliers.',
+    'To join, register at quotesdone.com, or simply reply with the trades you cover and our team will set up your company page for you.',
+    SIGNATURE,
+    STOP_LINE,
   ].join('\n\n');
+}
+/** The company on a stored body's "Dear X," / "Hi X team," opening, for a row with no lead behind it (a seed). */
+export function companyFromBody(body: string): string {
+  const m = /^(?:dear|hi|hello)\s+(.+?)(?:\s+team)?,\s*$/i.exec(String(body || '').split(/\r?\n/)[0] || '');
+  return m ? m[1] : '';
+}
+
+// THE MORNING SEED KEEPS ITS PLACEMENT TOKEN (ceo, 26 Oct 2026). _shared/inbox_placement.ts finds the day's seed in
+// the two seed mailboxes ONLY by the "(ref QD<10 hex>)" token fn_invite_placement_due puts on the row's subject. #1566
+// (19 Oct) rebuilt every Microsoft 365 subject with m365Subject and dropped it: measured 20-26 Oct, both copies of all
+// five seeds read not_found (0 token matches, 0 other-sender skips), so every day's batch was held and 0 invitations
+// left. A supplier_invite_seed row that carries a token keeps it on the rebuilt subject; no other row ever has one.
+const PLACEMENT_REF = /\(ref QD[0-9A-F]{10}\)/;
+export function withPlacementRef(subject: string, row: { type?: unknown; subject?: unknown }): string {
+  const ref = row.type === 'supplier_invite_seed' ? PLACEMENT_REF.exec(String(row.subject || ''))?.[0] : undefined;
+  return ref && !subject.includes(ref) ? `${subject} ${ref}` : subject;
 }
 
 // A placement-test seed (GlockApps) is matched by an inbox-test ID on the LAST line of the body, e.g.
@@ -139,14 +195,38 @@ export function seedMarker(body: string): string {
   return SEED_MARKER.test(last) ? last : '';
 }
 
-/** The body this lane sends: the plain variant for an invitation with exactly one portal link; else the row's own body.
- *  A seed row (kind M365_SEED_KIND) keeps its trailing inbox-test ID line at the end of whatever is built. */
-export function m365Body(type: unknown, rowBody: string, kind?: unknown): string {
-  const links = String(rowBody || '').match(PORTAL_LINK) || [];
+/** The body this lane sends: the founder's text for the invitation, its nudge and the seed alike, whatever the row
+ *  stored. A seed row (kind M365_SEED_KIND) keeps its trailing inbox-test ID line as the last line. */
+export function m365Body(_type: unknown, rowBody: string, kind?: unknown, who: Who = {}): string {
   const marker = kind === M365_SEED_KIND ? seedMarker(rowBody) : '';
   const own = marker ? String(rowBody).trimEnd().slice(0, -marker.length).trimEnd() : (rowBody || '');
-  const built = type !== 'supplier_invite_nudge' && links.length === 1 ? m365InvitationText(links[0]) : withReplyQuestion(own);
+  const built = m365InvitationText({ company: who.company ?? companyFromBody(own), trade: who.trade });
   return marker ? built + '\n\n' + marker : built;
+}
+
+/** THE ONE SUPPLIER CAMPAIGN EMAIL, WHICHEVER ROUTE CARRIES IT (27 Oct 2026, coordinator follow-up to #1614).
+ *  send_outbox builds the subject and text here for the Microsoft 365 lane AND the Resend fallback, so switching
+ *  invite_m365_enabled off can never bring back the old email (link, closing question, Al Furjan footer).
+ *  `bad` lists the copy rules the email fails; any failure holds the row on either route. */
+export function campaignMail(row: { type?: unknown; body?: unknown; subject?: unknown; kind?: unknown }, who: Who = {}):
+  { subject: string; text: string; bad: CopyRule[] } {
+  const body = String(row.body || '');
+  const company = who.company ?? companyFromBody(body);
+  const text = m365Body(row.type, body, row.kind, { ...who, company });
+  const subject = withPlacementRef(m365Subject({ company, trade: who.trade }), row);
+  // THE RULES READ OUR COPY, NOT THE SUPPLIER'S OWN NAME (27 Oct 2026, review of #1614). Measured that day: 11 of
+  // 17,401 eligible leads were held because their registered name tripped a copy rule meant for our wording:
+  // "Eastlake Dec.Design" and "... CARPETS & NOV TRADING" read as month names next to the 1,000 offer, "2003 ALUMINIUM
+  // WORKS" and "CHINA 2008 BUILDING MATERIAL" as dates, "AI TRADING EST" as the forbidden word. So the copy rules run
+  // with the rendered name masked, and the no-link rule ALSO runs on the email exactly as sent (a name carrying a web
+  // address never reaches it: companyName gives the neutral greeting instead).
+  const name = companyName(company);
+  const mask = (s: string) => (name ? s.split(name).join('Company') : s);
+  const bad = m365CopyLint({ subject: mask(subject), body: mask(text), seed: row.kind === M365_SEED_KIND }).filter((l) => !l.ok);
+  if (ANY_LINK.test(text) || ANY_LINK.test(subject)) {
+    bad.push({ rule: 'no link anywhere in the email as sent', ok: false, detail: String((text + ' ' + subject).match(ANY_LINK)?.[0] || '') });
+  }
+  return { subject, text, bad };
 }
 
 const DATED = /\b(?:20\d\d|jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|deadline|until|expires?|limited time)\b/i;
@@ -154,9 +234,12 @@ const UP_TO_THREE = /\b(?:up to|only|maximum of|max(?:imum)?)\s+(?:three|3)\s+(?
 
 /** Every rule the lane's body must pass before it leaves. Any failure holds the row. */
 // For a seed, ONLY the trailing inbox-test ID line is set aside, and only for the rules it cannot honour by being
-// there: the date rules (the ID holds a year) and the two question-placement rules (the ID must be the last line).
-// Every content rule (English, the word, one link, no HTML, no cap on suppliers) still reads the whole body.
-const MARKER_EXEMPT = /date|ends with one question|question comes after/;
+// there: the date rules (the ID holds a year) and the closing-line rule (the ID must be the last line).
+// Every content rule (English, the word, no link, no HTML, no cap on suppliers) still reads the whole body.
+const MARKER_EXEMPT = /date|closes with/;
+// The question-ending rules of invitationCopyLint belong to the stored Resend-lane copy; the founder's approved text
+// (27 Oct 2026) closes with the reply-"stop" line instead, so this lane does not apply them.
+const NOT_THIS_LANE = /question/;
 export function m365CopyLint(o: { subject: string; body: string; preheader?: string; seed?: boolean }): CopyRule[] {
   const marker = o.seed ? seedMarker(o.body) : '';
   if (marker) {
@@ -164,11 +247,13 @@ export function m365CopyLint(o: { subject: string; body: string; preheader?: str
     const without = new Map(m365CopyLint({ ...o, body: rest, seed: false }).map((l) => [l.rule, l]));
     return m365CopyLint({ ...o, seed: false }).map((l) => (MARKER_EXEMPT.test(l.rule) ? without.get(l.rule) || l : l));
   }
-  const links = o.body.match(/https?:\/\/\S+/g) || [];
-  const portal = (o.body.match(PORTAL_LINK) || [])[0];
   return [
-    ...invitationCopyLint({ lang: 'en', subject: o.subject, body: o.body, preheader: o.preheader || '', link: portal }),
-    { rule: 'exactly one link in the body', ok: links.length === 1, detail: `${links.length} links` },
+    ...invitationCopyLint({ lang: 'en', subject: o.subject, body: o.body, preheader: o.preheader || '' }).filter((l) => !NOT_THIS_LANE.test(l.rule)),
+    { rule: 'no link anywhere in the email (founder, 27 Oct 2026: "safer to not send links")', ok: !ANY_LINK.test(o.body) && !ANY_LINK.test(o.subject),
+      detail: String((o.body + ' ' + o.subject).match(ANY_LINK)?.[0] || '') },
+    { rule: 'the body closes with the reply-"stop" opt-out line', ok: o.body.trimEnd().endsWith(STOP_LINE), detail: 'last line: ' + o.body.trimEnd().split('\n').pop() },
+    { rule: 'the signature names no street address and no permit or licence number (founder, 27 Oct 2026)', ok: !/al[\s-]*furjan|\bNOL-|TDRA|licen[cs]e\s*(no|number)|\b1633275\b/i.test(o.body),
+      detail: 'Al Furjan, a TDRA permit or a licence number found' },
     { rule: 'no HTML in a plain-text invitation', ok: !/<\/?[a-z][^>]*>/i.test(o.body), detail: 'markup found' },
     { rule: '"free for the first 1,000 suppliers" carries no date', ok: !/1,000/.test(o.body) || !DATED.test(o.body), detail: 'a date or deadline word next to the offer' },
     { rule: 'never a cap on how many suppliers quote: any number may quote, top 3 is only the report', ok: !UP_TO_THREE.test(o.body + ' ' + o.subject), detail: 'the forbidden wrong form' },
@@ -212,8 +297,6 @@ export function m365Mime(o: { from: string; to: string; reply: string; subject: 
   lines.push('Content-Type: text/plain; charset=utf-8', 'Content-Transfer-Encoding: base64', '', wrap76(b64(o.text.replace(/\r?\n/g, '\r\n'))));
   return b64(lines.join('\r\n'));
 }
-
-export function m365Text(body: string, unsub: string): string { return plainTextPart({ body, unsub, ar: false, internal: false }); }
 
 export type SendResult = { ok: true; providerId: string } | { ok: false; refused: true; status: string } | { ok: false; refused: false; status: string };
 

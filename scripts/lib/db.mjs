@@ -10,18 +10,9 @@
 // database rather than to a cached dump.  The 429 backoff is here for the same
 // reason it is in scripts/qsql.mjs: a bare throttle reads exactly like a broken
 // query, and that has been misdiagnosed as a defect before.
-import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
+import { supabaseAccessToken as token } from './supabase_token.mjs';
 
 export const PROJECT_REF = 'htdblwldjkcgjvmqkbeh';
-
-function token() {
-  if (process.env.SUPABASE_ACCESS_TOKEN) return process.env.SUPABASE_ACCESS_TOKEN.trim();
-  const p = join(homedir(), '.supabase', 'access-token');
-  if (existsSync(p)) return readFileSync(p, 'utf8').trim();
-  throw new Error('No Supabase access token (SUPABASE_ACCESS_TOKEN or ~/.supabase/access-token).');
-}
 
 // `retry: false` turns the backoff OFF for one call. MEASURED 18 Sep 2026, twice: the accountant's
 // 22-file DDL replay outlives the management API gateway (524), the retry POSTs the SAME batch while

@@ -21,14 +21,31 @@ import { replaySql } from '../lib/safe_replay.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
-const FILES = ['scripts/sql/two_more_fenced_seat_duties_keep_their_fixture_switch.sql'];
+// #1566 (the_support_desk_takes_an_objection_to_an_automated_decision.sql) redefined fn_support_case_idle_close after
+// FILES[0] from the older body and dropped the switch; the second file restores it (27 Oct 2026).
+const FILES = ['scripts/sql/two_more_fenced_seat_duties_keep_their_fixture_switch.sql',
+  'scripts/sql/the_idle_close_keeps_its_fixture_switch_and_the_objection_exclusion.sql'];
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 
-test('the file fences both duties with the switch and leaves no bare demo exclusion', () => {
-  const s = read(FILES[0]).replace(/--[^\n]*/g, '');
-  assert.match(s, /fn_inquiry_is_demo\(di\.id\)\)\s*= \(coalesce\(current_setting\('qd\.duty_fixtures', true\), ''\) = 'on'\)/);
-  assert.match(s, /fn_party_is_demo\(party_kind, party_id\) = v_fx;/);
-  assert.doesNotMatch(s, /\bnot (exists \(select 1 from public\.inquiries di|public\.fn_party_is_demo)/);
+// The CANONICAL body: the last MANIFEST file defining the routine, then any pending file (applied after it).
+// Reading only the file that first added the switch is what let #1566 drop it unseen.
+function canonical(fn) {
+  const re = new RegExp(`create or replace function public\\.${fn}\\(`, 'i');
+  const manifest = read('scripts/sql/MANIFEST.txt').split(/\r?\n/).map((l) => l.trim()).filter((l) => l.endsWith('.sql'));
+  const order = [...manifest, ...FILES.filter(pending)];
+  const owner = [...order].reverse().find((f) => existsSync(join(REPO, f)) && re.test(read(f)));
+  assert.ok(owner, `no file defines ${fn}`);
+  const src = read(owner).replace(/--[^\n]*/g, '');
+  return src.slice(src.search(re)).split('$function$')[1] || '';
+}
+
+test('the canonical bodies fence both duties with the switch and leave no bare demo exclusion', () => {
+  const kpi = canonical('fn_sales_engineer_comparison_kpi');
+  const idle = canonical('fn_support_case_idle_close');
+  assert.match(kpi, /fn_inquiry_is_demo\(di\.id\)\)\s*= \(coalesce\(current_setting\('qd\.duty_fixtures', true\), ''\) = 'on'\)/);
+  assert.match(idle, /fn_party_is_demo\(party_kind, party_id\) = v_fx;/, 'the canonical fn_support_case_idle_close has lost its fixture switch');
+  assert.match(idle, /category is distinct from 'automated_decision_objection'/, 'the canonical fn_support_case_idle_close closes an objection by silence');
+  for (const s of [kpi, idle]) assert.doesNotMatch(s, /\bnot (exists \(select 1 from public\.inquiries di|public\.fn_party_is_demo)/);
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));

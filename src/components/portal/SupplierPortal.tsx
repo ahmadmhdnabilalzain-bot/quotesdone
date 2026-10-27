@@ -361,7 +361,7 @@ const T = {
     mobile_verified:'Mobile verified', verify_my_mobile:'Get the code on WhatsApp →', verify_by_sms:'Get it by SMS', wa_failed_note:'WhatsApp did not deliver the code, so we sent it to this number by SMS.', sms_code:'6-digit code', verify:'Verify',
     email_verified:'E-mail verified', email_unverified:'e-mail not yet verified',
     reg_rest_optional:'Attach these two and you are done. Everything else is optional and can wait until you are inside.', verify_first:'Please verify your mobile number first.',
-    accept_pre:'I accept the QuotesDone ', terms_link:'supplier terms', accept_post:'.', submit_approval:'Submit for approval', submitting:'Submitting…', must_accept:'Please accept the supplier terms.', loading_rfqs:'Loading RFQs…', no_rfqs_h:'No open RFQs right now', no_rfqs_sub:'When a customer posts a request that matches your capabilities, it appears here.', request_w:'Request', you_won:' · You won', concluded:' · Concluded', quoted:'Quoted ', close:'Close', quote:'Quote', boq_prefix:'BOQ: ', boq_items:'line items', confidence:' confidence', drawing_p:'Drawing p', upload_quote:"Upload your quotation — PDF, photo, Excel, Word, e-mail, CAD or ZIP — and we'll read it:", reading:'Reading…', total_aed:'Total amount (AED)', lead_time:'Lead time (e.g. 10 days)', scope_work:'Scope of work', notes_customer:'Notes for the customer', submit_quote:'Submit quote', enter_valid_amount:'Enter a valid amount.', could_not_read:'Could not read the file — please fill the form.', could_not_submit:'Could not submit.', draft_saved:'Saved as draft — add the missing details to send it.', read_quote_pre:'Read your quotation', line_items:'line items', read_quote_post:'. Review and submit.', loading_docs:'Loading documents…', docs_h:'Documents & certificates', docs_sub:'Upload renewals before they expire — we will remind you here and pause matching if a required document lapses.', st_expired:'Expired', st_expiring:'Expiring soon', st_valid:'Valid', expires_pre:'Expires ', on_file:'On file', not_uploaded:'Not uploaded yet', view:'view', uploading:'Uploading…', upload:'Upload', no_projects_h:'No won projects yet', no_projects_sub:'When a customer reveals and hires you, the project appears here.', project_w:'Project', back:'← Back', send:'Send', ask_placeholder:"Ask a question — our assistant answers instantly, or opens a direct chat if it's really needed.", ask_request:'Ask / request a chat', assistant_pre:'Assistant: ', sent_review:'Sent for review — you will be notified if a chat opens.', sent:'Sent.', registering_pre:'Registering ', registering_post:'. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', corrected:' (corrected from your licence)', signatory:'Authorized signatory', owner_dob:'Owner date of birth', h_trade:'Trade licence', trade_sub:'Upload your licence and we read the number, authority, expiry and TRN automatically.', reading_lic:'Reading licence…', lic_no:'Trade licence no.', authority:'Licensing authority (Economic Department or free-zone authority)', lic_expiry:'Licence expiry', vat_trn:'Tax Registration Number (TRN)', h_egr:'Economic Register (EGR) card', egr_no:'Economic Register (EGR) card no.', egr_cert:'Economic Register (EGR) card:', h_offer:'What you offer', products_ph:'Products you supply (comma separated)', services_ph:'Services you offer', desc_ph:'Short company description / capabilities', company_profile_pdf:'Company profile (PDF):', catalogs_ph:'Product catalogs (up to 5):', add_contact_phone:'Add your contact name and phone.', add_license:'Add your trade licence number (or upload your licence to auto-fill it).', could_not_save:'Could not save your profile.', save_error:'Something went wrong saving your profile. Please try again.', lic_on_file:'Trade licence on file.', could_not_sms:'Could not send SMS.', wrong_code:'Wrong code.', read_lic:'Read your licence', expires_comma:', expires ', lic_uploaded:'Licence uploaded.', lic_uploaded_noread:'Uploaded (could not auto-read).', attach_file:'Attach file', selected:'selected', lic_expires:'Licence expires', lic_expired:'Licence expired', action_required:'Action required', ar_days_left:'days left to fix this', ar_overdue:'Overdue - your account can be suspended', ar_why:'Why', catalogues:'Catalogues', doc_profile:'Company profile', doc_iso:'ISO certification', add_profile:'Please attach your company profile (required).',
+    accept_pre:'I accept the QuotesDone ', terms_link:'supplier terms', accept_post:'.', submit_approval:'Submit for approval', submitting:'Submitting…', must_accept:'Please accept the supplier terms.', marketing_opt_in:'Send me offers and news from QuotesDone by email, SMS or WhatsApp (optional). You can withdraw this at any time.', loading_rfqs:'Loading RFQs…', no_rfqs_h:'No open RFQs right now', no_rfqs_sub:'When a customer posts a request that matches your capabilities, it appears here.', request_w:'Request', you_won:' · You won', concluded:' · Concluded', quoted:'Quoted ', close:'Close', quote:'Quote', boq_prefix:'BOQ: ', boq_items:'line items', confidence:' confidence', drawing_p:'Drawing p', upload_quote:"Upload your quotation — PDF, photo, Excel, Word, e-mail, CAD or ZIP — and we'll read it:", reading:'Reading…', total_aed:'Total amount (AED)', lead_time:'Lead time (e.g. 10 days)', scope_work:'Scope of work', notes_customer:'Notes for the customer', submit_quote:'Submit quote', enter_valid_amount:'Enter a valid amount.', could_not_read:'Could not read the file — please fill the form.', could_not_submit:'Could not submit.', draft_saved:'Saved as draft — add the missing details to send it.', read_quote_pre:'Read your quotation', line_items:'line items', read_quote_post:'. Review and submit.', loading_docs:'Loading documents…', docs_h:'Documents & certificates', docs_sub:'Upload renewals before they expire — we will remind you here and pause matching if a required document lapses.', st_expired:'Expired', st_expiring:'Expiring soon', st_valid:'Valid', expires_pre:'Expires ', on_file:'On file', not_uploaded:'Not uploaded yet', view:'view', uploading:'Uploading…', upload:'Upload', no_projects_h:'No won projects yet', no_projects_sub:'When a customer reveals and hires you, the project appears here.', project_w:'Project', back:'← Back', send:'Send', ask_placeholder:"Ask a question — our assistant answers instantly, or opens a direct chat if it's really needed.", ask_request:'Ask / request a chat', assistant_pre:'Assistant: ', sent_review:'Sent for review — you will be notified if a chat opens.', sent:'Sent.', registering_pre:'Registering ', registering_post:'. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', corrected:' (corrected from your licence)', signatory:'Authorized signatory', owner_dob:'Owner date of birth', h_trade:'Trade licence', trade_sub:'Upload your licence and we read the number, authority, expiry and TRN automatically.', reading_lic:'Reading licence…', lic_no:'Trade licence no.', authority:'Licensing authority (Economic Department or free-zone authority)', lic_expiry:'Licence expiry', vat_trn:'Tax Registration Number (TRN)', h_egr:'Economic Register (EGR) card', egr_no:'Economic Register (EGR) card no.', egr_cert:'Economic Register (EGR) card:', h_offer:'What you offer', products_ph:'Products you supply (comma separated)', services_ph:'Services you offer', desc_ph:'Short company description / capabilities', company_profile_pdf:'Company profile (PDF):', catalogs_ph:'Product catalogs (up to 5):', add_contact_phone:'Add your contact name and phone.', add_license:'Add your trade licence number (or upload your licence to auto-fill it).', could_not_save:'Could not save your profile.', save_error:'Something went wrong saving your profile. Please try again.', lic_on_file:'Trade licence on file.', could_not_sms:'Could not send SMS.', wrong_code:'Wrong code.', read_lic:'Read your licence', expires_comma:', expires ', lic_uploaded:'Licence uploaded.', lic_uploaded_noread:'Uploaded (could not auto-read).', attach_file:'Attach file', selected:'selected', lic_expires:'Licence expires', lic_expired:'Licence expired', action_required:'Action required', ar_days_left:'days left to fix this', ar_overdue:'Overdue - your account can be suspended', ar_why:'Why', catalogues:'Catalogues', doc_profile:'Company profile', doc_iso:'ISO certification', add_profile:'Please attach your company profile (required).',
     lic_uploaded_type:'Licence uploaded. If the number did not fill in, type it below — automatic reading is optional.', lic_upload_failed:'We could not store your licence file. Please try again with a PDF or a clear photo.',
     verify_my_email:'Verify my e-mail →', email_code:'6-digit e-mail code', email_sent:'We emailed you a 6-digit code.', could_not_email:'Could not send the e-mail code.',
     trade_label:'Your main trade', trade_ph:'Choose your trade', trade_not_listed:'My trade isn’t listed', trade_other_ph:'Type your trade', trade_help:'Every trade is welcome. If yours isn’t listed, choose “My trade isn’t listed” and type it — we review it and add it.',
@@ -856,7 +856,7 @@ const TAB_ALIAS = { overview: 'services', scope: 'services', projects: 'messages
 // What each version changed, in the supplier's language. A supplier is shown every change after the version it
 // accepted (a v10 supplier re-accepting v12 sees v11's and v12's). v12, 14 Sep 2026, founder: "whatsapp number
 // supplier confirmed." Archived versions are the ones with a /supplier-agreement/vN page.
-export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13', 'v14'];
+export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13', 'v14', 'v15'];
 const AGREEMENT_CHANGES = {
   11: {
     en: [
@@ -922,6 +922,21 @@ const AGREEMENT_CHANGES = {
       'إلى أقصى حد يجيزه قانون دولة الإمارات، لا تُسأل QuotesDone تجاهكم. وإذا رفضت محكمةٌ هذا الاستبعاد فقط، تُحدَّد مسؤوليتها بالمبلغ الأعلى من الرسوم التي دفعتموها خلال آخر 12 شهرًا أو 5,000 درهم إماراتي. ولا تُستبعد أبدًا المسؤولية عن الغش أو الخطأ الجسيم أو الفعل الضار (البند 18).',
       'تعوّضون QuotesDone عن المطالبات الناشئة عن عروض أسعاركم أو بياناتكم أو رخصكم أو سلعكم أو أعمالكم أو العاملين لديكم (البند 18(ج)).',
       'بند جديد 38: خدمات الغير، والإخطار بأي مطالبة خلال 90 يومًا (ولا يُسقط التأخيرُ المطالبة)، وتعليق المحتوى المخالف أو المضلل أو إزالته، وكامل الاتفاق. ويذكر بند القوة القاهرة أمثلتها الآن (البند 20). لا تغيير في أي رسم.',
+    ],
+  },
+  // v16, 19 Oct 2026 (ceo; legal risk review of 19 Oct 2026, findings 1, 2, 7, 8, 9 and 18).
+  16: {
+    en: [
+      'A new or increased fee applies to you only after you expressly accept it on the Platform; continued use is no longer acceptance (clause 6).',
+      'Promotional messages are sent only if you tick a separate box to agree, and your name or logo is used as a reference only with your prior written consent (clause 32).',
+      'Decisions made by automated processing are part of the service and you agree to them; an objection goes to QuotesDone Customer Support, then the QuotesDone operations team (clause 27). On day 5 of a silent reveal QuotesDone makes a final contact attempt by phone, WhatsApp or email (clauses 11 and 33).',
+      'Acceptance is by ticking the box or clicking to accept, and our records are evidence rather than conclusive evidence (clause 30). The governing law now names the Modern Technology-Based Trade Law, Federal Decree-Law No. 14 of 2023 (clause 34). No fee or charge changes.',
+    ],
+    ar: [
+      'لا تسري عليكم أي رسوم مستحدثة أو مزيدة إلا بعد قبولكم الصريح لها على المنصة؛ ولم يعد استمرار الاستخدام قبولًا (البند 6).',
+      'لا تُرسل الرسائل الترويجية إلا إذا وضعتم علامة في مربع مستقل للموافقة عليها، ولا يُستخدم اسمكم أو شعاركم مرجعًا إلا بموافقتكم الكتابية المسبقة (البند 32).',
+      'القرارات الصادرة بالمعالجة الآلية جزء من الخدمة وتوافقون عليها، ويُقدَّم الاعتراض إلى فريق دعم العملاء في QuotesDone ثم إلى فريق العمليات فيها (البند 27). وفي اليوم الخامس من عدم الاستجابة بعد الكشف تجري QuotesDone محاولة اتصال أخيرة عبر الهاتف أو واتساب أو البريد الإلكتروني (البندان 11 و33).',
+      'يكون القبول بوضع علامة في المربع أو النقر للقبول، وتُعدّ سجلاتنا دليلًا لا دليلًا قاطعًا (البند 30). ويذكر بند القانون الواجب التطبيق الآن قانون التجارة عبر وسائل التقنية الحديثة، المرسوم بقانون اتحادي رقم 14 لسنة 2023 (البند 34). لا تغيير في أي رسم.',
     ],
   },
 };
@@ -1207,7 +1222,7 @@ function Dashboard({ token, lang, onExpired }) {
           the OUTGOING one and the focus is not addressed to it, so it may act on it but may not
           consume it. One condition, both directions, and nothing about the deferred render changes. */}
       {shownTab === 'rfqs' && <InquiriesTab token={token} lang={lang} focus={focusRfq} onFocused={() => { if (!switching) setFocusRfq(null); }} onQuote={(id) => { setFocusRfq(id); setTab('quotes'); }}
-        renderQuoteForm={(inq, done) => <QuoteForm inquiry={inq} token={token} lang={lang} onDone={done} />} />}
+        renderQuoteForm={(inq, done, o) => <QuoteForm key={o?.newOption ? 'new' : 'edit'} inquiry={inq} token={token} lang={lang} onDone={done} newOption={!!o?.newOption} />} />}
       {shownTab === 'quotes' && <QuotationsTab token={token} lang={lang} focus={focusRfq} onFocused={() => { if (!switching) setFocusRfq(null); }} openInquiry={(id) => { setFocusRfq(id); setTab('rfqs'); }} />}
       {/* Messages holds the revealed jobs (Projects) above the conversations, behind the reveal gate. */}
       {shownTab === 'messages' && <SupplierMailbox token={token} lang={lang} goTo={go}
@@ -1271,10 +1286,14 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
     setChecking(false);
     if (j && j.ok) setChk(j.options ? { ...j.options[0], options: j.options } : j); else setMsg(srvMsg(lang, j, t(lang, 'could_not_submit')));
   };
+  // One submission at a time: `busy` disables the button only after the next render, so a fast double click
+  // could send two (each a new option under new_option). The ref closes that window (#1563 review).
+  const inFlight = useRef(false);
   const submit = async () => {
+    if (inFlight.current) return;
     if (!(Number(amount) > 0)) { setMsg(t(lang, 'enter_valid_amount')); return; }
-    setBusy(true); setMsg('');
-    const j = await call('supplier_api', buildPayload(), token);
+    inFlight.current = true; setBusy(true); setMsg('');
+    const j = await call('supplier_api', buildPayload(), token).finally(() => { inFlight.current = false; });
     setBusy(false);
     // Accepted, held by the sales engineer (the card then shows exactly what is missing and the two
     // ways out) or split into options: the card is the next thing the supplier needs to see.
@@ -1816,6 +1835,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     trn: me.trn || '', egr_number: me.egr_number || '', founded_year: me.founded_year || '', company_type: me.company_type || '', company_size: me.company_size || '',
   });
   const [emirates, setEmirates] = useState(me.service_emirates || []); const [terms, setTerms] = useState(!!me.accepted_terms_at);
+  // Promotional messages are opt-in (19 Oct 2026, founder, legal finding 2): a SEPARATE box, never pre-ticked,
+  // never required. Guarded by scripts/checks/promotional_messages_are_opt_in.test.mjs.
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [profileFile, setProfileFile] = useState(null); const [catalogFiles, setCatalogFiles] = useState([]); const [catCut, setCatCut] = useState(false); const [docsSent, setDocsSent] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false); const [smsSent, setSmsSent] = useState<string | false>(false); const [smsCode, setSmsCode] = useState(''); const [vbusy, setVbusy] = useState(false);
   const [emailVerified, setEmailVerified] = useState(!!me.owner_email_verified); const [mailSent, setMailSent] = useState(false); const [mailCode, setMailCode] = useState('');
@@ -1895,7 +1917,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         setDocsSent(true);
       }
       // The checkbox's own value (audit 15 Sep 2026: a constant "yes" was sent whatever it said).
-      const payload = { action: 'save_profile', service_emirates: emirates, accept_terms: terms };
+      const payload = { action: 'save_profile', service_emirates: emirates, accept_terms: terms, marketing_consent: marketingOptIn === true };
       const strk = ['contact_name', 'signatory_name', 'phone', 'products', 'services', 'description', 'trade_license_no', 'license_authority', 'license_expiry', 'trn', 'egr_number', 'company_type', 'company_size'];
       for (const k of strk) if (String(f[k] || '').trim()) payload[k] = f[k];
       if (uaeMobile(f.phone)) payload.phone = uaeMobile(f.phone);
@@ -2004,6 +2026,7 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     {isEdit && <div className={cn(S.sub, 'mt-3 rounded-md border border-border bg-secondary/30 px-3 py-2.5')}>{ar ? 'تُدار الرخصة التجارية والملف التعريفي والكتالوجات من تبويب المستندات، حتى لا يُطلب الملف نفسه في مكانين.' : 'Your trade licence, company profile and catalogues are managed in the Documents tab — so the same file is never asked for in two places.'}</div>}
 
     <label className="flex gap-2 items-center mt-3.5 text-[13px] text-muted-foreground"><input type="checkbox" aria-required={!isEdit} checked={terms} onChange={(e) => setTerms(e.target.checked)} /> {t(lang, 'accept_pre')}<a href={(ar ? '/ar' : '') + '/supplier-agreement'} target="_blank" rel="noopener" className="text-primary font-semibold">{t(lang, 'terms_link')}</a>{t(lang, 'accept_post')}{!isEdit && <Need lang={lang} req />}</label>
+    {!isEdit && <label className="flex gap-2 items-start mt-2.5 text-[13px] text-muted-foreground"><input type="checkbox" className="mt-0.5" checked={marketingOptIn} onChange={(e) => setMarketingOptIn(e.target.checked)} /> {t('en', 'marketing_opt_in')}</label>}
     <Button className="w-full mt-3" disabled={busy || uploading || !kycRead} onClick={save}>
       {busy ? (isEdit ? (ar ? 'جارٍ الحفظ…' : 'Saving…') : t(lang, 'submitting'))
             : isEdit ? (ar ? 'حفظ التغييرات' : 'Save changes') : t(lang, 'submit_approval')}

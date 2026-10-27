@@ -55,6 +55,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "vending_machines:product-distinctions",
+      "topic": "Vending and coffee machines: machine types and operating models",
+      "topic_ar": "آلات البيع والقهوة: أنواع الآلات ونماذج التشغيل",
+      "kind": "product_distinctions",
+      "body_en": "Machine types: snack and drink vending (spiral machines, glass-front, refrigerated, combo), hot beverage vending, bean-to-cup coffee machines (grind fresh beans; capacity in cups per day, milk systems, number of drinks), capsule and pod machines for small offices, traditional espresso machines for cafés (group heads, boilers, with grinders), water and ice vending, fresh-food and smart fridges with unlocking by card or app, micro-markets with self-checkout, and smart lockers and kiosks. Payment: coins and notes, and cashless (cards, mobile wallets, contactless), with remote monitoring of stock and faults through telemetry so refills and service visits are planned. Operating models: buy or lease the machine and run it yourself; a free-on-loan or placement model where an operator installs and stocks the machine and shares revenue (commission) with the host; or a managed coffee service with machine, ingredients, cleaning and maintenance charged per cup or monthly. Selection depends on footfall and consumption, space and power, water connection and filtration for coffee machines, and the menu. Offers differ on machine make and capacity, payment options, service response, ingredient quality and price per cup, revenue share, and contract term.",
+      "body_ar": "أنواع الآلات: آلات بيع الوجبات الخفيفة والمشروبات (لولبية، بواجهة زجاجية، مبردة، مدمجة)، وآلات المشروبات الساخنة، وآلات القهوة من الحبوب إلى الكوب (تطحن الحبوب طازجة؛ والسعة بعدد الأكواب يومياً، وأنظمة الحليب، وعدد المشروبات)، وآلات الكبسولات للمكاتب الصغيرة، وآلات الإسبريسو التقليدية للمقاهي (رؤوس التحضير، الغلايات، مع المطاحن)، وآلات بيع الماء والثلج، وثلاجات الطعام الطازج والثلاجات الذكية التي تُفتح بالبطاقة أو التطبيق، والمتاجر الصغيرة بالدفع الذاتي، والخزائن والأكشاك الذكية. والدفع: العملات والأوراق النقدية، والدفع غير النقدي (البطاقات، المحافظ الرقمية، اللاتلامسي)، مع مراقبة المخزون والأعطال عن بعد لتخطيط التعبئة وزيارات الصيانة. ونماذج التشغيل: شراء الآلة أو استئجارها وتشغيلها ذاتياً؛ أو نموذج الإعارة المجانية أو التموضع حيث يركب المشغل الآلة ويعبئها ويتقاسم الإيرادات (عمولة) مع المضيف؛ أو خدمة قهوة مُدارة تشمل الآلة والمكونات والتنظيف والصيانة بسعر لكل كوب أو شهرياً. ويعتمد الاختيار على حركة الناس والاستهلاك، والمساحة والكهرباء، وتوصيل المياه والفلترة لآلات القهوة، والقائمة. وتختلف العروض في ماركة الآلة وسعتها، وخيارات الدفع، واستجابة الخدمة، وجودة المكونات وسعر الكوب، وتقاسم الإيرادات، ومدة العقد.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Vending_machine"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: cashless payment by cards, mobile and contactless; remote management; operators sharing profit with host locations -> confirmed."
+    },
+    {
+      "id": "vending_machines:lead-times-and-quoting",
+      "topic": "Vending & coffee machines - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "آلات البيع الذاتي والقهوة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Placements: 1-3 weeks; purchased machines from stock days, imported 4-8 weeks. A supplier needs location and footfall, consumption estimate, space, power and water, payment needs, and the preferred model (buy, lease, placement). A quote states machine make and model, capacity, payment systems, installation, service levels, ingredient prices or revenue share, contract term and validity.",
+      "body_ar": "التموضع: 1-3 أسابيع؛ والآلات المشتراة من المخزون أيام، والمستوردة 4-8 أسابيع. ويحتاج المورد الموقع وحركة الناس، وتقدير الاستهلاك، والمساحة، والكهرباء والمياه، واحتياجات الدفع، والنموذج المفضل (شراء، تأجير، تموضع). ويذكر العرض ماركة الآلة وموديلها وسعتها وأنظمة الدفع والتركيب ومستويات الخدمة وأسعار المكونات أو تقاسم الإيرادات ومدة العقد والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (No entry covers free-placement/commission vending models; missing). vending_machines:placement-and-commission-models was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from vending_machines.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Should our office buy a bean-to-cup coffee machine or use a managed coffee service?",
+      "q_ar": "مكتبنا يشتري آلة قهوة من الحبوب للكوب ولا يستخدم خدمة قهوة مُدارة؟",
+      "expected_entry_ids": [
+        "vending_machines:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "vending_machines:placement-and-commission-models"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "vending_machines:product-distinctions"
+      ],
+      "stored_not_served": [
+        "vending_machines:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Vending_machine"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

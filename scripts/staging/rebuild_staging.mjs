@@ -16,6 +16,7 @@
 //
 // Without --apply it is a dry run: it reports what it would do and changes nothing.
 import { writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { splitStatements } from './sql_split.mjs';
 import { PROD_REF, resolveStagingRef, mgmtWrite, assertNoProductionLiteral } from '../lib/qd_guard.mjs';
 import { SCHEMA_MIRROR, readSchemaMirror } from '../lib/schema_mirror.mjs';
@@ -85,7 +86,7 @@ const hasCreateSchema = /\bCREATE\s+SCHEMA\b/i.test(body);
 say(`baseline contains CREATE SCHEMA statements: ${hasCreateSchema}`);
 
 if (!APPLY) {
-  writeFileSync('C:/Users/Opera/qd-check/_rebuild_dryrun.txt', log.join('\n'), 'utf8');
+  writeFileSync(tmpdir() + '/_rebuild_dryrun.txt', log.join('\n'), 'utf8');
   say('\nDRY RUN — nothing applied. Re-run with --apply.');
   process.exit(0);
 }
@@ -163,7 +164,7 @@ const census = await mgmtWrite(REF, `
     (select count(*) from information_schema.schemata where schema_name='kb_stage') as kb_stage,
     (select count(*) from cron.job) as cron_jobs`, 'census');
 say(`\nBRANCH CENSUS: ${JSON.stringify(census)}`);
-writeFileSync('C:/Users/Opera/qd-check/_rebuild_staging.txt', log.join('\n'), 'utf8');
-writeFileSync('C:/Users/Opera/qd-check/_rebuild_residual.json', JSON.stringify(residual, null, 1), 'utf8');
+writeFileSync(tmpdir() + '/_rebuild_staging.txt', log.join('\n'), 'utf8');
+writeFileSync(tmpdir() + '/_rebuild_residual.json', JSON.stringify(residual, null, 1), 'utf8');
 say('\nwrote _rebuild_staging.txt and _rebuild_residual.json');
 process.exit(residual.length ? 1 : 0);
