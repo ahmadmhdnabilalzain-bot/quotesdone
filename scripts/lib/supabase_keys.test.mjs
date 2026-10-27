@@ -29,8 +29,23 @@ test('the legacy key is the fallback only when no new key of that power is liste
 
 test('a masked key (listed without reveal) is never returned', () => {
   const masked = { name: 'default', type: 'secret', api_key: 'sb_secret_abcd••••' };
-  assert.equal(pickApiKey([masked, LEGACY_SERVICE], 'secret'), LEGACY_SERVICE.api_key);
   assert.equal(pickApiKey([masked], 'secret'), '');
+});
+
+// Review of #1655: without ?reveal=true the Management API lists the legacy service_role JWT in full and the new
+// secret key masked. Falling back there would silently send the leaked HS256 key from a caller that forgot reveal.
+test('a masked new key does not open the legacy fallback: the caller gets no key, not the HS256 one', () => {
+  const masked = { name: 'default', type: 'secret', api_key: 'sb_secret_abcd••••' };
+  const unrevealed = [LEGACY_ANON, LEGACY_SERVICE, PUB_DEFAULT, masked];   // the shape of an un-revealed listing
+  assert.equal(pickApiKey(unrevealed, 'secret'), '');
+  assert.equal(pickApiKey(unrevealed, 'publishable'), PUB_DEFAULT.api_key, 'the publishable key is listed in full and still picked');
+});
+
+test('a key marked disabled is never returned, legacy included', () => {
+  const offLegacy = { ...LEGACY_SERVICE, disabled: true };
+  assert.equal(pickApiKey([offLegacy], 'secret'), '');
+  assert.equal(pickApiKey([{ ...SEC_DEFAULT, disabled: true }, offLegacy], 'secret'), '');
+  assert.equal(pickApiKey([{ ...PUB_DEFAULT, disabled: true }, PUB_OTHER], 'publishable'), PUB_OTHER.api_key);
 });
 
 test('an answer that is not a list yields no key, and a wrong kind is refused', () => {

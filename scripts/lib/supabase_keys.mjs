@@ -20,6 +20,13 @@
 //
 // A masked key (listed without ?reveal=true, e.g. 'sb_secret_abcd••••') is never returned: it would fail
 // every request with a 401 that names nothing. Checked by scripts/lib/supabase_keys.test.mjs.
+//
+// NOR IS THE LEGACY KEY WHEN THE NEW ONE IS LISTED BUT MASKED (independent review of #1655, 27 Oct 2026). Without
+// ?reveal=true the Management API lists the legacy service_role JWT in full and the new secret key masked
+// (measured by digest on production: the un-revealed 'secret' pick was the legacy service_role key). The fallback
+// would then hand a caller that forgot ?reveal=true the leaked HS256 key, silently, and the gateway watch would be
+// the first to notice. A new key of the asked power being listed at all means the fallback does not apply: the
+// answer is '' and the caller fails on its own missing key, by name. A key marked disabled is never returned.
 
 const NEW_TYPE = { secret: 'secret', publishable: 'publishable' };
 const LEGACY_NAME = { secret: 'service_role', publishable: 'anon' };
@@ -33,10 +40,12 @@ const USABLE = /^(sb_(secret|publishable)_[A-Za-z0-9_-]+|eyJ[A-Za-z0-9_-]+\.[A-Z
  */
 export function pickApiKey(keys, kind) {
   if (!(kind in NEW_TYPE)) throw new Error(`pickApiKey: kind must be 'secret' or 'publishable', not ${String(kind)}`);
-  const list = Array.isArray(keys) ? keys.filter((k) => k && typeof k.api_key === 'string' && USABLE.test(k.api_key)) : [];
+  const listed = Array.isArray(keys) ? keys.filter((k) => k && typeof k.api_key === 'string' && k.disabled !== true) : [];
+  const list = listed.filter((k) => USABLE.test(k.api_key));
   const fresh = list.filter((k) => k.type === NEW_TYPE[kind]);
+  const newKeyListed = listed.some((k) => k.type === NEW_TYPE[kind]);   // masked or not
   const chosen = fresh.find((k) => k.name === 'default') ?? fresh[0]
-    ?? list.find((k) => k.name === LEGACY_NAME[kind]);   // TEMPORARY legacy fallback; see the header
+    ?? (newKeyListed ? undefined : list.find((k) => k.name === LEGACY_NAME[kind]));   // TEMPORARY legacy fallback; see the header
   return chosen?.api_key ?? '';
 }
 
