@@ -47,6 +47,12 @@ drop policy if exists phone_code_service_role_only on public.phone_code;
 create policy phone_code_service_role_only on public.phone_code
   as permissive for all to public using (false) with check (false);
 revoke all on public.phone_code from anon, authenticated;
+-- The daily export: excluded as a secret. A row is a keyed MAC of a sign-in code that is useless after ten minutes;
+-- copying it to the bucket and Dropbox would only spread phone numbers and MACs (independent review of #1631).
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('phone_code', false, 'secret', 'the HMAC of a WhatsApp sign-in code we sent (never the code), live for ten minutes; nothing in it is a record worth restoring', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
 
 create or replace function public.fn_phone_code_issue(
   p_phone text, p_purpose text, p_hash text, p_kind text, p_email text, p_ttl_seconds integer default 600)

@@ -89,7 +89,10 @@ Deno.test({ name: 'a WhatsApp phone code survives at most 5 guesses, verifies on
         if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon; end if;
         if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated; end if;
       end $$;
-      drop table if exists public.phone_code cascade;`);
+      drop table if exists public.phone_code cascade;
+      -- the file registers phone_code in the daily export (excluded, a secret); production has this table
+      create table if not exists public.table_export_registry (table_name text primary key, exported boolean not null,
+        category text, reason text, added_by text);`);
     await sql.unsafe(await Deno.readTextFile(PHONE_FILE));
     const issue = (phone: string, hash: string, purpose = 'login') =>
       sql`select public.fn_phone_code_issue(${phone}, ${purpose}, ${hash}, 'customer', '', 600) as id`.then((r) => r[0].id as string);
