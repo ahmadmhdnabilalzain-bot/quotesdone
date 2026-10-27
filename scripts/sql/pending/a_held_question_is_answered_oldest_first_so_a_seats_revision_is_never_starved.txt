@@ -1,5 +1,0 @@
-NOT APPLIED (it_engineer, 27 Oct 2026). Committed for review: it changes the order fn_reason_held_due claims held
-questions in (oldest first, replacing untried-first-then-newest), and nothing else in the routine. What moves it: a
-reviewer agrees the order, then `node scripts/apply_sql.mjs <the .sql> --apply --ddl`, the read-back matches, this note
-is deleted and the file is appended to the END of scripts/sql/MANIFEST.txt in the same commit. Before applying, run
-the probe (read-only, raises CHK<<...>>); at 22:20Z on 27 Oct it printed REPRODUCED with 10 older due rows waiting.
