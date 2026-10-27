@@ -564,7 +564,9 @@
   "fc42ae7333f5",
   "fd9cc5abf53d",
   "ff564000c32a",
-  "ffafacc477aa"
+  "ffafacc477aa",
+  "806a8c0a9b11",
+  "96e14be90f55"
  ],
  "scripts/sql/a_claimed_company_cannot_be_registered_twice_under_another_spelling_or_the_same_licence.sql": [
   "24c7d3a2ff4f",
@@ -599,6 +601,9 @@
   "bdb73e6c4e03",
   "d4e419cf740a",
   "f6f72234df37"
+ ],
+ "scripts/sql/the_public_contact_is_configured_not_hard_coded.sql": [
+  "ac6c63ab5f9f"
  ],
  "scripts/sql/a_demo_message_the_sales_engineer_writes_is_captured_not_dropped.sql": [
   "1390254fa3fe",
@@ -1601,7 +1606,8 @@
   "90ef68a67059",
   "96c9fec939b6",
   "dc528da26c82",
-  "e586ea015bca"
+  "e586ea015bca",
+  "87dbc4d1e035"
  ],
  "scripts/sql/the_invitation_pool_is_read_once_as_a_set_so_the_daily_list_fits_its_timeout.sql": [
   "c12bc8b93a2b",
@@ -3100,7 +3106,8 @@
   "9c1f71981011",
   "a4879318094c",
   "a69c82313935",
-  "c8eadf831cf9"
+  "c8eadf831cf9",
+  "a6b33dd50c2d"
  ],
  "src/components/CompanyIdentity.tsx": [
   "639ceec6e997"
@@ -3131,11 +3138,13 @@
   "4477d80dfaab",
   "626a9b9f8db5",
   "7ae0e95b97ad",
-  "fd5a7b66a146"
+  "fd5a7b66a146",
+  "54a4dbc7f286"
  ],
  "src/components/FaqInner.tsx": [
   "35f49cd30fa1",
-  "6beaf09aea06"
+  "6beaf09aea06",
+  "1085098eb87e"
  ],
  "src/components/LegalDoc.tsx": [
   "28fd1b25a6a1",
@@ -3185,7 +3194,8 @@
   "e0b99a079a91",
   "e2cb86156237",
   "e787c2bb7f43",
-  "eaae39f3a7e1"
+  "eaae39f3a7e1",
+  "e5425312ff82"
  ],
  "src/components/me/NewRequest.tsx": [
   "15b233b4ba6e",
@@ -3462,7 +3472,8 @@
   "fc644b0eb14a",
   "fe7e984490db",
   "fed9f6096feb",
-  "ff0cc7c9de41"
+  "ff0cc7c9de41",
+  "cb93c4e62a13"
  ],
  "src/components/me/quoteExpiry.ts": [
   "124fb2c05c50",
@@ -5073,7 +5084,8 @@
   "fe4d6ce1cf59",
   "fefefbb0eeb3",
   "ff503a33a962",
-  "ffd746fa54a2"
+  "ffd746fa54a2",
+  "5b0ed52584d7"
  ],
  "src/components/portal/supplier/servicesCopy.ts": [
   "00d972094620",
@@ -5561,7 +5573,14 @@
   "fd3788506791",
   "fd4d1114538b",
   "fd9cfbba2824",
-  "fe4f54bad0fc"
+  "fe4f54bad0fc",
+  "2e2b8541e5b0",
+  "52e7c937ed18",
+  "6dfb72ee6864",
+  "8ea6e2bbade2",
+  "c146992d411c",
+  "c89285eb576d",
+  "e85df900f31b"
  ],
  "src/components/portal/suppliers/SupplierRelationship.tsx": [
   "005339379cfe",
@@ -5757,7 +5776,8 @@
   "0f70841ffbde"
  ],
  "src/components/QuoteBadges.tsx": [
-  "aa7ef1d629ad"
+  "aa7ef1d629ad",
+  "88c2b594cb3c"
  ],
  "src/components/ServiceDoc.tsx": [
   "00970d07e4bb",
@@ -5773,7 +5793,8 @@
   "a689a4cf0af7",
   "abec5f925a16",
   "e46de96ffa56",
-  "fd4a3bdaef87"
+  "fd4a3bdaef87",
+  "7c4da9eb6df5"
  ],
  "src/components/visual/AnonymityFlow.tsx": [
   "0350b5fc4422",
@@ -5825,6 +5846,9 @@
   "80525653a9e7",
   "ce534deaa8f7"
  ],
+ "supabase/functions/_shared/brief.generated.ts": [
+  "434f70386172"
+ ],
  "supabase/functions/_shared/cad_file_redact.ts": [
   "214e2a66c5bf"
  ],
@@ -5844,7 +5868,10 @@
   "cf3c018291ef",
   "d4ac37286024",
   "da98c1583a6a",
-  "f5abebf3196f"
+  "f5abebf3196f",
+  "28c42f5909d0",
+  "69adab83d339",
+  "dd5485195143"
  ],
  "supabase/functions/_shared/clearer_copy.ts": [
   "d73b7070b4bf"
@@ -5885,15 +5912,22 @@
   "e1814f15aded",
   "eb86d8fc0c02",
   "f4e468bb2a84",
-  "fe4e3d803c47"
+  "fe4e3d803c47",
+  "0681db1a83a2",
+  "de62a9134e25"
  ],
  "supabase/functions/_shared/contact_limits.ts": [
   "7c5b9dd79c62",
-  "b52d77701d81"
+  "b52d77701d81",
+  "84dc981d29ae"
  ],
  "supabase/functions/_shared/customer_mail.ts": [
   "7784a68c401d",
-  "9c9347b8a06d"
+  "9c9347b8a06d",
+  "4253a24f0090",
+  "586f6f44a448",
+  "6aa95d8fabfb",
+  "c607dba157a1"
  ],
  "supabase/functions/_shared/customer_terms.ts": [
   "bb6521bace53"
@@ -5913,7 +5947,8 @@
   "a55eed84e8ff",
   "a851e616d0b9",
   "b539face70fe",
-  "cbb176539761"
+  "cbb176539761",
+  "fbe144d11ac6"
  ],
  "supabase/functions/_shared/drawing_format.ts": [
   "939055a3b61f"
@@ -6143,7 +6178,8 @@
  "supabase/functions/_shared/reasoned_delivery.ts": [
   "579dd4d95c6e",
   "8da646299992",
-  "c2fe022839a2"
+  "c2fe022839a2",
+  "fa2a92814d32"
  ],
  "supabase/functions/_shared/reasoned_governance.ts": [
   "6e566e574b3e"
@@ -6177,14 +6213,22 @@
   "c56381adb176",
   "d1e3bf58385c",
   "daec3ca59871",
-  "df7419d4841d"
+  "df7419d4841d",
+  "49175bc8c637",
+  "5a629a082c9a",
+  "7d12b7a501dc",
+  "c6aa2ccc0e0b"
  ],
  "supabase/functions/_shared/stream_reply.ts": [
   "aeb58bdf5c4d"
  ],
  "supabase/functions/_shared/supplier_agreement.ts": [
   "b72aaecaef24",
-  "d469c60c6d28"
+  "d469c60c6d28",
+  "2eeb132406ba",
+  "bc769b49e75d",
+  "0ace90eb0853",
+  "5839dc1b25d3"
  ],
  "supabase/functions/_shared/supplier_charge_documents.ts": [
   "028bd4e1bdc6",
@@ -6325,13 +6369,16 @@
  "supabase/functions/_shared/support_reply_guard.ts": [
   "29e16cbb341d",
   "622dc4a7b5b1",
-  "713903274b9b"
+  "713903274b9b",
+  "1c124ac36381",
+  "24c91058ee6f"
  ],
  "supabase/functions/_shared/think.ts": [
   "4e2156827796"
  ],
  "supabase/functions/_shared/trade_resolve.ts": [
-  "a1150629315a"
+  "a1150629315a",
+  "bdab39592e4e"
  ],
  "supabase/functions/_shared/unsubscribe_mailbox.ts": [
   "fe749a06f354"
@@ -6344,6 +6391,20 @@
   "a3d4eca833be",
   "cfb5e8d946af",
   "d0d0d99474e2"
+ ],
+ "scripts/sql/a_harness_chat_turn_carries_its_run_tag_and_files_no_gap_or_task.sql": [
+  "67e0d864b486",
+  "6ece79da1cbc",
+  "d0479646925c",
+  "9dad2edb1e3e"
+ ],
+ "scripts/sql/customer_support_scores_every_notice_a_customer_or_supplier_reads_for_plain_language.sql": [
+  "ec995542ff06",
+  "4acb0073c176",
+  "a48a49d05b4a",
+  "9fc2962e0b12",
+  "345c57857eb7",
+  "099b7e22ed50"
  ],
  "supabase/functions/customer_api/index.ts": [
   "0183560e12a8",
@@ -6374,7 +6435,9 @@
   "e00773da115b",
   "e13e073561a2",
   "f5175202b419",
-  "fe9667777dfb"
+  "fe9667777dfb",
+  "4bf1c6f5529f",
+  "cc83c7932429"
  ],
  "supabase/functions/customer_documents/index.ts": [
   "45f92e2a0325"
@@ -6415,7 +6478,8 @@
   "f045dd46c30e"
  ],
  "supabase/functions/email_triage/index.ts": [
-  "2564e8b2cc53"
+  "2564e8b2cc53",
+  "1d82a8451ead"
  ],
  "supabase/functions/inquiry_intake/index.ts": [
   "3a572c138209",
@@ -6428,7 +6492,8 @@
   "a30bf6242239",
   "c73b02e4b5e8",
   "caa9d0149589",
-  "d098b2f4595a"
+  "d098b2f4595a",
+  "d8fa797cf5b7"
  ],
  "supabase/functions/inquiry_intake/interview.ts": [
   "064b01e40d4c",
@@ -6497,7 +6562,8 @@
   "490772e6319e",
   "70bc680c72a0",
   "75a8affc4076",
-  "c31b542ceaec"
+  "c31b542ceaec",
+  "52b922a0dcda"
  ],
  "supabase/functions/marketing_channels/index.ts": [
   "b2a80e50ec94"
@@ -6593,7 +6659,33 @@
  "supabase/functions/site_assistant/index.ts": [
   "244053c77971",
   "9a03685e2791",
-  "ee486754ccff"
+  "ee486754ccff",
+  "0e0329c97c49",
+  "0271a1f4c66d",
+  "32f673f57030",
+  "35a1a42cc34d",
+  "488eec99c14e",
+  "4c6a9cec02c0",
+  "524c3be9b432",
+  "5915ebe1b5c8",
+  "5e40435fb3ce",
+  "5f72d41e3fd6",
+  "88fc3314de43",
+  "89008c118194",
+  "9a84f622dd82",
+  "9ce520c3750e",
+  "ad996ed439d2",
+  "af3e20773443",
+  "c183c419054d",
+  "c4356c2c80ac",
+  "c94d66d845db",
+  "d13175d02298",
+  "dbd6352d03bc",
+  "f34fd00dad6c",
+  "f40cee86aeb4"
+ ],
+ "supabase/functions/site_assistant/stream_reply.ts": [
+  "aeb58bdf5c4d"
  ],
  "supabase/functions/stripe_checkout/index.ts": [
   "1317c3d3a9ac",
@@ -6621,13 +6713,16 @@
   "94956e39f7f1",
   "a2d8778c01cf",
   "b950c9daf1bf",
-  "d8840a7d8b95"
+  "d8840a7d8b95",
+  "bfca58024b1a"
  ],
  "supabase/functions/supplier_api/quote_review_flow.ts": [
   "0c4b45efc9bf",
   "265323a0e5fd",
   "2b249861ae60",
-  "6fbb7fb79755"
+  "6fbb7fb79755",
+  "b05b260309e0",
+  "ebcf51ab9588"
  ],
  "supabase/functions/supplier_api/quote_review.ts": [
   "036d8e480b96",
@@ -6751,7 +6846,8 @@
   "f6f438acd428",
   "fa22358733e6",
   "fd221d747267",
-  "fd6f0db18deb"
+  "fd6f0db18deb",
+  "754922b40436"
  ],
  "supabase/functions/supplier_api/quote_template.ts": [
   "62ef1b50197e"
@@ -6797,7 +6893,15 @@
   "7fea49861151",
   "c09183a62789",
   "caa8dfdaf4f5",
-  "f00b7f659d1a"
+  "f00b7f659d1a",
+  "0c779ad88625",
+  "26aade657b40",
+  "4061420fc991",
+  "6c8d4e17edaa",
+  "a543b7484225",
+  "b2a7e76366cb",
+  "cb974acf7755",
+  "e687fbf0ba76"
  ],
  "supabase/functions/wa_inbound/menu_flow.ts": [
   "dd8eecf60984"
