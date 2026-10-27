@@ -10270,6 +10270,21 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_knowledge_internal_figures_withheld()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if exists (select 1 from public.knowledge_internal_figure_record r where r.record_id = new.record_id) then
+    new.supersession_state := 'withdrawn';
+    new.runtime_eligible := false;
+  end if;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_knowledge_library_detach(p_store text, p_id text)
  RETURNS void
  LANGUAGE plpgsql

@@ -3213,6 +3213,7 @@ CREATE OR REPLACE VIEW public.v_support_corpus AS  WITH base AS (
             'en'::text AS lang
            FROM (ops_knowledge k
              LEFT JOIN support_public_override o ON (((o.src = 'ops'::text) AND (o.src_id = k.record_id))))
+          WHERE ((COALESCE(k.supersession_state, 'current'::text) = 'current'::text) AND k.runtime_eligible)
         )
  SELECT src,
     src_id,
