@@ -1,1 +1,0 @@
-Applied at merge by the release operator. It replaces the interim Sonnet-first route that #1496 applied with the coordinator's decision: supplier_trade_choice runs openai/gpt-6-luna-pro first, with anthropic/claude-sonnet-5.5 behind it, at 8000 tokens. Must print PROBE OK. Seat: sales_engineer.
