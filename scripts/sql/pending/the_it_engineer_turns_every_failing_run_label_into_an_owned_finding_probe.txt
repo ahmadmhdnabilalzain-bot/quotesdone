@@ -1,0 +1,5 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes (ZZ DEMO fixture runs of
+the label zz_demo_run_probe). Run it after the_it_engineer_turns_every_failing_run_label_into_an_owned_finding.sql is live;
+it must print PROBE OK. Measured PROBE OK on htdblwldjkcgjvmqkbeh, 27 Oct 2026, together with the unapplied file in one
+rolled-back transaction: six failing runs opened one finding naming no owner; ten ok runs closed it with its reading; no
+real run-cluster finding moved. Seat: it_engineer.

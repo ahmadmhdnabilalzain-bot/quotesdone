@@ -1,0 +1,5 @@
+Committed 27 Oct 2026 on ceo/senior-seat-audit-27-oct (founder ledger 1003 stage 2, IT-C14). Seat: it_engineer. Applied by
+the release operator at merge, never before (apply-at-merge rule). Proved by
+scripts/sql/the_it_engineer_turns_every_failing_run_label_into_an_owned_finding_probe.sql: PROBE OK on htdblwldjkcgjvmqkbeh,
+27 Oct 2026, in one rolled-back transaction with this file. A rolled-back run on real data opened 2 findings:
+fn:quote_compare (15/15 warn, owner sales_engineer) and fn:unsubscribe (10/10 warn, owner customer_support).
