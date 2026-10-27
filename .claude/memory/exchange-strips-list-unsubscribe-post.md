@@ -1,6 +1,6 @@
 ---
 name: exchange-strips-list-unsubscribe-post
-description: "27 Oct 2026: mail sent through the M365 lane (supplier@) arrives with List-Unsubscribe (https + mailto) but WITHOUT List-Unsubscribe-Post; Exchange strips it. The fix is an Exchange transport rule, not code."
+description: "27 Oct 2026: mail sent through the M365 lane (supplier@) arrived with List-Unsubscribe (https + mailto) but WITHOUT List-Unsubscribe-Post; Exchange strips it. FIXED 27 Oct 23:35Z: the transport rule 'QuotesDone supplier@ one-click unsubscribe' was created by it_engineer exo_transport_rule_apply and read back; the header at the recipient is not yet re-measured (GlockApps only, never his inboxes)."
 metadata:
   type: project
   modified: 2026-10-27
@@ -26,6 +26,21 @@ token cannot show Exchange rights, so `it_engineer` gained two service_role-only
 probe says `missing_manage_as_app` or `missing_exchange_role`, the founder needs: API permission Office 365 Exchange
 Online → Exchange.ManageAsApp (Application) + admin consent, and the Entra role Exchange Administrator on the app.
 
-**How to apply:** do not chase this in code. The founder sets it in Exchange admin → Mail flow → Rules: if the sender is
-supplier@quotesdone.com **and the message header `List-Unsubscribe` matches `.`** (it is present), set the message header `List-Unsubscribe-Post` to `List-Unsubscribe=One-Click`. The condition matters: supplier@ also sends one-to-one replies, and RFC 8058 pairs the Post header with an HTTPS List-Unsubscribe; Exchange keeps List-Unsubscribe (https + mailto arrived at Gmail), so the condition matches exactly the list mail. Re-measure
-it with a seed send. Until that is done the opt-out is the "reply stop" line plus List-Unsubscribe.
+**MEASURED, 27 Oct 2026 (it_engineer, release of #1695, it_engineer v282).** The founder finished both Entra steps
+at about 23:20Z. `exo_roles` at 23:34:56Z answered verdict **`ready`** at once (no propagation wait was needed):
+Exchange token roles Exchange.AdminAPI.ManageAsApp, Exchange.ManageAsApp, Exchange.ManageAsAppV2, Mail.Read,
+Mail.ReadWrite, Mail.Send, Organization.Read.All, Organization.ReadWrite.All, full_access_as_app; Graph token roles
+Mail.Read, Mail.ReadBasic, Mail.ReadBasic.All, Mail.ReadWrite, Mail.Send; Get-TransportRule through InvokeCommand
+answered HTTP 200 with **0** transport rules in the tenant. So the undocumented EXO v3 InvokeCommand endpoint works
+app-only from the edge. `exo_transport_rule_apply` at 23:35:15Z answered **`created`**, and the read-back (and a
+second `exo_roles` read, 1 rule in the tenant) shows: Name `QuotesDone supplier@ one-click unsubscribe`, State
+Enabled, Mode Enforce, Priority 0, From `["supplier@quotesdone.com"]` (Exchange returned the address, not a display
+name, so ruleDiff matched and `exists_differs` did not arise), if header `List-Unsubscribe` matches `["."]`, set
+`List-Unsubscribe-Post` = `List-Unsubscribe=One-Click`. A second apply would answer `exists`.
+
+**Not yet measured:** whether List-Unsubscribe-Post now arrives at the recipient. Re-measure with the next
+**GlockApps** test of supplier@ (ledger 1312, 1344), reading the headers GlockApps reports. **Never** with a seed to
+the founder's own inboxes ([[no-test-email-to-the-founders-own-inboxes]], 27 Oct 22:50Z).
+
+**How it was to be applied by hand (superseded by the rule above, kept for the record):** the founder sets it in Exchange admin → Mail flow → Rules: if the sender is
+supplier@quotesdone.com **and the message header `List-Unsubscribe` matches `.`** (it is present), set the message header `List-Unsubscribe-Post` to `List-Unsubscribe=One-Click`. The condition matters: supplier@ also sends one-to-one replies, and RFC 8058 pairs the Post header with an HTTPS List-Unsubscribe; Exchange keeps List-Unsubscribe (https + mailto arrived at Gmail), so the condition matches exactly the list mail.
