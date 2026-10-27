@@ -71,6 +71,12 @@ test('(a) run.mjs and withRun arm closeOnExit with their own run tag and disarm 
   assert.match(w, /\} finally \{\s*disarm\(\);/);
 });
 
+test('(a) withRun closes the window even when teardown throws (#1436): the close sits in the finally of the teardown try', () => {
+  const f = R('scripts/lib/demo_factory.mjs');
+  const w = f.slice(f.indexOf('export async function withRun'), f.indexOf('// ---- auth'));
+  assert.match(w, /await teardown\(run\);[\s\S]*?\}\s*\}\s*finally \{\s*try \{ await closeRehearsalWindow\(run\.tag\); \}/);
+});
+
 const FILE = 'scripts/sql/a_rehearsal_window_past_its_run_time_is_closed.sql';
 const PROBE = 'scripts/sql/a_rehearsal_window_past_its_run_time_is_closed_probe.sql';
 

@@ -1,4 +1,4 @@
-// The widget's stream contract (stream_reply.ts). Run: deno test supabase/functions/site_assistant/stream_reply.test.ts
+// The widget's stream contract (stream_reply.ts). Run: deno test supabase/functions/_shared/stream_reply.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert';
 import { pieces, STATUS, streamReply } from './stream_reply.ts';
 
@@ -32,6 +32,14 @@ Deno.test('a failed payload still ends the stream with done and no delta', async
   const out = await lines(streamReply(STATUS.en, () => Promise.reject(new Error('boom'))));
   assertEquals(out.map((e) => e.t), ['status', 'done']);
   assertEquals(out[1].error, 'boom');
+});
+
+// founder_instruction 1339: the portal tells "OpenRouter was down" from "the model was up" by done.outage alone.
+Deno.test('a reply-less turn ends on done carrying outage, so the portal can tell an outage from a refused draft', async () => {
+  const out = await lines(streamReply(STATUS.en, (emit) => { emit('Refused words. '); return Promise.resolve({ ok: false, error: 'no_answer', outage: false }); }));
+  assertEquals(out.at(-1), { t: 'done', ok: false, error: 'no_answer', outage: false });
+  const down = await lines(streamReply(STATUS.en, () => Promise.resolve({ ok: false, error: 'no_answer', outage: true })));
+  assertEquals(down.at(-1)?.outage, true);
 });
 
 Deno.test('pieces never lose or add a character', () => {

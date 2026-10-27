@@ -103,8 +103,9 @@ export interface ReviewDeps {
   /** What reasoning reads from the working quotation (quote_review.ts readWorking), before the review; absent or held: nothing is read. */
   readWorking?(inq: SafeInquiry, w: Working): Promise<Working>;
   /** THE WORDS (1195-1197): the model writes the engineer's message from `situation` (what code decided); with
-   *  `actions`, it also picks the supplier's next step from their message. text '' = no model answered. */
-  voice(v: { kind: MsgKind; situation: string; supplierMessage: string | null; actions?: { id: string; meaning: string }[]; images?: string[] }): Promise<{ text: string; action: string | null }>;
+   *  `actions`, it also picks the supplier's next step from their message. text '' = no usable model answer; outage =
+   *  no call reached a model (OpenRouter down, _shared/openrouter_down.ts) — only then does the fixed notice go out (1339). */
+  voice(v: { kind: MsgKind; situation: string; supplierMessage: string | null; actions?: { id: string; meaning: string }[]; images?: string[] }): Promise<{ text: string; action: string | null; outage?: boolean }>;
   /** RULING 1177: a photo or document the supplier attaches to a chat message is READ - code first, then the vision
    *  model (_shared/read_every_attachment.ts). Absent: code only. */
   readAttachment?(bytes: Uint8Array, filename: string, mime: string): Promise<AttachmentRead>;
@@ -249,13 +250,19 @@ async function view(repo: ReviewRepo, deps: ReviewDeps, inq: SafeInquiry, r: Rev
 // No model answer → no engineer message is added (never a canned one); the turn is logged.
 // prevented by: supplier_api/quote_review.test.ts (the 1195-1197 test)
 const NOTIFICATION_KINDS: MsgKind[] = ['submitted'];
-/** NOBODY IS LEFT SILENT (review of #1335): no model answer → the HELD NOTICE (a fixed receipt — a notification under
- *  ruling 1197, never an answer) is added, and the turn is queued for the model; escalated to the seat after 15 minutes. */
+/** NOBODY IS LEFT SILENT (review of #1335): no model answer → the turn is queued for the model and escalated to the
+ *  seat after 15 minutes. The fixed HELD NOTICE is added ONLY when OpenRouter was down for the call (voice().outage;
+ *  founder_instruction 1339, 27 Oct 2026: "the engineer and customer support never replies without llm unless the server
+ *  of open router is down"). A model that answered and was refused leaves no code-written message: the replay answers. */
 export const QR_HELD_NOTICE = 'Thank you, we have received your message. The sales engineer will reply here shortly.';
-async function held(repo: ReviewRepo, deps: ReviewDeps, reviewId: string, situation: string, supplierMessage: string | null, issues?: Issue[]): Promise<MessageRow> {
-  const r = await repo.addMessage({ review_id: reviewId, role: SEAT, kind: 'notice', body: QR_HELD_NOTICE, body_ar: null, attachments: [], issues: issues ?? null });
-  await deps.hold({ reviewId, situation, supplierMessage, why: 'no_model_answer' }).catch(() => {});
-  await repo.log({ signal: 'quote_review_held_notice' }, 'No model answered: the held notice was added and the turn queued for the model (rulings 1195-1197).');
+/** Nothing was added to the thread (the model is up; its answer comes from the queue). */
+const NOTHING_ADDED = { id: null } as unknown as MessageRow;
+async function held(repo: ReviewRepo, deps: ReviewDeps, reviewId: string, situation: string, supplierMessage: string | null, outage: boolean, issues?: Issue[]): Promise<MessageRow> {
+  const r = outage ? await repo.addMessage({ review_id: reviewId, role: SEAT, kind: 'notice', body: QR_HELD_NOTICE, body_ar: null, attachments: [], issues: issues ?? null }) : NOTHING_ADDED;
+  await deps.hold({ reviewId, situation, supplierMessage, why: outage ? 'no_model_answer' : 'model_up_no_safe_reply' }).catch(() => {});
+  await repo.log({ signal: outage ? 'quote_review_held_notice' : 'quote_review_queued_for_model' }, outage
+    ? 'OpenRouter was down: the held notice was added and the turn queued for the model (1339).'
+    : 'The model answered but nothing it wrote could be sent: no code-written message was added; the turn is queued for the model (1339).');
   return r;
 }
 async function say(repo: ReviewRepo, deps: ReviewDeps, reviewId: string, kind: MsgKind, s: Said,
@@ -263,8 +270,8 @@ async function say(repo: ReviewRepo, deps: ReviewDeps, reviewId: string, kind: M
   const add = (body: string, body_ar: string | null) =>
     repo.addMessage({ review_id: reviewId, role: SEAT, kind, body, body_ar, attachments: extra.attachments ?? [], issues: extra.issues ?? null });
   if (extra.notification || NOTIFICATION_KINDS.includes(kind)) return add(s.en, s.ar);
-  const v = await deps.voice({ kind, situation: s.en, supplierMessage: extra.supplierMessage ?? null }).catch(() => ({ text: '', action: null }));
-  if (!v.text) return held(repo, deps, reviewId, s.en, extra.supplierMessage ?? null, extra.issues);
+  const v = await deps.voice({ kind, situation: s.en, supplierMessage: extra.supplierMessage ?? null }).catch(() => ({ text: '', action: null, outage: false }));
+  if (!v.text) return held(repo, deps, reviewId, s.en, extra.supplierMessage ?? null, v.outage === true, extra.issues);
   return add(v.text, null);
 }
 const supplierSays = (repo: ReviewRepo, reviewId: string, kind: MsgKind, text: string | null, attachments: Attachment[] = []) =>
@@ -286,7 +293,8 @@ async function load(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inquiryId: str
   // queued for the sales_engineer seat with the held notice, exactly as a failed one is. The claim makes it happen once.
   if (r && r.status === 'reviewing' && effectiveState(r, deps.now()) !== 'reviewing' && await repo.claim(r.id, ['reviewing'], effectiveState(r, deps.now()))) {
     await repo.updateReview(r.id, { reviewing_since: null });
-    await held(repo, deps, r.id, 'The review of their last message or file stopped before it finished (it ran longer than ' + Math.round(STALE_MS / 60000) + ' minutes). Tell them it is being looked at and what happens next.', null).catch(() => {});
+    // the model writes it (1339); the fixed notice only if OpenRouter is down (say → held)
+    await say(repo, deps, r.id, 'notice', { en: 'The review of their last message or file stopped before it finished (it ran longer than ' + Math.round(STALE_MS / 60000) + ' minutes). Tell them it is being looked at and what happens next.', ar: '' }).catch(() => {});
     await repo.log({ signal: 'quote_review_stale_resolved' }, 'A review left in reviewing past STALE_MS was resolved and queued for sales_engineer.').catch(() => {});
     r = await repo.review(inquiryId, ctx.supplierId);
   }
@@ -426,7 +434,8 @@ async function offRequest(repo: ReviewRepo, deps: ReviewDeps, reviewId: string, 
     catch (e) {
       const why = String((e as Error)?.message || e).slice(0, 200);
       await repo.updateReview(reviewId, { status: prior, reviewing_since: null }).catch(() => {});
-      await held(repo, deps, reviewId, `The review of their last message or file failed before it finished (${why}). Tell them it is being looked at and what happens next.`, null).catch(() => {});
+      // the model writes it (1339); the fixed notice only if OpenRouter is down (say → held). `why` stays out of the facts.
+      await say(repo, deps, reviewId, 'notice', { en: 'The review of their last message or file failed before it finished. Tell them it is being looked at and what happens next.', ar: '' }).catch(() => {});
       await repo.log({ signal: 'quote_review_background_failed' }, 'The quotation review failed off the request; the turn went back to ' + prior + ' and was queued for sales_engineer: ' + why).catch(() => {});
       if (!deps.background) throw e;
     }
@@ -562,11 +571,11 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
        { id: 'reupload', meaning: 'they will upload a new version of their own quotation' }]
     : st === 'ready_to_submit' ? [{ id: 'submit', meaning: 'they clearly tell us to submit the quotation to the customer now' }] : [];
   const v = await deps.voice({ kind: 'text', supplierMessage: t, actions, situation: stateFacts(l.inq, r, st, open) })
-    .catch(() => ({ text: '', action: null as string | null }));
+    .catch(() => ({ text: '', action: null as string | null, outage: false }));
   if (v.action === 'generate' || v.action === 'reupload') return decide(repo, deps, ctx, l, r, v.action, sm.id);
   if (v.action === 'submit') return doSubmit(repo, deps, ctx, l.inq, r, sm.id);
   if (v.text) await repo.addMessage({ review_id: r.id, role: SEAT, kind: st === 'awaiting_choice' ? 'choice_prompt' : 'text', body: v.text, body_ar: null, attachments: [], issues: null });
-  else await held(repo, deps, r.id, stateFacts(l.inq, r, st, open), t);
+  else await held(repo, deps, r.id, stateFacts(l.inq, r, st, open), t, v.outage === true);
   return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
 }
 
@@ -607,9 +616,9 @@ async function messageWithFile(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: 
     const said = (t || '(they sent this file with no message)') + `\n\nThey attached "${sc.name}". What it says:` + untrustedBlock(a.text.slice(0, 6000));
     const situation = stateFacts(l.inq, r1, prior, open) + '\nThey attached a file with this message; what it says is in their message. Use it in your answer.';
     const v = await deps.voice({ kind: 'text', supplierMessage: said, situation, images: seenImage(sc.bytes, sc.mime) })
-      .catch(() => ({ text: '', action: null as string | null }));
+      .catch(() => ({ text: '', action: null as string | null, outage: false }));
     if (v.text) await repo.addMessage({ review_id: r.id, role: SEAT, kind: 'text', body: v.text, body_ar: null, attachments: [], issues: null });
-    else await held(repo, deps, r.id, situation, said);
+    else await held(repo, deps, r.id, situation, said, v.outage === true);
   });
   return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId));
 }
