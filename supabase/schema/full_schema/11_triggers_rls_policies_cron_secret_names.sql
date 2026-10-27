@@ -1526,6 +1526,9 @@ select cron.schedule('kb_embed_daily','20 2 * * *',$CRON$set statement_timeout =
 select cron.schedule('seat_duty:ceo.revision_refile','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.revision_refile');$CRON$);
 select cron.schedule('seat_duty:it_engineer.latency_slo','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.latency_slo');$CRON$);
 select cron.schedule('seat_duty:sales_engineer.demand_forecast','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.demand_forecast');$CRON$);
+select cron.schedule('seat_duty:customer_support.notice_plain_language','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.notice_plain_language');$CRON$);
+select cron.schedule('seat_duty:it_engineer.run_clusters','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.run_clusters');$CRON$);
+select cron.schedule('seat_duty:ceo.senior_verdict','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.senior_verdict');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
@@ -1739,6 +1742,7 @@ select cron.schedule('seat_duty:sales_engineer.demand_forecast','*/5 * * * *',$C
 --   postiz_publish_key
 --   project_ref
 --   public_site_url
+--   publishable_key
 --   qa_customer_email
 --   qa_mint_enabled
 --   rating_request_days_after_reveal

@@ -4955,6 +4955,19 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_gateway_client_key()
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- the new key first; the legacy anon JWT only while the publishable_key row is absent (TEMPORARY, 27 Oct 2026)
+  select coalesce(
+    (select nullif(btrim(value), '') from public.app_secrets where key = 'publishable_key'),
+    (select nullif(btrim(value), '') from public.app_secrets where key = 'anon_key'));
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_gl_entry(p_date date, p_memo text, p_source text, p_ref text, p_lines jsonb, p_created_by text DEFAULT 'system'::text)
  RETURNS bigint
  LANGUAGE plpgsql

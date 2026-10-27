@@ -11010,10 +11010,10 @@ begin
   t := public.fn_lead_sourcing_today();
   if t->>'stop' is not null then return null; end if;   -- lead quota, Serper cap or model cap reached (or set to 0)
   select value into v_ref  from public.app_secrets where key = 'project_ref';
-  select value into v_anon from public.app_secrets where key = 'anon_key';
+  v_anon := public.fn_gateway_client_key();   -- publishable_key, else the legacy anon_key (27 Oct 2026)
   select value into v_cred from public.app_secrets where key = 'cred_fn_marketing';
   if v_ref is null or v_anon is null or v_cred is null then
-    raise exception 'fn_lead_sourcing_kick: project_ref, anon_key or cred_fn_marketing missing from app_secrets';
+    raise exception 'fn_lead_sourcing_kick: project_ref, publishable_key (or anon_key) or cred_fn_marketing missing from app_secrets';
   end if;
   return net.http_post(url := 'https://' || v_ref || '.supabase.co/functions/v1/marketing',
     headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_anon, 'apikey', v_anon),
