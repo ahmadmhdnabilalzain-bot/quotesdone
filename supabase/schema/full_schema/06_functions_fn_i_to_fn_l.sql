@@ -75,6 +75,21 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_inbound_is_auto_reply(p_subject text, p_body text, p_raw jsonb)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select lower(coalesce(p_raw->>'auto_submitted', 'no')) not in ('', 'no')
+      or btrim(coalesce(p_raw->>'x_auto_response_suppress', '')) <> ''
+      or lower(btrim(coalesce(p_raw->>'precedence', ''))) in ('auto_reply', 'bulk', 'junk', 'list')
+      or btrim(coalesce(p_raw->>'x_autoreply', '')) <> ''
+      or coalesce(p_subject, '') ~* '(automatic reply|auto[- ]?reply|autoreply|out of (the )?office|\mooo\M|undeliverable|delivery status notification|r[ée]ponse automatique)'
+      or left(coalesce(p_body, ''), 600) ~* '(ticket\s*(id|number|no\.?|#)|this is an auto(mated|matic) (reply|response|message|email)|we have received your (e-?mail|message|request|enquiry|inquiry) and|out of (the )?office|i am (currently )?(away|out of the office|on (annual )?leave)|do not reply to this (e-?mail|message))'
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_inbox_list()
  RETURNS jsonb
  LANGUAGE sql
