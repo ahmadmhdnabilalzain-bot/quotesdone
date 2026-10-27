@@ -21,6 +21,8 @@ export interface HandoffType { type: string; from: Seat; to: Seat; }
 export const HANDOFF_TYPES: readonly HandoffType[] = [
   // accountant -> sales engineer: money happened, somebody must be told
   { type: 'reveal.paid', from: 'accountant', to: 'sales_engineer' },
+  // the stored Stripe reveal invoice was filed into the customer's Documents (fn_accountant_files_reveal_invoice)
+  { type: 'invoice.issued', from: 'accountant', to: 'sales_engineer' },
   { type: 'payment.failed', from: 'accountant', to: 'sales_engineer' },
   { type: 'payment.received', from: 'accountant', to: 'sales_engineer' },
   { type: 'refund.request_checked', from: 'accountant', to: 'sales_engineer' },
