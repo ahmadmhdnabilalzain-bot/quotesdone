@@ -10,19 +10,21 @@ import { useLocale } from 'next-intl';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 const FN = fnUrl('site_assistant');
 
-type Msg = { role: 'user' | 'assistant'; content: string };
+// signup: the server's sign-up button (site_assistant/visitor_scope.ts, founder ruling 18 Oct 2026). A visitor who is
+// not signed up is guided to register; the button is on every reply the server sends them.
+type Msg = { role: 'user' | 'assistant'; content: string; signup?: { url: string; label: string } };
 
 const T = {
   en: { title: 'QuotesDone Assistant', sub: 'Powered by the Smart Engine', open: 'Ask QuotesDone', close: 'Close',
         ph: 'Ask about QuotesDone…', send: 'Send', thinking: 'Typing…',
-        greet: 'Hi! Ask me what a trade typically costs in the UAE, which documents a supplier will need, or how anonymous quotes work. Try one of these:',
-        chips: ['What does gypsum ceiling cost per sqm in Dubai?', 'Which documents will a fit-out supplier need?', 'كم تكلفة أرضيات SPC للمتر؟'],
+        greet: 'Hi! Ask me what QuotesDone is, how it works, what it costs or why you can trust it. Ready to send a job? Sign up free and our sales engineer takes it from there. Try one of these:',
+        chips: ['How does QuotesDone work?', 'Is it free for customers?', 'How do you keep my details private?'],
         err: 'Sorry — something went wrong. Please try again, or email management@quotesdone.com.',
         photo: 'Photo', photoAdd: 'Add a photo or drawing', photoOn: 'Photo attached', photoOnly: '(photo)' },
   ar: { title: 'مساعد QuotesDone', sub: 'مدعوم بالمحرك الذكي', open: 'اسأل QuotesDone', close: 'إغلاق',
         ph: 'اسأل عن QuotesDone…', send: 'إرسال', thinking: 'يكتب…',
-        greet: 'مرحباً! اسألني عن التكلفة المعتادة لأي نشاط في الإمارات، أو عن المستندات التي يحتاجها المورّد، أو عن طريقة عمل عروض الأسعار السرّية. جرّب أحد هذه الأسئلة:',
-        chips: ['كم تكلفة السقف الجبسي للمتر المربع في دبي؟', 'ما المستندات التي يحتاجها مورّد التشطيبات؟', 'كم تكلفة أرضيات SPC للمتر؟'],
+        greet: 'مرحباً! اسألني ما هي QuotesDone وكيف تعمل وما تكلفتها ولماذا يمكنك الوثوق بها. لديك طلب؟ سجّل مجانًا وسيتابع معك مهندس المبيعات لدينا. جرّب أحد هذه الأسئلة:',
+        chips: ['كيف تعمل QuotesDone؟', 'هل الخدمة مجانية للعملاء؟', 'كيف تحافظون على سرية بياناتي؟'],
         err: 'عذراً، حدث خطأ. يُرجى المحاولة مرة أخرى أو مراسلتنا على management@quotesdone.com.',
         photo: 'صورة', photoAdd: 'أرفق صورة أو مخططًا', photoOn: 'تم إرفاق الصورة', photoOnly: '(صورة)' }
 };
@@ -39,7 +41,7 @@ export function render(text: string) {
   let h = esc(text);
   h = h.replace(/(https?:\/\/[^\s<]+)/g, (m) => `<bdi><a href="${m}" target="_blank" rel="noopener noreferrer" style="color:#2DD4BF;font-weight:600">${m}</a></bdi>`);
   h = h.replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, (m) => `<bdi><a href="mailto:${m}" style="color:#2DD4BF;font-weight:600">${m}</a></bdi>`);
-  h = h.replace(/(^|[\s(])(\/(?:contact|me|supplier|faq|services|blog|about)\/?)(?![\w-])/g, (_m, p, path) => `${p}<bdi><a href="${path}" style="color:#2DD4BF;font-weight:600">${path}</a></bdi>`);
+  h = h.replace(/(^|[\s(])(\/(?:ar\/me|contact|me|portal|supplier|faq|services|blog|about)\/?)(?![\w-])/g, (_m, p, path) => `${p}<bdi><a href="${path}" style="color:#2DD4BF;font-weight:600">${path}</a></bdi>`);
   h = h.replace(/(\+?\d[\d\s\-()]{6,}\d)/g, (m) => `<bdi>${m}</bdi>`);
   return h.replace(/\n/g, '<br>');
 }
@@ -114,11 +116,11 @@ export function ChatWidget() {
     setVal('');
     const next = [...msgs, { role: 'user' as const, content: m }];
     setMsgs(next); setBusy(true);
-    const show = (content: string) => setMsgs([...next, { role: 'assistant', content }]);
+    const show = (content: string, signup?: Msg['signup']) => setMsgs([...next, { role: 'assistant', content, ...(signup ? { signup } : {}) }]);
     try {
       const r = await fetch(FN, {
         method: 'POST',
-        // THE ANSWER STREAMS (12 Oct 2026, site_assistant/stream_reply.ts): a status line at once, then the finished,
+        // THE ANSWER STREAMS (12 Oct 2026, _shared/stream_reply.ts): a status line at once, then the finished,
         // checked reply a few words at a time. A server that does not stream answers JSON, read below as before.
         headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson, application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
         // lang WAS NEVER SENT until 9 Sep 2026, so site_assistant resolved uiLang to 'en' on every
@@ -129,7 +131,7 @@ export function ChatWidget() {
       });
       if (r.body && (r.headers.get('content-type') || '').includes('ndjson')) {
         const rd = r.body.getReader(); const dec = new TextDecoder();
-        let buf = '', text = '', final = '';
+        let buf = '', text = '', final = ''; let signup: Msg['signup'];
         for (;;) {
           const { done, value } = await rd.read();
           if (done) break;
@@ -142,13 +144,15 @@ export function ChatWidget() {
             if (e.t === 'status') setStatus(e.text);
             else if (e.t === 'reset') text = '';
             else if (e.t === 'delta') { text += e.text; setStatus(''); show(text); }
-            else if (e.t === 'done') final = e.reply || '';
+            else if (e.t === 'done') { final = e.reply || ''; signup = e.signup; }
           }
         }
-        show(final || text || t.err);
+        show(final || text || t.err, signup);
       } else {
         const j = await r.json();
-        show((j && j.reply) || t.err);
+        // past the visitor cap with the model up but no line it wrote passing the guard, the server sends no text
+        // (founder_instruction 1339): the sign-up button alone is shown, never the error line.
+        show((j && j.reply) || (j && j.visitor_cap && j.signup ? '' : t.err), j && j.signup);
       }
     } catch (_e) {
       show(t.err);
@@ -184,7 +188,14 @@ export function ChatWidget() {
           </div>
           <div ref={boxRef} style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 9 }}>
             {msgs.map((m, i) => (
-              <div key={i} dir="auto" style={bubble(m.role)} dangerouslySetInnerHTML={{ __html: render(m.content) }} />
+              <div key={i} style={{ display: 'contents' }}>
+                {m.content && <div dir="auto" style={bubble(m.role)} dangerouslySetInnerHTML={{ __html: render(m.content) }} />}
+                {m.signup && /^\/[a-z/]*$/.test(m.signup.url) && (
+                  <a href={m.signup.url} dir="auto"
+                    style={{ alignSelf: 'flex-start', background: 'linear-gradient(135deg,#2DD4BF,#14B8A6)', color: '#04222b', fontWeight: 800,
+                      fontSize: 13.5, borderRadius: 10, padding: '8px 14px', textDecoration: 'none' }}>{m.signup.label}</a>
+                )}
+              </div>
             ))}
             {msgs.length === 1 && !busy && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
