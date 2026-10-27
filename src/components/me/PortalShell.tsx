@@ -38,7 +38,7 @@ import { render } from '@/components/ChatWidget';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import { BrandMark } from '@/components/BrandMark';
 import { forgetWidgetConv, readWidgetConv } from '@/lib/widgetConv';
-import { answerAfter, readReply } from '@/lib/portalReply';
+import { answerAfter, noVerdict, readReply, savedLineDue } from '@/lib/portalReply';
 
 // THE INFORMATION ARCHITECTURE, WRITTEN DOWN.
 //
@@ -185,14 +185,17 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
     setStatus(''); setLive('');
     const j = await askAssistant(q, history, token, lang, '/me', images, { status: setStatus, text: setLive });
     let reply = j.reply;
-    if (!reply && token) {
+    // only an answer that never ARRIVED is looked for; a turn the server answered with no reply has nothing stored
+    if (!reply && token && noVerdict(j)) {
       setLive(''); setStatus(t('asst_late'));
       reply = await storedAnswer(token, q);
     }
     setLive(''); setStatus('');
-    setMsgs((m) => [...m, reply
-      ? { role: 'assistant', content: reply, scope: j.done && j.done.scope }
-      : { role: 'notice', content: t('asst_saved') }]);
+    // the saved line only on a transport failure or when OpenRouter was down (1339, savedLineDue); with the model up and
+    // nothing sendable, no code-written text is shown
+    setMsgs((m) => reply
+      ? [...m, { role: 'assistant', content: reply, scope: j.done && j.done.scope }]
+      : savedLineDue(j, reply) ? [...m, { role: 'notice', content: t('asst_saved') }] : m);
     setBusy(false);
   };
 

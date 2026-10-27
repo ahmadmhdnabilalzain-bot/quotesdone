@@ -15,7 +15,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { answerAfter, readReply } from '../../src/lib/portalReply.ts';
+import { answerAfter, noVerdict, readReply, savedLineDue } from '../../src/lib/portalReply.ts';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 const ndjson = (lines, { cut = false } = {}) => new Response(new ReadableStream({ start(c) {
@@ -55,6 +55,29 @@ test('the stored answer is found after the question that asked it, not an older 
   assert.equal(answerAfter(turns, 'doors?'), 'Sliding.');
   assert.equal(answerAfter([...turns, { role: 'user', content: 'handles?' }], 'handles?'), '');
   assert.equal(answerAfter(null, 'x'), '');
+});
+
+// founder_instruction 1339 (27 Oct 2026): "the engineer and customer support never replies without llm unless the server of
+// open router is down". The saved line is the panel's own text: only for a transport failure or done.outage === true.
+test('1339: the saved line only when the answer never arrived or OpenRouter was down; never while the model is up', async () => {
+  const cut = await readReply(ndjson([{ t: 'delta', text: 'Half ' }], { cut: true }));
+  assert.equal(savedLineDue(cut), true, 'a cut stream is a transport failure');
+  const page = await readReply(new Response('<html>504</html>', { status: 504, headers: { 'content-type': 'text/html' } }));
+  assert.equal(savedLineDue(page), true, 'a 504 page is a transport failure');
+  const down = await readReply(ndjson([{ t: 'done', ok: false, error: 'no_answer', outage: true }]));
+  assert.equal([noVerdict(down), savedLineDue(down)].join(), 'false,true', 'OpenRouter down: the saved line');
+  const up = await readReply(ndjson([{ t: 'delta', text: 'Refused words. ' }, { t: 'done', ok: false, error: 'no_answer', outage: false }]));
+  assert.equal([noVerdict(up), savedLineDue(up)].join(), 'false,false', 'the model was up: no code-written line');
+  const unsaid = await readReply(new Response(JSON.stringify({ ok: false, error: 'no_answer' }), { status: 503, headers: { 'content-type': 'application/json' } }));
+  assert.equal(savedLineDue(unsaid), false, 'no outage field is not an outage');
+  assert.equal(savedLineDue(cut, 'The stored answer.'), false, 'a stored answer found later is shown instead');
+  const s = read('src/components/me/PortalShell.tsx');
+  assert.match(s, /if \(!reply && token && noVerdict\(j\)\)/, 'only an answer that never arrived is looked for');
+  assert.match(s, /savedLineDue\(j, reply\) \? \[\.\.\.m, \{ role: 'notice', content: t\('asst_saved'\) \}\] : m/, 'the saved line must be gated by savedLineDue');
+  const se = read('supabase/functions/sales_engineer/index.ts');
+  assert.match(se, /error: 'no_answer', outage, attempts: a\.attempts/, 'the assist 503 must carry outage');
+  assert.match(se, /const outage = a\.outage === true;/);
+  assert.match(se, /error: 'no_model_credential', outage: true \}/, 'no credential is an outage (openrouter_down.ts)');
 });
 
 test('the panel never prints an error line for a turn; it streams, looks for the stored answer, then says it is saved', () => {

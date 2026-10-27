@@ -392,7 +392,7 @@ RULES:
       brief, sys, input: [...past, { role: 'user', content: turnText }], max: photos.images.length ? 1200 : live ? 900 : 700, images: photos.images,
       rateKey: rlKey, rateLimit: rlLimit, subject: who ? { email: who.email, ...(/^ZZ ?DEMO/i.test(message) ? { fixture: true } : {}) } : (/^ZZ ?DEMO/i.test(message) ? { fixture: true, conv } : undefined),   // our own test traffic is named so the gateway never bills or counts it
       check: (s: string) => guardSupportReply(s, replyLang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
-    }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential' };
+    }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential', outage: true };
     lap('reply');
     const reply = a.reply.trim();
     const fx = await fileEffects({ grounded: !!reply, answered: !!reply, refusal: a.error || '' });
@@ -403,7 +403,7 @@ RULES:
     T.rewrites = a.rewrites; T.attempts = a.attempts.length;
     // The gateway's rate limit for this visitor: the same polite system notice the local limiter gives (not a reply).
     if (!reply && a.error === 'rate_limited') return J({ reply: RL_REPLY, rate_limited: true });
-    if (!reply) { await logRun('error', { no_answer: 1, attempts: a.attempts }, 'site_assistant: no model produced an answer: ' + a.attempts.join(' | ')); return J({ error: 'no_answer', attempts: a.attempts }, 503); }
+    if (!reply) { await logRun('error', { no_answer: 1, attempts: a.attempts }, 'site_assistant: no model produced an answer: ' + a.attempts.join(' | ')); return J({ error: 'no_answer', outage: a.outage === true, attempts: a.attempts }, 503); }   // outage: OpenRouter was down (1339)
     return J({ reply, scope: live ? audience : 'public', routed: 'brief', routed_seat: seatForSurface ?? 'customer_support', model: a.model, attempts: a.attempts });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 }

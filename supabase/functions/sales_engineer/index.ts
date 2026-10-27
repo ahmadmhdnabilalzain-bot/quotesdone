@@ -480,7 +480,7 @@ const plain = observe('sales_engineer', async (req) => {
         // sentence by sentence; a deferral is a whole-answer judgement (aiReply), never one sentence's, so it is not run here
         check: (t: string) => [...guardSupportReply(t, lang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
           ...replyProblems(t, known, { allowed }).filter((p) => !/defers/.test(p)), ...wrappedReply(t), ...plainLanguage(t, lang)],
-      }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential' };
+      }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential', outage: true };
       lap('reply');
       const reply = a.reply.trim();
       try {
@@ -498,10 +498,14 @@ const plain = observe('sales_engineer', async (req) => {
         await run('assist', 'ok', { answered: true, basis: 'reasoned', model: a.model, attempts: a.attempts, ms: T, precedent: recallTrace(memory) });
         return J({ ok: true, seat: 'sales_engineer', answered: true, reply, basis: 'composed by the model from the brief, the retrieved records and their own quotes', model: a.model });
       }
-      // NO MODEL ANSWERED INSIDE THE TURN (rulings 1195/1196: code writes no reply text). The question is logged with the gap
-      // fn_sales_assist filed; the portal shows its own notice and the conversation stays open.
-      await run('assist', 'error', { answered: false, attempts: a.attempts, ms: T, task_id: r.task_id ?? null, precedent: recallTrace(memory) });
-      return J({ ok: false, seat: 'sales_engineer', answered: false, error: 'no_answer', attempts: a.attempts, task_id: r.task_id ?? null }, 503);
+      // NO REPLY INSIDE THE TURN (rulings 1195/1196: code writes no reply text). The question is logged with the gap
+      // fn_sales_assist filed and the conversation stays open. `outage` (founder_instruction 1339, openrouter_down.ts): true
+      // only when OpenRouter was down (no call reached a model); only then does the portal show its own "saved" line. With the
+      // model up and every draft refused (answerFromBrief already kept its passing sentences and asked it once more), the
+      // portal shows no code-written text.
+      const outage = a.outage === true;
+      await run('assist', 'error', { answered: false, outage, attempts: a.attempts, ms: T, task_id: r.task_id ?? null, precedent: recallTrace(memory) });
+      return J({ ok: false, seat: 'sales_engineer', answered: false, error: 'no_answer', outage, attempts: a.attempts, task_id: r.task_id ?? null }, 503);
     }
 
     // ── CONVERSATIONS ──────────────────────────────────────────────────────────────────────────
