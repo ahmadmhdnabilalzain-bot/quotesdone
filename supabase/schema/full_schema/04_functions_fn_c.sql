@@ -12300,8 +12300,6 @@ declare
   q record; n public.notifications; tx public.transactions; sup record; v_since timestamptz;
   v_reply jsonb; v_result text; v_evidence jsonb; v_retries int; v_nid bigint; v_done int := 0; v_waiting int := 0; v_retried int := 0;
   v_overdue int := 0; v_rep jsonb; v_failed int := 0;
-  -- 27 Oct 2026: the walk (p_request_id null) stops 3 s after it began; the rest waits for the next tick (header).
-  v_until timestamptz := clock_timestamp() + interval '3 seconds'; v_left int := 0;
 begin
   for q in
     select a.* from public.agent_actions a
@@ -12312,7 +12310,6 @@ begin
      order by a.id
      limit case when p_request_id is null then 50 else 1 end
   loop
-    if p_request_id is null and clock_timestamp() > v_until then v_left := v_left + 1; continue; end if;
     v_nid := coalesce((q.detail->>'retry_notification_id')::bigint, (q.evidence->>'notification_id')::bigint);
     n := null;
     select * into n from public.notifications where id = v_nid;
@@ -12497,7 +12494,7 @@ begin
     end;
   end loop;
   return jsonb_build_object('results_returned', v_done, 'still_watching', v_waiting, 'retried', v_retried,
-                            'overdue_raised', v_overdue, 'results_failed', v_failed, 'left_for_next_tick', v_left);
+                            'overdue_raised', v_overdue, 'results_failed', v_failed);
 end $function$
 
 
