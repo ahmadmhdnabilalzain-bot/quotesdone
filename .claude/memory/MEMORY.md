@@ -82,6 +82,8 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [TDRA NOL received](tdra-nol-received.md) — NOL-26-100000665 for www.quotesdone.ae, expires 14 Sep 2027
 - [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
 ## Working the estate
+- [npm ci in a worktree empties the shared node_modules (27 Oct)](npm-ci-in-a-worktree-empties-the-shared-node-modules.md) — install only in the main checkout
+- [A branch can silently revert main (27 Oct)](a-branch-can-silently-revert-main.md) — #1672; review the whole diff against main
 - [Diff SQL against live production, not the mirror (27 Oct)](diff-sql-against-live-production-not-the-mirror.md) — #1660 nearly reverted #1644's live code
 - [quotesdone2 is the live publishable key (27 Oct)](quotesdone2-is-the-live-publishable-key.md) — never revoke it; fn_gateway_client_key() is the one source
 - [Exchange strips List-Unsubscribe-Post (27 Oct)](exchange-strips-list-unsubscribe-post.md) — fix is a transport rule; TNEF already fixed
