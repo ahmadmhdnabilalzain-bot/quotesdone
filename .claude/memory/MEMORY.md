@@ -82,6 +82,8 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [TDRA NOL received](tdra-nol-received.md) — NOL-26-100000665 for www.quotesdone.ae, expires 14 Sep 2027
 - [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
 ## Working the estate
+- [npm ci in a worktree empties the shared node_modules (27 Oct)](npm-ci-in-a-worktree-empties-the-shared-node-modules.md) — install only in the main checkout
+- [A branch can silently revert main (27 Oct)](a-branch-can-silently-revert-main.md) — #1672; review the whole diff against main
 - [Diff SQL against live production, not the mirror (27 Oct)](diff-sql-against-live-production-not-the-mirror.md) — #1660 nearly reverted #1644's live code
 - [quotesdone2 is the live publishable key (27 Oct)](quotesdone2-is-the-live-publishable-key.md) — never revoke it; fn_gateway_client_key() is the one source
 - [Exchange strips List-Unsubscribe-Post (27 Oct)](exchange-strips-list-unsubscribe-post.md) — fix is a transport rule; TNEF already fixed
@@ -89,6 +91,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Supabase access has three paths](supabase-access-has-three-paths.md)
 - [Check a PR's base before merging](check-a-prs-base-before-merging.md) — verify baseRefName and main's head
 - [A big batch delete restarted production](a-big-batch-delete-restarted-production.md) — 21 Sep: 50k purge batch seq-scanned, retried on 524, memory >4 GB, hard restart
+- [A killed check leaks its fixtures](a-killed-check-leaks-its-fixtures.md) — 27 Oct: a 2-min shell timeout SIGKILLs a 271 s withRun check; purge by `run.mjs --purge-tag`, never purge_demo_data
 - [An apply can lock sign-in](an-apply-can-lock-sign-in.md) — 21 Sep: a 75 s apply locked login; no applies in a campaign hour
 - [Upgrade backlog after queue = 0](upgrade-backlog-after-queue-zero.md) — ledger 1019, trimmed 29 Sep; never name suppliers publicly; ask before splitting trades
 - [Round-3 upgrades wait for queue < 20](round-3-upgrades-wait-for-queue-below-20.md) — ledger 1018: stalled-inquiry rescue, quote QC, fraud, concierge, capacity, trade_words fix

@@ -28,9 +28,14 @@ begin
            count(*) filter (where seat <> 'ceo' and handoff_id is not null)
       into v_opened, v_no_meta, v_handoffs
       from public.ceo_improvement where source_kind = 'weekly_review' and id in (select unnest(opened) from public.ceo_weekly_review where week = date '2026-01-05');
-    -- every missed target, opened now or carried from an earlier week, has exactly ONE open improvement
+    -- every missed target, opened now or carried from an earlier week, has exactly ONE open improvement; a HELD target
+    -- (paused, 19 Oct 2026: "a target the founder has held opens no action and its open actions close") has NONE.
+    -- 27 Oct 2026: this counted a held target as missed, so it went red the day the supplier campaign was paused
+    -- (supply, sales_engineer: "the supplier campaign is off"): the review correctly closed improvement 9700 as paused
+    -- and opened none, and the probe called that "9 of 10". A held target is now asserted the other way, not skipped.
     select count(*), count(*) filter (where (select count(*) from public.ceo_improvement i where i.source_kind = 'weekly_review'
-                                               and i.status in ('open', 'assigned') and i.seat = x->>'seat' and i.evidence->>'target' = x->>'key') = 1)
+                                               and i.status in ('open', 'assigned') and i.seat = x->>'seat' and i.evidence->>'target' = x->>'key')
+                                            = case when coalesce((x->>'paused')::boolean, false) then 0 else 1 end)
       into v_missed_keys, v_one_each
       from public.ceo_weekly_review w, jsonb_array_elements(w.targets) x where w.week = date '2026-01-05' and not (x->>'met')::boolean;
     select id into v_imp_risk from public.ceo_improvement
@@ -89,7 +94,7 @@ begin
   if v_w1->>'carried' is null or v_opened + (v_w1->>'carried')::int <> (v_w1->>'missed')::int then
     raise exception 'week 1 missed % targets but opened % and carried % improvements', v_w1->>'missed', v_opened, coalesce(v_w1->>'carried', 'none (not reported)');
   end if;
-  if v_one_each <> v_missed_keys then raise exception 'only % of % missed targets have exactly one open improvement', v_one_each, v_missed_keys; end if;
+  if v_one_each <> v_missed_keys then raise exception 'only % of % missed targets have exactly one open improvement (none for a held one)', v_one_each, v_missed_keys; end if;
   if v_no_meta <> 0 then raise exception '% improvement(s) opened without an owner, a due date or a closing check', v_no_meta; end if;
   if v_handoffs < 1 then raise exception 'no improvement was handed to its seat'; end if;
   if v_runway_imp <> 0 or not coalesce(v_runway_info, false) then

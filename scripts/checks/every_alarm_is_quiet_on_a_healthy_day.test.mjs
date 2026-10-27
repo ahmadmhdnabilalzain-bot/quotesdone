@@ -218,6 +218,12 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_it_engineer_duty_pause_expiry()',
     asOf: { duty_pause: 'paused_at' },
   },
+  // 27 Oct 2026 (it_engineer, 68046f265, ledger 1003 IT-C14). A run label with more than 5 runs in 7 days and more than
+  // half of them not ok is one owned finding. Runs that existed at the instant.
+  fn_it_engineer_run_clusters: {
+    replay: 'pg_temp.qd_replay_fn_it_engineer_run_clusters()',
+    asOf: { agent_runs: 'started_at' },
+  },
   fn_ceo_report_answer_sweep: { stub: { 'public.fn_ceo_decide_report': 'null', 'public.fn_ceo_backup_heartbeat_decide': 'null' }, replay: 'pg_temp.qd_replay_fn_ceo_report_answer_sweep()', asOf: {} },
   fn_ceo_constraint_lever: { stub: { 'public.fn_ceo_improvement_close': 'null' }, replay: 'pg_temp.qd_replay_fn_ceo_constraint_lever()', asOf: {} },
   fn_ceo_marketing_plan_watch: { stub: { 'public.fn_ceo_improvement_open': 'null' }, replay: 'pg_temp.qd_replay_fn_ceo_marketing_plan_watch()', asOf: {} },
@@ -319,6 +325,8 @@ export const REGISTER = {
   fn_it_loop_stage: { relay: 'records that an IT loop stage raised; the error is the finding' },
   fn_seat_duty_cross_review: { relay: 'records that a cross-family review could not be opened; the error from fn_seat_deliberation_open is the finding' },
   fn_seat_handoff: { relay: 'records a handoff that could not be opened; the error is the finding' },
+  // 27 Oct 2026 (#1607, accountant): the reveal-invoice trigger raises only in the exception arm of its handoff insert.
+  fn_accountant_files_reveal_invoice: { relay: 'records that the invoice.issued handoff to the sales engineer could not be filed for a transaction whose invoice it just filed; fires only when that insert is refused (the error is the finding), and a healthy day has none' },
   fn_ceo_accountant_notice_report_decide: { relay: 'the CEO\'s decision on an accountant report' },
   fn_ceo_sales_engineer_report_decide: { relay: 'the CEO\'s decision on a sales engineer report' },
   fn_it_journey_ingest: { relay: 'writes the failed steps a nightly journey or smoke run reports' },
