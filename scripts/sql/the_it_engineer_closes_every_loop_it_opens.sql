@@ -117,9 +117,11 @@ select v.type, v.from_seat, v.to_seat, v.meaning,
     ('it.finding',               'it_engineer',      'customer_support', 'The IT engineer found a fault in something customer support owns: apply your remedy or say you have none. The IT engineer re-verifies and closes.'),
     ('it.finding',               'it_engineer',      'ceo',              'The IT engineer found a fault in something only the CEO owns: decide the remedy or say there is none. The IT engineer re-verifies and closes.')
   ) v(type, from_seat, to_seat, meaning)
-on conflict (type, from_seat, to_seat) do update
-  set meaning = excluded.meaning, handler = excluded.handler, reply_within = excluded.reply_within,
-      originator_closes = excluded.originator_closes, owner_file = excluded.owner_file;
+-- DO NOTHING, never DO UPDATE (27 Oct 2026): re-applying this file for #1587 rewrote reply_within and originator_closes
+-- on 15 kinds that the_ceo_decides_every_sales_engineer_report_and_every_sender_closes_its_handoff.sql had since set
+-- (restored by the_handoff_reply_windows_come_back_after_the_loop_file_was_reapplied.sql). A re-apply registers a
+-- missing kind; it never overwrites a later file's values.
+on conflict (type, from_seat, to_seat) do nothing;
 
 drop table if exists public.seat_handoff_window;
 
