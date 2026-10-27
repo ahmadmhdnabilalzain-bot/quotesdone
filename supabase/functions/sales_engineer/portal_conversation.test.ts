@@ -3,7 +3,7 @@
 // Every case below is a sentence the deployed or branch portal seat actually wrote in the adaptive conversation bank on
 // 27 Oct 2026 (runs 98aa692f, 4d74ce2d, ab519dba, 4f59f1b9), so these tests fail on a head that does not filter them.
 import { assert, assertEquals } from 'jsr:@std/assert';
-import { heldBlock, heldState, MAX_QUESTIONS, reaskOf, replyFilter, sameAsk, sentencesOf, stripReply, type Turn, unaskedOf } from './portal_conversation.ts';
+import { ALL_QUESTIONS_DROPPED, ENDS_WITHOUT_A_QUESTION, heldBlock, newClauseOf, heldState, MAX_QUESTIONS, reaskOf, replyFilter, sameAsk, sentencesOf, stripReply, type Turn, unaskedOf } from './portal_conversation.ts';
 import { portalRules } from './portal_turn.ts';
 import { answerFromBrief, type BriefCall } from '../_shared/brief_answer.ts';
 
@@ -131,7 +131,8 @@ Deno.test('streamed: a re-asked question and an unasked line are never shown; th
   assertEquals(shown, ['An inverter split suits a sunny room. ', 'What efficiency rating would you like?']);
   assertEquals(r.reply, 'An inverter split suits a sunny room. What efficiency rating would you like?');
   assertEquals(g.bodies.length, 1, 'dropping costs no second call');
-  assertEquals(r.dropped, ['a line on how long it takes they did not ask about', 'repeats an earlier question']);
+  assertEquals(r.dropped, ['a line on how long it takes they did not ask about | Quotes usually take 3–5 working days.',
+    'repeats an earlier question | Does the apartment use its own air-conditioning units, or central or district cooling?']);
 });
 
 Deno.test('streamed: an answer with nothing left after the drop is rewritten by the model, and the rewrite is filtered too', async () => {
@@ -149,4 +150,55 @@ Deno.test('the portal turn wires the held state into the prompt and the filter i
   assert(src.includes('const held = heldState(turns, message);'), 'the held state is no longer computed from the whole conversation');
   assert(src.includes("(known_ ? known_ + '\\n\\n' : '')"), 'the model is no longer shown what it must not ask again');
   assert(src.includes('drop: () => replyFilter(held),'), 'the reply is no longer filtered sentence by sentence');
+});
+
+// Run 143372b1 (27 Oct 2026), the first run with the filter: two summaries lost their confirm request (dropped as a
+// supplier-process line) and replies whose questions were all re-asks ended on a statement, so the conversation stalled.
+Deno.test('the confirm request that closes a summary is never dropped as a process line', () => {
+  const h = heldState(AC, 'Within 2 weeks.');
+  assertEquals(unaskedOf('If that is correct, press "New request" to send it to verified suppliers.', h), null);
+  assertEquals(unaskedOf('إذا كان الملخص صحيحاً، اضغط "طلب جديد" لإرساله إلى الموردين المعتمدين.', h), null);
+  assertEquals(unaskedOf('Matched suppliers send anonymised quotes.', h), 'a line on what suppliers will do they did not ask about');
+});
+
+Deno.test('a job reply that ends without a question fails as a whole; one new question passes; a confirmed summary needs none', () => {
+  const h = heldState(AC, 'Inverter please.');
+  const r = stripReply('Inverter noted. Does the apartment use its own air-conditioning units, or central or district cooling?', h);
+  assertEquals([r.text, r.end], ['Inverter noted.', ALL_QUESTIONS_DROPPED]);
+  assertEquals(stripReply('Inverter noted. Does the balcony have a power point?', h).end, null);
+  // run 143372b1, ac_undersized_en turn 4: "Inverter noted." and nothing else
+  assertEquals(stripReply('Inverter noted.', h).end, ENDS_WITHOUT_A_QUESTION);
+  assertEquals(stripReply('Thank you, your request is ready to send.', heldState(AC, 'Yes, that is correct.')).end, null);
+  assertEquals(stripReply('نشكرك، طلبك جاهز.', heldState(AC, 'نعم، صحيح.')).end, null);
+  // a first reply to a general question is not forced to ask
+  assertEquals(stripReply('Posting a request is free.', heldState([], 'Is it free to post?')).end, null);
+});
+
+Deno.test('a two-part question keeps its one new part when the other part was asked before (run 143372b1, cctv_shop turn 3)', () => {
+  const h = heldState([u('I need CCTV for my shop.'), a('Does the mall require its own approved installer, and do you want economy, mid-range or premium equipment?')], 'Mall management requires an approved contractor.');
+  assertEquals(newClauseOf('Do you want economy, mid-range or premium equipment, and is the shop rented from the mall or owned?', h), 'Is the shop rented from the mall or owned?');
+  assertEquals(replyFilter(h)('Do you want economy, mid-range or premium equipment, and is the shop rented from the mall or owned?'),
+    { text: 'Is the shop rented from the mall or owned?', why: 'part of the question was asked before' });
+  // both parts new: the question stands as written
+  assertEquals(newClauseOf('How many cameras do you need, and do you want night vision?', h), null);
+});
+
+Deno.test('streamed: every question dropped -> the model rewrites with a new question', async () => {
+  const h = heldState(AC, 'Inverter please.');
+  const g = gw([sse(['Inverter noted. ', 'Does the apartment use its own air-conditioning units, or central or district cooling?']),
+    json({ content: 'Inverter noted. Does the balcony have a power point or isolator nearby?', model: 'anthropic/claude-sonnet-5.5' })]);
+  const r = await answerFromBrief(CALL(h), () => {}, g.f);
+  assertEquals(r.reply, 'Inverter noted. Does the balcony have a power point or isolator nearby?');
+  assertEquals(r.rewrites, 1);
+  assert(String((g.bodies[1].input as { content: string }[]).at(-1)!.content).includes('every question it asked was already asked'));
+});
+
+Deno.test('streamed: when no rung writes a new question, the answer is still sent without the re-ask, never no answer', async () => {
+  const h = heldState(AC, 'Inverter please.');
+  const again = 'Inverter noted. Does the apartment use its own air-conditioning units, or central or district cooling?';
+  const g = gw([sse(['Inverter noted. ', 'Does the apartment use its own air-conditioning units, or central or district cooling?']),
+    json({ content: again }), json({ content: again }), json({ content: again }), json({ content: again })]);
+  const r = await answerFromBrief(CALL(h), () => {}, g.f);
+  assertEquals(r.reply, 'Inverter noted.');
+  assert(r.attempts.at(-1)!.startsWith('kept:'), r.attempts.join(','));
 });

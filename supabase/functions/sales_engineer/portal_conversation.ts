@@ -36,6 +36,7 @@ export const PORTAL_INTAKE = 'WHEN THEY DESCRIBE A JOB THEY WANT PRICED, take th
 /** THE SHAPE OF EVERY PORTAL REPLY. replyFilter() below enforces the parts a sentence can break on its own. */
 export const REPLY_SHAPE = 'SHAPE OF EVERY REPLY: (a) at most one or two short sentences that answer their message or correct a wrong specification; when they only gave details, a few words of acknowledgement at most, never a read-back of everything they said (the read-back is for the final summary only); '
   + '(b) then at most two questions, the missing specifications that most change the price; (c) nothing else. No greeting after the first reply. '
+  + 'Every reply ends with a question for them: the next missing specification or, once the essentials are known, the summary and "Is this correct?". '
   + 'Do not add the fee, "posting is free", how long quotes or the work take, what suppliers will do or how the request is sent unless their message asks about it. Never mention passing anything to a team.';
 
 export type Lang = 'en' | 'ar';
@@ -224,11 +225,37 @@ const UNASKED: [string, RegExp, RegExp | null][] = [
 const GREETING = /^\s*(hi|hello|hey|dear|good (morning|afternoon|evening)|greetings|thank you for (contacting|reaching|your message)|thanks for (contacting|reaching|your message)|السلام عليكم|وعليكم السلام|مرحبا|مرحباً|أهلا|اهلا|أهلاً)(?!\p{L})/iu;
 const SUMMARY = /^\s*(here is|here's|here are|to summari[sz]e|in summary|summary|your request|the job as)\b|^\s*(ملخص|إليك ملخص|هذا ملخص)/i;
 export const MAX_QUESTIONS = 3;
+const CONFIRM = /\b(confirm|correct|right)\b|صحيح|تأكيد|أكد|أكّد/i;
+export const ALL_QUESTIONS_DROPPED = 'every question it asked was already asked or answered; ask the next missing specification instead, or, when the essentials are known, give the summary and ask them to confirm it';
+/** What the filter says of one sentence: null keep it, a reason drop it, or keep only `text` (the model's own words,
+ *  one clause of its question) for `why`. */
+export type Verdict = string | null | { text: string; why: string };
+/** A sentence filter for one reply; `end()` names a problem with the reply as a whole once every sentence was seen. */
+export type ReplyFilter = ((sentence: string) => Verdict) & { end: () => string | null };
+export const ENDS_WITHOUT_A_QUESTION = 'it ends without asking them anything; end with the next missing specification as a question or, when the essentials are known, the summary and "Is this correct?"';
+const ASKS = /^\s*(do|does|did|is|are|was|were|would|will|should|can|could|have|has|what|which|how|when|where|who|whose|هل|ما|ماذا|كم|متى|أين|اين|وين|كيف|أي|اي|شو|ايش)\b|^\s*(هل|ما|ماذا|كم|متى|أين|وين|كيف|أي|شو)/i;
+const CONFIRMED = /^\s*(yes|yeah|yep|correct|that is correct|confirmed?)\b|^\s*(نعم|صحيح|تمام|أكيد|أكد)/i;
+/** A two-part question whose other parts are re-asks keeps its one new part, when that part is a question on its own
+ *  (run 143372b1: "Does the mall need its own installer, and do you want economy, mid-range or premium?" one turn after
+ *  the budget was asked). Returns that clause as a question, or null when no clean single clause is left. */
+export function newClauseOf(q: string, h: Held): string | null {
+  const parts = clausesOf(q);
+  if (parts.length < 2) return null;
+  const fresh = parts.filter((c) => !reaskOf(c.replace(/[?؟.]*\s*$/, '') + (/[؀-ۿ]/.test(c) ? '؟' : '?'), h));
+  if (fresh.length !== 1 || !ASKS.test(fresh[0].replace(/^[وف]/, ''))) return null;
+  const c = fresh[0].replace(/[?؟.]*\s*$/, '');
+  return c.charAt(0).toUpperCase() + c.slice(1) + (/[؀-ۿ]/.test(c) ? '؟' : '?');
+}
 
 /** Why a NON-question sentence is a line nobody asked for. null when it may stay. */
 export function unaskedOf(s: string, h: Held): string | null {
   if (!h.firstReply && GREETING.test(s)) return 'a greeting after the first reply';
-  for (const [topic, re, licence] of UNASKED) if (re.test(s) && !(licence && licence.test(h.message))) return `a line on ${topic} they did not ask about`;
+  for (const [topic, re, licence] of UNASKED) {
+    // "If that is correct, press New request" closes the summary (PORTAL_INTAKE step 4): asking them to confirm is never
+    // an unasked process line (run 143372b1: two summaries lost their confirm request this way and the conversation stalled)
+    if (topic === 'what suppliers will do' && CONFIRM.test(s)) continue;
+    if (re.test(s) && !(licence && licence.test(h.message))) return `a line on ${topic} they did not ask about`;
+  }
   // the final read-back restates on purpose (PORTAL_INTAKE step 4): it is never dropped as a repeat
   const W = contentWords(s);
   if (W.size >= 5 && !SUMMARY.test(s)) for (const p of h.said) { const P = contentWords(p); if (overlap(W, P) / W.size >= 0.7) return 'restates a sentence already said'; }
@@ -237,26 +264,39 @@ export function unaskedOf(s: string, h: Held): string | null {
 
 /** A fresh filter for ONE reply: called on each sentence in order, it says why a sentence is dropped, or null to keep it.
  *  It counts the questions it kept, so a fourth is dropped (the shape allows two; a third is tolerated). */
-export function replyFilter(h: Held): (sentence: string) => string | null {
-  let kept = 0;
-  return (sentence: string) => {
+export function replyFilter(h: Held): ReplyFilter {
+  let kept = 0; let reasked = 0;
+  const f = (sentence: string): Verdict => {
     const s = sentence.trim();
     if (!s) return null;
     if (isQuestion(s)) {
       const r = reaskOf(s, h);
-      if (r) return r;
+      if (r) { reasked++; return r; }
+      const one = newClauseOf(s, h);
       if (kept >= MAX_QUESTIONS) return `more than ${MAX_QUESTIONS} questions`;
       kept++;
-      return null;
+      return one ? { text: one, why: 'part of the question was asked before' } : null;
     }
     return unaskedOf(s, h);
   };
+  // A JOB CONVERSATION NEVER ENDS ON A STATEMENT (run 143372b1, 27 Oct 2026: replies whose questions were dropped, or that
+  // wrote none, left the customer nothing to answer and the brief was never finished: 5 of 10 conversations stopped
+  // before a summary). Once the job is under way (something given or asked) and they did not just confirm, a reply with
+  // no question is rewritten; brief_answer keeps it as the last resort, never sends nothing.
+  const job = h.slots.length > 0 || h.asked.length > 0;
+  return Object.assign(f, { end: () => (kept > 0 ? null : reasked > 0 ? ALL_QUESTIONS_DROPPED
+    : job && !h.firstReply && !CONFIRMED.test(h.message) ? ENDS_WITHOUT_A_QUESTION : null) });
 }
 
 /** The reply with the dropped sentences taken out (a whole answer: a rewrite or a retry). */
-export function stripReply(text: string, h: Held): { text: string; dropped: { sentence: string; why: string }[] } {
+export function stripReply(text: string, h: Held): { text: string; dropped: { sentence: string; why: string }[]; end: string | null } {
   const f = replyFilter(h);
   const kept: string[] = []; const dropped: { sentence: string; why: string }[] = [];
-  for (const s of sentencesOf(text)) { const why = f(s); if (why) dropped.push({ sentence: s, why }); else kept.push(s); }
-  return { text: kept.join(' ').trim(), dropped };
+  for (const s of sentencesOf(text)) {
+    const v = f(s);
+    if (typeof v === 'string') dropped.push({ sentence: s, why: v });
+    else if (v) { dropped.push({ sentence: s, why: v.why }); kept.push(v.text); }
+    else kept.push(s);
+  }
+  return { text: kept.join(' ').trim(), dropped, end: f.end() };
 }

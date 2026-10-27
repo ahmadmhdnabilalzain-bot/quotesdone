@@ -28,7 +28,9 @@ export interface BriefCall {
   // 4. DROPS WHAT NOBODY ASKED FOR (customer_support, 27 Oct 2026; sales_engineer/portal_conversation.ts). A fresh filter per
   // answer, called on each sentence in order: a sentence it names a reason for is never shown and never fails the answer
   // (a re-asked question, an unasked fee line); the rest of the answer stands. An answer with nothing left is rewritten.
-  drop?: () => (sentence: string) => string | null;
+  // BriefAnswer.dropped lists each as "<reason> | <the sentence>", so a false drop can be audited from agent_runs.
+  // per sentence: null keep, a reason drop, or { text, why } keep only that part of it; end(): a whole-answer problem
+  drop?: () => ((sentence: string) => string | null | { text: string; why: string }) & { end?: () => string | null };
 }
 /** The longest one call may take inside a deadline: a streamed Sonnet 5.5 answer of 900-1,200 tokens is written in 10-25 s. */
 export const PER_CALL_MS = 40_000;
@@ -40,13 +42,19 @@ export const RESERVE_MS = MIN_CALL_MS + 2_000;
 export interface BriefAnswer { reply: string; model: string | null; attempts: string[]; rewrites: number; streamed: boolean; error?: string; dropped?: string[] }
 const NOTHING_LEFT = 'everything it said was dropped (a question already asked or answered, or a line they did not ask for); answer their message and ask only what is still missing';
 /** A whole answer with the caller's dropped sentences taken out; `why` collects the reasons. Unchanged without a filter. */
-function stripped(c: BriefCall, text: string, why: string[]): string {
-  if (!c.drop || !text) return text;
+function stripped(c: BriefCall, text: string, why: string[]): { text: string; end: string | null } {
+  if (!c.drop || !text) return { text, end: null };
   const f = c.drop();
   const { done, rest } = takeSentences(text + '\n');
   const kept: string[] = [];
-  for (const s of [...done, rest]) { if (!s.trim()) continue; const r = f(s); if (r) why.push(r); else kept.push(s.trim()); }
-  return kept.join(' ').trim();
+  for (const s of [...done, rest]) {
+    if (!s.trim()) continue;
+    const r = f(s);
+    if (typeof r === 'string') why.push(r + ' | ' + s.trim().slice(0, 160));
+    else if (r) { why.push(r.why + ' | ' + s.trim().slice(0, 160)); kept.push(r.text); }
+    else kept.push(s.trim());
+  }
+  return { text: kept.join(' ').trim(), end: f.end?.() ?? null };
 }
 type Fetch = typeof fetch;
 
@@ -93,7 +101,7 @@ async function once(f: Fetch, c: BriefCall, extra: Record<string, unknown>): Pro
 
 /** The streamed attempt. Emits each finished sentence that passes the figure check; stops at the first that does not. */
 async function streamed(f: Fetch, c: BriefCall, known: Set<string>, emit: (t: string) => void, dropped: string[]):
-  Promise<{ text: string; model: string | null; bad: string[]; error?: string }> {
+  Promise<{ text: string; model: string | null; bad: string[]; error?: string; kept?: string }> {
   const ms = callBudget(c.deadline, Date.now(), RESERVE_MS);
   if (ms === 0) return { text: '', model: null, bad: [], error: NO_TIME };
   let r: Response;
@@ -107,10 +115,12 @@ async function streamed(f: Fetch, c: BriefCall, known: Set<string>, emit: (t: st
   const rd = r.body.getReader(); const dec = new TextDecoder();
   let sse = '', pending = '', shown = '', raw = '', finish = '';
   const dropOf = c.drop?.();
-  const check = (s: string) => {
-    raw += s;
-    const d = dropOf?.(s);
-    if (d) { dropped.push(d); return []; }   // never shown, never a failure: the rest of the answer stands (4. above)
+  const check = (s0: string) => {
+    raw += s0;
+    let s = s0;
+    const d = dropOf?.(s0);
+    if (typeof d === 'string') { dropped.push(d + ' | ' + s0.trim().slice(0, 160)); return []; }   // never shown, never a failure (4. above)
+    if (d) { dropped.push(d.why + ' | ' + s0.trim().slice(0, 160)); s = d.text + (s0.match(/\s*$/)?.[0] || ' '); }
     const bad = problems(c, s, known); if (!bad.length) { shown += s; emit(s); } return bad;
   };
   for (;;) {
@@ -146,6 +156,8 @@ async function streamed(f: Fetch, c: BriefCall, known: Set<string>, emit: (t: st
   const whole = revealFeeIncomplete(shown);
   if (shown.trim() && whole.length) return { text: shown.trim(), model, bad: whole };
   if (!shown.trim() && raw.trim()) return { text: raw.trim(), model, bad: [NOTHING_LEFT] };
+  const end = dropOf?.end?.();
+  if (end) return { text: raw.trim(), model, bad: [end], kept: shown.trim() };   // fails the caller's shape as a whole: rewritten
   return shown.trim() ? { text: shown.trim(), model, bad: [] } : { text: '', model, bad: [], error: 'empty stream' };
 }
 
@@ -166,9 +178,15 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
   // shows its rate-limit notice.
   if (s.error && /rate_limited/.test(s.error)) return { reply: '', model: null, attempts, rewrites, streamed: false, error: 'rate_limited', dropped };
   // a whole answer's problems once the dropped sentences are out; an answer with nothing left is a problem of its own
-  const judge = (text: string): { text: string; bad: string[] } => {
-    const t = stripped(c, text, dropped);
-    return { text: t, bad: t ? [...problems(c, t, known), ...revealFeeIncomplete(t)] : [NOTHING_LEFT] };
+  // An answer that failed ONLY the caller's whole-answer shape (end()) is kept: if no rung does better, it is sent rather
+  // than nothing (a reply without a question still answers them; no reply is the portal's notice).
+  let shapeOnly: { reply: string; model: string | null } | null = s.kept ? { reply: s.kept, model: s.model } : null;
+  const judge = (text: string, m: string | null): { text: string; bad: string[] } => {
+    const { text: t, end } = stripped(c, text, dropped);
+    if (!t) return { text: t, bad: [NOTHING_LEFT] };
+    const bad = [...problems(c, t, known), ...revealFeeIncomplete(t)];
+    if (end && !bad.length) shapeOnly = { reply: t, model: m };
+    return { text: t, bad: end ? [end, ...bad] : bad };
   };
   // The figure check failed: the MODEL rewrites the whole answer with the correction named. Checked again, twice at most.
   let draft = s.text; let bad = s.bad; let model = s.model;
@@ -179,7 +197,7 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
         { role: 'user', content: `Your answer has these problems: ${bad.join('; ')}. Write the whole answer again, exact and direct, correcting them: use only figures the company brief states (where it gives none, explain without a number) and follow every rule in your instructions.` }] }, {});
       attempts.push('rewrite:' + (fix.error ? 'failed ' + fix.error : 'ok'));
       if (!fix.text) break;
-      const j = judge(fix.text); model = fix.model; bad = j.bad; draft = j.bad.length ? fix.text : j.text;
+      const j = judge(fix.text, fix.model); model = fix.model; bad = j.bad; draft = j.bad.length ? fix.text : j.text;
       if (!bad.length) return { reply: draft, model, attempts, rewrites, streamed: false, dropped };
     }
   }
@@ -188,8 +206,9 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
   for (const extra of [{}, { counterpart_model: model || 'anthropic/claude-sonnet-5.5' }]) {
     const a = await once(f, c, extra);
     attempts.push((('counterpart_model' in extra) ? 'third:' : 'retry:') + (a.error ? 'failed ' + a.error : 'ok'));
-    const j = a.text ? judge(a.text) : null;
+    const j = a.text ? judge(a.text, a.model) : null;
     if (j && !j.bad.length) return { reply: j.text, model: a.model, attempts, rewrites, streamed: false, dropped };
   }
+  if (shapeOnly) { attempts.push('kept: an answer whose only fault was its shape'); return { ...shapeOnly, attempts, rewrites, streamed: false, dropped }; }
   return { reply: '', model: null, attempts, rewrites, streamed: false, error: 'no model produced an answer that passes the figure check', dropped };
 }

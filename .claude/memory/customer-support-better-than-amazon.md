@@ -34,9 +34,14 @@ The founder, 22 Sep 2026, after two WhatsApp replies leaked internal wording:
   job runs `--slice today` (7 slices = the whole bank weekly), the weekly audit re-runs the gaps.
 - **The portal chat is `sales_engineer {action:'assist'}`** (PortalShell.askAssistant), not `site_assistant` with
   path '/me'. The harness graded the wrong function until 27 Oct.
-- **think() gives an outside audience company.md only.** Anything a customer-facing text turn must know beyond that
-  (the trade playbooks in knowledge/brief/conversation) goes in think's `guide`; aiReply (photo turns, the website
-  chat) already gets the whole BRIEF_TEXT.
+- **The portal turn is one streamed call** (#1640, merged into #1635): `brief_answer.ts` with the whole compiled
+  BRIEF_TEXT (trade playbooks included), not supportReply/think. Portal-only rules live in
+  `sales_engineer/portal_turn.ts` (clock, format, facts) and `sales_engineer/portal_conversation.ts` (the intake
+  rule, the reply shape, what the customer already gave).
+- **A prompt rule did not stop re-asks or unasked lines; code does.** "Never ask again" sat in aiSystem AND the intake
+  rule and the model still re-asked in nearly every conversation. `heldState` lists the filled slots and asked
+  questions for the model; `replyFilter` (brief_answer's `drop`) removes a re-ask, an unasked fee/turnaround/
+  supplier-process line, a repeated greeting or restatement, and any question past the third, before it is shown.
 - **A portal turn has 150 s.** Measured 27 Oct: plan + answer + check + corrective re-pass + plain-language rewrite
   ran past it on 9 of 10 conversations (HTTP 546 / no reply). Count the calls before adding one to the portal path.
 - Spend: a text turn is about USD 0.05-0.07, a photo turn about USD 0.58 uncached; a full bank run does not fit USD 5.
