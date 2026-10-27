@@ -28,6 +28,7 @@ import { checkReadability, rewritePrompt, type Readability } from './readability
 import { guardSupportReply, replyViolations, type GuardLang } from './support_reply_guard.ts';
 import { policyProblems, revealFeeIncomplete } from './company_brief.ts';
 import { aiReply } from './ai_reply.ts';
+import { e2eRunTag } from './e2e_run.ts';
 
 export type Channel = 'widget' | 'whatsapp' | 'email' | 'portal';
 export type Passage = { content: string; citation?: string | null };
@@ -86,7 +87,9 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
       try {
         await deps.rpc('fn_support_reply_readability_log', { p_channel: req.channel, p_lang: req.lang, p_path: out.path,
           p_rewritten: !!out.rewritten, p_score: out.readability.score, p_tone: out.readability.tone, p_issues: out.readability.issues,
-          p_reason: out.reason ?? null, p_demo: /^ZZ DEMO/.test(req.message) });
+          // demo: a ZZ DEMO message, or any turn of a sandbox run (its proven tag, _shared/e2e_run.ts). A harness turn need
+          // not say ZZ DEMO, and one run's 273 unflagged scores sat in the monthly self-review until removed by hand (27 Oct 2026).
+          p_reason: out.reason ?? null, p_demo: /^ZZ DEMO/.test(req.message) || !!e2eRunTag() });
       } catch (_e) { /* the reply matters more than its score */ }
     }
     return out;
