@@ -1,0 +1,1 @@
+A PROBE (pure, aborted transaction, no DDL, ends in raise exception CHK<<...>>): run after its .sql in the same query. Never applied on its own; kept as the proof named by "Prevented by:" in the_seven_parked_it_finding_families_of_27_october_each_have_a_measured_playbook_class.sql.
