@@ -1,0 +1,80 @@
+{
+ "customer": "C1",
+ "email": "qd-fe7ba9c4-cust14@example.invalid",
+ "category": "aluminium",
+ "final_status": "needs_info",
+ "final_readiness": 80,
+ "final_missing": [
+  "element",
+  "location"
+ ],
+ "final_brief": {
+  "state": "interview",
+  "details": {},
+  "asked_key": null,
+  "boq_asked": false,
+  "cad_asked": false,
+  "req_asked": null,
+  "req_answers": {
+   "installation": {
+    "v": "yes"
+   },
+   "material.profile": {
+    "v": "standard"
+   }
+  }
+ },
+ "turns": [
+  {
+   "turn": 1,
+   "harness_answer": "Aluminium & Cladding for a villa in Dubai. Line 1: aluminium windows x 20. Line 2: aluminium doors x 10. Line 3: curtain walling x 5.",
+   "ai_reply": "Thanks — I have the villa location and item counts. A few details will help suppliers price the work accurately."
+  },
+  {
+   "turn": 2,
+   "harness_answer": "Sizes: line 1 is 1200 x 1500 mm; for lines 2 and 3 I am not sure, please advise the standard.",
+   "ai_reply": "Thanks, I’ve noted the window sizes and that you’d like suppliers to recommend standard sizes for the doors and curtain walling. A few details will help them price the job."
+  },
+  {
+   "turn": 3,
+   "harness_answer": "Supply and install, within six weeks, ground and first floor.",
+   "ai_reply": "Thanks, I’ve noted the items, quantities, window size, floors and six-week timeframe. Two details will help suppliers price the doors and curtain walling and locate the villa."
+  },
+  {
+   "turn": 4,
+   "harness_answer": "Brand: Technal; grade: not sure, standard commercial.",
+   "ai_reply": "I’ve noted the quantities, window size, Technal preference and that you’d like suppliers to recommend sizes for the doors and curtain walling. A couple of site details and a quick check on the cladding will help avoid suppliers pricing the wrong scope."
+  },
+  {
+   "turn": 5,
+   "harness_answer": "Details: location: standard specification, please assume typical values; element: standard specification, please assume typical values.",
+   "ai_reply": "The request is ready to share with suppliers. I’ve noted that sizes for the doors and curtain walling should be proposed by the suppliers as assumptions."
+  },
+  {
+   "turn": 6,
+   "harness_answer": "Details: Any preference for the aluminium profile system? Tap one, or type what you have in mind.: standard specification, please assume typical values; Any preference for the glass? Tap one, or type what you have in mind.: standard specification, please assume typical values; Do you need a warranty, and for how long at least?: standard specification, please assume typical values; By when do you need it done or delivered? Tap one, or type a date.: standard specification, please assume typical values.",
+   "ai_reply": "The request is ready to share with suppliers. They’ll use your stated window size and propose assumptions for the door and curtain-wall dimensions, which can be confirmed during a site visit."
+  },
+  {
+   "turn": 7,
+   "harness_answer": "Details: Any preference for the glass? Tap one, or type what you have in mind.: standard specification, please assume typical values; Do you need a warranty, and for how long at least?: standard specification, please assume typical values; By when do you need it done or delivered? Tap one, or type a date.: standard specification, please assume typical values.",
+   "ai_reply": "Your request is ready to share with suppliers. They’ll price the stated window sizes and propose suitable assumptions for the door and curtain-wall dimensions, to be confirmed at a site visit."
+  },
+  {
+   "turn": 8,
+   "harness_answer": "Details: Any preference for the glass? Tap one, or type what you have in mind.: standard specification, please assume typical values; Do you need a warranty, and for how long at least?: standard specification, please assume typical values; By when do you need it done or delivered? Tap one, or type a date.: standard specification, please assume typical values.",
+   "ai_reply": "Your request is ready to share with suppliers. They can price the stated window sizes and propose assumptions for the door and curtain-wall sizes, confirming those measurements during a site visit."
+  },
+  {
+   "turn": 9,
+   "harness_answer": "Details: Any preference for the glass? Tap one, or type what you have in mind.: standard specification, please assume typical values; Do you need a warranty, and for how long at least?: standard specification, please assume typical values; By when do you need it done or delivered? Tap one, or type a date.: standard specification, please assume typical values.",
+   "ai_reply": "Your request is ready to share with suppliers. They’ll price the stated window sizes and propose standard door and curtain-wall sizes, to be confirmed during a site visit."
+  },
+  {
+   "turn": 10,
+   "harness_answer": "Details: Any preference for the glass? Tap one, or type what you have in mind.: standard specification, please assume typical values; Do you need a warranty, and for how long at least?: standard specification, please assume typical values; By when do you need it done or delivered? Tap one, or type a date.: standard specification, please assume typical values.",
+   "ai_reply": "I have the item counts, window size, supply-and-install scope, and six-week timeframe. Could you clarify whether cladding is also needed and share the villa’s Dubai area and any access restrictions?"
+  }
+ ],
+ "note": "per-turn slots are not stored by inquiry_intake; only the final brief/missing survive"
+}

@@ -9,9 +9,10 @@ name: CAD read worker
 # customer closed the page - without it that drawing would never be read. 4 runs a day, ~120 Actions-
 # minutes a month, plus ~1 minute per queued drawing. Owner: sales_engineer.
 
+# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
 on:
-  schedule:
-    - cron: '17 */6 * * *'
+  # schedule:
+    # - cron: '17 */6 * * *'
   workflow_dispatch: {}
 
 concurrency:

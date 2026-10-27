@@ -16,6 +16,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -49,7 +50,10 @@ test('production, aborted: a listed owner is a hit that reaches the CEO once; an
   const replay = DEPS.filter(pending).map(read).join('\n');
   let o;
   try {
-    await replaySql(replay + '\n' + String.raw`
+    // Ruling 1199 (demo_activity_files_no_seat_task_or_handoff.sql, #1479) drops every org task for a ZZ DEMO subject,
+    // so the CEO and hold tasks below measured 0 (27 Oct 2026). This probe proves they are filed, so it switches that
+    // guard off for its own rolled-back transaction (a_rolled_back_probe_may_file_demo_seat_work_under_its_own_switch.sql).
+    await replaySql(seatWorkFixtures() + replay + '\n' + String.raw`
 do $$ declare o jsonb := '{}'; l1 bigint; l2 bigint; ent text; v jsonb; begin
   perform set_config('qd.duty_fixtures', 'on', true);
   select name into ent from screening_entry where run_id = (select max(id) from screening_run where status = 'ok' and source = 'un_consolidated')

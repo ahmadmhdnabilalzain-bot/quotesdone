@@ -6437,7 +6437,6 @@
   "244053c77971",
   "9a03685e2791",
   "ee486754ccff",
-  "0e0329c97c49",
   "0271a1f4c66d",
   "32f673f57030",
   "35a1a42cc34d",
@@ -6956,5 +6955,17 @@
   "d20c7b61f790",
   "2e61942d939f",
   "ab7473df79f4"
+ ],
+ "scripts/sql/the_supplier_invitation_carries_no_link_and_a_reply_with_trades_reaches_the_sales_engineer.sql": [
+  "8625d60560f4",
+  "92d2d9b357a7"
+ ],
+ "scripts/sql/a_demo_message_the_sales_engineer_writes_is_captured_not_dropped.sql": [
+  "1390254fa3fe",
+  "4fa470545be1"
+ ],
+ "scripts/sql/the_reveal_invoice_handoff_is_a_registered_conversation_that_states_its_note.sql": [
+  "0ad679a262b2",
+  "6795f24f47d7"
  ]
 }

@@ -1,0 +1,82 @@
+{
+ "fact_sheet": {
+  "element": "Joinery & Carpentry: kitchen cabinets وwardrobes وreception desk",
+  "lines": "البند 1: kitchen cabinets عدد 20، مقاس 1200 × 1500 مم لكل وحدة؛ البند 2: wardrobes عدد 10، مقاس 900 × 2100 مم لكل وحدة؛ البند 3: reception desk عدد 5، مقاس 3000 × 2400 مم لكل وحدة",
+  "purpose": "البند 1 لغرف النوم، البند 2 للمدخل الرئيسي والشرفات، البند 3 لواجهة غرفة المعيشة",
+  "location": "فيلا في Fujairah، الطابق الأرضي والأول، وصول مباشر بالطريق، لا حاجة لرافعة",
+  "area": "حوالي 450 متر مربع مساحة مبنية، 6 غرف",
+  "scope": "توريد وتركيب، مع إزالة القطع القديمة والتخلص منها",
+  "new_or_replace": "استبدال قطع قائمة في فيلا مسكونة",
+  "timeline": "خلال شهر واحد",
+  "warranty": "ضمان سنتان على الأقل",
+  "supply_phase": "تغذية ثلاثية الطور 400 فولت",
+  "surface_prep": "جدران مدهونة سابقًا بحالة جيدة مع إصلاح شقوق بسيطة",
+  "stops": "4 وقفات (أرضي + 3)",
+  "capacity": "8 أشخاص، 630 كغ",
+  "design": "التصميم جاهز",
+  "material": "درجة تجارية قياسية من علامة معروفة",
+  "leak": "لا يوجد تسرب حالياً، العمل وقائي",
+  "finish": "لامينيت / ميلامين",
+  "system_type": "نظام مركزي بالمياه المبردة: وحدات فان كويل مخفية بمجارٍ مع وحدات مناولة هواء",
+  "fixtures": "4 حمامات ومطبخ واحد"
+ },
+ "intake": {
+  "intakeId": "d487deb3-c3db-4e5f-8eac-18c97ee2f369",
+  "status": "ready",
+  "readiness": 92,
+  "missing": [],
+  "turns": 6,
+  "log": [
+   {
+    "turn": 1,
+    "answer": "Joinery & Carpentry: kitchen cabinets وwardrobes وreception desk. البند 1: kitchen cabinets عدد 20، مقاس 1200 × 1500 مم لكل وحدة؛ البند 2: wardrobes عدد 10، مقاس 900 × 2100 مم لكل وحدة؛ البند 3: reception desk عدد 5، مقاس 3000 × 2400 مم لكل وحدة. فيلا في Fujairah، الطابق الأرضي والأول، وصول مباشر بالطريق، لا حاجة لرافعة.",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 2,
+    "answer": "item_type: Joinery & Carpentry: kitchen cabinets وwardrobes وreception desk. quantity_size: البند 1: kitchen cabinets عدد 20، مقاس 1200 × 1500 مم لكل وحدة؛ البند 2: wardrobes عدد 10، مقاس 900 × 2100 مم لكل وحدة؛ البند 3: reception desk عدد 5، مقاس 3000 × 2400 مم لكل وحدة. finish: لامينيت / ميلامين. scope: توريد وتركيب، مع إزالة القطع القديمة والتخلص منها. location_floor: فيلا في Fujairah، الطابق الأرضي والأول، وصول مباشر بالطريق، لا حاجة لرافعة.",
+    "asked_key": "material.board",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 3,
+    "answer": "MDF مقاوم للرطوبة",
+    "asked_key": "material.hardware",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 4,
+    "answer": "ماركات بإغلاق هادئ (Blum أو Hettich أو Häfele)",
+    "asked_key": "warranty",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 5,
+    "answer": "yes_24",
+    "asked_key": "required_by",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 6,
+    "answer": "m1",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "ready"
+   }
+  ],
+  "sent": 200
+ },
+ "inquiry": {
+  "id": "7ede2279-2ce5-4488-86b1-44368c718e39",
+  "status": "sent",
+  "trades": null,
+  "lang": "ar",
+  "emirate": "Fujairah"
+ }
+}
