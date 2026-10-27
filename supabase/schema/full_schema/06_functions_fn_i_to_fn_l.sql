@@ -6020,8 +6020,13 @@ begin
     if (j->>'budget_breach')::boolean then
       v_items := v_items || jsonb_build_object('item', x.fn || ':error_budget', 'subject', x.fn, 'blast', 'customer_facing',
         'affected', x.bad_24h, 'owner_seat', v_owner,
-        'title', x.fn || ' is burning its error budget at ' || (j->>'burn_rate_24h') || 'x over 24 h; 30-day availability '
-                 || round((j->>'availability')::numeric * 100, 2) || ' % against a 99.9 % objective',
+        -- the 30-day window can breach on a day with no runs: burn_rate_24h is then null, and so would the title be
+        'title', x.fn || case when j->>'burn_rate_24h' is not null
+                              then ' is burning its error budget at ' || (j->>'burn_rate_24h') || 'x over 24 h'
+                              else ' had no runs in the last 24 h and has spent ' || coalesce(j->>'budget_spent', '?')
+                                   || 'x its 30-day error budget' end
+                 || '; 30-day availability '
+                 || coalesce(round((j->>'availability')::numeric * 100, 2)::text, '?') || ' % against a 99.9 % objective',
         'evidence', j || jsonb_build_object('runs_24h', x.runs_24h, 'bad_24h', x.bad_24h, 'runs_30d', x.runs_30d,
                                             'bad_30d', x.bad_30d, 'server_errors_30d', x.err_30d));
     end if;
