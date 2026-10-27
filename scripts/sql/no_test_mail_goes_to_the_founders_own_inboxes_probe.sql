@@ -3,9 +3,11 @@
 -- transaction that ends in raise exception 'CHK<<verdict|evidence>>', so nothing commits.
 --
 -- It CANNOT reach a person: every row it writes is uncommitted (send_outbox cannot see it) and has status 'cancelled'.
--- The campaign switches are turned on only inside this transaction, so the seed window is exercised as on a sending day.
--- It asserts: the morning seed queues nothing at the hour it used to; the gate fails closed by name and files its one
--- finding; a seed to each of his mailboxes (and a +tag, a dotted Gmail, a capitalised address, a cc, an update) is
+-- It never writes app_secrets: the campaign switches are read as they are (held), never flipped, even inside this
+-- transaction (review of #1696). The open-day branch of the gate (one finding, then the same unconditional return) is
+-- proved from the code by the check, not by switching the campaign on here.
+-- It asserts: the morning seed queues nothing at the hour it used to; the gate fails closed by name and, while the
+-- campaign is held, files nothing; a seed to each of his mailboxes (and a +tag, a dotted Gmail, a capitalised address, a cc, an update) is
 -- refused; a seed to a non-founder test address and a founder_brief to management@ still go in.
 do $$ declare
   o jsonb := '{}'; v_fail text[] := '{}'; d date; t timestamptz; r jsonb; n_before bigint; n_after bigint;
@@ -15,7 +17,6 @@ do $$ declare
                             'ahmadmhdnabilalzain+warmup@gmail.com', 'Ahmad.Mhd.Nabil.Alzain@gmail.com', 'MANAGEMENT@QuotesDone.com',
                             'QuotesDone <management@quotesdone.com>'];
 begin
-  update app_secrets set value = 'true' where key in ('invite_enabled', 'supplier_outreach_golive');
   select x::date into d from generate_series(current_date + 1, current_date + 30, interval '1 day') x
    where extract(isodow from x) < 6
      and not exists (select 1 from company_calendar c where c.kind = 'public_holiday'
@@ -23,7 +24,7 @@ begin
    order by x limit 1;
   t := fn_invite_placement_deadline(d);
 
-  -- 1. the morning seed: nothing queued at 04:35 UTC on a sending day
+  -- 1. the morning seed: nothing queued at 04:35 UTC on the next weekday
   select count(*) into n_before from notifications where type = 'supplier_invite_seed';
   r := fn_invite_placement_due(t - interval '85 minutes');
   select count(*) into n_after from notifications where type = 'supplier_invite_seed';
@@ -32,7 +33,7 @@ begin
   if r ->> 'action' <> 'idle' or n_after <> n_before then v_fail := v_fail || 'the morning seed still queues'; end if;
   if exists (select 1 from invite_placement_check where dubai_day = d) then v_fail := v_fail || 'a placement check row was written'; end if;
 
-  -- 2. the gate fails closed by name, before and after the old cutoff, and files ONE finding for the day
+  -- 2. the gate fails closed by name, before and after the old cutoff, and files nothing while the campaign is held
   o := o || jsonb_build_object('gate_early', fn_invite_placement_gate(d, t - interval '1 hour'),
                                'gate_late', fn_invite_placement_gate(d, fn_invite_placement_cutoff(d) + interval '1 minute'));
   if o ->> 'gate_early' <> 'fail:seed_retired' or o ->> 'gate_late' <> 'fail:seed_retired' then
@@ -40,7 +41,9 @@ begin
   o := o || jsonb_build_object('gate_finding', (select count(*) from it_engineer_finding
                                                  where issue_key = 'deliverability:inbox_placement' and closed_at is null
                                                    and evidence ->> 'dubai_day' = d::text and evidence ->> 'verdict' = 'seed_retired'));
-  if (o ->> 'gate_finding')::int <> 1 then v_fail := v_fail || 'the retired gate did not file exactly one finding'; end if;
+  o := o || jsonb_build_object('held_because', fn_invite_placement_day_closed(fn_invite_placement_cutoff(d) + interval '1 minute'));
+  if o ->> 'held_because' is not null and (o ->> 'gate_finding')::int <> 0 then
+    v_fail := v_fail || 'the retired gate filed a finding while the campaign is held'; end if;
 
   -- 3. a seed to any of his mailboxes is refused, both kinds
   foreach a in array v_founder loop
