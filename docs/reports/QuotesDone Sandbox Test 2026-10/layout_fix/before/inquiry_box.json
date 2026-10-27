@@ -1,0 +1,82 @@
+[
+  {
+    "step": "1440x900_en",
+    "status": "PASS",
+    "issues": []
+  },
+  {
+    "step": "1366x768_en",
+    "status": "PASS",
+    "issues": []
+  },
+  {
+    "step": "1280x720_en",
+    "status": "FAIL",
+    "issues": [
+      {
+        "what": "only 610x54 of the 610x76 box can be seen (clipped by an overflow ancestor or the window)"
+      }
+    ]
+  },
+  {
+    "step": "768x1024_en",
+    "status": "PASS",
+    "issues": []
+  },
+  {
+    "step": "375x812_en",
+    "status": "FAIL",
+    "issues": [
+      {
+        "what": "only 77x0 of the 77x76 box can be seen (clipped by an overflow ancestor or the window)"
+      },
+      {
+        "what": "box is only 77px wide"
+      }
+    ]
+  },
+  {
+    "step": "1440x900_ar",
+    "status": "PASS",
+    "issues": []
+  },
+  {
+    "step": "1366x768_ar",
+    "status": "FAIL",
+    "issues": [
+      {
+        "what": "only 640x69 of the 640x76 box can be seen (clipped by an overflow ancestor or the window)"
+      }
+    ]
+  },
+  {
+    "step": "1280x720_ar",
+    "status": "FAIL",
+    "issues": [
+      {
+        "what": "only 554x32 of the 554x76 box can be seen (clipped by an overflow ancestor or the window)"
+      }
+    ]
+  },
+  {
+    "step": "768x1024_ar",
+    "status": "FAIL",
+    "issues": [
+      {
+        "what": "box is only 66px wide"
+      }
+    ]
+  },
+  {
+    "step": "375x812_ar",
+    "status": "FAIL",
+    "issues": [
+      {
+        "what": "box is only 77px wide"
+      },
+      {
+        "what": "something lies on top of the box: 124,774 -> button.relative flex min-h-[56px] min-w-0 flex-1 flex-col items-cen; 95,802 -> span.max-w-full break-words text-center; 152,802 -> button.relative flex min-h-[56px] min-w-0 flex-1 flex-col items-cen"
+      }
+    ]
+  }
+]

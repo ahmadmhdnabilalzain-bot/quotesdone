@@ -51,6 +51,12 @@ for (const fn of ['fn_support_case_idle_close', 'fn_ceo_pricing_monitor', 'fn_ac
   });
 }
 
+// ceo.pricing_evidence (C08) was registered after the 12 Oct sweep and read demo rows until
+// scripts/sql/the_ceo_pricing_evidence_reads_only_real_rows.sql (27 Oct 2026).
+test('fn_ceo_pricing_evidence (found 27 Oct 2026) excludes demo rows', () => {
+  assert.equal(readsDemoRows(canonical('fn_ceo_pricing_evidence')), null, 'fn_ceo_pricing_evidence reads a subject table with no demo predicate');
+});
+
 test('the purge\'s Dropbox list in SQL is exactly the frozen list the edge function allows', () => {
   const json = JSON.parse(R('supabase/functions/dropbox_backup/demo_purge_paths.json')).paths;
   const m = /fn_demo_purge_dropbox_paths\(\)[\s\S]*?array\[([\s\S]*?)\]::text\[\]/.exec(R(FILE));

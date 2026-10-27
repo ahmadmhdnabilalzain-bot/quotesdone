@@ -61,7 +61,7 @@ test('the digest hold ends at the first 19:00 Dubai a day after the request, plu
 // Runs a block that must end in `raise exception 'CHK<<json>>'` and returns the parsed json.
 async function probe(block) {
   try {
-    await sql(`do $p$ ${block} $p$;`);
+    await sql(`select set_config('qd.probe_files_demo_handoff', 'on', true); do $p$ ${block} $p$;`);
   } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (m) return JSON.parse(m[1].replace(/\\"/g, '"'));

@@ -1,0 +1,14 @@
+[
+ {
+  "at": "2026-10-19T12:35:25.661Z",
+  "step": "registration with licence upload (supplier_registration_walk.mjs)",
+  "status": "FAIL",
+  "detail": "  status: 400,\r |   body: `{\"message\":\"Failed to run sql query: ERROR:  0A000: WITH clause containing a data-modifying statement must be at the top level\\\\nLINE 1: with d as (with im as (delete from public.inbound_messages where lead_id in (select id from public.leads where 'qd_run:dab4b4be' = any(coalesce(tags,'{}'::text[])))) delete from public.leads where id in (select id from public.leads wher",
+  "issues": [
+   {
+    "sev": "high",
+    "what": "exit 1: FAIL [en/desktop] licence + company profile uploaded; licence expiry read — {\"lic\":true,\"license_expiry\":\"2028-03-14\",\"prof\":false} | FAIL [en/desktop] terms + Save → approved with a signed certificate, by the deterministic check with no licence hold — {\"approval_status\":null,\"signed_terms_path\":null,\"signatory_name\":null,\"approval_decided_by\":null,\"licence_gate_reason\":null}; Save answered in 959 ms, approved 61134 ms after | FAIL [en/desktop] acceptance stored with IP, agent, version, hash, signatory; mobile + e-mail verified; fields as typed — {\"ip\":false,\"ua\":false,\"v\":null,\"sha\":false,\"signatory_name\":null,\"contact_name\":null,\"service_emirates\":null,\"pv\":true,\"ev\":true,\"company_name\":\"ZZ DEMO Walk dab4b4be en desktop 0\"}"
+   }
+  ]
+ }
+]

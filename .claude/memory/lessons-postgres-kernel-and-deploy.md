@@ -1,0 +1,70 @@
+# Lessons — Postgres, the kernel, deploy discipline, phase machinery
+
+Pattern lessons moved out of the index to keep it readable. Each link is a topic file with the incident and the rule.
+
+## plpgsql and Postgres traps
+- [SELECT INTO with no rows nulls every target](select-into-no-rows-nulls-every-target.md)
+- [An unassigned record raises, it is not nulls](an-unassigned-record-raises-not-nulls.md)
+- [A refusal that is not an error](a-refusal-that-is-not-an-error.md) — a BEFORE trigger returning NULL
+- [A deferred trigger runs as the transaction role](a-deferred-trigger-runs-as-the-transaction-role.md)
+- [A SECURITY DEFINER guard reads its own identity](security-definer-guard-reads-its-own-identity.md)
+- [A guard that reads a shadowed table](a-guard-that-reads-a-shadowed-table.md)
+- [A definer view hands back what the table withheld](a-definer-view-hands-back-what-the-table-withheld.md)
+- [= any(subquery) compares against the whole string](any-subquery-silently-compares-against-the-whole-string.md)
+- [xmin attribution needs the xid tree](xmin-attribution-needs-the-xid-tree.md)
+- [`\m` does not survive the transport](backslash-m-does-not-survive-the-transport.md)
+- [A raising trigger makes a table enforcing](a-raising-trigger-makes-a-table-enforcing.md)
+- [A predicate arm gated on the row kind](a-predicate-arm-gated-on-the-row-kind.md)
+- [A nullable column a trigger requires](a-nullable-column-a-trigger-requires.md)
+- [An event type passed as a trigger argument](an-event-type-passed-as-a-trigger-argument.md)
+- [Splicing a return-next routine](splicing-a-return-next-routine.md)
+- [The linking column is written after the read](linking-column-written-after-the-read.md)
+- [Redact before you truncate](redact-before-you-truncate.md)
+- [Clearing a queue releases its own suppression](clearing-a-queue-releases-its-own-suppression.md)
+- [A cleanup that stops at the first table](a-cleanup-that-stops-at-the-first-table.md)
+- [Bash heredoc and redirect traps](bash-heredoc-and-redirect-traps.md)
+
+## The kernel and its workflows
+- [Ownership lives in workflow_step, not employee_workflow](ownership-lives-in-workflow-step.md)
+- [Two creators for one object](two-creators-for-one-object.md)
+- [Twenty-one boards — read them all](twenty-one-boards-read-them-all.md)
+- [No open step means a handoff is unaccepted](no-open-step-means-a-handoff-is-unaccepted.md)
+- [The Phase D dispatch fires at step OPEN](the-phase-d-dispatch-fires-at-step-open.md)
+- [Phase D keys objects two ways](phase-d-object-store-and-relation-keys.md)
+- [The outbound queue is not Phase D's to write](the-outbound-queue-is-not-phase-ds-to-write.md)
+- [The trace ledger cannot be reversed](the-trace-ledger-cannot-be-reversed.md)
+- [The bind door is closed](the-bind-door-takes-the-subject-as-an-argument.md)
+- [The primary identity is not how producers key a subject](the-primary-identity-is-not-how-producers-key-a-subject.md)
+- [An externally issued refund is a fact](an-externally-issued-refund-is-a-fact-not-a-request.md)
+- [Two sessions are available; the outbox does not send](two-sessions-are-available-and-the-outbox-does-not-send.md)
+- [A merge that collapses a handoff](a-merge-that-collapses-a-handoff.md) — walk phase_b_handoff first
+- [The 39 "cannot execute" actions are edge functions](executors-are-edge-functions.md)
+- [Two queues, two vocabularies](two-queues-two-vocabularies.md)
+- [The spec names 22 departments](spec-names-22-departments.md)
+- [The hold is on routes, the key is on twelve functions](the-hold-is-on-routes-the-key-is-on-twelve-functions.md)
+- [Deploy the quarantine before the worker](deploy-the-quarantine-before-the-worker.md)
+- [Wrapping a cron needs a role that resolves](wrapping-a-cron-needs-a-role-that-resolves.md)
+- [The cron command no longer names the routine](cron-command-no-longer-names-the-routine.md)
+
+## apply_sql, MANIFEST and deploy discipline
+- [Two files, one routine, one commit](two-files-one-routine-one-commit.md)
+- [The read-back covers bodies, not grants](the-read-back-covers-bodies-not-grants.md)
+- [The window between apply and merge](the-window-between-apply-and-merge.md)
+- [A new scripts/sql file needs a MANIFEST line](new-sql-file-needs-a-manifest-line.md)
+- [Down scripts live in scripts/sql/down/](down-scripts-live-in-a-subdirectory.md)
+- [Retiring a routine the measured way](retiring-a-routine-the-measured-way.md)
+- [Stage paths, never git add -A](stage-paths-never-git-add-all.md)
+- [A hook rewrites shell redirect targets](a-hook-rewrites-shell-redirect-targets.md)
+
+## Phase-freeze machinery — superseded by "Phase freezes removed totally" (founder order 2 Sep 2026) and "Mirror gates are retired"; kept for history
+- [Regenerate the mirror after the LAST apply](regenerate-the-mirror-after-the-last-apply.md)
+- [Founder approval is a typed string](founder-approval-is-a-typed-string.md)
+- [Tightening a guard reddens its own probes](tightening-a-guard-reddens-its-own-probes.md)
+- [Restore a frozen subject and raise the change request](restore-a-frozen-subject-and-raise-the-change-request.md)
+- [Phase D acceptance standard is frozen](phase-d-acceptance-standard-is-frozen.md)
+- [Re-opening loops needs his session](reopening-loops-needs-his-session.md)
+- [Stage 0 defects 2 and 3 closed](stage0-defects-2-and-3-closed.md)
+- [Launch org-gaps built (16 items, PR #476)](launch-org-gaps-built.md)
+- [org_phase_baseline is append-only](org-phase-baseline-is-append-only.md)
+- [Workflow ownership frozen in both baselines](workflow-ownership-frozen-in-both-baselines.md)
+- [Launch step 1: org connectivity done](launch-step1-org-connectivity-done.md)
