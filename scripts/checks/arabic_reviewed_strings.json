@@ -6145,7 +6145,20 @@
   "622dc4a7b5b1",
   "713903274b9b",
   "1c124ac36381",
-  "24c91058ee6f"
+  "24c91058ee6f",
+  "0120928e90da",
+  "19ec6fc142e3",
+  "1e6f868612d3",
+  "257170f24a6b",
+  "402880b5bac6",
+  "43ed9305f18f",
+  "4dbb82dfe80d",
+  "576d6d000dbd",
+  "823f816ac3e8",
+  "b348c619f966",
+  "d6cdcf2bd9b8",
+  "e1b77c471881",
+  "96a3b3cca4ae"
  ],
  "supabase/functions/_shared/think.ts": [
   "4e2156827796"
@@ -6929,6 +6942,27 @@
  "scripts/sql/the_reveal_invoice_handoff_is_a_registered_conversation_that_states_its_note.sql": [
   "0ad679a262b2",
   "6795f24f47d7"
+ ],
+ "scripts/sql/customer_support_acts_on_a_complaint_before_its_deadline.sql": [
+  "21bf22d9fb43",
+  "2a26f033805e",
+  "438552204aa8",
+  "511e912b1936",
+  "7dcd7ec7bc41"
+ ],
+ "scripts/sql/customer_support_drives_every_unanswered_message_to_a_reply_or_a_case.sql": [
+  "6de42329426c",
+  "91c9a9424878",
+  "96bad3c13490",
+  "fddd63953767"
+ ],
+ "scripts/sql/customer_support_tells_affected_customers_during_an_incident.sql": [
+  "127ad0f5549e",
+  "4f4316223d73",
+  "8089bad6b642",
+  "8171cc5a692f",
+  "b94cdb4a8cae",
+  "ff0d382f2b27"
  ],
  "scripts/sql/a_held_arabic_comparison_report_is_sent_to_the_customer_once_its_lines_exist.sql": [
   "62f6ef32f259"
