@@ -52,8 +52,23 @@ test('every tick the file defines is a step the handler runs', () => {
   const dOpen = src.indexOf('const DETACHED: Record<');
   const detached = dOpen > 0 ? src.slice(dOpen, src.indexOf('\n};', dOpen)) : '';
   const listed = new Set([...(stepRun() + detached).matchAll(/run: (\w+Tick)\b/g)].map((m) => m[1]));
+  // 27 Oct 2026 (#1688): a detached run may be kicked from INSIDE another detached run - the held replay is kicked by
+  // itlater's reasoning_held step, so it gets its own 120 s instead of spending itlater's. Its kick is then in the
+  // body of a tick the DETACHED map runs, which is run as surely as STEP_RUN is.
+  const bodyOf = (fn) => {
+    const at = src.indexOf('async function ' + fn + '(');
+    if (at < 0) return '';
+    let i = src.indexOf('{', src.indexOf(')', at)), depth = 0;
+    for (let j = i; j < src.length; j++) {
+      if (src[j] === '{') depth++;
+      else if (src[j] === '}' && --depth === 0) return src.slice(i, j + 1);
+    }
+    return '';
+  };
+  const detachedBodies = [...detached.matchAll(/run: (\w+Tick)\b/g)].map((m) => bodyOf(m[1])).join('\n');
   for (const [, k] of detached.matchAll(/^ {2}(\w+): \{ run:/gm)) {
-    assert.ok(stepRun().includes(`kickDetached('${k}')`), `detached step ${k} is never kicked from STEP_RUN`);
+    const kick = `kickDetached('${k}')`;
+    assert.ok(stepRun().includes(kick) || detachedBodies.includes(kick), `detached step ${k} is never kicked from STEP_RUN or from a detached run`);
   }
   assert.deepEqual(defined.filter((t) => !listed.has(t)), [], 'ticks defined but never run');
 });
