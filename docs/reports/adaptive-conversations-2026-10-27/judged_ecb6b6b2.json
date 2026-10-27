@@ -1,0 +1,14 @@
+{
+ "ac_replacement": { "overall": 9, "issues": ["repair before replace, sizing and refrigerant age: expert", "summary confirmed"] },
+ "roof_waterproofing_ar": { "overall": 9, "issues": ["changed the recommendation when the 10-year membrane and cracked tiles came out (remove, then re-waterproof)", "manufacturer-backed warranty", "summary confirmed"] },
+ "floor_tiles": { "overall": 8, "issues": ["answered the asked cost from the price guide", "hollow tiles: remove, not tile over", "timeline never asked; no summary reached"] },
+ "painting_ar": { "overall": 7, "issues": ["damp patch: fix the leak first (expert)", "asked the room count three times in different wording", "offered to write the summary instead of giving it"] },
+ "bathroom_refit": { "overall": 9, "issues": ["full re-waterproofing with a flood test after the past leak", "linear drain recommended", "summary confirmed"] },
+ "gypsum_ceiling_ar": { "overall": 8, "issues": ["AC grilles kept, maintenance access kept", "asked villa or apartment before it was said (fine), then timing and budget never reached", "no summary reached"] },
+ "aluminium_windows": { "overall": 9, "issues": ["laminated pane for road noise, brushes and gaskets for dust", "summary with New request, confirmed"] },
+ "office_fitout": { "overall": 8, "issues": ["approvals, timeline realism", "budget asked in turn 2 and again in turn 3", "summary confirmed"] },
+ "electrical_ev": { "overall": 8, "issues": ["32 A circuit, DEWA approval, installer-supplied Wall Connector", "an odd question about finishes along the route", "no summary reached"] },
+ "kitchen_cabinets_en": { "overall": 9, "issues": ["J-pull needs sound, square boxes; MR MDF lacquer", "summary confirmed"] },
+ "ac_ducted_villa_ar": { "overall": 8, "issues": ["asked for drawings in turn 1; split per zone recommended", "40 cm void checked", "timeline never asked; no summary reached"] },
+ "cctv_villa_ar": { "overall": 7, "issues": ["IP66, night colour, PoE: expert", "asked the camera count three times (Arabic singular/plural not matched)", "no summary reached"] }
+}

@@ -1,0 +1,123 @@
+{
+ "run_tag": "143372b1",
+ "scenarios": 10,
+ "met": 0,
+ "mean_pct": 80,
+ "idk_conversations": 0,
+ "yesno_only_conversations": 0,
+ "acceptance": "NOT MET",
+ "gaps": [
+  {
+   "id": "wardrobe_photo",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "first reply read the photo (window, skirting, socket) and asked size + door type at once",
+    "turns 4-5 ended without a question and never reached a summary to confirm",
+    "AC pipes and skirting never raised"
+   ]
+  },
+  {
+   "id": "kitchen_villa_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 80,
+   "issues": [
+    "no re-ask; summary given and confirmed",
+    "the summary dropped the new built-in oven and hood the customer asked for (lost a fact)",
+    "budget asked once and then left open"
+   ]
+  },
+  {
+   "id": "cctv_shop",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "stated SIRA (31 days, licensed installer) itself instead of asking the customer (fixed)",
+    "asked economy/mid-range/premium in turn 2 and again in turn 3 inside a two-part question (filter keeps a mixed question)",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "fire_alarm_office",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "corrected normal cable firmly in turn 1, not repeated",
+    "DCD approval, panel tie-in, gas suppression: expert",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "fire_alarm_warehouse_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 70,
+   "issues": [
+    "expert follow-ups (beam detectors at 9 m, sprinklers by hazard class)",
+    "budget asked in turn 3 and again in turn 4",
+    "'لا أستطيع تحديد مدته' reads as a soft 'I can't say'",
+    "no summary reached"
+   ]
+  },
+  {
+   "id": "ac_undersized_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 70,
+   "issues": [
+    "1 ton corrected firmly in turn 1 (fixed)",
+    "turn 4 'Inverter noted.' alone: no question, the conversation stalled",
+    "odd question about removing packaging",
+    "final summary cut to one sentence with no confirm request"
+   ]
+  },
+  {
+   "id": "glass_partition_trap_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "6 mm corrected at once",
+    "door width never asked",
+    "no summary reached"
+   ]
+  },
+  {
+   "id": "parquet_wet_area_trap_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "wet areas corrected at once with a porcelain alternative",
+    "expert: lay over sound tiles, door trimming, acoustic underlay",
+    "no summary reached"
+   ]
+  },
+  {
+   "id": "wardrobe_change_of_mind_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "kept the hinged change through 'unsure' (fixed)",
+    "called the villa 'the flat' before it was named",
+    "summary cut to one sentence with no confirm request"
+   ]
+  },
+  {
+   "id": "boundary_wall_paint_trap_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 90,
+   "issues": [
+    "corrected the interior paint at once and diagnosed rising damp from the salts",
+    "summary with the New request step, confirmed",
+    "budget left to the site visit"
+   ]
+  }
+ ]
+}
