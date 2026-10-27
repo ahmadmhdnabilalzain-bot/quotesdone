@@ -45,3 +45,13 @@ The founder, 22 Sep 2026, after two WhatsApp replies leaked internal wording:
 - **A portal turn has 150 s.** Measured 27 Oct: plan + answer + check + corrective re-pass + plain-language rewrite
   ran past it on 9 of 10 conversations (HTTP 546 / no reply). Count the calls before adding one to the portal path.
 - Spend: a text turn is about USD 0.05-0.07, a photo turn about USD 0.58 uncached; a full bank run does not fit USD 5.
+- **Measured 27 Oct, evening (#1635 with #1640 merged, local serve):** 22 scenarios, 22/22 code gates, 0/22 at
+  >= 95 %, mean 83 %; per-turn p50 11.5 s / p95 25.6 s, 0 lost turns. What is left: conversations that stall before
+  the summary, timeline never asked, and re-asks in other words or Arabic word forms (code cannot see paraphrase).
+  Evidence: `docs/reports/adaptive-conversations-2026-10-27/`.
+- **The harness teardown does NOT remove a turn's chat side effects.** Every bank turn writes `assistant_logs`,
+  `sales_decision_log`, `support_reply_readability`, and every unanswered question opens a `sales_knowledge_gap`
+  row AND an `org_tasks` row (fn_sales_assist) - tasks nobody confirmed. Remove them after a run, matched by the md5
+  of the bank's scripted texts (the read guard refuses the word "do" in plain text), then recount to 0.
+- **Audit the filter's drops in agent_runs (`counts.dropped`, "<reason> | <sentence>") after every run.** The first
+  audit found 4 false drops in 15.
