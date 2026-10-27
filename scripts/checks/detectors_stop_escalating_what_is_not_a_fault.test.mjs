@@ -97,21 +97,44 @@ const canonical = (name) => {
   return last && { file: last.file, code: last.stmt.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n') };
 };
 
-test('6c. a machine sender is exempt anywhere in the local part, and a person is still counted', () => {
+// The routine's own sender predicate, replayed in JS: the chain of substring(m.from_email from '...') inside its
+// coalesce (the first that matches wins, as coalesce does) and the !~* pattern it is tested against. POSIX ~* and
+// these JS RegExps share the syntax used here; the flag makes it case-insensitive.
+const senderRule = () => {
   const t = canonical('fn_support_reply_watch_tick');
   assert.ok(t, 'fn_support_reply_watch_tick has a canonical definition');
-  const m = t.code.match(/substring\(m\.from_email from '\(\[\^<>\\s"\]\+\)@'\), ''\) !~\* '([^']+)'/);
-  assert.ok(m, `${t.file}: the machine-sender rule on the sender's local part is missing`);
-  const rule = new RegExp(m[1], 'i');                       // POSIX ~* replayed in JS: same syntax, case-insensitive
-  const local = (a) => (a.match(/([^<>\s"]+)@/) || [, ''])[1];
-  const dropped = (a) => rule.test(local(a));
+  const line = t.code.split('\n').find((l) => /m\.from_email/.test(l) && /!~\*/.test(l) && /reply/.test(l));
+  assert.ok(line, `${t.file}: the machine-sender rule on the sender's local part is missing`);
+  const extract = [...line.matchAll(/substring\(m\.from_email from '([^']+)'\)/g)].map((m) => new RegExp(m[1]));
+  assert.ok(extract.length, `${t.file}: the sender's local part is not extracted`);
+  const rule = new RegExp(line.match(/!~\* '([^']+)'/)[1], 'i');
+  const local = (a) => { for (const r of extract) { const m = a.match(r); if (m) return m[1]; } return ''; };
+  return { file: t.file, dropped: (a) => rule.test(local(a)) };
+};
+
+test('6c. a machine sender is exempt anywhere in the local part, and a person is still counted', () => {
+  const { file, dropped } = senderRule();
   for (const machine of ['LinkedIn <security-noreply@linkedin.com>', 'MAILER-DAEMON@mx.google.com', 'noreply@github.com',
     'Billing <Do-Not-Reply@bank.ae>', 'alerts_no_reply+bounce@vendor.com', 'notifications-donotreply@x.com', 'account-do-not-reply@x.com']) {
-    assert.equal(dropped(machine), true, `${t.file}: ${machine} is a machine sender and is counted as a customer waiting`);
+    assert.equal(dropped(machine), true, `${file}: ${machine} is a machine sender and is counted as a customer waiting`);
   }
   for (const person of ['Alice <alice.noreply.fan@gmail.com>', 'info@noreply-studio.ae', 'alice+noreply@gmail.com',
     'noreen@gmail.com', 'bruno.reply@outlook.com']) {
-    assert.equal(dropped(person), false, `${t.file}: ${person} is a person and is exempted as a machine sender`);
+    assert.equal(dropped(person), false, `${file}: ${person} is a person and is exempted as a machine sender`);
+  }
+});
+
+// 6f (27 Oct 2026, review of #1684). The local part was the first `x@` in the header, so a quoted display name
+// that looks like a machine address hid the customer in <...>; and the start of the local part had no right-hand
+// boundary, so noreplying@ was a machine.
+test('6f. the address inside <...> decides, and the machine word must end where the word ends', () => {
+  const { file, dropped } = senderRule();
+  for (const person of ['"noreply@spoof.com" <bob@client.ae>', '"Mailer-Daemon@x.com" <carol.ops@client.ae>',
+    'noreplying@gmail.com', 'donotreplyteam@client.ae']) {
+    assert.equal(dropped(person), false, `${file}: ${person} is a customer and is exempted as a machine sender`);
+  }
+  for (const machine of ['"Bob" <noreply@client.ae>', 'noreply.alerts@vendor.com', 'no-reply2@vendor.com']) {
+    assert.equal(dropped(machine), true, `${file}: ${machine} is a machine sender and is counted as a customer waiting`);
   }
 });
 
