@@ -2004,6 +2004,36 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_unsubscribe_refusal_throttle()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if (select count(*) from public.unsubscribe_refusal u where lower(u.email) = lower(new.email) and u.at > now() - interval '24 hours') >= 3
+     or (select count(*) from public.unsubscribe_refusal u where u.at > now() - interval '1 hour') >= 100 then
+    return null;   -- dropped by the throttle; the page the person sees is unchanged
+  end if;
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_unsubscribe_signed_link(p_email text)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select b.value || case when b.value like '%?%' then '&' else '?' end
+         || 'e=' || replace(replace(lower(btrim(p_email)), '+', '%2B'), '@', '%40')
+         || '&t=' || left(encode(extensions.hmac(convert_to(lower(btrim(p_email)), 'UTF8'), convert_to(k.value, 'UTF8'), 'sha256'), 'hex'), 20)
+    from public.app_secrets k, public.app_secrets b
+   where k.key = 'unsubscribe_signing_key' and b.key = 'unsubscribe_public_base'
+     and coalesce(k.value, '') <> '' and coalesce(b.value, '') <> ''
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_unsubscribe_withdraws_promotional_consent()
  RETURNS trigger
  LANGUAGE plpgsql

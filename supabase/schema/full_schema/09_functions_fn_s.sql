@@ -5229,6 +5229,30 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_seat_takes_data_request(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('accepted', true, 'seat', a.agent, 'request_id', a.detail->'request_id',
+    'waiting', coalesce(a.detail->>'waiting_for', 'the correction of the person''s data, by the due date'))
+    from public.agent_actions a where a.id = p_id
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_takes_knowledge_request(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('accepted', true, 'seat', a.agent, 'gap_id', a.detail->'gap_id',
+    'waiting', coalesce(a.detail->>'waiting_for', 'a knowledge entry that answers the question'))
+    from public.agent_actions a where a.id = p_id
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_seat_takes_support_root_cause(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
