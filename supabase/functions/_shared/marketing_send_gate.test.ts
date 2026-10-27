@@ -45,6 +45,14 @@ Deno.test('the WhatsApp invitation: no link, English, the STOP line, one mid-sen
   // The promises the founder approved (ledger 1298), checked against the stored offer and the canon, not the email
   // body. #1648 removed the offer from the email for filter reasons only (WA_INVITE_APPROVED_OFFER says why).
   const canon = Deno.readTextFileSync(new URL('../../../knowledge/COMPANY_CANON.md', import.meta.url));
+  // The list is pinned here, not only looped over: an emptied or trimmed list would make the loop below check nothing
+  // (second review of #1634). Changing the offer means changing this line, in the open.
+  assertEquals(WA_INVITE_APPROVED_OFFER.map((o) => [o.promise, o.canon]), [
+    ['no commission on work you win', 'QuotesDone takes no commission on won work'],
+    ['free for our first 1,000 suppliers', 'Registration is free for the first 1,000 suppliers'],
+    ['set up your company page', null],
+    ['register at quotesdone.com', null],
+  ]);
   for (const { promise, canon: fact } of WA_INVITE_APPROVED_OFFER) {
     assertEquals(t.toLowerCase().includes(promise.toLowerCase()), true, 'the template carries: ' + promise);
     if (fact) assertEquals(canon.includes(fact), true, 'COMPANY_CANON.md still states: ' + fact);

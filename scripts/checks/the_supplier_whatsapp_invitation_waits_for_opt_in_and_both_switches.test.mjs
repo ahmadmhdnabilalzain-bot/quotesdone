@@ -305,11 +305,17 @@ test('the sales engineer\'s writer and a direct insert obey the same rule', { sk
 
 test('what reads as a yes: English and Arabic yes words, never a question or a sentence', { skip: SKIP }, async () => {
   const YES = ['yes', 'Yes!', 'YES please', 'yeah', 'ok', 'Okay, thanks', 'sure', 'Of course', 'go ahead', 'I agree', '👍',
-    'نعم', 'أكيد', 'تمام', 'موافق', 'موافقة', 'ايوه', 'طبعاً', 'نعم شكرا'];
+    'نعم', 'أكيد', 'تمام', 'موافق', 'موافقة', 'ايوه', 'طبعاً', 'نعم شكرا',
+    // the symbols a yes may carry: a thumbs-up in any skin tone, a tick with its emoji selector, a smile, thanks
+    '👍🏻', '✅️', 'ok 👍', 'yes 🙂', 'yes 🙏', 'yes.', 'yes!!', 'yes - thanks', 'نعم، شكرا'];
   const NO = ['who is this?', 'Hi, who is this', 'what is quotesdone', 'yes but who are you', 'ok?', 'no', 'No thanks',
     'not now', 'maybe later', 'STOP', 'hello', 'Set up my page', 'من أنت؟', 'لا', 'ايه', 'مين معي', 'لا شكرا', '', '123',
     // a negative emoji beside a yes is not a yes (independent review of #1634: 'yes 👎' read as a yes)
-    'yes 👎', 'ok ❌', 'نعم 🚫'];
+    'yes 👎', 'ok ❌', 'نعم 🚫',
+    // ...and neither is any symbol the rule does not know. The second review of #1634 measured 'yes 🛑', 'yes 🙅',
+    // 'ok 😡' and 'yes 🤬' all reading as consent: a list of negative emoji can never be complete, so only a short
+    // list of symbols may sit beside a yes and anything else fails closed.
+    'yes 🛑', 'yes 🙅', 'yes 🙅‍♂️', 'ok 😡', 'yes 🤬', 'yes ✋', 'نعم 😠', 'yes :(', 'yes 🤔', 'ok 🙄'];
   const arr = (a) => `array[${a.map((s) => `'${s.replace(/'/g, "''")}'`).join(', ')}]::text[]`;
   const [r] = await replaySql(sqlText + `
     select (select coalesce(string_agg(x, ' | '), '') from unnest(${arr(YES)}) x where not public.fn_wa_is_affirmative(x)) missed,

@@ -101,7 +101,14 @@ begin
   if t ~ '(👎|❌|✖|🚫|⛔)' then return false; end if;
   t := regexp_replace(t, '[ً-ْٰـ]', '', 'g');
   t := translate(t, 'أإآٱىة', 'اااايه');
-  t := regexp_replace(t, '(👍|✅|👌)[\U0001F3FB-\U0001F3FF]?', ' yes ', 'g');
+  t := regexp_replace(t, '(👍|✅|👌|✔|☑)[\U0001F3FB-\U0001F3FF]?', ' yes ', 'g');
+  -- ONLY KNOWN SYMBOLS MAY SIT BESIDE A YES (second review of #1634). The list above cannot name every refusal:
+  -- a stop sign, a crossed-arms person, an angry face and a raised hand all still read as consent. So a smile or a
+  -- thanks emoji is dropped, the emoji selector and a skin tone are dropped, and any symbol still left that is not a
+  -- letter, a digit, a space or plain punctuation fails closed.
+  t := regexp_replace(t, '(🙂|😊|😀|😃|😄|🙏|🤝|👏|💯|❤|♥)[\U0001F3FB-\U0001F3FF]?', ' ', 'g');
+  t := regexp_replace(t, '[️\U0001F3FB-\U0001F3FF]', '', 'g');
+  if t ~ '[^a-z0-9ء-ي[:space:].,!''"‘’“”،-]' then return false; end if;
   t := regexp_replace(t, '\m(go ahead|of course|please do|sounds good)\M', ' yes ', 'g');
   t := btrim(regexp_replace(regexp_replace(t, '[^a-z0-9ء-ي]+', ' ', 'g'), '\s+', ' ', 'g'));
   if t = '' then return false; end if;
