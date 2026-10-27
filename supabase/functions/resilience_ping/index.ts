@@ -29,7 +29,7 @@ import { placementTick } from '../_shared/inbox_placement.ts';
 import { pollReplyInbox, PROOF_LABEL } from '../_shared/m365_reply_inbox.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
-import { defaultDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROWS } from '../_shared/think.ts';
+import { heartbeatDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROWS } from '../_shared/think.ts';
 import { drain as drainRoutineJudgements } from '../_shared/routine_judgements.ts';
 import { distilLessons } from '../_shared/learning_loop.ts';
 import { deliverReasoned, liveDeliveryIO, sendHeldNotices } from '../_shared/reasoned_delivery.ts';
@@ -1324,7 +1324,7 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // The four routine judgements (quote spec match, repeat requests, supplier trade words, unknown-sender mail) queued by
   // their callers and not judged inline: five a tick, no per-day limit; three failed readings end a row. Held rows stay queued
   // (scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql).
-  await step('routine_judgements', async () => drainRoutineJudgements(defaultDeps(admin, 'resilience_ping'), 5));
+  await step('routine_judgements', async () => drainRoutineJudgements(heartbeatDeps(admin), 5));   // gte-small in embed_ml: the replay's worker, see heartbeatDeps
   // A WHATSAPP TURN THAT CRASHED (customer_support, 19 Oct 2026): a wa_messages row still at stage 'received' after 5 minutes
   // goes to customer_support once and into the held-question queue (so reasoning_escalate below sends the holding notice in the same tick); never replayed
   // (scripts/sql/a_whatsapp_message_whose_turn_crashed_reaches_customer_support_in_five_minutes.sql).
