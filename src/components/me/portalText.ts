@@ -79,6 +79,8 @@ export const T = {
     // 27 Oct 2026: a slow or dropped turn is never an error line (ledger 1200); the answer is looked for, then this is said
     asst_late:'Your answer is taking a little longer. It will appear here.',
     asst_saved:'Your question is saved with your sales engineer, but the answer did not reach this chat. Please send it again in a moment; nothing you wrote is lost.',
+    asst_working:'Still working on your answer. It will appear here in a minute or two.',
+    asst_with_team:'Your sales engineer is reviewing your question. The answer will appear here.',
     // ── request lifecycle ──
     st_matching:'Matching', st_quoting:'Quoting', st_quotes_in:'Quotes in', st_revealed:'Revealed', st_closed:'Closed',
     k_awaiting:'Awaiting your decision', k_reveals:'Reveals',
@@ -176,6 +178,8 @@ export const T = {
     asst_s1:'ما حالة طلباتي؟', asst_s2:'كم عرض سعر وصلني؟', asst_s3:'ما الخطوة التالية المطلوبة مني؟',
     asst_late:'تستغرق إجابتك وقتًا أطول قليلًا، وستظهر هنا.',
     asst_saved:'سؤالك محفوظ لدى مهندس المبيعات، لكن الإجابة لم تصل إلى هذه المحادثة. يُرجى إرساله مرة أخرى بعد قليل، ولم يُفقد شيء مما كتبته.',
+    asst_working:'ما زلنا نعمل على إجابتك، وستظهر هنا خلال دقيقة أو دقيقتين.',
+    asst_with_team:'يراجع مهندس المبيعات سؤالك الآن، وستظهر الإجابة هنا.',
     // ── دورة حياة الطلب ──
     st_matching:'قيد المطابقة', st_quoting:'قيد التسعير', st_quotes_in:'وردت العروض', st_revealed:'تم الكشف', st_closed:'مغلق',
     k_awaiting:'بانتظار قرارك', k_reveals:'عمليات الكشف',
@@ -212,6 +216,12 @@ export const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 Object.assign(T.en, {
   nr_title: 'New request', nr_cancel: 'Cancel',
   nr_greeting: "Hi, I'm your QuotesDone sales engineer. Tell me what you need done and which emirate it's in. I'll ask a few quick questions, including materials, installation, warranty and when you need it, so suppliers quote exactly what you want. You can type, or attach a drawing, BOQ, photo or your own quotation. Your identity stays hidden until you choose to reveal a supplier.",
+  // 27 Oct 2026: an intake turn the portal stopped waiting for is a progress state and a retry, never an error line.
+  nr_slow: 'Still working on it — checking every detail of your request…',
+  nr_late: 'This is taking longer than usual. Nothing you wrote is lost — tap Try again and we will pick up where we were.',
+  nr_working: 'Still working on your answer. It will appear here in a minute or two.',
+  nr_with_team: 'Our sales engineer is reviewing your request. The answer will appear here.',
+  nr_retry: 'Try again',
   nr_reading: 'Reading your file…', nr_reading_schedules: 'Reading the schedules on your drawings… {pct}%', nr_typing: 'Typing…', nr_ph: 'Message the sales engineer…', nr_listening: 'Listening… tap the mic to stop', nr_send: 'Send',
   nr_attach: 'Attach a drawing, photo or quotation',
   nr_attach_boq: 'Attach a BOQ — Excel, CSV, PDF or a photo', nr_attach_boq_short: 'BOQ',
@@ -371,6 +381,11 @@ Object.assign(T.en, {
 Object.assign(T.ar, {
   nr_title: 'طلب جديد', nr_cancel: 'إلغاء',
   nr_greeting: 'مرحبًا، أنا مهندس المبيعات في QuotesDone. أخبرني بالعمل المطلوب والإمارة التي يُنفَّذ فيها، وسأطرح عليك بضعة أسئلة سريعة عن المواد والتركيب والضمان وموعد التسليم، حتى يسعّر الموردون ما تريده بالضبط. يمكنك الكتابة، أو إرفاق مخطط أو جدول كميات أو صورة أو عرض سعر لديك، وتبقى هويتك مخفية حتى تختار كشف مورّد.',
+  nr_slow: 'ما زلت أعمل على ذلك، وأراجع كل تفاصيل طلبك…',
+  nr_late: 'يستغرق الرد وقتًا أطول من المعتاد. لم يُفقد شيء مما كتبته؛ اضغط «إعادة المحاولة» لنكمل من حيث توقفنا.',
+  nr_working: 'ما زلنا نعمل على إجابتك، وستظهر هنا خلال دقيقة أو دقيقتين.',
+  nr_with_team: 'يراجع مهندس المبيعات طلبك الآن، وستظهر الإجابة هنا.',
+  nr_retry: 'إعادة المحاولة',
   nr_reading: 'جارٍ قراءة ملفك…', nr_reading_schedules: 'جارٍ قراءة الجداول في مخططاتك… {pct}%', nr_typing: 'يكتب…', nr_ph: 'راسل مهندس المبيعات…', nr_listening: 'أستمع إليك… اضغط الميكروفون للإيقاف', nr_send: 'إرسال',
   nr_attach: 'أرفق مخططًا أو صورة أو عرض سعر',
   nr_attach_boq: 'أرفق جدول كميات — Excel أو CSV أو PDF أو صورة', nr_attach_boq_short: 'جدول الكميات',

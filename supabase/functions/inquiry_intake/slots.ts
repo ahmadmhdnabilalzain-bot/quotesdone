@@ -24,8 +24,9 @@
 // status differs from the status the model wrote its sentence for, the sentence is replaced by one
 // built from the state, so the customer is never told "ready" while the row says otherwise. No word of
 // the customer's text is matched here (ruling 890): only keys and values the model returned are read.
-import { orderFields, questionText, type Lang, type SpecField } from './interview.ts';
+import { orderFields, questionText, parseAnswer, isUnknown, type Lang, type SpecField } from './interview.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
+import { isOpenRouterDown } from '../_shared/openrouter_down.ts';
 import type { ThinkDeps } from '../_shared/think.ts';
 import { requirementQuestions, isValidAnswer, NO_PREFERENCE, type Answers, type Ans } from '../_shared/intake_requirements.ts';
 
@@ -47,15 +48,15 @@ export type SlotState = { details: Record<string, string>; missingKeys: string[]
 // sales engineer (index.ts opens the spec.not_sure handoff, the same door the not-sure path uses).
 export const MAX_OPEN_TURNS = 3;
 export const HELD_FOR_SPECS: Record<Lang, string> = {
-  en: 'Thank you. A few specifications are still open, so our sales engineer will help you settle them before this goes to suppliers. We will continue with you here; there is no need to type anything again.',
-  ar: 'شكرًا لكم. ما زالت بعض المواصفات غير محددة، لذلك سيساعدكم مهندس المبيعات لدينا على تحديدها قبل إرسال الطلب إلى الموردين. سنكمل معكم هنا، ولا حاجة إلى إعادة كتابة أي شيء.',
+  en: 'Thank you. A few specifications are still open, and this goes to suppliers once they are settled. Please answer them here; our sales engineer will help with any you are unsure of.',
+  ar: 'شكرًا لكم. ما زالت بعض المواصفات غير محددة، وسيُرسل الطلب إلى الموردين بعد تحديدها. يُرجى الإجابة عنها هنا، وسيساعدكم مهندس المبيعات لدينا في أي منها لستم متأكدين منه.',
 };
 
 // THE HELD REPLY NAMES WHAT IS STILL OPEN (customer_support, 19 Oct 2026). settleModelTurn clears `missing` on a hold,
 // and HELD_FOR_SPECS said only "a few specifications are still open": a real customer was never told WHICH. The reply
 // is now written by the model (ruling 1196) with the exhausted questions, in the inquiry language, as its facts.
-// HELD_FOR_SPECS stays only as the handover when aiReply returns no acceptable reply in time: the deadline passed, the
-// models errored, or every draft was refused by the reply guards.
+// HELD_FOR_SPECS (with the open questions listed) goes out as it stands only when OpenRouter is down: no call reached a
+// model (founder_instruction 1339). Every draft refused by the reply guards, model up, is NOT that case: '' comes back.
 // The request chat is a portal surface, so the reply is the sales engineer's (the_portals_are_the_sales_engineer).
 /** The plain questions still open on a held intake, in the customer's language, in checklist order. A field with no
  *  question text is skipped: a raw key ('area') never reaches the model. */
@@ -64,17 +65,118 @@ export function heldQuestions(checklist: SpecField[], exhausted: string[], lang:
     .map((o) => String((lang === 'ar' ? o.f.question_plain_ar || o.f.question_plain_en : o.f.question_plain_en) || o.f.question || '').trim())
     .filter(Boolean);
 }
-/** The held reply, written by the model, naming every still-open question. */
-export async function heldReply(deps: ThinkDeps, checklist: SpecField[], exhausted: string[], lang: Lang, message: string, conversation: { role: string; text: string }[], deadline?: number): Promise<string> {
+/** The code draft of the held reply: the handover sentence and the open questions listed. Sent as it stands only when
+ *  OpenRouter is down (founder_instruction 1339); otherwise it is the draft the model writes from (intakeVoice). */
+export function heldDraftOf(checklist: SpecField[], exhausted: string[], lang: Lang): string {
+  const open = heldQuestions(checklist, exhausted, lang);
+  return `${HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en}${open.length ? '\n- ' + open.join('\n- ') : ''}`;
+}
+/** The held reply, written by the model, naming every still-open question. by: 'model' | 'outage_fallback' (OpenRouter
+ *  down: the code draft) | 'none' (the model answered but nothing it wrote passed: text '', index.ts asks it again). */
+export async function heldReply(deps: ThinkDeps, checklist: SpecField[], exhausted: string[], lang: Lang, message: string, conversation: { role: string; text: string }[], deadline?: number): Promise<IntakeVoice> {
   const open = heldQuestions(checklist, exhausted, lang);
   const r = await aiReply(deps, {
     seat: 'sales_engineer', channel: 'the website request chat', audience: 'customer', lang, message, deadline,
     conversation: conversation.map((t) => ({ role: t.role === 'assistant' ? 'seat' as const : 'customer' as const, text: String(t.text || '') })),
     facts: 'This request is HELD: it goes to no supplier yet. These questions were asked three times and are still unanswered:\n- ' + open.join('\n- ') +
-      '\nOur sales engineer will help the customer settle them here in this chat; nothing needs to be typed again.',
-    rules: 'Thank them, name EACH still-open question above in plain words, say our sales engineer will help settle them in this chat before it goes to suppliers. Two to four sentences. Do not ask anything else.',
+      '\nThe customer can answer them here in this chat; our sales engineer will help settle any they are unsure of.',
+    rules: 'Thank them, name EACH still-open question above in plain words and ask them to answer here (the first one is offered below with options to tap), and say our sales engineer will help settle anything they are unsure of before it goes to suppliers. Two to four sentences. Do not ask anything else.',
+  }).catch(() => ({ reply: '', attempts: ['threw'] } as { reply: string; attempts: string[]; outage?: boolean }));
+  const text = String(r.reply || '').trim();
+  if (text) return { text, outage: false, by: 'model' };
+  // the code list of open questions only when OpenRouter is down (1339)
+  return replyDown(r) ? { text: heldDraftOf(checklist, exhausted, lang), outage: true, by: 'outage_fallback' } : { text: '', outage: false, by: 'none' };
+}
+
+// ── THE INTAKE'S WORDS ARE THE MODEL'S (founder_instruction 1339, 27 Oct 2026) ──────────────────────────────────────
+// "the engineer and customer support never replies without llm unless the server of open router is down".
+// Code decides WHAT is said (the status, the one question, its options); intakeVoice hands that draft to the model as
+// facts and the model writes it. The draft is sent as it stands only when no call reached a model (OpenRouter down);
+// a model that answered but whose words were all refused leaves the reply '' (the question card and its options still
+// show the question; the next turn asks again).
+/** problems: why the model's drafts were refused (by 'none'); a turn filed for the re-ask names them (_shared/reask.ts). */
+export interface IntakeVoice { text: string; outage: boolean; by: 'model' | 'outage_fallback' | 'none'; problems?: string[] }
+/** Whether an aiReply result says OpenRouter was down: its own `outage` flag where aiReply carries one, else read from
+ *  its attempts — no attempt produced text and every failure is an outage (openrouter_down.ts). */
+export function replyDown(r: { reply?: string | null; outage?: boolean; attempts?: string[] }): boolean {
+  if (String(r.reply ?? '').trim()) return false;
+  if (typeof r.outage === 'boolean') return r.outage;
+  const a = (r.attempts ?? []).filter((x) => !/^salvaged/.test(x));
+  if (!a.length || a.some((x) => /:ok\b/.test(x))) return false;
+  return a.every((x) => {
+    if (/^deadline/.test(x)) return true;
+    const m = x.match(/^[\w-]+:failed\s*(.*)$/);
+    // 'no answer': the call returned nothing at all (it threw, or the deadline stopped it) — never a model's answer
+    return !!m && !/^\[/.test(m[1]) && (m[1].trim() === 'no answer' || isOpenRouterDown(m[1]));
   });
-  return r.reply || HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en;
+}
+export async function intakeVoice(deps: ThinkDeps, o: { draft: string; lang: Lang; message: string; conversation: { role: string; text: string }[];
+  next?: { text: string; options?: string[] | null } | null; deadline?: number }): Promise<IntakeVoice> {
+  const ask = o.next && String(o.next.text || '').trim()
+    ? '\nTHE ONE QUESTION TO ASK NOW (ask exactly this, in plain words; no other question): ' + String(o.next.text).trim()
+      + (o.next.options?.length ? '\nThey can tap one of: ' + o.next.options.join(' | ') : '')
+    : '\nAsk no question unless the message above asks one.';
+  const r = await aiReply(deps, {
+    seat: 'sales_engineer', channel: 'the website request chat', audience: 'customer', lang: o.lang, message: o.message || '(they sent a file or tapped an option)',
+    conversation: o.conversation.slice(-12).map((t) => ({ role: t.role === 'assistant' ? 'seat' as const : 'customer' as const, text: String(t.text || '') })),
+    facts: 'WHAT TO SAY ON THIS TURN (decided by our systems from the request\'s state; convey it in your own words, change nothing in its meaning, add nothing):\n' + o.draft + ask,
+    rules: 'One to three short sentences for the request chat. Never say the request is ready, complete or sent unless the facts above say so. Never repeat a question they already answered.',
+    deadline: o.deadline,
+  }).catch(() => ({ reply: '', attempts: ['threw'] } as { reply: string; attempts: string[]; outage?: boolean; problems?: string[] }));
+  const text = String(r.reply || '').trim();
+  if (text) return { text, outage: false, by: 'model' };
+  return replyDown(r) ? { text: o.draft, outage: true, by: 'outage_fallback' } : { text: '', outage: false, by: 'none', problems: (r as { problems?: string[] }).problems ?? [] };
+}
+
+// ── A HELD INTAKE ASKS ONE SPEC AT A TIME AND READS THE ANSWER BY CODE (27 Oct 2026, sales_engineer) ─────────
+// MEASURED on production, founder ledger 580, run 6dd2316c (agent_runs inquiry_intake 27 Oct 07:52-07:54 UTC): a
+// ZZ DEMO customer's HVAC drawing intake asked 4, 4 and 3 questions on its first three turns, then answered
+// status=held with questions=0 on every turn after (readiness 55..80). settleModelTurn cleared `questions` and
+// `missing` on a hold and index.ts left next_question null, so the portal (NewRequest.tsx renders next_question and
+// remaining_questions) had nothing to show, create_inquiry answered 428 intake_required, and no inquiry, BOQ PDF or
+// supplier was ever reached. A real customer would have been stuck exactly so.
+//
+// The hold stays: exact specs or nothing goes to a supplier (founder, 14 Sep 2026). What changes is that a held
+// intake names the specific spec it is waiting for and asks it, with the checklist's own options to tap, and the
+// answer to THAT question is read by code (interview.ts parseAnswer, targeted), because the hold exists precisely
+// where the model did not file three answers under the key. A bare "not sure" fills nothing (the key stays missing
+// and the sales_engineer handoff opened by index.ts helps settle it); an option the checklist itself offers, such
+// as "Not sure - need site survey", is a spec the trade defined and is recorded as the answer.
+
+/** The first still-open spec of a held intake, in checklist order, as the question to ask now. */
+export function heldAsk(checklist: SpecField[], exhausted: string[], lang: Lang): { key: string; text: string; options: string[] | null } | null {
+  const o = orderFields(checklist).find((x) => exhausted.includes(String(x.f.key)) && questionText(x.f, lang));
+  if (!o) return null;
+  const opts = Array.isArray(o.f.options) ? o.f.options.filter((x) => typeof x === 'string' && x) : [];
+  return { key: String(o.f.key), text: questionText(o.f, lang), options: opts.length ? opts : null };
+}
+
+// A DEFERRAL IS NOT A SPEC (independent review of #1641, 27 Oct 2026). The hold exists because the customer answered
+// "As per the attached drawings." three times (run 6dd2316c). parseAnswer, targeted, takes a short free-text reply as
+// the answer to a text field and to a tap question that names none of its options, so the fourth "as per the drawings"
+// was stored as system_type and the intake went ready with no spec. A reply that only points elsewhere, defers, or says
+// nothing fills nothing here: the spec stays held and the sales_engineer handoff settles it.
+const DEFERRAL = new RegExp([
+  String.raw`^(as|according to|refer to|see|check|per|same as|like)\b.*\b(drawing|drawings|plan|plans|attach\w*|file|files|boq|document|pdf|photo|picture|image|before|above|previous)\b`,
+  String.raw`^(attached|in the (drawing|attachment|file)s?|on the (drawing|plan)s?)\b`,
+  String.raw`^(ok|okay|k|yes|yeah|yep|no|nope|sure|fine|any|anything|whatever|either|both|all|none|na|n/?a|tbd|tbc|later|soon|asap|same|normal|standard|usual|default|good|best|cheap|cheapest|\?+|\.+|-+)[\s.!?]*$`,
+  String.raw`(حسب|كما في|راجع|انظر|شوف)\s*(ال)?(مخطط|مخططات|رسم|رسومات|مرفق|المرفق|الملف|الصور)`,
+  String.raw`^(مرفق|نعم|لا|اوكي|أوكي|تمام|ماشي|أي شي|اي شي|أي شيء|اي شيء|عادي|بعدين|لاحقا|لاحقاً)[\s.!؟]*$`,
+].join('|'), 'i');
+export const isDeferral = (text: string) => DEFERRAL.test(String(text || '').trim());
+
+/** The customer's answer to the spec a hold asked, read by code, or null when it did not answer it. */
+export function readHeldAnswer(checklist: SpecField[], askedKey: string | null | undefined, text: string): string | null {
+  if (!askedKey || !String(text || '').trim()) return null;
+  const f = checklist.find((x) => x && String(x.key) === String(askedKey));
+  if (!f) return null;
+  const v = parseAnswer(f, text, true);
+  if (!v) return null;
+  const listed = Array.isArray(f.options) && f.options.includes(v);
+  if (listed) return v;   // an option the trade itself defines (a bare yes/no only reaches here as a listed Yes/No option)
+  // not listed: a not-sure of any wording, or a reply that only defers, is no spec
+  if (/^not sure$/i.test(v.trim()) || isUnknown(text) || isDeferral(text)) return null;
+  return v;
 }
 
 /** How many earlier assistant turns each required key stayed open on (stampTurn's missing_keys). */
@@ -139,7 +241,10 @@ export function settleModelTurn(checklist: SpecField[], prevDetails: Record<stri
     out.brief = { ...base, details: { ...(base.details || {}), ...sl.details } };
     out.missing = [];
   } else if (sl.held) {
-    out.missing = []; out.questions = []; out.brief = null;
+    // A HELD INTAKE STILL ASKS (27 Oct 2026, ledger 580): the open questions travel with the hold. This branch used
+    // to clear both lists, so every held turn answered questions=0, missing=[] and no next_question (see heldAsk).
+    const open = heldQuestions(checklist, sl.exhausted, lang);
+    out.missing = open; out.questions = open; out.brief = null;
     out.assistant_message = HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en;
     return sl;
   } else {
@@ -211,7 +316,10 @@ export function requirementsFromModel(category: string | null, req: unknown, now
 // The run's transcripts showed what the assistant SAID each turn and only the final row, so nobody
 // could see that turn 1's slots were never stored. Each assistant turn now carries the state saved
 // with it.
-export type TurnSlots = { status: string; details: Record<string, unknown>; req_answers: Answers; missing: string[]; missing_keys?: string[] };
+// reply: what the portal was shown for this turn beyond its text, so a retry of a turn that already landed is answered
+// from the row (turn_clock.ts storedReply) instead of reading the same words as the answer to the next question.
+export type TurnSlots = { status: string; details: Record<string, unknown>; req_answers: Answers; missing: string[]; missing_keys?: string[];
+  reply?: { next_question: unknown; remaining_questions: string[]; readiness: { filled: number; required: number } | null } };
 export function stampTurn(turns: any[], snap: TurnSlots): void {
   for (let i = turns.length - 1; i >= 0; i--) {
     if (turns[i] && turns[i].role === 'assistant') { turns[i].slots = { ...snap, at: new Date().toISOString() }; return; }
