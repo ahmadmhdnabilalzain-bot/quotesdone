@@ -193,6 +193,10 @@ begin
       from ops_knowledge o
      where o.embedding_gte is not null
        and coalesce(o.supersession_state, 'current') = 'current'   -- never quote a superseded rule
+       -- founder ruling 1338: this routine's one production caller is the portal chat (customers and suppliers), so
+       -- an operations row reaches it only when it is confidentiality 'public'. Internal seats read ops_knowledge
+       -- through fn_reason_retrieve(_ml) with an internal audience, fn_ops_knowledge_search and fn_agent_context.
+       and o.confidentiality = 'public'
      order by o.embedding_gte <=> p_embedding
      limit v_wide;
   end if;
@@ -263,6 +267,8 @@ begin
     from support_knowledge s
    where s.search @@ v_tq
      and coalesce(s.runtime_index_eligible, true)
+     -- a support row tagged internal is never handed to the portal (fn_reason_retrieve's outside-audience test)
+     and not (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))
    order by ts_rank(s.search, v_tq) desc
    limit v_wide;
 
@@ -5221,6 +5227,30 @@ begin
   return jsonb_build_object('accepted', true, 'seat', a.agent, 'month', a.detail->>'month', 'targets', a.detail->'targets', 'actions', a.detail->'actions',
     'waiting', 'the CEO reads each target daily and closes this at month end, met or missed');
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_takes_data_request(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('accepted', true, 'seat', a.agent, 'request_id', a.detail->'request_id',
+    'waiting', coalesce(a.detail->>'waiting_for', 'the correction of the person''s data, by the due date'))
+    from public.agent_actions a where a.id = p_id
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_takes_knowledge_request(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('accepted', true, 'seat', a.agent, 'gap_id', a.detail->'gap_id',
+    'waiting', coalesce(a.detail->>'waiting_for', 'a knowledge entry that answers the question'))
+    from public.agent_actions a where a.id = p_id
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_seat_takes_support_root_cause(p_id bigint)
@@ -11060,7 +11090,7 @@ CREATE OR REPLACE FUNCTION public.fn_support_corpus_search(p_query text, p_publi
  RETURNS TABLE(src text, src_id text, title text, content text, citation text, rank real)
  LANGUAGE sql
  STABLE SECURITY DEFINER
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
   with q as (
     select websearch_to_tsquery('english', coalesce(p_query, '')) as qe,
@@ -11089,7 +11119,16 @@ AS $function$
            to_tsvector('simple',  coalesce(c.title,'') || ' ' || coalesce(c.content,'')) as ts,
            to_tsvector('arabic',  public.fn_ar_norm(coalesce(c.title,'') || ' ' || coalesce(c.content,''))) as ta
       from public.v_support_corpus c
-     where (case when p_public then c.is_public else true end)
+     -- p_public = false is the SIGNED-IN PORTAL: a customer or a supplier, never staff (support_reply.ts, channel
+     -- 'portal'). It used to read every row of the view. Founder ruling 1338: only public knowledge reaches them, so an
+     -- operations row must be confidentiality 'public' and a support row must not be tagged internal (the same test
+     -- fn_reason_retrieve applies to every outside audience).
+     where (case when p_public then c.is_public
+                 else (c.src <> 'ops' or exists (select 1 from public.ops_knowledge k
+                                                  where k.record_id = c.src_id and k.confidentiality = 'public'))
+                  and (c.src <> 'supportkb' or not exists (select 1 from public.support_knowledge s
+                                                  where s.record_id = c.src_id and (s.tags && array['audience:internal', 'kind:company'] or exists (select 1 from unnest(s.source_ids) x where x like 'internal:founder_instruction/%' or x like 'internal:memory/%'))))
+            end)
   ),
   strict as (
     select h.src, h.src_id, h.title, h.content, h.citation,

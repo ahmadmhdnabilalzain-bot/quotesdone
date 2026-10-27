@@ -1,6 +1,6 @@
 // A held question, reasoned after the hold lifts, is delivered on its own channel under the channel's rules.
 import { assertEquals, assertMatch } from 'jsr:@std/assert';
-import { casSecrets, deliverReasoned, holdingNotice, liveDeliveryIO, replayHeldComment, sendHeldNotices, type CommentReplayIO, type DeliveryIO } from './reasoned_delivery.ts';
+import { casSecrets, deliverReasoned, holdingNotice, personNoticeDraft, personNoticeProblems, liveDeliveryIO, replayHeldComment, sendHeldNotices, type CommentReplayIO, type DeliveryIO } from './reasoned_delivery.ts';
 import { call, processComment, replyRequest, type CommentEvent, type Store } from './marketing_social_comments.ts';
 import { accessToken, open, seal, type SocialPlatform } from './marketing_social_oauth.ts';
 import type { HeldRow, ThinkResult } from './think.ts';
@@ -35,20 +35,87 @@ const row = (surface: string, question: string, subject: Record<string, unknown>
 const answered = (choice: string | null, answer = 'They accuse us of taking money: a person is needed.'): ThinkResult =>
   ({ status: 'answered', answer, decision: { choice, fields: {} }, steps: [], context_used: {}, missing_context: [], sources: [], confidence: 0.8 });
 
-Deno.test('WhatsApp, inside the 24-hour window: the contact goes as free text, and the CEO sees it', async () => {
+Deno.test('WhatsApp, inside the 24-hour window: the contact goes as free text in the MODEL\'s words, and the CEO sees it', async () => {
   const { x, log } = io(true);
+  const asked: { q: string; lang: string; o?: Record<string, unknown> }[] = [];
+  x.writeNotice = (q, lang, o) => { asked.push({ q, lang, o }); return Promise.resolve({ reply: 'MODEL: a person will follow up; call +971 50 000 0000', outage: false }); };
   const d = await deliverReasoned(row('wa_inbound.needs_a_person', 'you took my money and vanished', { phone: 'whatsapp:+971500000001' }), answered('needs_a_person'), x);
   assertEquals([d.delivered, d.via], [true, 'whatsapp_text']);
   assertEquals(log[0], 'ceo reasoned:person:7');
-  assertMatch(log[1], /^text whatsapp:\+971500000001 Thank you for your patience.*\+971 50 000 0000/);
+  assertEquals(log[1], 'text whatsapp:+971500000001 MODEL: a person will follow up; call +971 50 000 0000');
+  // the facts are code's and the number must be carried exactly (ruling 1339 / ledger 1348)
+  assertEquals(asked.length, 1);
+  assertEquals([asked[0].q, asked[0].lang, asked[0].o?.must], ['you took my money and vanished', 'en', ['+971 50 000 0000']]);
+  assertMatch(String(asked[0].o?.facts), /A person from our team will follow up.*\+971 50 000 0000.*owner/);
 });
 
-Deno.test('WhatsApp, outside the window: only an approved template is allowed, so a support_reply row is queued', async () => {
+Deno.test('WhatsApp, outside the window: only an approved template is allowed, so a support_reply row is queued (Arabic, model-written)', async () => {
   const { x, log } = io(false);
+  let lang = '';
+  x.writeNotice = (_q, l) => { lang = l; return Promise.resolve({ reply: 'شكرًا لصبركم، سيتابع معكم أحد أعضاء فريقنا: +971 50 000 0000', outage: false }); };
   const d = await deliverReasoned(row('wa_inbound.needs_a_person', 'نصبتوا علي', { phone: '+971500000001' }), answered('needs_a_person'), x);
   assertEquals([d.delivered, d.via], [true, 'whatsapp_template']);
-  assertMatch(log[1], /^template \+971500000001 ar \[نصبتوا علي\] شكرًا لصبركم/);
+  assertEquals(lang, 'ar', 'Arabic in, Arabic out');
+  assertMatch(log[1], /^template \+971500000001 ar \[نصبتوا علي\] شكرًا لصبركم، سيتابع/);
   assertEquals(log.some((l) => l.startsWith('text')), false, 'no free text outside the window');
+});
+
+Deno.test('1339: the person-contact notice in code words goes ONLY when OpenRouter is down', async () => {
+  // down: no call reached a model -> the fixed notice, with the contact
+  const down = io(true);
+  down.x.writeNotice = () => Promise.resolve({ reply: '', outage: true });
+  const d1 = await deliverReasoned(row('wa_inbound.needs_a_person', 'you took my money and vanished', { phone: '+971500000001' }), answered('needs_a_person'), down.x);
+  assertEquals([d1.delivered, d1.via], [true, 'whatsapp_text']);
+  assertMatch(down.log[1], /^text \+971500000001 Thank you for your patience.*\+971 50 000 0000/);
+  // up, every draft refused (a 4xx is never an outage): nothing code-written; the row stays open ('unwritten', not 'none')
+  const up = io(true);
+  up.x.writeNotice = () => Promise.resolve({ reply: '', outage: false });
+  const d2 = await deliverReasoned(row('wa_inbound.needs_a_person', 'you took my money and vanished', { phone: '+971500000001' }), answered('needs_a_person'), up.x);
+  assertEquals([d2.delivered, d2.via], [false, 'unwritten']);
+  assertEquals(up.log.filter((l) => /^(text|template)/.test(l)), []);
+  assertEquals(up.log[0], 'ceo reasoned:person:7', 'the CEO still sees a person is owed');
+  // no model writer at all: it cannot tell up from down, so nothing is sent blind
+  const blind = io(true);
+  delete blind.x.writeNotice;
+  const d3 = await deliverReasoned(row('wa_inbound.needs_a_person', 'you took my money and vanished', { phone: '+971500000001' }), answered('needs_a_person'), blind.x);
+  assertEquals([d3.delivered, d3.via], [false, 'unwritten']);
+  assertEquals(blind.log.filter((l) => /^(text|template)/.test(l)), []);
+  // down with no published line: the holding notice, never a blank number
+  const noLine = io(true);
+  noLine.x.founderContact = () => Promise.resolve(null);
+  noLine.x.writeNotice = (_q, _l, o) => { assertEquals(o?.must, undefined); return Promise.resolve({ reply: '', outage: true }); };
+  await deliverReasoned(row('wa_inbound.needs_a_person', 'you took my money and vanished', { phone: '+971500000001' }), answered('needs_a_person'), noLine.x);
+  assertMatch(noLine.log[1], /^text \+971500000001 Thank you for your patience\. Your question is now with our team/);
+});
+
+Deno.test('ledger 1348: a person-contact draft in the wrong language, or with the brand in Arabic letters, is refused as unwritten', async () => {
+  const send = async (said: string, draft: string) => {
+    const m = io(true);
+    m.x.writeNotice = () => Promise.resolve({ reply: draft, outage: false });
+    const d = await deliverReasoned(row('wa_inbound.needs_a_person', said, { phone: '+971500000001' }), answered('needs_a_person'), m.x);
+    return { d, sent: m.log.filter((l) => /^(text|template)/.test(l)) };
+  };
+  // English draft for an Arabic message
+  const a = await send('نصبتوا علي', 'Thank you. A person from our team will follow up; call +971 50 000 0000.');
+  assertEquals([a.d.delivered, a.d.via, a.sent], [false, 'unwritten', []]);
+  assertMatch(String(a.d.detail), /not in Arabic/);
+  // Arabic draft for an English message
+  const b = await send('you took my money', 'شكرًا لصبركم، سيتابع معكم أحد أعضاء فريقنا على +971 50 000 0000');
+  assertEquals([b.d.delivered, b.d.via, b.sent], [false, 'unwritten', []]);
+  // the brand in Arabic letters, in either spelling
+  for (const brand of ['كوتس دن', 'كوتس دون', 'كوتسدن', 'كوتز دن']) {
+    const c = await send('نصبتوا علي', 'شكرًا لصبركم، سيتابع معكم فريق ' + brand + ' على +971 50 000 0000');
+    assertEquals([c.d.delivered, c.d.via, c.sent], [false, 'unwritten', []], brand);
+  }
+  // ...and the right ones go: Arabic with the brand in Latin letters, the number and an e-mail; plain English
+  const ok = await send('نصبتوا علي', 'شكرًا لصبركم، سيتابع معكم فريق QuotesDone، ويمكنكم الاتصال على\n+971 50 000 0000\nmanagement@quotesdone.com');
+  assertEquals([ok.d.delivered, ok.d.via], [true, 'whatsapp_text']);
+  const en = await send('you took my money', 'Thank you for your patience. A person from QuotesDone will follow up; call +971 50 000 0000.');
+  assertEquals([en.d.delivered, en.d.via], [true, 'whatsapp_text']);
+  // pure helpers
+  assertEquals(personNoticeDraft('  ', 'ar'), '');
+  assertEquals(personNoticeProblems('Thank you, QuotesDone', 'en'), []);
+  assertEquals(personNoticeProblems('شكرًا من QuotesDone', 'ar'), []);
 });
 
 Deno.test('reasoned to need no person: nothing is sent again', async () => {
