@@ -10,10 +10,13 @@
 -- one person who decides the final response heard of it only once it was late.
 --
 -- WHAT THIS ADDS: customer_support.complaint_deadlines, hourly, fn_customer_support_complaint_deadline_tick().
--- Code, no model. For every ticket without its final response:
---   update   from halfway to respond_due: the ticket moves to in_review (fn_complaint_set_status) and the customer gets
---            ONE written update with the ticket reference and the date the final response is due, in English and
---            Arabic, through the seat's one sending path (fn_customer_support_duty_send, once per ticket);
+-- For every ticket without its final response:
+--   update   from halfway to respond_due: the ticket moves to in_review (fn_complaint_set_status) and the customer is
+--            owed ONE written update with the ticket reference and the date the final response is due, in English or
+--            Arabic. 27 Oct 2026 (founder_instruction 1339): the duty records what is owed
+--            (fn_customer_support_voice_owe, customer_support_writes_its_duty_updates_through_the_model.sql) and the
+--            MODEL writes it (_shared/duty_voice.ts); the text below is the draft, sent only on an OpenRouter outage.
+--            Still once per ticket through the seat's one sending path (fn_customer_support_duty_send);
 --   decide   from complaint_seat_warning_working_days (2) before respond_due: the CEO gets the decision request NOW,
 --            while it can still be met (fn_support_report_to_ceo 'complaint_due_soon:<ticket>', once), with the
 --            ticket, the complaint and the due date;
@@ -28,7 +31,7 @@ returns jsonb language plpgsql security definer set search_path to 'public', 'pg
 declare
   v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
   v_warn int := public.fn_seat_clock_policy('complaint_seat_warning_working_days', 2)::int;
-  t public.complaint_tickets; v_due text; v_ar boolean; v_s jsonb; v_r jsonb; v_clock jsonb;
+  t public.complaint_tickets; v_due text; v_ar boolean; v_r jsonb; v_clock jsonb;
   n_update int := 0; n_ceo int := 0;
 begin
   for t in select * from public.complaint_tickets
@@ -38,7 +41,7 @@ begin
 
     if now() >= t.created_at + (t.respond_due - t.created_at) / 2 then
       if t.status = 'acknowledged' then perform public.fn_complaint_set_status(t.ticket_no, 'in_review'); end if;
-      v_s := public.fn_customer_support_duty_send('complaint.update', t.ticket_no, 'customer', t.email,
+      if public.fn_customer_support_voice_owe('complaint.update', t.ticket_no, 'complaint.update:' || t.ticket_no, 'customer', t.email,
         case when v_ar then 'ar' else 'en' end,
         case when v_ar then 'شكواكم ' || t.ticket_no || ': قيد المراجعة' else 'Your complaint ' || t.ticket_no || ': in review' end,
         case when v_ar then
@@ -48,8 +51,12 @@ begin
         else
           'Dear ' || coalesce(nullif(btrim(t.name), ''), 'customer') || ',' || chr(10) || chr(10)
           || 'Your complaint, reference ' || t.ticket_no || ', is now in review. You will have our final response by ' || v_due
-          || '. If you have anything to add, reply to this email and quote the reference.' || chr(10) || chr(10) || 'The QuotesDone team' end);
-      if coalesce((v_s->>'sent')::boolean, false) then n_update := n_update + 1; end if;
+          || '. If you have anything to add, reply to this email and quote the reference.' || chr(10) || chr(10) || 'The QuotesDone team' end,
+        -- what the model writes, from these facts only (nothing internal: ledger 1338)
+        'Write the customer an update on their complaint: it is now in review, and our final response will reach them by the date in the facts. Address them by name when the facts give one. Invite them to reply to this e-mail with anything they want to add, quoting the reference.',
+        'COMPLAINT REFERENCE: ' || t.ticket_no || chr(10) || 'CUSTOMER NAME: ' || coalesce(nullif(btrim(t.name), ''), '(not given)')
+          || chr(10) || 'STATUS: in review' || chr(10) || 'FINAL RESPONSE DUE BY: ' || v_due,
+        array[t.ticket_no, v_due]) then n_update := n_update + 1; end if;
     end if;
 
     if not v_fx and public.fn_working_days_between(now(), t.respond_due) <= v_warn and now() <= t.respond_due then
@@ -67,7 +74,7 @@ begin
   end loop;
 
   v_clock := public.fn_complaint_clock_tick(v_fx);
-  return jsonb_build_object('ok', true, 'fixture', v_fx, 'updates_sent', n_update, 'decisions_asked_before_lapse', n_ceo, 'clock', v_clock);
+  return jsonb_build_object('ok', true, 'fixture', v_fx, 'updates_owed', n_update, 'decisions_asked_before_lapse', n_ceo, 'clock', v_clock);
 end $fn$;
 revoke execute on function public.fn_customer_support_complaint_deadline_tick() from public, anon, authenticated;
 grant execute on function public.fn_customer_support_complaint_deadline_tick() to service_role;

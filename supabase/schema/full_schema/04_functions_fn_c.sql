@@ -12245,6 +12245,62 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_customer_support_complaint_deadline_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  v_warn int := public.fn_seat_clock_policy('complaint_seat_warning_working_days', 2)::int;
+  t public.complaint_tickets; v_due text; v_ar boolean; v_r jsonb; v_clock jsonb;
+  n_update int := 0; n_ceo int := 0;
+begin
+  for t in select * from public.complaint_tickets
+            where status <> 'final_response' and public.fn_is_demo_email(email) = v_fx order by id loop
+    v_due := to_char(t.respond_due at time zone 'Asia/Dubai', 'YYYY-MM-DD');
+    v_ar := coalesce(t.message, '') ~ '[؀-ۿ]';
+
+    if now() >= t.created_at + (t.respond_due - t.created_at) / 2 then
+      if t.status = 'acknowledged' then perform public.fn_complaint_set_status(t.ticket_no, 'in_review'); end if;
+      if public.fn_customer_support_voice_owe('complaint.update', t.ticket_no, 'complaint.update:' || t.ticket_no, 'customer', t.email,
+        case when v_ar then 'ar' else 'en' end,
+        case when v_ar then 'شكواكم ' || t.ticket_no || ': قيد المراجعة' else 'Your complaint ' || t.ticket_no || ': in review' end,
+        case when v_ar then
+          'عزيزنا ' || coalesce(nullif(btrim(t.name), ''), 'العميل') || '،' || chr(10) || chr(10)
+          || 'نودّ إعلامكم بأن شكواكم ذات المرجع ' || t.ticket_no || ' قيد المراجعة الآن. ستصلكم إجابتنا النهائية في موعد أقصاه ' || v_due
+          || '. إن كانت لديكم أي معلومات إضافية، يُرجى الرد على هذه الرسالة مع ذكر المرجع.' || chr(10) || chr(10) || 'فريق QuotesDone'
+        else
+          'Dear ' || coalesce(nullif(btrim(t.name), ''), 'customer') || ',' || chr(10) || chr(10)
+          || 'Your complaint, reference ' || t.ticket_no || ', is now in review. You will have our final response by ' || v_due
+          || '. If you have anything to add, reply to this email and quote the reference.' || chr(10) || chr(10) || 'The QuotesDone team' end,
+        -- what the model writes, from these facts only (nothing internal: ledger 1338)
+        'Write the customer an update on their complaint: it is now in review, and our final response will reach them by the date in the facts. Address them by name when the facts give one. Invite them to reply to this e-mail with anything they want to add, quoting the reference.',
+        'COMPLAINT REFERENCE: ' || t.ticket_no || chr(10) || 'CUSTOMER NAME: ' || coalesce(nullif(btrim(t.name), ''), '(not given)')
+          || chr(10) || 'STATUS: in review' || chr(10) || 'FINAL RESPONSE DUE BY: ' || v_due,
+        array[t.ticket_no, v_due]) then n_update := n_update + 1; end if;
+    end if;
+
+    if not v_fx and public.fn_working_days_between(now(), t.respond_due) <= v_warn and now() <= t.respond_due then
+      v_r := public.fn_support_report_to_ceo(
+        'complaint_due_soon:' || t.ticket_no, 'elevated',
+        'Complaint ' || t.ticket_no || ' needs its final response by ' || v_due || ' Dubai',
+        jsonb_build_object('ticket', t.ticket_no, 'created_at', t.created_at, 'respond_due', t.respond_due, 'status', t.status,
+                           'complaint', left(coalesce(t.message, ''), 1500),
+                           'policy', 'Complaints Policy: acknowledgement within 2 working days, substantive response within 10'),
+        jsonb_build_array('acknowledged on ' || coalesce(t.acknowledged_at::text, '?'), 'the customer was told the due date'),
+        'Decide the final response on ' || t.ticket_no || ' before ' || v_due || ' and have customer_support give it (fn_complaint_set_status).',
+        p_case_ref => t.ticket_no, p_source_agent => 'customer_support');
+      if coalesce((v_r->>'ok')::boolean, false) and not coalesce((v_r->>'duplicate')::boolean, false) then n_ceo := n_ceo + 1; end if;
+    end if;
+  end loop;
+
+  v_clock := public.fn_complaint_clock_tick(v_fx);
+  return jsonb_build_object('ok', true, 'fixture', v_fx, 'updates_owed', n_update, 'decisions_asked_before_lapse', n_ceo, 'clock', v_clock);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_customer_support_concierge_confirm(p_inquiry uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -13056,6 +13112,70 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_customer_support_incident_notice_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  i public.it_incident; p record; v_ar boolean; v_what text; n_hold int := 0; n_res int := 0;
+begin
+  for i in select * from public.it_incident
+            where customer_impact is not null and (coalesce(title, '') like 'ZZ DEMO%') = v_fx
+              and (ended_at is null or ended_at > now() - interval '2 days')
+              and coalesce(started_at, created_at) > now() - interval '14 days' order by id loop
+    v_what := coalesce(nullif(btrim(i.customer_note_en), ''), 'part of the QuotesDone platform');   -- never the internal impact text (1338)
+    if i.ended_at is null then
+      for p in select distinct on (lower(pr.email)) lower(pr.email) email, coalesce(s.lang, 'en') lang, s.party_kind
+                 from public.support_case s join public.support_customer_profile pr on pr.id = s.customer_profile_id
+                where s.last_activity_at > now() - interval '14 days' and pr.email is not null
+                  and public.fn_is_demo_email(pr.email) = v_fx
+                  and (i.customer_impact = 'everyone' or (i.customer_impact = 'customers' and s.party_kind = 'customer')
+                       or (i.customer_impact = 'suppliers' and s.party_kind = 'supplier'))
+                order by lower(pr.email), s.last_activity_at desc loop
+        v_ar := p.lang = 'ar' and p.party_kind <> 'supplier';
+        if public.fn_customer_support_voice_owe('incident.holding', i.id || ':' || p.email,
+          'incident.holding:' || i.id || ':' || case when v_ar then 'ar' else 'en' end || ':' || case when p.party_kind = 'supplier' then 'supplier' else 'customer' end,
+          case when p.party_kind = 'supplier' then 'supplier' else 'customer' end, p.email, case when v_ar then 'ar' else 'en' end,
+          case when v_ar then 'QuotesDone: نعمل على حل مشكلة مؤقتة' else 'QuotesDone: we are fixing a temporary problem' end,
+          case when v_ar then
+            'نودّ إعلامكم بوجود مشكلة مؤقتة تؤثر على: ' || coalesce(nullif(btrim(i.customer_note_ar), ''), 'جزء من منصة QuotesDone')
+            || '. فريقنا التقني يعمل على حلّها الآن، وطلباتكم وبياناتكم محفوظة. سنراسلكم فور حلّها، ولا داعي لأي إجراء من جانبكم.'
+            || chr(10) || chr(10) || 'نعتذر عن الإزعاج.' || chr(10) || 'فريق QuotesDone'
+          else
+            'We want to let you know about a temporary problem affecting ' || v_what
+            || '. Our technical team is working on it now, and your requests and data are safe. We will write again as soon as it is fixed; there is nothing you need to do.'
+            || chr(10) || chr(10) || 'We are sorry for the inconvenience.' || chr(10) || 'The QuotesDone team' end,
+          'Write a short e-mail telling them about a temporary problem affecting what the facts name: our technical team is working on it now, their requests and data are safe, we will write again as soon as it is fixed, and there is nothing they need to do. Apologise for the inconvenience.',
+          'WHAT IS AFFECTED: ' || case when v_ar then coalesce(nullif(btrim(i.customer_note_ar), ''), nullif(btrim(i.customer_note_en), ''), 'part of the QuotesDone platform') else v_what end,
+          '{}') then n_hold := n_hold + 1; end if;
+      end loop;
+    else
+      -- a holding notice still unwritten when the incident ends is never sent late; only those who got one hear it is fixed
+      delete from public.customer_support_voice_owed
+       where stage = 'incident.holding' and subject_key like i.id || ':%' and written_at is null;
+      for p in select m.to_email email, m.subject_key from public.customer_support_duty_message m
+                where m.stage = 'incident.holding' and m.subject_key like i.id || ':%' loop
+        v_ar := exists (select 1 from public.support_case s join public.support_customer_profile pr on pr.id = s.customer_profile_id
+                         where lower(pr.email) = p.email and s.lang = 'ar' and s.party_kind <> 'supplier');
+        if public.fn_customer_support_voice_owe('incident.resolved', p.subject_key, 'incident.resolved:' || i.id || ':' || case when v_ar then 'ar' else 'en' end,
+          'customer', p.email, case when v_ar then 'ar' else 'en' end,
+          case when v_ar then 'QuotesDone: تم حل المشكلة' else 'QuotesDone: the problem is fixed' end,
+          case when v_ar then 'تم حل المشكلة المؤقتة التي أبلغناكم بها، وكل شيء يعمل الآن كالمعتاد. شكرًا لصبركم.' || chr(10) || chr(10) || 'فريق QuotesDone'
+          else 'The temporary problem we wrote to you about is fixed, and everything is working as normal. Thank you for your patience.'
+               || chr(10) || chr(10) || 'The QuotesDone team' end,
+          'Write a short e-mail telling them the temporary problem we wrote to them about is fixed and everything is working as normal, and thank them for their patience.',
+          'WHAT WAS AFFECTED: ' || v_what || chr(10) || 'STATUS: fixed',
+          '{}') then n_res := n_res + 1; end if;
+      end loop;
+    end if;
+  end loop;
+  return jsonb_build_object('ok', true, 'fixture', v_fx, 'holding_owed', n_hold, 'resolved_owed', n_res);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_customer_support_knowledge_request_tick()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -13854,6 +13974,44 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_customer_support_voice_due(p_limit integer DEFAULT 50)
+ RETURNS SETOF customer_support_voice_owed
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select * from public.customer_support_voice_owed
+   where written_at is null and attempts < 6
+   order by created_at, stage, subject_key
+   limit greatest(1, least(coalesce(p_limit, 50), 200));
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_support_voice_failed(p_stage text, p_key text, p_error text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.customer_support_voice_owed;
+begin
+  update public.customer_support_voice_owed set attempts = attempts + 1, last_error = left(coalesce(p_error, ''), 500)
+   where stage = p_stage and subject_key = p_key and written_at is null
+  returning * into r;
+  if not found then return jsonb_build_object('ok', false, 'reason', 'nothing owed'); end if;
+  if r.attempts >= 6 and not public.fn_is_demo_email(r.to_email) then
+    perform public.fn_support_report_to_ceo(
+      'voice_unwritten:' || r.stage || ':' || r.subject_key, 'elevated',
+      'A customer_support ' || r.stage || ' message could not be written by the model after ' || r.attempts || ' tries',
+      jsonb_build_object('stage', r.stage, 'subject', r.subject_key, 'to_role', r.to_role, 'lang', r.lang, 'last_error', r.last_error),
+      jsonb_build_array('asked the model ' || r.attempts || ' times; every draft was refused by the reply guard'),
+      'Decide what the person is told: the model was up, so no code-written text was sent (founder_instruction 1339).',
+      p_source_agent => 'customer_support');
+  end if;
+  return jsonb_build_object('ok', true, 'attempts', r.attempts);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_customer_support_voice_of_customer_month()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -13953,6 +14111,49 @@ begin
     on conflict (month) do nothing;
   end if;
   return jsonb_build_object('ok', true, 'fixture', v_fx, 'month', v_month, 'actions', v_act, 'ceo_report', v_ceo) || v_rep;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_support_voice_owe(p_stage text, p_key text, p_voice_key text, p_to_role text, p_email text, p_lang text, p_subject text, p_draft text, p_situation text, p_facts text, p_must text[] DEFAULT '{}'::text[])
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_to text := lower(nullif(btrim(coalesce(p_email, '')), ''));
+begin
+  if v_to is null then return false; end if;
+  if exists (select 1 from public.customer_support_duty_message where stage = p_stage and subject_key = p_key) then return false; end if;
+  insert into public.customer_support_voice_owed (stage, subject_key, voice_key, to_role, to_email, lang, subject, draft, situation, facts, must)
+  values (p_stage, p_key, p_voice_key, case when p_to_role = 'supplier' then 'supplier' else 'customer' end, v_to,
+          case when p_lang = 'ar' and p_to_role <> 'supplier' then 'ar' else 'en' end,   -- suppliers always English (28 Sep)
+          p_subject, p_draft, p_situation, coalesce(p_facts, ''), coalesce(p_must, '{}'))
+  on conflict (stage, subject_key) do nothing;
+  return found;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_support_voice_send(p_stage text, p_key text, p_body text, p_by text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.customer_support_voice_owed; v jsonb;
+begin
+  if p_by not in ('model', 'outage_fallback') then raise exception 'voice_send: p_by is model or outage_fallback, not %', p_by; end if;
+  select * into r from public.customer_support_voice_owed where stage = p_stage and subject_key = p_key for update;
+  if not found then return jsonb_build_object('sent', false, 'reason', 'nothing owed'); end if;
+  if r.written_at is not null then return jsonb_build_object('sent', false, 'reason', 'already written'); end if;
+  if coalesce(btrim(p_body), '') = '' then raise exception 'voice_send: an empty body is never sent'; end if;
+  -- the code-written text may go out only as the reviewed draft, and only when the caller says the model was down
+  if p_by = 'outage_fallback' and p_body is distinct from r.draft then
+    raise exception 'voice_send: an outage fallback must be the recorded draft (founder_instruction 1339)';
+  end if;
+  v := public.fn_customer_support_duty_send(r.stage, r.subject_key, r.to_role, r.to_email, r.lang, r.subject, p_body);
+  update public.customer_support_voice_owed set written_at = now(), written_by = p_by, result = v
+   where stage = p_stage and subject_key = p_key;
+  return v || jsonb_build_object('written_by', p_by);
 end $function$
 
 
