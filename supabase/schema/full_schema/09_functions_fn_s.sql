@@ -4983,7 +4983,9 @@ begin
     jsonb_build_object('path', a.detail->>'path', 'item_key', a.detail->>'item_key', 'round', a.detail->'round',
                        'ceo_reasons', a.detail->>'reasons', 'submission', a.detail->'version'),
     jsonb_build_object('handoff_id', p_id, 'path', a.detail->>'path', 'item_key', a.detail->>'item_key'),
-    'ceo_revision:' || (a.detail->>'item_key') || ':g' || coalesce(a.detail->>'generation', '1') || ':r' || coalesce(a.detail->>'round', '1'));
+    'ceo_revision:' || (a.detail->>'item_key') || ':g' || coalesce(a.detail->>'generation', '1') || ':r' || coalesce(a.detail->>'round', '1')
+      -- a re-filed question (fn_ceo_revision_refile, after the last one failed) is a new question, not the closed one
+      || coalesce(':t' || (a.evidence->>'refiles'), ''));
   v_fields := jsonb_build_array(
     jsonb_build_object('key', 'revision', 'question', 'the revised submission, complete, as the CEO should now review it'),
     jsonb_build_object('key', 'answers', 'question', 'for each of the CEO''s reasons: what changed, or the evidence that answers it'));
@@ -4993,6 +4995,13 @@ begin
       jsonb_build_object('key', 'approach', 'question', 'the revised approach (blank keeps it)'),
       jsonb_build_object('key', 'target', 'question', 'the revised target, a number (blank keeps it)'),
       jsonb_build_object('key', 'days', 'question', 'the revised run length in days, 7 to 365 (blank keeps it)'));
+  end if;
+  if a.detail->>'path' = 'marketing_month_plan' then
+    -- the CEO reviews the idea list itself, so a revision that changes the plan must carry the changed list
+    v_fields := v_fields || jsonb_build_array(jsonb_build_object('key', 'ideas', 'question',
+      'the complete revised idea list as a JSON array, one object per video with n (1, 2, ...), date (YYYY-MM-DD, a UAE '
+      || 'working day in the plan''s month), idea_key, title, hook, film_plan, cta, audience (supplier, customer or both) '
+      || 'and why; every change the CEO asked for must be in it. Blank keeps the current list.'));
   end if;
   perform public.fn_ambition_ask_fields(v_held, v_fields);
   return jsonb_build_object('waiting', a.agent || ' revises and resubmits ' || coalesce(a.detail->>'item_key', '?') || ' (held question ' || v_held || ')',
