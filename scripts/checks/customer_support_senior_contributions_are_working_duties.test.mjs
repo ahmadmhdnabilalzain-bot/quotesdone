@@ -41,6 +41,9 @@ const DUTIES = [
 ];
 const LEAK = 'scripts/sql/no_external_answer_can_state_an_internal_number.sql';
 const CONTEXT = 'scripts/sql/internal_seats_read_the_live_business_figures_in_the_company_block.sql';
+// founder_instruction 1339 (27 Oct 2026): the complaint update and the incident notices are written by the model; the
+// duties record what is owed here and _shared/duty_voice.ts writes it (the draft only on an OpenRouter outage).
+const VOICE = 'scripts/sql/customer_support_writes_its_duty_updates_through_the_model.sql';
 const manifest = () => read('scripts/sql/MANIFEST.txt').split(/\r?\n/);
 
 for (const [id, name, duty, fn, tables] of DUTIES) {
@@ -98,6 +101,24 @@ test('static CS-C01: the unanswered-message duty sends the sender no code-writte
   assert.doesNotMatch(src, /'inbound\.ack'/, 'the duty still writes a templated acknowledgement');
 });
 
+// FOUNDER RULING 1339, scope pre-approved in ledger 1348: the complaint update (CS-C10) and the incident holding and
+// resolved notices (CS-C12) are updates a person reads from customer_support, so the model writes them. The duties may
+// not send a code-written text themselves; they record it (fn_customer_support_voice_owe) as the outage-only draft.
+test('static CS-C10 / CS-C12: the complaint update and the incident notices are owed to the model, never sent as code text (1339)', () => {
+  for (const f of ['customer_support_acts_on_a_complaint_before_its_deadline', 'customer_support_tells_affected_customers_during_an_incident']) {
+    const src = code(read(`scripts/sql/${f}.sql`));
+    assert.doesNotMatch(src, /fn_customer_support_duty_send\s*\(/, `${f}: the duty sends a code-written message instead of the model's`);
+    assert.match(src, /fn_customer_support_voice_owe\(/, `${f}: the duty does not record what the model must write`);
+  }
+  const inc = code(read('scripts/sql/customer_support_tells_affected_customers_during_an_incident.sql'));
+  assert.doesNotMatch(inc, /btrim\(i\.impact\)/, 'CS-C12: the internal impact text reaches a customer (ledger 1338)');
+  const v = code(read(VOICE));
+  assert.match(v, /p_by = 'outage_fallback' and p_body is distinct from r\.draft/, 'the send accepts a code-written body that is not the recorded draft');
+  assert.ok(v.includes('revoke execute on function public.fn_customer_support_voice_send(text, text, text, text) from public, anon, authenticated;'), 'voice_send is not revoked');
+  assert.ok(read('supabase/functions/resilience_ping/index.ts').includes("supportVoice: { run: () => kickDetached('supportVoice') }"), 'nothing runs the writer');
+  assert.ok(read('supabase/functions/_shared/duty_voice.ts').includes('modelOrOutage(a, r.draft)'), 'the writer sends the draft without the outage gate');
+});
+
 test('static: every road that sends a widget or portal reply scores it, and a refused opt-out is kept', () => {
   assert.ok(read('supabase/functions/site_assistant/index.ts').includes("admin.rpc('fn_support_reply_readability_log'"), 'site_assistant sends unscored replies again');
   assert.ok(read('supabase/functions/unsubscribe/index.ts').includes("from('unsubscribe_refusal').insert"), 'a refused opt-out is no longer recorded');
@@ -106,7 +127,7 @@ test('static: every road that sends a widget or portal reply scores it, and a re
 const token = () => process.env.SUPABASE_ACCESS_TOKEN || (existsSync(join(homedir(), '.supabase', 'access-token')) ? 'file' : '');
 
 test('production, aborted: every duty acts on its fixture, and nothing reaches the founder or the CEO', { skip: !token() && 'no Supabase access token' }, async () => {
-  const replay = [LEAK, CONTEXT, ...DUTIES.map((d) => `scripts/sql/${d[1]}.sql`)]
+  const replay = [VOICE, LEAK, CONTEXT, ...DUTIES.map((d) => `scripts/sql/${d[1]}.sql`)]
     .filter((f) => !manifest().includes(f)).map(read).join('\n;\n');
   let o = null;
   try { await replaySql(replay + '\n' + PROBE, { retry: false, label: 'customer_support senior duties' }); }
@@ -136,10 +157,13 @@ test('production, aborted: every duty acts on its fixture, and nothing reaches t
   assert.equal(o.cc_internal, true, 'internal seats do not get the live figures in the company block');
   assert.equal(o.cc_public, false, 'the public company block carries the live figures');
   assert.equal(o.c10_status, 'in_review', 'C10: the complaint was not moved to in_review before its deadline');
-  assert.ok(o.c10_update >= 1, 'C10: the customer update was not written');
+  assert.ok(o.c10_update >= 1, 'C10: the customer update was not owed to the model');
+  assert.equal(o.c10_sent_by_code, 0, 'C10: the duty sent a code-written update itself (founder ruling 1339)');
   assert.ok(o.c11 >= 1 && o.c11_kind === 'erasure' && o.c11_pdpl, 'C11: the data request was not registered with its identity check: ' + JSON.stringify(o.c11));
   assert.equal(o.c11_objection, 'fulfilled', 'C11: a verified objection was not fulfilled');
-  assert.ok(o.c12_hold >= 1 && o.c12_res >= 1, 'C12: holding and resolved notices were not written');
+  assert.ok(o.c12_owed >= 1 && o.c12_hold >= 1 && o.c12_res >= 1, 'C12: holding and resolved notices were not owed and written: ' + JSON.stringify([o.c12_owed, o.c12_hold, o.c12_res]));
+  assert.equal(o.c12_late, 0, 'C12: a holding notice still unwritten when the incident ended would be sent late');
+  assert.equal(o.c12_fallback_refused, true, 'C12: an outage fallback that is not the recorded draft was accepted');
   assert.ok(o.c13 >= 1 && o.c13_channel === 'social' && o.c13_category === 'complaint', 'C13: the public complaint did not become a case');
   assert.ok(o.c13_answered, 'C13: the closed case was not written back for marketing to close');
   assert.ok(o.c14 >= 1, 'C14: the VoC report has no actions');
@@ -204,7 +228,8 @@ begin
             now() - interval '10 days', now() - interval '8 days', now() + interval '3 days', now() - interval '10 days', 'customer_support');
   perform fn_customer_support_complaint_deadline_tick(); o := o || jsonb_build_object(
                                'c10_status', (select status from complaint_tickets where ticket_no = 'QD-C-ZZDEMA'),
-                               'c10_update', (select count(*) from customer_support_duty_message where stage = 'complaint.update' and subject_key = 'QD-C-ZZDEMA'));
+                               'c10_update', (select count(*) from customer_support_voice_owed where stage = 'complaint.update' and subject_key = 'QD-C-ZZDEMA'),
+                               'c10_sent_by_code', (select count(*) from customer_support_duty_message where stage = 'complaint.update' and subject_key = 'QD-C-ZZDEMA'));
 
   -- C11
   insert into support_customer_profile (party_kind, email) values ('unknown', 'zz.cs11@example.invalid') returning id into v_prof;
@@ -225,10 +250,28 @@ begin
   insert into it_incident (handoff_id, issue_key, title, what, impact, started_at, customer_impact)
     values (v_aa, 'zz_demo_cs12', 'ZZ DEMO outage', 'ZZ DEMO', 'the customer portal', now() - interval '10 minutes', 'customers') returning id into v_inc;
   perform fn_customer_support_incident_notice_tick();
+  o := o || jsonb_build_object('c12_owed', (select count(*) from customer_support_voice_owed where stage = 'incident.holding' and subject_key like v_inc || ':%'));
+  -- an outage fallback must be the recorded draft (1339)
+  begin
+    perform fn_customer_support_voice_send('incident.holding', (select subject_key from customer_support_voice_owed where stage = 'incident.holding' and subject_key like v_inc || ':%' limit 1), 'ZZ DEMO not the draft', 'outage_fallback');
+    o := o || jsonb_build_object('c12_fallback_refused', false);
+  exception when others then o := o || jsonb_build_object('c12_fallback_refused', sqlerrm like '%recorded draft%');
+  end;
+  -- what duty_voice.ts does with the model's words: the seat's one sending path, once per person
+  perform fn_customer_support_voice_send(w.stage, w.subject_key, 'ZZ DEMO the model words', 'model')
+     from customer_support_voice_owed w where w.stage = 'incident.holding' and w.subject_key like v_inc || ':%';
   update it_incident set ended_at = now() where id = v_inc;
   perform fn_customer_support_incident_notice_tick();
   o := o || jsonb_build_object('c12_hold', (select count(*) from customer_support_duty_message where stage = 'incident.holding' and subject_key like v_inc || ':%'),
-                               'c12_res', (select count(*) from customer_support_duty_message where stage = 'incident.resolved' and subject_key like v_inc || ':%'));
+                               'c12_res', (select count(*) from customer_support_voice_owed where stage = 'incident.resolved' and subject_key like v_inc || ':%'));
+  -- an incident that ends before its holding notice is written: the late holding notice is withdrawn
+  insert into agent_actions (agent, kind, status, title, detail) values ('it_engineer', 'probe', 'done', 'ZZ DEMO', '{}') returning id into v_aa;
+  insert into it_incident (handoff_id, issue_key, title, what, impact, started_at, customer_impact)
+    values (v_aa, 'zz_demo_cs12b', 'ZZ DEMO short outage', 'ZZ DEMO', 'the customer portal', now() - interval '5 minutes', 'customers') returning id into v_inc;
+  perform fn_customer_support_incident_notice_tick();
+  update it_incident set ended_at = now() where id = v_inc;
+  perform fn_customer_support_incident_notice_tick();
+  o := o || jsonb_build_object('c12_late', (select count(*) from customer_support_voice_owed where stage = 'incident.holding' and subject_key like v_inc || ':%' and written_at is null));
 
   -- C13
   insert into agent_actions (agent, kind, status, title, detail, target_table, target_id)

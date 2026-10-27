@@ -263,6 +263,15 @@ async function seatDutiesTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// CUSTOMER SUPPORT'S DUTY UPDATES ARE THE MODEL'S (27 Oct 2026, customer_support; founder_instruction 1339: "the
+// engineer and customer support never replies without llm unless the server of open router is down"). The complaint
+// update and the incident holding/resolved notices are recorded as owed by their SQL duties; this writes them with the
+// model and sends the recorded draft only on an OpenRouter outage (_shared/duty_voice.ts). Three voice groups a run.
+async function supportVoiceTick(): Promise<unknown> {
+  const { writeOwedDutyMessages, liveVoiceIO } = await import('../_shared/duty_voice.ts');
+  return await writeOwedDutyMessages(liveVoiceIO(admin, defaultDeps(admin, 'resilience_ping')), 3);
+}
+
 async function outboxTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
@@ -1650,6 +1659,8 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   deliveryCanary: { run: deliveryCanaryTick },
   seatClocks: { run: seatClocksTick },
   seatDuties: { run: seatDutiesTick },
+  // customer_support's duty updates written by the model (founder_instruction 1339): detached, its own 120 s.
+  supportVoice: { run: () => kickDetached('supportVoice') },
   // `nested` because it returns one entry per function it called: without it runSteps would ask
   // failureOf about the map itself, which has neither `ok` nor `status`, and a 500 from email_cron
   // would be invisible.
@@ -1686,6 +1697,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
 const DETACHED_MS = 120_000;
 const DETACHED: Record<string, { run: () => Promise<unknown>; nested?: boolean }> = {
   marketing: { run: marketingTick },
+  supportVoice: { run: supportVoiceTick },
   itlater: { run: itLaterDutiesTick, nested: true },
 };
 async function kickDetached(name: string): Promise<unknown> {
