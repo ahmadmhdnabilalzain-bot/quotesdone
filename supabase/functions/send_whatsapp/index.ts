@@ -470,6 +470,12 @@ Deno.serve(observe('send_whatsapp', async (req) => {
           brakeOpen: brake === null || (brake as unknown[]).length > 0, whatsappOpt: (ld as { whatsapp_opt?: string } | null)?.whatsapp_opt });
         if (g.action === 'cancel') { await admin.from('notifications').update({ status: 'cancelled', last_error: g.why }).eq('id', n.id); skipped++; continue; }
         if (g.action === 'hold') { await admin.from('notifications').update({ status: 'queued', claimed_at: null, last_error: g.why }).eq('id', n.id); skipped++; continue; }
+        // THE OPT-IN, READ AS THE ROW LEAVES (independent review of #1634, 27 Oct 2026). The queue only writes rows for an
+        // opted-in number, but a row from any other writer must not reach a person who never opted in (Meta's rule).
+        // An unreadable table holds the row; no recorded opt-in for this exact number cancels it. Never sent either way.
+        const { data: opt, error: optErr } = await admin.from('supplier_whatsapp_optin').select('id').eq('phone', String(n.to_phone || '')).limit(1);
+        if (optErr) { await admin.from('notifications').update({ status: 'queued', claimed_at: null, last_error: ('held: the opt-in record is unreadable: ' + optErr.message).slice(0, 500) }).eq('id', n.id); skipped++; continue; }
+        if (!opt?.length) { await admin.from('notifications').update({ status: 'cancelled', last_error: 'no recorded WhatsApp opt-in for this number' }).eq('id', n.id); skipped++; continue; }
         const q = await senderQuality();
         if (!q.ok) { await admin.from('notifications').update({ status: 'queued', claimed_at: null, last_error: ('held: ' + q.why).slice(0, 500) }).eq('id', n.id); skipped++; continue; }
       }

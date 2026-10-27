@@ -125,6 +125,28 @@ test('each missing condition holds; all on queues the opted-in demo lead once, w
   assert.equal(r.status, 'suppressed', 'a demo invitation is captured, never handed to Twilio');
 });
 
+// Independent review of #1634 (27 Oct 2026): every case above opts in from the lead's own phone_e164, so they measured
+// the case the queue handled. An opt-in is a (lead, number) pair; this one names ANOTHER number.
+test('the invitation goes to the number that opted in, never to a lead number nobody opted in from', { skip: SKIP }, async () => {
+  const [r] = await replaySql(sqlText + DEMO(6, false) + ON + `
+    insert into public.supplier_whatsapp_optin (lead_id, phone, source, evidence)
+    select id, '+971500000099', 'sales_engineer', 'ZZ DEMO probe: asked for WhatsApp on another number'
+      from public.leads where company_name = 'ZZ DEMO wa invite 6';
+    create temp table _a as select ${q(TUE_NOON)} first;
+    select (select first from _a) first,
+           (select string_agg(n.to_phone, ',') from public.notifications n join public.leads l on l.id = n.lead_id
+             where n.type = 'supplier_invite_wa' and l.company_name = 'ZZ DEMO wa invite 6') to_phones;`,
+  { label: 'wa invite opted-in number', rows: true });
+  assert.equal(r.first, 1);
+  assert.equal(r.to_phones, '+971500000099', 'sent to ' + r.to_phones + ', not the opted-in number');
+});
+
+test('send_whatsapp re-reads the opt-in for the exact number as a marketing row leaves', () => {
+  const src = read('supabase/functions/send_whatsapp/index.ts');
+  assert.match(src, /from\('supplier_whatsapp_optin'\)\.select\('id'\)\.eq\('phone', String\(n\.to_phone/);
+  assert.match(src, /no recorded WhatsApp opt-in for this number/);
+});
+
 test('a LOW quality reading brakes: the finding opens, the queued invitation is cancelled, nothing more queues', { skip: SKIP }, async () => {
   const [r] = await replaySql(sqlText + DEMO(1) + DEMO(3) + ON + `
     create temp table _a as select ${q(TUE_NOON)} first;

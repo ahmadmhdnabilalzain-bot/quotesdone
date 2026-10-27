@@ -192,14 +192,21 @@ begin
   truncate _wa_inv;
   -- Driven from the opt-ins (a handful of rows), never a scan of 20k+ leads: the first draft read every lead and took
   -- 71 s in a rolled-back replay on 27 Oct 2026, past the seat duty tick's 60 s statement timeout.
+  -- THE NUMBER IS THE OPTED-IN ONE (independent review of #1634, 27 Oct 2026): an opt-in is a (lead, number) pair and
+  -- may name a number other than the lead's phone_e164 (fn_supplier_whatsapp_optin_record's p_phone, or the lead's
+  -- whatsapp_phone in fn_marketing_files_wa_invite_reply). The invitation goes to opted.phone, never to a number
+  -- nobody opted in from.
   insert into _wa_inv
-  select l.id, l.phone_e164, coalesce(l.invite_trades[1], l.sector), coalesce(p.rank, 2147483647)
-    from (select o.lead_id id from public.supplier_whatsapp_optin o
-           union select x.id from public.supplier_whatsapp_optin o join public.leads x on x.phone_e164 = o.phone) opted
+  select l.id, opted.phone, coalesce(l.invite_trades[1], l.sector), coalesce(p.rank, 2147483647)
+    from (select o.lead_id id, o.phone from public.supplier_whatsapp_optin o
+           union select x.id, o.phone from public.supplier_whatsapp_optin o join public.leads x on x.phone_e164 = o.phone) opted
     join public.leads l on l.id = opted.id
     left join lateral (select min(g.rank) rank from public.marketing_gap_recruitment_plan g
                         where g.trade = coalesce(l.invite_trades[1], l.sector)) p on true
-   where l.phone_e164 ~ '^\+9715[0-9]{8}$'
+   where opted.phone ~ '^\+9715[0-9]{8}$'
+     -- a STOP from this number on any lead record is an opt-out of the number
+     and not exists (select 1 from public.leads y where (y.phone_e164 = opted.phone or y.whatsapp_phone = opted.phone)
+                       and y.whatsapp_opt = 'none')
      and (case when p_demo_only then coalesce(l.is_demo, false) else not coalesce(l.is_demo, false) end)
      and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)
      and not coalesce(l.claimed, false) and l.approval_status is null
@@ -209,7 +216,7 @@ begin
      -- Meta: only a person who opted in (see header) -- the join on `opted` above is that condition
      -- never twice: once per lead and once per number, for life
      and not exists (select 1 from public.notifications n where n.type = 'supplier_invite_wa' and n.lead_id = l.id)
-     and not exists (select 1 from public.notifications n where n.type = 'supplier_invite_wa' and n.to_phone = l.phone_e164);
+     and not exists (select 1 from public.notifications n where n.type = 'supplier_invite_wa' and n.to_phone = opted.phone);
   select count(*) into v_eligible from _wa_inv;
 
   if (v_gate->>'go')::boolean and v_room > 0 then
