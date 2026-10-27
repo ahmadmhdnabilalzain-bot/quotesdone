@@ -23,6 +23,7 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { manifestHas } from '../lib/pending_sql.mjs';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -86,7 +87,9 @@ const SKIP = hasToken ? false : 'no Supabase management token';
 
 async function probe(block) {
   const { sql } = await import('../lib/db.mjs');
-  try { await replaySql(FILES.filter(pending).map(read).join('\n') + '\n' + block, { retry: false }); }
+  // GAP 8 files a sales.escalation handoff on a ZZ DEMO case; ruling 1199 (#1479, demo_activity_files_no_seat_task_or_handoff.sql)
+  // files none for a demo subject. seatWorkFixtures() lifts that for this rolled-back transaction only.
+  try { await replaySql(seatWorkFixtures() + '\n;\n' + FILES.filter(pending).map(read).join('\n') + '\n' + block, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(-1500));

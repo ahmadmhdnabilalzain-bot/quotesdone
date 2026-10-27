@@ -135,7 +135,10 @@ test('a reworded case from another customer recalls the finalised one, masked; a
   const run = async (body) => {
     try { await replaySql((live ? '' : read(SQL_FILE) + '\n') + body, { retry: false }); }
     catch (e) {
-      const m = String(e.message).match(/CHK<<(.*?)>>/s);
+      // e.message is cut at 2000 characters (lib/db.mjs); e.body is the whole answer. Measured 27 Oct 2026: the
+      // recall now returns five production cases with their full situations, so the verdict ran past 2000 and its
+      // closing >> was cut off (the CHK<< was there, the test threw the raw error).
+      const m = String(e.body ?? e.message).match(/CHK<<(.*?)>>/s);
       if (!m) throw e;
       return JSON.parse(m[1].replace(/\\"/g, '"'));
     }
