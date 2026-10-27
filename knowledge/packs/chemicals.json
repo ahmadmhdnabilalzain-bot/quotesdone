@@ -88,6 +88,40 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "chemicals:pce-vs-snf-superplasticiser",
+      "topic": "Superplasticisers: PCE (polycarboxylate ether) vs SNF (naphthalene)",
+      "topic_ar": "الملدنات الفائقة: PCE (بولي كربوكسيلات إيثر) مقابل SNF (النفثالين)",
+      "kind": "comparison",
+      "body_en": "Two chemistries dominate high-range water-reducing admixtures. SNF (sulphonated naphthalene formaldehyde, also written NSF) is the older, lower-cost family. PCE (polycarboxylate ether) is the newer family; in a peer-reviewed comparison of seven admixtures with six cements, PCE products on average gave better water reduction and better flow retention over 60 minutes than naphthalene products, which is why ready-mix suppliers use them for long hauls and hot weather. The same study found that PCE performance depends more strongly on the cement type than SNF does, so a PCE that works with one cement may not with another: a trial mix with the project's own cement and aggregates is the way to choose, not the brochure. PCE is generally dosed lower than naphthalene for the same water reduction, but the dose comes from the maker's data sheet and the trial, not from a rule of thumb. On a quote ask for: chemistry (PCE or SNF), the admixture standard and type it is certified to, dosage range per 100 kg cement, compatibility statement or trial results, shelf life and pack size.",
+      "body_ar": "تسيطر عائلتان كيميائيتان على مضافات تقليل الماء عالية المدى. فالـSNF (نفثالين فورمالديهايد المسلفن، ويُكتب أيضاً NSF) هي العائلة الأقدم والأقل تكلفة. والـPCE (بولي كربوكسيلات إيثر) هي العائلة الأحدث؛ وفي مقارنة منشورة في مجلة محكّمة شملت سبعة مضافات مع ستة أنواع إسمنت، أعطت منتجات PCE في المتوسط تقليلاً أفضل للماء واحتفاظاً أفضل بالقوام خلال 60 دقيقة من منتجات النفثالين، ولذلك يستخدمها موردو الخرسانة الجاهزة للمسافات الطويلة والطقس الحار. ووجدت الدراسة نفسها أن أداء PCE يعتمد على نوع الإسمنت أكثر من SNF، فقد ينجح PCE مع إسمنت ولا ينجح مع آخر: والطريق للاختيار خلطة تجريبية بإسمنت المشروع وركامه، لا النشرة التسويقية. وجرعة PCE عموماً أقل من النفثالين لتقليل الماء نفسه، لكن الجرعة تؤخذ من ورقة بيانات المصنع والتجربة لا من قاعدة تقريبية. اطلب في عرض السعر: الكيمياء (PCE أو SNF)، والمواصفة والنوع، ونطاق الجرعة لكل 100 كغ إسمنت، وبيان التوافق أو نتائج التجربة، ومدة الصلاحية وحجم العبوة.",
+      "sources": [
+        "https://aisberg.unibg.it/handle/10446/24215",
+        "https://www.concrete.org/publications/internationalconcreteabstractsportal/m/details/id/18748",
+        "https://pmc.ncbi.nlm.nih.gov/articles/PMC10934894"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-27",
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: seven admixtures / six Italian cements, PCE better average water reduction and 60-min flow retention than NSF; PCE more dependent on cement type; PCE generally lower dosage (review; marketing-grade) -> confirmed. Admixture type classes are not stated here (not in the excerpts read). Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
+    },
+    {
+      "id": "chemicals:sealants-silicone-vs-polyurethane-vs-hybrid",
+      "topic": "Joint sealants: silicone vs polyurethane vs MS/hybrid vs polysulphide",
+      "topic_ar": "مانعات التسرب للفواصل: السيليكون مقابل البولي يوريثان مقابل الهجين MS مقابل البولي سلفايد",
+      "kind": "comparison",
+      "body_en": "A sealant is chosen by the joint's movement, exposure and finish. Silicone has the best UV and temperature resistance and the highest movement capability (movement class 50-100 in maker literature), keeps its flexibility longest and has a long service life; pure silicone cannot be painted. Polyurethane (PU) can be painted and adheres very well, with movement classes of 12.5, 25 or 50; it is less UV-stable than silicone over decades, needs the right primer on some substrates, is stiffer to apply and tool, and is not used in structural glazing. MS polymer / hybrid sealants use silyl chemistry to combine some of the strengths of silicone and polyurethane. Polysulphide is also counted among the high-performance sealants; its properties are not established here. On a quote ask for: the chemistry, the movement class and the standard it is tested to, paintability, primer, backer rod and joint size (width to depth), and colour. Not established here: the ISO 11600 class definitions and polysulphide performance data.",
+      "body_ar": "يُختار مانع التسرب بحسب حركة الفاصل وتعرضه وتشطيبه. فالسيليكون الأفضل في مقاومة الأشعة فوق البنفسجية والحرارة وأعلى قدرة على الحركة (فئة حركة 50-100 في نشرات المصنعين)، ويحتفظ بمرونته أطول ويعيش طويلاً؛ لكن السيليكون النقي لا يُدهن. أما البولي يوريثان PU فيُدهن ويلتصق جيداً جداً، وفئات حركته 12.5 أو 25 أو 50؛ وهو أقل ثباتاً من السيليكون تحت الأشعة فوق البنفسجية على مدى عقود، ويحتاج البرايمر المناسب على بعض الأسطح، وأصعب في التطبيق والتسوية، ولا يُستخدم في الزجاج الإنشائي. وموانع MS / الهجينة تستخدم كيمياء السيليل لتجمع بعض مزايا السيليكون والبولي يوريثان. ويُعدّ البولي سلفايد أيضاً من موانع التسرب عالية الأداء، ولم تُثبت خصائصه هنا. اطلب في عرض السعر: الكيمياء، وفئة الحركة والمواصفة المختبَر وفقها، وقابلية الدهان، والبرايمر، وحبل الحشو ومقاس الفاصل (العرض إلى العمق)، واللون. لم يُثبت هنا: تعريفات فئات ISO 11600 وبيانات أداء البولي سلفايد.",
+      "sources": [
+        "https://www.branz.co.nz/documents/4024/BU601-Sealants-for-cladding-joints.pdf",
+        "https://leeduser.buildinggreen.com/node/6799",
+        "https://directory.selleys.com.au/home-improvement-building-materials/adhesives-sealants-bonding-products/silicone-vs-acrylic-vs-polyurethane-sealant-which-is-best-for-your-project"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-27",
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: silicone UV/temperature resistance, highest movement (Class 50-100), longer life, not paintable; PU paintable, adhesion, Class 12.5/25/50, less UV-stable, priming, stiffer, not for structural glass; hybrids silyl-modified combining strengths; polysulphide named as high-performance -> confirmed. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     }
   ],
   "eval": [
@@ -160,6 +194,38 @@
         903,
         1198,
         1209
+      ]
+    },
+    "authored_27_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-27",
+      "pages_opened": [],
+      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". Independent review of #1632 (27 Oct 2026): the 7 Oct stating rule requires a page actually opened, so every id above is stored verified=false and its eval questions are held in held_eval; move each back (verified:true, question into eval, bank item into items) only after its cited pages are opened and every fact is confirmed.",
+      "reason": "Trade had 5 entries against 317 invited leads (measured 27 Oct 2026); the deep packs of comparable trades hold 30-58.",
+      "ledger": [
+        893,
+        899
+      ],
+      "held_unverified": [
+        "chemicals:pce-vs-snf-superplasticiser",
+        "chemicals:sealants-silicone-vs-polyurethane-vs-hybrid"
+      ],
+      "served": [],
+      "held_eval": [
+        {
+          "q_en": "The ready-mix plant offers a PCE admixture instead of naphthalene. What changes?",
+          "q_ar": "مصنع الخرسانة الجاهزة يعرض مضافاً من PCE بدل النفثالين، فما الذي يتغير؟",
+          "expected_entry_ids": [
+            "chemicals:pce-vs-snf-superplasticiser"
+          ]
+        },
+        {
+          "q_en": "Which sealant can I paint over on an exterior expansion joint?",
+          "q_ar": "أي مانع تسرب يمكن دهانه فوق فاصل تمدد خارجي؟",
+          "expected_entry_ids": [
+            "chemicals:sealants-silicone-vs-polyurethane-vs-hybrid"
+          ]
+        }
       ]
     }
   }

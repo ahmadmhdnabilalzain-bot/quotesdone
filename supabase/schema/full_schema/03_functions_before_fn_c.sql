@@ -11234,6 +11234,41 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_arabic_compare_wait(p_inquiry text, p_texts text[])
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  insert into public.arabic_compare_waiter (inquiry_id, texts) values (p_inquiry, p_texts)
+  on conflict (inquiry_id) do update set texts = excluded.texts
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_arabic_compare_waiters_ready(p_limit integer DEFAULT 10)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with ready as (
+    select d.inquiry_id from public.arabic_compare_waiter d
+     where d.attempts < 5   -- a render that keeps failing stops costing replays (customer_api tells the sales engineer)
+       and (d.last_offered_at is null or d.last_offered_at < now() - interval '2 minutes')
+       and not exists (select 1 from unnest(d.texts) t
+                        where not exists (select 1 from public.arabic_translation a where a.source_md5 = md5(t)))
+     order by d.attempts, d.last_offered_at nulls first, d.created_at
+     limit greatest(1, least(coalesce(p_limit, 10), 100))
+     for update skip locked
+  ), offered as (
+    update public.arabic_compare_waiter w set last_offered_at = now()
+      from ready where w.inquiry_id = ready.inquiry_id
+    returning w.inquiry_id
+  )
+  select coalesce(jsonb_agg(inquiry_id), '[]'::jsonb) from offered
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_arabic_document_wait(p_quote text, p_texts text[])
  RETURNS void
  LANGUAGE sql
@@ -12196,6 +12231,8 @@ AS $function$
     ('brand',            'bucket', 'brand',            true, 'fn_enqueue_doc_backups: STORAGE SWEEP (brand kit, signature and stamp images; not in the repository)', null),
     ('company-seal',     'bucket', 'company-seal',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the company stamp and signature, private since 6 Oct 2026; read by pdf_native with the service role)', null),
     ('evidence',         'bucket', 'evidence',         true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the laptop''s sandbox and campaign evidence moved off the Desktop on 26 Oct 2026: screenshots, recordings, files over 5 MB and real third parties'' documents kept out of git; private, service role only; indexed by sha256 in docs/reports/EVIDENCE_INDEX.md)', null),
+    ('review-photos',    'bucket', 'review-photos',    true, 'fn_enqueue_doc_backups: STORAGE SWEEP (customers'' post-job review photos, EXIF stripped; private, signed links only)', null),
+    ('reviews.photo_paths',                  'column', 'review-photos', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (review-photos)', null),
     ('kb-import-assets', 'bucket', 'kb-import-assets', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (knowledge import runs; only part of it is in the repository)', null),
     ('site',             'bucket', 'site',             true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the static website pages as first published)', null),
     ('marketing-media',  'bucket', 'marketing-media',  true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the media of the posts the founder and Claude ingest to the marketing seat; private, not in the repository)', null),
