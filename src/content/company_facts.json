@@ -498,6 +498,38 @@
         {
           "re": "رسوم (?:معالجة )?البطاقة المضافة",
           "why": "adds a card fee to the reveal (Cabinet Res. 66/2023 Art. 5(3); founder ruling ledger 1087, 30 Sep 2026); rewrite by hand to: 3% of the selected quotation, nothing added for paying by card"
+        },
+        {
+          "re": "\\bplus (?:the |its )processing (?:charge|fee|part)s?\\b",
+          "why": "adds a processing charge to the reveal, without the word \"card\": found 27 Oct 2026 in 15 seat-pack entries (customer_support, accountant, ceo, marketing, it_engineer), which every card-worded pattern above let through. Terms clause 4: the Reveal Fee is the whole price of a reveal, no card fee or surcharge is added, and QuotesDone bears its payment processor's charges itself. Rewrite by hand: what a customer pays and is refunded is the Reveal Fee."
+        },
+        {
+          "re": "\\b(?:fee|3%) (?:plus|and) (?:the |its )?processing(?: (?:charge|fee|part)s?)?\\b",
+          "why": "adds a processing charge to the reveal, without the word \"card\": found 27 Oct 2026 in 15 seat-pack entries (customer_support, accountant, ceo, marketing, it_engineer), which every card-worded pattern above let through. Terms clause 4: the Reveal Fee is the whole price of a reveal, no card fee or surcharge is added, and QuotesDone bears its payment processor's charges itself. Rewrite by hand: what a customer pays and is refunded is the Reveal Fee."
+        },
+        {
+          "re": "\\bprocessing (?:charges? |fees? )?(?:is |are )?passed (?:through|on)\\b",
+          "why": "adds a processing charge to the reveal, without the word \"card\": found 27 Oct 2026 in 15 seat-pack entries (customer_support, accountant, ceo, marketing, it_engineer), which every card-worded pattern above let through. Terms clause 4: the Reveal Fee is the whole price of a reveal, no card fee or surcharge is added, and QuotesDone bears its payment processor's charges itself. Rewrite by hand: what a customer pays and is refunded is the Reveal Fee."
+        },
+        {
+          "re": "\\brefunded(?: amount)? including processing\\b",
+          "why": "adds a processing charge to the reveal, without the word \"card\": found 27 Oct 2026 in 15 seat-pack entries (customer_support, accountant, ceo, marketing, it_engineer), which every card-worded pattern above let through. Terms clause 4: the Reveal Fee is the whole price of a reveal, no card fee or surcharge is added, and QuotesDone bears its payment processor's charges itself. Rewrite by hand: what a customer pays and is refunded is the Reveal Fee."
+        },
+        {
+          "re": "مضاف[اًا]* ?إلي(?:ه|ها) رسوم (?:ال)?معالجة",
+          "why": "adds a processing charge to the reveal, without the word \"card\": found 27 Oct 2026 in 15 seat-pack entries (customer_support, accountant, ceo, marketing, it_engineer), which every card-worded pattern above let through. Terms clause 4: the Reveal Fee is the whole price of a reveal, no card fee or surcharge is added, and QuotesDone bears its payment processor's charges itself. Rewrite by hand: what a customer pays and is refunded is the Reveal Fee."
+        },
+        {
+          "re": "تحميل رسوم (?:ال)?معالجة",
+          "why": "adds a processing charge to the reveal, without the word \"card\": found 27 Oct 2026 in 15 seat-pack entries (customer_support, accountant, ceo, marketing, it_engineer), which every card-worded pattern above let through. Terms clause 4: the Reveal Fee is the whole price of a reveal, no card fee or surcharge is added, and QuotesDone bears its payment processor's charges itself. Rewrite by hand: what a customer pays and is refunded is the Reveal Fee."
+        },
+        {
+          "re": "(?:الرسوم|3%) ورسوم (?:المعالجة|معالجتها)",
+          "why": "adds a processing charge to the reveal, without the word \"card\": found 27 Oct 2026 in 15 seat-pack entries (customer_support, accountant, ceo, marketing, it_engineer), which every card-worded pattern above let through. Terms clause 4: the Reveal Fee is the whole price of a reveal, no card fee or surcharge is added, and QuotesDone bears its payment processor's charges itself. Rewrite by hand: what a customer pays and is refunded is the Reveal Fee."
+        },
+        {
+          "re": "(?:شاملاً|شاملا) (?:رسوم )?المعالجة|(?:المسترد|المردود)(?: كاملاً)? مع المعالجة|وجزء المعالجة|\\(الرسوم مع المعالجة\\)",
+          "why": "adds a processing charge to the reveal, without the word \"card\": found 27 Oct 2026 in 15 seat-pack entries (customer_support, accountant, ceo, marketing, it_engineer), which every card-worded pattern above let through. Terms clause 4: the Reveal Fee is the whole price of a reveal, no card fee or surcharge is added, and QuotesDone bears its payment processor's charges itself. Rewrite by hand: what a customer pays and is refunded is the Reveal Fee."
         }
       ]
     },
