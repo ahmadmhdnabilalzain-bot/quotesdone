@@ -1529,6 +1529,8 @@ select cron.schedule('seat_duty:sales_engineer.demand_forecast','*/5 * * * *',$C
 select cron.schedule('seat_duty:customer_support.notice_plain_language','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.notice_plain_language');$CRON$);
 select cron.schedule('seat_duty:it_engineer.run_clusters','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.run_clusters');$CRON$);
 select cron.schedule('seat_duty:ceo.senior_verdict','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.senior_verdict');$CRON$);
+select cron.schedule('seat_duty:it_engineer.mystery_shopper_heartbeat','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.mystery_shopper_heartbeat');$CRON$);
+select cron.schedule('reask_refused_turns','* * * * *',$CRON$select public.fn_reask_kick();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow

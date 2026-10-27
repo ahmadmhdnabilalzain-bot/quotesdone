@@ -819,6 +819,23 @@ Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((
 // ── the live dependencies ────────────────────────────────────────────────────────────────────────
 // deno-lint-ignore no-explicit-any
 type Admin = any;
+/** A step under a CALLER'S clock (sales_engineer, 27 Oct 2026; inquiry_intake/turn_clock.ts measured why): the same deps,
+ *  with every model call cut at `deadline` (epoch ms). None starts with under `minMs` left and none may run past it. A
+ *  call that cannot run returns no content with error 'turn_deadline', which think() treats as a model that did not
+ *  answer and never retries (SLOW_MODEL_ERROR): the decision is held, nothing is chosen or filled. A per-call timeout is
+ *  not a turn budget; this is. prevented by: _shared/think_deadline.test.ts */
+export const MIN_STEP_MS = 5_000;
+export function withDeadline(deps: ThinkDeps, deadline: number, minMs = MIN_STEP_MS, now: () => number = Date.now): ThinkDeps {
+  return {
+    ...deps,
+    llm: async (phase, system, input, o) => {
+      const left = deadline - now();
+      if (left < minMs) return { content: null, model: null, error: 'turn_deadline: ' + Math.max(0, left) + ' ms left' };
+      return await deps.llm(phase, system, input, { ...o, timeoutMs: Math.min(o.timeoutMs ?? left, left) });
+    },
+  };
+}
+
 export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
   return {
     gate: async () => (await admin.rpc('fn_kernel_paid_provider_gate', { p_model: HOLD_PROBE_MODEL })).data,

@@ -521,26 +521,29 @@ const handle = async (req: Request): Promise<Response> => {
             rules: 'Plain text for the portal chat, no markdown headings. Keep every job number, figure, numbered point and button name from the facts exactly; a short numbered list is right when the facts list points.',
             subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) },
           });
-          return { text: r.reply, action: r.action ?? null, outage: r.outage === true };   // outage: OpenRouter down (1339)
+          return { text: r.reply, action: r.action ?? null, outage: r.outage === true, problems: r.problems ?? [] };   // outage: OpenRouter down (1339)
         },
         // THE REVIEW RUNS OFF THE REQUEST (quote_review_flow.ts offRequest): the turn answers at once in 'reviewing',
         // and the runtime keeps the job alive after the response. The portal polls while it is reviewing.
         background: (job) => { const er = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime; if (er?.waitUntil) er.waitUntil(job); },
-        // No model answer: the turn waits in sales_engineer's queue; reasoned_delivery.ts posts the GUARDED (aiReply)
-        // replayed answer into this thread, and fn_reason_held_escalate hands it to the seat after 15 minutes.
+        // No model answer: the turn waits in sales_engineer's queue; the re-ask (_shared/reask.ts) asks the model again
+        // within about a minute (another family, the refused drafts' problems named), posts the GUARDED answer into this
+        // thread, and hands the turn to the seat after its last refused attempt. context.turn_id makes each turn its own
+        // question (the same words in two threads were one qhash, and a failed one swallowed the other in fn_reason_hold).
         hold: async (v) => {
           const subject = { channel: 'portal', review_id: v.reviewId, supplier_id: Number(sup.id) };
           const q = (v.supplierMessage || '(the next message in the thread)').slice(0, 4000);
           await admin.rpc('fn_reason_hold', { p_seat: 'sales_engineer', p_surface: 'supplier_api.quote_review_unwritten', p_question: q,
             p_request: { seat: 'sales_engineer', surface: 'supplier_api.quote_review_unwritten', subject, research: false,
-              question: `Write the sales engineer's next message in this supplier's quotation thread, in English. They were told we received their message.
+              question: `Write the sales engineer's next message in this supplier's quotation thread, in English. ${v.outage ? 'They were told we received their message.' : 'They have not had a reply yet.'}
 
 WHAT THE REVIEW DECIDED (facts):
 ${v.situation.slice(0, 3000)}
 
 THEIR MESSAGE:
 ${q}`,
-              context: { audience: 'supplier', language: 'en' } },
+              context: { audience: 'supplier', language: 'en', turn_id: 'qr:' + v.reviewId + ':' + q.slice(0, 40) },
+              reask: { message: q, facts: v.situation.slice(0, 3000), audience: 'supplier', lang: 'en', channel: 'the supplier portal quotation chat', problems: (v.problems ?? []).slice(0, 12) } },
             p_plan: {}, p_subject: subject, p_reason: v.why, p_dedupe_key: 'qr_unwritten:' + v.reviewId + ':' + q.slice(0, 40) });
         } });
       return J(out.json, out.status);

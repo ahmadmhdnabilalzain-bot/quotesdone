@@ -47,6 +47,9 @@ export interface DeliveryIO extends BooksIO, OutreachIO {
    *  ladder; rulings 1195/1196). null when no model answered — then nothing is sent. */
   writeReply(question: string, lang: 'en' | 'ar', o?: { channel?: string; note?: string; subject?: Record<string, unknown>;
     audience?: 'customer' | 'supplier' | 'visitor' | 'founder'; facts?: string; seat?: 'customer_support' | 'sales_engineer' }): Promise<string | null>;
+  /** writeReply with the model's state: outage is true only when no call reached a model (openrouter_down.ts), the one case
+   *  a code-written notice may go out (founder ruling 1339). Optional: an io without it never sends a code-written notice. */
+  writeNotice?(question: string, lang: 'en' | 'ar', o?: { channel?: string; note?: string; subject?: Record<string, unknown> }): Promise<{ reply: string; outage: boolean }>;
   /** A model-written, guarded reply posted into a supplier's quotation thread (never one that is submitted or closed). */
   postQuoteReview?(reviewId: string, text: string): Promise<Sent>;
   /** A held DM's grounded reply, sent by marketing_social_inbox on the platform (reasoned_reply). */
@@ -71,7 +74,7 @@ export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_te
 const isAr = (s: string) => /[؀-ۿ]/.test(s);
 
 /** WhatsApp: free text inside the window, the approved template outside it. */
-async function whatsapp(io: DeliveryIO, phone: string, question: string, text: string): Promise<Delivery> {
+export async function whatsapp(io: DeliveryIO, phone: string, question: string, text: string): Promise<Delivery> {
   if (await io.waWindowOpen(phone)) {
     const s = await io.sendWaText(phone, text);
     return { delivered: s.ok, via: 'whatsapp_text', detail: s.err };
@@ -258,16 +261,31 @@ export async function replayHeldComment(ev: Pick<CommentEvent, 'platform' | 'acc
   catch (e) { return { ok: false, err: String((e as Error)?.message || e).slice(0, 200) }; }
 }
 
-/** A question held 48 hours (or failed) was escalated to its seat (fn_reason_held_escalate). A WhatsApp customer
- *  is told it is being handled — once, by the row's escalation — under the same window rule as an answer. Other
- *  surfaces already replied at the time, or have no person waiting on a channel. */
+/** The fixed holding notice: the ONLY code-written words here, sent only when OpenRouter is down (founder ruling 1339). */
+export const HOLDING_NOTICE: Record<'en' | 'ar', string> = {
+  en: 'Thank you for your patience. Your question is now with our team and a person is handling it; we will reply here.',
+  ar: 'شكرًا لصبركم. سؤالكم لدى فريقنا الآن ويتابعه شخص مختص، وسنعود إليكم بالإجابة هنا.',
+};
+
+/** A question held 48 hours (or failed, or refused by every re-ask: _shared/reask.ts) was escalated to its seat
+ *  (fn_reason_held_escalate). A WhatsApp customer is told it is being handled — once, by the row's escalation — under the
+ *  same window rule as an answer. Other surfaces already replied at the time, or have no person waiting on a channel.
+ *  THE MODEL WRITES IT (founder ruling 1339, 27 Oct 2026: "the engineer and customer support never replies without llm
+ *  unless the server of open router is down"). Until this change the fixed line went out whatever the model's state. Now
+ *  writeNotice asks the model (aiReply: every guard), HOLDING_NOTICE goes only when no call reached a model (outage), and
+ *  with the model up and nothing it wrote passing, nothing is sent: the attempt is recorded and tried again (30 minutes,
+ *  fn_reason_held_notice_due). An io with no model writer sends nothing (fail closed: it cannot tell up from down). */
 export async function holdingNotice(row: { id: number; surface: string; question?: string; subject?: Record<string, unknown> | null }, io: DeliveryIO): Promise<Delivery> {
   const phone = String(row.subject?.phone ?? '');
   if (!phone) return { delivered: false, via: 'none', detail: 'no customer channel on ' + row.surface };
   const q = String(row.question ?? '');
-  const text = isAr(q)
-    ? 'شكرًا لصبركم. سؤالكم لدى فريقنا الآن ويتابعه شخص مختص، وسنعود إليكم بالإجابة هنا.'
-    : 'Thank you for your patience. Your question is now with our team and a person is handling it; we will reply here.';
+  const [, said] = splitHeldQuestion(q);
+  const lang: 'en' | 'ar' = row.subject?.audience === 'supplier' ? 'en' : isAr(said || q) ? 'ar' : 'en';
+  if (!io.writeNotice) return { delivered: false, via: 'none', detail: 'no model writer: a code-written notice is never sent blind (1339)' };
+  const w = await io.writeNotice(said || q, lang, { channel: 'WhatsApp', subject: row.subject ?? undefined,
+    note: 'Plain text for WhatsApp, two sentences at most. We could not answer their message yet. Thank them for their patience and tell them a member of our team now has their question and will reply in this same chat. Do not answer the question itself, do not promise a time, and do not say we will get back to them or contact them: say the reply will come here.' });
+  const text = w.reply.trim() || (w.outage ? HOLDING_NOTICE[lang] : '');
+  if (!text) return { delivered: false, via: 'none', detail: 'model up, no notice it wrote passed the guards: nothing code-written is sent (1339); tried again later' };
   return await whatsapp(io, phone, q, text);
 }
 
@@ -401,6 +419,13 @@ export function liveDeliveryIO(admin: Admin, seams: { master?: string; fetch?: F
       const a = await aiReply(defaultDeps(admin, 'reasoned_delivery'), { seat: o.seat ?? 'customer_support', channel: o.channel ?? 'WhatsApp', audience: o.audience ?? 'customer', lang,
         message: question, rules: o.note, facts: o.facts, subject: o.subject });
       return a.reply || null;
+    },
+    writeNotice: async (question, lang, o = {}) => {
+      const { aiReply } = await import('./ai_reply.ts');
+      const { defaultDeps } = await import('./think.ts');
+      const a = await aiReply(defaultDeps(admin, 'reasoned_delivery'), { seat: 'customer_support', channel: o.channel ?? 'WhatsApp', audience: 'customer', lang,
+        message: question, rules: o.note, subject: o.subject });
+      return { reply: a.reply || '', outage: a.outage === true };
     },
     postQuoteReview: async (reviewId, text) => {
       const { data: rv } = await admin.from('quote_reviews').select('id,status').eq('id', reviewId).maybeSingle();
