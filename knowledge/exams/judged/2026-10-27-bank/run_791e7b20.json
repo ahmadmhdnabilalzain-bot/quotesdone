@@ -1,0 +1,601 @@
+{
+ "run_tag": "791e7b20",
+ "measured_at": "2026-10-27T09:53:00Z",
+ "ledger": [
+  893,
+  894,
+  899
+ ],
+ "how": "scripts/eval/seat_exam_llm_on.mjs bank (24 trade-bank items + 3 seat-exam items per seat, every wording from the bank) then ask --cap-usd 3: each wording put to the seat through think() end to end on production inside a capped rehearsal window. Graded by code (every expected fact present); the code misses then judged by the sales_engineer session (Claude on the subscription, no paid judge) against answer_must, only for what the wording asks.",
+ "spend": {
+  "calls": 111,
+  "aed": 6.2952,
+  "usd_approx": 1.71,
+  "models": [
+   "anthropic/claude-opus-5.5",
+   "anthropic/claude-sonnet-5.5",
+   "openai/gpt-6-luna-pro"
+  ]
+ },
+ "caveat": "The 16 trade entries authored 27 Oct are NOT in production yet (they load after merge). All 6 trade-bank fails concern those entries; the score after the load is the one to read. 3 items per seat is a small sample for 894.",
+ "by_code": {
+  "seats": {
+   "sales_engineer": {
+    "asked": 27,
+    "passed": 10,
+    "rate": 0.37
+   },
+   "customer_support": {
+    "asked": 3,
+    "passed": 1,
+    "rate": 0.333
+   },
+   "accountant": {
+    "asked": 3,
+    "passed": 1,
+    "rate": 0.333
+   },
+   "ceo": {
+    "asked": 3,
+    "passed": 0,
+    "rate": 0
+   },
+   "it_engineer": {
+    "asked": 3,
+    "passed": 2,
+    "rate": 0.667
+   },
+   "marketing": {
+    "asked": 3,
+    "passed": 2,
+    "rate": 0.667
+   }
+  },
+  "ledgers": {
+   "893": {
+    "asked": 24,
+    "passed": 10,
+    "rate": 0.417
+   },
+   "894": {
+    "asked": 18,
+    "passed": 6,
+    "rate": 0.333
+   },
+   "899": {
+    "asked": 24,
+    "passed": 10,
+    "rate": 0.417
+   }
+  }
+ },
+ "judged": {
+  "seats": {
+   "sales_engineer": {
+    "asked": 27,
+    "passed": 20,
+    "rate": 0.741
+   },
+   "customer_support": {
+    "asked": 3,
+    "passed": 3,
+    "rate": 1
+   },
+   "accountant": {
+    "asked": 3,
+    "passed": 2,
+    "rate": 0.667
+   },
+   "ceo": {
+    "asked": 3,
+    "passed": 2,
+    "rate": 0.667
+   },
+   "it_engineer": {
+    "asked": 3,
+    "passed": 3,
+    "rate": 1
+   },
+   "marketing": {
+    "asked": 3,
+    "passed": 3,
+    "rate": 1
+   }
+  },
+  "ledgers": {
+   "893": {
+    "asked": 24,
+    "passed": 18,
+    "rate": 0.75
+   },
+   "894": {
+    "asked": 18,
+    "passed": 15,
+    "rate": 0.833
+   },
+   "899": {
+    "asked": 24,
+    "passed": 18,
+    "rate": 0.75
+   }
+  }
+ },
+ "items": [
+  {
+   "id": "se-trade-01",
+   "seat": "sales_engineer",
+   "wording": "A client's CCTV quote lists a DVR, another lists an NVR. What is the actual difference?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "code",
+   "missing_by_code": [],
+   "note": null
+  },
+  {
+   "id": "se-trade-02",
+   "seat": "sales_engineer",
+   "wording": "A building owner asks why the addressable fire panel costs more than the conventional one. Explain.",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "code",
+   "missing_by_code": [],
+   "note": null
+  },
+  {
+   "id": "se-trade-03",
+   "seat": "sales_engineer",
+   "wording": "What does 316 have that 304 does not, and why does it matter by the sea?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "code",
+   "missing_by_code": [],
+   "note": null
+  },
+  {
+   "id": "se-trade-04",
+   "seat": "sales_engineer",
+   "wording": "Why do some carpenters refuse MDF for the cabinet under the sink?",
+   "status": "answered",
+   "pass": false,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "screw"
+   ],
+   "note": "explains MDF swelling at edges, never says plywood holds screws and is the preferred wet-unit carcass (entry authored 27 Oct, not loaded yet)"
+  },
+  {
+   "id": "se-trade-05",
+   "seat": "sales_engineer",
+   "wording": "For a reception counter that gets knocked all day, melamine board or HPL?",
+   "status": "answered",
+   "pass": false,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "high-pressure",
+    "impact"
+   ],
+   "note": "picks HPL as more durable but never states low-pressure melamine vs high-pressure sheet with overlay (entry not loaded yet)"
+  },
+  {
+   "id": "se-trade-06",
+   "seat": "sales_engineer",
+   "wording": "What does E1 mean on an MDF certificate?",
+   "status": "answered",
+   "pass": false,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "0.1 ppm"
+   ],
+   "note": "says it cannot establish the E1 limit; misses EN 13986 / 0.1 ppm (entry not loaded yet)"
+  },
+  {
+   "id": "se-trade-07",
+   "seat": "sales_engineer",
+   "wording": "A supplier calls his tile 'vitrified'. Does that make it porcelain?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "code",
+   "missing_by_code": [],
+   "note": null
+  },
+  {
+   "id": "se-trade-08",
+   "seat": "sales_engineer",
+   "wording": "Why does laminate swell in kitchens while SPC does not?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "HDF"
+   ],
+   "note": "\"printed fibreboard core\" that swells at joints vs rigid stone-plastic SPC core: the HDF point in other words"
+  },
+  {
+   "id": "se-trade-09",
+   "seat": "sales_engineer",
+   "wording": "Why does epoxy crack in food plants?",
+   "status": "answered",
+   "pass": false,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "thermal shock",
+    "urethane"
+   ],
+   "note": "lists many causes, hot washdown only in passing; no thermal-shock mismatch, no urethane cement (entry not loaded yet)"
+  },
+  {
+   "id": "se-trade-10",
+   "seat": "sales_engineer",
+   "wording": "How is the R slip class of a tile measured?",
+   "status": "answered",
+   "pass": false,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "ramp"
+   ],
+   "note": "states DIN 51130 but says it cannot give the ramp procedure or angle bands (entry not loaded yet)"
+  },
+  {
+   "id": "se-trade-11",
+   "seat": "sales_engineer",
+   "wording": "A charcoal grill restaurant asks how often its hood and duct need checking.",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "quarterly"
+   ],
+   "note": "charcoal grill = solid fuel = monthly, citing NFPA 96: exactly what the wording asks"
+  },
+  {
+   "id": "se-trade-12",
+   "seat": "sales_engineer",
+   "wording": "One quote says grinding and honing, another says crystallisation. Which job removes lippage?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "code",
+   "missing_by_code": [],
+   "note": null
+  },
+  {
+   "id": "se-trade-13",
+   "seat": "sales_engineer",
+   "wording": "Our carpet must be dry by the next morning. Which cleaning method?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "encapsulation"
+   ],
+   "note": "recommends a very-low-moisture method over wet extraction for an overnight dry: the encapsulation point in other words"
+  },
+  {
+   "id": "se-trade-14",
+   "seat": "sales_engineer",
+   "wording": "Why do ready-mix plants use polycarboxylate admixtures in summer?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "code",
+   "missing_by_code": [],
+   "note": null
+  },
+  {
+   "id": "se-trade-15",
+   "seat": "sales_engineer",
+   "wording": "Can I paint over silicone?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "UV"
+   ],
+   "note": "cured silicone cannot be painted; use a paintable sealant: answers the wording; UV not asked"
+  },
+  {
+   "id": "se-trade-16",
+   "seat": "sales_engineer",
+   "wording": "What approval must a pest control company in Dubai hold?",
+   "status": "answered",
+   "pass": false,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "fumigation"
+   ],
+   "note": "DM Public Health Pest Control approval stated; misses that fumigation, termite and bird control need separate authorisation (entry not loaded yet)"
+  },
+  {
+   "id": "se-trade-17",
+   "seat": "sales_engineer",
+   "wording": "Why must termite soil treatment be done before the slab is poured?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "code",
+   "missing_by_code": [],
+   "note": null
+  },
+  {
+   "id": "se-trade-18",
+   "seat": "sales_engineer",
+   "wording": "Why does the temperature coefficient matter for solar panels in Dubai?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "TOPCon"
+   ],
+   "note": "explains the temperature coefficient and why it matters in Dubai heat, as the wording asks"
+  },
+  {
+   "id": "se-trade-19",
+   "seat": "sales_engineer",
+   "wording": "The installer sent DEWA's old PDF of eligible equipment. Is that enough?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "DRRG"
+   ],
+   "note": "old PDF is not enough; current eligible list; DEWA-enrolled consultant/contractor: the DRRG point in substance"
+  },
+  {
+   "id": "se-trade-20",
+   "seat": "sales_engineer",
+   "wording": "What does a VRF system give that ducted splits do not?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "code",
+   "missing_by_code": [],
+   "note": null
+  },
+  {
+   "id": "se-trade-21",
+   "seat": "sales_engineer",
+   "wording": "Why does XLPE cable carry more current than PVC of the same copper size?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "code",
+   "missing_by_code": [],
+   "note": null
+  },
+  {
+   "id": "se-trade-22",
+   "seat": "sales_engineer",
+   "wording": "Why does tempered glass sometimes break by itself years later?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "four times"
+   ],
+   "note": "nickel sulphide inclusions and heat soak: answers the wording; \"four times\" not asked"
+  },
+  {
+   "id": "se-trade-23",
+   "seat": "sales_engineer",
+   "wording": "What is the difference between PE, FR and A2 core ACP?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "PE core"
+   ],
+   "note": "PE combustible and not for facades; FR B-s1,d0; A2 ~90% mineral: every point"
+  },
+  {
+   "id": "se-trade-24",
+   "seat": "sales_engineer",
+   "wording": "Green MR board or cement board inside a shower?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "code",
+   "missing_by_code": [],
+   "note": null
+  },
+  {
+   "id": "sales_engineer-exam-04",
+   "seat": "sales_engineer",
+   "wording": "The ceiling height on the interiors sheet does not match the duct routing on the mechanical layout. Which should the supplier quote against?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "written clarification rather than choosing one"
+   ],
+   "note": "neither drawing chosen; written clarification before pricing the affected lines"
+  },
+  {
+   "id": "sales_engineer-exam-05",
+   "seat": "sales_engineer",
+   "wording": "The spec for the pumps says 'achieve 5 bar at the top floor' and names no brand. What kind of spec is that and what does it mean for quotes?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "leaving the product to the supplier"
+   ],
+   "note": "performance-based requirement; supplier proposes the pump against the duty"
+  },
+  {
+   "id": "sales_engineer-exam-06",
+   "seat": "sales_engineer",
+   "wording": "The written spec calls for 20 mm porcelain but the floor plan legend says 10 mm. The client asks which we should price.",
+   "status": "answered",
+   "pass": false,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "order of precedence decides",
+    "never pick the cheaper reading"
+   ],
+   "note": "holds and asks in writing, but never says the contract order of precedence decides (same miss as 19 Oct)"
+  },
+  {
+   "id": "customer_support-exam-04",
+   "seat": "customer_support",
+   "wording": "When someone messages our WhatsApp number for the very first time, what greets them?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "code",
+   "missing_by_code": [],
+   "note": null
+  },
+  {
+   "id": "customer_support-exam-05",
+   "seat": "customer_support",
+   "wording": "The person skipped the options and wrote a long paragraph. How do we work out what he wants?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "not by matching words"
+   ],
+   "note": "read for meaning, not keyword"
+  },
+  {
+   "id": "customer_support-exam-06",
+   "seat": "customer_support",
+   "wording": "A supplier wants to know how big our supplier base is before joining. Do we give the figure?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "never reveals internal numbers"
+   ],
+   "note": "never shares the internal supplier count"
+  },
+  {
+   "id": "accountant-exam-03",
+   "seat": "accountant",
+   "wording": "If a buyer pays with a credit card, do they pay extra, and who eats the processing cost?",
+   "status": "answered",
+   "pass": false,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "nothing is added for paying by card",
+    "2.9% plus AED 1"
+   ],
+   "note": "no surcharge and QuotesDone bears Stripe: correct, but the fee basis (about 2.9% plus AED 1) is missing"
+  },
+  {
+   "id": "accountant-exam-04",
+   "seat": "accountant",
+   "wording": "A quote comes in at a hundred thousand dirhams. What do we keep?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "code",
+   "missing_by_code": [],
+   "note": null
+  },
+  {
+   "id": "accountant-exam-05",
+   "seat": "accountant",
+   "wording": "A buyer lost their receipt. Where can they find it again?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "customer's portal"
+   ],
+   "note": "invoice PDF in the customer portal"
+  },
+  {
+   "id": "ceo-exam-04",
+   "seat": "ceo",
+   "wording": "If someone invests half a million at a two million valuation before the money, what stake does he get?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "the investor 20%"
+   ],
+   "note": "post-money 2.5M, 20%, existing holders diluted by 20%"
+  },
+  {
+   "id": "ceo-exam-05",
+   "seat": "ceo",
+   "wording": "How do I show the subscription money in the monthly numbers?",
+   "status": "answered",
+   "pass": false,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "bridge of the four movements"
+   ],
+   "note": "MRR bridge only as an optional extra (new, churned, non-renewed), no four movements, no monthly cohorts"
+  },
+  {
+   "id": "ceo-exam-06",
+   "seat": "ceo",
+   "wording": "Existing subscribers paid us more this year than last even after cancellations. What does that tell us?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "existing base grows on its own"
+   ],
+   "note": "NRR above 100%: the existing base grew on its own, with the GRR caveat"
+  },
+  {
+   "id": "it_engineer-exam-04",
+   "seat": "it_engineer",
+   "wording": "One slow call in a quiet function: is that already a latency finding?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "code",
+   "missing_by_code": [],
+   "note": null
+  },
+  {
+   "id": "it_engineer-exam-05",
+   "seat": "it_engineer",
+   "wording": "For a public-facing service, what are the core health signals a senior SRE looks at?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "code",
+   "missing_by_code": [],
+   "note": null
+  },
+  {
+   "id": "it_engineer-exam-06",
+   "seat": "it_engineer",
+   "wording": "Why is the silence detector designed to wait at least one tick before it complains?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "17 Sep 2026"
+   ],
+   "note": "one-tick floor after the false SCHEDULER DOWN page of 17 September 2026"
+  },
+  {
+   "id": "marketing-exam-04",
+   "seat": "marketing",
+   "wording": "A contracting magazine offers us a backlink for AED 500. Is that worth doing?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "claude",
+   "missing_by_code": [
+    "never pay for a followed link"
+   ],
+   "note": "never pay for a followed link; rel=\"sponsored\""
+  },
+  {
+   "id": "marketing-exam-05",
+   "seat": "marketing",
+   "wording": "Our how-it-works clip never appears in Google results. What are we missing?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "code",
+   "missing_by_code": [],
+   "note": null
+  },
+  {
+   "id": "marketing-exam-06",
+   "seat": "marketing",
+   "wording": "A reel reached 20,000 people but brought zero sign-ups. Which numbers tell us what went wrong?",
+   "status": "answered",
+   "pass": true,
+   "graded_by": "code",
+   "missing_by_code": [],
+   "note": null
+  }
+ ]
+}

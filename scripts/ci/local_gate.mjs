@@ -57,28 +57,6 @@ function reachable(host) {
   return reach.get(host);
 }
 
-// deno check over edge functions. ml_embed.ts imports transformers.js as jsDelivr's +esm build ON PURPOSE (its header:
-// the npm: specifier fails to deploy). Where cdn.jsdelivr.net is refused (a cloud session's proxy, 27 Oct 2026),
-// each such import is type-checked from npm: at the SAME package version, through an import map written into this
-// run's log folder, and the row says so. The npm package carries the version's own .d.ts; the +esm URL serves no
-// types at all, so the substitute is checked at least as strictly. The committed import is never changed.
-function denoCheck(slugs) {
-  const files = slugs.map((s) => `supabase/functions/${s}/index.ts`);
-  const base = `deno check --no-lock --node-modules-dir=auto ${files.join(' ')}`;
-  if (reachable('cdn.jsdelivr.net')) return base;
-  const imports = {};
-  const walk = (d) => { for (const e of readdirSync(d, { withFileTypes: true })) {
-    const p = join(d, e.name);
-    if (e.isDirectory()) walk(p);
-    else if (/\.(ts|tsx|js|mjs)$/.test(e.name)) for (const m of readFileSync(p, 'utf8').matchAll(/['"](https:\/\/cdn\.jsdelivr\.net\/npm\/((?:@[^/'"]+\/)?[^/@'"]+)@([^/'"]+)\/\+esm)['"]/g)) imports[m[1]] = `npm:${m[2]}@${m[3]}`;
-  } };
-  walk(join(REPO, 'supabase/functions'));
-  if (!Object.keys(imports).length) return base;
-  const map = join(LOGS, 'jsdelivr_to_npm.import_map.json');
-  writeFileSync(map, JSON.stringify({ imports }, null, 2));
-  return { cmd: `${base} --import-map=${map}`, note: `cdn.jsdelivr.net unreachable here: ${Object.values(imports).join(', ')} type-checked from npm at the same version (${map})` };
-}
-
 // [id, workflow job, name, command | () => command | () => {cmd, note} | null (nothing to run, passes with a note), opts]
 // heavy: a step that holds 1-4 GB (tsc, deno check, the OCR suites). Run all at once they exceeded a cloud
 // container's 13.4 GB memory cgroup and the kernel killed scan-redact and scan-takeoff mid-test (27 Oct 2026,
@@ -90,15 +68,18 @@ const STEPS = [
   ['npm-test', 'checks', 'npm test: node --test over scripts/checks + the deno suite', 'npm test', { minutes: 180, heavy: true }],
   ['ssrf', 'checks', 'the SSRF guard fires on a private address, file:// and metadata', 'node scripts/checks/ssrf_guard_refuses_private_addresses.mjs'],
   ['fetch-timeout', 'checks', 'no new outbound fetch without a deadline', 'node scripts/checks/every_outbound_fetch_has_a_timeout.mjs'],
-  ['dwg', 'checks', 'a DWG is read into the same take-off as its DXF', `${DENO} --allow-net=raw.githubusercontent.com,cdn.jsdelivr.net supabase/functions/_shared/doc_read/dwg_samples.check.ts`, { heavy: true, hosts: ['raw.githubusercontent.com', 'cdn.jsdelivr.net'] }],
+  ['dwg', 'checks', 'a DWG is read into the same take-off as its DXF', `${DENO} --allow-net=raw.githubusercontent.com,registry.npmjs.org supabase/functions/_shared/doc_read/dwg_samples.check.ts`, { heavy: true, hosts: ['raw.githubusercontent.com', 'registry.npmjs.org'] }],
   ['redact-page', 'checks', 'a redacted drawing page covers every identity', `${DENO} --allow-net=deno.land supabase/functions/_shared/drawing_redact_page.check.ts`, { heavy: true, hosts: ['deno.land'] }],
   ['scan-redact', 'checks', 'a scanned drawing is redacted by OCR, or held', `${DENO} --allow-env --allow-net=deno.land supabase/functions/_shared/scan_redact.check.ts`, { heavy: true, hosts: ['deno.land'] }],
   ['scan-takeoff', 'checks', 'a scanned PDF set is counted by OCR to the hand count', `${DENO} --allow-env --allow-net=deno.land,esm.sh supabase/functions/_shared/scan_takeoff.check.ts`, { heavy: true, hosts: ['deno.land', 'esm.sh'] }],
   ['migration-lint', 'migration-lint', 'lint migrations for locking operations (squawk)', () => { const f = migrations(); return f.length ? `npx squawk ${f.join(' ')}` : null; }],
   ['typecheck', 'typecheck', 'typecheck the app', 'npm run typecheck', { heavy: true }],
   ['audit', 'typecheck', 'no HIGH or CRITICAL advisory in a production dependency', 'npm audit --omit=dev --audit-level=high'],
-  ['deno-gated', 'deno-check', 'typecheck the gated edge functions', () => denoCheck(['ceo_agent', 'stripe_webhook', 'supplier_pay', 'customer_api', 'supplier_api', 'resend_inbound', 'supplier_catalog_ingest']), { heavy: true }],
-  ['deno-all', 'deno-check', 'typecheck every edge function', () => denoCheck(readdirSync(join(REPO, 'supabase/functions')).filter((d) => existsSync(join(REPO, 'supabase/functions', d, 'index.ts')))), { heavy: true }],
+  ['deno-gated', 'deno-check', 'typecheck the gated edge functions', 'deno check --no-lock --node-modules-dir=auto '
+    + ['ceo_agent', 'stripe_webhook', 'supplier_pay', 'customer_api', 'supplier_api', 'resend_inbound', 'supplier_catalog_ingest'].map((s) => `supabase/functions/${s}/index.ts`).join(' '), { heavy: true }],
+  // cdn.jsdelivr.net needs no substitute here (#1653): ml_embed.ts carries @ts-types from npm, so deno check reads no +esm.
+  ['deno-all', 'deno-check', 'typecheck every edge function', () => 'deno check --no-lock --node-modules-dir=auto '
+    + readdirSync(join(REPO, 'supabase/functions')).filter((d) => existsSync(join(REPO, 'supabase/functions', d, 'index.ts'))).map((d) => `supabase/functions/${d}/index.ts`).join(' '), { heavy: true }],
   ['otp-race', 'otp-race', 'a sign-in code survives 5 guesses and verifies once under a burst', 'deno test --no-lock --node-modules-dir=auto --allow-read --allow-write=node_modules --allow-env --allow-net supabase/functions/login_otp/verify_race.check.ts', { postgres: true }],
   // project-parity.yml, job parity: production, serial
   ['receipts', 'parity', 'a forwarded receipt is booked or owned by finance', 'node --test scripts/checks/receipts_never_wait_on_the_founder.test.mjs', { prod: true }],

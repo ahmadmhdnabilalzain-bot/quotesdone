@@ -10289,8 +10289,10 @@ CREATE OR REPLACE FUNCTION public.fn_knowledge_library_read()
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select case when (select value from public.app_secrets where key = 'knowledge_library_read') = 'library'
-              then 'library' else 'legacy' end;
+  select case
+    when (select value from public.app_secrets where key = 'knowledge_library_read') = 'off' then 'legacy'
+    when coalesce((select reconciled from public.knowledge_library_state where id = 1), false) then 'library'
+    else 'legacy' end;
 $function$
 
 
@@ -10372,6 +10374,23 @@ begin
     'duplicate_texts', (select count(*) - count(distinct (content_md5, runtime_eligible)) from public.knowledge_library
                          where origin_store in ('kb_chunks', 'agent_knowledge', 'ops_knowledge')));
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_knowledge_library_record_reconcile()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v jsonb := public.fn_knowledge_library_reconcile();
+begin
+  insert into public.knowledge_library_state as s (id, reconciled, verdict, checked_at)
+  values (1, coalesce((v ->> 'reconciled')::boolean, false), v, now())
+  on conflict (id) do update set reconciled = excluded.reconciled, verdict = excluded.verdict, checked_at = excluded.checked_at;
+  return v;
+end;
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_knowledge_library_seat_store(p_seat text)

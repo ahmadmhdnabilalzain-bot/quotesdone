@@ -27,6 +27,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Founder rulings are the holy book; any number quote, top-3 = report](founder-rulings-are-the-holy-book.md) — 24 Sep
 - [Subscriptions now on the company account; personal-card history kept](subscriptions-paid-from-personal-card.md) — 29 Sep: statement is the source going forward; keep the ~8,155 personal history
 - [Routine work is code, not LLM (90%+)](routine-work-is-code-not-llm.md) — 24 Sep
+- [The engineer and support reply only through the model (27 Oct)](the-engineer-and-support-reply-only-through-the-model.md) — ledger 1339: a code-written reply only when the OpenRouter call failed; `modelOrOutage`, `AiReply.outage`
 - [Marketing one-shot approval; no posting weekends/holidays; daily supplier-list PDF](marketing-month-approval-flow.md) — 24 Sep
 - [Batch work on the subscription, not paid LLM; no lead study](do-batch-work-on-the-subscription-not-paid-llm.md) — 24 Sep
 - [Investor pack: founder rulings 24 Sep](investor-pack-founder-rulings.md) — subs main revenue, ≤250k costs, 200k for 50%, brand design
@@ -128,6 +129,11 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A fix that makes the headline fall](a-fix-that-makes-the-headline-fall.md)
 - [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
 ## State of the build
+- [CHECKPOINT 27 Oct — cloud only, invitations HELD for GlockApps](checkpoint-27-oct-cloud-invitations-held.md) — READ FIRST: laptop has no keys; invite_enabled=false; GlockApps 27 Oct FAILED (Microsoft 0/18 inbox), copy now variant A, winmail.dat/TNEF on every external copy (admin fix), compressed warm-up, re-test day 3 with the LAST credit; warm-up plan; 16 open PRs by state
+- [Security hardening 27 Oct — SSL, network, legacy JWT, pg_net: state and next steps](security-hardening-27-oct-state.md) — nothing applied (restart / unproven exemptions); legacy JWT secret still trusted until the consumer PR, then disable + revoke; pg_net needs Supabase support
+- [Invitations resume only at ≥80% Outlook inbox](invitations-resume-only-at-80-percent-outlook-inbox.md) — 27 Oct, instr 1312: GlockApps from supplier@; report inbox/spam/promotions per provider
+- [Standing approval: merge and deploy reviewed PRs](standing-approval-merge-and-deploy-reviewed-prs.md) — 27 Oct, instr 1340: reviewed + gate-clean PRs ship without asking; policy, real sends, spend and irreversible steps still go to him
+- [Ask before the internal test email management@ → supplier@](ask-before-the-internal-test-email.md) — 27 Oct, instr 1314: his explicit yes first; DROPPED later that day (not a prerequisite)
 - [CHECKPOINT 19 Oct — campaign on from 20 Oct, PR drain](checkpoint-19-oct-campaign-on-pr-drain.md) — READ FIRST: caps, open PRs, exam scores, grounding fix
 - [CHECKPOINT 6 Oct evening — pre-launch, resume after restart](checkpoint-6-oct-evening-prelaunch.md) — READ FIRST: open PRs, tonight's jobs, launch checklist, founder end-list
 - [Customer support: LLM always on, better than Amazon](customer-support-better-than-amazon.md) — 22 Sep: automated scenario suite proves it; never say ready without the score
