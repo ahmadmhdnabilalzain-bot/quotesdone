@@ -61,8 +61,8 @@ HARD RULES (read from live pages.legal_supplier_body + legal_terms_body, not ass
   responded, customer already engaged/off-platform, same supplier previously revealed, price dissatisfaction,
   or change of mind. This IS [[every-refund-needs-the-founder]].
 - **Anti-circumvention**: anonymity until Reveal (identities released only via platform post-reveal); no
-  off-platform contact/sharing before reveal. Supplier breach = **AED 15,000 per incident OR 3× the fee,
-  whichever higher**, for 24 months from introduction. Customer chargeback (non-fraud) → suspend + recover.
+  off-platform contact/sharing before reveal. Supplier breach = **AED 20,000 per incident OR 5× the fee,
+  whichever higher** (live Supplier Agreement, read 27 Oct 2026; the older AED 15,000 / 3× is superseded), for 24 months from introduction. Customer chargeback (non-fraud) → suspend + recover.
 - **Quotation validity 30 days**. Introducer/facilitator only; no guaranteed leads/work. Liability capped
   (supplier: 12 mo fees; customer: 3 mo reveal fees). AI tools (BoQ extraction, anonymise/standardise/
   compare quotes, cost estimates, support assistants) are disclosed in the T&C.
