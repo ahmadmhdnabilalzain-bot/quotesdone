@@ -51,7 +51,7 @@ export function replyFindings(file, src) {
   lines.forEach((l, i) => {
     if (!l.trim() || /^\s*(import|export (const|function|type|interface)|export async function)\b/.test(l)) return;
     // R1: a model reply with a code-written fallback after `||`
-    if (/(?:\b\w+\.reply|(?<![.\w])(?:reply|text|said|line))\s*\|\|\s*(?:['"`][^'"`\n]{12,}|[A-Z][A-Z0-9_]{3,}\b|(?:caseConfirm|replyFromState|clearerCopyAsk)\()/.test(l) && !GATE.test(l)) {
+    if (/(?:\b\w+\.reply|(?<![.\w])(?:reply|text|said|line))\s*\|\|\s*(?:['"`][^'"`\n]{12,}|[A-Z][A-Z0-9_]{3,}\b|(?:caseConfirm|replyFromState|clearerCopyAsk|capReply)\()/.test(l) && !GATE.test(l)) {
       out.push(`${file}:${i + 1}: R1 code fallback after a model reply, no outage gate: ${l.trim().slice(0, 140)}`);
     }
     // R2: a registered code-written reply used outside its definition, with no gate nearby
@@ -113,6 +113,14 @@ test('known-bad: the old fallbacks are caught', () => {
 test('known-bad (R2): the homepage visitor-cap reply sent as code text (PR #1434 before 1339) is caught', () => {
   assert.equal(replyFindings('site_assistant/index.ts', '      const reply = capReply(audience, visitorLang);\n').length, 1);
   assert.equal(replyFindings('site_assistant/index.ts', '      const reply = modelOrOutage(capped, capReply(audience, visitorLang));\n').length, 0);
+  // review of #1658: a model-first fallback with no outage gate, sitting within three lines of the log call that names
+  // `capped.outage`, passed R2's proximity test; R1 knows capReply( now and catches it on its own line.
+  const src = [
+    '      const capped = await capReplyByModel(deps, { audience, lang: visitorLang, message });',
+    '      const reply = capped.reply || capReply(audience, visitorLang);',
+    "      await logWithAttempts(admin, 'assistant_logs', { reply }, { attempts: [...(capped.outage ? ['outage'] : [])] });",
+  ].join('\n') + '\n';
+  assert.ok(replyFindings('site_assistant/index.ts', src).some((f) => f.includes('R1')), 'capped.reply || capReply(...) is a code fallback with no outage gate');
 });
 test('known-bad: an ungated notice at its source is caught', () => {
   const ms = "export async function holdUnwritten(io) {\n  const notice = HELD_NOTICE[lang];\n}\n";
