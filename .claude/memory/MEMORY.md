@@ -84,6 +84,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Supabase access has three paths](supabase-access-has-three-paths.md)
 - [Check a PR's base before merging](check-a-prs-base-before-merging.md) — verify baseRefName and main's head
 - [A big batch delete restarted production](a-big-batch-delete-restarted-production.md) — 21 Sep: 50k purge batch seq-scanned, retried on 524, memory >4 GB, hard restart
+- [A killed check leaks its fixtures](a-killed-check-leaks-its-fixtures.md) — 27 Oct: a 2-min shell timeout SIGKILLs a 271 s withRun check; purge by `run.mjs --purge-tag`, never purge_demo_data
 - [An apply can lock sign-in](an-apply-can-lock-sign-in.md) — 21 Sep: a 75 s apply locked login; no applies in a campaign hour
 - [Upgrade backlog after queue = 0](upgrade-backlog-after-queue-zero.md) — ledger 1019, trimmed 29 Sep; never name suppliers publicly; ask before splitting trades
 - [Round-3 upgrades wait for queue < 20](round-3-upgrades-wait-for-queue-below-20.md) — ledger 1018: stalled-inquiry rescue, quote QC, fraud, concierge, capacity, trade_words fix
