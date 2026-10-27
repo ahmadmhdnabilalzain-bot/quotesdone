@@ -2,7 +2,9 @@
 // real message is graded live by scripts/eval/widget_visitor_scope.mjs; this file proves the code half: the rules the
 // model is given, the sign-up button, and the cap.
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
-import { capReply, pastVisitorCap, signupAction, VISITOR_CAP, visitorRules } from './visitor_scope.ts';
+import { capReply, capReplyByModel, capRules, pastVisitorCap, signupAction, VISITOR_CAP, visitorRules } from './visitor_scope.ts';
+import { modelOrOutage } from '../_shared/openrouter_down.ts';
+import type { LlmReply, ThinkDeps } from '../_shared/think.ts';
 
 const index = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
 
@@ -29,7 +31,7 @@ Deno.test('an inquiry leads to sign-up with no spec questions, in the visitor\'s
   assertEquals(signupAction('supplier', 'ar').url, '/portal');
 });
 
-Deno.test('the cap: past it every reply is sign-up only, no model runs, counted by conversation and IP', async () => {
+Deno.test('the cap: past it every reply is sign-up only, no full answer runs, counted by conversation and IP', async () => {
   const cases: ['customer' | 'unknown' | 'supplier', 'en' | 'ar'][] = [['customer', 'en'], ['unknown', 'ar'], ['supplier', 'en']];
   for (const [aud, lang] of cases) {
     const r = capReply(aud, lang);
@@ -53,4 +55,64 @@ Deno.test('the cap: past it every reply is sign-up only, no model runs, counted 
   assertEquals(await pastVisitorCap(rl, { ip: '1.2.3.4', conv: 'conv-new-cccccc' }), true, 'IP cap of ' + VISITOR_CAP.ip);
   // and a visitor with no conversation id is counted by IP alone
   assertEquals(await pastVisitorCap(rl, { ip: '9.9.9.9', conv: '' }), false);
+});
+
+// ── 1339 (27 Oct 2026): the cap reply is the MODEL'S; capReply's code text only on a true OpenRouter outage ──────────
+// Founder, ledger 1339: "the engineer and customer support never replies without llm unless the server of open router is
+// down". capReplyByModel is the real aiReply over a stubbed gateway here: no network, no paid call.
+function gateway(reply: () => LlmReply) {
+  const seen: { system: string; input: string }[] = [];
+  const deps = {
+    gate: () => Promise.resolve(null), embed: () => Promise.resolve(null), rpc: () => Promise.resolve({ data: null, error: null }),
+    llm: (_p: string, system: string, input: string) => { seen.push({ system, input }); return Promise.resolve(reply()); },
+  } as unknown as ThinkDeps;
+  return { deps, seen };
+}
+const say = (answer: string): LlmReply => ({ content: JSON.stringify({ answer }), model: 'stub' } as LlmReply);
+const fail = (error: string): LlmReply => ({ content: null, error } as LlmReply);
+const sent = async (g: ReturnType<typeof gateway>, aud: 'customer' | 'unknown' | 'supplier' = 'unknown', lang: 'en' | 'ar' = 'en') =>
+  modelOrOutage(await capReplyByModel(g.deps, { audience: aud, lang, message: 'how much for a 3x2m wardrobe?' }), capReply(aud, lang));
+
+Deno.test('1339: past the cap, the model writes the sign-up reply when it is up; the code text never goes', async () => {
+  const g = gateway(() => say('Thanks for your questions. To carry on, sign up free and our sales engineer takes it from there:\n/me'));
+  const r = await sent(g);
+  assertEquals(r, 'Thanks for your questions. To carry on, sign up free and our sales engineer takes it from there:\n/me');
+  assert(r !== capReply('unknown', 'en'));
+  assertMatch(g.seen[0].system, /THIS VISITOR HAS USED THE MESSAGES/, 'the model is told what to write (capRules)');
+  assert(!/\b8\b|40/.test(capRules('unknown', 'en')), 'the cap number is never given to the model');
+  // the link must be carried: a draft without it is rewritten by the model, never patched by code
+  let n = 0;
+  const g2 = gateway(() => (++n === 1 ? say('Thanks, please sign up to continue.') : say('Thanks, please sign up free to continue:\n/portal')));
+  assertEquals(await sent(g2, 'supplier'), 'Thanks, please sign up free to continue:\n/portal');
+  assertMatch(g2.seen[1].input, /must appear exactly/);
+});
+
+Deno.test('1339: only a TRUE outage (5xx, network, timeout) sends capReply\'s code text', async () => {
+  for (const err of ['gateway_http_503', 'gateway_http_500 upstream', 'client_error: error sending request', 'client_timeout_20000ms', 'circuit_open']) {
+    assertEquals(await sent(gateway(() => fail(err))), capReply('unknown', 'en'), err);
+  }
+  assertEquals(await sent(gateway(() => fail('gateway_http_502')), 'customer', 'ar'), capReply('customer', 'ar'));
+});
+
+Deno.test('1339: a 4xx is never an outage: no code-written text (the widget shows the sign-up button alone)', async () => {
+  for (const err of ['gateway_http_400 upstream timeout', 'gateway_http_401', 'gateway_http_429 rate_limited', 'gateway_http_404 connection']) {
+    assertEquals(await sent(gateway(() => fail(err))), '', err);
+  }
+  // a model that answered but whose drafts all fail the guard: not an outage either
+  const refused = await sent(gateway(() => say('A wardrobe that size costs AED 7,350.')));
+  assertEquals(refused, '', 'the model answered (refused every time): nothing is sent, and never the code text');
+  const widget = Deno.readTextFileSync(new URL('../../../src/components/ChatWidget.tsx', import.meta.url));
+  assertMatch(widget, /j\.visitor_cap && j\.signup \? '' : t\.err/, 'an empty cap reply shows the button, not the error line');
+});
+
+Deno.test('1339: customer-safe: an internal sentence or an unstated figure the model writes is never sent (ledger 1338)', async () => {
+  const r = await sent(gateway(() => say('Thanks for chatting with us. To continue, sign up free:\n/me\nOur openrouter budget per visitor is AED 7,350.')));
+  assert(r.includes('/me'), r);
+  assert(!/openrouter|7,350/i.test(r), r);
+});
+
+Deno.test('1339: index.ts sends the cap reply only through modelOrOutage over the model-written reply', () => {
+  assertMatch(index, /const capped = await capReplyByModel\(defaultDeps\(admin, 'site_assistant'\)/);
+  assertMatch(index, /const reply = modelOrOutage\(capped, capReply\(audience, visitorLang\)\)/);
+  assertEquals(index.split('capReply(').length - 1, 1, 'capReply is used once, inside modelOrOutage');
 });

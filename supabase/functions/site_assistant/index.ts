@@ -39,7 +39,8 @@ import { acceptImages } from '../_shared/chat_images.ts';
 import { logWithAttempts } from '../_shared/reply_attempts.ts';
 import { accountKey, clientHistory, fitHistory, openConversation, visitorIdOf } from '../_shared/chat_history.ts';
 import { STATUS, streamReply, wantsStream } from './stream_reply.ts';
-import { VISITOR_CAP, capReply, pastVisitorCap, signupAction, visitorRules } from './visitor_scope.ts';
+import { VISITOR_CAP, capReply, capReplyByModel, pastVisitorCap, signupAction, visitorRules } from './visitor_scope.ts';
+import { modelOrOutage } from '../_shared/openrouter_down.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -297,13 +298,20 @@ async function handle(req: Request, T: Timer): Promise<Response> {
       return J({ reply: RL_REPLY, rate_limited: true });
     }
     // THE VISITOR CAP (founder ruling, 18 Oct 2026): a visitor who is not signed up gets a limited number of messages,
-    // counted on the server by conversation and by IP; past it every reply is the sign-up direction and no model runs.
+    // counted on the server by conversation and by IP; past it every reply is the sign-up direction.
+    // THE CAP REPLY IS THE MODEL'S (founder_instruction 1339, 27 Oct 2026: "the engineer and customer support never
+    // replies without llm unless the server of open router is down"). Past the cap no full answer runs; one short,
+    // bounded aiReply (capRules, the link a must-carry, a 20 s deadline) writes the sign-up direction, and capReply's code
+    // text goes out only through modelOrOutage, i.e. only when no call reached a model (5xx, network, timeout, open
+    // circuit; never a 4xx). Model up and nothing passed: no text, the sign-up button alone (the widget shows it).
     const visitorLang = audience === 'supplier' ? 'en' : langOf(message, uiLang);
     const signup = who ? null : signupAction(audience, visitorLang);
-    if (!who && await pastVisitorCap(rl, { ip, conv: hasConv ? conv : '', cap: { conv: lim.site_assistant_visitor_conv_day, ip: lim.site_assistant_visitor_ip_day } })) {
-      const reply = capReply(audience, visitorLang);
-      await logWithAttempts(admin, 'assistant_logs', { message, reply, matched_ids: [], seat: 'customer_support', answered: true, gap_task_id: null, audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) },
-        { attempts: ['visitor_cap'], rewrites: 0, images: photos.images.length });
+    if (!who && signup && await pastVisitorCap(rl, { ip, conv: hasConv ? conv : '', cap: { conv: lim.site_assistant_visitor_conv_day, ip: lim.site_assistant_visitor_ip_day } })) {
+      const capped = await capReplyByModel(defaultDeps(admin, 'site_assistant'), { audience, lang: visitorLang, message,
+        subject: /^ZZ ?DEMO/i.test(message) ? { fixture: true, conv } : undefined });
+      const reply = modelOrOutage(capped, capReply(audience, visitorLang));
+      await logWithAttempts(admin, 'assistant_logs', { message, reply: reply || null, matched_ids: [], seat: 'customer_support', answered: !!reply, gap_task_id: null, audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) },
+        { attempts: ['visitor_cap', ...capped.attempts, ...(capped.outage ? ['outage: code-written cap reply'] : [])], rewrites: 0, images: photos.images.length });
       return J({ reply, scope: 'public', routed: 'visitor_cap', visitor_cap: true, signup });
     }
     await Promise.all(reads); lap('reads');

@@ -35,7 +35,7 @@ const FN = (p) => path.join(REPO, 'supabase', 'functions', p);
 export const REPLY_PATHS = [
   '_shared/ai_reply.ts', '_shared/support_reply.ts', '_shared/brief_answer.ts', '_shared/reasoned_delivery.ts', '_shared/clearer_copy.ts',
   'wa_inbound/index.ts', 'wa_inbound/model_says.ts', 'wa_inbound/menu_flow.ts',
-  'sales_engineer/index.ts', 'site_assistant/index.ts', 'email_triage/index.ts',
+  'sales_engineer/index.ts', 'site_assistant/index.ts', 'site_assistant/visitor_scope.ts', 'email_triage/index.ts',
   'supplier_api/index.ts', 'supplier_api/quote_review_flow.ts',
 ];
 
@@ -55,7 +55,7 @@ export function replyFindings(file, src) {
       out.push(`${file}:${i + 1}: R1 code fallback after a model reply, no outage gate: ${l.trim().slice(0, 140)}`);
     }
     // R2: a registered code-written reply used outside its definition, with no gate nearby
-    const uses = /\b(?:QR_HELD_NOTICE|HELD_NOTICE\[|caseConfirm\()/.test(l) || (file === 'wa_inbound/index.ts' && /\btext\s*=\s*msg\.body\b/.test(l));
+    const uses = /\b(?:QR_HELD_NOTICE|HELD_NOTICE\[|caseConfirm\(|capReply\()/.test(l) || (file === 'wa_inbound/index.ts' && /\btext\s*=\s*msg\.body\b/.test(l));
     const compares = /(?:===|!==)\s*\w*HELD_NOTICE|HELD_NOTICE\S*\s*(?:===|!==)|\.includes\(/.test(l);
     // a draft held in a local (`const confirm = caseConfirm(…)`) must meet its gate before the block ends (8 lines)
     const draftLocal = /^\s*const \w+ = /.test(l) && GATE.test(lines.slice(i, i + 9).join('\n'));
@@ -109,6 +109,10 @@ test('known-bad: the old fallbacks are caught', () => {
   assert.equal(replyFindings('x.ts', '  return modelOrOutage(r, HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en);\n').length, 0);
   assert.equal(replyFindings('x.ts', '  if (!text && sayOutage) { text = msg.body; notice = true; }\n').length, 0);
   assert.equal(replyFindings('x.ts', '  // return r.reply || HELD_FOR_SPECS[lang]; was the bug\n').length, 0, 'a comment never trips it');
+});
+test('known-bad (R2): the homepage visitor-cap reply sent as code text (PR #1434 before 1339) is caught', () => {
+  assert.equal(replyFindings('site_assistant/index.ts', '      const reply = capReply(audience, visitorLang);\n').length, 1);
+  assert.equal(replyFindings('site_assistant/index.ts', '      const reply = modelOrOutage(capped, capReply(audience, visitorLang));\n').length, 0);
 });
 test('known-bad: an ungated notice at its source is caught', () => {
   const ms = "export async function holdUnwritten(io) {\n  const notice = HELD_NOTICE[lang];\n}\n";

@@ -150,7 +150,9 @@ export function ChatWidget() {
         show(final || text || t.err, signup);
       } else {
         const j = await r.json();
-        show((j && j.reply) || t.err, j && j.signup);
+        // past the visitor cap with the model up but no line it wrote passing the guard, the server sends no text
+        // (founder_instruction 1339): the sign-up button alone is shown, never the error line.
+        show((j && j.reply) || (j && j.visitor_cap && j.signup ? '' : t.err), j && j.signup);
       }
     } catch (_e) {
       show(t.err);
@@ -187,7 +189,7 @@ export function ChatWidget() {
           <div ref={boxRef} style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 9 }}>
             {msgs.map((m, i) => (
               <div key={i} style={{ display: 'contents' }}>
-                <div dir="auto" style={bubble(m.role)} dangerouslySetInnerHTML={{ __html: render(m.content) }} />
+                {m.content && <div dir="auto" style={bubble(m.role)} dangerouslySetInnerHTML={{ __html: render(m.content) }} />}
                 {m.signup && /^\/[a-z/]*$/.test(m.signup.url) && (
                   <a href={m.signup.url} dir="auto"
                     style={{ alignSelf: 'flex-start', background: 'linear-gradient(135deg,#2DD4BF,#14B8A6)', color: '#04222b', fontWeight: 800,

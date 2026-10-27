@@ -4,7 +4,11 @@
 // design discussion): the moment a visitor shows a real need it tells them to sign up, and the sales engineer carries
 // on in the portal. Rulings 1195/1196 stand: the reply is model-written from these rules and the brief; only the
 // message cap and the sign-up button are code.
+// 27 Oct 2026 (founder_instruction 1339): the reply past the cap is model-written too (capReplyByModel); capReply's
+// text is the OpenRouter-outage fallback only, through modelOrOutage in index.ts.
 // prevented by: site_assistant/visitor_scope.test.ts; live: scripts/eval/widget_visitor_scope.mjs
+import { aiReply, type AiReply } from '../_shared/ai_reply.ts';
+import type { ThinkDeps } from '../_shared/think.ts';
 
 export type Lang = 'en' | 'ar';
 export type Audience = 'customer' | 'supplier' | 'unknown';
@@ -32,8 +36,8 @@ export function visitorRules(audience: Audience, lang: Lang): string {
 - The sign-up link is ${url}. Put it on its own line.`;
 }
 
-/** The reply once a visitor has used their messages: sign-up only, in their language. No model is called past the
- *  cap; that is the point of the cap. */
+/** The CODE-WRITTEN reply once a visitor has used their messages: sign-up only, in their language. Since 27 Oct 2026
+ *  (founder_instruction 1339) it is sent ONLY when OpenRouter is down (modelOrOutage over capReplyByModel). */
 export function capReply(audience: Audience, lang: Lang): string {
   const { url } = signupAction(audience, lang);
   if (lang === 'ar' && audience !== 'supplier') {
@@ -54,4 +58,25 @@ export async function pastVisitorCap(
   const cap = o.cap ?? VISITOR_CAP;
   if (o.conv && !(await hit('site_assistant_visitor_conv_day:' + o.conv, cap.conv, 86400))) return true;
   return !(await hit('site_assistant_visitor_ip_day:' + o.ip, cap.ip, 86400));
+}
+
+/** What the model is told to write past the cap. Code decides WHAT (sign-up only, no answer); the words are the model's.
+ *  Nothing internal is given to it (ledger 1338): the cap's number, the counting and the reason stay out. */
+export function capRules(audience: Audience, lang: Lang): string {
+  const { url } = signupAction(audience, lang);
+  return `THIS VISITOR HAS USED THE MESSAGES AVAILABLE TO VISITORS WHO ARE NOT SIGNED UP. Do not answer or discuss their message. In one or two short sentences, thank them, say that to continue they ${audience === 'supplier' ? 'register free as a supplier and we carry on with them in the supplier portal' : 'sign up free and our sales engineer carries on with them in their account'}, and put the link ${url} on its own line at the end. Ask nothing, give no number, price or count, and never mention a limit's number, a system or anything internal.`;
+}
+
+/** The cap reply WRITTEN BY THE MODEL: one bounded aiReply (at most 20 s; MAX_CALLS calls), the sign-up link a
+ *  must-carry. Returns aiReply's reply and outage for modelOrOutage. A throw before any model call is not an outage. */
+export async function capReplyByModel(deps: ThinkDeps, o: { audience: Audience; lang: Lang; message: string; subject?: Record<string, unknown> },
+  write: typeof aiReply = aiReply): Promise<Pick<AiReply, 'reply' | 'outage' | 'attempts'>> {
+  const { url } = signupAction(o.audience, o.lang);
+  try {
+    return await write(deps, { seat: 'customer_support', channel: 'the quotesdone.com website chat', audience: o.audience === 'supplier' ? 'supplier' : 'visitor',
+      lang: o.lang, message: o.message.slice(0, 1000), rules: capRules(o.audience, o.lang), facts: 'THE SIGN-UP LINK: ' + url, must: [url],
+      deadline: Date.now() + 20_000, ...(o.subject ? { subject: o.subject } : {}) });
+  } catch (e) {
+    return { reply: '', outage: false, attempts: ['threw: ' + String((e as Error)?.message || e).slice(0, 120)] };
+  }
 }
