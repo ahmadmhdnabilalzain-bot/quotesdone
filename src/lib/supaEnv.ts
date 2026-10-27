@@ -21,8 +21,19 @@
 // the first request loudly rather than writing a preview's fixtures into production.
 const IS_PREVIEW = process.env.VERCEL_ENV === 'preview' || process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview';
 export const SUPA_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || (IS_PREVIEW ? '' : 'https://htdblwldjkcgjvmqkbeh.supabase.co');
-export const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  || (IS_PREVIEW ? '' : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0ZGJsd2xkamtjZ2p2bXFrYmVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODU1NDYsImV4cCI6MjA5NjM2MTU0Nn0.cF9ZR_Qo1YBhLvhTLS8aANlYb6c9rTsuQS6kLxGw_Bo');
+// THE PUBLISHABLE KEY, NOT THE LEGACY ANON JWT (it_engineer, 27 Oct 2026; docs/reports/security/
+// SECURITY_HARDENING_27_OCT.md item 3, A1). The legacy anon key is a JWT signed with the project's HS256
+// secret, which leaked; it can only be revoked once nothing sends it. NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+// (the sb_publishable_ 'default' key, set in Vercel by the Supabase integration) is read first. The legacy
+// NEXT_PUBLIC_SUPABASE_ANON_KEY is a TEMPORARY fallback for the zero-downtime move: remove it in the PR that
+// follows 24 to 48 h of zero HS256 traffic in the gateway logs (scripts/it/hs256_traffic_since_the_key_move.mjs).
+// The gateway was proved to accept the publishable key as apikey and Bearer, verify_jwt=true functions included.
+// The hardcoded legacy JWT that used to follow here is gone, and no key literal replaces it:
+// scripts/checks/no_source_file_hardcodes_a_legacy_supabase_key.test.mjs fails if one comes back. A production
+// build therefore needs one of the two variables set, and Vercel production has both (read back by name, 27 Oct 2026).
+export const SUPA_ANON = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  || '';
 export const SUPA_FN = `${SUPA_URL}/functions/v1`;
 
 // EDGE FUNCTIONS RUN NEXT TO THE DATABASE, NOT NEXT TO THE CALLER (21 Sep 2026).
@@ -47,4 +58,7 @@ export const fnUrl = (name: string) => `${SUPA_FN}/${name}?forceFunctionRegion=$
 // one place every consumer now shares.
 if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_SUPABASE_URL) {
   console.warn('[qd] NEXT_PUBLIC_SUPABASE_URL is unset - this page is talking to PRODUCTION.');
+}
+if (typeof window !== 'undefined' && !SUPA_ANON && SUPA_URL) {
+  console.warn('[qd] neither NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY nor NEXT_PUBLIC_SUPABASE_ANON_KEY is set - every Supabase call will be refused.');
 }

@@ -99,7 +99,18 @@ const callerClassFromOwningSql = () => {
   return out;
 };
 
-const callerClass = () => ({ ...CALLER_CLASS_PREEXISTING, ...callerClassFromOwningSql(), ...callerClassMovedByMatrix() });
+// 27 Oct 2026 (#1640 review): the portal chat turn became a direct gateway call labelled 'sales_engineer'. Its row is
+// READ OUT OF the file that writes it, like the owning file's, so deleting it there fails here.
+const PORTAL_TURN_SQL = 'scripts/sql/the_portal_turn_has_its_task_class.sql';
+const callerClassFromPortalTurnSql = () => {
+  const sql = read(PORTAL_TURN_SQL);
+  const out = {};
+  const at = sql.indexOf('insert into public.fn_task_class');
+  if (at >= 0) for (const m of sql.slice(at).matchAll(/\('([a-z0-9_]+)',\s*'([a-z0-9_]+)'/g)) out[m[1]] = m[2];
+  return out;
+};
+
+const callerClass = () => ({ ...CALLER_CLASS_PREEXISTING, ...callerClassFromOwningSql(), ...callerClassMovedByMatrix(), ...callerClassFromPortalTurnSql() });
 
 // Ceilings NOT written by the owning SQL file, measured from public.model_policy on 23 Sep 2026.
 const CEILINGS_MEASURED = {

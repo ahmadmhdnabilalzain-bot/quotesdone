@@ -42,6 +42,17 @@ status notice, not a reply).
 messages, the supplier's submission receipt, the closed-thread notice, the founder's FIGURES, menu list frames that
 Meta's approved Content template fixes. If a new path answers a person's message, it is a reply and this rule applies.
 
+**The other half: never silent (the asynchronous re-ask, 27 Oct 2026).** "No code text while the model is up" left a gap:
+a turn whose every draft was refused got NO reply (independent review of #1640). Now such a turn is filed in
+reasoning_held_question on a re-ask surface (`_shared/reask.ts` REASK_SURFACES = SQL `fn_reask_surfaces()`: WhatsApp,
+the supplier quotation thread, the portal chat, the request chat's held-for-trade turn). pg_cron `reask_refused_turns`
+checks every minute; sales_engineer `reask_turns` asks the model again on the other family first, high effort, with the
+refused drafts' problems named, runs every guard again (customerSafe re-run for the portal), and delivers into the same
+conversation, once (`fn_reask_record` 'sending'). 3 refusals -> the owning seat (held_question); a reviewed reply goes
+back through `fn_reask_reviewed_reply` and the same gates. The portal and the request chat show "still working on your
+answer" (UI state) and poll. The 15-minute holding notice (`reasoned_delivery.holdingNotice`) is model-written too; its
+fixed line only on an outage. Any NEW reply surface that can refuse must file its turn the same way.
+
 **How to apply:** before adding any text a customer or supplier reads in answer to their message, route it through the
 model with the decided content as facts; keep a code fallback only behind `outage` / `modelOrOutage`. Related:
 [[customer-support-better-than-amazon]], [[openrouter-stays-on-all-tests-with-ai]], [[routine-work-is-code-not-llm]]

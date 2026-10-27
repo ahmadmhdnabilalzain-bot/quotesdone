@@ -1,0 +1,291 @@
+{
+ "before1": {
+  "tag": "78f83512",
+  "n": 15,
+  "failed": 0,
+  "p50": 22156,
+  "p95": 113516,
+  "max": 113516,
+  "over25": 6,
+  "over30": 3,
+  "spend_usd": 0.696,
+  "teardown_left": 0,
+  "extras_left": {
+   "agent_actions": 0,
+   "reasoning_held_question": 0,
+   "seat_judgement": 0,
+   "ai_qa_log": 0
+  },
+  "extras_removed": {
+   "agent_actions": 0,
+   "reasoning_held_question": 0,
+   "seat_judgement": 1,
+   "ai_qa_log": 15
+  },
+  "retry": null,
+  "by_kind": {
+   "needs_info": {
+    "n": 10,
+    "failed": 0,
+    "p50": 19104,
+    "p95": 113516,
+    "max": 113516,
+    "over25": 2,
+    "over30": 1
+   },
+   "held": {
+    "n": 3,
+    "failed": 0,
+    "p50": 27697,
+    "p95": 34225,
+    "max": 34225,
+    "over25": 2,
+    "over30": 1
+   },
+   "ready": {
+    "n": 2,
+    "failed": 0,
+    "p50": 29833,
+    "p95": 31401,
+    "max": 31401,
+    "over25": 2,
+    "over30": 1
+   }
+  }
+ },
+ "after1": {
+  "tag": "3533035b",
+  "n": 14,
+  "failed": 0,
+  "p50": 14492,
+  "p95": 25500,
+  "max": 25500,
+  "over25": 1,
+  "over30": 0,
+  "spend_usd": 0.3185,
+  "teardown_left": 0,
+  "extras_left": {
+   "agent_actions": 0,
+   "reasoning_held_question": 0,
+   "seat_judgement": 0,
+   "ai_qa_log": 0
+  },
+  "extras_removed": {
+   "agent_actions": 0,
+   "reasoning_held_question": 0,
+   "seat_judgement": 0,
+   "ai_qa_log": 14
+  },
+  "retry": null
+ },
+ "after2": {
+  "tag": "bd45f66b",
+  "n": 15,
+  "failed": 0,
+  "p50": 14985,
+  "p95": 21373,
+  "max": 21373,
+  "over25": 0,
+  "over30": 0,
+  "spend_usd": 0.3462,
+  "teardown_left": 0,
+  "extras_left": {
+   "agent_actions": 0,
+   "reasoning_held_question": 0,
+   "seat_judgement": 0,
+   "ai_qa_log": 0
+  },
+  "extras_removed": {
+   "agent_actions": 0,
+   "reasoning_held_question": 0,
+   "seat_judgement": 8,
+   "ai_qa_log": 15
+  },
+  "retry": null,
+  "by_kind": {
+   "needs_info": {
+    "n": 9,
+    "failed": 0,
+    "p50": 13265,
+    "p95": 16806,
+    "max": 16806,
+    "over25": 0,
+    "over30": 0
+   },
+   "held": {
+    "n": 4,
+    "failed": 0,
+    "p50": 19045,
+    "p95": 21373,
+    "max": 21373,
+    "over25": 0,
+    "over30": 0
+   },
+   "ready": {
+    "n": 2,
+    "failed": 0,
+    "p50": 16951,
+    "p95": 18857,
+    "max": 18857,
+    "over25": 0,
+    "over30": 0
+   }
+  }
+ },
+ "after3": {
+  "tag": "973b0571",
+  "n": 15,
+  "failed": 0,
+  "p50": 13998,
+  "p95": 19432,
+  "max": 19432,
+  "over25": 0,
+  "over30": 0,
+  "spend_usd": 0.2082,
+  "teardown_left": 0,
+  "extras_left": {
+   "agent_actions": 0,
+   "reasoning_held_question": 0,
+   "seat_judgement": 0,
+   "ai_qa_log": 0
+  },
+  "extras_removed": {
+   "agent_actions": 0,
+   "reasoning_held_question": 0,
+   "seat_judgement": 8,
+   "ai_qa_log": 15
+  },
+  "retry": null,
+  "by_kind": {
+   "needs_info": {
+    "n": 9,
+    "failed": 0,
+    "p50": 13369,
+    "p95": 15423,
+    "max": 15423,
+    "over25": 0,
+    "over30": 0
+   },
+   "held": {
+    "n": 4,
+    "failed": 0,
+    "p50": 18855,
+    "p95": 19432,
+    "max": 19432,
+    "over25": 0,
+    "over30": 0
+   },
+   "ready": {
+    "n": 2,
+    "failed": 0,
+    "p50": 16395,
+    "p95": 16708,
+    "max": 16708,
+    "over25": 0,
+    "over30": 0
+   }
+  }
+ },
+ "final": {
+  "tag": "9171bea8",
+  "n": 9,
+  "failed": 0,
+  "p50": 15524,
+  "p95": 18345,
+  "max": 18345,
+  "over25": 0,
+  "over30": 0,
+  "spend_usd": 0.1683,
+  "teardown_left": 0,
+  "extras_left": {
+   "agent_actions": 0,
+   "reasoning_held_question": 0,
+   "seat_judgement": 0,
+   "ai_qa_log": 0
+  },
+  "extras_removed": {
+   "agent_actions": 0,
+   "reasoning_held_question": 0,
+   "seat_judgement": 4,
+   "ai_qa_log": 9
+  },
+  "retry": {
+   "http": 200,
+   "ms": 1793,
+   "replayed": true,
+   "same_reply": true,
+   "copies_of_message": 1,
+   "model_calls_added": 0
+  }
+ },
+ "ruling": {
+  "tag": "e44d9f33",
+  "n": 15,
+  "failed": 0,
+  "p50": 15917,
+  "p95": 21767,
+  "max": 21767,
+  "over25": 0,
+  "over30": 0,
+  "spend_usd": 0.3472,
+  "teardown_left": 0,
+  "extras_left": {
+   "agent_actions": 0,
+   "reasoning_held_question": 0,
+   "seat_judgement": 0,
+   "ai_qa_log": 0
+  },
+  "extras_removed": {
+   "agent_actions": 0,
+   "reasoning_held_question": 0,
+   "seat_judgement": 8,
+   "ai_qa_log": 15
+  },
+  "retry": {
+   "http": 200,
+   "ms": 1342,
+   "replayed": true,
+   "same_reply": true,
+   "copies_of_message": 1,
+   "model_calls_added": 1
+  },
+  "by_kind": {
+   "needs_info": {
+    "n": 9,
+    "failed": 0,
+    "p50": 15166,
+    "p95": 19078,
+    "max": 19078,
+    "over25": 0,
+    "over30": 0
+   },
+   "held": {
+    "n": 4,
+    "failed": 0,
+    "p50": 19967,
+    "p95": 20142,
+    "max": 20142,
+    "over25": 0,
+    "over30": 0
+   },
+   "ready": {
+    "n": 2,
+    "failed": 0,
+    "p50": 19504,
+    "p95": 21767,
+    "max": 21767,
+    "over25": 0,
+    "over30": 0
+   }
+  }
+ },
+ "after_final_code_combined": {
+  "n": 54,
+  "failed": 0,
+  "p50": 15433,
+  "p95": 20142,
+  "max": 21767,
+  "over25": 0,
+  "over30": 0
+ }
+}

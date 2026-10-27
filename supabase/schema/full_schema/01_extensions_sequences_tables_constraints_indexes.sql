@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-27T13:43:59.771Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-27T17:56:36.737Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -152,6 +152,7 @@ CREATE SEQUENCE IF NOT EXISTS public.mdm_brands_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.mdm_manufacturers_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.mdm_standards_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.metric_snapshot_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.notice_plain_language_cause_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.openrouter_meter_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.opportunity_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.os_fresh_start_id_seq;
@@ -220,7 +221,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (749) =====
+-- ===== TABLES (754) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -1043,7 +1044,8 @@ CREATE TABLE IF NOT EXISTS public.assistant_logs (
   answered boolean,
   gap_task_id bigint,
   reply_attempts jsonb,
-  conv_id text
+  conv_id text,
+  e2e_run_tag text
 );
 
 CREATE TABLE IF NOT EXISTS public.autonomy_control_audit (
@@ -6394,6 +6396,35 @@ CREATE TABLE IF NOT EXISTS public.money_move_hold (
   release_reason text
 );
 
+CREATE TABLE IF NOT EXISTS public.notice_plain_language (
+  notification_id bigint NOT NULL,
+  scored_at timestamp with time zone DEFAULT now() NOT NULL,
+  sent_at timestamp with time zone,
+  type text NOT NULL,
+  to_role text NOT NULL,
+  requested_by text,
+  channel text,
+  lang text NOT NULL,
+  ok boolean NOT NULL,
+  score smallint NOT NULL,
+  tone smallint NOT NULL,
+  issues text[] DEFAULT '{}'::text[] NOT NULL,
+  demo boolean DEFAULT false NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.notice_plain_language_cause (
+  id bigint DEFAULT nextval('notice_plain_language_cause_id_seq'::regclass) NOT NULL,
+  type text NOT NULL,
+  owner_seat text NOT NULL,
+  opened_at timestamp with time zone DEFAULT now() NOT NULL,
+  baseline jsonb NOT NULL,
+  status text DEFAULT 'open'::text NOT NULL,
+  handoff_id bigint,
+  measurements jsonb DEFAULT '[]'::jsonb NOT NULL,
+  closed_at timestamp with time zone,
+  fixture boolean DEFAULT false NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.notification_copy (
   type text NOT NULL,
   subject_en text NOT NULL,
@@ -8173,7 +8204,8 @@ CREATE TABLE IF NOT EXISTS public.sales_decision_log (
   cited text[] DEFAULT '{}'::text[] NOT NULL,
   answered boolean NOT NULL,
   refusal text,
-  subject text
+  subject text,
+  e2e_run_tag text
 );
 
 CREATE TABLE IF NOT EXISTS public.sales_engineer_comparison_report (
@@ -8704,6 +8736,32 @@ CREATE TABLE IF NOT EXISTS public.seat_self_review (
   improvement_id bigint,
   closed_improvements bigint[] DEFAULT '{}'::bigint[] NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.seat_senior_contribution (
+  seat text NOT NULL,
+  contribution_id text NOT NULL,
+  what text NOT NULL,
+  duties text[] DEFAULT '{}'::text[] NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.seat_senior_exam (
+  seat text NOT NULL,
+  judged_on date NOT NULL,
+  items integer NOT NULL,
+  passed integer NOT NULL,
+  source text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.seat_senior_verdict (
+  week date NOT NULL,
+  seat text NOT NULL,
+  stage1 jsonb NOT NULL,
+  stage2 jsonb NOT NULL,
+  level text NOT NULL,
+  shortfalls text[] DEFAULT '{}'::text[] NOT NULL,
+  improvement_id bigint,
+  measured_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.security_advisor_baseline (
@@ -9759,7 +9817,8 @@ CREATE TABLE IF NOT EXISTS public.support_reply_readability (
   tone smallint NOT NULL,
   issues text[] DEFAULT '{}'::text[] NOT NULL,
   reason text,
-  demo boolean DEFAULT false NOT NULL
+  demo boolean DEFAULT false NOT NULL,
+  e2e_run_tag text
 );
 
 CREATE TABLE IF NOT EXISTS public.support_root_cause (
@@ -10813,6 +10872,8 @@ ALTER TABLE public.model_policy_by_identity ADD CONSTRAINT model_policy_by_ident
 ALTER TABLE public.model_rate ADD CONSTRAINT model_rate_pkey PRIMARY KEY (model);
 ALTER TABLE public.model_registry ADD CONSTRAINT model_registry_pkey PRIMARY KEY (model_id);
 ALTER TABLE public.money_move_hold ADD CONSTRAINT money_move_hold_pkey PRIMARY KEY (id);
+ALTER TABLE public.notice_plain_language ADD CONSTRAINT notice_plain_language_pkey PRIMARY KEY (notification_id);
+ALTER TABLE public.notice_plain_language_cause ADD CONSTRAINT notice_plain_language_cause_pkey PRIMARY KEY (id);
 ALTER TABLE public.notification_copy ADD CONSTRAINT notification_copy_pkey PRIMARY KEY (type);
 ALTER TABLE public.notification_type_severity ADD CONSTRAINT notification_type_severity_pkey PRIMARY KEY (type);
 ALTER TABLE public.notifications ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
@@ -10978,6 +11039,9 @@ ALTER TABLE public.seat_learning_daily ADD CONSTRAINT seat_learning_daily_pkey P
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_pkey PRIMARY KEY (cluster_key);
 ALTER TABLE public.seat_playbook ADD CONSTRAINT seat_playbook_pkey PRIMARY KEY (seat);
 ALTER TABLE public.seat_self_review ADD CONSTRAINT seat_self_review_pkey PRIMARY KEY (month, seat);
+ALTER TABLE public.seat_senior_contribution ADD CONSTRAINT seat_senior_contribution_pkey PRIMARY KEY (seat, contribution_id);
+ALTER TABLE public.seat_senior_exam ADD CONSTRAINT seat_senior_exam_pkey PRIMARY KEY (seat, judged_on);
+ALTER TABLE public.seat_senior_verdict ADD CONSTRAINT seat_senior_verdict_pkey PRIMARY KEY (week, seat);
 ALTER TABLE public.security_advisor_baseline ADD CONSTRAINT security_advisor_baseline_pkey PRIMARY KEY (cache_key);
 ALTER TABLE public.security_audit_log ADD CONSTRAINT security_audit_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.security_events ADD CONSTRAINT security_events_pkey PRIMARY KEY (id);
@@ -11850,6 +11914,10 @@ ALTER TABLE public.money_move_hold ADD CONSTRAINT money_move_hold_check1 CHECK (
 ALTER TABLE public.money_move_hold ADD CONSTRAINT money_move_hold_move_check CHECK ((move = ANY (ARRAY['reveal'::text, 'refund'::text])));
 ALTER TABLE public.money_move_hold ADD CONSTRAINT money_move_hold_ref_check CHECK ((btrim(ref) <> ''::text));
 ALTER TABLE public.money_move_hold ADD CONSTRAINT money_move_hold_status_check CHECK ((status = ANY (ARRAY['noted'::text, 'held'::text, 'released'::text])));
+ALTER TABLE public.notice_plain_language ADD CONSTRAINT notice_plain_language_lang_check CHECK ((lang = ANY (ARRAY['en'::text, 'ar'::text])));
+ALTER TABLE public.notice_plain_language ADD CONSTRAINT notice_plain_language_score_check CHECK (((score >= 0) AND (score <= 100)));
+ALTER TABLE public.notice_plain_language ADD CONSTRAINT notice_plain_language_tone_check CHECK (((tone >= 0) AND (tone <= 100)));
+ALTER TABLE public.notice_plain_language_cause ADD CONSTRAINT notice_plain_language_cause_status_check CHECK ((status = ANY (ARRAY['open'::text, 'handed_off'::text, 'closed'::text])));
 ALTER TABLE public.notification_type_severity ADD CONSTRAINT notification_type_severity_reason_check CHECK ((btrim(reason) <> ''::text));
 ALTER TABLE public.notification_type_severity ADD CONSTRAINT notification_type_severity_severity_check CHECK ((severity = ANY (ARRAY['info'::text, 'warn'::text, 'high'::text, 'critical'::text])));
 ALTER TABLE public.notification_type_severity ADD CONSTRAINT notification_type_severity_type_check CHECK ((btrim(type) <> ''::text));
@@ -12089,6 +12157,9 @@ ALTER TABLE public.seat_knowledge_stale ADD CONSTRAINT seat_knowledge_stale_reas
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_case_ids_check CHECK ((cardinality(case_ids) >= 3));
 ALTER TABLE public.seat_playbook ADD CONSTRAINT seat_playbook_seat_check CHECK ((seat = ANY (ARRAY['ceo'::text, 'customer_support'::text, 'sales_engineer'::text, 'accountant'::text, 'it_engineer'::text, 'marketing'::text])));
 ALTER TABLE public.seat_self_review ADD CONSTRAINT seat_self_review_trend_check CHECK ((trend = ANY (ARRAY['first'::text, 'up'::text, 'flat'::text, 'down'::text, 'no_exam'::text])));
+ALTER TABLE public.seat_senior_exam ADD CONSTRAINT seat_senior_exam_check CHECK (((passed >= 0) AND (passed <= items)));
+ALTER TABLE public.seat_senior_exam ADD CONSTRAINT seat_senior_exam_items_check CHECK ((items > 0));
+ALTER TABLE public.seat_senior_verdict ADD CONSTRAINT seat_senior_verdict_level_check CHECK ((level = ANY (ARRAY['junior'::text, 'mid'::text, 'senior'::text])));
 ALTER TABLE public.security_gap ADD CONSTRAINT security_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text, 'partial'::text])));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_from_code_check CHECK ((from_code ~ '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)?$'::text));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_not_itself CHECK ((from_code <> ((implies_trade || '.'::text) || implies_code)));
@@ -12470,6 +12541,7 @@ ALTER TABLE public.messages ADD CONSTRAINT messages_inquiry_id_fkey FOREIGN KEY 
 ALTER TABLE public.messages ADD CONSTRAINT messages_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id);
 ALTER TABLE public.messages ADD CONSTRAINT messages_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.metric_snapshot ADD CONSTRAINT metric_snapshot_metric_key_fkey FOREIGN KEY (metric_key) REFERENCES metric_definition(metric_key) ON DELETE CASCADE;
+ALTER TABLE public.notice_plain_language_cause ADD CONSTRAINT notice_plain_language_cause_owner_seat_fkey FOREIGN KEY (owner_seat) REFERENCES org_role(role_id);
 ALTER TABLE public.org_agent_alias ADD CONSTRAINT org_agent_alias_agent_key_fkey FOREIGN KEY (agent_key) REFERENCES org_agents(agent_key);
 ALTER TABLE public.org_agents ADD CONSTRAINT org_agents_department_fkey FOREIGN KEY (department) REFERENCES org_departments(dept_key);
 ALTER TABLE public.org_authority ADD CONSTRAINT org_authority_dept_key_fkey FOREIGN KEY (dept_key) REFERENCES org_departments(dept_key) ON DELETE CASCADE;
@@ -12561,6 +12633,9 @@ ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_
 ALTER TABLE public.seat_knowledge_stale ADD CONSTRAINT seat_knowledge_stale_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES reasoning_knowledge_candidate(id);
 ALTER TABLE public.seat_self_review ADD CONSTRAINT seat_self_review_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
+ALTER TABLE public.seat_senior_contribution ADD CONSTRAINT seat_senior_contribution_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
+ALTER TABLE public.seat_senior_exam ADD CONSTRAINT seat_senior_exam_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
+ALTER TABLE public.seat_senior_verdict ADD CONSTRAINT seat_senior_verdict_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_implies_trade_implies_code_fkey FOREIGN KEY (implies_trade, implies_code) REFERENCES taxonomy_trade_service(trade_code, code) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE public.signup_purge_dropbox ADD CONSTRAINT signup_purge_dropbox_purge_id_fkey FOREIGN KEY (purge_id) REFERENCES signup_purge(id) ON DELETE CASCADE;
 ALTER TABLE public.signup_purge_object ADD CONSTRAINT signup_purge_object_purge_id_fkey FOREIGN KEY (purge_id) REFERENCES signup_purge(id) ON DELETE CASCADE;
@@ -12686,6 +12761,7 @@ CREATE INDEX arabic_outbound_hold_held_idx ON public.arabic_outbound_hold USING 
 CREATE UNIQUE INDEX artifact_review_bytes ON public.artifact_review USING btree (subject_type, subject_id, artifact_sha256, revision);
 CREATE INDEX artifact_review_subject ON public.artifact_review USING btree (subject_type, subject_id, created_at DESC);
 CREATE INDEX assistant_logs_conv_id_id ON public.assistant_logs USING btree (conv_id, id) WHERE (conv_id IS NOT NULL);
+CREATE INDEX assistant_logs_e2e_run_tag_idx ON public.assistant_logs USING btree (e2e_run_tag) WHERE (e2e_run_tag IS NOT NULL);
 CREATE UNIQUE INDEX backup_prune_log_open_uidx ON public.backup_prune_log USING btree (day) WHERE ((mode = 'delete'::text) AND (storage_deleted_at IS NULL) AND (cancelled_at IS NULL));
 CREATE UNIQUE INDEX backup_prune_log_pass_uidx ON public.backup_prune_log USING btree (decided_for, day, mode);
 CREATE INDEX bank_statement_line_match_idx ON public.bank_statement_line USING btree (account, amount_aed, value_date);
@@ -13029,6 +13105,8 @@ CREATE INDEX metric_snapshot_key_time_idx ON public.metric_snapshot USING btree 
 CREATE UNIQUE INDEX model_catalogue_change_one_open ON public.model_catalogue_change USING btree (model_id, field) WHERE (closed_at IS NULL);
 CREATE INDEX money_move_hold_held ON public.money_move_hold USING btree (opened_at) WHERE (status = 'held'::text);
 CREATE UNIQUE INDEX money_move_hold_one_open_per_move ON public.money_move_hold USING btree (move, ref) WHERE (status <> 'released'::text);
+CREATE UNIQUE INDEX notice_plain_language_cause_one_open ON public.notice_plain_language_cause USING btree (type, fixture) WHERE (status <> 'closed'::text);
+CREATE INDEX notice_plain_language_type_scored ON public.notice_plain_language USING btree (type, scored_at);
 CREATE UNIQUE INDEX notifications_dedupe_key_uidx ON public.notifications USING btree (dedupe_key) WHERE (dedupe_key IS NOT NULL);
 CREATE UNIQUE INDEX notifications_one_sms_twin ON public.notifications USING btree (failover_of) WHERE (failover_of IS NOT NULL);
 CREATE INDEX notifications_provider_message_id_idx ON public.notifications USING btree (provider_message_id) WHERE (provider_message_id IS NOT NULL);
@@ -13116,6 +13194,7 @@ CREATE INDEX routine_change_log_object_at ON public.routine_change_log USING btr
 CREATE INDEX routine_judgement_due_idx ON public.routine_judgement USING btree (id) WHERE (status = 'queued'::text);
 CREATE INDEX sales_decision_log_action_idx ON public.sales_decision_log USING btree (action, created_at DESC);
 CREATE INDEX sales_decision_log_created_idx ON public.sales_decision_log USING btree (created_at DESC);
+CREATE INDEX sales_decision_log_e2e_run_tag_idx ON public.sales_decision_log USING btree (e2e_run_tag) WHERE (e2e_run_tag IS NOT NULL);
 CREATE INDEX sales_knowledge_emb_hnsw ON public.sales_knowledge USING hnsw (embedding_gte vector_cosine_ops);
 CREATE INDEX sales_knowledge_gap_open_idx ON public.sales_knowledge_gap USING btree (asks DESC, last_asked_at DESC) WHERE (status = 'open'::text);
 CREATE INDEX sales_knowledge_pack_idx ON public.sales_knowledge USING btree (pack_id);
@@ -13180,6 +13259,7 @@ CREATE INDEX support_knowledge_search_idx ON public.support_knowledge USING gin 
 CREATE INDEX support_notification_pending_idx ON public.support_notification USING btree (state, queued_at) WHERE (state = ANY (ARRAY['queued'::text, 'failed'::text]));
 CREATE INDEX support_notification_unbridged_idx ON public.support_notification USING btree (queued_at) WHERE (bridged_at IS NULL);
 CREATE INDEX support_reply_readability_created_at ON public.support_reply_readability USING btree (created_at);
+CREATE INDEX support_reply_readability_e2e_run_tag_idx ON public.support_reply_readability USING btree (e2e_run_tag) WHERE (e2e_run_tag IS NOT NULL);
 CREATE UNIQUE INDEX support_root_cause_one_live_idx ON public.support_root_cause USING btree (cause_key, fixture) WHERE (status = ANY (ARRAY['open'::text, 'handed_off'::text, 'measuring'::text, 'not_fallen'::text]));
 CREATE INDEX table_export_change_table_changed_idx ON public.table_export_change USING btree (table_name, changed_at, row_key);
 CREATE UNIQUE INDEX target_contract_key_version ON public.target_contract USING btree (contract_key, version);

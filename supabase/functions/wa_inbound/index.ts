@@ -567,6 +567,8 @@ async function handleInbound(req: Request): Promise<Response> {
     let modelEscalate = false;
     // OPENROUTER DOWN ON THIS TURN (founder_instruction 1339): set by the last say; heldTurn sends its fixed notice only then.
     let sayOutage = false;
+    // WHY THE LAST SAY'S DRAFTS WERE REFUSED (aiReply.problems): filed with the turn so the re-ask names them (_shared/reask.ts).
+    let sayProblems: string[] = [];
     const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[]) => {
       const r = await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
         budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
@@ -574,6 +576,7 @@ async function handleInbound(req: Request): Promise<Response> {
         subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}) });
       modelEscalate = modelEscalate || r.escalate;
       sayOutage = !r.text && r.outage;
+      sayProblems = r.text ? [] : (r.problems ?? []);
       return r.text;
     };
     // `audience` is resolved further down; `say` is only called after that (the spec-offer branch uses sayFor('customer')).
@@ -584,7 +587,7 @@ async function handleInbound(req: Request): Promise<Response> {
     // sends the written answer here (reasoned_delivery.ts); still unanswered after 15 minutes it is escalated to
     // customer_support (fn_reason_held_escalate, scripts/sql/an_unwritten_conversation_reply_reaches_its_seat_in_fifteen_minutes.sql).
     const heldTurn = (aud: 'customer' | 'supplier' | 'visitor' | 'founder', lang: 'en' | 'ar', situation: string, why: string) =>
-      holdUnwritten({ from: From, body: Body, messageSid: MessageSid || null, audience: aud, lang, situation, why, outage: sayOutage,
+      holdUnwritten({ from: From, body: Body, messageSid: MessageSid || null, audience: aud, lang, situation, why, outage: sayOutage, problems: sayProblems,
         enabled: async () => (await sec('wa_autoreply_enabled')) === 'true', send: (t) => sendWa(From, t),
         rpc: async (f, a) => { const r = await admin.rpc(f, a); return { data: r.data, error: r.error }; } });
 
