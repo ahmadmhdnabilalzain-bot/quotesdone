@@ -836,7 +836,22 @@ export function withDeadline(deps: ThinkDeps, deadline: number, minMs = MIN_STEP
   };
 }
 
-export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
+// THE HELD REPLAY NEVER RUNS GTE-SMALL IN ITS OWN WORKER (it_engineer, 27 Oct 2026). Measured on production: every
+// detached itlater run that replayed three or more held questions was killed by the edge runtime at its 2 s CPU cap
+// (function_logs "CPU Time exceeded", shutdown reason CPUTime, 2,000-2,160 ms; 10 runs on 26-27 Oct, e.g. 01:17:52,
+// 01:47:34 and 02:17:25 UTC), while the same run with no held row used 49-194 ms. The worker died with the model's
+// answer in flight, fn_reason_held_resolve never ran, the claim had already counted a try, and after three claims the
+// sweep closed the row 'failed' with no result: marketing.ceo_revision 28986 (the November month plan) and its three
+// siblings 28985/28987/28988, and the it_engineer.postmortem rows the same day. The cause is what each row does in the
+// worker: on the multilingual space every English plan step and the question are ALSO embedded with gte-small for the
+// fused ranking, and defaultDeps ran that in-process. Replayed locally with the four real requests, think() spends
+// 13 ms of JavaScript CPU for all four rows and asks for 24 gte-small runs; one embedding in embed_ml's own worker costs
+// a median 324 ms CPU (p90 415 ms, 21,140 runs on 27 Oct). So `gte: 'remote'` sends gte-small to embed_ml - the same
+// model, the same 384-dimension space, its own worker per call (meaning_embed.ts made the same move on 29 Sep) - and
+// the heartbeat's deps (heartbeatDeps) use it. Other callers keep the in-worker session: their latency, not a batch.
+// prevented by: _shared/held_replay_keeps_gte_out_of_the_worker.test.ts
+export type GtePlacement = 'worker' | 'remote';
+export function defaultDeps(admin: Admin, fn: string, o: { gte?: GtePlacement } = {}): ThinkDeps {
   return {
     gate: async () => (await admin.rpc('fn_kernel_paid_provider_gate', { p_model: HOLD_PROBE_MODEL })).data,
     llm: async (phase, system, input, o) => {
@@ -857,7 +872,7 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
       // Outside the edge runtime (the seat exam on a machine) there is no Supabase.ai: the same gte-small answers from
       // embed_ml instead of null, so a run off the edge retrieves exactly as the edge does (ml_embed_client.embedGteRemote).
       // deno-lint-ignore no-explicit-any
-      if (!(globalThis as any).Supabase?.ai) { const { embedGteRemote } = await import('./ml_embed_client.ts'); return await embedGteRemote(admin, t, fn, 8000); }
+      if (o.gte === 'remote' || !(globalThis as any).Supabase?.ai) { const { embedGteRemote } = await import('./ml_embed_client.ts'); return await embedGteRemote(admin, t, fn, 8000); }
       return await embedLine(t);
     },
     space: async () => { const { readSpace } = await import('./ml_embed_client.ts'); return await readSpace(admin); },
@@ -865,6 +880,11 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
     search: (q) => webSearch(admin, q),
     read: readPage,
   };
+}
+
+/** The deps of the resilience_ping heartbeat's batch work (held replay, routine judgements): gte-small in embed_ml. */
+export function heartbeatDeps(admin: Admin): ThinkDeps {
+  return defaultDeps(admin, 'resilience_ping', { gte: 'remote' });
 }
 
 // The search engine: Serper, through web_search.ts (cap, private-name guard, official UAE sources only).
@@ -916,7 +936,7 @@ export const REPLAY_CLAIM = 5;
 export const REPLAY_STALE_MS = 24 * 3600_000;
 export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deliver?: (row: HeldRow, r: ThinkResult) => Promise<unknown>,
   opts: { maxRows?: number; budgetMs?: number; staleMs?: number; now?: () => number } = {}): Promise<unknown> {
-  const d = deps ?? defaultDeps(admin, 'resilience_ping');
+  const d = deps ?? heartbeatDeps(admin);
   const now = opts.now ?? Date.now;
   const t0 = now();
   const maxRows = opts.maxRows ?? limit;            // a caller that does not opt in keeps the old one-claim behaviour
