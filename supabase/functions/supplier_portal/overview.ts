@@ -96,7 +96,7 @@ export async function buildEligibility(admin: Admin, supId: number): Promise<Row
     const reason = String(r.matching_block_reason || '');
     if (reason === 'licence_expired') {
       blocking.push({ code: 'licence_expired', params: { date: r.license_expiry || null }, title: 'Your account is paused - trade licence expired',
-        detail: 'Your trade licence expired on ' + (r.license_expiry || 'an earlier date') + '. Upload a valid copy and your account is restored automatically, usually within a day. There is no fee.',
+        detail: 'Your trade licence expired on ' + (r.license_expiry || 'an earlier date') + '. Upload a valid copy and your account is restored automatically at our daily document check once the new licence reads as in date, so within a day. If it cannot be read, we tell you what to upload again. There is no fee.',
         fix: 'documents' });
     } else if (reason === 'insurance_expired') {
       blocking.push({ code: 'insurance_expired', params: { date: r.insurance_expiry || null }, title: 'Your account is paused - insurance expired',

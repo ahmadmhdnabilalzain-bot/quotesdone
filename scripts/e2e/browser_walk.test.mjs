@@ -54,3 +54,11 @@ test('the journey opens "New request" before it types or attaches', () => {
   assert.doesNotMatch(SRC, /const input = page\.locator\('input\[type=file\]'\)\.first\(\)/, 'never the first file input anywhere on the page');
   assert.doesNotMatch(SRC, /page\.locator\('textarea:visible'\)\.first\(\);\n\s+await box\.fill/);
 });
+
+// Run 0a717394 (19 Oct): the quotes step gave up at 20 s; its own screenshot then showed C1's "4 quotes" card.
+test('the quotes step waits long enough for the request cards and names a slow list as slow', () => {
+  assert.match(SRC, /export const CARDS_WAIT_MS = 60000, CARDS_SLOW_MS = 10000;/);
+  assert.match(SRC, /await card\.waitFor\(\{ state: 'visible', timeout: CARDS_WAIT_MS \}\)/);
+  assert.doesNotMatch(SRC, /await card\.waitFor\(\{ state: 'visible', timeout: 20000 \}\)/);
+  assert.match(SRC, /SLOW: the quoted card took \$\{cardsMs\} ms/);
+});
