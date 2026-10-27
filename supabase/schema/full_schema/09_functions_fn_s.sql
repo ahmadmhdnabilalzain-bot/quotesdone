@@ -10778,14 +10778,15 @@ CREATE OR REPLACE FUNCTION public.fn_support_case_idle_close()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_days int := greatest(1, public.fn_seat_clock_policy('support_case_append_days', 7)::int); n int;
+declare v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';   -- fixture run: ONLY demo cases
+  v_days int := greatest(1, public.fn_seat_clock_policy('support_case_append_days', 7)::int); n int;
 begin
   update public.support_case
      set state = 'closed', closed_at = now(),
          close_reason = 'resolved — answered, and no reply from the customer in ' || v_days || ' days (closed by customer_support)'
    where state = 'waiting_customer' and last_activity_at < now() - make_interval(days => v_days)
      and category is distinct from 'automated_decision_objection'   -- legal finding 1: closed only by a reply
-     and not public.fn_party_is_demo(party_kind, party_id);
+     and public.fn_party_is_demo(party_kind, party_id) = v_fx;       -- a fixture run can never close a real case
   get diagnostics n = row_count;
   return jsonb_build_object('closed', n);
 end $function$
