@@ -85,7 +85,7 @@ async function freshLeg({ run, browser, m, n, lang, vp, email, company }) {
     await p.goto(`${SITE}${pre}/supplier`, { waitUntil: 'domcontentloaded' });
     const h1 = await p.locator('h1').first().innerText({ timeout: 20000 }).catch(() => '');
     await shot(p, m, 'step1_supplier_landing');
-    const cta = p.getByRole('link', { name: /Open the supplier portal|بوابة الموردين|بوابة المورد/ }).first();
+    const cta = p.getByRole('link', { name: /Open the supplier portal|بوابة المور/ }).first();
     const ctaSeen = await cta.isVisible().catch(() => false);
     if (ctaSeen) await cta.click();
     await p.waitForURL(/\/portal/, { timeout: 20000 }).catch(() => {});
@@ -173,10 +173,18 @@ async function freshLeg({ run, browser, m, n, lang, vp, email, company }) {
     writeFileSync(prof, demoPdf([['COMPANY PROFILE (ZZ DEMO FIXTURE - NOT A REAL COMPANY)', 14], [company, 12], ['Aluminium windows, doors, curtain walls and glass facades across the UAE.', 11]]));
     writeFileSync(cat, demoPdf([['PRODUCT CATALOGUE (ZZ DEMO FIXTURE - NOT A REAL COMPANY)', 14], [company, 12], ['Sliding windows, casement windows, aluminium doors, shopfronts, skylights.', 11]]));
     const tLic = Date.now();
+    // Timed by its own request: the PDF is rendered to page images IN THE BROWSER first (fileToImages), then
+    // process_docs is sent. reqMs - 0 is the client's part, resMs - reqMs the server's.
+    let reqMs = -1, resMs = -1;
+    const isLic = (r) => /\/functions\/v1\/supplier_api/.test(r.url()) && /"process_docs"/.test(r.postData() || '') && /"license"/.test(r.postData() || '');
+    const onReq = (r) => { if (reqMs < 0 && isLic(r)) reqMs = Date.now() - tLic; };
+    const onRes = (r) => { if (resMs < 0 && isLic(r.request())) resMs = Date.now() - tLic; };
+    p.on('request', onReq); p.on('response', onRes);
     await M.locator('input[type=file]').nth(0).setInputFiles(lic);
-    await M.getByText(/Reading your licence|جارٍ قراءة/).first().waitFor({ state: 'detached', timeout: 120000 }).catch(() => {});
+    await M.getByText(/^(Reading licence…|جارٍ قراءة)/).first().waitFor({ timeout: 10000 }).catch(() => {});
+    await M.getByText(/^(Reading licence…|جارٍ قراءة)/).first().waitFor({ state: 'detached', timeout: 180000 }).catch(() => {});
     const licRow = await waitFor(async () => { const x = (await read(`select license_doc_path from public.leads where id=${lead.id}`))[0]; return x?.license_doc_path ? x : null; }, { timeoutMs: 60000 }).catch(() => null);
-    const licMs = Date.now() - tLic;
+    const licMs = Date.now() - tLic; p.off('request', onReq); p.off('response', onRes);
     const mobileOk = await M.getByText(/Mobile verified|تم التحقق من الجوال/).first().isVisible().catch(() => false);
     await M.getByRole('textbox', { name: /Contact name|جهة الاتصال/ }).first().fill('ZZ DEMO Contact');
 
@@ -198,7 +206,7 @@ async function freshLeg({ run, browser, m, n, lang, vp, email, company }) {
         (select count(*)::int from storage.objects o where o.bucket_id='supplier-docs' and o.name = any(coalesce(l.catalog_doc_paths,'{}'))) cat_obj
       from public.leads l where id=${lead.id}`))[0];
     jstep(m, 4, 'company profile upload completes (stored, object in supplier-docs)', done && !!docs?.prof && docs.prof_obj === 1, submitMs + licMs,
-      `licence ${licRow ? 'stored' : 'NOT stored'} in ${licMs} ms; Submit ended in ${submitMs} ms${hung ? ' — STILL "Submitting…"' : ''}${alertTxt ? ' — alert: ' + alertTxt.slice(0, 160) : ''}; profile ${docs?.prof || 'none'} (object ${docs?.prof_obj})`);
+      `licence ${licRow ? 'stored' : 'NOT stored'} in ${licMs} ms (request sent at ${reqMs} ms after the file was picked, answered at ${resMs} ms); Submit ended in ${submitMs} ms${hung ? ' — STILL "Submitting…"' : ''}${alertTxt ? ' — alert: ' + alertTxt.slice(0, 160) : ''}; profile ${docs?.prof || 'none'} (object ${docs?.prof_obj})`);
     jstep(m, 5, 'catalogue upload completes (stored, object in supplier-docs)', done && docs?.cats >= 1 && docs.cat_obj >= 1, submitMs,
       `catalog_doc_paths ${docs?.cats}, objects ${docs?.cat_obj}`);
     for (const d of await read(`select license_doc_path p from public.leads where id=${lead.id} union all select company_profile_doc_path from public.leads where id=${lead.id} union all select unnest(catalog_doc_paths) from public.leads where id=${lead.id}`)) if (d.p) run.ids.storage.push('supplier-docs/' + d.p);
@@ -230,10 +238,29 @@ async function freshLeg({ run, browser, m, n, lang, vp, email, company }) {
     const confirm = M.getByRole('button', { name: /^(Confirm my services|Update my services|تأكيد خدماتي|تحديث خدماتي)$/ });
     const canConfirm = await confirm.isEnabled().catch(() => false);
     // The server's own answer to the confirm is kept, so a refusal is named by its code, not only by the screen.
-    const saveAns = canConfirm ? p.waitForResponse((r) => /\/functions\/v1\/supplier_api/.test(r.url()) && /services_save_rewrite/.test(r.request().postData() || ''), { timeout: 90000 })
-      .then(async (r) => `HTTP ${r.status()} ${(await r.text().catch(() => '')).slice(0, 300)}`).catch((e) => 'no answer: ' + String(e.message).slice(0, 80)) : Promise.resolve('not pressed');
+    // A request the BROWSER gives up on (its own abort, or a dropped connection) never produces a response, so it is
+    // caught as requestfailed with the browser's reason and the moment, rather than read as "no answer".
+    const isSave = (r) => /\/functions\/v1\/supplier_api/.test(r.url()) && /services_save_rewrite/.test(r.postData() || '');
+    // net::ERR_FAILED is also how Chromium reports a CORS refusal (a response it was given but may not read). The
+    // network layer's own view is kept: the status it received, the response headers, and the CORS or block reason.
+    const cdp = (process.env.QD_WALK_CDP !== '0') ? await ctx.newCDPSession(p).catch(() => null) : null;
+    // Every supplier_api request after the click is followed (postData is not always on the CDP event); the save is the
+    // one in flight longest, so the report names each request's outcome and time.
+    const net = { reqs: new Map(), t0: 0 };
+    if (cdp) {
+      await cdp.send('Network.enable').catch(() => {});
+      cdp.on('Network.requestWillBeSent', (e) => { if (net.t0 && /\/functions\/v1\/supplier_api/.test(e.request.url) && e.request.method === 'POST') net.reqs.set(e.requestId, { sent_ms: Date.now() - net.t0 }); });
+      cdp.on('Network.responseReceived', (e) => { const r = net.reqs.get(e.requestId); if (r) Object.assign(r, { status: e.response.status, at_ms: Date.now() - net.t0, acao: e.response.headers['access-control-allow-origin'] ?? null, proto: e.response.protocol }); });
+      cdp.on('Network.loadingFailed', (e) => { const r = net.reqs.get(e.requestId); if (r) Object.assign(r, { failed: e.errorText, canceled: e.canceled, blocked: e.blockedReason, cors: e.corsErrorStatus?.corsError, at_ms: Date.now() - net.t0 }); });
+      cdp.on('Network.loadingFinished', (e) => { const r = net.reqs.get(e.requestId); if (r && !r.at_ms) r.at_ms = Date.now() - net.t0; });
+    }
+    const tSave = Date.now(); net.t0 = tSave;
+    const saveAns = canConfirm ? Promise.race([
+      p.waitForResponse((r) => isSave(r.request()), { timeout: 150000 }).then(async (r) => `HTTP ${r.status()} after ${Date.now() - tSave} ms ${(await r.text().catch(() => '')).slice(0, 240)}`),
+      p.waitForEvent('requestfailed', { predicate: isSave, timeout: 150000 }).then((r) => `request FAILED in the browser after ${Date.now() - tSave} ms: ${r.failure()?.errorText}`),
+    ]).catch((e) => 'no answer: ' + String(e.message).slice(0, 80)) : Promise.resolve('not pressed');
     if (canConfirm) await confirm.click();
-    const savedAns = await saveAns;
+    const savedAns = await saveAns + (cdp ? ` | network: ${JSON.stringify([...net.reqs.values()])}` : '');
     const savedNote = await M.getByText(/^Saved\. Your services are confirmed|^تم الحفظ/).first().waitFor({ timeout: 30000 }).then(() => true).catch(() => false);
     await shot(p, m, 'step6_services_confirmed');
     const capn = (await read(`select count(*)::int n from public.supplier_capability_confirmation where supplier_id=${lead.id}`))[0].n;
