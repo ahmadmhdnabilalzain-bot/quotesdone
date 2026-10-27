@@ -26,7 +26,20 @@ export async function readSpace(admin: Admin): Promise<Space> {
 
 let cred: { v: string; at: number } | null = null;
 
-export async function embedQueryMlRemote(admin: Admin, text: string, caller: string, timeoutMs: number): Promise<number[] | null> {
+export function embedQueryMlRemote(admin: Admin, text: string, caller: string, timeoutMs: number): Promise<number[] | null> {
+  return embedRemote(admin, text, caller, timeoutMs, 'ml');
+}
+/**
+ * gte-small ASKED FROM OUTSIDE THE EDGE RUNTIME (ceo, ledger 1003 stage 2, 19 Oct 2026). gte_embed.embedLine needs
+ * Supabase.ai, which only an edge worker has; a run of think() from Deno on a machine (the seat exam) got null for
+ * every gte vector, so fn_reason_retrieve_ml ranked by the multilingual space alone, where 268 of 268 marketing pack
+ * rows (and 4,910 of 6,102 sales rows) had no vector yet. Measured: marketing-exam-04's entry ranked 1st fused, absent
+ * ml-only. The SAME model answers here (embed_ml action 'gte', Supabase's own gte-small), so the space never mixes.
+ */
+export function embedGteRemote(admin: Admin, text: string, caller: string, timeoutMs: number): Promise<number[] | null> {
+  return embedRemote(admin, text, caller, timeoutMs, 'gte');
+}
+async function embedRemote(admin: Admin, text: string, caller: string, timeoutMs: number, space: Space): Promise<number[] | null> {
   const t = String(text ?? '').trim();
   if (!t) return null;
   try {
@@ -37,12 +50,12 @@ export async function embedQueryMlRemote(admin: Admin, text: string, caller: str
     }
     const r = await fetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/embed_ml', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: cred.v, fn: caller, action: 'query', text: t }),
+      body: JSON.stringify({ __secret: cred.v, fn: caller, action: space === 'ml' ? 'query' : 'gte', text: t }),
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!r.ok) return null;
     const j = await r.json();
     const v = typeof j?.embedding === 'string' ? JSON.parse(j.embedding) : null;
-    return Array.isArray(v) && v.length === 384 && j.space === 'ml' ? v as number[] : null;
+    return Array.isArray(v) && v.length === 384 && j.space === space ? v as number[] : null;
   } catch (_e) { return null; }
 }

@@ -63,6 +63,17 @@ test('landscaping area_sqm is the garden area, not the built-up area, in both la
   assert.match(factSheet('flooring', {}).answerFor({ missing_keys: ['area_sqm'] }), /built-up/, 'other trades keep the built-up area');
 });
 
+// Run 0a717394 (19 Oct 2026): C9 held 'specs_unanswered: area' - waterproofing `area` got the built-up size.
+test('waterproofing area names the part (an option), area_sqm keeps the size, in both languages', () => {
+  for (const lang of ['en', 'ar']) {
+    const f = factSheet('waterproofing', { lang });
+    assert.match(f.answerFor({ missing_keys: ['area'] }), /^area: .*Roof/);
+    assert.doesNotMatch(f.answerFor({ missing_keys: ['area'] }), /450|built-up|مبنية/);
+    assert.match(f.answerFor({ missing_keys: ['area_sqm'] }), /450/);
+  }
+  assert.match(factSheet('flooring', {}).answerFor({ missing_keys: ['area'] }), /built-up/, 'other trades keep the size under area');
+});
+
 test('a question text, never a key, gets the whole sheet, not filler', () => {
   const a = factSheet('aluminium', { emirate: 'Ajman' }).answerFor({ missing: ['Any preference for the glass? Tap one.'] });
   assert.match(a, /location: Villa in Ajman/);

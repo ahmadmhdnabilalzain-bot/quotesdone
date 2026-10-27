@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-19T12:47:52.459Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-27T04:48:56.394Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -79,6 +79,7 @@ CREATE SEQUENCE IF NOT EXISTS public.competitive_position_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.competitor_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.competitor_scan_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.compliance_sources_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.contact_merge_audit_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.control_mode_audit_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.customer_calls_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.dead_letter_id_seq;
@@ -217,7 +218,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (736) =====
+-- ===== TABLES (744) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -1685,6 +1686,21 @@ CREATE TABLE IF NOT EXISTS public.ceo_mandate (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.ceo_market_report (
+  month date NOT NULL,
+  audience text DEFAULT 'internal'::text NOT NULL,
+  facts jsonb NOT NULL,
+  binding jsonb,
+  body text NOT NULL,
+  named_check text,
+  improvement_id bigint,
+  closed_last jsonb,
+  held_id bigint,
+  notify jsonb,
+  include_demo boolean DEFAULT false NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.ceo_month_close (
   month date NOT NULL,
   seat text NOT NULL,
@@ -2350,6 +2366,35 @@ CREATE TABLE IF NOT EXISTS public.compliance_sources (
   fetch_mode text DEFAULT 'direct'::text NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.contact_duplicate_group (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  run_on date DEFAULT CURRENT_DATE NOT NULL,
+  identity_key text NOT NULL,
+  kinds text[] NOT NULL,
+  members jsonb NOT NULL,
+  member_count integer NOT NULL,
+  phone_confirms boolean DEFAULT false NOT NULL,
+  all_demo boolean NOT NULL,
+  status text DEFAULT 'reported'::text NOT NULL,
+  handed_to_seat text,
+  merged_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.contact_merge_audit (
+  id bigint DEFAULT nextval('contact_merge_audit_id_seq'::regclass) NOT NULL,
+  group_id uuid NOT NULL,
+  kind text NOT NULL,
+  winner_id text NOT NULL,
+  loser_id text NOT NULL,
+  reviewed_by_seat text NOT NULL,
+  reason text NOT NULL,
+  before_row jsonb NOT NULL,
+  after_row jsonb NOT NULL,
+  repointed jsonb NOT NULL,
+  at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.contact_messages (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   name text,
@@ -2703,7 +2748,14 @@ CREATE TABLE IF NOT EXISTS public.customers (
   whatsapp_verified_at timestamp with time zone,
   whatsapp_opt text,
   whatsapp_asked_at timestamp with time zone,
-  tos_sha256 text
+  tos_sha256 text,
+  merged_into uuid,
+  merged_at timestamp with time zone,
+  disputes_filed integer DEFAULT 0 NOT NULL,
+  repeat_disputer boolean GENERATED ALWAYS AS ((disputes_filed >= 2)) STORED,
+  marketing_consent boolean DEFAULT false NOT NULL,
+  marketing_consent_at timestamp with time zone,
+  marketing_consent_source text
 );
 
 CREATE TABLE IF NOT EXISTS public.dead_letter (
@@ -3872,7 +3924,8 @@ CREATE TABLE IF NOT EXISTS public.inquiries (
   spec_offer_attempts integer DEFAULT 0 NOT NULL,
   spec_offer_next_attempt_at timestamp with time zone,
   service_keys text[],
-  lang text
+  lang text,
+  repeat_of uuid
 );
 
 CREATE TABLE IF NOT EXISTS public.inquiry_answer (
@@ -4921,6 +4974,34 @@ CREATE TABLE IF NOT EXISTS public.knowledge_kpi_snapshots (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.knowledge_library (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  origin_store text NOT NULL,
+  origin_id text NOT NULL,
+  title text,
+  content text NOT NULL,
+  content_md5 text GENERATED ALWAYS AS (md5(content)) STORED,
+  trade text,
+  tags text[] DEFAULT '{}'::text[] NOT NULL,
+  seats text[] NOT NULL,
+  lang text DEFAULT 'en'::text NOT NULL,
+  source_ref text,
+  source_ids text[] DEFAULT '{}'::text[] NOT NULL,
+  verified boolean DEFAULT false NOT NULL,
+  runtime_eligible boolean DEFAULT true NOT NULL,
+  embedding_gte vector(384),
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.knowledge_library_origin (
+  origin_store text NOT NULL,
+  origin_id text NOT NULL,
+  library_id bigint NOT NULL,
+  source_ref text,
+  source_ids text[] DEFAULT '{}'::text[] NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.knowledge_ml_claim (
   src text NOT NULL,
   row_id text NOT NULL,
@@ -5207,7 +5288,12 @@ CREATE TABLE IF NOT EXISTS public.leads (
   registration_payment_ref text,
   registration_amount_aed numeric(12,2),
   accepted_terms_user_agent text,
-  licence_legal_name text
+  licence_legal_name text,
+  merged_into bigint,
+  merged_at timestamp with time zone,
+  marketing_consent boolean DEFAULT false NOT NULL,
+  marketing_consent_at timestamp with time zone,
+  marketing_consent_source text
 );
 
 CREATE TABLE IF NOT EXISTS public.legal_checklist (
@@ -7761,6 +7847,13 @@ CREATE TABLE IF NOT EXISTS public.regulations (
   supersedes_id bigint
 );
 
+CREATE TABLE IF NOT EXISTS public.rehearsal_spend_reservation (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  e2e_run_tag text NOT NULL,
+  reserved_usd numeric NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.rehearsal_window (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   run_tag text NOT NULL,
@@ -7768,7 +7861,7 @@ CREATE TABLE IF NOT EXISTS public.rehearsal_window (
   started_at timestamp with time zone DEFAULT now() NOT NULL,
   ended_at timestamp with time zone,
   note text,
-  models_allowed boolean DEFAULT false NOT NULL,
+  models_allowed boolean DEFAULT true NOT NULL,
   cap_usd numeric DEFAULT 4 NOT NULL,
   expires_at timestamp with time zone DEFAULT (now() + '02:00:00'::interval) NOT NULL
 );
@@ -8341,6 +8434,35 @@ CREATE TABLE IF NOT EXISTS public.seat_duty_skip (
   skips integer DEFAULT 0 NOT NULL,
   first_skipped_at timestamp with time zone DEFAULT now() NOT NULL,
   last_skipped_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.seat_exam_asked (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  run_tag text NOT NULL,
+  asked_at timestamp with time zone DEFAULT now() NOT NULL,
+  seat text NOT NULL,
+  item_id text NOT NULL,
+  wording text NOT NULL,
+  answer text,
+  model text,
+  status text NOT NULL,
+  pass boolean NOT NULL,
+  graded_by text NOT NULL,
+  missing text[] DEFAULT '{}'::text[] NOT NULL,
+  fix_id bigint
+);
+
+CREATE TABLE IF NOT EXISTS public.seat_exam_fix (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  seat text NOT NULL,
+  item_id text NOT NULL,
+  opened_at timestamp with time zone DEFAULT now() NOT NULL,
+  opened_run text NOT NULL,
+  kind text,
+  fix_ref text,
+  status text DEFAULT 'open'::text NOT NULL,
+  closed_at timestamp with time zone,
+  closed_by_asked_id bigint
 );
 
 CREATE TABLE IF NOT EXISTS public.seat_exam_item (
@@ -10275,6 +10397,7 @@ ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_pkey PRIMARY K
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_pkey PRIMARY KEY (record_id);
 ALTER TABLE public.ceo_launch_gate ADD CONSTRAINT ceo_launch_gate_pkey PRIMARY KEY (week);
 ALTER TABLE public.ceo_mandate ADD CONSTRAINT ceo_mandate_pkey PRIMARY KEY (clause_key);
+ALTER TABLE public.ceo_market_report ADD CONSTRAINT ceo_market_report_pkey PRIMARY KEY (month, include_demo);
 ALTER TABLE public.ceo_month_close ADD CONSTRAINT ceo_month_close_pkey PRIMARY KEY (month, seat);
 ALTER TABLE public.ceo_month_report ADD CONSTRAINT ceo_month_report_pkey PRIMARY KEY (month);
 ALTER TABLE public.ceo_plan ADD CONSTRAINT ceo_plan_pkey PRIMARY KEY (id);
@@ -10324,6 +10447,8 @@ ALTER TABLE public.competitor ADD CONSTRAINT competitor_pkey PRIMARY KEY (id);
 ALTER TABLE public.competitor_scan ADD CONSTRAINT competitor_scan_pkey PRIMARY KEY (id);
 ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_pkey PRIMARY KEY (id);
 ALTER TABLE public.compliance_sources ADD CONSTRAINT compliance_sources_pkey PRIMARY KEY (id);
+ALTER TABLE public.contact_duplicate_group ADD CONSTRAINT contact_duplicate_group_pkey PRIMARY KEY (id);
+ALTER TABLE public.contact_merge_audit ADD CONSTRAINT contact_merge_audit_pkey PRIMARY KEY (id);
 ALTER TABLE public.contact_messages ADD CONSTRAINT contact_messages_pkey PRIMARY KEY (id);
 ALTER TABLE public.content_drafts ADD CONSTRAINT content_drafts_pkey PRIMARY KEY (id);
 ALTER TABLE public.continuity_plan ADD CONSTRAINT continuity_plan_pkey PRIMARY KEY (service);
@@ -10533,6 +10658,8 @@ ALTER TABLE public.knowledge_exam_results ADD CONSTRAINT knowledge_exam_results_
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_pkey PRIMARY KEY (run_id);
 ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_undo_pkey PRIMARY KEY (run_id, table_name, key);
 ALTER TABLE public.knowledge_kpi_snapshots ADD CONSTRAINT knowledge_kpi_snapshots_pkey PRIMARY KEY (id);
+ALTER TABLE public.knowledge_library ADD CONSTRAINT knowledge_library_pkey PRIMARY KEY (id);
+ALTER TABLE public.knowledge_library_origin ADD CONSTRAINT knowledge_library_origin_pkey PRIMARY KEY (origin_store, origin_id);
 ALTER TABLE public.knowledge_ml_claim ADD CONSTRAINT knowledge_ml_claim_pkey PRIMARY KEY (src, row_id);
 ALTER TABLE public.knowledge_ml_status ADD CONSTRAINT knowledge_ml_status_pkey PRIMARY KEY (id);
 ALTER TABLE public.knowledge_module_standard ADD CONSTRAINT knowledge_module_standard_pkey PRIMARY KEY (module);
@@ -10722,6 +10849,7 @@ ALTER TABLE public.refund_status_transition ADD CONSTRAINT refund_status_transit
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_pkey PRIMARY KEY (id);
 ALTER TABLE public.reg_catalog ADD CONSTRAINT reg_catalog_pkey PRIMARY KEY (id);
 ALTER TABLE public.regulations ADD CONSTRAINT regulations_pkey PRIMARY KEY (id);
+ALTER TABLE public.rehearsal_spend_reservation ADD CONSTRAINT rehearsal_spend_reservation_pkey PRIMARY KEY (id);
 ALTER TABLE public.rehearsal_window ADD CONSTRAINT rehearsal_window_pkey PRIMARY KEY (id);
 ALTER TABLE public.removed_trigger_log ADD CONSTRAINT removed_trigger_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.resilience_step ADD CONSTRAINT resilience_step_pkey PRIMARY KEY (step);
@@ -10766,6 +10894,8 @@ ALTER TABLE public.seat_deliberation_ceiling ADD CONSTRAINT seat_deliberation_ce
 ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_pkey PRIMARY KEY (id);
 ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_pkey PRIMARY KEY (duty);
 ALTER TABLE public.seat_duty_skip ADD CONSTRAINT seat_duty_skip_pkey PRIMARY KEY (duty);
+ALTER TABLE public.seat_exam_asked ADD CONSTRAINT seat_exam_asked_pkey PRIMARY KEY (id);
+ALTER TABLE public.seat_exam_fix ADD CONSTRAINT seat_exam_fix_pkey PRIMARY KEY (id);
 ALTER TABLE public.seat_exam_item ADD CONSTRAINT seat_exam_item_pkey PRIMARY KEY (seat, item_id);
 ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_pkey PRIMARY KEY (type, from_seat, to_seat);
 ALTER TABLE public.seat_judgement ADD CONSTRAINT seat_judgement_pkey PRIMARY KEY (id);
@@ -10924,6 +11054,7 @@ ALTER TABLE public.comparison_run_v2 ADD CONSTRAINT comparison_run_v2_inquiry_id
 ALTER TABLE public.competitive_position ADD CONSTRAINT competitive_position_dimension_key UNIQUE (dimension);
 ALTER TABLE public.competitor ADD CONSTRAINT competitor_name_key UNIQUE (name);
 ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_ticket_no_key UNIQUE (ticket_no);
+ALTER TABLE public.contact_duplicate_group ADD CONSTRAINT contact_duplicate_group_run_on_identity_key_key UNIQUE (run_on, identity_key);
 ALTER TABLE public.customer_followup ADD CONSTRAINT customer_followup_token_key UNIQUE (token);
 ALTER TABLE public.customer_followup ADD CONSTRAINT customer_followup_transaction_id_stage_key UNIQUE (transaction_id, stage);
 ALTER TABLE public.decision_review_request ADD CONSTRAINT decision_review_request_dedupe_key_key UNIQUE (dedupe_key);
@@ -10958,6 +11089,7 @@ ALTER TABLE public.it_hold_signature ADD CONSTRAINT it_hold_signature_subject_co
 ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_handoff_id_key UNIQUE (handoff_id);
 ALTER TABLE public.kb_operational_route ADD CONSTRAINT kb_operational_route_route_key_key UNIQUE (route_key);
 ALTER TABLE public.kb_revisions ADD CONSTRAINT kb_revisions_entry_kind_entry_ref_version_key UNIQUE (entry_kind, entry_ref, version);
+ALTER TABLE public.knowledge_library ADD CONSTRAINT knowledge_library_origin_uq UNIQUE (origin_store, origin_id);
 ALTER TABLE public.leads ADD CONSTRAINT leads_place_id_key UNIQUE (place_id);
 ALTER TABLE public.legal_checklist ADD CONSTRAINT legal_checklist_requirement_key UNIQUE (requirement);
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_lead_id_expiry_date_band_channel_key UNIQUE (lead_id, expiry_date, band, channel);
@@ -11091,6 +11223,7 @@ ALTER TABLE public.ad_spend_reported ADD CONSTRAINT ad_spend_reported_revisions_
 ALTER TABLE public.ad_spend_reported ADD CONSTRAINT ad_spend_reported_source_ref_check CHECK ((btrim(source_ref) <> ''::text));
 ALTER TABLE public.agent_action_kind_policy ADD CONSTRAINT agent_action_kind_policy_policy_check CHECK ((policy = ANY (ARRAY['auto'::text, 'officer'::text, 'notify'::text])));
 ALTER TABLE public.agent_actions ADD CONSTRAINT agent_actions_handoff_carries_its_note CHECK (((kind <> 'handoff'::text) OR (COALESCE((detail -> 'summary'::text), '{}'::jsonb) ?& ARRAY['known'::text, 'tried'::text, 'needed'::text, 'evidence'::text]))) NOT VALID;
+ALTER TABLE public.agent_actions ADD CONSTRAINT agent_actions_handoff_note_states_four_fields CHECK (((kind <> 'handoff'::text) OR (COALESCE((detail -> 'summary'::text), '{}'::jsonb) ?& ARRAY['context'::text, 'decision'::text, 'open_asks'::text, 'deadline'::text]))) NOT VALID;
 ALTER TABLE public.agent_chats ADD CONSTRAINT agent_chats_role_check CHECK ((role = ANY (ARRAY['user'::text, 'assistant'::text])));
 ALTER TABLE public.agent_knowledge ADD CONSTRAINT agent_knowledge_layer_check CHECK ((layer = ANY (ARRAY['company'::text, 'profession'::text, 'state'::text, 'experience'::text])));
 ALTER TABLE public.agent_memory ADD CONSTRAINT agent_memory_horizon_check CHECK ((horizon = ANY (ARRAY['short'::text, 'long'::text])));
@@ -11170,7 +11303,7 @@ ALTER TABLE public.ceo_experiment ADD CONSTRAINT ceo_experiment_key_check CHECK 
 ALTER TABLE public.ceo_experiment ADD CONSTRAINT ceo_experiment_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'approved'::text, 'running'::text, 'rejected'::text, 'kept'::text, 'killed'::text])));
 ALTER TABLE public.ceo_experiment_verdict ADD CONSTRAINT ceo_experiment_verdict_decision_check CHECK ((decision = ANY (ARRAY['kept'::text, 'killed'::text, 'iterated'::text])));
 ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_proposal_check CHECK ((btrim(proposal) <> ''::text));
-ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_source_kind_check CHECK ((source_kind = ANY (ARRAY['recurring_miss'::text, 'month_miss'::text, 'lesson'::text, 'recurring_finding'::text, 'binding_constraint'::text, 'marketing_plan_late'::text, 'seat_audit'::text, 'funnel_stage_drop'::text, 'weekly_review'::text, 'self_review'::text])));
+ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_source_kind_check CHECK ((source_kind = ANY (ARRAY['recurring_miss'::text, 'month_miss'::text, 'lesson'::text, 'recurring_finding'::text, 'binding_constraint'::text, 'marketing_plan_late'::text, 'seat_audit'::text, 'funnel_stage_drop'::text, 'weekly_review'::text, 'self_review'::text, 'market_report'::text])));
 ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_status_check CHECK ((status = ANY (ARRAY['open'::text, 'assigned'::text, 'done'::text, 'dropped'::text])));
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_exec_ck CHECK ((external_execution_enabled = false));
@@ -11180,6 +11313,7 @@ ALTER TABLE public.ceo_launch_gate ADD CONSTRAINT ceo_launch_gate_verdict_check 
 ALTER TABLE public.ceo_mandate ADD CONSTRAINT ceo_mandate_clause_key_check CHECK ((clause_key ~ '^[a-z0-9_]+$'::text));
 ALTER TABLE public.ceo_mandate ADD CONSTRAINT ceo_mandate_kind_check CHECK ((kind = ANY (ARRAY['target'::text, 'cost_ceiling'::text, 'hard_rule'::text, 'decision_right'::text, 'reporting'::text])));
 ALTER TABLE public.ceo_mandate ADD CONSTRAINT ceo_mandate_statement_check CHECK ((btrim(statement) <> ''::text));
+ALTER TABLE public.ceo_market_report ADD CONSTRAINT ceo_market_report_audience_check CHECK ((audience = 'internal'::text));
 ALTER TABLE public.ceo_month_close ADD CONSTRAINT ceo_month_close_verdict_check CHECK ((verdict = ANY (ARRAY['clean'::text, 'gaps'::text])));
 ALTER TABLE public.ceo_month_report ADD CONSTRAINT ceo_month_report_month_check CHECK ((EXTRACT(day FROM month) = (1)::numeric));
 ALTER TABLE public.ceo_plan ADD CONSTRAINT ceo_plan_decided_by_check CHECK ((decided_by = ANY (ARRAY['plan_c_code'::text, 'model'::text])));
@@ -11232,6 +11366,8 @@ ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_email_chec
 ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_handled_by_check CHECK ((handled_by = ANY (ARRAY['customer_support'::text, 'ceo'::text])));
 ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_status_check CHECK ((status = ANY (ARRAY['acknowledged'::text, 'in_review'::text, 'final_response'::text])));
 ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_ticket_no_check CHECK ((ticket_no ~ '^QD-C-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{6}$'::text));
+ALTER TABLE public.contact_duplicate_group ADD CONSTRAINT contact_duplicate_group_status_check CHECK ((status = ANY (ARRAY['reported'::text, 'handed_to_seat'::text, 'merged'::text])));
+ALTER TABLE public.contact_merge_audit ADD CONSTRAINT contact_merge_audit_kind_check CHECK ((kind = ANY (ARRAY['lead'::text, 'customer'::text])));
 ALTER TABLE public.control_mode_action ADD CONSTRAINT control_mode_action_classification_chk CHECK ((classification = ANY (ARRAY['read_only'::text, 'mutating'::text, 'mode_control'::text, 'founder_gated'::text])));
 ALTER TABLE public.control_mode_action ADD CONSTRAINT control_mode_action_founder_gated_pinned CHECK (((classification <> 'founder_gated'::text) OR (action = ANY (ARRAY['founder_command'::text, 'founder_command_control'::text, 'founder_command_clarify'::text]))));
 ALTER TABLE public.control_mode_action ADD CONSTRAINT control_mode_action_mode_control_pinned CHECK (((classification <> 'mode_control'::text) OR (action = ANY (ARRAY['control_mode_status'::text, 'control_mode_open'::text, 'control_mode_close'::text, 'control_mode_challenge'::text]))));
@@ -11401,8 +11537,10 @@ ALTER TABLE public.kb_trim_plan ADD CONSTRAINT kb_trim_plan_clause_check CHECK (
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_generation_check CHECK ((generation = ANY (ARRAY['V1'::text, 'V2'::text, 'V3'::text])));
 ALTER TABLE public.knowledge_ingestion_run ADD CONSTRAINT knowledge_ingestion_run_status_check CHECK ((status = ANY (ARRAY['running'::text, 'ok'::text, 'failed'::text, 'rolled_back'::text])));
 ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_undo_table_name_check CHECK ((table_name = ANY (ARRAY['ops_knowledge'::text, 'agent_training_case'::text])));
+ALTER TABLE public.knowledge_library ADD CONSTRAINT knowledge_library_seats_ck CHECK ((cardinality(seats) > 0));
+ALTER TABLE public.knowledge_library ADD CONSTRAINT knowledge_library_store_ck CHECK ((origin_store = ANY (ARRAY['kb_chunks'::text, 'ops_knowledge'::text, 'agent_knowledge'::text, 'sales_knowledge'::text, 'accountant_knowledge'::text, 'it_engineer_knowledge'::text, 'marketing_knowledge'::text, 'ceo_knowledge'::text, 'support_knowledge'::text])));
 ALTER TABLE public.knowledge_ml_status ADD CONSTRAINT knowledge_ml_status_id_check CHECK (id);
-ALTER TABLE public.knowledge_vector_ml ADD CONSTRAINT knowledge_vector_ml_src_check CHECK ((src = ANY (ARRAY['seat_case_memory'::text, 'ceo_knowledge'::text, 'support_knowledge'::text, 'accountant_knowledge'::text, 'it_engineer_knowledge'::text, 'marketing_knowledge'::text, 'sales_knowledge'::text, 'company_faq'::text, 'agent_knowledge'::text, 'ops_knowledge'::text, 'reasoning_knowledge_candidate'::text, 'kb_chunks'::text])));
+ALTER TABLE public.knowledge_vector_ml ADD CONSTRAINT knowledge_vector_ml_src_check CHECK ((src = ANY (ARRAY['seat_case_memory'::text, 'ceo_knowledge'::text, 'support_knowledge'::text, 'accountant_knowledge'::text, 'it_engineer_knowledge'::text, 'marketing_knowledge'::text, 'sales_knowledge'::text, 'company_faq'::text, 'agent_knowledge'::text, 'ops_knowledge'::text, 'reasoning_knowledge_candidate'::text, 'kb_chunks'::text, 'knowledge_library'::text])));
 ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_field_sources_check CHECK ((jsonb_typeof(field_sources) = 'object'::text));
 ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_status_check CHECK ((status = ANY (ARRAY['complete'::text, 'incomplete'::text, 'duplicate'::text, 'suppressed'::text, 'promoted'::text])));
 ALTER TABLE public.lead_sourcing_run ADD CONSTRAINT lead_sourcing_run_kind_check CHECK ((kind = ANY (ARRAY['batch'::text, 'pilot'::text, 'probe'::text])));
@@ -11506,7 +11644,7 @@ ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_re
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_names_its_subject CHECK (((campaign_id IS NOT NULL) OR (month IS NOT NULL)));
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_status_check CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'superseded'::text])));
-ALTER TABLE public.marketing_gap_recruitment_plan ADD CONSTRAINT marketing_gap_recruitment_plan_check CHECK (((invite_body ~~ '%{{link}}%'::text) AND (invite_body !~ '[؀-ۿ]'::text) AND (invite_subject !~ '[؀-ۿ]'::text)));
+ALTER TABLE public.marketing_gap_recruitment_plan ADD CONSTRAINT marketing_gap_recruitment_plan_check CHECK (((invite_body !~* '(https?://|www\.|\{\{link\}\})'::text) AND (invite_body !~ '[؀-ۿ]'::text) AND (invite_subject !~ '[؀-ۿ]'::text)));
 ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_engine_check CHECK ((engine = ANY (ARRAY['web'::text, 'model'::text, 'answer_search'::text, 'answer_online'::text])));
 ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_month_check CHECK ((EXTRACT(day FROM month) = (1)::numeric));
 ALTER TABLE public.marketing_geo_question ADD CONSTRAINT marketing_geo_question_audience_check CHECK ((audience = ANY (ARRAY['customer'::text, 'supplier'::text])));
@@ -11792,6 +11930,7 @@ ALTER TABLE public.refunds ADD CONSTRAINT refunds_currency_check CHECK ((currenc
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_reason_code_check CHECK ((reason_code = ANY (ARRAY['supplier_unresponsive'::text, 'supplier_withdrew'::text, 'duplicate_charge'::text, 'customer_cancelled_in_window'::text, 'service_not_delivered'::text, 'fraud_or_dispute'::text, 'goodwill'::text, 'other'::text])));
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_settled_needs_amount CHECK (((status <> 'succeeded'::text) OR (amount_fils IS NOT NULL) OR (reconciliation_note IS NOT NULL)));
 ALTER TABLE public.refunds ADD CONSTRAINT refunds_status_check CHECK ((status = ANY (ARRAY['requested'::text, 'approved'::text, 'rejected'::text, 'processing'::text, 'succeeded'::text, 'failed'::text, 'cancelled'::text])));
+ALTER TABLE public.rehearsal_spend_reservation ADD CONSTRAINT rehearsal_spend_reservation_reserved_usd_check CHECK ((reserved_usd > (0)::numeric));
 ALTER TABLE public.rehearsal_window ADD CONSTRAINT rehearsal_window_at_most_two_hours CHECK ((expires_at <= (started_at + '02:01:00'::interval))) NOT VALID;
 ALTER TABLE public.rehearsal_window ADD CONSTRAINT rehearsal_window_cap_is_small CHECK (((cap_usd > (0)::numeric) AND (cap_usd <= (15)::numeric))) NOT VALID;
 ALTER TABLE public.resilience_step ADD CONSTRAINT resilience_step_budget_ms_check CHECK ((budget_ms > 0));
@@ -11848,6 +11987,10 @@ ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_every_check CHECK ((every 
 ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_owner_file_check CHECK ((owner_file ~ '^scripts/sql/[a-z0-9_]+\.sql$'::text));
 ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_routine_check CHECK ((routine ~ '^fn_[a-z0-9_]+$'::text));
 ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_what_check CHECK ((btrim(what) <> ''::text));
+ALTER TABLE public.seat_exam_asked ADD CONSTRAINT seat_exam_asked_graded_by_check CHECK ((graded_by = ANY (ARRAY['code'::text, 'claude'::text])));
+ALTER TABLE public.seat_exam_fix ADD CONSTRAINT seat_exam_fix_check CHECK (((status = 'closed'::text) = ((closed_at IS NOT NULL) AND (closed_by_asked_id IS NOT NULL) AND (fix_ref IS NOT NULL))));
+ALTER TABLE public.seat_exam_fix ADD CONSTRAINT seat_exam_fix_kind_check CHECK ((kind = ANY (ARRAY['knowledge_ingest'::text, 'prompt'::text])));
+ALTER TABLE public.seat_exam_fix ADD CONSTRAINT seat_exam_fix_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text])));
 ALTER TABLE public.seat_exam_item ADD CONSTRAINT seat_exam_item_expected_entry_ids_check CHECK ((cardinality(expected_entry_ids) > 0));
 ALTER TABLE public.seat_exam_item ADD CONSTRAINT seat_exam_item_expected_facts_check CHECK ((cardinality(expected_facts) > 0));
 ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_handler_check CHECK ((handler ~ '^fn_[a-z0-9_]+$'::text));
@@ -12107,6 +12250,7 @@ ALTER TABLE public.company_review_ask ADD CONSTRAINT company_review_ask_transact
 ALTER TABLE public.comparison_run_v2 ADD CONSTRAINT comparison_run_v2_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.competitor_scan ADD CONSTRAINT competitor_scan_competitor_id_fkey FOREIGN KEY (competitor_id) REFERENCES competitor(id) ON DELETE CASCADE;
 ALTER TABLE public.complaint_tickets ADD CONSTRAINT complaint_tickets_contact_message_id_fkey FOREIGN KEY (contact_message_id) REFERENCES contact_messages(id) ON DELETE SET NULL;
+ALTER TABLE public.contact_merge_audit ADD CONSTRAINT contact_merge_audit_group_id_fkey FOREIGN KEY (group_id) REFERENCES contact_duplicate_group(id);
 ALTER TABLE public.continuity_plan ADD CONSTRAINT continuity_plan_service_fkey FOREIGN KEY (service) REFERENCES integration_matrix(service);
 ALTER TABLE public.control_mode_challenge ADD CONSTRAINT control_mode_challenge_admin_email_fkey FOREIGN KEY (admin_email) REFERENCES control_mode_identity(admin_email) ON DELETE CASCADE;
 ALTER TABLE public.control_mode_session ADD CONSTRAINT control_mode_session_mfa_ref_fk FOREIGN KEY (mfa_ref) REFERENCES control_mode_challenge(id) ON DELETE RESTRICT;
@@ -12117,6 +12261,7 @@ ALTER TABLE public.customer_followup ADD CONSTRAINT customer_followup_transactio
 ALTER TABLE public.customer_layout ADD CONSTRAINT customer_layout_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
 ALTER TABLE public.customer_phone_otps ADD CONSTRAINT customer_phone_otps_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE;
 ALTER TABLE public.customer_preference ADD CONSTRAINT customer_preference_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id);
+ALTER TABLE public.customers ADD CONSTRAINT customers_merged_into_fkey FOREIGN KEY (merged_into) REFERENCES customers(id);
 ALTER TABLE public.decision_record ADD CONSTRAINT decision_record_serves_goal_fkey FOREIGN KEY (serves_goal) REFERENCES company_goals(key);
 ALTER TABLE public.decision_review_request ADD CONSTRAINT decision_review_request_decision_type_owner_seat_fkey FOREIGN KEY (decision_type, owner_seat) REFERENCES review_route(decision_type, owner_seat);
 ALTER TABLE public.decision_review_request ADD CONSTRAINT decision_review_request_original_seat_fkey FOREIGN KEY (original_seat) REFERENCES org_role(role_id);
@@ -12167,6 +12312,7 @@ ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_customer_id_fkey FOREIGN K
 ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_hired_supplier_id_fkey FOREIGN KEY (hired_supplier_id) REFERENCES leads(id);
 ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_parent_inquiry_id_fkey FOREIGN KEY (parent_inquiry_id) REFERENCES inquiries(id);
 ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_project_id_fkey FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL;
+ALTER TABLE public.inquiries ADD CONSTRAINT inquiries_repeat_of_fkey FOREIGN KEY (repeat_of) REFERENCES inquiries(id) ON DELETE SET NULL;
 ALTER TABLE public.inquiry_answer ADD CONSTRAINT inquiry_answer_field_id_fkey FOREIGN KEY (field_id) REFERENCES field_definition(field_id);
 ALTER TABLE public.inquiry_answer ADD CONSTRAINT inquiry_answer_group_id_fkey FOREIGN KEY (group_id) REFERENCES inquiry_workstream_group(id) ON DELETE CASCADE;
 ALTER TABLE public.inquiry_answer ADD CONSTRAINT inquiry_answer_superseded_by_fkey FOREIGN KEY (superseded_by) REFERENCES inquiry_answer(id) DEFERRABLE INITIALLY DEFERRED;
@@ -12212,6 +12358,7 @@ ALTER TABLE public.kb_operational_route_map ADD CONSTRAINT kb_operational_route_
 ALTER TABLE public.kb_route_scope_trigger ADD CONSTRAINT kb_route_scope_trigger_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
 ALTER TABLE public.knowledge_exam_results ADD CONSTRAINT knowledge_exam_results_question_id_fkey FOREIGN KEY (question_id) REFERENCES knowledge_exam_questions(id) ON DELETE SET NULL;
 ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_undo_run_id_fkey FOREIGN KEY (run_id) REFERENCES knowledge_ingestion_run(run_id) ON DELETE CASCADE;
+ALTER TABLE public.knowledge_library_origin ADD CONSTRAINT knowledge_library_origin_library_id_fkey FOREIGN KEY (library_id) REFERENCES knowledge_library(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_slug_fkey FOREIGN KEY (slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
 ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_promoted_lead_id_fkey FOREIGN KEY (promoted_lead_id) REFERENCES leads(id) ON DELETE SET NULL;
@@ -12220,6 +12367,7 @@ ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_lead_id_fkey
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_sub_slug_fkey FOREIGN KEY (sub_slug) REFERENCES catalog_subcategories(slug) ON DELETE CASCADE;
 ALTER TABLE public.lead_trade_class ADD CONSTRAINT lead_trade_class_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_trade_map ADD CONSTRAINT lead_trade_map_catalog_slug_fkey FOREIGN KEY (catalog_slug) REFERENCES catalog_supplier_categories(slug);
+ALTER TABLE public.leads ADD CONSTRAINT leads_merged_into_fkey FOREIGN KEY (merged_into) REFERENCES leads(id);
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_answered_by_intake_fkey FOREIGN KEY (answered_by_intake) REFERENCES wa_document_intake(id);
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_class_key_fkey FOREIGN KEY (class_key) REFERENCES llm_failure_class(class_key);
@@ -12331,6 +12479,7 @@ ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_
 ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_reviews_turn_id_fkey FOREIGN KEY (reviews_turn_id) REFERENCES seat_deliberation_turn(id);
 ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_owner_seat_fkey FOREIGN KEY (owner_seat) REFERENCES org_role(role_id);
 ALTER TABLE public.seat_duty_skip ADD CONSTRAINT seat_duty_skip_duty_fkey FOREIGN KEY (duty) REFERENCES seat_duty(duty) ON DELETE CASCADE;
+ALTER TABLE public.seat_exam_asked ADD CONSTRAINT seat_exam_asked_fix_id_fkey FOREIGN KEY (fix_id) REFERENCES seat_exam_fix(id);
 ALTER TABLE public.seat_exam_item ADD CONSTRAINT seat_exam_item_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
@@ -12632,6 +12781,7 @@ CREATE INDEX im_kind_idx ON public.institutional_memory USING btree (kind, occur
 CREATE INDEX im_subject_idx ON public.institutional_memory USING btree (subject_type, subject_id);
 CREATE UNIQUE INDEX inbound_messages_provider_email_id_key ON public.inbound_messages USING btree (provider_email_id) WHERE (provider_email_id IS NOT NULL);
 CREATE INDEX inquiries_project ON public.inquiries USING btree (project_id);
+CREATE INDEX inquiries_repeat_of_idx ON public.inquiries USING btree (repeat_of) WHERE (repeat_of IS NOT NULL);
 CREATE UNIQUE INDEX inquiries_rfq_no_key ON public.inquiries USING btree (rfq_no);
 CREATE UNIQUE INDEX inquiry_answer_conflict_open_uidx ON public.inquiry_answer_conflict USING btree (group_id, field_id) WHERE (resolved_at IS NULL);
 CREATE INDEX inquiry_answer_group_idx ON public.inquiry_answer USING btree (group_id, field_id);
@@ -12640,6 +12790,7 @@ CREATE UNIQUE INDEX inquiry_gate_group_uidx ON public.inquiry_gate USING btree (
 CREATE UNIQUE INDEX inquiry_gate_ws_uidx ON public.inquiry_gate USING btree (workstream_id, gate_key) WHERE (workstream_id IS NOT NULL);
 CREATE INDEX inquiry_intake_customer_idx ON public.inquiry_intake USING btree (customer_id);
 CREATE INDEX inquiry_intake_email_idx ON public.inquiry_intake USING btree (email);
+CREATE UNIQUE INDEX inquiry_intake_one_open_repeat ON public.inquiry_intake USING btree (customer_id, ((brief ->> 'repeat_of'::text))) WHERE ((status = 'ready'::text) AND (brief ? 'repeat_of'::text));
 CREATE INDEX inquiry_intake_status_idx ON public.inquiry_intake USING btree (status);
 CREATE INDEX inquiry_scope_disposition_group_idx ON public.inquiry_scope_disposition USING btree (group_id, trade_key, scope_component);
 CREATE INDEX inquiry_state_audit_group_idx ON public.inquiry_state_audit USING btree (group_id, at DESC);
@@ -12726,8 +12877,17 @@ CREATE INDEX kb_usage_log_created ON public.kb_usage_log USING btree (created_at
 CREATE INDEX knowledge_ingestion_run_pkg ON public.knowledge_ingestion_run USING btree (package_version, generation);
 CREATE INDEX knowledge_ingestion_undo_run ON public.knowledge_ingestion_undo USING btree (run_id);
 CREATE UNIQUE INDEX knowledge_kpi_snap_day ON public.knowledge_kpi_snapshots USING btree (snapshot_date);
+CREATE INDEX knowledge_library_kb_hnsw ON public.knowledge_library USING hnsw (embedding_gte vector_cosine_ops) WHERE (origin_store = 'kb_chunks'::text);
+CREATE INDEX knowledge_library_md5_idx ON public.knowledge_library USING btree (content_md5) WHERE (origin_store = ANY (ARRAY['kb_chunks'::text, 'agent_knowledge'::text, 'ops_knowledge'::text]));
+CREATE INDEX knowledge_library_ops_hnsw ON public.knowledge_library USING hnsw (embedding_gte vector_cosine_ops) WHERE (origin_store = 'ops_knowledge'::text);
+CREATE INDEX knowledge_library_origin_lib_idx ON public.knowledge_library_origin USING btree (library_id);
+CREATE INDEX knowledge_library_sales_hnsw ON public.knowledge_library USING hnsw (embedding_gte vector_cosine_ops) WHERE (origin_store = 'sales_knowledge'::text);
+CREATE INDEX knowledge_library_seats_idx ON public.knowledge_library USING gin (seats);
+CREATE INDEX knowledge_library_store_idx ON public.knowledge_library USING btree (origin_store);
+CREATE INDEX knowledge_library_tags_idx ON public.knowledge_library USING gin (tags);
 CREATE INDEX knowledge_vector_ml_day_idx ON public.knowledge_vector_ml USING btree (embedded_at);
 CREATE INDEX knowledge_vector_ml_kb_hnsw ON public.knowledge_vector_ml USING hnsw (embedding vector_cosine_ops) WHERE (src = 'kb_chunks'::text);
+CREATE INDEX knowledge_vector_ml_library_hnsw ON public.knowledge_vector_ml USING hnsw (embedding vector_cosine_ops) WHERE (src = 'knowledge_library'::text);
 CREATE UNIQUE INDEX lead_category_primary_uidx ON public.lead_category USING btree (lead_id) WHERE is_primary;
 CREATE INDEX lead_category_slug_idx ON public.lead_category USING btree (slug);
 CREATE INDEX lead_prospect_domain_idx ON public.lead_prospect USING btree (domain);
@@ -12866,6 +13026,7 @@ CREATE INDEX refunds_stripe_pi_idx ON public.refunds USING btree (stripe_payment
 CREATE INDEX refunds_transaction_idx ON public.refunds USING btree (transaction_id);
 CREATE INDEX refunds_unreconciled_idx ON public.refunds USING btree (settled_at) WHERE ((reconciled_at IS NULL) AND (status = 'succeeded'::text));
 CREATE INDEX regulations_cats ON public.regulations USING gin (categories);
+CREATE INDEX rehearsal_spend_reservation_tag_idx ON public.rehearsal_spend_reservation USING btree (e2e_run_tag, created_at);
 CREATE INDEX rehearsal_window_open_idx ON public.rehearsal_window USING btree (started_at, ended_at);
 CREATE INDEX reveal_invoices_bucket_path_idx ON public.reveal_invoices USING btree (bucket, path);
 CREATE INDEX review_chain_subject_idx ON public.review_chain USING btree (subject_type, subject_id, id);
@@ -12897,6 +13058,9 @@ CREATE INDEX seat_case_memory_seat_kind_idx ON public.seat_case_memory USING btr
 CREATE INDEX seat_deliberation_turn_by_deliberation ON public.seat_deliberation_turn USING btree (deliberation_id);
 CREATE UNIQUE INDEX seat_deliberation_turn_one_recorded ON public.seat_deliberation_turn USING btree (deliberation_id, round, phase) WHERE (status = 'recorded'::text);
 CREATE UNIQUE INDEX seat_deliberation_turn_one_waiting ON public.seat_deliberation_turn USING btree (deliberation_id, round, phase) WHERE (status = ANY (ARRAY['held_not_run'::text, 'no_independent_reviewer'::text]));
+CREATE INDEX seat_exam_asked_item_time ON public.seat_exam_asked USING btree (item_id, asked_at DESC);
+CREATE UNIQUE INDEX seat_exam_asked_wording_once ON public.seat_exam_asked USING btree (item_id, md5(lower(regexp_replace(wording, '\W+'::text, ''::text, 'g'::text))));
+CREATE UNIQUE INDEX seat_exam_fix_one_open_per_item ON public.seat_exam_fix USING btree (item_id) WHERE (status = 'open'::text);
 CREATE INDEX seat_judgement_seat_outcome_idx ON public.seat_judgement USING btree (seat, outcome_at);
 CREATE INDEX seat_judgement_subject_idx ON public.seat_judgement USING btree (subject_table, subject_id) WHERE (subject_table IS NOT NULL);
 CREATE INDEX seat_knowledge_exam_item ON public.seat_knowledge_exam USING btree (seat, item_key, asked_at);

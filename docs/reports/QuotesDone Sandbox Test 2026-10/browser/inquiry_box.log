@@ -1,0 +1,11 @@
+PASS 1440x900_en
+PASS 1366x768_en
+PASS 1280x720_en
+PASS 768x1024_en
+PASS 375x812_en
+FAIL 1440x900_ar — could not open New request: locator.click: Timeout 10000ms exceeded.
+FAIL 1366x768_ar — could not open New request: locator.click: Timeout 10000ms exceeded.
+FAIL 1280x720_ar — could not open New request: locator.click: Timeout 10000ms exceeded.
+FAIL 768x1024_ar — could not open New request: locator.click: Timeout 10000ms exceeded.
+FAIL 375x812_ar — could not open New request: locator.click: Timeout 10000ms exceeded.
+5/10 viewports usable

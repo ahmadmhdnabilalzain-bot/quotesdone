@@ -1,0 +1,15 @@
+{
+ "ok": true,
+ "role": "customer",
+ "counterpart": "ZZ DEMO AL aluminium 0a717394",
+ "chat_status": "open",
+ "warning": "Messages here are kept on record for both of you. Please keep them about this job.",
+ "messages": [
+  {
+   "id": 39,
+   "sender": "customer",
+   "body": "ZZ DEMO: when can you visit the site?",
+   "created_at": "2026-10-19T11:28:28.428926+00:00"
+  }
+ ]
+}

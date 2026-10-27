@@ -46,6 +46,36 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "industrial_pumps:product-distinctions",
+      "topic": "Industrial pumps: pump families and how to choose between them",
+      "topic_ar": "المضخات الصناعية: عائلات المضخات وكيف يُختار بينها",
+      "kind": "product_distinctions",
+      "body_en": "Centrifugal pumps (end-suction, split-case, vertical inline, multistage, vertical turbine, submersible) move large flows of thin liquids and are selected on the duty point, flow and total head, read against the pump curve at the best-efficiency point; they cavitate when the net positive suction head available is below what the pump requires (NPSHa < NPSHr). Positive-displacement pumps (gear, screw, lobe, progressive cavity, diaphragm, piston and plunger, peristaltic) deliver a near-constant flow regardless of pressure and suit viscous fluids, slurries, metering and high pressure. Special duties: fire pumps (UL/FM-listed sets to NFPA 20 with diesel and jockey pumps), booster sets with variable-speed drives, sewage and dewatering submersibles, chemical dosing pumps, and API 610 process pumps for oil and gas. Sealing is a design choice: gland packing (stuffing box, drips by design), single or double mechanical seals, or sealless magnetic-drive and canned pumps for hazardous liquids. Materials follow the liquid (cast iron, bronze, stainless 316, duplex, plastics), and the motor follows the site (IE3/IE4 efficiency, enclosure IP rating, explosion-proof where required).",
+      "body_ar": "المضخات الطاردة المركزية (سحب طرفي، غلاف منقسم، رأسية خطية، متعددة المراحل، توربينية رأسية، غاطسة) تنقل تدفقات كبيرة من السوائل الخفيفة، وتُختار حسب نقطة التشغيل أي التدفق والرفع الكلي مقروءة على منحنى المضخة عند نقطة أعلى كفاءة؛ وتتعرض للتكهف عندما يكون صافي الضغط الموجب للسحب المتاح أقل مما تحتاجه المضخة. والمضخات الإزاحية (التروس، اللولبية، الفصية، التجويف المتقدم، الغشائية، المكبسية، التمعجية) تعطي تدفقاً شبه ثابت مهما كان الضغط وتناسب السوائل اللزجة والطينية والجرعات والضغط العالي. ومهام خاصة: مضخات الحريق (أطقم مدرجة UL/FM وفق NFPA 20 مع مضخة ديزل ومضخة تعويض)، وأطقم رفع الضغط بمحركات متغيرة السرعة، ومضخات الصرف وسحب المياه الغاطسة، ومضخات جرعات الكيماويات، ومضخات العمليات API 610 للنفط والغاز. والإحكام اختيار تصميمي: حشوة الجلاند (صندوق حشو يقطر بطبيعته)، أو موانع تسرب ميكانيكية مفردة أو مزدوجة، أو مضخات بلا موانع تسرب بقارنة مغناطيسية أو محرك مغلف للسوائل الخطرة. والمواد تتبع السائل (حديد زهر، برونز، ستانلس 316، دوبلكس، بلاستيك)، والمحرك يتبع الموقع (كفاءة IE3/IE4، درجة الحماية IP، مقاوم للانفجار حيث يلزم).",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Centrifugal_pump"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: head and flow rate of centrifugal pumps; cavitation when the system NPSH is too low; stuffing boxes and magnetically coupled sealless pumps -> confirmed."
+    },
+    {
+      "id": "industrial_pumps:lead-times-and-quoting",
+      "topic": "Industrial pumps - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المضخات الصناعية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Standard pumps and booster sets: ex-stock to 3 weeks; engineered or large pumps 6-16 weeks; API 610 and fire pump sets with listings 10-20 weeks plus testing and authority approval. A supplier needs the liquid (with temperature, density, viscosity, solids), the flow and head (or the system data), NPSH available, suction conditions, power supply, duty/standby arrangement, materials and seal preference, the governing standard, and site conditions. A complete quote states brand, model, the pump curve with the duty point and efficiency, NPSHr, motor (kW, IE class, IP), materials, seal type, baseplate and accessories, testing (performance test, witness), documents, warranty, delivery and validity.",
+      "body_ar": "المضخات القياسية وأطقم رفع الضغط: متوفرة حتى 3 أسابيع؛ والمضخات الهندسية أو الكبيرة 6-16 أسبوعاً؛ ومضخات API 610 وأطقم مضخات الحريق المدرجة 10-20 أسبوعاً إضافة إلى الاختبار وموافقة الجهة المختصة. ويحتاج المورد السائل (مع الحرارة والكثافة واللزوجة والمواد الصلبة)، والتدفق والرفع (أو بيانات النظام)، وصافي ضغط السحب المتاح، وظروف السحب، والتغذية الكهربائية، وترتيب التشغيل والاحتياط، والمواد ونوع مانع التسرب المفضل، والمواصفة الحاكمة، وظروف الموقع. ويذكر العرض الكامل العلامة والموديل، ومنحنى المضخة مع نقطة التشغيل والكفاءة، وصافي ضغط السحب المطلوب، والمحرك (كيلوواط، فئة الكفاءة، درجة الحماية)، والمواد، ونوع مانع التسرب، والقاعدة والملحقات، والاختبارات (اختبار الأداء، الاختبار بحضور العميل)، والمستندات، والضمان، والتسليم، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -71,6 +101,14 @@
       ],
       "why": "Lists the data needed to size a pump: duty flow and head, pumped fluid and temperature, materials, motor power and voltage.",
       "origin": "real buyer question, moved from industrial_pumps.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Our transfer pump is noisy and the impeller is pitted. Is it the wrong pump?",
+      "q_ar": "مضخة النقل عندنا صوتها عالي والدفاعة متآكلة بحفر، هل المضخة غلط؟",
+      "expected_entry_ids": [
+        "industrial_pumps:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -87,6 +125,27 @@
       "industrial_pumps:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "industrial_pumps:product-distinctions"
+      ],
+      "stored_not_served": [
+        "industrial_pumps:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Centrifugal_pump"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

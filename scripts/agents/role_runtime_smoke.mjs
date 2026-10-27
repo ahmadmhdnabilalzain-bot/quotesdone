@@ -17,6 +17,7 @@
 //
 // --live=N actually calls the runtime for the first N scenarios, so the model column carries a
 // measured outcome rather than an assumption. Every attempt is recorded, including a refusal.
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 
 const arg = (k, d) => {
@@ -29,7 +30,7 @@ const OUT = arg('out', 'docs/agents/ROLE_RUNTIME_SMOKE_RESULTS.csv');
 const LIVE_TIER = arg('live-tier', '');
 if (!REF) { console.error('usage: --ref=<project-ref> [--live=N] [--out=path]'); process.exit(2); }
 
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 if (!token) { console.log('SKIP role_runtime_smoke: no SUPABASE_ACCESS_TOKEN'); process.exit(0); }

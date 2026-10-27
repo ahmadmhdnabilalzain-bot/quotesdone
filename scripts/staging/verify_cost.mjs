@@ -17,6 +17,7 @@
 //
 //     node scripts/staging/verify_cost.mjs           the zero-cost gate
 //     node scripts/staging/verify_cost.mjs --live    also spends ~0.001 AED to prove the meter
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { assertNotProduction, mgmtRead, mgmtWrite } from '../lib/qd_guard.mjs';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -211,8 +212,7 @@ const PROBE_DEPT = 'qd_probe_dept';
 if (LIVE) {
   const cred = (await mgmtRead(REF, "select value from public.app_secrets where key='cred_fn_ai'"))[0]?.value;
   const anon = await (async () => {
-    const mgmt = (process.env.SUPABASE_ACCESS_TOKEN
-      || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+    const mgmt = supabaseAccessToken();
     const k = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`,
       { headers: { Authorization: 'Bearer ' + mgmt } })).json();
     return k.find((x) => x.name === 'anon')?.api_key;

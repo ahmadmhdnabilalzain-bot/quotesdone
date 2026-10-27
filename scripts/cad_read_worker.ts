@@ -232,7 +232,7 @@ async function runJob(job: Job, key: string): Promise<void> {
 }
 
 if (import.meta.main) {
-  token = (Deno.env.get('SUPABASE_ACCESS_TOKEN') ?? (() => { try { return Deno.readTextFileSync('C:/Users/Opera/.supabase/access-token'); } catch { return ''; } })()).trim();
+  token = (Deno.env.get('SUPABASE_ACCESS_TOKEN') ?? (() => { try { return Deno.readTextFileSync(`${Deno.env.get('HOME') ?? Deno.env.get('USERPROFILE')}/.supabase/access-token`); } catch { return ''; } })()).trim();
   if (!token) { console.error('SUPABASE_ACCESS_TOKEN is not set'); Deno.exit(2); }
   const jobs = await sql<Job>(`select id, customer_id, owner_email, source_path, file_name, mime, attempts, boq_in, why from public.fn_cad_read_claim(${MAX_JOBS})`);
   console.log(`claimed ${jobs.length} job(s)`);

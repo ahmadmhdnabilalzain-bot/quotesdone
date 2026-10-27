@@ -54,6 +54,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "logistics_moving:product-distinctions",
+      "topic": "Logistics services: freight modes, warehousing and 3PL",
+      "topic_ar": "الخدمات اللوجستية: أنماط الشحن والتخزين والطرف الثالث",
+      "kind": "product_distinctions",
+      "body_en": "Logistics services split into freight forwarding (sea freight in full containers, FCL 20 or 40 ft, or shared LCL; air freight by chargeable weight; road freight in full or part loads across borders), customs clearance and documentation, domestic transport and distribution, warehousing and third-party logistics (3PL: integrated storage and transport with value-added services such as pick and pack, kitting, labelling, cross-docking, returns and e-commerce fulfilment), project and heavy-lift cargo, and moving and storage for households and offices. Warehousing options: general ambient, temperature-controlled, bonded or free-zone storage (duty suspended until goods enter the market), dangerous-goods storage, and open yards. Pricing: freight by container, kg or pallet and route, warehousing per pallet per day or week or per m2, handling per pallet or carton in and out, and value-added services per unit. Incoterms define who pays and bears risk at each step. What separates providers: network and carrier relationships, WMS visibility and integration, inventory accuracy, insurance and liability limits, licences for bonded or dangerous goods, and service levels.",
+      "body_ar": "تنقسم الخدمات اللوجستية إلى وكالة الشحن (الشحن البحري بحاويات كاملة 20 أو 40 قدماً أو مشتركة؛ والشحن الجوي حسب الوزن المحتسب؛ والشحن البري بحمولات كاملة أو جزئية عبر الحدود)، والتخليص الجمركي والمستندات، والنقل والتوزيع المحلي، والتخزين واللوجستيات من طرف ثالث (تخزين ونقل متكاملان مع خدمات قيمة مضافة مثل الانتقاء والتعبئة، والتجميع، والوسم، والعبور المباشر، والمرتجعات، وتجهيز طلبات التجارة الإلكترونية)، وشحنات المشاريع والأحمال الثقيلة، والنقل والتخزين للمنازل والمكاتب. وخيارات التخزين: تخزين عام بحرارة محيطة، وتخزين بحرارة مضبوطة، وتخزين جمركي أو في المناطق الحرة (الرسوم معلقة حتى دخول البضائع السوق)، وتخزين البضائع الخطرة، والساحات المفتوحة. والتسعير: الشحن حسب الحاوية أو الكيلوغرام أو المنصة والمسار، والتخزين لكل منصة يومياً أو أسبوعياً أو للمتر المربع، والمناولة لكل منصة أو كرتون دخولاً وخروجاً، والخدمات المضافة لكل وحدة. وشروط التجارة الدولية تحدد من يدفع ويتحمل المخاطر في كل خطوة. وما يميز المزودين: الشبكة والعلاقات مع الناقلين، ووضوح نظام إدارة المستودعات وتكامله، ودقة المخزون، والتأمين وحدود المسؤولية، والتراخيص للتخزين الجمركي أو البضائع الخطرة، ومستويات الخدمة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Third-party_logistics"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: 3PL warehousing and transportation plus pick and pack, tracking, cross-docking and packaging -> confirmed."
+    },
+    {
+      "id": "logistics_moving:lead-times-and-quoting",
+      "topic": "Logistics, movers & storage - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الخدمات اللوجستية والنقل والتخزين: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Freight quotes: days; warehousing set-up: 1-4 weeks; 3PL implementations with integration 4-12 weeks. A provider needs the goods and their characteristics, volumes and frequency, origins and destinations, Incoterms, storage needs, and service levels. A quote states the scope, rates per unit by service, transit times, free time and demurrage terms, insurance and liability, systems and reporting, and validity.",
+      "body_ar": "عروض الشحن: أيام؛ وإعداد التخزين: 1-4 أسابيع؛ وتطبيق خدمات الطرف الثالث مع التكامل 4-12 أسبوعاً. ويحتاج المزود البضائع وخصائصها، والأحجام والتكرار، والمنشأ والوجهات، وشروط التجارة الدولية، واحتياجات التخزين، ومستويات الخدمة. ويذكر العرض النطاق، والأسعار للوحدة حسب الخدمة، وأزمنة العبور، وشروط الوقت المجاني والغرامات، والتأمين والمسؤولية، والأنظمة والتقارير، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither gives the volumetric/chargeable weight rule (L x W x H / 6000); missing: air freight chargeable weight entry). logistics_moving:air-freight-chargeable-weight was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from logistics_moving.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Should we store imported stock in a free-zone bonded warehouse or a normal one?",
+      "q_ar": "نخزن البضاعة المستوردة في مستودع جمركي بالمنطقة الحرة ولا مستودع عادي؟",
+      "expected_entry_ids": [
+        "logistics_moving:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "logistics_moving:air-freight-chargeable-weight"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "logistics_moving:product-distinctions"
+      ],
+      "stored_not_served": [
+        "logistics_moving:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Third-party_logistics"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

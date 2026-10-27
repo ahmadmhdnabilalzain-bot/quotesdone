@@ -1,0 +1,11 @@
+{
+ "id": 101553,
+ "type": "quote_accepted",
+ "channel": "whatsapp",
+ "status": "suppressed",
+ "to_email": "qd-321d13ae-sup0@example.invalid",
+ "lang": "en",
+ "subject": "A customer revealed your quote on QuotesDone",
+ "body": "A customer paid to reveal your contact for: Supply and install 20 aluminium windows, 10 doors and 5 curtain wall units (Technal, single glazed), replacing existing items in an occupied Dubai villa. Please respond promptly — under the Supplier Agreement you must respond within 5 working days of the reveal. If you have not responded after 3 working days we chase you with the customer copied; if there is still no response on working day 5 our chief executive decides the case, the customer is refunded, and the amount refunded, with the administrative fee, interest and other amounts set out in clause 33 of the Supplier Agreement you accepted, is recovered from your account.\n\nQuotesDone sales engineer",
+ "html": null
+}

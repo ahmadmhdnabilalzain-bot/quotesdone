@@ -53,6 +53,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "outdoor_furniture:product-distinctions",
+      "topic": "Outdoor furniture: materials and how they cope with sun and heat",
+      "topic_ar": "الأثاث الخارجي: المواد وكيف تتحمل الشمس والحرارة",
+      "kind": "product_distinctions",
+      "body_en": "Outdoor furniture materials: teak and other dense hardwoods (natural oils resist moisture and rot; untreated teak weathers to silver-grey in the sun, or is oiled or sealed to keep its colour), powder-coated aluminium (light, rust-free, the common frame for loungers and dining sets), stainless steel (316 grade for coastal sites), synthetic rattan or resin wicker woven over aluminium frames (UV-stabilised HDPE fibres last; cheap PVC weaves crack in strong sun), rope and woven textiles, HDPE and polypropylene moulded furniture (economical, stackable, for pools and events), concrete and stone, and recycled plastic lumber. Cushions use quick-dry foam and solution-dyed acrylic or olefin fabrics that resist fading and mildew; umbrellas and shade sails need fabrics and frames rated for wind. In hot sunny climates check UV resistance, surface heat (dark metals get very hot), corrosion near the sea and pool chemicals, and stability in wind. Hospitality buyers add contract-grade construction, stackability, fire-retardant fabrics where required, and spare parts.",
+      "body_ar": "مواد الأثاث الخارجي: خشب الساج والأخشاب الصلبة الكثيفة الأخرى (زيوتها الطبيعية تقاوم الرطوبة والتعفن؛ والساج غير المعالج يصبح رمادياً فضياً في الشمس، أو يُزيت أو يُعزل ليحتفظ بلونه)، والألمنيوم المطلي بالبودرة (خفيف ولا يصدأ، الإطار الشائع للكراسي الممددة وأطقم الطعام)، والستانلس (درجة 316 للمواقع الساحلية)، والراتان الصناعي المنسوج على إطارات ألمنيوم (ألياف HDPE المثبتة ضد الأشعة فوق البنفسجية تدوم، والنسيج الرخيص من PVC يتشقق في الشمس القوية)، والحبال والمنسوجات، والأثاث المقولب من HDPE والبولي بروبيلين (اقتصادي وقابل للرص للمسابح والفعاليات)، والخرسانة والحجر، والخشب البلاستيكي المعاد تدويره. وتستخدم الوسائد إسفنجاً سريع الجفاف وأقمشة أكريليك أو أوليفين مصبوغة بالمحلول تقاوم بهتان اللون والعفن؛ والمظلات والأشرعة تحتاج أقمشة وإطارات مصنفة للرياح. وفي المناخ الحار المشمس تحقق من مقاومة الأشعة فوق البنفسجية، وحرارة السطح (المعادن الداكنة تسخن كثيراً)، والتآكل قرب البحر وكيماويات المسابح، والثبات في الرياح. ويضيف مشترو الضيافة الصنع بدرجة تعاقدية، وقابلية الرص، والأقمشة المقاومة للحريق حيث يلزم، وقطع الغيار.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Teak"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: teak's natural oils suit outdoor use and it weathers to silver-grey in sun -> confirmed."
+    },
+    {
+      "id": "outdoor_furniture:lead-times-and-quoting",
+      "topic": "Outdoor furniture - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الأثاث الخارجي: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock sets: days; containers from factories 6-12 weeks; custom hospitality orders 8-14 weeks. A supplier needs the space and use, quantities, material and colour preferences, cushion and fabric needs, and delivery. A quote states material specs (wood species, aluminium thickness and coating, fibre type), fabric, warranty, assembly, delivery and validity.",
+      "body_ar": "الأطقم المتوفرة: أيام؛ وحاويات من المصانع 6-12 أسبوعاً؛ وطلبات الضيافة المخصصة 8-14 أسبوعاً. ويحتاج المورد المساحة والاستخدام، والكميات، وتفضيلات المادة واللون، واحتياجات الوسائد والأقمشة، والتسليم. ويذكر العرض مواصفات المواد (نوع الخشب، سماكة الألمنيوم وطلاؤه، نوع الألياف)، والقماش، والضمان، والتركيب، والتسليم، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -78,6 +108,14 @@
       ],
       "why": "No entry of this pack answered it (Spec-checklist only names 'frame material and coating'; no comparison of materials for coastal use; missing). outdoor_furniture:coastal-frame-materials was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from outdoor_furniture.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Which outdoor furniture lasts best by a pool in strong sun: teak, aluminium or rattan?",
+      "q_ar": "وش الأثاث الخارجي اللي يعيش أكثر جنب المسبح في شمس قوية: ساج ولا ألمنيوم ولا راتان؟",
+      "expected_entry_ids": [
+        "outdoor_furniture:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "outdoor_furniture:coastal-frame-materials"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "outdoor_furniture:product-distinctions"
+      ],
+      "stored_not_served": [
+        "outdoor_furniture:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Teak"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

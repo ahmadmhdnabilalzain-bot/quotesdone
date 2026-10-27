@@ -1,0 +1,59 @@
+{
+ "fact_sheet": {
+  "element": "Waterproofing & Insulation: bituminous membrane, liquid waterproofing and pu coating",
+  "lines": "Line 1: bituminous membrane x 20, 1200 x 1500 mm each; Line 2: liquid waterproofing x 10, 900 x 2100 mm each; Line 3: pu coating x 5, 3000 x 2400 mm each",
+  "purpose": "Line 1 is for the bedrooms, line 2 for the main entrance and balconies, line 3 for the living-room facade",
+  "location": "Villa in Abu Dhabi, ground and first floor, clear road access, no crane needed",
+  "area": "About 450 m2 built-up, 6 rooms",
+  "scope": "Supply and install, including removal and disposal of the existing items",
+  "new_or_replace": "Replacement of existing items in an occupied villa",
+  "timeline": "Within 1 month",
+  "warranty": "At least 2 years",
+  "supply_phase": "Three-phase 400 V supply",
+  "surface_prep": "Previously painted walls in fair condition, minor crack repair",
+  "stops": "4 stops (G+3)",
+  "capacity": "8 persons, 630 kg",
+  "design": "Design is ready",
+  "material": "Standard commercial grade, Sika",
+  "leak": "No leak at the moment, this is preventive",
+  "finish": "Laminate / melamine"
+ },
+ "intake": {
+  "intakeId": "11a4ac90-6173-4b83-afa9-601a5358e24d",
+  "status": "ready",
+  "readiness": 88,
+  "missing": [],
+  "turns": 3,
+  "log": [
+   {
+    "turn": 1,
+    "answer": "Waterproofing & Insulation: bituminous membrane, liquid waterproofing and pu coating. Line 1: bituminous membrane x 20, 1200 x 1500 mm each; Line 2: liquid waterproofing x 10, 900 x 2100 mm each; Line 3: pu coating x 5, 3000 x 2400 mm each. Villa in Abu Dhabi, ground and first floor, clear road access, no crane needed.",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 2,
+    "answer": "element: Waterproofing & Insulation: bituminous membrane, liquid waterproofing and pu coating. lines: Line 1: bituminous membrane x 20, 1200 x 1500 mm each; Line 2: liquid waterproofing x 10, 900 x 2100 mm each; Line 3: pu coating x 5, 3000 x 2400 mm each. purpose: Line 1 is for the bedrooms, line 2 for the main entrance and balconies, line 3 for the living-room facade. location: Villa in Abu Dhabi, ground and first floor, clear road access, no crane needed. area: About 450 m2 built-up, 6 rooms. scope: Supply and install, including removal and disposal of the existing items. new_or_replace: Replacement of existing items in an occupied villa. timeline: Within 1 month. warranty: At least 2 years. supply_phase: Three-phase 400 V supply. surface_prep: Previously painted walls in fair condition, minor crack repair. stops: 4 stops (G+3). capacity: 8 persons, 630 kg. design: Design is ready. material: Standard commercial grade, Sika. leak: No leak at the moment, this is preventive. finish: Laminate / melamine.",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 3,
+    "answer": "element: Waterproofing & Insulation: bituminous membrane, liquid waterproofing and pu coating. lines: Line 1: bituminous membrane x 20, 1200 x 1500 mm each; Line 2: liquid waterproofing x 10, 900 x 2100 mm each; Line 3: pu coating x 5, 3000 x 2400 mm each. purpose: Line 1 is for the bedrooms, line 2 for the main entrance and balconies, line 3 for the living-room facade. location: Villa in Abu Dhabi, ground and first floor, clear road access, no crane needed. area: About 450 m2 built-up, 6 rooms. scope: Supply and install, including removal and disposal of the existing items. new_or_replace: Replacement of existing items in an occupied villa. timeline: Within 1 month. warranty: At least 2 years. supply_phase: Three-phase 400 V supply. surface_prep: Previously painted walls in fair condition, minor crack repair. stops: 4 stops (G+3). capacity: 8 persons, 630 kg. design: Design is ready. material: Standard commercial grade, Sika. leak: No leak at the moment, this is preventive. finish: Laminate / melamine.",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "ready"
+   }
+  ],
+  "sent": 200
+ },
+ "inquiry": {
+  "id": "c67a1b1a-d113-434c-9741-9b1dc4fa861e",
+  "status": "sent",
+  "trades": null,
+  "lang": "en",
+  "emirate": "Abu Dhabi"
+ }
+}

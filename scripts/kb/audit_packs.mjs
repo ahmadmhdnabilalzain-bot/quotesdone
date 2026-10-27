@@ -8,6 +8,7 @@
 // kb_stage.records, and prints only the deltas.
 //
 //   node scripts/kb/audit_packs.mjs --ref=<project> --root=<extracted _kbpkgs dir>
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -15,8 +16,7 @@ import { join } from 'node:path';
 const arg = (n) => (process.argv.find(a => a.startsWith(`--${n}=`)) || '').split('=').slice(1).join('=');
 const REF = arg('ref'), ROOT = arg('root');
 if (!/^[a-z]{20}$/.test(REF) || !ROOT) throw new Error('--ref and --root are required');
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 
 async function q(sql, attempt = 0) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {

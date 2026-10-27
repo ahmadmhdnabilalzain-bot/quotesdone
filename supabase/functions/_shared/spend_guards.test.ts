@@ -1,7 +1,7 @@
 // The rules that stop a paid call repeating itself (it_engineer, 22 Sep 2026, founder instruction 705).
 // Each test replays the input that used to multiply spend.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { rehearsalLetsFixtureThrough,
+import { rehearsalLetsFixtureThrough, reservationVerdict, unprovenRunTag,
   activeFailure, attemptPlan, COMPARE_RETRY_BASE_MS, COMPARE_RETRY_MAX_MS, failureKind, failureRecord,
   fixtureVerdict, isCachedAnalysis, MAX_PAID_CALLS_PER_REQUEST, nextAttempt, ownWorkByName, subjectOf,
 } from './spend_guards.ts';
@@ -92,4 +92,22 @@ Deno.test('a fixture is let through only for a proven tag whose window the datab
   assertEquals(rehearsalLetsFixtureThrough('ab12cd34', false, null), false);   // window closed / no models
   assertEquals(rehearsalLetsFixtureThrough('ab12cd34', 1, null), false);       // only a literal true
   assertEquals(rehearsalLetsFixtureThrough('ab12cd34', true, { message: 'x' }), false);
+});
+
+// 19 Oct 2026: qd_run:ceodiag1 (cap USD 5) spent USD 13.86 because a named but unproven run tag was dropped and the
+// calls ran untagged. A named run that cannot be proven is refused; a proven or absent tag is not this rule's business.
+Deno.test('a request naming a run it cannot prove is refused, never run untagged', () => {
+  assert(unprovenRunTag('ceodiag1', null));                 // the ceodiag1 request: header, no proof
+  assert(unprovenRunTag('NOT A TAG!', null));               // malformed is refused too
+  assertEquals(unprovenRunTag('ceodiag1', 'ceodiag1'), null); // proven
+  assertEquals(unprovenRunTag(null, null), null);           // untagged traffic is not a rehearsal
+  assertEquals(unprovenRunTag('', null), null);
+});
+
+Deno.test('the rehearsal reservation fails closed', () => {
+  assertEquals(reservationVerdict({ allowed: true, rule: 'reserved' }, null).allowed, true);
+  assertEquals(reservationVerdict({ allowed: false, rule: 'rehearsal_cap' }, null).rule, 'rehearsal_cap');
+  assertEquals(reservationVerdict(null, null).allowed, false);                       // no answer
+  assertEquals(reservationVerdict({ allowed: 'true' }, null).allowed, false);        // only a literal true
+  assertEquals(reservationVerdict({ allowed: true }, { message: 'boom' }).allowed, false); // an error is a refusal
 });

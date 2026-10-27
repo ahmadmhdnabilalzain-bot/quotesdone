@@ -21,6 +21,7 @@
 //   node scripts/apply_sql.mjs scripts/sql/x.sql --apply    # apply, then verify by read-back
 //   node scripts/apply_sql.mjs scripts/sql/x.sql --promote  # accepted alias for --apply (history)
 //   node scripts/apply_sql.mjs scripts/sql/x.sql --apply --ddl   # file also carries schema changes
+import { supabaseAccessToken } from './lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
 
@@ -54,8 +55,7 @@ const sql = readFileSync(file, 'utf8');
 }
 const one = (rows) => (rows && rows[0]) ? Object.values(rows[0])[0] : null;
 
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 
 // RETRIES, BECAUSE THE FAILURE MODE HERE IS A HALF-APPLIED DATABASE. The management API
 // rate-limits hard after a heavy session, so a 429 arriving between two routines in the same file
