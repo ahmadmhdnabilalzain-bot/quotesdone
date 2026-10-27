@@ -25,6 +25,7 @@
 //   node scripts/verify_deploy_parity.mjs --all                 # every function in the repo
 //   node scripts/verify_deploy_parity.mjs supplier_portal ...    # named functions
 //   node scripts/verify_deploy_parity.mjs --since=HEAD~50        # functions touched in a window
+import { supabaseAccessToken } from './lib/supabase_token.mjs';
 import { execSync } from 'node:child_process';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -174,7 +175,7 @@ async function main() {
     console.error(`--staging-only was removed with the staging project on 15 Aug 2026; there is one project (${PROD_REF}).`);
     process.exit(2);
   }
-  const token = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+  const token = supabaseAccessToken();
   const slugs = slugsToCheck(argv);
   console.log(`\nDEPLOY PARITY — ${slugs.length} function(s) on ${PROD_REF}, full first-party source vs main\n`);
   const readMain = (spec) => { const f = `supabase/${spec}`; return existsSync(f) ? readFileSync(f, 'utf8') : null; };

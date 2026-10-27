@@ -1,0 +1,75 @@
+{
+ "fact_sheet": {
+  "element": "Elevators & Escalators: passenger lift وservice lift وescalator",
+  "lines": "البند 1: passenger lift عدد 20، مقاس 1200 × 1500 مم لكل وحدة؛ البند 2: service lift عدد 10، مقاس 900 × 2100 مم لكل وحدة؛ البند 3: escalator عدد 5، مقاس 3000 × 2400 مم لكل وحدة",
+  "purpose": "البند 1 لغرف النوم، البند 2 للمدخل الرئيسي والشرفات، البند 3 لواجهة غرفة المعيشة",
+  "location": "فيلا في Sharjah، الطابق الأرضي والأول، وصول مباشر بالطريق، لا حاجة لرافعة",
+  "area": "حوالي 450 متر مربع مساحة مبنية، 6 غرف",
+  "scope": "توريد وتركيب، مع إزالة القطع القديمة والتخلص منها",
+  "new_or_replace": "استبدال قطع قائمة في فيلا مسكونة",
+  "timeline": "خلال شهر واحد",
+  "warranty": "ضمان سنتان على الأقل",
+  "supply_phase": "تغذية ثلاثية الطور 400 فولت",
+  "surface_prep": "جدران مدهونة سابقًا بحالة جيدة مع إصلاح شقوق بسيطة",
+  "stops": "4 وقفات (أرضي + 3)",
+  "capacity": "8 أشخاص، 630 كغ",
+  "design": "التصميم جاهز",
+  "material": "درجة تجارية قياسية من علامة معروفة",
+  "leak": "لا يوجد تسرب حالياً، العمل وقائي",
+  "finish": "لامينيت / ميلامين",
+  "system_type": "نظام مركزي بالمياه المبردة: وحدات فان كويل مخفية بمجارٍ مع وحدات مناولة هواء",
+  "fixtures": "4 حمامات ومطبخ واحد"
+ },
+ "intake": {
+  "intakeId": "903c7251-7a4d-42b3-b38c-a5f60c0565d3",
+  "status": "ready",
+  "readiness": 80,
+  "missing": [],
+  "turns": 5,
+  "log": [
+   {
+    "turn": 1,
+    "answer": "Elevators & Escalators: passenger lift وservice lift وescalator. البند 1: passenger lift عدد 20، مقاس 1200 × 1500 مم لكل وحدة؛ البند 2: service lift عدد 10، مقاس 900 × 2100 مم لكل وحدة؛ البند 3: escalator عدد 5، مقاس 3000 × 2400 مم لكل وحدة. فيلا في Sharjah، الطابق الأرضي والأول، وصول مباشر بالطريق، لا حاجة لرافعة.",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 2,
+    "answer": "type: Elevators & Escalators: passenger lift وservice lift وescalator. stops: 4 وقفات (أرضي + 3). capacity: 8 أشخاص، 630 كغ. new_mod: استبدال قطع قائمة في فيلا مسكونة.",
+    "asked_key": "material.cabin_finish",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 3,
+    "answer": "ستانلس ستيل مطفي",
+    "asked_key": "warranty",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 4,
+    "answer": "yes_24",
+    "asked_key": "required_by",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 5,
+    "answer": "m1",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "ready"
+   }
+  ],
+  "sent": 200
+ },
+ "inquiry": {
+  "id": "a34cda2a-097d-47e7-b9ed-66aa113833a1",
+  "status": "sent",
+  "trades": null,
+  "lang": "ar",
+  "emirate": "Sharjah"
+ }
+}

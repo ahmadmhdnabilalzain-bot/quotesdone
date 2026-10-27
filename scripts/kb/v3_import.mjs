@@ -10,6 +10,7 @@
 // evaluation cases with their expected answers; a builder session must not hold them and
 // a runtime agent must not reach them. They are counted, listed and left on disk for the
 // independent evaluator to load into the cert schema.
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { mgmtRead, mgmtWriteData, PROD_REF } from '../lib/qd_guard.mjs';
@@ -21,7 +22,7 @@ import { records } from './v3_package.mjs';
 // import the staging run took, through the management API, and the two projects are then
 // compared by digest — which proves more than promotion would.
 const TOKEN = (process.env.SUPABASE_ACCESS_TOKEN
-  || fs.readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+  || fs.readFileSync(SUPABASE_TOKEN_FILE, 'utf8')).trim();
 async function prodPost(sql) {
   // The management API throttles a long import; 429 is the rate limiter, not a failure of
   // the statement, so it is waited out rather than reported as a rejected record.

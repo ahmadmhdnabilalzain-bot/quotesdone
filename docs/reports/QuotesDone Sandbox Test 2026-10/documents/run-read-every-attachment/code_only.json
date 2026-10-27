@@ -1,0 +1,174 @@
+{
+ "mode": "none",
+ "run_tag": null,
+ "read_at": "2026-10-11T22:04:34.783Z",
+ "model_calls": 0,
+ "docs": [
+  {
+   "id": "boq_text_pdf",
+   "path": "customer BOQ (customer_api analyze_document)",
+   "degraded": false,
+   "status": "read",
+   "by": "code",
+   "model_attempts": 0,
+   "reason": null,
+   "must": [
+    "gypsum",
+    "120",
+    "paint",
+    "300",
+    "split"
+   ],
+   "found": [
+    "gypsum",
+    "120",
+    "paint",
+    "300",
+    "split"
+   ],
+   "words_ok": true,
+   "chars": 198,
+   "ms": 6,
+   "model_calls": 0
+  },
+  {
+   "id": "boq_scan_jpg",
+   "path": "customer BOQ photo (drawing_boq document mode)",
+   "degraded": false,
+   "status": "unreadable",
+   "by": null,
+   "model_attempts": 0,
+   "reason": "no_text_layer_and_no_model",
+   "must": [
+    "gypsum",
+    "120",
+    "paint",
+    "300",
+    "split"
+   ],
+   "found": [],
+   "words_ok": false,
+   "chars": 0,
+   "ms": 0,
+   "model_calls": 0
+  },
+  {
+   "id": "boq_scan_pdf",
+   "path": "scanned BOQ PDF (doc_extract / drawing_boq)",
+   "degraded": false,
+   "status": "unreadable",
+   "by": null,
+   "model_attempts": 0,
+   "reason": "no_text_layer_and_no_model",
+   "must": [
+    "gypsum",
+    "120",
+    "paint",
+    "300",
+    "split"
+   ],
+   "found": [],
+   "words_ok": false,
+   "chars": 0,
+   "ms": 2,
+   "model_calls": 0
+  },
+  {
+   "id": "drawing_pdf",
+   "path": "drawing PDF (drawing_boq)",
+   "degraded": false,
+   "status": "read",
+   "by": "code",
+   "model_attempts": 0,
+   "reason": null,
+   "must": [
+    "meeting",
+    "room"
+   ],
+   "found": [
+    "meeting",
+    "room"
+   ],
+   "words_ok": true,
+   "chars": 503,
+   "ms": 6,
+   "model_calls": 0
+  },
+  {
+   "id": "drawing_png",
+   "path": "drawing PNG (drawing_boq photo)",
+   "degraded": false,
+   "status": "unreadable",
+   "by": null,
+   "model_attempts": 0,
+   "reason": "no_text_layer_and_no_model",
+   "must": [
+    "meeting",
+    "room"
+   ],
+   "found": [],
+   "words_ok": false,
+   "chars": 0,
+   "ms": 0,
+   "model_calls": 0
+  },
+  {
+   "id": "quote_text_pdf",
+   "path": "supplier quotation (quote review / quote_extract)",
+   "degraded": false,
+   "status": "read",
+   "by": "code",
+   "model_attempts": 0,
+   "reason": null,
+   "must": [
+    "gypsum",
+    "15000"
+   ],
+   "found": [
+    "gypsum",
+    "15000"
+   ],
+   "words_ok": true,
+   "chars": 189,
+   "ms": 0,
+   "quote_total": 15000,
+   "quote_total_ok": true,
+   "model_calls": 0
+  },
+  {
+   "id": "quote_scan_jpg",
+   "path": "supplier quotation photo (quote review)",
+   "degraded": false,
+   "status": "unreadable",
+   "by": null,
+   "model_attempts": 0,
+   "reason": "no_text_layer_and_no_model",
+   "must": [
+    "gypsum",
+    "15000"
+   ],
+   "found": [],
+   "words_ok": false,
+   "chars": 0,
+   "ms": 0,
+   "quote_total": null,
+   "quote_total_ok": false,
+   "model_calls": 0
+  },
+  {
+   "id": "degraded_jpg",
+   "path": "deliberately degraded scan",
+   "degraded": true,
+   "status": "unreadable",
+   "by": null,
+   "model_attempts": 0,
+   "reason": "no_text_layer_and_no_model",
+   "must": [],
+   "found": [],
+   "words_ok": true,
+   "chars": 0,
+   "ms": 0,
+   "model_calls": 0
+  }
+ ]
+}

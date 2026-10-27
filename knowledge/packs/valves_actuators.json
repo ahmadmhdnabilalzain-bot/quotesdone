@@ -58,6 +58,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "valves_actuators:product-distinctions",
+      "topic": "Valves: types, ratings, materials and actuation",
+      "topic_ar": "الصمامات: الأنواع والتصنيفات والمواد والتشغيل",
+      "kind": "product_distinctions",
+      "body_en": "Valve types by function: isolation (gate valves for full bore on/off, ball valves with quarter-turn tight shut-off, butterfly valves compact for large water and HVAC lines, plug valves), regulation (globe valves and control valves for throttling), non-return (check valves: swing, lift, dual-plate, ball), and special valves (pressure-reducing, pressure-relief and safety valves, air release, foot valves, float valves, strainers). Ratings: pressure class or nominal pressure (ASME Class 150/300/600 or PN10/16/25/40) and temperature limits, which the maker rates for each body material. Materials: cast iron and ductile iron (water, HVAC), bronze (small water and marine), carbon steel (WCB, A105) and stainless steel (CF8M, 316) for process, duplex and alloys for corrosive and offshore service; seats and seals (EPDM, PTFE, metal-seated) by fluid and temperature. End connections: flanged (with flange standard), threaded, socket-weld, butt-weld, grooved, wafer or lug. Actuation: manual (lever, gearbox handwheel), pneumatic (spring-return or double-acting), electric (on/off or modulating with feedback), hydraulic, and solenoid valves for small lines; actuators are sized to the valve torque with a safety margin and come with positioners, limit switches and fail-safe settings. Oil and gas valves follow API standards (API 6D, 600, 608) with testing to API 598.",
+      "body_ar": "أنواع الصمامات حسب الوظيفة: العزل (صمامات البوابة للفتح الكامل والإغلاق، والصمامات الكروية بربع دورة وإحكام تام، والصمامات الفراشية المدمجة لخطوط المياه والتكييف الكبيرة، والصمامات السدادية)، والتنظيم (الصمامات الكروية الشكل وصمامات التحكم للخنق)، وعدم الرجوع (صمامات عدم الرجوع: المتأرجحة، الرافعة، ثنائية الألواح، الكروية)، والصمامات الخاصة (خفض الضغط، تنفيس الضغط والأمان، تنفيس الهواء، صمامات القدم، العوامات، المصافي). والتصنيفات: فئة الضغط أو الضغط الاسمي (ASME Class 150/300/600 أو PN10/16/25/40) وحدود الحرارة، التي يحددها الصانع لكل مادة جسم. والمواد: الحديد الزهر والدكتايل (المياه، التكييف)، والبرونز (المياه الصغيرة والبحرية)، والحديد الكربوني (WCB، A105) والستانلس (CF8M، 316) للعمليات، والدوبلكس والسبائك للخدمة الأكالة والبحرية؛ والمقاعد وموانع التسرب (EPDM، PTFE، المعدنية) حسب السائل والحرارة. والوصلات الطرفية: الشفة (مع معيار الشفة)، والمسننة، واللحام بالتجويف، واللحام التناكبي، والمحززة، والرقاقية أو ذات العروات. والتشغيل: يدوي (ذراع، عجلة مع صندوق تروس)، وهوائي (عودة بالنابض أو مزدوج الفعل)، وكهربائي (فتح وإغلاق أو تعديلي مع تغذية راجعة)، وهيدروليكي، وصمامات الملف للخطوط الصغيرة؛ وتُحدد المشغلات حسب عزم الصمام مع هامش أمان، وتأتي مع ضوابط الموضع ومفاتيح الحد وإعدادات الأمان عند العطل. وتتبع صمامات النفط والغاز معايير API (API 6D، 600، 608) مع اختبار وفق API 598.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Valve"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: gate, globe, ball, butterfly and check valves; manual, pneumatic, hydraulic, solenoid and motor actuators; maker pressure and temperature ratings -> confirmed."
+    },
+    {
+      "id": "valves_actuators:lead-times-and-quoting",
+      "topic": "Valves & actuators - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الصمامات والمشغلات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock valves: days; project and API valves 4-16 weeks; actuated assemblies add 2-4 weeks. A supplier needs type, size, pressure class, body and trim materials, end connections, fluid and temperature, actuation and controls, standards and testing, and quantities. A quote states make, model, materials, rating, standards, tests and certificates (EN 10204 3.1), actuator make and sizing, delivery and validity.",
+      "body_ar": "الصمامات المتوفرة: أيام؛ وصمامات المشاريع وAPI من 4 إلى 16 أسبوعاً؛ والتجميعات المشغلة تضيف 2-4 أسابيع. ويحتاج المورد النوع والمقاس وفئة الضغط ومواد الجسم والتجهيزات الداخلية والوصلات الطرفية والسائل والحرارة والتشغيل والتحكم والمعايير والاختبارات والكميات. ويذكر العرض الماركة والموديل والمواد والتصنيف والمعايير والاختبارات والشهادات (EN 10204 3.1) وماركة المشغل وتحديد حجمه والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -83,6 +113,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry recommends a butterfly valve type (EN 593 wafer/lug, ductile iron, EPDM seat) for chilled water; spec-checklist only lists fields). valves_actuators:butterfly-valves-chilled-water was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from valves_actuators.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Butterfly or gate valve for isolating a 300 mm chilled water line?",
+      "q_ar": "صمام فراشة ولا بوابة لعزل خط مياه مبردة قطره 300 مم؟",
+      "expected_entry_ids": [
+        "valves_actuators:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -102,6 +140,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "valves_actuators:butterfly-valves-chilled-water"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "valves_actuators:product-distinctions"
+      ],
+      "stored_not_served": [
+        "valves_actuators:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Valve"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

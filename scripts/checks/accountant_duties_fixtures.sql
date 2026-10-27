@@ -408,7 +408,9 @@ begin
   t3 := pg_temp.zz_case('acct3', 3433.33, 103.00, 108.82);
   perform pg_temp.zz_assert(exists (select 1 from public.fn_accountant_charge_audit_candidates(500) c where c.transaction_id = t3),
     'charge audit: the reveal is not a candidate');
-  v := public.fn_accountant_charge_audit_record(jsonb_build_array(jsonb_build_object('transaction_id', t3, 'livemode', false,
+  -- livemode true: since 19 Oct 2026 a Stripe test-mode charge moved no money and raises nothing
+  -- (detectors_stop_escalating_what_is_not_a_fault.sql, #1496); the ZZ DEMO customer still marks the finding demo
+  v := public.fn_accountant_charge_audit_record(jsonb_build_array(jsonb_build_object('transaction_id', t3, 'livemode', true,
     'basis', 'international', 'quote_amount', 3433.33, 'rate', 0.03, 'expected_total', 108.82, 'expected_processing', 5.82,
     'actual_total', 108.87, 'actual_fee_fils', 540, 'shortfall_aed', 0, 'evidence', '{}'::jsonb)));
   perform pg_temp.zz_assert(pg_temp.zz_open('acct:charge_audit:charge:' || t3), 'charge audit: a 0.05 overcharge raised no finding');

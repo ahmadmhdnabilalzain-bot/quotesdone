@@ -1,0 +1,1155 @@
+{
+ "via": "none",
+ "read_at": "2026-10-12T13:24:20.650Z",
+ "docs": [
+  {
+   "id": "lic_dubai_ded_old_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "507919",
+    "legal_name_en": "ZZ DEMO Falcon Aluminium LLC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Falcon Aluminium",
+    "legal_form": "Limited Liability Company",
+    "authority": "Dubai Department of Economic Development",
+    "emirate": "Dubai",
+    "issue_date": "2024-01-01",
+    "expiry_date": "2027-01-28",
+    "activities": [
+     "Aluminium Works Contracting",
+     "Carpentry and Joinery Works"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_dubai_ded_old_scan_pdf",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_dubai_det_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "1023757",
+    "legal_name_en": "ZZ DEMO Dune Plumbing LLC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Dune Plumbing",
+    "legal_form": "Limited Liability Company",
+    "authority": "Dubai Department of Economy and Tourism",
+    "emirate": "Dubai",
+    "issue_date": "2026-03-03",
+    "expiry_date": "2028-03-02",
+    "activities": [
+     "Plumbing and Sanitary Installation",
+     "Building Waterproofing Works"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_dubai_det_png",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_abu_dhabi_added_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "CN-1523645",
+    "legal_name_en": "ZZ DEMO Horizon Floor LLC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Horizon Floor",
+    "legal_form": "Limited Liability Company",
+    "authority": "Abu Dhabi Department of Economic Development",
+    "emirate": "Abu Dhabi",
+    "issue_date": "2025-05-05",
+    "expiry_date": "2027-05-04",
+    "activities": [
+     "Floor and Wall Tiling Works",
+     "Glass and Glazing Works"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_abu_dhabi_added_jpg",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_adgm_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "000010259",
+    "legal_name_en": "ZZ DEMO Marina Painting Ltd",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Marina Painting",
+    "legal_form": "Private Company Limited by Shares",
+    "authority": "Abu Dhabi Global Market Registration Authority",
+    "emirate": "Abu Dhabi",
+    "issue_date": "2024-07-07",
+    "expiry_date": "2027-07-06",
+    "activities": [
+     "Painting Contracting",
+     "Fire Fighting Equipment Installation"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_adgm_rotated90",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_sharjah_sedd_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "705517",
+    "legal_name_en": "ZZ DEMO Ghaf Landscaping LLC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Ghaf Landscaping",
+    "legal_form": "Limited Liability Company",
+    "authority": "Sharjah Economic Development Department",
+    "emirate": "Sharjah",
+    "issue_date": "2026-09-09",
+    "expiry_date": "2028-09-08",
+    "activities": [
+     "Landscaping Works",
+     "Electrical Fitting Contracting"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_sharjah_sedd_skewed",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_ajman_ded_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "12981",
+    "legal_name_en": "ZZ DEMO Sidra Lifts Est",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Sidra Lifts",
+    "legal_form": "Sole Establishment",
+    "authority": "Ajman Department of Economic Development",
+    "emirate": "Ajman",
+    "issue_date": "2025-02-11",
+    "expiry_date": "2027-02-10",
+    "activities": [
+     "Lifts and Escalators Installation and Maintenance",
+     "Air Conditioning and Ventilation Systems Installation"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_ajman_ded_lowdpi",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_rak_ded_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "24303",
+    "legal_name_en": "ZZ DEMO Corniche Aluminium LLC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Corniche Aluminium",
+    "legal_form": "Limited Liability Company",
+    "authority": "Ras Al Khaimah Department of Economic Development",
+    "emirate": "Ras Al Khaimah",
+    "issue_date": "2024-04-13",
+    "expiry_date": "2027-04-12",
+    "activities": [
+     "Aluminium Works Contracting",
+     "Carpentry and Joinery Works"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_rak_ded_phone",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_rakez_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "5115755",
+    "legal_name_en": "ZZ DEMO Wadi Plumbing FZ LLC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Wadi Plumbing",
+    "legal_form": "Free Zone Limited Liability Company",
+    "authority": "Ras Al Khaimah Economic Zone Authority",
+    "emirate": "Ras Al Khaimah",
+    "issue_date": "2026-06-15",
+    "expiry_date": "2028-06-14",
+    "activities": [
+     "Plumbing and Sanitary Installation",
+     "Building Waterproofing Works"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_rakez_scan_pdf",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_uaq_ded_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "4649",
+    "legal_name_en": "ZZ DEMO Najm Floor LLC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Najm Floor",
+    "legal_form": "Limited Liability Company",
+    "authority": "Umm Al Quwain Department of Economic Development",
+    "emirate": "Umm Al Quwain",
+    "issue_date": "2025-08-17",
+    "expiry_date": "2027-08-16",
+    "activities": [
+     "Floor and Wall Tiling Works",
+     "Glass and Glazing Works"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_uaq_ded_png",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_fujairah_ded_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "42147",
+    "legal_name_en": "ZZ DEMO Falcon Painting LLC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Falcon Painting",
+    "legal_form": "Limited Liability Company",
+    "authority": "Fujairah Department of Industry and Economy",
+    "emirate": "Fujairah",
+    "issue_date": "2024-01-19",
+    "expiry_date": "2027-01-18",
+    "activities": [
+     "Painting Contracting",
+     "Fire Fighting Equipment Installation"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_fujairah_ded_jpg",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_jafza_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "189691",
+    "legal_name_en": "ZZ DEMO Dune Landscaping FZE",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Dune Landscaping",
+    "legal_form": "Free Zone Establishment",
+    "authority": "Jebel Ali Free Zone Authority",
+    "emirate": "Dubai",
+    "issue_date": "2026-03-21",
+    "expiry_date": "2028-03-20",
+    "activities": [
+     "Landscaping Works",
+     "Electrical Fitting Contracting"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_jafza_rotated90",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_dmcc_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "DMCC-238161",
+    "legal_name_en": "ZZ DEMO Horizon Lifts DMCC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Horizon Lifts",
+    "legal_form": "DMCC Company",
+    "authority": "Dubai Multi Commodities Centre Authority",
+    "emirate": "Dubai",
+    "issue_date": "2025-05-23",
+    "expiry_date": "2027-05-22",
+    "activities": [
+     "Lifts and Escalators Installation and Maintenance",
+     "Air Conditioning and Ventilation Systems Installation"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_dmcc_skewed",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_dafza_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "1925",
+    "legal_name_en": "ZZ DEMO Marina Aluminium FZ LLC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Marina Aluminium",
+    "legal_form": "Free Zone Company",
+    "authority": "Dubai Airport Free Zone Authority",
+    "emirate": "Dubai",
+    "issue_date": "2024-07-25",
+    "expiry_date": "2027-07-24",
+    "activities": [
+     "Aluminium Works Contracting",
+     "Carpentry and Joinery Works"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_dafza_lowdpi",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_dso_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "21043",
+    "legal_name_en": "ZZ DEMO Ghaf Plumbing FZ LLC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Ghaf Plumbing",
+    "legal_form": "Free Zone Limited Liability Company",
+    "authority": "Dubai Silicon Oasis Authority",
+    "emirate": "Dubai",
+    "issue_date": "2026-09-27",
+    "expiry_date": "2028-09-26",
+    "activities": [
+     "Plumbing and Sanitary Installation",
+     "Building Waterproofing Works"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_dso_phone",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_ifza_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "24587",
+    "legal_name_en": "ZZ DEMO Sidra Floor FZ LLC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Sidra Floor",
+    "legal_form": "Free Zone Company",
+    "authority": "International Free Zone Authority",
+    "emirate": "Dubai",
+    "issue_date": "2025-02-02",
+    "expiry_date": "2027-02-01",
+    "activities": [
+     "Floor and Wall Tiling Works",
+     "Glass and Glazing Works"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_ifza_scan_pdf",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_meydan_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "MFZ-7541",
+    "legal_name_en": "ZZ DEMO Corniche Painting FZ LLC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Corniche Painting",
+    "legal_form": "Free Zone Limited Liability Company",
+    "authority": "Meydan Free Zone",
+    "emirate": "Dubai",
+    "issue_date": "2024-04-04",
+    "expiry_date": "2027-04-03",
+    "activities": [
+     "Painting Contracting",
+     "Fire Fighting Equipment Installation"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_meydan_png",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_shams_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "2033429",
+    "legal_name_en": "ZZ DEMO Wadi Landscaping FZE",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Wadi Landscaping",
+    "legal_form": "Free Zone Establishment",
+    "authority": "Sharjah Media City Authority",
+    "emirate": "Sharjah",
+    "issue_date": "2026-06-06",
+    "expiry_date": "2028-06-05",
+    "activities": [
+     "Landscaping Works",
+     "Electrical Fitting Contracting"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_shams_jpg",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_difc_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "CL2015",
+    "legal_name_en": "ZZ DEMO Najm Lifts Ltd",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Najm Lifts",
+    "legal_form": "Private Company",
+    "authority": "Dubai International Financial Centre Registrar of Companies",
+    "emirate": "Dubai",
+    "issue_date": "2025-08-08",
+    "expiry_date": "2027-08-07",
+    "activities": [
+     "Lifts and Escalators Installation and Maintenance",
+     "Air Conditioning and Ventilation Systems Installation"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_difc_rotated90",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_dubai_det_bi_jpg",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_sharjah_sedd_bi_phone",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_abu_dhabi_added_bi_scan_pdf",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_ajman_ded_ar_png",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_fujairah_ded_ar_jpg",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_dmcc_multipage",
+   "asked": false,
+   "merged": {
+    "licence_no": "DMCC-352294",
+    "legal_name_en": "ZZ DEMO Saker Carpentry DMCC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Saker Carpentry",
+    "legal_form": "DMCC Company",
+    "authority": "Dubai Multi Commodities Centre Authority",
+    "emirate": "Dubai",
+    "issue_date": "2026-06-15",
+    "expiry_date": "2029-06-14",
+    "activities": [
+     "Carpentry and Joinery Works",
+     "Lifts and Escalators Installation and Maintenance"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_jafza_multipage",
+   "asked": false,
+   "merged": {
+    "licence_no": "183654",
+    "legal_name_en": "ZZ DEMO Marina Painting FZE",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Marina Painting",
+    "legal_form": "Free Zone Establishment",
+    "authority": "Jebel Ali Free Zone Authority",
+    "emirate": "Dubai",
+    "issue_date": "2024-07-16",
+    "expiry_date": "2027-07-15",
+    "activities": [
+     "Painting Contracting",
+     "Fire Fighting Equipment Installation"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_expired_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "1348436",
+    "legal_name_en": "ZZ DEMO Crescent Building LLC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Crescent Building",
+    "legal_form": "Limited Liability Company",
+    "authority": "Dubai Department of Economy and Tourism",
+    "emirate": "Dubai",
+    "issue_date": "2024-07-01",
+    "expiry_date": "2025-06-30",
+    "activities": [
+     "Building Waterproofing Works",
+     "Aluminium Works Contracting"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_expired_scan",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_mismatch_text",
+   "asked": false,
+   "merged": {
+    "licence_no": "864274",
+    "legal_name_en": "ZZ DEMO Mirage Contracting LLC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Palm Glass",
+    "legal_form": "Limited Liability Company",
+    "authority": "Dubai Department of Economic Development",
+    "emirate": "Dubai",
+    "issue_date": "2024-01-19",
+    "expiry_date": "2027-01-18",
+    "activities": [
+     "Glass and Glazing Works",
+     "Plumbing and Sanitary Installation"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_mismatch_text_approved_swap",
+   "asked": false,
+   "merged": {
+    "licence_no": "864274",
+    "legal_name_en": "ZZ DEMO Mirage Contracting LLC",
+    "legal_name_ar": null,
+    "trade_name": "ZZ DEMO Palm Glass",
+    "legal_form": "Limited Liability Company",
+    "authority": "Dubai Department of Economic Development",
+    "emirate": "Dubai",
+    "issue_date": "2024-01-19",
+    "expiry_date": "2027-01-18",
+    "activities": [
+     "Glass and Glazing Works",
+     "Plumbing and Sanitary Installation"
+    ]
+   },
+   "source": {
+    "licence_no": "code",
+    "legal_name_en": "code",
+    "trade_name": "code",
+    "legal_form": "code",
+    "authority": "code",
+    "emirate": "code",
+    "issue_date": "code",
+    "expiry_date": "code",
+    "activities": "code"
+   }
+  },
+  {
+   "id": "lic_mismatch_scan",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_blank_pdf",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  },
+  {
+   "id": "lic_blank_photo",
+   "asked": false,
+   "merged": {
+    "licence_no": null,
+    "legal_name_en": null,
+    "legal_name_ar": null,
+    "trade_name": null,
+    "legal_form": null,
+    "authority": null,
+    "emirate": null,
+    "issue_date": null,
+    "expiry_date": null,
+    "activities": null
+   },
+   "source": {}
+  }
+ ]
+}

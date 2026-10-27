@@ -2861,6 +2861,64 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_five_number_report()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_day date := (now() at time zone 'Asia/Dubai')::date - 1; v_n jsonb; v_id bigint; a public.agent_actions;
+begin
+  v_n := public.fn_ceo_five_numbers(v_day);
+  v_id := public.fn_seat_handoff('ceo', 'ceo', 'report.five_numbers', 'five_numbers', v_day::text,
+                                 jsonb_build_object('numbers', v_n));
+  select * into a from public.agent_actions where id = v_id;
+  return jsonb_build_object('handoff_id', v_id, 'status', a.status, 'day', v_day, 'numbers', v_n);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_five_numbers(p_day date)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with w as (
+    select (p_day::timestamp at time zone 'Asia/Dubai') as t0,
+           ((p_day + 1)::timestamp at time zone 'Asia/Dubai') as t1,
+           ((p_day - 6)::timestamp at time zone 'Asia/Dubai') as r0
+  ), inv as (
+    select m.inquiry_id, m.supplier_id,
+           exists (select 1 from public.quotes q where q.inquiry_id = m.inquiry_id and q.supplier_id = m.supplier_id
+                    and coalesce(q.status, '') <> 'draft') as quoted
+      from public.inquiry_matches m join public.leads l on l.id = m.supplier_id cross join w
+     where m.sent_at >= w.r0 and m.sent_at < w.t1
+       and not coalesce(l.is_demo, false) and not public.fn_inquiry_is_demo(m.inquiry_id)
+  )
+  select jsonb_build_object(
+    'day', p_day, 'timezone', 'Asia/Dubai',
+    'requests_created', (select count(*) from public.inquiries i, w
+                          where i.created_at >= w.t0 and i.created_at < w.t1 and not public.fn_inquiry_is_demo(i.id)),
+    'quotes_received', (select count(*) from public.quotes q join public.leads l on l.id = q.supplier_id, w
+                         where q.created_at >= w.t0 and q.created_at < w.t1 and coalesce(q.status, '') <> 'draft'
+                           and not coalesce(l.is_demo, false) and not public.fn_inquiry_is_demo(q.inquiry_id)),
+    'reveals_paid', (select count(*) from public.transactions t, w
+                      where t.fee_status = 'paid' and t.revealed_at >= w.t0 and t.revealed_at < w.t1
+                        and not public.fn_inquiry_is_demo(t.inquiry_id)),
+    'invited_7d', (select count(*) from inv),
+    'quoted_7d', (select count(*) from inv where quoted),
+    'supplier_response_rate', (select case when count(*) = 0 then null
+                                            else round(count(*) filter (where quoted)::numeric / count(*), 3) end from inv),
+    'response_rate_window', 'invitations made in the 7 days ending ' || p_day || ' (Dubai); quoted = any non-draft quote',
+    'disputes', (select count(*) from public.post_reveal_dispute d, w
+                  where d.opened_at >= w.t0 and d.opened_at < w.t1
+                    and (d.inquiry_id is null or not public.fn_inquiry_is_demo(d.inquiry_id)))
+              + (select count(*) from public.stripe_dispute s, w
+                  where s.livemode and s.first_seen_at >= w.t0 and s.first_seen_at < w.t1),
+    'demo_excluded', true)
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_forecast_counter_action()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -3009,8 +3067,12 @@ begin
   -- Close, then propose, and repeat until a pass changes nothing. Closing one improvement completes its handoff,
   -- which can finalise the cases another lesson waits on, and frees a capped slot; a single close-then-propose
   -- still left 11 closes and 11 proposals for the next run (measured 30 Sep 2026). The last pass is the proof.
-  -- ponytail: 10 passes and 2 s bound the loop (it runs inside the seat duty tick's 8 s statement, 18 Oct 2026:
-  -- 9.3 s unbounded); what is left finishes on the next run, every step being idempotent.
+  -- ponytail: 50 passes and 30 s bound the loop. It runs only on its own pg_cron job seat_duty:ceo.improvement, under
+  -- that job's 60 s statement_timeout; the 2 s it had was sized for the shared 8 s tick it no longer runs in, and left
+  -- a weekly sweep that never settled (25 Oct 2026: passes 1, stopped_at_budget true). Measured 27 Oct 2026, rolled
+  -- back: 10 passes hit the old bound unsettled in 12.1 s; with 50 it settles on pass 11 and a second run proposes 0.
+  -- What is left past 30 s finishes on the next run,
+  -- every step being idempotent.
   loop
   v_pass := v_pass + 1;
   v_before := n_new + n_done;
@@ -3019,7 +3081,7 @@ begin
   for r in select i.*, coalesce(i.evidence->>'lesson',
                                 (select m.lessons[1] from public.seat_case_memory m where m.id = (i.evidence->>'case_memory_id')::bigint)) as lesson
              from public.ceo_improvement i where i.status in ('open', 'assigned') loop
-    exit when clock_timestamp() - v_t0 > interval '2 seconds';
+    exit when clock_timestamp() - v_t0 > interval '30 seconds';
     if r.source_kind in ('recurring_miss', 'month_miss')
        and (select count(*) filter (where d.status in ('on_track', 'within_tolerance')) = 7 and count(*) = 7
               from public.target_daily_verdict d where d.contract_id = c_id and d.metric_key = r.evidence->>'metric'
@@ -3056,7 +3118,7 @@ begin
            having count(*) filter (where d.status = 'miss') >= 7
               and not (count(*) filter (where d.day > current_date - 7 and d.status in ('on_track', 'within_tolerance')) = 7
                        and count(*) filter (where d.day > current_date - 7) = 7) loop
-    exit when clock_timestamp() - v_t0 > interval '2 seconds';
+    exit when clock_timestamp() - v_t0 > interval '30 seconds';
     continue when exists (select 1 from public.ceo_improvement i where i.source_kind = 'recurring_miss'
                              and i.status in ('open', 'assigned') and i.evidence->>'metric' = r.metric_key);
     v := public.fn_ceo_improvement_open('recurring_miss', r.metric_key || ':' || to_char(current_date, 'YYYY-MM'), r.owner_seat,
@@ -3072,7 +3134,7 @@ begin
             where cardinality(m.lessons) > 0 and coalesce(m.updated_at, m.opened_at) > now() - interval '30 days'
               and exists (select 1 from public.org_role o where o.role_id = m.seat and o.status = 'active')
             group by 1, 2, 3 loop
-    exit when clock_timestamp() - v_t0 > interval '2 seconds';
+    exit when clock_timestamp() - v_t0 > interval '30 seconds';
     v := public.fn_ceo_improvement_open('lesson', 'lesson:' || r.seat || ':' || md5(r.case_kind || '|' || r.lesson), r.seat,
       format('Make this lesson part of the routine, so the same case does not come back: %s', r.lesson),
       jsonb_build_object('case_memory_id', r.last_case, 'case_kind', r.case_kind, 'lesson', r.lesson, 'cases', r.cases));
@@ -3082,7 +3144,7 @@ begin
   -- an open finding seen three or more times is a process fault, not a one-off
   for r in select f.issue_key, f.title, f.seen_count, coalesce(nullif(f.evidence->>'owner_seat', ''), f.raised_by) as seat
              from public.it_engineer_finding f where f.closed_at is null and f.seen_count >= 3 loop
-    exit when clock_timestamp() - v_t0 > interval '2 seconds';
+    exit when clock_timestamp() - v_t0 > interval '30 seconds';
     if exists (select 1 from public.org_role o where o.role_id = r.seat and o.status = 'active') then
       v := public.fn_ceo_improvement_open('recurring_finding', r.issue_key, r.seat,
         format('Remove the cause of a finding seen %s times: %s', r.seen_count, left(r.title, 300)),
@@ -3091,11 +3153,11 @@ begin
     end if;
   end loop;
 
-  exit when n_new + n_done = v_before or v_pass >= 10 or clock_timestamp() - v_t0 > interval '2 seconds';
+  exit when n_new + n_done = v_before or v_pass >= 50 or clock_timestamp() - v_t0 > interval '30 seconds';
   end loop;
 
   return jsonb_build_object('proposed', n_new, 'closed', n_done, 'passes', v_pass,
-    'stopped_at_budget', clock_timestamp() - v_t0 > interval '2 seconds',
+    'stopped_at_budget', clock_timestamp() - v_t0 > interval '30 seconds',
     'open', (select count(*) from public.ceo_improvement where status in ('open', 'assigned')));
 end $function$
 
@@ -3635,6 +3697,152 @@ begin
    where id = v_held;
   update public.ceo_review set held_id = v_held where kind = 'management_review' and period = v_week;
   return jsonb_build_object('week', v_week, 'filed', v_held);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_market_report(p_month date DEFAULT NULL::date, p_include_demo boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_today date := (now() at time zone 'Asia/Dubai')::date;
+  v_m date := date_trunc('month', coalesce(p_month, (v_today - interval '1 month')::date))::date;
+  v_e date := (date_trunc('month', coalesce(p_month, (v_today - interval '1 month')::date)) + interval '1 month')::date;
+  f jsonb; v_gaps jsonb; v_prices jsonb; v_quotes jsonb; v_conv jsonb; v_fc jsonb := null; v_bind jsonb; v_closed jsonb := '[]'::jsonb;
+  v_body text; v_named text; v_impr bigint; v_held bigint; v_n jsonb; r record;
+begin
+  if v_m >= date_trunc('month', v_today)::date then
+    raise exception 'month % has not ended; the market report is written for a month that is over', to_char(v_m, 'YYYY-MM');
+  end if;
+  if exists (select 1 from public.ceo_market_report where month = v_m and include_demo = p_include_demo) then
+    return jsonb_build_object('ok', true, 'month', to_char(v_m, 'YYYY-MM'), 'already', true);
+  end if;
+
+  f := public.fn_ceo_strategy_memo_facts(v_m, p_include_demo);   -- requests and suppliers per category, competitors, trends
+
+  select coalesce(jsonb_agg(x order by (x->>'shortfall')::int desc, x->>'trade', x->>'emirate'), '[]'::jsonb) into v_gaps
+    from (select jsonb_build_object('trade', g.trade, 'emirate', g.emirate, 'matchable', g.matchable, 'target', g.target,
+                   'demand_90d', g.demand_90d, 'shortfall', g.target - g.matchable, 'status', g.status) x
+            from public.supply_gap g where g.matchable < g.target and g.demand_90d > 0
+           order by g.demand_90d desc, g.target - g.matchable desc limit 15) z;
+
+  select jsonb_build_object('benchmarks', count(*), 'categories', count(distinct category), 'newest', max(as_of),
+           'stale_over_180d', count(*) filter (where as_of < v_today - 180)) into v_prices
+    from public.price_benchmark;
+
+  with q as (
+    select i.category, q.quote_amount from public.quotes q join public.inquiries i on i.id = q.inquiry_id
+      left join public.customers c on c.id = i.customer_id
+     where q.created_at >= v_m and q.created_at < v_e and (p_include_demo or not coalesce(c.is_demo, false))
+  )
+  select jsonb_build_object('quotes', count(*),
+           'by_category', coalesce((select jsonb_agg(jsonb_build_object('category', category, 'quotes', n, 'median_aed', med) order by n desc)
+              from (select category, count(*) n, percentile_cont(0.5) within group (order by quote_amount) med from q group by category) s), '[]'::jsonb))
+    into v_quotes from q;
+
+  select jsonb_build_object('requests', count(*),
+           'quoted', count(*) filter (where exists (select 1 from public.quotes q where q.inquiry_id = i.id)),
+           'revealed', count(*) filter (where i.status = 'revealed')) into v_conv
+    from public.inquiries i left join public.customers c on c.id = i.customer_id
+   where i.created_at >= v_m and i.created_at < v_e and i.parent_inquiry_id is null and (p_include_demo or not coalesce(c.is_demo, false));
+
+  if to_regclass('public.demand_forecast') is not null then   -- the sales engineer's estimate, when it is on file
+    execute $q$select coalesce(jsonb_agg(row_to_json(x)), '[]'::jsonb) from (
+               select trade, emirate, forecast_30d, forecast_90d, searches_30d, sufficient_data, basis from public.demand_forecast
+                where run_on = (select max(run_on) from public.demand_forecast) and emirate = 'UAE'
+                order by forecast_90d desc, searches_30d desc limit 10) x$q$ into v_fc;
+  end if;
+
+  -- CLOSE last months' findings whose gap is now closed. A demo run acts on nothing real: no close, no open,
+  -- no handoff (review of #1192).
+  for r in select i.id, i.evidence from public.ceo_improvement i
+            where not p_include_demo and i.source_kind = 'market_report' and i.status in ('open', 'assigned') loop
+    if exists (select 1 from public.supply_gap g where g.trade = r.evidence->>'trade' and g.emirate = r.evidence->>'emirate' and g.matchable >= g.target) then
+      perform public.fn_ceo_improvement_close(r.id, format('%s in %s reached its supplier target (market report %s).',
+        r.evidence->>'trade', r.evidence->>'emirate', to_char(v_m, 'YYYY-MM')));
+      v_closed := v_closed || jsonb_build_object('improvement_id', r.id, 'trade', r.evidence->>'trade', 'emirate', r.evidence->>'emirate');
+    end if;
+  end loop;
+
+  -- THE BINDING FINDING and the act on it
+  v_bind := v_gaps->0;
+  if v_bind is not null and not p_include_demo then
+    v_impr := public.fn_ceo_improvement_open('market_report', to_char(v_m, 'YYYY-MM'), 'sales_engineer',
+      format('Market report %s: %s in %s has %s matchable suppliers against a target of %s while %s requests came in over 90 days. Recruit until it reaches the target.',
+             to_char(v_m, 'Mon YYYY'), v_bind->>'trade', v_bind->>'emirate', v_bind->>'matchable', v_bind->>'target', v_bind->>'demand_90d'),
+      v_bind || jsonb_build_object('report_month', v_m));
+  end if;
+
+  v_body := 'INTERNAL UAE MARKET REPORT - ' || to_char(v_m, 'FMMonth YYYY') || ' (internal only, never published)' || E'\n\n'
+    || '1. DEMAND' || E'\n'
+    || format('  Requests %s, quoted %s, revealed %s.', v_conv->>'requests', v_conv->>'quoted', v_conv->>'revealed') || E'\n'
+    || coalesce((select string_agg(format('  %-40s requests %s (month before %s)', x->>'category', x->>'requests', x->>'requests_prior'), E'\n')
+                   from (select x from jsonb_array_elements(f->'categories') x where (x->>'requests')::int > 0 or (x->>'requests_prior')::int > 0 limit 10) z) || E'\n', '')
+    || coalesce((select E'  Forecast (estimate, the sales engineer''s), next 90 days:\n' || string_agg(format('    %-38s %s (searches 30d %s%s)',
+                   x->>'trade', x->>'forecast_90d', x->>'searches_30d', case when (x->>'sufficient_data')::boolean then '' else ', thin data' end), E'\n')
+                   from jsonb_array_elements(coalesce(v_fc, '[]'::jsonb)) x) || E'\n', '')
+    || E'\n2. SUPPLY AGAINST DEMAND (below target with demand)\n'
+    || coalesce((select string_agg(format('  %-30s %-16s %s of %s suppliers, demand %s', x->>'trade', x->>'emirate', x->>'matchable', x->>'target', x->>'demand_90d'), E'\n')
+                   from (select x from jsonb_array_elements(v_gaps) x limit 10) z), '  no trade with demand is below target') || E'\n\n'
+    || '3. PRICES' || E'\n'
+    || format('  %s benchmarks over %s categories, newest %s, %s older than 180 days. Quotes this month: %s.',
+              v_prices->>'benchmarks', v_prices->>'categories', coalesce(v_prices->>'newest', '-'), v_prices->>'stale_over_180d', v_quotes->>'quotes') || E'\n'
+    || coalesce((select string_agg(format('  %-40s %s quotes, median AED %s', x->>'category', x->>'quotes', round((x->>'median_aed')::numeric)), E'\n')
+                   from jsonb_array_elements(v_quotes->'by_category') x) || E'\n', '')
+    || E'\n4. COMPETITORS AND TRENDS\n'
+    || format('  Watched %s, pages changed %s, trends %s.', f#>>'{market,competitors_watched}',
+              jsonb_array_length(coalesce(f#>'{market,competitor_pages_changed}', '[]')), jsonb_array_length(coalesce(f#>'{market,relevant_trends}', '[]'))) || E'\n\n'
+    || '5. THE BINDING FINDING' || E'\n'
+    || case when v_bind is null then '  none: no trade with measured demand is below its supplier target.'
+            else format('  %s in %s: %s of %s suppliers against %s requests. Improvement #%s assigned to the sales engineer.',
+                        v_bind->>'trade', v_bind->>'emirate', v_bind->>'matchable', v_bind->>'target', v_bind->>'demand_90d', coalesce(v_impr::text, '(already open)')) end
+    || case when jsonb_array_length(v_closed) > 0 then E'\n  Closed: ' || jsonb_array_length(v_closed) || ' earlier finding(s) whose gap reached target.' else '' end
+    || E'\n\nEvery figure is measured from the live tables. The commentary is filed for the CEO''s reasoning and held while the model hold is on.';
+
+  v_named := public.fn_supplier_named_in(v_body);   -- #1164: nothing that leaves the database names a supplier
+
+  v_held := public.fn_reason_hold('ceo', 'ceo.market_report',
+    'Monthly internal UAE market report for ' || to_char(v_m, 'Mon YYYY') || '. What do these figures mean for the plan, and what should the company do differently next month? Never name a supplier. ' || left(v_body, 6000),
+    jsonb_build_object('seat', 'ceo', 'surface', 'ceo.market_report', 'stakes', 'normal', 'context', jsonb_build_object('audience', 'internal'),
+                       'subject', jsonb_build_object('month', v_m), 'dedupeKey', 'ceo_market_report:' || to_char(v_m, 'YYYY-MM')),
+    jsonb_build_object('filed_by', 'ceo.market_report'), jsonb_build_object('month', v_m),
+    'seat_duty', 'ceo_market_report:' || to_char(v_m, 'YYYY-MM') || case when p_include_demo then ':zz-demo' else '' end);
+
+  insert into public.ceo_market_report (month, facts, binding, body, named_check, improvement_id, closed_last, held_id, include_demo)
+  values (v_m, jsonb_build_object('memo_facts', f, 'gaps', v_gaps, 'prices', v_prices, 'quotes', v_quotes, 'conversion', v_conv, 'forecast', v_fc),
+          v_bind, v_body, v_named, v_impr, v_closed, v_held, p_include_demo);
+
+  v_n := public.fn_notify_founder(p_event => 'Internal UAE market report - ' || to_char(v_m, 'FMMonth YYYY'),
+    p_detail => case when v_named is null then v_body
+                     else 'The report for ' || to_char(v_m, 'FMMonth YYYY') || ' is on file (ceo_market_report). Its detail is withheld from this mail because a line matched a registered supplier''s name.' end,
+    p_level => 'info', p_kind => 'ceo_market_report',
+    p_dedupe_key => 'ceo_market_report:' || to_char(v_m, 'YYYY-MM') || case when p_include_demo then ':zz-demo' else '' end,
+    p_owner_agent => 'ceo');
+  update public.ceo_market_report set notify = v_n where month = v_m and include_demo = p_include_demo;
+
+  return jsonb_build_object('ok', true, 'month', to_char(v_m, 'YYYY-MM'), 'binding', v_bind, 'improvement_id', v_impr,
+    'closed', v_closed, 'held_id', v_held, 'named', v_named is not null, 'notify', v_n);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_market_report_now(p_today date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_today date := coalesce(p_today, (now() at time zone 'Asia/Dubai')::date);
+  v_month date := date_trunc('month', v_today - interval '1 month')::date;
+begin
+  if extract(day from v_today) < 3 then
+    return jsonb_build_object('due', false, 'reason', 'the market report is written from the 3rd (Dubai) for the month that ended', 'today', v_today);
+  end if;
+  if v_month < date '2026-09-01' then
+    return jsonb_build_object('due', false, 'reason', 'the first report is for September 2026');
+  end if;
+  return jsonb_build_object('due', true) || public.fn_ceo_market_report(v_month, false);
 end $function$
 
 
@@ -4424,17 +4632,20 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_pricing_evidence()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_week date := date_trunc('week', now() at time zone 'Asia/Dubai')::date; v public.ceo_pricing_evidence;
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';   -- fixture run: ONLY demo rows
 begin
-  with q as (select i.id, (select count(*) from public.quotes x where x.inquiry_id = i.id) n from public.inquiries i where i.created_at > now() - interval '90 days'),
-       t as (select * from public.transactions where revealed_at > now() - interval '90 days')
+  with q as (select i.id, (select count(*) from public.quotes x where x.inquiry_id = i.id) n from public.inquiries i
+              where i.created_at > now() - interval '90 days' and public.fn_inquiry_is_demo(i.id) = v_fx),
+       t as (select * from public.transactions where revealed_at > now() - interval '90 days' and public.fn_transaction_is_demo(id) = v_fx)
   select v_week, (select count(*) from q), (select count(*) from q where n > 0), (select coalesce(sum(n), 0) from q), (select count(*) from t),
          round(100.0 * (select count(*) from t) / nullif((select count(*) from q where n > 0), 0), 1),
-         (select round(avg(quote_amount), 2) from public.quotes where created_at > now() - interval '90 days' and quote_amount > 0),
+         (select round(avg(quote_amount), 2) from public.quotes where created_at > now() - interval '90 days' and quote_amount > 0
+             and public.fn_quote_is_demo(id) = v_fx),
          (select round(avg(reveal_fee), 2) from t),
          (select round(100.0 * sum(reveal_fee) / nullif(sum(quote_amount), 0), 2) from t where quote_amount > 0),
          (select count(*) from t where refund_requested_at is not null),
          round(100.0 * (select count(*) from t where refund_requested_at is not null) / nullif((select count(*) from t), 0), 1),
-         (select count(*) from public.leads where registration_paid_at is not null),
+         (select count(*) from public.leads where registration_paid_at is not null and coalesce(is_demo, false) = v_fx),
          (select count(*) from q where n > 0) >= 20, now()
     into v;
   insert into public.ceo_pricing_evidence select v.*
@@ -4595,6 +4806,35 @@ begin
                             'ceo_tasks_closed', n_task_closed);
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_reads_five_numbers(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; v_now jsonb; v_prev jsonb; k text; v_moved jsonb := '{}'::jsonb;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found or a.detail->>'type' is distinct from 'report.five_numbers' then
+    raise exception 'fn_ceo_reads_five_numbers: % is not a report.five_numbers handoff', p_id;
+  end if;
+  v_now := a.detail->'numbers';
+  if v_now is null then raise exception 'report.five_numbers % carries no numbers', p_id; end if;
+  select x.detail->'numbers' into v_prev from public.agent_actions x
+   where x.kind = 'handoff' and x.agent = 'ceo' and x.target_id = 'report.five_numbers:' || ((a.detail->>'subject_id')::date - 1)
+     and x.status <> 'failed' order by x.id desc limit 1;
+  foreach k in array array['requests_created', 'quotes_received', 'reveals_paid', 'supplier_response_rate', 'disputes'] loop
+    if v_prev is not null and (v_now->k) is distinct from (v_prev->k) then
+      v_moved := v_moved || jsonb_build_object(k, jsonb_build_object('from', v_prev->k, 'to', v_now->k));
+    end if;
+  end loop;
+  return jsonb_build_object('read', true, 'day', a.detail->>'subject_id', 'numbers', v_now,
+    'moved_since_previous_day', case when v_prev is null then null else v_moved end,
+    'note', case when v_prev is null then 'Read by the CEO. No report for the day before to compare with.'
+                 else 'Read by the CEO. Informational: nothing was approved or decided.' end);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_ceo_reads_lead_sourcing_report(p_id bigint)
@@ -5589,6 +5829,7 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_revision_applies(p_id bigint, p_result 
 AS $function$
 declare r public.reasoning_held_question; a public.agent_actions; v_choice text; v_f jsonb; v_problem text; v jsonb;
   d public.seat_deliberation; e public.ceo_experiment; v_model text; v_target numeric; v_days int; v_revised jsonb;
+  v_ideas jsonb; v_month date;
 begin
   v_choice := public.fn_ambition_choice(p_id, p_result);
   select * into r from public.reasoning_held_question where id = p_id;
@@ -5633,14 +5874,37 @@ begin
            coalesce(nullif(btrim(v_f->>'hypothesis'), ''), e.hypothesis), e.metric_key, e.metric_definition, e.baseline, e.baseline_note,
            v_target, e.direction, coalesce(nullif(btrim(v_f->>'approach'), ''), e.approach), e.starts_on, v_days));
   elsif a.detail->>'path' = 'marketing_month_plan' then
+    -- THE REVISED LIST REPLACES THE IDEAS (27 Oct 2026): the CEO rejected round 2 of November because the 12 ideas
+    -- were word for word round 1 - a revision could only add a note, never change the plan. A list that cannot be read
+    -- is refused like an unanswered revision (the row is reasoned again); a blank one keeps the current list.
+    v_month := (a.detail->'version'->>'month')::date;
+    if coalesce(btrim(v_f->>'ideas'), '') <> '' then
+      begin
+        v_ideas := (v_f->>'ideas')::jsonb;
+      exception when others then
+        v_ideas := null;
+      end;
+      if v_ideas is null or jsonb_typeof(v_ideas) <> 'array' or jsonb_array_length(v_ideas) = 0
+         or exists (select 1 from jsonb_array_elements(v_ideas) x
+                     where jsonb_typeof(x) <> 'object' or coalesce(x->>'n', '') !~ '^[0-9]{1,2}$'
+                        or coalesce(btrim(x->>'title'), '') = ''
+                        or coalesce(x->>'date', '') !~ ('^' || to_char(v_month, 'YYYY-MM') || '-(0[1-9]|[12][0-9]|3[01])$')) then
+        raise exception using errcode = 'check_violation', message = 'UNREADABLE_IDEAS: the revised idea list must be a JSON array of '
+          || 'objects, each with a number n, a title and a date in ' || to_char(v_month, 'YYYY-MM');
+      end if;
+      perform (x->>'date')::date from jsonb_array_elements(v_ideas) x;   -- 2026-11-31 is refused here (22008), and retried
+    end if;
     -- the revision rides on the plan (the founder sees it with the ideas) and goes to the CEO as the next round
     update public.marketing_month_plan
-       set plan = jsonb_set(plan, '{revisions}', coalesce(plan->'revisions', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+       set content_brief = case when v_ideas is null then content_brief
+                                else coalesce(content_brief, '{}'::jsonb) || jsonb_build_object('videos', jsonb_build_object('count', jsonb_array_length(v_ideas)), 'ideas', v_ideas) end,
+           plan = jsonb_set(case when v_ideas is null then plan else jsonb_set(plan, '{ideas}', v_ideas) end,
+                    '{revisions}', coalesce(plan->'revisions', '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
                     'round', a.detail->'round', 'ceo_reasons', left(a.detail->>'reasons', 3000),
                     'revision', left(coalesce(v_f->>'revision', p_result->>'answer'), 6000), 'answers', left(v_f->>'answers', 3000),
-                    'choice', v_choice, 'model', v_model))),
+                    'choice', v_choice, 'model', v_model, 'ideas_revised', v_ideas is not null))),
            updated_at = now()
-     where month = (a.detail->'version'->>'month')::date and status = 'ceo_reviewing';
+     where month = v_month and status = 'ceo_reviewing';
     if not found then   -- the plan left the CEO (withdrawn, replaced by a new draft, sent): nothing to resubmit
       return jsonb_build_object('applied', true, 'already', 'the plan is no longer with the CEO');
     end if;
@@ -5654,6 +5918,48 @@ begin
          detail = detail || jsonb_build_object('awaiting', 'the CEO decides the resubmitted round')
    where id = a.id;
   return jsonb_build_object('applied', true, 'item_key', a.detail->>'item_key', 'choice', v_choice, 'resubmission', v);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_revision_refile()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; h public.reasoning_held_question; v jsonb; v_n int; v_owe bigint;
+  n_refiled int := 0; n_owed int := 0; n_waiting int := 0;
+begin
+  for a in select * from public.agent_actions
+            where kind = 'handoff' and status = 'pending' and detail->>'type' = 'ceo.revise'
+              and not coalesce(evidence, '{}'::jsonb) ? 'resubmitted_at'
+            order by id
+  loop
+    select * into h from public.reasoning_held_question where id = (a.evidence->>'held_id')::bigint;
+    -- a live question is the seat still working; a failed one inside its 7-day window has spent its 3 tries for now
+    if h.id is null or h.status not in ('failed', 'expired') then n_waiting := n_waiting + 1; continue; end if;
+    if coalesce(h.last_attempt_at, h.created_at) > now() - interval '7 days' then n_waiting := n_waiting + 1; continue; end if;
+    v_n := coalesce((a.evidence->>'refiles')::int, 0);
+    if v_n >= 3 then
+      -- four questions of three tries each could not produce a revision: the CEO replaces or withdraws (never the founder)
+      if not coalesce(a.evidence, '{}'::jsonb) ? 'decision_owed' then
+        v_owe := public.fn_ceo_decision_owe(a.detail->>'path', a.detail->>'item_key', a.agent, coalesce((a.detail->>'generation')::int, 1),
+          'the seat''s revision could not be reasoned: 4 questions, 3 tries each (last held question ' || h.id || ', ' || h.status || ')',
+          a.detail->>'reasons', a.detail->'version');
+        update public.agent_actions set evidence = evidence || jsonb_build_object('decision_owed', v_owe, 'decision_owed_at', now()) where id = a.id;
+        n_owed := n_owed + 1;
+      end if;
+      continue;
+    end if;
+    update public.agent_actions set evidence = coalesce(evidence, '{}'::jsonb) || jsonb_build_object('refiles', v_n + 1) where id = a.id;
+    v := public.fn_seat_revises_for_the_ceo(a.id);
+    update public.agent_actions
+       set evidence = evidence || jsonb_build_object('held_id', v->'held_id', 'waiting', v->>'waiting', 'refiled_at', now(),
+                                                     'refiled_after', jsonb_build_object('held_id', h.id, 'status', h.status))
+     where id = a.id;
+    n_refiled := n_refiled + 1;
+  end loop;
+  return jsonb_build_object('refiled', n_refiled, 'decision_owed', n_owed, 'still_with_the_seat', n_waiting);
 end $function$
 
 
@@ -9212,6 +9518,124 @@ begin
   returning * into v_row;
   return jsonb_build_object('ticket', v_row.ticket_no, 'status', v_row.status,
     'in_review_at', v_row.in_review_at, 'final_response_at', v_row.final_response_at);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_contact_identity_members(p_key text)
+ RETURNS TABLE(kind text, id text, via text, is_demo boolean, phone_key text, rank_key text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with m as (
+    select 'lead'::text kind, l.id::text id, v.via,
+           -- every operand coalesced: a NULL here would make bool_and skip a real row and auto-merge it
+           (coalesce(l.is_demo, false) or coalesce(l.company_name ilike 'ZZ DEMO%', false)
+             or coalesce(l.company_name ilike 'QD Demo%', false) or coalesce(l.email ilike '%@example.invalid', false)
+             or coalesce(l.claimed_by ilike '%@example.invalid', false)) is_demo,
+           right(regexp_replace(coalesce(l.phone_e164, l.phone, ''), '\D', '', 'g'), 9) phone_key,
+           -- winner: the claimed (registered) lead, then the verified one, then the oldest
+           (case when coalesce(l.claimed, false) then '0' else '1' end) || (case when coalesce(l.verified, false) then '0' else '1' end)
+             || lpad(l.id::text, 20, '0') rank_key
+      from public.leads l
+      cross join lateral (values ('email', l.email), ('claimed_by', l.claimed_by)) v(via, addr)
+     where lower(btrim(v.addr)) = p_key and l.merged_into is null
+    union all
+    select 'customer', c.id::text, 'email',
+           (coalesce(c.is_demo, false) or coalesce(c.full_name ilike 'ZZ DEMO%', false)
+             or coalesce(c.email ilike '%@example.invalid', false)),
+           right(regexp_replace(coalesce(c.phone, c.whatsapp_phone, ''), '\D', '', 'g'), 9),
+           to_char(c.created_at, 'YYYYMMDDHH24MISSUS') || c.id::text
+      from public.customers c
+     where lower(btrim(c.email)) = p_key and c.merged_into is null
+  )
+  select distinct on (kind, id) kind, id, via, is_demo, phone_key, rank_key from m order by kind, id, via;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_contact_merge(p_group uuid, p_reviewed_by_seat text, p_reason text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare g public.contact_duplicate_group; v_kind text; v_tbl regclass; v_winner text; v_loser text;
+        fk record; n int; v_rep jsonb; v_before jsonb; v_after jsonb; v_done jsonb := '[]'::jsonb; v_live_demo boolean;
+begin
+  if length(btrim(coalesce(p_reason, ''))) < 10 then
+    raise exception 'fn_contact_merge: a reason of at least 10 characters is required';
+  end if;
+  if not exists (select 1 from public.org_role where role_id = p_reviewed_by_seat and status = 'active') then
+    raise exception 'fn_contact_merge: % is not a live seat; a merge needs a named live reviewer', p_reviewed_by_seat;
+  end if;
+  select * into g from public.contact_duplicate_group where id = p_group for update;
+  if not found then raise exception 'fn_contact_merge: no duplicate group %', p_group; end if;
+  if g.status = 'merged' then raise exception 'fn_contact_merge: group % is already merged', p_group; end if;
+  -- kinds and demo-ness are judged on the LIVE members, never on the stored report (it can be stale)
+  select count(distinct m.kind), min(m.kind), coalesce(bool_and(m.is_demo), false)
+    into n, v_kind, v_live_demo from public.fn_contact_identity_members(g.identity_key) m;
+  if cardinality(g.kinds) <> 1 or n > 1 then
+    raise exception 'fn_contact_merge: group % spans a customer and a supplier - different accounts, never merged', p_group;
+  end if;
+  if not v_live_demo and p_reviewed_by_seat = 'it_engineer' then
+    raise exception 'fn_contact_merge: a real group is reviewed by its owning seat, not by the detector';
+  end if;
+  v_kind := coalesce(v_kind, g.kinds[1]);
+  v_tbl := case v_kind when 'lead' then 'public.leads'::regclass else 'public.customers'::regclass end;
+
+  select m.id into v_winner from public.fn_contact_identity_members(g.identity_key) m
+   where m.kind = v_kind order by m.rank_key limit 1;
+  if (select count(*) from public.fn_contact_identity_members(g.identity_key) m where m.kind = v_kind) < 2 then
+    raise exception 'fn_contact_merge: group % no longer has two live % rows for its email', p_group, v_kind;
+  end if;
+
+  for v_loser in select m.id from public.fn_contact_identity_members(g.identity_key) m
+                  where m.kind = v_kind and m.id <> v_winner order by m.rank_key loop
+    execute format('select to_jsonb(t) from %s t where t.id::text = $1', v_tbl) into v_before using v_loser;
+    v_rep := '[]'::jsonb;
+    -- EVERY single-column FK that points at this table's id, read from the catalogue now.
+    for fk in select c.conrelid::regclass tbl, a.attname col
+                from pg_constraint c
+                join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+                join pg_attribute r on r.attrelid = c.confrelid and r.attnum = c.confkey[1]
+               where c.contype = 'f' and c.confrelid = v_tbl and cardinality(c.conkey) = 1 and r.attname = 'id'
+               order by 1, 2 loop
+      begin
+        execute format('update %s set %I = %L where %I = %L', fk.tbl, fk.col, v_winner, fk.col, v_loser);
+        get diagnostics n = row_count;
+        if n > 0 then v_rep := v_rep || jsonb_build_object('table', fk.tbl::text, 'column', fk.col, 'rows', n); end if;
+      exception when unique_violation or exclusion_violation then
+        -- the winner already holds the equivalent row; the loser keeps its own (it is never deleted)
+        v_rep := v_rep || jsonb_build_object('table', fk.tbl::text, 'column', fk.col, 'conflict', sqlerrm);
+      end;
+    end loop;
+
+    if v_kind = 'lead' then
+      update public.leads set merged_into = v_winner::bigint, merged_at = now(), matching_blocked = true,
+             matching_block_reason = 'merged into lead #' || v_winner
+       where id = v_loser::bigint;
+    else
+      update public.customers set merged_into = v_winner::uuid, merged_at = now() where id = v_loser::uuid;
+    end if;
+    execute format('select to_jsonb(t) from %s t where t.id::text = $1', v_tbl) into v_after using v_loser;
+
+    insert into public.contact_merge_audit (group_id, kind, winner_id, loser_id, reviewed_by_seat, reason, before_row, after_row, repointed)
+    values (g.id, v_kind, v_winner, v_loser, p_reviewed_by_seat, btrim(p_reason), v_before, v_after, v_rep);
+    v_done := v_done || jsonb_build_object('loser', v_loser, 'repointed', v_rep);
+  end loop;
+
+  update public.contact_duplicate_group set status = 'merged', merged_at = now() where id = g.id;
+  return jsonb_build_object('group', g.id, 'kind', v_kind, 'winner', v_winner, 'merged', v_done, 'reviewed_by', p_reviewed_by_seat);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_contact_merge_audit_is_append_only()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  raise exception 'contact_merge_audit is append-only: a merge record is never changed or removed';
 end $function$
 
 

@@ -53,6 +53,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "insurance_brokerage:product-distinctions",
+      "topic": "Insurance brokerage: what a broker does and the main business covers",
+      "topic_ar": "وساطة التأمين: دور الوسيط وأهم التغطيات للأعمال",
+      "kind": "product_distinctions",
+      "body_en": "A broker works for the client: it assesses risks, approaches several insurers, compares terms, places the cover and helps with claims, while an agent represents specific insurers. Brokers are usually paid by commission from the insurer (a percentage of premium), sometimes by a fee agreed with the client, and the client should know which. Business covers they place: property all risks and business interruption, contractor's all risk (CAR) and erection all risk for projects, public and products liability, professional indemnity, directors and officers, marine cargo and goods in transit, motor fleet, group medical and life, workers' compensation and employer's liability, cyber, money and fidelity, credit insurance, and engineering covers for machinery. What separates policies is in the wording: sum insured and basis (reinstatement or market value), deductibles, exclusions, limits per claim and aggregate, conditions (security, maintenance), territorial scope, and claims process. A good broker gives a comparison of quotes with these differences, not only premiums, and keeps renewals and claims on track.",
+      "body_ar": "يعمل الوسيط لصالح العميل: يقيم المخاطر، ويتواصل مع عدة شركات تأمين، ويقارن الشروط، ويضع التغطية، ويساعد في المطالبات، بينما يمثل الوكيل شركات تأمين بعينها. ويتقاضى الوسطاء عادة عمولة من شركة التأمين (نسبة من القسط)، وأحياناً أتعاباً متفقاً عليها مع العميل، ويجب أن يعرف العميل أيهما. والتغطيات التجارية التي يضعونها: تأمين الممتلكات ضد جميع الأخطار وتوقف الأعمال، وتأمين جميع أخطار المقاول وجميع أخطار التركيب للمشاريع، والمسؤولية العامة ومسؤولية المنتجات، والتعويض المهني، ومسؤولية أعضاء مجلس الإدارة والمسؤولين، والتأمين البحري للبضائع والبضائع أثناء النقل، وأساطيل المركبات، والتأمين الطبي والحياة الجماعي، وتعويض العمال ومسؤولية صاحب العمل، والتأمين السيبراني، والنقد والأمانة، وتأمين الائتمان، والتغطيات الهندسية للآلات. وما يميز الوثائق موجود في صياغتها: مبلغ التأمين وأساسه (إعادة البناء أو القيمة السوقية)، والتحمل، والاستثناءات، والحدود لكل مطالبة وإجمالاً، والشروط (الأمن، الصيانة)، والنطاق الجغرافي، وإجراءات المطالبة. والوسيط الجيد يقدم مقارنة بين العروض بهذه الفروق لا الأقساط فقط، ويتابع التجديدات والمطالبات.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Insurance_broker"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: a broker works for the client and approaches several insurers, an agent represents specific insurers; brokers paid by commission -> confirmed."
+    },
+    {
+      "id": "insurance_brokerage:lead-times-and-quoting",
+      "topic": "Insurance brokerage - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "وساطة التأمين: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Simple covers can be placed within days; complex or large risks 2-6 weeks with surveys. A broker needs the business activity, assets and values, turnover, payroll, claims history for 3-5 years, existing policies and renewal dates, and contract requirements. A proposal states the insurers approached, a comparison of covers, limits, deductibles and exclusions, premiums, the broker's remuneration, claims support and validity.",
+      "body_ar": "يمكن وضع التغطيات البسيطة خلال أيام؛ والمخاطر المعقدة أو الكبيرة 2-6 أسابيع مع المعاينات. ويحتاج الوسيط نشاط الأعمال، والأصول وقيمها، والإيرادات، والرواتب، وسجل المطالبات لـ 3-5 سنوات، والوثائق القائمة ومواعيد تجديدها، ومتطلبات العقود. ويذكر العرض شركات التأمين التي تم التواصل معها، ومقارنة التغطيات، والحدود، والتحمل، والاستثناءات، والأقساط، وأتعاب الوسيط، ودعم المطالبات، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -78,6 +108,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry covers the Dubai mandatory health insurance law (employer pays for employees)). insurance_brokerage:dubai-law-11-2013-employer-health-cover was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from insurance_brokerage.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What should we compare between two property insurance quotes besides the premium?",
+      "q_ar": "وش نقارن بين عرضين لتأمين الممتلكات غير القسط؟",
+      "expected_entry_ids": [
+        "insurance_brokerage:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -97,6 +135,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "insurance_brokerage:dubai-law-11-2013-employer-health-cover"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "insurance_brokerage:product-distinctions"
+      ],
+      "stored_not_served": [
+        "insurance_brokerage:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Insurance_broker"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

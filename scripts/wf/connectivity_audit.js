@@ -7,12 +7,12 @@ export const meta = {
   ],
 };
 
-// Read-only DB recipe every agent uses (management token already on disk).
+// Read-only DB recipe every agent uses (SUPABASE_ACCESS_TOKEN, or the supabase CLI login file).
 const RECIPE = `
 You audit the QuotesDone autonomous-company database (Supabase project htdblwldjkcgjvmqkbeh). READ ONLY:
 run SELECTs only; never write. Query with:
 
-  TOKEN=$(cat C:/Users/Opera/.supabase/access-token)
+  TOKEN="${SUPABASE_ACCESS_TOKEN:-$(cat ~/.supabase/access-token)}"
   curl -s -X POST "https://api.supabase.com/v1/projects/htdblwldjkcgjvmqkbeh/database/query" \\
     -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \\
     -d '{"query":"select ..."}'

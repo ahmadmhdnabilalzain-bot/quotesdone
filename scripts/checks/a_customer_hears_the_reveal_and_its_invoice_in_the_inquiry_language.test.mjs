@@ -23,14 +23,23 @@ test('both customer writers choose the language through fn_customer_notice_local
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 test('production, aborted: EN inquiry -> en, AR inquiry -> ar, nothing -> en, no inquiry -> registered', { skip: hasToken ? false : 'no Supabase management token in this environment', timeout: 300000 }, async () => {
+  // THE PROBE SEEDS ITS OWN ROWS (27 Oct 2026, it_engineer). It used to pick "any AR inquiry" and "any
+  // AR-registered customer" out of production; on 26 Oct there were none (3 inquiries, all en; 4 customers,
+  // all en), so both subqueries were NULL and the function correctly answered 'en' — a red test over
+  // correct code, and a test that would have gone green on a broken function whenever the data lacked the
+  // case. Two ZZ DEMO customers and two inquiries are inserted inside the same replay, which always rolls back.
   const rows = await replaySql(sql + `
+;insert into public.customers (id, full_name, email, locale) values
+  ('00000000-0000-4000-8000-00000000a201', 'ZZ DEMO notice-locale AR', 'zz-demo-notice-ar@example.invalid', 'ar'),
+  ('00000000-0000-4000-8000-00000000a202', 'ZZ DEMO notice-locale EN', 'zz-demo-notice-en@example.invalid', 'en')
+;insert into public.inquiries (id, customer_id, raw_input, lang) values
+  ('00000000-0000-4000-8000-00000000a211', '00000000-0000-4000-8000-00000000a201', 'ZZ DEMO notice-locale', 'en'),
+  ('00000000-0000-4000-8000-00000000a212', '00000000-0000-4000-8000-00000000a202', 'ZZ DEMO notice-locale', 'ar')
 ;select
-  public.fn_customer_notice_locale((select id from public.inquiries where lang='en' limit 1),
-                                   (select id from public.customers where locale like 'ar%' limit 1)) as en_inquiry,
-  public.fn_customer_notice_locale((select id from public.inquiries where lang='ar' limit 1),
-                                   (select id from public.customers where locale = 'en' limit 1)) as ar_inquiry,
+  public.fn_customer_notice_locale('00000000-0000-4000-8000-00000000a211', '00000000-0000-4000-8000-00000000a201') as en_inquiry,
+  public.fn_customer_notice_locale('00000000-0000-4000-8000-00000000a212', '00000000-0000-4000-8000-00000000a202') as ar_inquiry,
   public.fn_customer_notice_locale(null, null) as nothing,
-  public.fn_customer_notice_locale(null, (select id from public.customers where locale like 'ar%' limit 1)) as registered_ar`,
+  public.fn_customer_notice_locale(null, '00000000-0000-4000-8000-00000000a201') as registered_ar`,
   { label: 'customer notice locale', rows: true, retry: false });
   assert.deepEqual(rows[0], { en_inquiry: 'en', ar_inquiry: 'ar', nothing: 'en', registered_ar: 'ar' });
 });

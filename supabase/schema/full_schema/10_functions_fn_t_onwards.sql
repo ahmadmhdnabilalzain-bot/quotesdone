@@ -2004,6 +2004,25 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_unsubscribe_withdraws_promotional_consent()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if lower(coalesce(new.reason, '')) = 'unsubscribe' and nullif(btrim(new.email), '') is not null then
+    update public.customers set marketing_consent = false, marketing_consent_at = now(), marketing_consent_source = 'unsubscribe'
+     where lower(email) = lower(btrim(new.email)) and marketing_consent;
+    update public.leads set marketing_consent = false, marketing_consent_at = now(), marketing_consent_source = 'unsubscribe'
+     where lower(claimed_by) = lower(btrim(new.email)) and marketing_consent;
+    update public.notifications set status = 'suppressed', last_error = 'no promotional consent: withdrawn by unsubscribe'
+     where status in ('queued', 'pending') and public.fn_notification_is_promotional(type) and lower(to_email) = lower(btrim(new.email));
+  end if;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_usd_to_aed()
  RETURNS numeric
  LANGUAGE sql
@@ -5372,6 +5391,9 @@ AS $function$
     from cron.job j
    where not exists (select 1 from public.writer_seat o join public.org_role r on r.role_id = o.owner_seat and r.status = 'active'
                       where o.kind = 'cron_job' and o.name = j.jobname)
+     -- a duty's own job (fn_seat_duty_isolate): owned by the duty's seat while that seat is active
+     and not exists (select 1 from public.seat_duty d join public.org_role r on r.role_id = d.owner_seat and r.status = 'active'
+                      where j.jobname = 'seat_duty:' || d.duty)
 $function$
 
 
@@ -8707,10 +8729,30 @@ CREATE OR REPLACE FUNCTION public.trg_handoff_carries_its_note()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+declare v_note jsonb;
 begin
-  new.detail := coalesce(new.detail, '{}'::jsonb) || jsonb_build_object('summary',
-    public.fn_handoff_summary(new.detail, new.agent, new.target_table, new.target_id,
-                              new.title, new.recommendation, new.id));
+  if tg_op = 'INSERT' then
+    v_note := public.fn_handoff_summary(new.detail, new.agent, new.target_table, new.target_id,
+                                        new.title, new.recommendation, new.id);
+  else
+    begin
+      v_note := public.fn_handoff_summary(new.detail, new.agent, new.target_table, new.target_id,
+                                          new.title, new.recommendation, new.id);
+    exception when others then
+      v_note := coalesce(new.detail->'summary', '{}'::jsonb) || public.fn_handoff_redact(jsonb_build_object(
+        'context', coalesce(new.title, 'handoff ' || new.id) || ' (note rebuilt from the row; the case could not be read)',
+        'decision', coalesce(new.detail->>'from', 'the sender') || ' handed this to ' || new.agent,
+        'open_asks', jsonb_build_array(coalesce(nullif(btrim(new.recommendation), ''), new.title, 'handoff ' || new.id)),
+        'deadline', coalesce(new.created_at, now()) + interval '24 hours',
+        'deadline_source', 'legacy row: created_at + 24 hours',
+        'legacy', true,
+        'known', coalesce(new.detail->'summary'->'known', '{}'::jsonb),
+        'tried', coalesce(new.detail->'summary'->'tried', '{}'::jsonb),
+        'needed', coalesce(new.detail->'summary'->'needed', '{}'::jsonb),
+        'evidence', coalesce(new.detail->'summary'->'evidence', '[]'::jsonb)));
+    end;
+  end if;
+  new.detail := coalesce(new.detail, '{}'::jsonb) || jsonb_build_object('summary', v_note);
   return new;
 end $function$
 
@@ -9059,6 +9101,23 @@ begin
   return new;
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_invite_reply_reaches_sales_engineer()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  -- never costs the mail it rides on: a failure is a warning, the inbound row is kept
+  begin
+    perform public.fn_marketing_files_invite_reply(new.id);
+  exception when others then
+    raise warning 'trg_invite_reply_reaches_sales_engineer: inbound_messages % not handed to the sales engineer: %', new.id, sqlerrm;
+  end;
+  return null;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.trg_it_judge_routine_change()

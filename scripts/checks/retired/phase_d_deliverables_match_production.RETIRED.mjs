@@ -49,6 +49,7 @@
 // is asserted instead is the arithmetic inside it: a fraction a document states about a CSV must be
 // the fraction that CSV holds, and the deliverable count a document claims must be the number of
 // deliverables git is actually tracking.
+import { SUPABASE_TOKEN_FILE } from '../../lib/supabase_token.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
@@ -57,7 +58,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { BUILDERS, VOLATILE_LINE, VOLATILE_TIMESTAMP } from '../../phase_d/lib/deliverable.mjs';
 
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 

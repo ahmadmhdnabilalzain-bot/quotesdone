@@ -10,9 +10,10 @@
 // It compares the LIVE runtime against the package. Where they differ it does not assume the
 // package is right: the package is a target, the database is what actually runs, and the master
 // prompt is explicit that a working implementation is not replaced merely to match a name.
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 if (!token) { console.log('SKIP gate A: no SUPABASE_ACCESS_TOKEN (expected in CI)'); process.exit(0); }

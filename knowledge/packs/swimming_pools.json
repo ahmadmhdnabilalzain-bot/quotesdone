@@ -53,6 +53,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "swimming_pools:product-distinctions",
+      "topic": "Swimming pools: construction types, filtration and water treatment",
+      "topic_ar": "المسابح: أنواع الإنشاء والفلترة ومعالجة المياه",
+      "kind": "product_distinctions",
+      "body_en": "Pools are built as reinforced concrete shells (cast or sprayed shotcrete, the most flexible in shape, with waterproofing and tile or plaster finish), steel or panel pools, fibreglass one-piece shells, and above-ground or modular pools; designs include skimmer pools and overflow (infinity or deck-level) pools with balance tanks. Finishes: mosaic glass tiles, porcelain tiles, plaster or pebble finishes, and vinyl liners. Circulation and filtration: pumps sized for a turnover period, sand or glass-media filters (common, backwashed), cartridge filters (smaller pools), and regenerative media filters; plus heaters or heat pumps, pool chillers for hot climates, lighting, and automatic covers. Water treatment keeps the water safe: chlorine dosing or saline chlorinators (salt electrolysis producing chlorine), with automatic pH and ORP control (pH kept around 7.2-7.8), UV or ozone as secondary disinfection, and regular testing. Public and commercial pools face stricter rules on turnover times, water quality testing and safety (depth markings, anti-entrapment drain covers, lifeguard provision). Water features and fountains share the same pumping and treatment principles. Maintenance contracts cover chemical balance, cleaning, backwashing and equipment servicing.",
+      "body_ar": "تُبنى المسابح كقشرة خرسانية مسلحة (مصبوبة أو مرشوشة، الأكثر مرونة في الشكل، مع العزل المائي وتشطيب البلاط أو اللياسة)، أو مسابح بألواح حديدية، أو قشرة ألياف زجاجية من قطعة واحدة، أو مسابح فوق الأرض أو معيارية؛ وتشمل التصاميم مسابح بالقاشطات ومسابح الفيضان (اللانهائية أو بمستوى السطح) مع خزانات موازنة. والتشطيبات: موزاييك زجاجي، وبلاط بورسلين، ولياسة أو حصى، وبطانات الفينيل. والدوران والفلترة: مضخات بحجم يناسب فترة دوران المياه، وفلاتر الرمل أو الزجاج (الشائعة، وتُغسل عكسياً)، وفلاتر الخراطيش (للمسابح الأصغر)، وفلاتر الوسط المتجدد؛ إضافة إلى السخانات أو المضخات الحرارية، ومبردات المسابح للمناخ الحار، والإضاءة، والأغطية الآلية. ومعالجة المياه تحافظ على سلامتها: جرعات الكلور أو أجهزة الكلورة الملحية (تحليل الملح كهربائياً لإنتاج الكلور)، مع ضبط تلقائي للأس الهيدروجيني وجهد الأكسدة (الأس الهيدروجيني نحو 7.2-7.8)، والأشعة فوق البنفسجية أو الأوزون كتطهير ثانوي، والفحص المنتظم. وتواجه المسابح العامة والتجارية قواعد أشد بشأن أزمنة الدوران وفحص جودة المياه والسلامة (علامات العمق، أغطية مصارف مانعة للانحشار، توفير المنقذين). والنوافير تشترك في مبادئ الضخ والمعالجة نفسها. وتغطي عقود الصيانة التوازن الكيميائي والتنظيف والغسيل العكسي وصيانة المعدات.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Swimming_pool_sanitation"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: sand and cartridge filtration, chlorination, pH kept between 7.2 and 7.8, saline chlorination units -> confirmed."
+    },
+    {
+      "id": "swimming_pools:lead-times-and-quoting",
+      "topic": "Swimming pools & water features - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المسابح والنوافير: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A villa pool usually takes 8-16 weeks from approval; renovations 2-6 weeks; equipment supply days to weeks. A builder needs the site and drawings, pool size and type, finishes, equipment preferences (heating, chilling, salt system), approvals and access. A quote states structure and waterproofing, finishes, equipment list with makes and capacities, treatment system, electrical works, approvals, programme, warranty and validity.",
+      "body_ar": "يستغرق مسبح الفيلا عادة 8-16 أسبوعاً من الموافقة؛ والتجديد 2-6 أسابيع؛ وتوريد المعدات أيام إلى أسابيع. ويحتاج المنفذ الموقع والمخططات، وحجم المسبح ونوعه، والتشطيبات، وتفضيلات المعدات (التسخين، التبريد، نظام الملح)، والموافقات والوصول. ويذكر العرض الهيكل والعزل المائي والتشطيبات وقائمة المعدات بالماركات والقدرات ونظام المعالجة والأعمال الكهربائية والموافقات والبرنامج الزمني والضمان والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -78,6 +108,14 @@
       ],
       "why": "No entry of this pack answered it (no entry on pool chillers for Dubai summer; the checklist only lists heating or cooling as a field). swimming_pools:pool-chillers-summer was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from swimming_pools.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Salt chlorinator or regular chlorine dosing for our villa pool?",
+      "q_ar": "جهاز كلورة ملحي ولا جرعات كلور عادية لمسبح الفيلا؟",
+      "expected_entry_ids": [
+        "swimming_pools:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -97,6 +135,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "swimming_pools:pool-chillers-summer"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "swimming_pools:product-distinctions"
+      ],
+      "stored_not_served": [
+        "swimming_pools:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Swimming_pool_sanitation"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

@@ -1,0 +1,11 @@
+{
+ "id": 94571,
+ "type": "new_inquiry",
+ "channel": "email",
+ "status": "suppressed",
+ "to_email": "qd-1be65ab2-sup6@example.invalid",
+ "lang": "en",
+ "subject": "New job request on QuotesDone",
+ "body": "A customer is requesting quotes for: Replacement of 35 glass units for a villa in Umm Al Quwain; the specific element type for each line needs confirmation. (Umm Al Quwain). The customer asks for: Frame: Aluminium framed; Installation: Yes, install it; Warranty: Yes, at least 2 years; Needed by: By 2026-11-11. Log in to your QuotesDone supplier portal to quote.",
+ "html": null
+}

@@ -56,6 +56,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "industrial_crating:product-distinctions",
+      "topic": "Export crating: crate types, treatment and protection",
+      "topic_ar": "صناديق التصدير: أنواع الصناديق والمعالجة والحماية",
+      "kind": "product_distinctions",
+      "body_en": "Industrial packing protects machinery, spare parts, panels and project cargo in transit. Options: skids (a base with bottom runners so a forklift can lift the item), open crates (framed slats for robust items), closed crates and boxes in timber or plywood, plywood or OSB cases for lighter goods, and steel frames for very heavy items. For export, solid wood must be treated and marked under ISPM 15 (heat treatment or fumigation with the IPPC stamp); plywood and OSB are exempt. Protection inside: vapour-barrier bags (aluminium laminate) with desiccants sized to the volume and voyage for sea freight, VCI films or oils against corrosion, blocking and bracing so the load cannot shift, shock and tilt indicators, and lifting and centre-of-gravity markings. Design follows the item's weight, dimensions, lifting points and the transport mode (sea container, flat rack, air freight limits), and many shippers follow a recognised packing standard. Services include on-site packing at the factory, lashing and securing in containers, and packing lists and markings per case.",
+      "body_ar": "يحمي التغليف الصناعي الآلات وقطع الغيار واللوحات وشحنات المشاريع أثناء النقل. والخيارات: قواعد بزلاجات (قاعدة بمجار سفلية لترفعها الرافعة الشوكية)، وصناديق مفتوحة (شرائح بإطار للقطع المتينة)، وصناديق مغلقة من الخشب أو الأبلكاش، وصناديق أبلكاش أو OSB للبضائع الأخف، وإطارات حديدية للقطع الثقيلة جداً. وللتصدير يجب معالجة الخشب الصلب ووسمه وفق ISPM 15 (المعالجة الحرارية أو التبخير مع ختم IPPC)؛ ويُعفى الأبلكاش وOSB. والحماية في الداخل: أكياس حاجزة للبخار (رقائق ألمنيوم) مع مواد مجففة بحسب الحجم والرحلة للشحن البحري، وأغشية أو زيوت مثبطة للتآكل، والتثبيت والتدعيم حتى لا يتحرك الحمل، ومؤشرات الصدمة والإمالة، وعلامات الرفع ومركز الثقل. ويتبع التصميم وزن القطعة وأبعادها ونقاط رفعها وطريقة النقل (حاوية بحرية، منصة مسطحة، حدود الشحن الجوي)، ويتبع كثير من الشاحنين معيار تغليف معروفاً. وتشمل الخدمات التغليف في موقع المصنع، والربط والتثبيت في الحاويات، وقوائم التعبئة والعلامات لكل صندوق.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Crate"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: wooden export crates treated under ISPM 15; skids as bottom runners for forklift access -> confirmed."
+    },
+    {
+      "id": "industrial_crating:lead-times-and-quoting",
+      "topic": "Export crating & industrial packing - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "صناديق التصدير والتغليف الصناعي: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Standard crates: 2-5 days; on-site packing of large machines scheduled within a week; project packing to programme. A packer needs item dimensions and weights, lifting points, fragility, destination and transport mode, storage time, and documentation needs. A quote states crate type and materials, ISPM 15 treatment, internal protection, marking, on-site labour, price per crate or per cubic metre, and validity.",
+      "body_ar": "الصناديق القياسية: 2-5 أيام؛ والتغليف في الموقع للآلات الكبيرة يُجدول خلال أسبوع؛ وتغليف المشاريع حسب البرنامج. ويحتاج المغلف أبعاد القطع وأوزانها، ونقاط الرفع، والهشاشة، والوجهة وطريقة النقل، ومدة التخزين، واحتياجات المستندات. ويذكر العرض نوع الصندوق ومواده، ومعالجة ISPM 15، والحماية الداخلية، والوسم، والعمالة في الموقع، والسعر لكل صندوق أو متر مكعب، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -81,6 +111,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither covers seaworthy packing (VCI, desiccant, ISPM 15, case type); missing: export sea crating method entry). industrial_crating:seaworthy-machinery-packing was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from industrial_crating.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "How should we pack a control panel for a six-week sea voyage so it arrives without corrosion?",
+      "q_ar": "كيف نغلف لوحة تحكم لرحلة بحرية ستة أسابيع عشان توصل بدون صدأ؟",
+      "expected_entry_ids": [
+        "industrial_crating:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -100,6 +138,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "industrial_crating:seaworthy-machinery-packing"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "industrial_crating:product-distinctions"
+      ],
+      "stored_not_served": [
+        "industrial_crating:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Crate"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

@@ -4,14 +4,14 @@
 // numbers were true; the difference between them was unrecoverable, because the scorer printed
 // its verdicts and kept none of them. Writing is best-effort by design — a scorer that fails
 // because it could not save its own history would be worse than one with no history.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { mgmtWriteData, PROD_REF } from '../lib/qd_guard.mjs';
 import { readFileSync } from 'node:fs';
 
 const q = (v) => (v === null || v === undefined) ? 'null' : `'${String(v).replace(/'/g, "''")}'`;
 
 async function prodPost(sql) {
-  const token = (process.env.SUPABASE_ACCESS_TOKEN
-    || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+  const token = supabaseAccessToken();
   const r = await fetch(`https://api.supabase.com/v1/projects/${PROD_REF}/database/query`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },

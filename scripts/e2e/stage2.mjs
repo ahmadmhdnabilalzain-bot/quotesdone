@@ -20,6 +20,7 @@
 // +971 50 000 00xx block; the run refuses without the demo capture and pairing guards; it never posts,
 // publishes or sends to Meta; Stripe is TEST mode only (the run refuses a live key). Cleanup is scoped by
 // the run tag and the ids the run recorded itself, never by a pattern that could match a real row.
+import { SANDBOX_OUT } from '../lib/sandbox_out.mjs';
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,7 +48,7 @@ if (!Number.isFinite(CAP_USD) || CAP_USD <= 0 || CAP_USD > 15) { console.error('
 const AED_PER_USD = 3.6725;
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
-const OUT = val('--out') || process.env.QD_STAGE2_OUT || 'C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10';
+const OUT = val('--out') || process.env.QD_STAGE2_OUT || SANDBOX_OUT;
 process.env.QD_FIXTURES = '1';
 
 // ---- the matrix ------------------------------------------------------------------------------------
@@ -285,8 +286,13 @@ async function preconditions({ forRun }) {
       * (select count(*) from information_schema.columns where table_schema='public' and table_name='rehearsal_window' and column_name='models_allowed')
       * (select count(*) from pg_proc where proname='fn_e2e_run_tag_open') n`))[0].n;
   c(forRun ? 'ai_cost_log.e2e_run_tag, rehearsal_window.models_allowed and the tagged gate exist (a_sandbox_run_is_tagged_capped_and_let_through_only_inside_its_window.sql applied)' : 'ai_cost_log.e2e_run_tag state read (pending until merge)', forRun ? col === 1 : true, col ? 'present' : 'not yet applied: --run refuses until it is');
-  const smoke = (await read(`select count(*)::int n from public.rehearsal_window where ended_at is null`))[0].n;
-  c('no other harness run is open (rehearsal windows)', smoke === 0, `${smoke} open`);
+  // A window past its own expires_at is a run that is over (its process died before closing it; 13-18 Oct the nightly
+  // left one every night). It is treated as closed and named, never silently. A live window still refuses the run.
+  const wins = await read(`select run_tag, opened_by, expires_at, expires_at <= now() expired from public.rehearsal_window where ended_at is null`);
+  const expired = wins.filter((w) => w.expired);
+  if (expired.length) console.log(`stage2: ${expired.length} rehearsal window(s) past expires_at treated as closed: ${expired.map((w) => `${w.run_tag} (${w.opened_by}, expired ${w.expires_at})`).join(', ')}`);
+  const smoke = wins.length - expired.length;
+  c('no other harness run is open (rehearsal windows)', smoke === 0, `${smoke} open${expired.length ? `, ${expired.length} expired ignored` : ''}`);
   return { checks, ok: checks.every((x) => x.ok), pr, gate };
 }
 
@@ -779,7 +785,8 @@ async function realRun(pre) {
       const cred = async (slug) => (await read(`select value from public.app_secrets where key in (${q('cred_fn_' + slug)}, 'cred_db_internal') order by key = ${q('cred_fn_' + slug)} desc limit 1`))[0]?.value;
       const cu = fx.customers[0], su = fx.suppliers[0];
       const plan = [
-        ...['forecast', 'savings', 'supplier_performance', 'supplier_relationship'].map((a) => ['customer_intelligence', cu.jwt, { action: a }]),
+        ...['forecast', 'savings', 'supplier_performance'].map((a) => ['customer_intelligence', cu.jwt, { action: a }]),
+        ['customer_intelligence', cu.jwt, { action: 'supplier_relationship', supplier_id: su.leadId }],
         ...['board', 'seats', 'inbox', 'context'].map((a) => ['ceo_agent', null, { action: a, __secret: 'cred' }]),
         ...['health', 'status'].map((a) => ['it_engineer', null, { action: a, __secret: 'cred' }]),
         ['compliance_archive', null, { action: 'ping', __secret: 'cred' }],
@@ -787,15 +794,32 @@ async function realRun(pre) {
         ['site_error_ingest', null, { message: `ZZ DEMO ${tag} harness error probe`, path: '/', lang: 'en' }],
         ['sanctions_screen', null, { name: `ZZ DEMO ${tag} Trading`, __secret: 'cred' }],
         ['role_guard', cu.jwt, {}],
-        ['supplier_onboard', su.jwt, {}],
-        ['supplier_catalog_ingest', su.jwt, { dry_run: true }],
+        // The bodies the portal sends. {} and { dry_run } were 400s, which "any reply" counted as PASS.
+        ['supplier_onboard', su.jwt, { action: 'extract', text: `ZZ DEMO ${tag}: we fabricate and install aluminium windows and curtain walls in Dubai.` }],
+        ['supplier_catalog_ingest', su.jwt, { file_name: `zz_demo_${tag}_catalogue.csv`, content_type: 'text/csv',
+          data: Buffer.from('product,unit,price_aed\nZZ DEMO casement window,m2,950\n').toString('base64') }],
       ];
+      // A SIGNED-IN USER'S CALL passes only on a 2xx that did its job (19 Oct 2026: run 0a717394 logged
+      // seven HTTP 401s and two 400s as PASS here). Operator and public calls keep the reachability check.
+      const effect = {
+        'customer_intelligence.forecast': async (j) => j.ok === true && typeof j.forecast === 'object' && Array.isArray(j.predictions),
+        'customer_intelligence.savings': async (j) => j.ok === true && typeof j.savings === 'object' && Array.isArray(j.by_category),
+        'customer_intelligence.supplier_performance': async (j) => j.ok === true && Array.isArray(j.suppliers),
+        'customer_intelligence.supplier_relationship': async (j) => j.ok === true && typeof j.relationship === 'object',
+        'supplier_onboard.extract': async (j) => j.ok === true && Array.isArray(j.filled) && j.filled.length > 0,
+        supplier_catalog_ingest: async (j) => j.ok === true && !!j.catalog_id && j.products_created > 0 &&
+          (await read(`select count(*)::int n from public.supplier_catalog where id::text = ${q(String(j.catalog_id))} and supplier_id = ${Number(su.leadId)} and source_document_path is not null`))[0].n === 1,
+      };
       const res = [];
       for (const [slug, jwt, body] of plan) {
         if (body.__secret === 'cred') body.__secret = await cred(slug);
         const r = await call(slug, jwt, body);
         res.push({ slug, action: body.action || null, status: r.status, body: r.text });
-        A(`${slug}${body.action ? '.' + body.action : ''} answers a demo caller with a body`, r.status > 0 && r.status < 500 && (r.json !== null || (r.body || '').length > 0), `HTTP ${r.status} ${r.text.slice(0, 120)}`);
+        const key = `${slug}${body.action ? '.' + body.action : ''}`;
+        if (effect[key]) A(`${key} answers the demo caller 2xx and does its job`, r.status >= 200 && r.status < 300 && !!r.json && await effect[key](r.json), `HTTP ${r.status} ${r.text.slice(0, 120)}`);
+        else A(`${key} answers a demo caller with a body`, r.status > 0 && r.status < 500 && (r.json !== null || (r.body || '').length > 0), `HTTP ${r.status} ${r.text.slice(0, 120)}`);
+        // supplier_onboard logs its extraction to agent_actions with no target row, out of teardown's reach.
+        if (key === 'supplier_onboard.extract') await write(`delete from public.agent_actions where kind = 'supplier_onboard_extract' and detail->>'by' = ${q(su.email.toLowerCase())}`);
       }
       const page = await fetch(`${BASE}/functions/v1/stripe_setup_page`);
       A('stripe_setup_page renders', page.status < 500 && (await page.text()).length > 100, `HTTP ${page.status}`);
@@ -1068,7 +1092,10 @@ async function realRun(pre) {
     },
   };
 
-  for (const s of SCENARIOS) {
+  // --only S20,S22: re-run named scenarios. S01 (suppliers) and S03 (customers) build the fixtures every
+  // other scenario acts as, so they always run.
+  const only = val('--only') ? new Set(['S01', 'S03', ...val('--only').split(',').map((x) => x.trim())]) : null;
+  for (const s of SCENARIOS.filter((x) => !only || only.has(x.key))) {
     scenario = s.key;
     const est = estimate(s, pre.pr).usd;
     if (spentUsd + est > CAP_USD) { aborted = `${s.key} would take the spend from USD ${spentUsd.toFixed(3)} past the cap of ${CAP_USD} (estimate ${est.toFixed(3)})`; A('spend cap', false, aborted); break; }

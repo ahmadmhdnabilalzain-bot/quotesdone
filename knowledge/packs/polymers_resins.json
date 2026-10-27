@@ -57,6 +57,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "polymers_resins:product-distinctions",
+      "topic": "Polymers: resin families, grades and how a grade is chosen",
+      "topic_ar": "البوليمرات: عائلات الراتنجات والدرجات وكيفية اختيار الدرجة",
+      "kind": "product_distinctions",
+      "body_en": "Commodity polymers: polyethylene (HDPE for bottles, pipes and crates; LDPE and LLDPE for films; specified by density and melt flow index), polypropylene (homopolymer, random and impact copolymer for injection moulding, film and fibres), PVC (rigid compounds for pipes and profiles, flexible compounds for cables and hoses), polystyrene (GPPS and HIPS) and EPS, and PET (bottle-grade by intrinsic viscosity, and fibre grade). Engineering plastics: ABS, polycarbonate, nylon (PA6, PA66, glass-filled), POM, PBT, PMMA. Additives and masterbatches: colour, white and black masterbatch, UV stabiliser, antistatic, slip and antiblock, flame retardant, and fillers such as calcium carbonate. The melt flow index (MFI or MFR, g/10 min at a stated temperature and load) shows how easily the melt flows: higher MFI grades suit thin-wall injection moulding, lower MFI grades suit extrusion, film blowing and blow moulding where melt strength matters. Recycled resins (rPET, rHDPE, regrind) need quality checks for contamination and consistency. Grades are bought by producer and grade name with technical data sheets; food-contact grades need compliance declarations.",
+      "body_ar": "البوليمرات الشائعة: البولي إيثيلين (HDPE للقوارير والأنابيب والصناديق؛ LDPE وLLDPE للأغشية؛ ويُحدد بالكثافة ومؤشر انسياب المصهور)، والبولي بروبيلين (البوليمر المتجانس، والبوليمر المشترك العشوائي والمقاوم للصدم للحقن والأغشية والألياف)، وPVC (مركبات صلبة للأنابيب والمقاطع، ومرنة للكابلات والخراطيم)، والبوليسترين (GPPS وHIPS) والبوليسترين الممدد، وPET (درجة القوارير حسب اللزوجة الجوهرية، ودرجة الألياف). واللدائن الهندسية: ABS، والبولي كربونات، والنايلون (PA6، PA66، المدعم بالزجاج)، وPOM، وPBT، وPMMA. والإضافات والمركزات اللونية: مركزات الألوان والأبيض والأسود، ومثبتات الأشعة فوق البنفسجية، ومضادات الكهرباء الساكنة، ومواد الانزلاق ومنع الالتصاق، ومثبطات اللهب، والحشوات مثل كربونات الكالسيوم. ومؤشر انسياب المصهور (غرام/10 دقائق عند درجة حرارة وحمل محددين) يبين سهولة انسياب المصهور: الدرجات ذات المؤشر الأعلى تناسب الحقن رقيق الجدران، والأقل تناسب البثق ونفخ الأغشية والقولبة بالنفخ حيث تهم متانة المصهور. والراتنجات المعاد تدويرها (rPET، rHDPE، المطحون) تحتاج فحوص جودة للشوائب والتجانس. وتُشترى الدرجات باسم المنتج والدرجة مع النشرات الفنية؛ والدرجات الملامسة للأغذية تحتاج إقرارات امتثال.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Melt_flow_index"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: melt flow index measures ease of flow of a thermoplastic melt and guides processing -> confirmed."
+    },
+    {
+      "id": "polymers_resins:lead-times-and-quoting",
+      "topic": "Plastics & polymer raw materials - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "المواد الخام البلاستيكية والبوليمرات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock grades from distributors: days; producer allocations and imports 3-8 weeks. A supplier needs the polymer and grade or the application and process, MFI and density range, quantity in tonnes, packing (25 kg bags, jumbo bags), and compliance needs. A quote states producer, grade name, TDS and COA, packing, price basis per tonne (often market-linked), delivery terms, payment and validity.",
+      "body_ar": "الدرجات المتوفرة لدى الموزعين: أيام؛ وحصص المنتجين والمستوردة 3-8 أسابيع. ويحتاج المورد البوليمر والدرجة أو التطبيق والعملية، ومدى مؤشر الانسياب والكثافة، والكمية بالطن، والتعبئة (أكياس 25 كغ، أكياس كبيرة)، واحتياجات الامتثال. ويذكر العرض المنتج واسم الدرجة والنشرة الفنية وشهادة التحليل والتعبئة وأساس السعر للطن (غالباً مرتبط بالسوق) وشروط التسليم والدفع والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -82,6 +112,14 @@
       ],
       "why": "No entry of this pack answered it (the standards entry says sources set no grade per application; nothing on PE80/PE100 pipe grades). polymers_resins:pe-pipe-grades-pe80-pe100 was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from polymers_resins.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Can we use the same PP grade for thin-wall cups and for extruded sheet?",
+      "q_ar": "نقدر نستخدم نفس درجة البولي بروبيلين للأكواب رقيقة الجدران وللألواح المبثوقة؟",
+      "expected_entry_ids": [
+        "polymers_resins:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -101,6 +139,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "polymers_resins:pe-pipe-grades-pe80-pe100"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "polymers_resins:product-distinctions"
+      ],
+      "stored_not_served": [
+        "polymers_resins:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Melt_flow_index"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }
