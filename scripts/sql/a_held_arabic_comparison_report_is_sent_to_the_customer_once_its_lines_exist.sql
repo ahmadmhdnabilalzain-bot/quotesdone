@@ -39,6 +39,11 @@ drop policy if exists arabic_compare_waiter_service_role_only on public.arabic_c
 create policy arabic_compare_waiter_service_role_only on public.arabic_compare_waiter
   as permissive for all to public using (false) with check (false);
 revoke all on public.arabic_compare_waiter from anon, authenticated;
+-- The daily export: excluded like arabic_document_waiter, a retry queue whose inquiry is itself exported.
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('arabic_compare_waiter', false, 'cache', 'a retry queue for held Arabic comparison reports; the inquiry it waits on is exported, and a row lives only until the report is sent', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
 
 create or replace function public.fn_arabic_compare_wait(p_inquiry text, p_texts text[])
 returns void
