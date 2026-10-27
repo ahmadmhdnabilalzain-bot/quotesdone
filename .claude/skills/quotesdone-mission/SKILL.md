@@ -36,7 +36,7 @@ Full detail in memory [[the-only-hard-rules-and-operating-doctrine]]. In brief: 
 technical quotes vs the rest, however many suppliers respond**; **no supplier commission**; supplier must
 respond within **3 working days** or QuotesDone may refund the customer and charge the supplier a
 **non-response fee = the 3%**; **refunds are never automatic — the founder decides**; anti-circumvention =
-**AED 15,000 or 3× the fee** per supplier breach; anonymity until reveal; quotation validity 30 days;
+**AED 20,000 or 5× the fee** (whichever higher; live Supplier Agreement, 27 Oct 2026) per supplier breach; anonymity until reveal; quotation validity 30 days;
 supplier subscription free until 31 Jul 2027 then AED 1,000/yr with the first 1,000 suppliers exempt.
 Nothing outside the T&C constrains the design.
 
