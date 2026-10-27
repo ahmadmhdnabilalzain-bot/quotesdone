@@ -1,0 +1,21 @@
+{
+  "roots": 1,
+  "unlisted_roots": 0,
+  "expected": 18,
+  "listed": 18,
+  "missing": 0,
+  "confirmed_missing": 0,
+  "changed": 0,
+  "stray": 0,
+  "per_root": {
+    "_sandbox/bkp1007a": {
+      "expected": 18,
+      "listed": 18,
+      "missing": 0,
+      "confirmed_missing": 0,
+      "changed": 0,
+      "stray": 0,
+      "missing_ids": []
+    }
+  }
+}

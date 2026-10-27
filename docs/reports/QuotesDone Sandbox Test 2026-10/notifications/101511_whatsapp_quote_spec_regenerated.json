@@ -1,0 +1,11 @@
+{
+ "id": 101511,
+ "type": "quote_spec_regenerated",
+ "channel": "whatsapp",
+ "status": "suppressed",
+ "to_email": "qd-321d13ae-sup11@example.invalid",
+ "lang": "en",
+ "subject": "Your regenerated quotation is ready for your approval — RFQ 158711",
+ "body": "Hello,\n\nThank you for completing the details. We have regenerated your quotation for RFQ 158711 in the standard format. Please review it on the supplier portal and confirm it is correct, and it will then be sent to the customer.\n\nQuotesDone sales engineer",
+ "html": null
+}

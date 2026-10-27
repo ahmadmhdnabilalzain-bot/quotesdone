@@ -1,0 +1,78 @@
+[
+ {
+  "at": "2026-10-19T12:29:45.912Z",
+  "journey": "unsubscribe",
+  "step": "desktop: GET with a valid token (confirm NOT pressed)",
+  "url": "https://quotesdone.com/u/unsubscribe?e=qd-0a717394-sup0%40example.invalid&t=1862cdef2734c4cd2cd4",
+  "status": "PASS",
+  "ms": 2170,
+  "issues": [],
+  "facts": {
+   "dir": "ltr",
+   "lang": "",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 12,
+   "arabicN": 0,
+   "wordsN": 12,
+   "latinSample": [
+    "Please",
+    "confirm",
+    "you",
+    "want",
+    "stop",
+    "receiving",
+    "invitations",
+    "and",
+    "reminders",
+    "Unsubscribe",
+    "sourcing",
+    "marketplace"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "Unsubscribe"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\suppliers\\unsubscribe_desktop\\confirm_page.png",
+  "detail": "QuotesDone\nPlease confirm you want to stop receiving invitations and reminders at qd-0a717394-sup0@example.invalid.\nUnsubscribe me\nQuotesDone — UAE sourcing mar"
+ },
+ {
+  "at": "2026-10-19T12:29:50.117Z",
+  "journey": "unsubscribe",
+  "step": "mobile: GET with a valid token (confirm NOT pressed)",
+  "url": "https://quotesdone.com/u/unsubscribe?e=qd-0a717394-sup0%40example.invalid&t=1862cdef2734c4cd2cd4",
+  "status": "PASS",
+  "ms": 2315,
+  "issues": [],
+  "facts": {
+   "dir": "ltr",
+   "lang": "",
+   "overflowX": 0,
+   "wide": [],
+   "keys": [],
+   "latinN": 12,
+   "arabicN": 0,
+   "wordsN": 12,
+   "latinSample": [
+    "Please",
+    "confirm",
+    "you",
+    "want",
+    "stop",
+    "receiving",
+    "invitations",
+    "and",
+    "reminders",
+    "Unsubscribe",
+    "sourcing",
+    "marketplace"
+   ],
+   "unnamed": [],
+   "unnamedN": 0,
+   "title": "Unsubscribe"
+  },
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\suppliers\\unsubscribe_mobile\\confirm_page.png",
+  "detail": "QuotesDone\nPlease confirm you want to stop receiving invitations and reminders at qd-0a717394-sup0@example.invalid.\nUnsubscribe me\nQuotesDone — UAE sourcing mar"
+ }
+]

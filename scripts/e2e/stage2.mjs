@@ -20,6 +20,7 @@
 // +971 50 000 00xx block; the run refuses without the demo capture and pairing guards; it never posts,
 // publishes or sends to Meta; Stripe is TEST mode only (the run refuses a live key). Cleanup is scoped by
 // the run tag and the ids the run recorded itself, never by a pattern that could match a real row.
+import { SANDBOX_OUT } from '../lib/sandbox_out.mjs';
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,7 +48,7 @@ if (!Number.isFinite(CAP_USD) || CAP_USD <= 0 || CAP_USD > 15) { console.error('
 const AED_PER_USD = 3.6725;
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '..', '..');
-const OUT = val('--out') || process.env.QD_STAGE2_OUT || 'C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10';
+const OUT = val('--out') || process.env.QD_STAGE2_OUT || SANDBOX_OUT;
 process.env.QD_FIXTURES = '1';
 
 // ---- the matrix ------------------------------------------------------------------------------------
@@ -285,8 +286,13 @@ async function preconditions({ forRun }) {
       * (select count(*) from information_schema.columns where table_schema='public' and table_name='rehearsal_window' and column_name='models_allowed')
       * (select count(*) from pg_proc where proname='fn_e2e_run_tag_open') n`))[0].n;
   c(forRun ? 'ai_cost_log.e2e_run_tag, rehearsal_window.models_allowed and the tagged gate exist (a_sandbox_run_is_tagged_capped_and_let_through_only_inside_its_window.sql applied)' : 'ai_cost_log.e2e_run_tag state read (pending until merge)', forRun ? col === 1 : true, col ? 'present' : 'not yet applied: --run refuses until it is');
-  const smoke = (await read(`select count(*)::int n from public.rehearsal_window where ended_at is null`))[0].n;
-  c('no other harness run is open (rehearsal windows)', smoke === 0, `${smoke} open`);
+  // A window past its own expires_at is a run that is over (its process died before closing it; 13-18 Oct the nightly
+  // left one every night). It is treated as closed and named, never silently. A live window still refuses the run.
+  const wins = await read(`select run_tag, opened_by, expires_at, expires_at <= now() expired from public.rehearsal_window where ended_at is null`);
+  const expired = wins.filter((w) => w.expired);
+  if (expired.length) console.log(`stage2: ${expired.length} rehearsal window(s) past expires_at treated as closed: ${expired.map((w) => `${w.run_tag} (${w.opened_by}, expired ${w.expires_at})`).join(', ')}`);
+  const smoke = wins.length - expired.length;
+  c('no other harness run is open (rehearsal windows)', smoke === 0, `${smoke} open${expired.length ? `, ${expired.length} expired ignored` : ''}`);
   return { checks, ok: checks.every((x) => x.ok), pr, gate };
 }
 

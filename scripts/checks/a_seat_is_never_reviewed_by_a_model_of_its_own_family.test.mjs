@@ -7,7 +7,7 @@
 //     is not applied yet, so nothing survives and nothing can reach a person):
 //       - the database accepts a review turn on the author's family (recorded OR held);
 //       - an author on Sol is not reviewed by Opus, or an author on Opus is not reviewed by the class's own fallback
-//         (gpt-6-luna since founder_instruction 1056), or a fallback lies in the author's family;
+//         (gpt-6-luna-pro since #1479, matrix v3: rulings 1218, 1240, 1241), or a fallback lies in the author's family;
 //       - with the other family's breaker tripped, the review falls back instead of "no independent reviewer";
 //       - the blind payload carries the proposal, or the comparison is built before a blind verdict;
 //       - an approval without its steelman is accepted;
@@ -22,6 +22,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -244,7 +245,7 @@ begin
   -- UNHEALTHY OTHER FAMILY: Opus's breaker tripped by a real failure class -> no fallback to Sol
   -- Ledger 1175 (7 Oct 2026): no founder hold, so a trip is a real breaker: opened_class AND a cooldown in minutes.
   perform set_config('app.change_reason', 'probe:a_seat_is_never_reviewed_by_a_model_of_its_own_family', true);
-  update public.llm_route_health set opened_class = 'provider_error', open_until = now() + interval '15 minutes' where model_id in (c_opus, 'google/gemini-3.8-flash', 'openai/gpt-6-luna');  -- every family but the author's (third-family last resort, #880; the two retired models are inactive)
+  update public.llm_route_health set opened_class = 'provider_error', open_until = now() + interval '15 minutes' where model_id in (c_opus, 'anthropic/claude-sonnet-5.5', 'google/gemini-3.8-flash');  -- every family but the author's (matrix v3, #1479: Anthropic is Opus AND Sonnet; Gemini only hears, ruling 1241, and is tripped too so it can never be a last resort)
   v := public.fn_ai_route_review('seat_deliberation_blind', c_sol, 'ceo');
   o := o || jsonb_build_object('tripped_route', concat_ws(':', v->>'use_llm', v->>'no_independent_reviewer', coalesce(v->>'model', 'none')));
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO tripped', v_ev, v_pr, c_sol, null, null, null, true);
@@ -254,7 +255,7 @@ begin
 
   -- NO PAIR CEILING (24 Sep 2026, founder_instruction 987): marketing -> ceo has spent AED 60 this month (a rolled-back
   -- row, above the old AED 50 cap) and the review is still NOT held for spend
-  update public.llm_route_health set opened_class = null, open_until = null where model_id in (c_opus, 'google/gemini-3.8-flash', 'openai/gpt-6-luna');
+  update public.llm_route_health set opened_class = null, open_until = null where model_id in (c_opus, 'anthropic/claude-sonnet-5.5', 'google/gemini-3.8-flash');
   insert into public.ai_cost_log (fn, dept_key, agent_key, task_class, model_used, cost_aed, ok)
   values ('resilience_ping', 'marketing', 'ceo', 'seat_deliberation_blind', c_opus, 60, true);
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO over budget', v_ev, v_pr, c_sol, null, null, null, true);
@@ -278,7 +279,9 @@ test('production, in one aborted transaction: independence, blind first, steelma
   const { sql } = await import('../lib/db.mjs');
   const [r] = await sql(`select to_regprocedure('public.fn_ai_route_review(text,text,text,text,text)') is not null applied,
     exists (select 1 from public.model_policy where task_class = 'internal_judgement') matrix_applied`, { readOnly: true });
-  const body = (r.applied ? '' : read(FILE) + '\n') + (r.matrix_applied ? '' : read(MATRIX) + '\n') + V2_REPLAY + PROBE;
+  // Ruling 1199 (#1479) files no handoff for a ZZ DEMO subject; this probe proves the review loop on demo fixtures, so it
+  // switches that off for its own rolled-back transaction (a_rolled_back_probe_may_file_demo_seat_work_under_its_own_switch.sql).
+  const body = seatWorkFixtures() + (r.applied ? '' : read(FILE) + '\n') + (r.matrix_applied ? '' : read(MATRIX) + '\n') + V2_REPLAY + PROBE;
   let out;
   try {
     await replaySql(body, { retry: false });
@@ -292,11 +295,13 @@ test('production, in one aborted transaction: independence, blind first, steelma
   console.log(JSON.stringify(out, null, 1));
 
   assert.equal(out.sol_rev, 'anthropic/claude-opus-5.5', 'an author on Sol is reviewed by Opus');
-  // founder_instruction 1056: seat_deliberation is the CEO's review, Opus with gpt-6-luna as its own fallback. An Opus
-  // author is therefore reviewed by luna, and a Sol author's fallback skips luna (Sol's family) for the pool's first
-  // model, Gemini (matrix v2, 5 Oct 2026: DeepSeek left the pool and Gemini leads it).
-  assert.equal(out.opus_rev, 'openai/gpt-6-luna', 'an author on Opus is reviewed by the class\'s own fallback, luna');
-  assert.equal(out.sol_author_fallback, 'google/gemini-3.8-flash', 'no fallback may lie in the author\'s family (luna is Sol\'s)');
+  // founder_instruction 1056: seat_deliberation is the CEO's review, Opus with its own OpenAI fallback. Matrix v3 (#1479,
+  // gemini_only_hears_and_every_other_class_runs_luna_pro_and_the_5_6_generation_leaves.sql; rulings 1218 same price =
+  // Pro, 1241 Gemini only hears) made that fallback gpt-6-luna-pro and put Sonnet first in the review pool. An Opus author
+  // is therefore reviewed by Luna Pro, and an OpenAI author's fallback skips Luna Pro (its own family) for Sonnet. c_sol
+  // stays as the OpenAI-family author: Sol left routing (1240) but its registry row still names its family.
+  assert.equal(out.opus_rev, 'openai/gpt-6-luna-pro', 'an author on Opus is reviewed by the class\'s own fallback, Luna Pro');
+  assert.equal(out.sol_author_fallback, 'anthropic/claude-sonnet-5.5', 'no fallback may lie in the author\'s family (Luna Pro is OpenAI)');
 
   assert.equal(out.held_turn.status, 'held_not_run', 'under the hold the blind step records held, not run');
   assert.equal(out.held_turn.provider, 'anthropic');

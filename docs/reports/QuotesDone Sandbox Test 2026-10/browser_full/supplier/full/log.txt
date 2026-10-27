@@ -1,0 +1,23 @@
+PASS  [desktop] portal home: nothing hidden sideways — overflow 0px
+PASS  [desktop] portal home: all text English
+PASS  [desktop] portal home: no data from another party
+PASS  [desktop] portal home: no console errors
+PASS  [desktop] a. quote by typing the lines — [{"id":"02ca8bb8-3983-4d8a-9400-f82e125a8fc1","status":"submitted","amt":11160,"source":"form","option_no":1}]
+PASS  [desktop] typed quote: nothing hidden sideways — overflow 0px
+PASS  [desktop] typed quote: all text English
+PASS  [desktop] typed quote: no data from another party
+PASS  [desktop] typed quote: no console errors
+FAIL  [desktop] b. quote by uploading a quotation PDF — read total 1; [{"id":"a5b87ef8-c1d8-4e98-9799-32b62c5fc989","status":"draft","amt":1,"source":"upload","option_no":1}]
+FAIL  [desktop] c. a quotation with two options — scenario took over 8 minutes
+PASS  [desktop] d. incomplete specs are held — on-screen held=true; spec holds 1; [{"id":"84405ed5-6622-49b3-a60e-ff0451ca1d42","status":"draft","amt":9000,"source":"form","option_no":1}]
+FAIL  [desktop] e. refresh a quote before reveal — [{"id":"02ca8bb8-3983-4d8a-9400-f82e125a8fc1","status":"submitted","amt":11160,"source":"form","option_no":1}]
+FAIL  [desktop] f. withdraw a quote before reveal — no Withdraw control on Inquiries or Quotations; supplier_api has no withdraw action
+PASS  [desktop] g. anonymous question; no other customer data — question sent=true; other inquiry via API: 200 leak=false
+PASS  [desktop] inquiry with question: nothing hidden sideways — overflow 0px
+PASS  [desktop] inquiry with question: all text English
+PASS  [desktop] inquiry with question: no data from another party
+FAIL  [desktop] inquiry with question: no console errors — Failed to load resource: the server responded with a status of 409 ()
+PASS  [desktop] h. reveal notification — revealed job in Messages: true; handoffs filed for the demo reveal: 0 (ruling 1199 files none, so no e-mail/WhatsApp notice exists to assert)
+PASS  [desktop] i. paying the fee (checkout opens in Stripe TEST mode) — https://checkout.stripe.com/c/pay/cs_test_a18PCuNShMrnmFQzWRgbfQ6dxGqvDUh6azaco64jCK2j72ECHAKq7qmPlC
+FAIL  [desktop] c. a quotation with two options — split notice shown: false; []
+exit 127

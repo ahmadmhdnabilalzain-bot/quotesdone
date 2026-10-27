@@ -1,0 +1,92 @@
+{
+  "roots": 10,
+  "unlisted_roots": 0,
+  "expected": 24159,
+  "listed": 24486,
+  "missing": 0,
+  "confirmed_missing": 0,
+  "changed": 0,
+  "stray": 327,
+  "per_root": {
+    "Suppliers": {
+      "expected": 53,
+      "listed": 60,
+      "missing": 0,
+      "confirmed_missing": 0,
+      "changed": 0,
+      "stray": 7
+    },
+    "Customers": {
+      "expected": 130,
+      "listed": 141,
+      "missing": 0,
+      "confirmed_missing": 0,
+      "changed": 0,
+      "stray": 11
+    },
+    "Assets": {
+      "expected": 0,
+      "listed": 150,
+      "missing": 0,
+      "confirmed_missing": 0,
+      "changed": 0,
+      "stray": 150
+    },
+    "docs": {
+      "expected": 0,
+      "listed": 97,
+      "missing": 0,
+      "confirmed_missing": 0,
+      "changed": 0,
+      "stray": 97
+    },
+    "Dev Artifacts 2026-07-11": {
+      "expected": 0,
+      "listed": 17,
+      "missing": 0,
+      "confirmed_missing": 0,
+      "changed": 0,
+      "stray": 17
+    },
+    "Social Media": {
+      "expected": 0,
+      "listed": 45,
+      "missing": 0,
+      "confirmed_missing": 0,
+      "changed": 0,
+      "stray": 45
+    },
+    "Finance": {
+      "expected": 38,
+      "listed": 38,
+      "missing": 0,
+      "confirmed_missing": 0,
+      "changed": 0,
+      "stray": 0
+    },
+    "Company/Correspondence": {
+      "expected": 641,
+      "listed": 641,
+      "missing": 0,
+      "confirmed_missing": 0,
+      "changed": 0,
+      "stray": 0
+    },
+    "Storage": {
+      "expected": 1655,
+      "listed": 1655,
+      "missing": 0,
+      "confirmed_missing": 0,
+      "changed": 0,
+      "stray": 0
+    },
+    "Company/Database Exports": {
+      "expected": 21642,
+      "listed": 21642,
+      "missing": 0,
+      "confirmed_missing": 0,
+      "changed": 0,
+      "stray": 0
+    }
+  }
+}

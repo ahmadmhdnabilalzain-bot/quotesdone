@@ -39,6 +39,36 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "shipbuilding_repair:product-distinctions",
+      "topic": "Ship repair: dock types, work scopes and class involvement",
+      "topic_ar": "إصلاح السفن: أنواع الأحواض ونطاقات العمل ودور هيئات التصنيف",
+      "kind": "product_distinctions",
+      "body_en": "Ship repair is done afloat at a repair berth, on a slipway or shiplift for smaller craft, or in dry dock: a graving dock (a basin drained so the ship rests on blocks, for the largest ships) or a floating dock (pontoons that flood to sink, admit the vessel and rise). Typical scopes: scheduled class and statutory surveys (intermediate and special surveys, usually with docking twice in five years), hull blasting and coating, steel renewal measured by thickness gauging, propeller and shaft work, rudder and stern-tube seals, sea chests and valves, main and auxiliary engine overhaul, conversions and upgrades (ballast water treatment, scrubbers, lengthening), and emergency or voyage repairs. New-build covers workboats, tugs, landing craft, patrol and leisure vessels in steel, aluminium or composite. The classification society attends and approves steel work and survey items; the owner's superintendent agrees the work list. Offers differ on the dock rates and days, the unit rates for steel (per kg) and blasting/coating (per m2), the yard's capacity and dock dimensions, class approval, and how growth work is priced.",
+      "body_ar": "يتم إصلاح السفن وهي طافية على رصيف الإصلاح، أو على مزلقان أو رافعة سفن للقطع الأصغر، أو في الحوض الجاف: الحوض المحفور (حوض يُفرّغ من الماء لتستقر السفينة على كتل، لأكبر السفن) أو الحوض العائم (عوامات تُغمر بالماء لتغوص وتستقبل السفينة ثم ترتفع). ونطاقات العمل المعتادة: مسوحات التصنيف والمسوحات القانونية المجدولة (المسح الوسيط والخاص، عادة مع إدخال الحوض مرتين كل خمس سنوات)، وسفع الهيكل وطلاؤه، وتجديد الحديد بناءً على قياس السماكة، وأعمال الرفاص والعمود، والدفة وموانع تسرب أنبوب المؤخرة، وصناديق البحر والصمامات، وعمرة المحركات الرئيسية والمساعدة، والتحويلات والتحديثات (معالجة مياه الصابورة، أجهزة غسل العادم، التطويل)، والإصلاحات الطارئة أو أثناء الرحلة. ويشمل البناء الجديد قوارب العمل والقاطرات وسفن الإنزال وسفن الدوريات والنزهة من الحديد أو الألمنيوم أو المواد المركبة. وتحضر هيئة التصنيف وتعتمد أعمال الحديد وبنود المسح؛ ويتفق مشرف المالك على قائمة الأعمال. وتختلف العروض في أسعار الحوض وأيامه، وأسعار وحدة الحديد (للكيلوغرام) والسفع والطلاء (للمتر المربع)، وقدرة الحوض وأبعاده، واعتماد هيئة التصنيف، وطريقة تسعير الأعمال الإضافية المكتشفة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Dry_dock"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: graving docks drained to rest a ship on blocks versus floating docks that sink and lift a ship -> confirmed."
+    },
+    {
+      "id": "shipbuilding_repair:lead-times-and-quoting",
+      "topic": "Shipbuilding & ship repair - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "بناء وإصلاح السفن: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Dock slots are usually booked 2-8 weeks ahead; a routine docking takes 7-21 days; major conversions months. A yard needs the vessel particulars (type, length, breadth, draught, lightship weight), the class and flag, the detailed repair specification or work list, the docking window, and owner-supplied items. A quote states the dock and berth rates and days, the price per item, unit rates for steel, blasting and coating, services (cranes, power, fire watch, gas-freeing), class attendance, the growth-work pricing, the payment terms and validity.",
+      "body_ar": "تُحجز مواعيد الأحواض عادة قبل 2-8 أسابيع؛ وإدخال الحوض الروتيني يستغرق 7-21 يوماً؛ والتحويلات الكبيرة أشهراً. ويحتاج الحوض بيانات السفينة (النوع، الطول، العرض، الغاطس، الوزن الفارغ)، وهيئة التصنيف والعلم، ومواصفة الإصلاح التفصيلية أو قائمة الأعمال، ونافذة الإدخال، والبنود التي يوردها المالك. ويذكر العرض أسعار الحوض والرصيف وأيامهما، والسعر لكل بند، وأسعار وحدة الحديد والسفع والطلاء، والخدمات (الرافعات، الكهرباء، مراقبة الحريق، إزالة الغازات)، وحضور هيئة التصنيف، وتسعير الأعمال الإضافية، وشروط الدفع، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -64,6 +94,14 @@
       ],
       "why": "The checklist lists the drydock pricing drivers: dock days, steel renewal tonnes, coating area, class survey and scope.",
       "origin": "real buyer question, moved from shipbuilding_repair.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Our 60 m supply vessel is due for its special survey. Floating dock or graving dock, and what drives the bill?",
+      "q_ar": "سفينة الإمداد عندنا 60 متر عليها المسح الخاص، حوض عائم ولا حوض جاف محفور؟ ووش اللي يرفع الفاتورة؟",
+      "expected_entry_ids": [
+        "shipbuilding_repair:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -80,6 +118,27 @@
       "shipbuilding_repair:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "shipbuilding_repair:product-distinctions"
+      ],
+      "stored_not_served": [
+        "shipbuilding_repair:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Dry_dock"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

@@ -372,10 +372,11 @@ export function valueInEvidence(val: string, ev: string): boolean {
 export function parseJson<T = Record<string, unknown>>(text: string | null | undefined): T | null {
   if (!text) return null;
   const m = text.trim().match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
-  try {
-    const o = JSON.parse(m ? m[1] : text.trim());
-    return o && typeof o === 'object' && !Array.isArray(o) ? o as T : null;
-  } catch (_e) { return null; }
+  const one = (t: string) => { try { const o = JSON.parse(t); return o && typeof o === 'object' && !Array.isArray(o) ? o as T : null; } catch (_e) { return null; } };
+  // A REASONING MODEL WRITES A SENTENCE AROUND ITS JSON (exam run b2f80d4d, 19 Oct 2026: GPT-6 Luna Pro since matrix v3;
+  // 5 of 30 seat answers held as 'the reply is not one JSON object'). The outermost object is the reply.
+  const t = m ? m[1] : text.trim(), a = t.indexOf('{'), b = t.lastIndexOf('}');
+  return one(t) ?? (a >= 0 && b > a ? one(t.slice(a, b + 1)) : null);
 }
 
 // ── the prompts ──────────────────────────────────────────────────────────────────────────────────
@@ -391,7 +392,11 @@ const RULINGS = `Standing rulings of the founder of QuotesDone (a UAE procuremen
 // (knowledge_lookup_goes_to_the_trade_first.sql), so a value that is not a live code or tag narrows nothing.
 export const ENTRY_KINDS = ['authority_approval', 'benchmark', 'buyer_mistake', 'checklist', 'comparison', 'concept', 'decision_rule',
   'glossary', 'installation', 'law', 'lead_time', 'method', 'playbook', 'price_driver', 'product', 'quote_red_flag', 'spec_checklist',
-  'standard', 'warranty'] as const;
+  'standard', 'warranty',
+  // A trade's UAE market file (knowledge/packs/<trade>.market.json): what is sold, which makes, which sizes. Named by the
+  // planner from the question's meaning; fn_reason_retrieve(_ml) then lets the trade's market and pricing rows lead
+  // (a_trade_question_reads_its_own_trade_pack.sql). Without these the planner could not ask for the market file.
+  'uae_market_products', 'uae_market_brands', 'uae_market_sizes'] as const;
 
 export function decomposePrompt(seat: Seat, decision?: DecisionSpec): string {
   return `${RULINGS}
@@ -500,6 +505,12 @@ export function readerOfTheirOwnText(goal: string): Pick<ThinkRequest, 'plan' | 
   return { plan: { steps: [{ id: 'read', goal, query: goal, needs_knowledge: false }] }, maxTokens: { synthesise: SYNTH_FOR_READERS }, reader: true };
 }
 
+/** The planner ran out of time or the provider failed (not a hold): answer from a one-step plan instead. */
+export function planTimedOut(error: unknown): boolean {
+  const e = String(error ?? '');
+  return !/circuit_open|open-circuit|founder_hold|model_hold/.test(e) && /gateway_deadline|gateway_http_5\d\d|timeout|aborted/i.test(e);
+}
+
 export function isFixtureRequest(req: Pick<ThinkRequest, 'subject'>): boolean {
   return !!req.subject && (req.subject as Record<string, unknown>).fixture === true;
 }
@@ -604,9 +615,20 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // production (ai_cost_log 17:30Z, 17:38Z): an Arabic portal question with the customer's profile made the planner
   // write 900 tokens, the gateway's cap; the JSON was truncated and the whole reply fell to "could not read your
   // account". The plan only narrows retrieval, so a model that wrote one still answers, from one step on the question.
-  if ((!plan || !Array.isArray(plan.steps)) && String(d0.content ?? '').trim()) {
+  // ...AND A PLANNER THAT TIMED OUT (exam run b2f80d4d: 3 of 30 decompose calls hit the 45 s wall on GPT-6 Luna Pro and
+  // the seat answered nothing). Only a hold or an open circuit stops the answer; a slow plan never does.
+  if ((!plan || !Array.isArray(plan.steps)) && (String(d0.content ?? '').trim() || (d0.error && !/circuit_open|open-circuit|founder_hold/.test(String(d0.error))))) {
     plan = { steps: [{ id: 's1', goal: 'answer the question', query: req.question.slice(0, 500), needs_knowledge: true }], facts: [], high_stakes: true };   // an unplanned answer is always cross-checked
     steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: 'unparseable plan; one-step plan used' });
+  }
+  // A PLANNER THAT RAN OUT OF TIME IS NOT A REASON TO HOLD THE ANSWER (ceo, 19 Oct 2026, ledger 1003 stage 2). Measured
+  // on the seat exam (ai_cost_log fn knowledge_exam, 05:00-08:00Z): the ceo seat's plans on gpt-6-luna-pro ran p90 77 s,
+  // max 79 s, and 17 of 108 hit the gateway wall even at 75 s, so 16 questions were held unanswered while every other
+  // seat planned in under 47 s. The plan only narrows retrieval: on a deadline or a provider 5xx the seat answers from a
+  // one-step plan on the question, cross-checked as an unplanned answer always is. A hold or an open circuit still holds.
+  if ((!plan || !Array.isArray(plan.steps)) && planTimedOut(d0.error)) {
+    plan = { steps: [{ id: 's1', goal: 'answer the question', query: req.question.slice(0, 500), needs_knowledge: true }], facts: [], high_stakes: true };
+    steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: `${d0.error}; one-step plan used` });
   }
   if (!plan || !Array.isArray(plan.steps)) {
     steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: d0.error ?? 'no plan' });

@@ -55,6 +55,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "water_treatment:product-distinctions",
+      "topic": "Water treatment equipment: technologies and what each removes",
+      "topic_ar": "معدات معالجة المياه: التقنيات وما تزيله كل منها",
+      "kind": "product_distinctions",
+      "body_en": "Treatment trains are built from: sediment and multimedia filters (remove suspended solids), activated-carbon filters (chlorine, taste, odour, some organics), water softeners (ion exchange removes hardness, calcium and magnesium, to protect boilers, heaters and appliances, without lowering total dissolved solids), reverse osmosis (RO membranes remove most dissolved salts, measured as TDS, as well as many contaminants; they need pre-treatment and antiscalant dosing to avoid fouling, and reject a share of the feed as concentrate, with recovery typically 50-75% for brackish water), UV sterilisation (inactivates bacteria and viruses without chemicals), chlorination and dosing, iron and manganese removal, and ultrafiltration. Applications: drinking water for homes and offices (under-sink RO with remineralisation), whole-house softeners and filters, commercial kitchens and coffee machines, boiler and cooling-tower make-up water, process and laboratory water (deionised, by conductivity), swimming pools, and seawater or brackish-water desalination units. Selection starts from a raw-water analysis (TDS, hardness, chlorine, bacteria) and the required output quality and flow; membranes, cartridges and media need scheduled replacement.",
+      "body_ar": "تُبنى سلاسل المعالجة من: فلاتر الرواسب ومتعددة الوسائط (تزيل المواد العالقة)، وفلاتر الكربون النشط (الكلور، الطعم، الرائحة، بعض المواد العضوية)، وملطفات المياه (التبادل الأيوني يزيل العسر، أي الكالسيوم والمغنيسيوم، لحماية الغلايات والسخانات والأجهزة، دون خفض الأملاح الذائبة الكلية)، والتناضح العكسي (أغشية التناضح العكسي تزيل معظم الأملاح الذائبة المقاسة كأملاح ذائبة كلية، وكثيراً من الملوثات؛ وتحتاج معالجة مسبقة وجرعات مانع ترسب لتجنب الانسداد، وترفض جزءاً من التغذية كمياه مركزة، ونسبة الاستخلاص عادة 50-75% للمياه قليلة الملوحة)، والتعقيم بالأشعة فوق البنفسجية (يعطل البكتيريا والفيروسات دون مواد كيميائية)، والكلورة والجرعات، وإزالة الحديد والمنغنيز، والترشيح الفائق. والتطبيقات: مياه الشرب للمنازل والمكاتب (تناضح عكسي تحت المغسلة مع إعادة المعادن)، وملطفات وفلاتر المنزل كاملاً، والمطابخ التجارية وآلات القهوة، ومياه تعويض الغلايات وأبراج التبريد، ومياه العمليات والمختبرات (منزوعة الأيونات حسب الموصلية)، والمسابح، ووحدات تحلية مياه البحر أو المياه قليلة الملوحة. ويبدأ الاختيار بتحليل المياه الخام (الأملاح الذائبة، العسر، الكلور، البكتيريا) وجودة المخرجات والتدفق المطلوبين؛ وتحتاج الأغشية والخراطيش والوسائط استبدالاً مجدولاً.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Reverse_osmosis"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: reverse osmosis membranes, pre-treatment and recovery rate -> confirmed."
+    },
+    {
+      "id": "water_treatment:lead-times-and-quoting",
+      "topic": "Water treatment & filtration - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "معالجة وفلترة المياه: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Domestic units: days; commercial plants 2-8 weeks; industrial and desalination plants months. A supplier needs the water analysis, required output quality and daily volume, peak flow, space and power, drain availability, and application. A quote states the process design, equipment makes, capacity and recovery, output quality guaranteed, installation and commissioning, consumables and service plan, warranty and validity.",
+      "body_ar": "الوحدات المنزلية: أيام؛ والمحطات التجارية 2-8 أسابيع؛ والمحطات الصناعية ومحطات التحلية أشهراً. ويحتاج المورد تحليل المياه، وجودة المخرجات المطلوبة والحجم اليومي، والتدفق الأقصى، والمساحة والكهرباء، وتوفر الصرف، والتطبيق. ويذكر العرض تصميم العملية وماركات المعدات والسعة ونسبة الاستخلاص وجودة المخرجات المضمونة والتركيب والتشغيل والمستهلكات وخطة الخدمة والضمان والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry sizes villa RO capacity (GPD or m3/day per occupants); spec-checklist only lists capacity as a field). water_treatment:residential-ro-capacity-sizing was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from water_treatment.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Does a water softener make tap water drinkable, or do we need RO?",
+      "q_ar": "هل ملطف المياه يخلي ماء الصنبور صالح للشرب، ولا نحتاج تناضح عكسي؟",
+      "expected_entry_ids": [
+        "water_treatment:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "water_treatment:residential-ro-capacity-sizing"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "water_treatment:product-distinctions"
+      ],
+      "stored_not_served": [
+        "water_treatment:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Reverse_osmosis"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

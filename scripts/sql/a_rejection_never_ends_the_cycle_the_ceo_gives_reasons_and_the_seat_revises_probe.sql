@@ -222,8 +222,19 @@ begin
   -- refund to 'approved' - not 'requested' as before. 'approved' is still before money: only 'processing' /
   -- 'succeeded' or a Stripe refund id means money moved (outcome audit 30 Sep 2026, measured: approved, dec linked,
   -- stripe_refund_id null).
-  if (select status from public.refunds where id = v_rf1) <> 'approved' or (select refund_decision_id from public.refunds where id = v_rf1) is null
-     or (select stripe_refund_id from public.refunds where id = v_rf1) is not null then
+  -- Since the model hold was lifted (founder ledger 1260, 19 Oct 2026) fn_high_stakes_gate no longer lets a refund
+  -- proceed with the second-seat review merely owed: a non-fixture refund (this one has no customer, inquiry or
+  -- supplier, so fn_deliberation_subject_is_fixture is false) stays 'requested', decision linked, until the second
+  -- seat agrees (measured 27 Oct 2026: fn_high_stakes_model_held() = false). So 'requested' passes ONLY while the
+  -- hold is off AND an open refund deliberation on this refund is what it waits for.
+  r := r || jsonb_build_object('refund_second_seat', (select string_agg(d.status, ',') from public.seat_deliberation d
+          where d.kind = 'high_stakes.refund' and d.subject_table = 'refunds' and split_part(d.subject_id, ':', 1) = v_rf1::text));
+  if (select refund_decision_id from public.refunds where id = v_rf1) is null
+     or (select stripe_refund_id from public.refunds where id = v_rf1) is not null
+     or not ((select status from public.refunds where id = v_rf1) = 'approved'
+             or ((select status from public.refunds where id = v_rf1) = 'requested' and not public.fn_high_stakes_model_held()
+                 and exists (select 1 from public.seat_deliberation d where d.kind = 'high_stakes.refund' and d.status = 'open'
+                               and d.subject_table = 'refunds' and split_part(d.subject_id, ':', 1) = v_rf1::text))) then
     v_bad := v_bad || 'refund_approval_not_linked_or_money_moved'::text;
   end if;
 

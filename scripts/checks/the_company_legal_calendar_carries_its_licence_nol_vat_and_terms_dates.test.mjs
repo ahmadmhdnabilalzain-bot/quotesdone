@@ -7,6 +7,7 @@
 //      stage, or a calendar row is missing.
 //
 //   node --test scripts/checks/the_company_legal_calendar_carries_its_licence_nol_vat_and_terms_dates.test.mjs
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -17,7 +18,7 @@ const NAME = 'the_company_legal_calendar_carries_its_licence_nol_vat_and_terms_d
 const FILE = new URL(`../sql/${NAME}.sql`, import.meta.url);
 const PENDING = new URL(`../sql/pending/${NAME}.txt`, import.meta.url);
 const PROBE = new URL(`../sql/${NAME}_probe.sql`, import.meta.url);
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 

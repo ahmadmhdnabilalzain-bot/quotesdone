@@ -156,12 +156,16 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
   let insunits: number | null = null, section = '', pendingSection = false, lastHeaderVar = '';
   const ents: Ent[] = [];
   let cur: Ent | null = null, capped = false;
+  // Block definitions (BLOCKS) and the block table's handles (TABLES BLOCK_RECORD), for nested and dynamic blocks.
+  const defs = new Map<string, Ent[]>();
+  let defName = '', defEnts: Ent[] | null = null, rec: Ent | null = null;
+  const recs: Ent[] = [];
   for (let i = 0; i + 1 < lines.length; i += 2) {
     const code = parseInt(lines[i].trim(), 10);
     const val = lines[i + 1].replace(/\s+$/, '');
     if (!Number.isFinite(code)) return refuse('dxf_unreadable', `Group code expected at line ${i + 1}.`);
     if (code === 0) {
-      if (cur) { ents.push(cur); cur = null; }
+      if (cur) { if (section === 'ENTITIES') ents.push(cur); cur = null; }
       const t = val.trim();
       if (t === 'SECTION') { pendingSection = true; continue; }
       if (t === 'ENDSEC') { section = ''; continue; }
@@ -169,16 +173,22 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
       if (section === 'ENTITIES') {
         if (ents.length >= maxEntities) { capped = true; break; }
         cur = { type: t, pairs: [] };
-      }
+      } else if (section === 'BLOCKS') {
+        if (t === 'BLOCK') { defName = ''; defEnts = []; rec = { type: t, pairs: [] }; }
+        else if (t === 'ENDBLK') { if (defName && defEnts) defs.set(defName, defEnts); defEnts = null; rec = null; }
+        else if (defEnts) { rec = null; cur = { type: t, pairs: [] }; defEnts.push(cur); }
+      } else if (section === 'TABLES') { rec = t === 'BLOCK_RECORD' ? { type: t, pairs: [] } : null; if (rec) recs.push(rec); }
       continue;
     }
     if (pendingSection && code === 2) { section = val.trim(); pendingSection = false; continue; }
     if (section === 'HEADER') {
       if (code === 9) lastHeaderVar = val.trim();
       else if (lastHeaderVar === '$INSUNITS' && code === 70) insunits = parseInt(val.trim(), 10);
-    } else if (cur) cur.pairs.push([code, val]);
+    } else if (section === 'BLOCKS' && rec && !cur) { if (code === 2) defName = val.trim(); }
+    else if (section === 'TABLES' && rec) rec.pairs.push([code, val]);
+    else if (cur) cur.pairs.push([code, val]);
   }
-  if (cur) ents.push(cur);
+  if (cur && section === 'ENTITIES') ents.push(cur);
 
   const notes: string[] = [];
   const text: string[] = [];
@@ -189,7 +199,33 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
   const lenBy = new Map<string, { v: number; n: number }>();
   const areaBy = new Map<string, { v: number; n: number }>();
   const inserts = new Map<string, number>();
-  const placed: { name: string; x: number; y: number }[] = [];
+  const placed: { name: string; x: number; y: number; n: number }[] = [];
+  // DYNAMIC BLOCKS (19 Oct 2026, sales_engineer; founder 580). AutoCAD writes every flipped or stretched dynamic
+  // block as an anonymous *U block whose BLOCK_RECORD carries XDATA AcDbBlockRepBTag -> the handle of the real
+  // block. Those were all skipped as "anonymous", so dynamic doors were never counted. Resolved here by handle.
+  const byHandle = new Map<string, string>(), dyn = new Map<string, string>();
+  for (const r of recs) { const h = r.pairs.find((x) => x[0] === 5)?.[1].trim(), n = r.pairs.find((x) => x[0] === 2)?.[1].trim(); if (h && n) byHandle.set(h.toUpperCase(), n); }
+  for (const r of recs) {
+    const n = r.pairs.find((x) => x[0] === 2)?.[1].trim() ?? '', k = r.pairs.findIndex((x) => x[0] === 1001 && x[1].trim() === 'AcDbBlockRepBTag');
+    const h = k >= 0 ? r.pairs.slice(k + 1).find((x) => x[0] === 1005)?.[1].trim().toUpperCase() : undefined;
+    if (n.startsWith('*') && h && byHandle.has(h)) dyn.set(n, byHandle.get(h)!);
+  }
+  const blockOf = (e: Ent) => { const b = (e.pairs.find((x) => x[0] === 2)?.[1] ?? '').trim(); return b.startsWith('*') ? dyn.get(b) ?? null : b || null; };
+  // MINSERT is an array of one block: columns (70) x rows (71).
+  const copies = (e: Ent) => e.type === 'MINSERT' ? Math.max(1, parseInt(e.pairs.find((x) => x[0] === 70)?.[1] ?? '1', 10) || 1) * Math.max(1, parseInt(e.pairs.find((x) => x[0] === 71)?.[1] ?? '1', 10) || 1) : 1;
+  // NESTED BLOCKS: a socket drawn inside a typical-room block is a socket in every room the block is placed in.
+  const nested = (name: string, depth = 0, seen = new Set<string>()): Map<string, number> => {
+    const out = new Map<string, number>();
+    if (depth > 8 || seen.has(name)) return out;
+    for (const c of defs.get(name) ?? []) {
+      if (c.type !== 'INSERT' && c.type !== 'MINSERT') continue;
+      const b = blockOf(c); if (!b) continue;
+      const k = copies(c);
+      out.set(b, (out.get(b) ?? 0) + k);
+      for (const [g, v] of nested(b, depth + 1, new Set([...seen, name]))) out.set(g, (out.get(g) ?? 0) + k * v);
+    }
+    return out;
+  };
   const words: { s: string; x: number; y: number; h: number }[] = [];
   let anon = 0, extent = 0;
   const bump = (m: Map<string, { v: number; n: number }>, k: string, v: number) => {
@@ -219,10 +255,10 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
         addText(over && over !== '<>' ? stripMtext(over) : Number.isFinite(m) ? `DIM ${+m.toFixed(3)}` : '');
         break;
       }
-      case 'INSERT': {
-        const b = str(e, 2).trim();
-        if (!b || b.startsWith('*')) { anon++; break; }
-        placed.push({ name: b, x: num(e, 10), y: num(e, 20) });
+      case 'INSERT': case 'MINSERT': {
+        const b = blockOf(e);
+        if (!b) { anon++; break; }
+        placed.push({ name: b, x: num(e, 10), y: num(e, 20), n: copies(e) });
         break;
       }
       case 'LINE': {
@@ -271,18 +307,22 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
   //     heading heights was 10 m x 20 m under a 250 mm heading and swallowed five real detectors beside CORRIDOR
   //     tags; the second review: a hard 3 m stop counted the last rows of a 10-row legend at 400 and 600 mm pitch);
   //   * a DESCRIPTION sits beside it on its own row, within 1 m: text that names the block, or reads as a legend
-  //     entry ("SD - SMOKE DETECTOR", "SKT = SOCKET"), not a room or a tag;
+  //     entry ("SD - SMOKE DETECTOR", "SKT = SOCKET"), or is plain words ("TWIN SOCKET OUTLET"), not a room or a
+  //     tag; "beside" is measured from the symbol's right edge (its block's extent), so a 900 mm door sample counts;
   //   * it stands in the legend's COLUMN: within 0.3 m of the column's median x.
   // Anything else is counted, and what was set aside is said in the notes, so a surprising count can be checked.
   const legendToM = insunits && UNIT_M[insunits] ? UNIT_M[insunits][0] : extent > 500 ? 0.001 : 1;
   const within = (m: number, h: number, k: number) => Math.min(k * h, m / legendToM);
-  const describes = (w: { s: string }, block: string) => w.s.toUpperCase().startsWith(block.toUpperCase()) || /\S\s*[-–=:]\s+\S/.test(w.s);
+  const describes = (w: { s: string }, block: string) => w.s.toUpperCase().startsWith(block.toUpperCase()) || /\S\s*[-–=:]\s+\S/.test(w.s)
+    || (/^[A-Za-z][A-Za-z/&.]+(?:\s+[A-Za-z0-9/&.x]+)+$/.test(w.s.trim()) && !/\b[A-Z]{0,3}-?\d{2,3}[A-Z]?\b/.test(w.s.trim().split(/\s+/).length >= 3 ? w.s.replace(/\b\d+\s*x\s*\d+\b|\b\d{3,4}\b/g, '') : w.s));
+  // A block's width in drawing units (its definition's x extent from its base point), for "beside".
+  const widthOf = (name: string) => { let m = 0; for (const c of defs.get(name) ?? []) for (const [k, v] of c.pairs) if (k === 10 || k === 11) m = Math.max(m, parseFloat(v) || 0); return m; };
   const anchors = words.filter((w) => w.h > 0 && LEGEND_HEADING.test(w.s));
   const candidates = new Set<(typeof placed)[number]>();
   for (const a of anchors) {
     // Every described insert below the heading, in the heading's column, top down.
     const rows = placed.filter((p) => p.y <= a.y + a.h && p.x >= a.x - within(0.2, a.h, 3) && p.x - a.x <= within(1.5, a.h, 80)
-      && words.some((w) => w !== a && w.s && Math.abs(w.y - p.y) <= 1.5 * a.h && w.x > p.x && w.x - p.x <= within(1, a.h, 12) && describes(w, p.name)))
+      && words.some((w) => w !== a && w.s && Math.abs(w.y - p.y) <= 1.5 * a.h && w.x > p.x && w.x - p.x - widthOf(p.name) <= within(1, a.h, 12) && describes(w, p.name)))
       .sort((u, v) => v.y - u.y);
     const inWindow: typeof rows = [];
     let lastY = a.y;
@@ -294,11 +334,14 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
     const xs = inWindow.map((p) => p.x).sort((u, v) => u - v), mid = xs[Math.floor(xs.length / 2)];
     for (const p of inWindow) if (Math.abs(p.x - mid) <= 0.3 / legendToM) candidates.add(p);
   }
-  let samples = 0;
+  let samples = 0, nestedN = 0;
   for (const p of placed) {
     if (candidates.has(p)) { samples++; continue; }
-    inserts.set(p.name, (inserts.get(p.name) ?? 0) + 1);
+    inserts.set(p.name, (inserts.get(p.name) ?? 0) + p.n);
+    for (const [b, k] of nested(p.name)) { inserts.set(b, (inserts.get(b) ?? 0) + p.n * k); nestedN += p.n * k; }
   }
+  if (dyn.size) notes.push(`${dyn.size} dynamic block variant(s) (*U) were counted as the block they are drawn from.`);
+  if (nestedN) notes.push(`${nestedN} block insert(s) nested inside other blocks were counted once per placement of their parent.`);
   if (samples) notes.push(`${samples} block insert(s) drawn as legend samples beside their descriptions were not counted.`);
 
   // Units.
@@ -391,7 +434,9 @@ export function redactDxf(bytes: Uint8Array, redact: (s: string) => string): { b
       chunks = [];
       set(i + 1, redact(stripMtext(full)).replace(/\r?\n/g, '\\P'));
     } else if (ent === 'BLOCK' && code === 1 && xref) set(i + 1, '');
-    else if (code === 8 || (section === 'TABLES' && ent === 'LAYER' && code === 2) || isFreeText(code)) set(i + 1, redact(val));
+    else if (code === 8 || (section === 'TABLES' && ent === 'LAYER' && code === 2) || isFreeText(code)
+      // DWGPROPS and other XRECORDs keep title / author / comments in codes 2-9 (measured: author and job no. survived)
+      || (ent === 'XRECORD' && isStringCode(code))) set(i + 1, redact(val));
   }
   const residual: string[] = [];
   for (let i = 0; i + 1 < lines.length; i += 2) {

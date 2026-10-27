@@ -49,13 +49,23 @@ test('the winning fn_it_loop_tick runs the CEO and originator steps', () => {
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 
+// Since #1194 (the_originator_closes_what_was_answered_and_the_digest_carries_only_his_decisions.sql, 5 Oct 2026)
+// fn_originators_reverify_handoffs section 4 closes EVERY originator_closes kind it does not name (it names only the
+// kinds it leaves to their own closers) once the kind's handler has answered without 'waiting'. A kind registered after
+// it -- ceo.lesson_reapproval_overdue (#1496) and review.requested (#1566, closed by fn_review_request_decide through
+// the stored handoff id) -- names no literal closer and is still closed, so the generic closer counts here, but only
+// for a kind whose handler is a live routine: with no handler nothing ever answers, and nothing generic closes it.
 test('every originator-closed kind has a routine that closes it as its originator', { skip: SKIP }, async () => {
   const orphans = await sql(`
     select k.type, k.from_seat, k.to_seat from public.seat_handoff_kind k
      where k.originator_closes
        and not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                         where n.nspname = 'public' and p.prosrc like '%''' || k.type || '''%'
-                          and (p.prosrc like '%qd.handoff_closer%' or p.prosrc like '%qd.backup_closer%'))`);
+                          and (p.prosrc like '%qd.handoff_closer%' or p.prosrc like '%qd.backup_closer%'))
+       and not (to_regproc('public.' || k.handler) is not null
+                and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                             where n.nspname = 'public' and p.prosrc like '%sk.originator_closes%'
+                               and p.prosrc like '%qd.handoff_closer%' and p.prosrc not like '%''' || k.type || '''%'))`);
   assert.deepEqual(orphans, [], 'these kinds wait for an originator that never closes them');
 });
 

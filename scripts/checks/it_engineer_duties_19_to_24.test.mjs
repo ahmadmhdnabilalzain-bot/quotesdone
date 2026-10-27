@@ -164,7 +164,7 @@ if (!OVERDUE_SKIP) {
 }
 
 async function probe(body) {
-  try { await sql(`do $p$ ${body} $p$;`); } catch (e) {
+  try { await sql(`select set_config('qd.probe_files_demo_handoff', 'on', true); do $p$ ${body} $p$;`); } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     // The payload arrives JSON-escaped inside the error text: unescape it as one JSON string first, so a
     // nested value that itself carries quotes survives (the crude \" replace broke on fn_it_usage_watch's

@@ -44,6 +44,36 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "cleaning_chemicals:product-distinctions",
+      "topic": "Cleaning chemicals: product families and how they differ",
+      "topic_ar": "كيماويات التنظيف: العائلات وما يميز كل منها",
+      "kind": "product_distinctions",
+      "body_en": "Cleaning chemicals divide by chemistry. Acidic cleaners (pH below 7: phosphoric, citric, sulphamic, hydrochloric) remove limescale, rust and cement residue in washrooms and after construction, but etch marble and attack metals. Alkaline cleaners and degreasers (sodium hydroxide, silicates, surfactants) cut grease and oil in kitchens, workshops and floors. Neutral cleaners (pH about 7) are for daily floor and surface care and for stone and polished floors. Solvent-based degreasers dissolve heavy oil. Disinfectants and sanitisers (quaternary ammonium, chlorine/hypochlorite, hydrogen peroxide, alcohol) are chosen by the organisms they kill, the contact time and whether the surface touches food. Specialities: floor polish and strippers, carpet shampoo and extraction chemicals, glass cleaner, stainless polish, dishwash and rinse aid for machines, laundry chemicals, and drain treatments. Products come ready-to-use or as concentrates diluted through dosing systems, which cut cost per litre in use. Each needs a safety data sheet (SDS) with its hazard class, and staff need the right PPE for acids and caustics. Janitorial supplies around them include mops, trolleys, microfibre, bins, dispensers and liners.",
+      "body_ar": "تنقسم كيماويات التنظيف حسب تركيبها الكيميائي. المنظفات الحمضية (أس هيدروجيني أقل من 7: فوسفوريك، ستريك، سلفاميك، هيدروكلوريك) تزيل الترسبات الكلسية والصدأ وبقايا الإسمنت في دورات المياه وبعد الإنشاء، لكنها تحفر الرخام وتهاجم المعادن. والمنظفات القلوية ومزيلات الدهون (هيدروكسيد الصوديوم، السيليكات، المواد الفعالة سطحياً) تزيل الشحوم والزيوت في المطابخ والورش والأرضيات. والمنظفات المتعادلة (أس هيدروجيني نحو 7) للعناية اليومية بالأرضيات والأسطح وللحجر والأرضيات المصقولة. ومزيلات الدهون المذيبة تذيب الزيوت الثقيلة. والمطهرات والمعقمات (الأمونيوم الرباعي، الكلور/الهيبوكلوريت، بيروكسيد الهيدروجين، الكحول) تُختار حسب الكائنات التي تقضي عليها وزمن التلامس وهل يلامس السطح الطعام. وهناك أصناف متخصصة: ملمعات ومزيلات الأرضيات، وشامبو السجاد وكيماويات الاستخلاص، ومنظف الزجاج، وملمع الستانلس، ومنظفات وملمعات غسالات الصحون، وكيماويات الغسيل، ومعالجات المجاري. وتأتي جاهزة للاستعمال أو مركزة تُخفف بأنظمة جرعات تخفض تكلفة اللتر عند الاستخدام. ويلزم لكل منتج صحيفة بيانات سلامة بفئة الخطورة، ويحتاج العمال معدات الوقاية المناسبة للأحماض والقلويات. ومستلزمات النظافة المرافقة تشمل المماسح والعربات والألياف الدقيقة والحاويات والموزعات والأكياس.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Cleaning_agent"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: chemical cleaning agents classed as acidic, alkaline and neutral, with solvent-based degreasers -> confirmed."
+    },
+    {
+      "id": "cleaning_chemicals:lead-times-and-quoting",
+      "topic": "Cleaning chemicals & janitorial supplies - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "كيماويات التنظيف ومستلزمات النظافة: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Ready-to-use and common concentrates are usually ex-stock within 1-3 days; private-label or custom formulations take 2-6 weeks; dosing equipment installation 1-2 weeks. A supplier needs the areas and surfaces (kitchen, washrooms, stone floors, carpets), the soil type, whether disinfection is required and against what, the monthly consumption or headcount and area, any approved-product list from the client, and the dosing preference. A complete quote states per product the name, active ingredients or type, concentration and dilution rate, pack size (1 L, 5 L, 20 L, drum), the cost-in-use per litre diluted, the SDS and product registration, dosing equipment terms (free on loan or charged), delivery and validity.",
+      "body_ar": "المنتجات الجاهزة والمركزات الشائعة متوفرة عادة خلال 1-3 أيام؛ والعلامة الخاصة أو التركيبات المخصصة 2-6 أسابيع؛ وتركيب أنظمة الجرعات 1-2 أسبوع. ويحتاج المورد المناطق والأسطح (المطبخ، دورات المياه، الأرضيات الحجرية، السجاد)، ونوع الاتساخ، وهل يلزم التطهير وضد ماذا، والاستهلاك الشهري أو عدد الأشخاص والمساحة، وأي قائمة منتجات معتمدة لدى العميل، وتفضيل نظام الجرعات. ويذكر العرض الكامل لكل منتج الاسم والمادة الفعالة أو النوع، والتركيز ونسبة التخفيف، وحجم العبوة (1 لتر، 5 لترات، 20 لتراً، برميل)، وتكلفة اللتر المخفف عند الاستخدام، وصحيفة بيانات السلامة وتسجيل المنتج، وشروط أجهزة الجرعات (إعارة مجانية أو بمقابل)، والتسليم، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -69,6 +99,14 @@
       ],
       "why": "The checklist requires Dubai Municipality product registration for each cleaning-chemical line, the closest trade answer; a dedicated entry on DM registration of disinfectants is missing.",
       "origin": "real buyer question, moved from cleaning_chemicals.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Can we use the same descaler on our marble lobby floor that we use in the toilets?",
+      "q_ar": "نقدر نستخدم مزيل الترسبات حق الحمامات على أرضية الرخام في اللوبي؟",
+      "expected_entry_ids": [
+        "cleaning_chemicals:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -84,6 +122,27 @@
       "cleaning_chemicals:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "cleaning_chemicals:product-distinctions"
+      ],
+      "stored_not_served": [
+        "cleaning_chemicals:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Cleaning_agent"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

@@ -1,0 +1,11 @@
+{
+ "sent": "ZZ DEMO 0a717394 inbound email",
+ "response": {
+  "status": 200,
+  "text": "{\"ok\":true,\"matched_lead\":null,\"stored\":0,\"reviews\":[],\"applied\":[]}",
+  "secret": true
+ },
+ "stored_in": [
+  "inbound_messages:1"
+ ]
+}

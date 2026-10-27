@@ -29,11 +29,12 @@
 // a code we could not attribute to one account must not be issued.
 //
 //   node --test scripts/checks/
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 // A LOCAL RUN NEVER WRITES TO PRODUCTION BY DEFAULT (13 Oct 2026). The token file is read only with an explicit
 // QD_LIVE_CHECK=1; otherwise only SUPABASE_ACCESS_TOKEN (set by CI on purpose) makes these cases live.
 const mgmtToken = (process.env.SUPABASE_ACCESS_TOKEN

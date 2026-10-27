@@ -53,6 +53,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "jewellery_supplies:product-distinctions",
+      "topic": "Jewellery trade supplies: metal purity, stones and workshop equipment",
+      "topic_ar": "مستلزمات تجارة المجوهرات: نقاوة المعادن والأحجار ومعدات الورش",
+      "kind": "product_distinctions",
+      "body_en": "Gold purity is expressed in karats or millesimal fineness: 24K (999), 22K (916), 21K (875), 18K (750, 75% gold), 14K (585); alloys vary colour (yellow, white with palladium or rhodium plating, rose). Silver is sterling 925, and platinum is usually 950. Hallmarks stamped or laser-marked on the piece show fineness and often the assay office and maker. Trade supplies: precious metal findings (clasps, chains, jump rings, settings, ear backs), casting grain and wire and sheet, solders by karat, gemstones and diamonds (graded by the 4Cs with certificates from recognised laboratories such as GIA, IGI or HRD; lab-grown diamonds must be disclosed), pearls and coloured stones with treatment disclosure, and packaging and displays. Workshop equipment: casting machines, rolling mills, polishing motors, ultrasonic and steam cleaners, laser welders and engravers, CAD and 3D printers for wax models, testing (XRF analysers, acid tests, diamond testers), scales, and safes. Watch trade supplies include movements, batteries, straps and bracelets, crystals, tools and timing machines.",
+      "body_ar": "تُعبر نقاوة الذهب بالقيراط أو النقاوة بالألف: 24 قيراطاً (999)، و22 (916)، و21 (875)، و18 (750 أي 75% ذهب)، و14 (585)؛ وتغير السبائك اللون (أصفر، أبيض مع البلاديوم أو طلاء الروديوم، وردي). والفضة الإسترليني 925، والبلاتين عادة 950. والدمغات المختومة أو المحفورة بالليزر على القطعة تبين النقاوة وغالباً جهة الفحص والصانع. ومستلزمات التجارة: قطع التركيب من المعادن الثمينة (الأقفال، السلاسل، الحلقات، الحاضنات، ظهور الأقراط)، وحبيبات الصب والأسلاك والصفائح، واللحامات حسب القيراط، والأحجار الكريمة والألماس (يُصنف بالمعايير الأربعة مع شهادات من مختبرات معروفة مثل GIA أو IGI أو HRD؛ ويجب الإفصاح عن الألماس المصنع في المختبر)، واللؤلؤ والأحجار الملونة مع الإفصاح عن المعالجة، والتغليف ووسائل العرض. ومعدات الورش: آلات الصب، ومكابس اللف، ومحركات التلميع، ومنظفات الموجات فوق الصوتية والبخار، وأجهزة اللحام والحفر بالليزر، والتصميم بالحاسوب والطابعات ثلاثية الأبعاد لنماذج الشمع، وأجهزة الفحص (محللات الأشعة السينية الفلورية، اختبارات الحمض، كواشف الألماس)، والموازين، والخزائن. وتشمل مستلزمات تجارة الساعات الماكينات، والبطاريات، والأحزمة والأساور، والزجاج، والأدوات، وأجهزة ضبط التوقيت.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fineness"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: 18 karat = 75% gold; millesimal fineness such as 750; hallmarks showing fineness -> confirmed."
+    },
+    {
+      "id": "jewellery_supplies:lead-times-and-quoting",
+      "topic": "Jewellery & watch trade supplies - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "مستلزمات تجارة المجوهرات والساعات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock findings and tools: days; cast or custom components 1-3 weeks; certified stones by availability; equipment 2-8 weeks. A supplier needs the metal and karat, item codes or drawings, weights and quantities, stone specs and certificates, and the equipment model or capacity. A quote states purity and weight, making charge separate from metal value (metal priced to the market), certificates, hallmarking, equipment make and warranty, delivery and validity.",
+      "body_ar": "قطع التركيب والأدوات المتوفرة: أيام؛ والمكونات المصبوبة أو المخصصة 1-3 أسابيع؛ والأحجار المعتمدة حسب التوفر؛ والمعدات 2-8 أسابيع. ويحتاج المورد المعدن والقيراط، ورموز القطع أو الرسومات، والأوزان والكميات، ومواصفات الأحجار وشهاداتها، وموديل المعدات أو طاقتها. ويذكر العرض النقاوة والوزن، وأجرة الصياغة منفصلة عن قيمة المعدن (يُسعّر المعدن حسب السوق)، والشهادات، والدمغة، وماركة المعدات وضمانها، والتسليم، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -78,6 +108,14 @@
       ],
       "why": "No entry of this pack answered it (Only a buyer-must-state checklist and a generic authorities entry exist; neither gives the 916 hallmark fineness for 22K; missing: gold caratage/fineness hallmark entry). jewellery_supplies:gold-caratage-fineness-marks was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from jewellery_supplies.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "What does 750 stamped on a gold ring mean, and how is it different from 916?",
+      "q_ar": "وش معنى 750 المختومة على خاتم ذهب؟ ووش الفرق عن 916؟",
+      "expected_entry_ids": [
+        "jewellery_supplies:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -96,6 +134,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "jewellery_supplies:gold-caratage-fineness-marks"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "jewellery_supplies:product-distinctions"
+      ],
+      "stored_not_served": [
+        "jewellery_supplies:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Fineness"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

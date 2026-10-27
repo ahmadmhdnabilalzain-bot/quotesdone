@@ -9,11 +9,12 @@
 // The fixture includes a TOTAL row and a blank name on purpose. A spreadsheet's totals line is not
 // a product, and an extractor that inserts it puts rubbish in a store the supplier then has to
 // clean by hand.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 
 const ref = process.argv[2];
 if (!ref) { console.error('usage: prove_catalog_ingest.mjs <ref>'); process.exit(2); }
-const token = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 const H = { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' };
 const sql = async (q) => (await (await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
   method: 'POST', headers: H, body: JSON.stringify({ query: q }),

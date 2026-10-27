@@ -52,6 +52,7 @@
 //   node scripts/checks/canonical_routine_manifest.mjs --emit    check and write the CSV
 //
 // READ-ONLY against production. Every statement it sends is a SELECT.
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { readdirSync, readFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { dirname } from 'node:path';
@@ -312,7 +313,7 @@ for (const f of manifestPos.keys()) if (!diskScripts.has(f)) GAPS.push(`IN MANIF
 }
 
 // ---------------------------------------------------------------- production
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 

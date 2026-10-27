@@ -19,12 +19,13 @@
 // Portal walks use ONLY identities on @example.invalid (refused otherwise); a session for an existing
 // demo user is obtained by the Auth admin API setting a fresh password on THAT demo user, which sends
 // nothing. Builds on browser.mjs (signedInPage, shot, realErrors) rather than beside it.
+import { SANDBOX_OUT } from '../lib/sandbox_out.mjs';
 import { chromium, devices } from 'playwright';
 import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
 import { launch, signedInPage, realErrors, IGNORABLE_CONSOLE, measureInquiryBox } from './browser.mjs';
 
-export const OUT = process.env.QD_WALK_OUT || 'C:/Users/Opera/Desktop/QuotesDone Sandbox Test 2026-10/browser';
+export const OUT = process.env.QD_WALK_OUT || join(SANDBOX_OUT, 'browser');
 const SITE = process.env.QD_SITE || 'https://quotesdone.com';
 const SLOW_MS = 4000;
 export const VIEWS = {
