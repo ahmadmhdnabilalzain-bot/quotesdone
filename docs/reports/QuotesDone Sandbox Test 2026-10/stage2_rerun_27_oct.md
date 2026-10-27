@@ -1,7 +1,7 @@
 # Stage 2 rerun, 27 Oct 2026: the 33 failures of run 0a717394
 
 Seat: it_engineer. Founder ledger 1121 and 1261, with the registration part of 1230. AI on for every seat (ruling 1260).
-Branch `it_engineer/stage2-fixes-27-oct`, draft PR __PR__.
+Branch `it_engineer/stage2-fixes-27-oct`, draft PR https://github.com/ahmadmhdnabilalzain-bot/quotesdone/pull/1642.
 
 ## What was measured before any change
 
@@ -12,8 +12,10 @@ Branch `it_engineer/stage2-fixes-27-oct`, draft PR __PR__.
   production: 0 leads, 0 customers and 0 `ai_cost_log` rows for `0a717394`. Nothing of `0a717394` was touched
   in this step.
 - **The failure count.** There are 33 `FAIL` lines in `stage2_0a717394.log`. They are listed one by one below.
-- **Work already done elsewhere.** Six of the 33 were fixed on 19 Oct by PRs that are already merged. Five more are
-  in two open PRs. Both are listed and neither is duplicated here.
+- **Work already done elsewhere.** Nine of the 33 were fixed on 19 Oct by four PRs that are already merged:
+  #1572, #1573, #1575 and #1576. Four more failures cascade from those nine. The sales_engineer's #1483, merged on
+  27 Oct, addresses the three S21 trade misses. Five failures are covered by two open PRs, #1574 and #1571. None of
+  this work is duplicated here.
 
 ## Each failure: its class, its fix and the rerun result
 
@@ -68,7 +70,14 @@ any step measured here.
 3. `scripts/e2e/browser_walk.mjs` (S26 quotes step): the step waits 60 s and reports a slow list as SLOW.
    - Test: `scripts/e2e/browser_walk.test.mjs` (6 pass).
 
-No SQL changed. No MANIFEST line is needed.
+4. `scripts/lib/demo_factory.mjs` teardown: it now removes every `file_scan` row with a `supplier%` source for the
+   run's own leads.
+   - Test: `scripts/e2e/teardown_file_scan.test.mjs`.
+
+No SQL changed. No MANIFEST line is needed. Nothing was applied or deployed.
+
+**Validation:** `npm run gate -- --skip=npm-test` gave 5 FAIL. All five are on the known-main list: otp-race,
+deno-all, dwg, scan-redact and alarms-quiet. typecheck, manifest, model-matrix and scan-takeoff passed.
 
 ## Rerun
 
@@ -101,4 +110,22 @@ branch merged and deployed. Then run `node scripts/e2e/stage2.mjs --run --cap-us
 
 ## Cleanup and spend
 
-__CLEANUP__
+**Spend:** this step's runs recorded USD 0.0030 (AED 0.0111) in `ai_cost_log`. That is three `supplier_trade_choice`
+calls on run `0bef79e2`, measured before the rows were removed. The cap was USD 15. No stage-2 run took place, so no
+other spend was incurred.
+
+**Cleanup.** Every run this step opened is listed below. All four rehearsal windows are closed.
+
+| Run | What it was | Teardown | What `--verify-clean` found, and what was done about it | Final state |
+|---|---|---|---|---|
+| `390dafcc` | Registration walk on the live site. It was stopped by the bash timeout before its own teardown ran | `--cleanup-only` | 1 `file_scan` row: the licence scan, source `supplier_portal.license`, id 892. Removed by id. A teardown defect: it deleted only `supplier_catalog_ingest` scans. Fixed on this branch with `scripts/e2e/teardown_file_scan.test.mjs` | **`--verify-clean`: 742 tables, found [], storage [], auth users 0, clean true** |
+| `ef67f211` | First upload probe. Killed by its timeout | `--cleanup-only` (its verify was cut off) | 2 `agent_actions` (delivery handoffs) and 1 `doc_versions`. Removed by tag | **re-verified: 744 tables, found [], auth 0, clean true** |
+| `80b034ca` | Registration walk on the local build. Its browser died, and another session closed its window | Torn down by that session | 2 `agent_runs` (compliance_archive 409), 2 `os_audit_log` and 1 `rl_hits`. Removed by tag | **re-verified: 744 tables, found [], auth 0, clean true** |
+| `0bef79e2` | Upload-fix probe | `closeRun`: leftovers total 0 | 4 `agent_actions`, 3 `ai_cost_log` and 1 `doc_versions`. Removed by tag | **re-verified: 745 tables, found [], auth 0, clean true** |
+
+All of this residue matched the run's unique 8-hex tag and nothing else. A count by tag after the deletes found 0 rows
+in every one of those tables. Run `0a717394` was not touched: production held 0 leads, 0 customers and 0 cost rows for it.
+
+Other teardown gaps found, left for a follow-up: `agent_actions` delivery handoffs, `doc_versions`, `agent_runs`,
+`os_audit_log`, `rl_hits` and `ai_cost_log` rows of a fixture run all survive `closeRun`. The `0a717394` cleanup also
+left `ai_cost_log` rows.
