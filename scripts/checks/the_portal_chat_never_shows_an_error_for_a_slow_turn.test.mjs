@@ -80,7 +80,8 @@ test('the turn is one streamed call on the conversation route, inside its clock,
   assert.match(turn, /images, deadline,/, 'the deadline must reach the model ladder');
   // the streamed words are shown as written: the prompt must ask for plain text (27 Oct: replies read {"answer":"..."})
   assert.match(turn, /rules: portalRules\(\), plainText: true \}/, 'the portal prompt must ask for plain text, not aiReply\'s JSON');
-  assert.match(turn, /\.\.\.wrappedReply\(t\)\]/, 'a reply wrapped as JSON must be refused sentence by sentence');
+  assert.match(turn, /\.\.\.wrappedReply\(t\)[,\]]/, 'a reply wrapped as JSON must be refused sentence by sentence');
+  assert.match(turn, /\.\.\.plainLanguage\(t, lang\)\]/, 'the plain-language gate (1013 item 7) must hold every sentence');
   for (const gone of ['supportReply(', 'think(', 'quoteQuestion(']) assert.ok(!turn.includes(gone), 'a serial reasoning chain is back on the portal turn: ' + gone);
   assert.ok(!s.includes('quoteQuestion('), 'the own-quote decision chain is back');
   assert.match(s, /if \(b\.action !== 'assist'\) return plain\(inner\);/, 'only assist streams; every other action is answered as before');

@@ -46,7 +46,8 @@ import { briefNumbers, companyBrief, figureSource } from '../_shared/company_bri
 import { aiSystem, replyProblems } from '../_shared/ai_reply.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { STATUS, streamReply, wantsStream } from '../_shared/stream_reply.ts';
-import { PORTAL_TURN_MS, portalRules, portalFacts, wrappedReply } from './portal_turn.ts';
+import { PORTAL_TURN_MS, portalRules, portalFacts, wrappedReply, plainLanguage } from './portal_turn.ts';
+import { checkReadability } from '../_shared/readability.ts';
 import { tradeSlugsOf, matchEmirate } from '../_shared/match_criteria.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -447,7 +448,20 @@ const plain = observe('sales_engineer', async (req) => {
       const { data, error } = assisted;
       if (error) return J({ ok: false, error: 'retrieval_failed', detail: error.message }, 503);
       const r = data as Record<string, unknown>;
-      const all = (r.records || []) as Array<Record<string, unknown>>;
+      // NOTHING INTERNAL OR UNVERIFIED REACHES A CUSTOMER (#1567/#1569, the 7 Oct stating rule; independent review of #1640,
+      // 27 Oct 2026). fn_sales_assist reads sales_knowledge without the audience or eligibility filter fn_reason_retrieve
+      // applies: measured 27 Oct, 8 rows tagged audience:internal and 434 with runtime_index_eligible = false. Their text
+      // would ride in the facts AND make their figures "known" to the figure check. They are dropped here, before the
+      // call; a lookup that fails drops every sales_knowledge record rather than trusting one unread (fails closed).
+      const fetched = (r.records || []) as Array<Record<string, unknown>>;
+      const skIds = fetched.filter((x) => x.corpus === 'sales_knowledge').map((x) => String(x.record_id ?? ''));
+      let withheld = new Set<string>(skIds);
+      if (skIds.length) {
+        const { data: flags, error: fErr } = await admin.from('sales_knowledge').select('record_id, tags, runtime_index_eligible').in('record_id', skIds);
+        if (!fErr) withheld = new Set(((flags ?? []) as { record_id: string; tags: string[] | null; runtime_index_eligible: boolean | null }[])
+          .filter((f) => (f.tags ?? []).includes('audience:internal') || f.runtime_index_eligible === false).map((f) => String(f.record_id)));
+      }
+      const all = fetched.filter((x) => !(x.corpus === 'sales_knowledge' && withheld.has(String(x.record_id ?? ''))));
       const [own, convo, brief, key] = await Promise.all([pOwn, pConvo, pBrief, pKey]);
       lap('reads');
       const ownQuote = own?.facts ?? null;
@@ -469,7 +483,7 @@ const plain = observe('sales_engineer', async (req) => {
         // the same rules aiReply holds every conversation reply to (figures, policy, reply guard, another party's identity),
         // sentence by sentence; a deferral is a whole-answer judgement (aiReply), never one sentence's, so it is not run here
         check: (t: string) => [...guardSupportReply(t, lang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
-          ...replyProblems(t, known, { allowed }).filter((p) => !/defers/.test(p)), ...wrappedReply(t)],
+          ...replyProblems(t, known, { allowed }).filter((p) => !/defers/.test(p)), ...wrappedReply(t), ...plainLanguage(t, lang)],
       }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential' };
       lap('reply');
       const reply = a.reply.trim();
@@ -479,6 +493,12 @@ const plain = observe('sales_engineer', async (req) => {
           gap_task_id: (r.task_id as number | undefined) ?? null });  // the gap fn_sales_assist filed stays linked (review of #1043)
       } catch { /* the customer already has the answer; logging must not change the outcome */ }
       if (reply) {
+        // the plain-language score of the reply that went out, for the monthly self-review, as supportReply recorded it
+        try {
+          const rd = checkReadability(reply, lang);
+          await admin.rpc('fn_support_reply_readability_log', { p_channel: 'portal', p_lang: lang, p_path: 'reasoned', p_rewritten: a.rewrites > 0,
+            p_score: rd.score, p_tone: rd.tone, p_issues: rd.issues, p_reason: null, p_demo: /^ZZ DEMO/.test(message) });
+        } catch { /* the reply matters more than its score */ }
         await run('assist', 'ok', { answered: true, basis: 'reasoned', model: a.model, attempts: a.attempts, ms: T, precedent: recallTrace(memory) });
         return J({ ok: true, seat: 'sales_engineer', answered: true, reply, basis: 'composed by the model from the brief, the retrieved records and their own quotes', model: a.model });
       }

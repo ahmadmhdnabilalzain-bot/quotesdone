@@ -7,6 +7,7 @@
 // answer starts in a few seconds; PORTAL_TURN_MS bounds the WORST case (the model ladder: stream, rewrites, retry,
 // another family) so even a caller that does not stream gets its JSON well inside the wall.
 // prevented by: sales_engineer/portal_turn.test.ts, _shared/brief_answer.test.ts
+import { checkReadability, MAX_SENTENCE_WORDS } from '../_shared/readability.ts';
 
 /** Every model call of one portal turn starts and ends inside this, counted from the request's arrival. Under half the
  *  150 s edge wall, so a non-streaming caller also has its answer (or its notice) long before a 504 could happen. */
@@ -23,6 +24,23 @@ export function portalRules(): string {
 export function wrappedReply(text: string): string[] {
   return /^\s*(```|\{\s*"|\[\s*\{)/.test(text) || /"answer"\s*:/.test(text)
     ? ['it wraps the reply in JSON or a code fence; write only the plain reply text'] : [];
+}
+
+/** THE PLAIN-LANGUAGE GATE, SENTENCE BY SENTENCE (founder ledger 1013 item 7; independent review of #1640, 27 Oct 2026).
+ *  The old road ran readability.ts on every reply and had the model rewrite a failing one (8 of 14 turns measured); the
+ *  one-call road dropped it. Each sentence is held to the two rules a sentence can break on its own: at most
+ *  MAX_SENTENCE_WORDS words, and no jargon or internal identifier. A failing sentence is not shown; the model rewrites it
+ *  (brief_answer.ts). The whole-reply rules (average length, language share) are scored after and recorded. */
+export function plainLanguage(text: string, lang: 'en' | 'ar'): string[] {
+  const out: string[] = [];
+  for (const s of String(text || '').split(/(?<!\d)[.!?؟]+(?!\d)|\n+/)) {
+    if (!/[\p{L}\p{N}]/u.test(s)) continue;
+    for (const i of checkReadability(s, lang).issues) {
+      if (i.startsWith('long_sentence')) out.push(`a sentence is longer than ${MAX_SENTENCE_WORDS} words; split it`);
+      else if (i.startsWith('jargon')) out.push(`it uses ${i.replace('jargon:', 'jargon or an internal term: ')}; say it in plain words`);
+    }
+  }
+  return [...new Set(out)];
 }
 
 /** One retrieved record, as fn_sales_assist returns it. */

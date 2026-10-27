@@ -1,6 +1,6 @@
 // The portal chat turn's clock and facts (portal_turn.ts). Run: deno test supabase/functions/sales_engineer/portal_turn.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert';
-import { FACTS_CHARS, MAX_RECORDS, PORTAL_TURN_MS, RECORD_CHARS, portalFacts, portalRules, wrappedReply } from './portal_turn.ts';
+import { FACTS_CHARS, MAX_RECORDS, PORTAL_TURN_MS, RECORD_CHARS, plainLanguage, portalFacts, portalRules, wrappedReply } from './portal_turn.ts';
 import { aiSystem } from '../_shared/ai_reply.ts';
 import { MIN_CALL_MS, PER_CALL_MS, RESERVE_MS } from '../_shared/brief_answer.ts';
 
@@ -50,4 +50,22 @@ Deno.test('a reply wrapped as JSON or in a code fence is refused; a plain senten
   assertEquals(wrappedReply('```json'), refused);
   assertEquals(wrappedReply('Plywood holds screws better than MDF.'), []);
   assertEquals(wrappedReply('Sizes are {width} by {height} on the drawing.'), []);
+});
+
+// Independent review of #1640 (27 Oct 2026): the one-call road dropped the plain-language gate (readability.ts) and fed
+// fn_sales_assist's internal and unverified sales_knowledge rows to a customer prompt. Both fail on the PR's first head.
+Deno.test('plain language: a long sentence or an internal term is refused and rewritten; a plain reply passes', () => {
+  assertEquals(plainLanguage('Plywood holds screws better than MDF. It costs a little more.', 'en'), []);
+  const long = 'This ' + 'very '.repeat(30) + 'long sentence goes on.';
+  assert(plainLanguage(long, 'en').some((p) => /longer than 28 words/.test(p)));
+  assert(plainLanguage('Your request is in the workflow queue.', 'en').some((p) => /jargon/.test(p)));
+  assert(plainLanguage('The status is held by fn_intake_gate today.', 'en').some((p) => /internal term/.test(p)));
+});
+
+Deno.test('the portal turn applies the plain-language gate, records the score, and withholds internal or unverified records', async () => {
+  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  assert(src.includes('...wrappedReply(t), ...plainLanguage(t, lang)]'), 'the check no longer runs the plain-language gate');
+  assert(src.includes("admin.rpc('fn_support_reply_readability_log'"), 'the reply score is no longer recorded');
+  assert(src.includes("(f.tags ?? []).includes('audience:internal') || f.runtime_index_eligible === false"), 'internal / unverified rows are no longer withheld');
+  assert(src.includes('let withheld = new Set<string>(skIds);'), 'a failed lookup must withhold every sales_knowledge record (fail closed)');
 });
