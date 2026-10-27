@@ -23,7 +23,8 @@ begin
 
   -- the 15-minute replay never claims it
   if public.fn_reason_held_due(10) @> jsonb_build_array(jsonb_build_object('id', v_id)) then v_fail := v_fail || ' think-replay-claimed-it;'; end if;
-  update public.reasoning_held_question set attempts = 0, last_attempt_at = null where id = v_id;
+  -- fn_reason_held_due runs fn_reason_held_sweep, which expires a ZZ DEMO row as a fixture: put the probe's row back
+  update public.reasoning_held_question set attempts = 0, last_attempt_at = null, status = 'held', result = null where id = v_id;
 
   for n in 1..3 loop
     v := public.fn_reask_due(20);

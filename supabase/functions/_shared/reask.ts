@@ -13,7 +13,7 @@
 //     fn_reason_held_delivered and fn_reason_held_escalate in the schema mirror, 27 Oct 2026).
 //
 // WHAT THIS DOES. The same queue, reasoning_held_question (fn_reason_hold), holds the refused turn of three surfaces
-// (REASK_SURFACES). A pg_cron job checks every minute (fn_reask_kick) and, only when a row is due, calls sales_engineer
+// (REASK_SURFACES; the request chat's held-for-trade turn joined them at the coordinator's review). A pg_cron job checks every minute (fn_reask_kick) and, only when a row is due, calls sales_engineer
 // `reask_turns`, which runs reaskDue below:
 //   1. fn_reask_due claims the due rows (first at ~30 s, then each minute, REASK_MAX_ATTEMPTS in all; nothing under the
 //      founder's hold). resilience_ping's 15-minute replay no longer claims these surfaces (one asker per turn).
@@ -25,8 +25,9 @@
 //      kbChunkIsCustomerFacing and every corpus rule apply as of now), plus the reply guard, the JSON-wrapping refusal and
 //      the plain-language gate sentence by sentence; for a supplier, English only.
 //   4. It is delivered into the SAME conversation: the WhatsApp thread (free text in the 24-hour window, the approved
-//      template outside it), the supplier's quotation thread, or the portal chat — by filling the turn's own
-//      assistant_logs row (reply IS NULL), so the portal's history shows it right under the question.
+//      template outside it), the supplier's quotation thread, the portal chat — by filling the turn's own
+//      assistant_logs row (reply IS NULL), so the portal's history shows it right under the question — or the request
+//      chat (inquiry_intake, the held-for-trade turn), appended to its turns as the reply to that turn (reask_of).
 //   5. ONE REPLY PER TURN. Before anything is sent, fn_reask_record marks the row 'sending'; a row marked sending is never
 //      claimed again, so a crash between the send and the record can never send twice (it is handed to the seat instead).
 //      The portal write is conditional on reply IS NULL as well.
@@ -45,7 +46,7 @@ import { splitHeldQuestion } from './reasoned_delivery.ts';
 import { customerSafe, plainLanguage, portalFacts, portalRules, wrappedReply, type FlagLookup, type Record_ } from '../sales_engineer/portal_turn.ts';
 import { WA_RULES } from '../wa_inbound/model_says.ts';
 
-export const REASK_SURFACES = ['wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten', 'sales_engineer.portal_unwritten'] as const;
+export const REASK_SURFACES = ['wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten', 'sales_engineer.portal_unwritten', 'inquiry_intake.unwritten_reply'] as const;
 export type ReaskSurface = typeof REASK_SURFACES[number];
 /** Re-asks per turn before it is handed to its seat (fn_reask_record reads the same number). */
 export const REASK_MAX_ATTEMPTS = 3;
@@ -54,6 +55,8 @@ export const REASK_CLAIM = 5;
 /** One re-ask's model ladder ends inside this (the edge wall is 150 s; the tick runs its rows concurrently). */
 export const REASK_TURN_MS = 45_000;
 /** The supplier quotation thread's format (the live voice in supplier_api/index.ts uses the same). */
+/** The request chat's format (inquiry_intake/slots.ts intakeVoice uses the same). */
+export const INTAKE_RULES = 'One to three short sentences for the request chat. Never say the request is ready, complete or sent unless the facts above say so. Never repeat a question they already answered.';
 export const QR_RULES = 'Plain text for the portal chat, no markdown headings. Keep every job number, figure, numbered point and button name from the facts exactly; a short numbered list is right when the facts list points.';
 
 /** What the turn was, stored by its caller in request.reask when it filed the turn. */
@@ -80,6 +83,8 @@ export interface ReaskIO {
   whatsapp(phone: string, question: string, text: string): Promise<{ delivered: boolean; via: string; detail?: string }>;
   quoteReview(reviewId: string, text: string): Promise<Sent>;
   portal(logId: number, text: string): Promise<Sent>;
+  /** The request chat: appended to inquiry_intake.turns as the reply to that turn (reask_of), once. */
+  intake(intakeId: string, turnId: string, text: string): Promise<Sent>;
 }
 
 const ARABIC = /[؀-ۿ]/;
@@ -129,6 +134,9 @@ export async function reaskRequest(row: ReaskRow, lookup: FlagLookup, now = Date
     facts = portalFacts({ facts: t.own_facts ?? '', passages: safe });
     channel = t.channel ?? 'the signed-in customer portal';
     rules = portalRules();
+  } else if (row.surface === 'inquiry_intake.unwritten_reply') {
+    channel = t.channel ?? 'the website request chat';
+    rules = INTAKE_RULES;
   } else if (row.surface === 'supplier_api.quote_review_unwritten') {
     channel = t.channel ?? 'the supplier portal quotation chat';
     rules = QR_RULES;
@@ -136,8 +144,8 @@ export async function reaskRequest(row: ReaskRow, lookup: FlagLookup, now = Date
   return {
     seat: (row.seat === 'sales_engineer' ? 'sales_engineer' : 'customer_support') as Seat, channel, audience, lang,
     message: t.message || '(no text — they pressed a menu option or sent a file)',
+    // no plainText: aiReply reads its JSON {"answer"} (plainText is the streamed portal turn's form; aiReply would read '').
     facts: facts || undefined, rules, subject: row.subject ?? undefined, must: t.must,
-    ...(row.surface === 'sales_engineer.portal_unwritten' ? { plainText: true } : {}),
     priorProblems: priorProblems(row), otherFamilyFirst: true, effort: 'high',
     extraCheck: extraCheck(row.surface, audience, lang), deadline: now + REASK_TURN_MS,
   };
@@ -148,11 +156,13 @@ export async function deliverInto(row: ReaskRow, text: string, io: ReaskIO): Pro
   const s = row.subject ?? {};
   const where = row.surface === 'wa_inbound.unwritten_reply' ? String(s.phone ?? '')
     : row.surface === 'supplier_api.quote_review_unwritten' ? String(s.review_id ?? '')
-    : row.surface === 'sales_engineer.portal_unwritten' ? String(s.log_id ?? '') : '';
+    : row.surface === 'sales_engineer.portal_unwritten' ? String(s.log_id ?? '')
+    : row.surface === 'inquiry_intake.unwritten_reply' && s.turn_id ? String(s.intake_id ?? '') : '';
   if (!where) return { delivered: false, via: 'none', detail: 'no conversation on the row for ' + row.surface };
   if (!(await io.sending(row.id))) return { delivered: false, via: 'none', detail: 'already being sent by another run; never sent twice' };
   if (row.surface === 'wa_inbound.unwritten_reply') return { ...(await io.whatsapp(where, turnOf(row).message, text)) };
   if (row.surface === 'supplier_api.quote_review_unwritten') { const r = await io.quoteReview(where, text); return { delivered: r.ok, via: 'quote_thread', detail: r.err }; }
+  if (row.surface === 'inquiry_intake.unwritten_reply') { const r = await io.intake(where, String(s.turn_id), text); return { delivered: r.ok, via: 'request_chat', detail: r.err }; }
   const r = await io.portal(Number(where), text);
   return { delivered: r.ok, via: 'portal', detail: r.err };
 }
@@ -233,6 +243,23 @@ export function liveReaskIO(admin: Admin): ReaskIO {
         .eq('id', logId).is('reply', null).select('id');
       if (error) return { ok: false, err: error.message };
       return (data ?? []).length === 1 ? { ok: true } : { ok: false, err: 'the turn already has a reply' };
+    },
+    intake: async (intakeId, turnId, text) => {
+      // compare-and-set on updated_at: a turn the customer sends meanwhile is never overwritten; tried three times
+      for (let i = 0; i < 3; i++) {
+        const { data: row, error } = await admin.from('inquiry_intake').select('turns,updated_at').eq('id', intakeId).maybeSingle();
+        if (error || !row) return { ok: false, err: error?.message ?? 'the request is gone' };
+        const turns = Array.isArray(row.turns) ? row.turns : [];
+        if (turns.some((t: { role?: string; reask_of?: string }) => t?.role === 'assistant' && t.reask_of === turnId)) return { ok: true };
+        const next = [...turns, { role: 'assistant', text: text.slice(0, 4000), agent: 'sales_engineer', reask_of: turnId, at: new Date().toISOString() }];
+        const now = new Date().toISOString();
+        let q = admin.from('inquiry_intake').update({ turns: next, updated_at: now }).eq('id', intakeId);
+        q = row.updated_at == null ? q.is('updated_at', null) : q.eq('updated_at', row.updated_at);
+        const { data: done, error: e2 } = await q.select('id');
+        if (e2) return { ok: false, err: e2.message };
+        if ((done ?? []).length === 1) return { ok: true };
+      }
+      return { ok: false, err: 'the request kept changing; not written' };
     },
   };
 }

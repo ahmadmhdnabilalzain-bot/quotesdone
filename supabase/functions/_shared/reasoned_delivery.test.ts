@@ -16,6 +16,7 @@ function io(windowOpen: boolean) {
     socialHandoff: (s) => { log.push('social ' + s.platform + ' ' + s.message_id); return Promise.resolve({ ok: true }); },
     socialCommentHandoff: (s) => { log.push('comment ' + s.platform + ' ' + s.message_id); return Promise.resolve({ ok: true }); },
     writeReply: (q, lang, o) => { log.push('write ' + lang + ' ' + (o?.channel ?? '') + ' ' + q); return Promise.resolve('MODEL: ' + q); },
+    writeNotice: (q) => Promise.resolve({ reply: 'MODEL NOTICE for ' + q, outage: false }),
     socialReply: (s, meaning) => { log.push('reply ' + s.platform + ' ' + s.message_id + ' ' + meaning); return Promise.resolve({ ok: true }); },
     accountantSweep: (id) => { log.push('sweep ' + id); return Promise.resolve({ ok: true, found: true, verdict: 'booked' }); },
     receiptToBookkeeper: (id) => { log.push('bookkeeper ' + id); return Promise.resolve({ ok: true }); },
@@ -73,11 +74,13 @@ Deno.test('a public comment reasoned to need a person gets the private handoff; 
   assertEquals(log, ['comment youtube c1']);
 });
 
+// Founder ruling 1339 (27 Oct 2026): the notice is the MODEL's words; the fixed line only when OpenRouter is down
+// (the up/down/blind cases are pinned in _shared/reask.test.ts).
 Deno.test('escalated at 48 hours: a WhatsApp customer is told a person is handling it; a row with no customer channel sends nothing', async () => {
   const { x, log } = io(true);
   const d = await holdingNotice({ id: 9, surface: 'wa_inbound.needs_a_person', question: 'where is my quote?', subject: { phone: '+971500000001' } }, x);
   assertEquals([d.delivered, d.via], [true, 'whatsapp_text']);
-  assertMatch(log[0], /^text \+971500000001 Thank you for your patience\. Your question is now with our team/);
+  assertEquals(log[0], 'text +971500000001 MODEL NOTICE for where is my quote?');
   const none = await holdingNotice({ id: 10, surface: 'ceo.command_intent', question: 'stop the campaign', subject: { command_id: 1 } }, x);
   assertEquals([none.delivered, none.via], [false, 'none']);
   assertEquals(log.length, 1);

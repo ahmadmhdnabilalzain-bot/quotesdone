@@ -6,6 +6,8 @@
 -- THE GAP (independent review of #1640 at 4d5c6cfd0, which contains #1647; measured by reading the code and the schema
 -- mirror, 27 Oct 2026): a turn where the model is UP but every draft and the retry were refused gets no reply.
 --   * portal: sales_engineer `assist` answered 503 outage:false, nothing was filed and nothing asked the model again;
+--   * the request chat (inquiry_intake, #1646): on the held-for-trade path a refused intakeVoice (by 'none') pushed an
+--     EMPTY assistant message and filed nothing;
 --   * WhatsApp (wa_inbound.unwritten_reply) and the supplier thread (supplier_api.quote_review_unwritten) were filed, but
 --     the only re-ask was resilience_ping's replay: every 15 minutes, think() first, then the same writer the same way.
 --     When that writer refused again the delivery was via 'none', and fn_reason_held_delivered marks a via-'none' row
@@ -39,7 +41,8 @@ returns text[]
 language sql immutable
 set search_path to 'public', 'pg_temp'
 as $fn$
-  select array['wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten', 'sales_engineer.portal_unwritten']::text[];
+  select array['wa_inbound.unwritten_reply', 'supplier_api.quote_review_unwritten', 'sales_engineer.portal_unwritten',
+               'inquiry_intake.unwritten_reply']::text[];
 $fn$;
 revoke execute on function public.fn_reask_surfaces() from public, anon, authenticated;
 
