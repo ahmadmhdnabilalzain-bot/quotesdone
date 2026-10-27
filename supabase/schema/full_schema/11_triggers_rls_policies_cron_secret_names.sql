@@ -225,6 +225,7 @@ CREATE TRIGGER trg_emit_campaign_launched AFTER INSERT OR UPDATE ON public.meta_
 CREATE TRIGGER trg_model_policy_names_a_known_route BEFORE INSERT OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_model_policy_names_a_known_route();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_identity_policy_is_a_live_seat_and_a_known_model BEFORE INSERT OR UPDATE ON public.model_policy_by_identity FOR EACH ROW EXECUTE FUNCTION fn_identity_policy_is_a_live_seat_and_a_known_model();
+CREATE TRIGGER a01_notifications_no_test_mail_to_the_founder BEFORE INSERT OR UPDATE OF to_email, cc_emails, type, kind ON public.notifications FOR EACH ROW WHEN (((new.type = 'supplier_invite_seed'::text) OR (new.kind = ANY (ARRAY['invite_m365_seed'::text, 'supplier_invite_seed'::text])))) EXECUTE FUNCTION fn_notifications_no_test_mail_to_the_founder();
 CREATE TRIGGER a02_notifications_never_reach_a_sanctioned_party BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_never_reach_a_sanctioned_party();
 CREATE TRIGGER a03_notifications_whatsapp_goes_to_a_confirmed_number BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_whatsapp_goes_to_a_confirmed_number();
 CREATE TRIGGER a04_notifications_speak_the_recipients_language BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_speak_the_recipients_language();

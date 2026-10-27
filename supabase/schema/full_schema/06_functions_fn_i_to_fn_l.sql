@@ -685,70 +685,11 @@ CREATE OR REPLACE FUNCTION public.fn_invite_placement_due(p_now timestamp with t
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare
-  v_day date := (p_now at time zone 'Asia/Dubai')::date;
-  v_deadline timestamptz := public.fn_invite_placement_deadline(v_day);
-  v_cutoff timestamptz := public.fn_invite_placement_cutoff(v_day);
-  r public.invite_placement_check;
-  v_closed text; v_token text; v_subject text; v_body text; v_site text; v_from text;
-  v_g bigint; v_o bigint; v_sg text; v_so text;
 begin
-  select * into r from public.invite_placement_check where dubai_day = v_day;
-
-  if r.dubai_day is null then
-    -- Queued from 04:30 UTC; not later than 30 minutes before the cutoff, which leaves beats to read it.
-    if p_now < v_deadline - interval '90 minutes' or p_now >= v_cutoff - interval '30 minutes' then
-      return jsonb_build_object('action', 'idle', 'dubai_day', v_day, 'reason', 'outside the seed window');
-    end if;
-    v_closed := public.fn_invite_placement_day_closed(p_now);
-    if v_closed is not null then
-      return jsonb_build_object('action', 'idle', 'dubai_day', v_day, 'reason', v_closed);
-    end if;
-
-    select coalesce(max(value) filter (where key = 'invite_subject'), ''),
-           coalesce(max(value) filter (where key = 'invite_body'), ''),
-           coalesce(nullif(max(value) filter (where key = 'public_site_url'), ''), 'https://quotesdone.com')
-      into v_subject, v_body, v_site
-      from public.app_secrets where key in ('invite_subject', 'invite_body', 'public_site_url');
-    v_from := public.fn_invite_placement_sender();
-    -- The body exactly as scripts/invitation_inbox_check.mjs inviteBody() fills it: a ZZ DEMO company and a
-    -- zero portal token. The token goes in the subject, the one field both the Gmail and Graph APIs match
-    -- without a full-text index lag.
-    v_token := 'QD' || upper(substr(md5(gen_random_uuid()::text), 1, 10));
-    v_subject := v_subject || ' (ref ' || v_token || ')';
-    v_body := replace(replace(v_body, '{{company}}', 'ZZ DEMO Supplier'),
-                      '{{link}}', v_site || '/en/portal?t=00000000-0000-0000-0000-000000000000');
-
-    insert into public.invite_placement_check(dubai_day, token, from_address, subject, gmail_to, outlook_to, queued_at)
-    values (v_day, v_token, v_from, v_subject, 'ahmadmhdnabilalzain@gmail.com', 'management@quotesdone.com', p_now)
-    returning * into r;
-
-    insert into public.notifications (type, to_email, to_role, subject, body, lang, status, requested_by)
-    values ('supplier_invite_seed', r.gmail_to, 'supplier', v_subject, v_body, 'en', 'queued', 'it_engineer')
-    returning id into v_g;
-    insert into public.notifications (type, to_email, to_role, subject, body, lang, status, requested_by)
-    values ('supplier_invite_seed', r.outlook_to, 'supplier', v_subject, v_body, 'en', 'queued', 'it_engineer')
-    returning id into v_o;
-    update public.invite_placement_check set gmail_notification_id = v_g, outlook_notification_id = v_o
-     where dubai_day = v_day;
-    return jsonb_build_object('action', 'queued', 'dubai_day', v_day);
-  end if;
-
-  if r.verdict <> 'pending' then
-    return jsonb_build_object('action', 'idle', 'dubai_day', v_day, 'verdict', r.verdict);
-  end if;
-  if p_now >= v_cutoff then
-    return jsonb_build_object('action', 'settled', 'dubai_day', v_day, 'verdict', public.fn_invite_placement_settle(v_day, p_now));
-  end if;
-
-  select status into v_sg from public.notifications where id = r.gmail_notification_id;
-  select status into v_so from public.notifications where id = r.outlook_notification_id;
-  return jsonb_build_object('action', 'read', 'dubai_day', v_day, 'token', r.token, 'since', r.queued_at,
-    'sender', lower(coalesce(substring(r.from_address from '<([^<>[:space:]]+@[^<>[:space:]]+)>'), btrim(r.from_address))),
-    'gmail', jsonb_build_object('to', r.gmail_to, 'sent', v_sg = 'sent', 'folder', r.gmail_folder),
-    'outlook', jsonb_build_object('to', r.outlook_to, 'sent', v_so = 'sent', 'folder', r.outlook_folder));
-end
-$function$
+  -- Nothing is queued, read or settled: the seed went to his own inboxes (founder, 27 Oct 2026).
+  return jsonb_build_object('action', 'idle', 'dubai_day', (p_now at time zone 'Asia/Dubai')::date,
+    'reason', 'retired: no test mail to the founder''s own inboxes (27 Oct 2026); GlockApps decides');
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_invite_placement_finding(p_day date, p_verdict text, p_why text, p_evidence jsonb)
@@ -793,31 +734,21 @@ CREATE OR REPLACE FUNCTION public.fn_invite_placement_gate(p_day date DEFAULT NU
 AS $function$
 declare
   v_day date := coalesce(p_day, (p_now at time zone 'Asia/Dubai')::date);
-  r public.invite_placement_check; v text;
 begin
-  select * into r from public.invite_placement_check where dubai_day = v_day;
-  if r.dubai_day is null then
-    if p_now < public.fn_invite_placement_cutoff(v_day) then return 'wait'; end if;
-    if public.fn_invite_placement_day_closed(p_now) is null then
-      perform public.fn_invite_placement_finding(v_day, 'no_check',
-        'no inbox placement check ran on ' || v_day || ', an open sending day',
-        jsonb_build_object('checked_at', p_now, 'sender', public.fn_invite_placement_sender()));
-    end if;
-    return 'fail:no_check';
+  -- FAIL CLOSED, BY NAME. The morning seed that used to open this gate is retired, so it can never pass. The gate
+  -- that replaces it is the GlockApps verdict (ledger 1312: Outlook >= 80% inbox; #1649 files it). Resuming the
+  -- invitations means replacing this routine with a reader of that verdict, in the same change that sets
+  -- invite_enabled back to true. While the campaign is held (fn_invite_placement_day_closed answers) nothing is filed;
+  -- on an open day the existing relay files ONE finding per day and verdict (deliverability:inbox_placement).
+  if public.fn_invite_placement_day_closed(p_now) is null then
+    perform public.fn_invite_placement_finding(v_day, 'seed_retired',
+      'the placement gate still waits for the morning seed, retired on 27 Oct 2026 (no test mail to '
+      || 'the founder''s own inboxes); replace fn_invite_placement_gate with a reader of the GlockApps verdict (ledger 1312, #1649)',
+      jsonb_build_object('checked_at', p_now,
+                         'remedy', 'replace fn_invite_placement_gate with a reader of the GlockApps verdict (ledger 1312, #1649)'));
   end if;
-  v := r.verdict;
-  if v = 'pending' then
-    if p_now < public.fn_invite_placement_cutoff(v_day) then return 'wait'; end if;
-    v := public.fn_invite_placement_settle(v_day, p_now);
-  end if;
-  -- Ledger 1113 (5 Oct 2026, 'make sure no emails go to junk or spam') supersedes 1001: a spam seed holds the batch
-  -- (settle has already filed the it_engineer finding and the marketing handoff); Gmail Promotions ('elsewhere') passes.
-  if v = 'spam' then return 'fail:spam'; end if;
-  if v not in ('inbox', 'elsewhere') then return 'fail:' || v; end if;
-  if public.fn_invite_placement_sender() is distinct from r.from_address then return 'fail:from_changed'; end if;
-  return 'pass';
-end
-$function$
+  return 'fail:seed_retired';
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_invite_placement_record(p_day date, p_gmail jsonb, p_outlook jsonb, p_now timestamp with time zone DEFAULT now())
@@ -1167,6 +1098,27 @@ CREATE OR REPLACE FUNCTION public.fn_is_demo_phone(p_phone text)
 AS $function$
   select regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g') ~ '^(971|0)5000000[0-9]{2}$'
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_is_founder_own_inbox(p_addr text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_list text[]; v text;
+begin
+  if p_addr is null or btrim(p_addr) = '' then return false; end if;
+  select array_agg(public.fn_mailbox_fold(a)) into v_list
+    from (select unnest(array['management@quotesdone.com', 'ahmadmhdnabilalzain@gmail.com',
+                              'management@doratajewelries.com', 'djzaino@outlook.com', 'bookings@djzaino.com',
+                              'fati.labib@icloud.com']) a
+          union all
+          select btrim(x) from public.app_secrets s, regexp_split_to_table(coalesce(s.value, ''), ',') x
+           where s.key in ('founder_email', 'admin_emails') and btrim(x) like '%@%') l;
+  v := public.fn_mailbox_fold(p_addr);
+  return v = any(v_list);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_is_machine_sender(p_from text)
