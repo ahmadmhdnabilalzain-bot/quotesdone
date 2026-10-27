@@ -357,6 +357,20 @@ Deno.test('a held answer is read by code: an option, the customer\'s words, neve
   assertEquals(readHeldAnswer(HVAC, 'no_such_key', 'Package unit'), null);
 });
 
+// Independent review of #1641 (27 Oct 2026): the run that made the hold answered "As per the attached drawings." three
+// times; the fourth must not become system_type. Fails on the first version of readHeldAnswer, which stored it.
+Deno.test('a held answer that only defers, or says nothing, fills nothing (the spec stays held)', () => {
+  for (const [key, said] of [
+    ['system_type', 'As per the attached drawings.'], ['system_type', 'see drawing'], ['application_area', 'as per drawings'],
+    ['location', 'refer to the attached plan'], ['application_area', 'ok'], ['location', 'any'], ['system_type', 'standard'],
+    ['application_area', "I don't know"], ['location', 'no idea'], ['application_area', 'not sure yet'], ['application_area', '?'],
+    ['location', 'حسب المخطط'], ['application_area', 'لا أعرف'], ['location', 'مرفق'], ['system_type', 'tbd'],
+  ] as const) assertEquals(readHeldAnswer(HVAC, key, said), null, `${key} <- "${said}"`);
+  // a real answer still counts, including one that mentions the drawing among its facts
+  assertEquals(readHeldAnswer(HVAC, 'application_area', 'Offices, about 1,200 m2 as shown on the drawing'), 'Offices, about 1,200 m2 as shown on the drawing');
+  assertEquals(readHeldAnswer(HVAC, 'system_type', 'not sure'), 'Not sure - need site survey', 'a listed option is still the trade\'s own spec');
+});
+
 Deno.test('heldAsk is in checklist order and skips a field with no question text', () => {
   assertEquals(heldAsk(HVAC, ['location', 'new_or_replace'], 'en')?.key, 'new_or_replace');
   assertEquals(heldAsk(HVAC, ['location'], 'en'), { key: 'location', text: HVAC[4].question_plain_en!, options: null });

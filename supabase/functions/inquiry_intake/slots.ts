@@ -24,7 +24,7 @@
 // status differs from the status the model wrote its sentence for, the sentence is replaced by one
 // built from the state, so the customer is never told "ready" while the row says otherwise. No word of
 // the customer's text is matched here (ruling 890): only keys and values the model returned are read.
-import { orderFields, questionText, parseAnswer, type Lang, type SpecField } from './interview.ts';
+import { orderFields, questionText, parseAnswer, isUnknown, type Lang, type SpecField } from './interview.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
 import type { ThinkDeps } from '../_shared/think.ts';
 import { requirementQuestions, isValidAnswer, NO_PREFERENCE, type Answers, type Ans } from '../_shared/intake_requirements.ts';
@@ -101,6 +101,20 @@ export function heldAsk(checklist: SpecField[], exhausted: string[], lang: Lang)
   return { key: String(o.f.key), text: questionText(o.f, lang), options: opts.length ? opts : null };
 }
 
+// A DEFERRAL IS NOT A SPEC (independent review of #1641, 27 Oct 2026). The hold exists because the customer answered
+// "As per the attached drawings." three times (run 6dd2316c). parseAnswer, targeted, takes a short free-text reply as
+// the answer to a text field and to a tap question that names none of its options, so the fourth "as per the drawings"
+// was stored as system_type and the intake went ready with no spec. A reply that only points elsewhere, defers, or says
+// nothing fills nothing here: the spec stays held and the sales_engineer handoff settles it.
+const DEFERRAL = new RegExp([
+  String.raw`^(as|according to|refer to|see|check|per|same as|like)\b.*\b(drawing|drawings|plan|plans|attach\w*|file|files|boq|document|pdf|photo|picture|image|before|above|previous)\b`,
+  String.raw`^(attached|in the (drawing|attachment|file)s?|on the (drawing|plan)s?)\b`,
+  String.raw`^(ok|okay|k|yes|yeah|yep|no|nope|sure|fine|any|anything|whatever|either|both|all|none|na|n/?a|tbd|tbc|later|soon|asap|same|normal|standard|usual|default|good|best|cheap|cheapest|\?+|\.+|-+)[\s.!?]*$`,
+  String.raw`(حسب|كما في|راجع|انظر|شوف)\s*(ال)?(مخطط|مخططات|رسم|رسومات|مرفق|المرفق|الملف|الصور)`,
+  String.raw`^(مرفق|نعم|لا|اوكي|أوكي|تمام|ماشي|أي شي|اي شي|أي شيء|اي شيء|عادي|بعدين|لاحقا|لاحقاً)[\s.!؟]*$`,
+].join('|'), 'i');
+export const isDeferral = (text: string) => DEFERRAL.test(String(text || '').trim());
+
 /** The customer's answer to the spec a hold asked, read by code, or null when it did not answer it. */
 export function readHeldAnswer(checklist: SpecField[], askedKey: string | null | undefined, text: string): string | null {
   if (!askedKey || !String(text || '').trim()) return null;
@@ -109,7 +123,10 @@ export function readHeldAnswer(checklist: SpecField[], askedKey: string | null |
   const v = parseAnswer(f, text, true);
   if (!v) return null;
   const listed = Array.isArray(f.options) && f.options.includes(v);
-  return !listed && /^not sure$/i.test(v.trim()) ? null : v;
+  if (listed) return v;   // an option the trade itself defines (a bare yes/no only reaches here as a listed Yes/No option)
+  // not listed: a not-sure of any wording, or a reply that only defers, is no spec
+  if (/^not sure$/i.test(v.trim()) || isUnknown(text) || isDeferral(text)) return null;
+  return v;
 }
 
 /** How many earlier assistant turns each required key stayed open on (stampTurn's missing_keys). */

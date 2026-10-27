@@ -56,3 +56,12 @@ Deno.test('vision_count has a caller: cad_read_status runs it for a scan job and
   const portal = await Deno.readTextFile(new URL('../../../src/components/me/NewRequest.tsx', import.meta.url));
   assert(/s\.counted_boq/.test(portal), 'the portal adopts the counted take-off when the scan job is done');
 });
+
+// Independent review of #1641 (27 Oct 2026): cad_read_status kept only a successful vision count, so a failing one was
+// asked (and paid) again on every 15 s poll. Fails if a failure stops being recorded or the per-job cap is lost.
+Deno.test('cad_read_status asks the vision count at most 3 times per job and records a failure too', async () => {
+  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  assert(src.includes('if (!vj || (vj.ok !== true && tries < 3)) {'), 'the per-job cap on askings is gone');
+  assert(src.includes('attempts: tries + 1'), 'the attempt count is not recorded');
+  assert(!src.includes("if (vj.ok) await admin.from('cad_read_jobs').update"), 'only a success is recorded again');
+});

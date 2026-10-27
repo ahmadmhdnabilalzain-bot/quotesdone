@@ -899,14 +899,18 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       let counted: { boq: unknown; vision_count: unknown } | null = null;
       if (res && pages.length && vcIn && Array.isArray((job.boq_in as any)?.vision_lines)) {
         let vj = res.vision_count ?? null;
-        if (!vj) {
+        // AT MOST 3 ASKINGS PER JOB (independent review of #1641, 27 Oct 2026): only a success was kept, so a failing
+        // model call was paid again on every 15 s poll for as long as the customer's page stayed open. A failure is now
+        // kept too, with its count; after the third the code's counts stand for good.
+        const tries = Number((vj as any)?.attempts) || 0;
+        if (!vj || (vj.ok !== true && tries < 3)) {
           try {
             // 60 s: one vision call on one page (VISION_COUNT_MAX_TOKENS 600); past it the code's counts stand and the next poll retries.
             const vr = await timedFetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: await getSecret('cred_fn_customer_api'), mode: 'vision_count', redaction_job_id: String(res.redaction_job_id || ''), ...vcIn }) }, 60_000);
             vj = await vr.json().catch(() => null);
           } catch (_e) { vj = null; }
-          vj = vj && typeof vj === 'object' ? { ok: vj.ok === true, counts: vj.counts ?? null, source: vj.source ?? null, agrees: vj.agrees ?? null, vision: vj.vision ?? null, why: vj.why ?? null } : { ok: false, why: 'no_reply' };
-          if (vj.ok) await admin.from('cad_read_jobs').update({ result: { ...res, vision_count: vj } }).eq('id', id);
+          vj = vj && typeof vj === 'object' ? { ok: vj.ok === true, counts: vj.counts ?? null, source: vj.source ?? null, agrees: vj.agrees ?? null, vision: vj.vision ?? null, why: vj.why ?? null, attempts: tries + 1 } : { ok: false, why: 'no_reply', attempts: tries + 1 };
+          await admin.from('cad_read_jobs').update({ result: { ...res, vision_count: vj } }).eq('id', id);
         }
         counted = { boq: applyVisionCounts((job.boq_in as any).vision_lines, vj), vision_count: { source: vj?.source ?? null, why: vj?.why ?? null, agrees: vj?.agrees ?? null } };
       }
