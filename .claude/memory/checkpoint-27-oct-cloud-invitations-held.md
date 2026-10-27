@@ -39,8 +39,9 @@ were bought (ledger 1120). Count what is left in the dashboard rather than assum
 That gap is why GlockApps decides.
 
 **Warm-up (1313).** The plan is in the report above: week 1 is two-way conversation only, week 2
-is 10–15 invitations a day, week 3 is 20→40, then the 50 ceiling. Day 1 is the internal test email,
-which waits on his yes: see [[ask-before-the-internal-test-email]].
+is 10–15 invitations a day, week 3 is 20→40, then the 50 ceiling. Day 1 is the internal test email.
+He said yes on 27 Oct, but it is not sent yet: there is no path that sends as management@. See
+[[ask-before-the-internal-test-email]].
 
 **16 open PRs on 27 Oct:**
 - Waiting on fixes: #1182, #1193, #1369, #1370, #1574.
