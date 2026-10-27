@@ -117,6 +117,10 @@ test('support_reply.ts flags a tagged turn\'s readability score as demo', () => 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 test('REPLAY: tagged turns file nothing, and teardown\'s own statements leave 0 of a run and every control', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const { sql } = await import('../lib/db.mjs');
+  // The replay carries scripts/sql text (SQL, before merge), so it is sent through safe_replay, which refuses a
+  // statement that could commit and proves by fingerprint that nothing it creates survived the rollback
+  // (every_sql_replay_goes_through_safe_replay). sql() is kept for the read above, which sends no file text.
+  const { replaySql } = await import('../lib/safe_replay.mjs');
   const { chatTurnSql, countedDelete, CHAT_TURN_TABLES } = await import('../lib/demo_factory.mjs');
   const live = (await sql(`select count(*)::int n from information_schema.columns where table_schema = 'public'
       and column_name = 'e2e_run_tag' and table_name in ('assistant_logs', 'sales_decision_log', 'support_reply_readability')`))[0].n;
@@ -170,7 +174,7 @@ ${run}
     'shared_task_kept', exists (select 1 from public.org_tasks where id = v_shared));
 end $replay$;`;
   let out = null;
-  try { await sql(prefix + block); } catch (e) {
+  try { await replaySql(prefix + block, { label: 'the chat-turn teardown replay', retry: false }); } catch (e) {
     let msg = String(e?.message || e);
     const brace = msg.indexOf('{');
     if (brace >= 0) { try { msg = JSON.parse(msg.slice(brace))?.message ?? msg; } catch { /* not an HTTP body */ } }
