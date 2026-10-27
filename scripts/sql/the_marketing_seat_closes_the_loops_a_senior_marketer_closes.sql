@@ -230,6 +230,11 @@ begin
     -- which stage lost them, filed to the CEO when a channel has N invited and 0 registered (#1012)
     'diagnosis', public.fn_marketing_funnel_diagnosis(false, true));
 end $function$;
+-- Per-signature revoke on the routine this file replaces (release operator, #1551): CREATE OR REPLACE keeps the ACL;
+-- this makes the closed state explicit whatever it was. Kept beside its definition: the healthy-day replay check
+-- reads a pending routine up to the next definition, so a revoke left at the end of the file read as a call.
+revoke execute on function public.fn_marketing_recruitment_funnel() from public, anon, authenticated;
+grant execute on function public.fn_marketing_recruitment_funnel() to service_role;
 
 -- ── C07 (extends the existing routine: the link may also come from the Google place id) ───────────────────────────
 CREATE OR REPLACE FUNCTION public.fn_marketing_reputation()
@@ -298,6 +303,8 @@ begin
   return jsonb_build_object('asked', v_asked, 'waiting_for_link', v_link is null,
     'snapshot', (select to_jsonb(s) from public.company_reputation_snapshot s where day = (now() at time zone 'Asia/Dubai')::date));
 end $function$;
+revoke execute on function public.fn_marketing_reputation() from public, anon, authenticated;
+grant execute on function public.fn_marketing_reputation() to service_role;
 
 -- ── C10 ───────────────────────────────────────────────────────────────────────────────────────────────────────────
 create or replace function public.fn_marketing_social_publish()
@@ -648,13 +655,6 @@ insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file
    'C15: paid spend reported -- none while paid is off (spend without a budget is a finding); when a budget is approved, pacing and every spend day with the accountant.',
    'scripts/sql/the_marketing_seat_closes_the_loops_a_senior_marketer_closes.sql')
 on conflict (duty) do update set every = excluded.every, routine = excluded.routine, what = excluded.what, owner_file = excluded.owner_file;
-
--- Per-signature revokes on the routines this file replaces (release operator, #1551). CREATE OR REPLACE keeps the ACL;
--- these make the closed state explicit whatever the ACL was.
-revoke execute on function public.fn_marketing_recruitment_funnel() from public, anon, authenticated;
-grant execute on function public.fn_marketing_recruitment_funnel() to service_role;
-revoke execute on function public.fn_marketing_reputation() from public, anon, authenticated;
-grant execute on function public.fn_marketing_reputation() to service_role;
 
 -- The three tables this file creates go to the daily export (release operator, #1551). PENDING: applied at merge only.
 insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
