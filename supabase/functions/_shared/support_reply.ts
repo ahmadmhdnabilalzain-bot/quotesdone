@@ -64,7 +64,9 @@ export const PORTAL_INTAKE = 'WHEN THEY DESCRIBE A JOB THEY WANT PRICED, take th
   + '(4) When the essentials are known, give a short summary of the job as they told it, with every change they made, and ask them to confirm it; once confirmed, tell them to press "New request" (Arabic portal: "طلب جديد") to send it to verified suppliers. '
   + 'Never a robotic yes or no, never "I don\'t know" or "I will check": answer what can be said now. '
   // baseline 1b6b12b6: both glass turns ended on the same fee paragraph nobody asked for
-  + 'Do not repeat the fee or how QuotesDone works unless they ask. Write short sentences of at most about 20 words.';
+  // after-fix run ab519dba: asked "unsure", the seat argued for the sliding doors the customer had just changed away from
+  + 'A choice they made stays made: never reopen it or argue for an option they changed away from. When they say they are unsure, recommend an answer to the question you last asked, then move on. '
+  + 'Do not add the fee, "posting is free" or how long quotes take unless they ask. Write short sentences of at most about 20 words.';
 
 // THE TRADE PLAYBOOKS REACH THE PORTAL'S TEXT TURNS (27 Oct 2026). knowledge/brief/conversation/*.md (what a senior
 // estimator asks per trade, in order, with the misconceptions to correct) and conversation_style.md are compiled into
