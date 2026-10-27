@@ -267,6 +267,17 @@ async function seatDutiesTick(): Promise<unknown> {
 // engineer and customer support never replies without llm unless the server of open router is down"). The complaint
 // update and the incident holding/resolved notices are recorded as owed by their SQL duties; this writes them with the
 // model and sends the recorded draft only on an OpenRouter outage (_shared/duty_voice.ts). Three voice groups a run.
+// THE HELD REPLAY, IN ITS OWN DETACHED RUN (it_engineer, 27 Oct 2026; review of #1688). Kicked by itlater's
+// reasoning_held step. The run is raced at DETACHED_MS, so replayHeld is handed that deadline and keeps
+// REPLAY_RESERVE_MS of it for the settle: a run that starts late claims nothing and the rows wait for the next tick.
+// At most REPLAY_CLAIM rows are in think() at once and no model call outlives the budget (_shared/think.ts).
+// prevented by: _shared/think_replay_concurrency.test.ts, resilience_ping/held_replay_runs_detached.test.ts
+async function heldReplayTick(): Promise<unknown> {
+  const deadline = Date.now() + DETACHED_MS;
+  return await replayHeld(admin, REPLAY_CLAIM, heartbeatDeps(admin), (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin)),
+    { maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS, deadline });
+}
+
 async function supportVoiceTick(): Promise<unknown> {
   const { writeOwedDutyMessages, liveVoiceIO } = await import('../_shared/duty_voice.ts');
   // heartbeatDeps: any embedding this step ever asks for runs in embed_ml, never in this worker (2 s CPU cap, #1678)
@@ -1331,8 +1342,11 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // (founder_instruction 886-903; _shared/think.ts replayHeld). Under the hold fn_reason_held_due
   // returns nothing and no model is asked, so this step costs one gate read. Since 7 Oct (ledger 1175) a tick claims REPLAY_CLAIM
   // at a time, concurrently, up to REPLAY_MAX_ROWS within REPLAY_BUDGET_MS, a slice that fits every tick (12 Oct).
-  await step('reasoning_held', async () => replayHeld(admin, REPLAY_CLAIM, heartbeatDeps(admin), (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin)),
-    { maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS }));
+  // 27 Oct 2026 (review of #1688): the replay no longer runs here. It is KICKED into its own detached invocation
+  // (heldReplayTick, its own DETACHED_MS), so its model calls can never eat the time of the steps after it
+  // (reasoning_escalate's owed holding notices, routine_judgements, wa_arrival_sweep, ceo_support_replies). Measured:
+  // duty:detached_itlater:itlater "passed its 120000 ms limit", seen 51 times 16:17-20:32Z with a 25 s replay budget.
+  await step('reasoning_held', async () => kickDetached('heldReplay'));
   // The four routine judgements (quote spec match, repeat requests, supplier trade words, unknown-sender mail) queued by
   // their callers and not judged inline: five a tick, no per-day limit; three failed readings end a row. Held rows stay queued
   // (scripts/sql/the_retired_model_leaves_every_live_routine_and_the_judgement_queue_says_what_it_does.sql).
@@ -1704,6 +1718,7 @@ const DETACHED: Record<string, { run: () => Promise<unknown>; nested?: boolean }
   marketing: { run: marketingTick },
   supportVoice: { run: supportVoiceTick },
   itlater: { run: itLaterDutiesTick, nested: true },
+  heldReplay: { run: heldReplayTick },
 };
 async function kickDetached(name: string): Promise<unknown> {
   try {

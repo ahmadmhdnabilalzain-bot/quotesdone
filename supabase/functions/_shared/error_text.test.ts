@@ -16,3 +16,16 @@ Deno.test('a credential in the text is replaced, and the text is cut', () => {
   assertStringIncludes(t, 'refused');
   assertEquals(errorText('word '.repeat(100), 50).length, 50);
 });
+
+// review of #1688: three shapes the first version let through
+Deno.test('a query-string token, a JSON client secret and a short sb_secret_ key are replaced', () => {
+  const q = errorText(new Error('GET https://login.example.invalid/cb?access_token=zzDemoTok123&state=ok failed'), 400);
+  assert(!q.includes('zzDemoTok123'), q);
+  assertStringIncludes(q, 'state=ok');
+  const j = errorText('bad request {"client_id":"zz-demo","client_secret":"zzDemoShh"}', 400);
+  assert(!j.includes('zzDemoShh'), j);
+  assertStringIncludes(j, 'zz-demo');
+  const k = errorText('refused key sb_secret_zzDemo1 for this call', 400);
+  assert(!k.includes('zzDemo1'), k);
+  assertStringIncludes(k, 'refused');
+});

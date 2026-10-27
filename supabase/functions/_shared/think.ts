@@ -955,14 +955,18 @@ export const REPLAY_MAX_ROWS = 20;
 export const REPLAY_BUDGET_MS = 90_000;
 export const REPLAY_ROW_MS = 90_000;
 export const REPLAY_CLAIM = 2;
+// The time a caller's own clock keeps after the replay (fn_it_duty_settle, the delivery record): with a `deadline`
+// the budget is what is left of it less this reserve, so a replay that starts late claims less, or nothing, and waits
+// for the next tick rather than running past its caller (review of #1688: the detached run is raced at 120 s).
+export const REPLAY_RESERVE_MS = 25_000;
 export const REPLAY_STALE_MS = 24 * 3600_000;
 export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deliver?: (row: HeldRow, r: ThinkResult) => Promise<unknown>,
-  opts: { maxRows?: number; budgetMs?: number; rowMs?: number; staleMs?: number; now?: () => number } = {}): Promise<unknown> {
+  opts: { maxRows?: number; budgetMs?: number; rowMs?: number; staleMs?: number; now?: () => number; deadline?: number } = {}): Promise<unknown> {
   const now = opts.now ?? Date.now;
   const t0 = now();
   const maxRows = opts.maxRows ?? limit;            // a caller that does not opt in keeps the old one-claim behaviour
-  const budget = opts.budgetMs ?? REPLAY_BUDGET_MS;
-  const rowMs = Math.min(opts.rowMs ?? REPLAY_ROW_MS, budget);
+  const budget = Math.max(0, Math.min(opts.budgetMs ?? REPLAY_BUDGET_MS, opts.deadline === undefined ? Infinity : opts.deadline - t0 - REPLAY_RESERVE_MS));
+  const rowMs = opts.rowMs ?? REPLAY_ROW_MS;
   const claimSize = Math.max(1, Math.min(limit, REPLAY_CLAIM));   // the rows reasoned together, never more than REPLAY_CLAIM
   // Every model call of every row ends by the budget: a call with under MIN_STEP_MS left is not started and the row
   // stays held (turn_deadline), so the step never returns over a call still in flight.
@@ -1002,8 +1006,10 @@ export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deli
     return { id: row.id, status: r.status, effect: (res as { status?: string } | null)?.status ?? null, fanned: fanned.length, delivery, error: e?.message };
   };
   let error: string | undefined;
-  // A claim counts a try on every row it returns, so after the first claim another starts only while a whole row's
-  // time still fits in the budget.
+  // A claim counts a try on every row it returns, so a claim starts only while a whole row's time still fits in the
+  // budget: the first against the whole budget (the sweep and gate read before it are not a row's time), each later
+  // one against what is left. A budget under one row claims nothing and the rows wait for the next tick.
+  if (budget < rowMs) return { replayed: 0, deferred: `budget ${budget} ms is under one row (${rowMs} ms)`, swept };
   while (out.length < maxRows) {
     const spent = now() - t0;
     if (spent >= budget || (out.length > 0 && budget - spent < rowMs)) break;

@@ -8,7 +8,11 @@ export function errorText(e: unknown, max = 160): string {
   const raw = e instanceof Error ? (e.name && e.name !== 'Error' ? e.name + ': ' : '') + e.message : String(e ?? '');
   return raw
     .replace(/\b(bearer|basic)\s+[^\s,;]+/gi, '$1 [redacted]')
-    .replace(/\b(secret|token|key|apikey|api_key|password|authorization)(["']?\s*[:=]\s*["']?)[^\s"',;&]+/gi, '$1$2[redacted]')
+    // any name that CONTAINS one of these words: access_token, client_secret, x-api-key (review of #1688: a \b before
+    // the word never matched after an underscore, so ?access_token= and "client_secret":"..." went through)
+    .replace(/([\w-]*(?:secret|token|key|password|passwd|authorization|signature|credential)[\w-]*)(["']?\s*[:=]\s*["']?)[^\s"',;&]+/gi, '$1$2[redacted]')
+    // a key whose prefix says what it is, however short: sb_secret_..., sb_publishable_..., sk-...
+    .replace(/\b(?:sb_(?:secret|publishable)_|sk-)[\w-]+/gi, '[redacted]')
     .replace(/[A-Za-z0-9_\-+=]{32,}/g, '[redacted]')     // a JWT's segments, an API key; a URL's '/' and '.' break the run
     .replace(/\s+/g, ' ').trim().slice(0, max);
 }

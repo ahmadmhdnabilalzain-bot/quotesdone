@@ -5,7 +5,7 @@
 // { maxRows: REPLAY_MAX_ROWS, budgetMs: REPLAY_BUDGET_MS }) - against a queue deeper than one claim, and count how many
 // rows are inside think() at once. No network, no env, no paid call.
 import { assert, assertEquals } from 'jsr:@std/assert';
-import { REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROWS, replayHeld, type LlmReply, type ThinkDeps } from './think.ts';
+import { REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROWS, REPLAY_RESERVE_MS, REPLAY_ROW_MS, replayHeld, type LlmReply, type ThinkDeps } from './think.ts';
 
 const J = (x: unknown) => JSON.stringify(x);
 const tick = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -58,7 +58,7 @@ Deno.test('a caller that asks for a wide claim is still held to two rows at a ti
 
 Deno.test('a claim that returns more rows than asked does not widen the burst, and drops none of them', async () => {
   const r = rig(10, { overClaim: true });
-  const out = await replayHeld(null, 2, r.deps, undefined, { maxRows: 2, budgetMs: 60_000 }) as { replayed: number };
+  const out = await replayHeld(null, 2, r.deps, undefined, { maxRows: 2, budgetMs: 60_000, rowMs: 0 }) as { replayed: number };
   assert(r.peak() <= 2, `saw ${r.peak()}`);
   assertEquals(out.replayed, r.rows.length, 'every claimed row is reasoned: a claim has already counted its try');
 });
@@ -80,4 +80,23 @@ Deno.test('no model call of the replay starts past the budget: the row stays hel
   const out = await replayHeld(null, 1, deps, undefined, { maxRows: 1, budgetMs: 90_000, now: () => t }) as { rows: { status: string }[] };
   assertEquals(calls, ['decompose'], 'the synthesis call would have started with 2 s left and was not made');
   assertEquals(out.rows[0].status, 'held');
+});
+
+// Review of #1688: the replay runs in its own detached invocation, raced at 120 s. It is handed that run's deadline,
+// and its budget is what is left less REPLAY_RESERVE_MS - so a late start claims nothing rather than overrunning.
+Deno.test('with a deadline, the budget is what is left of it less the reserve, and a late start claims nothing', async () => {
+  const late = rig(4); let t = 0;
+  // 120 s run, replay starting 30 s in: 90 - 25 = 65 s left, under one row (90 s) -> nothing claimed, nothing asked
+  t = 30_000;
+  const out = await replayHeld(null, 2, late.deps, undefined, { maxRows: 20, deadline: 120_000, now: () => t }) as { replayed: number; deferred?: string };
+  assertEquals(late.claims.length, 0, 'no row is claimed (a claim would spend one of its three tries)');
+  assertEquals(out.replayed, 0);
+  assert(out.deferred, 'it says why it waited');
+  // the same run starting at once: 120 - 25 = 95 s >= one row -> one claim, and no model call past t0 + 90 s
+  const early = rig(4); t = 0;
+  // the two rows take 40 s; then 95 - 40 = 55 s is under one row, so the second pair waits for the next tick
+  const deps: ThinkDeps = { ...early.deps, rpc: (fn, args) => { if (fn === 'fn_reason_held_resolve') t = 40_000; return early.deps.rpc(fn, args); } };
+  await replayHeld(null, 2, deps, undefined, { maxRows: 20, deadline: 120_000, now: () => t });
+  assertEquals(early.claims, [2]);
+  assert(120_000 - REPLAY_RESERVE_MS >= REPLAY_ROW_MS, 'a fresh detached run has room for one row');
 });
