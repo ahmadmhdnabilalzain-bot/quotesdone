@@ -1,0 +1,11 @@
+{
+ "id": 106568,
+ "type": "new_quote",
+ "channel": "email",
+ "status": "suppressed",
+ "to_email": "qd-0a717394-cust14@example.invalid",
+ "lang": "en",
+ "subject": "You have a new quote on QuotesDone",
+ "body": "A supplier submitted a quote for your request: Supply and install 20 aluminium windows, 10 aluminium doors and 5 curtain wall units for a Dubai villa, including removal and disposal of existing items.. Log in to view the full quotation and compare.",
+ "html": null
+}

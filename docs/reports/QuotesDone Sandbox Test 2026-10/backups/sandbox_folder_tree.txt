@@ -1,0 +1,31 @@
+/QuotesDone Backup/_sandbox/bkp1007a/  (Dropbox, listed 2026-10-07T01:42:49.844Z, 18 files)
+  + Customers/
+      + ZZ DEMO bkp1007a Customer (f3ab29c7)/
+          - Customer Details.pdf  [92053 B, 31726c78e8c0…]
+          + Inquiries/
+              + 2026-10-07 c9ccac3a - sent/
+                  + Correspondence/
+                      - 2026-10-07 0530 out email - ZZ DEMO bkp1007a - your quotations are ready #89502.pdf  [95068 B, 2003f73525a2…]
+                  - Drawing - bkp1007a ground floor.pdf  [764 B, 267b9dd4f934…]
+                  - Inquiry Summary.pdf  [91627 B, 0bc2c73d48c4…]
+                  + Payment/
+                      - 1791336494035_receipt-demo-bkp1007a-en-t2.pdf  [138327 B, 62c50c4785ee…]
+                  + Quotes/
+                      - 2026-10-07 Quote 9879ac7c - bkp1007a quotation.pdf  [766 B, d5821b500e31…]
+                      - Quote 9879ac7c (EN) - 1791336656154_QD-bkp1007a-Q1_quotation_en_v3.pdf  [746 B, 1e0ff4cf9680…]
+                  + Reports/
+                      - 1791336491065_QD-bkp1007a-CMP.pdf  [771 B, b5f6ad49e883…]
+          - Signed Terms & Conditions - 1791336484794_ZZ_DEMO_bkp1007a_Customer_TnC-Acceptance.pdf  [138914 B, efead2f41316…]
+  + Suppliers/
+      + Uncategorized/
+          + ZZ DEMO bkp1007a Supplier LLC (139527)/
+              - Catalogue - bkp1007a_catalogue.pdf  [761 B, d35ccd51e479…]
+              - Company Details.pdf  [93172 B, 1af2b052c07f…]
+              - Company profile - bkp1007a_company_profile.pdf  [828 B, 5b6c16328c04…]
+              + Correspondence/
+                  - 2026-10-07 0528 in email - ZZ DEMO bkp1007a - question on the RFQ #356.pdf  [95005 B, b435c6b9bd34…]
+              - ISO certificate - bkp1007a_iso.pdf  [772 B, cdc073088103…]
+              - Insurance - bkp1007a_insurance.pdf  [778 B, 937afcf71681…]
+              - Signed Terms & Conditions - 1791336478945_ZZ_DEMO_bkp1007a_Supplier_LLC_TnC-Acceptance.pdf  [140199 B, 3e8bafa2ccda…]
+              - Trade licence - bkp1007a_trade_licence.pdf  [1404 B, 0365750cfbbb…]
+              - VAT certificate - bkp1007a_vat.pdf  [772 B, 72bef9051fc7…]

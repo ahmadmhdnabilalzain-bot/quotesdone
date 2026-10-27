@@ -1,6 +1,6 @@
 ---
 name: quotesdone-build-until-done
-description: ALWAYS APPLY when the founder shares a build — a spec, a prompt, a knowledge pack, a ZIP, a requirements document. The session does not stop until every requirement in it is built, proved by execution, and CI is green, and the only thing said at the end is the one confirmation line. Work around every blocker rather than stopping at it.
+description: ALWAYS APPLY when the founder shares a build — a spec, a prompt, a knowledge pack, a ZIP, a requirements document. The session does not stop until every requirement in it is built, proved by execution, and the local gate (npm run gate) passes, and the only thing said at the end is the one confirmation line. Work around every blocker rather than stopping at it.
 ---
 
 # When he shares a build, you finish it
@@ -54,7 +54,11 @@ Before that line may be said, all of these hold:
 2. **Proved by execution, in the same session.** Not "the code looks right", not "it applied
    cleanly", not "the routine exists". Drive it and read the result — the aborted-transaction probe
    is the tool for proving a write without leaving one.
-3. **CI green.** Every check, on the pushed commit, read from GitHub — not from a local run alone.
+3. **CI green.** Since 26 Oct 2026 this means **the local gate passing**: `npm run gate` (PR #1597,
+   `scripts/ci/local_gate.mjs`) run on the pushed commit, exit 0, with the command and its result
+   recorded in the PR. GitHub Actions is off until the bugs are cleared (founder ruling, ledger 1279;
+   `.claude/memory/ci-runs-locally-ubicloud-stopped.md`), so a GitHub check status is not the
+   measure. When the founder turns Actions back on, it becomes the measure again alongside the gate.
 4. **Deployed.** In the repository AND in the one Supabase project, read back and matched.
 5. **No requirement quietly reclassified.** A thing you decided was out of scope is a thing you did
    not build. Say so instead.

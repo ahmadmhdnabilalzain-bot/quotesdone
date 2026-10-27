@@ -20,8 +20,11 @@ test('marketing writes no queue and no brake', () => {
   assert.doesNotMatch(mkt, /function\s+public\.fn_supplier_invite_candidates/i);
 });
 
-test('a variant is English and keeps its link, by constraint', () => {
-  assert.match(mkt, /invite_body like '%\{\{link\}\}%' and invite_body !~ '\[؀-ۿ\]'/);
+// 27 Oct 2026: the founder's invitation carries no link ("safer to not send links"); the constraint was turned round
+// in the_supplier_invitation_carries_no_link_and_a_reply_with_trades_reaches_the_sales_engineer.sql.
+test('a variant is English and carries no link, by constraint', () => {
+  const noLink = read('the_supplier_invitation_carries_no_link_and_a_reply_with_trades_reaches_the_sales_engineer');
+  assert.match(noLink, /check \(invite_body !~\* '\(https\?:\/\/\|www\\\.\|\\\{\\\{link\\\}\\\}\)' and invite_body !~ '\[؀-ۿ\]' and invite_subject !~ '\[؀-ۿ\]'\)/);
 });
 
 test('the queue has no Arabic path', () => {
