@@ -101,6 +101,13 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // (scripts/sql/the_whatsapp_menu_answers_like_a_senior_member_of_staff.sql, instruction 763)
   { type: 'support.case_open', from: 'customer_support', to: 'customer_support' },
   { type: 'support.human_requested', from: 'customer_support', to: 'customer_support' },
+  // a question support could not answer goes to the seat that owns the knowledge with a 7-day deadline; support
+  // closes it when the entry lands (scripts/sql/customer_support_closes_every_knowledge_request_by_a_deadline.sql, #1549 CS-C03)
+  { type: 'knowledge.request', from: 'customer_support', to: 'sales_engineer' },
+  { type: 'knowledge.request', from: 'customer_support', to: 'ceo' },
+  // a verified PDPL correction request: it_engineer corrects the record by the due date; support closes the request
+  // (scripts/sql/customer_support_registers_every_personal_data_request_and_keeps_its_clock.sql, #1549 CS-C11)
+  { type: 'data.correction', from: 'customer_support', to: 'it_engineer' },
   // a support cause recurring past the weekly threshold goes to the seat that owns it; customer_support measures
   // the weekly volume afterwards and closes it when it falls
   // (scripts/sql/customer_support_finds_the_root_cause_each_week_and_measures_the_fix.sql, instruction 1009)
