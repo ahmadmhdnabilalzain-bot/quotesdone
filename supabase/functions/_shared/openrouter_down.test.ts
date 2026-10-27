@@ -12,6 +12,14 @@ Deno.test('1339: provider failures are outages; an answer, a refusal or a 4xx is
     'no model produced an answer that passes the figure check', 'down', 'guard_refused']) {
     assertEquals(isOpenRouterDown(e), false, String(e));
   }
+  // A 4xx is an answer, whatever words the provider's error text carries (independent review of #1647): llm.ts appends
+  // the gateway's own outcome and error text after 'gateway_http_<status>', so a 400 that mentions a timeout, the
+  // upstream or a connection must not read as OpenRouter down.
+  for (const e of ['gateway_http_400:provider_error:upstream request timeout', 'gateway_http_429:rate_limited:connection pool exhausted',
+    'gateway_http_400:bad_request:network policy', 'HTTP 400 upstream overloaded', 'HTTP 422 deadline']) {
+    assertEquals(isOpenRouterDown(e), false, e);
+  }
+  assertEquals(isOpenRouterDown('upstream overloaded', 429), false, 'a 4xx status is never an outage');
   assertEquals(isOpenRouterDown('', 0), true, 'no HTTP response at all');
   assertEquals(isOpenRouterDown('', 502), true);
   assertEquals(isOpenRouterDown('', 200), false);
