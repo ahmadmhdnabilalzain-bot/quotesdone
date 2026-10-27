@@ -441,6 +441,7 @@ ALTER TABLE public.allocation_change ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ap_bills ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.app_blocked_domains ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.app_secrets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.arabic_compare_waiter ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.arabic_document_waiter ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.arabic_outbound_hold ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.arabic_translation ENABLE ROW LEVEL SECURITY;
@@ -590,6 +591,8 @@ ALTER TABLE public.decision_record ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.decision_review_request ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.decision_trace ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.delegation_rule ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.demand_forecast ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.demand_search ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.department_budget ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.department_objective ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.deploy_state ENABLE ROW LEVEL SECURITY;
@@ -903,6 +906,7 @@ ALTER TABLE public.pdpl_lead_erase_vault ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pdpl_operator_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pdpl_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phase1_rollback_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.phone_code ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.phone_verifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.po_lines ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.po_orders ENABLE ROW LEVEL SECURITY;
@@ -1146,6 +1150,7 @@ CREATE POLICY accountant_year_end_pack_service_role_only ON public.accountant_ye
 CREATE POLICY action_class_demand_service_role_only ON public.action_class_demand AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ad_spend_reported_service_role_only ON public.ad_spend_reported AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.ai_cost_log AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY arabic_compare_waiter_service_role_only ON public.arabic_compare_waiter AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY arabic_document_waiter_service_role_only ON public.arabic_document_waiter AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY arabic_outbound_hold_service_role_only ON public.arabic_outbound_hold AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY arabic_translation_service_role_only ON public.arabic_translation AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1205,6 +1210,8 @@ CREATE POLICY customer_support_duty_message_service_role_only ON public.customer
 CREATE POLICY customer_support_monthly_review_service_role_only ON public.customer_support_monthly_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.customers AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY decision_review_request_service_role_only ON public.decision_review_request AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY demand_forecast_service_role_only ON public.demand_forecast AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY demand_search_service_role_only ON public.demand_search AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY documents_customer_select ON public.documents AS PERMISSIVE FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM fn_customer_document_refs() r(ref_table, ref_id, source, supplier_id, supplier_name, revealed)
   WHERE ((r.ref_table = documents.ref_table) AND (r.ref_id = documents.ref_id)))));
@@ -1330,6 +1337,7 @@ CREATE POLICY otp_served_country_service_role_only ON public.otp_served_country 
 CREATE POLICY paid_route_exception_service_role_only ON public.paid_route_exception AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY pdpl_lead_erase_vault_service_only ON public.pdpl_lead_erase_vault AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY pdpl_operator_log_service_only ON public.pdpl_operator_log AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY phone_code_service_role_only ON public.phone_code AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY post_reveal_dispute_service_role_only ON public.post_reveal_dispute AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY price_benchmark_service_role_only ON public.price_benchmark AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY price_trade_term_service_role_only ON public.price_trade_term AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1501,6 +1509,7 @@ select cron.schedule('dropbox_backup_second_scheduler','41 */6 * * *',$CRON$sele
 select cron.schedule('kb_embed_daily','20 2 * * *',$CRON$set statement_timeout = '120s'; select public.fn_kb_embed_scheduled_run();$CRON$);
 select cron.schedule('seat_duty:ceo.revision_refile','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.revision_refile');$CRON$);
 select cron.schedule('seat_duty:it_engineer.latency_slo','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.latency_slo');$CRON$);
+select cron.schedule('seat_duty:sales_engineer.demand_forecast','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.demand_forecast');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow

@@ -3286,7 +3286,9 @@
   "fc644b0eb14a",
   "fe7e984490db",
   "fed9f6096feb",
-  "ff0cc7c9de41"
+  "ff0cc7c9de41",
+  "89c6b2f490e6",
+  "dc3ee77b163f"
  ],
  "src/components/me/quoteExpiry.ts": [
   "124fb2c05c50",
@@ -6187,7 +6189,8 @@
   "e13e073561a2",
   "f5175202b419",
   "fe9667777dfb",
-  "cc83c7932429"
+  "cc83c7932429",
+  "2afa9b47ecd8"
  ],
  "supabase/functions/customer_documents/index.ts": [
   "45f92e2a0325"
@@ -6928,5 +6931,17 @@
  "scripts/sql/the_reveal_invoice_handoff_is_a_registered_conversation_that_states_its_note.sql": [
   "0ad679a262b2",
   "6795f24f47d7"
+ ],
+ "scripts/sql/a_held_arabic_comparison_report_is_sent_to_the_customer_once_its_lines_exist.sql": [
+  "62f6ef32f259"
+ ],
+ "supabase/functions/customer_api/compare_arabic.ts": [
+  "1f59eb7d1f70",
+  "352101993da8",
+  "9b60908584eb",
+  "a0d0bbed08ae",
+  "a3d4eca833be",
+  "cfb5e8d946af",
+  "d0d0d99474e2"
  ]
 }
