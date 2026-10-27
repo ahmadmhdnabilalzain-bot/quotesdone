@@ -1,0 +1,78 @@
+{
+ "customer": "C9",
+ "email": "qd-fe7ba9c4-cust22@example.invalid",
+ "category": "waterproofing",
+ "final_status": "needs_info",
+ "final_readiness": 67,
+ "final_missing": [
+  "Any preference for the waterproofing system? Tap one, or type what you have in mind.",
+  "Do you need a warranty, and for how long at least?",
+  "By when do you need it done or delivered? Tap one, or type a date."
+ ],
+ "final_brief": {
+  "state": "interview",
+  "details": {},
+  "asked_key": null,
+  "boq_asked": false,
+  "cad_asked": false,
+  "req_asked": "material.system",
+  "req_answers": {
+   "installation": {
+    "v": "yes"
+   }
+  }
+ },
+ "turns": [
+  {
+   "turn": 1,
+   "harness_answer": "Waterproofing & Insulation for a villa in Abu Dhabi. Line 1: bituminous membrane x 20. Line 2: liquid waterproofing x 10. Line 3: pu coating x 5.",
+   "ai_reply": "Thanks — I have the villa location and the waterproofing items. A few details will help suppliers price the right quantities and include the work you need."
+  },
+  {
+   "turn": 2,
+   "harness_answer": "Sizes: line 1 is 1200 x 1500 mm; for lines 2 and 3 I am not sure, please advise the standard.",
+   "ai_reply": "Thanks, I’ve noted the items, quantities and the size for line 1. If you’re unsure of the total area, that’s fine—please say so and suppliers can advise based on an assumption."
+  },
+  {
+   "turn": 3,
+   "harness_answer": "Supply and install, within six weeks, ground and first floor.",
+   "ai_reply": "I’ve noted the villa in Abu Dhabi, the three waterproofing items, supply and installation, and your six-week timeframe. A few details will help suppliers price the work accurately."
+  },
+  {
+   "turn": 4,
+   "harness_answer": "Brand: Sika; grade: not sure, standard commercial.",
+   "ai_reply": "I’ve noted the Sika preference, supply and installation, and your six-week timeframe. A few details will help suppliers price the waterproofing accurately."
+  },
+  {
+   "turn": 5,
+   "harness_answer": "Details: area: standard specification, please assume typical values; issue: standard specification, please assume typical values; area_sqm: standard specification, please assume typical values; location: standard specification, please assume typical values.",
+   "ai_reply": "I’ve noted the materials, Sika preference, supply and installation, and your request for standard assumptions where sizes are unknown. To make sure suppliers price the right work, could you clarify two things?"
+  },
+  {
+   "turn": 6,
+   "harness_answer": "Details: area: standard specification, please assume typical values; issue: standard specification, please assume typical values.",
+   "ai_reply": "I’ve noted the waterproofing items and your request to use standard assumptions where details are unknown. You also mentioned insulation, but no insulation items are listed; where is insulation needed—roof, walls, or floors? If it isn’t part of this job, just let me know."
+  },
+  {
+   "turn": 7,
+   "harness_answer": "Details: insulation_application: standard specification, please assume typical values.",
+   "ai_reply": "Thanks, I’ve recorded the request for supplier pricing, including your preference for standard assumptions where details are unknown. Suppliers can review those assumptions when preparing their quote."
+  },
+  {
+   "turn": 8,
+   "harness_answer": "Details: Any preference for the waterproofing system? Tap one, or type what you have in mind.: standard specification, please assume typical values; Do you need a warranty, and for how long at least?: standard specification, please assume typical values; By when do you need it done or delivered? Tap one, or type a date.: standard specification, please assume typical values.",
+   "ai_reply": "I’ve noted the listed products, quantities, Sika preference, and your request for standard assumptions where details are unknown. Please clarify where the work is needed so suppliers can price the right areas."
+  },
+  {
+   "turn": 9,
+   "harness_answer": "Details: area: standard specification, please assume typical values; location: standard specification, please assume typical values.",
+   "ai_reply": "I’ve noted the Sika preference, listed materials, supply and installation, and six-week timeframe. To help suppliers price the work, could you clarify the waterproofing areas and approximate coverage, and share the villa’s neighbourhood in Abu Dhabi?"
+  },
+  {
+   "turn": 10,
+   "harness_answer": "Details: area: standard specification, please assume typical values; issue: standard specification, please assume typical values; area_sqm: standard specification, please assume typical values; location: standard specification, please assume typical values.",
+   "ai_reply": "Your request is ready to share with suppliers. I’ve marked the areas, coverage and existing-leak status as assumptions for suppliers to state clearly in their quotes."
+  }
+ ],
+ "note": "per-turn slots are not stored by inquiry_intake; only the final brief/missing survive"
+}

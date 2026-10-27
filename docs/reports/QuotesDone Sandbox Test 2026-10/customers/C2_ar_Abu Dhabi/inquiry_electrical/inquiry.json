@@ -1,0 +1,75 @@
+{
+ "fact_sheet": {
+  "element": "Electrical: db panels وcable trays وlv panels",
+  "lines": "البند 1: db panels عدد 20، مقاس 1200 × 1500 مم لكل وحدة؛ البند 2: cable trays عدد 10، مقاس 900 × 2100 مم لكل وحدة؛ البند 3: lv panels عدد 5، مقاس 3000 × 2400 مم لكل وحدة",
+  "purpose": "البند 1 لغرف النوم، البند 2 للمدخل الرئيسي والشرفات، البند 3 لواجهة غرفة المعيشة",
+  "location": "فيلا في Abu Dhabi، الطابق الأرضي والأول، وصول مباشر بالطريق، لا حاجة لرافعة",
+  "area": "حوالي 450 متر مربع مساحة مبنية، 6 غرف",
+  "scope": "توريد وتركيب، مع إزالة القطع القديمة والتخلص منها",
+  "new_or_replace": "استبدال قطع قائمة في فيلا مسكونة",
+  "timeline": "خلال شهر واحد",
+  "warranty": "ضمان سنتان على الأقل",
+  "supply_phase": "تغذية ثلاثية الطور 400 فولت",
+  "surface_prep": "جدران مدهونة سابقًا بحالة جيدة مع إصلاح شقوق بسيطة",
+  "stops": "4 وقفات (أرضي + 3)",
+  "capacity": "8 أشخاص، 630 كغ",
+  "design": "التصميم جاهز",
+  "material": "درجة تجارية قياسية من علامة معروفة",
+  "leak": "لا يوجد تسرب حالياً، العمل وقائي",
+  "finish": "لامينيت / ميلامين",
+  "system_type": "نظام مركزي بالمياه المبردة: وحدات فان كويل مخفية بمجارٍ مع وحدات مناولة هواء",
+  "fixtures": "4 حمامات ومطبخ واحد"
+ },
+ "intake": {
+  "intakeId": "d564d37a-b7ba-45fb-9e0c-d2d2f4d9f7dc",
+  "status": "ready",
+  "readiness": 80,
+  "missing": [],
+  "turns": 5,
+  "log": [
+   {
+    "turn": 1,
+    "answer": "Electrical: db panels وcable trays وlv panels. البند 1: db panels عدد 20، مقاس 1200 × 1500 مم لكل وحدة؛ البند 2: cable trays عدد 10، مقاس 900 × 2100 مم لكل وحدة؛ البند 3: lv panels عدد 5، مقاس 3000 × 2400 مم لكل وحدة. فيلا في Abu Dhabi، الطابق الأرضي والأول، وصول مباشر بالطريق، لا حاجة لرافعة.",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 2,
+    "answer": "scope: توريد وتركيب، مع إزالة القطع القديمة والتخلص منها. property_area: حوالي 450 متر مربع مساحة مبنية، 6 غرف. supply_phase: تغذية ثلاثية الطور 400 فولت.",
+    "asked_key": "material.cables_devices",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 3,
+    "answer": "ماركات فاخرة",
+    "asked_key": "warranty",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 4,
+    "answer": "yes_24",
+    "asked_key": "required_by",
+    "missing_keys": null,
+    "status": "needs_info"
+   },
+   {
+    "turn": 5,
+    "answer": "m1",
+    "asked_key": null,
+    "missing_keys": null,
+    "status": "ready"
+   }
+  ],
+  "sent": 200
+ },
+ "inquiry": {
+  "id": "08c7a14a-3835-45a7-bf76-4d6e3f05b023",
+  "status": "sent",
+  "trades": null,
+  "lang": "ar",
+  "emirate": "Abu Dhabi"
+ }
+}

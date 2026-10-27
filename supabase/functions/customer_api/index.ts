@@ -425,7 +425,7 @@ function yearsBand(v: unknown): string | null { if (v == null) return null; cons
 // not its size (a 562 KB drawing took 1.9 s of CPU against the 2 s cap). drawing_boq is a SEPARATE worker,
 // so its death reaches this function as a 546 answer, not a silent kill. On that answer, or when dwg.ts
 // says the drawing is past its edge ceiling, the stored original is queued in public.cad_read_jobs and the
-// CAD worker (scripts/cad_read_worker.ts on a GitHub runner, the same reader code, no CPU cap) reads it;
+// CAD worker (scripts/cad_read_worker.ts, the same reader code, no CPU cap; run by the sales_engineer, see cadReadHeld) reads it;
 // 'cad_read_status' hands the take-off to the customer's screen. Prevented from regressing by
 // scripts/checks/a_cad_upload_reaches_the_cad_reader.test.mjs.
 function cadQueueReason(status: number, jd: any): 'over_edge_ceiling' | 'edge_worker_died' | 'edge_reader_failed' | null {
@@ -439,45 +439,28 @@ async function queueCadRead(o: { customerId: string; email: string; path: string
   const { data, error } = await admin.from('cad_read_jobs').insert({ customer_id: o.customerId, owner_email: o.email, source_path: o.path,
     file_name: o.name, mime: o.mime, bytes: Math.floor(o.b64Len * 3 / 4), why: o.why, boq_in: o.boqIn ?? null }).select('id').maybeSingle();
   if (error || !data?.id) { console.warn(`[cad] could not queue ${o.path}: ${error?.message || 'no id'}`); return null; }
-  await dispatchCadWorker(String(data.id));
+  await cadReadHeld(String(data.id), o.why);
   return String(data.id);
 }
-// THE QUEUE STARTS ITS OWN WORKER. A new job dispatches .github/workflows/cad-read-worker.yml at once, and
-// while the customer's screen polls cad_read_status (every 15 s) a job still waiting - the dispatch was
-// lost - or whose runner went silent is dispatched again (at most once a minute per job). The workflow's
-// 6-hourly schedule is only the last resort for a job nobody is polling: a lost dispatch after the
-// customer closed the page, or a runner that died after the polling stopped.
-async function dispatchCadWorker(jobId: string): Promise<void> {
+// NO RUNNER STARTS ON ITS OWN (27 Oct 2026, it_engineer). This used to dispatch .github/workflows/cad-read-worker.yml
+// and re-dispatch it while the customer's screen polled. GitHub Actions is off, so every dispatch reached nothing and a
+// queued drawing waited for a runner that never came while the customer was told "a few minutes". The reader cannot run
+// on the edge (2 s CPU cap; a scanned drawing is OCR'd for up to 30 minutes) nor in pg_cron (no Deno, no LibreDWG), so a
+// queued job is HELD FOR THE SALES ENGINEER: one finding per hour (the worker reads every queued job in one run, and a
+// run of scans must not flood the queue), raised the moment a job is queued, naming the latest job and why. The sales_engineer reads it with scripts/cad_read_worker.ts (fn_cad_read_claim still takes it), and the
+// customer's screen says an engineer is reading it (cad_read_status answers held_for). Never silent: a finding that
+// cannot be written is logged as an error, and the job stays queued for the worker either way.
+async function cadReadHeld(jobId: string, why: string): Promise<void> {
   try {
-    const gh = await getSecret('github_token');
-    if (!gh) { console.warn(`[cad] no github_token; job ${jobId} waits for the worker's schedule`); return; }
-    const r = await fetch('https://api.github.com/repos/ahmadmhdnabilalzain-bot/quotesdone/actions/workflows/cad-read-worker.yml/dispatches', {
-      method: 'POST', headers: { Authorization: `Bearer ${gh}`, Accept: 'application/vnd.github+json', 'User-Agent': 'quotesdone-customer-api' },
-      body: JSON.stringify({ ref: 'main' }), signal: AbortSignal.timeout(5000) });
-    if (r.status !== 204) { console.warn(`[cad] worker dispatch answered ${r.status} for job ${jobId}`); await cadDispatchRefused(jobId, `HTTP ${r.status}`); }
-  } catch (_e) { console.warn(`[cad] worker dispatch failed for job ${jobId}`); await cadDispatchRefused(jobId, 'network'); }
-}
-// 18 Oct 2026 (run 39079803518): every dispatch since at least 15 Oct answered 403 - app_secrets.github_token
-// can read the repository but has no Actions: write - so no CAD job was ever started by its queue; the
-// 2.1 MB DWG sat 637 s queued, and a customer's DWG waits up to 6 h for the schedule. That was a
-// console.warn nobody reads. A refused dispatch is now the sales_engineer's finding, one per day.
-async function cadDispatchRefused(jobId: string, why: string): Promise<void> {
-  try {
-    await admin.rpc('fn_it_engineer_finding_upsert', {
-      p_issue_key: 'sales_engineer:cad_dispatch_refused:' + new Date().toISOString().slice(0, 10),
-      p_title: 'The CAD worker could not be dispatched; queued drawings wait for its 6-hourly schedule',
-      p_where: 'customer_api dispatchCadWorker -> cad-read-worker.yml', p_blast: 'customer_facing', p_affected: 1,
-      p_evidence: { job_id: jobId, answer: why, fix: 'github_token needs Actions: read and write on the quotesdone repository', at: new Date().toISOString() },
+    const { error } = await admin.rpc('fn_it_engineer_finding_upsert', {
+      p_issue_key: 'sales_engineer:cad_read_held:' + new Date().toISOString().slice(0, 13),
+      p_title: 'A customer CAD drawing is queued for the CAD reader and no runner starts on its own: read it with scripts/cad_read_worker.ts',
+      p_where: 'customer_api queueCadRead -> public.cad_read_jobs', p_blast: 'customer_facing', p_affected: 1,
+      p_evidence: { job_id: jobId, why, run: 'SUPABASE_ACCESS_TOKEN=... deno run --no-lock --node-modules-dir=auto --allow-net --allow-env --allow-read scripts/cad_read_worker.ts', at: new Date().toISOString() },
       p_raised_by: 'sales_engineer',
     });
-  } catch (_e) { /* the job stays queued for the schedule either way */ }
-}
-/** A polled job that should have started by now: queued past 2 minutes, or running with no word for 30. */
-function cadJobNeedsRedispatch(job: { status: string; created_at: string; claimed_at: string | null }, now = Date.now()): boolean {
-  const age = (t: string | null) => (t ? now - Date.parse(t) : 0);
-  const stuck = (job.status === 'queued' && age(job.created_at) > 120_000) || (job.status === 'running' && age(job.claimed_at) > 30 * 60_000);
-  // At most once a minute per job: the 15 s poll lands in the first 15 s of a minute once in four.
-  return stuck && Math.floor(age(job.created_at) / 1000) % 60 < 15;
+    if (error) console.error(`[cad] job ${jobId} is queued but its sales_engineer finding was not written: ${error.message}`);
+  } catch (e) { console.error(`[cad] job ${jobId} is queued but its sales_engineer finding was not written: ${String((e as Error)?.message || e)}`); }
 }
 
 // A CAD DRAWING IS DRAWN FOR SUPPLIERS FROM ITS OWN ENTITIES (24 Sep 2026, sales_engineer; founder
@@ -905,12 +888,11 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       if (!/^[0-9a-f-]{36}$/i.test(id)) return J({ ok: false, error: 'not_found' }, 404);
       const { data: job } = await admin.from('cad_read_jobs').select('status, result, finished_at, created_at, claimed_at').eq('id', id).eq('customer_id', cust.id).maybeSingle();
       if (!job) return J({ ok: false, error: 'not_found' }, 404);
-      if (cadJobNeedsRedispatch(job as any)) await dispatchCadWorker(id);
       // 24 Sep 2026: the worker also DRAWS a CAD file the edge could not, for suppliers (cad_read_worker.ts
       // supplierDrawing); its recorded page comes back here so the customer's request can carry it.
       const res = job.status === 'done' ? (job.result as any) : null;
       const pages = res?.redaction_complete === true && Array.isArray(res.drawing_redacted_paths) ? res.drawing_redacted_paths.map((p: unknown) => String(p)) : [];
-      return J({ ok: true, status: job.status, boq: res?.boq ?? null, ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_job_ids: Array.isArray(res.redaction_job_ids) ? res.redaction_job_ids.map((x: unknown) => String(x)) : [String(res.redaction_job_id || '')], redaction_complete: true, drawing_held: false } : {}) });
+      return J({ ok: true, status: job.status, ...(job.status === 'queued' || job.status === 'running' ? { held_for: 'sales_engineer' } : {}), boq: res?.boq ?? null, ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_job_ids: Array.isArray(res.redaction_job_ids) ? res.redaction_job_ids.map((x: unknown) => String(x)) : [String(res.redaction_job_id || '')], redaction_complete: true, drawing_held: false } : {}) });
     }
 
     if (action === 'analyze_boq') {

@@ -23,6 +23,7 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { canonicalReplay } from '../lib/canonical_sql.mjs';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const SQL = join(REPO, 'scripts', 'sql');
@@ -140,7 +141,11 @@ test('production: the accountant\'s notice kinds are live and their handler exis
 export const DUTIES = ['1_bank', '2_collections', '3_subscriptions', '4_vat', '6_expenses', '7_disputes', '8_close', '9_reserve',
   '10_charge_audit', '11_costs', 'x1_cash', 'x2_ad_spend', 'x3_recovery', 'x4_year_end', 'x5_renewals', 'duties_hour'];
 
-const fixtures = () => read(join(REPO, 'scripts', 'checks', 'accountant_duties_fixtures.sql'));
+// Ruling 1199 (demo_activity_files_no_seat_task_or_handoff.sql, #1479) files no handoff for a ZZ DEMO subject, so
+// every loop below opened nothing ("no it.finding handoff opened", 27 Oct 2026). The fixtures prove the loop, so
+// they switch that guard off for their own rolled-back transaction (a_rolled_back_probe_may_file_demo_seat_work_
+// under_its_own_switch.sql); the running company still files nothing for demo work.
+const fixtures = () => seatWorkFixtures() + read(join(REPO, 'scripts', 'checks', 'accountant_duties_fixtures.sql'));
 const chk = (e) => {
   const m = String(e.message).match(/CHK<<(.*?)>>/s);
   if (!m) throw e;
@@ -198,7 +203,7 @@ begin
 end $zz$;`;
 test('production: one fn_it_loop_tick opens the handoff for the oldest open finding, rolled back', { skip: SKIP }, async () => {
   let r;
-  try { await replaySql(TICK_PROBE); } catch (e) { r = chk(e); }
+  try { await replaySql(seatWorkFixtures() + TICK_PROBE); } catch (e) { r = chk(e); }
   assert.ok(r, 'the tick probe committed instead of rolling back');
   assert.equal(r.opened_by_tick, true, 'the tick did not open the oldest finding\'s handoff: ' + JSON.stringify(r));
   assert.equal(r.agent, 'accountant', 'handed to ' + r.agent + ', not accountant');

@@ -1,8 +1,9 @@
 // Insert the board-review call into fn_decide on both projects without pulling 19k chars of body
 // through anyone's context. Fetch the definition, splice one guarded block before the final return,
 // apply, then verify the check's own BOARD_INVOKED predicate.
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
-const token = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 const q = async (ref, sql) => {
   const r = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {
     method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
