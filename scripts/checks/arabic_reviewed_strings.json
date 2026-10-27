@@ -7028,5 +7028,15 @@
  ],
  "supabase/functions/_shared/duty_voice.ts": [
   "233fb854bada"
+ ],
+ "scripts/sql/the_supplier_whatsapp_invitation_waits_for_opt_in_both_switches_and_a_high_quality_sender.sql": [
+  "12ba36f3ca11",
+  "2a02ef990137",
+  "2f989f677852",
+  "5dc6e56e2ded",
+  "77f9955284a2",
+  "b0870bd5044a",
+  "bcfeae685a9a",
+  "c309658866ea"
  ]
 }

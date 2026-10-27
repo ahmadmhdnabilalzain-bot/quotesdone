@@ -2451,6 +2451,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_wa_consent_question()
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select 'May QuotesDone send you WhatsApp messages about requests for quotation in your trade? Reply YES to agree, or STOP if you do not want them.'::text
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_wa_context(p_audience text, p_phone text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -3025,6 +3035,48 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_wa_is_affirmative(p_text text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  t text := lower(normalize(coalesce(p_text, ''), NFKC));
+  w text; v_yes int := 0; v_n int := 0;
+  c_yes_ar constant text[] := array['نعم', 'ايوه', 'ايوا', 'ايو', 'اي', 'اكيد', 'بالتاكيد', 'تمام', 'موافق', 'موافقه',
+                                    'اوافق', 'طبعا', 'حاضر', 'ماشي', 'اوكي', 'اوك', 'يس', 'اجل', 'بلي'];
+  c_fill constant text[] := array['please', 'pls', 'plz', 'thanks', 'thank', 'thx', 'you', 'sir', 'very', 'much', 'i',
+                                  'we', 'that', 's', 'is', 'it', 'its', 'with', 'me', 'us', 'good', 'great', 'perfect',
+                                  'شكرا', 'جزيلا', 'لو', 'سمحت', 'من', 'فضلك', 'اخي', 'اخوي', 'يا'];
+begin
+  if btrim(t) = '' or char_length(t) > 120 or t ~ '[?؟]' then return false; end if;
+  -- a negative emoji is not stripped into silence: "yes 👎" is not a yes (independent review of #1634)
+  if t ~ '(👎|❌|✖|🚫|⛔)' then return false; end if;
+  t := regexp_replace(t, '[ً-ْٰـ]', '', 'g');
+  t := translate(t, 'أإآٱىة', 'اااايه');
+  t := regexp_replace(t, '(👍|✅|👌|✔|☑)[\U0001F3FB-\U0001F3FF]?', ' yes ', 'g');
+  -- ONLY KNOWN SYMBOLS MAY SIT BESIDE A YES (second review of #1634). The list above cannot name every refusal:
+  -- a stop sign, a crossed-arms person, an angry face and a raised hand all read as consent before this. So a smile or a
+  -- thanks emoji is dropped, the emoji selector and a skin tone are dropped, and any symbol still left that is not a
+  -- letter, a digit, a space or plain punctuation fails closed.
+  t := regexp_replace(t, '(🙂|😊|😀|😃|😄|🙏|🤝|👏|💯|❤|♥)[\U0001F3FB-\U0001F3FF]?', ' ', 'g');
+  t := regexp_replace(t, '[\uFE0F\U0001F3FB-\U0001F3FF]', '', 'g');
+  if t ~ '[^a-z0-9\u0621-\u064A[:space:].,!''"\u2018\u2019\u201C\u201D\u060C-]' then return false; end if;
+  t := regexp_replace(t, '\m(go ahead|of course|please do|sounds good)\M', ' yes ', 'g');
+  t := btrim(regexp_replace(regexp_replace(t, '[^a-z0-9ء-ي]+', ' ', 'g'), '\s+', ' ', 'g'));
+  if t = '' then return false; end if;
+  foreach w in array string_to_array(t, ' ') loop
+    v_n := v_n + 1;
+    if w ~ '^(y+e+s+|y+e+a+h*|ye+p+|yu+p+|ya+|y|o+k+|okay+|okey|k|sure|agree|agreed|consent|absolutely|definitely|certainly|alright|fine)$'
+       or w = any(c_yes_ar) then v_yes := v_yes + 1;
+    elsif not (w = any(c_fill)) then return false;
+    end if;
+  end loop;
+  return v_yes > 0 and v_n <= 8;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_wa_lead_id(p_phone text)
  RETURNS bigint
  LANGUAGE sql
@@ -3128,6 +3180,32 @@ CREATE OR REPLACE FUNCTION public.fn_wa_off_topic_reply()
 AS $function$
   select 'I am here to assist you with QuotesDone inquiries only. Please let me know how I can help you.'
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_wa_optin_rule(p_source text, p_button_payload text, p_question text, p_answer text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_q text := lower(regexp_replace(translate(coalesce(p_question, ''), '’‘“”', '''''""'), '\s+', ' ', 'g'));
+  v_c text := lower(public.fn_wa_consent_question());
+begin
+  if p_source = 'wa_button' then
+    if btrim(coalesce(p_button_payload, '')) = 'supplier_invite_yes' then
+      return jsonb_build_object('counts', true, 'why', 'the supplier tapped "Set up my page"'); end if;
+    return jsonb_build_object('counts', false, 'why', 'not the "Set up my page" button payload');
+  end if;
+  if p_source in ('wa_consent_reply', 'email_consent_reply', 'call_consent_reply') then
+    if position(v_c in v_q) = 0 then
+      return jsonb_build_object('counts', false, 'why', 'the message answered did not ask the consent question'); end if;
+    if not public.fn_wa_is_affirmative(p_answer) then
+      return jsonb_build_object('counts', false, 'why', 'the answer is not a yes'); end if;
+    return jsonb_build_object('counts', true, 'why', 'the supplier answered yes to the consent question');
+  end if;
+  return jsonb_build_object('counts', false, 'why', 'not a consent source: only the button or a yes to the consent question counts (ledger 1341)');
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_wa_problem_report(p_phone text, p_text text, p_lang text DEFAULT 'en'::text)
@@ -3417,6 +3495,28 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_wa_sender_quality_record(p_rating text, p_status text, p_limit text DEFAULT NULL::text, p_raw jsonb DEFAULT '{}'::jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_ok boolean := upper(btrim(coalesce(p_status, ''))) = 'ONLINE'
+                        and upper(btrim(coalesce(p_rating, ''))) in ('HIGH', 'GREEN');
+  v_brake jsonb;
+begin
+  insert into public.wa_sender_quality_reading (rating, status, messaging_limit, ok, raw)
+  values (nullif(btrim(coalesce(p_rating, '')), ''), coalesce(nullif(btrim(coalesce(p_status, '')), ''), 'UNKNOWN'), p_limit, v_ok,
+          coalesce(p_raw, '{}'::jsonb));
+  if not v_ok then
+    v_brake := public.fn_wa_supplier_invite_brake('the sender reads quality ' || coalesce(p_rating, 'unknown') || ' / '
+                 || coalesce(p_status, 'unknown') || ', not HIGH / ONLINE',
+                 jsonb_build_object('rating', p_rating, 'status', p_status, 'messaging_limit', p_limit));
+  end if;
+  return jsonb_build_object('ok', v_ok, 'rating', p_rating, 'status', p_status, 'brake', v_brake);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_wa_signature_watch()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -3493,6 +3593,77 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_wa_supplier_invite_brake(p_why text, p_evidence jsonb DEFAULT '{}'::jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_cancelled int;
+begin
+  update public.notifications set status = 'cancelled', last_error = left('brake: ' || p_why, 500)
+   where type = 'supplier_invite_wa' and status in ('queued', 'sending');
+  get diagnostics v_cancelled = row_count;
+  insert into public.it_watch_finding (detector_key, detector, subject, state, severity, title, evidence)
+  values ('deliverability:supplier_invite_wa', 'deliverability', 'supplier_invite_wa', 'paused', 'high',
+          left('Supplier WhatsApp invitations braked: ' || p_why, 300),
+          coalesce(p_evidence, '{}'::jsonb) || jsonb_build_object('cancelled_queued', v_cancelled,
+            'resume', 'read the reason, then resolve this finding (status resolved); the switches are untouched'))
+  on conflict (detector_key) do update
+     set state = excluded.state, severity = excluded.severity, title = excluded.title, evidence = excluded.evidence,
+         last_seen_at = now(), seen_count = it_watch_finding.seen_count + 1, status = 'open', resolved_at = null;
+  insert into public.agent_runs (agent, status, counts, note, finished_at)
+  values ('wa_supplier_invite_brake', 'error', jsonb_build_object('cancelled_queued', v_cancelled),
+          left('BRAKED: ' || p_why || '; ' || v_cancelled || ' queued WhatsApp invitation(s) cancelled; it_engineer finding open.', 1000), now());
+  return jsonb_build_object('braked', true, 'why', p_why, 'cancelled_queued', v_cancelled);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_wa_supplier_invite_gate(p_at timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_local timestamp := p_at at time zone 'Asia/Dubai';
+  v_why text[] := '{}';
+  q public.wa_sender_quality_reading;
+  v_sent7 int; v_stops7 int;
+begin
+  if coalesce((select value from public.app_secrets where key = 'wa_supplier_invite_golive'), '') <> 'true' then
+    v_why := array_append(v_why, 'wa_supplier_invite_golive is not true'); end if;
+  if coalesce((select value from public.app_secrets where key = 'invite_enabled'), '') <> 'true' then
+    v_why := array_append(v_why, 'invite_enabled is not true (the supplier campaign is paused)'); end if;
+  if extract(isodow from v_local) not between 1 and 5 then v_why := array_append(v_why, 'not a weekday in Dubai'); end if;
+  if extract(hour from v_local) not between 10 and 16 then v_why := array_append(v_why, 'outside 10:00-17:00 Dubai'); end if;
+  if exists (select 1 from public.public_holidays h where h.holiday_date = v_local::date) then
+    v_why := array_append(v_why, 'a UAE public holiday'); end if;
+
+  -- the STOP-rate brake: opt-outs among the leads invited over WhatsApp in 7 days
+  select count(*), count(*) filter (where l.whatsapp_opt = 'none') into v_sent7, v_stops7
+    from public.notifications n join public.leads l on l.id = n.lead_id
+   where n.type = 'supplier_invite_wa' and n.status = 'sent' and n.sent_at > now() - interval '7 days';
+  if v_stops7 >= 2 and v_stops7::numeric >= 0.05 * greatest(v_sent7, 1)
+     and not exists (select 1 from public.it_watch_finding f where f.detector_key = 'deliverability:supplier_invite_wa' and f.status = 'open') then
+    perform public.fn_wa_supplier_invite_brake(v_stops7 || ' STOP replies on ' || v_sent7 || ' WhatsApp invitations in 7 days',
+              jsonb_build_object('sent_7d', v_sent7, 'stops_7d', v_stops7));
+  end if;
+  if exists (select 1 from public.it_watch_finding f where f.detector_key = 'deliverability:supplier_invite_wa' and f.status = 'open') then
+    v_why := array_append(v_why, 'the brake is on (it_watch_finding deliverability:supplier_invite_wa)'); end if;
+
+  select * into q from public.wa_sender_quality_reading order by read_at desc, id desc limit 1;   -- id: ties in one transaction
+  if q.id is null or q.read_at < now() - interval '26 hours' then
+    v_why := array_append(v_why, 'no sender quality reading in 26 hours');
+  elsif not q.ok then
+    v_why := array_append(v_why, 'sender quality ' || coalesce(q.rating, 'unknown') || ' / ' || q.status);
+  end if;
+
+  return jsonb_build_object('go', cardinality(v_why) = 0, 'why', to_jsonb(v_why), 'dubai_time', v_local,
+                            'sent_7d', v_sent7, 'stops_7d', v_stops7);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_wa_supplier_invite_opt_out(p_from text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -3511,51 +3682,73 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_wa_supplier_invite_queue(p_limit integer DEFAULT 20, p_at timestamp with time zone DEFAULT now())
+CREATE OR REPLACE FUNCTION public.fn_wa_supplier_invite_queue(p_limit integer DEFAULT 20, p_at timestamp with time zone DEFAULT now(), p_demo_only boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
-  v_live boolean := coalesce((select value from public.app_secrets where key = 'wa_supplier_invite_golive'), '') = 'true';
-  v_local timestamp := p_at at time zone 'Asia/Dubai';
+  -- THE TEXT: identical to _shared/marketing_send_gate.ts WA_INVITE_TEMPLATE_EN (a check compares them). No link.
+  c_text constant text := 'Hello from QuotesDone. We connect companies in the UAE with qualified suppliers: each request for quotation reaches only the suppliers registered for that exact trade. We are now onboarding {{1}} suppliers ahead of our buyer launch. Requests that match your trade come directly to you, you choose which ones to quote on, and there is no commission on work you win. Registration is free for our first 1,000 suppliers. To join, reply with the trades you cover and our team will set up your company page for you, or register at quotesdone.com. If this isn''t relevant, reply STOP and we won''t message you again.';
+  v_gate jsonb := public.fn_wa_supplier_invite_gate(p_at);
   v_today int; v_room int; v_eligible int; v_queued int := 0;
 begin
   select count(*) into v_today from public.notifications
-   where type = 'supplier_invite_wa' and channel = 'whatsapp' and (created_at at time zone 'Asia/Dubai')::date = (now() at time zone 'Asia/Dubai')::date;  -- the cap counts real rows, whatever p_at says
+   where type = 'supplier_invite_wa' and channel = 'whatsapp'
+     and (created_at at time zone 'Asia/Dubai')::date = (now() at time zone 'Asia/Dubai')::date;
   v_room := greatest(0, least(coalesce(p_limit, 20), 20) - v_today);
 
-  create temp table if not exists _wa_inv(lead_id bigint, phone text, trade text, token text) on commit drop;
+  create temp table if not exists _wa_inv(lead_id bigint, phone text, trade text, rnk int) on commit drop;
   truncate _wa_inv;
+  -- Driven from the opt-ins (a handful of rows), never a scan of 20k+ leads: the first draft read every lead and took
+  -- 71 s in a rolled-back replay on 27 Oct 2026, past the seat duty tick's 60 s statement timeout.
+  -- THE NUMBER IS THE OPTED-IN ONE (independent review of #1634, 27 Oct 2026): an opt-in is a (lead, number) pair and
+  -- may name a number other than the lead's phone_e164 (fn_supplier_whatsapp_optin_record's p_phone, or the lead's
+  -- whatsapp_phone in fn_marketing_files_wa_invite_reply). The invitation goes to opted.phone, never to a number
+  -- nobody opted in from.
   insert into _wa_inv
-  select l.id, l.phone_e164, coalesce(l.invite_trades[1], l.sector), l.claim_token::text
-    from public.leads l
-   where l.claim_token is not null and l.phone_e164 ~ '^\+9715[0-9]{8}$'
-     and not coalesce(l.is_demo, false) and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)
+  select l.id, opted.phone, coalesce(l.invite_trades[1], l.sector), coalesce(p.rank, 2147483647)
+    from (select o.lead_id id, o.phone from public.supplier_whatsapp_optin o
+           union select x.id, o.phone from public.supplier_whatsapp_optin o join public.leads x on x.phone_e164 = o.phone) opted
+    join public.leads l on l.id = opted.id
+    left join lateral (select min(g.rank) rank from public.marketing_gap_recruitment_plan g
+                        where g.trade = coalesce(l.invite_trades[1], l.sector)) p on true
+   where opted.phone ~ '^\+9715[0-9]{8}$'
+     -- a STOP from this number on any lead record is an opt-out of the number
+     and not exists (select 1 from public.leads y where (y.phone_e164 = opted.phone or y.whatsapp_phone = opted.phone)
+                       and y.whatsapp_opt = 'none')
+     and (case when p_demo_only then coalesce(l.is_demo, false) else not coalesce(l.is_demo, false) end)
+     and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)
      and not coalesce(l.claimed, false) and l.approval_status is null
      and coalesce(l.whatsapp_opt, '') <> 'none'
-     and coalesce(l.invite_status, '') <> 'bounced'
+     and coalesce(l.invite_status, '') not in ('bounced', 'complained', 'unsubscribed')
      and (l.email is null or not exists (select 1 from public.email_suppressions s where lower(s.email) = lower(l.email)))
+     -- Meta: only a person who opted in (see header) -- the join on `opted` above is that condition
+     -- never twice: once per lead and once per number, for life
      and not exists (select 1 from public.notifications n where n.type = 'supplier_invite_wa' and n.lead_id = l.id)
-     and not exists (select 1 from public.notifications n where n.type = 'supplier_invite_wa' and n.to_phone = l.phone_e164)
-   order by l.id;
+     and not exists (select 1 from public.notifications n where n.type = 'supplier_invite_wa' and n.to_phone = opted.phone);
   select count(*) into v_eligible from _wa_inv;
 
-  if v_live and v_room > 0 and extract(isodow from v_local) between 1 and 5 and extract(hour from v_local) between 10 and 16 then
-    with pick as (select distinct on (phone) * from _wa_inv order by phone, lead_id limit v_room)
-    insert into public.notifications (type, channel, sender, to_phone, lead_id, subject, body, status, lang, dedupe_key)
-    select 'supplier_invite_wa', 'whatsapp', 'customer_support', p.phone, p.lead_id,
-           coalesce(t.label, replace(p.trade, '_', ' ')),
-           'Invitation to receive customer requests on QuotesDone for ' || coalesce(t.label, replace(p.trade, '_', ' ')) || ': https://quotesdone.com/en/portal?t=' || p.token,
-           'queued', 'en', 'supplier_invite_wa:' || p.lead_id
-      from pick p left join lateral (select x->>'label' label from jsonb_array_elements(
-             public.fn_every_category_has_ten_suppliers(false)->'short') x where x->>'trade' = p.trade limit 1) t on true;
+  if (v_gate->>'go')::boolean and v_room > 0 then
+    with pick as (select * from (select distinct on (phone) * from _wa_inv order by phone, rnk, lead_id) d
+                   order by rnk, lead_id limit v_room),
+    lbl as (select p.*, coalesce(nullif(left(btrim(lower(regexp_replace(coalesce(p.trade, ''), '[_-]+', ' ', 'g'))), 60), ''), 'new') label
+              from pick p)
+    -- to_role stays NULL, as in the 19 Oct file: a lead is not yet a supplier. With to_role 'supplier' the confirmed-number
+    -- trigger (fn_notifications_whatsapp_goes_to_a_confirmed_number, clause 21) marks the row skipped, because a lead
+    -- has no OTP-confirmed WhatsApp number; that rule is for a registered account's notices. Here the number is the one
+    -- the lead opted in from (supplier_whatsapp_optin). Measured in a rolled-back replay, 27 Oct 2026.
+    insert into public.notifications (type, channel, sender, to_phone, to_role, lead_id, subject, body, status, lang, dedupe_key)
+    select 'supplier_invite_wa', 'whatsapp', 'customer_support', b.phone, null, b.lead_id, b.label,
+           replace(c_text, '{{1}}', b.label), 'queued', 'en', 'supplier_invite_wa:' || b.lead_id
+      from lbl b;
     get diagnostics v_queued = row_count;
   end if;
 
-  return jsonb_build_object('live', v_live, 'eligible', v_eligible, 'sent_today', v_today, 'room_today', v_room,
-                            'queued', v_queued, 'dubai_time', v_local);
+  return jsonb_build_object('live', (v_gate->>'go')::boolean, 'why', v_gate->'why', 'eligible', v_eligible,
+                            'sent_today', v_today, 'room_today', v_room, 'queued', v_queued, 'demo_only', p_demo_only,
+                            'dubai_time', v_gate->'dubai_time');
 end $function$
 
 
