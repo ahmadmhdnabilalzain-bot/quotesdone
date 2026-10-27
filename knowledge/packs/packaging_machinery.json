@@ -45,6 +45,36 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28"
+    },
+    {
+      "id": "packaging_machinery:product-distinctions",
+      "topic": "Packaging machinery: machine families and what decides the choice",
+      "topic_ar": "آلات التعبئة والتغليف: عائلات الآلات وما يحدد الاختيار",
+      "kind": "product_distinctions",
+      "body_en": "Packaging lines are built from machine families: filling (volumetric piston, gravity, overflow, net-weight, auger fillers for powders, multihead weighers for granules), capping and closing (screw cappers, crimpers, induction sealers), labelling (pressure-sensitive wrap-around, front-and-back, shrink-sleeve applicators), form-fill-seal (vertical VFFS for pillow and gusseted bags of powders and granules; horizontal HFFS and flow wrappers for bars and trays), cartoning, case erecting, packing and sealing, wrapping (flow, stretch and shrink), palletising (robotic or layer) and stretch-wrapping of pallets, plus coding and inspection (inkjet and laser coders, checkweighers, metal detectors, vision systems). What decides the machine: the product (liquid, viscous, powder, granule, solid), the pack format and material, the speed in packs per minute, changeover between sizes, the accuracy required, the degree of automation (semi-automatic or fully automatic, standalone or integrated line), hygiene design where the product requires it, and the line efficiency (OEE) the buyer needs. Used and refurbished machines are common for standard formats.",
+      "body_ar": "تتكون خطوط التعبئة والتغليف من عائلات آلات: التعبئة (حجمية بالمكبس، بالجاذبية، بالفيض، بالوزن الصافي، حلزونية للمساحيق، وموازين متعددة الرؤوس للحبيبات)، والتغطية والإغلاق (آلات لف الأغطية، الكبس، الختم بالحث)، ووضع الملصقات (ملصقات لاصقة ملتفة، أمامية وخلفية، أكمام منكمشة)، والتشكيل والتعبئة والختم (الرأسية لأكياس المساحيق والحبيبات، والأفقية وآلات التغليف الانسيابي للألواح والصواني)، والتعبئة في العلب الكرتونية، وتشكيل الصناديق وتعبئتها وإغلاقها، والتغليف (الانسيابي، المطاطي، المنكمش)، ورص المنصات (روبوتي أو بالطبقات) وتغليف المنصات بالغشاء، إضافة إلى الترميز والفحص (طابعات نافثة للحبر وليزر، موازين التحقق، كواشف المعادن، أنظمة الرؤية). وما يحدد الآلة: المنتج (سائل، لزج، مسحوق، حبيبات، صلب)، وشكل العبوة ومادتها، والسرعة بعدد العبوات في الدقيقة، والتبديل بين المقاسات، والدقة المطلوبة، ودرجة الأتمتة (نصف آلية أو آلية بالكامل، منفردة أو خط متكامل)، والتصميم الصحي حيث يتطلبه المنتج، وكفاءة الخط التي يحتاجها المشتري. والآلات المستعملة والمجددة شائعة للأشكال القياسية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Packaging_machinery"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: packaging machine types: filling, capping, labelling, form-fill-seal, flow/stretch/shrink wrapping, palletising -> confirmed."
+    },
+    {
+      "id": "packaging_machinery:lead-times-and-quoting",
+      "topic": "Packaging machinery - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "آلات التعبئة والتغليف: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Semi-automatic standard machines: ex-stock to 4 weeks; new automatic machines 8-16 weeks plus sea freight; complete integrated lines 4-8 months including factory acceptance test, shipping, installation and site acceptance. A supplier needs product samples and data, pack formats and sizes with the packaging material spec, target speed, available space, power and compressed air, the level of automation, and existing upstream and downstream equipment. A complete quote states make, model, origin, speed at the stated format, change parts included, the electrical standard, FAT/SAT, installation and training, spare parts, warranty, local service, Incoterm, payment milestones and validity.",
+      "body_ar": "الآلات القياسية نصف الآلية: متوفرة حتى 4 أسابيع؛ والآلات الآلية الجديدة 8-16 أسبوعاً إضافة إلى الشحن البحري؛ والخطوط المتكاملة الكاملة 4-8 أشهر شاملة اختبار القبول في المصنع والشحن والتركيب واختبار القبول في الموقع. ويحتاج المورد عينات المنتج وبياناته، وأشكال العبوات ومقاساتها مع مواصفة مادة التغليف، والسرعة المستهدفة، والمساحة المتاحة، والكهرباء والهواء المضغوط، ومستوى الأتمتة، والمعدات القائمة قبل الآلة وبعدها. ويذكر العرض الكامل الماركة والموديل والمنشأ، والسرعة عند الشكل المحدد، وقطع التبديل المشمولة، والمعيار الكهربائي، واختبارات القبول، والتركيب والتدريب، وقطع الغيار، والضمان، والخدمة المحلية، وشرط التسليم، ودفعات السداد، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -70,6 +100,14 @@
       ],
       "why": "The spec checklist lists what the buyer must specify when buying packaging machinery, which is exactly what the question asks (generic, not liquid-filler-specific).",
       "origin": "real buyer question, moved from packaging_machinery.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "We pack 1 kg sugar-like granules. Which machine do we need: VFFS with a multihead weigher or an auger filler?",
+      "q_ar": "نعبي حبيبات زي السكر كيلو كيلو، نحتاج آلة تشكيل وتعبئة رأسية مع ميزان متعدد الرؤوس ولا معبئ حلزوني؟",
+      "expected_entry_ids": [
+        "packaging_machinery:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -86,6 +124,27 @@
       "packaging_machinery:uae-standards-and-approvals"
     ],
     "as_of": "2026-09-28",
-    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "packaging_machinery:product-distinctions"
+      ],
+      "stored_not_served": [
+        "packaging_machinery:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Packaging_machinery"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

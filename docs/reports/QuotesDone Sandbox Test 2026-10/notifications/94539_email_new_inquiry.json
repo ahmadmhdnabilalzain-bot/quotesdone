@@ -1,0 +1,11 @@
+{
+ "id": 94539,
+ "type": "new_inquiry",
+ "channel": "email",
+ "status": "suppressed",
+ "to_email": "qd-1be65ab2-sup4@example.invalid",
+ "lang": "en",
+ "subject": "New job request on QuotesDone",
+ "body": "A customer is requesting quotes for: Supply and install replacement flooring in a villa in Ras Al Khaimah; confirm the priceable area and epoxy application surface. (Ras Al Khaimah). The customer asks for: Material grade: their own specification (see the brief); Installation: Yes, install it; Warranty: Yes, at least 2 years; Needed by: By 2026-11-11. Log in to your QuotesDone supplier portal to quote.",
+ "html": null
+}

@@ -225,8 +225,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     setDrawing(merged);
     return merged;
   };
-  // The queued CAD read, polled every 15 s for up to 12 minutes (the worker is dispatched at once; a
-  // GitHub runner starts in ~20-60 s and reads a multi-MB DWG in seconds). Not awaited: the chat stays usable.
+  // The queued CAD read, polled every 15 s for up to 12 minutes. No runner starts on its own (27 Oct 2026: GitHub
+  // Actions is off); the job is held for the sales_engineer, who runs the worker. Not awaited: the chat stays usable.
   const pollCad = async (res, name, source, lengths = false) => {
     for (let i = 0; i < 48; i++) {
       await new Promise((r) => setTimeout(r, 15000));
@@ -627,6 +627,12 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
             and full width, the tools and Send wrap to the line under it. Its scroll margin keeps it above the
             phone's fixed tab bar when focus or the page scrolls it into view. */}
         <div className="flex flex-wrap items-end gap-2 lg:flex-nowrap">
+          {/* FIRST IN THE DOM, so keyboard and screen-reader order reach the box before the tools (it used to be
+              moved first with order-first only, which left Tab visiting four buttons before it). On lg the tools sit
+              before it visually via order, and Send after it. */}
+          <label htmlFor="qd-intake-input" className="sr-only">{t(lang, 'nr_input_label')}</label>
+          <textarea id="qd-intake-input" ref={inputRef} className="min-h-[48px] scroll-mb-[calc(var(--qd-tabbar-h,0px)+16px)] min-w-0 basis-full resize-none lg:order-1 lg:basis-0 lg:flex-1 rounded-btn border border-input bg-background px-3.5 py-3 text-copy text-foreground shadow-e1 outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-primary/60 focus:shadow-ring" rows={2}
+            placeholder={rec ? t(lang, 'nr_listening') : t(lang, 'nr_ph')} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} />
           {/* .dwg/.dxf listed as extensions too: some browsers send an empty MIME for CAD files. */}
           {/* Sheets are accepted here too, because the drop surface above advertises Excel and CSV; onAny routes them. */}
           <input ref={fileRef} type="file" accept="image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.xml,.x83,.x84,.x86,.zip" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onAny(e.target.files[0])} />
@@ -652,10 +658,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
               <span lang={dict}>{dict === 'ar' ? 'ع' : 'EN'}</span>
             </button>
           )}
-          <label htmlFor="qd-intake-input" className="sr-only">{t(lang, 'nr_input_label')}</label>
-          <textarea id="qd-intake-input" ref={inputRef} className="order-first min-h-[48px] scroll-mb-[calc(var(--qd-tabbar-h,0px)+16px)] min-w-0 basis-full resize-none lg:order-none lg:basis-0 lg:flex-1 rounded-btn border border-input bg-background px-3.5 py-3 text-copy text-foreground shadow-e1 outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground focus:border-primary/60 focus:shadow-ring" rows={2}
-            placeholder={rec ? t(lang, 'nr_listening') : t(lang, 'nr_ph')} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={onKey} />
-          <Button size="lg" className="ms-auto px-4 lg:ms-0" disabled={thinking || analyzing || !input.trim()} onClick={send} aria-label={t(lang, 'nr_send')}><SendHorizontal className="h-4 w-4 rtl:-scale-x-100" aria-hidden /><span className="ms-1.5 hidden sm:inline">{t(lang, 'nr_send')}</span></Button>
+          <Button size="lg" className="ms-auto px-4 lg:order-2 lg:ms-0" disabled={thinking || analyzing || !input.trim()} onClick={send} aria-label={t(lang, 'nr_send')}><SendHorizontal className="h-4 w-4 rtl:-scale-x-100" aria-hidden /><span className="ms-1.5 hidden sm:inline">{t(lang, 'nr_send')}</span></Button>
         </div>
       </div>
     </section>

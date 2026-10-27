@@ -828,6 +828,42 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_answers_reveal_invoice(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  a public.agent_actions;
+  c record;
+  v_ar boolean;
+  v_nid bigint;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found or a.detail->>'type' is distinct from 'invoice.issued' then
+    raise exception 'fn_sales_engineer_answers_reveal_invoice: % is not an invoice.issued handoff', p_id;
+  end if;
+  select id, email into c from public.customers where id = (a.detail->>'customer_id')::uuid;
+  if c.email is null or c.email !~ '@' then
+    return jsonb_build_object('told', false, 'reason', 'no email address on file for the customer');
+  end if;
+  v_ar := public.fn_customer_notice_locale((a.detail->>'inquiry_id')::uuid, c.id) = 'ar';
+  insert into public.notifications (type, to_email, to_role, inquiry_id, quote_id, subject, body, lang)
+  values ('invoice_ready', c.email, 'customer',
+          (a.detail->>'inquiry_id')::uuid, (a.detail->>'quote_id')::uuid,
+          case when v_ar then 'فاتورتكم جاهزة' else 'Your invoice is ready' end,
+          case when v_ar
+            then 'أصبحت فاتورة رسوم الكشف التي سددتموها متاحة في حسابكم على QuotesDone، ويمكنكم فتحها في أي وقت من زر «الفاتورة» على العرض الذي كشفتموه، أو من «المستندات» ضمن «الفواتير».'
+            else 'The invoice for the reveal fee you paid is now in your QuotesDone account. Open it any time from the "Invoice (PDF)" button on the quote you revealed, or under Invoices in Documents.'
+          end,
+          case when v_ar then 'ar' else 'en' end)
+  returning id into v_nid;
+  return jsonb_build_object('told', true, 'notification_id', v_nid, 'language', case when v_ar then 'ar' else 'en' end);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_attaches_delivery_result(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1701,6 +1737,69 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_reveal_followup_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  r record; v jsonb; v_lang text; v_ar boolean; v_name text; v_cat text; v_ref text; v_sent int := 0; v_seen int := 0;
+begin
+  for r in
+    with q as (
+      select coalesce(i.parent_inquiry_id, i.id) as root, min(qt.created_at) as first_at, count(*) as n
+        from public.quotes qt join public.inquiries i on i.id = qt.inquiry_id
+       where qt.status = 'submitted' and (qt.expires_at is null or qt.expires_at > now())
+       group by 1)
+    select q.root, q.first_at, q.n, p.rfq_no, p.category, c.id as cid, c.full_name, c.email, c.locale,
+           case when q.first_at <= now() - interval '7 days' then 'day_seven' else 'day_two' end as stage
+      from q join public.inquiries p on p.id = q.root join public.customers c on c.id = p.customer_id
+     where ((q.first_at <= now() - interval '2 days' and q.first_at > now() - interval '6 days')
+         or (q.first_at <= now() - interval '7 days' and q.first_at > now() - interval '21 days'))
+       and p.hired_supplier_id is null and p.completed_at is null
+       and coalesce(p.status, '') not in ('cancelled', 'closed', 'completed', 'revealed')
+       and not coalesce(c.banned, false)
+       and (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) = v_fx
+       and not exists (select 1 from public.transactions t join public.inquiries x on x.id = t.inquiry_id
+                        where t.revealed_at is not null and coalesce(x.parent_inquiry_id, x.id) = q.root)
+     order by q.first_at limit 200
+  loop
+    v_seen := v_seen + 1;
+    v_lang := public.fn_customer_message_lang(r.root, r.locale);
+    v_ar := v_lang = 'ar';
+    v_name := coalesce(nullif(btrim(r.full_name), ''), case when v_ar then 'عميلنا الكريم' else 'there' end);
+    v_cat := coalesce(public.fn_trade_label(r.category, v_lang), case when v_ar then 'طلبكم' else 'your request' end);
+    v_ref := 'RFQ-' || coalesce(r.rfq_no::text, '-');
+    v := public.fn_customer_support_duty_send('reveal.' || r.stage, r.root::text, 'customer', r.email, v_lang,
+      case when v_ar then
+        case when r.stage = 'day_two' then 'عروضكم جاهزة للمقارنة - ' || v_ref else 'تذكير أخير: عروض ' || v_ref || ' ما زالت بانتظاركم' end
+      else
+        case when r.stage = 'day_two' then 'Your quotes are ready to compare - ' || v_ref else 'Last reminder: your quotes on ' || v_ref || ' are waiting' end
+      end,
+      case when v_ar then
+        case when nullif(btrim(r.full_name), '') is null then 'عميلنا الكريم،' else 'السادة/ ' || v_name || ' المحترمين،' end || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+        || 'وصلكم ' || r.n || ' من العروض على طلبكم ' || v_ref || ' (' || v_cat || ')، ويرتّب تقرير المقارنة أفضل ثلاثة منها من حيث القيمة. '
+        || 'لا تكشفون إلا بيانات المورّد الذي تختارونه، ولا تدفعون 3% إلا حينها.' || chr(10) || chr(10)
+        || 'وإن كان في أحد العروض ما يحتاج إلى توضيح - السعر أو النطاق أو الشروط - فأضيفوا ملاحظتكم أو سؤالكم من صفحة الطلب، فتصل إلى جميع المورّدين دون اسمكم أو رقمكم، أو ردّوا على هذه الرسالة لنساعدكم في المقارنة.' || chr(10) || chr(10)
+        || 'افتحوا عروضكم من هنا: https://quotesdone.com/ar/me' || chr(10) || chr(10)
+        || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
+      else
+        'Dear ' || v_name || ',' || chr(10) || chr(10)
+        || 'You have ' || r.n || case when r.n = 1 then ' quote' else ' quotes' end || ' on ' || v_ref || ' (' || v_cat || '), and your comparison report ranks the top three by value. '
+        || 'You reveal only the supplier you choose, and pay 3% only then.' || chr(10) || chr(10)
+        || 'If anything in a quote needs explaining - the price, the scope or the terms - add your note or question on the request page and it reaches every supplier without your name or number, or reply to this e-mail and we will help you compare.' || chr(10) || chr(10)
+        || 'Open your quotes: https://quotesdone.com/me' || chr(10) || chr(10)
+        || 'Kind regards,'
+      end,
+      r.cid, null, r.root);
+    if (v->>'sent')::boolean then v_sent := v_sent + 1; end if;
+  end loop;
+  return jsonb_build_object('seen', v_seen, 'sent', v_sent, 'fixture', v_fx);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_self_review()
  RETURNS jsonb
  LANGUAGE sql
@@ -2513,33 +2612,42 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_takes_invite_reply(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found then raise exception 'no handoff %', p_id; end if;
+  -- The sales engineer owns the company page. The handoff stays in its queue, waiting on that work, with the lead
+  -- and the supplier's own words in front of it.
+  return jsonb_build_object(
+    'waiting', 'sales_engineer: set up the company page for lead #' || coalesce(a.detail->>'lead_id', '?') || ' from the trades in the reply',
+    'lead_id', a.detail->'lead_id', 'inbound_message_id', a.detail->'inbound_message_id', 'reply_text', a.detail->'reply_text');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_tells_customer_invoice_ready()
  RETURNS trigger
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare
-  c record;
-  v_ar boolean;
 begin
-  if new.kind <> 'handoff' or coalesce(new.detail->>'subject', '') <> 'reveal_invoice' then return new; end if;
-  select id, email into c from public.customers where id = (new.detail->>'customer_id')::uuid;
-  if c.email is not null and c.email ~ '@' then
-    v_ar := public.fn_customer_notice_locale((new.detail->>'inquiry_id')::uuid, c.id) = 'ar';
-    insert into public.notifications (type, to_email, to_role, inquiry_id, quote_id, subject, body, lang)
-    values ('invoice_ready', c.email, 'customer',
-            (new.detail->>'inquiry_id')::uuid, (new.detail->>'quote_id')::uuid,
-            case when v_ar then 'فاتورتكم جاهزة' else 'Your invoice is ready' end,
-            case when v_ar
-              then 'أصبحت فاتورة رسوم الكشف التي سددتموها متاحة في حسابكم على QuotesDone، ويمكنكم فتحها في أي وقت من زر «الفاتورة» على العرض الذي كشفتموه، أو من «المستندات» ضمن «الفواتير».'
-              else 'The invoice for the reveal fee you paid is now in your QuotesDone account. Open it any time from the "Invoice (PDF)" button on the quote you revealed, or under Invoices in Documents.'
-            end,
-            case when v_ar then 'ar' else 'en' end);
-  end if;
-  update public.agent_actions
-     set status = 'done', decided_at = now(), decided_by = 'sales_engineer'
-   where id = new.id;
+  if new.kind <> 'handoff' or new.detail->>'type' is distinct from 'invoice.issued' then return new; end if;
+  -- A failed answer is recorded on the row and in the stream; it never rolls back the filed invoice.
+  begin
+    perform public.fn_seat_handoff_act(new.id);
+  exception when others then
+    update public.agent_actions
+       set status = 'failed', decided_at = now(),
+           detail = detail || jsonb_build_object('error', left(sqlerrm, 500))
+     where id = new.id;
+    perform public.fn_seat_handoff_event(new.id, 'failed');
+  end;
   return new;
 end
 $function$
@@ -2826,13 +2934,13 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_writes(p_msg_type text, p_ro
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_locale text;
+declare v_locale text; v_h bigint; v_ar boolean;
 begin
   -- A supplier: always English (fn_registered_locale answers 'en'). A customer: fn_customer_notice_locale
   -- (the inquiry's language, else the registered one, else English).
   v_locale := case when p_role = 'customer' then public.fn_customer_notice_locale(p_inquiry, p_customer)
                    else coalesce(public.fn_registered_locale(p_role, p_customer, p_lead, p_email), 'en') end;
-  return public.fn_seat_handoff('sales_engineer', 'customer_support', 'delivery.request', 'notifications',
+  v_h := public.fn_seat_handoff('sales_engineer', 'customer_support', 'delivery.request', 'notifications',
     coalesce(p_subject_id, p_msg_type || ':' || coalesce(p_quote::text, p_inquiry::text, p_lead::text, p_customer::text, 'x')),
     coalesce(p_extra, '{}'::jsonb) || jsonb_build_object(
       'msg_type', p_msg_type, 'recipient_role', p_role, 'to_email', p_email, 'cc', to_jsonb(coalesce(p_cc, '{}'::text[])),
@@ -2842,6 +2950,18 @@ begin
       'subject_ar', p_subject_ar,
       'body_ar', case when p_body_ar is null then null else p_body_ar || E'\n\nمهندس المبيعات في QuotesDone' end,
       'watch_until', p_watch_until));
+
+  -- demo work (ruling 1199): no handoff was filed; the message is written for the record and captured, never sent
+  if v_h is null and coalesce(p_email, '') ~ '@' then
+    v_ar := v_locale = 'ar' and p_body_ar is not null;
+    insert into public.notifications (type, kind, to_email, cc_emails, to_role, lead_id, inquiry_id, quote_id, channel,
+                                      subject, body, status, last_error, requested_by)
+    values (p_msg_type, p_msg_type, p_email, coalesce(p_cc, '{}'::text[]), p_role, p_lead, p_inquiry, p_quote, 'email',
+            case when v_ar then coalesce(p_subject_ar, p_subject_en) else p_subject_en end,
+            case when v_ar then p_body_ar || E'\n\nمهندس المبيعات في QuotesDone' else p_body_en || E'\n\nQuotesDone sales engineer' end,
+            'suppressed', 'demo work (ruling 1199): written for the record, never sent', 'sales_engineer');
+  end if;
+  return v_h;
 end $function$
 
 
@@ -4448,8 +4568,11 @@ AS $function$
 declare v_id bigint; v_key text := p_type || ':' || p_subject_id; v_known boolean;
 begin
   if coalesce(btrim(p_subject_id), '') = '' then raise exception 'a handoff must name its subject'; end if;
-  -- ruling 1199: a handoff raised from a demo row is not filed at all
-  if public.fn_seat_work_is_demo(p_payload::text, p_payload, p_subject_table, p_subject_id) then return null; end if;
+  -- ruling 1199: a handoff raised from a demo row is not filed at all. One exception: a probe that sets
+  -- qd.probe_files_demo_handoff for its own transaction and always rolls back. The IT duty checks walk a
+  -- ZZ DEMO handoff end to end; without it fn_it_loop_open handed fn_it_incident_open a NULL id (19 Oct 2026).
+  if public.fn_seat_work_is_demo(p_payload::text, p_payload, p_subject_table, p_subject_id)
+     and coalesce(current_setting('qd.probe_files_demo_handoff', true), '') <> 'on' then return null; end if;
   v_known := exists (select 1 from public.seat_handoff_kind k
                       where k.type = p_type and k.from_seat = p_from and k.to_seat = p_to);
 
@@ -4516,6 +4639,10 @@ begin
   end if;
   execute format('select public.%I($1)', k.handler) into v using p_id;
   if v is null then raise exception '% answered nothing for handoff %', k.handler, p_id; end if;
+  -- 1013: the receiver's answer cites the note it was handed.
+  if jsonb_typeof(v) = 'object' and not v ? 'cites_note' then
+    v := v || jsonb_build_object('cites_note', public.fn_handoff_note_citation(p_id));
+  end if;
 
   if v ? 'waiting' or k.originator_closes then
     update public.agent_actions
@@ -4537,11 +4664,15 @@ CREATE OR REPLACE FUNCTION public.fn_seat_handoff_complete(p_id bigint, p_eviden
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare a public.agent_actions;
+declare a public.agent_actions; v_ev jsonb := coalesce(p_evidence, '{}'::jsonb);
 begin
+  -- 1013: every way a handoff closes, the answer cites the note.
+  if jsonb_typeof(v_ev) = 'object' and not v_ev ? 'cites_note' then
+    v_ev := v_ev || jsonb_build_object('cites_note', public.fn_handoff_note_citation(p_id));
+  end if;
   update public.agent_actions
      set status = 'done', decided_at = now(), decided_by = agent,
-         evidence = coalesce(p_evidence, '{}'::jsonb),
+         evidence = v_ev,
          detail = detail - 'awaiting'
    where id = p_id and kind = 'handoff' and status <> 'done'
   returning * into a;
@@ -4891,7 +5022,9 @@ begin
     jsonb_build_object('path', a.detail->>'path', 'item_key', a.detail->>'item_key', 'round', a.detail->'round',
                        'ceo_reasons', a.detail->>'reasons', 'submission', a.detail->'version'),
     jsonb_build_object('handoff_id', p_id, 'path', a.detail->>'path', 'item_key', a.detail->>'item_key'),
-    'ceo_revision:' || (a.detail->>'item_key') || ':g' || coalesce(a.detail->>'generation', '1') || ':r' || coalesce(a.detail->>'round', '1'));
+    'ceo_revision:' || (a.detail->>'item_key') || ':g' || coalesce(a.detail->>'generation', '1') || ':r' || coalesce(a.detail->>'round', '1')
+      -- a re-filed question (fn_ceo_revision_refile, after the last one failed) is a new question, not the closed one
+      || coalesce(':t' || (a.evidence->>'refiles'), ''));
   v_fields := jsonb_build_array(
     jsonb_build_object('key', 'revision', 'question', 'the revised submission, complete, as the CEO should now review it'),
     jsonb_build_object('key', 'answers', 'question', 'for each of the CEO''s reasons: what changed, or the evidence that answers it'));
@@ -4901,6 +5034,13 @@ begin
       jsonb_build_object('key', 'approach', 'question', 'the revised approach (blank keeps it)'),
       jsonb_build_object('key', 'target', 'question', 'the revised target, a number (blank keeps it)'),
       jsonb_build_object('key', 'days', 'question', 'the revised run length in days, 7 to 365 (blank keeps it)'));
+  end if;
+  if a.detail->>'path' = 'marketing_month_plan' then
+    -- the CEO reviews the idea list itself, so a revision that changes the plan must carry the changed list
+    v_fields := v_fields || jsonb_build_array(jsonb_build_object('key', 'ideas', 'question',
+      'the complete revised idea list as a JSON array, one object per video with n (1, 2, ...), date (YYYY-MM-DD, a UAE '
+      || 'working day in the plan''s month), idea_key, title, hook, film_plan, cta, audience (supplier, customer or both) '
+      || 'and why; every change the CEO asked for must be in it. Blank keeps the current list.'));
   end if;
   perform public.fn_ambition_ask_fields(v_held, v_fields);
   return jsonb_build_object('waiting', a.agent || ' revises and resubmits ' || coalesce(a.detail->>'item_key', '?') || ' (held question ' || v_held || ')',
@@ -5171,6 +5311,9 @@ declare
   v_id text := split_part(coalesce(p_subject_id, ''), ':', 1);
   v_ref jsonb := case when jsonb_typeof(p_ref) = 'object' then p_ref else '{}'::jsonb end;
 begin
+  -- a rolled-back probe proving a seat loop on ZZ DEMO fixtures (never set outside one)
+  if coalesce(current_setting('qd.probe_files_demo_handoff', true), '') = 'on' then return false; end if;
+
   if coalesce(p_text, '') ~* '(^|[^a-z])zz\s*demo' then return true; end if;
 
   -- the subject a handoff names, folded into the reference set
@@ -6402,6 +6545,24 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_stripe_dispute_counts_the_customer()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_c uuid;
+begin
+  select customer_id into v_c from public.transactions where id = new.transaction_id;
+  if v_c is null then return new; end if;
+  update public.customers c
+     set disputes_filed = (select count(*) from public.stripe_dispute d join public.transactions t on t.id = d.transaction_id
+                            where t.customer_id = v_c)
+   where c.id = v_c;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_stripe_event_seen(p_event_id text, p_type text, p_status text)
  RETURNS void
  LANGUAGE sql
@@ -7528,9 +7689,10 @@ begin
   v_site := coalesce(v_site, 'https://quotesdone.com');
   select value into v_subj    from app_secrets where key = 'invite_subject';
   select value into v_body    from app_secrets where key = 'invite_body';
-  -- A template without the link placeholder is the 62-invitations-with-no-way-in failure. Refuse.
-  if coalesce(v_body, '') not like '%{{link}}%' then
-    raise exception 'app_secrets.invite_body has no {{link}} placeholder: an invitation with no way in is refused';
+  -- 27 Oct 2026: the founder's invitation carries no link ("safer to not send links"); a supplier registers at
+  -- quotesdone.com or replies. Only an EMPTY template is refused now. A template that still has {{link}} is filled.
+  if btrim(coalesce(v_body, '')) = '' then
+    raise exception 'app_secrets.invite_body is empty: no invitation is built from nothing';
   end if;
   v_target := coalesce((select nullif(value,'')::int from app_secrets where key='invite_target_per_category'),
                        (select nullif(value,'')::int from app_secrets where key='invite_target_per_trade'), 10);
@@ -7566,8 +7728,9 @@ begin
   ),
   touched_d as materialized (select distinct dkey from keyed where touched),
   touched_n as materialized (select distinct nkey from keyed where touched and nkey is not null),
-  -- instr 1013: marketing's ranking of the trades below ten suppliers, with each trade's English variant
-  plans as materialized (select p.trade, p.emirate, p.rank, p.invite_subject, p.invite_body from public.marketing_gap_recruitment_plan p),
+  -- instr 1013: marketing's ranking of the trades below ten suppliers (the ranking orders the queue; since 27 Oct 2026
+  -- every row stores the one approved text, not a per-trade variant)
+  plans as materialized (select p.trade, p.emirate, p.rank from public.marketing_gap_recruitment_plan p),
   -- 29 Sep 2026 (ledger 1018): the trades and areas of the open, real stalled-request rescues (public.stalled_inquiry_rescue).
   -- A fixture rescue never moves the real queue.
   rescue as materialized (select x.trades, x.emirate from public.stalled_inquiry_rescue x where x.cleared_at is null and not x.fixture and cardinality(x.trades) > 0),
@@ -7593,7 +7756,7 @@ begin
            when exists (select 1 from public.supply_gap g where g.status = 'recruit' and g.trade = any(coalesce(c.invite_trades, '{}'::text[]))
                           and (g.emirate = 'UAE' or g.emirate = c.emirate)) then 0
            when pl.rank is not null then 1 else 2 end as target_rank,
-      coalesce(pl.rank, 2147483647) as plan_rank, pl.invite_subject as plan_subject, pl.invite_body as plan_body,
+      coalesce(pl.rank, 2147483647) as plan_rank,
       coalesce((select u.domain_slug from lead_subcategory ls join under u on u.domain_slug = ls.domain_slug
                  where ls.lead_id = c.id order by u.have asc, ls.score desc limit 1), '~none') as pdomain,
       case when c.email_verified in ('verified','true') then 0 else 1 end as unverified_rank,
@@ -7602,12 +7765,12 @@ begin
               'support','hello','marketing','general','accounts','reception','careers','hr')
            then 1 else 0 end as role_rank
     from cand c
-    left join lateral (select p.rank, p.invite_subject, p.invite_body from plans p
+    left join lateral (select p.rank from plans p
                         where p.trade = any(coalesce(c.invite_trades, '{}'::text[])) and (p.emirate = 'UAE' or p.emirate = c.emirate)
                         order by p.rank limit 1) pl on true
   ),
   elig as (
-    select r.id, r.email, r.company_name, r.claim_token, r.lang, r.plan_subject, r.plan_body from (
+    select r.id, r.email, r.company_name, r.claim_token, r.lang from (
       select p.*,
         case when p.pdomain='~none' then 1 else 0 end as is_none,
         row_number() over (partition by p.pdomain order by p.unverified_rank, p.role_rank, p.id) as rk,
@@ -7622,12 +7785,15 @@ begin
     order by r.target_rank, r.plan_rank, r.is_none, r.rk, r.unverified_rank, r.role_rank, r.pdomain
     limit greatest(coalesce(p_limit, 0), 0)
   )
-  select e.id, btrim(e.email), e.company_name, e.lang, coalesce(e.plan_subject, v_subj),
-         -- an Arabic-script company name is not written into an English letter (the 29 Sep probe found 11 of 200)
-         replace(replace(coalesce(e.plan_body, v_body), '{{company}}',
-                         coalesce(nullif(btrim(case when e.company_name ~ '[؀-ۿ]' then '' else e.company_name end), ''), 'there')),
-                 '{{link}}', public.fn_supplier_invite_link(v_site, e.claim_token, e.id))   -- English, with its ref (see header)
-  from elig e;
+  select e.id, btrim(e.email), e.company_name, e.lang, v_subj,
+         -- an Arabic-script company name is not written into an English letter (the 29 Sep probe found 11 of 200);
+         -- with no usable name the greeting is the neutral "Hello," the Microsoft 365 lane also sends
+         -- (a template that still carries {{link}} is filled as before; the approved one has none)
+         replace(replace(case when n.nm = '' then replace(v_body, 'Hi {{company}} team,', 'Hello,') else v_body end,
+                         '{{company}}', case when n.nm = '' then 'there' else n.nm end),
+                 '{{link}}', public.fn_supplier_invite_link(v_site, e.claim_token, e.id))
+  from elig e
+  cross join lateral (select coalesce(nullif(btrim(case when e.company_name ~ '[؀-ۿ]' then '' else e.company_name end), ''), '') as nm) n;
 end
 $function$
 
@@ -10654,14 +10820,15 @@ CREATE OR REPLACE FUNCTION public.fn_support_case_idle_close()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_days int := greatest(1, public.fn_seat_clock_policy('support_case_append_days', 7)::int); n int;
+declare v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';   -- fixture run: ONLY demo cases
+  v_days int := greatest(1, public.fn_seat_clock_policy('support_case_append_days', 7)::int); n int;
 begin
   update public.support_case
      set state = 'closed', closed_at = now(),
          close_reason = 'resolved — answered, and no reply from the customer in ' || v_days || ' days (closed by customer_support)'
    where state = 'waiting_customer' and last_activity_at < now() - make_interval(days => v_days)
      and category is distinct from 'automated_decision_objection'   -- legal finding 1: closed only by a reply
-     and not public.fn_party_is_demo(party_kind, party_id);
+     and public.fn_party_is_demo(party_kind, party_id) = v_fx;       -- a fixture run can never close a real case
   get diagnostics n = row_count;
   return jsonb_build_object('closed', n);
 end $function$

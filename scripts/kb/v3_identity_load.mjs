@@ -2,6 +2,7 @@
 // identity. Reads docs/knowledge/V3_ROLE_IDENTITY.json, which v3_crosswalk.mjs produced.
 //
 //   node scripts/kb/v3_identity_load.mjs --ref=<project>
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import fs from 'node:fs';
 import { mgmtRead, mgmtWriteData, PROD_REF } from '../lib/qd_guard.mjs';
 
@@ -9,7 +10,7 @@ const refArg = process.argv.find((a) => a.startsWith('--ref='));
 const REF = refArg ? refArg.slice(6) : PROD_REF;
 const IS_PROD = REF === PROD_REF;
 const TOKEN = (process.env.SUPABASE_ACCESS_TOKEN
-  || fs.readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+  || fs.readFileSync(SUPABASE_TOKEN_FILE, 'utf8')).trim();
 
 async function prodPost(sql) {
   for (let attempt = 0; ; attempt++) {

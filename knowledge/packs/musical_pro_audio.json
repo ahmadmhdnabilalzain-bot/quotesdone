@@ -54,6 +54,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "musical_pro_audio:product-distinctions",
+      "topic": "Musical instruments and pro audio: product families and system choices",
+      "topic_ar": "الآلات الموسيقية والصوتيات الاحترافية: عائلات المنتجات وخيارات الأنظمة",
+      "kind": "product_distinctions",
+      "body_en": "Musical instruments: keyboards and digital pianos, acoustic pianos, guitars and basses (acoustic, electric) with amplifiers, drums and percussion (acoustic and electronic kits), orchestral and band instruments, and Arabic and traditional instruments (oud, qanun, darbuka, riq), plus accessories and education packages for schools. Pro audio: loudspeakers (point-source cabinets for small and medium rooms; line arrays, rows of identical elements acting as one source, for large venues and outdoor events, flown or ground-stacked; subwoofers; column speakers for speech in reverberant spaces such as mosques and halls), amplifiers and DSP processors, analogue and digital mixing consoles, microphones (dynamic, condenser, wireless by frequency band and licensing), in-ear monitoring, conference and public-address systems (with voice evacuation where required), and recording and broadcast equipment. Installed sound for hotels, malls, worship spaces and auditoriums is designed with acoustic modelling for coverage and intelligibility. Offers differ on brand and model, system design and coverage predictions, wireless frequency compliance, installation and programming, training, warranty and service.",
+      "body_ar": "الآلات الموسيقية: الأورغ والبيانو الرقمي، والبيانو الأكوستيك، والجيتار والباص (أكوستيك، كهربائي) مع المضخمات، والطبول والإيقاع (أطقم أكوستيك وإلكترونية)، وآلات الأوركسترا والفرق، والآلات العربية والتراثية (العود، القانون، الدربكة، الرق)، إضافة إلى الملحقات والباقات التعليمية للمدارس. والصوتيات الاحترافية: السماعات (صناديق نقطية للغرف الصغيرة والمتوسطة؛ والمصفوفات الخطية، وهي صفوف من عناصر متطابقة تعمل كمصدر واحد، للأماكن الكبيرة والفعاليات الخارجية، معلقة أو مكدسة على الأرض؛ ومضخمات الترددات المنخفضة؛ والسماعات العمودية للكلام في الأماكن كثيرة الصدى مثل المساجد والقاعات)، والمضخمات ومعالجات الإشارة الرقمية، ومازجات الصوت التناظرية والرقمية، والميكروفونات (ديناميكية، مكثفة، لاسلكية حسب نطاق التردد والترخيص)، والمراقبة داخل الأذن، وأنظمة المؤتمرات والإذاعة العامة (مع الإخلاء الصوتي حيث يلزم)، ومعدات التسجيل والبث. ويُصمم الصوت المركب للفنادق والمراكز التجارية ودور العبادة والقاعات بنمذجة صوتية للتغطية ووضوح الكلام. وتختلف العروض في العلامة والموديل، وتصميم النظام وتوقعات التغطية، وامتثال الترددات اللاسلكية، والتركيب والبرمجة، والتدريب، والضمان والخدمة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Line_array"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: line arrays as rows of similar speakers acting as one source, flown or stacked for large venues -> confirmed."
+    },
+    {
+      "id": "musical_pro_audio:lead-times-and-quoting",
+      "topic": "Musical instruments & pro audio - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الآلات الموسيقية والصوتيات الاحترافية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock instruments and equipment: days; system projects 4-12 weeks with design and installation. A supplier needs the venue and size, use (speech, music, events), audience, existing equipment, budget band, and installation conditions. A quote states equipment list with make and model, system design and coverage, cabling and installation, programming, training, warranty and service, and validity.",
+      "body_ar": "الآلات والمعدات المتوفرة: أيام؛ ومشاريع الأنظمة 4-12 أسبوعاً مع التصميم والتركيب. ويحتاج المورد المكان وحجمه، والاستخدام (كلام، موسيقى، فعاليات)، والجمهور، والمعدات الحالية، ونطاق الميزانية، وظروف التركيب. ويذكر العرض قائمة المعدات بالماركة والموديل وتصميم النظام والتغطية والتمديدات والتركيب والبرمجة والتدريب والضمان والخدمة والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (no entry on TDRA type approval or frequency rules for wireless microphones). musical_pro_audio:tdra-radio-microphone-approval was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from musical_pro_audio.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Why do speeches in our hall sound unclear even though the speakers are loud?",
+      "q_ar": "ليش الكلام في قاعتنا يطلع غير واضح مع أن السماعات صوتها عالي؟",
+      "expected_entry_ids": [
+        "musical_pro_audio:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -97,6 +135,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "musical_pro_audio:tdra-radio-microphone-approval"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "musical_pro_audio:product-distinctions"
+      ],
+      "stored_not_served": [
+        "musical_pro_audio:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Line_array"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

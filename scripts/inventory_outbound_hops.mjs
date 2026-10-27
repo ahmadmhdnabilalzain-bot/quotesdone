@@ -22,9 +22,11 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = 'C:/Users/Opera/quotesdone/supabase/functions';
-const OUT = 'C:/Users/Opera/qd-check/inventory_outbound.out.txt';
+const ROOT = fileURLToPath(new URL('../supabase/functions', import.meta.url));
+const OUT = path.join(os.tmpdir(), 'inventory_outbound.out.txt');
 
 const dirs = fs.readdirSync(ROOT, { withFileTypes: true })
   .filter((d) => d.isDirectory() && !d.name.startsWith('_'))

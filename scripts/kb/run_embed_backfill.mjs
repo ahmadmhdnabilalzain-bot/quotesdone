@@ -18,6 +18,7 @@
 // COST: the model is free and in-region. The only spend is one Supabase edge invocation per chunk.
 //
 //   node scripts/kb/run_embed_backfill.mjs [--batch=400] [--max-tier=4] [--minutes=30]
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
 
 const PROD = 'htdblwldjkcgjvmqkbeh';
@@ -25,8 +26,7 @@ const arg = (n, d) => (process.argv.find(a => a.startsWith(`--${n}=`)) || `--${n
 const BATCH = Math.max(1, Math.min(Number(arg('batch', 400)), 1000));
 const MAX_TIER = Math.max(1, Math.min(Number(arg('max-tier', 4)), 4));
 const MINUTES = Number(arg('minutes', 30));
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 // A 429 from the Management API throttler means the statement never ran, so it is the one answer that

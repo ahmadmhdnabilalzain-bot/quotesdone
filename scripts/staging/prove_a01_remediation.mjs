@@ -11,12 +11,15 @@
 // Production is read-only throughout, enforced by qd_guard, and re-verified at the end.
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
+const REPO = fileURLToPath(new URL('../../', import.meta.url));
 import { splitStatements } from './sql_split.mjs';
 import { PROD_REF, resolveStagingRef, mgmtWrite, mgmtRead } from '../lib/qd_guard.mjs';
 
 const REF = resolveStagingRef(process.argv[2]);
 const APPLY = process.argv.includes('--apply');
-const MIGRATION = 'C:/Users/Opera/quotesdone/supabase/migrations/20260802122010_kb_corpus_staging_schema_2026_08_02.sql';
+const MIGRATION = REPO + 'supabase/migrations/20260802122010_kb_corpus_staging_schema_2026_08_02.sql';
 const PAGE = 500;
 const log = [];
 const say = (s) => { console.log(s); log.push(String(s)); };
@@ -48,7 +51,7 @@ const dupRows = await mgmtRead(PROD_REF, `
    order by d1.category_slug, d1.rule_id`);
 const exportBody = dupRows.map(r => `${r.category_slug}\t${r.rule_id}\t${r.source_rule_id ?? ''}`).join('\n') + '\n';
 const exportSha = createHash('sha256').update(exportBody, 'utf8').digest('hex');
-writeFileSync('C:/Users/Opera/qd-check/_a01_duplicate_ids.tsv', exportBody, 'utf8');
+writeFileSync(tmpdir() + '/_a01_duplicate_ids.tsv', exportBody, 'utf8');
 say(`\nREMEDIATION SET EXPORTED: ${dupRows.length} rows`);
 say(`  file    _a01_duplicate_ids.tsv`);
 say(`  sha256  ${exportSha}`);
@@ -87,7 +90,7 @@ if (!APPLY) { say('\nDRY RUN — staging untouched. Re-run with --apply.'); proc
 // they arrive in 20260802130025_kb_dump_migrations_and_late_schema_fixes.sql, and those two columns
 // are the ones the whole A-01 diagnosis rests on. Every kb_stage migration is replayed, in order.
 say('\n--- creating kb_stage on staging from the committed migrations, in order ---');
-const MIG_DIR = 'C:/Users/Opera/quotesdone/supabase/migrations';
+const MIG_DIR = REPO + 'supabase/migrations';
 if (process.argv.includes('--skip-migrations')) {
   say('  skipped (--skip-migrations): kb_stage DDL already applied in a previous run');
 } else {
@@ -197,6 +200,6 @@ const untouched = prodAfter.total === prodBase.total && prodAfter.dups === prodB
   && prodAfter.records === prodBase.records;
 say(`  PRODUCTION UNCHANGED: ${untouched}`);
 
-writeFileSync('C:/Users/Opera/qd-check/_a01_proof.txt', log.join('\n'), 'utf8');
+writeFileSync(tmpdir() + '/_a01_proof.txt', log.join('\n'), 'utf8');
 say('\nwrote _a01_proof.txt and _a01_duplicate_ids.tsv');
 process.exit(good && untouched ? 0 : 1);

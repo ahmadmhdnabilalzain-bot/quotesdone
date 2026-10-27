@@ -27,6 +27,7 @@ Deno.test('the trade row reaches the prompt; unrelated, internal, priced and sup
   assert(b.includes('6-12 weeks') && b.includes('TRADE KNOWLEDGE'));
   for (const bad of ['CEO seat', 'Unreviewed', 'AED', 'درهم', '+971', 'LLC']) assert(!b.includes(bad), bad + ' reached the prompt');
   assertEquals(seen.at(-1)?.p_seat, 'customer_support');
+  assertEquals(seen.at(-1)?.p_audience, 'visitor');   // explicit, never left to which signature is live
 });
 
 Deno.test('a failed or slow retrieval leaves the prompt unchanged and never holds the answer', async () => {

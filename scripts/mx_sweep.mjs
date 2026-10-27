@@ -13,6 +13,7 @@
 //   node scripts/mx_sweep.mjs --ref=<project-ref> [--limit=N] [--recheck-days=30]
 //
 // Safe to re-run: rows are upserted, and domains checked inside --recheck-days are skipped.
+import { supabaseAccessToken } from './lib/supabase_token.mjs';
 import { Resolver } from 'node:dns/promises';
 import { readFileSync } from 'node:fs';
 
@@ -23,8 +24,7 @@ const RECHECK_DAYS = Number(arg('recheck-days', '30'));
 const CONCURRENCY = Number(arg('concurrency', '60'));
 if (!REF) { console.error('usage: node scripts/mx_sweep.mjs --ref=<project-ref>'); process.exit(2); }
 
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 
 async function sql(query) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {

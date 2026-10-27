@@ -15,6 +15,7 @@
 // is kept in structured_data. Re-running produces byte-identical rows.
 //
 //   node scripts/kb/import_native_rules_as_records.mjs --ref=<project> --root=<_kbpkgs dir>
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { createHash } from 'node:crypto';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -22,7 +23,7 @@ import { join } from 'node:path';
 const arg = (n) => (process.argv.find(a => a.startsWith(`--${n}=`)) || '').split('=').slice(1).join('=');
 const REF = arg('ref'), ROOT = arg('root');
 if (!/^[a-z]{20}$/.test(REF) || !ROOT) throw new Error('--ref and --root are required');
-const token = readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8').trim();
+const token = readFileSync(SUPABASE_TOKEN_FILE, 'utf8').trim();
 
 async function q(sql, attempt = 0) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {

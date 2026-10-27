@@ -23,7 +23,7 @@ import { readDrawing, type DrawingRead, type OcrLine } from './drawing_from_ocr.
 import { deviceTypeOf } from './legend_vocabulary.ts';
 import { countSymbols, crossCheck, legendRows } from './symbol_count.ts';
 import { drawingInput } from './drawing_input.ts';
-import { OCR_PASSES, binarize, mergeLines, scaleFor, tiles } from '../../../src/components/me/ocrPlan.ts';
+import { loadSharp, ocrPlan } from './ocr_plan_offline.ts';
 
 const here = new URL('.', import.meta.url);
 const path = (u: URL) => decodeURIComponent(u.pathname).replace(/^\/([A-Za-z]:)/, '$1');
@@ -82,49 +82,11 @@ export function scoreRead(key: Record<string, Field>, r: DrawingRead) {
     rooms: list(r.rooms, key.rooms.value as string[]),
   } as Record<string, string>;
 }
-// sharp is PINNED to the version deno.lock already holds (via next): an unpinned specifier resolved
-// to npm's newest, and on 28 Sep 2026 sharp 0.35.5 was tagged latest before its darwin-x64 binary
-// resolved, which failed every PR's deno test with 'Could not find npm package'.
-
-// sharp is loaded LAZILY: its module reads process.env on load, and the suite runner
-// (scripts/checks/run.mjs) grants no permissions, so a top-level import crashed the whole file
-// instead of letting this test report itself ignored (measured 14 Sep 2026: 357 passed, 1 failed).
-// deno-lint-ignore no-explicit-any
-let sharp: any;
-const loadSharp = async () => { if (!sharp) sharp = (await import('npm:sharp@0.34.5')).default; return sharp; };
-
-/** The OCR plan, exactly as the browser runs it, with sharp standing in for the canvas. */
-async function ocrPlan(bytes: Uint8Array) {
-  await loadSharp();
-  const meta = await sharp(bytes).metadata();
-  const worker = await createWorker('eng', 1, { langPath: LANG, gzip: true, cacheMethod: 'none' });
-  const all: (OcrLine & { pass: number })[] = [];
-  try {
-    for (let pi = 0; pi < OCR_PASSES.length; pi++) {
-      const p = OCR_PASSES[pi]; const s = scaleFor(p, meta.width!, meta.height!);
-      const W = Math.round(meta.width! * s), H = Math.round(meta.height! * s);
-      const raw = await sharp(bytes).flatten({ background: '#ffffff' }).resize(W, H, { kernel: 'lanczos3' }).removeAlpha().raw().toBuffer();
-      const g = binarize(new Uint8Array(raw), 3, W, H);
-      // deno-lint-ignore no-explicit-any
-      await worker.setParameters({ tessedit_pageseg_mode: p.psm as any, user_defined_dpi: '300' } as any);
-      for (const t of tiles(W, H, p.tile)) {
-        const png = await sharp(Buffer.from(g), { raw: { width: W, height: H, channels: 1 } }).extract({ left: t.x, top: t.y, width: t.w, height: t.h }).png().toBuffer();
-        // deno-lint-ignore no-explicit-any
-        const { data } = await worker.recognize(png, {}, { blocks: true } as any) as any;
-        for (const b of data.blocks || []) for (const par of b.paragraphs || []) for (const ln of par.lines || []) {
-          const bb = ln.bbox; all.push({ text: ln.text, pass: pi, bbox: { x: (t.x + bb.x0) / s, y: (t.y + bb.y0) / s, w: (bb.x1 - bb.x0) / s, h: (bb.y1 - bb.y0) / s } });
-        }
-      }
-    }
-  } finally { await worker.terminate(); }
-  return { lines: mergeLines(all), width: meta.width!, height: meta.height! };
-}
-
 const tally = (s: Record<string, string>) => Object.values(s).filter((v) => v === 'RIGHT').length;
 
 const CAN = Deno.permissions.querySync({ name: 'read' }).state === 'granted' && Deno.permissions.querySync({ name: 'env' }).state === 'granted' && Deno.permissions.querySync({ name: 'ffi' }).state === 'granted';
 Deno.test({ name: 'drawing image: before/after per field vs the answer key, symbol counter cross-check (no model)', ignore: !CAN, sanitizeResources: false, sanitizeOps: false }, async () => {
-  await loadSharp();
+  const sharp = await loadSharp();
   const key = JSON.parse(await Deno.readTextFile(KEY));
   const bytes = await Deno.readFile(FIXTURE);
 
@@ -136,7 +98,7 @@ Deno.test({ name: 'drawing image: before/after per field vs the answer key, symb
 
   // AFTER — the plan and the drawing reader.
   const t0 = Date.now();
-  const { lines, width, height } = await ocrPlan(bytes);
+  const { lines, width, height } = await ocrPlan(bytes, LANG);
   const ocrMs = Date.now() - t0;
   const { data, info } = await sharp(bytes).flatten({ background: '#ffffff' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
   const rows = legendRows(lines, width, deviceTypeOf);

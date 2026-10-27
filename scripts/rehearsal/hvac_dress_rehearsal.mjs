@@ -37,6 +37,7 @@
 //
 // `seed` writes to the live project through the demo factory, so it needs the factory's explicit
 // production opt-in as well as `arm`:   QD_FIXTURES=1 node scripts/rehearsal/hvac_dress_rehearsal.mjs seed
+import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { newRun, makeSupplier, teardown as factoryTeardown } from '../lib/demo_factory.mjs';
 
@@ -46,8 +47,7 @@ const PROD = 'htdblwldjkcgjvmqkbeh';
 const FACTORY_TAG = 'hvacdress';
 const cmd = process.argv[2] || 'markers';
 const OUT = 'docs/rehearsal';
-const token = (process.env.SUPABASE_ACCESS_TOKEN
-  || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
+const token = supabaseAccessToken();
 
 async function q(sql, attempt = 0) {
   const r = await fetch(`https://api.supabase.com/v1/projects/${PROD}/database/query`, {

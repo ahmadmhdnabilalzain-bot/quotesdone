@@ -1,12 +1,25 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ \"$CLAUDE_CODE_REMOTE\" = true ]; then bash \"$CLAUDE_PROJECT_DIR/scripts/cloud/setup.sh\" || true; fi",
+            "timeout": 600,
+            "shell": "bash"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash|Grep",
         "hooks": [
           {
             "type": "command",
-            "command": "C:/Users/Opera/.local/bin/graphify.EXE hook-guard search"
+            "command": "if command -v graphify >/dev/null 2>&1; then graphify hook-guard search; fi",
+            "shell": "bash"
           }
         ]
       },
@@ -15,7 +28,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "C:/Users/Opera/.local/bin/graphify.EXE hook-guard read"
+            "command": "if command -v graphify >/dev/null 2>&1; then graphify hook-guard read; fi",
+            "shell": "bash"
           }
         ]
       }

@@ -52,7 +52,19 @@ export function foldOcr(s: string): string {
 }
 
 export function deviceTypeOf(text: string): DeviceType | null {
-  const t = foldOcr(text);
+  const t = snapWords(foldOcr(text));
   for (const d of DEVICE_TYPES) if (d.re.test(t)) return d;
   return null;
+}
+
+// A phone photo's OCR (19 Oct 2026 drawing bench, the sample sheet photographed at 1.5 deg, blurred, JPEG q60) read
+// "MEAT DETECTOR", "SMOKE DETICTOR c 'wr SOBER", "WALL MOUNTED SOUNDER BEAL ON": 3 of 7 legend rows were lost.
+// Each English word within a small edit distance of a legend word is snapped to it, and "c 'w" / "c =" is c/w.
+// ponytail: English legend words only; Arabic OCR is not snapped.
+const LEGEND_WORDS = ['smoke', 'detector', 'heat', 'sounder', 'beacon', 'manual', 'callpoint', 'call', 'point', 'mounted', 'wall', 'fire', 'alarm', 'control', 'panel'];
+const lev = (a: string, b: string) => { const d = Array.from({ length: b.length + 1 }, (_, i) => i); for (let i = 1; i <= a.length; i++) { let p = d[0]; d[0] = i; for (let j = 1; j <= b.length; j++) { const t = d[j]; d[j] = Math.min(d[j] + 1, d[j - 1] + 1, p + (a[i - 1] === b[j - 1] ? 0 : 1)); p = t; } } return d[b.length]; };
+export function snapWords(t: string): string {
+  const s = t.replace(/\bc\s*['/]?\s*(?:w+r?|=)(?=\s|$)/g, 'c/w');
+  return s.replace(/[a-z]{4,}/g, (w) => { if (LEGEND_WORDS.includes(w)) return w; const hit = LEGEND_WORDS.find((v) => Math.abs(v.length - w.length) <= 2 && lev(w, v) <= Math.max(1, Math.floor(v.length / 4))); return hit ?? w; })
+    .replace(/\bsounder (?:bea[a-z]*|beal on|beal)\b/g, 'sounder beacon');
 }

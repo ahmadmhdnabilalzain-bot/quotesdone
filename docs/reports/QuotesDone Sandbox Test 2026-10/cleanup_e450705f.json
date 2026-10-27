@@ -1,0 +1,44 @@
+{
+ "verify": {
+  "tables_scanned": 712,
+  "tables_in_registry": 712,
+  "found": [
+   {
+    "table": "agent_actions",
+    "rows": 2
+   },
+   {
+    "table": "agent_runs",
+    "rows": 1
+   },
+   {
+    "table": "decision_trace",
+    "rows": 1
+   },
+   {
+    "table": "file_scan",
+    "rows": 4
+   },
+   {
+    "table": "org_tasks",
+    "rows": 1
+   },
+   {
+    "table": "os_audit_log",
+    "rows": 1
+   },
+   {
+    "table": "undo_log",
+    "rows": 8
+   }
+  ],
+  "unverified": [],
+  "storage": [],
+  "auth_users": 0,
+  "dropbox": {
+   "listed": 0,
+   "records": 0
+  },
+  "clean": false
+ }
+}

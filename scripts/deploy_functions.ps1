@@ -43,7 +43,7 @@ if (-not $Slugs -or $Slugs.Count -eq 0) { Write-Output 'No function slugs given.
 
 $repo = Split-Path -Parent $PSScriptRoot
 Set-Location $repo
-$t = (Get-Content C:\Users\Opera\.supabase\access-token -Raw).Trim()
+$t = if ($env:SUPABASE_ACCESS_TOKEN) { $env:SUPABASE_ACCESS_TOKEN.Trim() } else { (Get-Content (Join-Path $HOME '.supabase/access-token') -Raw).Trim() }
 $env:SUPABASE_ACCESS_TOKEN = $t
 $env:QD_TARGET_REF = $ProjectRef
 $h = @{ Authorization = "Bearer $t" }

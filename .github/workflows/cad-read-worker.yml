@@ -8,10 +8,16 @@ name: CAD read worker
 # The schedule stays ONLY for what nothing else can see: a lost dispatch or a dead runner after the
 # customer closed the page - without it that drawing would never be read. 4 runs a day, ~120 Actions-
 # minutes a month, plus ~1 minute per queued drawing. Owner: sales_engineer.
+# 27 Oct 2026 (it_engineer): GitHub Actions is OFF, so nothing triggers this file. customer_api no longer dispatches it;
+# a queued job raises a sales_engineer finding instead (customer_api cadReadHeld), and the sales_engineer runs the same
+# command as the step below by hand. The Claude cloud routine "CAD read worker" (every 2 h at :15, runbook
+# docs/runbooks/release-without-ci.md section 3) runs the same command but is PAUSED: founder, no customer drawings
+# until customers are invited. This file stays as the record of how the worker runs when Actions returns.
 
+# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
 on:
-  schedule:
-    - cron: '17 */6 * * *'
+  # schedule:
+    # - cron: '17 */6 * * *'
   workflow_dispatch: {}
 
 concurrency:
@@ -27,7 +33,9 @@ jobs:
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v7
-      - uses: denoland/setup-deno@v2
+        with:
+          persist-credentials: false
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with:
           deno-version: v2.x
       - name: Read the queued CAD drawings

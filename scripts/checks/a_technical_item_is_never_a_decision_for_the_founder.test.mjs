@@ -6,6 +6,7 @@
 //   2. the file that sets the rows leaves no review_independence or deliberation_independence class with to_founder;
 //   3. the gateway never records a closed rehearsal window as a review hold, and the drill never judges author 'unknown'.
 // With a token (local runs) it also reads production: no to_founder row outside the three categories.
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -38,7 +39,7 @@ test('a closed rehearsal window is never a review hold; a drill never judges an 
 });
 
 test('live: every to_founder row names one of his categories (skipped without a token)', async (t) => {
-  const tokFile = 'C:/Users/Opera/.supabase/access-token';
+  const tokFile = SUPABASE_TOKEN_FILE;
   if (PENDING) return t.skip('the file is pending apply');
   if (!process.env.SUPABASE_ACCESS_TOKEN && !existsSync(tokFile)) return t.skip('no management token');
   const { mgmtRead, PROD_REF } = await import('../lib/qd_guard.mjs');

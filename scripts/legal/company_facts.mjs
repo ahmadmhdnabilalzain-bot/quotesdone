@@ -97,7 +97,7 @@ export function denylisted(text, list = loadFacts().unsafe_clause_denylist) {
 
 /** The current (not archived) documents of legal.json. */
 export function currentDocs(legal, facts = loadFacts()) {
-  return Object.keys(legal).filter((k) => !facts.surfaces.archived_documents.includes(k) && !/-v\d+$/.test(k));
+  return Object.keys(legal).filter((k) => !facts.surfaces.archived_documents.includes(k) && !/-v\d+(?:\.\d+)?$/.test(k));
 }
 
 // THE SIGNED BODY a party accepts, derived from legal.json. MEASURED 23 Sep 2026: production's

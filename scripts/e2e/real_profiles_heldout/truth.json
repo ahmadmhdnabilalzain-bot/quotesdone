@@ -425,6 +425,30 @@
     "security_systems"
    ]
   },
-  "reviewer_ruled_wrong_why": "Automation & Controls and Access Control sit under H05 ELECTRICAL WORKS: a sub-part of electrical, not trades of their own"
+  "reviewer_ruled_wrong_why": "Automation & Controls and Access Control sit under H05 ELECTRICAL WORKS: a sub-part of electrical, not trades of their own",
+  "h01_quotes": {
+   "joinery": "Glass folding doors are our speciality... offering excellent aluminium partition, ACP cladding, structural glazing, and kitchen cabinets. (page Aluminium Glass Folding Doors)",
+   "hvac": "Aluminium works, Glass works, UPVC windows & doors and Air conditioning services. (About page; hvac already in trades_also)",
+   "restored": "19 Oct 2026, sales_engineer, on the review of #1483: these two quotes were deleted by e0e9f78; restored here as they were written in 115e686"
+  },
+  "overturn_record": {
+   "note": "Both overturns REMOVE an allowance (the code stays wrong if proposed), so neither loosens the score. Recorded 19 Oct 2026 by sales_engineer, after the review of #1483 found them unexplained. Neither is used to raise any score: rescore counts only verified_in_file as allowed.",
+   "H01_joinery": {
+    "removed_from": "verified_in_file",
+    "first_decided_by": "the release operator (Claude agent), second review of #1412, 18 Oct 2026 (commit e0e9f78)",
+    "adjudicated_by": "independent Claude adjudicator (sales_engineer subagent), 19 Oct 2026, no paid model",
+    "verdict": "PASSING",
+    "relied_on": "\"... structural glazing, and kitchen cabinets.\" closing an aluminium and glass list on the folding-doors page; the certificate scope \"Carpentry & Wood Flooring Works\" is a certificate, not the company's own offer",
+    "reason": "kitchen cabinets are a side item of an aluminium and glass contractor, not a line of business"
+   },
+   "H06_design_consultancy": {
+    "removed_from": "verified_in_file",
+    "first_decided_by": "the release operator (Claude agent), review of #1412, 18 Oct 2026 (commit 115e686)",
+    "adjudicated_by": "independent Claude adjudicator (sales_engineer subagent), 19 Oct 2026, no paid model",
+    "verdict": "NOT_OFFERED",
+    "relied_on": "\"Landscape Designing\", heading the p4 services list",
+    "reason": "landscape design belongs to landscaping; design_consultancy covers interior and architectural design, 3D visualisation and design approvals"
+   }
+  }
  }
 }

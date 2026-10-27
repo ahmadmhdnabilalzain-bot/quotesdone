@@ -51,13 +51,14 @@
 //
 // Every control runs inside a transaction that always ends in `raise exception`, so production
 // carries nothing away from this file. The residue assertions at the end measure that.
+import { SUPABASE_TOKEN_FILE } from '../../lib/supabase_token.mjs';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN
   || existsSync(join(homedir(), '.supabase', 'access-token'))
-  || existsSync('C:/Users/Opera/.supabase/access-token');
+  || existsSync(SUPABASE_TOKEN_FILE);
 if (!hasToken) {
   console.log('SKIP kernel_positive_controls: no Supabase management token here.');
   process.exit(0);
