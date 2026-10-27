@@ -30,7 +30,7 @@ begin
   end loop;
   v_r2 := public.fn_it_engineer_run_clusters();
   select * into f from public.it_engineer_finding where issue_key = 'duty:run_cluster:fixture:zz_demo_run_probe';
-  if f.closed_at is null or f.close_note not like 'cleared: zz_demo_run_probe now has 6 non-ok of 16 runs%' then v_fail := v_fail || ' b(' || coalesce(f.close_note, 'open') || ')'; end if;
+  if f.closed_at is null or f.close_note !~ '^cleared: zz_demo_run_probe now has 6 (non-ok|failed) of 16 runs' then   -- 'failed' since a_warned_or_skipped_run_is_not_a_failed_run.sql v_fail := v_fail || ' b(' || coalesce(f.close_note, 'open') || ')'; end if;
 
   if (select count(*) from public.it_engineer_finding where closed_at is null and issue_key like 'duty:run_cluster:%' and issue_key not like 'duty:run_cluster:fixture:%') <> v_real_open_before then
     v_fail := v_fail || ' c(real findings moved)';
