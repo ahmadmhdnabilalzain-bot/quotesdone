@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-10-27T19:44:47.304Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-10-27T19:52:04.834Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -221,7 +221,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (761) =====
+-- ===== TABLES (764) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -9632,6 +9632,28 @@ CREATE TABLE IF NOT EXISTS public.supplier_voice_note (
   chars integer
 );
 
+CREATE TABLE IF NOT EXISTS public.supplier_whatsapp_consent_ask (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  phone text NOT NULL,
+  question text NOT NULL,
+  asked_by text NOT NULL,
+  asked_at timestamp with time zone DEFAULT now() NOT NULL,
+  answered_at timestamp with time zone,
+  answer text
+);
+
+CREATE TABLE IF NOT EXISTS public.supplier_whatsapp_optin (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  lead_id bigint NOT NULL,
+  phone text NOT NULL,
+  source text NOT NULL,
+  button_payload text,
+  consent_question text,
+  consent_answer text,
+  evidence text NOT NULL,
+  opted_in_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.supply_gap (
   trade text NOT NULL,
   emirate text NOT NULL,
@@ -10370,6 +10392,16 @@ CREATE TABLE IF NOT EXISTS public.wa_reply_intent (
   active boolean DEFAULT true NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   requires_number boolean DEFAULT false NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.wa_sender_quality_reading (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  read_at timestamp with time zone DEFAULT now() NOT NULL,
+  rating text,
+  status text NOT NULL,
+  messaging_limit text,
+  ok boolean NOT NULL,
+  raw jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.wa_template_registry (
@@ -11200,6 +11232,8 @@ ALTER TABLE public.supplier_score ADD CONSTRAINT supplier_score_pkey PRIMARY KEY
 ALTER TABLE public.supplier_scorecard ADD CONSTRAINT supplier_scorecard_pkey PRIMARY KEY (lead_id, month);
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_pkey PRIMARY KEY (id);
+ALTER TABLE public.supplier_whatsapp_consent_ask ADD CONSTRAINT supplier_whatsapp_consent_ask_pkey PRIMARY KEY (id);
+ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_pkey PRIMARY KEY (id);
 ALTER TABLE public.supply_gap ADD CONSTRAINT supply_gap_pkey PRIMARY KEY (trade, emirate);
 ALTER TABLE public.supply_health_snapshots ADD CONSTRAINT supply_health_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_pkey PRIMARY KEY (id);
@@ -11250,6 +11284,7 @@ ALTER TABLE public.wa_document_intake ADD CONSTRAINT wa_document_intake_pkey PRI
 ALTER TABLE public.wa_inbound_seen ADD CONSTRAINT wa_inbound_seen_pkey PRIMARY KEY (message_sid);
 ALTER TABLE public.wa_messages ADD CONSTRAINT wa_messages_pkey PRIMARY KEY (id);
 ALTER TABLE public.wa_reply_intent ADD CONSTRAINT wa_reply_intent_pkey PRIMARY KEY (intent_key);
+ALTER TABLE public.wa_sender_quality_reading ADD CONSTRAINT wa_sender_quality_reading_pkey PRIMARY KEY (id);
 ALTER TABLE public.wa_template_registry ADD CONSTRAINT wa_template_registry_pkey PRIMARY KEY (template_name);
 ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_pkey PRIMARY KEY (id);
 ALTER TABLE public.web_search_day ADD CONSTRAINT web_search_day_pkey PRIMARY KEY (day);
@@ -11396,6 +11431,7 @@ ALTER TABLE public.supplier_product_variant ADD CONSTRAINT supplier_product_vari
 ALTER TABLE public.supplier_quote_template ADD CONSTRAINT supplier_quote_template_supplier_id_name_key UNIQUE (supplier_id, name);
 ALTER TABLE public.supplier_response_watch ADD CONSTRAINT supplier_response_watch_one_per_tx UNIQUE (transaction_id);
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_lead_id_entry_source_entry_reference_key UNIQUE (lead_id, entry_source, entry_reference, field);
+ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_lead_id_phone_key UNIQUE (lead_id, phone);
 ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_trade_emirate_key UNIQUE (trade, emirate);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_case_ref_key UNIQUE (case_ref);
 ALTER TABLE public.support_ceo_report ADD CONSTRAINT support_ceo_report_idempotency_key_key UNIQUE (idempotency_key);
@@ -12347,6 +12383,10 @@ ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_chars_
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_duration_ms_check CHECK (((duration_ms IS NULL) OR (duration_ms >= 0)));
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_lang_check CHECK (((lang IS NULL) OR (lang = ANY (ARRAY['en'::text, 'ar'::text]))));
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_outcome_check CHECK ((outcome = ANY (ARRAY['pending'::text, 'flag_off'::text, 'rate_limited'::text, 'refused'::text, 'transcribed'::text, 'empty'::text, 'failed'::text])));
+ALTER TABLE public.supplier_whatsapp_consent_ask ADD CONSTRAINT supplier_whatsapp_consent_ask_phone_check CHECK ((phone ~ '^\+[0-9]{8,15}$'::text));
+ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_evidence_check CHECK ((btrim(evidence) <> ''::text));
+ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_phone_check CHECK ((phone ~ '^\+[0-9]{8,15}$'::text));
+ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_source_check CHECK ((source = ANY (ARRAY['wa_button'::text, 'wa_consent_reply'::text, 'email_consent_reply'::text, 'call_consent_reply'::text])));
 ALTER TABLE public.supply_gap ADD CONSTRAINT supply_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'deciding'::text, 'recruit'::text, 'deferred'::text, 'closed'::text])));
 ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_priority_check CHECK ((priority = ANY (ARRAY['P1'::text, 'P2'::text, 'P3'::text])));
 ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text])));
@@ -12787,6 +12827,7 @@ ALTER TABLE public.supplier_quote_template ADD CONSTRAINT supplier_quote_templat
 ALTER TABLE public.supplier_scorecard ADD CONSTRAINT supplier_scorecard_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_run_id_fkey FOREIGN KEY (run_id) REFERENCES screening_run(id) ON DELETE SET NULL;
+ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supply_gap ADD CONSTRAINT supply_gap_brief_id_fkey FOREIGN KEY (brief_id) REFERENCES supply_recruitment_brief(id);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_category_fkey FOREIGN KEY (category) REFERENCES support_category(category);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_customer_profile_id_fkey FOREIGN KEY (customer_profile_id) REFERENCES support_customer_profile(id);
@@ -13364,6 +13405,8 @@ CREATE UNIQUE INDEX supplier_kpi_snap_day ON public.supplier_kpi_snapshots USING
 CREATE INDEX supplier_public_name_norm ON public.supplier_public_name USING btree (norm);
 CREATE INDEX supplier_response_watch_open_idx ON public.supplier_response_watch USING btree (opened_at) WHERE ((first_response_at IS NULL) AND (closed_at IS NULL));
 CREATE INDEX supplier_voice_note_supplier_recent ON public.supplier_voice_note USING btree (supplier_id, created_at DESC);
+CREATE INDEX supplier_whatsapp_consent_ask_phone_idx ON public.supplier_whatsapp_consent_ask USING btree (phone, asked_at DESC);
+CREATE INDEX supplier_whatsapp_optin_phone_idx ON public.supplier_whatsapp_optin USING btree (phone);
 CREATE INDEX support_case_category_opened_idx ON public.support_case USING btree (category, opened_at);
 CREATE INDEX support_case_profile_open_idx ON public.support_case USING btree (customer_profile_id) WHERE (state <> 'closed'::text);
 CREATE INDEX support_ceo_report_open_idx ON public.support_ceo_report USING btree (status, next_review_at) WHERE (status = ANY (ARRAY['sent'::text, 'failed'::text, 'blocked'::text]));
@@ -13402,6 +13445,7 @@ CREATE INDEX wa_answer_log_unmatched ON public.wa_answer_log USING btree (receiv
 CREATE INDEX wa_conversation_open ON public.wa_conversation USING btree (last_seen_at DESC) WHERE (thread_state <> 'resolved'::text);
 CREATE INDEX wa_document_intake_lead ON public.wa_document_intake USING btree (lead_id, received_at DESC);
 CREATE INDEX wa_inbound_seen_first_seen_idx ON public.wa_inbound_seen USING btree (first_seen_at DESC);
+CREATE INDEX wa_sender_quality_reading_read_at_idx ON public.wa_sender_quality_reading USING btree (read_at DESC);
 CREATE INDEX wa_turn_conv ON public.wa_turn USING btree (conversation_id, at DESC);
 CREATE INDEX yello_email_idx ON public.yello_staging USING btree (email);
 
