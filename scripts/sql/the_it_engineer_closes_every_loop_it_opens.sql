@@ -648,7 +648,10 @@ revoke execute on function public.fn_it_loop_tick() from public, anon, authentic
 insert into public.founder_mail_policy (kind, allowed_to_email, owner_role, reason)
 values ('it_new_bug', true, 'it_engineer',
         'Founder, 14 Sep 2026: "for new bugs i just need to be notified on email". Sent by customer_support only after the owning seat and the CEO could not fix it; deduped per issue for 24 hours, repeats folded into the IT daily line.')
-on conflict (kind) do update set allowed_to_email = excluded.allowed_to_email, owner_role = excluded.owner_role, reason = excluded.reason;
+-- DO NOTHING, never DO UPDATE (27 Oct 2026): founder instruction 642 (the_founder_hears_from_it_once_a_day.sql) turned
+-- this kind OFF on 22 Sep. Re-applying this file for #1587 on 27 Oct turned it back on through this upsert
+-- (the_new_bug_email_stays_off_when_the_loop_file_is_reapplied.sql). A re-apply registers the kind; it never re-opens it.
+on conflict (kind) do nothing;
 
 -- ── 13. THE FOUNDER HANDOVER EMAIL BODY IS RETIRED WITH THE PATH THAT SENT IT ──────────────────────
 -- Its only caller was sections C and D of fn_it_engineer_alert_tick, replaced by fn_it_loop_tick.
