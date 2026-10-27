@@ -63,6 +63,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Drive the knowledge road alone](drive-the-knowledge-road-alone.md) — founder will not help
 - [Specs are upgrades, not repairs](specs-are-upgrades-not-repairs.md)
 - [Session briefs carry misdiagnoses](session-briefs-carry-misdiagnoses.md) — counts reliable, causes not
+- [A chat turn names no customer, so it carries the run tag](a-chat-turn-names-no-customer-so-it-carries-the-run-tag.md) — 27 Oct: one run left 273+269+273 log rows and 97 gaps + 97 unconfirmed tasks; teardown now deletes by e2e_run_tag and test traffic files no gap
 - [Demo fixtures: ZZ DEMO + example.invalid](demo-fixture-convention.md) · [Safe rehearsal](safe-marketplace-demo-rehearsal.md) · [Probes page the founder](rehearsals-and-probes-page-the-founder.md) · [Test without his credentials](test-without-the-founders-credentials.md)
 - [Use Edge; never rely on him except sign-ins](use-edge-browser-and-act-without-founder.md) — 23 Sep, ledger 925
 - [Walk the OS in his browser](walk-the-os-in-his-browser.md) — Claude in Chrome has his session
