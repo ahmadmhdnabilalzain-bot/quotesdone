@@ -2543,6 +2543,7 @@ CREATE OR REPLACE FUNCTION public.fn_accountant_files_reveal_invoice()
 AS $function$
 declare
   v_doc bigint;
+  v_h   bigint;
 begin
   if new.doc_path is null or new.doc_path !~ '^invoices/' then return new; end if;
   if tg_op = 'UPDATE' and old.doc_path is not distinct from new.doc_path then return new; end if;
@@ -2561,15 +2562,32 @@ begin
                        'customer_id', new.customer_id, 'invoice_id', new.stripe_invoice_id,
                        'invoice_number', new.stripe_invoice_number, 'total_charged', new.total_charged));
 
-  insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
-  values ('sales_engineer', 'handoff', 'pending', 'low',
-          'Reveal invoice filed - tell the customer it is ready',
-          'The Stripe invoice is in the customer''s Documents and on the revealed quote card.',
-          jsonb_build_object('from', 'accountant', 'from_name', 'Accountant', 'subject', 'reveal_invoice',
-                             'transaction_id', new.id, 'quote_id', new.quote_id, 'inquiry_id', new.inquiry_id,
-                             'customer_id', new.customer_id, 'document_id', v_doc,
-                             'invoice_number', new.stripe_invoice_number),
-          'transactions', new.id::text);
+  -- The handoff names its conversation, its case, its decision and its ask, so its note can be stated.
+  -- If it still cannot be filed, the invoice stays filed and the IT engineer is told which case lost it.
+  begin
+    insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
+    values ('sales_engineer', 'handoff', 'pending', 'low',
+            'Reveal invoice filed - tell the customer it is ready',
+            'The Stripe invoice is in the customer''s Documents and on the revealed quote card.',
+            jsonb_build_object('type', 'invoice.issued', 'from', 'accountant', 'from_name', 'Accountant', 'to', 'sales_engineer',
+                               'subject', 'reveal_invoice', 'subject_table', 'transactions', 'subject_id', new.id::text,
+                               'decision', 'accountant filed the Stripe reveal invoice into the customer''s Documents (document '
+                                           || v_doc || ') and hands the notice to the sales engineer',
+                               'question', 'Tell the customer their reveal invoice is ready, in the inquiry''s language.',
+                               'transaction_id', new.id, 'quote_id', new.quote_id, 'inquiry_id', new.inquiry_id,
+                               'customer_id', new.customer_id, 'document_id', v_doc,
+                               'invoice_number', new.stripe_invoice_number),
+            'transactions', new.id::text)
+    returning id into v_h;
+    perform public.fn_seat_handoff_event(v_h, 'sent');
+  exception when others then
+    perform public.fn_it_engineer_finding_upsert(
+      'monitor:reveal_invoice_handoff_not_filed:' || new.id,
+      'Reveal invoice filed but its handoff to the sales engineer was refused: ' || left(sqlerrm, 200),
+      'public.fn_accountant_files_reveal_invoice (caller: accountant)', 'customer_facing', 1,
+      jsonb_build_object('transaction_id', new.id, 'document_id', v_doc, 'error', left(sqlerrm, 500), 'owner_seat', 'accountant'),
+      '{}'::text[], array['why the reveal_invoice handoff could not be filed for this transaction'], 'fn_accountant_files_reveal_invoice');
+  end;
   return new;
 end
 $function$

@@ -1,5 +1,0 @@
-Committed with its PR and applied at merge by the release operator (apply at merge, never before).
-fn_sales_engineer_writes writes a demo message directly as a captured (suppressed) row when ruling 1199 files no
-handoff, so the sandbox walk can prove the reveal receipt and the billing answer. Proved before apply by the
-rolled-back replay in node scripts/checks/language_follows_registration.mjs.
-Moves to the END of MANIFEST.txt (and this note is deleted) in the commit that records the apply. Seat: sales_engineer.
