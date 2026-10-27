@@ -97,6 +97,8 @@ declare
                                   'شكرا', 'جزيلا', 'لو', 'سمحت', 'من', 'فضلك', 'اخي', 'اخوي', 'يا'];
 begin
   if btrim(t) = '' or char_length(t) > 120 or t ~ '[?؟]' then return false; end if;
+  -- a negative emoji is not stripped into silence: "yes 👎" is not a yes (independent review of #1634)
+  if t ~ '(👎|❌|✖|🚫|⛔)' then return false; end if;
   t := regexp_replace(t, '[ً-ْٰـ]', '', 'g');
   t := translate(t, 'أإآٱىة', 'اااايه');
   t := regexp_replace(t, '(👍|✅|👌)[\U0001F3FB-\U0001F3FF]?', ' yes ', 'g');
@@ -520,6 +522,15 @@ insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file
    'scripts/sql/the_supplier_whatsapp_invitation_waits_for_opt_in_both_switches_and_a_high_quality_sender.sql')
 on conflict (duty) do update set every = excluded.every, routine = excluded.routine, what = excluded.what, owner_file = excluded.owner_file;
 
+-- The three tables this file creates, in the daily table export registry (independent review of #1634: the check
+-- every_table_is_exported_or_explicitly_excluded refused them). An opt-in and the consent ask it answers are the
+-- evidence Meta's policy asks for, so both are backed up; a sender quality reading is a measurement, rebuilt hourly.
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('supplier_whatsapp_optin', true, 'marketing', 'Each supplier WhatsApp opt-in (the button or a yes to the consent question) with its evidence; ledger 1341.', 'marketing'),
+  ('supplier_whatsapp_consent_ask', true, 'marketing', 'Each time the WhatsApp consent question was put to a number, and the first reply that answered it; ledger 1341.', 'marketing'),
+  ('wa_sender_quality_reading', false, 'measurement', 'Meta''s quality rating for our WhatsApp sender as Twilio reports it, read at most hourly; the latest reading is all the gate uses.', 'marketing')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category, reason = excluded.reason;
+
 -- verdict (reads only: this file defines routines, so it must not raise)
 select case
   when exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -533,7 +544,7 @@ select case
   -- ledger 1341: the rule, on pure inputs (writes nothing)
   when public.fn_wa_is_affirmative('who is this?') or public.fn_wa_is_affirmative('hello')
     then 'PROBE FAILED: an ordinary message reads as a yes'
-  when not (public.fn_wa_is_affirmative('Yes') and public.fn_wa_is_affirmative('نعم') and public.fn_wa_is_affirmative('أكيد، شكراً'))
+  when not (public.fn_wa_is_affirmative('Yes') and public.fn_wa_is_affirmative('نعم') and public.fn_wa_is_affirmative('أكيد، شكرًا'))
     then 'PROBE FAILED: an English or Arabic yes is not read as a yes'
   when (public.fn_wa_optin_rule('wa_consent_reply', null, 'Hi, who is this?', 'yes')->>'counts')::boolean
     then 'PROBE FAILED: a yes to a message that did not ask for consent counts'
