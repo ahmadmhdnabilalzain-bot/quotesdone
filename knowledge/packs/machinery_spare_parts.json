@@ -55,6 +55,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "machinery_spare_parts:product-distinctions",
+      "topic": "Machinery spare parts: OEM, equivalent and reverse-engineered parts",
+      "topic_ar": "قطع غيار الآلات: الأصلية والمكافئة والمصنعة بالهندسة العكسية",
+      "kind": "product_distinctions",
+      "body_en": "Spare parts for plant and machinery (heavy equipment, compressors, generators, pumps, conveyors, crushers, packaging and process machines) come as OEM parts (from the machine maker or its authorised dealer, matched by part number and serial, often highest cost and longest lead for older models), OES or equivalent parts from the original component makers or reputable aftermarket brands (cross-referenced to the OEM number), wear parts (filters, belts, seals, liners, cutting edges, crusher jaws and mantles, screens) where aftermarket is widely used, and reverse-engineered or locally manufactured parts made from drawings or a worn sample, useful for obsolete machines. Matching needs the machine make, model, serial number, and the part number from the parts book; dimensions and material alone may miss tolerances, heat treatment or coatings. Critical parts for safety, pressure or warranty should stay OEM or approved equivalents. Offers differ on origin and genuineness (counterfeit risk on known brands), stock location and lead time, warranty, and whether a cross-reference or test data is provided.",
+      "body_ar": "تأتي قطع غيار المصانع والآلات (المعدات الثقيلة، الضواغط، المولدات، المضخات، السيور الناقلة، الكسارات، آلات التعبئة والعمليات) كقطع أصلية (من صانع الآلة أو وكيله المعتمد، تُطابق برقم القطعة والرقم التسلسلي، وغالباً الأعلى تكلفة والأطول مدة للموديلات القديمة)، أو قطع مكافئة من صانعي المكونات الأصليين أو علامات تجارية موثوقة (مع مطابقة لرقم الصانع)، أو قطع الاستهلاك (الفلاتر، السيور، موانع التسرب، البطانات، حواف القطع، فكوك ومخاريط الكسارات، المناخل) حيث يكثر استخدام القطع التجارية، أو قطع مصنعة بالهندسة العكسية أو محلياً من رسومات أو عينة مستهلكة، وهي مفيدة للآلات المتوقف إنتاجها. وتحتاج المطابقة ماركة الآلة وموديلها ورقمها التسلسلي ورقم القطعة من كتالوج القطع؛ فالأبعاد والمادة وحدها قد تُغفل التفاوتات والمعالجة الحرارية والطلاءات. والقطع الحرجة للسلامة أو الضغط أو الضمان يجب أن تبقى أصلية أو مكافئة معتمدة. وتختلف العروض في المنشأ والأصالة (مخاطر التقليد في العلامات المعروفة)، وموقع المخزون ومدة التوريد، والضمان، وهل تُقدم مطابقة أو بيانات اختبار.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Original_equipment_manufacturer"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: OEM parts as originally installed versus aftermarket parts made by others -> confirmed."
+    },
+    {
+      "id": "machinery_spare_parts:lead-times-and-quoting",
+      "topic": "Machinery spare parts - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "قطع غيار الآلات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock parts: days; OEM parts on order 2-8 weeks; manufactured parts 2-6 weeks. A supplier needs machine make, model, serial, part numbers and quantities, grade acceptable (OEM, equivalent), and urgency. A quote states part number and cross-reference, brand, origin, condition, availability, warranty, delivery and validity.",
+      "body_ar": "القطع المتوفرة: أيام؛ والقطع الأصلية بالطلب 2-8 أسابيع؛ والقطع المصنعة 2-6 أسابيع. ويحتاج المورد ماركة الآلة وموديلها ورقمها التسلسلي وأرقام القطع والكميات والدرجة المقبولة (أصلية، مكافئة) والاستعجال. ويذكر العرض رقم القطعة والمطابقة والعلامة والمنشأ والحالة والتوفر والضمان والتسليم والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (no entry explains how to verify a genuine part; the checklist only lists OEM/genuine/aftermarket as a field). machinery_spare_parts:genuine-part-verification was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from machinery_spare_parts.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Can we use aftermarket wear parts in our crusher without problems?",
+      "q_ar": "نقدر نستخدم قطع استهلاك تجارية في الكسارة بدون مشاكل؟",
+      "expected_entry_ids": [
+        "machinery_spare_parts:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "machinery_spare_parts:genuine-part-verification"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "machinery_spare_parts:product-distinctions"
+      ],
+      "stored_not_served": [
+        "machinery_spare_parts:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Original_equipment_manufacturer"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

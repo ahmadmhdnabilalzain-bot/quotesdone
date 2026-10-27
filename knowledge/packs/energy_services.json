@@ -55,6 +55,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "energy_services:product-distinctions",
+      "topic": "Energy services: audit levels, retrofit measures and performance contracts",
+      "topic_ar": "خدمات الطاقة: مستويات التدقيق وإجراءات التحديث وعقود الأداء",
+      "kind": "product_distinctions",
+      "body_en": "Energy services start with an energy audit: a walk-through (level 1) to find obvious savings, a detailed audit (level 2) with metering, utility-bill analysis and costed measures, and an investment-grade audit (level 3) with a measured baseline that supports financing. Typical measures: chiller plant optimisation and replacement, variable-speed drives on pumps and fans, building management system tuning, LED lighting with controls, cooling-tower and condenser-water treatment, insulation and glazing films, water fixtures, solar PV and solar water heating, and power-factor correction. The commercial routes are a client-funded retrofit (the client pays and keeps all savings), an energy performance contract, where an energy service company (ESCO) designs, finances or installs and is paid from the savings, either as shared savings (the ESCO takes an agreed percentage of savings for a term) or guaranteed savings (the client finances, the ESCO guarantees a savings level and pays any shortfall), and energy-as-a-service subscriptions. Savings must be measured against an agreed baseline adjusted for weather and occupancy, using a measurement and verification plan; without it, claimed savings cannot be checked.",
+      "body_ar": "تبدأ خدمات الطاقة بتدقيق الطاقة: جولة سريعة (المستوى 1) لاكتشاف الوفورات الواضحة، وتدقيق تفصيلي (المستوى 2) مع قياس وتحليل الفواتير وإجراءات مسعّرة، وتدقيق بدرجة استثمارية (المستوى 3) بخط أساس مقاس يدعم التمويل. والإجراءات المعتادة: تحسين محطات المبردات واستبدالها، ومحركات السرعة المتغيرة على المضخات والمراوح، وضبط نظام إدارة المبنى، وإنارة LED مع أنظمة تحكم، ومعالجة أبراج التبريد ومياه المكثفات، والعزل وأفلام الزجاج، وتجهيزات المياه، والطاقة الشمسية الكهروضوئية وتسخين المياه بالشمس، وتصحيح معامل القدرة. والمسارات التعاقدية: تحديث يموله العميل (يدفع ويحتفظ بكل الوفورات)، أو عقد أداء الطاقة حيث تصمم شركة خدمات الطاقة وتمول أو تركب وتُدفع من الوفورات، إما بتقاسم الوفورات (تأخذ الشركة نسبة متفق عليها لمدة محددة) أو بالوفورات المضمونة (يمول العميل وتضمن الشركة مستوى وفورات وتدفع أي نقص)، أو اشتراكات الطاقة كخدمة. ويجب قياس الوفورات مقابل خط أساس متفق عليه ومعدل حسب الطقس والإشغال باستخدام خطة قياس وتحقق؛ ودونها لا يمكن التحقق من الوفورات المزعومة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Energy_service_company"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: energy performance contracting where the ESCO is paid from a share of savings and may cover a shortfall -> confirmed (IPMVP not on the page)."
+    },
+    {
+      "id": "energy_services:lead-times-and-quoting",
+      "topic": "Energy audit & efficiency (ESCO) - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "تدقيق الطاقة وكفاءتها (شركات خدمات الطاقة): المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A level-2 audit of a building usually takes 3-8 weeks; retrofits 2-9 months; performance contracts take longer to negotiate. A provider needs utility bills for 12-36 months, building data and equipment lists, operating hours, BMS access, and the client's target and financing preference. A proposal states audit scope or measures with savings and payback, the baseline and M&V method, the contract model, guarantees, term, maintenance responsibilities, and validity.",
+      "body_ar": "يستغرق تدقيق المستوى الثاني لمبنى عادة 3-8 أسابيع؛ والتحديثات 2-9 أشهر؛ وعقود الأداء تأخذ وقتاً أطول للتفاوض. ويحتاج المزود فواتير المرافق لمدة 12-36 شهراً، وبيانات المبنى وقوائم المعدات، وساعات التشغيل، والوصول إلى نظام إدارة المبنى، وهدف العميل وتفضيل التمويل. ويذكر العرض نطاق التدقيق أو الإجراءات مع الوفورات وفترة الاسترداد، وخط الأساس وطريقة القياس والتحقق، ونموذج العقد، والضمانات، والمدة، ومسؤوليات الصيانة، والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -80,6 +110,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: no entry covers per-kWp solar pricing or zero-capex PPA/lease models). energy_services:rooftop-solar-commercial-models was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from energy_services.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Is shared savings or guaranteed savings better for retrofitting our chiller plant?",
+      "q_ar": "تقاسم الوفورات ولا الوفورات المضمونة أفضل لتحديث محطة المبردات عندنا؟",
+      "expected_entry_ids": [
+        "energy_services:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -99,6 +137,27 @@
     "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium.",
     "added_2026_10_06": [
       "energy_services:rooftop-solar-commercial-models"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "energy_services:product-distinctions"
+      ],
+      "stored_not_served": [
+        "energy_services:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Energy_service_company"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

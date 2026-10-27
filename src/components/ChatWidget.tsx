@@ -63,18 +63,31 @@ export function ChatWidget() {
   const inpRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy, open]);
-  useEffect(() => { if (open) { if (!msgs.length) setMsgs([{ role: 'assistant', content: t.greet }]); setTimeout(() => inpRef.current?.focus(), 60); } }, [open]);
+  useEffect(() => { if (open) { if (!msgs.length) setMsgs([{ role: 'assistant', content: t.greet }]); restore(); setTimeout(() => inpRef.current?.focus(), 60); } }, [open]);
 
-  // One id per browser tab's conversation. site_assistant keys its per-visitor ceiling on
-  // conversation depth rather than raw message count (29% of widget traffic was refused by the
-  // flat 10/hour cap — website audit, "Where the smart shows").
+  // ONE CONVERSATION THAT IS NEVER LOST (founder ruling 1255). Its id lives in localStorage, so a reload, a closed browser
+  // or a return days later finds it; site_assistant stores every turn under it and the chat is redrawn from the database
+  // (action 'history'), never from this tab's memory. Signing up carries it into the portal (PortalShell sends it as
+  // widget_conv). site_assistant also keys its per-visitor ceiling on this id (website audit, "Where the smart shows").
   const conv = useRef('');
   useEffect(() => {
     try {
-      conv.current = sessionStorage.getItem('qd-chat-conv') || '';
-      if (!conv.current) { conv.current = crypto.randomUUID(); sessionStorage.setItem('qd-chat-conv', conv.current); }
-    } catch (_e) { conv.current = Math.random().toString(36).slice(2) + Date.now().toString(36); }
+      // only a full random UUID v4 is ever used (the server refuses anything weaker); no crypto.randomUUID, no id
+      const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      const kept = localStorage.getItem('qd-chat-conv') || '';
+      conv.current = UUID_V4.test(kept) ? kept : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : '');
+      if (conv.current) localStorage.setItem('qd-chat-conv', conv.current); else localStorage.removeItem('qd-chat-conv');
+    } catch (_e) { conv.current = ''; }
   }, []);
+  // redrawn when the chat is opened (not on every page view): only a visitor who has one gets turns back
+  const restored = useRef(false);
+  const restore = () => {
+    if (restored.current || !conv.current) return; restored.current = true;
+    fetch(FN, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
+      body: JSON.stringify({ action: 'history', conv: conv.current }) })
+      .then((r) => r.json()).then((j) => { if (Array.isArray(j?.turns) && j.turns.length) setMsgs((m) => (m.length > 1 ? m : [{ role: 'assistant', content: t.greet }, ...j.turns])); })
+      .catch(() => { /* the next turn still reads the whole conversation on the server */ });
+  };
 
   // On a phone the launcher sat over the hero's demonstration card. Below 640px it waits for the
   // first scroll; on wider screens it is there from the start.
@@ -111,7 +124,8 @@ export function ChatWidget() {
         // lang WAS NEVER SENT until 9 Sep 2026, so site_assistant resolved uiLang to 'en' on every
         // request and its entire Arabic branch -- the one that names the portal buttons in Arabic --
         // was unreachable code. useLocale() already knows; the value simply never left the browser.
-        body: JSON.stringify({ message: m, history: next.slice(-6), path: pathname, lang: locale, conv: conv.current, ...(images.length ? { images } : {}) })
+        // history is only a first-turn fallback: site_assistant stores every turn and reads the whole conversation back by conv
+        body: JSON.stringify({ message: m, lang: locale, history: next.slice(-40), path: pathname, conv: conv.current, ...(images.length ? { images } : {}) })
       });
       if (r.body && (r.headers.get('content-type') || '').includes('ndjson')) {
         const rd = r.body.getReader(); const dec = new TextDecoder();

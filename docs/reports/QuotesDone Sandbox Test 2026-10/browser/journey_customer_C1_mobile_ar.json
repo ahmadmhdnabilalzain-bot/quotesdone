@@ -1,0 +1,107 @@
+[
+ {
+  "at": "2026-10-19T12:28:49.748Z",
+  "journey": "journey_customer_C1_mobile_ar",
+  "step": "terms re-accept inline prompt",
+  "status": "FAIL",
+  "ms": 15497,
+  "detail": "threw: locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /طلب جديد/ }).first()\u001b[22m\n",
+  "issues": [
+   {
+    "sev": "high",
+    "what": "threw: locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /طلب جديد/ }).first()\u001b[22m\n"
+   }
+  ],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C1_journey_mobile_ar\\terms_re_accept_inline_prompt.png"
+ },
+ {
+  "at": "2026-10-19T12:29:03.012Z",
+  "journey": "journey_customer_C1_mobile_ar",
+  "step": "new request: drawing upload + spec answer \"not sure\"",
+  "status": "FAIL",
+  "ms": 13264,
+  "detail": "threw: locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /طلب جديد/ }).first()\u001b[22m\n",
+  "issues": [
+   {
+    "sev": "high",
+    "what": "threw: locator.click: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('button', { name: /طلب جديد/ }).first()\u001b[22m\n"
+   }
+  ],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C1_journey_mobile_ar\\new_request_drawing_upload_spec_answer_not_sure_.png"
+ },
+ {
+  "at": "2026-10-19T12:29:25.961Z",
+  "journey": "journey_customer_C1_mobile_ar",
+  "step": "quotes and comparison report",
+  "status": "FAIL",
+  "ms": 22948,
+  "detail": "no request of this customer has a quote on screen (were quotes released for this customer?)",
+  "issues": [
+   {
+    "sev": "high",
+    "what": "no request of this customer has a quote on screen (were quotes released for this customer?)"
+   }
+  ],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C1_journey_mobile_ar\\quotes_and_comparison_report.png"
+ },
+ {
+  "at": "2026-10-19T12:29:26.737Z",
+  "journey": "journey_customer_C1_mobile_ar",
+  "step": "reveal checkout: test card success",
+  "status": "SKIP",
+  "ms": 776,
+  "detail": "no \"Reveal & contact\" button visible (needs an unrevealed quote)",
+  "issues": [
+   {
+    "sev": "low",
+    "what": "no \"Reveal & contact\" button visible (needs an unrevealed quote)"
+   }
+  ],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C1_journey_mobile_ar\\reveal_checkout_test_card_success.png"
+ },
+ {
+  "at": "2026-10-19T12:29:27.550Z",
+  "journey": "journey_customer_C1_mobile_ar",
+  "step": "reveal checkout: test card decline",
+  "status": "SKIP",
+  "ms": 812,
+  "detail": "no \"Reveal & contact\" button visible (needs an unrevealed quote)",
+  "issues": [
+   {
+    "sev": "low",
+    "what": "no \"Reveal & contact\" button visible (needs an unrevealed quote)"
+   }
+  ],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C1_journey_mobile_ar\\reveal_checkout_test_card_decline.png"
+ },
+ {
+  "at": "2026-10-19T12:29:32.754Z",
+  "journey": "journey_customer_C1_mobile_ar",
+  "step": "post-reveal supplier details and rating",
+  "status": "SKIP",
+  "ms": 5203,
+  "detail": "no rating stars visible (needs a revealed supplier); contact details shown: false",
+  "issues": [
+   {
+    "sev": "low",
+    "what": "no rating stars visible (needs a revealed supplier); contact details shown: false"
+   }
+  ],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C1_journey_mobile_ar\\post_reveal_supplier_details_and_rating.png"
+ },
+ {
+  "at": "2026-10-19T12:29:41.794Z",
+  "journey": "journey_customer_C1_mobile_ar",
+  "step": "account: terms version + data export request (stopped before code)",
+  "status": "FAIL",
+  "ms": 9039,
+  "detail": "terms version shown: false; NO data export/erase control on the account page",
+  "issues": [
+   {
+    "sev": "high",
+    "what": "terms version shown: false; NO data export/erase control on the account page"
+   }
+  ],
+  "shot": "C:\\Users\\Opera\\Desktop\\QuotesDone Sandbox Test 2026-10\\browser\\customers\\C1_journey_mobile_ar\\account_terms_version_data_export_request_stopped_before_cod.png"
+ }
+]

@@ -51,6 +51,36 @@
       "confidence": "low",
       "as_of": "2026-10-06",
       "verified": false
+    },
+    {
+      "id": "telecom_services:product-distinctions",
+      "topic": "Business telecom: connectivity, voice and network services",
+      "topic_ar": "اتصالات الأعمال: الربط والصوت وخدمات الشبكة",
+      "kind": "product_distinctions",
+      "body_en": "Business telecom services cover connectivity (fibre internet with a stated bandwidth and contention, dedicated internet access with SLA, MPLS or SD-WAN links between branches, 4G/5G mobile broadband and backup links), voice (SIP trunks that carry a company's calls to the public network over IP and replace older PRI lines, cloud PBX or hosted telephony, toll-free and short numbers, call centre platforms, mobile plans and fleet SIMs), unified communications and collaboration (Teams or other phone system integration), and IoT and M2M SIMs. Equipment: IP phones, PBX hardware, headsets, routers and firewalls, Wi-Fi access points, switches, structured cabling (Cat6/Cat6A copper, single-mode and multi-mode fibre), in-building coverage (DAS and small cells), and two-way radio. Choices: on-premises versus cloud phone systems, number portability, redundancy (dual links from different carriers), and the SLA (availability %, fault response and fix times). Telecom services are sold by licensed operators and their authorised partners; equipment that transmits needs type approval from the telecom regulator. Offers differ on bandwidth and contention, SLA and support, contract length and early termination, hardware included, and installation.",
+      "body_ar": "تغطي خدمات اتصالات الأعمال الربط (إنترنت الألياف بسرعة محددة ونسبة مشاركة، وإنترنت مخصص مع اتفاقية مستوى خدمة، وروابط MPLS أو SD-WAN بين الفروع، والنطاق العريض المتنقل 4G/5G وروابط الاحتياط)، والصوت (خطوط SIP التي تنقل مكالمات الشركة إلى الشبكة العامة عبر بروتوكول الإنترنت وتحل محل خطوط PRI القديمة، والسنترال السحابي أو الهاتف المستضاف، والأرقام المجانية والقصيرة، ومنصات مراكز الاتصال، وباقات الجوال وشرائح الأساطيل)، والاتصالات الموحدة والتعاون (تكامل أنظمة الهاتف مع منصات التعاون)، وشرائح إنترنت الأشياء والاتصال بين الآلات. والمعدات: هواتف IP، وأجهزة السنترال، والسماعات، والموجهات والجدران النارية، ونقاط الوصول اللاسلكية، والمحولات، والكابلات المنظمة (نحاس Cat6/Cat6A، والألياف أحادية ومتعددة النمط)، وتغطية المباني (أنظمة الهوائيات الموزعة والخلايا الصغيرة)، وأجهزة الراديو ثنائية الاتجاه. والخيارات: أنظمة الهاتف المحلية مقابل السحابية، ونقل الأرقام، والتكرار (رابطان من مشغلين مختلفين)، واتفاقية مستوى الخدمة (نسبة التوفر، زمن الاستجابة والإصلاح). وتُباع خدمات الاتصالات من المشغلين المرخصين وشركائهم المعتمدين؛ والمعدات التي ترسل إشارات تحتاج اعتماد النوع من الجهة المنظمة للاتصالات. وتختلف العروض في السرعة ونسبة المشاركة، واتفاقية مستوى الخدمة والدعم، ومدة العقد والإنهاء المبكر، والأجهزة المشمولة، والتركيب.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Session_Initiation_Protocol"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: SIP sets up voice and video sessions; SIP trunking connects business calls to the public network over the internet, replacing PRI lines -> confirmed."
+    },
+    {
+      "id": "telecom_services:lead-times-and-quoting",
+      "topic": "Telecom equipment & services - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "معدات وخدمات الاتصالات: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Mobile plans activate within days; fibre and dedicated links 1-6 weeks depending on site readiness; PBX and cabling projects 2-8 weeks. A provider needs sites and addresses, users and lines, bandwidth needs, current contracts and numbers, redundancy and SLA expectations. A quote states services and speeds, SLA, hardware, installation, monthly and one-time charges, contract term and exit terms, and validity.",
+      "body_ar": "تُفعل باقات الجوال خلال أيام؛ والألياف والروابط المخصصة 1-6 أسابيع حسب جاهزية الموقع؛ ومشاريع السنترال والكابلات 2-8 أسابيع. ويحتاج المزود المواقع والعناوين، والمستخدمين والخطوط، واحتياجات السرعة، والعقود والأرقام الحالية، وتوقعات التكرار ومستوى الخدمة. ويذكر العرض الخدمات والسرعات واتفاقية مستوى الخدمة والأجهزة والتركيب والرسوم الشهرية ولمرة واحدة ومدة العقد وشروط الخروج والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -76,6 +106,14 @@
       ],
       "why": "No entry of this pack answered it (MISSING: uae-standards names only TDRA as regulator; no entry names the licensed operators (e& and du) offering business fibre with an SLA). telecom_services:business-fibre-operators-and-sla was researched on 6-7 Oct 2026 to answer it; it is stored verified=false (not every fact could be read on an opened page) and is never stated to a customer or a supplier.",
       "origin": "real buyer question, moved from telecom_services.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Should our office move from an old PBX to a cloud phone system with SIP trunks?",
+      "q_ar": "هل ننقل مكتبنا من سنترال قديم إلى نظام هاتف سحابي مع خطوط SIP؟",
+      "expected_entry_ids": [
+        "telecom_services:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -94,6 +132,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "telecom_services:business-fibre-operators-and-sla"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "telecom_services:product-distinctions"
+      ],
+      "stored_not_served": [
+        "telecom_services:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Session_Initiation_Protocol"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

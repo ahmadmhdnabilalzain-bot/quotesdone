@@ -6,6 +6,7 @@
 // of the runner.
 //
 //   node scripts/agents/run_training_retest.mjs --ref=<project-ref> [--agents=spec_fitout,spec_mep] [--n=5]
+import { SUPABASE_TOKEN_FILE } from '../lib/supabase_token.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 
 const arg = (k, d) => (process.argv.find((a) => a.startsWith(`--${k}=`)) || `--${k}=${d}`).slice(k.length + 3);
@@ -14,7 +15,7 @@ const AGENTS = arg('agents', 'spec_fitout,spec_mep').split(',').filter(Boolean);
 const N = Number(arg('n', '5'));
 if (!REF) { console.error('usage: --ref=<project-ref>'); process.exit(2); }
 
-const LOCAL_TOKEN = 'C:/Users/Opera/.supabase/access-token';
+const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || (existsSync(LOCAL_TOKEN) ? readFileSync(LOCAL_TOKEN, 'utf8') : '')).trim();
 if (!token) { console.error('no SUPABASE_ACCESS_TOKEN'); process.exit(2); }

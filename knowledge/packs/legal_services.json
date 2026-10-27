@@ -52,6 +52,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "legal_services:product-distinctions",
+      "topic": "Legal services: practice areas, adviser types and fee arrangements",
+      "topic_ar": "الخدمات القانونية: مجالات الممارسة وأنواع المستشارين وترتيبات الأتعاب",
+      "kind": "product_distinctions",
+      "body_en": "Business legal needs fall into corporate and commercial (company formation and structuring, shareholder agreements, contracts, distribution and agency agreements, mergers and acquisitions), employment, real estate and construction (leases, sale and purchase, construction contracts and claims), intellectual property (trademark registration and enforcement), banking and finance, regulatory and licensing, data protection, and dispute resolution (litigation in courts, arbitration, mediation, debt recovery). Advisers differ: law firms with licensed advocates who may appear in court, legal consultants who advise and draft but have limited rights of audience, in-house counsel, and notaries and translators for formalities. Fee arrangements: hourly billing by seniority, fixed fees for defined tasks (a trademark filing, a standard contract), retainers (a monthly fee for a set amount of advice), staged fees per litigation stage, and contingency or success fees where permitted. A good engagement letter defines the scope, the team, the fee basis and estimate, disbursements (court fees, translation, expert fees), billing frequency, conflicts check, and confidentiality.",
+      "body_ar": "تقع الاحتياجات القانونية للأعمال في مجالات الشركات والتجارة (تأسيس الشركات وهيكلتها، اتفاقيات المساهمين، العقود، اتفاقيات التوزيع والوكالة، الاندماج والاستحواذ)، والعمل، والعقارات والإنشاءات (الإيجارات، البيع والشراء، عقود الإنشاء ومطالباتها)، والملكية الفكرية (تسجيل العلامات التجارية وحمايتها)، والمصارف والتمويل، والتنظيم والترخيص، وحماية البيانات، وتسوية النزاعات (التقاضي أمام المحاكم، التحكيم، الوساطة، تحصيل الديون). ويختلف المستشارون: مكاتب محاماة بمحامين مرخصين يحق لهم الترافع، ومستشارون قانونيون يقدمون المشورة والصياغة بحقوق ترافع محدودة، ومستشارون داخليون، وكتاب عدل ومترجمون للإجراءات الشكلية. وترتيبات الأتعاب: بالساعة حسب الأقدمية، أو أتعاب ثابتة لمهام محددة (تسجيل علامة تجارية، عقد نموذجي)، أو اشتراك شهري (رسوم شهرية لقدر محدد من المشورة)، أو أتعاب مرحلية لكل مرحلة تقاضٍ، أو أتعاب نجاح حيث يُسمح بها. وخطاب التكليف الجيد يحدد النطاق، والفريق، وأساس الأتعاب وتقديرها، والمصروفات (رسوم المحاكم، الترجمة، أتعاب الخبراء)، وتكرار الفوترة، وفحص تعارض المصالح، والسرية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Legal_fees"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: hourly billing, fixed fees, contingency fees and retainers -> confirmed."
+    },
+    {
+      "id": "legal_services:lead-times-and-quoting",
+      "topic": "Legal services - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "الخدمات القانونية: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "A contract review: days; company formation: weeks; litigation: months to years by stage. A firm needs the matter description, documents, parties (for a conflicts check), deadlines, and desired outcome. A proposal states the scope, team and rates, fee basis and estimate, disbursements, billing, conflicts confirmation and validity.",
+      "body_ar": "مراجعة عقد: أيام؛ وتأسيس شركة: أسابيع؛ والتقاضي: أشهر إلى سنوات حسب المرحلة. ويحتاج المكتب وصف المسألة، والمستندات، والأطراف (لفحص التعارض)، والمواعيد النهائية، والنتيجة المرغوبة. ويذكر العرض النطاق والفريق والأسعار وأساس الأتعاب وتقديرها والمصروفات والفوترة وتأكيد عدم التعارض والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -77,6 +107,14 @@
       ],
       "why": "No entry of this pack answered it (Spec-checklist only lists 'rights of audience' as a field; no entry says foreign firms cannot appear in onshore courts; missing). legal_services:onshore-rights-of-audience was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from legal_services.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Should we put our lawyer on a monthly retainer or pay per task?",
+      "q_ar": "نخلي المحامي باشتراك شهري ولا ندفع لكل مهمة؟",
+      "expected_entry_ids": [
+        "legal_services:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -95,6 +133,27 @@
     "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium.",
     "added_2026_10_06": [
       "legal_services:onshore-rights-of-audience"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "legal_services:product-distinctions"
+      ],
+      "stored_not_served": [
+        "legal_services:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/Legal_fees"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

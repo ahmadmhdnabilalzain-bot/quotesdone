@@ -54,6 +54,36 @@
       "confidence": "medium",
       "as_of": "2026-10-06",
       "verified": true
+    },
+    {
+      "id": "school_furniture:product-distinctions",
+      "topic": "School furniture: types, sizing and durability",
+      "topic_ar": "أثاث المدارس: الأنواع والمقاسات والمتانة",
+      "kind": "product_distinctions",
+      "body_en": "School furniture includes student desks and chairs (single, double, combo units with attached seats, height-adjustable desks), teacher desks, classroom storage and lockers, science lab benches with chemical-resistant tops and services, library shelving and reading furniture, art and design tables, computer lab furniture, auditorium and lecture seating (with tablet arms), early-years furniture (low tables, cubbies, soft seating), cafeteria tables, and outdoor benches. Chairs and desks must fit the pupil: sizes are graded by height marks matched to age and stature (for example under the EN 1729 size scale), so a school orders a mix of sizes, not one size. Durability matters because furniture is used daily for many years: steel frames with powder coating, polypropylene seat shells (stackable, easy to clean), high-pressure laminate or compact laminate desktops with edge banding, rounded corners, glides for floors, and anti-tip stability. Lab furniture needs epoxy, phenolic or ceramic tops resistant to chemicals. Offers differ on size range and compliance with furniture standards, materials and gauges, warranty, colour options, delivery and assembly, and spare parts.",
+      "body_ar": "يشمل أثاث المدارس مكاتب وكراسي الطلاب (فردية، مزدوجة، وحدات مدمجة بمقاعد مثبتة، مكاتب قابلة لضبط الارتفاع)، ومكاتب المعلمين، وخزائن الفصول والخزائن الشخصية، وطاولات مختبرات العلوم بأسطح مقاومة للكيماويات وخدمات، وأرفف المكتبات وأثاث القراءة، وطاولات الفن والتصميم، وأثاث مختبرات الحاسوب، ومقاعد القاعات والمحاضرات (بمساند كتابة)، وأثاث المراحل المبكرة (طاولات منخفضة، خزائن صغيرة، مقاعد ناعمة)، وطاولات المقصف، والمقاعد الخارجية. ويجب أن تناسب الكراسي والمكاتب الطالب: تُدرج المقاسات بعلامات ارتفاع تطابق العمر والطول (مثل مقياس EN 1729)، لذلك تطلب المدرسة مزيجاً من المقاسات لا مقاساً واحداً. والمتانة مهمة لأن الأثاث يُستخدم يومياً لسنوات كثيرة: إطارات حديدية مطلية بالبودرة، وقواقع مقاعد من البولي بروبيلين (قابلة للرص وسهلة التنظيف)، وأسطح من الرقائق عالية الضغط أو المضغوطة مع أشرطة الحواف، وزوايا مستديرة، وقواعد انزلاق للأرضيات، وثبات ضد الانقلاب. ويحتاج أثاث المختبرات أسطحاً من الإيبوكسي أو الفينوليك أو السيراميك مقاومة للكيماويات. وتختلف العروض في مدى المقاسات والامتثال لمعايير الأثاث، والمواد والسماكات، والضمان، وخيارات الألوان، والتسليم والتجميع، وقطع الغيار.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/School_desk"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 (ledger 893/1198/1209). The general technical distinctions were checked against the page in sources, opened that day (source_note says what it confirmed); the rest is the seat's own expertise. The entry makes no UAE-specific claim.",
+      "source_note": "Page opened 2026-10-19: school desks and desk-chair sets in steel or wood with laminate tops and moulded plastic seats -> confirmed."
+    },
+    {
+      "id": "school_furniture:lead-times-and-quoting",
+      "topic": "School & education furniture - typical lead times, what a supplier needs to quote and what a quote must state",
+      "topic_ar": "أثاث المدارس والتعليم: المدد المعتادة وما يحتاجه المورد للتسعير وما يجب أن يذكره العرض",
+      "kind": "quote_requirements",
+      "gap_kind": "commercial",
+      "body_en": "Stock ranges: 1-3 weeks; school-wide orders 4-10 weeks; imported or custom lab furniture 8-14 weeks. A supplier needs the number of classrooms and pupils by age group, item list and sizes, materials and colours, lab requirements, and delivery before term. A quote states models and size marks, materials, test standards, quantities by size, warranty, delivery and assembly, and validity.",
+      "body_ar": "التشكيلات المتوفرة: 1-3 أسابيع؛ وطلبات المدرسة كاملة 4-10 أسابيع؛ وأثاث المختبرات المستورد أو المخصص 8-14 أسبوعاً. ويحتاج المورد عدد الفصول والطلاب حسب الفئة العمرية، وقائمة الأصناف ومقاساتها، والمواد والألوان، ومتطلبات المختبرات، والتسليم قبل بداية الفصل. ويذكر العرض الموديلات وعلامات المقاسات والمواد ومعايير الاختبار والكميات حسب المقاس والضمان والتسليم والتجميع والصلاحية.",
+      "sources": [],
+      "confidence": "low",
+      "verified": false,
+      "as_of": "2026-10-19",
+      "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
+      "source_note": "Authored practice; not read from a page."
     }
   ],
   "eval": [
@@ -79,6 +109,14 @@
       ],
       "why": "No entry of this pack answered it (checklist and standards name EN 1729 size marks but no entry maps a size mark to Grade 5 age/height). school_furniture:en-1729-size-marks-by-age was researched on 6-7 Oct 2026 to answer it; every fact in it was read on an opened page.",
       "origin": "real buyer question, moved from school_furniture.market.json on 7 Oct 2026 (ruling 1084): it asks a trade-specific question, so the trade entry is the answer, not the broad market entry"
+    },
+    {
+      "q_en": "Why should a school order several chair sizes for one grade?",
+      "q_ar": "ليش المدرسة لازم تطلب أكثر من مقاس كراسي لنفس الصف؟",
+      "expected_entry_ids": [
+        "school_furniture:product-distinctions"
+      ],
+      "written_blind": true
     }
   ],
   "verified": {
@@ -98,6 +136,27 @@
     "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium.",
     "added_2026_10_06": [
       "school_furniture:en-1729-size-marks-by-age"
-    ]
+    ],
+    "authored_19_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-19",
+      "served": [
+        "school_furniture:product-distinctions"
+      ],
+      "stored_not_served": [
+        "school_furniture:lead-times-and-quoting"
+      ],
+      "pages_opened": [
+        "https://en.wikipedia.org/wiki/School_desk"
+      ],
+      "ledger": [
+        893,
+        899,
+        900,
+        903,
+        1198,
+        1209
+      ]
+    }
   }
 }

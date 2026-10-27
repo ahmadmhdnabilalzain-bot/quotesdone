@@ -6,7 +6,9 @@
 //                                                           # <dir>/seats into knowledge/ (the repo copy is the
 //                                                           # source of truth: version-controlled, auditable)
 //   node scripts/kb/load_verified_packs.mjs                  # DRY RUN: validate knowledge/, print the plan
-//   node scripts/kb/load_verified_packs.mjs --apply          # embed (free gte-small) + upsert + retire
+//   node scripts/kb/load_verified_packs.mjs --apply          # embed (free gte-small) + upsert + retire, then
+//                                                           # enqueue the multilingual (ml) vectors and wait
+//   --wait-minutes=N   how long --apply polls for the ml vectors (default 20); exit 3 if the dispatch failed or rows are still owed
 //
 // WHERE EACH PACK GOES (scripts/sql/every_verified_pack_has_a_home_and_every_seat_reads_its_own.sql):
 // a trade pack -> sales_knowledge tagged 'trade:<code>', read by sales_engineer and customer_support; a seat
@@ -23,10 +25,18 @@
 // record_id is not in this load is deleted, table by table. A retired entry, or a pack removed from
 // knowledge/, is gone from retrieval after the next run. Only rows tagged 'verified_pack' are ever touched.
 //
+// THE ML VECTOR (19 Oct 2026). think() reads the multilingual space, and this loader embeds gte-small only. After
+// that day's reload 0 of 268 marketing and 0 of 4,674 eligible trade-pack rows had an ml vector. The ml vectors come
+// from the queue (fn_ml_embed_claim / fn_ml_embed_write); a written row is already due there (no vector, or
+// z_ml_vectors_stale dropped the stale one), so --apply records the load in agent_runs (job verified_pack_load, the
+// clock duty:pack_ml_vectors measures ceo/support rows from), dispatches ml-embed-backfill.yml, polls for exactly
+// the rows it wrote, and reports how many still lack a fresh vector. The dry run prints that plan with today's counts.
+//
 // Nothing here calls a paid model: the embedder is ai_gateway {action:'embed'}, gte-small in the edge runtime.
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 import { readPacks, listPackFiles, validate, rowsOf, upsertSql, makeEmbedder, TABLES, lit, vecLit } from './verified_packs.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -34,6 +44,7 @@ const KNOWLEDGE = join(REPO, 'knowledge');
 const at = (f) => { const i = process.argv.indexOf(f); return i >= 0 ? process.argv[i + 1] : null; };
 const IMPORT = at('--import');
 const APPLY = process.argv.includes('--apply');
+const WAIT_MINUTES = Number((process.argv.find((a) => a.startsWith('--wait-minutes=')) || '--wait-minutes=20').split('=')[1]);
 
 if (IMPORT) {
   // Copy what is verified; name what is not. The copy is byte-for-byte, so its sha is the pack version.
@@ -62,7 +73,35 @@ const rows = packs.flatMap(rowsOf);
 const byTable = Object.fromEntries(TABLES.map((t) => [t, rows.filter((r) => r.table === t)]));
 console.log(`${packs.length} pack(s), ${rows.length / 2} entries, ${rows.length} rows (EN + AR):`);
 for (const [t, rs] of Object.entries(byTable)) console.log(`  ${t.padEnd(22)} ${rs.length}`);
-if (!APPLY) { console.log('DRY RUN: nothing written. --apply to embed and load.'); process.exit(0); }
+// The ml vectors of exactly these rows: eligible (in v_knowledge_ml_source, with a body) and fresh (text_hash
+// matches the text the database holds now). An ineligible row is never retrieved, so it is not owed a vector.
+async function mlState(run) {
+  const out = {};
+  for (const [table, rs] of Object.entries(byTable)) {
+    if (!rs.length) continue;
+    const [c] = await run(`select count(*)::int eligible, count(v.row_id)::int fresh
+        from public.v_knowledge_ml_source s
+        left join public.knowledge_vector_ml v on v.src = s.src and v.row_id = s.row_id
+             and v.text_hash = md5(coalesce(s.title, '') || E'\\n' || coalesce(s.body, ''))
+       where s.src = ${lit(table)} and s.row_id = any(${lit(rs.map((r) => r.record_id))}) and btrim(coalesce(s.body, '')) <> ''`);
+    out[table] = c;
+  }
+  return out;
+}
+const owed = (st) => Object.values(st).reduce((n, c) => n + c.eligible - c.fresh, 0);
+const printMl = (st) => { for (const [t, c] of Object.entries(st)) console.log(`  ${t.padEnd(22)} eligible ${c.eligible}, fresh ml vector ${c.fresh}, still owed ${c.eligible - c.fresh}`); };
+
+if (!APPLY) {
+  console.log(`ENQUEUE PLAN after --apply: record the load (agent_runs job verified_pack_load), dispatch ml-embed-backfill.yml,`
+    + ` poll up to ${WAIT_MINUTES} min for the ml vectors of these ${rows.length} rows, report what is left.`);
+  try {
+    const { sql } = await import('../lib/db.mjs');
+    console.log('ml vectors of these record_ids in production now (a row whose text the load changes becomes owed again):');
+    printMl(await mlState((q) => sql(q, { readOnly: true })));
+  } catch (e) { console.log(`  (production not read: ${String(e.message || e).slice(0, 160)})`); }
+  console.log('DRY RUN: nothing written. --apply to embed and load.');
+  process.exit(0);
+}
 
 const { sql, PROJECT_REF } = await import('../lib/db.mjs');
 
@@ -90,3 +129,28 @@ for (const [table, rs] of Object.entries(byTable)) {
   if (c.n !== rs.length || c.embedded !== rs.length) { console.error(`  MISMATCH in ${table}: loaded ${rs.length}, table holds ${c.n}/${c.embedded}`); process.exit(1); }
 }
 console.log('LOADED');
+
+// Enqueue the ml vectors. The rows are already due in fn_ml_embed_claim; what was missing was a run and a count.
+await sql(`insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('it_engineer', 'ok', now(), now(), ${lit({ job: 'verified_pack_load', rows: rows.length, packs: packs.length })}, null)`);
+let dispatched = false;
+try {
+  execFileSync('gh', ['workflow', 'run', 'ml-embed-backfill.yml', '-f', 'minutes=40'], { stdio: 'inherit' });
+  dispatched = true;
+  console.log('dispatched ml-embed-backfill.yml');
+} catch (e) {
+  console.error(`COULD NOT DISPATCH ml-embed-backfill.yml (${e.message}); its 02:50 UTC schedule and the resilience_ping trickle remain`);
+}
+let st = await mlState(sql);
+const until = Date.now() + WAIT_MINUTES * 60_000;
+while (owed(st) > 0 && Date.now() < until) {
+  console.log(`  ${owed(st)} row(s) still owed an ml vector; next look in 60 s`);
+  await new Promise((r) => setTimeout(r, 60_000));
+  st = await mlState(sql);
+}
+printMl(st);
+console.log(owed(st) ? `NOT YET EMBEDDED: ${owed(st)} row(s) still lack a fresh ml vector after ${WAIT_MINUTES} min. `
+  + 'The queue keeps serving them; duty:pack_ml_vectors raises any still owed an hour after this load.'
+  : 'ML EMBEDDED: every loaded row has a fresh ml vector');
+// Never a silent success (19 Oct 2026): a failed dispatch or a row still owed is exit 3, so the release step goes red.
+if (!dispatched || owed(st)) process.exit(3);

@@ -35,6 +35,7 @@ import { join, relative } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { seatWorkFixtures } from '../lib/seat_work_fixtures.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FNS = join(REPO, 'supabase', 'functions');
@@ -108,7 +109,13 @@ const TRACKING_FILES = new Set(['every_send_comes_back_to_whoever_asked.sql', 't
   'the_originator_closes_what_was_answered_and_the_digest_carries_only_his_decisions.sql',
   // 5 Oct 2026: redefines the digest with one added step (a notify=false integration closes internal); its marking
   // and the closing of every told request with the digest's notification ids are carried over unchanged.
-  'an_integration_the_founder_holds_no_account_for_is_never_his_decision.sql']);
+  'an_integration_the_founder_holds_no_account_for_is_never_his_decision.sql',
+  // 19 Oct 2026 (#1472): redefines the watch to finish under the API timeout; its one marking step is the watch's
+  // own email retry, carried over unchanged and tracked by the request (retry_notification_id). Asserted below.
+  'the_backup_prune_and_the_delivery_watch_finish_under_the_api_timeout.sql',
+  // 19 Oct 2026 (#1560): redefines the digest (category gate, whole-word titles, owner it_engineer); its marking and the
+  // closing of every told request with the digest's notification ids are carried over unchanged.
+  'the_it_digest_reaches_the_founder_only_with_his_kind_of_decision_in_whole_words.sql']);
 const MARK = /set_config\(\s*'app\.qd_delivery_tracked'/;
 test('no SQL routine can switch off the tracking, and every other row is adopted', () => {
   const bypass = []; let writers = 0;
@@ -375,7 +382,11 @@ end $probe$;`;
 test('production: every send comes back and the asking seat closes or acts (aborted transaction)', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
   let message = '';
-  try { await replaySql(PROBE); message = 'the probe returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
+  // Ruling 1199 (#1479, demo_activity_files_no_seat_task_or_handoff.sql) files no handoff for a ZZ DEMO subject, so
+  // a_demo_delivery_request_is_captured_not_refused.sql (#1479) answers 'demo_captured' with no handoff. This probe
+  // proves the delivery loop's handoffs on ZZ DEMO fixtures, so it switches that guard off for its own rolled-back
+  // transaction (scripts/lib/seat_work_fixtures.mjs).
+  try { await replaySql(seatWorkFixtures() + '\n;\n' + PROBE); message = 'the probe returned without raising, so it did not roll back'; } catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, message.slice(0, 2000));
   const res = JSON.parse(chk[1].replace(/\\"/g, '"'));

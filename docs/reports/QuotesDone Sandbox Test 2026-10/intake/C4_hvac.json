@@ -1,0 +1,76 @@
+{
+ "customer": "C4",
+ "email": "qd-fe7ba9c4-cust17@example.invalid",
+ "category": "hvac",
+ "final_status": "needs_info",
+ "final_readiness": 80,
+ "final_missing": [
+  "new_or_replace"
+ ],
+ "final_brief": {
+  "state": "interview",
+  "details": {},
+  "asked_key": null,
+  "boq_asked": false,
+  "cad_asked": false,
+  "req_asked": null,
+  "req_answers": {
+   "installation": {
+    "v": "yes"
+   }
+  }
+ },
+ "turns": [
+  {
+   "turn": 1,
+   "harness_answer": "نحتاج HVAC لفيلا في Ajman: البند الأول fan coil unit عدد 20، البند الثاني air handling unit عدد 10.",
+   "ai_reply": "شكرًا، سجّلت طلبكم لفيلا في عجمان: 20 وحدة fan coil و10 وحدات air handling. لمساعدة الموردين على تسعيرها بدقة، نحتاج معرفة بعض التفاصيل:"
+  },
+  {
+   "turn": 2,
+   "harness_answer": "المقاسات: غير متأكد، أرجو اقتراح المقاس القياسي.",
+   "ai_reply": "سجّلت 20 وحدة fan coil و10 وحدات air handling لفيلا في عجمان، مع طلب اقتراح المقاسات المناسبة. لإكمال الطلب للموردين، يرجى تزويدنا بالتفاصيل التالية؛ وإذا لم تعرفوا إجابة، يمكن ذكر ذلك ليأخذ المورد افتراضًا مناسبًا."
+  },
+  {
+   "turn": 3,
+   "harness_answer": "التوريد والتركيب، خلال ستة أسابيع.",
+   "ai_reply": "شكرًا، سجّلت طلب توريد وتركيب 20 وحدة fan coil و10 وحدات air handling في فيلا بعجمان خلال ستة أسابيع، مع اقتراح المقاسات المناسبة من المورد. لإرسال طلب واضح للموردين، نحتاج هذه المعلومات الأربع؛ ويمكنكم ذكر «غير متأكد» إذا لم تتوفر."
+  },
+  {
+   "turn": 4,
+   "harness_answer": "المواصفات: غير متأكد من العلامة التجارية، درجة تجارية قياسية.",
+   "ai_reply": "سجّلت طلب توريد وتركيب 20 وحدة fan coil و10 وحدات air handling لفيلا في عجمان، مع اقتراح المقاسات المناسبة ودرجة تجارية قياسية، والموعد خلال ستة أسابيع. لإكماله للموردين، نحتاج هذه التفاصيل فقط؛ ويمكنكم ذكر «غير متأكد» إذا لم تتوفر."
+  },
+  {
+   "turn": 5,
+   "harness_answer": "Details: application_area: standard specification, please assume typical values; new_or_replace: standard specification, please assume typical values; location: standard specification, please assume typical values.",
+   "ai_reply": "تم تجهيز الطلب للموردين، مع توضيح أن المساحة والتفاصيل غير المحددة تُسعّر وفق افتراضات نموذجية. سيشمل الطلب 20 وحدة fan coil و10 وحدات air handling، توريدًا وتركيبًا خلال ستة أسابيع."
+  },
+  {
+   "turn": 6,
+   "harness_answer": "Details: هل لديك تفضيل في ماركة المكيفات؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل لديك تفضيل في مجاري الهواء؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟: standard specification, please assume typical values; متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.: standard specification, please assume typical values.",
+   "ai_reply": "سجّلت 20 وحدة fan coil و10 وحدات air handling للتوريد والتركيب في فيلا بعجمان خلال ستة أسابيع. لتحديد نوع النظام للموردين، هل تعمل الوحدات على نظام تشيلر ومياه مبردة، أم على نظام آخر، أم تفضّلون معاينة الموقع لتحديد ذلك؟"
+  },
+  {
+   "turn": 7,
+   "harness_answer": "Details: system_type: standard specification, please assume typical values.",
+   "ai_reply": "تم تجهيز الطلب للموردين، مع توضيح أن المساحة ونوع النظام والتفاصيل غير المحددة تحتاج إلى افتراضات المورد أو معاينة الموقع. يشمل الطلب 20 وحدة fan coil و10 وحدات air handling للتوريد والتركيب في فيلا بعجمان خلال ستة أسابيع."
+  },
+  {
+   "turn": 8,
+   "harness_answer": "Details: هل لديك تفضيل في ماركة المكيفات؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل لديك تفضيل في مجاري الهواء؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟: standard specification, please assume typical values; متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.: standard specification, please assume typical values.",
+   "ai_reply": "تم تجهيز الطلب للموردين، مع توضيح أن المقاسات ونوع النظام والتفاصيل غير المحددة تُقدّر بافتراضات مناسبة أو تُحدّد بمعاينة الموقع. يشمل الطلب 20 وحدة fan coil و10 وحدات air handling للتوريد والتركيب في عجمان خلال ستة أسابيع."
+  },
+  {
+   "turn": 9,
+   "harness_answer": "Details: هل لديك تفضيل في ماركة المكيفات؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل لديك تفضيل في مجاري الهواء؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟: standard specification, please assume typical values; متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.: standard specification, please assume typical values.",
+   "ai_reply": "تم تجهيز الطلب للموردين على أساس افتراضات تجارية قياسية، مع توضيح التفاصيل التي تحتاج إلى التحقق أو التقدير من المورد. يشمل الطلب توريد وتركيب 20 وحدة fan coil و10 وحدات air handling في فيلا بعجمان خلال ستة أسابيع."
+  },
+  {
+   "turn": 10,
+   "harness_answer": "Details: هل لديك تفضيل في ماركة المكيفات؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل لديك تفضيل في مجاري الهواء؟ اختر أحد الخيارات، أو اكتب ما تفضّله.: standard specification, please assume typical values; هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟: standard specification, please assume typical values; متى تحتاج إلى إنجاز العمل أو استلامه؟ اختر أحد الخيارات، أو اكتب التاريخ.: standard specification, please assume typical values.",
+   "ai_reply": "سجّلت توريد وتركيب 20 وحدة fan coil و10 وحدات air handling لفيلا في عجمان، مع موعد خلال ستة أسابيع، وسأوضح للمورد أن بعض التفاصيل تُقدّر بافتراضات قياسية. بقي تأكيد واحد: هل هذا تركيب جديد، أم استبدال لوحدات موجودة، أم توسعة لنظام قائم، أم صيانة؟"
+  }
+ ],
+ "note": "per-turn slots are not stored by inquiry_intake; only the final brief/missing survive"
+}

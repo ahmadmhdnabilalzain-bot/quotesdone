@@ -1,0 +1,191 @@
+{
+ "taken_at": "2026-10-12T08:16:27.510Z",
+ "project": {
+  "name": "quotesdone-next",
+  "id": "prj_6mNIUbqsbg92IMXgMFmbkMlXBGzS",
+  "framework": "nextjs",
+  "nodeVersion": "24.x",
+  "buildCommand": null,
+  "devCommand": null,
+  "installCommand": null,
+  "outputDirectory": null,
+  "rootDirectory": null,
+  "serverlessFunctionRegion": "iad1",
+  "directoryListing": false,
+  "gitForkProtection": true,
+  "autoExposeSystemEnvs": true,
+  "sourceFilesOutsideRootDirectory": true,
+  "commandForIgnoringBuildStep": null,
+  "speedInsights": {
+   "id": "GhD4PvqbKFJs5VwgkuphrkIzAHk",
+   "hasData": false
+  },
+  "webAnalytics": {
+   "id": "qHVmfJKDS2z1MdQeqcLQDE1nZ"
+  },
+  "git": {
+   "type": "github",
+   "repo": "quotesdone",
+   "productionBranch": "main"
+  }
+ },
+ "domains": [
+  {
+   "name": "quotesdone-next.vercel.app",
+   "verified": true,
+   "redirect": null,
+   "git_branch": null
+  },
+  {
+   "name": "quotesdone.ae",
+   "verified": true,
+   "redirect": null,
+   "git_branch": null
+  },
+  {
+   "name": "quotesdone.com",
+   "verified": true,
+   "redirect": null,
+   "git_branch": null
+  },
+  {
+   "name": "www.quotesdone.ae",
+   "verified": true,
+   "redirect": "quotesdone.ae",
+   "git_branch": null
+  },
+  {
+   "name": "www.quotesdone.com",
+   "verified": true,
+   "redirect": "quotesdone.com",
+   "git_branch": null
+  }
+ ],
+ "env": [
+  {
+   "key": "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+   "targets": [
+    "production"
+   ],
+   "type": "encrypted"
+  },
+  {
+   "key": "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+   "targets": [
+    "production"
+   ],
+   "type": "encrypted"
+  },
+  {
+   "key": "NEXT_PUBLIC_SUPABASE_URL",
+   "targets": [
+    "production"
+   ],
+   "type": "encrypted"
+  },
+  {
+   "key": "POSTGRES_DATABASE",
+   "targets": [
+    "production"
+   ],
+   "type": "encrypted"
+  },
+  {
+   "key": "POSTGRES_HOST",
+   "targets": [
+    "production"
+   ],
+   "type": "encrypted"
+  },
+  {
+   "key": "POSTGRES_PASSWORD",
+   "targets": [
+    "production"
+   ],
+   "type": "sensitive"
+  },
+  {
+   "key": "POSTGRES_PRISMA_URL",
+   "targets": [
+    "production"
+   ],
+   "type": "sensitive"
+  },
+  {
+   "key": "POSTGRES_URL",
+   "targets": [
+    "production"
+   ],
+   "type": "sensitive"
+  },
+  {
+   "key": "POSTGRES_URL_NON_POOLING",
+   "targets": [
+    "production"
+   ],
+   "type": "sensitive"
+  },
+  {
+   "key": "POSTGRES_USER",
+   "targets": [
+    "production"
+   ],
+   "type": "encrypted"
+  },
+  {
+   "key": "SUPABASE_ANON_KEY",
+   "targets": [
+    "production"
+   ],
+   "type": "encrypted"
+  },
+  {
+   "key": "SUPABASE_JWT_SECRET",
+   "targets": [
+    "production"
+   ],
+   "type": "sensitive"
+  },
+  {
+   "key": "SUPABASE_PUBLISHABLE_KEY",
+   "targets": [
+    "production"
+   ],
+   "type": "encrypted"
+  },
+  {
+   "key": "SUPABASE_SECRET_KEY",
+   "targets": [
+    "production"
+   ],
+   "type": "sensitive"
+  },
+  {
+   "key": "SUPABASE_SERVICE_ROLE_KEY",
+   "targets": [
+    "production"
+   ],
+   "type": "sensitive"
+  },
+  {
+   "key": "SUPABASE_URL",
+   "targets": [
+    "production"
+   ],
+   "type": "encrypted"
+  }
+ ],
+ "crons": {
+  "enabledAt": 1783819140790,
+  "disabledAt": null,
+  "updatedAt": 1791792949292,
+  "deploymentId": "dpl_4dAjv8rYxYGJ1nvBG2gzXRBUCCNY",
+  "definitions": [
+   {
+    "host": "quotesdone-next-8iestfg14-quotes-done.vercel.app",
+    "path": "/api/resilience-ping",
+    "schedule": "*/15 * * * *"
+   }
+  ]
+ }
+}

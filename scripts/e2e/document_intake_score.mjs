@@ -131,7 +131,9 @@ export function scoreRun({ docs, code, model, merged, probe, label, spend, gateS
     const got = new Set(leads.map((l) => leadDoc[l]));
     const want = new Set(docs.filter((d) => ['licence', 'profile', 'catalogue'].includes(d.kind) && (d.truth.trades || []).includes(trade)
       && (d.kind !== 'licence' || ['approve', 'name_autofilled'].includes(d.expected))).map((d) => d.id));
-    const extra = [...got].filter((x) => !want.has(x)), missing = [...want].filter((x) => !got.has(x));
+    // trades_also (a hand-written real corpus, 13 Oct 2026): a trade the document offers only in passing — reaching it is not wrong.
+    const also = new Set(docs.filter((d) => (d.truth.trades_also || []).includes(trade)).map((d) => d.id));
+    const extra = [...got].filter((x) => !want.has(x) && !also.has(x)), missing = [...want].filter((x) => !got.has(x));
     const missHeld = missing.filter((x) => gateOf[x]?.reason || !merged[x].trades.length);
     const missWrong = missing.filter((x) => !missHeld.includes(x));
     matchRows.push({ trade, expected: want.size, reached: got.size, extra, missing_held: missHeld, missing_wrong: missWrong });
@@ -140,8 +142,8 @@ export function scoreRun({ docs, code, model, merged, probe, label, spend, gateS
   }
   // trade proposals per document (licence activities, profiles, catalogue)
   const tradeRows = docs.filter((d) => ['licence', 'profile', 'catalogue'].includes(d.kind) && d.file).map((d) => {
-    const t = new Set(d.truth.trades || []), p = new Set(merged[d.id].trades);
-    return { id: d.id, kind: d.kind, format: d.format, truth: [...t], proposed: [...p], wrong: [...p].filter((x) => !t.has(x)), missing: [...t].filter((x) => !p.has(x)), status: byCode[d.id]?.trades?.status };
+    const t = new Set(d.truth.trades || []), p = new Set(merged[d.id].trades), ok = new Set([...t, ...(d.truth.trades_also || [])]);
+    return { id: d.id, kind: d.kind, format: d.format, truth: [...t], proposed: [...p], wrong: [...p].filter((x) => !ok.has(x)), missing: [...t].filter((x) => !p.has(x)), status: byCode[d.id]?.trades?.status };
   });
   for (const r of tradeRows) if (r.wrong.length) failures.push({ area: 'trades', id: r.id, verdict: 'wrong', cause: `proposed ${r.wrong.join(', ')} which the document does not do`,
     evidence: (byCode[r.id]?.trades?.hits || []).filter((h) => r.wrong.includes(h.code)).map((h) => `${h.via} "${h.snippet}" -> ${h.phrases.join('/')}`) });

@@ -53,7 +53,7 @@ test('login_otp asks for WhatsApp only for a number the account itself confirmed
 
 test('the WhatsApp branch runs after every existing refusal and rate limit', () => {
   const at = (s) => { const i = OTP.indexOf(s); assert.ok(i > 0, `missing: ${s}`); return i; };
-  const wa = at('const wantsWa = acctEmail ? await confirmedWhatsApp');
+  const wa = at('waConfirmed: acctEmail ? await confirmedWhatsApp(kind, acctEmail, e164) : false');
   for (const guard of [
     "if (owner && 'ambiguous' in owner)",   // a shared number may not select a person
     'if (!acctEmail && !otherRole) {',     // no account in either role -> no paid send
@@ -82,4 +82,40 @@ test('the code generator is the CSPRNG and the code is checked in one locked sta
   // spends under a row lock. The function hands it the HMAC and never reads the code row to compare itself.
   assert.match(OTP, /rpc\("fn_login_otp_email_verify", \{ p_email: email, p_hash: await otpHash\(code\)/);
   assert.ok(!/from\('email_verifications'\)\.select\('\*'\)/.test(OTP), 'the verify must not read the code row and compare it outside the locked routine');
+});
+
+// REVIEW OF #1432 (it_engineer, 18 Oct 2026). WhatsApp became the cheaper first channel (USD 0.0657 a code
+// against USD 0.1676 by SMS, measured) but only where it is known to reach the person, with an automatic
+// SMS failover and a resend gap that concurrent requests cannot race.
+const KYC = R('supabase/functions/kyc/index.ts');
+const LOCK_SQL = R('scripts/sql/a_rate_limit_check_holds_a_lock_per_key.sql');
+
+test('WhatsApp goes only to a confirmed number, or to the number a signed-in user chose it for', () => {
+  // login_otp: anonymous, so no caller-chosen channel; WhatsApp only through the confirmed-number gate.
+  const pick = OTP.slice(OTP.indexOf('const pick = nextChannel('), OTP.indexOf('\n', OTP.indexOf('const pick = nextChannel(')));
+  assert.ok(pick.includes('waConfirmed: acctEmail ? await confirmedWhatsApp('), 'login_otp must gate WhatsApp on a confirmed number');
+  assert.ok(!/asked:/.test(pick), 'an anonymous caller must not choose the channel');
+  // the shared rule: no confirmation and no choice -> SMS
+  assert.ok(CHOICE.includes("return o.asked === 'whatsapp' || o.waConfirmed ? 'whatsapp' : 'sms';"));
+  assert.ok(KYC.includes('nextChannel({ e164: phone, asked: b.channel,'), 'kyc passes the signed-in user\'s own choice');
+});
+
+test('the resend gap is taken from the locked limiter before Twilio is asked', () => {
+  assert.match(LOCK_SQL, /perform pg_advisory_xact_lock\(hashtextextended\('rl_check:' \|\| p_key, 0\)\);/);
+  for (const [name, src, send] of [['login_otp', OTP, 'const res = await voiceAfterSms('], ['kyc', KYC, "pick === 'whatsapp' ? await sendWhatsAppFirst(send)"]]) {
+    const gap = src.indexOf("rl('otp_gap:'");
+    assert.ok(gap > 0, name + ' has no resend gap');
+    assert.ok(gap < src.indexOf(send), name + ': the gap must be checked before the send');
+  }
+});
+
+test('the anonymous failover answers the same thing whatever happened', () => {
+  const start = OTP.indexOf("if (action === 'failover') {");
+  assert.ok(start > 0, 'login_otp has no failover action');
+  const block = strip(OTP.slice(start, OTP.indexOf("if (action === 'verify') {", start)));
+  const answers = block.match(/return J\([^;]*\);/g) || [];
+  assert.ok(answers.length >= 3);
+  for (const a of answers) assert.equal(a, 'return J({ ok: true });', 'the failover must not disclose state: ' + a);
+  assert.ok(block.indexOf('isDemoPhone(e164)') < block.indexOf('verify.twilio.com'), 'a fixture number never reaches Twilio');
+  assert.ok(block.includes("rl('otp_failover:' + sid, 1, 600)"), 'one failover SMS per verification');
 });

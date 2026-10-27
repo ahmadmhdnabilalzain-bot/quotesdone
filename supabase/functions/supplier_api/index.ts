@@ -6,6 +6,7 @@ import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_DOCS, SAFE_SUPPLIER_PAP
 import { seedTerms } from '../_shared/anonymise.ts';
 import { SUPPLIER_LOCALE } from '../_shared/registered_locale.ts';
 import { arDays } from '../_shared/ar_days.ts';
+import { isFixtureLead } from '../_shared/demo_identity.ts';
 // MALWARE WATCH, 9 Sep 2026. Every file a supplier sends is hashed and looked up before it reaches
 // storage; a hash VirusTotal already knows to be malicious is refused here rather than stored,
 // forwarded and served back. See _shared/malware.ts for why the lookup blocks and the analysis does not.
@@ -25,8 +26,11 @@ import { arabicOf, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
-import { proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
-import { licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
+import { markReading, proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
+import { readDocument } from '../_shared/doc_read/index.ts';
+import { LIMITS } from '../_shared/doc_read/types.ts';
+import { afterResponse, readStoredDocsLater, signedUpload, stuckReads, type LaterDoc } from '../_shared/supplier_docs_later.ts';
+import { toB64, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
 import { approve, deskAssess, fillIn, finishArabic, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
@@ -66,6 +70,11 @@ const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 // bank_name, bank_account_name, bank_iban and iban_doc_path left this list on 21 Sep 2026: the columns are
 // being dropped/purged (scripts/sql/the_founder_removed_bank_details_from_the_estate.sql). Money moves both
 // directions through Stripe, so the estate never holds a supplier's bank details — founder instruction 527.
+// The largest profile PDF with no text layer sent to the vision model as a file (an 8.4 MB, 87-page scan was measured).
+const PROFILE_PDF_MODEL_MAX = 12 * 1024 * 1024;
+// A file over the 25 MB ceiling (the supplier-docs bucket's file_size_limit) was told its FORMAT was wrong. 3 of 29 real UAE
+// profiles measured on 13 Oct 2026 are larger (30, 38 and 85 MB): the supplier is now told the size, and how to fix it.
+const TOO_LARGE = (what: string) => `That ${what} is larger than 25 MB. Please upload a smaller copy - most PDF tools can export a compressed or "smallest file size" version.`;
 const PROFILE_COLS = ['contact_name','signatory_name','emirates_id','phone','products','services','description','certifications','founded_year','company_type','company_size','license_authority','trn','egr_doc_path','egr_doc_name','egr_number'];
 const YEAR_MS = 365 * 864e5;
 const CONCLUDED = ['completed','closed','cancelled'];
@@ -84,7 +93,9 @@ const CONCLUDED = ['completed','closed','cancelled'];
 const clip = (v: unknown, n: number) => (v == null || String(v).trim() === '') ? null : String(v).slice(0, n);
 // The identity scrubbers (scrubIdentity, inboxField, inboxBoq) live in ./identity_scrub.ts.
 import { inboxBoq, inboxField, scrubIdentity } from './identity_scrub.ts';
+import { cleanTemplate } from './quote_template.ts';
 import { lossFeedback } from './loss_feedback.ts';
+import { newOptionRefusal } from './new_option.ts';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const numOrNull = (v: unknown) => { const n = Number(v); return isFinite(n) && n !== 0 ? n : (isFinite(n) && String(v).trim() !== '' ? n : null); };
 // EXACT SPECS FOR A TRADE WITH NO LINE READER (23 Sep 2026). The trade's knowledge pack says what a line
@@ -454,6 +465,17 @@ const handle = async (req: Request): Promise<Response> => {
       if (!auth.ok) return J({ error: 'forbidden' }, 403);
       return await arabicFinish(String(peek.quote_id || ''));
     }
+    // THE SWEEP'S ONE RE-READ (19 Oct 2026, sales_engineer; _shared/supplier_docs_later.ts): resilience_ping asks every run;
+    // a profile or catalogue still 'reading' 10 minutes on is read once more after this answer, marked retry, so a second
+    // stall is left to fn_supplier_doc_reading_escalate (30 minutes, to the sales engineer). Gated again on its stored bytes.
+    if (peek?.__secret && peek.action === 'docs_reread') {
+      const auth = await requireInternal(admin, String(peek.__secret), 'supplier_api');
+      if (!auth.ok) return J({ error: 'forbidden' }, 403);
+      const stuck = await stuckReads(admin);
+      const job = (async () => { for (const s of stuck) await readStoredDocsLater(admin, s.supplier_id, s.docs, { retry: true }); })();
+      const w = afterResponse(job, 'supplier_api.docs_reread'); if (w) await w;
+      return J({ ok: true, rereading: stuck.map((s) => ({ supplier_id: s.supplier_id, docs: s.docs.length })) });
+    }
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
@@ -654,6 +676,16 @@ ${q}`,
       return J(o, s);
     }
 
+    // UPLOADS UP TO 100 MB GO STRAIGHT TO STORAGE (19 Oct 2026, sales_engineer; _shared/supplier_docs_later.ts). Vercel
+    // caps a request body at 4.5 MB, so a profile or catalogue no longer travels as base64: this returns a signed upload
+    // for a path in the supplier's own folder, the browser uploads to it, and process_docs / save_documents name the path.
+    if (action === 'upload_url') {
+      const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      const r = await signedUpload(admin, Number(sup.id), String(body.kind || ''), body.filename, body.mime);
+      return r.ok ? J(r) : J({ error: r.error, code: r.error, message: r.message }, r.status);
+    }
+
     if (action === 'process_docs') {
       // FOUNDER RULING 1177 (7 Oct 2026): "it should always read". A model read that fails (a 5xx, a truncated or
       // unparseable answer) is asked once more before the document counts as unread; the gateway already falls back
@@ -677,7 +709,7 @@ ${q}`,
       // Every stored licence, profile and catalogue is also READ BY CODE into a trade proposal the
       // supplier confirms (15 Sep 2026, _shared/supplier_doc_trades.ts). The model calls below still
       // run and still refuse under the OpenRouter hold; nothing here waits on them.
-      const readQueue: DocIn[] = [];
+      const readQueue: LaterDoc[] = [];
       const lic = body.license || {};
       // 14 Sep 2026 (sales_engineer): a path is recorded only when it is this supplier's own and
       // storage holds the object - otherwise the supplier sees success for a file that is not there
@@ -813,32 +845,32 @@ ${q}`,
       // supplier's own typed text once the row has been written (see the 29 Jul 2026 header).
       let xServices: string[] = [];
       const prof = body.company_profile || {};
-      if (prof.path) { if (!(await own(prof.path, 'profiles'))) return notStored('company profile'); upd.company_profile_doc_path = String(prof.path); readQueue.push({ path: String(prof.path), name: String(prof.path).split('/').pop() || 'profile', kind: 'profile' }); }
+      // A path is a file the browser uploaded straight to storage (upload_url): it has not been through the type and
+      // malware gate yet, so it is gated on its stored bytes before it is read (gate: true, _shared/supplier_docs_later.ts).
+      if (prof.path) { if (!(await own(prof.path, 'profiles'))) return notStored('company profile'); upd.company_profile_doc_path = String(prof.path); readQueue.push({ path: String(prof.path), name: String(prof.filename || String(prof.path).split('/').pop() || 'profile'), kind: 'profile', mime: prof.mime ? String(prof.mime) : undefined, gate: true }); }
       // AUDIT 9.1. Company profile document - same treatment as the trade licence above.
       else if (prof.original_b64) {
         const sc = await sanitizeAndScan({ input: String(prof.original_b64), declaredMime: prof.mime, filename: prof.filename || 'profile', allow: SAFE_SUPPLIER_PAPERS,
                                            scan: { source: 'supplier_api.company_profile', subject: String(sup.id), filename: prof.filename, bucket: 'supplier-docs' } });
-        if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'That company profile cannot be accepted. Please upload a PDF, a Word or PowerPoint file, or an image (JPEG or PNG).' }, sc.status);
+        if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : sc.body.error === 'file_too_large' ? TOO_LARGE('company profile') : 'That company profile cannot be accepted. Please upload a PDF, a Word or PowerPoint file, or an image (JPEG or PNG).' }, sc.status);
         const s = sc.result;
         const p = `profiles/${sup.id}/${Date.now()}_${safeFilename(prof.filename || 'profile', s.mime)}`;
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
         if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your company profile. Please try again.' }, 502);
         upd.company_profile_doc_path = p;
+        // Read after the response (supplier_docs_later.ts); the picture / scan model step is profileHook below.
         readQueue.push({ path: p, name: String(prof.filename || 'profile'), kind: 'profile', bytes: s.bytes, mime: s.mime });
-        // A PHOTO-ONLY PROFILE IS READ TOO (ruling 1177): code has no text to read in a picture, so the picture goes to
-        // the vision model (profile mode) like the page images the portal sends; its services are then read for trades.
-        if (/^image\//i.test(s.mime)) profImgs.push({ b64: btoa(Array.from(s.bytes, (c) => String.fromCharCode(c)).join('')), mime: s.mime });
       }
       if (Array.isArray(prof.images)) profImgs.push(...prof.images);
       const cats = Array.isArray(body.catalogs) ? body.catalogs.slice(0, 5) : []; const catPaths: string[] = [];
       // AUDIT 9.1. Catalogues. A rejected catalogue is refused outright rather than skipped,
       // because silently dropping one is how a supplier ends up believing a document is on file.
       for (const c of cats) {
-        if (c?.path) { if (!(await own(c.path, 'catalogs'))) return notStored('catalogue'); catPaths.push(String(c.path)); readQueue.push({ path: String(c.path), name: String(c.path).split('/').pop() || 'catalogue', kind: 'catalogue' }); }
+        if (c?.path) { if (!(await own(c.path, 'catalogs'))) return notStored('catalogue'); catPaths.push(String(c.path)); readQueue.push({ path: String(c.path), name: String(c.filename || String(c.path).split('/').pop() || 'catalogue'), kind: 'catalogue', mime: c.mime ? String(c.mime) : undefined, gate: true }); }
         else if (c?.original_b64) {
           const sc = await sanitizeAndScan({ input: String(c.original_b64), declaredMime: c.mime, filename: c.filename || 'catalog', allow: SAFE_SUPPLIER_PAPERS,
                                              scan: { source: 'supplier_api.catalog', subject: String(sup.id), filename: c.filename, bucket: 'supplier-docs' } });
-          if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : 'One of your catalogue files cannot be accepted. Please upload PDFs, Word or PowerPoint files, or images (JPEG or PNG).' }, sc.status);
+          if (!sc.ok) return J({ ...sc.body, message: sc.body.error === 'malware_detected' ? sc.body.message : sc.body.error === 'file_too_large' ? TOO_LARGE('catalogue') : 'One of your catalogue files cannot be accepted. Please upload PDFs, Word or PowerPoint files, or images (JPEG or PNG).' }, sc.status);
           const s = sc.result;
           const p = `catalogs/${sup.id}/${Date.now()}_${safeFilename(c.filename || 'catalog', s.mime)}`;
           const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
@@ -857,27 +889,42 @@ ${q}`,
         const existingCat: string[] = Array.isArray(curCat?.catalog_doc_paths) ? (curCat!.catalog_doc_paths as string[]) : [];
         upd.catalog_doc_paths = [...existingCat, ...catPaths.filter((p) => !existingCat.includes(p))].slice(0, 20);
       }
-      if (profImgs.length) {
-        try { const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'profile', images: profImgs.slice(0, 10) });
-          if (jd?.ok && jd.profile) { const pf = jd.profile;
-            if (pf.summary) upd.capability_summary = pf.summary;
-            // DOCUMENTS LEAD (spec, 29 Jul 2026). This line used to read
-            //   if (Array.isArray(pf.services) && pf.services.length && !sup.services) ...
-            // so the trade licence / company profile / catalogue only got to speak when the
-            // supplier had typed nothing at all. The documents are the PRIMARY data source, so
-            // what the agent extracts from them now ALWAYS becomes the canonical leads.services.
-            // The supplier's own words are not lost - they are preserved as the declared value
-            // and cross-checked immediately below.
-            if (Array.isArray(pf.services) && pf.services.length) { xServices = pf.services.map((s: unknown) => String(s).trim()).filter(Boolean).slice(0, 40); upd.services = xServices.join(', '); }
-            // The services the model read off a picture are read for trades exactly as a text profile's lines are.
-            const pq = readQueue.find((x) => x.kind === 'profile' && x.mime && /^image\//i.test(x.mime));
-            if (pq) pq.photo_text = modelReadText('profile', xServices);
-            if (Array.isArray(pf.products) && pf.products.length && !sup.products) upd.products = pf.products.join(', ');
-            if (Array.isArray(pf.emirates) && pf.emirates.length && !(Array.isArray(sup.service_emirates) && sup.service_emirates.length)) upd.service_emirates = pf.emirates;
-            out.profile = { summary: pf.summary, sectors: pf.sectors, confidence: pf.confidence };
-          } else out.profile_error = jd?.error || 'extract_failed';
-        } catch (e) { out.profile_error = String((e as Error)?.message || e); }
-      }
+      // THE PROFILE MODEL STEP RUNS AFTER THE RESPONSE (19 Oct 2026, sales_engineer; _shared/supplier_docs_later.ts). A
+      // picture, or a profile PDF with no text layer (13 Oct 2026, it_engineer: Menasco, 87 pages, 0 characters), goes to
+      // license_extract's profile mode (ruling 1177), up to PROFILE_PDF_MODEL_MAX; a PDF pdf.js could not parse is held
+      // unreadable, never taken for a scan. Its findings are written to the row on their own update.
+      const runProfileModel = async (pq?: LaterDoc) => {
+        let profPdf: { file_b64: string; mime: string; filename: string } | null = null;
+        const imgs = [...profImgs];
+        if (pq?.bytes && pq.mime && /^image\//i.test(pq.mime)) imgs.unshift({ b64: toB64(pq.bytes), mime: pq.mime });
+        else if (pq?.bytes && pq.mime && /pdf/i.test(pq.mime)) {
+          const small = pq.bytes.length <= PROFILE_PDF_MODEL_MAX;
+          const b64 = small ? toB64(pq.bytes) : '';   // before the read: above 25 MB the read hands pdf.js the buffer itself
+          // ONE read of the profile (review of #1404): kept on the item, so the trade read does not parse it again.
+          pq.read = await readDocument(pq.bytes, pq.name, pq.mime, 0, { textOnly: true, maxBytes: LIMITS.maxPaperBytes });
+          if (pq.read.ok && pq.read.needs === 'ocr' && small) profPdf = { file_b64: b64, mime: pq.mime, filename: pq.name };
+        }
+        if (!imgs.length && !profPdf) return;
+        const mUpd: Record<string, unknown> = {};
+        const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'profile', ...(imgs.length ? { images: imgs.slice(0, 10) } : profPdf) });
+        if (!(jd?.ok && jd.profile)) { console.error(JSON.stringify({ at: 'supplier_api.process_docs.profile', supplier: sup.id, error: jd?.error || 'extract_failed' })); return; }
+        const pf = jd.profile;
+        if (pf.summary) mUpd.capability_summary = pf.summary;
+        // DOCUMENTS LEAD (spec, 29 Jul 2026): what the documents say ALWAYS becomes leads.services; the supplier's own
+        // words are kept as the declared value and cross-checked below.
+        if (Array.isArray(pf.services) && pf.services.length) { xServices = pf.services.map((s: unknown) => String(s).trim()).filter(Boolean).slice(0, 40); mUpd.services = xServices.join(', '); }
+        // The services the model read off a picture are read for trades exactly as a text profile's lines are.
+        if (pq && (imgs.length ? /^image\//i.test(pq.mime || '') : !!profPdf)) pq.photo_text = modelReadText('profile', pf.lines);
+        if (Array.isArray(pf.products) && pf.products.length && !sup.products) mUpd.products = pf.products.join(', ');
+        if (Array.isArray(pf.emirates) && pf.emirates.length && !(Array.isArray(sup.service_emirates) && sup.service_emirates.length)) mUpd.service_emirates = pf.emirates;
+        if (Object.keys(mUpd).length) { const { error } = await admin.from('leads').update(mUpd).eq('id', sup.id); if (error) console.error('process_docs: profile fields not saved —', error.message); }
+        // DOUBLE CONFIRMATION (spec, 29 Jul 2026): the documents' services against the supplier's typed ones, recorded in
+        // agent_actions, a review item on a conflict. The declared text is the last cross-check's when one exists.
+        if (xServices.length) {
+          const prior = await priorCrossCheck(sup.id);
+          await recordServicesCrossCheck(sup.id, sup.company_name, xServices, prior.found ? prior.declared : (sup.services ?? null));
+        }
+      };
       // 5 Aug 2026. This is the ONLY database write in process_docs, and it carries the storage
       // path, every extracted licence field and the company-name correction. Its result was
       // discarded, so a failed write returned `{ok:true, extracted:{…}}` — a complete, plausible
@@ -898,21 +945,21 @@ ${q}`,
         console.error('process_docs: leads update failed —', updErr.message);
         return J({ error: 'save_failed', code: 'save_failed', message: 'We read your documents but could not save them to your profile. Please try again.' }, 502);
       }
-      // After the row write, so only documents now on the supplier's row are read. A reading failure
-      // is reported beside the result and never fails the upload the supplier just made.
-      if (readQueue.length) out.documents_read = await proposeTradesFromDocs(admin, Number(sup.id), readQueue);
-      // DOUBLE CONFIRMATION (spec, 29 Jul 2026). The typed services box exists so the supplier's
-      // own description can be checked AGAINST the documents; until now the two were never
-      // compared, so no mismatch could ever be flagged. Compare them, record the outcome in
-      // agent_actions, and raise a review item when they conflict. Registration is never blocked.
-      // The declared text comes from the last cross-check record when one exists, because
-      // leads.services now holds the EXTRACTED value and comparing it to itself proves nothing.
-      if (xServices.length) {
-        const prior = await priorCrossCheck(sup.id);
-        const declared = prior.found ? prior.declared : (sup.services ?? null);
-        const cc = await recordServicesCrossCheck(sup.id, sup.company_name, xServices, declared);
-        out.services_crosscheck = { verdict: cc.verdict, overlap: Math.round(cc.overlap * 100) / 100, note: cc.note, extracted_services: xServices, declared_services: declared == null ? null : String(declared) };
-      }
+      // READ AFTER THE ANSWER (19 Oct 2026, sales_engineer; _shared/supplier_docs_later.ts). After the row write, so only
+      // documents now on the supplier's row are read. Each is marked 'reading' first, so the portal shows it being read
+      // and a read that dies stays held; the read - the gate for a file that came by path, the profile model step, the
+      // trade read - runs after the response, and a read still 'reading' 10 minutes on is read again by the sweep.
+      if (readQueue.length) {
+        const markErr = await markReading(admin, Number(sup.id), readQueue);
+        if (markErr) console.error(JSON.stringify({ at: 'supplier_api.process_docs.markReading', supplier: sup.id, error: markErr }));
+        out.documents_reading = readQueue.map((d) => d.path);
+        let modelRan = false;
+        const job = (async () => {
+          await readStoredDocsLater(admin, Number(sup.id), readQueue, { profile: async (d) => { modelRan = true; await runProfileModel(d); } });
+          if (!modelRan && profImgs.length) await runProfileModel();
+        })();
+        const w = afterResponse(job, 'supplier_api.process_docs.later'); if (w) await w;
+      } else if (profImgs.length) { const w = afterResponse(runProfileModel(), 'supplier_api.process_docs.later'); if (w) await w; }
       return J({ ok: true, extracted: out });
     }
 
@@ -1021,6 +1068,9 @@ ${q}`,
         if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
         Object.assign(upd, rec);
       }
+      // PROMOTIONAL MESSAGES ARE OPT-IN (19 Oct 2026, founder, legal finding 2; seat: ceo): the separate, unticked
+      // box. Exactly true only, never required, written on its own so a missing column cannot fail the save.
+      if (body.marketing_consent === true) await admin.from('leads').update({ marketing_consent: true, marketing_consent_at: new Date().toISOString(), marketing_consent_source: 'registration' }).eq('id', sup.id).then(() => null, () => null);
       const wasApproved = String(sup.approval_status || '') === 'approved';
       // The WhatsApp question is answered in sign-up (founder, 15 Sep 2026). Checked beside the six, not
       // added to them, and before anything is written, as it was. Read on its own so a read error cannot
@@ -1102,10 +1152,14 @@ ${q}`,
                 : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name}. We are issuing the signed certificate of your acceptance of the supplier terms; your account activates automatically as soon as it is ready. Nothing is needed from you.` })
           : (ar ? { subject: 'استلمنا طلب تسجيلكم لدى QuotesDone', body: `نشكركم على تسجيل ${name} لدى QuotesDone.\n\nلم يُفعَّل حسابكم بعد، إذ لا يزال ينقصه ما يلي: ${needAr}.\n\nيُرجى تسجيل الدخول إلى بوابة المورّد واستكمال ذلك، وسيُفعَّل حسابكم تلقائيًا فور اكتمال البنود الستة، دون قائمة انتظار أو مراجعة يدوية.\n\nنرجو استكمال ذلك خلال ${arDays(days)}؛ إذ يُغلق طلب التسجيل بعدها تلقائيًا، ويسعدنا تسجيلكم من جديد في أي وقت.` }
                 : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name} with QuotesDone.\n\nYour account is not active yet because it still needs: ${needEn}.\n\nPlease sign in to your supplier portal and complete it. Your account activates automatically as soon as all six required items are in — there is no waiting list and no manual queue.\n\nPlease do this within ${days} days. After that this registration closes automatically, and you are welcome to start again at any time.` });
+        // A FIXTURE FILES NO ADMIN RECORD (13 Oct 2026, customer_support): the supplier_registered notice became a
+        // delivery.request handoff and a routed org_task on every walk run. The walk's own registration_received
+        // (to its @example.invalid address, captured) still goes, so the walk keeps proving the supplier is told.
+        const fixture = isFixtureLead(full ?? sup);
         await notify([
-          { type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id,
+          ...(fixture ? [] : [{ type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id,
             subject: decision === 'approved' ? 'New supplier approved by the sales engineer' : decision === 'pending' ? 'New supplier waiting for approval (auto-approve is off)' : 'Supplier registration incomplete',
-            body: `New supplier "${name}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : (certificatePending ? ' — the signed terms certificate is being issued' : '')}. No action needed; this is a record.${licInfo}` },
+            body: `New supplier "${name}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : (certificatePending ? ' — the signed terms certificate is being issued' : '')}. No action needed; this is a record.${licInfo}` }]),
           { type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, lang: ar ? 'ar' : 'en', ...supplierMail },
         ]);
       }
@@ -1567,6 +1621,31 @@ ${q}`,
       if (error) return J({ error: error.message }, 500);
       return J({ ok: true, acknowledged_at: now });
     }
+    // T3 QUOTE TEMPLATES (sales_engineer, 5 Oct 2026): structure a supplier reuses, never a price
+    // (quote_template.ts refuses one; the table's CHECK refuses one again). Scoped to the caller's company.
+    if (action === 'template_list' || action === 'template_save' || action === 'template_delete') {
+      const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      const tbl = () => admin.from('supplier_quote_template');
+      const unavailable = (e: { code?: string; message?: string } | null) => e && (e.code === '42P01' || /supplier_quote_template/.test(String(e.message || '')) && /does not exist|schema cache/.test(String(e.message || '')));
+      if (action === 'template_save') {
+        const c = cleanTemplate(body.template);
+        if (!c.ok) return J({ error: c.message, code: c.code, message: c.message }, 400);
+        const { data, error } = await tbl().upsert({ supplier_id: sup.id, ...c.template, updated_at: new Date().toISOString() }, { onConflict: 'supplier_id,name' }).select('id').maybeSingle();
+        if (unavailable(error)) return J({ error: 'Templates are not available yet.', code: 'templates_unavailable' }, 503);
+        if (error) return J({ error: error.code === '23514' ? 'A template cannot carry a price.' : 'Could not save the template.', code: error.code === '23514' ? 'template_has_price' : 'template_save_failed' }, 400);
+        return J({ ok: true, id: data?.id });
+      }
+      if (action === 'template_delete') {
+        const id = Number(body.id); if (!Number.isInteger(id)) return J({ error: 'not found', code: 'not_found' }, 404);
+        const { error } = await tbl().delete().eq('id', id).eq('supplier_id', sup.id);
+        if (unavailable(error)) return J({ error: 'Templates are not available yet.', code: 'templates_unavailable' }, 503);
+        return error ? J({ error: 'Could not delete the template.', code: 'template_delete_failed' }, 500) : J({ ok: true });
+      }
+      const { data, error } = await tbl().select('id,name,line_headings,terms,warranty,validity,inclusions,exclusions,payment_terms,updated_at').eq('supplier_id', sup.id).order('name');
+      if (unavailable(error)) return J({ ok: true, templates: [], unavailable: true });
+      return error ? J({ error: 'Could not load templates.', code: 'template_list_failed' }, 500) : J({ ok: true, templates: data || [] });
+    }
     if (action === 'extract_quote') {
       const { data: sup } = await admin.from('leads').select('id,company_name,approval_status,accepted_terms_at').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
@@ -1608,6 +1687,8 @@ ${q}`,
       // RULING 1177 (12 Oct 2026): 'fill the form instead' was the answer to every quotation quote_extract could not price.
       // The original now goes through the read-every-attachment helper (the vision model transcribes it, the quotation
       // parser prices it, one more asking); only when that fails too is the supplier asked for a clearer copy, in English.
+      // A total quote_extract held as ambiguous is the supplier's to state; no other reader is asked to guess it (#1562).
+      if (jd?.error === 'total_ambiguous') return J({ error: 'total_ambiguous', code: 'quote_total_ambiguous', review_reason: jd.review_reason ?? null, proposal: jd.proposal ?? null, original_file_path, original_file_name, message: 'We read your quotation but could not be sure of its total (' + String(jd.review_reason || '').replace(/_/g, ' ') + '). Please type the total in the form.' }, 422);
       if (!jd?.ok && orig.b64) {
         const seen = await readQuotationFile(b64Bytes(String(orig.b64)), String(orig.filename || 'quotation'), String(orig.mime || ''), [String((sup as any).company_name || '')].filter(Boolean), undefined, envGatewayVision({ subject: { supplier_id: (sup as any).id, email } })).catch(() => null);
         if (seen?.proposal) jd = { ok: true, proposal: seen.proposal, extracted_by_model: 'read_every_attachment' };
@@ -1686,6 +1767,22 @@ ${q}`,
       if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 409);
       return J(out);
     }
+    // WITHDRAW BEFORE THE REVEAL (QA walk, 19 Oct 2026: the portal showed a "Withdrawn" status but gave the
+    // supplier no way to reach it, and this function had no action for it). Only this supplier's own option,
+    // only on an enquiry we sent them, only while it is a draft or with the customer and nobody has revealed
+    // it. A revealed quote is the customer's paid decision and is never withdrawn from here.
+    if (action === 'withdraw_quote') {
+      const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      const { data: qt } = await admin.from('quotes').select('id,inquiry_id,status').eq('id', String(body.quote_id || '')).eq('supplier_id', sup.id).maybeSingle();
+      if (!qt || !(await matchedInquiry(Number(sup.id), qt.inquiry_id))) return J({ error: 'not_found', code: 'not_found' }, 404);
+      const { count: revealed } = await admin.from('transactions').select('id', { count: 'exact', head: true }).eq('quote_id', qt.id);
+      if (revealed) return J({ error: 'This quotation was already revealed to the customer, so it can no longer be withdrawn.', code: 'already_revealed' }, 409);
+      if (!['draft', 'submitted'].includes(String(qt.status))) return J({ error: 'This quotation cannot be withdrawn now.', code: 'not_withdrawable' }, 409);
+      const { data: done, error: wErr } = await admin.from('quotes').update({ status: 'withdrawn' }).eq('id', qt.id).in('status', ['draft', 'submitted']).select('id');
+      if (wErr) return J({ error: 'could_not_withdraw', code: 'could_not_withdraw' }, 500);
+      return done?.length ? J({ ok: true, status: 'withdrawn' }) : J({ error: 'This quotation cannot be withdrawn now.', code: 'not_withdrawable' }, 409);
+    }
     if (action === 'submit_quote') {
       const { data: sup } = await admin.from('leads').select('id,company_name,locale,whatsapp,phone,accepted_terms_at,registration_status,approval_status,licence_gate_reason,rejection_reason').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
@@ -1755,6 +1852,11 @@ ${q}`,
       const multi = opts.length > 1;
       const { data: mine } = await admin.from('quotes').select('id,option_no,status').eq('inquiry_id', inquiryId).eq('supplier_id', sup.id);
       const maxOpt = Math.max(0, ...(mine || []).map((r: any) => Number(r.option_no) || 1));
+      if (body.new_option === true) {
+        const { count: revealedQuotes } = await admin.from('transactions').select('id', { count: 'exact', head: true }).eq('fee_status', 'paid').in('quote_id', (mine || []).map((r: any) => r.id).concat(['00000000-0000-0000-0000-000000000000']));   // only a PAID reveal counts: a failed or unpaid checkout never blocks an option
+        const refusal = newOptionRefusal(body.new_option, revealedQuotes || 0);
+        if (refusal) return J(refusal.body, refusal.status);
+      }
       const single = Number(body.option_no) >= 1 ? Math.floor(Number(body.option_no)) : (body.new_option === true ? maxOpt + 1 : 1);
       const plan = multi ? opts.map((o) => ({ option_no: o.option_no, lines: o.lines, amount: optionAmount(o) })) : [{ option_no: single, lines: opts[0]?.lines ?? normItems, amount: amt as number | null }];
       if (plan.some((p) => p.option_no > 20)) return J({ error: 'A quote can carry at most 20 options.', code: 'too_many_options' }, 400);
@@ -1849,7 +1951,7 @@ ${q}`,
         }
         let qid: string;
         if (prior) { const { error } = await admin.from('quotes').update(det).eq('id', prior.id); if (error) return J({ error: error.message }, 500); qid = String(prior.id); }
-        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error) return J({ error: error.message }, 500); qid = String(ins.id); }
+        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error) return J({ error: error.message }, 500); qid = String(ins.id); }
         try {
           await admin.from('quote_items').delete().eq('quote_id', qid);
           // A line's own words fill brand / model / specification where the caller sent none; a scope
