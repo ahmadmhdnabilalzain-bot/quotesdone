@@ -323,6 +323,8 @@ Object.assign(T.en, {
   c_note_h: 'Add a few words for the next customer (optional)', c_note_ph: 'What were they like to work with?', c_note_save: 'Add comment', c_note_min: 'At least 10 characters, up to 500. Your stars are already saved.', c_note_done: 'Thanks — your comment is saved.',
   err_review_comment: 'A comment is optional — but if you write one, please make it at least 10 characters.',
   err_rating_range: 'Please choose 1 to 5 stars.',
+  c_ph_h: 'Add photos of the finished job (optional)', c_ph_hint: 'Up to 5 photos — JPEG, PNG or WebP, 5 MB each. Seen only by this supplier and QuotesDone.', c_ph_add: 'Add photos', c_ph_done: 'Photos saved.', c_ph_alt: 'Your job photo {n}',
+  err_photo_type: 'Only JPEG, PNG or WebP photos can be attached.', err_photo_size: 'Each photo must be 5 MB or smaller.', err_photo_count: 'A review can carry at most 5 photos.', err_photo_fail: 'Could not save your photos. Please try again.',
   c_hire: 'I hired this supplier', c_hire_confirm: 'Mark this supplier as hired for this project?', c_hired: 'Marked as hired.', c_update_fail: 'Could not update.',
   c_refund: 'Request refund', c_refund_confirm: 'Tell us the supplier is not responding? We chase them after {c} working days and the fee is refunded in full if they are still silent after {w}. Every refund is checked by a person against the record — none is automatic. Banks take {bmin}-{bmax} working days to show a refund.',
   c_refund_ok: 'Refund requested — a person here checks it against the record, and if it is due everything you paid is refunded.', c_refund_fail: 'Could not request a refund.',
@@ -480,6 +482,8 @@ Object.assign(T.ar, {
   c_note_h: 'أضف بضع كلمات للعميل التالي (اختياري)', c_note_ph: 'كيف كان التعامل معه؟', c_note_save: 'إضافة تعليق', c_note_min: '10 أحرف على الأقل وحتى 500. نجومك محفوظة بالفعل.', c_note_done: 'شكرًا على تعليقك — تم حفظه.',
   err_review_comment: 'التعليق اختياري — لكن إذا كتبت تعليقًا فليكن 10 أحرف على الأقل.',
   err_rating_range: 'يُرجى اختيار تقييم من 1 إلى 5 نجوم.',
+  c_ph_h: 'أضف صورًا للعمل المُنجَز (اختياري)', c_ph_hint: 'حتى 5 صور — JPEG أو PNG أو WebP، بحد أقصى 5 ميغابايت لكل صورة. لا يراها إلا هذا المورّد وQuotesDone.', c_ph_add: 'إضافة صور', c_ph_done: 'تم حفظ الصور.', c_ph_alt: 'صورة العمل المُنجَز {n}',
+  err_photo_type: 'يمكن إرفاق صور JPEG أو PNG أو WebP فقط.', err_photo_size: 'يجب ألا يتجاوز حجم كل صورة 5 ميغابايت.', err_photo_count: 'يمكن إرفاق 5 صور بالتقييم كحد أقصى.', err_photo_fail: 'تعذّر حفظ صورك. يُرجى المحاولة مرة أخرى.',
   c_hire: 'تعاقدتُ مع هذا المورّد', c_hire_confirm: 'هل تؤكّد تسجيل التعاقد مع هذا المورّد لهذا المشروع؟', c_hired: 'سُجّل التعاقد مع المورّد.', c_update_fail: 'تعذّر التحديث.',
   c_refund: 'طلب استرداد', c_refund_confirm: 'هل تريد إبلاغنا بأن المورّد لا يردّ؟ نتابعه بعد {c} أيام عمل، وتُردّ الرسوم كاملة إذا لم يردّ خلال {w}. يراجع أحد موظفينا كل طلب استرداد وفق السجل، ولا يُصرف أي استرداد آليًا. ويظهر المبلغ في حسابك خلال {bmin}-{bmax} يوم عمل بحسب البنك.',
   c_refund_ok: 'قُدّم طلب الاسترداد، وسيراجعه أحد موظفينا وفق السجل؛ فإن كان مستحقًا يُردّ إليك كامل ما دفعته.', c_refund_fail: 'تعذّر تقديم طلب الاسترداد.',
@@ -547,6 +551,8 @@ const CODE_KEY = {
   // customer_api rate_supplier, 17 Sep 2026: a refused rating comes back as a 4xx with a code, never
   // as the 500 that used to carry a raw constraint name to the customer.
   review_comment_too_short: 'err_review_comment', rating_out_of_range: 'err_rating_range',
+  // customer_api add_review_photos (T2): the photo refusals, in the customer's language.
+  photo_not_image: 'err_photo_type', photo_too_large: 'err_photo_size', too_many_photos: 'err_photo_count', photo_save_failed: 'err_photo_fail', review_required: 'c_rate_group',
   // reveal_invoice, 21 Sep 2026: no invoice or receipt for a payment that has not settled.
   payment_not_settled: 'q_inv_not_paid',
   // call() answers with these three instead of throwing (CP-08, 22 Sep 2026): a request that timed
