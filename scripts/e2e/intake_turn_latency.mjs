@@ -121,6 +121,9 @@ try {
 
   if (RETRY_CHECK) {
     const a = CONVERSATIONS[0], id = summary.conversations[a.id]?.intake_id;
+    // An exact-spec reading runs alongside each turn and may still be landing after its turn answered (luna-pro takes
+    // 13-18 s). Wait for those, so a call counted below can only be the retry's own (run e44d9f33 counted B7's reading).
+    await new Promise((r) => setTimeout(r, 25_000));
     const calls0 = (await read(`select count(*)::int n from public.ai_cost_log where e2e_run_tag = ${q(run.tag)}`))[0].n;
     const r = await intake(a.last.jwt, { intake_id: id, text: a.last.text, lang: a.locale, turn_id: a.last.turnId });
     const row = (await read(`select (select count(*) from jsonb_array_elements(turns) t where t->>'turn_id' = ${q(a.last.turnId)})::int copies,
