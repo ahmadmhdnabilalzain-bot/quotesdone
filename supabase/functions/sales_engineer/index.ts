@@ -37,12 +37,17 @@ import { defaultDeps } from '../_shared/think.ts';
 import { arabicTextsFor } from '../_shared/reasoned_governance.ts';
 import { reasonedOffers } from '../_shared/reasoned_matching.ts';
 import { supplierLabel } from '../_shared/quote_documents.ts';
-import { langOf, quoteAnswer, type QuoteForAnswer } from '../_shared/chat_answers.ts';
+import { langOf, type QuoteForAnswer } from '../_shared/chat_answers.ts';
 import { acceptImages } from '../_shared/chat_images.ts';
-import { quoteQuestion } from '../_shared/reasoned_channels.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
-import { supportReply } from '../_shared/support_reply.ts';
-import { accountKey, clientHistory, openConversation } from '../_shared/chat_history.ts';
+import { accountKey, clientHistory, fitHistory, openConversation } from '../_shared/chat_history.ts';
+import { answerFromBrief } from '../_shared/brief_answer.ts';
+import { briefNumbers, companyBrief, figureSource } from '../_shared/company_brief.ts';
+import { aiSystem, replyProblems } from '../_shared/ai_reply.ts';
+import { guardSupportReply } from '../_shared/support_reply_guard.ts';
+import { STATUS, streamReply, wantsStream } from '../_shared/stream_reply.ts';
+import { PORTAL_TURN_MS, portalRules, portalFacts, wrappedReply, plainLanguage, customerSafe } from './portal_turn.ts';
+import { checkReadability } from '../_shared/readability.ts';
 import { tradeSlugsOf, matchEmirate } from '../_shared/match_criteria.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -244,7 +249,7 @@ async function embed(text: string): Promise<string | null> {
   } catch (_e) { return null; }
 }
 
-// THE CUSTOMER'S OWN QUOTES, as chat_answers.quoteAnswer wants them. Scoped through inquiries to
+// THE CUSTOMER'S OWN QUOTES, GIVEN TO THE MODEL AS FACTS. Scoped through inquiries to
 // the resolved customer; drafts are never a quote the customer can see. The supplier label is the
 // compare table's letter (live quotes by ascending price) unless a transactions row proves the
 // reveal was paid — the same rule customer_api.letterOf applies, so the chat cannot name a
@@ -284,12 +289,15 @@ async function answerFromOwnQuotes(customerId: string, message: string, lang: 'e
         lead_time: q.lead_time, payment_terms: q.payment_terms, validity: q.validity, notes: q.notes, items,
       };
     });
-    // WHICH quote and field the question is about — and whether a threshold line applies — is REASONED
-    // (quoteQuestion, decision point shared.quote_answer), never FIELD_RE / QUOTE_RE / a shared-word score. Held,
-    // null: no own-quote fact; the model answers from the corpora and the brief.
-    const shown = quotes.slice(0, 15);
-    const choice = (await quoteQuestion(defaultDeps(admin, 'sales_engineer'), { message, quotes: shown })).value;
-    return quoteAnswer(choice, shown, lang, message);
+    // EVERY QUOTE IS GIVEN, AND THE ONE REPLY CALL READS THEM (27 Oct 2026, ruling 1195: knowledge is given to the
+    // model, which reasons). Until today a think() DECISION (quoteQuestion: a planning call plus a deciding call,
+    // 40-60 s on gpt-6-luna-pro, measured on the 27 Oct replay's sibling calls) ran BEFORE the reply just to pick which
+    // quote and field the question was about, and its pick was then turned into a sentence the reply model re-read.
+    // Now the quotes are one facts block and the reply model answers from it in the same call. `lang` is unused: the
+    // facts are data, the reply is written in the asker's language by the model.
+    void lang; void message;
+    const shown = quotes.slice(0, 15).map((q) => Object.fromEntries(Object.entries(q).filter(([k, v]) => k !== 'id' && v != null && v !== '')));
+    return { facts: JSON.stringify(shown).slice(0, 6000) };
   } catch { return null; }   // a read failure falls through to the corpora rather than failing the turn
 }
 
@@ -310,7 +318,9 @@ async function run(action: string, status: string, counts: Record<string, unknow
   } catch { /* an unwritten log must not turn a good answer into a 500 */ }
 }
 
-Deno.serve(observe('sales_engineer', async (req) => {
+// The streamed caller's emitter, keyed by its request: the portal reply's checked sentences go out as the model writes them.
+const EMITTERS = new WeakMap<Request, (text: string) => void>();
+const plain = observe('sales_engineer', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
@@ -380,6 +390,21 @@ Deno.serve(observe('sales_engineer', async (req) => {
       return J({ turns: c.turns ?? [], adopted: c.adopted, pending: !!c.pending });
     }
     if (action === 'assist') {
+      // ── ONE TURN, ON A CLOCK (customer_support owns the conversation, it_engineer the latency; 27 Oct 2026) ──
+      // MEASURED BEFORE (production, ZZ DEMO wardrobe replay 27 Oct 07:41-08:13Z, agent_runs fn:sales_engineer + ai_cost_log):
+      // every turn took 58-150 s and turn 7 hit the 150 s edge wall as a 504, so the portal printed its error line. Per
+      // turn the old road made 3-5 SERIAL model calls on gpt-6-luna-pro: a planning call (routine_employee_reasoning,
+      // 18-31 s, ~22k prompt tokens), the answer (customer_communication, 13-48 s, 35-62k prompt tokens and growing with
+      // every turn because the plan's per-step retrieval and the whole transcript rode in one payload), on 4 of 14 turns an
+      // independent check plus a corrective rewrite (+40 s), on 8 of 14 a plain-language rewrite (16-35 s), and none of it
+      // bounded. supportReply/think was built for deliberate seat decisions, not a chat turn.
+      // NOW the turn is answered exactly as the website widget already answers a signed-in customer (rulings 1195/1196,
+      // 1219): ONE streamed model call, class customer_portal_assistant (claude-sonnet-5.5, gpt-6-luna-pro behind it; no new
+      // model, no routing change), given the company brief, this seat's retrieved records and the customer's own quotes as
+      // facts, every sentence checked before it is shown, a failed check rewritten by the model, and the whole ladder inside
+      // PORTAL_TURN_MS (portal_turn.ts). The reads before the call run side by side, not one after another.
+      const t0 = Date.now(); const T: Record<string, number> = {}; const lap = (k: string) => { T[k] = Date.now() - t0; };
+      const deadline = t0 + PORTAL_TURN_MS;
       const message = String(body.message || '').trim();
       if (!message) return J({ error: 'message_required' }, 400);
       const lang = langOf(message, String(body.lang || ''));
@@ -391,80 +416,96 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // visitor chat from before sign-up was adopted into it by assist_history (adopt flag), never here.
       const acct = caller.kind === 'customer' ? accountKey('customer', caller.customerId) : '';
       const pConvo = acct ? openConversation(admin, { account: acct }) : Promise.resolve({ key: '', turns: null, adopted: 0 });
+      const rpc = async (f: string, args: Record<string, unknown>) => { const x = await admin.rpc(f, args); return { data: x.data, error: x.error }; };
+      const pBrief = companyBrief(rpc, [], '', lang);
+      const pKey = sec('cred_fn_sales_engineer');
 
       // ── A QUESTION ABOUT THE CUSTOMER'S OWN QUOTE IS ANSWERED FROM THAT QUOTE (21 Sep 2026) ──
-      // Measured in the portal audit: "the quote excludes scaffolding above 4 m, but my ceilings
-      // are 3.2 m" was answered with five unrelated FAQs. No corpus holds this customer's quote;
-      // the quotes table does. So the seat reads the caller's own quotes first — scoped in SQL to
-      // inquiries.customer_id = the resolved session — and answers from the quote's own line when
-      // the question shares a word with it or names a field (exclusions, warranty, …). The
-      // supplier is named only where a transactions row proves the reveal was paid; before that it
-      // is the same "Supplier A" letter the compare table prints.
-      // 781 (28 Sep 2026, customer_support): while a model can answer, the portal reply is COMPOSED (supportReply,
-      // below); the own-quote line becomes one of its facts instead of the reply. The stored road is the fallback.
-      // 1195/1196 (12 Oct 2026): the model is always asked; the customer's own quote line is one of its facts, never
-      // the reply on its own.
-      let ownQuote: string | null = null;
-      if (caller.kind === 'customer') ownQuote = (await answerFromOwnQuotes(caller.customerId, message, lang))?.reply ?? null;
+      // No corpus holds this customer's quote; the quotes table does. Their quotes, scoped in SQL to inquiries.customer_id =
+      // the resolved session, are given to the model as facts (portal_turn.portalFacts). The supplier is named only where a
+      // transactions row proves the reveal was paid; before that it is the same "Supplier A" letter the compare table prints.
+      const pOwn = caller.kind === 'customer' ? answerFromOwnQuotes(caller.customerId, message, lang) : Promise.resolve(null);
 
       // THE EMBEDDING IS BOUNDED. Measured 21 Sep 2026: fn_sales_assist answers in 0.09 s without a
       // vector; the audit's >2 min portal reply was the in-function gte-small session warming up.
       // A vector adds recall only for rows that ALSO corroborate lexically, so 1.5 s is all it gets;
       // past that the lexical routes answer alone rather than the customer waiting.
       const vec = await Promise.race([embed(message), new Promise<null>((r) => setTimeout(() => r(null), 1500))]);
-      // PAST CASES BEFORE THE ANSWER (23 Sep 2026): has this seat met this question before, and how did
-      // it end? The same vector, so no second embedding. A customer caller gets case numbers in the log
-      // only — another customer's case is never shown to a customer, masked or not.
-      const memory = await recallCases(admin, { seat: 'sales_engineer', path: 'assist', situation: message, embedding: vec });
-      const { data, error } = await admin.rpc('fn_sales_assist', {
-        p_text: message, p_embedding: vec,
-        p_min_similarity: Number(body.min_similarity ?? 0.86),
-        p_min_rank: Number(body.min_rank ?? 0.05),
-        p_k: Number(body.k ?? 5),
-        p_actor: 'sales_engineer',
-      });
+      lap('embed');
+      // PAST CASES BEFORE THE ANSWER (23 Sep 2026): has this seat met this question before, and how did it end? The same
+      // vector, so no second embedding. Recorded on the judgement only: a past case's text never enters a customer prompt.
+      // fn_sales_assist reads the seat's seven corpora, records what it retrieved, and files the gap when nothing clears.
+      const [memory, assisted] = await Promise.all([
+        recallCases(admin, { seat: 'sales_engineer', path: 'assist', situation: message, embedding: vec }),
+        admin.rpc('fn_sales_assist', {
+          p_text: message, p_embedding: vec,
+          p_min_similarity: Number(body.min_similarity ?? 0.86),
+          p_min_rank: Number(body.min_rank ?? 0.05),
+          p_k: Number(body.k ?? 5),
+          p_actor: 'sales_engineer',
+        }),
+      ]);
+      const { data, error } = assisted;
       if (error) return J({ ok: false, error: 'retrieval_failed', detail: error.message }, 503);
-
       const r = data as Record<string, unknown>;
-      // ON TOPIC OR NOT AT ALL (21 Sep 2026): a nearest neighbour is always found, so a cited passage must be
-      // one that answers the question, applied at the last step so a floor slip in any corpus cannot put an
-      // unrelated passage in front of a customer. What survives is answered; otherwise the gap is recorded.
-      // WHICH retrieved passage answers is REASONED (portalPassage, decision point sales_engineer.on_topic) — one
-      // shared word decided it until 23 Sep 2026. Held (the model hold), none is chosen: the gap is recorded and
-      // the honest sentence goes out with its task number; nothing is guessed.
-      const all = (r.records || []) as Array<Record<string, unknown>>;
-      const convo = await pConvo; const convKey = convo.key; const stored = convo.turns;
+      // NOTHING INTERNAL OR UNVERIFIED REACHES A CUSTOMER (#1567/#1569, the 7 Oct stating rule; independent review of #1640,
+      // 27 Oct 2026). fn_sales_assist reads sales_knowledge, ops_knowledge, agent_knowledge, support_knowledge and kb_chunks
+      // without the audience and eligibility rules fn_reason_retrieve applies; a record's text would ride in the facts AND
+      // make its figures "known" to the figure check. portal_turn.customerSafe drops them here, before the call, and fails
+      // closed (a failed lookup withholds that corpus's every record; a corpus with no rule is withheld unless it is named
+      // in PASS_THROUGH). The rules and the 27 Oct counts are in portal_turn.ts.
+      const all = await customerSafe((r.records || []) as Array<Record<string, unknown>>, async (rule, ids) => {
+        const x = await admin.from(rule.table).select(rule.select).in(rule.key, ids);
+        return { data: x.data as Record<string, unknown>[] | null, error: x.error };
+      });
+      const [own, convo, brief, key] = await Promise.all([pOwn, pConvo, pBrief, pKey]);
+      lap('reads');
+      const ownQuote = own?.facts ?? null;
+      const convKey = convo.key; const stored = convo.turns;
       const transcript = stored && stored.length ? stored : clientHistory(body.history).filter((h, i, a) => !(i === a.length - 1 && h.role === 'user' && h.content === message));
-      let lastOutage = false;
-      {
-        const sr = await supportReply(defaultDeps(admin, 'sales_engineer'), {
-          channel: 'portal', message, lang, seat: 'sales_engineer', audience: 'customer',
-          conversation: transcript.map((t) => ({ role: t.role === 'assistant' ? 'seat' as const : 'customer' as const, text: t.content })),
-          passages: all.map((x) => ({ content: String(x.title || '') + '\n' + String(x.content || ''), citation: String(x.corpus || '') + ':' + String(x.record_id || '') })),
-          facts: ownQuote ? 'THEIR OWN QUOTE (scoped in SQL to this customer):\n' + ownQuote : undefined,
-          // a photo or drawing the customer sent (ruling 1200): only what chat_images accepts reaches the model
-          images: acceptImages(body.images, new URL(Deno.env.get('SUPABASE_URL')!).host).images,
-        }, () => Promise.resolve(null));
-        lastOutage = sr.outage === true;
-        if (sr.path === 'reasoned' && sr.reply) {
-          try {
-            await admin.from('assistant_logs').insert({ message, reply: sr.reply, seat: 'sales_engineer', answered: true, ...(convKey ? { conv_id: convKey } : {}),
-              audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind, path: 'portal:reasoned', gap_task_id: (r.task_id as number | undefined) ?? null });  // the gap fn_sales_assist filed stays linked (review of #1043)
-          } catch { /* the customer already has the answer */ }
-          await run('assist', 'ok', { answered: true, basis: 'reasoned', routed_seat: sr.seat, precedent: recallTrace(memory) });
-          return J({ ok: true, seat: 'sales_engineer', answered: true, reply: sr.reply, routed_seat: sr.seat, basis: 'composed by reasoning over the retrieved records' });
-        }
-      }
-      // NO ASSEMBLED PASSAGES AND NO "NOT YET" SENTENCE (rulings 1195/1196, 12 Oct 2026): supportReply above writes the reply
-      // by a model, directly if its chain cannot. Only when no model answered at all does the customer get no text; the
-      // question is logged and the gap fn_sales_assist filed stays linked.
+      // the facts change per turn, so they ride with the message, after the cached brief, rules and earlier turns
+      const facts = portalFacts({ facts: ownQuote ? 'THEIR OWN QUOTES (scoped in SQL to this customer):\n' + ownQuote : '', passages: all });
+      const sys = '\n\n' + aiSystem({ seat: 'sales_engineer', channel: 'the signed-in customer portal', audience: 'customer', lang, message, rules: portalRules(), plainText: true }, lang);
+      const allowed = figureSource(brief) + '\n' + facts + '\n' + sys;
+      const known = briefNumbers(allowed);
+      // a photo or drawing the customer sent (ruling 1200): only what chat_images accepts reaches the model
+      const images = acceptImages(body.images, new URL(Deno.env.get('SUPABASE_URL')!).host).images;
+      const past = fitHistory(transcript.map((t) => ({ role: t.role === 'assistant' ? 'assistant' as const : 'user' as const, content: t.content })), message);
+      const emit = EMITTERS.get(req) ?? (() => {});
+      const a = key ? await answerFromBrief({
+        gateway: Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', secret: key, fn: 'sales_engineer', agent: 'sales_engineer',
+        taskClass: 'customer_portal_assistant', brief, sys, max: images.length ? 1200 : 900, images, deadline,
+        input: [...past, { role: 'user', content: (facts ? facts + '\n\n' : '') + 'MESSAGE:\n' + message.slice(0, 4000) }],
+        // the same rules aiReply holds every conversation reply to (figures, policy, reply guard, another party's identity),
+        // sentence by sentence; a deferral is a whole-answer judgement (aiReply), never one sentence's, so it is not run here
+        check: (t: string) => [...guardSupportReply(t, lang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
+          ...replyProblems(t, known, { allowed }).filter((p) => !/defers/.test(p)), ...wrappedReply(t), ...plainLanguage(t, lang)],
+      }, emit) : { reply: '', model: null, attempts: ['no gateway credential'], rewrites: 0, streamed: false, error: 'no_model_credential', outage: true };
+      lap('reply');
+      const reply = a.reply.trim();
       try {
-        await admin.from('assistant_logs').insert({ message, reply: null, seat: 'sales_engineer', answered: false, ...(convKey ? { conv_id: convKey } : {}),
-          audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind, path: 'portal', gap_task_id: (r.task_id as number | undefined) ?? null });
-      } catch { /* logging must not change the outcome */ }
-      await run('assist', 'error', { answered: false, no_model: true, outage: lastOutage, task_id: r.task_id ?? null, precedent: recallTrace(memory) });
-      // outage: OpenRouter was down (no call reached a model). Only then may the portal show its own fixed line (1339).
-      return J({ ok: false, seat: 'sales_engineer', answered: false, error: 'no_answer', outage: lastOutage, task_id: r.task_id ?? null }, 503);
+        await admin.from('assistant_logs').insert({ message, reply: reply || null, seat: 'sales_engineer', answered: !!reply, ...(convKey ? { conv_id: convKey } : {}),
+          audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind, path: reply ? 'portal:reasoned' : 'portal',
+          gap_task_id: (r.task_id as number | undefined) ?? null });  // the gap fn_sales_assist filed stays linked (review of #1043)
+      } catch { /* the customer already has the answer; logging must not change the outcome */ }
+      if (reply) {
+        // the plain-language score of the reply that went out, for the monthly self-review, as supportReply recorded it
+        try {
+          const rd = checkReadability(reply, lang);
+          await admin.rpc('fn_support_reply_readability_log', { p_channel: 'portal', p_lang: lang, p_path: 'reasoned', p_rewritten: a.rewrites > 0,
+            p_score: rd.score, p_tone: rd.tone, p_issues: rd.issues, p_reason: null, p_demo: /^ZZ DEMO/.test(message) });
+        } catch { /* the reply matters more than its score */ }
+        await run('assist', 'ok', { answered: true, basis: 'reasoned', model: a.model, attempts: a.attempts, ms: T, precedent: recallTrace(memory) });
+        return J({ ok: true, seat: 'sales_engineer', answered: true, reply, basis: 'composed by the model from the brief, the retrieved records and their own quotes', model: a.model });
+      }
+      // NO REPLY INSIDE THE TURN (rulings 1195/1196: code writes no reply text). The question is logged with the gap
+      // fn_sales_assist filed and the conversation stays open. `outage` (founder_instruction 1339, openrouter_down.ts): true
+      // only when OpenRouter was down (no call reached a model); only then does the portal show its own "saved" line. With the
+      // model up and every draft refused (answerFromBrief already kept its passing sentences and asked it once more), the
+      // portal shows no code-written text.
+      const outage = a.outage === true;
+      await run('assist', 'error', { answered: false, outage, attempts: a.attempts, ms: T, task_id: r.task_id ?? null, precedent: recallTrace(memory) });
+      return J({ ok: false, seat: 'sales_engineer', answered: false, error: 'no_answer', outage, attempts: a.attempts, task_id: r.task_id ?? null }, 503);
     }
 
     // ── CONVERSATIONS ──────────────────────────────────────────────────────────────────────────
@@ -1066,4 +1107,21 @@ Deno.serve(observe('sales_engineer', async (req) => {
     await run('error', 'error', {}, String((e as Error).message || e));
     return J({ error: String((e as Error).message || e) }, 500);
   }
-}));
+});
+
+// THE PORTAL ANSWER STREAMS (27 Oct 2026, the same contract as the website widget: _shared/stream_reply.ts). A portal
+// `assist` call that sends `Accept: application/x-ndjson` gets a status line at once (so the edge's 150 s idle wall can
+// never fire on a turn that is working), then each checked sentence as the model writes it, then `done` with the same
+// object the JSON answer carries. Every other action, and any caller without that header, is answered exactly as before.
+// One handler answers both, so the observe row and every side effect are identical for either caller.
+Deno.serve(async (req) => {
+  if (req.method !== 'POST' || !wantsStream(req)) return plain(req);
+  const raw = await req.text();
+  let b: { action?: unknown; message?: unknown; lang?: unknown } = {};
+  try { b = JSON.parse(raw); } catch (_e) { b = {}; }
+  const inner = new Request(req.url, { method: 'POST', headers: req.headers, body: raw });
+  if (b.action !== 'assist') return plain(inner);
+  const lang = langOf(String(b.message || ''), String(b.lang || '').toLowerCase().startsWith('ar') ? 'ar' : 'en');
+  return new Response(streamReply(STATUS[lang], (emit) => { EMITTERS.set(inner, emit); return plain(inner).then((r) => r.json()) as Promise<Record<string, unknown>>; }),
+    { headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no', ...CORS } });
+});

@@ -38,6 +38,7 @@ import { render } from '@/components/ChatWidget';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import { BrandMark } from '@/components/BrandMark';
 import { forgetWidgetConv, readWidgetConv } from '@/lib/widgetConv';
+import { answerAfter, noVerdict, readReply, savedLineDue } from '@/lib/portalReply';
 
 // THE INFORMATION ARCHITECTURE, WRITTEN DOWN.
 //
@@ -105,13 +106,40 @@ const MOBILE_PRIMARY = ['home', 'requests', 'messages', 'documents'];
 // THE CUSTOMER'S ONE CONVERSATION (founder ruling 1255): sales_engineer keeps every turn under the account, and the
 // website-widget chat they had before signing up (its id in localStorage) is adopted once, by assist_history on mount.
 const widgetConv = () => readWidgetConv();
-async function askAssistant(message, history, token, lang, path, images = []) {
-  const r = await fetch(fnUrl('sales_engineer'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify({ action: 'assist', message, history, path: path || '/me', lang, ...(images.length ? { images } : {}) }),
-  });
-  return r.json();
+// THE ANSWER STREAMS (27 Oct 2026, customer_support): a status line at once, then each checked sentence as it is
+// written (src/lib/portalReply.ts). Measured before: every turn waited 58-150 s in silence and one hit the edge's 150 s
+// wall as a 504, whose HTML body made r.json() throw and the panel print its error line. A server that does not stream
+// answers JSON, read the same way; nothing here throws.
+async function askAssistant(message, history, token, lang, path, images = [], on = {}) {
+  try {
+    const r = await fetch(fnUrl('sales_engineer'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson, application/json', Authorization: 'Bearer ' + (token || ANON) },
+      body: JSON.stringify({ action: 'assist', message, history, path: path || '/me', lang, ...(images.length ? { images } : {}) }),
+    });
+    return await readReply(r, on);
+  } catch (e) {
+    return { reply: '', streamed: false, done: null, failed: String((e && e.message) || e) };
+  }
+}
+// A TURN THAT DID NOT REACH THE BROWSER IS LOOKED FOR, NOT REPORTED AS AN ERROR. The server stores every answer under the
+// customer's one conversation (ruling 1255) even when the connection dropped, so the panel reads it back from
+// assist_history for up to LATE_WAIT_MS before it says, calmly, that the question is saved and the answer will appear here.
+const LATE_WAIT_MS = 90_000;
+const LATE_EVERY_MS = 6_000;
+async function storedAnswer(token, question) {
+  const until = Date.now() + LATE_WAIT_MS;
+  while (Date.now() < until) {
+    await new Promise((res) => setTimeout(res, LATE_EVERY_MS));
+    try {
+      const r = await fetch(fnUrl('sales_engineer'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ action: 'assist_history' }) });
+      const j = r.ok ? await r.json() : null;
+      const a = answerAfter(j && j.turns, question);
+      if (a) return a;
+    } catch (_e) { /* try again on the next tick */ }
+  }
+  return '';
 }
 
 // `suggestions` ARE THE OFFER, and they used to be three constants — the same three questions on a
@@ -124,6 +152,8 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
   const [msgs, setMsgs] = useState([]);
   const [val, setVal] = useState('');
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');   // the server's status line, or the late notice while the stored answer is looked for
+  const [live, setLive] = useState('');       // the checked sentences shown so far, as they are written
   const boxRef = useRef(null);
   const inpRef = useRef(null);
   const fileRef = useRef(null);
@@ -140,7 +170,7 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
       .catch(() => { /* the next turn still reads the whole conversation on the server */ });
   }, [token]);
 
-  useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy, open]);
+  useEffect(() => { if (boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight; }, [msgs, busy, open, live, status]);
   useEffect(() => { if (open) setTimeout(() => inpRef.current && inpRef.current.focus(), 80); }, [open]);
 
   const send = async (text) => {
@@ -149,14 +179,23 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
     const images = photo ? [photo] : [];
     setPhoto('');
     setVal(''); setBusy(true);
-    const history = msgs.map((m) => ({ role: m.role, content: m.content }));
+    // a notice is the panel's own line, never a turn of the conversation: it is not sent back as history
+    const history = msgs.filter((m) => m.role !== 'notice').map((m) => ({ role: m.role, content: m.content }));
     setMsgs((m) => [...m, { role: 'user', content: q }]);
-    try {
-      const j = await askAssistant(q, history, token, lang, '/me', images);
-      setMsgs((m) => [...m, { role: 'assistant', content: String((j && j.reply) || t('asst_err')), scope: j && j.scope }]);
-    } catch (_e) {
-      setMsgs((m) => [...m, { role: 'assistant', content: t('asst_err') }]);
+    setStatus(''); setLive('');
+    const j = await askAssistant(q, history, token, lang, '/me', images, { status: setStatus, text: setLive });
+    let reply = j.reply;
+    // only an answer that never ARRIVED is looked for; a turn the server answered with no reply has nothing stored
+    if (!reply && token && noVerdict(j)) {
+      setLive(''); setStatus(t('asst_late'));
+      reply = await storedAnswer(token, q);
     }
+    setLive(''); setStatus('');
+    // the saved line only on a transport failure or when OpenRouter was down (1339, savedLineDue); with the model up and
+    // nothing sendable, no code-written text is shown
+    setMsgs((m) => reply
+      ? [...m, { role: 'assistant', content: reply, scope: j.done && j.done.scope }]
+      : savedLineDue(j, reply) ? [...m, { role: 'notice', content: t('asst_saved') }] : m);
     setBusy(false);
   };
 
@@ -215,18 +254,28 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
                   renderer escapes then wraps each in <bdi>; without it they scramble in Arabic. */}
               {m.role === 'assistant'
                 ? <span dangerouslySetInnerHTML={{ __html: render(m.content) }} />
+                : m.role === 'notice' ? <span className="italic text-muted-foreground">{m.content}</span>
                 : m.content}
             </div>
           </div>
         ))}
-        {busy && (
-          <div className="flex justify-start">
-            <div className="flex items-center gap-1 rounded-2xl border border-border bg-secondary/30 px-3.5 py-3">
+        {busy && live && (
+          <div className="flex justify-start" aria-live="polite">
+            <div className="max-w-[86%] rounded-2xl border border-border bg-secondary/30 px-3.5 py-2.5 text-[13.5px] leading-relaxed text-foreground">
+              <span dangerouslySetInnerHTML={{ __html: render(live) }} />
+            </div>
+          </div>
+        )}
+        {busy && !live && (
+          <div className="flex justify-start" aria-live="polite">
+            <div className="flex items-center gap-1.5 rounded-2xl border border-border bg-secondary/30 px-3.5 py-3">
               {[0, 1, 2].map((d) => (
                 <span key={d} className="h-1.5 w-1.5 rounded-full bg-muted-foreground/70 motion-safe:animate-pulse"
                   style={{ animationDelay: d * 180 + 'ms' }} />
               ))}
-              <span className="sr-only">{t('asst_thinking')}</span>
+              {status
+                ? <span className="ms-1 text-[12.5px] italic text-muted-foreground">{status}</span>
+                : <span className="sr-only">{t('asst_thinking')}</span>}
             </div>
           </div>
         )}
