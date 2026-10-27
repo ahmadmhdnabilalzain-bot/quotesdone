@@ -512,6 +512,7 @@ export function liveDeliveryIO(admin: Admin, seams: { master?: string; fetch?: F
       // processComment's own insert takes a held_classify row over (marketing_social_store.ts); the row is never emptied.
       const { processComment } = await import('./marketing_social_comments.ts');
       const { adminStore, metaPageToken } = await import('./marketing_social_store.ts');
+      const { defaultDeps } = await import('./think.ts');
       const { accessToken } = await import('./marketing_social_oauth.ts');
       const { timedFetch } = await import('./timed_fetch.ts');
       const f = seams.fetch ?? timedFetch;
@@ -527,7 +528,8 @@ export function liveDeliveryIO(admin: Admin, seams: { master?: string; fetch?: F
         // TikTok (#898): the business account's own token, as the marketing duty uses it; replies post AS that account.
         tiktokToken: async () => String((await admin.from('app_secrets').select('value').eq('key', 'tiktok_business_token').maybeSingle()).data?.value ?? '').trim() || null,
         // deno-lint-ignore no-explicit-any
-        process: (tokenFor) => processComment(adminStore(admin, f, tokenFor, Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway'), ev, cls as any),
+        // gte-small in embed_ml (heartbeat placement): this runs in the resilience_ping replay worker, 2 s CPU cap (#1678)
+        process: (tokenFor) => processComment(adminStore(admin, f, tokenFor, Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway', defaultDeps(admin, 'marketing', { gte: 'remote' })), ev, cls as any),
       });
     },
     socialCommentHandoff: async (subject) => {
