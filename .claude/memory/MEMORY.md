@@ -86,7 +86,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A branch can silently revert main (27 Oct)](a-branch-can-silently-revert-main.md) — #1672; review the whole diff against main
 - [Diff SQL against live production, not the mirror (27 Oct)](diff-sql-against-live-production-not-the-mirror.md) — #1660 nearly reverted #1644's live code
 - [quotesdone2 is the live publishable key (27 Oct)](quotesdone2-is-the-live-publishable-key.md) — never revoke it; fn_gateway_client_key() is the one source
-- [Exchange strips List-Unsubscribe-Post (27 Oct)](exchange-strips-list-unsubscribe-post.md) — fix is a transport rule; TNEF already fixed
+- [Exchange strips List-Unsubscribe-Post (27 Oct)](exchange-strips-list-unsubscribe-post.md) — fix is a transport rule; TNEF already fixed; it_engineer exo_roles / exo_transport_rule_apply measure and make it
 - [End-of-session log sweep](end-of-session-log-sweep.md) — GitHub Actions, edge logs, cron
 - [Supabase access has three paths](supabase-access-has-three-paths.md)
 - [Check a PR's base before merging](check-a-prs-base-before-merging.md) — verify baseRefName and main's head

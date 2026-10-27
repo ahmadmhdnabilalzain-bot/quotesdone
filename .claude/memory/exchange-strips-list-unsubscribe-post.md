@@ -14,6 +14,18 @@ rich text Never). `List-Unsubscribe` carried the https link and `mailto:unsubscr
 **Why:** Exchange Online rebuilds the header set on submission and drops List-Unsubscribe-Post. Gmail/Yahoo
 bulk-sender rules expect one-click unsubscribe, so this costs deliverability before invitations resume.
 
+**Can the app make the rule itself? (27 Oct, it_engineer.)** No record in the repo history (shallow from 21 Sep),
+docs/reports, this memory folder or `public.founder_instruction` shows Exchange.ManageAsApp or an Exchange
+Administrator role on the M365 app. The only measurements of its rights are Graph: Mail.Send read back on Entra
+(ledger 1115, 5 Oct) and token roles Mail.Read / Mail.ReadWrite / Mail.Send (commit d2b616558, 18 Oct). A Graph
+token cannot show Exchange rights, so `it_engineer` gained two service_role-only actions
+(`supabase/functions/it_engineer/exo_transport_rule.ts`): `exo_roles` reads the roles of a token for
+`https://outlook.office365.com/.default` and, if Exchange.ManageAsApp is there, runs a read-only Get-TransportRule
+(the Entra role is not in any token, only Exchange's answer shows it); `exo_transport_rule_apply` creates the rule
+"QuotesDone supplier@ one-click unsubscribe" through the EXO v3 InvokeCommand endpoint, idempotently. If the
+probe says `missing_manage_as_app` or `missing_exchange_role`, the founder needs: API permission Office 365 Exchange
+Online → Exchange.ManageAsApp (Application) + admin consent, and the Entra role Exchange Administrator on the app.
+
 **How to apply:** do not chase this in code. The founder sets it in Exchange admin → Mail flow → Rules: if the sender is
 supplier@quotesdone.com, set the message header `List-Unsubscribe-Post` to `List-Unsubscribe=One-Click`. Re-measure
 it with a seed send. Until that is done the opt-out is the "reply stop" line plus List-Unsubscribe.
