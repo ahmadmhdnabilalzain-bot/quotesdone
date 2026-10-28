@@ -12,11 +12,15 @@
 //   * production, ONE aborted transaction (ZZ DEMO, @example.invalid, nothing commits): the second row the old door
 //     inserted is refused by uq_leads_email_lower whatever the case of the address; the claim the new door sends finds
 //     the invited row case-insensitively, claims it once, and a second account racing for it updates nothing.
+// REVIEW OF #1712 (28 Oct 2026), also static: the claim stops needing a session opened by a code (the JWT amr) on top of
+// a used code row; the door stops handing in that fact or the sanctions read; the /portal?t= claim writes without the
+// same guard (a website sign-up and a token claim could both win) or claims a sanctioned listing; and any supplier_api
+// answer, on any action, is built from a database, storage or exception message again.
 //
 //   node --test scripts/checks/an_invited_supplier_who_registers_on_the_website_claims_his_invited_listing.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -44,6 +48,34 @@ test('static: the door delegates, looks up the address before inserting, claims 
   assert.match(src, /if \(!won \|\| !won\.length\) return \{ status: 409, body: \{ \.\.\.EMAIL_ALREADY_REGISTERED \} \}/, 'a lost race is no longer the 409');
   assert.doesNotMatch(src, /body: \{[^}]*error\.message/, 'a response body is built from a database message again');
   assert.doesNotMatch(src, /error: error\.message/, 'a response body carries the database message again');
+  // review of #1712: a "used" code row is also a retired or burned code, and public sign-up allows a password session
+  assert.match(door, /sessionByCode: sessionOpenedByCode\(jwt\), sanctionedLead: \(id: number\) => sanctionedLead\(admin, id\)/, 'the door no longer hands create_company how the session was opened, or the sanctions read');
+  assert.match(src, /planCreateCompany\(\{ ownCompany: !!existing, emailLeads: held, emailProven: proven && deps\.sessionByCode === true \}\)/, 'the claim no longer needs a session opened by a code');
+  assert.match(src, /amr\.some\(\(m: \{ method\?: unknown \} \| null\) => CODE_METHODS\.has\(/, 'sessionOpenedByCode no longer reads the amr');
+  assert.match(src, /const CODE_METHODS = new Set\(\['otp', 'magiclink'\]\);/, 'a password (or any other) session method was let in');
+  assert.match(src, /if \(await deps\.sanctionedLead\(id\)\) return \{ status: 403, body: \{ \.\.\.SANCTIONED_REGISTRATION_REFUSAL \} \};/, 'a sanctioned listing can be claimed again');
+  assert.match(src, /if \(error\) return lookupFailed\(/, 'a failed look-up reads as "no lead holds the address" again');
+});
+
+test('static: the /portal?t= claim writes under the same guard, and no supplier_api answer carries a database sentence', () => {
+  const api = read(API);
+  const i = api.indexOf("if (action === 'claim')");
+  assert.ok(i > 0, 'claim is gone from supplier_api');
+  const claim = api.slice(i, api.indexOf('\n', i));
+  assert.match(claim, /if \(await sanctionedLead\(admin, id\)\) return J\(SANCTIONED_REGISTRATION_REFUSAL, 403\);/, 'claim: a sanctioned listing can be claimed by token');
+  assert.match(claim, /await \(owned \? claimWrite\.eq\('claimed_by', email\) : claimWrite\.is\('claimed_by', null\)\)\.select\('id'\)/, 'claim: the token claim writes without the claimed_by guard (two accounts can both win)');
+  assert.match(claim, /if \(!won \|\| !won\.length\) return J\(\{ error: 'This company is already claimed by another account\.' \}, 409\);/, 'claim: a lost race is not the 409');
+  // Every module of the function, comments stripped: no answer is built from a database, storage or exception message.
+  const code = (t) => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
+  const dir = 'supabase/functions/supplier_api/';
+  for (const f of readdirSync(join(REPO, dir)).filter((n) => n.endsWith('.ts') && !/\.(test|fixture|check)\.ts$/.test(n))) {
+    const s = code(read(dir + f));
+    assert.doesNotMatch(s, /J\(\{[^;]*?\b(?:e|err|error|\w+Err)\??\.message\b/, `${f}: an answer is built from an error's message`);
+    assert.doesNotMatch(s, /J\(\{ error: String\(e\)/, `${f}: an answer is the exception's own text`);
+    assert.doesNotMatch(s, /detail: [\w?.]*(?:\.message\b|String\(\(?e\b)/, `${f}: a detail carries an error's message`);
+    assert.doesNotMatch(s, /detail: jd\?\.detail/, `${f}: another function's error detail is relayed to the caller`);
+  }
+  assert.match(code(api), /\} catch \(e\) \{\s*return failed\('unhandled', e\);\s*\}\s*\};\s*Deno\.serve/, 'the outer catch answers with the exception text again');
 });
 
 test('static: every refusal has portal copy, word for word', () => {

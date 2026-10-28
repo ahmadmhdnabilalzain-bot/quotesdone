@@ -26,6 +26,25 @@
 // Any write the database still refuses gets a stable code; the Postgres message goes to the function log only.
 // Afterwards the supplier is where a /portal?t= claim leaves him: a claimed company, owner_email_verified, and the
 // same registration, licence and verification flow (setRegistration, the first touch).
+//
+// REVIEW OF #1712 (28 Oct 2026, sales_engineer; read on production the same morning):
+//   * A "USED" CODE ROW IS NOT A VERIFIED CODE. email_verifications.used_at is also set when a resend retires the
+//     older code (fn_login_otp_email_issue) and when a code is burned at the attempt cap (fn_login_otp_email_verify),
+//     so emailProven() is true for any address someone has merely asked two codes for. And a session need not come
+//     from a code: the auth config allows public sign-up with a password (disable_signup false), and 30 of 95
+//     sessions recorded in auth.mfa_amr_claims are 'password' ones (the harness signs in that way). So the CLAIM also
+//     needs THIS session to have been opened by a one-time code sent to the address: sessionOpenedByCode() reads the
+//     JWT's amr, which login_otp's sessions carry as 'otp' (65 of 95). A fresh registration (insert) only records
+//     the proof, as before; nothing else changed for it.
+//   * A failed look-up answers register_failed. It used to read as "no lead holds the address", insert, and meet
+//     uq_leads_email_lower: the invited supplier was told "this e-mail already has an account — sign in instead"
+//     while signed in.
+//   * A sanctioned listing is never claimed: fn_sanctioned_identity excludes the row's own id, so the trigger
+//     a01_leads_sanctioned_identity_cannot_re_register does not stop a claim of the banned row itself.
+//   * The listing keeps its own trade description (business_role manufacturer, contractor, ...: 3,090 unclaimed
+//     leads); the form always sends the constant 'supplier', so it is written only where the lead has none.
+//   * index.ts `claim` (/portal?t=) writes under the same guard, so a website sign-up and a token claim racing for
+//     one listing have exactly one winner too.
 import { COMPANY_ALREADY_REGISTERED, isDuplicateCompany, registrationRefusal, type PgError } from '../_shared/duplicate_company.ts';
 import { SANCTIONED_REGISTRATION_REFUSAL } from '../_shared/sanctioned.ts';
 
@@ -42,7 +61,7 @@ export const REGISTER_FAILED = {
   code: 'register_failed',
 } as const;
 
-export type EmailLead = { id: number | string; claimed: boolean | null; claimed_by: string | null };
+export type EmailLead = { id: number | string; claimed: boolean | null; claimed_by: string | null; business_role?: string | null };
 export type CreatePlan =
   | { kind: 'company_exists' }
   | { kind: 'claim_invited'; lead: EmailLead }
@@ -65,24 +84,59 @@ const CLAIMED_BY_INDEX = 'leads_claimed_by_lower_uidx';
 const clashOn = (e: PgError, idx: string) => !!e && String(e.code ?? '') === '23505' && `${e.message ?? ''} ${e.details ?? ''}`.includes(idx);
 const ilikeExact = (s: string) => s.replace(/[\\%_]/g, (c) => '\\' + c);
 
+/** The methods a session opened by a one-time code or link sent to the address carries in its JWT amr. */
+const CODE_METHODS = new Set(['otp', 'magiclink']);
+/**
+ * True when THIS session was opened by a one-time code or link sent to its address (amr 'otp' / 'magiclink'), never by
+ * a password. Read only from a token auth.getUser has already verified (supplier_api does so before any action).
+ */
+export function sessionOpenedByCode(jwt: string): boolean {
+  try {
+    const part = String(jwt || '').split('.')[1] || '';
+    if (!part) return false;
+    const b64 = part.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (part.length % 4)) % 4);
+    const claims = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))));
+    const amr = Array.isArray(claims?.amr) ? claims.amr : [];
+    return amr.some((m: { method?: unknown } | null) => CODE_METHODS.has(String(m?.method ?? '')));
+  } catch {
+    return false;
+  }
+}
+
 // The few supabase-js calls this makes, so create_company.test.ts can hand in an in-memory table.
 // deno-lint-ignore no-explicit-any
 type Db = any;
 export type CreateDeps = {
   emailProven: (email: string) => Promise<boolean>;
+  /** sessionOpenedByCode(jwt) for this request: the claim needs it as well as emailProven. */
+  sessionByCode: boolean;
+  /** _shared/sanctioned.ts sanctionedLead: a listing under a confirmed sanctions ban is never claimed. */
+  sanctionedLead: (leadId: number) => Promise<boolean>;
   setRegistration: (leadId: number) => Promise<unknown>;
   recordFirstTouch: (leadId: number, touch: unknown) => Promise<void>;
   locale: string;
 };
 
+const lookupFailed = (what: string, error: PgError) => {
+  console.error(`create_company: ${what} failed —`, error?.message);
+  return { status: 500, body: { ...REGISTER_FAILED } };
+};
+
 /** supplier_api create_company: { status, body } for the handler to answer. */
 export async function createCompany(admin: Db, email: string, body: Record<string, unknown>, deps: CreateDeps): Promise<{ status: number; body: Record<string, unknown> }> {
-  const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+  const { data: existing, error: ownErr } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+  if (ownErr) return lookupFailed('the account\'s company look-up', ownErr);
   const name = String(body.company_name || '').trim().slice(0, 160);
   if (!existing && name.length < 2) return { status: 400, body: { error: 'Enter your company name.', code: 'enter_company' } };
-  const { data: held } = existing ? { data: [] } : await admin.from('leads').select('id,claimed,claimed_by').ilike('email', ilikeExact(email)).limit(2);
+  let held: EmailLead[] = [];
+  if (!existing) {
+    const { data, error } = await admin.from('leads').select('id,claimed,claimed_by,business_role').ilike('email', ilikeExact(email)).limit(2);
+    if (error) return lookupFailed('the look-up of the lead holding the address', error);
+    held = (data || []) as EmailLead[];
+  }
   const proven = existing ? false : await deps.emailProven(email);
-  const plan = planCreateCompany({ ownCompany: !!existing, emailLeads: (held || []) as EmailLead[], emailProven: proven });
+  // The claim takes an address proven by a used code AND a session opened by a code (header, review of #1712).
+  const plan = planCreateCompany({ ownCompany: !!existing, emailLeads: held, emailProven: proven && deps.sessionByCode === true });
   if (plan.kind === 'company_exists') return { status: 409, body: { error: 'Your account already manages a company.', code: 'company_exists' } };
   if (plan.kind === 'email_taken') return { status: 409, body: { ...EMAIL_ALREADY_REGISTERED } };
   if (plan.kind === 'verify_email_first') return { status: 403, body: { ...VERIFY_EMAIL_FIRST } };
@@ -99,8 +153,10 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
   };
   if (plan.kind === 'claim_invited') {
     const id = Number(plan.lead.id);
+    if (await deps.sanctionedLead(id)) return { status: 403, body: { ...SANCTIONED_REGISTRATION_REFUSAL } };
     const upd: Record<string, unknown> = { claimed: true, claimed_by: email, owner_email_verified: true, company_name: name,
-      business_role: body.role || 'supplier', portal_updated_at: new Date().toISOString() };
+      portal_updated_at: new Date().toISOString() };
+    if (!String(plan.lead.business_role ?? '').trim()) upd.business_role = body.role || 'supplier';   // the listing's own description stays
     if (body.category) upd.sector = body.category;
     if (body.emirate) upd.emirate = body.emirate;
     const { data: won, error } = await admin.from('leads').update(upd).eq('id', id).is('claimed_by', null).select('id');

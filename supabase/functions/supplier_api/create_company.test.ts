@@ -7,14 +7,14 @@
 // "duplicate key value violates unique constraint "uq_leads_email_lower"". The first test replays it.
 //   deno test --no-lock supabase/functions/supplier_api/create_company.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { createCompany, EMAIL_ALREADY_REGISTERED, planCreateCompany, REGISTER_FAILED, VERIFY_EMAIL_FIRST } from './create_company.ts';
+import { createCompany, EMAIL_ALREADY_REGISTERED, planCreateCompany, REGISTER_FAILED, sessionOpenedByCode, VERIFY_EMAIL_FIRST } from './create_company.ts';
 
 type Row = Record<string, unknown>;
 const low = (v: unknown) => String(v ?? '').trim().toLowerCase();
 const nameKey = (v: unknown) => low(v).replace(/\s+/g, ' ');
 
 /** An in-memory leads table with production's three unique rules, and the handful of supabase-js calls the door makes. */
-function table(rows: Row[], opts: { failInsert?: { code: string; message: string } } = {}) {
+function table(rows: Row[], opts: { failInsert?: { code: string; message: string }; failSelectOn?: string } = {}) {
   const t = { rows: rows.map((r) => ({ ...r })), inserts: 0, updates: 0, nextId: 900001 };
   const clash = (row: Row, self: Row | null): string | null => {
     for (const o of t.rows) {
@@ -29,10 +29,12 @@ function table(rows: Row[], opts: { failInsert?: { code: string; message: string
   const admin = {
     from(name: string) {
       assertEquals(name, 'leads');
-      const f: ((r: Row) => boolean)[] = [];
+      const f: ((r: Row) => boolean)[] = []; const on: string[] = [];
       let op: 'select' | 'update' | 'insert' = 'select', payload: Row = {}, lim = Infinity, cols = '*';
       const pick = (r: Row) => (cols === '*' ? { ...r } : Object.fromEntries(cols.split(',').map((c) => [c.trim(), r[c.trim()]])));
       const run = () => {
+        // a read that the database fails (a timeout, a dropped connection): PostgREST resolves { data: null, error }
+        if (op === 'select' && opts.failSelectOn && on.includes(opts.failSelectOn)) return { data: null, error: { code: '57014', message: 'canceling statement due to statement timeout', details: null } };
         if (op === 'insert') {
           if (opts.failInsert) return { data: null, error: { ...opts.failInsert, details: null } };
           const row = { id: t.nextId++, ...payload };
@@ -50,9 +52,9 @@ function table(rows: Row[], opts: { failInsert?: { code: string; message: string
       };
       const q: Record<string, unknown> = {
         select(c: string) { cols = c; return q; },
-        eq(c: string, v: unknown) { f.push((r) => r[c] === v); return q; },
-        is(c: string, v: unknown) { f.push((r) => (r[c] ?? null) === v); return q; },
-        ilike(c: string, pat: string) { const want = pat.replace(/\\([\\%_])/g, '$1'); f.push((r) => low(r[c]) === low(want)); return q; },
+        eq(c: string, v: unknown) { on.push(c); f.push((r) => r[c] === v); return q; },
+        is(c: string, v: unknown) { on.push(c); f.push((r) => (r[c] ?? null) === v); return q; },
+        ilike(c: string, pat: string) { on.push(c); const want = pat.replace(/\\([\\%_])/g, '$1'); f.push((r) => low(r[c]) === low(want)); return q; },
         limit(n: number) { lim = n; return q; },
         update(p: Row) { op = 'update'; payload = p; return q; },
         insert(p: Row) { op = 'insert'; payload = p; return q; },
@@ -65,8 +67,10 @@ function table(rows: Row[], opts: { failInsert?: { code: string; message: string
   return { t, admin };
 }
 const calls: { reg: number[]; touch: number[] } = { reg: [], touch: [] };
-const deps = (proven = true) => ({
+const deps = (proven = true, o: { byCode?: boolean; sanctioned?: number[] } = {}) => ({
   emailProven: () => Promise.resolve(proven),
+  sessionByCode: o.byCode ?? true,
+  sanctionedLead: (id: number) => Promise.resolve((o.sanctioned ?? []).includes(id)),
   setRegistration: (id: number) => { calls.reg.push(id); return Promise.resolve({ status: 'free' }); },
   recordFirstTouch: (id: number) => { calls.touch.push(id); return Promise.resolve(); },
   locale: 'en',
@@ -164,4 +168,64 @@ Deno.test('planCreateCompany: the decision table', () => {
   assertEquals(planCreateCompany({ ownCompany: false, emailLeads: [{ ...u, claimed_by: 'x@example.invalid' }], emailProven: true }).kind, 'email_taken');
   assertEquals(planCreateCompany({ ownCompany: false, emailLeads: [u, { ...u, id: 2 }], emailProven: true }).kind, 'email_taken');
   assertEquals(planCreateCompany({ ownCompany: false, emailLeads: [], emailProven: true }).kind, 'insert');
+});
+
+// REVIEW OF #1712 (28 Oct 2026). Each of these failed against the PR as first pushed: the claim trusted any "used" code
+// row and any session, a failed look-up read as "no lead", a sanctioned listing could be claimed, and the form's constant
+// role overwrote the listing's own.
+const jwtWith = (claims: unknown) => ['eyJhbGciOiJIUzI1NiJ9', btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(claims))))
+  .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''), 'sig'].join('.');
+
+Deno.test('a session opened by a PASSWORD never claims an invited listing, even when a used code row exists for the address', async () => {
+  const { t, admin } = table([INVITED]);
+  const r = await createCompany(admin, INVITED.email, FORM, deps(true, { byCode: false }));
+  assertEquals([r.status, r.body.code], [403, VERIFY_EMAIL_FIRST.code]);
+  assertEquals([t.inserts, t.updates, t.rows[0].claimed_by, t.rows[0].claimed], [0, 0, null, false]);
+});
+
+Deno.test('the address that claims is the session\'s: another company\'s e-mail, id or token in the BODY is ignored', async () => {
+  const { t, admin } = table([INVITED]);
+  const attacker = 'qd-aub990b4a-attacker@example.invalid';
+  const r = await createCompany(admin, attacker, { ...FORM, company_name: 'ZZ DEMO S7 Attacker Co', email: INVITED.email, claimed_by: INVITED.email,
+    owner_email: INVITED.email, leads_id: INVITED.id, id: INVITED.id, claim_token: INVITED.claim_token, t: INVITED.claim_token }, deps());
+  assertEquals(r.status, 200, JSON.stringify(r.body));
+  assert(r.body.id !== INVITED.id, 'the attacker was handed the invited listing');
+  const victim = t.rows.find((x) => x.id === INVITED.id)!;
+  assertEquals([victim.claimed, victim.claimed_by, victim.company_name, victim.claim_token], [false, null, INVITED.company_name, INVITED.claim_token], 'the invited listing was touched');
+  const mine = t.rows.find((x) => x.id === r.body.id)!;
+  assertEquals([mine.email, mine.claimed_by], [attacker, attacker], 'the new row is not the session\'s own');
+});
+
+Deno.test('a look-up the database fails answers register_failed — never "this e-mail already has an account"', async () => {
+  for (const col of ['email', 'claimed_by']) {
+    const { t, admin } = table([INVITED], { failSelectOn: col });
+    const r = await createCompany(admin, INVITED.email, FORM, deps());
+    assertEquals([r.status, r.body.code], [500, REGISTER_FAILED.code], `look-up on ${col}`);
+    assert(!JSON.stringify(r.body).includes('statement timeout'), 'the database sentence reached the body');
+    assertEquals([t.inserts, t.updates], [0, 0], `look-up on ${col}: something was written`);
+  }
+});
+
+Deno.test('a listing under a sanctions ban is never claimed (the a01 trigger excludes the row itself)', async () => {
+  const { t, admin } = table([INVITED]);
+  const r = await createCompany(admin, INVITED.email, FORM, deps(true, { sanctioned: [INVITED.id] }));
+  assertEquals([r.status, r.body.code], [403, 'registration_refused']);
+  assertEquals([t.inserts, t.updates, t.rows[0].claimed_by], [0, 0, null]);
+});
+
+Deno.test('the claim keeps the listing\'s own trade description; the form\'s constant role fills only an empty one', async () => {
+  const { t, admin } = table([{ ...INVITED, business_role: 'manufacturer' }]);
+  const r = await createCompany(admin, INVITED.email, FORM, deps());
+  assertEquals([r.status, t.rows[0].business_role, t.rows[0].claimed_by], [200, 'manufacturer', INVITED.email]);
+});
+
+Deno.test('sessionOpenedByCode reads how THIS session was opened from the verified token\'s amr', () => {
+  assertEquals(sessionOpenedByCode(jwtWith({ amr: [{ method: 'otp', timestamp: 1 }] })), true, 'login_otp\'s sessions');
+  assertEquals(sessionOpenedByCode(jwtWith({ amr: [{ method: 'magiclink', timestamp: 1 }] })), true);
+  assertEquals(sessionOpenedByCode(jwtWith({ amr: [{ method: 'password', timestamp: 1 }] })), false, 'a password session');
+  assertEquals(sessionOpenedByCode(jwtWith({ sub: 'x' })), false, 'no amr');
+  assertEquals(sessionOpenedByCode(jwtWith({ amr: 'otp' })), false, 'amr not a list');
+  // non-ASCII metadata and base64url's - and _ survive the decode
+  assertEquals(sessionOpenedByCode(jwtWith({ user_metadata: { name: 'مورّد ?>>?' }, amr: [{ method: 'otp' }] })), true);
+  for (const junk of ['', 'abc', 'a.%%%.c', 'a..c', 'a.' + btoa('not json') + '.c']) assertEquals(sessionOpenedByCode(junk), false, junk);
 });
