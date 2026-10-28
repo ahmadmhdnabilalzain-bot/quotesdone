@@ -42,7 +42,7 @@ import { statementRowText, takeInStatement } from '../_shared/bank_statement_int
 import { defaultDeps, type ThinkDeps } from '../_shared/think.ts';
 import { documentKind, readingOf, receiptVendor, type ExpenseMail } from '../_shared/reasoned_books.ts';
 import { isUnsubscribeRequest } from '../_shared/unsubscribe_mailbox.ts';
-import { fromDomainAuthenticated, microsoftDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES, senderAuthenticated } from '../_shared/suppression_policy.ts';
+import { fromDomainAuthenticated, honourStop, microsoftDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES, senderAuthenticated } from '../_shared/suppression_policy.ts';
 import { approvalTokenOf, calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from '../_shared/marketing_calendar_mail.ts';
 import { registerRowsFor } from '../_shared/expense_mailbox.ts';
 import { M365_INBOUND_PREFIX } from '../_shared/m365_reply_inbox.ts';
@@ -363,12 +363,16 @@ export const handler = observe('resend_inbound', async (req) => {
       }
       const { error: supErr } = await admin.from('email_suppressions')
         .upsert({ email: from, reason: 'unsubscribe', source: 'reply' }, { onConflict: 'email', ignoreDuplicates: true });
+      // A STOP CANCELS WHAT IS ALREADY WAITING (28 Oct 2026, supplier-journey audit): the queued invitation, nudge and
+      // reminder to this address, and the lead is marked unsubscribed (suppression_policy.ts honourStop).
+      const stop = supErr ? null : await honourStop(admin, from);
       await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, body: fullText, html: fullHtml,
-        provider_email_id: providerEmailId, attachments_count: 0, matched_existing: false, needs_review: !!supErr });
-      await logRun(supErr ? 'error' : 'ok', { unsubscribe: 1, suppressed: supErr ? 0 : 1, from },
+        provider_email_id: providerEmailId, attachments_count: 0, matched_existing: false, needs_review: !!supErr || !!stop?.error });
+      await logRun(supErr || stop?.error ? 'error' : 'ok', { unsubscribe: 1, suppressed: supErr ? 0 : 1, cancelled: stop?.cancelled ?? 0, leads_unsubscribed: stop?.leads ?? 0, from },
         supErr ? ('an unsubscribe email from ' + from + ' could NOT be recorded: ' + String(supErr.message || '').slice(0, 200) + ' - kept for review so a person removes them')
-               : ('unsubscribe by email: ' + from + ' is suppressed and will not be mailed again.'));
-      return J({ ok: true, unsubscribe: true, suppressed: !supErr }, supErr ? 500 : 200);
+               : ('unsubscribe by email: ' + from + ' is suppressed and will not be mailed again; ' + (stop?.cancelled ?? 0) + ' waiting outreach mail(s) cancelled, '
+                  + (stop?.leads ?? 0) + ' lead(s) marked unsubscribed' + (stop?.error ? '. NOT DONE IN FULL: ' + stop.error + ' - kept for review' : '.')));
+      return J({ ok: true, unsubscribe: true, suppressed: !supErr, cancelled: stop?.cancelled ?? 0, leads_unsubscribed: stop?.leads ?? 0 }, supErr ? 500 : 200);
     }
 
     const booksDeps = thinkDeps ?? defaultDeps(admin, 'resend_inbound');

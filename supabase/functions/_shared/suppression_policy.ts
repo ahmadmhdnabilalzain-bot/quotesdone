@@ -144,3 +144,36 @@ export function neverSuppressible(email: string, protectedList: string[]): boole
   if (/(^|\.)quotesdone\.(com|ae)$/.test(dom)) return true;
   return protectedList.map((x) => x.trim().toLowerCase()).filter(Boolean).includes(e);
 }
+
+// ── WHAT A BELIEVED STOP DOES (28 Oct 2026, sales_engineer; supplier-journey audit, founder ledger 1401) ──────────────
+// The suppression row itself is written by the caller (resend_inbound), exactly as the List-Unsubscribe link writes it:
+// email_suppressions { reason 'unsubscribe' }. Then, because a row queued BEFORE the stop would still leave:
+//   1. every outreach mail to that address still waiting to go (queued, pending, held, digest) is cancelled, marked
+//      'suppressed' with the reason, as send_outbox marks one it refuses: the invitation, its day-3/7/14 nudge, the
+//      registration reminder and the widened invitation. supplier_invite_nudge is listed here by name: it is not in
+//      OPT_OUT_TYPES, so send_outbox would NOT stop a queued nudge to an opted-out address on its own;
+//   2. the lead that is that address (its email, or the account that claimed it) is marked invite_status
+//      'unsubscribed', which fn_supplier_invite_nudges_due already skips. A bounce or complaint already recorded stays.
+// Nothing is sent back: the reply is stored with needs_review false, so email_triage never answers it.
+export const STOP_CANCELS: readonly string[] = [...OPT_OUT_TYPES, 'supplier_invite_nudge'];
+const WAITING = ['queued', 'pending', 'held', 'digest'];
+const likeExact = (s: string) => s.replace(/[\\%_]/g, (c) => '\\' + c);
+// deno-lint-ignore no-explicit-any
+type Db = any;
+export async function honourStop(admin: Db, from: string): Promise<{ cancelled: number; leads: number; error: string | null }> {
+  const e = String(from || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)) return { cancelled: 0, leads: 0, error: 'no address' };
+  const errs: string[] = [];
+  const c = await admin.from('notifications')
+    .update({ status: 'suppressed', last_error: 'cancelled before sending: ' + e + ' asked to stop (a reply to the invitation); never sent' })
+    .ilike('to_email', likeExact(e)).in('type', [...STOP_CANCELS]).in('status', WAITING).select('id');
+  if (c.error) errs.push('notifications: ' + String(c.error.message || c.error).slice(0, 160));
+  let leads = 0;
+  for (const col of ['email', 'claimed_by']) {
+    const l = await admin.from('leads').update({ invite_status: 'unsubscribed' })
+      .ilike(col, likeExact(e)).or('invite_status.is.null,invite_status.not.in.(bounced,complained,unsubscribed)').select('id');
+    if (l.error) errs.push('leads.' + col + ': ' + String(l.error.message || l.error).slice(0, 160));
+    else leads += (l.data || []).length;
+  }
+  return { cancelled: (c.data || []).length, leads, error: errs.length ? errs.join('; ') : null };
+}

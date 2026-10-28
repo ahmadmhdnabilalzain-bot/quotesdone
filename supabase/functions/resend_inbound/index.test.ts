@@ -240,7 +240,20 @@ Deno.test({ name: 'an email to the unsubscribe mailbox suppresses its sender and
   assertEquals(Array.isArray(row) ? row[0] : row, { email: 'supplier.owner@example.invalid', reason: 'unsubscribe', source: 'reply' });
   assert(s.url.includes('on_conflict=email'));
   assert(/resolution=ignore-duplicates/.test(s.prefer), 'an existing hard-bounce or complaint row is never relabelled');
-  assertEquals(calls.filter((c) => /ai_gateway|leads/.test(c.url) && c.method !== 'GET').length, 0);   // no model, no supplier record touched
+  assertEquals(calls.filter((c) => /ai_gateway/.test(c.url)).length, 0);   // never the model
+  // 28 Oct 2026 (supplier-journey audit): a believed stop also cancels the outreach waiting for that address and marks
+  // the lead unsubscribed (suppression_policy.ts honourStop). Those are the ONLY writes it makes to a supplier record.
+  const leadWrites = calls.filter((c) => /\/rest\/v1\/leads/.test(c.url) && c.method !== 'GET');
+  assertEquals(leadWrites.length, 2);
+  for (const w of leadWrites) {
+    assertEquals(JSON.parse(w.body), { invite_status: 'unsubscribed' });
+    const u = decodeURIComponent(w.url);
+    assert(/[?&](email|claimed_by)=ilike\.supplier\.owner@example\.invalid(&|$)/.test(u), u);
+  }
+  const cancel = calls.filter((c) => /\/rest\/v1\/notifications/.test(c.url) && c.method === 'PATCH');
+  assertEquals(cancel.length, 1);
+  assertEquals(JSON.parse(cancel[0].body).status, 'suppressed');
+  assert(decodeURIComponent(cancel[0].url).includes('supplier_invite_nudge'), 'the queued nudge is cancelled too');
 } });
 
 Deno.test({ name: 'a supplier document email that mentions stopping is not an unsubscribe', sanitizeOps: false, sanitizeResources: false, fn: async () => {
