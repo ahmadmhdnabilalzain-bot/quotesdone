@@ -7,6 +7,9 @@
 // file" for a licence that was on record. The registration form's licence box (supplier_api process_docs) reads the same
 // way with up to two attempts. Both calls now wait REASONING_TIMEOUT_MS, as the Services tab's reasoning calls do
 // (scripts/checks/a_services_save_that_reasons_is_not_cut_off_by_the_portal.test.mjs); every other call keeps 20 s.
+// 28 Oct 2026 (review of #1709): the quotation upload (supplier_api extract_quote) reads synchronously too: quote_extract's
+// model read measured p50 15.5 s, p90 20.7 s, max 24.7 s over 30 days (ai_cost_log, n=29), so more than half of all
+// quotation uploads were cut off at 20 s. It is held to the same wait.
 //   node --test scripts/checks/a_document_upload_that_reads_is_not_cut_off_by_the_portal.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -26,8 +29,8 @@ const callOf = (action) => {
   return PORTAL.slice(start, end + 2);
 };
 
-test('the Documents tab save and the registration licence upload wait the reasoning timeout', () => {
-  for (const action of ['save_documents', 'process_docs']) {
+test('the Documents tab save, the registration licence upload and the quotation upload wait the reasoning timeout', () => {
+  for (const action of ['save_documents', 'process_docs', 'extract_quote']) {
     const c = callOf(action);
     assert.match(c, /token, \{ timeoutMs: REASONING_TIMEOUT_MS \}\);$/, `${action} must pass { timeoutMs: REASONING_TIMEOUT_MS }: ${c.slice(0, 120)}`);
   }
