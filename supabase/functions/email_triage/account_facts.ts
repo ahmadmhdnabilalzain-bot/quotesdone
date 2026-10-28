@@ -48,13 +48,32 @@ export const SIX_ITEMS = 'the company\'s licensed name, a UAE mobile number veri
   + 'the trade licence (uploaded), the company profile (uploaded) and their acceptance of the supplier terms';
 export const NO_SETUP_FOR_THEM = 'Never offer to register them, to set up their company page or to do any step for them, and never say '
   + 'our team will: only they can verify their e-mail and mobile, upload their documents and accept the terms.';
+const LINK_LEAD = "open their company's own registration link ";
 export function unregisteredSupplierFacts(company: string, link: string): string {
   return `THE SENDER IS A SUPPLIER COMPANY WE INVITED${company ? ' (' + company + ')' : ''}, matched on their exact e-mail address. `
     + 'THEY HAVE NOT REGISTERED YET: never call them registered and never mention jobs or quotes sent to them. '
     + 'If they say yes, want to join or ask how, tell them registration is free for our first 1,000 suppliers and takes a few minutes: '
-    + `open their company's own registration link ${link} , choose "Create account" with their work e-mail and type the 6-digit code we e-mail them. `
+    + `${LINK_LEAD}${link} , choose "Create account" with their work e-mail and type the 6-digit code we e-mail them. `
     + `To be verified they need all six of: ${SIX_ITEMS}. The trades they cover are confirmed in the Services tab of their portal. `
     + 'Give the link exactly as written, on its own line. ' + NO_SETUP_FOR_THEM;
+}
+// THE LINK IS NOT LEFT TO THE MODEL (supplier journey audit, 28 Oct 2026, docs/reports/supplier_journey_audit_28_oct/
+// sales_agent): the facts above ask for the link on its own line, and the model still dropped it in 3 of 8 replies to
+// an invited, unregistered supplier (c2 cost, c5 Arabic, c8 documents; both the reasoned and the direct path). A reply
+// that tells them what to do with no way to do it is a dead end. So after the model writes, the facts' own link line is
+// appended when the link is not already on a line of its own. Only the facts' link counts: no facts link, no change.
+export function claimLinkOf(facts: string): string | null {
+  const i = facts.indexOf(LINK_LEAD);
+  if (i < 0) return null;
+  const m = /^(https:\/\/quotesdone\.com\/portal\S*)/.exec(facts.slice(i + LINK_LEAD.length));
+  return m ? m[1] : null;
+}
+export function withClaimLink(body: string, facts: string): string {
+  const link = claimLinkOf(facts);
+  if (!link) return body;
+  const bare = (l: string) => l.trim().replace(/^[\s<("'*_\-:]+|[\s>)"'*_.,;:]+$/g, '');
+  if (body.split(/\r?\n/).some((l) => bare(l) === link)) return body;
+  return body.trimEnd() + '\n\nYour company\'s registration link:\n' + link;
 }
 // An UNVERIFIED sender who is a lead: no account is read (the spoof rule below), and the sign-in line alone would send
 // a supplier with no account to a sign-in box. Both routes are named, without a personal link.
