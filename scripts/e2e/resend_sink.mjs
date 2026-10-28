@@ -29,6 +29,9 @@ async function resendGet(path) {
     await new Promise((r) => setTimeout(r, 750));
     const r = await read(`select status_code, content from net._http_response where id = ${Number(id)}`);
     if (r.length && r[0].status_code) {
+      // The list response holds up to 50 OTHER messages' recipients and subjects; pg_net would keep it in
+      // net._http_response for hours. It is read once and deleted at once (review of #1702).
+      await write(`delete from net._http_response where id = ${Number(id)}`, 'resend read cleanup').catch(() => {});
       if (r[0].status_code !== 200) throw new Error(`Resend ${path} answered HTTP ${r[0].status_code}`);
       return JSON.parse(r[0].content);
     }
