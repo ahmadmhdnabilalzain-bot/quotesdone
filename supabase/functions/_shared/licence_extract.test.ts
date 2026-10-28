@@ -113,3 +113,45 @@ Deno.test('the portal still sends pages as { mime, data } (the shape the tests a
   const raster = await Deno.readTextFile(new URL('../../../src/components/me/pdfRaster.ts', import.meta.url));
   assertEquals(/Promise<\{\s*mime:\s*string;\s*data:\s*string\s*\}\[\]>/.test(raster), true);
 });
+
+// REVIEW OF #1707 (28 Oct 2026, sales_engineer). The data URL names the page's own type, and a page that is not
+// base64 never reaches the provider: the request falls back to the file, or license_extract refuses it by name.
+import { hasReadablePage, pageMime } from './licence_extract.ts';
+const JPEG_B64 = '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDA==';
+
+Deno.test("the data URL carries the page's mime, image/jpeg or image/png, never a fixed one", () => {
+  const png = pngHeader(1240, 1754);
+  assertEquals(urlsOf(documentContent('read', [{ mime: 'image/jpeg', data: JPEG_B64 }], {}))[0].startsWith('data:image/jpeg;base64,/9j/'), true);
+  assertEquals(urlsOf(documentContent('read', [{ mime: 'image/png', data: png }], {}))[0].startsWith('data:image/png;base64,iVBOR'), true);
+  // no mime named (a bare string, or an empty/non-image mime): the bytes decide, and a data URL's own prefix wins
+  assertEquals([pageMime(png), pageMime(JPEG_B64), pageMime({ data: png, mime: '' }), pageMime({ b64: png, mime: 'application/pdf' })],
+    ['image/png', 'image/jpeg', 'image/png', 'image/png']);
+  assertEquals(pageMime('data:image/png;base64,' + png), 'image/png');
+  assertEquals(urlsOf(documentContent('read', ['data:image/png;base64,' + png], {}))[0], 'data:image/png;base64,' + png);
+});
+
+Deno.test('an empty or invalid page is never sent: the file is read instead, or nothing is readable', () => {
+  const bad = [{ mime: 'image/png', data: '' }, { mime: 'image/png', data: '[object Object]' }, { mime: 'image/png', data: { x: 1 } }, { mime: 'image/png' }, 'https://x/y.png'];
+  for (const im of bad) assertEquals(pageB64(im), '', JSON.stringify(im));
+  // the portal sends the PDF beside its pages: no usable page -> the file goes, as a file
+  const c = documentContent('read', bad, { file_b64: 'JVBERi0xLjQKJcfsj6IKNSAwIG9iago=', mime: 'application/pdf', filename: 'l.pdf' });
+  assertEquals([c.length, c[1].type, urlsOf(c).length], [2, 'file', 0]);
+  assertEquals(hasReadablePage(bad, {}), false);                      // license_extract answers 400 no_readable_page
+  assertEquals(hasReadablePage(bad, { file_b64: 'JVBERi0xLjQKJcfsj6IKNSAwIG9iago=' }), true);
+  assertEquals(hasReadablePage([{ mime: 'image/jpeg', data: JPEG_B64 }], {}), true);
+  assertEquals(documentContent('read', bad, {}).length, 1);           // nothing but the instruction: never garbage
+  // a valid page among invalid ones is the only one sent
+  assertEquals(urlsOf(documentContent('read', [...bad, { mime: 'image/jpeg', data: JPEG_B64 }], {})).length, 1);
+});
+
+Deno.test('license_extract refuses a request with no readable page before any model is asked', async () => {
+  const src = await Deno.readTextFile(new URL('../license_extract/index.ts', import.meta.url));
+  const guard = src.indexOf('!hasReadablePage(images, body)'), model = src.indexOf('await fetch(GW');
+  assertEquals(guard > 0 && guard < model, true);
+});
+
+Deno.test('quote_extract reads the portal page shape through the same reader (its uploads send { mime, data } too)', async () => {
+  const src = await Deno.readTextFile(new URL('../quote_extract/index.ts', import.meta.url));
+  assertEquals(/import \{ pageB64, pageMime \} from '\.\.\/_shared\/licence_extract\.ts'/.test(src), true);
+  assertEquals(/const b = im\?\.b64 \|\| im;/.test(src), false);
+});

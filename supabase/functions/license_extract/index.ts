@@ -9,7 +9,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 // The licence request and its reading live in one module so the accuracy suite measures exactly this (7 Oct 2026).
-import { SYS_LICENSE, SYS_PROFILE, parseJson, normDate, normEmirate, documentContent, normaliseLicence, imagesTooSmallToRead, UNREADABLE_LICENCE, lowReadProven, licencePages } from '../_shared/licence_extract.ts';
+import { SYS_LICENSE, SYS_PROFILE, parseJson, normDate, normEmirate, documentContent, normaliseLicence, imagesTooSmallToRead, UNREADABLE_LICENCE, lowReadProven, licencePages, hasReadablePage } from '../_shared/licence_extract.ts';
 import { pagesBlank } from '../_shared/licence_page_ink.ts';
 import { pdfText } from '../_shared/document_expiry.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -61,6 +61,9 @@ Deno.serve(observe('license_extract', async (req) => {
     const mode = body.mode === 'profile' ? 'profile' : body.mode === 'cert' ? 'cert' : 'license';
     const images: any[] = Array.isArray(body.images) ? body.images : [];
     if (!images.length && !body.file_b64) return J({ error: 'no file' }, 400);
+    // Review of #1707 (28 Oct 2026): pages that carry no base64 (an empty page, an object, a URL) are refused here, by
+    // name, instead of reaching the provider as an image URL it rejects with a 400 the caller reads as 'ai_error'.
+    if (!hasReadablePage(images, body)) return J({ error: 'no_readable_page', message: 'The file arrived without a readable page. Please upload the licence again as a PDF or a clear photo.' }, 400);
     // The blank-image guard runs first, in code: no model is asked to read a page too small to hold print.
     if (mode === 'license' && imagesTooSmallToRead(images, body)) return J({ ok: true, mode, doc: UNREADABLE_LICENCE(), guard: 'image_too_small' });
     // ...and a page-sized image that carries no print (a white scan, a photo of a wall) is blank, measured by
