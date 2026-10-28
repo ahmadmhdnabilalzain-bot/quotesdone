@@ -9,7 +9,7 @@
 // WHAT CHANGED WITH THE MOVE: the prompt now also asks for the Arabic legal name, the trade name and the legal form,
 // which a UAE licence prints and the suite measures; nothing else in the request changed.
 
-export const SYS_LICENSE = `You are a meticulous UAE corporate-registry document controller. You read an official UAE TRADE LICENCE (DED / DET / free-zone / e-trader) and extract its registration data EXACTLY as printed. Read every line; do not guess. Return STRICT JSON only:\n{"legal_name":string,"legal_name_ar":string,"trade_name":string,"legal_form":string,"license_number":string,"license_authority":string,"emirate":string,"city":string,"issue_date":"YYYY-MM-DD","expiry_date":"YYYY-MM-DD","activities":[string],"trn":string,"confidence":"low"|"medium"|"high"}\nlegal_name = the exact licensed company / establishment name as printed in ENGLISH; if the licence prints no English name, an empty string (never a translation or transliteration). legal_name_ar = the name as printed in Arabic, else ''. trade_name = the trade name as printed, else ''. legal_form = the legal form / legal type / legal status as printed (e.g. 'Limited Liability Company', 'Free Zone Establishment'). license_number = the licence / register number exactly as printed. license_authority = issuing authority as printed (e.g. 'Dubai Department of Economy and Tourism', 'Sharjah Economic Development Department', 'Jebel Ali Free Zone Authority'). emirate = one of Dubai, Abu Dhabi, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah. city = city/area if shown else the emirate. activities = the listed business activities, each exactly as printed. trn = VAT TRN if present else ''. Dates as printed, output YYYY-MM-DD (UAE dates are day-first). If a value is not visible use an empty string and lower the confidence. This is NOT a tax/AML check - it is commercial onboarding verification only.`;
+export const SYS_LICENSE = `You are a meticulous UAE corporate-registry document controller. You read an official UAE TRADE LICENCE (DED / DET / free-zone / e-trader) and extract its registration data EXACTLY as printed. Read every line; do not guess. Return STRICT JSON only:\n{"legal_name":string,"legal_name_ar":string,"trade_name":string,"legal_form":string,"license_number":string,"license_authority":string,"emirate":string,"city":string,"issue_date":"YYYY-MM-DD","expiry_date":"YYYY-MM-DD","activities":[string],"trn":string,"confidence":"low"|"medium"|"high"}\nlegal_name = the exact licensed company / establishment name as printed in ENGLISH; when the licence prints its name only as a Trade Name, with no separate company or legal name, that Trade Name IS the licensed name: give it here too; if the licence prints no English name, an empty string (never a translation or transliteration). legal_name_ar = the name as printed in Arabic, else ''. trade_name = the trade name as printed, else ''. legal_form = the legal form / legal type / legal status as printed (e.g. 'Limited Liability Company', 'Free Zone Establishment'). license_number = the licence / register number exactly as printed. license_authority = issuing authority as printed (e.g. 'Dubai Department of Economy and Tourism', 'Sharjah Economic Development Department', 'Jebel Ali Free Zone Authority'). emirate = one of Dubai, Abu Dhabi, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah. city = city/area if shown else the emirate. activities = the listed business activities, each exactly as printed. trn = VAT TRN if present else ''. Dates as printed, output YYYY-MM-DD (UAE dates are day-first). If a value is not visible use an empty string and lower the confidence. This is NOT a tax/AML check - it is commercial onboarding verification only.`;
 
 /** null = no usable object (a 502 with a named error, never a blank doc: 9 Sep 2026). */
 export function parseJson(t: string): Record<string, unknown> | null {
@@ -176,8 +176,16 @@ export const UNREADABLE_LICENCE = () => normaliseLicence({});
  * A placeholder number (123456, 000000) is dropped even from an otherwise named read. */
 export function normaliseLicence(ai: Record<string, unknown>) {
   const s = (v: unknown, n: number) => String(v ?? '').trim().slice(0, n);
-  const named = /\p{L}{2}/u.test(s(ai.legal_name, 200)) || /\p{L}{2}/u.test(s(ai.legal_name_ar, 200));
-  const arabicOnly = !/\p{L}{2}/u.test(s(ai.legal_name, 200)) && /\p{Script=Arabic}{2}/u.test(s(ai.legal_name_ar, 200));
+  // A LICENCE THAT PRINTS ITS NAME ONLY AS A TRADE NAME IS NAMED (28 Oct 2026, sales_engineer, the supplier-journey audit,
+  // ledger 1401). Measured on production: a licence whose one name line reads "Trade Name" came back from the model with
+  // every field read (number, authority, issue and expiry dates, activities), confidence 'medium', the name in trade_name
+  // and legal_name '' (correctly: the page prints no other name). The check below then threw the whole read away as
+  // unreadable, so the supplier was held as licence_unreadable and told to upload "a clearer copy" of a clear licence.
+  // The same licence with its name line labelled "Company Name" read in full, confidence 'high'. When no legal name is
+  // printed, the trade name IS the licensed name; the code reader already takes it so (document_expiry.ts, NAME_LABELS).
+  const legal = /\p{L}{2}/u.test(s(ai.legal_name, 200)) ? s(ai.legal_name, 200) : (/\p{L}{2}/u.test(s(ai.trade_name, 200)) ? s(ai.trade_name, 200) : '');
+  const named = /\p{L}{2}/u.test(legal) || /\p{L}{2}/u.test(s(ai.legal_name_ar, 200));
+  const arabicOnly = !/\p{L}{2}/u.test(legal) && /\p{Script=Arabic}{2}/u.test(s(ai.legal_name_ar, 200));
   if (!named || (String(ai.confidence) === 'low' && !arabicOnly)) {
     return { legal_name: '', legal_name_ar: '', trade_name: '', legal_form: '', license_number: '', license_authority: '', emirate: '',
              city: '', issue_date: null as string | null, expiry_date: null as string | null, activities: [] as string[], trn: '',
@@ -185,7 +193,7 @@ export function normaliseLicence(ai: Record<string, unknown>) {
   }
   const emirate = normEmirate(ai.emirate || ai.city);
   return {
-    legal_name: s(ai.legal_name, 200), legal_name_ar: s(ai.legal_name_ar, 200), trade_name: s(ai.trade_name, 200), legal_form: s(ai.legal_form, 120),
+    legal_name: legal, legal_name_ar: s(ai.legal_name_ar, 200), trade_name: s(ai.trade_name, 200), legal_form: s(ai.legal_form, 120),
     license_number: placeholderLicenceNo(ai.license_number) ? '' : s(ai.license_number, 60), license_authority: s(ai.license_authority, 160), emirate,
     city: s(ai.city || ai.emirate, 80) || emirate, issue_date: normDate(ai.issue_date), expiry_date: normDate(ai.expiry_date),
     activities: Array.isArray(ai.activities) ? ai.activities.map((x) => String(x).slice(0, 120)).slice(0, 20) : [],

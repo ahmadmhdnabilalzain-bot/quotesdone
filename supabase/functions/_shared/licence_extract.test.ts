@@ -2,7 +2,7 @@
 // The vision model answered a 1x1 PNG with expiry 2023-03-14 and licence number 123456 (ai_cost_log 19449);
 // these replay that answer through the exact normaliser license_extract uses and assert nothing survives.
 import { assertEquals } from 'jsr:@std/assert@1';
-import { imageDims, imagesTooSmallToRead, licenceFromGateway, lowReadProven, normaliseLicence, placeholderLicenceNo, UNREADABLE_LICENCE } from './licence_extract.ts';
+import { imageDims, imagesTooSmallToRead, licenceFromGateway, lowReadProven, normaliseLicence, placeholderLicenceNo, SYS_LICENSE, UNREADABLE_LICENCE } from './licence_extract.ts';
 
 const blankImageAnswer = { legal_name: '', legal_name_ar: '', trade_name: '', legal_form: '', license_number: '123456',
   license_authority: 'Dubai Department of Economy and Tourism', emirate: 'Dubai', city: 'Dubai', issue_date: '2022-03-15',
@@ -65,6 +65,27 @@ Deno.test('a named, confident read keeps its fields but never a placeholder numb
   const d = normaliseLicence({ ...blankImageAnswer, legal_name: 'ZZ DEMO Steel LLC', confidence: 'high' });
   assertEquals([d.unreadable, d.legal_name, d.expiry_date, d.license_number], [false, 'ZZ DEMO Steel LLC', '2023-03-14', '']);
   assertEquals(normaliseLicence({ ...blankImageAnswer, legal_name: 'ZZ DEMO Steel LLC', license_number: '1633275' }).license_number, '1633275');
+});
+
+// THE MODEL'S OWN ANSWER, 28 Oct 2026 (supplier-journey audit, run fbe21d49, ai_gateway fn license_extract): a licence whose
+// one name line is "Trade Name". Every field read, confidence 'medium', the name only in trade_name. Before the fix this
+// normaliser returned UNREADABLE and the supplier was held as licence_unreadable ("upload a clearer copy").
+const tradeNameOnlyAnswer = { legal_name: '', legal_name_ar: '', trade_name: 'ZZ DEMO S3 Expired Aluminium fbe21d49', legal_form: 'Limited Liability Company',
+  license_number: 'ZZDEMO-FBE21D49-S3', license_authority: 'Dubai Department of Economy and Tourism', emirate: 'Dubai', city: 'Dubai',
+  issue_date: '2025-09-28', expiry_date: '2026-09-27', activities: ['Aluminium and Glass Works'], trn: '', confidence: 'medium' };
+
+Deno.test('a licence that prints its name only as a Trade Name is read: the trade name is the licensed name', () => {
+  const d = normaliseLicence(tradeNameOnlyAnswer);
+  assertEquals([d.unreadable, d.legal_name, d.trade_name, d.license_number, d.expiry_date, d.emirate, d.confidence],
+               [false, 'ZZ DEMO S3 Expired Aluminium fbe21d49', 'ZZ DEMO S3 Expired Aluminium fbe21d49', 'ZZDEMO-FBE21D49-S3', '2026-09-27', 'Dubai', 'medium']);
+  // a printed legal name still wins over the trade name
+  assertEquals(normaliseLicence({ ...tradeNameOnlyAnswer, legal_name: 'ZZ DEMO Holding LLC' }).legal_name, 'ZZ DEMO Holding LLC');
+  // and a 'low' trade-name read is as unreadable as a 'low' legal-name read
+  assertNoFields(normaliseLicence({ ...tradeNameOnlyAnswer, confidence: 'low' }));
+});
+
+Deno.test('the prompt tells the model a lone Trade Name is the licensed name', () => {
+  assertEquals(SYS_LICENSE.includes('when the licence prints its name only as a Trade Name, with no separate company or legal name, that Trade Name IS the licensed name'), true);
 });
 
 Deno.test('placeholder numbers are runs and repeats only', () => {
