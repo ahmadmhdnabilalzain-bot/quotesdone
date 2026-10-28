@@ -67,12 +67,15 @@
       "q_en": "Which insect and mouse jobs can exterminators around here handle for houses and offices nowadays?",
       "q_ar": "شو شغل الحشرات والفيران اللي تقدر شركات المكافحة هنا تسويه للبيوت والمكاتب هالأيام؟",
       "expected_entry_ids": [
-        "pest_control:uae-market-products"
+        "pest_control:uae-market-products",
+        "pest_control:product-distinctions"
       ],
-      "why": "The products entry lists the pest control services for cockroaches, rodents, termites and more, which answers what is available.",
+      "why": "The question asks which insect and rodent jobs exterminators handle for homes and offices. The products entry lists the services offered in the UAE; product-distinctions lists the same service types: general pest control (cockroaches, ants, bed bugs, flies, mosquitoes), rodent control, termite work, one-off or contract.",
       "written_blind": true,
       "word_overlap_with_entry": 0,
-      "word_overlap_after_enrichment": 0
+      "word_overlap_after_enrichment": 0,
+      "expected_mode": "any",
+      "alternate_ruled": "2026-10-27: candidates were this trade's own rows the routine returned; one was accepted only where its body answers the question as asked (castings, auto_parts, hvac and others were refused)"
     }
   ],
   "verified": {

@@ -64,12 +64,15 @@
       "q_en": "Which history checks on applicants and discreet enquiries can agencies around here realistically carry out?",
       "q_ar": "أي فحوصات لسجل المتقدمين للوظائف وتحريات سرية تقدر المكاتب هنا تسويها فعلياً؟",
       "expected_entry_ids": [
-        "investigation_screening:uae-market-products"
+        "investigation_screening:uae-market-products",
+        "investigation_screening:product-distinctions"
       ],
-      "why": "The products entry lists background screening and investigation services agencies offer.",
+      "why": "The question asks which applicant history checks and discreet enquiries agencies can lawfully carry out. The products entry lists the services offered in the UAE; product-distinctions answers the same ask: the pre-employment check types (identity, employment, education, criminal record where lawful, credit where permitted) and lawful investigation practice.",
       "written_blind": true,
       "word_overlap_with_entry": 0.125,
-      "word_overlap_after_enrichment": 0.125
+      "word_overlap_after_enrichment": 0.125,
+      "expected_mode": "any",
+      "alternate_ruled": "2026-10-27: candidates were this trade's own rows the routine returned; one was accepted only where its body answers the question as asked (castings, auto_parts, hvac and others were refused)"
     }
   ],
   "verified": {

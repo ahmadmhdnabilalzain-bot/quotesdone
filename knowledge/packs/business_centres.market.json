@@ -70,12 +70,15 @@
       "q_en": "Beyond renting one seat, which workspace arrangements exist around town: shared spots, a mailing-only setup, or my own closed room?",
       "q_ar": "غير تأجير مكتب لشخص واحد، شو الخيارات الموجودة في السوق: مكان مشترك، ولا عنوان بريدي بس، ولا مكتب مسكّر خاص فيني؟",
       "expected_entry_ids": [
-        "business_centres:uae-market-products"
+        "business_centres:uae-market-products",
+        "business_centres:product-distinctions"
       ],
-      "why": "Products entry lists serviced offices, coworking desks, virtual offices and flexi-desks.",
+      "why": "The question asks which workspace arrangements exist. The products entry lists the serviced offices, coworking and virtual offices sold in the UAE; the base pack's product-distinctions entry answers the same ask directly: hot desk (shared spot), dedicated desk, private serviced office (own closed room) and virtual office (mailing-only).",
       "written_blind": true,
       "word_overlap_with_entry": 0.067,
-      "word_overlap_after_enrichment": 0.067
+      "word_overlap_after_enrichment": 0.067,
+      "expected_mode": "any",
+      "alternate_ruled": "2026-10-27: candidates were this trade's own rows the routine returned; one was accepted only where its body answers the question as asked (castings, auto_parts, hvac and others were refused)"
     }
   ],
   "verified": {

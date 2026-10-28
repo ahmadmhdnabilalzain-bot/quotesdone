@@ -16,7 +16,10 @@
 //          every pack row) equals its top 6 over (live rows + each question's own top 6 pack rows). The
 //          ranking is the database's, not this file's.
 //
-//   node scripts/eval/knowledge_pack_eval.mjs [--mode live|staged] [--out results.json] [--with-trade]
+//   node scripts/eval/knowledge_pack_eval.mjs [--mode live|staged] [--out results.json] [--with-trade] [--packs <regex>]
+// --packs (27 Oct 2026) asks only the questions of the packs whose key matches, e.g. '\.market$'; every pack's rows still
+// load and stage, so each question is ranked against the whole estate exactly as in a full run. A full run took over
+// 30 minutes against the management API's throttle; a filtered run is a diagnosis, the full run is the gate.
 //
 // Exit 1 when any (pack, seat) is below FLOOR. The floor is set from the first measured baseline and is
 // never lowered to turn a run green (founder: never soften a check).
@@ -70,7 +73,8 @@ const ML = PATH !== 'gte';   // 'ml-only' = the multilingual routine with no gte
 console.log(`mode: ${mode}  path: ${PATH}  (${packs.length} packs, ${rows.length} rows)`);
 
 // The questions: every pack's eval, both languages, for every seat that reads the pack.
-const qs = packs.flatMap((p) => (p.pack.eval ?? []).flatMap((q) => ['en', 'ar'].flatMap((lang) =>
+const ONLY = at('--packs') ? new RegExp(at('--packs')) : null;
+const qs = packs.filter((p) => !ONLY || ONLY.test(p.key)).flatMap((p) => (p.pack.eval ?? []).flatMap((q) => ['en', 'ar'].flatMap((lang) =>
   seatsOf(p).map((seat) => ({ pack: p.key, trade: p.kind === 'trade' ? p.code : null, seat, lang, text: lang === 'en' ? q.q_en : q.q_ar, expected: q.expected_entry_ids, any: q.expected_mode === 'any' })))));
 const embedder = await makeEmbedder(sql, PROJECT_REF);
 const qv = await embedder.many([...new Set(qs.map((q) => q.text))]);

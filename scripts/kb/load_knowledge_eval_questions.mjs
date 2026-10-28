@@ -16,7 +16,7 @@ const packs = readPacks(join(REPO, 'knowledge'));
 const bad = packs.filter((p) => p.errors.length);
 if (bad.length) { console.error('refused packs: ' + bad.map((p) => p.rel).join(', ')); process.exit(2); }
 const qs = packs.flatMap((p) => (p.pack.eval ?? []).flatMap((q) => ['en', 'ar'].flatMap((lang) =>
-  seatsOf(p).map((seat) => ({ pack: p.key, seat, lang, text: lang === 'en' ? q.q_en : q.q_ar, expected: q.expected_entry_ids })))))
+  seatsOf(p).map((seat) => ({ pack: p.key, seat, lang, text: lang === 'en' ? q.q_en : q.q_ar, expected: q.expected_entry_ids, any: q.expected_mode === 'any' })))))
   .filter((q) => q.text && q.expected?.length)
   // a pack can repeat a question or list a seat twice; the upsert refuses the same key twice in one batch
   .filter((q, i, all) => all.findIndex((o) => o.seat === q.seat && o.pack === q.pack && o.lang === q.lang && o.text === q.text) === i);
@@ -69,9 +69,12 @@ const vecs = new Map(texts.map((t, i) => [t, i]));
 const got = await embedder.many(texts);
 for (let i = 0; i < qs.length; i += 100) {
   const part = qs.slice(i, i + 100);
-  await sql(`insert into public.seat_knowledge_eval_question (seat, pack, lang, question, expected, embedding) values\n` +
-    part.map((q) => `(${lit(q.seat)}, ${lit(q.pack)}, ${lit(q.lang)}, ${lit(q.text)}, ${lit(q.expected)}, ${vecLit(got[vecs.get(q.text)])})`).join(',\n') +
-    `\non conflict (seat, pack, lang, question) do update set expected = excluded.expected, embedding = excluded.embedding, loaded_at = now();`);
+  // expected_any (27 Oct 2026, an_any_mode_eval_question_is_answered_by_any_of_its_entries.sql): a question whose pack
+  // says expected_mode 'any' is answered by ANY one of its entries, as knowledge_pack_eval.mjs scores it. Before it, the
+  // daily exam required every entry of such a question, so the exam and the eval disagreed on every such question (14 before 27 Oct, 27 after).
+  await sql(`insert into public.seat_knowledge_eval_question (seat, pack, lang, question, expected, expected_any, embedding) values\n` +
+    part.map((q) => `(${lit(q.seat)}, ${lit(q.pack)}, ${lit(q.lang)}, ${lit(q.text)}, ${lit(q.expected)}, ${q.any}, ${vecLit(got[vecs.get(q.text)])})`).join(',\n') +
+    `\non conflict (seat, pack, lang, question) do update set expected = excluded.expected, expected_any = excluded.expected_any, embedding = excluded.embedding, loaded_at = now();`);
 }
 console.log('loaded');
 // a changed question keeps its old multilingual vector unless cleared; the upsert above kept it, so clear and refill

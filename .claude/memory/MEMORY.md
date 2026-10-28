@@ -141,6 +141,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Group per class, not in aggregate](group-per-class-not-in-aggregate.md) · [One number, three causes](one-number-three-causes.md) · [A 30-day total is not a run rate](a-30-day-total-is-not-a-run-rate.md)
 - [A fix that makes the headline fall](a-fix-that-makes-the-headline-fall.md)
 - [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
+- [An eval's answer key is a claim too (28 Oct)](an-eval-answer-key-is-a-claim-too.md) — 13 of 34 'failing' market packs returned a right answer the key did not name; read what came back before tuning retrieval or content
 ## State of the build
 - [CHECKPOINT 27 Oct — cloud only, invitations HELD for GlockApps](checkpoint-27-oct-cloud-invitations-held.md) — READ FIRST: laptop has no keys; invite_enabled=false; GlockApps 27 Oct FAILED (Microsoft 0/18 inbox), copy now variant A, winmail.dat/TNEF on every external copy (admin fix), compressed warm-up, re-test day 3 with the LAST credit; warm-up plan; 16 open PRs by state
 - [Security hardening 27 Oct — SSL, network, legacy JWT, pg_net: state and next steps](security-hardening-27-oct-state.md) — nothing applied (restart / unproven exemptions); legacy JWT secret still trusted until the consumer PR, then disable + revoke; pg_net needs Supabase support
