@@ -132,19 +132,77 @@ export const SIGNATURE = 'Best regards,\nAhmad Alzain\nFounder, QuotesDone\nQuot
 // addressed to the company and its trade, no promotional word in the subject or the opening, and the opt-out in the
 // List-Unsubscribe headers plus one "reply stop" line. Since 27 Oct 2026 the body carries no link at all (above).
 export type Who = { company?: string; trade?: string };
-const ENTITY: Record<string, string> = { amp: '&', '#038': '&', '#38': '&', quot: '"', '#039': "'", '#39': "'", apos: "'" };
-/** A company name as a person writes it: entities decoded, a "| tagline" or " - branch" cut, SHOUTING lowered. */
+// THE GREETING READS A COMPANY NAME, NOT A PAGE TITLE (sales_engineer, 28 Oct 2026). leads.company_name is often a
+// scraped page title. MEASURED on notifications 116649-116668: "Speed Blast Trading L.L.C &#8211; Top notch Industrial
+// Equipments Suppliers in Dubai, UAE" reached the greeting whole (the entity map had no numeric entities, so the dash cut
+// never saw a dash), "CERAMIC MEGA ... TR LLC (Manufacturer and wholesaler of any kind of porcelain tile.)" kept its
+// tagline and its capitals, "NRA INTERNATIONAL" became "Nra" and "TRADING L L C" kept its spaces. So: decode every
+// entity first, then cut (dash/pipe, a trailing parenthetical, a ", Dubai"/", Suppliers in ..." tail), then case, and a
+// name still too long or written like a sentence gets the neutral "Hello," rather than a title.
+const ENTITY: Record<string, string> = {
+  amp: '&', quot: '"', apos: "'", nbsp: ' ', ndash: '–', mdash: '—', lt: '<', gt: '>', rsquo: "'", lsquo: "'", rdquo: '"', ldquo: '"',
+};
+const decodeOnce = (s: string) => s.replace(/&(?:#(\d{1,7})|#x([0-9a-f]{1,6})|([a-z]+));/gi, (m, dec, hex, name) => {
+  if (name) return ENTITY[name.toLowerCase()] ?? m;
+  const cp = dec ? parseInt(dec, 10) : parseInt(hex, 16);
+  return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m;
+});
+/** What follows ", " in a page title rather than a name: an emirate, the country, or a "Suppliers in ..." tagline. */
+const PLACE_OR_TAGLINE = /^(?:dubai|uae|u\.a\.e|united arab emirates|abu dhabi|sharjah|ajman|ras al khaimah|fujairah|umm al quwain|al ain|jebel ali)\b|\bsuppliers?\s+in\b/i;
+const LEGAL = /^(?:l\.?l\.?c\.?|fze|fzco|fzc|fz|tr|dmcc|pjsc|wll)$/i;
+/** Two-letter words that are words, not acronyms, when a name is written in capitals ("AL", "CO", "OF"). */
+const SHORT_WORD = new Set('AL EL OF CO BU DE LA LE DA BY TO IN ON OR AT IS AS MY UP NO DR MR MS ST HI'.split(' '));
+/** Three-letter acronyms that carry a vowel. Any other three-letter token with a vowel is a word or an abbreviation and is
+ *  title-cased: MEASURED on all 20,249 distinct leads.company_name (28 Oct 2026, review of #1706), keeping every 3-letter
+ *  token in capitals turned GEN (258 names), ALI (89), IND, MIX, MAT, ENT, AIN, SPA, ENG, BAB and EZZ into shouting. */
+const ACRONYM3 = new Set('UAE UAQ RAK MEP NRA MAF ETA ABD'.split(' '));
+/** Vowel-less abbreviations that read as words, not acronyms: "Co Ltd", "Pvt", "Svcs" (MEASURED 28 Oct 2026: LTD alone
+ *  is in 376 distinct names). */
+const ABBREVIATION = new Set('LTD PVT SVC SVCS MKTG TRDG MFG MNFG DVLP SRVS PCKG CNTG BLDG'.split(' '));
+/** Title case: a letter after anything but a letter, a digit, "_" or an apostrophe ("Gen.Trading", "Center/L.L.C",
+ *  "Ronny's", "18th"). */
+const word = (w: string) => w.toLowerCase().replace(/(^|[^a-z0-9_'’])([a-z])/g, (_m, p, c) => p + c.toUpperCase());
+/** One token of a name written in capitals: a legal suffix or a 2-3 letter acronym stays, anything else is title-cased. */
+const capsToken = (w: string) => {
+  const bare = w.replace(/[^A-Za-z.]/g, '');
+  if (LEGAL.test(bare)) return w.toUpperCase();
+  const letters = w.replace(/[^A-Z]/g, '');
+  if (letters === w && !ABBREVIATION.has(w) && ((w.length === 2 && !SHORT_WORD.has(w)) || (w.length === 3 && (ACRONYM3.has(w) || !/[AEIOUY]/.test(w))) ||
+    (w.length === 4 && !/[AEIOUY]/.test(w)))) return w;
+  return word(w);
+};
+/** One part of a hyphenated capitals token ("LLC-SPC", "HI-TECH", "AL-FUTTAIM"): a legal suffix, a known acronym or a
+ *  vowel-less one stays; anything else is title-cased, so "HI" and "AL" read as words here (review of #1706). */
+const hyphenPart = (w: string) => {
+  if (LEGAL.test(w.replace(/[^A-Za-z.]/g, ''))) return w.toUpperCase();
+  const keep = /^[A-Z]{2,4}$/.test(w) && !ABBREVIATION.has(w) && (ACRONYM3.has(w) || !/[AEIOUY]/.test(w));
+  return keep ? w : word(w);
+};
+/** A company name as a person writes it: entities decoded, a page-title tail cut, SHOUTING lowered; '' for the neutral
+ *  greeting. It never throws: the greeting is not worth a failed send, so any exception reads as "no name". */
 export function companyName(raw: unknown): string {
-  let s = String(raw || '').replace(/&(#0?\d+|[a-z]+);/gi, (m, k) => ENTITY[String(k).toLowerCase()] ?? m);
-  s = s.split(/\s[|–—-]\s/)[0].replace(/\s+/g, ' ').trim();
+  try { return nameFrom(raw); } catch { return ''; }
+}
+function nameFrom(raw: unknown): string {
+  let s = decodeOnce(decodeOnce(String(raw || '')));          // twice: "&amp;#8211;" is a dash too
+  s = s.replace(/\s+/g, ' ').split(/\s*[|»]\s*|\s[–—-]\s|:\s/)[0]; // "Name – tagline", "Name |tagline", "Name: tagline", "Name » x"
+  s = s.replace(/\s*\([^()]*\)?\s*$/, '');                   // "Name (Manufacturer and wholesaler of ...)"
+  const comma = s.indexOf(', ');
+  if (comma > 0 && PLACE_OR_TAGLINE.test(s.slice(comma + 2))) s = s.slice(0, comma);
+  s = s.replace(/\bL\s+L\s+C\b/g, 'LLC').replace(/[\s,;:|–—-]+$/, '').trim();
   if (/[؀-ۿ]/.test(s) || /^zz\s*demo/i.test(s) || s.length < 2) return '';
   // a registered name carrying a web address ("www.khaazay.com online division of ...") gets the neutral greeting:
   // the founder's email carries no link, and the name is never cut into something the company did not write
   if (/https?:\/\/|\bwww\.|\b[a-z0-9-]+\.(?:com|ae|net|org|co|biz|info)\b/i.test(s)) return '';
-  if (s === s.toUpperCase() && /[A-Z]{4}/.test(s)) {
-    s = s.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase()).replace(/\b(Llc|Fze|Fzco|Fzc|Fz)\b/g, (w) => w.toUpperCase());
-  }
-  return s;
+  // still a title, not a name: too long, too many words, a comma-separated keyword list, or written to the reader. Words
+  // are counted without "&" and legal suffixes: a registered name like "AL MARZOQI AUTO ACCESSORIES & MOBILE PHONE TRADING
+  // CO LLC" is long and is still a name (MEASURED 28 Oct 2026: a plain 8-word / 60-char cap sent 280 such names to "Hello,").
+  const words = s.split(' ').filter((w) => w !== '&' && !LEGAL.test(w.replace(/[^A-Za-z.]/g, '')));
+  if (s.length > 80 || words.length > 10 || (s.match(/, /g) || []).length >= 2) return '';
+  if (words.length >= 4 && /\b(?:we|our|you|your)\b/i.test(s)) return '';
+  if (s === s.toUpperCase() && /[A-Z]{4}/.test(s)) return s.split(' ').map((t) => (t.includes('-') ? t.split('-').map(hyphenPart).join('-') : capsToken(t))).join(' ')
+      .replace(/\b(?:Llc|Fze|Fzco|Fzc|Dmcc|Pjsc|Wll)\b/g, (w) => w.toUpperCase());   // a suffix inside a dotted token: "Studio-Ati.FZE"
+  return s.split(' ').map((w) => (LEGAL.test(w.replace(/[^A-Za-z.]/g, '')) && /[a-z]/.test(w) && w.length > 2 ? w.toUpperCase() : w)).join(' ');
 }
 /** "fire_fighting" -> "fire fighting"; '' when there is none. */
 export function tradeLabel(slug: unknown): string { return String(slug || '').replace(/[_-]+/g, ' ').trim().toLowerCase(); }
