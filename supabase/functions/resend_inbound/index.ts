@@ -42,7 +42,7 @@ import { statementRowText, takeInStatement } from '../_shared/bank_statement_int
 import { defaultDeps, type ThinkDeps } from '../_shared/think.ts';
 import { documentKind, readingOf, receiptVendor, type ExpenseMail } from '../_shared/reasoned_books.ts';
 import { isUnsubscribeRequest } from '../_shared/unsubscribe_mailbox.ts';
-import { fromDomainAuthenticated, microsoftDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES, senderAuthenticated } from '../_shared/suppression_policy.ts';
+import { fromDomainAuthenticated, replyStopRefusal, senderAuthenticated } from '../_shared/suppression_policy.ts';
 import { approvalTokenOf, calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from '../_shared/marketing_calendar_mail.ts';
 import { registerRowsFor } from '../_shared/expense_mailbox.ts';
 import { M365_INBOUND_PREFIX } from '../_shared/m365_reply_inbox.ts';
@@ -335,25 +335,15 @@ export const handler = observe('resend_inbound', async (req) => {
     //   2. the receiving server (SES) must have authenticated the From domain (_shared/suppression_policy.ts);
     //   3. we must actually have sent this address an invitation or reminder -- the only mail an opt-out stops.
     if (!isExpenseMailbox && from && isUnsubscribeRequest({ to, subject, text: fullText })) {
-      let why = '';
-      if (neverSuppressible(from, [...adminList, ...fwdList, EXPENSE_MAILBOX])) {
-        why = 'a protected address (our own domain, an admin address or an expense forwarder)';
-      } else {
+      // The three gates, in this order, live in suppression_policy.ts replyStopRefusal since 28 Oct 2026, so email_triage's
+      // opt_out backstop stands behind exactly the same ones: protected address, authenticated From domain, invited address.
+      const why = await replyStopRefusal(admin, { from, protectedList: [...adminList, ...fwdList, EXPENSE_MAILBOX], authenticated: async () => {
         // The webhook is metadata-only; the headers come from GET /emails/inbound/{id} (measured 22 Sep 2026).
         const hdrs = d.headers?.['authentication-results'] ? d.headers
           : ((resendEmailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(resendEmailId, rkey); return (f?.data || f)?.headers; })() : null);
         // a reply handed in from the Microsoft 365 mailbox carries EOP's verdict, not SES's (suppression_policy.ts)
-        const m365Reply = String(providerEmailId || '').startsWith('m365:');
-        const authenticated = m365Reply ? microsoftDomainAuthenticated(hdrs?.['authentication-results'], from)
-          : fromDomainAuthenticated(hdrs?.['authentication-results'], from);
-        if (!authenticated) {
-          why = 'the receiving server did not authenticate the sender domain (no aligned DMARC, DKIM or SPF pass)';
-        } else {
-          const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true })
-            .ilike('to_email', from.replace(/[\\%_]/g, '\\$&')).in('type', [...OPT_OUT_TYPES]).eq('status', 'sent');
-          if (!count) why = 'we never sent this address an invitation or reminder';
-        }
-      }
+        return senderAuthenticated(providerEmailId, hdrs?.['authentication-results'], from);
+      } });
       if (why) {
         await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject,
           body: '[UNSUBSCRIBE REQUEST NOT APPLIED: ' + why + '. customer_support to review.]\n\n' + fullText, html: fullHtml,
