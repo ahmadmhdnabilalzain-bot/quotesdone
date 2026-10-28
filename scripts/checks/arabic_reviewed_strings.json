@@ -1640,6 +1640,12 @@
   "dc528da26c82",
   "e586ea015bca"
  ],
+ "scripts/sql/the_invitation_batch_runs_on_its_own_clock_and_the_guard_takes_the_link_less_copy.sql": [
+  "361ce5b53fac"
+ ],
+ "scripts/sql/the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.sql": [
+  "8625d60560f4"
+ ],
  "scripts/sql/the_invitation_pool_is_read_once_as_a_set_so_the_daily_list_fits_its_timeout.sql": [
   "c12bc8b93a2b",
   "d4da55db16ad"
@@ -5935,6 +5941,7 @@
   "b52d77701d81"
  ],
  "supabase/functions/_shared/customer_mail.ts": [
+  "04f0be30c683",
   "7784a68c401d",
   "9c9347b8a06d"
  ],
