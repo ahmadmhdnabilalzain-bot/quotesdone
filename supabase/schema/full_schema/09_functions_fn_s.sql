@@ -1353,7 +1353,7 @@ declare
   v_cfg jsonb := coalesce((select nullif(value, '')::jsonb from public.app_secrets where key = 'invite_warmup'), '{}'::jsonb);
   v_hol text; v_cap int; v_used int; v_left int; v_queued int := 0; v_due int := 0; r record; v_link text;
   v_res jsonb; v_not_before timestamptz;
-  v_gate text; v_inv_recent int; v_bounced_recent int; v_max_rate numeric;
+  v_gate text; v_open text[]; v_skipped int := 0; v_inv_recent int; v_bounced_recent int; v_max_rate numeric;
 begin
   select c.event_name into v_hol from public.company_calendar c
    where c.kind = 'public_holiday' and v_dxb::date between c.starts_on and coalesce(c.ends_on, c.starts_on) limit 1;
@@ -1375,8 +1375,10 @@ begin
   end if;
   -- THE BATCH'S BRAKES, for real mail (a fixture address never leaves: send_outbox suppresses @example.invalid).
   if not p_include_fixtures then
-    v_gate := public.fn_invite_placement_gate(v_dxb::date, p_now);
-    if v_gate like 'fail:%' then
+    -- per mailbox class (27 Oct 2026): held only when no class passes; a failing class is skipped in the loop
+    v_open := public.fn_invite_placement_open_providers(v_dxb::date, p_now);
+    v_gate := public.fn_invite_placement_class_verdicts(p_now) ->> 'strict';
+    if cardinality(v_open) = 0 then
       return jsonb_build_object('held', 'inbox placement ' || v_gate, 'queued', 0); end if;
     -- enqueue_supplier_invites' 3-day bounce brake, read only (the batch owns the auto-pause)
     select count(*), count(*) filter (where invite_status = 'bounced') into v_inv_recent, v_bounced_recent
@@ -1401,6 +1403,9 @@ begin
   for r in select d.*, l.company_name, l.claim_token from public.fn_supplier_invite_nudges_due(p_now, p_include_fixtures) d
              join public.leads l on l.id = d.lead_id loop
     v_due := v_due + 1;
+    -- a recipient whose mailbox class did not pass the GlockApps verdict is skipped, not failed (27 Oct 2026)
+    if not p_include_fixtures and public.fn_mail_provider_of_email(r.to_email) <> all(v_open) then
+      v_skipped := v_skipped + 1; continue; end if;
     continue when v_queued >= v_left;
     -- ALWAYS ENGLISH (review, 29 Sep 2026; founder rule: suppliers are always English): one copy, and the link is
     -- the invitation's own: fn_supplier_invite_link (#1051) - /en/portal with the claim token and the invitation ref.
@@ -1427,7 +1432,8 @@ begin
      where id = (v_res->0->>'notification_id')::bigint and type = 'supplier_invite_nudge';
     v_queued := v_queued + 1;
   end loop;
-  return jsonb_build_object('held', null, 'due', v_due, 'queued', v_queued, 'cap', v_cap, 'used_before', v_used);
+  return jsonb_build_object('held', null, 'due', v_due, 'queued', v_queued, 'cap', v_cap, 'used_before', v_used,
+                            'placement_gate', v_gate, 'open_providers', to_jsonb(v_open), 'skipped_provider', v_skipped);
 end
 $function$
 
@@ -2296,12 +2302,13 @@ begin
   if p_force or not v_batch_done then
     v_batch_why := v_why;
     if v_why is null then
-      v_gate := public.fn_invite_placement_gate(v_now_dxb::date);
-      if v_gate = 'wait' and not p_force then
-        v_batch_wait := true;
-      elsif v_gate <> 'pass' then
-        v_batch_why := 'the morning inbox placement check did not clear (' || v_gate || ')';
+      -- 27 Oct 2026: the GlockApps verdict, per mailbox class. The batch is held only when no class passes;
+      -- enqueue_supplier_invites invites the passing classes and skips the rest. It never answers 'wait'.
+      if cardinality(public.fn_invite_placement_open_providers(v_now_dxb::date)) = 0 then
+        v_batch_why := 'the GlockApps inbox placement verdict cleared no mailbox class ('
+                       || (public.fn_invite_placement_class_verdicts(now()) ->> 'strict') || ')';
       end if;
+      v_gate := public.fn_invite_placement_class_verdicts(now()) ->> 'strict';
     end if;
     if not v_batch_wait then
       -- THE WARM-UP (22 Sep 2026). fn_invite_ramp sets today's invite_daily_cap from the last 48 h of bounces and
@@ -7732,6 +7739,17 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_invite_candidates(p_limit integer)
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+begin
+  return query select * from public.fn_supplier_invite_candidates(p_limit, null::text[]);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_invite_candidates(p_limit integer, p_providers text[])
+ RETURNS TABLE(lead_id bigint, to_email text, company_name text, lang text, subject text, body text)
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 declare v_site text; v_target int;
   v_subj text; v_body text;
 begin
@@ -7791,6 +7809,8 @@ begin
            'en'::text as lang
     from leads l join keyed k on k.id = l.id
     where l.id in (select e.id from public.fn_supplier_invite_eligible_ids() e(id))   -- the set, read once (see header)
+      -- 27 Oct 2026 (it_engineer): only recipients whose mailbox class passed the GlockApps verdict; null = every class
+      and (p_providers is null or public.fn_mail_provider_of_email(l.email) = any(p_providers))
       -- a company already invited (bounced, unsubscribed or registered included) is not invited again at another address
       and not exists (select 1 from touched_d t where t.dkey = k.dkey)
       and (k.nkey is null or not exists (select 1 from touched_n t where t.nkey = k.nkey))

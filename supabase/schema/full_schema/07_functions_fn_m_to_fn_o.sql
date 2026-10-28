@@ -1,3 +1,35 @@
+CREATE OR REPLACE FUNCTION public.fn_mail_provider_class(p_domain text, p_mx_hosts text[])
+ RETURNS text
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d text := lower(btrim(coalesce(p_domain, ''))); h text := lower(rtrim(btrim(coalesce(p_mx_hosts[1], '')), '.'));
+begin
+  if h <> '' then
+    if h ~ '(^|\.)(protection\.)?outlook\.com$' or h ~ '(^|\.)hotmail\.com$' then return 'microsoft'; end if;
+    if h ~ '(^|\.)(google|googlemail)\.com$' then return 'google'; end if;
+    if h ~ '(^|\.)yahoodns\.net$' or h ~ '(^|\.)(yahoo|aol)\.com$' then return 'yahoo_aol'; end if;
+    return 'other';
+  end if;
+  if d ~ '^(outlook|hotmail|live|msn)\.[a-z.]+$' then return 'microsoft'; end if;
+  if d in ('gmail.com', 'googlemail.com') then return 'google'; end if;
+  if d ~ '^(yahoo|ymail|rocketmail|aol)\.[a-z.]+$' then return 'yahoo_aol'; end if;
+  return 'other';
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_mail_provider_of_email(p_email text)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_mail_provider_class(x.dom, (select m.hosts from public.email_domain_mx m where m.domain = x.dom and m.kind = 'mx'))
+    from (select split_part(lower(btrim(coalesce(p_email, ''))), '@', 2) as dom) x;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_mail_sender_known(p_email text)
  RETURNS text
  LANGUAGE plpgsql

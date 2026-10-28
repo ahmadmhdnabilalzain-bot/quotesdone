@@ -604,6 +604,8 @@ ALTER TABLE public.decision_record ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.decision_review_request ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.decision_trace ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.delegation_rule ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.deliverability_test ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.deliverability_test_provider ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.demand_forecast ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.demand_search ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.department_budget ENABLE ROW LEVEL SECURITY;
@@ -714,6 +716,7 @@ ALTER TABLE public.integration_matrix ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.internal_credential ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.internal_credential_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inv_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.invite_placement_bar ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invite_placement_check ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invite_schedule ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_access_known ENABLE ROW LEVEL SECURITY;
@@ -1239,6 +1242,8 @@ CREATE POLICY customer_support_voc_month_service_role_only ON public.customer_su
 CREATE POLICY customer_support_voice_owed_service_role_only ON public.customer_support_voice_owed AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.customers AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY decision_review_request_service_role_only ON public.decision_review_request AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY deliverability_test_service_role_only ON public.deliverability_test AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY deliverability_test_provider_service_role_only ON public.deliverability_test_provider AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY demand_forecast_service_role_only ON public.demand_forecast AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY demand_search_service_role_only ON public.demand_search AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY documents_customer_select ON public.documents AS PERMISSIVE FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
@@ -1262,6 +1267,7 @@ CREATE POLICY governance_sensitive_service_role_only ON public.governance_sensit
 CREATE POLICY os_owner_admin_read ON public.inquiries AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY inquiry_conversation_summary_service_only ON public.inquiry_conversation_summary AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY intake_trade_taxonomy_service_role_only ON public.intake_trade_taxonomy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY invite_placement_bar_service_role_only ON public.invite_placement_bar AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY invite_placement_check_service_role_only ON public.invite_placement_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_access_known_service_role_only ON public.it_access_known AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_change_acceptance_service_role_only ON public.it_change_acceptance AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
