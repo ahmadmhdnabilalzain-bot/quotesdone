@@ -1573,6 +1573,7 @@ select cron.schedule('seat_duty:customer_support.public_complaints','*/5 * * * *
 select cron.schedule('seat_duty:customer_support.delivery_health','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.delivery_health');$CRON$);
 select cron.schedule('seat_duty:customer_support.complaint_deadlines','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.complaint_deadlines');$CRON$);
 select cron.schedule('seat_duty:customer_support.incident_notices','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.incident_notices');$CRON$);
+select cron.schedule('seat_duty:sales_engineer.supplier_outreach','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.supplier_outreach');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow

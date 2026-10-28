@@ -5565,8 +5565,18 @@ AS $function$
 declare l public.leads;
 begin
   if coalesce(new.type, '') <> 'supplier_invite' then return new; end if;
-  if coalesce(new.body, '') !~ '/(en|ar)/portal[?]t=[0-9a-f-]{36}' then
-    raise exception 'SUPPLIER_INVITE_REFUSED: the invitation to % carries no portal link', new.to_email using errcode = 'check_violation';
+  -- 28 Oct 2026: the approved invitation carries no link (#1614). An empty body, or one with a placeholder the
+  -- composer never filled, is refused instead.
+  if btrim(coalesce(new.body, '')) = '' then
+    raise exception 'SUPPLIER_INVITE_REFUSED: the invitation to % has no body', new.to_email using errcode = 'check_violation';
+  end if;
+  if position('{{' in coalesce(new.body, '')) > 0 then
+    raise exception 'SUPPLIER_INVITE_REFUSED: the invitation to % still carries an unfilled placeholder', new.to_email using errcode = 'check_violation';
+  end if;
+  -- The link was never the opt-out; the reply-"stop" line is (m365_lane.ts STOP_LINE, the approved body's last line).
+  -- A body without it is refused, so the guard still asks for the one thing an unsolicited invitation must carry.
+  if coalesce(new.body, '') !~* 'reply[[:space:]]+["“”'']?stop' then
+    raise exception 'SUPPLIER_INVITE_REFUSED: the invitation to % has no reply-"stop" opt-out line', new.to_email using errcode = 'check_violation';
   end if;
   if coalesce(new.lang, 'en') = 'ar' and coalesce(new.body, '') !~ '[؀-ۿ]' then
     raise exception 'SUPPLIER_INVITE_REFUSED: an Arabic invitation to % has no Arabic in it', new.to_email using errcode = 'check_violation';
