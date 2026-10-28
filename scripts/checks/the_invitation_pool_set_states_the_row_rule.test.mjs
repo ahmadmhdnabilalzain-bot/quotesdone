@@ -77,7 +77,10 @@ test('every definition of fn_supplier_invite_candidates from #964 on, applied or
 // #1051 (the set read and the ref'd link) is applied (MANIFEST 1844); the pending redefinition is now ledger 1018's
 // stalled-request tier (sales_engineer, 29 Sep 2026): exactly one line of the applied body is replaced, and what is added
 // is the rescue CTE and the -1 tier ahead of the unchanged 'recruit' tier. A copy of an older body fails here.
-test('a pending fn_supplier_invite_candidates is the latest applied body with only the stalled-request tier added', () => {
+// 28 Oct 2026 (it_engineer): that tier is APPLIED (the canonical body carries the rescue CTE), so the pending
+// redefinition this pins is now the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.sql: the same
+// applied body, re-signed with p_providers text[] and ONE filter line on the mailbox class. Nothing else may differ.
+test('a pending fn_supplier_invite_candidates is the latest applied body with only the mailbox-class filter added', () => {
   const lines = (f) => fnText(read(f), 'fn_supplier_invite_candidates').split('\n').map((l) => l.trimEnd());
   const canonFile = [...manifest].reverse().find((f) => defines('fn_supplier_invite_candidates').test(code(read(f))));
   const canon = lines(canonFile);
@@ -85,14 +88,12 @@ test('a pending fn_supplier_invite_candidates is the latest applied body with on
     const mine = lines(f);
     const gone = canon.filter((l) => !mine.includes(l)).map((l) => l.trim());
     const added = mine.filter((l) => !canon.includes(l)).map((l) => l.trim()).filter((l) => !l.startsWith('--'));
-    assert.deepEqual(gone, ["case when exists (select 1 from public.supply_gap g where g.status = 'recruit' and g.trade = any(coalesce(c.invite_trades, '{}'::text[]))"],
-      `${f} is not ${canonFile} with only the recruit tier's first line re-worded`);
-    assert.deepEqual(added, [
-      'rescue as materialized (select x.trades, x.emirate from public.stalled_inquiry_rescue x where x.cleared_at is null and not x.fixture and cardinality(x.trades) > 0),',
-      "case when exists (select 1 from rescue x where x.trades && coalesce(c.invite_trades, '{}'::text[])",
-      "and (x.emirate is null or x.emirate = 'UAE' or x.emirate = c.emirate)) then -1",
-      "when exists (select 1 from public.supply_gap g where g.status = 'recruit' and g.trade = any(coalesce(c.invite_trades, '{}'::text[]))",
-    ], `${f} adds more to ${canonFile} than the stalled-request tier`);
+    assert.deepEqual(gone.map((l) => l.toLowerCase()), ['create or replace function public.fn_supplier_invite_candidates(p_limit integer)'],
+      `${f} is not ${canonFile} with only its signature changed`);
+    assert.deepEqual(added.map((l) => l.toLowerCase()), [
+      'create or replace function public.fn_supplier_invite_candidates(p_limit integer, p_providers text[])',
+      'and (p_providers is null or public.fn_mail_provider_of_email(l.email) = any(p_providers))',
+    ], `${f} adds more to ${canonFile} than the mailbox-class filter`);
   }
 });
 

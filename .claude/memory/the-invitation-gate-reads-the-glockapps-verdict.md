@@ -21,7 +21,14 @@ is applied, right after #1696's `no_test_mail_goes_to_the_founders_own_inboxes.s
   `email_domain_mx`. A class that passes is invited, a failing one is skipped, and `other` follows Microsoft.
   `fn_invite_placement_gate(provider)` answers for one class. The no-argument form answers the STRICT verdict,
   `fn_invite_placement_open_providers` returns the classes that pass, and the batch, tick and nudges use that list.
-- **Eligible pool by class** (probe, 27 Oct): other 10,188, microsoft 3,152, google 2,794, yahoo_aol 1,267.
+- **Targets by class** (read-only, rolled back, 28 Oct ~00:40Z):
+  - Never-invited eligible pool, 17,401 addresses: other 10,188, microsoft 3,152, google 2,794, yahoo_aol 1,267.
+  - The picker's one-per-company set (`fn_supplier_invite_candidates(100000)`), 6,863: other 3,810, microsoft 1,959,
+    google 1,046, yahoo_aol 48. The picker allows at most 5 per email domain in one call, so gmail.com and yahoo.com
+    addresses come through 5 per call.
+  - **6,331 of the 10,188 `other` are Etisalat-hosted (`emirates.net.ae` MX).** GlockApps has no Etisalat seed, so
+    they follow the Microsoft verdict and stay held while Microsoft fails. Next by MX: Hostinger 402, Zoho 356, Mimecast
+    276, Proofpoint 134.
 - **The 27 Oct test, recorded, opens Google only** (5 inbox + 20 Promotions of 25), until 3 Nov 09:33Z.
 - **GlockApps' provider rows do not cover every seed.** On 27 Oct, `stats` covered 111 tracked seeds, while the
   `providerRollup` rows add up to 106. The overall figure is GlockApps' own figure, and `overall.unclassified` holds the
