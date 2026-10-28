@@ -6,8 +6,9 @@
 --
 -- It CANNOT reach a person: it writes no notification, calls no sender, and every row it writes (two verdict tables)
 -- is uncommitted. It NEVER writes app_secrets: invite_enabled, supplier_outreach_golive and wa_supplier_invite_golive
--- are READ before and after and must be equal; the campaign stays held exactly as it is, so the open-day branch of the
--- judge (one finding a day) is proved from the code by the check, not by switching anything on here.
+-- are READ before and after and must be equal. Every gate question is asked on a UAE weekend (t1 below), where the judge
+-- files and closes nothing whether the campaign is held or open, so the open-day branch (one finding a day) is proved
+-- from the code by the check, not by switching anything on here.
 --
 -- It asserts: a recipient's class from its MX host; no verdict before any test; the REAL 27 Oct GlockApps numbers
 -- (scripts/checks/glockapps_27_oct_providers.fixture.json, inlined below) give Microsoft 0/18, Google 5 inbox + 20 tabs
@@ -18,11 +19,25 @@
 do $$ declare
   o jsonb := '{}'; v_fail text[] := '{}';
   v_real jsonb := $glockapps${"testId":"2026-10-27-09:33:53:634t","projectId":"163001","finished":false,"created":"2026-10-27T09:33:53.632Z","seedAccountsTotal":112,"trackedSeeds":111,"stats":{"inbox":44,"other":21,"spam":41,"notDelivered":5,"inboxRate":39.6,"spamRate":36.9,"otherRate":18.9,"notDeliveredRate":4.6,"inboxAndOtherRates":58.6},"authSummary":{"spf":"pass","dkim":"pass","dmarc":"pass"},"sender":{"senderIp":"40.107.54.87","senderDomain":"quotesdone.com","rdns":"mail-uaenorthazon11021087.outbound.protection.outlook.com","isp":"outlook.com"},"providerRollup":[{"providerGroupId":"5","providerGroupName":"Gmail (6 months+)","total":17,"inbox":0,"spam":0,"other":17,"notDelivered":0,"tabs":["Promotions"]},{"providerGroupId":"4","providerGroupName":"Yahoo","total":9,"inbox":0,"spam":9,"other":0,"notDelivered":0},{"providerGroupId":"2","providerGroupName":"AOL","total":8,"inbox":0,"spam":8,"other":0,"notDelivered":0},{"providerGroupId":"3","providerGroupName":"Outlook","total":8,"inbox":0,"spam":8,"other":0,"notDelivered":0},{"providerGroupId":"6","providerGroupName":"Hotmail","total":6,"inbox":0,"spam":6,"other":0,"notDelivered":0},{"providerGroupId":"59","providerGroupName":"Gmail (4 years+)","total":3,"inbox":0,"spam":0,"other":3,"notDelivered":0,"tabs":["Promotions"]},{"providerGroupId":"34","providerGroupName":"Interia.pl","total":3,"inbox":0,"spam":0,"other":0,"notDelivered":3},{"providerGroupId":"45","providerGroupName":"att.net","total":2,"inbox":0,"spam":2,"other":0,"notDelivered":0},{"providerGroupId":"17","providerGroupName":"Exchange (Office365)","total":2,"inbox":0,"spam":2,"other":0,"notDelivered":0},{"providerGroupId":"33","providerGroupName":"Onet.pl","total":2,"inbox":0,"spam":0,"other":0,"notDelivered":2},{"providerGroupId":"15","providerGroupName":"Yandex.ru","total":2,"inbox":0,"spam":2,"other":0,"notDelivered":0},{"providerGroupId":"61","providerGroupName":"Outlook.fr","total":1,"inbox":0,"spam":1,"other":0,"notDelivered":0},{"providerGroupId":"62","providerGroupName":"Outlook.de","total":1,"inbox":0,"spam":1,"other":0,"notDelivered":0},{"providerGroupId":"11","providerGroupName":"Zoho","total":2,"inbox":1,"spam":0,"other":1,"notDelivered":0,"tabs":["Newsletter"]},{"providerGroupId":"8","providerGroupName":"Web.de","total":5,"inbox":5,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"52","providerGroupName":"mailo.com","total":3,"inbox":3,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"42","providerGroupName":"Google Workspace (4 years+)","total":3,"inbox":3,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"56","providerGroupName":"gmx.de","total":3,"inbox":3,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"9","providerGroupName":"Freenet.de","total":2,"inbox":2,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"24","providerGroupName":"Seznam.cz","total":2,"inbox":2,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"63","providerGroupName":"Google Workspace (Up to 6 months)","total":2,"inbox":2,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"57","providerGroupName":"gmx.com","total":2,"inbox":2,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"53","providerGroupName":"ukr.net","total":2,"inbox":2,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"14","providerGroupName":"Mail.ru","total":2,"inbox":2,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"20","providerGroupName":"Virgilio.it","total":2,"inbox":2,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"30","providerGroupName":"Amazon WorkMail","total":2,"inbox":2,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"25","providerGroupName":"Laposte.net (FR)","total":2,"inbox":2,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"19","providerGroupName":"Libero.it","total":1,"inbox":1,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"7","providerGroupName":"Apple","total":1,"inbox":1,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"51","providerGroupName":"rambler.ru","total":1,"inbox":1,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"66","providerGroupName":"vodafonemail.de","total":1,"inbox":1,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"44","providerGroupName":"T-online.de","total":1,"inbox":1,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"48","providerGroupName":"naver.com","total":1,"inbox":1,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"13","providerGroupName":"Mail.com","total":1,"inbox":1,"spam":0,"other":0,"notDelivered":0},{"providerGroupId":"60","providerGroupName":"Protonmail","total":1,"inbox":1,"spam":0,"other":0,"notDelivered":0}]}$glockapps$::jsonb;
-  t0 timestamptz := '2026-10-27T09:33:53.632Z';
+  -- 28 Oct 2026 (it_engineer, ledger 1406): the clock starts just after the newest test production holds, and the
+  -- real 27 Oct numbers are recorded at that moment (step 3), so every question below is answered by this probe's own
+  -- tests. It used to start at that test's own time, 27 Oct 09:33Z; once the 22:50Z test was recorded (28 Oct 03:51Z)
+  -- the newer real verdict answered for the fixture: "stale after 7 days" read a 6-day-old real test and failed, and
+  -- "judged per class" judged the 22:50 test, not these numbers.
+  t0 timestamptz := greatest(timestamptz '2026-10-27T09:33:53.632Z', (select max(d.tested_at) from public.deliverability_test d)) + interval '1 minute';
   v_sw_before jsonb; v_sw_after jsonb; n_mail_before bigint; n_mail_after bigint; n_find_before bigint; n_find_after bigint;
   r jsonb; v jsonb; a text[]; v_ok boolean; n bigint; m bigint; v_ids1 bigint[]; v_ids2 bigint[];
+  t1 timestamptz; v_plan json;
   fx text := '{"projectId":"163001","finished":true,"sender":{"senderDomain":"quotesdone.com"},"providerRollup":[';
 begin
+  -- The gate's own forms run through the judge, which on an OPEN day files the day's one finding: asked on 29 Oct, a day
+  -- the live judge had not filed yet, the probe wrote two notification rows inside its rolled-back transaction (28 Oct
+  -- 2026). So every question through the judge is asked at t1, the first Saturday 12:00 Dubai after t0:
+  -- fn_invite_placement_day_closed answers 'the UAE weekend', the judge files and closes nothing, and the fixture is
+  -- under 7 days old there.
+  t1 := (date_trunc('week', t0 at time zone 'Asia/Dubai') + interval '5 days 12 hours') at time zone 'Asia/Dubai';
+  if t1 <= t0 then t1 := t1 + interval '7 days'; end if;
+
   -- 0. what must not move (read only)
   select coalesce(jsonb_object_agg(key, value), '{}') into v_sw_before from app_secrets
    where key in ('invite_enabled', 'supplier_outreach_golive', 'wa_supplier_invite_golive');
@@ -54,7 +69,7 @@ begin
   if v ->> 'strict' <> 'fail:no_verdict' or v ->> 'google' <> 'fail:no_verdict' then v_fail := v_fail || text 'no verdict is not fail:no_verdict'; end if;
 
   -- 3. the REAL 27 Oct result
-  r := fn_record_inbox_placement_verdict(v_real, 'supplier@quotesdone.com', 'it_engineer');
+  r := fn_record_inbox_placement_verdict(v_real || jsonb_build_object('created', t0), 'supplier@quotesdone.com', 'it_engineer');
   o := o || jsonb_build_object('real_rates', r -> 'class_rates', 'real_against_bar', r -> 'against_the_bar',
                                'real_seed_notifications', r -> 'seed_notifications');
   if r #>> '{class_rates,microsoft,seeds}' <> '18' or r #>> '{class_rates,microsoft,inbox}' <> '0'
@@ -63,14 +78,16 @@ begin
      or r #>> '{class_rates,overall,seeds}' <> '111' or r #>> '{class_rates,overall,inbox}' <> '44'
      or r #>> '{class_rates,overall,unclassified}' <> '5' then
     v_fail := v_fail || text 'the real 27 Oct numbers were not recorded as measured'; end if;
-  v := fn_invite_placement_class_verdicts(t0 + interval '1 day');
+  v := fn_invite_placement_class_verdicts(t1);
+  -- a one-literal call takes now(), an open weekday's judge: its overload is read from the plan, which runs nothing
+  execute 'explain (verbose, costs off, format json) select public.fn_invite_placement_gate(''google'')' into v_plan;
   o := o || jsonb_build_object('real_day_after', v - 'bar_sender' - 'effective_sender' - 'max_age' - 'checked_at',
-    'gate_strict', fn_invite_placement_gate(null::date, t0 + interval '1 day'),
-    'gate_google', fn_invite_placement_gate('google', null, t0 + interval '1 day'),
-    'gate_microsoft', fn_invite_placement_gate('microsoft', null, t0 + interval '1 day'),
-    'gate_unknown_is_other', fn_invite_placement_gate('zz-unknown', null, t0 + interval '1 day'),
-    'open_real', to_jsonb(fn_invite_placement_open_providers(null, t0 + interval '1 day')),
-    'one_literal_resolves_to_the_class_form', fn_invite_placement_gate('google') is not distinct from fn_invite_placement_gate('google'::text, null::date, now()));
+    'gate_strict', fn_invite_placement_gate(null::date, t1),
+    'gate_google', fn_invite_placement_gate('google', null, t1),
+    'gate_microsoft', fn_invite_placement_gate('microsoft', null, t1),
+    'gate_unknown_is_other', fn_invite_placement_gate('zz-unknown', null, t1),
+    'open_real', to_jsonb(fn_invite_placement_open_providers(null, t1)),
+    'one_literal_resolves_to_the_class_form', strpos(v_plan::text, 'fn_invite_placement_gate(''google''::text, NULL::date, now())') > 0);
   if v ->> 'microsoft' <> 'fail:below_bar:microsoft' or v ->> 'google' <> 'pass' or v ->> 'yahoo_aol' <> 'fail:below_bar:yahoo_aol'
      or v ->> 'other' <> 'fail:below_bar:microsoft' or v ->> 'strict' <> 'fail:below_bar:microsoft'
      or o ->> 'gate_strict' <> 'fail:below_bar:microsoft' or o ->> 'gate_google' <> 'pass'
@@ -88,16 +105,16 @@ begin
   r := fn_record_inbox_placement_verdict((fx || '{"providerGroupName":"Outlook","total":20,"inbox":16,"spam":4,"other":0,"notDelivered":0},'
        || '{"providerGroupName":"Gmail (6 months+)","total":20,"inbox":10,"spam":4,"other":6,"notDelivered":0},'
        || '{"providerGroupName":"Yahoo","total":10,"inbox":8,"spam":2,"other":0,"notDelivered":0}]}')::jsonb
-       || jsonb_build_object('testId', 'zz-demo-probe-at-the-bar', 'created', t0 + interval '2 days'), 'supplier@quotesdone.com', 'it_engineer');
-  o := o || jsonb_build_object('at_the_bar', fn_invite_placement_class_verdicts(t0 + interval '2 days 1 hour') ->> 'strict',
-                               'at_the_bar_open', to_jsonb(fn_invite_placement_open_providers(null, t0 + interval '2 days 1 hour')));
+       || jsonb_build_object('testId', 'zz-demo-probe-at-the-bar', 'created', t1 + interval '1 hour'), 'supplier@quotesdone.com', 'it_engineer');
+  o := o || jsonb_build_object('at_the_bar', fn_invite_placement_class_verdicts(t1 + interval '1 hour 30 minutes') ->> 'strict',
+                               'at_the_bar_open', to_jsonb(fn_invite_placement_open_providers(null, t1 + interval '1 hour 30 minutes')));
   if o ->> 'at_the_bar' <> 'pass' or o -> 'at_the_bar_open' <> '["google", "microsoft", "other", "yahoo_aol"]'::jsonb then
     v_fail := v_fail || text 'exactly 80% inbox / 20% spam does not pass'; end if;
   r := fn_record_inbox_placement_verdict((fx || '{"providerGroupName":"Hotmail","total":19,"inbox":15,"spam":4,"other":0,"notDelivered":0},'
        || '{"providerGroupName":"Gmail (4 years+)","total":20,"inbox":15,"spam":5,"other":0,"notDelivered":0},'
        || '{"providerGroupName":"AOL","total":10,"inbox":8,"spam":2,"other":0,"notDelivered":0}]}')::jsonb
-       || jsonb_build_object('testId', 'zz-demo-probe-below-the-bar', 'created', t0 + interval '3 days'), 'supplier@quotesdone.com', 'it_engineer');
-  v := fn_invite_placement_class_verdicts(t0 + interval '3 days 1 hour');
+       || jsonb_build_object('testId', 'zz-demo-probe-below-the-bar', 'created', t1 + interval '2 hours'), 'supplier@quotesdone.com', 'it_engineer');
+  v := fn_invite_placement_class_verdicts(t1 + interval '2 hours 30 minutes');
   o := o || jsonb_build_object('below_the_bar', v - 'bar_sender' - 'effective_sender' - 'max_age' - 'checked_at' - 'tested_at');
   if v ->> 'microsoft' <> 'fail:below_bar:microsoft' or v ->> 'google' <> 'fail:below_bar:google' or v ->> 'yahoo_aol' <> 'pass'
      or v ->> 'other' <> 'fail:below_bar:microsoft' then
@@ -105,8 +122,8 @@ begin
   r := fn_record_inbox_placement_verdict((fx || '{"providerGroupName":"Outlook","total":10,"inbox":10,"spam":0,"other":0,"notDelivered":0},'
        || '{"providerGroupName":"Gmail (6 months+)","total":20,"inbox":10,"spam":0,"other":0,"notDelivered":10},'
        || '{"providerGroupName":"Yahoo","total":10,"inbox":10,"spam":0,"other":0,"notDelivered":0}]}')::jsonb
-       || jsonb_build_object('testId', 'zz-demo-probe-gmail-lost', 'created', t0 + interval '4 days'), 'supplier@quotesdone.com', 'it_engineer');
-  o := o || jsonb_build_object('gmail_lost_half', fn_invite_placement_class_verdicts(t0 + interval '4 days 1 hour') ->> 'google');
+       || jsonb_build_object('testId', 'zz-demo-probe-gmail-lost', 'created', t1 + interval '3 hours'), 'supplier@quotesdone.com', 'it_engineer');
+  o := o || jsonb_build_object('gmail_lost_half', fn_invite_placement_class_verdicts(t1 + interval '3 hours 30 minutes') ->> 'google');
   if o ->> 'gmail_lost_half' <> 'fail:below_bar:google' then v_fail := v_fail || text 'Gmail with half the mail lost and 0% spam passed'; end if;
   -- a count missing from the rates is a fail, and the strict answer says so (review of #1701: it answered 'pass')
   v := fn_invite_placement_rates_verdict('{"microsoft":{"seeds":10,"inbox":10},"google":{"seeds":10,"spam":0,"inbox":10},"yahoo_aol":{"seeds":10}}'::jsonb);
@@ -147,11 +164,11 @@ begin
    where key in ('invite_enabled', 'supplier_outreach_golive', 'wa_supplier_invite_golive');
   select count(*) into n_mail_after from notifications;
   select count(*) into n_find_after from it_engineer_finding where issue_key = 'deliverability:inbox_placement' and closed_at is null;
-  o := o || jsonb_build_object('switches', v_sw_after, 'held_because', fn_invite_placement_day_closed(t0 + interval '1 day'),
+  o := o || jsonb_build_object('switches', v_sw_after, 'held_because', fn_invite_placement_day_closed(t1),
                                'mail_rows_added', n_mail_after - n_mail_before, 'findings_added', n_find_after - n_find_before);
   if v_sw_after is distinct from v_sw_before then v_fail := v_fail || text 'a campaign switch changed'; end if;
   if n_mail_after <> n_mail_before then v_fail := v_fail || text 'a notification was written'; end if;
-  if fn_invite_placement_day_closed(t0 + interval '1 day') is not null and n_find_after <> n_find_before then
+  if fn_invite_placement_day_closed(t1) is not null and n_find_after <> n_find_before then
     v_fail := v_fail || text 'a finding was filed while the campaign is held'; end if;
 
   -- 9. closed doors

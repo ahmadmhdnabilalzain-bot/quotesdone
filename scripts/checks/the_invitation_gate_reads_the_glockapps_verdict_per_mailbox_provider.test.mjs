@@ -163,8 +163,11 @@ test('production, aborted: the real 27 Oct result is judged per provider, and no
   let verdict, evidence;
   try { await replaySql(pendingText() + '\n;\n' + R(PROBE), { retry: false, label: NAME }); }
   catch (e) {
-    const m = String(e.message).match(/CHK<<(.*?)\|(.*?)>>/s);
-    assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 800));
+    // The verdict comes first. A failing run's evidence outruns the 2,000 characters db.mjs keeps in e.message (28 Oct
+    // 2026: "PROBE FAILED: a 7-day-old verdict is not stale" was reported as "failed before it could report"), so the
+    // whole answer is read from e.body, and the evidence runs to its end or to the cut.
+    const m = String(e.body ?? e.message).match(/CHK<<(.*?)\|(.*?)(?:>>|$)/s);
+    assert.ok(m, 'the probe failed before it could report: ' + String(e.body ?? e.message).slice(0, 800));
     [verdict, evidence] = [m[1], m[2]];
   }
   assert.ok(verdict, 'the probe committed instead of rolling back');
