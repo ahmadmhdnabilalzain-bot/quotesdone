@@ -79,6 +79,36 @@ Deno.test('pdfText + readExpiry: plain and FlateDecode content streams read the 
   }
 });
 
+// ── AN IMAGE IS NEVER INFLATED TO LOOK FOR TEXT (28 Oct 2026, supplier-journey audit run fceb5876) ────────────────────
+// The browser audit's blurry scan (686 kB: one 2483x3265 RGB image and its soft mask, both FlateDecode) ended
+// supplier_portal save_documents at the edge's CPU cap (HTTP 546). The reader inflated every pixel to look for text.
+// Here: a page whose image XObject is 16 MB of pixels (a few kB deflated) beside a content stream that draws the licence.
+async function pdfWithImage(): Promise<Uint8Array> {
+  const pixels = new Uint8Array(4000 * 4000);   // 16 MB of grey: deflates to a few kB, inflates to 16 MB
+  const img = new Uint8Array(await new Response(new Blob([pixels]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer());
+  const text = enc.encode(['BT', '/F1 11 Tf', '56 800 Td', `(${esc('Licence Number : ZZ-546')}) Tj`, 'ET'].join('\n'));
+  const parts: Uint8Array[] = [
+    enc.encode(`%PDF-1.4\n4 0 obj\n<< /Type /XObject /Subtype /Image /Width 4000 /Height 4000 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length ${img.length} >>\nstream\n`),
+    img, enc.encode(`\nendstream\nendobj\n5 0 obj\n<< /Length ${text.length} >>\nstream\n`), text, enc.encode('\nendstream\nendobj\n%%EOF\n'),
+  ];
+  const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+  let at = 0; for (const p of parts) { out.set(p, at); at += p.length; }
+  return out;
+}
+
+Deno.test('an image stream is never inflated to look for text; the page text is still read (S4 blurry scan, HTTP 546)', async () => {
+  const bytes = await pdfWithImage();
+  const Real = globalThis.DecompressionStream;
+  let inflated = 0;
+  globalThis.DecompressionStream = class extends Real { constructor(f: CompressionFormat) { super(f); inflated++; } };
+  try {
+    assertEquals(await pdfText(bytes), 'Licence Number : ZZ-546');
+    assertEquals(inflated, 0, 'the image was inflated: 16 MB of pixels read as if they could hold text');
+  } finally {
+    globalThis.DecompressionStream = Real;
+  }
+});
+
 Deno.test('readExpiry: an image, a non-PDF and a PDF without an expiry all say null', async () => {
   assertEquals(await readExpiry(enc.encode('\x89PNG....'), 'image/png'), null);
   assertEquals(await readExpiry(enc.encode('hello'), 'application/pdf'), null);

@@ -210,6 +210,13 @@ export async function pdfText(bytes: Uint8Array): Promise<string | null> {
     let bodyEnd = end;
     while (bodyEnd > start && (bytes[bodyEnd - 1] === 0x0a || bytes[bodyEnd - 1] === 0x0d)) bodyEnd--;
     let body = bytes.subarray(start, bodyEnd);
+    // AN IMAGE IS NEVER INFLATED TO LOOK FOR TEXT (28 Oct 2026, sales_engineer; supplier-journey audit, run fceb5876).
+    // A 686 kB scan saved from a browser (one 2483x3265 RGB image and its soft mask, both FlateDecode) ended
+    // supplier_portal save_documents at the edge's CPU cap (HTTP 546, "CPU Time exceeded", 08:40:31Z), and the platform's
+    // own error sentence reached the supplier. Each read inflated 32 MB of pixels and copied them into a string to look
+    // for text operators an image cannot hold: 4.3 s for the three readers of one upload, measured locally. An image
+    // XObject (and its /SMask, also an image) is skipped before it is inflated; the page's content streams are read as before.
+    if (/\/Subtype\s*\/Image\b/.test(dict)) { re.lastIndex = end; continue; }
     if (/\/FlateDecode/.test(dict)) { const inf = await inflate(body); if (!inf) { re.lastIndex = end; continue; } body = inf; }
     else if (/\/Filter/.test(dict)) { re.lastIndex = end; continue; }   // LZW / DCT (an image) — not text
     const content = latin1(body);
