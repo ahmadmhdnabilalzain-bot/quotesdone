@@ -69,6 +69,7 @@ async function realOtpSignup({ browser, ctxOpts, consent, url, email, company, m
     await shot(p, m, 'realotp_code_screen');
     step(m, 'the form sends the code and opens the code step', sentOk, `${sendMs} ms${sendMs > 3000 ? ' (>3 s)' : ''}${sentOk ? '' : ' — screen: ' + shown.slice(0, 160)}`);
     if (!sentOk) return null;
+    step(m, 'the code step names the address the code went to (#1700)', /We sent a 6-digit code to/.test(shown) && shown.includes(email), shown.split('\n').slice(0, 3).join(' | ').slice(0, 160));
     const got = await readCode(email, t0);
     step(m, 'the code e-mail is delivered and carries a 6-digit code', !!got.code && /delivered|sent/.test(String(got.last_event || '')),
       `from ${got.from}; subject "${got.subject}"; last_event ${got.last_event}; accepted by Resend ${got.queued_ms} ms after the click; read ${got.read_ms} ms`);
@@ -458,8 +459,22 @@ try {
     // EVERY BUTTON IS ON THE SCREEN (28 Oct 2026: at 390 px the Insurance, ISO and dealer-letter Upload buttons sat past
     // the right edge, clipped, so a phone could not reach them; documentElement.scrollWidth still read 390 because the
     // overflow is clipped, so the check is on the buttons themselves).
-    { const off = await p.evaluate(() => [...document.querySelectorAll('main button, main label')].filter((b) => { const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.right > window.innerWidth + 1; }).map((b) => (b.innerText || '').trim().slice(0, 20)));
-      step(m, 'every button on the Documents tab is inside the screen', off.length === 0, off.length ? `past the right edge: ${off.join(', ')}` : ''); }
+    // An element inside a strip that scrolls sideways on purpose (the tab strip, SupplierPortal "scrolls sideways rather
+    // than wrapping") is reachable by swiping, so it is reported apart and does not fail the step.
+    { const off = await p.evaluate(() => [...document.querySelectorAll('main button, main label, main input, main a')].filter((b) => {
+          const r = b.getBoundingClientRect(); const cs = getComputedStyle(b);
+          // A closed <details> (the account menu) keeps a box for content it does not render: measured 28 Oct, its three
+          // items read right=462 at 390 px with no text. Not on screen, so not a defect; the open menu is walked below.
+          const closed = b.closest('details:not([open])'); if (closed && !b.closest('summary')) return false;
+          return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && r.right > window.innerWidth + 1; }).map((b) => {
+          let a = b.parentElement, scroller = false; while (a && a !== document.body) { const o = getComputedStyle(a).overflowX; if (o === 'auto' || o === 'scroll') { scroller = true; break; } a = a.parentElement; }
+          const name = (b.innerText || b.getAttribute('aria-label') || b.getAttribute('placeholder') || b.getAttribute('type') || '').trim().slice(0, 24);
+          let clip = b.parentElement; while (clip && clip !== document.body && getComputedStyle(clip).overflowX !== 'hidden' && getComputedStyle(clip).overflowX !== 'clip') clip = clip.parentElement;
+          const where = clip && clip !== document.body ? ' clipped by ' + clip.tagName.toLowerCase() + '.' + String(clip.className || '').split(' ').slice(0, 3).join('.') : '';
+          return { what: `${b.tagName.toLowerCase()}${name ? ' "' + name + '"' : ''} right=${Math.round(b.getBoundingClientRect().right)} ${b.outerHTML.slice(0, 140).replace(/\s+/g, ' ')}${where}`, scroller }; }));
+      const bad = off.filter((o) => !o.scroller), swipe = off.filter((o) => o.scroller);
+      step(m, 'every button on the Documents tab is inside the screen', bad.length === 0,
+        (bad.length ? `past the right edge: ${bad.map((o) => o.what).join('; ')}` : '') + (swipe.length ? ` (in a sideways strip: ${swipe.map((o) => o.what).join('; ')})` : '')); }
     for (const d of await read(`select license_doc_path p from public.leads where id=${lead.id} union all select company_profile_doc_path from public.leads where id=${lead.id} union all select unnest(catalog_doc_paths) from public.leads where id=${lead.id}`)) if (d.p) run.ids.storage.push('supplier-docs/' + d.p);
 
     // 4. mobile: the fixture refusal, then recorded verified

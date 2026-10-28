@@ -1,0 +1,662 @@
+{
+  "tag": "412a3fbf",
+  "site": "https://quotesdone.com",
+  "journey": [
+    {
+      "m": "en/desktop",
+      "step": 1,
+      "name": "supplier landing page and sign-up form",
+      "status": "PASS",
+      "ms": 5590,
+      "detail": "landing h1 \"Quote on real UAE jobs. Keep 100% of what you win.\"; CTA shown -> /portal; form \"Register as a supplier\""
+    },
+    {
+      "m": "en/desktop",
+      "step": 2,
+      "name": "e-mail verification (form refuses the reserved domain before sending; code verified through login_otp)",
+      "status": "PASS",
+      "ms": 12388,
+      "detail": "reserved-domain refusal on screen: true; login_otp HTTP 200 ok=true; session issued"
+    },
+    {
+      "m": "en/desktop",
+      "step": 3,
+      "name": "company details + trade; emirates optional with \"All emirates\" (no restriction)",
+      "status": "PASS",
+      "ms": 17070,
+      "detail": "lead 150745 sector=aluminium; legend \"Emirates you serveOptional\"; \"All emirates\" present; 8/8 boxes ticked"
+    },
+    {
+      "m": "en/desktop",
+      "step": 4,
+      "name": "company profile upload completes (stored, object in supplier-docs)",
+      "status": "PASS",
+      "ms": 30195,
+      "detail": "licence stored in 15144 ms (request sent at 2141 ms after the file was picked, answered at 12763 ms); Submit ended in 15051 ms; profile profiles/150745/1793147661971_412a3fbf_0_company_profile.pdf (object 1)"
+    },
+    {
+      "m": "en/desktop",
+      "step": 5,
+      "name": "catalogue upload completes (stored, object in supplier-docs)",
+      "status": "PASS",
+      "ms": 15051,
+      "detail": "catalog_doc_paths 1, objects 1"
+    },
+    {
+      "m": "en/desktop",
+      "step": 6,
+      "name": "page set up: services rewritten by the sales engineer and confirmed",
+      "status": "PASS",
+      "ms": 17400,
+      "detail": "\"Set up my page\" control on screen: NO — no such control exists in the portal; the Services tab confirm is the step that publishes what the supplier offers; confirm enabled true; saved note true; server HTTP 200 after 3742 ms {\"ok\":true,\"confirmed\":true,\"version\":1,\"trades\":[\"glazing\"],\"roles\":[\"manufacturer\"],\"products_count\":0,\"exclusions_count\":0,\"new_trades_under_review\":[],\"services\":[],\"implied\":[],\"removed\":[],\"own_words\":[\"Install aluminium sliding\",\"Cas | network: [{\"sent_ms\":88,\"status\":200,\"at_ms\":3743,\"acao\":null,\"proto\":\"http/1.1\"},{\"sent_ms\":3746}]; capability confirmations 1"
+    },
+    {
+      "m": "en/desktop",
+      "step": 7,
+      "name": "dashboard loads; \"Inquiries received\" opens and settles",
+      "status": "PASS",
+      "ms": 3133,
+      "detail": "tabs [\"Services\",\"Inquiries received\",\"Quotations submitted\",\"Messages\",\"Documents\",\"Insights\"]; settled 2942 ms; panel text \"SUPPLIER PORTAL 2 Account ▾ ZZ DEMO Walk 412a3fbf en desktop 0 Approved Licence expires · 14 Mar 2028 Services Inquiries received Quotations\"; page errors none"
+    },
+    {
+      "m": "en/mobile",
+      "step": 1,
+      "name": "supplier landing page and sign-up form",
+      "status": "PASS",
+      "ms": 3988,
+      "detail": "landing h1 \"Quote on real UAE jobs. Keep 100% of what you win.\"; CTA shown -> /portal; form \"Register as a supplier\""
+    },
+    {
+      "m": "en/mobile",
+      "step": 2,
+      "name": "e-mail verification (form refuses the reserved domain before sending; code verified through login_otp)",
+      "status": "PASS",
+      "ms": 7067,
+      "detail": "reserved-domain refusal on screen: true; login_otp HTTP 200 ok=true; session issued"
+    },
+    {
+      "m": "en/mobile",
+      "step": 3,
+      "name": "company details + trade; emirates optional with \"All emirates\" (no restriction)",
+      "status": "PASS",
+      "ms": 13813,
+      "detail": "lead 150754 sector=aluminium; legend \"Emirates you serveOptional\"; \"All emirates\" present; 8/8 boxes ticked"
+    },
+    {
+      "m": "en/mobile",
+      "step": 4,
+      "name": "company profile upload completes (stored, object in supplier-docs)",
+      "status": "PASS",
+      "ms": 28392,
+      "detail": "licence stored in 11918 ms (request sent at 1278 ms after the file was picked, answered at 9795 ms); Submit ended in 16474 ms; profile profiles/150754/1793147793476_412a3fbf_1_company_profile.pdf (object 1)"
+    },
+    {
+      "m": "en/mobile",
+      "step": 5,
+      "name": "catalogue upload completes (stored, object in supplier-docs)",
+      "status": "PASS",
+      "ms": 16474,
+      "detail": "catalog_doc_paths 1, objects 1"
+    },
+    {
+      "m": "en/mobile",
+      "step": 6,
+      "name": "page set up: services rewritten by the sales engineer and confirmed",
+      "status": "PASS",
+      "ms": 18089,
+      "detail": "\"Set up my page\" control on screen: NO — no such control exists in the portal; the Services tab confirm is the step that publishes what the supplier offers; confirm enabled true; saved note true; server HTTP 200 after 2112 ms {\"ok\":true,\"confirmed\":true,\"version\":1,\"trades\":[\"glazing\"],\"roles\":[\"manufacturer\"],\"products_count\":0,\"exclusions_count\":0,\"new_trades_under_review\":[],\"services\":[],\"implied\":[],\"removed\":[],\"own_words\":[\"Install aluminium sliding\",\"Cas | network: [{\"sent_ms\":43,\"status\":200,\"at_ms\":2110,\"acao\":null,\"proto\":\"http/1.1\"},{\"sent_ms\":2116}]; capability confirmations 1"
+    },
+    {
+      "m": "en/mobile",
+      "step": 7,
+      "name": "dashboard loads; \"Inquiries received\" opens and settles",
+      "status": "PASS",
+      "ms": 2238,
+      "detail": "tabs [\"Services\",\"Inquiries received\",\"Quotations submitted\",\"Messages\",\"Documents\",\"Insights\"]; settled 1845 ms; panel text \"SUPPLIER PORTAL 2 Account ▾ ZZ DEMO Walk 412a3fbf en mobile 1 Approved Licence expires · 14 Mar 2028 Services Inquiries received Quotations \"; page errors none"
+    },
+    {
+      "m": "ar/desktop",
+      "step": 1,
+      "name": "supplier landing page and sign-up form",
+      "status": "PASS",
+      "ms": 5210,
+      "detail": "landing h1 \"قدّموا عروضكم على مشاريع حقيقية في الإمارات، واحتفظوا بكامل \"; CTA shown -> /portal; form \"Register as a supplier\""
+    },
+    {
+      "m": "ar/desktop",
+      "step": 2,
+      "name": "e-mail verification (form refuses the reserved domain before sending; code verified through login_otp)",
+      "status": "PASS",
+      "ms": 8197,
+      "detail": "reserved-domain refusal on screen: true; login_otp HTTP 200 ok=true; session issued"
+    },
+    {
+      "m": "ar/desktop",
+      "step": 3,
+      "name": "company details + trade; emirates optional with \"All emirates\" (no restriction)",
+      "status": "PASS",
+      "ms": 13809,
+      "detail": "lead 150756 sector=aluminium; legend \"Emirates you serveOptional\"; \"All emirates\" present; 8/8 boxes ticked"
+    },
+    {
+      "m": "ar/desktop",
+      "step": 4,
+      "name": "company profile upload completes (stored, object in supplier-docs)",
+      "status": "PASS",
+      "ms": 31746,
+      "detail": "licence stored in 16672 ms (request sent at 1866 ms after the file was picked, answered at 14520 ms); Submit ended in 15074 ms; profile profiles/150756/1793147938806_412a3fbf_2_company_profile.pdf (object 1)"
+    },
+    {
+      "m": "ar/desktop",
+      "step": 5,
+      "name": "catalogue upload completes (stored, object in supplier-docs)",
+      "status": "PASS",
+      "ms": 15074,
+      "detail": "catalog_doc_paths 1, objects 1"
+    },
+    {
+      "m": "ar/desktop",
+      "step": 6,
+      "name": "page set up: services rewritten by the sales engineer and confirmed",
+      "status": "PASS",
+      "ms": 17809,
+      "detail": "\"Set up my page\" control on screen: NO — no such control exists in the portal; the Services tab confirm is the step that publishes what the supplier offers; confirm enabled true; saved note true; server HTTP 200 after 2976 ms {\"ok\":true,\"confirmed\":true,\"version\":1,\"trades\":[\"glazing\"],\"roles\":[\"manufacturer\"],\"products_count\":0,\"exclusions_count\":0,\"new_trades_under_review\":[],\"services\":[],\"implied\":[],\"removed\":[],\"own_words\":[\"Install aluminium sliding\",\"Cas | network: [{\"sent_ms\":75,\"status\":200,\"at_ms\":2975,\"acao\":null,\"proto\":\"http/1.1\"},{\"sent_ms\":2993}]; capability confirmations 1"
+    },
+    {
+      "m": "ar/desktop",
+      "step": 7,
+      "name": "dashboard loads; \"Inquiries received\" opens and settles",
+      "status": "PASS",
+      "ms": 3144,
+      "detail": "tabs [\"Services\",\"Inquiries received\",\"Quotations submitted\",\"Messages\",\"Documents\",\"Insights\"]; settled 2793 ms; panel text \"SUPPLIER PORTAL 2 Account ▾ ZZ DEMO Walk 412a3fbf ar desktop 2 Approved Licence expires · 14 Mar 2028 Services Inquiries received Quotations\"; page errors none"
+    },
+    {
+      "m": "ar/mobile",
+      "step": 1,
+      "name": "supplier landing page and sign-up form",
+      "status": "PASS",
+      "ms": 4294,
+      "detail": "landing h1 \"قدّموا عروضكم على مشاريع حقيقية في الإمارات، واحتفظوا بكامل \"; CTA shown -> /portal; form \"Register as a supplier\""
+    },
+    {
+      "m": "ar/mobile",
+      "step": 2,
+      "name": "e-mail verification (form refuses the reserved domain before sending; code verified through login_otp)",
+      "status": "PASS",
+      "ms": 6644,
+      "detail": "reserved-domain refusal on screen: true; login_otp HTTP 200 ok=true; session issued"
+    },
+    {
+      "m": "ar/mobile",
+      "step": 3,
+      "name": "company details + trade; emirates optional with \"All emirates\" (no restriction)",
+      "status": "PASS",
+      "ms": 13470,
+      "detail": "lead 150763 sector=aluminium; legend \"Emirates you serveOptional\"; \"All emirates\" present; 8/8 boxes ticked"
+    },
+    {
+      "m": "ar/mobile",
+      "step": 4,
+      "name": "company profile upload completes (stored, object in supplier-docs)",
+      "status": "PASS",
+      "ms": 26447,
+      "detail": "licence stored in 12403 ms (request sent at 1381 ms after the file was picked, answered at 10075 ms); Submit ended in 14044 ms; profile profiles/150763/1793148060643_412a3fbf_3_company_profile.pdf (object 1)"
+    },
+    {
+      "m": "ar/mobile",
+      "step": 5,
+      "name": "catalogue upload completes (stored, object in supplier-docs)",
+      "status": "PASS",
+      "ms": 14044,
+      "detail": "catalog_doc_paths 1, objects 1"
+    },
+    {
+      "m": "ar/mobile",
+      "step": 6,
+      "name": "page set up: services rewritten by the sales engineer and confirmed",
+      "status": "PASS",
+      "ms": 22056,
+      "detail": "\"Set up my page\" control on screen: NO — no such control exists in the portal; the Services tab confirm is the step that publishes what the supplier offers; confirm enabled true; saved note true; server HTTP 200 after 3004 ms {\"ok\":true,\"confirmed\":true,\"version\":1,\"trades\":[\"glazing\"],\"roles\":[\"manufacturer\"],\"products_count\":0,\"exclusions_count\":0,\"new_trades_under_review\":[],\"services\":[],\"implied\":[],\"removed\":[],\"own_words\":[\"Install aluminium sliding\",\"Cas | network: [{\"sent_ms\":73,\"status\":200,\"at_ms\":3003,\"acao\":null,\"proto\":\"http/1.1\"},{\"sent_ms\":3019}]; capability confirmations 1"
+    },
+    {
+      "m": "ar/mobile",
+      "step": 7,
+      "name": "dashboard loads; \"Inquiries received\" opens and settles",
+      "status": "PASS",
+      "ms": 6795,
+      "detail": "tabs [\"Services\",\"Inquiries received\",\"Quotations submitted\",\"Messages\",\"Documents\",\"Insights\"]; settled 3261 ms; panel text \"SUPPLIER PORTAL 2 Account ▾ ZZ DEMO Walk 412a3fbf ar mobile 3 Approved Licence expires · 14 Mar 2028 Services Inquiries received Quotations \"; page errors none"
+    }
+  ],
+  "results": [
+    {
+      "m": "en/desktop",
+      "name": "STEP 1 supplier landing page and sign-up form",
+      "ok": true,
+      "detail": "5590 ms — landing h1 \"Quote on real UAE jobs. Keep 100% of what you win.\"; CTA shown -> /portal; form \"Register as a supplier\""
+    },
+    {
+      "m": "en/desktop",
+      "name": "STEP 2 e-mail verification (form refuses the reserved domain before sending; code verified through login_otp)",
+      "ok": true,
+      "detail": "12388 ms — reserved-domain refusal on screen: true; login_otp HTTP 200 ok=true; session issued"
+    },
+    {
+      "m": "en/desktop",
+      "name": "STEP 3 company details + trade; emirates optional with \"All emirates\" (no restriction)",
+      "ok": true,
+      "detail": "17070 ms — lead 150745 sector=aluminium; legend \"Emirates you serveOptional\"; \"All emirates\" present; 8/8 boxes ticked"
+    },
+    {
+      "m": "en/desktop",
+      "name": "STEP 4 company profile upload completes (stored, object in supplier-docs)",
+      "ok": true,
+      "detail": "30195 ms — licence stored in 15144 ms (request sent at 2141 ms after the file was picked, answered at 12763 ms); Submit ended in 15051 ms; profile profiles/150745/1793147661971_412a3fbf_0_company_profile.pdf (object 1)"
+    },
+    {
+      "m": "en/desktop",
+      "name": "STEP 5 catalogue upload completes (stored, object in supplier-docs)",
+      "ok": true,
+      "detail": "15051 ms — catalog_doc_paths 1, objects 1"
+    },
+    {
+      "m": "en/desktop",
+      "name": "a fixture mobile is refused before any SMS",
+      "ok": true,
+      "detail": "{\"ok\":false,\"captured\":true,\"code\":\"fixture_number\",\"error\":\"This is a reserved test numbe"
+    },
+    {
+      "m": "en/desktop",
+      "name": "the form shows the mobile verified",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "en/desktop",
+      "name": "ruling 1230: registration completes 100% — approved, signed certificate, mobile + e-mail verified, acceptance hashed, all 7 emirates",
+      "ok": true,
+      "detail": "{\"approval_status\":\"approved\",\"signed_terms_path\":\"suppliers/1793147672382_ZZ_DEMO_Walk_412a3fbf_en_desktop_0_TnC-Acceptance.pdf\",\"licence_gate_reason\":null,\"pv\":true,\"ev\":true,\"ip\":true,\"sha\":true,\"service_emirates\":[\"Abu Dhabi\",\"Dubai\",\"Sharjah\",\"Ajman\",\"Umm Al Quwain\",\"Ras Al Khaimah\",\"Fujairah\"],\"contact_name\":\"ZZ DEMO Contact\"}; approved 36490 ms after Submit returned"
+    },
+    {
+      "m": "en/desktop",
+      "name": "STEP 6 page set up: services rewritten by the sales engineer and confirmed",
+      "ok": true,
+      "detail": "17400 ms — \"Set up my page\" control on screen: NO — no such control exists in the portal; the Services tab confirm is the step that publishes what the supplier offers; confirm enabled true; saved note true; server HTTP 200 after 3742 ms {\"ok\":true,\"confirmed\":true,\"version\":1,\"trades\":[\"glazing\"],\"roles\":[\"manufacturer\"],\"products_count\":0,\"exclusions_count\":0,\"new_trades_under_review\":[],\"services\":[],\"implied\":[],\"removed\":[],\"own_words\":[\"Install aluminium sliding\",\"Cas | network: [{\"sent_ms\":88,\"status\":200,\"at_ms\":3743,\"acao\":null,\"proto\":\"http/1.1\"},{\"sent_ms\":3746}]; capability confirmations 1"
+    },
+    {
+      "m": "en/desktop",
+      "name": "STEP 7 dashboard loads; \"Inquiries received\" opens and settles",
+      "ok": true,
+      "detail": "3133 ms — tabs [\"Services\",\"Inquiries received\",\"Quotations submitted\",\"Messages\",\"Documents\",\"Insights\"]; settled 2942 ms; panel text \"SUPPLIER PORTAL 2 Account ▾ ZZ DEMO Walk 412a3fbf en desktop 0 Approved Licence expires · 14 Mar 2028 Services Inquiries received Quotations\"; page errors none"
+    },
+    {
+      "m": "en/desktop",
+      "name": "tab \"Services\" settles",
+      "ok": true,
+      "detail": "1898 ms"
+    },
+    {
+      "m": "en/desktop",
+      "name": "tab \"Inquiries received\" settles",
+      "ok": true,
+      "detail": "1762 ms"
+    },
+    {
+      "m": "en/desktop",
+      "name": "tab \"Quotations submitted\" settles",
+      "ok": true,
+      "detail": "2723 ms"
+    },
+    {
+      "m": "en/desktop",
+      "name": "tab \"Messages\" settles",
+      "ok": true,
+      "detail": "25 ms"
+    },
+    {
+      "m": "en/desktop",
+      "name": "tab \"Documents\" settles",
+      "ok": true,
+      "detail": "3208 ms"
+    },
+    {
+      "m": "en/desktop",
+      "name": "tab \"Insights\" settles",
+      "ok": true,
+      "detail": "3634 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "STEP 1 supplier landing page and sign-up form",
+      "ok": true,
+      "detail": "3988 ms — landing h1 \"Quote on real UAE jobs. Keep 100% of what you win.\"; CTA shown -> /portal; form \"Register as a supplier\""
+    },
+    {
+      "m": "en/mobile",
+      "name": "STEP 2 e-mail verification (form refuses the reserved domain before sending; code verified through login_otp)",
+      "ok": true,
+      "detail": "7067 ms — reserved-domain refusal on screen: true; login_otp HTTP 200 ok=true; session issued"
+    },
+    {
+      "m": "en/mobile",
+      "name": "STEP 3 company details + trade; emirates optional with \"All emirates\" (no restriction)",
+      "ok": true,
+      "detail": "13813 ms — lead 150754 sector=aluminium; legend \"Emirates you serveOptional\"; \"All emirates\" present; 8/8 boxes ticked"
+    },
+    {
+      "m": "en/mobile",
+      "name": "STEP 4 company profile upload completes (stored, object in supplier-docs)",
+      "ok": true,
+      "detail": "28392 ms — licence stored in 11918 ms (request sent at 1278 ms after the file was picked, answered at 9795 ms); Submit ended in 16474 ms; profile profiles/150754/1793147793476_412a3fbf_1_company_profile.pdf (object 1)"
+    },
+    {
+      "m": "en/mobile",
+      "name": "STEP 5 catalogue upload completes (stored, object in supplier-docs)",
+      "ok": true,
+      "detail": "16474 ms — catalog_doc_paths 1, objects 1"
+    },
+    {
+      "m": "en/mobile",
+      "name": "a fixture mobile is refused before any SMS",
+      "ok": true,
+      "detail": "{\"ok\":false,\"captured\":true,\"code\":\"fixture_number\",\"error\":\"This is a reserved test numbe"
+    },
+    {
+      "m": "en/mobile",
+      "name": "the form shows the mobile verified",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "en/mobile",
+      "name": "ruling 1230: registration completes 100% — approved, signed certificate, mobile + e-mail verified, acceptance hashed, all 7 emirates",
+      "ok": true,
+      "detail": "{\"approval_status\":\"approved\",\"signed_terms_path\":\"suppliers/1793147804228_ZZ_DEMO_Walk_412a3fbf_en_mobile_1_TnC-Acceptance.pdf\",\"licence_gate_reason\":null,\"pv\":true,\"ev\":true,\"ip\":true,\"sha\":true,\"service_emirates\":[\"Abu Dhabi\",\"Dubai\",\"Sharjah\",\"Ajman\",\"Umm Al Quwain\",\"Ras Al Khaimah\",\"Fujairah\"],\"contact_name\":\"ZZ DEMO Contact\"}; approved 41105 ms after Submit returned"
+    },
+    {
+      "m": "en/mobile",
+      "name": "STEP 6 page set up: services rewritten by the sales engineer and confirmed",
+      "ok": true,
+      "detail": "18089 ms — \"Set up my page\" control on screen: NO — no such control exists in the portal; the Services tab confirm is the step that publishes what the supplier offers; confirm enabled true; saved note true; server HTTP 200 after 2112 ms {\"ok\":true,\"confirmed\":true,\"version\":1,\"trades\":[\"glazing\"],\"roles\":[\"manufacturer\"],\"products_count\":0,\"exclusions_count\":0,\"new_trades_under_review\":[],\"services\":[],\"implied\":[],\"removed\":[],\"own_words\":[\"Install aluminium sliding\",\"Cas | network: [{\"sent_ms\":43,\"status\":200,\"at_ms\":2110,\"acao\":null,\"proto\":\"http/1.1\"},{\"sent_ms\":2116}]; capability confirmations 1"
+    },
+    {
+      "m": "en/mobile",
+      "name": "STEP 7 dashboard loads; \"Inquiries received\" opens and settles",
+      "ok": true,
+      "detail": "2238 ms — tabs [\"Services\",\"Inquiries received\",\"Quotations submitted\",\"Messages\",\"Documents\",\"Insights\"]; settled 1845 ms; panel text \"SUPPLIER PORTAL 2 Account ▾ ZZ DEMO Walk 412a3fbf en mobile 1 Approved Licence expires · 14 Mar 2028 Services Inquiries received Quotations \"; page errors none"
+    },
+    {
+      "m": "en/mobile",
+      "name": "tab \"Services\" settles",
+      "ok": true,
+      "detail": "2585 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "tab \"Inquiries received\" settles",
+      "ok": true,
+      "detail": "1836 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "tab \"Quotations submitted\" settles",
+      "ok": true,
+      "detail": "2343 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "tab \"Messages\" settles",
+      "ok": true,
+      "detail": "264 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "tab \"Documents\" settles",
+      "ok": true,
+      "detail": "3211 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "tab \"Insights\" settles",
+      "ok": true,
+      "detail": "4200 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "STEP 1 supplier landing page and sign-up form",
+      "ok": true,
+      "detail": "5210 ms — landing h1 \"قدّموا عروضكم على مشاريع حقيقية في الإمارات، واحتفظوا بكامل \"; CTA shown -> /portal; form \"Register as a supplier\""
+    },
+    {
+      "m": "ar/desktop",
+      "name": "STEP 2 e-mail verification (form refuses the reserved domain before sending; code verified through login_otp)",
+      "ok": true,
+      "detail": "8197 ms — reserved-domain refusal on screen: true; login_otp HTTP 200 ok=true; session issued"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "STEP 3 company details + trade; emirates optional with \"All emirates\" (no restriction)",
+      "ok": true,
+      "detail": "13809 ms — lead 150756 sector=aluminium; legend \"Emirates you serveOptional\"; \"All emirates\" present; 8/8 boxes ticked"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "STEP 4 company profile upload completes (stored, object in supplier-docs)",
+      "ok": true,
+      "detail": "31746 ms — licence stored in 16672 ms (request sent at 1866 ms after the file was picked, answered at 14520 ms); Submit ended in 15074 ms; profile profiles/150756/1793147938806_412a3fbf_2_company_profile.pdf (object 1)"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "STEP 5 catalogue upload completes (stored, object in supplier-docs)",
+      "ok": true,
+      "detail": "15074 ms — catalog_doc_paths 1, objects 1"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "a fixture mobile is refused before any SMS",
+      "ok": true,
+      "detail": "{\"ok\":false,\"captured\":true,\"code\":\"fixture_number\",\"error\":\"This is a reserved test numbe"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "the form shows the mobile verified",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "ar/desktop",
+      "name": "ruling 1230: registration completes 100% — approved, signed certificate, mobile + e-mail verified, acceptance hashed, all 7 emirates",
+      "ok": true,
+      "detail": "{\"approval_status\":\"approved\",\"signed_terms_path\":\"suppliers/1793147949662_ZZ_DEMO_Walk_412a3fbf_ar_desktop_2_TnC-Acceptance.pdf\",\"licence_gate_reason\":null,\"pv\":true,\"ev\":true,\"ip\":true,\"sha\":true,\"service_emirates\":[\"Abu Dhabi\",\"Dubai\",\"Sharjah\",\"Ajman\",\"Umm Al Quwain\",\"Ras Al Khaimah\",\"Fujairah\"],\"contact_name\":\"ZZ DEMO Contact\"}; approved 26554 ms after Submit returned"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "STEP 6 page set up: services rewritten by the sales engineer and confirmed",
+      "ok": true,
+      "detail": "17809 ms — \"Set up my page\" control on screen: NO — no such control exists in the portal; the Services tab confirm is the step that publishes what the supplier offers; confirm enabled true; saved note true; server HTTP 200 after 2976 ms {\"ok\":true,\"confirmed\":true,\"version\":1,\"trades\":[\"glazing\"],\"roles\":[\"manufacturer\"],\"products_count\":0,\"exclusions_count\":0,\"new_trades_under_review\":[],\"services\":[],\"implied\":[],\"removed\":[],\"own_words\":[\"Install aluminium sliding\",\"Cas | network: [{\"sent_ms\":75,\"status\":200,\"at_ms\":2975,\"acao\":null,\"proto\":\"http/1.1\"},{\"sent_ms\":2993}]; capability confirmations 1"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "STEP 7 dashboard loads; \"Inquiries received\" opens and settles",
+      "ok": true,
+      "detail": "3144 ms — tabs [\"Services\",\"Inquiries received\",\"Quotations submitted\",\"Messages\",\"Documents\",\"Insights\"]; settled 2793 ms; panel text \"SUPPLIER PORTAL 2 Account ▾ ZZ DEMO Walk 412a3fbf ar desktop 2 Approved Licence expires · 14 Mar 2028 Services Inquiries received Quotations\"; page errors none"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "tab \"Services\" settles",
+      "ok": true,
+      "detail": "2143 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "tab \"Inquiries received\" settles",
+      "ok": true,
+      "detail": "1621 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "tab \"Quotations submitted\" settles",
+      "ok": true,
+      "detail": "2159 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "tab \"Messages\" settles",
+      "ok": true,
+      "detail": "8 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "tab \"Documents\" settles",
+      "ok": true,
+      "detail": "3220 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "tab \"Insights\" settles",
+      "ok": true,
+      "detail": "5714 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "STEP 1 supplier landing page and sign-up form",
+      "ok": true,
+      "detail": "4294 ms — landing h1 \"قدّموا عروضكم على مشاريع حقيقية في الإمارات، واحتفظوا بكامل \"; CTA shown -> /portal; form \"Register as a supplier\""
+    },
+    {
+      "m": "ar/mobile",
+      "name": "STEP 2 e-mail verification (form refuses the reserved domain before sending; code verified through login_otp)",
+      "ok": true,
+      "detail": "6644 ms — reserved-domain refusal on screen: true; login_otp HTTP 200 ok=true; session issued"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "STEP 3 company details + trade; emirates optional with \"All emirates\" (no restriction)",
+      "ok": true,
+      "detail": "13470 ms — lead 150763 sector=aluminium; legend \"Emirates you serveOptional\"; \"All emirates\" present; 8/8 boxes ticked"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "STEP 4 company profile upload completes (stored, object in supplier-docs)",
+      "ok": true,
+      "detail": "26447 ms — licence stored in 12403 ms (request sent at 1381 ms after the file was picked, answered at 10075 ms); Submit ended in 14044 ms; profile profiles/150763/1793148060643_412a3fbf_3_company_profile.pdf (object 1)"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "STEP 5 catalogue upload completes (stored, object in supplier-docs)",
+      "ok": true,
+      "detail": "14044 ms — catalog_doc_paths 1, objects 1"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "a fixture mobile is refused before any SMS",
+      "ok": true,
+      "detail": "{\"ok\":false,\"captured\":true,\"code\":\"fixture_number\",\"error\":\"This is a reserved test numbe"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "the form shows the mobile verified",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "ar/mobile",
+      "name": "ruling 1230: registration completes 100% — approved, signed certificate, mobile + e-mail verified, acceptance hashed, all 7 emirates",
+      "ok": true,
+      "detail": "{\"approval_status\":\"approved\",\"signed_terms_path\":\"suppliers/1793148071518_ZZ_DEMO_Walk_412a3fbf_ar_mobile_3_TnC-Acceptance.pdf\",\"licence_gate_reason\":null,\"pv\":true,\"ev\":true,\"ip\":true,\"sha\":true,\"service_emirates\":[\"Abu Dhabi\",\"Dubai\",\"Sharjah\",\"Ajman\",\"Umm Al Quwain\",\"Ras Al Khaimah\",\"Fujairah\"],\"contact_name\":\"ZZ DEMO Contact\"}; approved 26541 ms after Submit returned"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "STEP 6 page set up: services rewritten by the sales engineer and confirmed",
+      "ok": true,
+      "detail": "22056 ms — \"Set up my page\" control on screen: NO — no such control exists in the portal; the Services tab confirm is the step that publishes what the supplier offers; confirm enabled true; saved note true; server HTTP 200 after 3004 ms {\"ok\":true,\"confirmed\":true,\"version\":1,\"trades\":[\"glazing\"],\"roles\":[\"manufacturer\"],\"products_count\":0,\"exclusions_count\":0,\"new_trades_under_review\":[],\"services\":[],\"implied\":[],\"removed\":[],\"own_words\":[\"Install aluminium sliding\",\"Cas | network: [{\"sent_ms\":73,\"status\":200,\"at_ms\":3003,\"acao\":null,\"proto\":\"http/1.1\"},{\"sent_ms\":3019}]; capability confirmations 1"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "STEP 7 dashboard loads; \"Inquiries received\" opens and settles",
+      "ok": true,
+      "detail": "6795 ms — tabs [\"Services\",\"Inquiries received\",\"Quotations submitted\",\"Messages\",\"Documents\",\"Insights\"]; settled 3261 ms; panel text \"SUPPLIER PORTAL 2 Account ▾ ZZ DEMO Walk 412a3fbf ar mobile 3 Approved Licence expires · 14 Mar 2028 Services Inquiries received Quotations \"; page errors none"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Services\" settles",
+      "ok": true,
+      "detail": "3817 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Inquiries received\" settles",
+      "ok": true,
+      "detail": "1665 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Quotations submitted\" settles",
+      "ok": true,
+      "detail": "3656 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Messages\" settles",
+      "ok": true,
+      "detail": "14 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Documents\" settles",
+      "ok": true,
+      "detail": "4336 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Insights\" settles",
+      "ok": true,
+      "detail": "3514 ms"
+    }
+  ],
+  "teardown": {
+    "removed": {
+      "counts": {
+        "notifications": 16,
+        "comparison_candidate_v2 (table no longer exists)": 0,
+        "agent_actions": 16,
+        "documents": 12,
+        "company_event (lead)": 8,
+        "file_scan": 12,
+        "supplier_capability_confirmation": 8,
+        "supplier_capabilities (fk supplier_id -> leads)": 4,
+        "taxonomy_trade_proposal (fk supplier_id -> leads)": 2,
+        "leads": 4,
+        "customer_organization (table no longer exists)": 0,
+        "email_verifications": 4,
+        "auth_users": 4,
+        "storage_objects": 28
+      },
+      "objects": {
+        "drawing-files": 0,
+        "quote-files": 0,
+        "signed-terms": 4,
+        "supplier-docs": 24,
+        "agent-docs": 0
+      },
+      "summary": "notifications 16, comparison_candidate_v2 (table no longer exists) 0, agent_actions 16, documents 12, company_event (lead) 8, file_scan 12, supplier_capability_confirmation 8, supplier_capabilities (fk supplier_id -> leads) 4, taxonomy_trade_proposal (fk supplier_id -> leads) 2, leads 4, customer_organization (table no longer exists) 0, email_verifications 4, auth_users 4, storage_objects 28"
+    },
+    "leftovers": {
+      "auth_users": 0,
+      "customers": 0,
+      "leads": 0,
+      "inquiries": 0,
+      "quotes": 0,
+      "quote_spec_hold": 0,
+      "quote_reviews": 0,
+      "notifications": 0,
+      "transactions": 0,
+      "refunds": 0,
+      "supplier_dues": 0,
+      "refund_case": 0,
+      "inquiry_intake": 0,
+      "email_verifications": 0,
+      "storage_objects": 0,
+      "total": 0
+    }
+  }
+}
