@@ -33,13 +33,53 @@ export function normEmirate(s: unknown): string {
   return '';
 }
 
+/** One page's base64, whichever shape the caller sent (28 Oct 2026, sales_engineer).
+ * The supplier portal's fileToImages and pdfRaster send each page as { mime, data }; the server-side callers send
+ * { b64, mime } or a bare string. Only b64 and a bare string were read, so every portal page became the text of an
+ * object, the provider refused it ("Invalid image data URL ... payload is not base64-encoded data") and every licence
+ * read from the registration form failed: 38 of 38 calls on 27-28 Oct. '' = no usable page. */
+// deno-lint-ignore no-explicit-any
+export function pageB64(im: any): string {
+  const v = typeof im === 'string' ? im : (im?.b64 || im?.data || '');
+  if (typeof v !== 'string') return '';
+  // Review of #1707: a page that is not base64 (empty, '[object Object]', a URL, plain text) is no page at all,
+  // rather than a request the provider refuses with a 400. Whitespace (MIME line breaks) is not part of the data.
+  const raw = v.replace(/^data:[^;,]+;base64,/, '').replace(/\s+/g, '');
+  return raw.length >= 16 && /^[A-Za-z0-9+/]+={0,2}$/.test(raw) ? raw : '';
+}
+
+/** The image type of one page: the mime the caller named when it is an image type, else the data URL's own prefix,
+ * else the file's magic bytes. A PNG sent as image/jpeg (or the reverse) is what the provider is told it is. */
+// deno-lint-ignore no-explicit-any
+export function pageMime(im: any): string {
+  const named = typeof im === 'object' && im ? String(im.mime || '') : '';
+  if (/^image\/[a-z0-9.+-]+$/i.test(named)) return named.toLowerCase();
+  const v = typeof im === 'string' ? im : String(im?.b64 || im?.data || '');
+  const pre = v.match(/^data:(image\/[a-z0-9.+-]+);base64,/i);
+  if (pre) return pre[1].toLowerCase();
+  const b = pageB64(im);
+  if (b.startsWith('iVBORw0KGgo')) return 'image/png';
+  if (b.startsWith('/9j/')) return 'image/jpeg';
+  if (b.startsWith('UklGR')) return 'image/webp';
+  if (b.startsWith('R0lGOD')) return 'image/gif';
+  return 'image/jpeg';
+}
+
+/** True when the request carries something a model can read: one usable page image, or a file. */
+// deno-lint-ignore no-explicit-any
+export function hasReadablePage(images: any[], body: { file_b64?: string }): boolean {
+  return (Array.isArray(images) && images.slice(0, 10).some((im) => !!pageB64(im))) || !!pageB64(body?.file_b64 ?? '');
+}
+
 // deno-lint-ignore no-explicit-any
 export function documentContent(intro: string, images: any[], body: { file_b64?: string; mime?: string; filename?: string }): any[] {
   // deno-lint-ignore no-explicit-any
   const content: any[] = [{ type: 'text', text: intro }];
-  if (Array.isArray(images) && images.length) {
-    for (const im of images.slice(0, 10)) { const b = im?.b64 || im; const m = im?.mime || 'image/jpeg'; if (b) content.push({ type: 'image_url', image_url: { url: dataUrl(String(b), String(m)) } }); }
-  } else if (body.file_b64) {
+  // Only pages that are real base64 are sent; when none is, the file is (the portal sends both), never an empty read.
+  const pages = Array.isArray(images) ? images.slice(0, 10).filter((im) => !!pageB64(im)) : [];
+  if (pages.length) {
+    for (const im of pages) content.push({ type: 'image_url', image_url: { url: dataUrl(pageB64(im), pageMime(im)) } });
+  } else if (body.file_b64 && pageB64(body.file_b64)) {
     const mime = String(body.mime || 'application/octet-stream');
     if (/^image\//.test(mime)) content.push({ type: 'image_url', image_url: { url: dataUrl(String(body.file_b64), mime) } });
     else content.push({ type: 'file', file: { filename: String(body.filename || 'document.pdf'), file_data: dataUrl(String(body.file_b64), mime || 'application/pdf') } });
@@ -96,7 +136,7 @@ export function imageDims(b64: string): { w: number; h: number } | null {
 export const MIN_LICENCE_IMAGE_PX = 200;
 // deno-lint-ignore no-explicit-any
 export function imagesTooSmallToRead(images: any[], body: { file_b64?: string; mime?: string }): boolean {
-  const pages = images.length ? images.map((im) => String(im?.b64 || im || '')) : (/^image\//.test(String(body.mime || '')) && body.file_b64 ? [String(body.file_b64)] : []);
+  const pages = licencePages(images, body);
   if (!pages.length) return false;
   return pages.every((b) => { const d = imageDims(b); return !!d && (d.w < MIN_LICENCE_IMAGE_PX || d.h < MIN_LICENCE_IMAGE_PX); });
 }
@@ -104,8 +144,10 @@ export function imagesTooSmallToRead(images: any[], body: { file_b64?: string; m
 /** The image pages a licence request carries (base64), for code's own measurements. */
 // deno-lint-ignore no-explicit-any
 export function licencePages(images: any[], body: { file_b64?: string; mime?: string }): string[] {
-  return images.length ? images.map((im) => String(im?.b64 || im || '')).filter(Boolean)
-    : (/^image\//.test(String(body.mime || '')) && body.file_b64 ? [String(body.file_b64)] : []);
+  const pages = (Array.isArray(images) ? images : []).map((im) => pageB64(im)).filter(Boolean);
+  if (pages.length) return pages;
+  const file = /^image\//.test(String(body.mime || '')) ? pageB64(body.file_b64 ?? '') : '';
+  return file ? [file] : [];
 }
 
 /** A 'low' read counts only when code proved a real page was read: ink measured on the image pages, or the read's
