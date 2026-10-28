@@ -53,8 +53,9 @@ Deno.test('expiryFromText: the date AFTER an expiry keyword, never the issue dat
   assertEquals(expiryFromText('Issue Date : 14/03/2024\nSigned 01/01/2025'), null);
   // a keyword with no date beside it is skipped, not matched to a date far away
   assertEquals(expiryFromText('valid until the date shown on page 2\n' + 'x'.repeat(200) + '\n13/03/2027'), null);
-  // insurance schedule wording
-  assertEquals(expiryFromText('Period of insurance: from 01/01/2026 to 31/12/2026')?.expiry, '2026-01-01');
+  // insurance schedule wording: a period ends on its SECOND date (28 Oct 2026; this line asserted the start date,
+  // 2026-01-01, as the expiry until the production document walk offered "expires 1 Jan 2026" for a 2026 policy)
+  assertEquals(expiryFromText('Period of insurance: from 01/01/2026 to 31/12/2026')?.expiry, '2026-12-31');
   // Arabic, including Arabic-Indic digits
   assertEquals(expiryFromText('تاريخ الانتهاء: ١٣/٠٣/٢٠٢٧')?.expiry, '2027-03-13');
   assertEquals(expiryFromText('صالحة حتى 2027-03-13')?.expiry, '2027-03-13');
@@ -177,4 +178,71 @@ Deno.test('merge: code first, the model only fills what code left unread, a low-
   // an Arabic-only licence: the model's Arabic name is the Arabic name, never the English one the gate compares
   const ar = mergeLicenceReads(null, { legal_name: 'زد زد ديمو الواحة', legal_name_ar: 'زد زد ديمو الواحة', confidence: 'high' }).merged;
   assertEquals([ar.legal_name_en, ar.legal_name_ar], [null, 'زد زد ديمو الواحة']);
+});
+
+// A PERIOD ENDS ON ITS SECOND DATE (28 Oct 2026, sales_engineer). The production document walk uploaded an insurance
+// schedule printing "Period of Insurance: From 01/01/2026 To 31/12/2026" and the Documents tab offered the START date
+// as the expiry. Every range shape a UAE schedule, certificate or licence prints; a single date is unchanged.
+Deno.test('expiryFromText: a period of cover or validity reads its END date', () => {
+  const cases: [string, string][] = [
+    ['Period of Insurance: From 01/01/2026 To 31/12/2026\nExpiry Date: 31/12/2026', '2026-12-31'],
+    ['PERIOD OF INSURANCE  01/01/2026 TO 31/12/2026', '2026-12-31'],
+    ['Licence Validity: 15/03/2025 - 14/03/2028', '2028-03-14'],
+    ['Validity: 15 Mar 2025 – 14 Mar 2028', '2028-03-14'],
+    ['Validity 2025-03-15 until 2028-03-14', '2028-03-14'],
+    ['Valid to: 09/02/2027', '2027-02-09'],
+    ['صلاحية: 15/03/2025 إلى 14/03/2028', '2028-03-14'],
+    ['Expiry Date: 14/03/2028\nIssue Date: 15/03/2025', '2028-03-14'],
+  ];
+  for (const [text, want] of cases) assertEquals(expiryFromText(text)?.expiry, want, text);
+});
+
+// THE PERIOD READ ADVERSARIALLY (28 Oct 2026, sales_engineer; independent review of #1708). The first fix took the
+// second date of any pair, so a pair printed backwards read its EARLIER date: "Expiry Date - Issue Date: 14/03/2028 -
+// 15/03/2025" read 15/03/2025, which main had read correctly, and on the licence path that is written unconfirmed.
+// It also missed the commonest schedule shapes ("To:", a time after the start, From/To on two lines, وحتى, لغاية),
+// and a "Validity: <start>" printed above "Expiry Date: <expiry>" still read the start. Measured row by row: every
+// row above the last group fails on the reader #1708 opened with, except "Previous Policy Expiry", which guards the
+// expiry-label rule this review added; the last group reads the same on main, on #1708 and here.
+Deno.test('expiryFromText: a period read adversarially — later date, every connector, expiry label first', () => {
+  const cases: [string, string | null][] = [
+    // a pair printed backwards still reads the LATER date (an expiry is never before its issue)
+    ['Expiry Date - Issue Date\n14/03/2028 - 15/03/2025', '2028-03-14'],
+    ['Validity: 14/03/2028 to 15/03/2025', '2028-03-14'],
+    ['صلاحية: 14/03/2028 - 15/03/2025', '2028-03-14'],
+    // what a schedule prints between the two dates
+    ['Period of Insurance: From: 01/01/2026 To: 31/12/2026', '2026-12-31'],
+    ['Period of Insurance: From 01/01/2026 00:00 hrs To 31/12/2026 24:00 hrs', '2026-12-31'],
+    ['Period of Insurance: 01/01/2026 12:00 AM to 31/12/2026 11:59 PM', '2026-12-31'],
+    ['Period of Insurance\nFrom: 01/01/2026\nTo: 31/12/2026', '2026-12-31'],
+    ['Validity: 01/01/2026 thru 31/12/2026', '2026-12-31'],
+    ['صلاحية: من 15/03/2025 وحتى 14/03/2028', '2028-03-14'],
+    ['صلاحية: من ١٥/٠٣/٢٠٢٥ لغاية ١٤/٠٣/٢٠٢٨', '2028-03-14'],
+    ['صلاحية: 15/03/2025 الي 14/03/2028', '2028-03-14'],
+    ['صلاحية\nمن: 15/03/2025\nإلى: 14/03/2028', '2028-03-14'],
+    // an expiry label wins over a period label printed above it
+    ['Validity: 15/03/2025\nExpiry Date: 14/03/2028', '2028-03-14'],
+    ['Period of Insurance: From 01/01/2026\nExpiry Date: 31/12/2026', '2026-12-31'],
+    ['Validity: 15/03/2025\nValid until: 14/03/2028', '2028-03-14'],
+    ['Validity of quotation: 01/10/2026 - 31/10/2026\nPolicy Expiry Date: 31/12/2026', '2026-12-31'],
+    // ...but not one that names an earlier document's date
+    ['Period of Insurance: 01/01/2026 to 31/12/2026\nPrevious Policy Expiry: 31/12/2025', '2026-12-31'],
+    ['Expiry date of previous policy: 31/12/2025\nPeriod of Insurance: 01/01/2026 to 31/12/2026', '2026-12-31'],
+    ['تاريخ انتهاء الوثيقة السابقة: 31/12/2025\nصلاحية: 01/01/2026 إلى 31/12/2026', '2026-12-31'],
+    ['Previous Period of Insurance: 01/01/2025 to 31/12/2025\nPeriod of Insurance: 01/01/2026 to 31/12/2026', '2026-12-31'],
+    // a period whose end does not read day-first is not read at all: its start is certainly not the expiry
+    ['Period of Insurance: 01/12/2026 to 12/31/2026', null],
+    ['Validity: 03/15/2025 - 03/10/2028', null],
+    // unchanged: a hyphen inside ONE date is not a range, and day-first stays day-first
+    ['Expiry: 14-03-2028', '2028-03-14'],
+    ['Expiry: 2028-03-14', '2028-03-14'],
+    ['Expiry: 14-Mar-2028', '2028-03-14'],
+    ['Expiry: 14-03-2028 Issue: 15-03-2025', '2028-03-14'],
+    ['Expiry Date: 14/03/2028 - Issue Date: 15/03/2025', '2028-03-14'],
+    ['Expiry: 14/03/2028 - Renewable annually', '2028-03-14'],
+    ['Expiry: 03/04/2027', '2027-04-03'],
+    ['Issue Date: 15/03/2025\nExpiry Date: 14/03/2028', '2028-03-14'],
+    ['تاريخ الانتهاء: ١٤-٠٣-٢٠٢٨ تاريخ الإصدار: ١٥-٠٣-٢٠٢٥', '2028-03-14'],
+  ];
+  for (const [text, want] of cases) assertEquals(expiryFromText(text)?.expiry ?? null, want, text);
 });

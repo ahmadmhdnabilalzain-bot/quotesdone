@@ -27,18 +27,39 @@ const MONTHS: Record<string, number> = {
   jul: 7, july: 7, aug: 8, august: 8, sep: 9, sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11, dec: 12, december: 12,
 };
 
-// Keywords first, then the date. Order inside the alternation does not matter: the FIRST keyword
-// occurrence in the text wins, and only a date after it counts.
-const KEYWORDS = [
+// Keywords first, then the date; only a date after a keyword counts. Two kinds (28 Oct 2026, review of #1708):
+//   EXPIRY keywords name the expiry itself, so the date beside one IS the expiry;
+//   PERIOD keywords name a period ("Validity", "Period of Insurance", "صلاحية"), whose first date is often its START.
+// An expiry keyword wins over a period keyword wherever each one is printed: "Validity: 15/03/2025 ... Expiry Date:
+// 14/03/2028" reads 14/03/2028 (until 28 Oct the first keyword of either kind won and read 15/03/2025). Within a
+// kind, the first occurrence that has a date beside it wins. Order inside an alternation does not matter.
+const EXPIRY_KEYWORDS = [
   'expiry date', 'expiry', 'expires on', 'expires', 'expiration date', 'expiration', 'date of expiry',
-  'valid until', 'valid till', 'valid to', 'valid upto', 'valid up to', 'validity', 'period of insurance',
-  'تاريخ الانتهاء', 'تاريخ انتهاء', 'الانتهاء', 'ينتهي في', 'ينتهي', 'صالحة حتى', 'صالح حتى', 'سارية حتى', 'ساري حتى', 'صلاحية',
+  'valid until', 'valid till', 'valid to', 'valid upto', 'valid up to',
+  'تاريخ الانتهاء', 'تاريخ انتهاء', 'الانتهاء', 'ينتهي في', 'ينتهي', 'صالحة حتى', 'صالح حتى', 'سارية حتى', 'ساري حتى',
 ];
-const KEYWORD_RE = new RegExp('(' + KEYWORDS.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'i');
+const PERIOD_KEYWORDS = ['validity', 'period of insurance', 'صلاحية'];
+const keywordRe = (ks: string[]) => new RegExp('(' + ks.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'i');
+const EXPIRY_RE = keywordRe(EXPIRY_KEYWORDS);
+const PERIOD_RE = keywordRe(PERIOD_KEYWORDS);
+// A keyword that names an EARLIER document's date is not this document's: a renewal schedule can print "Previous
+// Policy Expiry: 31/12/2025" under its own "Period of Insurance: 01/01/2026 to 31/12/2026". The qualifier is looked
+// for on the keyword's own line before it, or between the keyword and its date ("Expiry date of previous policy",
+// "تاريخ انتهاء الوثيقة السابقة").
+const EARLIER_RE = /\b(?:previous|prior|preceding)\b|السابق/i;
 
 // The date shapes a UAE licence or certificate prints: 13/03/2027, 13-03-2027, 2027-03-13,
 // 13 Mar 2027, 13-MAR-2027, 13 March 2027, March 13, 2027. Two-digit years are not accepted.
 const DATE_RE = /(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})|(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})|(\d{1,2})[ \-]([A-Za-z]{3,9})[ \-,]+(\d{4})|([A-Za-z]{3,9})[ \-]+(\d{1,2}),?[ \-]+(\d{4})/;
+
+// The second date of a period, right after the first: "<date> to <date>", "<date> - <date>", "<date> إلى <date>".
+// Between them a schedule may print a time on the first date ("00:00 hrs", "12:00 AM") and a colon after the
+// connector ("From: 01/01/2026 To: 31/12/2026", also split over two lines); Arabic joins "و" to the connector
+// ("وحتى", "ولغاية") and spells إلى four ways. A hyphen INSIDE one date is never a connector: the first date is
+// matched whole before this runs, so "14-03-2028" or "14-Mar-2028" never leaves a "-<date>" behind it.
+const TIME_OF_DAY = '(?:\\s*\\d{1,2}[:.]\\d{2}(?:[:.]\\d{2})?\\s*(?:hrs?|hours|[ap]\\.?\\s?m)?\\.?)?';
+const RANGE_JOIN = '(?:to|till|until|up\\s*to|upto|through|thru|-|–|—|(?:و\\s*)?(?:إلى|الى|إلي|الي|حتى|لغاية))';
+const RANGE_END_RE = new RegExp('^' + TIME_OF_DAY + '\\s*' + RANGE_JOIN + '\\s*:?\\s*(' + DATE_RE.source + ')', 'i');
 
 function ymd(y: number, m: number, d: number): string | null {
   if (!(y >= 2000 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31)) return null;
@@ -58,23 +79,44 @@ export function parseDate(raw: string): string | null {
   return null;
 }
 
-/** The expiry a document states, or null. Only a date that follows an expiry keyword within 90 characters counts. */
-export function expiryFromText(text: string): ExpiryRead | null {
-  const t = String(text || '').replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x0660)); // Arabic-Indic digits
+/** The first occurrence of one kind of keyword that has a date within 90 characters after it, read as an expiry. */
+function readAfter(t: string, keywords: RegExp): ExpiryRead | null {
   let from = 0;
   for (let i = 0; i < 20; i++) {
-    const km = KEYWORD_RE.exec(t.slice(from));
+    const km = keywords.exec(t.slice(from));
     if (!km) return null;
     const at = from + (km.index ?? 0) + km[0].length;
     const window = t.slice(at, at + 90);
     const dm = DATE_RE.exec(window);
-    if (dm) {
-      const expiry = parseDate(dm[0]);
-      if (expiry) return { expiry, source: 'text', keyword: km[0], raw: dm[0] };
+    const lineBefore = t.slice(Math.max(0, at - km[0].length - 40), at - km[0].length).split('\n').pop() ?? '';
+    if (dm && !EARLIER_RE.test(lineBefore) && !EARLIER_RE.test(window.slice(0, dm.index ?? 0))) {
+      // A PERIOD ENDS ON ITS LATER DATE (28 Oct 2026, sales_engineer; document walk on production). An insurance
+      // schedule prints "Period of Insurance: From 01/01/2026 To 31/12/2026", and a licence or certificate can print
+      // "Validity: 15/03/2025 - 14/03/2028". The first date after the keyword is the START, and it was returned as the
+      // expiry: the Documents tab offered "expires 1 Jan 2026 — is that right?" for a policy valid to 31 Dec 2026, and
+      // a licence would have had its issue date written as its expiry. When the first date is joined to a second
+      // (RANGE_END_RE), the period's end is the expiry, and the end is the LATER of the two: a pair printed backwards
+      // ("Expiry Date - Issue Date: 14/03/2028 - 15/03/2025", or right-to-left text drawn in visual order) still reads
+      // 14/03/2028. (The first fix took the second date whatever it was, and read 15/03/2025 there.)
+      const first = parseDate(dm[0]);
+      const tail = RANGE_END_RE.exec(window.slice((dm.index ?? 0) + dm[0].length));
+      if (tail) {
+        const second = parseDate(tail[1]);
+        if (first && second) return { expiry: second > first ? second : first, source: 'text', keyword: km[0], raw: dm[0] + tail[0] };
+        // One end does not read as a day-first date (a month-first schedule, "01/12/2026 to 12/31/2026"): the
+        // period has no readable end, and its start is certainly not the expiry. Nothing is read beside this keyword.
+      } else if (first) return { expiry: first, source: 'text', keyword: km[0], raw: dm[0] };
     }
     from = at;   // this keyword had no date beside it ("valid until the expiry date shown above") — try the next
   }
   return null;
+}
+
+/** The expiry a document states, or null. Only a date that follows a keyword within 90 characters counts, and a
+ *  date beside an expiry keyword wins over one beside a period keyword. */
+export function expiryFromText(text: string): ExpiryRead | null {
+  const t = String(text || '').replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x0660)); // Arabic-Indic digits
+  return readAfter(t, EXPIRY_RE) ?? readAfter(t, PERIOD_RE);
 }
 
 // ── PDF text ─────────────────────────────────────────────────────────────────────────────────────

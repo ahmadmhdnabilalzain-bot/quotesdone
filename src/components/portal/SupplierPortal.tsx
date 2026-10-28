@@ -31,7 +31,7 @@ import ServicesTab from './supplier/ServicesTab';
 import EmirateCheckboxes from './supplier/EmirateCheckboxes';
 import { Kicker } from '@/components/ui/sealed';
 import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, TRADE_GROUPS, tradeLabel } from './supplier/serverCopy';
-import { call } from './supplier/api';
+import { call, REASONING_TIMEOUT_MS } from './supplier/api';
 import { warmTabs, firstRead } from './supplier/tabPrefetch';
 // THE ONE MONEY FORMATTER (audit 22 Sep 2026, SP-I-10): ./supplier/money.ts. The local `aed(n)` that
 // stood here printed "AED 1,200" on /ar too, while the quotation tabs printed "1,200 د.إ" for the
@@ -1274,7 +1274,10 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
     : (Array.isArray(q0.items) && q0.items.length ? q0.items.map((r) => ({ description: r.description || '', qty: r.qty == null ? '' : String(r.qty), unit: r.unit || '', unit_price: r.unit_price == null ? '' : String(r.unit_price) })) : [{ description: '', qty: '', unit: '', unit_price: '' }]);
   const [amount, setAmount] = useState(vat0 === 'inclusive' && Number(q0.amount_as_stated) > 0 ? String(q0.amount_as_stated) : q0.quote_amount != null ? String(q0.quote_amount) : ''); const [lead, setLead] = useState(q0.lead_time || ''); const [notes, setNotes] = useState(q0.notes || ''); const [scope, setScope] = useState(q0.scope || ''); const [validity, setValidity] = useState(q0.validity || ''); const [payment, setPayment] = useState(q0.payment_terms || ''); const [warranty, setWarranty] = useState(q0.warranty || ''); const [items, setItems] = useState(lines0); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const [reading, setReading] = useState(false); const [prop, setProp] = useState(null); const [orig, setOrig] = useState(null);
-  const onFile = async (file) => { if (!file) return; setReading(true); setMsg(''); try { const { images, b64, mime } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name, mime } }, token); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (pr.notes) setNotes(pr.notes); if (VAT_BASIS.includes(pr.vat_treatment)) setVat(pr.vat_treatment); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + lineCount(lang, pr.line_items.length) : '') + t(lang, 'read_quote_post') + (pr.options && pr.options.length > 1 ? ' ' + srvText(lang, 'options_split', { count: pr.options.length }) : '')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_read'))); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
+  // THE QUOTATION IS READ BEFORE THE ANSWER (28 Oct 2026, sales_engineer): extract_quote calls quote_extract synchronously,
+  // whose model read measured p50 15.5 s / p90 20.7 s / max 24.7 s (ai_cost_log, 30 days, n=29), so the 20 s default cut
+  // off more than half of all quotation uploads. It waits REASONING_TIMEOUT_MS, as the document uploads do (#1709).
+  const onFile = async (file) => { if (!file) return; setReading(true); setMsg(''); try { const { images, b64, mime } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name, mime } }, token, { timeoutMs: REASONING_TIMEOUT_MS }); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (pr.notes) setNotes(pr.notes); if (VAT_BASIS.includes(pr.vat_treatment)) setVat(pr.vat_treatment); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + lineCount(lang, pr.line_items.length) : '') + t(lang, 'read_quote_post') + (pr.options && pr.options.length > 1 ? ' ' + srvText(lang, 'options_split', { count: pr.options.length }) : '')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_read'))); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
   const [chk, setChk] = useState(null); const [checking, setChecking] = useState(false);
   const vatArgs = { vat_treatment: vat || undefined, price_ex_vat: vat === 'inclusive' && Number(exVat) > 0 ? Number(exVat) : undefined };
   const buildPayload = () => prop ? { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, conditions: prop.conditions || '', exclusions: prop.exclusions || '', validity: validity || prop.validity || '', payment_terms: payment || prop.payment_terms || '', warranty: warranty || prop.warranty || '', items: prop.line_items || [], masked_terms: prop.masked_terms || null, source: 'upload', original_file_path: orig && orig.path, original_file_name: orig && orig.name, subtotal: prop.subtotal ?? undefined, vat_amount: prop.vat_amount ?? undefined, trn: prop.trn ?? undefined, option_totals: prop.option_totals || undefined, ...vatArgs, ...optionArgs } : { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, validity, payment_terms: payment, warranty, items: items.filter((x) => (x.description || '').trim()), source: 'form', ...vatArgs, ...optionArgs };
@@ -1490,7 +1493,10 @@ function Documents({ token, lang, onSaved = null, onExpired = null }) {
       if (d.error) { setBusy(''); setErr(srvMsg(lang, d.error, srvText(lang, 'direct_upload_failed'))); return; }
       item = { kind, path: d.path, filename: d.filename, mime: d.mime, expiry };
     } else item = { kind, original_b64: await fileToB64(file), filename: file.name, mime: file.type, expiry };
-    const j = await call('supplier_portal', { action: 'save_documents', items: [item] }, token);
+    // A LICENCE OR CERTIFICATE IS READ BEFORE THE ANSWER (28 Oct 2026, sales_engineer; production document walk e8d1e4b5):
+    // a phone photo of a licence answered in 18,019 ms (the model's read, ~9-16 s), two seconds inside the 20 s every
+    // other call keeps. A slower read was cut off and the supplier told the save failed while the file was on record.
+    const j = await call('supplier_portal', { action: 'save_documents', items: [item] }, token, { timeoutMs: REASONING_TIMEOUT_MS });
     setBusy('');
     if (j && j.read) setReads((o) => ({ ...o, ...j.read }));
     const failed = (j && j.failed) || [];
@@ -1893,7 +1899,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     if (!file) return; setUploading(true); setLicNote(''); setMsg('');
     try {
       const { images, b64, mime } = await fileToImages(file);
-      const j = await call('supplier_api', { action: 'process_docs', license: { original_b64: b64, file_b64: b64, images, filename: file.name, mime } }, token);
+      // The licence is read before the answer (the model, up to two attempts): the reasoning wait, not 20 s (see save_documents).
+      const j = await call('supplier_api', { action: 'process_docs', license: { original_b64: b64, file_b64: b64, images, filename: file.name, mime } }, token, { timeoutMs: REASONING_TIMEOUT_MS });
       if (!(j && j.ok)) { setMsg(srvMsg(lang, j, t(lang, 'lic_upload_failed'))); }
       else {
         setLicOnFile(true);
