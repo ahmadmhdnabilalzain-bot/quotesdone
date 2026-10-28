@@ -818,7 +818,7 @@ function Login({ onAuth, lang, startMode }) {
             after "Create my account" the subtitle still read "Enter your work email and we'll create your account", and
             nothing on the screen named the address, so a typo could only be found by waiting for a code that never came. */}
         <div className={cn(S.sub, 'mx-auto mt-2')}>{step === 'code' && ident
-          ? t(lang, 'code_sent_to').split('{id}').map((part, i) => i === 0 ? part : <Fragment key={i}><bdi dir="ltr" className="font-semibold text-foreground">{ident}</bdi>{part}</Fragment>)
+          ? t(lang, 'code_sent_to').split('{id}').map((part, i) => i === 0 ? part : <Fragment key={i}><bdi dir="ltr" className="font-semibold text-foreground [overflow-wrap:anywhere]">{ident}</bdi>{part}</Fragment>)
           : (isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub'))}</div>
       </div>
       <div className={cn(S.tabsWrap, 'mb-4 flex w-full')}><button className={cn(S.tab, 'flex-1', !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button><button className={cn(S.tab, 'flex-1', isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button></div>
