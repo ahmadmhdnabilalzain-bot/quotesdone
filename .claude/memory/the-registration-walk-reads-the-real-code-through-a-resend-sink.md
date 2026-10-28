@@ -21,6 +21,9 @@ through the real M365 hand-off: Svix-signed, `m365:` id, EOP Authentication-Resu
 answer took 141–172 s.
 **A reply probe touches the support tables too.** email_triage's support wiring creates `support_customer_profile` +
 `support_case` for the sender. The first probe's clean-up missed them. Clean them, then scan every e-mail column.
+That scan cannot see jsonb: `z90_every_send_is_tracked` files a `delivery.request` handoff in `agent_actions` (address
+in `detail->>'to_email'`) plus two `company_event` rows for every queued notice. The 28 Oct run left those behind
+(agent_actions 317307, removed in the #1704 review); the probe now deletes and checks them too.
 
 **Harness traps at 390 px:** `navigation.first()` is the site header, and `input[type=file]` nth(n) differs by width.
 Find the strip by "Inquiries received" and each upload by its card heading. Playwright actions have no default timeout:

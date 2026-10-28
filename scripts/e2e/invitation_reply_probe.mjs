@@ -26,12 +26,19 @@ const FN = 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1';
 const tag = 'rp' + Date.now().toString(36).slice(-6);
 const addr = `delivered+qd-${tag}-sup0@resend.dev`;
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
+// INCAPABLE OF REACHING A PERSON, asserted before the first network call (review of #1704, 28 Oct). The address and the
+// lead's name are built here, never read from input; this refuses to go on if an edit ever lets either drift off the
+// sink / the ZZ DEMO convention. The founder's own mailboxes and every real domain fail the first test.
+const NAME = `ZZ DEMO Reply Probe ${tag}`;
+if (!/^delivered\+qd-rp[a-z0-9]{1,8}-sup0@resend\.dev$/.test(addr) || !NAME.startsWith('ZZ DEMO ')) {
+  console.error(`REFUSED: ${addr} / ${NAME} is not a Resend sink address on a ZZ DEMO lead`); process.exit(2);
+}
 const results = [];
 const step = (name, ok, detail = '') => { results.push({ name, ok }); console.log(`${ok ? 'PASS' : 'FAIL'} ${name}${detail ? ' — ' + detail : ''}`); };
 let lead = null;
 try {
   lead = (await write(`insert into public.leads (company_name, email, emirate, source, invite_status, invited_at, locale, tags)
-    values ('ZZ DEMO Reply Probe ${tag}', ${q(addr)}, 'Dubai', 'directory', 'sent', now(), 'en', array['qd_demo','qd_run:${tag}'])
+    values (${q(NAME)}, ${q(addr)}, 'Dubai', 'directory', 'sent', now(), 'en', array['qd_demo','qd_run:${tag}'])
     returning id, claim_token::text t`, 'probe lead'))[0];
   const sec = Object.fromEntries((await read(`select key, value from public.app_secrets
     where key in ('resend_inbound_token','resend_inbound_signing_secret','cred_fn_resend_inbound')`)).map((r) => [r.key, r.value]));
@@ -68,13 +75,23 @@ try {
   step('an answer is queued for the supplier', out.length === 1, `${Date.now() - t0} ms after the reply arrived`);
   step('the answer carries the company\'s own registration link', reply.includes(`https://quotesdone.com/portal?t=${lead.t}`));
   step('the answer never calls the company registered', !/you are (already )?registered|registered supplier/i.test(reply));
-  if (reply) console.log('\n' + reply + '\n');
+  // The claim token is live until the clean-up below deletes the lead: never print it.
+  if (reply) console.log('\n' + reply.split(String(lead.t)).join('<claim_token>') + '\n');
 } finally {
   if (lead) {
+    const handoffs = (await read(`select id::text id from public.agent_actions where target_table = 'notifications' and target_id in
+      (select 'delivery.request:notification:' || id from public.notifications where lower(to_email) = lower(${q(addr)}))`)).map((r) => r.id);
     await write(`delete from public.support_case where customer_profile_id in (select id from public.support_customer_profile where lower(email) = lower(${q(addr)}));
       delete from public.support_customer_profile where lower(email) = lower(${q(addr)});
       delete from public.agent_actions where target_table = 'inbound_messages' and target_id in (select id::text from public.inbound_messages where lower(from_email) = lower(${q(addr)}));
       delete from public.agent_actions where detail->>'lead_id' = '${lead.id}' or (target_table = 'leads' and target_id = '${lead.id}');
+      -- z90_every_send_is_tracked files a delivery.request handoff for every queued notice, and fn_seat_handoff_event
+      -- streams it to company_event. Both carry the sink address only inside jsonb, so the e-mail-column scan cannot see
+      -- them: the 28 Oct run left agent_actions 317307 and company_event 1257500-1257501 behind (review of #1704).
+      delete from public.company_event where entity_type = 'agent_actions' and entity_id in (select id::text from public.agent_actions
+        where target_table = 'notifications' and target_id in (select 'delivery.request:notification:' || id from public.notifications where lower(to_email) = lower(${q(addr)})));
+      delete from public.agent_actions where target_table = 'notifications' and target_id in
+        (select 'delivery.request:notification:' || id from public.notifications where lower(to_email) = lower(${q(addr)}));
       delete from public.notifications where lower(to_email) = lower(${q(addr)});
       delete from public.inbound_messages where lower(from_email) = lower(${q(addr)});
       delete from public.leads where id = ${lead.id}`, 'probe clean-up');
@@ -83,7 +100,11 @@ try {
       where c.table_schema = 'public' and c.data_type in ('text','character varying') and (c.column_name ilike '%email%' or c.column_name = 'claimed_by')`);
     const left = [];
     for (const { t, c } of cols) { const n = (await read(`select count(*)::int n from public."${t}" where lower("${c}") = lower(${q(addr)})`).catch(() => [{ n: 0 }]))[0].n; if (n) left.push(`${t}.${c}=${n}`); }
-    step('nothing the probe made is left (every e-mail column scanned)', left.length === 0, left.join(' '));
+    const js = (await read(`select (select count(*) from public.agent_actions where lower(detail->>'to_email') = lower(${q(addr)}) or lower(detail->>'from_email') = lower(${q(addr)}))::int a,
+      (select count(*) from public.company_event where entity_type = 'agent_actions' and entity_id = any(array[${handoffs.map(q).join(',') || "''"}]::text[]))::int e`))[0];
+    if (js.a) left.push(`agent_actions.detail=${js.a}`);
+    if (js.e) left.push(`company_event(handoff)=${js.e}`);
+    step('nothing the probe made is left (every e-mail column, and the handoff rows that carry it in jsonb)', left.length === 0, left.join(' '));
   }
 }
 process.exitCode = results.every((r) => r.ok) ? 0 : 1;
