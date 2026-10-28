@@ -150,21 +150,34 @@ const decodeOnce = (s: string) => s.replace(/&(?:#(\d{1,7})|#x([0-9a-f]{1,6})|([
 /** What follows ", " in a page title rather than a name: an emirate, the country, or a "Suppliers in ..." tagline. */
 const PLACE_OR_TAGLINE = /^(?:dubai|uae|u\.a\.e|united arab emirates|abu dhabi|sharjah|ajman|ras al khaimah|fujairah|umm al quwain|al ain|jebel ali)\b|\bsuppliers?\s+in\b/i;
 const LEGAL = /^(?:l\.?l\.?c\.?|fze|fzco|fzc|fz|tr|dmcc|pjsc|wll)$/i;
-/** Short words that are words, not acronyms, when a name is written in capitals ("AL", "CO", "OIL", "LTD"). */
-const SHORT_WORD = new Set('AL EL OF AND THE FOR CO INC LTD EST BIN BU ABU DAR DE LA DA NEW ONE TOP BIG SEA SUN AIR OIL GAS ART BOX CAR KEY RED BAY SKY ECO PRO ALL TWO WAY HUB LAB MEN'.split(' '));
-const word = (w: string) => w.toLowerCase().replace(/(^|[-/(&'])([a-z])/g, (_m, p, c) => (p === "'" ? p + c : p + c.toUpperCase()));
+/** Two-letter words that are words, not acronyms, when a name is written in capitals ("AL", "CO", "OF"). */
+const SHORT_WORD = new Set('AL EL OF CO BU DE LA DA BY TO IN ON OR AT IS AS MY UP NO'.split(' '));
+/** Three-letter acronyms that carry a vowel. Any other three-letter token with a vowel is a word or an abbreviation and is
+ *  title-cased: MEASURED on all 20,249 distinct leads.company_name (28 Oct 2026, review of #1706), keeping every 3-letter
+ *  token in capitals turned GEN (258 names), ALI (89), IND, MIX, MAT, ENT, AIN, SPA, ENG, BAB and EZZ into shouting. */
+const ACRONYM3 = new Set('UAE UAQ RAK MEP NRA MAF ETA ABD'.split(' '));
+/** Vowel-less abbreviations that read as words, not acronyms: "Co Ltd", "Pvt", "Svcs" (MEASURED 28 Oct 2026: LTD alone
+ *  is in 376 distinct names). */
+const ABBREVIATION = new Set('LTD PVT SVC SVCS MKTG TRDG'.split(' '));
+/** Title case: a letter after anything but a letter or an apostrophe ("Gen.Trading", "Center/L.L.C", "Ronny's"). */
+const word = (w: string) => w.toLowerCase().replace(/(^|[^a-z'’])([a-z])/g, (_m, p, c) => p + c.toUpperCase());
 /** One token of a name written in capitals: a legal suffix or a 2-3 letter acronym stays, anything else is title-cased. */
 const capsToken = (w: string) => {
   const bare = w.replace(/[^A-Za-z.]/g, '');
   if (LEGAL.test(bare)) return w.toUpperCase();
   const letters = w.replace(/[^A-Z]/g, '');
-  if (letters === w && ((w.length <= 3 && w.length >= 2 && !SHORT_WORD.has(w)) || (w.length === 4 && !/[AEIOUY]/.test(w)))) return w;
+  if (letters === w && !ABBREVIATION.has(w) && ((w.length === 2 && !SHORT_WORD.has(w)) || (w.length === 3 && (ACRONYM3.has(w) || !/[AEIOUY]/.test(w))) ||
+    (w.length === 4 && !/[AEIOUY]/.test(w)))) return w;
   return word(w);
 };
-/** A company name as a person writes it: entities decoded, a page-title tail cut, SHOUTING lowered; '' for the neutral greeting. */
+/** A company name as a person writes it: entities decoded, a page-title tail cut, SHOUTING lowered; '' for the neutral
+ *  greeting. It never throws: the greeting is not worth a failed send, so any exception reads as "no name". */
 export function companyName(raw: unknown): string {
+  try { return nameFrom(raw); } catch { return ''; }
+}
+function nameFrom(raw: unknown): string {
   let s = decodeOnce(decodeOnce(String(raw || '')));          // twice: "&amp;#8211;" is a dash too
-  s = s.replace(/\s+/g, ' ').split(/\s[|–—-]\s/)[0];           // "Name – tagline", "Name | tagline", "Name - branch"
+  s = s.replace(/\s+/g, ' ').split(/\s*[|»]\s*|\s[–—-]\s|:\s/)[0]; // "Name – tagline", "Name |tagline", "Name: tagline", "Name » x"
   s = s.replace(/\s*\([^()]*\)?\s*$/, '');                   // "Name (Manufacturer and wholesaler of ...)"
   const comma = s.indexOf(', ');
   if (comma > 0 && PLACE_OR_TAGLINE.test(s.slice(comma + 2))) s = s.slice(0, comma);
@@ -173,9 +186,13 @@ export function companyName(raw: unknown): string {
   // a registered name carrying a web address ("www.khaazay.com online division of ...") gets the neutral greeting:
   // the founder's email carries no link, and the name is never cut into something the company did not write
   if (/https?:\/\/|\bwww\.|\b[a-z0-9-]+\.(?:com|ae|net|org|co|biz|info)\b/i.test(s)) return '';
-  // still a title, not a name: too long, too many words, or written to the reader
-  if (s.length > 60 || s.split(' ').length > 8 || /\b(?:we|our|you|your)\b/i.test(s)) return '';
-  if (s === s.toUpperCase() && /[A-Z]{4}/.test(s)) return s.split(' ').map(capsToken).join(' ');
+  // still a title, not a name: too long, too many words, a comma-separated keyword list, or written to the reader. Words
+  // are counted without "&" and legal suffixes: a registered name like "AL MARZOQI AUTO ACCESSORIES & MOBILE PHONE TRADING
+  // CO LLC" is long and is still a name (MEASURED 28 Oct 2026: a plain 8-word / 60-char cap sent 280 such names to "Hello,").
+  const words = s.split(' ').filter((w) => w !== '&' && !LEGAL.test(w.replace(/[^A-Za-z.]/g, '')));
+  if (s.length > 80 || words.length > 10 || (s.match(/, /g) || []).length >= 2) return '';
+  if (words.length >= 4 && /\b(?:we|our|you|your)\b/i.test(s)) return '';
+  if (s === s.toUpperCase() && /[A-Z]{4}/.test(s)) return s.split(' ').map((t) => t.split('-').map(capsToken).join('-')).join(' ');
   return s.split(' ').map((w) => (LEGAL.test(w.replace(/[^A-Za-z.]/g, '')) && /[a-z]/.test(w) && w.length > 2 ? w.toUpperCase() : w)).join(' ');
 }
 /** "fire_fighting" -> "fire fighting"; '' when there is none. */

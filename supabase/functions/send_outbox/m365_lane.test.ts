@@ -475,3 +475,39 @@ Deno.test('the greeting reads a company name, not a scraped page title (notifica
   assert(m365InvitationText({ company: title }).startsWith('Hello,\n'));
   assertEquals(companyName('We supply the best tiles'), '');
 });
+
+// Review of #1706, 28 Oct 2026: the old and the new companyName were run over all 20,249 distinct leads.company_name
+// (read-only). These are the shapes where the first cut of the new function read WORSE than the old one; each must keep
+// the old good reading. A long registered name is still a name, a three-letter word is not an acronym, and a letter after
+// "." or "/" is capitalised.
+Deno.test('a long registered name, a three-letter word and a dotted suffix read as the old function read them', () => {
+  const CASES: ReadonlyArray<readonly [string, string]> = [
+    ['AL MARZOQI AUTO ACCESSORIES &#038; MOBILE PHONE TRADING CO LLC', 'Al Marzoqi Auto Accessories & Mobile Phone Trading Co LLC'],
+    ['AL LAZIM MOBILE PHONES &#038; ELECTRIC DEVICES TRADING LLC', 'Al Lazim Mobile Phones & Electric Devices Trading LLC'],
+    ['AL THURATH AL ASEEL CONT &#038; ELEC MECH LLC', 'Al Thurath Al Aseel Cont & Elec Mech LLC'],
+    ['GHOLAM RASUL GEN TRADING CO LLC', 'Gholam Rasul Gen Trading Co LLC'],
+    ['PETRA ENG ARCHITECTURAL CONSULTANTS', 'Petra Eng Architectural Consultants'],
+    ['BAB AL SHAMS DESERT RESORT & SPA', 'Bab Al Shams Desert Resort & Spa'],
+    ['READY MIX BETON L L C', 'Ready Mix Beton LLC'],
+    ['POLY PRODUCTS CO LTD', 'Poly Products Co Ltd'],
+    ['ARABIAN GULF SECURITY SVCS', 'Arabian Gulf Security Svcs'],
+    ['SKY LINE TRADING LLC', 'Sky Line Trading LLC'],
+    ['SCHEFFER SAFETY TRADING L.L.C.O.P.C ( EYEVEX SAFETY ABU DHABI )', 'Scheffer Safety Trading L.L.C.O.P.C'],
+    ['ORYX HEAVY EQUIP.SPARE PARTS TR L L C', 'Oryx Heavy Equip.Spare Parts TR LLC'],
+    ['AMNA NETWORKING SOLUTIONS LLC-SPC', 'Amna Networking Solutions LLC-SPC'],
+    ['GULF WIRELESS &#038; TV CO LLC', 'Gulf Wireless & TV Co LLC'],
+    ['Leeds Furnishing: Premium Home Furnishing in Dubai & Abu Dhabi | Luxury Home', 'Leeds Furnishing'],
+    ['cctv company in Dubai |CCTV Camera Installation Company in Dubai', 'cctv company in Dubai'],
+  ];
+  for (const [raw, want] of CASES) assertEquals(companyName(raw), want, raw);
+  // a keyword list is a title: the neutral greeting
+  assertEquals(companyName('Office Glass Partition Dubai, Glass Work Dubai, Glass Partition Maker'), '');
+  // it never throws, whatever it is handed
+  const hostile = { toString() { throw new Error('boom'); } };
+  assertEquals(companyName(hostile), '');
+  assert(m365InvitationText({ company: hostile as unknown as string }).startsWith('Hello,\n'));
+  for (const odd of [null, undefined, 0, '', ' ', '&#0;', '&#xD800;', '&#99999999;', '()', ' - ', '|', '&amp;amp;amp;']) {
+    const got = companyName(odd);
+    assert(typeof got === 'string' && got === got.trim() && (got === '' || got.length >= 2), JSON.stringify(odd));
+  }
+});
