@@ -15,6 +15,24 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_mailbox_fold(p_addr text)
+ RETURNS text
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare e text := lower(btrim(coalesce(p_addr, ''))); l text; d text;
+begin
+  -- "Name <a@b>" is reduced to the address inside the brackets.
+  if e ~ '<[^<>]+>' then e := btrim(substring(e from '<([^<>]+)>')); end if;
+  if position('@' in e) = 0 then return e; end if;
+  l := split_part(e, '@', 1); d := split_part(e, '@', 2);
+  l := regexp_replace(l, '\+.*$', '');
+  if d in ('gmail.com', 'googlemail.com') then l := replace(l, '.', ''); d := 'gmail.com'; end if;
+  return l || '@' || d;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_ad_spend_record(p_account text, p_business_id text, p_rows jsonb, p_is_demo boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -5356,6 +5374,28 @@ begin
       using errcode = '42501';
   end if;
   return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_notifications_no_test_mail_to_the_founder()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_hit text;
+begin
+  select a into v_hit
+    from unnest(array[NEW.to_email] || coalesce(NEW.cc_emails, '{}'::text[])) a
+   where public.fn_is_founder_own_inbox(a)
+   limit 1;
+  if v_hit is not null then
+    raise exception 'no_test_mail_to_the_founder: a % (kind %) may not be addressed to the founder''s own inbox %; '
+      'founder instruction of 27 Oct 2026, "stop doing tests on my email". GlockApps seeds decide deliverability '
+      '(ledger 1312, 1344).', NEW.type, coalesce(NEW.kind, '-'), v_hit
+      using errcode = 'check_violation';
+  end if;
+  return NEW;
 end $function$
 
 

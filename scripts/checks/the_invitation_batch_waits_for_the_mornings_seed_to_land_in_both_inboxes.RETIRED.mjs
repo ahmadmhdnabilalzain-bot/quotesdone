@@ -1,3 +1,10 @@
+// RETIRED 27 Oct 2026 (it_engineer): its subject is gone. The founder, 27 Oct 2026, "stop doing tests on my email.
+// thats extremely useless". The morning seed it asserted went to his own Gmail and management@ mailbox;
+// scripts/sql/no_test_mail_goes_to_the_founders_own_inboxes.sql retires it (fn_invite_placement_due queues nothing,
+// fn_invite_placement_gate answers 'fail:seed_retired') and a trigger refuses any seed addressed to him. The opposite is
+// now guarded by scripts/checks/no_test_mail_goes_to_the_founders_own_inboxes.test.mjs. The pause and the same-day brake
+// it also read stay guarded by scripts/checks/the_it_engineer_reads_gmail_postmaster_daily.test.mjs.
+//
 // THE INVITATION BATCH WAITS FOR THE MORNING'S SEED TO LAND IN BOTH INBOXES (24 Sep 2026, it_engineer).
 //
 // Each sending day, one seed invitation goes to the founder's Gmail and Microsoft 365 inbox at 05:15 UTC

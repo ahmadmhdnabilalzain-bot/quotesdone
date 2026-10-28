@@ -86,7 +86,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A branch can silently revert main (27 Oct)](a-branch-can-silently-revert-main.md) — #1672; review the whole diff against main
 - [Diff SQL against live production, not the mirror (27 Oct)](diff-sql-against-live-production-not-the-mirror.md) — #1660 nearly reverted #1644's live code
 - [quotesdone2 is the live publishable key (27 Oct)](quotesdone2-is-the-live-publishable-key.md) — never revoke it; fn_gateway_client_key() is the one source
-- [Exchange strips List-Unsubscribe-Post (27 Oct)](exchange-strips-list-unsubscribe-post.md) — fix is a transport rule; TNEF already fixed
+- [Exchange strips List-Unsubscribe-Post (27 Oct)](exchange-strips-list-unsubscribe-post.md) — transport rule CREATED 27 Oct 23:35Z by it_engineer (exo_roles verdict ready, apply created, read back); recipient header to re-measure by GlockApps only
 - [End-of-session log sweep](end-of-session-log-sweep.md) — GitHub Actions, edge logs, cron
 - [Supabase access has three paths](supabase-access-has-three-paths.md)
 - [Check a PR's base before merging](check-a-prs-base-before-merging.md) — verify baseRefName and main's head
@@ -146,6 +146,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [CHECKPOINT 27 Oct — cloud only, invitations HELD for GlockApps](checkpoint-27-oct-cloud-invitations-held.md) — READ FIRST: laptop has no keys; invite_enabled=false; GlockApps 27 Oct FAILED (Microsoft 0/18 inbox), copy now variant A, winmail.dat/TNEF on every external copy (admin fix), compressed warm-up, re-test day 3 with the LAST credit; warm-up plan; 16 open PRs by state
 - [Security hardening 27 Oct — SSL, network, legacy JWT, pg_net: state and next steps](security-hardening-27-oct-state.md) — nothing applied (restart / unproven exemptions); legacy JWT secret still trusted until the consumer PR, then disable + revoke; pg_net needs Supabase support
 - [Invitations resume only at ≥80% Outlook inbox](invitations-resume-only-at-80-percent-outlook-inbox.md) — 27 Oct, instr 1312: GlockApps from supplier@; report inbox/spam/promotions per provider
+- [No test email to the founder's own inboxes (27 Oct)](no-test-email-to-the-founders-own-inboxes.md) — standing: no seed/test/placement/warm-up mail to his 6 mailboxes; morning seed retired; resuming invites must also replace the seed gate with the GlockApps verdict
 - [Legacy key move, step 1 (27 Oct)](legacy-key-move-step-1-27-oct.md) — every consumer reads publishable/secret first, legacy as fallback; a new key as Bearer ONLY reads as anon on Storage; watch HS256 24-48 h, then disable, then revoke
 - [Standing approval: merge and deploy reviewed PRs](standing-approval-merge-and-deploy-reviewed-prs.md) — 27 Oct, instr 1340: reviewed + gate-clean PRs ship without asking; policy, real sends, spend and irreversible steps still go to him
 - [Ask before the internal test email management@ → supplier@](ask-before-the-internal-test-email.md) — 27 Oct, instr 1314: his explicit yes first; DROPPED later that day (not a prerequisite)
