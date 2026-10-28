@@ -71,6 +71,27 @@ export function noAutoReply(m: MailFacts, founderAddrs: string[]): NoAutoReply |
   return null;
 }
 
+// AN INVITED SUPPLIER'S REPLY TO THE INVITATION MAILBOX IS ANSWERED (sales_engineer, 28 Oct 2026, ledger 1375: "tomorrow
+// morning i need suppliers receiving invitations and registering"). supplier@ is listed above as an internal intake box,
+// so noAutoReply calls every mail to it 'internal'. Since 6 Oct the Microsoft 365 lane sends the invitation from
+// supplier@ with no Reply-To, so a supplier's "yes" lands exactly there -- and was never answered. Measured on
+// production 27 Oct: all three replies to supplier@ (inbound_messages 653-655) read "Not answered automatically:
+// internal"; a ZZ DEMO invited lead's "yes" probed 28 Oct got the same, and only a waiting sales-engineer handoff.
+// The exception is narrow on purpose: the mailbox is the ONLY reason the row is internal (no owner_role, no back-office
+// tag, no other internal address), the sender is not on our domain, and the caller has proved the sender is a lead
+// (fn_mail_sender_known = 'supplier'). The founder's own warm-up replies and any stranger writing to supplier@ stay
+// unanswered, exactly as before.
+export const INVITATION_MAILBOX = 'supplier@quotesdone.com';
+export function invitationReplyAnswerable(m: MailFacts, senderRelation: unknown): boolean {
+  if (senderRelation !== 'supplier') return false;
+  if (m.owner_role) return false;
+  if (BACK_OFFICE_TAG.test(String(m.body ?? '').trim())) return false;
+  const from = String(m.from_email ?? '').trim().toLowerCase();
+  if (OWN_DOMAIN.test(from.split('@')[1] || '')) return false;
+  const to = String(m.to_email ?? '').toLowerCase().split(/[,;]/).map((a) => (a.trim().match(/<?([^<>\s]+@[^<>\s]+?)>?$/) || [])[1] || '').filter(Boolean);
+  return to.includes(INVITATION_MAILBOX) && to.every((a) => a === INVITATION_MAILBOX || !isInternalMailbox(a));
+}
+
 /** The e-mail around a reply. The reply itself is ALWAYS written by a model in the moment (aiReply; founder rulings
  *  1195/1196, 12 Oct 2026): the person-handoff sentence, the quoted knowledge passage and the 'we received it' receipt that
  *  stood here were removed. Only the fixed greeting and sign-off are code. */
