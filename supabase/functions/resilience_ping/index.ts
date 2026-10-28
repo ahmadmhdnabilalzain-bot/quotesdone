@@ -212,18 +212,12 @@ async function orgTaskTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
-// THE SALES ENGINEER'S DAILY SUPPLIER OUTREACH (21 Sep 2026). enqueue_supplier_invites had no caller
-// after pg_cron went (last plan 7 Sep); fn_sales_engineer_supplier_outreach_tick is its caller now, and
-// adds the day-2/day-6 registration reminders and the 24-hour clock on a submitted registration. The
-// routine gates itself to once per Dubai day and holds — recording the held day — while the campaign
-// gates are off (the_invitations_go_out_every_day_and_a_started_registration_is_followed.sql).
-async function supplierOutreachTick(): Promise<unknown> {
-  try {
-    const { data, error } = await admin.rpc('fn_sales_engineer_supplier_outreach_tick');
-    if (error) return { ok: false, error: error.message };
-    return data;
-  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
-}
+// THE SALES ENGINEER'S DAILY SUPPLIER OUTREACH LEFT THIS TICK ON 28 OCT 2026 (sales_engineer). It ran here as the step
+// `supplierOutreach` from 21 Sep, through PostgREST, where the authenticator's statement_timeout is 8 s. The held path
+// fits; an open day does not (measured 28 Oct: enqueue_supplier_invites alone took 13.4 s), so on the first open day
+// every beat from 09:16 Dubai was cancelled and nothing was invited. fn_sales_engineer_supplier_outreach_tick is now the
+// seat duty sales_engineer.supplier_outreach on its own 60 s pg_cron job
+// (the_invitation_batch_runs_on_its_own_clock_and_the_guard_takes_the_link_less_copy.sql). Do not bring it back here.
 
 // A BOUNCE REPORT IS PROVEN TO ARRIVE EVERY DAY (21 Sep 2026, customer_support). Before the supplier
 // campaign the last bounce resend_webhook had recorded was 15 Aug, and nothing could tell "no bounces"
@@ -1689,7 +1683,6 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   itlater: { run: () => kickDetached('itlater') },
   specoffer: { run: specOfferTick },
   marketingOutreach: { run: marketingOutreachTick },
-  supplierOutreach: { run: supplierOutreachTick },
   deliveryCanary: { run: deliveryCanaryTick },
   seatClocks: { run: seatClocksTick },
   seatDuties: { run: seatDutiesTick },

@@ -77,6 +77,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Nothing is one-way](nothing-is-one-way.md) — every handoff/report tracked, replied, re-verified and closed by the originator
 - [Always name the seat](always-name-the-seat.md) — never say "an agent"; commits signed by the owning seat
 - [All conversations are kept for sales](all-conversations-are-kept-for-sales.md) — kept while active + 5 years after closure if lawful (6 Oct, ledger 1126), then purged
+- [An open invitation day runs on its own clock (28 Oct)](an-open-invitation-day-runs-on-its-own-clock.md) — 0 invited on the first open day: the tick hit the 8 s RPC limit and the a07 guard still wanted a portal link; own 60 s seat-duty job + guard fixed
 - [Exact trade match or none; categories open](exact-trade-match-or-none-categories-open.md) — no nearest mapping; new trades welcome
 - [WhatsApp notices go to the confirmed number](whatsapp-notices-go-to-the-confirmed-number.md) — clause 21 → v12; confirmed inside sign-up with OTP (instruction 391)
 - [TDRA NOL received](tdra-nol-received.md) — NOL-26-100000665 for www.quotesdone.ae, expires 14 Sep 2027

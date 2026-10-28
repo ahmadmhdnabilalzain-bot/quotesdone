@@ -3,7 +3,7 @@
 // The audit of 21 Sep found enqueue_supplier_invites with no caller (last plan 7 Sep, pg_cron gone),
 // no follow-up for a supplier who starts registering and stops, and no clock on a submitted
 // registration. This fails if any of the three causes comes back in the source:
-//   * the heartbeat stops naming the daily step, or the step stops calling the routine;
+//   * the daily routine loses its caller (since 28 Oct its own seat-duty job, not the heartbeat step);
 //   * the routine stops calling enqueue_supplier_invites, or writes a reminder while the gates are shut;
 //   * a reminder can reach a fixture, a screened, bounced or suppressed address;
 //   * the 24-hour clock escalates to the founder instead of the CEO;
@@ -31,13 +31,14 @@ function body(name) {
   return sql.slice(start, end);
 }
 
-test('the heartbeat names the daily outreach step and it calls the routine', () => {
-  const open = ping.indexOf("const STEP_RUN: Record<string, Omit<Step, 'name'>> = {");
-  const close = ping.indexOf('\n};', open);
-  assert.match(ping.slice(open, close), /^\s{2}supplierOutreach:\s*\{\s*run:\s*supplierOutreachTick\s*\}/m,
-    'STEP_RUN no longer runs supplierOutreachTick: the daily invitation batch has no caller again');
-  assert.match(ping, /admin\.rpc\('fn_sales_engineer_supplier_outreach_tick'\)/, 'supplierOutreachTick no longer calls the routine');
-  assert.match(sql, /\('supplierOutreach', interval '30 min'/, 'the resilience_step row for supplierOutreach is not seeded');
+// MOVED ANCHOR, 28 Oct 2026 (sales_engineer): the caller is no longer resilience_ping's step, whose 8 s RPC limit
+// cancelled every open-day batch, but the seat duty sales_engineer.supplier_outreach on its own 60 s job. The
+// assertion is the same one -- the daily batch has a caller -- read where the caller now lives.
+test('the daily outreach routine has a caller: its own seat-duty job, not the 8 s heartbeat', () => {
+  const own = readFileSync('scripts/sql/the_invitation_batch_runs_on_its_own_clock_and_the_guard_takes_the_link_less_copy.sql', 'utf8');
+  assert.match(own, /insert into public\.seat_duty[\s\S]{0,200}'sales_engineer\.supplier_outreach', 'sales_engineer', interval '15 minutes', 'fn_sales_engineer_supplier_outreach_tick'/,
+    'no seat duty runs fn_sales_engineer_supplier_outreach_tick: the daily invitation batch has no caller again');
+  assert.match(own, /select public\.fn_seat_duty_isolate\('sales_engineer\.supplier_outreach'\)/, 'the outreach duty is not on its own 60 s job');
 });
 
 test('the daily routine runs once per Dubai day and calls the existing composer', () => {
