@@ -33,6 +33,11 @@ const code = (t) => t.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 const has = (p) => existsSync(join(ROOT, p));
 
 // The body production runs for a routine (optionally one signature): the LAST definition in apply order.
+// 28 Oct 2026 (it_engineer, ledger 1406): the tests assert what that body DOES, never which file holds it. They used to
+// pin the gate, the batch, the tick and the nudges to FILE as well, and the pin went red on main when
+// the_invitation_batch_runs_on_its_own_clock_and_the_guard_takes_the_link_less_copy.sql (#1705) redefined the tick,
+// body token for token the same, so it could register the tick as a seat duty. A later file that changes what a body
+// does still fails the property assertions below; one that only moves it no longer turns the check red.
 function canonical(fn, argsStart = '') {
   const re = new RegExp(`create or replace function public\\.${fn}\\(${argsStart}`, 'i');
   const path = manifestWithPending().filter((p) => { try { return re.test(code(R(p))); } catch { return false; } }).pop();
@@ -47,11 +52,10 @@ function canonical(fn, argsStart = '') {
 test('the canonical gate reads the GlockApps verdict, per provider, and fails closed by name', () => {
   assert.ok(has(FILE), `${FILE} is missing: the gate still answers fail:seed_retired for ever`);
   const strict = canonical('fn_invite_placement_gate', 'p_day date');
-  assert.equal(strict.path, FILE, `${strict.path} is the canonical gate, not the verdict reader`);
-  assert.match(strict.body, /fn_invite_placement_judge\(p_day, p_now\) ->> 'strict'/, 'the no-argument form does not answer for the strictest provider');
+  assert.match(strict.body, /fn_invite_placement_judge\(p_day, p_now\) ->> 'strict'/,
+    `the no-argument form (canonical in ${strict.path}) is not the verdict reader: it does not answer for the strictest provider`);
   const per = canonical('fn_invite_placement_gate', 'p_provider text');
-  assert.equal(per.path, FILE);
-  assert.match(per.body, /fn_invite_placement_judge\(p_day, p_now\) ->> v_c/);
+  assert.match(per.body, /fn_invite_placement_judge\(p_day, p_now\) ->> v_c/, `the per-provider form (canonical in ${per.path}) does not read its class's verdict`);
   const v = canonical('fn_invite_placement_class_verdicts');
   assert.match(v.body, /from public\.deliverability_test d/);
   assert.match(v.body, /from public\.invite_placement_bar/);
@@ -90,10 +94,9 @@ test('the finding is one a day through the registered relay, on an open day only
 test('the batch, the tick and the nudges skip a failing provider instead of holding every one', () => {
   for (const fn of ['enqueue_supplier_invites', 'fn_sales_engineer_supplier_outreach_tick', 'fn_sales_engineer_nudges_invited_suppliers']) {
     const c = canonical(fn);
-    assert.equal(c.path, FILE, `${fn} is canonical in ${c.path}`);
-    assert.match(c.body, /fn_invite_placement_open_providers\(/, `${fn} does not ask which providers are open`);
-    assert.doesNotMatch(c.body, /fn_invite_placement_gate\(/, `${fn} still holds every provider on the strict answer`);
-    assert.match(c.body, /cardinality\(.*?\) = 0/s, `${fn} does not hold when NO provider is open`);
+    assert.match(c.body, /fn_invite_placement_open_providers\(/, `${fn} (canonical in ${c.path}) does not ask which providers are open`);
+    assert.doesNotMatch(c.body, /fn_invite_placement_gate\(/, `${fn} (canonical in ${c.path}) still holds every provider on the strict answer`);
+    assert.match(c.body, /cardinality\(.*?\) = 0/s, `${fn} (canonical in ${c.path}) does not hold when NO provider is open`);
   }
   assert.match(canonical('enqueue_supplier_invites').body, /fn_supplier_invite_candidates\(v_remaining, v_open\)/);
   const n = canonical('fn_sales_engineer_nudges_invited_suppliers').body;
