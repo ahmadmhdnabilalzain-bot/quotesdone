@@ -71,10 +71,12 @@ or approved-manufacturer list; products must meet the UAE approvals for the job)
 
 1. **Register** on the supplier portal: claim or create the company listing. (FAQ "How do I register?")
 2. **The mandatory six** must be complete before any match: business name (licensed legal name), mobile
-   (OTP-verified), email (verified), valid UAE trade licence, company profile (trades and emirates), signed
-   Supplier Agreement. (SA§13; HWV)
+   (OTP-verified), email (verified), valid UAE trade licence (uploaded), company profile (uploaded), signed
+   Supplier Agreement. The licence and the profile are the two required documents. (SA§13; HWV)
 3. **Verification** within **3 working days** of complete documents: licence number, issuing authority and
-   expiry date are checked. No supplier is approved automatically. (SA§13; HWV)
+   expiry date are read from the licence and checked. Approval is **automatic** when the six are complete and
+   the licence is read and in date (SA "Automated decisions"). An expired licence must be renewed first; a
+   licence that cannot be read in full is held for review, and the supplier is told what is pending. (SA§13; HWV)
 4. **Receive matched RFQs** anonymised; ignoring an invitation carries no penalty. (FAQ "Can I decline invitations?")
 5. **Quote** itemised: scope, line items with brand/model and specs, quantities, unit prices, materials,
    lead time, validity, warranty, payment terms, exclusions. A quote below the quality bar is held as a

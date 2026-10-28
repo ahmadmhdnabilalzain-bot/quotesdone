@@ -54,25 +54,25 @@ No. QuotesDone takes no commission on won work. The only supplier-side charge is
 
 **How does QuotesDone work for a supplier?**
 
-A supplier registers and is approved by providing a contact name, an SMS-verified mobile, a trade licence number, a company profile document, and accepting supplier terms. Once approved they receive relevant RFQs and submit quotes (uploaded and OCR-read, or as line items). Quotes are quality-scored and delivered anonymised; the supplier is contacted only after the buyer pays to reveal.
+A supplier registers and completes the mandatory six: the company's licensed name, a UAE mobile number verified with a code, a verified work email, the trade licence (uploaded), the company profile (uploaded) and acceptance of the Supplier Agreement. Once approved they receive relevant RFQs and submit quotes (uploaded and OCR-read, or as line items). Quotes are quality-scored and delivered anonymised; the supplier is contacted only after the buyer pays to reveal.
 
 **How do I register as a supplier?**
 
-You provide a contact name, an SMS-verified mobile number, your trade licence number, a company profile document, and accept the supplier terms. The trade licence is the only required document and is machine-verified by OCR. Approval is targeted within 3 working days.
+Open the supplier portal, choose "Create account" with your work email, and complete the mandatory six: the company's licensed name, a UAE mobile number verified with a code, a verified work email, the trade licence (uploaded), the company profile (uploaded) and acceptance of the Supplier Agreement. The licence number, issuing authority and expiry date are read from the licence itself. Approval follows within 3 working days of complete documents, and is automatic when the six are complete and the licence is read and in date.
 
 ## Verification
 
 **How are suppliers verified?**
 
-Every supplier provides a trade licence number, the only required document, machine-verified by OCR against the licence itself. They also need a contact name, SMS-verified mobile, a company profile document, and to accept the terms. This is what lets a quote carry a licence-verified badge.
+Every supplier completes the mandatory six before it can be matched: the company's licensed name, a UAE mobile number verified with a code, a verified work email, the trade licence (uploaded), the company profile (uploaded) and acceptance of the Supplier Agreement. The licence number, issuing authority and expiry date are read from the licence itself and checked (Supplier Agreement clause 13). This is what lets a quote carry a licence-verified badge.
 
 **Do I need insurance or ISO certificates to join as a supplier?**
 
-No. Insurance, ISO, manufacturer authorisation, EGR, and catalogues are all optional; they only widen reach and improve ranking. The only required document is your trade licence.
+No. Insurance, ISO, manufacturer authorisation, EGR, and catalogues are all optional; they only widen reach and improve ranking. The two required documents are your trade licence and your company profile, both uploaded.
 
 **How long does supplier approval take?**
 
-Supplier approval is targeted within 3 working days. Today approval is manual; an auto-approve flag exists in the system but is currently switched off.
+Within 3 working days of complete documents (Supplier Agreement clause 13). Approval is automatic when the mandatory six are complete and the licence is read and in date. An expired licence must be renewed first, and a licence that cannot be read in full is held for review; the supplier is told what is pending.
 
 ## Matching
 
