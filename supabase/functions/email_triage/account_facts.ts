@@ -36,20 +36,32 @@ export function supplierFacts(company: string, jobs: SupplierJob[]): string {
 // The reply goes only to the address the mail came from (fn_inbox_send), which is the lead's own address, so the link
 // reaches nobody the invitation itself would not have reached.
 export const SITE = 'https://quotesdone.com';
+// WHAT REGISTRATION NEEDS IS THE SIX, AND NOBODY REGISTERS FOR THEM (it_engineer audit of the supplier journey, 28 Oct
+// 2026, founder ledger 1401). Replayed through the real reply path that day, eight supplier replies: every answer listed
+// the steps without the company profile and without accepting the supplier terms (two of the founder's six, ruling of
+// 7 Sep 2026; fn_supplier_mandatory_six refuses approval without them), and every answer that explained registration
+// ended "reply with the trades you cover and our team will set up the page for you". Nothing performs that: the
+// invite.reply handoff it files is answered by fn_sales_engineer_takes_invite_reply with 'waiting' and nothing more,
+// and the six need the supplier's own verified e-mail and mobile, uploads and acceptance in any case. So the facts name
+// the six and forbid the offer. The live invitation (variant A) makes no such offer; the WhatsApp draft still does.
+export const SIX_ITEMS = 'the company\'s licensed name, a UAE mobile number verified with a code, the verified work e-mail, '
+  + 'the trade licence (uploaded), the company profile (uploaded) and their acceptance of the supplier terms';
+export const NO_SETUP_FOR_THEM = 'Never offer to register them, to set up their company page or to do any step for them, and never say '
+  + 'our team will: only they can verify their e-mail and mobile, upload their documents and accept the terms.';
 export function unregisteredSupplierFacts(company: string, link: string): string {
   return `THE SENDER IS A SUPPLIER COMPANY WE INVITED${company ? ' (' + company + ')' : ''}, matched on their exact e-mail address. `
     + 'THEY HAVE NOT REGISTERED YET: never call them registered and never mention jobs or quotes sent to them. '
     + 'If they say yes, want to join or ask how, tell them registration is free for our first 1,000 suppliers and takes a few minutes: '
-    + `open their company's own registration link ${link} , choose "Create account" with their work e-mail, type the 6-digit code we e-mail them, `
-    + 'then confirm the company details and the trades they cover, upload the trade licence and verify their mobile. Give the link exactly as written, on its own line. '
-    + 'If they would rather not do it themselves, they can reply with the trades they cover and our team will set up the page for them.';
+    + `open their company's own registration link ${link} , choose "Create account" with their work e-mail and type the 6-digit code we e-mail them. `
+    + `To be verified they need all six of: ${SIX_ITEMS}. The trades they cover are confirmed in the Services tab of their portal. `
+    + 'Give the link exactly as written, on its own line. ' + NO_SETUP_FOR_THEM;
 }
 // An UNVERIFIED sender who is a lead: no account is read (the spoof rule below), and the sign-in line alone would send
 // a supplier with no account to a sign-in box. Both routes are named, without a personal link.
 export const SUPPLIER_SIGN_IN_FACT = 'THE SENDER\'S E-MAIL COULD NOT BE VERIFIED AS COMING FROM THEIR ADDRESS, so no account details may be given. '
   + 'If they ask about their jobs, quotes or account, say that for their security they can see them by signing in at quotesdone.com/portal. '
-  + 'If they are not registered yet and want to join, they can register at quotesdone.com/portal with "Create account" and their work e-mail, '
-  + 'or reply with the trades they cover and our team will set up the page for them.';
+  + 'If they are not registered yet and want to join, they can register at quotesdone.com/portal with "Create account" and their work e-mail; '
+  + `to be verified they need all six of: ${SIX_ITEMS}. ` + NO_SETUP_FOR_THEM;
 
 /** The verified sender's own records as reply facts, or '' for anyone else (or when a read fails). */
 export async function accountFacts(admin: Db, email: string, relation: unknown): Promise<string> {
