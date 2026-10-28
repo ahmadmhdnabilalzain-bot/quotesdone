@@ -25,6 +25,32 @@ export function supplierFacts(company: string, jobs: SupplierJob[]): string {
     + jobs.slice(0, 15).map((j) => `- Job #${j.inquiry_id}: ${j.category || 'job'}${j.emirate ? ' in ' + j.emirate : ''}${j.sent_at ? ', sent ' + day(j.sent_at) : ''}, job status ${j.status || 'unknown'}, their quote: ${j.my_quote_status || 'not submitted'}`).join('\n');
 }
 
+// AN INVITED SUPPLIER WHO SAYS "YES" IS NOT YET A REGISTERED SUPPLIER (sales_engineer, 28 Oct 2026, ledger 1375:
+// "tomorrow morning i need suppliers receiving invitations and registering"). Traced that night: the invitation (variant
+// A, no link) asks "Would your company like to receive ... requests?"; the reply reaches resend_inbound through the
+// Microsoft 365 reader, and email_triage answers it. fn_mail_sender_known calls ANY lead 'supplier' (20k directory rows,
+// claimed or not), and the facts below then said "THE SENDER IS A REGISTERED SUPPLIER ... No jobs have been sent to
+// them yet" -- to a company with no account, with no word of how to register. The yes was answered with a falsehood
+// and a dead end. A lead that has not claimed its listing now gets the truth and its own registration link: the same
+// /portal?t=<claim_token> link the old invitation carried, which names the company and opens on "Create account".
+// The reply goes only to the address the mail came from (fn_inbox_send), which is the lead's own address, so the link
+// reaches nobody the invitation itself would not have reached.
+export const SITE = 'https://quotesdone.com';
+export function unregisteredSupplierFacts(company: string, link: string): string {
+  return `THE SENDER IS A SUPPLIER COMPANY WE INVITED${company ? ' (' + company + ')' : ''}, matched on their exact e-mail address. `
+    + 'THEY HAVE NOT REGISTERED YET: never call them registered and never mention jobs or quotes sent to them. '
+    + 'If they say yes, want to join or ask how, tell them registration is free for our first 1,000 suppliers and takes a few minutes: '
+    + `open their company's own registration link ${link} , choose "Create account" with their work e-mail, type the 6-digit code we e-mail them, `
+    + 'then confirm the company details and the trades they cover, upload the trade licence and verify their mobile. Give the link exactly as written, on its own line. '
+    + 'If they would rather not do it themselves, they can reply with the trades they cover and our team will set up the page for them.';
+}
+// An UNVERIFIED sender who is a lead: no account is read (the spoof rule below), and the sign-in line alone would send
+// a supplier with no account to a sign-in box. Both routes are named, without a personal link.
+export const SUPPLIER_SIGN_IN_FACT = 'THE SENDER\'S E-MAIL COULD NOT BE VERIFIED AS COMING FROM THEIR ADDRESS, so no account details may be given. '
+  + 'If they ask about their jobs, quotes or account, say that for their security they can see them by signing in at quotesdone.com/portal. '
+  + 'If they are not registered yet and want to join, they can register at quotesdone.com/portal with "Create account" and their work e-mail, '
+  + 'or reply with the trades they cover and our team will set up the page for them.';
+
 /** The verified sender's own records as reply facts, or '' for anyone else (or when a read fails). */
 export async function accountFacts(admin: Db, email: string, relation: unknown): Promise<string> {
   const e = String(email || '').trim().toLowerCase();
@@ -38,9 +64,10 @@ export async function accountFacts(admin: Db, email: string, relation: unknown):
       return customerFacts(((stats as { inquiries?: CustomerInq[] } | null)?.inquiries) || []);
     }
     if (relation === 'supplier') {
-      const { data: leads } = await admin.from('leads').select('id,company_name').ilike('email', e.replace(/[\\%_]/g, (c) => '\\' + c)).limit(2);
+      const { data: leads } = await admin.from('leads').select('id,company_name,claimed,claim_token').ilike('email', e.replace(/[\\%_]/g, (c) => '\\' + c)).limit(2);
       if (!leads || leads.length !== 1) return '';
       const sup = leads[0];
+      if (!sup.claimed) return unregisteredSupplierFacts(String(sup.company_name || ''), sup.claim_token ? `${SITE}/portal?t=${sup.claim_token}` : `${SITE}/portal`);
       const { data: m } = await admin.from('inquiry_matches').select('inquiry_id,sent_at,inquiries(category,emirate,status)')
         .eq('supplier_id', sup.id).order('sent_at', { ascending: false }).limit(15);
       const ids = (m || []).map((r: { inquiry_id: unknown }) => r.inquiry_id);
@@ -64,5 +91,5 @@ export function senderVerified(raw: unknown): boolean {
 /** The facts for this mail: the account when the sender is verified, the sign-in line when a known sender is not. */
 export async function mailFacts(admin: Db, email: string, relation: unknown, raw: unknown): Promise<string> {
   if (relation !== 'customer' && relation !== 'supplier') return '';
-  return senderVerified(raw) ? await accountFacts(admin, email, relation) : SIGN_IN_FACT;
+  return senderVerified(raw) ? await accountFacts(admin, email, relation) : (relation === 'supplier' ? SUPPLIER_SIGN_IN_FACT : SIGN_IN_FACT);
 }

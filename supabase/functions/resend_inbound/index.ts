@@ -42,7 +42,7 @@ import { statementRowText, takeInStatement } from '../_shared/bank_statement_int
 import { defaultDeps, type ThinkDeps } from '../_shared/think.ts';
 import { documentKind, readingOf, receiptVendor, type ExpenseMail } from '../_shared/reasoned_books.ts';
 import { isUnsubscribeRequest } from '../_shared/unsubscribe_mailbox.ts';
-import { fromDomainAuthenticated, microsoftDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES } from '../_shared/suppression_policy.ts';
+import { fromDomainAuthenticated, microsoftDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES, senderAuthenticated } from '../_shared/suppression_policy.ts';
 import { approvalTokenOf, calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from '../_shared/marketing_calendar_mail.ts';
 import { registerRowsFor } from '../_shared/expense_mailbox.ts';
 import { M365_INBOUND_PREFIX } from '../_shared/m365_reply_inbox.ts';
@@ -841,7 +841,7 @@ export const handler = observe('resend_inbound', async (req) => {
       // invite.reply handoff (fn_marketing_files_invite_reply reads them)
       x_auto_response_suppress: hv('x-auto-response-suppress'), precedence: hv('precedence'), x_autoreply: hv('x-autoreply') ?? hv('x-autorespond'),
       in_reply_to: hv('in-reply-to'), references: hv('references'),
-      content_type: hv('content-type'), sender_authenticated: fromDomainAuthenticated(authHdrs?.['authentication-results'], from), calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
+      content_type: hv('content-type'), sender_authenticated: senderAuthenticated(providerEmailId, authHdrs?.['authentication-results'], from), calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
     const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: appliedSummary.length===0 && (stored>0 || !receiptish), raw: rawFacts }).select('id').maybeSingle();
     // Answered within the minute, not on the 15-minute tick: email_triage is woken for this one message.
     if (inbRow?.id && appliedSummary.length === 0 && !receiptish && (await sec('email_triage_enabled')) === 'true') {

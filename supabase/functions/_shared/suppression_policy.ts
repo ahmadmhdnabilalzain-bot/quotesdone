@@ -127,6 +127,16 @@ export function microsoftDomainAuthenticated(authResults: unknown, fromEmail: st
   return clausesAuthenticate(clauses, dom);
 }
 
+/** Did the receiving server authenticate the From domain, read on the lane the mail arrived by: EOP's verdict for a reply
+ *  handed in from the Microsoft 365 mailbox (provider id 'm365:...', set only by our own signed handover), SES's for the
+ *  rest. Review of #1699, 28 Oct 2026: raw.sender_authenticated used SES's reader alone, so every invited supplier's reply
+ *  (they all arrive through the M365 mailbox) was stored unauthenticated (3 of 3 live m365 rows) and email_triage never
+ *  gave a verified lead its own facts. The unsubscribe path above already read the lane this way. */
+export function senderAuthenticated(providerEmailId: unknown, authResults: unknown, fromEmail: string): boolean {
+  return String(providerEmailId || '').startsWith('m365:') ? microsoftDomainAuthenticated(authResults, fromEmail)
+    : fromDomainAuthenticated(authResults, fromEmail);
+}
+
 /** Addresses no email may ever suppress: our own domains and the people who run the company. */
 export function neverSuppressible(email: string, protectedList: string[]): boolean {
   const e = String(email || '').trim().toLowerCase();

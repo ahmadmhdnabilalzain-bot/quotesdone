@@ -1,6 +1,6 @@
 // Replays the two faults the 22 Sep 2026 review of PR #804 found. Run: deno test supabase/functions/_shared/suppression_policy.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { blocksTransactional, fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES, suppressionStops } from './suppression_policy.ts';
+import { blocksTransactional, fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES, senderAuthenticated, suppressionStops } from './suppression_policy.ts';
 
 Deno.test('an unsubscribed address still receives a sign-in code; a hard-bounced or complained one does not', () => {
   assert(!blocksTransactional('unsubscribe'));
@@ -67,4 +67,17 @@ Deno.test('our own domains and the admin addresses can never be suppressed by an
   assert(neverSuppressible('zz.demo.founder@example.invalid', ['ZZ.Demo.Founder@example.invalid']));
   assert(!neverSuppressible('zz.demo.supplier@example.invalid', ['zz.demo.founder@example.invalid']));
   assert(!neverSuppressible('a@notquotesdone.com', []));
+});
+
+Deno.test('senderAuthenticated reads the lane: EOP for an m365 handover, SES for the rest, never the other way (review of #1699)', () => {
+  const eop = 'spf=pass (sender IP is 209.85.128.41) smtp.mailfrom=supplier.ae; dkim=pass (signature was verified) header.d=supplier.ae;dmarc=pass action=none header.from=supplier.ae;compauth=pass reason=100';
+  const eopFail = 'spf=fail (sender IP is 203.0.113.9) smtp.mailfrom=supplier.ae; dkim=none (message not signed) header.d=none;dmarc=fail action=quarantine header.from=supplier.ae;compauth=fail reason=000';
+  const ses = 'amazonses.com; spf=pass (spfCheck) envelope-from=b@supplier.ae; dkim=pass header.i=@supplier.ae; dmarc=pass header.from=supplier.ae;';
+  assert(senderAuthenticated('m365:AAMk1', eop, 'info@supplier.ae'));
+  assert(!senderAuthenticated('m365:AAMk1', eopFail, 'info@supplier.ae'));        // a spoofed From fails EOP's DMARC
+  assert(!senderAuthenticated('m365:AAMk1', eop, 'info@other.ae'));              // EOP passed another domain
+  assert(!senderAuthenticated('m365:AAMk1', ses, 'info@supplier.ae'));           // an SES verdict on the m365 lane is not EOP's
+  assert(senderAuthenticated('re_123', ses, 'info@supplier.ae'));
+  assert(!senderAuthenticated('re_123', eop, 'info@supplier.ae'));               // an EOP-shaped header on the SES lane is refused
+  assert(!senderAuthenticated(null, eop, 'info@supplier.ae'));
 });

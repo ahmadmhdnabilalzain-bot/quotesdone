@@ -23,7 +23,7 @@ import { drain as drainJudgements } from '../_shared/routine_judgements.ts';
 import { defaultDeps, think, type ThinkDeps } from '../_shared/think.ts';
 import { knownSenderCategory } from '../_shared/triage_known_sender.ts';
 import { mailFacts } from './account_facts.ts';
-import { composeMailReply, noAutoReply } from '../_shared/customer_mail.ts';
+import { composeMailReply, invitationReplyAnswerable, noAutoReply } from '../_shared/customer_mail.ts';
 import { langOf } from '../_shared/chat_answers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { fileReviewRequest } from '../_shared/review_request.ts';
@@ -109,7 +109,17 @@ Deno.serve(observe('email_triage', async (req) => {
     };
     for (const m of ((msgs || []) as Mail[])) {
       // 1. NEVER ANSWERED: the founder, no-reply and verification senders, calendar replies, bounces.
-      const skip = noAutoReply(m, founder);
+      let skip = noAutoReply(m, founder);
+      // An invited supplier's reply to the invitation mailbox (supplier@) is the one 'internal' row that IS answered:
+      // only when the sender is a lead, and every other rule (bounce, no-reply, auto-submitted, calendar) still applies
+      // (customer_mail.ts invitationReplyAnswerable, 28 Oct 2026).
+      if (skip === 'internal') {
+        const { data: rel } = await admin.rpc('fn_mail_sender_known', { p_email: String(m.from_email || '') });
+        // a lead who opted out (email_suppressions, exact address) is never answered here (review of #1699)
+        const fromAddr = String(m.from_email || '').trim().toLowerCase();
+        const { data: sup } = fromAddr ? await admin.from('email_suppressions').select('email').ilike('email', fromAddr.replace(/[\\%_]/g, (c) => '\\' + c)).limit(1) : { data: [] };
+        if (invitationReplyAnswerable(m, rel, !!(sup && sup.length))) skip = noAutoReply({ ...m, to_email: '' }, founder);
+      }
       if (skip) {
         await admin.from('inbound_messages').update({ ai_category: 'no_auto_reply', ai_summary: 'Not answered automatically: ' + skip + ' (customer_mail.ts noAutoReply).', triaged_at: new Date().toISOString() }).eq('id', m.id);
         counts.not_answered++; continue;
