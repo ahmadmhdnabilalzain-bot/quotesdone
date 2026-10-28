@@ -13,8 +13,9 @@
 -- WHAT THIS CHANGES: fn_opt_out_types() also names supplier_invite_nudge (the TS list moves in the same PR, and
 -- scripts/checks/every_duty_has_an_owner_and_a_clock.test.mjs fails if the two differ). fn_suppression_stops reads it,
 -- so the seat clocks and the outbox now agree that an unsubscribe stops the nudge.
--- WHAT IT DOES NOT CHANGE: which words count as "stop" (that is _shared/unsubscribe_mailbox.ts, in the same PR), and
--- no notification, lead or suppression row is touched.
+-- WHAT IT DOES NOT CHANGE: which words count as "stop". That is _shared/unsubscribe_mailbox.ts, and its natural-language
+-- forms ("not interested", "remove us", a greeting first, the Arabic forms) are a separate PR. No notification, lead or
+-- suppression row is touched.
 create or replace function public.fn_opt_out_types()
 returns text[]
 language sql

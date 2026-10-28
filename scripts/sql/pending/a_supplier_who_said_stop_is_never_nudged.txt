@@ -1,5 +1,5 @@
 Committed, not applied: applied at merge by the release operator, never before (apply-at-merge rule). It redefines
 public.fn_opt_out_types() to add supplier_invite_nudge, in step with OPT_OUT_TYPES in _shared/suppression_policy.ts, which
 deploys with the edge functions on the same merge. Prove it first with its probe in the same rolled-back request:
-a_supplier_who_says_not_interested_is_never_mailed_again_probe.sql. On apply: delete this note and append the file to the
+a_supplier_who_said_stop_is_never_nudged_probe.sql. On apply: delete this note and append the file to the
 END of MANIFEST.txt in the same commit. Seat: sales_engineer.

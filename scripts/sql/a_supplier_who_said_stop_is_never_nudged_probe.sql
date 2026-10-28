@@ -1,5 +1,5 @@
 -- PROBE: an unsubscribe stops the nudge of an unopened invitation, and nothing transactional (28 Oct 2026, sales_engineer;
--- ledger 1401 audit, S6). Pure probe, no DDL: run it AFTER a_supplier_who_says_not_interested_is_never_mailed_again.sql,
+-- ledger 1401 audit, S6). Pure probe, no DDL: run it AFTER a_supplier_who_said_stop_is_never_nudged.sql,
 -- or with it in ONE rolled-back request (scripts/lib/safe_replay.mjs). It always ends in raise exception 'CHK<<...>>', so
 -- nothing it does survives. It writes nothing at all, and reads no person: only the list and the rule.
 -- PROBE OK only if: the list names the four cold-outreach types; an unsubscribe stops each of them; it stops none of the

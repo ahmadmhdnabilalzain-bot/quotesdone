@@ -25,7 +25,7 @@
 // invitation is the same cold outreach. It was missing, so an unsubscribe did not stop a nudge already queued (the
 // onboarding duty queues it after midnight Dubai for the 09:00 window): send_outbox's suppressionStops answered false.
 // fn_email_type_is_marketing already counted it as marketing; the SQL mirror moves with this list
-// (scripts/sql/a_supplier_who_says_not_interested_is_never_mailed_again.sql).
+// (scripts/sql/a_supplier_who_said_stop_is_never_nudged.sql).
 export const OPT_OUT_TYPES: readonly string[] = ['supplier_invite', 'supplier_invite_nudge', 'supplier_registration_reminder', 'supplier_rfq_widened_invite'];
 
 /** A preference row (the person unsubscribed), as opposed to a deliverability fact. */

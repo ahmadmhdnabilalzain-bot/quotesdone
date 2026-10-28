@@ -66,7 +66,7 @@ const POLICY_TS = R('supabase/functions/_shared/suppression_policy.ts');
 const listOf = (src, re) => { const m = src.match(re); assert.ok(m, 'list not found'); return [...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]); };
 const TS_LIST = listOf(POLICY_TS, /export const OPT_OUT_TYPES[^=]*=\s*\[([^\]]*)\]/);
 // THE NEWEST COMMITTED DEFINITION (28 Oct 2026, ledger 1401 audit S6): fn_opt_out_types() moved to
-// a_supplier_who_says_not_interested_is_never_mailed_again.sql, which adds supplier_invite_nudge. While that file is
+// a_supplier_who_said_stop_is_never_nudged.sql, which adds supplier_invite_nudge. While that file is
 // pending (applied at merge), the list it will make live is the one compared; once applied it is the MANIFEST's last.
 const OPT_OUT_DEF = /create or replace function public\.fn_opt_out_types\(\)[\s\S]*?select array\[([^\]]*)\]/;
 const OPT_OUT_FILE = (() => {
