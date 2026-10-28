@@ -4,8 +4,8 @@
 // change fn_supplier_invite_candidates and fn_marketing_gap_recruitment_plans RAISED on an invite_body without
 // {{link}}, so storing the approved text would have errored every daily batch. Fails if:
 //   - the canonical fn_supplier_invite_candidates or fn_marketing_gap_recruitment_plans refuses a body for having no
-//     {{link}} again (the exact failure the coordinator caught), or stops refusing an EMPTY one. Canonical is what
-//     production runs: every overload in the LAST file, in apply order, that defines the routine (28 Oct, below);
+//     {{link}} again (the exact failure the coordinator caught), or stops refusing an EMPTY or whitespace-only one.
+//     Canonical is what production runs: every overload in the LAST file, in apply order, that defines it (28 Oct);
 //   - the stored invite_body this file writes carries a link, Al Furjan, the TDRA permit, or is not the text the
 //     Microsoft 365 lane sends (m365_lane.ts m365InvitationText, neutral variant, company placeholder aside);
 //   - a reply to the invitation stops reaching the sales engineer: the invite.reply kind, its handler and the
@@ -79,7 +79,11 @@ test('the builders accept a body with no {{link}} and still refuse an empty one'
       assert.doesNotMatch(o.body, /(position\(\s*'\{\{link\}\}'\s+in\b|strpos\([^;]*?'\{\{link\}\}'\s*\))[^;]*?(=\s*0|<\s*1)[^;]*?\bthen\s+raise\b/i,
         `${o.key} in ${file} raises when the body has no {{link}}`);
       if (READS_BODY.test(o.body)) {
-        assert.match(o.body, /if btrim\(coalesce\(v_body, ''\)\) = '' then\s+raise exception/, `${o.key} in ${file} no longer refuses an empty template`);
+        // 28 Oct 2026 (ledger 1407): the refusal read btrim(...) = '', and btrim() given no characters strips only the
+        // space, so a template of newlines or tabs was built from (measured on production, rolled back). It reads the
+        // whitespace class now: the_invitation_builders_refuse_a_blank_body_not_only_an_empty_one.sql.
+        assert.match(o.body, /if coalesce\(v_body, ''\) ~ '\^\[\[:space:\]\]\*\$' then\s+raise exception/,
+          `${o.key} in ${file} no longer refuses an empty or whitespace-only template`);
       }
     }
   }

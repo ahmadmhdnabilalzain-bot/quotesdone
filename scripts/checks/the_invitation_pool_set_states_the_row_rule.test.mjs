@@ -78,9 +78,12 @@ test('every definition of fn_supplier_invite_candidates from #964 on, applied or
 // stalled-request tier (sales_engineer, 29 Sep 2026): exactly one line of the applied body is replaced, and what is added
 // is the rescue CTE and the -1 tier ahead of the unchanged 'recruit' tier. A copy of an older body fails here.
 // 28 Oct 2026 (it_engineer): that tier is APPLIED (the canonical body carries the rescue CTE), so the pending
-// redefinition this pins is now the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.sql: the same
-// applied body, re-signed with p_providers text[] and ONE filter line on the mailbox class. Nothing else may differ.
-test('a pending fn_supplier_invite_candidates is the latest applied body with only the mailbox-class filter added', () => {
+// redefinition this pinned was the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.sql: the same
+// applied body, re-signed with p_providers text[] and ONE filter line on the mailbox class.
+// 28 Oct 2026 (it_engineer, ledger 1407): that file is APPLIED too, so the pending redefinition this pins is now
+// the_invitation_builders_refuse_a_blank_body_not_only_an_empty_one.sql: the same applied (integer, text[]) body with ONE
+// line replaced, the emptiness test, which btrim() had left blind to a template of newlines. Nothing else may differ.
+test('a pending fn_supplier_invite_candidates is the latest applied body with only the emptiness test changed', () => {
   const lines = (f) => fnText(read(f), 'fn_supplier_invite_candidates').split('\n').map((l) => l.trimEnd());
   const canonFile = [...manifest].reverse().find((f) => defines('fn_supplier_invite_candidates').test(code(read(f))));
   const canon = lines(canonFile);
@@ -88,12 +91,10 @@ test('a pending fn_supplier_invite_candidates is the latest applied body with on
     const mine = lines(f);
     const gone = canon.filter((l) => !mine.includes(l)).map((l) => l.trim());
     const added = mine.filter((l) => !canon.includes(l)).map((l) => l.trim()).filter((l) => !l.startsWith('--'));
-    assert.deepEqual(gone.map((l) => l.toLowerCase()), ['create or replace function public.fn_supplier_invite_candidates(p_limit integer)'],
-      `${f} is not ${canonFile} with only its signature changed`);
-    assert.deepEqual(added.map((l) => l.toLowerCase()), [
-      'create or replace function public.fn_supplier_invite_candidates(p_limit integer, p_providers text[])',
-      'and (p_providers is null or public.fn_mail_provider_of_email(l.email) = any(p_providers))',
-    ], `${f} adds more to ${canonFile} than the mailbox-class filter`);
+    assert.deepEqual(gone.map((l) => l.toLowerCase()), ["if btrim(coalesce(v_body, '')) = '' then"],
+      `${f} is not ${canonFile} with only its emptiness test changed`);
+    assert.deepEqual(added.map((l) => l.toLowerCase()), ["if coalesce(v_body, '') ~ '^[[:space:]]*$' then"],
+      `${f} changes more in ${canonFile} than the emptiness test`);
   }
 });
 
