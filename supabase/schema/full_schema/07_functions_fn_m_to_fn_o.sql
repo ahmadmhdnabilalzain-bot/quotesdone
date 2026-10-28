@@ -6076,7 +6076,7 @@ CREATE OR REPLACE FUNCTION public.fn_opt_out_types()
  IMMUTABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select array['supplier_invite', 'supplier_registration_reminder', 'supplier_rfq_widened_invite']::text[]
+  select array['supplier_invite', 'supplier_invite_nudge', 'supplier_registration_reminder', 'supplier_rfq_widened_invite']::text[]
 $function$
 
 
