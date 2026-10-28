@@ -19,7 +19,32 @@ export const UNSUBSCRIBE_MAILBOX = 'unsubscribe@mail.quotesdone.com';
 
 // A subject or first line that is ONLY the request, optionally behind reply prefixes and punctuation.
 // Whole-line match on purpose: "please do not stop the tender" must never unsubscribe anybody.
-const PHRASE = /^(?:(?:re|aw|fwd?|رد)\s*:\s*)*(?:unsubscribe|remove me|stop|opt[ -]?out|إلغاء الاشتراك|الغاء الاشتراك|ألغوا اشتراكي|إزالة)[\s.!،,]*$/i;
+//
+// THE WORDS SUPPLIERS ACTUALLY WRITE (28 Oct 2026, sales_engineer; ledger 1401 audit, scenario S6). Measured: on
+// production an invited ZZ DEMO lead's "Not interested" reply to the invitation was stored and NOT suppressed (HTTP 200,
+// email_suppressions 0, the inbound row left for email_triage); offline, this test answered false for "Not interested",
+// "Please remove us from your mailing list.", "Remove", "Please remove", "No thank you", "Cancel", "End", "stopall" and
+// "Do not contact us again" (only "stop" and "unsubscribe" were true). So the day-3/7/14 reminders stayed due and
+// email_triage (invitationReplyAnswerable reads this same test) was free to answer with the registration pitch, while
+// fn_marketing_files_invite_reply already treated 'not interested', 'remove', 'please remove', 'cancel', 'end' and
+// 'stopall' as stop replies and filed no handoff: two vocabularies for one decision. The reminder itself tells the
+// supplier "reply to this one and we will remove your address". This list is now the superset, and
+// unsubscribe_mailbox.test.ts reads the SQL list from its canonical file and fails if any phrase of it is not
+// recognised here. Still a WHOLE subject or first line: a sentence that merely contains one of the words is not one.
+const POLITE = String.raw`(?:(?:please|kindly)[\s,]+)?`;
+const THANKS = String.raw`(?:[\s,]+(?:please|thanks|thank\s+you|thx))?`;
+const OUT = [
+  String.raw`unsubscribe(?:\s+(?:me|us))?`,
+  String.raw`stop(?:\s*all)?`, 'end', 'cancel', 'quit',
+  String.raw`opt[\s-]?out`,
+  String.raw`remove(?:\s+(?:me|us|my\s+(?:e-?mail|address)|our\s+(?:e-?mail|address|company)))?(?:\s+(?:from|off)\s+(?:your|the|this)\s+(?:mailing\s+|e-?mail\s+|contact\s+)?list)?`,
+  String.raw`(?:(?:i\s+am|i'm|we\s+are|we're)\s+)?not\s+interested`,
+  String.raw`no[\s,]+thank(?:s|\s+you)`,
+  String.raw`stop\s+(?:sending|e-?mailing|mailing|contacting)(?:\s+(?:me|us))?(?:\s+(?:any\s+)?(?:more\s+)?(?:e-?mails?|messages?))?`,
+  String.raw`(?:do\s+not|don'?t)\s+(?:contact|e-?mail|mail|write\s+to)\s+(?:me|us)(?:\s+again)?`,
+  'إلغاء الاشتراك', 'الغاء الاشتراك', 'ألغوا اشتراكي', 'إزالة', String.raw`غير\s+مهتم(?:ين)?`, String.raw`لا[،,]?\s*شكر(?:ا|اً)`,
+];
+const PHRASE = new RegExp(String.raw`^(?:(?:re|aw|fwd?|رد)\s*:\s*)*` + POLITE + `(?:${OUT.join('|')})` + THANKS + String.raw`[\s.!،,]*$`, 'i');
 
 /** true when this inbound mail is a request to stop mailing its sender. */
 export function isUnsubscribeRequest(o: { to: string; subject: string; text: string }): boolean {
