@@ -32,3 +32,12 @@ test('"Claim my listing" and the hero button put the cursor in the e-mail box', 
   const starts = code.match(/onStart=\{\(\) => \{[^}]*scrollIntoView[^}]*\}\)?;[^}]*\.focus\(\{ preventScroll: true \}\)/g) || [];
   assert.equal(starts.length, 2, 'both onStart handlers must scroll AND focus the sign-up input');
 });
+
+// 3. THE 390 PX OVERFLOW (same walk). A document row holding Attach file + an expiry date + Upload was a shrink-0 flex
+//    item with no width bound, so on a phone it kept its one-line width, pushed Upload past the card and made the page
+//    scroll sideways. Every upload row in the Documents card is bounded by the card.
+test('a document upload row is bounded by its card, so it wraps on a phone', () => {
+  const rows = code.match(/<div className="flex gap-2 items-center flex-wrap shrink-0[^"]*">/g) || [];
+  assert.ok(rows.length >= 2, 'the Documents upload rows were not found — update this check with them');
+  for (const r of rows) assert.match(r, /max-w-full/, 'an upload row can overflow its card on a phone: ' + r);
+});

@@ -1676,7 +1676,10 @@ function DocRow({ d, busy, onUpload, onRemove, onConfirmExpiry, read, lang }) {
         <ExpiryRead read={read} lang={lang} label={label} onConfirm={onConfirmExpiry} />
       </div>
       {/* First upload (nothing on file) or another catalogue. A file on record is replaced from its own row above. */}
-      {(!d.path || isCat) && <div className="flex gap-2 items-center flex-wrap shrink-0">
+      {/* max-w-full (28 Oct 2026, 390 px production walk): as a shrink-0 flex item this row took its one-line width
+          (Attach file + date + Upload, ~390 px) inside a ~318 px card, so Upload sat off-screen on Insurance, ISO and
+          the dealer letter, and the whole page scrolled sideways. Bounded by the card, it wraps. */}
+      {(!d.path || isCat) && <div className="flex gap-2 items-center flex-wrap shrink-0 max-w-full">
         <FilePick lang={lang} onPick={setFile} />
         {file && <span className={cn(S.sub, 'max-w-[180px] truncate')}>{file.name}</span>}
         {/* Not for the trade licence: its expiry is read off the licence itself and save_documents
@@ -1689,7 +1692,7 @@ function DocRow({ d, busy, onUpload, onRemove, onConfirmExpiry, read, lang }) {
         </Button>
       </div>}
       {/* A certificate on file whose date is missing or wrong: the same box, without a new file. */}
-      {d.path && !isCat && d.has_expiry && d.key !== 'license' && !read && <div className="flex gap-2 items-center flex-wrap shrink-0">
+      {d.path && !isCat && d.has_expiry && d.key !== 'license' && !read && <div className="flex gap-2 items-center flex-wrap shrink-0 max-w-full">
         <Input type="date" dir="ltr" className="w-auto" value={exp} onChange={(e) => setExp(e.target.value)} aria-label={(ar ? 'تاريخ انتهاء ' : 'Expiry date for ') + label} />
         <Button size="sm" variant="outline" disabled={busy || !exp || exp === (d.expiry || '')} onClick={() => onConfirmExpiry(d.key, exp)}>{ar ? 'حفظ التاريخ' : 'Save date'}</Button>
       </div>}
