@@ -102,11 +102,44 @@ export async function call(path: string, body: Record<string, unknown>, token?: 
   const text = await r.text().catch(() => '');
   let j: any = null;
   try { j = JSON.parse(text); } catch (_e) { j = null; }
-  if (!j || typeof j !== 'object') return { ok: false, code: 'bad_response', _http: r.status };
+  if (!j || typeof j !== 'object') return { ok: false, code: platformCode(r.status) || 'bad_response', _http: r.status };
   if (!r.ok) {
+    // The platform's own failure, never its text (see platformCode).
+    if (!ownCode(j.code) && platformCode(r.status)) return { ok: false, code: platformCode(r.status), _http: r.status };
     j._http = r.status;
     if (r.status === 401) j._expired = true;
     if (!j.code) j.code = 'load_failed';
   }
   return j;
 }
+
+/**
+ * A PLATFORM FAILURE IS NEVER A SENTENCE FOR A SUPPLIER (28 Oct 2026, sales_engineer; production document walk 4e9d675a).
+ *
+ * A 24 MB trade licence on the Documents tab ended supplier_portal at the edge's CPU cap, and the platform's own answer,
+ * HTTP 546 with code WORKER_RESOURCE_LIMIT, reached the screen word for word ("Function failed due to not having enough
+ * compute resources (please check logs)"): srvMsg shows an unknown code's `message` to an English reader. Our functions'
+ * codes are lower-case snake_case (load_failed, upload_failed, quote_read_failed); the platform's are UPPER_CASE
+ * (WORKER_RESOURCE_LIMIT, BOOT_ERROR) or absent, and a gateway 502/504 is not JSON at all. A 5xx (or a 413) that does
+ * not carry one of OUR codes is replaced by our own code, so its text is never passed on; our own 5xx keep theirs.
+ * Guard: scripts/checks/a_supplier_never_reads_platform_text.test.mjs
+ */
+const ownCode = (c: unknown) => typeof c === 'string' && /^[a-z][a-z0-9_]*$/.test(c);
+function platformCode(status: number): string | null {
+  if (status === 546) return 'worker_limit';     // the function ran out of CPU or memory on what it was given
+  if (status === 413) return 'file_too_large';   // the request itself was refused as too large
+  if (status >= 500) return 'server_error';
+  return null;
+}
+
+/**
+ * THE LARGEST FILE A SYNCHRONOUS READ TAKES (28 Oct 2026, sales_engineer). Measured on production with scanner-style
+ * licences (one JPEG per page, a text layer on page 1): 9.66 MB was stored and read on supplier_portal save_documents and
+ * supplier_api process_docs; 14.50 MB and 19.33 MB ended both at the CPU cap (HTTP 546). The trade licence, the
+ * certificates and the quotation travel in the request body and are read before the answer, so the portal refuses a
+ * larger file before it uploads anything, in plain words. A company profile or catalogue goes straight to storage and is
+ * read after the answer; it keeps its own limit.
+ */
+export const MAX_READ_BYTES = 10 * 1024 * 1024;
+export const tooBigToRead = (file: { size?: number } | null | undefined) => !!file && Number(file.size || 0) > MAX_READ_BYTES;
+export const sizeMb = (file: { size?: number } | null | undefined) => Math.round((Number(file?.size || 0) / 1048576) * 10) / 10;

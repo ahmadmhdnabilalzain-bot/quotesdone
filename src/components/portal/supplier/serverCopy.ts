@@ -631,6 +631,15 @@ const COPY: Record<string, Entry> = {
   quote_no_pages: s('Could not read the file pages. Please attach a clear PDF or photo.', 'تعذّرت قراءة صفحات الملف. يُرجى إرفاق ملف PDF أو صورة واضحة.'),
   quote_read_failed: s('We could not read that quotation automatically — fill in the form below instead; nothing else is needed.', 'تعذّرت قراءة عرض السعر تلقائيًا. يُرجى تعبئة النموذج أدناه بدلًا من ذلك، ولا يلزم أي إجراء آخر.'),
   upload_failed: s('We could not store that file. Please try again.', 'تعذّر حفظ الملف. يُرجى المحاولة مرة أخرى.'),
+  // The platform's own failures, never its text (supplier/api.ts platformCode, 28 Oct 2026).
+  worker_limit: s('That was more than we can process in one go. If you were uploading a file, please upload a smaller copy (under 10 MB) or a photo of each page; otherwise please try again in a minute.',
+    'كان ذلك أكبر مما يمكننا معالجته دفعة واحدة. إن كنتم ترفعون ملفًا، فيُرجى رفع نسخة أصغر (أقل من 10 ميغابايت) أو صورة لكل صفحة، وإلا فيُرجى المحاولة مرة أخرى بعد دقيقة.'),
+  file_too_large: s('That file is too large for us to receive. Please upload a smaller copy (under 10 MB) or a photo of each page.',
+    'هذا الملف أكبر مما يمكننا استلامه. يُرجى رفع نسخة أصغر (أقل من 10 ميغابايت) أو صورة لكل صفحة.'),
+  server_error: s('Something went wrong on our side. Please try again in a minute.', 'حدث خطأ من جهتنا. يُرجى المحاولة مرة أخرى بعد دقيقة.'),
+  // The portal's own refusal before an upload (supplier/api.ts MAX_READ_BYTES): the file never leaves the browser.
+  file_too_large_read: s((p) => `That file is ${p.mb} MB. We can read files up to 10 MB here. Please upload a smaller copy (most PDF tools have a "reduce file size" option) or a photo of each page.`,
+    (p) => `حجم هذا الملف ${p.mb} ميغابايت، ويمكننا هنا قراءة الملفات حتى 10 ميغابايت. يُرجى رفع نسخة أصغر (تتيح معظم برامج PDF خيار «تقليل حجم الملف») أو صورة لكل صفحة.`),
   save_failed: s('We could not save your profile. Please try again.', 'تعذّر حفظ ملفكم. يُرجى المحاولة مرة أخرى.'),
   missing_required: s((p) => 'Still needed to register: ' + (p.missing || []).map((c: string) => COPY[c]?.en({}) || c).join(', ') + '.',
     (p) => 'ما زال مطلوبًا لإتمام التسجيل: ' + (p.missing || []).map((c: string) => COPY[c]?.ar({}) || c).join('، ') + '.'),
