@@ -14,6 +14,7 @@
 //   2. owner_role is set — fn_receipt_hand_to_bookkeeper stamps it on rows a seat owns (6 Sep 2026).
 //   3. its body carries the tag the accountant / receipt path writes: "[expense ...]",
 //      "[REFUSED — ...]", "[HELD — ...]", "[receipt received but NOT booked ...]".
+import { isUnsubscribeRequest } from './unsubscribe_mailbox.ts';
 export const EXPENSE_MAILBOX = 'expenses@mail.quotesdone.com';
 const INTERNAL_LOCALS = new Set(['expenses', 'docs', 'supplier', 'management']);
 const OUR_DOMAIN = /^(?:mail\.)?quotesdone\.com$/;
@@ -49,7 +50,7 @@ export type NoAutoReply = 'founder' | 'internal' | 'bounce' | 'no_reply' | 'auto
 export interface MailFacts {
   from_email?: unknown; to_email?: unknown; owner_role?: unknown; body?: unknown;
   /** inbound_messages.raw as resend_inbound stores it: message_id, auto_submitted, content_type, calendar. */
-  raw?: { auto_submitted?: unknown; content_type?: unknown; calendar?: unknown } | null;
+  raw?: { auto_submitted?: unknown; content_type?: unknown; calendar?: unknown; x_autoreply?: unknown; precedence?: unknown } | null;
 }
 const OWN_DOMAIN = /(^|\.)quotesdone\.(com|ae)$/;
 const BOUNCE_LOCAL = /^(mailer-daemon|postmaster)$/;
@@ -82,8 +83,23 @@ export function noAutoReply(m: MailFacts, founderAddrs: string[]): NoAutoReply |
 // (fn_mail_sender_known = 'supplier'). The founder's own warm-up replies and any stranger writing to supplier@ stay
 // unanswered, exactly as before.
 export const INVITATION_MAILBOX = 'supplier@quotesdone.com';
-export function invitationReplyAnswerable(m: MailFacts, senderRelation: unknown): boolean {
-  if (senderRelation !== 'supplier') return false;
+// NEVER TO SOMEONE WHO SAID STOP, AND NEVER TO A MACHINE (review of #1699, 28 Oct 2026). A "stop" that resend_inbound
+// could not apply is stored for review with a body starting "[UNSUBSCRIBE REQUEST NOT APPLIED" (needs_review true), which
+// no back-office tag matched: without this, a lead who asked to be left alone would have been sent the registration
+// pitch. The same for an address already in email_suppressions (the caller passes `suppressed`), a mail that reads as an
+// unsubscribe request, and an out-of-office or other auto-reply (X-Autoreply, Precedence, the usual subject lines), so
+// two auto-responders can never answer each other through supplier@.
+const AUTO_REPLY_SUBJECT = /^\s*(automatic reply|auto(matic)?[- ]?(reply|response)|out of (the )?office|ooo\b|away from (the )?office|رد تلقائي|خارج المكتب)/i;
+export function autoReplied(m: MailFacts & { subject?: unknown }): boolean {
+  if (m.raw?.x_autoreply != null && String(m.raw.x_autoreply).trim() !== '') return true;
+  if (/^(auto[_-]?reply|bulk|junk|list)$/i.test(String(m.raw?.precedence ?? '').trim())) return true;
+  return AUTO_REPLY_SUBJECT.test(String(m.subject ?? ''));
+}
+export function invitationReplyAnswerable(m: MailFacts & { subject?: unknown }, senderRelation: unknown, suppressed = false): boolean {
+  if (senderRelation !== 'supplier' || suppressed) return false;
+  const text = String(m.body ?? '').trim();
+  if (/^\[unsubscribe\b/i.test(text) || isUnsubscribeRequest({ to: String(m.to_email ?? ''), subject: String(m.subject ?? ''), text })) return false;
+  if (autoReplied(m)) return false;
   if (m.owner_role) return false;
   if (BACK_OFFICE_TAG.test(String(m.body ?? '').trim())) return false;
   const from = String(m.from_email ?? '').trim().toLowerCase();

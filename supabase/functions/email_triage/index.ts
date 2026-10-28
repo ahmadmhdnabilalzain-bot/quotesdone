@@ -115,7 +115,10 @@ Deno.serve(observe('email_triage', async (req) => {
       // (customer_mail.ts invitationReplyAnswerable, 28 Oct 2026).
       if (skip === 'internal') {
         const { data: rel } = await admin.rpc('fn_mail_sender_known', { p_email: String(m.from_email || '') });
-        if (invitationReplyAnswerable(m, rel)) skip = noAutoReply({ ...m, to_email: '' }, founder);
+        // a lead who opted out (email_suppressions, exact address) is never answered here (review of #1699)
+        const fromAddr = String(m.from_email || '').trim().toLowerCase();
+        const { data: sup } = fromAddr ? await admin.from('email_suppressions').select('email').ilike('email', fromAddr.replace(/[\\%_]/g, (c) => '\\' + c)).limit(1) : { data: [] };
+        if (invitationReplyAnswerable(m, rel, !!(sup && sup.length))) skip = noAutoReply({ ...m, to_email: '' }, founder);
       }
       if (skip) {
         await admin.from('inbound_messages').update({ ai_category: 'no_auto_reply', ai_summary: 'Not answered automatically: ' + skip + ' (customer_mail.ts noAutoReply).', triaged_at: new Date().toISOString() }).eq('id', m.id);

@@ -96,3 +96,17 @@ Deno.test('a bounce or an auto-reply to supplier@ is still not answered once the
   assertEquals(noAutoReply({ ...yes({ raw: { auto_submitted: 'auto-replied' } }), to_email: '' }, FOUNDER), 'auto_submitted');
   assertEquals(noAutoReply({ ...yes({ from_email: 'mailer-daemon@glassco.ae' }), to_email: '' }, FOUNDER), 'bounce');
 });
+
+Deno.test('an invited supplier who said stop, is suppressed, or is an auto-reply is never answered through supplier@ (review of #1699)', () => {
+  const m = (o: Record<string, unknown> = {}) => ({ from_email: 'info@acme-fitout.ae', to_email: INVITATION_MAILBOX, body: 'Yes, please send me the details', ...o });
+  assertEquals(invitationReplyAnswerable(m(), 'supplier'), true);                                           // the plain yes still is
+  assertEquals(invitationReplyAnswerable(m(), 'supplier', true), false);                                    // in email_suppressions
+  assertEquals(invitationReplyAnswerable(m({ body: '[UNSUBSCRIBE REQUEST NOT APPLIED: x. customer_support to review.]\n\nstop' }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(m({ body: 'stop' }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(m({ subject: 'Unsubscribe' }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(m({ subject: 'Automatic reply: Would your company like requests?' }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(m({ subject: 'Out of Office' }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(m({ raw: { x_autoreply: 'yes' } }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(m({ raw: { precedence: 'auto_reply' } }), 'supplier'), false);
+  assertEquals(invitationReplyAnswerable(m({ raw: { precedence: 'bulk' } }), 'supplier'), false);
+});
