@@ -36,7 +36,10 @@ begin
   -- 2. the gate fails closed by name, before and after the old cutoff, and files nothing while the campaign is held
   o := o || jsonb_build_object('gate_early', fn_invite_placement_gate(d, t - interval '1 hour'),
                                'gate_late', fn_invite_placement_gate(d, fn_invite_placement_cutoff(d) + interval '1 minute'));
-  if o ->> 'gate_early' <> 'fail:seed_retired' or o ->> 'gate_late' <> 'fail:seed_retired' then
+  -- once the GlockApps verdict reader replaces the retired gate (fn_invite_placement_class_verdicts exists), the gate's
+  -- answer is that file's probe's to prove (the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider_probe.sql)
+  if to_regprocedure('public.fn_invite_placement_class_verdicts(timestamp with time zone)') is null
+     and (o ->> 'gate_early' <> 'fail:seed_retired' or o ->> 'gate_late' <> 'fail:seed_retired') then
     v_fail := v_fail || 'the gate does not fail closed as seed_retired'; end if;
   o := o || jsonb_build_object('gate_finding', (select count(*) from it_engineer_finding
                                                  where issue_key = 'deliverability:inbox_placement' and closed_at is null

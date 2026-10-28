@@ -27,6 +27,7 @@ const R = (p) => readFileSync(join(ROOT, p), 'utf8');
 const NAME = 'no_test_mail_goes_to_the_founders_own_inboxes';
 const FILE = `scripts/sql/${NAME}.sql`;
 const PROBE = `scripts/sql/${NAME}_probe.sql`;
+const VERDICT_GATE = 'scripts/sql/the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.sql';
 const code = (t) => t.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 const HIS = ['management@quotesdone.com', 'ahmadmhdnabilalzain@gmail.com', 'management@doratajewelries.com',
   'djzaino@outlook.com', 'bookings@djzaino.com', 'fati.labib@icloud.com'];
@@ -54,6 +55,13 @@ test('the canonical morning seed writes nothing, and the gate cannot pass', () =
   assert.doesNotMatch(due.body, /\binsert\b|\bupdate\b|notifications/i, 'the morning seed writes again');
   assert.match(due.body, /'action', 'idle'/);
   const gate = canonical('fn_invite_placement_gate');
+  // HANDED OVER, NOT SOFTENED (27 Oct 2026): the retired gate's only successor is the GlockApps verdict reader, whose
+  // own check (the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.test.mjs) proves it fails closed by
+  // name and reads public.invite_placement_bar. Any OTHER file redefining the gate still fails here.
+  if (gate.path === VERDICT_GATE) {
+    assert.ok(manifestWithPending().indexOf(VERDICT_GATE) > manifestWithPending().indexOf(FILE), 'the verdict reader applies before the retirement');
+    return;
+  }
   assert.equal(gate.path, FILE, `${gate.path} redefines fn_invite_placement_gate`);
   assert.doesNotMatch(gate.body, /'pass'/i, 'the retired gate can pass without the GlockApps verdict');
   // PL/pgSQL keywords are case-insensitive, and a string or comment is not code (review of #1696): count the returns of the

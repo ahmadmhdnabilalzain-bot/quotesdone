@@ -118,7 +118,7 @@ declare
   v_hol_name text; v_hol_action text; v_hol_end date;
   v_cfg jsonb := coalesce((select nullif(value,'')::jsonb from app_secrets where key = 'invite_warmup'), '{}'::jsonb);
   v_win_start timestamptz; v_win_end timestamptz;
-  v_gate text;
+  v_gate text; v_open text[];
 begin
   select c.event_name, c.action, c.ends_on into v_hol_name, v_hol_action, v_hol_end
     from public.company_calendar c
@@ -172,16 +172,20 @@ begin
   end if;
   if v_planned <= 0 then return 0; end if;
 
-  -- PLACEMENT GATE (24 Sep 2026, it_engineer). Nothing is queued unless this morning's seed invitation landed
-  -- in the Inbox of both seed mailboxes under today's effective sender (fn_invite_placement_gate). Fail closed: a check
-  -- that is still running, failed, or never ran all hold the batch.
-  v_gate := public.fn_invite_placement_gate((now() at time zone 'Asia/Dubai')::date);
-  if v_gate <> 'pass' then
+  -- PLACEMENT GATE, PER MAILBOX CLASS (27 Oct 2026, it_engineer; was the morning seed, retired by #1696). Recipients
+  -- go only in a class whose latest GlockApps verdict meets public.invite_placement_bar (fn_invite_placement_open_providers);
+  -- the others are skipped, not failed. No class open, no verdict, or a stale one: the whole batch is held.
+  v_open := public.fn_invite_placement_open_providers((now() at time zone 'Asia/Dubai')::date);
+  v_gate := public.fn_invite_placement_class_verdicts(now()) ->> 'strict';
+  if cardinality(v_open) = 0 then
     update invite_schedule set status = 'pending', note = coalesce(note,'') || '; held: inbox placement ' || v_gate where day = v_today;
     insert into agent_runs(agent, status, counts, note, started_at, finished_at)
     values ('supplier_invites', 'ok', jsonb_build_object('queued', 0, 'planned', v_planned, 'placement_gate', v_gate, 'held', true),
-            'Invites held: the morning inbox placement check answered ' || v_gate || ', so nothing was written to the outbox.', now(), now());
+            'Invites held: the GlockApps inbox placement verdict answered ' || v_gate || ' for every mailbox class, so nothing was written to the outbox.', now(), now());
     return 0;
+  end if;
+  if v_gate <> 'pass' then
+    update invite_schedule set note = coalesce(note,'') || '; placement ' || v_gate || ': invited only ' || array_to_string(v_open, ', ') where day = v_today;
   end if;
 
   -- THE SENDING WINDOW (22 Sep 2026). Invitations leave between the later of now and the window's start
@@ -236,7 +240,7 @@ begin
 
   with c as (
     select c.*, row_number() over () as rn, count(*) over () as n
-      from public.fn_supplier_invite_candidates(v_remaining) c
+      from public.fn_supplier_invite_candidates(v_remaining, v_open) c
   ), ins as (
     insert into notifications(type, to_email, to_role, lead_id, subject, body, lang, status, created_at, not_before)
     select 'supplier_invite', c.to_email, 'supplier', c.lead_id, c.subject, c.body, c.lang, 'queued', now(),
@@ -252,7 +256,7 @@ begin
   insert into agent_runs(agent, status, counts, note, started_at, finished_at)
   values ('supplier_invites', 'ok',
           jsonb_build_object('queued', v_count, 'planned', v_planned, 'pool', v_pool, 'cap', v_cap, 'held', false,
-                             'window_ends', v_win_end),
+                             'window_ends', v_win_end, 'placement_gate', v_gate, 'open_providers', to_jsonb(v_open)),
           'Invites: ' || v_count || ' queued of ' || v_planned || ' planned (pool ' || v_pool || ', cap ' || v_cap
           || '), spread until ' || to_char(v_win_end at time zone 'Asia/Dubai', 'HH24:MI') || ' Dubai.', now(), now());
   return v_count;

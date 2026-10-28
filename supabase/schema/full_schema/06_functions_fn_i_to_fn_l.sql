@@ -638,6 +638,35 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_class_verdicts(p_now timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare b public.invite_placement_bar; t public.deliverability_test; v text; v_sender text;
+begin
+  select * into b from public.invite_placement_bar where id;
+  v_sender := public.fn_mailbox_fold(public.fn_invite_placement_sender());
+  if b.id is not null then
+    select * into t from public.deliverability_test d
+     where d.class_rates is not null and d.recorded_at is not null and d.tested_at <= p_now
+       and public.fn_mailbox_fold(d.from_address) = public.fn_mailbox_fold(b.sender)
+     order by d.tested_at desc, d.recorded_at desc limit 1;
+  end if;
+  if b.id is null or t.test_id is null or v_sender is distinct from public.fn_mailbox_fold(b.sender) then
+    v := 'fail:no_verdict';
+  elsif t.tested_at < p_now - b.max_age then
+    v := 'fail:stale_verdict';
+  end if;
+  return case when v is not null
+    then jsonb_build_object('microsoft', v, 'google', v, 'yahoo_aol', v, 'other', v, 'strict', v)
+    else public.fn_invite_placement_rates_verdict(t.class_rates) end
+    || jsonb_build_object('test_id', t.test_id, 'tested_at', t.tested_at, 'bar_sender', b.sender, 'effective_sender', v_sender,
+                          'max_age', b.max_age, 'checked_at', p_now);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_invite_placement_cutoff(p_day date)
  RETURNS timestamp with time zone
  LANGUAGE sql
@@ -732,22 +761,88 @@ CREATE OR REPLACE FUNCTION public.fn_invite_placement_gate(p_day date DEFAULT NU
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+begin
+  return public.fn_invite_placement_judge(p_day, p_now) ->> 'strict';
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_gate(p_provider text, p_day date DEFAULT NULL::date, p_now timestamp with time zone DEFAULT now())
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_c text := case when lower(btrim(coalesce(p_provider, ''))) in ('microsoft', 'google', 'yahoo_aol')
+                         then lower(btrim(p_provider)) else 'other' end;
+begin
+  return public.fn_invite_placement_judge(p_day, p_now) ->> v_c;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_judge(p_day date DEFAULT NULL::date, p_now timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 declare
   v_day date := coalesce(p_day, (p_now at time zone 'Asia/Dubai')::date);
+  v jsonb := public.fn_invite_placement_class_verdicts(p_now);
+  v_open text[];
 begin
-  -- FAIL CLOSED, BY NAME. The morning seed that used to open this gate is retired, so it can never pass. The gate
-  -- that replaces it is the GlockApps verdict (ledger 1312: Outlook >= 80% inbox; #1649 files it). Resuming the
-  -- invitations means replacing this routine with a reader of that verdict, in the same change that sets
-  -- invite_enabled back to true. While the campaign is held (fn_invite_placement_day_closed answers) nothing is filed;
-  -- on an open day the existing relay files ONE finding per day and verdict (deliverability:inbox_placement).
+  select coalesce(array_agg(c order by c), '{}') into v_open
+    from unnest(array['google', 'microsoft', 'other', 'yahoo_aol']) c where v ->> c = 'pass';
   if public.fn_invite_placement_day_closed(p_now) is null then
-    perform public.fn_invite_placement_finding(v_day, 'seed_retired',
-      'the placement gate still waits for the morning seed, retired on 27 Oct 2026 (no test mail to '
-      || 'the founder''s own inboxes); replace fn_invite_placement_gate with a reader of the GlockApps verdict (ledger 1312, #1649)',
-      jsonb_build_object('checked_at', p_now,
-                         'remedy', 'replace fn_invite_placement_gate with a reader of the GlockApps verdict (ledger 1312, #1649)'));
+    if v ->> 'strict' <> 'pass' then
+      perform public.fn_invite_placement_finding(v_day, substr(v ->> 'strict', 6),
+        'the GlockApps verdict answered ' || (v ->> 'strict') || ' on ' || v_day
+        || case when cardinality(v_open) = 0 then '; no mailbox provider is invited'
+                else '; invited only: ' || array_to_string(v_open, ', ') end,
+        jsonb_build_object('checked_at', p_now, 'verdicts', v, 'open_providers', to_jsonb(v_open),
+          'remedy', 'record a fresh GlockApps result with scripts/record_inbox_placement_verdict.mjs once a test of supplier@ meets public.invite_placement_bar'));
+    elsif exists (select 1 from public.it_engineer_finding where issue_key = 'deliverability:inbox_placement' and closed_at is null) then
+      perform public.fn_it_engineer_finding_close('deliverability:inbox_placement',
+        'closed by fn_invite_placement_judge: GlockApps test ' || coalesce(v ->> 'test_id', '?') || ' meets the bar for every mailbox class');
+    end if;
   end if;
-  return 'fail:seed_retired';
+  return v || jsonb_build_object('open_providers', to_jsonb(v_open), 'dubai_day', v_day);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_open_providers(p_day date DEFAULT NULL::date, p_now timestamp with time zone DEFAULT now())
+ RETURNS text[]
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  return array(select jsonb_array_elements_text(public.fn_invite_placement_judge(p_day, p_now) -> 'open_providers'));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_rates_verdict(p_rates jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare b public.invite_placement_bar; v jsonb := '{}'; c text; r jsonb; n numeric; ok boolean; first_fail text;
+begin
+  select * into b from public.invite_placement_bar where id;
+  foreach c in array array['microsoft', 'google', 'yahoo_aol'] loop
+    r := coalesce(p_rates -> c, '{}'::jsonb);
+    n := coalesce((r ->> 'seeds')::numeric, 0);
+    -- coalesce(..., false): a count missing from the rates makes the comparison NULL, and a NULL 'ok' would label the
+    -- class failed while leaving 'strict' at 'pass' (review of #1701, 28 Oct 2026). Unknown is a fail.
+    ok := coalesce(b.id is not null and n > 0 and case c
+      when 'microsoft' then (r ->> 'inbox')::numeric * 100 >= b.microsoft_min_inbox_pct * n
+      when 'google'    then (r ->> 'spam')::numeric * 100 <= b.google_max_spam_pct * n
+                        and ((r ->> 'inbox')::numeric + (r ->> 'tabs')::numeric) * 100 >= b.google_min_delivered_pct * n
+      when 'yahoo_aol' then (r ->> 'inbox')::numeric * 100 >= b.yahoo_aol_min_inbox_pct * n end, false);
+    v := v || jsonb_build_object(c, case when ok then 'pass' else 'fail:below_bar:' || c end);
+    if not ok and first_fail is null then first_fail := 'fail:below_bar:' || c; end if;
+  end loop;
+  return v || jsonb_build_object('other', v ->> 'microsoft', 'strict', coalesce(first_fail, 'pass'));
 end $function$
 
 
