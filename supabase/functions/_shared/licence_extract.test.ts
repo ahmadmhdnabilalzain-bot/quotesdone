@@ -81,3 +81,35 @@ Deno.test("a 'low' read is kept only with ink measured or its number in the text
   assertEquals(lowReadProven(low, false, null), false);                        // a scan PDF: nothing proven -> held
   assertEquals(lowReadProven({ ...low, confidence: 'medium' }, false, null), true);
 });
+
+// THE PORTAL'S PAGE SHAPE (28 Oct 2026, sales_engineer). The registration form sends each licence page as
+// { mime, data } (SupplierPortal.tsx fileToImages, me/pdfRaster.ts). documentContent read only `b64`, so the page
+// went to the model as "[object Object]" and the provider refused every call: ai_cost_log 27-28 Oct, 38 of 38
+// license_extract calls "Invalid image data URL ... payload is not base64-encoded data". Replays that exact input.
+import { documentContent, licencePages, pageB64 } from './licence_extract.ts';
+const B64 = /^[A-Za-z0-9+/]+={0,2}$/;
+const urlsOf = (c: { type: string; image_url?: { url: string } }[]) => c.filter((x) => x.type === 'image_url').map((x) => x.image_url!.url);
+
+Deno.test('a page the portal sends as { mime, data } reaches the model as real base64', () => {
+  const page = pngHeader(1240, 1754);
+  for (const im of [{ mime: 'image/png', data: page }, { b64: page, mime: 'image/png' }, page]) {
+    const urls = urlsOf(documentContent('read', [im], {}));
+    assertEquals(urls.length, 1);
+    assertEquals(urls[0].startsWith('data:image/png;base64,') || urls[0].startsWith('data:image/jpeg;base64,'), true);
+    assertEquals(B64.test(urls[0].replace(/^data:[^;]+;base64,/, '')), true, urls[0].slice(0, 60));
+  }
+});
+
+Deno.test('the size and ink guards judge a { mime, data } page, not the text of an object', () => {
+  assertEquals(imagesTooSmallToRead([{ mime: 'image/png', data: PNG_1PX }], {}), true);
+  assertEquals(imagesTooSmallToRead([{ mime: 'image/png', data: pngHeader(1240, 1754) }], {}), false);
+  assertEquals(licencePages([{ mime: 'image/png', data: PNG_1PX }], {}), [PNG_1PX]);
+  assertEquals([pageB64({}), pageB64(null), pageB64({ data: 5 })], ['', '', '']);
+});
+
+Deno.test('the portal still sends pages as { mime, data } (the shape the tests above replay)', async () => {
+  const src = await Deno.readTextFile(new URL('../../../src/components/portal/SupplierPortal.tsx', import.meta.url));
+  assertEquals(/images:\s*\[\{\s*mime:\s*file\.type,\s*data:\s*b64\s*\}\]/.test(src), true);
+  const raster = await Deno.readTextFile(new URL('../../../src/components/me/pdfRaster.ts', import.meta.url));
+  assertEquals(/Promise<\{\s*mime:\s*string;\s*data:\s*string\s*\}\[\]>/.test(raster), true);
+});
