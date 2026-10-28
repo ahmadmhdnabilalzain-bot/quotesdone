@@ -64,6 +64,18 @@ test('the approved link-less copy passes every body requirement of the live guar
   assert.ok(!/portal\[\?\]t=/.test(g), `the guard in ${guardFile()} still demands a portal link`);
 });
 
+// Relaxing the link must not relax the opt-out (review of #1705, 28 Oct 2026): the guard refuses a body without the
+// reply-"stop" line, the approved copy carries it, and the same copy with that line cut is refused.
+test('the guard still requires the reply-"stop" opt-out line, and the approved copy carries it', () => {
+  const g = guardBody();
+  const m = g.match(/new\.body[^\n]*!~\*\s*'((?:[^']|'')+)'[^\n]*\n[^\n]*no reply-"stop" opt-out line/);
+  assert.ok(m, `the guard in ${guardFile()} no longer refuses an invitation without the reply-"stop" opt-out line`);
+  const re = new RegExp(m[1].replaceAll("''", "'").replaceAll('[[:space:]]', '\\s'), 'i');
+  const body = approvedBody();
+  assert.match(body, re, 'the approved copy has no reply-"stop" line: every invitation would be refused');
+  assert.doesNotMatch(body.split('\n').filter((l) => !/stop/i.test(l)).join('\n'), re, 'a body without the stop line would pass the guard');
+});
+
 test('the outreach tick is not run under the 8 s heartbeat RPC', () => {
   const open = ping.indexOf("const STEP_RUN: Record<string, Omit<Step, 'name'>> = {");
   const close = ping.indexOf('\n};', open);

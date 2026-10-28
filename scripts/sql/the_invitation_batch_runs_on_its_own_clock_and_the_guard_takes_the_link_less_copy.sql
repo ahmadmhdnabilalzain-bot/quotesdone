@@ -28,8 +28,8 @@
 --      approved copy link-less on the founder's instruction ("safer to not send links") and changed the candidate
 --      picker, but not this trigger. Replayed 28 Oct with a 60 s limit: SUPPLIER_INVITE_REFUSED "the invitation to
 --      info@alqama.ae carries no portal link" — the whole batch aborts on its first row.
---      FIX: the guard refuses an EMPTY body and a body still carrying an unfilled {{placeholder}} instead of a body
---      without a link. Every other refusal (Arabic without Arabic, no lead, an ineligible or mismatched lead) is
+--      FIX: the guard refuses an EMPTY body, a body still carrying an unfilled {{placeholder}}, and a body without the
+--      reply-"stop" opt-out line (the approved body's last line), instead of a body without a link. Every other refusal (Arabic without Arabic, no lead, an ineligible or mismatched lead) is
 --      unchanged. CREATE OR REPLACE keeps the routine's closed ACL; the revoke below restates it for the check.
 --
 -- Replayed together in one rolled-back transaction on 28 Oct 2026 ~06:20Z: 20 queued of 20 planned (pool 17,401,
@@ -56,6 +56,11 @@ begin
   end if;
   if position('{{' in coalesce(new.body, '')) > 0 then
     raise exception 'SUPPLIER_INVITE_REFUSED: the invitation to % still carries an unfilled placeholder', new.to_email using errcode = 'check_violation';
+  end if;
+  -- The link was never the opt-out; the reply-"stop" line is (m365_lane.ts STOP_LINE, the approved body's last line).
+  -- A body without it is refused, so the guard still asks for the one thing an unsolicited invitation must carry.
+  if coalesce(new.body, '') !~* 'reply[[:space:]]+["“”'']?stop' then
+    raise exception 'SUPPLIER_INVITE_REFUSED: the invitation to % has no reply-"stop" opt-out line', new.to_email using errcode = 'check_violation';
   end if;
   if coalesce(new.lang, 'en') = 'ar' and coalesce(new.body, '') !~ '[؀-ۿ]' then
     raise exception 'SUPPLIER_INVITE_REFUSED: an Arabic invitation to % has no Arabic in it', new.to_email using errcode = 'check_violation';
@@ -210,4 +215,6 @@ select case
     then 'PROBE FAILED: resilience_ping still plans supplierOutreach under the 8 s RPC limit'
   when pg_get_functiondef('public.fn_notifications_supplier_invite_is_whole()'::regprocedure) like '%portal[?]t=%'
     then 'PROBE FAILED: the invitation guard still demands a portal link'
+  when pg_get_functiondef('public.fn_notifications_supplier_invite_is_whole()'::regprocedure) not like '%no reply-"stop" opt-out line%'
+    then 'PROBE FAILED: the invitation guard does not require the reply-"stop" opt-out line'
   else 'PROBE OK' end as verdict;
