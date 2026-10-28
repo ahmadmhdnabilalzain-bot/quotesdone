@@ -31,7 +31,7 @@ import ServicesTab from './supplier/ServicesTab';
 import EmirateCheckboxes from './supplier/EmirateCheckboxes';
 import { Kicker } from '@/components/ui/sealed';
 import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, TRADE_GROUPS, tradeLabel } from './supplier/serverCopy';
-import { call } from './supplier/api';
+import { call, REASONING_TIMEOUT_MS } from './supplier/api';
 import { warmTabs, firstRead } from './supplier/tabPrefetch';
 // THE ONE MONEY FORMATTER (audit 22 Sep 2026, SP-I-10): ./supplier/money.ts. The local `aed(n)` that
 // stood here printed "AED 1,200" on /ar too, while the quotation tabs printed "1,200 د.إ" for the
@@ -1490,7 +1490,10 @@ function Documents({ token, lang, onSaved = null, onExpired = null }) {
       if (d.error) { setBusy(''); setErr(srvMsg(lang, d.error, srvText(lang, 'direct_upload_failed'))); return; }
       item = { kind, path: d.path, filename: d.filename, mime: d.mime, expiry };
     } else item = { kind, original_b64: await fileToB64(file), filename: file.name, mime: file.type, expiry };
-    const j = await call('supplier_portal', { action: 'save_documents', items: [item] }, token);
+    // A LICENCE OR CERTIFICATE IS READ BEFORE THE ANSWER (28 Oct 2026, sales_engineer; production document walk e8d1e4b5):
+    // a phone photo of a licence answered in 18,019 ms (the model's read, ~9-16 s), two seconds inside the 20 s every
+    // other call keeps. A slower read was cut off and the supplier told the save failed while the file was on record.
+    const j = await call('supplier_portal', { action: 'save_documents', items: [item] }, token, { timeoutMs: REASONING_TIMEOUT_MS });
     setBusy('');
     if (j && j.read) setReads((o) => ({ ...o, ...j.read }));
     const failed = (j && j.failed) || [];
@@ -1893,7 +1896,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     if (!file) return; setUploading(true); setLicNote(''); setMsg('');
     try {
       const { images, b64, mime } = await fileToImages(file);
-      const j = await call('supplier_api', { action: 'process_docs', license: { original_b64: b64, file_b64: b64, images, filename: file.name, mime } }, token);
+      // The licence is read before the answer (the model, up to two attempts): the reasoning wait, not 20 s (see save_documents).
+      const j = await call('supplier_api', { action: 'process_docs', license: { original_b64: b64, file_b64: b64, images, filename: file.name, mime } }, token, { timeoutMs: REASONING_TIMEOUT_MS });
       if (!(j && j.ok)) { setMsg(srvMsg(lang, j, t(lang, 'lic_upload_failed'))); }
       else {
         setLicOnFile(true);

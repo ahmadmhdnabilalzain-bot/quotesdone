@@ -54,8 +54,31 @@ Deno.test('an invited supplier that has not registered is never told it is regis
   assert(t.includes('HAVE NOT REGISTERED YET'));
   assert(t.includes('https://quotesdone.com/portal?t=' + TOKEN));
   assert(t.includes('ZZ DEMO Glass LLC'));
-  assert(/reply with the trades/.test(t));
   assertEquals(db.matchReads(), 0);   // no jobs are read for a company that has no account
+});
+
+// PREVENTED BY (28 Oct 2026, it_engineer audit of the supplier journey, ledger 1401): eight real-path replies each
+// promised "reply with the trades … our team will set up the page for you" (nothing does it: the invite.reply handler
+// only waits) and listed the steps without the company profile and the supplier terms (two of the six).
+const SIX = [/licensed name/i, /UAE mobile/i, /e-mail/i, /trade licence/i, /company profile/i, /supplier terms/i];
+const OFFER = /our team (will|can) set up|set up (the|your|their) (company )?page for (them|you)|reply with the trades/i;
+Deno.test('an invited supplier is told all six items and is never offered a set-up nobody performs', async () => {
+  const facts = [
+    await mailFacts(leadDb({ id: 5, company_name: 'ZZ DEMO Glass LLC', claimed: false, claim_token: TOKEN }), 'sales@example.invalid', 'supplier', { sender_authenticated: true }),
+    SUPPLIER_SIGN_IN_FACT,
+  ];
+  for (const t of facts) {
+    for (const re of SIX) assert(re.test(t), `missing ${re}: ${t}`);
+    assert(/never offer to register them/i.test(t), t);
+    // the facts may FORBID the offer, never make it: take the forbidding sentence out before looking for the offer
+    assert(!OFFER.test(t.replace(/Never offer to register them[^.]*\.[^.]*\./i, '')), t);
+  }
+});
+Deno.test('known-bad control: the facts of #1699 are caught', () => {
+  const before = 'then confirm the company details and the trades they cover, upload the trade licence and verify their mobile. '
+    + 'If they would rather not do it themselves, they can reply with the trades they cover and our team will set up the page for them.';
+  assert(OFFER.test(before));
+  assert(!/company profile/i.test(before) && !/supplier terms/i.test(before));
 });
 Deno.test('an unregistered lead with no claim token still gets the portal, never a broken link', async () => {
   const t = await mailFacts(leadDb({ id: 6, company_name: 'X', claimed: false, claim_token: null }), 'a@example.invalid', 'supplier', { sender_authenticated: true });
