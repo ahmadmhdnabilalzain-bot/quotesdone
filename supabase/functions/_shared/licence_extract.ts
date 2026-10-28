@@ -191,11 +191,13 @@ export function normaliseLicence(ai: Record<string, unknown>) {
   // supplier's company in Arabic and could approve it, where it held the name for a person (corpus: 'hold_name'). And an
   // Arabic-only read 'low' (stage-2 run 4 S21, the arabicOnly rule below) became unreadable and lost its number and
   // expiry, because its Arabic trade name made it no longer "Arabic-only". legal_name is the ENGLISH name (SYS_LICENSE),
-  // so the trade name stands in only when it is written in Latin letters, and a read that is not 'medium' or 'high'
-  // normalises exactly as it did before the fallback existed.
+  // so the trade name stands in only when it is written in Latin letters with no Arabic letter in it (an English name,
+  // as mergeLicenceReads and licenceFieldsFromText read one: "النور للمقاولات LLC" is not), and a read that is not
+  // 'medium' or 'high' normalises exactly as it did before the fallback existed.
   const en = s(ai.legal_name, 200), trade = s(ai.trade_name, 200);
   const sure = ['medium', 'high'].includes(String(ai.confidence));
-  const legal = !/\p{L}{2}/u.test(en) && sure && /\p{Script=Latin}{2}/u.test(trade) ? trade : en;
+  const englishTrade = /\p{Script=Latin}{2}/u.test(trade) && !/\p{Script=Arabic}/u.test(trade);
+  const legal = !/\p{L}{2}/u.test(en) && sure && englishTrade ? trade : en;
   const named = /\p{L}{2}/u.test(legal) || /\p{L}{2}/u.test(s(ai.legal_name_ar, 200));
   const arabicOnly = !/\p{L}{2}/u.test(en) && /\p{Script=Arabic}{2}/u.test(s(ai.legal_name_ar, 200));
   if (!named || (String(ai.confidence) === 'low' && !arabicOnly)) {

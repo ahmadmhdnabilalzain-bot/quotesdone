@@ -110,6 +110,9 @@ Deno.test('an Arabic trade name never becomes legal_name, the English name (the 
     assertEquals(licenceNameFromModel(d), null, 'an Arabic-only licence leaves the licence name unread, for a person to compare');
     assertEquals(mergeLicenceReads(null, d).merged.legal_name_en, null);
   }
+  // an Arabic trade name carrying a Latin legal-form suffix is still not an English name
+  assertEquals(normaliseLicence({ ...ajmanArabicOnly, trade_name: 'زد زد ديمو الواحة LLC' }).legal_name, '');
+  assertEquals(normaliseLicence({ ...ajmanArabicOnly, legal_name_ar: '', trade_name: 'زد زد ديمو الواحة LLC' }).unreadable, true);
 });
 
 Deno.test("an Arabic-only read 'low' whose trade name is the Arabic name keeps its number and expiry (stage-2 S21)", () => {
