@@ -132,19 +132,51 @@ export const SIGNATURE = 'Best regards,\nAhmad Alzain\nFounder, QuotesDone\nQuot
 // addressed to the company and its trade, no promotional word in the subject or the opening, and the opt-out in the
 // List-Unsubscribe headers plus one "reply stop" line. Since 27 Oct 2026 the body carries no link at all (above).
 export type Who = { company?: string; trade?: string };
-const ENTITY: Record<string, string> = { amp: '&', '#038': '&', '#38': '&', quot: '"', '#039': "'", '#39': "'", apos: "'" };
-/** A company name as a person writes it: entities decoded, a "| tagline" or " - branch" cut, SHOUTING lowered. */
+// THE GREETING READS A COMPANY NAME, NOT A PAGE TITLE (sales_engineer, 28 Oct 2026). leads.company_name is often a
+// scraped page title. MEASURED on notifications 116649-116668: "Speed Blast Trading L.L.C &#8211; Top notch Industrial
+// Equipments Suppliers in Dubai, UAE" reached the greeting whole (the entity map had no numeric entities, so the dash cut
+// never saw a dash), "CERAMIC MEGA ... TR LLC (Manufacturer and wholesaler of any kind of porcelain tile.)" kept its
+// tagline and its capitals, "NRA INTERNATIONAL" became "Nra" and "TRADING L L C" kept its spaces. So: decode every
+// entity first, then cut (dash/pipe, a trailing parenthetical, a ", Dubai"/", Suppliers in ..." tail), then case, and a
+// name still too long or written like a sentence gets the neutral "Hello," rather than a title.
+const ENTITY: Record<string, string> = {
+  amp: '&', quot: '"', apos: "'", nbsp: ' ', ndash: '–', mdash: '—', lt: '<', gt: '>', rsquo: "'", lsquo: "'", rdquo: '"', ldquo: '"',
+};
+const decodeOnce = (s: string) => s.replace(/&(?:#(\d{1,7})|#x([0-9a-f]{1,6})|([a-z]+));/gi, (m, dec, hex, name) => {
+  if (name) return ENTITY[name.toLowerCase()] ?? m;
+  const cp = dec ? parseInt(dec, 10) : parseInt(hex, 16);
+  return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m;
+});
+/** What follows ", " in a page title rather than a name: an emirate, the country, or a "Suppliers in ..." tagline. */
+const PLACE_OR_TAGLINE = /^(?:dubai|uae|u\.a\.e|united arab emirates|abu dhabi|sharjah|ajman|ras al khaimah|fujairah|umm al quwain|al ain|jebel ali)\b|\bsuppliers?\s+in\b/i;
+const LEGAL = /^(?:l\.?l\.?c\.?|fze|fzco|fzc|fz|tr|dmcc|pjsc|wll)$/i;
+/** Short words that are words, not acronyms, when a name is written in capitals ("AL", "CO", "OIL", "LTD"). */
+const SHORT_WORD = new Set('AL EL OF AND THE FOR CO INC LTD EST BIN BU ABU DAR DE LA DA NEW ONE TOP BIG SEA SUN AIR OIL GAS ART BOX CAR KEY RED BAY SKY ECO PRO ALL TWO WAY HUB LAB MEN'.split(' '));
+const word = (w: string) => w.toLowerCase().replace(/(^|[-/(&'])([a-z])/g, (_m, p, c) => (p === "'" ? p + c : p + c.toUpperCase()));
+/** One token of a name written in capitals: a legal suffix or a 2-3 letter acronym stays, anything else is title-cased. */
+const capsToken = (w: string) => {
+  const bare = w.replace(/[^A-Za-z.]/g, '');
+  if (LEGAL.test(bare)) return w.toUpperCase();
+  const letters = w.replace(/[^A-Z]/g, '');
+  if (letters === w && ((w.length <= 3 && w.length >= 2 && !SHORT_WORD.has(w)) || (w.length === 4 && !/[AEIOUY]/.test(w)))) return w;
+  return word(w);
+};
+/** A company name as a person writes it: entities decoded, a page-title tail cut, SHOUTING lowered; '' for the neutral greeting. */
 export function companyName(raw: unknown): string {
-  let s = String(raw || '').replace(/&(#0?\d+|[a-z]+);/gi, (m, k) => ENTITY[String(k).toLowerCase()] ?? m);
-  s = s.split(/\s[|–—-]\s/)[0].replace(/\s+/g, ' ').trim();
+  let s = decodeOnce(decodeOnce(String(raw || '')));          // twice: "&amp;#8211;" is a dash too
+  s = s.replace(/\s+/g, ' ').split(/\s[|–—-]\s/)[0];           // "Name – tagline", "Name | tagline", "Name - branch"
+  s = s.replace(/\s*\([^()]*\)?\s*$/, '');                   // "Name (Manufacturer and wholesaler of ...)"
+  const comma = s.indexOf(', ');
+  if (comma > 0 && PLACE_OR_TAGLINE.test(s.slice(comma + 2))) s = s.slice(0, comma);
+  s = s.replace(/\bL\s+L\s+C\b/g, 'LLC').replace(/[\s,;:|–—-]+$/, '').trim();
   if (/[؀-ۿ]/.test(s) || /^zz\s*demo/i.test(s) || s.length < 2) return '';
   // a registered name carrying a web address ("www.khaazay.com online division of ...") gets the neutral greeting:
   // the founder's email carries no link, and the name is never cut into something the company did not write
   if (/https?:\/\/|\bwww\.|\b[a-z0-9-]+\.(?:com|ae|net|org|co|biz|info)\b/i.test(s)) return '';
-  if (s === s.toUpperCase() && /[A-Z]{4}/.test(s)) {
-    s = s.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase()).replace(/\b(Llc|Fze|Fzco|Fzc|Fz)\b/g, (w) => w.toUpperCase());
-  }
-  return s;
+  // still a title, not a name: too long, too many words, or written to the reader
+  if (s.length > 60 || s.split(' ').length > 8 || /\b(?:we|our|you|your)\b/i.test(s)) return '';
+  if (s === s.toUpperCase() && /[A-Z]{4}/.test(s)) return s.split(' ').map(capsToken).join(' ');
+  return s.split(' ').map((w) => (LEGAL.test(w.replace(/[^A-Za-z.]/g, '')) && /[a-z]/.test(w) && w.length > 2 ? w.toUpperCase() : w)).join(' ');
 }
 /** "fire_fighting" -> "fire fighting"; '' when there is none. */
 export function tradeLabel(slug: unknown): string { return String(slug || '').replace(/[_-]+/g, ' ').trim().toLowerCase(); }

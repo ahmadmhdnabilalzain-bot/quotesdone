@@ -433,3 +433,45 @@ Deno.test('quoted-printable: "=", UTF-8, a trailing space and long lines are enc
   assertFalse(/=[0-9A-F]?\r\n[0-9A-F]/.test(qp.replace(/=\r\n/g, '')), 'an =XX was split');
   assertEquals(qpDecode(qp), sample.replace(/\n/g, '\r\n'));
 });
+
+// sales_engineer, 28 Oct 2026: the greeting reads a company name, not a page title. Every leads.company_name behind
+// notifications 116649-116668 (read-only join, 28 Oct 2026), with the greeting each must render. The first four were
+// real rendered failures; the other sixteen already read well and must keep doing so.
+Deno.test('the greeting reads a company name, not a scraped page title (notifications 116649-116668)', () => {
+  const CASES: ReadonlyArray<readonly [string, string]> = [
+    ['Speed Blast Trading L.L.C &#8211; Top notch Industrial Equipments Suppliers in Dubai, UAE', 'Speed Blast Trading L.L.C'],
+    ['CERAMIC MEGA BUILDING MATERIALS TR LLC (Manufacturer and wholesaler of any kind of porcelain tile.)', 'Ceramic Mega Building Materials TR LLC'],
+    ['NRA INTERNATIONAL', 'NRA International'],
+    ['OFFSHORE MIDDLE EAST MARINE EQUIPMENT TRADING L L C', 'Offshore Middle East Marine Equipment Trading LLC'],
+    ['Zoom Building Materials Trading | Construction Materials Supplier in Abu Dhabi, UAE', 'Zoom Building Materials Trading'],
+    ['Mohd Al Qama - Authorized Dealer of RAK Ceramics', 'Mohd Al Qama'],
+    ['Al Sarai Ceramic - KOHLER SHARJAH', 'Al Sarai Ceramic'],
+    ['RAK TILE LLC - Interlocking Paver Blocks Manufacturer- Marble & Granites- Ras Al Khaimah- UAE', 'RAK Tile LLC'],
+    ['BLUE PEARL MARINE SERVICES FZC', 'Blue Pearl Marine Services FZC'],
+    ['SEASWIFT SUBSEA ENGINEERING LLC', 'Seaswift Subsea Engineering LLC'],
+    ['TOTAL SOLUTIONS', 'Total Solutions'],
+    ['ARABIAN AURORA DETERGENTS TRADING L.L.C', 'Arabian Aurora Detergents Trading L.L.C'],
+    ['Infinite Global Fze', 'Infinite Global FZE'],
+    ['Mohammed Zafar Steel Workshop LLC', 'Mohammed Zafar Steel Workshop LLC'],
+    ['NEELKAMAL PLASTIC FACTORY', 'Neelkamal Plastic Factory'],
+    ['Zainab Building Materials Company LLC', 'Zainab Building Materials Company LLC'],
+    ['Buildline Building Materials Trading LLC', 'Buildline Building Materials Trading LLC'],
+    ['Fujairah General Trading Enterprises', 'Fujairah General Trading Enterprises'],
+    ['SENSI Trading LLC', 'SENSI Trading LLC'],
+    ['Volark Tiles', 'Volark Tiles'],
+  ];
+  for (const [raw, want] of CASES) {
+    assertEquals(companyName(raw), want, raw);
+    assert(m365InvitationText({ company: raw }).startsWith(`Hi ${want} team,\n`), raw);
+  }
+  // every entity form decodes before the cut, hex and double-encoded included
+  assertEquals(companyName('Acme Trading &#x2014; Best Prices'), 'Acme Trading');
+  assertEquals(companyName('Acme Trading &amp;#8211; Best Prices'), 'Acme Trading');
+  assertEquals(companyName('Acme Trading LLC, Sharjah'), 'Acme Trading LLC');
+  assertEquals(companyName('Acme Trading, LLC'), 'Acme Trading, LLC');
+  // still a title after every cut: the neutral greeting, never a sentence addressed as a company
+  const title = 'Leading Supplier of Industrial Valves Pumps and Fittings for Oil Gas and Marine Projects';
+  assertEquals(companyName(title), '');
+  assert(m365InvitationText({ company: title }).startsWith('Hello,\n'));
+  assertEquals(companyName('We supply the best tiles'), '');
+});
