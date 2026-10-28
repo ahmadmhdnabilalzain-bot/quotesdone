@@ -151,16 +151,17 @@ const decodeOnce = (s: string) => s.replace(/&(?:#(\d{1,7})|#x([0-9a-f]{1,6})|([
 const PLACE_OR_TAGLINE = /^(?:dubai|uae|u\.a\.e|united arab emirates|abu dhabi|sharjah|ajman|ras al khaimah|fujairah|umm al quwain|al ain|jebel ali)\b|\bsuppliers?\s+in\b/i;
 const LEGAL = /^(?:l\.?l\.?c\.?|fze|fzco|fzc|fz|tr|dmcc|pjsc|wll)$/i;
 /** Two-letter words that are words, not acronyms, when a name is written in capitals ("AL", "CO", "OF"). */
-const SHORT_WORD = new Set('AL EL OF CO BU DE LA DA BY TO IN ON OR AT IS AS MY UP NO'.split(' '));
+const SHORT_WORD = new Set('AL EL OF CO BU DE LA LE DA BY TO IN ON OR AT IS AS MY UP NO DR MR MS ST HI'.split(' '));
 /** Three-letter acronyms that carry a vowel. Any other three-letter token with a vowel is a word or an abbreviation and is
  *  title-cased: MEASURED on all 20,249 distinct leads.company_name (28 Oct 2026, review of #1706), keeping every 3-letter
  *  token in capitals turned GEN (258 names), ALI (89), IND, MIX, MAT, ENT, AIN, SPA, ENG, BAB and EZZ into shouting. */
 const ACRONYM3 = new Set('UAE UAQ RAK MEP NRA MAF ETA ABD'.split(' '));
 /** Vowel-less abbreviations that read as words, not acronyms: "Co Ltd", "Pvt", "Svcs" (MEASURED 28 Oct 2026: LTD alone
  *  is in 376 distinct names). */
-const ABBREVIATION = new Set('LTD PVT SVC SVCS MKTG TRDG'.split(' '));
-/** Title case: a letter after anything but a letter or an apostrophe ("Gen.Trading", "Center/L.L.C", "Ronny's"). */
-const word = (w: string) => w.toLowerCase().replace(/(^|[^a-z'’])([a-z])/g, (_m, p, c) => p + c.toUpperCase());
+const ABBREVIATION = new Set('LTD PVT SVC SVCS MKTG TRDG MFG MNFG DVLP SRVS PCKG CNTG BLDG'.split(' '));
+/** Title case: a letter after anything but a letter, a digit, "_" or an apostrophe ("Gen.Trading", "Center/L.L.C",
+ *  "Ronny's", "18th"). */
+const word = (w: string) => w.toLowerCase().replace(/(^|[^a-z0-9_'’])([a-z])/g, (_m, p, c) => p + c.toUpperCase());
 /** One token of a name written in capitals: a legal suffix or a 2-3 letter acronym stays, anything else is title-cased. */
 const capsToken = (w: string) => {
   const bare = w.replace(/[^A-Za-z.]/g, '');
@@ -169,6 +170,13 @@ const capsToken = (w: string) => {
   if (letters === w && !ABBREVIATION.has(w) && ((w.length === 2 && !SHORT_WORD.has(w)) || (w.length === 3 && (ACRONYM3.has(w) || !/[AEIOUY]/.test(w))) ||
     (w.length === 4 && !/[AEIOUY]/.test(w)))) return w;
   return word(w);
+};
+/** One part of a hyphenated capitals token ("LLC-SPC", "HI-TECH", "AL-FUTTAIM"): a legal suffix, a known acronym or a
+ *  vowel-less one stays; anything else is title-cased, so "HI" and "AL" read as words here (review of #1706). */
+const hyphenPart = (w: string) => {
+  if (LEGAL.test(w.replace(/[^A-Za-z.]/g, ''))) return w.toUpperCase();
+  const keep = /^[A-Z]{2,4}$/.test(w) && !ABBREVIATION.has(w) && (ACRONYM3.has(w) || !/[AEIOUY]/.test(w));
+  return keep ? w : word(w);
 };
 /** A company name as a person writes it: entities decoded, a page-title tail cut, SHOUTING lowered; '' for the neutral
  *  greeting. It never throws: the greeting is not worth a failed send, so any exception reads as "no name". */
@@ -192,7 +200,8 @@ function nameFrom(raw: unknown): string {
   const words = s.split(' ').filter((w) => w !== '&' && !LEGAL.test(w.replace(/[^A-Za-z.]/g, '')));
   if (s.length > 80 || words.length > 10 || (s.match(/, /g) || []).length >= 2) return '';
   if (words.length >= 4 && /\b(?:we|our|you|your)\b/i.test(s)) return '';
-  if (s === s.toUpperCase() && /[A-Z]{4}/.test(s)) return s.split(' ').map((t) => t.split('-').map(capsToken).join('-')).join(' ');
+  if (s === s.toUpperCase() && /[A-Z]{4}/.test(s)) return s.split(' ').map((t) => (t.includes('-') ? t.split('-').map(hyphenPart).join('-') : capsToken(t))).join(' ')
+      .replace(/\b(?:Llc|Fze|Fzco|Fzc|Dmcc|Pjsc|Wll)\b/g, (w) => w.toUpperCase());   // a suffix inside a dotted token: "Studio-Ati.FZE"
   return s.split(' ').map((w) => (LEGAL.test(w.replace(/[^A-Za-z.]/g, '')) && /[a-z]/.test(w) && w.length > 2 ? w.toUpperCase() : w)).join(' ');
 }
 /** "fire_fighting" -> "fire fighting"; '' when there is none. */

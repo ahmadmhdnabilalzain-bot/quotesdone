@@ -498,6 +498,14 @@ Deno.test('a long registered name, a three-letter word and a dotted suffix read 
     ['GULF WIRELESS &#038; TV CO LLC', 'Gulf Wireless & TV Co LLC'],
     ['Leeds Furnishing: Premium Home Furnishing in Dubai & Abu Dhabi | Luxury Home', 'Leeds Furnishing'],
     ['cctv company in Dubai |CCTV Camera Installation Company in Dubai', 'cctv company in Dubai'],
+    // second pass over the whole table: a hyphen, a digit, a dotted suffix and a two-letter word
+    ['HI-TECH BUILDING CONSTRUCTIONS', 'Hi-Tech Building Constructions'],
+    ['HI TECH BUILDING CONSTRUCTIONS', 'Hi Tech Building Constructions'],
+    ['STUDIO-ATI.FZE', 'Studio-Ati.FZE'],
+    ['M H ALI EL-SAIE, DR', 'M H Ali El-Saie, Dr'],
+    ['THE 18TH STREET TRADING', 'The 18th Street Trading'],
+    ['AL WAHA BLDG MATERIALS', 'Al Waha Bldg Materials'],
+    ['CAMELIA FLOWERS-L L C', 'Camelia Flowers-LLC'],
   ];
   for (const [raw, want] of CASES) assertEquals(companyName(raw), want, raw);
   // a keyword list is a title: the neutral greeting
