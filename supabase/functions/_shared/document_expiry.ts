@@ -40,6 +40,9 @@ const KEYWORD_RE = new RegExp('(' + KEYWORDS.map((k) => k.replace(/[.*+?^${}()|[
 // 13 Mar 2027, 13-MAR-2027, 13 March 2027, March 13, 2027. Two-digit years are not accepted.
 const DATE_RE = /(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})|(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})|(\d{1,2})[ \-]([A-Za-z]{3,9})[ \-,]+(\d{4})|([A-Za-z]{3,9})[ \-]+(\d{1,2}),?[ \-]+(\d{4})/;
 
+// The second date of a range, right after the first: "<date> to <date>", "<date> - <date>", "<date> إلى <date>".
+const RANGE_END_RE = new RegExp('^\\s*(?:to|till|until|up\\s*to|upto|through|-|–|—|إلى|الى|حتى)\\s*(' + DATE_RE.source + ')', 'i');
+
 function ymd(y: number, m: number, d: number): string | null {
   if (!(y >= 2000 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31)) return null;
   const dt = new Date(Date.UTC(y, m - 1, d));
@@ -69,6 +72,16 @@ export function expiryFromText(text: string): ExpiryRead | null {
     const window = t.slice(at, at + 90);
     const dm = DATE_RE.exec(window);
     if (dm) {
+      // A PERIOD ENDS ON ITS SECOND DATE (28 Oct 2026, sales_engineer; document walk on production). An insurance
+      // schedule prints "Period of Insurance: From 01/01/2026 To 31/12/2026", and a licence or certificate can print
+      // "Validity: 15/03/2025 - 14/03/2028". The first date after the keyword is the START, and it was returned as the
+      // expiry: the Documents tab offered "expires 1 Jan 2026 — is that right?" for a policy valid to 31 Dec 2026, and
+      // a licence would have had its issue date written as its expiry. When the first date is joined to a second by
+      // to / till / until / up to / - / – / — / إلى / حتى, the second date is the expiry.
+      const rest = window.slice((dm.index ?? 0) + dm[0].length);
+      const tail = RANGE_END_RE.exec(rest);
+      const end = tail ? parseDate(tail[1]) : null;
+      if (end) return { expiry: end, source: 'text', keyword: km[0], raw: dm[0] + rest.slice(0, (tail!.index ?? 0) + tail![0].length) };
       const expiry = parseDate(dm[0]);
       if (expiry) return { expiry, source: 'text', keyword: km[0], raw: dm[0] };
     }

@@ -53,8 +53,9 @@ Deno.test('expiryFromText: the date AFTER an expiry keyword, never the issue dat
   assertEquals(expiryFromText('Issue Date : 14/03/2024\nSigned 01/01/2025'), null);
   // a keyword with no date beside it is skipped, not matched to a date far away
   assertEquals(expiryFromText('valid until the date shown on page 2\n' + 'x'.repeat(200) + '\n13/03/2027'), null);
-  // insurance schedule wording
-  assertEquals(expiryFromText('Period of insurance: from 01/01/2026 to 31/12/2026')?.expiry, '2026-01-01');
+  // insurance schedule wording: a period ends on its SECOND date (28 Oct 2026; this line asserted the start date,
+  // 2026-01-01, as the expiry until the production document walk offered "expires 1 Jan 2026" for a 2026 policy)
+  assertEquals(expiryFromText('Period of insurance: from 01/01/2026 to 31/12/2026')?.expiry, '2026-12-31');
   // Arabic, including Arabic-Indic digits
   assertEquals(expiryFromText('تاريخ الانتهاء: ١٣/٠٣/٢٠٢٧')?.expiry, '2027-03-13');
   assertEquals(expiryFromText('صالحة حتى 2027-03-13')?.expiry, '2027-03-13');
@@ -177,4 +178,21 @@ Deno.test('merge: code first, the model only fills what code left unread, a low-
   // an Arabic-only licence: the model's Arabic name is the Arabic name, never the English one the gate compares
   const ar = mergeLicenceReads(null, { legal_name: 'زد زد ديمو الواحة', legal_name_ar: 'زد زد ديمو الواحة', confidence: 'high' }).merged;
   assertEquals([ar.legal_name_en, ar.legal_name_ar], [null, 'زد زد ديمو الواحة']);
+});
+
+// A PERIOD ENDS ON ITS SECOND DATE (28 Oct 2026, sales_engineer). The production document walk uploaded an insurance
+// schedule printing "Period of Insurance: From 01/01/2026 To 31/12/2026" and the Documents tab offered the START date
+// as the expiry. Every range shape a UAE schedule, certificate or licence prints; a single date is unchanged.
+Deno.test('expiryFromText: a period of cover or validity reads its END date', () => {
+  const cases: [string, string][] = [
+    ['Period of Insurance: From 01/01/2026 To 31/12/2026\nExpiry Date: 31/12/2026', '2026-12-31'],
+    ['PERIOD OF INSURANCE  01/01/2026 TO 31/12/2026', '2026-12-31'],
+    ['Licence Validity: 15/03/2025 - 14/03/2028', '2028-03-14'],
+    ['Validity: 15 Mar 2025 – 14 Mar 2028', '2028-03-14'],
+    ['Validity 2025-03-15 until 2028-03-14', '2028-03-14'],
+    ['Valid to: 09/02/2027', '2027-02-09'],
+    ['صلاحية: 15/03/2025 إلى 14/03/2028', '2028-03-14'],
+    ['Expiry Date: 14/03/2028\nIssue Date: 15/03/2025', '2028-03-14'],
+  ];
+  for (const [text, want] of cases) assertEquals(expiryFromText(text)?.expiry, want, text);
 });
