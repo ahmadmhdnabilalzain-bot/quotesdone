@@ -147,6 +147,10 @@ test('the probe records the fixture, and the recorder refuses a result that does
   assert.throws(() => rec.parseResult(bad), /total 99 is not inbox \+ spam \+ other \+ notDelivered/);
   assert.throws(() => rec.parseResult({ testId: fx.testId, created: fx.created, stats: fx.stats }), /detail 'providers'/);
   assert.equal(rec.dollar('a $gr$ b'), '$grx$a $gr$ b$grx$');
+  // --dry-run before the apply replays the pending file first (review of #1701: it answered 42883 "does not exist")
+  const script = R('scripts/record_inbox_placement_verdict.mjs');
+  assert.match(script, /pendingNotes\(\)/, '--dry-run does not replay the pending routine before calling it');
+  assert.ok(script.includes(`scripts/sql/${NAME}.sql`), '--dry-run does not name the pending file it must replay');
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));

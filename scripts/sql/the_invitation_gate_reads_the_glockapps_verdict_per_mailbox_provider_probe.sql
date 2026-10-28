@@ -108,6 +108,11 @@ begin
        || jsonb_build_object('testId', 'zz-demo-probe-gmail-lost', 'created', t0 + interval '4 days'), 'supplier@quotesdone.com', 'it_engineer');
   o := o || jsonb_build_object('gmail_lost_half', fn_invite_placement_class_verdicts(t0 + interval '4 days 1 hour') ->> 'google');
   if o ->> 'gmail_lost_half' <> 'fail:below_bar:google' then v_fail := v_fail || text 'Gmail with half the mail lost and 0% spam passed'; end if;
+  -- a count missing from the rates is a fail, and the strict answer says so (review of #1701: it answered 'pass')
+  v := fn_invite_placement_rates_verdict('{"microsoft":{"seeds":10,"inbox":10},"google":{"seeds":10,"spam":0,"inbox":10},"yahoo_aol":{"seeds":10}}'::jsonb);
+  o := o || jsonb_build_object('missing_count_strict', v ->> 'strict');
+  if v ->> 'strict' = 'pass' or v ->> 'google' = 'pass' or v ->> 'yahoo_aol' = 'pass' then
+    v_fail := v_fail || text 'a missing count passed, or left the strict answer at pass'; end if;
 
   -- 6. a bad result is refused
   foreach a slice 1 in array array[

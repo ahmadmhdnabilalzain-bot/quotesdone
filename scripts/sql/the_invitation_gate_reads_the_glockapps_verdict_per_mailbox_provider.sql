@@ -243,11 +243,13 @@ begin
   foreach c in array array['microsoft', 'google', 'yahoo_aol'] loop
     r := coalesce(p_rates -> c, '{}'::jsonb);
     n := coalesce((r ->> 'seeds')::numeric, 0);
-    ok := b.id is not null and n > 0 and case c
+    -- coalesce(..., false): a count missing from the rates makes the comparison NULL, and a NULL 'ok' would label the
+    -- class failed while leaving 'strict' at 'pass' (review of #1701, 28 Oct 2026). Unknown is a fail.
+    ok := coalesce(b.id is not null and n > 0 and case c
       when 'microsoft' then (r ->> 'inbox')::numeric * 100 >= b.microsoft_min_inbox_pct * n
       when 'google'    then (r ->> 'spam')::numeric * 100 <= b.google_max_spam_pct * n
                         and ((r ->> 'inbox')::numeric + (r ->> 'tabs')::numeric) * 100 >= b.google_min_delivered_pct * n
-      when 'yahoo_aol' then (r ->> 'inbox')::numeric * 100 >= b.yahoo_aol_min_inbox_pct * n end;
+      when 'yahoo_aol' then (r ->> 'inbox')::numeric * 100 >= b.yahoo_aol_min_inbox_pct * n end, false);
     v := v || jsonb_build_object(c, case when ok then 'pass' else 'fail:below_bar:' || c end);
     if not ok and first_fail is null then first_fail := 'fail:below_bar:' || c; end if;
   end loop;

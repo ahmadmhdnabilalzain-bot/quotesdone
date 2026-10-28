@@ -79,7 +79,17 @@ async function main() {
   let rows;
   if (o.dryRun) {
     const { replaySql } = await import('./lib/safe_replay.mjs');
-    rows = await replaySql(q, { label: 'record_inbox_placement_verdict --dry-run', rows: true, retry: false });
+    // WHILE THE ROUTINE IS STILL PENDING (not yet applied), the dry run replays its file first in the same rolled-back
+    // transaction. Measured 28 Oct 2026 in review of #1701: without this, --dry-run before the apply answered 42883
+    // "function fn_record_inbox_placement_verdict does not exist", so a result could not be checked until after it.
+    const { pendingNotes } = await import('./lib/pending_sql.mjs');
+    const notes = pendingNotes();
+    const pending = [
+      'scripts/sql/no_test_mail_goes_to_the_founders_own_inboxes.sql',
+      'scripts/sql/the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.sql',
+    ].filter((f) => notes.has(f)).map((f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8'));
+    if (pending.length) console.log(`DRY RUN: replaying ${pending.length} pending file(s) first, in the same rolled-back transaction.`);
+    rows = await replaySql([...pending, q].join('\n;\n'), { label: 'record_inbox_placement_verdict --dry-run', rows: true, retry: false });
     console.log('DRY RUN: rolled back, nothing stored.');
   } else {
     const { sql } = await import('./lib/db.mjs');
