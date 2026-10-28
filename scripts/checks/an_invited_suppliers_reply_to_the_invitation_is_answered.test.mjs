@@ -15,7 +15,8 @@ const facts = readFileSync(new URL('../../supabase/functions/email_triage/accoun
 
 test('email_triage lifts the internal skip only for a lead writing to the invitation mailbox, then re-applies every other rule', () => {
   assert.match(src, /let skip = noAutoReply\(m, founder\)/);
-  assert.match(src, /if \(skip === 'internal'\)\s*\{[\s\S]{0,300}fn_mail_sender_known[\s\S]{0,200}invitationReplyAnswerable\(m, rel\)\)\s*skip = noAutoReply\(\{ \.\.\.m, to_email: '' \}, founder\)/);
+  // review of #1699: a lead in email_suppressions is passed as `suppressed`, so a lead who opted out is never answered
+  assert.match(src, /if \(skip === 'internal'\)\s*\{[\s\S]{0,300}fn_mail_sender_known[\s\S]{0,400}from\('email_suppressions'\)[\s\S]{0,300}invitationReplyAnswerable\(m, rel, !!\(sup && sup\.length\)\)\)\s*skip = noAutoReply\(\{ \.\.\.m, to_email: '' \}, founder\)/);
 });
 
 test('an unclaimed lead is answered from the not-registered facts with its own link', () => {
