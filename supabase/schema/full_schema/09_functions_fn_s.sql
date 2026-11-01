@@ -7983,7 +7983,7 @@ AS $function$
     -- ALWAYS ENGLISH (review, 29 Sep 2026; founder rule: suppliers are always English, ledger 993). The column
     -- stays so the signature does not change; send_outbox would hold an Arabic row of this type anyway.
     select l.id, lower(btrim(l.email)) as to_email, 'en'::text as lang,
-           l as lead,
+           l as lead, i.sent_at,
            case when p_now >= i.sent_at + interval '14 days' then 3
                 when p_now >= i.sent_at + interval '7 days'  then 2
                 when p_now >= i.sent_at + interval '3 days'  then 1 end as step
@@ -8001,6 +8001,14 @@ AS $function$
               -- the test path can only ever see a fixture: both marks, asserted, never assumed
               then (c.lead).company_name like 'ZZ DEMO%' and c.to_email like '%@example.invalid'
               else public.fn_supplier_outreach_reachable(c.lead, c.to_email) end
+     -- A SUPPLIER WHO ANSWERED IS NOT ASKED AGAIN (28 Oct 2026): any message of its own since the invitation was sent,
+     -- an automatic reply excepted. The address is read out of a "Name <address>" From exactly as
+     -- fn_marketing_files_invite_reply reads it.
+     and not exists (select 1 from public.inbound_messages m
+                      where (m.lead_id = c.id
+                             or lower(substring(coalesce(m.from_email, '') from '([^<>[:space:]"]+@[^<>[:space:]"]+)')) = c.to_email)
+                        and m.created_at >= c.sent_at
+                        and not public.fn_inbound_is_auto_reply(m.subject, m.body, m.raw))
      and not exists (select 1 from public.agent_actions a
                       where a.kind = 'handoff' and a.agent = 'customer_support'
                         and a.target_id = 'delivery.request:supplier_invite_nudge:' || c.id || ':' || c.step)
