@@ -327,10 +327,11 @@ export const handler = observe('resend_inbound', async (req) => {
     // ---- A BOUNCE THAT COMES BACK AS MAIL (1 Nov 2026, sales_engineer): _shared/mailbox_bounce.ts ----
     const bounced = permanentlyBouncedAddress(from, fullText);
     if (bounced) {
-      const { data: invited } = await admin.from('notifications').select('lead_id').ilike('to_email', bounced.replace(/[\%_]/g, '\    // ---- AN UNSUBSCRIBE BY EMAIL IS HONOURED HERE (21 Sep 2026, customer_support) ----')).in('type', ['supplier_invite', 'supplier_invite_nudge']).limit(1);
+      const exact = bounced.replace(/[\\%_]/g, '\\$&');
+      const { data: invited } = await admin.from('notifications').select('lead_id').ilike('to_email', exact).in('type', ['supplier_invite', 'supplier_invite_nudge']).eq('status', 'sent').limit(1);
       if (invited?.length) {
         await admin.from('email_suppressions').upsert({ email: bounced, reason: 'hard_bounce:permanent', source: 'mailbox_report' }, { onConflict: 'email' });
-        await admin.from('leads').update({ invite_status: 'bounced' }).ilike('email', bounced.replace(/[\%_]/g, '\    // ---- AN UNSUBSCRIBE BY EMAIL IS HONOURED HERE (21 Sep 2026, customer_support) ----')).in('invite_status', ['queued', 'sent']);
+        await admin.from('leads').update({ invite_status: 'bounced' }).ilike('email', exact).in('invite_status', ['queued', 'sent']);
       }
     }
 
