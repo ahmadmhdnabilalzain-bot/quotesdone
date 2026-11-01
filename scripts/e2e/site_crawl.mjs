@@ -40,7 +40,7 @@ async function linkedPaths(browser, seeds) {
 }
 
 // ---- one page visit -------------------------------------------------------------------------
-const LATIN_RUN = /(?:[A-Za-z][A-Za-z'’-]+\s+){3,}[A-Za-z][A-Za-z'’-]+/g; // 4+ consecutive English words
+const LATIN_RUN = /(?:[A-Za-z][A-Za-z'’-]+\s+){2,}[A-Za-z][A-Za-z'’-]+/g; // 3+ consecutive English words
 async function visit(browser, origin, path, viewName) {
   const ctx = await browser.newContext({ viewport: VIEWS[viewName], locale: path.startsWith('/ar') ? 'ar-AE' : 'en-US' });
   await ctx.addInitScript(() => {
@@ -141,7 +141,7 @@ async function interactions(browser, origin, path, view) {
     });
   }
   await step('language switch changes language', async () => {
-    const find = () => page.locator('button:has-text("العربية"), button:has-text("English")').first();
+    const find = () => page.locator('button:visible:has-text("العربية"), button:visible:has-text("English")').first();
     let sw = find();
     if (!(await sw.isVisible().catch(() => false)) && view === 'mobile') { await burger.click(); sw = find(); }
     await sw.click({ timeout: 4000 });
@@ -155,13 +155,17 @@ async function faqAndWidget(browser, origin, path, view) {
   const page = await ctx.newPage(); const out = []; const step = stepper(out, origin, path, view);
   await page.goto(origin + path, { waitUntil: 'load', timeout: 45000 }); await page.waitForTimeout(1500);
   if (/\/faq$/.test(path)) await step('FAQ row opens', async () => {
-    const row = page.locator('main details > summary, main button[aria-expanded]').first(); await row.scrollIntoViewIfNeeded();
+    const row = page.locator('details.qa > summary').first(); await row.scrollIntoViewIfNeeded();
     const state = () => row.evaluate((e) => e.tagName === 'SUMMARY' ? e.parentElement.open : e.getAttribute('aria-expanded') === 'true');
     const a = await state(); await row.click(); await page.waitForTimeout(300);
     return a !== (await state()) || 'FAQ row did not toggle';
   });
   await step('chat widget opens and closes (nothing sent)', async () => {
-    const launcher = page.locator('button[aria-label]:not([hidden])').last();
+    // the consent bar (z-60) sits over the launcher (z-50) until a choice is made; "essential" only writes localStorage
+    const consent = page.locator('[role=dialog][aria-live=polite] button').first();
+    if (await consent.isVisible().catch(() => false)) await consent.click();
+    const launcher = page.locator('button[aria-label]:visible').last();
+    await launcher.waitFor({ state: 'visible', timeout: 8000 });
     await launcher.click({ timeout: 5000 });
     const dlg = page.locator('div[role=dialog][aria-label]:not([aria-live])').first();
     await dlg.waitFor({ state: 'visible', timeout: 5000 });

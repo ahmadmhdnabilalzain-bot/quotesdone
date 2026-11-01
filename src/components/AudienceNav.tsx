@@ -60,6 +60,9 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
   const panelId = useId();
   const wrap = useRef<HTMLDivElement>(null);
   const closeT = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set when hovering opened the panel: the click that follows on the same trigger must keep it open,
+  // not toggle it shut (a mouse user hovers, then clicks; measured by scripts/e2e/site_crawl.mjs).
+  const byHover = useRef(false);
 
   useEffect(() => {
     setAudience(readAudience());
@@ -79,8 +82,9 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
     return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('pointerdown', onDown); };
   }, [open]);
 
-  const hoverOpen = () => { if (closeT.current) clearTimeout(closeT.current); setOpen(true); };
-  const hoverClose = () => { closeT.current = setTimeout(() => setOpen(false), 140); };
+  const hoverOpen = () => { if (closeT.current) clearTimeout(closeT.current); if (!open) byHover.current = true; setOpen(true); };
+  const onTrigger = () => { if (byHover.current) { byHover.current = false; return; } setOpen((v) => !v); };
+  const hoverClose = () => { byHover.current = false; closeT.current = setTimeout(() => setOpen(false), 140); };
 
   // "How it works" opens its own page, "Categories" the homepage grid, "For suppliers" the supplier
   // landing page. Services is rendered separately as the mega-menu trigger.
@@ -112,7 +116,7 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
             type="button"
             aria-expanded={open}
             aria-controls={panelId}
-            onClick={() => setOpen((v) => !v)}
+            onClick={onTrigger}
             className={`${linkBase} ${servicesOn ? linkOn : linkIdle} ${open ? 'bg-teal-light/[0.06] text-white' : ''}`}
           >
             {labels.services}
