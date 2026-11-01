@@ -794,6 +794,9 @@
   "f07872a12ef2",
   "fc50ccfee153"
  ],
+ "scripts/sql/an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql": [
+  "8625d60560f4"
+ ],
  "scripts/sql/an_unmatched_question_gets_a_proper_answer.sql": [
   "5962f01deb2f",
   "693c2ec882a6",
@@ -1639,6 +1642,12 @@
   "96c9fec939b6",
   "dc528da26c82",
   "e586ea015bca"
+ ],
+ "scripts/sql/the_invitation_batch_runs_on_its_own_clock_and_the_guard_takes_the_link_less_copy.sql": [
+  "361ce5b53fac"
+ ],
+ "scripts/sql/the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.sql": [
+  "8625d60560f4"
  ],
  "scripts/sql/the_invitation_pool_is_read_once_as_a_set_so_the_daily_list_fits_its_timeout.sql": [
   "c12bc8b93a2b",
@@ -2850,9 +2859,6 @@
  ],
  "scripts/sql/the_supplier_invitation_ends_with_one_question_and_is_always_english.sql": [
   "684e3131084b"
- ],
- "scripts/sql/the_supplier_invitation_goes_once_in_the_suppliers_language_and_never_to_a_demo_or_sanctioned_lead.sql": [
-  "361ce5b53fac"
  ],
  "scripts/sql/the_supplier_invitation_reads_the_language_from_the_name_and_skips_a_suppressed_address.sql": [
   "3fbfc9c44cae",
@@ -5938,6 +5944,7 @@
   "b52d77701d81"
  ],
  "supabase/functions/_shared/customer_mail.ts": [
+  "04f0be30c683",
   "7784a68c401d",
   "9c9347b8a06d"
  ],
