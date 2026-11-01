@@ -194,8 +194,23 @@ export function textFromContent(content: string): string {
 const hexString = (h: string) => { const clean = h.replace(/\s+/g, ''); let s = ''; for (let i = 0; i + 1 < clean.length; i += 2) s += String.fromCharCode(parseInt(clean.slice(i, i + 2), 16)); return s; };
 
 /** All text the PDF's content streams draw, or null when the bytes are not a PDF / draw no text. */
-export async function pdfText(bytes: Uint8Array): Promise<string | null> {
-  const raw = latin1(bytes);
+// ONE READ OF A PDF PER UPLOAD, AND A NATIVE DECODE (28 Oct 2026, sales_engineer; production size measurement).
+// A scanner-style licence of 14.50 MB and one of 19.33 MB ended supplier_portal save_documents and supplier_api
+// process_docs at the edge's CPU cap (HTTP 546); 9.66 MB passed. Measured locally on the 19.33 MB file: the whole-file
+// latin1() above (String.fromCharCode over 32 KB slices) took 810 ms of the 1,044 ms pdfText spent, and each upload ran
+// pdfText three times (readExpiry, readLicenceName, readLicenceFields on the same bytes). The whole-file view is now
+// decoded natively (TextDecoder 'latin1', which the WHATWG Encoding standard maps to windows-1252: one character per
+// byte, so every offset still indexes `bytes`, and only ASCII - the dictionaries and `stream`/`endstream` - is read
+// from it); a content stream's own text still goes through latin1(), unchanged. And the text is kept per bytes object,
+// so the three readers share one pass.
+const TEXT_OF = new WeakMap<Uint8Array, Promise<string | null>>();
+export function pdfText(bytes: Uint8Array): Promise<string | null> {
+  let p = TEXT_OF.get(bytes);
+  if (!p) { p = readPdfText(bytes); TEXT_OF.set(bytes, p); }
+  return p;
+}
+async function readPdfText(bytes: Uint8Array): Promise<string | null> {
+  const raw = new TextDecoder('latin1').decode(bytes);
   if (!raw.startsWith('%PDF')) return null;
   const chunks: string[] = [];
   const re = /(<<[\s\S]*?>>)\s*stream\r?\n/g;

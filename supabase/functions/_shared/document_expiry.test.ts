@@ -246,3 +246,50 @@ Deno.test('expiryFromText: a period read adversarially — later date, every con
   ];
   for (const [text, want] of cases) assertEquals(expiryFromText(text)?.expiry ?? null, want, text);
 });
+
+// ONE READ OF A PDF PER UPLOAD, AND A NATIVE DECODE (28 Oct 2026, sales_engineer; production size measurement: scanner-style
+// licences of 14.50 and 19.33 MB ended supplier_portal and supplier_api at the edge's CPU cap, 9.66 MB passed). The three
+// readers run on the same bytes in one upload; they now share one pdfText pass, and the whole-file view is decoded natively.
+// A scan-like PDF: binary image streams (every byte value, 0x80-0x9F included, before the text) then the licence's text.
+async function scanLike(mb: number): Promise<Uint8Array> {
+  const page = new Uint8Array(1024 * 1024); for (let i = 0; i < page.length; i++) page[i] = (i * 2654435761) >>> 24;
+  const text = await pdf(LICENCE, true);
+  const parts: Uint8Array[] = [enc.encode('%PDF-1.4\n')];
+  for (let n = 0; n < mb; n++) parts.push(enc.encode(`${10 + n} 0 obj\n<< /Type /XObject /Subtype /Image /Filter /DCTDecode /Length ${page.length} >>\nstream\n`), page, enc.encode('\nendstream\nendobj\n'));
+  parts.push(text.subarray(9));   // the licence PDF without its own header line
+  const out = new Uint8Array(parts.reduce((a, p) => a + p.length, 0)); let o = 0; for (const p of parts) { out.set(p, o); o += p.length; }
+  return out;
+}
+// The reader as it was before 28 Oct, kept here as the reference: the same text must come out of the faster one.
+const latin1Ref = (b: Uint8Array) => { let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000)); return s; };
+
+Deno.test('pdfText: one pass per bytes object, shared by the three readers of an upload', async () => {
+  const bytes = await scanLike(2);
+  assertEquals(pdfText(bytes) === pdfText(bytes), true);           // the same promise: the PDF is read once
+  const copy = bytes.slice();
+  assertEquals(pdfText(copy) === pdfText(bytes), false);           // another upload's bytes are read on their own
+  assertEquals(await pdfText(copy), await pdfText(bytes));
+  assertEquals((await readExpiry(bytes, 'application/pdf'))?.expiry, '2027-03-13');
+  assertEquals((await readLicenceFields(bytes, 'application/pdf')).expiry_date, '2027-03-13');
+});
+
+Deno.test('pdfText: the native decode keeps every offset, so binary streams before the text change nothing', async () => {
+  for (const mb of [0, 1, 3]) {
+    const bytes = await scanLike(mb);
+    const text = await pdfText(bytes);
+    assertEquals(text?.includes('Expiry Date           : 13/03/2027'), true, `${mb} MB of image before the text`);
+    // the structural view is one character per byte, exactly like the reference decode
+    assertEquals(new TextDecoder('latin1').decode(bytes).length, latin1Ref(bytes).length);
+  }
+});
+
+Deno.test('pdfText: a 20 MB scan is read in well under the old cost (the old decode alone was 810 ms of 1,044)', async () => {
+  const bytes = await scanLike(20);
+  let t = performance.now(); latin1Ref(bytes); const oldDecode = performance.now() - t;
+  t = performance.now();
+  await readExpiry(bytes, 'application/pdf'); await readLicenceName(bytes, 'application/pdf'); await readLicenceFields(bytes, 'application/pdf');
+  const threeReads = performance.now() - t;
+  // Relative, measured in the same run on the same machine: the three readers together must cost less than the old
+  // decode of ONE pass. Before 28 Oct they cost three decodes plus three scans.
+  assertEquals(threeReads < oldDecode, true, `three reads ${Math.round(threeReads)} ms vs one old decode ${Math.round(oldDecode)} ms`);
+});
