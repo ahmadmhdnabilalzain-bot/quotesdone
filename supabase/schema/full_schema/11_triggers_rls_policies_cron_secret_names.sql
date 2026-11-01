@@ -133,6 +133,7 @@ CREATE TRIGGER trg_inbound_supplier_reply BEFORE INSERT ON public.inbound_messag
 CREATE TRIGGER z50_support_wire_email AFTER UPDATE OF triaged_at, replied_at ON public.inbound_messages FOR EACH ROW EXECUTE FUNCTION fn_support_wire_email();
 CREATE TRIGGER z51_support_classify_email AFTER UPDATE OF triaged_at ON public.inbound_messages FOR EACH ROW EXECUTE FUNCTION fn_support_classify_email();
 CREATE TRIGGER z52_invite_reply_reaches_sales_engineer AFTER INSERT ON public.inbound_messages FOR EACH ROW EXECUTE FUNCTION trg_invite_reply_reaches_sales_engineer();
+CREATE TRIGGER z53_supplier_mailbox_mail_gets_its_owner AFTER UPDATE OF triaged_at ON public.inbound_messages FOR EACH ROW WHEN (((new.triaged_at IS NOT NULL) AND (old.triaged_at IS NULL) AND (new.ai_category = 'no_auto_reply'::text) AND (new.ai_summary ~~ 'Not answered automatically:%'::text) AND (new.owner_role IS NULL) AND (new.replied_at IS NULL))) EXECUTE FUNCTION trg_supplier_mailbox_mail_gets_its_owner();
 CREATE TRIGGER a00_inquiries_lang_default BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_inquiries_lang_default();
 CREATE TRIGGER a03_inquiry_split_needs_the_customers_choice BEFORE INSERT OR UPDATE OF parent_inquiry_id, scope_type ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_split_needs_the_customers_choice();
 CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
