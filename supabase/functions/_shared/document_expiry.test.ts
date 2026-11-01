@@ -109,6 +109,18 @@ Deno.test('an image stream is never inflated to look for text; the page text is 
   }
 });
 
+// Review of #1726: the image test reads only the stream's OWN dictionary, so text after an image-like neighbour is kept.
+Deno.test('a text stream after an object naming /Subtype /Image, or after an image whose stream keyword ends in a lone CR, is still read', async () => {
+  const text = enc.encode(['BT', '/F1 11 Tf', '56 800 Td', `(${esc('Expiry Date: 13/03/2027')}) Tj`, 'ET'].join('\n'));
+  const cat = (ps: Uint8Array[]) => { const o = new Uint8Array(ps.reduce((n, p) => n + p.length, 0)); let i = 0; for (const p of ps) { o.set(p, i); i += p.length; } return o; };
+  const neighbour = cat([enc.encode('%PDF-1.4\n6 0 obj\n<< /Type /Annot /Subtype /Image /Rect [0 0 1 1] >>\nendobj\n'),
+    enc.encode(`5 0 obj\n<< /Length ${text.length} >>\nstream\n`), text, enc.encode('\nendstream\nendobj\n%%EOF\n')]);
+  const loneCr = cat([enc.encode('%PDF-1.4\n3 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /Filter /DCTDecode /Length 4 >>\nstream\r'),
+    new Uint8Array([0xff, 0xd8, 0xff, 0xd9]), enc.encode(`\nendstream\nendobj\n5 0 obj\n<< /Length ${text.length} >>\nstream\n`), text, enc.encode('\nendstream\nendobj\n%%EOF\n')]);
+  assertEquals(await pdfText(neighbour), 'Expiry Date: 13/03/2027');
+  assertEquals(await pdfText(loneCr), 'Expiry Date: 13/03/2027');
+});
+
 Deno.test('readExpiry: an image, a non-PDF and a PDF without an expiry all say null', async () => {
   assertEquals(await readExpiry(enc.encode('\x89PNG....'), 'image/png'), null);
   assertEquals(await readExpiry(enc.encode('hello'), 'application/pdf'), null);
