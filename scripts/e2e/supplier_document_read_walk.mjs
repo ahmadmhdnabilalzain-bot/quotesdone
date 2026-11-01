@@ -103,11 +103,11 @@ async function browserLicence(c, who, id) {
     const input = page.locator('input[type=file]').first();
     await input.waitFor({ state: 'attached', timeout: 60000 });
     o.reached = true;
-    const isLic = (r) => /\/functions\/v1\/supplier_api/.test(r.url()) && /"process_docs"/.test(r.request().postData() || '') && /"license"/.test(r.request().postData() || '');
+    const isLic = (r) => /\/functions\/v1\/supplier_portal/.test(r.url()) && /save_documents/.test(r.request().postData() || '');
     const t0 = Date.now();
     const ans = page.waitForResponse(isLic, { timeout: 200000 }).then(async (r) => { o.answered = true; o.ms = Date.now() - t0; o.response = `HTTP ${r.status()} ${(await r.text().catch(() => '')).slice(0, 600)}`; }).catch(() => { o.hung = true; o.ms = Date.now() - t0; });
     await input.setInputFiles(c.licence.file);
-    await page.getByRole('button', { name: /^Upload$/ }).first().click({ timeout: 15000 });
+    await input.locator('xpath=../..').getByRole('button', { name: /^Upload$/ }).click({ timeout: 15000 });
     await ans;
     await page.getByText(/^Uploading…/).first().waitFor({ state: 'detached', timeout: 20000 }).catch(() => { o.still_reading = true; });
     await page.waitForTimeout(1500);
@@ -212,8 +212,8 @@ async function walk(run, c, n) {
       const { SERVICE } = await keys();
       const r = await fetch(`${BASE}/storage/v1/object/signed-terms/${row.stp}`, { headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}` } });
       const f = r.ok ? await pdfFactsFromBytes(new Uint8Array(await r.arrayBuffer())) : { ok: false, why: 'HTTP ' + r.status };
-      const m = f.ok ? f.text.match(/IP addresss+(d[d.:a-f]*)/i) : null;
-      const tm = f.ok ? f.text.match(/d{4}-d{2}-d{2} d{2}:d{2}:d{2} UTC/) : null;
+      const m = f.ok ? f.text.match(/IP address\s+(\d[\d.:a-f]*)/i) : null;
+      const tm = f.ok ? f.text.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC/) : null;
       out.certificate = { ok: f.ok, why: f.why, bytes: f.bytes?.length, ip_in_row: row.ip, ip_in_certificate: m?.[1] ?? null, ip_line: m?.[0] ?? null, time_in_row_utc: row.acc_utc, time_in_certificate: tm?.[0] ?? null, time_matches: !!tm && tm[0].startsWith(row.acc_utc) };
       run.ids.storage.push('signed-terms/' + row.stp);
     } catch (e) { out.certificate = { error: String(e.message).slice(0, 160) }; }
