@@ -7309,7 +7309,7 @@ begin
             'emirate', coalesce(nullif(btrim(l.emirate), ''), '-'), 'language', c.lang,
             'email', public.fn_mask_email(c.to_email)) order by c.rn), '[]'::jsonb)
     into v_rows
-    from (select x.*, row_number() over () rn from public.fn_supplier_invite_candidates(v_n) x) c
+    from (select x.*, row_number() over () rn from public.fn_supplier_invite_candidates(v_n, null::text[]) x) c
     join public.leads l on l.id = c.lead_id;
   return jsonb_build_object('send_day', v_day, 'skipped', v_skipped, 'switch_on', v_switch, 'held_because', v_held,
                             'cap', v_cap, 'pool', v_pool, 'planned', v_n, 'rows', v_rows);
@@ -7943,17 +7943,6 @@ AS $function$
     where d.exp is not null
   ) q;
 $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_supplier_invite_candidates(p_limit integer)
- RETURNS TABLE(lead_id bigint, to_email text, company_name text, lang text, subject text, body text)
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-begin
-  return query select * from public.fn_supplier_invite_candidates(p_limit, null::text[]);
-end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_supplier_invite_candidates(p_limit integer, p_providers text[])
