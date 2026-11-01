@@ -1,1 +1,0 @@
-Apply at merge through apply-sql.yml, with the probe. No function deploy needed. Then delete this note, append the file to MANIFEST.txt, and rerun regen-schema-mirror.yml so the mirror drops the overload. Seat: sales_engineer. Ledger 1449.
