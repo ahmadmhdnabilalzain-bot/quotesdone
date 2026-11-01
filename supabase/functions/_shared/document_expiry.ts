@@ -6,10 +6,10 @@
 //   1. pdfText(bytes): the strings a PDF's content streams draw (Tj / TJ operators), inflating
 //      FlateDecode streams with the runtime's DecompressionStream. No dependency.
 //   2. expiryFromText(text): a date within 90 characters AFTER an expiry keyword, English or
-//      Arabic. A date with no keyword beside it is NOT an expiry — an issue date, a policy start,
-//      a print date all look the same — so nothing is returned and the caller says it could not
-//      read the document. NEVER a guess: a wrong expiry either suspends a valid supplier or lets a
-//      lapsed one keep trading.
+//      Arabic, or the date in an expiry label's own column of a table. A date with no keyword
+//      beside it is NOT an expiry — an issue date, a policy start, a print date all look the same —
+//      so nothing is returned and the caller says it could not read the document. NEVER a guess: a
+//      wrong expiry either suspends a valid supplier or lets a lapsed one keep trading.
 //
 // CEILING, measured against scripts/staging/fixtures/licence_pdf.mjs (Helvetica, WinAnsi, plain
 // content stream): every field reads. A scanned licence (image-only PDF or a photo) has no text
@@ -26,6 +26,7 @@ const MONTHS: Record<string, number> = {
   jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4, may: 5, jun: 6, june: 6,
   jul: 7, july: 7, aug: 8, august: 8, sep: 9, sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11, dec: 12, december: 12,
 };
+const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // Keywords first, then the date; only a date after a keyword counts. Two kinds (28 Oct 2026, review of #1708):
 //   EXPIRY keywords name the expiry itself, so the date beside one IS the expiry;
@@ -39,9 +40,16 @@ const EXPIRY_KEYWORDS = [
   'تاريخ الانتهاء', 'تاريخ انتهاء', 'الانتهاء', 'ينتهي في', 'ينتهي', 'صالحة حتى', 'صالح حتى', 'سارية حتى', 'ساري حتى',
 ];
 const PERIOD_KEYWORDS = ['validity', 'period of insurance', 'صلاحية'];
-const keywordRe = (ks: string[]) => new RegExp('(' + ks.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'i');
+// A THIRD KIND, TRIED LAST (1 Nov 2026, sales_engineer; the gap was measured on 28 Oct in the review of #1708). START
+// keywords name where a period begins: "Valid From: 15/03/2025 To: 14/03/2028" and "valid between 01/01/2026 and
+// 31/12/2026" print no keyword of the other two kinds, and both read null. A start keyword is read only through the
+// period it opens, to that period's end; the single date beside one is the start, never the expiry. It is tried last,
+// so a document that either other kind reads keeps its reading.
+const START_KEYWORDS = ['valid from', 'valid between', 'صالحة من', 'صالح من', 'سارية من', 'ساري من'];
+const keywordRe = (ks: string[]) => new RegExp('(' + ks.map(esc).join('|') + ')', 'i');
 const EXPIRY_RE = keywordRe(EXPIRY_KEYWORDS);
 const PERIOD_RE = keywordRe(PERIOD_KEYWORDS);
+const START_RE = keywordRe(START_KEYWORDS);
 // A keyword that names an EARLIER document's date is not this document's: a renewal schedule can print "Previous
 // Policy Expiry: 31/12/2025" under its own "Period of Insurance: 01/01/2026 to 31/12/2026". The qualifier is looked
 // for on the keyword's own line before it, or between the keyword and its date ("Expiry date of previous policy",
@@ -50,7 +58,15 @@ const EARLIER_RE = /\b(?:previous|prior|preceding)\b|السابق/i;
 
 // The date shapes a UAE licence or certificate prints: 13/03/2027, 13-03-2027, 2027-03-13,
 // 13 Mar 2027, 13-MAR-2027, 13 March 2027, March 13, 2027. Two-digit years are not accepted.
-const DATE_RE = /(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})|(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})|(\d{1,2})[ \-]([A-Za-z]{3,9})[ \-,]+(\d{4})|([A-Za-z]{3,9})[ \-]+(\d{1,2}),?[ \-]+(\d{4})/;
+// 1 Nov 2026 (sales_engineer; measured 28 Oct): an ORDINAL day too, 1st January 2026, 31st of December 2026, January
+// 1st, 2026. An insurance schedule's "From 1st January 2026 to 31st December 2026" read null. And a month is a month's
+// own name: any three to nine letters used to count as one, so "17 Ramadan 1449" was a date that parsed to null, and
+// the Gregorian expiry printed after it was never reached.
+const MONTH_NAME = '(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)';
+const ORDINAL = '(?:st|nd|rd|th)?';
+const DATE_RE = new RegExp('(\\d{4})[-/.](\\d{1,2})[-/.](\\d{1,2})|(\\d{1,2})[-/.](\\d{1,2})[-/.](\\d{4})'
+  + '|(\\d{1,2})' + ORDINAL + '(?:[ \\-]of)?[ \\-]' + MONTH_NAME + '[ \\-,]+(\\d{4})'
+  + '|\\b' + MONTH_NAME + '[ \\-]+(\\d{1,2})' + ORDINAL + ',?[ \\-]+(\\d{4})', 'i');
 
 // The second date of a period, right after the first: "<date> to <date>", "<date> - <date>", "<date> إلى <date>".
 // Between them a schedule may print a time on the first date ("00:00 hrs", "12:00 AM") and a colon after the
@@ -59,7 +75,14 @@ const DATE_RE = /(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})|(\d{1,2})[-/.](\d{1,2})[-/.
 // matched whole before this runs, so "14-03-2028" or "14-Mar-2028" never leaves a "-<date>" behind it.
 const TIME_OF_DAY = '(?:\\s*\\d{1,2}[:.]\\d{2}(?:[:.]\\d{2})?\\s*(?:hrs?|hours|[ap]\\.?\\s?m)?\\.?)?';
 const RANGE_JOIN = '(?:to|till|until|up\\s*to|upto|through|thru|-|–|—|(?:و\\s*)?(?:إلى|الى|إلي|الي|حتى|لغاية))';
-const RANGE_END_RE = new RegExp('^' + TIME_OF_DAY + '\\s*' + RANGE_JOIN + '\\s*:?\\s*(' + DATE_RE.source + ')', 'i');
+const rangeEnd = (join: string) => new RegExp('^' + TIME_OF_DAY + '\\s*' + join + '\\s*:?\\s*(' + DATE_RE.source + ')', 'i');
+const RANGE_END_RE = rangeEnd(RANGE_JOIN);
+// "BETWEEN <date> AND <date>" (1 Nov 2026, sales_engineer; measured 28 Oct). "Period of Insurance: between 01/01/2026
+// and 31/12/2026" read its START, 01/01/2026, as the expiry: "and" joined nothing, so the first date stood alone.
+// "and" (و after بين) joins two dates only where "between" opens them; anywhere else it would join an expiry to
+// whatever date follows it. A "between" with one date is a period with no readable end, and reads nothing.
+const BETWEEN_LEAD_RE = /(?:\bbetween|بين)\s*:?\s*$/i;
+const BETWEEN_END_RE = rangeEnd('(?:' + RANGE_JOIN + '|and|&|و)');
 
 function ymd(y: number, m: number, d: number): string | null {
   if (!(y >= 2000 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31)) return null;
@@ -79,17 +102,128 @@ export function parseDate(raw: string): string | null {
   return null;
 }
 
-/** The first occurrence of one kind of keyword that has a date within 90 characters after it, read as an expiry. */
-function readAfter(t: string, keywords: RegExp): ExpiryRead | null {
+// ── TABLES: A DATE ANSWERS ONLY FOR ITS OWN LABEL ───────────────────────────────────────────────────────────────
+// 1 Nov 2026, sales_engineer. Measured on 28 Oct in the independent review of #1708; main read it the same way before
+// #1708. A licence or certificate that prints its dates as a header row over a value row draws, in its text layer,
+//     Issue Date   Expiry Date
+//     15/03/2025   14/03/2028
+// and the first date after "Expiry Date" is the ISSUE date. supplier_api (process_docs) and supplier_portal (the
+// Documents tab) write leads.license_expiry from this reader without asking the supplier, so a valid licence was
+// recorded as expired. A table drawn column by column (the labels stacked, then the dates stacked) read the same way.
+// A table is now read the way a person reads one: the date labels of one row, or of a stack of one-label lines, are
+// its columns, and the dates right after them (on the same line, else on the lines right under them) are taken in the
+// same order, the k-th date for the k-th label. An English label printed beside its Arabic twin is one column. It
+// reads only when the counts agree and the expiry is not before an issue or start date of its own row; otherwise
+// NOTHING is read, and the model or a person reads the document. Outside a table, a date is still not read for a
+// keyword when an issue, start or other date label stands between them (it is that label's date), or when it sits on
+// a later line beside another date it is not joined to (a cell of a column whose label is not in this vocabulary).
+type Cell = { s: number; e: number; line: number; kind: 'end' | 'start' | 'other' | 'date'; ar: boolean };
+// What the date under a label can be: an 'end' label's date may be the expiry; a 'start' label's is never after it;
+// an 'other' label's is only counted.
+const ISSUE_DATE_LABELS = ['issue date', 'date of issue', 'issued on', 'تاريخ الإصدار'];
+const LABEL_KIND = new Map<string, Cell['kind']>([
+  ...[...EXPIRY_KEYWORDS, ...PERIOD_KEYWORDS, 'end date'].map((l) => [l, 'end'] as const),
+  ...[...START_KEYWORDS, ...ISSUE_DATE_LABELS, 'start date', 'effective date', 'commencement date', 'inception date', 'registration date',
+    'date of registration'].map((l) => [l, 'start'] as const),
+  ...['renewal date', 'print date', 'date printed', 'printed on'].map((l) => [l, 'other'] as const),
+]);
+// A label starts a word: 'end date' inside "Amend Date", or 'validity' inside "invalidity", is no label.
+const LABEL_G = new RegExp('(?<![A-Za-z])(?:' + [...LABEL_KIND.keys()].sort((a, b) => b.length - a.length).map(esc).join('|') + ')', 'gi');
+const DATE_G = new RegExp(DATE_RE.source, 'gi');
+type Doc = { t: string; cells: Cell[]; byLine: Map<number, Cell[]>; lines: string[] };
+
+/** Every date label and every date in the text, in reading order, each with its line. */
+function cellsOf(t: string): Doc {
+  const cells: Cell[] = [];
+  for (const m of t.matchAll(LABEL_G)) {
+    const s = m.index ?? 0;
+    cells.push({ s, e: s + m[0].length, line: 0, kind: LABEL_KIND.get(m[0].toLowerCase()) ?? 'other', ar: /[؀-ۿ]/.test(m[0]) });
+  }
+  for (const m of t.matchAll(DATE_G)) { const s = m.index ?? 0; cells.push({ s, e: s + m[0].length, line: 0, kind: 'date', ar: false }); }
+  cells.sort((a, b) => a.s - b.s);
+  const byLine = new Map<number, Cell[]>();
+  let line = 0, p = 0;
+  for (const c of cells) {
+    for (; p < c.s; p++) if (t.charCodeAt(p) === 10) line++;
+    c.line = line;
+    let row = byLine.get(line);
+    if (!row) byLine.set(line, row = []);
+    row.push(c);
+  }
+  return { t, cells, byLine, lines: t.split('\n') };
+}
+
+/** The date under the keyword's own label when the keyword is one of a table's date columns; null when it is and the
+ *  table does not read; undefined when the keyword is the only date label of its row and of its column. */
+function tableRead(d: Doc, ks: number): { expiry: string; raw: string } | null | undefined {
+  const { t, cells, byLine, lines } = d;
+  const isLabel = (c: Cell) => c.kind !== 'date';
+  const k = cells.findIndex((c) => isLabel(c) && c.s <= ks && ks < c.e);
+  if (k < 0) return undefined;
+  const K = cells[k], row = byLine.get(K.line) ?? [];
+  let heads: Cell[];
+  if (row.some((c) => !isLabel(c))) {
+    // labels and dates on one line: the labels beside the keyword with no date between them
+    let a = k, b = k;
+    while (a > 0 && cells[a - 1].line === K.line && isLabel(cells[a - 1])) a--;
+    while (b + 1 < cells.length && cells[b + 1].line === K.line && isLabel(cells[b + 1])) b++;
+    heads = cells.slice(a, b + 1);
+  } else if (row.length > 1) heads = row;   // a header row
+  else {
+    // the keyword alone on its line, as every label is in a table drawn column by column: the stack of such lines
+    // (blank lines between them do not end it) is the header
+    const alone = (n: number) => { const r = byLine.get(n); return r?.length === 1 && isLabel(r[0]); };
+    const blank = (n: number) => n >= 0 && n < lines.length && !/\S/.test(lines[n]);
+    let a = K.line, b = K.line;
+    for (let n = a - 1; alone(n) || blank(n); n--) if (alone(n)) a = n;
+    for (let n = b + 1; alone(n) || blank(n); n++) if (alone(n)) b = n;
+    heads = cells.filter((c) => c.line >= a && c.line <= b);
+  }
+  // An English label printed beside its Arabic twin, on the same line or the next ("Expiry Date / تاريخ الانتهاء"),
+  // is ONE column: the same kind, the other script, and nothing but spaces or separators between them.
+  const cols: Cell[][] = [];
+  for (const c of heads) {
+    const g = cols[cols.length - 1], p = g?.[g.length - 1];
+    if (p && p.kind === c.kind && p.ar !== c.ar && /^[\s/|:()\-–—]*$/.test(t.slice(p.e, c.s))) g.push(c);
+    else cols.push([c]);
+  }
+  if (cols.length < 2) return undefined;
+  // The dates right after the last label on its own line; when that line ends, every line of dates right under it
+  // (blank lines may come first). A label, or a line with no date, ends them.
+  const last = heads[heads.length - 1], after = cells.slice(cells.indexOf(last) + 1), values: Cell[] = [];
+  let i = 0;
+  while (i < after.length && after[i].line === last.line && !isLabel(after[i])) values.push(after[i++]);
+  if (i === after.length || after[i].line !== last.line) {
+    let n = last.line + 1;
+    if (!values.length) while (n < lines.length && !/\S/.test(lines[n])) n++;
+    for (; n < lines.length; n++) { const r = byLine.get(n); if (!r || r.some(isLabel)) break; values.push(...r); }
+  }
+  if (values.length !== cols.length || K.kind !== 'end') return null;
+  const dateIn = (j: number) => parseDate(t.slice(values[j].s, values[j].e));
+  const col = cols.findIndex((g) => g.includes(K)), expiry = dateIn(col);
+  // An expiry before an issue or start date of its own row means the columns were not drawn in the order they are
+  // read (right-to-left text drawn in visual order, for one), and the date in hand may be the issue date. A range takes
+  // its later date because its own words say it is a period; a table's only evidence is its labels, and they disagree.
+  if (!expiry || cols.some((g, j) => g[0].kind === 'start' && (dateIn(j) ?? '') > expiry)) return null;
+  return { expiry, raw: t.slice(values[col].s, values[col].e) };
+}
+
+/** The first occurrence of one kind of keyword that reads a date: in its own column of a table, or within 90
+ *  characters after it. A start keyword reads only the end of the period it opens. */
+function readAfter(d: Doc, keywords: RegExp, kind: 'expiry' | 'period' | 'start'): ExpiryRead | null {
+  const { t, cells } = d;
   let from = 0;
   for (let i = 0; i < 20; i++) {
     const km = keywords.exec(t.slice(from));
     if (!km) return null;
-    const at = from + (km.index ?? 0) + km[0].length;
+    const ks = from + (km.index ?? 0), at = ks + km[0].length;
+    const lineBefore = t.slice(Math.max(0, ks - 40), ks).split('\n').pop() ?? '';
+    const table = EARLIER_RE.test(lineBefore) ? null : tableRead(d, ks);
+    if (table && kind !== 'start') return { expiry: table.expiry, source: 'text', keyword: km[0], raw: table.raw };
     const window = t.slice(at, at + 90);
-    const dm = DATE_RE.exec(window);
-    const lineBefore = t.slice(Math.max(0, at - km[0].length - 40), at - km[0].length).split('\n').pop() ?? '';
-    if (dm && !EARLIER_RE.test(lineBefore) && !EARLIER_RE.test(window.slice(0, dm.index ?? 0))) {
+    const dm = table === undefined ? DATE_RE.exec(window) : null;
+    const lead = dm ? window.slice(0, dm.index) : '';
+    if (dm && !EARLIER_RE.test(lead)) {
       // A PERIOD ENDS ON ITS LATER DATE (28 Oct 2026, sales_engineer; document walk on production). An insurance
       // schedule prints "Period of Insurance: From 01/01/2026 To 31/12/2026", and a licence or certificate can print
       // "Validity: 15/03/2025 - 14/03/2028". The first date after the keyword is the START, and it was returned as the
@@ -98,25 +232,37 @@ function readAfter(t: string, keywords: RegExp): ExpiryRead | null {
       // (RANGE_END_RE), the period's end is the expiry, and the end is the LATER of the two: a pair printed backwards
       // ("Expiry Date - Issue Date: 14/03/2028 - 15/03/2025", or right-to-left text drawn in visual order) still reads
       // 14/03/2028. (The first fix took the second date whatever it was, and read 15/03/2025 there.)
+      const ds = at + dm.index;
+      const between = BETWEEN_LEAD_RE.test(km[0] + lead);
       const first = parseDate(dm[0]);
-      const tail = RANGE_END_RE.exec(window.slice((dm.index ?? 0) + dm[0].length));
-      if (tail) {
-        const second = parseDate(tail[1]);
-        if (first && second) return { expiry: second > first ? second : first, source: 'text', keyword: km[0], raw: dm[0] + tail[0] };
-        // One end does not read as a day-first date (a month-first schedule, "01/12/2026 to 12/31/2026"): the
-        // period has no readable end, and its start is certainly not the expiry. Nothing is read beside this keyword.
-      } else if (first) return { expiry: first, source: 'text', keyword: km[0], raw: dm[0] };
+      const tail = (between ? BETWEEN_END_RE : RANGE_END_RE).exec(window.slice(dm.index + dm[0].length));
+      // Not this keyword's date: one that an issue, start or other date label stands in front of ("Expiry Date: see the
+      // schedule / Issue Date: 15/03/2025"), or one on a later line beside another date it is not joined to, which is a
+      // cell of a column whose label is not in this vocabulary ("Membership Date   Expiry Date" over two dates). Only
+      // dates that read count there: a Hijri twin printed beside the Gregorian expiry ("1449/07/17") is not a column.
+      const owned = cells.some((c) => (c.kind === 'start' || c.kind === 'other') && c.s >= at && c.e <= ds);
+      const le = t.indexOf('\n', ds), rowText = t.slice(t.lastIndexOf('\n', ds) + 1, le < 0 ? t.length : le);
+      const crowded = lead.includes('\n') && !tail && (rowText.match(DATE_G) ?? []).filter((x) => parseDate(x)).length > 1;
+      if (!owned && !crowded) {
+        if (tail) {
+          const second = parseDate(tail[1]);
+          if (first && second) return { expiry: second > first ? second : first, source: 'text', keyword: km[0], raw: dm[0] + tail[0] };
+          // One end does not read as a day-first date (a month-first schedule, "01/12/2026 to 12/31/2026"): the
+          // period has no readable end, and its start is certainly not the expiry. Nothing is read beside this keyword.
+        } else if (first && kind !== 'start' && !between) return { expiry: first, source: 'text', keyword: km[0], raw: dm[0] };
+      }
     }
-    from = at;   // this keyword had no date beside it ("valid until the expiry date shown above") — try the next
+    from = at;   // this keyword read nothing ("valid until the expiry date shown above") — try the next
   }
   return null;
 }
 
-/** The expiry a document states, or null. Only a date that follows a keyword within 90 characters counts, and a
- *  date beside an expiry keyword wins over one beside a period keyword. */
+/** The expiry a document states, or null. A date counts only in the keyword's own column of a table or within 90
+ *  characters after the keyword; an expiry keyword wins over a period keyword, and both over a start keyword. */
 export function expiryFromText(text: string): ExpiryRead | null {
   const t = String(text || '').replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x0660)); // Arabic-Indic digits
-  return readAfter(t, EXPIRY_RE) ?? readAfter(t, PERIOD_RE);
+  const d = cellsOf(t);
+  return readAfter(d, EXPIRY_RE, 'expiry') ?? readAfter(d, PERIOD_RE, 'period') ?? readAfter(d, START_RE, 'start');
 }
 
 // ── PDF text ─────────────────────────────────────────────────────────────────────────────────────
@@ -263,10 +409,9 @@ const LABELS: Record<'licence_no' | 'legal_form' | 'authority' | 'emirate' | 'is
   legal_form: ['legal form', 'legal type', 'legal status', 'company type', 'الشكل القانوني'],
   authority: ['issuing authority', 'licensing authority', 'issued by', 'جهة الإصدار'],
   emirate: ['emirate', 'الإمارة'],
-  issue_date: ['issue date', 'date of issue', 'issued on', 'تاريخ الإصدار'],
+  issue_date: ISSUE_DATE_LABELS,
   activities: ['business activities', 'licensed activities', 'activities', 'activity', 'الأنشطة', 'النشاط'],
 };
-const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** The value on the same line as the first label that has one. A label is a whole word: "Licence No" never reads "Licence Number". */
 function labelled(text: string, labels: string[]): string | null {
   for (const label of labels) {
