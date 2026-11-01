@@ -183,6 +183,10 @@ function headerRowRead(d: Doc, K: Cell, heads: Cell[], cols: Cell[][]): { expiry
   const starting: (string | null)[] = [];
   if (hc.length > 1 && hc.length === vc.length) {
     const under = (c: Cell) => vc[hc.findIndex((h) => h.s <= c.s && c.s < h.e)];
+    // Every cell under a date label holds a date or says it is blank ("-", "N/A"). Text there means the cells are
+    // misaligned (a value with two spaces in it split in two, "CN  1145872"), and every date may sit one place off.
+    const blankOrDate = (c: Span | undefined) => !!c && (/^[\s\-–—]*$|^\s*(?:n\/?a|nil|none)\s*$/i.test(t.slice(c.s, c.e)) || cellDate(t, c) !== null);
+    if (!heads.every((c) => blankOrDate(under(c)))) return null;
     const own = under(K);
     expiry = cellDate(t, own); raw = own ? t.slice(own.s, own.e).trim() : '';
     for (const c of heads) if (c.kind === 'start') starting.push(cellDate(t, under(c)));
@@ -238,7 +242,7 @@ function tableRead(d: Doc, ks: number): { expiry: string; raw: string } | null |
   const cols: Cell[][] = [];
   for (const c of heads) {
     const g = cols[cols.length - 1], p = g?.[g.length - 1], gap = p ? t.slice(p.e, c.s) : '';
-    if (p && ((twins(p, c) && /^[\s/|:()\-–—]*$/.test(gap)) || ([p.kind, c.kind].sort().join() === 'end,other' && /^\s*\/\s*$/.test(gap)))) g.push(c);
+    if (p && ((twins(p, c) && /^[\s/|:()\-–—]*$/.test(gap)) || ([p.kind, c.kind].sort().join() === 'end,other' && [p, c].some((x) => /^renewal date$/i.test(t.slice(x.s, x.e))) && /^\s*\/\s*$/.test(gap)))) g.push(c);
     else cols.push([c]);
   }
   if (cols.length < 2) return undefined;
@@ -264,7 +268,10 @@ function tableRead(d: Doc, ks: number): { expiry: string; raw: string } | null |
 
 // "Issue/Expiry Date: 15/03/2025 / 14/03/2028" names two dates with one label: the expiry is the later of the two, and
 // with one date there is nothing to read (main read the issue date there).
-const ISSUE_JOINED_RE = /\b(?:issue|issued|issuance)\s*(?:\/|&|and)\s*$/i;
+const ISSUE_JOINED_RE = /(?<![\w-])(?:issue|issued|issuance)\s*(?:\/|&|and)\s*$/i;
+// ...and only a second date joined straight to the first counts (review of #1733: "Issue/Expiry Date: 15/03/2025
+// Next Inspection: 01/06/2029" read the inspection date when any later date in the window was taken).
+const ISSUE_PAIR_RE = rangeEnd('(?:' + RANGE_JOIN + '|\\/|&|and)');
 
 /** The first occurrence of one kind of keyword that reads a date: in its own column of a table, or within 90
  *  characters after it. A start keyword reads only the end of the period it opens. */
@@ -302,7 +309,7 @@ function readAfter(d: Doc, keywords: RegExp, kind: 'expiry' | 'period' | 'start'
       // in this vocabulary ("Membership Date   Expiry Date" over two dates) and is read only by its position under the
       // keyword. Only dates that read count there: a Hijri twin beside the Gregorian expiry is not a column.
       let joinedTo = at;
-      for (const c of cells) if (c.s >= joinedTo && isLabel(c) && c.kind !== 'start' && /^\s*\/\s*$/.test(t.slice(joinedTo, c.s))) joinedTo = c.e;
+      for (const c of cells) if (c.s >= joinedTo && (c.kind === 'end' || /^renewal date$/i.test(t.slice(c.s, c.e))) && /^\s*\/\s*$/.test(t.slice(joinedTo, c.s))) joinedTo = c.e;
       const owned = cells.some((c) => (c.kind === 'start' || c.kind === 'other') && c.s >= joinedTo && c.e <= ds);
       const le = t.indexOf('\n', ds), rowText = t.slice(t.lastIndexOf('\n', ds) + 1, le < 0 ? t.length : le);
       const crowded = lead.includes('\n') && !tail && (rowText.match(DATE_G) ?? []).filter((x) => parseDate(x)).length > 1;
@@ -325,8 +332,8 @@ function readAfter(d: Doc, keywords: RegExp, kind: 'expiry' | 'period' | 'start'
           // One end does not read as a day-first date (a month-first schedule, "01/12/2026 to 12/31/2026"): the
           // period has no readable end, and its start is certainly not the expiry. Nothing is read beside this keyword.
         } else if (issueJoined) {
-          const sm = DATE_RE.exec(rest), second = sm ? parseDate(sm[0]) : null;
-          if (first && second) return { expiry: second > first ? second : first, source: 'text', keyword: km[0], raw: dm[0] + rest.slice(0, (sm?.index ?? 0) + (sm?.[0].length ?? 0)) };
+          const pair = ISSUE_PAIR_RE.exec(rest), second = pair ? parseDate(pair[1]) : null;
+          if (first && second) return { expiry: second > first ? second : first, source: 'text', keyword: km[0], raw: dm[0] + pair![0] };
         } else if (first && kind !== 'start' && !between) return { expiry: first, source: 'text', keyword: km[0], raw: dm[0] };
       }
     }
