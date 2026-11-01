@@ -35,12 +35,13 @@ concurrency:
   group: repo-and-database-agree-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
+# founder 26 Oct (ledger 1279) switched every automatic trigger off; founder 28 Oct (ledger 1410): "activate github actions",
+# on GitHub-hosted runners. push / pull_request / workflow_run are back; schedules stay on pg_cron (moved 26 Oct, no double run).
 on:
-  # pull_request:
-    # types: [opened, synchronize, reopened, labeled]
-  # push:
-    # branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  push:
+    branches: [main]
   # schedule:
     # - cron: '41 5 * * *'
   workflow_dispatch:
@@ -70,7 +71,7 @@ jobs:
   # own anything.
   parity:
     name: the database is running what this repository says
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
@@ -226,7 +227,7 @@ jobs:
     concurrency:
       group: kernel-gate-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: false
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-8' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7

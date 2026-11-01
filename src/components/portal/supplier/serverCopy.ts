@@ -611,6 +611,11 @@ const COPY: Record<string, Entry> = {
   no_company: s('Register your company first.', 'يُرجى تسجيل شركتكم أولًا.'),
   company_exists: s('Your account already manages a company.', 'حسابكم يدير شركة بالفعل.'),
   company_already_registered: s('A company with this name is already registered on QuotesDone. If it is yours, sign in with the email used to register it, or write to management@quotesdone.com.', 'شركة بهذا الاسم مسجّلة مسبقًا في QuotesDone. إن كانت شركتكم فيُرجى تسجيل الدخول بالبريد الإلكتروني المستخدم في تسجيلها، أو مراسلتنا على management@quotesdone.com.'),
+  // 28 Oct 2026 (ledger 1401 audit S7): create_company claims the invited listing its signed-in address holds; these are
+  // its refusals (supabase/functions/supplier_api/create_company.ts), word for word.
+  email_already_registered: s('This e-mail already has an account — sign in instead.', 'لهذا البريد الإلكتروني حساب مسجّل مسبقًا — يُرجى تسجيل الدخول بدلًا من ذلك.'),
+  verify_email_first: s('Please verify your work e-mail with the 6-digit code we send you, then register your company.', 'يُرجى تأكيد بريدكم الإلكتروني بالرمز المكوّن من 6 أرقام الذي نرسله إليكم، ثم تسجيل شركتكم.'),
+  register_failed: s('We could not register your company. Please try again, or write to management@quotesdone.com.', 'تعذّر تسجيل شركتكم. يُرجى المحاولة مرة أخرى، أو مراسلتنا على management@quotesdone.com.'),
   enter_company: s('Enter your company name.', 'أدخلوا اسم شركتكم.'),
   terms_not_accepted: s('Accept the supplier terms first (Profile tab).', 'يُرجى الموافقة على شروط المورّد أولًا (من تبويب الملف).'),
   not_verified: s((p) => `Your registration is not verified yet${p.reason ? ': ' + (COPY[p.reason]?.en({}) || p.reason) : ''}. Upload a clear, in-date trade licence in Documents — it is re-checked automatically the moment it is saved.`,

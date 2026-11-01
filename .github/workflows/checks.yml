@@ -29,13 +29,14 @@ concurrency:
   group: checks-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
-# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
+# founder 26 Oct (ledger 1279) switched every automatic trigger off; founder 28 Oct (ledger 1410): "activate github actions",
+# on GitHub-hosted runners. push / pull_request / workflow_run are back; schedules stay on pg_cron (moved 26 Oct, no double run).
 on:
-  # push:
-    # branches: ['main']
-    # paths-ignore: ['docs/**', '**/*.md', '.claude-flow/**', 'graphify-out/**']
-  # pull_request:
-    # paths-ignore: ['docs/**', '**/*.md', '.claude-flow/**', 'graphify-out/**']
+  push:
+    branches: ['main']
+    paths-ignore: ['docs/**', '**/*.md', '.claude-flow/**', 'graphify-out/**']
+  pull_request:
+    paths-ignore: ['docs/**', '**/*.md', '.claude-flow/**', 'graphify-out/**']
   workflow_dispatch:
 
 # Deno reads only the npm: specifiers the edge functions import, never the Next.js app's package.json: with
@@ -47,7 +48,7 @@ env:
 jobs:
   checks:
     name: classification, pricing and refund checks
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-8' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -144,7 +145,7 @@ jobs:
   # finding either, and a linter people mute is worse than no linter.
   migration-lint:
     name: lint migrations for locking operations
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -173,7 +174,7 @@ jobs:
 
   typecheck:
     name: typecheck the app
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -193,7 +194,7 @@ jobs:
 
   deno-check:
     name: typecheck the edge functions
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
@@ -255,7 +256,7 @@ jobs:
   # service, which nothing else in this workflow does.
   otp-race:
     name: a sign-in code survives 5 guesses and verifies once under a burst
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
       postgres:
