@@ -25,6 +25,14 @@ test('a request with no supplier does not page the founder, and the form mails n
   assert.doesNotMatch(R('supabase/functions/contact_submit/index.ts'), /requestDelivery/);
 });
 
+test('a mail whose answer died is asked again, then owned (inbound 1615)', () => {
+  const s = R('scripts/sql/a_triaged_mail_whose_answer_died_is_asked_again_then_owned.sql');
+  assert.match(s, /set triaged_at = null/);
+  assert.match(s, /'mailbox\.supplier_reply'/);
+  assert.match(s, /'review\.requested'/);
+  assert.match(R('scripts/sql/a_supplier_reply_gets_the_action_it_asked_for.sql'), /one e-mail address manages one company/);
+});
+
 test('the voice line tells the caller what to do', () => {
   const t = R('supabase/functions/voice_otp/twiml.ts');
   assert.match(t, /Send a WhatsApp message to this same number/);

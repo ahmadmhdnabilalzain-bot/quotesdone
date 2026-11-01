@@ -1,0 +1,1 @@
+Applied at merge of this PR, after a_supplier_reply_gets_the_action_it_asked_for.sql and before nothing else depends on it. Rolled-back replay of 2 Nov 2026 cleared 1615 for the tick and sent nothing. On apply, the duty re-opens inbound 1615 and email_triage answers it through the normal path. Moves when the release operator applies it with --apply --ddl --seat customer_support.
