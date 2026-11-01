@@ -76,6 +76,10 @@ begin
   if public.fn_invite_restart_cap(50) <> 10 then v_problems := v_problems || 'the first batch after a restart is not small'::text; end if;
   if exists (select 1 from public.invite_brake where resumed_at is null) then v_problems := v_problems || 'the brake stayed open'::text; end if;
   -- known-bad control: a restart on a closed day. 25 hours on with nothing sent since, the limit still holds (a 24-hour clock lapsed here)
+  -- now() is one instant in a transaction, and the window is strict: the first lead's send goes before the restart, as it really
+  -- did, so the send below falls inside the window.
+  update public.notifications set sent_at = now() - interval '1 hour'
+   where type = 'supplier_invite' and to_email = 'sales@' || v_dom;
   update public.invite_brake set resumed_at = greatest(now() - interval '25 hours',
       (select max(n.sent_at) from public.notifications n where n.type = 'supplier_invite' and not public.fn_is_demo_email(n.to_email)))
    where restarted_by_seat;
