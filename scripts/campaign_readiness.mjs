@@ -88,7 +88,7 @@ await guard('2 template', 'batch', async () => {
      count(*) - count(distinct lower(to_email)) dup,
      count(*) filter (where body !~ '/(en|ar)/portal[?]t=[0-9a-f-]{36}') no_link,
      count(*) filter (where lang is distinct from 'en') not_english
-     from public.fn_supplier_invite_candidates(50) c`);
+     from public.fn_supplier_invite_candidates(50, null::text[]) c`);
   const bad = +b.demo + +b.suppressed + +b.sanctioned + +b.dup + +b.no_link + +b.not_english;
   row('2 template', "tomorrow's batch (fn_supplier_invite_candidates(50))", +b.n > 0 && bad === 0,
     `${b.n} rows (${b.ar} AR): demo ${b.demo}, suppressed ${b.suppressed}, sanctioned/banned ${b.sanctioned}, duplicate address ${b.dup}, no portal link ${b.no_link}, not in English ${b.not_english} (suppliers are written to in English only)`);
@@ -101,7 +101,7 @@ await guard('2 template', 'pool', async () => {
      from leads l where public.fn_supplier_invite_eligible(l)`);
   row('2 template', 'whole eligible pool: never demo, sanctioned, suppressed or already invited', [p.demo, p.sanctioned, p.suppressed, p.already].every((x) => +x === 0),
     `demo ${p.demo}, sanctioned ${p.sanctioned}, suppressed ${p.suppressed}, already invited ${p.already}`);
-  const a = await one(`select count(*) n, count(*) filter (where c.lang is distinct from 'en') wrong from public.fn_supplier_invite_candidates(100000) c`);
+  const a = await one(`select count(*) n, count(*) filter (where c.lang is distinct from 'en') wrong from public.fn_supplier_invite_candidates(100000, null::text[]) c`);
   row('2 template', 'English only: every supplier invitation is written in English, whatever the company name', +a.wrong === 0, `${a.n} eligible leads, ${a.wrong} would get a language other than English`);
   const g = await one(`select (select tgenabled from pg_trigger where tgname ~ 'supplier_invite_is_whole' limit 1) t,
      (select count(*) from pg_indexes where indexdef ~* 'lower\\(btrim\\(to_email\\)\\)' and indexdef ~* 'supplier_invite' and indexdef ~* 'unique') u`);

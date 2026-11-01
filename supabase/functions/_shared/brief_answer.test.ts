@@ -93,6 +93,18 @@ Deno.test('a rate-limited sender stops at once', async () => {
   assertEquals([a.reply, a.error, g.bodies.length], ['', 'rate_limited', 1]);
 });
 
+// prevented by: this test (review of #1729). The stream got through with a figure the brief does not state, and the
+// rewrite was refused for the rate bucket: no other model is asked, and the result is 'rate_limited' (site_assistant then
+// shows its notice and files no knowledge gap), not "no model produced an answer". A retry refused the same way, likewise.
+Deno.test('a sender rate-limited on a later rung stops there and is reported rate_limited', async () => {
+  const g = gateway([sse(['The reveal fee is 5% of the quote. ']), json({ ok: false, error: 'rate_limited' }, 429)]);
+  const a = await answerFromBrief(C, () => {}, g.f);
+  assertEquals([a.reply, a.error, a.outage, g.bodies.length], ['', 'rate_limited', false, 2]);
+  const g2 = gateway([json({ error: 'all_models_failed' }, 502), json({ ok: false, error: 'rate_limited' }, 429)]);
+  const a2 = await answerFromBrief(C, () => {}, g2.f);
+  assertEquals([a2.reply, a2.error, a2.outage, g2.bodies.length], ['', 'rate_limited', false, 2]);
+});
+
 // prevented by: this test (ruling 1200). A photo with the message reaches the model as an image part of the latest turn.
 Deno.test('a photo rides on the latest message as an image part', async () => {
   const g = gateway([sse(['A wardrobe fits that wall. '])]);
