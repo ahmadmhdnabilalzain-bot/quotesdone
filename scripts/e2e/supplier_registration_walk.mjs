@@ -253,7 +253,7 @@ async function freshLeg({ run, browser, m, n, lang, vp, email, company }) {
     await shot(p, m, 'step3_emirates_all_uae');
     const optional = /Optional|اختياري/.test(legend) && !/Required|مطلوب/.test(legend);
     jstep(m, 3, 'company details + trade; emirates optional with "All emirates" (no restriction)', reg && !!lead && lead.sector === 'aluminium' && hasAll && ticked === 8 && optional, Date.now() - t3,
-      `lead ${lead?.id} sector=${lead?.sector}; legend "${legend.replace(/\s+/g, ' ')}"; "All emirates" ${hasAll ? 'present' : 'MISSING'}; ${ticked}/8 boxes ticked`);
+      `lead ${lead?.id} sector=${lead?.sector}; legend "${legend.replace(/\s+/g, ' ')}"; "All emirates" ${hasAll ? 'present' : 'MISSING'}; ${ticked}/8 boxes ticked${errs.length ? '; page errors: ' + errs.join(' | ') : ''}`);
     if (!lead) return;
 
     // The licence (required), then the fixture mobile: refused before any SMS, then recorded verified.
