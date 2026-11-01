@@ -11,7 +11,7 @@ const C = company;
 export function CompanyIdentity({ locale, variant = 'card', rights }: { locale: string; variant?: 'card' | 'footer'; rights?: string }) {
   const l: Loc = locale === 'ar' ? 'ar' : 'en';
   const licence = <>{C.licence[l]} <bdi dir="ltr">{C.licence_no}</bdi></>;
-  const phone = <a href={'tel:' + C.phone.tel} dir="ltr">{C.phone.number}</a>;
+  const phone = <a href={'https://wa.me/' + C.phone.tel.replace('+', '')} dir="ltr">{C.phone.number}</a>;
   const licencePhone = <a href={'tel:' + C.licence_phone.tel} dir="ltr">{C.licence_phone.number}</a>;
   const email = <a href={'mailto:' + C.email} dir="ltr">{C.email}</a>;
 

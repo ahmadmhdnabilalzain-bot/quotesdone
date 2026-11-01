@@ -1,6 +1,6 @@
 // wa_inbound v10 - smart WhatsApp responder on the API number (+1 218 316 6814).
 // v5-v9: see history below. v10 adds WEBHOOK AUTHENTICITY (see PROVENANCE block).
-// v5: may share the published direct line (+971 50 931 9355) when someone asks for a human.
+// v5: may share the published WhatsApp contact (+1 218 316 6814) when someone asks for a human.
 // v6: BIDI-SAFE Arabic (LTR runs wrapped in U+2066/U+2069 isolates).
 // v7: AUDIENCE AWARENESS via fn_identify_contact() phone lookup + wording inference.
 // v8: SEND FAILURES ARE NO LONGER SILENT.
@@ -1328,7 +1328,7 @@ async function handleInbound(req: Request): Promise<Response> {
       ownRecord.trim(), brainPack.trim(),
       detReply ? 'OUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\n' + detReply : '',
       ctx ? 'APPROVED FAQ FOR THIS MESSAGE (may be for the other audience; apply the audience rules):\n' + ctx : '',
-      route?.needs_a_person === true ? 'They need a person: give the direct contact (+971 50 931 9355, call or WhatsApp, Mon-Fri 9am-6pm GST; management@quotesdone.com) and say the team has their message.' : '',
+      route?.needs_a_person === true ? 'They need a person: give the direct contact (+1 218 316 6814, call or WhatsApp, Mon-Fri 9am-6pm GST; management@quotesdone.com) and say the team has their message.' : '',
       'Never volunteer supplier-side commercial terms to a customer. Do not promise that quote requests arrive immediately.',
       companyBlock ? 'COMPANY BLOCK (live):\n' + companyBlock : ''].filter(Boolean).join('\n\n');
     let reply = (await say(situation)).slice(0, 1200);
