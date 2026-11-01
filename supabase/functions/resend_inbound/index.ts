@@ -297,7 +297,8 @@ export const handler = observe('resend_inbound', async (req) => {
     // Mail handed from a tenant mailbox other than supplier@ never reaches the expense or bookkeeper path (review, 2 Nov 2026):
     // its sender is never a permitted forwarder (the reader does not hand them), so a stranger's invoice is plain correspondence.
     const tenantHanded = emailId.startsWith(M365_INBOUND_PREFIX) && to !== String(await sec('invite_m365_mailbox') || '').trim().toLowerCase();
-    let receiptish = !tenantHanded && FINANCE_BOXES.has(toLocal);
+    let receiptish = FINANCE_BOXES.has(toLocal);
+    if (tenantHanded) receiptish = false;
     let receiptReason = '';
     const handToBookkeeper = async (inboundId: number | null | undefined, reviewIds: number[], reason: string) => {
       if (!inboundId) return null;

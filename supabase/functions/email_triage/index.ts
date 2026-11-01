@@ -118,7 +118,7 @@ Deno.serve(observe('email_triage', async (req) => {
     };
     for (const m of ((msgs || []) as Mail[])) {
       // 1. NEVER ANSWERED: the founder, no-reply and verification senders, calendar replies, bounces.
-      let skip: string | null = noAutoReply(m, founder);
+      let skip = noAutoReply(m, founder);
       // An invited supplier's reply to the invitation mailbox (supplier@) is the one 'internal' row that IS answered:
       // only when the sender is a lead, and every other rule (bounce, no-reply, auto-submitted, calendar) still applies
       // (customer_mail.ts invitationReplyAnswerable, 28 Oct 2026).
@@ -127,14 +127,15 @@ Deno.serve(observe('email_triage', async (req) => {
         // a lead who opted out (email_suppressions, exact address) is never answered here (review of #1699)
         const fromAddr = String(m.from_email || '').trim().toLowerCase();
         const { data: sup } = fromAddr ? await admin.from('email_suppressions').select('email').ilike('email', fromAddr.replace(/[\\%_]/g, (c) => '\\' + c)).limit(1) : { data: [] };
-        if (invitationReplyAnswerable(m, rel, !!(sup && sup.length)) || tenantMailAnswerable(m, !!(sup && sup.length))) skip = noAutoReply({ ...m, to_email: '' }, founder);
+        if (invitationReplyAnswerable(m, rel, !!(sup && sup.length))) skip = noAutoReply({ ...m, to_email: '' }, founder);
+        else if (tenantMailAnswerable(m, !!(sup && sup.length))) skip = noAutoReply({ ...m, to_email: '' }, founder);
       }
       // A reply never goes to the founder: fn_is_founder_own_inbox also names his personal inboxes, which admin_emails does not.
       if (!skip) { const { data: own } = await admin.rpc('fn_is_founder_own_inbox', { p_addr: String(m.from_email || '') }); if (own === true) skip = 'founder'; }
       if (!skip) {
         const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true }).eq('type', 'inbound_reply')
           .ilike('to_email', String(m.from_email || '').trim().replace(/[\\%_]/g, (c) => '\\' + c)).gte('created_at', new Date(Date.now() - 86_400_000).toISOString());
-        if (overDailyAnswerCap(count)) skip = 'daily answer cap';
+        if (overDailyAnswerCap(count)) skip = 'daily_answer_cap';
       }
       if (skip) {
         await admin.from('inbound_messages').update({ ai_category: 'no_auto_reply', ai_summary: 'Not answered automatically: ' + skip + ' (customer_mail.ts noAutoReply).', triaged_at: new Date().toISOString(), ...declinedRowFields(m) }).eq('id', m.id);
