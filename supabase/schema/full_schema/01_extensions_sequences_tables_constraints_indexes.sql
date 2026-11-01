@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-01T19:17:50.834Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-01T22:11:24.550Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -132,6 +132,7 @@ CREATE SEQUENCE IF NOT EXISTS public.inquiry_workstream_requirement_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.institutional_memory_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.internal_credential_audit_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.internal_credential_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.invite_brake_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.it_game_day_run_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.it_integration_external_cause_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.it_load_test_run_id_seq;
@@ -221,7 +222,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (767) =====
+-- ===== TABLES (769) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4438,6 +4439,17 @@ CREATE TABLE IF NOT EXISTS public.inv_items (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.invite_brake (
+  id bigint DEFAULT nextval('invite_brake_id_seq'::regclass) NOT NULL,
+  source text NOT NULL,
+  why text NOT NULL,
+  fired_at timestamp with time zone DEFAULT now() NOT NULL,
+  resumed_at timestamp with time zone,
+  resume_note text,
+  restarted_by_seat boolean DEFAULT false NOT NULL,
+  ceo_task_opened_at timestamp with time zone
+);
+
 CREATE TABLE IF NOT EXISTS public.invite_placement_bar (
   id boolean DEFAULT true NOT NULL,
   sender text DEFAULT 'supplier@quotesdone.com'::text NOT NULL,
@@ -5234,6 +5246,16 @@ CREATE TABLE IF NOT EXISTS public.lead_category (
   method text DEFAULT 'keyword_v1'::text NOT NULL,
   evidence text,
   created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.lead_email_check (
+  lead_id bigint NOT NULL,
+  email_md5 text NOT NULL,
+  verdict text NOT NULL,
+  reason text NOT NULL,
+  mailbox text,
+  mx_kind text,
+  checked_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.lead_prospect (
@@ -10920,6 +10942,7 @@ ALTER TABLE public.integration_matrix ADD CONSTRAINT integration_matrix_pkey PRI
 ALTER TABLE public.internal_credential ADD CONSTRAINT internal_credential_pkey PRIMARY KEY (id);
 ALTER TABLE public.internal_credential_audit ADD CONSTRAINT internal_credential_audit_pkey PRIMARY KEY (id);
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_pkey PRIMARY KEY (id);
+ALTER TABLE public.invite_brake ADD CONSTRAINT invite_brake_pkey PRIMARY KEY (id);
 ALTER TABLE public.invite_placement_bar ADD CONSTRAINT invite_placement_bar_pkey PRIMARY KEY (id);
 ALTER TABLE public.invite_placement_check ADD CONSTRAINT invite_placement_check_pkey PRIMARY KEY (dubai_day);
 ALTER TABLE public.invite_schedule ADD CONSTRAINT invite_schedule_pkey PRIMARY KEY (day);
@@ -10993,6 +11016,7 @@ ALTER TABLE public.knowledge_ml_status ADD CONSTRAINT knowledge_ml_status_pkey P
 ALTER TABLE public.knowledge_module_standard ADD CONSTRAINT knowledge_module_standard_pkey PRIMARY KEY (module);
 ALTER TABLE public.knowledge_vector_ml ADD CONSTRAINT knowledge_vector_ml_pkey PRIMARY KEY (src, row_id);
 ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_pkey PRIMARY KEY (lead_id, slug);
+ALTER TABLE public.lead_email_check ADD CONSTRAINT lead_email_check_pkey PRIMARY KEY (lead_id);
 ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_pkey PRIMARY KEY (id);
 ALTER TABLE public.lead_sourcing_run ADD CONSTRAINT lead_sourcing_run_pkey PRIMARY KEY (id);
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_pkey PRIMARY KEY (lead_id, sub_slug);
@@ -11921,6 +11945,9 @@ ALTER TABLE public.knowledge_library ADD CONSTRAINT knowledge_library_store_ck C
 ALTER TABLE public.knowledge_library_state ADD CONSTRAINT knowledge_library_state_one_row_ck CHECK ((id = 1));
 ALTER TABLE public.knowledge_ml_status ADD CONSTRAINT knowledge_ml_status_id_check CHECK (id);
 ALTER TABLE public.knowledge_vector_ml ADD CONSTRAINT knowledge_vector_ml_src_check CHECK ((src = ANY (ARRAY['seat_case_memory'::text, 'ceo_knowledge'::text, 'support_knowledge'::text, 'accountant_knowledge'::text, 'it_engineer_knowledge'::text, 'marketing_knowledge'::text, 'sales_knowledge'::text, 'company_faq'::text, 'agent_knowledge'::text, 'ops_knowledge'::text, 'reasoning_knowledge_candidate'::text, 'kb_chunks'::text, 'knowledge_library'::text])));
+ALTER TABLE public.lead_email_check ADD CONSTRAINT lead_email_check_check CHECK (((verdict <> 'verified'::text) OR (mx_kind = 'mx'::text)));
+ALTER TABLE public.lead_email_check ADD CONSTRAINT lead_email_check_mailbox_check CHECK ((mailbox = ANY (ARRAY['named'::text, 'role'::text, 'free'::text])));
+ALTER TABLE public.lead_email_check ADD CONSTRAINT lead_email_check_verdict_check CHECK ((verdict = ANY (ARRAY['verified'::text, 'rejected'::text, 'retry'::text])));
 ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_field_sources_check CHECK ((jsonb_typeof(field_sources) = 'object'::text));
 ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_status_check CHECK ((status = ANY (ARRAY['complete'::text, 'incomplete'::text, 'duplicate'::text, 'suppressed'::text, 'promoted'::text])));
 ALTER TABLE public.lead_sourcing_run ADD CONSTRAINT lead_sourcing_run_kind_check CHECK ((kind = ANY (ARRAY['batch'::text, 'pilot'::text, 'probe'::text])));
@@ -12755,6 +12782,7 @@ ALTER TABLE public.knowledge_ingestion_undo ADD CONSTRAINT knowledge_ingestion_u
 ALTER TABLE public.knowledge_library_origin ADD CONSTRAINT knowledge_library_origin_library_id_fkey FOREIGN KEY (library_id) REFERENCES knowledge_library(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_category ADD CONSTRAINT lead_category_slug_fkey FOREIGN KEY (slug) REFERENCES catalog_supplier_categories(slug) ON DELETE CASCADE;
+ALTER TABLE public.lead_email_check ADD CONSTRAINT lead_email_check_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_promoted_lead_id_fkey FOREIGN KEY (promoted_lead_id) REFERENCES leads(id) ON DELETE SET NULL;
 ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_run_id_fkey FOREIGN KEY (run_id) REFERENCES lead_sourcing_run(id) ON DELETE CASCADE;
 ALTER TABLE public.lead_subcategory ADD CONSTRAINT lead_subcategory_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
@@ -13204,6 +13232,7 @@ CREATE UNIQUE INDEX inquiry_trade_clarification_open_uidx ON public.inquiry_trad
 CREATE INDEX internal_credential_audit_at ON public.internal_credential_audit USING btree (at DESC);
 CREATE INDEX internal_credential_ctx_active ON public.internal_credential USING btree (context) WHERE active;
 CREATE UNIQUE INDEX internal_credential_hash_uq ON public.internal_credential USING btree (secret_hash);
+CREATE UNIQUE INDEX invite_brake_one_open ON public.invite_brake USING btree ((true)) WHERE (resumed_at IS NULL);
 CREATE INDEX it_engineer_finding_open_idx ON public.it_engineer_finding USING btree (closed_at, blast) WHERE (closed_at IS NULL);
 CREATE INDEX it_engineer_knowledge_emb_hnsw ON public.it_engineer_knowledge USING hnsw (embedding_gte vector_cosine_ops);
 CREATE INDEX it_engineer_knowledge_epi_idx ON public.it_engineer_knowledge USING btree (epistemic_status);
