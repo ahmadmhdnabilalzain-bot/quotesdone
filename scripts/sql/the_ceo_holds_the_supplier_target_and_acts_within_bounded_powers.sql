@@ -713,7 +713,7 @@ insert into public.resilience_step (step, every, budget_ms, place, rank, note) v
 on conflict (step) do update set every = excluded.every, budget_ms = excluded.budget_ms, note = excluded.note;
 
 -- 12. THE QUEUE READS THE CEO'S TWO LEVERS. Unchanged while invite_reachable_only is false and no trade is listed. -----------
-CREATE OR REPLACE FUNCTION public.fn_supplier_invite_candidates(p_limit integer, p_providers text[])
+create or replace function public.fn_supplier_invite_candidates(p_limit integer, p_providers text[])
  RETURNS TABLE(lead_id bigint, to_email text, company_name text, lang text, subject text, body text)
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
