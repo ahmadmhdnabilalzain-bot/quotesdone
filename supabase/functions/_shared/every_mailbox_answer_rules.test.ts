@@ -3,7 +3,7 @@
 // that email_triage is wired to them. A reply never reaches the founder, a machine, or someone who said stop.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { DAILY_AUTO_ANSWER_CAP, declinedRowFields, noAutoReply, overDailyAnswerCap, tenantMailAnswerable } from './customer_mail.ts';
-import { SEPARATE_COMPANY_FACT, SUPPLIER_SIGN_IN_FACT, supplierFacts, unregisteredSupplierFacts } from '../email_triage/account_facts.ts';
+import { accountFacts, SEPARATE_COMPANY_FACT, SUPPLIER_SIGN_IN_FACT, supplierFacts, unregisteredSupplierFacts } from '../email_triage/account_facts.ts';
 import { planCreateCompany } from '../supplier_api/create_company.ts';
 
 const FOUNDER = ['management@quotesdone.com', 'owner@example.invalid'];
@@ -47,6 +47,21 @@ Deno.test('a subsidiary: the facts say what the platform really does, and it doe
   for (const t of [supplierFacts('ZZ DEMO', []), supplierFacts('ZZ DEMO', [{ inquiry_id: 1 }]), unregisteredSupplierFacts('ZZ DEMO', 'https://x.invalid/portal'), SUPPLIER_SIGN_IN_FACT]) {
     assert(t.includes(SEPARATE_COMPANY_FACT));
   }
+});
+
+Deno.test('an account holder whose address is not the listing\'s still gets the company facts', async () => {
+  const seen: string[] = [];
+  const db = { from: () => {
+    let col = '';
+    // deno-lint-ignore no-explicit-any
+    const q: any = { select: () => q, eq: () => q, order: () => q, in: () => q,
+      ilike: (c: string) => { col = c; seen.push(c); return q; },
+      limit: () => Promise.resolve({ data: col === 'claimed_by' ? [{ id: 7, company_name: 'ZZ DEMO', claimed: true }] : col === 'email' ? [] : [] }) };
+    return q;
+  } };
+  const facts = await accountFacts(db, 'sales@zz-demo.example.invalid', 'supplier');
+  assertEquals(seen, ['email', 'claimed_by']);
+  assert(facts.includes('ZZ DEMO'), facts);
 });
 
 Deno.test('the per-sender daily cap stops an autoresponder loop', () => {

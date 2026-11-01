@@ -427,6 +427,8 @@ export async function pollTenantMailboxes(d: TenantDeps): Promise<Record<string,
   const kinds = new Map<string, SenderKind>();
   const handedIds = new Set<string>();
   const cutoff = Date.parse(String(d.strangersFrom || ''));
+  // BY DECISION, strangers stay off until app_secrets.m365_tenant_strangers_from is set: without it, only known senders
+  // and replies in our threads are handed.
   // Decided from the envelope: what is refused here has no body read and nothing stored.
   const gateFor = (box: string) => async (m: GraphMessage, from: string, kind: SenderKind): Promise<boolean> => {
     if (financialSender(from, d.financialDomains)) return false;

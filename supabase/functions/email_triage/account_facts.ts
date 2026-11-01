@@ -84,7 +84,10 @@ export async function accountFacts(admin: Db, email: string, relation: unknown):
       return customerFacts(((stats as { inquiries?: CustomerInq[] } | null)?.inquiries) || []);
     }
     if (relation === 'supplier') {
-      const { data: leads } = await admin.from('leads').select('id,company_name,claimed,claim_token').ilike('email', e.replace(/[\\%_]/g, (c) => '\\' + c)).limit(2);
+      const exact = e.replace(/[\\%_]/g, (c) => '\\' + c);
+      let { data: leads } = await admin.from('leads').select('id,company_name,claimed,claim_token').ilike('email', exact).limit(2);
+      // the account holder's address may differ from the listing's (fn_mail_sender_known reads claimed_by too)
+      if (leads && !leads.length) ({ data: leads } = await admin.from('leads').select('id,company_name,claimed,claim_token').ilike('claimed_by', exact).limit(2));
       if (!leads || leads.length !== 1) return '';
       const sup = leads[0];
       if (!sup.claimed) return unregisteredSupplierFacts(String(sup.company_name || ''), sup.claim_token ? `${SITE}/portal?t=${sup.claim_token}` : `${SITE}/portal`);

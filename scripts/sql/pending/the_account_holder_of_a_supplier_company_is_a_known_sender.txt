@@ -1,0 +1,1 @@
+Committed, not applied: fn_mail_sender_known also reads leads.claimed_by. Apply at merge of the branch customer_support/every-mailbox-a-supplier-writes-to-is-read, in the same step as deploying send_outbox and email_triage; then delete this note and append the file to the END of MANIFEST.txt.
