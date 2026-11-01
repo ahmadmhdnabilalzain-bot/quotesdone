@@ -433,3 +433,89 @@ Deno.test('quoted-printable: "=", UTF-8, a trailing space and long lines are enc
   assertFalse(/=[0-9A-F]?\r\n[0-9A-F]/.test(qp.replace(/=\r\n/g, '')), 'an =XX was split');
   assertEquals(qpDecode(qp), sample.replace(/\n/g, '\r\n'));
 });
+
+// sales_engineer, 28 Oct 2026: the greeting reads a company name, not a page title. Every leads.company_name behind
+// notifications 116649-116668 (read-only join, 28 Oct 2026), with the greeting each must render. The first four were
+// real rendered failures; the other sixteen already read well and must keep doing so.
+Deno.test('the greeting reads a company name, not a scraped page title (notifications 116649-116668)', () => {
+  const CASES: ReadonlyArray<readonly [string, string]> = [
+    ['Speed Blast Trading L.L.C &#8211; Top notch Industrial Equipments Suppliers in Dubai, UAE', 'Speed Blast Trading L.L.C'],
+    ['CERAMIC MEGA BUILDING MATERIALS TR LLC (Manufacturer and wholesaler of any kind of porcelain tile.)', 'Ceramic Mega Building Materials TR LLC'],
+    ['NRA INTERNATIONAL', 'NRA International'],
+    ['OFFSHORE MIDDLE EAST MARINE EQUIPMENT TRADING L L C', 'Offshore Middle East Marine Equipment Trading LLC'],
+    ['Zoom Building Materials Trading | Construction Materials Supplier in Abu Dhabi, UAE', 'Zoom Building Materials Trading'],
+    ['Mohd Al Qama - Authorized Dealer of RAK Ceramics', 'Mohd Al Qama'],
+    ['Al Sarai Ceramic - KOHLER SHARJAH', 'Al Sarai Ceramic'],
+    ['RAK TILE LLC - Interlocking Paver Blocks Manufacturer- Marble & Granites- Ras Al Khaimah- UAE', 'RAK Tile LLC'],
+    ['BLUE PEARL MARINE SERVICES FZC', 'Blue Pearl Marine Services FZC'],
+    ['SEASWIFT SUBSEA ENGINEERING LLC', 'Seaswift Subsea Engineering LLC'],
+    ['TOTAL SOLUTIONS', 'Total Solutions'],
+    ['ARABIAN AURORA DETERGENTS TRADING L.L.C', 'Arabian Aurora Detergents Trading L.L.C'],
+    ['Infinite Global Fze', 'Infinite Global FZE'],
+    ['Mohammed Zafar Steel Workshop LLC', 'Mohammed Zafar Steel Workshop LLC'],
+    ['NEELKAMAL PLASTIC FACTORY', 'Neelkamal Plastic Factory'],
+    ['Zainab Building Materials Company LLC', 'Zainab Building Materials Company LLC'],
+    ['Buildline Building Materials Trading LLC', 'Buildline Building Materials Trading LLC'],
+    ['Fujairah General Trading Enterprises', 'Fujairah General Trading Enterprises'],
+    ['SENSI Trading LLC', 'SENSI Trading LLC'],
+    ['Volark Tiles', 'Volark Tiles'],
+  ];
+  for (const [raw, want] of CASES) {
+    assertEquals(companyName(raw), want, raw);
+    assert(m365InvitationText({ company: raw }).startsWith(`Hi ${want} team,\n`), raw);
+  }
+  // every entity form decodes before the cut, hex and double-encoded included
+  assertEquals(companyName('Acme Trading &#x2014; Best Prices'), 'Acme Trading');
+  assertEquals(companyName('Acme Trading &amp;#8211; Best Prices'), 'Acme Trading');
+  assertEquals(companyName('Acme Trading LLC, Sharjah'), 'Acme Trading LLC');
+  assertEquals(companyName('Acme Trading, LLC'), 'Acme Trading, LLC');
+  // still a title after every cut: the neutral greeting, never a sentence addressed as a company
+  const title = 'Leading Supplier of Industrial Valves Pumps and Fittings for Oil Gas and Marine Projects';
+  assertEquals(companyName(title), '');
+  assert(m365InvitationText({ company: title }).startsWith('Hello,\n'));
+  assertEquals(companyName('We supply the best tiles'), '');
+});
+
+// Review of #1706, 28 Oct 2026: the old and the new companyName were run over all 20,249 distinct leads.company_name
+// (read-only). These are the shapes where the first cut of the new function read WORSE than the old one; each must keep
+// the old good reading. A long registered name is still a name, a three-letter word is not an acronym, and a letter after
+// "." or "/" is capitalised.
+Deno.test('a long registered name, a three-letter word and a dotted suffix read as the old function read them', () => {
+  const CASES: ReadonlyArray<readonly [string, string]> = [
+    ['AL MARZOQI AUTO ACCESSORIES &#038; MOBILE PHONE TRADING CO LLC', 'Al Marzoqi Auto Accessories & Mobile Phone Trading Co LLC'],
+    ['AL LAZIM MOBILE PHONES &#038; ELECTRIC DEVICES TRADING LLC', 'Al Lazim Mobile Phones & Electric Devices Trading LLC'],
+    ['AL THURATH AL ASEEL CONT &#038; ELEC MECH LLC', 'Al Thurath Al Aseel Cont & Elec Mech LLC'],
+    ['GHOLAM RASUL GEN TRADING CO LLC', 'Gholam Rasul Gen Trading Co LLC'],
+    ['PETRA ENG ARCHITECTURAL CONSULTANTS', 'Petra Eng Architectural Consultants'],
+    ['BAB AL SHAMS DESERT RESORT & SPA', 'Bab Al Shams Desert Resort & Spa'],
+    ['READY MIX BETON L L C', 'Ready Mix Beton LLC'],
+    ['POLY PRODUCTS CO LTD', 'Poly Products Co Ltd'],
+    ['ARABIAN GULF SECURITY SVCS', 'Arabian Gulf Security Svcs'],
+    ['SKY LINE TRADING LLC', 'Sky Line Trading LLC'],
+    ['SCHEFFER SAFETY TRADING L.L.C.O.P.C ( EYEVEX SAFETY ABU DHABI )', 'Scheffer Safety Trading L.L.C.O.P.C'],
+    ['ORYX HEAVY EQUIP.SPARE PARTS TR L L C', 'Oryx Heavy Equip.Spare Parts TR LLC'],
+    ['AMNA NETWORKING SOLUTIONS LLC-SPC', 'Amna Networking Solutions LLC-SPC'],
+    ['GULF WIRELESS &#038; TV CO LLC', 'Gulf Wireless & TV Co LLC'],
+    ['Leeds Furnishing: Premium Home Furnishing in Dubai & Abu Dhabi | Luxury Home', 'Leeds Furnishing'],
+    ['cctv company in Dubai |CCTV Camera Installation Company in Dubai', 'cctv company in Dubai'],
+    // second pass over the whole table: a hyphen, a digit, a dotted suffix and a two-letter word
+    ['HI-TECH BUILDING CONSTRUCTIONS', 'Hi-Tech Building Constructions'],
+    ['HI TECH BUILDING CONSTRUCTIONS', 'Hi Tech Building Constructions'],
+    ['STUDIO-ATI.FZE', 'Studio-Ati.FZE'],
+    ['M H ALI EL-SAIE, DR', 'M H Ali El-Saie, Dr'],
+    ['THE 18TH STREET TRADING', 'The 18th Street Trading'],
+    ['AL WAHA BLDG MATERIALS', 'Al Waha Bldg Materials'],
+    ['CAMELIA FLOWERS-L L C', 'Camelia Flowers-LLC'],
+  ];
+  for (const [raw, want] of CASES) assertEquals(companyName(raw), want, raw);
+  // a keyword list is a title: the neutral greeting
+  assertEquals(companyName('Office Glass Partition Dubai, Glass Work Dubai, Glass Partition Maker'), '');
+  // it never throws, whatever it is handed
+  const hostile = { toString() { throw new Error('boom'); } };
+  assertEquals(companyName(hostile), '');
+  assert(m365InvitationText({ company: hostile as unknown as string }).startsWith('Hello,\n'));
+  for (const odd of [null, undefined, 0, '', ' ', '&#0;', '&#xD800;', '&#99999999;', '()', ' - ', '|', '&amp;amp;amp;']) {
+    const got = companyName(odd);
+    assert(typeof got === 'string' && got === got.trim() && (got === '' || got.length >= 2), JSON.stringify(odd));
+  }
+});
