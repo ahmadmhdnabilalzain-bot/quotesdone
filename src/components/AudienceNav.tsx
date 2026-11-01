@@ -175,6 +175,9 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
         <span className="hidden sm:contents"><LangSwitch /></span>
         {/* A signed-in person does not need a "Sign in" link; the CTA already goes to their portal. */}
         {audience === 'visitor' ? (
+          <Link href="/supplier" className="hidden h-9 items-center whitespace-nowrap px-3 text-small font-medium text-muted transition-colors hover:text-white md:inline-flex xl:hidden">{labels.suppliers}</Link>
+        ) : null}
+        {audience === 'visitor' ? (
           <Link href="/me" className="hidden h-9 items-center whitespace-nowrap px-3 text-small font-medium text-muted transition-colors hover:text-white sm:inline-flex">{labels.login}</Link>
         ) : null}
         <Link
