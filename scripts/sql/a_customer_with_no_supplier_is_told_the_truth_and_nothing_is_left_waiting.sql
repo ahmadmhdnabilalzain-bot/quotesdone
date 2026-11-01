@@ -36,7 +36,7 @@ begin
            else 'You can change the budget and the emirate from your account: ' || v_link || chr(10) || 'For anything else, reply to this e-mail with the details.' end;
   end if;
   -- NO SUPPLIER HAS IT YET: said as it is, never blamed on the specs (re-review of #1112).
-  if coalesce((h->>'finding_suppliers')::boolean, false) then
+  if coalesce((h->>'finding_suppliers')::boolean, false) and not public.fn_inquiry_awaits_specs(i.id) then
     v_find := case when v_ar
       then 'ما زلنا نسجّل الموردين في تخصصكم. لا يغطي هذا الطلب أيٌّ من الموردين المسجّلين لدينا اليوم، ولذلك لم يصل إلى أي مورّد، ولا يمكننا أن نعدكم بعرض سعر أو بموعد له، فنرجو ألا تؤخروا عملكم انتظارًا لنا. سنبقي طلبكم مفتوحًا 14 يومًا؛ وإذا لم يصل إلى أي مورّد خلالها أغلقناه وأبلغناكم. لا يلزمكم أي إجراء ولا أي مبلغ.'
       else 'We are still registering suppliers for your trade. No supplier registered with us today covers this request, so it has not reached anyone, and we cannot promise a quote or say when one might come. Please do not hold your work for us. We will keep your request open for 14 days; if it has reached no supplier by then, we will close it and tell you. Nothing is needed from you, and there is nothing to pay.' end;
@@ -160,6 +160,16 @@ begin
 end
 $fn$;
 
+create or replace function public.fn_inquiry_awaits_specs(p_inquiry uuid)
+ returns boolean language sql stable security definer set search_path to 'public', 'pg_temp'
+as $fn$
+  select exists (select 1 from public.inquiries x
+                  where not coalesce(x.rfq_ready, false)
+                    and (x.parent_inquiry_id = p_inquiry
+                         or (x.id = p_inquiry and not exists (select 1 from public.inquiries c where c.parent_inquiry_id = p_inquiry))))
+$fn$;
+revoke execute on function public.fn_inquiry_awaits_specs(uuid) from public, anon, authenticated;
+
 create or replace function public.fn_sales_engineer_closes_unreached_requests(p_at timestamptz default now())
  returns jsonb
  language plpgsql
@@ -173,6 +183,8 @@ begin
               and i.created_at <= p_at - interval '14 days'
               and not exists (select 1 from public.inquiry_matches m join public.inquiries k on k.id = m.inquiry_id where k.id = i.id or k.parent_inquiry_id = i.id)
               and not exists (select 1 from public.quotes q where q.inquiry_id = i.id)
+              -- Held for its own missing specs: the customer owes us an answer, and "no supplier" would be a false reason.
+              and not public.fn_inquiry_awaits_specs(i.id)
             order by i.created_at limit 100 loop
     update public.inquiries set status = 'expired' where id = r.id or parent_inquiry_id = r.id;
     update public.stalled_inquiry_rescue set cleared_at = p_at, cleared_why = 'request closed' where inquiry_id = r.id and cleared_at is null;

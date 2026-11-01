@@ -21,6 +21,11 @@ test('the e-mails promise no quote to a request nobody has', () => {
   assert.doesNotMatch(SQL, /We will write as soon as one of them has your request/);
 });
 
+test('a request held for its specs is not told it has no supplier, and is not closed', () => {
+  assert.match(SQL, /and not public\.fn_inquiry_awaits_specs\(i\.id\)/);
+  assert.match(SQL, /finding_suppliers'\)::boolean, false\) and not public\.fn_inquiry_awaits_specs/);
+});
+
 test('a request that reached nobody is closed on the clock, and the customer is told', () => {
   assert.match(SQL, /interval '14 days'[\s\S]*status = 'expired'[\s\S]*request_closed_no_supplier/);
   assert.match(R('supabase/functions/resilience_ping/index.ts'), /rpc\('fn_sales_engineer_closes_unreached_requests'\)/);

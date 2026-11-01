@@ -10,11 +10,11 @@ const SQL = R('scripts/sql/only_a_readable_uae_authority_is_approved_and_a_held_
 
 test('both authority holds stand before automatic approval, and an approved supplier is asked too', () => {
   const auto = SQL.indexOf("elsif coalesce(v_auto, false) then v_decision := 'approved';");
-  for (const reason of ['licence_authority_unread', 'licence_authority_not_uae']) {
+  for (const reason of ['licence_authority_unread', 'licence_authority_not_uae', 'licence_authority_unconfirmed']) {
     const at = SQL.indexOf(`v_decision := 'pending'; v_reason := '${reason}';`);
     assert.ok(at > 0 && at < auto, `${reason} is not held before approval`);
   }
-  assert.match(SQL, /and not v_authority_unread and not v_authority_foreign then/);
+  assert.match(SQL, /and not v_authority_unread and not v_authority_foreign and not v_authority_unknown then/);
 });
 
 test('a supplier cannot type the authority, and an old licence never judges a new one', () => {
@@ -33,12 +33,21 @@ test('the decider asks, then closes through the ceo seat, on a clock that is act
   assert.match(SQL, /revoke execute on function public\.fn_sales_engineer_decides_held_registrations\(timestamptz\) from public, anon, authenticated;/);
 });
 
-test('every UAE authority of the corpus passes the allowlist and a foreign one does not', async () => {
+test('every corpus authority is in the apply-time table logic, and unknown is never foreign', async () => {
   const { AUTHORITIES } = await import('../e2e/document_intake_corpus.mjs');
-  const src = /lower\(p_authority\) ~ '\\y\(([^)]+)\)\\y'/.exec(SQL)[1];
-  const uae = new RegExp(`\\b(${src})\\b`);
-  for (const [k, a] of Object.entries(AUTHORITIES)) assert.ok(uae.test(a.authority.toLowerCase()), `${k}: ${a.authority} would be held as foreign`);
-  for (const f of ['Ministry of Commerce, Kingdom of Saudi Arabia', 'Companies House, United Kingdom', 'Qatar Financial Centre', 'Oman Ministry of Commerce']) assert.ok(!uae.test(f.toLowerCase()), `${f} passes`);
+  const list = (name) => new RegExp(name + " text\\[\\] := array\\[([\\s\\S]*?)\\];").exec(SQL)[1].match(/'([^']+)'/g).map((x) => x.slice(1, -1));
+  const known = [...list('v_strong'), ...list('v_weak')];
+  const norm = (a) => ' ' + a.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim() + ' ';
+  for (const [k, a] of Object.entries(AUTHORITIES)) assert.ok(known.some((x) => norm(a.authority).includes(' ' + x + ' ')), k + ': ' + a.authority);
+  assert.match(SQL, /if v_f and v_s then return 'unknown'/);
+  assert.match(SQL, /return 'unknown';\nend/);
+  for (const c of ['RAK Economic Zone', 'Abu-Dhabi', 'راس الخيمة', 'Ministry of Economy, Kuwait', 'Northern Registry Office']) assert.ok(SQL.includes("'" + c + "'"), c + ' is not in the apply-time table');
+});
+
+test('nothing approved, unknown or answered is closed, and every licence door clears the old fields', () => {
+  assert.match(SQL, /v_replied or \(v_days >= 14 and \(v_ever_approved or r\.reason = 'licence_authority_unconfirmed'\)\)/);
+  assert.ok(SQL.indexOf('fn_ceo_task_open') < SQL.indexOf("approval_decided_by = 'ceo'"), 'the ceo branch must come before the close');
+  for (const f of ['supabase/functions/resend_inbound/index.ts', 'supabase/functions/wa_inbound/index.ts']) assert.match(R(f), /trade_license_no: null, license_authority: null, license_expiry: null/, f);
 });
 
 test('the supplier is shown why', () => {
