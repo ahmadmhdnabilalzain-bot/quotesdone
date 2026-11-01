@@ -164,7 +164,8 @@ try {
 
   // 9. the dashboard's pages, each signed in with the REAL session this sign-up made
   for (const id of ['', 'projects', 'spatial', 'documents', 'messages', 'orders', 'predict', 'profile', 'account']) {
-    await page.goto('about:blank'); await page.goto(`${SITE}/me${id ? '#' + id : ''}`, { waitUntil: 'domcontentloaded' });
+    // (about:blank between pages made the harness's own init script throw on localStorage: not a product error)
+    await page.goto(`${SITE}/me${id ? '#' + id : ''}`, { waitUntil: 'domcontentloaded' }); await page.reload({ waitUntil: 'domcontentloaded' });
     await page.locator('nav:visible, button[aria-controls="qd-nav-more"]:visible').first().waitFor({ timeout: 30000 }).catch(() => {});
     const t = Date.now(); let busy = true;
     while (Date.now() - t < 25000 && busy) { busy = await page.locator('main').evaluate((el) => /Loading|Measuring/.test(el.innerText) || !!el.querySelector('[aria-busy="true"]')).catch(() => false); if (busy) await page.waitForTimeout(300); }
