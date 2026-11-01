@@ -7,7 +7,7 @@ M = measured here. I = inferred from measurements, and the reasoning is given.
 
 ## The answer
 
-No real supplier has finished sign-up. 72 invitations have gone out since 28 Oct (52 confirmed sent, 18 still queued, 2 more counted on 28 Oct). One supplier replied and started. **0 have submitted, 0 are approved.**
+No real supplier has finished sign-up. 70 invitations were scheduled from 28 Oct: 52 sent, 18 still queued. One supplier replied and started. **0 have submitted, 0 are approved.**
 The email machinery at its legal maximum delivers about 1,800 invitations by 31 Dec, which at the measured rate gives about 35 sign-up starts against a target of 300-400. The CEO seat holds the target and reports the miss every day, but no CEO routine can change anything that would close the gap.
 
 ## Ranked: everything that would stop or embarrass a real person
@@ -15,7 +15,7 @@ The email machinery at its legal maximum delivers about 1,800 invitations by 31 
 | # | Item | Evidence | Owner | Fix size | Code or founder |
 |---|---|---|---|---|---|
 | 1 | **The target cannot be reached on this machinery, and the CEO cannot change that** | M: 0 of the `fn_ceo_*` routines write a cap, a lead or a channel switch. Daily "Supplier target behind" tasks stay open. E: at most ~1,800 delivered. Section F | ceo | L | Code, plus the access list in F |
-| 2 | **The bounce brake will stop the campaign, and 82% of the list is unchecked** | M: limit 3% (`invite_max_bounce_rate`), measured 7 of 52 (13.5%). `enqueue_supplier_invites` sets `invite_enabled=false` when over the limit on 15+ sends in 3 days. 14,202 of 17,330 eligible leads have no email check; 43 eligible are marked `not_found`; 71 have typo domains (`yahoo.coin`). I: the pause fires on the next run whose window holds a batch with a bounce: Mon 2 Nov or Tue 3 Nov. Nothing resumes it except a hand setting the flag | it_engineer + customer_support | M | Code (cheque-free checks), verifier needs a key |
+| 2 | **The bounce brake will stop the campaign, and 82% of the list is unchecked** | M: limit 3% (`invite_max_bounce_rate`), measured 7 of 52 (13.5%). `enqueue_supplier_invites` sets `invite_enabled=false` when over the limit on 15+ sends in 3 days. 14,202 of 17,330 eligible leads have no email check; 43 eligible are marked `not_found`; 71 have typo domains (`yahoo.coin`). I: the pause fires on the next run whose window holds a batch with a bounce: Mon 2 Nov or Tue 3 Nov. Nothing resumes it except a hand setting the flag | it_engineer + customer_support | M | Code for free checks; a paid verifier needs a key |
 | 3 | **A supplier who replies to our answer writes to a mailbox nobody reads** | M: code reads only `supplier@` (`resilience_ping` → `m365_reply_inbox`, every 15 min) and `*@mail.`. The answers go out from `info@quotesdone.com` by default. 0 inbound rows ever to `info@quotesdone.com` or `management@quotesdone.com`, yet those two are the addresses published on the site, portals and error messages. I: this is where Al Gouri's subsidiary reply went (ledger 1436). The stored 30 Oct reply has no subsidiary text, and our answer left at 12:04Z the same day from the unread address. `email_reply_info` was not read; the code default was | customer_support | S-M | Code. Mail read permission on those mailboxes may need access (F) |
 | 4 | **Replies to invitations wait with no actor** | M: `invite.reply` for Al Gouri pending since 30 Oct. `mailbox.supplier_reply` for 666realestate (reply 28 Oct, filed 1 Nov) pending. `fn_sales_engineer_takes_invite_reply` is still STABLE: it changes nothing. `fn_supplier_mailbox_mail_gets_its_owner` files and nothing reads. Audit H2 open | sales_engineer | S | Code |
 | 5 | **A started sign-up is not chased** | M: Al Gouri verified email and mobile on 30 Oct and stopped before the licence. Its only messages in 3 days are the invitation and one answer. No reminder was sent | sales_engineer | S | Code |
@@ -25,11 +25,11 @@ The email machinery at its legal maximum delivers about 1,800 invitations by 31 
 | 9 | **The founder is paged by our own rehearsals** | M: `rfq_no_supplier` fired 55 times, 30 in 14 days, 6 on 1 Nov 18:46-19:46Z, the same hour as the demo approvals. Of 55, only 3 name an inquiry still existing. All 6 inquiries belong to `example.invalid` customers. **They are probes, not customers.** Fix: no page for a probe | it_engineer | S | Code |
 | 10 | **Any real customer today would reach nobody** | M: 0 suppliers verified, 0 real rows in `inquiry_matches`. Customers open January by ruling, but the site takes requests now. I: the seat that answers has nothing to send. What they are told was not walked | sales_engineer | S check | Code |
 | 11 | **An invited lead is reported as sent when it was not** | M: 18 of the 28 Oct batch are still `queued` (not before 4 Nov), yet `invite_schedule` and `v_invite_deliverability_daily` count 20 sent that day. Bounce rate there reads 7/70, not 7/52. See memory `a-status-column-is-not-a-delivery-record` | customer_support | S | Code |
-| 12 | **Replies counted by founder tests sit in review** | M: 5 of 6 `supplier@` rows are `needs_review`; 3 are the founder's own test replies. Only harm: real ones are hidden among them | sales_engineer | S | Code |
+| 12 | **Test replies sit in review beside real ones** | M: 5 of 6 `supplier@` rows are `needs_review`; 3 say "All good" to a 27 Oct test mail (I: warm-up seeds). Only harm: real ones are hidden among them | sales_engineer | S | Code |
 
 Audit of 28 Oct (PR #1725), re-measured:
 - H1 nudging a supplier who replied: closed (M: nudge list now reads replies).
-- H2 no actor for `invite.reply`: **open** (item 4). H3 authority: **open** (item 6). H5 no decider on a held registration: **open**, re-read of the function shows no route after the 24 h report.
+- H2 no actor for `invite.reply`: **open** (item 4). H3 authority: **open** (item 6). H5 no decider on a held registration: **not re-measured**; the live function still sends unread licences to `needs_review` and no decider was found.
 - H4 triage cache: closed by #1714.
 - Queues in that audit: `spec.not_sure` 5 still pending and no routine reads the type. `reasoning_held_question` no longer holds 327: 1 open, because the rest expired (M: `sales_engineer` 586 expired). **An expired question was never answered** and is not a clean queue.
 
@@ -105,7 +105,7 @@ Real = only Al Gouri (lead 19398) ever got past invited. "Demo last" is a fixtur
 | Matching | `inquiry_matches` 9 | never | 1 Nov | 0 real suppliers matchable |
 | Quote | `quotes` 11, all demo | never | 1 Nov | |
 | Comparison | `quote_compare` | never | 1 Nov (I) | Not re-walked |
-| Reveal | `reveal_invoices` 0-1 | never | 18 Sep | |
+| Reveal | `reveal_invoices` 0 | never | 18 Sep | |
 | Payment | Stripe path; `reveal.paid` handoffs 40 | never | 27 Oct | `refund.*` ran on probes |
 
 Customers open January by ruling. Harm today is item 10 only.
@@ -145,7 +145,7 @@ Maximum by 31 Dec, assuming no pause:
 - Real effect outside the seats: **none found.** The plan of 30 Oct, 31 Oct and 1 Nov was decided by `plan_c_code`, "already open" directive 326480 each day. A new "Supplier target behind" task every day, opened and left.
 - The only `fn_ceo_*` routines touching an invitation setting only read it.
 
-**What each seat can execute today (M from code and live settings):**
+**What each seat can execute today (M where a routine or setting was read; "no" = none found in code):**
 
 | Action | ceo | sales_engineer | marketing | customer_support | it_engineer |
 |---|---|---|---|---|---|
