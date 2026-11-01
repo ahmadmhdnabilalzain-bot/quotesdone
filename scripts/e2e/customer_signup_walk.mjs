@@ -44,10 +44,23 @@ const mobile = demoMobile();
 const consent = () => localStorage.setItem('qd-cookie-consent', JSON.stringify({ necessary: true, analytics: false, marketing: false, ts: Date.now() }));
 const browser = await launch();
 const errs = [];
+// A VERCEL PREVIEW HAS NO SUPABASE TARGET (src/lib/supaEnv.ts): it calls /functions/v1 on its own origin. Only when QD_SITE is a
+// preview (not quotesdone.ae / .com) those calls are forwarded to the project, as scripts/e2e/browser.mjs does. On the live site
+// this never fires. Used to prove a fix on its own branch before it is deployed.
+const forwardIfPreview = async (ctx, extra = {}) => {
+  const host = new URL(SITE).hostname; if (/^(www\.)?quotesdone\.(ae|com)$/.test(host)) return;
+  await ctx.route(`${new URL(SITE).origin}/functions/v1/**`, async (route) => {
+    const req = route.request(); const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, content-type, apikey, x-client-info', 'access-control-allow-methods': 'POST, GET, OPTIONS' };
+    if (req.method() === 'OPTIONS') return route.fulfill({ status: 200, headers: cors, body: 'ok' });
+    const h = req.headers();
+    const res = await fetch(BASE + '/functions/v1/' + req.url().split('/functions/v1/')[1], { method: req.method(), headers: { ...extra, authorization: h['authorization'] || '', 'content-type': h['content-type'] || 'application/json' }, body: req.method() === 'GET' ? undefined : req.postData() });
+    return route.fulfill({ status: res.status, headers: { ...cors, 'content-type': res.headers.get('content-type') || 'application/json' }, body: Buffer.from(await res.arrayBuffer()) });
+  });
+};
 let teardown = null;
 try {
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 }, locale: 'en-GB' });
-  await ctx.addInitScript(consent);
+  await ctx.addInitScript(consent); await forwardIfPreview(ctx);
   page = await ctx.newPage(); page.setDefaultTimeout(45000);
   page.on('pageerror', (e) => errs.push(String(e.message).slice(0, 300) + ' @ ' + String(e.stack || '').split('\n')[1]?.trim().slice(0, 120)));
   const cons = [], fails = [];
@@ -171,6 +184,7 @@ try {
   if (!s.access_token) throw new Error('no session for posting');
   const ctx2 = await browser.newContext({ viewport: { width: 1366, height: 900 }, locale: 'en-GB' });
   const extra = { 'x-qd-e2e-run': run.tag, 'x-qd-e2e-secret': await internalCred() };
+  await forwardIfPreview(ctx2, extra);
   await ctx2.route((u) => carriesRunTag(u, BASE), (route) => route.request().method() === 'OPTIONS' ? route.continue() : route.continue({ headers: { ...route.request().headers(), ...extra } }));
   await ctx2.addInitScript(([s]) => { try {
     localStorage.setItem('qd-cust-token', s.access_token); localStorage.setItem('qd-cust-refresh', s.refresh_token);

@@ -32,7 +32,12 @@ jobs:
       - run: npx playwright install --with-deps chromium
         timeout-minutes: 6
       - name: Walk the sign-up
-        run: node scripts/e2e/customer_signup_walk.mjs --shots e2e-shots --summary e2e-shots/summary.json
+        # The live site by default. To prove a fix on its branch before it is deployed, a file .github/customer-signup-walk-site.txt
+        # holding a Vercel preview URL points the walk there instead (the preview forwards its function calls; see the script).
+        run: |
+          if [ -f .github/customer-signup-walk-site.txt ]; then export QD_SITE="$(tr -d '[:space:]' < .github/customer-signup-walk-site.txt)"; fi
+          echo "walking $QD_SITE"
+          node scripts/e2e/customer_signup_walk.mjs --shots e2e-shots --summary e2e-shots/summary.json
       - name: Screenshots and summary
         if: always()
         uses: actions/upload-artifact@v4
