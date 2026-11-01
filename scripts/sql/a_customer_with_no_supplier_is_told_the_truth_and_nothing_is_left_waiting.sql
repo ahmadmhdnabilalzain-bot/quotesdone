@@ -164,7 +164,8 @@ create or replace function public.fn_inquiry_awaits_specs(p_inquiry uuid)
  returns boolean language sql stable security definer set search_path to 'public', 'pg_temp'
 as $fn$
   select exists (select 1 from public.inquiries x
-                  where not coalesce(x.rfq_ready, false)
+                  -- The required specs, not rfq_ready: fn_rfq_score's readiness is stricter, and measured 2 Nov 2026 0 of 3 requests have it.
+                  where not coalesce((public.fn_rfq_required_check(x) ->> 'required_ok')::boolean, true)
                     and (x.parent_inquiry_id = p_inquiry
                          or (x.id = p_inquiry and not exists (select 1 from public.inquiries c where c.parent_inquiry_id = p_inquiry))))
 $fn$;

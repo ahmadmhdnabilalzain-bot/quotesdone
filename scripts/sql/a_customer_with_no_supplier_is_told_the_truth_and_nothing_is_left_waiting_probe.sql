@@ -16,8 +16,7 @@ begin
     values (v_cust, 'aluminium', 'Dubai', 'ZZ DEMO probe', 'open', false, '2020-01-02', jsonb_build_object('dispatched_at', now())) returning id into v_c;
   insert into public.inquiries (customer_id, category, emirate, summary, status, rfq_ready, created_at, routing)
     values (v_cust, 'zz_probe_no_spec', 'Dubai', 'ZZ DEMO probe', 'open', true, now(), jsonb_build_object('dispatched_at', now())) returning id into v_y;
-  -- trg_rfq_complete decides rfq_ready from fn_rfq_required_check, so it cannot be forced: a category with no
-  -- category_specs row is ready, and aluminium with an empty spec is held. Both are asserted below.
+  -- A category with no category_specs row has no required spec; aluminium with an empty spec is missing its own. Both are asserted below.
 
   if public.fn_inquiry_awaits_specs(v_i) then v_bad := v_bad || ' ready_reads_held'; end if;
   if not public.fn_inquiry_awaits_specs(v_c) then v_bad := v_bad || ' held_reads_ready'; end if;
