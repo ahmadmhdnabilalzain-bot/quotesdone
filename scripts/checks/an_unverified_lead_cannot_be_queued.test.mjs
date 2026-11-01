@@ -87,8 +87,12 @@ test('the restart never lifts the founder\'s go, a complaint or another seat\'s 
   assert.match(b, /insert into public\.email_suppressions/);
   assert.ok(b.indexOf('email_suppressions') < b.indexOf("set value = 'true'"), 'it resumes before suppressing');
   const writes = [...b.matchAll(/update\s+public\.app_secrets\s+set\s+value\s*=[^;]*;/gi)].map((m) => m[0]);
-  assert.equal(writes.length, 1, 'it writes one switch, once');
-  assert.match(writes[0], /key = 'invite_enabled'/, 'it writes another switch');
+  assert.ok(writes.length > 0 && writes.every((w) => /key = 'invite_enabled'/.test(w)), 'it writes another switch');
+  assert.match(b, /fn_invite_send_health\(v_since\)/, 'the second breach does not read the sends since the restart');
+  const cap = body('fn_invite_restart_cap(');
+  const clockOnly = (s) => !/first_sent/.test(s);
+  assert.ok(!clockOnly(cap), 'the first-batch limit runs on a clock, so a restart on a closed day lapses before anything is sent');
+  assert.ok(clockOnly("resumed_at > now() - interval '24 hours'"), 'control: the clock shape is refused');
 });
 
 test('a proven mailbox goes first, free mail last', () => {

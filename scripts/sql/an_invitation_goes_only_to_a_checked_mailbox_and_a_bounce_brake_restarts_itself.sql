@@ -14,8 +14,8 @@
 --     UNTIL THE FIRST BATCHES RUN THE POOL IS EMPTY AND NOTHING IS QUEUED. 200 leads per 5 minutes covers 17,330 in about 7 hours.
 --  2. public.invite_brake records a bounce brake. Duty sales_engineer.invite_restart suppresses the bounced addresses and may
 --     resume ONCE in 30 days, no sooner than 3 days after the brake, and only if the real 3-day window would not fire the brake
---     again. The window is never reset. For 24 hours after a restart at most 10 go a day. A second breach inside the 30 days stays
---     paused and opens a live task for the CEO seat. A complaint pause, another seat's pause and the founder's go are never lifted.
+--     again. The window is never reset. At most 10 a day until the first day that really sent has passed. Bounces over the limit on
+--     the sends since the restart, or any brake, within 30 days are a second breach: it stays paused and opens a CEO task. A complaint pause, another seat's pause and the founder's go are never lifted.
 --  3. fn_invite_send_health is the one read of real sends. invite_schedule.sent and v_invite_deliverability_daily count real sends.
 
 create table if not exists public.lead_email_check (
@@ -65,14 +65,20 @@ as $fn$
 $fn$;
 revoke execute on function public.fn_invite_send_health(timestamptz) from public, anon, authenticated;
 
--- A SMALL FIRST BATCH: for 24 hours after the seat's restart at most 10 a day, whatever the cap says.
+-- A SMALL FIRST BATCH: at most 10 a day from the seat's restart until the first Dubai day that really sent has passed. It follows
+-- sends, not the clock, because a restart can land on a weekend when nothing goes.
 create or replace function public.fn_invite_restart_cap(p_cap integer)
 returns integer
 language sql stable security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-  select case when exists (select 1 from public.invite_brake b where b.restarted_by_seat and b.resumed_at > now() - interval '24 hours')
+  with r as (select max(b.resumed_at) as at from public.invite_brake b where b.restarted_by_seat),
+       s as (select min(n.sent_at) as first_sent from public.notifications n, r
+              where n.type = 'supplier_invite' and n.sent_at > r.at and not public.fn_is_demo_email(n.to_email))
+  select case when r.at is not null
+               and (s.first_sent is null or (s.first_sent at time zone 'Asia/Dubai')::date >= (now() at time zone 'Asia/Dubai')::date)
               then least(p_cap, 10) else p_cap end
+    from r, s
 $fn$;
 revoke execute on function public.fn_invite_restart_cap(integer) from public, anon, authenticated;
 
@@ -866,11 +872,26 @@ language plpgsql security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
 declare
-  b public.invite_brake; v_on boolean; v_suppressed int; v_batch int; v_sent int; v_bounced int; v_complaints int; v_max numeric;
+  b public.invite_brake; v_on boolean; v_suppressed int; v_batch int; v_sent int; v_bounced int; v_complaints int; v_max numeric; v_since timestamptz;
 begin
+  v_max := coalesce((select nullif(value, '')::numeric from public.app_secrets where key = 'invite_max_bounce_rate'), 0.08);
   select * into b from public.invite_brake where resumed_at is null order by id desc limit 1;
-  if not found then return jsonb_build_object('open_brake', false); end if;
-  v_on := coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false);
+  if not found then
+    -- PROBATION: for 30 days after a restart the batches sent SINCE it answer for it. The 3-day brake needs 15 sends or 5 bounces,
+    -- which a batch of 10 cannot reach, so the limit is read here on those sends alone. Over it is the second breach.
+    select max(x.resumed_at) into v_since from public.invite_brake x where x.restarted_by_seat and x.resumed_at > now() - interval '30 days';
+    if v_since is null then return jsonb_build_object('open_brake', false); end if;
+    select h.sent, h.bounced into v_sent, v_bounced from public.fn_invite_send_health(v_since) h;
+    if v_bounced::numeric / greatest(v_sent, 1) <= v_max then
+      return jsonb_build_object('open_brake', false, 'probation', true, 'sent', v_sent, 'bounced', v_bounced);
+    end if;
+    update public.app_secrets set value = 'false' where key = 'invite_enabled';
+    update public.notifications set status = 'cancelled' where type = 'supplier_invite' and status = 'queued';
+    insert into public.invite_brake(source, why)
+    values ('invite_restart_probation', v_bounced || ' bounce(s) on ' || v_sent || ' invitation(s) sent since the restart')
+    returning * into b;
+  end if;
+  v_on :=coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false);
   if v_on then
     update public.invite_brake set resumed_at = now(), resume_note = 'invite_enabled was already back on: not this seat''s restart' where id = b.id;
     return jsonb_build_object('open_brake', true, 'closed', 'already on');
@@ -914,7 +935,6 @@ begin
   if now() < b.fired_at + interval '3 days' then
     return jsonb_build_object('open_brake', true, 'held', 'cooldown', 'until', b.fired_at + interval '3 days', 'suppressed', v_suppressed);
   end if;
-  v_max := coalesce((select nullif(value, '')::numeric from public.app_secrets where key = 'invite_max_bounce_rate'), 0.08);
   if (v_sent >= 15 and v_bounced::numeric / greatest(v_sent, 1) > v_max) or v_bounced >= greatest(5, ceil(v_sent * v_max)::int) then
     return jsonb_build_object('open_brake', true, 'held', 'the 3-day window is still over the limit', 'sent', v_sent, 'bounced', v_bounced, 'suppressed', v_suppressed);
   end if;
