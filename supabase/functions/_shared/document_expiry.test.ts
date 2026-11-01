@@ -305,6 +305,15 @@ Deno.test('expiryFromText: a table reads the expiry label\'s own column, or noth
     // a value cell split in two by its own double space shifts every date one place: nothing is read
     ['Licence No   Issue Date   Expiry Date   Remarks\nCN  1145872   15/03/2025   14/03/2028', null],
     ['Licence No   Issue Date   Expiry Date\nCN  1145872   15/03/2025', null],
+    // a table printed on one line reads only when nothing but labels, dates and separators share the line
+    ['Issue Date   Expiry Date   Next Inspection   -   14/03/2028   01/06/2029', null],
+    ['Issue Date   Expiry Date   Next Inspection   14/03/2028   01/06/2029', null],
+    ['Issue Date Expiry Date Next Inspection 14/03/2028 01/06/2029', null],
+    ['Issue Date | Expiry Date | Next Inspection: 14/03/2028 | 01/06/2029', null],
+    // a cell that says it is blank, and a note under a column only counted, do not stop a reading
+    ['Issue Date   Expiry Date   Next Inspection\nn.a.   14/03/2028   01/06/2029', '2028-03-14'],
+    ['Issue Date   Expiry Date   Next Inspection\nNot Applicable   14/03/2028   01/06/2029', '2028-03-14'],
+    ['Issue Date   Expiry Date   Renewal Date\n15/03/2025   14/03/2028   TBA', '2028-03-14'],
   ];
   for (const [text, want] of cases) assertEquals(expiryFromText(text)?.expiry ?? null, want, text);
 });

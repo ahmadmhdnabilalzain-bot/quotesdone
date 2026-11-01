@@ -156,6 +156,8 @@ function cellsOf(t: string): Doc {
 }
 
 const isLabel = (c: Cell) => c.kind !== 'date';
+// A cell that says it holds nothing: "-", "N/A", "n.a.", "Not Applicable", "TBA", "لا يوجد".
+const BLANK_CELL_RE = /^[\s\-–—]*$|^\s*(?:n\.?\s*\/?\s*a\.?|nil|none|not applicable|tba|tbc|لا يوجد|غير متوفر|غير متاح)\s*$/i;
 type Span = { s: number; e: number };
 // A line split into the cells a text layer draws apart: two or more spaces, a tab or a "|" ends a cell (textFromContent
 // joins two cells of one baseline with three spaces). Position in the row, not a count of dates, pairs a value with its
@@ -185,8 +187,10 @@ function headerRowRead(d: Doc, K: Cell, heads: Cell[], cols: Cell[][]): { expiry
     const under = (c: Cell) => vc[hc.findIndex((h) => h.s <= c.s && c.s < h.e)];
     // Every cell under a date label holds a date or says it is blank ("-", "N/A"). Text there means the cells are
     // misaligned (a value with two spaces in it split in two, "CN  1145872"), and every date may sit one place off.
-    const blankOrDate = (c: Span | undefined) => !!c && (/^[\s\-–—]*$|^\s*(?:n\/?a|nil|none)\s*$/i.test(t.slice(c.s, c.e)) || cellDate(t, c) !== null);
-    if (!heads.every((c) => blankOrDate(under(c)))) return null;
+    // Only the columns a reading leans on are held to it: the expiry's and the issue or start dates'. A note under a
+    // column this reader only counts ("TBA" under Renewal Date) says nothing about the alignment of the others.
+    const blankOrDate = (c: Span | undefined) => !!c && (BLANK_CELL_RE.test(t.slice(c.s, c.e)) || cellDate(t, c) !== null);
+    if (!heads.every((c) => c.kind === 'other' || blankOrDate(under(c)))) return null;
     const own = under(K);
     expiry = cellDate(t, own); raw = own ? t.slice(own.s, own.e).trim() : '';
     for (const c of heads) if (c.kind === 'start') starting.push(cellDate(t, under(c)));
@@ -249,6 +253,15 @@ function tableRead(d: Doc, ks: number): { expiry: string; raw: string } | null |
   const last = heads[heads.length - 1], after = cells.slice(cells.indexOf(last) + 1);
   const datesOnLine = after.length > 0 && after[0].line === last.line && !isLabel(after[0]);
   if (mode === 'header' || (mode === 'line' && !datesOnLine)) return headerRowRead(d, K, heads, cols);
+  // A TABLE PRINTED ON ONE LINE (third review of #1733): its dates are taken by order only when the line, from its
+  // first label to its end, holds nothing but known labels, dates and separators. "Issue Date   Expiry Date   Next
+  // Inspection   -   14/03/2028   01/06/2029" read the inspection date when an unknown label sat among them.
+  if (mode === 'line') {
+    const le = t.indexOf('\n', heads[0].s), end = le < 0 ? t.length : le;
+    let rest = t.slice(heads[0].s, end);
+    for (const c of cells.filter((x) => x.s >= heads[0].s && x.e <= end).reverse()) rest = rest.slice(0, c.s - heads[0].s) + ' ' + rest.slice(c.e - heads[0].s);
+    if (!/^[\s/|:()\-–—,]*$/.test(rest)) return null;
+  }
   // A table on one line, or drawn column by column: the dates right after the last label on its line; when that line
   // ends, every line of dates right under it (blank lines may come first). A label, or a line with no date, ends them.
   const values: Cell[] = [];
