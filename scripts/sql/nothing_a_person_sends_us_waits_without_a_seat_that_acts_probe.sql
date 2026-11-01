@@ -11,7 +11,7 @@ begin
   select count(*) into n_csat from public.notifications where type in ('support_csat_request', 'support_case_closed') and created_at = now();
   if n_csat <> 0 then raise exception 'CHK<<FAIL a closing case wrote % notice(s) to a person>>', n_csat; end if;
   select count(*) into n from public.support_case where state <> 'closed' and case_ref = 'QD-S-L5MLED';
-  select count(*) into n_gaps from public.sales_knowledge_gap where status = 'open' and id in (195, 237, 212, 213, 214);
-  if n <> 0 or n_gaps <> 5 then raise exception 'CHK<<FAIL settle: case open %, real questions open %>>', n, n_gaps; end if;
+  select count(*) into n_gaps from public.sales_knowledge_gap where status = 'open' and id in (195, 237);
+  if n <> 0 or n_gaps <> 2 or exists (select 1 from public.agent_actions where id in (310914, 310916, 310918, 310921) and status <> 'done') then raise exception 'CHK<<FAIL settle: case open %, real questions open %>>', n, n_gaps; end if;
   raise exception 'CHK<<PROBE OK>>';
 end $probe$;

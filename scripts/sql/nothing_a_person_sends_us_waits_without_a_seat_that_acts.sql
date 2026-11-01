@@ -9,8 +9,9 @@
 --     586 sales_engineer rows expired so; 0 of them carried a person (fixture 8 on wa_inbound.unwritten_reply). Build it now.
 --   * support.case_open 39: 21 are WhatsApp 'ZZ DEMO' from fixture numbers +9715000000xx; 14 are widget rehearsals whose
 --     customer ids no longer exist; 3 are the founder's seed inboxes; 1 is 666realestate, closed by the reply seat.
---   * knowledge.request 56: read one by one. 51 are a person's answer to a spec question ("Within 2 weeks.", "Oak, 14 mm"),
---     not a question the company lacks knowledge for. 5 are real questions and stay with their seat (195, 237, 212, 213, 214).
+--   * knowledge.request 56: read one by one. 50 are a person's answer to a spec question ("Within 2 weeks.", "Oak, 14 mm"),
+--     not a question the company lacks knowledge for. 2 are real questions and stay with their seat (195, 237). 4 handoffs
+--     (310914, 310916, 310918, 310921) name gap rows 212-215 that no longer exist, so nothing could ever close them.
 --   * backup: doc_backups 445197 has no source to re-file from; the CEO's instruction on #170341 says to mark it abandoned.
 --   * the public number was the founder's mobile, also in app_secrets.founder_public_phone and 5 agent_knowledge rows.
 --     Replaced by the company's WhatsApp line, app_secrets.twilio_wa_from. admin_mfa_phone is his sign-in and is untouched.
@@ -223,7 +224,12 @@ end $do$;
 
 -- 5. KNOWLEDGE REQUESTS READ ONE BY ONE: a person's own answer is not a gap. fn customer_support closes each when marked.
 update public.sales_knowledge_gap set status = 'not_a_gap', closed_at = now()
- where status = 'open' and id in (218,228,227,229,257,230,231,234,236,232,239,242,285,220,251,255,219,243,250,252,253,260,264,289,238,241,249,211,233,244,245,246,248,254,256,311,215,235,240,247,263,274,284,286,287,288,291,312,313,317,759);
+ where status = 'open' and id in (218,228,227,229,257,230,231,234,236,232,239,242,285,220,251,255,219,243,250,252,253,260,264,289,238,241,249,211,233,244,245,246,248,254,256,311,235,240,247,263,274,284,286,287,288,291,312,313,317,759);
+
+select set_config('qd.handoff_closer', 'customer_support', true);
+select public.fn_seat_handoff_complete(x.id, jsonb_build_object('verified_by', 'customer_support', 'verdict', 'the knowledge gap this names no longer exists'))
+  from (values (310914::bigint), (310916), (310918), (310921)) x(id);
+select set_config('qd.handoff_closer', '', true);
 
 -- 6. THE BACKUP: the CEO's instruction on #170341, by exact id. The IT engineer's re-check closes #161210 and #170341.
 update public.doc_backups set error = 'abandoned: no source in storage; the file exists only in Dropbox (' || dropbox_content_hash || ')'

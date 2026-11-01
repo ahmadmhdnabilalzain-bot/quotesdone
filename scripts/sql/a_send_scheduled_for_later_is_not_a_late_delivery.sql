@@ -306,18 +306,7 @@ begin
   insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
   values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'duties', 'result', v_out), null);
   return v_out;
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_it_duties_due()
- RETURNS boolean
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duties'
-                      and started_at > now() - interval '55 minutes')
-$function$;
+end $function$;
 
 select case when (select failure_class from public.fn_it_playbook_for('duty:delivery:request:1')) is distinct from 'delivery_request_unconfirmed'
             then 'PROBE FAILED: the delivery class still has no cause' else 'PROBE OK' end as verdict;
