@@ -1,0 +1,39 @@
+name: A merged SQL file applies itself
+
+# Founder ledger 1459: merging is the go-live. Waits for the same commit's edge deploy, then rehearses, applies, reads back and
+# probes each file the push added to MANIFEST.txt. No laptop and no session.
+on:
+  push:
+    branches: [main]
+    paths: ['scripts/sql/MANIFEST.txt']
+
+concurrency:
+  group: apply-sql
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci
+        timeout-minutes: 8
+      - name: Wait for this commit's deploy
+        timeout-minutes: 15
+        run: |
+          for i in $(seq 1 60); do
+            s=$(gh run list --workflow deploy-functions.yml --commit "$GITHUB_SHA" --json status --jq 'map(select(.status != "completed")) | length')
+            [ "${s:-1}" = 0 ] && [ "$i" -gt 2 ] && exit 0
+            sleep 15
+          done
+      - name: Apply what this push added
+        run: node scripts/ci/apply_new_manifest_lines.mjs "${{ github.event.before }}" "$GITHUB_SHA"
