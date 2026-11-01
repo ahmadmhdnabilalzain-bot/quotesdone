@@ -343,7 +343,7 @@ const T = {
     create_my_account:'Create my account', send_code:'Send me a code', sending:'Sending…', code_placeholder:'6-digit code',
     verify_continue:'Verify & continue', verify_signin:'Verify & sign in', verifying:'Verifying…', use_diff:'Use a different email/number',
     wa_note:'We sent the code to this number on WhatsApp. Not there after a minute? Send it by SMS instead.', send_by_sms:'Send it by SMS instead',
-    code_sent_to:'We sent a 6-digit code to {id}. Enter it below.', junk_note:'The code can take a minute — please check your spam/junk folder too.', err_code_send:'Could not send a code.', err_incorrect:'Incorrect code.',
+    code_sent_to:'We sent a 6-digit code to {id}. Enter it below.', junk_note:'The code can take a minute — please check your spam/junk folder too.', contact_note:'So our messages reach your inbox, add supplier@quotesdone.com to your contacts, or write to us at that address.', err_code_send:'Could not send a code.', err_incorrect:'Incorrect code.',
     signup_email_only:"Please sign up with your work email — you'll register your company and verify your mobile next.",
     signup_email_reserved:'That email domain is reserved for examples and testing and cannot receive mail, so no code can reach it. Please use your real work email.', err_need_email:'Please enter your work email first.', err_need_id:'Please enter your email or mobile number first.',
     conflict_customer:'This email is registered as a customer. Please use the customer app to sign in.',
@@ -384,7 +384,7 @@ const T = {
     signin_sub:'سجّلوا الدخول بالبريد الإلكتروني أو برقم الجوال المسجّل.', work_email:'البريد الإلكتروني للعمل', email_or_mobile:'البريد الإلكتروني أو الجوال',
     create_my_account:'إنشاء حسابي', send_code:'إرسال الرمز', sending:'جارٍ الإرسال…', code_placeholder:'رمز من 6 أرقام',
     verify_continue:'تأكيد ومتابعة', verify_signin:'تأكيد وتسجيل الدخول', verifying:'جارٍ التحقق…', use_diff:'استخدام بريد أو رقم آخر',
-    junk_note:'قد يستغرق وصول الرمز دقيقة — يُرجى التحقق من مجلد الرسائل غير المرغوب فيها (Spam) أيضًا.', err_code_send:'تعذّر إرسال الرمز.', err_incorrect:'رمز غير صحيح.',
+    junk_note:'قد يستغرق وصول الرمز دقيقة — يُرجى التحقق من مجلد الرسائل غير المرغوب فيها (Spam) أيضًا.', contact_note:'So our messages reach your inbox, add supplier@quotesdone.com to your contacts, or write to us at that address.', err_code_send:'تعذّر إرسال الرمز.', err_incorrect:'رمز غير صحيح.',
     signup_email_only:'يُرجى التسجيل ببريدكم الإلكتروني للعمل، ثم تسجيل شركتكم وتأكيد رقم جوالكم في الخطوة التالية.',
     signup_email_reserved:'نطاق هذا البريد محجوز للأمثلة والاختبار ولا يستقبل الرسائل، فلن يصله أي رمز. يُرجى استخدام بريد العمل الحقيقي.', err_need_email:'يُرجى إدخال بريد العمل أولًا.', err_need_id:'يُرجى إدخال بريدكم الإلكتروني أو رقم جوالكم أولًا.',
     conflict_customer:'هذا البريد مسجّل كعميل. يُرجى استخدام تطبيق العملاء لتسجيل الدخول.',
@@ -828,6 +828,7 @@ function Login({ onAuth, lang, startMode }) {
       </>) : (<>
         <Lbl text={t(lang, 'code_placeholder')}><Input className="mt-3 min-h-11" inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} /></Lbl>
         <div className={S.hint}>{t(lang, 'junk_note')}</div>
+        <div className={S.hint} dir="ltr">{t(lang, 'contact_note')}</div>
         <Button className="w-full mt-3" disabled={busy} onClick={verify}>{busy ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button>
         <Button variant="link" className="mt-2 px-0 h-auto" onClick={() => { setStep('id'); setCode(''); setMsg(''); }}>{t(lang, 'use_diff')}</Button>
       </>)}
