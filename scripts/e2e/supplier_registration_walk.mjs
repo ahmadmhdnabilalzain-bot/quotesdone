@@ -44,6 +44,11 @@ const DESKTOP_W = Number(val('--desktop-width', '1440'));
 // delivered to the run's Resend sink and read back (scripts/e2e/resend_sink.mjs). Steps over 3 s are reported.
 const REAL_OTP = argv.includes('--real-otp');
 const sinks = [];
+// FOUNDER LEDGER 1469 (2 Nov 2026): a supplier is verified only after it confirms its services. The gate is a database routine applied at merge,
+// so the walk asks the database which rule is live and asserts THAT rule: the old order (terms + Save = approved) until the gate is applied,
+// the new order (held for services_unconfirmed, then approved by the supplier's own confirm) once it is. The unapplied half is printed as
+// NOT RUN, never as a pass.
+let gateLive = false;
 
 async function realOtpSignup({ browser, ctxOpts, consent, url, email, company, m }) {
   const ctx = await browser.newContext(ctxOpts); await ctx.addInitScript(consent); const p = await ctx.newPage();
@@ -301,11 +306,21 @@ async function freshLeg({ run, browser, m, n, lang, vp, email, company }) {
     const t5 = Date.now(); let r;
     for (;;) { r = (await read(`select approval_status, signed_terms_path, licence_gate_reason, owner_phone_verified pv, owner_email_verified ev, accepted_terms_ip is not null ip,
         accepted_terms_sha256 is not null sha, service_emirates, contact_name from public.leads where id=${lead.id}`))[0];
-      if ((r.approval_status === 'approved' && r.signed_terms_path) || Date.now() - t5 > 90000) break; await new Promise((x) => setTimeout(x, 3000)); }
+      if (((r.approval_status === 'approved' || (gateLive && r.licence_gate_reason === 'services_unconfirmed')) && r.signed_terms_path) || Date.now() - t5 > 90000) break; await new Promise((x) => setTimeout(x, 3000)); }
     if (r?.signed_terms_path) run.ids.storage.push('signed-terms/' + r.signed_terms_path);
     const allUae = ['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'].every((e) => JSON.stringify(r.service_emirates || []).includes(e));
-    step(m, 'ruling 1230: registration completes 100% — approved, signed certificate, mobile + e-mail verified, acceptance hashed, all 7 emirates',
-      r.approval_status === 'approved' && !!r.signed_terms_path && !r.licence_gate_reason && r.pv && r.ev && r.ip && r.sha && allUae, `${JSON.stringify(r)}; approved ${Date.now() - t5} ms after Submit returned`);
+    if (gateLive) {
+      step(m, 'ledger 1469: every mandatory field stored and the certificate signed, but NOT approved: held for services_unconfirmed',
+        r.approval_status === 'pending' && r.licence_gate_reason === 'services_unconfirmed' && !!r.signed_terms_path && r.pv && r.ev && r.ip && r.sha && allUae, JSON.stringify(r));
+      await p.reload({ waitUntil: 'domcontentloaded' }); await wsNav().waitFor({ timeout: 30000 });
+      const told = await p.getByText(/you have not yet confirmed what your company does/).first().waitFor({ timeout: 20000 }).then(() => true).catch(() => false);
+      await shot(p, m, 'step5b_held_and_told_why');
+      step(m, 'ledger 1469: the held supplier is told on screen, in English, what is left and why', told);
+    } else {
+      step(m, 'ruling 1230 (services gate not applied yet): registration completes 100% — approved, signed certificate, mobile + e-mail verified, acceptance hashed, all 7 emirates',
+        r.approval_status === 'approved' && !!r.signed_terms_path && !r.licence_gate_reason && r.pv && r.ev && r.ip && r.sha && allUae, `${JSON.stringify(r)}; approved ${Date.now() - t5} ms after Submit returned`);
+      console.log('NOT RUN until the gate is applied: held for services_unconfirmed, told on screen, approved only after the supplier confirms');
+    }
 
     // STEP 6. "Set up my page": the supplier's services, rewritten by the sales engineer and confirmed.
     const t6 = Date.now();
@@ -317,6 +332,10 @@ async function freshLeg({ run, browser, m, n, lang, vp, email, company }) {
     await M.getByRole('button', { name: /^(Rewrite my services|إعادة صياغة خدماتي)$/ }).click();
     await M.getByRole('button', { name: /Our sales engineer is reading it|يقرأ مهندس المبيعات/ }).waitFor({ state: 'detached', timeout: 150000 }).catch(() => {});
     await shot(p, m, 'step6_sales_engineer_rewrite');
+    // ledger 1469: the Services tab says why confirming matters and shows what was read from the company profile.
+    const verifyNote = await M.getByTestId('verify-needed').isVisible().catch(() => false);
+    const profileBox = await M.getByTestId('profile-summary').innerText().catch(() => '');
+    step(m, 'ledger 1469: the Services tab tells the supplier that confirming is how it is verified, and shows the profile summary section', verifyNote && /Summary of your company profile/.test(profileBox), `profile section: ${profileBox.replace(/\s+/g, ' ').slice(0, 220)}`);
     const roleBoxes = M.locator('fieldset').filter({ hasText: /role|دور/i }).locator('input[type=checkbox]');
     if ((await roleBoxes.count()) && !(await roleBoxes.locator(':checked').count().catch(() => 0))) await roleBoxes.first().check().catch(() => {});
     const confirm = M.getByRole('button', { name: /^(Confirm my services|Update my services|تأكيد خدماتي|تحديث خدماتي)$/ });
@@ -351,6 +370,12 @@ async function freshLeg({ run, browser, m, n, lang, vp, email, company }) {
     jstep(m, 6, 'page set up: services rewritten by the sales engineer and confirmed', canConfirm && savedNote && capn > 0, Date.now() - t6,
       `"Set up my page" control on screen: ${setupBtn ? 'yes' : 'NO — no such control exists in the portal; the Services tab confirm is the step that publishes what the supplier offers'}; confirm enabled ${canConfirm}; saved note ${savedNote}; server ${savedAns}; capability confirmations ${capn}`);
 
+    if (gateLive) {
+      let a2; const t6b = Date.now();
+      for (;;) { a2 = (await read(`select approval_status, verified, licence_gate_reason from public.leads where id=${lead.id}`))[0]; if (a2?.approval_status === 'approved' || Date.now() - t6b > 60000) break; await new Promise((x) => setTimeout(x, 2000)); }
+      step(m, 'ledger 1469: after the supplier confirms its services it is approved and verified', a2?.approval_status === 'approved' && a2.verified === true && !a2.licence_gate_reason, `${JSON.stringify(a2)} in ${Date.now() - t6b} ms`);
+    }
+
     // STEP 7. The dashboard loads, and the supplier can see the inquiries area.
     const t7 = Date.now();
     await nav.getByRole('button', { name: /^(Inquiries received|الاستفسارات الواردة)$/ }).click();
@@ -366,6 +391,8 @@ async function freshLeg({ run, browser, m, n, lang, vp, email, company }) {
 }
 
 const run = await openRun(CAP ? { capUsd: Number(CAP) } : {});
+gateLive = !!(await read(`select position('services_unconfirmed' in pg_get_functiondef('public.fn_sales_engineer_verifies_supplier(bigint,text)'::regprocedure)) > 0 as live`))[0]?.live;
+console.log(gateLive ? 'services gate: LIVE (approval needs a confirmed services record)' : 'services gate: NOT APPLIED YET (the new-order steps are reported NOT RUN)');
 // Ruling 1260 (19 Oct 2026): every run has the AI on. openRun opens the capped model window for every leg, so the
 // case-only override (USD 1, 1 hour) is gone: it only ever LOWERED the run's ceiling below openRun's.
 const browser = await launch();
@@ -538,10 +565,21 @@ try {
     const t3 = Date.now(); let reg;
     for (;;) {
       reg = (await read(`select approval_status, signed_terms_path, signatory_name, approval_decided_by, licence_gate_reason from public.leads where id=${lead.id}`))[0];
-      if ((reg?.approval_status === 'approved' && reg?.signed_terms_path) || (!approveCase && reg?.licence_gate_reason && reg.licence_gate_reason !== 'reg_terms') || Date.now() - t3 > 60000) break;
+      if (((reg?.approval_status === 'approved' || (gateLive && reg?.licence_gate_reason === 'services_unconfirmed')) && reg?.signed_terms_path) || (!approveCase && reg?.licence_gate_reason && reg.licence_gate_reason !== 'reg_terms') || Date.now() - t3 > 60000) break;
       await new Promise((r) => setTimeout(r, 2000));
     }
-    if (approveCase) step(m, 'terms + Save → approved with a signed certificate, by the deterministic check with no licence hold', reg?.approval_status === 'approved' && !!reg?.signed_terms_path && !reg?.licence_gate_reason,
+    if (approveCase && gateLive) {
+      // Ledger 1469: terms + Save complete the six, not the verification. The supplier's own confirm of its services (the portal's
+      // supplier_api capability_confirm, the same writer the Services tab uses) is what releases the approval.
+      step(m, 'ledger 1469: terms + Save → signed certificate, all six present, held for services_unconfirmed (not approved)', reg?.approval_status === 'pending' && reg?.licence_gate_reason === 'services_unconfirmed' && !!reg?.signed_terms_path, JSON.stringify(reg));
+      const pick = (await read(`select s.trade_code, s.trade_code || '.' || s.code as k, (select code from public.taxonomy_role where active order by sort limit 1) as role from public.taxonomy_trade_service s where s.active order by s.trade_code, s.sort limit 1`))[0];
+      const cc = await call('supplier_api', s.access_token, { action: 'capability_confirm', trades: [pick.trade_code], roles: [pick.role], services: [pick.k] });
+      step(m, 'ledger 1469: the supplier confirms its services', cc.json?.ok === true, `HTTP ${cc.status} ${cc.text.slice(0, 120)}`);
+      const t3b = Date.now(); let reg2;
+      for (;;) { reg2 = (await read(`select approval_status, verified, signed_terms_path, licence_gate_reason from public.leads where id=${lead.id}`))[0]; if (reg2?.approval_status === 'approved' || Date.now() - t3b > 60000) break; await new Promise((r) => setTimeout(r, 2000)); }
+      step(m, 'ledger 1469: after the confirm it is approved and verified with the signed certificate and no hold', reg2?.approval_status === 'approved' && reg2.verified === true && !!reg2.signed_terms_path && !reg2.licence_gate_reason, JSON.stringify(reg2));
+      reg = reg2;
+    } else if (approveCase) step(m, 'terms + Save → approved with a signed certificate, by the deterministic check with no licence hold (services gate not applied yet)', reg?.approval_status === 'approved' && !!reg?.signed_terms_path && !reg?.licence_gate_reason,
       `${JSON.stringify(reg)}; Save answered in ${t3 - t2} ms, approved ${Date.now() - t3} ms after`);
     // The reason must be the LICENCE's, not "terms still missing" (reg_terms is only the certificate not landed yet).
     else step(m, `terms + Save → NOT approved, held for the licence (corpus expects ${c.expected})`, reg?.approval_status !== 'approved' && !!reg?.licence_gate_reason && reg.licence_gate_reason !== 'reg_terms', JSON.stringify(reg));

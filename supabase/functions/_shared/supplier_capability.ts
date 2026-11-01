@@ -171,6 +171,14 @@ export async function capabilityConfirm(admin: Admin, supplierId: number, body: 
       await admin.from('taxonomy_trade_proposal').update({ status: 'mapped', decided_at: now }).eq('id', o.id);
     }
   }
+  // A supplier the gate holds ONLY because its services were unconfirmed (founder ledger 1469) is decided now. Any other hold, and any
+  // supplier already approved, is left to the gate's own triggers and clocks. The confirm stands whatever this call does.
+  try {
+    const { data: held } = await admin.from('leads').select('licence_gate_reason').eq('id', supplierId).maybeSingle();
+    if (held?.licence_gate_reason === 'services_unconfirmed') {
+      await admin.rpc('fn_sales_engineer_verifies_supplier', { p_lead_id: supplierId, p_source: 'services_confirmed' });
+    }
+  } catch (e) { console.error('capabilityConfirm: the gate was not re-run after the confirm', supplierId, String((e as Error)?.message || e)); }
   return [200, { ok: true, confirmed: true, version, trades, roles, products_count: products.length, exclusions_count: exclusions.length,
                  new_trades_under_review: newCodes }];
 }
