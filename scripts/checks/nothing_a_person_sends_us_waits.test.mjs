@@ -52,7 +52,8 @@ test('the voice line tells the caller what to do', () => {
 test('the reply handlers act, and the expiry keeps a question with a person', () => {
   const a = R('scripts/sql/a_supplier_reply_gets_the_action_it_asked_for.sql');
   assert.match(a, /fn_sales_engineer_takes_invite_reply\(p_id bigint\)\s+returns jsonb language sql volatile/);
-  assert.match(a, /r\.stage = 'clicked' and v_why is not null/, 'a paused campaign must not stop chasing a started supplier');
+  assert.doesNotMatch(a, /FUNCTION public\.fn_sales_engineer_supplier_outreach_tick/, 'the tick is #1744\'s: its complaint stop and sending window must not be overwritten');
+  assert.doesNotMatch(a, /FUNCTION public\.fn_sales_engineer_sends_registration_reminder/, 'the sender is #1744\'s');
   assert.match(a, /p_stage in \('incomplete', 'started'\)/, 'the reminder must name only what is missing');
   const b = R('scripts/sql/nothing_a_person_sends_us_waits_without_a_seat_that_acts.sql');
   assert.match(b, /kept_for_a_person_at/);
