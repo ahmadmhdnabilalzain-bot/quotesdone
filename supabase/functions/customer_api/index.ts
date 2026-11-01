@@ -1318,7 +1318,13 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       // (once per request; the customer_support.concierge duty covers the other doors). Its guidance comes back
       // on the answer so the portal can show it. Never fails the post: a request that went out stays posted.
       const confirmRequest = async (id: string): Promise<unknown> => {
-        try { const { data } = await admin.rpc('fn_customer_support_concierge_confirm', { p_inquiry: id }); return (data as { concierge?: unknown } | null)?.concierge ?? null; }
+        try {
+          const { data } = await admin.rpc('fn_customer_support_concierge_confirm', { p_inquiry: id });
+          // A request held for its own specs is not a request with no supplier: the screen must say which (ledger 1456).
+          const { data: awaits } = await admin.rpc('fn_inquiry_awaits_specs', { p_inquiry: id });
+          const g = (data as { concierge?: unknown } | null)?.concierge ?? null;
+          return awaits === true ? { ...(g as Record<string, unknown> | null), awaits_specs: true } : g;
+        }
         catch (_e) { return null; }
       };
       // THE INQUIRY'S LANGUAGE (founder, 28 Sep 2026): every message to the customer about this request

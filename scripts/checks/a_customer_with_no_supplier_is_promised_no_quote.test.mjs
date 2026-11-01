@@ -23,6 +23,8 @@ test('the e-mails promise no quote to a request nobody has', () => {
 
 test('a request held for its specs is not told it has no supplier, and is not closed', () => {
   assert.match(SQL, /and not public\.fn_inquiry_awaits_specs\(i\.id\)/);
+  assert.match(R('supabase/functions/customer_api/index.ts'), /rpc\('fn_inquiry_awaits_specs'/);
+  assert.match(R('src/components/me/NewRequest.tsx'), /posted\.specs \? 'nr_posted_specs' : 'nr_posted_none'/);
   assert.match(SQL, /finding_suppliers'\)::boolean, false\) and not public\.fn_inquiry_awaits_specs/);
 });
 
