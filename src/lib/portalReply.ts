@@ -116,3 +116,24 @@ export function waitingOf(j: unknown): Waiting[] {
 /** How often, and for how long, the panel asks while a turn is pending (the re-ask runs each minute, three times). */
 export const PENDING_EVERY_MS = 10_000;
 export const PENDING_FOR_MS = 20 * 60_000;
+
+// THE STORED ANSWER IS LOOKED FOR, ON THE PORTAL AND ON THE WEBSITE WIDGET (customer_support, 2 Nov 2026).
+// The server stores every turn under the conversation even when the connection to the browser drops (a 504 page, a cut
+// stream). The portal looked for that answer; the website widget did not and printed its error line over an answer the
+// database already held, which reappeared only after a reload. One loop now serves both: readTurns returns the stored
+// turns (assist_history on the portal, action 'history' on the widget) or null; the answer is the first assistant turn
+// after the LAST copy of the question. '' when none arrives inside waitMs; the caller then says what it says.
+// prevented by: scripts/checks/the_widget_finds_a_stored_answer_and_redraws_its_history.test.mjs
+export async function lookForStoredAnswer(
+  readTurns: () => Promise<{ role?: string; content?: string }[] | null | undefined>,
+  question: string,
+  o: { waitMs?: number; everyMs?: number; sleep?: (ms: number) => Promise<void>; now?: () => number } = {},
+): Promise<string> {
+  const { waitMs = 90_000, everyMs = 6_000, sleep = (ms: number) => new Promise<void>((res) => setTimeout(res, ms)), now = Date.now } = o;
+  const until = now() + waitMs;
+  while (now() < until) {
+    await sleep(everyMs);
+    try { const a = answerAfter(await readTurns(), question); if (a) return a; } catch (_e) { /* asked again on the next tick */ }
+  }
+  return '';
+}

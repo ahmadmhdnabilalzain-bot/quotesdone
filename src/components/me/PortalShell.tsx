@@ -38,7 +38,7 @@ import { render } from '@/components/ChatWidget';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import { BrandMark } from '@/components/BrandMark';
 import { forgetWidgetConv, readWidgetConv } from '@/lib/widgetConv';
-import { answerAfter, answerRightAfter, noVerdict, pendingDue, readReply, savedLineDue, waitingOf, PENDING_EVERY_MS, PENDING_FOR_MS } from '@/lib/portalReply';
+import { lookForStoredAnswer, answerRightAfter, noVerdict, pendingDue, readReply, savedLineDue, waitingOf, PENDING_EVERY_MS, PENDING_FOR_MS } from '@/lib/portalReply';
 
 // THE INFORMATION ARCHITECTURE, WRITTEN DOWN.
 //
@@ -128,18 +128,12 @@ async function askAssistant(message, history, token, lang, path, images = [], on
 const LATE_WAIT_MS = 90_000;
 const LATE_EVERY_MS = 6_000;
 async function storedAnswer(token, question) {
-  const until = Date.now() + LATE_WAIT_MS;
-  while (Date.now() < until) {
-    await new Promise((res) => setTimeout(res, LATE_EVERY_MS));
-    try {
-      const r = await fetch(fnUrl('sales_engineer'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-        body: JSON.stringify({ action: 'assist_history' }) });
-      const j = r.ok ? await r.json() : null;
-      const a = answerAfter(j && j.turns, question);
-      if (a) return a;
-    } catch (_e) { /* try again on the next tick */ }
-  }
-  return '';
+  return lookForStoredAnswer(async () => {
+    const r = await fetch(fnUrl('sales_engineer'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+      body: JSON.stringify({ action: 'assist_history' }) });
+    const j = r.ok ? await r.json() : null;
+    return j && j.turns;
+  }, question, { waitMs: LATE_WAIT_MS, everyMs: LATE_EVERY_MS });
 }
 
 // `suggestions` ARE THE OFFER, and they used to be three constants — the same three questions on a
