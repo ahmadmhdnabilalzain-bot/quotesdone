@@ -41,7 +41,10 @@ begin
   -- 0. what must not move (read only)
   select coalesce(jsonb_object_agg(key, value), '{}') into v_sw_before from app_secrets
    where key in ('invite_enabled', 'supplier_outreach_golive', 'wa_supplier_invite_golive');
-  select count(*) into n_mail_before from notifications;
+  -- 1 Nov 2026 (it_engineer): only rows THIS transaction writes. A whole-table count read another session's live
+  -- inserts as the probe's (two suppressed supplier_approved rows every ~20 s): now() is this transaction's start,
+  -- the column's default, and xmin catches a writer that sets created_at itself.
+  select count(*) into n_mail_before from notifications where created_at = now() or xmin::text = (pg_current_xact_id()::text::bigint % 4294967296)::text;
   select count(*) into n_find_before from it_engineer_finding where issue_key = 'deliverability:inbox_placement' and closed_at is null;
 
   -- 1. a recipient's mailbox class
@@ -162,7 +165,7 @@ begin
   -- 8. nothing moved: no switch, no mail, and the held campaign filed no finding
   select coalesce(jsonb_object_agg(key, value), '{}') into v_sw_after from app_secrets
    where key in ('invite_enabled', 'supplier_outreach_golive', 'wa_supplier_invite_golive');
-  select count(*) into n_mail_after from notifications;
+  select count(*) into n_mail_after from notifications where created_at = now() or xmin::text = (pg_current_xact_id()::text::bigint % 4294967296)::text;
   select count(*) into n_find_after from it_engineer_finding where issue_key = 'deliverability:inbox_placement' and closed_at is null;
   o := o || jsonb_build_object('switches', v_sw_after, 'held_because', fn_invite_placement_day_closed(t1),
                                'mail_rows_added', n_mail_after - n_mail_before, 'findings_added', n_find_after - n_find_before);
