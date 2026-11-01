@@ -10,12 +10,22 @@ const R = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 const MOBILE = /971\s?50\s?931\s?9355|971509319355/;
 
 test('the personal mobile is on no public surface', () => {
-  for (const f of ['src/content/marketing.json', 'src/content/company.json', 'src/content/legal.json',
-    'supabase/functions/_shared/supplier_agreement.ts', 'supabase/functions/site_assistant/index.ts',
+  for (const f of ['src/content/marketing.json', 'src/content/company.json',
+    'supabase/functions/site_assistant/index.ts',
     'supabase/functions/_shared/ai_reply.ts', 'supabase/functions/_shared/doc_template.ts',
     'supabase/functions/_shared/brand_assets/letterhead.html', 'knowledge/brief/company.md']) {
     assert.doesNotMatch(R(f), MOBILE, f);
   }
+});
+
+test('the signed Supplier Agreement keeps its text: the mobile leaves it only with a new version', async () => {
+  const { createHash } = await import('node:crypto');
+  const m = await import('node:fs');
+  const src = m.readFileSync(new URL('../../supabase/functions/_shared/supplier_agreement.ts', import.meta.url), 'utf8');
+  const sha = /SUPPLIER_AGREEMENT_SHA256 = '([0-9a-f]{64})'/.exec(src)[1];
+  const en = JSON.parse(/SUPPLIER_AGREEMENT_EN = (".*");/.exec(src)[1]);
+  const ar = JSON.parse(/SUPPLIER_AGREEMENT_AR = (".*");/.exec(src)[1]);
+  assert.equal(createHash('sha256').update(en + '\n' + ar).digest('hex'), sha, 'the agreement text no longer matches its signed hash');
 });
 
 test('a request with no supplier does not page the founder, and the form mails nobody', () => {

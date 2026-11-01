@@ -1,7 +1,7 @@
 -- Pure probe: raises so everything rolls back. The address is on a domain nobody owns and the transaction never commits,
 -- so nothing can reach the outbox's sender. Real leads 19398 and inbound 1483, 1485 are only read.
 do $probe$
-declare v_in bigint; v_h bigint; v_out jsonb; n_notif int; n_fu int; v_status text; v_sub bigint; v_sub_out jsonb; n_sub int; v_before int; v_rem jsonb; l public.leads;
+declare v_in bigint; v_h bigint; v_out jsonb; n_notif int; n_fu int; v_status text; v_sub bigint; v_sub_out jsonb; n_sub int; v_before bigint; v_rem jsonb; l public.leads;
 begin
   insert into public.inbound_messages (from_email, to_email, subject, body, needs_review, triaged_at, raw)
   values ('qd-probe@qd-probe-nobody.invalid.qd', 'supplier@quotesdone.com', 'Re: Registration', 'Definitely but later', true, now(), '{}')
@@ -33,9 +33,15 @@ begin
 
   -- the real replay: what the duty did for 1483 and 1485 inside this transaction
   select count(*) into n_notif from public.notifications where type = 'inbound_reply' and lower(to_email) like '%666realestate%';
+  -- known-bad controls: triage already answered, so a subsidiary mail gets no second answer; another open case stays open
+  insert into public.inbound_messages (from_email, to_email, subject, body, needs_review, triaged_at, replied_at, raw)
+  values ('qd-probe3@qd-probe-nobody.invalid.qd', 'supplier@quotesdone.com', 'Re: y', 'our subsidiary please', false, now(), now(), '{}') returning id into v_before;
+  perform public.fn_seat_handoff('marketing', 'sales_engineer', 'mailbox.supplier_reply', 'inbound_messages', v_before::text,
+    jsonb_build_object('inbound_message_id', v_before, 'from_email', 'qd-probe3@qd-probe-nobody.invalid.qd', 'reply_text', 'our subsidiary please'));
+  if exists (select 1 from public.notifications where to_email like 'qd-probe3@%') then raise exception 'CHK<<FAIL: a second answer after triage>>'; end if;
   select * into l from public.leads where id = 19398;
   v_rem := public.fn_supplier_registration_reminder_compose(l, 'started', 1);
-  if (select status from public.agent_actions where id = 326819) <> 'done' or (select status from public.agent_actions where id = 329843) <> 'done' or n_notif <> 1 then
+  if (select status from public.agent_actions where id = 326819) <> 'done' or (select status from public.agent_actions where id = 329843) <> 'done' or n_notif <> 0 then
     raise exception 'CHK<<FAIL replay: 326819 %, 329843 %, 666 answers %>>', (select status from public.agent_actions where id = 326819), (select status from public.agent_actions where id = 329843), n_notif;
   end if;
   if v_rem->>'body' ~ 'verified mobile' or v_rem->>'body' !~ 'trade licence' then raise exception 'CHK<<FAIL reminder names done items: %>>', v_rem->>'body'; end if;

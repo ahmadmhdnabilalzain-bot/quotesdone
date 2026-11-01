@@ -12,9 +12,9 @@
 --   * 653-655 are the founder's own seed inboxes answering a test ("All good"), sitting in needs_review beside real mail.
 --
 -- WHAT THE SEAT DOES WITH A REPLY (deterministic: fn_supplier_reply_intent reads the supplier's own words):
---   subsidiary  answers: a separate licensed company registers alone, its own licence, a different e-mail. Follow-up 7 days.
+--   subsidiary  answers unless triage already did: a separate licensed company registers alone, its own licence, a different e-mail. Follow-up 7 days.
 --   later       answers, follow-up in 14 days, once.
---   decline     suppresses the address, says nothing more.
+--   decline     outranks the rest: suppresses the address, says nothing more.
 --   interested  answers with the six things and the link, or stands on triage's answer. Follow-up 7 days unless the company
 --               page is claimed, where the registration reminder owns the chase.
 -- It never offers to register them or set up a page: only they can verify and accept (account_facts.ts, NO_SETUP_FOR_THEM).
@@ -45,8 +45,10 @@ language sql immutable
 set search_path to 'pg_catalog', 'pg_temp'
 as $fn$
   select case
+    -- a decline or a stop outranks everything else in the same mail
+    when coalesce(p_text, '') ~* '(\mnot interested\M|\mno,? thank|\mdo not contact\M|\mdon''t contact\M|\mremove (me|us|our)\M|\munsubscribe\M)'
+         or coalesce(p_text, '') ~* '(^|\n)\s*stop\s*[.!]?\s*(\n|$)' then 'decline'
     when coalesce(p_text, '') ~* '(subsidiar|sister (company|concern)|(another|other|second|separate|different) (licen[cs]ed )?(company|licen[cs]e|trade licen[cs]e)|more than one company|group compan|our group)' then 'subsidiary'
-    when coalesce(p_text, '') ~* '(\mnot interested\M|\mno,? thank|\mdo not contact\M|\mdon''t contact\M|\mremove (me|us|our)\M)' then 'decline'
     when coalesce(p_text, '') ~* '(\mlater\M|\mnot now\M|\mnot yet\M|\mnext (week|month|year)\M|\mafter (eid|ramadan|the holidays?)\M|\mbusy\M|\mfew (days|weeks|months)\M|\msome other time\M)' then 'later'
     else 'interested' end
 $fn$;
@@ -89,8 +91,8 @@ begin
   v_text := coalesce(a.detail->>'reply_text', m.body, '');
   v_intent := public.fn_supplier_reply_intent(v_text);
 
-  if v_from is null or public.fn_is_demo_email(v_from) then
-    return jsonb_build_object('action', 'none', 'reason', 'a fixture address: nothing is sent', 'intent', v_intent);
+  if v_from is null or public.fn_is_demo_email(v_from) or public.fn_is_founder_own_inbox(v_from) then
+    return jsonb_build_object('action', 'none', 'reason', 'a fixture or the founder''s own address: nothing is sent', 'intent', v_intent);
   end if;
 
   if v_intent = 'decline' then
@@ -99,8 +101,8 @@ begin
     v_note := 'declined: the address is suppressed';
   else
     select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from public.app_secrets where key = 'public_site_url';
-    -- A subsidiary request is answered by this seat even after triage, whose facts do not carry that rule.
-    if m.replied_at is null or v_intent = 'subsidiary' then
+    -- Only when triage has not: its facts carry the same separate-company rule (account_facts.ts), and a person gets one answer.
+    if m.replied_at is null then
       v_sent := public.fn_inbox_send(m.id, public.fn_supplier_reply_answer(v_intent, coalesce(v_site, 'https://quotesdone.com') || '/en/portal'), 'sales_engineer');
       if v_sent ? 'error' then return jsonb_build_object('waiting', 'the answer was refused: ' || (v_sent->>'error')); end if;
       v_note := 'answered: ' || v_intent;
@@ -118,8 +120,13 @@ begin
     end if;
   end if;
 
-  -- the support case the same mail opened ends with the action; a rating is not asked of a first reply
-  for c in select case_ref from public.support_case where channel = 'email' and party_id = v_from and state <> 'closed' loop
+  -- only the support case THIS mail opened ends with the action: its subject is 'Email: <subject> <body>', read by position
+  -- so a % in a subject matches nothing. Another open case from the same sender stays open. No rating on a first reply.
+  for c in select s.case_ref from public.support_case s
+            where s.channel = 'email' and s.party_id = v_from and s.state <> 'closed'
+              and position('Email: ' || coalesce(m.subject, '') in coalesce(s.subject, '')) = 1
+              and position(left(btrim(coalesce(m.body, '')), 30) in coalesce(s.subject, '')) > 0
+            order by s.case_id desc limit 1 loop
     update public.support_case set csat_requested_at = now() where case_ref = c.case_ref and csat_requested_at is null;
     perform public.fn_support_case_close(c.case_ref, v_note, 'sales_engineer');
   end loop;
@@ -213,6 +220,32 @@ insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file
    'scripts/sql/a_supplier_reply_gets_the_action_it_asked_for.sql')
 on conflict (duty) do update set every = excluded.every, routine = excluded.routine, what = excluded.what, owner_file = excluded.owner_file;
 
+-- 666REALESTATE IS THE FOUNDER'S OWN ADDRESS (review of #1746: display name Ahmad Alzain, a warm-up reply to his hand-sent
+-- test): it joins the list, it is mailed nothing, and its handoff, row and case close by exact key.
+create or replace function public.fn_is_founder_own_inbox(p_addr text)
+returns boolean
+language plpgsql stable security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_list text[]; v text;
+begin
+  if p_addr is null or btrim(p_addr) = '' then return false; end if;
+  select array_agg(public.fn_mailbox_fold(a)) into v_list
+    from (select unnest(array['management@quotesdone.com', 'ahmadmhdnabilalzain@gmail.com',
+                              'management@doratajewelries.com', 'djzaino@outlook.com', 'bookings@djzaino.com',
+                              'fati.labib@icloud.com', 'ahmad@666realestate.ae']) a
+          union all
+          select btrim(x) from public.app_secrets s, regexp_split_to_table(coalesce(s.value, ''), ',') x
+           where s.key in ('founder_email', 'admin_emails') and btrim(x) like '%@%') l;
+  v := public.fn_mailbox_fold(p_addr);
+  return v = any(v_list);
+end $fn$;
+select public.fn_seat_handoff_complete(329843, jsonb_build_object('action', 'none',
+  'reason', 'ahmad@666realestate.ae is the founder''s own address, a warm-up reply: nobody is waiting and nothing is sent'))
+ where exists (select 1 from public.agent_actions where id = 329843 and status <> 'done');
+update public.support_case set csat_requested_at = coalesce(csat_requested_at, now()) where case_ref = 'QD-S-SDGR7P' and state <> 'closed';
+select public.fn_support_case_close('QD-S-SDGR7P', 'the founder''s own address, a warm-up reply', 'sales_engineer');
+
 -- TEST REPLIES LEAVE REVIEW (audit item 12): the founder's own inbox answering a seed, whichever path wrote the row last.
 create or replace function public.trg_a05_test_reply_leaves_review()
 returns trigger
@@ -230,7 +263,8 @@ revoke execute on function public.trg_a05_test_reply_leaves_review() from public
 drop trigger if exists a05_test_reply_leaves_review on public.inbound_messages;
 create trigger a05_test_reply_leaves_review before update on public.inbound_messages
   for each row when (new.owner_role = 'it_engineer') execute function public.trg_a05_test_reply_leaves_review();
-update public.inbound_messages set owner_role = owner_role where id in (653, 654, 655) and owner_role = 'it_engineer';
+update public.inbound_messages set owner_role = 'it_engineer' where id = 1483 and owner_role = 'sales_engineer';
+update public.inbound_messages set owner_role = owner_role where id in (653, 654, 655, 1483) and owner_role = 'it_engineer';
 
 -- THE REMINDER (bodies otherwise the live ones of 2 Nov 2026).
 CREATE OR REPLACE FUNCTION public.fn_supplier_registration_reminder_compose(p leads, p_stage text, p_step integer)
@@ -474,6 +508,11 @@ select case
     then 'PROBE FAILED: the invite.reply handler is still STABLE'
   when public.fn_supplier_reply_intent('we have a subsidiary with its own licence') <> 'subsidiary' then 'PROBE FAILED: subsidiary not read'
   when public.fn_supplier_reply_intent('Definitely but later') <> 'later' then 'PROBE FAILED: later not read'
+  when public.fn_supplier_reply_intent('We are not interested in registering our subsidiary') <> 'decline' then 'PROBE FAILED: a decline lost to subsidiary'
+  when public.fn_supplier_reply_intent(E'stop\n\nour subsidiary') <> 'decline' then 'PROBE FAILED: a stop lost to subsidiary'
+  when not public.fn_is_founder_own_inbox('ahmad@666realestate.ae') then 'PROBE FAILED: the founder''s address is not his'
+  when exists (select 1 from public.notifications where type = 'inbound_reply' and lower(to_email) like '%666realestate%') then 'PROBE FAILED: the founder''s address was mailed'
+  when (select status from public.agent_actions where id = 329843) <> 'done' then 'PROBE FAILED: handoff 329843 is open'
   when exists (select 1 from public.inbound_messages where id in (653, 654, 655) and needs_review) then 'PROBE FAILED: a test reply is still in review'
   when not exists (select 1 from public.seat_duty where duty = 'sales_engineer.supplier_reply_followups') then 'PROBE FAILED: the duty is missing'
   else 'PROBE OK' end as verdict;
