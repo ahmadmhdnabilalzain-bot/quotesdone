@@ -53,6 +53,7 @@ import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 import { waRow } from './wa_row.ts';
+import { waConversation } from '../_shared/wa_history.ts';
 import { budgetLeft, holdUnwritten, modelSays } from './model_says.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
@@ -569,8 +570,11 @@ async function handleInbound(req: Request): Promise<Response> {
     let sayOutage = false;
     // WHY THE LAST SAY'S DRAFTS WERE REFUSED (aiReply.problems): filed with the turn so the re-ask names them (_shared/reask.ts).
     let sayProblems: string[] = [];
+    // THE WHOLE CONVERSATION, EVERY TURN (2 Nov 2026): this number's earlier turns, read once per turn (_shared/wa_history.ts).
+    let history: ReturnType<typeof waConversation> | null = null;
     const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[]) => {
-      const r = await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
+      history ??= waConversation(admin, From, receivedAt, isDemoPhone(From));
+      const r = await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: await history,
         budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
         rateKey: 'wa:' + From,   // the per-number ceiling (20/hour) the old prompt path had
         subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}) });
@@ -1040,7 +1044,16 @@ async function handleInbound(req: Request): Promise<Response> {
         const enabled = (await sec('wa_autoreply_enabled')) === 'true';
         let reply = ''; const results: string[] = []; let readText = '';
 
-        if (!leadId) {
+        // A VOICE NOTE IS NOT A DOCUMENT (2 Nov 2026). It reached the document intake, which accepts only a PDF or an
+        // image, so a supplier who spoke a question was told to "send the trade licence as a PDF or a clear photo".
+        // Nothing here transcribes WhatsApp audio (the format Gemini takes from a Twilio ogg is not established, see
+        // fn_wa_route.transcription_gap), so the honest answer is that it was not heard and a typed message will be.
+        // Prevented by: the_whole_exchange.test.ts.
+        const audioOnly = media.every((m) => /^audio\//i.test(m.mime));
+        if (audioOnly) {
+          results.push('voice note: not heard, no transcription on WhatsApp yet');
+          reply = await sayFor(leadId ? 'supplier' : 'visitor')('They sent a voice note. Voice notes cannot be listened to on WhatsApp yet, so nothing they said was heard and nothing was filed. Tell them so plainly, apologise briefly, and ask them to type the message here; a typed message is answered at once.', 'en');
+        } else if (!leadId) {
           // RULING 1177 (12 Oct 2026): a file from a number with no account is READ too (code first, then the vision
           // model, one more asking). It is never filed against a company — there is none — but its words are kept on this
           // conversation turn, so the next message on this chat is answered knowing what was sent. The reply says it was
