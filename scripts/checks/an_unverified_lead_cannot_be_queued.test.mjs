@@ -95,6 +95,28 @@ test('the restart never lifts the founder\'s go, a complaint or another seat\'s 
   assert.ok(clockOnly("resumed_at > now() - interval '24 hours'"), 'control: the clock shape is refused');
 });
 
+test('a deliberate resume starts a new probation', () => {
+  const b = body('fn_sales_engineer_restarts_invites_after_a_brake(');
+  const resumes = (s) => /max\(x\.resumed_at\) into v_since from public\.invite_brake x where x\.resumed_at >/.test(s);
+  assert.ok(resumes(b), 'probation counts from the seat\'s restart, so a CEO resume is charged the old bounces');
+  assert.ok(!resumes('max(x.resumed_at) into v_since from public.invite_brake x where x.restarted_by_seat and x.resumed_at >'), 'control: the seat-only shape passed');
+});
+
+test('a pause does not hold a reminder to a supplier who started; weekend, window, complaint and suppression still do', () => {
+  const open = body('fn_supplier_reminder_is_open(');
+  assert.match(open, /p_stage in \('started', 'incomplete'\)/);
+  assert.match(open, /h\.complained/);
+  assert.match(open, /fn_supplier_outreach_golive\(\)/);
+  assert.match(body('fn_sales_engineer_sends_registration_reminder('), /v_go := public\.fn_supplier_reminder_is_open\(p_stage\)/);
+  const tick = body('fn_sales_engineer_supplier_outreach_tick(');
+  const holdsAll = (s) => /if v_why is not null then continue;/.test(s);
+  assert.ok(!holdsAll(tick), 'the tick holds every reminder on any pause');
+  assert.ok(holdsAll('if v_why is not null then continue; end if;'), 'control: the blanket hold passed');
+  assert.match(tick, /v_weekend or not public\.fn_supplier_reminder_is_open\(r\.stage\)/);
+  assert.match(tick, /window_end_hour/);
+  assert.match(body('fn_sales_engineer_sends_registration_reminder('), /fn_supplier_outreach_reachable/, 'a suppressed address could be sent to');
+});
+
 test('a proven mailbox goes first, free mail last', () => {
   const b = body('fn_supplier_invite_candidates(p_limit integer, p_providers text[])');
   assert.match(b, /when c\.email_verified in \('verified','true'\) then 0 when c\.mailbox = 'free' then 3 when c\.mailbox = 'role' then 1 else 2/);
