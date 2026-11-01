@@ -96,7 +96,7 @@ quotesdone.com (founder sign-in). Enrol the same domain in the Complaint Feedbac
 > **Subject:** New sender quotesdone.com: authenticated one-to-one business mail delivered to the Spam folder at Yahoo and AOL
 >
 > Our domain quotesdone.com sends low-volume, plain-text, one-to-one business invitations (about 20 to 30 a day, weekdays) from
-> supplier@quotesdone.com. Every message passes SPF, DKIM (d=quotesdone.com) and DMARC. The recipients are UAE companies
+> supplier@quotesdone.com. Every message passes SPF, DKIM (d=quotesdone.com) and DMARC. The recipients are UAE companies written to at their published business address.
 > Each message carries a List-Unsubscribe header with one-click POST and a reply-"stop" line; stops are honoured at once and every
 > bounce is suppressed. Our bounce brake pauses sending at 3%; complaints so far: 0.
 >
