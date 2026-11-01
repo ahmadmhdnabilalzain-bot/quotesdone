@@ -87,7 +87,7 @@ const WORDS_ARE_NOT_A_NAME: { name: string; text: string; kept: string[] }[] = [
   { name: 'EN, an alias inside prose', text: 'Supply and install ducting for the villa', kept: [] },
   { name: 'EN, a plural is not the name', text: 'Cable trays', kept: ['Cable trays'] },
   { name: 'AR, an alias with a proclitic', text: 'نقوم بتمديدات كهربائية', kept: ['نقوم بتمديدات كهربائية'] },
-  { name: 'AR, an alias inside a sentence', text: 'مطلوب تمديدات كهربائية للفيلا', kept: ['مطلوب تمديدات كهربائية للفيلا'] },
+  { name: 'AR, an alias inside a sentence', text: 'مطلوب تمديدات كهربائية للفيلا', kept: ['مطلوب تمديدات كهربائية'] },   // 2 Nov 2026: "للفيلا" (for the villa) is who it is for, not a service
 ];
 for (const c of WORDS_ARE_NOT_A_NAME) {
   Deno.test(`no word matching: ${c.name}`, () => {
@@ -256,3 +256,46 @@ Deno.test('audit 21 Sep, finding 8, under ruling 890: the Arabic sentence is kep
   // and written as the services' own Arabic names, the same supplier is read exactly
   assertEquals([...keys('قواطع الجبس، الأسقف المعلقة، الدهان الداخلي')].sort(), ['gypsum.false_ceiling', 'gypsum.partitions', 'painting.interior']);
 });
+
+// ── 8. who the work is FOR is not a service (2 Nov 2026) ────────────────────────────────────────────
+// Supplier portal, Services tab: from "... shopfronts and glass curtain walls for villas and offices" the
+// rewrite offered "Serviced offices" (from "Offices") and quoted "Glass curtain walls for villas" as the line
+// behind Curtain wall. The audience after "for" was split at "and" into parts of its own. Cut at the
+// preposition, in grammar, with no list of customers or buildings, so every building type is covered.
+const SENTENCE = 'We supply and install aluminium sliding and casement windows, aluminium doors, shopfronts and glass curtain walls for villas and offices';
+const AUDIENCE = /villa|office|فلل|مكاتب|hotel|school|restaurant|mall/i;
+
+Deno.test('the portal sentence: no customer or building type becomes a part, and no part carries "for"', () => {
+  const rw = rewriteServices(SENTENCE, SERVICES);
+  assertEquals(rw.own_words.filter((w) => AUDIENCE.test(w) || /\bfor\b/i.test(w)), [], rw.own_words.join(' | '));
+  assert(rw.own_words.includes('Glass curtain walls'), rw.own_words.join(' | '));
+});
+
+const AUDIENCE_CASES: { name: string; text: string; keys: string[]; own: string[] }[] = [
+  { name: 'English, a service name before "for"', text: 'False ceilings for hotels and restaurants', keys: ['gypsum.false_ceiling'], own: [] },
+  { name: 'English, two names then the audience', text: 'CCTV and Interior painting for schools and malls', keys: ['painting.interior', 'security_systems.cctv'], own: [] },
+  { name: 'English, another trade and another audience', text: 'Ducting for warehouses and labour camps', keys: ['hvac.ducting'], own: [] },
+  { name: 'English, a part no service is written as, before "for"', text: 'Helicopter window polishing for yachts and hangars', keys: [], own: ['Helicopter window polishing'] },
+  { name: 'Arabic, ل attached to the article', text: 'الأسقف المعلقة للفلل والمكاتب', keys: ['gypsum.false_ceiling'], own: [] },
+  { name: 'Arabic, لـ standing alone', text: 'قواطع الجبس لـ الفلل والمكاتب', keys: ['gypsum.partitions'], own: [] },
+  { name: 'Arabic, a part no service is written as', text: 'تلميع نوافذ المروحيات للفنادق والمستشفيات', keys: [], own: ['تلميع نوافذ المروحيات'] },
+];
+for (const c of AUDIENCE_CASES) {
+  Deno.test(`audience cut: ${c.name}`, () => {
+    const rw = rewriteServices(c.text, SERVICES);
+    assertEquals([...rw.service_keys].sort(), c.keys, c.text);
+    assertEquals(rw.own_words, c.own, c.text);
+  });
+}
+
+// Known-bad controls the cut must NOT touch: a word that merely looks like the preposition, a bare noun the
+// supplier gives as a service of its own, and a phrase that begins with the preposition.
+const KEPT: { name: string; text: string; own: string[] }[] = [
+  { name: 'Arabic louvres begins with ل but is not the preposition', text: 'تركيب لوفرات ألمنيوم', own: ['تركيب لوفرات ألمنيوم'] },
+  { name: 'English word that holds "for" inside it', text: 'Information technology consultancy', own: ['Information technology consultancy'] },
+  { name: 'a bare "Offices" on its own is the supplier’s own words, not cut to nothing', text: 'Offices', own: ['Offices'] },
+  { name: 'a phrase beginning with "for" is left whole', text: 'For yacht interiors', own: ['For yacht interiors'] },
+];
+for (const c of KEPT) {
+  Deno.test(`audience cut leaves alone: ${c.name}`, () => assertEquals(words(c.text), c.own, c.text));
+}

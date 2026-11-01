@@ -200,11 +200,24 @@ export function exactService(text: string, vocab: ServiceTerm[], supplyOnly = fa
   return s && !(supplyOnly && isInstallWork(s)) ? s : null;
 }
 
+/** WHO THE WORK IS FOR IS NOT A SERVICE (2 Nov 2026). "... glass curtain walls for villas and offices": what
+ *  follows "for" names the customer or building the work is done for, so it is cut before the phrase is split at
+ *  "and" — otherwise "offices" became a part of its own and meaning proposed "Serviced offices" for it. Grammar,
+ *  not vocabulary: no word list of customers or buildings. Arabic: the preposition ل attached to the article
+ *  (للفلل والمكاتب) or standing alone as لـ. A phrase that IS a service name is matched whole before this is
+ *  reached, so a name holding "for" survives. A phrase that begins with "for" is left whole. */
+const AUDIENCE_TAIL = /\s+for\s+.*$|\s+لـ?\s*(?=ال).*$|\s+لل\p{L}.*$/isu;
+export const withoutAudience = (phrase: string): string => {
+  const cut = phrase.replace(AUDIENCE_TAIL, '').trim();
+  return cut.length >= 2 ? cut : phrase;
+};
+
 /** Rule 3: a phrase's parts, split at the connectives a list uses. Prose is set aside: a phrase that is not
  *  service-shaped as a whole ("We are a leading company with many years of experience") has no parts. */
 export function phraseParts(phrase: string): string[] {
-  if (!looksLikeAService(phrase)) return [];
-  return phrase.split(/\s+(?:and|or|with|plus)\s+|\s*[&+]\s*|\s+و\s+/i)
+  const head = withoutAudience(phrase);
+  if (!looksLikeAService(head)) return [];
+  return head.split(/\s+(?:and|or|with|plus)\s+|\s*[&+]\s*|\s+و\s+/i)
     .map((p) => p.trim()).filter((p) => p.length >= 2 && looksLikeAService(p));
 }
 
