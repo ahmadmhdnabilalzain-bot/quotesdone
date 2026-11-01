@@ -100,8 +100,8 @@ Deno.test('marketing reports to the CEO, talks money with the accountant both wa
   // a comment that must not be answered in public
   assert(has('social.lead', 'marketing', 'sales_engineer') && has('social.escalation', 'marketing', 'customer_support'));
   for (const h of HANDOFF_TYPES.filter((x) => x.from === 'marketing')) {
-    assert(['ceo', 'accountant', 'customer_support'].includes(h.to) || ((h.type === 'social.lead' || h.type === 'invite.reply') && h.to === 'sales_engineer'), JSON.stringify(h));
+    assert(['ceo', 'accountant', 'customer_support'].includes(h.to) || ((h.type === 'social.lead' || h.type === 'invite.reply' || h.type === 'mailbox.supplier_reply') && h.to === 'sales_engineer'), JSON.stringify(h));
   }
   assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'marketing').map((h) => h.type + '>' + h.to).sort(),
-    ['adspend.recorded>accountant', 'ceo.decision_owed>ceo', 'deliberation.review>ceo', 'delivery.request>customer_support', 'invite.reply>sales_engineer', 'marketing.lead_sourcing>ceo', 'marketing.report>ceo', 'marketing.review>ceo', 'social.escalation>customer_support', 'social.lead>sales_engineer']);
+    ['adspend.recorded>accountant', 'ceo.decision_owed>ceo', 'deliberation.review>ceo', 'delivery.request>customer_support', 'invite.reply>sales_engineer', 'mailbox.supplier_reply>sales_engineer', 'marketing.lead_sourcing>ceo', 'marketing.report>ceo', 'marketing.review>ceo', 'social.escalation>customer_support', 'social.lead>sales_engineer']);
 });
