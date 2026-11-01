@@ -1033,11 +1033,8 @@ begin
   select count(*), max(invited_at) into v_sent_total, v_last_sent from leads where invited_at is not null and invited_at >= v_since and (v_since = '-infinity'::timestamptz or public.fn_invite_lane_sent(id)) and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
   -- THE 48 h HEALTH READ IS NOT LANE-SCOPED (review of #963): complaints and bounces reflect the list and the
   -- copy, not the domain, so switching the lane on must never hide yesterday's complaints from the pause.
-  select count(*),
-         count(*) filter (where invite_status = 'bounced'),
-         count(*) filter (where invite_status = 'complained')
-    into v_s48, v_b48, v_c48
-    from leads where invited_at > now() - interval '48 hours' and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
+  select h.sent, h.bounced, h.complained into v_s48, v_b48, v_c48
+    from public.fn_invite_send_health(now() - interval '48 hours') h;
   v_br := v_b48::numeric / greatest(v_s48, 1);
   v_cr := v_c48::numeric / greatest(v_s48, 1);
 
@@ -1129,6 +1126,22 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_invite_restart_cap(p_cap integer)
+ RETURNS integer
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with r as (select max(b.resumed_at) as at from public.invite_brake b where b.restarted_by_seat),
+       s as (select min(n.sent_at) as first_sent from public.notifications n, r
+              where n.type = 'supplier_invite' and n.sent_at > r.at and not public.fn_is_demo_email(n.to_email))
+  select case when r.at is not null
+               and (s.first_sent is null or (s.first_sent at time zone 'Asia/Dubai')::date >= (now() at time zone 'Asia/Dubai')::date)
+              then least(p_cap, 10) else p_cap end
+    from r, s
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_invite_same_day_brake()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1148,17 +1161,14 @@ begin
     return null;  -- already stopped; nothing more to stop
   end if;
 
-  select count(*),
-         count(*) filter (where invite_status = 'bounced'),
-         count(*) filter (where invite_status = 'complained')
-    into v_sent, v_b, v_c
-    from leads
-   where invited_at is not null and (invited_at at time zone 'Asia/Dubai')::date = v_day;
+  select h.sent, h.bounced, h.complained into v_sent, v_b, v_c
+    from public.fn_invite_send_health(v_day::timestamp at time zone 'Asia/Dubai') h;
 
   if v_c >= v_c_min and v_c::numeric / greatest(v_sent, 1) >= v_cr_max then
     v_why := v_c || ' spam complaint(s) on ' || v_sent || ' invitation(s) today';
   elsif v_b >= v_b_min and v_b::numeric / greatest(v_sent, 1) >= v_br_max then
     v_why := v_b || ' bounce(s) on ' || v_sent || ' invitation(s) today (' || round(v_b * 100.0 / greatest(v_sent, 1), 1) || '%)';
+    insert into public.invite_brake(source, why) values ('invite_same_day_brake', v_why) on conflict do nothing;
   else
     return null;
   end if;
@@ -1168,6 +1178,22 @@ begin
     jsonb_build_object('sent_today', v_sent, 'bounced_today', v_b, 'complained_today', v_c));
   return null;
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_send_health(p_since timestamp with time zone)
+ RETURNS TABLE(sent integer, bounced integer, complained integer)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select count(*)::int,
+         (count(*) filter (where l.invite_status = 'bounced'))::int,
+         (count(*) filter (where l.invite_status = 'complained'))::int
+    from public.notifications n
+    join public.leads l on l.id = n.lead_id
+   where n.type = 'supplier_invite' and n.sent_at is not null and n.sent_at > p_since
+     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(n.to_email)
 $function$
 
 
