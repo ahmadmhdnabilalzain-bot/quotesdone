@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// A MERGED SQL FILE APPLIES ITSELF (it_engineer, 2 Nov 2026, founder ledger 1459: "Yes, automatic").
+// A MERGED SQL FILE APPLIES ITSELF (it_engineer, 2 Nov 2026, founder ledger 1463: "Yes, automatic").
 // Every line a push adds to scripts/sql/MANIFEST.txt is rehearsed whole, applied, read back and probed, in order. The first
 // failure stops the rest and files one it_engineer finding, because the founder does not watch workflows.
 //   node scripts/ci/apply_new_manifest_lines.mjs <before-sha> <after-sha>

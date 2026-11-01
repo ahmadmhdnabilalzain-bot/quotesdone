@@ -1,6 +1,6 @@
 name: A merged SQL file applies itself
 
-# Founder ledger 1459: merging is the go-live. Waits for the same commit's edge deploy, then rehearses, applies, reads back and
+# Founder ledger 1463: merging is the go-live. Waits for the same commit's edge deploy, then rehearses, applies, reads back and
 # probes each file the push added to MANIFEST.txt. No laptop and no session.
 on:
   push:

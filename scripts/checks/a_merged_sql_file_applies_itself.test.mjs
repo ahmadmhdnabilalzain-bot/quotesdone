@@ -1,4 +1,4 @@
-// The apply reads only what a push adds to MANIFEST.txt (ledger 1459). Known-bad controls: a removed line and a comment.
+// The apply reads only what a push adds to MANIFEST.txt (ledger 1463). Known-bad controls: a removed line and a comment.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { addedFiles } from '../ci/apply_new_manifest_lines.mjs';
