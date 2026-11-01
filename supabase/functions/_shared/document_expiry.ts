@@ -130,7 +130,7 @@ const LABEL_KIND = new Map<string, Cell['kind']>([
 // A label starts a word: 'end date' inside "Amend Date", or 'validity' inside "invalidity", is no label.
 const LABEL_G = new RegExp('(?<![A-Za-z])(?:' + [...LABEL_KIND.keys()].sort((a, b) => b.length - a.length).map(esc).join('|') + ')', 'gi');
 const DATE_G = new RegExp(DATE_RE.source, 'gi');
-type Doc = { t: string; cells: Cell[]; byLine: Map<number, Cell[]>; lines: string[] };
+type Doc = { t: string; cells: Cell[]; byLine: Map<number, Cell[]>; lines: string[]; starts: number[] };
 
 /** Every date label and every date in the text, in reading order, each with its line. */
 function cellsOf(t: string): Doc {
@@ -150,25 +150,78 @@ function cellsOf(t: string): Doc {
     if (!row) byLine.set(line, row = []);
     row.push(c);
   }
-  return { t, cells, byLine, lines: t.split('\n') };
+  const lines = t.split('\n'), starts: number[] = [];
+  for (let n = 0, at = 0; n < lines.length; at += lines[n].length + 1, n++) starts.push(at);
+  return { t, cells, byLine, lines, starts };
+}
+
+const isLabel = (c: Cell) => c.kind !== 'date';
+type Span = { s: number; e: number };
+// A line split into the cells a text layer draws apart: two or more spaces, a tab or a "|" ends a cell (textFromContent
+// joins two cells of one baseline with three spaces). Position in the row, not a count of dates, pairs a value with its
+// label: "Issue Date   Expiry Date   Next Inspection" over "-   14/03/2028   01/06/2029" counts two dates for two known
+// labels, and pairing them by count read the inspection date as the expiry (review of #1733).
+const rowCells = (d: Doc, n: number): Span[] => [...d.lines[n].matchAll(/(?:(?!\s{2}|\t|\|).)+/g)]
+  .filter((m) => /\S/.test(m[0])).map((m) => ({ s: d.starts[n] + (m.index ?? 0), e: d.starts[n] + (m.index ?? 0) + m[0].length }));
+// The one date a cell holds, or null: a Hijri twin beside it ("14/03/2028 (1449/09/14)") does not read and does not count.
+const cellDate = (t: string, c: Span | undefined) => {
+  const ds = c ? (t.slice(c.s, c.e).match(DATE_G) ?? []).map(parseDate).filter((x): x is string => !!x) : [];
+  return ds.length === 1 ? ds[0] : null;
+};
+const nextFilled = (d: Doc, n: number) => { while (n < d.lines.length && !/\S/.test(d.lines[n])) n++; return n; };
+// A second line of dates under the first: a table of several rows names no one expiry.
+const severalRows = (d: Doc, v: number) => { const r = d.byLine.get(nextFilled(d, v + 1)); return !!r && !r.some(isLabel); };
+
+/** A row of labels over the next line of dates: the date in the keyword's own cell. When the cells are not drawn apart
+ *  (one space between them), only a line of nothing but labels over a line of nothing but dates reads, by order. */
+function headerRowRead(d: Doc, K: Cell, heads: Cell[], cols: Cell[][]): { expiry: string; raw: string } | null {
+  const { t, lines, byLine, starts } = d;
+  const v = nextFilled(d, K.line + 1), vrow = byLine.get(v);
+  if (!vrow || vrow.some(isLabel) || severalRows(d, v) || K.kind !== 'end') return null;
+  const hc = rowCells(d, K.line), vc = rowCells(d, v);
+  let expiry: string | null = null, raw = '';
+  const starting: (string | null)[] = [];
+  if (hc.length > 1 && hc.length === vc.length) {
+    const under = (c: Cell) => vc[hc.findIndex((h) => h.s <= c.s && c.s < h.e)];
+    const own = under(K);
+    expiry = cellDate(t, own); raw = own ? t.slice(own.s, own.e).trim() : '';
+    for (const c of heads) if (c.kind === 'start') starting.push(cellDate(t, under(c)));
+  } else {
+    const bare = (n: number, spans: Span[]) => {
+      let s = lines[n];
+      for (const x of [...spans].reverse()) s = s.slice(0, x.s - starts[n]) + s.slice(x.e - starts[n]);
+      return /^[\s/|:()\-–—]*$/.test(s);
+    };
+    if (!bare(K.line, heads) || !bare(v, vrow) || vrow.length !== cols.length) return null;
+    const col = cols.findIndex((g) => g.includes(K));
+    expiry = parseDate(t.slice(vrow[col].s, vrow[col].e)); raw = t.slice(vrow[col].s, vrow[col].e);
+    cols.forEach((g, j) => { if (g[0].kind === 'start') starting.push(parseDate(t.slice(vrow[j].s, vrow[j].e))); });
+  }
+  // An expiry before an issue or start date of its own row means the columns were not drawn in the order they are
+  // read (right-to-left text drawn in visual order, for one), and the date in hand may be the issue date. A range takes
+  // its later date because its own words say it is a period; a table's only evidence is its labels, and they disagree.
+  if (!expiry || starting.some((x) => (x ?? '') > (expiry as string))) return null;
+  return { expiry, raw };
 }
 
 /** The date under the keyword's own label when the keyword is one of a table's date columns; null when it is and the
  *  table does not read; undefined when the keyword is the only date label of its row and of its column. */
 function tableRead(d: Doc, ks: number): { expiry: string; raw: string } | null | undefined {
   const { t, cells, byLine, lines } = d;
-  const isLabel = (c: Cell) => c.kind !== 'date';
   const k = cells.findIndex((c) => isLabel(c) && c.s <= ks && ks < c.e);
   if (k < 0) return undefined;
   const K = cells[k], row = byLine.get(K.line) ?? [];
-  let heads: Cell[];
+  const twins = (p: Cell, c: Cell) => p.kind === c.kind && p.ar !== c.ar;
+  let heads: Cell[], mode: 'line' | 'header' | 'stack';
   if (row.some((c) => !isLabel(c))) {
-    // labels and dates on one line: the labels beside the keyword with no date between them
+    // labels and dates on one line: the labels beside the keyword with no date between them. A label that closes the
+    // field before it ("Issue Date 15/03/2025 تاريخ الإصدار   Expiry Date 14/03/2028") is that field's twin, not a column.
     let a = k, b = k;
     while (a > 0 && cells[a - 1].line === K.line && isLabel(cells[a - 1])) a--;
     while (b + 1 < cells.length && cells[b + 1].line === K.line && isLabel(cells[b + 1])) b++;
-    heads = cells.slice(a, b + 1);
-  } else if (row.length > 1) heads = row;   // a header row
+    while (a < k && a >= 2 && cells[a - 1].kind === 'date' && cells[a - 1].line === K.line && twins(cells[a - 2], cells[a])) a++;
+    heads = cells.slice(a, b + 1); mode = 'line';
+  } else if (row.length > 1) { heads = row; mode = 'header'; }
   else {
     // the keyword alone on its line, as every label is in a table drawn column by column: the stack of such lines
     // (blank lines between them do not end it) is the header
@@ -177,41 +230,46 @@ function tableRead(d: Doc, ks: number): { expiry: string; raw: string } | null |
     let a = K.line, b = K.line;
     for (let n = a - 1; alone(n) || blank(n); n--) if (alone(n)) a = n;
     for (let n = b + 1; alone(n) || blank(n); n++) if (alone(n)) b = n;
-    heads = cells.filter((c) => c.line >= a && c.line <= b);
+    heads = cells.filter((c) => c.line >= a && c.line <= b); mode = 'stack';
   }
-  // An English label printed beside its Arabic twin, on the same line or the next ("Expiry Date / تاريخ الانتهاء"),
-  // is ONE column: the same kind, the other script, and nothing but spaces or separators between them.
+  // ONE column: an English label printed beside its Arabic twin, on the same line or the next ("Expiry Date / تاريخ
+  // الانتهاء"), with nothing but spaces or separators between them; and an expiry label joined by "/" to a label this
+  // reader only counts ("Expiry/Renewal Date", "Date of Expiry / Renewal Date").
   const cols: Cell[][] = [];
   for (const c of heads) {
-    const g = cols[cols.length - 1], p = g?.[g.length - 1];
-    if (p && p.kind === c.kind && p.ar !== c.ar && /^[\s/|:()\-–—]*$/.test(t.slice(p.e, c.s))) g.push(c);
+    const g = cols[cols.length - 1], p = g?.[g.length - 1], gap = p ? t.slice(p.e, c.s) : '';
+    if (p && ((twins(p, c) && /^[\s/|:()\-–—]*$/.test(gap)) || ([p.kind, c.kind].sort().join() === 'end,other' && /^\s*\/\s*$/.test(gap)))) g.push(c);
     else cols.push([c]);
   }
   if (cols.length < 2) return undefined;
-  // The dates right after the last label on its own line; when that line ends, every line of dates right under it
-  // (blank lines may come first). A label, or a line with no date, ends them.
-  const last = heads[heads.length - 1], after = cells.slice(cells.indexOf(last) + 1), values: Cell[] = [];
+  const last = heads[heads.length - 1], after = cells.slice(cells.indexOf(last) + 1);
+  const datesOnLine = after.length > 0 && after[0].line === last.line && !isLabel(after[0]);
+  if (mode === 'header' || (mode === 'line' && !datesOnLine)) return headerRowRead(d, K, heads, cols);
+  // A table on one line, or drawn column by column: the dates right after the last label on its line; when that line
+  // ends, every line of dates right under it (blank lines may come first). A label, or a line with no date, ends them.
+  const values: Cell[] = [];
   let i = 0;
   while (i < after.length && after[i].line === last.line && !isLabel(after[i])) values.push(after[i++]);
   if (i === after.length || after[i].line !== last.line) {
     let n = last.line + 1;
-    if (!values.length) while (n < lines.length && !/\S/.test(lines[n])) n++;
+    if (!values.length) n = nextFilled(d, n);
     for (; n < lines.length; n++) { const r = byLine.get(n); if (!r || r.some(isLabel)) break; values.push(...r); }
   }
   if (values.length !== cols.length || K.kind !== 'end') return null;
   const dateIn = (j: number) => parseDate(t.slice(values[j].s, values[j].e));
   const col = cols.findIndex((g) => g.includes(K)), expiry = dateIn(col);
-  // An expiry before an issue or start date of its own row means the columns were not drawn in the order they are
-  // read (right-to-left text drawn in visual order, for one), and the date in hand may be the issue date. A range takes
-  // its later date because its own words say it is a period; a table's only evidence is its labels, and they disagree.
   if (!expiry || cols.some((g, j) => g[0].kind === 'start' && (dateIn(j) ?? '') > expiry)) return null;
   return { expiry, raw: t.slice(values[col].s, values[col].e) };
 }
 
+// "Issue/Expiry Date: 15/03/2025 / 14/03/2028" names two dates with one label: the expiry is the later of the two, and
+// with one date there is nothing to read (main read the issue date there).
+const ISSUE_JOINED_RE = /\b(?:issue|issued|issuance)\s*(?:\/|&|and)\s*$/i;
+
 /** The first occurrence of one kind of keyword that reads a date: in its own column of a table, or within 90
  *  characters after it. A start keyword reads only the end of the period it opens. */
 function readAfter(d: Doc, keywords: RegExp, kind: 'expiry' | 'period' | 'start'): ExpiryRead | null {
-  const { t, cells } = d;
+  const { t, cells, byLine } = d;
   let from = 0;
   for (let i = 0; i < 20; i++) {
     const km = keywords.exec(t.slice(from));
@@ -231,24 +289,44 @@ function readAfter(d: Doc, keywords: RegExp, kind: 'expiry' | 'period' | 'start'
       // a licence would have had its issue date written as its expiry. When the first date is joined to a second
       // (RANGE_END_RE), the period's end is the expiry, and the end is the LATER of the two: a pair printed backwards
       // ("Expiry Date - Issue Date: 14/03/2028 - 15/03/2025", or right-to-left text drawn in visual order) still reads
-      // 14/03/2028. (The first fix took the second date whatever it was, and read 15/03/2025 there.)
+      // 14/03/2028. (The first fix took the second date whatever it was, and read 15/03/2025 there.) Where the words
+      // themselves say which date opens the period ("Valid From", "between"), an end before its start reads nothing.
       const ds = at + dm.index;
       const between = BETWEEN_LEAD_RE.test(km[0] + lead);
       const first = parseDate(dm[0]);
-      const tail = (between ? BETWEEN_END_RE : RANGE_END_RE).exec(window.slice(dm.index + dm[0].length));
+      const rest = window.slice(dm.index + dm[0].length);
+      const tail = (between ? BETWEEN_END_RE : RANGE_END_RE).exec(rest);
       // Not this keyword's date: one that an issue, start or other date label stands in front of ("Expiry Date: see the
-      // schedule / Issue Date: 15/03/2025"), or one on a later line beside another date it is not joined to, which is a
-      // cell of a column whose label is not in this vocabulary ("Membership Date   Expiry Date" over two dates). Only
-      // dates that read count there: a Hijri twin printed beside the Gregorian expiry ("1449/07/17") is not a column.
-      const owned = cells.some((c) => (c.kind === 'start' || c.kind === 'other') && c.s >= at && c.e <= ds);
+      // schedule / Issue Date: 15/03/2025"), unless that label is joined to the keyword by "/" ("Expiry/Renewal Date");
+      // or one on a later line beside another date it is not joined to, which is a cell of a column whose label is not
+      // in this vocabulary ("Membership Date   Expiry Date" over two dates) and is read only by its position under the
+      // keyword. Only dates that read count there: a Hijri twin beside the Gregorian expiry is not a column.
+      let joinedTo = at;
+      for (const c of cells) if (c.s >= joinedTo && isLabel(c) && c.kind !== 'start' && /^\s*\/\s*$/.test(t.slice(joinedTo, c.s))) joinedTo = c.e;
+      const owned = cells.some((c) => (c.kind === 'start' || c.kind === 'other') && c.s >= joinedTo && c.e <= ds);
       const le = t.indexOf('\n', ds), rowText = t.slice(t.lastIndexOf('\n', ds) + 1, le < 0 ? t.length : le);
       const crowded = lead.includes('\n') && !tail && (rowText.match(DATE_G) ?? []).filter((x) => parseDate(x)).length > 1;
+      if (!owned && crowded && kind !== 'start') {
+        const K = cells.find((c) => isLabel(c) && c.s <= ks && ks < c.e), v = cells.find((c) => c.s === ds)?.line;
+        if (K && v !== undefined && !severalRows(d, v)) {
+          const hc = rowCells(d, K.line), vc = rowCells(d, v), under = (c: Cell) => vc[hc.findIndex((h) => h.s <= c.s && c.s < h.e)];
+          const e = hc.length > 1 && hc.length === vc.length ? cellDate(t, under(K)) : null;
+          const starting = (byLine.get(K.line) ?? []).filter((c) => c.kind === 'start').map((c) => cellDate(t, under(c)));
+          if (e && !starting.some((x) => (x ?? '') > e)) return { expiry: e, source: 'text', keyword: km[0], raw: e };
+        }
+      }
+      const issueJoined = ISSUE_JOINED_RE.test(t.slice(t.lastIndexOf('\n', ks - 1) + 1, ks));
       if (!owned && !crowded) {
         if (tail) {
           const second = parseDate(tail[1]);
-          if (first && second) return { expiry: second > first ? second : first, source: 'text', keyword: km[0], raw: dm[0] + tail[0] };
+          if (first && second && !((kind === 'start' || between) && second < first)) {
+            return { expiry: second > first ? second : first, source: 'text', keyword: km[0], raw: dm[0] + tail[0] };
+          }
           // One end does not read as a day-first date (a month-first schedule, "01/12/2026 to 12/31/2026"): the
           // period has no readable end, and its start is certainly not the expiry. Nothing is read beside this keyword.
+        } else if (issueJoined) {
+          const sm = DATE_RE.exec(rest), second = sm ? parseDate(sm[0]) : null;
+          if (first && second) return { expiry: second > first ? second : first, source: 'text', keyword: km[0], raw: dm[0] + rest.slice(0, (sm?.index ?? 0) + (sm?.[0].length ?? 0)) };
         } else if (first && kind !== 'start' && !between) return { expiry: first, source: 'text', keyword: km[0], raw: dm[0] };
       }
     }

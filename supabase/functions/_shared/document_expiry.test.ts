@@ -200,9 +200,10 @@ Deno.test('expiryFromText: a period of cover or validity reads its END date', ()
 // A TABLE IS READ BY ITS COLUMNS (1 Nov 2026, sales_engineer; measured on 28 Oct in the independent review of #1708).
 // A licence printing its dates as a header row over a value row read the ISSUE date as its expiry, and supplier_api and
 // supplier_portal write a licence's expiry from this reader without asking the supplier: a valid licence was recorded
-// as expired. Every reading asserted in the next three tests fails on the reader before this fix (main at 141f2bc),
-// checked one assertion at a time: 49 of them. Five pass there by design: the two pins of what the text layer draws
-// (pdfText is not changed here) and the three guards at the end of the third test. Main read the 33 PDFs of the
+// as expired. Of the readings asserted in the next three tests, 55 fail on the reader before this fix (main at
+// 141f2bc), checked one assertion at a time. Fourteen pass there by design: the two pins of what the text layer draws
+// (pdfText is not changed here), the three guards at the end of the third test, and nine readings main already had
+// right that the first version of this fix lost (review of #1733: two blank-cell tables, the seven "kept"). Main read the 33 PDFs of the
 // synthetic corpus (scripts/e2e/document_intake_corpus.mjs) exactly as this reader does: expiry, keyword, issue date.
 Deno.test('expiryFromText: a table reads the expiry label\'s own column, or nothing — never the issue date', () => {
   const cases: [string, string | null][] = [
@@ -216,7 +217,6 @@ Deno.test('expiryFromText: a table reads the expiry label\'s own column, or noth
     ['Registration Date   Licence Expiry Date\n15/03/2025   14/03/2028', '2028-03-14'],
     ['Valid From   Valid To\n15/03/2025   14/03/2028', '2028-03-14'],
     ['Issue Date   Validity\n15/03/2025   14/03/2028', '2028-03-14'],
-    ['Printed 01/11/2026   Issue Date   Expiry Date\n15/03/2025   14/03/2028', '2028-03-14'],
     ['Please check the issue date and the expiry date.\nIssue Date   Expiry Date\n15/03/2025   14/03/2028', '2028-03-14'],
     // an English label beside its Arabic twin is one column; Arabic alone reads the same
     ['Issue Date تاريخ الإصدار   Expiry Date تاريخ الانتهاء\n15/03/2025   14/03/2028', '2028-03-14'],
@@ -241,8 +241,20 @@ Deno.test('expiryFromText: a table reads the expiry label\'s own column, or noth
     // a date is never read for a keyword when it is another label's: one stands between them, or the date shares
     // its row with a date under a label this reader does not know
     ['Expiry Date: as per the schedule\nIssue Date: 15/03/2025', null],
-    ['Membership Date   Expiry Date\n15/03/2025   14/03/2028', null],
     ['Period of Insurance\nFrom   To\n01/01/2026   31/12/2026', null],
+    // REVIEW OF #1733: a value is paired with its label by its POSITION in the row, never by counting dates. A blank
+    // cell ("-", "N/A") under a known label let a date under an unknown one take its place: these read 01/06/2029.
+    ['Issue Date   Expiry Date   Next Inspection\n-   14/03/2028   01/06/2029', '2028-03-14'],
+    ['Issue Date   Expiry Date   Next Inspection Date\nN/A   14/03/2028   01/06/2029', '2028-03-14'],
+    ['Issue Date   Membership Date   Expiry Date\n15/03/2025   14/03/2028', null],
+    ['Printed 01/11/2026   Issue Date   Expiry Date\n15/03/2025   14/03/2028', null],
+    ['Membership Date   Expiry Date\n15/03/2025   14/03/2028', '2028-03-14'],
+    ['Membership Date   Expiry Date\n15/03/2025   14/03/2028\n16/03/2025   15/03/2028', null],
+    ['Issue Date   Expiry Date\n15/03/2025 (1446/09/15)   14/03/2028 (1449/09/14)', '2028-03-14'],
+    // one label naming both dates reads the later, and nothing with one date
+    ['Issue/Expiry Date: 15/03/2025 / 14/03/2028', '2028-03-14'],
+    ['Issue & Expiry Date: 15/03/2025 & 14/03/2028', '2028-03-14'],
+    ['Issue/Expiry Date: 15/03/2025', null],
   ];
   for (const [text, want] of cases) assertEquals(expiryFromText(text)?.expiry ?? null, want, text);
 });
@@ -296,6 +308,17 @@ Deno.test('expiryFromText: an ordinal day, a period opened by "Valid From" or "b
   assertEquals(expiryFromText('Valid From: 15/03/2025')?.expiry ?? null, null);
   assertEquals(expiryFromText('Expiry Date\nتاريخ الانتهاء\n14/03/2028')?.expiry, '2028-03-14');
   assertEquals(expiryFromText('Expiry Date\n14/03/2028   1449/07/17')?.expiry, '2028-03-14');
+  // ...and, from the review of #1733, readings main already got right that a first version of this fix lost
+  const kept: [string, string | null][] = [
+    ['Issue Date 15/03/2025 تاريخ الإصدار   Expiry Date 14/03/2028 تاريخ الانتهاء', '2028-03-14'],
+    ['تاريخ الإصدار 15/03/2025 Issue Date   تاريخ الانتهاء 14/03/2028 Expiry Date', '2028-03-14'],
+    ['Expiry/Renewal Date: 31/12/2026', '2026-12-31'],
+    ['Date of Expiry / Renewal Date: 31/12/2026', '2026-12-31'],
+    ['Expiry Date   Next Audit\n14/03/2028   01/06/2027', '2028-03-14'],
+    ['Expiry Date   Retroactive Date\n31/12/2026   01/01/2020', '2026-12-31'],
+    ['Valid between 01/01/2026 and 31/12/2025', null],
+  ];
+  for (const [text, want] of kept) assertEquals(expiryFromText(text)?.expiry ?? null, want, text);
 });
 
 // THE PERIOD READ ADVERSARIALLY (28 Oct 2026, sales_engineer; independent review of #1708). The first fix took the
