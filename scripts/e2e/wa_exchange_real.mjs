@@ -21,7 +21,7 @@ let sup, started = new Date().toISOString(), result = null;
 try {
   sup = await makeSupplier(run, {});
   const phone = (await mgmtRead(REF, `select phone from public.leads where id=${sup.leadId}`))[0].phone;
-  if (!/^\+971500000\d\d$/.test(phone)) throw new Error('REFUSED: supplier phone ' + phone + ' is not in the fixture block');
+  if (!/^\+9715000000\d\d$/.test(phone)) throw new Error('REFUSED: supplier phone ' + phone + ' is not in the fixture block');
   // the supplier chose "same number for WhatsApp" (what the new kyc rule writes after a WhatsApp-delivered code)
   await mgmtFixture(REF, `update public.leads set whatsapp_opt='other', whatsapp_phone=${q(phone)}, whatsapp_verified_at=now(), whatsapp_asked_at=now() where id=${sup.leadId}`, 'fixture WhatsApp confirmed');
   await mgmtFixture(REF, `insert into public.rehearsal_window (run_tag, opened_by) values ('qd_run:${tag}', 'wa_exchange_real')`, 'rehearsal window');
