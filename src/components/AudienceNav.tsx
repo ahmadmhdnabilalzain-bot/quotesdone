@@ -48,7 +48,7 @@ const ICONS: Record<string, LucideIcon> = {
   'facilities-management': Building2,
 };
 
-const linkBase = 'relative inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-btn px-3 text-small font-medium transition-colors duration-base';
+const linkBase = 'relative inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-btn px-2.5 text-small font-medium transition-colors duration-base';
 const linkIdle = 'text-muted hover:bg-teal-light/[0.05] hover:text-white';
 const linkOn = 'text-white after:absolute after:inset-x-3 after:-bottom-[15px] after:h-px after:bg-teal-light after:shadow-[0_0_10px_rgba(110,231,212,.9)]';
 
