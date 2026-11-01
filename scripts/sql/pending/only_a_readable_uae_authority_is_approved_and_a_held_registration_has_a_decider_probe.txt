@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all. It runs in the rehearsal after only_a_readable_uae_authority_is_approved_and_a_held_registration_has_a_decider.sql and always raises CHK<<PROBE OK>> or CHK<<PROBE FAILED>>, so nothing survives. ZZ DEMO rows only.
