@@ -7,7 +7,7 @@ import { assert, assertEquals, assertFalse } from 'jsr:@std/assert@1';
 import {
   M365_HARD_CEILING, M365_ID_PREFIX, M365_OFF, M365_REFUSED_ISSUE, M365_SEED_KIND, graphSend, holdForM365, m365Body, m365Carries,
   companyName, m365CopyLint, m365InvitationText, m365Mime, m365Subject, messageIdFor, resolveM365, scrub, switchOn, type Fetch, type M365, STOP_LINE,
-  M365_INBOX_AGENT, M365_INBOX_PROOF_MAX_AGE_MS, m365ReplyTo, withPlacementRef, campaignMail,
+  M365_INBOX_AGENT, M365_INBOX_PROOF_MAX_AGE_MS, m365ReplyTo, conversationReplyTo, withPlacementRef, campaignMail,
   M365_PACE_MS, M365_PER_RUN, paceM365, qpEncode,
 } from './m365_lane.ts';
 import { resendPayload } from './payload.ts';
@@ -263,6 +263,18 @@ Deno.test('Reply-To (6 Oct 2026): dropped only while the reply reader is proven 
   assertFalse(/Reply-To:/i.test(mime('')), 'an empty reply writes no Reply-To header');
   assert(mime(fb).includes('Reply-To: ' + fb));
   assertEquals(M365_INBOX_AGENT, 'resend_inbound');
+});
+
+Deno.test('an answer to a supplier replies into the read supplier mailbox; every control keeps the old Reply-To', () => {
+  const now = new Date('2026-11-02T12:00:00Z');
+  const base = { type: 'inbound_reply', toSupplier: true, mailbox: 'supplier@quotesdone.com', proofAt: '2026-11-02T11:50:00Z', now, fallback: 'info@quotesdone.com' };
+  assertEquals(conversationReplyTo(base), 'supplier@quotesdone.com');
+  assertEquals(conversationReplyTo({ ...base, toSupplier: false }), 'info@quotesdone.com', 'a customer');
+  assertEquals(conversationReplyTo({ ...base, type: 'login_otp' }), 'info@quotesdone.com', 'another mail type');
+  assertEquals(conversationReplyTo({ ...base, proofAt: null }), 'info@quotesdone.com', 'an unproven reader');
+  assertEquals(conversationReplyTo({ ...base, mailbox: 'x@elsewhere.example.invalid' }), 'info@quotesdone.com', 'a cross-domain Reply-To');
+  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  assert(src.includes("n.type === 'inbound_reply' ? await inboundReplyTo(n.to_email, replyInfo)"), 'send_outbox no longer asks for the conversation Reply-To');
 });
 
 Deno.test('wiring: send_outbox passes the lane Reply-To through m365ReplyTo, reading the proof under the reader\'s label', () => {
