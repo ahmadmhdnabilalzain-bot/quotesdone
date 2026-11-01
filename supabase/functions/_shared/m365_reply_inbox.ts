@@ -38,6 +38,8 @@
 //     app_secrets.m365_tenant_mailboxes, else DEFAULT_MAILBOXES. People use those mailboxes, so nothing there is ever marked
 //     read, moved, deleted or replied to from here. expenses@ keeps its own path, and mail from the founder, staff or our
 //     own domains is not handed: expense forwarders could otherwise book through it (resend_inbound expenseSenderOk).
+//   - MEASURED 2 Nov: a supplier's reply to info@ landed in management@, which also files mail in an "info quotesdone"
+//     folder. So each mailbox's own top-level folders are read too (FILED_FOLDER_CAP), under the Inbox's rules.
 //   - its agent_runs row carries counts.m365_tenant, never counts.m365_inbox, so a failure there cannot withdraw the proof
 //     send_outbox reads for supplier@ (it selects counts.m365_inbox = 1).
 import { isDeliveryReportSender } from './mailbox_bounce.ts';
@@ -57,6 +59,11 @@ export const MAILBOX_HAND_CAP = 4;
 export const TENANT_HAND_CAP = 12;
 export const MAX_MAILBOXES = 25;
 export const JUNK_PAGES = 2;
+export const FILED_FOLDER_CAP = 10;
+export const FILED_PAGES = 2;
+// Graph v1.0 lists no well-known name here, so these go by display name. A folder missed in another language is still
+// safe for Sent and Drafts: our own domain is never handed.
+const NOT_FILED_MAIL = /^(inbox|junk e-?mail|drafts|sent items|deleted items|outbox|archive|conversation history|clutter|rss (feeds|subscriptions)|sync issues)$/i;
 export const DEFAULT_MAILBOXES = ['management@quotesdone.com', 'info@quotesdone.com'];
 const META_SELECT = 'id,subject,from,receivedDateTime,hasAttachments';
 const FULL_SELECT = 'id,internetMessageId,subject,from,receivedDateTime,hasAttachments,body,internetMessageHeaders';
@@ -97,9 +104,9 @@ export type TenantDeps = Omit<InboxDeps, 'mailbox' | 'fileFinding' | 'sender'> &
 };
 
 /** What a folder may hand over. The founder, staff and our own domains never; Junk only a delivery report or a known sender. */
-export function folderHands(folder: 'inbox' | 'junkemail', from: string, kind: SenderKind): boolean {
+export function folderHands(folder: string, from: string, kind: SenderKind): boolean {
   if (kind === 'founder' || OWN_ADDRESS.test(from)) return false;
-  return folder === 'inbox' || kind === 'known' || isDeliveryReportSender(from);
+  return folder !== 'junkemail' || kind === 'known' || isDeliveryReportSender(from);
 }
 
 /** The one it_engineer finding when the app may not read the mailbox. Names the permission and the click, no secret. */
@@ -271,11 +278,11 @@ async function markRead(d: Sweep, box: string, auth: Record<string, string>, id:
  * One folder of one mailbox: list the envelopes, keep what is new and allowed, read and hand at most `cap`, oldest first.
  * Returns the listing's HTTP status (0: no answer). Mail not handed stays unseen, so it is looked at again next tick.
  */
-async function sweep(d: Sweep, mailbox: string, box: string, auth: Record<string, string>, folder: 'inbox' | 'junkemail', pages: number, cap: number, t0: number,
+async function sweep(d: Sweep, mailbox: string, box: string, auth: Record<string, string>, folder: string, pages: number, cap: number, t0: number,
   c: Tally, mark: boolean, sender: (a: string) => Promise<SenderKind>, kinds: Map<string, SenderKind>): Promise<number> {
   const now = d.now || Date.now;
   const since = new Date(t0 - LOOKBACK_DAYS * 86_400_000).toISOString();
-  let url: string | null = `${box}/mailFolders/${folder}/messages?` + new URLSearchParams({ $filter: `receivedDateTime ge ${since}`, $orderby: 'receivedDateTime desc', $top: String(PAGE), $select: META_SELECT }).toString();
+  let url: string | null = `${box}/mailFolders/${encodeURIComponent(folder)}/messages?` + new URLSearchParams({ $filter: `receivedDateTime ge ${since}`, $orderby: 'receivedDateTime desc', $top: String(PAGE), $select: META_SELECT }).toString();
   const fresh: GraphMessage[] = [];
   let status = 200;
   try {
@@ -315,6 +322,16 @@ async function sweep(d: Sweep, mailbox: string, box: string, auth: Record<string
     if (mark && !await markRead(d, box, auth, m.id)) c.mark_failed++;
   }
   return status;
+}
+
+/** A mailbox's own top-level folders that can hold filed mail; null when Graph would not list them. */
+async function filedFolders(d: Sweep, box: string, auth: Record<string, string>): Promise<string[] | null> {
+  try {
+    const r = await d.fetchFn(`${box}/mailFolders?$top=50&$select=id,displayName`, { headers: auth });
+    if (!r.ok) { await r.body?.cancel(); return null; }
+    const j = await r.json() as { value?: Array<{ id?: string; displayName?: string }> };
+    return (j.value || []).filter((f) => f?.id && !NOT_FILED_MAIL.test(String(f.displayName || '').trim())).map((f) => String(f.id)).slice(0, FILED_FOLDER_CAP);
+  } catch (_e) { return null; }
 }
 
 /** The mailboxes to read: Graph's own list where the app may ask, else app_secrets, else the two the founder named. */
@@ -375,6 +392,9 @@ export async function pollTenantMailboxes(d: TenantDeps): Promise<Record<string,
     if (status !== 200) { counts.list_failed++; continue; }
     counts.mailboxes++; read.push(mailbox);
     if (await sweep(d, mailbox, box, auth, 'junkemail', JUNK_PAGES, room(), t0, c, false, d.sender, kinds) !== 200) counts.list_failed++;
+    const filed = await filedFolders(d, box, auth);
+    if (!filed) { counts.list_failed++; continue; }
+    for (const f of filed) if (await sweep(d, mailbox, box, auth, f, FILED_PAGES, room(), t0, c, false, d.sender, kinds) !== 200) counts.list_failed++;
   }
   const detail = '; read ' + (read.join(', ') || 'none') + ' (list from ' + source + ')';
   if (c.hand_failed || counts.list_failed || c.lookup_failed) return await done('error', 'a failure is left for the next tick', detail);

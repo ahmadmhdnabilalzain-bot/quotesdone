@@ -22,7 +22,7 @@ import { observe } from '../_shared/observe.ts';
 import { drain as drainJudgements } from '../_shared/routine_judgements.ts';
 import { defaultDeps, think, type ThinkDeps } from '../_shared/think.ts';
 import { knownSenderCategory } from '../_shared/triage_known_sender.ts';
-import { mailFacts } from './account_facts.ts';
+import { mailFacts, SEPARATE_COMPANY_FACT } from './account_facts.ts';
 import { composeMailReply, declinedRowFields, invitationReplyAnswerable, noAutoReply, tenantMailAnswerable } from '../_shared/customer_mail.ts';
 import { langOf } from '../_shared/chat_answers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
@@ -147,7 +147,7 @@ Deno.serve(observe('email_triage', async (req) => {
         if (gid) { judgementIds.push(Number(gid)); counts.unknown_sender_to_judgement++; await admin.from('inbound_messages').update({ ai_category: 'routine_queued' }).eq('id', m.id).is('triaged_at', null); }
         // An unknown sender is usually a new customer: answered now, whatever the judgement later files as its category.
         // resend_inbound linked a lead by sender (leads.email or claimed_by): a supplier, answered as one, in English.
-        await reply1(m, m.lead_id ? 'supplier' : 'customer');
+        await (m.lead_id ? reply1(m, 'supplier', SEPARATE_COMPANY_FACT) : reply1(m));
         continue;
       }
       let category = 'other', summary = '', reply = '';

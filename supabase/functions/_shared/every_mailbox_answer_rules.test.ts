@@ -3,6 +3,8 @@
 // that email_triage is wired to them. A reply never reaches the founder, a machine, or someone who said stop.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { declinedRowFields, noAutoReply, tenantMailAnswerable } from './customer_mail.ts';
+import { SEPARATE_COMPANY_FACT, SUPPLIER_SIGN_IN_FACT, supplierFacts, unregisteredSupplierFacts } from '../email_triage/account_facts.ts';
+import { planCreateCompany } from '../supplier_api/create_company.ts';
 
 const FOUNDER = ['management@quotesdone.com', 'owner@example.invalid'];
 
@@ -35,11 +37,23 @@ Deno.test('a declined machine mail from another mailbox has an owner and leaves 
   assertEquals(declinedRowFields({ to_email: 'info@mail.quotesdone.com', provider_email_id: 'abc' }), {});
 });
 
+Deno.test('a subsidiary: the facts say what the platform really does, and it does refuse a second company on one e-mail', () => {
+  assertEquals(planCreateCompany({ ownCompany: true, emailLeads: [], emailProven: true }).kind, 'company_exists');
+  assertEquals(planCreateCompany({ ownCompany: false, emailLeads: [{ id: 1, claimed: true, claimed_by: 'sales@zz-demo.example.invalid' }], emailProven: true }).kind, 'email_taken');
+  assertEquals(planCreateCompany({ ownCompany: false, emailLeads: [], emailProven: true }).kind, 'insert');
+  for (const f of [SEPARATE_COMPANY_FACT]) {
+    assert(f.includes('its own trade licence') && f.includes('different work e-mail') && f.includes('one e-mail manages exactly one company'));
+  }
+  for (const t of [supplierFacts('ZZ DEMO', []), supplierFacts('ZZ DEMO', [{ inquiry_id: 1 }]), unregisteredSupplierFacts('ZZ DEMO', 'https://x.invalid/portal'), SUPPLIER_SIGN_IN_FACT]) {
+    assert(t.includes(SEPARATE_COMPANY_FACT));
+  }
+});
+
 Deno.test('wiring: email_triage uses these rules, checks the founder\'s own inboxes, and a failed answer leaves a live review', async () => {
   const src = await Deno.readTextFile(new URL('../email_triage/index.ts', import.meta.url));
   assert(src.includes('tenantMailAnswerable(m, !!(sup && sup.length))'));
   assert(src.includes("rpc('fn_is_founder_own_inbox'"));
   assert(src.includes('...declinedRowFields(m)'));
-  assert(src.includes("await reply1(m, m.lead_id ? 'supplier' : 'customer')"));
+  assert(src.includes("m.lead_id ? reply1(m, 'supplier', SEPARATE_COMPANY_FACT)"));
   assert(/counts\.answer_failed\+\+[\s\S]{0,700}kind: 'inbound_review', status: 'pending'/.test(src), 'a failed answer no longer files a review');
 });

@@ -345,6 +345,16 @@ export function messageIdFor(notificationId: number | string, now: Date): string
 export const M365_INBOX_AGENT = 'resend_inbound';   // = m365_reply_inbox.ts PROOF_LABEL; its rows carry counts.m365_inbox = 1
 export const M365_INBOX_PROOF_MAX_AGE_MS = 2 * 60 * 60_000;
 /** '' = no Reply-To header (replies reach the From mailbox); otherwise the fallback, kept until the reader is proven. */
+// A SUPPLIER ANSWERED IN A CONVERSATION REPLIES INTO THE READ SUPPLIER MAILBOX (2 Nov 2026, customer_support). MEASURED:
+// notification 117599 (inbound_reply, Resend, From and Reply-To info@) was answered 13 minutes later and the reply landed
+// in management@, read by nothing. inbound_reply has no to_role, so it took the customer's Reply-To. supplier@ is on the
+// From's own domain, so the cross-domain reasoning above does not apply. Only while its reader is proven; otherwise the
+// old Reply-To stands.
+export function conversationReplyTo(o: { type: unknown; toSupplier: boolean; mailbox: string | undefined; proofAt: string | null | undefined; now: Date; fallback: string }): string {
+  const mailbox = String(o.mailbox || '').trim();
+  if (o.type !== 'inbound_reply' || !o.toSupplier || !/@quotesdone\.com$/i.test(mailbox)) return o.fallback;
+  return m365ReplyTo({ proofAt: o.proofAt, now: o.now, fallback: o.fallback }) === '' ? mailbox : o.fallback;
+}
 export function m365ReplyTo(o: { proofAt: string | null | undefined; now: Date; fallback: string }): string {
   const t = o.proofAt ? Date.parse(o.proofAt) : NaN;
   const age = o.now.getTime() - t;

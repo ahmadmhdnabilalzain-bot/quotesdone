@@ -85,7 +85,7 @@ Deno.test('a "stop" reply to the M365 mailbox is handed to resend_inbound and wr
   assertEquals(suppressions[0].reason, 'unsubscribe');
 });
 
-Deno.test('a fresh mail to management@ reaches the handler: filed under that mailbox, linked by sender, nothing marked', async () => {
+Deno.test('a known supplier\'s reply to our inbound_reply, landing in management@: threaded, linked by sender, nothing marked', async () => {
   const rows: Array<Record<string, unknown>> = [];
   const real = globalThis.fetch;
   globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
@@ -97,8 +97,9 @@ Deno.test('a fresh mail to management@ reaches the handler: filed under that mai
   const marks: string[] = [];
   const fresh = (url: string, init?: RequestInit): Promise<Response> => {
     if (init?.method === 'PATCH') marks.push(url);
-    if (url.includes('/mailFolders/junkemail/') || url.includes('/users?')) return Promise.resolve(json({ value: url.includes('/users?') ? [{ mail: 'management@quotesdone.com' }] : [] }));
-    if (url.includes('/messages/') && !url.startsWith('http://inbound.invalid/')) return Promise.resolve(json({ id: 'AAMkFRESH', subject: 'Registering a subsidiary', from: { emailAddress: { address: SUPPLIER } }, body: { contentType: 'text', content: 'We wish to register our subsidiary.' }, internetMessageHeaders: [] }));
+    if (url.includes('/mailFolders/junkemail/') || url.includes('/mailFolders?') || url.includes('/users?')) return Promise.resolve(json({ value: url.includes('/users?') ? [{ mail: 'management@quotesdone.com' }] : [] }));
+    if (url.includes('/messages/') && !url.startsWith('http://inbound.invalid/')) return Promise.resolve(json({ id: 'AAMkFRESH', internetMessageId: '<zz-demo-reply@example.invalid>', subject: 'Re: Your message', from: { emailAddress: { address: SUPPLIER } }, body: { contentType: 'text', content: 'We would like to register our subsidiary M/s ZZ DEMO FZE LLC' },
+      internetMessageHeaders: [{ name: 'In-Reply-To', value: '<qd-notif-117599.1700000000000@quotesdone.com>' }, { name: 'References', value: '<qd-notif-117599.1700000000000@quotesdone.com>' }] }));
     return graph('We wish to register our subsidiary.')(url, init);
   };
   try {
@@ -112,6 +113,9 @@ Deno.test('a fresh mail to management@ reaches the handler: filed under that mai
     assertEquals(rows.length, 1);
     assertEquals(rows[0].to_email, 'management@quotesdone.com');
     assertEquals(rows[0].lead_id, 19398);
+    const raw = rows[0].raw as Record<string, unknown>;
+    assertEquals(raw.in_reply_to, '<qd-notif-117599.1700000000000@quotesdone.com>');
+    assertEquals(raw.message_id, '<zz-demo-reply@example.invalid>', 'fn_inbox_send threads the answer on this');
     assertEquals(rows[0].needs_review, true, 'email_triage selects needs_review');
     assertEquals(rows[0].owner_role, undefined, 'email_triage selects owner_role null');
   } finally { globalThis.fetch = real; }

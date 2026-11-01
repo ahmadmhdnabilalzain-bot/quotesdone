@@ -14,7 +14,7 @@ const STRANGER = 'someone@zz-demo-stranger.example.invalid';
 const FOUNDER = 'owner@zz-demo-founder.example.invalid';
 const kinds: Record<string, SenderKind> = { [SUPPLIER]: 'known', [FOUNDER]: 'founder' };
 
-type Box = { inbox?: Array<[string, string]>; junk?: Array<[string, string]>; status?: number };
+type Box = { inbox?: Array<[string, string]>; junk?: Array<[string, string]>; filed?: Array<[string, string]>; status?: number };
 const env = (id: string, from: string) => ({ id, subject: 'Hello', receivedDateTime: '2026-11-01T10:00:00Z', from: { emailAddress: { address: from } } });
 
 function harness(boxes: Record<string, Box>, o: { users?: string[] | number; listed?: string; onFile?: string[]; handStatus?: number; now?: () => number } = {}) {
@@ -32,8 +32,10 @@ function harness(boxes: Record<string, Box>, o: { users?: string[] | number; lis
       const box = decodeURIComponent(url.split('/users/')[1].split('/')[0]);
       const b = boxes[box] || { status: 404 };
       if (b.status) return json({ error: { code: 'x' } }, b.status);
+      if (url.includes('/mailFolders?')) return json({ value: [{ id: 'SENT', displayName: 'Sent Items' }, { id: 'FILED', displayName: 'info quotesdone' }] });
+      if (url.includes('/mailFolders/SENT/')) throw new Error('a system folder was swept');
       if (url.includes('/mailFolders/')) {
-        const list = url.includes('/mailFolders/junkemail/') ? b.junk : b.inbox;
+        const list = url.includes('/mailFolders/junkemail/') ? b.junk : url.includes('/mailFolders/FILED/') ? b.filed : b.inbox;
         return json({ value: (list || []).map(([id, from]) => env(id, from)) });
       }
       const id = decodeURIComponent(url.split('/messages/')[1].split('?')[0]);
@@ -73,6 +75,13 @@ Deno.test('idempotent: a message already on file is not handed again; mail not h
   const h = harness({ 'management@quotesdone.com': { inbox: [['F1', FOUNDER], ['S1', SUPPLIER]] } }, { users: ['management@quotesdone.com'], onFile: ['m365:S1'] });
   assertEquals((await pollTenantMailboxes(h.deps)).handed, 0);
   assertEquals(h.hands(), []);
+});
+
+Deno.test('a filed folder is read under the Inbox rules, unmarked; a system folder is not', async () => {
+  const h = harness({ 'management@quotesdone.com': { filed: [['F9', SUPPLIER], ['F8', FOUNDER]] } }, { users: ['management@quotesdone.com'] });
+  const r = await pollTenantMailboxes(h.deps);
+  assertEquals(h.hands().map((d) => d.email_id), ['m365:F9']);
+  assertEquals(h.writes(), []); assertEquals(r.list_failed, 0);
 });
 
 Deno.test('Junk in any mailbox: a delivery report and a known sender are handed, a stranger never', async () => {
