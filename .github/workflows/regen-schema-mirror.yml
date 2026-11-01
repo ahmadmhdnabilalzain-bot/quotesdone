@@ -1,0 +1,36 @@
+name: Regenerate the schema mirror on a branch
+
+# supabase/schema/full_schema is read from production, which needs the management token that only Actions holds.
+# Runs by hand, or once when this file changes on a branch. Never writes to main: a mirror lands by PR.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/regen-schema-mirror.yml
+
+permissions:
+  contents: write
+
+jobs:
+  regen:
+    if: ${{ github.ref_name != 'main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci
+        timeout-minutes: 8
+      - run: node scripts/checks/export_from_either_source_is_identical.mjs --write
+      - name: Commit the mirror to this branch
+        run: |
+          git add supabase/schema/full_schema
+          git diff --cached --quiet && exit 0
+          git config user.name "it_engineer"
+          git config user.email "noreply@quotesdone.com"
+          git commit -m "it_engineer: regenerate the schema mirror from production"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
