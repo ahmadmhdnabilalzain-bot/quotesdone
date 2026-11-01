@@ -27,6 +27,8 @@ import { parsePhoneNumberFromString } from 'npm:libphonenumber-js@1.13.14/max';
 import robotsParserCjs from 'npm:robots-parser@3.0.1';
 import { safeFetch } from '../_shared/safe_url.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
+import { FREE_MAIL, mxKind } from '../_shared/mail_domain.ts';
+export { mxKind };
 
 // robots-parser is CommonJS (module.exports = function); its .d.ts types a namespace, so name the call shape.
 const robotsParser = robotsParserCjs as unknown as (url: string, body: string) => { isAllowed(url: string, ua?: string): boolean | undefined };
@@ -38,7 +40,6 @@ const PAGE_BYTES = 600_000;
 const CONTACT_PATHS = ['/contact', '/contact-us', '/about', '/about-us', '/team', '/our-team'];
 // Hosts never crawled. LinkedIn above all (its terms forbid it, and a logged-in session is never used).
 export const SKIP_HOSTS = /(^|\.)(linkedin\.com|facebook\.com|instagram\.com|x\.com|twitter\.com|tiktok\.com|youtube\.com|wa\.me|whatsapp\.com|google\.[a-z.]+|goo\.gl|yellowpages[a-z.-]*|dubizzle\.com|bayut\.com|propertyfinder\.ae|connect\.ae|2gis\.ae)$/i;
-const FREE_MAIL = /^(gmail|googlemail|yahoo|ymail|hotmail|outlook|live|msn|icloud|me|aol|proton|protonmail|gmx|mail|yandex|zoho)\.[a-z.]+$/i;
 export const EMIRATES = ['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'];
 const TITLES = 'Managing Director|General Manager|Chief Executive Officer|CEO|Founder|Co-Founder|Owner|Partner|Director|Sales Director|Sales Manager|Business Development Manager|Procurement Manager|Purchasing Manager|Operations Manager|Technical Manager|Project Manager|Branch Manager|Manager';
 
@@ -120,23 +121,6 @@ export function isComplete(p: Prospect): boolean {
 // ── NETWORK ─────────────────────────────────────────────────────────────────────────────────────────
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const dec = new TextDecoder();
-
-/** MX (or implicit A) for a domain over DNS-over-HTTPS; same kinds as public.email_domain_mx. */
-export async function mxKind(domain: string): Promise<string> {
-  const q = async (type: string) => {
-    const r = await timedFetch(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=${type}`,
-      { headers: { accept: 'application/dns-json' } }, 8000);
-    return r.ok ? await r.json() as { Status: number; Answer?: unknown[] } : null;
-  };
-  try {
-    const mx = await q('MX');
-    if (!mx) return 'error';
-    if (mx.Status === 3) return 'nxdomain';
-    if (mx.Answer?.length) return 'mx';
-    const a = await q('A');
-    return a?.Answer?.length ? 'a_implicit' : 'no_records';
-  } catch { return 'error'; }
-}
 
 // ── THE NAME: the model reads the pages, LinkedIn titles from public Google results fill the rest ──────
 // Pilot 12 Oct 2026: only 4 of 59 sites gave a person by pattern. A person on an about/team page, or the manager
