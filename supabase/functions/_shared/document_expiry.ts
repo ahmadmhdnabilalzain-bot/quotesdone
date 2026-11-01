@@ -261,6 +261,17 @@ function tableRead(d: Doc, ks: number): { expiry: string; raw: string } | null |
     let rest = t.slice(heads[0].s, end);
     for (const c of cells.filter((x) => x.s >= heads[0].s && x.e <= end).reverse()) rest = rest.slice(0, c.s - heads[0].s) + ' ' + rest.slice(c.e - heads[0].s);
     if (!/^[\s/|:()\-–—,]*$/.test(rest)) return null;
+    // ...and no unknown column header stands before its first label (fourth review of #1733: "Last Inspection   Issue
+    // Date   Expiry Date   01/06/2024   15/03/2025" can be read with the expiry blank, and then 15/03/2025 is the issue
+    // date). A cell of words with no digit there is a header; "Licence No 1145872" or "Printed 01/11/2026" is not.
+    const before = t.slice(t.lastIndexOf('\n', heads[0].s - 1) + 1, heads[0].s).split(/\s{2,}|\t|\|/).map((x) => x.trim()).filter(Boolean).pop();
+    if (before && /\p{L}{2}/u.test(before) && !/\d/.test(before)) return null;
+  }
+  if (mode === 'stack') {
+    // the same for a stack: a line of words with no digit right above the stacked labels is one more column header
+    let n = heads[0].line - 1;
+    while (n >= 0 && !/\S/.test(lines[n])) n--;
+    if (n >= 0 && !byLine.get(n) && /\p{L}{2}/u.test(lines[n]) && !/\d/.test(lines[n])) return null;
   }
   // A table on one line, or drawn column by column: the dates right after the last label on its line; when that line
   // ends, every line of dates right under it (blank lines may come first). A label, or a line with no date, ends them.

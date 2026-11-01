@@ -310,6 +310,9 @@ Deno.test('expiryFromText: a table reads the expiry label\'s own column, or noth
     ['Issue Date   Expiry Date   Next Inspection   14/03/2028   01/06/2029', null],
     ['Issue Date Expiry Date Next Inspection 14/03/2028 01/06/2029', null],
     ['Issue Date | Expiry Date | Next Inspection: 14/03/2028 | 01/06/2029', null],
+    // ...nor with an unknown column header before its first label, on one line or stacked (fourth review)
+    ['Last Inspection   Issue Date   Expiry Date   01/06/2024   15/03/2025', null],
+    ['Last Inspection\nIssue Date\nExpiry Date\n01/06/2024\n15/03/2025', null],
     // a cell that says it is blank, and a note under a column only counted, do not stop a reading
     ['Issue Date   Expiry Date   Next Inspection\nn.a.   14/03/2028   01/06/2029', '2028-03-14'],
     ['Issue Date   Expiry Date   Next Inspection\nNot Applicable   14/03/2028   01/06/2029', '2028-03-14'],
