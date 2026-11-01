@@ -2,6 +2,7 @@ name: Rehearse and apply a reviewed SQL file
 
 # Founder ledger 1458: reviewed database changes run from GitHub, with no laptop and no session open.
 # The file is rehearsed whole and rolled back first; it is applied only if that passes and apply is true.
+# Rehearse from the PR branch before merge; apply from main after merge, where the release guard passes on its own.
 on:
   workflow_dispatch:
     inputs:
@@ -36,6 +37,8 @@ jobs:
       SEAT: ${{ inputs.seat }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # the release guard compares the file with origin/main
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
