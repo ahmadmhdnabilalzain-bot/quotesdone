@@ -15,7 +15,7 @@ import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, ownsChannel } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
-import { M365_HARD_CEILING, M365_ID_PREFIX, M365_PACE_MS, M365_PER_RUN, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, campaignMail, graphSend, holdForM365, m365Carries, m365Mime, m365ReplyTo, messageIdFor, paceM365, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
+import { M365_HARD_CEILING, M365_ID_PREFIX, M365_PACE_MS, M365_PER_RUN, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, campaignMail, conversationReplyTo, graphSend, holdForM365, m365Carries, m365Mime, m365ReplyTo, messageIdFor, paceM365, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
@@ -157,6 +157,15 @@ Deno.serve(observe('send_outbox', async (req) => {
     const replySup = (await setting('email_reply_supplier')) || 'suppliers@mail.quotesdone.com';
     const replyDocs = (await setting('email_reply_supplier_docs')) || 'docs@mail.quotesdone.com';
     const replyInfo = (await setting('email_reply_info')) || 'info@quotesdone.com';
+    // The Reply-To of an automatic answer: supplier@ for a lead (leads.email or claimed_by). A failed read keeps the fallback.
+    const inboundReplyTo = async (to: string, fallback: string) => {
+      const e = String(to || '').trim().toLowerCase();
+      const { data: rel } = await admin.rpc('fn_mail_sender_known', { p_email: e });
+      const { data: claimed } = rel === 'supplier' ? { data: [{}] } : await admin.from('leads').select('id').ilike('claimed_by', e.replace(/[\\%_]/g, '\\$&')).limit(1);
+      if (!claimed?.length) return fallback;
+      const p = await admin.from('agent_runs').select('status,finished_at').eq('agent', M365_INBOX_AGENT).eq('counts->>m365_inbox', '1').order('finished_at', { ascending: false }).limit(1).maybeSingle();
+      return conversationReplyTo({ type: 'inbound_reply', toSupplier: true, mailbox: await setting('invite_m365_mailbox'), proofAt: !p.error && p.data?.status === 'ok' ? p.data.finished_at as string : null, now: new Date(), fallback });
+    };
     const logo = (await setting('email_logo_url')) || '';
     // OUR OWN DOMAIN IN THE MAIL (22 Sep 2026, payload.ts ownDomain): set once quotesdone.com serves the
     // /u/unsubscribe and /m/brand proxies (next.config.mjs). Unset = the project host, as before.
@@ -283,7 +292,7 @@ Deno.serve(observe('send_outbox', async (req) => {
       const from = senderFor({ type: n.type, supplierSide, fromSup, fromInfo, lane });
       // A row may name its own Reply-To (notifications.reply_to, constrained to our inbound subdomain): the monthly
       // social calendar carries calendar+<token>@mail.quotesdone.com so the founder's reply reaches resend_inbound.
-      const reply = n.reply_to || (supplierSide ? (docReq ? replyDocs : replySup) : replyInfo);
+      const reply = n.reply_to || (supplierSide ? (docReq ? replyDocs : replySup) : n.type === 'inbound_reply' ? await inboundReplyTo(n.to_email, replyInfo) : replyInfo);
       const unsub = (supplierSide && unsubKey) ? `${unsubBase}?e=${encodeURIComponent(n.to_email)}&t=${await unsubTok(n.to_email, unsubKey)}` : '';
       // NO UNSUBSCRIBE, NO SUPPLIER MARKETING (21 Sep 2026). The link and the RFC 8058 headers are only
       // built when unsubscribe_signing_key reads back; when it did not, supplier mail used to go out with
