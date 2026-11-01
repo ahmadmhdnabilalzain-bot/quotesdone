@@ -249,8 +249,13 @@ export function rewriteServices(text: string, services: ServiceTerm[], opts: Rew
     const whole = exactService(phrase, services, opts.supplyOnly);
     if (whole) { push(serviceItem(whole, phrase)); continue; }
     const parts = phraseParts(phrase);
-    if (parts.length <= 1) { const p = parts[0] ?? phrase; const s = exactService(p, services, opts.supplyOnly); push(s ? serviceItem(s, phrase) : wordsItem(p, phrase)); continue; }
-    for (const p of parts) { const s = exactService(p, services, opts.supplyOnly); push(s ? serviceItem(s, phrase) : wordsItem(p, phrase)); }
+    // THE TAIL CREATES NO PART OF ITS OWN, BUT IT IS NOT LOST (review of #1756): "Repairs for air conditioners",
+    // "Cranes for hire", "صيانة للمصاعد" name their object after "for". When the head is no service, the supplier's
+    // own words keep the whole wording; only a head that IS a service drops the tail ("False ceilings for hotels").
+    const tail = parts.length ? phrase.slice(withoutAudience(phrase).length).trim() : '';
+    const own = (p: string, last: boolean) => wordsItem(last && tail ? `${p} ${tail}` : p, phrase);
+    if (parts.length <= 1) { const p = parts[0] ?? phrase; const s = exactService(p, services, opts.supplyOnly); push(s ? serviceItem(s, phrase) : own(p, true)); continue; }
+    parts.forEach((p, i) => { const s = exactService(p, services, opts.supplyOnly); push(s ? serviceItem(s, phrase) : own(p, i === parts.length - 1)); });
   }
   return finishRewrite(items);
 }

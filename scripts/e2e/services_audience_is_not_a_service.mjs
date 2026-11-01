@@ -56,9 +56,11 @@ const STATE = { ok: true, confirmed: false, first_run: true, checklist: [], serv
 
 const CASES = [
   { lang: 'en', text: 'We supply and install aluminium sliding and casement windows, aluminium doors, shopfronts and glass curtain walls for villas and offices',
-    audience: /villa|office/i, mustShow: ['Glass curtain walls'] },
-  { lang: 'en', text: 'False ceilings and CCTV for hotels and banks and schools', audience: /hotel|bank|school/i, mustShow: [] },
-  { lang: 'ar', text: 'الأسقف المعلقة للفلل والمكاتب', audience: /الفلل|المكاتب/, mustShow: [] },
+    audience: /^(offices|villas)/i, mustShow: ['Glass curtain walls for villas and offices'] },
+  { lang: 'en', text: 'Repairs for air conditioners', audience: /^air conditioners/i, mustShow: ['Repairs for air conditioners'] },
+  { lang: 'en', text: 'False ceilings and CCTV for hotels and banks and schools', audience: /^(hotels|banks|schools)/i, mustShow: [] },
+  { lang: 'ar', text: 'الأسقف المعلقة للفلل والمكاتب', audience: /^(الفلل|المكاتب)/, mustShow: [] },
+  { lang: 'ar', text: 'صيانة للمصاعد', audience: /^المصاعد/, mustShow: ['صيانة للمصاعد'] },
 ];
 
 const browser = await chromium.launch();
@@ -92,7 +94,8 @@ for (const [n, c] of CASES.entries()) {
   await page.waitForFunction(() => /Sales engineer|مهندس المبيعات/.test(document.body.innerText) && /Services we recognised|Kept in your own words|خدمات تعرّفنا|محفوظة بكلماتكم/.test(document.body.innerText), null, { timeout: 15000 });
   const shown = await page.evaluate(() => document.body.innerText);   // innerText leaves out the textarea, so the typed sentence is not in it
   await page.screenshot({ path: path.join(OUT, `services_audience_${EXPECT}_${n}_${c.lang}.png`), fullPage: true });
-  const audienceShown = c.audience.test(shown);
+  writeFileSync(path.join(OUT, `shown_${EXPECT}_${n}.txt`), shown);
+  const audienceShown = shown.split('\n').some((l) => c.audience.test(l.trim()));   // an audience on a line of its own is a suggestion
   const missing = c.mustShow.filter((s) => !shown.includes(s));
   const ok = EXPECT === 'defect' ? (n === 0 ? audienceShown : true) : (!audienceShown && !missing.length && seen.includes('services_rewrite'));
   if (!ok) failed++;

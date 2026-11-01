@@ -87,7 +87,7 @@ const WORDS_ARE_NOT_A_NAME: { name: string; text: string; kept: string[] }[] = [
   { name: 'EN, an alias inside prose', text: 'Supply and install ducting for the villa', kept: [] },
   { name: 'EN, a plural is not the name', text: 'Cable trays', kept: ['Cable trays'] },
   { name: 'AR, an alias with a proclitic', text: 'نقوم بتمديدات كهربائية', kept: ['نقوم بتمديدات كهربائية'] },
-  { name: 'AR, an alias inside a sentence', text: 'مطلوب تمديدات كهربائية للفيلا', kept: ['مطلوب تمديدات كهربائية'] },   // 2 Nov 2026: "للفيلا" (for the villa) is who it is for, not a service
+  { name: 'AR, an alias inside a sentence', text: 'مطلوب تمديدات كهربائية للفيلا', kept: ['مطلوب تمديدات كهربائية للفيلا'] },
 ];
 for (const c of WORDS_ARE_NOT_A_NAME) {
   Deno.test(`no word matching: ${c.name}`, () => {
@@ -267,18 +267,25 @@ const AUDIENCE = /villa|office|فلل|مكاتب|hotel|school|restaurant|mall/i;
 
 Deno.test('the portal sentence: no customer or building type becomes a part, and no part carries "for"', () => {
   const rw = rewriteServices(SENTENCE, SERVICES);
-  assertEquals(rw.own_words.filter((w) => AUDIENCE.test(w) || /\bfor\b/i.test(w)), [], rw.own_words.join(' | '));
-  assert(rw.own_words.includes('Glass curtain walls'), rw.own_words.join(' | '));
+  // the audience is never a part of its own (no "Offices", no "Villas and offices"); the wording is kept whole
+  assertEquals(rw.own_words.filter((w) => AUDIENCE.test(w) && !/^glass curtain walls for villas and offices$/i.test(w)), [], rw.own_words.join(' | '));
+  assert(rw.own_words.includes('Glass curtain walls for villas and offices'), rw.own_words.join(' | '));
 });
 
 const AUDIENCE_CASES: { name: string; text: string; keys: string[]; own: string[] }[] = [
   { name: 'English, a service name before "for"', text: 'False ceilings for hotels and restaurants', keys: ['gypsum.false_ceiling'], own: [] },
   { name: 'English, two names then the audience', text: 'CCTV and Interior painting for schools and malls', keys: ['painting.interior', 'security_systems.cctv'], own: [] },
   { name: 'English, another trade and another audience', text: 'Ducting for warehouses and labour camps', keys: ['hvac.ducting'], own: [] },
-  { name: 'English, a part no service is written as, before "for"', text: 'Helicopter window polishing for yachts and hangars', keys: [], own: ['Helicopter window polishing'] },
+  { name: 'English, a part no service is written as, before "for"', text: 'Helicopter window polishing for yachts and hangars', keys: [], own: ['Helicopter window polishing for yachts and hangars'] },
+  // review of #1756: the object after "for" belongs to the service when the head is no service
+  { name: 'object kept: repairs for air conditioners', text: 'Repairs for air conditioners', keys: [], own: ['Repairs for air conditioners'] },
+  { name: 'object kept: scaffolding for rent', text: 'Scaffolding for rent', keys: [], own: ['Scaffolding for rent'] },
+  { name: 'object kept: cranes for hire', text: 'Cranes for hire', keys: [], own: ['Cranes for hire'] },
+  { name: 'object kept: paint for walls', text: 'Paint for walls', keys: [], own: ['Paint for walls'] },
+  { name: 'object kept (Arabic): maintenance for lifts', text: 'صيانة للمصاعد', keys: [], own: ['صيانة للمصاعد'] },
   { name: 'Arabic, ل attached to the article', text: 'الأسقف المعلقة للفلل والمكاتب', keys: ['gypsum.false_ceiling'], own: [] },
   { name: 'Arabic, لـ standing alone', text: 'قواطع الجبس لـ الفلل والمكاتب', keys: ['gypsum.partitions'], own: [] },
-  { name: 'Arabic, a part no service is written as', text: 'تلميع نوافذ المروحيات للفنادق والمستشفيات', keys: [], own: ['تلميع نوافذ المروحيات'] },
+  { name: 'Arabic, a part no service is written as', text: 'تلميع نوافذ المروحيات للفنادق والمستشفيات', keys: [], own: ['تلميع نوافذ المروحيات للفنادق والمستشفيات'] },
 ];
 for (const c of AUDIENCE_CASES) {
   Deno.test(`audience cut: ${c.name}`, () => {
