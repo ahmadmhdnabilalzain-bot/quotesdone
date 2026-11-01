@@ -24,6 +24,7 @@ import { boqWithArabic } from '../_shared/boq_arabic.ts';
 import { boqReadings, liveReadingStore } from '../_shared/reasoned_documents.ts';
 import { arabicOf, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
+import { createCompany, sessionOpenedByCode } from './create_company.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { markReading, proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
@@ -58,10 +59,20 @@ import { inquiryDocuments, MAX_FILE, REVIEW_ACTIONS, reviewAction, safeInquiry }
 import { supabaseReviewRepo } from './quote_review_flow.ts';
 import { jobNo, readWorking, reviewQuotation, sanitizeSpec, sanitizeTermsSpec } from './quote_review.ts';
 import { issueAsMissing, resolvedFrom, withResolved, workingFromStoredQuote, workingFromSubmit } from './submit_review.ts';
-import { SANCTIONED_REFUSAL, SANCTIONED_REGISTRATION_REFUSAL, sanctionedEmail, sanctionedLeads } from '../_shared/sanctioned.ts';
+import { SANCTIONED_REFUSAL, SANCTIONED_REGISTRATION_REFUSAL, sanctionedEmail, sanctionedLead, sanctionedLeads } from '../_shared/sanctioned.ts';
 import { COMPANY_ALREADY_REGISTERED, isDuplicateCompany, type LeadWriter, registrationRefusal, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
+// NO DATABASE SENTENCE REACHES A RESPONSE (28 Oct 2026, review of #1712; ledger 1401 audit S7). Six actions answered a
+// refused write with the Postgres message itself, eight put a database, storage or exception message in `detail`, and
+// the outer catch answered String(e) on every action, create_company's included (sanctionedEmail throws the PostgREST
+// error when its read fails). The message is logged here; the caller gets the portal's existing unexpected_error copy.
+const SERVER_ERROR = { error: 'Something went wrong. Please try again.', code: 'unexpected_error' } as const;
+const failed = (where: string, e: unknown, status = 500) => {
+  console.error(`supplier_api ${where}:`, String((e as { message?: unknown } | null)?.message ?? e));
+  return J({ ...SERVER_ERROR }, status);
+};
+const logged = (where: string, e: unknown) => { console.error(`supplier_api ${where}:`, String((e as { message?: unknown } | null)?.message ?? e)); };
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 // 15 Sep 2026 (sales_engineer): trade_license_no, license_expiry and license_doc_path are NOT here. They
@@ -554,7 +565,8 @@ ${q}`,
     // answered with the value we already hold.
     if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle(); return J({ supplier: data ? { ...data, terms_current: await secretVal('terms_version') } : null }); }
     if (action === 'search') { const q = String(body.q || '').slice(0, 60); if (q.length < 2) return J({ results: [] }); const { data } = await admin.from('leads').select(SEARCH_COLUMNS).ilike('company_name', '%' + q + '%').order('reviews', { ascending: false, nullsFirst: false }).limit(8); const rows = (data || []) as LeadHit[]; /* a sanctioned party is never shown to anybody — founder instruction 516, 18 Sep 2026 */ const barred = await sanctionedLeads(admin, rows.map((r) => r.id)); return J({ results: rows.filter((r) => !barred.has(String(r.id))).map((r) => searchResult(r, email)) }); } // search_result.ts: claimed_by is read, never returned
-    if (action === 'create_company') { const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing) return J({ error: 'Your account already manages a company.', code: 'company_exists' }, 409); const name = String(body.company_name || '').trim().slice(0, 160); if (name.length < 2) return J({ error: 'Enter your company name.', code: 'enter_company' }, 400); /* A COMPANY ALREADY CLAIMED IS NOT REGISTERED TWICE (24 Sep 2026, sales_engineer, ledger 993). Measured on production with two ZZ DEMO accounts: after account A claimed "ZZ DEMO Errors …", account B created a second listing with the identical name and got HTTP 200, so one company could hold two verified profiles and be matched twice. The comparison is case- and space-folded and exact; a different company with a similar name is not blocked. */ { const { data: twins } = await admin.from('leads').select('id').eq('claimed', true).ilike('company_name', name.replace(/\s+/g, ' ').replace(/[\\%_]/g, (c) => '\\' + c)).limit(1); if (twins && twins.length) return J(COMPANY_ALREADY_REGISTERED, 409); } const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null, business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, owner_email_verified: await emailProven(email), source: 'self_registered', locale: SUPPLIER_LOCALE, scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle(); if (error) { /* The exact-name check above is not atomic and does not fold spellings; the duplicate-company indexes are the rule itself (_shared/duplicate_company.ts). */ if (isDuplicateCompany(error)) return J(COMPANY_ALREADY_REGISTERED, 409); /* a01_leads_sanctioned_identity_cannot_re_register raises this when the name, trade licence or account e-mail belongs to a confirmed sanctions ban. The trigger is the guard; this turns it into a sentence a stranger can read rather than a raw 23514 — founder instruction 516, 18 Sep 2026. */ if (String(error.message || '').includes('SANCTIONED_PARTY_BLOCKED')) return J(SANCTIONED_REGISTRATION_REFUSAL, 403); return J({ error: error.message }, 500); } const reg = await setRegistration(ins!.id); await recordFirstTouch(ins!.id, body.first_touch); return J({ ok: true, id: ins?.id, registration: reg }); }
+    // THE INVITED COMPANY IS CLAIMED, NEVER REGISTERED A SECOND TIME (28 Oct 2026, ledger 1401 audit S7): ./create_company.ts.
+    if (action === 'create_company') { const r = await createCompany(admin, email, body, { emailProven, sessionByCode: sessionOpenedByCode(jwt), sanctionedLead: (id: number) => sanctionedLead(admin, id), setRegistration: (id: number) => setRegistration(id), recordFirstTouch, locale: SUPPLIER_LOCALE }); return J(r.body, r.status); }
     // TAKEOVER FIX 27 Jul 2026 -----------------------------------------------------------------
     // 'claim' resolved the listing from body.leads_id - the sequential primary key - and never
     // looked at claim_token. claim_lookup v2 was rewritten on 19 Jul 2026 to accept ONLY the
@@ -565,7 +577,7 @@ ${q}`,
     // token is the proof of invitation, so the token is now the LOOKUP KEY. leads_id is accepted
     // only as a cross-check: if it is sent and disagrees with the row the token resolves to, the
     // call is rejected rather than silently trusting either one.
-    if (action === 'claim') { const token = String(body.claim_token || body.token || body.t || '').trim(); if (!UUID_RE.test(token)) return J({ error: 'invalid_link', message: 'This claim link is not valid. Please use the link from your invitation, or contact management@quotesdone.com.' }, 400); /* The token's row, this account's current company and the e-mail proof are independent reads: issued together (28 Sep 2026, it_engineer — the claim was a chain of seven round trips, 3.3-4.1 s measured). */ const [{ data: row }, { data: existing }, proven] = await Promise.all([admin.from('leads').select('id,claimed,claimed_by').eq('claim_token', token).maybeSingle(), admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(), emailProven(email)]); if (!row) return J({ error: 'not found' }, 404); const id = Number(row.id); const askedId = Number(body.leads_id); if (body.leads_id != null && isFinite(askedId) && askedId !== id) return J({ error: 'invalid_link', message: 'This claim link does not match the company you selected. Please use the link from your invitation.' }, 400); if (row.claimed && row.claimed_by !== email) return J({ error: 'This company is already claimed by another account.' }, 409); if (existing && existing.id !== id) return J({ error: 'Your account already manages another company.' }, 409); const { error: claimErr } = await admin.from('leads').update({ claimed: true, claimed_by: email, portal_updated_at: new Date().toISOString(), ...(proven ? { owner_email_verified: true } : {}) }).eq('id', id); /* 24 Sep 2026 (#962): a claim the database refused (duplicate-company indexes) gets the same answer as create_company. */ if (claimErr) { console.error('claim: leads update failed —', claimErr.message); const r = registrationRefusal(claimErr); return J(r.body, r.status); } /* that update already touched the row, so the registration trigger has run: read the state, and record the first touch beside it */ const [reg] = await Promise.all([setRegistration(id, false), recordFirstTouch(id, body.first_touch)]); return J({ ok: true, id, registration: reg }); }
+    if (action === 'claim') { const token = String(body.claim_token || body.token || body.t || '').trim(); if (!UUID_RE.test(token)) return J({ error: 'invalid_link', message: 'This claim link is not valid. Please use the link from your invitation, or contact management@quotesdone.com.' }, 400); /* The token's row, this account's current company and the e-mail proof are independent reads: issued together (28 Sep 2026, it_engineer — the claim was a chain of seven round trips, 3.3-4.1 s measured). */ const [{ data: row }, { data: existing }, proven] = await Promise.all([admin.from('leads').select('id,claimed,claimed_by').eq('claim_token', token).maybeSingle(), admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(), emailProven(email)]); if (!row) return J({ error: 'not found' }, 404); const id = Number(row.id); const askedId = Number(body.leads_id); if (body.leads_id != null && isFinite(askedId) && askedId !== id) return J({ error: 'invalid_link', message: 'This claim link does not match the company you selected. Please use the link from your invitation.' }, 400); if (row.claimed && row.claimed_by !== email) return J({ error: 'This company is already claimed by another account.' }, 409); if (existing && existing.id !== id) return J({ error: 'Your account already manages another company.' }, 409); /* A SANCTIONED LISTING IS NEVER CLAIMED (28 Oct 2026, review of #1712): fn_sanctioned_identity excludes the row's own id, so the a01 trigger does not stop a claim of the banned row itself. */ if (await sanctionedLead(admin, id)) return J(SANCTIONED_REGISTRATION_REFUSAL, 403); /* ONE WINNER (review of #1712): the write lands only on a row still unclaimed, or already this account's - the guard create_company.ts claims under - so a website sign-up and a token claim racing for one listing cannot both win; the loser reads 0 rows and is told so. */ const owned = row.claimed_by != null && String(row.claimed_by).trim() !== ''; const claimWrite = admin.from('leads').update({ claimed: true, claimed_by: email, portal_updated_at: new Date().toISOString(), ...(proven ? { owner_email_verified: true } : {}) }).eq('id', id); const { data: won, error: claimErr } = await (owned ? claimWrite.eq('claimed_by', email) : claimWrite.is('claimed_by', null)).select('id'); /* 24 Sep 2026 (#962): a claim the database refused (duplicate-company indexes) gets the same answer as create_company. */ if (claimErr) { console.error('claim: leads update failed —', claimErr.message); const r = registrationRefusal(claimErr); return J(r.body, r.status); } if (!won || !won.length) return J({ error: 'This company is already claimed by another account.' }, 409); /* that update already touched the row, so the registration trigger has run: read the state, and record the first touch beside it */ const [reg] = await Promise.all([setRegistration(id, false), recordFirstTouch(id, body.first_touch)]); return J({ ok: true, id, registration: reg }); }
 
     // WHAT THIS COMPANY CAN QUOTE FOR (12 Aug 2026; answered here since 14 Sep 2026).
     //
@@ -736,7 +748,7 @@ ${q}`,
         const s = sc.result;
         const p = `licenses/${sup.id}/${Date.now()}_${safeFilename(lic.filename || 'license', s.mime)}`;
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-        if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your trade licence. Please try again.' }, 502);
+        if (up.error || !(await storedAt(admin, 'supplier-docs', p))) { logged('licence upload', up.error ?? 'storage does not hold the object after upload'); return J({ error: 'upload_failed', code: 'upload_failed', message: 'We could not store your trade licence. Please try again.' }, 502); }
         upd.license_doc_path = p;
         readQueue.push({ path: p, name: String(lic.filename || 'licence'), kind: 'licence', bytes: s.bytes, mime: s.mime });
       }
@@ -859,7 +871,7 @@ ${q}`,
         const s = sc.result;
         const p = `profiles/${sup.id}/${Date.now()}_${safeFilename(prof.filename || 'profile', s.mime)}`;
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-        if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your company profile. Please try again.' }, 502);
+        if (up.error || !(await storedAt(admin, 'supplier-docs', p))) { logged('profile upload', up.error ?? 'storage does not hold the object after upload'); return J({ error: 'upload_failed', code: 'upload_failed', message: 'We could not store your company profile. Please try again.' }, 502); }
         upd.company_profile_doc_path = p;
         // Read after the response (supplier_docs_later.ts); the picture / scan model step is profileHook below.
         readQueue.push({ path: p, name: String(prof.filename || 'profile'), kind: 'profile', bytes: s.bytes, mime: s.mime });
@@ -877,7 +889,7 @@ ${q}`,
           const s = sc.result;
           const p = `catalogs/${sup.id}/${Date.now()}_${safeFilename(c.filename || 'catalog', s.mime)}`;
           const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-          if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store one of your catalogue files. Please try again.' }, 502);
+          if (up.error || !(await storedAt(admin, 'supplier-docs', p))) { logged('catalogue upload', up.error ?? 'storage does not hold the object after upload'); return J({ error: 'upload_failed', code: 'upload_failed', message: 'We could not store one of your catalogue files. Please try again.' }, 502); }
           catPaths.push(p);
           readQueue.push({ path: p, name: String(c.filename || 'catalogue'), kind: 'catalogue', bytes: s.bytes, mime: s.mime });
         }
@@ -982,7 +994,7 @@ ${q}`,
       if ('locale' in body) upd.locale = SUPPLIER_LOCALE;
       if (body.email_shared !== undefined) upd.email_shared = !!body.email_shared;
       const { error } = await admin.from('leads').update(upd).eq('id', sup.id);
-      if (error) return J({ error: error.message }, 500);
+      if (error) return failed(String(action), error);
       return J({ ok: true, saved: Object.keys(upd).filter((k) => k !== 'portal_updated_at') });
     }
 
@@ -998,7 +1010,7 @@ ${q}`,
       const rec = await supplierTermsRecord(secretVal, clientIp(req), req.headers.get('user-agent') || '');
       if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
       const { error } = await admin.from('leads').update(rec).eq('id', sup.id);
-      if (error) return J({ error: error.message }, 500);
+      if (error) return failed(String(action), error);
       return J({ ok: true, accepted_terms_version: rec.accepted_terms_version, text_hash_stored: !!rec.accepted_terms_sha256 });
     }
 
@@ -1023,7 +1035,7 @@ ${q}`,
       const { data, error } = await admin.rpc('fn_supplier_set_availability', {
         p_supplier_id: sup.id, p_state: String(body.state ?? ''), p_busy_until: until, p_by: 'supplier (portal)',
       });
-      if (error) return J({ error: error.message }, 500);
+      if (error) return failed(String(action), error);
       return J(data, data?.ok ? 200 : 400);
     }
 
@@ -1095,7 +1107,7 @@ ${q}`,
       const { error: updErr } = await admin.from('leads').update(upd).eq('id', sup.id);
       if (updErr) {
         console.error('save_profile: leads update failed —', updErr.message);
-        return J({ error: 'save_failed', code: 'save_failed', detail: updErr.message, message: 'We could not save your profile. Please try again.' }, 502);
+        return J({ error: 'save_failed', code: 'save_failed', message: 'We could not save your profile. Please try again.' }, 502);
       }
       // The certificate is rendered by compliance_archive after the trigger above posts to it. Give it a
       // few seconds so a supplier who accepts and submits in one go is verified on the signed copy; if it
@@ -1117,7 +1129,7 @@ ${q}`,
       const { data: vd, error: vErr } = await admin.rpc('fn_sales_engineer_verifies_supplier', { p_lead_id: sup.id, p_source: 'save_profile' });
       if (vErr || !(vd as { ok?: boolean })?.ok) {
         console.error('save_profile: verification failed —', vErr?.message || JSON.stringify(vd));
-        return J({ error: 'verification_failed', code: 'verification_failed', detail: vErr?.message || null, message: 'Your profile was saved, but we could not check your registration. Please try again.' }, 502);
+        return J({ error: 'verification_failed', code: 'verification_failed', message: 'Your profile was saved, but we could not check your registration. Please try again.' }, 502);
       }
       const v = vd as { approval_status: string; missing: string[]; reason: string | null; licence_expired: boolean };
       const decision = String(v.approval_status || 'pending');
@@ -1204,7 +1216,7 @@ ${q}`,
         p_from: 'sales_engineer', p_to: 'accountant', p_type: 'charge.disputed', p_subject_table: 'supplier_dues',
         p_subject_id: String(due.id) + ':' + Date.now(),
         p_payload: { supplier_id: sup.id, due_id: due.id, reason: String(body.reason || '').slice(0, 1000) } });
-      if (hErr) return J({ error: 'dispute_not_recorded', detail: hErr.message }, 503);
+      if (hErr) { logged('dispute handoff', hErr); return J({ error: 'dispute_not_recorded' }, 503); }
       return J({ ok: true, handoff_id: hid, message: 'We have your query. We are checking the charge against the payment record and will write back to you.' });
     }
     if (action === 'inbox') {
@@ -1629,7 +1641,7 @@ ${q}`,
       if (t.supplier_ack_at) return J({ ok: true, acknowledged_at: t.supplier_ack_at });
       const now = new Date().toISOString();
       const { error } = await admin.from('transactions').update({ supplier_ack_at: now }).eq('id', txId).is('supplier_ack_at', null);
-      if (error) return J({ error: error.message }, 500);
+      if (error) return failed(String(action), error);
       return J({ ok: true, acknowledged_at: now });
     }
     // T3 QUOTE TEMPLATES (sales_engineer, 5 Oct 2026): structure a supplier reuses, never a price
@@ -1692,7 +1704,7 @@ ${q}`,
       const { data: inq } = await admin.from('inquiries').select('category,summary').eq('id', inquiry_id).maybeSingle();
       const secret = await secretVal('cred_fn_supplier_api');
       let jd: any = {};
-      try { const r = await fetch(`${SUPA_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: (sup as any).id, email }, images, inquiry: inq || {}, ...(orig.b64 ? { file_b64: String(orig.b64), mime: String(orig.mime || ''), filename: String(orig.filename || 'quotation') } : {}), supplier_terms: [String((sup as any).company_name || '')].filter(Boolean) }) }); jd = await r.json(); } catch (e) { return J({ error: 'Reading failed, please try again or fill the form.', code: 'quote_read_failed', detail: String((e as Error)?.message || e) }, 502); }
+      try { const r = await fetch(`${SUPA_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: (sup as any).id, email }, images, inquiry: inq || {}, ...(orig.b64 ? { file_b64: String(orig.b64), mime: String(orig.mime || ''), filename: String(orig.filename || 'quotation') } : {}), supplier_terms: [String((sup as any).company_name || '')].filter(Boolean) }) }); jd = await r.json(); } catch (e) { logged('quote_extract call', e); return J({ error: 'Reading failed, please try again or fill the form.', code: 'quote_read_failed' }, 502); }
       // Under the OpenRouter hold quote_extract has no model to call, so this is the expected path:
       // the code tells the portal to say "fill in the form", which is a complete way to quote.
       // RULING 1177 (12 Oct 2026): 'fill the form instead' was the answer to every quotation quote_extract could not price.
@@ -1704,7 +1716,7 @@ ${q}`,
         const seen = await readQuotationFile(b64Bytes(String(orig.b64)), String(orig.filename || 'quotation'), String(orig.mime || ''), [String((sup as any).company_name || '')].filter(Boolean), undefined, envGatewayVision({ subject: { supplier_id: (sup as any).id, email } })).catch(() => null);
         if (seen?.proposal) jd = { ok: true, proposal: seen.proposal, extracted_by_model: 'read_every_attachment' };
       }
-      if (!jd?.ok) return J({ error: jd?.error || 'quote_unreadable', code: 'quote_read_failed', message: clearerCopyAsk('supplier', 'en', String(orig.filename || 'your quotation')), detail: jd?.detail || null }, 502);
+      if (!jd?.ok) { logged('quote_extract answer', `${jd?.error ?? 'no error'} ${jd?.detail ?? ''}`); return J({ error: 'quote_unreadable', code: 'quote_read_failed', message: clearerCopyAsk('supplier', 'en', String(orig.filename || 'your quotation')) }, 502); }
       // WHO READ IT (founder instruction ~891). The model quote_extract read this quotation with, kept per supplier and
       // inquiry so the quote submitted from it carries its author and quote_compare can be routed to another family.
       const readBy = typeof jd.extracted_by_model === 'string' && jd.extracted_by_model ? jd.extracted_by_model : 'unknown';
@@ -1817,7 +1829,7 @@ ${q}`,
       {
         const { data: regSt, error: regErr } = await admin.rpc('fn_supplier_registration_state', { p_lead_id: sup.id });
         const reg = regSt as any;
-        if (regErr || !reg?.ok) return J({ error: 'registration_state_unavailable', code: 'registration_state_unavailable', detail: regErr?.message || 'lead_not_found', hint: 'We could not confirm your registration status. Please try again shortly.' }, 503);
+        if (regErr || !reg?.ok) { logged('submit_quote registration state', regErr ?? 'lead_not_found'); return J({ error: 'registration_state_unavailable', code: 'registration_state_unavailable', hint: 'We could not confirm your registration status. Please try again shortly.' }, 503); }
         if (reg.may_quote === false) return J({ error: 'Your ' + String(reg.currency || 'AED') + ' ' + Number(reg.fee_due || 0) + ' annual Subscription Fee is due. Please pay it in Billing to send quotes.', code: 'registration_due', params: { fee: Number(reg.fee_due || 0), currency: String(reg.currency || 'AED') }, registration: { status: reg.status, fee_due: reg.fee_due, currency: reg.currency, reason: reg.reason } }, 402);
       }
       const { data: inqStat } = await admin.from('inquiries').select('status').eq('id', inquiryId).maybeSingle();
@@ -1961,8 +1973,8 @@ ${q}`,
           snapRow = sr as unknown as Record<string, unknown>; snapLines = (sl || []) as unknown as Record<string, unknown>[];
         }
         let qid: string;
-        if (prior) { const { error } = await admin.from('quotes').update(det).eq('id', prior.id); if (error) return J({ error: error.message }, 500); qid = String(prior.id); }
-        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error) return J({ error: error.message }, 500); qid = String(ins.id); }
+        if (prior) { const { error } = await admin.from('quotes').update(det).eq('id', prior.id); if (error) return failed(String(action), error); qid = String(prior.id); }
+        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error) return failed(String(action), error); qid = String(ins.id); }
         try {
           await admin.from('quote_items').delete().eq('quote_id', qid);
           // A line's own words fill brand / model / specification where the caller sent none; a scope
@@ -2059,7 +2071,7 @@ ${q}`,
     }
     return J({ error: 'unknown action' }, 400);
   } catch (e) {
-    return J({ error: String(e) }, 500);
+    return failed('unhandled', e);
   }
 };
 Deno.serve(siteCors(observe('supplier_api', handle)));
