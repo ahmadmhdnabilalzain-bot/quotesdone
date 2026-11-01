@@ -17,6 +17,7 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { supabaseTokenOrEmpty } from '../lib/supabase_token.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 
@@ -32,6 +33,9 @@ export const ALLOWED = new Map([
   ['scripts/checks/language_follows_registration.mjs', 'sends WALK, an aborted probe written in the file with no interpolation'],
   ['scripts/invitation_inbox_check.mjs', 'an operator tool that queues one seed invitation on purpose'],
   ['scripts/kb/purge_kb_bulk.mjs', 'the knowledge purge driver; commits batches by design, names scripts/sql only in messages'],
+  // 1 Nov 2026 (it_engineer), read the same way: its one commit sends public.fn_record_inbox_placement_verdict(...) built
+  // by recordSql() from a GlockApps answer; it reads scripts/sql files only for --dry-run, and that path uses replaySql.
+  ['scripts/record_inbox_placement_verdict.mjs', 'the GlockApps recorder: commits the one routine call recordSql builds; reads scripts/sql only for --dry-run, which goes through replaySql'],
   ['scripts/staging/prove_quote_builder.mjs', 'sends reads written in the file; names scripts/sql only in a message'],
 ]);
 
@@ -163,7 +167,9 @@ test('a begin; create function; commit; file replayed through the helper leaves 
   const { replaySql, ROLLBACK_MARK } = await import('../lib/safe_replay.mjs');
   const name = `zz_demo_safe_replay_${process.pid}`;
   const exists = async () => (await sql(`select count(*)::int n from pg_proc where proname = '${name}'`, { readOnly: true }))[0].n;
-  try { await exists(); } catch (e) { if (/No Supabase access token/.test(e.message)) return t.skip('no management token'); throw e; }
+  // The token message became MISSING_TOKEN (scripts/lib/supabase_token.mjs, 26 Oct 2026) and the old match stopped
+  // skipping: the CI job carries no token by design, so it retried for 62 s and failed. Ask for the token directly.
+  if (!supabaseTokenOrEmpty()) return t.skip('no management token');
   assert.equal(await exists(), 0, 'the demo routine is already on production');
   const file = `BEGIN;\ncreate function public.${name}() returns int language sql as $f$ select 1 $f$;\nCOMMIT;\n`
     + `select public.${name}();\n`;

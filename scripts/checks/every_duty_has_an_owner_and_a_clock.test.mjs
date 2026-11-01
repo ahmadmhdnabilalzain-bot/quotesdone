@@ -15,7 +15,6 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { sql } from '../lib/db.mjs';
 import { replaySql } from '../lib/safe_replay.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -91,7 +90,8 @@ test('fn_suppression_stops answers what suppressionStops answers, on every reaso
   const pairs = reasons.flatMap((r) => types.map((t) => `('${r}','${t}')`)).join(',');
   // A pending definition is replayed first, in the same rolled-back request, so production answers what it WILL answer.
   const ask = `select r, t, public.fn_suppression_stops(r, t) as stops from (values ${pairs}) v(r, t)`;
-  const rows = OPT_OUT_PENDING ? await replaySql(R(OPT_OUT_FILE) + '\n' + ask + ';', { retry: false, rows: true }) : await sql(ask);
+  // Both branches go through the safe door (1 Nov 2026): a read-only request is refused EXECUTE on the routine (42501).
+  const rows = await replaySql((OPT_OUT_PENDING ? R(OPT_OUT_FILE) + '\n' : '') + ask + ';', { retry: false, rows: true });
   assert.ok(Array.isArray(rows) && rows.length === reasons.length * types.length, JSON.stringify(rows).slice(0, 300));
   for (const x of rows) {
     const ts = String(x.r).trim().toLowerCase() !== 'unsubscribe' || TS_LIST.includes(x.t);   // suppressionStops, verbatim rule

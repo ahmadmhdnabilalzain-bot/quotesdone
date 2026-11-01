@@ -28,7 +28,18 @@ function routine(name) {
   return m[2];
 }
 
-test('this file is the canonical definition: it is the last MANIFEST line defining both builders (or awaits apply at merge)', () => {
+// Every `create or replace function public.<name>` body in one SQL text, comment lines removed.
+function bodiesIn(text, name) {
+  const src = text.split('\n').filter((l) => !/^\s*--/.test(l)).join('\n');
+  const re = new RegExp(`create or replace function public\\.${name}\\([^)]*\\)[\\s\\S]*?as (\\$[a-z]*\\$)([\\s\\S]*?)\\1`, 'gi');
+  return [...src.matchAll(re)].map((m) => m[2]);
+}
+
+// 1 Nov 2026 (it_engineer): the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.sql (#1696) redefines
+// fn_supplier_invite_candidates after this file, to pick by mail provider. A later definition is allowed; what it may
+// not do is bring back the refusal this file removed. So every later definition is held to this file's rule: it never
+// refuses a body for a missing {{link}}, and a definition that reads invite_body still refuses an EMPTY one.
+test('this file is the canonical definition, or every later definition of the builders keeps its no-link rule', () => {
   const at = manifest.lastIndexOf(FILE);
   if (at < 0) {
     // applied at merge: until then it carries its pending note, and nothing in the MANIFEST may redefine them after it lands
@@ -39,7 +50,17 @@ test('this file is the canonical definition: it is the last MANIFEST line defini
     const later = manifest.slice(at + 1).filter((f) => f.endsWith('.sql')).filter((f) => {
       try { return new RegExp(`function\\s+public\\.${name}\\b`, 'i').test(read(f)); } catch { return false; }
     });
-    assert.deepEqual(later, [], `${name} is redefined after this file by ${later.join(', ')}`);
+    for (const f of later) {
+      const bodies = bodiesIn(read(f), name);
+      assert.ok(bodies.length > 0, `${f} names ${name} but no definition of it was parsed`);
+      for (const body of bodies) {
+        assert.doesNotMatch(body, /not like '%\{\{link\}\}%'/, `${f}: ${name} refuses a body without {{link}} again: every batch would raise`);
+        assert.doesNotMatch(body, /raise exception[^;]*\{\{link\}\}/, `${f}: ${name} raises over {{link}}`);
+        if (/key = 'invite_body'/.test(body)) {
+          assert.match(body, /if btrim\(coalesce\(v_body, ''\)\) = '' then\s+raise exception/, `${f}: ${name} no longer refuses an empty template`);
+        }
+      }
+    }
   }
 });
 

@@ -50,10 +50,11 @@ test('a CAD drawing the edge cannot read is queued on both paths, and 546 counts
 test('the queue has a worker, a queued job is held for the sales_engineer, and the status is the owner\'s only', () => {
   // customer_api no longer dispatches the workflow (Actions is off, 27 Oct); the workflow stays runnable by hand.
   assert.match(worker, /workflow_dispatch/);
-  // The 6-hourly schedule is the last resort for a lost dispatch. Founder, 26 Oct 2026: every automatic
-  // trigger is off until the bugs clear, so it may stand commented out, but only under that note.
+  // The 6-hourly schedule is the last resort for a lost dispatch. Founder, 26 Oct 2026 (ledger 1279): every automatic
+  // trigger off; 28 Oct 2026 (ledger 1410, #1732): push / pull_request / workflow_run back, schedules stay off GitHub.
+  // So it may stand commented out, but only under that founder note.
   assert.match(worker, /^ {2}(# )?schedule:/m, 'the CAD worker lost its schedule');
-  if (/^ {2}# schedule:/m.test(worker)) assert.match(worker, /founder 26 Oct: automatic triggers off/, 'the schedule is off without the founder note');
+  if (/^ {2}# schedule:/m.test(worker)) assert.match(worker, /founder 28 Oct \(ledger 1410\)[^\n]*\n#[^\n]*schedules stay on pg_cron/, 'the schedule is off without the founder note');
   assert.match(worker, /scripts\/cad_read_worker\.ts/);
   assert.match(workerTs, /fn_cad_read_claim\(/);
   assert.match(workerTs, /readDwg\(bytes, ctx, Infinity\)/);

@@ -351,6 +351,11 @@ export const REGISTER = {
   // 12 Oct 2026 (it_engineer, #1287 release review): the held-question replay decides a stale answer is not sent
   // (think.ts replayHeld, older than 24 h or undated); this routine only records that decision for customer_support.
   fn_reason_held_delivered: { relay: 'records a reasoned answer the replay held for review instead of sending (think.ts replayHeld decided it was stale); a healthy day answers inside 24 h and holds none' },
+  // 1 Nov 2026 (it_engineer; the routine is marketing's, #1511). It decides nothing: it cancels queued supplier WhatsApp
+  // invitations and opens deliverability:supplier_invite_wa with the reason its caller hands it. The two callers decide:
+  // fn_wa_sender_quality_record (a Twilio reading that is not HIGH/GREEN and ONLINE) and fn_wa_supplier_invite_gate (2+
+  // STOP replies that are at least 5% of the WhatsApp invitations sent in 7 days, and no brake already open).
+  fn_wa_supplier_invite_brake: { relay: 'records the brake its caller decided: fn_wa_sender_quality_record on a sender reading that is not HIGH / ONLINE, or fn_wa_supplier_invite_gate on 2+ STOP replies that are 5% or more of 7 days of WhatsApp invitations; a healthy day reads HIGH / ONLINE and has no STOP burst, so it is never called' },
   fn_it_restore_table_pick: { relay: 'records that the restore drill could not pick a table; the error is the finding' },
   // ── BASELINE: existed on 22 Sep 2026 and cannot be replayed yet ─────────────────────────────────
   fn_it_engineer_alert_tick: { baseline: 'monitor rules over it_watch_tick and it_engineer_scanner; replaying it runs the whole IT loop (handoffs, digest) and needs a side-effect-free split first' },

@@ -84,9 +84,10 @@ test('a broken step becomes a finding naming it; a skipped one is carried, never
   assert.ok(PROBE.includes("'duty:mystery_shopper:quote'"), 'the probe no longer proves a skip files nothing');
 });
 
-test('the workflow keeps its daily schedule and the shared runner', () => {
+test('the workflow keeps its daily schedule and the GitHub-hosted runner', () => {
   assert.match(WF, /cron: '\d+ \d+ \* \* \*'/, 'the daily schedule is gone (keep it, commented, while Actions are off)');
   assert.match(WF, /workflow_dispatch/, 'the workflow cannot be run by hand');
-  assert.match(WF, /runs-on: \$\{\{ vars\.RUNNER \|\| 'ubicloud-standard-2' \}\}/, 'not on the shared runner');
+  // founder 28 Oct 2026 (ledger 1410, #1732): Actions runs on GitHub-hosted runners; Ubicloud stays stopped (ledger 1279).
+  assert.match(WF, /runs-on: ubuntu-latest\s*$/m, 'not on the GitHub-hosted runner');
   assert.match(WF, /run: node scripts\/e2e\/mystery_shopper\.mjs\s*$/m, 'the workflow does not run the shopper');
 });

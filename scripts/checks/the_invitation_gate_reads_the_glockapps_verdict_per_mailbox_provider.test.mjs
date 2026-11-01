@@ -87,10 +87,14 @@ test('the finding is one a day through the registered relay, on an open day only
   }
 });
 
+const CANONICAL_AT = { fn_sales_engineer_supplier_outreach_tick: 'scripts/sql/the_invitation_batch_runs_on_its_own_clock_and_the_guard_takes_the_link_less_copy.sql' };
 test('the batch, the tick and the nudges skip a failing provider instead of holding every one', () => {
   for (const fn of ['enqueue_supplier_invites', 'fn_sales_engineer_supplier_outreach_tick', 'fn_sales_engineer_nudges_invited_suppliers']) {
     const c = canonical(fn);
-    assert.equal(c.path, FILE, `${fn} is canonical in ${c.path}`);
+    // #1705 (sales_engineer, 28 Oct 2026) made the tick its own seat duty, and a seat-duty file must define the routine it
+    // registers, so the_invitation_batch_runs_on_its_own_clock_... redefines it with this file's body verbatim (its header
+    // says so). The canonical body is still held to every property below.
+    assert.equal(c.path, CANONICAL_AT[fn] || FILE, `${fn} is canonical in ${c.path}`);
     assert.match(c.body, /fn_invite_placement_open_providers\(/, `${fn} does not ask which providers are open`);
     assert.doesNotMatch(c.body, /fn_invite_placement_gate\(/, `${fn} still holds every provider on the strict answer`);
     assert.match(c.body, /cardinality\(.*?\) = 0/s, `${fn} does not hold when NO provider is open`);

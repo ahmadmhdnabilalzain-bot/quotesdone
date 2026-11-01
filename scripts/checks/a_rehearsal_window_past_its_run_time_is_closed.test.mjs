@@ -62,12 +62,18 @@ test('(a) a real SIGTERM from outside closes the window', { skip: process.platfo
 });
 
 test('(a) run.mjs and withRun arm closeOnExit with their own run tag and disarm in finally', () => {
+  // d624eca (27 Oct 2026): a SIGTERM, Ctrl-C or crash tears the run down too, then closes its window. run.mjs arms
+  // closeRun, whose finally ALWAYS closes this run's window by its tag; withRun arms teardown with the close in a finally.
   const run = R('scripts/e2e/run.mjs');
-  assert.match(run, /const disarm = closeOnExit\(\(\) => closeRehearsalWindow\(run\.tag\)\);/);
+  assert.match(run, /const disarm = closeOnExit\(\(\) => closeRun\(run, \{ keep: KEEP \}\)\);/);
   assert.match(run.slice(run.indexOf('} finally {')), /closeRun\(run[^\n]*\n\s*disarm\(\);/);
+  const fx = R('scripts/e2e/fixtures.mjs');
+  const cr = fx.slice(fx.indexOf('export async function closeRun'));
+  assert.match(cr, /\} finally \{[\s\S]{0,400}?update public\.rehearsal_window set ended_at = now\(\)[^`]*run_tag = \$\{q\('qd_run:' \+ run\.tag\)\}/,
+    'closeRun no longer closes its own window in a finally');
   const f = R('scripts/lib/demo_factory.mjs');
   const w = f.slice(f.indexOf('export async function withRun'));
-  assert.match(w, /const disarm = closeOnExit\(\(\) => closeRehearsalWindow\(run\.tag\)\);\s*try \{/);
+  assert.match(w, /const disarm = closeOnExit\(async \(\) => \{\s*try \{ if \(!run\.keep\) await teardown\(run\); \} finally \{ await closeRehearsalWindow\(run\.tag\); \}\s*\}\);\s*try \{/);
   assert.match(w, /\} finally \{\s*disarm\(\);/);
 });
 
