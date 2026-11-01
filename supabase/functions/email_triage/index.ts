@@ -23,7 +23,7 @@ import { drain as drainJudgements } from '../_shared/routine_judgements.ts';
 import { defaultDeps, think, type ThinkDeps } from '../_shared/think.ts';
 import { knownSenderCategory } from '../_shared/triage_known_sender.ts';
 import { mailFacts, SEPARATE_COMPANY_FACT } from './account_facts.ts';
-import { composeMailReply, declinedRowFields, invitationReplyAnswerable, noAutoReply, tenantMailAnswerable } from '../_shared/customer_mail.ts';
+import { composeMailReply, declinedRowFields, invitationReplyAnswerable, noAutoReply, overDailyAnswerCap, tenantMailAnswerable } from '../_shared/customer_mail.ts';
 import { langOf } from '../_shared/chat_answers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { fileReviewRequest } from '../_shared/review_request.ts';
@@ -109,17 +109,16 @@ Deno.serve(observe('email_triage', async (req) => {
       catch (e) {
         counts.answer_failed++; console.error('email_triage answer', m.id, String((e as Error)?.message || e));
         // NEVER JUST WAITS (2 Nov 2026): a triaged row is not selected again, so a failed answer had no owner and no retry.
-        // It goes to the founder's Inbox, the same pending inbound_review a request for a person leaves.
-        const { data: open } = await admin.from('agent_actions').select('id').eq('kind', 'inbound_review').eq('target_table', 'inbound_messages').eq('target_id', String(m.id)).eq('status', 'pending').limit(1);
-        if (!open?.length) await admin.from('agent_actions').insert({ agent: 'email', kind: 'inbound_review', status: 'pending', risk: 'low',
-          title: 'Inbox: mail no model could answer — ' + String(m.subject || '(no subject)').slice(0, 60),
-          recommendation: 'customer_support could not write an answer, so the sender has heard nothing. Reply from the Inbox.',
-          target_table: 'inbound_messages', target_id: String(m.id), detail: { from: m.from_email, to: m.to_email, error: String((e as Error)?.message || e).slice(0, 300) } });
+        // Nothing comes back to the founder (ledger 1438): the ceo seat holds it as a live handoff, idempotent per message.
+        const { error: hoErr } = await admin.rpc('fn_seat_handoff', { p_from: 'customer_support', p_to: 'ceo', p_type: 'review.requested', p_subject_table: 'inbound_messages', p_subject_id: String(m.id),
+          p_payload: { inbound_message_id: m.id, from_email: m.from_email, to_email: m.to_email, subject: String(m.subject || '').slice(0, 200), ask: 'customer_support could not write an answer, so the sender has heard nothing. Decide the answer and have it sent in the thread.', error: String((e as Error)?.message || e).slice(0, 300) } });
+        if (hoErr) console.error('email_triage handoff', m.id, hoErr.message);
+        else await admin.from('inbound_messages').update({ owner_role: 'ceo' }).eq('id', m.id).is('owner_role', null);
       }
     };
     for (const m of ((msgs || []) as Mail[])) {
       // 1. NEVER ANSWERED: the founder, no-reply and verification senders, calendar replies, bounces.
-      let skip = noAutoReply(m, founder);
+      let skip: string | null = noAutoReply(m, founder);
       // An invited supplier's reply to the invitation mailbox (supplier@) is the one 'internal' row that IS answered:
       // only when the sender is a lead, and every other rule (bounce, no-reply, auto-submitted, calendar) still applies
       // (customer_mail.ts invitationReplyAnswerable, 28 Oct 2026).
@@ -132,6 +131,11 @@ Deno.serve(observe('email_triage', async (req) => {
       }
       // A reply never goes to the founder: fn_is_founder_own_inbox also names his personal inboxes, which admin_emails does not.
       if (!skip) { const { data: own } = await admin.rpc('fn_is_founder_own_inbox', { p_addr: String(m.from_email || '') }); if (own === true) skip = 'founder'; }
+      if (!skip) {
+        const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true }).eq('type', 'inbound_reply')
+          .ilike('to_email', String(m.from_email || '').trim().replace(/[\\%_]/g, (c) => '\\' + c)).gte('created_at', new Date(Date.now() - 86_400_000).toISOString());
+        if (overDailyAnswerCap(count)) skip = 'daily answer cap';
+      }
       if (skip) {
         await admin.from('inbound_messages').update({ ai_category: 'no_auto_reply', ai_summary: 'Not answered automatically: ' + skip + ' (customer_mail.ts noAutoReply).', triaged_at: new Date().toISOString(), ...declinedRowFields(m) }).eq('id', m.id);
         counts.not_answered++; continue;

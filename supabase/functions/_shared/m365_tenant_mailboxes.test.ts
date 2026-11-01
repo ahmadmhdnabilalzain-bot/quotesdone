@@ -14,10 +14,12 @@ const STRANGER = 'someone@zz-demo-stranger.example.invalid';
 const FOUNDER = 'owner@zz-demo-founder.example.invalid';
 const kinds: Record<string, SenderKind> = { [SUPPLIER]: 'known', [FOUNDER]: 'founder' };
 
-type Box = { inbox?: Array<[string, string]>; junk?: Array<[string, string]>; filed?: Array<[string, string]>; status?: number };
+type Row = [string, string, Record<string, unknown>?];
+type Box = { inbox?: Row[]; junk?: Row[]; filed?: Row[]; status?: number };
 const env = (id: string, from: string) => ({ id, subject: 'Hello', receivedDateTime: '2026-11-01T10:00:00Z', from: { emailAddress: { address: from } } });
 
-function harness(boxes: Record<string, Box>, o: { users?: string[] | number; listed?: string; onFile?: string[]; handStatus?: number; now?: () => number } = {}) {
+const CUTOFF = '2026-10-01T00:00:00Z';
+function harness(boxes: Record<string, Box>, o: { users?: string[] | number; listed?: string; onFile?: string[]; handStatus?: number; now?: () => number; strangersFrom?: string | null; financial?: string; attachments?: unknown[]; messages?: string[] } = {}) {
   const calls: Array<{ url: string; method: string; body?: string }> = [];
   const runs: Array<{ status: string; counts: Record<string, unknown>; note: string }> = [];
   const json = (b: unknown, s = 200) => Promise.resolve(new Response(JSON.stringify(b), { status: s }));
@@ -32,16 +34,19 @@ function harness(boxes: Record<string, Box>, o: { users?: string[] | number; lis
       const box = decodeURIComponent(url.split('/users/')[1].split('/')[0]);
       const b = boxes[box] || { status: 404 };
       if (b.status) return json({ error: { code: 'x' } }, b.status);
+      if (url.includes('/attachments')) return json({ value: o.attachments || [] });
       if (url.includes('/mailFolders?')) return json({ value: [{ id: 'SENT', displayName: 'Sent Items' }, { id: 'FILED', displayName: 'info quotesdone' }] });
       if (url.includes('/mailFolders/SENT/')) throw new Error('a system folder was swept');
       if (url.includes('/mailFolders/')) {
         const list = url.includes('/mailFolders/junkemail/') ? b.junk : url.includes('/mailFolders/FILED/') ? b.filed : b.inbox;
-        return json({ value: (list || []).map(([id, from]) => env(id, from)) });
+        return json({ value: (list || []).map(([id, from, extra]) => ({ ...env(id, from), ...(extra || {}) })) });
       }
       const id = decodeURIComponent(url.split('/messages/')[1].split('?')[0]);
       return json({ ...env(id, 'x'), internetMessageId: `<${id}@x>`, body: { contentType: 'text', content: 'Please register our subsidiary.' }, internetMessageHeaders: [] });
     },
     env: (k) => ENV[k], inviteMailbox: 'supplier@quotesdone.com', listedMailboxes: o.listed,
+    strangersFrom: o.strangersFrom === null ? undefined : (o.strangersFrom ?? CUTOFF), financialDomains: o.financial,
+    messageOnFile: (ids) => Promise.resolve(new Set(ids.filter((i) => (o.messages || []).includes(i)))),
     inboundToken: 'zz', signingSecret: SIGNING, inboundUrl: INBOUND,
     onFile: (ids) => Promise.resolve(new Set(ids.filter((i) => (o.onFile || []).includes(i)))),
     sender: (a) => Promise.resolve(kinds[a] ?? null),
@@ -84,14 +89,70 @@ Deno.test('a filed folder is read under the Inbox rules, unmarked; a system fold
   assertEquals(h.writes(), []); assertEquals(r.list_failed, 0);
 });
 
-Deno.test('Junk in any mailbox: a delivery report and a known sender are handed, a stranger never', async () => {
+Deno.test('Junk in another mailbox: only a known sender; a stranger and a delivery report are not handed', async () => {
   const h = harness({ 'info@quotesdone.com': { junk: [['J1', STRANGER], ['J2', MS], ['J3', SUPPLIER], ['J4', 'postmaster@zz-demo.example.invalid']] } }, { users: ['info@quotesdone.com'] });
   const r = await pollTenantMailboxes(h.deps);
-  assertEquals(h.hands().map((d) => d.email_id).sort(), ['m365:J2', 'm365:J3', 'm365:J4']);
-  assertEquals(r.not_handed, 1); assertEquals(h.writes(), []);
+  assertEquals(h.hands().map((d) => d.email_id), ['m365:J3']);
+  assertEquals(h.writes(), []); assertEquals(r.handed, 1);
   assertEquals(folderHands('junkemail', STRANGER, null), false);
   assertEquals(folderHands('inbox', STRANGER, null), true);
   assertEquals(folderHands('junkemail', FOUNDER, 'founder'), false);
+});
+
+const ONE = { users: ['management@quotesdone.com'] };
+const box1 = (inbox: Row[]) => ({ 'management@quotesdone.com': { inbox } });
+
+Deno.test('known-bad control: an old stranger is not handed, a stranger after the cutoff is; a known sender and a reply in our thread keep the lookback', async () => {
+  const old = harness(box1([['OLD', STRANGER, { receivedDateTime: '2026-09-20T00:00:00Z' }]]), ONE);
+  assertEquals((await pollTenantMailboxes(old.deps)).skipped, 1); assertEquals(old.hands(), []);
+  const none = harness(box1([['NEW', STRANGER]]), { ...ONE, strangersFrom: null });
+  assertEquals((await pollTenantMailboxes(none.deps)).skipped, 1, 'no cutoff stored: no stranger');
+  const bad = harness(box1([['NEW', STRANGER]]), { ...ONE, strangersFrom: 'not a date' });
+  assertEquals((await pollTenantMailboxes(bad.deps)).handed, 0);
+  const fresh = harness(box1([['NEW', STRANGER]]), ONE);
+  assertEquals((await pollTenantMailboxes(fresh.deps)).handed, 1);
+  const known = harness(box1([['K', SUPPLIER, { receivedDateTime: '2026-09-20T00:00:00Z' }]]), { ...ONE, strangersFrom: null });
+  assertEquals((await pollTenantMailboxes(known.deps)).handed, 1);
+  const hdr = (v: string) => ({ receivedDateTime: '2026-09-20T00:00:00Z', internetMessageHeaders: [{ name: 'In-Reply-To', value: v }] });
+  const ours = harness(box1([['T', STRANGER, hdr('<qd-notif-1.2@quotesdone.com>')]]), { ...ONE, strangersFrom: null });
+  assertEquals((await pollTenantMailboxes(ours.deps)).handed, 1);
+  const thread = harness(box1([['T', STRANGER, hdr('<their-first@x.invalid>')]]), { ...ONE, strangersFrom: null, messages: ['<their-first@x.invalid>'] });
+  assertEquals((await pollTenantMailboxes(thread.deps)).handed, 1);
+  const elsewhere = harness(box1([['T', STRANGER, hdr('<other@x.invalid>')]]), { ...ONE, strangersFrom: null });
+  assertEquals((await pollTenantMailboxes(elsewhere.deps)).handed, 0);
+});
+
+Deno.test('known-bad control: a Mashreq alert, machine senders, a listed domain and a DMARC report are counted only; no body is read', async () => {
+  const senders = ['alerts@mashreqbank.com', 'x@mail.mashreq.com', 'alert@zz.example.invalid', 'no-reply@zz.example.invalid', 'dmarc@zz.example.invalid', 'report@zz.example.invalid', 'billing@zz.example.invalid', 'statement@zz.example.invalid', 'a@zz-bank.example.invalid', MS];
+  const h = harness(box1(senders.map((s, i): Row => ['M' + i, s])), { ...ONE, financial: 'zz-bank.example.invalid' });
+  const r = await pollTenantMailboxes(h.deps);
+  assertEquals(r.skipped, senders.length); assertEquals(h.hands(), []);
+  assertFalse(h.calls.some((c) => /\/messages\/M\d+\?/.test(c.url)), 'a body was read');
+  const d = harness(box1([['D', STRANGER, { hasAttachments: true }]]), { ...ONE, attachments: [{ name: 'google.com!quotesdone.com!1700000000!1700086400.xml.gz', contentType: 'application/gzip', size: 900 }] });
+  assertEquals((await pollTenantMailboxes(d.deps)).skipped, 1); assertEquals(d.hands(), []);
+  const bank = harness(box1([['B', 'info@mashreq.com']]), { ...ONE });
+  kinds['info@mashreq.com'] = 'known';
+  assertEquals((await pollTenantMailboxes(bank.deps)).handed, 0, 'a financial domain is refused even when known');
+  delete kinds['info@mashreq.com'];
+});
+
+Deno.test('one message, one answer: the same internetMessageId across mailboxes, or already on file, is handed once', async () => {
+  const same = { internetMessageId: '<same@x.invalid>' };
+  const h = harness({ 'a@quotesdone.com': { inbox: [['A', STRANGER, same]] }, 'b@quotesdone.com': { inbox: [['B', STRANGER, same]] } }, { users: ['a@quotesdone.com', 'b@quotesdone.com'] });
+  const r = await pollTenantMailboxes(h.deps);
+  assertEquals(r.handed, 1); assertEquals(r.same_message, 1);
+  const f = harness(box1([['C', STRANGER, same]]), { ...ONE, messages: ['<same@x.invalid>'] });
+  assertEquals((await pollTenantMailboxes(f.deps)).same_message, 1);
+});
+
+Deno.test('oversized attachments are not fetched, the message still is; the tick stops when its time is up', async () => {
+  const h = harness(box1([['BIG', STRANGER, { hasAttachments: true }]]), { ...ONE, attachments: [{ name: 'a.pdf', contentType: 'application/pdf', size: 20 * 1024 * 1024 }] });
+  const r = await pollTenantMailboxes(h.deps);
+  assertEquals(r.handed, 1); assertEquals(r.attachments_dropped, 1);
+  assertFalse(h.calls.some((c) => c.url.endsWith('/attachments')), 'the bytes were fetched');
+  let t = 0;
+  const slow = harness({ 'a@quotesdone.com': { inbox: [['A', STRANGER]] }, 'b@quotesdone.com': {} }, { users: ['a@quotesdone.com', 'b@quotesdone.com'], now: () => (t += 16_000) });
+  assert(((await pollTenantMailboxes(slow.deps)).out_of_time as number) >= 1);
 });
 
 Deno.test('Graph refuses the /users list: app_secrets, then the two named mailboxes; expenses@ and supplier@ are never swept', async () => {

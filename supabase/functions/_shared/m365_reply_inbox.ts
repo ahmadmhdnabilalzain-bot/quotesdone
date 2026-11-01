@@ -40,6 +40,10 @@
 //     own domains is not handed: expense forwarders could otherwise book through it (resend_inbound expenseSenderOk).
 //   - MEASURED 2 Nov: a supplier's reply to info@ landed in management@, which also files mail in an "info quotesdone"
 //     folder. So each mailbox's own top-level folders are read too (FILED_FOLDER_CAP), under the Inbox's rules.
+//   - REVIEW OF THIS BRANCH, 2 Nov: a known sender or a reply in one of our threads keeps the 14-day lookback. A stranger is
+//     handed only after app_secrets.m365_tenant_strangers_from (no value: never), so no old mail is answered. Bank mail
+//     (any mashreq* domain, app_secrets.m365_financial_domains) and machine senders are counted only: no body is read or
+//     stored. One internetMessageId is handed once across all mailboxes.
 //   - its agent_runs row carries counts.m365_tenant, never counts.m365_inbox, so a failure there cannot withdraw the proof
 //     send_outbox reads for supplier@ (it selects counts.m365_inbox = 1).
 import { isDeliveryReportSender } from './mailbox_bounce.ts';
@@ -65,7 +69,12 @@ export const FILED_PAGES = 2;
 // safe for Sent and Drafts: our own domain is never handed.
 const NOT_FILED_MAIL = /^(inbox|junk e-?mail|drafts|sent items|deleted items|outbox|archive|conversation history|clutter|rss (feeds|subscriptions)|sync issues)$/i;
 export const DEFAULT_MAILBOXES = ['management@quotesdone.com', 'info@quotesdone.com'];
-const META_SELECT = 'id,subject,from,receivedDateTime,hasAttachments';
+export const LIST_BUDGET_MS = 20_000;
+export const MAX_ATTACHMENT_BYTES = 15 * 1024 * 1024;
+const META_SELECT = 'id,internetMessageId,subject,from,receivedDateTime,hasAttachments,internetMessageHeaders';
+const MACHINE_LOCAL = /(^|[-_.+])(alerts?|no-?reply|do-?not-?reply|donotreply|dmarc|reports?|notifications?|notify|billing|statements?|invoices?|receipts?|bounces?)([-_.+]|$)/i;
+const FINANCIAL_DOMAIN = /(^|\.)mashreq[^.]*\./i;
+const DMARC_ATTACHMENT = /dmarc|tlsrpt|![^!]+![0-9]+![0-9]+/i;
 const FULL_SELECT = 'id,internetMessageId,subject,from,receivedDateTime,hasAttachments,body,internetMessageHeaders';
 const OWN_ADDRESS = /@(?:mail\.)?quotesdone\.(?:com|ae)$/i;
 const TENANT_ADDRESS = /^[a-z0-9._+-]+@quotesdone\.(?:com|ae)$/;
@@ -93,6 +102,8 @@ export type InboxDeps = {
   now?: () => number;
   /** Who wrote: the founder or staff, a known lead or customer, or a stranger. Throws when it cannot tell. */
   sender?: (address: string) => Promise<SenderKind>;
+  /** Of these RFC Message-IDs, those inbound_messages already holds, from any mailbox. */
+  messageOnFile?: (ids: string[]) => Promise<Set<string>>;
 };
 export type SenderKind = 'founder' | 'known' | null;
 export type TenantDeps = Omit<InboxDeps, 'mailbox' | 'fileFinding' | 'sender'> & {
@@ -100,6 +111,10 @@ export type TenantDeps = Omit<InboxDeps, 'mailbox' | 'fileFinding' | 'sender'> &
   inviteMailbox: string | undefined;
   /** app_secrets.m365_tenant_mailboxes, comma separated: used when Graph refuses the /users listing. */
   listedMailboxes: string | undefined;
+  /** app_secrets.m365_tenant_strangers_from: ISO time of first deployment. Missing or unreadable: no stranger is handed. */
+  strangersFrom: string | undefined;
+  /** app_secrets.m365_financial_domains, comma separated, on top of any mashreq* domain. */
+  financialDomains: string | undefined;
   sender: (address: string) => Promise<SenderKind>;
 };
 
@@ -107,6 +122,22 @@ export type TenantDeps = Omit<InboxDeps, 'mailbox' | 'fileFinding' | 'sender'> &
 export function folderHands(folder: string, from: string, kind: SenderKind): boolean {
   if (kind === 'founder' || OWN_ADDRESS.test(from)) return false;
   return folder !== 'junkemail' || kind === 'known' || isDeliveryReportSender(from);
+}
+
+/** A bank or listed financial domain, itself or a subdomain. */
+export function financialSender(from: string, listed: string | undefined): boolean {
+  const domain = from.split('@')[1] || '';
+  if (FINANCIAL_DOMAIN.test(domain + '.')) return true;
+  return String(listed || '').toLowerCase().split(',').map((x) => x.trim()).filter(Boolean).some((x) => domain === x || domain.endsWith('.' + x));
+}
+/** alerts@, no-reply@, dmarc@, billing@ and the like, or a mail system's own report sender. */
+export function machineSender(from: string): boolean {
+  return MACHINE_LOCAL.test(from.split('@')[0] || '') || isDeliveryReportSender(from);
+}
+/** The Message-IDs a message answers: In-Reply-To and References. */
+export function threadIds(m: GraphMessage): string[] {
+  const h = headersOf(m.internetMessageHeaders);
+  return [...new Set(`${h['in-reply-to'] || ''} ${h['references'] || ''}`.match(/<[^<>\s]+>/g) || [])];
 }
 
 /** The one it_engineer finding when the app may not read the mailbox. Names the permission and the click, no secret. */
@@ -228,21 +259,28 @@ export async function pollReplyInbox(d: InboxDeps): Promise<Record<string, unkno
   // ---- hand over, oldest first, so a conversation reaches the platform in the order it was written
   for (const m of fresh.reverse()) {
     if (counts.handed + counts.duplicate + counts.hand_failed >= MAX_HAND || now() - t0 > HAND_BUDGET_MS) { counts.deferred++; continue; }
+    // the same message already taken from another mailbox: one answer per message
+    const mid = String(m.internetMessageId || '');
+    if (mid && d.messageOnFile) {
+      let dup = false;
+      try { dup = (await d.messageOnFile([mid])).has(mid); } catch (_e) { /* the handler still refuses a same-id redelivery */ }
+      if (dup) { counts.duplicate++; if (!await markRead(d, box, auth, m.id)) counts.mark_failed++; continue; }
+    }
     const r = await handOver(d, box, mailbox, auth, m);
     if (r === 'failed') { counts.hand_failed++; continue; }   // left unread and unseen: the next tick hands it again
     if (r === 'duplicate') counts.duplicate++; else counts.handed++;
     if (!await markRead(d, box, auth, m.id)) counts.mark_failed++;
   }
   // Junk never touches the proof: a reply in the Inbox is read whatever Junk answers.
-  const junk: Tally = { handed: 0, duplicate: 0, hand_failed: 0, mark_failed: 0, deferred: 0, not_handed: 0, lookup_failed: 0 };
+  const junk: Tally = { handed: 0, duplicate: 0, hand_failed: 0, mark_failed: 0, deferred: 0, not_handed: 0, lookup_failed: 0, skipped: 0, same_message: 0 };
   const junkStatus = await sweep(d, mailbox, box, auth, 'junkemail', JUNK_PAGES, Math.max(0, MAX_HAND - counts.handed - counts.duplicate), t0, junk, true, d.sender || (() => Promise.resolve(null)), new Map());
   const junkCounts = { junk_handed: junk.handed, junk_not_handed: junk.not_handed, junk_failed: junk.hand_failed + junk.lookup_failed + (junkStatus === 200 ? 0 : 1) };
   if (counts.hand_failed) return await done('error', counts.hand_failed + ' message(s) could not be handed to resend_inbound; left in the Inbox for the next tick', junkCounts);
   return await done('ok', 'read', junkCounts);
 }
 
-type Sweep = Pick<InboxDeps, 'fetchFn' | 'inboundToken' | 'signingSecret' | 'inboundUrl' | 'onFile' | 'now'>;
-type Tally = { handed: number; duplicate: number; hand_failed: number; mark_failed: number; deferred: number; not_handed: number; lookup_failed: number };
+type Sweep = Pick<InboxDeps, 'fetchFn' | 'inboundToken' | 'signingSecret' | 'inboundUrl' | 'onFile' | 'now' | 'messageOnFile'>;
+type Tally = { handed: number; duplicate: number; hand_failed: number; mark_failed: number; deferred: number; not_handed: number; lookup_failed: number; skipped: number; same_message: number };
 
 /** Hands one whole message to resend_inbound, Svix-signed exactly as Resend's own delivery. Nothing else is done to it. */
 async function handOver(d: Sweep, box: string, mailbox: string, auth: Record<string, string>, m: GraphMessage): Promise<'handed' | 'duplicate' | 'failed'> {
@@ -253,7 +291,7 @@ async function handOver(d: Sweep, box: string, mailbox: string, auth: Record<str
     try {
       const a = await d.fetchFn(`${one}/attachments`, { headers: auth });
       const aj = a.ok ? await a.json() as { value?: Array<Record<string, unknown>> } : { value: [] };
-      attachments = (aj.value || []).filter((x) => x['@odata.type'] === '#microsoft.graph.fileAttachment' && x.contentBytes)
+      attachments = (aj.value || []).filter((x) => x['@odata.type'] === '#microsoft.graph.fileAttachment' && x.contentBytes && Number(x.size || 0) <= MAX_ATTACHMENT_BYTES)
         .slice(0, 6).map((x) => ({ filename: x.name, content_type: x.contentType, content: x.contentBytes }));
     } catch (_e) { attachments = []; }
   }
@@ -279,7 +317,8 @@ async function markRead(d: Sweep, box: string, auth: Record<string, string>, id:
  * Returns the listing's HTTP status (0: no answer). Mail not handed stays unseen, so it is looked at again next tick.
  */
 async function sweep(d: Sweep, mailbox: string, box: string, auth: Record<string, string>, folder: string, pages: number, cap: number, t0: number,
-  c: Tally, mark: boolean, sender: (a: string) => Promise<SenderKind>, kinds: Map<string, SenderKind>): Promise<number> {
+  c: Tally, mark: boolean, sender: (a: string) => Promise<SenderKind>, kinds: Map<string, SenderKind>,
+  gate?: (m: GraphMessage, from: string, kind: SenderKind) => Promise<boolean>, handedIds: Set<string> = new Set()): Promise<number> {
   const now = d.now || Date.now;
   const since = new Date(t0 - LOOKBACK_DAYS * 86_400_000).toISOString();
   let url: string | null = `${box}/mailFolders/${encodeURIComponent(folder)}/messages?` + new URLSearchParams({ $filter: `receivedDateTime ge ${since}`, $orderby: 'receivedDateTime desc', $top: String(PAGE), $select: META_SELECT }).toString();
@@ -287,6 +326,7 @@ async function sweep(d: Sweep, mailbox: string, box: string, auth: Record<string
   let status = 200;
   try {
     for (let page = 0; url && page < pages; page++) {
+      if (now() - t0 > LIST_BUDGET_MS) { c.deferred++; break; }
       const r: Response = await d.fetchFn(url, { headers: auth });
       status = r.status;
       if (!r.ok) { await r.body?.cancel(); return status; }
@@ -308,6 +348,11 @@ async function sweep(d: Sweep, mailbox: string, box: string, auth: Record<string
       catch (_e) { c.lookup_failed++; continue; }   // who wrote is unknown: not handed, looked at again next tick
     }
     if (!from || !folderHands(folder, from, kind)) { c.not_handed++; continue; }
+    const mid = String(m.internetMessageId || '');
+    try {
+      if (gate && !await gate(m, from, kind)) { c.skipped++; continue; }
+      if (mid && (handedIds.has(mid) || (d.messageOnFile && (await d.messageOnFile([mid])).has(mid)))) { c.same_message++; continue; }
+    } catch (_e) { c.lookup_failed++; continue; }
     if (used >= cap) { c.deferred++; continue; }
     used++;
     let whole: GraphMessage;
@@ -316,8 +361,9 @@ async function sweep(d: Sweep, mailbox: string, box: string, auth: Record<string
       if (!r.ok) { await r.body?.cancel(); c.hand_failed++; continue; }
       whole = await r.json() as GraphMessage;
     } catch (_e) { c.hand_failed++; continue; }
-    const r = await handOver(d, box, mailbox, auth, { ...m, ...whole, id: m.id });
+    const r = await handOver(d, box, mailbox, auth, { ...m, ...whole, id: m.id, hasAttachments: !!(m.hasAttachments && whole.hasAttachments) });
     if (r === 'failed') { c.hand_failed++; continue; }
+    if (mid) handedIds.add(mid);
     if (r === 'duplicate') c.duplicate++; else c.handed++;
     if (mark && !await markRead(d, box, auth, m.id)) c.mark_failed++;
   }
@@ -362,8 +408,8 @@ async function tenantMailboxes(d: TenantDeps, auth: Record<string, string>): Pro
 export async function pollTenantMailboxes(d: TenantDeps): Promise<Record<string, unknown>> {
   const now = d.now || Date.now;
   const t0 = now();
-  const c: Tally = { handed: 0, duplicate: 0, hand_failed: 0, mark_failed: 0, deferred: 0, not_handed: 0, lookup_failed: 0 };
-  const counts = { m365_tenant: 1, mailboxes: 0, no_mailbox: 0, refused: 0, list_failed: 0, source: 'none' };
+  const c: Tally = { handed: 0, duplicate: 0, hand_failed: 0, mark_failed: 0, deferred: 0, not_handed: 0, lookup_failed: 0, skipped: 0, same_message: 0 };
+  const counts = { m365_tenant: 1, mailboxes: 0, no_mailbox: 0, refused: 0, list_failed: 0, out_of_time: 0, attachments_dropped: 0, source: 'none' };
   const done = async (status: 'ok' | 'held' | 'error', why: string, detail = '') => {
     try { await d.record(status, { ...counts, ...c }, 'm365 tenant mailboxes: ' + why + detail); } catch (_e) { /* the answer still says */ }
     return { ok: status !== 'error', why, ...counts, ...c };
@@ -379,22 +425,47 @@ export async function pollTenantMailboxes(d: TenantDeps): Promise<Record<string,
   // The start moves each 15-minute tick, so the last mailbox is not always the one the budget cuts off.
   const start = boxes.length ? Math.floor(t0 / 900_000) % boxes.length : 0;
   const kinds = new Map<string, SenderKind>();
+  const handedIds = new Set<string>();
+  const cutoff = Date.parse(String(d.strangersFrom || ''));
+  // Decided from the envelope: what is refused here has no body read and nothing stored.
+  const gateFor = (box: string) => async (m: GraphMessage, from: string, kind: SenderKind): Promise<boolean> => {
+    if (financialSender(from, d.financialDomains)) return false;
+    let allowed = kind === 'known';
+    if (!allowed) {
+      const ids = threadIds(m);
+      allowed = ids.some((i) => i.includes('qd-notif-')) || (ids.length > 0 && !!d.messageOnFile && (await d.messageOnFile(ids)).size > 0);
+    }
+    if (!allowed) {
+      if (machineSender(from)) return false;
+      if (!Number.isFinite(cutoff) || !(Date.parse(String(m.receivedDateTime || '')) >= cutoff)) return false;
+    }
+    if (m.hasAttachments) {
+      const r = await d.fetchFn(`${box}/messages/${encodeURIComponent(m.id)}/attachments?$select=name,contentType,size`, { headers: auth });
+      if (!r.ok) { await r.body?.cancel(); throw new Error('attachment list refused'); }
+      const list = ((await r.json()) as { value?: Array<{ name?: string; contentType?: string; size?: number }> }).value || [];
+      if (!allowed && list.some((a) => DMARC_ATTACHMENT.test(String(a.name || '') + ' ' + String(a.contentType || '')))) return false;
+      if (list.reduce((n, a) => n + Number(a.size || 0), 0) > MAX_ATTACHMENT_BYTES) { m.hasAttachments = false; counts.attachments_dropped++; }
+    }
+    return true;
+  };
   const read: string[] = [];
   const spent = () => c.handed + c.duplicate + c.hand_failed;
   for (let i = 0; i < boxes.length; i++) {
+    if (now() - t0 > HAND_BUDGET_MS) { counts.out_of_time = boxes.length - i; break; }
     const mailbox = boxes[(start + i) % boxes.length];
     const box = `${GRAPH}/users/${encodeURIComponent(mailbox)}`;
     const before = spent();
     const room = () => Math.max(0, Math.min(MAILBOX_HAND_CAP - (spent() - before), TENANT_HAND_CAP - spent()));
-    const status = await sweep(d, mailbox, box, auth, 'inbox', MAX_PAGES, room(), t0, c, false, d.sender, kinds);
+    const gate = gateFor(box);
+    const status = await sweep(d, mailbox, box, auth, 'inbox', MAX_PAGES, room(), t0, c, false, d.sender, kinds, gate, handedIds);
     if (status === 404) { counts.no_mailbox++; continue; }   // an account with no mailbox
     if (status === 401 || status === 403) { counts.refused++; continue; }
     if (status !== 200) { counts.list_failed++; continue; }
     counts.mailboxes++; read.push(mailbox);
-    if (await sweep(d, mailbox, box, auth, 'junkemail', JUNK_PAGES, room(), t0, c, false, d.sender, kinds) !== 200) counts.list_failed++;
+    if (await sweep(d, mailbox, box, auth, 'junkemail', JUNK_PAGES, room(), t0, c, false, d.sender, kinds, gate, handedIds) !== 200) counts.list_failed++;
     const filed = await filedFolders(d, box, auth);
     if (!filed) { counts.list_failed++; continue; }
-    for (const f of filed) if (await sweep(d, mailbox, box, auth, f, FILED_PAGES, room(), t0, c, false, d.sender, kinds) !== 200) counts.list_failed++;
+    for (const f of filed) if (await sweep(d, mailbox, box, auth, f, FILED_PAGES, room(), t0, c, false, d.sender, kinds, gate, handedIds) !== 200) counts.list_failed++;
   }
   const detail = '; read ' + (read.join(', ') || 'none') + ' (list from ' + source + ')';
   if (c.hand_failed || counts.list_failed || c.lookup_failed) return await done('error', 'a failure is left for the next tick', detail);

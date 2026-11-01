@@ -1190,7 +1190,8 @@ async function itIntegrationsTick(): Promise<unknown> {
     } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
   })();
   const replies = m365Replies();   // a third independent path (6 Oct 2026): replies to the Microsoft 365 mailbox
-  const tenantMail = m365TenantMail();   // a fourth (2 Nov 2026): every other mailbox of the tenant
+  // a fourth (2 Nov 2026): every other mailbox of the tenant, after supplier@, so one message addressed to both is taken once
+  const tenantMail = replies.then(() => m365TenantMail());
   const [integ, placement] = await Promise.all([integrations, inboxPlacement()]);
   const inbox = await replies;
   const tenantInbox = await tenantMail;
@@ -1210,6 +1211,11 @@ const m365OnFile = async (ids: string[]) => {
   if (error) throw new Error('inbound_messages: ' + error.message);
   return new Set((data || []).map((r) => String(r.provider_email_id)));
 };
+const m365MessageOnFile = async (ids: string[]) => {
+  const { data, error } = await admin.from('inbound_messages').select('message_id:raw->>message_id').in('raw->>message_id', ids);
+  if (error) throw new Error('inbound_messages: ' + error.message);
+  return new Set((data || []).map((r) => String((r as { message_id: unknown }).message_id)));
+};
 // Who wrote, read only: the founder or staff; a lead (leads.email or claimed_by) or a customer; else a stranger.
 async function m365Sender(address: string): Promise<SenderKind> {
   const [own, rel] = await Promise.all([admin.rpc('fn_is_founder_own_inbox', { p_addr: address }), admin.rpc('fn_mail_sender_known', { p_email: address })]);
@@ -1225,6 +1231,7 @@ async function m365TenantMail(): Promise<Record<string, unknown>> {
     return await pollTenantMailboxes({
       fetchFn: (u, i) => timedFetch(u, i || {}, 25_000), env: (k) => Deno.env.get(k),
       inviteMailbox: await sec('invite_m365_mailbox'), listedMailboxes: await sec('m365_tenant_mailboxes'),
+      strangersFrom: await sec('m365_tenant_strangers_from'), financialDomains: await sec('m365_financial_domains'), messageOnFile: m365MessageOnFile,
       inboundToken: await sec('resend_inbound_token'), signingSecret: await sec('resend_inbound_signing_secret'), inboundUrl: FN + '/resend_inbound',
       onFile: m365OnFile, sender: m365Sender,
       // counts.m365_tenant and never counts.m365_inbox: send_outbox's proof read cannot select this row.
@@ -1241,7 +1248,7 @@ async function m365Replies(): Promise<Record<string, unknown>> {
       fetchFn: (u, i) => timedFetch(u, i || {}, 25_000), env: (k) => Deno.env.get(k),
       mailbox: await sec('invite_m365_mailbox'), inboundToken: await sec('resend_inbound_token'),
       signingSecret: await sec('resend_inbound_signing_secret'), inboundUrl: FN + '/resend_inbound',
-      onFile: m365OnFile, sender: m365Sender,
+      onFile: m365OnFile, sender: m365Sender, messageOnFile: m365MessageOnFile,
       fileFinding: async (args) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; },
       record: async (status, counts, note) => {
         await admin.from('agent_runs').insert({ agent: PROOF_LABEL, status, counts, note: note.slice(0, 500),

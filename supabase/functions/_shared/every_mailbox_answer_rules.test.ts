@@ -2,7 +2,7 @@
 // EVERY MAILBOX IS READ (2 Nov 2026): what a handed message to management@ changes in the answer rules, with controls, and
 // that email_triage is wired to them. A reply never reaches the founder, a machine, or someone who said stop.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { declinedRowFields, noAutoReply, tenantMailAnswerable } from './customer_mail.ts';
+import { DAILY_AUTO_ANSWER_CAP, declinedRowFields, noAutoReply, overDailyAnswerCap, tenantMailAnswerable } from './customer_mail.ts';
 import { SEPARATE_COMPANY_FACT, SUPPLIER_SIGN_IN_FACT, supplierFacts, unregisteredSupplierFacts } from '../email_triage/account_facts.ts';
 import { planCreateCompany } from '../supplier_api/create_company.ts';
 
@@ -49,11 +49,27 @@ Deno.test('a subsidiary: the facts say what the platform really does, and it doe
   }
 });
 
+Deno.test('the per-sender daily cap stops an autoresponder loop', () => {
+  assertEquals(overDailyAnswerCap(DAILY_AUTO_ANSWER_CAP - 1), false);
+  assertEquals(overDailyAnswerCap(DAILY_AUTO_ANSWER_CAP), true);
+  assertEquals(overDailyAnswerCap(null), false);
+});
+
+Deno.test('every insert in resend_inbound records provider_email_id, so nothing can be handed twice', async () => {
+  const src = await Deno.readTextFile(new URL('../resend_inbound/index.ts', import.meta.url));
+  const blocks = src.split(".from('inbound_messages').insert(").slice(1).map((b) => b.slice(0, 600));
+  assert(blocks.length >= 12, 'found ' + blocks.length);
+  for (const b of blocks) assert(b.includes('provider_email_id'), b.slice(0, 160));
+});
+
 Deno.test('wiring: email_triage uses these rules, checks the founder\'s own inboxes, and a failed answer leaves a live review', async () => {
   const src = await Deno.readTextFile(new URL('../email_triage/index.ts', import.meta.url));
   assert(src.includes('tenantMailAnswerable(m, !!(sup && sup.length))'));
   assert(src.includes("rpc('fn_is_founder_own_inbox'"));
   assert(src.includes('...declinedRowFields(m)'));
   assert(src.includes("m.lead_id ? reply1(m, 'supplier', SEPARATE_COMPANY_FACT)"));
-  assert(/counts\.answer_failed\+\+[\s\S]{0,700}kind: 'inbound_review', status: 'pending'/.test(src), 'a failed answer no longer files a review');
+  const failed = src.slice(src.indexOf('counts.answer_failed++'), src.indexOf('for (const m of ((msgs'));
+  assert(failed.includes("rpc('fn_seat_handoff'") && failed.includes("p_to: 'ceo'"), 'a failed answer no longer reaches the ceo seat');
+  assert(!failed.includes('inbound_review'), 'nothing comes back to the founder (ledger 1438)');
+  assert(src.includes('overDailyAnswerCap(count)'));
 });

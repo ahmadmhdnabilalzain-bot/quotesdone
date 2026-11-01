@@ -133,6 +133,10 @@ export function declinedRowFields(m: { to_email?: unknown; provider_email_id?: u
   return String(m.to_email ?? '').toLowerCase().includes(INVITATION_MAILBOX) ? {} : { owner_role: 'customer_support', needs_review: false };
 }
 
+// An autoresponder that slips every other rule cannot loop: at most this many automatic answers to one address a day.
+export const DAILY_AUTO_ANSWER_CAP = 5;
+export function overDailyAnswerCap(sentInTheLastDay: number | null | undefined): boolean { return Number(sentInTheLastDay || 0) >= DAILY_AUTO_ANSWER_CAP; }
+
 /** The e-mail around a reply. The reply itself is ALWAYS written by a model in the moment (aiReply; founder rulings
  *  1195/1196, 12 Oct 2026): the person-handoff sentence, the quoted knowledge passage and the 'we received it' receipt that
  *  stood here were removed. Only the fixed greeting and sign-off are code. */
