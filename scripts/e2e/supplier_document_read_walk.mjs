@@ -23,6 +23,7 @@ import { demoPdfPages } from '../lib/demo_pdf.mjs';
 import sharp from 'sharp';
 import { launch, signedInPage, SITE } from './browser.mjs';
 import { mkdirSync } from 'node:fs';
+import { pdfFactsFromBytes } from './pdf_facts.mjs';
 
 const argv = process.argv.slice(2);
 const val = (f, d) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : d; };
@@ -112,7 +113,13 @@ async function browserLicence(c, who, id) {
     o.alerts = await page.getByRole('alert').allInnerTexts().catch(() => []);
     o.shot = join(SHOTS, `${id}.png`);
     await page.screenshot({ path: o.shot, fullPage: true }).catch(() => {});
-  } catch (e) { o.error = String(e.message).slice(0, 200); }
+  } catch (e) {
+    o.error = String(e.message).slice(0, 200);
+    o.shot = join(SHOTS, `${id}_form_not_reached.png`);
+    await page.screenshot({ path: o.shot, fullPage: true }).catch(() => {});
+    o.page_text = (await page.locator('body').innerText().catch(() => '')).replace(/s+/g, ' ').slice(0, 700);
+    o.url = page.url();
+  }
   await ctx.close().catch(() => {});
   return o;
 }
@@ -153,7 +160,7 @@ async function walk(run, c, n) {
     const who = { kind: 'supplier', email, newSession: async () => s };
     const b = await browserLicence(c, who, c.id); out.browser = b;
     viaBrowser = b.reached;
-    step('the portal form takes the licence in a real browser', b.reached && b.answered && !b.hung, `reached=${b.reached} answered=${b.answered} hung=${b.hung} ${b.ms} ms ${b.error || ''} ${String(b.response).slice(0, 300)}`);
+    step('the portal form takes the licence in a real browser', b.reached && b.answered && !b.hung, `reached=${b.reached} answered=${b.answered} hung=${b.hung} ${b.ms} ms ${b.error || ''} url=${b.url} page=${b.page_text} ${String(b.response).slice(0, 300)}`);
     step('what the supplier sees after the read', true, `${b.sees} | alerts: ${JSON.stringify(b.alerts)}`);
     out.licence_response = b.response;
   }
@@ -187,7 +194,7 @@ async function walk(run, c, n) {
   // 7. Wait for the reads and the certificate to land, then judge from the row.
   const t1 = Date.now(); let row;
   for (;;) {
-    row = (await read(`select l.approval_status status, l.licence_gate_reason reason, l.verified, l.signed_terms_path is not null signed, l.registration_submitted_at is not null submitted,
+    row = (await read(`select l.approval_status status, l.licence_gate_reason reason, l.verified, l.signed_terms_path is not null signed, l.signed_terms_path stp, l.accepted_terms_ip ip, l.registration_submitted_at is not null submitted,
         l.trade_license_no licence_no, l.licence_legal_name name, l.license_authority authority, l.license_expiry::text expiry, l.doc_extracted_at is not null extracted, l.company_name, l.sector,
         c.source_docs -> 'docs' docs, c.proposed_trades, (select count(*)::int from public.agent_actions a where a.kind='supplier_verification' and a.target_id=l.id::text) decisions
        from public.leads l left join public.supplier_capabilities c on c.supplier_id = l.id where l.id=${lead.id}`))[0];
@@ -196,6 +203,18 @@ async function walk(run, c, n) {
     await sleep(5000);
   }
   out.row = row;
+  // The certificate itself, read back from the signed-terms bucket: is the IP printed inside it? (ledger 1468)
+  if (row.stp) {
+    try {
+      const { SERVICE } = await keys();
+      const r = await fetch(`${BASE}/storage/v1/object/signed-terms/${row.stp}`, { headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}` } });
+      const f = r.ok ? await pdfFactsFromBytes(new Uint8Array(await r.arrayBuffer())) : { ok: false, why: 'HTTP ' + r.status };
+      const m = f.ok ? f.text.match(/IP addresss*([^s]+)/i) : null;
+      out.certificate = { ok: f.ok, why: f.why, bytes: f.bytes?.length, ip_in_row: row.ip, ip_in_certificate: m?.[1] ?? null, ip_line: m?.[0] ?? null };
+      run.ids.storage.push('signed-terms/' + row.stp);
+    } catch (e) { out.certificate = { error: String(e.message).slice(0, 160) }; }
+    step('the signed certificate prints the IP', !!out.certificate?.ip_in_certificate && out.certificate.ip_in_certificate !== 'Not', JSON.stringify(out.certificate));
+  }
   step('terms: certificate signed, registration submitted', row.signed && row.submitted, `${Date.now() - t1} ms after Save`);
   step(`decision is ${c.want.status}${c.want.reason ? ' / ' + c.want.reason : ''}${c.observe ? ' (observed, not asserted)' : ''}`, c.observe || (row.status === c.want.status && (row.reason ?? null) === c.want.reason), `got ${row.status} / ${row.reason}`);
   for (const f of c.read || []) step(`the licence read wrote ${f}`, !!row[f], String(row[f]));
@@ -240,7 +259,7 @@ try {
       catch (e) { console.error('LEG ERROR', job[0].id, String(e?.stack || e).slice(0, 400)); results.push({ id: job[0].id, ok: false, error: String(e?.message || e) }); }
     }
   }));
-  const spend = await read(`select coalesce(sum(cost_usd),0)::numeric(10,4) usd, count(*)::int calls from public.ai_cost_log where run_tag = 'qd_run:${run.tag}'`).catch((e) => [{ error: String(e.message).slice(0, 120) }]);
+  const spend = await read(`select coalesce(sum(cost_usd_reported),0)::numeric(10,4) usd, count(*)::int calls from public.ai_cost_log where e2e_run_tag = '${run.tag}'`).catch((e) => [{ error: String(e.message).slice(0, 120) }]);
   console.log('model spend', JSON.stringify(spend[0]));
 } finally {
   await BR?.close().catch(() => {});
