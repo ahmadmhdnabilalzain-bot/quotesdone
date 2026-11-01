@@ -21,7 +21,7 @@ test('a supplier cannot type the authority, and an old licence never judges a ne
   const api = R('supabase/functions/supplier_api/index.ts');
   assert.doesNotMatch(/const PROFILE_COLS = \[[^\]]*\]/.exec(api)[0], /license_authority/);
   assert.match(api, /upd\.trade_license_no = null; upd\.license_authority = null;/);
-  assert.match(R('supabase/functions/supplier_portal/index.ts'), /upd\.license_authority = null; upd\.license_expiry = null;/);
+  assert.match(R('supabase/functions/supplier_portal/index.ts'), /upd\.license_authority = null; upd\.license_city = null; upd\.license_expiry = null;/);
   assert.match(R('supabase/functions/_shared/document_expiry.ts'), /licenceNeedsModel = [^\n]*!c\?\.authority/);
 });
 
@@ -41,13 +41,14 @@ test('every corpus authority is in the apply-time table logic, and unknown is ne
   for (const [k, a] of Object.entries(AUTHORITIES)) assert.ok(known.some((x) => norm(a.authority).includes(' ' + x + ' ')), k + ': ' + a.authority);
   assert.match(SQL, /if v_f and v_s then return 'unknown'/);
   assert.match(SQL, /return 'unknown';\nend/);
-  for (const c of ['RAK Economic Zone', 'Abu-Dhabi', 'راس الخيمة', 'Ministry of Economy, Kuwait', 'Northern Registry Office']) assert.ok(SQL.includes("'" + c + "'"), c + ' is not in the apply-time table');
+  assert.match(SQL, /if v_s then return 'uae'; end if;\n  if v_w then/, 'a generic name must not pass on its own');
+  for (const c of ['RAK Economic Zone', 'Abu-Dhabi', 'راس الخيمة', 'Ministry of Economy, Kuwait', 'Ministry of Economy, Syria', 'Ministry of Economy, Canada', 'Department of Economic Development, Yemen', 'Northern Registry Office']) assert.ok(SQL.includes("'" + c + "'"), c + ' is not in the apply-time table');
 });
 
 test('nothing approved, unknown or answered is closed, and every licence door clears the old fields', () => {
   assert.match(SQL, /v_replied or \(v_days >= 14 and \(v_ever_approved or r\.reason = 'licence_authority_unconfirmed'\)\)/);
   assert.ok(SQL.indexOf('fn_ceo_task_open') < SQL.indexOf("approval_decided_by = 'ceo'"), 'the ceo branch must come before the close');
-  for (const f of ['supabase/functions/resend_inbound/index.ts', 'supabase/functions/wa_inbound/index.ts']) assert.match(R(f), /trade_license_no: null, license_authority: null, license_expiry: null/, f);
+  for (const f of ['supabase/functions/resend_inbound/index.ts', 'supabase/functions/wa_inbound/index.ts']) assert.match(R(f), /trade_license_no: null, license_authority: null, license_city: null, license_expiry: null/, f);
 });
 
 test('the supplier is shown why', () => {

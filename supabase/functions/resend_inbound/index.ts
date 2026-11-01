@@ -807,7 +807,7 @@ export const handler = observe('resend_inbound', async (req) => {
           if (!ex?.doc) unreadDocs.push(fname);   // ruling 1177: nothing read at all -> ask for a clearer copy (a low-confidence read WAS read; it goes to review)
           if (ex && ex.doc) { extracted = ex.doc; const dc = ex.doc; const u:any = { license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString(),
               // What the old licence printed never judges a new one (2 Nov 2026, ledger 1442).
-              trade_license_no: null, license_authority: null, license_expiry: null,
+              trade_license_no: null, license_authority: null, license_city: null, license_expiry: null,
               // The name printed on this licence (a scan is read by the vision model); null = not read, and the
               // sales engineer's review then holds the registration for a human (licence_name_unread).
               licence_legal_name: licenceNameFromModel(dc) };
@@ -815,7 +815,7 @@ export const handler = observe('resend_inbound', async (req) => {
               if (dc.license_number) { u.trade_license_no = dc.license_number; fields.push('licence no '+dc.license_number); }
               if (dc.license_authority) { u.license_authority = dc.license_authority; fields.push('authority'); }
               if (dc.expiry_date) { u.license_expiry = dc.expiry_date; fields.push('expiry '+dc.expiry_date); }
-              if (dc.city) u.license_city = dc.city;
+              if (dc.emirate || dc.city) u.license_city = dc.emirate || dc.city;
               if (dc.emirate && !lead.emirate) u.emirate = dc.emirate;
               if (dc.trn && !lead.trn) { u.trn = dc.trn; fields.push('TRN'); }
             }

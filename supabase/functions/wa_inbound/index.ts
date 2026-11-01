@@ -332,7 +332,7 @@ async function handleSupplierDoc(leadId: number, url: string, declaredMime: stri
   const upd: Record<string, unknown> = {
     license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString(),
     // What the old licence printed never judges a new one (2 Nov 2026, ledger 1442).
-    trade_license_no: null, license_authority: null, license_expiry: null,
+    trade_license_no: null, license_authority: null, license_city: null, license_expiry: null,
     // The name printed on this licence, read by the vision model off the photo or scan; null = not read,
     // and the review then holds the registration for a human (licence_name_unread).
     licence_legal_name: licenceNameFromModel(doc),
@@ -345,7 +345,7 @@ async function handleSupplierDoc(leadId: number, url: string, declaredMime: stri
     if (doc.license_number) { upd.trade_license_no = doc.license_number; applied.push('licence no ' + doc.license_number); }
     if (doc.license_authority) { upd.license_authority = doc.license_authority; applied.push('authority'); }
     if (doc.expiry_date) { upd.license_expiry = doc.expiry_date; applied.push('expiry ' + doc.expiry_date); }
-    if (doc.city) upd.license_city = doc.city;
+    if (doc.emirate || doc.city) upd.license_city = doc.emirate || doc.city;
     if (doc.trn) { upd.trn = doc.trn; applied.push('TRN'); }
   }
   // Review of #962: a licence number another claimed company holds is set aside (the file and the other

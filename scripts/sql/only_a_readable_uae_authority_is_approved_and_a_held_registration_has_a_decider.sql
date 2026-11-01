@@ -28,7 +28,9 @@ as $fn$
          '[^[:alnum:]؀-ۿ]+', ' ', 'g'))
 $fn$;
 
-create or replace function public.fn_licence_authority_class(p_authority text)
+-- A denylist of countries can never be complete, so a generic name proves nothing alone: it counts as UAE only when nothing
+-- else is printed beside it AND the licence's own place (license_city, written only from the licence) names an emirate.
+create or replace function public.fn_licence_authority_class(p_authority text, p_licence_place text default null)
  returns text language plpgsql immutable set search_path to 'public', 'pg_temp'
 as $fn$
 declare n text := ' ' || public.fn_licence_authority_norm(p_authority) || ' ';
@@ -38,12 +40,16 @@ declare n text := ' ' || public.fn_licence_authority_norm(p_authority) || ' ';
     'rakez','rak economic zone','rak icc','rak ded','kezad','kizad','khalifa economic zones','khalifa industrial zone','zonescorp','masdar','twofour54','adafz',
     'saif','shams','spc','hamriyah','hfza','sedd','afz','fcc','ffz','creative city','added',
     'دبي','ابو ظبي','الشارقه','عجمان','ام القيوين','راس الخيمه','الفجيره','الامارات العربيه المتحده','الامارات'];
-  -- Generic names that say nothing of a country: UAE unless a foreign country is printed beside them.
+  -- Generic names that say nothing of a country.
   v_weak text[] := array['department of economy and tourism','department of economic development','economic development department','department of industry and economy','ministry of economy','det','ded',
     'دائره الاقتصاد والسياحه','دائره التنميه الاقتصاديه','دائره الصناعه والاقتصاد','وزاره الاقتصاد'];
   v_foreign text[] := array['saudi','saudi arabia','ksa','qatar','qatari','oman','omani','kuwait','bahrain','egypt','jordan','iraq','lebanon','india','pakistan','bangladesh','china','turkey','iran',
     'united kingdom','england','companies house','united states','usa','germany','france','italy','singapore',
     'السعوديه','قطر','سلطنه عمان','الكويت','البحرين','مصر','الاردن','العراق','لبنان'];
+  v_emirates text[] := array['dubai','abu dhabi','sharjah','ajman','umm al quwain','umm al qaiwain','umm al qiwain','uaq','ras al khaimah','ras al khaima','rak','fujairah','fujeirah','uae','united arab emirates',
+    'دبي','ابو ظبي','الشارقه','عجمان','ام القيوين','راس الخيمه','الفجيره','الامارات'];
+  v_place text := ' ' || public.fn_licence_authority_norm(p_licence_place) || ' ';
+  v_left text; x text;
   v_s boolean; v_w boolean; v_f boolean;
 begin
   if btrim(n) = '' then return 'unread'; end if;
@@ -52,11 +58,16 @@ begin
   v_f := exists (select 1 from unnest(v_foreign) x where position(' ' || x || ' ' in n) > 0);
   if v_f and v_s then return 'unknown'; end if;   -- both printed: a person looks
   if v_f then return 'foreign'; end if;
-  if v_s or v_w then return 'uae'; end if;
+  if v_s then return 'uae'; end if;
+  if v_w then
+    v_left := n;
+    foreach x in array v_weak loop v_left := replace(v_left, ' ' || x || ' ', ' '); end loop;
+    if btrim(v_left) = '' and exists (select 1 from unnest(v_emirates) e where position(' ' || e || ' ' in v_place) > 0) then return 'uae'; end if;
+  end if;
   return 'unknown';
 end $fn$;
 revoke execute on function public.fn_licence_authority_norm(text) from public, anon, authenticated;
-revoke execute on function public.fn_licence_authority_class(text) from public, anon, authenticated;
+revoke execute on function public.fn_licence_authority_class(text, text) from public, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_verifies_supplier(p_lead_id bigint, p_source text DEFAULT 'save_profile'::text)
  RETURNS jsonb
@@ -121,8 +132,8 @@ begin
   v_number_unread := l.license_doc_path is not null and coalesce(btrim(l.trade_license_no), '') = '';
   -- 2 Nov 2026 (ledger 1442, Supplier Agreement v16 clause 13): only a readable UAE authority approves automatically.
   v_authority_unread := l.license_doc_path is not null and coalesce(btrim(l.license_authority), '') = '';
-  v_authority_foreign := l.license_doc_path is not null and public.fn_licence_authority_class(l.license_authority) = 'foreign';
-  v_authority_unknown := l.license_doc_path is not null and public.fn_licence_authority_class(l.license_authority) = 'unknown';
+  v_authority_foreign := l.license_doc_path is not null and public.fn_licence_authority_class(l.license_authority, l.license_city) = 'foreign';
+  v_authority_unknown := l.license_doc_path is not null and public.fn_licence_authority_class(l.license_authority, l.license_city) = 'unknown';
   select coalesce(p.auto_approve_suppliers, false) into v_auto from public.pricing_config p where p.id = 1;
   -- 13 Oct 2026 (review of #1404): a profile or catalogue still being read ('reading', marked before its parse) holds
   -- approval: the gate never approves past a document whose read has not finished (or was killed mid-parse).
@@ -282,12 +293,15 @@ end $fn$;
 revoke execute on function public.fn_sales_engineer_decides_held_registrations(timestamptz) from public, anon, authenticated;
 
 -- Every spelling the review named, and the known-bad controls, run at apply. A wrong row fails the apply's verdict.
-select coalesce((select 'PROBE FAILED: ' || string_agg(t.a || ' read ' || public.fn_licence_authority_class(t.a), '; ')
+select coalesce((select 'PROBE FAILED: ' || string_agg(coalesce(t.a, 'NULL') || ' at ' || coalesce(t.p, 'NULL') || ' read ' || public.fn_licence_authority_class(t.a, t.p), '; ')
   from (values
-    ('Department of Economy and Tourism','uae'),('Department of Economic Development','uae'),('DET','uae'),('ADDED','uae'),('RAK DED','uae'),('RAK Economic Zone','uae'),('KEZAD','uae'),('UAQ','uae'),('SPC','uae'),
-    ('Ministry of Economy','uae'),('Ras Al-Khaimah','uae'),('Abu-Dhabi','uae'),('Abudhabi','uae'),('راس الخيمة','uae'),('رأس الخيمة','uae'),('ام القيوين','uae'),('أم القيوين','uae'),('دائرة التنمية الاقتصادية - عجمان','uae'),
-    ('Dubai DET (fixture)','uae'),('International Free Zone Authority','uae'),('Sharjah Media City Authority','uae'),('Jebel Ali Free Zone Authority','uae'),
-    ('Ministry of Commerce, Kingdom of Saudi Arabia','foreign'),('Companies House, United Kingdom','foreign'),('Qatar Financial Centre','foreign'),('Ministry of Economy, Kuwait','foreign'),
-    ('Northern Registry Office','unknown'),('Dubai Branch, Companies House','unknown'),('','unread'),(null,'unread')) t(a, want)
-  where public.fn_licence_authority_class(t.a) is distinct from t.want),
+    ('Department of Economy and Tourism','Dubai','uae'),('Department of Economic Development','Sharjah','uae'),('DET','Dubai','uae'),('Ministry of Economy','Abu Dhabi','uae'),('دائرة التنمية الاقتصادية','عجمان','uae'),
+    ('ADDED',null,'uae'),('RAK DED',null,'uae'),('RAK Economic Zone',null,'uae'),('KEZAD',null,'uae'),('UAQ',null,'uae'),('SPC',null,'uae'),
+    ('Ras Al-Khaimah',null,'uae'),('Abu-Dhabi',null,'uae'),('Abudhabi',null,'uae'),('راس الخيمة',null,'uae'),('رأس الخيمة',null,'uae'),('ام القيوين',null,'uae'),('أم القيوين',null,'uae'),('دائرة التنمية الاقتصادية - عجمان',null,'uae'),
+    ('Dubai DET (fixture)',null,'uae'),('International Free Zone Authority',null,'uae'),('Sharjah Media City Authority',null,'uae'),('Jebel Ali Free Zone Authority',null,'uae'),
+    ('Ministry of Commerce, Kingdom of Saudi Arabia',null,'foreign'),('Companies House, United Kingdom',null,'foreign'),('Qatar Financial Centre',null,'foreign'),('Ministry of Economy, Kuwait','Kuwait City','foreign'),
+    ('Ministry of Economy, Syria','Damascus','unknown'),('Ministry of Economy, Syria','Dubai','unknown'),('Department of Economic Development, Yemen',null,'unknown'),('Ministry of Economy, Canada','Dubai','unknown'),
+    ('Ministry of Economy',null,'unknown'),('Ministry of Economy','Damascus','unknown'),('Department of Economic Development','Riyadh','unknown'),('DET',null,'unknown'),
+    ('Northern Registry Office','Dubai','unknown'),('Dubai Branch, Companies House',null,'unknown'),('',null,'unread'),(null,null,'unread')) t(a, p, want)
+  where public.fn_licence_authority_class(t.a, t.p) is distinct from t.want),
   case when has_function_privilege('anon', 'public.fn_sales_engineer_decides_held_registrations(timestamptz)', 'execute') then 'PROBE FAILED: anon can run the decider' else 'PROBE OK' end) as verdict;

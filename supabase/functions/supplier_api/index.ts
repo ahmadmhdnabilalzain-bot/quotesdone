@@ -786,10 +786,11 @@ ${q}`,
       let codeFields: Partial<LicenceFields> = {};
       if (licBytes?.bytes) { try { codeFields = await readLicenceFields(licBytes.bytes, licBytes.mime || 'application/pdf'); } catch (_e) { codeFields = {}; } }
       // ...and its number and authority (2 Nov 2026, ledger 1442): what the old licence printed never judges a new one.
-      if (licBytes?.bytes) { upd.trade_license_no = null; upd.license_authority = null; }
+      if (licBytes?.bytes) { upd.trade_license_no = null; upd.license_authority = null; upd.license_city = null; }
       if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;
       if (codeFields.authority) upd.license_authority = codeFields.authority;
-      if (codeFields.emirate) upd.emirate = codeFields.emirate;
+      // license_city holds only what THIS licence says of its place: the gate backs a generic authority name with it.
+      if (codeFields.emirate) { upd.emirate = codeFields.emirate; upd.license_city = codeFields.emirate; }
       // The supplier reads this note in the portal, so it is written in both languages the
       // registration speaks (the estate's rule: a document message is English and fully Arabic).
       const noteBoth = (en: string, ar: string) => { out.license_expiry_note = en; out.license_expiry_note_ar = ar; };
@@ -827,7 +828,7 @@ ${q}`,
             // or meaning, supplier_doc_trades), and only when code read no activities line itself.
             const q = readQueue.find((x) => x.kind === 'licence');
             if (q && !codeFields.activities?.length) q.photo_text = modelReadText('licence', d.activities);
-            if (d.city) upd.license_city = d.city;
+            if (!upd.license_city && (d.emirate || d.city)) upd.license_city = d.emirate || d.city;
             // CODE FIRST, AND THE MODEL DOES NOT OVERRULE IT (founder: "code first, LLM only where
             // code can't"). When the document itself printed a date beside an expiry keyword, that
             // reading stands; the model's date is only recorded beside it, and a disagreement is

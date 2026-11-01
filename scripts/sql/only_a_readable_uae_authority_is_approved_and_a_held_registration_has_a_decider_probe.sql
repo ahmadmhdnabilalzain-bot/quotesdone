@@ -12,7 +12,10 @@ begin
   update public.leads set licence_legal_name = company_name, license_expiry = current_date + 400, trade_license_no = coalesce(nullif(trade_license_no, ''), 'ZZPROBE1') where id = v_id;
 
   -- the gate
-  update public.leads set license_authority = 'Department of Economy and Tourism' where id = v_id;
+  update public.leads set license_authority = 'Ministry of Economy, Syria', license_city = 'Dubai' where id = v_id;
+  v := public.fn_sales_engineer_verifies_supplier(v_id, 'save_profile');
+  if v ->> 'reason' is distinct from 'licence_authority_unconfirmed' then v_bad := v_bad || ' syria=' || coalesce(v ->> 'reason', v ->> 'approval_status'); end if;
+  update public.leads set license_authority = 'Department of Economy and Tourism', license_city = 'Dubai', approval_status = 'pending' where id = v_id;
   v := public.fn_sales_engineer_verifies_supplier(v_id, 'save_profile');
   if v ->> 'approval_status' <> 'approved' then v_bad := v_bad || ' uae=' || (v ->> 'reason'); end if;
   update public.leads set license_authority = 'Northern Registry Office' where id = v_id;
