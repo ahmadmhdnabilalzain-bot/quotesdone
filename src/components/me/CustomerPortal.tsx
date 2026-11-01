@@ -501,13 +501,16 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const load = () => call('kyc', { action: 'state' }, token).then((j) => { if (transportFailed(j)) { setMsg(t(lang, 'load_failed')); return; } setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
   useEffect(() => { drop(); load(); }, []);
+  // A HOOK BELONGS ABOVE THE EARLY RETURN (2 Nov 2026, customer sign-up walk, React error #310): this sat below
+  // `if (!st) return`, so the render that first had the state called one more hook than the loading render and
+  // every new customer's "Complete your account" crashed to "This page couldn't load".
+  const failover = useFailover();
   if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
   const saveProfile = async () => { if (!dob) { setMsg(t(lang, 'err_dob_required')); return; } if (isUnder18(dob)) { setMsg(t(lang, 'err_under_18')); return; } setBusy('save'); setMsg(''); const j = await call('kyc', { action: 'save_customer', full_name, phone, dob, lang }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'load_failed')); };
   // sentSms carries the CHANNEL, not a boolean: kyc falls back to a voice call when the number is a
   // landline, and telling someone to check their junk folder for a code that is being read down the
   // phone is the wrong instruction.
   // The first code to a UAE mobile goes by WhatsApp (kyc nextChannel, 18 Oct 2026); 'sms' is the explicit failover.
-  const failover = useFailover();
   const sendSms = async (channel?: 'sms' | 'whatsapp') => { if (!phone) { setMsg(t(lang, 'enter_mobile_first')); return; } setBusy('sms'); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone, ...(channel ? { channel } : {}) }, token); setBusy(''); if (j && j.ok) { setSentSms(j.channel || 'sms'); if (j.channel === 'whatsapp') failover(() => call('kyc', { action: 'phone_failover', phone }, token), () => setSentSms('sms_failover')); } else setMsg(errText(j, lang, 'err_code_send')); };
   const verifySms = async () => { setBusy('vsms'); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone, code: smsCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'err_incorrect')); };
   const sendEmailCode = async () => { setBusy('em'); setMsg(''); const j = await call('kyc', { action: 'send_email' }, token); setBusy(''); if (j && j.ok) setSentEmail(true); else setMsg(errText(j, lang, 'err_code_send')); };
