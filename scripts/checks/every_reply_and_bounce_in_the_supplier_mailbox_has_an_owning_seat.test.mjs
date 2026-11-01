@@ -60,6 +60,7 @@ export function problems(fileText, z52Body) {
   if (!trg) out.push('no z53 trigger on UPDATE OF triaged_at: the owner is not given when triage declines');
   else {
     if (!/new\.ai_category = 'no_auto_reply'/.test(trg[1])) out.push('z53 does not wait for triage to decline (ai_category no_auto_reply)');
+    if (!/new\.ai_summary like 'Not answered automatically:%'/.test(trg[1])) out.push('z53 can fire on a model\'s category string, not only on triage\'s own decline');
     if (!/new\.owner_role is null/.test(trg[1]) || !/new\.replied_at is null/.test(trg[1])) out.push('z53 can take an owned or answered message');
   }
   if (/after insert[^;]*trg_supplier_mailbox_mail_gets_its_owner/i.test(t)) out.push('the owner is written at insert: email_triage would never answer the message');

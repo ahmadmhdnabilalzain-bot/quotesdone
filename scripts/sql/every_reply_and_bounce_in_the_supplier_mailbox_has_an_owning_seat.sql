@@ -125,6 +125,8 @@ begin
       v_why := 'a bounce that names no send of ours';
     elsif position(v_to in lower(v_body)) = 0 then
       v_why := 'the bounce does not name the address it was sent to';
+    elsif v_to ~ '@(mail\.)?quotesdone\.(com|ae)$' or public.fn_is_founder_own_inbox(v_to) then
+      v_why := 'never suppressed: our own or the founder''s address';
     elsif coalesce(m.raw->>'sender_authenticated', 'false') <> 'true' then
       -- a forged "postmaster" naming a guessed qd-notif id must never suppress a real address (resend_webhook verifies
       -- its signature for the same reason)
@@ -218,6 +220,7 @@ drop trigger if exists z53_supplier_mailbox_mail_gets_its_owner on public.inboun
 create trigger z53_supplier_mailbox_mail_gets_its_owner after update of triaged_at on public.inbound_messages
   for each row
   when (new.triaged_at is not null and old.triaged_at is null and new.ai_category = 'no_auto_reply'
+        and new.ai_summary like 'Not answered automatically:%'   -- triage's own decline, never a model's category string
         and new.owner_role is null and new.replied_at is null)
   execute function public.trg_supplier_mailbox_mail_gets_its_owner();
 
