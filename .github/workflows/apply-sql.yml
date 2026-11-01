@@ -1,0 +1,51 @@
+name: Rehearse and apply a reviewed SQL file
+
+# Founder ledger 1458: reviewed database changes run from GitHub, with no laptop and no session open.
+# The file is rehearsed whole and rolled back first; it is applied only if that passes and apply is true.
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: scripts/sql file
+        required: true
+      probe:
+        description: its probe file, if any
+        required: false
+        default: ''
+      seat:
+        description: the owning seat
+        required: true
+      apply:
+        description: apply after the rehearsal passes
+        type: boolean
+        default: false
+
+concurrency:
+  group: apply-sql
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      FILE: ${{ inputs.file }}
+      PROBE: ${{ inputs.probe }}
+      SEAT: ${{ inputs.seat }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci
+        timeout-minutes: 8
+      - name: Rehearse, rolled back
+        run: node scripts/ci/rehearse_sql.mjs "$FILE" $PROBE
+      - name: Apply and read back
+        if: ${{ inputs.apply }}
+        run: node scripts/apply_sql.mjs "$FILE" --apply --ddl --seat "$SEAT"
+      - name: Probe the applied file
+        if: ${{ inputs.apply && inputs.probe != '' }}
+        run: node scripts/ci/rehearse_sql.mjs scripts/ci/noop.sql "$PROBE"
