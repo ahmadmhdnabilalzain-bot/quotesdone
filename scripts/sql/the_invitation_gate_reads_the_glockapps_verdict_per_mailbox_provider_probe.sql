@@ -168,6 +168,8 @@ begin
                                'mail_rows_added', n_mail_after - n_mail_before, 'findings_added', n_find_after - n_find_before);
   if v_sw_after is distinct from v_sw_before then v_fail := v_fail || text 'a campaign switch changed'; end if;
   if n_mail_after <> n_mail_before then v_fail := v_fail || text 'a notification was written'; end if;
+  -- the weekend moment must really be closed, or the judge could have filed and the check below would be skipped
+  if fn_invite_placement_day_closed(t1) is null then v_fail := v_fail || text 'the probe''s weekend moment t1 is an open day'; end if;
   if fn_invite_placement_day_closed(t1) is not null and n_find_after <> n_find_before then
     v_fail := v_fail || text 'a finding was filed while the campaign is held'; end if;
 

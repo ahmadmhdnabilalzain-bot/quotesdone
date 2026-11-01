@@ -45,16 +45,19 @@ function routine(name) {
 const BUILDERS = ['fn_supplier_invite_candidates', 'fn_marketing_gap_recruitment_plans'];
 const RETIRED = new Set(read('scripts/sql/SUPERSEDED.txt').split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'))
   .map((l) => l.split('::').map((s) => s.trim())).map(([f, r]) => `${f}::${(r || '').toLowerCase()}`));
-const READS_BODY = /\bkey\s*=\s*'invite_body'/;
+// review of #1722 (S1): any mention of the template makes an overload a reader, whatever the query looks like
+const READS_BODY = /'invite_body'/;
 const CANON = new Map();   // name -> { file, overloads }: the tree is parsed once per builder
 function canonical(name) {
   if (CANON.has(name)) return CANON.get(name);
   const defined = (f) => { try { return RETIRED.has(`${f}::${name}`) ? [] : definitions(read(f)).filter((d) => d.name === name); } catch { return []; } };
   const file = manifestWithPending().filter((f) => defined(f).length).pop();
   assert.ok(file, `${name} is defined in no applied or pending file`);
-  // the body between the dollar tags, comments dropped (a comment may quote the old refusal)
+  // the body between the dollar tags, comments dropped (a comment may quote the old refusal); block comments too,
+  // or a guard wrapped in /* */ would read as present (review of #1722, N1)
   const c = { file, overloads: defined(file).map((d) => ({ key: d.key,
-    body: ((/\bas\s+(\$[A-Za-z0-9_]*\$)([\s\S]*?)\1/i.exec(d.stmt) || [])[2] ?? '').split('\n').map((l) => l.replace(/--.*$/, '')).join('\n') })) };
+    body: ((/\bas\s+(\$[A-Za-z0-9_]*\$)([\s\S]*?)\1/i.exec(d.stmt) || [])[2] ?? '').replace(/\/\*[\s\S]*?\*\//g, '')
+      .split('\n').map((l) => l.replace(/--.*$/, '')).join('\n') })) };
   CANON.set(name, c);
   return c;
 }
@@ -63,8 +66,11 @@ test('each builder is read where production runs it: every overload in the last 
   for (const name of BUILDERS) {
     const { file, overloads } = canonical(name);
     assert.ok(overloads.some((o) => READS_BODY.test(o.body)), `no overload of ${name} in ${file} reads app_secrets.invite_body: the next test would assert nothing`);
+    // a non-reader must be a PURE hand-over: one `return query select * from public.<name>(...)`, nothing else, so it
+    // cannot return a body of its own that skips the refusal and the fill (review of #1722, S1)
+    const handover = new RegExp(`^\\s*begin\\s+return\\s+query\\s+select\\s+\\*\\s+from\\s+public\\.${name}\\([^;]*\\);\\s*end\\s*;?\\s*$`, 'i');
     for (const o of overloads.filter((x) => !READS_BODY.test(x.body))) {
-      assert.match(o.body, new RegExp(`\\bpublic\\.${name}\\(`), `${o.key} in ${file} neither reads invite_body nor hands over to another ${name}: it builds a body this check does not see`);
+      assert.match(o.body, handover, `${o.key} in ${file} neither reads invite_body nor only hands over to another ${name}: it builds a body this check does not see`);
     }
   }
 });
@@ -85,6 +91,17 @@ test('the builders accept a body with no {{link}} and still refuse an empty one'
         assert.match(o.body, /if coalesce\(v_body, ''\) ~ '\^\[\[:space:\]\]\*\$' then\s+raise exception/,
           `${o.key} in ${file} no longer refuses an empty or whitespace-only template`);
       }
+    }
+  }
+  // THE ONLY {{link}} IN BUILDER CODE IS THE FILL (review of #1722, S2). A refusal of a link-less body has to name the
+  // placeholder, in any case, operator or shape (not like, NOT ILIKE, !~, assert, position ...); the detectors above
+  // know a few shapes, this knows them all. Measured 1 Nov 2026: one occurrence, the picker's fill.
+  for (const name of BUILDERS) {
+    const { file, overloads } = canonical(name);
+    for (const o of overloads) {
+      const all = (o.body.match(/\\?\{\\?\{\s*link\s*\\?\}\\?\}/gi) || []).length;   // escaped in a regex too: \{\{link\}\}
+      const fills = (o.body.match(/'\{\{link\}\}', public\.fn_supplier_invite_link\(/g) || []).length;
+      assert.equal(all, fills, `${o.key} in ${file} names {{link}} outside the fill: a body without the placeholder may be refused`);
     }
   }
   // a template that still has the placeholder is filled, never left raw in a supplier's mail
