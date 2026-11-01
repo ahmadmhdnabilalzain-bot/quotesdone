@@ -321,6 +321,7 @@ Deno.test('expiryFromText: a table reads the expiry label\'s own column, or noth
     ['Licence Details\nIssue Date\nExpiry Date\n15/03/2025\n14/03/2028\nChamber membership valid until 31/12/2025', '2028-03-14'],
     ['Dates   Issue Date   Expiry Date   15/03/2025   14/03/2028\nValidity: 01/01/2026 - 31/12/2026', '2028-03-14'],
     ['Issue Date   Expiry Date\n15/03/2025\nInsurance Expiry: 31/12/2025', null],
+    ['Issue Date   Expiry Date\n15/03/2025\nValidity: 01/01/2026 - 31/12/2026', null],
     ['Last Inspection   Issue Date   Expiry Date   01/06/2024   15/03/2025\nMembership valid until 31/12/2025', null],
     // a cell that says it is blank, and a note under a column only counted, do not stop a reading
     ['Issue Date   Expiry Date   Next Inspection\nn.a.   14/03/2028   01/06/2029', '2028-03-14'],
