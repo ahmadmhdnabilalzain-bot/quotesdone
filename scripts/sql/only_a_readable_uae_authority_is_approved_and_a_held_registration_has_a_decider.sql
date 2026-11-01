@@ -49,7 +49,7 @@ declare n text := ' ' || public.fn_licence_authority_norm(p_authority) || ' ';
   v_emirates text[] := array['dubai','abu dhabi','sharjah','ajman','umm al quwain','umm al qaiwain','umm al qiwain','uaq','ras al khaimah','ras al khaima','rak','fujairah','fujeirah','uae','united arab emirates',
     'دبي','ابو ظبي','الشارقه','عجمان','ام القيوين','راس الخيمه','الفجيره','الامارات'];
   v_place text := ' ' || public.fn_licence_authority_norm(p_licence_place) || ' ';
-  v_left text; x text;
+  v_left text; v_part text;
   v_s boolean; v_w boolean; v_f boolean;
 begin
   if btrim(n) = '' then return 'unread'; end if;
@@ -61,7 +61,7 @@ begin
   if v_s then return 'uae'; end if;
   if v_w then
     v_left := n;
-    foreach x in array v_weak loop v_left := replace(v_left, ' ' || x || ' ', ' '); end loop;
+    foreach v_part in array v_weak loop v_left := replace(v_left, ' ' || v_part || ' ', ' '); end loop;
     if btrim(v_left) = '' and exists (select 1 from unnest(v_emirates) e where position(' ' || e || ' ' in v_place) > 0) then return 'uae'; end if;
   end if;
   return 'unknown';
