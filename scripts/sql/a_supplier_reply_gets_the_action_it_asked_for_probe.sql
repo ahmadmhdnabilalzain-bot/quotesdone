@@ -46,5 +46,5 @@ begin
   end if;
   if v_rem->>'body' ~ 'verified mobile' or v_rem->>'body' !~ 'trade licence' then raise exception 'CHK<<FAIL reminder names done items: %>>', v_rem->>'body'; end if;
 
-  raise exception 'CHK<<OK duty %; reminder %>>', v_sub_out, left(v_rem->>'body', 220);
+  raise exception 'CHK<<PROBE OK duty %; reminder %>>', v_sub_out, left(v_rem->>'body', 220);
 end $probe$;
