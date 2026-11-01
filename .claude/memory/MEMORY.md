@@ -167,4 +167,4 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Chat model candidates only](chat-model-candidates-only.md) — 13 Oct, ledger 1217: Sonnet 5.5 / GPT-6.1 Sol / GPT-6 Luna Pro only; same price = always Pro (1218); never name the two excluded models to him
 - [Microsoft 365 app already exists](m365-app-already-exists.md) — 18 Oct: reuse the quotesdone.com M365 app (M365_* edge secrets); never ask him to register a new one
 - [OpenRouter stays on; all tests with AI](openrouter-stays-on-all-tests-with-ai.md) — 19 Oct, ledger 1260: no model holds, no stubbed tests
-- [The CEO acts on the supplier target](the-ceo-acts-on-the-supplier-target.md) — ledger 1438: bounded powers behind a switch; brakes and ledger 1231 win
+- [The CEO acts on the supplier target](the-ceo-acts-on-the-supplier-target.md) — ledger 1438: bounded powers behind a switch; brakes win; ceiling is the CEO's (1455)

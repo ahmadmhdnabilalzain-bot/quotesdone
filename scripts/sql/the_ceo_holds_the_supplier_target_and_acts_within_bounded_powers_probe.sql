@@ -29,7 +29,7 @@ begin
   update public.app_secrets set value = 'true' where key = 'ceo_growth_act_golive';
   v_res := public.fn_ceo_growth_act(v_at);
   select value::int into v_cap from public.app_secrets where key = 'invite_daily_cap';
-  if v_cap > v_founder then raise exception 'CHK<<PROBE FAILED: cap % above the schedule %>>', v_cap, v_founder; end if;
+  if v_cap > v_founder then raise exception 'CHK<<PROBE FAILED: cap % above the ceiling %>>', v_cap, v_founder; end if;
   select count(*) into v_rows from public.ceo_growth_action where power = 'cap' and applied and verdict = 'pending' and review_on is not null;
   if v_rows <> 1 then raise exception 'CHK<<PROBE FAILED: no applied cap action: %>>', v_res; end if;
 
@@ -41,6 +41,13 @@ begin
   select value::int into v_cap from public.app_secrets where key = 'invite_daily_cap';
   if v_rb <> 'rolled_back' or v_cap <> least(5, v_founder) then raise exception 'CHK<<PROBE FAILED: rollback verdict % cap %>>', v_rb, v_cap; end if;
   if (select effect from public.ceo_growth_action where dedupe_key = 'probe:raise') is null then raise exception 'CHK<<PROBE FAILED: no effect written>>'; end if;
+
+  -- switch off: a failing raise is measured, never marked rolled back
+  update public.app_secrets set value = 'false' where key = 'ceo_growth_act_golive';
+  insert into public.ceo_growth_action (decided_on, power, subject, before_value, after_value, reason, applied, baseline, review_on, verdict, dedupe_key)
+  values (v_today - 3, 'cap', 'invite_daily_cap', '5', '15', 'probe off', true, '{}', v_today, 'pending', 'probe:off');
+  perform public.fn_ceo_growth_review(v_at, jsonb_build_object('bounce_rate_7d', 0.5, 'max_bounce', 0.03, 'sent_7d', 40, 'complained_48h', 0), false);
+  if (select verdict from public.ceo_growth_action where dedupe_key = 'probe:off') <> 'pending' then raise exception 'CHK<<PROBE FAILED: switch off changed a verdict>>'; end if;
 
   -- the report: off queues nothing; on queues one email and no WhatsApp
   select count(*) into v_mail0 from public.notifications where kind = 'ceo_daily_number';

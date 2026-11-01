@@ -16,10 +16,11 @@
 --
 -- THE BOUNDS, in the order they win:
 --   1. The bounce and complaint brakes. A brake reading can only lower. The sender's own brakes are untouched.
---   2. Ledger 1231: fn_invite_founder_cap is the ceiling. fn_ceo_growth_act clamps every cap it writes to it, and the
---      sender clamps again. The cap the target would need is REPORTED in ceo_supplier_goal status, never written.
+--   2. Ledger 1455 ("The cap, you are more aware about it than me"): the cap is this seat's decision on measured health.
+--      fn_invite_founder_cap is now the dated schedule of ledger 1231 or the CEO's ceiling, whichever is higher. The ceiling
+--      rises 10 at a time, at most weekly, on 14 clean days only, and comes back if the next reading is bad.
 --   3. Ledger 1312: the placement gate stays in the sender; a resume needs at least one mailbox class open.
---   4. Ledger 1004: paid ads are not the CEO's to open (ceo_may_open false). Nothing here can spend.
+--   4. Ledger 1456: no ads and no boosted content. The register holds no ad channel. Nothing here can spend.
 --   5. WhatsApp opens only on opt-ins, an approved template and a HIGH reading, each measured (ledger 1373, Meta policy).
 --   6. No demo lead, no message to a supplier: this file writes settings, ranks and directives. The sender sends.
 --
@@ -135,26 +136,26 @@ create policy ceo_supplier_channel_service_role_only on public.ceo_supplier_chan
 revoke all on public.ceo_supplier_channel from anon, authenticated;
 insert into public.ceo_supplier_channel (channel, owner_seat, switch_key, ceo_may_open, rule, access_needed) values
   ('email_supplier_mailbox', 'customer_support', 'invite_enabled', true,
-   'One mailbox, supplier@quotesdone.com, Microsoft 365 lane. Ledger 1231 ceiling; ledger 1312 placement gate; bounce and complaint brakes.',
+   'One mailbox, supplier@quotesdone.com, Microsoft 365 lane. Ledger 1455 ceiling; ledger 1312 placement gate; bounce and complaint brakes.',
    'A paid email-verification vendor key, to check the 14,202 unchecked eligible leads. Cost quoted first.'),
   ('whatsapp_opt_in', 'marketing', 'wa_supplier_invite_golive', true,
    'Meta WhatsApp Business Messaging Policy: only a person who gave the number and agreed to our messages; honour every stop. Ledger 1341: the button or a yes to the consent question. Never a scraped number.',
    'None to run. The Twilio key reading the sender rating is proved by the first reading.'),
   ('email_extra_mailboxes', 'it_engineer', null, false,
-   'The lane reads one mailbox setting; no rotation is built. Ledger 1231 caps the day in total, so a second mailbox adds no volume without a ruling. Each mailbox would need its own warm-up and placement test.',
-   'A ruling lifting the 50 a day ceiling; an M365 admin sign-in to add mailboxes; DNS host sign-in if a new subdomain is used.'),
+   'The lane reads one mailbox setting; no rotation is built. Each mailbox would need its own warm-up and placement test, and a rotation built in the lane.',
+   'An M365 admin sign-in to add mailboxes; DNS host sign-in if a new subdomain is used.'),
   ('phone_outbound', 'sales_engineer', null, false,
    'No outbound routine exists; voice_otp hangs up. UAE Cabinet Resolution 56 of 2024: 09:00-18:00, consent, the Do Not Call Registry, a recorded and identified call. Whether it binds business-to-business calls was not confirmed from the official text.',
    'A company UAE number that is not the founder''s mobile, with Twilio regulatory approval; the official telemarketing registration requirement confirmed.'),
-  ('meta_ads', 'marketing', 'meta_autospend_golive', false,
-   'Ledger 1004: paid only once every category has 10 suppliers (223 below on 2 Nov). Spends money, so never opened by this routine.',
-   'A ruling lifting ledger 1004 for supplier recruitment; a payment method confirmed on the Meta ad account.'),
+  ('supplier_referral', 'sales_engineer', null, false,
+   'A registered supplier invites others in its trade. Not built, and it has nothing to run on: 0 registered suppliers on 2 Nov. It takes an ask at approval, a code recorded at registration, and a count per referrer. The supplier sends it, so no scraped address is used.',
+   null),
   ('organic_social', 'marketing', null, false,
-   'Company page posts through Postiz on the monthly calendar: reaches followers, contacts nobody directly.',
+   'Company page posts through Postiz on the monthly calendar: reaches followers, contacts nobody directly. Ledger 1456: never boosted.',
    null),
   ('linkedin_manual', 'marketing', null, false,
    'Automated LinkedIn messaging is forbidden by its User Agreement and is not built. The daily target list needs a person to send.',
-   'A person with admin of the QuotesDone company page, or LinkedIn Ads budget by ruling.')
+   'A person with admin of the QuotesDone company page.')
 on conflict (channel) do update set owner_seat = excluded.owner_seat, ceo_may_open = excluded.ceo_may_open, rule = excluded.rule,
   access_needed = excluded.access_needed, switch_key = excluded.switch_key;
 
@@ -162,9 +163,9 @@ create or replace function public.fn_ceo_supplier_channel_measure()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
   v_secret jsonb := (select jsonb_object_agg(key, value) from public.app_secrets
-                      where key in ('invite_enabled', 'invite_m365_enabled', 'invite_m365_mailbox', 'wa_supplier_invite_golive', 'meta_autospend_golive', 'meta_access_token'));
+                      where key in ('invite_enabled', 'invite_m365_enabled', 'invite_m365_mailbox', 'wa_supplier_invite_golive'));
   v_open text[] := public.fn_invite_placement_open_providers((now() at time zone 'Asia/Dubai')::date);
-  v_sent7 int; v_optins int; v_tmpl int; v_q public.wa_sender_quality_reading; v_brake boolean; v_posts int; v_cats jsonb; v_wa_why text[] := '{}';
+  v_sent7 int; v_optins int; v_tmpl int; v_q public.wa_sender_quality_reading; v_brake boolean; v_posts int; v_wa_why text[] := '{}';
 begin
   select count(*) into v_sent7 from public.notifications where type = 'supplier_invite' and status = 'sent' and sent_at > now() - interval '7 days';
   select count(*) into v_optins from public.supplier_whatsapp_optin o join public.leads l on l.id = o.lead_id where not coalesce(l.is_demo, false);
@@ -172,7 +173,6 @@ begin
   select * into v_q from public.wa_sender_quality_reading order by read_at desc, id desc limit 1;
   v_brake := exists (select 1 from public.it_watch_finding f where f.detector_key = 'deliverability:supplier_invite_wa' and f.status = 'open');
   select count(*) into v_posts from public.marketing_post where status = 'published' and created_at > now() - interval '30 days';
-  v_cats := public.fn_every_category_has_ten_suppliers(false);
 
   update public.ceo_supplier_channel set measured_at = now(),
     state = case when v_secret->>'invite_enabled' = 'true' and cardinality(v_open) > 0 and v_sent7 > 0 then 'on' else 'paused' end,
@@ -196,9 +196,8 @@ begin
     state_why = 'no send path: the lane reads one mailbox setting', measured = jsonb_build_object('mailboxes_in_the_lane', 1) where channel = 'email_extra_mailboxes';
   update public.ceo_supplier_channel set measured_at = now(), state = 'missing',
     state_why = 'no outbound call routine exists', measured = '{}'::jsonb where channel = 'phone_outbound';
-  update public.ceo_supplier_channel set measured_at = now(), state = 'blocked',
-    state_why = format('ledger 1004: %s categories below 10; meta_autospend_golive %s', v_cats->>'below_ten', v_secret->>'meta_autospend_golive'),
-    measured = jsonb_build_object('below_ten', v_cats->'below_ten', 'token_present', coalesce(v_secret->>'meta_access_token', '') <> '') where channel = 'meta_ads';
+  update public.ceo_supplier_channel set measured_at = now(), state = 'missing',
+    state_why = 'not built; no registered supplier yet to refer', measured = '{}'::jsonb where channel = 'supplier_referral';
   update public.ceo_supplier_channel set measured_at = now(), state = case when v_posts > 0 then 'on' else 'paused' end,
     state_why = format('%s posts published in 30 days', v_posts), measured = jsonb_build_object('published_30d', v_posts) where channel = 'organic_social';
   update public.ceo_supplier_channel set measured_at = now(), state = 'missing',
@@ -259,7 +258,7 @@ revoke all on public.ceo_invite_trade_priority from anon, authenticated;
 create table if not exists public.ceo_growth_action (
   id bigint generated always as identity primary key,
   decided_on date not null,
-  power text not null check (power in ('run', 'cap', 'reachable', 'trade', 'channel', 'directive')),
+  power text not null check (power in ('run', 'cap', 'ceiling', 'reachable', 'trade', 'channel', 'directive')),
   subject text not null,
   before_value text,
   after_value text,
@@ -280,7 +279,7 @@ create policy ceo_growth_action_service_role_only on public.ceo_growth_action as
 revoke all on public.ceo_growth_action from anon, authenticated;
 
 insert into public.app_secrets (key, value) values
-  ('ceo_growth_act_golive', 'false'), ('ceo_daily_number_golive', 'false'), ('invite_reachable_only', 'false')
+  ('invite_ceo_ceiling', '0'), ('ceo_growth_act_golive', 'false'), ('ceo_daily_number_golive', 'false'), ('invite_reachable_only', 'false')
 on conflict (key) do nothing;
 
 insert into public.ceo_decision (decision_key, domain, decision, trigger_condition, measure, measure_sql, authority, evidence_required, cadence, active) values
@@ -294,6 +293,24 @@ insert into public.ceo_decision (decision_key, domain, decision, trigger_conditi
    'The reading at review, the verdict, and any roll back.', 'daily', true)
 on conflict (decision_key) do nothing;
 
+-- THE CEILING (ledger 1455, superseding the end of ledger 1231's "until we reach 50"). The dated weeks stay as the floor of the
+-- ceiling; invite_ceo_ceiling is written only by fn_ceo_growth_act, on measured health. Every sender and the ramp read this one routine.
+create or replace function public.fn_invite_schedule_cap(p_day date)
+returns integer language sql immutable set search_path to 'public', 'pg_temp' as $fn$
+  select case
+    when p_day < date '2026-10-26' then 20
+    when p_day < date '2026-11-02' then 30
+    when p_day < date '2026-11-09' then 40
+    else 50
+  end;
+$fn$;
+revoke execute on function public.fn_invite_schedule_cap(date) from public, anon, authenticated;
+create or replace function public.fn_invite_founder_cap(p_day date)
+returns integer language sql stable set search_path to 'public', 'pg_temp' as $fn$
+  select greatest(public.fn_invite_schedule_cap(p_day),
+                  coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_ceo_ceiling'), 0));
+$fn$;
+
 -- 6. WHAT THE CEO READS --------------------------------------------------------------------------------------------------
 -- p_light skips the two scans of the eligible pool (7 s each, measured 2 Nov), for a directive's done test, read on every directive run.
 create or replace function public.fn_ceo_growth_reading(p_at timestamptz default now(), p_light boolean default false)
@@ -304,7 +321,7 @@ declare
                    where key in ('invite_enabled', 'invite_daily_cap', 'invite_max_bounce_rate', 'invite_reachable_only', 'wa_supplier_invite_golive'));
   v_open text[] := public.fn_invite_placement_open_providers(v_today);
   v_cls text[] := array['verified', 'true', 'maps', 'social'];
-  s record; c record; v_compl48 int; v_compl7 int; v_pool int; v_pause timestamptz; v_stuck int; v_unans int; v_opt int; v_tmpl boolean; v_q public.wa_sender_quality_reading; v_wa_brake boolean;
+  s record; c record; h record; v_all int; v_share numeric; v_ceil_last date; v_ceil_bad boolean; v_compl48 int; v_compl7 int; v_pool int; v_pause timestamptz; v_stuck int; v_unans int; v_opt int; v_tmpl boolean; v_q public.wa_sender_quality_reading; v_wa_brake boolean;
 begin
   select count(*) sent, count(*) filter (where l.invite_status = 'bounced') bounced
     into s from public.notifications n join public.leads l on l.id = n.lead_id
@@ -317,13 +334,21 @@ begin
    where n.type = 'supplier_invite' and n.status = 'sent' and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(coalesce(l.email, ''));
   select count(*) filter (where invited_at > p_at - interval '48 hours'), count(*) into v_compl48, v_compl7
     from public.leads where invite_status = 'complained' and invited_at > p_at - interval '7 days' and not coalesce(is_demo, false);
-  if not p_light then select count(*) into v_pool from public.leads l
-   where l.id in (select public.fn_supplier_invite_eligible_ids()) and l.email_verified = any (v_cls)
-     and public.fn_mail_provider_of_email(l.email) = any (v_open); end if;
-  -- only a brake's pause may be resumed by the CEO: a pause with no brake record is somebody's decision
-  select max(a) into v_pause from (
-    select max(created_at) a from public.founder_alerts where event in ('invite_paused_bounce', 'invite_paused_complaints')
-    union all select max(last_seen_at) from public.it_watch_finding where detector_key = 'deliverability:supplier_invite' and status = 'open') x;
+  if not p_light then
+    select count(*) filter (where l.email_verified = any (v_cls)), count(*) into v_pool, v_all from public.leads l
+     where l.id in (select public.fn_supplier_invite_eligible_ids()) and public.fn_mail_provider_of_email(l.email) = any (v_open);
+    v_share := round(100.0 * v_pool / greatest(v_all, 1), 1);
+  end if;
+  -- ONLY THE CEO'S OWN PAUSE MAY BE LIFTED: its close row must be the last write to invite_enabled in the audit log. A brake's pause
+  -- is restarted by sales_engineer.invite_restart; a pause by hand, or anyone's write after the close, is never lifted here.
+  select a.created_at into v_pause from public.ceo_growth_action a
+   where a.power = 'channel' and a.subject = 'email_supplier_mailbox' and a.after_value = 'close' and a.applied
+     and a.created_at >= (select max(l.at) from public.security_audit_log l where l.table_name = 'app_secrets' and l.row_pk = 'invite_enabled') - interval '1 minute'
+   order by a.id desc limit 1;
+  select count(*) sent, count(*) filter (where l.invite_status = 'bounced') bounced into h from public.notifications n join public.leads l on l.id = n.lead_id
+   where n.type = 'supplier_invite' and n.status = 'sent' and n.sent_at > p_at - interval '14 days' and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(coalesce(l.email, ''));
+  select max(a.decided_on) filter (where a.applied), coalesce(bool_or(a.verdict in ('failed', 'rolled_back') and a.decided_on > v_today - 30), false) into v_ceil_last, v_ceil_bad
+    from public.ceo_growth_action a where a.power = 'ceiling';
   select count(*) into v_stuck from public.leads l
    where (l.owner_email_verified or coalesce(l.claimed, false)) and l.registration_submitted_at is null
      and coalesce(l.portal_updated_at, l.invite_clicked_at) < p_at - interval '3 days'
@@ -343,9 +368,12 @@ begin
     'founder_cap', public.fn_invite_founder_cap(v_today),
     'open_classes', cardinality(v_open), 'reachable_only', v_set->>'invite_reachable_only' = 'true',
     'unchecked_sent', c.unchecked_sent, 'unchecked_bounced', c.unchecked_bounced, 'checked_pool_open', v_pool,
-    'brake_pause_days_ago', case when v_pause is not null then v_today - (v_pause at time zone 'Asia/Dubai')::date end,
-    'resume_failed_recently', exists (select 1 from public.ceo_growth_action a where a.power = 'channel' and a.subject = 'email_supplier_mailbox' and a.after_value = 'open'
-                                       and a.verdict in ('failed', 'rolled_back') and a.decided_on > v_today - 30),
+    'sent_14d', h.sent, 'bounced_14d', h.bounced, 'ceiling_days_since', v_today - v_ceil_last, 'ceiling_failed_recently', v_ceil_bad, 'checked_share_pct', v_share,
+    'own_pause_days_ago', case when v_pause is not null then v_today - (v_pause at time zone 'Asia/Dubai')::date end,
+    -- A REOPEN THAT FAILED HOLDS UNTIL HEALTH MOVES: a class opened, or the checked share of the pool rose 5 points, against every earlier reopen
+    'resume_held_same_health', exists (select 1 from public.ceo_growth_action a where a.power = 'channel' and a.subject = 'email_supplier_mailbox' and a.after_value = 'open' and a.applied
+                                        and not (cardinality(v_open) > coalesce((a.baseline->>'open_classes')::int, 0)
+                                                 or coalesce(v_share, 0) >= coalesce((a.baseline->>'checked_share_pct')::numeric, 0) + 5)),
     'wa_golive', v_set->>'wa_supplier_invite_golive' = 'true', 'wa_opt_ins', v_opt, 'wa_template_approved', v_tmpl,
     'wa_reading_ok', v_q.id is not null and v_q.read_at > p_at - interval '26 hours' and v_q.ok, 'wa_brake', v_wa_brake,
     'started_stuck', v_stuck, 'replied_unanswered', v_unans,
@@ -382,13 +410,20 @@ begin
   -- CAP. Above the founder's schedule always comes down; a brake halves; only clean mail raises, one step, never past the schedule.
   if v_cur > v_founder then
     a := a || jsonb_build_object('power', 'cap', 'subject', 'invite_daily_cap', 'to', v_founder, 'review_days', 3,
-      'reason', format('ledger 1231: the cap %s is above the dated ceiling %s', v_cur, v_founder));
+      'reason', format('ledger 1455: the cap %s is above the ceiling %s', v_cur, v_founder));
   elsif v_brake and v_cur > 1 then
     a := a || jsonb_build_object('power', 'cap', 'subject', 'invite_daily_cap', 'to', greatest(1, v_cur / 2), 'review_days', 3,
       'reason', format('brake: %s bounced of %s in 7 days against a limit of %s, %s complaints in 48 hours', r->>'bounced_7d', r->>'sent_7d', v_max, r->>'complained_48h'));
   elsif v_healthy and v_enabled and v_cur < v_founder then
     a := a || jsonb_build_object('power', 'cap', 'subject', 'invite_daily_cap', 'to', least(v_founder, v_cur + 10), 'review_days', 3,
-      'reason', format('clean: %s bounced of %s in 7 days, no complaint; the schedule allows %s', r->>'bounced_7d', r->>'sent_7d', v_founder));
+      'reason', format('clean: %s bounced of %s in 7 days, no complaint; the ceiling allows %s', r->>'bounced_7d', r->>'sent_7d', v_founder));
+  elsif not v_brake and v_enabled and v_cur >= v_founder and coalesce((r->>'sent_14d')::int, 0) >= 100
+        and (r->>'bounced_14d')::numeric / nullif((r->>'sent_14d')::numeric, 0) < 0.01 and coalesce((r->>'complained_7d')::int, 0) = 0
+        and coalesce((r->>'open_classes')::int, 0) > 0 and coalesce((r->>'checked_pool_open')::int, 0) >= v_cur * 10
+        and coalesce((r->>'ceiling_days_since')::int, 999) >= 7 and not coalesce((r->>'ceiling_failed_recently')::boolean, false) then
+    -- LEDGER 1455: on measured health alone, in small steps
+    a := a || jsonb_build_object('power', 'ceiling', 'subject', 'invite_ceo_ceiling', 'to', v_founder + 10, 'review_days', 3,
+      'reason', format('14 clean days: %s bounced of %s, no complaint, ten days of checked leads', r->>'bounced_14d', r->>'sent_14d'));
   end if;
 
   -- REACHABILITY. Unchecked addresses stop when their own measured rate is over the limit, and return only when it is not.
@@ -406,13 +441,13 @@ begin
       'reason', format('%s is marked for recruitment and has one of the widest reachable pools', t));
   end loop;
 
-  -- EMAIL. A brake's pause may be lifted: 7 clean days, placement open, only checked addresses, no complaint, no failed resume in 30 days.
-  v_resume := not v_enabled and (r->>'brake_pause_days_ago')::int >= 7 and coalesce((r->>'open_classes')::int, 0) > 0
+  -- EMAIL. The CEO's own close may be lifted: 7 days on, placement open, only checked addresses, no complaint, and health moved since any earlier reopen.
+  v_resume := not v_enabled and (r->>'own_pause_days_ago')::int >= 7 and coalesce((r->>'open_classes')::int, 0) > 0
               and v_reach and coalesce((r->>'complained_7d')::int, 0) = 0 and not coalesce(v_rate > v_max, false)
-              and not coalesce((r->>'resume_failed_recently')::boolean, false);
+              and not coalesce((r->>'resume_held_same_health')::boolean, false);
   if v_resume then
     a := a || jsonb_build_object('power', 'channel', 'subject', 'email_supplier_mailbox', 'to', 'open', 'review_days', 7,
-      'reason', format('the brake paused %s days ago, the window is clean, only checked addresses go', r->>'brake_pause_days_ago'));
+      'reason', format('the CEO closed this %s days ago, the window is clean, only checked addresses go', r->>'own_pause_days_ago'));
     if v_cur > 10 then
       a := a || jsonb_build_object('power', 'cap', 'subject', 'invite_daily_cap', 'to', 10, 'review_days', 3, 'reason', 'a resume restarts low: the domain cooled during the pause');
     end if;
@@ -476,7 +511,18 @@ begin
   for x in select * from public.ceo_growth_action where verdict = 'pending' and applied and review_on <= v_today order by id for update loop
     v_effect := jsonb_build_object('read_on', v_today, 'bounce_rate_7d', v_rate, 'sent_7d', p_reading->'sent_7d', 'complained_48h', p_reading->'complained_48h');
     v_base := (x.baseline->>'bounce_rate_7d')::numeric;
-    if x.power = 'cap' and x.after_value::int > coalesce(x.before_value::int, 0) then
+    if x.power = 'ceiling' then
+      if v_bad then
+        if p_apply then
+          update public.app_secrets set value = x.before_value where key = 'invite_ceo_ceiling';
+          update public.app_secrets set value = jsonb_set(value::jsonb, '{ceiling_cap}', to_jsonb(x.before_value::int))::text where key = 'invite_warmup';
+          update public.app_secrets set value = least(value::int, public.fn_invite_founder_cap(v_today))::text where key = 'invite_daily_cap';
+        end if;
+        v_verdict := 'rolled_back';
+      else
+        v_verdict := 'worked';
+      end if;
+    elsif x.power = 'cap' and x.after_value::int > coalesce(x.before_value::int, 0) then
       if v_bad then
         if p_apply then update public.app_secrets set value = least(x.before_value::int, public.fn_invite_founder_cap(v_today))::text where key = 'invite_daily_cap'; end if;
         v_verdict := 'rolled_back';
@@ -502,7 +548,7 @@ begin
       end if;
     elsif x.power = 'channel' and x.subject = 'email_supplier_mailbox' and x.after_value = 'open' then
       v_paused := not (p_reading->>'invite_enabled')::boolean;
-      v_verdict := case when v_paused then 'failed' when v_rate is null then 'no_signal' else 'worked' end;   -- a brake already paused it; 'failed' stops the next resume for 30 days
+      v_verdict := case when v_paused then 'failed' when v_rate is null then 'no_signal' else 'worked' end;   -- a brake already paused it
     elsif x.power = 'channel' and x.subject = 'whatsapp_opt_in' and x.after_value = 'open' then
       if (p_reading->>'wa_brake')::boolean or not (p_reading->>'wa_reading_ok')::boolean then
         if p_apply then update public.app_secrets set value = 'false' where key = 'wa_supplier_invite_golive'; end if;
@@ -512,6 +558,11 @@ begin
       end if;
     else
       v_verdict := 'recorded';
+    end if;
+    -- SWITCH OFF: nothing was undone, so nothing reads rolled back. The action stays pending for the day the switch is on.
+    if v_verdict = 'rolled_back' and not p_apply then
+      update public.ceo_growth_action set effect = v_effect || jsonb_build_object('would_roll_back', true) where id = x.id;
+      continue;
     end if;
     update public.ceo_growth_action set effect = v_effect, verdict = v_verdict, reviewed_at = p_at where id = x.id;
     perform public.fn_ceo_plan_log('supplier_growth_effect', 'supplier_growth_effect:' || x.id,
@@ -537,7 +588,7 @@ begin
     return jsonb_build_object('ok', true, 'ran', false, 'reason', 'today''s decision exists');
   end if;
 
-  perform public.fn_ceo_supplier_funnel_refresh(v_today - 3);
+  perform public.fn_ceo_supplier_funnel_refresh(date '2026-01-01');   -- whole history: a late bounce or a backfill changes an old day, and totals sum it
   v_channels := public.fn_ceo_supplier_channel_measure();
   v_read := public.fn_ceo_growth_reading(p_at);
   v_goal := public.fn_ceo_supplier_goal_status(p_at);
@@ -550,8 +601,15 @@ begin
     case d->>'power'
     when 'cap' then
       v_before := v_read->>'cur_cap';
-      v_after := least((d->>'to')::int, v_founder)::text;     -- ledger 1231, whatever the decision said
+      v_after := least((d->>'to')::int, v_founder)::text;     -- the ceiling, whatever the decision said
       if v_apply then update public.app_secrets set value = v_after where key = 'invite_daily_cap'; end if;
+    when 'ceiling' then
+      v_before := v_read->>'founder_cap';
+      v_after := least((d->>'to')::int, v_founder + 10)::text;     -- one small step, whatever the decision said
+      if v_apply then
+        update public.app_secrets set value = v_after where key = 'invite_ceo_ceiling';
+        update public.app_secrets set value = jsonb_set(value::jsonb, '{ceiling_cap}', to_jsonb(v_after::int))::text where key = 'invite_warmup';   -- the ramp reads both
+      end if;
     when 'reachable' then
       v_before := v_read->>'reachable_only';
       if v_apply then update public.app_secrets set value = v_after where key = 'invite_reachable_only'; end if;
@@ -625,7 +683,7 @@ begin
   if exists (select 1 from public.founder_alerts where dedupe_key = v_key and channel = 'email') then
     return jsonb_build_object('ok', true, 'sent', false, 'reason', 'today''s message is out');
   end if;
-  perform public.fn_ceo_supplier_funnel_refresh(v_day - 3);
+  perform public.fn_ceo_supplier_funnel_refresh(date '2026-01-01');
   v_text := public.fn_ceo_daily_number_text(v_day);
   if coalesce((select value from public.app_secrets where key = 'ceo_daily_number_golive'), '') <> 'true' then
     return jsonb_build_object('ok', true, 'sent', false, 'reason', 'ceo_daily_number_golive is off', 'would_say', v_text);
@@ -635,6 +693,9 @@ begin
   return jsonb_build_object('ok', true, 'sent', coalesce((v_res->>'emailed')::boolean, false), 'text', v_text);
 end $fn$;
 revoke execute on function public.fn_ceo_daily_number_report(timestamptz) from public, anon, authenticated;
+
+-- the funnel starts whole
+select public.fn_ceo_supplier_funnel_refresh(date '2026-01-01');
 
 -- 11. THE CLOCK -----------------------------------------------------------------------------------------------------------
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
@@ -652,7 +713,7 @@ insert into public.resilience_step (step, every, budget_ms, place, rank, note) v
 on conflict (step) do update set every = excluded.every, budget_ms = excluded.budget_ms, note = excluded.note;
 
 -- 12. THE QUEUE READS THE CEO'S TWO LEVERS. Unchanged while invite_reachable_only is false and no trade is listed. -----------
-create or replace function public.fn_supplier_invite_candidates(p_limit integer, p_providers text[])
+CREATE OR REPLACE FUNCTION public.fn_supplier_invite_candidates(p_limit integer, p_providers text[])
  RETURNS TABLE(lead_id bigint, to_email text, company_name text, lang text, subject text, body text)
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
@@ -713,10 +774,10 @@ begin
   rescue as materialized (select x.trades, x.emirate from public.stalled_inquiry_rescue x where x.cleared_at is null and not x.fixture and cardinality(x.trades) > 0),
   cand as (
     select distinct on (lower(l.email)) l.id, l.email, l.company_name, l.claim_token, l.email_domain, l.email_verified,
-           l.invite_trades, l.emirate, k.dkey, k.nkey,
+           l.invite_trades, l.emirate, k.dkey, k.nkey, ec.mailbox,
            -- ALWAYS ENGLISH (24 Sep 2026, ledger 993 item 4; #1065): suppliers are always written in English.
            'en'::text as lang
-    from leads l join keyed k on k.id = l.id
+    from leads l join keyed k on k.id = l.id left join public.lead_email_check ec on ec.lead_id = l.id
     where l.id in (select e.id from public.fn_supplier_invite_eligible_ids() e(id))   -- the set, read once (see header)
       -- 27 Oct 2026 (it_engineer): only recipients whose mailbox class passed the GlockApps verdict; null = every class
       and (p_providers is null or public.fn_mail_provider_of_email(l.email) = any(p_providers))
@@ -742,11 +803,10 @@ begin
            then -1 else coalesce(pl.rank, 2147483647) end as plan_rank,
       coalesce((select u.domain_slug from lead_subcategory ls join under u on u.domain_slug = ls.domain_slug
                  where ls.lead_id = c.id order by u.have asc, ls.score desc limit 1), '~none') as pdomain,
-      case when c.email_verified in ('verified','true') then 0 else 1 end as unverified_rank,
-      case when split_part(lower(c.email),'@',1) in
-             ('info','sales','admin','contact','enquiry','enquiries','inquiry','office','mail',
-              'support','hello','marketing','general','accounts','reception','careers','hr')
-           then 1 else 0 end as role_rank
+      -- THE LIKELIEST MAILBOX FIRST (2 Nov 2026, ledger 1449). Measured on the 52 real sends: proven 'verified' 1 bounce of 22,
+      -- proven 'true' 1 of 9, unproven role address 0 of 2, unproven named address 5 of 16. So an unproven info@ goes before
+      -- an unproven named address (this used to be the other way round), and free mail last. ponytail: small sample, re-read at 200.
+      case when c.email_verified in ('verified','true') then 0 when c.mailbox = 'free' then 3 when c.mailbox = 'role' then 1 else 2 end as mailbox_rank
     from cand c
     left join lateral (select p.rank from plans p
                         where p.trade = any(coalesce(c.invite_trades, '{}'::text[])) and (p.emirate = 'UAE' or p.emirate = c.emirate)
@@ -756,16 +816,15 @@ begin
     select r.id, r.email, r.company_name, r.claim_token, r.lang from (
       select p.*,
         case when p.pdomain='~none' then 1 else 0 end as is_none,
-        row_number() over (partition by p.pdomain order by p.unverified_rank, p.role_rank, p.id) as rk,
-        row_number() over (partition by coalesce(p.email_domain, split_part(p.email,'@',2)) order by p.unverified_rank, p.role_rank, p.id) as domain_rk,
-        -- the best contact per company: a verified, named mailbox before info@/sales@ (a role address goes only
-        -- when it is the company's only one). ponytail: a lead that wins one key and loses the other waits a day.
-        row_number() over (partition by p.dkey order by p.unverified_rank, p.role_rank, p.id) as company_rk,
-        row_number() over (partition by coalesce(p.nkey, p.email) order by p.unverified_rank, p.role_rank, p.id) as name_rk
+        row_number() over (partition by p.pdomain order by p.mailbox_rank, p.id) as rk,
+        row_number() over (partition by coalesce(p.email_domain, split_part(p.email,'@',2)) order by p.mailbox_rank, p.id) as domain_rk,
+        -- the best contact per company, by mailbox_rank. ponytail: a lead that wins one key and loses the other waits a day.
+        row_number() over (partition by p.dkey order by p.mailbox_rank, p.id) as company_rk,
+        row_number() over (partition by coalesce(p.nkey, p.email) order by p.mailbox_rank, p.id) as name_rk
       from prio p
     ) r
     where r.domain_rk <= 5 and r.company_rk = 1 and r.name_rk = 1
-    order by r.target_rank, r.plan_rank, r.is_none, r.rk, r.unverified_rank, r.role_rank, r.pdomain
+    order by r.target_rank, r.plan_rank, r.mailbox_rank, r.is_none, r.rk, r.pdomain
     limit greatest(coalesce(p_limit, 0), 0)
   )
   select e.id, btrim(e.email), e.company_name, e.lang, v_subj,
