@@ -5,11 +5,14 @@ name: Supplier services gate proof (demo data)
 #   2. the sign-up walk in a real browser against a site URL you give (a branch preview carries the new Services tab), which asks the
 #      database whether the gate is applied and prints NOT RUN for the half that needs it. Teardown removes the run.
 on:
+  push:
+    paths:
+      - .github/workflows/supplier-services-gate-proof.yml
   workflow_dispatch:
     inputs:
       site:
         description: 'Site to walk (a Vercel preview of this branch, or https://www.quotesdone.com)'
-        required: true
+        required: false
 
 jobs:
   proof:
@@ -18,7 +21,7 @@ jobs:
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QD_FIXTURES: '1'
-      QD_SITE: ${{ inputs.site }}
+      QD_SITE: ${{ inputs.site || 'https://quotesdone-next-bpm7cwn4n-quotes-done.vercel.app' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
