@@ -246,7 +246,7 @@ async function flagCoverageGap(inqId: string, category: string, emirate: string 
     const owner = ((await getSecret('admin_emails')) || 'management@quotesdone.com').split(',')[0].trim();
     await queueNotifications([{ type: 'rfq_no_supplier', to_email: owner, to_role: 'admin', inquiry_id: inqId, channel: 'email', status: 'queued',
       subject: 'Customer request reached no suppliers: ' + label,
-      body: 'A customer posted a request (' + label + ') and it matched ZERO suppliers, so no one was contacted and no quote can arrive.\n\nInquiry: ' + inqId + '\nSummary: ' + String(summary || '').slice(0, 300) + '\n\nThe customer is waiting. Onboard suppliers in this trade/emirate, or contact them directly.' }]);
+      body: 'A customer posted a request (' + label + ') and it matched ZERO suppliers, so no one was contacted and no quote can arrive.\n\nInquiry: ' + inqId + '\nSummary: ' + String(summary || '').slice(0, 300) + '\n\nThe customer was told no quote is promised; the request closes by itself after 14 days if it reaches nobody.' }]);
   } catch (_e) { /* */ }
   return flagged;
 }
