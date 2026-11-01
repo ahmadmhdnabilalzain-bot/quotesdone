@@ -11,14 +11,13 @@ begin
   select c.id into v_cust from public.customers c where c.email ilike '%@example.invalid' order by c.created_at limit 1;
   if v_cust is null then raise exception 'CHK<<PROBE FAILED: no ZZ DEMO customer>>'; end if;
   insert into public.inquiries (customer_id, category, emirate, summary, status, rfq_ready, created_at, routing)
-    values (v_cust, 'aluminium', 'Dubai', 'ZZ DEMO probe', 'open', true, '2020-01-01', jsonb_build_object('dispatched_at', now())) returning id into v_i;
+    values (v_cust, 'zz_probe_no_spec', 'Dubai', 'ZZ DEMO probe', 'open', true, '2020-01-01', jsonb_build_object('dispatched_at', now())) returning id into v_i;
   insert into public.inquiries (customer_id, category, emirate, summary, status, rfq_ready, created_at, routing)
     values (v_cust, 'aluminium', 'Dubai', 'ZZ DEMO probe', 'open', false, '2020-01-02', jsonb_build_object('dispatched_at', now())) returning id into v_c;
   insert into public.inquiries (customer_id, category, emirate, summary, status, rfq_ready, created_at, routing)
-    values (v_cust, 'aluminium', 'Dubai', 'ZZ DEMO probe', 'open', true, now(), jsonb_build_object('dispatched_at', now())) returning id into v_y;
-  -- A trigger may recompute readiness on insert: the probe needs these exact values.
-  update public.inquiries set rfq_ready = true where id in (v_i, v_y);
-  update public.inquiries set rfq_ready = false where id = v_c;
+    values (v_cust, 'zz_probe_no_spec', 'Dubai', 'ZZ DEMO probe', 'open', true, now(), jsonb_build_object('dispatched_at', now())) returning id into v_y;
+  -- trg_rfq_complete decides rfq_ready from fn_rfq_required_check, so it cannot be forced: a category with no
+  -- category_specs row is ready, and aluminium with an empty spec is held. Both are asserted below.
 
   if public.fn_inquiry_awaits_specs(v_i) then v_bad := v_bad || ' ready_reads_held'; end if;
   if not public.fn_inquiry_awaits_specs(v_c) then v_bad := v_bad || ' held_reads_ready'; end if;
