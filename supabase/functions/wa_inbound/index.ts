@@ -331,6 +331,8 @@ async function handleSupplierDoc(leadId: number, url: string, declaredMime: stri
   // licence on file, and license_doc_path is what unblocks the approval gate.
   const upd: Record<string, unknown> = {
     license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString(),
+    // What the old licence printed never judges a new one (2 Nov 2026, ledger 1442).
+    trade_license_no: null, license_authority: null, license_expiry: null,
     // The name printed on this licence, read by the vision model off the photo or scan; null = not read,
     // and the review then holds the registration for a human (licence_name_unread).
     licence_legal_name: licenceNameFromModel(doc),

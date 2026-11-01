@@ -48,7 +48,7 @@ as $fn$
     -- a decline or a stop outranks everything else in the same mail
     when coalesce(p_text, '') ~* '(\mnot interested\M|\mno,? thank|\mdo not contact\M|\mdon''t contact\M|\mremove (me|us|our)\M|\munsubscribe\M)'
          or coalesce(p_text, '') ~* '(^|\n)\s*stop\s*[.!]?\s*(\n|$)' then 'decline'
-    when coalesce(p_text, '') ~* '(subsidiar|sister (company|concern)|(another|other|second|separate|different) (licen[cs]ed )?(company|licen[cs]e|trade licen[cs]e)|more than one company|group compan|our group)' then 'subsidiary'
+    when coalesce(p_text, '') ~* '(subsid|sister (company|concern)|(another|other|second|separate|different) (licen[cs]ed )?(company|licen[cs]e|trade licen[cs]e)|more than one company|group compan|our group)' then 'subsidiary'
     when coalesce(p_text, '') ~* '(\mlater\M|\mnot now\M|\mnot yet\M|\mnext (week|month|year)\M|\mafter (eid|ramadan|the holidays?)\M|\mbusy\M|\mfew (days|weeks|months)\M|\msome other time\M)' then 'later'
     else 'interested' end
 $fn$;
@@ -507,6 +507,7 @@ select case
   when (select provolatile from pg_proc where oid = 'public.fn_sales_engineer_takes_invite_reply(bigint)'::regprocedure) <> 'v'
     then 'PROBE FAILED: the invite.reply handler is still STABLE'
   when public.fn_supplier_reply_intent('we have a subsidiary with its own licence') <> 'subsidiary' then 'PROBE FAILED: subsidiary not read'
+  when public.fn_supplier_reply_intent('We would like to register our Subsidairy') <> 'subsidiary' then 'PROBE FAILED: the real spelling of inbound 1615 is not read'
   when public.fn_supplier_reply_intent('Definitely but later') <> 'later' then 'PROBE FAILED: later not read'
   when public.fn_supplier_reply_intent('We are not interested in registering our subsidiary') <> 'decline' then 'PROBE FAILED: a decline lost to subsidiary'
   when public.fn_supplier_reply_intent(E'stop\n\nour subsidiary') <> 'decline' then 'PROBE FAILED: a stop lost to subsidiary'
