@@ -49,7 +49,10 @@ try {
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 }, locale: 'en-GB' });
   await ctx.addInitScript(consent);
   page = await ctx.newPage(); page.setDefaultTimeout(45000);
-  page.on('pageerror', (e) => errs.push(String(e.message).slice(0, 200)));
+  page.on('pageerror', (e) => errs.push(String(e.message).slice(0, 300) + ' @ ' + String(e.stack || '').split('\n')[1]?.trim().slice(0, 120)));
+  const cons = [], fails = [];
+  page.on('console', (m) => { if (m.type() === 'error') cons.push(m.text().slice(0, 200)); });
+  page.on('response', (r) => { if (r.status() >= 400 && /supabase|functions/.test(r.url())) fails.push(`${r.status()} ${r.url().split('?')[0].slice(-60)}`); });
   const M = page.locator('main');
 
   // 1. /me and the Create account tab
@@ -91,7 +94,7 @@ try {
   await page.getByRole('button', { name: /^Verify & continue$/ }).click();
   const gate = await page.getByRole('heading', { name: /Complete your account/ }).waitFor({ timeout: 40000 }).then(() => true).catch(() => false);
   await shot(page, 'after_code_complete_your_account');
-  ok('the real code verifies and "Complete your account" opens', gate);
+  ok('the real code verifies and "Complete your account" opens', gate, gate ? '' : `screen: "${(await page.locator('body').innerText().catch(() => '')).replace(/\s+/g, ' ').slice(0, 120)}"; page errors: ${errs.join(' | ') || 'none'}; console: ${cons.slice(-6).join(' | ')}; failed requests: ${fails.slice(-6).join(' | ')}`);
   const au = (await read(`select id::text, email_confirmed_at is not null conf from auth.users where lower(email)=lower(${sq(email)})`))[0];
   ok('database: the auth user exists and its e-mail is confirmed', !!au?.id && au.conf === true, JSON.stringify(au));
   if (!gate) throw new Error('profile form never opened');
