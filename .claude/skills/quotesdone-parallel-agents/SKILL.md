@@ -3,7 +3,7 @@ name: quotesdone-parallel-agents
 description: The founder's standing rule of 8 Sep 2026 — use agents in parallel to speed the work up, at most 5 at once with Sonnet for simple tasks (1 Nov 2026, ledger 1417). Fan out by default; work serially only when a step genuinely depends on the one before it.
 ---
 
-# Use as many agents as possible
+# Use agents in parallel, up to the cap of 5
 
 Founder's instruction, 8 September 2026: **"use multiple agents. its taking ages for every task"**
 and **"use as many agents possible to speed up the process"**.
@@ -19,7 +19,7 @@ One task per agent; start a fresh agent for the next task. See `.claude/memory/m
 ## 1. Fan out by default
 
 Before starting anything that takes more than a couple of minutes, ask: **how many independent
-pieces does this split into?** Then start them all at once.
+pieces does this split into?** Then start them together, up to the cap.
 
 - **Independent tool calls go in ONE message.** Two greps, three reads, a database query and a
   `gh` call with no dependency between them are one message with five tool calls, never five
