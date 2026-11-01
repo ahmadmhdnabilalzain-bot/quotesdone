@@ -90,6 +90,21 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_inbound_is_bounce(p_from text, p_subject text, p_raw jsonb)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(
+       lower(coalesce(p_from, '')) ~ '(^|[<"[:space:]])(mailer[-_]?daemon|postmaster)@'
+    or lower(coalesce(p_raw->>'content_type', '')) like 'multipart/report%'   -- the whole header is stored
+    or (public.fn_is_machine_sender(p_from)
+        and coalesce(p_subject, '') ~* '(undeliverable|delivery status notification|mail delivery (failed|subsystem)|returned mail|failure notice|undelivered mail|delivery has failed)'),
+    false)
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_inbox_list()
  RETURNS jsonb
  LANGUAGE sql

@@ -217,9 +217,8 @@ const cap1 = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 // docs/reports/QuotesDone Campaign/GLOCKAPPS_27_OCT_RESULT_AND_FIX_PLAN.md (variants B and C are there, unapplied).
 /** The subject asks; it names the trade when known, else the company. Never "invitation", "free", "commission" or "exclusive". */
 export function m365Subject(who: Who = {}): string {
-  const c = companyName(who.company); const t = tradeLabel(who.trade);
-  if (t) return `A question about your ${t} work`;
-  return c ? `A question for ${c}` : 'A question about your work in the UAE';
+  const t = tradeLabel(who.trade);
+  return t ? `A question about your ${t} work` : 'A question about your work in the UAE';
 }
 /** Variant A (27 Oct 2026). Company and trade when known, else the neutral wording. */
 export function m365InvitationText(who: Who = {}): string {
@@ -346,6 +345,16 @@ export function messageIdFor(notificationId: number | string, now: Date): string
 export const M365_INBOX_AGENT = 'resend_inbound';   // = m365_reply_inbox.ts PROOF_LABEL; its rows carry counts.m365_inbox = 1
 export const M365_INBOX_PROOF_MAX_AGE_MS = 2 * 60 * 60_000;
 /** '' = no Reply-To header (replies reach the From mailbox); otherwise the fallback, kept until the reader is proven. */
+// A SUPPLIER ANSWERED IN A CONVERSATION REPLIES INTO THE READ SUPPLIER MAILBOX (2 Nov 2026, customer_support). MEASURED:
+// notification 117599 (inbound_reply, Resend, From and Reply-To info@) was answered 13 minutes later and the reply landed
+// in management@, read by nothing. inbound_reply has no to_role, so it took the customer's Reply-To. supplier@ is on the
+// From's own domain, so the cross-domain reasoning above does not apply. Only while its reader is proven; otherwise the
+// old Reply-To stands.
+export function conversationReplyTo(o: { type: unknown; toSupplier: boolean; mailbox: string | undefined; proofAt: string | null | undefined; now: Date; fallback: string }): string {
+  const mailbox = String(o.mailbox || '').trim();
+  if (o.type !== 'inbound_reply' || !o.toSupplier || !/@quotesdone\.com$/i.test(mailbox)) return o.fallback;
+  return m365ReplyTo({ proofAt: o.proofAt, now: o.now, fallback: o.fallback }) === '' ? mailbox : o.fallback;
+}
 export function m365ReplyTo(o: { proofAt: string | null | undefined; now: Date; fallback: string }): string {
   const t = o.proofAt ? Date.parse(o.proofAt) : NaN;
   const age = o.now.getTime() - t;

@@ -10469,6 +10469,23 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_supplier_mailbox_mail_gets_its_owner()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  -- never costs the triage it rides on: a failure is a warning, the triage stands
+  begin
+    perform public.fn_supplier_mailbox_mail_gets_its_owner(new.id);
+  exception when others then
+    raise warning 'trg_supplier_mailbox_mail_gets_its_owner: inbound_messages % got no owning seat: %', new.id, sqlerrm;
+  end;
+  return null;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_table_export_change()
  RETURNS trigger
  LANGUAGE plpgsql

@@ -22,7 +22,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Ready means every gate measured](ready-means-every-gate-measured.md) — 6 Oct: founder relies fully; "ready" only with a same-day measured go/no-go checklist
 - [The agent delivers its own work](the-agent-delivers-its-own-work.md) — never hand-deliver a seat's output; the delivery IS the test
 - [A status column is not a delivery record](a-status-column-is-not-a-delivery-record.md) — verify sends through the outbox; 171 leads read "invited" with 0 emails ever sent
-- [MAX 10 agents at once (26 Oct)](max-ten-agents.md) — ledger 1280; the 23 Sep raises to 12 and 15 are gone
+- [MAX 5 agents at once; Sonnet for simple tasks (1 Nov)](max-five-agents.md) — ledger 1417; replaces the limit of 10 (ledger 1280)
 - [Always use max parallel agents](always-max-parallel-agents.md) + [no git in a shared tree](parallel-agents-must-not-do-git-in-a-shared-tree.md) — reads/applies parallelise; checkout/add/commit do not
 - [Founder sets boundaries, not methods](founder-sets-boundaries-not-methods.md)
 - [Next phases: marketing seat, then LLM per seat](next-phases-marketing-then-llm-per-seat.md) — 22 Sep: REMIND him of LLM A/B/C after marketing; Meta/social only for marketing
@@ -145,6 +145,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A fix that makes the headline fall](a-fix-that-makes-the-headline-fall.md)
 - [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
 ## State of the build
+- [CHECKPOINT 2 Nov — founder's 10-hour push](checkpoint-2-nov-10-hour-push.md) — READ FIRST: rulings 1437-1458, what is live, the PR queue, Al Gouri, deadlines
 - [CHECKPOINT 27 Oct night — merge train and the held queue](checkpoint-27-oct-night-merge-train-and-the-held-queue.md) — READ FIRST: 25 PRs live, parity 78/0; resilience_ping chain CPU→fan-out→itlater→newest-first queue; #1693 code not yet deployed; November plan at risk; open list
 - [CHECKPOINT 27 Oct — cloud only, invitations HELD for GlockApps](checkpoint-27-oct-cloud-invitations-held.md) — READ FIRST: laptop has no keys; invite_enabled=false; GlockApps 27 Oct FAILED (Microsoft 0/18 inbox), copy now variant A, winmail.dat/TNEF on every external copy (admin fix), compressed warm-up, re-test day 3 with the LAST credit; warm-up plan; 16 open PRs by state
 - [Security hardening 27 Oct — SSL, network, legacy JWT, pg_net: state and next steps](security-hardening-27-oct-state.md) — nothing applied (restart / unproven exemptions); legacy JWT secret still trusted until the consumer PR, then disable + revoke; pg_net needs Supabase support

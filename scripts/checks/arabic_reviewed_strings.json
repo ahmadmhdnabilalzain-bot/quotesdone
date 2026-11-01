@@ -794,6 +794,9 @@
   "f07872a12ef2",
   "fc50ccfee153"
  ],
+ "scripts/sql/an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql": [
+  "8625d60560f4"
+ ],
  "scripts/sql/an_unmatched_question_gets_a_proper_answer.sql": [
   "5962f01deb2f",
   "693c2ec882a6",
@@ -2857,9 +2860,6 @@
  "scripts/sql/the_supplier_invitation_ends_with_one_question_and_is_always_english.sql": [
   "684e3131084b"
  ],
- "scripts/sql/the_supplier_invitation_goes_once_in_the_suppliers_language_and_never_to_a_demo_or_sanctioned_lead.sql": [
-  "361ce5b53fac"
- ],
  "scripts/sql/the_supplier_invitation_reads_the_language_from_the_name_and_skips_a_suppressed_address.sql": [
   "3fbfc9c44cae",
   "50d6d400e862",
@@ -4763,6 +4763,7 @@
   "081c48e1ad1a",
   "09dd24858fa9",
   "0ae1b524b527",
+  "0b247430b4b4",
   "0c033e710345",
   "0c5b6eb5613c",
   "0c850498918e",
@@ -4787,6 +4788,7 @@
   "1abfb4a73a46",
   "1b1185e4e941",
   "1b8df356caaf",
+  "1be6a22c0e0e",
   "1d02f2e1e87a",
   "1d17235948e1",
   "1d5bce01aa3b",
@@ -5041,6 +5043,7 @@
   "c1771d508500",
   "c18cde1fcbb6",
   "c29027890beb",
+  "c3648d196980",
   "c4c9f796ec7e",
   "c4ca5fc21f86",
   "c54553ee7787",

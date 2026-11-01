@@ -26,7 +26,7 @@ import { PAUSED, pausedDuties } from '../_shared/duty_pause.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
 import { placementTick } from '../_shared/inbox_placement.ts';
-import { pollReplyInbox, PROOF_LABEL } from '../_shared/m365_reply_inbox.ts';
+import { pollReplyInbox, pollTenantMailboxes, PROOF_LABEL, type SenderKind } from '../_shared/m365_reply_inbox.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
 import { heartbeatDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROWS } from '../_shared/think.ts';
@@ -1190,29 +1190,65 @@ async function itIntegrationsTick(): Promise<unknown> {
     } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
   })();
   const replies = m365Replies();   // a third independent path (6 Oct 2026): replies to the Microsoft 365 mailbox
+  // a fourth (2 Nov 2026): every other mailbox of the tenant, after supplier@, so one message addressed to both is taken once
+  const tenantMail = replies.then(() => m365TenantMail());
   const [integ, placement] = await Promise.all([integrations, inboxPlacement()]);
   const inbox = await replies;
+  const tenantInbox = await tenantMail;
   // Either path failing is this step's failure (duty:heartbeat:itintegrations), so it reaches the IT engineer's loop
   // the same beat. The batch is held by the gate regardless. placement carries counts and verdicts only (public).
   const errors = [integ.ok === false ? String(integ.error) : null, placement.ok === false ? 'inbox placement: ' + String(placement.error) : null,
-    inbox.ok === false ? 'm365 reply inbox: ' + String(inbox.why) : null].filter(Boolean);
-  return { ...integ, ok: errors.length === 0, ...(errors.length ? { error: errors.join('; ') } : {}), inbox_placement: placement, m365_reply_inbox: inbox };
+    inbox.ok === false ? 'm365 reply inbox: ' + String(inbox.why) : null,
+    tenantInbox.ok === false ? 'm365 tenant mailboxes: ' + String(tenantInbox.why) : null].filter(Boolean);
+  return { ...integ, ok: errors.length === 0, ...(errors.length ? { error: errors.join('; ') } : {}), inbox_placement: placement, m365_reply_inbox: inbox, m365_tenant_mailboxes: tenantInbox };
 }
 
 // REPLIES TO supplier@quotesdone.com (6 Oct 2026, it_engineer + customer_support; _shared/m365_reply_inbox.ts).
 // The invitation lane sends without a Reply-To once this reader is proven, so a supplier's answer lands in that
 // mailbox; this reads it and hands every new message to resend_inbound, the handler every other reply goes through.
+const m365OnFile = async (ids: string[]) => {
+  const { data, error } = await admin.from('inbound_messages').select('provider_email_id').in('provider_email_id', ids);
+  if (error) throw new Error('inbound_messages: ' + error.message);
+  return new Set((data || []).map((r) => String(r.provider_email_id)));
+};
+const m365MessageOnFile = async (ids: string[]) => {
+  const { data, error } = await admin.from('inbound_messages').select('message_id:raw->>message_id').in('raw->>message_id', ids);
+  if (error) throw new Error('inbound_messages: ' + error.message);
+  return new Set((data || []).map((r) => String((r as { message_id: unknown }).message_id)));
+};
+// Who wrote, read only: the founder or staff; a lead (leads.email or claimed_by) or a customer; else a stranger.
+async function m365Sender(address: string): Promise<SenderKind> {
+  const [own, rel] = await Promise.all([admin.rpc('fn_is_founder_own_inbox', { p_addr: address }), admin.rpc('fn_mail_sender_known', { p_email: address })]);
+  if (own.error || rel.error) throw new Error('sender lookup failed');
+  if (own.data === true || rel.data === 'staff') return 'founder';
+  if (rel.data) return 'known';
+  const { data, error } = await admin.from('leads').select('id').ilike('claimed_by', address.replace(/[\\%_]/g, '\\$&')).limit(1);
+  if (error) throw new Error('sender lookup failed');
+  return data?.length ? 'known' : null;
+}
+async function m365TenantMail(): Promise<Record<string, unknown>> {
+  try {
+    return await pollTenantMailboxes({
+      fetchFn: (u, i) => timedFetch(u, i || {}, 25_000), env: (k) => Deno.env.get(k),
+      inviteMailbox: await sec('invite_m365_mailbox'), listedMailboxes: await sec('m365_tenant_mailboxes'),
+      strangersFrom: await sec('m365_tenant_strangers_from'), financialDomains: await sec('m365_financial_domains'), messageOnFile: m365MessageOnFile,
+      inboundToken: await sec('resend_inbound_token'), signingSecret: await sec('resend_inbound_signing_secret'), inboundUrl: FN + '/resend_inbound',
+      onFile: m365OnFile, sender: m365Sender,
+      // counts.m365_tenant and never counts.m365_inbox: send_outbox's proof read cannot select this row.
+      record: async (status, counts, note) => {
+        await admin.from('agent_runs').insert({ agent: PROOF_LABEL, status, counts, note: note.slice(0, 500),
+          started_at: new Date().toISOString(), finished_at: new Date().toISOString() });
+      },
+    });
+  } catch (e) { return { ok: false, why: String((e as Error)?.message || e).slice(0, 200) }; }
+}
 async function m365Replies(): Promise<Record<string, unknown>> {
   try {
     return await pollReplyInbox({
       fetchFn: (u, i) => timedFetch(u, i || {}, 25_000), env: (k) => Deno.env.get(k),
       mailbox: await sec('invite_m365_mailbox'), inboundToken: await sec('resend_inbound_token'),
       signingSecret: await sec('resend_inbound_signing_secret'), inboundUrl: FN + '/resend_inbound',
-      onFile: async (ids) => {
-        const { data, error } = await admin.from('inbound_messages').select('provider_email_id').in('provider_email_id', ids);
-        if (error) throw new Error('inbound_messages: ' + error.message);
-        return new Set((data || []).map((r) => String(r.provider_email_id)));
-      },
+      onFile: m365OnFile, sender: m365Sender, messageOnFile: m365MessageOnFile,
       fileFinding: async (args) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; },
       record: async (status, counts, note) => {
         await admin.from('agent_runs').insert({ agent: PROOF_LABEL, status, counts, note: note.slice(0, 500),
