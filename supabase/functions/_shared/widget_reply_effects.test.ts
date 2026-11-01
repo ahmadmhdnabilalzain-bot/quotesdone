@@ -53,7 +53,9 @@ Deno.test('site_assistant: every exit that answers a question files the side eff
   const src = await Deno.readTextFile(new URL('../site_assistant/index.ts', import.meta.url));
   assert(/const fileEffects = async [^\n]*\n\s+const fx = await widgetReplyEffects\(rpc, /.test(src), 'fileEffects no longer calls widgetReplyEffects');
   const exits = [...src.matchAll(/return J\(\{ reply\b/g)].map((m) => m.index!);
-  const answering = exits.filter((i) => !/RL_REPLY/.test(src.slice(i, src.indexOf('\n', i))));
+  // Exempt, as the rate limit is: the visitor cap's sign-up direction (ledger 1339, #1434) answers no question - it is the
+  // model's short sign-up line past the cap, and it writes its own assistant_logs row before it returns.
+  const answering = exits.filter((i) => !/RL_REPLY|visitor_cap: true/.test(src.slice(i, src.indexOf('\n', i))));
   // 12 Oct 2026 (rulings 1195/1196): the capability, FAQ, missing-credential and canned exits were removed; the model's
   // reply is the one exit that answers (a request no model could answer returns an error, with no text).
   assertEquals(answering.length, 1, 'the model-written reply');
