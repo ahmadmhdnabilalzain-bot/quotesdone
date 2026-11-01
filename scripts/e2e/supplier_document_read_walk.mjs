@@ -17,7 +17,7 @@ import { writeFileSync, mkdtempSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openRun, closeRun, read, write, call, BASE } from './fixtures.mjs';
-import { keys, verifyEmailByOtp, mkAuthUser } from '../lib/demo_factory.mjs';
+import { keys, verifyEmailByOtp, mkAuthUser, internalCred } from '../lib/demo_factory.mjs';
 import { buildCorpus, licenceTruth, licenceTextPdf, licenceSvg, picture, rawPdf, AUTHORITIES } from './document_intake_corpus.mjs';
 import { demoPdfPages } from '../lib/demo_pdf.mjs';
 import sharp from 'sharp';
@@ -98,6 +98,8 @@ async function browserLicence(c, who, id) {
   const o = { reached: false, answered: false, hung: false, ms: null, sees: null, alerts: [], shot: null, response: null };
   try {
     await page.goto(`${SITE}/portal`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    // A claimed supplier manages the licence in the Documents tab (SupplierPortal: save_documents), not the sign-up form.
+    await page.getByRole('button', { name: /^Documents$/ }).first().click({ timeout: 60000 });
     const input = page.locator('input[type=file]').first();
     await input.waitFor({ state: 'attached', timeout: 60000 });
     o.reached = true;
@@ -105,8 +107,9 @@ async function browserLicence(c, who, id) {
     const t0 = Date.now();
     const ans = page.waitForResponse(isLic, { timeout: 200000 }).then(async (r) => { o.answered = true; o.ms = Date.now() - t0; o.response = `HTTP ${r.status()} ${(await r.text().catch(() => '')).slice(0, 600)}`; }).catch(() => { o.hung = true; o.ms = Date.now() - t0; });
     await input.setInputFiles(c.licence.file);
+    await page.getByRole('button', { name: /^Upload$/ }).first().click({ timeout: 15000 });
     await ans;
-    await page.getByText(/^Reading licence…/).first().waitFor({ state: 'detached', timeout: 20000 }).catch(() => { o.still_reading = true; });
+    await page.getByText(/^Uploading…/).first().waitFor({ state: 'detached', timeout: 20000 }).catch(() => { o.still_reading = true; });
     await page.waitForTimeout(1500);
     const main = (await page.locator('main').first().innerText().catch(() => page.locator('body').innerText())).replace(/[ \t]+/g, ' ');
     o.sees = main.split('\n').map((l) => l.trim()).filter((l) => /licen|expir|read|upload|could not|auto|number|authority|wrong|action|review/i.test(l)).slice(0, 14).join(' | ').slice(0, 900);
@@ -194,7 +197,7 @@ async function walk(run, c, n) {
   // 7. Wait for the reads and the certificate to land, then judge from the row.
   const t1 = Date.now(); let row;
   for (;;) {
-    row = (await read(`select l.approval_status status, l.licence_gate_reason reason, l.verified, l.signed_terms_path is not null signed, l.signed_terms_path stp, l.accepted_terms_ip ip, l.registration_submitted_at is not null submitted,
+    row = (await read(`select l.approval_status status, l.licence_gate_reason reason, l.verified, l.signed_terms_path is not null signed, l.signed_terms_path stp, l.accepted_terms_ip ip, to_char(l.accepted_terms_at at time zone 'UTC','YYYY-MM-DD HH24:MI:SS') acc_utc, l.registration_submitted_at is not null submitted,
         l.trade_license_no licence_no, l.licence_legal_name name, l.license_authority authority, l.license_expiry::text expiry, l.doc_extracted_at is not null extracted, l.company_name, l.sector,
         c.source_docs -> 'docs' docs, c.proposed_trades, (select count(*)::int from public.agent_actions a where a.kind='supplier_verification' and a.target_id=l.id::text) decisions
        from public.leads l left join public.supplier_capabilities c on c.supplier_id = l.id where l.id=${lead.id}`))[0];
@@ -209,11 +212,12 @@ async function walk(run, c, n) {
       const { SERVICE } = await keys();
       const r = await fetch(`${BASE}/storage/v1/object/signed-terms/${row.stp}`, { headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}` } });
       const f = r.ok ? await pdfFactsFromBytes(new Uint8Array(await r.arrayBuffer())) : { ok: false, why: 'HTTP ' + r.status };
-      const m = f.ok ? f.text.match(/IP addresss*([^s]+)/i) : null;
-      out.certificate = { ok: f.ok, why: f.why, bytes: f.bytes?.length, ip_in_row: row.ip, ip_in_certificate: m?.[1] ?? null, ip_line: m?.[0] ?? null };
+      const m = f.ok ? f.text.match(/IP addresss+(d[d.:a-f]*)/i) : null;
+      const tm = f.ok ? f.text.match(/d{4}-d{2}-d{2} d{2}:d{2}:d{2} UTC/) : null;
+      out.certificate = { ok: f.ok, why: f.why, bytes: f.bytes?.length, ip_in_row: row.ip, ip_in_certificate: m?.[1] ?? null, ip_line: m?.[0] ?? null, time_in_row_utc: row.acc_utc, time_in_certificate: tm?.[0] ?? null, time_matches: !!tm && tm[0].startsWith(row.acc_utc) };
       run.ids.storage.push('signed-terms/' + row.stp);
     } catch (e) { out.certificate = { error: String(e.message).slice(0, 160) }; }
-    step('the signed certificate prints the IP', !!out.certificate?.ip_in_certificate && out.certificate.ip_in_certificate !== 'Not', JSON.stringify(out.certificate));
+    step('the signed certificate prints the IP', !!out.certificate?.ip_in_certificate && out.certificate.time_matches === true, JSON.stringify(out.certificate));
   }
   step('terms: certificate signed, registration submitted', row.signed && row.submitted, `${Date.now() - t1} ms after Save`);
   step(`decision is ${c.want.status}${c.want.reason ? ' / ' + c.want.reason : ''}${c.observe ? ' (observed, not asserted)' : ''}`, c.observe || (row.status === c.want.status && (row.reason ?? null) === c.want.reason), `got ${row.status} / ${row.reason}`);
@@ -262,6 +266,8 @@ try {
   const spend = await read(`select coalesce(sum(cost_usd_reported),0)::numeric(10,4) usd, count(*)::int calls from public.ai_cost_log where e2e_run_tag = '${run.tag}'`).catch((e) => [{ error: String(e.message).slice(0, 120) }]);
   console.log('model spend', JSON.stringify(spend[0]));
 } finally {
+  // Is Dropbox ready? (read-only ping of the archive function; ledger 1468)
+  try { const { ANON } = await keys(); const pg = await call('compliance_archive', ANON, { action: 'ping', __secret: await internalCred() }, 30000); console.log('compliance_archive ping', pg.status, String(pg.text).slice(0, 160)); } catch (e) { console.log('compliance_archive ping failed', String(e.message).slice(0, 160)); }
   await BR?.close().catch(() => {});
   const c = await closeRun(run, { keep: KEEP });
   console.log('teardown:', JSON.stringify(c.leftovers || 'kept'));
