@@ -83,6 +83,8 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [TDRA NOL received](tdra-nol-received.md) — NOL-26-100000665 for www.quotesdone.ae, expires 14 Sep 2027
 - [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
 ## Working the estate
+- [A test can guard a file from another directory (28 Oct)](a-test-can-guard-a-file-from-another-directory.md) — #1658 skipped npm-test and missed _shared/widget_reply_effects.test.ts; find the tests that read the changed path
+- [The otp-race step runs on a throwaway Postgres in the cloud container (28 Oct)](the-otp-race-step-runs-on-a-throwaway-postgres-in-the-cloud-container.md) — no Docker daemon, but Postgres 16 is installed; run it as the postgres user and set QD_OTP_RACE_PG
 - [npm ci in a worktree empties the shared node_modules (27 Oct)](npm-ci-in-a-worktree-empties-the-shared-node-modules.md) — install only in the main checkout
 - [A branch can silently revert main (27 Oct)](a-branch-can-silently-revert-main.md) — #1672; review the whole diff against main
 - [Diff SQL against live production, not the mirror (27 Oct)](diff-sql-against-live-production-not-the-mirror.md) — #1660 nearly reverted #1644's live code
@@ -143,6 +145,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A fix that makes the headline fall](a-fix-that-makes-the-headline-fall.md)
 - [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
 ## State of the build
+- [CHECKPOINT 2 Nov — founder's 10-hour push](checkpoint-2-nov-10-hour-push.md) — READ FIRST: rulings 1437-1458, what is live, the PR queue, Al Gouri, deadlines
 - [CHECKPOINT 27 Oct night — merge train and the held queue](checkpoint-27-oct-night-merge-train-and-the-held-queue.md) — READ FIRST: 25 PRs live, parity 78/0; resilience_ping chain CPU→fan-out→itlater→newest-first queue; #1693 code not yet deployed; November plan at risk; open list
 - [CHECKPOINT 27 Oct — cloud only, invitations HELD for GlockApps](checkpoint-27-oct-cloud-invitations-held.md) — READ FIRST: laptop has no keys; invite_enabled=false; GlockApps 27 Oct FAILED (Microsoft 0/18 inbox), copy now variant A, winmail.dat/TNEF on every external copy (admin fix), compressed warm-up, re-test day 3 with the LAST credit; warm-up plan; 16 open PRs by state
 - [Security hardening 27 Oct — SSL, network, legacy JWT, pg_net: state and next steps](security-hardening-27-oct-state.md) — nothing applied (restart / unproven exemptions); legacy JWT secret still trusted until the consumer PR, then disable + revoke; pg_net needs Supabase support

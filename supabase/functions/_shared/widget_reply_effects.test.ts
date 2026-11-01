@@ -45,20 +45,34 @@ Deno.test('the person decision failing never fails the reply', async () => {
   assertEquals(await e.person, false);
 });
 
-// THE WIRING. Every exit of site_assistant that answers a visitor's question — the capability answer, the FAQ
-// answer, the missing-credential exit, the composed reply (781) and the canned road — must file the two side
-// effects above (fileEffects -> widgetReplyEffects) and write its assistant_logs row before it returns. The one
-// reply exempt is the rate limit's, which answers before the question is read at all.
+// THE WIRING. Every exit of site_assistant that answers a visitor's question (today only the model's brief reply; the
+// capability, FAQ, missing-credential and canned exits were removed on 12 Oct) must file the two side
+// effects above (fileEffects -> widgetReplyEffects) and write its assistant_logs row before it returns. Two replies
+// answer nothing and are exempt from the side effects: the rate limit's, which answers before the question is read at
+// all, and the visitor cap's (ruling 18 Oct 2026), which is told not to answer or discuss the message (capRules).
 Deno.test('site_assistant: every exit that answers a question files the side effects and its log before returning', async () => {
   const src = await Deno.readTextFile(new URL('../site_assistant/index.ts', import.meta.url));
   assert(/const fileEffects = async [^\n]*\n\s+const fx = await widgetReplyEffects\(rpc, /.test(src), 'fileEffects no longer calls widgetReplyEffects');
   const exits = [...src.matchAll(/return J\(\{ reply\b/g)].map((m) => m.index!);
-  // Exempt, as the rate limit is: the visitor cap's sign-up direction (ledger 1339, #1434) answers no question - it is the
-  // model's short sign-up line past the cap, and it writes its own assistant_logs row before it returns.
-  const answering = exits.filter((i) => !/RL_REPLY|visitor_cap: true/.test(src.slice(i, src.indexOf('\n', i))));
+  const exitLine = (i: number) => src.slice(i, src.indexOf('\n', i));
+  // 28 Oct 2026: this count read the visitor cap's exit as a second answering one and failed 2 vs 1 on main from #1658's
+  // merge (27 Oct). Nothing was filed twice: a capped turn returns before the brief reply runs, and each road writes
+  // one assistant_logs row. The cap's exit is named here and held to its own contract below.
+  const capped = exits.filter((i) => /routed: 'visitor_cap'/.test(exitLine(i)));
+  const answering = exits.filter((i) => !/RL_REPLY/.test(exitLine(i)) && !capped.includes(i));
   // 12 Oct 2026 (rulings 1195/1196): the capability, FAQ, missing-credential and canned exits were removed; the model's
   // reply is the one exit that answers (a request no model could answer returns an error, with no text).
   assertEquals(answering.length, 1, 'the model-written reply');
+  // THE VISITOR CAP: one exit, behind pastVisitorCap, with its turn logged, and no knowledge gap or person report. A
+  // capped question went unanswered by design, not for want of company knowledge, so filing it as a gap would open a
+  // customer_support task (fn_support_knowledge_gap: "Answer an unanswered support question") for every distinct
+  // message sent past the cap.
+  assertEquals(capped.length, 1, 'the visitor cap exit');
+  const gate = src.lastIndexOf('pastVisitorCap(', capped[0]);
+  assert(gate > 0, 'the visitor cap exit is not behind pastVisitorCap');
+  const capSeg = src.slice(gate, capped[0]);
+  assert(/logWithAttempts\(admin, 'assistant_logs', /.test(capSeg), 'the visitor cap exit returns without writing its log: ' + exitLine(capped[0]));
+  assert(!/fileEffects\(|widgetReplyEffects\(/.test(capSeg), 'the visitor cap exit files a gap or a person report for a message it does not answer');
   const defined = src.indexOf('const fileEffects = async');
   let prev = defined;
   for (const i of answering) {

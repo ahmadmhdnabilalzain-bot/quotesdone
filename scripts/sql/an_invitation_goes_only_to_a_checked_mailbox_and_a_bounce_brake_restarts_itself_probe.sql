@@ -76,6 +76,10 @@ begin
   if public.fn_invite_restart_cap(50) <> 10 then v_problems := v_problems || 'the first batch after a restart is not small'::text; end if;
   if exists (select 1 from public.invite_brake where resumed_at is null) then v_problems := v_problems || 'the brake stayed open'::text; end if;
   -- known-bad control: a restart on a closed day. 25 hours on with nothing sent since, the limit still holds (a 24-hour clock lapsed here)
+  -- now() is one instant in a transaction, and the window is strict: the first lead's send goes before the restart, as it really
+  -- did, so the send below falls inside the window.
+  update public.notifications set sent_at = now() - interval '1 hour'
+   where type = 'supplier_invite' and to_email = 'sales@' || v_dom;
   update public.invite_brake set resumed_at = greatest(now() - interval '25 hours',
       (select max(n.sent_at) from public.notifications n where n.type = 'supplier_invite' and not public.fn_is_demo_email(n.to_email)))
    where restarted_by_seat;
@@ -106,6 +110,35 @@ begin
   if v_r->>'held' is distinct from 'second breach: the CEO seat decides' then v_problems := v_problems || ('a second breach: ' || v_r::text); end if;
   if (select value from public.app_secrets where key = 'invite_enabled') <> 'false' then v_problems := v_problems || 'a second breach resumed'::text; end if;
   if (select count(*) from public.ceo_task) <> v_before + 1 then v_problems := v_problems || 'a second breach did not open exactly one CEO task'::text; end if;
+
+  -- the CEO resumes after that second breach: a new probation. Known-bad control: the old bounce re-paused here within 5 minutes
+  select count(*) into v_before from public.ceo_task;
+  update public.app_secrets set value = 'true' where key = 'invite_enabled';
+  v_r := public.fn_sales_engineer_restarts_invites_after_a_brake();
+  v_r := public.fn_sales_engineer_restarts_invites_after_a_brake();
+  if v_r->>'probation' is distinct from 'true' or (v_r->>'bounced')::int <> 0 then v_problems := v_problems || ('a deliberate resume was charged old bounces: ' || v_r::text); end if;
+  if (select value from public.app_secrets where key = 'invite_enabled') <> 'true' then v_problems := v_problems || 'a deliberate resume was paused again'::text; end if;
+  if (select count(*) from public.ceo_task) <> v_before then v_problems := v_problems || 'a deliberate resume opened another CEO task'::text; end if;
+  -- ... and a bounce on a send after it still counts
+  update public.notifications set sent_at = now() + interval '1 second' where id = v_nid;
+  v_r := public.fn_sales_engineer_restarts_invites_after_a_brake();
+  if (select value from public.app_secrets where key = 'invite_enabled') <> 'false' then v_problems := v_problems || 'a bounce after the deliberate resume did not pause'::text; end if;
+  if (select count(*) from public.ceo_task) <> v_before + 1 then v_problems := v_problems || 'a breach after the deliberate resume did not reach the CEO'::text; end if;
+
+  -- paused: a supplier who already started still gets his reminder; a stranger's does not; suppression and a complaint still win
+  insert into public.leads(company_name, email, claimed, claimed_by) values ('Started Probe ' || v_dom, 'owner@s' || v_dom, true, 'owner@s' || v_dom) returning id into v_id;
+  if (select h.complained from public.fn_invite_send_health(now() - interval '30 days') h) = 0 then
+    v_r := public.fn_sales_engineer_sends_registration_reminder(v_id, 'started', 1, now());
+    if coalesce((v_r->>'ok')::boolean, false) is not true then v_problems := v_problems || ('a started supplier was held by the pause: ' || v_r::text); end if;
+    v_r := public.fn_sales_engineer_sends_registration_reminder(v_id, 'clicked', 2, now());
+    if coalesce((v_r->>'ok')::boolean, false) then v_problems := v_problems || 'a clicked lead was sent to during the pause'::text; end if;
+    insert into public.email_suppressions(email, reason, source) values ('owner@s' || v_dom, 'hard_bounce:permanent', 'probe');
+    v_r := public.fn_sales_engineer_sends_registration_reminder(v_id, 'started', 2, now());
+    if coalesce((v_r->>'ok')::boolean, false) then v_problems := v_problems || 'a suppressed address got a reminder'::text; end if;
+    delete from public.email_suppressions where email = 'owner@s' || v_dom;
+    update public.leads set invite_status = 'complained' where id = (select lead_id from public.notifications where id = v_nid);
+    if public.fn_supplier_reminder_is_open('started') then v_problems := v_problems || 'a complaint did not stop the reminder'::text; end if;
+  end if;
 
   raise exception 'CHK<<%>>', jsonb_build_object('verdict', case when cardinality(v_problems) = 0 then 'PROBE OK' else 'PROBE FAILED' end, 'problems', to_jsonb(v_problems));
 end $probe$;
