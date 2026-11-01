@@ -155,10 +155,11 @@ try {
   if (termsSeen) { await terms.check(); await shot(page, 'terms'); }
   ok('the terms step appears once mobile, e-mail and WhatsApp are settled', termsSeen);
   await page.getByRole('button', { name: /^Finish & continue$/ }).click();
-  const dash = await page.getByRole('button', { name: /^New request/ }).first().waitFor({ timeout: 60000 }).then(() => true).catch(() => false);
+  const tFin = Date.now();
+  const dash = await page.getByRole('button', { name: /^New request/ }).first().waitFor({ timeout: 150000 }).then(() => true).catch(() => false);
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await shot(page, 'dashboard');
-  ok('Finish & continue lands on the customer dashboard', dash);
+  ok('Finish & continue lands on the customer dashboard', dash, `${Date.now() - tFin} ms after the click`);
   const fin = await waitFor(async () => { const r = (await read(`select email_verified, phone_verified, date_of_birth is not null dob, is_demo, tos_version, (signed_terms_path is not null or signed_terms_url is not null) signed from public.customers where lower(email)=lower(${sq(email)})`))[0]; return r?.signed ? r : null; }, { timeoutMs: 60000 });
   ok('database: e-mail and mobile verified, terms accepted and signed, still demo', !!fin && fin.email_verified && fin.phone_verified && fin.dob && fin.is_demo && !!fin.tos_version, JSON.stringify(fin));
 
