@@ -91,7 +91,7 @@ test('fn_suppression_stops answers what suppressionStops answers, on every reaso
   const pairs = reasons.flatMap((r) => types.map((t) => `('${r}','${t}')`)).join(',');
   // A pending definition is replayed first, in the same rolled-back request, so production answers what it WILL answer.
   const ask = `select r, t, public.fn_suppression_stops(r, t) as stops from (values ${pairs}) v(r, t)`;
-  const rows = OPT_OUT_PENDING ? await replaySql(R(OPT_OUT_FILE) + '\n' + ask + ';', { retry: false, rows: true }) : await sql(ask);
+  const rows = OPT_OUT_PENDING ? await replaySql(R(OPT_OUT_FILE) + '\n' + ask + ';', { retry: false, rows: true }) : await sql(ask, { readOnly: true });
   assert.ok(Array.isArray(rows) && rows.length === reasons.length * types.length, JSON.stringify(rows).slice(0, 300));
   for (const x of rows) {
     const ts = String(x.r).trim().toLowerCase() !== 'unsubscribe' || TS_LIST.includes(x.t);   // suppressionStops, verbatim rule
