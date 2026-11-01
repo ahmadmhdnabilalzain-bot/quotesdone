@@ -53,7 +53,7 @@ Deno.test('DNS answers map to the kinds; SERVFAIL and a null MX are not mistaken
 });
 
 Deno.test('one batch stays inside its DNS budget, and a lead left over gets no verdict', async () => {
-  const leads = Array.from({ length: DNS_PER_RUN + 5 }, (_, i) => ({ lead_id: i + 1, email: `a@d${i}.ae`, email_verified: null, mx_kind: null }));
+  const leads = Array.from({ length: DNS_PER_RUN + 5 }, (_, i) => ({ lead_id: i + 1, email: `a@d${i}.ae`, email_verified: null, mx_kind: null as string | null }));
   leads.push({ lead_id: 900, email: 'b@known.ae', email_verified: null, mx_kind: 'mx' }, { lead_id: 901, email: 'c@yahoo.coin', email_verified: null, mx_kind: null });
   let stored: { p_checks: Array<{ lead_id: number; verdict: string }>; p_domains: unknown[] } | null = null;
   let asked = 0;
