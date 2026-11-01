@@ -15,7 +15,8 @@ declare
 begin
   select count(*) into real_before from public.leads where not coalesce(is_demo, false) and company_name !~* '^\s*zz\s*demo';
   insert into storage.objects (bucket_id, name)
-  select 'supplier-docs', d || '/' || z || '/' || k || '.pdf' from unnest(array['licenses', 'profiles']) d, unnest(array['a', 'b', 'c', 'd', 'e', 'f']) k;
+  select 'supplier-docs', dirs.dname || '/' || z || '/' || names.nname || '.pdf'
+    from unnest(array['licenses', 'profiles']) as dirs(dname), unnest(array['a', 'b', 'c', 'd', 'e', 'f']) as names(nname);
   update public.pricing_config set auto_approve_suppliers = true where id = 1;
   foreach k in array array['a', 'b', 'c', 'd', 'e', 'f'] loop
     insert into public.leads (approval_status, verified, claimed, claimed_by, company_name, email, phone, owner_email_verified, owner_phone_verified,

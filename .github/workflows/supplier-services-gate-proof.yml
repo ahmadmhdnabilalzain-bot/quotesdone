@@ -1,7 +1,7 @@
 name: Supplier services gate proof (demo data)
 
 # Founder ledger 1469: a supplier is verified only after it confirms its services. Proof on a branch, demo data only:
-#   1. type check, the offline checks and the rolled-back production probe of the gate (one aborted transaction on ZZ DEMO rows);
+#   1. type check (tsc), the offline checks and the rolled-back production probe of the gate (one aborted transaction on ZZ DEMO rows);
 #   2. the sign-up walk in a real browser against a site URL you give (a branch preview carries the new Services tab), which asks the
 #      database whether the gate is applied and prints NOT RUN for the half that needs it. Teardown removes the run.
 on:
