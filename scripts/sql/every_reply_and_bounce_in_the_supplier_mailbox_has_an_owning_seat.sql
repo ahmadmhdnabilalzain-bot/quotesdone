@@ -42,12 +42,13 @@
 --        - an invited lead's reply that fn_marketing_files_invite_reply handed over -> sales_engineer (its invite.reply).
 --        - an automatic reply, a stop, an empty reply -> sales_engineer, nothing to answer.
 --        - any other person -> sales_engineer, with a mailbox.supplier_reply handoff carrying the words above the quote.
---   3. trg_invite_reply_reaches_sales_engineer (z52) calls it after the invite-reply filer, each in its own guard so a
---      failure never costs the mail it rides on.
+--   3. A new trigger, z53 on UPDATE OF triaged_at, calls it once email_triage has DECLINED to answer the message
+--      (ai_category 'no_auto_reply'). Never at insert: email_triage reads only rows with owner_role null, so an owner
+--      written earlier would silence its automatic answer to an invited supplier (review of this PR). z52 is unchanged.
+--      A bounce is acted on only when resend_inbound authenticated its sender, so a forged postmaster cannot suppress.
 --   4. The five rows above are handed to those owners by id. None is closed: needs_review and replied_at are untouched.
 --
--- CREATE OR REPLACE of trg_invite_reply_reaches_sales_engineer keeps its ACL; the new routines are created here and
--- revoked here (CREATE grants EXECUTE to PUBLIC).
+-- The new routines are created and revoked here (CREATE grants EXECUTE to PUBLIC).
 -- Prevented by: scripts/checks/every_reply_and_bounce_in_the_supplier_mailbox_has_an_owning_seat.test.mjs (offline, and
 -- production aborted through the _probe file, which answers PROBE FAILED on the definition before this file).
 
@@ -58,7 +59,7 @@ set search_path to 'public', 'pg_temp'
 as $fn$
   select coalesce(
        lower(coalesce(p_from, '')) ~ '(^|[<"[:space:]])(mailer[-_]?daemon|postmaster)@'
-    or lower(coalesce(p_raw->>'content_type', '')) = 'multipart/report'
+    or lower(coalesce(p_raw->>'content_type', '')) like 'multipart/report%'   -- the whole header is stored
     or (public.fn_is_machine_sender(p_from)
         and coalesce(p_subject, '') ~* '(undeliverable|delivery status notification|mail delivery (failed|subsystem)|returned mail|failure notice|undelivered mail|delivery has failed)'),
     false)
@@ -124,8 +125,13 @@ begin
       v_why := 'a bounce that names no send of ours';
     elsif position(v_to in lower(v_body)) = 0 then
       v_why := 'the bounce does not name the address it was sent to';
-    elsif v_body ~* '(temporar|try again later|will retry|delayed|mailbox (is )?full|over quota)'
-          or v_body !~* '(address not found|does ?n[o''’]t exist|no such (user|recipient|mailbox)|user unknown|unknown (user|recipient)|recipient address rejected|mailbox (unavailable|not found)|invalid (recipient|address|mailbox)|could ?n[o''’]t be found|could not be found|5\.1\.[0-9]+)' then
+    elsif coalesce(m.raw->>'sender_authenticated', 'false') <> 'true' then
+      -- a forged "postmaster" naming a guessed qd-notif id must never suppress a real address (resend_webhook verifies
+      -- its signature for the same reason)
+      v_why := 'the bounce''s sender is not authenticated';
+    elsif v_body ~* '(temporar|try again later|will retry|delayed|mailbox (is )?full|over quota|5\.7\.[0-9]+|policy|blocked|spam)'
+          or v_body !~* '(address not found|does ?n[o''’]t exist|no such (user|recipient|mailbox)|user unknown|unknown (user|recipient)|mailbox not found|could ?n[o''’]t be found|could not be found|5\.1\.1\M|5\.1\.10\M)' then
+      -- a policy rejection (5.7.x, "blocked") is an address that exists; only "this address does not exist" is permanent
       v_why := 'not a permanent failure';
     else
       -- exactly as resend_webhook: suppress (an earlier reason such as an unsubscribe is kept) and mark the lead
@@ -188,27 +194,32 @@ begin
 end $fn$;
 revoke execute on function public.fn_supplier_mailbox_mail_gets_its_owner(bigint, jsonb, boolean) from public, anon, authenticated;
 
-create or replace function public.trg_invite_reply_reaches_sales_engineer()
+create or replace function public.trg_supplier_mailbox_mail_gets_its_owner()
 returns trigger
 language plpgsql security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-declare v_filed jsonb;
 begin
-  -- never costs the mail it rides on: a failure is a warning, the inbound row is kept
+  -- never costs the triage it rides on: a failure is a warning, the triage stands
   begin
-    v_filed := public.fn_marketing_files_invite_reply(new.id);
+    perform public.fn_supplier_mailbox_mail_gets_its_owner(new.id);
   exception when others then
-    raise warning 'trg_invite_reply_reaches_sales_engineer: inbound_messages % not handed to the sales engineer: %', new.id, sqlerrm;
-  end;
-  -- 1 Nov 2026: and whatever the filer decided, the message leaves with an owning seat
-  begin
-    perform public.fn_supplier_mailbox_mail_gets_its_owner(new.id, coalesce(v_filed, '{"due": false, "reason": "the filer failed"}'::jsonb));
-  exception when others then
-    raise warning 'trg_invite_reply_reaches_sales_engineer: inbound_messages % got no owning seat: %', new.id, sqlerrm;
+    raise warning 'trg_supplier_mailbox_mail_gets_its_owner: inbound_messages % got no owning seat: %', new.id, sqlerrm;
   end;
   return null;
 end $fn$;
+revoke execute on function public.trg_supplier_mailbox_mail_gets_its_owner() from public, anon, authenticated;
+
+-- AFTER email_triage has DECLINED to answer, never at insert: email_triage reads only rows whose owner_role is null
+-- (email_triage/index.ts), so an owner written at insert would silence its answer to an invited supplier's "yes" and to
+-- every supplier reply to suppliers@mail (independent review of this PR, 1 Nov 2026). Triage marks a bounce, the
+-- founder, a machine and a non-lead in the invitation mailbox ai_category 'no_auto_reply'; those are the rows taken here.
+drop trigger if exists z53_supplier_mailbox_mail_gets_its_owner on public.inbound_messages;
+create trigger z53_supplier_mailbox_mail_gets_its_owner after update of triaged_at on public.inbound_messages
+  for each row
+  when (new.triaged_at is not null and old.triaged_at is null and new.ai_category = 'no_auto_reply'
+        and new.owner_role is null and new.replied_at is null)
+  execute function public.trg_supplier_mailbox_mail_gets_its_owner();
 
 -- the five rows of 1 Nov 2026, handed to their owners by id (653-655 it_engineer, 1483 sales_engineer, 1484
 -- customer_support). Nothing is closed.
@@ -217,8 +228,8 @@ select public.fn_supplier_mailbox_mail_gets_its_owner(x.id, null, true)
 
 -- verdict
 select case
-  when not exists (select 1 from pg_trigger where tgname = 'z52_invite_reply_reaches_sales_engineer')
-    then 'PROBE FAILED: the z52 trigger is missing'
+  when not exists (select 1 from pg_trigger where tgname = 'z53_supplier_mailbox_mail_gets_its_owner')
+    then 'PROBE FAILED: the z53 trigger is missing'
   when not exists (select 1 from public.seat_handoff_kind where type = 'mailbox.supplier_reply' and to_seat = 'sales_engineer')
     then 'PROBE FAILED: mailbox.supplier_reply is not registered'
   when (select string_agg(id || '=' || coalesce(owner_role, 'null'), ',' order by id) from public.inbound_messages where id in (653, 654, 655, 1483, 1484))

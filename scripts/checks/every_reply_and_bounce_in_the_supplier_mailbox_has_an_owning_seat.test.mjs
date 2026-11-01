@@ -7,9 +7,10 @@
 // unowned; a bounce that arrives as mail was read by nobody, so the bounced lead stayed on the nudge list.
 //
 // WHAT FAILS IF THE CAUSE RETURNS:
-//   * offline: the definition that wins the apply order of trg_invite_reply_reaches_sales_engineer stops calling
-//     fn_supplier_mailbox_mail_gets_its_owner, or that routine loses an exit's owner (bounce -> customer_support,
-//     founder -> it_engineer, a person -> sales_engineer), or the bounce stops suppressing the address;
+//   * offline: the owner is written at insert (email_triage reads only owner_role-null rows, so it would never answer an
+//     invited supplier's "yes"; independent review of this PR), or not after triage declines, or an exit loses its owner
+//     (bounce -> customer_support, founder -> it_engineer, a person -> sales_engineer), or a bounce suppresses without
+//     an authenticated sender;
 //   * production, in ONE aborted transaction (the pending file replayed first; ZZ DEMO and example.invalid only, every
 //     row rolls back): the _probe file must answer PROBE OK. On the definition before this fix it answers PROBE FAILED.
 //
@@ -50,42 +51,50 @@ function winning(fn) {
   return listed[listed.length - 1];
 }
 
-/** The problems with the trigger body and the owner routine, [] when every exit has its owner. */
-export function problems(trg, owner) {
+/** The problems with the fix, [] when every declined message gets its owner and none is owned before triage reads it. */
+export function problems(fileText, z52Body) {
   const out = [];
-  if (!trg || !/public\.fn_supplier_mailbox_mail_gets_its_owner\(\s*new\.id/i.test(trg)) out.push('the z52 trigger no longer gives the message an owner');
+  const t = fileText.replace(/--[^\n]*/g, '').replace(/\s+/g, ' ');
+  // the owner is written only AFTER email_triage declined: email_triage reads owner_role-null rows only
+  const trg = /create trigger z53_supplier_mailbox_mail_gets_its_owner after update of triaged_at on public\.inbound_messages for each row when \(([^;]*)\) execute function public\.trg_supplier_mailbox_mail_gets_its_owner\(\)/i.exec(t);
+  if (!trg) out.push('no z53 trigger on UPDATE OF triaged_at: the owner is not given when triage declines');
+  else {
+    if (!/new\.ai_category = 'no_auto_reply'/.test(trg[1])) out.push('z53 does not wait for triage to decline (ai_category no_auto_reply)');
+    if (!/new\.owner_role is null/.test(trg[1]) || !/new\.replied_at is null/.test(trg[1])) out.push('z53 can take an owned or answered message');
+  }
+  if (/after insert[^;]*trg_supplier_mailbox_mail_gets_its_owner/i.test(t)) out.push('the owner is written at insert: email_triage would never answer the message');
+  if (z52Body && /fn_supplier_mailbox_mail_gets_its_owner/.test(z52Body)) out.push('z52 (at insert) writes the owner: email_triage would never answer the message');
+  const owner = bodyOf(fileText, 'fn_supplier_mailbox_mail_gets_its_owner');
   if (!owner) { out.push('fn_supplier_mailbox_mail_gets_its_owner is not defined'); return out; }
-  const b = owner.replace(/\s+/g, ' ');
-  if (!/fn_inbound_is_bounce\(/.test(b) || !/v_owner := 'customer_support'/.test(b)) out.push('a bounce is not customer_support\'s');
-  if (!/insert into public\.email_suppressions/.test(b) || !/set invite_status = 'bounced'/.test(b)) out.push('a permanent bounce no longer suppresses the address and marks its lead');
-  if (!/fn_is_founder_own_inbox\(v_from\)[^;]*then update public\.inbound_messages set owner_role = 'it_engineer'/.test(b)) out.push('the founder\'s own inbox is not the it_engineer\'s');
-  if (!/v_owner := 'sales_engineer'/.test(b) || !/'mailbox\.supplier_reply'/.test(b)) out.push('a person who is no invited lead is not handed to the sales engineer');
-  if (/set (needs_review|replied_at)/.test(b)) out.push('the routine closes a message instead of handing it over');
+  const o = owner.replace(/\s+/g, ' ');
+  if (!/fn_inbound_is_bounce\(/.test(o) || !/v_owner := 'customer_support'/.test(o)) out.push('a bounce is not customer_support\'s');
+  if (!/insert into public\.email_suppressions/.test(o) || !/set invite_status = 'bounced'/.test(o)) out.push('a permanent bounce no longer suppresses the address and marks its lead');
+  const auth = o.indexOf("sender_authenticated"), sup = o.indexOf('insert into public.email_suppressions');
+  if (auth < 0 || auth > sup) out.push('a bounce suppresses without its sender being authenticated');
+  if (!/fn_is_founder_own_inbox\(v_from\)[^;]*then update public\.inbound_messages set owner_role = 'it_engineer'/.test(o)) out.push('the founder\'s own inbox is not the it_engineer\'s');
+  if (!/v_owner := 'sales_engineer'/.test(o) || !/'mailbox\.supplier_reply'/.test(o)) out.push('a person who is no invited lead is not handed to the sales engineer');
+  if (/set (needs_review|replied_at)/.test(o)) out.push('the routine closes a message instead of handing it over');
   return out;
 }
 
-test('the definitions that win the apply order give every supplier-mailbox message an owning seat', () => {
-  const t = winning('trg_invite_reply_reaches_sales_engineer');
-  const o = winning('fn_supplier_mailbox_mail_gets_its_owner');
-  const read = (f) => readFileSync(join(REPO, 'scripts/sql', f), 'utf8');
-  const p = problems(bodyOf(read(t), 'trg_invite_reply_reaches_sales_engineer'), bodyOf(read(o), 'fn_supplier_mailbox_mail_gets_its_owner'));
-  assert.deepEqual(p, [], `${t} / ${o}: ${p.join('; ')}`);
+function z52() {
+  const f = winning('trg_invite_reply_reaches_sales_engineer');
+  return bodyOf(readFileSync(join(REPO, 'scripts/sql', f), 'utf8'), 'trg_invite_reply_reaches_sales_engineer');
+}
+
+test('the owner is given after email_triage declines, never before it reads the message', () => {
+  const p = problems(src, z52());
+  assert.deepEqual(p, [], p.join('; '));
 });
 
-test('known-bad control: the trigger as it was on 1 Nov 2026 is caught', () => {
-  const before = `
-declare
-begin
-  begin
-    perform public.fn_marketing_files_invite_reply(new.id);
-  exception when others then
-    raise warning 'x';
-  end;
-  return null;
-end `;
-  assert.ok(problems(before, bodyOf(src, 'fn_supplier_mailbox_mail_gets_its_owner')).length > 0, 'the trigger before the fix passes');
-  const noBounce = bodyOf(src, 'fn_supplier_mailbox_mail_gets_its_owner').replace(/insert into public\.email_suppressions/g, 'select 1 from public.email_suppressions');
-  assert.ok(problems(bodyOf(src, 'trg_invite_reply_reaches_sales_engineer'), noBounce).some((x) => /suppresses/.test(x)), 'a bounce that suppresses nothing passes');
+test('known-bad controls: an owner at insert, and a bounce that suppresses unauthenticated, are caught', () => {
+  const atInsert = src.replace('after update of triaged_at', 'after insert');
+  assert.ok(problems(atInsert, z52()).some((x) => /at insert|UPDATE OF triaged_at/.test(x)), 'an owner written at insert passes');
+  const z52Stamping = 'begin perform public.fn_marketing_files_invite_reply(new.id); perform public.fn_supplier_mailbox_mail_gets_its_owner(new.id); return null; end';
+  assert.ok(problems(src, z52Stamping).some((x) => /z52/.test(x)), 'z52 writing the owner at insert passes');
+  const noAuth = src.replace(/elsif coalesce\(m\.raw->>'sender_authenticated'[\s\S]*?v_why := 'the bounce''s sender is not authenticated';/, '');
+  assert.notEqual(noAuth, src, 'the control could not remove the authentication gate');
+  assert.ok(problems(noAuth, z52()).some((x) => /authenticated/.test(x)), 'a bounce without the authentication gate passes');
 });
 
 test('the file is pending XOR in MANIFEST, and its probe is never applied', () => {
