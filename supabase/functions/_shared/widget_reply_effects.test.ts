@@ -45,8 +45,8 @@ Deno.test('the person decision failing never fails the reply', async () => {
   assertEquals(await e.person, false);
 });
 
-// THE WIRING. Every exit of site_assistant that answers a visitor's question — the capability answer, the FAQ
-// answer, the missing-credential exit, the composed reply (781) and the canned road — must file the two side
+// THE WIRING. Every exit of site_assistant that answers a visitor's question (today only the model's brief reply; the
+// capability, FAQ, missing-credential and canned exits were removed on 12 Oct) must file the two side
 // effects above (fileEffects -> widgetReplyEffects) and write its assistant_logs row before it returns. Two replies
 // answer nothing and are exempt from the side effects: the rate limit's, which answers before the question is read at
 // all, and the visitor cap's (ruling 18 Oct 2026), which is told not to answer or discuss the message (capRules).

@@ -1,6 +1,6 @@
 ---
 name: the-otp-race-step-runs-on-a-throwaway-postgres-in-the-cloud-container
-description: "28 Oct 2026: the cloud container has no Docker, but it does have the Postgres 16 binaries. A throwaway cluster run as the postgres user turns the gate's otp-race step from a 'known container failure' into a PASS (2/2)."
+description: "28 Oct 2026: the cloud container has no Docker daemon (the CLI is installed, /var/run/docker.sock is not), but it does have the Postgres 16 binaries. A throwaway cluster run as the postgres user turns the gate's otp-race step from a 'known container failure' into a PASS (2/2)."
 metadata:
   type: project
   modified: 2026-10-28
@@ -10,7 +10,7 @@ The gate's `otp-race` step (`supabase/functions/login_otp/verify_race.check.ts`)
 `QD_OTP_RACE_PG`, and without it falls back to Docker. The 27 Oct night checkpoint and #1658's gate tables both
 reported it as FAIL, calling it environmental ("no Postgres in the container").
 
-**Measured 28 Oct 2026 (customer_support, #1729).** The container has no Docker, but `/usr/lib/postgresql/16/bin/` is
+**Measured 28 Oct 2026 (customer_support, #1729).** The container has no Docker daemon (`/usr/bin/docker` exists, `/var/run/docker.sock` does not), but `/usr/lib/postgresql/16/bin/` is
 installed and a `postgres` OS user exists. Two constraints shape the recipe:
 - Postgres refuses to run as root.
 - The session scratchpad is root-only (mode 700).
