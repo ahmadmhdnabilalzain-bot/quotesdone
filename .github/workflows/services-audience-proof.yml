@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci && npm i --no-save --no-audit --no-fund esbuild@0.25.10 && npx playwright install --with-deps chromium
-      - name: Control - the base branch still shows the audience as a part (informational: once this merges, the base is fixed too)
+      - name: Control - the base branch still shows the audience as a part (informational only, once this merges the base is fixed too)
         continue-on-error: true
         run: |
           mkdir -p base && git archive origin/${{ github.base_ref || 'main' }} supabase/functions/_shared | tar -x -C base
