@@ -350,7 +350,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
       }
       return person;
     };
-    const fileEffects = async (o: { grounded: boolean; answered: boolean; refusal: string }) => {
+    const fileEffects = async (o: { grounded: boolean; answered: boolean; refusal: string; rateLimited: boolean }) => {
       const fx = await widgetReplyEffects(rpc, { message, live: !!live, ip, path, askedForAPerson, ...o });
       // deno-lint-ignore no-explicit-any
       (globalThis as any).EdgeRuntime?.waitUntil?.(fx.person);
@@ -427,14 +427,17 @@ ${who ? '- Answer what they asked, directly and exactly; then, where it helps, a
         p_rewritten: (a.rewrites || 0) > 0, p_score: rd.score, p_tone: rd.tone, p_issues: rd.issues, p_reason: 'brief', p_demo: /^ZZ ?DEMO/i.test(message) })
         .then(() => {}, () => {});
     }
-    const fx = await fileEffects({ grounded: !!reply, answered: !!reply, refusal: a.error || '' });
+    // A turn the gateway rate-limited was never read by a model: it files no knowledge gap and no person report
+    // (widget_reply_effects.ts), and its log row is still written below.
+    const rateLimited = !reply && a.error === 'rate_limited';
+    const fx = await fileEffects({ grounded: !!reply, answered: !!reply, refusal: a.error || '', rateLimited });
     // reply_attempts: every model attempt and what was refused, for sales_engineer's daily knowledge-gap check. Until the
     // column is live (applied at merge) the row is written without it rather than lost.
     await logWithAttempts(admin, 'assistant_logs', { message, reply: reply || null, ...(convKey ? { conv_id: convKey } : {}), matched_ids: [], seat: seatForSurface, answered: !!reply, gap_task_id: fx.gapTaskId, audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) },
       { attempts: a.attempts, rewrites: a.rewrites, images: photos.images.length });
     T.rewrites = a.rewrites; T.attempts = a.attempts.length;
     // The gateway's rate limit for this visitor: the same polite system notice the local limiter gives (not a reply).
-    if (!reply && a.error === 'rate_limited') return J({ reply: RL_REPLY, rate_limited: true });
+    if (rateLimited) return J({ reply: RL_REPLY, rate_limited: true });
     if (!reply) { await logRun('error', { no_answer: 1, attempts: a.attempts }, 'site_assistant: no model produced an answer: ' + a.attempts.join(' | ')); return J({ error: 'no_answer', outage: a.outage === true, attempts: a.attempts }, 503); }   // outage: OpenRouter was down (1339)
     return J({ reply, scope: live ? audience : 'public', routed: 'brief', routed_seat: seatForSurface ?? 'customer_support', model: a.model, attempts: a.attempts, ...(signup ? { signup } : {}) });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
