@@ -30,7 +30,8 @@ jobs:
         run: |
           git add supabase/schema/full_schema
           git diff --cached --quiet && exit 0
-          git config user.name "it_engineer"
-          git config user.email "noreply@quotesdone.com"
+          # a verified GitHub identity, or Vercel refuses to deploy the commit
+          git config user.name "ahmadmhdnabilalzain-bot"
+          git config user.email "286641016+ahmadmhdnabilalzain-bot@users.noreply.github.com"
           git commit -m "it_engineer: regenerate the schema mirror from production"
           git push origin "HEAD:${GITHUB_REF_NAME}"
