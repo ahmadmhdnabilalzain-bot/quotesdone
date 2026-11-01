@@ -1,7 +1,7 @@
 name: A merged SQL file applies itself
 
 # Founder ledger 1463: merging is the go-live. Waits for the same commit's edge deploy, then rehearses, applies, reads back and
-# probes each file the push added to MANIFEST.txt. No laptop and no session.
+# probes each file added to MANIFEST.txt since the last successful run. No laptop and no session.
 on:
   push:
     branches: [main]
@@ -27,13 +27,22 @@ jobs:
           node-version: '24'
       - run: npm ci
         timeout-minutes: 8
-      - name: Wait for this commit's deploy
+      - name: Find what has not been applied
+        run: |
+          from=$(gh run list --workflow apply-on-merge.yml --branch main --status success --limit 1 --json headSha --jq '.[0].headSha // ""')
+          git cat-file -e "$from^{commit}" 2>/dev/null || from="${{ github.event.before }}"
+          git cat-file -e "$from^{commit}" 2>/dev/null || from="$GITHUB_SHA~1"
+          echo "FROM=$from" >> "$GITHUB_ENV"
+      - name: Wait for this commit's deploy, when it changed functions
         timeout-minutes: 15
         run: |
-          for i in $(seq 1 60); do
-            s=$(gh run list --workflow deploy-functions.yml --commit "$GITHUB_SHA" --json status --jq 'map(select(.status != "completed")) | length')
-            [ "${s:-1}" = 0 ] && [ "$i" -gt 2 ] && exit 0
+          git diff --quiet "$FROM" "$GITHUB_SHA" -- supabase/functions && exit 0
+          for i in $(seq 1 56); do
+            finished=$(gh run list --workflow deploy-functions.yml --commit "$GITHUB_SHA" --json status --jq 'map(select(.status == "completed")) | length')
+            open=$(gh run list --workflow deploy-functions.yml --commit "$GITHUB_SHA" --json status --jq 'map(select(.status != "completed")) | length')
+            [ "${finished:-0}" -gt 0 ] && [ "${open:-1}" = 0 ] && exit 0
             sleep 15
           done
-      - name: Apply what this push added
-        run: node scripts/ci/apply_new_manifest_lines.mjs "${{ github.event.before }}" "$GITHUB_SHA"
+          echo "the deploy did not finish"; exit 1
+      - name: Apply what has not been applied
+        run: node scripts/ci/apply_new_manifest_lines.mjs "$FROM" "$GITHUB_SHA"
