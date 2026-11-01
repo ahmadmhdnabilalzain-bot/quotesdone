@@ -7,7 +7,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 
 ## Standing rules and founder facts
 - [GitHub is the single source of truth (26 Oct)](github-is-the-single-source-of-truth.md) — ledger 1278: nothing lives only on the laptop; memory here, text reports in docs/reports/, binaries and third-party files in the private `evidence` bucket, licence PDF stays in Dropbox
-- [CI runs locally; Ubicloud stopped (26 Oct)](ci-runs-locally-ubicloud-stopped.md) — ledger 1279: no paid CI, Actions included, until the bugs are cleared; the session runs the checks
+- [CI: GitHub Actions back on GitHub-hosted runners (28 Oct; was paused 26 Oct)](ci-runs-locally-ubicloud-stopped.md) — ledger 1410 supersedes 1279: push/PR checks and deploys run on ubuntu-latest; schedules stay on pg_cron; release train still off
 - [A refused CDN is worked around in the check, not in production (27 Oct)](a-refused-cdn-is-worked-around-in-the-check-not-in-production.md) — cloud proxy refuses cdn.jsdelivr.net: ml_embed type-checked via @ts-types npm, dwg check grants only the npm registry
 - [The founder's user-global CLAUDE.md](user-global-CLAUDE.md) — copy of ~/.claude/CLAUDE.md: skills-and-plugins-first, every session
 - [Supplier campaign sends FROM supplier@quotesdone.com](supplier-campaign-sends-from-supplier-at-quotesdone-com.md) — repeated 19 Oct; never invite@hello
@@ -22,7 +22,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Ready means every gate measured](ready-means-every-gate-measured.md) — 6 Oct: founder relies fully; "ready" only with a same-day measured go/no-go checklist
 - [The agent delivers its own work](the-agent-delivers-its-own-work.md) — never hand-deliver a seat's output; the delivery IS the test
 - [A status column is not a delivery record](a-status-column-is-not-a-delivery-record.md) — verify sends through the outbox; 171 leads read "invited" with 0 emails ever sent
-- [MAX 10 agents at once (26 Oct)](max-ten-agents.md) — ledger 1280; the 23 Sep raises to 12 and 15 are gone
+- [MAX 5 agents at once; Sonnet for simple tasks (1 Nov)](max-five-agents.md) — ledger 1417; replaces the limit of 10 (ledger 1280)
 - [Always use max parallel agents](always-max-parallel-agents.md) + [no git in a shared tree](parallel-agents-must-not-do-git-in-a-shared-tree.md) — reads/applies parallelise; checkout/add/commit do not
 - [Founder sets boundaries, not methods](founder-sets-boundaries-not-methods.md)
 - [Next phases: marketing seat, then LLM per seat](next-phases-marketing-then-llm-per-seat.md) — 22 Sep: REMIND him of LLM A/B/C after marketing; Meta/social only for marketing

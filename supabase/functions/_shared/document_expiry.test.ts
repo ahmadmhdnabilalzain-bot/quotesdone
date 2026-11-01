@@ -53,8 +53,9 @@ Deno.test('expiryFromText: the date AFTER an expiry keyword, never the issue dat
   assertEquals(expiryFromText('Issue Date : 14/03/2024\nSigned 01/01/2025'), null);
   // a keyword with no date beside it is skipped, not matched to a date far away
   assertEquals(expiryFromText('valid until the date shown on page 2\n' + 'x'.repeat(200) + '\n13/03/2027'), null);
-  // insurance schedule wording
-  assertEquals(expiryFromText('Period of insurance: from 01/01/2026 to 31/12/2026')?.expiry, '2026-01-01');
+  // insurance schedule wording: a period ends on its SECOND date (28 Oct 2026; this line asserted the start date,
+  // 2026-01-01, as the expiry until the production document walk offered "expires 1 Jan 2026" for a 2026 policy)
+  assertEquals(expiryFromText('Period of insurance: from 01/01/2026 to 31/12/2026')?.expiry, '2026-12-31');
   // Arabic, including Arabic-Indic digits
   assertEquals(expiryFromText('تاريخ الانتهاء: ١٣/٠٣/٢٠٢٧')?.expiry, '2027-03-13');
   assertEquals(expiryFromText('صالحة حتى 2027-03-13')?.expiry, '2027-03-13');
@@ -76,6 +77,48 @@ Deno.test('pdfText + readExpiry: plain and FlateDecode content streams read the 
     const r = await readExpiry(bytes, 'application/pdf');
     assertEquals(r?.expiry, '2027-03-13', `flate=${flate}`);
   }
+});
+
+// ── AN IMAGE IS NEVER INFLATED TO LOOK FOR TEXT (28 Oct 2026, supplier-journey audit run fceb5876) ────────────────────
+// The browser audit's blurry scan (686 kB: one 2483x3265 RGB image and its soft mask, both FlateDecode) ended
+// supplier_portal save_documents at the edge's CPU cap (HTTP 546). The reader inflated every pixel to look for text.
+// Here: a page whose image XObject is 16 MB of pixels (a few kB deflated) beside a content stream that draws the licence.
+async function pdfWithImage(): Promise<Uint8Array> {
+  const pixels = new Uint8Array(4000 * 4000);   // 16 MB of grey: deflates to a few kB, inflates to 16 MB
+  const img = new Uint8Array(await new Response(new Blob([pixels]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer());
+  const text = enc.encode(['BT', '/F1 11 Tf', '56 800 Td', `(${esc('Licence Number : ZZ-546')}) Tj`, 'ET'].join('\n'));
+  const parts: Uint8Array[] = [
+    enc.encode(`%PDF-1.4\n4 0 obj\n<< /Type /XObject /Subtype /Image /Width 4000 /Height 4000 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length ${img.length} >>\nstream\n`),
+    img, enc.encode(`\nendstream\nendobj\n5 0 obj\n<< /Length ${text.length} >>\nstream\n`), text, enc.encode('\nendstream\nendobj\n%%EOF\n'),
+  ];
+  const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+  let at = 0; for (const p of parts) { out.set(p, at); at += p.length; }
+  return out;
+}
+
+Deno.test('an image stream is never inflated to look for text; the page text is still read (S4 blurry scan, HTTP 546)', async () => {
+  const bytes = await pdfWithImage();
+  const Real = globalThis.DecompressionStream;
+  let inflated = 0;
+  globalThis.DecompressionStream = class extends Real { constructor(f: CompressionFormat) { super(f); inflated++; } };
+  try {
+    assertEquals(await pdfText(bytes), 'Licence Number : ZZ-546');
+    assertEquals(inflated, 0, 'the image was inflated: 16 MB of pixels read as if they could hold text');
+  } finally {
+    globalThis.DecompressionStream = Real;
+  }
+});
+
+// Review of #1726: the image test reads only the stream's OWN dictionary, so text after an image-like neighbour is kept.
+Deno.test('a text stream after an object naming /Subtype /Image, or after an image whose stream keyword ends in a lone CR, is still read', async () => {
+  const text = enc.encode(['BT', '/F1 11 Tf', '56 800 Td', `(${esc('Expiry Date: 13/03/2027')}) Tj`, 'ET'].join('\n'));
+  const cat = (ps: Uint8Array[]) => { const o = new Uint8Array(ps.reduce((n, p) => n + p.length, 0)); let i = 0; for (const p of ps) { o.set(p, i); i += p.length; } return o; };
+  const neighbour = cat([enc.encode('%PDF-1.4\n6 0 obj\n<< /Type /Annot /Subtype /Image /Rect [0 0 1 1] >>\nendobj\n'),
+    enc.encode(`5 0 obj\n<< /Length ${text.length} >>\nstream\n`), text, enc.encode('\nendstream\nendobj\n%%EOF\n')]);
+  const loneCr = cat([enc.encode('%PDF-1.4\n3 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /Filter /DCTDecode /Length 4 >>\nstream\r'),
+    new Uint8Array([0xff, 0xd8, 0xff, 0xd9]), enc.encode(`\nendstream\nendobj\n5 0 obj\n<< /Length ${text.length} >>\nstream\n`), text, enc.encode('\nendstream\nendobj\n%%EOF\n')]);
+  assertEquals(await pdfText(neighbour), 'Expiry Date: 13/03/2027');
+  assertEquals(await pdfText(loneCr), 'Expiry Date: 13/03/2027');
 });
 
 Deno.test('readExpiry: an image, a non-PDF and a PDF without an expiry all say null', async () => {
@@ -177,4 +220,118 @@ Deno.test('merge: code first, the model only fills what code left unread, a low-
   // an Arabic-only licence: the model's Arabic name is the Arabic name, never the English one the gate compares
   const ar = mergeLicenceReads(null, { legal_name: 'زد زد ديمو الواحة', legal_name_ar: 'زد زد ديمو الواحة', confidence: 'high' }).merged;
   assertEquals([ar.legal_name_en, ar.legal_name_ar], [null, 'زد زد ديمو الواحة']);
+});
+
+// A PERIOD ENDS ON ITS SECOND DATE (28 Oct 2026, sales_engineer). The production document walk uploaded an insurance
+// schedule printing "Period of Insurance: From 01/01/2026 To 31/12/2026" and the Documents tab offered the START date
+// as the expiry. Every range shape a UAE schedule, certificate or licence prints; a single date is unchanged.
+Deno.test('expiryFromText: a period of cover or validity reads its END date', () => {
+  const cases: [string, string][] = [
+    ['Period of Insurance: From 01/01/2026 To 31/12/2026\nExpiry Date: 31/12/2026', '2026-12-31'],
+    ['PERIOD OF INSURANCE  01/01/2026 TO 31/12/2026', '2026-12-31'],
+    ['Licence Validity: 15/03/2025 - 14/03/2028', '2028-03-14'],
+    ['Validity: 15 Mar 2025 – 14 Mar 2028', '2028-03-14'],
+    ['Validity 2025-03-15 until 2028-03-14', '2028-03-14'],
+    ['Valid to: 09/02/2027', '2027-02-09'],
+    ['صلاحية: 15/03/2025 إلى 14/03/2028', '2028-03-14'],
+    ['Expiry Date: 14/03/2028\nIssue Date: 15/03/2025', '2028-03-14'],
+  ];
+  for (const [text, want] of cases) assertEquals(expiryFromText(text)?.expiry, want, text);
+});
+
+// THE PERIOD READ ADVERSARIALLY (28 Oct 2026, sales_engineer; independent review of #1708). The first fix took the
+// second date of any pair, so a pair printed backwards read its EARLIER date: "Expiry Date - Issue Date: 14/03/2028 -
+// 15/03/2025" read 15/03/2025, which main had read correctly, and on the licence path that is written unconfirmed.
+// It also missed the commonest schedule shapes ("To:", a time after the start, From/To on two lines, وحتى, لغاية),
+// and a "Validity: <start>" printed above "Expiry Date: <expiry>" still read the start. Measured row by row: every
+// row above the last group fails on the reader #1708 opened with, except "Previous Policy Expiry", which guards the
+// expiry-label rule this review added; the last group reads the same on main, on #1708 and here.
+Deno.test('expiryFromText: a period read adversarially — later date, every connector, expiry label first', () => {
+  const cases: [string, string | null][] = [
+    // a pair printed backwards still reads the LATER date (an expiry is never before its issue)
+    ['Expiry Date - Issue Date\n14/03/2028 - 15/03/2025', '2028-03-14'],
+    ['Validity: 14/03/2028 to 15/03/2025', '2028-03-14'],
+    ['صلاحية: 14/03/2028 - 15/03/2025', '2028-03-14'],
+    // what a schedule prints between the two dates
+    ['Period of Insurance: From: 01/01/2026 To: 31/12/2026', '2026-12-31'],
+    ['Period of Insurance: From 01/01/2026 00:00 hrs To 31/12/2026 24:00 hrs', '2026-12-31'],
+    ['Period of Insurance: 01/01/2026 12:00 AM to 31/12/2026 11:59 PM', '2026-12-31'],
+    ['Period of Insurance\nFrom: 01/01/2026\nTo: 31/12/2026', '2026-12-31'],
+    ['Validity: 01/01/2026 thru 31/12/2026', '2026-12-31'],
+    ['صلاحية: من 15/03/2025 وحتى 14/03/2028', '2028-03-14'],
+    ['صلاحية: من ١٥/٠٣/٢٠٢٥ لغاية ١٤/٠٣/٢٠٢٨', '2028-03-14'],
+    ['صلاحية: 15/03/2025 الي 14/03/2028', '2028-03-14'],
+    ['صلاحية\nمن: 15/03/2025\nإلى: 14/03/2028', '2028-03-14'],
+    // an expiry label wins over a period label printed above it
+    ['Validity: 15/03/2025\nExpiry Date: 14/03/2028', '2028-03-14'],
+    ['Period of Insurance: From 01/01/2026\nExpiry Date: 31/12/2026', '2026-12-31'],
+    ['Validity: 15/03/2025\nValid until: 14/03/2028', '2028-03-14'],
+    ['Validity of quotation: 01/10/2026 - 31/10/2026\nPolicy Expiry Date: 31/12/2026', '2026-12-31'],
+    // ...but not one that names an earlier document's date
+    ['Period of Insurance: 01/01/2026 to 31/12/2026\nPrevious Policy Expiry: 31/12/2025', '2026-12-31'],
+    ['Expiry date of previous policy: 31/12/2025\nPeriod of Insurance: 01/01/2026 to 31/12/2026', '2026-12-31'],
+    ['تاريخ انتهاء الوثيقة السابقة: 31/12/2025\nصلاحية: 01/01/2026 إلى 31/12/2026', '2026-12-31'],
+    ['Previous Period of Insurance: 01/01/2025 to 31/12/2025\nPeriod of Insurance: 01/01/2026 to 31/12/2026', '2026-12-31'],
+    // a period whose end does not read day-first is not read at all: its start is certainly not the expiry
+    ['Period of Insurance: 01/12/2026 to 12/31/2026', null],
+    ['Validity: 03/15/2025 - 03/10/2028', null],
+    // unchanged: a hyphen inside ONE date is not a range, and day-first stays day-first
+    ['Expiry: 14-03-2028', '2028-03-14'],
+    ['Expiry: 2028-03-14', '2028-03-14'],
+    ['Expiry: 14-Mar-2028', '2028-03-14'],
+    ['Expiry: 14-03-2028 Issue: 15-03-2025', '2028-03-14'],
+    ['Expiry Date: 14/03/2028 - Issue Date: 15/03/2025', '2028-03-14'],
+    ['Expiry: 14/03/2028 - Renewable annually', '2028-03-14'],
+    ['Expiry: 03/04/2027', '2027-04-03'],
+    ['Issue Date: 15/03/2025\nExpiry Date: 14/03/2028', '2028-03-14'],
+    ['تاريخ الانتهاء: ١٤-٠٣-٢٠٢٨ تاريخ الإصدار: ١٥-٠٣-٢٠٢٥', '2028-03-14'],
+  ];
+  for (const [text, want] of cases) assertEquals(expiryFromText(text)?.expiry ?? null, want, text);
+});
+
+// ONE READ OF A PDF PER UPLOAD, AND A NATIVE DECODE (28 Oct 2026, sales_engineer; production size measurement: scanner-style
+// licences of 14.50 and 19.33 MB ended supplier_portal and supplier_api at the edge's CPU cap, 9.66 MB passed). The three
+// readers run on the same bytes in one upload; they now share one pdfText pass, and the whole-file view is decoded natively.
+// A scan-like PDF: binary image streams (every byte value, 0x80-0x9F included, before the text) then the licence's text.
+async function scanLike(mb: number): Promise<Uint8Array> {
+  const page = new Uint8Array(1024 * 1024); for (let i = 0; i < page.length; i++) page[i] = (i * 2654435761) >>> 24;
+  const text = await pdf(LICENCE, true);
+  const parts: Uint8Array[] = [enc.encode('%PDF-1.4\n')];
+  for (let n = 0; n < mb; n++) parts.push(enc.encode(`${10 + n} 0 obj\n<< /Type /XObject /Subtype /Image /Filter /DCTDecode /Length ${page.length} >>\nstream\n`), page, enc.encode('\nendstream\nendobj\n'));
+  parts.push(text.subarray(9));   // the licence PDF without its own header line
+  const out = new Uint8Array(parts.reduce((a, p) => a + p.length, 0)); let o = 0; for (const p of parts) { out.set(p, o); o += p.length; }
+  return out;
+}
+// The reader as it was before 28 Oct, kept here as the reference: the same text must come out of the faster one.
+const latin1Ref = (b: Uint8Array) => { let s = ''; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000)); return s; };
+
+Deno.test('pdfText: one pass per bytes object, shared by the three readers of an upload', async () => {
+  const bytes = await scanLike(2);
+  assertEquals(pdfText(bytes) === pdfText(bytes), true);           // the same promise: the PDF is read once
+  const copy = bytes.slice();
+  assertEquals(pdfText(copy) === pdfText(bytes), false);           // another upload's bytes are read on their own
+  assertEquals(await pdfText(copy), await pdfText(bytes));
+  assertEquals((await readExpiry(bytes, 'application/pdf'))?.expiry, '2027-03-13');
+  assertEquals((await readLicenceFields(bytes, 'application/pdf')).expiry_date, '2027-03-13');
+});
+
+Deno.test('pdfText: the native decode keeps every offset, so binary streams before the text change nothing', async () => {
+  for (const mb of [0, 1, 3]) {
+    const bytes = await scanLike(mb);
+    const text = await pdfText(bytes);
+    assertEquals(text?.includes('Expiry Date           : 13/03/2027'), true, `${mb} MB of image before the text`);
+    // the structural view is one character per byte, exactly like the reference decode
+    assertEquals(new TextDecoder('latin1').decode(bytes).length, latin1Ref(bytes).length);
+  }
+});
+
+Deno.test('pdfText: a 20 MB scan is read in well under the old cost (the old decode alone was 810 ms of 1,044)', async () => {
+  const bytes = await scanLike(20);
+  let t = performance.now(); latin1Ref(bytes); const oldDecode = performance.now() - t;
+  t = performance.now();
+  await readExpiry(bytes, 'application/pdf'); await readLicenceName(bytes, 'application/pdf'); await readLicenceFields(bytes, 'application/pdf');
+  const threeReads = performance.now() - t;
+  // Relative, measured in the same run on the same machine: the three readers together must cost less than the old
+  // decode of ONE pass. Before 28 Oct they cost three decodes plus three scans.
+  assertEquals(threeReads < oldDecode, true, `three reads ${Math.round(threeReads)} ms vs one old decode ${Math.round(oldDecode)} ms`);
 });
