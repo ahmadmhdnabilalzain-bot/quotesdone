@@ -21,6 +21,8 @@ import { keys, verifyEmailByOtp, mkAuthUser } from '../lib/demo_factory.mjs';
 import { buildCorpus, licenceTruth, licenceTextPdf, licenceSvg, picture, rawPdf, AUTHORITIES } from './document_intake_corpus.mjs';
 import { demoPdfPages } from '../lib/demo_pdf.mjs';
 import sharp from 'sharp';
+import { launch, signedInPage, SITE } from './browser.mjs';
+import { mkdirSync } from 'node:fs';
 
 const argv = process.argv.slice(2);
 const val = (f, d) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : d; };
@@ -28,6 +30,9 @@ const ONLY = val('--case', '').split(',').filter(Boolean);
 const CONC = Number(val('--concurrency', '3'));
 const KEEP = argv.includes('--keep');
 const JSON_OUT = val('--json', '');
+const BROWSER = argv.includes('--browser');   // the licence goes in through the portal's own form in a real browser
+const SHOTS = val('--shots', 'walk-shots');
+if (BROWSER) mkdirSync(SHOTS, { recursive: true });
 
 const TMP = mkdtempSync(join(tmpdir(), 'qd-docwalk-'));
 const docs = await buildCorpus(TMP);
@@ -67,11 +72,50 @@ const CASES = [
   { id: 'foreign_scan', licence: foreignScan, profile: profileText, want: { status: 'pending', reason: 'licence_authority_not_uae' } },
   { id: 'blank_photo', licence: byId('lic_blank_photo'), profile: profileText, want: { status: 'pending', reason: 'licence_unreadable' } },
   { id: 'blank_profile', licence: byId('lic_dubai_ded_old_text'), profile: profileBlank, want: APPROVE, doc: { licence: 'read', profile: 'unreadable' } },
+  // 2 Nov 2026, ledger 1467/1468: the seven files a supplier actually sends, each judged against its printed truth.
+  // observe: the decision is reported, not asserted (what the system does with it is the question).
+  { id: 't_text_pdf', licence: byId('lic_dubai_det_text'), profile: profileText, want: APPROVE, read: ['licence_no', 'name', 'authority', 'expiry'] },
+  { id: 't_scanned_pdf', licence: byId('lic_dubai_ded_old_scan_pdf'), profile: profileText, want: APPROVE, read: ['licence_no', 'name', 'authority', 'expiry'] },
+  { id: 't_png', licence: byId('lic_dubai_det_png'), profile: profileText, want: APPROVE, read: ['licence_no', 'name', 'authority', 'expiry'] },
+  { id: 't_jpg', licence: byId('lic_abu_dhabi_added_jpg'), profile: profileText, want: APPROVE, read: ['licence_no', 'name', 'authority', 'expiry'] },
+  { id: 't_blank_pdf', licence: byId('lic_blank_pdf'), profile: profileText, want: { status: 'pending', reason: 'licence_unreadable' } },
+  { id: 't_wrong_company', licence: byId('lic_mismatch_text'), profile: profileText, want: { status: 'action_required', reason: null }, observe: true, read: ['licence_no', 'name', 'authority', 'expiry'] },
+  { id: 't_expired', licence: byId('lic_expired_text'), profile: profileText, want: { status: 'action_required', reason: 'licence_expired' }, read: ['licence_no', 'name', 'authority', 'expiry'] },
 ].filter((c) => !ONLY.length || ONLY.includes(c.id));
 
 const b64 = (p) => readFileSync(p).toString('base64');
 const results = [];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+let BR = null;
+// The licence through the portal's OWN form, in a real browser on the live site: the file is picked, the browser renders
+// a PDF's pages, process_docs is sent, and what the supplier sees afterwards is read off the screen. A form that never
+// answers is a hang. The caller falls back to the API only when the form was not reached.
+async function browserLicence(c, who, id) {
+  BR ||= await launch();
+  const { ctx, page } = await signedInPage(BR, who, { lang: 'en', viewport: 'desktop' });
+  const o = { reached: false, answered: false, hung: false, ms: null, sees: null, alerts: [], shot: null, response: null };
+  try {
+    await page.goto(`${SITE}/portal`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    const input = page.locator('input[type=file]').first();
+    await input.waitFor({ state: 'attached', timeout: 60000 });
+    o.reached = true;
+    const isLic = (r) => /\/functions\/v1\/supplier_api/.test(r.url()) && /"process_docs"/.test(r.request().postData() || '') && /"license"/.test(r.request().postData() || '');
+    const t0 = Date.now();
+    const ans = page.waitForResponse(isLic, { timeout: 200000 }).then(async (r) => { o.answered = true; o.ms = Date.now() - t0; o.response = `HTTP ${r.status()} ${(await r.text().catch(() => '')).slice(0, 600)}`; }).catch(() => { o.hung = true; o.ms = Date.now() - t0; });
+    await input.setInputFiles(c.licence.file);
+    await ans;
+    await page.getByText(/^Reading licence…/).first().waitFor({ state: 'detached', timeout: 20000 }).catch(() => { o.still_reading = true; });
+    await page.waitForTimeout(1500);
+    const main = (await page.locator('main').first().innerText().catch(() => page.locator('body').innerText())).replace(/[ \t]+/g, ' ');
+    o.sees = main.split('\n').map((l) => l.trim()).filter((l) => /licen|expir|read|upload|could not|auto|number|authority|wrong|action|review/i.test(l)).slice(0, 14).join(' | ').slice(0, 900);
+    o.alerts = await page.getByRole('alert').allInnerTexts().catch(() => []);
+    o.shot = join(SHOTS, `${id}.png`);
+    await page.screenshot({ path: o.shot, fullPage: true }).catch(() => {});
+  } catch (e) { o.error = String(e.message).slice(0, 200); }
+  await ctx.close().catch(() => {});
+  return o;
+}
 
 async function walk(run, c, n) {
   const out = { id: c.id, steps: [], ok: true };
@@ -104,12 +148,23 @@ async function walk(run, c, n) {
 
   // 4. The licence, as the form sends it: base64 plus page images (an image file is its own page; a PDF's pages are
   // rendered by the browser, and with none the server sends the file itself to the model).
-  const lb = b64(c.licence.file);
-  const images = /^image\//.test(c.licence.mime) ? [{ mime: c.licence.mime, data: lb }] : [];
-  const t0 = Date.now();
-  const lic = await call('supplier_api', jwt, { action: 'process_docs', license: { original_b64: lb, file_b64: lb, images, filename: c.licence.name, mime: c.licence.mime } }, 200000);
-  out.licence_response = lic.json?.extracted ?? lic.text?.slice(0, 200);
-  step('process_docs takes the licence', lic.status === 200 && lic.json?.ok === true, `HTTP ${lic.status} in ${Date.now() - t0} ms${lic.json?.extracted?.license_error ? ' license_error=' + lic.json.extracted.license_error : ''}`);
+  let viaBrowser = false;
+  if (BROWSER && c.licence.file) {
+    const who = { kind: 'supplier', email, newSession: async () => s };
+    const b = await browserLicence(c, who, c.id); out.browser = b;
+    viaBrowser = b.reached;
+    step('the portal form takes the licence in a real browser', b.reached && b.answered && !b.hung, `reached=${b.reached} answered=${b.answered} hung=${b.hung} ${b.ms} ms ${b.error || ''} ${String(b.response).slice(0, 300)}`);
+    step('what the supplier sees after the read', true, `${b.sees} | alerts: ${JSON.stringify(b.alerts)}`);
+    out.licence_response = b.response;
+  }
+  if (!viaBrowser) {
+    const lb = b64(c.licence.file);
+    const images = /^image\//.test(c.licence.mime) ? [{ mime: c.licence.mime, data: lb }] : [];
+    const t0 = Date.now();
+    const lic = await call('supplier_api', jwt, { action: 'process_docs', license: { original_b64: lb, file_b64: lb, images, filename: c.licence.name, mime: c.licence.mime } }, 200000);
+    out.licence_response = lic.json?.extracted ?? lic.text?.slice(0, 200);
+    step('process_docs takes the licence (API; the form was not reached)', lic.status === 200 && lic.json?.ok === true, `HTTP ${lic.status} in ${Date.now() - t0} ms${lic.json?.extracted?.license_error ? ' license_error=' + lic.json.extracted.license_error : ''}`);
+  }
 
   // 5. The company profile, as the form sends it: straight to storage on a signed URL, then named by path.
   const up = await call('supplier_api', jwt, { action: 'upload_url', kind: 'profile', filename: c.profile.name, mime: c.profile.mime });
@@ -142,10 +197,13 @@ async function walk(run, c, n) {
   }
   out.row = row;
   step('terms: certificate signed, registration submitted', row.signed && row.submitted, `${Date.now() - t1} ms after Save`);
-  step(`decision is ${c.want.status}${c.want.reason ? ' / ' + c.want.reason : ''}`, row.status === c.want.status && (row.reason ?? null) === c.want.reason, `got ${row.status} / ${row.reason}`);
+  step(`decision is ${c.want.status}${c.want.reason ? ' / ' + c.want.reason : ''}${c.observe ? ' (observed, not asserted)' : ''}`, c.observe || (row.status === c.want.status && (row.reason ?? null) === c.want.reason), `got ${row.status} / ${row.reason}`);
   for (const f of c.read || []) step(`the licence read wrote ${f}`, !!row[f], String(row[f]));
   if (c.read?.includes('licence_no') && c.licence.truth?.licence_no) step('the licence number is the printed one', row.licence_no === c.licence.truth.licence_no, `${row.licence_no} vs ${c.licence.truth.licence_no}`);
   if (c.read?.includes('expiry') && c.licence.truth?.expiry_date) step('the expiry is the printed one', row.expiry === c.licence.truth.expiry_date, `${row.expiry} vs ${c.licence.truth.expiry_date}`);
+  if (c.read?.includes('name') && c.licence.truth?.legal_name_en) step('the company name read is the printed one', row.name === c.licence.truth.legal_name_en, `${row.name} vs ${c.licence.truth.legal_name_en} (registered as ${c.licence.registered})`);
+  if (c.read?.includes('authority') && c.licence.truth?.authority) step('the authority read is the printed one', row.authority === c.licence.truth.authority, `${row.authority} vs ${c.licence.truth.authority}`);
+  out.truth = c.licence.truth ? { licence_no: c.licence.truth.licence_no, name: c.licence.truth.legal_name_en, authority: c.licence.truth.authority, issue: c.licence.truth.issue_date, expiry: c.licence.truth.expiry_date } : null;
   if (c.read?.length) step('doc_extracted_at is stamped', row.extracted);
   for (const [kind, status] of Object.entries(c.doc || {})) {
     const rec = (row.docs || []).filter((d) => d.kind === kind);
@@ -156,9 +214,11 @@ async function walk(run, c, n) {
   const dash = await call('supplier_portal', jwt, { action: 'dashboard' });
   const card = dash.json?.supplier;
   step('the portal shows the stage', card?.approval_status === row.status && (card?.licence_gate_reason ?? null) === (row.reason ?? null), JSON.stringify({ s: card?.approval_status, r: card?.licence_gate_reason, due: card?.exception_due_at }));
+  out.card = { s: card?.approval_status, r: card?.licence_gate_reason, due: card?.exception_due_at };
   out.eligibility = dash.json?.eligibility ? { eligible: dash.json.eligibility.eligible, blocking: dash.json.eligibility.blocking?.map((b) => b.code) } : null;
   await sleep(3000);
   const nt = await read(`select type, channel, status, subject from public.notifications where lead_id=${lead.id} order by id`);
+  out.notices = nt.map((x) => `${x.type}/${x.channel}/${x.status}: ${x.subject}`);
   const real = nt.filter((x) => x.status !== 'suppressed');
   step('every notice is suppressed, none sent', real.length === 0, JSON.stringify(real).slice(0, 200));
   if (c.want.status === 'approved') {
@@ -183,6 +243,7 @@ try {
   const spend = await read(`select coalesce(sum(cost_usd),0)::numeric(10,4) usd, count(*)::int calls from public.ai_cost_log where run_tag = 'qd_run:${run.tag}'`).catch((e) => [{ error: String(e.message).slice(0, 120) }]);
   console.log('model spend', JSON.stringify(spend[0]));
 } finally {
+  await BR?.close().catch(() => {});
   const c = await closeRun(run, { keep: KEEP });
   console.log('teardown:', JSON.stringify(c.leftovers || 'kept'));
 }
