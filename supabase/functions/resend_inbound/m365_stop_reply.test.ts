@@ -5,7 +5,7 @@
 // pollReplyInbox hands it over, Svix-signed, -> resend_inbound's own handler -> a POST to email_suppressions.
 // Every database call is a stub (nothing touches production); no value is real: example.invalid, ZZ DEMO.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { pollReplyInbox } from '../_shared/m365_reply_inbox.ts';
+import { pollReplyInbox, pollTenantMailboxes } from '../_shared/m365_reply_inbox.ts';
 
 const SIGNING = 'whsec_' + btoa(String.fromCharCode(...new Uint8Array(32).map((_, i) => i + 7)));
 const TOKEN = 'zz-demo-inbound-token';
@@ -83,6 +83,38 @@ Deno.test('a "stop" reply to the M365 mailbox is handed to resend_inbound and wr
   assertEquals(suppressions.length, 1, 'no suppression written; review: ' + review.join(' | '));
   assertEquals(suppressions[0].email, SUPPLIER);
   assertEquals(suppressions[0].reason, 'unsubscribe');
+});
+
+Deno.test('a fresh mail to management@ reaches the handler: filed under that mailbox, linked by sender, nothing marked', async () => {
+  const rows: Array<Record<string, unknown>> = [];
+  const real = globalThis.fetch;
+  globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
+    const req = new Request(input, init); const u = new URL(req.url);
+    if (u.pathname === '/rest/v1/inbound_messages' && req.method === 'POST') { rows.push(...[JSON.parse(await req.clone().text())].flat()); return json([{ id: 1 }], 201); }
+    if (u.pathname === '/rest/v1/leads' && req.method === 'GET') return (req.headers.get('Accept') || '').includes('vnd.pgrst.object') ? json({ id: 19398, company_name: 'ZZ DEMO' }) : json([{ id: 19398, company_name: 'ZZ DEMO' }]);
+    return await real(input, init);
+  }) as typeof fetch;
+  const marks: string[] = [];
+  const fresh = (url: string, init?: RequestInit): Promise<Response> => {
+    if (init?.method === 'PATCH') marks.push(url);
+    if (url.includes('/mailFolders/junkemail/') || url.includes('/users?')) return Promise.resolve(json({ value: url.includes('/users?') ? [{ mail: 'management@quotesdone.com' }] : [] }));
+    if (url.includes('/messages/') && !url.startsWith('http://inbound.invalid/')) return Promise.resolve(json({ id: 'AAMkFRESH', subject: 'Registering a subsidiary', from: { emailAddress: { address: SUPPLIER } }, body: { contentType: 'text', content: 'We wish to register our subsidiary.' }, internetMessageHeaders: [] }));
+    return graph('We wish to register our subsidiary.')(url, init);
+  };
+  try {
+    const r = await pollTenantMailboxes({
+      fetchFn: fresh, env: (k) => SECRET_ENV[k], inviteMailbox: 'supplier@quotesdone.com', listedMailboxes: undefined, inboundToken: TOKEN, signingSecret: SIGNING,
+      inboundUrl: 'http://inbound.invalid/functions/v1/resend_inbound', onFile: () => Promise.resolve(new Set<string>()),
+      sender: () => Promise.resolve(null), record: () => Promise.resolve(null),
+    });
+    assertEquals(r.handed, 1, JSON.stringify(r));
+    assertEquals(marks, []);
+    assertEquals(rows.length, 1);
+    assertEquals(rows[0].to_email, 'management@quotesdone.com');
+    assertEquals(rows[0].lead_id, 19398);
+    assertEquals(rows[0].needs_review, true, 'email_triage selects needs_review');
+    assertEquals(rows[0].owner_role, undefined, 'email_triage selects owner_role null');
+  } finally { globalThis.fetch = real; }
 });
 
 Deno.test('fails closed: no EOP pass, an SES-shaped header, never invited, or not a stop: nothing is suppressed', async () => {

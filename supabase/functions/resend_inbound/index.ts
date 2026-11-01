@@ -851,7 +851,7 @@ export const handler = observe('resend_inbound', async (req) => {
     const rawFacts = { message_id: String(d.message_id || hv('message-id') || '') || null, auto_submitted: hv('auto-submitted'),
       // 27 Oct 2026 (marketing): the other auto-reply marks, so an out-of-office never takes an invited lead's one
       // invite.reply handoff (fn_marketing_files_invite_reply reads them)
-      x_auto_response_suppress: hv('x-auto-response-suppress'), precedence: hv('precedence'), x_autoreply: hv('x-autoreply') ?? hv('x-autorespond'),
+      x_auto_response_suppress: hv('x-auto-response-suppress'), precedence: hv('precedence'), x_autoreply: hv('x-autoreply') ?? hv('x-autorespond'), list_unsubscribe: hv('list-unsubscribe') ?? hv('list-id'),
       in_reply_to: hv('in-reply-to'), references: hv('references'),
       content_type: hv('content-type'), sender_authenticated: senderAuthenticated(providerEmailId, authHdrs?.['authentication-results'], from), calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
     const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: appliedSummary.length===0 && (stored>0 || !receiptish), raw: rawFacts }).select('id').maybeSingle();
