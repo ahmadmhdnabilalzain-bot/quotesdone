@@ -217,9 +217,8 @@ const cap1 = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 // docs/reports/QuotesDone Campaign/GLOCKAPPS_27_OCT_RESULT_AND_FIX_PLAN.md (variants B and C are there, unapplied).
 /** The subject asks; it names the trade when known, else the company. Never "invitation", "free", "commission" or "exclusive". */
 export function m365Subject(who: Who = {}): string {
-  const c = companyName(who.company); const t = tradeLabel(who.trade);
-  if (t) return `A question about your ${t} work`;
-  return c ? `A question for ${c}` : 'A question about your work in the UAE';
+  const t = tradeLabel(who.trade);
+  return t ? `A question about your ${t} work` : 'A question about your work in the UAE';
 }
 /** Variant A (27 Oct 2026). Company and trade when known, else the neutral wording. */
 export function m365InvitationText(who: Who = {}): string {
