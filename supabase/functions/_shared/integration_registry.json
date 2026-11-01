@@ -53,8 +53,8 @@
       "action": "Store a Gmail refresh token (scope gmail.readonly) as app_secrets.gmail_seed_refresh_token and the Microsoft Graph app's tenant, client id and secret as ms_graph_tenant_id / ms_graph_client_id / ms_graph_client_secret", "link": "https://console.cloud.google.com/apis/credentials"
     },
     "m365_invitation_lane": {
-      "what": "the supplier invitation sent from the company's Microsoft 365 mailbox (app_secrets.invite_m365_mailbox) through Microsoft Graph sendMail with client credentials, only while app_secrets.invite_m365_enabled is true (or for a --lane=m365 seed); send_outbox/m365_lane.ts holds the invitations and files invite_m365_lane_refused when the token or a send is refused (5 Oct 2026, ledger 1115)",
-      "hosts": ["graph.microsoft.com", "login.microsoftonline.com"],
+      "what": "the supplier invitation sent from the company's Microsoft 365 mailbox (app_secrets.invite_m365_mailbox) through Microsoft Graph sendMail with client credentials, only while app_secrets.invite_m365_enabled is true (or for a --lane=m365 seed); send_outbox/m365_lane.ts holds the invitations and files invite_m365_lane_refused when the token or a send is refused (5 Oct 2026, ledger 1115). The same app is asked, read-only, whether it holds Exchange admin rights (it_engineer/exo_transport_rule.ts, outlook.office365.com, 27 Oct 2026)",
+      "hosts": ["graph.microsoft.com", "login.microsoftonline.com", "outlook.office365.com"],
       "secrets": ["invite_m365_enabled", "invite_m365_mailbox"],
       "env": ["MS_TENANT_ID", "MS_CLIENT_ID", "MS_CLIENT_SECRET"],
       "owner_seat": "it_engineer", "blast": "customer_facing",
