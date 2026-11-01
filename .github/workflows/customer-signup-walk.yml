@@ -9,6 +9,7 @@ on:
     paths:
       - .github/workflows/customer-signup-walk.yml
       - scripts/e2e/customer_signup_walk.mjs
+      - .github/customer-signup-walk-site.txt
 
 permissions:
   contents: read
