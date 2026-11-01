@@ -26,6 +26,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { NOT_LIVE_QUOTE_IN } from '../_shared/quote_live.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { leadEmailCheckBatch } from './lead_email_check.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
 import { portalLink } from '../_shared/site_origins.ts';
@@ -359,6 +360,14 @@ const plain = observe('sales_engineer', async (req) => {
     // opens an org_tasks row owned by sales_engineer, and the asker is given the task number and
     // the owner. Which records were retrieved, how close each was and which were cited are written
     // to sales_decision_log from INSIDE the retrieval routine, so this handler cannot forget to.
+    // Kicked by the duty sales_engineer.lead_email_check. Only the seat's own credential or the founder.
+    if (action === 'lead_email_check') {
+      if (caller.kind !== 'sales_engineer' && caller.kind !== 'founder') return J({ error: 'forbidden' }, 403);
+      const res = await leadEmailCheckBatch((fn, args) => admin.rpc(fn, args) as never);
+      await run('lead_email_check', 'ok', res);
+      return J({ ok: true, ...res });
+    }
+
     if (action === 'spec_offer_sweep') {
       if (caller.kind !== 'service' && caller.kind !== 'sales_engineer' && caller.kind !== 'founder') return J({ error: 'forbidden' }, 403);
       const res = await specOfferSweep(Math.max(1, Math.min(50, Number(body.limit) || 20)));

@@ -80,20 +80,51 @@ test('every definition of fn_supplier_invite_candidates from #964 on, applied or
 // 28 Oct 2026 (it_engineer): that tier is APPLIED (the canonical body carries the rescue CTE), so the pending
 // redefinition this pins is now the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.sql: the same
 // applied body, re-signed with p_providers text[] and ONE filter line on the mailbox class. Nothing else may differ.
-test('a pending fn_supplier_invite_candidates is the latest applied body with only the mailbox-class filter added', () => {
+// 2 Nov 2026 (sales_engineer, ledger 1449): the applied body already holds the mailbox-class filter. The pending redefinition
+// is an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql: the checked-mailbox rank replaces the
+// two old ranks and those lines alone change. Nothing else may differ.
+const CHECKED_GONE = [
+  'l.invite_trades, l.emirate, k.dkey, k.nkey,',
+  'from leads l join keyed k on k.id = l.id',
+  "case when c.email_verified in ('verified','true') then 0 else 1 end as unverified_rank,",
+  "case when split_part(lower(c.email),'@',1) in",
+  "('info','sales','admin','contact','enquiry','enquiries','inquiry','office','mail',",
+  "'support','hello','marketing','general','accounts','reception','careers','hr')",
+  'then 1 else 0 end as role_rank',
+  'row_number() over (partition by p.pdomain order by p.unverified_rank, p.role_rank, p.id) as rk,',
+  "row_number() over (partition by coalesce(p.email_domain, split_part(p.email,'@',2)) order by p.unverified_rank, p.role_rank, p.id) as domain_rk,",
+  '-- the best contact per company: a verified, named mailbox before info@/sales@ (a role address goes only',
+  "-- when it is the company's only one). ponytail: a lead that wins one key and loses the other waits a day.",
+  'row_number() over (partition by p.dkey order by p.unverified_rank, p.role_rank, p.id) as company_rk,',
+  'row_number() over (partition by coalesce(p.nkey, p.email) order by p.unverified_rank, p.role_rank, p.id) as name_rk',
+  'order by r.target_rank, r.plan_rank, r.is_none, r.rk, r.unverified_rank, r.role_rank, r.pdomain',
+];
+const CHECKED_ADDED = [
+  'l.invite_trades, l.emirate, k.dkey, k.nkey, ec.mailbox,',
+  'from leads l join keyed k on k.id = l.id left join public.lead_email_check ec on ec.lead_id = l.id',
+  "case when c.email_verified in ('verified','true') then 0 when c.mailbox = 'free' then 3 when c.mailbox = 'role' then 1 else 2 end as mailbox_rank",
+  'row_number() over (partition by p.pdomain order by p.mailbox_rank, p.id) as rk,',
+  "row_number() over (partition by coalesce(p.email_domain, split_part(p.email,'@',2)) order by p.mailbox_rank, p.id) as domain_rk,",
+  'row_number() over (partition by p.dkey order by p.mailbox_rank, p.id) as company_rk,',
+  'row_number() over (partition by coalesce(p.nkey, p.email) order by p.mailbox_rank, p.id) as name_rk',
+  'order by r.target_rank, r.plan_rank, r.mailbox_rank, r.is_none, r.rk, r.pdomain',
+];
+const candidatesDiff = (canon, mine) => ({
+  gone: canon.filter((l) => !mine.includes(l)).map((l) => l.trim()),
+  added: mine.filter((l) => !canon.includes(l)).map((l) => l.trim()).filter((l) => !l.startsWith('--')),
+});
+test('a pending fn_supplier_invite_candidates is the latest applied body with only the checked-mailbox rank changed', () => {
   const lines = (f) => fnText(read(f), 'fn_supplier_invite_candidates').split('\n').map((l) => l.trimEnd());
   const canonFile = [...manifest].reverse().find((f) => defines('fn_supplier_invite_candidates').test(code(read(f))));
   const canon = lines(canonFile);
   for (const f of pendingSql.filter((p) => defines('fn_supplier_invite_candidates').test(code(read(p))))) {
     const mine = lines(f);
-    const gone = canon.filter((l) => !mine.includes(l)).map((l) => l.trim());
-    const added = mine.filter((l) => !canon.includes(l)).map((l) => l.trim()).filter((l) => !l.startsWith('--'));
-    assert.deepEqual(gone.map((l) => l.toLowerCase()), ['create or replace function public.fn_supplier_invite_candidates(p_limit integer)'],
-      `${f} is not ${canonFile} with only its signature changed`);
-    assert.deepEqual(added.map((l) => l.toLowerCase()), [
-      'create or replace function public.fn_supplier_invite_candidates(p_limit integer, p_providers text[])',
-      'and (p_providers is null or public.fn_mail_provider_of_email(l.email) = any(p_providers))',
-    ], `${f} adds more to ${canonFile} than the mailbox-class filter`);
+    const { gone, added } = candidatesDiff(canon, mine);
+    assert.deepEqual(gone, CHECKED_GONE, `${f} takes more from ${canonFile} than the old mailbox ranks`);
+    assert.deepEqual(added, CHECKED_ADDED, `${f} adds more to ${canonFile} than the checked-mailbox rank`);
+    // known-bad control: one extra changed line must not pass
+    const bad = candidatesDiff(canon, [...mine, 'and true']);
+    assert.notDeepEqual(bad.added, CHECKED_ADDED, 'control: an extra line passed');
   }
 });
 
