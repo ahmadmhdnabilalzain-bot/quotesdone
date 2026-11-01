@@ -9,7 +9,7 @@
 const REPORT_SENDER = /^(mailer-daemon|postmaster)@/i;
 const PERMANENT = /(address not found|does(?:n't| not) exist|no such user|user unknown|recipient not found|5\.1\.[01]\b)/i;
 const NAMED = [
-  /wasn'?t delivered to\s+<?([^\s<>"']+@[^\s<>"',;]+?)>?[\s.,]/i,
+  /wasn'?t delivered to\s+<?([^\s<>"']+@[^\s<>"',;]+)/i,
   /final-recipient:\s*rfc822;\s*<?([^\s<>"']+@[^\s<>"',;]+)>?/i,
 ];
 
@@ -20,7 +20,7 @@ export function permanentlyBouncedAddress(from: unknown, text: unknown): string 
   if (!REPORT_SENDER.test(sender) || !PERMANENT.test(body)) return null;
   for (const re of NAMED) {
     const m = re.exec(body + ' ');
-    if (m) return m[1].replace(/.+$/, '').toLowerCase();
+    if (m) return m[1].replace(/\.+$/, '').toLowerCase();
   }
   return null;
 }
