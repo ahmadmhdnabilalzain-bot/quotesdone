@@ -9369,6 +9369,21 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_invite_schedule_counts_a_real_send()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if public.fn_is_demo_email(new.to_email) then return null; end if;
+  insert into public.invite_schedule(day, planned, sent, status, note)
+  values ((new.sent_at at time zone 'UTC')::date, 0, 1, 'approved', 'sent from an earlier day''s queue')
+  on conflict (day) do update set sent = public.invite_schedule.sent + 1;
+  return null;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_it_judge_routine_change()
  RETURNS trigger
  LANGUAGE plpgsql

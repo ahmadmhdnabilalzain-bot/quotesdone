@@ -313,6 +313,7 @@ export const REGISTER = {
   fn_seat_clock_deliver: { relay: 'records a message the send door refused; the refusal is the door\'s decision' },
   fn_it_engineer_ingest_watch_findings: { relay: 'copies fn_it_detect\'s open it_watch_finding rows into the finding ledger' },
   fn_invite_placement_finding: { relay: 'records the verdict fn_invite_placement_judge reached from the latest recorded GlockApps result (public.deliverability_test against public.invite_placement_bar, 28 Oct 2026; the morning seed is retired); it files only on an open sending day, so a held campaign files nothing, and a healthy open day has a passing verdict' },
+  fn_wa_supplier_invite_brake: { relay: 'records the brake a caller pulled on the supplier WhatsApp invitations (the quality or opt-in gate, with its reason); it cancels the queued sends and files deliverability:supplier_invite_wa only when called, and a healthy day never calls it' },
   fn_lesson_reapproval_lapse_escalates: { relay: 'records that the CEO escalation of a lapsed lesson re-approval could not be opened (#1443); fires only when fn_seat_handoff itself errors on that lapse, and a healthy day has none' },
   fn_rehearsal_window_sweep: { relay: 'logs a window it closed as an already-resolved info row (status resolved, severity info); the decision is the window\'s own expires_at (#1401), and no alarm is raised' },
   fn_it_duty_settle: { relay: 'writes the failing items a duty reading hands it; the rule is the duty\'s' },
