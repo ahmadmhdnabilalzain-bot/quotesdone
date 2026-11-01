@@ -13,7 +13,7 @@ function stub() {
 }
 const base: WidgetReplyEffectsInput = {
   message: 'can I speak to someone about your insurance policy for crane hire?', live: false, grounded: false, answered: true,
-  refusal: 'reasoned_without_company_knowledge', ip: '203.0.113.9', path: '/', askedForAPerson: () => Promise.resolve(true),
+  refusal: 'reasoned_without_company_knowledge', rateLimited: false, ip: '203.0.113.9', path: '/', askedForAPerson: () => Promise.resolve(true),
 };
 
 Deno.test('a composed reply with no company knowledge behind it files the gap, and a person ask reaches the CEO', async () => {
@@ -37,6 +37,21 @@ Deno.test('a grounded reply files no gap; no person asked, no report; a signed-i
     assertEquals(e.gapTaskId, null);
     assertEquals(s.calls.length, 0, JSON.stringify(s.calls));
   }
+});
+
+// Review of #1729 (1 Nov 2026): a turn the gateway rate-limited was never read by a model. It is not a gap in company
+// knowledge, and fn_support_knowledge_gap opens an org_tasks row per distinct question, so a scripted caller past the
+// limit could open one per message. It files nothing, and spends no person-decision model call either.
+Deno.test('a turn the gateway rate-limited files no knowledge gap and no person report, even ungrounded and asking for a person', async () => {
+  const s = stub();
+  let asked = 0;
+  const e = await widgetReplyEffects(s.rpc, { ...base, grounded: false, answered: false, refusal: 'rate_limited', rateLimited: true,
+    askedForAPerson: () => { asked++; return Promise.resolve(true); } });
+  assertEquals(await e.person, false);
+  assertEquals(e.gapTaskId, null);
+  assertEquals(e.gapReply, null);
+  assertEquals(s.calls.length, 0, JSON.stringify(s.calls));
+  assertEquals(asked, 0, 'the person decision (a model call) ran for a rate-limited turn');
 });
 
 Deno.test('the person decision failing never fails the reply', async () => {
@@ -83,6 +98,28 @@ Deno.test('site_assistant: every exit that answers a question files the side eff
     assert(/from\('assistant_logs'\)\.insert\(|logWithAttempts\(admin, 'assistant_logs', /.test(seg), 'this exit returns without writing its log: ' + line);
     prev = i;
   }
+});
+
+// THE GATEWAY'S RATE LIMIT ON THE BRIEF ROAD (review of #1729). Its exit comes after fileEffects, so fileEffects must be
+// told the turn was rate-limited (widgetReplyEffects then files nothing), and the turn's log row is still written first.
+Deno.test('site_assistant: the gateway rate-limit exit tells fileEffects, writes its log, and can never file a gap', async () => {
+  const src = await Deno.readTextFile(new URL('../site_assistant/index.ts', import.meta.url));
+  assert(/const fileEffects = async \(o: \{[^}]*rateLimited: boolean \}\) => \{\n\s+const fx = await widgetReplyEffects\(rpc, \{[^}]*\.\.\.o \}\)/.test(src),
+    'fileEffects does not take rateLimited or does not pass it through to widgetReplyEffects');
+  const start = src.indexOf('const reply = a.reply.trim()');
+  assert(start > 0, 'the brief reply is gone');
+  const road = src.slice(start);
+  const decl = road.match(/const rateLimited = !reply && a\.error === 'rate_limited';/);
+  assert(decl, "rateLimited is not decided from the gateway's error");
+  const call = road.match(/await fileEffects\(\{ grounded: [^\n]*\}\)/);
+  assert(call, 'the brief reply no longer files its effects');
+  // the decided value itself, by shorthand: 'rateLimited: false' or a second expression would pass the word and not the fact
+  assert(/, rateLimited \}\)$/.test(call[0]), 'the brief road files its effects without passing the decided rateLimited: ' + call[0]);
+  assert(decl.index! < call.index!, 'rateLimited is decided after the effects are filed');
+  const exit = road.indexOf('return J({ reply: RL_REPLY');
+  assert(exit > call.index!, 'the rate-limit exit is not on the brief road after the effects');
+  assert(/^\s*if \(rateLimited\) $/.test(road.slice(road.lastIndexOf('\n', exit) + 1, exit)), 'the rate-limit exit is not gated by the same rateLimited the effects were told');
+  assert(/logWithAttempts\(admin, 'assistant_logs', /.test(road.slice(call.index!, exit)), 'the rate-limited turn returns without writing its log');
 });
 
 // Review of #1043: a signed-in widget reply is logged as its party so it attaches to the support case (#1036).
