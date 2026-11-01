@@ -1,0 +1,1 @@
+Apply at merge, in a quiet hour outside the campaign window, and deploy send_whatsapp and resilience_ping with it. Both switches stay off on apply: the duty only logs decisions until ceo_growth_act_golive is set to true.
