@@ -56,7 +56,8 @@ test('no routine inserts a real supplier_invite past the guard', () => {
 test('every brake reads real sends, not the queue time', () => {
   for (const f of ['enqueue_supplier_invites(', 'fn_invite_same_day_brake(', 'fn_sales_engineer_nudges_invited_suppliers(']) {
     const b = body(f);
-    assert.match(b, /fn_invite_send_health\(public\.fn_invite_brake_since\(/, f + ' does not read fn_invite_send_health');
+    assert.match(b, /fn_invite_send_health\(/, f + ' does not read fn_invite_send_health');
+    assert.ok(!/brake_since|resumed_at/.test(b), f + ' lets a restart reset the bounce window');
     assert.ok(!/from\s+(public\.)?leads\s+where\s+invited_at\s*>/.test(b), f + ' still counts by queue time');
   }
   assert.match(body('fn_invite_ramp('), /fn_invite_send_health\(now\(\) - interval '48 hours'\)/);
@@ -77,18 +78,39 @@ test('the restart never lifts the founder\'s go, a complaint or another seat\'s 
   const b = body('fn_sales_engineer_restarts_invites_after_a_brake(');
   assert.match(b, /fn_supplier_outreach_golive\(\)/);
   assert.match(b, /v_complaints > 0/);
+  assert.match(b, /b\.fired_at \+ interval '3 days'/, 'no cooldown');
+  assert.match(b, /restarted_by_seat and x\.resumed_at > b\.fired_at - interval '30 days'/, 'no limit on restarts');
+  assert.match(b, /fn_ceo_task_open\(/, 'a second breach does not reach the CEO seat');
+  assert.ok(b.indexOf('fn_ceo_task_open(') < b.indexOf("set value = 'true'"), 'the second breach is decided after the resume');
+  assert.match(body('enqueue_supplier_invites('), /fn_invite_restart_cap\(/, 'no small first batch');
   assert.match(b, /paused_by/);
   assert.match(b, /insert into public\.email_suppressions/);
   assert.ok(b.indexOf('email_suppressions') < b.indexOf("set value = 'true'"), 'it resumes before suppressing');
   const writes = [...b.matchAll(/update\s+public\.app_secrets\s+set\s+value\s*=[^;]*;/gi)].map((m) => m[0]);
-  assert.equal(writes.length, 1, 'it writes one switch, once');
-  assert.match(writes[0], /key = 'invite_enabled'/, 'it writes another switch');
+  assert.ok(writes.length > 0 && writes.every((w) => /key = 'invite_enabled'/.test(w)), 'it writes another switch');
+  assert.match(b, /fn_invite_send_health\(v_since\)/, 'the second breach does not read the sends since the restart');
+  const cap = body('fn_invite_restart_cap(');
+  const clockOnly = (s) => !/first_sent/.test(s);
+  assert.ok(!clockOnly(cap), 'the first-batch limit runs on a clock, so a restart on a closed day lapses before anything is sent');
+  assert.ok(clockOnly("resumed_at > now() - interval '24 hours'"), 'control: the clock shape is refused');
 });
 
 test('a proven mailbox goes first, free mail last', () => {
   const b = body('fn_supplier_invite_candidates(p_limit integer, p_providers text[])');
   assert.match(b, /when c\.email_verified in \('verified','true'\) then 0 when c\.mailbox = 'free' then 3 when c\.mailbox = 'role' then 1 else 2/);
   assert.match(b, /order by r\.target_rank, r\.plan_rank, r\.mailbox_rank,/);
+});
+
+// A JS replace whose replacement held a regex ending in $' pasted the file's tail inside 7 copies (review of #1744).
+export const spliced = (src) => {
+  const heads = [...src.matchAll(/create\s+or\s+replace\s+function\s+public\.([a-z0-9_]+)\(([^)]*)\)/gi)].map((m) => m[1] + '(' + m[2] + ')');
+  return heads.length !== new Set(heads).size || !src.includes("donotreply)$'");
+};
+test('the file was not spliced: each routine once, its regex literals whole', () => {
+  const src = readFileSync(SQL + FIX, 'utf8');
+  assert.ok(!spliced(src), 'a routine is defined twice or a regex literal was cut');
+  const bad = 'x'.replace('x', () => src).replace('create table', () => src + 'create table');
+  assert.ok(spliced(bad), 'control: a pasted tail passes');
 });
 
 test('the file is pending XOR in MANIFEST, and its probe is never applied', () => {

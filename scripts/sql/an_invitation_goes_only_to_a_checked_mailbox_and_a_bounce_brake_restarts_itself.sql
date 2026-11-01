@@ -12,12 +12,11 @@
 --     so the outbox itself refuses an unverified lead on every path. Duty sales_engineer.lead_email_check runs the batch
 --     (sales_engineer/lead_email_check.ts: 200 leads, at most 40 DNS lookups a run).
 --     UNTIL THE FIRST BATCHES RUN THE POOL IS EMPTY AND NOTHING IS QUEUED. 200 leads per 5 minutes covers 17,330 in about 7 hours.
---  2. public.invite_brake records a bounce brake. Duty sales_engineer.invite_restart suppresses the bounced addresses and, once the
---     next batch is verified, sets invite_enabled back on. A complaint pause, another seat's pause (the postmaster) and the
---     founder's own go switch (supplier_outreach_golive) are never overridden. Caps are not touched.
+--  2. public.invite_brake records a bounce brake. Duty sales_engineer.invite_restart suppresses the bounced addresses and may
+--     resume ONCE in 30 days, no sooner than 3 days after the brake, and only if the real 3-day window would not fire the brake
+--     again. The window is never reset. At most 10 a day until the first day that really sent has passed. Bounces over the limit on
+--     the sends since the restart, or any brake, within 30 days are a second breach: it stays paused and opens a CEO task. A complaint pause, another seat's pause and the founder's go are never lifted.
 --  3. fn_invite_send_health is the one read of real sends. invite_schedule.sent and v_invite_deliverability_daily count real sends.
---  4. Brakes read sends since the last restart, or the same bounces would stop the campaign again at once. The ramp's back-off
---     deliberately does not: after a restart the cap stays held down until the 48 hours clear.
 
 create table if not exists public.lead_email_check (
   lead_id bigint primary key references public.leads(id) on delete cascade,
@@ -40,7 +39,9 @@ create table if not exists public.invite_brake (
   why text not null,
   fired_at timestamptz not null default now(),
   resumed_at timestamptz,
-  resume_note text
+  resume_note text,
+  restarted_by_seat boolean not null default false,
+  ceo_task_opened_at timestamptz
 );
 create unique index if not exists invite_brake_one_open on public.invite_brake ((true)) where resumed_at is null;
 alter table public.invite_brake enable row level security;
@@ -64,14 +65,22 @@ as $fn$
 $fn$;
 revoke execute on function public.fn_invite_send_health(timestamptz) from public, anon, authenticated;
 
-create or replace function public.fn_invite_brake_since(p_since timestamptz)
-returns timestamptz
+-- A SMALL FIRST BATCH: at most 10 a day from the seat's restart until the first Dubai day that really sent has passed. It follows
+-- sends, not the clock, because a restart can land on a weekend when nothing goes.
+create or replace function public.fn_invite_restart_cap(p_cap integer)
+returns integer
 language sql stable security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-  select greatest(p_since, (select max(b.resumed_at) from public.invite_brake b))
+  with r as (select max(b.resumed_at) as at from public.invite_brake b where b.restarted_by_seat),
+       s as (select min(n.sent_at) as first_sent from public.notifications n, r
+              where n.type = 'supplier_invite' and n.sent_at > r.at and not public.fn_is_demo_email(n.to_email))
+  select case when r.at is not null
+               and (s.first_sent is null or (s.first_sent at time zone 'Asia/Dubai')::date >= (now() at time zone 'Asia/Dubai')::date)
+              then least(p_cap, 10) else p_cap end
+    from r, s
 $fn$;
-revoke execute on function public.fn_invite_brake_since(timestamptz) from public, anon, authenticated;
+revoke execute on function public.fn_invite_restart_cap(integer) from public, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.fn_invite_same_day_brake()
  RETURNS trigger
@@ -93,7 +102,7 @@ begin
   end if;
 
   select h.sent, h.bounced, h.complained into v_sent, v_b, v_c
-    from public.fn_invite_send_health(public.fn_invite_brake_since(v_day::timestamp at time zone 'Asia/Dubai')) h;
+    from public.fn_invite_send_health(v_day::timestamp at time zone 'Asia/Dubai') h;
 
   if v_c >= v_c_min and v_c::numeric / greatest(v_sent, 1) >= v_cr_max then
     v_why := v_c || ' spam complaint(s) on ' || v_sent || ' invitation(s) today';
@@ -294,6 +303,7 @@ begin
   v_cap := coalesce((select nullif(value,'')::int from app_secrets where key='invite_daily_cap'), 10);
   -- founder ruling 1231: never more than the dated founder cap, whatever invite_daily_cap holds.
   v_cap := least(v_cap, public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
+  v_cap := public.fn_invite_restart_cap(v_cap);   -- a small first batch after a restart
   select count(*) into v_pool from leads l where public.fn_supplier_invite_eligible(l);
   v_planned := least(coalesce(p_cap, v_cap), v_cap, v_pool);
   insert into invite_schedule(day, planned, status, note)
@@ -350,9 +360,9 @@ begin
   end if;
 
   v_max_rate := coalesce((select nullif(value,'')::numeric from app_secrets where key='invite_max_bounce_rate'), 0.08);
-  -- 2 Nov 2026: real sends only, and only those since the last restart: a bounce already suppressed cannot re-fire it.
+  -- 2 Nov 2026: real sends only. A restart never resets this window.
   select h.sent, h.bounced into v_inv_recent, v_bounced_recent
-    from public.fn_invite_send_health(public.fn_invite_brake_since(now() - interval '3 days')) h;
+    from public.fn_invite_send_health(now() - interval '3 days') h;
   v_rate := round(v_bounced_recent::numeric / greatest(v_inv_recent,1), 3);
 
   if v_inv_recent >= 15 and v_rate > v_max_rate then
@@ -370,9 +380,9 @@ begin
     update invite_schedule set status = 'pending', note = coalesce(note,'') || '; auto-paused: ' || v_why where day = v_today;
     if not exists (select 1 from founder_alerts where event='invite_paused_bounce' and created_at > now()-interval '24 hours') then
       insert into founder_alerts(level,event,detail,channel)
-        values('crit','invite_paused_bounce','Supplier invites AUTO-PAUSED: '||v_why||'. The sales engineer resumes once the bounced addresses are suppressed and the next batch is verified.','system');
+        values('crit','invite_paused_bounce','Supplier invites AUTO-PAUSED: '||v_why||'. The sales engineer may resume once, after a 3-day cooldown; a second breach stays paused and goes to the CEO seat.','system');
       insert into notifications(type,to_email,to_role,channel,subject,body,status)
-        values('invite_paused_bounce', coalesce((select split_part(value,',',1) from app_secrets where key='admin_emails'),'management@quotesdone.com'),'admin','email','Supplier invites paused - deliverability risk','Invites were auto-paused: '||v_why||'. The sales engineer resumes once the bounced addresses are suppressed and the next batch is verified.','queued');
+        values('invite_paused_bounce', coalesce((select split_part(value,',',1) from app_secrets where key='admin_emails'),'management@quotesdone.com'),'admin','email','Supplier invites paused - deliverability risk','Invites were auto-paused: '||v_why||'. The sales engineer may resume once, after a 3-day cooldown; a second breach stays paused and goes to the CEO seat.','queued');
     end if;
     return 0;
   end if;
@@ -451,7 +461,7 @@ begin
       return jsonb_build_object('held', 'inbox placement ' || v_gate, 'queued', 0); end if;
     -- enqueue_supplier_invites' 3-day bounce brake, read only (the batch owns the auto-pause)
     select h.sent, h.bounced into v_inv_recent, v_bounced_recent
-      from public.fn_invite_send_health(public.fn_invite_brake_since(p_now - interval '3 days')) h;
+      from public.fn_invite_send_health(p_now - interval '3 days') h;
     v_max_rate := coalesce((select nullif(value, '')::numeric from public.app_secrets where key = 'invite_max_bounce_rate'), 0.08);
     if (v_inv_recent >= 15 and v_bounced_recent::numeric / greatest(v_inv_recent, 1) > v_max_rate)
        or v_bounced_recent >= greatest(5, ceil(v_inv_recent * v_max_rate)::int) then
@@ -462,7 +472,7 @@ begin
   -- the UTC date, exactly as enqueue_supplier_invites counts it (review of #1007): on a Dubai-date basis the two
   -- would disagree between 00:00 and 04:00 Dubai and could each spend a full cap.
   v_cap := coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_daily_cap'), 10);
-  v_cap := least(v_cap, coalesce(p_cap, v_cap));
+  v_cap := public.fn_invite_restart_cap(least(v_cap, coalesce(p_cap, v_cap)));
   select count(*) into v_used from public.notifications n
    where n.type in ('supplier_invite', 'supplier_invite_nudge')
      and (n.created_at at time zone 'UTC')::date = (p_now at time zone 'UTC')::date
@@ -540,432 +550,14 @@ AS $function$
      -- ... and never a mailbox whose reader is not the business (44 leads): a recruiter or a lawyer
      -- presses "spam", they do not register.
      and split_part(lower(btrim(p.email)), '@', 1) !~
-         '^(careers?|jobs?|hr|recruit(ment|ing)?|cv|webmaster|hostmaster|mailer-daemon|privacy|legal|newsletters?|unsubscribe|donotreply)
-
--- 3. THE COUNT OF WHAT WAS SENT.
-create or replace function public.trg_invite_schedule_counts_a_real_send()
-returns trigger
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-begin
-  if public.fn_is_demo_email(new.to_email) then return null; end if;
-  insert into public.invite_schedule(day, planned, sent, status, note)
-  values ((new.sent_at at time zone 'UTC')::date, 0, 1, 'approved', 'sent from an earlier day''s queue')
-  on conflict (day) do update set sent = public.invite_schedule.sent + 1;
-  return null;
-end $fn$;
-revoke execute on function public.trg_invite_schedule_counts_a_real_send() from public, anon, authenticated;
-drop trigger if exists z81_invite_schedule_counts_a_real_send on public.notifications;
-create trigger z81_invite_schedule_counts_a_real_send after update of sent_at on public.notifications
-  for each row when (new.type = 'supplier_invite' and new.sent_at is not null and old.sent_at is null)
-  execute function public.trg_invite_schedule_counts_a_real_send();
-
--- The days the outbox can speak for are corrected from it. Earlier days are left: their outbox rows may be gone.
-with real as (
-  select (n.sent_at at time zone 'UTC')::date as day, count(*)::int as sent
-    from public.notifications n
-   where n.type = 'supplier_invite' and n.sent_at is not null and not public.fn_is_demo_email(n.to_email)
-   group by 1
-), ins as (
-  insert into public.invite_schedule(day, planned, sent, status, note)
-  select r.day, 0, r.sent, 'approved', 'sent from an earlier day''s queue' from real r
-  on conflict (day) do update set sent = excluded.sent
-)
-update public.invite_schedule s set sent = 0
- where s.day >= (select min(day) from real) and s.day not in (select day from real);
-
-create or replace view public.v_invite_deliverability_daily as
-  select (n.sent_at at time zone 'Asia/Dubai')::date as dubai_day,
-         count(*) as sent,
-         count(*) filter (where l.invite_status = 'bounced') as bounced,
-         count(*) filter (where l.invite_status = 'complained') as complained,
-         round((count(*) filter (where l.invite_status = 'bounced'))::numeric / count(*)::numeric, 4) as bounce_rate,
-         round((count(*) filter (where l.invite_status = 'complained'))::numeric / count(*)::numeric, 4) as complaint_rate
-    from public.notifications n
-    join public.leads l on l.id = n.lead_id
-   where n.type = 'supplier_invite' and n.sent_at is not null
-     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(n.to_email)
-   group by 1;
-
--- 1. THE CHECK'S DOORS.
-create or replace function public.fn_sales_engineer_email_check_batch(p_limit integer default 200)
-returns jsonb
-language sql stable security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-  select coalesce(jsonb_agg(jsonb_build_object('lead_id', x.id, 'email', x.email, 'email_verified', x.email_verified, 'mx_kind', x.kind)), '[]'::jsonb)
-    from (
-      select l.id, btrim(l.email) as email, l.email_verified, m.kind
-        from public.leads l
-        left join public.lead_email_check c on c.lead_id = l.id
-        -- a cached answer younger than the recheck; a cached failure is asked again
-        left join public.email_domain_mx m on m.domain = split_part(lower(btrim(l.email)), '@', 2)
-                                          and m.checked_at > now() - interval '30 days' and m.kind <> 'error'
-       where coalesce(btrim(l.email), '') <> ''
-         and coalesce(l.invite_status, 'queued') = 'queued'
-         and coalesce(l.source, '') <> 'self_registered'
-         and not coalesce(l.claimed, false) and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)
-         and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)
-         and (c.lead_id is null
-              or c.email_md5 <> md5(lower(btrim(l.email)))
-              or c.checked_at < now() - interval '30 days'
-              or (c.verdict = 'retry' and c.checked_at < now() - interval '1 hour'))
-       -- an invitation already waiting in the outbox first, then never-checked, then the oldest verdict
-       order by (l.invite_status = 'queued') desc nulls last, (c.lead_id is null) desc, c.checked_at nulls first, l.id
-       limit greatest(coalesce(p_limit, 0), 0)
-    ) x
-$fn$;
-revoke execute on function public.fn_sales_engineer_email_check_batch(integer) from public, anon, authenticated;
-grant execute on function public.fn_sales_engineer_email_check_batch(integer) to service_role;
-
-create or replace function public.fn_sales_engineer_records_email_checks(p_checks jsonb, p_domains jsonb default '[]'::jsonb)
-returns jsonb
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare v_saved int; v_cancelled int;
-begin
-  -- a failed lookup never overwrites a real answer
-  insert into public.email_domain_mx (domain, has_mx, kind, hosts, checked_at)
-  select lower(d->>'domain'), d->>'kind' in ('mx', 'a_implicit', 'error'), d->>'kind',
-         nullif(array(select jsonb_array_elements_text(coalesce(d->'hosts', '[]'::jsonb))), '{}'::text[]), now()
-    from jsonb_array_elements(coalesce(p_domains, '[]'::jsonb)) d
-  on conflict (domain) do update
-     set has_mx = excluded.has_mx, kind = excluded.kind, hosts = excluded.hosts, checked_at = excluded.checked_at
-   where excluded.kind <> 'error';
-
-  insert into public.lead_email_check (lead_id, email_md5, verdict, reason, mailbox, mx_kind, checked_at)
-  select (c->>'lead_id')::bigint, md5(lower(btrim(c->>'email'))), c->>'verdict', c->>'reason', c->>'mailbox', c->>'mx_kind', now()
-    from jsonb_array_elements(coalesce(p_checks, '[]'::jsonb)) c
-    join public.leads l on l.id = (c->>'lead_id')::bigint
-  on conflict (lead_id) do update
-     set email_md5 = excluded.email_md5, verdict = excluded.verdict, reason = excluded.reason,
-         mailbox = excluded.mailbox, mx_kind = excluded.mx_kind, checked_at = excluded.checked_at;
-  get diagnostics v_saved = row_count;
-
-  -- an invitation already waiting for an address that has now failed never leaves
-  update public.notifications n set status = 'cancelled'
-    from public.lead_email_check c
-   where n.type = 'supplier_invite' and n.status = 'queued' and n.lead_id = c.lead_id and c.verdict = 'rejected'
-     and c.lead_id in (select (x->>'lead_id')::bigint from jsonb_array_elements(coalesce(p_checks, '[]'::jsonb)) x);
-  get diagnostics v_cancelled = row_count;
-  return jsonb_build_object('saved', v_saved, 'cancelled_queued', v_cancelled);
-end $fn$;
-revoke execute on function public.fn_sales_engineer_records_email_checks(jsonb, jsonb) from public, anon, authenticated;
-grant execute on function public.fn_sales_engineer_records_email_checks(jsonb, jsonb) to service_role;
-
-create or replace function public.fn_sales_engineer_lead_email_check()
-returns jsonb
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare v_ref text; v_key text; v_cred text; v_due jsonb;
-begin
-  v_due := public.fn_sales_engineer_email_check_batch(1);   -- nothing due, no edge call
-  if jsonb_array_length(v_due) = 0 then return jsonb_build_object('due', false); end if;
-  select value into v_ref from public.app_secrets where key = 'project_ref';
-  v_key := public.fn_gateway_client_key();
-  select value into v_cred from public.app_secrets where key = 'cred_fn_sales_engineer';
-  if v_ref is null or v_key is null or v_cred is null then
-    raise exception 'fn_sales_engineer_lead_email_check: project_ref, the gateway key or cred_fn_sales_engineer is missing from app_secrets';
-  end if;
-  return jsonb_build_object('due', true, 'request', net.http_post(
-    url := 'https://' || v_ref || '.supabase.co/functions/v1/sales_engineer',
-    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_key, 'apikey', v_key),
-    body := jsonb_build_object('__secret', v_cred, 'action', 'lead_email_check'), timeout_milliseconds := 60000));
-end $fn$;
-revoke execute on function public.fn_sales_engineer_lead_email_check() from public, anon, authenticated;
-
--- 2. THE RESTART.
-create or replace function public.fn_sales_engineer_restarts_invites_after_a_brake()
-returns jsonb
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare
-  b public.invite_brake; v_on boolean; v_suppressed int; v_batch int; v_bad int; v_cap int; v_complaints int;
-begin
-  select * into b from public.invite_brake where resumed_at is null order by id desc limit 1;
-  if not found then return jsonb_build_object('open_brake', false); end if;
-  v_on := coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false);
-  if v_on then
-    update public.invite_brake set resumed_at = now(), resume_note = 'invite_enabled was already back on: not this seat''s restart' where id = b.id;
-    return jsonb_build_object('open_brake', true, 'closed', 'already on');
-  end if;
-
-  -- The bounced addresses first: every real bounce is suppressed, whatever else holds the restart.
-  insert into public.email_suppressions (email, reason, source)
-  select distinct lower(btrim(l.email)), 'hard_bounce:permanent', 'sales_engineer_invite_restart'
-    from public.notifications n join public.leads l on l.id = n.lead_id
-   where n.type = 'supplier_invite' and n.sent_at is not null and l.invite_status = 'bounced'
-     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)
-  on conflict (email) do nothing;
-  get diagnostics v_suppressed = row_count;
-
-  -- Not this seat's to lift: the founder's go, a complaint (a person pressed spam; read it, do not resend), another seat's pause.
-  if not public.fn_supplier_outreach_golive() then
-    return jsonb_build_object('open_brake', true, 'held', 'supplier_outreach_golive is false', 'suppressed', v_suppressed);
-  end if;
-  select h.complained into v_complaints from public.fn_invite_send_health(now() - interval '3 days') h;
-  if v_complaints > 0 then
-    return jsonb_build_object('open_brake', true, 'held', 'a complaint in the last 3 days', 'suppressed', v_suppressed);
-  end if;
-  if exists (select 1 from public.it_watch_finding f
-              where f.detector_key = 'deliverability:supplier_invite' and f.status = 'open' and f.state = 'paused'
-                and f.evidence->>'paused_by' <> 'invite_same_day_brake') then
-    return jsonb_build_object('open_brake', true, 'held', 'another seat''s pause is open', 'suppressed', v_suppressed);
-  end if;
-
-  -- The next batch, as the sender would pick it, and each of its leads holding a verdict for its address.
-  v_cap := least(coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_daily_cap'), 10),
-                 public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
-  select count(*), count(*) filter (where not exists (
-           select 1 from public.lead_email_check ec join public.leads l on l.id = ec.lead_id
-            where ec.lead_id = c.lead_id and ec.verdict = 'verified' and ec.email_md5 = md5(lower(btrim(l.email)))))
-    into v_batch, v_bad
-    from public.fn_supplier_invite_candidates(v_cap, null::text[]) c;
-  if v_batch = 0 or v_bad > 0 then
-    return jsonb_build_object('open_brake', true, 'held', 'the next batch is not verified yet', 'batch', v_batch, 'unverified', v_bad, 'suppressed', v_suppressed);
-  end if;
-
-  update public.app_secrets set value = 'true' where key = 'invite_enabled';
-  update public.invite_brake set resumed_at = now(),
-         resume_note = 'bounced addresses suppressed (' || v_suppressed || ' new); next batch of ' || v_batch || ' verified' where id = b.id;
-  update public.it_watch_finding set status = 'resolved', resolved_at = now()
-   where detector_key = 'deliverability:supplier_invite' and status = 'open';
-  insert into public.agent_runs(agent, status, counts, note, finished_at)
-  values ('sales_engineer', 'ok', jsonb_build_object('action', 'invite_restart', 'brake', b.id, 'batch', v_batch, 'suppressed', v_suppressed),
-          'Invitations resumed after the bounce brake of ' || to_char(b.fired_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI') || 'Z: ' || b.why, now());
-  return jsonb_build_object('resumed', true, 'batch', v_batch, 'suppressed', v_suppressed);
-end $fn$;
-revoke execute on function public.fn_sales_engineer_restarts_invites_after_a_brake() from public, anon, authenticated;
-
-insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
-  ('sales_engineer.lead_email_check', 'sales_engineer', interval '5 minutes', 'fn_sales_engineer_lead_email_check',
-   'Checks a batch of leads before they can be invited: syntax, typo domains, local-part rules and DNS; stores a verdict per lead.',
-   'scripts/sql/an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql'),
-  ('sales_engineer.invite_restart', 'sales_engineer', interval '5 minutes', 'fn_sales_engineer_restarts_invites_after_a_brake',
-   'After a bounce brake: suppresses the bounced addresses and resumes invitations once the next batch is verified.',
-   'scripts/sql/an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql')
-on conflict (duty) do nothing;
-
+         '^(careers?|jobs?|hr|recruit(ment|ing)?|cv|webmaster|hostmaster|mailer-daemon|privacy|legal|newsletters?|unsubscribe|donotreply)$'
      -- 24 Sep 2026 (marketing, ledger 993): never an address on a directory, marketplace, hosting, template or
      -- placeholder domain (public.email_platform_domain, exact domain equality, no word is read) -- the reader is not
      -- the company. The one exception is a platform that IS the lead: its own website host is that domain.
      and not exists (select 1 from public.email_platform_domain d
                       where d.domain = split_part(lower(btrim(p.email)), '@', 2)
                         and d.domain is distinct from lower(regexp_replace(regexp_replace(btrim(coalesce(nullif(btrim(p.website), ''), p.maps_website, '')),
-                                                          '^[A-Za-z]+://', ''), '^www\.|[/:?#].*
-
--- 3. THE COUNT OF WHAT WAS SENT.
-create or replace function public.trg_invite_schedule_counts_a_real_send()
-returns trigger
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-begin
-  if public.fn_is_demo_email(new.to_email) then return null; end if;
-  insert into public.invite_schedule(day, planned, sent, status, note)
-  values ((new.sent_at at time zone 'UTC')::date, 0, 1, 'approved', 'sent from an earlier day''s queue')
-  on conflict (day) do update set sent = public.invite_schedule.sent + 1;
-  return null;
-end $fn$;
-revoke execute on function public.trg_invite_schedule_counts_a_real_send() from public, anon, authenticated;
-drop trigger if exists z81_invite_schedule_counts_a_real_send on public.notifications;
-create trigger z81_invite_schedule_counts_a_real_send after update of sent_at on public.notifications
-  for each row when (new.type = 'supplier_invite' and new.sent_at is not null and old.sent_at is null)
-  execute function public.trg_invite_schedule_counts_a_real_send();
-
--- The days the outbox can speak for are corrected from it. Earlier days are left: their outbox rows may be gone.
-with real as (
-  select (n.sent_at at time zone 'UTC')::date as day, count(*)::int as sent
-    from public.notifications n
-   where n.type = 'supplier_invite' and n.sent_at is not null and not public.fn_is_demo_email(n.to_email)
-   group by 1
-), ins as (
-  insert into public.invite_schedule(day, planned, sent, status, note)
-  select r.day, 0, r.sent, 'approved', 'sent from an earlier day''s queue' from real r
-  on conflict (day) do update set sent = excluded.sent
-)
-update public.invite_schedule s set sent = 0
- where s.day >= (select min(day) from real) and s.day not in (select day from real);
-
-create or replace view public.v_invite_deliverability_daily as
-  select (n.sent_at at time zone 'Asia/Dubai')::date as dubai_day,
-         count(*) as sent,
-         count(*) filter (where l.invite_status = 'bounced') as bounced,
-         count(*) filter (where l.invite_status = 'complained') as complained,
-         round((count(*) filter (where l.invite_status = 'bounced'))::numeric / count(*)::numeric, 4) as bounce_rate,
-         round((count(*) filter (where l.invite_status = 'complained'))::numeric / count(*)::numeric, 4) as complaint_rate
-    from public.notifications n
-    join public.leads l on l.id = n.lead_id
-   where n.type = 'supplier_invite' and n.sent_at is not null
-     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(n.to_email)
-   group by 1;
-
--- 1. THE CHECK'S DOORS.
-create or replace function public.fn_sales_engineer_email_check_batch(p_limit integer default 200)
-returns jsonb
-language sql stable security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-  select coalesce(jsonb_agg(jsonb_build_object('lead_id', x.id, 'email', x.email, 'email_verified', x.email_verified, 'mx_kind', x.kind)), '[]'::jsonb)
-    from (
-      select l.id, btrim(l.email) as email, l.email_verified, m.kind
-        from public.leads l
-        left join public.lead_email_check c on c.lead_id = l.id
-        -- a cached answer younger than the recheck; a cached failure is asked again
-        left join public.email_domain_mx m on m.domain = split_part(lower(btrim(l.email)), '@', 2)
-                                          and m.checked_at > now() - interval '30 days' and m.kind <> 'error'
-       where coalesce(btrim(l.email), '') <> ''
-         and coalesce(l.invite_status, 'queued') = 'queued'
-         and coalesce(l.source, '') <> 'self_registered'
-         and not coalesce(l.claimed, false) and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)
-         and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)
-         and (c.lead_id is null
-              or c.email_md5 <> md5(lower(btrim(l.email)))
-              or c.checked_at < now() - interval '30 days'
-              or (c.verdict = 'retry' and c.checked_at < now() - interval '1 hour'))
-       -- an invitation already waiting in the outbox first, then never-checked, then the oldest verdict
-       order by (l.invite_status = 'queued') desc nulls last, (c.lead_id is null) desc, c.checked_at nulls first, l.id
-       limit greatest(coalesce(p_limit, 0), 0)
-    ) x
-$fn$;
-revoke execute on function public.fn_sales_engineer_email_check_batch(integer) from public, anon, authenticated;
-grant execute on function public.fn_sales_engineer_email_check_batch(integer) to service_role;
-
-create or replace function public.fn_sales_engineer_records_email_checks(p_checks jsonb, p_domains jsonb default '[]'::jsonb)
-returns jsonb
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare v_saved int; v_cancelled int;
-begin
-  -- a failed lookup never overwrites a real answer
-  insert into public.email_domain_mx (domain, has_mx, kind, hosts, checked_at)
-  select lower(d->>'domain'), d->>'kind' in ('mx', 'a_implicit', 'error'), d->>'kind',
-         nullif(array(select jsonb_array_elements_text(coalesce(d->'hosts', '[]'::jsonb))), '{}'::text[]), now()
-    from jsonb_array_elements(coalesce(p_domains, '[]'::jsonb)) d
-  on conflict (domain) do update
-     set has_mx = excluded.has_mx, kind = excluded.kind, hosts = excluded.hosts, checked_at = excluded.checked_at
-   where excluded.kind <> 'error';
-
-  insert into public.lead_email_check (lead_id, email_md5, verdict, reason, mailbox, mx_kind, checked_at)
-  select (c->>'lead_id')::bigint, md5(lower(btrim(c->>'email'))), c->>'verdict', c->>'reason', c->>'mailbox', c->>'mx_kind', now()
-    from jsonb_array_elements(coalesce(p_checks, '[]'::jsonb)) c
-    join public.leads l on l.id = (c->>'lead_id')::bigint
-  on conflict (lead_id) do update
-     set email_md5 = excluded.email_md5, verdict = excluded.verdict, reason = excluded.reason,
-         mailbox = excluded.mailbox, mx_kind = excluded.mx_kind, checked_at = excluded.checked_at;
-  get diagnostics v_saved = row_count;
-
-  -- an invitation already waiting for an address that has now failed never leaves
-  update public.notifications n set status = 'cancelled'
-    from public.lead_email_check c
-   where n.type = 'supplier_invite' and n.status = 'queued' and n.lead_id = c.lead_id and c.verdict = 'rejected'
-     and c.lead_id in (select (x->>'lead_id')::bigint from jsonb_array_elements(coalesce(p_checks, '[]'::jsonb)) x);
-  get diagnostics v_cancelled = row_count;
-  return jsonb_build_object('saved', v_saved, 'cancelled_queued', v_cancelled);
-end $fn$;
-revoke execute on function public.fn_sales_engineer_records_email_checks(jsonb, jsonb) from public, anon, authenticated;
-grant execute on function public.fn_sales_engineer_records_email_checks(jsonb, jsonb) to service_role;
-
-create or replace function public.fn_sales_engineer_lead_email_check()
-returns jsonb
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare v_ref text; v_key text; v_cred text; v_due jsonb;
-begin
-  v_due := public.fn_sales_engineer_email_check_batch(1);   -- nothing due, no edge call
-  if jsonb_array_length(v_due) = 0 then return jsonb_build_object('due', false); end if;
-  select value into v_ref from public.app_secrets where key = 'project_ref';
-  v_key := public.fn_gateway_client_key();
-  select value into v_cred from public.app_secrets where key = 'cred_fn_sales_engineer';
-  if v_ref is null or v_key is null or v_cred is null then
-    raise exception 'fn_sales_engineer_lead_email_check: project_ref, the gateway key or cred_fn_sales_engineer is missing from app_secrets';
-  end if;
-  return jsonb_build_object('due', true, 'request', net.http_post(
-    url := 'https://' || v_ref || '.supabase.co/functions/v1/sales_engineer',
-    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_key, 'apikey', v_key),
-    body := jsonb_build_object('__secret', v_cred, 'action', 'lead_email_check'), timeout_milliseconds := 60000));
-end $fn$;
-revoke execute on function public.fn_sales_engineer_lead_email_check() from public, anon, authenticated;
-
--- 2. THE RESTART.
-create or replace function public.fn_sales_engineer_restarts_invites_after_a_brake()
-returns jsonb
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare
-  b public.invite_brake; v_on boolean; v_suppressed int; v_batch int; v_bad int; v_cap int; v_complaints int;
-begin
-  select * into b from public.invite_brake where resumed_at is null order by id desc limit 1;
-  if not found then return jsonb_build_object('open_brake', false); end if;
-  v_on := coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false);
-  if v_on then
-    update public.invite_brake set resumed_at = now(), resume_note = 'invite_enabled was already back on: not this seat''s restart' where id = b.id;
-    return jsonb_build_object('open_brake', true, 'closed', 'already on');
-  end if;
-
-  -- The bounced addresses first: every real bounce is suppressed, whatever else holds the restart.
-  insert into public.email_suppressions (email, reason, source)
-  select distinct lower(btrim(l.email)), 'hard_bounce:permanent', 'sales_engineer_invite_restart'
-    from public.notifications n join public.leads l on l.id = n.lead_id
-   where n.type = 'supplier_invite' and n.sent_at is not null and l.invite_status = 'bounced'
-     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)
-  on conflict (email) do nothing;
-  get diagnostics v_suppressed = row_count;
-
-  -- Not this seat's to lift: the founder's go, a complaint (a person pressed spam; read it, do not resend), another seat's pause.
-  if not public.fn_supplier_outreach_golive() then
-    return jsonb_build_object('open_brake', true, 'held', 'supplier_outreach_golive is false', 'suppressed', v_suppressed);
-  end if;
-  select h.complained into v_complaints from public.fn_invite_send_health(now() - interval '3 days') h;
-  if v_complaints > 0 then
-    return jsonb_build_object('open_brake', true, 'held', 'a complaint in the last 3 days', 'suppressed', v_suppressed);
-  end if;
-  if exists (select 1 from public.it_watch_finding f
-              where f.detector_key = 'deliverability:supplier_invite' and f.status = 'open' and f.state = 'paused'
-                and f.evidence->>'paused_by' <> 'invite_same_day_brake') then
-    return jsonb_build_object('open_brake', true, 'held', 'another seat''s pause is open', 'suppressed', v_suppressed);
-  end if;
-
-  -- The next batch, as the sender would pick it, and each of its leads holding a verdict for its address.
-  v_cap := least(coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_daily_cap'), 10),
-                 public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
-  select count(*), count(*) filter (where not exists (
-           select 1 from public.lead_email_check ec join public.leads l on l.id = ec.lead_id
-            where ec.lead_id = c.lead_id and ec.verdict = 'verified' and ec.email_md5 = md5(lower(btrim(l.email)))))
-    into v_batch, v_bad
-    from public.fn_supplier_invite_candidates(v_cap, null::text[]) c;
-  if v_batch = 0 or v_bad > 0 then
-    return jsonb_build_object('open_brake', true, 'held', 'the next batch is not verified yet', 'batch', v_batch, 'unverified', v_bad, 'suppressed', v_suppressed);
-  end if;
-
-  update public.app_secrets set value = 'true' where key = 'invite_enabled';
-  update public.invite_brake set resumed_at = now(),
-         resume_note = 'bounced addresses suppressed (' || v_suppressed || ' new); next batch of ' || v_batch || ' verified' where id = b.id;
-  update public.it_watch_finding set status = 'resolved', resolved_at = now()
-   where detector_key = 'deliverability:supplier_invite' and status = 'open';
-  insert into public.agent_runs(agent, status, counts, note, finished_at)
-  values ('sales_engineer', 'ok', jsonb_build_object('action', 'invite_restart', 'brake', b.id, 'batch', v_batch, 'suppressed', v_suppressed),
-          'Invitations resumed after the bounce brake of ' || to_char(b.fired_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI') || 'Z: ' || b.why, now());
-  return jsonb_build_object('resumed', true, 'batch', v_batch, 'suppressed', v_suppressed);
-end $fn$;
-revoke execute on function public.fn_sales_engineer_restarts_invites_after_a_brake() from public, anon, authenticated;
-
-insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
-  ('sales_engineer.lead_email_check', 'sales_engineer', interval '5 minutes', 'fn_sales_engineer_lead_email_check',
-   'Checks a batch of leads before they can be invited: syntax, typo domains, local-part rules and DNS; stores a verdict per lead.',
-   'scripts/sql/an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql'),
-  ('sales_engineer.invite_restart', 'sales_engineer', interval '5 minutes', 'fn_sales_engineer_restarts_invites_after_a_brake',
-   'After a bounce brake: suppresses the bounced addresses and resumes invitations once the next batch is verified.',
-   'scripts/sql/an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql')
-on conflict (duty) do nothing;
-, '', 'gi')))
+                                                          '^[A-Za-z]+://', ''), '^www\.|[/:?#].*$', '', 'gi')))
 $function$;
 
 CREATE OR REPLACE FUNCTION public.fn_supplier_invite_eligible_ids()
@@ -995,216 +587,7 @@ AS $function$
      and not exists (select 1 from public.notifications n
                       where n.type = 'supplier_invite' and lower(btrim(n.to_email)) = lower(btrim(p.email)))
      -- fn_email_sendable(p.email)->>'ok', clause for clause
-     and lower(btrim(p.email)) ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}
-
--- 3. THE COUNT OF WHAT WAS SENT.
-create or replace function public.trg_invite_schedule_counts_a_real_send()
-returns trigger
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-begin
-  if public.fn_is_demo_email(new.to_email) then return null; end if;
-  insert into public.invite_schedule(day, planned, sent, status, note)
-  values ((new.sent_at at time zone 'UTC')::date, 0, 1, 'approved', 'sent from an earlier day''s queue')
-  on conflict (day) do update set sent = public.invite_schedule.sent + 1;
-  return null;
-end $fn$;
-revoke execute on function public.trg_invite_schedule_counts_a_real_send() from public, anon, authenticated;
-drop trigger if exists z81_invite_schedule_counts_a_real_send on public.notifications;
-create trigger z81_invite_schedule_counts_a_real_send after update of sent_at on public.notifications
-  for each row when (new.type = 'supplier_invite' and new.sent_at is not null and old.sent_at is null)
-  execute function public.trg_invite_schedule_counts_a_real_send();
-
--- The days the outbox can speak for are corrected from it. Earlier days are left: their outbox rows may be gone.
-with real as (
-  select (n.sent_at at time zone 'UTC')::date as day, count(*)::int as sent
-    from public.notifications n
-   where n.type = 'supplier_invite' and n.sent_at is not null and not public.fn_is_demo_email(n.to_email)
-   group by 1
-), ins as (
-  insert into public.invite_schedule(day, planned, sent, status, note)
-  select r.day, 0, r.sent, 'approved', 'sent from an earlier day''s queue' from real r
-  on conflict (day) do update set sent = excluded.sent
-)
-update public.invite_schedule s set sent = 0
- where s.day >= (select min(day) from real) and s.day not in (select day from real);
-
-create or replace view public.v_invite_deliverability_daily as
-  select (n.sent_at at time zone 'Asia/Dubai')::date as dubai_day,
-         count(*) as sent,
-         count(*) filter (where l.invite_status = 'bounced') as bounced,
-         count(*) filter (where l.invite_status = 'complained') as complained,
-         round((count(*) filter (where l.invite_status = 'bounced'))::numeric / count(*)::numeric, 4) as bounce_rate,
-         round((count(*) filter (where l.invite_status = 'complained'))::numeric / count(*)::numeric, 4) as complaint_rate
-    from public.notifications n
-    join public.leads l on l.id = n.lead_id
-   where n.type = 'supplier_invite' and n.sent_at is not null
-     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(n.to_email)
-   group by 1;
-
--- 1. THE CHECK'S DOORS.
-create or replace function public.fn_sales_engineer_email_check_batch(p_limit integer default 200)
-returns jsonb
-language sql stable security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-  select coalesce(jsonb_agg(jsonb_build_object('lead_id', x.id, 'email', x.email, 'email_verified', x.email_verified, 'mx_kind', x.kind)), '[]'::jsonb)
-    from (
-      select l.id, btrim(l.email) as email, l.email_verified, m.kind
-        from public.leads l
-        left join public.lead_email_check c on c.lead_id = l.id
-        -- a cached answer younger than the recheck; a cached failure is asked again
-        left join public.email_domain_mx m on m.domain = split_part(lower(btrim(l.email)), '@', 2)
-                                          and m.checked_at > now() - interval '30 days' and m.kind <> 'error'
-       where coalesce(btrim(l.email), '') <> ''
-         and coalesce(l.invite_status, 'queued') = 'queued'
-         and coalesce(l.source, '') <> 'self_registered'
-         and not coalesce(l.claimed, false) and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)
-         and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)
-         and (c.lead_id is null
-              or c.email_md5 <> md5(lower(btrim(l.email)))
-              or c.checked_at < now() - interval '30 days'
-              or (c.verdict = 'retry' and c.checked_at < now() - interval '1 hour'))
-       -- an invitation already waiting in the outbox first, then never-checked, then the oldest verdict
-       order by (l.invite_status = 'queued') desc nulls last, (c.lead_id is null) desc, c.checked_at nulls first, l.id
-       limit greatest(coalesce(p_limit, 0), 0)
-    ) x
-$fn$;
-revoke execute on function public.fn_sales_engineer_email_check_batch(integer) from public, anon, authenticated;
-grant execute on function public.fn_sales_engineer_email_check_batch(integer) to service_role;
-
-create or replace function public.fn_sales_engineer_records_email_checks(p_checks jsonb, p_domains jsonb default '[]'::jsonb)
-returns jsonb
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare v_saved int; v_cancelled int;
-begin
-  -- a failed lookup never overwrites a real answer
-  insert into public.email_domain_mx (domain, has_mx, kind, hosts, checked_at)
-  select lower(d->>'domain'), d->>'kind' in ('mx', 'a_implicit', 'error'), d->>'kind',
-         nullif(array(select jsonb_array_elements_text(coalesce(d->'hosts', '[]'::jsonb))), '{}'::text[]), now()
-    from jsonb_array_elements(coalesce(p_domains, '[]'::jsonb)) d
-  on conflict (domain) do update
-     set has_mx = excluded.has_mx, kind = excluded.kind, hosts = excluded.hosts, checked_at = excluded.checked_at
-   where excluded.kind <> 'error';
-
-  insert into public.lead_email_check (lead_id, email_md5, verdict, reason, mailbox, mx_kind, checked_at)
-  select (c->>'lead_id')::bigint, md5(lower(btrim(c->>'email'))), c->>'verdict', c->>'reason', c->>'mailbox', c->>'mx_kind', now()
-    from jsonb_array_elements(coalesce(p_checks, '[]'::jsonb)) c
-    join public.leads l on l.id = (c->>'lead_id')::bigint
-  on conflict (lead_id) do update
-     set email_md5 = excluded.email_md5, verdict = excluded.verdict, reason = excluded.reason,
-         mailbox = excluded.mailbox, mx_kind = excluded.mx_kind, checked_at = excluded.checked_at;
-  get diagnostics v_saved = row_count;
-
-  -- an invitation already waiting for an address that has now failed never leaves
-  update public.notifications n set status = 'cancelled'
-    from public.lead_email_check c
-   where n.type = 'supplier_invite' and n.status = 'queued' and n.lead_id = c.lead_id and c.verdict = 'rejected'
-     and c.lead_id in (select (x->>'lead_id')::bigint from jsonb_array_elements(coalesce(p_checks, '[]'::jsonb)) x);
-  get diagnostics v_cancelled = row_count;
-  return jsonb_build_object('saved', v_saved, 'cancelled_queued', v_cancelled);
-end $fn$;
-revoke execute on function public.fn_sales_engineer_records_email_checks(jsonb, jsonb) from public, anon, authenticated;
-grant execute on function public.fn_sales_engineer_records_email_checks(jsonb, jsonb) to service_role;
-
-create or replace function public.fn_sales_engineer_lead_email_check()
-returns jsonb
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare v_ref text; v_key text; v_cred text; v_due jsonb;
-begin
-  v_due := public.fn_sales_engineer_email_check_batch(1);   -- nothing due, no edge call
-  if jsonb_array_length(v_due) = 0 then return jsonb_build_object('due', false); end if;
-  select value into v_ref from public.app_secrets where key = 'project_ref';
-  v_key := public.fn_gateway_client_key();
-  select value into v_cred from public.app_secrets where key = 'cred_fn_sales_engineer';
-  if v_ref is null or v_key is null or v_cred is null then
-    raise exception 'fn_sales_engineer_lead_email_check: project_ref, the gateway key or cred_fn_sales_engineer is missing from app_secrets';
-  end if;
-  return jsonb_build_object('due', true, 'request', net.http_post(
-    url := 'https://' || v_ref || '.supabase.co/functions/v1/sales_engineer',
-    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_key, 'apikey', v_key),
-    body := jsonb_build_object('__secret', v_cred, 'action', 'lead_email_check'), timeout_milliseconds := 60000));
-end $fn$;
-revoke execute on function public.fn_sales_engineer_lead_email_check() from public, anon, authenticated;
-
--- 2. THE RESTART.
-create or replace function public.fn_sales_engineer_restarts_invites_after_a_brake()
-returns jsonb
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare
-  b public.invite_brake; v_on boolean; v_suppressed int; v_batch int; v_bad int; v_cap int; v_complaints int;
-begin
-  select * into b from public.invite_brake where resumed_at is null order by id desc limit 1;
-  if not found then return jsonb_build_object('open_brake', false); end if;
-  v_on := coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false);
-  if v_on then
-    update public.invite_brake set resumed_at = now(), resume_note = 'invite_enabled was already back on: not this seat''s restart' where id = b.id;
-    return jsonb_build_object('open_brake', true, 'closed', 'already on');
-  end if;
-
-  -- The bounced addresses first: every real bounce is suppressed, whatever else holds the restart.
-  insert into public.email_suppressions (email, reason, source)
-  select distinct lower(btrim(l.email)), 'hard_bounce:permanent', 'sales_engineer_invite_restart'
-    from public.notifications n join public.leads l on l.id = n.lead_id
-   where n.type = 'supplier_invite' and n.sent_at is not null and l.invite_status = 'bounced'
-     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)
-  on conflict (email) do nothing;
-  get diagnostics v_suppressed = row_count;
-
-  -- Not this seat's to lift: the founder's go, a complaint (a person pressed spam; read it, do not resend), another seat's pause.
-  if not public.fn_supplier_outreach_golive() then
-    return jsonb_build_object('open_brake', true, 'held', 'supplier_outreach_golive is false', 'suppressed', v_suppressed);
-  end if;
-  select h.complained into v_complaints from public.fn_invite_send_health(now() - interval '3 days') h;
-  if v_complaints > 0 then
-    return jsonb_build_object('open_brake', true, 'held', 'a complaint in the last 3 days', 'suppressed', v_suppressed);
-  end if;
-  if exists (select 1 from public.it_watch_finding f
-              where f.detector_key = 'deliverability:supplier_invite' and f.status = 'open' and f.state = 'paused'
-                and f.evidence->>'paused_by' <> 'invite_same_day_brake') then
-    return jsonb_build_object('open_brake', true, 'held', 'another seat''s pause is open', 'suppressed', v_suppressed);
-  end if;
-
-  -- The next batch, as the sender would pick it, and each of its leads holding a verdict for its address.
-  v_cap := least(coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_daily_cap'), 10),
-                 public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
-  select count(*), count(*) filter (where not exists (
-           select 1 from public.lead_email_check ec join public.leads l on l.id = ec.lead_id
-            where ec.lead_id = c.lead_id and ec.verdict = 'verified' and ec.email_md5 = md5(lower(btrim(l.email)))))
-    into v_batch, v_bad
-    from public.fn_supplier_invite_candidates(v_cap, null::text[]) c;
-  if v_batch = 0 or v_bad > 0 then
-    return jsonb_build_object('open_brake', true, 'held', 'the next batch is not verified yet', 'batch', v_batch, 'unverified', v_bad, 'suppressed', v_suppressed);
-  end if;
-
-  update public.app_secrets set value = 'true' where key = 'invite_enabled';
-  update public.invite_brake set resumed_at = now(),
-         resume_note = 'bounced addresses suppressed (' || v_suppressed || ' new); next batch of ' || v_batch || ' verified' where id = b.id;
-  update public.it_watch_finding set status = 'resolved', resolved_at = now()
-   where detector_key = 'deliverability:supplier_invite' and status = 'open';
-  insert into public.agent_runs(agent, status, counts, note, finished_at)
-  values ('sales_engineer', 'ok', jsonb_build_object('action', 'invite_restart', 'brake', b.id, 'batch', v_batch, 'suppressed', v_suppressed),
-          'Invitations resumed after the bounce brake of ' || to_char(b.fired_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI') || 'Z: ' || b.why, now());
-  return jsonb_build_object('resumed', true, 'batch', v_batch, 'suppressed', v_suppressed);
-end $fn$;
-revoke execute on function public.fn_sales_engineer_restarts_invites_after_a_brake() from public, anon, authenticated;
-
-insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
-  ('sales_engineer.lead_email_check', 'sales_engineer', interval '5 minutes', 'fn_sales_engineer_lead_email_check',
-   'Checks a batch of leads before they can be invited: syntax, typo domains, local-part rules and DNS; stores a verdict per lead.',
-   'scripts/sql/an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql'),
-  ('sales_engineer.invite_restart', 'sales_engineer', interval '5 minutes', 'fn_sales_engineer_restarts_invites_after_a_brake',
-   'After a bounce brake: suppresses the bounced addresses and resumes invitations once the next batch is verified.',
-   'scripts/sql/an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql')
-on conflict (duty) do nothing;
-
+     and lower(btrim(p.email)) ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$'
      and lower(btrim(p.email)) <> all (array(select lower(s.email) from public.email_suppressions s where s.email is not null))
      and not exists (select 1 from public.email_domain_mx m0
                       where m0.domain = split_part(lower(btrim(p.email)), '@', 2) and m0.has_mx = false
@@ -1218,429 +601,11 @@ on conflict (duty) do nothing;
      and exists (select 1 from public.email_domain_mx m
                   where m.domain = split_part(lower(btrim(p.email)), '@', 2) and m.kind = 'mx')
      and split_part(lower(btrim(p.email)), '@', 1) !~
-         '^(careers?|jobs?|hr|recruit(ment|ing)?|cv|webmaster|hostmaster|mailer-daemon|privacy|legal|newsletters?|unsubscribe|donotreply)
-
--- 3. THE COUNT OF WHAT WAS SENT.
-create or replace function public.trg_invite_schedule_counts_a_real_send()
-returns trigger
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-begin
-  if public.fn_is_demo_email(new.to_email) then return null; end if;
-  insert into public.invite_schedule(day, planned, sent, status, note)
-  values ((new.sent_at at time zone 'UTC')::date, 0, 1, 'approved', 'sent from an earlier day''s queue')
-  on conflict (day) do update set sent = public.invite_schedule.sent + 1;
-  return null;
-end $fn$;
-revoke execute on function public.trg_invite_schedule_counts_a_real_send() from public, anon, authenticated;
-drop trigger if exists z81_invite_schedule_counts_a_real_send on public.notifications;
-create trigger z81_invite_schedule_counts_a_real_send after update of sent_at on public.notifications
-  for each row when (new.type = 'supplier_invite' and new.sent_at is not null and old.sent_at is null)
-  execute function public.trg_invite_schedule_counts_a_real_send();
-
--- The days the outbox can speak for are corrected from it. Earlier days are left: their outbox rows may be gone.
-with real as (
-  select (n.sent_at at time zone 'UTC')::date as day, count(*)::int as sent
-    from public.notifications n
-   where n.type = 'supplier_invite' and n.sent_at is not null and not public.fn_is_demo_email(n.to_email)
-   group by 1
-), ins as (
-  insert into public.invite_schedule(day, planned, sent, status, note)
-  select r.day, 0, r.sent, 'approved', 'sent from an earlier day''s queue' from real r
-  on conflict (day) do update set sent = excluded.sent
-)
-update public.invite_schedule s set sent = 0
- where s.day >= (select min(day) from real) and s.day not in (select day from real);
-
-create or replace view public.v_invite_deliverability_daily as
-  select (n.sent_at at time zone 'Asia/Dubai')::date as dubai_day,
-         count(*) as sent,
-         count(*) filter (where l.invite_status = 'bounced') as bounced,
-         count(*) filter (where l.invite_status = 'complained') as complained,
-         round((count(*) filter (where l.invite_status = 'bounced'))::numeric / count(*)::numeric, 4) as bounce_rate,
-         round((count(*) filter (where l.invite_status = 'complained'))::numeric / count(*)::numeric, 4) as complaint_rate
-    from public.notifications n
-    join public.leads l on l.id = n.lead_id
-   where n.type = 'supplier_invite' and n.sent_at is not null
-     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(n.to_email)
-   group by 1;
-
--- 1. THE CHECK'S DOORS.
-create or replace function public.fn_sales_engineer_email_check_batch(p_limit integer default 200)
-returns jsonb
-language sql stable security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-  select coalesce(jsonb_agg(jsonb_build_object('lead_id', x.id, 'email', x.email, 'email_verified', x.email_verified, 'mx_kind', x.kind)), '[]'::jsonb)
-    from (
-      select l.id, btrim(l.email) as email, l.email_verified, m.kind
-        from public.leads l
-        left join public.lead_email_check c on c.lead_id = l.id
-        -- a cached answer younger than the recheck; a cached failure is asked again
-        left join public.email_domain_mx m on m.domain = split_part(lower(btrim(l.email)), '@', 2)
-                                          and m.checked_at > now() - interval '30 days' and m.kind <> 'error'
-       where coalesce(btrim(l.email), '') <> ''
-         and coalesce(l.invite_status, 'queued') = 'queued'
-         and coalesce(l.source, '') <> 'self_registered'
-         and not coalesce(l.claimed, false) and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)
-         and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)
-         and (c.lead_id is null
-              or c.email_md5 <> md5(lower(btrim(l.email)))
-              or c.checked_at < now() - interval '30 days'
-              or (c.verdict = 'retry' and c.checked_at < now() - interval '1 hour'))
-       -- an invitation already waiting in the outbox first, then never-checked, then the oldest verdict
-       order by (l.invite_status = 'queued') desc nulls last, (c.lead_id is null) desc, c.checked_at nulls first, l.id
-       limit greatest(coalesce(p_limit, 0), 0)
-    ) x
-$fn$;
-revoke execute on function public.fn_sales_engineer_email_check_batch(integer) from public, anon, authenticated;
-grant execute on function public.fn_sales_engineer_email_check_batch(integer) to service_role;
-
-create or replace function public.fn_sales_engineer_records_email_checks(p_checks jsonb, p_domains jsonb default '[]'::jsonb)
-returns jsonb
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare v_saved int; v_cancelled int;
-begin
-  -- a failed lookup never overwrites a real answer
-  insert into public.email_domain_mx (domain, has_mx, kind, hosts, checked_at)
-  select lower(d->>'domain'), d->>'kind' in ('mx', 'a_implicit', 'error'), d->>'kind',
-         nullif(array(select jsonb_array_elements_text(coalesce(d->'hosts', '[]'::jsonb))), '{}'::text[]), now()
-    from jsonb_array_elements(coalesce(p_domains, '[]'::jsonb)) d
-  on conflict (domain) do update
-     set has_mx = excluded.has_mx, kind = excluded.kind, hosts = excluded.hosts, checked_at = excluded.checked_at
-   where excluded.kind <> 'error';
-
-  insert into public.lead_email_check (lead_id, email_md5, verdict, reason, mailbox, mx_kind, checked_at)
-  select (c->>'lead_id')::bigint, md5(lower(btrim(c->>'email'))), c->>'verdict', c->>'reason', c->>'mailbox', c->>'mx_kind', now()
-    from jsonb_array_elements(coalesce(p_checks, '[]'::jsonb)) c
-    join public.leads l on l.id = (c->>'lead_id')::bigint
-  on conflict (lead_id) do update
-     set email_md5 = excluded.email_md5, verdict = excluded.verdict, reason = excluded.reason,
-         mailbox = excluded.mailbox, mx_kind = excluded.mx_kind, checked_at = excluded.checked_at;
-  get diagnostics v_saved = row_count;
-
-  -- an invitation already waiting for an address that has now failed never leaves
-  update public.notifications n set status = 'cancelled'
-    from public.lead_email_check c
-   where n.type = 'supplier_invite' and n.status = 'queued' and n.lead_id = c.lead_id and c.verdict = 'rejected'
-     and c.lead_id in (select (x->>'lead_id')::bigint from jsonb_array_elements(coalesce(p_checks, '[]'::jsonb)) x);
-  get diagnostics v_cancelled = row_count;
-  return jsonb_build_object('saved', v_saved, 'cancelled_queued', v_cancelled);
-end $fn$;
-revoke execute on function public.fn_sales_engineer_records_email_checks(jsonb, jsonb) from public, anon, authenticated;
-grant execute on function public.fn_sales_engineer_records_email_checks(jsonb, jsonb) to service_role;
-
-create or replace function public.fn_sales_engineer_lead_email_check()
-returns jsonb
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare v_ref text; v_key text; v_cred text; v_due jsonb;
-begin
-  v_due := public.fn_sales_engineer_email_check_batch(1);   -- nothing due, no edge call
-  if jsonb_array_length(v_due) = 0 then return jsonb_build_object('due', false); end if;
-  select value into v_ref from public.app_secrets where key = 'project_ref';
-  v_key := public.fn_gateway_client_key();
-  select value into v_cred from public.app_secrets where key = 'cred_fn_sales_engineer';
-  if v_ref is null or v_key is null or v_cred is null then
-    raise exception 'fn_sales_engineer_lead_email_check: project_ref, the gateway key or cred_fn_sales_engineer is missing from app_secrets';
-  end if;
-  return jsonb_build_object('due', true, 'request', net.http_post(
-    url := 'https://' || v_ref || '.supabase.co/functions/v1/sales_engineer',
-    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_key, 'apikey', v_key),
-    body := jsonb_build_object('__secret', v_cred, 'action', 'lead_email_check'), timeout_milliseconds := 60000));
-end $fn$;
-revoke execute on function public.fn_sales_engineer_lead_email_check() from public, anon, authenticated;
-
--- 2. THE RESTART.
-create or replace function public.fn_sales_engineer_restarts_invites_after_a_brake()
-returns jsonb
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare
-  b public.invite_brake; v_on boolean; v_suppressed int; v_batch int; v_bad int; v_cap int; v_complaints int;
-begin
-  select * into b from public.invite_brake where resumed_at is null order by id desc limit 1;
-  if not found then return jsonb_build_object('open_brake', false); end if;
-  v_on := coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false);
-  if v_on then
-    update public.invite_brake set resumed_at = now(), resume_note = 'invite_enabled was already back on: not this seat''s restart' where id = b.id;
-    return jsonb_build_object('open_brake', true, 'closed', 'already on');
-  end if;
-
-  -- The bounced addresses first: every real bounce is suppressed, whatever else holds the restart.
-  insert into public.email_suppressions (email, reason, source)
-  select distinct lower(btrim(l.email)), 'hard_bounce:permanent', 'sales_engineer_invite_restart'
-    from public.notifications n join public.leads l on l.id = n.lead_id
-   where n.type = 'supplier_invite' and n.sent_at is not null and l.invite_status = 'bounced'
-     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)
-  on conflict (email) do nothing;
-  get diagnostics v_suppressed = row_count;
-
-  -- Not this seat's to lift: the founder's go, a complaint (a person pressed spam; read it, do not resend), another seat's pause.
-  if not public.fn_supplier_outreach_golive() then
-    return jsonb_build_object('open_brake', true, 'held', 'supplier_outreach_golive is false', 'suppressed', v_suppressed);
-  end if;
-  select h.complained into v_complaints from public.fn_invite_send_health(now() - interval '3 days') h;
-  if v_complaints > 0 then
-    return jsonb_build_object('open_brake', true, 'held', 'a complaint in the last 3 days', 'suppressed', v_suppressed);
-  end if;
-  if exists (select 1 from public.it_watch_finding f
-              where f.detector_key = 'deliverability:supplier_invite' and f.status = 'open' and f.state = 'paused'
-                and f.evidence->>'paused_by' <> 'invite_same_day_brake') then
-    return jsonb_build_object('open_brake', true, 'held', 'another seat''s pause is open', 'suppressed', v_suppressed);
-  end if;
-
-  -- The next batch, as the sender would pick it, and each of its leads holding a verdict for its address.
-  v_cap := least(coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_daily_cap'), 10),
-                 public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
-  select count(*), count(*) filter (where not exists (
-           select 1 from public.lead_email_check ec join public.leads l on l.id = ec.lead_id
-            where ec.lead_id = c.lead_id and ec.verdict = 'verified' and ec.email_md5 = md5(lower(btrim(l.email)))))
-    into v_batch, v_bad
-    from public.fn_supplier_invite_candidates(v_cap, null::text[]) c;
-  if v_batch = 0 or v_bad > 0 then
-    return jsonb_build_object('open_brake', true, 'held', 'the next batch is not verified yet', 'batch', v_batch, 'unverified', v_bad, 'suppressed', v_suppressed);
-  end if;
-
-  update public.app_secrets set value = 'true' where key = 'invite_enabled';
-  update public.invite_brake set resumed_at = now(),
-         resume_note = 'bounced addresses suppressed (' || v_suppressed || ' new); next batch of ' || v_batch || ' verified' where id = b.id;
-  update public.it_watch_finding set status = 'resolved', resolved_at = now()
-   where detector_key = 'deliverability:supplier_invite' and status = 'open';
-  insert into public.agent_runs(agent, status, counts, note, finished_at)
-  values ('sales_engineer', 'ok', jsonb_build_object('action', 'invite_restart', 'brake', b.id, 'batch', v_batch, 'suppressed', v_suppressed),
-          'Invitations resumed after the bounce brake of ' || to_char(b.fired_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI') || 'Z: ' || b.why, now());
-  return jsonb_build_object('resumed', true, 'batch', v_batch, 'suppressed', v_suppressed);
-end $fn$;
-revoke execute on function public.fn_sales_engineer_restarts_invites_after_a_brake() from public, anon, authenticated;
-
-insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
-  ('sales_engineer.lead_email_check', 'sales_engineer', interval '5 minutes', 'fn_sales_engineer_lead_email_check',
-   'Checks a batch of leads before they can be invited: syntax, typo domains, local-part rules and DNS; stores a verdict per lead.',
-   'scripts/sql/an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql'),
-  ('sales_engineer.invite_restart', 'sales_engineer', interval '5 minutes', 'fn_sales_engineer_restarts_invites_after_a_brake',
-   'After a bounce brake: suppresses the bounced addresses and resumes invitations once the next batch is verified.',
-   'scripts/sql/an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql')
-on conflict (duty) do nothing;
-
+         '^(careers?|jobs?|hr|recruit(ment|ing)?|cv|webmaster|hostmaster|mailer-daemon|privacy|legal|newsletters?|unsubscribe|donotreply)$'
      and not (split_part(lower(btrim(p.email)), '@', 2) = any (array(select d.domain from public.email_platform_domain d where d.domain is not null))
               and split_part(lower(btrim(p.email)), '@', 2) is distinct from
                   lower(regexp_replace(regexp_replace(btrim(coalesce(nullif(btrim(p.website), ''), p.maps_website, '')),
-                                       '^[A-Za-z]+://', ''), '^www\.|[/:?#].*
-
--- 3. THE COUNT OF WHAT WAS SENT.
-create or replace function public.trg_invite_schedule_counts_a_real_send()
-returns trigger
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-begin
-  if public.fn_is_demo_email(new.to_email) then return null; end if;
-  insert into public.invite_schedule(day, planned, sent, status, note)
-  values ((new.sent_at at time zone 'UTC')::date, 0, 1, 'approved', 'sent from an earlier day''s queue')
-  on conflict (day) do update set sent = public.invite_schedule.sent + 1;
-  return null;
-end $fn$;
-revoke execute on function public.trg_invite_schedule_counts_a_real_send() from public, anon, authenticated;
-drop trigger if exists z81_invite_schedule_counts_a_real_send on public.notifications;
-create trigger z81_invite_schedule_counts_a_real_send after update of sent_at on public.notifications
-  for each row when (new.type = 'supplier_invite' and new.sent_at is not null and old.sent_at is null)
-  execute function public.trg_invite_schedule_counts_a_real_send();
-
--- The days the outbox can speak for are corrected from it. Earlier days are left: their outbox rows may be gone.
-with real as (
-  select (n.sent_at at time zone 'UTC')::date as day, count(*)::int as sent
-    from public.notifications n
-   where n.type = 'supplier_invite' and n.sent_at is not null and not public.fn_is_demo_email(n.to_email)
-   group by 1
-), ins as (
-  insert into public.invite_schedule(day, planned, sent, status, note)
-  select r.day, 0, r.sent, 'approved', 'sent from an earlier day''s queue' from real r
-  on conflict (day) do update set sent = excluded.sent
-)
-update public.invite_schedule s set sent = 0
- where s.day >= (select min(day) from real) and s.day not in (select day from real);
-
-create or replace view public.v_invite_deliverability_daily as
-  select (n.sent_at at time zone 'Asia/Dubai')::date as dubai_day,
-         count(*) as sent,
-         count(*) filter (where l.invite_status = 'bounced') as bounced,
-         count(*) filter (where l.invite_status = 'complained') as complained,
-         round((count(*) filter (where l.invite_status = 'bounced'))::numeric / count(*)::numeric, 4) as bounce_rate,
-         round((count(*) filter (where l.invite_status = 'complained'))::numeric / count(*)::numeric, 4) as complaint_rate
-    from public.notifications n
-    join public.leads l on l.id = n.lead_id
-   where n.type = 'supplier_invite' and n.sent_at is not null
-     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(n.to_email)
-   group by 1;
-
--- 1. THE CHECK'S DOORS.
-create or replace function public.fn_sales_engineer_email_check_batch(p_limit integer default 200)
-returns jsonb
-language sql stable security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-  select coalesce(jsonb_agg(jsonb_build_object('lead_id', x.id, 'email', x.email, 'email_verified', x.email_verified, 'mx_kind', x.kind)), '[]'::jsonb)
-    from (
-      select l.id, btrim(l.email) as email, l.email_verified, m.kind
-        from public.leads l
-        left join public.lead_email_check c on c.lead_id = l.id
-        -- a cached answer younger than the recheck; a cached failure is asked again
-        left join public.email_domain_mx m on m.domain = split_part(lower(btrim(l.email)), '@', 2)
-                                          and m.checked_at > now() - interval '30 days' and m.kind <> 'error'
-       where coalesce(btrim(l.email), '') <> ''
-         and coalesce(l.invite_status, 'queued') = 'queued'
-         and coalesce(l.source, '') <> 'self_registered'
-         and not coalesce(l.claimed, false) and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)
-         and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)
-         and (c.lead_id is null
-              or c.email_md5 <> md5(lower(btrim(l.email)))
-              or c.checked_at < now() - interval '30 days'
-              or (c.verdict = 'retry' and c.checked_at < now() - interval '1 hour'))
-       -- an invitation already waiting in the outbox first, then never-checked, then the oldest verdict
-       order by (l.invite_status = 'queued') desc nulls last, (c.lead_id is null) desc, c.checked_at nulls first, l.id
-       limit greatest(coalesce(p_limit, 0), 0)
-    ) x
-$fn$;
-revoke execute on function public.fn_sales_engineer_email_check_batch(integer) from public, anon, authenticated;
-grant execute on function public.fn_sales_engineer_email_check_batch(integer) to service_role;
-
-create or replace function public.fn_sales_engineer_records_email_checks(p_checks jsonb, p_domains jsonb default '[]'::jsonb)
-returns jsonb
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare v_saved int; v_cancelled int;
-begin
-  -- a failed lookup never overwrites a real answer
-  insert into public.email_domain_mx (domain, has_mx, kind, hosts, checked_at)
-  select lower(d->>'domain'), d->>'kind' in ('mx', 'a_implicit', 'error'), d->>'kind',
-         nullif(array(select jsonb_array_elements_text(coalesce(d->'hosts', '[]'::jsonb))), '{}'::text[]), now()
-    from jsonb_array_elements(coalesce(p_domains, '[]'::jsonb)) d
-  on conflict (domain) do update
-     set has_mx = excluded.has_mx, kind = excluded.kind, hosts = excluded.hosts, checked_at = excluded.checked_at
-   where excluded.kind <> 'error';
-
-  insert into public.lead_email_check (lead_id, email_md5, verdict, reason, mailbox, mx_kind, checked_at)
-  select (c->>'lead_id')::bigint, md5(lower(btrim(c->>'email'))), c->>'verdict', c->>'reason', c->>'mailbox', c->>'mx_kind', now()
-    from jsonb_array_elements(coalesce(p_checks, '[]'::jsonb)) c
-    join public.leads l on l.id = (c->>'lead_id')::bigint
-  on conflict (lead_id) do update
-     set email_md5 = excluded.email_md5, verdict = excluded.verdict, reason = excluded.reason,
-         mailbox = excluded.mailbox, mx_kind = excluded.mx_kind, checked_at = excluded.checked_at;
-  get diagnostics v_saved = row_count;
-
-  -- an invitation already waiting for an address that has now failed never leaves
-  update public.notifications n set status = 'cancelled'
-    from public.lead_email_check c
-   where n.type = 'supplier_invite' and n.status = 'queued' and n.lead_id = c.lead_id and c.verdict = 'rejected'
-     and c.lead_id in (select (x->>'lead_id')::bigint from jsonb_array_elements(coalesce(p_checks, '[]'::jsonb)) x);
-  get diagnostics v_cancelled = row_count;
-  return jsonb_build_object('saved', v_saved, 'cancelled_queued', v_cancelled);
-end $fn$;
-revoke execute on function public.fn_sales_engineer_records_email_checks(jsonb, jsonb) from public, anon, authenticated;
-grant execute on function public.fn_sales_engineer_records_email_checks(jsonb, jsonb) to service_role;
-
-create or replace function public.fn_sales_engineer_lead_email_check()
-returns jsonb
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare v_ref text; v_key text; v_cred text; v_due jsonb;
-begin
-  v_due := public.fn_sales_engineer_email_check_batch(1);   -- nothing due, no edge call
-  if jsonb_array_length(v_due) = 0 then return jsonb_build_object('due', false); end if;
-  select value into v_ref from public.app_secrets where key = 'project_ref';
-  v_key := public.fn_gateway_client_key();
-  select value into v_cred from public.app_secrets where key = 'cred_fn_sales_engineer';
-  if v_ref is null or v_key is null or v_cred is null then
-    raise exception 'fn_sales_engineer_lead_email_check: project_ref, the gateway key or cred_fn_sales_engineer is missing from app_secrets';
-  end if;
-  return jsonb_build_object('due', true, 'request', net.http_post(
-    url := 'https://' || v_ref || '.supabase.co/functions/v1/sales_engineer',
-    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || v_key, 'apikey', v_key),
-    body := jsonb_build_object('__secret', v_cred, 'action', 'lead_email_check'), timeout_milliseconds := 60000));
-end $fn$;
-revoke execute on function public.fn_sales_engineer_lead_email_check() from public, anon, authenticated;
-
--- 2. THE RESTART.
-create or replace function public.fn_sales_engineer_restarts_invites_after_a_brake()
-returns jsonb
-language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare
-  b public.invite_brake; v_on boolean; v_suppressed int; v_batch int; v_bad int; v_cap int; v_complaints int;
-begin
-  select * into b from public.invite_brake where resumed_at is null order by id desc limit 1;
-  if not found then return jsonb_build_object('open_brake', false); end if;
-  v_on := coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false);
-  if v_on then
-    update public.invite_brake set resumed_at = now(), resume_note = 'invite_enabled was already back on: not this seat''s restart' where id = b.id;
-    return jsonb_build_object('open_brake', true, 'closed', 'already on');
-  end if;
-
-  -- The bounced addresses first: every real bounce is suppressed, whatever else holds the restart.
-  insert into public.email_suppressions (email, reason, source)
-  select distinct lower(btrim(l.email)), 'hard_bounce:permanent', 'sales_engineer_invite_restart'
-    from public.notifications n join public.leads l on l.id = n.lead_id
-   where n.type = 'supplier_invite' and n.sent_at is not null and l.invite_status = 'bounced'
-     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)
-  on conflict (email) do nothing;
-  get diagnostics v_suppressed = row_count;
-
-  -- Not this seat's to lift: the founder's go, a complaint (a person pressed spam; read it, do not resend), another seat's pause.
-  if not public.fn_supplier_outreach_golive() then
-    return jsonb_build_object('open_brake', true, 'held', 'supplier_outreach_golive is false', 'suppressed', v_suppressed);
-  end if;
-  select h.complained into v_complaints from public.fn_invite_send_health(now() - interval '3 days') h;
-  if v_complaints > 0 then
-    return jsonb_build_object('open_brake', true, 'held', 'a complaint in the last 3 days', 'suppressed', v_suppressed);
-  end if;
-  if exists (select 1 from public.it_watch_finding f
-              where f.detector_key = 'deliverability:supplier_invite' and f.status = 'open' and f.state = 'paused'
-                and f.evidence->>'paused_by' <> 'invite_same_day_brake') then
-    return jsonb_build_object('open_brake', true, 'held', 'another seat''s pause is open', 'suppressed', v_suppressed);
-  end if;
-
-  -- The next batch, as the sender would pick it, and each of its leads holding a verdict for its address.
-  v_cap := least(coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_daily_cap'), 10),
-                 public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
-  select count(*), count(*) filter (where not exists (
-           select 1 from public.lead_email_check ec join public.leads l on l.id = ec.lead_id
-            where ec.lead_id = c.lead_id and ec.verdict = 'verified' and ec.email_md5 = md5(lower(btrim(l.email)))))
-    into v_batch, v_bad
-    from public.fn_supplier_invite_candidates(v_cap, null::text[]) c;
-  if v_batch = 0 or v_bad > 0 then
-    return jsonb_build_object('open_brake', true, 'held', 'the next batch is not verified yet', 'batch', v_batch, 'unverified', v_bad, 'suppressed', v_suppressed);
-  end if;
-
-  update public.app_secrets set value = 'true' where key = 'invite_enabled';
-  update public.invite_brake set resumed_at = now(),
-         resume_note = 'bounced addresses suppressed (' || v_suppressed || ' new); next batch of ' || v_batch || ' verified' where id = b.id;
-  update public.it_watch_finding set status = 'resolved', resolved_at = now()
-   where detector_key = 'deliverability:supplier_invite' and status = 'open';
-  insert into public.agent_runs(agent, status, counts, note, finished_at)
-  values ('sales_engineer', 'ok', jsonb_build_object('action', 'invite_restart', 'brake', b.id, 'batch', v_batch, 'suppressed', v_suppressed),
-          'Invitations resumed after the bounce brake of ' || to_char(b.fired_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI') || 'Z: ' || b.why, now());
-  return jsonb_build_object('resumed', true, 'batch', v_batch, 'suppressed', v_suppressed);
-end $fn$;
-revoke execute on function public.fn_sales_engineer_restarts_invites_after_a_brake() from public, anon, authenticated;
-
-insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
-  ('sales_engineer.lead_email_check', 'sales_engineer', interval '5 minutes', 'fn_sales_engineer_lead_email_check',
-   'Checks a batch of leads before they can be invited: syntax, typo domains, local-part rules and DNS; stores a verdict per lead.',
-   'scripts/sql/an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql'),
-  ('sales_engineer.invite_restart', 'sales_engineer', interval '5 minutes', 'fn_sales_engineer_restarts_invites_after_a_brake',
-   'After a bounce brake: suppresses the bounced addresses and resumes invitations once the next batch is verified.',
-   'scripts/sql/an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql')
-on conflict (duty) do nothing;
-, '', 'gi')))
+                                       '^[A-Za-z]+://', ''), '^www\.|[/:?#].*$', '', 'gi')))
 $function$;
 
 CREATE OR REPLACE FUNCTION public.fn_supplier_invite_candidates(p_limit integer, p_providers text[])
@@ -1907,11 +872,26 @@ language plpgsql security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
 declare
-  b public.invite_brake; v_on boolean; v_suppressed int; v_batch int; v_bad int; v_cap int; v_complaints int;
+  b public.invite_brake; v_on boolean; v_suppressed int; v_batch int; v_sent int; v_bounced int; v_complaints int; v_max numeric; v_since timestamptz;
 begin
+  v_max := coalesce((select nullif(value, '')::numeric from public.app_secrets where key = 'invite_max_bounce_rate'), 0.08);
   select * into b from public.invite_brake where resumed_at is null order by id desc limit 1;
-  if not found then return jsonb_build_object('open_brake', false); end if;
-  v_on := coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false);
+  if not found then
+    -- PROBATION: for 30 days after a restart the batches sent SINCE it answer for it. The 3-day brake needs 15 sends or 5 bounces,
+    -- which a batch of 10 cannot reach, so the limit is read here on those sends alone. Over it is the second breach.
+    select max(x.resumed_at) into v_since from public.invite_brake x where x.restarted_by_seat and x.resumed_at > now() - interval '30 days';
+    if v_since is null then return jsonb_build_object('open_brake', false); end if;
+    select h.sent, h.bounced into v_sent, v_bounced from public.fn_invite_send_health(v_since) h;
+    if v_bounced::numeric / greatest(v_sent, 1) <= v_max then
+      return jsonb_build_object('open_brake', false, 'probation', true, 'sent', v_sent, 'bounced', v_bounced);
+    end if;
+    update public.app_secrets set value = 'false' where key = 'invite_enabled';
+    update public.notifications set status = 'cancelled' where type = 'supplier_invite' and status = 'queued';
+    insert into public.invite_brake(source, why)
+    values ('invite_restart_probation', v_bounced || ' bounce(s) on ' || v_sent || ' invitation(s) sent since the restart')
+    returning * into b;
+  end if;
+  v_on :=coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false);
   if v_on then
     update public.invite_brake set resumed_at = now(), resume_note = 'invite_enabled was already back on: not this seat''s restart' where id = b.id;
     return jsonb_build_object('open_brake', true, 'closed', 'already on');
@@ -1930,7 +910,7 @@ begin
   if not public.fn_supplier_outreach_golive() then
     return jsonb_build_object('open_brake', true, 'held', 'supplier_outreach_golive is false', 'suppressed', v_suppressed);
   end if;
-  select h.complained into v_complaints from public.fn_invite_send_health(now() - interval '3 days') h;
+  select h.sent, h.bounced, h.complained into v_sent, v_bounced, v_complaints from public.fn_invite_send_health(now() - interval '3 days') h;
   if v_complaints > 0 then
     return jsonb_build_object('open_brake', true, 'held', 'a complaint in the last 3 days', 'suppressed', v_suppressed);
   end if;
@@ -1940,21 +920,34 @@ begin
     return jsonb_build_object('open_brake', true, 'held', 'another seat''s pause is open', 'suppressed', v_suppressed);
   end if;
 
-  -- The next batch, as the sender would pick it, and each of its leads holding a verdict for its address.
-  v_cap := least(coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_daily_cap'), 10),
-                 public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
-  select count(*), count(*) filter (where not exists (
-           select 1 from public.lead_email_check ec join public.leads l on l.id = ec.lead_id
-            where ec.lead_id = c.lead_id and ec.verdict = 'verified' and ec.email_md5 = md5(lower(btrim(l.email)))))
-    into v_batch, v_bad
-    from public.fn_supplier_invite_candidates(v_cap, null::text[]) c;
-  if v_batch = 0 or v_bad > 0 then
-    return jsonb_build_object('open_brake', true, 'held', 'the next batch is not verified yet', 'batch', v_batch, 'unverified', v_bad, 'suppressed', v_suppressed);
+  -- A SECOND BREACH inside 30 days of the seat's restart stays paused, and the CEO seat owns it.
+  if exists (select 1 from public.invite_brake x where x.id <> b.id and x.restarted_by_seat and x.resumed_at > b.fired_at - interval '30 days') then
+    if b.ceo_task_opened_at is null then
+      perform public.fn_ceo_task_open('Supplier invitations stopped twice on bounces in 30 days',
+        'The bounce brake fired again after the sales engineer''s restart: ' || b.why || '. Automatic restart is off for this breach. '
+        || 'A free DNS check cannot see a missing mailbox on a live domain. Decide the list and the cap; invite_enabled stays false until then.');
+      update public.invite_brake set ceo_task_opened_at = now() where id = b.id;
+    end if;
+    return jsonb_build_object('open_brake', true, 'held', 'second breach: the CEO seat decides', 'suppressed', v_suppressed);
+  end if;
+
+  -- THE COOLDOWN, and the window the brake itself reads. Neither is reset, so a restart cannot erase its own breach.
+  if now() < b.fired_at + interval '3 days' then
+    return jsonb_build_object('open_brake', true, 'held', 'cooldown', 'until', b.fired_at + interval '3 days', 'suppressed', v_suppressed);
+  end if;
+  if (v_sent >= 15 and v_bounced::numeric / greatest(v_sent, 1) > v_max) or v_bounced >= greatest(5, ceil(v_sent * v_max)::int) then
+    return jsonb_build_object('open_brake', true, 'held', 'the 3-day window is still over the limit', 'sent', v_sent, 'bounced', v_bounced, 'suppressed', v_suppressed);
+  end if;
+
+  -- Somebody must be there to send to; candidates come only through the verdict gate, so this is a count, not a second check.
+  select count(*) into v_batch from public.fn_supplier_invite_candidates(10, null::text[]) c;
+  if v_batch = 0 then
+    return jsonb_build_object('open_brake', true, 'held', 'no verified lead to send to yet', 'suppressed', v_suppressed);
   end if;
 
   update public.app_secrets set value = 'true' where key = 'invite_enabled';
-  update public.invite_brake set resumed_at = now(),
-         resume_note = 'bounced addresses suppressed (' || v_suppressed || ' new); next batch of ' || v_batch || ' verified' where id = b.id;
+  update public.invite_brake set resumed_at = now(), restarted_by_seat = true,
+         resume_note = 'bounced addresses suppressed (' || v_suppressed || ' new); first batch of at most ' || v_batch where id = b.id;
   update public.it_watch_finding set status = 'resolved', resolved_at = now()
    where detector_key = 'deliverability:supplier_invite' and status = 'open';
   insert into public.agent_runs(agent, status, counts, note, finished_at)
@@ -1969,6 +962,6 @@ insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file
    'Checks a batch of leads before they can be invited: syntax, typo domains, local-part rules and DNS; stores a verdict per lead.',
    'scripts/sql/an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql'),
   ('sales_engineer.invite_restart', 'sales_engineer', interval '5 minutes', 'fn_sales_engineer_restarts_invites_after_a_brake',
-   'After a bounce brake: suppresses the bounced addresses and resumes invitations once the next batch is verified.',
+   'After a bounce brake: suppresses the bounced addresses; resumes at most once in 30 days after a 3-day cooldown; a second breach goes to the CEO seat.',
    'scripts/sql/an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql')
 on conflict (duty) do nothing;
