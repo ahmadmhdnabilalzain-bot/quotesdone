@@ -1,26 +1,24 @@
 -- Assigned: sales_engineer. A pure probe on ZZ DEMO requests; it always raises, so nothing survives. It needs nothing from the authority file.
 -- Known-bad controls: a request held for its specs, and one younger than 14 days, must stay open; the message must promise no quote.
 do $probe$
-declare v_i uuid; v_c uuid; v_y uuid; r jsonb; s text; v_bad text := ''; m jsonb; v_real int;
+declare v_cust uuid; v_i uuid; v_c uuid; v_y uuid; r jsonb; s text; v_bad text := ''; m jsonb; v_real int;
 begin
   select count(*) into v_real from public.inquiries i join public.customers c on c.id = i.customer_id
    where c.email not ilike '%@example.invalid' and i.created_at < now() - interval '14 days'
      and coalesce(i.status, '') not in ('revealed', 'closed', 'cancelled', 'completed', 'expired', 'lost')
      and not exists (select 1 from public.inquiry_matches x where x.inquiry_id = i.id);
-  select i.id into v_i from public.inquiries i join public.customers c on c.id = i.customer_id
-   where c.email ilike '%@example.invalid' and i.parent_inquiry_id is null and not exists (select 1 from public.quotes q where q.inquiry_id = i.id)
-     and not exists (select 1 from public.inquiries k where k.parent_inquiry_id = i.id) order by i.created_at limit 1;
-  select i.id into v_c from public.inquiries i join public.customers c on c.id = i.customer_id
-   where c.email ilike '%@example.invalid' and i.parent_inquiry_id is null and i.id is distinct from v_i and not exists (select 1 from public.quotes q where q.inquiry_id = i.id)
-     and not exists (select 1 from public.inquiries k where k.parent_inquiry_id = i.id) order by i.created_at limit 1;
-  select i.id into v_y from public.inquiries i join public.customers c on c.id = i.customer_id
-   where c.email ilike '%@example.invalid' and i.parent_inquiry_id is null and i.id not in (v_i, v_c) and not exists (select 1 from public.quotes q where q.inquiry_id = i.id)
-     and not exists (select 1 from public.inquiries k where k.parent_inquiry_id = i.id) order by i.created_at limit 1;
-  if v_i is null or v_c is null or v_y is null then raise exception 'CHK<<PROBE FAILED: fewer than three ZZ DEMO requests with no quote>>'; end if;
-  delete from public.inquiry_matches where inquiry_id in (v_i, v_c, v_y);
-  update public.inquiries set status = 'open', rfq_ready = true, created_at = '2020-01-01' where id = v_i;
-  update public.inquiries set status = 'open', rfq_ready = false, created_at = '2020-01-02' where id = v_c;
-  update public.inquiries set status = 'open', rfq_ready = true, created_at = now() where id = v_y;
+  -- Three requests of its own for a ZZ DEMO customer. routing.dispatched_at keeps trg_autodispatch_inquiry from calling out.
+  select c.id into v_cust from public.customers c where c.email ilike '%@example.invalid' order by c.created_at limit 1;
+  if v_cust is null then raise exception 'CHK<<PROBE FAILED: no ZZ DEMO customer>>'; end if;
+  insert into public.inquiries (customer_id, category, emirate, summary, status, rfq_ready, created_at, routing)
+    values (v_cust, 'aluminium', 'Dubai', 'ZZ DEMO probe', 'open', true, '2020-01-01', jsonb_build_object('dispatched_at', now())) returning id into v_i;
+  insert into public.inquiries (customer_id, category, emirate, summary, status, rfq_ready, created_at, routing)
+    values (v_cust, 'aluminium', 'Dubai', 'ZZ DEMO probe', 'open', false, '2020-01-02', jsonb_build_object('dispatched_at', now())) returning id into v_c;
+  insert into public.inquiries (customer_id, category, emirate, summary, status, rfq_ready, created_at, routing)
+    values (v_cust, 'aluminium', 'Dubai', 'ZZ DEMO probe', 'open', true, now(), jsonb_build_object('dispatched_at', now())) returning id into v_y;
+  -- A trigger may recompute readiness on insert: the probe needs these exact values.
+  update public.inquiries set rfq_ready = true where id in (v_i, v_y);
+  update public.inquiries set rfq_ready = false where id = v_c;
 
   if public.fn_inquiry_awaits_specs(v_i) then v_bad := v_bad || ' ready_reads_held'; end if;
   if not public.fn_inquiry_awaits_specs(v_c) then v_bad := v_bad || ' held_reads_ready'; end if;
