@@ -313,6 +313,15 @@ Deno.test('expiryFromText: a table reads the expiry label\'s own column, or noth
     // ...nor with an unknown column header before its first label, on one line or stacked (fourth review)
     ['Last Inspection   Issue Date   Expiry Date   01/06/2024   15/03/2025', null],
     ['Last Inspection\nIssue Date\nExpiry Date\n01/06/2024\n15/03/2025', null],
+    // a title or company name above a table is no column, and a table that does not read is never replaced by the
+    // next expiry the page names (fifth review: these read a membership, insurance or validity date)
+    ['Licence Details\nExpiry Date\nIssue Date\n14/03/2028\n15/03/2025\nChamber membership valid until 31/12/2025', '2028-03-14'],
+    ['Licence Details   Expiry Date   Issue Date   14/03/2028   15/03/2025\nMembership valid until 31/12/2025', '2028-03-14'],
+    ['Licence Details\nIssue Date\nExpiry Date\n15/03/2025\n14/03/2028\nInsurance Expiry: 31/12/2025', '2028-03-14'],
+    ['Licence Details\nIssue Date\nExpiry Date\n15/03/2025\n14/03/2028\nChamber membership valid until 31/12/2025', '2028-03-14'],
+    ['Dates   Issue Date   Expiry Date   15/03/2025   14/03/2028\nValidity: 01/01/2026 - 31/12/2026', '2028-03-14'],
+    ['Issue Date   Expiry Date\n15/03/2025\nInsurance Expiry: 31/12/2025', null],
+    ['Last Inspection   Issue Date   Expiry Date   01/06/2024   15/03/2025\nMembership valid until 31/12/2025', null],
     // a cell that says it is blank, and a note under a column only counted, do not stop a reading
     ['Issue Date   Expiry Date   Next Inspection\nn.a.   14/03/2028   01/06/2029', '2028-03-14'],
     ['Issue Date   Expiry Date   Next Inspection\nNot Applicable   14/03/2028   01/06/2029', '2028-03-14'],

@@ -159,6 +159,15 @@ const isLabel = (c: Cell) => c.kind !== 'date';
 // A cell that says it holds nothing: "-", "N/A", "n.a.", "Not Applicable", "TBA", "لا يوجد".
 const BLANK_CELL_RE = /^[\s\-–—]*$|^\s*(?:n\.?\s*\/?\s*a\.?|nil|none|not applicable|tba|tbc|لا يوجد|غير متوفر|غير متاح)\s*$/i;
 type Span = { s: number; e: number };
+// A TABLE THAT IS THERE AND DOES NOT READ ENDS THE READING (fifth review of #1733). Returning null there let the reader
+// go on to a later keyword, and a table refused for any reason was replaced by whatever expiry the page named next: a
+// chamber membership, an insurance policy. 'refused' means: the expiry label heads a column whose date cannot be told,
+// so the document's expiry is not read by code at all. null still means "no table here", and the next keyword is tried.
+const REFUSED = 'refused' as const;
+type TableRead = { expiry: string; raw: string } | null | undefined | typeof REFUSED;
+// A cell or line of words before the labels is one more column only when it is worded like a date column's header
+// ("Last Inspection"); a title or a company name above a table is not one.
+const HIDDEN_HEADER_RE = /\b(?:date|inspection|renewal|renewed|valid|validity|from|to|until|audit|expiry|expires|issued?)\b|تاريخ/i;
 // A line split into the cells a text layer draws apart: two or more spaces, a tab or a "|" ends a cell (textFromContent
 // joins two cells of one baseline with three spaces). Position in the row, not a count of dates, pairs a value with its
 // label: "Issue Date   Expiry Date   Next Inspection" over "-   14/03/2028   01/06/2029" counts two dates for two known
@@ -176,10 +185,11 @@ const severalRows = (d: Doc, v: number) => { const r = d.byLine.get(nextFilled(d
 
 /** A row of labels over the next line of dates: the date in the keyword's own cell. When the cells are not drawn apart
  *  (one space between them), only a line of nothing but labels over a line of nothing but dates reads, by order. */
-function headerRowRead(d: Doc, K: Cell, heads: Cell[], cols: Cell[][]): { expiry: string; raw: string } | null {
+function headerRowRead(d: Doc, K: Cell, heads: Cell[], cols: Cell[][]): TableRead {
   const { t, lines, byLine, starts } = d;
   const v = nextFilled(d, K.line + 1), vrow = byLine.get(v);
-  if (!vrow || vrow.some(isLabel) || severalRows(d, v) || K.kind !== 'end') return null;
+  if (!vrow || vrow.some(isLabel) || K.kind !== 'end') return null;
+  if (severalRows(d, v)) return REFUSED;
   const hc = rowCells(d, K.line), vc = rowCells(d, v);
   let expiry: string | null = null, raw = '';
   const starting: (string | null)[] = [];
@@ -190,7 +200,7 @@ function headerRowRead(d: Doc, K: Cell, heads: Cell[], cols: Cell[][]): { expiry
     // Only the columns a reading leans on are held to it: the expiry's and the issue or start dates'. A note under a
     // column this reader only counts ("TBA" under Renewal Date) says nothing about the alignment of the others.
     const blankOrDate = (c: Span | undefined) => !!c && (BLANK_CELL_RE.test(t.slice(c.s, c.e)) || cellDate(t, c) !== null);
-    if (!heads.every((c) => c.kind === 'other' || blankOrDate(under(c)))) return null;
+    if (!heads.every((c) => c.kind === 'other' || blankOrDate(under(c)))) return REFUSED;
     const own = under(K);
     expiry = cellDate(t, own); raw = own ? t.slice(own.s, own.e).trim() : '';
     for (const c of heads) if (c.kind === 'start') starting.push(cellDate(t, under(c)));
@@ -200,7 +210,7 @@ function headerRowRead(d: Doc, K: Cell, heads: Cell[], cols: Cell[][]): { expiry
       for (const x of [...spans].reverse()) s = s.slice(0, x.s - starts[n]) + s.slice(x.e - starts[n]);
       return /^[\s/|:()\-–—]*$/.test(s);
     };
-    if (!bare(K.line, heads) || !bare(v, vrow) || vrow.length !== cols.length) return null;
+    if (!bare(K.line, heads) || !bare(v, vrow) || vrow.length !== cols.length) return REFUSED;
     const col = cols.findIndex((g) => g.includes(K));
     expiry = parseDate(t.slice(vrow[col].s, vrow[col].e)); raw = t.slice(vrow[col].s, vrow[col].e);
     cols.forEach((g, j) => { if (g[0].kind === 'start') starting.push(parseDate(t.slice(vrow[j].s, vrow[j].e))); });
@@ -208,13 +218,13 @@ function headerRowRead(d: Doc, K: Cell, heads: Cell[], cols: Cell[][]): { expiry
   // An expiry before an issue or start date of its own row means the columns were not drawn in the order they are
   // read (right-to-left text drawn in visual order, for one), and the date in hand may be the issue date. A range takes
   // its later date because its own words say it is a period; a table's only evidence is its labels, and they disagree.
-  if (!expiry || starting.some((x) => (x ?? '') > (expiry as string))) return null;
+  if (!expiry || starting.some((x) => (x ?? '') > (expiry as string))) return REFUSED;
   return { expiry, raw };
 }
 
 /** The date under the keyword's own label when the keyword is one of a table's date columns; null when it is and the
  *  table does not read; undefined when the keyword is the only date label of its row and of its column. */
-function tableRead(d: Doc, ks: number): { expiry: string; raw: string } | null | undefined {
+function tableRead(d: Doc, ks: number): TableRead {
   const { t, cells, byLine, lines } = d;
   const k = cells.findIndex((c) => isLabel(c) && c.s <= ks && ks < c.e);
   if (k < 0) return undefined;
@@ -260,18 +270,18 @@ function tableRead(d: Doc, ks: number): { expiry: string; raw: string } | null |
     const le = t.indexOf('\n', heads[0].s), end = le < 0 ? t.length : le;
     let rest = t.slice(heads[0].s, end);
     for (const c of cells.filter((x) => x.s >= heads[0].s && x.e <= end).reverse()) rest = rest.slice(0, c.s - heads[0].s) + ' ' + rest.slice(c.e - heads[0].s);
-    if (!/^[\s/|:()\-–—,]*$/.test(rest)) return null;
+    if (!/^[\s/|:()\-–—,]*$/.test(rest)) return REFUSED;
     // ...and no unknown column header stands before its first label (fourth review of #1733: "Last Inspection   Issue
     // Date   Expiry Date   01/06/2024   15/03/2025" can be read with the expiry blank, and then 15/03/2025 is the issue
     // date). A cell of words with no digit there is a header; "Licence No 1145872" or "Printed 01/11/2026" is not.
     const before = t.slice(t.lastIndexOf('\n', heads[0].s - 1) + 1, heads[0].s).split(/\s{2,}|\t|\|/).map((x) => x.trim()).filter(Boolean).pop();
-    if (before && /\p{L}{2}/u.test(before) && !/\d/.test(before)) return null;
+    if (before && HIDDEN_HEADER_RE.test(before) && !/\d/.test(before)) return REFUSED;
   }
   if (mode === 'stack') {
     // the same for a stack: a line of words with no digit right above the stacked labels is one more column header
     let n = heads[0].line - 1;
     while (n >= 0 && !/\S/.test(lines[n])) n--;
-    if (n >= 0 && !byLine.get(n) && /\p{L}{2}/u.test(lines[n]) && !/\d/.test(lines[n])) return null;
+    if (n >= 0 && !byLine.get(n) && HIDDEN_HEADER_RE.test(lines[n]) && !/\d/.test(lines[n])) return REFUSED;
   }
   // A table on one line, or drawn column by column: the dates right after the last label on its line; when that line
   // ends, every line of dates right under it (blank lines may come first). A label, or a line with no date, ends them.
@@ -283,10 +293,11 @@ function tableRead(d: Doc, ks: number): { expiry: string; raw: string } | null |
     if (!values.length) n = nextFilled(d, n);
     for (; n < lines.length; n++) { const r = byLine.get(n); if (!r || r.some(isLabel)) break; values.push(...r); }
   }
-  if (values.length !== cols.length || K.kind !== 'end') return null;
+  if (K.kind !== 'end') return null;
+  if (values.length !== cols.length) return values.length ? REFUSED : null;
   const dateIn = (j: number) => parseDate(t.slice(values[j].s, values[j].e));
   const col = cols.findIndex((g) => g.includes(K)), expiry = dateIn(col);
-  if (!expiry || cols.some((g, j) => g[0].kind === 'start' && (dateIn(j) ?? '') > expiry)) return null;
+  if (!expiry || cols.some((g, j) => g[0].kind === 'start' && (dateIn(j) ?? '') > expiry)) return REFUSED;
   return { expiry, raw: t.slice(values[col].s, values[col].e) };
 }
 
@@ -299,7 +310,7 @@ const ISSUE_PAIR_RE = rangeEnd('(?:' + RANGE_JOIN + '|\\/|&|and)');
 
 /** The first occurrence of one kind of keyword that reads a date: in its own column of a table, or within 90
  *  characters after it. A start keyword reads only the end of the period it opens. */
-function readAfter(d: Doc, keywords: RegExp, kind: 'expiry' | 'period' | 'start'): ExpiryRead | null {
+function readAfter(d: Doc, keywords: RegExp, kind: 'expiry' | 'period' | 'start'): ExpiryRead | null | typeof REFUSED {
   const { t, cells, byLine } = d;
   let from = 0;
   for (let i = 0; i < 20; i++) {
@@ -308,7 +319,8 @@ function readAfter(d: Doc, keywords: RegExp, kind: 'expiry' | 'period' | 'start'
     const ks = from + (km.index ?? 0), at = ks + km[0].length;
     const lineBefore = t.slice(Math.max(0, ks - 40), ks).split('\n').pop() ?? '';
     const table = EARLIER_RE.test(lineBefore) ? null : tableRead(d, ks);
-    if (table && kind !== 'start') return { expiry: table.expiry, source: 'text', keyword: km[0], raw: table.raw };
+    if (table === REFUSED) { if (kind !== 'start') return REFUSED; }
+    else if (table && kind !== 'start') return { expiry: table.expiry, source: 'text', keyword: km[0], raw: table.raw };
     const window = t.slice(at, at + 90);
     const dm = table === undefined ? DATE_RE.exec(window) : null;
     const lead = dm ? window.slice(0, dm.index) : '';
@@ -371,7 +383,12 @@ function readAfter(d: Doc, keywords: RegExp, kind: 'expiry' | 'period' | 'start'
 export function expiryFromText(text: string): ExpiryRead | null {
   const t = String(text || '').replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x0660)); // Arabic-Indic digits
   const d = cellsOf(t);
-  return readAfter(d, EXPIRY_RE, 'expiry') ?? readAfter(d, PERIOD_RE, 'period') ?? readAfter(d, START_RE, 'start');
+  for (const [re, kind] of [[EXPIRY_RE, 'expiry'], [PERIOD_RE, 'period'], [START_RE, 'start']] as const) {
+    const r = readAfter(d, re, kind);
+    if (r === REFUSED) return null;
+    if (r) return r;
+  }
+  return null;
 }
 
 // ── PDF text ─────────────────────────────────────────────────────────────────────────────────────
