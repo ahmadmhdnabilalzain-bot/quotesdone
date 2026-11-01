@@ -48,7 +48,7 @@ const ICONS: Record<string, LucideIcon> = {
   'facilities-management': Building2,
 };
 
-const linkBase = 'relative inline-flex h-9 items-center gap-1 rounded-btn px-3 text-small font-medium transition-colors duration-base';
+const linkBase = 'relative inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-btn px-3 text-small font-medium transition-colors duration-base';
 const linkIdle = 'text-muted hover:bg-teal-light/[0.05] hover:text-white';
 const linkOn = 'text-white after:absolute after:inset-x-3 after:-bottom-[15px] after:h-px after:bg-teal-light after:shadow-[0_0_10px_rgba(110,231,212,.9)]';
 
@@ -105,7 +105,7 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
 
   return (
     <>
-      <nav className="hidden items-center gap-0.5 lg:flex" aria-label={labels.menu}>
+      <nav className="hidden items-center gap-0.5 xl:flex" aria-label={labels.menu}>
         <Link href={items[0].href} aria-current={isOn(items[0].href) ? 'page' : undefined} className={`${linkBase} ${isOn(items[0].href) ? linkOn : linkIdle}`}>{items[0].label}</Link>
         <div ref={wrap} className="relative" onPointerEnter={hoverOpen} onPointerLeave={hoverClose}>
           <button
@@ -175,7 +175,7 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
         <span className="hidden sm:contents"><LangSwitch /></span>
         {/* A signed-in person does not need a "Sign in" link; the CTA already goes to their portal. */}
         {audience === 'visitor' ? (
-          <Link href="/me" className="hidden h-9 items-center px-3 text-small font-medium text-muted transition-colors hover:text-white sm:inline-flex">{labels.login}</Link>
+          <Link href="/me" className="hidden h-9 items-center whitespace-nowrap px-3 text-small font-medium text-muted transition-colors hover:text-white sm:inline-flex">{labels.login}</Link>
         ) : null}
         <Link
           href={cta.href}
