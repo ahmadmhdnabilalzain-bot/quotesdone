@@ -25,6 +25,7 @@ async function stop(what, after) {
 }
 
 async function main([from, after]) {
+  if (from === '--deploy-failed') await stop('nothing yet, the same commit\'s edge deploy did not succeed', after);
   let files;
   try {
     files = addedFiles(execFileSync('git', ['diff', from, after, '--', 'scripts/sql/MANIFEST.txt'], { encoding: 'utf8' }));
