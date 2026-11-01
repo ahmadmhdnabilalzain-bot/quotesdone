@@ -1,6 +1,6 @@
 ---
 name: a-test-can-guard-a-file-from-another-directory
-description: "28 Oct 2026: #1658 skipped npm-test and hand-ran site_assistant/'s own tests, but the test that guards site_assistant's exits is _shared/widget_reply_effects.test.ts, and it stayed red on main from 27 Oct (still red at 141f2bc on 1 Nov; #1729 fixes it). Find the tests that read a changed file by its path, not by its directory."
+description: "28 Oct 2026: #1658 skipped npm-test and hand-ran site_assistant/'s own tests, but the test that guards site_assistant's exits is _shared/widget_reply_effects.test.ts, and it stayed red on main from 27 Oct (still red at 141f2bc on 1 Nov; #1734 exempted the cap exit that evening, and #1729 holds it to its own contract). Find the tests that read a changed file by its path, not by its directory."
 metadata:
   type: feedback
   modified: 2026-10-28
@@ -12,8 +12,8 @@ suites it ran by hand were `deno test site_assistant/` (13 passed) and two `scri
 
 The test that guards site_assistant's exits is not in that directory. It is
 `supabase/functions/_shared/widget_reply_effects.test.ts`, which reads `../site_assistant/index.ts` as text. It counted
-the visitor cap's `return J({ reply` as a second answering exit and failed 2 vs 1 on every run of main from that merge on (#1729 fixes it).
-Nothing was filed twice. The expectation was stale, and #1729 now names the cap exit and gives it its own contract.
+the visitor cap's `return J({ reply` as a second answering exit and failed 2 vs 1 on every run of main from that merge on, until #1734 (1 Nov).
+Nothing was filed twice. The expectation was stale. #1734 exempted the cap exit; #1729 names it and gives it its own contract (one exit, behind pastVisitorCap, logged, no gap or person report).
 
 **The rule.** A test can guard a file from another directory. When npm-test is skipped, the tests to run by hand are
 every test that names the changed file, found by its path:
