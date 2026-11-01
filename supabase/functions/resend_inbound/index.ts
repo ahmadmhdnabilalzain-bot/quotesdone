@@ -22,6 +22,7 @@
 // second factor - both must now pass. The body is read ONCE as raw text because the signature is
 // over the exact bytes; it is parsed only after verification succeeds.
 import { readEveryAttachment, envGatewayVision, clearerCopyAsk } from '../_shared/read_every_attachment.ts';
+import { permanentlyBouncedAddress } from '../_shared/mailbox_bounce.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
@@ -321,6 +322,17 @@ export const handler = observe('resend_inbound', async (req) => {
       await handToBookkeeper(refusedRow?.id, [], `Mail to ${to} from ${from} was REFUSED: that address is not on app_secrets.expense_forwarders. Nothing was booked and no attachment was stored. Decide whether this sender should be added to the allowlist; if it is a company expense, add them and ask for a re-forward.`);
       await logRun('ok', { expenses_mailbox: 1, authorised: 0, from, to }, 'mail to the expenses mailbox was refused: ' + from + ' is not on the expense forwarder allowlist. Recorded as inbound_messages#' + (refusedRow?.id ?? '?') + ' and handed to the accountant.');
       return J({ ok: true, receipt: false, booked: false, reason: 'sender_not_allowlisted' });
+    }
+
+    // ---- A BOUNCE THAT COMES BACK AS MAIL (1 Nov 2026, sales_engineer): _shared/mailbox_bounce.ts ----
+    const bounced = permanentlyBouncedAddress(from, fullText);
+    if (bounced) {
+      const exact = bounced.replace(/[\\%_]/g, '\\$&');
+      const { data: invited } = await admin.from('notifications').select('lead_id').ilike('to_email', exact).in('type', ['supplier_invite', 'supplier_invite_nudge']).eq('status', 'sent').limit(1);
+      if (invited?.length) {
+        await admin.from('email_suppressions').upsert({ email: bounced, reason: 'hard_bounce:permanent', source: 'mailbox_report' }, { onConflict: 'email' });
+        await admin.from('leads').update({ invite_status: 'bounced' }).ilike('email', exact).in('invite_status', ['queued', 'sent']);
+      }
     }
 
     // ---- AN UNSUBSCRIBE BY EMAIL IS HONOURED HERE (21 Sep 2026, customer_support) ----

@@ -240,7 +240,9 @@ Deno.serve(observe('send_outbox', async (req) => {
     // names the company and its trade, read from the lead (a seed has none: its body's opening).
     const campaignFor = async (n: any) => {
       const { data: lead } = n.kind === M365_SEED_KIND ? { data: null } : await admin.from('leads').select('company_name,invite_trades').ilike('email', String(n.to_email).trim().replace(/[\\%_]/g, '\\$&')).limit(1).maybeSingle();
-      return campaignMail(n, { company: (lead as any)?.company_name ?? undefined, trade: ((lead as any)?.invite_trades || [])[0] });
+      // NO TRADE IS GUESSED (1 Nov 2026, ledger 1423): invite_trades[0] is the first slug alphabetically, so on 30 Oct a cleaning
+      // company and a fire-safety trainer were asked about their "civil works work". GlockApps tested the neutral wording.
+      return campaignMail(n, { company: (lead as any)?.company_name ?? undefined });
     };
     for (const n of rows) {
       // WHATSAPP ROWS EATEN 27 Jul 2026 - the select above pulls every queued row of EVERY channel but
@@ -314,6 +316,8 @@ Deno.serve(observe('send_outbox', async (req) => {
           const r = await graphSend((u, i) => timedFetch(u, i || {}, 15_000), m365, mime, mid, closeFinding);
           if (r.ok) {
             await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: r.providerId }).eq('id', n.id);
+            // this lane has no Resend webhook, so the lead moves here (1 Nov 2026: 52 sent invitations still read 'queued')
+            if (n.type === 'supplier_invite' && n.lead_id) await admin.from('leads').update({ invite_status: 'sent' }).eq('id', n.lead_id).eq('invite_status', 'queued');
             sent++; m365SentToday++; m365SentRun++; if (LANE_CAPPED_TYPES.includes(n.type)) cappedSentToday++;
           } else {
             // Graph refused: this row and every later one in the run are held, one finding says why.

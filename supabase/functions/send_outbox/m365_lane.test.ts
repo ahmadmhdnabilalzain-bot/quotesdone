@@ -136,7 +136,7 @@ Deno.test('the invitation is variant A, word for word, and passes every rule', (
   const who = { company: 'Sigma Ceramics', trade: 'tiling' };
   assertEquals(m365InvitationText(who), APPROVED);
   assertEquals(m365Subject(who), 'A question about your tiling work');
-  assertEquals(m365Subject({ company: 'Sigma Ceramics' }), 'A question for Sigma Ceramics');
+  assertEquals(m365Subject({ company: 'Sigma Ceramics' }), 'A question about your work in the UAE');
   for (const l of m365CopyLint({ subject: m365Subject(who), body: APPROVED })) assert(l.ok, `${l.rule}: ${l.detail}`);
   // neutral variant: no company, no trade
   const neutral = m365InvitationText();
