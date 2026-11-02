@@ -238,3 +238,17 @@ Deno.test('a message that needs a person: the reply is asked beside the review o
   assert(replyAsked >= 0 && replyAsked < reviewed, 'and the reply was asked before it answered: ' + w.log.join(', '));
   assert(w.msgs.some((m) => m.wa_from === B && m.reply), 'the person got a reply');
 });
+
+// Run 41544169700: the lean reading of "I want to speak to a person please" did not settle (intent null), the fallback person
+// check said yes, and fn_wa_route got no intent where the full shape got contact_human (the one parity mismatch left). Here the
+// reading's answer is not one of its options (so it reads nothing) and the person check's is: the route must get contact_human.
+// On the pre-fix handler p_intent is null.
+Deno.test('the reading settles nothing but a person is needed: the route is asked for the contact_human row', async () => {
+  const w = world({ audience: 'unknown' }); w.log = [];
+  w.classify = { answer: 'needs a person', reasoning: [], cited: [], asked_back: null, decision: { choice: 'needs_a_person' }, needs_a_person: 'needs_a_person', menu_meaning: 'other' };
+  await inbound(w, B, 'ZZ DEMO I want to speak to a person please');
+  const routed = w.rpcs.filter((c) => c.fn === 'fn_wa_route');
+  assert(routed.length > 0, 'the route was asked: ' + w.rpcs.map((c) => c.fn).join(', '));
+  assertEquals(routed[0].args.p_needs_person, true, 'the person check said yes');
+  assertEquals(routed[0].args.p_intent, 'contact_human');
+});

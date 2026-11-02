@@ -1409,7 +1409,12 @@ async function handleInbound(req: Request): Promise<Response> {
     try {
       // The intent is the REASONED meaning (above), never the body's words: null = held, 'none' = no row fits.
       const meaning = await menuDeps.intent(Body);
-      const intent = meaning === null ? null : meaning.startsWith('intent:') ? meaning.slice(7) : meaning;
+      const read = meaning === null ? null : meaning.startsWith('intent:') ? meaning.slice(7) : meaning;
+      // A PERSON IS NEEDED AND NO INTENT ROW WAS READ: the row for a person (customer_support, 3 Nov 2026). Run 41544169700: the lean
+      // reading of "I want to speak to a person please" did not settle (intent null, 26 s), its fallback person check said yes, and
+      // the route got no intent where the full shape gave contact_human. Same rule as whatsappReadings, for the case the reading
+      // itself returned nothing. Prevented by: the_whole_exchange.test.ts.
+      const intent = (read === null || read === 'none') && needsPerson === true ? 'contact_human' : read;
       routedIntent = intent;
       const { data } = await admin.rpc('fn_wa_route', { p_phone: From, p_body: Body.slice(0, 4000), p_has_audio: media.length > 0, p_needs_person: needsPerson, p_intent: intent });
       route = (data || null) as Record<string, unknown> | null;
