@@ -4,7 +4,7 @@
 name: wa-exchange-real
 on:
   push:
-    paths: ['scripts/e2e/wa_exchange_real*', '.github/workflows/wa-exchange-real.yml']
+    paths: ['scripts/e2e/wa_exchange_real*', '.github/workflows/wa-exchange-real.yml', 'supabase/functions/wa_inbound/model_says.ts']
   workflow_dispatch: {}
 concurrency: { group: wa-exchange-real, cancel-in-progress: false }
 jobs:
