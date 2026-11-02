@@ -173,3 +173,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Microsoft 365 app already exists](m365-app-already-exists.md) — 18 Oct: reuse the quotesdone.com M365 app (M365_* edge secrets); never ask him to register a new one
 - [OpenRouter stays on; all tests with AI](openrouter-stays-on-all-tests-with-ai.md) — 19 Oct, ledger 1260: no model holds, no stubbed tests
 - [The CEO acts on the supplier target](the-ceo-acts-on-the-supplier-target.md) — ledger 1438: bounded powers behind a switch; brakes win; ceiling is the CEO's (1455)
+- [Nothing is done until a browser proved it](nothing-is-done-until-a-browser-proved-it.md): founder 2 Nov, ledger 1464-1465
+- [A later SQL file can silently delete a rule](a-later-sql-file-can-silently-delete-a-rule.md): diff every routine against live before merge
+- [A founder ruling is not a defect to fix](a-founder-ruling-is-not-a-defect-to-fix.md): read the ledger before changing a pinned check
+- [The automatic apply's language](an-automatic-apply-and-a-probe-must-speak-its-language.md): PROBE OK wording, seat, from=, mirror regen
