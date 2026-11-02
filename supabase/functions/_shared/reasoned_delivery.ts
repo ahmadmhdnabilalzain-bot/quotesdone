@@ -352,13 +352,17 @@ export async function holdingNotice(row: { id: number; surface: string; question
 /** Every owed holding notice (fn_reason_held_notice_due: escalated, a customer phone, not yet delivered, not tried in
  *  30 minutes) is sent, and EACH ATTEMPT IS RECORDED (fn_reason_held_notice_record), so a failed send comes back on a
  *  later tick instead of being lost with the step's log (a_customer_notice_that_failed_is_sent_again.sql). A throw is
- *  a failed attempt, never an abandoned batch. */
+ *  a failed attempt, never an abandoned batch.
+ *  `record` may return a bare thenable: a supabase-js `admin.rpc(...)` builder has `then` and no `catch`, and
+ *  calling `.catch` on it threw a TypeError AFTER the notice was sent, so the send was never recorded (it was sent
+ *  again on a later tick) and reask_turns answered 500 (15 times on 1-2 Nov 2026, it_engineer). Awaiting inside
+ *  try/catch runs the builder and catches a throw of either kind. */
 export async function sendHeldNotices(rows: { id: number; surface: string; question?: string; subject?: Record<string, unknown> | null }[], io: DeliveryIO,
-  record: (id: number, d: Delivery) => Promise<unknown>): Promise<{ id: number; delivered: boolean; via: string; detail?: string }[]> {
+  record: (id: number, d: Delivery) => PromiseLike<unknown>): Promise<{ id: number; delivered: boolean; via: string; detail?: string }[]> {
   const out = [];
   for (const r of rows) {
     const d: Delivery = await holdingNotice(r, io).catch((e) => ({ delivered: false, via: 'none' as const, detail: String(e?.message || e).slice(0, 200) }));
-    await record(r.id, d).catch(() => null);
+    try { await record(r.id, d); } catch { /* an unrecorded attempt: fn_reason_held_notice_due offers the row again */ }
     out.push({ id: r.id, ...d });
   }
   return out;

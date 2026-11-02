@@ -302,6 +302,19 @@ Deno.test('a holding notice that failed is recorded as failed and sent again; a 
   assertEquals(t.map((r) => [r.id, r.delivered]), [[7, false], [8, false]]);
 });
 
+Deno.test('a record that returns a bare thenable (an admin.rpc builder: then, no catch) is run and recorded, never a TypeError', async () => {
+  const { x } = io(true);
+  const rec: number[] = [];
+  // the shape reask.ts passes: `(id, d) => admin.rpc(...)`; the RPC runs only when awaited
+  const builder = (id: number) => ({ then: (ok: (v: unknown) => unknown) => { rec.push(id); return Promise.resolve(ok({ data: null })); } });
+  const rows = [7, 8].map((id) => ({ id, surface: 'wa_inbound.needs_a_person', question: 'where is my quote?', subject: { phone: '+971500000001' } }));
+  const out = await sendHeldNotices(rows, x, (id) => builder(id));
+  assertEquals(out.map((r) => r.id), [7, 8]);
+  assertEquals(rec, [7, 8]);
+  const rejecting = await sendHeldNotices(rows, x, () => ({ then: (_ok: unknown, bad: (e: unknown) => unknown) => Promise.resolve(bad(new Error('db down'))) }));
+  assertEquals(rejecting.length, 2);
+});
+
 // ── A HELD COMMENT IS REPLAYED WITH ITS OWN PLATFORM'S TOKEN (24 Sep 2026; found in the review of PR #898) ─────────
 // Until this change the replay gave LinkedIn the Meta page token and YouTube none, so neither could post. Here the
 // real policy (processComment) runs over an in-memory store whose reply posts exactly as the live store does

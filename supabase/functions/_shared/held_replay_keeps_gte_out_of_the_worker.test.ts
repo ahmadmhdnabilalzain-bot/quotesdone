@@ -191,6 +191,16 @@ Deno.test('resilience_ping hands heartbeatDeps to every deps-taking call: never 
   assertEquals(calls.filter((c) => c === 'distilLessons').length, 2, 'the hourly group and the weekly distil both call distilLessons');
 });
 
+// PUBLIC_SITE TOO (it_engineer, 2 Nov 2026): 57 visitor POSTs in 24 h died at the 2 s CPU cap with gte-small in-process
+// (a cold price_guidance embeds the question and 8 exemplars). Every deps it builds places gte-small in embed_ml.
+Deno.test('public_site builds its think() deps with gte-small in embed_ml, never in the visitor\'s worker', async () => {
+  const src = code(await Deno.readTextFile(new URL('../public_site/index.ts', import.meta.url)));
+  const calls = [...src.matchAll(/\bdefaultDeps\s*\(([^)]*)\)/g)].map((m) => m[1]);
+  assert(calls.length > 0, 'the guard found no defaultDeps call in public_site');
+  const inWorker = calls.filter((a) => !/gte\s*:\s*'remote'/.test(a));
+  assertEquals(inWorker, [], 'public_site builds deps without { gte: \'remote\' }: ' + J(inWorker));
+});
+
 // THE DEFAULT ITSELF: distilLessons with no deps (its only caller is the heartbeat) embeds through embed_ml.
 Deno.test('distilLessons without deps embeds each finding outside the worker', async () => {
   const { distilLessons } = await import('./learning_loop.ts');
