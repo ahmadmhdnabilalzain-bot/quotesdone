@@ -8,7 +8,10 @@ Deno.test('the message survives, with its error name', () => {
 });
 
 Deno.test('a credential in the text is replaced, and the text is cut', () => {
-  const jwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNzAwMDAwMDAwfQ.c2lnbmF0dXJlc2lnbmF0dXJlc2lnbmF0dXJl';
+  // Built at run time from its parts (as scripts/checks/no_source_file_hardcodes_a_legacy_supabase_key.test.mjs does):
+  // a service_role-shaped literal in a tracked file is refused by that check even when its signature is fake.
+  const b64 = (o: unknown) => btoa(JSON.stringify(o)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const jwt = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ role: 'service_role', iat: 1700000000 })}.${'c2lnbmF0dXJl'.repeat(3)}`;
   const t = errorText(new Error(`refused: Authorization: Bearer ${jwt} secret=hunter2-very-secret apikey: sk-or-v1-0123456789abcdef0123456789abcdef`), 400);
   assert(!t.includes('hunter2'), t);
   assert(!t.includes('eyJhbGci'), t);

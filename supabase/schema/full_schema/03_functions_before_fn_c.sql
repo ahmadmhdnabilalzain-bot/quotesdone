@@ -148,6 +148,7 @@ begin
   v_cap := coalesce((select nullif(value,'')::int from app_secrets where key='invite_daily_cap'), 10);
   -- founder ruling 1231: never more than the dated founder cap, whatever invite_daily_cap holds.
   v_cap := least(v_cap, public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
+  v_cap := public.fn_invite_restart_cap(v_cap);   -- a small first batch after a restart
   select count(*) into v_pool from leads l where public.fn_supplier_invite_eligible(l);
   v_planned := least(coalesce(p_cap, v_cap), v_cap, v_pool);
   insert into invite_schedule(day, planned, status, note)
@@ -204,8 +205,9 @@ begin
   end if;
 
   v_max_rate := coalesce((select nullif(value,'')::numeric from app_secrets where key='invite_max_bounce_rate'), 0.08);
-  select count(*) into v_inv_recent from leads where invited_at > now() - interval '3 days';
-  select count(*) into v_bounced_recent from leads where invite_status='bounced' and invited_at > now() - interval '3 days';
+  -- 2 Nov 2026: real sends only. A restart never resets this window.
+  select h.sent, h.bounced into v_inv_recent, v_bounced_recent
+    from public.fn_invite_send_health(now() - interval '3 days') h;
   v_rate := round(v_bounced_recent::numeric / greatest(v_inv_recent,1), 3);
 
   if v_inv_recent >= 15 and v_rate > v_max_rate then
@@ -219,12 +221,13 @@ begin
 
   if v_pause then
     update app_secrets set value='false' where key='invite_enabled';
+    insert into public.invite_brake(source, why) values ('enqueue_supplier_invites', v_why) on conflict do nothing;
     update invite_schedule set status = 'pending', note = coalesce(note,'') || '; auto-paused: ' || v_why where day = v_today;
     if not exists (select 1 from founder_alerts where event='invite_paused_bounce' and created_at > now()-interval '24 hours') then
       insert into founder_alerts(level,event,detail,channel)
-        values('crit','invite_paused_bounce','Supplier invites AUTO-PAUSED: '||v_why||'. Clean the list before resuming.','system');
+        values('crit','invite_paused_bounce','Supplier invites AUTO-PAUSED: '||v_why||'. The sales engineer may resume once, after a 3-day cooldown; a second breach stays paused and goes to the CEO seat.','system');
       insert into notifications(type,to_email,to_role,channel,subject,body,status)
-        values('invite_paused_bounce', coalesce((select split_part(value,',',1) from app_secrets where key='admin_emails'),'management@quotesdone.com'),'admin','email','Supplier invites paused - deliverability risk','Invites were auto-paused: '||v_why||'. Validate the list, then re-enable.','queued');
+        values('invite_paused_bounce', coalesce((select split_part(value,',',1) from app_secrets where key='admin_emails'),'management@quotesdone.com'),'admin','email','Supplier invites paused - deliverability risk','Invites were auto-paused: '||v_why||'. The sales engineer may resume once, after a 3-day cooldown; a second breach stays paused and goes to the CEO seat.','queued');
     end if;
     return 0;
   end if;
@@ -252,7 +255,7 @@ begin
   update leads set invite_status='queued', invited_at=now()
   where invite_status is null and id in (select lead_id from ins);
   get diagnostics v_count = row_count;
-  update invite_schedule set sent = sent + v_count where day = v_today;
+  -- invite_schedule.sent is written when the outbox sends (trg_invite_schedule_counts_a_real_send), never here at queue time
   insert into agent_runs(agent, status, counts, note, started_at, finished_at)
   values ('supplier_invites', 'ok',
           jsonb_build_object('queued', v_count, 'planned', v_planned, 'pool', v_pool, 'cap', v_cap, 'held', false,
