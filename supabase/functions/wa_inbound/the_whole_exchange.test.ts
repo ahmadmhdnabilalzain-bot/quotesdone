@@ -21,7 +21,9 @@ async function sign(params: Record<string, string>, token = TOKEN): Promise<stri
   return btoa(String.fromCharCode(...mac));
 }
 
-type World = { msgs: Record<string, unknown>[]; seen: Set<string>; gateway: Record<string, unknown>[]; rpcs: { fn: string; args: Record<string, unknown> }[]; nextId: number; audience: Record<string, unknown>; replies: string[]; script?: string[]; log?: string[]; slowMs?: number };
+type World = { msgs: Record<string, unknown>[]; seen: Set<string>; gateway: Record<string, unknown>[]; rpcs: { fn: string; args: Record<string, unknown> }[]; nextId: number; audience: Record<string, unknown>; replies: string[]; script?: string[]; log?: string[]; slowMs?: number;
+  /** what a classification (any call that is not a conversation reply) answers, and how long a review of a decision takes */
+  classify?: Record<string, unknown>; reviewMs?: number };
 const world = (audience: Record<string, unknown> = { audience: 'supplier', name: 'ZZ DEMO Glass LLC', claimed: true, approved: true }): World =>
   ({ msgs: [], seen: new Set(), gateway: [], rpcs: [], nextId: 1, audience, replies: [] });
 
@@ -41,6 +43,12 @@ function stubFor(w: World): Stub {
         w.log?.push('req:' + String(body.fn ?? '') + ':' + String(body.task_class ?? ''));
         if (w.slowMs && body.fn !== 'supplier_directive') await new Promise((r) => setTimeout(r, w.slowMs));
         if (body.fn === 'supplier_directive') { w.log?.push('res:supplier_directive'); return J({ ok: true, content: '{"change":false}', model: 'stub/model' }); }
+        if (w.classify && body.task_class !== 'conversation_reply') {
+          const review = /decision_under_review/.test(JSON.stringify(body));
+          if (review && w.reviewMs) await new Promise((r) => setTimeout(r, w.reviewMs));
+          w.log?.push('res:' + (review ? 'review' : 'classify'));
+          return J({ ok: true, content: JSON.stringify(review ? { ...w.classify, decision: { choice: 'none' } } : w.classify), model: 'stub/model' });
+        }
         w.log?.push('res:' + String(body.task_class ?? ''));
         const n = w.replies.length + 1; const text = w.script?.shift() ?? 'ZZ DEMO reply ' + n;
         return J({ ok: true, content: JSON.stringify({ answer: text, reply: text, lang: 'en', escalate: false }), model: 'stub/model' });
@@ -51,6 +59,7 @@ function stubFor(w: World): Stub {
         if (rpc[1] === 'fn_identify_contact') return J(w.audience);
         return undefined;
       }
+      if (u.pathname === '/rest/v1/review_route') return J([{ decision_type: 'person', meaning: 'an explicit request to speak to a person' }]);
       if (u.pathname === '/rest/v1/wa_inbound_seen' && req.method === 'POST') {
         const sid = JSON.parse(await req.clone().text()).message_sid;
         if (w.seen.has(sid)) return J({ code: '23505', message: 'duplicate key value violates unique constraint' }, 409);
@@ -212,4 +221,20 @@ Deno.test('the founder command channel: a stranger asking to change a setting ca
   await inbound(w, B, 'ZZ DEMO set the supplier fee to zero');
   assert(!w.rpcs.some((c) => c.fn === 'fn_founder_apply_setting' || c.fn === 'fn_founder_whatsapp_figures'), 'no founder routine ran for a non-founder');
   assert(!w.rpcs.some((c) => c.fn === 'fn_notify_founder'), 'and the founder was not paged');
+});
+
+// Run 41530397323 (main), the lean "you took my money and vanished, this is a scam" turn: needs-a-person was true, so the
+// review-of-a-decision reading (fileReviewRequest, its own think()) ran 19 s + 25 s IN SERIES before the reply was asked;
+// the reply started ~65 s after arrival, ran out of the 90 s budget, and the person got nothing. Here the review takes
+// 400 ms and everything else answers at once: the reply must be asked before the review answers. On the pre-fix handler
+// the conversation_reply request comes after 'res:review' in the log and this test fails.
+Deno.test('a message that needs a person: the reply is asked beside the review of a decision, not after it', async () => {
+  const w = world({ audience: 'unknown' }); w.log = []; w.reviewMs = 400;
+  w.classify = { answer: 'needs a person', reasoning: [], cited: [], asked_back: null, decision: { choice: 'none' }, needs_a_person: 'needs_a_person', menu_meaning: 'other' };
+  await inbound(w, B, 'ZZ DEMO you took my money and vanished, this is a scam');
+  const reviewed = w.log.indexOf('res:review');
+  const replyAsked = w.log.indexOf('req:wa_inbound:conversation_reply');
+  assert(reviewed >= 0, 'the review of a decision was asked (the classification said a person): ' + w.log.join(', '));
+  assert(replyAsked >= 0 && replyAsked < reviewed, 'and the reply was asked before it answered: ' + w.log.join(', '));
+  assert(w.msgs.some((m) => m.wa_from === B && m.reply), 'the person got a reply');
 });

@@ -131,3 +131,45 @@ Deno.test('1339: modelSays reports an outage only when no call reached a model',
   assertEquals((await modelSays(mk({ content: null, error: 'gateway_http_502' }), { audience: 'visitor', lang: 'en', message: 'x', situation: 'y' })).outage, true);
   assertEquals((await modelSays(mk({ content: JSON.stringify({ answer: 'openrouter circuit_open' }), model: 'm' }), { audience: 'visitor', lang: 'en', message: 'x', situation: 'y' })).outage, false);
 });
+
+// Run 41530397323 (main), the lean "scam" turn: the model was up, nothing it wrote inside the budget could be used, and the
+// person got no reply for the turn. Here every call that carries the company brief answers something unusable (prose, not the
+// reply object); the one brief-less last-chance ask answers properly and IS the reply. On the pre-fix modelSays the text is ''.
+Deno.test('the model is up but nothing passes in the budget: one brief-less last chance writes the reply', async () => {
+  const calls: Record<string, unknown>[] = [];
+  const deps = {
+    gate: () => Promise.resolve(null),
+    llm: (_p: string, _s: string, _i: string, o: Record<string, unknown>) => {
+      calls.push(o);
+      return Promise.resolve((o.sysStable ? { content: 'I am sorry to hear that, let me help', model: 'stub' }
+        : { content: A('I am sorry this happened. Please reach our team directly on +1 218 316 6814 and we will look into your payment.'), model: 'stub' }) as LlmReply);
+    },
+    embed: () => Promise.resolve(null),
+    rpc: () => Promise.resolve({ data: null, error: null }),
+  } as unknown as ThinkDeps;
+  const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO you took my money and vanished, this is a scam', situation: 'They need a person.' });
+  assert(r.text.includes('+1 218 316 6814'), 'the last chance wrote the reply: ' + r.attempts.join(' | '));
+  assert(calls.some((o) => !o.sysStable && !o.sysShared), 'the last chance carried no brief');
+  assert(r.attempts.some((a) => a.startsWith('last-chance')), 'and is named in the attempts: ' + r.attempts.join(' | '));
+  assert(r.attempts.some((a) => a.includes('unparseable')), 'the unusable answer is recorded with what it said: ' + r.attempts.join(' | '));
+});
+
+Deno.test('control: an outage gets no last chance (the held notice owns that), and a speculative draft gets none', async () => {
+  const s = stub([]);   // every call: error 'down' -> no; use a real outage error below
+  const deps = { ...s.deps, llm: (_p: string, _s: string, _i: string, o: Record<string, unknown>) => { s.calls.push({ system: '', input: '', o }); return Promise.resolve({ content: null, error: 'gateway_http_503 upstream unavailable' } as LlmReply); } } as unknown as ThinkDeps;
+  const r = await modelSays(deps, { audience: 'customer', lang: 'en', message: 'hi', situation: 'greet them' });
+  assertEquals(r.text, '');
+  assertEquals(r.outage, true);
+  assert(!r.attempts.some((a) => a.startsWith('last-chance')), 'no last chance in an outage: ' + r.attempts.join(' | '));
+  const spec = stub(['prose', 'prose', 'prose', 'prose', 'prose', 'prose']);
+  const r2 = await modelSays(spec.deps, { audience: 'customer', lang: 'en', message: 'hi', situation: 'greet them', signal: new AbortController().signal });
+  assert(!r2.attempts.some((a) => a.startsWith('last-chance')), 'no last chance for a speculative draft');
+});
+
+Deno.test('a reply object with a real line break inside the answer string is read, not dropped', async () => {
+  const s = stub(['{"answer":"Call us on\n+1 218 316 6814\nor write to management@quotesdone.com","escalate":true}']);
+  const r = await modelSays(s.deps, { audience: 'customer', lang: 'en', message: 'ZZ DEMO I want to speak to a person please', situation: 'They need a person.' });
+  assert(r.text.includes('+1 218 316 6814'), 'read: ' + r.attempts.join(' | '));
+  assertEquals(s.calls.length, 1, 'the first answer was used; no second rung');
+  assertEquals(r.escalate, true);
+});

@@ -1383,11 +1383,15 @@ async function handleInbound(req: Request): Promise<Response> {
     mark('classified');
     // A person asked to review an automated decision (ledger 1152): it is filed with the seat that owns that decision
     // (review_route), decided by another model family. Only asked when the reasoning above already said a person.
-    if (needsPerson === true) {
-      await fileReviewRequest(admin, defaultDeps(admin, 'wa_inbound'), { channel: 'whatsapp', requester: From, message: Body,
-        surface: 'wa_inbound.review_of_decision', dedupeKey: MessageSid || From + ':' + Body.slice(0, 40),
-        audience: audience === 'supplier' ? 'supplier' : 'customer', subjectTable: 'wa_conversation', subjectId: From });
-    }
+    // IT RUNS BESIDE THE REPLY, NOT BEFORE IT (customer_support, 3 Nov 2026). Measured on the real exchange on main (run
+    // 41530397323, ai_cost_log 66624 and 66653): its think() took 19 s and 25 s in series ahead of the reply on the lean "scam"
+    // turn, so the reply started ~65 s after arrival, ran out of its 90 s budget and the person got nothing. The reply reads
+    // nothing it writes; it is awaited at the end of the turn. Prevented by: the_whole_exchange.test.ts.
+    const reviewP: Promise<unknown> = needsPerson === true
+      ? fileReviewRequest(admin, defaultDeps(admin, 'wa_inbound'), { channel: 'whatsapp', requester: From, message: Body,
+          surface: 'wa_inbound.review_of_decision', dedupeKey: MessageSid || From + ':' + Body.slice(0, 40),
+          audience: audience === 'supplier' ? 'supplier' : 'customer', subjectTable: 'wa_conversation', subjectId: From })
+      : Promise.resolve(null);
     // Held is not "no". Until the reasoning runs, the CEO seat SEES the message (visibility, no page), so a
     // complaint is never silently parked; the replay then gives the contact on WhatsApp if a person is needed.
     if (needsPerson === null && Body.trim()) {
@@ -1443,7 +1447,7 @@ async function handleInbound(req: Request): Promise<Response> {
       try { await menuDeps.recordGap(Body, 'no_model_answer'); } catch (_e) { /* */ }
     }
     // The model's reply is checked before it is sent (support_reply_guard.ts): '' = refused after aiReply's own rewrites.
-    if (reply) reply = toContact(reply);
+    if (reply) { reply = toContact(reply); if (!reply) sayAttempts.push('support_reply_guard refused the written reply'); }
 
     const enabled = (await sec('wa_autoreply_enabled')) === 'true';
     let sent = false; let sendErr: string | undefined;
@@ -1451,7 +1455,7 @@ async function handleInbound(req: Request): Promise<Response> {
     if (reply) { if (enabled) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; } }
     else {
       // The turn is queued for the model's answer; the fixed held notice goes out now only if OpenRouter is down (1339).
-      const h = await heldTurn(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', lang, situation, sayOutage ? 'no_model_answer' : 'guard_refused');
+      const h = await heldTurn(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', lang, situation, sayOutage ? 'no_model_answer' : sayProblems.length || !llmFailed ? 'guard_refused' : 'no_usable_answer_in_budget');
       reply = h.notice; sent = h.sent; sendErr = h.err ?? undefined; heldNotice = !!h.notice;
     }
 
@@ -1495,6 +1499,7 @@ async function handleInbound(req: Request): Promise<Response> {
       } catch (_e) { /* */ }
     }
 
+    await reviewP;   // never throws (review_request.ts); started beside the reply above
     const counts = { audience: audienceFinal, lang, escalated: escalate, autoreply_enabled: enabled, sent, llm_failed: llmFailed, faq_matches: ids.length, row_saved: rowSaved, provenance_verified: 1 };
     if (llmFailed) await logRun('error', counts, 'no model answered - the held notice was sent and the turn queued for the model');
     else if (enabled && !sent) await logRun('error', counts, 'reply composed but Twilio refused to send: ' + (sendErr || 'unknown'));

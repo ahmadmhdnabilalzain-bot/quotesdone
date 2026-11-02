@@ -40,6 +40,8 @@ export function voiceReplyProblems(text: string): string[] {
 export const WA_REPLY_BUDGET_MS = 90_000;
 /** Time kept back from the budget for the send itself and the row write after the model answers. */
 export const WA_SEND_MARGIN_MS = 3_000;
+/** The one extra, brief-less ask when nothing passed inside the budget (modelSays). 90 + 20 s stays inside the worker's 150 s. */
+export const LAST_CHANCE_MS = 20_000;
 /** THE CLOCK STARTS AT ARRIVAL, NOT AT THE MODEL CALL (QA channels run, 19 Oct 2026). Measured on production: two
  *  plain questions spent ~45 s in serial routing/intent calls before modelSays began, then answered at 54-55 s with no
  *  held notice, because the 45 s deadline was counted from t0 inside modelSays. The budget handed to modelSays is what is
@@ -56,15 +58,29 @@ export const WA_RULES = 'Plain text for WhatsApp (no markdown), under about 90 w
 export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
   const t0 = Date.now();
   try {
-    const out = await aiReply(deps, {
+    const ask = (deadline: number, o: { briefInPrompt?: boolean; priorProblems?: string[] } = {}) => aiReply(deps, {
       seat: 'customer_support', channel: 'whatsapp', audience: r.audience, lang: r.lang,
       message: r.message || '(no text — they pressed a menu option or sent a file)',
       conversation: r.conversation,
       facts: 'WHAT HAS HAPPENED ON THIS TURN (decided by our systems; convey it accurately, do not change or add to it):\n' + r.situation,
       rules: WA_RULES, subject: r.subject, rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, must: r.must, ...(r.signal ? { signal: r.signal } : {}), ...(r.extraCheck ? { extraCheck: r.extraCheck } : {}),
-      deadline: t0 + (r.budgetMs ?? WA_REPLY_BUDGET_MS),
+      deadline, ...o,
     });
-    return { text: String(out.reply || '').trim(), model: out.model, attempts: out.attempts, ms: Date.now() - t0, escalate: out.escalate === true, outage: out.outage === true, problems: out.problems ?? [] };
+    let out = await ask(t0 + (r.budgetMs ?? WA_REPLY_BUDGET_MS));
+    let attempts = out.attempts;
+    // THE LAST CHANCE (customer_support, 3 Nov 2026; "every inbound message gets an answer"). Run 41530397323: the lean "scam"
+    // turn's model WAS up, its Sonnet draft could not be used, the other-family call ran into the budget, and the person got
+    // nothing for the turn (held for the re-ask). Now, when a model answered but nothing passed, or the budget ran out before
+    // one could, it is asked ONCE more, bounded by LAST_CHANCE_MS: the rules and this turn's facts without the ~140k-token
+    // brief (a few seconds), the refused drafts' problems named, every check unchanged. Still model-written (1195-1197, 1339).
+    // Not for a speculative draft (signal) and not in an outage (the held notice owns that). Prevented by: model_says.test.ts.
+    if (!String(out.reply || '').trim() && !out.outage && !r.signal) {
+      const last = await ask(Date.now() + LAST_CHANCE_MS, { briefInPrompt: false, priorProblems: out.problems });
+      attempts = [...attempts, ...last.attempts.map((a) => 'last-chance ' + a)];
+      if (String(last.reply || '').trim()) out = last;
+      else out = { ...out, problems: last.problems?.length ? last.problems : out.problems };
+    }
+    return { text: String(out.reply || '').trim(), model: out.model, attempts, ms: Date.now() - t0, escalate: out.escalate === true, outage: out.outage === true, problems: out.problems ?? [] };
   } catch (e) {
     // aiReply never throws on a model failure; a throw here is our own fault, not a provider outage
     return { text: '', model: null, attempts: ['error: ' + String((e as Error)?.message || e).slice(0, 120)], ms: Date.now() - t0, escalate: false, outage: false };

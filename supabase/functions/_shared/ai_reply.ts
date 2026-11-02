@@ -60,6 +60,9 @@ export interface AiReplyRequest {
   effort?: 'low' | 'medium' | 'high'; // reasoning effort asked of the model
   signal?: AbortSignal;     // the caller no longer wants the answer (a discarded speculative draft): the call in flight is aborted and none starts
   extraCheck?: (text: string) => string[]; // the caller's own rules (the portal's plain-language gate, English for suppliers)
+  // false: the company brief (~140k tokens) is NOT sent, only the rules and the caller's facts; every draft is still checked
+  // against the brief. WhatsApp's last chance (model_says.ts) uses it: a short prompt answers in seconds, not 10-15 s.
+  briefInPrompt?: boolean;
 }
 /** outage: no call reached a model — every one failed with a network error, 5xx, timeout/deadline or an open circuit
  *  (openrouter_down.ts). Only then may a caller send its code-written fallback (founder_instruction 1339). */
@@ -88,9 +91,24 @@ ${r.plainText ? 'Write only the reply itself, as plain text: no JSON, no code fe
 // before the object made JSON.parse throw, the answer read '' and the turn counted as "no model answered". The object
 // is now taken from the first '{' to the last '}' when the whole string does not parse. A truncated object (cut at
 // the output cap) still does not parse and is still refused: a half answer is never sent.
+// A LINE BREAK TYPED INSIDE THE ANSWER STRING (customer_support, 3 Nov 2026). The reply rules ask for each phone number, e-mail and
+// link on its own line; a model that writes that break as a real newline inside the JSON string (not \n) makes JSON.parse throw,
+// the answer read '' and the turn went to the other-family rung or to nobody. Control characters INSIDE a string are escaped
+// as a last try; outside strings they are whitespace and left alone. Prevented by: ai_reply.test.ts.
+export function controlsEscaped(t: string): string {
+  let out = '', inStr = false, esc = false;
+  for (const ch of t) {
+    if (inStr && !esc && ch < ' ') { out += JSON.stringify(ch).slice(1, -1); continue; }   // "\n" -> the two characters \ and n
+    if (inStr) { if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') inStr = false; }
+    else if (ch === '"') inStr = true;
+    out += ch;
+  }
+  return out;
+}
 const json = (s: string | null | undefined): Record<string, unknown> => {
   const t = String(s ?? '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-  for (const c of [t, t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1)]) {
+  const obj = t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1);
+  for (const c of [t, obj, controlsEscaped(obj)]) {
     try { const v = JSON.parse(c); if (v && typeof v === 'object') return v as Record<string, unknown>; } catch (_e) { /* next */ }
   }
   return {};
@@ -162,7 +180,7 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   const input = (r.facts ? 'THIS CONVERSATION\'S FACTS:\n' + r.facts.slice(0, 6000) + '\n\n' : '') + 'MESSAGE:\n' + r.message.slice(0, 4000)
     + (prior.length ? '\n\nAN EARLIER ANSWER TO THIS MESSAGE COULD NOT BE SENT. It had these problems: ' + [...new Set(prior)].join('; ')
       + '. Write a complete answer that avoids every one of them and follows every rule in your instructions.' : '');
-  const opts = { taskClass: REPLY_CLASS, ...(r.effort ? { effort: r.effort } : {}), ...(history.length ? { history } : {}), sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable, cacheTtl: '1h' as const, seat: r.seat, max: 900 /* c89dc272: Gemini stopped at 696 of 700, the JSON cut mid-answer; 900 is the gateway cap */, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
+  const opts = { taskClass: REPLY_CLASS, ...(r.effort ? { effort: r.effort } : {}), ...(history.length ? { history } : {}), ...(r.briefInPrompt === false ? {} : { sysShared: splitBrief(brief).shared, sysStable: splitBrief(brief).stable }), cacheTtl: '1h' as const, seat: r.seat, max: 900 /* c89dc272: Gemini stopped at 696 of 700, the JSON cut mid-answer; 900 is the gateway cap */, ...(r.subject ? { subject: r.subject } : {}), ...(r.rateKey ? { rateKey: r.rateKey } : {}), ...(r.images?.length ? { images: r.images } : {}) };
   const attempts: string[] = [];
   let calls = 0; let lastProblems: string[] = [];
   const left = () => (r.deadline ?? Infinity) - Date.now();
