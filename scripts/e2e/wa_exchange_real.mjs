@@ -26,11 +26,11 @@ try {
   await mgmtFixture(REF, `update public.leads set whatsapp_opt='other', whatsapp_phone=${q(phone)}, whatsapp_verified_at=now(), whatsapp_asked_at=now() where id=${sup.leadId}`, 'fixture WhatsApp confirmed');
   await mgmtFixture(REF, `insert into public.rehearsal_window (run_tag, opened_by) values ('qd_run:${tag}', 'wa_exchange_real')`, 'rehearsal window');
   await mgmtFixture(REF, `update public.rehearsal_window set models_allowed = true, cap_usd = ${CAP_USD}, expires_at = now() + interval '1 hour' where run_tag = 'qd_run:${tag}' and ended_at is null`, 'rehearsal window models');
-  const sec = Object.fromEntries((await mgmtRead(REF, `select key, value from public.app_secrets where key in ('twilio_auth_token','cred_fn_wa_inbound')`)).map((r) => [r.key, r.value]));
+  const sec = Object.fromEntries((await mgmtRead(REF, `select key, value from public.app_secrets where key in ('twilio_auth_token','cred_fn_wa_inbound','cred_ops_wa_replay')`)).map((r) => [r.key, r.value]));
   const { SERVICE } = await keys();
   const dir = mkdtempSync(join(tmpdir(), 'waexch-'));
   const cfg = join(dir, 'cfg.json');
-  writeFileSync(cfg, JSON.stringify({ url: `https://${REF}.supabase.co`, service: SERVICE, authToken: sec.twilio_auth_token, internal: sec.cred_fn_wa_inbound,
+  writeFileSync(cfg, JSON.stringify({ url: `https://${REF}.supabase.co`, service: SERVICE, authToken: sec.twilio_auth_token, internals: [sec.cred_fn_wa_inbound, sec.cred_ops_wa_replay].filter(Boolean),
     supplier: phone, stranger: STRANGER, parityOld: '+971500000094', parityNew: '+971500000095',
     pngB64: demoOfficePlanPng().toString('base64'),
     pdfB64: demoTradeLicence({ company: sup.companyName, licenceNo: 'ZZ-DEMO-000123' }).toString('base64') }));
@@ -41,7 +41,22 @@ try {
   if (!line) throw new Error('driver produced no RESULT; stdout tail: ' + (r.stdout || '').slice(-600) + ' stderr tail: ' + (r.stderr || '').slice(-1200));
   result = JSON.parse(line.slice(7));
   const brief = (x) => ({ status: x?.status, ms: x?.ms, reply: x?.reply, results: x?.rows?.[0]?.meta?.results, err: x?.rows?.[0]?.meta?.send_error, nrows: x?.rows?.length, t: x?.rows?.[0]?.meta?.timings });
-  for (const k of ['parity', 'parity_control_detects_a_difference', 'forged', 'question', 'hi', 'arabic', 'stranger_hi', 'fee', 'top3', 'identity', 'reveal', 'image', 'document']) console.log('## ' + k + ' ' + JSON.stringify(['forged', 'parity', 'parity_control_detects_a_difference'].includes(k) ? result[k] : brief(result[k])));
+  for (const k of ['parity', 'parity_control_detects_a_difference', 'forged', 'question', 'hi', 'arabic', 'stranger_hi', 'fee', 'top3', 'identity', 'reveal', 'image', 'document', 'bad_image_control', 'bad_pdf_control', 'voice', 'stranger_image']) console.log('## ' + k + ' ' + JSON.stringify(['forged', 'parity', 'parity_control_detects_a_difference'].includes(k) ? result[k] : brief(result[k])));
+  {
+    // Media verdicts. Each file turn must leave a row and a reply; the bad-file controls must NOT read as accepted;
+    // a voice note must say it was not heard (and never ask for a licence).
+    const rep = (k) => String(result[k]?.reply || '').toLowerCase();
+    const checks = {
+      image_answered: !!rep('image'), document_answered: !!rep('document'), stranger_image_answered: !!rep('stranger_image'),
+      document_not_refused: !!rep('document') && !/couldn.t be accepted|not accepted|refused/.test(rep('document')),
+      bad_image_not_accepted: !!rep('bad_image_control') && !/on file|record was updated/.test(rep('bad_image_control')),
+      bad_pdf_not_accepted: !!rep('bad_pdf_control') && !/on file|record was updated/.test(rep('bad_pdf_control')),
+      voice_says_not_heard: /type|typed|write|text/.test(rep('voice')) && !/trade licen|pdf|photo of/.test(rep('voice')),
+      english_only: ['image', 'document', 'voice'].every((k) => !/[\u0600-\u06FF]/.test(rep(k))),
+    };
+    console.log('MEDIA_CHECKS ' + JSON.stringify(checks));
+    if (Object.values(checks).some((v) => !v)) process.exitCode = 1;
+  }
   console.log('## ten ' + JSON.stringify(result.ten));
   {
     const turns = [...['question', 'hi', 'arabic', 'stranger_hi', 'fee', 'top3', 'identity', 'reveal'].map((k) => result[k]), ...result.ten.filter((t) => typeof t.ms === 'number')].filter((t) => t && typeof t.ms === 'number');

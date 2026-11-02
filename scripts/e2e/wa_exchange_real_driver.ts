@@ -34,16 +34,25 @@ async function say(phone: string, body: string) {
   return { status: res.status, ms: Date.now() - t0, rows, reply: rows.map((r) => r.reply).filter(Boolean).join(' | ') };
 }
 // A file turn: the internal JSON path (same handler code) because only it accepts an inline data: media URL.
+// cfg.internals is every candidate credential (cred_fn_wa_inbound, then cred_ops_wa_replay, which the 19 Oct channels run used).
+// A rejected credential is SILENT (the handler returns an empty 200), which is how image/document read "200, 0 rows, no reply"
+// on 2 Nov; so each candidate is tried until the turn leaves a row, and which one worked is reported.
 async function file(phone: string, mime: string, b64: string, caption: string) {
-  const from = 'whatsapp:' + phone; const sid = 'SM' + Date.now().toString(16).padStart(12, '0') + (++n).toString(16).padStart(20, '0');
-  const t0 = Date.now();
-  const pending: Promise<unknown>[] = [];
-  (globalThis as unknown as { EdgeRuntime: unknown }).EdgeRuntime = { waitUntil: (p: Promise<unknown>) => { pending.push(p); } };
-  const res = await handler!(new Request(cfg.url + '/functions/v1/wa_inbound', { method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ __secret: cfg.internal, From: from, Body: caption, MessageSid: sid, NumMedia: '1', MediaUrl0: `data:${mime};base64,${b64}`, MediaContentType0: mime }) }));
-  await Promise.all(pending);
-  const rows = await lastRow(from, sid);
-  return { status: res.status, ms: Date.now() - t0, rows, reply: rows.map((r) => r.reply).filter(Boolean).join(' | ') };
+  const from = 'whatsapp:' + phone;
+  let last: { status: number; ms: number; rows: Awaited<ReturnType<typeof lastRow>>; reply: string; cred?: number } | null = null;
+  for (let c = 0; c < cfg.internals.length; c++) {
+    const sid = 'SM' + Date.now().toString(16).padStart(12, '0') + (++n).toString(16).padStart(20, '0');
+    const t0 = Date.now();
+    const pending: Promise<unknown>[] = [];
+    (globalThis as unknown as { EdgeRuntime: unknown }).EdgeRuntime = { waitUntil: (p: Promise<unknown>) => { pending.push(p); } };
+    const res = await handler!(new Request(cfg.url + '/functions/v1/wa_inbound', { method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ __secret: cfg.internals[c], From: from, Body: caption, MessageSid: sid, NumMedia: '1', MediaUrl0: `data:${mime};base64,${b64}`, MediaContentType0: mime }) }));
+    await Promise.all(pending);
+    const rows = await lastRow(from, sid);
+    last = { status: res.status, ms: Date.now() - t0, rows, reply: rows.map((r) => r.reply).filter(Boolean).join(' | '), cred: c };
+    if (rows.length) return last;
+  }
+  return last!;
 }
 
 const out: Record<string, unknown> = {};
@@ -96,5 +105,11 @@ out.reveal = await say(S, 'ZZ DEMO Can you tell me which other suppliers quoted 
 // files
 out.image = await file(S, 'image/png', cfg.pngB64, 'ZZ DEMO here is a photo');
 out.document = await file(S, 'application/pdf', cfg.pdfB64, 'ZZ DEMO my trade licence');
+// controls that must fail the way a real bad file does: bytes that are not what the label says, and a voice note.
+const junk = btoa('this is plain text, not an image and not a pdf');
+out.bad_image_control = await file(S, 'image/png', junk, 'ZZ DEMO photo');
+out.bad_pdf_control = await file(S, 'application/pdf', junk, 'ZZ DEMO licence');
+out.voice = await file(S, 'audio/ogg', btoa('OggS-not-real-audio'), '');
+out.stranger_image = await file(X, 'image/png', cfg.pngB64, 'ZZ DEMO photo from a number with no account');
 console.log('RESULT=' + JSON.stringify(out));
 Deno.exit(0);
