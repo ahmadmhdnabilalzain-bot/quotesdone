@@ -1191,7 +1191,7 @@ function Dashboard({ token, lang, onExpired }) {
                 is held as PENDING (licence_unreadable / _expiry_unread / _number_unread), and the reason showed only for
                 action_required: a held supplier saw 'Pending' and 'Trade licence: on file' and never learned a clearer copy
                 was needed. Prevented by scripts/checks/a_held_supplier_is_never_told_nothing_is_needed.test.mjs. */}
-            {(ov.supplier.approval_status === 'action_required' || (ov.supplier.approval_status === 'pending' && /^(licence_|services_unconfirmed$)/.test(String(ov.supplier.licence_gate_reason || '')))) && ov.supplier.licence_gate_reason
+            {(ov.supplier.approval_status === 'action_required' || (ov.supplier.approval_status === 'pending' && /^licence_/.test(String(ov.supplier.licence_gate_reason || ''))) || (ov.supplier.approval_status === 'pending' && ov.supplier.licence_gate_reason === 'services_unconfirmed')) && ov.supplier.licence_gate_reason
               ? <span className="text-[13px] text-destructive font-medium basis-full">{t(lang, 'ar_why') + ': ' + srvText(lang, ov.supplier.licence_gate_reason, {}, ov.supplier.licence_gate_reason)}</span> : null}
             {ov.supplier.license_expiry ? (() => { const days = Math.round((new Date(ov.supplier.license_expiry) - new Date()) / 864e5); const v = days < 0 ? 'destructive' : days <= 30 ? 'warn' : 'secondary'; return <Badge variant={v}>{(days < 0 ? t(lang, 'lic_expired') : t(lang, 'lic_expires')) + ' · '}<Ltr>{fmtDate(ov.supplier.license_expiry, lang)}</Ltr></Badge>; })() : null}
           </div>

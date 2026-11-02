@@ -33,7 +33,7 @@ import { blobToWav } from '@/lib/wavEncode';
 import { call, REASONING_TIMEOUT_MS } from './api';
 import { panelErrorText } from './PanelState';
 import { srvMsg, vocabLabel } from './serverCopy';
-import { countServices, sc, scCount, type ServicesKey } from './servicesCopy';
+import { countServices, sc, scCount, VERIFY_COPY } from './servicesCopy';
 
 type Service = { key: string; label_en: string; label_ar: string };
 type Trade = { code: string; label: string; label_ar?: string | null };
@@ -322,26 +322,26 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
         </div>
       )}
 
-      {!d.confirmed && <p role="status" data-testid="verify-needed" className="mt-3 rounded-md border border-border bg-muted/30 p-3 text-[13px] text-foreground">{sc(lang, 'verify_needed')}</p>}
+      {!d.confirmed && <p role="status" data-testid="verify-needed" className="mt-3 rounded-md border border-border bg-muted/30 p-3 text-[13px] text-foreground">{VERIFY_COPY.verify_needed}</p>}
 
       <section className="mt-4" aria-labelledby={uid + '-profile'} data-testid="profile-summary">
-        <h3 id={uid + '-profile'} className={cn(sub, 'font-semibold')}>{sc(lang, 'profile_summary_title')}</h3>
+        <h3 id={uid + '-profile'} className={cn(sub, 'font-semibold')}>{VERIFY_COPY.profile_summary_title}</h3>
         {profileState === 'hits' ? (
           <>
             <ul className="mt-1.5 space-y-1">
               {profileLines.map((line) => <li key={line} className="text-[12.5px] text-muted-foreground"><q dir="auto">{line}</q></li>)}
             </ul>
-            <p className={cn(sub, 'mt-2 font-semibold')}>{sc(lang, 'profile_keywords')}</p>
+            <p className={cn(sub, 'mt-2 font-semibold')}>{VERIFY_COPY.profile_keywords}</p>
             <div className="mt-1 flex flex-wrap gap-1.5">
               {profileKeywords.map((k) => <Badge key={k} variant="secondary" dir="auto">{k}</Badge>)}
             </div>
           </>
-        ) : <p className={cn(sub, 'mt-1')}>{sc(lang, ('profile_' + profileState) as ServicesKey)}</p>}
+        ) : <p className={cn(sub, 'mt-1')}>{VERIFY_COPY[('profile_' + profileState) as 'profile_none']}</p>}
       </section>
 
       {docs.length === 0 && allDocs.length > 0 && (
         <ul className="mt-2 space-y-1">
-          {allDocs.map((doc) => <li key={doc.path} className="text-[12.5px] text-muted-foreground"><span className="font-medium text-foreground break-all" dir="auto">{doc.name}</span>{' — '}{doc.status === 'read' ? sc(lang, 'doc_read_none') : doc.status}</li>)}
+          {allDocs.map((doc) => <li key={doc.path} className="text-[12.5px] text-muted-foreground"><span className="font-medium text-foreground break-all" dir="auto">{doc.name}</span>{' — '}{doc.status === 'read' ? VERIFY_COPY.doc_read_none : doc.status}</li>)}
         </ul>
       )}
 

@@ -26,15 +26,6 @@ export const SERVICES_COPY = {
     refine_badge: 'More specific trade: tick only what you do',
     confirmed_badge: 'Confirmed',
     found_in: 'Found in your documents',
-    // 2 Nov 2026 (ledger 1469): verification needs the supplier to confirm the summary and keywords of its company profile.
-    verify_needed: 'To be verified, confirm what your company does. Below is the summary and the keywords our sales engineer prepared from your company profile. Check them, correct anything wrong, then press Confirm my services. Until you do, your registration stays Pending, even when your mobile, e-mail, trade licence, company profile and terms are complete.',
-    profile_summary_title: 'Summary of your company profile',
-    profile_keywords: 'Keywords of your services',
-    profile_none: 'We read your company profile and found no service we could match. Tick what you do below, or describe it in your own words.',
-    profile_reading: 'We are still reading your company profile. This page updates by itself when the read finishes.',
-    profile_scan: 'Your company profile is a scan or photo that we could not read as text yet. Tick what you do below, or describe it in your own words.',
-    profile_missing: 'No company profile has been read yet. Upload it in Documents, or describe your services below.',
-    doc_read_none: 'read, no service matched',
     select_all: 'Select all',
     clear_all: 'Clear',
     remove_trade: 'Remove this trade',
@@ -116,14 +107,6 @@ export const SERVICES_COPY = {
     refine_badge: 'تخصص أدق: حدّدوا ما تقدّمونه منه فقط',
     confirmed_badge: 'مؤكَّد',
     found_in: 'وجدناه في مستنداتكم',
-    verify_needed: 'للتوثيق، يُرجى تأكيد ما تقدّمه شركتكم. أدناه الملخّص والكلمات المفتاحية التي أعدّها مهندس المبيعات من ملف تعريف شركتكم. راجعوها وصحّحوا ما يلزم ثم اضغطوا تأكيد خدماتي. وإلى حين ذلك يبقى تسجيلكم قيد المراجعة حتى لو اكتملت بقية البيانات.',
-    profile_summary_title: 'ملخّص ملف تعريف شركتكم',
-    profile_keywords: 'الكلمات المفتاحية لخدماتكم',
-    profile_none: 'قرأنا ملف تعريف شركتكم ولم نجد خدمة نطابقها. حدّدوا ما تقدّمونه أدناه أو صِفوه بكلماتكم.',
-    profile_reading: 'ما زلنا نقرأ ملف تعريف شركتكم، وتتحدّث هذه الصفحة تلقائيًا عند انتهاء القراءة.',
-    profile_scan: 'ملف تعريف شركتكم صورة ممسوحة لم نتمكن من قراءتها كنص بعد. حدّدوا ما تقدّمونه أدناه أو صِفوه بكلماتكم.',
-    profile_missing: 'لم نقرأ ملف تعريف لشركتكم بعد. يُرجى رفعه في المستندات أو وصف خدماتكم أدناه.',
-    doc_read_none: 'قُرئ ولم تتطابق خدمة',
     select_all: 'تحديد الكل',
     clear_all: 'إلغاء التحديد',
     remove_trade: 'إزالة هذا التخصص',
@@ -205,3 +188,16 @@ export function countServices(keys: readonly string[], ownWords: readonly string
   const words = new Set(ownWords.map((w) => w.replace(/\s+/g, ' ').trim().toLowerCase()).filter((w) => w.length >= 2));
   return new Set(keys).size + words.size;
 }
+
+// English only, on purpose (ledger 1469; suppliers are always written to in English, ruling 1008): what the Services tab says about
+// verification and about what was read from the company profile.
+export const VERIFY_COPY = {
+  verify_needed: 'To be verified, confirm what your company does. Below is the summary and the keywords our sales engineer prepared from your company profile. Check them, correct anything wrong, then press Confirm my services. Until you do, your registration stays Pending, even when your mobile, e-mail, trade licence, company profile and terms are complete.',
+  profile_summary_title: 'Summary of your company profile',
+  profile_keywords: 'Keywords of your services',
+  profile_none: 'We read your company profile and found no service we could match. Tick what you do below, or describe it in your own words.',
+  profile_reading: 'We are still reading your company profile. This page updates by itself when the read finishes.',
+  profile_scan: 'Your company profile is a scan or photo that we could not read as text yet. Tick what you do below, or describe it in your own words.',
+  profile_missing: 'No company profile has been read yet. Upload it in Documents, or describe your services below.',
+  doc_read_none: 'read, no service matched',
+} as const;
