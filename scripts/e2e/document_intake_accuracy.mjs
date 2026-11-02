@@ -161,7 +161,7 @@ supplierDocs.forEach((d, i) => {
           'Dubai', 'Dubai', 'document_intake_accuracy', array['qd_demo', ${q('qd_run:' + tag)}]::text[])
   returning id into lid;
   ids := ids || lid;
-  v := public.fn_sales_engineer_verifies_supplier(lid, 'save_profile');
+  v := public.fn_sales_engineer_verifies_supplier(lid, 'document_intake_accuracy');
   ${m.trades.length ? `insert into public.supplier_capabilities (supplier_id, trades, roles, products_norm, project_types, brands, exclusions, authority_approvals,
       source_docs, confidence, missing_fields, excluded_trades, completeness, review_status, confirmed_at, extracted_at, coverage_emirates)
     values (lid, ${arr(m.trades)}, ${arr(roles)}, '{}', '{}', '{}', '{}',
