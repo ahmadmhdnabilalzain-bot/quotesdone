@@ -1598,6 +1598,8 @@ select cron.schedule('seat_duty:sales_engineer.lead_email_check','*/5 * * * *',$
 select cron.schedule('seat_duty:sales_engineer.invite_restart','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.invite_restart');$CRON$);
 select cron.schedule('seat_duty:sales_engineer.supplier_reply_followups','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.supplier_reply_followups');$CRON$);
 select cron.schedule('seat_duty:customer_support.dead_answer_rescue','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.dead_answer_rescue');$CRON$);
+select cron.schedule('seat_duty:ceo.supplier_growth','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.supplier_growth');$CRON$);
+select cron.schedule('seat_duty:ceo.daily_number','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.daily_number');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
