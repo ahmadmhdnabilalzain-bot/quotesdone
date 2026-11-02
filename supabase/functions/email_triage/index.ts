@@ -30,6 +30,7 @@ import { fileReviewRequest } from '../_shared/review_request.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { TRIAGE_LLM } from './triage_llm.ts';
+import { beat, budgetLeft, closeStaleRuns } from './run_guard.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
@@ -94,6 +95,9 @@ Deno.serve(observe('email_triage', async (req) => {
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'email_triage');
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
+    const startedAt = Date.now();
+    // A run the platform ended without a word is closed here with its reason (run_guard.ts): a kill skips every catch.
+    const closedStale = await closeStaleRuns(admin, 'email_triage');
     const { data: run } = await admin.from('agent_runs').insert({ agent: 'email_triage' }).select('id').maybeSingle();
     const counts = { triaged: 0, drafted: 0, spam: 0, unknown_sender_to_judgement: 0, not_answered: 0, answered: 0, answer_failed: 0 } as Record<string, number>;
     const judgementIds: number[] = [];
@@ -117,6 +121,9 @@ Deno.serve(observe('email_triage', async (req) => {
       }
     };
     for (const m of ((msgs || []) as Mail[])) {
+      // A smaller unit: past the budget no NEW message is started; the rest stay untriaged for the next tick.
+      if (!budgetLeft(startedAt)) { counts.deferred_over_budget = (counts.deferred_over_budget || 0) + 1; continue; }
+      await beat(admin, run?.id, 'message ' + m.id + ' (triage)');
       // 1. NEVER ANSWERED: the founder, no-reply and verification senders, calendar replies, bounces.
       let skip = noAutoReply(m, founder);
       // An invited supplier's reply to the invitation mailbox (supplier@) is the one 'internal' row that IS answered:
@@ -186,6 +193,7 @@ Deno.serve(observe('email_triage', async (req) => {
       }
       if (category === 'spam') { counts.spam++; continue; }
       if (reply) counts.drafted++;
+      await beat(admin, run?.id, 'message ' + m.id + ' (answer)');
       await reply1(m, audienceOf(relation), await mailFacts(admin, String(m.from_email || ''), relation, (m as { raw?: unknown }).raw));
     }
     // THE REPLY LEAVES NOW, not on the outbox's 2-minute poll (the founder's "under a minute").
@@ -199,7 +207,7 @@ Deno.serve(observe('email_triage', async (req) => {
     }
     // Judge the unknown senders now; any held (the model hold) stay queued for resilience_ping. Never a word list.
     const judgements = judgementIds.length ? await drainJudgements(deps, judgementIds.length, judgementIds) : null;
-    if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: counts.answer_failed ? 'error' : 'ok', counts: { ...counts, judgements } }).eq('id', run.id);
+    if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: counts.answer_failed ? 'error' : 'ok', counts: { ...counts, judgements, closed_stale_runs: closedStale }, note: null }).eq('id', run.id);
     return J({ ok: true, counts });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 }));
