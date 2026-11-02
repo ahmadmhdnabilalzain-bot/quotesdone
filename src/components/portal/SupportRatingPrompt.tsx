@@ -24,7 +24,7 @@ const COPY = {
     csat: 'مدى رضاكم', csatLo: 'غير راضٍ', csatHi: 'راضٍ جداً',
     ces: 'ما مدى سهولة حل المشكلة؟ (اختياري)', cesLo: 'صعب جداً', cesHi: 'سهل جداً',
     send: 'إرسال التقييم', sending: 'جارٍ الإرسال…', thanks: 'شكراً لكم، تم تسجيل تقييمكم.',
-    failed: 'لم يُحفظ التقييم، يُرجى المحاولة مرة أخرى.', later: 'ليس الآن', rate: 'قيّم',
+    failed: 'لم يُحفظ التقييم، يُرجى المحاولة مرة أخرى.', later: 'ليس الآن', rate: 'تقييم',
   },
 };
 
@@ -62,7 +62,9 @@ function Scale({ label, lo, hi, max, value, onPick, rtl }: { label: string; lo: 
 }
 
 export default function SupportRatingPrompt({ token, lang, api }: { token: string; lang: string; api: Api }) {
-  const L: Lang = lang === 'ar' ? 'ar' : 'en';
+  // A supplier is always English (founder ruling 1008) whatever language the caller passes: the supplier portal's
+  // constant is not the only guard, the component holds the rule itself.
+  const L: Lang = api === 'supplier_api' ? 'en' : lang === 'ar' ? 'ar' : 'en';
   const t = COPY[L];
   const [due, setDue] = useState<Due[]>([]);
   const [csat, setCsat] = useState<number | null>(null);
