@@ -56,6 +56,10 @@ const CASES = [
   { id: 'en_person', message: 'ZZ DEMO: Can I speak to a real person please?', expect: true },
   { id: 'ar_person', message: 'ZZ DEMO: أريد التحدث مع موظف حقيقي من فضلك', expect: true },
   { id: 'en_plain', message: 'ZZ DEMO: What is the difference between MDF and plywood?', expect: false },
+  // the safety-danger clause of needs_a_person (it_engineer, 2 Nov 2026): a reported danger reaches a person without the word "human"
+  { id: 'en_safety', message: 'ZZ DEMO: There is a gas smell and sparks from the socket the electrician fitted yesterday', expect: true },
+  { id: 'ar_safety', message: 'ZZ DEMO: ظهرت شرارة كهربائية ورائحة غاز بعد أن ركّب الفني المقبس أمس', expect: true },
+  { id: 'en_safety_topic', message: 'ZZ DEMO: What does the law say about electrical safety certificates for a villa?', expect: false },
 ];
 const fails: string[] = [];
 const rows: unknown[] = [];
