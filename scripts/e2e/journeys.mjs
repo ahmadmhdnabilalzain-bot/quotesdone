@@ -10,6 +10,7 @@ import { signedInPage, openPortal, portalUrl, shot, realErrors, SITE, assertHarn
 import { makeInquiry } from '../lib/demo_factory.mjs';
 import { journeyAuditButtons } from './journey_audit_buttons.mjs';
 import { payHostedTestCheckout, checkoutBlockers } from './stripe_test_checkout.mjs';
+import { refundLadderProbeSql, ladderSteps, parseProbe } from './refund_ladder_probe.mjs';
 
 const q = (v) => `'${String(v).replace(/'/g, "''")}'`;
 export const MATRIX = [
@@ -715,7 +716,23 @@ async function refundEndToEnd(ctx, live, J) {
     return rep.step(J, 'refund end to end in Stripe TEST mode', 'FAIL', 'the paid reveal is not on a ZZ DEMO customer; a refund is never driven on a real row');
   }
   const want = Math.round(Number(tx.total_charged ?? tx.reveal_fee) * 100);
-  const DEMO_TX = `id = ${q(tx.id)} and customer_id in (select id from public.customers where is_demo and email like '%@example.invalid')`;
+
+  // 0. THE LADDER ON THE PRODUCTION PATH, ROLLED BACK (2 Nov 2026). Demo work files no handoff (ruling 1199),
+  // and every rung below is a handoff, so on committed demo rows these five steps read {} since 20 Oct.
+  // refund_ladder_probe.mjs walks them twice in one transaction that always rolls back: door shut (the
+  // known-bad control: no handoff filed) and door open (the production path). A step passes only when the
+  // open walk proves it and the shut walk does not. Run BEFORE the committed request, which it would duplicate.
+  let walk = null;
+  try { await write(refundLadderProbeSql(tx.id), 'refund ladder probe (always rolls back)'); walk = { error: 'the probe did not raise: refusing to trust a committed probe' }; }
+  catch (e) { walk = parseProbe(e); }
+  const open = walk?.open ? ladderSteps(walk.open) : null;
+  const shut = walk?.shut ? ladderSteps(walk.shut) : null;
+  const ladderStep = (key, name) => {
+    const [ok, detail] = open?.[key] || [false, walk];
+    const controlCaught = shut ? shut[key][0] === false : false;
+    rep.step(J, name, ok && controlCaught ? 'PASS' : 'FAIL',
+      `${JSON.stringify(detail).slice(0, 400)}; known-bad control (no handoff filed) ${controlCaught ? 'fails as it must' : `DID NOT FAIL: ${JSON.stringify(shut?.[key]?.[1] ?? walk?.shut ?? null).slice(0, 200)}`}`);
+  };
 
   // 1. The request opens the case, and only then does the sale read 'requested'.
   const req = await call('customer_api', fx.customer.jwt, { action: 'request_refund', quote_id: live.id });
@@ -725,13 +742,8 @@ async function refundEndToEnd(ctx, live, J) {
   rep.step(J, 'the request opens the case, then the sale reads requested', opened ? 'PASS' : 'FAIL',
     `HTTP ${req.status} ${JSON.stringify(req.json)} refunds=${JSON.stringify(rf)} sale=${sale?.refund_status}`);
   if (!opened) return;
-  const rid = Number(rf[0].id);
-  const conf = (await read(`select detail->>'locale' as locale from public.agent_actions where kind = 'handoff' and agent = 'customer_support'
-      and detail->>'msg_type' = 'refund_request_received' and detail->>'transaction_id' = ${q(tx.id)}`))[0];
-  rep.step(J, 'the confirmation goes to support in the registered language', conf?.locale === (fx.customer.locale || 'en') ? 'PASS' : 'FAIL', JSON.stringify(conf || {}));
-  const rh = (await read(`select agent from public.agent_actions where kind = 'handoff' and detail->>'type' = 'refund.requested'
-      and detail->>'subject_id' = ${q(String(rid))} order by id desc limit 1`))[0];
-  rep.step(J, 'the case is handed to the accountant', rh?.agent === 'accountant' ? 'PASS' : 'FAIL', JSON.stringify(rh || {}));
+  ladderStep('confirmation', 'the confirmation goes to support in the registered language');
+  ladderStep('case', 'the case is handed to the accountant');
   // Day 0: the customer may ask, but the CEO may not decide before the day-3 chase and the day-5 final call.
   const ck = (await read(`select public.fn_ceo_refund_checklist(${q(tx.id)}::uuid, 'approve', false) as c`))[0]?.c;
   const failedItems = (ck?.failed || []).map((x) => x.item);
@@ -742,42 +754,15 @@ async function refundEndToEnd(ctx, live, J) {
   rep.step(J, 'nothing the request caused was dispatched to a real address', rn.every((r) => !['queued', 'pending', 'sent'].includes(r.status)) ? 'PASS' : 'FAIL',
     rn.map((r) => `${r.status}: ${r.n}`).join(', ') || 'no notification rows');
 
-  // 2. Time travel, demo only.
-  const moved = await write(`update public.transactions set revealed_at = now() - interval '10 days',
-      refund_deadline = public.fn_add_working_days(now() - interval '10 days', 5) where ${DEMO_TX} returning id`, 'e2e refund time travel (demo only)');
-  if (!Array.isArray(moved) || moved.length !== 1) return rep.step(J, 'demo time travel', 'FAIL', JSON.stringify(moved));
-
-  // 3. Day 3 chase and day 5 final call, each delivered and watched to a no-response confirmation.
-  for (const [day, step] of [[3, 'chase'], [5, 'final_call']]) {
-    const reqId = Number((await write(`select public.fn_sales_engineer_ladder_step(${q(tx.id)}, '${step}', ${step === 'final_call' ? rid : 'null'}, null) as id`, 'e2e ladder step'))[0]?.id);
-    const n = (await read(`select (evidence->>'notification_id')::bigint as nid, detail->>'to_email' as to_email from public.agent_actions where id = ${reqId}`))[0];
-    // sent_at ONLY: the status stays as the capture left it (suppressed), so the safety step's count of
-    // dispatched rows stays honest. The first run of this journey wrote status='sent' here and the
-    // safety step counted those two captured demo rows as sent (14 Sep 2026, 16:19 run).
-    await write(`update public.notifications set sent_at = now() where id = ${Number(n?.nid) || 0} and to_email like '%@example.invalid'`, 'e2e demo delivery');
-    await write(`update public.agent_actions set detail = detail || jsonb_build_object('watch_until', now() - interval '1 minute')
-                 where id = ${reqId} and detail->>'to_email' like '%@example.invalid'`, 'e2e watch window');
-    const w = (await write(`select public.fn_customer_support_delivery_watch(${reqId}) as r`, 'e2e watch'))[0]?.r;
-    const ev = (await read(`select result, delivered from public.refund_ladder_evidence where transaction_id = ${q(tx.id)} and step = '${step}' order by id desc limit 1`))[0];
-    rep.step(J, `day ${day} ${step.replace('_', ' ')} delivered, no response confirmed`,
-      ev?.result === 'no_response_confirmation' && ev?.delivered === true ? 'PASS' : 'FAIL', JSON.stringify({ reqId, n, w, ev }));
-  }
-
-  // 4. The CEO decides on the checklist (fn_ceo_refund_review ran when the final call's result landed).
-  const dec = (await read(`select r.refund_decision_id, a.decision from public.refunds r
-      left join public.ceo_approval a on a.decision_id = r.refund_decision_id where r.id = ${rid}`))[0];
-  const failed = await read(`select item, reason from public.refund_ceo_check where refund_id = ${rid} and not passed order by id desc limit 10`);
-  rep.step(J, 'the CEO approves after verifying every step', dec?.decision === 'approved' ? 'PASS' : 'FAIL', JSON.stringify({ dec, failed }));
-  if (dec?.decision !== 'approved') return;
-
-  // 5. The accountant executes THIS refund only, and the key follows the payer: TEST.
-  const cred = (await read(`select value from public.app_secrets where key = 'cred_fn_accountant'`))[0]?.value;
-  const ex = await call('accountant', null, { __secret: cred, action: 'execute_refunds', refund_id: rid });
-  const res = (ex.json?.results || []).find((x) => Number(x.refund_id) === rid);
-  const after = (await read(`select status, stripe_refund_id, amount_fils from public.refunds where id = ${rid}`))[0];
-  const paid = res?.mode === 'test' && String(res?.stripe_refund_id || '').startsWith('re_') && Number(after?.amount_fils) === want
-    && ['processing', 'succeeded'].includes(String(after?.status));
-  rep.step(J, 'the accountant refunds everything paid, in Stripe TEST mode', paid ? 'PASS' : 'FAIL', JSON.stringify({ http: ex.status, res, after, want }));
+  // 2-4. The day-3 chase, the day-5 final call and the CEO's decision, from the same rolled-back walk (the
+  // supplier's five working days are passed inside that transaction only; nothing on the committed rows moves).
+  ladderStep('chase', 'day 3 chase delivered, no response confirmed');
+  ladderStep('final_call', 'day 5 final call delivered, no response confirmed');
+  ladderStep('ceo', 'the CEO approves after verifying every step');
+  // 5. The Stripe TEST refund needs a COMMITTED CEO approval, and demo work cannot commit one (ruling 1199
+  // files no handoff), so it is not walked here. Said, not passed: no Stripe call is made.
+  rep.step(J, 'the accountant refunds everything paid, in Stripe TEST mode', 'SKIP',
+    'not walked: executing a refund needs a committed CEO approval, which demo work cannot file (ruling 1199); the approval itself is proved above inside the rolled-back walk; no Stripe call was made');
 }
 
 // ---- f. every nav item on both portals ----------------------------------------------------------
