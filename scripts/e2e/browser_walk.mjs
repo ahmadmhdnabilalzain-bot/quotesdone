@@ -326,7 +326,7 @@ export async function walkPortal(browser, who, view, lang) {
     const f = await domFacts(page);
     const file = join(dir, String(i++).padStart(2, '0') + '_' + slug(label) + '.png');
     await page.screenshot({ path: file, fullPage: true }).catch(() => {});
-    r = judge(f, { lang: want, audience: who.kind, ms: Date.now() - t0, bag, url: page.url() });
+    r = judge(f, { lang: want, audience: who.kind, ms: clicked ? Date.now() - t0 : 0, bag, url: page.url() });   // a press that failed spent 5 s in click's own timeout: that is not the tab's load time (run f0b2de8f read 5.1-5.8 s as "slow load" on every blocked tab; the tabs that opened loaded in 140-630 ms)
     if (!clicked) { r.status = 'FAIL'; r.issues.unshift({ sev: 'high', what: `nav item "${label}" could not be pressed` }); }
     rep.add({ journey: J, step: 'tab: ' + label, ...r, shot: file });
     console.log(`${r.status} ${J} tab:${label} ${r.issues.map((x) => x.what.slice(0, 80)).join(' ; ')}`);
@@ -505,7 +505,13 @@ async function customerJourney(browser, w, lang, view) {
     const tCards = Date.now();
     await card.waitFor({ state: 'visible', timeout: CARDS_WAIT_MS }).catch(() => {});
     const cardsMs = Date.now() - tCards;
-    if (!(await card.count())) return [false, `no request of this customer has a quote on screen after ${cardsMs} ms (were quotes released for this customer?)`];
+    // WHAT WAS ON SCREEN IS NAMED (run f0b2de8f, 2 Nov 2026): C1's step gave up at 60 s on a page whose screenshot, taken a moment later, shows a
+    // "Revealed · Aluminium · 4 quotes" card, while the portal's tabs loaded in 140-630 ms. The cause is not yet known, so the failure now lists
+    // every request card the page held (id and its first words), which tells a late list from a card the filter does not match.
+    if (!(await card.count())) {
+      const seen = await page.locator('[id^="inq-"]').evaluateAll((els) => els.map((e) => `${e.id}: ${(e.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 90)}`)).catch(() => []);
+      return [false, `no request of this customer has a quote on screen after ${cardsMs} ms (were quotes released for this customer?); request cards on screen: ${seen.length ? seen.join(' | ') : 'none'}`];
+    }
     const slowNote = cardsMs > CARDS_SLOW_MS ? `; SLOW: the quoted card took ${cardsMs} ms to appear (over ${CARDS_SLOW_MS} ms)` : `; card on screen in ${cardsMs} ms`;
     const head = card.locator('[role=button][aria-expanded]').first();
     if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click();

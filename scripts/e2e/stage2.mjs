@@ -744,8 +744,15 @@ async function realRun(pre) {
       const ds = await liveDuties(read, readFileSync(join(REPO, 'supabase/functions/resilience_ping/index.ts'), 'utf8'));
       const out = [];
       for (const d of ds) {
-        const r = await probeDuty(d, tag);
-        out.push({ duty: d.duty, routine: d.routine, ...r });
+        // TWO RUNS, BOTH ROLLED BACK (run f0b2de8f, 2 Nov 2026). The duty on the LIVE rows is how a defect that only real data reaches is found
+        // (knowledge_request_deadline raised on a real handoff); it may write real rows, because that is its job. The duty in its own FIXTURE
+        // mode is the demo scope the name of the second assertion promises, and it must write no real row (supplier_onboarding's invite
+        // nudges ignored the switch and wrote 20). Before this the one run had no switch on, so every duty with real work "failed" the scope.
+        const live = await probeDuty(d, tag, false);
+        out.push({ duty: d.duty, routine: d.routine, mode: 'live', ...live });
+        A(`duty ${d.duty} runs on the live rows without error (rolled back)`, !live.error, live.error || `${live.ms} ms, result ${String(live.result).slice(0, 120)}`);
+        const r = await probeDuty(d, tag, true);
+        out.push({ duty: d.duty, routine: d.routine, mode: 'fixtures', ...r });
         A(`duty ${d.duty} ran on the demo scope and wrote no real row`, !r.error && r.real === 0,
           r.error || `demo rows written ${r.demo}, real ${r.real}, ${r.ms} ms, result ${String(r.result).slice(0, 120)}`);
       }
@@ -859,7 +866,7 @@ async function realRun(pre) {
     // with a company profile (rotating PDF / DOCX / PPTX / picture) and, for the first, a catalogue. What is
     // asserted is what the supplier's ROW ends with, not what a reader module returns.
     S21: async () => {
-      const { buildCorpus } = await import('./document_intake_corpus.mjs');
+      const { buildCorpus, profileBytes } = await import('./document_intake_corpus.mjs');
       const { judge } = await import('./document_intake_score.mjs');
       const cdir = join(OUT, 'documents', `stage2_${tag}`);
       const docs = await buildCorpus(cdir);
@@ -868,6 +875,15 @@ async function realRun(pre) {
       const profiles = docs.filter((d) => d.kind === 'profile');
       const catalogue = docs.find((d) => d.kind === 'catalogue');
       const b64 = (d) => ({ original_b64: readFileSync(join(cdir, d.file)).toString('base64'), mime: d.mime, filename: `qd-${tag}-${d.file}` });
+      // THE SUPPLIER'S OWN PROFILE (run f0b2de8f, 2 Nov 2026: 16 of 21 shapes proposed none of the profile's trades). The corpus profile
+      // prints a fictional company ("ZZ DEMO Falcon Projects LLC"), but each shape registers the supplier under its licence's company;
+      // a profile that names ANOTHER company than the registered one proposes no trade, by design (supplier_trade_choice: whose work
+      // counts; sales_engineer, #1796). A real supplier uploads its own profile, so each shape's profile now prints the registered
+      // name, with the same trades, brands and format. The pptx profile passed before only because its services slide prints no name.
+      const ownProfile = async (p, name) => {
+        const { bytes, mime } = await profileBytes(p.format, name, p.truth.trades, p.truth.brands, profiles.indexOf(p));
+        return { original_b64: bytes.toString('base64'), mime, filename: `qd-${tag}-${p.file}` };
+      };
       const norm = (s) => String(s ?? '').toLowerCase().replace(/&/g, ' and ').replace(/[.,،'’`()\-]/g, ' ').replace(/\s+/g, ' ').trim();
       const unreadFamily = new Set(['licence_unreadable', 'licence_expiry_unread', 'licence_number_unread']);
       const auto = (await read(`select coalesce(auto_approve_suppliers,false) a from public.pricing_config where id=1`))[0]?.a === true;
@@ -890,7 +906,7 @@ async function realRun(pre) {
         await call('kyc', s.jwt, { action: 'accept_terms', user_kind: 'supplier', email });
         await call('kyc', s.jwt, { action: 'whatsapp_choose', user_kind: 'supplier', email, opt: 'same' });
         const w0 = await costWatermark();
-        const body = { action: 'process_docs', license: b64(d), company_profile: b64(prof), ...(i === 0 && catalogue ? { catalogs: [b64(catalogue)] } : {}) };
+        const body = { action: 'process_docs', license: b64(d), company_profile: await ownProfile(prof, d.registered_name), ...(i === 0 && catalogue ? { catalogs: [b64(catalogue)] } : {}) };
         const r = await call('supplier_api', s.jwt, body, 240000);
         const route = (await costSince(w0)).map((x) => `${x.task_class}:${x.model_used}`).join(' ');
         // WAIT FOR THE READING TO END, NOT FOR THE FIRST GATE (run 0a717394). process_docs answers before the profile and

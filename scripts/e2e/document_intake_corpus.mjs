@@ -293,7 +293,7 @@ function zip(entries) {
   return Buffer.concat([...parts, cd, end]);
 }
 const X = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
-function docx(paras) {
+export function docx(paras) {
   const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
   return zip([['[Content_Types].xml', `${X}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`],
     ['word/document.xml', `${X}<w:document ${W}><w:body>${paras.map((p) => `<w:p><w:r><w:t xml:space="preserve">${xml(p)}</w:t></w:r></w:p>`).join('')}</w:body></w:document>`]]);
@@ -312,6 +312,18 @@ function profileLines(name, trades, brands, i) {
     'Our services', ...trades.map((t) => `- ${PROFILE_SERVICE[t]}`), 'Brands we work with', `- ${brands.join(', ')}`,
     'Capacity', `- ${40 + i * 10} skilled staff, ${2 + i} project teams, projects up to AED ${(i + 2) * 500},000`,
     'Certifications', '- ISO 9001:2015 quality management', '(QuotesDone synthetic fixture - not a real company)'];
+}
+
+// A company profile of a given format, printing the given company's name. The corpus prints its own fictional company on each
+// profile; stage 2 S21 prints the SUPPLIER's registered name on it (stage-2 run f0b2de8f, 2 Nov 2026: a profile that names another
+// company than the registered one proposes no trade, by design, so a profile of "another company" cannot prove the reading).
+export async function profileBytes(fmt, name, trades, brands, i) {
+  const lines = profileLines(name, trades, brands, i);
+  if (fmt === 'pdf') return { bytes: demoPdfPages([lines.map((l) => [l, l.startsWith('-') ? 10 : 12])]), mime: 'application/pdf' };
+  if (fmt === 'docx') return { bytes: docx(lines), mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' };
+  if (fmt === 'pptx') return { bytes: pptx([lines.slice(0, 3), lines.slice(3)]), mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' };
+  const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="1400"><rect width="100%" height="100%" fill="#fff"/>${lines.map((l, k) => `<text x="80" y="${120 + k * 70}" font-family="Arial" font-size="30">${xml(l)}</text>`).join('')}</svg>`);
+  return { bytes: await sharp(svg).png().toBuffer(), mime: 'image/png' };
 }
 
 // ── the corpus ─────────────────────────────────────────────────────────────────────────────────────
@@ -376,15 +388,8 @@ export async function buildCorpus(outDir) {
   for (const d of docs.filter((x) => x.pending)) {
     const { trades, brands, fmt, i } = d.pending; delete d.pending;
     const name = `ZZ DEMO ${NAMES[i + 3]} Projects LLC`;
-    const lines = profileLines(name, trades, brands, i);
-    let bytes, mime, ext = fmt;
-    if (fmt === 'pdf') { bytes = demoPdfPages([lines.map((l) => [l, l.startsWith('-') ? 10 : 12])]); mime = 'application/pdf'; }
-    else if (fmt === 'docx') { bytes = docx(lines); mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'; }
-    else if (fmt === 'pptx') { bytes = pptx([lines.slice(0, 3), lines.slice(3)]); mime = 'application/vnd.openxmlformats-officedocument.presentationml.presentation'; }
-    else {
-      const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="1400"><rect width="100%" height="100%" fill="#fff"/>${lines.map((l, k) => `<text x="80" y="${120 + k * 70}" font-family="Arial" font-size="30">${xml(l)}</text>`).join('')}</svg>`);
-      bytes = await sharp(svg).png().toBuffer(); mime = 'image/png';
-    }
+    const { bytes, mime } = await profileBytes(fmt, name, trades, brands, i);
+    const ext = fmt;
     writeFileSync(join(outDir, `${d.id}.${ext}`), bytes);
     Object.assign(d, { file: `${d.id}.${ext}`, mime, kind: 'profile', authority: 'n/a', format: fmt, registered_name: name, truth: { trades: [...trades].sort(), brands }, text_layer: fmt !== 'png' });
   }

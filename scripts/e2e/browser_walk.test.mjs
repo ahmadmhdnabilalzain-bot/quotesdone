@@ -58,6 +58,8 @@ test('the journey opens "New request" before it types or attaches', () => {
 // Run 0a717394 (19 Oct): the quotes step gave up at 20 s; its own screenshot then showed C1's "4 quotes" card.
 test('the quotes step waits long enough for the request cards and names a slow list as slow', () => {
   assert.match(SRC, /export const CARDS_WAIT_MS = 60000, CARDS_SLOW_MS = 10000;/);
+  assert.match(SRC, /request cards on screen: \$\{seen\.length/, 'a failed quotes step names the request cards the page held');
+  assert.match(SRC, /ms: clicked \? Date\.now\(\) - t0 : 0/, 'a blocked press is not reported as a slow load (its 5 s is the click timeout)');
   assert.match(SRC, /await card\.waitFor\(\{ state: 'visible', timeout: CARDS_WAIT_MS \}\)/);
   assert.doesNotMatch(SRC, /await card\.waitFor\(\{ state: 'visible', timeout: 20000 \}\)/);
   assert.match(SRC, /SLOW: the quoted card took \$\{cardsMs\} ms/);
