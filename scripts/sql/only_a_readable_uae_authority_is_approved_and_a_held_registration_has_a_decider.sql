@@ -214,10 +214,10 @@ begin
                             'reason', v_reason, 'auto_approve', v_auto);
 end $function$;
 
-insert into public.it_duty_schedule (duty, every, note) values
-  ('held_registrations', interval '1 hour',
+insert into public.it_duty_schedule (duty, every, owner_seat, note) values
+  ('held_registrations', interval '1 hour', 'sales_engineer',
    'sales_engineer: a held registration is asked for what is missing at once, day 3 and day 7; the ceo seat closes it at day 14 (fn_sales_engineer_decides_held_registrations)')
-on conflict (duty) do update set every = excluded.every, note = excluded.note;
+on conflict (duty) do update set every = excluded.every, owner_seat = excluded.owner_seat, note = excluded.note;
 
 create or replace function public.fn_sales_engineer_decides_held_registrations(p_at timestamptz default now())
  returns jsonb
