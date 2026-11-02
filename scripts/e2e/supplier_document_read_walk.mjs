@@ -100,7 +100,9 @@ async function browserLicence(c, who, id) {
     await page.goto(`${SITE}/portal`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     // A claimed supplier manages the licence in the Documents tab (SupplierPortal: save_documents), not the sign-up form.
     await page.getByRole('button', { name: /^Documents$/ }).first().click({ timeout: 60000 });
-    const input = page.locator('input[type=file]').first();
+    const head = page.getByText('Documents & certificates').first();
+    await head.waitFor({ timeout: 60000 });
+    const input = head.locator('xpath=following::input[@type="file"][1]');
     await input.waitFor({ state: 'attached', timeout: 60000 });
     o.reached = true;
     const isLic = (r) => /\/functions\/v1\/supplier_portal/.test(r.url()) && /save_documents/.test(r.request().postData() || '');
