@@ -5,7 +5,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { annotate, observe } from '../_shared/observe.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoEmail, isDemoPhone } from '../_shared/demo_identity.ts';
 import { dobProblem } from '../_shared/account_rule.ts';
-import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
+import { clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { customerTermsRecord } from '../_shared/customer_terms.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
@@ -556,8 +556,9 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       // replaced that record with one carrying no hash. It is written here only when the current version
       // is not already on file, and then through the same helper (_shared/supplier_terms.ts).
       if (kind === 'supplier') {
-        const curV = await currentSupplierTermsVersion(sec);
-        if (!(lead as any)?.accepted_terms_at || (lead as any)?.accepted_terms_version !== curV) {
+        // 2 Nov 2026 (ceo): an acceptance of a version the current one carries (a contact-only revision) stands
+        // and is not rewritten, so no second acceptance and no second certificate (_shared/supplier_terms.ts).
+        if (!(lead as any)?.accepted_terms_at || !(await supplierAcceptanceStands(sec, (lead as any)?.accepted_terms_version))) {
           const rec = await supplierTermsRecord(sec, ip, req.headers.get('user-agent') || '');
           if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
           await admin.from('leads').update(rec).eq('claimed_by', email);
