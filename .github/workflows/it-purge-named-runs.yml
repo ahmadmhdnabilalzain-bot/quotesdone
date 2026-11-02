@@ -1,0 +1,33 @@
+name: Purge named test runs (it_engineer, exact tags)
+
+# 2 Nov 2026: overnight walks left 7 delivered+qd-*@resend.dev auth users and ZZ DEMO leads/windows. This lists, tears down
+# by exact run tag with the harness's own teardown, closes each window and re-counts. Never a broad delete.
+on:
+  workflow_dispatch:
+    inputs:
+      tags:
+        description: 'space-separated 8-character run tags'
+        required: true
+  push:
+    paths:
+      - .github/workflows/it-purge-named-runs.yml
+
+jobs:
+  purge:
+    if: ${{ github.ref_name != 'main' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      QD_FIXTURES: '1'
+      # the push trigger uses the tags named for 2 Nov 2026: the 7 Resend sink runs, 82bf7a60 and probe 86287029 (not b7c417ae: in progress)
+      TAGS: ${{ github.event.inputs.tags || '9c047f52 61008c93 f42cbd04 8a65d275 9bfce80b c831c2d4 0bea7edc 82bf7a60 86287029' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci
+        timeout-minutes: 8
+      - run: node scripts/e2e/purge_named_runs.mjs $TAGS
+        timeout-minutes: 10

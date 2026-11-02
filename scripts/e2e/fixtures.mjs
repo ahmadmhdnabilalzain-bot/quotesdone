@@ -148,13 +148,30 @@ export async function closeRun(run, { keep = false } = {}) {
       const stray = await read(`select bucket_id b, name from storage.objects where name like ${q('%' + run.tag + '%')}`);
       for (const o of stray) await deleteObject(o.b, o.name);
     }
+  } catch (e) {
+    teardownDirty(run, `teardown threw: ${String(e.message || e).slice(0, 300)}`);
+    throw e;
   } finally {
     // ALWAYS closed, even when teardown throws. An open window silences the failed-run watcher for up
     // to six hours - the first harness run left one open exactly that way (14 Sep 2026).
     await write(`update public.rehearsal_window set ended_at = now(), models_allowed = false where run_tag = ${q('qd_run:' + run.tag)} and ended_at is null`, 'rehearsal window');
     if (process.env.QD_E2E_RUN_TAG === run.tag) delete process.env.QD_E2E_RUN_TAG;
   }
-  return { removed, leftovers: keep ? null : await leftovers(run) };
+  const left = keep ? null : await leftovers(run);
+  if (left && left.total > 0) teardownDirty(run, `teardown left rows: ${JSON.stringify(left)}`);
+  return { removed, leftovers: left };
+}
+
+/**
+ * A teardown that threw or left rows must not end as a green job (2 Nov 2026: 7 delivered+qd-*@resend.dev users and
+ * ZZ DEMO leads outlived their walks and nothing failed). Every walk ends with process.exit(0|1), which would
+ * overwrite an exitCode set here, so the exit listener sets it last. Also an Actions error annotation and summary line.
+ */
+function teardownDirty(run, what) {
+  console.error(`TEARDOWN FAILED run ${run.tag}: ${what}`);
+  console.log(`::error title=Teardown failed (run ${run.tag})::${what.replace(/[\r\n]+/g, ' ')}`);
+  if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\n**TEARDOWN FAILED** run \`${run.tag}\`: ${what}\n`);
+  process.once('exit', () => { process.exitCode = 1; });
 }
 
 async function deleteObject(bucket, name) {
@@ -168,10 +185,12 @@ async function deleteObject(bucket, name) {
 /** Every table a run can write, counted by the run's own handles. A clean run reads zero on every line. */
 export async function leftovers(run) {
   const t = run.tag, like = `'qd-${t}-%'`;
+  // the Resend sink address teardown also removes (customer_signup_walk) is counted too, or a leak there reads as clean (2 Nov 2026: 7 such users stayed)
+  const sink = `'delivered+qd-${t}-%@resend.dev'`;
   const ids = (s) => [...s].map(q).join(',') || 'null';
   const r = (await read(`select
-      (select count(*) from auth.users where email like ${like})::int auth_users,
-      (select count(*) from public.customers where email like ${like})::int customers,
+      (select count(*) from auth.users where email like ${like} or email like ${sink})::int auth_users,
+      (select count(*) from public.customers where email like ${like} or email like ${sink})::int customers,
       (select count(*) from public.leads where ${q('qd_run:' + t)} = any(coalesce(tags,'{}')) or claimed_by like ${like} or email like ${like})::int leads,
       (select count(*) from public.inquiries where provenance->>'qd_run' = ${q(t)} or id::text in (${ids(run.ids.inquiries)}))::int inquiries,
       (select count(*) from public.quotes where id::text in (${ids(run.ids.quotes)}))::int quotes,
@@ -182,8 +201,8 @@ export async function leftovers(run) {
       (select count(*) from public.refunds where quote_id::text in (${ids(run.ids.quotes)}) or inquiry_id::text in (${ids(run.ids.inquiries)}))::int refunds,
       (select count(*) from public.supplier_dues where quote_id::text in (${ids(run.ids.quotes)}) or supplier_id::text in (${ids(run.ids.leads)}))::int supplier_dues,
       (select count(*) from public.refund_case where refund_id in (select id from public.refunds where quote_id::text in (${ids(run.ids.quotes)})))::int refund_case,
-      (select count(*) from public.inquiry_intake where email like ${like})::int inquiry_intake,
-      (select count(*) from public.email_verifications where email like ${like})::int email_verifications,
+      (select count(*) from public.inquiry_intake where email like ${like} or email like ${sink})::int inquiry_intake,
+      (select count(*) from public.email_verifications where email like ${like} or email like ${sink})::int email_verifications,
       (select count(*) from storage.objects where name like ${q('%' + t + '%')})::int storage_objects`))[0];
   return { ...r, total: Object.values(r).reduce((a, b) => a + Number(b), 0) };
 }
