@@ -13,7 +13,7 @@ insert into public.leads (approval_status, verified, claimed, claimed_by, compan
                           accepted_terms_at, signed_terms_path, license_doc_path, company_profile_doc_path, licence_legal_name, license_expiry,
                           trade_license_no, emirate, city, source, tags)
 select s, s = 'approved', true, 'zz-demo-lic1467-' || k || '@example.invalid', 'ZZ DEMO Lic1467 Registered ' || upper(k) || ' LLC', 'zz-demo-lic1467-' || k || '@example.invalid',
-       '+97150014' || n, true, true, now(), 'terms/zz-demo-lic1467/' || k || '.pdf', 'licenses/zz-demo-lic1467/' || k || '.pdf', 'profiles/zz-demo-lic1467/' || k || '.pdf',
+       '+9715001467' || n, true, true, now(), 'terms/zz-demo-lic1467/' || k || '.pdf', 'licenses/zz-demo-lic1467/' || k || '.pdf', 'profiles/zz-demo-lic1467/' || k || '.pdf',
        'ZZ DEMO Lic1467 Subsidiary ' || upper(k) || ' FZ LLC', '2028-12-31', 'ZZLIC1467-' || upper(k), 'Dubai', 'Dubai', 'probe', array['qd_demo']
   from (values ('a', 'pending', '10'), ('b', 'approved', '11'), ('c', 'pending', '12')) v(k, s, n);
 do $p$
