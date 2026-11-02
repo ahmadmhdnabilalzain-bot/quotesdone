@@ -63,6 +63,33 @@ export function dubaiTime(iso: string, lang: 'en' | 'ar' = 'en'): string {
 }
 const CHANNEL_AR: Record<string, string> = { email: 'البريد الإلكتروني', whatsapp: 'واتساب', sms: 'رسالة نصية', chat: 'المحادثة', portal: 'البوابة', voice: 'مكالمة صوتية' };
 
+const esc = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/**
+ * THE LIGHTER COPY (it_engineer, 2 Nov 2026; review of #1797). A message the PDF renderer cannot draw inside the edge's
+ * 2 s CPU cap is kept as ONE self-contained HTML file carrying the same fields, the whole text and the attachment list
+ * as the PDF would - no fonts, no layout engine, linear in the text, so it always fits. Kept like the PDF (backups +
+ * Dropbox, fn_conversation_archived); the sweep switches to it after ATTEMPTS_BEFORE_COPY failed attempts.
+ */
+export const ATTEMPTS_BEFORE_COPY = 3;
+export function conversationHtml(r: ConversationRow): string {
+  const text = (r.body && r.body.trim()) ? r.body : (r.html ? stripHtml(r.html) : '');
+  const ar = hasAr(String(r.subject || '') + text);
+  const L = ar ? AR : EN;
+  const rows: [string, string][] = [[L.from, r.from_addr || '-'], [L.to, r.to_addr || '-'],
+    [L.date, dubaiTime(r.occurred_at, ar ? 'ar' : 'en')], [L.channel, r.channel + ' - ' + (r.direction === 'out' ? L.out : L.in)]];
+  if (r.cc) rows.push([L.cc, r.cc]);
+  rows.push([L.ref, `${r.source_table}:${r.source_id}`], [L.subject, r.subject || '-']);
+  const atts = attachmentNames(r.attachments, ar);
+  return '<!doctype html><html lang="' + (ar ? 'ar' : 'en') + '" dir="' + (ar ? 'rtl' : 'ltr') + '"><head><meta charset="utf-8"><title>'
+    + esc(r.subject || (r.channel + ' ' + r.direction)) + '</title></head><body>'
+    + '<p>' + esc(ar ? 'أرشيف المراسلات - QuotesDone' : 'Correspondence archive - QuotesDone') + '</p><table>'
+    + rows.map(([k, v]) => '<tr><th>' + esc(k) + '</th><td>' + esc(v) + '</td></tr>').join('') + '</table>'
+    + '<h2>' + esc(L.message) + '</h2><pre style="white-space:pre-wrap">' + esc(text || L.none) + '</pre>'
+    + (atts.length ? '<h2>' + esc(L.attachments) + '</h2><ul>' + atts.map((a) => '<li>' + esc(a) + '</li>').join('') + '</ul>' : '')
+    + '</body></html>';
+}
+
 // deno-lint-ignore no-explicit-any
 export function conversationDocument(r: ConversationRow): Record<string, any> {
   const text = (r.body && r.body.trim()) ? r.body : (r.html ? stripHtml(r.html) : '');

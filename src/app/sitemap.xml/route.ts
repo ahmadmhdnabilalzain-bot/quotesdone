@@ -43,7 +43,13 @@ export async function GET() {
   const lg = lastmod('src/content/legal.json');
   // A superseded version is kept in legal.json as '<slug>-vN' and served at /<slug>/vN (14 Sep 2026:
   // supplier-agreement-v10 -> /supplier-agreement/v10), so the key is not the path.
-  for (const slug of Object.keys(legal as Record<string, unknown>)) push('/' + slug.replace(/-(v\d+(?:\.\d+)?)$/, '/$1'), 0.3, lg);
+  // 2 Nov 2026 (ceo): a superseded version is NOT listed. It stays served (a signer's link to the text they
+  // accepted must keep working) and noindex, but the sitemap no longer advertises it: the archived texts print the
+  // founder's former mobile, which the current texts no longer do.
+  for (const slug of Object.keys(legal as Record<string, unknown>)) {
+    if (/-v\d+(?:\.\d+)?$/.test(slug)) continue;
+    push('/' + slug, 0.3, lg);
+  }
   // Only the 24 canonical service pages. The 168 emirate variants per locale canonicalise to these
   // (src/lib/seo.ts splitServiceSlug) and a sitemap lists canonical URLs only.
   const sv = lastmod('src/content/services.json');

@@ -187,6 +187,26 @@ test('STOP from an invited number opts the lead out for good and cancels what is
   assert.equal(r.first, 1); assert.equal(r.cancelled, 1); assert.equal(r.opt, 'none'); assert.equal(r.again, 0);
 });
 
+// it_engineer, 27 Oct 2026 (safety review before ledger 1373's switch). An opt-in may name a number that is on no lead
+// row; before a_stop_from_the_number_a_supplier_opted_in_from_opts_that_supplier_out.sql a STOP from that number marked
+// no lead, so the invitation still queued to the person who had just said STOP (measured: queued 1 on main 21640c8db).
+const STOP_FIX = read('scripts/sql/a_stop_from_the_number_a_supplier_opted_in_from_opts_that_supplier_out.sql');
+test('STOP from a number that is on no lead row, but that a supplier opted in from, stops that supplier', { skip: SKIP }, async () => {
+  const [r] = await replaySql(sqlText + STOP_FIX + DEMO(7, false) + ON + `
+    insert into public.supplier_whatsapp_optin (lead_id, phone, source, consent_question, consent_answer, evidence)
+    select id, '+971500000097', 'call_consent_reply', public.fn_wa_consent_question(), 'yes',
+           'ZZ DEMO probe: said yes on a number that is on no lead row'
+      from public.leads where company_name = 'ZZ DEMO wa invite 7';
+    create temp table _s as select public.fn_wa_supplier_invite_opt_out('whatsapp:+971500000097') s;
+    create temp table _a as select ${q(TUE_NOON)} after_stop;
+    select (select after_stop from _a) after_stop, (select (s->>'leads_opted_out')::int from _s) opted_out,
+           (select whatsapp_opt from public.leads where company_name = 'ZZ DEMO wa invite 7') opt;`,
+  { label: 'wa invite STOP from the opted-in number', rows: true });
+  assert.equal(r.opted_out, 1, 'the STOP marked no lead');
+  assert.equal(r.opt, 'none');
+  assert.equal(r.after_stop, 0, 'an invitation queued to a number that had just said STOP');
+});
+
 test('the manual outreach list names uninvited, real, unsuppressed suppliers with a public page, and writes nothing', { skip: SKIP }, async () => {
   const [r] = await replaySql(sqlText + `
     create temp table _b as select count(*) n from public.notifications;

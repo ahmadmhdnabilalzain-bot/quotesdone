@@ -27,7 +27,7 @@ import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { createCompany, sessionOpenedByCode } from './create_company.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { SERVICES_UNCONFIRMED, servicesHoldMail, pendingFounderSubject } from '../_shared/services_hold_copy.ts';
-import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
+import { clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { markReading, proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { LIMITS } from '../_shared/doc_read/types.ts';
@@ -35,12 +35,12 @@ import { afterResponse, readStoredDocsLater, signedUpload, stuckReads, type Late
 import { toB64, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
-import { approve, deskAssess, fillIn, finishArabic, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
+import { approve, checkVerdict, deskAssess, fillIn, finishArabic, formSchema, gate, gateInputKey, pdfDoc, readAndAssess, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
-import { applyReading, readQuote } from '../_shared/reasoned_matching.ts';
-import { assessQuote, requirementsOf } from '../_shared/line_specs/assess.ts';
+import { readQuote } from '../_shared/reasoned_matching.ts';
+import { requirementsOf, type Assessment } from '../_shared/line_specs/assess.ts';
 import type { Attr } from '../_shared/line_specs/model.ts';
-import { checklistAttrs, chooseChecklist, needsChecklist, reasonLineSpecs, unionOf, type Checklist, type ChecklistRow } from '../_shared/line_specs/reasoned_specs.ts';
+import { checklistAttrs, chooseChecklist, needsChecklist, reasonLineSpecs, type Checklist, type ChecklistRow } from '../_shared/line_specs/reasoned_specs.ts';
 import type { Line, MissingItem } from '../_shared/line_specs/assess.ts';
 import type { Ctx } from '../_shared/line_specs/workflow.ts';
 import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
@@ -115,9 +115,9 @@ const numOrNull = (v: unknown) => { const n = Number(v); return isFinite(n) && n
 // (_shared/line_specs/reasoned_specs.ts). Under the model hold nothing is judged and every required spec
 // is asked, so the quote is held until it is stated. A trade with a reader, or no checklist, is unchanged.
 // mode 'gate': choose the checklist (reasoned) and judge the lines — once per submission. 'stored': the
-// live hold's own checklist, read back for fill-in and approval, no reasoning. 'preflight': no reasoning,
-// a prediction only (one checklist, or every checklist together).
-async function specChecklist(category: string | null, quoteId: string, mode: 'gate' | 'stored' | 'preflight' = 'gate'): Promise<{ checklist?: Attr[]; reason?: Ctx['reason'] }> {
+// live hold's own checklist, read back for fill-in and approval, no reasoning. The preflight asks 'gate' too (2 Nov 2026):
+// its own "one checklist or every checklist together" prediction disagreed with the submission it predicted.
+async function specChecklist(category: string | null, quoteId: string, mode: 'gate' | 'stored' = 'gate'): Promise<{ checklist?: Attr[]; reason?: Ctx['reason'] }> {
   if (!category || !needsChecklist(category)) return {};
   if (mode === 'stored') {
     const { data: h } = await admin.from('quote_spec_hold').select('original_snapshot').eq('quote_id', quoteId)
@@ -133,13 +133,25 @@ async function specChecklist(category: string | null, quoteId: string, mode: 'ga
       p_where: 'edge function supplier_api', p_blast: 'customer_facing', p_affected: 1, p_evidence: { category, quote_id: quoteId, error: error?.message ?? null }, p_ruled_out: [], p_undetermined: [], p_raised_by: 'sales_engineer' }); } catch (_e) { /* the gate goes on */ }
     return {};
   }
-  if (mode === 'preflight') return { checklist: checklistAttrs(lists.length === 1 ? lists[0].specs : unionOf(lists)) };
   const deps = defaultDeps(admin, 'supplier_api');
   const { data: lineRows } = await admin.from('quote_items').select('*').eq('quote_id', quoteId).order('line_no', { ascending: true }).limit(60);
   const picked = await chooseChecklist(deps, { checklists: lists, lines: (lineRows ?? []) as Line[], trade: category, quoteId });
   const checklist = checklistAttrs(picked.rows);
   if (!checklist.length) return {};
   return { checklist, reason: (lines, cl) => reasonLineSpecs(deps, { lines, checklist: cl, trade: category, quoteId }) };
+}
+// ONE QUOTATION, ONE VERDICT (sales_engineer, 2 Nov 2026): workflow.ts checkVerdict stores the first SETTLED verdict on
+// a set of gate inputs (gateInputKey) and compares later ones; a disagreement is an IT finding with both verdicts.
+async function sameVerdict(key: string, a: Assessment, settled: boolean, quoteId: string, phase: 'preflight' | 'submission') {
+  try {
+    const v = await checkVerdict(async (fn, args) => { const r = await admin.rpc(fn, args); return { data: r.data, error: r.error }; }, key, a, settled);
+    if (v.outcome === 'unreadable') console.error('quote gate verdict could not be stored or read back for quote', quoteId);
+    if (v.outcome !== 'disagree') return;
+    const { first, now } = v;
+    await admin.rpc('fn_it_engineer_finding_upsert', { p_issue_key: 'quote_gate_disagreement:' + key.slice(0, 16), p_title: 'The quote hold gate gave one quotation two different verdicts',
+      p_where: 'edge function supplier_api submit_quote (' + phase + ')', p_blast: 'customer_facing', p_affected: 1,
+      p_evidence: { quote_id: quoteId, gate_input_key: key, first, now }, p_ruled_out: [], p_undetermined: ['which reading was not settled'], p_raised_by: 'sales_engineer' });
+  } catch (_e) { /* the record never blocks the gate */ }
 }
 async function secretVal(key: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return data?.value || null; }
 // A SUPPLIER ACTS ONLY ON A JOB IT WAS MATCHED TO (audit 22 Sep 2026, finding SP-N-03).
@@ -564,7 +576,7 @@ ${q}`,
     // claimed_by is the account e-mail. Registration SHOWS it with its verification state rather
     // than asking for it — the supplier signed in with it, so a field here could only ever be
     // answered with the value we already hold.
-    if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle(); return J({ supplier: data ? { ...data, terms_current: await secretVal('terms_version') } : null }); }
+    if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle(); return J({ supplier: data ? { ...data, terms_current: await secretVal('terms_version'), terms_stands: await supplierAcceptanceStands(secretVal, data.accepted_terms_version) } : null }); }
     if (action === 'search') { const q = String(body.q || '').slice(0, 60); if (q.length < 2) return J({ results: [] }); const { data } = await admin.from('leads').select(SEARCH_COLUMNS).ilike('company_name', '%' + q + '%').order('reviews', { ascending: false, nullsFirst: false }).limit(8); const rows = (data || []) as LeadHit[]; /* a sanctioned party is never shown to anybody — founder instruction 516, 18 Sep 2026 */ const barred = await sanctionedLeads(admin, rows.map((r) => r.id)); return J({ results: rows.filter((r) => !barred.has(String(r.id))).map((r) => searchResult(r, email)) }); } // search_result.ts: claimed_by is read, never returned
     // THE INVITED COMPANY IS CLAIMED, NEVER REGISTERED A SECOND TIME (28 Oct 2026, ledger 1401 audit S7): ./create_company.ts.
     if (action === 'create_company') { const r = await createCompany(admin, email, body, { emailProven, sessionByCode: sessionOpenedByCode(jwt), sanctionedLead: (id: number) => sanctionedLead(admin, id), setRegistration: (id: number) => setRegistration(id), recordFirstTouch, locale: SUPPLIER_LOCALE }); return J(r.body, r.status); }
@@ -1086,7 +1098,7 @@ ${q}`,
       // A save repeating an acceptance already on file for the current version records nothing new: a second
       // record would move the acceptance time and ask for a second certificate (kyc's rule too).
       const accepting = body.accept_terms === true
-        && !(sup.accepted_terms_at && sup.accepted_terms_version === await currentSupplierTermsVersion(secretVal));
+        && !(sup.accepted_terms_at && await supplierAcceptanceStands(secretVal, sup.accepted_terms_version));
       if (accepting) {
         const rec = await supplierTermsRecord(secretVal, clientIp(req), req.headers.get('user-agent') || '');
         if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
@@ -2003,12 +2015,16 @@ ${q}`,
         } catch (_e) { /* */ }
         // Preflight (dry_run). Runs the real scorer, the real accept rule and the real hold gate's
         // assessment, then stops: the status is put back as it was, nothing is notified, no hold opens.
+        // The gate's own context: the same checklist, the same settled readings, the same assessment (workflow.ts
+        // readAndAssess), so "check before sending" and the submission give one verdict for one quotation.
+        const gctx: Ctx = { category, requirements, ref, multiOption, ...(await specChecklist(category, qid)),
+          // His quotation is READ by reasoning before the check (decision points 29-30); held: nothing is read and he is asked.
+          read: (qr, ls) => readQuote(defaultDeps(admin, 'supplier_api'), { quoteId: qid, category, lines: ls, terms: qr, requirements }) };
+        const gkey = await gateInputKey((await repo.quote(qid))!, await repo.lines(qid), gctx);
         if (dryRun) {
           const acc = await acceptRule(qid);
-          // The same reading the real submission's gate does (reasoned_matching.ts), so the preflight and the gate agree.
-          const dq = (await repo.quote(qid))!; const dl = await repo.lines(qid);
-          const rd = applyReading(dl, dq.terms_spec, await readQuote(defaultDeps(admin, 'supplier_api'), { quoteId: qid, category, lines: dl, terms: dq, requirements }));
-          const a = assessQuote({ category, lines: rd.lines, terms: { ...dq, terms_spec: rd.terms_spec }, requirements, checklist: (await specChecklist(category, qid, 'preflight')).checklist });
+          const { a, settled } = await readAndAssess(repo, qid, gctx);
+          await sameVerdict(gkey, a, settled, qid, 'preflight');
           // Put it back exactly as it was: the snapshotted columns and the snapshotted lines (with their
           // own ids, so anything that references a line still does). A row this check CREATED is removed.
           let restored = true;
@@ -2048,9 +2064,8 @@ ${q}`,
         }
         // THE HOLD GATE (founder, 14 Sep 2026). The sales engineer holds a quote that does not state
         // every required detail exactly, records which line and which detail, and tells the supplier.
-        const g = await gate(repo, qid, supplier, { category, requirements, ref, multiOption, ...(await specChecklist(category, qid)),
-          // His quotation is READ by reasoning before the check (decision points 29-30); held: nothing is read and he is asked.
-          read: (qr, ls) => readQuote(defaultDeps(admin, 'supplier_api'), { quoteId: qid, category, lines: ls, terms: qr, requirements }) });
+        const g = await gate(repo, qid, supplier, gctx);
+        await sameVerdict(gkey, g.assessment, g.settled, qid, 'submission');
         // a submission the door did not accept never inherits the wait of an earlier accepted one (review of #1108)
         if (g.held) { await supersedeQualityHold(qid); results.push({ quote_id: qid, option_no: p.option_no, accepted: false, held: true, missing: g.missing, code: 'spec_hold' }); continue; }
         // THE REVIEW'S OWN RULES, held the same way (finding SP-F-02). The gate above is the exact-specs
