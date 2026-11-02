@@ -27,6 +27,8 @@ import { NOT_LIVE_QUOTE_IN } from '../_shared/quote_live.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { leadEmailCheckBatch } from './lead_email_check.ts';
+import { measureNdrHeaders } from '../_shared/m365_sent_status.ts';
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
 import { portalLink } from '../_shared/site_origins.ts';
@@ -370,6 +372,18 @@ const plain = observe('sales_engineer', async (req) => {
       const res = await leadEmailCheckBatch((fn, args) => admin.rpc(fn, args) as never);
       await run('lead_email_check', 'ok', res);
       return J({ ok: true, ...res });
+    }
+
+    // READ-ONLY (review of #1792): which stamp headers Graph returns for the delivery reports in supplier@'s mailbox that
+    // answer an M365 invitation, and whether tenantStampOf would accept each. Writes nothing.
+    if (action === 'm365_ndr_headers') {
+      if (caller.kind !== 'service' && caller.kind !== 'sales_engineer' && caller.kind !== 'founder') return J({ error: 'forbidden' }, 403);
+      const { data, error } = await admin.from('inbound_messages').select('id,raw').like('provider_email_id', 'm365:%')
+        .like('raw->>in_reply_to', '%qd-notif-%').ilike('subject', '%undeliver%').order('id').limit(25);
+      if (error) return J({ ok: false, error: error.message }, 500);
+      const ids = (data || []).map((r) => String((r.raw as { message_id?: string } | null)?.message_id || '')).filter(Boolean);
+      const { data: mb } = await admin.from('app_secrets').select('value').eq('key', 'invite_m365_mailbox').maybeSingle();
+      return J(await measureNdrHeaders({ fetchFn: (u, i) => timedFetch(u, i || {}, 15_000), env: (k) => Deno.env.get(k), mailbox: mb?.value, messageIds: ids }));
     }
 
     if (action === 'spec_offer_sweep') {

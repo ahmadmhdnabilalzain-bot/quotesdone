@@ -10,7 +10,7 @@
 // Same app and secrets as the reply reader (MS_TENANT_ID / MS_CLIENT_ID / MS_CLIENT_SECRET, Mail.ReadWrite). Counts only:
 // resilience_ping is public.
 import { graphToken, headersOf, M365_INBOUND_PREFIX, type Fetch, type GraphMessage } from './m365_reply_inbox.ts';
-import { exchangeInternal } from './suppression_policy.ts';
+import { exchangeInternal, stampHeaders, tenantStampOf } from './suppression_policy.ts';
 
 export const CLAIM = 20;
 export const REPORTS = 10;
@@ -84,10 +84,44 @@ export async function pollM365SentStatus(d: SentDeps): Promise<Record<string, un
       if (res.status === 404) { await res.body?.cancel(); await d.headersRecord(r.inbound_id, false); h.reread++; continue; }
       if (!res.ok) { await res.body?.cancel(); continue; }
       const m = await res.json() as GraphMessage;
-      const stamped = exchangeInternal(M365_INBOUND_PREFIX + r.graph_id, headersOf(m.internetMessageHeaders)['x-ms-exchange-organization-authas'], String(m.from?.emailAddress?.address || ''));
+      const hdr = headersOf(m.internetMessageHeaders);
+      const stamped = exchangeInternal(M365_INBOUND_PREFIX + r.graph_id, stampHeaders((k) => hdr[k]), String(m.from?.emailAddress?.address || ''));
       await d.headersRecord(r.inbound_id, stamped);
       h.reread++; if (stamped) h.stamped++;
     } catch (_e) { /* next beat */ }
   }
   return { ok: true, ...c, reports_reread: h.reread, reports_stamped: h.stamped };
+}
+
+/** READ-ONLY (review of #1792): for each delivery report's internetMessageId, which of the stamp headers Graph returns for it
+ *  in supplier@'s mailbox, and which proof tenantStampOf would accept. Writes nothing; values are cut to what the decision
+ *  reads (AuthAs, and whether a pass verdict names the sender's domain). Run after deploy: sales_engineer action
+ *  'm365_ndr_headers'. */
+export async function measureNdrHeaders(d: Pick<SentDeps, 'fetchFn' | 'env' | 'mailbox'> & { messageIds: string[] }): Promise<Record<string, unknown>> {
+  const mailbox = String(d.mailbox || '').trim().toLowerCase();
+  const [tenant, client, secret] = SECRET_NAMES.map((k) => String(d.env(k) || '').trim());
+  if (!mailbox || !tenant || !client || !secret) return { ok: false, why: 'mailbox or edge secrets not set' };
+  let auth: Record<string, string>;
+  try { auth = { Authorization: 'Bearer ' + await graphToken(d.fetchFn, tenant, client, secret) }; }
+  catch (e) { return { ok: false, why: String((e as Error)?.message || e).split(secret).join('[redacted]').slice(0, 200) }; }
+  const readings: Array<Record<string, unknown>> = [];
+  for (const id of d.messageIds.slice(0, 25)) {
+    const url = `${GRAPH}/users/${encodeURIComponent(mailbox)}/messages?` + new URLSearchParams({
+      $filter: `internetMessageId eq '${id.replace(/'/g, "''")}'`, $select: 'id,from,internetMessageId,internetMessageHeaders', $top: '1' }).toString();
+    try {
+      const res = await d.fetchFn(url, { headers: auth });
+      if (!res.ok) { await res.body?.cancel(); readings.push({ message_id: id, http: res.status }); continue; }
+      const m = ((await res.json()) as { value?: GraphMessage[] }).value?.[0];
+      if (!m) { readings.push({ message_id: id, http: 200, found: false }); continue; }
+      const hdr = headersOf(m.internetMessageHeaders);
+      const s = stampHeaders((k) => hdr[k]);
+      const from = String(m.from?.emailAddress?.address || '');
+      const ar = [s.authResults, s.arcResults].filter(Boolean).join(';').toLowerCase();
+      readings.push({ message_id: id, http: 200, found: true, from_domain: from.split('@')[1] || null, auth_as: s.authAs,
+        is_ndr: s.isNdr !== null, auth_results: !!s.authResults, arc_results: !!s.arcResults,
+        pass_for_sender_domain: /\b(dmarc|compauth)=pass\b/.test(ar) && ar.includes('header.from=' + (from.split('@')[1] || '').toLowerCase()),
+        recognised: tenantStampOf(M365_INBOUND_PREFIX + m.id, s, from) });
+    } catch (_e) { readings.push({ message_id: id, http: null }); }
+  }
+  return { ok: true, writes: 0, readings };
 }

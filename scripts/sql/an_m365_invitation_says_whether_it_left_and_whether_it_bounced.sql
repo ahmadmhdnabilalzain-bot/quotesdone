@@ -27,9 +27,11 @@
 --  3. fn_supplier_mailbox_mail_gets_its_owner (live body, three edits): our tenant's Exchange, on its own stamp and with the
 --     exact In-Reply-To, counts as authenticated, so its permanent bounce marks the lead 'bounced' and the brake counts it.
 --     The Message-ID alone is no proof: the recipient knows it. It calls (2).
---     raw.exchange_internal is written by resend_inbound from X-MS-Exchange-Organization-AuthAs: Internal, which Exchange's
---     header firewall strips from outside mail. NOT MEASURED: whether Graph's internetMessageHeaders carries it on an NDR.
---     If it does not, nothing changes for those NDRs (fail closed); the 6 already stored carry no such fact.
+--     raw.exchange_internal is written by resend_inbound (and by the re-read, 2b) from a tenant system sender plus any one
+--     of: X-MS-Exchange-Organization-AuthAs: Internal; dmarc=pass/compauth=pass for the sender's own domain in
+--     Authentication-Results or ARC; X-MS-Exchange-Message-Is-Ndr with no fail verdict (suppression_policy.ts tenantStampOf).
+--     NOT MEASURED here: which of them Graph returns on the 6 NDRs. sales_engineer action 'm365_ndr_headers' (read-only,
+--     writes nothing) lists it per NDR right after deploy.
 --  4. Backfill, at apply, from what Graph already returned: every report in inbound_messages whose In-Reply-To names a
 --     qd-notif send goes through (2). The Sent Items read-back fills the rest on resilience_ping's 15-minute beat.
 -- Prevented by: supabase/functions/_shared/m365_sent_status.test.ts, an_m365_invitation_says_whether_it_left_and_whether_it_bounced_probe.sql

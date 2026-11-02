@@ -142,15 +142,38 @@ export function senderAuthenticated(providerEmailId: unknown, authResults: unkno
     : fromDomainAuthenticated(authResults, fromEmail);
 }
 
-/** Our own tenant's Exchange wrote it (2 Nov 2026, review of #1792). Exchange stamps X-MS-Exchange-Organization-AuthAs on the
- *  mail it accepts, and its header firewall strips X-MS-Exchange-Organization-* from mail arriving from outside, so 'Internal'
- *  on a delivery handed in from the M365 mailbox (provider id 'm365:', our own signed handover) from the tenant's
- *  microsoftexchange<hex> system address is the tenant's own word. Its non-delivery reports carry no DMARC result, so this is
- *  their only proof. Fails closed: no header, another value, another sender, another lane. */
-export function exchangeInternal(providerEmailId: unknown, authAs: unknown, fromEmail: string): boolean {
-  const from = String(fromEmail || '').match(/[^<>\s"]+@[^<>\s"]+/)?.[0] || '';
-  return String(providerEmailId || '').startsWith('m365:') && typeof authAs === 'string' && authAs.trim().toLowerCase() === 'internal'
-    && /^microsoftexchange[0-9a-f]{32}@[a-z0-9-]+\.onmicrosoft\.com$/i.test(from);
+/** The headers a tenant-written delivery report can prove itself by (null = absent). */
+export type TenantStamp = { authAs?: string | null; isNdr?: string | null; authResults?: string | null; arcResults?: string | null };
+/** Our tenant's system senders: Exchange's own NDR address and postmaster, on the tenant's onmicrosoft domain or ours. */
+const SYSTEM_SENDER = /^(microsoftexchange[0-9a-f]{32}|postmaster)@([a-z0-9-]+\.onmicrosoft\.com|quotesdone\.com)$/i;
+
+/** Which proof shows our own tenant's Exchange wrote it, or null (2 Nov 2026, review of #1792). Only on a delivery handed in
+ *  from the M365 mailbox (provider id 'm365:', our own signed handover) from a tenant system sender, then any one of:
+ *   - 'auth_as_internal': X-MS-Exchange-Organization-AuthAs: Internal. Exchange's header firewall strips
+ *     X-MS-Exchange-Organization-* from mail arriving from outside, so the value is the tenant's own;
+ *   - 'own_domain_dmarc': Authentication-Results or ARC-Authentication-Results show dmarc=pass or compauth=pass with
+ *     header.from = the sender's domain (a forged From on our domain fails DMARC);
+ *   - 'is_ndr': X-MS-Exchange-Message-Is-Ndr present and no dmarc=fail / compauth=fail verdict. ponytail: the weakest of
+ *     the three, as the coordinator ruled; drop it once the read-only measurement shows which header the real NDRs carry.
+ *  Fails closed on everything else. */
+export function tenantStampOf(providerEmailId: unknown, h: TenantStamp, fromEmail: string): 'auth_as_internal' | 'own_domain_dmarc' | 'is_ndr' | null {
+  const from = (String(fromEmail || '').match(/[^<>\s"]+@[^<>\s"]+/)?.[0] || '').toLowerCase();
+  if (!String(providerEmailId || '').startsWith('m365:') || !SYSTEM_SENDER.test(from)) return null;
+  if (typeof h.authAs === 'string' && h.authAs.trim().toLowerCase() === 'internal') return 'auth_as_internal';
+  const ar = [h.authResults, h.arcResults].filter((x): x is string => typeof x === 'string').join(';').toLowerCase();
+  const dom = from.split('@')[1];
+  if (/\b(dmarc|compauth)=pass\b/.test(ar) && ar.includes('header.from=' + dom)) return 'own_domain_dmarc';
+  if (typeof h.isNdr === 'string' && !/\b(dmarc|compauth)=fail\b/.test(ar)) return 'is_ndr';
+  return null;
+}
+export function exchangeInternal(providerEmailId: unknown, h: TenantStamp, fromEmail: string): boolean {
+  return tenantStampOf(providerEmailId, h, fromEmail) !== null;
+}
+/** The stamp's headers out of a lower-cased header map (m365_reply_inbox headersOf). */
+export function stampHeaders(get: (k: string) => string | null | undefined): TenantStamp {
+  const v = (k: string) => { const x = get(k); return x == null ? null : String(x); };
+  return { authAs: v('x-ms-exchange-organization-authas'), isNdr: v('x-ms-exchange-message-is-ndr'),
+           authResults: v('authentication-results'), arcResults: v('arc-authentication-results') };
 }
 
 /** Addresses no email may ever suppress: our own domains and the people who run the company. */
