@@ -64,7 +64,7 @@ test('production, one aborted transaction on ZZ DEMO rows, automatic approval ON
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 800));
-    r = JSON.parse(m[1].replace(/\\"/g, '"'));
+    r = JSON.parse(m[1].replace(/^PROBE OK /, '').replace(/\\"/g, '"'));
   }
   assert.ok(r, 'the probe committed instead of rolling back');
   for (const k of ['a', 'b', 'c']) assert.equal(r[k].demo, true, `case ${k} is not a ZZ DEMO fixture`);
