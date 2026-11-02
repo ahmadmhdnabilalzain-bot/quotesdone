@@ -26,7 +26,9 @@ import { sanitizeAndScan } from './malware.ts';
 import { SAFE_SUPPLIER_PAPERS, safeFilename } from './attachment.ts';
 import { LIMITS } from './doc_read/types.ts';
 import { liveTradeDeps } from './trade_resolve.ts';
-import { proposeTradesFromDocs, type DocEvidence, type DocIn, type TradeResolveDeps } from './supplier_doc_trades.ts';
+import { modelReadText, proposeTradesFromDocs, type DocEvidence, type DocIn, type TradeResolveDeps } from './supplier_doc_trades.ts';
+import { readDocument } from './doc_read/index.ts';
+import { toB64 } from './document_expiry.ts';
 import { timedFetch } from './timed_fetch.ts';
 
 // deno-lint-ignore no-explicit-any
@@ -36,6 +38,32 @@ export const FOLDER = { profile: 'profiles', catalogue: 'catalogs' } as const;
 export const REREAD_AFTER_MIN = 10;
 /** gate: the file arrived by path and has not been through sanitizeAndScan yet. */
 export type LaterDoc = DocIn & { gate?: boolean };
+
+// A PICTURE, OR A PDF WITH NO TEXT LAYER, IS READ BY THE MODEL THE LICENCE USES (2 Nov 2026, founder ledger 1442: "Is our agent actually
+// reading the company profile and the trade licence"; found by scripts/e2e/supplier_profile_read_walk.mjs, where a scanned profile
+// stayed "needs_ocr" and a PNG's trades were never proposed). license_extract's profile mode returns the lines the page PRINTS, verbatim;
+// they become the document's photo_text and are read for trades like a text layer's lines, each trade quoted from them (supplier_trade_choice).
+// Two attempts, as the licence has. A file it cannot read is left as it was (needs_ocr): never a false "no trades". supplier_api.process_docs
+// (registration) keeps its own copy of this step because it also keeps the model's summary and services.
+export const PROFILE_PDF_MODEL_MAX = 12 * 1024 * 1024;
+export type ProfileAsk = (body: Record<string, unknown>) => Promise<{ ok?: boolean; profile?: { lines?: unknown } } | null>;
+export async function readProfileByModel(d: LaterDoc, ask: ProfileAsk, attempts = 2): Promise<{ asked: boolean; ok: boolean }> {
+  if (!d.bytes) return { asked: false, ok: false };
+  const mime = d.mime || '';
+  let body: Record<string, unknown>;
+  if (/^image\//i.test(mime)) body = { images: [{ b64: toB64(d.bytes), mime }] };
+  else if (/pdf/i.test(mime) && d.bytes.length <= PROFILE_PDF_MODEL_MAX) {
+    // ONE read of the profile: kept on the item, so the trade read does not parse it again.
+    d.read = await readDocument(d.bytes, d.name, mime, 0, { textOnly: true, maxBytes: LIMITS.maxPaperBytes });
+    if (!(d.read.ok && d.read.needs === 'ocr')) return { asked: false, ok: false };
+    body = { file_b64: toB64(d.bytes), mime, filename: d.name };
+  } else return { asked: false, ok: false };
+  for (let i = 0; i < attempts; i++) {
+    const jd = await ask(body).catch(() => null);
+    if (jd?.ok && jd.profile) { const t = modelReadText('profile', jd.profile.lines); if (t) d.photo_text = t; return { asked: true, ok: true }; }
+  }
+  return { asked: true, ok: false };
+}
 
 /** Keeps `job` alive after the response. Off the edge runtime (tests, local) the caller awaits what is returned. */
 export function afterResponse(job: Promise<unknown>, at: string): Promise<void> | null {

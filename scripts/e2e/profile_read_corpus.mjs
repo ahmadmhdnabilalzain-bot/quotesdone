@@ -56,12 +56,17 @@ export async function profileCorpus(dir) {
   { const lines = ['ZZ DEMO Reem Projects LLC - Company Profile', 'About us', 'ZZ DEMO Reem Projects LLC is a UAE contractor serving Dubai and Sharjah.', 'Our services', '- HVAC works', '- Plumbing works', FIXTURE];
     const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="1754"><rect width="100%" height="100%" fill="#fff"/>${lines.map((l, k) => `<text x="80" y="${150 + k * 80}" font-family="Arial" font-size="34">${esc(l)}</text>`).join('')}</svg>`);
     const jpeg = await sharp(svg).flatten({ background: '#ffffff' }).jpeg({ quality: 80 }).toBuffer();
-    put('scanned_pdf', 'scanned PDF (image only), 2 services', 'reem_projects_profile_scan.pdf', rawPdf([{ jpeg, w: 1240, h: 1754 }]), MIME.pdf, { read: 'scan', stated: ['hvac', 'plumbing'], fileText: lines }); }
+    put('scanned_pdf', 'scanned PDF (image only), 2 services', 'reem_projects_profile_scan.pdf', rawPdf([{ jpeg, w: 1240, h: 1754 }]), MIME.pdf, { read: 'picture', stated: ['hvac', 'plumbing'], fileText: lines }); }
 
   // 2b. the profile saved as a picture (a screenshot or phone photo): the portal sends pictures to the vision model
   { const lines = ['ZZ DEMO Pearl Lifts and Floors LLC - Company Profile', 'About us', 'ZZ DEMO Pearl Lifts and Floors LLC is a UAE company serving Dubai and Abu Dhabi.', 'Our services', '- Elevator installation', '- Flooring works', FIXTURE];
     const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="1100"><rect width="100%" height="100%" fill="#fff"/>${lines.map((l, k) => `<text x="80" y="${120 + k * 80}" font-family="Arial" font-size="34">${esc(l)}</text>`).join('')}</svg>`);
-    put('photo_png', 'profile saved as a PNG picture, 2 services', 'pearl_lifts_profile.png', await sharp(svg).png().toBuffer(), 'image/png', { read: 'scan', stated: ['elevators', 'flooring'], fileText: lines }); }
+    put('photo_png', 'profile saved as a PNG picture, 2 services', 'pearl_lifts_profile.png', await sharp(svg).png().toBuffer(), 'image/png', { read: 'picture', stated: ['elevators', 'flooring'], fileText: lines }); }
+
+  // 2c. a picture whose services are printed in ARABIC only: it must be read, and the supplier is shown the English keywords
+  { const lines = ['ZZ DEMO Al Wadi Gardens LLC - Company Profile', 'خدماتنا', '- أعمال تنسيق الحدائق', '- أعمال العزل المائي', 'دبي - الشارقة', FIXTURE];
+    const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="1000"><rect width="100%" height="100%" fill="#fff"/>${lines.map((l, k) => `<text x="${/[؀-ۿ]/.test(l) ? 1160 : 80}" y="${120 + k * 90}" text-anchor="${/[؀-ۿ]/.test(l) ? 'end' : 'start'}" font-family="Noto Sans Arabic, DejaVu Sans, Arial" font-size="36">${esc(l)}</text>`).join('')}</svg>`);
+    put('arabic_png', 'profile picture with its services in Arabic only', 'al_wadi_gardens_profile_ar.png', await sharp(svg).png().toBuffer(), 'image/png', { read: 'picture', arabic: true, stated: ['landscaping', 'waterproofing'], fileText: lines }); }
 
   // 3. an image-heavy brochure: three photo pages with no text, then one text page that lists the services
   { const lines = ['ZZ DEMO Sahara Finishes LLC - Brochure', 'What we do', '- Painting works', '- Waterproofing works', 'Our work is shown on the previous pages.', FIXTURE];
@@ -96,6 +101,6 @@ export async function profileCorpus(dir) {
 
   // 9. a file that is not a PDF at all, named .pdf (a corrupt or truncated upload)
   put('corrupt', 'corrupt file named .pdf', 'corrupt_profile.pdf', Buffer.concat([Buffer.from('%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R'), Buffer.from(Array.from({ length: 600 }, (_, i) => (i * 37 + 11) % 256))]), MIME.pdf,
-    { read: 'unreadable', stated: [], fileText: [] }, { failedRead: true, company: 'ZZ DEMO Corrupt File LLC' });
+    { read: 'unreadable', mustBe: ['damaged'], stated: [], fileText: [] }, { failedRead: true, company: 'ZZ DEMO Corrupt File LLC' });
   return out;
 }

@@ -199,6 +199,7 @@ export const VERIFY_COPY = {
   profile_reading: 'We are still reading your company profile. This page updates by itself when the read finishes.',
   profile_scan: 'Your company profile is a scan or photo that we could not read as text yet. Tick what you do below, or describe it in your own words.',
   profile_failed: 'We could not read your company profile. Upload a clear PDF or Word file in Documents, or tick what you do below, or describe it in your own words.',
+  profile_damaged: 'Your company profile file is damaged, so we could not open it. Upload it again in Documents, or tick what you do below, or describe it in your own words.',
   profile_missing: 'No company profile has been read yet. Upload it in Documents, or describe your services below.',
   doc_read_none: 'read, no service matched',
 } as const;
@@ -209,11 +210,14 @@ export const VERIFY_COPY = {
 // A refused or unreadable file got the same words, or "a scan or photo". "found no service" is said only of a file that was read as
 // text and named nothing; every file that was not read as text says so.
 export type ProfileDocLike = { status?: string; source?: string; choice?: string; trades?: readonly unknown[]; vision_held?: readonly unknown[] };
-export type ProfileState = 'hits' | 'reading' | 'scan' | 'failed' | 'none' | 'missing';
+// Since ledger 1442 a picture or a scanned PDF is read by the model the licence uses and its trades are proposed like a text profile's; 'scan'
+// is what is left when that read found nothing on the page (a blank page, or a photo too poor to read), 'damaged' a file that does not open.
+export type ProfileState = 'hits' | 'reading' | 'scan' | 'damaged' | 'failed' | 'none' | 'missing';
 export function profileStateOf(docs: readonly ProfileDocLike[]): ProfileState {
   if (docs.some((d) => (d.trades || []).length)) return 'hits';
   if (docs.some((d) => d.status === 'reading')) return 'reading';
-  if (docs.some((d) => d.status === 'needs_ocr' || d.source === 'photo_text' || (d.vision_held || []).length)) return 'scan';
-  if (docs.some((d) => d.status === 'unreadable' || d.status === 'refused' || d.status === 'needs_cad_conversion' || d.choice === 'unavailable')) return 'failed';
+  if (docs.some((d) => d.status === 'needs_ocr' || (d.vision_held || []).length)) return 'scan';   // vision_held: records written before ledger 1442
+  if (docs.some((d) => d.status === 'unreadable')) return 'damaged';
+  if (docs.some((d) => d.status === 'refused' || d.status === 'needs_cad_conversion' || d.choice === 'unavailable')) return 'failed';
   return docs.length ? 'none' : 'missing';
 }

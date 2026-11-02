@@ -221,7 +221,9 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const profileDocs = allDocs.filter((x) => x.kind === 'profile');
   const profileHits = profileDocs.flatMap((x) => x.trades || []);
   const profileKeywords = [...new Set(profileHits.map((h) => h.code))].map(tradeName);
-  const profileLines = [...new Set(profileHits.map((h) => (h.snippet || '').trim()).filter(Boolean))].slice(0, 3);
+  // English only to a supplier (ruling 1008): an Arabic line of the profile reads its trade, but the keyword beside it is the English name and
+  // the Arabic quote is not repeated here; an Arabic-only profile shows its keywords alone.
+  const profileLines = [...new Set(profileHits.map((h) => (h.snippet || '').trim()).filter((l) => l && !/[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/.test(l)))].slice(0, 3);
   const profileState = profileStateOf(profileDocs);
   const noPrep = !d.confirmed && d.checklist.length === 0;
   // THE REWRITE CARRIES ITS OWN LABELS and they are read first. services_by_trade only holds the

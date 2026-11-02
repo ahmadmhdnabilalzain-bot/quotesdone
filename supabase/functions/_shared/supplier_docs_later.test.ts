@@ -81,3 +81,38 @@ Deno.test('the 25 MB read limit holds unless the caller asks for the 100 MB supp
   const paper = await pdfjsText(big, undefined, undefined, undefined, LIMITS.maxPaperBytes);
   assert(paper.status === 'failed' && !/read limit/.test(paper.detail || ''), 'read past the 25 MB cap (and failed only as not-a-PDF)');
 });
+
+// 2 Nov 2026, ledger 1442 (profile-read walk on the live site): a scanned PDF stayed needs_ocr because only pictures went to the model.
+Deno.test('a picture and a PDF with no text layer go to the model with two attempts; a text PDF and a failed answer leave the document as it was', async () => {
+  const { readProfileByModel } = await import('./supplier_docs_later.ts');
+  const pdf = (content: string) => {
+    const o = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>', '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+      `<< /Length ${content.length} >>\nstream\n${content}\nendstream`, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
+    let s = '%PDF-1.4\n'; const off: number[] = []; o.forEach((b, i) => { off.push(s.length); s += `${i + 1} 0 obj\n${b}\nendobj\n`; });
+    const x = s.length; s += `xref\n0 ${o.length + 1}\n0000000000 65535 f \n` + off.map((n) => String(n).padStart(10, '0') + ' 00000 n \n').join('') + `trailer\n<< /Size ${o.length + 1} /Root 1 0 R >>\nstartxref\n${x}\n%%EOF\n`;
+    return new TextEncoder().encode(s);
+  };
+  const answer = { ok: true, profile: { lines: ['Our services', '- Elevator installation'] } };
+  const calls: Record<string, unknown>[] = [];
+  const ask = (replies: unknown[]) => async (b: Record<string, unknown>) => { calls.push(b); return (replies.shift() ?? null) as never; };
+  // a picture: the page goes as an image; the first attempt fails, the second answers
+  const png = { path: 'p', name: 'p.png', kind: 'profile' as const, mime: 'image/png', bytes: new Uint8Array([1, 2, 3]), photo_text: undefined as string | undefined };
+  assertEquals(await readProfileByModel(png, ask([null, answer])), { asked: true, ok: true });
+  assertEquals([calls.length, Object.keys(calls[0])], [2, ['images']]);
+  assertEquals(png.photo_text?.includes('Elevator installation'), true);
+  // a scanned PDF (no text layer): the file itself goes
+  calls.length = 0;
+  const scan = { path: 's', name: 's.pdf', kind: 'profile' as const, mime: 'application/pdf', bytes: pdf(''), photo_text: undefined as string | undefined };
+  assertEquals(await readProfileByModel(scan, ask([answer])), { asked: true, ok: true });
+  assertEquals(Object.keys(calls[0]).sort(), ['file_b64', 'filename', 'mime']);
+  assert(!!scan.photo_text);
+  // known-bad controls: a PDF that HAS a text layer is not sent (code reads its text); both attempts failing leaves it as it was
+  calls.length = 0;
+  const text = { path: 't', name: 't.pdf', kind: 'profile' as const, mime: 'application/pdf', bytes: pdf('BT /F1 12 Tf 20 100 Td (Our services - Elevator installation - Flooring works - HVAC works) Tj ET'), photo_text: undefined as string | undefined };
+  assertEquals(await readProfileByModel(text, ask([answer])), { asked: false, ok: false });
+  assertEquals([calls.length, text.photo_text], [0, undefined]);
+  const failing = { path: 'f', name: 'f.png', kind: 'profile' as const, mime: 'image/png', bytes: new Uint8Array([1]), photo_text: undefined as string | undefined };
+  assertEquals(await readProfileByModel(failing, ask([null, { ok: false }])), { asked: true, ok: false });
+  assertEquals(failing.photo_text, undefined);
+  assertEquals((await readProfileByModel({ path: 'x', name: 'x.docx', kind: 'profile' as const, mime: 'application/msword', bytes: new Uint8Array([1]) }, ask([answer]))).asked, false);
+});

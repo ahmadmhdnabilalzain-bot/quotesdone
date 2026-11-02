@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       walk:
-        description: 'licences = the licence form (default); profiles = the company profile, its summary and keywords, confirmed by the supplier (ledger 1469). By hand only, never on push to main.'
+        description: 'licences = the licence form (default); profiles = the company profile, its summary and keywords, confirmed by the supplier (ledger 1469); pictures = a scanned or photographed profile read by this checkout against the real model (ledger 1442). By hand only, never on push to main.'
         type: choice
-        options: [licences, profiles]
+        options: [licences, profiles, pictures]
         default: licences
 
 jobs:
@@ -29,8 +29,14 @@ jobs:
       - name: Install the locked dependencies and the browser
         run: npm ci && npx playwright install --with-deps chromium
         timeout-minutes: 8
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        if: ${{ inputs.walk == 'pictures' }}
+      - name: A scanned or photographed company profile is read and its trades are proposed (this checkout's chain, the real model, USD 2 cap)
+        if: ${{ inputs.walk == 'pictures' }}
+        run: node scripts/e2e/profile_picture_read_proof.mjs --json picture-proof.json
+        timeout-minutes: 25
       - name: Walk the supplier's documents
-        if: ${{ inputs.walk != 'profiles' }}
+        if: ${{ inputs.walk != 'profiles' && inputs.walk != 'pictures' }}
         run: node scripts/e2e/supplier_document_read_walk.mjs --browser --case t_text_pdf,t_scanned_pdf,t_png,t_jpg,t_blank_pdf,t_wrong_company,t_expired --json walk.json --shots walk-shots
         timeout-minutes: 30
       # The judge's own known-bad controls first: a judge that cannot fail would make the walk below a pass by default.
@@ -51,5 +57,6 @@ jobs:
             walk.json
             walk-shots
             profile-walk.json
+            picture-proof.json
             profile-walk-shots
           if-no-files-found: warn
