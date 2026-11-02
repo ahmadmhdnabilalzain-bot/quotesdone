@@ -14,6 +14,7 @@
 // session from a refusal — the gateway's "Invalid JWT" and a function's own 401 look different — so
 // the portal could only show "Something went wrong" and a retry that could never succeed.
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
+import { fetchRetry, isReadAction } from '@/lib/fetchRetry';
 
 /**
  * ONE IN-FLIGHT READ, SHARED BY EVERY CALLER THAT ASKS FOR IT AT THE SAME TIME.
@@ -88,12 +89,12 @@ export async function call(path: string, body: Record<string, unknown>, token?: 
   const timer = setTimeout(() => ac.abort(), opts.timeoutMs && opts.timeoutMs > 0 ? opts.timeoutMs : TIMEOUT_MS);
   let r: Response;
   try {
-    r = await fetch(fnUrl(path), {
+    r = await fetchRetry(fnUrl(path), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
       body: JSON.stringify(body),
       signal: ac.signal,
-    });
+    }, isReadAction(body)); // reads only: a write is never resent
   } catch (_e) {
     return { ok: false, code: ac.signal.aborted ? 'timeout' : 'network' };
   } finally {
