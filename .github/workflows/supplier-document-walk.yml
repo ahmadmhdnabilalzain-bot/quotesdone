@@ -6,10 +6,6 @@ name: Supplier document walk (demo data)
 # dispatched) and on dispatch once it is.
 on:
   workflow_dispatch: {}
-  push:
-    paths:
-      - '.github/workflows/supplier-document-walk.yml'
-      - 'scripts/e2e/supplier_document_read_walk.mjs'
 
 jobs:
   walk:
