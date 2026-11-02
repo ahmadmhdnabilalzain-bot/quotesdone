@@ -35,11 +35,23 @@ test('this file is the canonical definition: it is the last MANIFEST line defini
     assert.ok(read(FILE.replace('scripts/sql/', 'scripts/sql/pending/').replace(/\.sql$/, '.txt')).trim(), `${FILE} has neither a MANIFEST line nor a pending note`);
     return;
   }
+  // 2 Nov 2026: a later file may redefine a builder (the mailbox gate, #1744), so "nothing may redefine it" became
+  // "whatever defines it LAST in the MANIFEST keeps this file's two promises": a template with {{link}} is not
+  // refused, and an empty one still is. Each builder's latest definition is read, so a later change cannot slip the
+  // link refusal back in unseen.
   for (const name of ['fn_supplier_invite_candidates', 'fn_marketing_gap_recruitment_plans']) {
-    const later = manifest.slice(at + 1).filter((f) => f.endsWith('.sql')).filter((f) => {
+    const defs = manifest.slice(at).filter((f) => f.endsWith('.sql')).filter((f) => {
       try { return new RegExp(`function\\s+public\\.${name}\\b`, 'i').test(read(f)); } catch { return false; }
     });
-    assert.deepEqual(later, [], `${name} is redefined after this file by ${later.join(', ')}`);
+    const last = defs[defs.length - 1];
+    const text = read(last).split('\n').filter((l) => !/^\s*--/.test(l)).join('\n');
+    const bodies = [...text.matchAll(new RegExp(`create or replace function public\\.${name}\\s*\\([^)]*\\)[\\s\\S]*?as (\\$[a-z]*\\$)([\\s\\S]*?)\\1`, 'gi'))].map((m) => m[2]);
+    assert.ok(bodies.length, `${name} is not defined in ${last}`);
+    for (const body of bodies) {
+      assert.doesNotMatch(body, /not like '%\{\{link\}\}%'/, `${last}: ${name} refuses a body without {{link}} again`);
+      assert.doesNotMatch(body, /raise exception[^;]*\{\{link\}\}/, `${last}: ${name} raises over {{link}}`);
+      if (/v_body/.test(body)) assert.match(body, /if btrim\(coalesce\(v_body, ''\)\) = '' then\s+raise exception/, `${last}: ${name} no longer refuses an empty template`);
+    }
   }
 });
 
