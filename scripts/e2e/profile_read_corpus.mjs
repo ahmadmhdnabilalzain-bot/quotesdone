@@ -56,6 +56,11 @@ export async function profileCorpus(dir) {
     const jpeg = await sharp(svg).flatten({ background: '#ffffff' }).jpeg({ quality: 80 }).toBuffer();
     put('scanned_pdf', 'scanned PDF (image only), 2 services', 'reem_projects_profile_scan.pdf', rawPdf([{ jpeg, w: 1240, h: 1754 }]), MIME.pdf, { read: 'scan', stated: ['hvac', 'plumbing'], fileText: lines }); }
 
+  // 2b. the profile saved as a picture (a screenshot or phone photo): the portal sends pictures to the vision model
+  { const lines = ['ZZ DEMO Pearl Lifts and Floors LLC - Company Profile', 'About us', 'ZZ DEMO Pearl Lifts and Floors LLC is a UAE company serving Dubai and Abu Dhabi.', 'Our services', '- Elevator installation', '- Flooring works', FIXTURE];
+    const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="1100"><rect width="100%" height="100%" fill="#fff"/>${lines.map((l, k) => `<text x="80" y="${120 + k * 80}" font-family="Arial" font-size="34">${esc(l)}</text>`).join('')}</svg>`);
+    put('photo_png', 'profile saved as a PNG picture, 2 services', 'pearl_lifts_profile.png', await sharp(svg).png().toBuffer(), 'image/png', { read: 'scan', stated: ['elevators', 'flooring'], fileText: lines }); }
+
   // 3. an image-heavy brochure: three photo pages with no text, then one text page that lists the services
   { const lines = ['ZZ DEMO Sahara Finishes LLC - Brochure', 'What we do', '- Painting works', '- Waterproofing works', 'Our work is shown on the previous pages.', FIXTURE];
     const pages = [{ jpeg: await photo(800, 1130, 1), w: 800, h: 1130 }, { jpeg: await photo(800, 1130, 2), w: 800, h: 1130 }, { jpeg: await photo(800, 1130, 3), w: 800, h: 1130 },
