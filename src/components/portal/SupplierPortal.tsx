@@ -868,7 +868,7 @@ const TAB_ALIAS = { overview: 'services', scope: 'services', projects: 'messages
 // What each version changed, in the supplier's language. A supplier is shown every change after the version it
 // accepted (a v10 supplier re-accepting v12 sees v11's and v12's). v12, 14 Sep 2026, founder: "whatsapp number
 // supplier confirmed." Archived versions are the ones with a /supplier-agreement/vN page.
-export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13', 'v14', 'v15'];
+export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16'];
 const AGREEMENT_CHANGES = {
   11: {
     en: [
@@ -951,6 +951,12 @@ const AGREEMENT_CHANGES = {
       'يكون القبول بوضع علامة في المربع أو النقر للقبول، وتُعدّ سجلاتنا دليلًا لا دليلًا قاطعًا (البند 30). ويذكر بند القانون الواجب التطبيق الآن قانون التجارة عبر وسائل التقنية الحديثة، المرسوم بقانون اتحادي رقم 14 لسنة 2023 (البند 34). لا تغيير في أي رسم.',
     ],
   },
+  // v17, 2 Nov 2026 (ceo; ledger 1482): the contact line only. Shown to a supplier asked to accept v17 who last accepted v15 or earlier;
+  // a v16 supplier is not asked (needsReaccept above).
+  17: {
+    en: ['The contact line (clause 35) now gives +971 56 791 8605 for calls and +1 218 316 6814 for WhatsApp. No clause, fee or charge changes.'],
+    ar: ['يذكر سطر التواصل (البند 35) الآن الرقم +971 56 791 8605 للاتصال والرقم +1 218 316 6814 لواتساب. لا تغيير في أي بند أو رسم أو مبلغ.'],
+  },
 };
 export function agreementChanges(accepted, current, ar) {
   const n = (v) => Number(String(v || '').replace(/\D/g, '')) || 0;
@@ -958,8 +964,13 @@ export function agreementChanges(accepted, current, ar) {
   return Object.keys(AGREEMENT_CHANGES).map(Number).sort((a, b) => a - b)
     .filter((v) => v > from && v <= to).flatMap((v) => AGREEMENT_CHANGES[v][ar ? 'ar' : 'en']);
 }
+// 2 Nov 2026 (ceo; ledger 1482): terms_stands is the server's answer to 'does this supplier's acceptance still stand?'. It is true
+// for the current version AND for a version the current one carries because it differs in the contact line only (v16 -> v17), so
+// a contact-only revision never sends a signed supplier back to this card. Absent (an older server) falls back to the plain compare.
 export function needsReaccept(me) {
-  return !!(me && me.accepted_terms_at && me.terms_current && me.accepted_terms_version !== me.terms_current);
+  if (!(me && me.accepted_terms_at && me.terms_current)) return false;
+  if (typeof me.terms_stands === 'boolean') return !me.terms_stands;
+  return me.accepted_terms_version !== me.terms_current;
 }
 function ReacceptTerms({ token, lang, me, onDone }) {
   const ar = lang === 'ar'; const pre = ar ? '/ar' : '';

@@ -50,7 +50,8 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [WhatsApp is the founder's command channel](whatsapp-founder-command-channel.md)
 - [Founder mail goes through founder_mail_policy](founder-mail-goes-through-founder-mail-policy.md) — fn_notify_founder needs p_kind
 - [The estate could not email a file](the-estate-could-not-email-a-file.md) — fixed 9 Sep: notifications.attachments + send_outbox v43
-- [Founder's landline and mobile](founder-landline-and-mobile.md)
+- [Founder's landline and mobile](founder-landline-and-mobile.md) — 2 Nov: no longer public (ledger 1482)
+- [A contact-only terms version asks nobody to sign again](a-contact-only-terms-version-asks-nobody-to-sign-again.md) — 2 Nov: Supplier Agreement v17 + app_secrets supplier_terms_carries_from; deploy functions BEFORE the apply
 - [No observe mode — plain login](no-observe-mode-plain-login.md) — mobile number + OTP
 - [Links he shares are standing, not per-task](links-he-shares-are-standing-not-per-task.md)
 - [Expenses email is the source of truth](expenses-email-source-of-truth.md) · [Resend inbound keeps ~1 month](resend-inbound-retention-is-about-a-month.md) · [Accountant only sees what was forwarded](the-accountant-only-sees-what-was-forwarded.md)
