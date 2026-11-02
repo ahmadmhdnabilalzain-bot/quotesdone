@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-02T07:16:36.086Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-02T21:45:46.966Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -223,7 +223,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (775) =====
+-- ===== TABLES (776) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -2582,6 +2582,14 @@ CREATE TABLE IF NOT EXISTS public.conversation_archive (
   pdf_path text NOT NULL,
   bytes bigint,
   archived_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.conversation_archive_attempt (
+  source_table text NOT NULL,
+  source_id text NOT NULL,
+  attempts integer DEFAULT 0 NOT NULL,
+  first_at timestamp with time zone DEFAULT now() NOT NULL,
+  last_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.conversation_retention_log (
@@ -10878,6 +10886,7 @@ ALTER TABLE public.control_mode_challenge ADD CONSTRAINT control_mode_challenge_
 ALTER TABLE public.control_mode_identity ADD CONSTRAINT control_mode_identity_pkey PRIMARY KEY (admin_email);
 ALTER TABLE public.control_mode_session ADD CONSTRAINT control_mode_session_pkey PRIMARY KEY (id);
 ALTER TABLE public.conversation_archive ADD CONSTRAINT conversation_archive_pkey PRIMARY KEY (source_table, source_id);
+ALTER TABLE public.conversation_archive_attempt ADD CONSTRAINT conversation_archive_attempt_pkey PRIMARY KEY (source_table, source_id);
 ALTER TABLE public.conversation_retention_log ADD CONSTRAINT conversation_retention_log_pkey PRIMARY KEY (source_table, source_id);
 ALTER TABLE public.conversation_retention_pdf ADD CONSTRAINT conversation_retention_pdf_pkey PRIMARY KEY (source_table, source_id);
 ALTER TABLE public.conversation_retention_plan_log ADD CONSTRAINT conversation_retention_plan_log_pkey PRIMARY KEY (decided_for, source_table, source_id);
