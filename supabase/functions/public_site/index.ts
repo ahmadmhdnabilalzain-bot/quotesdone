@@ -38,7 +38,7 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 // the same model and space, one embed_ml worker per text, as the heartbeat already does (heartbeatDeps).
 // prevented by: _shared/held_replay_keeps_gte_out_of_the_worker.test.ts (public_site case)
 // A visitor is waiting on the page: 3 s per embedding, not 8; a timeout is the null path (no vector, no block).
-const deps = () => defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000 });
+// Written out at each call, so the decision-point guards (decision_points.json) still read the reasoned call itself.
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, content-type, apikey',
@@ -88,7 +88,7 @@ async function routeBrief(text: string, lang: 'en' | 'ar', ip = 'unknown') {
   if (error) return { ok: false, error: 'router_unavailable' };
   const cats = ((open as any)?.candidates || []) as { catalog_num: number; live_name: string }[];
   // A visitor has no channel to be answered on later, so a held question is not queued: he is asked now.
-  const pick = cats.length ? await catalogueCategoryOf(deps(), { text, categories: cats, audience: 'visitor', queue: false }) : null;
+  const pick = cats.length ? await catalogueCategoryOf(defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000 }), { text, categories: cats, audience: 'visitor', queue: false }) : null;
   let d: any = open || {};
   if (pick?.value) {
     const { data: routed, error: re } = await admin.rpc('fn_kb_route_decide', { p_text: text.slice(0, 1000), p_catalog_num: pick.value });
@@ -174,7 +174,7 @@ async function routeBrief(text: string, lang: 'en' | 'ar', ip = 'unknown') {
 // _shared/reasoned_suppliers.ts priceGuidanceFor; founder_instruction 886-903) — fn_price_guidance no
 // longer reads the question. Held (the model hold): no band is offered on a guess; reason 'held'.
 async function priceGuidance(question: string, ip: string) {
-  const p: any = await priceGuidanceFor(deps(), question.slice(0, 300), 6, 'visitor', 'ip:' + ip);
+  const p: any = await priceGuidanceFor(defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000 }), question.slice(0, 300), 6, 'visitor', 'ip:' + ip);
   if (p.ok && Array.isArray(p.bands)) {
     // Only the band itself. The evidence text and the kb_chunk/blog source ids stay server-side.
     const bands = p.bands.slice(0, 4).map((b: any) => ({

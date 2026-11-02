@@ -306,13 +306,17 @@ Deno.test('a record that returns a bare thenable (an admin.rpc builder: then, no
   const { x } = io(true);
   const rec: number[] = [];
   // the shape reask.ts passes: `(id, d) => admin.rpc(...)`; the RPC runs only when awaited
-  const builder = (id: number) => ({ then: (ok: (v: unknown) => unknown) => { rec.push(id); return Promise.resolve(ok({ data: null })); } });
+  // A PromiseLike with `then` and no `catch`, typed as one: the call runs only when awaited.
+  const thenable = (run: () => Promise<unknown>): PromiseLike<unknown> => ({
+    then: <A = unknown, B = never>(ok?: ((v: unknown) => A | PromiseLike<A>) | null, bad?: ((e: unknown) => B | PromiseLike<B>) | null) => run().then(ok, bad),
+  });
+  const builder = (id: number) => thenable(() => { rec.push(id); return Promise.resolve({ data: null }); });
   const rows = [7, 8].map((id) => ({ id, surface: 'wa_inbound.needs_a_person', question: 'where is my quote?', subject: { phone: '+971500000001' } }));
   const out = await sendHeldNotices(rows, x, (id) => builder(id));
   assertEquals(out.map((r) => r.id), [7, 8]);
   assertEquals(rec, [7, 8]);
   assertEquals(out.map((r) => r.record_error), [undefined, undefined]);
-  const rejecting = await sendHeldNotices(rows, x, () => ({ then: (_ok: unknown, bad: (e: unknown) => unknown) => Promise.resolve(bad(new Error('db down'))) }));
+  const rejecting = await sendHeldNotices(rows, x, () => thenable(() => Promise.reject(new Error('db down'))));
   assertEquals(rejecting.map((r) => r.record_error), ['db down', 'db down']);
 });
 
