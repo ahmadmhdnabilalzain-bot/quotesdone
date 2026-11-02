@@ -395,7 +395,9 @@ export async function journeySuppliers(ctx) {
   for (const o of bOpts) if (o.quote_id) ctx.run.ids.quotes.add(String(o.quote_id));
   const bRows = await read(`select id, option_no, status, submission_id from public.quotes where inquiry_id = ${q(inquiryId)} and supplier_id = ${B.leadId} order by option_no`);
   rep.step(J, 'two options become two quotations', bRows.length === 2 && new Set(bRows.map((r) => r.submission_id)).size === 1 ? 'PASS' : 'FAIL',
-    `HTTP ${b1.status} code=${b1.json?.code} rows=${bRows.map((r) => `#${r.option_no}:${r.status}`).join(',')} held=${bOpts.filter((o) => o.held).length}`);
+    `HTTP ${b1.status} code=${b1.json?.code} rows=${bRows.map((r) => `#${r.option_no}:${r.status}`).join(',')} held=${bOpts.filter((o) => o.held).length}` +
+    // WHY each option was held, as the gate recorded it (2 Nov 2026: held=2 with no reason on screen)
+    bOpts.filter((o) => o.held).map((o) => ` #${o.option_no}:${o.code}[${(o.missing || []).map((m) => (m?.attr ?? m) + (m?.line ? '@' + m.line : '')).join(',')}]${o.review_issues ? ' review=' + JSON.stringify(o.review_issues).slice(0, 120) : ''}`).join(''));
 
   // C: complete -> accepted first time (preflight first, so a miss is reported, not guessed)
   // Under the model hold his prose is not read, so the preflight must answer "would hold" and the
