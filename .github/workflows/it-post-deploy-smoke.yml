@@ -23,12 +23,13 @@ name: IT engineer post-deploy smoke
 # never set. The gate still changed: a smoke test that cannot report now FAILS the job. It used to skip
 # quietly and leave a green run over nothing.
 
-# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
+# founder 26 Oct (ledger 1279) switched every automatic trigger off; founder 28 Oct (ledger 1410): "activate github actions",
+# on GitHub-hosted runners. push / pull_request / workflow_run are back; schedules stay on pg_cron (moved 26 Oct, no double run).
 on:
-  # workflow_run:
-    # workflows: ['deploy edge functions']
-    # types: [completed]
-    # branches: [main]
+  workflow_run:
+    workflows: ['deploy edge functions']
+    types: [completed]
+    branches: [main]
   # Re-run the smoke for a merge that already deployed, without another push to main.
   workflow_dispatch:
     inputs:
@@ -39,7 +40,7 @@ on:
 jobs:
   smoke:
     if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read

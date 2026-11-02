@@ -22,21 +22,22 @@ Deno.test('the caller country decides the domain, by FromCountry or by the numbe
 
 Deno.test('both languages carry the same domain, and only one of the two domains appears', () => {
   const ae = twiml(true);
-  assertStringIncludes(ae, 'visit quotesdone.ae.');
-  assertStringIncludes(ae, 'زيارة موقعنا quotesdone.ae.');
+  assertStringIncludes(ae, 'contact page on quotesdone.ae;');
+  assertStringIncludes(ae, 'موقعنا quotesdone.ae،');
   assertEquals(ae.includes('quotesdone.com'), false, 'a UAE caller must not hear the .com host');
 
   const com = twiml(false);
-  assertStringIncludes(com, 'visit quotesdone.com.');
-  assertStringIncludes(com, 'زيارة موقعنا quotesdone.com.');
+  assertStringIncludes(com, 'contact page on quotesdone.com;');
+  assertStringIncludes(com, 'موقعنا quotesdone.com،');
   assertEquals(com.includes('quotesdone.ae'), false);
 });
 
 Deno.test('it is TwiML that hangs up, and it is no longer the 410', () => {
   for (const x of [twiml(true), twiml(false)]) {
     assert(x.startsWith('<?xml version="1.0" encoding="UTF-8"?><Response>'));
-    assertStringIncludes(x, '<Say language="en-US">');
-    assertStringIncludes(x, '<Say language="ar-AE" voice="Polly.Hala">');
+    assertStringIncludes(x, '<Say language="en-US" loop="2">');
+    assertStringIncludes(x, 'Send a WhatsApp message to this same number');
+    assertStringIncludes(x, '<Say language="ar-AE" voice="Polly.Hala" loop="2">');
     assert(x.trimEnd().endsWith('<Hangup/></Response>'));
     assertEquals(x.includes('This service is unavailable'), false);
     // No stray & < > from the interpolated domain — Twilio refuses malformed TwiML outright.

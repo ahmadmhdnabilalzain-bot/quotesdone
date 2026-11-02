@@ -8,7 +8,7 @@ metadata:
   modified: 2026-09-30T10:50:59.217Z
 ---
 
-Founder, 29 Sep 2026, trimmed the backlog; "keep them in the ledger for later". Build only when `gh pr list --state open` = 0, after round 3 (ledger 1018, gated at < 20). Order: T1, then T3, then T2; T4–T7 adjusted by the post-merge audit. Max 10 agents; apply at merge, never before.
+Founder, 29 Sep 2026, trimmed the backlog; "keep them in the ledger for later". Build only when `gh pr list --state open` = 0, after round 3 (ledger 1018, gated at < 20). Order: T1, then T3, then T2; T4–T7 adjusted by the post-merge audit. Max 5 agents; apply at merge, never before.
 
 **T1 revenue core:**
 - stalled-inquiry rescue (round 3)

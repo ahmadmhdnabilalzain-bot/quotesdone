@@ -208,7 +208,9 @@ function reaskOne(q: string, h: Held): string | null {
 // Lines on a topic the customer's message did not ask about. [topic, the sentence pattern, what in their message licenses it]
 const UNASKED: [string, RegExp, RegExp | null][] = [
   ['the fee', /\b(fees?|free of charge|is free|for free|no charge|commission|reveal)\b|\bAED\b|\bdirhams?\b|رسوم|مجاني|مجانا|مجاناً|درهم|عمولة/i,
-    /\b(fee|fees|cost|costs|charge|pay|paid|price|pricing|how much|free|commission|budget|aed|reveal)\b|رسوم|تكلفة|تكلفه|سعر|بكم|كم (يكلف|سعر|التكلفة)|ادفع|أدفع|مجان/i],
+    // a question about WHO a supplier is licenses the line that explains it is revealed on payment (browser proof, 2 Nov 2026: that
+    // sentence was dropped and the reply began "Until then you compare them as Supplier A...")
+    /\b(fee|fees|cost|costs|charge|pay|paid|price|pricing|how much|free|commission|budget|aed|reveal|who|identity|contact|phone|email|name)\b|رسوم|تكلفة|تكلفه|سعر|بكم|كم (يكلف|سعر|التكلفة)|ادفع|أدفع|مجان/i],
   ['how long it takes', /\b(working|business) days\b|\bwithin \d+\s*(hours?|days?)\b|\b\d+\s*[–-]\s*\d+\s*(working |business )?(days|weeks|hours)\b|\bquotes? (usually |typically |normally |will )?(take|arrive|come)\b|أيام عمل|خلال \d+ (ساعة|أيام|يوم)|يستغرق|تستغرق/i,
     // a question about time, not a timeline they state ("within 2 weeks" licensed the 3-5 day line until this was narrowed)
     /\bhow long\b|\bwhen (will|would|can|do|could)\b|\bhow soon\b|\bhow quickly\b|\bhow many (days|weeks)\b|\b(is|would) (that|it|this) (possible|realistic|enough)\b|\bin time\b|متى|كم يوم|كم المدة|كم تستغرق|هل يمكن|هل ممكن/i],

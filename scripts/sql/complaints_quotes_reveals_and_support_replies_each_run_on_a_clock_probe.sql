@@ -109,29 +109,21 @@ begin
       f := f || text 'the seat''s complaint item stayed open after the final response'; end if;
 
     -- ── a request short of quotes: widen once, remind once, tell the customer once ──
-    select i.id into v_inq from public.inquiries i join public.customers c on c.id = i.customer_id
-     where i.status in ('sent', 'quoted') and public.fn_seat_clock_customer_is_fixture(c)
-       and exists (select 1 from public.inquiry_matches m join public.leads l on l.id = m.supplier_id
-                    where m.inquiry_id = i.id and public.fn_seat_clock_lead_is_fixture(l)
-                      and not exists (select 1 from public.quotes q where q.inquiry_id = i.id and q.supplier_id = m.supplier_id))
-       and (select count(*) from public.quotes q where q.inquiry_id = i.id) < 3
-     order by i.created_at desc limit 1;
-    -- NO LEFTOVER TO BORROW (22 Sep 2026, it_engineer). This used to find its subject only among OTHER
-    -- runs' leftover fixtures: it passed on run 12ddadff's request, and the nightly's sweep of runs that
-    -- are over (scripts/e2e/fixtures.mjs sweepStaleRuns) left none. A probe must not depend on litter.
-    -- When nothing is short of quotes, it makes a request short of quotes here: an open fixture request
-    -- gains one invited ZZ DEMO supplier (@example.invalid) who has not quoted. Both rows exist only
-    -- inside this block, which its own raise rolls back; the zero-residue assertion below still holds.
-    if v_inq is null then
-      select i.id into v_inq from public.inquiries i join public.customers c on c.id = i.customer_id
-       where i.status in ('sent', 'quoted') and public.fn_seat_clock_customer_is_fixture(c)
-         and (select count(*) from public.quotes q where q.inquiry_id = i.id) < 3
-       order by i.created_at desc limit 1;
-      if v_inq is not null then
-        insert into public.leads (company_name, email) values ('ZZ DEMO clock probe supplier', 'zz.clock.supplier@example.invalid')
-        returning id into v_lead;
-        insert into public.inquiry_matches (inquiry_id, supplier_id, match_reason) values (v_inq, v_lead, 'ZZ DEMO clock probe: invited, not quoted');
-      end if;
+    -- THE PROBE OWNS ITS REQUEST (2 Nov 2026, customer_support). It used to borrow the newest open fixture request,
+    -- which on a night with a walk running is the WALK's live request: a message the walk (or a live tick) committed
+    -- for it counted as a second notice, and a notice already asked for it made the probe see none -- "the customer
+    -- was not told exactly once" on two PRs, green on a rerun. Nothing else can touch a row born in this block,
+    -- which its own raise rolls back. It borrows only a fixture customer and that customer's request shape.
+    insert into public.inquiries (customer_id, status, category, emirate)
+    select i.customer_id, 'sent', i.category, i.emirate
+      from public.inquiries i join public.customers c on c.id = i.customer_id
+     where public.fn_seat_clock_customer_is_fixture(c) and i.category is not null
+     order by i.created_at desc limit 1
+    returning id into v_inq;
+    if v_inq is not null then
+      insert into public.leads (company_name, email) values ('ZZ DEMO clock probe supplier', 'zz.clock.supplier@example.invalid')
+      returning id into v_lead;
+      insert into public.inquiry_matches (inquiry_id, supplier_id, match_reason) values (v_inq, v_lead, 'ZZ DEMO clock probe: invited, not quoted');
     end if;
     if v_inq is null then
       f := f || text 'no open ZZ DEMO request exists to rehearse on';

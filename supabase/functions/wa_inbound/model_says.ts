@@ -24,7 +24,10 @@ export interface SayRequest {
   must?: string[];              // text the reply must carry exactly (a job number, a case reference)
 }
 // A WhatsApp reply is written within this, or the person gets the held notice and the turn is queued (run 5: 73.7 s).
-export const WA_REPLY_BUDGET_MS = 45_000;
+// 2 Nov 2026: 90 s, was 45. The webhook is acknowledged at once (ackThenWork), so the wall is the edge worker's background
+// limit (150 s), not Twilio's 15 s. Measured on the real exchange: classification 17-24 s, reply 2-20 s, so 45 s left 2-3 turns
+// in 12 with no reply and the queue's answer ~80 s later; a model answer at 50-60 s is sooner and nothing is code-written.
+export const WA_REPLY_BUDGET_MS = 90_000;
 /** Time kept back from the budget for the send itself and the row write after the model answers. */
 export const WA_SEND_MARGIN_MS = 3_000;
 /** THE CLOCK STARTS AT ARRIVAL, NOT AT THE MODEL CALL (QA channels run, 19 Oct 2026). Measured on production: two
