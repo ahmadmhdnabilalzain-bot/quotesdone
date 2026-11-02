@@ -16,3 +16,7 @@ Deno.test('its one embed() asks embed_ml for the same gte-small space', () => {
   const body = src.slice(src.indexOf('async function embed('), src.indexOf('\n}\n', src.indexOf('async function embed(')));
   assertMatch(body, /embedGteRemote\(admin,/);
 });
+
+Deno.test('a FAQ match that lost its vector says so (review of #1797)', () => {
+  assertMatch(src, /if \(q\.length > 2 && !qEmb\) console\.warn\('ai_gateway faq: no vector/);
+});

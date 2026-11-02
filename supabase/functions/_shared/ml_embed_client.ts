@@ -36,6 +36,9 @@ let cred: { v: string; at: number } | null = null;
 // each caller takes the path it already takes for a null. A per-text refusal (503 embed_failed, a bad vector) is
 // embed_ml answering, and opens nothing. prevented by: _shared/embed_failure_reason.test.ts
 export const EMBED_COOL_MS = 30_000;
+/** The clock every seat gives embed_ml (think.ts, the learning tick, the gateway's embed action). Only a timeout at
+ *  this length or longer is evidence that embed_ml is down. */
+export const EMBED_FULL_TIMEOUT_MS = 8_000;
 let downUntil = 0;
 let downWhy = '';
 
@@ -86,7 +89,14 @@ async function embedRemote(admin: Admin, text: string, caller: string, timeoutMs
     return Array.isArray(v) && v.length === 384 && j.space === space ? v as number[] : fail('embed_ml_bad_vector');
   } catch (e) {
     const n = (e as Error)?.name;
-    return down(n === 'TimeoutError' || n === 'AbortError' ? 'embed_ml_timeout_' + timeoutMs + 'ms' : 'embed_ml_error: ' + errorText(e));
+    // A caller that chose a SHORTER clock than the full one (ai_gateway's semantic cache waits 3 s) has said it would
+    // rather go without than wait; that is not embed_ml being down, so it opens no cool-off for every other caller in
+    // the worker (review of #1797: the embed action and the FAQ match would have lost their vectors for 30 s).
+    if (n === 'TimeoutError' || n === 'AbortError') {
+      const why = 'embed_ml_timeout_' + timeoutMs + 'ms';
+      return timeoutMs >= EMBED_FULL_TIMEOUT_MS ? down(why) : fail(why);
+    }
+    return down('embed_ml_error: ' + errorText(e));
   }
 }
 /** For tests: forget the cached credential so the next call reads app_secrets again. */

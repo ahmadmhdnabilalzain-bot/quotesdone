@@ -11,6 +11,11 @@
 // prevented by: conversation_archive/budget.test.ts
 export const RENDER_BUDGET_MS = 1200;
 
+/** One render's drawing time: its wall time less the time it spent waiting on asset fetches (never below 0). */
+export function drawingMs(wallMs: number, waitedMs: number): number {
+  return Math.max(0, wallMs - Math.max(0, waitedMs));
+}
+
 /** May one more render start, given the render time spent so far and the slowest render seen in this worker? */
 export function mayRenderNext(spentMs: number, slowestMs: number, budgetMs = RENDER_BUDGET_MS): boolean {
   return spentMs === 0 || spentMs + slowestMs <= budgetMs;

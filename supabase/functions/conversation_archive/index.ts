@@ -22,7 +22,7 @@ import { docIdentity } from '../_shared/doc_template.ts';
 import { observe } from '../_shared/observe.ts';
 import { renderPdf } from '../pdf_native/render.ts';
 import { conversationDocument, stripHtml, type ConversationRow } from './document.ts';
-import { mayRenderNext } from './budget.ts';
+import { drawingMs, mayRenderNext } from './budget.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const ASSET = Deno.env.get('SUPABASE_URL')! + '/storage/v1/object/public/brand';
@@ -55,14 +55,18 @@ async function sweep(limit: number, offset = 0, tag?: string) {
   const rows = ((data || []) as ConversationRow[]).slice(offset);
   const identity = rows.length ? await docIdentity(admin) : undefined;
   let archived = 0, queued = 0, renderMs = 0, slowestMs = 0, deferred = 0; const failed: Array<{ ref: string; error: string }> = [];
+  // The budget counts drawing, not waiting: time spent fetching a brand asset or font (cold on a fresh worker) is
+  // taken out of each render's clock, so a cold start does not cut a sweep to one or two PDFs (review of #1797).
+  let waitedMs = 0;
+  const timedFetchBytes = async (p: string) => { const t = performance.now(); try { return await fetchBytes(p); } finally { waitedMs += performance.now() - t; } };
   for (const r of rows) {
     const ref = `${r.source_table}:${r.source_id}`;
     // A CPU budget, not a count (budget.ts): what is not drawn here stays pending for the next sweep.
     if (!mayRenderNext(renderMs, slowestMs)) { deferred = rows.length - archived - failed.length; break; }
     try {
-      const t0 = performance.now();
-      const out = await renderPdf(conversationDocument(r), { fetchBytes, identity });
-      const took = performance.now() - t0; renderMs += took; slowestMs = Math.max(slowestMs, took);
+      const t0 = performance.now(), w0 = waitedMs;
+      const out = await renderPdf(conversationDocument(r), { fetchBytes: timedFetchBytes, identity });
+      const took = drawingMs(performance.now() - t0, waitedMs - w0); renderMs += took; slowestMs = Math.max(slowestMs, took);
       if (!out.ok) { failed.push({ ref, error: 'render ' + JSON.stringify(out.body).slice(0, 160) }); continue; }
       const month = String(r.occurred_at || new Date().toISOString()).slice(0, 7);
       const path = `conversations/${r.channel}/${month}/${r.source_table}-${r.source_id}.pdf`;

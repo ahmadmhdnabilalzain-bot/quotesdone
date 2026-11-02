@@ -289,6 +289,8 @@ async function handle(req: Request): Promise<Response> {
       const q = String(body.faq_text ?? (typeof body.input === 'string' ? body.input : '') ?? '');
       promptHash = await sha256('faq ' + fnName + ' ' + q);
       const qEmb = q.length > 2 ? await embed(q) : null;
+      // Said, not silent (review of #1797): without a vector fn_faq_answer matches on keywords alone.
+      if (q.length > 2 && !qEmb) console.warn('ai_gateway faq: no vector from embed_ml for ' + fnName + '; the FAQ match falls back to keywords');
       const { data: faq } = await admin.rpc('fn_faq_answer', {
         p_text: q, p_min_rank: 0.15, p_embedding: qEmb, p_min_similarity: 0.86,
       });

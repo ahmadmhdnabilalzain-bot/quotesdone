@@ -75,6 +75,18 @@ Deno.test('embed_ml down costs one timeout per worker, not one per text: the nex
   assert(EMBED_COOL_MS <= 60_000, 'a cool-off shorter than a tick, so the next tick asks again');
 });
 
+Deno.test('a timeout the CALLER shortened opens no cool-off: the next caller is still asked (review of #1797)', async () => {
+  _resetEmbedClientForTest();
+  let hops = 0;
+  const vec = '[' + Array(384).fill(0.01).join(',') + ']';
+  await withFetch(() => { hops++; throw new DOMException('Signal timed out.', 'TimeoutError'); },
+    () => embedGteRemote(admin, 'ZZ DEMO cache key', 'ai_gateway', 3000));
+  const v = await withFetch(() => { hops++; return new Response(JSON.stringify({ ok: true, space: 'gte', embedding: vec }), { status: 200, headers: RAN }); },
+    () => embedGteRemote(admin, 'ZZ DEMO faq', 'ai_gateway', 8000));
+  assertEquals(hops, 2, 'the 8 s caller reached embed_ml');
+  assertEquals(v?.length, 384);
+});
+
 Deno.test('a per-text refusal from embed_ml opens nothing: the next text is still asked', async () => {
   _resetEmbedClientForTest();
   let hops = 0;
