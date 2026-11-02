@@ -508,8 +508,10 @@ ALTER TABLE public.ceo_decision_round ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_directive ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_experiment ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_experiment_verdict ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_growth_action ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_identity ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_improvement ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_invite_trade_priority ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_knowledge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_launch_gate ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_mandate ENABLE ROW LEVEL SECURITY;
@@ -526,6 +528,9 @@ ALTER TABLE public.ceo_seat_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_seat_directive ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_standing_grant ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_strategy_memo ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_supplier_channel ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_supplier_funnel_daily ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_supplier_goal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_task ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_task_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_weekly_report ENABLE ROW LEVEL SECURITY;
@@ -1207,7 +1212,9 @@ CREATE POLICY ceo_decision_round_service_role_only ON public.ceo_decision_round 
 CREATE POLICY ceo_directive_service_role_only ON public.ceo_directive AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_experiment_service_role_only ON public.ceo_experiment AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_experiment_verdict_service_role_only ON public.ceo_experiment_verdict AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY ceo_growth_action_service_role_only ON public.ceo_growth_action AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_improvement_service_role_only ON public.ceo_improvement AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY ceo_invite_trade_priority_service_role_only ON public.ceo_invite_trade_priority AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_launch_gate_service_role_only ON public.ceo_launch_gate AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_mandate_service_role_only ON public.ceo_mandate AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_market_report_service_role_only ON public.ceo_market_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1222,6 +1229,9 @@ CREATE POLICY ceo_review_service_role_only ON public.ceo_review AS PERMISSIVE FO
 CREATE POLICY ceo_seat_audit_service_role_only ON public.ceo_seat_audit AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_seat_directive_service_role_only ON public.ceo_seat_directive AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_strategy_memo_service_role_only ON public.ceo_strategy_memo AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY ceo_supplier_channel_service_role_only ON public.ceo_supplier_channel AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY ceo_supplier_funnel_daily_service_role_only ON public.ceo_supplier_funnel_daily AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY ceo_supplier_goal_service_role_only ON public.ceo_supplier_goal AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_weekly_report_service_role_only ON public.ceo_weekly_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_weekly_review_service_role_only ON public.ceo_weekly_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_year_plan_service_role_only ON public.ceo_year_plan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1609,7 +1619,9 @@ select cron.schedule('seat_duty:customer_support.dead_answer_rescue','*/5 * * * 
 --   brand_logo_on_navy_url
 --   brand_logo_on_white_url
 --   brand_mark_transparent_url
+--   ceo_daily_number_golive
 --   ceo_digest_local_time
+--   ceo_growth_act_golive
 --   ceo_weekly_report_local_dow
 --   ceo_weekly_report_local_time
 --   cloudconvert_api_key
@@ -1760,6 +1772,7 @@ select cron.schedule('seat_duty:customer_support.dead_answer_rescue','*/5 * * * 
 --   inbound_webhook_secret
 --   internal_credential_hmac_key
 --   invite_body
+--   invite_ceo_ceiling
 --   invite_daily_cap
 --   invite_enabled
 --   invite_lane_enabled
@@ -1769,6 +1782,7 @@ select cron.schedule('seat_duty:customer_support.dead_answer_rescue','*/5 * * * 
 --   invite_m365_mailbox
 --   invite_max_bounce_rate
 --   invite_preheader
+--   invite_reachable_only
 --   invite_subject
 --   invite_target_per_category
 --   invite_target_per_trade

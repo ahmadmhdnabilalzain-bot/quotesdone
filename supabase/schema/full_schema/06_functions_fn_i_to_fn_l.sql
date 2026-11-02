@@ -623,15 +623,11 @@ $function$
 CREATE OR REPLACE FUNCTION public.fn_invite_founder_cap(p_day date)
  RETURNS integer
  LANGUAGE sql
- IMMUTABLE
+ STABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select case
-    when p_day < date '2026-10-26' then 20
-    when p_day < date '2026-11-02' then 30
-    when p_day < date '2026-11-09' then 40
-    else 50
-  end;
+  select greatest(public.fn_invite_schedule_cap(p_day),
+                  coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_ceo_ceiling'), 0));
 $function$
 
 
@@ -1191,6 +1187,21 @@ begin
     jsonb_build_object('sent_today', v_sent, 'bounced_today', v_b, 'complained_today', v_c));
   return null;
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_schedule_cap(p_day date)
+ RETURNS integer
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when p_day < date '2026-10-26' then 20
+    when p_day < date '2026-11-02' then 30
+    when p_day < date '2026-11-09' then 40
+    else 50
+  end;
 $function$
 
 
