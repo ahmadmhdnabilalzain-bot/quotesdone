@@ -25,12 +25,15 @@ const COPY = readFileSync(root + 'src/components/portal/supplier/serverCopy.ts',
 const PORTAL = readFileSync(root + 'src/components/portal/SupplierPortal.tsx', 'utf8');
 const PLATFORM_546 = JSON.stringify({ code: 'WORKER_RESOURCE_LIMIT', message: 'Function failed due to not having enough compute resources (please check logs)' });
 
-// The real api.ts, with only its one import (the project's env module) replaced, loaded by Node's own type stripping.
+// The real api.ts, with its env import stubbed and its retry import (fetchRetry, #1769) pointed at the real file, loaded by Node's own type stripping.
 async function loadApi() {
   const dir = mkdtempSync(join(tmpdir(), 'qd-api-'));
+  const retryUrl = new URL('../../src/lib/fetchRetry.ts', import.meta.url).href;
   const src = API.replace(/^import \{ SUPA_ANON as ANON, fnUrl \} from '@\/lib\/supaEnv';$/m,
-    "const ANON = 'anon'; const fnUrl = (p) => 'https://fn.invalid/functions/v1/' + p;");
+    "const ANON = 'anon'; const fnUrl = (p) => 'https://fn.invalid/functions/v1/' + p;")
+    .replace(/^import \{ retryRead, isReadAction \} from '@\/lib\/fetchRetry';$/m, `import { retryRead, isReadAction } from '${retryUrl}';`);
   assert.notEqual(src, API, 'api.ts no longer imports SUPA_ANON/fnUrl the way this check expects; update the stub');
+  assert.ok(src.includes(retryUrl), 'api.ts no longer imports retryRead/isReadAction from @/lib/fetchRetry; update the stub');
   const f = join(dir, 'api.mts'); writeFileSync(f, src);
   return import(pathToFileURL(f).href);
 }
