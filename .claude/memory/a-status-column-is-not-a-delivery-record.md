@@ -41,5 +41,6 @@ so there is no rate". See also [[never-state-what-you-have-not-measured]].
 **2 Nov 2026, the M365 lane.** Graph's sendMail answers 202 with no id, so all 52 M365 invitations read provider_status NULL.
 Now resilience_ping reads each one back from supplier@'s Sent Items by internetMessageId and writes 'sent' (Exchange sent it;
 never 'delivered', which Graph cannot see). A delivery report that quotes a send's exact Message-ID writes 'undelivered'
-'bounce:<code>' (`fn_mail_bounce_marks_its_send`). Our own tenant's Exchange NDRs carry no authentication result; the
-exact Message-ID now counts as proof, so their permanent bounces mark the lead and reach the brake.
+'bounce:<code>' (`fn_mail_bounce_marks_its_send`), and only by In-Reply-To, from an authenticated sender or our own
+tenant's Exchange on its own stamp (raw.exchange_internal), with a standalone 5.x.x code. The Message-ID alone is no proof:
+the recipient knows it (review of #1792). Whether Graph shows the AuthAs header on an NDR is unmeasured.
