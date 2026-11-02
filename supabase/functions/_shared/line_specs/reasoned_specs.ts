@@ -17,6 +17,7 @@
 import { COMPOSITE, TRADES, tradeOfCategory, type Attr } from './model.ts';
 import { lineText, type Line } from './assess.ts';
 import { think, type ThinkDeps } from '../think.ts';
+import { settledRead } from '../reasoned_matching.ts';
 import { shapeDecides } from './field_format.ts';
 
 export type ChecklistRow = { code: string; label_en: string; label_ar?: string | null };
@@ -43,7 +44,8 @@ export async function chooseChecklist(deps: ThinkDeps, o: { checklists: Checklis
   if (!lists.length) return { rows: [], topic: null, reasoned: false };
   if (lists.length === 1) return { rows: lists[0].specs, topic: lists[0].topic_id, reasoned: false };
   const text = o.lines.map((l) => `LINE ${l.line_no}: ${lineText(l)}`).join('\n').slice(0, 7000);
-  const r = await think(deps, {
+  // Settled like every reading of his text (reasoned_matching.ts settledRead): the same lines are priced against the same list.
+  const r = await settledRead(deps, {
     seat: 'sales_engineer', surface: 'quote.spec_checklist', question: text, dedupeKey: 'quote_checklist:' + o.quoteId, subject: { quote_id: o.quoteId },
     context: { audience: 'supplier', trade: o.trade },
     decision: { name: 'spec_checklist', options: lists.map((c) => ({ id: c.topic_id, meaning: c.topic })) },
@@ -121,7 +123,7 @@ export async function reasonLineSpecs(deps: ThinkDeps, o: { lines: Line[]; check
     const text = batch.map(({ line: l }) => `LINE ${l.line_no}: ${lineWords(l).slice(0, 1500)}`).join('\n');
     const fields = batch.flatMap(({ line: l, ask }) => ask.map((a) => ({ key: `L${l.line_no}__${a.code}`, question: `line ${l.line_no}: ${a.en}` })));
     const r = await think(deps, {
-      seat: 'sales_engineer', surface: 'quote.line_specs', question: text,
+      seat: 'sales_engineer', surface: 'quote.line_specs', question: text, temperature: 0,
       dedupeKey: 'quote_specs:' + o.quoteId + ':' + i, subject: { quote_id: o.quoteId },
       context: { audience: 'supplier', trade: o.trade, conversation: [{ role: 'supplier', text }] },
       decision: { name: 'stated_specs', fields },

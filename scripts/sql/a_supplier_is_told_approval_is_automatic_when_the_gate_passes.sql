@@ -11,7 +11,7 @@
 -- Measured 28 Oct 2026, read-only: 5 dept_library rows (ids 1431-1435) and 2 canon_eval_questions rows (ids 18, 38).
 -- FOUNDER LEDGER 1469 (2 Nov 2026) is in the new text: a supplier is held (pending / services_unconfirmed) until it confirms the
 -- services it provides, so "automatic" is true only once the six are complete, the licence is read and in date AND the services
--- are confirmed. The first draft of this file said "automatic when the six are complete and the licence is read and in date".
+-- are confirmed. The first draft of this file left the services confirmation out of that condition.
 -- Data only: no routine, no table, no grant.
 begin;
 

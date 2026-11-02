@@ -29,7 +29,7 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 async function sha256hex(s: string){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join(''); }
 // The technical comparison (docs/contracts/technical_comparison.md) and the option-aware labels.
 import { rendererView, technicalComparison, type TechnicalComparison } from '../_shared/line_specs/compare.ts';
-import { heldQuoteIds } from '../_shared/reveal_guard.ts';
+import { compareItem, heldQuoteIds } from '../_shared/reveal_guard.ts';
 import { requirementsOf } from '../_shared/line_specs/assess.ts';
 import { labelQuotes } from '../_shared/quote_labels.ts';
 import { chunks, differingCells } from '../_shared/routine_judgements.ts';
@@ -129,7 +129,8 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
       for (const r of (rows || [])) {
         const k = String(r.quote_id); (itemsByQuote[k] ||= []);
         if (itemsByQuote[k].length >= MAX_ITEMS_PER_QUOTE) continue;
-        itemsByQuote[k].push({ line: r.line_no, description: r.description, brand: r.brand, model: r.model, specification: r.specification, qty: r.qty, unit: r.unit, unit_price: r.unit_price, labour: r.labour, install: r.install, commissioning: r.commissioning, amount: r.amount, country_of_origin: r.country_of_origin, notes: r.notes, spec: r.spec || null });
+        // with spec_source: the ranking's re-check must see what the gate's reading wrote (reveal_guard.ts compareItem)
+        itemsByQuote[k].push(compareItem(r));
         (specOf[k] ||= {})[r.line_no] = r.spec_source || null;
         itemsTotal++;
       }

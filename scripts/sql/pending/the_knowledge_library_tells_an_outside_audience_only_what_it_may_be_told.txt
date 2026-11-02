@@ -1,0 +1,19 @@
+PENDING, applied AT MERGE by the release operator (memory: apply-at-merge-never-before). Seat: customer_support.
+
+Founder rulings 1338 (27 Oct 2026, "Withhold from customers.") and 7 Oct 2026: the knowledge library's two readers take
+p_audience and hold every outside caller to the legacy readers' customer rules (fail closed), and the library stops
+marking AI-written kb_chunks rows verified. Built on the canonical bodies in
+one_knowledge_library_is_built_beside_the_nine_stores_and_read_behind_a_flag.sql (byte-equal to live, 27 Oct 2026).
+Proved rolled back with the_knowledge_library_tells_an_outside_audience_only_what_it_may_be_told_probe.sql: PROBE OK
+after this file; PROBE FAILED on the live readers alone.
+
+APPLY ORDER: AFTER #1640's knowledge_the_ai_wrote_itself_is_withheld_from_customers.sql (pending files are appended in
+name order, and k < t keeps that order). This file does not redefine fn_reason_retrieve or fn_reason_retrieve_ml, so it
+applies cleanly before or after #1640; the order matters only so the check's ruling-1338 test reads #1640's bodies.
+
+What moves it: this PR merges. Then, in one turn:
+  node scripts/apply_sql.mjs scripts/sql/the_knowledge_library_tells_an_outside_audience_only_what_it_may_be_told.sql --apply --ddl
+  delete this note, append the .sql to the END of scripts/sql/MANIFEST.txt (Edit tool), and run
+  node scripts/checks/canonical_routine_manifest.mjs and the export --write.
+If another file redefines either library reader or fn_knowledge_library_source_sql first, rebuild this one on that body
+(scripts/checks/every_customer_reachable_reader_carries_the_audience_rules.test.mjs names what must survive).

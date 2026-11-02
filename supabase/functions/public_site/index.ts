@@ -31,6 +31,14 @@ import { priceGuidanceFor } from '../_shared/reasoned_suppliers.ts';
 import { catalogueCategoryOf } from '../_shared/reasoned_matching.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+// GTE-SMALL RUNS IN embed_ml, NEVER IN THIS WORKER (it_engineer, 2 Nov 2026). Measured on production 1-2 Nov:
+// 57 public_site POSTs in 24 h were killed at the 2 s edge CPU cap (function_logs "CPU Time exceeded", 546 after
+// 1.0-2.4 s). A cold price_guidance embeds the question plus the 8 PRICE_EXEMPLARS in-process (9 gte-small runs at a
+// median 324 ms CPU each, think.ts) and route_brief's think() embeds its steps the same way. Remote placement is
+// the same model and space, one embed_ml worker per text, as the heartbeat already does (heartbeatDeps).
+// prevented by: _shared/held_replay_keeps_gte_out_of_the_worker.test.ts (public_site case)
+// A visitor is waiting on the page: 3 s per embedding, not 8; a timeout is the null path (no vector, no block).
+// Written out at each call, so the decision-point guards (decision_points.json) still read the reasoned call itself.
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, content-type, apikey',
@@ -80,7 +88,7 @@ async function routeBrief(text: string, lang: 'en' | 'ar', ip = 'unknown') {
   if (error) return { ok: false, error: 'router_unavailable' };
   const cats = ((open as any)?.candidates || []) as { catalog_num: number; live_name: string }[];
   // A visitor has no channel to be answered on later, so a held question is not queued: he is asked now.
-  const pick = cats.length ? await catalogueCategoryOf(defaultDeps(admin, 'public_site'), { text, categories: cats, audience: 'visitor', queue: false }) : null;
+  const pick = cats.length ? await catalogueCategoryOf(defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000 }), { text, categories: cats, audience: 'visitor', queue: false }) : null;
   let d: any = open || {};
   if (pick?.value) {
     const { data: routed, error: re } = await admin.rpc('fn_kb_route_decide', { p_text: text.slice(0, 1000), p_catalog_num: pick.value });
@@ -166,7 +174,7 @@ async function routeBrief(text: string, lang: 'en' | 'ar', ip = 'unknown') {
 // _shared/reasoned_suppliers.ts priceGuidanceFor; founder_instruction 886-903) — fn_price_guidance no
 // longer reads the question. Held (the model hold): no band is offered on a guess; reason 'held'.
 async function priceGuidance(question: string, ip: string) {
-  const p: any = await priceGuidanceFor(defaultDeps(admin, 'public_site'), question.slice(0, 300), 6, 'visitor', 'ip:' + ip);
+  const p: any = await priceGuidanceFor(defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000 }), question.slice(0, 300), 6, 'visitor', 'ip:' + ip);
   if (p.ok && Array.isArray(p.bands)) {
     // Only the band itself. The evidence text and the kb_chunk/blog source ids stay server-side.
     const bands = p.bands.slice(0, 4).map((b: any) => ({
