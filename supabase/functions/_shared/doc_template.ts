@@ -55,7 +55,7 @@ export const FALLBACK: DocIdentity = {
   licence: 'DET Trader License No. 1633275',
   city: 'Dubai, United Arab Emirates',
   email: 'management@quotesdone.com',
-  phone: '+971 50 931 9355',
+  phone: '+1 218 316 6814',
   // 21 Sep 2026 (customer audit, finding 12): the documents print the TDRA-permitted host the company
   // trades under in the UAE (NOL-26-100000665 is issued for www.quotesdone.ae; UAE visitors are served
   // there). The email stays management@quotesdone.com: measured 21 Sep 2026, it is the one address

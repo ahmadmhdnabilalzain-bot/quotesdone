@@ -22,6 +22,7 @@
 // second factor - both must now pass. The body is read ONCE as raw text because the signature is
 // over the exact bytes; it is parsed only after verification succeeds.
 import { readEveryAttachment, envGatewayVision, clearerCopyAsk } from '../_shared/read_every_attachment.ts';
+import { permanentlyBouncedAddress } from '../_shared/mailbox_bounce.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
@@ -293,7 +294,11 @@ export const handler = observe('resend_inbound', async (req) => {
     // Meta ads invoice, a licence or domain renewal, or none of these) and WHO issued it are REASONED
     // (_shared/reasoned_books.ts); only the figures are parsed (_shared/receipt_parse.ts). Under the model hold
     // nothing is booked on a guess: the email is held for the bookkeeper and the accountant's queue replays it.
+    // Mail handed from a tenant mailbox other than supplier@ never reaches the expense or bookkeeper path (review, 2 Nov 2026):
+    // its sender is never a permitted forwarder (the reader does not hand them), so a stranger's invoice is plain correspondence.
+    const tenantHanded = emailId.startsWith(M365_INBOUND_PREFIX) && to !== String(await sec('invite_m365_mailbox') || '').trim().toLowerCase();
     let receiptish = FINANCE_BOXES.has(toLocal);
+    if (tenantHanded) receiptish = false;
     let receiptReason = '';
     const handToBookkeeper = async (inboundId: number | null | undefined, reviewIds: number[], reason: string) => {
       if (!inboundId) return null;
@@ -314,13 +319,24 @@ export const handler = observe('resend_inbound', async (req) => {
     const isExpenseMailbox = to === EXPENSE_MAILBOX || toLocal === 'expenses';
     if (isExpenseMailbox && !expenseSenderOk) {
       const { data: refusedRow } = await admin.from('inbound_messages').insert({
-        from_email: from, to_email: to, subject,
+        from_email: from, to_email: to, subject, provider_email_id: providerEmailId,
         body: '[REFUSED — sender is not on app_secrets.expense_forwarders] nothing was booked, no document was stored, no supplier record was touched.\n\n' + (text || '').slice(0, 4000),
         attachments_count: 0, matched_existing: false, needs_review: true,
       }).select('id').maybeSingle();
       await handToBookkeeper(refusedRow?.id, [], `Mail to ${to} from ${from} was REFUSED: that address is not on app_secrets.expense_forwarders. Nothing was booked and no attachment was stored. Decide whether this sender should be added to the allowlist; if it is a company expense, add them and ask for a re-forward.`);
       await logRun('ok', { expenses_mailbox: 1, authorised: 0, from, to }, 'mail to the expenses mailbox was refused: ' + from + ' is not on the expense forwarder allowlist. Recorded as inbound_messages#' + (refusedRow?.id ?? '?') + ' and handed to the accountant.');
       return J({ ok: true, receipt: false, booked: false, reason: 'sender_not_allowlisted' });
+    }
+
+    // ---- A BOUNCE THAT COMES BACK AS MAIL (1 Nov 2026, sales_engineer): _shared/mailbox_bounce.ts ----
+    const bounced = permanentlyBouncedAddress(from, fullText);
+    if (bounced) {
+      const exact = bounced.replace(/[\\%_]/g, '\\$&');
+      const { data: invited } = await admin.from('notifications').select('lead_id').ilike('to_email', exact).in('type', ['supplier_invite', 'supplier_invite_nudge']).eq('status', 'sent').limit(1);
+      if (invited?.length) {
+        await admin.from('email_suppressions').upsert({ email: bounced, reason: 'hard_bounce:permanent', source: 'mailbox_report' }, { onConflict: 'email' });
+        await admin.from('leads').update({ invite_status: 'bounced' }).ilike('email', exact).in('invite_status', ['queued', 'sent']);
+      }
     }
 
     // ---- AN UNSUBSCRIBE BY EMAIL IS HONOURED HERE (21 Sep 2026, customer_support) ----
@@ -387,7 +403,7 @@ export const handler = observe('resend_inbound', async (req) => {
     // true while what the email is, or who issued it, waits for reasoning: the accountant's queue owns it then, and
     // it is NOT also handed to the bookkeeper (one owner, no double path); the replay re-runs the sweep for it.
     let reasoningHeld = false;
-    if (!receiptish && (atts.length > 0 || expenseSenderOk)) {
+    if (!tenantHanded && !receiptish && (atts.length > 0 || expenseSenderOk)) {
       kind = (await documentKind(booksDeps, mail, renewals, register)).value;
       receiptish = kind !== null && kind !== 'other';
       reasoningHeld = kind === null;
@@ -493,7 +509,7 @@ export const handler = observe('resend_inbound', async (req) => {
           const cad = String(ex.period)==='annual' ? 'annual' : (String(ex.period)==='one_off' ? 'one_off' : 'monthly');
           const recurring = ex.recurring === true || cad === 'monthly' || cad === 'annual';
           if (!expenseSenderOk) {
-            const { data: heldRow } = await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, body: `[receipt received but NOT booked — sender not allowlisted] ${vendor} ${amount} ${currency}`, attachments_count: 0, matched_existing: false, needs_review: true }).select('id').maybeSingle();
+            const { data: heldRow } = await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, provider_email_id: providerEmailId, body: `[receipt received but NOT booked — sender not allowlisted] ${vendor} ${amount} ${currency}`, attachments_count: 0, matched_existing: false, needs_review: true }).select('id').maybeSingle();
             // 6 Sep 2026: the bookkeeper decides whether an unknown sender's receipt is ours; the founder is not paged
             await handToBookkeeper(heldRow?.id, [], `Receipt from ${from} for ${vendor} ${amount} ${currency} was NOT booked: the sender is not on app_secrets.expense_forwarders. Decide whether it is a company expense; if so add the sender to the allowlist and book it.`);
             await logRun('ok', { receipt: true, booked: false, vendor, amount, currency }, 'receipt not booked: sender ' + from + ' is not on the expense allowlist');
@@ -547,7 +563,7 @@ export const handler = observe('resend_inbound', async (req) => {
           const gapRow: any = priorRow || (sameDay || []).find((x:any) => !x.doc_path && Number(x.amount) === amount && String(x.currency||'').toUpperCase() === currency) || null;
           if (!priorRow && sameDay && sameDay.length && !gapRow) {
             const exact = sameDay.some((x:any) => Number(x.amount) === amount && String(x.currency||'').toUpperCase() === currency);
-            const { data: dupRow } = await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, body: `[receipt dup] ${vendor} ${amount} ${currency} ${charged}${exact?'':' (amount differs from existing entry - flagged)'}`, attachments_count: 0, matched_existing: false, needs_review: !exact }).select('id').maybeSingle();
+            const { data: dupRow } = await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, provider_email_id: providerEmailId, body: `[receipt dup] ${vendor} ${amount} ${currency} ${charged}${exact?'':' (amount differs from existing entry - flagged)'}`, attachments_count: 0, matched_existing: false, needs_review: !exact }).select('id').maybeSingle();
             // 6 Sep 2026: a same-day different-amount receipt is the bookkeeper's call (second charge or re-read), not the founder's
             if (!exact) await handToBookkeeper(dupRow?.id, [], `A receipt for ${vendor} dated ${charged} showing ${amount} ${currency} was NOT booked: an expense from that vendor already exists on that date (${sameDay.map((x:any)=>x.amount+' '+x.currency).join(', ')}). Usually the same receipt read twice; if it is a genuine second charge, book it.`);
             await logRun('ok', { receipt: true, deduped: true, vendor, amount, currency, exact_match: exact }, exact ? 'duplicate receipt ignored - an identical expense was already booked for this vendor and date.' : ('receipt NOT booked: an expense from ' + vendor + ' already exists on ' + charged + ' with a DIFFERENT amount (' + sameDay.map((x:any)=>x.amount+' '+x.currency).join(', ') + ' vs ' + amount + ' ' + currency + '). Flagged for review - most likely a redelivery read differently by the extractor, but could be a real second charge.'));
@@ -653,7 +669,7 @@ export const handler = observe('resend_inbound', async (req) => {
             if (docPath && !gapRow.doc_path) await admin.from('expense_entries').update({ doc_path: docPath, doc_name: docName.slice(0,180), doc_content_type: docType, doc_kind: docKind, doc_note: docNote, source_msg_id: msgKey }).eq('id', gapRow.id);
             // idempotent: posts only if this entry has no journal yet, files only if not filed yet
             const rep = await fileAndPost(gapRow.id, docPath || gapRow.doc_path || null, docName, docType);
-            await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, body: `[receipt archive ${docPath?'backfilled':'RETRY FAILED'}] entry #${gapRow.id} ${vendor} ${amount} ${currency} on ${charged}${rep.journal?` journal #${rep.journal}`:''}`, attachments_count: docPath?1:0, matched_existing: true, needs_review: !docPath });
+            await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject, provider_email_id: providerEmailId, body: `[receipt archive ${docPath?'backfilled':'RETRY FAILED'}] entry #${gapRow.id} ${vendor} ${amount} ${currency} on ${charged}${rep.journal?` journal #${rep.journal}`:''}`, attachments_count: docPath?1:0, matched_existing: true, needs_review: !docPath });
             await logRun(docPath ? 'ok' : 'error', { receipt: true, booked: false, archive_backfill: true, entry_id: gapRow.id, vendor, amount, currency, doc_archived: !!docPath, upload_attempts: upAttempts },
               docPath ? ('receipt archive backfilled onto expense_entries#' + gapRow.id + ' - no second expense was booked')
                       : ('receipt archive retry FAILED for expense_entries#' + gapRow.id + ' after ' + upAttempts + ' attempt(s): ' + upErr + '. The expense is still booked without its document; v_expense_receipt_gap will keep reporting it.'));
@@ -790,6 +806,8 @@ export const handler = observe('resend_inbound', async (req) => {
           const ex = await extractDoc('license', bytes, mime, fname, inbSecret);
           if (!ex?.doc) unreadDocs.push(fname);   // ruling 1177: nothing read at all -> ask for a clearer copy (a low-confidence read WAS read; it goes to review)
           if (ex && ex.doc) { extracted = ex.doc; const dc = ex.doc; const u:any = { license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString(),
+              // What the old licence printed never judges a new one (2 Nov 2026, ledger 1442).
+              trade_license_no: null, license_authority: null, license_expiry: null,
               // The name printed on this licence (a scan is read by the vision model); null = not read, and the
               // sales engineer's review then holds the registration for a human (licence_name_unread).
               licence_legal_name: licenceNameFromModel(dc) };
@@ -839,7 +857,7 @@ export const handler = observe('resend_inbound', async (req) => {
     const rawFacts = { message_id: String(d.message_id || hv('message-id') || '') || null, auto_submitted: hv('auto-submitted'),
       // 27 Oct 2026 (marketing): the other auto-reply marks, so an out-of-office never takes an invited lead's one
       // invite.reply handoff (fn_marketing_files_invite_reply reads them)
-      x_auto_response_suppress: hv('x-auto-response-suppress'), precedence: hv('precedence'), x_autoreply: hv('x-autoreply') ?? hv('x-autorespond'),
+      x_auto_response_suppress: hv('x-auto-response-suppress'), precedence: hv('precedence'), x_autoreply: hv('x-autoreply') ?? hv('x-autorespond'), list_unsubscribe: hv('list-unsubscribe') ?? hv('list-id'),
       in_reply_to: hv('in-reply-to'), references: hv('references'),
       content_type: hv('content-type'), sender_authenticated: senderAuthenticated(providerEmailId, authHdrs?.['authentication-results'], from), calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
     const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: appliedSummary.length===0 && (stored>0 || !receiptish), raw: rawFacts }).select('id').maybeSingle();
