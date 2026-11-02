@@ -120,6 +120,33 @@ test('superseded versions are served for a signer but not listed in the sitemap'
   assert.match(read('src/components/LegalDoc.tsx'), /robots: \{ index: false/);
 });
 
+// 2 Nov 2026 (ceo, ledger 1482, the coordinator's follow-up): the LIVE SYSTEM must not hand the mobile to anyone either. The mobile
+// stays only server-side (login_otp, voice_otp read it; they never print it), in the archived signed agreements, in tests, and in
+// history (SQL files already applied, reports).
+import { readdirSync, statSync } from 'node:fs';
+const walk = (d, out = []) => { for (const n of readdirSync(join(ROOT, d))) { const p = d + '/' + n; const s = statSync(join(ROOT, p)); if (s.isDirectory()) { if (n !== 'node_modules') walk(p, out); } else out.push(p); } return out; };
+test('no served or sent source prints the mobile: functions, schema mirror, seeds, knowledge, messages, site', () => {
+  const files = ['src', 'messages', 'knowledge', 'supabase/functions', 'supabase/schema', 'supabase/seeds', 'ai-organization'].flatMap((d) => (existsSync(join(ROOT, d)) ? walk(d) : []))
+    .filter((p) => /\.(ts|tsx|mjs|js|json|md|sql|html|txt)$/.test(p))
+    .filter((p) => !/\.test\.(ts|mjs)$/.test(p) && p !== 'src/content/legal.json' && !/\/login_otp\/|\/voice_otp\//.test(p) && !/^src\/lib\/(arabicDoc|blogBidi|ltrDirection)\.ts$/.test(p));
+  const bad = files.filter((p) => MOBILE.test(readFileSync(join(ROOT, p), 'utf8')));
+  assert.deepEqual(bad, []);
+});
+
+test('the three replies that gave the mobile now give the public numbers, and the SQL that changes production says so', () => {
+  const mirror = read('supabase/schema/full_schema/09_functions_fn_s.sql') + read('supabase/schema/full_schema/10_functions_fn_t_onwards.sql');
+  for (const fn of ['fn_wa_route', 'fn_text_did_not_survive_reply', 'fn_support_knowledge_gap']) {
+    const i = mirror.indexOf(`CREATE OR REPLACE FUNCTION public.${fn}(`); assert.ok(i >= 0, fn);
+    const body = mirror.slice(i, mirror.indexOf('$function$', mirror.indexOf('$function$', i) + 10));
+    assert.ok(body.includes(CALL) && body.includes(WA), `${fn} lacks a public number`);
+    assert.doesNotMatch(body, MOBILE, `${fn} prints the mobile`);
+  }
+  const sql = read('scripts/sql/the_live_system_gives_out_the_public_numbers_and_never_the_founders_mobile.sql');
+  assert.doesNotMatch(sql, /\+971 50 931 9355|\+971509319355|050 931 9355/, 'the SQL itself must not print the mobile (its probe patterns are regexes, not the number)');
+  for (const s of ['update public.company_faq', 'update public.social_reply_library', 'md5(answer)', 'PROBE OK', 'PROBE FAILED', 'fn_wa_route', 'fn_text_did_not_survive_reply', 'fn_support_knowledge_gap']) assert.ok(sql.includes(s), 'SQL lacks ' + s);
+  assert.ok(read('scripts/sql/MANIFEST.txt').includes('scripts/sql/the_live_system_gives_out_the_public_numbers_and_never_the_founders_mobile.sql'));
+});
+
 test('the registry SQL carries the carry list and archives the three texts it replaces', () => {
   const sql = read('scripts/sql/the_founders_mobile_leaves_the_current_legal_texts.sql');
   assert.match(sql, /supplier_terms_carries_from/);

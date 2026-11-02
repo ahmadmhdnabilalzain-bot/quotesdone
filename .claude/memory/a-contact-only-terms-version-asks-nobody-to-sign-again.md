@@ -28,6 +28,10 @@ sees v17 against v16 and re-asks everyone.
 They still print the old mobile when opened by URL: /supplier-agreement/v10 to v16 and /privacy/v1.6, both languages. Signed
 evidence is why the agreement pages cannot be removed; privacy 1.6 and earlier unsigned texts could be, on the founder's word.
 
-**Still printing the mobile (not fixed by this change):** live routines fn_wa_route, fn_text_did_not_survive_reply,
-fn_support_knowledge_gap; company_faq 620 and 622 (Arabic); social_reply_library; pages `about`; the knowledge seed
-supabase/seeds/agent_knowledge.seed.sql and ai-organization/org-as-code/agent_knowledge.json (corporate-kit copies).
+**The live system (same PR, second file `scripts/sql/the_live_system_gives_out_the_public_numbers_and_never_the_founders_mobile.sql`):**
+routines fn_wa_route, fn_text_did_not_survive_reply, fn_support_knowledge_gap; company_faq 620 and 622 (Arabic);
+the social_reply_library row; the corporate-kit seeds. `founder_public_phone` was already +12183166814. The mobile lives on only in
+app_secrets (admin_mfa_phone, founder_mobile), login_otp/voice_otp (server-side), tests, history tables (kb_revisions,
+assistant_logs, wa_turn, notifications: evidence, not rewritten), unserved legacy tables (pages `*_backup_predesign`, qd_i18n) and the
+signed archived agreements. Not scanned: kb_chunks (8 GB). scripts/kb/make_founder_contact_configured.mjs and wire_public_contact_slots.mjs
+still hold the old literal; re-running them would put the mobile back into founder_public_phone, so do not.
