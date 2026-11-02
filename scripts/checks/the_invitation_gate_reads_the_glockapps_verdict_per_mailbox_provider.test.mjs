@@ -90,7 +90,7 @@ test('the finding is one a day through the registered relay, on an open day only
 test('the batch, the tick and the nudges skip a failing provider instead of holding every one', () => {
   for (const fn of ['enqueue_supplier_invites', 'fn_sales_engineer_supplier_outreach_tick', 'fn_sales_engineer_nudges_invited_suppliers']) {
     const c = canonical(fn);
-    assert.equal(c.path, FILE, `${fn} is canonical in ${c.path}`);
+    // 2 Nov 2026: no longer pinned to one file; later files redefine these routines and the body is what this asserts
     assert.match(c.body, /fn_invite_placement_open_providers\(/, `${fn} does not ask which providers are open`);
     assert.doesNotMatch(c.body, /fn_invite_placement_gate\(/, `${fn} still holds every provider on the strict answer`);
     assert.match(c.body, /cardinality\(.*?\) = 0/s, `${fn} does not hold when NO provider is open`);

@@ -72,6 +72,31 @@ export const MATCH_ALL = 100000;
 export const relevanceFloorApplies = (products: unknown): boolean =>
   Array.isArray(products) && products.some((p) => String(p ?? '').trim() !== '');
 
+/** A supplier the gate holds ONLY because its services were unconfirmed (founder ledger 1469) is decided as soon as it confirms. An rpc
+ *  answers {error}, it does not throw, so the error is read: one retry, then the failure is LOGGED and put on the sales engineer's queue
+ *  (agent_actions) and returned as gate:'failed', so a supplier cannot stay Pending in silence (the 24-hour clock also re-runs it).
+ *  The confirm itself stands whatever this does. Returns 'not_held' | the gate's decision | 'failed'. */
+export async function rerunGateAfterConfirm(admin: Admin, supplierId: number): Promise<string> {
+  try {
+    const { data: held } = await admin.from('leads').select('licence_gate_reason').eq('id', supplierId).maybeSingle();
+    if (held?.licence_gate_reason !== 'services_unconfirmed') return 'not_held';
+    let last = '';
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const { data, error } = await admin.rpc('fn_sales_engineer_verifies_supplier', { p_lead_id: supplierId, p_source: 'services_confirmed' });
+      if (!error && data?.ok) return String(data.decision || 'unchanged');
+      last = error?.message || JSON.stringify(data || {});
+    }
+    console.error('capabilityConfirm: the gate failed after the confirm', supplierId, last);
+    await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'supplier_verification', status: 'failed', risk: 'medium',
+      title: 'Services confirmed but the verification did not re-run — supplier #' + supplierId,
+      detail: { supplier_id: supplierId, source: 'services_confirmed', error: last.slice(0, 500) }, target_table: 'leads', target_id: String(supplierId) });
+    return 'failed';
+  } catch (e) {
+    console.error('capabilityConfirm: the gate was not re-run after the confirm', supplierId, String((e as Error)?.message || e));
+    return 'failed';
+  }
+}
+
 // Returns [httpStatus, body]. What the supplier agrees to is what we store.
 //
 // THE TRADE LIST IS OPEN (founder, 14 Sep 2026: "our categories are not finalized. if a supplier
@@ -171,6 +196,9 @@ export async function capabilityConfirm(admin: Admin, supplierId: number, body: 
       await admin.from('taxonomy_trade_proposal').update({ status: 'mapped', decided_at: now }).eq('id', o.id);
     }
   }
-  return [200, { ok: true, confirmed: true, version, trades, roles, products_count: products.length, exclusions_count: exclusions.length,
+  // A supplier the gate holds ONLY because its services were unconfirmed (founder ledger 1469) is decided now. Any other hold, and any
+  // supplier already approved, is left to the gate's own triggers and clocks. The confirm stands whatever this call does.
+  const gate = await rerunGateAfterConfirm(admin, supplierId);
+  return [200, { ok: true, confirmed: true, version, trades, roles, gate, products_count: products.length, exclusions_count: exclusions.length,
                  new_trades_under_review: newCodes }];
 }

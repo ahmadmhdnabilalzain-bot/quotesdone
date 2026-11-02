@@ -8125,6 +8125,21 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_a05_test_reply_leaves_review()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if public.fn_is_founder_own_inbox(lower(substring(coalesce(new.from_email, '') from '([^<>[:space:]"]+@[^<>[:space:]"]+)'))) then
+    new.needs_review := false;
+    new.ai_category := 'test_reply';
+  end if;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_accountant_issued_document_is_append_only()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -9369,6 +9384,21 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_invite_schedule_counts_a_real_send()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if public.fn_is_demo_email(new.to_email) then return null; end if;
+  insert into public.invite_schedule(day, planned, sent, status, note)
+  values ((new.sent_at at time zone 'UTC')::date, 0, 1, 'approved', 'sent from an earlier day''s queue')
+  on conflict (day) do update set sent = public.invite_schedule.sent + 1;
+  return null;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_it_judge_routine_change()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -10469,6 +10499,23 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_supplier_mailbox_mail_gets_its_owner()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  -- never costs the triage it rides on: a failure is a warning, the triage stands
+  begin
+    perform public.fn_supplier_mailbox_mail_gets_its_owner(new.id);
+  exception when others then
+    raise warning 'trg_supplier_mailbox_mail_gets_its_owner: inbound_messages % got no owning seat: %', new.id, sqlerrm;
+  end;
+  return null;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_table_export_change()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -10633,6 +10680,57 @@ begin
   values ('rfq', NEW.id::text, public._next_docver('rfq',NEW.id::text), snap, md5(snap::text), chg)
   on conflict do nothing;
   return NEW;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_z55_contact_message_reaches_customer_support()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_hold text; v_addr text := lower(btrim(coalesce(new.email, ''))); v_local text := split_part(lower(btrim(coalesce(new.email, ''))), '@', 1);
+        v_in bigint;
+begin
+  if public.fn_is_demo_email(new.email) or coalesce(new.message, '') like 'ZZ DEMO%' then
+    update public.contact_messages set status = 'demo' where id = new.id;
+    return null;
+  end if;
+  if coalesce(new.source, '') = 'complaint' then return null; end if;  -- fn_complaint_open owns it, with its two clocks
+  begin
+    v_hold := case
+      when coalesce(new.source, '') like 'held:%' then substr(new.source, 6)
+      when v_addr !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then 'address_shape'
+      when exists (select 1 from public.email_suppressions s where lower(btrim(s.email)) = v_addr) then 'suppressed_or_bounced'
+      when public.fn_is_founder_own_inbox(v_addr) then 'founder_address'
+      when v_local ~ '^(postmaster|mailer-daemon|no-?reply|do-?not-?reply|bounces?|abuse|root|daemon|notifications?)$' then 'role_address'
+      when public.fn_mail_sender_known(v_addr) = 'supplier' then 'known_supplier_lane'
+      when exists (select 1 from public.contact_messages m where m.id <> new.id and lower(btrim(m.email)) = v_addr
+                      and m.created_at > now() - interval '24 hours') then 'second_message_in_24h'
+      when (select count(*) from public.inbound_messages i where i.to_email = 'contact-form@quotesdone.com' and i.owner_role is null
+               and i.created_at > date_trunc('day', now())) >= 20 then 'daily_ceiling'
+    end;
+    insert into public.inbound_messages (from_email, to_email, subject, body, needs_review, owner_role, raw)
+    values (new.email, 'contact-form@quotesdone.com', left('Contact form: ' || coalesce(nullif(new.name, ''), new.email), 200),
+            new.message || coalesce(E'\n\nPhone given: ' || nullif(new.phone, ''), ''), true,
+            case when v_hold is not null then 'customer_support' end,
+            jsonb_build_object('source', 'contact_form', 'contact_message_id', new.id, 'sender_authenticated', false,
+                               'held_reason', v_hold))
+    returning id into v_in;
+    if v_hold is not null then
+      insert into public.agent_actions (agent, kind, status, risk, title, recommendation, target_table, target_id, detail)
+      values ('email', 'inbound_review', 'pending', 'low',
+              left('Contact form held, not answered automatically (' || v_hold || '): ' || coalesce(nullif(new.name, ''), new.email), 200),
+              'The sender is not authenticated and an automatic answer was not safe. Read it in the Inbox and answer by hand if it is genuine.',
+              'inbound_messages', v_in::text, jsonb_build_object('contact_message_id', new.id, 'held_reason', v_hold));
+    end if;
+    update public.contact_messages set status = case when v_hold is null then 'with_customer_support'
+                                                      else 'held_for_customer_support' end where id = new.id;
+  exception when others then
+    -- the message is stored either way; a row left 'new' is what the check below reads
+    raise warning 'trg_z55_contact_message_reaches_customer_support: contact_messages % was not handed over: %', new.id, sqlerrm;
+  end;
+  return null;
 end $function$
 
 

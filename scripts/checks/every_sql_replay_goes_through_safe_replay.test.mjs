@@ -30,6 +30,8 @@ export const ALLOWED = new Map([
   ['scripts/checks/canonical_routine_manifest.mjs', 'its q() sends catalogue reads written in the file'],
   ['scripts/checks/every_tick_step_is_scheduled.mjs', 'sends two selects written in the file'],
   ['scripts/checks/language_follows_registration.mjs', 'sends WALK, an aborted probe written in the file with no interpolation'],
+  ['scripts/record_inbox_placement_verdict.mjs', 'the live path sends one generated call of a routine already applied (recordSql, no file text); its --dry-run replays the pending files through replaySql'],
+  ['scripts/checks/every_duty_has_an_owner_and_a_clock.test.mjs', 'its one sql() send is a select it asks only when no pending file exists; the pending file is replayed through replaySql. It cannot be readOnly: the read-only role is refused fn_suppression_stops'],
   ['scripts/invitation_inbox_check.mjs', 'an operator tool that queues one seed invitation on purpose'],
   ['scripts/kb/purge_kb_bulk.mjs', 'the knowledge purge driver; commits batches by design, names scripts/sql only in messages'],
   ['scripts/staging/prove_quote_builder.mjs', 'sends reads written in the file; names scripts/sql only in a message'],
@@ -163,7 +165,7 @@ test('a begin; create function; commit; file replayed through the helper leaves 
   const { replaySql, ROLLBACK_MARK } = await import('../lib/safe_replay.mjs');
   const name = `zz_demo_safe_replay_${process.pid}`;
   const exists = async () => (await sql(`select count(*)::int n from pg_proc where proname = '${name}'`, { readOnly: true }))[0].n;
-  try { await exists(); } catch (e) { if (/No Supabase access token/.test(e.message)) return t.skip('no management token'); throw e; }
+  try { await exists(); } catch (e) { if (/No Supabase access token|SUPABASE_ACCESS_TOKEN is not set/.test(e.message)) return t.skip('no management token'); throw e; }
   assert.equal(await exists(), 0, 'the demo routine is already on production');
   const file = `BEGIN;\ncreate function public.${name}() returns int language sql as $f$ select 1 $f$;\nCOMMIT;\n`
     + `select public.${name}();\n`;
