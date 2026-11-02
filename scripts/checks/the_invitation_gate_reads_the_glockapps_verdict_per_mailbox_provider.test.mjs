@@ -9,7 +9,7 @@
 //     writes a campaign switch; a new routine or table is left open; the probe's inlined GlockApps numbers drift from
 //     the fixture; the recorder accepts a result whose rows do not add up.
 //   * production, in ONE aborted transaction: #1696's file (while pending), this file and the probe, which records the
-//     REAL 27 Oct GlockApps result and proves the per-class verdicts, the 7-day expiry, the bar on counts, the refusals,
+//     REAL 27 Oct GlockApps result and proves the per-class verdicts, the expiry (7 days then, the bar's max_age: 30 since 2 Nov 2026), the bar on counts, the refusals,
 //     the candidate filter, and that nothing (switch, mail, finding) moved; then the recorder's own SQL, rolled back.
 //
 //   node --test scripts/checks/the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.test.mjs
