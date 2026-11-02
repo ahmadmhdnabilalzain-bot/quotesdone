@@ -278,6 +278,15 @@ drop policy if exists ceo_growth_action_service_role_only on public.ceo_growth_a
 create policy ceo_growth_action_service_role_only on public.ceo_growth_action as permissive for all to public using (false) with check (false);
 revoke all on public.ceo_growth_action from anon, authenticated;
 
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('ceo_supplier_goal', true, 'ceo', 'The live supplier target the founder set (ledger 1436) and its due date.', 'ceo'),
+  ('ceo_supplier_funnel_daily', true, 'ceo', 'Sent, delivered, replied, started, submitted and approved per channel per Dubai day (ledger 1438).', 'ceo'),
+  ('ceo_supplier_channel', true, 'ceo', 'Every supplier channel, its measured state and what it needs (ledger 1438).', 'ceo'),
+  ('ceo_invite_trade_priority', true, 'ceo', 'The trades the CEO put first in the invitation queue (ledger 1438).', 'ceo'),
+  ('ceo_growth_action', true, 'ceo', 'Every supplier growth decision: reason, before, after, measured effect and verdict (ledger 1438).', 'ceo')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
+
 insert into public.app_secrets (key, value) values
   ('invite_ceo_ceiling', '0'), ('ceo_growth_act_golive', 'false'), ('ceo_daily_number_golive', 'false'), ('invite_reachable_only', 'false')
 on conflict (key) do nothing;
@@ -310,6 +319,7 @@ returns integer language sql stable set search_path to 'public', 'pg_temp' as $f
   select greatest(public.fn_invite_schedule_cap(p_day),
                   coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_ceo_ceiling'), 0));
 $fn$;
+revoke execute on function public.fn_invite_founder_cap(date) from public, anon, authenticated;
 
 -- 6. WHAT THE CEO READS --------------------------------------------------------------------------------------------------
 -- p_light skips the two scans of the eligible pool (7 s each, measured 2 Nov), for a directive's done test, read on every directive run.
@@ -689,7 +699,8 @@ begin
     return jsonb_build_object('ok', true, 'sent', false, 'reason', 'ceo_daily_number_golive is off', 'would_say', v_text);
   end if;
   -- level info: fn_notify_founder sends WhatsApp only from high up, so this is one message, by email
-  v_res := public.fn_notify_founder('Suppliers: the daily number', v_text, 'info', 'ceo_daily_number', v_key, 'ceo');
+  v_res := public.fn_notify_founder(p_event => 'Suppliers: the daily number', p_detail => v_text, p_level => 'info',
+                                    p_kind => 'ceo_daily_number', p_dedupe_key => v_key, p_owner_agent => 'ceo');
   return jsonb_build_object('ok', true, 'sent', coalesce((v_res->>'emailed')::boolean, false), 'text', v_text);
 end $fn$;
 revoke execute on function public.fn_ceo_daily_number_report(timestamptz) from public, anon, authenticated;
@@ -707,13 +718,14 @@ insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file
    'scripts/sql/the_ceo_holds_the_supplier_target_and_acts_within_bounded_powers.sql')
 on conflict (duty) do update set every = excluded.every, routine = excluded.routine, what = excluded.what, owner_file = excluded.owner_file;
 
-insert into public.resilience_step (step, owner_seat, every, budget_ms, place, rank, note) values
-  ('waSenderQuality', 'ceo', interval '12 hours', 9000, 'plan', 0,
+insert into public.resilience_step (step, every, budget_ms, place, rank, note) values
+  ('waSenderQuality', interval '12 hours', 9000, 'plan', 0,
    'Reads the WhatsApp sender''s Meta quality rating through send_whatsapp. Read only, no message. Without it the supplier invitation gate waits for a reading only a queued invitation could cause.')
 on conflict (step) do update set every = excluded.every, budget_ms = excluded.budget_ms, note = excluded.note;
+update public.resilience_step set owner_seat = 'ceo' where step = 'waSenderQuality';
 
 -- 12. THE QUEUE READS THE CEO'S TWO LEVERS. Unchanged while invite_reachable_only is false and no trade is listed. -----------
-create or replace function public.fn_supplier_invite_candidates(p_limit integer, p_providers text[])
+CREATE OR REPLACE FUNCTION public.fn_supplier_invite_candidates(p_limit integer, p_providers text[])
  RETURNS TABLE(lead_id bigint, to_email text, company_name text, lang text, subject text, body text)
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER

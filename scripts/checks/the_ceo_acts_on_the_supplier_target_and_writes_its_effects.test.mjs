@@ -52,7 +52,7 @@ test('A. the routine writes every lever, its log and its effect, inside the boun
   assert.match(act, /'ceo_growth_act_golive'/, 'the act has no switch');
   assert.doesNotMatch(code, /meta_autospend_golive'[^;]*set value|set value[^;]*meta_autospend_golive/i, 'this file can start ad spend');
   assert.match(code, /\('ceo_growth_act_golive', 'false'\), \('ceo_daily_number_golive', 'false'\)/, 'a switch is not seeded off');
-  assert.match(body('fn_ceo_daily_number_report'), /fn_notify_founder\([^;]*'info', 'ceo_daily_number'/, 'the report leaves founder_mail_policy or can reach WhatsApp');
+  assert.match(body('fn_ceo_daily_number_report'), /fn_notify_founder\([^;]*p_level => 'info',\s*p_kind => 'ceo_daily_number'/, 'the report leaves founder_mail_policy or can reach WhatsApp');
   const queue = code.slice(code.indexOf('fn_supplier_invite_candidates(p_limit integer, p_providers'));
   assert.match(queue, /not v_reach or l\.email_verified in/, 'the queue does not read the reachability lever');
   assert.match(queue, /ceo_invite_trade_priority/, 'the queue does not read the trade priority');
