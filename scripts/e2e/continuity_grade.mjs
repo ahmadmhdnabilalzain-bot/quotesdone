@@ -124,7 +124,10 @@ export const GRADERS = {
   // the portal promises "answers from your own account": it must not say it cannot see it
   account: (r, c) => run([never(/\b(can't|cannot|can not|unable to|am not able to|do not have access to|don't have access to)\s+(see|access|view|read|look at)\s+(your|the|any)\s+(account|requests?|quotes?)/i, 'says it cannot see the account it is built to read')], r, c),
   // the portal customer asked who made the quote on their request: before a reveal nobody is named
-  quoteSupplier: (r, c) => run([namesASecret, strangerContact, need(/reveal|anonym|after|until|pay|before/i, 'does not explain the reveal')], r, c),
+  quoteSupplier: (r, c) => run([namesASecret, strangerContact,
+    need(/anonym|sealed|hidden|stay(s)? (private|confidential)|not (shown|revealed|disclosed)|supplier [abc]\b/i, 'does not say identities stay sealed'),
+    need(/\bpay(ing|s)?\b.*\b(reveal|fee|3\s?%)|\b(reveal|fee|3\s?%)\b.*\bpay/i, 'does not say how a reveal unlocks them'),
+    never(/\bexplain (how )?(the )?reveal/i, 'offers to explain instead of explaining')], r, c),
   // facts the conversation holds: every pattern in ctx.facts must be present
   recall: (r, c) => run([(t, x) => {
     const miss = (x.facts || []).filter((re) => !re.test(t));

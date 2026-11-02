@@ -171,3 +171,16 @@ Deno.test('1339: must-carry text (a case reference) is rewritten in when the dra
   assertEquals(r.reply, 'Thank you, your problem is logged under reference QD-C-0042; our team will look at it.');
   assert(s.calls[1].input.includes('QD-C-0042'));
 });
+
+// customer_support, 2 Nov 2026: a speculative WhatsApp draft that was discarded is aborted: the signal reaches the model call, and once
+// aborted no call starts (no rewrite, no counterpart rung), so a discarded draft costs nothing more.
+Deno.test('a signal reaches the model call; an aborted request starts no call', async () => {
+  const ac = new AbortController();
+  const s = stub([A('The reveal fee is 3% of the quote you choose; no card fee is added and no VAT is charged on it.')]);
+  await aiReply(s.deps, { ...req, signal: ac.signal });
+  assertEquals(s.calls[0].o.signal, ac.signal);
+  ac.abort();
+  const t = stub([A('x')]);
+  const r = await aiReply(t.deps, { ...req, signal: ac.signal });
+  assertEquals(t.calls.length, 0); assertEquals(r.reply, '');
+});

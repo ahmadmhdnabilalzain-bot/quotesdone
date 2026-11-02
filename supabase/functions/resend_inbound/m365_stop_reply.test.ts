@@ -97,6 +97,8 @@ Deno.test('a known supplier\'s reply to our inbound_reply, landing in management
   const marks: string[] = [];
   const fresh = (url: string, init?: RequestInit): Promise<Response> => {
     if (init?.method === 'PATCH') marks.push(url);
+    // info@ is always asked for now (ledger 1446); in this test it has no mailbox, so the reply is read from management@ only
+    if (/\/users\/info(@|%40)quotesdone\.com\//i.test(url)) return Promise.resolve(json({ error: { code: 'MailboxNotEnabledForRESTAPI' } }, 404));
     if (url.includes('/mailFolders/junkemail/') || url.includes('/mailFolders?') || url.includes('/users?')) return Promise.resolve(json({ value: url.includes('/users?') ? [{ mail: 'management@quotesdone.com' }] : [] }));
     if (url.includes('/messages/') && !url.startsWith('http://inbound.invalid/')) return Promise.resolve(json({ id: 'AAMkFRESH', internetMessageId: '<zz-demo-reply@example.invalid>', subject: 'Re: Your message', from: { emailAddress: { address: SUPPLIER } }, body: { contentType: 'text', content: 'We would like to register our subsidiary M/s ZZ DEMO FZE LLC' },
       internetMessageHeaders: [{ name: 'In-Reply-To', value: '<qd-notif-117599.1700000000000@quotesdone.com>' }, { name: 'References', value: '<qd-notif-117599.1700000000000@quotesdone.com>' }] }));

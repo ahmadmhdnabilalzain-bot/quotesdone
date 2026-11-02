@@ -13,7 +13,7 @@
 -- It asserts: a recipient's class from its MX host; no verdict before any test; the REAL 27 Oct GlockApps numbers
 -- (scripts/checks/glockapps_27_oct_providers.fixture.json, inlined below) give Microsoft 0/18, Google 5 inbox + 20 tabs
 -- of 25, Yahoo/AOL 0/17, overall 44/111 (GlockApps' own figure; its provider rows cover 106, so 5 are unclassified), so Google passes and Microsoft, Yahoo/AOL and other are skipped; the verdict
--- goes stale after 7 days; the bar holds exactly at 80% / 20% on counts; lost Gmail mail cannot pass on a low spam
+-- goes stale one minute past the bar's max_age (7 days then, 30 since 2 Nov 2026); the bar holds exactly at 80% / 20% on counts; lost Gmail mail cannot pass on a low spam
 -- figure; a bad result is refused; the candidate filter returns only the asked class and the one-argument picker is
 -- unchanged; the held campaign files no finding; the new routines and tables are closed to anon and authenticated.
 do $$ declare
@@ -26,7 +26,7 @@ do $$ declare
   -- "judged per class" judged the 22:50 test, not these numbers.
   t0 timestamptz := greatest(timestamptz '2026-10-27T09:33:53.632Z', (select max(d.tested_at) from public.deliverability_test d)) + interval '1 minute';
   v_sw_before jsonb; v_sw_after jsonb; n_mail_before bigint; n_mail_after bigint; n_find_before bigint; n_find_after bigint;
-  r jsonb; v jsonb; a text[]; v_ok boolean; n bigint; m bigint; v_ids1 bigint[]; v_ids2 bigint[];
+  v_max interval; r jsonb; v jsonb; a text[]; v_ok boolean; n bigint; m bigint; v_ids1 bigint[]; v_ids2 bigint[];
   t1 timestamptz; v_plan json;
   fx text := '{"projectId":"163001","finished":true,"sender":{"senderDomain":"quotesdone.com"},"providerRollup":[';
 begin
@@ -99,10 +99,13 @@ begin
   if not coalesce((o ->> 'one_literal_resolves_to_the_class_form')::boolean, false) then
     v_fail := v_fail || text 'fn_invite_placement_gate(<literal>) does not resolve to the class form'; end if;
 
-  -- 4. stale after 7 days
-  v := fn_invite_placement_class_verdicts(t0 + interval '7 days 1 minute');
-  o := o || jsonb_build_object('real_after_7_days', v ->> 'strict', 'google_after_7_days', v ->> 'google');
-  if v ->> 'strict' <> 'fail:stale_verdict' or v ->> 'google' <> 'fail:stale_verdict' then v_fail := v_fail || text 'a 7-day-old verdict is not stale'; end if;
+  -- 4. stale one minute past the bar's own max_age (7 days when this probe was written; 30 days since 2 Nov 2026, sales_engineer,
+  --    an_inbox_placement_verdict_is_good_for_30_days.sql, whose probe pins the 30). Read from the bar so this step proves the
+  --    expiry rule itself and stays true under either value; it is not weakened: a verdict past max_age must still be stale.
+  select max_age into v_max from public.invite_placement_bar where id;
+  v := fn_invite_placement_class_verdicts(t0 + v_max + interval '1 minute');
+  o := o || jsonb_build_object('real_after_max_age', v ->> 'strict', 'google_after_max_age', v ->> 'google', 'max_age', v_max::text);
+  if v ->> 'strict' <> 'fail:stale_verdict' or v ->> 'google' <> 'fail:stale_verdict' then v_fail := v_fail || text 'a verdict older than max_age is not stale'; end if;
 
   -- 5. the bar on counts, with ZZ DEMO tests recorded after the real one
   r := fn_record_inbox_placement_verdict((fx || '{"providerGroupName":"Outlook","total":20,"inbox":16,"spam":4,"other":0,"notDelivered":0},'
