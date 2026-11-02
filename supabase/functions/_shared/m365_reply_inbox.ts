@@ -197,6 +197,7 @@ export async function svixHeaders(secret: string, body: string, id: string, nowM
   return { 'svix-id': id, 'svix-timestamp': ts, 'svix-signature': 'v1,' + b64(mac) };
 }
 
+export { token as graphToken };   // m365_sent_status.ts uses the same client-credentials token
 async function token(f: Fetch, tenant: string, client: string, secret: string): Promise<string> {
   const r = await f(`https://login.microsoftonline.com/${encodeURIComponent(tenant)}/oauth2/v2.0/token`, {
     method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

@@ -1,0 +1,69 @@
+// deno test supabase/functions/_shared/m365_sent_status.test.ts
+// The Sent Items read-back (m365_sent_status.ts), offline: a send Graph has in Sent Items is recorded 'sent' at Graph's
+// sentDateTime; one it does not have, or an HTTP error, is a failed try with its reason; nothing is asked when nothing is
+// claimed; a refused token counts a failed try on every claimed row; the Message-ID is an exact OData literal.
+import { assert, assertEquals } from 'jsr:@std/assert@1';
+import { pollM365SentStatus, sentItemsUrl, type Claimed, type SentDeps } from './m365_sent_status.ts';
+
+const ENV: Record<string, string> = { MS_TENANT_ID: 't', MS_CLIENT_ID: 'zz-demo-client', MS_CLIENT_SECRET: 'zz-demo-secret-0123456789' };
+const MID = '<qd-notif-117569.1793340128035@quotesdone.com>';
+type Rec = { id: number; found: boolean; sentAt: string | null; http: number | null; code: string | null };
+
+function harness(rows: Claimed[], graph: (url: string) => { status: number; body?: unknown }, env = ENV) {
+  const urls: string[] = [], recs: Rec[] = [];
+  const deps: SentDeps = {
+    fetchFn: (url) => {
+      urls.push(url);
+      if (url.includes('login.microsoftonline.com')) return Promise.resolve(new Response(JSON.stringify({ access_token: 'tok' }), { status: 200 }));
+      const a = graph(url);
+      return Promise.resolve(new Response(a.body === undefined ? null : JSON.stringify(a.body), { status: a.status }));
+    },
+    env: (k) => env[k], mailbox: 'supplier@quotesdone.com',
+    claim: () => Promise.resolve(rows),
+    record: (id, found, sentAt, http, code) => { recs.push({ id, found, sentAt, http, code }); return Promise.resolve(); },
+  };
+  return { deps, urls, recs };
+}
+
+Deno.test('a send in Sent Items is recorded sent at Graph\'s sentDateTime; the query names its exact Message-ID', async () => {
+  const h = harness([{ notification_id: 117569, message_id: MID }],
+    () => ({ status: 200, body: { value: [{ id: 'x', internetMessageId: MID, sentDateTime: '2026-10-30T06:02:08Z' }] } }));
+  const out = await pollM365SentStatus(h.deps);
+  assertEquals(h.recs, [{ id: 117569, found: true, sentAt: '2026-10-30T06:02:08Z', http: 200, code: null }]);
+  assertEquals(out.sent, 1);
+  const q = new URL(h.urls.find((u) => u.includes('/mailFolders/sentitems/'))!);
+  assertEquals(q.searchParams.get('$filter'), `internetMessageId eq '${MID}'`);
+});
+
+Deno.test('a send Graph does not have, or cannot answer for, is a failed try with its reason, never sent', async () => {
+  const rows = [{ notification_id: 1, message_id: MID }, { notification_id: 2, message_id: '<qd-notif-2.1@quotesdone.com>' },
+                { notification_id: 3, message_id: '<qd-notif-3.1@quotesdone.com>' }];
+  const h = harness(rows, (url) => url.includes('qd-notif-117569') ? { status: 200, body: { value: [] } }
+    : url.includes('qd-notif-2.') ? { status: 403, body: { error: { code: 'ErrorAccessDenied' } } }
+    : { status: 200, body: { value: [{ internetMessageId: '<someone-else@x>', sentDateTime: '2026-10-30T06:00:00Z' }] } });
+  await pollM365SentStatus(h.deps);
+  assertEquals(h.recs.map((r) => [r.id, r.found, r.code]), [[1, false, 'm365:not_in_sent_items'], [2, false, 'http:403'], [3, false, 'm365:not_in_sent_items']]);
+});
+
+Deno.test('nothing claimed asks Graph nothing; missing secrets claim nothing', async () => {
+  const h = harness([], () => ({ status: 500 }));
+  assertEquals((await pollM365SentStatus(h.deps)).claimed, 0);
+  assertEquals(h.urls.length, 0);
+  let claimed = false;
+  const g = harness([{ notification_id: 1, message_id: MID }], () => ({ status: 500 }), { MS_TENANT_ID: 't' });
+  g.deps.claim = () => { claimed = true; return Promise.resolve([]); };
+  const out = await pollM365SentStatus(g.deps);
+  assert(!claimed && out.held === 'edge secrets not set');
+});
+
+Deno.test('a refused token is one failed try on every claimed row, and the secret is never in the answer', async () => {
+  const h = harness([{ notification_id: 7, message_id: MID }], () => ({ status: 200 }));
+  h.deps.fetchFn = () => Promise.resolve(new Response(JSON.stringify({ error: 'invalid_client zz-demo-secret-0123456789' }), { status: 401 }));
+  const out = await pollM365SentStatus(h.deps);
+  assertEquals(h.recs, [{ id: 7, found: false, sentAt: null, http: null, code: 'm365:token_refused' }]);
+  assert(out.ok === false && !String(out.why).includes(ENV.MS_CLIENT_SECRET));
+});
+
+Deno.test('a quote in a Message-ID is doubled, so the filter cannot be broken out of', () => {
+  assertEquals(new URL(sentItemsUrl('supplier@quotesdone.com', "<a'b@x>")).searchParams.get('$filter'), "internetMessageId eq '<a''b@x>'");
+});

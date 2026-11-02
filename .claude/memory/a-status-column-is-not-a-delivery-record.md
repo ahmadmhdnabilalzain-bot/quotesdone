@@ -37,3 +37,9 @@ This is the same shape as [[connected-is-a-claim-not-a-measurement]] and
 [[zero-cannot-tell-a-dead-guard-from-an-idle-system]]: a derived rate off a fabricated denominator
 ("0 of 161 registered") reads as a business finding when the true statement is "nothing was sent,
 so there is no rate". See also [[never-state-what-you-have-not-measured]].
+
+**2 Nov 2026, the M365 lane.** Graph's sendMail answers 202 with no id, so all 52 M365 invitations read provider_status NULL.
+Now resilience_ping reads each one back from supplier@'s Sent Items by internetMessageId and writes 'sent' (Exchange sent it;
+never 'delivered', which Graph cannot see). A delivery report that quotes a send's exact Message-ID writes 'undelivered'
+'bounce:<code>' (`fn_mail_bounce_marks_its_send`). Our own tenant's Exchange NDRs carry no authentication result; the
+exact Message-ID now counts as proof, so their permanent bounces mark the lead and reach the brake.

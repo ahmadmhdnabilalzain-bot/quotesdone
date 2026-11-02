@@ -27,6 +27,7 @@ import { timedFetch } from '../_shared/timed_fetch.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
 import { placementTick } from '../_shared/inbox_placement.ts';
 import { pollReplyInbox, pollTenantMailboxes, PROOF_LABEL, type SenderKind } from '../_shared/m365_reply_inbox.ts';
+import { pollM365SentStatus } from '../_shared/m365_sent_status.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
 import { heartbeatDeps, replayHeld, REPLAY_BUDGET_MS, REPLAY_CLAIM, REPLAY_MAX_ROWS } from '../_shared/think.ts';
@@ -1204,15 +1205,37 @@ async function itIntegrationsTick(): Promise<unknown> {
   const replies = m365Replies();   // a third independent path (6 Oct 2026): replies to the Microsoft 365 mailbox
   // a fourth (2 Nov 2026): every other mailbox of the tenant, after supplier@, so one message addressed to both is taken once
   const tenantMail = replies.then(() => m365TenantMail());
+  // a fifth (2 Nov 2026): each M365 send's Sent Items read-back, after the replies so a bounce handed in this beat is on its row first
+  const sentStatus = replies.then(() => m365SentStatus());
   const [integ, placement] = await Promise.all([integrations, inboxPlacement()]);
   const inbox = await replies;
   const tenantInbox = await tenantMail;
+  const sent = await sentStatus;
   // Either path failing is this step's failure (duty:heartbeat:itintegrations), so it reaches the IT engineer's loop
   // the same beat. The batch is held by the gate regardless. placement carries counts and verdicts only (public).
   const errors = [integ.ok === false ? String(integ.error) : null, placement.ok === false ? 'inbox placement: ' + String(placement.error) : null,
     inbox.ok === false ? 'm365 reply inbox: ' + String(inbox.why) : null,
-    tenantInbox.ok === false ? 'm365 tenant mailboxes: ' + String(tenantInbox.why) : null].filter(Boolean);
-  return { ...integ, ok: errors.length === 0, ...(errors.length ? { error: errors.join('; ') } : {}), inbox_placement: placement, m365_reply_inbox: inbox, m365_tenant_mailboxes: tenantInbox };
+    tenantInbox.ok === false ? 'm365 tenant mailboxes: ' + String(tenantInbox.why) : null,
+    sent.ok === false ? 'm365 sent status: ' + String(sent.why) : null].filter(Boolean);
+  return { ...integ, ok: errors.length === 0, ...(errors.length ? { error: errors.join('; ') } : {}), inbox_placement: placement, m365_reply_inbox: inbox, m365_tenant_mailboxes: tenantInbox, m365_sent_status: sent };
+}
+
+// WHETHER AN M365 SEND LEFT (2 Nov 2026, sales_engineer; _shared/m365_sent_status.ts).
+async function m365SentStatus(): Promise<Record<string, unknown>> {
+  try {
+    return await pollM365SentStatus({
+      fetchFn: (u, i) => timedFetch(u, i || {}, 15_000), env: (k) => Deno.env.get(k), mailbox: await sec('invite_m365_mailbox'),
+      claim: async (limit) => {
+        const { data, error } = await admin.rpc('fn_m365_sent_status_claim', { p_limit: limit });
+        if (error) throw new Error(error.message);
+        return (data || []) as Array<{ notification_id: number; message_id: string }>;
+      },
+      record: async (id, found, sentAt, http, code) => {
+        const { error } = await admin.rpc('fn_m365_sent_status_record', { p_notification_id: id, p_found: found, p_sent_at: sentAt, p_http: http, p_code: code });
+        if (error) throw new Error(error.message);
+      },
+    });
+  } catch (e) { return { ok: false, why: String((e as Error)?.message || e).slice(0, 200) }; }
 }
 
 // REPLIES TO supplier@quotesdone.com (6 Oct 2026, it_engineer + customer_support; _shared/m365_reply_inbox.ts).
