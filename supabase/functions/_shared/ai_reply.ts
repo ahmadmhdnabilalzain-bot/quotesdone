@@ -96,6 +96,9 @@ const json = (s: string | null | undefined): Record<string, unknown> => {
   return {};
 };
 const parse = (s: string | null | undefined): string => String(json(s).answer ?? '').trim();
+/** Why a call gave no usable text, for the turn's record: the gateway's error, or what came back that would not parse. */
+const failedWhy = (res: LlmReply | null): string => res?.error ? String(res.error).slice(0, 200)
+  : String(res?.content ?? '').trim() ? 'unparseable (' + String(res!.content).length + ' chars): ' + JSON.stringify(String(res!.content).slice(0, 160)) : 'no answer';
 
 // Contact or licence-like details in a reply that the brief or the facts do not carry: an identity before a reveal.
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
@@ -191,7 +194,7 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
     let res = await call(input, counterpartModel);
     let text = parse(res?.content);
     seen(res, text);
-    attempts.push((counterpartModel ? 'other-family:' : 'route:') + (text ? 'ok' : 'failed ' + String(res?.error ?? 'no answer')));
+    attempts.push((counterpartModel ? 'other-family:' : 'route:') + (text ? 'ok' : 'failed ' + failedWhy(res)));
     while (text) {
       const bad = check(text);
       if (!bad.length) return done(text, res?.content, res?.model ?? null);
@@ -200,7 +203,7 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
       res = await call(input + `\n\nYOUR ANSWER WAS:\n${text}\n\nIt has these problems: ${bad.join('; ')}. Write the whole answer again, correcting them.`, r.otherFamilyFirst ? counterpartModel : null);
       text = parse(res?.content);
       seen(res, text);
-      attempts.push('rewrite:' + (text ? 'ok' : 'failed') + ' [' + bad.join('; ').slice(0, 300) + ']');
+      attempts.push('rewrite:' + (text ? 'ok' : 'failed ' + failedWhy(res)) + ' [' + bad.join('; ').slice(0, 300) + ']');
     }
   }
   // THE MODEL'S OWN SAFE SENTENCES (1339). The model answered but no whole draft passed: its sentences that pass every

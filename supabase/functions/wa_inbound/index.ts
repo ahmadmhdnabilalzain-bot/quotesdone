@@ -572,6 +572,9 @@ async function handleInbound(req: Request): Promise<Response> {
     let sayOutage = false;
     // WHY THE LAST SAY'S DRAFTS WERE REFUSED (aiReply.problems): filed with the turn so the re-ask names them (_shared/reask.ts).
     let sayProblems: string[] = [];
+    // WHAT THE LAST SAY TRIED (aiReply.attempts: each call, each rewrite and the problems that refused it), kept on the turn's
+    // row so a refused or rewritten reply names its reason (customer_support, 3 Nov 2026: 7 Luna rewrites in a run, no record why).
+    let sayAttempts: string[] = [];
     // THE WHOLE CONVERSATION, EVERY TURN (2 Nov 2026): this number's earlier turns, read once per turn (_shared/wa_history.ts).
     let history: ReturnType<typeof waConversation> | null = null;
     // askModel writes nothing the turn keeps; adopt() is what makes a draft THE turn's reply (its escalate flag, outage and problems).
@@ -590,6 +593,7 @@ async function handleInbound(req: Request): Promise<Response> {
       modelEscalate = modelEscalate || r.escalate;
       sayOutage = !r.text && r.outage;
       sayProblems = r.text ? [] : (r.problems ?? []);
+      sayAttempts = (r.attempts ?? []).map((x) => String(x).slice(0, 400)).slice(0, 8);
       return r.text;
     };
     const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[], extraCheck?: (t: string) => string[]) =>
@@ -1452,7 +1456,7 @@ async function handleInbound(req: Request): Promise<Response> {
     }
 
     let rowSaved = true;
-    try { const { error: wErr } = await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { timings, enabled, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, held_notice: heldNotice, model_written: !heldNotice, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
+    try { const { error: wErr } = await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { timings, enabled, reply_attempts: sayAttempts, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, held_notice: heldNotice, model_written: !heldNotice, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
 
 
     // A captured fixture send (isDemoPhone: never handed to Twilio) is not a failed delivery: the QA channels run of 19 Oct
