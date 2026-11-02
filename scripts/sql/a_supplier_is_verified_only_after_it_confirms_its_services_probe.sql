@@ -50,5 +50,11 @@ begin
   end loop;
   select count(*) into real_after from public.leads where not coalesce(is_demo, false) and company_name !~* '^\s*zz\s*demo';
   r := r || jsonb_build_object('real_leads_before', real_before, 'real_leads_after', real_after);
-  raise exception 'CHK<<%>>', r::text;
+  if r #>> '{a,status}' = 'pending' and r #>> '{a,reason}' = 'services_unconfirmed' and r #>> '{b,status}' = 'approved'
+     and r #>> '{c,status}' = 'pending' and r #>> '{c,reason}' = 'services_unconfirmed' and r #>> '{d,status}' = 'approved'
+     and r #>> '{e,status}' = 'approved' and r #>> '{f,status}' = 'approved' and r #>> '{f_before,status}' = 'pending'
+     and real_before = real_after then
+    raise exception 'CHK<<PROBE OK %>>', r::text;
+  end if;
+  raise exception 'CHK<<PROBE FAILED %>>', r::text;
 end $p$;

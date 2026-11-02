@@ -24,7 +24,7 @@ import { SANCTIONED_REFUSAL, sanctionedEmail, sanctionedLead } from '../_shared/
 // EVERY DOCUMENT READS ITS OWN DATES, AND OFFERS VIEW / DOWNLOAD / REPLACE / REMOVE (founder
 // instruction 524, 21 Sep 2026). _shared/document_expiry.ts reads the expiry off the bytes by code
 // before any model is asked; ./document_actions.ts holds the Remove refusal and the version row.
-import { licenceNameFromModel, readExpiry, readLicenceFields, readLicenceName, type ExpiryRead, type LicenceFields } from '../_shared/document_expiry.ts';
+import { licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type ExpiryRead, type LicenceFields } from '../_shared/document_expiry.ts';
 import { removeRefusal, versionRow, type ExpiryNote, type VersionSnapshot } from './document_actions.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 import { productsAsked } from '../_shared/reasoned_matching.ts';
@@ -539,6 +539,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
         // uploaded document, so the expiry gate can't be bypassed with a self-typed date. The typed
         // value is used only as a fallback when extraction fails or the document has no clear date.
         let licExpiryFromDoc = false;
+        let fieldsLeftUnread = false;
         // INSTRUCTION 524: code reads the date first. For every kind that carries an expiry the
         // stored bytes are read by _shared/document_expiry.ts (text-stream PDFs; a scan returns
         // null and is said so). The licence keeps #86 — a read date is written, a typed one never
@@ -561,6 +562,9 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
           // held a clean text licence as licence_number_unread. Same reader as supplier_api; the model fills only gaps.
           let codeFields: Partial<LicenceFields> = {};
           try { codeFields = await readLicenceFields(stored.bytes, stored.mime); } catch (_e) { codeFields = {}; }
+          // What the old licence printed never judges a new one (2 Nov 2026, ledger 1442): supplier_api clears these too.
+          upd.trade_license_no = null; upd.license_authority = null; upd.license_expiry = null; upd.doc_extracted_at = null;
+          fieldsLeftUnread = licenceNeedsModel({ ...codeFields, legal_name_en: codeName });
           if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;
           if (codeFields.authority) upd.license_authority = codeFields.authority;
           if (codeFields.emirate) upd.emirate = codeFields.emirate;
@@ -585,7 +589,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
         if (kindStr === 'license' && !licExpiryFromDoc && it.original_b64 && !(aiOn && INBOUND_SECRET)) {
           read.license = { kind: 'license', expiry: null, source: null, needs_confirm: false, typed: null, unread: true, message: clearerCopyAsk('supplier', 'en', String(it.filename || kindStr)) };
         }
-        if (kindStr === 'license' && !licExpiryFromDoc && it.original_b64 && aiOn && INBOUND_SECRET) {
+        if (kindStr === 'license' && (!licExpiryFromDoc || fieldsLeftUnread) && it.original_b64 && aiOn && INBOUND_SECRET) {
           try {
             const isImg = /^image\//.test(String(it.mime || ''));
             const payload: Record<string, unknown> = isImg
@@ -595,7 +599,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
             const jd = await r.json();
             if (jd?.ok && jd.doc) {
               const d = jd.doc;
-              if (d.expiry_date) { upd.license_expiry = d.expiry_date; licExpiryFromDoc = true; read.license = { kind: 'license', expiry: String(d.expiry_date), source: 'ai', needs_confirm: false, typed: null }; }
+              if (d.expiry_date && !licExpiryFromDoc) { upd.license_expiry = d.expiry_date; licExpiryFromDoc = true; read.license = { kind: 'license', expiry: String(d.expiry_date), source: 'ai', needs_confirm: false, typed: null }; }
               if (d.license_number && !upd.trade_license_no) upd.trade_license_no = d.license_number;
               if (d.license_authority && !upd.license_authority) upd.license_authority = d.license_authority;
               if (d.city) upd.license_city = d.city;

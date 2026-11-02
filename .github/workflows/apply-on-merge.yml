@@ -3,7 +3,11 @@ name: A merged SQL file applies itself
 # Founder ledger 1463: merging is the go-live. Waits for the same commit's edge deploy, then rehearses, applies, reads back and
 # probes each file added to MANIFEST.txt since the last successful run. No laptop and no session.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      from:
+        description: 'Commit to apply from, for a run that stopped before any run ever succeeded. Empty: the last successful run.'
+        required: false
   push:
     branches: [main]
     paths: ['scripts/sql/MANIFEST.txt']
@@ -29,8 +33,11 @@ jobs:
       - run: npm ci
         timeout-minutes: 8
       - name: Find what has not been applied
+        env:
+          FROM_INPUT: ${{ inputs.from }}
         run: |
-          from=$(gh run list --workflow apply-on-merge.yml --branch main --status success --limit 1 --json headSha --jq '.[0].headSha // ""')
+          from=$FROM_INPUT
+          [ -n "$from" ] || from=$(gh run list --workflow apply-on-merge.yml --branch main --status success --limit 1 --json headSha --jq '.[0].headSha // ""')
           git cat-file -e "$from^{commit}" 2>/dev/null || from="${{ github.event.before }}"
           git cat-file -e "$from^{commit}" 2>/dev/null || from="$GITHUB_SHA~1"
           echo "FROM=$from" >> "$GITHUB_ENV"
