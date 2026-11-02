@@ -9,10 +9,10 @@ cover a company fact, say exactly who decides it (see conversation_style.md) and
 
 **Source keys** (every fact below carries one; the cited text governs if anything here differs):
 - `CT§n` Customer Terms of Service **v11**, last updated 19 Oct 2026 (quotesdone.com/terms)
-- `SA§n` Supplier Agreement **v16**, last updated 19 Oct 2026 (quotesdone.com/supplier-agreement)
-- `PP§n` Privacy Policy v1.7, 19 Oct 2026 · `DIS§n` Disclaimer v1.4 · `CPL` Complaints & Disputes v1.4
+- `SA§n` Supplier Agreement **v17**, last updated 2 Nov 2026 (quotesdone.com/supplier-agreement)
+- `PP§n` Privacy Policy v1.8, 2 Nov 2026 · `DIS§n` Disclaimer v1.4 · `CPL` Complaints & Disputes v1.4
 - `HWV` How we verify suppliers page · `FAQ` the public FAQ (quotesdone.com/faq) · `CON` Contact page
-- `CF` src/content/company_facts.json v2026-10-19.1 (the one source of truth for every figure)
+- `CF` src/content/company_facts.json v2026-11-02.1 (the one source of truth for every figure)
 - `FI n` the founder's ruling n in public.founder_instruction
 
 In Arabic and English the documents are bilingual; **the Arabic text prevails**, including in court (CT§22, SA§22).
@@ -230,7 +230,7 @@ or subscriptions; a supplier's own quotation may state discounts, which we relay
 
 ## 12. Contact
 
-- **management@quotesdone.com** · **+1 218 316 6814** · Mon–Fri 9am–6pm GST, excluding UAE public holidays. (CON; SA contact line)
+- **management@quotesdone.com** · WhatsApp **+1 218 316 6814** (messages only, never call it) · calls **+971 56 791 8605** · Mon–Fri 9am–6pm GST, excluding UAE public holidays. (CON; SA contact line)
 - info@quotesdone.com for questions about the Terms (CT§20); supplier@quotesdone.com to copy on a
   non-response complaint (CT§5); complaints status at quotesdone.com/complaints/status (CT§18).
 - Governing law: UAE; courts of Dubai. (CT§19)

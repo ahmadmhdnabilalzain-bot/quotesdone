@@ -24,3 +24,5 @@ numbers is in the box.
 **How to apply:** never re-diagnose this from scratch — Lookup and the Attempts API settle it in one
 call each, and the credentials for both are in `app_secrets`. `app_secrets.sms_enabled` is NOT the
 gate and no longer exists; see [[instruments-report-on-the-wrong-subject]].
+
+**Update 2 Nov 2026 (ledger 1482):** the mobile is no longer a public number. Public calling is +971 56 791 8605, WhatsApp is +1 218 316 6814. The mobile stays the SMS-reachable MFA/OTP number (login_otp, voice_otp read it server-side) and is printed on no current public legal page. See [[a-contact-only-terms-version-asks-nobody-to-sign-again]].

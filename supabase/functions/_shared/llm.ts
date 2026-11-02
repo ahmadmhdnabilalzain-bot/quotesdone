@@ -119,6 +119,7 @@ export interface LlmCallOpts {
   // the conversation's earlier turns ride as a cached block (chat_history.ts; ai_gateway withHistoryBreakpoint)
   cacheHistory?: boolean;
   effort?: 'low' | 'medium' | 'high';   // the reasoning effort asked of the model (request_shape.ts); absent = its default
+  signal?: AbortSignal;   // the caller stops waiting (a speculative reply that was discarded): the request is aborted
 }
 const EMPTY = (e: string | null, status = 0, used = true): LlmResult =>
   ({ content: null, message: null, tool_calls: [], finish_reason: null, truncated: false, used_llm: used, http_status: status, error: e });
@@ -217,6 +218,7 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
   return async function llmRich(sys: string, input: string | Msg[], max: number = dMax, sysStable = '', opts: LlmCallOpts = {}): Promise<LlmResult> {
     const ac = new AbortController();
     const to = setTimeout(() => ac.abort(), dTo + 5000); // gateway has its own 25s per attempt
+    if (opts.signal) { if (opts.signal.aborted) ac.abort(); else opts.signal.addEventListener('abort', () => ac.abort(), { once: true }); }
     try {
       const secret = await gatewayCredential(fnName);
       if (!secret) {
