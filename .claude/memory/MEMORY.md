@@ -7,7 +7,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 
 ## Standing rules and founder facts
 - [GitHub is the single source of truth (26 Oct)](github-is-the-single-source-of-truth.md) — ledger 1278: nothing lives only on the laptop; memory here, text reports in docs/reports/, binaries and third-party files in the private `evidence` bucket, licence PDF stays in Dropbox
-- [CI runs locally; Ubicloud stopped (26 Oct)](ci-runs-locally-ubicloud-stopped.md) — ledger 1279: no paid CI, Actions included, until the bugs are cleared; the session runs the checks
+- [CI: GitHub Actions back on GitHub-hosted runners (28 Oct; was paused 26 Oct)](ci-runs-locally-ubicloud-stopped.md) — ledger 1410 supersedes 1279: push/PR checks and deploys run on ubuntu-latest; schedules stay on pg_cron; release train still off
 - [A refused CDN is worked around in the check, not in production (27 Oct)](a-refused-cdn-is-worked-around-in-the-check-not-in-production.md) — cloud proxy refuses cdn.jsdelivr.net: ml_embed type-checked via @ts-types npm, dwg check grants only the npm registry
 - [The founder's user-global CLAUDE.md](user-global-CLAUDE.md) — copy of ~/.claude/CLAUDE.md: skills-and-plugins-first, every session
 - [Supplier campaign sends FROM supplier@quotesdone.com](supplier-campaign-sends-from-supplier-at-quotesdone-com.md) — repeated 19 Oct; never invite@hello
@@ -22,7 +22,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Ready means every gate measured](ready-means-every-gate-measured.md) — 6 Oct: founder relies fully; "ready" only with a same-day measured go/no-go checklist
 - [The agent delivers its own work](the-agent-delivers-its-own-work.md) — never hand-deliver a seat's output; the delivery IS the test
 - [A status column is not a delivery record](a-status-column-is-not-a-delivery-record.md) — verify sends through the outbox; 171 leads read "invited" with 0 emails ever sent
-- [MAX 10 agents at once (26 Oct)](max-ten-agents.md) — ledger 1280; the 23 Sep raises to 12 and 15 are gone
+- [MAX 5 agents at once; Sonnet for simple tasks (1 Nov)](max-five-agents.md) — ledger 1417; replaces the limit of 10 (ledger 1280)
 - [Always use max parallel agents](always-max-parallel-agents.md) + [no git in a shared tree](parallel-agents-must-not-do-git-in-a-shared-tree.md) — reads/applies parallelise; checkout/add/commit do not
 - [Founder sets boundaries, not methods](founder-sets-boundaries-not-methods.md)
 - [Next phases: marketing seat, then LLM per seat](next-phases-marketing-then-llm-per-seat.md) — 22 Sep: REMIND him of LLM A/B/C after marketing; Meta/social only for marketing
@@ -82,7 +82,10 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [WhatsApp notices go to the confirmed number](whatsapp-notices-go-to-the-confirmed-number.md) — clause 21 → v12; confirmed inside sign-up with OTP (instruction 391)
 - [TDRA NOL received](tdra-nol-received.md) — NOL-26-100000665 for www.quotesdone.ae, expires 14 Sep 2027
 - [UAE visitors are served on quotesdone.ae](uae-visitors-are-served-on-quotesdone-ae.md) — Vercel domain setting + code flag must change together or it loops
+- [Two readers of one reply diverge](two-readers-of-one-reply-diverge.md) — 2 Nov: browser continuity proof of every chat; run it after any chat change
 ## Working the estate
+- [A test can guard a file from another directory (28 Oct)](a-test-can-guard-a-file-from-another-directory.md) — #1658 skipped npm-test and missed _shared/widget_reply_effects.test.ts; find the tests that read the changed path
+- [The otp-race step runs on a throwaway Postgres in the cloud container (28 Oct)](the-otp-race-step-runs-on-a-throwaway-postgres-in-the-cloud-container.md) — no Docker daemon, but Postgres 16 is installed; run it as the postgres user and set QD_OTP_RACE_PG
 - [npm ci in a worktree empties the shared node_modules (27 Oct)](npm-ci-in-a-worktree-empties-the-shared-node-modules.md) — install only in the main checkout
 - [A branch can silently revert main (27 Oct)](a-branch-can-silently-revert-main.md) — #1672; review the whole diff against main
 - [Diff SQL against live production, not the mirror (27 Oct)](diff-sql-against-live-production-not-the-mirror.md) — #1660 nearly reverted #1644's live code
@@ -129,6 +132,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Checks retired with their subject](checks-retired-with-their-subject.md) — 13 retired; never soften a check to green
 - [Apify paused until ~Feb 2027](apify-paused-until-2027.md)
 - [The OS dashboard is still basic](os-dashboard-still-basic.md)
+- [WhatsApp reply model was never shown the conversation](whatsapp-reply-model-was-never-shown-the-conversation.md) — 2 Nov: stored is not shown; voice notes not heard; OTP-on-WhatsApp does not make a supplier known
 - [Lessons — measurement, guards, checks, audits, identity](lessons-measurement-guards-and-audits.md) — 75 pattern lessons, grouped
 - [Lessons — Postgres, kernel, deploy, phase machinery](lessons-postgres-kernel-and-deploy.md) — 60 pattern lessons, grouped
 - [A held row failed with no result means the runner died (27 Oct)](a-held-row-failed-with-no-result-means-the-runner-died.md) — 2 s edge CPU cap; gte-small in a batch goes to embed_ml
@@ -143,6 +147,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [A fix that makes the headline fall](a-fix-that-makes-the-headline-fall.md)
 - [Take the dependency away and see what breaks](take-the-dependency-away-and-see-what-breaks.md) — reading the code only proves the code says so
 ## State of the build
+- [CHECKPOINT 2 Nov — founder's 10-hour push](checkpoint-2-nov-10-hour-push.md) — READ FIRST: rulings 1437-1458, what is live, the PR queue, Al Gouri, deadlines
 - [CHECKPOINT 27 Oct night — merge train and the held queue](checkpoint-27-oct-night-merge-train-and-the-held-queue.md) — READ FIRST: 25 PRs live, parity 78/0; resilience_ping chain CPU→fan-out→itlater→newest-first queue; #1693 code not yet deployed; November plan at risk; open list
 - [CHECKPOINT 27 Oct — cloud only, invitations HELD for GlockApps](checkpoint-27-oct-cloud-invitations-held.md) — READ FIRST: laptop has no keys; invite_enabled=false; GlockApps 27 Oct FAILED (Microsoft 0/18 inbox), copy now variant A, winmail.dat/TNEF on every external copy (admin fix), compressed warm-up, re-test day 3 with the LAST credit; warm-up plan; 16 open PRs by state
 - [Security hardening 27 Oct — SSL, network, legacy JWT, pg_net: state and next steps](security-hardening-27-oct-state.md) — nothing applied (restart / unproven exemptions); legacy JWT secret still trusted until the consumer PR, then disable + revoke; pg_net needs Supabase support
@@ -167,3 +172,8 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Chat model candidates only](chat-model-candidates-only.md) — 13 Oct, ledger 1217: Sonnet 5.5 / GPT-6.1 Sol / GPT-6 Luna Pro only; same price = always Pro (1218); never name the two excluded models to him
 - [Microsoft 365 app already exists](m365-app-already-exists.md) — 18 Oct: reuse the quotesdone.com M365 app (M365_* edge secrets); never ask him to register a new one
 - [OpenRouter stays on; all tests with AI](openrouter-stays-on-all-tests-with-ai.md) — 19 Oct, ledger 1260: no model holds, no stubbed tests
+- [The CEO acts on the supplier target](the-ceo-acts-on-the-supplier-target.md) — ledger 1438: bounded powers behind a switch; brakes win; ceiling is the CEO's (1455)
+- [Nothing is done until a browser proved it](nothing-is-done-until-a-browser-proved-it.md): founder 2 Nov, ledger 1464-1465
+- [A later SQL file can silently delete a rule](a-later-sql-file-can-silently-delete-a-rule.md): diff every routine against live before merge
+- [A founder ruling is not a defect to fix](a-founder-ruling-is-not-a-defect-to-fix.md): read the ledger before changing a pinned check
+- [The automatic apply's language](an-automatic-apply-and-a-probe-must-speak-its-language.md): PROBE OK wording, seat, from=, mirror regen

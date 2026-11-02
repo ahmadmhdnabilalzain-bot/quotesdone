@@ -319,7 +319,7 @@ export async function mkAuthUser(run, email) {
 async function deleteAuthUsersByTag(tag) {
   const { SERVICE } = await keys();
   const rows = await mgmtRead(REF,
-    `select id from auth.users where email like 'qd-${tag}-%@example.%'`);
+    `select id from auth.users where email like 'qd-${tag}-%@example.%' or email like 'delivered+qd-${tag}-%@resend.dev'`);
   let n = 0;
   for (const r of rows) {
     const d = await fetch(`${BASE}/auth/v1/admin/users/${r.id}`, {
@@ -526,7 +526,8 @@ export async function makeSupplier(run, opts = {}) {
       company_type: 'LLC', contact_name: 'Demo Contact', phone,
       service_emirates: profile.coverage_emirates,
     });
-    await call('kyc', u.jwt, { action: 'accept_terms', user_kind: 'supplier', email });
+    // accept_terms writes the signed-terms PDF; a platform blip (HTTP 0/502/503/504/546) is retried, a refusal is not (run 41389615237: one 502 failed the setup).
+    for (let k = 0; k < 3; k++) { const at = await call('kyc', u.jwt, { action: 'accept_terms', user_kind: 'supplier', email }); if (![0, 502, 503, 504, 546].includes(at.status)) break; await new Promise((r) => setTimeout(r, 3000)); }
     // No approval is written here any more: completeMandatorySix below brings the documents and the
     // sales engineer decides. The mobile is recorded as verified directly - Twilio Verify cannot be
     // driven without sending an SMS, and the number is the fixture block by design. The e-mail was
@@ -1132,7 +1133,9 @@ export async function makeBulkCorpus(run, opts = {}) {
 // surgery on a subquery, which is how the first cut of this file produced
 // `select id::text from (select id from ...)` and would have silently deleted nothing.
 function scopeForRun(tag) {
-  const cust = `email like 'qd-${tag}-%@example.%'`;
+  // or the run's Resend sink (delivered+qd-<tag>-...@resend.dev): a customer who signed up through the real form with a
+  // real emailed code (scripts/e2e/customer_signup_walk.mjs); the sink drops mail, so no person owns it.
+  const cust = `(email like 'qd-${tag}-%@example.%' or email like 'delivered+qd-${tag}-%@resend.dev')`;
   const lead = `'qd_run:${tag}' = any(coalesce(tags,'{}'::text[]))`;
   const inq = `(customer_id in (select id from public.customers where ${cust})` +
               ` or provenance->>'qd_run' = '${tag}')`;
@@ -1415,7 +1418,7 @@ export async function teardown(run) {
     ...(await chatTurnSteps(tag)),
     // notifications names all three parents (inquiry_id, lead_id, quote_id) and has no children of
     // its own, so it goes first - after the quote is deleted the quote_id clause matches nothing.
-    ['notifications', `delete from public.notifications where inquiry_id in ${INQ} or lead_id in ${LEAD} or quote_id in ${QUO} or to_email like 'qd-${tag}-%@example.%'`],
+    ['notifications', `delete from public.notifications where inquiry_id in ${INQ} or lead_id in ${LEAD} or quote_id in ${QUO} or to_email like 'qd-${tag}-%@example.%' or to_email like 'delivered+qd-${tag}-%@resend.dev'`],
     ['comparison_candidate_v2', `delete from public.comparison_candidate_v2 where quote_id in ${QUO}`],
     ['comparison_run_v2', `delete from public.comparison_run_v2 where inquiry_id in ${INQ}`],
     // doc_versions, documents, company_event and agent_actions key off the quote/inquiry/lead id as
@@ -1485,8 +1488,8 @@ export async function teardown(run) {
     // profiles (and their cases first) by the run's own markers only.
     ...(await fkChildren('customers')).filter(([t]) => t !== 'support_customer_profile').map(([t, c]) => [`${t} (fk ${c} -> customers)`, `delete from public.${t} where ${c} in ${CUST}`]),
     ['customers', `delete from public.customers where id in ${CUST}`],
-    ['inquiry_intake', `delete from public.inquiry_intake where email like 'qd-${tag}-%@example.%'`],
-    ['email_verifications', `delete from public.email_verifications where email like 'qd-${tag}-%@example.%'`],
+    ['inquiry_intake', `delete from public.inquiry_intake where email like 'qd-${tag}-%@example.%' or email like 'delivered+qd-${tag}-%@resend.dev'`],
+    ['email_verifications', `delete from public.email_verifications where email like 'qd-${tag}-%@example.%' or email like 'delivered+qd-${tag}-%@resend.dev'`],
   ];
   // A TABLE THAT WAS DROPPED MUST NOT STRAND EVERYTHING AFTER IT (14 Sep 2026). The first e2e harness
   // run died at 'comparison_candidate_v2' (42P01, the table no longer exists) and every later step -

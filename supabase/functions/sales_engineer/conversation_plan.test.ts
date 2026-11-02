@@ -182,3 +182,34 @@ Deno.test('a tank is never asked about fixtures; "new build or finished home" is
   assert(bath.plan!.slots.some((x) => x.id === 'layout'));
   assert(targets('هل البيت جديد تحت التشطيب، أم جاهز ومسكون؟', PLANS.get('smart-home')!).includes('existing'));
 });
+
+// BROWSER PROOF, 2 Nov 2026 (ledger 1464): "Can I post a job worth AED 300?" is a question about the platform, and the read-back
+// then said "Budget: AED 300" and answered the next question with the job summary. A figure in a question is not the budget.
+Deno.test('a figure inside a question about the platform is not the budget; a statement of it, or a question that says budget, is', () => {
+  const job = 'I need aluminium windows for my villa in Al Barsha, the main door must be 2.4 m wide.';
+  // known-bad control: the detector alone DOES read the figure as a budget, so it is the guard in planState that stops it
+  assert(fillsOf('Can I post a job worth AED 300?').includes('budget'));
+  assertEquals(planState([u(job)], 'Can I post a job worth AED 300?').filled.has('budget'), false);
+  assertEquals(planState([u(job)], 'Is AED 5,000 enough for the windows?').filled.has('budget'), false);
+  // known-good controls: the same figures stated, or asked about as a budget, still fill it
+  assertEquals(planState([u(job)], 'My budget is AED 40,000.').filled.has('budget'), true);
+  assertEquals(planState([u(job)], 'Is a budget of AED 5,000 realistic?').filled.has('budget'), true);
+  assertEquals(planState([u(job)], 'Around AED 40,000 in total.').filled.has('budget'), true);
+});
+
+// BROWSER PROOF, 2 Nov 2026 (ledger 1464): with the summary due, "what is the fee again?" was answered without the figure and
+// "is it still free?" with the read-back first. A reply due as the summary answers a direct question first.
+Deno.test('a summary-due reply is told to answer a direct question first; a statement or a confirmation is not a question', () => {
+  let past: Turn[] = [];
+  const seat = 'Which board and colour?';
+  for (const m of ['I need aluminium windows for my villa in Al Barsha.', 'About 2.4 m wide, 2.7 m high.', 'Sliding.', 'Grey frames.', 'Within 5 weeks.', 'Dubai, Al Barsha.']) past = [...past, u(m), a(seat)];
+  const q = planState(past, 'What is the fee again?');
+  assertEquals(q.mode, 'summary');
+  assert(q.direct, 'a question that states no must-have');
+  assert(stateBlock(q).includes('THEY ASKED A QUESTION: answer it first'));
+  // known-bad controls: a statement, and a confirmation, are not questions to answer first
+  assert(!planState(past, 'Four sliding windows please.').direct);
+  assert(!stateBlock(planState(past, 'Four sliding windows please.')).includes('THEY ASKED A QUESTION'));
+  const withSummary = [...past, u('Within 5 weeks.'), a('Here is your request as I have it: x. Is this correct?')];
+  assert(!planState(withSummary, 'Yes, that is correct.').direct);
+});

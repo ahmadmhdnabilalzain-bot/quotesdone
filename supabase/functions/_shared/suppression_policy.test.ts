@@ -10,8 +10,9 @@ Deno.test('an unsubscribed address still receives a sign-in code; a hard-bounced
 });
 
 Deno.test('an unsubscribe stops only the invitation and its reminders; a bounce stops everything', () => {
-  assertEquals([...OPT_OUT_TYPES], ['supplier_invite', 'supplier_registration_reminder', 'supplier_rfq_widened_invite']);
-  for (const t of ['supplier_invite', 'supplier_registration_reminder', 'supplier_rfq_widened_invite']) assert(suppressionStops('unsubscribe', t), t);
+  assertEquals([...OPT_OUT_TYPES], ['supplier_invite', 'supplier_invite_nudge', 'supplier_registration_reminder', 'supplier_rfq_widened_invite']);
+  // the reminder of an unopened invitation is stopped too: a nudge queued before the "stop" never leaves (ledger 1401 audit S6)
+  for (const t of ['supplier_invite', 'supplier_invite_nudge', 'supplier_registration_reminder', 'supplier_rfq_widened_invite']) assert(suppressionStops('unsubscribe', t), t);
   for (const t of ['new_inquiry', 'rfq_quote_reminder', 'rfq_short_of_quotes', 'reveal_outcome_check', 'quote_accepted', 'registration_received', 'reveal_no_response_notice', 'nonresponse_charge', 'login_otp']) {
     assert(!suppressionStops('unsubscribe', t), t);
     assert(suppressionStops('hard_bounce:permanent', t), t);
