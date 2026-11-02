@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-01T23:56:04.912Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-02T03:04:10.956Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -199,6 +199,7 @@ CREATE SEQUENCE IF NOT EXISTS public.signup_purge_object_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.simulations_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.spec_alternative_offer_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.spec_backlog_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.supplier_reply_followup_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.supplier_response_watch_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.supplier_screening_hit_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.supply_health_snapshots_id_seq;
@@ -222,7 +223,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (769) =====
+-- ===== TABLES (770) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -9650,6 +9651,19 @@ CREATE TABLE IF NOT EXISTS public.supplier_recruitment_funnel (
   quoting integer DEFAULT 0 NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.supplier_reply_followup (
+  id bigint DEFAULT nextval('supplier_reply_followup_id_seq'::regclass) NOT NULL,
+  inbound_message_id bigint NOT NULL,
+  lead_id bigint,
+  to_email text NOT NULL,
+  intent text NOT NULL,
+  due_at timestamp with time zone NOT NULL,
+  state text DEFAULT 'due'::text NOT NULL,
+  outcome text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  done_at timestamp with time zone
+);
+
 CREATE TABLE IF NOT EXISTS public.supplier_response_watch (
   id bigint DEFAULT nextval('supplier_response_watch_id_seq'::regclass) NOT NULL,
   transaction_id uuid NOT NULL,
@@ -11320,6 +11334,7 @@ ALTER TABLE public.supplier_product_variant ADD CONSTRAINT supplier_product_vari
 ALTER TABLE public.supplier_public_name ADD CONSTRAINT supplier_public_name_pkey PRIMARY KEY (lead_id);
 ALTER TABLE public.supplier_quote_template ADD CONSTRAINT supplier_quote_template_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_recruitment_funnel ADD CONSTRAINT supplier_recruitment_funnel_pkey PRIMARY KEY (trade, emirate, day);
+ALTER TABLE public.supplier_reply_followup ADD CONSTRAINT supplier_reply_followup_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_response_watch ADD CONSTRAINT supplier_response_watch_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_score ADD CONSTRAINT supplier_score_pkey PRIMARY KEY (lead_id);
 ALTER TABLE public.supplier_scorecard ADD CONSTRAINT supplier_scorecard_pkey PRIMARY KEY (lead_id, month);
@@ -11522,6 +11537,7 @@ ALTER TABLE public.supplier_dues ADD CONSTRAINT supplier_dues_transaction_id_key
 ALTER TABLE public.supplier_product ADD CONSTRAINT supplier_product_supplier_id_external_key_key UNIQUE (supplier_id, external_key);
 ALTER TABLE public.supplier_product_variant ADD CONSTRAINT supplier_product_variant_product_id_sku_key UNIQUE (product_id, sku);
 ALTER TABLE public.supplier_quote_template ADD CONSTRAINT supplier_quote_template_supplier_id_name_key UNIQUE (supplier_id, name);
+ALTER TABLE public.supplier_reply_followup ADD CONSTRAINT supplier_reply_followup_inbound_message_id_key UNIQUE (inbound_message_id);
 ALTER TABLE public.supplier_response_watch ADD CONSTRAINT supplier_response_watch_one_per_tx UNIQUE (transaction_id);
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_lead_id_entry_source_entry_reference_key UNIQUE (lead_id, entry_source, entry_reference, field);
 ALTER TABLE public.supplier_whatsapp_optin ADD CONSTRAINT supplier_whatsapp_optin_lead_id_phone_key UNIQUE (lead_id, phone);
@@ -12493,6 +12509,8 @@ ALTER TABLE public.supplier_performance ADD CONSTRAINT supplier_performance_scor
 ALTER TABLE public.supplier_quote_template ADD CONSTRAINT supplier_quote_template_line_headings_check CHECK ((cardinality(line_headings) <= 100));
 ALTER TABLE public.supplier_quote_template ADD CONSTRAINT supplier_quote_template_name_check CHECK (((char_length(name) >= 2) AND (char_length(name) <= 80)));
 ALTER TABLE public.supplier_quote_template ADD CONSTRAINT supplier_quote_template_never_a_price CHECK ((NOT fn_text_states_a_price(concat_ws(' | '::text, name, array_to_string(line_headings, ' | '::text), terms, warranty, validity, inclusions, exclusions, payment_terms))));
+ALTER TABLE public.supplier_reply_followup ADD CONSTRAINT supplier_reply_followup_intent_check CHECK ((intent = ANY (ARRAY['subsidiary'::text, 'later'::text, 'interested'::text])));
+ALTER TABLE public.supplier_reply_followup ADD CONSTRAINT supplier_reply_followup_state_check CHECK ((state = ANY (ARRAY['due'::text, 'sent'::text, 'dropped'::text])));
 ALTER TABLE public.supplier_scorecard ADD CONSTRAINT supplier_scorecard_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_match_kind_check CHECK ((match_kind = ANY (ARRAY['exact'::text, 'token_overlap'::text])));
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_status_check CHECK ((status = ANY (ARRAY['open'::text, 'confirmed'::text, 'false_positive'::text])));
@@ -12944,6 +12962,7 @@ ALTER TABLE public.supplier_product ADD CONSTRAINT supplier_product_supplier_id_
 ALTER TABLE public.supplier_product_variant ADD CONSTRAINT supplier_product_variant_product_id_fkey FOREIGN KEY (product_id) REFERENCES supplier_product(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_public_name ADD CONSTRAINT supplier_public_name_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_quote_template ADD CONSTRAINT supplier_quote_template_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
+ALTER TABLE public.supplier_reply_followup ADD CONSTRAINT supplier_reply_followup_inbound_message_id_fkey FOREIGN KEY (inbound_message_id) REFERENCES inbound_messages(id);
 ALTER TABLE public.supplier_scorecard ADD CONSTRAINT supplier_scorecard_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_run_id_fkey FOREIGN KEY (run_id) REFERENCES screening_run(id) ON DELETE SET NULL;
