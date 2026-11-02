@@ -31,6 +31,6 @@ Deno.test('a cold asset fetch is not drawing time (review of #1797: a cold start
 Deno.test('the sweep consults the budget before each render and times only the drawing', () => {
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   assertMatch(src, /if \(!mayRenderNext\(renderMs, slowestMs\)\)/);
-  assertMatch(src, /renderPdf\(conversationDocument\(r\), \{ fetchBytes: timedFetchBytes, identity \}\)/);
+  assertMatch(src, /renderPdf\(conversationDocument\(m\), \{ fetchBytes: timedFetchBytes, identity \}\)/);
   assertMatch(src, /drawingMs\(performance\.now\(\) - t0, waitedMs - w0\)/);
 });
