@@ -877,7 +877,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         // The request just posted is opened by its stable id: a split opens its combined parent, which
         // lists one card per trade; the note says how many trades were sent separately.
         const n = r && Array.isArray(r.child_ids) ? r.child_ids.length : 0;
-        setNote(n > 1 ? tf(lang, 'request_sent_split', { n }) : t(lang, 'request_sent'));
+        setNote(r && r.none ? '' : n > 1 ? tf(lang, 'request_sent_split', { n }) : t(lang, 'request_sent'));
         // The first-request concierge (founder ledger 1018): a first request, or one held for its specs, gets the
         // steps and what is missing on screen as well as by e-mail.
         const g = r && r.concierge;

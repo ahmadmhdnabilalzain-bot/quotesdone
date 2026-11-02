@@ -619,8 +619,8 @@ export async function readLicenceFields(bytes: Uint8Array, mime: string): Promis
   const text = await pdfText(bytes);
   return text ? licenceFieldsFromText(text) : { ...NO_FIELDS };
 }
-/** The model is asked whenever code left one of the three fields the gate stands on unread. */
-export const licenceNeedsModel = (c: Partial<LicenceFields> | null | undefined) => !c?.legal_name_en || !c?.licence_no || !c?.expiry_date;
+/** The model is asked whenever code left one of the four fields the gate stands on unread. */
+export const licenceNeedsModel = (c: Partial<LicenceFields> | null | undefined) => !c?.legal_name_en || !c?.licence_no || !c?.expiry_date || !c?.authority;
 
 /**
  * CODE FIRST, THE MODEL ONLY WHERE CODE COULD NOT READ (founder: "code first, LLM only where code can't"). One rule,
