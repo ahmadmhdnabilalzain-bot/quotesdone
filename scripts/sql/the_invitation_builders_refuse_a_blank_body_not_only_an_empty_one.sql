@@ -1,30 +1,35 @@
--- THE INVITATION BUILDERS REFUSE A BLANK BODY, NOT ONLY AN EMPTY ONE (it_engineer, 28 Oct 2026; ledger 1407).
+-- THE INVITATION BUILDERS REFUSE A BLANK BODY, NOT ONLY AN EMPTY ONE (it_engineer, 28 Oct 2026; ledger 1407; rebuilt from the live bodies 2 Nov 2026).
 -- Assigned: it_engineer (the guard of instruction 1301 on the routines marketing's supplier invitation is built by).
 --
 -- MEASURED 28 Oct 2026 ~08:10Z on production, in one rolled-back transaction, for ledger 1407 ("confirm the canonical
--- fn_supplier_invite_candidates ... still accepts a body with no {{link}} and still refuses an empty one"): both forms
--- of fn_supplier_invite_candidates take the founder's link-less copy (3 of 3 rows carry it, no URL, no placeholder left)
--- and refuse app_secrets.invite_body = '', and so does fn_marketing_gap_recruitment_plans. A body of three spaces and a
--- newline was NOT refused. The test is btrim(coalesce(v_body, '')) = '', and btrim() given no characters strips only
--- the space character, so a template of newlines, tabs or carriage returns reads as non-empty: the picker builds an
--- invitation from it and the plan builder stores it in every plan row. Downstream, the a07 trigger on notifications
+-- fn_supplier_invite_candidates ... still accepts a body with no {{link}} and still refuses an empty one"): the picker
+-- takes the founder's link-less copy (3 of 3 rows carry it, no URL, no placeholder left) and refuses
+-- app_secrets.invite_body = '', and so does fn_marketing_gap_recruitment_plans. A body of three spaces and a newline
+-- was NOT refused. The test is btrim(coalesce(v_body, '')) = '', and btrim() given no characters strips only the space
+-- character, so a template of newlines, tabs or carriage returns reads as non-empty: the picker builds an invitation
+-- from it and the plan builder stores it in every plan row. Downstream, the a07 trigger on notifications
 -- (fn_notifications_supplier_invite_is_whole, #1705) refuses each such row for its missing reply-"stop" line, so no
 -- blank mail goes out; the batch stops instead, on an error that names the stop line rather than the blank template.
+-- RE-MEASURED 2 Nov 2026 on production: both routines still carry the btrim() form (md5 of their bodies below).
 --
 -- THIS CHANGES ONE LINE IN EACH BUILDER. The emptiness test becomes coalesce(v_body, '') ~ '^[[:space:]]*$': nothing
 -- but whitespace, newlines and tabs included, and NULL read as ''. [[:space:]] is the class the a07 guard already
 -- reads its stop line with. The error text is unchanged.
--- NOT CHANGED: every other byte. Each body is production's pg_get_functiondef read 28 Oct 2026 08:03Z with that one line
--- replaced (the picker's is the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.sql's, the plan
--- builder's is the_supplier_invitation_carries_no_link_and_a_reply_with_trades_reaches_the_sales_engineer.sql's). The
--- one-argument picker is restated verbatim, because canonical_routine_manifest.mjs holds every overload of a name to
--- the file that defines it last. CREATE OR REPLACE keeps each routine's closed ACL (measured: no EXECUTE for anon or
--- authenticated on any of the three), so nothing is granted or revoked here.
+-- NOT CHANGED: every other byte. Each body is the LIVE one of 2 Nov 2026, read with pg_proc.prosrc and equal to the
+-- repository's canonical file, with that one line replaced:
+--   fn_supplier_invite_candidates(integer, text[])  md5 8f80bdd8c5e1b665496328f84a68b5e2, 9108 bytes
+--     (the_ceo_holds_the_supplier_target_and_acts_within_bounded_powers.sql: it carries #1743's reachability lever and the
+--      CEO's priority trades, the checked-mailbox rank of an_invitation_goes_only_to_a_checked_mailbox..., and 95eb816f's
+--      one-routine change. The first form of this file restated an older body and would have removed all of them.)
+--   fn_marketing_gap_recruitment_plans()            md5 60d33345fd5e6080673875f4b9c52b0f, 3845 bytes
+-- The one-argument picker is gone (fn_supplier_invite_candidates_is_one_routine.sql dropped it), so it is not restated.
+-- CREATE OR REPLACE keeps each routine's closed ACL (no EXECUTE for anon or authenticated), so nothing is granted or revoked.
 --
 -- Prevented by: scripts/checks/the_supplier_invitation_carries_no_link.test.mjs, which requires every reader of
--- invite_body in the canonical builders to refuse a whitespace-only body by this class and fails on the btrim() form.
+-- invite_body in the canonical builders to refuse a whitespace-only body by this class and fails on the btrim() form;
+-- scripts/checks/the_invitation_pool_set_states_the_row_rule.test.mjs, which holds this file to the applied body plus that one line.
 
--- ── 1. the picker, two-argument form: the body every invitation is built by ────────────────────────────────────────
+-- ── 1. the picker: the body every invitation is built by ──────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.fn_supplier_invite_candidates(p_limit integer, p_providers text[])
  RETURNS TABLE(lead_id bigint, to_email text, company_name text, lang text, subject text, body text)
  LANGUAGE plpgsql
@@ -32,6 +37,7 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_invite_candidates(p_limit integer,
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_site text; v_target int;
+  v_reach boolean := coalesce((select value from app_secrets where key = 'invite_reachable_only'), '') = 'true';
   v_subj text; v_body text;
 begin
   select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from app_secrets where key = 'public_site_url';
@@ -85,13 +91,15 @@ begin
   rescue as materialized (select x.trades, x.emirate from public.stalled_inquiry_rescue x where x.cleared_at is null and not x.fixture and cardinality(x.trades) > 0),
   cand as (
     select distinct on (lower(l.email)) l.id, l.email, l.company_name, l.claim_token, l.email_domain, l.email_verified,
-           l.invite_trades, l.emirate, k.dkey, k.nkey,
+           l.invite_trades, l.emirate, k.dkey, k.nkey, ec.mailbox,
            -- ALWAYS ENGLISH (24 Sep 2026, ledger 993 item 4; #1065): suppliers are always written in English.
            'en'::text as lang
-    from leads l join keyed k on k.id = l.id
+    from leads l join keyed k on k.id = l.id left join public.lead_email_check ec on ec.lead_id = l.id
     where l.id in (select e.id from public.fn_supplier_invite_eligible_ids() e(id))   -- the set, read once (see header)
       -- 27 Oct 2026 (it_engineer): only recipients whose mailbox class passed the GlockApps verdict; null = every class
       and (p_providers is null or public.fn_mail_provider_of_email(l.email) = any(p_providers))
+      -- 2 Nov 2026 (ceo, ledger 1438, 1449): the CEO's reachability lever; unchecked addresses wait while it is on
+      and (not v_reach or l.email_verified in ('verified', 'true', 'maps', 'social'))
       -- a company already invited (bounced, unsubscribed or registered included) is not invited again at another address
       and not exists (select 1 from touched_d t where t.dkey = k.dkey)
       and (k.nkey is null or not exists (select 1 from touched_n t where t.nkey = k.nkey))
@@ -107,14 +115,15 @@ begin
            when exists (select 1 from public.supply_gap g where g.status = 'recruit' and g.trade = any(coalesce(c.invite_trades, '{}'::text[]))
                           and (g.emirate = 'UAE' or g.emirate = c.emirate)) then 0
            when pl.rank is not null then 1 else 2 end as target_rank,
-      coalesce(pl.rank, 2147483647) as plan_rank,
+      -- 2 Nov 2026 (ceo): a trade the CEO put first leads inside its tier; a stalled request's rescue still comes before it
+      case when exists (select 1 from public.ceo_invite_trade_priority t where t.cleared_at is null and t.trade = any(coalesce(c.invite_trades, '{}'::text[])))
+           then -1 else coalesce(pl.rank, 2147483647) end as plan_rank,
       coalesce((select u.domain_slug from lead_subcategory ls join under u on u.domain_slug = ls.domain_slug
                  where ls.lead_id = c.id order by u.have asc, ls.score desc limit 1), '~none') as pdomain,
-      case when c.email_verified in ('verified','true') then 0 else 1 end as unverified_rank,
-      case when split_part(lower(c.email),'@',1) in
-             ('info','sales','admin','contact','enquiry','enquiries','inquiry','office','mail',
-              'support','hello','marketing','general','accounts','reception','careers','hr')
-           then 1 else 0 end as role_rank
+      -- THE LIKELIEST MAILBOX FIRST (2 Nov 2026, ledger 1449). Measured on the 52 real sends: proven 'verified' 1 bounce of 22,
+      -- proven 'true' 1 of 9, unproven role address 0 of 2, unproven named address 5 of 16. So an unproven info@ goes before
+      -- an unproven named address (this used to be the other way round), and free mail last. ponytail: small sample, re-read at 200.
+      case when c.email_verified in ('verified','true') then 0 when c.mailbox = 'free' then 3 when c.mailbox = 'role' then 1 else 2 end as mailbox_rank
     from cand c
     left join lateral (select p.rank from plans p
                         where p.trade = any(coalesce(c.invite_trades, '{}'::text[])) and (p.emirate = 'UAE' or p.emirate = c.emirate)
@@ -124,16 +133,15 @@ begin
     select r.id, r.email, r.company_name, r.claim_token, r.lang from (
       select p.*,
         case when p.pdomain='~none' then 1 else 0 end as is_none,
-        row_number() over (partition by p.pdomain order by p.unverified_rank, p.role_rank, p.id) as rk,
-        row_number() over (partition by coalesce(p.email_domain, split_part(p.email,'@',2)) order by p.unverified_rank, p.role_rank, p.id) as domain_rk,
-        -- the best contact per company: a verified, named mailbox before info@/sales@ (a role address goes only
-        -- when it is the company's only one). ponytail: a lead that wins one key and loses the other waits a day.
-        row_number() over (partition by p.dkey order by p.unverified_rank, p.role_rank, p.id) as company_rk,
-        row_number() over (partition by coalesce(p.nkey, p.email) order by p.unverified_rank, p.role_rank, p.id) as name_rk
+        row_number() over (partition by p.pdomain order by p.mailbox_rank, p.id) as rk,
+        row_number() over (partition by coalesce(p.email_domain, split_part(p.email,'@',2)) order by p.mailbox_rank, p.id) as domain_rk,
+        -- the best contact per company, by mailbox_rank. ponytail: a lead that wins one key and loses the other waits a day.
+        row_number() over (partition by p.dkey order by p.mailbox_rank, p.id) as company_rk,
+        row_number() over (partition by coalesce(p.nkey, p.email) order by p.mailbox_rank, p.id) as name_rk
       from prio p
     ) r
     where r.domain_rk <= 5 and r.company_rk = 1 and r.name_rk = 1
-    order by r.target_rank, r.plan_rank, r.is_none, r.rk, r.unverified_rank, r.role_rank, r.pdomain
+    order by r.target_rank, r.plan_rank, r.mailbox_rank, r.is_none, r.rk, r.pdomain
     limit greatest(coalesce(p_limit, 0), 0)
   )
   select e.id, btrim(e.email), e.company_name, e.lang, v_subj,
@@ -148,24 +156,12 @@ begin
 end
 $function$;
 
--- ── 2. the picker, one-argument form (the daily list, the campaign list tick): unchanged, restated ──────────────────
-CREATE OR REPLACE FUNCTION public.fn_supplier_invite_candidates(p_limit integer)
- RETURNS TABLE(lead_id bigint, to_email text, company_name text, lang text, subject text, body text)
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-begin
-  return query select * from public.fn_supplier_invite_candidates(p_limit, null::text[]);
-end $function$;
-
--- ── 3. marketing's plan builder: every plan row stores the one approved text ────────────────────────────────────
-CREATE OR REPLACE FUNCTION public.fn_marketing_gap_recruitment_plans()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
+-- ── 2. marketing's plan builder: every plan row stores the one approved text ─────────────────────────────────────
+create or replace function public.fn_marketing_gap_recruitment_plans()
+returns jsonb
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
 declare v_body text := (select value from public.app_secrets where key = 'invite_body');
   v_rows int; v_dropped int;
 begin
@@ -216,7 +212,7 @@ begin
                        and not exists (select 1 from jsonb_array_elements(p.sources) e where (e->>'verified')::boolean));
 
   return public.fn_marketing_gap_recruitment_report() || jsonb_build_object('plans_written', v_rows, 'plans_dropped', v_dropped);
-end $function$;
+end $fn$;
 
 -- ── PROBE (a verdict row; it reads definitions and writes nothing) ─────────────────────────────────────────────────
 select case
@@ -226,7 +222,4 @@ select case
   when pg_get_functiondef('public.fn_marketing_gap_recruitment_plans()'::regprocedure)
        not like '%if coalesce(v_body, '''') ~ ''^[[:space:]]*$'' then%'
     then 'PROBE FAILED: the plan builder does not refuse a whitespace-only body'
-  when pg_get_functiondef('public.fn_supplier_invite_candidates(integer)'::regprocedure)
-       not like '%return query select * from public.fn_supplier_invite_candidates(p_limit, null::text[]);%'
-    then 'PROBE FAILED: the one-argument picker no longer hands over to the two-argument one'
   else 'PROBE OK' end as verdict;

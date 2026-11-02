@@ -890,6 +890,7 @@ AS $function$
              || coalesce(' (as of ' || pb.as_of::text || ')', '') as line
       from public.price_benchmark pb
      where pb.source_kind <> 'gap' and pb.item is not null and pb.low is not null
+       and pb.confidence = 'published'
      order by pb.category, pb.item, pb.unit, (case when pb.source_kind = 'blog_post' then 0 else 1 end), pb.as_of desc nulls last, pb.id
   )
   select '## PUBLISHED PRICE GUIDE (UAE ranges QuotesDone publishes; quote them as a range and say it is a guide, not a quotation — suppliers price the work)'
@@ -3637,14 +3638,30 @@ CREATE OR REPLACE FUNCTION public.fn_reason_held_expire(p_ids bigint[], p_by tex
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare n_exp int; n_handoff int;
+declare n_exp int; n_handoff int; n_kept int := 0; h record; c jsonb; v_ids bigint[] := p_ids;
 begin
+  for h in select id from public.reasoning_held_question where id = any(p_ids) and status = 'held' loop
+    c := public.fn_cs_held_question_contact(h.id);
+    if (nullif(c->>'email', '') is not null and not public.fn_is_demo_email(c->>'email'))
+       or (nullif(c->>'phone', '') is not null and c->>'phone' !~ '^\+?97150000') then
+      update public.reasoning_held_question
+         set expires_at = now() + interval '14 days',
+             result = coalesce(result, '{}'::jsonb) || jsonb_build_object('kept_for_a_person_at', now(), 'would_have_expired_because', p_why)
+       where id = h.id;
+      perform public.fn_cs_held_question_message(h.id, 'support_question_ack',
+        case when c ->> 'lang' = 'ar' then 'سؤالكم لدى فريقنا' else 'Your question is with our team' end,
+        case when c ->> 'lang' = 'ar' then 'وصلنا سؤالكم وهو لدى فريقنا، وسنعود إليكم بالإجابة. لا حاجة لأي إجراء إضافي منكم.'
+             else 'We have your question and it is with our team. We will reply here; there is nothing more you need to do.' end);
+      v_ids := array_remove(v_ids, h.id);
+      n_kept := n_kept + 1;
+    end if;
+  end loop;
   with gone as (
-    update public.reasoning_held_question h
-       set status = 'expired', result = coalesce(h.result, '{}'::jsonb) || jsonb_build_object('expired_by', p_by, 'why', p_why)
-     where h.id = any(p_ids) and h.status = 'held'
-    returning h.id, h.seat, h.surface, h.question, h.subject, h.created_at,
-              coalesce(h.request -> 'context' ->> 'audience', '') audience
+    update public.reasoning_held_question q
+       set status = 'expired', result = coalesce(q.result, '{}'::jsonb) || jsonb_build_object('expired_by', p_by, 'why', p_why)
+     where q.id = any(v_ids) and q.status = 'held'
+    returning q.id, q.seat, q.surface, q.question, q.subject, q.created_at,
+              coalesce(q.request -> 'context' ->> 'audience', '') audience
   ), filed as (
     insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
     select g.seat, 'held_question_expired', 'pending', 'low',
@@ -3661,7 +3678,7 @@ begin
     returning id
   )
   select (select count(*) from gone), (select count(*) from filed) into n_exp, n_handoff;
-  return jsonb_build_object('expired', n_exp, 'handoffs', n_handoff);
+  return jsonb_build_object('expired', n_exp, 'handoffs', n_handoff, 'kept_for_a_person', n_kept);
 end $function$
 
 

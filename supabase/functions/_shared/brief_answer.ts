@@ -209,6 +209,12 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
   // its own. An answer that failed ONLY the caller's whole-answer shape (end()) is kept: if no rung does better, it is sent
   // (a reply without a question still answers them, in the model's own words).
   let shapeOnly: { reply: string; model: string | null } | null = s.kept ? { reply: s.kept, model: s.model } : null;
+  // THE SAME REFUSAL ON A LATER RUNG (review of #1729, 1 Nov 2026): the stream got through but a rewrite or a retry was
+  // refused for this sender's rate bucket. No further model is asked; a passing draft already written is still sent
+  // (salvage below), and with none the result is 'rate_limited' rather than "no model produced an answer", so the
+  // caller shows its rate-limit notice and files no knowledge gap for a question no model was allowed to finish.
+  let limited = false;
+  const refused = (r: { error?: string }) => !!r.error && /rate_limited/.test(r.error) && (limited = true);
   const judge = (text: string, m: string | null): { text: string; bad: string[] } => {
     const { text: t, end } = stripped(c, text, dropped);
     if (!t) return { text: t, bad: [NOTHING_LEFT] };
@@ -225,6 +231,7 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
       rewrites++;
       const fix = await once(f, { ...c, input: correction(draft, bad) }, {});
       attempts.push('rewrite:' + (fix.error ? 'failed ' + fix.error : 'ok'));
+      if (refused(fix)) break;
       if (!fix.text) { seen(fix); break; }
       const j = judge(fix.text, fix.model); model = fix.model; bad = j.bad; draft = bad.length ? fix.text : j.text;
       seen(fix, bad);
@@ -234,8 +241,10 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
   // The streamed call failed (or its rewrites did): the same class unstreamed (sonnet-5.5, then gemini behind it), then a
   // third family through the gateway's counterpart routing. Each answer is figure-checked.
   for (const extra of [{}, { counterpart_model: model || 'anthropic/claude-sonnet-5.5' }]) {
+    if (limited) break;
     const a = await once(f, c, extra);
     attempts.push((('counterpart_model' in extra) ? 'third:' : 'retry:') + (a.error ? 'failed ' + a.error : 'ok'));
+    if (refused(a)) break;
     const j = a.text ? judge(a.text, a.model) : null;
     seen(a, j?.bad ?? []);
     if (j && !j.bad.length) return { reply: j.text, model: a.model, attempts, rewrites, streamed: false, outage: false, dropped };
@@ -250,9 +259,10 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
     const kept = keep(lastDraft);
     if (kept) { attempts.push('salvaged: the passing sentences of the last draft'); return { reply: kept, model: lastModel, attempts, rewrites, streamed: false, outage: false, dropped }; }
   }
-  if (answered) {
+  if (answered && !limited) {
     const again = await once(f, lastDraft ? { ...c, input: correction(lastDraft, lastBad.length ? lastBad : whole(lastDraft)) } : c, {});
     attempts.push('again:' + (again.error ? 'failed ' + again.error : 'ok'));
+    refused(again);
     if (again.text) {
       const j = judge(again.text, again.model);
       if (!j.bad.length) return { reply: j.text, model: again.model, attempts, rewrites, streamed: false, outage: false, dropped };
@@ -260,6 +270,7 @@ export async function answerFromBrief(c: BriefCall, emit: (t: string) => void, f
       if (kept) { attempts.push('salvaged: the passing sentences of the last draft'); return { reply: kept, model: again.model, attempts, rewrites, streamed: false, outage: false, dropped }; }
     }
   }
+  if (limited) return { reply: '', model: null, attempts, rewrites, streamed: false, error: 'rate_limited', outage: false, dropped };
   const outage = !answered && failures.length > 0 && failures.every((x) => isOpenRouterDown(x.error, x.http));
   return { reply: '', model: null, attempts, rewrites, streamed: false, outage, dropped,
     problems: lastBad.length ? lastBad : (lastDraft ? whole(lastDraft) : []),

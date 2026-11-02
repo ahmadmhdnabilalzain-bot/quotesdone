@@ -294,6 +294,37 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     if (!acct || !ks || !kk || !from) { await logThrottled('not_configured', 60, 'error', {}, 'WHATSAPP NOT SENDING - missing twilio_account_sid / api_key_sid / api_key_secret / wa_from'); return J({ ok:false, error:'whatsapp_not_configured' }, 200); }
     const ready = ((await sec('wa_templates_ready'))||'false')==='true';
     const auth = btoa(ks + ':' + kk);
+    // THE SENDER'S META QUALITY RATING, read for marketing only (27 Oct 2026, marketing, ruling 1184 "nothing that risks
+    // bans"). One reading an hour at most: the newest row of wa_sender_quality_reading if it is under 60 minutes old,
+    // else Twilio's GET /v2/Channels/Senders, recorded through fn_wa_sender_quality_record (which opens the brake on a
+    // reading below HIGH). Twilio unreachable, or our number not in the list, HOLDS without recording: an outage is not
+    // a quality drop and must not leave a brake a person has to clear. Memoised for the run.
+    let qualityMemo: Promise<{ ok: boolean; why: string }> | null = null;
+    const senderQuality = () => qualityMemo ??= (async () => {
+      const { data: last } = await admin.from('wa_sender_quality_reading').select('rating,status,read_at')
+        .order('read_at', { ascending: false }).order('id', { ascending: false }).limit(1).maybeSingle();
+      if (last && Date.now() - Date.parse(String(last.read_at)) < 60 * 60_000) {
+        return senderQualityOk(last.rating, last.status) ? { ok: true, why: 'sender quality ' + last.rating }
+          : { ok: false, why: 'sender quality is ' + (last.rating || 'unknown') + ' / ' + (last.status || 'unknown') + ', not HIGH / ONLINE' };
+      }
+      try {
+        const r = await fetch('https://messaging.twilio.com/v2/Channels/Senders?Channel=whatsapp&PageSize=50',
+          { headers: { 'Authorization': 'Basic ' + auth }, signal: AbortSignal.timeout(8000) });
+        if (!r.ok) return { ok: false, why: 'sender quality unreadable: Twilio senders http ' + r.status };
+        const s = pickSender(await r.json(), String(from || ''));
+        if (!s) return { ok: false, why: 'sender quality unreadable: our number is not in the Twilio senders list' };
+        const { data: rec, error } = await admin.rpc('fn_wa_sender_quality_record',
+          { p_rating: s.rating, p_status: s.status, p_limit: s.limit, p_raw: { sid: s.sid } });
+        if (error) return { ok: false, why: 'sender quality not recorded: ' + error.message };
+        return (rec as { ok?: boolean })?.ok ? { ok: true, why: 'sender quality ' + s.rating }
+          : { ok: false, why: 'sender quality is ' + (s.rating || 'unknown') + ' / ' + s.status + ', not HIGH / ONLINE; the brake is on' };
+      } catch (e) {
+        return { ok: false, why: 'sender quality unreadable: ' + String((e as Error)?.message || e).slice(0, 120) };
+      }
+    })();
+    // A READING ALONE (2 Nov 2026, ceo): the queue gate wants a reading under 26 hours old and only a queued invitation
+    // reached the code above, so neither could ever happen first. resilience_ping asks here twice a day. It sends nothing.
+    if (body?.read_sender_quality === true) return J({ ok: true, quality: await senderQuality() });
     let tmpl:any = {};
     try { tmpl = JSON.parse((await sec('wa_template_sids'))||'{}'); } catch(_){ tmpl = {}; }
     // DIRECT SEND. 4 Aug 2026: this accepted only a freeform Body, and freeform is the one thing
@@ -387,34 +418,6 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       if (r.ok) { smsFailover++; return true; }
       lastErr = 'SMS failover not queued for notification ' + n.id + ': ' + r.outcome; return false;
     };
-    // THE SENDER'S META QUALITY RATING, read for marketing only (27 Oct 2026, marketing, ruling 1184 "nothing that risks
-    // bans"). One reading an hour at most: the newest row of wa_sender_quality_reading if it is under 60 minutes old,
-    // else Twilio's GET /v2/Channels/Senders, recorded through fn_wa_sender_quality_record (which opens the brake on a
-    // reading below HIGH). Twilio unreachable, or our number not in the list, HOLDS without recording: an outage is not
-    // a quality drop and must not leave a brake a person has to clear. Memoised for the run.
-    let qualityMemo: Promise<{ ok: boolean; why: string }> | null = null;
-    const senderQuality = () => qualityMemo ??= (async () => {
-      const { data: last } = await admin.from('wa_sender_quality_reading').select('rating,status,read_at')
-        .order('read_at', { ascending: false }).order('id', { ascending: false }).limit(1).maybeSingle();
-      if (last && Date.now() - Date.parse(String(last.read_at)) < 60 * 60_000) {
-        return senderQualityOk(last.rating, last.status) ? { ok: true, why: 'sender quality ' + last.rating }
-          : { ok: false, why: 'sender quality is ' + (last.rating || 'unknown') + ' / ' + (last.status || 'unknown') + ', not HIGH / ONLINE' };
-      }
-      try {
-        const r = await fetch('https://messaging.twilio.com/v2/Channels/Senders?Channel=whatsapp&PageSize=50',
-          { headers: { 'Authorization': 'Basic ' + auth }, signal: AbortSignal.timeout(8000) });
-        if (!r.ok) return { ok: false, why: 'sender quality unreadable: Twilio senders http ' + r.status };
-        const s = pickSender(await r.json(), String(from || ''));
-        if (!s) return { ok: false, why: 'sender quality unreadable: our number is not in the Twilio senders list' };
-        const { data: rec, error } = await admin.rpc('fn_wa_sender_quality_record',
-          { p_rating: s.rating, p_status: s.status, p_limit: s.limit, p_raw: { sid: s.sid } });
-        if (error) return { ok: false, why: 'sender quality not recorded: ' + error.message };
-        return (rec as { ok?: boolean })?.ok ? { ok: true, why: 'sender quality ' + s.rating }
-          : { ok: false, why: 'sender quality is ' + (s.rating || 'unknown') + ' / ' + s.status + ', not HIGH / ONLINE; the brake is on' };
-      } catch (e) {
-        return { ok: false, why: 'sender quality unreadable: ' + String((e as Error)?.message || e).slice(0, 120) };
-      }
-    })();
     // Every founder path funnels through here so the counter and the log agree on what happened.
     const tryFallback = async (n: WaRow, reason: string) => {
       const out = await founderFallback(n, reason);

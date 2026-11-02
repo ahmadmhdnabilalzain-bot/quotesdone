@@ -193,6 +193,9 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // an invited supplier replied to the invitation (usually with its trades): the sales engineer sets up its company page
   // (scripts/sql/the_supplier_invitation_carries_no_link_and_a_reply_with_trades_reaches_the_sales_engineer.sql)
   { type: 'invite.reply', from: 'marketing', to: 'sales_engineer' },
+  // a person who is not an invited lead wrote to the supplier mailbox: the sales engineer reads and answers it in its thread
+  // (scripts/sql/every_reply_and_bounce_in_the_supplier_mailbox_has_an_owning_seat.sql, handler fn_sales_engineer_takes_supplier_mailbox_reply)
+  { type: 'mailbox.supplier_reply', from: 'marketing', to: 'sales_engineer' },
   // a customer answered "not sure" to a spec on a held request: the sales engineer takes that spec up
   // (scripts/sql/a_not_sure_spec_opens_a_handoff_to_the_sales_engineer.sql, handler fn_sales_engineer_spec_handoff_waits)
   { type: 'spec.not_sure', from: 'customer_support', to: 'sales_engineer' },
