@@ -4,6 +4,7 @@
 
 ## Landscaping and irrigation (landscaping)
 - **Open:** Is this a new garden (bare sand or after construction), a redesign of an existing one, or ongoing maintenance? Villa, townhouse, building podium/roof, or commercial site, and which community and emirate?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size; scope: what goes in (lawn, plants, paving, pergola, lighting); usage: how it is used (cars, children, seating); existing: a new garden or a redesign; services: irrigation, water and power points; location; timing
 - **Then ask (in order, one or two at a time):**
   - Area: rough length x width of each zone (front, back, side strips, roof); a plot plan or sketch with dimensions is best.
   - Softscape: natural grass, artificial turf, planting beds, trees/palms (count and approximate height), shrubs, ground cover, gravel or mulch.
@@ -34,6 +35,7 @@
 
 ## Swimming pools (swimming-pools)
 - **Open:** New pool construction, renovation of an existing pool, or maintenance/repair? Private villa, building/community pool, or hotel/commercial?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: a new pool, renovation or repair; size: pool size and depth; finish: the finish and features (heater-chiller, lights); permits: developer NOC and drawings; usage: children and safety; location; timing
 - **Then ask (in order, one or two at a time):**
   - New build: preferred size (length x width), depth profile (constant, shallow-to-deep, plunge), shape (rectangular, freeform, infinity/overflow edge), in-ground or rooftop/terrace.
   - Location on plot: distance from boundary walls and the house; on a roof or terrace a structural engineer must confirm the slab can carry it.

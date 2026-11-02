@@ -30,6 +30,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 import { placementTick } from '../_shared/inbox_placement.ts';
+import { applyRule as exoApplyRule, isServiceRole, probe as exoProbe } from './exo_transport_rule.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -129,6 +130,28 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
+
+    // ── EXCHANGE ONLINE (exo_transport_rule.ts) ───────────────────────────────────────────────────────
+    // SERVICE_ROLE ONLY, decided before whoami: the seat credential and the founder's session are both refused
+    // here, because one of these actions writes tenant mail-flow configuration. verify_jwt = true (config.toml)
+    // has already checked the bearer's signature. exo_roles is read-only; exo_transport_rule_apply is the write,
+    // a separate action so a probe can never create anything. Neither response carries a token or a secret.
+    const exoAction = String(body.action || '').trim();
+    if (exoAction === 'exo_roles' || exoAction === 'exo_transport_rule_apply') {
+      if (!isServiceRole(req.headers.get('Authorization'), Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))) {
+        return J({ error: 'unauthorized', note: exoAction + ' answers the service_role only' }, 401);
+      }
+      const env = (k: string) => Deno.env.get(k);
+      if (exoAction === 'exo_roles') {
+        const p = await exoProbe(env, fetch);
+        await run('exo_roles', p.ok ? 'ok' : 'error', { verdict: p.verdict, graph_roles: p.graph.roles, exchange_roles: p.exchange.roles });
+        return J({ seat: 'it_engineer', ...p });
+      }
+      const a = await exoApplyRule(env, fetch);
+      await run('exo_transport_rule_apply', a.ok ? 'ok' : 'error', { outcome: a.outcome }, a.why);
+      return J({ seat: 'it_engineer', ...a }, a.outcome === 'refused' ? 409 : 200);
+    }
+
     const caller = await whoami(req, body);
     if (!caller) return J({ error: 'unauthorized' }, 401);
 
@@ -423,7 +446,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return J({ error: 'unknown_action', action, actions: ['health', 'status', 'authority', 'assist', 'triage', 'incident_pdf', 'inbox_placement'],
+    return J({ error: 'unknown_action', action, actions: ['health', 'status', 'authority', 'assist', 'triage', 'incident_pdf', 'inbox_placement', 'exo_roles (service_role)', 'exo_transport_rule_apply (service_role)'],
       note: 'The monitoring, diagnosis and escalation actions are a separate build. See the seam '
         + 'described at the top of supabase/functions/it_engineer/index.ts.' }, 400);
   } catch (e) {

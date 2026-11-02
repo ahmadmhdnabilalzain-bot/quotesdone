@@ -1,0 +1,72 @@
+{
+ "what": "fn_sales_engineer_verifies_supplier, decision table, run once on production in ONE aborted transaction (scripts/lib/safe_replay.mjs replaySql); ZZ DEMO leads at @example.invalid with fixture mobiles +9715000000NN and fixture supplier-docs storage rows, all rolled back (left_leads 0). Auditor C, it_engineer, 28 Oct 2026.",
+ "expectation_source": "Founder ruling of 7 Sep 2026 (the mandatory six) and Supplier Agreement v16 clause 13: 'The Supplier must maintain a valid UAE trade licence ... the trade licence number, issuing authority and expiry date are checked, within three (3) Working Days of complete documents.'",
+ "cases": [
+  {
+   "case": "S1 complete, every licence field read, in date",
+   "reason": null,
+   "review": "auto_done",
+   "decision": "approved",
+   "approval_notice": "auto_done: queued",
+   "recorded_reason": "Supplier approved — ZZ DEMO AUDC One LLC"
+  },
+  {
+   "case": "S2 licence expired yesterday",
+   "reason": "licence_expired",
+   "review": "auto_done",
+   "decision": "action_required",
+   "approval_notice": null,
+   "recorded_reason": "Supplier action_required (licence_expired) — ZZ DEMO AUDC Two LLC"
+  },
+  {
+   "case": "S3 expiry date not read",
+   "reason": "licence_expiry_unread",
+   "review": "needs_review",
+   "decision": "pending",
+   "approval_notice": null,
+   "recorded_reason": "Supplier pending (licence_expiry_unread) — ZZ DEMO AUDC Three LLC"
+  },
+  {
+   "case": "S4 licence name not read",
+   "reason": "licence_unreadable",
+   "review": "needs_review",
+   "decision": "pending",
+   "approval_notice": null,
+   "recorded_reason": "Supplier pending (licence_unreadable) — ZZ DEMO AUDC Unread 4 LLC"
+  },
+  {
+   "case": "S5 licence number not read",
+   "reason": "licence_number_unread",
+   "review": "needs_review",
+   "decision": "pending",
+   "approval_notice": null,
+   "recorded_reason": "Supplier pending (licence_number_unread) — ZZ DEMO AUDC Five LLC"
+  },
+  {
+   "case": "S6 company profile missing",
+   "reason": "reg_profile",
+   "review": "auto_done",
+   "decision": "action_required",
+   "approval_notice": null,
+   "recorded_reason": "Supplier action_required (reg_profile) — ZZ DEMO AUDC Six LLC"
+  },
+  {
+   "case": "S7 issuing authority is not a UAE authority",
+   "reason": null,
+   "review": "auto_done",
+   "decision": "approved",
+   "approval_notice": "auto_done: queued",
+   "recorded_reason": "Supplier approved — ZZ DEMO AUDC Seven LLC"
+  },
+  {
+   "case": "S8 issuing authority never read",
+   "reason": null,
+   "review": "auto_done",
+   "decision": "approved",
+   "approval_notice": "auto_done: queued",
+   "recorded_reason": "Supplier approved — ZZ DEMO AUDC Eight LLC"
+  }
+ ],
+ "left_leads": 0,
+ "auto_approve_suppliers": true
+}

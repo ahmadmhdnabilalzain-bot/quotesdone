@@ -90,6 +90,21 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_inbound_is_bounce(p_from text, p_subject text, p_raw jsonb)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(
+       lower(coalesce(p_from, '')) ~ '(^|[<"[:space:]])(mailer[-_]?daemon|postmaster)@'
+    or lower(coalesce(p_raw->>'content_type', '')) like 'multipart/report%'   -- the whole header is stored
+    or (public.fn_is_machine_sender(p_from)
+        and coalesce(p_subject, '') ~* '(undeliverable|delivery status notification|mail delivery (failed|subsystem)|returned mail|failure notice|undelivered mail|delivery has failed)'),
+    false)
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_inbox_list()
  RETURNS jsonb
  LANGUAGE sql
@@ -255,6 +270,19 @@ begin
     'reached_suppliers', (v_missing->>'reached_suppliers')::boolean, 'suppliers_told', v_told, 'note_id', v_note,
     'held_for_english', v_held_note is not null, 'held_note_id', v_held_note, 'kept_missing', v_kept);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_inquiry_awaits_specs(p_inquiry uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select exists (select 1 from public.inquiries x
+                  where not coalesce(x.rfq_ready, false)
+                    and (x.parent_inquiry_id = p_inquiry
+                         or (x.id = p_inquiry and not exists (select 1 from public.inquiries c where c.parent_inquiry_id = p_inquiry))))
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_inquiry_conversation_summary_build(p_inquiry uuid)
@@ -595,15 +623,11 @@ $function$
 CREATE OR REPLACE FUNCTION public.fn_invite_founder_cap(p_day date)
  RETURNS integer
  LANGUAGE sql
- IMMUTABLE
+ STABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select case
-    when p_day < date '2026-10-26' then 20
-    when p_day < date '2026-11-02' then 30
-    when p_day < date '2026-11-09' then 40
-    else 50
-  end;
+  select greatest(public.fn_invite_schedule_cap(p_day),
+                  coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_ceo_ceiling'), 0));
 $function$
 
 
@@ -636,6 +660,35 @@ begin
   return coalesce(v_since, now());
 end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_class_verdicts(p_now timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare b public.invite_placement_bar; t public.deliverability_test; v text; v_sender text;
+begin
+  select * into b from public.invite_placement_bar where id;
+  v_sender := public.fn_mailbox_fold(public.fn_invite_placement_sender());
+  if b.id is not null then
+    select * into t from public.deliverability_test d
+     where d.class_rates is not null and d.recorded_at is not null and d.tested_at <= p_now
+       and public.fn_mailbox_fold(d.from_address) = public.fn_mailbox_fold(b.sender)
+     order by d.tested_at desc, d.recorded_at desc limit 1;
+  end if;
+  if b.id is null or t.test_id is null or v_sender is distinct from public.fn_mailbox_fold(b.sender) then
+    v := 'fail:no_verdict';
+  elsif t.tested_at < p_now - b.max_age then
+    v := 'fail:stale_verdict';
+  end if;
+  return case when v is not null
+    then jsonb_build_object('microsoft', v, 'google', v, 'yahoo_aol', v, 'other', v, 'strict', v)
+    else public.fn_invite_placement_rates_verdict(t.class_rates) end
+    || jsonb_build_object('test_id', t.test_id, 'tested_at', t.tested_at, 'bar_sender', b.sender, 'effective_sender', v_sender,
+                          'max_age', b.max_age, 'checked_at', p_now);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_invite_placement_cutoff(p_day date)
@@ -685,70 +738,11 @@ CREATE OR REPLACE FUNCTION public.fn_invite_placement_due(p_now timestamp with t
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare
-  v_day date := (p_now at time zone 'Asia/Dubai')::date;
-  v_deadline timestamptz := public.fn_invite_placement_deadline(v_day);
-  v_cutoff timestamptz := public.fn_invite_placement_cutoff(v_day);
-  r public.invite_placement_check;
-  v_closed text; v_token text; v_subject text; v_body text; v_site text; v_from text;
-  v_g bigint; v_o bigint; v_sg text; v_so text;
 begin
-  select * into r from public.invite_placement_check where dubai_day = v_day;
-
-  if r.dubai_day is null then
-    -- Queued from 04:30 UTC; not later than 30 minutes before the cutoff, which leaves beats to read it.
-    if p_now < v_deadline - interval '90 minutes' or p_now >= v_cutoff - interval '30 minutes' then
-      return jsonb_build_object('action', 'idle', 'dubai_day', v_day, 'reason', 'outside the seed window');
-    end if;
-    v_closed := public.fn_invite_placement_day_closed(p_now);
-    if v_closed is not null then
-      return jsonb_build_object('action', 'idle', 'dubai_day', v_day, 'reason', v_closed);
-    end if;
-
-    select coalesce(max(value) filter (where key = 'invite_subject'), ''),
-           coalesce(max(value) filter (where key = 'invite_body'), ''),
-           coalesce(nullif(max(value) filter (where key = 'public_site_url'), ''), 'https://quotesdone.com')
-      into v_subject, v_body, v_site
-      from public.app_secrets where key in ('invite_subject', 'invite_body', 'public_site_url');
-    v_from := public.fn_invite_placement_sender();
-    -- The body exactly as scripts/invitation_inbox_check.mjs inviteBody() fills it: a ZZ DEMO company and a
-    -- zero portal token. The token goes in the subject, the one field both the Gmail and Graph APIs match
-    -- without a full-text index lag.
-    v_token := 'QD' || upper(substr(md5(gen_random_uuid()::text), 1, 10));
-    v_subject := v_subject || ' (ref ' || v_token || ')';
-    v_body := replace(replace(v_body, '{{company}}', 'ZZ DEMO Supplier'),
-                      '{{link}}', v_site || '/en/portal?t=00000000-0000-0000-0000-000000000000');
-
-    insert into public.invite_placement_check(dubai_day, token, from_address, subject, gmail_to, outlook_to, queued_at)
-    values (v_day, v_token, v_from, v_subject, 'ahmadmhdnabilalzain@gmail.com', 'management@quotesdone.com', p_now)
-    returning * into r;
-
-    insert into public.notifications (type, to_email, to_role, subject, body, lang, status, requested_by)
-    values ('supplier_invite_seed', r.gmail_to, 'supplier', v_subject, v_body, 'en', 'queued', 'it_engineer')
-    returning id into v_g;
-    insert into public.notifications (type, to_email, to_role, subject, body, lang, status, requested_by)
-    values ('supplier_invite_seed', r.outlook_to, 'supplier', v_subject, v_body, 'en', 'queued', 'it_engineer')
-    returning id into v_o;
-    update public.invite_placement_check set gmail_notification_id = v_g, outlook_notification_id = v_o
-     where dubai_day = v_day;
-    return jsonb_build_object('action', 'queued', 'dubai_day', v_day);
-  end if;
-
-  if r.verdict <> 'pending' then
-    return jsonb_build_object('action', 'idle', 'dubai_day', v_day, 'verdict', r.verdict);
-  end if;
-  if p_now >= v_cutoff then
-    return jsonb_build_object('action', 'settled', 'dubai_day', v_day, 'verdict', public.fn_invite_placement_settle(v_day, p_now));
-  end if;
-
-  select status into v_sg from public.notifications where id = r.gmail_notification_id;
-  select status into v_so from public.notifications where id = r.outlook_notification_id;
-  return jsonb_build_object('action', 'read', 'dubai_day', v_day, 'token', r.token, 'since', r.queued_at,
-    'sender', lower(coalesce(substring(r.from_address from '<([^<>[:space:]]+@[^<>[:space:]]+)>'), btrim(r.from_address))),
-    'gmail', jsonb_build_object('to', r.gmail_to, 'sent', v_sg = 'sent', 'folder', r.gmail_folder),
-    'outlook', jsonb_build_object('to', r.outlook_to, 'sent', v_so = 'sent', 'folder', r.outlook_folder));
-end
-$function$
+  -- Nothing is queued, read or settled: the seed went to his own inboxes (founder, 27 Oct 2026).
+  return jsonb_build_object('action', 'idle', 'dubai_day', (p_now at time zone 'Asia/Dubai')::date,
+    'reason', 'retired: no test mail to the founder''s own inboxes (27 Oct 2026); GlockApps decides');
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_invite_placement_finding(p_day date, p_verdict text, p_why text, p_evidence jsonb)
@@ -791,33 +785,89 @@ CREATE OR REPLACE FUNCTION public.fn_invite_placement_gate(p_day date DEFAULT NU
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+begin
+  return public.fn_invite_placement_judge(p_day, p_now) ->> 'strict';
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_gate(p_provider text, p_day date DEFAULT NULL::date, p_now timestamp with time zone DEFAULT now())
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_c text := case when lower(btrim(coalesce(p_provider, ''))) in ('microsoft', 'google', 'yahoo_aol')
+                         then lower(btrim(p_provider)) else 'other' end;
+begin
+  return public.fn_invite_placement_judge(p_day, p_now) ->> v_c;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_judge(p_day date DEFAULT NULL::date, p_now timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 declare
   v_day date := coalesce(p_day, (p_now at time zone 'Asia/Dubai')::date);
-  r public.invite_placement_check; v text;
+  v jsonb := public.fn_invite_placement_class_verdicts(p_now);
+  v_open text[];
 begin
-  select * into r from public.invite_placement_check where dubai_day = v_day;
-  if r.dubai_day is null then
-    if p_now < public.fn_invite_placement_cutoff(v_day) then return 'wait'; end if;
-    if public.fn_invite_placement_day_closed(p_now) is null then
-      perform public.fn_invite_placement_finding(v_day, 'no_check',
-        'no inbox placement check ran on ' || v_day || ', an open sending day',
-        jsonb_build_object('checked_at', p_now, 'sender', public.fn_invite_placement_sender()));
+  select coalesce(array_agg(c order by c), '{}') into v_open
+    from unnest(array['google', 'microsoft', 'other', 'yahoo_aol']) c where v ->> c = 'pass';
+  if public.fn_invite_placement_day_closed(p_now) is null then
+    if v ->> 'strict' <> 'pass' then
+      perform public.fn_invite_placement_finding(v_day, substr(v ->> 'strict', 6),
+        'the GlockApps verdict answered ' || (v ->> 'strict') || ' on ' || v_day
+        || case when cardinality(v_open) = 0 then '; no mailbox provider is invited'
+                else '; invited only: ' || array_to_string(v_open, ', ') end,
+        jsonb_build_object('checked_at', p_now, 'verdicts', v, 'open_providers', to_jsonb(v_open),
+          'remedy', 'record a fresh GlockApps result with scripts/record_inbox_placement_verdict.mjs once a test of supplier@ meets public.invite_placement_bar'));
+    elsif exists (select 1 from public.it_engineer_finding where issue_key = 'deliverability:inbox_placement' and closed_at is null) then
+      perform public.fn_it_engineer_finding_close('deliverability:inbox_placement',
+        'closed by fn_invite_placement_judge: GlockApps test ' || coalesce(v ->> 'test_id', '?') || ' meets the bar for every mailbox class');
     end if;
-    return 'fail:no_check';
   end if;
-  v := r.verdict;
-  if v = 'pending' then
-    if p_now < public.fn_invite_placement_cutoff(v_day) then return 'wait'; end if;
-    v := public.fn_invite_placement_settle(v_day, p_now);
-  end if;
-  -- Ledger 1113 (5 Oct 2026, 'make sure no emails go to junk or spam') supersedes 1001: a spam seed holds the batch
-  -- (settle has already filed the it_engineer finding and the marketing handoff); Gmail Promotions ('elsewhere') passes.
-  if v = 'spam' then return 'fail:spam'; end if;
-  if v not in ('inbox', 'elsewhere') then return 'fail:' || v; end if;
-  if public.fn_invite_placement_sender() is distinct from r.from_address then return 'fail:from_changed'; end if;
-  return 'pass';
-end
-$function$
+  return v || jsonb_build_object('open_providers', to_jsonb(v_open), 'dubai_day', v_day);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_open_providers(p_day date DEFAULT NULL::date, p_now timestamp with time zone DEFAULT now())
+ RETURNS text[]
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  return array(select jsonb_array_elements_text(public.fn_invite_placement_judge(p_day, p_now) -> 'open_providers'));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_rates_verdict(p_rates jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare b public.invite_placement_bar; v jsonb := '{}'; c text; r jsonb; n numeric; ok boolean; first_fail text;
+begin
+  select * into b from public.invite_placement_bar where id;
+  foreach c in array array['microsoft', 'google', 'yahoo_aol'] loop
+    r := coalesce(p_rates -> c, '{}'::jsonb);
+    n := coalesce((r ->> 'seeds')::numeric, 0);
+    -- coalesce(..., false): a count missing from the rates makes the comparison NULL, and a NULL 'ok' would label the
+    -- class failed while leaving 'strict' at 'pass' (review of #1701, 28 Oct 2026). Unknown is a fail.
+    ok := coalesce(b.id is not null and n > 0 and case c
+      when 'microsoft' then (r ->> 'inbox')::numeric * 100 >= b.microsoft_min_inbox_pct * n
+      when 'google'    then (r ->> 'spam')::numeric * 100 <= b.google_max_spam_pct * n
+                        and ((r ->> 'inbox')::numeric + (r ->> 'tabs')::numeric) * 100 >= b.google_min_delivered_pct * n
+      when 'yahoo_aol' then (r ->> 'inbox')::numeric * 100 >= b.yahoo_aol_min_inbox_pct * n end, false);
+    v := v || jsonb_build_object(c, case when ok then 'pass' else 'fail:below_bar:' || c end);
+    if not ok and first_fail is null then first_fail := 'fail:below_bar:' || c; end if;
+  end loop;
+  return v || jsonb_build_object('other', v ->> 'microsoft', 'strict', coalesce(first_fail, 'pass'));
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_invite_placement_record(p_day date, p_gmail jsonb, p_outlook jsonb, p_now timestamp with time zone DEFAULT now())
@@ -992,11 +1042,8 @@ begin
   select count(*), max(invited_at) into v_sent_total, v_last_sent from leads where invited_at is not null and invited_at >= v_since and (v_since = '-infinity'::timestamptz or public.fn_invite_lane_sent(id)) and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
   -- THE 48 h HEALTH READ IS NOT LANE-SCOPED (review of #963): complaints and bounces reflect the list and the
   -- copy, not the domain, so switching the lane on must never hide yesterday's complaints from the pause.
-  select count(*),
-         count(*) filter (where invite_status = 'bounced'),
-         count(*) filter (where invite_status = 'complained')
-    into v_s48, v_b48, v_c48
-    from leads where invited_at > now() - interval '48 hours' and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
+  select h.sent, h.bounced, h.complained into v_s48, v_b48, v_c48
+    from public.fn_invite_send_health(now() - interval '48 hours') h;
   v_br := v_b48::numeric / greatest(v_s48, 1);
   v_cr := v_c48::numeric / greatest(v_s48, 1);
 
@@ -1088,6 +1135,22 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_invite_restart_cap(p_cap integer)
+ RETURNS integer
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with r as (select max(b.resumed_at) as at from public.invite_brake b where b.restarted_by_seat),
+       s as (select min(n.sent_at) as first_sent from public.notifications n, r
+              where n.type = 'supplier_invite' and n.sent_at > r.at and not public.fn_is_demo_email(n.to_email))
+  select case when r.at is not null
+               and (s.first_sent is null or (s.first_sent at time zone 'Asia/Dubai')::date >= (now() at time zone 'Asia/Dubai')::date)
+              then least(p_cap, 10) else p_cap end
+    from r, s
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_invite_same_day_brake()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1107,17 +1170,14 @@ begin
     return null;  -- already stopped; nothing more to stop
   end if;
 
-  select count(*),
-         count(*) filter (where invite_status = 'bounced'),
-         count(*) filter (where invite_status = 'complained')
-    into v_sent, v_b, v_c
-    from leads
-   where invited_at is not null and (invited_at at time zone 'Asia/Dubai')::date = v_day;
+  select h.sent, h.bounced, h.complained into v_sent, v_b, v_c
+    from public.fn_invite_send_health(v_day::timestamp at time zone 'Asia/Dubai') h;
 
   if v_c >= v_c_min and v_c::numeric / greatest(v_sent, 1) >= v_cr_max then
     v_why := v_c || ' spam complaint(s) on ' || v_sent || ' invitation(s) today';
   elsif v_b >= v_b_min and v_b::numeric / greatest(v_sent, 1) >= v_br_max then
     v_why := v_b || ' bounce(s) on ' || v_sent || ' invitation(s) today (' || round(v_b * 100.0 / greatest(v_sent, 1), 1) || '%)';
+    insert into public.invite_brake(source, why) values ('invite_same_day_brake', v_why) on conflict do nothing;
   else
     return null;
   end if;
@@ -1127,6 +1187,37 @@ begin
     jsonb_build_object('sent_today', v_sent, 'bounced_today', v_b, 'complained_today', v_c));
   return null;
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_schedule_cap(p_day date)
+ RETURNS integer
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when p_day < date '2026-10-26' then 20
+    when p_day < date '2026-11-02' then 30
+    when p_day < date '2026-11-09' then 40
+    else 50
+  end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_send_health(p_since timestamp with time zone)
+ RETURNS TABLE(sent integer, bounced integer, complained integer)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select count(*)::int,
+         (count(*) filter (where l.invite_status = 'bounced'))::int,
+         (count(*) filter (where l.invite_status = 'complained'))::int
+    from public.notifications n
+    join public.leads l on l.id = n.lead_id
+   where n.type = 'supplier_invite' and n.sent_at is not null and n.sent_at > p_since
+     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(n.to_email)
 $function$
 
 
@@ -1167,6 +1258,27 @@ CREATE OR REPLACE FUNCTION public.fn_is_demo_phone(p_phone text)
 AS $function$
   select regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g') ~ '^(971|0)5000000[0-9]{2}$'
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_is_founder_own_inbox(p_addr text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_list text[]; v text;
+begin
+  if p_addr is null or btrim(p_addr) = '' then return false; end if;
+  select array_agg(public.fn_mailbox_fold(a)) into v_list
+    from (select unnest(array['management@quotesdone.com', 'ahmadmhdnabilalzain@gmail.com',
+                              'management@doratajewelries.com', 'djzaino@outlook.com', 'bookings@djzaino.com',
+                              'fati.labib@icloud.com', 'ahmad@666realestate.ae']) a
+          union all
+          select btrim(x) from public.app_secrets s, regexp_split_to_table(coalesce(s.value, ''), ',') x
+           where s.key in ('founder_email', 'admin_emails') and btrim(x) like '%@%') l;
+  v := public.fn_mailbox_fold(p_addr);
+  return v = any(v_list);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_is_machine_sender(p_from text)
@@ -3744,6 +3856,8 @@ begin
             where a.kind = 'handoff' and a.detail->>'type' = 'delivery.request'
               and a.created_at < now() - interval '2 hours' and a.created_at > now() - interval '7 days'
               and not (a.detail ? 'loop') and a.title not ilike '%ZZ DEMO%'
+              -- 2 Nov 2026: a send whose not_before is ahead (18 queued invitations held to 4 Nov) is on a schedule, not lost.
+              and not exists (select 1 from public.notifications n where n.id = (a.evidence->>'notification_id')::bigint and n.not_before > now())
               -- 22 Sep 2026: a founder-bound request customer_support holds for the 19:00 Dubai IT digest
               -- is waiting on a schedule, not lost. It is late only once the digest could have taken it.
               and not (a.status = 'pending' and a.evidence->>'digest' = 'pending'
@@ -11827,6 +11941,51 @@ begin
   end if;
   return public.fn_licence_ask_close_for_lead(v_i.lead_id, 'whatsapp', p_intake_id);
 end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_licence_authority_class(p_authority text)
+ RETURNS text
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n text := ' ' || public.fn_licence_authority_norm(p_authority) || ' ';
+  v_strong text[] := array['dubai','abu dhabi','sharjah','ajman','umm al quwain','umm al qaiwain','umm al qiwain','uaq','ras al khaimah','ras al khaima','rak','fujairah','fujeirah',
+    'united arab emirates','uae','u a e',
+    'jafza','jebel ali','dmcc','dafza','dso','dieza','silicon oasis','difc','adgm','ifza','international free zone authority','meydan','tecom','dwc',
+    'rakez','rak economic zone','rak icc','rak ded','kezad','kizad','khalifa economic zones','khalifa industrial zone','zonescorp','masdar','twofour54','adafz',
+    'saif','shams','spc','hamriyah','hfza','sedd','afz','fcc','ffz','creative city','added',
+    'دبي','ابو ظبي','الشارقه','عجمان','ام القيوين','راس الخيمه','الفجيره','الامارات العربيه المتحده','الامارات'];
+  -- Generic names that say nothing of a country: UAE unless a foreign country is printed beside them.
+  v_weak text[] := array['department of economy and tourism','department of economic development','economic development department','department of industry and economy','ministry of economy','det','ded',
+    'دائره الاقتصاد والسياحه','دائره التنميه الاقتصاديه','دائره الصناعه والاقتصاد','وزاره الاقتصاد'];
+  v_foreign text[] := array['saudi','saudi arabia','ksa','qatar','qatari','oman','omani','kuwait','bahrain','egypt','jordan','iraq','lebanon','india','pakistan','bangladesh','china','turkey','iran',
+    'united kingdom','england','companies house','united states','usa','germany','france','italy','singapore',
+    'السعوديه','قطر','سلطنه عمان','الكويت','البحرين','مصر','الاردن','العراق','لبنان'];
+  v_s boolean; v_w boolean; v_f boolean;
+begin
+  if btrim(n) = '' then return 'unread'; end if;
+  v_s := exists (select 1 from unnest(v_strong) x where position(' ' || x || ' ' in n) > 0);
+  v_w := exists (select 1 from unnest(v_weak) x where position(' ' || x || ' ' in n) > 0);
+  v_f := exists (select 1 from unnest(v_foreign) x where position(' ' || x || ' ' in n) > 0);
+  if v_f and v_s then return 'unknown'; end if;   -- both printed: a person looks
+  if v_f then return 'foreign'; end if;
+  if v_s or v_w then return 'uae'; end if;
+  return 'unknown';
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_licence_authority_norm(p_authority text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select btrim(regexp_replace(replace(replace(replace(
+           translate(lower(coalesce(p_authority, '')), 'أإآةى', 'اااهي'),
+           'abudhabi', 'abu dhabi'), 'rasalkhaimah', 'ras al khaimah'), 'ابوظبي', 'ابو ظبي'),
+         '[^[:alnum:]؀-ۿ]+', ' ', 'g'))
 $function$
 
 

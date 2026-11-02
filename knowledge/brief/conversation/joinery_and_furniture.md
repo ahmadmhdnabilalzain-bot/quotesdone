@@ -4,6 +4,7 @@
 
 ## Built-in joinery and custom furniture: wardrobes, vanities, TV units, doors, shelving (carpentry-joinery, custom-furniture)
 - **Open:** "What is the piece, and which room?" then "Can you send a photo of the wall or space, plus the width, height and depth available?"
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: the wall width, height and depth available; layout: inside (hanging, shelves, drawers); doors: sliding, hinged or push-to-open, handles or handle-less; finish: board, colour and finish; location; timing
 - **Then ask (in order, one or two at a time):**
   1. Exact dimensions: wall width, floor-to-ceiling height, usable depth; anything in the way (skirting, AC duct or grille, DB board, window, socket, column, sloped ceiling). Full height to the ceiling, or a gap/bulkhead above?
   2. Internal layout (wardrobe): split of long hanging (dresses/abayas, about 1600 mm clear), double hanging (shirts), shelves, drawers (how many, internal or external), shoe racks, pull-out trouser rail, mirror, safe box, internal lighting.
@@ -32,6 +33,7 @@ Then read back a one-paragraph spec, have the customer confirm it, and send it t
 
 ## Kitchens (kitchens)
 - **Open:** "A new kitchen, or replacing an existing one?" then "Send a photo with the wall lengths, ceiling height, and where the sink, cooker and window are."
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: the layout shape, wall lengths and ceiling height; existing: a new kitchen or replacing one (removal); finish: cabinet doors and worktop; appliances: built-in or freestanding, and which are new; services: sink, hob and gas positions; location; timing
 - **Then ask (in order, one or two at a time):**
   1. Layout: straight, L, U, galley, island/peninsula; wall lengths in mm; ceiling height; keep the sink/drain where it is or move it?
   2. Cabinets: base, wall, tall units; wall units to the ceiling? Drawers vs doors; corner solutions; pantry/tall larder.
@@ -48,6 +50,7 @@ Then read back a one-paragraph spec, have the customer confirm it, and send it t
 
 ## Upholstery (upholstery)
 - **Open:** "Re-upholstering existing furniture, or new upholstered pieces?" then "A photo of each piece, and how many?"
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: new pieces or re-upholstering; size: the room or piece sizes and how many; layout: the arrangement (U, L, sides); finish: fabric and colour; location; timing
 - **Then ask (in order, one or two at a time):** piece type and count (sofa seats, dining chairs, headboard, cushions, wall panels, majlis seating); dimensions; fabric supplied by the customer or sourced by the supplier; fabric type (woven fabric, leatherette, genuine leather, velvet, outdoor UV-resistant) and colour; replace or keep the foam, and how firm; frame or spring repair?; details (piping, buttons/tufting, zips, removable covers); pickup/delivery or on-site work; timeline; budget.
 - **Photo/drawing tells you:** shape, fabric condition, style. **It cannot tell you:** frame and spring condition, foam state, exact fabric metres. The supplier inspects at pickup and calculates the fabric quantity.
 - **Price drivers (spec decisions):** fabric type and metres; foam replacement and grade; frame/spring repairs; tufting and piping; number of pieces; pickup/delivery or on-site work; outdoor-grade fabric for terraces.
@@ -56,6 +59,7 @@ Then read back a one-paragraph spec, have the customer confirm it, and send it t
 
 ## Acrylic fabrication (acrylic)
 - **Open:** "What is the item (display stand, sign panel, partition, box, shelf, cover)?" then "What size, and how many?"
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: the item; size: size and how many; finish: thickness and colour; location; timing
 - **Then ask (in order, one or two at a time):** dimensions and sheet thickness (e.g. 3, 5, 8, 10 mm or more); clear, frosted, coloured or mirror acrylic; laser/CNC cutting, edge finish (polished or flame), bending, bonding, engraving or printing; fixings (standoffs, brackets, hinges); indoor or outdoor (outdoors needs a UV-stable grade); artwork or drawing file (vector AI, DXF, PDF); installation needed?; quantity and repeat orders; timeline; budget.
 - **Photo/drawing tells you:** shape, style, rough proportions. **It cannot tell you:** thickness, exact dimensions, load. Ask for a dimensioned drawing or vector file; the supplier confirms it can be built.
 - **Price drivers (spec decisions):** sheet thickness and area; special colours or mirror sheet; cutting complexity; polishing, bending, bonding; printing or engraving; fixings; quantity; installation and working height.
@@ -64,6 +68,7 @@ Then read back a one-paragraph spec, have the customer confirm it, and send it t
 
 ## Job-shop manufacturing: one-off and small-batch fabrication (job-shop-manufacturing)
 - **Open:** "What part or product is it, and do you have a drawing or a sample?" then "What material, and how many?"
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: the part or product; design: a drawing or a sample; finish: the material; size: the quantity; location; timing
 - **Then ask (in order, one or two at a time):** process (CNC routing/milling, laser cutting, turning, welding, sheet-metal bending, 3D printing, moulding); material and grade (mild steel, stainless 304/316, aluminium, wood/MDF, plastics); dimensions and tolerances; finish (powder coat with RAL colour, galvanising, anodising, paint, polish); quantity (prototype, batch, repeat); assembly and packaging; delivery or installation; certificates or test reports needed; timeline; budget.
 - **Photo/drawing tells you:** shape, approximate size. **It cannot tell you:** tolerances, material grade, load. Ask for a dimensioned drawing or CAD file (DWG, DXF, STEP). If there is only a sample, the supplier measures it and reverse-engineers the part.
 - **Price drivers (spec decisions):** material and grade; machine time and complexity; tolerances; finishing; quantity (set-up spread over the run); assembly; delivery; certification.

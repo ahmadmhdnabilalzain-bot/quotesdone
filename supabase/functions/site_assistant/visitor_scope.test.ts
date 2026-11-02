@@ -102,7 +102,11 @@ Deno.test('1339: a 4xx is never an outage: no code-written text (the widget show
   const refused = await sent(gateway(() => say('A wardrobe that size costs AED 7,350.')));
   assertEquals(refused, '', 'the model answered (refused every time): nothing is sent, and never the code text');
   const widget = Deno.readTextFileSync(new URL('../../../src/components/ChatWidget.tsx', import.meta.url));
-  assertMatch(widget, /j\.visitor_cap && j\.signup \? '' : t\.err/, 'an empty cap reply shows the button, not the error line');
+  assert(widget.includes("const capOnly = j.done?.visitor_cap === true && !!signup;") && widget.includes("show(reply || (capOnly ? '' : t.err), signup)"), 'an empty cap reply shows the button, not the error line');
+  // a turn past the cap is stored under the visitor's conversation, or it vanishes from the chat on the next reload (browser proof, 2 Nov 2026)
+  assert(index.includes("gap_task_id: null, ...(hasConv ? { conv_id: visitorKey(conv) } : {})"), 'the cap reply row carries conv_id');
+  // known-bad control: the pre-fix row had no conv_id, which the same assertion would have refused
+  assert(!"gap_task_id: null, audience: logParty(who, audience, source, true), path".includes('conv_id'));
 });
 
 Deno.test('1339: customer-safe: an internal sentence or an unstated figure the model writes is never sent (ledger 1338)', async () => {

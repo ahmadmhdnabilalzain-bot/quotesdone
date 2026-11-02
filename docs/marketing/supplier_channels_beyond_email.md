@@ -117,7 +117,7 @@ existing monthly calendar approval, one a week on a working day.
 
 ## What needs the founder (exact list)
 
-1. **The go**, unchanged: `invite_enabled` (after GlockApps shows Outlook at 80% or better) and then
+1. **Superseded 2 Nov 2026 (ledger 1438):** the CEO routine now holds these switches inside its bounds; see docs/reports/CEO_SUPPLIER_CHANNELS_2_NOV.md. Was: `invite_enabled` (after GlockApps shows Outlook at 80% or better) and then
    `wa_supplier_invite_golive`. Nobody else changes either switch.
 2. **Nothing for the WhatsApp template.** It is Claude's to submit (`wa_template_setup`) when the go comes.
 3. **LinkedIn:** admin access to the QuotesDone company page for whoever sends the manual messages, and his decision on

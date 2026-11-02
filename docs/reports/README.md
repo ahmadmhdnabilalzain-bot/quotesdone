@@ -103,4 +103,5 @@ The trade licence PDF stays in the founder's Dropbox, at
 | folder | what it proves |
 |---|---|
 | `chat-turn-latency-2026-10-27/` | portal assistant turns before and after the one-call, 70 s clock fix: p95 150.3 s with two 504s, then 13.0 s with none (12 EN + 12 AR ZZ DEMO turns each) |
+| `adaptive-conversations-2026-10-27/` | the adaptive conversation bank on the portal chat (#1635 with #1640 merged). Latest (the plan per trade, 6cf746dea): whole bank 43 scenarios, 0/43 at >= 95 %, mean 76.5 %, 0/22 stalls, per-turn p50 10.1 s / p95 17.7 s on the 22. Earlier (c639f66ac): 22/22 code gates, mean 83 %. Production before: 0 %, 9 of 10 conversations lost a turn |
 | `intake-turn-latency-2026-10-27/` | customer intake interview turns before and after the one-clock fix: p95 113.5 s (3 of 15 turns over 30 s), then 20.1 s over 54 turns with none over 25 s (ZZ DEMO, EN + AR) |

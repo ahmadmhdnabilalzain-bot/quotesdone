@@ -26,6 +26,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { NOT_LIVE_QUOTE_IN } from '../_shared/quote_live.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { leadEmailCheckBatch } from './lead_email_check.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
 import { portalLink } from '../_shared/site_origins.ts';
@@ -47,6 +48,8 @@ import { aiSystem, replyProblems } from '../_shared/ai_reply.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { STATUS, streamReply, wantsStream } from '../_shared/stream_reply.ts';
 import { PORTAL_TURN_MS, portalRules, portalFacts, wrappedReply, plainLanguage, customerSafe } from './portal_turn.ts';
+import { heldBlock, heldState, replyFilter } from './portal_conversation.ts';
+import { EXTRACT_BY_MS, extractSlots, planState } from './conversation_plan.ts';
 import { checkReadability } from '../_shared/readability.ts';
 import { REASK_CLAIM, reaskDue } from '../_shared/reask.ts';
 import { tradeSlugsOf, matchEmirate } from '../_shared/match_criteria.ts';
@@ -257,15 +260,17 @@ async function embed(text: string): Promise<string | null> {
 // supplier the quote PDF would not.
 async function answerFromOwnQuotes(customerId: string, message: string, lang: 'en' | 'ar') {
   try {
-    const { data: inqs } = await admin.from('inquiries').select('id,rfq_no,category,summary').eq('customer_id', customerId).limit(50);
+    const { data: inqs } = await admin.from('inquiries').select('id,rfq_no,category,summary,status').eq('customer_id', customerId).order('created_at', { ascending: false }).limit(50);
     const ids = (inqs || []).map((i: { id: string }) => i.id);
-    if (!ids.length) return null;
+    // THE ACCOUNT ITSELF IS A FACT (browser proof, 2 Nov 2026): "what can you see in my account?" was answered "I can't see your
+    // account" because only quotes were given, and nothing at all to a customer with a request and no quote yet, or with no request.
+    if (!ids.length) return { facts: JSON.stringify({ requests: [], note: 'This customer has posted no request yet.' }) };
     const [{ data: qs }, { data: tx }] = await Promise.all([
       admin.from('quotes').select('id,inquiry_id,supplier_id,quote_amount,status,exclusions,scope,conditions,warranty,lead_time,payment_terms,validity,notes,committed_items,created_at')
         .in('inquiry_id', ids).not('status', 'in', NOT_LIVE_QUOTE_IN).order('quote_amount', { ascending: true }).limit(60),
       admin.from('transactions').select('inquiry_id,supplier_id').eq('customer_id', customerId).not('revealed_at', 'is', null),
     ]);
-    if (!qs || !qs.length) return null;
+    if (!qs || !qs.length) return { facts: JSON.stringify({ requests: (inqs || []).slice(0, 15).map((i: { rfq_no: string | null; category: string | null; summary: string | null; status: string | null }) => ({ rfq_no: i.rfq_no, category: i.category, summary: i.summary, status: i.status, quotes_received: 0 })), quotes: [], note: 'No quote has arrived yet on any request.' }).slice(0, 6000) };
     const revealed = new Set((tx || []).map((t: { inquiry_id: string; supplier_id: number }) => t.inquiry_id + ':' + t.supplier_id));
     const revealedIds = [...new Set((qs as Array<{ inquiry_id: string; supplier_id: number }>).filter((q) => revealed.has(q.inquiry_id + ':' + q.supplier_id)).map((q) => q.supplier_id))];
     const names = new Map<number, string>();
@@ -298,7 +303,9 @@ async function answerFromOwnQuotes(customerId: string, message: string, lang: 'e
     // facts are data, the reply is written in the asker's language by the model.
     void lang; void message;
     const shown = quotes.slice(0, 15).map((q) => Object.fromEntries(Object.entries(q).filter(([k, v]) => k !== 'id' && v != null && v !== '')));
-    return { facts: JSON.stringify(shown).slice(0, 6000) };
+    const perInq = new Map<string, number>(); for (const q of qs as Array<{ inquiry_id: string }>) perInq.set(q.inquiry_id, (perInq.get(q.inquiry_id) ?? 0) + 1);
+    const requests = (inqs || []).slice(0, 15).map((i: { id: string; rfq_no: string | null; category: string | null; summary: string | null; status: string | null }) => ({ rfq_no: i.rfq_no, category: i.category, summary: i.summary, status: i.status, quotes_received: perInq.get(i.id) ?? 0 }));
+    return { facts: JSON.stringify({ requests, quotes: shown }).slice(0, 6000) };
   } catch { return null; }   // a read failure falls through to the corpora rather than failing the turn
 }
 
@@ -357,6 +364,14 @@ const plain = observe('sales_engineer', async (req) => {
     // opens an org_tasks row owned by sales_engineer, and the asker is given the task number and
     // the owner. Which records were retrieved, how close each was and which were cited are written
     // to sales_decision_log from INSIDE the retrieval routine, so this handler cannot forget to.
+    // Kicked by the duty sales_engineer.lead_email_check. Only the seat's own credential or the founder.
+    if (action === 'lead_email_check') {
+      if (caller.kind !== 'sales_engineer' && caller.kind !== 'founder') return J({ error: 'forbidden' }, 403);
+      const res = await leadEmailCheckBatch((fn, args) => admin.rpc(fn, args) as never);
+      await run('lead_email_check', 'ok', res);
+      return J({ ok: true, ...res });
+    }
+
     if (action === 'spec_offer_sweep') {
       if (caller.kind !== 'service' && caller.kind !== 'sales_engineer' && caller.kind !== 'founder') return J({ error: 'forbidden' }, 403);
       const res = await specOfferSweep(Math.max(1, Math.min(50, Number(body.limit) || 20)));
@@ -435,6 +450,16 @@ const plain = observe('sales_engineer', async (req) => {
       const rpc = async (f: string, args: Record<string, unknown>) => { const x = await admin.rpc(f, args); return { data: x.data, error: x.error }; };
       const pBrief = companyBrief(rpc, [], '', lang);
       const pKey = sec('cred_fn_sales_engineer');
+      // the conversation as stored (or, on its first turn, as the browser sent it), read once for the plan and the answer
+      const pTurns = pConvo.then((c) => {
+        const tr = c.turns && c.turns.length ? c.turns : clientHistory(body.history).filter((h, i, a) => !(i === a.length - 1 && h.role === 'user' && h.content === message));
+        return tr.map((t) => ({ role: t.role === 'assistant' ? 'assistant' as const : 'user' as const, content: t.content }));
+      });
+      // WHAT THE DETECTORS CANNOT READ (conversation_plan.ts, 27 Oct 2026): in a job conversation with must-haves still
+      // open, a bounded json_extraction call reads the message beside the retrieval below, never past EXTRACT_BY_MS
+      const pExtract = Promise.all([pTurns, pKey]).then(([tr, k]) => k ? extractSlots({ gateway: Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', secret: k,
+        st: planState(tr, message), lastSeat: [...tr].reverse().find((t) => t.role === 'assistant')?.content ?? '', message, deadline: t0 + EXTRACT_BY_MS }) : null)
+        .catch(() => null);
 
       // ── A QUESTION ABOUT THE CUSTOMER'S OWN QUOTE IS ANSWERED FROM THAT QUOTE (21 Sep 2026) ──
       // No corpus holds this customer's quote; the quotes table does. Their quotes, scoped in SQL to inquiries.customer_id =
@@ -474,24 +499,30 @@ const plain = observe('sales_engineer', async (req) => {
         const x = await admin.from(rule.table).select(rule.select).in(rule.key, ids);
         return { data: x.data as Record<string, unknown>[] | null, error: x.error };
       });
-      const [own, convo, brief, key] = await Promise.all([pOwn, pConvo, pBrief, pKey]);
+      const [own, convo, brief, key, turns, extract] = await Promise.all([pOwn, pConvo, pBrief, pKey, pTurns, pExtract]);
       lap('reads');
       const ownQuote = own?.facts ?? null;
-      const convKey = convo.key; const stored = convo.turns;
-      const transcript = stored && stored.length ? stored : clientHistory(body.history).filter((h, i, a) => !(i === a.length - 1 && h.role === 'user' && h.content === message));
+      const convKey = convo.key;
       // the facts change per turn, so they ride with the message, after the cached brief, rules and earlier turns
-      const facts = portalFacts({ facts: ownQuote ? 'THEIR OWN QUOTES (scoped in SQL to this customer):\n' + ownQuote : '', passages: all });
+      const facts = portalFacts({ facts: ownQuote ? 'THEIR OWN REQUESTS AND QUOTES (scoped in SQL to this customer; this IS what you can see of their account):\n' + ownQuote : '', passages: all });
       const sys = '\n\n' + aiSystem({ seat: 'sales_engineer', channel: 'the signed-in customer portal', audience: 'customer', lang, message, rules: portalRules(), plainText: true }, lang);
       const allowed = figureSource(brief) + '\n' + facts + '\n' + sys;
       const known = briefNumbers(allowed);
       // a photo or drawing the customer sent (ruling 1200): only what chat_images accepts reaches the model
       const images = acceptImages(body.images, new URL(Deno.env.get('SUPABASE_URL')!).host).images;
-      const past = fitHistory(transcript.map((t) => ({ role: t.role === 'assistant' ? 'assistant' as const : 'user' as const, content: t.content })), message);
+      const past = fitHistory(turns, message);
+      // WHAT THE CONVERSATION ALREADY HOLDS (portal_conversation.ts; 27 Oct 2026, the bank's re-asks and unasked lines): read
+      // from the whole stored conversation, not the fitted window, shown to the model as "do not ask again", and enforced
+      // sentence by sentence after it (replyFilter: a re-ask or an unasked line is dropped, never shown).
+      // and since 27 Oct evening, the plan's state (conversation_plan.ts): what code asks next, or the summary
+      const held = heldState(turns, message, extract?.slots ?? null);
+      const known_ = heldBlock(held);
       const emit = EMITTERS.get(req) ?? (() => {});
       const a = key ? await answerFromBrief({
         gateway: Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', secret: key, fn: 'sales_engineer', agent: 'sales_engineer',
         taskClass: 'customer_portal_assistant', brief, sys, max: images.length ? 1200 : 900, images, deadline,
-        input: [...past, { role: 'user', content: (facts ? facts + '\n\n' : '') + 'MESSAGE:\n' + message.slice(0, 4000) }],
+        input: [...past, { role: 'user', content: (facts ? facts + '\n\n' : '') + (known_ ? known_ + '\n\n' : '') + 'MESSAGE:\n' + message.slice(0, 4000) }],
+        drop: () => replyFilter(held),
         // the same rules aiReply holds every conversation reply to (figures, policy, reply guard, another party's identity),
         // sentence by sentence; a deferral is a whole-answer judgement (aiReply), never one sentence's, so it is not run here
         check: (t: string) => [...guardSupportReply(t, lang).violations.map((v) => 'it breaks the reply rule "' + v + '"'),
@@ -515,7 +546,9 @@ const plain = observe('sales_engineer', async (req) => {
           await admin.rpc('fn_support_reply_readability_log', { p_channel: 'portal', p_lang: lang, p_path: 'reasoned', p_rewritten: a.rewrites > 0,
             p_score: rd.score, p_tone: rd.tone, p_issues: rd.issues, p_reason: null, p_demo: /^ZZ DEMO/.test(message) });
         } catch { /* the reply matters more than its score */ }
-        await run('assist', 'ok', { answered: true, basis: 'reasoned', model: a.model, attempts: a.attempts, ms: T, precedent: recallTrace(memory) });
+        await run('assist', 'ok', { answered: true, basis: 'reasoned', model: a.model, attempts: a.attempts, dropped: a.dropped ?? [], ms: T, precedent: recallTrace(memory),
+          plan: held.plan.plan ? { trade: held.plan.plan.key, mode: held.plan.mode, next: held.plan.next, also: held.plan.also, to_confirm: [...held.plan.toConfirm],
+            extracted: extract ? { ms: extract.ms, slots: Object.keys(extract.slots) } : null } : null });
         return J({ ok: true, seat: 'sales_engineer', answered: true, reply, basis: 'composed by the model from the brief, the retrieved records and their own quotes', model: a.model });
       }
       // NO REPLY INSIDE THE TURN (rulings 1195/1196: code writes no reply text). The question is logged with the gap
@@ -538,7 +571,7 @@ const plain = observe('sales_engineer', async (req) => {
             p_request: { seat: 'sales_engineer', surface: 'sales_engineer.portal_unwritten', subject, research: false,
               question: message.slice(0, 4000),
               context: { audience: 'customer', language: lang, turn_id: 'portal:' + logId },
-              reask: { message: message.slice(0, 4000), own_facts: ownQuote ? 'THEIR OWN QUOTES (scoped in SQL to this customer):\n' + ownQuote : '',
+              reask: { message: message.slice(0, 4000), own_facts: ownQuote ? 'THEIR OWN REQUESTS AND QUOTES (scoped in SQL to this customer; this IS what you can see of their account):\n' + ownQuote : '',
                 passages: all.slice(0, 12).map((x) => ({ title: x.title, content: String(x.content ?? '').slice(0, 1200), corpus: x.corpus, record_id: x.record_id })),
                 audience: 'customer', lang, channel: 'the signed-in customer portal', problems: (a.problems ?? []).slice(0, 12) } },
             p_plan: {}, p_subject: subject, p_reason: 'model_up_no_safe_reply', p_dedupe_key: 'portal_unwritten:' + logId });

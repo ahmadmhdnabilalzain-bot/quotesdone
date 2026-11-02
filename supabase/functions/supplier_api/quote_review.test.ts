@@ -230,6 +230,21 @@ Deno.test('the conversation: incomplete file → points raised → answered in t
   assertEquals((await thread(mem.repo, deps, ctx, INQ_ID) as ThreadView).messages.length, t3.messages.length, 'a closed thread is never written to');
 });
 
+// BROWSER PROOF, 2 Nov 2026 (ledger 1464): the model was given the review's state and the one new message, never what the
+// supplier had said before, so "what lead time did I tell you?" was answered "nothing has come through".
+Deno.test('the model is given the whole thread so far: what the supplier said earlier, and what the engineer answered', async () => {
+  const { mem, deps, ctx, voices } = harness();
+  ok(await start(mem.repo, deps, ctx, INQ_ID));
+  ok(await message(mem.repo, deps, ctx, INQ_ID, 'Our standard lead time is 6 weeks and quotes are valid for 30 days.'));
+  const first = voices[voices.length - 1];
+  assertEquals((first.conversation ?? []).some((c) => c.role === 'supplier'), false, 'the message being answered is not repeated as history');
+  ok(await message(mem.repo, deps, ctx, INQ_ID, 'What lead time did I tell you earlier?'));
+  const second = voices[voices.length - 1];
+  const said = (second.conversation ?? []).filter((c) => c.role === 'supplier').map((c) => c.text);
+  assertEquals(said, ['Our standard lead time is 6 weeks and quotes are valid for 30 days.']);
+  assert((second.conversation ?? []).some((c) => c.role === 'seat'), 'the engineer\'s own earlier messages are in it');
+});
+
 Deno.test('the conversation: approved → "upload" → the new version is reviewed → submit', async () => {
   const { mem, deps, submitted, ctx } = harness();
   await start(mem.repo, deps, ctx, INQ_ID);
