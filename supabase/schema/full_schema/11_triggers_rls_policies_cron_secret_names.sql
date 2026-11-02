@@ -1849,6 +1849,7 @@ select cron.schedule('seat_duty:ceo.daily_number','*/5 * * * *',$CRON$set statem
 --   supplier_subscription_aed
 --   supplier_subscription_start
 --   supplier_subscription_term
+--   supplier_terms_carries_from
 --   supplier_terms_html
 --   supplier_terms_label
 --   supplier_terms_version
