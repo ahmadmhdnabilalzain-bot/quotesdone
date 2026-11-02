@@ -147,6 +147,16 @@ test('the three replies that gave the mobile now give the public numbers, and th
   assert.ok(read('scripts/sql/MANIFEST.txt').includes('scripts/sql/the_live_system_gives_out_the_public_numbers_and_never_the_founders_mobile.sql'));
 });
 
+test('the five kb_chunks that carried the mobile are corrected by an md5-guarded, manifest-listed file that re-embeds only them', () => {
+  const f = 'scripts/sql/the_corporate_kit_chunks_give_the_public_numbers_and_never_the_founders_mobile.sql';
+  const sql = read(f);
+  for (const id of [177478, 177480, 177482, 177483, 177484]) assert.match(sql, new RegExp(`where id = ${id} and md5\\(content\\) = '[0-9a-f]{32}'`), `chunk ${id} is not md5-guarded`);
+  assert.equal((sql.split('\n').filter((l) => !l.startsWith('--')).join('\n').match(/embedding_gte = null/g) || []).length, 5, 'exactly the five changed chunks are re-embedded');
+  assert.doesNotMatch(sql, /update public\.kb_chunks set [^;]*\n\s*where (?!id = )/, 'an update that is not by id');
+  for (const s of ['PROBE OK', 'PROBE FAILED']) assert.ok(sql.includes(s));
+  assert.ok(read('scripts/sql/MANIFEST.txt').includes(f));
+});
+
 test('the registry SQL carries the carry list and archives the three texts it replaces', () => {
   const sql = read('scripts/sql/the_founders_mobile_leaves_the_current_legal_texts.sql');
   assert.match(sql, /supplier_terms_carries_from/);
