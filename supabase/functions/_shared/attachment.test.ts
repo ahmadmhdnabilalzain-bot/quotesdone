@@ -136,6 +136,30 @@ Deno.test('the bytes "/JS" inside compressed data are not JavaScript', () => {
   assertEquals(refused, 0);
 });
 
+// THE JS KEY CANNOT BE USED TO HANG THE FUNCTION (2 Nov 2026, it_engineer; #1723 review). `/JS` + 40,000 digits took 2.7 s
+// with the first form of the key (quadratic backtracking), and the sniffer reads a 256 KB window. Each shape below is the
+// worst input found for the pattern; every one must finish well inside a second, with the ceiling set far above the
+// measured ~1-100 ms so a slow CI machine does not fail it.
+Deno.test('a hostile run after /JS is read in linear time, and the n g R form still needs its whitespace', () => {
+  const hostile = [
+    '/JS' + '1'.repeat(40000),
+    '/JS 1 ' + '1'.repeat(40000),
+    '/JS 1 '.repeat(20000),
+    '/JS 1 %'.repeat(35000),
+    '/JS %'.repeat(50000),
+  ];
+  for (const s of hostile) {
+    const input = cat(enc('%PDF-1.7\n'), enc(s.slice(0, 250000)));
+    const t = performance.now();
+    looksPolyglot(input, 'application/pdf');
+    const ms = performance.now() - t;
+    assert(ms < 1000, `${s.slice(0, 12)}... took ${ms.toFixed(0)} ms`);
+  }
+  // "70 0 R" with its whitespace is a reference, "700R" is not a /JS value
+  assert(looksPolyglot(enc('%PDF-1.7\n2 0 obj<</JS 7 0 R>>endobj'), 'application/pdf'));
+  assertEquals(looksPolyglot(enc('%PDF-1.7\n2 0 obj<</JS 70R>>endobj'), 'application/pdf'), null);
+});
+
 Deno.test('an ordinary PDF still passes', () => {
   const r = sanitizeUpload({ input: minimalPdf('2 0 obj<</Length 8>>stream\nhello!\nendstream endobj'), declaredMime: 'application/pdf' });
   assert(r.ok); assertEquals(r.mime, 'application/pdf');

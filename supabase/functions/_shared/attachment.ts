@@ -333,8 +333,17 @@ export function looksPolyglot(b: Uint8Array, mime: string): string | null {
 // action can be is let through: its /S /JavaScript entry is still matched on its own, exactly as before, so a
 // JavaScript action is refused even if its /JS were spelled some other way. Stream data is still scanned (nothing is
 // skipped), because a reader that rebuilds a damaged cross-reference table can find objects inside it.
-const PDF_WS = '(?:[\\0\\t\\n\\f\\r ]|%[^\\r\\n]*[\\r\\n])*';
-const JS_KEY = new RegExp('/JS' + PDF_WS + '(?:\\(|<|\\d+' + PDF_WS + '\\d+' + PDF_WS + 'R\\b)');
+//
+// IT MUST ALSO BE LINEAR IN THE INPUT (2 Nov 2026, it_engineer; security-sensitive, #1723 review). Measured on Node 24:
+// `/JS` followed by 40,000 digits took 2.7-3.0 s, because `\d+ WS \d+` with an empty WS can split the run of digits at every
+// point, which is quadratic, and the 256 KB window lets one upload do that. The two numbers of "n g R" now need at least one
+// whitespace byte between them (PDF_WS1), so the digits cannot be split. A comment that never reached its line end was the
+// second quadratic (`/JS 1 %` repeated: every key rescanned to the end of the window, 0.5 s at 70 KB), so a comment inside
+// this gap is bounded to 1,024 bytes, and a /JS key followed by a longer comment is itself refused, which no ordinary PDF has.
+const PDF_COMMENT = '%[^\\r\\n]{0,1024}[\\r\\n]';
+const PDF_WS = '(?:[\\0\\t\\n\\f\\r ]|' + PDF_COMMENT + ')*';
+const PDF_WS1 = '(?:[\\0\\t\\n\\f\\r ]|' + PDF_COMMENT + ')+';
+const JS_KEY = new RegExp('/JS' + PDF_WS + '(?:\\(|<|%[^\\r\\n]{1025}|\\d+' + PDF_WS1 + '\\d+' + PDF_WS + 'R\\b)');
 /** Every #xx escape inside a PDF name decoded, so names compare as a reader sees them. Other text is left as it is. */
 function pdfNames(s: string): string {
   return s.replace(/\/[^\0\t\n\f\r ()<>\[\]{}\/%]*/g, (n) => n.includes('#') ? n.replace(/#([0-9A-Fa-f]{2})/g, (_x, h) => String.fromCharCode(parseInt(h, 16))) : n);
