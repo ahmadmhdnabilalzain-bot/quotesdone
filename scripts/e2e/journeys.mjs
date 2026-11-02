@@ -512,13 +512,17 @@ export async function journeyComparison(ctx) {
     // from it offline (demo data only; the run directory is scratch, never committed).
     if (a) writeFileSync(`${dir}/c_quote_compare_analysis.json`, JSON.stringify(a, null, 2));
     const held = new Set((a?.all_quotes || []).filter((x) => x?.status === 'held').map((x) => String(x.label)));
-    const want = (a?.quotes || []).filter((x) => !held.has(String(x.label)));
+    // EVERY LIVE QUOTE IS A CSV COLUMN, CHEAPEST FIRST (quote_documents.ts comparedQuotes, 19 Oct 2026): quote_compare's
+    // `quotes` is the model's detail, capped at three, so it is not the CSV's column list; its ROSTER (all_quotes) is.
+    // 2 Nov 2026, run 41459344864: comparing with the capped list called the CSV wrong for carrying the fourth live quote.
+    const want = (a?.all_quotes || []).filter((x) => x?.label && !held.has(String(x.label)) && Number(x.price) > 0).sort((x, y) => Number(x.price) - Number(y.price));
     const parseRow = (line) => { const out = []; let cur = '', qd = false; for (let i = 0; i < line.length; i++) { const c = line[i]; if (qd) { if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') qd = false; else cur += c; } else if (c === '"') qd = true; else if (c === ',') { out.push(cur); cur = ''; } else cur += c; } out.push(cur); return out; };
     const lines = String(csvR.json?.csv || '').replace(/^﻿/, '').split(/\r\n/).filter(Boolean);
     const head = lines[0] ? parseRow(lines[0]).slice(1) : [];
-    const priceRow = lines.map(parseRow).find((r) => r[0] === 'Price')?.slice(1) || [];
+    // Ruling 1207 renamed the row "Price (excluding VAT)"; an exact 'Price' match found no row and read the prices as [].
+    const priceRow = lines.map(parseRow).find((r) => /^Price\b/.test(r[0] || ''))?.slice(1) || [];
     const digits = (s) => Number(String(s).replace(/[^\d.]/g, '')) || 0;
-    const wantPrice = want.map((x) => Math.round(Number(x.price_ex_vat) > 0 ? Number(x.price_ex_vat) : Number(x.price)));
+    const wantPrice = want.map((x) => Math.round(Number(x.price)));
     const sameCols = want.length >= 2 && head.length === want.length && want.every((x, i) => head[i].includes(String(x.label)));
     const samePrice = priceRow.length === want.length && priceRow.every((p, i) => Math.round(digits(p)) === wantPrice[i]);
     rep.step(J, 'compare_pdf/compare_csv see the same analysis as quote_compare with the customer JWT', direct.json?.ok && sameCols && samePrice ? 'PASS' : 'FAIL',
