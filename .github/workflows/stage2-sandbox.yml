@@ -19,8 +19,8 @@ jobs:
   stage2:
     if: ${{ github.ref_name != 'main' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
-    # The 2-hour rehearsal window closes itself in the database; the wall sits above it plus install and teardown.
-    timeout-minutes: 150
+    # 8 install + 130 wait for a quiet moment + 125 run + teardown; the 2-hour rehearsal window closes itself in the database.
+    timeout-minutes: 275
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QD_SANDBOX_OUT: stage2-out
@@ -34,9 +34,12 @@ jobs:
           node-version: '24'
       - run: npm ci && npx playwright install --with-deps chromium
         timeout-minutes: 8
-      - id: dry
-        run: node scripts/e2e/stage2.mjs --dry-run
-        timeout-minutes: 10
+      # A QUIET MOMENT: wait until no rehearsal window is open (every walk and journey holds one, and none outlives its
+      # 2 hours), so stage 2 never runs beside another walk and its load readings are its own. The run's first step
+      # refuses while one is open; this makes it wait instead of fail. Up to 125 minutes.
+      - id: quiet
+        run: node scripts/e2e/wait_for_no_open_window.mjs 125
+        timeout-minutes: 130
       - id: run
         run: node scripts/e2e/stage2.mjs --run
         timeout-minutes: 125
