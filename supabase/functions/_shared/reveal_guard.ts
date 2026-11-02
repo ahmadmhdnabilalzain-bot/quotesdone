@@ -48,6 +48,20 @@ export function assessInput(q: QuoteRow, items: ItemRow[]): { lines: Line[]; ter
   };
 }
 
+/**
+ * A quote_items row as the comparison carries it, WITH its spec_source (sales_engineer, 2 Nov 2026). quote_compare
+ * mapped its own rows and dropped spec_source, so every value the gate's reading wrote (source 'reasoned': which line
+ * names the customer's glass and profile, which line is no material) was invisible to the ranking's re-check. The
+ * re-check then held every quote the gate had accepted: journey run 41450058264, three submitted, gate-accepted quotes
+ * answered on_hold=3 "needs at least two complete quotes". One mapping, here, so the gate's persisted reading is the
+ * reading every surface checks. prevented by: _shared/the_comparison_reads_what_the_gate_read.test.ts
+ */
+export function compareItem(r: ItemRow) {
+  return { line: r.line_no, description: r.description, brand: r.brand, model: r.model, specification: r.specification, qty: r.qty, unit: r.unit,
+    unit_price: r.unit_price, labour: r.labour, install: r.install, commissioning: r.commissioning, amount: r.amount, country_of_origin: r.country_of_origin,
+    notes: r.notes, spec: r.spec || null, spec_source: r.spec_source || null };
+}
+
 /** The ids of the quotes that are ON HOLD for missing details — never ranked, never revealable. */
 export function heldQuoteIds(
   rows: { quote: QuoteRow; items: ItemRow[] }[], category: string | null, spec: unknown,
