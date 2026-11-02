@@ -718,11 +718,10 @@ insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file
    'scripts/sql/the_ceo_holds_the_supplier_target_and_acts_within_bounded_powers.sql')
 on conflict (duty) do update set every = excluded.every, routine = excluded.routine, what = excluded.what, owner_file = excluded.owner_file;
 
-insert into public.resilience_step (step, every, budget_ms, place, rank, note) values
-  ('waSenderQuality', interval '12 hours', 9000, 'plan', 0,
+insert into public.resilience_step (step, every, budget_ms, place, rank, owner_seat, note) values
+  ('waSenderQuality', interval '12 hours', 9000, 'plan', 0, 'ceo',
    'Reads the WhatsApp sender''s Meta quality rating through send_whatsapp. Read only, no message. Without it the supplier invitation gate waits for a reading only a queued invitation could cause.')
 on conflict (step) do update set every = excluded.every, budget_ms = excluded.budget_ms, note = excluded.note;
-update public.resilience_step set owner_seat = 'ceo' where step = 'waSenderQuality';
 
 -- 12. THE QUEUE READS THE CEO'S TWO LEVERS. Unchanged while invite_reachable_only is false and no trade is listed. -----------
 CREATE OR REPLACE FUNCTION public.fn_supplier_invite_candidates(p_limit integer, p_providers text[])
