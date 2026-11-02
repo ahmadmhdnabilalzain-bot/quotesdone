@@ -1,0 +1,52 @@
+name: Stage 2 sandbox run (demo data, models on for its tagged calls)
+
+# Ledger 1119 / 1230 / 1261 / 1375: stage 2 (scripts/e2e/stage2.mjs) was only ever run from a laptop, so a re-measure
+# needed the founder's machine. This runs it on a GitHub-hosted runner with the repository's SUPABASE_ACCESS_TOKEN.
+# Same fences as the laptop run: ZZ DEMO identities on example.invalid only, Stripe TEST only, the model spend capped
+# in the database (USD 4 per rehearsal window, never above 15), the founder's hold untouched, every row torn down by
+# its tag. The preconditions refuse the run while another harness window is open, so it never walks beside another walk.
+# Runs by hand, or once when this file changes on a branch. The report folder is the artifact.
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - .github/workflows/stage2-sandbox.yml
+
+permissions:
+  contents: read
+
+jobs:
+  stage2:
+    if: ${{ github.ref_name != 'main' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    # The 2-hour rehearsal window closes itself in the database; the wall sits above it plus install and teardown.
+    timeout-minutes: 150
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      QD_SANDBOX_OUT: stage2-out
+      QD_E2E_RUN_TAGS: e2e-run-tags.txt
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci && npx playwright install --with-deps chromium
+        timeout-minutes: 8
+      - id: dry
+        run: node scripts/e2e/stage2.mjs --dry-run
+        timeout-minutes: 10
+      - id: run
+        run: node scripts/e2e/stage2.mjs --run
+        timeout-minutes: 125
+      # A window this job opened never outlives it (same step the nightly has).
+      - if: always()
+        run: node scripts/e2e/close_job_windows.mjs "$QD_E2E_RUN_TAGS"
+        timeout-minutes: 3
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stage2-report
+          path: stage2-out
+          if-no-files-found: warn
