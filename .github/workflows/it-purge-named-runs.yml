@@ -16,7 +16,7 @@ jobs:
   purge:
     if: ${{ github.ref_name != 'main' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 60
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QD_FIXTURES: '1'
@@ -30,4 +30,4 @@ jobs:
       - run: npm ci
         timeout-minutes: 8
       - run: node scripts/e2e/purge_named_runs.mjs $TAGS
-        timeout-minutes: 10
+        timeout-minutes: 50
