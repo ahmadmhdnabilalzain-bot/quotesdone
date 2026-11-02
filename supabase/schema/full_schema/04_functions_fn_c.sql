@@ -10672,10 +10672,10 @@ begin
            else 'You can change the budget and the emirate from your account: ' || v_link || chr(10) || 'For anything else, reply to this e-mail with the details.' end;
   end if;
   -- NO SUPPLIER HAS IT YET: said as it is, never blamed on the specs (re-review of #1112).
-  if coalesce((h->>'finding_suppliers')::boolean, false) then
+  if coalesce((h->>'finding_suppliers')::boolean, false) and not public.fn_inquiry_awaits_specs(i.id) then
     v_find := case when v_ar
-      then 'نبحث عن موردين في تخصصكم: لا يغطي هذا الطلب أيٌّ من الموردين المسجّلين لدينا حاليًا، ونعمل على دعوة موردين متخصصين فيه. وسنراسلكم فور وصول طلبكم إلى أحدهم، ولا يلزمكم أي إجراء.'
-      else 'We are finding suppliers for your trade. None of the suppliers registered with us today covers this request yet, and we are inviting suppliers who do. We will write as soon as one of them has your request; nothing is needed from you.' end;
+      then 'ما زلنا نسجّل الموردين في تخصصكم. لا يغطي هذا الطلب أيٌّ من الموردين المسجّلين لدينا اليوم، ولذلك لم يصل إلى أي مورّد، ولا يمكننا أن نعدكم بعرض سعر أو بموعد له، فنرجو ألا تؤخروا عملكم انتظارًا لنا. سنبقي طلبكم مفتوحًا 14 يومًا؛ وإذا لم يصل إلى أي مورّد خلالها أغلقناه وأبلغناكم. لا يلزمكم أي إجراء ولا أي مبلغ.'
+      else 'We are still registering suppliers for your trade. No supplier registered with us today covers this request, so it has not reached anyone, and we cannot promise a quote or say when one might come. Please do not hold your work for us. We will keep your request open for 14 days; if it has reached no supplier by then, we will close it and tell you. Nothing is needed from you, and there is nothing to pay.' end;
   end if;
   -- The steps, numbered; only the specs step for a later request (the customer has seen the rest before).
   v_steps := (select string_agg(n || '. ' || (e->>'title') || ': ' || (e->>'body'), chr(10) || chr(10) order by n)
@@ -13593,6 +13593,50 @@ begin
                                             fixture = excluded.fixture, reviewed_at = now();
   end if;
   return jsonb_build_object('ok', true, 'fixture', v_fx, 'below_target', to_jsonb(v_below)) || v_m;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_support_rescues_dead_answers()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare m record; v_retried int := 0; v_seat int := 0; v_ceo int := 0; v_err jsonb := '[]'::jsonb; v_from text; v_hid bigint;
+begin
+  for m in select i.* from public.inbound_messages i
+            where i.needs_review and i.replied_at is null and i.owner_role is null and i.triaged_at is not null
+              and i.triaged_at < now() - interval '10 minutes' and i.created_at > now() - interval '30 days'
+              and coalesce(i.ai_category, '') not in ('no_auto_reply', 'spam', 'routine_queued', 'test_reply')
+            order by i.id limit 20 for update of i skip locked loop
+    begin
+      if coalesce(m.raw->>'answer_retried_at', '') = '' then
+        update public.inbound_messages
+           set triaged_at = null, ai_category = null,
+               raw = coalesce(raw, '{}'::jsonb) || jsonb_build_object('answer_retried_at', now())
+         where id = m.id;
+        v_retried := v_retried + 1;
+      elsif m.lead_id is not null then
+        v_from := lower(substring(coalesce(m.from_email, '') from '([^<>[:space:]"]+@[^<>[:space:]"]+)'));
+        update public.inbound_messages set owner_role = 'sales_engineer' where id = m.id;
+        v_hid := public.fn_seat_handoff('marketing', 'sales_engineer', 'mailbox.supplier_reply', 'inbound_messages', m.id::text,
+          jsonb_build_object('inbound_message_id', m.id, 'lead_id', m.lead_id, 'from_email', v_from, 'subject', left(coalesce(m.subject, ''), 200),
+                             'reply_text', left(btrim(regexp_replace(replace(coalesce(m.body, ''), E'\r', ''), E'(\\n|^)\\s*(>|On [^\\n]{0,200}wrote:|-{2,}\\s*Original Message|_{8,}|From:\\s).*$', '')), 4000),
+                             'ask', 'email_triage died twice answering this supplier: answer it in its thread.'));
+        v_seat := v_seat + 1;
+      else
+        v_hid := public.fn_seat_handoff('customer_support', 'ceo', 'review.requested', 'inbound_messages', m.id::text,
+          jsonb_build_object('inbound_message_id', m.id, 'from_email', m.from_email, 'to_email', m.to_email, 'subject', left(coalesce(m.subject, ''), 200),
+                             'ask', 'customer_support could not write an answer, so the sender has heard nothing. Decide the answer and have it sent in the thread.',
+                             'error', 'email_triage stopped twice before it finished the answer'));
+        update public.inbound_messages set owner_role = 'ceo' where id = m.id;
+        v_ceo := v_ceo + 1;
+      end if;
+    exception when others then
+      v_err := v_err || jsonb_build_object('inbound', m.id, 'error', left(sqlerrm, 300));
+    end;
+  end loop;
+  return jsonb_build_object('retried', v_retried, 'to_sales_engineer', v_seat, 'to_ceo', v_ceo, 'errors', v_err);
 end $function$
 
 

@@ -9,6 +9,7 @@
 // customer_support's queue. Ruling 1264: the 'person' route (an EXPLICIT ask for a person, chat or e-mail) is the one
 // thing that reaches the founder, through founder_mail_policy in SQL; no review of a decision ever does.
 import { think, type ThinkDeps } from './think.ts';
+import { isDemoEmail, isDemoPhone } from './demo_identity.ts';
 import { type DueReview, REVIEW_TASK_CLASS, type ReviewIO } from './review_decide.ts';
 
 type Rpc = { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> };
@@ -70,6 +71,17 @@ export async function fileReviewRequest(admin: Admin, deps: ThinkDeps, o: {
     const type = await reviewOfDecision(deps, { surface: o.surface, message: o.message.slice(0, 4000), routes, audience: o.audience,
       dedupeKey: 'review:' + o.dedupeKey, subject: { channel: o.channel, requester: o.requester } });
     if (!type || type === 'none') return { filed: false, decision_type: type };
+    // A FIXTURE'S ASK FOR A PERSON NEVER PAGES THE FOUNDER (2 Nov 2026). The 'person' route is the one that reaches him
+    // (fn_review_request_open -> fn_notify_founder) and it had no demo check: the real-exchange runs of 2 Nov sent him four
+    // e-mails for +971500000094/95. A demo requester (reserved mobile, or a demo/.invalid/sink e-mail) is recorded as
+    // suppressed instead; every real requester still pages. Prevented by: review_request.test.ts.
+    if (type === 'person' && (isDemoPhone(o.requester) || isDemoEmail(o.requester))) {
+      try {
+        await admin.from('agent_runs').insert({ agent: 'review_request', status: 'skipped', counts: { suppressed: 1, channel: o.channel },
+          note: 'suppressed: a demo/fixture requester asked for a person; the founder is not paged (review_request.ts)', finished_at: new Date().toISOString() });
+      } catch (_e) { /* the record never blocks the reply */ }
+      return { filed: false, decision_type: type };
+    }
     const { data, error } = await admin.rpc('fn_review_request_open', {
       p_decision_type: type, p_channel: o.channel, p_requester: o.requester, p_request_text: o.message.slice(0, 4000),
       p_subject_table: o.subjectTable ?? null, p_subject_id: o.subjectId ?? null, p_dedupe_key: o.channel + ':' + o.dedupeKey,

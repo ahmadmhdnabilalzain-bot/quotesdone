@@ -181,7 +181,14 @@ async function priceGuidance(question: string, ip: string) {
   return { ok: false, reason: String(p.reason || 'no_match') };
 }
 
+// Any throw outside the per-action try blocks (the counters, worked_case and trade_needs reads) still
+// answers WITH the CORS headers; without them the browser reports a plain 500 as a CORS failure.
+// (A 546 CPU kill or a gateway 502 never reaches this code: those are met by the client retry.)
 Deno.serve(async (req) => {
+  try { return await handle(req); } catch (_e) { return J({ ok: false, error: 'internal' }, 500); }
+});
+
+async function handle(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'POST') return J({ error: 'method' }, 405);
   const b = await req.json().catch(() => ({} as any));
@@ -276,4 +283,4 @@ Deno.serve(async (req) => {
   } catch (_e) {
     return J({ ok: false, error: 'internal' }, 500);
   }
-});
+}
