@@ -21,9 +21,13 @@ export interface SayRequest {
   rateKey?: string;             // the per-sender ceiling at the gateway (wa:<From>, 20/hour)
   forbidden?: string[];         // another party's identity before a reveal: a hit is rewritten by the model
   budgetMs?: number;            // the reply's wall-clock budget (default WA_REPLY_BUDGET_MS)
+  must?: string[];              // text the reply must carry exactly (a job number, a case reference)
 }
 // A WhatsApp reply is written within this, or the person gets the held notice and the turn is queued (run 5: 73.7 s).
-export const WA_REPLY_BUDGET_MS = 45_000;
+// 2 Nov 2026: 90 s, was 45. The webhook is acknowledged at once (ackThenWork), so the wall is the edge worker's background
+// limit (150 s), not Twilio's 15 s. Measured on the real exchange: classification 17-24 s, reply 2-20 s, so 45 s left 2-3 turns
+// in 12 with no reply and the queue's answer ~80 s later; a model answer at 50-60 s is sooner and nothing is code-written.
+export const WA_REPLY_BUDGET_MS = 90_000;
 /** Time kept back from the budget for the send itself and the row write after the model answers. */
 export const WA_SEND_MARGIN_MS = 3_000;
 /** THE CLOCK STARTS AT ARRIVAL, NOT AT THE MODEL CALL (QA channels run, 19 Oct 2026). Measured on production: two
@@ -33,7 +37,8 @@ export const WA_SEND_MARGIN_MS = 3_000;
 export function budgetLeft(arrivedAtMs: number, nowMs: number = Date.now()): number {
   return Math.max(0, WA_REPLY_BUDGET_MS - WA_SEND_MARGIN_MS - (nowMs - arrivedAtMs));
 }
-export interface Said { text: string; model: string | null; attempts: string[]; ms: number; escalate: boolean }
+/** outage: no call reached a model (openrouter_down.ts) — the only case the held notice, a code-written line, may go out. */
+export interface Said { text: string; model: string | null; attempts: string[]; ms: number; escalate: boolean; outage: boolean; problems?: string[] }
 
 export const WA_RULES = 'Plain text for WhatsApp (no markdown), under about 90 words; put each phone number, email or link on its own line, exactly as given in the facts.';
 
@@ -46,19 +51,21 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
       message: r.message || '(no text — they pressed a menu option or sent a file)',
       conversation: r.conversation,
       facts: 'WHAT HAS HAPPENED ON THIS TURN (decided by our systems; convey it accurately, do not change or add to it):\n' + r.situation,
-      rules: WA_RULES, subject: r.subject, rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true,
+      rules: WA_RULES, subject: r.subject, rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, must: r.must,
       deadline: t0 + (r.budgetMs ?? WA_REPLY_BUDGET_MS),
     });
-    return { text: String(out.reply || '').trim(), model: out.model, attempts: out.attempts, ms: Date.now() - t0, escalate: out.escalate === true };
+    return { text: String(out.reply || '').trim(), model: out.model, attempts: out.attempts, ms: Date.now() - t0, escalate: out.escalate === true, outage: out.outage === true, problems: out.problems ?? [] };
   } catch (e) {
-    return { text: '', model: null, attempts: ['error: ' + String((e as Error)?.message || e).slice(0, 120)], ms: Date.now() - t0, escalate: false };
+    // aiReply never throws on a model failure; a throw here is our own fault, not a provider outage
+    return { text: '', model: null, attempts: ['error: ' + String((e as Error)?.message || e).slice(0, 120)], ms: Date.now() - t0, escalate: false, outage: false };
   }
 }
 
-// ---- THE HELD NOTICE (review of #1335) -------------------------------------------------------------------------------
-// No model answer (or a guard refusal after aiReply's own rewrites): the person is never left silent. They get this
-// fixed receipt — a NOTIFICATION (ruling 1197: "we received your message"), never an answer — and the turn is filed
-// for a model retry. Suppliers in English; everyone else in their language.
+// ---- THE HELD NOTICE (review of #1335; founder_instruction 1339, 27 Oct 2026) ------------------------------------------
+// No model answer: the turn is filed for a model retry (resilience_ping replays it and sends the model's words). The
+// fixed receipt below goes out ONLY when OpenRouter is down (Said.outage — no call reached a model): "the engineer and
+// customer support never replies without llm unless the server of open router is down". When a model answered and
+// every draft was refused, nothing code-written is sent: the replay answers. Suppliers in English; others in their language.
 export const HELD_NOTICE: Record<'en' | 'ar', string> = {
   en: 'Thank you, we have received your message. Our team will reply to you here shortly.',
   ar: 'شكرًا لكم، وصلتنا رسالتكم، وسيرد عليكم فريقنا هنا قريبًا.',
@@ -67,17 +74,25 @@ export const UNWRITTEN_SURFACE = 'wa_inbound.unwritten_reply';
 export interface HoldIO {
   from: string; body: string; messageSid: string | null;
   audience: SayAudience; lang: 'en' | 'ar'; situation: string; why: string;
+  /** OpenRouter was down for this turn (Said.outage): only then is the fixed notice sent. */
+  outage: boolean;
+  /** Why the model's drafts were refused (aiReply.problems): the re-ask names them to the model (_shared/reask.ts). */
+  problems?: string[];
   enabled(): Promise<boolean>;
   send(text: string): Promise<{ ok: boolean; err?: string }>;
   rpc(fn: string, args: Record<string, unknown>): Promise<{ data: unknown; error: { message: string } | null }>;
 }
-/** Sends the held notice and files the turn in customer_support's queue; resilience_ping replays it through the model
- *  and delivers the written answer on WhatsApp, and escalates it to customer_support after 15 minutes. */
+/** Sends the held notice (outage only) and files the turn in customer_support's queue. The re-ask (_shared/reask.ts, a
+ *  pg_cron check every minute) asks the model again within about a minute, on another family with the refused drafts'
+ *  problems named, and delivers the written answer here; after REASK_MAX_ATTEMPTS refusals the turn is handed to
+ *  customer_support. request.reask carries the turn as data; context.turn_id makes each turn its own question (two
+ *  people sending the same words were one qhash, and a failed one swallowed the other's turn in fn_reason_hold). */
 export async function holdUnwritten(io: HoldIO): Promise<{ notice: string; sent: boolean; err: string | null; held_id: number | null }> {
   const lang = io.audience === 'supplier' ? 'en' : io.lang;
-  const notice = HELD_NOTICE[lang];
+  const notice = io.outage ? HELD_NOTICE[lang] : '';
   let sent = false; let err: string | null = null;
-  if (await io.enabled()) { const r = await io.send(notice).catch((e) => ({ ok: false, err: String(e) })); sent = r.ok; err = r.err ?? null; }
+  if (!notice) err = 'model_up_no_safe_reply: queued for the model, no code-written notice (1339)';
+  else if (await io.enabled()) { const r = await io.send(notice).catch((e) => ({ ok: false, err: String(e) })); sent = r.ok; err = r.err ?? null; }
   else err = 'autoreply_disabled';
   const subject = { channel: 'whatsapp', phone: io.from, message_sid: io.messageSid };
   const question = io.body.slice(0, 4000) || '(no text)';
@@ -86,8 +101,10 @@ export async function holdUnwritten(io: HoldIO): Promise<{ notice: string; sent:
     const { data } = await io.rpc('fn_reason_hold', {
       p_seat: 'customer_support', p_surface: UNWRITTEN_SURFACE, p_question: question,
       p_request: { seat: 'customer_support', surface: UNWRITTEN_SURFACE, subject,
-        question: `Reply on WhatsApp to this ${io.audience} message, in ${lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}${io.audience === 'supplier' ? ' (suppliers are always answered in English)' : ''}. They were told we received it and will reply shortly.\n\nWHAT HAPPENED ON THAT TURN (facts):\n${io.situation.slice(0, 3000)}\n\nMESSAGE:\n${question}`,
-        context: { audience: io.audience === 'founder' ? 'founder' : io.audience, language: lang }, research: false },
+        question: `Reply on WhatsApp to this ${io.audience} message, in ${lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}${io.audience === 'supplier' ? ' (suppliers are always answered in English)' : ''}. ${notice ? 'They were told we received it and will reply shortly.' : 'They have not had a reply yet.'}\n\nWHAT HAPPENED ON THAT TURN (facts):\n${io.situation.slice(0, 3000)}\n\nMESSAGE:\n${question}`,
+        context: { audience: io.audience === 'founder' ? 'founder' : io.audience, language: lang, turn_id: 'wa:' + (io.messageSid || io.from + ':' + question.slice(0, 40)) }, research: false,
+        reask: { message: question, facts: 'WHAT HAS HAPPENED ON THIS TURN (decided by our systems; convey it accurately, do not change or add to it):\n' + io.situation.slice(0, 3000),
+          audience: io.audience, lang, channel: 'WhatsApp', problems: (io.problems ?? []).slice(0, 12) } },
       p_plan: {}, p_subject: subject, p_reason: io.why, p_dedupe_key: 'wa_unwritten:' + (io.messageSid || io.from + ':' + question.slice(0, 40)),
     });
     held_id = Number(data) || null;

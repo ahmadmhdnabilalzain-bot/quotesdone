@@ -4,6 +4,7 @@
 
 ## Waterproofing (waterproofing)
 - **Open:** Where is it: roof, bathroom/wet area, basement, swimming pool, balcony/terrace, water tank, planter? Is there an active leak now, or is this new work/prevention?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: the area in square metres; existing: the current waterproofing, its age and any active leak; system: a full new system or a local repair, and the warranty; services: equipment, drains and openings on the surface; location; timing
 - **Then ask (in order, one or two at a time):**
   - Area in square metres (or length x width of each zone); number of bathrooms/balconies if several.
   - Villa, apartment, or commercial; floor level; who owns the slab above/below (neighbour, building management).
@@ -26,6 +27,7 @@
 
 ## Roofing (roofing)
 - **Open:** New roof, re-roof, or repair? What type: flat concrete roof, pitched tiled roof, metal sheet/sandwich panel roof (warehouse, carport, extension)?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** system: flat concrete, pitched tiled or metal sheet; scope: new roof, re-roof or repair; size; existing; location; timing
 - **Then ask:**
   - Roof area (or footprint) and building height/storeys.
   - Existing build-up and condition; leaks?
@@ -40,6 +42,7 @@
 
 ## General building contracting (general-building-contracting)
 - **Open:** What are you building or changing: new villa, extension, annex, boundary wall, majlis, commercial fit-out shell, refurbishment? Do you have approved drawings and a permit, or do you need design too?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: what is being built or changed; size; design: approved drawings and a permit, or design needed too; permits; location; timing
 - **Then ask:**
   - Plot location (emirate, community/free zone) and plot/built-up area; number of floors.
   - Drawings status: concept, consultant-approved, authority-approved (DM, Abu Dhabi municipality, Trakhees, master developer).
@@ -55,6 +58,7 @@
 
 ## Masonry (masonry)
 - **Open:** What is it: new block walls (internal partitions, boundary wall), stone cladding, brick feature, plaster, or repair of cracks?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: the walls or work (partition, boundary wall, cladding, plaster, cracks); size: length and height of each wall; finish: block type and finish; location; timing
 - **Then ask:**
   - Length and height of walls (or area); thickness; hollow or solid blocks; load-bearing or partition.
   - Boundary wall: plot length, height, gate openings, footing needed, coping, finish (plaster and paint, stone, cladding).
@@ -68,6 +72,7 @@
 
 ## Demolition (demolition)
 - **Open:** Full building demolition, partial (one wall, extension), or interior strip-out? Villa, apartment, or commercial unit?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: full, partial or interior strip-out; size; property; permits: the demolition permit and building approvals; location; timing
 - **Then ask:**
   - Size: built-up area, floors, structure type (concrete, steel, block).
   - Walls to be removed: load-bearing?
@@ -82,6 +87,7 @@
 
 ## Scaffolding (scaffolding)
 - **Open:** What is it for (painting facade, waterproofing, window installation, construction) and how high?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** usage: what it is for; size: the height and length of the facade; location; timing
 - **Then ask:**
   - Elevation lengths and working height; number of sides.
   - Type: cup-lock/tube-and-clamp, mobile tower, suspended platform/gondola.
@@ -95,6 +101,7 @@
 
 ## Engineering and architectural consultancies (engineering-and-architectural-consultancies)
 - **Open:** What do you need: design for a new build or extension, authority approval drawings, structural assessment, MEP design, fit-out approval, or site supervision?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: the service needed (design, approval drawings, assessment, supervision); size: plot or built-up area; design: the drawings that exist; location; timing
 - **Then ask:**
   - Location and authority (DM, Abu Dhabi municipality, Trakhees, DDA, master developer).
   - Plot and built-up area, floors, use (residential, commercial, F&B).

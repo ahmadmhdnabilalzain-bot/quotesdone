@@ -1,0 +1,48 @@
+name: Customer sign-up walk (live site, real e-mailed code)
+
+# A customer's whole sign-up in a real browser on quotesdone.ae with the real e-mailed code (read from the run's Resend sink),
+# through to the dashboard and a posted ZZ DEMO request that cannot reach a real supplier. Runs by hand, or once when this file
+# or the script changes on a branch. The management token exists only in Actions. On main only by hand.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/customer-signup-walk.yml
+      - scripts/e2e/customer_signup_walk.mjs
+      - .github/customer-signup-walk-site.txt
+
+permissions:
+  contents: read
+
+jobs:
+  walk:
+    if: ${{ github.ref_name != 'main' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      QD_SITE: https://quotesdone.ae
+      QD_E2E_WINDOW_MIN: '28'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci
+        timeout-minutes: 8
+      - run: npx playwright install --with-deps chromium
+        timeout-minutes: 6
+      - name: Walk the sign-up
+        # The live site by default. To prove a fix on its branch before it is deployed, a file .github/customer-signup-walk-site.txt
+        # holding a Vercel preview URL points the walk there instead (the preview forwards its function calls; see the script).
+        run: |
+          if [ -f .github/customer-signup-walk-site.txt ]; then export QD_SITE="$(tr -d '[:space:]' < .github/customer-signup-walk-site.txt)"; fi
+          echo "walking $QD_SITE"
+          node scripts/e2e/customer_signup_walk.mjs --shots e2e-shots --summary e2e-shots/summary.json
+      - name: Screenshots and summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-signup-walk
+          path: e2e-shots
+          if-no-files-found: ignore

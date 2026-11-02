@@ -85,6 +85,74 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "flooring:porcelain-vs-ceramic-water-absorption",
+      "topic": "Porcelain vs ceramic tile: the water-absorption groups of ISO 13006 / EN 14411",
+      "topic_ar": "البورسلان مقابل السيراميك: مجموعات امتصاص الماء في ISO 13006 / EN 14411",
+      "kind": "comparison",
+      "body_en": "Porcelain and ceramic tiles are told apart by measured water absorption, not by name. ISO 13006 (EN 14411 in Europe) classifies tiles by forming method (A extruded, B dry-pressed) and by water absorption E: group BIa is E <= 0.5% (porcelain), BIb is 0.5% < E <= 3%, BIIa is 3% < E <= 6%, and BIII is E > 10%, a wall-tile group. A tile is porcelain stoneware only when its water absorption is 0.5% or lower (group AIa or BIa), measured as an average over the samples tested. Trade names are loose: 'vitrified' is used by some sellers for the 0.5-3% group and by others for porcelain, so 'vitrified' alone does not prove BIa. For floors in wet, outdoor or heavy-traffic areas, ask the supplier to state the ISO 13006 / EN 14411 group on the quote and the technical data sheet; a BIII wall tile is not a floor tile. Not established here: the full text of the standard and the groups between BIIa and BIII.",
+      "body_ar": "يُفرَّق بين بلاط البورسلان وبلاط السيراميك بنسبة امتصاص الماء المقيسة، لا بالاسم التجاري. تصنّف المواصفة ISO 13006 (وفي أوروبا EN 14411) البلاط حسب طريقة التشكيل (A بالبثق، وB بالكبس الجاف) وحسب امتصاص الماء E: المجموعة BIa امتصاصها 0.5% أو أقل (بورسلان)، وBIb أكثر من 0.5% حتى 3%، وBIIa أكثر من 3% حتى 6%، وBIII أكثر من 10% وهي مجموعة بلاط جدران. ولا يُعد البلاط بورسلاناً إلا إذا كان امتصاصه 0.5% أو أقل (المجموعة AIa أو BIa) كمتوسط للعينات المختبرة. والتسميات التجارية غير دقيقة: فكلمة 'فيتريفايد' يستخدمها بعض الباعة لمجموعة 0.5-3% وآخرون للبورسلان، فلا تثبت وحدها أن البلاط من المجموعة BIa. للأرضيات في المناطق الرطبة أو الخارجية أو كثيفة الحركة، اطلب من المورد أن يذكر مجموعة ISO 13006 / EN 14411 في عرض السعر وفي ورقة البيانات الفنية؛ وبلاط الجدران BIII ليس بلاط أرضيات. لم يُثبت هنا: النص الكامل للمواصفة والمجموعات بين BIIa وBIII.",
+      "sources": [
+        "https://rosagres.com/en/difference-between-porcelain-stoneware-and-other-types-of-stoneware/",
+        "https://webstore.ansi.org/preview-pages/ISO/preview_ISO+13006-2012.pdf",
+        "https://www.tiledepot.co.nz/blog/general-tile-knowledge/porcelain-vitrified-ceramic-tiles-clearing-the-confusion"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-27",
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts of the cited pages (the pages themselves refused this session's egress): BIa <= 0.5% porcelain, BIb 0.5-3%, BIIa 3-6%, BIII > 10% wall tile, AIa/BIa porcelain threshold, average over samples, 'vitrified' used inconsistently -> confirmed. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
+    },
+    {
+      "id": "flooring:lvt-vs-spc-vs-laminate",
+      "topic": "LVT vs SPC vs laminate: core, water and wear",
+      "topic_ar": "الفينيل الفاخر LVT مقابل SPC مقابل اللامينيت: القلب والماء والتآكل",
+      "kind": "comparison",
+      "body_en": "Three products that look alike on a showroom board differ in their core. LVT (luxury vinyl tile/plank) is a flexible vinyl product, glued down or click. SPC (stone plastic composite) is a rigid click plank with a limestone-PVC core; it is the stiffest and most dimensionally stable of the three and is sold as fully waterproof. Laminate has a high-density fibreboard (HDF) core, typically 8-12 mm, under a printed decor and wear surface; its weak point is water: even 'water-resistant' laminate can swell if water sits in the joints or reaches exposed edges, so it suits dry rooms. Wear is stated differently: vinyl by the wear-layer thickness (in mm or mil, e.g. 0.3 mm = 12 mil for home use, thicker for heavier traffic), laminate by its abrasion class (AC rating, AC4-AC5 for commercial use) under EN 13329. On a quote ask for: the product type and core, total thickness, wear-layer thickness or AC class, click or glue-down, the underlay, and whether wet areas are covered by the warranty. Not established here: lifespan figures (sources gave only retailer estimates) and the EN 13329 test method itself.",
+      "body_ar": "ثلاثة منتجات متشابهة في صالة العرض لكنها تختلف في القلب. فالفينيل الفاخر LVT منتج فينيل مرن يُلصق أو يُركَّب بنظام النقر (click). وSPC (مركّب الحجر والبلاستيك) لوح نقر صلب قلبه من الحجر الجيري وPVC، وهو الأكثر صلابة وثباتاً في الأبعاد بين الثلاثة ويُباع على أنه مقاوم كلياً للماء. أما اللامينيت فقلبه من ألياف الخشب عالية الكثافة HDF بسماكة 8-12 مم عادةً تحت طبقة زخرفية مطبوعة وطبقة مقاومة للتآكل؛ ونقطة ضعفه الماء، إذ قد ينتفخ حتى اللامينيت 'المقاوم للماء' إذا بقي الماء في الفواصل أو وصل إلى الحواف المكشوفة، لذا يناسب الغرف الجافة. ويُذكر التحمل بطريقتين: الفينيل بسماكة طبقة التآكل (بالمليمتر أو الميل، مثل 0.3 مم = 12 ميل للاستخدام المنزلي وأكثر للحركة الكثيفة)، واللامينيت بفئة مقاومة الاحتكاك (AC، من AC4 إلى AC5 للاستخدام التجاري) وفق EN 13329. اطلب في عرض السعر: نوع المنتج والقلب، والسماكة الكلية، وسماكة طبقة التآكل أو فئة AC، والتركيب بالنقر أو باللصق، والطبقة السفلية، وهل يغطي الضمان المناطق الرطبة. لم يُثبت هنا: أعمار المنتجات (المصادر أعطت تقديرات تجار فقط) وطريقة اختبار EN 13329 نفسها.",
+      "sources": [
+        "https://materialdepot.com/qna/vinyl-vs-spc-vs-laminate-comparison",
+        "https://floordaily.net/?p=21691",
+        "https://www.woodandbeyond.com/blog/pvc-or-spc-flooring-which-is-right-for-you/amp"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-27",
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: LVT flexible vinyl; SPC rigid limestone-PVC core, most stable, waterproof; laminate HDF core 8-12 mm swells if water sits in joints; vinyl wear layer in mil (12 mil = 0.3 mm); AC4/AC5 laminate -> confirmed. EN 13329 is named as the laminate standard but its test method was not read. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
+    },
+    {
+      "id": "flooring:epoxy-vs-pu-vs-urethane-cement",
+      "topic": "Resin floors: epoxy vs polyurethane vs cementitious urethane",
+      "topic_ar": "الأرضيات الراتنجية: الإيبوكسي مقابل البولي يوريثان مقابل اليوريثان الأسمنتي",
+      "kind": "comparison",
+      "body_en": "Seamless resin floors are not interchangeable. Epoxy is hard and chemically resistant and is the usual coating for dry warehouses, workshops and car parks, but its thermal expansion differs enough from concrete's that thermal shock, such as hot-water washdowns, can crack it. Cementitious urethane (urethane cement, sold as heavy-duty PU screeds) has chemistry close to concrete, moves with the slab, and withstands thermal shock, steam and boiling water; the food and beverage industry has largely moved from epoxy and dairy brick to it, and it is the usual choice for commercial kitchens, food plants and wash-down areas. It is laid much thicker than an epoxy coating, so it costs more and takes longer to return to service. Thin polyurethane coatings are more flexible than epoxy and are used as UV-stable top coats. The life of any of them depends at least as much on substrate preparation (moisture testing, grinding or shot blasting) and on matching the system to the use as on the resin. A quote should name the system, its thickness in mm, the substrate preparation, the slip finish, coving and the cure time before traffic. Not established here: manufacturer temperature ratings; take them from the system's data sheet.",
+      "body_ar": "الأرضيات الراتنجية المتصلة ليست بديلة لبعضها. فالإيبوكسي صلب ومقاوم للكيماويات وهو الطلاء المعتاد للمستودعات الجافة والورش ومواقف السيارات، لكن تمدده الحراري يختلف عن الخرسانة بما يكفي لأن تُشقّقه الصدمة الحرارية مثل الغسيل بالماء الساخن. أما اليوريثان الأسمنتي (ويُباع كطبقات PU ثقيلة) فتركيبته قريبة من الخرسانة ويتحرك مع البلاطة ويتحمل الصدمة الحرارية والبخار والماء المغلي؛ وقد تحولت صناعة الأغذية والمشروبات من الإيبوكسي وطوب الألبان إليه إلى حد كبير، وهو الخيار المعتاد للمطابخ التجارية ومصانع الأغذية ومناطق الغسيل. ويُفرد بسماكة أكبر بكثير من طلاء الإيبوكسي، فتكلفته أعلى ويحتاج وقتاً أطول قبل إعادة الاستخدام. وطلاءات البولي يوريثان الرقيقة أكثر مرونة من الإيبوكسي وتُستخدم كطبقة نهائية ثابتة تحت الأشعة فوق البنفسجية. ويعتمد عمر أي منها على تحضير السطح (فحص الرطوبة والجلخ أو السفع بالكريات) وعلى ملاءمة النظام للاستخدام بقدر اعتماده على نوع الراتنج. ويجب أن يذكر عرض السعر اسم النظام وسماكته بالمليمتر وتحضير السطح وتشطيب مقاومة الانزلاق والزوايا المقوّسة ووقت المعالجة قبل الحركة. لم يُثبت هنا: درجات الحرارة التي يحددها المصنعون؛ تؤخذ من ورقة بيانات النظام.",
+      "sources": [
+        "https://issuu.com/pmmimediagroup/docs/augustpfw21_issuu/43",
+        "https://www.fastlineservices.co.uk/blog/epoxy-vs-polyurethane-flooring",
+        "https://onestopepoxy.com/collections/urethane-cement"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-27",
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: epoxy cracks under thermal shock from hot washdowns; urethane cement chemistry close to concrete, handles steam/boiling water; F&B moved from epoxy and dairy brick to urethane cement (ProFood World, quoting Flowcrete); thicker, higher upfront cost; life depends on preparation and matching -> confirmed. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
+    },
+    {
+      "id": "flooring:slip-ratings-r9-to-r13",
+      "topic": "Slip resistance classes R9-R13 (DIN 51130 ramp test)",
+      "topic_ar": "فئات مقاومة الانزلاق R9 إلى R13 (اختبار المنحدر DIN 51130)",
+      "kind": "technical_reference",
+      "body_en": "The R value printed on a tile data sheet comes from the DIN 51130 ramp test: a test person in standard treaded shoes walks forwards and backwards on the floor covering, which is coated with engine oil, while the ramp is tilted until the walker loses footing. The angle sets the class: R9 6-10 degrees, R10 10-19, R11 19-27, R12 27-35, R13 above 35. R9 is the lowest requirement and R13 the highest. Because the test uses oil and treaded shoes, it favours raised-relief or rough surfaces, so it is a guide for shod work areas (kitchens, workshops, ramps); its results may not transfer to bare feet or untreaded footwear on wet floors such as pool decks. Ask the supplier for the R class on the test report of the exact product and finish (a polished and a matt face of the same tile rate differently). Not established here: any UAE regulation fixing the minimum R class for a given room.",
+      "body_ar": "قيمة R المطبوعة في ورقة بيانات البلاط تأتي من اختبار المنحدر DIN 51130: يمشي شخص الاختبار بحذاء قياسي محزّز إلى الأمام والخلف على الأرضية المدهونة بزيت المحرك، بينما يُمال المنحدر حتى يفقد توازنه. وتحدد الزاوية الفئة: R9 من 6 إلى 10 درجات، وR10 من 10 إلى 19، وR11 من 19 إلى 27، وR12 من 27 إلى 35، وR13 أكثر من 35. وR9 أدنى متطلب وR13 أعلاها. ولأن الاختبار يستخدم الزيت والأحذية المحزّزة فهو يفضّل الأسطح البارزة أو الخشنة، فهو دليل لمناطق العمل بالأحذية (المطابخ والورش والمنحدرات)؛ وقد لا تنطبق نتائجه على الأقدام الحافية أو الأحذية غير المحزّزة على الأرضيات الرطبة مثل أرصفة المسابح. اطلب من المورد فئة R من تقرير الاختبار للمنتج والتشطيب نفسه (فالوجه اللامع والوجه المطفأ للبلاطة نفسها يُصنَّفان بشكل مختلف). لم يُثبت هنا: أي تشريع إماراتي يحدد الحد الأدنى لفئة R لغرفة معينة.",
+      "sources": [
+        "https://presse.dguv.de/medien/ifa/en/pub/ada/pdf_en/aifa0086e.pdf",
+        "https://www.baunetzwissen.de/glossar/r/r-wert-2947055?thema=boden",
+        "https://safetydirectamerica.com/?p=8534"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-27",
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: walker forwards/backwards, engine oil, angle bands R9 6-10 ... R13 > 35, R9 lowest R13 highest, treaded test shoes favour raised relief and results may not transfer to non-treaded footwear on wet floors -> confirmed. The barefoot test (DIN 51097) was not in the excerpts and is not stated. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     }
   ],
   "eval": [
@@ -157,6 +225,54 @@
         903,
         1198,
         1209
+      ]
+    },
+    "authored_27_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-27",
+      "pages_opened": [],
+      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". Independent review of #1632 (27 Oct 2026): the 7 Oct stating rule requires a page actually opened, so every id above is stored verified=false and its eval questions are held in held_eval; move each back (verified:true, question into eval, bank item into items) only after its cited pages are opened and every fact is confirmed.",
+      "reason": "Trade had 5 entries against 1216 invited leads (measured 27 Oct 2026); the deep packs of comparable trades hold 30-58.",
+      "ledger": [
+        893,
+        899
+      ],
+      "held_unverified": [
+        "flooring:porcelain-vs-ceramic-water-absorption",
+        "flooring:lvt-vs-spc-vs-laminate",
+        "flooring:epoxy-vs-pu-vs-urethane-cement",
+        "flooring:slip-ratings-r9-to-r13"
+      ],
+      "served": [],
+      "held_eval": [
+        {
+          "q_en": "Is a 'vitrified' tile the same as porcelain?",
+          "q_ar": "هل البلاط 'الفيتريفايد' هو نفسه البورسلان؟",
+          "expected_entry_ids": [
+            "flooring:porcelain-vs-ceramic-water-absorption"
+          ]
+        },
+        {
+          "q_en": "Should I put SPC or laminate in a kitchen that gets mopped every day?",
+          "q_ar": "هل أركّب SPC أم لامينيت في مطبخ يُمسح يومياً بالماء؟",
+          "expected_entry_ids": [
+            "flooring:lvt-vs-spc-vs-laminate"
+          ]
+        },
+        {
+          "q_en": "Our restaurant kitchen floor is hosed with hot water nightly; epoxy or something else?",
+          "q_ar": "أرضية مطبخ مطعمنا تُغسل بالماء الساخن كل ليلة؛ إيبوكسي أم شيء آخر؟",
+          "expected_entry_ids": [
+            "flooring:epoxy-vs-pu-vs-urethane-cement"
+          ]
+        },
+        {
+          "q_en": "What does R11 on a tile data sheet mean?",
+          "q_ar": "ماذا يعني R11 في ورقة بيانات البلاط؟",
+          "expected_entry_ids": [
+            "flooring:slip-ratings-r9-to-r13"
+          ]
+        }
       ]
     }
   }

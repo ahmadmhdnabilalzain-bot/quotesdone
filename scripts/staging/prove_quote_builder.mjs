@@ -19,6 +19,7 @@
 //     real supplier's numbers, and it is the one no amount of reading the source can confirm.
 import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { readFileSync } from 'node:fs';
+import { pickApiKey } from '../lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 const ref = process.argv[2];
 if (!ref) { console.error('usage: prove_quote_builder.mjs <ref>'); process.exit(2); }
@@ -49,8 +50,8 @@ const sql = async (query, attempt = 0) => {
 };
 
 const keys = await (await fetch(`https://api.supabase.com/v1/projects/${ref}/api-keys?reveal=true`, { headers: H })).json();
-const ANON = keys.find((k) => k.name === 'anon')?.api_key;
-const SERVICE = keys.find((k) => k.name === 'service_role')?.api_key;
+const ANON = pickApiKey(keys, 'publishable');
+const SERVICE = pickApiKey(keys, 'secret');
 const BASE = `https://${ref}.supabase.co`;
 const svc = { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/json' };
 

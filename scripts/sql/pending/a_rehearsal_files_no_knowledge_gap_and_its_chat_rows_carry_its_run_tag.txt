@@ -1,1 +1,0 @@
-Committed, not applied: applied at merge by the release operator (apply-at-merge-never-before). Proved before merge by scripts/checks/a_rehearsal_leaves_no_chat_rows_and_files_no_task.test.mjs, which replays this file in one aborted transaction. When applied, delete this note and append the file to the END of MANIFEST.txt in the same commit. Seat: customer_support.

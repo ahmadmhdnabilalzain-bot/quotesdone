@@ -123,9 +123,10 @@ export async function staleRunTags({ graceMinutes = 60 } = {}) {
 }
 
 /** Remove the fixtures of runs that are over, each with the harness's own teardown by its exact tag. */
+// opts.limit bounds how many runs one call removes (withRun sweeps a few per start; run.mjs takes them all).
 export async function sweepStaleRuns(opts = {}) {
   const out = [];
-  for (const tag of await staleRunTags(opts)) {
+  for (const tag of (await staleRunTags(opts)).slice(0, opts.limit ?? Infinity)) {
     if (NEVER_SWEPT.has(tag)) continue;   // belt and braces: never the founder's demo accounts
     const t = await teardown(newRun({ tag, quiet: true }));
     out.push({ tag, summary: t.summary });
@@ -170,9 +171,9 @@ export async function closeRun(run, { keep = false } = {}) {
 
 /**
  * Knowledge gaps (and their org_tasks) first asked inside this run's window by a question this run asked, read from
- * the run's own tagged sales_decision_log rows. The rehearsal branch in fn_sales_assist makes it 0; anything else is a
- * task nobody confirmed. Before scripts/sql/a_rehearsal_files_no_knowledge_gap_and_its_chat_rows_carry_its_run_tag.sql
- * is applied there is no tag column, and this throws (reported as knowledge_gaps_filed_error, never as 0).
+ * the run's own tagged sales_decision_log rows. The test-traffic branch in fn_sales_assist makes it 0 (scripts/sql/
+ * a_harness_chat_turn_carries_its_run_tag_and_files_no_gap_or_task.sql); anything else is a task nobody confirmed. If the
+ * tag column is missing this throws (reported as knowledge_gaps_filed_error, never as 0).
  */
 export async function gapsFiled(run) {
   const r = (await read(`with w as (select min(started_at) t0 from public.rehearsal_window where run_tag = ${q('qd_run:' + run.tag)}),
@@ -217,9 +218,8 @@ export async function leftovers(run) {
       (select count(*) from public.support_customer_profile where email like ${like} or customer_id::text in (${ids(run.ids.customers)}))::int support_customer_profile,
       (select count(*) from public.support_case c join public.support_customer_profile p on p.id = c.customer_profile_id
         where p.email like ${like} or p.customer_id::text in (${ids(run.ids.customers)}))::int support_case`))[0];
-  // The chat rows a turn writes, by the run tag a00_chat_row_e2e_run_tag stamps. The column arrives with
-  // scripts/sql/a_rehearsal_files_no_knowledge_gap_and_its_chat_rows_carry_its_run_tag.sql at merge; until it is applied
-  // the count cannot be taken, and the line says 'not applied' rather than a 0 it never measured.
+  // The chat rows a turn writes, by the run tag the a00_*_e2e_run_tag triggers stamp (a_harness_chat_turn_carries_its_run_tag_
+  // and_files_no_gap_or_task.sql). A table without the column says 'not applied' rather than a 0 it never measured.
   const tagged = new Set((await read(`select table_name t from information_schema.columns where table_schema = 'public' and column_name = 'e2e_run_tag'
       and table_name in ('assistant_logs','sales_decision_log','support_reply_readability')`)).map((x) => x.t));
   const byTag = ['assistant_logs', 'sales_decision_log', 'support_reply_readability'].filter((x) => tagged.has(x));

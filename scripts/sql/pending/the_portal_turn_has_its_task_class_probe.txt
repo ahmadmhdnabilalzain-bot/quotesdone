@@ -1,0 +1,6 @@
+A PROBE (pure, no DDL, no write of its own, ends in raise exception CHK<<...>>): run after its .sql in the SAME query through
+node scripts/qsql.mjs, or alone to read the live table. Never applied on its own; kept as the proof named by "PROVED" in
+the_portal_turn_has_its_task_class.sql. This note stays for the life of the file. Seat: customer_support.
+
+27 Oct 2026, production: alone -> PROBE FAILED (fn_task_class row=none, route task_class=general_drafting);
+with the .sql -> PROBE OK: sales_engineer -> customer_portal_assistant (row and route). Afterwards 0 rows for fn 'sales_engineer'.

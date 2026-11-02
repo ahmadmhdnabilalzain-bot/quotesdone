@@ -1,0 +1,137 @@
+[
+ {
+  "category": "aluminium",
+  "ms": 16911,
+  "status": "answered",
+  "reason": null,
+  "asked": [
+   "element",
+   "dimensions_qty",
+   "scope",
+   "location"
+  ],
+  "filled": {
+   "scope": "Supply and install"
+  },
+  "phases": [
+   "decompose:done",
+   "resolve:done",
+   "read:skipped",
+   "synthesise.1.fields:done",
+   "synthesise.1:done"
+  ]
+ },
+ {
+  "category": "hvac",
+  "ms": 12902,
+  "status": "answered",
+  "reason": null,
+  "asked": [
+   "system_type",
+   "application_area",
+   "new_or_replace",
+   "scope",
+   "location"
+  ],
+  "filled": {
+   "system_type": "package units",
+   "new_or_replace": "new"
+  },
+  "phases": [
+   "decompose:done",
+   "resolve:done",
+   "read:skipped",
+   "synthesise.1.fields:done",
+   "synthesise.1:done"
+  ]
+ },
+ {
+  "category": "aluminium",
+  "ms": 17127,
+  "status": "answered",
+  "reason": null,
+  "asked": [
+   "element",
+   "dimensions_qty",
+   "scope",
+   "location"
+  ],
+  "filled": {
+   "location": "فيلا في أبوظبي"
+  },
+  "phases": [
+   "decompose:done",
+   "resolve:done",
+   "read:skipped",
+   "synthesise.1.fields:done",
+   "synthesise.1:done"
+  ]
+ },
+ {
+  "category": "aluminium",
+  "ms": 15434,
+  "status": "answered",
+  "reason": null,
+  "asked": [
+   "element",
+   "dimensions_qty",
+   "scope",
+   "location"
+  ],
+  "filled": {
+   "scope": "Supply and install"
+  },
+  "phases": [
+   "decompose:done",
+   "resolve:done",
+   "read:skipped",
+   "synthesise.1.fields:done",
+   "synthesise.1:done"
+  ]
+ },
+ {
+  "category": "hvac",
+  "ms": 13977,
+  "status": "answered",
+  "reason": null,
+  "asked": [
+   "system_type",
+   "application_area",
+   "new_or_replace",
+   "scope",
+   "location"
+  ],
+  "filled": {
+   "new_or_replace": "New"
+  },
+  "phases": [
+   "decompose:done",
+   "resolve:done",
+   "read:skipped",
+   "synthesise.1.fields:done",
+   "synthesise.1:done"
+  ]
+ },
+ {
+  "category": "aluminium",
+  "ms": 15748,
+  "status": "answered",
+  "reason": null,
+  "asked": [
+   "element",
+   "dimensions_qty",
+   "scope",
+   "location"
+  ],
+  "filled": {
+   "location": "فيلا في أبوظبي"
+  },
+  "phases": [
+   "decompose:done",
+   "resolve:done",
+   "read:skipped",
+   "synthesise.1.fields:done",
+   "synthesise.1:done"
+  ]
+ }
+]

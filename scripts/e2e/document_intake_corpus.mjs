@@ -133,7 +133,7 @@ export function printDate(iso, style) {
 }
 
 // ── one licence's content ─────────────────────────────────────────────────────────────────────────
-function licenceTruth(key, n, opts = {}) {
+export function licenceTruth(key, n, opts = {}) {
   const A = AUTHORITIES[key];
   const word = NAMES[n % NAMES.length];
   const acts = opts.acts || [ACTIVITIES[n % 12], ACTIVITIES[(n + 5) % 12]];
@@ -157,7 +157,7 @@ const fieldRows = (A, t) => [
 
 // ── text PDF: colon layout (one string per line) or a two-column table (label and value each placed on its own) ──
 const esc = (s) => String(s).replace(/([()\\])/g, '\\$1');
-function licenceTextPdf(A, t, { cover = false } = {}) {
+export function licenceTextPdf(A, t, { cover = false } = {}) {
   const rows = fieldRows(A, t);
   const head = A.title.map((s, i) => [s, i === A.title.length - 1 ? 16 : 13]);
   const footer = [['(QuotesDone synthetic fixture - not a real company or licence)', 8]];
@@ -181,7 +181,7 @@ function multiPage(tableContent) {
   return rawPdf(pages.map((c) => ({ content: c })));
 }
 /** A PDF whose pages are given content streams, optionally each with one JPEG XObject (a scanned page). */
-function rawPdf(pages) {
+export function rawPdf(pages) {
   const objs = ['<< /Type /Catalog /Pages 2 0 R >>', null, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
   const kids = [];
   const bin = [];
@@ -226,7 +226,7 @@ const AUTH_AR = { 'Ajman Department of Economic Development': 'دائرة الت
 const FORM_AR = { 'Sole Establishment': 'مؤسسة فردية', 'Limited Liability Company': 'شركة ذات مسؤولية محدودة' };
 // ── the same licence as a picture (what a phone or a scanner produces) ───────────────────────────────
 const xml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-function licenceSvg(A, t, lang = 'en') {
+export function licenceSvg(A, t, lang = 'en') {
   const W = 1240, H = 1754; let y = 150; const out = [];
   const txt = (x, s, size, anchor = 'start', weight = 'normal') => out.push(`<text x="${x}" y="${y}" font-family="Arial" font-size="${size}" font-weight="${weight}" text-anchor="${anchor}" fill="#111">${xml(s)}</text>`);
   const AR = { no: 'رقم الرخصة', name: 'اسم الشركة', trade: 'الاسم التجاري', form: 'الشكل القانوني', emirate: 'الإمارة', auth: 'جهة الإصدار', issue: 'تاريخ الإصدار', expiry: 'تاريخ الانتهاء', acts: 'الأنشطة' };
@@ -250,7 +250,7 @@ function licenceSvg(A, t, lang = 'en') {
   return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><rect width="100%" height="100%" fill="#fbfbf8"/>`
     + `<rect x="40" y="40" width="${W - 80}" height="${H - 80}" fill="none" stroke="#335" stroke-width="4"/>${out.join('')}</svg>`);
 }
-async function picture(svg, variant) {
+export async function picture(svg, variant) {
   const base = sharp(svg).flatten({ background: '#ffffff' });
   switch (variant) {
     case 'png': return { bytes: await base.png().toBuffer(), mime: 'image/png', ext: 'png' };

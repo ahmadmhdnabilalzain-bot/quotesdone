@@ -16,12 +16,13 @@ customer rows were gone.
 road writes elsewhere, and leftovers() could not see what it never counted, so every run read "clean".
 
 **How to apply:**
-- A rehearsal is known in the database by `fn_e2e_rehearsal_tag()` (service-role header or app.e2e_run_tag, naming a
-  rehearsal_window). `a00_chat_row_e2e_run_tag` stamps `e2e_run_tag` on the three chat tables; readability rows become
-  demo. fn_sales_assist / fn_support_knowledge_gap file NO gap/task for a rehearsal
-  (`scripts/sql/a_rehearsal_files_no_knowledge_gap_and_its_chat_rows_carry_its_run_tag.sql`).
-- Teardown (`scripts/lib/demo_factory.mjs`) removes assistant_logs by audience and tag, the other two by tag, and the
-  support chain by the run's own email/ids. closeRun counts gaps a run filed BEFORE teardown (the tagged decision rows
+- A rehearsal is known in the database by `fn_ai_cost_log_e2e_run_tag()` (the proven run header, naming a
+  rehearsal_window). `a00_<table>_e2e_run_tag` stamps `e2e_run_tag` on the three chat tables; fn_sales_assist /
+  fn_support_knowledge_gap file NO gap/task for test traffic
+  (`scripts/sql/a_harness_chat_turn_carries_its_run_tag_and_files_no_gap_or_task.sql`, it_engineer, applied). #1643's
+  own SQL was dropped on 2 Nov 2026: it duplicated that file and would have replaced the live fn_sales_assist.
+- Teardown (`scripts/lib/demo_factory.mjs`) removes the chat rows via `chatTurnSteps` and the support chain by the
+  run's own email/ids (this PR's addition). closeRun counts gaps a run filed BEFORE teardown (the tagged decision rows
   are the only link) and fails the run on any.
 - When a new feature writes a row per chat turn, add it to teardown AND leftovers() in the same PR, or the harness
   will keep reporting clean while it leaks. Ask "what does one turn write?" by reading triggers on the table too.

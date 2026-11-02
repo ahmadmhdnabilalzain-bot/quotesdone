@@ -4,6 +4,7 @@
 
 ## Cleaning (cleaning)
 - **Open:** What kind of cleaning: regular (daily/weekly), one-off deep clean, move-in/move-out, post-construction, or a specialist job (kitchen exhaust, sofa/carpet, tanks)? Home, office, retail, or building common areas?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: the type of clean and what is included; size: rooms and area; existing: what is left to clean (dust, paint); location; timing
 - **Then ask (in order, one or two at a time):**
   - Size: bedrooms/bathrooms for homes; floor area or number of floors for offices and buildings.
   - Furnished or empty; any areas excluded.
@@ -23,6 +24,7 @@
 
 ## Facade cleaning: rope access and BMU (facade-cleaning)
 - **Open:** Which building (type, number of floors or height) and which facade surfaces: glass only, or cladding, stone, signage too? Is there a BMU (roof cradle) on the building?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: the building height and surfaces; system: BMU or rope access; location; timing
 - **Then ask (in order, one or two at a time):**
   - Access method: BMU, rope access, mast climber, boom lift for low-rise; if unsure, say the supplier proposes it after a survey.
   - Who provides anchors or the BMU, and whether BMU inspection/certification records are current (held by the building owner or facility manager).
@@ -41,6 +43,7 @@
 
 ## Pest control (pest)
 - **Open:** Which pest (cockroaches, bed bugs, ants, termites, rodents, mosquitoes/flies, birds, snakes or scorpions), and is it active now or preventive?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: which pest, where and since when; size: the property size; usage: children or pets at home; system: one visit or a contract with follow-ups; location; timing
 - **Then ask (in order, one or two at a time):**
   - Property: apartment, villa, office, restaurant kitchen, warehouse; size (rooms or area); indoor, garden, or both.
   - Where seen and how bad: one room, whole unit, neighbours affected too.
@@ -59,6 +62,7 @@
 
 ## Movers (movers)
 - **Open:** Moving from where to where (emirate/area to emirate/area, or international), and what size: studio, bedroom count, villa, or office?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** location: from where to where; size: the home size or volume; scope: packing, dismantling and storage; timing
 - **Then ask (in order, one or two at a time):**
   - Inventory: large items (beds, wardrobes, sofas, fridge, washing machine), boxes estimate, fragile items (glass, art, piano), heavy items (safe, gym equipment).
   - Services: packing, unpacking, dismantle/reassemble furniture, curtain/TV/AC unit removal and fixing, appliance disconnection.
@@ -79,6 +83,7 @@
 ## Other services (general-services-other)
 Use this method for any trade not covered by another playbook. Never map it to the nearest trade; record the exact trade.
 - **Open:** What exactly needs doing, in one sentence, and what is the result wanted? Is it new work, repair, replacement or a recurring service?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: what needs doing; size; existing; location; timing
 - **Then ask (in order, one or two at a time):**
   - Identify the trade: name it precisely (for example signage, glazing film, upholstery, sign installation, welding repair). If it involves a regulated trade (pest, rope access, electrical, gas), apply that trade's rules.
   - Scope: list each item or task; what is included and what is excluded; who removes old items.

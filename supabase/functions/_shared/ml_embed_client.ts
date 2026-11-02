@@ -6,6 +6,7 @@
 // caller takes the gte-small path. (Review of #907, finding 1: an in-process load on wa_inbound or customer_api
 // could kill the isolate mid-reply, which no try/catch can recover.)
 // The credential is cred_fn_ai, the fn.ai context whose scope includes embed_ml; 'fn' names the caller in the audit.
+import { errorText } from './error_text.ts';
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
@@ -26,8 +27,21 @@ export async function readSpace(admin: Admin): Promise<Space> {
 
 let cred: { v: string; at: number } | null = null;
 
-export function embedQueryMlRemote(admin: Admin, text: string, caller: string, timeoutMs: number): Promise<number[] | null> {
-  return embedRemote(admin, text, caller, timeoutMs, 'ml');
+// EMBED_ML DOWN COSTS ONE TIMEOUT, NOT ONE PER TEXT (it_engineer, 27 Oct 2026). Review of #1687: the learning tick
+// embeds up to 8 lessons in a row, each with an ~8 s timeout, so an embed_ml that is down could add ~64 s and push
+// resilience_ping's main tick past its 95 s deadline; the held replay's steps embed one after another the same way.
+// When embed_ml does not answer at all (a timeout, a throw, a 5xx with no JSON body - the platform's, not embed_ml's),
+// every call in this worker for the next EMBED_COOL_MS returns null at once with reason 'embed_ml_cooling_off', and
+// each caller takes the path it already takes for a null. A per-text refusal (503 embed_failed, a bad vector) is
+// embed_ml answering, and opens nothing. prevented by: _shared/embed_failure_reason.test.ts
+export const EMBED_COOL_MS = 30_000;
+let downUntil = 0;
+let downWhy = '';
+
+/** `why`, when given, is told the reason a call returned null (27 Oct 2026: a bare null hid three different failures). */
+export type EmbedWhy = (reason: string) => void;
+export function embedQueryMlRemote(admin: Admin, text: string, caller: string, timeoutMs: number, why?: EmbedWhy): Promise<number[] | null> {
+  return embedRemote(admin, text, caller, timeoutMs, 'ml', why);
 }
 /**
  * gte-small ASKED FROM OUTSIDE THE EDGE RUNTIME (ceo, ledger 1003 stage 2, 19 Oct 2026). gte_embed.embedLine needs
@@ -36,16 +50,19 @@ export function embedQueryMlRemote(admin: Admin, text: string, caller: string, t
  * rows (and 4,910 of 6,102 sales rows) had no vector yet. Measured: marketing-exam-04's entry ranked 1st fused, absent
  * ml-only. The SAME model answers here (embed_ml action 'gte', Supabase's own gte-small), so the space never mixes.
  */
-export function embedGteRemote(admin: Admin, text: string, caller: string, timeoutMs: number): Promise<number[] | null> {
-  return embedRemote(admin, text, caller, timeoutMs, 'gte');
+export function embedGteRemote(admin: Admin, text: string, caller: string, timeoutMs: number, why?: EmbedWhy): Promise<number[] | null> {
+  return embedRemote(admin, text, caller, timeoutMs, 'gte', why);
 }
-async function embedRemote(admin: Admin, text: string, caller: string, timeoutMs: number, space: Space): Promise<number[] | null> {
+async function embedRemote(admin: Admin, text: string, caller: string, timeoutMs: number, space: Space, why?: EmbedWhy): Promise<number[] | null> {
   const t = String(text ?? '').trim();
-  if (!t) return null;
+  const fail = (reason: string) => { try { why?.(reason); } catch (_e) { /* a reporter never breaks the call */ } return null; };
+  if (!t) return fail('empty_text');
+  if (Date.now() < downUntil) return fail('embed_ml_cooling_off (' + downWhy + ')');
+  const down = (reason: string) => { downUntil = Date.now() + EMBED_COOL_MS; downWhy = reason; return fail(reason); };
   try {
     if (!cred || Date.now() - cred.at > 10 * 60_000) {
       const { data } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_ai').maybeSingle();
-      if (!data?.value) return null;
+      if (!data?.value) return fail('no_credential');
       cred = { v: String(data.value), at: Date.now() };
     }
     const r = await fetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/embed_ml', {
@@ -53,9 +70,18 @@ async function embedRemote(admin: Admin, text: string, caller: string, timeoutMs
       body: JSON.stringify({ __secret: cred.v, fn: caller, action: space === 'ml' ? 'query' : 'gte', text: t }),
       signal: AbortSignal.timeout(timeoutMs),
     });
-    if (!r.ok) return null;
+    if (!r.ok) {
+      const j = await r.json().catch(() => null);
+      const reason = 'embed_ml_http_' + r.status + (j?.error ? ':' + errorText(j.error, 80) : j ? '' : ':no_json_body');
+      return r.status >= 500 && !j ? down(reason) : fail(reason);
+    }
     const j = await r.json();
     const v = typeof j?.embedding === 'string' ? JSON.parse(j.embedding) : null;
-    return Array.isArray(v) && v.length === 384 && j.space === space ? v as number[] : null;
-  } catch (_e) { return null; }
+    return Array.isArray(v) && v.length === 384 && j.space === space ? v as number[] : fail('embed_ml_bad_vector');
+  } catch (e) {
+    const n = (e as Error)?.name;
+    return down(n === 'TimeoutError' || n === 'AbortError' ? 'embed_ml_timeout_' + timeoutMs + 'ms' : 'embed_ml_error: ' + errorText(e));
+  }
 }
+/** For tests: forget the cached credential so the next call reads app_secrets again. */
+export function _resetEmbedClientForTest(): void { cred = null; spaceCache = null; downUntil = 0; downWhy = ''; }

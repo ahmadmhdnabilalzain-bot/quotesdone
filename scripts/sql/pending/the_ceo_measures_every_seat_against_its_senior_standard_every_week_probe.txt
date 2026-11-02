@@ -1,0 +1,5 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes (the week's verdict rows,
+one simulated previous-week row for it_engineer, and the improvement that simulated fall opens). Run it after
+the_ceo_measures_every_seat_against_its_senior_standard_every_week.sql is live; it must print PROBE OK, followed by every
+seat's level and measures. Measured PROBE OK on htdblwldjkcgjvmqkbeh, 27 Oct 2026, together with the unapplied file in
+one rolled-back transaction. Seat: ceo.
