@@ -7,7 +7,7 @@
 --    11:07 Dubai, were claimed by send_outbox at 11:16 and set to 'held' with NO last_error (agent_runs: "18 held (supplier
 --    sending gate or stale)"). Cause: send_outbox's stale guard (email_stale_hours = 72) measured age from created_at, so a
 --    row the brake had deferred was 120 h "old" though it had been due for 9 minutes. 'held' is terminal: nothing sends it.
---    The code fix is in supabase/functions/send_outbox (channels.ts hoursPastDue); this file releases what it held.
+--    The code fix is in supabase/functions/send_outbox (channels.ts isStale); this file releases what it held.
 --  * The producer queued nothing new: the 09:00 beat ran the day's batch, the bounce brake fired inside it (2 of 30 over
 --    3 days), and the tick then answered "already ran this Dubai day" for the rest of the day, resume or not.
 --
@@ -17,9 +17,11 @@
 --     queued, no row is logged) instead of firing the brake again on the bounces it already braked on; once the window is
 --     under the limit, enqueue_supplier_invites runs with every one of its own gates (placement, cap, window, brake).
 --     The brake itself is unchanged.
---  2. Releases the supplier invitations the old stale rule held: status 'held' with no last_error, never sent, the lead still
---     reachable, and its mailbox class open today (fn_invite_placement_open_providers). They are spread across the current
---     Dubai sending window, or the next weekday's when it has closed. The outbox's daily cap still governs how many leave.
+--  2. fn_sales_engineer_releases_the_invitations_held_stale_on_2_nov, called by the tick's batch: releases ids 116650-116668
+--     only, still held with no reason, never sent, the lead still reachable, its mailbox class open; only while invite_enabled
+--     and supplier_outreach_golive are on and the 3-day bounce window is under the brake's limit. Nothing is released at
+--     apply. They are spread across the current Dubai sending window, or the next working day's; the outbox's daily cap
+--     still governs how many leave.
 -- Prevented by: supabase/functions/send_outbox/channels.test.ts (the stale rule) and
 --   scripts/checks/a_resumed_invitation_day_sends_the_same_day.test.mjs (the tick reads the resume).
 -- Probe: a_resumed_invitation_day_sends_the_same_day_probe.sql
@@ -36,7 +38,7 @@ declare
   v_due int := 0; v_sent int := 0; v_failed jsonb := '[]'::jsonb; v_clock jsonb; v_out jsonb; v_why text;
   v_cfg jsonb := coalesce((select nullif(value, '')::jsonb from public.app_secrets where key = 'invite_warmup'), '{}'::jsonb);
   v_gate text; v_daily_done boolean; v_batch_done boolean; v_batch_why text; v_batch_wait boolean := false;
-  v_resumed timestamptz; v_hs int; v_hb int; v_max numeric;
+  v_resumed timestamptz; v_hs int; v_hb int; v_max numeric; v_released jsonb;
 begin
   -- A RESUME REOPENS THE DAY'S BATCH (2 Nov 2026, ledger 1486). The latest brake resumed today (Dubai); a batch run before it
   -- does not count as today's batch.
@@ -95,6 +97,8 @@ begin
       -- THE WARM-UP (22 Sep 2026). fn_invite_ramp sets today's invite_daily_cap from the last 48 h of bounces and
       -- complaints. Open days only: a held day sends nothing, so it must not move the cap.
       if v_batch_why is null then v_cap := public.fn_invite_ramp(); end if;
+      -- The 18 the old stale rule held go back only through this gate; the routine asks the go switch and the brake itself.
+      if v_batch_why is null then v_released := public.fn_sales_engineer_releases_the_invitations_held_stale_on_2_nov(); end if;
       -- enqueue_supplier_invites holds itself (gates, weekend, holiday, bounce brake, cap, placement).
       v_invited := public.enqueue_supplier_invites(null);
     end if;
@@ -107,7 +111,8 @@ begin
                                 || v_hb || ' bounced of ' || v_hs || ' sent, over the limit');
     end if;
     v_out := jsonb_build_object('job', 'supplier_outreach_batch', 'dubai_day', v_now_dxb::date, 'held', v_batch_why is not null,
-      'held_because', v_batch_why, 'placement_gate', v_gate, 'invites', jsonb_build_object('queued', v_invited, 'cap', v_cap));
+      'held_because', v_batch_why, 'placement_gate', v_gate, 'invites', jsonb_build_object('queued', v_invited, 'cap', v_cap),
+      'released_stale', v_released);
     insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
     values ('sales_engineer', 'ok', now(), now(), v_out,
             case when v_batch_why is not null
@@ -138,7 +143,7 @@ begin
 
   v_out := jsonb_build_object('job', 'supplier_outreach', 'dubai_day', v_now_dxb::date, 'held', v_why is not null, 'held_because', v_why,
     'placement_gate', v_gate, 'batch_waiting', v_batch_wait, 'batch_held_because', v_batch_why,
-    'invites', jsonb_build_object('queued', coalesce(v_invited, 0), 'cap', v_cap),
+    'invites', jsonb_build_object('queued', coalesce(v_invited, 0), 'cap', v_cap), 'released_stale', v_released,
     'reminders', jsonb_build_object('due', v_due, 'sent', v_sent, 'failed', v_failed),
     'submissions', v_clock);
   insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
@@ -147,7 +152,8 @@ begin
                then 'Supplier outreach HELD (' || v_why || '): ' || coalesce(v_invited, 0) || ' invitation(s) queued, ' || v_due
                     || ' reminder(s) due, ' || v_sent || ' written to suppliers who already started; ' || coalesce(v_clock->>'raised_to_ceo', '0') || ' undecided submission(s) raised to the CEO.'
                else 'Supplier outreach: '
-                    || case when v_batch_wait then 'the invitation batch waits for the morning inbox placement check'
+                    || case when v_batch_wait then 'the invitation batch a resume reopened waits while the 3-day bounce window reads '
+                                                   || v_hb || ' bounced of ' || v_hs || ' sent, over the limit'
                             when v_batch_why is not null then 'the invitation batch was HELD (' || v_batch_why || ')'
                             else coalesce(v_invited, 0) || ' invitation(s) queued at a cap of ' || coalesce(v_cap::text, '?') end
                     || ', ' || v_sent || ' of ' || v_due
@@ -156,19 +162,39 @@ begin
 end
 $function$;
 
--- 2. THE INVITATIONS THE OLD STALE RULE HELD GO BACK TO THE QUEUE, inside a sending window, only where they may still go.
-do $release$
+-- 2. THE 18 THE OLD STALE RULE HELD GO BACK TO THE QUEUE, and only these 18 (review of #1787: a held row with no reason was
+-- also what the supplier_emails_enabled kill switch wrote, so an open filter would undo a founder pause). Only while the
+-- campaign is open (invite_enabled and supplier_outreach_golive) and enqueue_supplier_invites' 3-day bounce brake would not
+-- fire (founder ruling 1449: bounces under 3%); otherwise it answers why and releases nothing, and the next batch asks again.
+-- ponytail: a one-off with fixed ids; a no-op once the 18 are not held. Drop it with its call in the tick after that.
+create or replace function public.fn_sales_engineer_releases_the_invitations_held_stale_on_2_nov()
+returns jsonb
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
 declare
   v_cfg jsonb := coalesce((select nullif(value, '')::jsonb from public.app_secrets where key = 'invite_warmup'), '{}'::jsonb);
   v_sh int := coalesce((v_cfg->>'window_start_hour')::int, 9);
   v_eh int := coalesce((v_cfg->>'window_end_hour')::int, 17);
   v_day date := (now() at time zone 'Asia/Dubai')::date;
-  v_start timestamptz; v_end timestamptz;
+  v_start timestamptz; v_end timestamptz; v_hs int; v_hb int; v_max numeric; v_n int;
 begin
+  if not (coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false)
+          and public.fn_supplier_outreach_golive()) then
+    return jsonb_build_object('released', 0, 'held', 'the campaign is not open (invite_enabled / supplier_outreach_golive)');
+  end if;
+  v_max := coalesce((select nullif(value, '')::numeric from public.app_secrets where key = 'invite_max_bounce_rate'), 0.08);
+  select h.sent, h.bounced into v_hs, v_hb from public.fn_invite_send_health(now() - interval '3 days') h;
+  if (v_hs >= 15 and round(v_hb::numeric / greatest(v_hs, 1), 3) > v_max) or v_hb >= greatest(5, ceil(v_hs * v_max)::int) then
+    return jsonb_build_object('released', 0, 'held', 'the 3-day bounce window reads ' || v_hb || ' bounced of ' || v_hs || ' sent, over the limit');
+  end if;
+  -- the current Dubai sending window, else the next weekday's that is not a public holiday
   loop
     v_start := greatest(now(), (v_day + make_interval(hours => v_sh)) at time zone 'Asia/Dubai');
     v_end := (v_day + make_interval(hours => v_eh)) at time zone 'Asia/Dubai';
-    exit when extract(isodow from v_day) not in (6, 7) and v_end >= v_start + interval '30 minutes';
+    exit when extract(isodow from v_day) not in (6, 7) and v_end >= v_start + interval '30 minutes'
+          and not exists (select 1 from public.company_calendar c where c.kind = 'public_holiday'
+                           and v_day between c.starts_on and coalesce(c.ends_on, c.starts_on));
     v_day := v_day + 1;
   end loop;
   with r as (
@@ -176,7 +202,8 @@ begin
       from public.notifications n
       join public.leads l on l.id = n.lead_id
       left join public.email_domain_mx m on m.domain = split_part(lower(btrim(n.to_email)), '@', 2)
-     where n.type = 'supplier_invite' and n.status = 'held' and n.last_error is null
+     where n.id between 116650 and 116668
+       and n.type = 'supplier_invite' and n.status = 'held' and n.last_error is null
        and n.sent_at is null and n.provider_message_id is null
        and public.fn_supplier_outreach_reachable(l, lower(btrim(n.to_email)))
        and public.fn_mail_provider_class(m.domain, m.hosts) = any(public.fn_invite_placement_open_providers(v_day))
@@ -187,5 +214,8 @@ begin
          last_error = 'released 2 Nov 2026: held by the created_at stale rule while not_before deferred it; send_outbox now ages a row from when it fell due'
     from r
    where n.id = r.id;
-end
-$release$;
+  get diagnostics v_n = row_count;
+  return jsonb_build_object('released', v_n, 'from', v_start, 'until', v_end);
+end $fn$;
+revoke execute on function public.fn_sales_engineer_releases_the_invitations_held_stale_on_2_nov() from public, anon, authenticated;
+

@@ -7,7 +7,11 @@ metadata:
 - **Symptom.** 18 Google-class invitations (ids 116650-116668, queued 28 Oct) released for 2 Nov 11:07 Dubai went to
   `held` at 11:16, no `last_error`, 0 attempts. send_outbox logged "18 held (supplier sending gate or stale)".
 - **Cause.** `email_stale_hours` (72) measured from `created_at`; a row moved on by `not_before` was 120 h "old" after
-  9 minutes of being due. `held` is terminal. Now `hoursPastDue` (send_outbox/channels.ts) and a `last_error` on the hold.
+  9 minutes of being due. `held` is terminal. Now `isStale` (send_outbox/channels.ts): invitation-lane types age from
+  not_before, everything else from created_at, and every row is stale 14 days after creation. Every hold writes a
+  `last_error`, the supplier_emails_enabled kill switch included, so "held, no reason" no longer means two things.
+- The 18 are released only by `fn_sales_engineer_releases_the_invitations_held_stale_on_2_nov` (fixed ids), called by the tick's
+  batch, and only while invite_enabled + supplier_outreach_golive are on and the 3-day bounce window is under 3% (ruling 1449).
 - **Second cause.** The bounce brake fires inside the 09:00 batch; the tick then answered "already ran this Dubai day",
   so a same-day resume queued nothing. A resume later than the day's batch run now reopens it, waiting while the brake's
   own 3-day window is still over the limit. The brake is unchanged.

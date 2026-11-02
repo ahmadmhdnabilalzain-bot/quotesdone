@@ -22,3 +22,29 @@ test('a brake resumed after the day\'s batch run reopens the batch', () => {
   const done = body.slice(body.indexOf('into v_daily_done, v_batch_done') - 900, body.indexOf('into v_daily_done, v_batch_done'));
   assert.match(done, /a\.started_at > v_resumed/, `${files.at(-1)}: a batch run before the resume still counts as today's batch`);
 });
+
+// Review of #1787. A held row with no reason was also what the supplier_emails_enabled kill switch wrote, so a release keyed on
+// "held, no reason" could undo a founder pause; and a release at apply ignored the go switch and the bounce brake (ledger 1449).
+const FIX = 'a_resumed_invitation_day_sends_the_same_day.sql';
+const fix = existsSync(SQL + FIX) ? readFileSync(SQL + FIX, 'utf8') : '';
+const release = fix.slice(fix.search(/create or replace function public\.fn_sales_engineer_releases_the_invitations_held_stale_on_2_nov\(/i)).split(/end \$fn\$;/)[0];
+
+test('the release names its 18 ids and nothing else', () => {
+  assert.match(release, /where n\.id between 116650 and 116668\b/, 'the release is not bounded to the 18 rows it was written for');
+  assert.doesNotMatch(fix.replace(/^\s*--.*$/gm, ''), /^\s*do \$/m, 'a release runs at apply, outside the go switch and the brake');
+});
+
+test('the release asks the go switch and the bounce brake before it touches a row', () => {
+  const update = release.search(/update public\.notifications n/);
+  assert.ok(update > 0, 'the release no longer updates the outbox');
+  const gates = release.slice(0, update);
+  assert.match(gates, /key = 'invite_enabled'/, 'the release does not read invite_enabled');
+  assert.match(gates, /fn_supplier_outreach_golive\(\)/, 'the release does not read supplier_outreach_golive');
+  assert.match(gates, /fn_invite_send_health\(now\(\) - interval '3 days'\)/, 'the release does not read the brake\'s 3-day window');
+});
+
+test('the kill-switch hold in send_outbox says why, so no release can mistake it for a stale hold', () => {
+  const outbox = readFileSync('supabase/functions/send_outbox/index.ts', 'utf8');
+  assert.match(outbox, /!supEnabled && !docReq\) \{ await admin\.from\('notifications'\)\.update\(\{ status: 'held', last_error: /,
+    'send_outbox holds supplier mail for supplier_emails_enabled with no last_error');
+});

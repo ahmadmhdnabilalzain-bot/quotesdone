@@ -31,9 +31,14 @@ export function dueFilter(now: Date): string {
 // aged out while it waited. 18 Google-hosted invitations queued 28 Oct and released for 2 Nov 11:07 Dubai were claimed at
 // 11:16 and held for good, with no last_error, so the founder's resume sent nothing. A row is stale only once it has been
 // DUE for longer than the bar; a row with no not_before is measured from created_at, exactly as before.
-export function hoursPastDue(createdAt: string, notBefore: string | null | undefined, now: Date): number {
-  const due = Math.max(new Date(createdAt).getTime(), notBefore ? new Date(notBefore).getTime() : 0);
-  return (now.getTime() - due) / 3.6e6;
+// Review of #1787: only the invitation lane's types (whose holds move not_before on purpose) are measured from not_before,
+// and every row is stale STALE_CEILING_H after it was written, so a row re-held every 30 minutes cannot go out weeks late.
+export const STALE_CEILING_H = 14 * 24;
+export function isStale(createdAt: string, notBefore: string | null | undefined, laneType: boolean, staleH: number, now: Date): { stale: boolean; hours: number } {
+  const created = new Date(createdAt).getTime();
+  const due = laneType && notBefore ? Math.max(created, new Date(notBefore).getTime()) : created;
+  const hours = (now.getTime() - due) / 3.6e6;
+  return { stale: hours > staleH || (now.getTime() - created) / 3.6e6 > STALE_CEILING_H, hours };
 }
 
 export function selectQueue(admin: SupabaseClient, limit: number, now: Date = new Date()) {
