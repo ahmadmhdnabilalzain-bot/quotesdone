@@ -3,13 +3,16 @@
 # its own script, or by hand once on main. Spend is capped at USD 2.5 by a rehearsal window.
 name: wa-exchange-real
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      media_only: { description: 'Only the six file turns (image, PDF, two bad-file controls, voice, stranger image); USD 1 cap', default: 'true' }
 concurrency: { group: wa-exchange-real, cancel-in-progress: false }
 jobs:
   exchange:
     runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
+      QD_MEDIA_ONLY: ${{ github.event.inputs.media_only == 'true' && '1' || '0' }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
     steps:
       - uses: actions/checkout@v7
