@@ -127,13 +127,16 @@ export async function readAndAssess(repo: SpecRepo, quoteId: string, ctx: Ctx) {
   const applied = applyReading(stored, q.terms_spec, reading);
   if (reading) q.terms_spec = applied.terms_spec;
   const read = applied.lines;
-  const reasons = !!(ctx.checklist?.length && ctx.reason && needsChecklist(ctx.category));
-  const found = reasons ? await ctx.reason!(read, ctx.checklist!) : null;
-  const lines = reasons ? withReasoned(read, found) : read;
+  // The reasoned specs come back null when their reading was held; that is noted, not changed.
+  let reasonHeld = false;
+  const reason0 = ctx.reason;
+  if (reason0) ctx = { ...ctx, reason: async (l, c) => { const f = await reason0(l, c); if (f === null) reasonHeld = true; return f; } };
+  const lines = ctx.checklist?.length && ctx.reason && needsChecklist(ctx.category)
+    ? withReasoned(read, await ctx.reason(read, ctx.checklist)) : read;
   const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist });
   // settled: every reading this verdict needed came back (none held by the model hold or a gateway blip). An unsettled
   // verdict is a hold that asks everything; it is real, but it is not THE verdict on this quotation, so it is never stored.
-  const settled = (!ctx.read || reading !== null) && (!reasons || found !== null);
+  const settled = (!ctx.read || reading !== null) && !reasonHeld;
   return { q, stored, reading, lines, a, settled };
 }
 
