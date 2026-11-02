@@ -80,7 +80,7 @@ const CASES = [
   { id: 't_png', licence: byId('lic_dubai_det_png'), profile: profileText, want: APPROVE, read: ['licence_no', 'name', 'authority', 'expiry'] },
   { id: 't_jpg', licence: byId('lic_abu_dhabi_added_jpg'), profile: profileText, want: APPROVE, read: ['licence_no', 'name', 'authority', 'expiry'] },
   { id: 't_blank_pdf', licence: byId('lic_blank_pdf'), profile: profileText, want: { status: 'pending', reason: 'licence_unreadable' } },
-  { id: 't_wrong_company', licence: byId('lic_mismatch_text'), profile: profileText, want: { status: 'action_required', reason: null }, observe: true, read: ['licence_no', 'name', 'authority', 'expiry'] },
+  { id: 't_wrong_company', licence: byId('lic_mismatch_text'), profile: profileText, want: { status: 'pending', reason: 'licence_name_mismatch' }, keepName: true, read: ['licence_no', 'name', 'authority', 'expiry'] },
   { id: 't_expired', licence: byId('lic_expired_text'), profile: profileText, want: { status: 'action_required', reason: 'licence_expired' }, read: ['licence_no', 'name', 'authority', 'expiry'] },
 ].filter((c) => !ONLY.length || ONLY.includes(c.id));
 
@@ -114,6 +114,7 @@ async function browserLicence(c, who, id) {
     await page.getByText(/^Uploading…/).first().waitFor({ state: 'detached', timeout: 20000 }).catch(() => { o.still_reading = true; });
     await page.waitForTimeout(1500);
     const main = (await page.locator('main').first().innerText().catch(() => page.locator('body').innerText())).replace(/[ \t]+/g, ' ');
+    o.unread_badge = /Could not be read/.test(main) && /use Replace|upload a clear/i.test(main);
     o.sees = main.split('\n').map((l) => l.trim()).filter((l) => /licen|expir|read|upload|could not|auto|number|authority|wrong|action|review/i.test(l)).slice(0, 14).join(' | ').slice(0, 900);
     o.alerts = await page.getByRole('alert').allInnerTexts().catch(() => []);
     o.shot = join(SHOTS, `${id}.png`);
@@ -168,6 +169,7 @@ async function walk(run, c, n) {
     step('the portal form takes the licence in a real browser', b.reached && b.answered && !b.hung, `reached=${b.reached} answered=${b.answered} hung=${b.hung} ${b.ms} ms ${b.error || ''} url=${b.url} page=${b.page_text} ${String(b.response).slice(0, 300)}`);
     step('what the supplier sees after the read', true, `${b.sees} | alerts: ${JSON.stringify(b.alerts)}`);
     out.licence_response = b.response;
+    if (c.id === 't_blank_pdf') step('an unreadable licence says it could not be read and offers Replace', b.unread_badge === true, `badge+instruction on the card: ${b.unread_badge}`);
   }
   if (!viaBrowser) {
     const lb = b64(c.licence.file);
@@ -229,6 +231,12 @@ async function walk(run, c, n) {
   if (c.read?.includes('name') && c.licence.truth?.legal_name_en) step('the company name read is the printed one', row.name === c.licence.truth.legal_name_en, `${row.name} vs ${c.licence.truth.legal_name_en} (registered as ${c.licence.registered})`);
   if (c.read?.includes('authority') && c.licence.truth?.authority) step('the authority read is the printed one', row.authority === c.licence.truth.authority, `${row.authority} vs ${c.licence.truth.authority}`);
   out.truth = c.licence.truth ? { licence_no: c.licence.truth.licence_no, name: c.licence.truth.legal_name_en, authority: c.licence.truth.authority, issue: c.licence.truth.issue_date, expiry: c.licence.truth.expiry_date } : null;
+  if (c.keepName) step('the registered name was not overwritten', row.company_name === c.licence.registered, `${row.company_name} vs registered ${c.licence.registered}`);
+  if (c.read?.length) {
+    const iss = await read(`select license_issue_date::text d from public.leads where id=${lead.id}`).then((x) => x[0]?.d ?? null).catch(() => 'COLUMN_ABSENT');
+    out.issue = iss;
+    if (c.licence.truth?.issue_date) step('the issue date is read and kept', iss === c.licence.truth.issue_date, `${iss} vs ${c.licence.truth.issue_date}${iss === 'COLUMN_ABSENT' ? ' (leads.license_issue_date is not live: pending SQL)' : ''}`);
+  }
   if (c.read?.length) step('doc_extracted_at is stamped', row.extracted);
   for (const [kind, status] of Object.entries(c.doc || {})) {
     const rec = (row.docs || []).filter((d) => d.kind === kind);
@@ -248,7 +256,9 @@ async function walk(run, c, n) {
   step('every notice is suppressed, none sent', real.length === 0, JSON.stringify(real).slice(0, 200));
   if (c.want.status === 'approved') {
     step('the approval notice is written', nt.some((x) => x.type === 'supplier_approved' && x.channel === 'email'), JSON.stringify(nt.map((x) => x.type)));
-    step('an approved supplier is eligible for matching', dash.json?.eligibility?.eligible === true, JSON.stringify(out.eligibility));
+    // A fixture confirms no services and has no catalogue, so these two always block a demo supplier; anything else blocking is a real finding.
+    const FIXTURE_ONLY = new Set(['scope_unconfirmed', 'undiscoverable']);
+    step('an approved supplier has no blocker but the fixture own unconfirmed scope', (out.eligibility?.blocking || []).every((b) => FIXTURE_ONLY.has(b)), JSON.stringify(out.eligibility));
   } else {
     step('a held supplier is told why', nt.length > 0, JSON.stringify(nt.map((x) => x.subject)).slice(0, 240));
     step('a held supplier is never approved or verified', row.verified !== true);

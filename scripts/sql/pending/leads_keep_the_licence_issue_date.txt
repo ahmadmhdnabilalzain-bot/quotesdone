@@ -1,0 +1,1 @@
+sales_engineer, 2 Nov 2026 (ledger 1467): adds leads.license_issue_date (nullable date); nothing else. Apply through apply-sql.yml after review (rehearse with apply=false first), then delete this note.

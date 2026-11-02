@@ -139,6 +139,8 @@ async function listDocuments(supId: number) {
     let status = 'missing';
     if (path) {
       status = 'on_file';
+      // A trade licence whose expiry nobody could read is on file but NOT read: say so on its card, not "On file" (2 Nov 2026, ledger 1467).
+      if (key === 'license' && own && !expiry) status = 'unread';
       if (expiry) {
         const d = Math.round((new Date(expiry).getTime() - today.getTime()) / 864e5);
         status = d < 0 ? 'expired' : d <= 30 ? 'expiring' : 'valid';
@@ -458,6 +460,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       const saved: string[] = [];
       let licenceNotice = false;
+      let licIssue: string | null | undefined;   // the licence's printed issue date (2 Nov 2026, ledger 1467); undefined = no licence in this call
       const failedUploads: { kind: string; reason: string }[] = [];  // NOT 'failed' - that name belongs to the module-level refusal helper above, and shadowing it here is how the raw Postgres message stayed in this reply until 22 Sep 2026.
       const { data: _isec } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_supplier_portal').maybeSingle();
       const INBOUND_SECRET = (_isec?.value as string) || '';
@@ -566,6 +569,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
           upd.trade_license_no = null; upd.license_authority = null; upd.license_city = null; upd.license_expiry = null; upd.doc_extracted_at = null;
           fieldsLeftUnread = licenceNeedsModel({ ...codeFields, legal_name_en: codeName });
           if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;
+          licIssue = codeFields.issue_date || null;
           if (codeFields.authority) upd.license_authority = codeFields.authority;
           if (codeFields.emirate) { upd.emirate = codeFields.emirate; upd.license_city = codeFields.emirate; }
         }
@@ -601,6 +605,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
               const d = jd.doc;
               if (d.expiry_date && !licExpiryFromDoc) { upd.license_expiry = d.expiry_date; licExpiryFromDoc = true; read.license = { kind: 'license', expiry: String(d.expiry_date), source: 'ai', needs_confirm: false, typed: null }; }
               if (d.license_number && !upd.trade_license_no) upd.trade_license_no = d.license_number;
+              if (d.issue_date && !licIssue) licIssue = String(d.issue_date).slice(0, 10);
               if (d.license_authority && !upd.license_authority) upd.license_authority = d.license_authority;
               if (!upd.license_city && (d.emirate || d.city)) upd.license_city = d.emirate || d.city;
               if (!upd.licence_legal_name) { const n = licenceNameFromModel(d); if (n) upd.licence_legal_name = n; }
@@ -651,6 +656,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
           return failed('save_documents', 'save_failed', 'Your files were uploaded but could not be attached to your profile. Please try again.', updErr, 502);
         }
       }
+      if (licIssue !== undefined) { const ri = await admin.from('leads').update({ license_issue_date: licIssue }).eq('id', sup.id); if (ri.error) console.error('save_documents: licence issue date not saved —', ri.error.message); }
       // REPLACE KEEPS THE PREVIOUS VERSION. After the row write succeeded, every column that held a
       // file and now holds another becomes a doc_versions row (entity 'supplier_document',
       // '<lead>:<kind>'). The old object stays in storage and in the Dropbox backup.

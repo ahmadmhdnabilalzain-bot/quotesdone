@@ -783,11 +783,14 @@ ${q}`,
       // EVERY LABELLED FIELD, BY CODE (7 Oct 2026, accuracy suite ledger 1162). Until today the licence number, the
       // authority and the emirate were written only from the model, whose switch is off, so a text licence's number
       // was never recorded. Code's reading is written first; the model below fills only what code left unread.
+      let licIssue: string | null | undefined;   // undefined = no licence in this call: leave the column alone
       let codeFields: Partial<LicenceFields> = {};
       if (licBytes?.bytes) { try { codeFields = await readLicenceFields(licBytes.bytes, licBytes.mime || 'application/pdf'); } catch (_e) { codeFields = {}; } }
       // ...and its number and authority (2 Nov 2026, ledger 1442): what the old licence printed never judges a new one.
       if (licBytes?.bytes) { upd.trade_license_no = null; upd.license_authority = null; upd.license_city = null; }
       if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;
+      // THE ISSUE DATE (2 Nov 2026, ledger 1467): read and kept when the licence prints one; never required.
+      if (licBytes?.bytes) licIssue = codeFields.issue_date || null;
       if (codeFields.authority) upd.license_authority = codeFields.authority;
       // license_city holds only what THIS licence says of its place: the gate backs a generic authority name with it.
       if (codeFields.emirate) { upd.emirate = codeFields.emirate; upd.license_city = codeFields.emirate; }
@@ -839,6 +842,7 @@ ${q}`,
               } else upd.license_expiry = d.expiry_date;
             }
             if (d.emirate && !codeFields.emirate) upd.emirate = d.emirate;
+            if (d.issue_date && !licIssue) licIssue = String(d.issue_date).slice(0, 10);
             if (d.trn) upd.trn = d.trn;
             upd.doc_extracted_at = new Date().toISOString();
             // 24 Sep 2026: the licence name is RECORDED, never copied over the registered name. Copying it
@@ -854,7 +858,7 @@ ${q}`,
             out.license = { ...(out.license as Record<string, unknown> || {}),
               legal_name: legal, license_number: d.license_number, authority: d.license_authority, city: d.city,
               expiry: codeExpiry || d.expiry_date, model_expiry: d.expiry_date, emirate: d.emirate, trn: d.trn,
-              licence_name: upd.licence_legal_name ?? null, confidence: d.confidence };
+              licence_name: upd.licence_legal_name ?? null, confidence: d.confidence, issue_date: licIssue ?? null };
           } else out.license_error = jd?.doc?.unreadable ? 'licence_unreadable' : (jd?.error || 'extract_failed');
         } catch (e) { out.license_error = String((e as Error)?.message || e); }
       }
@@ -953,6 +957,8 @@ ${q}`,
       // A licence number another claimed company holds is set aside (the rest of the row is still
       // written) and handed to a human: _shared/duplicate_company.ts.
       const { error: updErr, licenceSetAside } = await updateLeadSettingAsideClashingLicence(admin as unknown as LeadWriter, sup.id, upd, 'supplier_api.process_docs');
+      // Its own write, so a deploy that lands before the column (pending SQL license_issue_date) costs only this line.
+      if (!updErr && licIssue !== undefined) { const ri = await admin.from('leads').update({ license_issue_date: licIssue }).eq('id', sup.id); if (ri.error) console.error('process_docs: licence issue date not saved —', ri.error.message); }
       if (licenceSetAside) {
         const lic = out.license as Record<string, unknown> | undefined;
         if (lic) delete lic.license_number;   // never fill the form with a number the row does not hold

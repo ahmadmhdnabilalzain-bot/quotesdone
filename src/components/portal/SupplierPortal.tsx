@@ -1642,6 +1642,7 @@ function DocRow({ d, busy, onUpload, onRemove, onConfirmExpiry, read, lang }) {
     expiring: { t: ar ? 'تنتهي قريبًا' : 'Expiring soon', v: 'warn' },
     valid:    { t: ar ? 'سارية' : 'Valid',          v: 'ok' },
     on_file:  { t: ar ? 'على الملف' : 'On file',    v: 'secondary' },
+    unread:   { t: 'Could not be read', v: 'destructive' },
     missing:  { t: ar ? 'مفقود' : 'Not uploaded',   v: d.required ? 'destructive' : 'secondary' },
   };
   const st = ST[d.status] || null;
@@ -1679,6 +1680,7 @@ function DocRow({ d, busy, onUpload, onRemove, onConfirmExpiry, read, lang }) {
             </li>)}</ul>
           : <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'not_uploaded')}</div>)}
         {!isCat && !d.path && <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'not_uploaded')}</div>}
+        {d.status === 'unread' && !read && <div className={cn(S.sub, 'mt-2 text-danger-fg')} role="status">We could not read this licence. Please use Replace to upload a clear PDF, or a sharp photo of the whole page.</div>}
         <ExpiryRead read={read} lang={lang} label={label} onConfirm={onConfirmExpiry} />
       </div>
       {/* First upload (nothing on file) or another catalogue. A file on record is replaced from its own row above. */}
