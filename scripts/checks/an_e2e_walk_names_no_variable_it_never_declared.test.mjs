@@ -23,10 +23,13 @@ function undeclared(files) {
     allowJs: true, checkJs: true, noEmit: true, skipLibCheck: true, types: ['node'],
     target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler,
   });
-  const want = new Set(files);
+  // TypeScript reports fileName with forward slashes; on Windows `files` carry backslashes, and an un-normalised
+  // compare matched nothing, so the check passed vacuously and the known-bad control failed (2 Nov 2026).
+  const slash = (s) => s.replace(/\\/g, '/');
+  const want = new Set(files.map(slash));
   return ts.getPreEmitDiagnostics(p)
-    .filter((d) => d.file && want.has(d.file.fileName) && UNDECLARED.has(d.code))
-    .map((d) => `${d.file.fileName.replace(root, '')}:${d.file.getLineAndCharacterOfPosition(d.start).line + 1} ${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`);
+    .filter((d) => d.file && want.has(slash(d.file.fileName)) && UNDECLARED.has(d.code))
+    .map((d) => `${slash(d.file.fileName).replace(slash(root), '')}:${d.file.getLineAndCharacterOfPosition(d.start).line + 1} ${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`);
 }
 
 test('the supplier registration walk declares every name it uses', () => {
