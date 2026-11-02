@@ -272,6 +272,19 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_inquiry_awaits_specs(p_inquiry uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select exists (select 1 from public.inquiries x
+                  where not coalesce(x.rfq_ready, false)
+                    and (x.parent_inquiry_id = p_inquiry
+                         or (x.id = p_inquiry and not exists (select 1 from public.inquiries c where c.parent_inquiry_id = p_inquiry))))
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_inquiry_conversation_summary_build(p_inquiry uuid)
  RETURNS jsonb
  LANGUAGE sql
@@ -1248,7 +1261,7 @@ begin
   select array_agg(public.fn_mailbox_fold(a)) into v_list
     from (select unnest(array['management@quotesdone.com', 'ahmadmhdnabilalzain@gmail.com',
                               'management@doratajewelries.com', 'djzaino@outlook.com', 'bookings@djzaino.com',
-                              'fati.labib@icloud.com']) a
+                              'fati.labib@icloud.com', 'ahmad@666realestate.ae']) a
           union all
           select btrim(x) from public.app_secrets s, regexp_split_to_table(coalesce(s.value, ''), ',') x
            where s.key in ('founder_email', 'admin_emails') and btrim(x) like '%@%') l;
@@ -3832,6 +3845,8 @@ begin
             where a.kind = 'handoff' and a.detail->>'type' = 'delivery.request'
               and a.created_at < now() - interval '2 hours' and a.created_at > now() - interval '7 days'
               and not (a.detail ? 'loop') and a.title not ilike '%ZZ DEMO%'
+              -- 2 Nov 2026: a send whose not_before is ahead (18 queued invitations held to 4 Nov) is on a schedule, not lost.
+              and not exists (select 1 from public.notifications n where n.id = (a.evidence->>'notification_id')::bigint and n.not_before > now())
               -- 22 Sep 2026: a founder-bound request customer_support holds for the 19:00 Dubai IT digest
               -- is waiting on a schedule, not lost. It is late only once the digest could have taken it.
               and not (a.status = 'pending' and a.evidence->>'digest' = 'pending'
@@ -11915,6 +11930,51 @@ begin
   end if;
   return public.fn_licence_ask_close_for_lead(v_i.lead_id, 'whatsapp', p_intake_id);
 end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_licence_authority_class(p_authority text)
+ RETURNS text
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n text := ' ' || public.fn_licence_authority_norm(p_authority) || ' ';
+  v_strong text[] := array['dubai','abu dhabi','sharjah','ajman','umm al quwain','umm al qaiwain','umm al qiwain','uaq','ras al khaimah','ras al khaima','rak','fujairah','fujeirah',
+    'united arab emirates','uae','u a e',
+    'jafza','jebel ali','dmcc','dafza','dso','dieza','silicon oasis','difc','adgm','ifza','international free zone authority','meydan','tecom','dwc',
+    'rakez','rak economic zone','rak icc','rak ded','kezad','kizad','khalifa economic zones','khalifa industrial zone','zonescorp','masdar','twofour54','adafz',
+    'saif','shams','spc','hamriyah','hfza','sedd','afz','fcc','ffz','creative city','added',
+    'دبي','ابو ظبي','الشارقه','عجمان','ام القيوين','راس الخيمه','الفجيره','الامارات العربيه المتحده','الامارات'];
+  -- Generic names that say nothing of a country: UAE unless a foreign country is printed beside them.
+  v_weak text[] := array['department of economy and tourism','department of economic development','economic development department','department of industry and economy','ministry of economy','det','ded',
+    'دائره الاقتصاد والسياحه','دائره التنميه الاقتصاديه','دائره الصناعه والاقتصاد','وزاره الاقتصاد'];
+  v_foreign text[] := array['saudi','saudi arabia','ksa','qatar','qatari','oman','omani','kuwait','bahrain','egypt','jordan','iraq','lebanon','india','pakistan','bangladesh','china','turkey','iran',
+    'united kingdom','england','companies house','united states','usa','germany','france','italy','singapore',
+    'السعوديه','قطر','سلطنه عمان','الكويت','البحرين','مصر','الاردن','العراق','لبنان'];
+  v_s boolean; v_w boolean; v_f boolean;
+begin
+  if btrim(n) = '' then return 'unread'; end if;
+  v_s := exists (select 1 from unnest(v_strong) x where position(' ' || x || ' ' in n) > 0);
+  v_w := exists (select 1 from unnest(v_weak) x where position(' ' || x || ' ' in n) > 0);
+  v_f := exists (select 1 from unnest(v_foreign) x where position(' ' || x || ' ' in n) > 0);
+  if v_f and v_s then return 'unknown'; end if;   -- both printed: a person looks
+  if v_f then return 'foreign'; end if;
+  if v_s or v_w then return 'uae'; end if;
+  return 'unknown';
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_licence_authority_norm(p_authority text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select btrim(regexp_replace(replace(replace(replace(
+           translate(lower(coalesce(p_authority, '')), 'أإآةى', 'اااهي'),
+           'abudhabi', 'abu dhabi'), 'rasalkhaimah', 'ras al khaimah'), 'ابوظبي', 'ابو ظبي'),
+         '[^[:alnum:]؀-ۿ]+', ' ', 'g'))
 $function$
 
 

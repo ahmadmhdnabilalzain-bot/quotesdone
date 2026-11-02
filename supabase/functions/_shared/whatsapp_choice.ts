@@ -139,6 +139,8 @@ export function channelOfRow(code: string | null | undefined): string | null {
   const m = /^(?:twilio:(\w+)(?::(?:VE|SM|MM)\w+)?|qd:(whatsapp):(?:SM|MM)\w+)$/.exec(String(code || ''));
   return m ? (m[1] || m[2]) : null;
 }
+/** True when the latest code row says the code was DELIVERED on WhatsApp (ours or Verify's); an SMS or call failover is not. */
+export const waDeliveredCode = (code: string | null | undefined): boolean => channelOfRow(code) === 'whatsapp';
 export function sidOfRow(code: string | null | undefined): string | null {
   const m = /^(?:twilio:\w+|qd:whatsapp):((?:VE|SM|MM)\w+)$/.exec(String(code || ''));
   return m ? m[1] : null;
