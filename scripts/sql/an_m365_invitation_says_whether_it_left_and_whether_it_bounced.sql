@@ -192,8 +192,10 @@ begin
 end $fn$;
 revoke execute on function public.fn_mail_bounce_headers_record(bigint, boolean) from public, anon, authenticated;
 
--- 3. THE OWNER OF SUPPLIER-MAILBOX MAIL (live body of every_reply_and_bounce_in_the_supplier_mailbox_has_an_owning_seat.sql,
---    edits: v_exact, the authentication test, the call to fn_mail_bounce_marks_its_send)
+-- 3. THE OWNER OF SUPPLIER-MAILBOX MAIL: the body of a_delivery_report_in_the_supplier_mailbox_leaves_the_review_queue.sql
+--    (#1779, applied before this file; its rule: a delivery report leaves the review queue, needs_review = false), with this
+--    file's edits only: v_exact, the believed-sender test, the call to fn_mail_bounce_marks_its_send.
+--    Prevented by: scripts/checks/a_delivery_report_leaves_the_review_queue_in_every_later_owner_body.test.mjs
 create or replace function public.fn_supplier_mailbox_mail_gets_its_owner(p_inbound_id bigint, p_filed jsonb default null, p_reassign boolean default false)
 returns jsonb
 language plpgsql security definer
@@ -260,7 +262,9 @@ begin
       v_acted := true; v_why := 'a permanent bounce: the address is suppressed and its lead marked bounced';
     end if;
     perform public.fn_mail_bounce_marks_its_send(m.id);   -- the send's own row says it did not arrive
-    update public.inbound_messages set owner_role = v_owner where id = m.id;
+    -- a delivery report has nothing to answer: customer_support owns it and the agent_actions row below is the verdict, so
+    -- it leaves the review queue (a needs_review row is what reaches the founder's Inbox)
+    update public.inbound_messages set owner_role = v_owner, needs_review = false where id = m.id;
     insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
     values ('customer_support', 'mail_bounce', case when v_acted then 'auto_done' else 'skipped' end, 'low',
             left('Bounce in the supplier mailbox: ' || coalesce(v_to, 'unknown recipient') || ' (' || v_why || ')', 200),

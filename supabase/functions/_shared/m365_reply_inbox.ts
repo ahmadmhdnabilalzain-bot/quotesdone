@@ -399,7 +399,9 @@ async function tenantMailboxes(d: TenantDeps, auth: Record<string, string>): Pro
       out.push(...(j.value || []).map((u) => u?.mail));
       url = j['@odata.nextLink'] || null;
     }
-    if (!refused && out.length) return { boxes: keep(out).slice(0, MAX_MAILBOXES), source: 'graph' };
+    // The two the founder named are ALWAYS tried (2 Nov 2026, ledger 1446): Graph listed one user, management@, so info@ was
+    // never asked for. If it is only an alias Graph answers 404 and the run note names it; if it is a mailbox, it is read.
+    if (!refused && out.length) return { boxes: keep([...out, ...DEFAULT_MAILBOXES]).slice(0, MAX_MAILBOXES), source: 'graph' };
   } catch (_e) { /* the list below */ }
   const listed = keep(String(d.listedMailboxes || '').split(','));
   return listed.length ? { boxes: listed.slice(0, MAX_MAILBOXES), source: 'app_secrets' } : { boxes: keep(DEFAULT_MAILBOXES), source: 'default' };
@@ -452,6 +454,7 @@ export async function pollTenantMailboxes(d: TenantDeps): Promise<Record<string,
     return true;
   };
   const read: string[] = [];
+  const none: string[] = [];
   const spent = () => c.handed + c.duplicate + c.hand_failed;
   for (let i = 0; i < boxes.length; i++) {
     if (now() - t0 > HAND_BUDGET_MS) { counts.out_of_time = boxes.length - i; break; }
@@ -461,7 +464,7 @@ export async function pollTenantMailboxes(d: TenantDeps): Promise<Record<string,
     const room = () => Math.max(0, Math.min(MAILBOX_HAND_CAP - (spent() - before), TENANT_HAND_CAP - spent()));
     const gate = gateFor(box);
     const status = await sweep(d, mailbox, box, auth, 'inbox', MAX_PAGES, room(), t0, c, false, d.sender, kinds, gate, handedIds);
-    if (status === 404) { counts.no_mailbox++; continue; }   // an account with no mailbox
+    if (status === 404) { counts.no_mailbox++; none.push(mailbox); continue; }   // an account with no mailbox
     if (status === 401 || status === 403) { counts.refused++; continue; }
     if (status !== 200) { counts.list_failed++; continue; }
     counts.mailboxes++; read.push(mailbox);
@@ -470,7 +473,7 @@ export async function pollTenantMailboxes(d: TenantDeps): Promise<Record<string,
     if (!filed) { counts.list_failed++; continue; }
     for (const f of filed) if (await sweep(d, mailbox, box, auth, f, FILED_PAGES, room(), t0, c, false, d.sender, kinds, gate, handedIds) !== 200) counts.list_failed++;
   }
-  const detail = '; read ' + (read.join(', ') || 'none') + ' (list from ' + source + ')';
+  const detail = '; read ' + (read.join(', ') || 'none') + (none.length ? '; no mailbox: ' + none.join(', ') : '') + ' (list from ' + source + ')';
   if (c.hand_failed || counts.list_failed || c.lookup_failed) return await done('error', 'a failure is left for the next tick', detail);
   if (!counts.mailboxes) return await done('held', 'no mailbox could be read', detail);
   return await done('ok', 'read', detail);
