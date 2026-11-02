@@ -113,18 +113,40 @@ async function persistSpecs(repo: SpecRepo, quoteId: string, a: Assessment, line
  * through the same check. A held quote is left a draft, which every customer-facing read excludes,
  * and the supplier is told at once, on email and WhatsApp, through customer_support.
  */
-export async function gate(repo: SpecRepo, quoteId: string, supplier: Supplier, ctx: Ctx) {
+/**
+ * What the gate decides on, and nothing it does: the reading, the reasoned specs, the assessment. No write.
+ * The preflight ("check before sending") runs exactly this, so the check and the submission cannot disagree
+ * (2 Nov 2026: the preflight used to choose its own checklist and skip the reasoned specs).
+ */
+export async function readAndAssess(repo: SpecRepo, quoteId: string, ctx: Ctx) {
   const q = await repo.quote(quoteId); if (!q) throw new Error('quote not found: ' + quoteId);
   const stored = await repo.lines(quoteId);
   // READ BEFORE THE CHECK (23 Sep 2026): what reasoning finds in his own words is written in; under the hold
   // nothing is, and every required detail is asked of him.
   const reading = ctx.read ? await ctx.read(q, stored) : null;
   const applied = applyReading(stored, q.terms_spec, reading);
-  if (reading) { q.terms_spec = applied.terms_spec; await repo.updateQuote(quoteId, { terms_spec: applied.terms_spec }); }
+  if (reading) q.terms_spec = applied.terms_spec;
   const read = applied.lines;
   const lines = ctx.checklist?.length && ctx.reason && needsChecklist(ctx.category)
     ? withReasoned(read, await ctx.reason(read, ctx.checklist)) : read;
   const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist });
+  return { q, stored, reading, lines, a };
+}
+
+/** Everything the gate reads, as one sha-256 key: what assessQuote reads of the quote and its lines, the request's
+ * requirements, the trade and the checklist. Ids, status and submission are not inputs, so a resubmission of the same
+ * quotation has the same key. */
+export async function gateInputKey(q: QuoteRow, lines: Line[], ctx: Pick<Ctx, 'category' | 'requirements' | 'checklist'>): Promise<string> {
+  const terms = [q.lead_time, q.warranty, q.scope, q.exclusions, q.conditions, q.notes, q.terms_spec, q.price_ex_vat].map((v) => v ?? null);
+  const ls = [...lines].sort((x, y) => x.line_no - y.line_no).map((l) => [l.line_no, l.description, l.brand, l.model, l.specification, l.qty, l.unit,
+    l.unit_price, l.labour, l.install, l.amount, l.notes, l.spec, l.spec_source].map((v) => v ?? null));
+  const text = JSON.stringify([ctx.category ?? null, ctx.requirements ?? null, (ctx.checklist ?? []).map((a) => a.code), terms, ls]);
+  return [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('quote_gate_verdict\u0001' + text)))].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function gate(repo: SpecRepo, quoteId: string, supplier: Supplier, ctx: Ctx) {
+  const { q, stored, reading, lines, a } = await readAndAssess(repo, quoteId, ctx);
+  if (reading) await repo.updateQuote(quoteId, { terms_spec: q.terms_spec });
   await persistSpecs(repo, quoteId, a, stored);
   const at = nowIso(ctx);
   const live = await repo.liveHold(quoteId);

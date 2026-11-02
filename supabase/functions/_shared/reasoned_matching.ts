@@ -108,20 +108,56 @@ export async function reasonedOffers(deps: ThinkDeps, offers: SpecOffer[], inqui
 // not read again, so the review's turns, the preflight and the gate pay for a line once.
 // The line questions of one step run in parallel, and an ANSWERED question is remembered for this worker's life
 // (READS below), so the review, the preflight and the gate of one submission ask each question once.
-// ponytail: in-memory memo per edge worker (200 entries); persist readings if cold starts make it miss.
+//
+// THE SAME QUOTATION READS THE SAME WAY, EVERY TIME (sales_engineer, 2 Nov 2026). The memo above was per edge worker,
+// and the preflight ("check before sending") and the real submission are two requests that usually land on two
+// workers, so each asked the model afresh — at temperature 0.2, through the gateway's routing. One field read in the
+// first and not the second turned an accepted quote into a held one: measured on the nightly journey, the IDENTICAL
+// demo quotations were held in run 41417049225 (complete quote: preflight would_accept, submission spec_hold) and
+// accepted in run 41422665440 (where the two-option quotation was held instead). An answered reading is now settled
+// in public.line_spec_reading under a sha-256 of the normalised question (the supplier's lines and terms) and the
+// decision asked (the trade's attributes and the customer's named components), and the FIRST stored answer is the
+// one every later read of that same text uses — preflight, submission, resubmission, any worker, any day. The model
+// is asked only for text never read before, at temperature 0. A held or failed read is not stored (it is asked again).
+// prevented by: _shared/line_specs/the_same_quote_gets_the_same_verdict.test.ts
+// ponytail: a settled reading never expires; a better prompt or model reads only new text. Add a version to the key
+// the day a reader change must re-read old quotations.
 export const LINES_PER_CALL = 2;
 export const MAX_READ_LINES = 40;
 const alreadyRead = (l: Line) => Object.values(l.spec_source ?? {}).includes('reasoned');
 const READS = new Map<string, ThinkResult>();
-/** Tests only: forget remembered answers so each case starts cold. */
+/** Tests only: forget remembered answers so each case starts cold (a new edge worker). */
 export const forgetReads = () => READS.clear();
-async function ask(deps: ThinkDeps, req: Parameters<typeof think>[1]): Promise<ThinkResult> {
-  const key = JSON.stringify([req.surface, req.question, req.decision]);
-  const hit = READS.get(key); if (hit) return hit;
-  const r = await think(deps, req);
-  if (answered(r)) { if (READS.size >= 200) READS.delete(READS.keys().next().value!); READS.set(key, r); }
-  return r;
+const normQ = (s: string) => String(s ?? '').replace(/\s+/g, ' ').trim();
+async function sha256(s: string): Promise<string> {
+  return [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
+type Settled = { decision: NonNullable<ThinkResult['decision']>; model: string | null; confidence: number };
+const fromSettled = (s: Settled, key: string): ThinkResult => ({
+  status: 'answered', answer: '', decision: s.decision, model: s.model ?? null, confidence: Number(s.confidence) || 0,
+  steps: [{ id: 'settled', kind: 'retrieve', goal: 'this exact text was read before; that reading is the reading', status: 'done', detail: { reading_key: key } }],
+  context_used: {} as ThinkResult['context_used'], missing_context: [], sources: [], asked_back: null, verified: null,
+});
+async function storedReading(deps: ThinkDeps, key: string): Promise<Settled | null> {
+  const got = await deps.rpc('fn_line_spec_reading_get', { p_keys: [key] }).catch(() => ({ data: null, error: null }));
+  const s = got?.data && typeof got.data === 'object' ? (got.data as Record<string, Settled>)[key] : null;
+  return s && typeof s === 'object' && s.decision && typeof s.decision === 'object' ? s : null;
+}
+/** One reading of a supplier's own text, settled: the first answer stored for this exact question is every later answer. */
+export async function settledRead(deps: ThinkDeps, req: Parameters<typeof think>[1]): Promise<ThinkResult> {
+  const key = await sha256('quote_gate_read\u0001' + JSON.stringify([req.surface, normQ(req.question), req.decision]));
+  const remember = (r: ThinkResult) => { if (READS.size >= 200) READS.delete(READS.keys().next().value!); READS.set(key, r); return r; };
+  const hit = READS.get(key); if (hit) return hit;
+  const before = await storedReading(deps, key);
+  if (before) return remember(fromSettled(before, key));
+  const r = await think(deps, { temperature: 0, ...req });
+  if (!answered(r) || !r.decision) return r;
+  await deps.rpc('fn_line_spec_reading_put', { p_rows: [{ key, found: { decision: r.decision, model: r.model ?? null, confidence: r.confidence } }] }).catch(() => null);
+  // Two workers reading the same new text at once: the row stored first wins (put keeps the first), so both use it.
+  const first = await storedReading(deps, key);
+  return remember(first ? fromSettled(first, key) : r);
+}
+const ask = settledRead;
 /** What reasoning read: per line, values and READ keys to add to its spec (source 'reasoned'); the terms it found. */
 export type QuoteReading = { lines: Record<number, Record<string, string>>; terms: TermsSpec };
 
