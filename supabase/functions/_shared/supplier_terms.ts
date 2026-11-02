@@ -28,6 +28,30 @@ export async function currentSupplierTermsVersion(sec: (k: string) => Promise<st
   return String((await sec('supplier_terms_version')) || (await sec('terms_version')) || '').trim().slice(0, 20);
 }
 
+// A CONTACT-ONLY REVISION DOES NOT ASK ANYONE TO SIGN AGAIN (2 Nov 2026, ceo; ledger 1482).
+// Every gate below used to be `accepted_terms_version === current`, so any new version number, even one that
+// changes only the contact line (v17: the founder's mobile came out of the text), would have sent every
+// supplier back to the re-acceptance card and, through kyc accept_terms, written a second acceptance and a second
+// certificate nobody asked for. app_secrets 'supplier_terms_carries_from' lists the earlier versions whose
+// acceptance carries to the current one because the current text differs from them in the contact line only
+// (comma-separated, e.g. 'v16'). A material version is published with that key EMPTY, so the list can only
+// ever name versions the founder's ruling said are the same agreement. The acceptance row is never rewritten:
+// a supplier who signed v16 stays recorded as v16 with the SHA-256 of the v16 text, which is kept byte-exact
+// at /supplier-agreement/v16.
+export async function supplierTermsCarriedFrom(sec: (k: string) => Promise<string | null>): Promise<string[]> {
+  return String((await sec('supplier_terms_carries_from')) || '').split(',').map((s) => s.trim()).filter(Boolean);
+}
+
+/** True when `accepted` is the current version or one the current version carries (pure; the gate's whole logic). */
+export function acceptanceStands(accepted: string | null | undefined, current: string, carriedFrom: string[]): boolean {
+  const a = String(accepted ?? '').trim();
+  return !!a && !!current && (a === current || carriedFrom.includes(a));
+}
+
+export async function supplierAcceptanceStands(sec: (k: string) => Promise<string | null>, accepted: string | null | undefined): Promise<boolean> {
+  return acceptanceStands(accepted, await currentSupplierTermsVersion(sec), await supplierTermsCarriedFrom(sec));
+}
+
 // ONE READER FOR THE ACCEPTING ADDRESS (24 Sep 2026, sales_engineer). supplier_api fell back to
 // cf-connecting-ip and x-real-ip when x-forwarded-for was absent; kyc accept_terms read x-forwarded-for
 // only, so the same acceptance could be stored with an IP on one path and none on the other, and the
