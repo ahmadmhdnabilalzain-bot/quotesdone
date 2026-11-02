@@ -50,7 +50,7 @@ export function MobileNav({ items, services, servicesLabel, cta, login, loginLab
 
   const close = () => setOpen(false);
   return (
-    <div className="lg:hidden">
+    <div className="xl:hidden">
       <button
         ref={btnRef}
         type="button"
