@@ -35,6 +35,8 @@ In Arabic and English the documents are bilingual; **the Arabic text prevails**,
   waterproofing, landscaping and pools, signage, CCTV/security, smart home, solar, facilities, cleaning, pest
   control, movers, AC maintenance and more; new trades are added as suppliers register them.
   (FAQ "What industries…") Food & beverage is not a category. (src/content/categories.json `_source`)
+- Not covered: food & beverage, and services that can only be priced by an on-site visit. The **minimum job value is
+  AED 500**; a job below it is not taken. (FAQ "What industries…"; the same facts the website assistant states.)
 - No advertising and no paid ranking: nobody can pay to rank higher. (FAQ "Can I advertise?", "How are suppliers ranked?")
 
 ## 2. How it works for a customer, step by step

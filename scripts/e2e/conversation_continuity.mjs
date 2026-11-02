@@ -80,9 +80,22 @@ async function visitor(browser, extra) {
   // the run's tag and proof ride on calls to the project's edge functions only (browser.carriesRunTag), as for the portals
   const h = await proof(extra);
   await ctx.route((u) => carriesRunTag(u, BASE), (route) => (route.request().method() === 'OPTIONS' ? route.continue() : route.continue({ headers: { ...route.request().headers(), ...h } })));
+  // A VERCEL PREVIEW HAS NO SUPABASE TARGET (src/lib/supaEnv.ts): its widget calls /functions/v1/... on its own origin. With
+  // QD_FORWARD_FUNCTIONS=1 those calls are forwarded to the project, with the run's tag and proof, so a branch's widget can be
+  // driven before it is merged. On the live site the widget calls the project directly and this rule never fires.
+  if (process.env.QD_FORWARD_FUNCTIONS === '1') {
+    await ctx.route(`${new URL(SITE).origin}/functions/v1/**`, async (route) => {
+      const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, GET, OPTIONS' };
+      if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 200, headers: cors, body: 'ok' });
+      const res = await route.fetch({ url: upstream(route.request().url()), headers: { ...route.request().headers(), ...h } });
+      return route.fulfill({ response: res });
+    });
+  }
   await ctx.addInitScript(() => { try { localStorage.setItem('qd-cookie-consent', 'essential'); } catch { /* blocked */ } });
   return ctx;
 }
+// where a call really goes: a preview's same-origin /functions/v1 call is the project's
+const upstream = (url) => { const u = new URL(url); return u.origin === new URL(SITE).origin && u.pathname.startsWith('/functions/v1/') ? BASE + u.pathname + u.search : url; };
 // what is on the screen: the bubbles in order, and the sign-up button when there is one
 const screenTurns = (p) => p.evaluate(() => {
   const d = document.querySelector('[role="dialog"][aria-label*="QuotesDone"]'); if (!d) return null;
@@ -168,11 +181,12 @@ async function widgetSurface(browser, run) {
   await say(p, 3, 'after reload');
   // 2. NAVIGATING TO ANOTHER PAGE AND BACK
   const link = p.locator('a[href="/faq"], a[href="/about"], a[href="/contact"]').first();
-  await link.click({ timeout: 5000 }).catch(() => p.goto(SITE + '/faq', { waitUntil: 'domcontentloaded' }));   // a client-side navigation when the link is there
-  await p.waitForLoadState('domcontentloaded');
+  await link.click({ timeout: 5000 }).catch(() => {});   // a client-side navigation when the link is there
+  await p.waitForURL((u) => /^\/(faq|about|contact)/.test(u.pathname), { timeout: 15000 }).catch(() => p.goto(SITE + '/faq', { waitUntil: 'domcontentloaded' }));
   const away = p.url();
   await expectHistory(p, S, `on another page (${new URL(away).pathname})`, exp);
-  await p.goBack({ waitUntil: 'domcontentloaded' }).catch(() => p.goto(SITE + '/'));
+  await p.goBack({ waitUntil: 'domcontentloaded' }).catch(() => {});
+  if (!(await launcher(p).count()) && !(await p.locator(DLG).count())) await p.goto(SITE + '/', { waitUntil: 'domcontentloaded' });
   await expectHistory(p, S, 'after navigating back', exp); await shot(p, 'widget-after-navigation');
   await say(p, 4, 'after navigation');
   // 3. A NEW TAB of the same browser continues the same conversation
@@ -232,10 +246,11 @@ async function widgetSurface(browser, run) {
   await b.route('**/functions/v1/site_assistant', async (route) => {
     if (route.request().method() !== 'POST' || cut > 0) return route.fallback();
     cut++;
-    await route.fetch({ headers: { ...route.request().headers(), ...(await proof(run)) } });   // the server answers and stores the turn
+    await route.fetch({ url: upstream(route.request().url()), headers: { ...route.request().headers(), ...(await proof(run)) } });   // the server answers and stores the turn
     await route.fulfill({ status: 504, contentType: 'text/html', body: '<html><body>504 Gateway Time-out</body></html>' });
   });
   const lost = await sendWidget(b, S, 'B', 2, 'lost reply', priceAsk);
+  check(S, 'the connection was cut once, after the server had answered (the 504 was injected)', cut === 1, 'cuts: ' + cut);
   const shownErr = /something went wrong|حدث خطأ/i.test(lost.reply);
   check(S, 'a reply lost in transit is found in the stored conversation (no error line, no retyping)', !!lost.reply && !shownErr, `the widget shows: "${norm(lost.reply).slice(0, 140)}"`);
   await shot(b, 'widget-lost-reply');
@@ -326,6 +341,14 @@ async function sendPortal(page, conv, n, phase, say, { settleMs = 240000 } = {})
   return rec;
 }
 
+// the open assistant panel covers the header's language button, so it is pressed in the page; the switch is then verified, never assumed
+async function switchLang(page, name, want) {
+  await page.locator(`button[aria-label="${name}"]`).first().evaluate((b) => b.click()).catch(() => {});
+  let ok = false;
+  for (let i = 0; i < 20 && !ok; i++) { await sleep(500); ok = (await page.evaluate(() => document.documentElement.lang || '')).toLowerCase().startsWith(want); }
+  check('portal', `the portal switched to ${want === 'ar' ? 'Arabic' : 'English'}`, ok, 'document language: ' + (await page.evaluate(() => document.documentElement.lang)));
+}
+
 async function portalSurface(browser, run) {
   const S = 'portal';
   const secret = `Zorvex${run.tag.slice(0, 4)}`;
@@ -342,7 +365,7 @@ async function portalSurface(browser, run) {
   check(S, 'the demo customer has one request and one quote from a named ZZ DEMO supplier (so a leak can be seen)', quoted, 'fixture failed (see the note)');
   const ctxf = { secretNames: [secret] };
   const T = [
-    { say: 'Hi, what can you see in my account right now?', grade: 'answered' },
+    { say: 'Hi, what can you see in my account right now?', grade: 'account' },
     { say: 'For the record, my villa is in Al Barsha, Dubai, and the main door must be 2.4 metres wide. Please remember both.', grade: 'answered' },
     { say: 'Is it free to post a request and what is your fee?', grade: 'fee' },
     { say: 'Does the comparison report show only three quotes, or can I see all of them?', grade: 'top3' },
@@ -378,21 +401,20 @@ async function portalSurface(browser, run) {
   await expectPortalHistory(page, 'after closing and reopening the assistant', exp); await shot(page, 'portal-reopen');
   await say(page, 4, 'after reopen');
   // language switch to Arabic and back
-  await page.getByRole('button', { name: 'العربية' }).first().click({ timeout: 20000 }).catch((e) => note(S, 'Arabic switch not clicked', e.message));
-  await sleep(2500);
+  await switchLang(page, 'العربية', 'ar');
   await expectPortalHistory(page, 'after switching the portal to Arabic', exp); await shot(page, 'portal-arabic');
   await say(page, 5, 'arabic');
-  await page.getByRole('button', { name: 'English' }).first().click({ timeout: 20000 }).catch((e) => note(S, 'English switch not clicked', e.message));
-  await sleep(2500);
+  await switchLang(page, 'English', 'en');
   await expectPortalHistory(page, 'after switching back to English', exp);
   // a reply lost in transit: the real answer is stored, the connection is cut with a 504 page
   let cut = 0;
   await page.route('**/functions/v1/sales_engineer', async (route) => {
     let a = null; try { a = JSON.parse(route.request().postData() || '{}').action; } catch { /* not JSON */ }
     if (route.request().method() !== 'POST' || a !== 'assist' || cut > 0) return route.fallback();
-    cut++; await route.fetch({ headers: { ...route.request().headers(), ...(await proof(run)) } }); await route.fulfill({ status: 504, contentType: 'text/html', body: '<html><body>504 Gateway Time-out</body></html>' });
+    cut++; await route.fetch({ url: upstream(route.request().url()), headers: { ...route.request().headers(), ...(await proof(run)) } }); await route.fulfill({ status: 504, contentType: 'text/html', body: '<html><body>504 Gateway Time-out</body></html>' });
   });
   const lost = await say(page, 6, 'lost reply');
+  check(S, 'the connection was cut once, after the server had answered (the 504 was injected)', cut === 1, 'cuts: ' + cut);
   check(S, 'a reply lost in transit is found in the stored conversation (no error line, no retyping)', !!lost.reply && !/something went wrong/i.test(lost.reply), norm(lost.reply).slice(0, 140));
   await page.unroute('**/functions/v1/sales_engineer');
   await say(page, 7, 'after lost reply');

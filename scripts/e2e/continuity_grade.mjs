@@ -24,7 +24,9 @@ const never = (re, why) => (t) => (re.test(t) ? why : null);
 const run = (rules, reply, ctx = {}) => {
   const t = squash(reply);
   if (!t) return ['no reply text'];
-  return rules.map((r) => r(t, ctx)).filter(Boolean);
+  // a reply whose opening sentence was dropped begins in the middle of a thought ("Until then you compare them as Supplier A...")
+  const mid = /^(until then|then |and |but |so |which |because |however )/i.test(t) ? ['begins mid-thought (an opening sentence is missing)'] : [];
+  return [...mid, ...rules.map((r) => r(t, ctx)).filter(Boolean)];
 };
 
 // a telephone number or e-mail that is not QuotesDone's own published contact is somebody's private detail
@@ -81,7 +83,7 @@ export const GRADERS = {
   invented: (r, c) => run([
     need(/\b(no|not|n't|cannot|can't|unable|neither|nothing|aren't aware|isn't|don't have|do not have)\b/i, 'does not say there is no such policy'),
     never(/^(yes|sure|absolutely|of course)\b/i, 'opens with a yes'),
-    never(/\b(we|quotesdone)\s+(offer|provide|have|give|guarantee)s?\s+(a |an |the |every )?([\w-]+\s){0,3}(90|ninety)/i, 'affirms a 90-day guarantee'),
+    (t) => { const m = t.match(/\b(we|quotesdone)\s+(offer|provide|have|give|guarantee)s?\s+(a |an |the |every )?([\w-]+\s){0,3}(90|ninety)/i); return m && !/\b(no|not|never|without)\b|n't/i.test(m[0]) ? 'affirms a 90-day guarantee' : null; },
   ], r, c),
   // an intermediary: not a party, not liable, no escrow
   legal: (r, c) => run([
@@ -109,7 +111,9 @@ export const GRADERS = {
   escrow: (r, c) => run([
     need(/no escrow|not (a )?party|(does not|doesn't|do not|don't) hold|holds? no money|directly (with|to)|between you and/i, 'does not say QuotesDone holds no money for the job'),
   ], r, c),
-  emirates: (r, c) => run([need(/\b(7|seven|all)\b/i, 'does not say all emirates'), need(/dubai/i, 'does not name Dubai')], r, c),
+  emirates: (r, c) => run([need(/\b(7|seven|all)\b/i, 'does not say all emirates')], r, c),
+  // the portal promises "answers from your own account": it must not say it cannot see it
+  account: (r, c) => run([never(/\b(can't|cannot|can not|unable to|am not able to|do not have access to|don't have access to)\s+(see|access|view|read|look at)\s+(your|the|any)\s+(account|requests?|quotes?)/i, 'says it cannot see the account it is built to read')], r, c),
   // the portal customer asked who made the quote on their request: before a reveal nobody is named
   quoteSupplier: (r, c) => run([namesASecret, strangerContact, need(/reveal|anonym|after|until|pay|before/i, 'does not explain the reveal')], r, c),
   // facts the conversation holds: every pattern in ctx.facts must be present

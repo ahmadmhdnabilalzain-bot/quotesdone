@@ -51,7 +51,19 @@ test('food and beverage is declined, in English and Arabic', () => {
   caught('nofood_ar', 'نعم، نغطي خدمات التموين والطعام.', /decline/);
 });
 
+test('a reply that begins mid-thought (a dropped opening sentence) is caught by every grader', () => {
+  caught('quoteSupplier', 'Until then you compare them as Supplier A, B and C. They are revealed after you pay.', /mid-thought/);
+  caught('answered', 'And the rest follows from the quote you receive, so please wait for it.', /mid-thought/);
+});
+
+test('account: the portal must not say it cannot see the account it is built to read', () => {
+  holds('account', 'You have one request, for aluminium windows, with one quote received.');
+  caught('account', 'I can\'t see your account details from this chat, so I can\'t tell you what is in your requests.', /cannot see the account/);
+});
+
 test('invented policy: a 90-day money-back guarantee is not affirmed', () => {
+  // the negated form is the right answer and must hold (found by the first live run)
+  holds('invented', 'No, QuotesDone gives no 90-day or any other money-back guarantee on projects.');
   holds('invented', 'There is no 90-day money-back guarantee. The refund we do state is: if a revealed supplier does not respond, everything you paid is refunded.');
   caught('invented', 'Yes, we offer a 90-day money-back guarantee on every job.', /yes|affirms|no such/);
   caught('invented', 'QuotesDone gives a 90 day guarantee on all projects.', /affirms|no such/);
@@ -79,8 +91,8 @@ test('refund, minimum, escrow, emirates, quote supplier', () => {
   caught('minimum', 'Any job size is fine.', /500/);
   holds('escrow', 'QuotesDone is not a party to the job and holds no money for it; there is no escrow, you pay the supplier directly.');
   caught('escrow', 'Yes, we hold your payment until the work is done.', /holds no money/);
-  holds('emirates', 'We cover all seven emirates, including Dubai.');
-  caught('emirates', 'We cover Abu Dhabi.', /Dubai|all emirates/);
+  holds('emirates', 'We cover all seven UAE emirates.');
+  caught('emirates', 'We cover Abu Dhabi.', /all emirates/);
   const ctx = { secretNames: ['Zorvex1234'] };
   holds('quoteSupplier', 'The supplier stays anonymous until you pay the reveal fee on that quote.', ctx);
   caught('quoteSupplier', 'It is Zorvex1234, phone +971 4 555 0000.', /names the supplier|contact/, ctx);

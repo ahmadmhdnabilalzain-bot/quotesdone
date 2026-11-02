@@ -26,6 +26,10 @@ on:
         description: widget,portal,supplier (default all)
         required: false
         default: widget,portal,supplier
+      forward:
+        description: "1 when the site is a Vercel preview (its widget calls /functions/v1 on its own origin; the run forwards them to the project, tagged)"
+        required: false
+        default: '0'
 
 permissions:
   contents: read
@@ -41,6 +45,7 @@ jobs:
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QD_SITE: ${{ inputs.site || 'https://quotesdone.ae' }}
+      QD_FORWARD_FUNCTIONS: ${{ inputs.forward || '0' }}
       QD_OUT: continuity-out
       QD_CAP_USD: '4'
       # rehearsal window = job wall; fn_rehearsal_window_sweep closes it after that if the run dies
