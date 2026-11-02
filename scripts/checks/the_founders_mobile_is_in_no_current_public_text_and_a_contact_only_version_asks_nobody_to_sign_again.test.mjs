@@ -159,6 +159,20 @@ test('the five kb_chunks that carried the mobile are corrected by an md5-guarded
   assert.ok(read('scripts/sql/MANIFEST.txt').includes(f));
 });
 
+// 3 Nov 2026 (customer_support): the three legacy public.pages rows (about and the two pre-design home backups) carried it too.
+// No reader serves them; they are corrected, not deleted, by an md5-guarded file whose probe counts 0 pages rows with the mobile.
+test('the legacy site pages are corrected by an md5-guarded, manifest-listed file whose probe counts no pages row with the mobile', () => {
+  const f = 'scripts/sql/the_legacy_site_pages_carry_the_public_numbers_and_never_the_founders_mobile.sql';
+  const sql = read(f), probe = read(f.replace(/\.sql$/, '_probe.sql'));
+  assert.doesNotMatch(sql + probe, /\+971 50 931 9355|\+971509319355|050 931 9355/, 'the SQL itself must not print the mobile');
+  for (const slug of ['about', 'home_backup_predesign', 'home-ar_backup_predesign']) assert.match(sql, new RegExp(`\\('${slug}', '[0-9a-f]{32}'\\)`), `${slug} is not md5-guarded`);
+  assert.doesNotMatch(sql.split('\n').filter((l) => !l.startsWith('--')).join('\n'), /delete\s+from/i, 'a legacy row is deleted');
+  for (const s of [CALL, WA, 'wa.me/12183166814', 'tel:+971567918605', 'PROBE OK', 'PROBE FAILED']) assert.ok(sql.includes(s), 'SQL lacks ' + s);
+  assert.match(probe, /n_mobile <> 0/);
+  assert.match(probe, /raise exception 'CHK<<%>>'/);
+  assert.ok(read('scripts/sql/MANIFEST.txt').includes(f));
+});
+
 test('the registry SQL carries the carry list and archives the three texts it replaces', () => {
   const sql = read('scripts/sql/the_founders_mobile_leaves_the_current_legal_texts.sql');
   assert.match(sql, /supplier_terms_carries_from/);
