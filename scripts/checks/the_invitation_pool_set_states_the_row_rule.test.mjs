@@ -73,7 +73,7 @@ test('every definition of fn_supplier_invite_candidates from #964 on, applied or
 });
 
 // RE-REVIEW (29 Sep 2026): #1070 moved the canonical body (MANIFEST 1835) while this PR was open, so a copy of 1824
-// was stale again. A pending redefinition must be the LATEST applied body with only the pending PR's own lines changed.
+// was stale again. A pending redefinition must be the LATEST applied body with only the pending PR own lines changed.
 // #1051 (the set read and the ref'd link) is applied (MANIFEST 1844); the pending redefinition is now ledger 1018's
 // stalled-request tier (sales_engineer, 29 Sep 2026): exactly one line of the applied body is replaced, and what is added
 // is the rescue CTE and the -1 tier ahead of the unchanged 'recruit' tier. A copy of an older body fails here.
@@ -83,37 +83,23 @@ test('every definition of fn_supplier_invite_candidates from #964 on, applied or
 // 2 Nov 2026 (sales_engineer, ledger 1449): the applied body already holds the mailbox-class filter. The pending redefinition
 // is an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql: the checked-mailbox rank replaces the
 // two old ranks and those lines alone change. Nothing else may differ.
+// 2 Nov 2026 (ceo, ledger 1438): that file is APPLIED (the canonical body carries mailbox_rank). The pending redefinition is
+// the_ceo_holds_the_supplier_target_and_acts_within_bounded_powers.sql: the reachability lever (v_reach, off by default) and the
+// CEO's priority trades inside the plan rank. Those lines alone change. Nothing else may differ.
 const CHECKED_GONE = [
-  'l.invite_trades, l.emirate, k.dkey, k.nkey,',
-  'from leads l join keyed k on k.id = l.id',
-  "case when c.email_verified in ('verified','true') then 0 else 1 end as unverified_rank,",
-  "case when split_part(lower(c.email),'@',1) in",
-  "('info','sales','admin','contact','enquiry','enquiries','inquiry','office','mail',",
-  "'support','hello','marketing','general','accounts','reception','careers','hr')",
-  'then 1 else 0 end as role_rank',
-  'row_number() over (partition by p.pdomain order by p.unverified_rank, p.role_rank, p.id) as rk,',
-  "row_number() over (partition by coalesce(p.email_domain, split_part(p.email,'@',2)) order by p.unverified_rank, p.role_rank, p.id) as domain_rk,",
-  '-- the best contact per company: a verified, named mailbox before info@/sales@ (a role address goes only',
-  "-- when it is the company's only one). ponytail: a lead that wins one key and loses the other waits a day.",
-  'row_number() over (partition by p.dkey order by p.unverified_rank, p.role_rank, p.id) as company_rk,',
-  'row_number() over (partition by coalesce(p.nkey, p.email) order by p.unverified_rank, p.role_rank, p.id) as name_rk',
-  'order by r.target_rank, r.plan_rank, r.is_none, r.rk, r.unverified_rank, r.role_rank, r.pdomain',
+  'coalesce(pl.rank, 2147483647) as plan_rank,',
 ];
 const CHECKED_ADDED = [
-  'l.invite_trades, l.emirate, k.dkey, k.nkey, ec.mailbox,',
-  'from leads l join keyed k on k.id = l.id left join public.lead_email_check ec on ec.lead_id = l.id',
-  "case when c.email_verified in ('verified','true') then 0 when c.mailbox = 'free' then 3 when c.mailbox = 'role' then 1 else 2 end as mailbox_rank",
-  'row_number() over (partition by p.pdomain order by p.mailbox_rank, p.id) as rk,',
-  "row_number() over (partition by coalesce(p.email_domain, split_part(p.email,'@',2)) order by p.mailbox_rank, p.id) as domain_rk,",
-  'row_number() over (partition by p.dkey order by p.mailbox_rank, p.id) as company_rk,',
-  'row_number() over (partition by coalesce(p.nkey, p.email) order by p.mailbox_rank, p.id) as name_rk',
-  'order by r.target_rank, r.plan_rank, r.mailbox_rank, r.is_none, r.rk, r.pdomain',
+  "v_reach boolean := coalesce((select value from app_secrets where key = 'invite_reachable_only'), '') = 'true';",
+  "and (not v_reach or l.email_verified in ('verified', 'true', 'maps', 'social'))",
+  "case when exists (select 1 from public.ceo_invite_trade_priority t where t.cleared_at is null and t.trade = any(coalesce(c.invite_trades, '{}'::text[])))",
+  'then -1 else coalesce(pl.rank, 2147483647) end as plan_rank,',
 ];
 const candidatesDiff = (canon, mine) => ({
   gone: canon.filter((l) => !mine.includes(l)).map((l) => l.trim()),
   added: mine.filter((l) => !canon.includes(l)).map((l) => l.trim()).filter((l) => !l.startsWith('--')),
 });
-test('a pending fn_supplier_invite_candidates is the latest applied body with only the checked-mailbox rank changed', () => {
+test('a pending fn_supplier_invite_candidates is the latest applied body with only the pending PR own lines changed', () => {
   const lines = (f) => fnText(read(f), 'fn_supplier_invite_candidates').split('\n').map((l) => l.trimEnd());
   const canonFile = [...manifest].reverse().find((f) => defines('fn_supplier_invite_candidates').test(code(read(f))));
   const canon = lines(canonFile);

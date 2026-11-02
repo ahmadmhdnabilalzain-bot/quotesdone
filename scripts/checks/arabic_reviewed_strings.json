@@ -1712,6 +1712,9 @@
  "scripts/sql/the_calendar_resend_waits_on_real_edits_not_on_a_held_posts_dry_run_probe.sql": [
   "f03ed6d53816"
  ],
+ "scripts/sql/the_ceo_holds_the_supplier_target_and_acts_within_bounded_powers.sql": [
+  "8625d60560f4"
+ ],
  "scripts/sql/the_daily_supplier_list_goes_only_before_a_sending_day_and_a_company_is_invited_once.sql": [
   "0e3944a15f96",
   "3fbfc9c44cae",

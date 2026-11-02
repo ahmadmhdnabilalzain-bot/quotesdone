@@ -1006,6 +1006,18 @@ async function whatsappTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE WHATSAPP SENDER'S RATING, READ WITHOUT A MESSAGE (2 Nov 2026, ceo). The supplier invitation gate needs a reading
+// under 26 hours old, and until now only a queued invitation caused one, so the channel could never open.
+async function waSenderQualityTick(): Promise<unknown> {
+  try {
+    const r = await fetch(FN + '/send_whatsapp', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
+      body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), read_sender_quality: true }), signal: AbortSignal.timeout(8500),
+    });
+    return { ok: r.ok, status: r.status, result: await r.json().catch(() => null) };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 // THE ACCOUNTANT'S WEEKLY FINANCIAL REPORT HANGS HERE FOR THE FOURTH TIME, AND FOR THE SAME REASON.
 // The founder, 9 Sep 2026: the accountant must "create weekly report as pdf and share it with me and
 // the CEO". A weekly report needs a schedule and pg_cron is not one any more, so the once-per-ISO-week
@@ -1704,6 +1716,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   ceoWeeklyReview: { run: ceoWeeklyReviewTick },
   ceoDecisions: { run: ceoDecisionsTick },
   ceoPlan: { run: ceoPlanTick },
+  waSenderQuality: { run: waSenderQualityTick },
   openrouter: { run: openrouterMeterTick },
   ladder: { run: refundLadderTick },
   caseMemory: { run: caseMemoryEmbedTick },
