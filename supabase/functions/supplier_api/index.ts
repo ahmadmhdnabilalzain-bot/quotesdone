@@ -26,6 +26,7 @@ import { arabicOf, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { createCompany, sessionOpenedByCode } from './create_company.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
+import { SERVICES_UNCONFIRMED, servicesHoldMail, pendingFounderSubject } from '../_shared/services_hold_copy.ts';
 import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { markReading, proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
@@ -1158,6 +1159,8 @@ ${q}`,
           // Any decision short of approved: the unread licence is said first, with whatever else is still missing.
           : licUnreadEn
           ? { subject: 'Your QuotesDone registration: please send a clearer trade licence', body: licUnreadEn + (stillNeeded.length ? ` We also still need: ${needEn}.` : '') }
+          : decision === 'pending' && v.reason === SERVICES_UNCONFIRMED
+          ? servicesHoldMail(name)
           : decision === 'pending'
           ? (ar ? { subject: 'استلمنا طلب تسجيلكم لدى QuotesDone', body: `نشكركم على تسجيل ${name}. اكتملت البنود الستة المطلوبة، ويتولّى مهندس المبيعات مراجعة طلب التسجيل حاليًا، وسنوافيكم برسالة فور اعتماده.` }
                 : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name}. All six required items are in, and our sales engineer is reviewing your registration now. We will e-mail you as soon as it is approved.` })
@@ -1173,7 +1176,7 @@ ${q}`,
         const fixture = isFixtureLead(full ?? sup);
         await notify([
           ...(fixture ? [] : [{ type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id,
-            subject: decision === 'approved' ? 'New supplier approved by the sales engineer' : decision === 'pending' ? 'New supplier waiting for approval (auto-approve is off)' : 'Supplier registration incomplete',
+            subject: decision === 'approved' ? 'New supplier approved by the sales engineer' : decision === 'pending' ? pendingFounderSubject(v.reason) : 'Supplier registration incomplete',
             body: `New supplier "${name}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : (certificatePending ? ' — the signed terms certificate is being issued' : '')}. No action needed; this is a record.${licInfo}` }]),
           { type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, lang: ar ? 'ar' : 'en', ...supplierMail },
         ]);
