@@ -14,11 +14,13 @@ import { AE_ORIGIN, CANONICAL_ORIGIN } from '../_shared/site_origins.ts';
 const host = (origin: string) => origin.replace(/^https?:\/\//, '');
 
 const sayEn = (web: string) =>
-  'Thank you for calling QuotesDone. This number is for WhatsApp messages only. '
-  + `Please message us on WhatsApp or visit ${web}.`;
+  'Thank you for calling QuotesDone. We answer in writing, so nobody picks up on this line. '
+  + 'Send a WhatsApp message to this same number and we will reply. '
+  + `Or use the contact page on ${web}; every message there is answered.`;
 const sayAr = (web: string) =>
-  'شكرًا لاتصالكم بـ QuotesDone. هذا الرقم مخصص لرسائل واتساب فقط، '
-  + `يُرجى مراسلتنا عبر واتساب أو زيارة موقعنا ${web}.`;
+  'شكرًا لاتصالكم بـ QuotesDone. نردّ كتابيًا، لذلك لا يجيب أحد على هذا الخط. '
+  + 'أرسلوا رسالة واتساب إلى هذا الرقم نفسه وسنرد عليكم. '
+  + `أو استخدموا صفحة التواصل في موقعنا ${web}، وكل رسالة تصلنا هناك يُرَد عليها.`;
 
 // & < > would break the TwiML; the sentences are ours, but a domain is interpolated, so it is escaped.
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -36,8 +38,8 @@ export function twiml(uae: boolean): string {
   const web = host(uae ? AE_ORIGIN : CANONICAL_ORIGIN);
   return '<?xml version="1.0" encoding="UTF-8"?>'
     + '<Response>'
-    + `<Say language="en-US">${esc(sayEn(web))}</Say>`
-    + `<Say language="ar-AE" voice="Polly.Hala">${esc(sayAr(web))}</Say>`
+    + `<Say language="en-US" loop="2">${esc(sayEn(web))}</Say>`
+    + `<Say language="ar-AE" voice="Polly.Hala" loop="2">${esc(sayAr(web))}</Say>`
     + '<Hangup/>'
     + '</Response>';
 }

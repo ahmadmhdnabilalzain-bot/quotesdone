@@ -1,0 +1,32 @@
+name: Supplier document walk (demo data)
+
+# Founder ledger 1442, 1457: a supplier's real files, through the real endpoints, to a decision, and permanently on
+# GitHub so no session has to be open. ZZ DEMO leads at @example.invalid only; teardown removes the run by its tag.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  walk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      QD_FIXTURES: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Install the locked dependencies
+        run: npm ci
+        timeout-minutes: 8
+      - name: Walk the supplier's documents
+        run: node scripts/e2e/supplier_document_read_walk.mjs --json walk.json
+        timeout-minutes: 30
+      - name: Keep the result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supplier-document-walk
+          path: walk.json
+          if-no-files-found: warn

@@ -133,7 +133,7 @@ add('dropbox_backup_profile', 'en', { title: 'Customer Profile — zzdemo01', bo
 const norm = (s: string) => s.normalize('NFKC');
 const rev = (s: string) => [...s].reverse().join('');
 const has = (text: string, phrase: string) => { const t = norm(text); return t.includes(phrase) || t.includes(rev(phrase)); };
-const FURNITURE = /QuotesDone Technologies|1633275|100000665|management@quotesdone|\+971 50 931 9355|^Page \d|صفحة|ةحفص/;
+const FURNITURE = /QuotesDone Technologies|1633275|100000665|management@quotesdone|\+1 218 316 6814|^Page \d|صفحة|ةحفص/;
 // Latin words any Arabic page may carry: the issuer's proper names and codes, and the renderer's own.
 const ALWAYS = new Set(['quotesdone', 'technologies', 'tdra', 'nol', 'aed', 'stripe', 'zz', 'demo', 'qd', 'utc', 'sha', 'pdf', 'www', 'https', 'http', 'com', 'ae', 'management', 'invalid', 'example', 'visa', 'card', 'nos', 'tr',
   // reference-code suffixes (QD-<job>-CMP / -RFQ, <case>-GUIDE) and the courts' domain (dc.gov.ae)

@@ -1,10 +1,10 @@
-// contact_submit - public contact form handler. Stores the message and queues a notify to the inbox (app_secrets.admin_emails) in the outbox, which customer_support sends. Honeypot spam guard.
+// contact_submit - public contact form handler. Stores the message; a trigger hands it to customer_support. Honeypot spam guard.
 // kind='complaint' also opens a complaint ticket (fn_complaint_open) and returns its number and due dates for /complaints/status.
 // config.toml sets verify_jwt = true for this function; the public form sends the anon key as Bearer, which passes.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
-import { requestDelivery } from '../_shared/deliver.ts';
 import { contactMessageError } from '../_shared/contact_limits.ts';
+import { answerHold } from '../_shared/contact_answer_gate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -16,8 +16,11 @@ async function rl(key: string, limit: number): Promise<boolean> {
   try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: limit, p_seconds: WINDOW_S }); if (error) return true; return data !== false; }
   catch (_e) { return true; } // the limiter being down must not lose a customer's message
 }
-async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
-function esc(s: string){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// The limiter for AUTOMATIC ANSWERS fails CLOSED: if it cannot count, the message is held for the seat, never answered.
+async function allow(key: string, limit: number, seconds: number): Promise<boolean> {
+  try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: limit, p_seconds: seconds }); return !error && data !== false; }
+  catch (_e) { return false; }
+}
 Deno.serve(observe('contact_submit', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
@@ -37,7 +40,9 @@ Deno.serve(observe('contact_submit', async (req) => {
     }
     const ua = String(req.headers.get('user-agent')||'').slice(0,300);
     const isComplaint = String(b.kind || '') === 'complaint';
-    const { data: row, error } = await admin.from('contact_messages').insert({ name, email, phone, message, user_agent: ua, ...(isComplaint ? { source: 'complaint' } : {}) }).select('id').maybeSingle();
+    // Whether we may ANSWER this stranger by mail; the message is stored either way (source 'held:<reason>' -> z55 holds it).
+    const hold = isComplaint ? null : await answerHold(email, ip, allow).catch(() => 'gate_error');
+    const { data: row, error } = await admin.from('contact_messages').insert({ name, email, phone, message, user_agent: ua, ...(isComplaint ? { source: 'complaint' } : hold ? { source: 'held:' + hold } : {}) }).select('id').maybeSingle();
     if (error) return J({ error: 'Could not send. Please try again.' }, 500);
     // A complaint gets a ticket number and the two policy clocks (2 and 10 working days).
     type Ticket = { ticket?: string; acknowledge_due?: string; respond_due?: string };
@@ -48,23 +53,9 @@ Deno.serve(observe('contact_submit', async (req) => {
         try { await admin.from('agent_runs').insert({ agent:'contact_submit', status:'error', counts:{ complaint_ticket_failed:1 }, note:'contact_submit stored a complaint (contact_messages #'+(row?.id||'')+') but fn_complaint_open failed: '+String(te?.message||'no row').slice(0,300)+'. customer_support must open the ticket by hand.', finished_at:new Date().toISOString() }); } catch(_e3){ /* */ }
       } else ticket = t as Ticket;
     }
-    // THE NOTIFY GOES THROUGH THE OUTBOX, SENT BY customer_support (ruling of 14 Sep 2026: "the only
-    // agent who uses the whatsapp and email is the customer support agent."). This handler used to build
-    // its own provider call, the one email path outside notifications. It now queues a delivery request
-    // like every other seat: send_outbox dispatches it as customer_support, applies email_suppressions
-    // (so the 27 Jul suppression bypass is closed by the dispatcher rather than restated here), and
-    // the a10 mail-policy trigger on notifications governs it by kind 'contact_message'. The contact_messages
-    // row is stored either way, so nothing a customer wrote is lost.
-    try {
-      const to = (await sec('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
-      await requestDelivery(admin, {
-        type: 'contact_message', kind: 'contact_message', to_email: to, to_role: 'admin', channel: 'email', status: 'queued',
-        requested_by: 'customer_support',
-        subject: (ticket?.ticket ? ('Complaint '+ticket.ticket+' - ') : '')+'New contact message'+(name?(' from '+name):''),
-        body: 'New contact-form message\n\nName: '+(name||'—')+'\nEmail: '+(email||'—')+'\nPhone: '+(phone||'—')+'\n\n'+message+'\n\nRef #'+(row?.id||''),
-        html: `<p><b>New contact-form message</b></p><p><b>Name:</b> ${esc(name)||'—'}<br><b>Email:</b> ${esc(email)||'—'}<br><b>Phone:</b> ${esc(phone)||'—'}</p><p style="white-space:pre-wrap">${esc(message)}</p><p style="color:#888;font-size:12px">Ref #${row?.id||''}</p>`,
-      });
-    } catch(_e){ /* the row is stored regardless */ }
+    // NO NOTICE MAIL (ledger 1436/1447). The trigger z55 on contact_messages
+    // (scripts/sql/nothing_a_person_sends_us_waits_without_a_seat_that_acts.sql) hands a message to customer_support as an
+    // inbound row, which email_triage answers; a complaint keeps its ticket and its two clocks.
     if (isComplaint) return J({ ok: true, ticket: ticket?.ticket ?? null, acknowledge_due: ticket?.acknowledge_due ?? null, respond_due: ticket?.respond_due ?? null, status_path: '/complaints/status' });
     return J({ ok: true });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
