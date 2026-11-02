@@ -12152,11 +12152,11 @@ begin
     'ok', true, 'task_id', v_task, 'asks', v_asks, 'test_traffic', v_test,
     'reply_en', 'I do not have a sourced answer to that yet, and I will not guess at it. I have '
       || 'recorded your question exactly as you asked it so it gets answered properly. If you need '
-      || 'it now, call or WhatsApp +971 50 931 9355 (Mon-Fri, 9am-6pm GST) or email '
+      || 'it now, call +971 56 791 8605 or WhatsApp +1 218 316 6814 (Mon-Fri, 9am-6pm GST) or email '
       || 'management@quotesdone.com.',
     'reply_ar', 'لا تتوفر لديّ إجابة موثّقة عن ذلك حتى الآن، ولا أودّ التخمين. سجّلتُ سؤالكم كما كتبتموه '
       || 'تمامًا ليُجاب عنه إجابة دقيقة. وإن احتجتم إلى الإجابة الآن، يمكنكم الاتصال أو المراسلة عبر '
-      || 'واتساب:' || E'\n' || '+971 50 931 9355' || E'\n' || 'أو البريد الإلكتروني:' || E'\n'
+      || 'واتساب:' || E'\n' || '+1 218 316 6814' || E'\n' || 'أو الاتصال الهاتفي على:' || E'\n' || '+971 56 791 8605' || E'\n' || 'أو البريد الإلكتروني:' || E'\n'
       || 'management@quotesdone.com');
 end
 $function$

@@ -10,6 +10,7 @@ Pattern lessons moved out of the index to keep it readable. Each link is a topic
 - [A SECURITY DEFINER guard reads its own identity](security-definer-guard-reads-its-own-identity.md)
 - [A guard that reads a shadowed table](a-guard-that-reads-a-shadowed-table.md)
 - [A definer view hands back what the table withheld](a-definer-view-hands-back-what-the-table-withheld.md)
+- [A pinned helper is never inlined](a-pinned-helper-is-never-inlined.md) — 0.18 ms a row; fast path at the call site, helper for the rest
 - [= any(subquery) compares against the whole string](any-subquery-silently-compares-against-the-whole-string.md)
 - [xmin attribution needs the xid tree](xmin-attribution-needs-the-xid-tree.md)
 - [`\m` does not survive the transport](backslash-m-does-not-survive-the-transport.md)
