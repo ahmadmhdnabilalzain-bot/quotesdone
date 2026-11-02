@@ -206,6 +206,12 @@ export const BRIEF_SOURCE_ID = 'brief';
 // JSON object'. Every class think() writes in allows at least 2,000 (model_policy: internal_judgement and
 // routine_employee_reasoning 2,000; the audience classes and ceo__internal_judgement 4,000).
 export const SYNTH_MAX = 2000;
+// A LEAN CHOICE WRITES LITTLE (customer_support, 2 Nov 2026). Its caller reads decision.choice (and `also`) and nothing else, yet the
+// model wrote a two-or-three sentence "answer" and a reasoning trail first: decode time is most of the ~15 s classification.
+// Lean decisions are told to keep every other field minimal, and are capped at this many tokens (the JSON itself is ~100).
+export const LEAN_DECIDE_MAX = 500;
+const LEAN_DECIDE_NOTE = `
+This choice is read by a program: only "decision" (and any "Also" keys) is used. Keep "answer" to at most eight words, "reasoning" [], "cited" [], "asked_back" null, and write nothing outside the JSON object.`;
 // The planner runs on a reasoning model whose hidden tokens count against the clock: on the seat exam (19 Oct 2026)
 // 41 of 432 plans (routine_employee_reasoning on gpt-6-luna-pro) hit the gateway's 47 s wall and the question was held
 // (25 of 67 for ceo); the slowest plan that finished took 47.3 s.
@@ -744,12 +750,14 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     + (req.ask && !deciding ? `
 Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.` : '')
     + (req.also ?? []).map((a) => `
-Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.`).join('');
+Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.`).join('')
+    + (req.lean === true && deciding ? LEAN_DECIDE_NOTE : '');
+  const synthMax = req.lean === true && deciding ? LEAN_DECIDE_MAX : req.maxTokens?.synthesise ?? SYNTH_MAX;
   const payload = { question: req.question, context: ctx, plan: planSteps, facts_known: facts.filter((f) => f.value), facts_missing: missing, sources };
   let draft: Draft | null = null; let model: string | null = null; let refusal: string | null = null;
   for (let pass = 1; pass <= (deciding ? 2 : MAX_SYNTH_PASSES); pass++) {
     const r = await deps.llm('synthesise', synthSys + (refusal ? `\n\nYOUR PREVIOUS DRAFT WAS REFUSED: ${refusal}. Write it again, correctly.` : ''),
-      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? SYNTH_MAX, sysStable: facts0, ...(req.effort ? { effort: req.effort } : {}) });
+      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: synthMax, sysStable: facts0, ...(req.effort ? { effort: req.effort } : {}) });
     draft = parseJson<Draft>(r.content); model = r.model ?? model;
     if (req.reader && draft && typeof draft === 'object') {
       draft.asked_back = null;
@@ -785,7 +793,7 @@ Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((
     } else {
       // One corrective pass with the reviewer's problems; the second reading is final and marked.
       const r = await deps.llm('synthesise', synthSys + `\n\nAN INDEPENDENT REVIEWER FOUND PROBLEMS: ${(vj.problems ?? []).join(' | ')}. Correct them.`,
-        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? SYNTH_MAX, sysStable: facts0, ...(req.effort ? { effort: req.effort } : {}) });
+        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: synthMax, sysStable: facts0, ...(req.effort ? { effort: req.effort } : {}) });
       const fixed = parseJson<Draft>(r.content);
       if (req.reader && fixed && typeof fixed === 'object') { fixed.asked_back = null; keepProvenFields(fixed, req.decision, textOf(ctx) + '\n' + req.question); }
       if (fixed) groundDraft(fixed, missing);

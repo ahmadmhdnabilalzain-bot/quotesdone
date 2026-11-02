@@ -47,7 +47,7 @@ import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from '../_sh
 import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, menuTurn, type Turn } from './menu_flow.ts';
 import type { Figures } from './founder_queries.ts';
 import { isStop } from '../_shared/marketing_send_gate.ts';
-import { type Audience, humanAlert, type Lang, MENU_IDS, menuItems } from './menu.ts';
+import { type Audience, bareGreeting, humanAlert, type Lang, MENU_IDS, menuItems } from './menu.ts';
 import type { Trade } from './coverage.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
@@ -742,7 +742,7 @@ async function handleInbound(req: Request): Promise<Response> {
       return { intent: r.intent, needsPerson: r.needsPerson, menu: r.menu, why: r.result.reason ?? r.result.status };
     })().catch((e) => ({ intent: null, needsPerson: null, menu: null, why: 'threw: ' + String((e as Error)?.message || e).slice(0, 200) })));
     const menuDeps: MenuDeps = {
-      intent: (_text: string) => (meaningP ??= Body.trim() ? readings().then((r) => { meaningWhy = r.why; return r.intent; }) : Promise.resolve(null)),
+      intent: (_text: string) => (meaningP ??= bareGreeting(Body) ? Promise.resolve('none') : Body.trim() ? readings().then((r) => { meaningWhy = r.why; return r.intent; }) : Promise.resolve(null)),
       queueIntent: async (_text: string) => {
         try { await queueWhatsAppMeaning(defaultDeps(admin, 'wa_inbound'), await meaningIn(), meaningWhy); }
         catch (e) { await itFinding('wa_inbound:meaning_not_queued', 'A held WhatsApp question could not be filed for replay', { error: String((e as Error)?.message || e) }); }
@@ -751,6 +751,7 @@ async function handleInbound(req: Request): Promise<Response> {
         // This message: its menu reading came with the others. The menu items and the problem option count only when
         // the turn offers them; otherwise the message is 'other', exactly as if they had not been offered.
         if (text.trim() && text.trim() === Body.trim()) {
+          const hello = bareGreeting(Body); if (hello) return hello as Awaited<ReturnType<MenuDeps['meaning']>>; // no model for a bare hello
           const m = (await readings()).menu;
           if (m === 'problem' && !awaitingProblem) return 'other';
           if (m && (MENU_IDS as readonly string[]).includes(m) && !offerMenu) return 'other';
@@ -897,7 +898,7 @@ async function handleInbound(req: Request): Promise<Response> {
       dedupeKey: 'wa:' + (MessageSid || From + ':' + Body.slice(0, 40)), subject: { phone: From, message_sid: MessageSid || null },
     }).then((x) => x.value, () => null /* unreasoned is not "no": the route records it as held */)));
     // Held or failed, the person check falls back to its own think(): under the hold that files it for replay (no model).
-    if (typedQuestion) readings();
+    if (typedQuestion && !bareGreeting(Body)) readings();
     const m = await menuTurn(menuDeps, menuIn);
     if (m.handled) {
       await logRun('ok', { audience, route: m.route, cost_aed: 0 }, 'answered from the WhatsApp menu: ' + m.route);

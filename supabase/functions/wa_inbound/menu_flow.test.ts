@@ -10,7 +10,7 @@ import { type Figures, isFiguresCommand } from './founder_queries.ts';
 import { HELD_NOTICE } from './model_says.ts';
 import { coverageReply, groupedTrades, type Trade } from './coverage.ts';
 import {
-  type Audience, caseConfirm, cleanName, contentKey, founderCommand, greetLine, HOURS, humanAlert, type Lang, MENU_BUTTON, sorryLead,
+  type Audience, bareGreeting, caseConfirm, cleanName, contentKey, founderCommand, greetLine, HOURS, humanAlert, type Lang, MENU_BUTTON, sorryLead,
   MENU_IDS, menuChoice, type MenuContext, type MenuId, menuItems, optionReply, WELCOME_TAIL, welcomeText, withinHours,
 } from './menu.ts';
 
@@ -838,4 +838,9 @@ Deno.test('1195-1197: no conversation reply leaves the menu unless a model wrote
     }
   }
   assert(conversational >= 15, 'the scenarios really sent conversation replies: ' + conversational);
+});
+
+Deno.test('a bare greeting is taken without a model; a greeting with a question is not', () => {
+  assertEquals(bareGreeting('Hi'), 'greeting'); assertEquals(bareGreeting(' hello! '), 'greeting'); assertEquals(bareGreeting('السلام عليكم'), 'salam');
+  assertEquals(bareGreeting('hi, how much is tiling?'), null); assertEquals(bareGreeting('stop'), null);
 });
