@@ -7,6 +7,7 @@
 // could kill the isolate mid-reply, which no try/catch can recover.)
 // The credential is cred_fn_ai, the fn.ai context whose scope includes embed_ml; 'fn' names the caller in the audit.
 import { errorText } from './error_text.ts';
+import { notReached } from './not_reached.ts';
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
@@ -65,11 +66,16 @@ async function embedRemote(admin: Admin, text: string, caller: string, timeoutMs
       if (!data?.value) return fail('no_credential');
       cred = { v: String(data.value), at: Date.now() };
     }
-    const r = await fetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/embed_ml', {
+    const signal = AbortSignal.timeout(timeoutMs);
+    const ask = () => fetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/embed_ml', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: cred.v, fn: caller, action: space === 'ml' ? 'query' : 'gte', text: t }),
-      signal: AbortSignal.timeout(timeoutMs),
+      body: JSON.stringify({ __secret: cred!.v, fn: caller, action: space === 'ml' ? 'query' : 'gte', text: t }),
+      signal,
     });
+    // A relay 502/503 no worker served (2 Nov 2026: 8 on embed_ml, all at a five-minute mark) is asked once more
+    // inside the same timeout rather than opening the 30 s cool-off for every embed in this worker.
+    let r = await ask();
+    if (notReached(r)) { await r.body?.cancel(); await new Promise((ok) => setTimeout(ok, 400)); r = await ask(); }
     if (!r.ok) {
       const j = await r.json().catch(() => null);
       const reason = 'embed_ml_http_' + r.status + (j?.error ? ':' + errorText(j.error, 80) : j ? '' : ':no_json_body');

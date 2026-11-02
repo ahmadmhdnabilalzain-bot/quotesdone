@@ -24,6 +24,7 @@ import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { rotateAndSettle } from '../_shared/it_rotate_by_api.ts';
 import { PAUSED, pausedDuties } from '../_shared/duty_pause.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
+import { notReached } from '../_shared/not_reached.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
 import { placementTick } from '../_shared/inbox_placement.ts';
 import { pollReplyInbox, pollTenantMailboxes, PROOF_LABEL, type SenderKind } from '../_shared/m365_reply_inbox.ts';
@@ -157,12 +158,18 @@ const ARCHIVE_SWEEPS = 4, ARCHIVE_BATCH = 4;
 async function archiveTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
+    // A sweep is idempotent (oldest-first, recorded by upsert), so one the platform refused before any worker ran it
+    // is asked once more (2 Nov 2026: 7 conversation_archive 503s in a day, each ~10 s with no execution_id and
+    // x-served-by base/server - the worker never started). _shared/not_reached.ts decides what "refused" means.
     const one = async (offset: number) => {
       try {
-        const r = await fetch(FN + '/conversation_archive', {
+        const signal = AbortSignal.timeout(50000);
+        const ask = () => fetch(FN + '/conversation_archive', {
           method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
-          body: JSON.stringify({ __secret: secret, action: 'sweep', limit: ARCHIVE_BATCH, offset }), signal: AbortSignal.timeout(50000),
+          body: JSON.stringify({ __secret: secret, action: 'sweep', limit: ARCHIVE_BATCH, offset }), signal,
         });
+        let r = await ask();
+        if (notReached(r)) { await r.body?.cancel(); r = await ask(); }
         return { offset, status: r.status, result: await r.json().catch(() => null) };
       } catch (e) { return { offset, ok: false, error: String((e as Error)?.message || e) }; }
     };

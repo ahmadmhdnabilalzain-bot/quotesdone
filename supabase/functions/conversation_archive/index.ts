@@ -22,6 +22,7 @@ import { docIdentity } from '../_shared/doc_template.ts';
 import { observe } from '../_shared/observe.ts';
 import { renderPdf } from '../pdf_native/render.ts';
 import { conversationDocument, stripHtml, type ConversationRow } from './document.ts';
+import { mayRenderNext } from './budget.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const ASSET = Deno.env.get('SUPABASE_URL')! + '/storage/v1/object/public/brand';
@@ -53,11 +54,15 @@ async function sweep(limit: number, offset = 0, tag?: string) {
   if (error) return { ok: false, stage: 'pending', error: error.message };
   const rows = ((data || []) as ConversationRow[]).slice(offset);
   const identity = rows.length ? await docIdentity(admin) : undefined;
-  let archived = 0, queued = 0; const failed: Array<{ ref: string; error: string }> = [];
+  let archived = 0, queued = 0, renderMs = 0, slowestMs = 0, deferred = 0; const failed: Array<{ ref: string; error: string }> = [];
   for (const r of rows) {
     const ref = `${r.source_table}:${r.source_id}`;
+    // A CPU budget, not a count (budget.ts): what is not drawn here stays pending for the next sweep.
+    if (!mayRenderNext(renderMs, slowestMs)) { deferred = rows.length - archived - failed.length; break; }
     try {
+      const t0 = performance.now();
       const out = await renderPdf(conversationDocument(r), { fetchBytes, identity });
+      const took = performance.now() - t0; renderMs += took; slowestMs = Math.max(slowestMs, took);
       if (!out.ok) { failed.push({ ref, error: 'render ' + JSON.stringify(out.body).slice(0, 160) }); continue; }
       const month = String(r.occurred_at || new Date().toISOString()).slice(0, 7);
       const path = `conversations/${r.channel}/${month}/${r.source_table}-${r.source_id}.pdf`;
@@ -68,9 +73,10 @@ async function sweep(limit: number, offset = 0, tag?: string) {
       archived++; queued += Number((rec as { queued_for_dropbox?: number }).queued_for_dropbox) || 0;
     } catch (e) { failed.push({ ref, error: String((e as Error)?.message || e).slice(0, 200) }); }
   }
-  if (rows.length) await logRun(failed.length ? 'error' : 'ok', { pending: rows.length, archived, queued_for_dropbox: queued, failed: failed.length },
+  const render_ms = Math.round(renderMs), slowest_render_ms = Math.round(slowestMs);
+  if (rows.length) await logRun(failed.length ? 'error' : 'ok', { pending: rows.length, archived, queued_for_dropbox: queued, failed: failed.length, deferred, render_ms, slowest_render_ms },
     failed.length ? 'PDF not kept for ' + failed.length + ' message(s): ' + failed.slice(0, 3).map((f) => f.ref + ' ' + f.error).join('; ') : '');
-  return { ok: failed.length === 0, pending: rows.length, archived, queued_for_dropbox: queued, failed };
+  return { ok: failed.length === 0, pending: rows.length, archived, queued_for_dropbox: queued, deferred, render_ms, slowest_render_ms, failed };
 }
 
 async function resendGet(key: string, url: string) {
