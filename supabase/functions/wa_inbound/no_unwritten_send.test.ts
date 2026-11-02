@@ -55,7 +55,7 @@ Deno.test('1195-1197: no stored-sentence road remains, and no path leaves the pe
 });
 
 Deno.test('review of #1335: the per-number rate key is carried, and the model\'s own escalate flag is OR-ed with the router', () => {
-  assert(code.includes("rateKey: 'wa:' + From"), 'the per-number ceiling (wa:<From>) reaches the gateway');
+  assert(code.includes("rateKey: signal ? 'wa-spec:' + From : 'wa:' + From"), 'the per-number ceiling (wa:<From>) reaches the gateway; a speculative draft has its own bucket');
   assert(code.includes('const escalate = route?.needs_a_person === true || modelEscalate;'), 'a complaint the router misses still reaches a person');
 });
 
@@ -65,6 +65,11 @@ Deno.test('review of #1335: the per-number rate key is carried, and the model\'s
 Deno.test('a speculative reply is adopted only on the route it was composed on, and asking never touches the turn', () => {
   assert(/fn_wa_route_dry', \{ p_phone: From, p_body: Body\.slice\(0, 4000\), p_needs_person: false, p_intent: 'none' \}/.test(code), 'the draft is composed on the dry route for class (no person, none)');
   assert(/speculative && needsPerson === false && routedIntent === 'none' && route\?\.needs_a_person === false/.test(code), 'adopted only when the classification says exactly that');
+  // discarded drafts cannot use up the real reply's rate allowance, and are aborted when discarded
+  assert(code.includes("specAbort.signal") && /askModel\([^\n]*specAbort\.signal\)/.test(code), 'the speculative call carries the abort signal, which is what selects its own bucket');
+  assert(code.includes("if (!(spec && spec.text)) specAbort.abort();") && code.includes('specAbort.abort();\n'), 'a discarded draft is aborted');
+  assertEquals((code.match(/'wa:' \+ From/g) || []).length >= 1 && code.includes("'wa-spec:' + From"), true, 'two buckets: wa: for the real reply, wa-spec: for drafts');
+  assert(code.includes("itFinding('wa_inbound:route_dry_unavailable'"), 'a dry route that is missing or failing is an IT finding, not silence');
   const ask = code.slice(code.indexOf('const askModel ='), code.indexOf('const adopt ='));
   assert(!/modelEscalate|sayOutage|sayProblems/.test(ask), 'askModel must not set the turn\'s escalate / outage / problems');
   assertEquals((code.match(/adopt\(/g) || []).length, 2, 'adopt is called by sayFor and by the speculative draft, and nowhere else');

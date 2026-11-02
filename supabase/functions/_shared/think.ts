@@ -161,7 +161,7 @@ export interface ThinkDeps {
   gate(): Promise<GateAnswer>;
   // subject: what the question is about, forwarded to ai_gateway so its fixture check (fn_ai_subject_is_fixture)
   // can answer our own test traffic with the no-cost stub (704, 28 Sep 2026).
-  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h'; timeoutMs?: number; history?: { role: 'user' | 'assistant'; content: string }[]; effort?: 'low' | 'medium' | 'high' }): Promise<LlmReply>;
+  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h'; timeoutMs?: number; history?: { role: 'user' | 'assistant'; content: string }[]; effort?: 'low' | 'medium' | 'high'; signal?: AbortSignal }): Promise<LlmReply>;
   // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
   embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
   /** Why the last embed of this text in this space returned null, when the embedder said (ml_embed_client's `why`). */
@@ -881,7 +881,7 @@ export function defaultDeps(admin: Admin, fn: string, o: { gte?: GtePlacement } 
       // history (chat_history.ts): the conversation so far as real turns before this one, cached by the gateway
       const content = o.history?.length ? [...o.history, last] : o.images?.length ? [last] : input;
       // sysStable: the byte-stable prefix (the company brief) the gateway marks cacheable; `system` follows it.
-      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(o.sysShared ? { sysShared: o.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}), ...(o.history?.length ? { cacheHistory: true } : {}), ...(o.effort ? { effort: o.effort } : {}) });
+      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(o.sysShared ? { sysShared: o.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}), ...(o.history?.length ? { cacheHistory: true } : {}), ...(o.effort ? { effort: o.effort } : {}), ...(o.signal ? { signal: o.signal } : {}) });
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
     embed: async (t, space) => {

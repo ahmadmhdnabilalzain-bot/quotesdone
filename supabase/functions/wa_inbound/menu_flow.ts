@@ -230,7 +230,9 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
     return { handled: true, route: 'capability_answer' };
   }
 
-  // What the message MEANS to the menu is reasoned, once (menuMeaning); null while held — never a word list.
+  // What the message MEANS to the menu is reasoned, once (menuMeaning); null while held — never a word list. The ONE exception
+  // is a message that is nothing but a greeting (menu.ts bareGreeting: exact whole-message tokens like "hi" or "salam"): index.ts
+  // answers 'greeting'/'salam' for it without a model; anything longer than the bare token is reasoned as above.
   // The menu's options are offered to the reasoning ONLY right after we showed the menu (a typed title answers it),
   // never mid-conversation or for the founder: a reading must not page a person or skip a case on its own.
   const meaning = await meaningP;

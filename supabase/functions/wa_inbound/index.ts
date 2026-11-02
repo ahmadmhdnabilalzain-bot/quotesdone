@@ -576,11 +576,14 @@ async function handleInbound(req: Request): Promise<Response> {
     let history: ReturnType<typeof waConversation> | null = null;
     // askModel writes nothing the turn keeps; adopt() is what makes a draft THE turn's reply (its escalate flag, outage and problems).
     // They are apart so a reply started speculatively (below) that is then discarded can never escalate or flag the turn.
-    const askModel = async (aud: 'customer' | 'supplier' | 'visitor' | 'founder', situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[]) => {
+    const askModel = async (aud: 'customer' | 'supplier' | 'visitor' | 'founder', situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[], signal?: AbortSignal) => {
       history ??= waConversation(admin, From, receivedAt, isDemoPhone(From));
       return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: await history,
         budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
-        rateKey: 'wa:' + From,   // the per-number ceiling (20/hour) the old prompt path had
+        // the per-number ceiling (20/hour) the old prompt path had. A speculative draft (signal given) has its OWN bucket, so drafts
+        // that are discarded can never use up the real reply's allowance and leave an active sender with no reply.
+        rateKey: signal ? 'wa-spec:' + From : 'wa:' + From,
+        ...(signal ? { signal } : {}),
         subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}) });
     };
     const adopt = (r: Awaited<ReturnType<typeof askModel>>) => {
@@ -994,17 +997,27 @@ async function handleInbound(req: Request): Promise<Response> {
     // When the classification says exactly that, this draft IS the reply; any other class (an intent, a person, a complaint, held)
     // discards it and the reply is asked on the real route as before. A discarded draft is never adopted, so it cannot escalate,
     // flag or be sent; the only send is the one at the end of the turn. Null (autoreply off, the dry route not applied) = no speculation.
+    // A discarded draft is ABORTED (specAbort), so it stops costing; it also runs in its own rate bucket (askModel). A draft that
+    // cannot start is never silent: the dry route missing or failing files an IT finding, and the turn takes the normal path.
+    const specAbort = new AbortController();
     const speculative: Promise<Awaited<ReturnType<typeof askModel>> | null> | null = typedQuestion && !bareGreeting(Body) && audience !== 'founder'
       ? (async () => {
           if ((await sec('wa_autoreply_enabled')) !== 'true') return null;
           const { data, error } = await admin.rpc('fn_wa_route_dry', { p_phone: From, p_body: Body.slice(0, 4000), p_needs_person: false, p_intent: 'none' });
-          if (error || !data) return null;
+          if (error || !data) {
+            await itFinding('wa_inbound:route_dry_unavailable', 'The WhatsApp reply cannot start beside the classification: fn_wa_route_dry failed or is not applied', { error: error?.message ?? 'returned nothing' });
+            return null;
+          }
           const { situation: s0 } = await composeSituation(data as Record<string, unknown>);
-          return await askModel(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', s0);
-        })().catch(() => null)
+          return await askModel(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', s0, undefined, undefined, specAbort.signal);
+        })().catch(async (e) => {
+          await itFinding('wa_inbound:speculative_reply_threw', 'The speculative WhatsApp reply threw; the turn took the normal path', { error: String((e as Error)?.message || e).slice(0, 300) });
+          return null;
+        })
       : null;
     const m = await menuTurn(menuDeps, menuIn);
     if (m.handled) {
+      specAbort.abort();
       await logRun('ok', { audience, route: m.route, cost_aed: 0 }, 'answered from the WhatsApp menu: ' + m.route);
       return TW(200);
     }
@@ -1401,7 +1414,11 @@ async function handleInbound(req: Request): Promise<Response> {
     const { situation, ids } = await composeSituation(route);
     mark('facts_ready');
     // The speculative draft is the reply only when the real route's inputs are exactly the ones it was composed on.
-    const drafted = speculative && needsPerson === false && routedIntent === 'none' && route?.needs_a_person === false ? await speculative : null;
+    // An empty draft (rate-limited, aborted, refused) is no draft: the reply is then asked on the real route, as before.
+    const adoptable = speculative && needsPerson === false && routedIntent === 'none' && route?.needs_a_person === false;
+    const spec = adoptable ? await speculative : null;
+    if (!(spec && spec.text)) specAbort.abort();   // discarded: stop paying for it
+    const drafted = spec && spec.text ? spec : null;
     timings.speculative = drafted ? 1 : 0;
     let reply = (drafted ? adopt(drafted) : await say(situation)).slice(0, 1200);
     mark('reply_written');
