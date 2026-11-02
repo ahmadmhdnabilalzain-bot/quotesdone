@@ -153,7 +153,9 @@ test('the five kb_chunks that carried the mobile are corrected by an md5-guarded
   for (const id of [177478, 177480, 177482, 177483, 177484]) assert.match(sql, new RegExp(`where id = ${id} and md5\\(content\\) = '[0-9a-f]{32}'`), `chunk ${id} is not md5-guarded`);
   assert.equal((sql.split('\n').filter((l) => !l.startsWith('--')).join('\n').match(/embedding_gte = null/g) || []).length, 5, 'exactly the five changed chunks are re-embedded');
   assert.doesNotMatch(sql, /update public\.kb_chunks set [^;]*\n\s*where (?!id = )/, 'an update that is not by id');
-  for (const s of ['PROBE OK', 'PROBE FAILED']) assert.ok(sql.includes(s));
+  for (const s of ['PROBE OK', 'PROBE FAILED', 'fn_kb_embed_dispatch', 'vector_dims(embedding_gte) = 384']) assert.ok(sql.includes(s), 'SQL lacks ' + s);
+  const code = sql.split('\n').filter((l) => l.trim() && !l.startsWith('--'));
+  assert.ok(/^update public\.kb_chunks/.test(code[0]), 'a comment line lost its leading dashes: ' + code[0]);
   assert.ok(read('scripts/sql/MANIFEST.txt').includes(f));
 });
 
