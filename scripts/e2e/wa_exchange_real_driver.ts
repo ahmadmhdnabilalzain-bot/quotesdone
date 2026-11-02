@@ -37,9 +37,11 @@ async function say(phone: string, body: string) {
 async function file(phone: string, mime: string, b64: string, caption: string) {
   const from = 'whatsapp:' + phone; const sid = 'SM' + Date.now().toString(16).padStart(12, '0') + (++n).toString(16).padStart(20, '0');
   const t0 = Date.now();
+  const pending: Promise<unknown>[] = [];
+  (globalThis as unknown as { EdgeRuntime: unknown }).EdgeRuntime = { waitUntil: (p: Promise<unknown>) => { pending.push(p); } };
   const res = await handler!(new Request(cfg.url + '/functions/v1/wa_inbound', { method: 'POST', headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ __secret: cfg.internal, From: from, Body: caption, MessageSid: sid, NumMedia: '1', MediaUrl0: `data:${mime};base64,${b64}`, MediaContentType0: mime }) }));
-  await new Promise((r) => setTimeout(r, 500));
+  await Promise.all(pending);
   const rows = await lastRow(from, sid);
   return { status: res.status, ms: Date.now() - t0, rows, reply: rows.map((r) => r.reply).filter(Boolean).join(' | ') };
 }
@@ -62,7 +64,10 @@ for (let i = 1; i <= 10; i++) {
   const text = i === 1 ? 'ZZ DEMO For the record, my company supplies curtain walling in Fujairah and my contact is Mr Zaid.'
     : i === 10 ? 'ZZ DEMO Which emirate did I tell you we work in, and who is my contact?'
     : ['ZZ DEMO ok', 'ZZ DEMO thanks', 'ZZ DEMO and how do I update my profile photos?', 'ZZ DEMO is there a cost to receive requests?', 'ZZ DEMO how are requests matched to me?', 'ZZ DEMO can I see who the customer is?', 'ZZ DEMO what happens when I send a quote?', 'ZZ DEMO ok good'][i - 2];
-  const r = await say(S, text); ten.push({ i, reply: r.reply });
+  let r = await say(S, text);
+  // the memory question is asked again (new message) if the first answer ran past the 45 s budget and went to the hold queue
+  for (let again = 0; i === 10 && !r.reply && again < 2; again++) { ten.push({ i: 10, reply: '(held: ' + JSON.stringify(r.rows[0]?.meta?.send_error ?? null) + ', ' + r.ms + ' ms)' } as never); r = await say(S, text); }
+  ten.push({ i, reply: r.reply, ms: r.ms, why: r.reply ? undefined : (r.rows[0]?.meta?.send_error ?? 'no row') } as never);
 }
 out.ten = ten;
 // grounding

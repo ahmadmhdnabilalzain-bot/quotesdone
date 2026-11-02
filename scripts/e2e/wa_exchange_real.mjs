@@ -40,7 +40,7 @@ try {
   const line = (r.stdout || '').split('\n').find((l) => l.startsWith('RESULT='));
   if (!line) throw new Error('driver produced no RESULT; stdout tail: ' + (r.stdout || '').slice(-600) + ' stderr tail: ' + (r.stderr || '').slice(-1200));
   result = JSON.parse(line.slice(7));
-  const brief = (x) => ({ status: x?.status, ms: x?.ms, reply: x?.reply });
+  const brief = (x) => ({ status: x?.status, ms: x?.ms, reply: x?.reply, results: x?.rows?.[0]?.meta?.results, err: x?.rows?.[0]?.meta?.send_error, nrows: x?.rows?.length });
   for (const k of ['forged', 'question', 'hi', 'arabic', 'stranger_hi', 'fee', 'top3', 'identity', 'reveal', 'image', 'document']) console.log('## ' + k + ' ' + JSON.stringify(k === 'forged' ? result[k] : brief(result[k])));
   console.log('## ten ' + JSON.stringify(result.ten));
   try {
