@@ -196,7 +196,7 @@ async function walk(run, c, n) {
   const payload = { action: 'save_profile', service_emirates: ['Dubai'], accept_terms: true, marketing_consent: false, contact_name: 'ZZ DEMO Contact', signatory_name: 'ZZ DEMO Signatory' };
   let sv = await call('supplier_api', jwt, payload, 60000);
   await call('kyc', jwt, { action: 'accept_terms' }, 60000).catch(() => null);
-  step('save_profile answers', sv.status === 200 && sv.json?.ok === true, `HTTP ${sv.status} ${String(sv.text).slice(0, 120)}`);
+  step('save_profile answers (a held decision is saved too)', (sv.status === 200 && sv.json?.ok === true) || (sv.json?.saved === true && c.want.status !== 'approved'), `HTTP ${sv.status} ${String(sv.text).slice(0, 120)}`);
 
   // 7. Wait for the reads and the certificate to land, then judge from the row.
   const t1 = Date.now(); let row;
@@ -206,7 +206,8 @@ async function walk(run, c, n) {
         c.source_docs -> 'docs' docs, c.proposed_trades, (select count(*)::int from public.agent_actions a where a.kind='supplier_verification' and a.target_id=l.id::text) decisions
        from public.leads l left join public.supplier_capabilities c on c.supplier_id = l.id where l.id=${lead.id}`))[0];
     const reading = (row.docs || []).some((d) => d.status === 'reading');
-    if ((row.signed && !reading && row.status !== 'action_required') || (row.signed && !reading && row.reason !== 'reg_terms') || Date.now() - t1 > 240000) break;
+    // settled = certificate signed, nothing still being read, and the gate is no longer waiting on a read or on the terms
+    if ((row.signed && !reading && row.reason !== 'documents_being_read' && row.reason !== 'reg_terms') || Date.now() - t1 > 240000) break;
     await sleep(5000);
   }
   out.row = row;
