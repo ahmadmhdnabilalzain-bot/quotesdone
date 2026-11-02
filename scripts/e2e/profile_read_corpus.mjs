@@ -82,6 +82,10 @@ export async function profileCorpus(dir) {
   { const n = 'ZZ DEMO Najm MEP and Fit-Out LLC'; const p = textPdf(n, `${n} is a UAE contractor delivering building services and finishes under one contract.`, ['Electrical works', 'Plumbing works', 'HVAC works', 'Fire fighting systems', 'Painting works']);
     put('multi_trade', 'multi-trade profile: 5 services', 'najm_mep_profile.pdf', p.bytes, MIME.pdf, { read: 'text', stated: ['electrical', 'plumbing', 'hvac', 'fire_fighting', 'painting'], fileText: p.lines }); }
 
+  // 6b. the profile prints the brand; the licence and the registration carry the full legal name (the usual case in the UAE)
+  { const brand = 'ZZ DEMO Rimal Fit-Out'; const p = textPdf(brand, `${brand} is a UAE company serving Dubai and Sharjah.`, ['Flooring works', 'Painting works']);
+    put('brand_name', 'profile prints the brand, the licence the full legal name', 'rimal_fitout_profile.pdf', p.bytes, MIME.pdf, { read: 'text', stated: ['flooring', 'painting'], fileText: p.lines }, { company: 'ZZ DEMO Rimal Fit-Out Contracting LLC' }); }
+
   // 7. a profile that says who the company is and never what it sells
   { const n = 'ZZ DEMO Horizon Holdings LLC'; const lines = [`${n} - Company Profile`, 'Chairman message', 'Our values are integrity, safety and respect for every person we work with.', 'About us', `${n} is a UAE company established in 2016.`,
       'Our people', '- 40 staff in Dubai', 'Our clients', '- Emaar and Damac', 'Certifications', '- ISO 9001:2015 quality management', 'Contact us', `${n}, Business Bay, Dubai`, FIXTURE];

@@ -56,6 +56,7 @@ let BR = null;
 const PROFILE_SQL = (id) => `select l.approval_status status, l.licence_gate_reason reason, l.verified, l.signed_terms_path is not null signed, l.trade_license_no licence_no,
     l.company_profile_doc_path prof_path, c.proposed_trades,
     (select coalesce(jsonb_agg(d), '[]'::jsonb) from jsonb_array_elements(coalesce(c.source_docs->'docs','[]'::jsonb)) d where d->>'kind'='profile') prof,
+    (select coalesce(jsonb_agg(d), '[]'::jsonb) from jsonb_array_elements(coalesce(c.source_docs->'docs','[]'::jsonb)) d where d->>'kind'='licence') licrec,
     (select count(*)::int from public.supplier_capability_confirmation k where k.supplier_id = l.id) confirmations
   from public.leads l left join public.supplier_capabilities c on c.supplier_id = l.id where l.id=${id}`;
 
@@ -147,6 +148,11 @@ async function walk(run, c, n) {
     const stray = docTrades.filter((t) => !c.truth.stated.includes(t));
     step('the stored read of the profile names only trades the file states (no nearest mapping)', stray.length === 0, stray.length ? `not in the file: ${stray.join(', ')}` : `${docTrades.join(', ') || 'none'}`);
     const okTrades = [...c.truth.stated, ...c.lic.trades];   // the file's, and the licence's own activities
+    const lrec = row.licrec?.[0] || null;
+    const licTrades = (lrec?.trades || []).map((t) => t.code);
+    out.licence_record = lrec ? { status: lrec.status, reason: lrec.reason, trades: (lrec.trades || []).map((t) => ({ code: t.code, via: t.via, snippet: t.snippet, phrases: t.phrases })), exact: lrec.exact, meaning: lrec.meaning } : null;
+    // The licence prints "General Trading, Import and Export": no trade code is named by those words (exact trade or none).
+    step('the licence read proposes no trade for "General Trading, Import and Export" (no nearest mapping)', licTrades.filter((t) => !c.lic.trades.includes(t)).length === 0, JSON.stringify(out.licence_record));
     const strayAll = (row.proposed_trades || []).filter((t) => !okTrades.includes(t));
     step('every trade proposed for the supplier comes from the profile or the licence', strayAll.length === 0, strayAll.length ? `from neither: ${strayAll.join(', ')}` : `${(row.proposed_trades || []).join(', ') || 'none'}`);
 
