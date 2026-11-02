@@ -46,6 +46,22 @@ test('the backstop runs after the classification is recorded, before spam and th
   assert.match(block, /continue;\s*\}\s*$/, 'a mail the backstop handled must never reach the answer');
 });
 
+// Review of #1728 (3 Nov 2026): a null or unparseable classification left the category 'other' and the mail was answered.
+test('an invitation reply whose classification did not read is recorded as held and never reaches the answer', () => {
+  const readAt = TRIAGE.indexOf('({ parsed, category, summary, reply } = readTriage(out));');
+  const held = TRIAGE.indexOf('const held = holdsUnread(invitationReply, parsed);');
+  const marked = TRIAGE.indexOf('update({ ai_category: category, ai_summary: summary');
+  const stop = TRIAGE.indexOf('if (held) { counts.held_unread');
+  const backstop = TRIAGE.indexOf('if (backstopApplies(category, invitationReply)) {');
+  const answer = TRIAGE.indexOf('await reply1(m, audienceOf(relation)');
+  assert.ok(readAt > 0 && held > readAt && marked > held, 'the hold must be decided from readTriage, before the row is recorded');
+  assert.match(TRIAGE.slice(held, marked), /if \(held\) \{ category = UNREAD_CATEGORY; summary = UNREAD_SUMMARY; reply = ''; \}/, 'a held mail must be recorded as triage_unread with no draft');
+  assert.match(TRIAGE.slice(marked, TRIAGE.indexOf('\n', marked)), /triaged_at: new Date\(\)\.toISOString\(\), \.\.\.\(held \? \{ needs_review: true \} : \{\}\)/, 'a held mail must be marked triaged (never re-run) and kept for a person');
+  assert.ok(stop > marked && stop < backstop && stop < answer, 'the hold must end the turn after the row is recorded and before the backstop and the answer');
+  assert.match(TRIAGE.slice(stop, TRIAGE.indexOf('\n', stop)), /continue; \}$/, 'a held mail must never reach the answer');
+  assert.equal((TRIAGE.match(/JSON\.parse\(/g) || []).length, 0, 'the classification is read only by readTriage');
+});
+
 test('the word rule still runs first, in resend_inbound, before anything is stored for the triage', () => {
   const inbound = noComments(read('supabase/functions/resend_inbound/index.ts'));
   const words = inbound.indexOf('isUnsubscribeRequest({ to, subject, text: fullText })');

@@ -3,7 +3,7 @@
 // you again..." and the address stayed sendable). The client is a stub that records every call; no network, no model.
 //   deno test --no-lock supabase/functions/email_triage/opt_out_backstop.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { applyBackstop, backstopApplies, type BackstopMail } from './opt_out_backstop.ts';
+import { applyBackstop, backstopApplies, holdsUnread, readTriage, UNREAD_CATEGORY, type BackstopMail } from './opt_out_backstop.ts';
 
 type Call = { table: string; op: string; args: unknown[]; chain: [string, unknown[]][] };
 function stubDb(o: { invited?: number; upsertError?: string } = {}) {
@@ -71,6 +71,39 @@ Deno.test('a stop a gate refuses is never written, and is kept for a person', as
     assertEquals((row.args[0] as Record<string, unknown>).needs_review, true, name);
     assert(/NOT APPLIED/.test(String((row.args[0] as Record<string, unknown>).ai_summary)), name);
   }
+});
+
+// The review of #1728 (3 Nov 2026): makeLlm returns null on a failure or timeout, and a reply that does not parse left the
+// category at 'other', so the backstop did not apply and the stop was answered. The decision index.ts takes per mail:
+//   held  -> never reaches reply1(); the row is ai_category triage_unread, needs_review true, triaged_at set (not re-run);
+//   else  -> the category the model gave, exactly as before.
+const route = (out: string | null, invitationReply: boolean) => {
+  const t = readTriage(out);
+  if (holdsUnread(invitationReply, t.parsed)) return { held: true, answered: false, category: UNREAD_CATEGORY };
+  if (backstopApplies(t.category, invitationReply)) return { held: false, answered: false, category: t.category };
+  return { held: false, answered: t.category !== 'spam', category: t.category };
+};
+
+Deno.test('no model answer (makeLlm returned null) on an invitation reply: held, never answered', () => {
+  assertEquals(readTriage(null), { parsed: false, category: 'other', summary: '', reply: '' });
+  assertEquals(route(null, true), { held: true, answered: false, category: 'triage_unread' });
+});
+
+Deno.test('an answer that does not parse on an invitation reply: held, never answered', () => {
+  for (const out of ['Sure! I think this is an opt-out.', '{"category": "opt_out", "summary": ', '{not json}', '{"summary":"no category"}', '{"category":"  "}']) {
+    assertEquals(readTriage(out).parsed, false, out);
+    assertEquals(route(out, true), { held: true, answered: false, category: 'triage_unread' }, out);
+  }
+});
+
+Deno.test('a mail that is not an invitation reply is unchanged: unread falls to other and is answered as before', () => {
+  assertEquals(route(null, false), { held: false, answered: true, category: 'other' });
+  assertEquals(route('{not json}', false), { held: false, answered: true, category: 'other' });
+  assertEquals(route('{"category":"customer_question","summary":"s","reply":"r"}', false), { held: false, answered: true, category: 'customer_question' });
+  // a parsed invitation reply goes where its category says (the backstop for opt_out, the answer otherwise)
+  assertEquals(route('{"category":"opt_out","reply":""}', true), { held: false, answered: false, category: 'opt_out' });
+  assertEquals(route('```json\n{"category":"supplier_question","summary":"asks about fees","reply":"x"}\n```', true), { held: false, answered: true, category: 'supplier_question' });
+  assertEquals(readTriage('{"category":"supplier_question","summary":"asks about fees","reply":"x"}'), { parsed: true, category: 'supplier_question', summary: 'asks about fees', reply: 'x' });
 });
 
 Deno.test('a suppression that cannot be recorded is kept for a person, never reported as done', async () => {

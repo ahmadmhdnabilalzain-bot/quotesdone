@@ -30,7 +30,7 @@ import { fileReviewRequest } from '../_shared/review_request.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { TRIAGE_LLM } from './triage_llm.ts';
-import { applyBackstop, backstopApplies } from './opt_out_backstop.ts';
+import { applyBackstop, backstopApplies, holdsUnread, readTriage, UNREAD_CATEGORY, UNREAD_SUMMARY } from './opt_out_backstop.ts';
 import { beat, budgetLeft, closeStaleRuns } from './run_guard.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -165,7 +165,7 @@ Deno.serve(observe('email_triage', async (req) => {
         await (m.lead_id ? reply1(m, 'supplier', SEPARATE_COMPANY_FACT) : reply1(m));
         continue;
       }
-      let category = 'other', summary = '', reply = '';
+      let category = 'other', summary = '', reply = '', parsed = false;
       // THE SENDER'S CASE TIMELINE (14 Sep 2026): customer_support is the only seat on email, so the
       // draft is written knowing what every seat has already done with this person. Deterministic
       // (fn_contact_timeline); a failure to read it leaves the draft ungrounded, never the mail unread.
@@ -179,14 +179,18 @@ Deno.serve(observe('email_triage', async (req) => {
       const { data: prior } = await admin.from('inbound_messages').select('ai_category').eq('from_email', String(m.from_email || '')).neq('id', m.id)
         .not('triaged_at', 'is', null).order('triaged_at', { ascending: false }).limit(10);
       const settled = m.from_email ? knownSenderCategory((prior || []).map((p: any) => p.ai_category)) : null;
-      if (settled) { category = settled; summary = 'Known sender: every earlier mail from this exact address was triaged spam (no model called).'; }
+      if (settled) { category = settled; summary = 'Known sender: every earlier mail from this exact address was triaged spam (no model called).'; parsed = true; }
       const out = settled ? null : await llm(SYS, 'From: ' + (m.from_email||'') + '\nSubject: ' + (m.subject||'') + '\n\n' + String(m.body||'').slice(0, 4000) + tlText, 800);
-      if (out) { const mm = out.match(/\{[\s\S]*\}/); if (mm) { try { const pj = JSON.parse(mm[0]); category = String(pj.category||'other').slice(0,40); summary = String(pj.summary||'').slice(0,500); reply = String(pj.reply||'').slice(0,4000); } catch (_e) {} } }
-      const { error: markErr } = await admin.from('inbound_messages').update({ ai_category: category, ai_summary: summary, ai_draft_reply: reply || null, triaged_at: new Date().toISOString() }).eq('id', m.id);
+      if (!settled) ({ parsed, category, summary, reply } = readTriage(out));
+      // makeLlm returns null on a failure or timeout; on the backstop's scope an unread classification is held, never answered (opt_out_backstop.ts).
+      const held = holdsUnread(invitationReply, parsed);
+      if (held) { category = UNREAD_CATEGORY; summary = UNREAD_SUMMARY; reply = ''; }
+      const { error: markErr } = await admin.from('inbound_messages').update({ ai_category: category, ai_summary: summary, ai_draft_reply: reply || null, triaged_at: new Date().toISOString(), ...(held ? { needs_review: true } : {}) }).eq('id', m.id);
       // An answer that cannot be recorded is paid for again on the next run (22 Sep 2026, instruction
       // 705): stop the batch rather than read the rest of the inbox into the same failing write.
       if (markErr) { if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: 'error', counts, note: 'email_triage stopped: could not record the triage of inbound message ' + m.id + ' (' + String(markErr.message).slice(0, 160) + '); continuing would re-read and re-pay for it on every run.' }).eq('id', run.id); return J({ ok: false, error: 'mark_failed', counts }, 500); }
       counts.triaged++;
+      if (held) { counts.held_unread = (counts.held_unread || 0) + 1; continue; }
       // An explicit request that a person review an automated decision (ruling 1264) goes through #1519's one door,
       // fileReviewRequest; same dedupe key as the answer path, so the request is filed once.
       if (category === 'automated_decision_person_review_request') {

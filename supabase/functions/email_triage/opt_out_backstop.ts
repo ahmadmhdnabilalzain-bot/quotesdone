@@ -27,6 +27,34 @@ import { replyStopRefusal } from '../_shared/suppression_policy.ts';
 
 export const OPT_OUT_CATEGORY = 'opt_out';
 
+// AN UNREAD CLASSIFICATION IS NOT A CLEARANCE (3 Nov 2026, independent review of #1728). makeLlm never throws: on a
+// failure or a timeout it returns null, and a reply with no JSON object (or one that does not parse) left the category at
+// 'other'. backstopApplies was then false and the mail went on to reply1(), whose own model calls can succeed, so a
+// "please remove me" to supplier@ could still be answered while the address stayed sendable (the 28 Oct failure). On the
+// backstop's scope (an invited supplier's reply to supplier@) an unread classification is held exactly as a refused
+// stop is: never answered, needs_review, triaged_at set. The selector reads only triaged_at null, so it is not re-run.
+export const UNREAD_CATEGORY = 'triage_unread';
+export const UNREAD_SUMMARY = 'Not answered: the triage model gave no readable classification (no answer, or no category in parseable JSON), '
+  + "and an invited supplier's reply to supplier@ may be a stop. Kept for a person to review.";
+
+export type Triage = { parsed: boolean; category: string; summary: string; reply: string };
+/** Reads the triage model's answer exactly as before; parsed is false for no answer, no JSON object, bad JSON, or no category. */
+export function readTriage(out: string | null | undefined): Triage {
+  const none: Triage = { parsed: false, category: 'other', summary: '', reply: '' };
+  const mm = out ? out.match(/\{[\s\S]*\}/) : null;
+  if (!mm) return none;
+  try {
+    const pj = JSON.parse(mm[0]);
+    return { parsed: typeof pj?.category === 'string' && pj.category.trim() !== '', category: String(pj?.category || 'other').slice(0, 40),
+      summary: String(pj?.summary || '').slice(0, 500), reply: String(pj?.reply || '').slice(0, 4000) };
+  } catch (_e) { return none; }
+}
+
+/** An invited supplier's reply to supplier@ whose classification did not read is held, never answered. */
+export function holdsUnread(invitationReply: boolean, parsed: boolean): boolean {
+  return invitationReply === true && parsed !== true;
+}
+
 export type BackstopMail = { id: number; from_email: string | null; raw?: Record<string, unknown> | null };
 
 /** The model read this mail as a stop, and it is an invited supplier's reply to supplier@ that would otherwise be answered. */
