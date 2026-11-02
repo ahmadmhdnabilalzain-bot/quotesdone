@@ -44,7 +44,7 @@ function VerifyFrame({ t }: { t: typeof L.en }) {
   return (
     <ProductFrame title={t.verifyTitle} sampleLabel={t.sample} status={t.verifyStatus} className="shadow-e3">
       <div className="border-b border-line px-5 py-4 text-copy text-muted">
-        {t.supplier} <Seal>Sample Flooring Co.</Seal>
+        {t.supplier} <span lang="en"><Seal>Sample Flooring Co.</Seal></span>
       </div>
       {/* no scroll stagger: it held the last rows back while the hero was fully in view */}
       <ul>

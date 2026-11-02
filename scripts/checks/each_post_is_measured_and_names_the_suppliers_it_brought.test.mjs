@@ -40,7 +40,12 @@ test('every link the seat publishes carries UTM naming the post, tagged at LOAD 
 test('a supplier registration records the post that brought it', () => {
   const api = R('supabase/functions/supplier_api/index.ts');
   assert.match(api, /rpc\('fn_marketing_first_touch_record', \{ p_lead_id: leadId, p_touch: touch \}\)/);
-  assert.match(api, /setRegistration\(ins!\.id\); await recordFirstTouch\(ins!\.id, body\.first_touch\)/, 'create_company does not record the first touch');
+  // 28 Oct 2026 (#1712, ledger 1401 audit S7): create_company's body moved to supplier_api/create_company.ts, where a new
+  // registration and the claim of an invited listing each record the first touch the door hands in.
+  const door = R('supabase/functions/supplier_api/create_company.ts');
+  assert.match(api, /createCompany\(admin, email, body, \{[^}]*\brecordFirstTouch, /, 'create_company is not handed the first-touch recorder');
+  assert.match(door, /deps\.setRegistration\(Number\(ins!\.id\)\);\s*await deps\.recordFirstTouch\(Number\(ins!\.id\), body\.first_touch\)/, 'create_company does not record the first touch');
+  assert.match(door, /deps\.setRegistration\(id\);\s*await deps\.recordFirstTouch\(id, body\.first_touch\)/, 'create_company does not record the first touch when it claims an invited listing');
   // #979 (28 Sep 2026) issues the two together: Promise.all([setRegistration(id, false), recordFirstTouch(...)]).
   assert.match(api, /setRegistration\(id(, false)?\)(; await |, )recordFirstTouch\(id, body\.first_touch\)/, 'claim does not record the first touch');
   const portal = R('src/components/portal/SupplierPortal.tsx');

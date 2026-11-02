@@ -88,6 +88,10 @@ export interface ThinkRequest {
   subject?: Record<string, unknown>;   // what a replay acts on (a command id, a phone, a message id)
   dedupeKey?: string;       // one held row per inbound message
   queueWhenHeld?: boolean;  // default true
+  // LEAN (customer_support, 2 Nov 2026): a decision among given options reads the message, the recent turns, who is asking and the
+  // options; it needs no company brief. Measured on the real exchange: the brief made WhatsApp's one classification call ~150k
+  // tokens and 17-24 s. Lean sends no settled facts to the decide/verify calls; the reply step is a different request and keeps them.
+  lean?: boolean;
   // An ANSWER that also names which seat owns the matter (support_reply.ts, founder_instruction 781). Unlike
   // `decision`, the answer stays the reply; the chosen id comes back as result.route (null if not one of these).
   route?: { id: string; meaning: string }[];
@@ -606,7 +610,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   }
 
   // a. DECOMPOSE
-  const facts0 = settledFacts(audience, req.seat);
+  const facts0 = req.lean === true && deciding ? '' : settledFacts(audience, req.seat);
   const d0 = req.plan ? { content: JSON.stringify({ steps: req.plan.steps, facts: [] }), error: null }
     : await deps.llm('decompose', decomposePrompt(req.seat, req.decision),
       JSON.stringify({ question: req.question, context: ctx, decision: req.decision ?? null }),

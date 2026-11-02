@@ -1,4 +1,4 @@
-// voice_otp - the number's VOICE answer. Says the line is WhatsApp-only, then hangs up.
+// voice_otp - the number's VOICE answer. Tells the caller, twice in each language, how to reach a person in writing.
 //
 // WHAT IT USED TO BE, AND WHY THAT WAS REMOVED (18 Jul 2026, security). This endpoint took no
 // request object and performed no authentication of any kind. Its entire response was TwiML

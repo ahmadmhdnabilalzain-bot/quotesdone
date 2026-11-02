@@ -1,0 +1,35 @@
+name: Supplier sign-up walk with the REAL e-mailed code (demo data)
+
+# Founder ledger 1464: a supplier's whole registration proved in a real browser on the live site with a real emailed code.
+# Public /supplier -> portal -> real form -> Resend delivers the code (run sink delivered+qd-<tag>-...@resend.dev, never a
+# person's inbox; nothing is received by any mailbox or agent) -> read back and typed -> every mandatory field, ZZ DEMO
+# licence upload, terms, mobile (NOT REAL: no readable phone), every dashboard tab. Teardown removes the run.
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - .github/workflows/supplier-signup-real-email-walk.yml
+
+jobs:
+  walk:
+    if: ${{ github.ref_name != 'main' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      QD_FIXTURES: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci && npx playwright install --with-deps chromium
+        timeout-minutes: 8
+      - run: mkdir -p shots
+      - run: node scripts/e2e/supplier_registration_walk.mjs --fresh --real-otp --lang en --vp desktop,mobile --shots shots --summary shots/summary.json
+        timeout-minutes: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: signup-walk-screenshots
+          path: shots

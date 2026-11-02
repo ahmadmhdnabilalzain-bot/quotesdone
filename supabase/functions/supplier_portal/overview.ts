@@ -124,7 +124,7 @@ export async function buildEligibility(admin: Admin, supId: number): Promise<Row
   // can reach and 15,306.
   if (!cap?.confirmed_at) blocking.push({ code: 'scope_unconfirmed',
     title: 'Confirm what your company can quote for',
-    detail: 'We never guess a supplier’s scope on their behalf, so no request is sent to you until you have confirmed it yourself. We have already filled in the trades and role we hold for your company — you only correct them and press confirm. It takes about a minute, once.',
+    detail: 'We never guess a supplier’s scope on their behalf, so no request is sent to you until you have confirmed it yourself. We have already filled in the trades and role we hold for your company — you only correct them and press confirm. It takes about a minute, once. It is also the last step of verification: until you confirm, your registration stays Pending.',
     fix: 'scope' });
 
   // Discoverability: the query matches on sector OR keywords across these four columns.
