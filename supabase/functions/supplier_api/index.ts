@@ -35,7 +35,7 @@ import { afterResponse, readStoredDocsLater, signedUpload, stuckReads, type Late
 import { toB64, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
-import { approve, deskAssess, fillIn, finishArabic, formSchema, gate, gateInputKey, pdfDoc, readAndAssess, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
+import { approve, checkVerdict, deskAssess, fillIn, finishArabic, formSchema, gate, gateInputKey, pdfDoc, readAndAssess, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { readQuote } from '../_shared/reasoned_matching.ts';
 import { requirementsOf, type Assessment } from '../_shared/line_specs/assess.ts';
@@ -140,20 +140,14 @@ async function specChecklist(category: string | null, quoteId: string, mode: 'ga
   if (!checklist.length) return {};
   return { checklist, reason: (lines, cl) => reasonLineSpecs(deps, { lines, checklist: cl, trade: category, quoteId }) };
 }
-// ONE QUOTATION, ONE VERDICT (sales_engineer, 2 Nov 2026). The first verdict reached on a set of gate inputs
-// (workflow.ts gateInputKey) is stored beside the settled readings (public.line_spec_reading); every later preflight or
-// submission of the same quotation for the same request is compared with it. The readings are settled, so they agree;
-// if they ever do not (a settled reading that could not be read back), the disagreement is an IT finding with both
-// verdicts and their named missing details, never a silent flip. The verdict reached now still stands: a hold always
-// names what is missing (assess.ts: held = missing.length > 0).
-const verdictOf = (a: Assessment) => ({ held: a.held, missing: a.missing.map((m) => (m.scope === 'line' ? `line ${m.line_no}:` : '') + m.attr).sort() });
-async function sameVerdict(key: string, a: Assessment, quoteId: string, phase: 'preflight' | 'submission') {
+// ONE QUOTATION, ONE VERDICT (sales_engineer, 2 Nov 2026): workflow.ts checkVerdict stores the first SETTLED verdict on
+// a set of gate inputs (gateInputKey) and compares later ones; a disagreement is an IT finding with both verdicts.
+async function sameVerdict(key: string, a: Assessment, settled: boolean, quoteId: string, phase: 'preflight' | 'submission') {
   try {
-    const now = verdictOf(a);
-    await admin.rpc('fn_line_spec_reading_put', { p_rows: [{ key, found: now }] });
-    const { data } = await admin.rpc('fn_line_spec_reading_get', { p_keys: [key] });
-    const first = (data as Record<string, { held?: boolean; missing?: string[] }> | null)?.[key];
-    if (!first || JSON.stringify({ held: !!first.held, missing: first.missing ?? [] }) === JSON.stringify(now)) return;
+    const v = await checkVerdict(async (fn, args) => { const r = await admin.rpc(fn, args); return { data: r.data, error: r.error }; }, key, a, settled);
+    if (v.outcome === 'unreadable') console.error('quote gate verdict could not be stored or read back for quote', quoteId);
+    if (v.outcome !== 'disagree') return;
+    const { first, now } = v;
     await admin.rpc('fn_it_engineer_finding_upsert', { p_issue_key: 'quote_gate_disagreement:' + key.slice(0, 16), p_title: 'The quote hold gate gave one quotation two different verdicts',
       p_where: 'edge function supplier_api submit_quote (' + phase + ')', p_blast: 'customer_facing', p_affected: 1,
       p_evidence: { quote_id: quoteId, gate_input_key: key, first, now }, p_ruled_out: [], p_undetermined: ['which reading was not settled'], p_raised_by: 'sales_engineer' });
@@ -2029,8 +2023,8 @@ ${q}`,
         const gkey = await gateInputKey((await repo.quote(qid))!, await repo.lines(qid), gctx);
         if (dryRun) {
           const acc = await acceptRule(qid);
-          const { a } = await readAndAssess(repo, qid, gctx);
-          await sameVerdict(gkey, a, qid, 'preflight');
+          const { a, settled } = await readAndAssess(repo, qid, gctx);
+          await sameVerdict(gkey, a, settled, qid, 'preflight');
           // Put it back exactly as it was: the snapshotted columns and the snapshotted lines (with their
           // own ids, so anything that references a line still does). A row this check CREATED is removed.
           let restored = true;
@@ -2071,7 +2065,7 @@ ${q}`,
         // THE HOLD GATE (founder, 14 Sep 2026). The sales engineer holds a quote that does not state
         // every required detail exactly, records which line and which detail, and tells the supplier.
         const g = await gate(repo, qid, supplier, gctx);
-        await sameVerdict(gkey, g.assessment, qid, 'submission');
+        await sameVerdict(gkey, g.assessment, g.settled, qid, 'submission');
         // a submission the door did not accept never inherits the wait of an earlier accepted one (review of #1108)
         if (g.held) { await supersedeQualityHold(qid); results.push({ quote_id: qid, option_no: p.option_no, accepted: false, held: true, missing: g.missing, code: 'spec_hold' }); continue; }
         // THE REVIEW'S OWN RULES, held the same way (finding SP-F-02). The gate above is the exact-specs

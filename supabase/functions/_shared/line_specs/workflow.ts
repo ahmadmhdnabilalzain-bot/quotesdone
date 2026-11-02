@@ -127,25 +127,53 @@ export async function readAndAssess(repo: SpecRepo, quoteId: string, ctx: Ctx) {
   const applied = applyReading(stored, q.terms_spec, reading);
   if (reading) q.terms_spec = applied.terms_spec;
   const read = applied.lines;
-  const lines = ctx.checklist?.length && ctx.reason && needsChecklist(ctx.category)
-    ? withReasoned(read, await ctx.reason(read, ctx.checklist)) : read;
+  const reasons = !!(ctx.checklist?.length && ctx.reason && needsChecklist(ctx.category));
+  const found = reasons ? await ctx.reason!(read, ctx.checklist!) : null;
+  const lines = reasons ? withReasoned(read, found) : read;
   const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist });
-  return { q, stored, reading, lines, a };
+  // settled: every reading this verdict needed came back (none held by the model hold or a gateway blip). An unsettled
+  // verdict is a hold that asks everything; it is real, but it is not THE verdict on this quotation, so it is never stored.
+  const settled = (!ctx.read || reading !== null) && (!reasons || found !== null);
+  return { q, stored, reading, lines, a, settled };
+}
+
+/**
+ * ONE QUOTATION, ONE VERDICT (sales_engineer, 2 Nov 2026). The first SETTLED verdict on a set of gate inputs is stored
+ * beside the settled readings (public.line_spec_reading); a later settled verdict on the same inputs is compared with it.
+ * The readings are settled, so they agree; a disagreement is returned (the caller files it), never a silent flip. An
+ * unsettled verdict (a reading held) is neither stored nor compared. The verdict reached now always stands: a hold names
+ * what is missing (assess.ts: held = missing.length > 0).
+ */
+// deno-lint-ignore no-explicit-any
+type Rpc = (fn: string, args: Record<string, unknown>) => Promise<{ data: any; error: { message: string } | null }>;
+export type VerdictCheck = { outcome: 'unsettled' | 'first' | 'same' | 'disagree' | 'unreadable'; first?: unknown; now?: { held: boolean; missing: string[] } };
+export async function checkVerdict(rpc: Rpc, key: string, a: Assessment, settled: boolean): Promise<VerdictCheck> {
+  if (!settled) return { outcome: 'unsettled' };
+  const now = { held: a.held, missing: a.missing.map((m) => (m.scope === 'line' ? `line ${m.line_no}:` : '') + m.attr).sort() };
+  const put = await rpc('fn_line_spec_reading_put', { p_rows: [{ key, found: now }] });
+  const got = await rpc('fn_line_spec_reading_get', { p_keys: [key] });
+  if (put.error || got.error) return { outcome: 'unreadable', now };
+  const first = (got.data as Record<string, { held?: boolean; missing?: string[] }> | null)?.[key];
+  if (!first) return { outcome: 'unreadable', now };
+  if (Number(put.data) === 1) return { outcome: 'first', now };
+  return JSON.stringify({ held: !!first.held, missing: first.missing ?? [] }) === JSON.stringify(now) ? { outcome: 'same', now } : { outcome: 'disagree', first, now };
 }
 
 /** Everything the gate reads, as one sha-256 key: what assessQuote reads of the quote and its lines, the request's
  * requirements, the trade and the checklist. Ids, status and submission are not inputs, so a resubmission of the same
  * quotation has the same key. */
-export async function gateInputKey(q: QuoteRow, lines: Line[], ctx: Pick<Ctx, 'category' | 'requirements' | 'checklist'>): Promise<string> {
+export async function gateInputKey(q: QuoteRow, lines: Line[], ctx: Pick<Ctx, 'category' | 'requirements' | 'checklist' | 'now'>): Promise<string> {
   const terms = [q.lead_time, q.warranty, q.scope, q.exclusions, q.conditions, q.notes, q.terms_spec, q.price_ex_vat].map((v) => v ?? null);
   const ls = [...lines].sort((x, y) => x.line_no - y.line_no).map((l) => [l.line_no, l.description, l.brand, l.model, l.specification, l.qty, l.unit,
     l.unit_price, l.labour, l.install, l.amount, l.notes, l.spec, l.spec_source].map((v) => v ?? null));
-  const text = JSON.stringify([ctx.category ?? null, ctx.requirements ?? null, (ctx.checklist ?? []).map((a) => a.code), terms, ls]);
+  // The UTC day is an input: a stated date is judged against today (assess.ts validityOf), so tomorrow is a new key.
+  const day = nowOf(ctx as Ctx).toISOString().slice(0, 10);
+  const text = JSON.stringify([day, ctx.category ?? null, ctx.requirements ?? null, (ctx.checklist ?? []).map((a) => a.code), terms, ls]);
   return [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('quote_gate_verdict\u0001' + text)))].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 export async function gate(repo: SpecRepo, quoteId: string, supplier: Supplier, ctx: Ctx) {
-  const { q, stored, reading, lines, a } = await readAndAssess(repo, quoteId, ctx);
+  const { q, stored, reading, lines, a, settled } = await readAndAssess(repo, quoteId, ctx);
   if (reading) await repo.updateQuote(quoteId, { terms_spec: q.terms_spec });
   await persistSpecs(repo, quoteId, a, stored);
   const at = nowIso(ctx);
@@ -154,7 +182,7 @@ export async function gate(repo: SpecRepo, quoteId: string, supplier: Supplier, 
   if (live) { await repo.updateHold(live.id, { state: 'superseded', superseded_at: at }); superseded = live.id; }
   if (!a.held) {
     if (superseded) await repo.log({ signal: 'spec_hold_superseded_clean', quote_id: quoteId, hold_id: superseded }, `Resubmitted quote ${quoteId} states every required detail; hold ${superseded} superseded, no new hold.`);
-    return { held: false as const, hold_id: null, missing: [] as MissingItem[], superseded, assessment: a, notification_ids: [] as number[] };
+    return { held: false as const, hold_id: null, missing: [] as MissingItem[], superseded, assessment: a, settled, notification_ids: [] as number[] };
   }
   const en = holdNotice(a, 'en', ctx.ref, ctx.multiOption ? optionLabel(q.option_no, 'en') : null);
   const ar = holdNotice(a, 'ar', ctx.ref, ctx.multiOption ? optionLabel(q.option_no, 'ar') : null);
@@ -173,7 +201,7 @@ export async function gate(repo: SpecRepo, quoteId: string, supplier: Supplier, 
   await repo.updateHold(hold.id, { notified_at: at, notification_ids: ids });
   await repo.log({ signal: 'spec_hold_opened', quote_id: quoteId, hold_id: hold.id, missing: a.missing.length, delivery_requests: ids.length, option_no: q.option_no },
     `Held quote ${quoteId}: ${a.missing.length} required detail(s) missing — ${a.missing.map((m) => m.scope === 'line' ? `line ${m.line_no} ${m.attr}` : m.attr).join(', ')}. ${ids.length} delivery request(s) to customer_support (email and WhatsApp) queued and dispatched at once.`);
-  return { held: true as const, hold_id: hold.id, missing: a.missing, superseded, assessment: a, notification_ids: ids };
+  return { held: true as const, hold_id: hold.id, missing: a.missing, superseded, assessment: a, settled, notification_ids: ids };
 }
 
 /**

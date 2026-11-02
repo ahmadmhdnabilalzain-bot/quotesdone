@@ -127,7 +127,7 @@ export const MAX_READ_LINES = 40;
 const alreadyRead = (l: Line) => Object.values(l.spec_source ?? {}).includes('reasoned');
 const READS = new Map<string, ThinkResult>();
 /** Tests only: forget remembered answers so each case starts cold (a new edge worker). */
-export const forgetReads = () => READS.clear();
+export const forgetReads = () => { READS.clear(); storeFailures = 0; };
 const normQ = (s: string) => String(s ?? '').replace(/\s+/g, ' ').trim();
 async function sha256(s: string): Promise<string> {
   return [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -138,21 +138,39 @@ const fromSettled = (s: Settled, key: string): ThinkResult => ({
   steps: [{ id: 'settled', kind: 'retrieve', goal: 'this exact text was read before; that reading is the reading', status: 'done', detail: { reading_key: key } }],
   context_used: {} as ThinkResult['context_used'], missing_context: [], sources: [], asked_back: null, verified: null,
 });
+// A store that cannot be read or written is not silent (review of #1799): logged every time, and the third in one worker
+// is an IT finding — without the store the gate is back to asking the model per request.
+let storeFailures = 0;
+async function storeFailed(deps: ThinkDeps, fn: string, why: string) {
+  console.error(`settledRead: ${fn} failed: ${why}`);
+  if (++storeFailures !== 3) return;
+  await deps.rpc('fn_it_engineer_finding_upsert', { p_issue_key: 'quote_gate_reading_store_unavailable', p_title: 'The quote gate could not read or write its settled readings, so a quotation may be read differently per request',
+    p_where: 'supabase/functions/_shared/reasoned_matching.ts settledRead', p_blast: 'customer_facing', p_affected: 1, p_evidence: { fn, why: why.slice(0, 300), failures_in_worker: storeFailures },
+    p_ruled_out: [], p_undetermined: [], p_raised_by: 'sales_engineer' }).catch(() => null);
+}
 async function storedReading(deps: ThinkDeps, key: string): Promise<Settled | null> {
-  const got = await deps.rpc('fn_line_spec_reading_get', { p_keys: [key] }).catch(() => ({ data: null, error: null }));
+  const got = await deps.rpc('fn_line_spec_reading_get', { p_keys: [key] }).catch((e) => ({ data: null, error: { message: String(e) } }));
+  if (got?.error) { await storeFailed(deps, 'fn_line_spec_reading_get', got.error.message); return null; }
   const s = got?.data && typeof got.data === 'object' ? (got.data as Record<string, Settled>)[key] : null;
   return s && typeof s === 'object' && s.decision && typeof s.decision === 'object' ? s : null;
 }
+// THE READER'S VERSION IS IN THE KEY (review of #1799). Bump it whenever a reader's prompt, its fields or the model
+// ruling for its surface changes, so a changed reader re-reads rather than reusing an old reading. The model itself is
+// routed by the gateway after the key is made (the stored row records which model answered), so it is this constant,
+// not the routed model id, that retires old readings. 2 = the first settled version (2 Nov 2026).
+export const READER_VERSION = 2;
 /** One reading of a supplier's own text, settled: the first answer stored for this exact question is every later answer. */
-export async function settledRead(deps: ThinkDeps, req: Parameters<typeof think>[1]): Promise<ThinkResult> {
-  const key = await sha256('quote_gate_read\u0001' + JSON.stringify([req.surface, normQ(req.question), req.decision]));
+export async function settledRead(deps: ThinkDeps, req: Parameters<typeof think>[1], version: number = READER_VERSION): Promise<ThinkResult> {
+  const key = await sha256('quote_gate_read\u0001' + JSON.stringify([version, req.surface, normQ(req.question), req.decision]));
   const remember = (r: ThinkResult) => { if (READS.size >= 200) READS.delete(READS.keys().next().value!); READS.set(key, r); return r; };
   const hit = READS.get(key); if (hit) return hit;
   const before = await storedReading(deps, key);
   if (before) return remember(fromSettled(before, key));
   const r = await think(deps, { temperature: 0, ...req });
   if (!answered(r) || !r.decision) return r;
-  await deps.rpc('fn_line_spec_reading_put', { p_rows: [{ key, found: { decision: r.decision, model: r.model ?? null, confidence: r.confidence } }] }).catch(() => null);
+  const put = await deps.rpc('fn_line_spec_reading_put', { p_rows: [{ key, found: { decision: r.decision, model: r.model ?? null, confidence: r.confidence, reader_version: version } }] })
+    .catch((e) => ({ data: null, error: { message: String(e) } }));
+  if (put?.error) await storeFailed(deps, 'fn_line_spec_reading_put', put.error.message);
   // Two workers reading the same new text at once: the row stored first wins (put keeps the first), so both use it.
   const first = await storedReading(deps, key);
   return remember(first ? fromSettled(first, key) : r);
