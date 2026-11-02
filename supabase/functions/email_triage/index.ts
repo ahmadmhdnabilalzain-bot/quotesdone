@@ -22,21 +22,23 @@ import { observe } from '../_shared/observe.ts';
 import { drain as drainJudgements } from '../_shared/routine_judgements.ts';
 import { defaultDeps, think, type ThinkDeps } from '../_shared/think.ts';
 import { knownSenderCategory } from '../_shared/triage_known_sender.ts';
-import { mailFacts } from './account_facts.ts';
-import { composeMailReply, noAutoReply } from '../_shared/customer_mail.ts';
+import { mailFacts, SEPARATE_COMPANY_FACT } from './account_facts.ts';
+import { composeMailReply, declinedRowFields, invitationReplyAnswerable, noAutoReply, overDailyAnswerCap, tenantMailAnswerable } from '../_shared/customer_mail.ts';
 import { langOf } from '../_shared/chat_answers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { fileReviewRequest } from '../_shared/review_request.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
+import { TRIAGE_LLM } from './triage_llm.ts';
+import { beat, budgetLeft, closeStaleRuns } from './run_guard.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
-const llm = makeLlm(SONNET_FIRST, { max: 700 }); // shared OpenRouter client (Sonnet-first ladder + 25s timeout)
+const llm = makeLlm(SONNET_FIRST, TRIAGE_LLM); // shared OpenRouter client (Sonnet-first ladder + 25s timeout); never served another mail's triage from the cache (triage_llm.ts)
 
 const SYS = `You are the inbox assistant for QuotesDone, a UAE B2B anonymous quotation marketplace (customers post a job, get matched to vetted suppliers, compare anonymised quotes, and pay a small reveal fee to unlock the supplier they choose; suppliers pay no commission). You triage an incoming email addressed to the company and draft a reply the founder can send.\nReturn STRICT JSON ONLY: {"category":"supplier_document|supplier_question|customer_question|complaint|automated_decision_objection|automated_decision_person_review_request|billing|partnership|spam|other","summary":"one factual sentence","reply":"a short, warm, professional reply in plain text, signed 'The QuotesDone Team'. Do not invent facts, prices, or commitments. If a document was sent, acknowledge receipt and say records will be updated. If it needs info you don't have, ask politely. If it is spam, set reply to an empty string. Use automated_decision_person_review_request only when the sender explicitly asks that a person, rather than the system, review a decision the platform made automatically; the reply for it is the same as for automated_decision_objection. Use automated_decision_objection when the sender objects to, or asks for a review of, a decision the platform made automatically (a refund, a dispute or a verification); for either of those two categories the reply is exactly, in English: "QuotesDone Customer Support has received your objection and will reply within 10 working days. If it is not resolved, the QuotesDone operations team takes it up." or, when the email is in Arabic, exactly: "تسلّم فريق دعم العملاء في QuotesDone اعتراضكم، وسيردّ عليكم خلال 10 أيام عمل. وإن لم يُحسم، يتولاه فريق العمليات في QuotesDone.""}\nReply with JSON only, no preamble.`;
 
-type Mail = { id: number; from_email: string | null; to_email: string | null; subject: string | null; body: string | null; owner_role: string | null; raw: Record<string, unknown> | null };
+type Mail = { id: number; from_email: string | null; to_email: string | null; subject: string | null; body: string | null; owner_role: string | null; raw: Record<string, unknown> | null; lead_id?: number | null; provider_email_id?: string | null };
 
 /** customer_support answers the mail in its thread. Returns how it was answered. */
 // WHO WROTE IS A FACT, NOT A GUESS (QA channels run, 19 Oct 2026). Every mail was answered with audience 'customer': a
@@ -93,25 +95,57 @@ Deno.serve(observe('email_triage', async (req) => {
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'email_triage');
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
+    const startedAt = Date.now();
+    // A run the platform ended without a word is closed here with its reason (run_guard.ts): a kill skips every catch.
+    const closedStale = await closeStaleRuns(admin, 'email_triage');
     const { data: run } = await admin.from('agent_runs').insert({ agent: 'email_triage' }).select('id').maybeSingle();
     const counts = { triaged: 0, drafted: 0, spam: 0, unknown_sender_to_judgement: 0, not_answered: 0, answered: 0, answer_failed: 0 } as Record<string, number>;
     const judgementIds: number[] = [];
     const deps = defaultDeps(admin, 'email_triage');
     const founder = [...String((await sec('admin_emails')) || '').split(','), String((await sec('founder_email')) || '')].map((s) => s.trim()).filter(Boolean);
     // resend_inbound names the message it just stored, so its reply does not wait for the 15-minute tick.
-    let sel = admin.from('inbound_messages').select('id,from_email,to_email,subject,body,owner_role,raw')
+    let sel = admin.from('inbound_messages').select('id,from_email,to_email,subject,body,owner_role,raw,lead_id,provider_email_id')
       .eq('needs_review', true).is('triaged_at', null).is('replied_at', null).is('owner_role', null).or('ai_category.is.null,ai_category.neq.routine_queued');
     if (Number(body?.message_id) > 0) sel = sel.eq('id', Number(body.message_id));
     const { data: msgs } = await sel.order('created_at', { ascending: true }).limit(20);
     const reply1 = async (m: Mail, audience: 'customer' | 'supplier' = 'customer', facts = '') => {
       try { const how = await answer(m, deps, audience, facts); counts.answered++; counts['answered_' + how] = (counts['answered_' + how] || 0) + 1; }
-      catch (e) { counts.answer_failed++; console.error('email_triage answer', m.id, String((e as Error)?.message || e)); }
+      catch (e) {
+        counts.answer_failed++; console.error('email_triage answer', m.id, String((e as Error)?.message || e));
+        // NEVER JUST WAITS (2 Nov 2026): a triaged row is not selected again, so a failed answer had no owner and no retry.
+        // Nothing comes back to the founder (ledger 1438): the ceo seat holds it as a live handoff, idempotent per message.
+        const { error: hoErr } = await admin.rpc('fn_seat_handoff', { p_from: 'customer_support', p_to: 'ceo', p_type: 'review.requested', p_subject_table: 'inbound_messages', p_subject_id: String(m.id),
+          p_payload: { inbound_message_id: m.id, from_email: m.from_email, to_email: m.to_email, subject: String(m.subject || '').slice(0, 200), ask: 'customer_support could not write an answer, so the sender has heard nothing. Decide the answer and have it sent in the thread.', error: String((e as Error)?.message || e).slice(0, 300) } });
+        if (hoErr) console.error('email_triage handoff', m.id, hoErr.message);
+        else await admin.from('inbound_messages').update({ owner_role: 'ceo' }).eq('id', m.id).is('owner_role', null);
+      }
     };
     for (const m of ((msgs || []) as Mail[])) {
+      // A smaller unit: past the budget no NEW message is started; the rest stay untriaged for the next tick.
+      if (!budgetLeft(startedAt)) { counts.deferred_over_budget = (counts.deferred_over_budget || 0) + 1; continue; }
+      await beat(admin, run?.id, 'message ' + m.id + ' (triage)');
       // 1. NEVER ANSWERED: the founder, no-reply and verification senders, calendar replies, bounces.
-      const skip = noAutoReply(m, founder);
+      let skip = noAutoReply(m, founder);
+      // An invited supplier's reply to the invitation mailbox (supplier@) is the one 'internal' row that IS answered:
+      // only when the sender is a lead, and every other rule (bounce, no-reply, auto-submitted, calendar) still applies
+      // (customer_mail.ts invitationReplyAnswerable, 28 Oct 2026).
+      if (skip === 'internal') {
+        const { data: rel } = await admin.rpc('fn_mail_sender_known', { p_email: String(m.from_email || '') });
+        // a lead who opted out (email_suppressions, exact address) is never answered here (review of #1699)
+        const fromAddr = String(m.from_email || '').trim().toLowerCase();
+        const { data: sup } = fromAddr ? await admin.from('email_suppressions').select('email').ilike('email', fromAddr.replace(/[\\%_]/g, (c) => '\\' + c)).limit(1) : { data: [] };
+        if (invitationReplyAnswerable(m, rel, !!(sup && sup.length))) skip = noAutoReply({ ...m, to_email: '' }, founder);
+        else if (tenantMailAnswerable(m, !!(sup && sup.length))) skip = noAutoReply({ ...m, to_email: '' }, founder);
+      }
+      // A reply never goes to the founder: fn_is_founder_own_inbox also names his personal inboxes, which admin_emails does not.
+      if (!skip) { const { data: own } = await admin.rpc('fn_is_founder_own_inbox', { p_addr: String(m.from_email || '') }); if (own === true) skip = 'founder'; }
+      if (!skip) {
+        const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true }).eq('type', 'inbound_reply')
+          .ilike('to_email', String(m.from_email || '').trim().replace(/[\\%_]/g, (c) => '\\' + c)).gte('created_at', new Date(Date.now() - 86_400_000).toISOString());
+        if (overDailyAnswerCap(count)) skip = 'daily_answer_cap';
+      }
       if (skip) {
-        await admin.from('inbound_messages').update({ ai_category: 'no_auto_reply', ai_summary: 'Not answered automatically: ' + skip + ' (customer_mail.ts noAutoReply).', triaged_at: new Date().toISOString() }).eq('id', m.id);
+        await admin.from('inbound_messages').update({ ai_category: 'no_auto_reply', ai_summary: 'Not answered automatically: ' + skip + ' (customer_mail.ts noAutoReply).', triaged_at: new Date().toISOString(), ...declinedRowFields(m) }).eq('id', m.id);
         counts.not_answered++; continue;
       }
       // AN UNKNOWN SENDER IS JUDGED ON THE ROUTINE CLASS (24 Sep 2026, founder's approval; _shared/routine_judgements.ts). A sender who is
@@ -124,7 +158,8 @@ Deno.serve(observe('email_triage', async (req) => {
         // Marked, so a held backlog never crowds known senders out of this run's 20; the judgement overwrites it.
         if (gid) { judgementIds.push(Number(gid)); counts.unknown_sender_to_judgement++; await admin.from('inbound_messages').update({ ai_category: 'routine_queued' }).eq('id', m.id).is('triaged_at', null); }
         // An unknown sender is usually a new customer: answered now, whatever the judgement later files as its category.
-        await reply1(m);
+        // resend_inbound linked a lead by sender (leads.email or claimed_by): a supplier, answered as one, in English.
+        await (m.lead_id ? reply1(m, 'supplier', SEPARATE_COMPANY_FACT) : reply1(m));
         continue;
       }
       let category = 'other', summary = '', reply = '';
@@ -158,6 +193,7 @@ Deno.serve(observe('email_triage', async (req) => {
       }
       if (category === 'spam') { counts.spam++; continue; }
       if (reply) counts.drafted++;
+      await beat(admin, run?.id, 'message ' + m.id + ' (answer)');
       await reply1(m, audienceOf(relation), await mailFacts(admin, String(m.from_email || ''), relation, (m as { raw?: unknown }).raw));
     }
     // THE REPLY LEAVES NOW, not on the outbox's 2-minute poll (the founder's "under a minute").
@@ -171,7 +207,7 @@ Deno.serve(observe('email_triage', async (req) => {
     }
     // Judge the unknown senders now; any held (the model hold) stay queued for resilience_ping. Never a word list.
     const judgements = judgementIds.length ? await drainJudgements(deps, judgementIds.length, judgementIds) : null;
-    if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: counts.answer_failed ? 'error' : 'ok', counts: { ...counts, judgements } }).eq('id', run.id);
+    if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: counts.answer_failed ? 'error' : 'ok', counts: { ...counts, judgements, closed_stale_runs: closedStale }, note: null }).eq('id', run.id);
     return J({ ok: true, counts });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
 }));

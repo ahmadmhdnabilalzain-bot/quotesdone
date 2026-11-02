@@ -715,3 +715,4 @@ fn_enterprise_account_report :: dropped by there_are_no_enterprise_accounts_only
 # TABLE, not a routine: dr_restore :: dropped by the_dr_restore_staging_table_leaves_the_database.sql (applied at merge): the
 # dr_drill staging table, 0 rows, no routine/view/cron/trigger/FK/edge reader (measured 4 Oct 2026); its only routine
 # fn_dr_restore_clear was already dropped 8 Sep 2026 (above) :: nothing; the proof is in that file
+fn_supplier_invite_candidates(integer) :: dropped by fn_supplier_invite_candidates_is_one_routine.sql (applied at merge); a one-line wrapper over (integer, text[]), which is the canonical body; its one routine caller moved to the two-argument call :: nothing; the proof is in that file

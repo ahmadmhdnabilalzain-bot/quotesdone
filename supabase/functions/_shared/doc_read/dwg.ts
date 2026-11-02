@@ -35,6 +35,18 @@ import { empty, ok, refuse, type ReadContext, type ReadResult } from './types.ts
 
 const PKG = '@mlightcad/libredwg-web@0.7.14';
 const WASM_URL = `https://cdn.jsdelivr.net/npm/${PKG}/wasm/libredwg-web.wasm`;
+// THE SAME BYTES FROM THE NPM REGISTRY (27 Oct 2026). Since CI moved to Claude sessions (ledger 1279) the local
+// gate runs behind an egress proxy that refuses cdn.jsdelivr.net (CONNECT 403, measured 27 Oct 2026), so every
+// DWG read there answered "The DWG reader could not run (fetch failed)" and the dwg gate step failed 21 of 23.
+// registry.npmjs.org is reachable there, and it is where the `npm:` import itself comes from. The tarball's
+// package/wasm/libredwg-web.wasm hashes to WASM_SHA256 exactly (measured), so the checksum below is unchanged
+// and either source is the one pinned binary. jsdelivr stays first: it is one 9.5 MB GET, the tarball 2.4 MB
+// gzip that has to be unpacked, and the unpacking is CPU the edge's 2 s cap pays on every cold isolate (measured
+// 27 Oct 2026, Deno 2.9.4: gunzip 163-321 ms, untar 4-36 ms, SHA-256 36-68 ms, three runs). The gate and the
+// checks grant only the npm registry (no cdn.jsdelivr.net in --allow-net), so the jsDelivr fetch is refused at once
+// and every DWG read there takes the npm source: the check proves the source that needs no jsDelivr at all.
+const WASM_TGZ = 'https://registry.npmjs.org/@mlightcad/libredwg-web/-/libredwg-web-0.7.14.tgz';
+const WASM_IN_TGZ = 'package/wasm/libredwg-web.wasm';
 const WASM_SHA256 = '431576487027122a28e5ac99d91fe6366f81ecda743a4676878c75c85fe82c53';
 
 /** DWG version stamp -> release name (the first six bytes of every DWG). */
@@ -223,16 +235,59 @@ export function lowerMemoryFloor(bin: Uint8Array, pages = WASM_MIN_PAGES): { fro
   throw new Error('libredwg wasm: no memory section');
 }
 
+/** The file named `want` inside a ustar archive, or null. Plain 512-byte headers; the npm tarball uses no long names. */
+export function untarFile(tar: Uint8Array<ArrayBuffer>, want: string): Uint8Array<ArrayBuffer> | null {
+  const dec = new TextDecoder();
+  const field = (o: number, n: number) => dec.decode(tar.subarray(o, o + n)).replace(/\0.*$/s, '');
+  for (let p = 0; p + 512 <= tar.length;) {
+    const name = field(p, 100);
+    if (!name) return null;                                     // the two zero blocks that end the archive
+    const prefix = field(p + 345, 155);
+    const size = parseInt(field(p + 124, 12).trim() || '0', 8);
+    const full = prefix ? `${prefix}/${name}` : name;
+    if (full === want) return tar.slice(p + 512, p + 512 + size);
+    p += 512 + Math.ceil(size / 512) * 512;
+  }
+  return null;
+}
+
+/** The pinned LibreDWG .wasm, checksum-verified: cdn.jsdelivr.net, else the same file out of the npm tarball. */
+export async function libreDwgWasmBytes(): Promise<Uint8Array<ArrayBuffer>> {
+  const tried: string[] = [];
+  try {
+    const r = await fetch(WASM_URL);
+    if (r.ok) {
+      const bin = new Uint8Array(await r.arrayBuffer());
+      if (await sha256Hex(bin) === WASM_SHA256) return bin;
+      tried.push('jsdelivr: checksum mismatch');
+    } else { await r.body?.cancel(); tried.push(`jsdelivr: HTTP ${r.status}`); }
+  } catch (e) { tried.push(`jsdelivr: ${String((e as Error)?.message || e).slice(0, 60)}`); }
+  try {
+    const bin = await libreDwgWasmFromNpmTarball();
+    if (await sha256Hex(bin) === WASM_SHA256) return bin;
+    tried.push('npm registry: checksum mismatch');
+  } catch (e) { tried.push(`npm registry: ${String((e as Error)?.message || e).slice(0, 60)}`); }
+  throw new Error(`libredwg wasm unavailable (${tried.join('; ')})`);
+}
+
+/** The second source on its own (NOT checksum-verified here; the caller verifies), so the check can prove it alone. */
+export async function libreDwgWasmFromNpmTarball(): Promise<Uint8Array<ArrayBuffer>> {
+  const r = await fetch(WASM_TGZ);
+  if (!r.ok || !r.body) { await r.body?.cancel(); throw new Error(`HTTP ${r.status}`); }
+  const tar = new Uint8Array(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+  const bin = untarFile(tar, WASM_IN_TGZ);
+  if (!bin) throw new Error(`${WASM_IN_TGZ} not in the tarball`);
+  return bin;
+}
+export const LIBREDWG_WASM_SHA256 = WASM_SHA256;
+
 /** The WASM heap of the last drawing opened, in bytes (measurement only). */
 let heapOf = () => 0;
 export const lastWasmHeapBytes = () => heapOf();
 // deno-lint-ignore no-explicit-any
 export async function freshLibreDwg(): Promise<any> {
   compiled ??= (async () => {
-    const r = await fetch(WASM_URL);
-    if (!r.ok) throw new Error(`libredwg wasm fetch ${r.status}`);
-    const bin = new Uint8Array(await r.arrayBuffer());
-    if (await sha256Hex(bin) !== WASM_SHA256) throw new Error('libredwg wasm checksum mismatch');
+    const bin = await libreDwgWasmBytes();
     lowerMemoryFloor(bin);
     // A string LITERAL, not built from PKG: the edge bundler only includes dynamic imports it can read
     // statically. Keep it equal to PKG (dwg.test.ts asserts they match).

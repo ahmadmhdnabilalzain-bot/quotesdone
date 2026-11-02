@@ -17,6 +17,7 @@ import { readDocument } from '../_shared/doc_read/index.ts';
 import { quoteFromExtracted, quoteText } from './quote_from_document.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { quoteTerms } from '../_shared/reasoned_suppliers.ts';
+import { pageB64, pageMime } from '../_shared/licence_extract.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -87,8 +88,12 @@ Deno.serve(observe('quote_extract', async (req) => {
     const content: any[] = [{ type: 'text', text: `Job context (for understanding only): category ${inq.category||'-'}${inq.summary?(', summary: '+inq.summary):''}. Read the attached supplier quotation (all pages) and return the anonymized standardized JSON.` }];
 
     const imgs: any[] = Array.isArray(body.images) ? body.images : [];
-    if (imgs.length) {
-      for (const im of imgs.slice(0, 8)) { const b = im?.b64 || im; const m = im?.mime || 'image/jpeg'; if (b) content.push({ type: 'image_url', image_url: { url: dataUrl(String(b), String(m)) } }); }
+    // THE PORTAL'S PAGE SHAPE (review of #1707, 28 Oct 2026, sales_engineer). SupplierPortal's fileToImages sends each
+    // quotation page as { mime, data }; this read only `b64`, so a page went out as the text of an object and the
+    // provider refused it - the defect that failed license_extract 38 of 38 calls on 27-28 Oct. One reader for both.
+    const pages = imgs.slice(0, 8).filter((im) => !!pageB64(im));
+    if (pages.length) {
+      for (const im of pages) content.push({ type: 'image_url', image_url: { url: dataUrl(pageB64(im), pageMime(im)) } });
     } else if (body.file_b64) {
       const mime = String(body.mime || 'application/octet-stream');
       if (/^image\//.test(mime)) content.push({ type: 'image_url', image_url: { url: dataUrl(String(body.file_b64), mime) } });

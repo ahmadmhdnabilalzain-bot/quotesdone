@@ -4,12 +4,22 @@ import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 
 const FN = fnUrl('public_site');
 
+// Measured 2 Nov 2026 (function_edge_logs, 24 h): of 2,766 public_site POSTs, 22 ended 546 "CPU Time
+// exceeded", 12 ended 502 and 5 ended 503 (1.4%); 9 of 1,230 preflights ended 502. A runtime kill or a
+// gateway error carries no Access-Control-Allow-Origin, so the browser reports it as a CORS failure
+// (net::ERR_FAILED) and fetch() throws. Every action is a read, so ONE retry after a short pause is safe
+// and almost always lands on a healthy instance. A second failure still throws; every caller already
+// renders its fallback on a throw.
+const RETRY_STATUS = new Set([500, 502, 503, 504, 546]);
 export async function publicSite<T = any>(action: string, body: Record<string, unknown> = {}): Promise<T & { ok?: boolean; rate_limited?: boolean }> {
-  const r = await fetch(FN, {
+  const init: RequestInit = {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', apikey: SUPA_ANON, Authorization: `Bearer ${SUPA_ANON}` },
     body: JSON.stringify({ action, ...body }),
-  });
+  };
+  let r: Response;
+  try { r = await fetch(FN, init); if (RETRY_STATUS.has(r.status)) throw new Error('retry'); }
+  catch (_e) { await new Promise((ok) => setTimeout(ok, 400)); r = await fetch(FN, init); }
   if (r.status === 429) return { ok: false, rate_limited: true } as any;
   return r.json();
 }

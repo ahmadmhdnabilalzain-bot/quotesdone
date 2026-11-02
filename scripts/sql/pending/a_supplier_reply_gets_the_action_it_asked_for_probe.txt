@@ -1,0 +1,1 @@
+A pure probe: it raises and rolls back, so it is never applied or listed in MANIFEST. Run it after a_supplier_reply_gets_the_action_it_asked_for.sql is live; it moves only if the routines it reads are retired.

@@ -1,0 +1,4 @@
+A PROBE, so it is never applied at all - it is READ (through scripts/lib/db.mjs sql(), or node scripts/qsql.mjs) after
+a_warned_or_skipped_run_is_not_a_failed_run.sql has been applied, and its CHK<<...>> must say PROBE OK. It always
+raises, so every fixture run and finding it writes is rolled back. Before the apply it says PROBE FAILED (the live
+rule counts warn and skipped as failures). This note stays for the life of the file. Seat: it_engineer.

@@ -82,6 +82,58 @@
       "as_of": "2026-10-19",
       "method": "Written by the sales_engineer seat on 19 Oct 2026 from its own expertise (ledger 1198/1209). UAE lead times and quoting practice were not read on a page opened that day, so the entry is stored verified=false and is never stated to a customer or supplier until sourced.",
       "source_note": "Authored practice; not read from a page."
+    },
+    {
+      "id": "cleaning:kitchen-exhaust-inspection-frequency",
+      "topic": "Kitchen exhaust (hood and duct) cleaning: NFPA 96 inspection frequency by cooking volume",
+      "topic_ar": "تنظيف شفاط المطبخ (المظلة والدكت): تكرار الفحص وفق NFPA 96 حسب حجم الطهي",
+      "kind": "technical_reference",
+      "body_en": "Grease in kitchen exhaust hoods, filters and ducts is a fire load, and the common reference for how often the system must be inspected for grease build-up is NFPA 96 (Table 11.4 in recent editions): monthly for systems serving solid-fuel cooking; quarterly for high-volume operations (24-hour cooking, charbroiling, wok cooking); semi-annually for moderate-volume cooking; and annually for low-volume operations (churches, day camps, seasonal businesses, senior centres). The table sets inspection frequency; cleaning is required when the inspection finds grease deposits, so a busy restaurant typically ends up cleaning at the inspection interval. A quote for kitchen exhaust cleaning should state: hood, filters, duct length and fan included, access panels to be fitted where the duct cannot be reached, the method (scraping, degreaser, steam), before-and-after photos and a service report, and the frequency proposed with its basis. In the UAE the civil defence authority of the emirate enforces kitchen fire safety; which NFPA 96 edition, if any, a given authority enforces was not established here.",
+      "body_ar": "الشحوم في مظلات شفط المطابخ وفلاترها ودكتاتها حمل حريق، والمرجع الشائع لتكرار فحص النظام بحثاً عن تراكم الشحوم هو NFPA 96 (الجدول 11.4 في الإصدارات الحديثة): شهرياً للأنظمة التي تخدم الطهي بالوقود الصلب (الفحم والحطب)؛ وكل ثلاثة أشهر للتشغيل كثيف الحجم (الطهي على مدار 24 ساعة والشوي على الفحم والطهي بالووك)؛ وكل ستة أشهر للطهي متوسط الحجم؛ وسنوياً للتشغيل منخفض الحجم (دور العبادة والمخيمات النهارية والأعمال الموسمية ومراكز كبار السن). والجدول يحدد تكرار الفحص؛ أما التنظيف فيلزم حين يكشف الفحص ترسبات شحوم، فينتهي الأمر غالباً بأن ينظف المطعم المزدحم بتكرار الفحص نفسه. ويجب أن يذكر عرض سعر تنظيف شفاط المطبخ: شمول المظلة والفلاتر وطول الدكت والمروحة، وتركيب فتحات وصول حيث لا يمكن بلوغ الدكت، وطريقة التنظيف (كشط أو مزيل شحوم أو بخار)، وصور قبل وبعد وتقرير خدمة، والتكرار المقترح وأساسه. وفي الإمارات تطبّق سلطة الدفاع المدني في كل إمارة اشتراطات سلامة المطابخ من الحريق؛ ولم يُثبت هنا أي إصدار من NFPA 96 تطبّقه كل جهة إن وُجد.",
+      "sources": [
+        "https://www.villageofnewpaltz.gov/wp-content/uploads/2019/10/191022-Kitchen-Hood-Cleaning-Requirements.pdf",
+        "https://lawrenceks.gov/fire-medical/commercial-kitchen-cooking-equipment/",
+        "https://www.warrenforensics.com/2025/09/14/structure-fires-in-eating-and-drinking-establishments/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-27",
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: solid fuel monthly, high volume (24-hour, charbroiling, wok) quarterly, moderate semiannual, low volume (churches, day camps, seasonal, senior centers) annual; table is inspection frequency, cleaning when deposits found -> confirmed (NFPA 96 2017 summary and an IFC 2015 table). UAE adoption of NFPA 96 not checked. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
+    },
+    {
+      "id": "cleaning:marble-grinding-honing-polishing-crystallisation",
+      "topic": "Marble floor care: grinding vs honing vs polishing vs crystallisation",
+      "topic_ar": "العناية بأرضيات الرخام: الجلخ مقابل الصقل الناعم مقابل التلميع مقابل البلورة",
+      "kind": "comparison",
+      "body_en": "Four different services are sold as 'marble polishing', and a quote must say which. Grinding removes stone with coarse diamond abrasives to flatten lippage between tiles and take out deep scratches; it is the heaviest, wettest and slowest step. Honing follows with finer diamond pads (in the order of 100-200 grit and up) to remove visible scratches and stains and leave a matt or satin face. Polishing uses finer diamond pads (in the order of 400-1500 grit) or polishing powders to bring back the gloss on a floor in good condition. Crystallisation (sometimes called vitrification) is a chemical treatment: a crystalliser reacts with the calcium carbonate of the marble under a buffing machine to harden and shine the surface; it gives quick gloss but is a surface treatment, and a heavily crystallised floor may need light powder polishing or honing at 400-600 grit to remove the layers before re-polishing. Some sellers call the final buff 'crystallisation', so ask for the steps and grits. A quote should state: area in m2, the steps (grind, hone, polish, crystallise, seal), grits, whether lippage removal is included, furniture moving, protection of skirting and walls, and drying time before use.",
+      "body_ar": "تُباع أربع خدمات مختلفة باسم 'تلميع الرخام'، ويجب أن يحدد عرض السعر أيها المقصود. فالجلخ يزيل جزءاً من الحجر بمواد كاشطة ماسية خشنة لتسوية فروق المستوى بين البلاطات وإزالة الخدوش العميقة؛ وهو أثقل الخطوات وأكثرها ماءً وأبطأها. ثم الصقل الناعم (الهونينغ) بأقراص ماسية أنعم (في حدود 100-200 درجة فما فوق) لإزالة الخدوش الظاهرة والبقع وترك سطح مطفأ أو نصف لامع. أما التلميع فيستخدم أقراصاً ماسية أنعم (في حدود 400-1500 درجة) أو بودرة تلميع لإعادة اللمعان لأرضية في حالة جيدة. والبلورة (وتُسمى أحياناً التزجيج) معالجة كيميائية: تتفاعل مادة البلورة مع كربونات الكالسيوم في الرخام تحت آلة التلميع لتقسية السطح وتلميعه؛ وتعطي لمعاناً سريعاً لكنها معالجة سطحية، وقد تحتاج الأرضية المبلورة بكثرة إلى تلميع خفيف بالبودرة أو صقل بدرجة 400-600 لإزالة الطبقات قبل إعادة التلميع. ويسمي بعض الباعة التلميع النهائي 'بلورة'، فاسأل عن الخطوات ودرجات الكشط. ويجب أن يذكر عرض السعر: المساحة بالمتر المربع، والخطوات (جلخ، صقل، تلميع، بلورة، عزل)، ودرجات الكشط، وهل تشمل إزالة فروق المستوى، ونقل الأثاث، وحماية النعلات والجدران، ووقت الجفاف قبل الاستخدام.",
+      "sources": [
+        "https://www.janiking.com/?p=2149",
+        "https://instructables.com/How-to-Polish-Marble-Floors",
+        "https://allqs.saqa.org.za/showUnitStandard.php?id=110441",
+        "https://sr-manual.com/kb/article/can-i-powder-polish-a-marble-floor-that-has-been-recrystallized-501.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-27",
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: grinding with coarse-to-fine diamond pads removes irregularities; honing 100-200 grit removes scratches and stains; polishing 400-1500 grit; crystallisation is a chemical reaction with calcium carbonate plus abrasion, aka vitrification (SAQA unit standard); recrystallised floors: powder polish or hone 400/600; terminology conflict -> confirmed. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
+    },
+    {
+      "id": "cleaning:carpet-hot-water-extraction-vs-encapsulation",
+      "topic": "Carpet cleaning: hot water extraction vs encapsulation vs bonnet",
+      "topic_ar": "تنظيف السجاد: الاستخلاص بالماء الساخن مقابل الكبسلة مقابل البونيه",
+      "kind": "comparison",
+      "body_en": "Carpet cleaning methods differ in depth and drying time, and a maintenance contract usually mixes them. Hot water extraction (HWE, often sold as 'steam cleaning' or shampooing) injects hot water and detergent and extracts it with strong suction; it removes the most embedded soil and is the deep or restorative clean, but the carpet needs roughly 4-12 hours to dry, so offices book it at night or weekends. Encapsulation is a low-moisture method: a polymer chemical is worked in with a rotary or oscillating pad machine, it crystallises around the soil, and the soil is vacuumed out once dry, typically within about 30-60 minutes; it suits interim cleaning of commercial carpet tiles but cannot match extraction on heavily soiled carpet. Bonnet cleaning buffs the surface with a pad and is a quick appearance or maintenance method for high-traffic lanes, not a deep clean. A sound programme is daily vacuuming, interim encapsulation or bonnet on traffic lanes, and periodic extraction. A quote should state the method per area, the area in m2, pre-spotting and stain removal, drying time and whether fans are provided, and furniture moving. Not established here: how the IICRC S100 standard defines each category.",
+      "body_ar": "تختلف طرق تنظيف السجاد في العمق ووقت الجفاف، وعقد الصيانة يجمع بينها عادةً. فالاستخلاص بالماء الساخن (ويُباع غالباً باسم 'التنظيف بالبخار' أو الشامبو) يضخ ماءً ساخناً ومنظفاً ثم يسحبه بشفط قوي؛ ويزيل أكبر قدر من الأوساخ العالقة وهو التنظيف العميق، لكن السجاد يحتاج نحو 4-12 ساعة ليجف، فتحجزه المكاتب ليلاً أو في العطل. أما الكبسلة فطريقة منخفضة الرطوبة: تُفرك مادة بوليمرية بآلة دوارة أو متذبذبة فتتبلور حول الأوساخ، ثم تُشفط الأوساخ بالمكنسة بعد الجفاف خلال نحو 30-60 دقيقة عادةً؛ وتناسب التنظيف الدوري لبلاط السجاد التجاري لكنها لا تضاهي الاستخلاص في السجاد شديد الاتساخ. والتنظيف بالبونيه يمسح السطح بقرص وهو طريقة سريعة لتحسين المظهر والصيانة في ممرات الحركة الكثيفة وليس تنظيفاً عميقاً. والبرنامج السليم: كنس يومي بالمكنسة، وكبسلة أو بونيه دوري لممرات الحركة، واستخلاص على فترات. ويجب أن يذكر عرض السعر الطريقة لكل منطقة، والمساحة بالمتر المربع، ومعالجة البقع مسبقاً، ووقت الجفاف وهل تُوفَّر مراوح، ونقل الأثاث. لم يُثبت هنا: كيف تعرّف مواصفة IICRC S100 كل فئة.",
+      "sources": [
+        "https://www.avantigreen.com/hot-water-extraction-vs-encapsulation-vs-bonnet-the-best-carpet-cleaning-methods-for-your-office/",
+        "https://www.cleanlink.com/cleanlinkminute/details/Dry-Versus-Hot-Water-Extraction-Carpet-Cleaning--51229",
+        "https://osheas.com.au/faq/which-is-the-best-method-to-clean-my-carpets/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-10-27",
+      "verified": false,
+      "source_note": "Checked 2026-10-27 against search-result excerpts: HWE removes most embedded soil, 4-12 h drying; encapsulation low-moisture polymers crystallise around soil, vacuumed when dry, 30-60 min; extraction cleans heavily soiled carpet better; bonnet a maintenance/appearance method; daily/interim/periodic cycle (CleanLink, one author's view) -> confirmed. Stored verified=false under the 7 Oct 2026 stating rule (scripts/kb/verified_packs.mjs isVerified): every fact here was checked against search-result excerpts only; no cited page was opened (pages_opened is empty). Kept for the record, never retrieved or stated to a customer or supplier until a session opens the cited pages and confirms each fact."
     }
   ],
   "eval": [
@@ -154,6 +206,46 @@
         903,
         1198,
         1209
+      ]
+    },
+    "authored_27_oct": {
+      "by": "sales_engineer",
+      "on": "2026-10-27",
+      "pages_opened": [],
+      "method": "Each fact was checked against search-result excerpts of the cited pages on 2026-10-27; the pages themselves could not be opened from the authoring session (egress to the hosts refused). Clauses no excerpt confirmed were removed or written as \"not established here\". Independent review of #1632 (27 Oct 2026): the 7 Oct stating rule requires a page actually opened, so every id above is stored verified=false and its eval questions are held in held_eval; move each back (verified:true, question into eval, bank item into items) only after its cited pages are opened and every fact is confirmed.",
+      "reason": "Trade had 5 entries against 630 invited leads (measured 27 Oct 2026); the deep packs of comparable trades hold 30-58.",
+      "ledger": [
+        893,
+        899
+      ],
+      "held_unverified": [
+        "cleaning:kitchen-exhaust-inspection-frequency",
+        "cleaning:marble-grinding-honing-polishing-crystallisation",
+        "cleaning:carpet-hot-water-extraction-vs-encapsulation"
+      ],
+      "served": [],
+      "held_eval": [
+        {
+          "q_en": "How often must a busy shawarma restaurant have its kitchen hood and duct checked for grease?",
+          "q_ar": "كم مرة يجب فحص شفاط ودكت مطبخ مطعم شاورما مزدحم من الشحوم؟",
+          "expected_entry_ids": [
+            "cleaning:kitchen-exhaust-inspection-frequency"
+          ]
+        },
+        {
+          "q_en": "One company quotes marble crystallisation and another quotes grinding and polishing. Are they the same job?",
+          "q_ar": "شركة تعرض بلورة الرخام وأخرى تعرض جلخاً وتلميعاً، فهل هما العمل نفسه؟",
+          "expected_entry_ids": [
+            "cleaning:marble-grinding-honing-polishing-crystallisation"
+          ]
+        },
+        {
+          "q_en": "Our office carpet tiles must be usable next morning. Which cleaning method?",
+          "q_ar": "يجب أن يكون سجاد مكتبنا صالحاً للاستخدام صباح اليوم التالي، فأي طريقة تنظيف نختار؟",
+          "expected_entry_ids": [
+            "cleaning:carpet-hot-water-extraction-vs-encapsulation"
+          ]
+        }
       ]
     }
   }

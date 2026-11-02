@@ -8,7 +8,8 @@ import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
 import { blocksTransactional } from '../_shared/suppression_policy.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoEmail, isDemoPhone } from '../_shared/demo_identity.ts';
-import { channelOfRow, failoverStep, nextChannel, RESEND_GAP_S, sidOfRow, sendWhatsAppFirst, voiceAfterSms, type VerifySent } from '../_shared/whatsapp_choice.ts';
+import { channelOfRow, failoverStep, isOwnRow, nextChannel, RESEND_GAP_S, sidOfRow, sendWhatsAppFirst, voiceAfterSms, type VerifySent } from '../_shared/whatsapp_choice.ts';
+import { checkOwnCode, ownMarker, ownMessageStatus, ownSent, sendOwnWhatsAppCode, type WaCodeDeps } from '../_shared/wa_code.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 const SB_URL = Deno.env.get('SUPABASE_URL')!, SB_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 // `admin` is the system's service-role client and must NEVER sign anybody in. See mintSession.
@@ -46,6 +47,9 @@ async function otpHash(code: string): Promise<string> {
   const mac = await crypto.subtle.sign('HMAC', ck, new TextEncoder().encode(code));
   return Array.from(new Uint8Array(mac)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
+// A WhatsApp sign-in code we send ourselves, without Verify's USD 0.05 a code (ledger 1252, _shared/wa_code.ts).
+// The login code is bound to the number only: the account is resolved from the number after the code, as before.
+const waDeps: WaCodeDeps = { admin, secret: sec, hmac: otpHash };
 // The code compare itself lives in public.fn_login_otp_email_verify since 6 Oct 2026 (H1): it compares
 // the keyed HMAC of the guess, whose bytes a caller cannot choose without otp_hmac_key, so the timing of
 // the compare reveals nothing about the stored value. See the header of that SQL file.
@@ -228,8 +232,9 @@ const AMBIGUOUS_MSG = 'More than one QuotesDone account uses this mobile number,
 // number that is not on WhatsApp does not fall back — it fails — so the gate is what stops a
 // sign-in from breaking, not a nicety.
 //
-// The code itself is never generated, stored, logged or seen here. Twilio Verify holds it on both
-// channels, exactly as the SMS path already works, so switching channel cannot leak a credential.
+// An SMS or voice code is never generated, stored, logged or seen here: Twilio Verify holds it. A WhatsApp
+// code is generated here since 27 Oct 2026 (ledger 1252, _shared/wa_code.ts) and only its HMAC is stored
+// (public.phone_code), never the code; it leaves this function only inside the Messages API call.
 // 'admin' is deliberately absent: the founder is neither a customers row nor a claimed lead, and
 // app_secrets.admin_mfa_phone carries no WhatsApp confirmation, so his sign-in stays on SMS.
 async function confirmedWhatsApp(kind: string, email: string, e164: string): Promise<boolean> {
@@ -420,7 +425,10 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
           return x.r.ok && x.jd?.status !== 'canceled'
             ? { ...x, refused: null, ok: true, channel: 'sms' } : { ...x, refused: null, ok: false, channel: null };
         };
-        const res = await voiceAfterSms(pick === 'whatsapp' ? await sendWhatsAppFirst(send) : await smsOnly(), send);
+        // A WHATSAPP CODE GOES WITHOUT THE VERIFY FEE (ledger 1252): generated and checked here, sent by the approved
+        // login_code template, USD 0.0157 instead of 0.0657. Anything short of a clean send falls through to Verify.
+        const own = pick === 'whatsapp' ? await sendOwnWhatsAppCode(waDeps, { phone: e164, purpose: 'login', binding: '', kind, email: acctEmail || '', lang: smsLocale }) : null;
+        const res = own?.ok ? ownSent(own.sid) : await voiceAfterSms(pick === 'whatsapp' ? await sendWhatsAppFirst(send) : await smsOnly(), send);
         // A WHATSAPP REFUSAL IS ONE FINDING, NOT A LOG LINE PER CODE (customer_support, 6 Oct 2026). Verify
         // refused its WhatsApp channel (sender or Authentication template), so this code went by SMS or voice.
         // The upsert is keyed by the refusal code, so a thousand sign-ins raise one open finding.
@@ -437,7 +445,7 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
         // The delivered channel is recorded in phone_verifications.code (the column only ever held the
         // marker 'twilio'; no reader compares it), the same convention kyc's whatsapp_send_code uses,
         // so the day WhatsApp starts carrying sign-in codes is visible in the table with no code change.
-        await admin.from('phone_verifications').insert({ email: acctEmail || '', phone: e164, code: 'twilio:' + res.channel + (/^VE\w+$/.test(String(res.jd?.sid || '')) ? ':' + res.jd.sid : ''), user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
+        await admin.from('phone_verifications').insert({ email: acctEmail || '', phone: e164, code: own?.ok ? ownMarker(own.sid) : 'twilio:' + res.channel + (/^VE\w+$/.test(String(res.jd?.sid || '')) ? ':' + res.jd.sid : ''), user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
         // THE ANSWER DOES NOT NAME THE CHANNEL (security review, 18 Sep 2026). This endpoint takes no
         // session, and 'whatsapp' vs 'sms' would tell any anonymous caller holding a number that
         // resolves to one account whether THAT account has confirmed a WhatsApp number — private state
@@ -468,9 +476,14 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
       if (!row || channelOfRow(row.code) !== 'whatsapp' || !sid) return J({ ok: true });
       const tw = await twilioAuth(); if (!tw) return J({ ok: true });
       try {
-        const ar = await timedFetch(`https://verify.twilio.com/v2/Attempts?VerificationSid=${sid}&Channel=whatsapp&PageSize=5`, { headers: { Authorization: tw.hdr } });
-        const aj = await ar.json().catch(() => ({}));
-        const status = (aj?.attempts || [])[0]?.channel_data?.message_status ?? null;
+        // our own WhatsApp code is read from the Messages API; a Verify one from Verify's Attempts
+        let status: string | null = null;
+        if (isOwnRow(row.code)) status = await ownMessageStatus(waDeps, sid);
+        else {
+          const ar = await timedFetch(`https://verify.twilio.com/v2/Attempts?VerificationSid=${sid}&Channel=whatsapp&PageSize=5`, { headers: { Authorization: tw.hdr } });
+          const aj = await ar.json().catch(() => ({}));
+          status = (aj?.attempts || [])[0]?.channel_data?.message_status ?? null;
+        }
         if (failoverStep(status, Date.now() - Date.parse(row.created_at)) !== 'sms') return J({ ok: true });
         if ((await rl('otp_failover:' + sid, 1, 600)) !== 'ok') return J({ ok: true });
         const locale = await registeredLocale(admin, { role: kind, email: row.email || '' }, body.lang);
@@ -558,8 +571,17 @@ Deno.serve(siteCors(observe('login_otp', async (req) => {
         // translate the refusal; and the thrown message is logged SERVER-SIDE rather than returned as
         // `detail`, which is the leak SP-I-03 closed in thirteen other places — a Twilio exception
         // string is not for the browser. All three kept.
-        const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/VerificationCheck`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Code: code }) });
-        const jd = await r.json(); if (jd?.status !== 'approved') return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400);
+        // Our own WhatsApp code first (ledger 1252); anything else it can be is a Verify code (SMS, the SMS failover
+        // after a WhatsApp code, voice, or a WhatsApp code Verify carried), so Verify is asked unless ours matched.
+        const own = await checkOwnCode(waDeps, { phone: e164, purpose: 'login', binding: '', code });
+        if (own !== 'ok') {
+          const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/VerificationCheck`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Code: code }) });
+          const jd = await r.json();
+          if (jd?.status !== 'approved') {
+            if (own === 'burned') return J({ error: 'Too many incorrect attempts. Please request a new code.', code: 'code_burned' }, 429);
+            return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400);
+          }
+        }
       } catch (e) { console.error('login_otp: Verify check threw —', String((e as Error)?.message || e)); return J({ error: 'Verification failed, please try again.', code: 'verify_failed' }, 502); }
       // HISTORY IS NOT IDENTITY. This used to take the newest phone_verifications row for the
       // number and sign the caller in as whoever that row named — so on a shared handset you were

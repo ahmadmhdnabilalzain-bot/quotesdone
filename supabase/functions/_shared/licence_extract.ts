@@ -9,7 +9,7 @@
 // WHAT CHANGED WITH THE MOVE: the prompt now also asks for the Arabic legal name, the trade name and the legal form,
 // which a UAE licence prints and the suite measures; nothing else in the request changed.
 
-export const SYS_LICENSE = `You are a meticulous UAE corporate-registry document controller. You read an official UAE TRADE LICENCE (DED / DET / free-zone / e-trader) and extract its registration data EXACTLY as printed. Read every line; do not guess. Return STRICT JSON only:\n{"legal_name":string,"legal_name_ar":string,"trade_name":string,"legal_form":string,"license_number":string,"license_authority":string,"emirate":string,"city":string,"issue_date":"YYYY-MM-DD","expiry_date":"YYYY-MM-DD","activities":[string],"trn":string,"confidence":"low"|"medium"|"high"}\nlegal_name = the exact licensed company / establishment name as printed in ENGLISH; if the licence prints no English name, an empty string (never a translation or transliteration). legal_name_ar = the name as printed in Arabic, else ''. trade_name = the trade name as printed, else ''. legal_form = the legal form / legal type / legal status as printed (e.g. 'Limited Liability Company', 'Free Zone Establishment'). license_number = the licence / register number exactly as printed. license_authority = issuing authority as printed (e.g. 'Dubai Department of Economy and Tourism', 'Sharjah Economic Development Department', 'Jebel Ali Free Zone Authority'). emirate = one of Dubai, Abu Dhabi, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah. city = city/area if shown else the emirate. activities = the listed business activities, each exactly as printed. trn = VAT TRN if present else ''. Dates as printed, output YYYY-MM-DD (UAE dates are day-first). If a value is not visible use an empty string and lower the confidence. This is NOT a tax/AML check - it is commercial onboarding verification only.`;
+export const SYS_LICENSE = `You are a meticulous UAE corporate-registry document controller. You read an official UAE TRADE LICENCE (DED / DET / free-zone / e-trader) and extract its registration data EXACTLY as printed. Read every line; do not guess. Return STRICT JSON only:\n{"legal_name":string,"legal_name_ar":string,"trade_name":string,"legal_form":string,"license_number":string,"license_authority":string,"emirate":string,"city":string,"issue_date":"YYYY-MM-DD","expiry_date":"YYYY-MM-DD","activities":[string],"trn":string,"confidence":"low"|"medium"|"high"}\nlegal_name = the exact licensed company / establishment name as printed in ENGLISH; when the licence prints its English name only as a Trade Name, with no separate company or legal name, that English Trade Name IS the licensed name: give it here too; if the licence prints no English name, an empty string (never a translation, a transliteration or the Arabic name). legal_name_ar = the name as printed in Arabic, else ''. trade_name = the trade name as printed, else ''. legal_form = the legal form / legal type / legal status as printed (e.g. 'Limited Liability Company', 'Free Zone Establishment'). license_number = the licence / register number exactly as printed. license_authority = issuing authority as printed (e.g. 'Dubai Department of Economy and Tourism', 'Sharjah Economic Development Department', 'Jebel Ali Free Zone Authority'). emirate = one of Dubai, Abu Dhabi, Sharjah, Ajman, Umm Al Quwain, Ras Al Khaimah, Fujairah. city = city/area if shown else the emirate. activities = the listed business activities, each exactly as printed. trn = VAT TRN if present else ''. Dates as printed, output YYYY-MM-DD (UAE dates are day-first). If a value is not visible use an empty string and lower the confidence. This is NOT a tax/AML check - it is commercial onboarding verification only.`;
 
 /** null = no usable object (a 502 with a named error, never a blank doc: 9 Sep 2026). */
 export function parseJson(t: string): Record<string, unknown> | null {
@@ -33,13 +33,53 @@ export function normEmirate(s: unknown): string {
   return '';
 }
 
+/** One page's base64, whichever shape the caller sent (28 Oct 2026, sales_engineer).
+ * The supplier portal's fileToImages and pdfRaster send each page as { mime, data }; the server-side callers send
+ * { b64, mime } or a bare string. Only b64 and a bare string were read, so every portal page became the text of an
+ * object, the provider refused it ("Invalid image data URL ... payload is not base64-encoded data") and every licence
+ * read from the registration form failed: 38 of 38 calls on 27-28 Oct. '' = no usable page. */
+// deno-lint-ignore no-explicit-any
+export function pageB64(im: any): string {
+  const v = typeof im === 'string' ? im : (im?.b64 || im?.data || '');
+  if (typeof v !== 'string') return '';
+  // Review of #1707: a page that is not base64 (empty, '[object Object]', a URL, plain text) is no page at all,
+  // rather than a request the provider refuses with a 400. Whitespace (MIME line breaks) is not part of the data.
+  const raw = v.replace(/^data:[^;,]+;base64,/, '').replace(/\s+/g, '');
+  return raw.length >= 16 && /^[A-Za-z0-9+/]+={0,2}$/.test(raw) ? raw : '';
+}
+
+/** The image type of one page: the mime the caller named when it is an image type, else the data URL's own prefix,
+ * else the file's magic bytes. A PNG sent as image/jpeg (or the reverse) is what the provider is told it is. */
+// deno-lint-ignore no-explicit-any
+export function pageMime(im: any): string {
+  const named = typeof im === 'object' && im ? String(im.mime || '') : '';
+  if (/^image\/[a-z0-9.+-]+$/i.test(named)) return named.toLowerCase();
+  const v = typeof im === 'string' ? im : String(im?.b64 || im?.data || '');
+  const pre = v.match(/^data:(image\/[a-z0-9.+-]+);base64,/i);
+  if (pre) return pre[1].toLowerCase();
+  const b = pageB64(im);
+  if (b.startsWith('iVBORw0KGgo')) return 'image/png';
+  if (b.startsWith('/9j/')) return 'image/jpeg';
+  if (b.startsWith('UklGR')) return 'image/webp';
+  if (b.startsWith('R0lGOD')) return 'image/gif';
+  return 'image/jpeg';
+}
+
+/** True when the request carries something a model can read: one usable page image, or a file. */
+// deno-lint-ignore no-explicit-any
+export function hasReadablePage(images: any[], body: { file_b64?: string }): boolean {
+  return (Array.isArray(images) && images.slice(0, 10).some((im) => !!pageB64(im))) || !!pageB64(body?.file_b64 ?? '');
+}
+
 // deno-lint-ignore no-explicit-any
 export function documentContent(intro: string, images: any[], body: { file_b64?: string; mime?: string; filename?: string }): any[] {
   // deno-lint-ignore no-explicit-any
   const content: any[] = [{ type: 'text', text: intro }];
-  if (Array.isArray(images) && images.length) {
-    for (const im of images.slice(0, 10)) { const b = im?.b64 || im; const m = im?.mime || 'image/jpeg'; if (b) content.push({ type: 'image_url', image_url: { url: dataUrl(String(b), String(m)) } }); }
-  } else if (body.file_b64) {
+  // Only pages that are real base64 are sent; when none is, the file is (the portal sends both), never an empty read.
+  const pages = Array.isArray(images) ? images.slice(0, 10).filter((im) => !!pageB64(im)) : [];
+  if (pages.length) {
+    for (const im of pages) content.push({ type: 'image_url', image_url: { url: dataUrl(pageB64(im), pageMime(im)) } });
+  } else if (body.file_b64 && pageB64(body.file_b64)) {
     const mime = String(body.mime || 'application/octet-stream');
     if (/^image\//.test(mime)) content.push({ type: 'image_url', image_url: { url: dataUrl(String(body.file_b64), mime) } });
     else content.push({ type: 'file', file: { filename: String(body.filename || 'document.pdf'), file_data: dataUrl(String(body.file_b64), mime || 'application/pdf') } });
@@ -96,7 +136,7 @@ export function imageDims(b64: string): { w: number; h: number } | null {
 export const MIN_LICENCE_IMAGE_PX = 200;
 // deno-lint-ignore no-explicit-any
 export function imagesTooSmallToRead(images: any[], body: { file_b64?: string; mime?: string }): boolean {
-  const pages = images.length ? images.map((im) => String(im?.b64 || im || '')) : (/^image\//.test(String(body.mime || '')) && body.file_b64 ? [String(body.file_b64)] : []);
+  const pages = licencePages(images, body);
   if (!pages.length) return false;
   return pages.every((b) => { const d = imageDims(b); return !!d && (d.w < MIN_LICENCE_IMAGE_PX || d.h < MIN_LICENCE_IMAGE_PX); });
 }
@@ -104,8 +144,10 @@ export function imagesTooSmallToRead(images: any[], body: { file_b64?: string; m
 /** The image pages a licence request carries (base64), for code's own measurements. */
 // deno-lint-ignore no-explicit-any
 export function licencePages(images: any[], body: { file_b64?: string; mime?: string }): string[] {
-  return images.length ? images.map((im) => String(im?.b64 || im || '')).filter(Boolean)
-    : (/^image\//.test(String(body.mime || '')) && body.file_b64 ? [String(body.file_b64)] : []);
+  const pages = (Array.isArray(images) ? images : []).map((im) => pageB64(im)).filter(Boolean);
+  if (pages.length) return pages;
+  const file = /^image\//.test(String(body.mime || '')) ? pageB64(body.file_b64 ?? '') : '';
+  return file ? [file] : [];
 }
 
 /** A 'low' read counts only when code proved a real page was read: ink measured on the image pages, or the read's
@@ -134,8 +176,30 @@ export const UNREADABLE_LICENCE = () => normaliseLicence({});
  * A placeholder number (123456, 000000) is dropped even from an otherwise named read. */
 export function normaliseLicence(ai: Record<string, unknown>) {
   const s = (v: unknown, n: number) => String(v ?? '').trim().slice(0, n);
-  const named = /\p{L}{2}/u.test(s(ai.legal_name, 200)) || /\p{L}{2}/u.test(s(ai.legal_name_ar, 200));
-  const arabicOnly = !/\p{L}{2}/u.test(s(ai.legal_name, 200)) && /\p{Script=Arabic}{2}/u.test(s(ai.legal_name_ar, 200));
+  // A LICENCE THAT PRINTS ITS NAME ONLY AS A TRADE NAME IS NAMED (28 Oct 2026, sales_engineer, the supplier-journey audit,
+  // ledger 1401). Measured on production: a licence whose one name line reads "Trade Name" came back from the model with
+  // every field read (number, authority, issue and expiry dates, activities), confidence 'medium', the name in trade_name
+  // and legal_name '' (correctly: the page prints no other name). The check below then threw the whole read away as
+  // unreadable, so the supplier was held as licence_unreadable and told to upload "a clearer copy" of a clear licence.
+  // The same licence with its name line labelled "Company Name" read in full, confidence 'high'. When no legal name is
+  // printed, the trade name IS the licensed name; the code reader already takes it so (document_expiry.ts, NAME_LABELS).
+  // REVIEW OF #1711 (28 Oct 2026): ONLY AN ENGLISH TRADE NAME, AND ONLY ON A 'medium' OR 'high' READ. The first version
+  // took any trade name, in any script, at any confidence. Replayed through it, the model's own recorded answers for the
+  // corpus's two Arabic-only licences (docs/reports/.../run-arabic-name-gateway: lic_ajman_ded_ar_png and
+  // lic_fujairah_ded_ar_jpg, trade_name = legal_name_ar = the Arabic name) put the Arabic name in legal_name, which every
+  // upload path writes to leads.licence_legal_name through licenceNameFromModel; the review (ruling 1176) then renamed the
+  // supplier's company in Arabic and could approve it, where it held the name for a person (corpus: 'hold_name'). And an
+  // Arabic-only read 'low' (stage-2 run 4 S21, the arabicOnly rule below) became unreadable and lost its number and
+  // expiry, because its Arabic trade name made it no longer "Arabic-only". legal_name is the ENGLISH name (SYS_LICENSE),
+  // so the trade name stands in only when it is written in Latin letters with no Arabic letter in it (an English name,
+  // as mergeLicenceReads and licenceFieldsFromText read one: "النور للمقاولات LLC" is not), and a read that is not
+  // 'medium' or 'high' normalises exactly as it did before the fallback existed.
+  const en = s(ai.legal_name, 200), trade = s(ai.trade_name, 200);
+  const sure = ['medium', 'high'].includes(String(ai.confidence));
+  const englishTrade = /\p{Script=Latin}{2}/u.test(trade) && !/\p{Script=Arabic}/u.test(trade);
+  const legal = !/\p{L}{2}/u.test(en) && sure && englishTrade ? trade : en;
+  const named = /\p{L}{2}/u.test(legal) || /\p{L}{2}/u.test(s(ai.legal_name_ar, 200));
+  const arabicOnly = !/\p{L}{2}/u.test(en) && /\p{Script=Arabic}{2}/u.test(s(ai.legal_name_ar, 200));
   if (!named || (String(ai.confidence) === 'low' && !arabicOnly)) {
     return { legal_name: '', legal_name_ar: '', trade_name: '', legal_form: '', license_number: '', license_authority: '', emirate: '',
              city: '', issue_date: null as string | null, expiry_date: null as string | null, activities: [] as string[], trn: '',
@@ -143,7 +207,7 @@ export function normaliseLicence(ai: Record<string, unknown>) {
   }
   const emirate = normEmirate(ai.emirate || ai.city);
   return {
-    legal_name: s(ai.legal_name, 200), legal_name_ar: s(ai.legal_name_ar, 200), trade_name: s(ai.trade_name, 200), legal_form: s(ai.legal_form, 120),
+    legal_name: legal, legal_name_ar: s(ai.legal_name_ar, 200), trade_name: s(ai.trade_name, 200), legal_form: s(ai.legal_form, 120),
     license_number: placeholderLicenceNo(ai.license_number) ? '' : s(ai.license_number, 60), license_authority: s(ai.license_authority, 160), emirate,
     city: s(ai.city || ai.emirate, 80) || emirate, issue_date: normDate(ai.issue_date), expiry_date: normDate(ai.expiry_date),
     activities: Array.isArray(ai.activities) ? ai.activities.map((x) => String(x).slice(0, 120)).slice(0, 20) : [],

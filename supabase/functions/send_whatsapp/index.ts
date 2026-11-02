@@ -39,7 +39,7 @@
 //     The one exception on purpose: an UNREADABLE template status ('twilio http NNN') requeues
 //     rather than retiring the row — not being able to ask Twilio is not Meta refusing.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { isMarketingType, marketingGate } from '../_shared/marketing_send_gate.ts';
+import { isMarketingType, pickSender, senderQualityOk, supplierInviteGate, waInviteTrade, WA_BRAKE_FINDING_KEY } from '../_shared/marketing_send_gate.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { twilioVerdict, UNKNOWN_RETRY_CAP } from '../_shared/provider_signals.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
@@ -171,15 +171,16 @@ function shortSummary(s:string){ let x=String(s||'').replace(/\s+/g,' ').trim();
 // A template variable may not carry a newline, a tab or a run of spaces (Meta refuses the send), so
 // every value is flattened and capped before it reaches Twilio.
 function waVar(s:string, max:number){ const x=String(s||'').replace(/\s+/g,' ').trim(); return x.length>max ? x.slice(0,max-1)+'…' : x; }
-function varsFor(key:string, n:{subject?:string|null; body?:string|null}){
+function varsFor(key:string, n:{subject?:string|null; body?:string|null}): Record<string,string>{
   if (key==='founder_alert') {
     // fn_notify_founder writes 'QuotesDone [level]: event' on the first line and the detail after it.
     const lines = String(n.body||'').split('\n'); const head = lines.shift()||''; const rest = lines.join(' ').trim();
     return {'1': waVar(shortSummary(head||n.subject||'') , 120), '2': waVar(rest || 'see the founder console at quotesdone.com/os', 500)};
   }
   // support_reply: {{1}} their question (the subject), {{2}} the answer (the body), each one line.
-  // supplier_invite: {{1}} the trade label (the subject), {{2}} the lead's own claim link, carried in the body.
-  if (key==='supplier_invite') return {'1': waVar(String(n.subject||'your trade'), 80), '2': (String(n.body||'').match(/https:\/\/quotesdone\.com\/(en|ar)\/portal\?t=[0-9a-f-]{36}/)||[PORTAL_URL])[0]};
+  // supplier_invite: {{1}} the trade label (the subject) and nothing else. 27 Oct 2026 (ruling 1301, "safer to not
+  // send links"): the template carries no link, so there is no {{2}} and no claim link is read out of the body.
+  if (key==='supplier_invite') return {'1': waVar(waInviteTrade(n.subject), 60)};
   if (key==='support_reply') return {'1': waVar(shortSummary(n.subject||''), 120), '2': waVar(String(n.body||''), 700)};
   return {'1':shortSummary(n.subject||n.body||''),'2':linkFor(key)};
 }
@@ -293,6 +294,37 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     if (!acct || !ks || !kk || !from) { await logThrottled('not_configured', 60, 'error', {}, 'WHATSAPP NOT SENDING - missing twilio_account_sid / api_key_sid / api_key_secret / wa_from'); return J({ ok:false, error:'whatsapp_not_configured' }, 200); }
     const ready = ((await sec('wa_templates_ready'))||'false')==='true';
     const auth = btoa(ks + ':' + kk);
+    // THE SENDER'S META QUALITY RATING, read for marketing only (27 Oct 2026, marketing, ruling 1184 "nothing that risks
+    // bans"). One reading an hour at most: the newest row of wa_sender_quality_reading if it is under 60 minutes old,
+    // else Twilio's GET /v2/Channels/Senders, recorded through fn_wa_sender_quality_record (which opens the brake on a
+    // reading below HIGH). Twilio unreachable, or our number not in the list, HOLDS without recording: an outage is not
+    // a quality drop and must not leave a brake a person has to clear. Memoised for the run.
+    let qualityMemo: Promise<{ ok: boolean; why: string }> | null = null;
+    const senderQuality = () => qualityMemo ??= (async () => {
+      const { data: last } = await admin.from('wa_sender_quality_reading').select('rating,status,read_at')
+        .order('read_at', { ascending: false }).order('id', { ascending: false }).limit(1).maybeSingle();
+      if (last && Date.now() - Date.parse(String(last.read_at)) < 60 * 60_000) {
+        return senderQualityOk(last.rating, last.status) ? { ok: true, why: 'sender quality ' + last.rating }
+          : { ok: false, why: 'sender quality is ' + (last.rating || 'unknown') + ' / ' + (last.status || 'unknown') + ', not HIGH / ONLINE' };
+      }
+      try {
+        const r = await fetch('https://messaging.twilio.com/v2/Channels/Senders?Channel=whatsapp&PageSize=50',
+          { headers: { 'Authorization': 'Basic ' + auth }, signal: AbortSignal.timeout(8000) });
+        if (!r.ok) return { ok: false, why: 'sender quality unreadable: Twilio senders http ' + r.status };
+        const s = pickSender(await r.json(), String(from || ''));
+        if (!s) return { ok: false, why: 'sender quality unreadable: our number is not in the Twilio senders list' };
+        const { data: rec, error } = await admin.rpc('fn_wa_sender_quality_record',
+          { p_rating: s.rating, p_status: s.status, p_limit: s.limit, p_raw: { sid: s.sid } });
+        if (error) return { ok: false, why: 'sender quality not recorded: ' + error.message };
+        return (rec as { ok?: boolean })?.ok ? { ok: true, why: 'sender quality ' + s.rating }
+          : { ok: false, why: 'sender quality is ' + (s.rating || 'unknown') + ' / ' + s.status + ', not HIGH / ONLINE; the brake is on' };
+      } catch (e) {
+        return { ok: false, why: 'sender quality unreadable: ' + String((e as Error)?.message || e).slice(0, 120) };
+      }
+    })();
+    // A READING ALONE (2 Nov 2026, ceo): the queue gate wants a reading under 26 hours old and only a queued invitation
+    // reached the code above, so neither could ever happen first. resilience_ping asks here twice a day. It sends nothing.
+    if (body?.read_sender_quality === true) return J({ ok: true, quality: await senderQuality() });
     let tmpl:any = {};
     try { tmpl = JSON.parse((await sec('wa_template_sids'))||'{}'); } catch(_){ tmpl = {}; }
     // DIRECT SEND. 4 Aug 2026: this accepted only a freeform Body, and freeform is the one thing
@@ -425,16 +457,30 @@ Deno.serve(observe('send_whatsapp', async (req) => {
         // held like a row waiting on its template: the claim lapses and the next run re-checks it
         if (g.action === 'hold') { await admin.from('notifications').update({ last_error: g.reason }).eq('id', n.id); skipped++; requeued++; lastErr = g.reason; continue; }
       }
-      // A MARKETING MESSAGE IS RE-CHECKED AS IT LEAVES (marketing, ruling 1184): the go-live switch (a missing secret is
-      // off) and the recipient's WhatsApp opt-out, read now, not when the row was queued. Off holds the row; opt-out cancels.
+      // A MARKETING MESSAGE IS RE-CHECKED AS IT LEAVES (marketing, ruling 1184): both switches (wa_supplier_invite_golive
+      // AND invite_enabled; 27 Oct 2026 -- WhatsApp never runs ahead of the paused email campaign, ledger 1312), the
+      // brake finding, and the recipient's WhatsApp opt-out, read now, not when the row was queued. Then the sender's
+      // Meta quality rating: below HIGH (or unreadable) holds the row and the drop opens the brake. Opt-out cancels.
       if (isMarketingType(n.type)) {
-        const [{ data: gl }, { data: ld }] = await Promise.all([
-          admin.from('app_secrets').select('value').eq('key', 'wa_supplier_invite_golive').maybeSingle(),
+        const [{ data: sw }, { data: brake }, { data: ld }] = await Promise.all([
+          admin.from('app_secrets').select('key,value').in('key', ['wa_supplier_invite_golive', 'invite_enabled']),
+          admin.from('it_watch_finding').select('detector_key').eq('detector_key', WA_BRAKE_FINDING_KEY).eq('status', 'open').limit(1),
           n.lead_id ? admin.from('leads').select('whatsapp_opt').eq('id', n.lead_id).maybeSingle() : Promise.resolve({ data: null }),
         ]);
-        const g = marketingGate(gl?.value as string | undefined, (ld as { whatsapp_opt?: string } | null)?.whatsapp_opt);
-        if (g === 'cancel') { await admin.from('notifications').update({ status: 'cancelled', last_error: 'the recipient opted out of WhatsApp' }).eq('id', n.id); skipped++; continue; }
-        if (g === 'hold') { await admin.from('notifications').update({ status: 'queued', claimed_at: null, last_error: 'held: wa_supplier_invite_golive is not true' }).eq('id', n.id); skipped++; continue; }
+        const val = (k: string) => ((sw || []) as { key: string; value: string }[]).find((r) => r.key === k)?.value;
+        // An unreadable brake table is read as an open brake: this is the one place a marketing message can leave.
+        const g = supplierInviteGate({ golive: val('wa_supplier_invite_golive'), inviteEnabled: val('invite_enabled'),
+          brakeOpen: brake === null || (brake as unknown[]).length > 0, whatsappOpt: (ld as { whatsapp_opt?: string } | null)?.whatsapp_opt });
+        if (g.action === 'cancel') { await admin.from('notifications').update({ status: 'cancelled', last_error: g.why }).eq('id', n.id); skipped++; continue; }
+        if (g.action === 'hold') { await admin.from('notifications').update({ status: 'queued', claimed_at: null, last_error: g.why }).eq('id', n.id); skipped++; continue; }
+        // THE OPT-IN, READ AS THE ROW LEAVES (independent review of #1634, 27 Oct 2026). The queue only writes rows for an
+        // opted-in number, but a row from any other writer must not reach a person who never opted in (Meta's rule).
+        // An unreadable table holds the row; no recorded opt-in for this exact number cancels it. Never sent either way.
+        const { data: opt, error: optErr } = await admin.from('supplier_whatsapp_optin').select('id').eq('phone', String(n.to_phone || '')).limit(1);
+        if (optErr) { await admin.from('notifications').update({ status: 'queued', claimed_at: null, last_error: ('held: the opt-in record is unreadable: ' + optErr.message).slice(0, 500) }).eq('id', n.id); skipped++; continue; }
+        if (!opt?.length) { await admin.from('notifications').update({ status: 'cancelled', last_error: 'no recorded WhatsApp opt-in for this number' }).eq('id', n.id); skipped++; continue; }
+        const q = await senderQuality();
+        if (!q.ok) { await admin.from('notifications').update({ status: 'queued', claimed_at: null, last_error: ('held: ' + q.why).slice(0, 500) }).eq('id', n.id); skipped++; continue; }
       }
       // WHATSAPP DOWN: the notice goes by SMS now, not when WhatsApp comes back. If the twin cannot be
       // queued the row falls through to the WhatsApp attempt, whose failure is caught below.

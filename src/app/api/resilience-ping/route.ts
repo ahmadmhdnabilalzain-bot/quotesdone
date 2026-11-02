@@ -14,6 +14,13 @@
 // The edge function does all the work — detect, then page the founder over HTTP. The route's only
 // secret is the service-role key: it authenticates the ping (required since 6 Oct 2026) and writes the uptime rows below.
 //
+// THE NEW SECRET KEY FIRST (it_engineer, 27 Oct 2026; docs/reports/security/SECURITY_HARDENING_27_OCT.md item 3, A2).
+// The legacy service_role JWT is signed with the leaked HS256 secret, and this route sent it about 4 times an hour
+// (to /rest/v1/edge_health_probe, and relayed into resilience_ping, whose tickCaller replayed it on app_secrets).
+// serviceKey() reads SUPABASE_SECRET_KEY (the sb_secret_ key, set in Vercel by the Supabase integration) and falls
+// back to SUPABASE_SERVICE_ROLE_KEY only while the legacy key is still enabled. resilience_ping's tickCaller
+// accepts either format. Remove the fallback once the gateway logs show 24 to 48 h of zero HS256 traffic.
+//
 // THE CALLER MUST OUTWAIT THE FUNCTION IT CALLS (17 Sep 2026, it_engineer). This route waited 30 s
 // for a function that declares DEADLINE_MS = 110_000 and runs its ticks in sequence, several with
 // their own 55 s sub-timeouts. So the cron log here was permanently 502 and the GitHub cross-check
@@ -36,7 +43,7 @@ const PING = 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/resilience_p
 // THE EXTERNAL UPTIME SLI (28 Sep 2026, it_engineer). Each run checks every public origin from
 // OUTSIDE Supabase and writes one edge_health_probe row per origin, fn_key 'uptime:<url>'. The
 // hourly seat_duty it_engineer.uptime_slo turns 30 days of these into uptime against 99.9%.
-// Writing needs SUPABASE_SERVICE_ROLE_KEY in the Vercel server env (never NEXT_PUBLIC_); without it
+// Writing needs SUPABASE_SECRET_KEY (or, until the legacy key is disabled, SUPABASE_SERVICE_ROLE_KEY) in the Vercel server env (never NEXT_PUBLIC_); without it
 // the checks still run and the response says uptime_recorded:false, so a missing key is visible.
 // Named, not a literal: resilience_ping_reports_every_tick.test.mjs reads the ONE numeric AbortSignal.timeout
 // in this file as the watchdog caller's wait.
@@ -55,8 +62,10 @@ async function checkOrigins() {
 
 type Check = Awaited<ReturnType<typeof checkOrigins>>[number];
 
+const serviceKey = () => process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
 async function recordUptime(checks: Check[]) {
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key = serviceKey();
   if (!key || !SUPA_URL || !checks.length) return false;
   const rows = checks.map((c) => ({
     fn_key: 'uptime:' + c.url, verdict: c.up ? 'up' : 'down',
@@ -87,7 +96,7 @@ export async function GET(req: Request) {
       method: 'POST',
       // The sweep runs only for an authenticated scheduler since 6 Oct 2026 (resilience_ping header, M2);
       // without the key the function answers liveness only, which is reported below as a failed tick.
-      headers: { 'Content-Type': 'application/json', ...(process.env.SUPABASE_SERVICE_ROLE_KEY ? { Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` } : {}) },
+      headers: { 'Content-Type': 'application/json', ...(serviceKey() ? { Authorization: `Bearer ${serviceKey()}` } : {}) },
       body: '{}',
       signal: AbortSignal.timeout(180_000),
     });

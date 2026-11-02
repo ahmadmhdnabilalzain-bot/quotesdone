@@ -118,7 +118,7 @@ declare
   v_hol_name text; v_hol_action text; v_hol_end date;
   v_cfg jsonb := coalesce((select nullif(value,'')::jsonb from app_secrets where key = 'invite_warmup'), '{}'::jsonb);
   v_win_start timestamptz; v_win_end timestamptz;
-  v_gate text;
+  v_gate text; v_open text[];
 begin
   select c.event_name, c.action, c.ends_on into v_hol_name, v_hol_action, v_hol_end
     from public.company_calendar c
@@ -148,6 +148,7 @@ begin
   v_cap := coalesce((select nullif(value,'')::int from app_secrets where key='invite_daily_cap'), 10);
   -- founder ruling 1231: never more than the dated founder cap, whatever invite_daily_cap holds.
   v_cap := least(v_cap, public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
+  v_cap := public.fn_invite_restart_cap(v_cap);   -- a small first batch after a restart
   select count(*) into v_pool from leads l where public.fn_supplier_invite_eligible(l);
   v_planned := least(coalesce(p_cap, v_cap), v_cap, v_pool);
   insert into invite_schedule(day, planned, status, note)
@@ -172,16 +173,20 @@ begin
   end if;
   if v_planned <= 0 then return 0; end if;
 
-  -- PLACEMENT GATE (24 Sep 2026, it_engineer). Nothing is queued unless this morning's seed invitation landed
-  -- in the Inbox of both seed mailboxes under today's effective sender (fn_invite_placement_gate). Fail closed: a check
-  -- that is still running, failed, or never ran all hold the batch.
-  v_gate := public.fn_invite_placement_gate((now() at time zone 'Asia/Dubai')::date);
-  if v_gate <> 'pass' then
+  -- PLACEMENT GATE, PER MAILBOX CLASS (27 Oct 2026, it_engineer; was the morning seed, retired by #1696). Recipients
+  -- go only in a class whose latest GlockApps verdict meets public.invite_placement_bar (fn_invite_placement_open_providers);
+  -- the others are skipped, not failed. No class open, no verdict, or a stale one: the whole batch is held.
+  v_open := public.fn_invite_placement_open_providers((now() at time zone 'Asia/Dubai')::date);
+  v_gate := public.fn_invite_placement_class_verdicts(now()) ->> 'strict';
+  if cardinality(v_open) = 0 then
     update invite_schedule set status = 'pending', note = coalesce(note,'') || '; held: inbox placement ' || v_gate where day = v_today;
     insert into agent_runs(agent, status, counts, note, started_at, finished_at)
     values ('supplier_invites', 'ok', jsonb_build_object('queued', 0, 'planned', v_planned, 'placement_gate', v_gate, 'held', true),
-            'Invites held: the morning inbox placement check answered ' || v_gate || ', so nothing was written to the outbox.', now(), now());
+            'Invites held: the GlockApps inbox placement verdict answered ' || v_gate || ' for every mailbox class, so nothing was written to the outbox.', now(), now());
     return 0;
+  end if;
+  if v_gate <> 'pass' then
+    update invite_schedule set note = coalesce(note,'') || '; placement ' || v_gate || ': invited only ' || array_to_string(v_open, ', ') where day = v_today;
   end if;
 
   -- THE SENDING WINDOW (22 Sep 2026). Invitations leave between the later of now and the window's start
@@ -200,8 +205,9 @@ begin
   end if;
 
   v_max_rate := coalesce((select nullif(value,'')::numeric from app_secrets where key='invite_max_bounce_rate'), 0.08);
-  select count(*) into v_inv_recent from leads where invited_at > now() - interval '3 days';
-  select count(*) into v_bounced_recent from leads where invite_status='bounced' and invited_at > now() - interval '3 days';
+  -- 2 Nov 2026: real sends only. A restart never resets this window.
+  select h.sent, h.bounced into v_inv_recent, v_bounced_recent
+    from public.fn_invite_send_health(now() - interval '3 days') h;
   v_rate := round(v_bounced_recent::numeric / greatest(v_inv_recent,1), 3);
 
   if v_inv_recent >= 15 and v_rate > v_max_rate then
@@ -215,12 +221,13 @@ begin
 
   if v_pause then
     update app_secrets set value='false' where key='invite_enabled';
+    insert into public.invite_brake(source, why) values ('enqueue_supplier_invites', v_why) on conflict do nothing;
     update invite_schedule set status = 'pending', note = coalesce(note,'') || '; auto-paused: ' || v_why where day = v_today;
     if not exists (select 1 from founder_alerts where event='invite_paused_bounce' and created_at > now()-interval '24 hours') then
       insert into founder_alerts(level,event,detail,channel)
-        values('crit','invite_paused_bounce','Supplier invites AUTO-PAUSED: '||v_why||'. Clean the list before resuming.','system');
+        values('crit','invite_paused_bounce','Supplier invites AUTO-PAUSED: '||v_why||'. The sales engineer may resume once, after a 3-day cooldown; a second breach stays paused and goes to the CEO seat.','system');
       insert into notifications(type,to_email,to_role,channel,subject,body,status)
-        values('invite_paused_bounce', coalesce((select split_part(value,',',1) from app_secrets where key='admin_emails'),'management@quotesdone.com'),'admin','email','Supplier invites paused - deliverability risk','Invites were auto-paused: '||v_why||'. Validate the list, then re-enable.','queued');
+        values('invite_paused_bounce', coalesce((select split_part(value,',',1) from app_secrets where key='admin_emails'),'management@quotesdone.com'),'admin','email','Supplier invites paused - deliverability risk','Invites were auto-paused: '||v_why||'. The sales engineer may resume once, after a 3-day cooldown; a second breach stays paused and goes to the CEO seat.','queued');
     end if;
     return 0;
   end if;
@@ -236,7 +243,7 @@ begin
 
   with c as (
     select c.*, row_number() over () as rn, count(*) over () as n
-      from public.fn_supplier_invite_candidates(v_remaining) c
+      from public.fn_supplier_invite_candidates(v_remaining, v_open) c
   ), ins as (
     insert into notifications(type, to_email, to_role, lead_id, subject, body, lang, status, created_at, not_before)
     select 'supplier_invite', c.to_email, 'supplier', c.lead_id, c.subject, c.body, c.lang, 'queued', now(),
@@ -248,11 +255,11 @@ begin
   update leads set invite_status='queued', invited_at=now()
   where invite_status is null and id in (select lead_id from ins);
   get diagnostics v_count = row_count;
-  update invite_schedule set sent = sent + v_count where day = v_today;
+  -- invite_schedule.sent is written when the outbox sends (trg_invite_schedule_counts_a_real_send), never here at queue time
   insert into agent_runs(agent, status, counts, note, started_at, finished_at)
   values ('supplier_invites', 'ok',
           jsonb_build_object('queued', v_count, 'planned', v_planned, 'pool', v_pool, 'cap', v_cap, 'held', false,
-                             'window_ends', v_win_end),
+                             'window_ends', v_win_end, 'placement_gate', v_gate, 'open_providers', to_jsonb(v_open)),
           'Invites: ' || v_count || ' queued of ' || v_planned || ' planned (pool ' || v_pool || ', cap ' || v_cap
           || '), spread until ' || to_char(v_win_end at time zone 'Asia/Dubai', 'HH24:MI') || ' Dubai.', now(), now());
   return v_count;
@@ -11234,6 +11241,41 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_arabic_compare_wait(p_inquiry text, p_texts text[])
+ RETURNS void
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  insert into public.arabic_compare_waiter (inquiry_id, texts) values (p_inquiry, p_texts)
+  on conflict (inquiry_id) do update set texts = excluded.texts
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_arabic_compare_waiters_ready(p_limit integer DEFAULT 10)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with ready as (
+    select d.inquiry_id from public.arabic_compare_waiter d
+     where d.attempts < 5   -- a render that keeps failing stops costing replays (customer_api tells the sales engineer)
+       and (d.last_offered_at is null or d.last_offered_at < now() - interval '2 minutes')
+       and not exists (select 1 from unnest(d.texts) t
+                        where not exists (select 1 from public.arabic_translation a where a.source_md5 = md5(t)))
+     order by d.attempts, d.last_offered_at nulls first, d.created_at
+     limit greatest(1, least(coalesce(p_limit, 10), 100))
+     for update skip locked
+  ), offered as (
+    update public.arabic_compare_waiter w set last_offered_at = now()
+      from ready where w.inquiry_id = ready.inquiry_id
+    returning w.inquiry_id
+  )
+  select coalesce(jsonb_agg(inquiry_id), '[]'::jsonb) from offered
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_arabic_document_wait(p_quote text, p_texts text[])
  RETURNS void
  LANGUAGE sql
@@ -12196,6 +12238,8 @@ AS $function$
     ('brand',            'bucket', 'brand',            true, 'fn_enqueue_doc_backups: STORAGE SWEEP (brand kit, signature and stamp images; not in the repository)', null),
     ('company-seal',     'bucket', 'company-seal',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the company stamp and signature, private since 6 Oct 2026; read by pdf_native with the service role)', null),
     ('evidence',         'bucket', 'evidence',         true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the laptop''s sandbox and campaign evidence moved off the Desktop on 26 Oct 2026: screenshots, recordings, files over 5 MB and real third parties'' documents kept out of git; private, service role only; indexed by sha256 in docs/reports/EVIDENCE_INDEX.md)', null),
+    ('review-photos',    'bucket', 'review-photos',    true, 'fn_enqueue_doc_backups: STORAGE SWEEP (customers'' post-job review photos, EXIF stripped; private, signed links only)', null),
+    ('reviews.photo_paths',                  'column', 'review-photos', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (review-photos)', null),
     ('kb-import-assets', 'bucket', 'kb-import-assets', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (knowledge import runs; only part of it is in the repository)', null),
     ('site',             'bucket', 'site',             true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the static website pages as first published)', null),
     ('marketing-media',  'bucket', 'marketing-media',  true, 'fn_enqueue_doc_backups: STORAGE SWEEP (the media of the posts the founder and Claude ingest to the marketing seat; private, not in the repository)', null),

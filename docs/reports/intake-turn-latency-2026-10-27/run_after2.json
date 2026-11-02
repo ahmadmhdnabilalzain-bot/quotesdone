@@ -1,0 +1,433 @@
+{
+ "label": "after",
+ "door": "local http://127.0.0.1:8103",
+ "measured_at": "2026-10-27T13:53:13.990Z",
+ "conversations": {
+  "A": {
+   "turns": 4,
+   "final_status": "ready",
+   "intake_id": "508a129a-56c8-411b-abb4-7ce4cd3ce793"
+  },
+  "C": {
+   "turns": 4,
+   "final_status": "ready",
+   "intake_id": "8d05a042-350e-4f04-8a27-4321b5ca5101"
+  },
+  "B": {
+   "turns": 7,
+   "final_status": "held",
+   "intake_id": "e065b5ce-5aa8-449c-bdbd-3a819d936a7d"
+  }
+ },
+ "turns": [
+  {
+   "conv": "B",
+   "n": 1,
+   "http": 200,
+   "ms": 13265,
+   "status": "needs_info",
+   "said": "HVAC works for our building, as per the attached drawings. Please quot",
+   "next_key": null,
+   "timing": {
+    "turn_ms": 12543,
+    "laps": {
+     "read": 1484,
+     "prompt": 2029,
+     "model": 12175,
+     "saved": 12543,
+     "done": 12543
+    },
+    "guard": [],
+    "placed": "added"
+   },
+   "error": null
+  },
+  {
+   "conv": "A",
+   "n": 1,
+   "http": 200,
+   "ms": 14168,
+   "status": "needs_info",
+   "said": "Aluminium windows for our villa in Dubai Marina: supply and install 40",
+   "next_key": null,
+   "timing": {
+    "turn_ms": 13443,
+    "laps": {
+     "read": 1390,
+     "prompt": 1390,
+     "model": 12747,
+     "saved": 13443,
+     "done": 13443
+    },
+    "guard": [],
+    "placed": "added"
+   },
+   "error": null
+  },
+  {
+   "conv": "C",
+   "n": 1,
+   "http": 200,
+   "ms": 14985,
+   "status": "needs_info",
+   "said": "نحتاج مطبخًا جديدًا لشقة في أبوظبي: خزائن علوية وسفلية بطول 4 أمتار تق",
+   "next_key": "material.board",
+   "timing": {
+    "turn_ms": 14195,
+    "laps": {
+     "read": 1578,
+     "prompt": 1578,
+     "model": 13124,
+     "saved": 14195,
+     "done": 14195
+    },
+    "guard": [],
+    "placed": "added"
+   },
+   "error": null
+  },
+  {
+   "conv": "B",
+   "n": 2,
+   "http": 200,
+   "ms": 11760,
+   "status": "needs_info",
+   "said": "Everything is in the attached drawings.",
+   "next_key": null,
+   "timing": {
+    "turn_ms": 11390,
+    "laps": {
+     "read": 1035,
+     "prompt": 1389,
+     "model": 11028,
+     "saved": 11390,
+     "done": 11390
+    },
+    "guard": [],
+    "placed": "added"
+   },
+   "error": null
+  },
+  {
+   "conv": "A",
+   "n": 2,
+   "http": 200,
+   "ms": 12383,
+   "status": "needs_info",
+   "said": "Standard commercial specification; the supplier can confirm the rest.",
+   "next_key": "warranty",
+   "timing": {
+    "turn_ms": 12015,
+    "laps": {
+     "read": 1592,
+     "prompt": 1955,
+     "model": 11286,
+     "saved": 12015,
+     "done": 12015
+    },
+    "guard": [],
+    "placed": "added"
+   },
+   "error": null
+  },
+  {
+   "conv": "C",
+   "n": 2,
+   "http": 200,
+   "ms": 16806,
+   "status": "needs_info",
+   "said": "MDF مقاوم للرطوبة",
+   "next_key": "material.finish",
+   "timing": {
+    "turn_ms": 16444,
+    "laps": {
+     "read": 1570,
+     "prompt": 2275,
+     "model": 15733,
+     "saved": 16444,
+     "done": 16444
+    },
+    "guard": [],
+    "placed": "added"
+   },
+   "error": null
+  },
+  {
+   "conv": "B",
+   "n": 3,
+   "http": 200,
+   "ms": 10805,
+   "status": "needs_info",
+   "said": "Please refer to the drawings, the take-off is attached.",
+   "next_key": null,
+   "timing": {
+    "turn_ms": 10455,
+    "laps": {
+     "read": 1099,
+     "prompt": 1885,
+     "model": 10093,
+     "saved": 10455,
+     "done": 10455
+    },
+    "guard": [],
+    "placed": "added"
+   },
+   "error": null
+  },
+  {
+   "conv": "A",
+   "n": 3,
+   "http": 200,
+   "ms": 13260,
+   "status": "needs_info",
+   "said": "Yes, at least 1 year",
+   "next_key": "required_by",
+   "timing": {
+    "turn_ms": 12774,
+    "laps": {
+     "read": 1172,
+     "prompt": 1540,
+     "model": 12037,
+     "saved": 12774,
+     "done": 12774
+    },
+    "guard": [],
+    "placed": "added"
+   },
+   "error": null
+  },
+  {
+   "conv": "C",
+   "n": 3,
+   "http": 200,
+   "ms": 14324,
+   "status": "needs_info",
+   "said": "لامينيت",
+   "next_key": "warranty",
+   "timing": {
+    "turn_ms": 13955,
+    "laps": {
+     "read": 1069,
+     "prompt": 2287,
+     "model": 13212,
+     "saved": 13955,
+     "done": 13955
+    },
+    "guard": [],
+    "placed": "added"
+   },
+   "error": null
+  },
+  {
+   "conv": "B",
+   "n": 4,
+   "http": 200,
+   "ms": 21373,
+   "status": "held",
+   "said": "As per the drawings.",
+   "next_key": "system_type",
+   "timing": {
+    "turn_ms": 21028,
+    "laps": {
+     "read": 1068,
+     "prompt": 1440,
+     "model": 10577,
+     "held_reply": 20672,
+     "saved": 21028,
+     "done": 21028
+    },
+    "guard": [],
+    "placed": "added"
+   },
+   "error": null
+  },
+  {
+   "conv": "A",
+   "n": 4,
+   "http": 200,
+   "ms": 18857,
+   "status": "ready",
+   "said": "By 2026-12-31",
+   "next_key": null,
+   "timing": {
+    "turn_ms": 18471,
+    "laps": {
+     "read": 1162,
+     "prompt": 1912,
+     "model": 15286,
+     "ready_reads": 18092,
+     "saved": 18471,
+     "done": 18471
+    },
+    "guard": [],
+    "placed": "added"
+   },
+   "error": null
+  },
+  {
+   "conv": "C",
+   "n": 4,
+   "http": 200,
+   "ms": 16951,
+   "status": "ready",
+   "said": "نعم، سنة على الأقل",
+   "next_key": null,
+   "timing": {
+    "turn_ms": 16610,
+    "laps": {
+     "read": 1371,
+     "prompt": 2115,
+     "model": 13738,
+     "ready_reads": 16243,
+     "saved": 16609,
+     "done": 16610
+    },
+    "guard": [],
+    "placed": "added"
+   },
+   "error": null
+  },
+  {
+   "conv": "B",
+   "n": 5,
+   "http": 200,
+   "ms": 17997,
+   "status": "held",
+   "said": "Package unit",
+   "next_key": "application_area",
+   "timing": {
+    "turn_ms": 17574,
+    "laps": {
+     "read": 1074,
+     "prompt": 1447,
+     "model": 9583,
+     "held_reply": 17198,
+     "saved": 17574,
+     "done": 17574
+    },
+    "guard": [],
+    "placed": "added"
+   },
+   "error": null
+  },
+  {
+   "conv": "B",
+   "n": 6,
+   "http": 200,
+   "ms": 19217,
+   "status": "held",
+   "said": "Offices and storage, about 1,200 square metres, ceiling height 3 metre",
+   "next_key": "new_or_replace",
+   "timing": {
+    "turn_ms": 18851,
+    "laps": {
+     "read": 1034,
+     "prompt": 1783,
+     "model": 10539,
+     "held_reply": 18463,
+     "saved": 18851,
+     "done": 18851
+    },
+    "guard": [],
+    "placed": "added"
+   },
+   "error": null
+  },
+  {
+   "conv": "B",
+   "n": 7,
+   "http": 200,
+   "ms": 19045,
+   "status": "held",
+   "said": "New installation",
+   "next_key": "scope",
+   "timing": {
+    "turn_ms": 18666,
+    "laps": {
+     "read": 1104,
+     "prompt": 2003,
+     "model": 11376,
+     "held_reply": 18256,
+     "saved": 18666,
+     "done": 18666
+    },
+    "guard": [],
+    "placed": "added"
+   },
+   "error": null
+  }
+ ],
+ "run_tag": "bd45f66b",
+ "turn_ms": {
+  "n": 15,
+  "ok": 15,
+  "p50": 14985,
+  "p95": 21373,
+  "max": 21373,
+  "over_25s": 0,
+  "over_30s": 0,
+  "failed": 0
+ },
+ "model_calls": [
+  {
+   "task_class": "inquiry_qualification_conversation",
+   "model_used": "anthropic/claude-sonnet-5.5",
+   "n": 15,
+   "p50": 8483,
+   "p95": 12154,
+   "max": 12255,
+   "usd": "0.2684"
+  },
+  {
+   "task_class": "customer_communication",
+   "model_used": "openai/gpt-6-luna-pro",
+   "n": 6,
+   "p50": 15250,
+   "p95": 18008,
+   "max": 18695,
+   "usd": "0.0072"
+  },
+  {
+   "task_class": "conversation_reply",
+   "model_used": "anthropic/claude-sonnet-5.5",
+   "n": 4,
+   "p50": 5694,
+   "p95": 7618,
+   "max": 7953,
+   "usd": "0.0706"
+  }
+ ],
+ "spend_usd": 0.3462,
+ "extras_before_teardown": {
+  "agent_actions": 0,
+  "reasoning_held_question": 0,
+  "seat_judgement": 8,
+  "ai_qa_log": 15
+ },
+ "teardown": {
+  "fixtures": {
+   "auth_users": 0,
+   "customers": 0,
+   "leads": 0,
+   "inquiries": 0,
+   "quotes": 0,
+   "quote_spec_hold": 0,
+   "quote_reviews": 0,
+   "notifications": 0,
+   "transactions": 0,
+   "refunds": 0,
+   "supplier_dues": 0,
+   "refund_case": 0,
+   "inquiry_intake": 0,
+   "email_verifications": 0,
+   "storage_objects": 0,
+   "total": 0
+  },
+  "extras": {
+   "agent_actions": 0,
+   "reasoning_held_question": 0,
+   "seat_judgement": 0,
+   "ai_qa_log": 0
+  }
+ }
+}

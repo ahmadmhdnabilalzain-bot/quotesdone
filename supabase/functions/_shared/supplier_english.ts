@@ -52,7 +52,10 @@ type Admin = any;
 export async function holdForEnglish(admin: Admin, id: number, text: string): Promise<void> {
   const req = {
     seat: 'sales_engineer', surface: ENGLISH_SURFACE, question: englishQuestion(text),
-    context: { audience: 'internal', language: 'en' }, research: false,
+    // 'supplier', not 'internal' (founder ruling 1338, 27 Oct 2026): the text this writes is e-mailed to every matched
+    // supplier, so it is reasoned with the public brief and retrieval's outside-audience branch, never seats.md or an
+    // internal knowledge row. A translation needs neither.
+    context: { audience: 'supplier', language: 'en' }, research: false,
     subject: { clarification_id: id }, dedupeKey: 'supplier_english:' + id,
   };
   const { error } = await admin.rpc('fn_reason_hold', { p_seat: req.seat, p_surface: req.surface, p_question: req.question.slice(0, 8000),

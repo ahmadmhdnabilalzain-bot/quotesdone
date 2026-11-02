@@ -76,7 +76,11 @@ export const T = {
     asst_ph:'Ask anything about your account…', asst_send:'Send', asst_thinking:'Thinking',
     asst_greet:'I can see your account, so ask me about your own requests, the quotes on them, your documents or your verification — as well as how QuotesDone works.',
     asst_s1:'What is the status of my requests?', asst_s2:'How many quotes have I received?', asst_s3:'What do I need to do next?',
-    asst_err:'Something went wrong. Please try that again.',
+    // 27 Oct 2026: a slow or dropped turn is never an error line (ledger 1200); the answer is looked for, then this is said
+    asst_late:'Your answer is taking a little longer. It will appear here.',
+    asst_not_sent:'Your message did not reach us, so it was not saved. It is back in the box below; please send it again.', asst_saved:'Your question is saved with your sales engineer, but the answer did not reach this chat. Please send it again in a moment; nothing you wrote is lost.',
+    asst_working:'Still working on your answer. It will appear here in a minute or two.',
+    asst_with_team:'Your sales engineer is reviewing your question. The answer will appear here.',
     // ── request lifecycle ──
     st_matching:'Matching', st_quoting:'Quoting', st_quotes_in:'Quotes in', st_revealed:'Revealed', st_closed:'Closed',
     k_awaiting:'Awaiting your decision', k_reveals:'Reveals',
@@ -172,7 +176,10 @@ export const T = {
     asst_ph:'اسأل أي شيء عن حسابك…', asst_send:'إرسال', asst_thinking:'جارٍ التفكير',
     asst_greet:'أطّلع على بيانات حسابك مباشرة، فاسألني عن طلباتك والعروض الواردة عليها ومستنداتك وحالة التحقق، أو عن طريقة عمل QuotesDone.',
     asst_s1:'ما حالة طلباتي؟', asst_s2:'كم عرض سعر وصلني؟', asst_s3:'ما الخطوة التالية المطلوبة مني؟',
-    asst_err:'حدث خطأ. يُرجى المحاولة مرة أخرى.',
+    asst_late:'تستغرق إجابتك وقتًا أطول قليلًا، وستظهر هنا.',
+    asst_not_sent:'لم تصلنا رسالتك ولم تُحفظ. أعدناها إلى مربع الكتابة أدناه، يُرجى إرسالها مرة أخرى.', asst_saved:'سؤالك محفوظ لدى مهندس المبيعات، لكن الإجابة لم تصل إلى هذه المحادثة. يُرجى إرساله مرة أخرى بعد قليل، ولم يُفقد شيء مما كتبته.',
+    asst_working:'ما زلنا نعمل على إجابتك، وستظهر هنا خلال دقيقة أو دقيقتين.',
+    asst_with_team:'يراجع مهندس المبيعات سؤالك الآن، وستظهر الإجابة هنا.',
     // ── دورة حياة الطلب ──
     st_matching:'قيد المطابقة', st_quoting:'قيد التسعير', st_quotes_in:'وردت العروض', st_revealed:'تم الكشف', st_closed:'مغلق',
     k_awaiting:'بانتظار قرارك', k_reveals:'عمليات الكشف',
@@ -209,6 +216,12 @@ export const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 Object.assign(T.en, {
   nr_title: 'New request', nr_cancel: 'Cancel',
   nr_greeting: "Hi, I'm your QuotesDone sales engineer. Tell me what you need done and which emirate it's in. I'll ask a few quick questions, including materials, installation, warranty and when you need it, so suppliers quote exactly what you want. You can type, or attach a drawing, BOQ, photo or your own quotation. Your identity stays hidden until you choose to reveal a supplier.",
+  // 27 Oct 2026: an intake turn the portal stopped waiting for is a progress state and a retry, never an error line.
+  nr_slow: 'Still working on it — checking every detail of your request…',
+  nr_late: 'This is taking longer than usual. Nothing you wrote is lost — tap Try again and we will pick up where we were.',
+  nr_working: 'Still working on your answer. It will appear here in a minute or two.',
+  nr_with_team: 'Our sales engineer is reviewing your request. The answer will appear here.',
+  nr_retry: 'Try again',
   nr_reading: 'Reading your file…', nr_reading_schedules: 'Reading the schedules on your drawings… {pct}%', nr_typing: 'Typing…', nr_ph: 'Message the sales engineer…', nr_listening: 'Listening… tap the mic to stop', nr_send: 'Send',
   nr_attach: 'Attach a drawing, photo or quotation',
   nr_attach_boq: 'Attach a BOQ — Excel, CSV, PDF or a photo', nr_attach_boq_short: 'BOQ',
@@ -247,8 +260,8 @@ Object.assign(T.en, {
   nr_readiness: 'Ready for suppliers', nr_handled_by: 'Handled by {name}',
   nr_left: '{n} left before this can go to suppliers', nr_req_title: 'What you asked for', nr_req_change: 'Change', nr_req_keep: 'Keep', nr_suggested: 'Suggested',
   nr_req_invalid: 'One of your changes could not be read. Pick one of the options instead.',
-  nr_posted: 'Your request is posted.', nr_posted_view: 'View my requests',
-  nr_posted_none: 'No registered supplier covers this trade yet, so quotes may take longer than usual. Your request is saved, our team has been alerted to find and invite suppliers for it, and you will be notified as soon as a quote arrives.',
+  nr_posted: 'Your request is saved.', nr_posted_view: 'View my requests',
+  nr_posted_none: 'Thank you. We are still registering suppliers for this trade, so your request has not reached a supplier, and we cannot promise a quote or say when one might come. Please do not hold your work for us. We will keep it open for 14 days; if it has reached no supplier by then, we will close it and tell you. There is nothing to pay.',
   nr_urgency_emergency: 'Emergency', nr_urgency_urgent: 'Urgent', nr_urgency_normal: 'Normal priority',
   nr_override: 'I read this as {kept}, not {model} — correct me if that is wrong.', nr_chips_hint: 'Tap a question to answer it',
   nr_boq_title: 'Bill of quantities read from your file', nr_boq_item: 'Item', nr_boq_qty: 'Qty', nr_boq_unit: 'Unit', nr_boq_conf: 'Confidence',
@@ -323,6 +336,8 @@ Object.assign(T.en, {
   c_note_h: 'Add a few words for the next customer (optional)', c_note_ph: 'What were they like to work with?', c_note_save: 'Add comment', c_note_min: 'At least 10 characters, up to 500. Your stars are already saved.', c_note_done: 'Thanks — your comment is saved.',
   err_review_comment: 'A comment is optional — but if you write one, please make it at least 10 characters.',
   err_rating_range: 'Please choose 1 to 5 stars.',
+  c_ph_h: 'Add photos of the finished job (optional)', c_ph_hint: 'Up to 5 photos — JPEG, PNG or WebP, 5 MB each. Seen only by this supplier and QuotesDone.', c_ph_add: 'Add photos', c_ph_done: 'Photos saved.', c_ph_alt: 'Your job photo {n}',
+  err_photo_type: 'Only JPEG, PNG or WebP photos can be attached.', err_photo_size: 'Each photo must be 5 MB or smaller.', err_photo_count: 'A review can carry at most 5 photos.', err_photo_fail: 'Could not save your photos. Please try again.',
   c_hire: 'I hired this supplier', c_hire_confirm: 'Mark this supplier as hired for this project?', c_hired: 'Marked as hired.', c_update_fail: 'Could not update.',
   c_refund: 'Request refund', c_refund_confirm: 'Tell us the supplier is not responding? We chase them after {c} working days and the fee is refunded in full if they are still silent after {w}. Every refund is checked by a person against the record — none is automatic. Banks take {bmin}-{bmax} working days to show a refund.',
   c_refund_ok: 'Refund requested — a person here checks it against the record, and if it is due everything you paid is refunded.', c_refund_fail: 'Could not request a refund.',
@@ -366,6 +381,11 @@ Object.assign(T.en, {
 Object.assign(T.ar, {
   nr_title: 'طلب جديد', nr_cancel: 'إلغاء',
   nr_greeting: 'مرحبًا، أنا مهندس المبيعات في QuotesDone. أخبرني بالعمل المطلوب والإمارة التي يُنفَّذ فيها، وسأطرح عليك بضعة أسئلة سريعة عن المواد والتركيب والضمان وموعد التسليم، حتى يسعّر الموردون ما تريده بالضبط. يمكنك الكتابة، أو إرفاق مخطط أو جدول كميات أو صورة أو عرض سعر لديك، وتبقى هويتك مخفية حتى تختار كشف مورّد.',
+  nr_slow: 'ما زلت أعمل على ذلك، وأراجع كل تفاصيل طلبك…',
+  nr_late: 'يستغرق الرد وقتًا أطول من المعتاد. لم يُفقد شيء مما كتبته؛ اضغط «إعادة المحاولة» لنكمل من حيث توقفنا.',
+  nr_working: 'ما زلنا نعمل على إجابتك، وستظهر هنا خلال دقيقة أو دقيقتين.',
+  nr_with_team: 'يراجع مهندس المبيعات طلبك الآن، وستظهر الإجابة هنا.',
+  nr_retry: 'إعادة المحاولة',
   nr_reading: 'جارٍ قراءة ملفك…', nr_reading_schedules: 'جارٍ قراءة الجداول في مخططاتك… {pct}%', nr_typing: 'يكتب…', nr_ph: 'راسل مهندس المبيعات…', nr_listening: 'أستمع إليك… اضغط الميكروفون للإيقاف', nr_send: 'إرسال',
   nr_attach: 'أرفق مخططًا أو صورة أو عرض سعر',
   nr_attach_boq: 'أرفق جدول كميات — Excel أو CSV أو PDF أو صورة', nr_attach_boq_short: 'جدول الكميات',
@@ -404,8 +424,8 @@ Object.assign(T.ar, {
   nr_readiness: 'جاهزية الطلب للموردين', nr_handled_by: 'يتولاه {name}',
   nr_left: 'تبقّى {n} قبل أن يُرسل الطلب إلى الموردين', nr_req_title: 'ما طلبته', nr_req_change: 'تغيير', nr_req_keep: 'إبقاء', nr_suggested: 'مقترح',
   nr_req_invalid: 'تعذّرت قراءة أحد التغييرات. اختر أحد الخيارات بدلاً من ذلك.',
-  nr_posted: 'تم نشر طلبك.', nr_posted_view: 'عرض طلباتي',
-  nr_posted_none: 'لا يوجد بعدُ مورّد مسجّل يغطي هذا التخصص، لذلك قد تتأخر العروض أكثر من المعتاد. طلبك محفوظ، وقد أبلغنا فريقنا ليبحث عن موردين في هذا التخصص ويدعوهم، وسنُعلمك فور وصول أي عرض.',
+  nr_posted: 'حُفظ طلبك.', nr_posted_view: 'عرض طلباتي',
+  nr_posted_none: 'شكرًا لك. ما زلنا نسجّل الموردين في هذا التخصص، ولذلك لم يصل طلبك إلى أي مورّد، ولا يمكننا أن نعدك بعرض سعر أو بموعد له، فنرجو ألا تؤخر عملك انتظارًا لنا. سنبقي الطلب مفتوحًا 14 يومًا؛ وإذا لم يصل إلى أي مورّد خلالها أغلقناه وأبلغناك. لا يلزمك أي مبلغ.',
   nr_urgency_emergency: 'طارئ', nr_urgency_urgent: 'عاجل', nr_urgency_normal: 'أولوية عادية',
   nr_override: 'فهمتُ طلبك على أنه {kept} وليس {model} — صحّحني إن كنت مخطئًا.', nr_chips_hint: 'اضغط على سؤال للإجابة عنه',
   nr_boq_title: 'جدول الكميات المستخرج من ملفك', nr_boq_item: 'البند', nr_boq_qty: 'الكمية', nr_boq_unit: 'الوحدة', nr_boq_conf: 'دقة القراءة',
@@ -480,6 +500,8 @@ Object.assign(T.ar, {
   c_note_h: 'أضف بضع كلمات للعميل التالي (اختياري)', c_note_ph: 'كيف كان التعامل معه؟', c_note_save: 'إضافة تعليق', c_note_min: '10 أحرف على الأقل وحتى 500. نجومك محفوظة بالفعل.', c_note_done: 'شكرًا على تعليقك — تم حفظه.',
   err_review_comment: 'التعليق اختياري — لكن إذا كتبت تعليقًا فليكن 10 أحرف على الأقل.',
   err_rating_range: 'يُرجى اختيار تقييم من 1 إلى 5 نجوم.',
+  c_ph_h: 'أضف صورًا للعمل المُنجَز (اختياري)', c_ph_hint: 'حتى 5 صور — JPEG أو PNG أو WebP، بحد أقصى 5 ميغابايت لكل صورة. لا يراها إلا هذا المورّد وQuotesDone.', c_ph_add: 'إضافة صور', c_ph_done: 'تم حفظ الصور.', c_ph_alt: 'صورة العمل المُنجَز {n}',
+  err_photo_type: 'يمكن إرفاق صور JPEG أو PNG أو WebP فقط.', err_photo_size: 'يجب ألا يتجاوز حجم كل صورة 5 ميغابايت.', err_photo_count: 'يمكن إرفاق 5 صور بالتقييم كحد أقصى.', err_photo_fail: 'تعذّر حفظ صورك. يُرجى المحاولة مرة أخرى.',
   c_hire: 'تعاقدتُ مع هذا المورّد', c_hire_confirm: 'هل تؤكّد تسجيل التعاقد مع هذا المورّد لهذا المشروع؟', c_hired: 'سُجّل التعاقد مع المورّد.', c_update_fail: 'تعذّر التحديث.',
   c_refund: 'طلب استرداد', c_refund_confirm: 'هل تريد إبلاغنا بأن المورّد لا يردّ؟ نتابعه بعد {c} أيام عمل، وتُردّ الرسوم كاملة إذا لم يردّ خلال {w}. يراجع أحد موظفينا كل طلب استرداد وفق السجل، ولا يُصرف أي استرداد آليًا. ويظهر المبلغ في حسابك خلال {bmin}-{bmax} يوم عمل بحسب البنك.',
   c_refund_ok: 'قُدّم طلب الاسترداد، وسيراجعه أحد موظفينا وفق السجل؛ فإن كان مستحقًا يُردّ إليك كامل ما دفعته.', c_refund_fail: 'تعذّر تقديم طلب الاسترداد.',
@@ -547,6 +569,8 @@ const CODE_KEY = {
   // customer_api rate_supplier, 17 Sep 2026: a refused rating comes back as a 4xx with a code, never
   // as the 500 that used to carry a raw constraint name to the customer.
   review_comment_too_short: 'err_review_comment', rating_out_of_range: 'err_rating_range',
+  // customer_api add_review_photos (T2): the photo refusals, in the customer's language.
+  photo_not_image: 'err_photo_type', photo_too_large: 'err_photo_size', too_many_photos: 'err_photo_count', photo_save_failed: 'err_photo_fail', review_required: 'c_rate_group',
   // reveal_invoice, 21 Sep 2026: no invoice or receipt for a payment that has not settled.
   payment_not_settled: 'q_inv_not_paid',
   // call() answers with these three instead of throwing (CP-08, 22 Sep 2026): a request that timed

@@ -53,14 +53,42 @@ test('static: every routine pinned and revoked, every table RLS + policy, duties
   assert.ok(pending(MINE) !== manifest.includes(MINE), 'exactly one of a pending note and a MANIFEST line');
 });
 
+test('static: the probe touches the hold\'s target_keys only, never its flag', () => {
+  const src = read('scripts/checks/the_ceo_target_experiments_and_competitors_act.test.mjs');
+  const writes = [...src.matchAll(/update public\.founder_hold set (\w+) =/g)].map((m) => m[1]);
+  assert.ok(writes.length === 2 && writes.every((c) => c === 'target_keys'), `the probe writes the hold beyond its target_keys: ${writes}`);
+  assert.ok([...src.matchAll(/update public\.founder_hold [^;]*;/g)].every((m) => /where hold_key = 'supplier_campaign'/.test(m[0])), 'a hold write is not scoped to supplier_campaign');
+  assert.ok(!/(update|insert into|delete from) public\.app_secrets/i.test(src), 'the probe writes app_secrets: the hold\'s flag is the founder\'s');
+});
+
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token';
+
+// The hold pauses, it does not hide: with the founder's hold on, every held target reads 'paused' and every other
+// target reads exactly what it reads without the hold. While the hold is on, at least one held target must be one
+// that would otherwise have missed, or the held pass proves nothing about the hold.
+function assertHoldPauses(held, free) {
+  assert.ok(held && held.day && free, 'the probe did not read the day with and without the hold');
+  for (const [m, s] of Object.entries(free)) {
+    const want = held.keys.includes(m) ? 'paused' : s;
+    assert.equal(held.day[m], want, `with the founder's hold on, ${m} read ${held.day[m]}, expected ${want}`);
+  }
+  assert.deepEqual(Object.keys(held.day).sort(), Object.keys(free).sort(), 'the hold dropped a target from the day');
+  if (held.keys.length) assert.ok(held.keys.some((k) => free[k] === 'miss'), `the hold is on (${held.keys}) but no held target would have missed: the held pass is vacuous`);
+}
+
+async function liveHold() {
+  const { sql } = await import('../lib/db.mjs');
+  return (await sql(`select h.target_keys, (select value from public.app_secrets where key = h.flag_key) is not distinct from h.flag_released_value released
+                       from public.founder_hold h where hold_key = 'supplier_campaign'`, { readOnly: true }))[0];
+}
 
 async function probe(block) {
   const { sql } = await import('../lib/db.mjs');
   try { await replaySql(FILES.filter(pending).map(read).join('\n') + '\n' + block, { retry: false }); }
   catch (e) {
-    const m = String(e.message).match(/CHK<<(.*?)>>/s);
+    // e.message is capped at 2,000 characters by db.mjs; the full answer is on e.body
+    const m = String(e.body ?? e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 1500));
     return JSON.parse(m[1].replace(/\\"/g, '"'));
   }
@@ -68,8 +96,9 @@ async function probe(block) {
 }
 
 test('production, aborted: target, experiments, competitor watch and stages act', { skip: SKIP }, async () => {
+  const hold = await liveHold();
   const o = await probe(String.raw`
-do $$ declare o jsonb := '{}'; v jsonb; h bigint; e bigint; c bigint; s bigint; t bigint; hid bigint; n bigint; tgt jsonb; f jsonb; begin
+do $$ declare o jsonb := '{}'; v jsonb; h bigint; e bigint; c bigint; s bigint; t bigint; hid bigint; n bigint; tgt jsonb; f jsonb; hk text[]; yc bigint; begin
   perform set_config('app.qd_stub_founder_notify', 'on', true);
   -- author models are proven on internal_judgement, think()'s decision class (founder_instruction 1056, 29 Sep)
   insert into public.ai_cost_log (fn, agent_key, seat, task_class, model_used, ok) values
@@ -126,9 +155,24 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; e bigint; c bigint; s bigint; 
             where contract_key in ('REVENUE_AED_1M_BY_2027_10_01', 'REVEAL_FEES_BASE_PATH_BY_2027_08_31')),
     'paths', (select count(*) from public.target_path), 'path_seats', (select count(distinct owner_seat) from public.target_path),
     'nov_month_plan', (select inquiries from public.ceo_plan_month where month = date '2026-11-01'));
+  -- The founder's supplier_campaign hold (ledger 1312) pauses the supplier targets. First the day as production would
+  -- read it, in a sub-block that rolls itself back: every held target must read 'paused' (never dropped). Then the
+  -- hold's target_keys are emptied INSIDE THIS ABORTED TRANSACTION ONLY (the flag, invite_enabled, is never touched),
+  -- so the misses, tasks and root-cause questions below are the path's own; they are restored before 'today'.
+  select id into yc from public.target_contract where contract_key = 'FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30';
+  hk := array(select target_key from public.fn_held_targets() where hold_key = 'supplier_campaign');
+  begin
+    tgt := public.fn_ceo_target_daily_verdict(timestamptz '2026-11-20 10:00+04');
+    o := o || jsonb_build_object('held', jsonb_build_object('keys', to_jsonb(hk), 'misses', tgt->'misses',
+      'day', (select jsonb_object_agg(metric_key, status) from public.target_daily_verdict where contract_id = yc and day = date '2026-11-20')));
+    raise exception 'ZZ_HELD_PASS_ROLLED_BACK';
+  exception when raise_exception then if sqlerrm <> 'ZZ_HELD_PASS_ROLLED_BACK' then raise; end if;
+  end;
+  update public.founder_hold set target_keys = '{}' where hold_key = 'supplier_campaign';
   select coalesce(max(id), 0) into n from public.agent_actions;
   tgt := public.fn_ceo_target_daily_verdict(timestamptz '2026-11-20 10:00+04');
   o := o || jsonb_build_object('nov', jsonb_build_object('misses', tgt->'misses', 'opened', tgt->'tasks_opened'),
+    'nov_day', (select jsonb_object_agg(metric_key, status) from public.target_daily_verdict where contract_id = yc and day = date '2026-11-20'),
     'nov_again', public.fn_ceo_target_daily_verdict(timestamptz '2026-11-20 11:00+04')->'tasks_opened',
     'root_cause_to', (select jsonb_agg(distinct agent order by agent) from public.agent_actions where id > n and kind = 'handoff' and detail->>'type' = 'ceo.root_cause' and status = 'pending'));
   select id, (detail->>'task_id')::bigint into hid, t from public.agent_actions where id > n and kind = 'handoff' and detail->>'type' = 'ceo.root_cause' and agent = 'marketing';
@@ -137,6 +181,8 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; e bigint; c bigint; s bigint; 
   o := o || jsonb_build_object('answered', (select jsonb_build_object('task', state, 'has_cause', evidence like '%ZZ DEMO no buyers yet%') from public.ceo_task where task_id = t),
     'handoff_after', (select status from public.agent_actions where id = hid),
     'miss_case', (select seat from public.seat_case_memory where source_table = 'ceo_task' and source_id = t::text));
+  -- today is read with the founder's hold back as production has it (restored from what this transaction emptied)
+  update public.founder_hold set target_keys = (select array_agg(distinct k) from unnest(hk) k) where hold_key = 'supplier_campaign' and cardinality(hk) > 0;
   o := o || jsonb_build_object('today', public.fn_ceo_target_daily_verdict()->'tasks_opened');
 
   -- the company stage and the plan that is not pinned to a held stage
@@ -157,6 +203,7 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; e bigint; c bigint; s bigint; 
   o := o || jsonb_build_object('forecast_has_path', public.fn_ceo_target_forecast()->'verdicts' @> '[{"contract":"FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30"}]');
   raise exception 'CHK<<%>>', o::text;
 end $$;`);
+  assert.deepEqual(await liveHold(), hold, 'the founder\'s hold changed in production: the probe must touch it only inside its aborted transaction');
 
   assert.deepEqual(o.seeded, [
     { key: 'b2b_accounts_consented', seat: 'ceo', stakes: 'high' },
@@ -178,6 +225,7 @@ end $$;`);
   assert.equal(o.paths, 262); assert.equal(o.path_seats, 6);   // 70 of the base case (superseded) + 192 of the year-one path
   assert.equal(o.nov_month_plan, 0, 'the CEO month plan does not follow the year-one path');
   assert.ok(o.nov.misses >= 3 && o.nov.opened === o.nov.misses, `a November day with nothing measured: ${JSON.stringify(o.nov)}`);
+  assertHoldPauses(o.held, o.nov_day);
   assert.equal(o.nov_again, 0, 'a second verdict the same day opened a second task');
   for (const s of ['customer_support', 'marketing', 'sales_engineer']) assert.ok(o.root_cause_to.includes(s), 'the owning seats were not asked for the root cause: ' + o.root_cause_to);
   assert.deepEqual(o.answered, { task: 'working', has_cause: true }, 'the root cause never reached the CEO task');

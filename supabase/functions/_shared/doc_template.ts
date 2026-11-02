@@ -36,6 +36,8 @@ export type DocIdentity = {
    * are real; a letterhead prints the one you may call. */
   email: string;
   phone: string;
+  /** The calling number (ledger 1482). `phone` is the WhatsApp number and is never called. */
+  callPhone: string;
   web: string;
   signer: string;
   title: string;
@@ -55,7 +57,8 @@ export const FALLBACK: DocIdentity = {
   licence: 'DET Trader License No. 1633275',
   city: 'Dubai, United Arab Emirates',
   email: 'management@quotesdone.com',
-  phone: '+971 50 931 9355',
+  phone: '+1 218 316 6814',
+  callPhone: '+971 56 791 8605',
   // 21 Sep 2026 (customer audit, finding 12): the documents print the TDRA-permitted host the company
   // trades under in the UAE (NOL-26-100000665 is issued for www.quotesdone.ae; UAE visitors are served
   // there). The email stays management@quotesdone.com: measured 21 Sep 2026, it is the one address
@@ -133,7 +136,7 @@ export async function docIdentity(admin: SupabaseClient<any, any, any>): Promise
 /** The two footer lines: the legal line (who issues the document and under which licence and
  * permit), then where to reach us. */
 export function footerLines(id: DocIdentity): [string, string] {
-  return [`${id.name} · ${id.licence} · ${id.permit}`, `${id.city} · ${id.email} · ${id.phone} · ${id.web}`];
+  return [`${id.name} · ${id.licence} · ${id.permit}`, `${id.city} · ${id.email} · WhatsApp ${id.phone} · ${id.callPhone} · ${id.web}`];
 }
 
 /** The same two lines for an Arabic document (14 Sep 2026: the founder asked for the Arabic
@@ -151,7 +154,7 @@ export function footerLinesAr(id: DocIdentity): [string, string] {
   // it again. The acronym is the English short form of the authority the line has just named in
   // Arabic; the permit NUMBER is the code that identifies the document and stays.
   return [`${id.name} · رخصة تاجر من دائرة الاقتصاد والسياحة في دبي رقم ${no} · خطاب عدم ممانعة هيئة تنظيم الاتصالات والحكومة الرقمية ${permit}`,
-    `دبي، الإمارات العربية المتحدة · ${id.email} · ${id.phone} · ${id.web}`];
+    `دبي، الإمارات العربية المتحدة · ${id.email} · واتساب ${id.phone} · ${id.callPhone} · ${id.web}`];
 }
 
 /**

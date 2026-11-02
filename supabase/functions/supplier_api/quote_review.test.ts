@@ -159,7 +159,7 @@ const pdfModel = () => Promise.resolve(PDF_TERMS);
 function harness(inq = inquiry()) {
   const mem = memoryReviewRepo(() => new Date('2026-09-15T10:00:00Z'));
   const submitted: Record<string, unknown>[] = [];
-  const written: string[] = []; const noModel = { on: false }; const holds: string[] = []; const voices: Parameters<ReviewDeps['voice']>[0][] = [];
+  const written: string[] = []; const noModel = { on: false, up: false }; const holds: string[] = []; const voices: Parameters<ReviewDeps['voice']>[0][] = [];
   const deps: ReviewDeps = {
     inquiry: (id) => Promise.resolve(id === inq.id ? inq : null),
     scan(data, filename, mime) {
@@ -181,7 +181,8 @@ function harness(inq = inquiry()) {
       const action = ids.includes('submit') && /submit/i.test(m) ? 'submit'
         : ids.includes('generate') && /generat/i.test(m) ? 'generate'
         : ids.includes('reupload') && /upload|new version/i.test(m) ? 'reupload' : null;
-      return Promise.resolve(noModel.on ? { text: '', action: null } : { text: t, action });
+      // noModel.on: OpenRouter down (outage) · noModel.up: the model answered but nothing it wrote may be sent (1339)
+      return Promise.resolve(noModel.on ? { text: '', action: null, outage: true } : noModel.up ? { text: '', action: null, outage: false } : { text: t, action });
     },
   };
   return { mem, deps, submitted, written, noModel, holds, voices, ctx: { supplierId: 7, email: 'qd-test-sup1@example.invalid', lang: 'en' as const } };
@@ -227,6 +228,21 @@ Deno.test('the conversation: incomplete file → points raised → answered in t
   const late = await message(mem.repo, deps, ctx, INQ_ID, 'one more thing');
   assertEquals((late as { code?: string }).code, 'review_closed');
   assertEquals((await thread(mem.repo, deps, ctx, INQ_ID) as ThreadView).messages.length, t3.messages.length, 'a closed thread is never written to');
+});
+
+// BROWSER PROOF, 2 Nov 2026 (ledger 1464): the model was given the review's state and the one new message, never what the
+// supplier had said before, so "what lead time did I tell you?" was answered "nothing has come through".
+Deno.test('the model is given the whole thread so far: what the supplier said earlier, and what the engineer answered', async () => {
+  const { mem, deps, ctx, voices } = harness();
+  ok(await start(mem.repo, deps, ctx, INQ_ID));
+  ok(await message(mem.repo, deps, ctx, INQ_ID, 'Our standard lead time is 6 weeks and quotes are valid for 30 days.'));
+  const first = voices[voices.length - 1];
+  assertEquals((first.conversation ?? []).some((c) => c.role === 'supplier'), false, 'the message being answered is not repeated as history');
+  ok(await message(mem.repo, deps, ctx, INQ_ID, 'What lead time did I tell you earlier?'));
+  const second = voices[voices.length - 1];
+  const said = (second.conversation ?? []).filter((c) => c.role === 'supplier').map((c) => c.text);
+  assertEquals(said, ['Our standard lead time is 6 weeks and quotes are valid for 30 days.']);
+  assert((second.conversation ?? []).some((c) => c.role === 'seat'), 'the engineer\'s own earlier messages are in it');
 });
 
 Deno.test('the conversation: approved → "upload" → the new version is reviewed → submit', async () => {
@@ -629,8 +645,11 @@ Deno.test('Arabic acknowledgement: a stated period is read back in Arabic ("ال
 // adds nothing but the receipt and the state machine still runs.
 // prevented by: this test (referenced from quote_review_flow.ts)
 Deno.test('1195-1197: no engineer message in the quotation chat is added unless a model wrote it in that turn', async () => {
-  for (const noModelRun of [false, true]) {
-    const h = harness(); h.noModel.on = noModelRun;
+  // run 'down': OpenRouter down — the fixed held notice is the outage fallback. run 'up': the model answered and nothing it
+  // wrote may be sent — founder_instruction 1339: no code-written message at all, the turn is queued for the model.
+  for (const run of ['model', 'down', 'up'] as const) {
+    const noModelRun = run !== 'model';
+    const h = harness(); h.noModel.on = run === 'down'; h.noModel.up = run === 'up';
     const turn = async (f: () => Promise<unknown>) => {
       const before = h.mem.messages.length; const wroteBefore = h.written.length;
       await f();
@@ -638,10 +657,9 @@ Deno.test('1195-1197: no engineer message in the quotation chat is added unless 
       const fresh = all.filter((m) => m.body !== QR_HELD_NOTICE);
       const wroteNow = h.written.slice(wroteBefore);
       for (const m of fresh) assert(wroteNow.includes(String(m.body)), 'an engineer message no model wrote this turn: ' + String(m.body).slice(0, 80));
-      if (noModelRun) {
-        assertEquals(fresh.length, 0, 'with no model, a conversation message was still added');
-        assert(all.length > 0, 'with no model the supplier was left silent: the held notice must be added');
-      }
+      if (noModelRun) assertEquals(fresh.length, 0, 'with no usable model answer, a conversation message was still added');
+      if (run === 'down') assert(all.length > 0, 'OpenRouter down and the supplier was left silent: the held notice must be added');
+      if (run === 'up') assertEquals(all.length, 0, 'the model is up: the code-written held notice must not be added (1339)');
     };
     await turn(() => start(h.mem.repo, h.deps, h.ctx, INQ_ID));
     await turn(() => upload(h.mem.repo, h.deps, h.ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'q.csv', mime: 'text/csv' }));
@@ -788,8 +806,8 @@ Deno.test('a review runs off the request: the turn answers at once, a failure en
     await jobs[0];
     const t = ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID));
     assert(t.state !== 'reviewing' && !t.reviewing, 'a failed review left the turn reviewing: ' + t.state);
-    assertEquals(t.messages.at(-1)!.body_en, QR_HELD_NOTICE);
-    assert(h.holds.length >= 1, 'the failed turn was not queued for the seat');
+    // the model writes what happened (1339); the fixed notice is for an OpenRouter outage only
+    assert(h.written.includes(String(t.messages.at(-1)!.body_en)), 'the failed turn\'s message is the model\'s');
   }
   // 3. a job the runtime KILLED (no catch ran): once stale, the next load resolves it to held for the seat
   {
@@ -799,8 +817,7 @@ Deno.test('a review runs off the request: the turn answers at once, a failure en
     await h.mem.repo.updateReview(r.id, { status: 'reviewing', reviewing_since: '2026-09-15T09:00:00Z' });
     const t = ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID));
     assert(t.state !== 'reviewing', 'a killed review stayed reviewing');
-    assertEquals(t.messages.at(-1)!.body_en, QR_HELD_NOTICE);
-    assert(h.holds.length >= 1);
+    assert(h.written.includes(String(t.messages.at(-1)!.body_en)), 'the killed turn\'s message is the model\'s (1339)');
     const again = ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID));
     assertEquals(again.messages.length, t.messages.length, 'resolved once, not on every poll');
   }

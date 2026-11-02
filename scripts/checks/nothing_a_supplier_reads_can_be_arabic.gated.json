@@ -103,6 +103,7 @@
   "86fd348b8681",
   "88c760c2dc76",
   "890d9f859c40",
+  "8a26957e0bd8",
   "8a4e319b09e8",
   "8b70666059e2",
   "8d1c703ac22d",
@@ -324,16 +325,6 @@
   "a2a959ec5db4",
   "ac3e20e6edf7"
  ],
- "src/components/portal/supplier/ProductIntelligence.tsx": [
-  "128d08e1bad8",
-  "31227f9c7009",
-  "3db290931c32",
-  "4d1eab26a9cd",
-  "78cce824937c",
-  "b3e2dbd91ce2",
-  "de0b2ea1357b",
-  "e646d1bf3f40"
- ],
  "src/components/portal/supplier/QuotationsTab.tsx": [
   "1a4c027ad6a0",
   "28d650e3603b",
@@ -417,18 +408,6 @@
   "6c37f8e5f1a7",
   "702ae240425b",
   "b4acfe583e3e"
- ],
- "src/components/portal/supplier/SupplierCatalogUpload.tsx": [
-  "410891bd6f08",
-  "4ec6ed2981b8",
-  "5e44d9452342",
-  "739c1a5cc8c3",
-  "7d42323153da",
-  "7fd69b7c6643",
-  "b6d49d8ad10a",
-  "c6465d24ce9a",
-  "d3319643634a",
-  "f4af52f37af8"
  ],
  "src/components/portal/supplier/SupplierCertifications.tsx": [
   "19433cc9da86",
@@ -573,21 +552,6 @@
   "da77c67d5132",
   "fe2f85d333ab"
  ],
- "src/components/portal/supplier/SupplierTwin.tsx": [
-  "0e93a7338c87",
-  "29eadb4ef1a3",
-  "3fd31fd57e38",
-  "602fdebde626",
-  "6448f83829f5",
-  "7e74cdc76c01",
-  "88266af72e38",
-  "9fa76f1e2582",
-  "b08f85b35a54",
-  "bbf58b1fdf49",
-  "ccc9ddf8c368",
-  "e522690ad19c",
-  "f5d7c6969098"
- ],
  "src/components/portal/supplier/money.ts": [
   "52cf8a81f287"
  ],
@@ -620,6 +584,7 @@
   "081c48e1ad1a",
   "09dd24858fa9",
   "0ae1b524b527",
+  "0b247430b4b4",
   "0c033e710345",
   "0c5b6eb5613c",
   "0c850498918e",
@@ -644,6 +609,7 @@
   "1abfb4a73a46",
   "1b1185e4e941",
   "1b8df356caaf",
+  "1be6a22c0e0e",
   "1d02f2e1e87a",
   "1d17235948e1",
   "1d5bce01aa3b",
@@ -898,6 +864,7 @@
   "c1771d508500",
   "c18cde1fcbb6",
   "c29027890beb",
+  "c3648d196980",
   "c4c9f796ec7e",
   "c4ca5fc21f86",
   "c54553ee7787",
@@ -1180,7 +1147,6 @@
   "0fed49358216",
   "2094c687fa52",
   "274cddef400f",
-  "337681b58656",
   "35e3e63995f6",
   "3a87726a2a4a",
   "3b73e5b5a99d",

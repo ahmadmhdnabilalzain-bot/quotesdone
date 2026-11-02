@@ -8,7 +8,8 @@ name: Seat exam (daily) and knowledge-gap audit (weekly)
 # Needs two repository secrets: SUPABASE_ACCESS_TOKEN (present) and CLAUDE_CODE_OAUTH_TOKEN (NOT YET SET). Without
 # either the job skips with a notice; nothing runs half-way.
 
-# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
+# founder 26 Oct (ledger 1279) switched every automatic trigger off; founder 28 Oct (ledger 1410): "activate github actions",
+# on GitHub-hosted runners. push / pull_request / workflow_run are back; schedules stay on pg_cron (moved 26 Oct, no double run).
 on:
   # schedule:
     # - cron: '0 2 * * *'    # daily 06:00 Dubai: the exam
@@ -23,7 +24,7 @@ permissions:
 
 jobs:
   run:
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -43,14 +44,16 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with: { node-version: 24 }
       - if: steps.gate.outputs.skip != '1'
-        uses: denoland/setup-deno@v2
+        # Third-party actions are pinned to a commit (pre-launch audit 27 Oct 2026, it_engineer; same rule as #1459): this
+        # job holds the account-wide SUPABASE_ACCESS_TOKEN and contents:write, so a moved tag would run with both.
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
         with: { deno-version: v2.x }
       - if: steps.gate.outputs.skip != '1'
         run: |
           npm ci --no-audit --no-fund
           mkdir -p ~/.supabase && printf '%s' "$SUPABASE_ACCESS_TOKEN" > ~/.supabase/access-token
       - if: steps.gate.outputs.skip != '1' && env.JOB == 'exam'
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@8041f1d17e0e7d2f2cfe35002962e9f26237c0bb # v1.0.263 (= v1 on 27 Oct 2026)
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: '--allowedTools Bash,Read,Edit,Write,Glob,Grep --max-turns 120'
@@ -65,17 +68,33 @@ jobs:
             6. For every open fix: find why the seat missed (the entry not retrieved, a missing fact, a wrong prompt), make the fix in
                knowledge/seats/*.json or the prompt, open ONE pull request signed "it_engineer:" with the fixes, and run
                record --fixed <item>=<knowledge_ingest|prompt>:<PR url> for each. Never edit knowledge/exams to make an item pass.
-            End with one line: "exam <pass>/<asked>, open fixes <n>, PR <url or none>".
+            7. THE ADAPTIVE CONVERSATION BANK, today's slice (ledger 1200; scripts/e2e/adaptive_conversation_bank.mjs, seven
+               slices cover the whole bank each week): node scripts/e2e/live_seat_conversations.mjs run --slice today
+               --cap-usd 3 --max-turns 7. It drives the deployed portal chat as ZZ DEMO customers and tears them down itself.
+            8. Score every transcript yourself as a strict senior UAE estimator, never a paid judge: read the scenario's
+               expert list, trap and keeps (they are in the results file) and write judged.json
+               {id:{overall:0-10, issues:[...]}}. Mark down: a robotic yes/no, "I don't know", a wrong spec accepted, a
+               question about something already answered, a lost or contradicted fact, a must-have never asked, a reply
+               that is not about their job. Then run score --results <file> --judged judged.json.
+            9. node scripts/e2e/knowledge_gap_audit.mjs list --scored <the .scored.json>: files each conversation below 95%
+               as an open gap for the weekly audit. Prove 0 ZZ DEMO rows of this run remain (the run's tag).
+            End with one line: "exam <pass>/<asked>, open fixes <n>, conversations <met>/<n> (slice <i>/7), PR <url or none>".
       - if: steps.gate.outputs.skip != '1' && env.JOB == 'audit'
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@8041f1d17e0e7d2f2cfe35002962e9f26237c0bb # v1.0.263 (= v1 on 27 Oct 2026)
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: '--allowedTools Bash,Read,Edit,Write,Glob,Grep --max-turns 150'
           prompt: |
             You are the customer_support seat of QuotesDone running the weekly knowledge-gap audit (ledger 1200).
-            1. node scripts/e2e/live_seat_conversations.mjs run --cap-usd 12, then score every transcript yourself (strict senior UAE
-               sales-engineering assessor, 0-10 overall, issues) into judged.json and run score --results <file> --judged judged.json.
+            1. The daily job has run one slice of the adaptive conversation bank (scripts/e2e/adaptive_conversation_bank.mjs) each
+               day and filed every conversation below 95% as an open gap. Re-run only the scenarios those gaps name, after
+               any fix of the week is live: node scripts/e2e/live_seat_conversations.mjs run --only <ids> --cap-usd 12, score
+               every transcript yourself against its expert list, trap and keeps (strict senior UAE estimator, 0-10 overall,
+               issues) into judged.json, and run score --results <file> --judged judged.json.
             2. node scripts/e2e/knowledge_gap_audit.mjs list --scored <the .scored.json> > gaps.json
+               A gap whose cause is the seat's behaviour (asked again, missed a must-have, accepted a wrong spec) is fixed in
+               the portal reply rules (supabase/functions/_shared/support_reply.ts, PORTAL_INTAKE); a missing fact is
+               knowledge. A new failure mode found in the week becomes a new scenario in the bank, in the same PR.
             3. Confirm each proposed not_a_gap and close it (close --ids ... --status not_a_gap). For every real gap, author the
                missing knowledge (knowledge/seats or knowledge/packs or the brief), open ONE pull request signed "customer_support:".
                Close a gap as knowledge_added only after its ingest is live, naming it with --ref.

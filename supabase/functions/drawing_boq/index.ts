@@ -11,7 +11,7 @@ import { tooLargeToParse } from '../_shared/parse_ceiling.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import { boqFromPages } from './boq_from_text.ts';
-import { boqFromDrawingSet, lengthsForSet, mergeLengths, type ScheduleTable } from './drawing_set.ts';
+import { boqFromDrawingSet, lengthsForSet, mergeLengths, setBeforeModel, type ScheduleTable } from './drawing_set.ts';
 import { boqFromSheet } from './boq_from_sheet.ts';
 import { boqFromExtracted } from './boq_from_document.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
@@ -218,6 +218,25 @@ Deno.serve(observe('drawing_boq', async (req) => {
         return J({ ok: true, boq: { ...out, fallback_reason: why, author_model: 'deterministic' } });
       } catch (_e) { return null; }
     };
+    // 27 OCT 2026 — A COUNTABLE PDF SET IS COUNTED BY CODE, WITH THE MODEL ON (founder ledger 580; "routine work is
+    // code, not LLM"). The code path above ran only with no AI key, a refusal or deterministic:true. Since ruling 1260
+    // the key is always there, so every PDF set went to the vision model. MEASURED on production, 27 Oct 2026, the
+    // 8-sheet ZZ DEMO mechanical set (scripts/e2e/drawing_reaches_suppliers.mjs): the model returned 6 lines - EF-1 and
+    // EF-2 read 2 each against 1, WC/L-1, the 2,400 type-A air devices and the 16,432.8 m of 26x18 duct were missing -
+    // where boqFromDrawingSet on the same text layer reads all 7 exactly (and the lengths call adds the duct). So when
+    // the text layer yields a drawing set that code read completely, that set is the answer; otherwise the model drafts.
+    // Not changed: a photo, a scan and a PDF with no countable tags still go to the model as before.
+    // COVERAGE FLOOR (27 Oct 2026, independent review): only a set code read COMPLETELY answers here - every tag-shaped
+    // run on its plans read, at least one tag. A set where code reads a few tags and misses most goes to the model as
+    // before. The measurement behind the floor is in drawing_set.ts (countedCompletely).
+    if (pdfB64 && body.deterministic !== true) {
+      try {
+        const bytes = Uint8Array.from(atob(pdfB64.replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
+        const sched = Array.isArray(body.schedule_tables) ? (body.schedule_tables as ScheduleTable[]).slice(0, 40).filter((t) => t && Array.isArray(t.rows)) : [];
+        const set = setBeforeModel(await pdfPages(bytes, undefined, { layers: false }), hint, sched);
+        if (set) return J({ ok: true, boq: { ...set, fallback_reason: 'code_counted_the_set', author_model: 'deterministic' } });
+      } catch (_e) { /* not a readable PDF text layer: the model drafts, as before */ }
+    }
     const key = await sec('cred_fn_ai');
     if (!key || body.deterministic === true) {
       const d = await deterministic(key ? 'requested' : 'no_ai_key');

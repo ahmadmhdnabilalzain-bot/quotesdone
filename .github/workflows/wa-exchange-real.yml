@@ -1,0 +1,24 @@
+# Seat: customer_support (2 Nov 2026). A supplier who got a WhatsApp code texts us: this branch's wa_inbound against the real
+# database and real models, from fixture numbers only (nothing is sent to Twilio). Runs on a push to the branch that touches
+# its own script, or by hand once on main. Spend is capped at USD 2.5 by a rehearsal window.
+name: wa-exchange-real
+on:
+  workflow_dispatch:
+    inputs:
+      media_only: { description: 'Only the six file turns (image, PDF, two bad-file controls, voice, stranger image); USD 1 cap', default: 'true' }
+concurrency: { group: wa-exchange-real, cancel-in-progress: false }
+jobs:
+  exchange:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      QD_MEDIA_ONLY: ${{ github.event.inputs.media_only == 'true' && '1' || '0' }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: '24' }
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
+        with: { deno-version: v2.x }
+      - run: npm ci
+      - run: node scripts/e2e/wa_exchange_real.mjs

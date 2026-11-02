@@ -10,10 +10,14 @@
 //              the question and every wording already used for it; it never carries the expected facts, so the
 //              author of the new wording cannot lead the seat to them.
 //   2. ask     node scripts/eval/seat_exam_llm_on.mjs ask --wordings w.json [--cap-usd 3]
-//              w.json [{id, wording}] written fresh by the Claude session. Refused when a wording repeats the source
+//      or  node scripts/eval/seat_exam_llm_on.mjs bank [--per-seat 6] [--ledger 893] > w.json
+//              the same items, each worded from its bank (q_reworded, then `wordings`), the first never asked.
+//              w.json [{id, wording}] written fresh by the Claude session (or by `bank`). Refused when a wording repeats the source
 //              question or any earlier wording of that item. Each is put to the seat through think() end to end
 //              (seat_exam_llm_on.ts) inside this run's capped rehearsal window, then graded BY CODE: pass = the
 //              answer holds every expected fact of the item. Writes results.json; nothing is recorded yet.
+//      score   node scripts/eval/seat_exam_llm_on.mjs score --results results.json [--judged j.json]
+//              pass rate per seat and per founder ledger (894 = the seat's own exam, 893/899 = the trade bank).
 //   3. record  node scripts/eval/seat_exam_llm_on.mjs record --results results.json [--judged j.json]
 //              j.json {item_id: {pass, note}}: a Claude agent's judgement, ONLY for answers code failed (a fact said
 //              in other words, or in Arabic). Records every ask; a miss opens a fix; a pass closes the item's open fix
@@ -29,6 +33,7 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { withRun, internalCred, REF, q } from '../lib/demo_factory.mjs';
 import { mgmtRead, mgmtFixture } from '../lib/qd_guard.mjs';
+import { bankItemsFor, ledgersOf, freshBankWording, scoreResults } from './seat_exam_bank.mjs';
 
 process.env.QD_FIXTURES = '1';   // the run's window, its fixtures and its exam record are the only rows it writes
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -41,7 +46,13 @@ const SEATS = (val('--seats') || 'sales_engineer,customer_support,accountant,ceo
 const read = (sql) => mgmtRead(REF, sql);
 const write = (sql, why) => mgmtFixture(REF, sql, why);
 
-const exam = Object.fromEntries(SEATS.map((s) => [s, JSON.parse(readFileSync(join(ROOT, 'knowledge/exams', `${s}.json`), 'utf8')).items]));
+// THE BANK (27 Oct 2026, ledger 893/894/899; scripts/eval/seat_exam_bank.mjs): knowledge/exams/bank/<seat>_*.json add
+// items to a seat's exam (the trade distinctions of 893/899 for sales_engineer), and q_reworded plus an item's `wordings`
+// let `bank` word every due item without a newly authored wording.
+const exam = Object.fromEntries(SEATS.map((s) => [s, [
+  ...JSON.parse(readFileSync(join(ROOT, 'knowledge/exams', `${s}.json`), 'utf8')).items,
+  ...bankItemsFor(s),
+]]));
 const itemOf = (id) => { for (const s of SEATS) { const it = exam[s].find((x) => x.id === id); if (it) return { ...it, seat: s }; } return null; };
 export const norm = (t) => String(t ?? '').toLowerCase().replace(/[\W_]+/gu, '');
 // A fact is present when its words are, ignoring case, punctuation and hyphenation ("title-block" = "title block").
@@ -62,18 +73,44 @@ async function openFixes() {
   return (await dbLive()) ? await read(`select id, item_id, kind, fix_ref from public.seat_exam_fix where status='open'`) : hist().fixes.filter((f) => f.status === 'open');
 }
 
-if (cmd === 'plan') {
+// The items due today: open fixes first, then the least recently asked. --ledger N keeps only items scoring ledger N.
+async function duePlan() {
   const per = Number(val('--per-seat') || 6);
+  const only = val('--ledger');
   const a = await asked(), open = new Set((await openFixes()).map((f) => f.item_id));
   const last = (id) => a.filter((x) => x.item_id === id).map((x) => String(x.asked_at)).sort().at(-1) || '';
-  const plan = SEATS.flatMap((s) => exam[s]
-    .map((it) => ({ id: it.id, seat: s, question: it.q_en, open_fix: open.has(it.id), last: last(it.id),
-                    used_wordings: a.filter((x) => x.item_id === it.id).map((x) => x.wording) }))
-    .sort((x, y) => (y.open_fix - x.open_fix) || x.last.localeCompare(y.last))
-    .slice(0, Math.max(per, exam[s].filter((it) => open.has(it.id)).length))
-    .map(({ last: _l, ...r }) => r));
-  console.log(JSON.stringify(plan, null, 1));
+  return SEATS.flatMap((s) => {
+    const pool = exam[s].filter((it) => !only || ledgersOf(it).map(String).includes(only));
+    return pool
+      .map((it) => ({ id: it.id, seat: s, question: it.q_en, open_fix: open.has(it.id), last: last(it.id),
+                      used_wordings: a.filter((x) => x.item_id === it.id).map((x) => x.wording) }))
+      .sort((x, y) => (y.open_fix - x.open_fix) || x.last.localeCompare(y.last))
+      .slice(0, Math.max(per, pool.filter((it) => open.has(it.id)).length))
+      .map(({ last: _l, ...r }) => r);
+  });
+}
+
+if (cmd === 'plan') {
+  console.log(JSON.stringify(await duePlan(), null, 1));
   if (!(await dbLive())) console.error(`(record: ${HIST}; the tables are not applied yet)`);
+} else if (cmd === 'bank') {
+  // node scripts/eval/seat_exam_llm_on.mjs bank [--per-seat 6] [--seats a,b] [--ledger 893] > w.json
+  // The deterministic route: the same plan, each item worded from its bank (q_reworded, then wordings[]) with the first
+  // wording never asked. An item whose bank is used up is left out and named, so a session writes it a fresh wording.
+  const out = [], spent = [];
+  for (const p of await duePlan()) {
+    const w = freshBankWording(itemOf(p.id), p.used_wordings);
+    if (w) out.push({ id: p.id, wording: w }); else spent.push(p.id);
+  }
+  console.log(JSON.stringify(out, null, 1));
+  if (spent.length) console.error(`bank used up (write a fresh wording for these): ${spent.join(', ')}`);
+} else if (cmd === 'score') {
+  // node scripts/eval/seat_exam_llm_on.mjs score --results results.json [--judged j.json]
+  // Pass rate per seat and per founder ledger: 894 = each seat's own exam; 893/899 = the trade-distinction bank.
+  const R = JSON.parse(readFileSync(val('--results'), 'utf8'));
+  const J = val('--judged') ? JSON.parse(readFileSync(val('--judged'), 'utf8')) : {};
+  const graded = R.results.map((r) => (!r.pass && J[r.id] ? { ...r, pass: !!J[r.id].pass && r.status === 'answered' } : r));
+  console.log(JSON.stringify({ run_tag: R.run_tag, measured_at: R.measured_at, spend: R.spend, ...scoreResults(graded, itemOf) }, null, 1));
 } else if (cmd === 'ask') {
   const wf = val('--wordings'); if (!wf) throw new Error('ask needs --wordings <file>');
   const cap = Number(val('--cap-usd') || 3);
@@ -139,5 +176,5 @@ if (cmd === 'plan') {
   const fixesNow = await openFixes();
   console.log(`recorded ${n} asks of run ${R.run_tag}; open fixes now ${fixesNow.length}: ${fixesNow.map((f) => f.item_id).join(', ') || 'none'}${(await dbLive()) ? '' : `  (record: ${HIST})`}`);
 } else if (process.argv[1]?.endsWith('seat_exam_llm_on.mjs')) {
-  console.error('usage: seat_exam_llm_on.mjs plan|ask|record (see the header)'); process.exit(2);
+  console.error('usage: seat_exam_llm_on.mjs plan|bank|ask|score|record (see the header)'); process.exit(2);
 }
