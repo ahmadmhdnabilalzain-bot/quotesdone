@@ -135,6 +135,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [WhatsApp reply model was never shown the conversation](whatsapp-reply-model-was-never-shown-the-conversation.md) — 2 Nov: stored is not shown; voice notes not heard; OTP-on-WhatsApp does not make a supplier known
 - [Lessons — measurement, guards, checks, audits, identity](lessons-measurement-guards-and-audits.md) — 75 pattern lessons, grouped
 - [Lessons — Postgres, kernel, deploy, phase machinery](lessons-postgres-kernel-and-deploy.md) — 60 pattern lessons, grouped
+- [A deferred row aged out by created_at (2 Nov)](a-deferred-row-aged-out-by-created-at.md) — a supplier_invite held with no last_error was send_outbox's 72 h stale guard; a same-day resume now reopens the batch
 - [A held row failed with no result means the runner died (27 Oct)](a-held-row-failed-with-no-result-means-the-runner-died.md) — 2 s edge CPU cap; gte-small in a batch goes to embed_ml
 - [A mention is not a reference](a-mention-is-not-a-reference.md) — how to prove a routine is dead
 ## The lenses that keep paying
