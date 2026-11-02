@@ -40,9 +40,14 @@ try {
   const line = (r.stdout || '').split('\n').find((l) => l.startsWith('RESULT='));
   if (!line) throw new Error('driver produced no RESULT; stdout tail: ' + (r.stdout || '').slice(-600) + ' stderr tail: ' + (r.stderr || '').slice(-1200));
   result = JSON.parse(line.slice(7));
-  const brief = (x) => ({ status: x?.status, ms: x?.ms, reply: x?.reply, results: x?.rows?.[0]?.meta?.results, err: x?.rows?.[0]?.meta?.send_error, nrows: x?.rows?.length });
+  const brief = (x) => ({ status: x?.status, ms: x?.ms, reply: x?.reply, results: x?.rows?.[0]?.meta?.results, err: x?.rows?.[0]?.meta?.send_error, nrows: x?.rows?.length, t: x?.rows?.[0]?.meta?.timings });
   for (const k of ['forged', 'question', 'hi', 'arabic', 'stranger_hi', 'fee', 'top3', 'identity', 'reveal', 'image', 'document']) console.log('## ' + k + ' ' + JSON.stringify(k === 'forged' ? result[k] : brief(result[k])));
   console.log('## ten ' + JSON.stringify(result.ten));
+  {
+    const turns = [...['question', 'hi', 'arabic', 'stranger_hi', 'fee', 'top3', 'identity', 'reveal'].map((k) => result[k]), ...result.ten.filter((t) => typeof t.ms === 'number')].filter((t) => t && typeof t.ms === 'number');
+    const ms = turns.map((t) => t.ms).sort((a, b) => a - b); const pct = (p) => ms[Math.min(ms.length - 1, Math.floor(p * ms.length))];
+    console.log('LATENCY turns=' + ms.length + ' p50_ms=' + pct(0.5) + ' p95_ms=' + pct(0.95) + ' max_ms=' + ms[ms.length - 1] + ' unanswered=' + turns.filter((t) => !t.reply).length);
+  }
   try {
     const cost = (await mgmtRead(REF, `select coalesce(sum(cost_aed),0)::float aed from public.ai_cost_log where occurred_at >= ${q(started)}`))[0];
     console.log('COST_AED_SINCE_START(all callers)=' + cost.aed + ' (USD ' + (cost.aed / 3.6725).toFixed(2) + ')');

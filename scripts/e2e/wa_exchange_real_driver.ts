@@ -67,7 +67,7 @@ for (let i = 1; i <= 10; i++) {
   let r = await say(S, text);
   // the memory question is asked again (new message) if the first answer ran past the 45 s budget and went to the hold queue
   for (let again = 0; i === 10 && !r.reply && again < 2; again++) { ten.push({ i: 10, reply: '(held: ' + JSON.stringify(r.rows[0]?.meta?.send_error ?? null) + ', ' + r.ms + ' ms)' } as never); r = await say(S, text); }
-  ten.push({ i, reply: r.reply, ms: r.ms, why: r.reply ? undefined : (r.rows[0]?.meta?.send_error ?? 'no row') } as never);
+  ten.push({ i, reply: r.reply, ms: r.ms, t: r.rows[0]?.meta?.timings, why: r.reply ? undefined : (r.rows[0]?.meta?.send_error ?? 'no row') } as never);
 }
 out.ten = ten;
 // grounding
