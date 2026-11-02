@@ -3,6 +3,7 @@ name: A merged SQL file applies itself
 # Founder ledger 1463: merging is the go-live. Waits for the same commit's edge deploy, then rehearses, applies, reads back and
 # probes each file added to MANIFEST.txt since the last successful run. No laptop and no session.
 on:
+  workflow_dispatch: {}
   push:
     branches: [main]
     paths: ['scripts/sql/MANIFEST.txt']
