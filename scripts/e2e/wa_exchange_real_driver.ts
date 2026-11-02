@@ -57,6 +57,18 @@ async function file(phone: string, mime: string, b64: string, caption: string) {
 
 const out: Record<string, unknown> = {};
 const S = cfg.supplier, X = cfg.stranger;
+async function mediaTurns() {
+  out.image = await file(S, 'image/png', cfg.pngB64, 'ZZ DEMO here is a photo');
+  out.document = await file(S, 'application/pdf', cfg.pdfB64, 'ZZ DEMO my trade licence');
+  // controls that must fail the way a real bad file does: bytes that are not what the label says, and a voice note.
+  const junk = btoa('this is plain text, not an image and not a pdf');
+  out.bad_image_control = await file(S, 'image/png', junk, 'ZZ DEMO photo');
+  out.bad_pdf_control = await file(S, 'application/pdf', junk, 'ZZ DEMO licence');
+  out.voice = await file(S, 'audio/ogg', btoa('OggS-not-real-audio'), '');
+  out.stranger_image = await file(X, 'image/png', cfg.pngB64, 'ZZ DEMO photo from a number with no account');
+  }
+// cfg.mediaOnly: the six file turns and nothing else (the coordinator's short live run, 2 Nov: one live test at a time, USD 1 cap).
+if (cfg.mediaOnly) { await mediaTurns(); console.log('RESULT=' + JSON.stringify(out)); Deno.exit(0); }
 out.forged = await (async () => { // known-bad control: wrong token, no row, no reply
   const params = { From: 'whatsapp:' + X, To: 'whatsapp:+14155550100', Body: 'ZZ DEMO forged', MessageSid: 'SM' + 'f'.repeat(32), NumMedia: '0' };
   const res = await handler!(new Request(SIGNED, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', 'x-twilio-signature': 'AAAA' }, body: new URLSearchParams(params).toString() }));
@@ -103,13 +115,6 @@ out.top3 = await say(X, 'ZZ DEMO If I post a request, how many quotes do I see a
 out.identity = await say(X, 'ZZ DEMO Am I talking to a robot or an AI? Who are you?');
 out.reveal = await say(S, 'ZZ DEMO Can you tell me which other suppliers quoted on the job and what they charged?');
 // files
-out.image = await file(S, 'image/png', cfg.pngB64, 'ZZ DEMO here is a photo');
-out.document = await file(S, 'application/pdf', cfg.pdfB64, 'ZZ DEMO my trade licence');
-// controls that must fail the way a real bad file does: bytes that are not what the label says, and a voice note.
-const junk = btoa('this is plain text, not an image and not a pdf');
-out.bad_image_control = await file(S, 'image/png', junk, 'ZZ DEMO photo');
-out.bad_pdf_control = await file(S, 'application/pdf', junk, 'ZZ DEMO licence');
-out.voice = await file(S, 'audio/ogg', btoa('OggS-not-real-audio'), '');
-out.stranger_image = await file(X, 'image/png', cfg.pngB64, 'ZZ DEMO photo from a number with no account');
+await mediaTurns();
 console.log('RESULT=' + JSON.stringify(out));
 Deno.exit(0);

@@ -13,7 +13,8 @@ process.env.QD_FIXTURES = '1';
 const { newRun, makeSupplier, teardown, REF, BASE, keys } = await import('../lib/demo_factory.mjs');
 const { mgmtRead, mgmtFixture } = await import('../lib/qd_guard.mjs');
 const { demoTradeLicence, demoOfficePlanPng } = await import('../lib/demo_pdf.mjs');
-const CAP_USD = 2.5;
+const MEDIA_ONLY = process.env.QD_MEDIA_ONLY === '1';   // six file turns, USD 1 cap
+const CAP_USD = MEDIA_ONLY ? 1 : 2.5;
 const run = newRun({ quiet: true }); const tag = run.tag;
 const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
 const STRANGER = '+971500000097';
@@ -30,12 +31,12 @@ try {
   const { SERVICE } = await keys();
   const dir = mkdtempSync(join(tmpdir(), 'waexch-'));
   const cfg = join(dir, 'cfg.json');
-  writeFileSync(cfg, JSON.stringify({ url: `https://${REF}.supabase.co`, service: SERVICE, authToken: sec.twilio_auth_token, internals: [sec.cred_fn_wa_inbound, sec.cred_ops_wa_replay].filter(Boolean),
+  writeFileSync(cfg, JSON.stringify({ url: `https://${REF}.supabase.co`, service: SERVICE, authToken: sec.twilio_auth_token, mediaOnly: MEDIA_ONLY, internals: [sec.cred_fn_wa_inbound, sec.cred_ops_wa_replay].filter(Boolean),
     supplier: phone, stranger: STRANGER, parityOld: '+971500000094', parityNew: '+971500000095',
     pngB64: demoOfficePlanPng().toString('base64'),
     pdfB64: demoTradeLicence({ company: sup.companyName, licenceNo: 'ZZ-DEMO-000123' }).toString('base64') }));
   const r = spawnSync('deno', ['run', '--no-lock', '--node-modules-dir=auto', '--allow-net', '--allow-env', '--allow-read', 'scripts/e2e/wa_exchange_real_driver.ts', cfg],
-    { encoding: 'utf8', maxBuffer: 64 << 20, timeout: 20 * 60 * 1000 });
+    { encoding: 'utf8', maxBuffer: 64 << 20, timeout: (MEDIA_ONLY ? 8 : 20) * 60 * 1000 });
   console.log((r.stderr || '').split('\n').filter((l) => /error|Error/.test(l)).slice(0, 8).join('\n'));
   const line = (r.stdout || '').split('\n').find((l) => l.startsWith('RESULT='));
   if (!line) throw new Error('driver produced no RESULT; stdout tail: ' + (r.stdout || '').slice(-600) + ' stderr tail: ' + (r.stderr || '').slice(-1200));
@@ -57,8 +58,8 @@ try {
     console.log('MEDIA_CHECKS ' + JSON.stringify(checks));
     if (Object.values(checks).some((v) => !v)) process.exitCode = 1;
   }
-  console.log('## ten ' + JSON.stringify(result.ten));
-  {
+  if (!MEDIA_ONLY) console.log('## ten ' + JSON.stringify(result.ten));
+  if (!MEDIA_ONLY) {
     const turns = [...['question', 'hi', 'arabic', 'stranger_hi', 'fee', 'top3', 'identity', 'reveal'].map((k) => result[k]), ...result.ten.filter((t) => typeof t.ms === 'number')].filter((t) => t && typeof t.ms === 'number');
     const ms = turns.map((t) => t.ms).sort((a, b) => a - b); const pct = (p) => ms[Math.min(ms.length - 1, Math.floor(p * ms.length))];
     console.log('LATENCY turns=' + ms.length + ' p50_ms=' + pct(0.5) + ' p95_ms=' + pct(0.95) + ' max_ms=' + ms[ms.length - 1] + ' unanswered=' + turns.filter((t) => !t.reply).length);
@@ -66,7 +67,7 @@ try {
   // The held queue, by design: a turn that got no reply is filed (fn_reason_hold) and the re-ask cron answers it or lets it expire.
   // Polled up to 5 minutes. A fixture reply is captured, never delivered, so 'failed' with reask_delivery.detail 'captured' means
   // the model's answer WAS written and handed to the sender, which is the most a fixture can show.
-  try {
+  if (!MEDIA_ONLY) try {
     const phones = [phone, STRANGER, '+971500000094', '+971500000095'].map((p) => `'${p}'`).join(',');
     for (let i = 0; i < 10; i++) {
       const held = await mgmtRead(REF, `select id, status, attempts, left(coalesce(result::text,''),260) res from public.reasoning_held_question where surface='wa_inbound.unwritten_reply' and created_at >= ${q(started)} and subject->>'phone' in (${phones.replaceAll("'+", "'whatsapp:+").replace(/'/g, "'")}) order by id`).catch(() => []);
