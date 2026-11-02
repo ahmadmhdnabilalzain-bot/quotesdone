@@ -131,6 +131,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Checks retired with their subject](checks-retired-with-their-subject.md) — 13 retired; never soften a check to green
 - [Apify paused until ~Feb 2027](apify-paused-until-2027.md)
 - [The OS dashboard is still basic](os-dashboard-still-basic.md)
+- [WhatsApp reply model was never shown the conversation](whatsapp-reply-model-was-never-shown-the-conversation.md) — 2 Nov: stored is not shown; voice notes not heard; OTP-on-WhatsApp does not make a supplier known
 - [Lessons — measurement, guards, checks, audits, identity](lessons-measurement-guards-and-audits.md) — 75 pattern lessons, grouped
 - [Lessons — Postgres, kernel, deploy, phase machinery](lessons-postgres-kernel-and-deploy.md) — 60 pattern lessons, grouped
 - [A held row failed with no result means the runner died (27 Oct)](a-held-row-failed-with-no-result-means-the-runner-died.md) — 2 s edge CPU cap; gte-small in a batch goes to embed_ml
