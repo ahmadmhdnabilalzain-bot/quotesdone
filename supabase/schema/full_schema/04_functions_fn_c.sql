@@ -10495,6 +10495,19 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_conversation_archive_attempt(p_source_table text, p_source_id text)
+ RETURNS integer
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  insert into public.conversation_archive_attempt as a (source_table, source_id, attempts)
+  values (p_source_table, p_source_id, 1)
+  on conflict (source_table, source_id) do update set attempts = a.attempts + 1, last_at = now()
+  returning attempts;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_conversation_archive_pending(p_limit integer DEFAULT 25)
  RETURNS SETOF v_conversation_message
  LANGUAGE sql
