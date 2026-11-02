@@ -21,7 +21,7 @@
 // requested and approved. `request_chat` may be answered outright by the category agent instead of
 // opening one. That is the product, not a failure, and the surface renders all three outcomes.
 import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
-import { fetchRetry, isReadAction } from '@/lib/fetchRetry';
+import { retryRead, isReadAction } from '@/lib/fetchRetry';
 
 export type Lang = 'en' | 'ar';
 
@@ -139,11 +139,11 @@ export type CommsResult<T> =
  */
 export async function call<T>(fn: string, body: Record<string, unknown>, token: string): Promise<CommsResult<T>> {
   try {
-    const r = await fetchRetry(fnUrl(fn), {
+    const r = await retryRead(async () => await fetch(fnUrl(fn), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || SUPA_ANON}` },
       body: JSON.stringify(body),
-    }, isReadAction(body));
+    }), isReadAction(body));
     const json = (await r.json().catch(() => null)) as Record<string, unknown> | null;
     if (!json) return { ok: false, error: 'no_response' };
     if (typeof json.error === 'string') return { ok: false, error: json.error };
