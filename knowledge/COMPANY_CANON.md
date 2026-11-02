@@ -58,7 +58,7 @@ A supplier registers and completes the mandatory six: the company's licensed nam
 
 **How do I register as a supplier?**
 
-Open the supplier portal, choose "Create account" with your work email, and complete the mandatory six: the company's licensed name, a UAE mobile number verified with a code, a verified work email, the trade licence (uploaded), the company profile (uploaded) and acceptance of the Supplier Agreement. The licence number, issuing authority and expiry date are read from the licence itself. Approval follows within 3 working days of complete documents. It is automatic once the six are complete, the licence is read and in date, and you have confirmed the services your company provides in the Services tab of your portal; until you confirm them you are held, and the portal says what is left.
+Open the supplier portal, choose "Create account" with your work email, and complete the mandatory six: the company's licensed name, a UAE mobile number verified with a code, a verified work email, the trade licence (uploaded), the company profile (uploaded) and acceptance of the Supplier Agreement. The licence number, issuing authority and expiry date are read from the licence itself. Approval follows within 3 working days of complete documents. It is automatic once the six are complete, the licence is read and in date, and you have confirmed the services your company provides in the Services tab of your portal; until you confirm them you are held, and the portal says what is left. A licence issued by an authority outside the UAE, or by an authority we cannot confirm, is held too, and you are asked for a current UAE trade licence or to name the UAE authority or free zone that issued it.
 
 ## Verification
 
@@ -72,7 +72,7 @@ No. Insurance, ISO, manufacturer authorisation, EGR, and catalogues are all opti
 
 **How long does supplier approval take?**
 
-Within 3 working days of complete documents (Supplier Agreement clause 13). Approval is automatic when the mandatory six are complete, the licence is read and in date, and the supplier has confirmed the services it provides (Services tab); a supplier is held until it confirms them. An expired licence must be renewed first, and a licence that cannot be read in full is held for review; the supplier is told what is pending.
+Within 3 working days of complete documents (Supplier Agreement clause 13). Approval is automatic when the mandatory six are complete, the licence is read and in date, and the supplier has confirmed the services it provides (Services tab); a supplier is held until it confirms them. A licence issued by an authority outside the UAE, or by an authority that cannot be confirmed, is held, and the supplier is asked for a current UAE trade licence or to name the UAE authority or free zone that issued it. An expired licence must be renewed first, and a licence that cannot be read in full is held for review; the supplier is told what is pending.
 
 ## Matching
 

@@ -79,7 +79,9 @@ or approved-manufacturer list; products must meet the UAE approvals for the job)
    expiry date are read from the licence and checked. Approval is **automatic** when the six are complete,
    the licence is read and in date, and the supplier has **confirmed the services it provides** (Services tab); until it
    confirms them it is held and the portal says what is left (SA "Automated decisions"; ledger 1469). An expired licence must be renewed first; a
-   licence that cannot be read in full is held for review, and the supplier is told what is pending. (SA§13; HWV)
+   licence that cannot be read in full is held for review, and the supplier is told what is pending. A licence issued by
+   an authority outside the UAE, or by an authority that cannot be confirmed, is held too (ledger 1442), and the supplier
+   is asked for a current UAE trade licence or to name the UAE authority or free zone that issued it. (SA§13; HWV)
 4. **Receive matched RFQs** anonymised; ignoring an invitation carries no penalty. (FAQ "Can I decline invitations?")
 5. **Quote** itemised: scope, line items with brand/model and specs, quantities, unit prices, materials,
    lead time, validity, warranty, payment terms, exclusions. A quote below the quality bar is held as a

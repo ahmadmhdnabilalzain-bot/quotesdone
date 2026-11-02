@@ -10,10 +10,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+// Independent review, 3 Nov 2026: the public site (src/content/marketing.json: /how-we-verify and the FAQ, English and
+// Arabic) and the org-as-code eval references still said the old thing, because this check did not read them. It does now.
 const SOURCES = ['knowledge/brief/company.md', 'knowledge/brief/supplier_howto.md', 'knowledge/COMPANY_CANON.md',
-  'supabase/functions/_shared/brief.generated.ts', 'supabase/seeds/dept_library.seed.sql', 'supabase/seeds/canon_eval_questions.seed.sql'];
+  'supabase/functions/_shared/brief.generated.ts', 'supabase/seeds/dept_library.seed.sql', 'supabase/seeds/canon_eval_questions.seed.sql',
+  'src/content/marketing.json', 'ai-organization/org-as-code/canon_eval_questions.json'];
 const FALSE = [/no supplier is approved automatically/i, /approval is manual/i, /only required document/i,
-  /only mandatory document/i, /auto-approve flag exists/i];
+  /only mandatory document/i, /auto-approve flag exists/i, /not auto-approved/i,
+  /لا يُ?وافَ?ق على أي مورّ?د تلقائي/, /لا نوافق على أي مورّ?د تلقائي/];
 
 test('no knowledge source says approval is manual or the licence is the only required document', () => {
   for (const p of SOURCES) { const s = read(p); for (const re of FALSE) assert.doesNotMatch(s, re, `${p} says ${re}`); }
@@ -61,4 +65,35 @@ test('the live copies are corrected by a file of their own', () => {
   assert.match(f, /update public\.dept_library/);
   assert.match(f, /update public\.canon_eval_questions/);
   assert.match(f, /raise exception 'dept_library still states/);
+});
+
+// FOUNDER LEDGER 1442 (2 Nov 2026; independent review, 3 Nov 2026): only a readable UAE authority is approved automatically.
+// A licence from a foreign authority (licence_authority_not_uae) or one nobody can confirm (licence_authority_unconfirmed)
+// is held by fn_sales_engineer_verifies_supplier. A source that promises automatic approval must say so.
+const AUTHORITY = /authority outside the UAE|foreign or unconfirmed issuing authority/i;
+const AUTHORITY_SOURCES = ['knowledge/brief/company.md', 'knowledge/COMPANY_CANON.md', 'supabase/functions/_shared/brief.generated.ts',
+  'supabase/seeds/dept_library.seed.sql', 'supabase/seeds/canon_eval_questions.seed.sql', 'ai-organization/org-as-code/canon_eval_questions.json',
+  'scripts/sql/a_supplier_is_told_approval_is_automatic_when_the_gate_passes.sql'];
+
+test('known-bad control: the approval wording before the review (no authority hold) is caught', () => {
+  assert.doesNotMatch('Approval is automatic when the mandatory six are complete, the licence is read and in date, and the supplier has confirmed the services it provides (Services tab); a supplier is held until it confirms them.', AUTHORITY);
+});
+
+test('ledger 1442: every source that promises automatic approval names the foreign or unconfirmed authority hold', () => {
+  for (const p of AUTHORITY_SOURCES) assert.match(read(p), AUTHORITY, `${p} promises automatic approval without the authority hold`);
+});
+
+test('the public site: /how-we-verify and the FAQ name the real gate, the services and the authority hold, in English and Arabic', () => {
+  const m = JSON.parse(read('src/content/marketing.json'));
+  const hwvEn = m['how-we-verify'].en.html, hwvAr = m['how-we-verify'].ar.html;
+  assert.match(hwvEn, /Approval is automatic once all six are complete/);
+  assert.match(hwvEn, /confirmed the services it provides/);
+  assert.match(hwvEn, AUTHORITY);
+  assert.match(hwvAr, /وتصدر الموافقة تلقائيًا متى اكتملت المتطلبات الستة/);
+  assert.match(hwvAr, /الخدمات التي يقدّمها/);
+  assert.match(hwvAr, /جهة خارج الإمارات/);
+  assert.match(m.faq.en.html, /approval is automatic once[^)]*services[^)]*foreign or unconfirmed issuing authority is held/);
+  assert.match(m.faq.ar.html, /وتصدر الموافقة تلقائيًا[^)]*خدماته[^)]*جهة خارج الإمارات/);
+  const found = approvalSentences(hwvEn);
+  assert.ok(found.length > 0 && found.every((s) => /services/i.test(s)), '/how-we-verify promises approval without the services');
 });
