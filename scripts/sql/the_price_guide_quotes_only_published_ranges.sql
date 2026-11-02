@@ -1,3 +1,4 @@
+-- Seat: customer_support
 -- customer_support, 2 Nov 2026 (founder ledger 1464: the agents must never hallucinate; a quoted price range must come from a real source).
 --
 -- MEASURED. The browser proof asked the homepage widget "How much will it cost me to fit a 3 metre wardrobe in Dubai?" and it
