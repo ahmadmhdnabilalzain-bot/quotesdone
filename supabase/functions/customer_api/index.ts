@@ -241,13 +241,8 @@ async function flagCoverageGap(inqId: string, category: string, emirate: string 
       cost: 'No spend to record it. Closing the gap costs invitation volume and sending reputation, which the invite ramp caps — or nothing at all, if a supplier already on file simply has not declared the trade.',
       target_table: 'inquiries', target_id: inqId });
   } catch (_e) { flagged = false; }
-  try { await admin.from('founder_alerts').insert({ level: 'high', event: 'rfq_no_supplier', detail: ('A customer request (' + label + ', inquiry ' + inqId + ') matched zero suppliers and reached nobody.' + (flagged ? '' : ' The coverage_gap flag ALSO failed to insert, so this gap is not in the action queue.')).slice(0, 900), channel: 'email' }); } catch (_e) { /* */ }
-  try {
-    const owner = ((await getSecret('admin_emails')) || 'management@quotesdone.com').split(',')[0].trim();
-    await queueNotifications([{ type: 'rfq_no_supplier', to_email: owner, to_role: 'admin', inquiry_id: inqId, channel: 'email', status: 'queued',
-      subject: 'Customer request reached no suppliers: ' + label,
-      body: 'A customer posted a request (' + label + ') and it matched ZERO suppliers, so no one was contacted and no quote can arrive.\n\nInquiry: ' + inqId + '\nSummary: ' + String(summary || '').slice(0, 300) + '\n\nThe customer was told no quote is promised; the request closes by itself after 14 days if it reaches nobody.' }]);
-  } catch (_e) { /* */ }
+  // Founder ledger 1436/1447: he is an investor and is not paged. The coverage_gap above is the sales engineer's to act on;
+  // 55 pages went out (30 in the last 14 days), and only 3 named an inquiry that still exists: all rehearsals.
   return flagged;
 }
 async function matchAndNotify(inqId: string, opts: { category: string; emirate: string | null; summary: string; budget: string | null; extra: string }): Promise<{ matches: number; routing: Record<string, any> }> {
@@ -1318,13 +1313,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       // (once per request; the customer_support.concierge duty covers the other doors). Its guidance comes back
       // on the answer so the portal can show it. Never fails the post: a request that went out stays posted.
       const confirmRequest = async (id: string): Promise<unknown> => {
-        try {
-          const { data } = await admin.rpc('fn_customer_support_concierge_confirm', { p_inquiry: id });
-          // A request held for its own specs is not a request with no supplier: the screen must say which (ledger 1456).
-          const { data: awaits } = await admin.rpc('fn_inquiry_awaits_specs', { p_inquiry: id });
-          const g = (data as { concierge?: unknown } | null)?.concierge ?? null;
-          return awaits === true ? { ...(g as Record<string, unknown> | null), awaits_specs: true } : g;
-        }
+        try { const { data } = await admin.rpc('fn_customer_support_concierge_confirm', { p_inquiry: id }); return (data as { concierge?: unknown } | null)?.concierge ?? null; }
         catch (_e) { return null; }
       };
       // THE INQUIRY'S LANGUAGE (founder, 28 Sep 2026): every message to the customer about this request

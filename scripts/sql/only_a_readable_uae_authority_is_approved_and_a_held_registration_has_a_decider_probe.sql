@@ -1,76 +1,75 @@
--- Assigned: sales_engineer. A pure probe of the gate and the decider on one ZZ DEMO supplier; it always raises, so nothing survives.
--- Known-bad controls: a foreign and an unknown authority must not approve, and an approved, answered or unknown hold must not close.
-do $probe$
+-- PROBE (pure, no DDL, aborted transaction) for only_a_readable_uae_authority_is_approved_and_a_held_registration_has_a_decider.sql.
+-- Run AFTER the definition, in the same transaction (scripts/ci/rehearse_sql.mjs, scripts/lib/safe_replay.mjs replaySql). It always
+-- ends in raise exception, whose message starts PROBE OK or PROBE FAILED, so every row it writes rolls back. Every subject is a ZZ DEMO
+-- lead at @example.invalid created here. Seat: sales_engineer. Ledgers 1442 (authority holds), 1469 (services gate), 1176 (name autofill).
+-- Seven suppliers, each with all six mandatory items, a UAE authority, a matching licence name, an expiry in the future, automatic
+-- approval ON, and services CONFIRMED unless the case says otherwise:
+--   a  services not confirmed                        -> pending, services_unconfirmed, not verified        (ledger 1469 survives this file)
+--   b  confirmed, UAE authority                      -> approved, verified                                  (the control)
+--   c  authority 'Companies House, United Kingdom'   -> pending, licence_authority_not_uae                  (foreign authority holds)
+--   d  authority empty                               -> pending, licence_authority_unread                   (unread authority holds)
+--   e  licence expired                               -> action_required, licence_expired, not verified      (expired holds)
+--   f  licence names another company than entered    -> approved, company name = licence name, old name kept (ruling 1176)
+--   g  already approved, authority now foreign       -> pending, licence_authority_not_uae                  (an approved supplier is held too)
+do $p$
 declare
-  v_id bigint; v jsonb; d jsonb; s text; v_bad text := ''; v_real int;
+  r jsonb := '{}'::jsonb; k text; lid bigint; g jsonb; l public.leads; z text := 'zz-demo-auth1442'; bad text[] := '{}';
+  real_before int; real_after int; v_kept int; v_auth text; v_conf boolean; v_exp date;
 begin
-  select count(*) into v_real from public.leads l where l.approval_status = 'pending' and not coalesce(l.is_demo, false);
-  select l.id into v_id from public.leads l
-   where l.approval_status = 'approved' and l.is_demo and l.company_name ilike 'ZZ DEMO%' and coalesce(l.email, '') ilike '%@example.invalid'
-     and cardinality(public.fn_supplier_mandatory_six(l)) = 0 order by l.id limit 1;
-  if v_id is null then raise exception 'CHK<<PROBE FAILED: no ZZ DEMO approved supplier>>'; end if;
-  update public.leads set licence_legal_name = company_name, license_expiry = current_date + 400, trade_license_no = coalesce(nullif(trade_license_no, ''), 'ZZPROBE1') where id = v_id;
+  select count(*) into real_before from public.leads where not coalesce(is_demo, false) and company_name !~* '^\s*zz\s*demo';
+  insert into storage.objects (bucket_id, name)
+  select 'supplier-docs', dirs.dname || '/' || z || '/' || names.nname || '.pdf'
+    from unnest(array['licenses', 'profiles']) as dirs(dname), unnest(array['a', 'b', 'c', 'd', 'e', 'f', 'g']) as names(nname);
+  update public.pricing_config set auto_approve_suppliers = true where id = 1;
+  foreach k in array array['a', 'b', 'c', 'd', 'e', 'f', 'g'] loop
+    v_auth := case k when 'c' then 'Companies House, United Kingdom' when 'd' then null else 'Department of Economy and Tourism, Dubai' end;
+    v_exp := case k when 'e' then current_date - 30 else date '2028-12-31' end;
+    v_conf := k <> 'a';
+    insert into public.leads (approval_status, verified, claimed, claimed_by, company_name, email, phone, owner_email_verified, owner_phone_verified,
+                              accepted_terms_at, signed_terms_path, license_doc_path, company_profile_doc_path, licence_legal_name, license_expiry,
+                              trade_license_no, license_authority, emirate, city, source, tags)
+    values (null, false, true, z || '-' || k || '@example.invalid',
+            case when k = 'f' then 'ZZ DEMO AUTH1442 F ENTERED LLC' else 'ZZ DEMO AUTH1442 ' || upper(k) || ' LLC' end,
+            z || '-' || k || '@example.invalid',
+            '+97150014420' || (ascii(k) - 96), true, true, now(), 'terms/' || z || '/' || k || '.pdf', 'licenses/' || z || '/' || k || '.pdf',
+            'profiles/' || z || '/' || k || '.pdf', 'ZZ DEMO AUTH1442 ' || case when k = 'f' then 'F LICENCE' else upper(k) end || ' LLC', v_exp,
+            'ZZAUTH1442-' || upper(k), v_auth, 'Dubai', 'Dubai', 'probe', array['qd_demo'])
+    returning id into lid;
+    if v_conf then
+      insert into public.supplier_capabilities (supplier_id, trades, roles, confirmed_at, confirmed_version, review_status)
+      values (lid, array['aluminium'], array['contractor'], now(), 1, 'confirmed');
+      insert into public.supplier_capability_confirmation (supplier_id, version, confirmed_at, confirmed_via) values (lid, 1, now(), 'portal');
+    end if;
+    if k = 'g' then
+      -- approved first, with a UAE authority; the licence is then swapped for a foreign one and the gate re-run (licence_changed)
+      update public.leads set license_authority = 'Department of Economy and Tourism, Dubai' where id = lid;
+      perform public.fn_sales_engineer_verifies_supplier(lid, 'save_profile');
+      r := r || jsonb_build_object('g_before', (select approval_status from public.leads where id = lid));
+      update public.leads set license_authority = 'Companies House, United Kingdom' where id = lid;
+      g := public.fn_sales_engineer_verifies_supplier(lid, 'licence_changed');
+    else
+      g := public.fn_sales_engineer_verifies_supplier(lid, 'save_profile');
+    end if;
+    select * into l from public.leads where id = lid;
+    r := r || jsonb_build_object(k, jsonb_build_object('decision', g ->> 'decision', 'reason', l.licence_gate_reason, 'status', l.approval_status,
+           'verified', l.verified, 'company', l.company_name,
+           'demo', l.company_name like 'ZZ DEMO %' and l.email like '%@example.invalid'));
+  end loop;
+  select count(*) into v_kept from public.agent_actions
+   where kind = 'supplier_name_from_licence' and detail ->> 'supplier_id' = (select id::text from public.leads where email = z || '-f@example.invalid')
+     and detail ->> 'previous_name' = 'ZZ DEMO AUTH1442 F ENTERED LLC';
+  select count(*) into real_after from public.leads where not coalesce(is_demo, false) and company_name !~* '^\s*zz\s*demo';
 
-  -- the gate
-  update public.leads set license_authority = 'Ministry of Economy, Syria', license_city = 'Dubai' where id = v_id;
-  v := public.fn_sales_engineer_verifies_supplier(v_id, 'save_profile');
-  if v ->> 'reason' is distinct from 'licence_authority_unconfirmed' then v_bad := v_bad || ' syria=' || coalesce(v ->> 'reason', v ->> 'approval_status'); end if;
-  update public.leads set license_authority = 'Department of Economy and Tourism', license_city = 'Dubai', approval_status = 'pending' where id = v_id;
-  v := public.fn_sales_engineer_verifies_supplier(v_id, 'save_profile');
-  if v ->> 'approval_status' <> 'approved' then v_bad := v_bad || ' uae=' || (v ->> 'reason'); end if;
-  update public.leads set license_authority = 'Northern Registry Office' where id = v_id;
-  v := public.fn_sales_engineer_verifies_supplier(v_id, 'save_profile');
-  if v ->> 'reason' is distinct from 'licence_authority_unconfirmed' then v_bad := v_bad || ' unknown=' || coalesce(v ->> 'reason', v ->> 'approval_status'); end if;
-  update public.leads set license_authority = null where id = v_id;
-  v := public.fn_sales_engineer_verifies_supplier(v_id, 'save_profile');
-  if v ->> 'reason' is distinct from 'licence_authority_unread' then v_bad := v_bad || ' unread=' || coalesce(v ->> 'reason', v ->> 'approval_status'); end if;
-  update public.leads set license_authority = 'Ministry of Commerce, Kingdom of Saudi Arabia' where id = v_id;
-  v := public.fn_sales_engineer_verifies_supplier(v_id, 'save_profile');
-  if v ->> 'reason' is distinct from 'licence_authority_not_uae' then v_bad := v_bad || ' foreign=' || coalesce(v ->> 'reason', v ->> 'approval_status'); end if;
+  if (r -> 'a' ->> 'status', r -> 'a' ->> 'reason', r -> 'a' ->> 'verified') is distinct from ('pending', 'services_unconfirmed', 'false') then bad := bad || 'a: services unconfirmed must hold'; end if;
+  if (r -> 'b' ->> 'status', r -> 'b' ->> 'verified') is distinct from ('approved', 'true') then bad := bad || 'b: confirmed services must approve'; end if;
+  if (r -> 'c' ->> 'status', r -> 'c' ->> 'reason', r -> 'c' ->> 'verified') is distinct from ('pending', 'licence_authority_not_uae', 'false') then bad := bad || 'c: a foreign authority must hold'; end if;
+  if (r -> 'd' ->> 'status', r -> 'd' ->> 'reason', r -> 'd' ->> 'verified') is distinct from ('pending', 'licence_authority_unread', 'false') then bad := bad || 'd: an unread authority must hold'; end if;
+  if (r -> 'e' ->> 'status', r -> 'e' ->> 'reason', r -> 'e' ->> 'verified') is distinct from ('action_required', 'licence_expired', 'false') then bad := bad || 'e: an expired licence must hold'; end if;
+  if (r -> 'f' ->> 'status', r -> 'f' ->> 'company') is distinct from ('approved', 'ZZ DEMO AUTH1442 F LICENCE LLC') or v_kept <> 1 then bad := bad || 'f: ruling 1176 name autofill must replace the name once and keep the old one'; end if;
+  if (r ->> 'g_before', r -> 'g' ->> 'status', r -> 'g' ->> 'reason') is distinct from ('approved', 'pending', 'licence_authority_not_uae') then bad := bad || 'g: an approved supplier with a foreign licence must be held'; end if;
+  if real_before <> real_after then bad := bad || 'real lead count changed ' || real_before || ' -> ' || real_after; end if;
+  if exists (select 1 from jsonb_each(r) e where jsonb_typeof(e.value) = 'object' and (e.value ->> 'demo') is distinct from 'true') then bad := bad || 'a case is not a ZZ DEMO fixture'; end if;
 
-  -- control: ever approved is never closed
-  update public.leads set approved_at = now() where id = v_id;
-  perform public.fn_sales_engineer_decides_held_registrations(now());
-  perform public.fn_sales_engineer_decides_held_registrations(now() + interval '15 days');
-  select approval_status into s from public.leads where id = v_id;
-  if s <> 'pending' then v_bad := v_bad || ' approved_was_closed=' || s; end if;
-  if not exists (select 1 from public.agent_actions a where a.kind = 'held_registration_for_ceo' and a.target_id = v_id::text) then v_bad := v_bad || ' approved_no_ceo_task'; end if;
-
-  -- control: a reply stops the close
-  delete from public.agent_actions where kind in ('held_registration_asked', 'held_registration_for_ceo') and target_id = v_id::text;
-  update public.leads set approved_at = null where id = v_id;
-  perform public.fn_sales_engineer_decides_held_registrations(now());
-  insert into public.inbound_messages (lead_id, from_email, to_email, subject, body, created_at) values (v_id, 'qd-probe@example.invalid', 'supplier@quotesdone.com', 'probe', 'probe', now() + interval '1 second');
-  perform public.fn_sales_engineer_decides_held_registrations(now() + interval '15 days');
-  select approval_status into s from public.leads where id = v_id;
-  if s <> 'pending' then v_bad := v_bad || ' answered_was_closed=' || s; end if;
-
-  -- control: an unknown authority is never closed
-  delete from public.inbound_messages where lead_id = v_id and from_email = 'qd-probe@example.invalid';
-  delete from public.agent_actions where kind in ('held_registration_asked', 'held_registration_for_ceo') and target_id = v_id::text;
-  update public.leads set license_authority = 'Northern Registry Office' where id = v_id;
-  perform public.fn_sales_engineer_verifies_supplier(v_id, 'save_profile');
-  perform public.fn_sales_engineer_decides_held_registrations(now());
-  perform public.fn_sales_engineer_decides_held_registrations(now() + interval '15 days');
-  select approval_status into s from public.leads where id = v_id;
-  if s <> 'pending' then v_bad := v_bad || ' unknown_was_closed=' || s; end if;
-
-  -- the clock itself: foreign, never approved, silent: asked at 0, 3, 7; closed by the ceo at 14; a save reopens it
-  delete from public.agent_actions where kind in ('held_registration_asked', 'held_registration_for_ceo') and target_id = v_id::text;
-  update public.leads set license_authority = 'Ministry of Commerce, Kingdom of Saudi Arabia' where id = v_id;
-  perform public.fn_sales_engineer_verifies_supplier(v_id, 'save_profile');
-  perform public.fn_sales_engineer_decides_held_registrations(now());
-  perform public.fn_sales_engineer_decides_held_registrations(now());
-  perform public.fn_sales_engineer_decides_held_registrations(now() + interval '3 days');
-  perform public.fn_sales_engineer_decides_held_registrations(now() + interval '7 days');
-  if (select count(*) from public.agent_actions a where a.kind = 'held_registration_asked' and a.target_id = v_id::text) <> 3 then v_bad := v_bad || ' asks_not_3'; end if;
-  perform public.fn_sales_engineer_decides_held_registrations(now() + interval '14 days');
-  select approval_status into s from public.leads where id = v_id;
-  if s <> 'rejected' then v_bad := v_bad || ' silent_not_closed=' || s; end if;
-  update public.leads set license_authority = 'Dubai Department of Economy and Tourism' where id = v_id;
-  v := public.fn_sales_engineer_verifies_supplier(v_id, 'save_profile');
-  if v ->> 'approval_status' <> 'approved' then v_bad := v_bad || ' not_reopened=' || (v ->> 'approval_status'); end if;
-
-  if v_bad <> '' then raise exception 'CHK<<PROBE FAILED:%>>', v_bad; end if;
-  raise exception 'CHK<<PROBE OK lead=% real_pending_touched=%>>', v_id, v_real;
-end $probe$;
+  if cardinality(bad) > 0 then raise exception 'PROBE FAILED: % :: %', array_to_string(bad, '; '), r::text; end if;
+  raise exception 'PROBE OK: services held, confirmed approved, foreign/unread authority held, expired held, 1176 autofill, real leads % unchanged', real_before;
+end $p$;

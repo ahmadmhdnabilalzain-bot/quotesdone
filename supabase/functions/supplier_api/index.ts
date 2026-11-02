@@ -26,6 +26,7 @@ import { arabicOf, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { createCompany, sessionOpenedByCode } from './create_company.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
+import { SERVICES_UNCONFIRMED, servicesHoldMail, pendingFounderSubject } from '../_shared/services_hold_copy.ts';
 import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { markReading, proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
@@ -787,13 +788,12 @@ ${q}`,
       let codeFields: Partial<LicenceFields> = {};
       if (licBytes?.bytes) { try { codeFields = await readLicenceFields(licBytes.bytes, licBytes.mime || 'application/pdf'); } catch (_e) { codeFields = {}; } }
       // ...and its number and authority (2 Nov 2026, ledger 1442): what the old licence printed never judges a new one.
-      if (licBytes?.bytes) { upd.trade_license_no = null; upd.license_authority = null; upd.license_city = null; }
+      if (licBytes?.bytes) { upd.trade_license_no = null; upd.license_authority = null; }
       if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;
       // THE ISSUE DATE (2 Nov 2026, ledger 1467): read and kept when the licence prints one; never required.
       if (licBytes?.bytes) licIssue = codeFields.issue_date || null;
       if (codeFields.authority) upd.license_authority = codeFields.authority;
-      // license_city holds only what THIS licence says of its place: the gate backs a generic authority name with it.
-      if (codeFields.emirate) { upd.emirate = codeFields.emirate; upd.license_city = codeFields.emirate; }
+      if (codeFields.emirate) upd.emirate = codeFields.emirate;
       // The supplier reads this note in the portal, so it is written in both languages the
       // registration speaks (the estate's rule: a document message is English and fully Arabic).
       const noteBoth = (en: string, ar: string) => { out.license_expiry_note = en; out.license_expiry_note_ar = ar; };
@@ -831,7 +831,7 @@ ${q}`,
             // or meaning, supplier_doc_trades), and only when code read no activities line itself.
             const q = readQueue.find((x) => x.kind === 'licence');
             if (q && !codeFields.activities?.length) q.photo_text = modelReadText('licence', d.activities);
-            if (!upd.license_city && (d.emirate || d.city)) upd.license_city = d.emirate || d.city;
+            if (d.city) upd.license_city = d.city;
             // CODE FIRST, AND THE MODEL DOES NOT OVERRULE IT (founder: "code first, LLM only where
             // code can't"). When the document itself printed a date beside an expiry keyword, that
             // reading stands; the model's date is only recorded beside it, and a disagreement is
@@ -957,7 +957,7 @@ ${q}`,
       // A licence number another claimed company holds is set aside (the rest of the row is still
       // written) and handed to a human: _shared/duplicate_company.ts.
       const { error: updErr, licenceSetAside } = await updateLeadSettingAsideClashingLicence(admin as unknown as LeadWriter, sup.id, upd, 'supplier_api.process_docs');
-      // Its own write, so a deploy that lands before the column (pending SQL license_issue_date) costs only this line.
+      // Its own write, so a deploy that lands before the column (SQL leads_keep_the_licence_issue_date) costs only this line.
       if (!updErr && licIssue !== undefined) { const ri = await admin.from('leads').update({ license_issue_date: licIssue }).eq('id', sup.id); if (ri.error) console.error('process_docs: licence issue date not saved —', ri.error.message); }
       if (licenceSetAside) {
         const lic = out.license as Record<string, unknown> | undefined;
@@ -1169,6 +1169,8 @@ ${q}`,
           ? { subject: 'Your QuotesDone registration: please send your UAE trade licence', body: `Thank you for registering ${name}. The trade licence you uploaded was not issued by a UAE authority, and QuotesDone registers companies licensed in the UAE, so your registration is on hold. Please upload your current UAE trade licence in the Documents tab of your supplier portal: https://quotesdone.com/portal` }
           : licUnreadEn
           ? { subject: 'Your QuotesDone registration: please send a clearer trade licence', body: licUnreadEn + (stillNeeded.length ? ` We also still need: ${needEn}.` : '') }
+          : decision === 'pending' && v.reason === SERVICES_UNCONFIRMED
+          ? servicesHoldMail(name)
           : decision === 'pending'
           ? (ar ? { subject: 'استلمنا طلب تسجيلكم لدى QuotesDone', body: `نشكركم على تسجيل ${name}. اكتملت البنود الستة المطلوبة، ويتولّى مهندس المبيعات مراجعة طلب التسجيل حاليًا، وسنوافيكم برسالة فور اعتماده.` }
                 : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name}. All six required items are in, and our sales engineer is reviewing your registration now. We will e-mail you as soon as it is approved.` })
@@ -1184,7 +1186,7 @@ ${q}`,
         const fixture = isFixtureLead(full ?? sup);
         await notify([
           ...(fixture ? [] : [{ type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id,
-            subject: decision === 'approved' ? 'New supplier approved by the sales engineer' : decision === 'pending' ? 'New supplier waiting for approval (auto-approve is off)' : 'Supplier registration incomplete',
+            subject: decision === 'approved' ? 'New supplier approved by the sales engineer' : decision === 'pending' ? pendingFounderSubject(v.reason) : 'Supplier registration incomplete',
             body: `New supplier "${name}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : (certificatePending ? ' — the signed terms certificate is being issued' : '')}. No action needed; this is a record.${licInfo}` }]),
           { type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, lang: ar ? 'ar' : 'en', ...supplierMail },
         ]);

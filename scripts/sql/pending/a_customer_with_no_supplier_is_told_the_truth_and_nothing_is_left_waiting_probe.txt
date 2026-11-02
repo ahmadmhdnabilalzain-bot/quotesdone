@@ -1,1 +1,0 @@
-A PROBE, so it is never applied at all. It runs in the rehearsal after a_customer_with_no_supplier_is_told_the_truth_and_nothing_is_left_waiting.sql and always raises CHK<<PROBE OK>> or CHK<<PROBE FAILED>>, so nothing survives. ZZ DEMO rows only.

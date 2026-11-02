@@ -6,7 +6,7 @@
 -- A registration held for an unread field had no reader: its agent_actions row stayed needs_review and nothing acted.
 --   1. fn_licence_authority_class(text): 'uae', 'foreign', 'unknown' or 'unread', after normalising case, hyphens and Arabic forms.
 --   2. fn_sales_engineer_verifies_supplier: this file is the live body (MANIFEST key of
---      a_supplier_document_still_being_read_...) plus three holds, licence_authority_unread, licence_authority_unconfirmed and licence_authority_not_uae,
+--      a_supplier_document_still_being_read_...) plus the services gate of ledger 1469 (services_unconfirmed, from a_supplier_is_verified_only_after_it_confirms_its_services.sql, kept whole) and three holds, licence_authority_unread, licence_authority_unconfirmed and licence_authority_not_uae,
 --      for an approved supplier's new licence too. A supplier whose licence reads a UAE authority is untouched.
 --   3. fn_sales_engineer_decides_held_registrations(): hourly. Asks the supplier for what is missing at once, again at
 --      day 3 and day 7; at day 14 the ceo seat closes it, and the supplier may reopen by uploading and saving. The clock
@@ -28,9 +28,7 @@ as $fn$
          '[^[:alnum:]؀-ۿ]+', ' ', 'g'))
 $fn$;
 
--- A denylist of countries can never be complete, so a generic name proves nothing alone: it counts as UAE only when nothing
--- else is printed beside it AND the licence's own place (license_city, written only from the licence) names an emirate.
-create or replace function public.fn_licence_authority_class(p_authority text, p_licence_place text default null)
+create or replace function public.fn_licence_authority_class(p_authority text)
  returns text language plpgsql immutable set search_path to 'public', 'pg_temp'
 as $fn$
 declare n text := ' ' || public.fn_licence_authority_norm(p_authority) || ' ';
@@ -40,16 +38,12 @@ declare n text := ' ' || public.fn_licence_authority_norm(p_authority) || ' ';
     'rakez','rak economic zone','rak icc','rak ded','kezad','kizad','khalifa economic zones','khalifa industrial zone','zonescorp','masdar','twofour54','adafz',
     'saif','shams','spc','hamriyah','hfza','sedd','afz','fcc','ffz','creative city','added',
     'دبي','ابو ظبي','الشارقه','عجمان','ام القيوين','راس الخيمه','الفجيره','الامارات العربيه المتحده','الامارات'];
-  -- Generic names that say nothing of a country.
+  -- Generic names that say nothing of a country: UAE unless a foreign country is printed beside them.
   v_weak text[] := array['department of economy and tourism','department of economic development','economic development department','department of industry and economy','ministry of economy','det','ded',
     'دائره الاقتصاد والسياحه','دائره التنميه الاقتصاديه','دائره الصناعه والاقتصاد','وزاره الاقتصاد'];
   v_foreign text[] := array['saudi','saudi arabia','ksa','qatar','qatari','oman','omani','kuwait','bahrain','egypt','jordan','iraq','lebanon','india','pakistan','bangladesh','china','turkey','iran',
     'united kingdom','england','companies house','united states','usa','germany','france','italy','singapore',
     'السعوديه','قطر','سلطنه عمان','الكويت','البحرين','مصر','الاردن','العراق','لبنان'];
-  v_emirates text[] := array['dubai','abu dhabi','sharjah','ajman','umm al quwain','umm al qaiwain','umm al qiwain','uaq','ras al khaimah','ras al khaima','rak','fujairah','fujeirah','uae','united arab emirates',
-    'دبي','ابو ظبي','الشارقه','عجمان','ام القيوين','راس الخيمه','الفجيره','الامارات'];
-  v_place text := ' ' || public.fn_licence_authority_norm(p_licence_place) || ' ';
-  v_left text; v_part text;
   v_s boolean; v_w boolean; v_f boolean;
 begin
   if btrim(n) = '' then return 'unread'; end if;
@@ -58,16 +52,11 @@ begin
   v_f := exists (select 1 from unnest(v_foreign) x where position(' ' || x || ' ' in n) > 0);
   if v_f and v_s then return 'unknown'; end if;   -- both printed: a person looks
   if v_f then return 'foreign'; end if;
-  if v_s then return 'uae'; end if;
-  if v_w then
-    v_left := n;
-    foreach v_part in array v_weak loop v_left := replace(v_left, ' ' || v_part || ' ', ' '); end loop;
-    if btrim(v_left) = '' and exists (select 1 from unnest(v_emirates) e where position(' ' || e || ' ' in v_place) > 0) then return 'uae'; end if;
-  end if;
+  if v_s or v_w then return 'uae'; end if;
   return 'unknown';
 end $fn$;
 revoke execute on function public.fn_licence_authority_norm(text) from public, anon, authenticated;
-revoke execute on function public.fn_licence_authority_class(text, text) from public, anon, authenticated;
+revoke execute on function public.fn_licence_authority_class(text) from public, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_verifies_supplier(p_lead_id bigint, p_source text DEFAULT 'save_profile'::text)
  RETURNS jsonb
@@ -75,7 +64,7 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_verifies_supplier(p_lead_id 
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare l public.leads; v_missing text[]; v_expired boolean; v_name_mismatch boolean; v_name_unread boolean; v_name_taken boolean := false; v_old_name text; v_expiry_unread boolean; v_number_unread boolean; v_auto boolean; v_reason text; v_decision text; v_changed int; v_doc_reading boolean; v_authority_unread boolean; v_authority_foreign boolean; v_authority_unknown boolean;
+declare l public.leads; v_missing text[]; v_expired boolean; v_name_mismatch boolean; v_name_unread boolean; v_name_taken boolean := false; v_old_name text; v_expiry_unread boolean; v_number_unread boolean; v_auto boolean; v_reason text; v_decision text; v_changed int; v_doc_reading boolean; v_authority_unread boolean; v_authority_foreign boolean; v_authority_unknown boolean; v_services_open boolean;
 begin
   select * into l from public.leads where id = p_lead_id for update;
   if not found then return jsonb_build_object('ok', false, 'error', 'lead_not_found'); end if;
@@ -132,13 +121,19 @@ begin
   v_number_unread := l.license_doc_path is not null and coalesce(btrim(l.trade_license_no), '') = '';
   -- 2 Nov 2026 (ledger 1442, Supplier Agreement v16 clause 13): only a readable UAE authority approves automatically.
   v_authority_unread := l.license_doc_path is not null and coalesce(btrim(l.license_authority), '') = '';
-  v_authority_foreign := l.license_doc_path is not null and public.fn_licence_authority_class(l.license_authority, l.license_city) = 'foreign';
-  v_authority_unknown := l.license_doc_path is not null and public.fn_licence_authority_class(l.license_authority, l.license_city) = 'unknown';
+  v_authority_foreign := l.license_doc_path is not null and public.fn_licence_authority_class(l.license_authority) = 'foreign';
+  v_authority_unknown := l.license_doc_path is not null and public.fn_licence_authority_class(l.license_authority) = 'unknown';
   select coalesce(p.auto_approve_suppliers, false) into v_auto from public.pricing_config p where p.id = 1;
   -- 13 Oct 2026 (review of #1404): a profile or catalogue still being read ('reading', marked before its parse) holds
   -- approval: the gate never approves past a document whose read has not finished (or was killed mid-parse).
   v_doc_reading := exists (select 1 from public.supplier_capabilities c, jsonb_array_elements(coalesce(c.source_docs -> 'docs', '[]'::jsonb)) e
                             where c.supplier_id = l.id and e ->> 'status' = 'reading');
+  -- 2 Nov 2026 (founder ledger 1469, a_supplier_is_verified_only_after_it_confirms_its_services): the supplier has confirmed what the company does, for the CURRENT version of the record.
+  -- Seeders (their own source) are given a capability row by their harness and are not asked.
+  v_services_open := p_source not in ('demo_factory', 'hvac_dress_rehearsal', 'document_intake_accuracy')
+                     and not exists (select 1 from public.supplier_capabilities c
+                                      where c.supplier_id = l.id and c.confirmed_at is not null
+                                        and coalesce(c.confirmed_version, 0) >= coalesce((select max(k.version) from public.supplier_capability_confirmation k where k.supplier_id = l.id), 0));
   v_reason := case when cardinality(v_missing) > 0 then v_missing[1]
                    when v_name_mismatch then 'licence_name_mismatch'
                    when v_expired then 'licence_expired' end;
@@ -148,6 +143,7 @@ begin
      and not v_authority_unread and not v_authority_foreign and not v_authority_unknown then
     -- An approved supplier whose licence has since expired stays approved: fn_reconcile_doc_blocks
     -- pauses their matching and restores it on renewal, without taking the registration away.
+    -- An approved supplier is never asked to confirm services after the fact (ledger 1469): nobody is demoted.
     v_decision := 'approved';
   -- 7 Oct 2026 (review of #1275): an APPROVED supplier whose licence names another company is held for
   -- review, whatever asked - a licence change or a save. The approved branch above used to keep him approved
@@ -164,6 +160,7 @@ begin
   elsif v_authority_foreign then v_decision := 'pending'; v_reason := 'licence_authority_not_uae';
   elsif v_authority_unknown then v_decision := 'pending'; v_reason := 'licence_authority_unconfirmed';
   elsif v_doc_reading then v_decision := 'pending'; v_reason := 'documents_being_read';
+  elsif v_services_open then v_decision := 'pending'; v_reason := 'services_unconfirmed';
   elsif coalesce(v_auto, false) then v_decision := 'approved';
   else v_decision := 'pending';
   end if;
@@ -186,9 +183,11 @@ begin
           case when v_decision = 'action_required' or v_reason in ('licence_unreadable', 'licence_name_mismatch', 'licence_expiry_unread', 'licence_number_unread', 'licence_authority_unread', 'licence_authority_not_uae', 'licence_authority_unconfirmed') then 'medium' else 'low' end,
           'Supplier ' || v_decision || coalesce(' (' || v_reason || ')', '') || ' — ' || left(coalesce(l.company_name, 'supplier #' || l.id), 120),
           case v_decision
-            when 'approved' then 'No action required. All six mandatory items are present, the licence name matches and the licence is not known to be expired.'
+            when 'approved' then 'No action required. All six mandatory items are present, the licence name matches, the licence is not known to be expired and the supplier has confirmed its services.'
             when 'pending' then case when v_reason = 'documents_being_read'
               then 'Held: a company profile or catalogue of this supplier is still being read. The gate is run again when the read finishes; a read still unfinished after 30 minutes is marked unreadable and handed to you (document_read_stuck).'
+              when v_reason = 'services_unconfirmed'
+              then 'Held: the six mandatory items are complete, but the supplier has not yet confirmed what its company does. The portal shows the summary and keywords prepared from its company profile; the gate is run again the moment it presses confirm (source services_confirmed).'
               when v_reason in ('licence_authority_unread', 'licence_authority_not_uae', 'licence_authority_unconfirmed')
               then 'Held: the issuing authority on the trade licence ' || case v_reason when 'licence_authority_unread' then 'could not be read' when 'licence_authority_unconfirmed' then 'is on no list we hold, which does not make it foreign' else 'names a foreign country or registry' end || '. fn_sales_engineer_decides_held_registrations asks the supplier and closes the registration through the ceo seat after 14 days.'
               when v_reason = 'licence_name_mismatch'
@@ -203,6 +202,7 @@ begin
                              'missing', v_missing, 'licence_expired', v_expired, 'license_expiry', l.license_expiry,
                              'licence_name_mismatch', v_name_mismatch, 'licence_name_unread', v_name_unread,
                              'licence_expiry_unread', v_expiry_unread, 'licence_number_unread', v_number_unread,
+                             'services_unconfirmed', v_services_open,
                              'licence_authority_unread', v_authority_unread, 'licence_authority_foreign', v_authority_foreign, 'license_authority', l.license_authority,
                              'licence_legal_name', l.licence_legal_name, 'license_doc_path', l.license_doc_path,
                              'auto_approve', v_auto, 'source', p_source),
@@ -214,9 +214,9 @@ begin
                             'reason', v_reason, 'auto_approve', v_auto);
 end $function$;
 
-insert into public.it_duty_schedule (duty, every, note, owner_seat) values
+insert into public.it_duty_schedule (duty, every, note) values
   ('held_registrations', interval '1 hour',
-   'sales_engineer: a held registration is asked for what is missing at once, day 3 and day 7; the ceo seat closes it at day 14 (fn_sales_engineer_decides_held_registrations)', 'sales_engineer')
+   'sales_engineer: a held registration is asked for what is missing at once, day 3 and day 7; the ceo seat closes it at day 14 (fn_sales_engineer_decides_held_registrations)')
 on conflict (duty) do update set every = excluded.every, note = excluded.note;
 
 create or replace function public.fn_sales_engineer_decides_held_registrations(p_at timestamptz default now())
@@ -293,15 +293,12 @@ end $fn$;
 revoke execute on function public.fn_sales_engineer_decides_held_registrations(timestamptz) from public, anon, authenticated;
 
 -- Every spelling the review named, and the known-bad controls, run at apply. A wrong row fails the apply's verdict.
-select coalesce((select 'PROBE FAILED: ' || string_agg(coalesce(t.a, 'NULL') || ' at ' || coalesce(t.p, 'NULL') || ' read ' || public.fn_licence_authority_class(t.a, t.p), '; ')
+select coalesce((select 'PROBE FAILED: ' || string_agg(t.a || ' read ' || public.fn_licence_authority_class(t.a), '; ')
   from (values
-    ('Department of Economy and Tourism','Dubai','uae'),('Department of Economic Development','Sharjah','uae'),('DET','Dubai','uae'),('Ministry of Economy','Abu Dhabi','uae'),('دائرة التنمية الاقتصادية','عجمان','uae'),
-    ('ADDED',null,'uae'),('RAK DED',null,'uae'),('RAK Economic Zone',null,'uae'),('KEZAD',null,'uae'),('UAQ',null,'uae'),('SPC',null,'uae'),
-    ('Ras Al-Khaimah',null,'uae'),('Abu-Dhabi',null,'uae'),('Abudhabi',null,'uae'),('راس الخيمة',null,'uae'),('رأس الخيمة',null,'uae'),('ام القيوين',null,'uae'),('أم القيوين',null,'uae'),('دائرة التنمية الاقتصادية - عجمان',null,'uae'),
-    ('Dubai DET (fixture)',null,'uae'),('International Free Zone Authority',null,'uae'),('Sharjah Media City Authority',null,'uae'),('Jebel Ali Free Zone Authority',null,'uae'),
-    ('Ministry of Commerce, Kingdom of Saudi Arabia',null,'foreign'),('Companies House, United Kingdom',null,'foreign'),('Qatar Financial Centre',null,'foreign'),('Ministry of Economy, Kuwait','Kuwait City','foreign'),
-    ('Ministry of Economy, Syria','Damascus','unknown'),('Ministry of Economy, Syria','Dubai','unknown'),('Department of Economic Development, Yemen',null,'unknown'),('Ministry of Economy, Canada','Dubai','unknown'),
-    ('Ministry of Economy',null,'unknown'),('Ministry of Economy','Damascus','unknown'),('Department of Economic Development','Riyadh','unknown'),('DET',null,'unknown'),
-    ('Northern Registry Office','Dubai','unknown'),('Dubai Branch, Companies House',null,'unknown'),('',null,'unread'),(null,null,'unread')) t(a, p, want)
-  where public.fn_licence_authority_class(t.a, t.p) is distinct from t.want),
+    ('Department of Economy and Tourism','uae'),('Department of Economic Development','uae'),('DET','uae'),('ADDED','uae'),('RAK DED','uae'),('RAK Economic Zone','uae'),('KEZAD','uae'),('UAQ','uae'),('SPC','uae'),
+    ('Ministry of Economy','uae'),('Ras Al-Khaimah','uae'),('Abu-Dhabi','uae'),('Abudhabi','uae'),('راس الخيمة','uae'),('رأس الخيمة','uae'),('ام القيوين','uae'),('أم القيوين','uae'),('دائرة التنمية الاقتصادية - عجمان','uae'),
+    ('Dubai DET (fixture)','uae'),('International Free Zone Authority','uae'),('Sharjah Media City Authority','uae'),('Jebel Ali Free Zone Authority','uae'),
+    ('Ministry of Commerce, Kingdom of Saudi Arabia','foreign'),('Companies House, United Kingdom','foreign'),('Qatar Financial Centre','foreign'),('Ministry of Economy, Kuwait','foreign'),
+    ('Northern Registry Office','unknown'),('Dubai Branch, Companies House','unknown'),('','unread'),(null,'unread')) t(a, want)
+  where public.fn_licence_authority_class(t.a) is distinct from t.want),
   case when has_function_privilege('anon', 'public.fn_sales_engineer_decides_held_registrations(timestamptz)', 'execute') then 'PROBE FAILED: anon can run the decider' else 'PROBE OK' end) as verdict;

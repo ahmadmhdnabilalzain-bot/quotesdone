@@ -38,7 +38,7 @@ begin
   -- NO SUPPLIER HAS IT YET: said as it is, never blamed on the specs (re-review of #1112).
   if coalesce((h->>'finding_suppliers')::boolean, false) and not public.fn_inquiry_awaits_specs(i.id) then
     v_find := case when v_ar
-      then 'ما زلنا نسجّل الموردين في تخصصكم. لا يغطي هذا الطلب أيٌّ من الموردين المسجّلين لدينا اليوم، ولذلك لم يصل إلى أي مورّد، ولا يمكننا أن نعدكم بعرض سعر أو بموعد له، فنرجو ألا تؤخروا عملكم انتظارًا لنا. سنبقي طلبكم مفتوحًا 14 يومًا؛ وإذا لم يصل إلى أي مورّد خلالها أغلقناه وأبلغناكم. ولا يُطلب منكم أي إجراء أو مبلغ.'
+      then 'ما زلنا نسجّل الموردين في تخصصكم. لا يغطي هذا الطلب أيٌّ من الموردين المسجّلين لدينا اليوم، ولذلك لم يصل إلى أي مورّد، ولا يمكننا أن نعدكم بعرض سعر أو بموعد له، فنرجو ألا تؤخروا عملكم انتظارًا لنا. سنبقي طلبكم مفتوحًا 14 يومًا؛ وإذا لم يصل إلى أي مورّد خلالها أغلقناه وأبلغناكم. لا يلزمكم أي إجراء ولا أي مبلغ.'
       else 'We are still registering suppliers for your trade. No supplier registered with us today covers this request, so it has not reached anyone, and we cannot promise a quote or say when one might come. Please do not hold your work for us. We will keep your request open for 14 days; if it has reached no supplier by then, we will close it and tell you. Nothing is needed from you, and there is nothing to pay.' end;
   end if;
   -- The steps, numbered; only the specs step for a later request (the customer has seen the rest before).
@@ -67,7 +67,7 @@ begin
         || 'If anything is unclear, reply to this e-mail.' end;
   elsif p_kind = 'finding_suppliers' then
     if v_find = '' then return jsonb_build_object('lang', g->>'lang', 'not_finding', true); end if;
-    v_subj := case when v_ar then 'مستجدات طلبكم ' || v_ref else 'An update on your request ' || v_ref end;
+    v_subj := case when v_ar then 'نبحث عن موردين لطلبكم ' || v_ref else 'We are finding suppliers for your request ' || v_ref end;
     v_body := case when v_ar then
         'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
         || 'شكرًا لطلبكم ' || v_ref || '.' || chr(10) || chr(10) || v_find || chr(10) || chr(10)
@@ -139,7 +139,7 @@ begin
            then 'ولذلك قدّمنا مجال طلبكم ومنطقته على غيرهما في دعوة الموردين الجدد، فيكون الموردون الذين ندعوهم تاليًا ممن يستطيعون تسعير طلبكم. '
            else 'وليس في قائمتنا حاليًا موردون آخرون في هذا المجال في ' || coalesce(v_em_ar, 'الإمارات')
                 || '، ولذلك نعمل على استقطاب موردين جدد له. ' end
-      || case when v_unreachable then 'ولا يمكننا أن نعدكم بعرض سعر، فنرجو ألا تؤخروا عملكم انتظارًا لنا. وإذا لم يصل طلبكم إلى أي مورّد خلال 14 يومًا أغلقناه وأبلغناكم، وليس عليكم أي مبلغ.' else 'ويبقى طلبكم مفتوحًا، وسنُعلمكم فور وصول أول عرض سعر.' end
+      || case when v_unreachable then 'ولا يمكننا أن نعدكم بعرض سعر، فنرجو ألا تؤخروا عملكم انتظارًا لنا. وإذا لم يصل طلبكم إلى أي مورّد خلال 14 يومًا أغلقناه وأبلغناكم، ولا يلزمكم أي مبلغ.' else 'ويبقى طلبكم مفتوحًا، وسنُعلمكم فور وصول أول عرض سعر.' end
       || E'\n\nيمكنكم متابعة طلبكم عبر بوابتكم:\n\n' || v_link
       || E'\n\nوتفضلوا بقبول فائق الاحترام والتقدير،';
   else
@@ -164,8 +164,7 @@ create or replace function public.fn_inquiry_awaits_specs(p_inquiry uuid)
  returns boolean language sql stable security definer set search_path to 'public', 'pg_temp'
 as $fn$
   select exists (select 1 from public.inquiries x
-                  -- The required specs, not rfq_ready: fn_rfq_score's readiness is stricter, and measured 2 Nov 2026 0 of 3 requests have it.
-                  where not coalesce((public.fn_rfq_required_check(x) ->> 'required_ok')::boolean, true)
+                  where not coalesce(x.rfq_ready, false)
                     and (x.parent_inquiry_id = p_inquiry
                          or (x.id = p_inquiry and not exists (select 1 from public.inquiries c where c.parent_inquiry_id = p_inquiry))))
 $fn$;
@@ -194,8 +193,8 @@ begin
       'type', 'request_closed_no_supplier', 'requested_by', 'sales_engineer', 'channel', 'email', 'to_email', lower(btrim(r.email)), 'to_role', 'customer',
       'inquiry_id', r.id, 'lang', case when v_ar then 'ar' else 'en' end, 'dedupe_key', 'request_closed_no_supplier:' || r.id,
       'subject', case when v_ar then 'أغلقنا طلبكم ' || v_ref else 'We have closed your request ' || v_ref end,
-      'body', case when v_ar then 'عميلنا الكريم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10) || 'شكرًا لتواصلكم معنا. لم يصل طلبكم ' || v_ref || ' إلى أي مورّد خلال 14 يومًا، لأننا ما زلنا نسجّل الموردين في هذا التخصص، ولذلك أغلقناه. نعتذر عن ذلك، وليس عليكم أي مبلغ. ويسعدنا أن ترسلوا طلبًا جديدًا في أي وقت.' || chr(10) || chr(10) || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
-                   else 'Dear Customer,' || chr(10) || chr(10) || 'Thank you for coming to us. Your request ' || v_ref || ' did not reach a supplier in 14 days, because we are still registering suppliers for this trade, so we have closed it. We are sorry, and there is nothing to pay. You are welcome to send a new request at any time.' end)));
+      'body', case when v_ar then 'شكرًا لتواصلكم معنا. لم يصل طلبكم ' || v_ref || ' إلى أي مورّد خلال 14 يومًا، لأننا ما زلنا نسجّل الموردين في هذا التخصص، ولذلك أغلقناه. نعتذر عن ذلك، ولا يلزمكم أي مبلغ. ويسعدنا أن ترسلوا طلبًا جديدًا في أي وقت.'
+                   else 'Thank you for coming to us. Your request ' || v_ref || ' did not reach a supplier in 14 days, because we are still registering suppliers for this trade, so we have closed it. We are sorry, and there is nothing to pay. You are welcome to send a new request at any time.' end)));
     insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
     values ('sales_engineer', 'request_closed_no_supplier', 'auto_done', 'low', 'Request closed: no supplier in 14 days — ' || v_ref, 'No action required. The customer was told.',
             jsonb_build_object('inquiry_id', r.id), 'inquiries', r.id::text);

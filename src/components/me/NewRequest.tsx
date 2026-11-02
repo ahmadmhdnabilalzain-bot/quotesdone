@@ -490,7 +490,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       // One answer shape (customer_api, _shared/inquiry_posted.ts): matches is already summed over a
       // split's children, and inquiry_id is the request the customer made (the combined parent).
       const reached = Number(r.matches) || 0;
-      if (reached > 0) onDone(r); else setPosted({ none: true, id: r.inquiry_id || null, specs: !!(r.concierge && r.concierge.awaits_specs) });
+      if (reached > 0) onDone(r); else setPosted({ none: true, id: r.inquiry_id || null });
     }
     // Never a dead end: when the server says something is still open, the next question is fetched at
     // once instead of leaving the customer to guess what "more details" means.
@@ -509,7 +509,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   if (posted) return (
     <section dir={ar ? 'rtl' : 'ltr'} className="qd-panel mb-3.5 p-5 shadow-e2" aria-live="polite">
       <h2 className="font-head text-[17px] font-semibold tracking-snug text-foreground">{t(lang, 'nr_posted')}</h2>
-      <p className="mt-2 text-copy leading-relaxed text-foreground">{t(lang, posted.specs ? 'nr_posted_specs' : 'nr_posted_none')}</p>
+      <p className="mt-2 text-copy leading-relaxed text-foreground">{t(lang, 'nr_posted_none')}</p>
       <Button size="lg" className="mt-4" onClick={() => onDone({ none: true, inquiry_id: posted.id })}>{t(lang, 'nr_posted_view')}</Button>
     </section>
   );

@@ -228,7 +228,7 @@ or subscriptions; a supplier's own quotation may state discounts, which we relay
 
 ## 12. Contact
 
-- **management@quotesdone.com** · **+971 50 931 9355** · Mon–Fri 9am–6pm GST, excluding UAE public holidays. (CON; SA contact line)
+- **management@quotesdone.com** · **+1 218 316 6814** · Mon–Fri 9am–6pm GST, excluding UAE public holidays. (CON; SA contact line)
 - info@quotesdone.com for questions about the Terms (CT§20); supplier@quotesdone.com to copy on a
   non-response complaint (CT§5); complaints status at quotesdone.com/complaints/status (CT§18).
 - Governing law: UAE; courts of Dubai. (CT§19)

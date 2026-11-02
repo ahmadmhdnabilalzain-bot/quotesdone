@@ -566,12 +566,12 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
           let codeFields: Partial<LicenceFields> = {};
           try { codeFields = await readLicenceFields(stored.bytes, stored.mime); } catch (_e) { codeFields = {}; }
           // What the old licence printed never judges a new one (2 Nov 2026, ledger 1442): supplier_api clears these too.
-          upd.trade_license_no = null; upd.license_authority = null; upd.license_city = null; upd.license_expiry = null; upd.doc_extracted_at = null;
+          upd.trade_license_no = null; upd.license_authority = null; upd.license_expiry = null; upd.doc_extracted_at = null;
           fieldsLeftUnread = licenceNeedsModel({ ...codeFields, legal_name_en: codeName });
           if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;
           licIssue = codeFields.issue_date || null;
           if (codeFields.authority) upd.license_authority = codeFields.authority;
-          if (codeFields.emirate) { upd.emirate = codeFields.emirate; upd.license_city = codeFields.emirate; }
+          if (codeFields.emirate) upd.emirate = codeFields.emirate;
         }
         if (kindStr === 'license' && docRead) {
           upd.license_expiry = docRead.expiry; licExpiryFromDoc = true; upd.doc_extracted_at = new Date().toISOString();
@@ -607,7 +607,7 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
               if (d.license_number && !upd.trade_license_no) upd.trade_license_no = d.license_number;
               if (d.issue_date && !licIssue) licIssue = String(d.issue_date).slice(0, 10);
               if (d.license_authority && !upd.license_authority) upd.license_authority = d.license_authority;
-              if (!upd.license_city && (d.emirate || d.city)) upd.license_city = d.emirate || d.city;
+              if (d.city) upd.license_city = d.city;
               if (!upd.licence_legal_name) { const n = licenceNameFromModel(d); if (n) upd.licence_legal_name = n; }
               // The scan's activities, as the model read them, are read for trades like a text licence's (ruling 1177).
               const q = readQueue.find((x) => x.kind === 'licence');

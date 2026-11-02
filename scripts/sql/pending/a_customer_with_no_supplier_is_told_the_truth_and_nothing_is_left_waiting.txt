@@ -1,1 +1,0 @@
-Written 2 Nov 2026 (sales_engineer, ledger 1456), not applied: apply at merge, after only_a_readable_uae_authority_is_approved_and_a_held_registration_has_a_decider.sql, whose duty runs the closer. Deploy resilience_ping and the site in the same release. When applied, delete this note and append the file to the END of MANIFEST.txt.
