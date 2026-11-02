@@ -26,6 +26,16 @@ export function dueFilter(now: Date): string {
   return `not_before.is.null,not_before.lte.${now.toISOString()}`;
 }
 
+// STALE FROM WHEN IT FELL DUE, NOT FROM WHEN IT WAS WRITTEN (2 Nov 2026, sales_engineer, ledger 1486). The stale guard
+// (email_stale_hours, 72) read created_at, so a row deliberately moved on by not_before (the bounce brake, a lane or cap hold)
+// aged out while it waited. 18 Google-hosted invitations queued 28 Oct and released for 2 Nov 11:07 Dubai were claimed at
+// 11:16 and held for good, with no last_error, so the founder's resume sent nothing. A row is stale only once it has been
+// DUE for longer than the bar; a row with no not_before is measured from created_at, exactly as before.
+export function hoursPastDue(createdAt: string, notBefore: string | null | undefined, now: Date): number {
+  const due = Math.max(new Date(createdAt).getTime(), notBefore ? new Date(notBefore).getTime() : 0);
+  return (now.getTime() - due) / 3.6e6;
+}
+
 export function selectQueue(admin: SupabaseClient, limit: number, now: Date = new Date()) {
   return admin.from('notifications').select('*')
     .or('status.eq.queued,status.eq.pending,status.is.null')

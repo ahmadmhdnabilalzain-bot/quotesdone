@@ -1,6 +1,16 @@
 import { assert, assertEquals } from 'jsr:@std/assert';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { dueFilter, NOT_OWNED_CHANNELS, OWNED_CHANNEL_FILTER, ownsChannel, selectQueue } from './channels.ts';
+import { dueFilter, hoursPastDue, NOT_OWNED_CHANNELS, OWNED_CHANNEL_FILTER, ownsChannel, selectQueue } from './channels.ts';
+
+// The 2 Nov 2026 rows: queued 28 Oct 06:45Z, not_before 2 Nov 07:07Z, claimed 07:16Z. Under the old created_at rule they were
+// 120 h old and held for good; they had been due for 9 minutes.
+Deno.test('a row moved on by not_before is stale from when it fell due, not from when it was written', () => {
+  const claimed = new Date('2026-11-02T07:16:27Z');
+  const age = hoursPastDue('2026-10-28T06:45:01Z', '2026-11-02T07:07:05Z', claimed);
+  assert(age > 0 && age < 1, `due 9 minutes ago, measured ${age} h`);
+  assert(hoursPastDue('2026-10-28T06:45:01Z', null, claimed) > 72, 'a row with no not_before still ages from created_at');
+  assert(hoursPastDue('2026-10-28T06:45:01Z', '2026-10-28T06:00:00Z', claimed) > 72, 'a not_before before created_at does not make a row younger');
+});
 
 Deno.test('send_outbox owns email and NULL-channel rows, never sms or whatsapp', () => {
   assert(ownsChannel(null));

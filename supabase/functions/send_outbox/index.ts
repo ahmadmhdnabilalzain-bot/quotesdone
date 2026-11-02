@@ -12,7 +12,7 @@ import { tmpl } from './render.ts';
 import { arabicFrame } from './arabic_frame.ts';
 import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.ts';
 import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
-import { claimQueue, ownsChannel } from './channels.ts';
+import { claimQueue, hoursPastDue, ownsChannel } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
 import { M365_FROM_NAME, M365_HARD_CEILING, M365_ID_PREFIX, M365_PACE_MS, M365_PER_RUN, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, campaignMail, conversationReplyTo, graphSend, holdForM365, m365Carries, m365Mime, m365ReplyTo, messageIdFor, paceM365, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
@@ -272,8 +272,8 @@ Deno.serve(observe('send_outbox', async (req) => {
       // never emails a fixture address.
       if (RESERVED_TEST_DOMAIN.test(n.to_email)) { await admin.from('notifications').update({ status: 'skipped', last_error: 'reserved test domain (RFC 2606): never deliverable, refused before any provider call' }).eq('id', n.id); skipped++; continue; }
       if (supReason.has(foldEmail(n.to_email)) && suppressionStops(supReason.get(foldEmail(n.to_email)), n.type)) { await admin.from('notifications').update({ status: 'suppressed' }).eq('id', n.id); suppressed++; continue; }
-      const ageH = (Date.now() - new Date(n.created_at).getTime()) / 3.6e6;
-      if (ageH > staleH) { await admin.from('notifications').update({ status: 'held' }).eq('id', n.id); held++; continue; }
+      const ageH = hoursPastDue(n.created_at, n.not_before, new Date());
+      if (ageH > staleH) { await admin.from('notifications').update({ status: 'held', last_error: 'held: stale, ' + Math.round(ageH) + 'h past due, beyond email_stale_hours (' + staleH + ')' }).eq('id', n.id); held++; continue; }
       const supplierSide = n.to_role === 'supplier';
       const internal = n.to_role === 'admin' || n.to_role === 'founder';
       const docReq = supplierSide && isDocRequest(n.type);
