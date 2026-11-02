@@ -38,7 +38,7 @@ import { render } from '@/components/ChatWidget';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import { BrandMark } from '@/components/BrandMark';
 import { forgetWidgetConv, readWidgetConv } from '@/lib/widgetConv';
-import { lookForStoredAnswer, answerRightAfter, noVerdict, pendingDue, readReply, savedLineDue, waitingOf, PENDING_EVERY_MS, PENDING_FOR_MS } from '@/lib/portalReply';
+import { lookForStoredAnswer, lookForStoredQuestion, answerRightAfter, noVerdict, pendingDue, readReply, savedLineDue, waitingOf, PENDING_EVERY_MS, PENDING_FOR_MS } from '@/lib/portalReply';
 
 // THE INFORMATION ARCHITECTURE, WRITTEN DOWN.
 //
@@ -228,13 +228,26 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
       reply = await storedAnswer(token, q);
     }
     setLive(''); setStatus('');
+    // "SAVED" IS SAID ONLY OF A QUESTION THAT IS SAVED (browser proof, 2 Nov 2026: an Arabic turn failed before the server logged it
+    // and the panel still said "your question is saved"; after a reload it was gone). The stored conversation is asked; a question
+    // that is not in it is given back to the box with the plain truth.
+    let stored = true;
+    if (!reply && token && !pendingDue(j) && savedLineDue(j, reply)) {
+      stored = await lookForStoredQuestion(async () => {
+        const r = await fetch(fnUrl('sales_engineer'), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+          body: JSON.stringify({ action: 'assist_history' }) });
+        const x = r.ok ? await r.json() : null;
+        return x && x.turns;
+      }, q);
+      if (!stored) setVal(q);
+    }
     // the saved line only on a transport failure or when OpenRouter was down (1339, savedLineDue); with the model up and
     // nothing sendable, no code-written text is shown
     // a turn filed for the re-ask (model up, every draft refused): the pending state, then the model's answer (never silence)
     setMsgs((m) => reply
       ? [...m, { role: 'assistant', content: reply, scope: j.done && j.done.scope }]
       : pendingDue(j) ? [...m, { role: 'pending', q, content: t('asst_working') }]
-      : savedLineDue(j, reply) ? [...m, { role: 'notice', content: t('asst_saved') }] : m);
+      : savedLineDue(j, reply) ? [...m, { role: 'notice', content: t(stored ? 'asst_saved' : 'asst_not_sent') }] : m);
     setBusy(false);
     if (!reply && pendingDue(j)) watch(q);
   };

@@ -2359,7 +2359,7 @@
      "note": "27 Oct 2026 (#1640, ruling 1195): the portal turn no longer DECIDES which quote field a question asks about. Every quote is one facts block and the reply model answers from it in the same call; neither the word match nor the think() pick is on the path.",
      "must_contain": [
       "const shown = quotes.slice(0, 15).map(",
-      "'THEIR OWN QUOTES (scoped in SQL to this customer):\\n' + ownQuote"
+      "'THEIR OWN REQUESTS AND QUOTES (scoped in SQL to this customer; this IS what you can see of their account):\\n' + ownQuote"
      ],
      "must_not_contain": [
       "quoteAnswer(",

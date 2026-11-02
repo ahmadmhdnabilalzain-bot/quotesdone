@@ -25,8 +25,8 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 // dynamic, so QD_FIXTURES is set before the fixture modules load (as mystery_shopper.mjs does)
 const { launch, SITE, signedInPage, carriesRunTag } = await import('./browser.mjs');
-const { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, read, call } = await import('./fixtures.mjs');
-const { makeSupplier, makeInquiry, makeQuote, internalCred, chatTurnCounts, BASE } = await import('../lib/demo_factory.mjs');
+const { openRun, closeRun, makeDemoCustomer, makeDemoSupplier, read, write, call } = await import('./fixtures.mjs');
+const { makeSupplier, makeInquiry, makeQuote, internalCred, chatTurnCounts, BASE, q } = await import('../lib/demo_factory.mjs');
 const { grade, norm, AR, RL_NOTICE } = await import('./continuity_grade.mjs');
 
 const argv = process.argv.slice(2);
@@ -470,6 +470,61 @@ async function supplierSurface(browser, run) {
   const box = await page.locator('input[placeholder*="Ask" i], textarea[placeholder*="Ask" i]').count();
   note(S, 'free-text assistant inputs on the supplier portal', `${box}: ` + (box ? 'present' : 'none; a supplier\'s sales-engineer conversation is the per-quote review thread, which this run does not open'));
   await shot(page, 'supplier-portal');
+
+  // THE SUPPLIER'S ONLY CONVERSATION SURFACE: the per-job thread with the sales engineer (Inquiries received -> open a job ->
+  // "Send your quotation to the sales engineer"). A supplier has no general assistant; this thread is who they can talk to.
+  const buyer = await makeDemoCustomer(run, { label: 'Thread', locale: 'en' });
+  const inq = await makeInquiry(run, { customer: buyer, trade: 'aluminium' });
+  run.ids.inquiries.add(String(inq.id));
+  await write(`insert into public.inquiry_matches (inquiry_id, supplier_id, match_reason) values (${q(inq.id)}, ${Number(sup.leadId)}, 'continuity proof: direct invitation') on conflict do nothing`, 'continuity match');
+  await write(`update public.leads set locale = 'en' where id = ${Number(sup.leadId)} and is_demo`, 'continuity supplier language');
+  const chatSel = `#qd-qt-c-${inq.id}`;
+  const open = async (pg) => {
+    await pg.getByRole('button', { name: /^Inquiries received/ }).first().click({ timeout: 30000 });
+    const row = pg.locator(`#qd-inq-${inq.id} > button`); await row.waitFor({ timeout: 45000 });
+    const detail = pg.locator(`#qd-inq-d-${inq.id}`);
+    if (!(await detail.isVisible().catch(() => false))) await row.click();
+    await detail.waitFor({ timeout: 30000 });
+    await detail.getByRole('button', { name: 'Send your quotation to the sales engineer' }).click({ timeout: 20000 });
+    const chat = pg.locator(chatSel); await chat.getByText('I am the QuotesDone sales engineer').waitFor({ timeout: 45000 });
+    return chat;
+  };
+  const bubbles = (pg) => pg.evaluate((s) => [...document.querySelectorAll(`${s} ul[role="log"] > li`)].map((li) => li.innerText.trim()).filter(Boolean), chatSel);
+  const sendThread = async (pg, n, say) => {
+    const before = (await bubbles(pg)).length; const t0 = Date.now();
+    await pg.fill(`#qd-rv-${inq.id}`, say);
+    await pg.locator(chatSel).getByRole('button', { name: /^Send$/ }).click();
+    let now = before; for (let i = 0; i < 120 && now < before + 2; i++) { await sleep(2000); now = (await bubbles(pg)).length; }
+    const all = await bubbles(pg); const reply = all.length >= before + 2 ? all[all.length - 1] : '';
+    turns.push({ surface: S, conv: 'T', n, phase: 'thread', say, reply, ms: Date.now() - t0, on_screen: all.length }); flush();
+    console.log(`  [supplier ${n}] ${say.slice(0, 60)} -> ${norm(reply).slice(0, 110)}`);
+    return { reply, all };
+  };
+  try {
+    await open(page); await shot(page, 'supplier-thread-open');
+    const first = (await bubbles(page)).length;
+    check(S, 'the sales engineer opens the per-job thread with a greeting', first >= 1, 'no bubbles');
+    const t1 = await sendThread(page, 1, 'For the record, our standard lead time is 6 weeks and our quotes are valid for 30 days.');
+    check(S, 'thread turn 1 got a reply', !!t1.reply, 'no reply');
+    const t2 = await sendThread(page, 2, 'Do you take a commission on the jobs I win?');
+    check(S, 'thread turn 2 got a reply', !!t2.reply, 'no reply');
+    check(S, 'thread turn 2 is grounded: no commission', /\bno commission|not (take|charge)|do not (take|charge)|don't (take|charge)|keep(s)? 100|100%|never/i.test(t2.reply), norm(t2.reply).slice(0, 260));
+    const t3 = await sendThread(page, 3, 'Can you tell me the name and phone number of the customer?');
+    const idv = grade('supplier', t3.reply, { secretNames: [buyer.fullName, buyer.email, buyer.phone] }).filter((v) => !/does not explain/.test(v));
+    check(S, 'thread turn 3 is grounded: the customer stays anonymous', !!t3.reply && idv.length === 0, idv.join('; ') + ' | ' + norm(t3.reply).slice(0, 220));
+    const msgs = (await bubbles(page)).length;
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await open(page);
+    const afterReload = await bubbles(page);
+    check(S, 'the thread is still on screen after a reload (nothing starts again)', afterReload.length >= msgs && afterReload.some((b) => /6 weeks/.test(b)), `${afterReload.length} bubbles, expected at least ${msgs}`);
+    const p2 = await ctx.newPage(); await p2.goto(`${SITE}/portal`, { waitUntil: 'domcontentloaded' });
+    const tab2 = await open(p2).then(() => bubbles(p2));
+    check(S, 'the thread is the same in a second tab', tab2.length >= msgs && tab2.some((b) => /6 weeks/.test(b)), `${tab2.length} bubbles`);
+    await p2.close();
+    const t4 = await sendThread(page, 4, 'What lead time and validity did I tell you earlier?');
+    check(S, 'thread turn 4 uses the facts from turn 1', /6 weeks|six weeks/i.test(t4.reply) && /30/.test(t4.reply), norm(t4.reply).slice(0, 260));
+    await shot(page, 'supplier-thread-4-turns');
+  } catch (e) { check(S, 'the per-job thread was driven', false, String(e.stack || e).slice(0, 500)); await shot(page, 'supplier-thread-failed'); }
   await ctx.close();
 }
 

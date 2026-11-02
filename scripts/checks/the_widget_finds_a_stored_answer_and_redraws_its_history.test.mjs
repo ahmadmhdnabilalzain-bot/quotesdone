@@ -16,7 +16,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { lookForStoredAnswer } from '../../src/lib/portalReply.ts';
+import { lookForStoredAnswer, lookForStoredQuestion } from '../../src/lib/portalReply.ts';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
 // a fake clock: sleeping advances it, so the loop runs in no time
@@ -42,6 +42,22 @@ test('KNOWN-BAD CONTROL: a history read that fails or answers nothing is survive
   assert.equal(await lookForStoredAnswer(async () => { throw new Error('network'); }, 'fee?', { waitMs: 20000, everyMs: 5000, ...clock() }), '');
   assert.equal(await lookForStoredAnswer(async () => null, 'fee?', { waitMs: 20000, everyMs: 5000, ...clock() }), '');
   assert.equal(await lookForStoredAnswer(async () => [], 'fee?', { waitMs: 20000, everyMs: 5000, ...clock() }), '');
+});
+
+test('"saved" is true only of a question the server holds; a blip is looked at twice; KNOWN-BAD: another question, or nothing, is not saved', async () => {
+  const sleep = async () => {};
+  assert.equal(await lookForStoredQuestion(async () => [{ role: 'user', content: ' door? ' }], 'door?', { sleep }), true);
+  assert.equal(await lookForStoredQuestion(async () => [{ role: 'user', content: 'width?' }, { role: 'assistant', content: 'door?' }], 'door?', { sleep }), false, 'an assistant line is not the question');
+  assert.equal(await lookForStoredQuestion(async () => [], 'door?', { sleep }), false);
+  assert.equal(await lookForStoredQuestion(async () => { throw new Error('net'); }, 'door?', { sleep }), false);
+  let n = 0;
+  assert.equal(await lookForStoredQuestion(async () => (++n < 2 ? null : [{ role: 'user', content: 'door?' }]), 'door?', { sleep }), true, 'the second look finds it');
+});
+
+test('the portal says "saved" only after asking whether the question is stored', () => {
+  const src = read('src/components/me/PortalShell.tsx');
+  assert.match(src, /lookForStoredQuestion\(/);
+  assert.match(src, /t\(stored \? 'asst_saved' : 'asst_not_sent'\)/);
 });
 
 test('the loop gives up at its time limit (it does not wait forever)', async () => {

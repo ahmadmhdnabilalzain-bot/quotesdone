@@ -137,3 +137,21 @@ export async function lookForStoredAnswer(
   }
   return '';
 }
+
+/** Whether the server holds this question in the stored conversation (a user turn with exactly these words). It looks twice, so
+ *  a read that blipped is not reported as a lost question. "Saved" is said of a question only when this is true. */
+export async function lookForStoredQuestion(
+  readTurns: () => Promise<{ role?: string; content?: string }[] | null | undefined>,
+  question: string,
+  o: { tries?: number; everyMs?: number; sleep?: (ms: number) => Promise<void> } = {},
+): Promise<boolean> {
+  const { tries = 2, everyMs = 2_000, sleep = (ms: number) => new Promise<void>((res) => setTimeout(res, ms)) } = o;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const t = await readTurns();
+      if (Array.isArray(t) && t.some((x) => x?.role === 'user' && String(x?.content || '').trim() === question.trim())) return true;
+    } catch (_e) { /* looked at again */ }
+    if (i < tries - 1) await sleep(everyMs);
+  }
+  return false;
+}
