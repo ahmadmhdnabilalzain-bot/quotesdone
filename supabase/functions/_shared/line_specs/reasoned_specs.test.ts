@@ -4,6 +4,7 @@ import { assessQuote, type Line } from './assess.ts';
 import { checklistAttrs, chooseChecklist, LINES_PER_CALL, needsChecklist, reasonLineSpecs, specCode, unionOf, withReasoned, type Checklist } from './reasoned_specs.ts';
 import { labelUnit, shapeDecides } from './field_format.ts';
 import type { ThinkDeps } from '../think.ts';
+import { forgetReads } from '../reasoned_matching.ts';
 
 const J = JSON.stringify;
 function deps(opts: { held?: boolean; synth?: string[] }): ThinkDeps {
@@ -37,6 +38,8 @@ Deno.test('which checklist applies is reasoned; under the hold every checklist i
   const live = await chooseChecklist(deps({ synth: [J({ answer: 'the lines price a dock leveller', decision: { choice: 'glazing:spec-checklist-balustrade' } })] }),
     { checklists: LISTS, lines: LINES, trade: 'glazing', quoteId: 'q1' });
   assertEquals([live.topic, live.reasoned, live.rows.length], ['glazing:spec-checklist-balustrade', true, 2]);
+  // A reading once answered is settled (reasoned_matching.ts settledRead); the hold case is lines never read, on a new worker.
+  forgetReads();
   const held = await chooseChecklist(deps({ held: true }), { checklists: LISTS, lines: LINES, trade: 'glazing', quoteId: 'q1' });
   assertEquals([held.topic, held.reasoned, held.rows.length], [null, false, 3]);
 });
