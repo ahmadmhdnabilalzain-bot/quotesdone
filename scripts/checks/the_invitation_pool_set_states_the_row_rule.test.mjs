@@ -73,27 +73,44 @@ test('every definition of fn_supplier_invite_candidates from #964 on, applied or
 });
 
 // RE-REVIEW (29 Sep 2026): #1070 moved the canonical body (MANIFEST 1835) while this PR was open, so a copy of 1824
-// was stale again. A pending redefinition must be the LATEST applied body with only the pending PR's own lines changed.
+// was stale again. A pending redefinition must be the LATEST applied body with only the pending PR own lines changed.
 // #1051 (the set read and the ref'd link) is applied (MANIFEST 1844); the pending redefinition is now ledger 1018's
 // stalled-request tier (sales_engineer, 29 Sep 2026): exactly one line of the applied body is replaced, and what is added
 // is the rescue CTE and the -1 tier ahead of the unchanged 'recruit' tier. A copy of an older body fails here.
 // 28 Oct 2026 (it_engineer): that tier is APPLIED (the canonical body carries the rescue CTE), so the pending
 // redefinition this pins is now the_invitation_gate_reads_the_glockapps_verdict_per_mailbox_provider.sql: the same
 // applied body, re-signed with p_providers text[] and ONE filter line on the mailbox class. Nothing else may differ.
-test('a pending fn_supplier_invite_candidates is the latest applied body with only the mailbox-class filter added', () => {
+// 2 Nov 2026 (sales_engineer, ledger 1449): the applied body already holds the mailbox-class filter. The pending redefinition
+// is an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql: the checked-mailbox rank replaces the
+// two old ranks and those lines alone change. Nothing else may differ.
+// 2 Nov 2026 (ceo, ledger 1438): that file is APPLIED (the canonical body carries mailbox_rank). The pending redefinition is
+// the_ceo_holds_the_supplier_target_and_acts_within_bounded_powers.sql: the reachability lever (v_reach, off by default) and the
+// CEO's priority trades inside the plan rank. Those lines alone change. Nothing else may differ.
+const CHECKED_GONE = [
+  'coalesce(pl.rank, 2147483647) as plan_rank,',
+];
+const CHECKED_ADDED = [
+  "v_reach boolean := coalesce((select value from app_secrets where key = 'invite_reachable_only'), '') = 'true';",
+  "and (not v_reach or l.email_verified in ('verified', 'true', 'maps', 'social'))",
+  "case when exists (select 1 from public.ceo_invite_trade_priority t where t.cleared_at is null and t.trade = any(coalesce(c.invite_trades, '{}'::text[])))",
+  'then -1 else coalesce(pl.rank, 2147483647) end as plan_rank,',
+];
+const candidatesDiff = (canon, mine) => ({
+  gone: canon.filter((l) => !mine.includes(l)).map((l) => l.trim()),
+  added: mine.filter((l) => !canon.includes(l)).map((l) => l.trim()).filter((l) => !l.startsWith('--')),
+});
+test('a pending fn_supplier_invite_candidates is the latest applied body with only the pending PR own lines changed', () => {
   const lines = (f) => fnText(read(f), 'fn_supplier_invite_candidates').split('\n').map((l) => l.trimEnd());
   const canonFile = [...manifest].reverse().find((f) => defines('fn_supplier_invite_candidates').test(code(read(f))));
   const canon = lines(canonFile);
   for (const f of pendingSql.filter((p) => defines('fn_supplier_invite_candidates').test(code(read(p))))) {
     const mine = lines(f);
-    const gone = canon.filter((l) => !mine.includes(l)).map((l) => l.trim());
-    const added = mine.filter((l) => !canon.includes(l)).map((l) => l.trim()).filter((l) => !l.startsWith('--'));
-    assert.deepEqual(gone.map((l) => l.toLowerCase()), ['create or replace function public.fn_supplier_invite_candidates(p_limit integer)'],
-      `${f} is not ${canonFile} with only its signature changed`);
-    assert.deepEqual(added.map((l) => l.toLowerCase()), [
-      'create or replace function public.fn_supplier_invite_candidates(p_limit integer, p_providers text[])',
-      'and (p_providers is null or public.fn_mail_provider_of_email(l.email) = any(p_providers))',
-    ], `${f} adds more to ${canonFile} than the mailbox-class filter`);
+    const { gone, added } = candidatesDiff(canon, mine);
+    assert.deepEqual(gone, CHECKED_GONE, `${f} takes more from ${canonFile} than the old mailbox ranks`);
+    assert.deepEqual(added, CHECKED_ADDED, `${f} adds more to ${canonFile} than the checked-mailbox rank`);
+    // known-bad control: one extra changed line must not pass
+    const bad = candidatesDiff(canon, [...mine, 'and true']);
+    assert.notDeepEqual(bad.added, CHECKED_ADDED, 'control: an extra line passed');
   }
 });
 
