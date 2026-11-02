@@ -44,7 +44,9 @@ const pdfText = (lines) => 'BT\n' + lines.map(([t, size], i) => `/F1 ${size} Tf\
 
 /** Returns [{ id, label, file, name, mime, upload, truth }]; files are written under dir. */
 export async function profileCorpus(dir) {
-  const out = []; const put = (id, label, name, bytes, mime, truth, extra = {}) => { writeFileSync(join(dir, name), bytes); out.push({ id, label, file: join(dir, name), name, mime, truth, ...extra }); };
+  // `company` is the name the profile prints, and the name the walk registers the supplier under and prints on its licence: a profile
+  // about another company than the one registered is not what a supplier uploads, and the reader is told whose work counts (rule 4).
+  const out = []; const put = (id, label, name, bytes, mime, truth, extra = {}) => { writeFileSync(join(dir, name), bytes); out.push({ id, label, file: join(dir, name), name, mime, truth, company: truth.fileText[0]?.split(' - ')[0], ...extra }); };
 
   // 1. a text PDF: aluminium and glazing among the usual noise of a long profile
   { const n = 'ZZ DEMO Al Reem Facades LLC'; const p = textPdf(n, `${n} is a UAE contractor that designs, supplies and installs aluminium and glass systems.`, ['Aluminium works', 'Glazing works']);
@@ -86,10 +88,10 @@ export async function profileCorpus(dir) {
     put('no_services', 'profile that states no service', 'horizon_holdings_profile.pdf', pdfOf(lines), MIME.pdf, { read: 'none', stated: [], fileText: lines }); }
 
   // 8. a blank page
-  put('blank', 'blank PDF', 'blank_profile.pdf', rawPdf([{ content: '' }]), MIME.pdf, { read: 'unreadable', stated: [], fileText: [] }, { failedRead: true });
+  put('blank', 'blank PDF', 'blank_profile.pdf', rawPdf([{ content: '' }]), MIME.pdf, { read: 'unreadable', stated: [], fileText: [] }, { failedRead: true, company: 'ZZ DEMO Blank Page LLC' });
 
   // 9. a file that is not a PDF at all, named .pdf (a corrupt or truncated upload)
   put('corrupt', 'corrupt file named .pdf', 'corrupt_profile.pdf', Buffer.concat([Buffer.from('%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R'), Buffer.from(Array.from({ length: 600 }, (_, i) => (i * 37 + 11) % 256))]), MIME.pdf,
-    { read: 'unreadable', stated: [], fileText: [] }, { failedRead: true });
+    { read: 'unreadable', stated: [], fileText: [] }, { failedRead: true, company: 'ZZ DEMO Corrupt File LLC' });
   return out;
 }

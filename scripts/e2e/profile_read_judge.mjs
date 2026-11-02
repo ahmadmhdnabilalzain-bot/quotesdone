@@ -24,12 +24,13 @@ export function stateOfNotice(text) {
   const t = String(text ?? '');
   if (/still reading your company profile/i.test(t)) return 'reading';
   if (/is a scan or photo that we could not read/i.test(t)) return 'scan';
+  if (/We could not read your company profile/i.test(t)) return 'failed';
   if (/found no service we could match/i.test(t)) return 'none';
   if (/No company profile has been read yet/i.test(t)) return 'missing';
   return 'hits';
 }
 
-const ALLOWED = { text: ['hits'], none: ['none'], scan: ['hits', 'scan'], unreadable: ['scan', 'missing'] };
+const ALLOWED = { text: ['hits'], none: ['none'], scan: ['hits', 'scan'], unreadable: ['scan', 'failed', 'missing'] };
 
 /** Returns [{ name, ok, detail }]. Every check is named for the claim it protects. */
 export function judgeView({ truth, view, labelOf }) {

@@ -198,6 +198,22 @@ export const VERIFY_COPY = {
   profile_none: 'We read your company profile and found no service we could match. Tick what you do below, or describe it in your own words.',
   profile_reading: 'We are still reading your company profile. This page updates by itself when the read finishes.',
   profile_scan: 'Your company profile is a scan or photo that we could not read as text yet. Tick what you do below, or describe it in your own words.',
+  profile_failed: 'We could not read your company profile. Upload a clear PDF or Word file in Documents, or tick what you do below, or describe it in your own words.',
   profile_missing: 'No company profile has been read yet. Upload it in Documents, or describe your services below.',
   doc_read_none: 'read, no service matched',
 } as const;
+
+// WHAT THE SERVICES TAB MAY SAY ABOUT THE COMPANY PROFILE (ledger 1469, browser walk scripts/e2e/supplier_profile_read_walk.mjs, 2 Nov 2026).
+// A profile saved as a picture is read by the vision model and its trades are HELD for the sales engineer (status 'read', trades [],
+// source 'photo_text'); the tab said "We read your company profile and found no service we could match" about a file that states services.
+// A refused or unreadable file got the same words, or "a scan or photo". "found no service" is said only of a file that was read as
+// text and named nothing; every file that was not read as text says so.
+export type ProfileDocLike = { status?: string; source?: string; choice?: string; trades?: readonly unknown[]; vision_held?: readonly unknown[] };
+export type ProfileState = 'hits' | 'reading' | 'scan' | 'failed' | 'none' | 'missing';
+export function profileStateOf(docs: readonly ProfileDocLike[]): ProfileState {
+  if (docs.some((d) => (d.trades || []).length)) return 'hits';
+  if (docs.some((d) => d.status === 'reading')) return 'reading';
+  if (docs.some((d) => d.status === 'needs_ocr' || d.source === 'photo_text' || (d.vision_held || []).length)) return 'scan';
+  if (docs.some((d) => d.status === 'unreadable' || d.status === 'refused' || d.status === 'needs_cad_conversion' || d.choice === 'unavailable')) return 'failed';
+  return docs.length ? 'none' : 'missing';
+}

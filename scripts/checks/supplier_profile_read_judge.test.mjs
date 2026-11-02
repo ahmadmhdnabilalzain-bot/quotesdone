@@ -31,7 +31,9 @@ test('known-bad: keywords for a profile that states no service are flagged', () 
 });
 test('control: a profile that states no service passes when the tab says so and shows nothing', () => assert.deepEqual(failed(judge(truth('none', []), view({ state: 'none', keywords: [], lines: [] }))), []));
 test('known-bad: "found no service" for a blank or corrupt file is flagged (it was never read)', () => assert.match(failed(judge(truth('unreadable', []), view({ state: 'none', keywords: [], lines: [] }))).join('|'), /true of this file/));
-test('control: a blank file passes when the tab says it could not be read', () => assert.deepEqual(failed(judge(truth('unreadable', []), view({ state: 'scan', keywords: [], lines: [] }))), []));
+test('control: a blank file passes when the tab says it could not be read', () => {
+  for (const state of ['scan', 'failed']) assert.deepEqual(failed(judge(truth('unreadable', []), view({ state, keywords: [], lines: [] }))), [], state);
+});
 test('known-bad: a scan shown as "found no service" is flagged', () => assert.match(failed(judge(truth('scan'), view({ state: 'none', keywords: [], lines: [] }))).join('|'), /true of this file/));
 test('control: a scan may honestly say it could not read it, or show only true keywords', () => {
   assert.deepEqual(failed(judge(truth('scan'), view({ state: 'scan', keywords: [], lines: [] }))), []);
@@ -45,6 +47,7 @@ test('the notice the tab prints decides the state', () => {
   assert.equal(stateOfNotice('We are still reading your company profile. This page updates by itself'), 'reading');
   assert.equal(stateOfNotice('Your company profile is a scan or photo that we could not read as text yet.'), 'scan');
   assert.equal(stateOfNotice('No company profile has been read yet. Upload it in Documents'), 'missing');
+  assert.equal(stateOfNotice('We could not read your company profile. Upload a clear PDF or Word file in Documents'), 'failed');
   assert.equal(stateOfNotice('Summary of your company profile Keywords of your services Aluminium Works'), 'hits');
 });
 test('norm ignores case, punctuation and a trailing ellipsis', () => assert.equal(norm('  - Aluminium Works…'), 'aluminium works'));

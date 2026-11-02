@@ -23,7 +23,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openRun, closeRun, read, write, call, BASE } from './fixtures.mjs';
 import { keys, verifyEmailByOtp, mkAuthUser } from '../lib/demo_factory.mjs';
-import { buildCorpus } from './document_intake_corpus.mjs';
+import { ACTIVITIES, AUTHORITIES, licenceTruth, licenceTextPdf } from './document_intake_corpus.mjs';
 import { profileCorpus } from './profile_read_corpus.mjs';
 import { judgeView, stateOfNotice, ARABIC } from './profile_read_judge.mjs';
 import { launch, signedInPage, realErrors, SITE } from './browser.mjs';
@@ -39,15 +39,17 @@ const CAP_USD = 2;
 mkdirSync(SHOTS, { recursive: true });
 
 const TMP = mkdtempSync(join(tmpdir(), 'qd-profwalk-'));
-const licences = await buildCorpus(join(TMP, 'lic'));
-// EACH SUPPLIER GETS ITS OWN CLEAN TEXT LICENCE: one licence number and one company name can belong to one account only (claim answers 409).
-// The licence is not the subject here; its own activities are the only other trades a read may legitimately propose.
-const POOL = licences.filter((d) => d.kind === 'licence' && d.expected === 'approve' && d.text_layer && /_text$/.test(d.id));
 mkdirSync(join(TMP, 'prof'), { recursive: true });
 const ALL = await profileCorpus(join(TMP, 'prof'));
-if (POOL.length < ALL.length) throw new Error(`only ${POOL.length} clean text licences for ${ALL.length} profiles`);
-const CASES = ALL.map((c, i) => ({ ...c, lic: { file: join(TMP, 'lic', POOL[i].file), mime: POOL[i].mime, name: POOL[i].file, registered: POOL[i].registered_name, trades: POOL[i].truth.trades || [] } }))
-  .filter((c) => !ONLY.length || ONLY.includes(c.id));
+// EACH SUPPLIER GETS ITS OWN CLEAN TEXT LICENCE in the name its profile prints (one licence number and one company name can belong to
+// one account only: claim answers 409; and a profile about another company than the registered one is not what a supplier uploads).
+// The licence is not the subject here: its activities are the plain "General Trading" ones, so it proposes no trade of its own.
+const GENERAL = [ACTIVITIES[12], ACTIVITIES[13]];
+const CASES = ALL.map((c, i) => {
+  const t = licenceTruth('dubai_det', 40 + i, { legal: c.company, acts: GENERAL });
+  const name = `licence_${c.id}.pdf`; writeFileSync(join(TMP, name), licenceTextPdf(AUTHORITIES.dubai_det, t));
+  return { ...c, lic: { file: join(TMP, name), mime: 'application/pdf', name, registered: t.legal_name_en, trades: t.trades } };
+}).filter((c) => !ONLY.length || ONLY.includes(c.id));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let BR = null;
 
@@ -71,7 +73,7 @@ async function servicesView(page, M) {
 
 async function walk(run, c, n) {
   const out = { id: c.id, label: c.label, steps: [], ok: true };
-  const step = (name, ok, detail = '') => { out.steps.push({ name, ok: !!ok, detail }); if (!ok) out.ok = false; console.log(`${ok ? 'PASS' : 'FAIL'} [${c.id}] ${name}${detail ? ' — ' + String(detail).slice(0, 400) : ''}`); };
+  const step = (name, ok, detail = '') => { out.steps.push({ name, ok: !!ok, detail }); if (!ok) out.ok = false; console.log(`${ok ? 'PASS' : 'FAIL'} [${c.id}] ${name}${detail ? ' — ' + String(detail).slice(0, 1100) : ''}`); };
   const email = `qd-${run.tag}-prof${n}@example.invalid`, mobile = `+9715000000${String(30 + n).padStart(2, '0')}`;
   const company = c.lic.registered;
   const lead = (await write(`insert into public.leads (company_name, email, emirate, source, invite_status, invited_at, locale, tags)
@@ -133,7 +135,8 @@ async function walk(run, c, n) {
     }
     if (row.prof_path) run.ids.storage.push('supplier-docs/' + row.prof_path);
     const rec = row.prof?.[0] || null;
-    out.profile_record = rec ? { status: rec.status, reason: rec.reason, source: rec.source, format: rec.format, trades: (rec.trades || []).map((t) => t.code), choice: rec.choice, vision_held: (rec.vision_held || []).map((t) => t.code) } : null;
+    out.profile_record = rec ? { status: rec.status, reason: rec.reason, source: rec.source, format: rec.format, trades: (rec.trades || []).map((t) => t.code), choice: rec.choice, vision_held: (rec.vision_held || []).map((t) => t.code),
+      rejected: rec.rejected, held_readings: rec.held_readings, exact: rec.exact, meaning: rec.meaning } : null;
     step('the read of the profile ends (not stuck on "reading")', !rec ? !row.prof_path : rec.status !== 'reading', `${Date.now() - t1} ms; ${JSON.stringify(out.profile_record)}`);
     if (c.failedRead) {
       const shownWhy = (out.documents_alerts || []).join(' ').trim();
