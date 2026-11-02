@@ -42,6 +42,13 @@ begin
   update public.pricing_config set auto_approve_suppliers = true where id = 1;
   foreach k in array array['a', 'b', 'c'] loop
     select id into lid from public.leads where email = '${ZZ}-' || k || '@example.invalid';
+    -- Since ledger 1469 a supplier is approved only once it has confirmed its services; b is the case that reaches the approval,
+    -- so it carries a confirmed record (true before and after that gate is applied).
+    if k = 'b' then
+      insert into public.supplier_capabilities (supplier_id, trades, roles, confirmed_at, confirmed_version, review_status)
+      values (lid, array['aluminium'], array['contractor'], now(), 1, 'confirmed');
+      insert into public.supplier_capability_confirmation (supplier_id, version, confirmed_at, confirmed_via) values (lid, 1, now(), 'portal');
+    end if;
     g := public.fn_sales_engineer_verifies_supplier(lid, 'save_profile');
     select * into l from public.leads where id = lid;
     r := r || jsonb_build_object(k, jsonb_build_object('decision', g ->> 'decision', 'reason', g ->> 'reason', 'status', l.approval_status,

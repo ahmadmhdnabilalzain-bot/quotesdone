@@ -1374,6 +1374,11 @@ async function itLaterDutiesTick(clock: StepClock = stepClock()): Promise<Record
     const r = (await rpc('fn_sales_engineer_supplier_documents_tick')) as Record<string, unknown>;
     return { due: true, approved_rechecked: r?.approved_rechecked, registrations_closed: r?.registrations_closed };
   });
+  await step('held_registrations', async () => {
+    if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('held_registrations')) return { due: false };
+    const unreached = await rpc('fn_sales_engineer_closes_unreached_requests');
+    return { due: true, ...((await rpc('fn_sales_engineer_decides_held_registrations')) as Record<string, unknown>), unreached };
+  });
   // Its own step, never behind fn_it_restore_table_due: a drill that stops completing is a finding.
   await step('restore_overdue', async () => rpc('fn_it_restore_table_overdue'));
   // Two seats never agree on one model family (founder_instruction 873). The review steps are routed and

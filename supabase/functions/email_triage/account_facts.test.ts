@@ -70,6 +70,7 @@ Deno.test('an invited supplier is told all six items and is never offered a set-
   for (const t of facts) {
     for (const re of SIX) assert(re.test(t), `missing ${re}: ${t}`);
     assert(/never offer to register them/i.test(t), t);
+    assert(/add supplier@quotesdone.com to their contacts/i.test(t), `the first reply must ask for the contact: ${t}`);
     // the facts may FORBID the offer, never make it: take the forbidding sentence out before looking for the offer
     assert(!OFFER.test(t.replace(/Never offer to register them[^.]*\.[^.]*\./i, '')), t);
   }

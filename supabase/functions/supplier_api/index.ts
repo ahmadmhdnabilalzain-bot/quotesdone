@@ -26,6 +26,7 @@ import { arabicOf, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { createCompany, sessionOpenedByCode } from './create_company.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
+import { SERVICES_UNCONFIRMED, servicesHoldMail, pendingFounderSubject } from '../_shared/services_hold_copy.ts';
 import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { markReading, proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
@@ -86,7 +87,7 @@ const PROFILE_PDF_MODEL_MAX = 12 * 1024 * 1024;
 // A file over the 25 MB ceiling (the supplier-docs bucket's file_size_limit) was told its FORMAT was wrong. 3 of 29 real UAE
 // profiles measured on 13 Oct 2026 are larger (30, 38 and 85 MB): the supplier is now told the size, and how to fix it.
 const TOO_LARGE = (what: string) => `That ${what} is larger than 25 MB. Please upload a smaller copy - most PDF tools can export a compressed or "smallest file size" version.`;
-const PROFILE_COLS = ['contact_name','signatory_name','emirates_id','phone','products','services','description','certifications','founded_year','company_type','company_size','license_authority','trn','egr_doc_path','egr_doc_name','egr_number'];
+const PROFILE_COLS = ['contact_name','signatory_name','emirates_id','phone','products','services','description','certifications','founded_year','company_type','company_size','trn','egr_doc_path','egr_doc_name','egr_number'];
 const YEAR_MS = 365 * 864e5;
 const CONCLUDED = ['completed','closed','cancelled'];
 // EVIDENCE FIX 19 Jul 2026 -----------------------------------------------------------------
@@ -785,6 +786,8 @@ ${q}`,
       // was never recorded. Code's reading is written first; the model below fills only what code left unread.
       let codeFields: Partial<LicenceFields> = {};
       if (licBytes?.bytes) { try { codeFields = await readLicenceFields(licBytes.bytes, licBytes.mime || 'application/pdf'); } catch (_e) { codeFields = {}; } }
+      // ...and its number and authority (2 Nov 2026, ledger 1442): what the old licence printed never judges a new one.
+      if (licBytes?.bytes) { upd.trade_license_no = null; upd.license_authority = null; }
       if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;
       if (codeFields.authority) upd.license_authority = codeFields.authority;
       if (codeFields.emirate) upd.emirate = codeFields.emirate;
@@ -1150,14 +1153,18 @@ ${q}`,
         // "your account activates automatically ... Nothing is needed from you", and the gate then held them (pending,
         // licence_unreadable / _number_unread / _expiry_unread) with no further notice. Measured on production with an
         // Arabic-only and a blank licence. They are told what could not be read and asked for a clearer copy instead.
-        const licUnread = [!full?.licence_legal_name && 'the company name', !full?.trade_license_no && 'the licence number', !full?.license_expiry && 'the expiry date'].filter(Boolean) as string[];
+        const licUnread = [!full?.licence_legal_name && 'the company name', !full?.trade_license_no && 'the licence number', !full?.license_expiry && 'the expiry date', !full?.license_authority && 'the issuing authority'].filter(Boolean) as string[];
         const licUnreadEn = licUnread.length ? `Thank you for registering ${name}. We could not read ${licUnread.join(', ').replace(/, ([^,]*)$/, ' and $1')} on the trade licence you uploaded, so your registration is on hold. ${clearerCopyAsk('supplier', 'en', 'your trade licence')} Upload it in the Documents tab of your supplier portal: https://quotesdone.com/portal` : '';
         const supplierMail = decision === 'approved'
           ? (ar ? { subject: 'أصبح حسابكم على QuotesDone مفعّلًا', body: `فُعِّل حساب ${name} لدى QuotesDone، وبإمكانكم الآن استلام الطلبات وتقديم عروض الأسعار.` }
                 : { subject: 'Your QuotesDone supplier account is active', body: `Your account for ${name} is active — you can now receive inquiries and submit quotes.` })
           // Any decision short of approved: the unread licence is said first, with whatever else is still missing.
+          : full?.licence_gate_reason === 'licence_authority_not_uae'
+          ? { subject: 'Your QuotesDone registration: please send your UAE trade licence', body: `Thank you for registering ${name}. The trade licence you uploaded was not issued by a UAE authority, and QuotesDone registers companies licensed in the UAE, so your registration is on hold. Please upload your current UAE trade licence in the Documents tab of your supplier portal: https://quotesdone.com/portal` }
           : licUnreadEn
           ? { subject: 'Your QuotesDone registration: please send a clearer trade licence', body: licUnreadEn + (stillNeeded.length ? ` We also still need: ${needEn}.` : '') }
+          : decision === 'pending' && v.reason === SERVICES_UNCONFIRMED
+          ? servicesHoldMail(name)
           : decision === 'pending'
           ? (ar ? { subject: 'استلمنا طلب تسجيلكم لدى QuotesDone', body: `نشكركم على تسجيل ${name}. اكتملت البنود الستة المطلوبة، ويتولّى مهندس المبيعات مراجعة طلب التسجيل حاليًا، وسنوافيكم برسالة فور اعتماده.` }
                 : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name}. All six required items are in, and our sales engineer is reviewing your registration now. We will e-mail you as soon as it is approved.` })
@@ -1173,7 +1180,7 @@ ${q}`,
         const fixture = isFixtureLead(full ?? sup);
         await notify([
           ...(fixture ? [] : [{ type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id,
-            subject: decision === 'approved' ? 'New supplier approved by the sales engineer' : decision === 'pending' ? 'New supplier waiting for approval (auto-approve is off)' : 'Supplier registration incomplete',
+            subject: decision === 'approved' ? 'New supplier approved by the sales engineer' : decision === 'pending' ? pendingFounderSubject(v.reason) : 'Supplier registration incomplete',
             body: `New supplier "${name}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : (certificatePending ? ' — the signed terms certificate is being issued' : '')}. No action needed; this is a record.${licInfo}` }]),
           { type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, lang: ar ? 'ar' : 'en', ...supplierMail },
         ]);

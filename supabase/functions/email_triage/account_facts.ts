@@ -56,20 +56,23 @@ export const SEPARATE_COMPANY_FACT = 'IF THEY ASK TO REGISTER ANOTHER COMPANY (a
   + 'separate company at quotesdone.com/portal with "Create account", with its own trade licence and details and a different work e-mail that has no '
   + 'account with us, because one e-mail manages exactly one company and it cannot be added under their existing account. '
   + `It needs all six of: ${SIX_ITEMS}. Any registration link given above is for the company named above only, never for the other company. ` + NO_SETUP_FOR_THEM;
+// 2 Nov 2026 (it_engineer, ledger 1445): Microsoft and Yahoo file our first mail to a company in Junk, and a message the
+// company wrote first or a sender it added as a contact is what its mailbox trusts. So the first reply asks, once and in English.
+export const ADD_CONTACT_FACT = 'END THE REPLY WITH ONE PLAIN SENTENCE IN ENGLISH ASKING THEM TO ADD supplier@quotesdone.com TO THEIR CONTACTS, or to write to that address first, so that our messages reach their inbox rather than their junk folder. Say it once, as a request, with no explanation of mail filters.';
 export function unregisteredSupplierFacts(company: string, link: string): string {
   return `THE SENDER IS A SUPPLIER COMPANY WE INVITED${company ? ' (' + company + ')' : ''}, matched on their exact e-mail address. `
     + 'THEY HAVE NOT REGISTERED YET: never call them registered and never mention jobs or quotes sent to them. '
     + 'If they say yes, want to join or ask how, tell them registration is free for our first 1,000 suppliers and takes a few minutes: '
     + `open their company's own registration link ${link} , choose "Create account" with their work e-mail and type the 6-digit code we e-mail them. `
     + `To be verified they need all six of: ${SIX_ITEMS}. The trades they cover are confirmed in the Services tab of their portal. `
-    + 'Give the link exactly as written, on its own line. ' + NO_SETUP_FOR_THEM + ' ' + SEPARATE_COMPANY_FACT;
+    + 'Give the link exactly as written, on its own line. ' + NO_SETUP_FOR_THEM + ' ' + SEPARATE_COMPANY_FACT + ' ' + ADD_CONTACT_FACT;
 }
 // An UNVERIFIED sender who is a lead: no account is read (the spoof rule below), and the sign-in line alone would send
 // a supplier with no account to a sign-in box. Both routes are named, without a personal link.
 export const SUPPLIER_SIGN_IN_FACT = 'THE SENDER\'S E-MAIL COULD NOT BE VERIFIED AS COMING FROM THEIR ADDRESS, so no account details may be given. '
   + 'If they ask about their jobs, quotes or account, say that for their security they can see them by signing in at quotesdone.com/portal. '
   + 'If they are not registered yet and want to join, they can register at quotesdone.com/portal with "Create account" and their work e-mail; '
-  + `to be verified they need all six of: ${SIX_ITEMS}. ` + NO_SETUP_FOR_THEM + ' ' + SEPARATE_COMPANY_FACT;
+  + `to be verified they need all six of: ${SIX_ITEMS}. ` + NO_SETUP_FOR_THEM + ' ' + SEPARATE_COMPANY_FACT + ' ' + ADD_CONTACT_FACT;
 
 /** The verified sender's own records as reply facts, or '' for anyone else (or when a read fails). */
 export async function accountFacts(admin: Db, email: string, relation: unknown): Promise<string> {

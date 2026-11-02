@@ -14,6 +14,7 @@ type P = Record<string, any>;
 type L = 'en' | 'ar';
 type Entry = { en: (p: P) => string; ar: (p: P) => string };
 const DOCS_BEING_READ = 'we are still reading your company profile or catalogue; your registration is checked again as soon as that read finishes';
+const SERVICES_UNCONFIRMED = 'your registration is complete except one step: you have not yet confirmed what your company does. Open the Services tab, read the summary and keywords we prepared from your company profile, correct them if needed and press Confirm my services. Your mobile, e-mail, trade licence, company profile and signed terms are already in order; you are verified as soon as you confirm';
 const READING_NOW = 'We are reading your company profile or catalogue now. This page updates by itself when the read finishes; you can keep working meanwhile.';
 const DIRECT_UPLOAD_FAILED = 'The file could not be uploaded. Files up to 100 MB are accepted (PDF, Word, PowerPoint, JPEG or PNG). Please try again.';
 const s = (en: string | ((p: P) => string), ar: string | ((p: P) => string)): Entry => ({
@@ -597,9 +598,15 @@ const COPY: Record<string, Entry> = {
     'لم نتمكن من قراءة تاريخ الانتهاء في رخصتكم التجارية حتى بقارئ المستندات لدينا. يُرجى رفع نسخة أوضح (ملف PDF أو صورة واضحة للصفحة كاملة)، وسنقرؤها مجددًا فور وصولها'),
   licence_number_unread: s('we could not read the licence number on your trade licence, even with our document reader. Please upload a clearer copy (a PDF, or a sharp photo of the whole page); we read it again as soon as it arrives',
     'لم نتمكن من قراءة رقم الرخصة في رخصتكم التجارية حتى بقارئ المستندات لدينا. يُرجى رفع نسخة أوضح (ملف PDF أو صورة واضحة للصفحة كاملة)، وسنقرؤها مجددًا فور وصولها'),
+  // 2 Nov 2026 (ledger 1442): only a readable UAE authority is approved automatically. English only, ruling 1008.
+  licence_authority_unread: s('we could not read the issuing authority on your trade licence. Please upload a clearer copy of the whole page; we read it again as soon as it arrives', 'we could not read the issuing authority on your trade licence. Please upload a clearer copy of the whole page; we read it again as soon as it arrives'),
+  licence_authority_unconfirmed: s('we could not confirm the authority that issued your trade licence. Please reply naming the UAE authority or free zone that issued it, or upload a clearer copy of the whole page', 'we could not confirm the authority that issued your trade licence. Please reply naming the UAE authority or free zone that issued it, or upload a clearer copy of the whole page'),
+  licence_authority_not_uae: s('the trade licence you uploaded was not issued by a UAE authority. Please upload your current UAE trade licence; we read it as soon as it arrives', 'the trade licence you uploaded was not issued by a UAE authority. Please upload your current UAE trade licence; we read it as soon as it arrives'),
   // 13 Oct 2026 (review of #1404): a profile or catalogue whose read has not finished holds approval until it has.
   // English only: suppliers are always written to in English (ruling 1008), so both slots carry the same sentence.
   documents_being_read: s(DOCS_BEING_READ, DOCS_BEING_READ),
+  // 2 Nov 2026 (ledger 1469): verification needs the supplier's own confirmation of the services read from its profile. English only.
+  services_unconfirmed: s(SERVICES_UNCONFIRMED, SERVICES_UNCONFIRMED),
   // 19 Oct 2026 (sales_engineer): a profile or catalogue is read after its upload answers; the Documents tab says so
   // until the read finishes, and a file uploaded straight to storage that did not arrive says that. English only.
   documents_reading_now: s(READING_NOW, READING_NOW),
