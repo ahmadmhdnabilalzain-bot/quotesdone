@@ -386,7 +386,7 @@ async function portalSurface(browser, run) {
     { say: 'Can I post a job worth AED 300?', grade: 'minimum' },
     { say: 'Which emirates do you cover?', grade: 'emirates' },
     { say: 'Can I pay the supplier through QuotesDone, and do you hold the money?', grade: 'escrow' },
-    { say: 'Thanks. In one line, what is the fee again?', grade: 'fee' },
+    { say: 'Thanks. In one line, what is the fee again?', grade: 'feeOneLine' },
     { say: 'Remind me: where is my villa and how wide must the main door be?', grade: 'recall', facts: [/barsha/i, /2[.,]4/] },
     { say: 'Last one: is the fee free to post, still?', grade: 'fee' },
   ];
@@ -486,7 +486,7 @@ async function supplierSurface(browser, run) {
     if (!(await detail.isVisible().catch(() => false))) await row.click();
     await detail.waitFor({ timeout: 30000 });
     await detail.getByRole('button', { name: 'Send your quotation to the sales engineer' }).click({ timeout: 20000 });
-    const chat = pg.locator(chatSel); await chat.getByText('I am the QuotesDone sales engineer').waitFor({ timeout: 45000 });
+    const chat = pg.locator(chatSel); await chat.getByText(/I am the QuotesDone sales engineer|welcome to the quotation chat/).first().waitFor({ timeout: 45000 });
     return chat;
   };
   const bubbles = (pg) => pg.evaluate((s) => [...document.querySelectorAll(`${s} ul[role="log"] > li`)].map((li) => li.innerText.trim()).filter(Boolean), chatSel);

@@ -200,15 +200,29 @@ async function walk(run, c, n) {
 
   // 7. Wait for the reads and the certificate to land, then judge from the row.
   const t1 = Date.now(); let row;
-  for (;;) {
-    row = (await read(`select l.approval_status status, l.licence_gate_reason reason, l.verified, l.signed_terms_path is not null signed, l.signed_terms_path stp, l.accepted_terms_ip ip, to_char(l.accepted_terms_at at time zone 'UTC','YYYY-MM-DD HH24:MI:SS') acc_utc, l.registration_submitted_at is not null submitted,
+  const rowSql = `select l.approval_status status, l.licence_gate_reason reason, l.verified, l.signed_terms_path is not null signed, l.signed_terms_path stp, l.accepted_terms_ip ip, to_char(l.accepted_terms_at at time zone 'UTC','YYYY-MM-DD HH24:MI:SS') acc_utc, l.registration_submitted_at is not null submitted,
         l.trade_license_no licence_no, l.licence_legal_name name, l.license_authority authority, l.license_expiry::text expiry, l.doc_extracted_at is not null extracted, l.company_name, l.sector,
         c.source_docs -> 'docs' docs, c.proposed_trades, (select count(*)::int from public.agent_actions a where a.kind='supplier_verification' and a.target_id=l.id::text) decisions
-       from public.leads l left join public.supplier_capabilities c on c.supplier_id = l.id where l.id=${lead.id}`))[0];
+       from public.leads l left join public.supplier_capabilities c on c.supplier_id = l.id where l.id=${lead.id}`;
+  for (;;) {
+    row = (await read(rowSql))[0];
     const reading = (row.docs || []).some((d) => d.status === 'reading');
     // settled = certificate signed, nothing still being read, and the gate is no longer waiting on a read or on the terms
     if ((row.signed && !reading && row.reason !== 'documents_being_read' && row.reason !== 'reg_terms') || Date.now() - t1 > 240000) break;
     await sleep(5000);
+  }
+  // LEDGER 1469 (2 Nov 2026): a supplier is verified only after it confirms its services. Terms + Save complete the registration and hold
+  // an otherwise-clean one at pending/services_unconfirmed; the supplier's own confirm (supplier_api capability_confirm, the writer the
+  // Services tab uses) releases the approval. Every read assertion below is unchanged and judges the row after the release.
+  if (c.want.status === 'approved') {
+    step('ledger 1469: before the supplier confirms its services it is held (pending / services_unconfirmed)', row.status === 'pending' && row.reason === 'services_unconfirmed', `got ${row.status} / ${row.reason}`);
+    const pick = (await read(`select s.trade_code, s.trade_code || '.' || s.code as k, (select code from public.taxonomy_role where active order by sort limit 1) as role from public.taxonomy_trade_service s where s.active order by s.trade_code, s.sort limit 1`))[0];
+    // retried on a platform blip (502/503/504/546), never on a refusal
+    let cc;
+    for (let k = 0; k < 3; k++) { cc = await call('supplier_api', jwt, { action: 'capability_confirm', trades: [pick.trade_code], roles: [pick.role], services: [pick.k] }, 60000); if (![0, 502, 503, 504, 546].includes(cc.status)) break; await sleep(3000); }
+    step('ledger 1469: the supplier confirms its services', cc.json?.ok === true, `HTTP ${cc.status} ${String(cc.text).slice(0, 120)}`);
+    const t1b = Date.now();
+    for (;;) { row = (await read(rowSql))[0]; if (row.status === 'approved' || Date.now() - t1b > 60000) break; await sleep(2000); }
   }
   out.row = row;
   // The certificate itself, read back from the signed-terms bucket: is the IP printed inside it? (ledger 1468)
@@ -278,6 +292,9 @@ async function walk(run, c, n) {
   const nt = await read(`select type, channel, status, subject from public.notifications where lead_id=${lead.id} order by id`);
   out.notices = nt.map((x) => `${x.type}/${x.channel}/${x.status}: ${x.subject}`);
   const real = nt.filter((x) => x.status !== 'suppressed');
+  // A type written twice on ONE channel would be a duplicate mail; one per channel (email + in-app/WhatsApp) is the designed pair.
+  const perChannel = {}; for (const x of nt) perChannel[`${x.type}/${x.channel}`] = (perChannel[`${x.type}/${x.channel}`] || 0) + 1;
+  step('no notice is written twice on the same channel (no duplicate mail)', Object.values(perChannel).every((k) => k === 1), JSON.stringify(out.notices));
   step('every notice is suppressed, none sent', real.length === 0, JSON.stringify(real).slice(0, 200));
   if (c.want.status === 'approved') {
     step('the approval notice is written', nt.some((x) => x.type === 'supplier_approved' && x.channel === 'email'), JSON.stringify(nt.map((x) => x.type)));

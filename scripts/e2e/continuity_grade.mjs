@@ -53,6 +53,15 @@ export const GRADERS = {
     otherPercent,
     never(/\b(monthly|annual|subscription) (fee|charge)s? (for|to) (customers|you)\b|\bcommission (on|from) (the )?customer/i, 'invents a customer charge'),
   ], r, c),
+  // "in one line, what is the fee again": the user asked for the fee and asked for ONE line, so the 3% is the answer. "Posting is free"
+  // is demanded by the questions that ask whether it is free (grader fee); demanding it here failed a correct reply ("The fee is 3% of the
+  // selected quote's final price") at run 41389615237 turn 14. Everything that makes a fee answer WRONG still applies: a missing 3%,
+  // another percentage, an invented customer charge.
+  feeOneLine: (r, c) => run([
+    need(/\b3\s?(%|percent|per cent)/i, 'does not state the 3% reveal fee'),
+    otherPercent,
+    never(/\b(monthly|annual|subscription) (fee|charge)s? (for|to) (customers|you)\b|\bcommission (on|from) (the )?customer/i, 'invents a customer charge'),
+  ], r, c),
   // the comparison report covers three; the customer still sees and can pick every other quote
   top3: (r, c) => run([
     need(/\b(3|three)\b/i, 'does not mention the top-3 comparison report'),
