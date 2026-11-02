@@ -4,20 +4,21 @@ name: Stage 2 sandbox run (demo data, models on for its tagged calls)
 # needed the founder's machine. This runs it on a GitHub-hosted runner with the repository's SUPABASE_ACCESS_TOKEN.
 # Same fences as the laptop run: ZZ DEMO identities on example.invalid only, Stripe TEST only, the model spend capped
 # in the database (USD 4 per rehearsal window, never above 15), the founder's hold untouched, every row torn down by
-# its tag. The preconditions refuse the run while another harness window is open, so it never walks beside another walk.
-# Runs by hand, or once when this file changes on a branch. The report folder is the artifact.
+# its tag. The run waits for a quiet moment (no rehearsal window open) before it starts.
+# Runs by hand only. With cleanup_tag it removes that run's demo rows and proves 0 remain (a run the 125-minute step
+# ceiling killed before its own teardown, as the first run did). The report folder is the artifact.
 on:
-  workflow_dispatch: {}
-  push:
-    paths:
-      - .github/workflows/stage2-sandbox.yml
+  workflow_dispatch:
+    inputs:
+      cleanup_tag:
+        description: 'Run tag (8 hex) to tear down and verify instead of running stage 2'
+        required: false
 
 permissions:
   contents: read
 
 jobs:
   stage2:
-    if: ${{ github.ref_name != 'main' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     # 8 install + 130 wait for a quiet moment + 125 run + teardown; the 2-hour rehearsal window closes itself in the database.
     timeout-minutes: 275
@@ -25,6 +26,7 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QD_SANDBOX_OUT: stage2-out
       QD_E2E_RUN_TAGS: e2e-run-tags.txt
+      CLEANUP_TAG: ${{ inputs.cleanup_tag }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -34,17 +36,24 @@ jobs:
           node-version: '24'
       - run: npm ci && npx playwright install --with-deps chromium
         timeout-minutes: 8
+      - if: env.CLEANUP_TAG != ''
+        run: |
+          node scripts/e2e/stage2.mjs --cleanup-only --tag "$CLEANUP_TAG"
+          node scripts/e2e/stage2.mjs --verify-clean --tag "$CLEANUP_TAG"
+        timeout-minutes: 30
       # A QUIET MOMENT: wait until no rehearsal window is open (every walk and journey holds one, and none outlives its
       # 2 hours), so stage 2 never runs beside another walk and its load readings are its own. The run's first step
       # refuses while one is open; this makes it wait instead of fail. Up to 125 minutes.
       - id: quiet
+        if: env.CLEANUP_TAG == ''
         run: node scripts/e2e/wait_for_no_open_window.mjs 125
         timeout-minutes: 130
       - id: run
+        if: env.CLEANUP_TAG == ''
         run: node scripts/e2e/stage2.mjs --run
         timeout-minutes: 125
       # A window this job opened never outlives it (same step the nightly has).
-      - if: always()
+      - if: always() && env.CLEANUP_TAG == ''
         run: node scripts/e2e/close_job_windows.mjs "$QD_E2E_RUN_TAGS"
         timeout-minutes: 3
       - uses: actions/upload-artifact@v4
