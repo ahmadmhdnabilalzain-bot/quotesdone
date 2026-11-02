@@ -133,15 +133,15 @@ Deno.test('1339: modelSays reports an outage only when no call reached a model',
 });
 
 // Run 41530397323 (main), the lean "scam" turn: the model was up, nothing it wrote inside the budget could be used, and the
-// person got no reply for the turn. Here every call that carries the company brief answers something unusable (prose, not the
-// reply object); the one brief-less last-chance ask answers properly and IS the reply. On the pre-fix modelSays the text is ''.
+// person got no reply for the turn. Here every call that carries the company brief answers something unusable (an object cut off
+// mid-answer); the one brief-less last-chance ask answers properly and IS the reply. On the pre-fix modelSays the text is ''.
 Deno.test('the model is up but nothing passes in the budget: one brief-less last chance writes the reply', async () => {
   const calls: Record<string, unknown>[] = [];
   const deps = {
     gate: () => Promise.resolve(null),
     llm: (_p: string, _s: string, _i: string, o: Record<string, unknown>) => {
       calls.push(o);
-      return Promise.resolve((o.sysStable ? { content: 'I am sorry to hear that, let me help', model: 'stub' }
+      return Promise.resolve((o.sysStable ? { content: '{"answer":"I am sorry to hear that, let me', model: 'stub' }
         : { content: A('I am sorry this happened. Please reach our team directly on +1 218 316 6814 and we will look into your payment.'), model: 'stub' }) as LlmReply);
     },
     embed: () => Promise.resolve(null),

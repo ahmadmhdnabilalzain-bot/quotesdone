@@ -184,3 +184,21 @@ Deno.test('a signal reaches the model call; an aborted request starts no call', 
   const r = await aiReply(t.deps, { ...req, signal: ac.signal });
   assertEquals(t.calls.length, 0); assertEquals(r.reply, '');
 });
+
+// Run 41540859092: Sonnet answered "Sorry to hear that. AC repair is covered, ..." as plain text, no JSON; the parser read ''
+// and the turn paid a 278k-token other-family call. Plain prose is the answer now; an object cut off mid-answer still is not.
+Deno.test('a reply written as plain prose is the reply; a cut-off object is still refused', async () => {
+  const mk = (answers: string[]) => {
+    const calls: string[] = [];
+    const deps = { gate: () => Promise.resolve(null), embed: () => Promise.resolve(null), rpc: () => Promise.resolve({ data: null, error: null }),
+      llm: () => { const a = answers.shift() ?? null; calls.push(String(a)); return Promise.resolve({ content: a, model: 'stub' } as LlmReply); } } as unknown as ThinkDeps;
+    return { deps, calls };
+  };
+  const prose = mk(['Sorry to hear that. AC repair is a trade our suppliers cover; describe the job and the unit and we will send it to them.']);
+  const r = await aiReply(prose.deps, { seat: 'customer_support', channel: 'whatsapp', audience: 'customer', lang: 'en', message: 'ZZ DEMO my AC is broken' });
+  assert(r.reply.startsWith('Sorry to hear that.'), 'prose read as the reply: ' + r.attempts.join(' | '));
+  assertEquals(prose.calls.length, 1, 'no second rung');
+  const cut = mk(['{"answer":"Sorry to hear that. AC repair is', '{"answer":"Sorry to hear that. AC repair is', '{"answer":"Sorry', '{"answer":"Sorry']);
+  const r2 = await aiReply(cut.deps, { seat: 'customer_support', channel: 'whatsapp', audience: 'customer', lang: 'en', message: 'ZZ DEMO my AC is broken' });
+  assertEquals(r2.reply, '', 'control: a cut-off object is never sent');
+});
