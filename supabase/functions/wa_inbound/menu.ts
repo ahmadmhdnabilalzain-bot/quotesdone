@@ -83,16 +83,6 @@ export function menuChoice(p: { body?: string; listId?: string; buttonPayload?: 
   return null;
 }
 
-/** A message that is NOTHING BUT a greeting, taken without a model (customer_support, 2 Nov 2026: a bare "Hi" waited ~15 s on the
- *  classification only to be told 'greeting'). Whole-message tokens only, like FIGURES: "hi, how much is tiling?" is not here and
- *  is reasoned as before. 'salam' is the Islamic greeting, which the welcome answers in kind. */
-const GREETINGS = new Set(['hi', 'hello', 'hey', 'hi there', 'hello there', 'good morning', 'good afternoon', 'good evening', 'مرحبا', 'مرحبًا', 'اهلا', 'أهلا', 'هلا']);
-const SALAMS = new Set(['salam', 'salaam', 'assalamu alaikum', 'assalamualaikum', 'as salamu alaykum', 'السلام عليكم', 'سلام']);
-export function bareGreeting(body: string): 'greeting' | 'salam' | null {
-  const t = String(body || '').toLowerCase().replace(/[\s!.,؟?،]+$/u, '').replace(/^[\s!.,]+/u, '').replace(/\s+/g, ' ').trim();
-  return GREETINGS.has(t) ? 'greeting' : SALAMS.has(t) ? 'salam' : null;
-}
-
 /** The key under which the Content SID of this menu is stored (app_secrets.wa_menu_content_sids). */
 export function contentKey(lang: Lang, audience: Audience): string {
   return 'menu_' + lang + '_' + (audience === 'supplier' ? 'supplier' : 'general');
