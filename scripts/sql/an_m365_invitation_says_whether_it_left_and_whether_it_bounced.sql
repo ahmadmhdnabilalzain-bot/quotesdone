@@ -16,8 +16,12 @@
 --     sentDateTime (Exchange took it and sent it; it does not prove the recipient's server accepted it). Graph answering 200
 --     with no such message is one try, and after 5 (2.5 h) the send reads 'unreadable'. A refused token, 429, 5xx or timeout
 --     is not counted (review of #1792): an outage never gives up on a send. Never 'delivered': Graph cannot see delivery.
---  2. fn_mail_bounce_marks_its_send: a delivery report whose In-Reply-To is the EXACT Message-ID of an M365 send, from an
---     authenticated sender or our own tenant's Exchange on its own stamp (raw.exchange_internal), carrying a standalone
+--     WHO IS BELIEVED (final review of #1792), for the send's status and for marking a lead alike: our own tenant's Exchange
+--     on its own stamp (raw.exchange_internal = AuthAs Internal, our tenant only), or Gmail's mailer-daemon@googlemail.com
+--     with an authenticated sender (EOP's verdict). Nobody else: not an Is-Ndr header, not ARC, not a DMARC pass for
+--     quotesdone.com (shared SPF senders can pass as us), not another provider's authenticated postmaster.
+--  2. fn_mail_bounce_marks_its_send: a delivery report whose In-Reply-To is the EXACT Message-ID of an M365 send, from a
+--     believed sender (above), carrying a standalone
 --     5.x.x code (Gmail's text has none: its own ?p=<Reason> token is taken, e.g. 'gmail:NoSuchUser'), writes 'undelivered'
 --     'bounce:<code>'. A delay notice, or a report with no code, writes nothing. A bounce overwrites 'sent'.
 --     Controls (probe, on the 7 real reports): unstamped, only Gmail's marks its send; with the tenant's stamp recorded, all 7
@@ -27,11 +31,10 @@
 --  3. fn_supplier_mailbox_mail_gets_its_owner (live body, three edits): our tenant's Exchange, on its own stamp and with the
 --     exact In-Reply-To, counts as authenticated, so its permanent bounce marks the lead 'bounced' and the brake counts it.
 --     The Message-ID alone is no proof: the recipient knows it. It calls (2).
---     raw.exchange_internal is written by resend_inbound (and by the re-read, 2b) from a tenant system sender plus any one
---     of: X-MS-Exchange-Organization-AuthAs: Internal; dmarc=pass/compauth=pass for the sender's own domain in
---     Authentication-Results or ARC; X-MS-Exchange-Message-Is-Ndr with no fail verdict (suppression_policy.ts tenantStampOf).
---     NOT MEASURED here: which of them Graph returns on the 6 NDRs. sales_engineer action 'm365_ndr_headers' (read-only,
---     writes nothing) lists it per NDR right after deploy.
+--     raw.exchange_internal is written by resend_inbound (and by the re-read, 2b): our tenant's system sender with
+--     X-MS-Exchange-Organization-AuthAs: Internal (suppression_policy.ts tenantStampOf). NOT MEASURED here: whether Graph
+--     returns AuthAs on the 6 NDRs. sales_engineer action 'm365_ndr_headers' (read-only, writes nothing) lists it per NDR
+--     right after deploy. Until then those 6 are not believed and mark nothing.
 --  4. Backfill, at apply, from what Graph already returned: every report in inbound_messages whose In-Reply-To names a
 --     qd-notif send goes through (2). The Sent Items read-back fills the rest on resilience_ping's 15-minute beat.
 -- Prevented by: supabase/functions/_shared/m365_sent_status.test.ts, an_m365_invitation_says_whether_it_left_and_whether_it_bounced_probe.sql
@@ -100,6 +103,18 @@ end $fn$;
 revoke execute on function public.fn_m365_sent_status_record(bigint, boolean, timestamptz, int, text) from public, anon, authenticated;
 
 -- 2. A BOUNCE IS WRITTEN ON THE SEND IT IS ABOUT
+-- Gmail's own delivery report: from mailer-daemon@googlemail.com, and EOP authenticated the From domain (raw.sender_authenticated,
+-- _shared/suppression_policy.ts senderAuthenticated: an aligned DMARC/DKIM pass for googlemail.com).
+create or replace function public.fn_mail_bounce_is_gmails_own(p_from text, p_raw jsonb)
+returns boolean
+language sql immutable
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select coalesce(p_raw->>'sender_authenticated', 'false') = 'true'
+     and lower(coalesce(substring(coalesce(p_from, '') from '([^<>[:space:]"]+@[^<>[:space:]"]+)'), '')) = 'mailer-daemon@googlemail.com'
+$fn$;
+revoke execute on function public.fn_mail_bounce_is_gmails_own(text, jsonb) from public, anon, authenticated;
+
 create or replace function public.fn_mail_bounce_marks_its_send(p_inbound_id bigint)
 returns jsonb
 language plpgsql security definer
@@ -118,10 +133,10 @@ begin
   if n.id is null or coalesce(n.provider_message_id, '') not like 'm365:<%>' or position(substr(n.provider_message_id, 6) in v_ids) = 0 then
     return jsonb_build_object('applied', false, 'reason', 'its In-Reply-To is not the exact Message-ID of an M365 send of ours', 'notification_id', v_nid);
   end if;
-  -- whoever can read the Message-ID (the recipient, anyone it was forwarded to) could write a "report": the sender must be
-  -- authenticated, or be our own tenant's Exchange on its own stamp (raw.exchange_internal, _shared/suppression_policy.ts)
-  if coalesce(m.raw->>'sender_authenticated', 'false') <> 'true' and coalesce(m.raw->>'exchange_internal', 'false') <> 'true' then
-    return jsonb_build_object('applied', false, 'reason', 'the report''s sender is neither authenticated nor our own tenant', 'notification_id', n.id);
+  -- whoever can read the Message-ID (the recipient, anyone it was forwarded to) could write a "report": only our own tenant's
+  -- Exchange on its own stamp (raw.exchange_internal) or Gmail's authenticated mailer-daemon is believed
+  if coalesce(m.raw->>'exchange_internal', 'false') <> 'true' and not public.fn_mail_bounce_is_gmails_own(m.from_email, m.raw) then
+    return jsonb_build_object('applied', false, 'reason', 'the report''s sender is neither our own tenant nor Gmail''s authenticated mailer-daemon', 'notification_id', n.id);
   end if;
   v_text := left(coalesce(m.subject, '') || ' ' || coalesce(m.body, ''), 6000);
   -- the delay test first: a delay notice writes nothing, whatever numbers it carries
@@ -132,7 +147,7 @@ begin
   v_code := substring(v_text from '(?<![0-9.])(5\.[0-9]{1,3}\.[0-9]{1,3})(?![0-9.])');
   -- Gmail's report text carries no RFC code (its 550 5.1.1 line is in the delivery-status part, which is not stored); it
   -- names its reason in its own help link, support.google.com/mail/?p=NoSuchUser. That token is the code, as Google wrote it.
-  if v_code is null and coalesce(m.raw->>'sender_authenticated', 'false') = 'true' and lower(coalesce(m.from_email, '')) ~ 'mailer-daemon@googlemail\.com' then
+  if v_code is null and public.fn_mail_bounce_is_gmails_own(m.from_email, m.raw) then
     v_code := 'gmail:' || substring(v_text from 'support\.google\.com/mail/\?p=([A-Za-z]+)');
   end if;
   if v_code is null then
@@ -222,7 +237,9 @@ begin
       v_why := 'the bounce does not name the address it was sent to';
     elsif v_to ~ '@(mail\.)?quotesdone\.(com|ae)$' or public.fn_is_founder_own_inbox(v_to) then
       v_why := 'never suppressed: our own or the founder''s address';
-    elsif coalesce(m.raw->>'sender_authenticated', 'false') <> 'true' and not v_exact then
+    elsif not (v_exact or public.fn_mail_bounce_is_gmails_own(m.from_email, m.raw)) then
+      -- final review of #1792: an authenticated sender is not enough (shared SPF senders pass as anyone's domain). Only our
+      -- tenant's stamped Exchange, by the exact In-Reply-To, or Gmail's authenticated mailer-daemon marks a lead.
       -- a forged "postmaster" naming a guessed qd-notif id must never suppress a real address (resend_webhook verifies
       -- its signature for the same reason)
       v_why := 'the bounce''s sender is not authenticated';

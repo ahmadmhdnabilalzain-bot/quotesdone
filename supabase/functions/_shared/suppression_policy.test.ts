@@ -11,21 +11,17 @@ Deno.test('path 1: our tenant\'s Exchange stamped AuthAs Internal, on the M365 l
   assert(!exchangeInternal('re_123', { authAs: 'Internal' }, SYS), 'only the M365 lane');
   assert(!exchangeInternal('m365:AAMk1', { authAs: 'Internal' }, 'postmaster@evil.example'), 'another sender');
 });
-Deno.test('path 2: a pass verdict for the sender\'s own domain, in Authentication-Results or ARC', () => {
-  const ar = 'spf=pass smtp.mailfrom=quotesdone.com; dkim=pass header.d=quotesdone.com; dmarc=pass action=none header.from=quotesdone.com;compauth=pass reason=100';
-  assertEquals(tenantStampOf('m365:AAMk1', { authResults: ar }, 'postmaster@quotesdone.com'), 'own_domain_dmarc');
-  assertEquals(tenantStampOf('m365:AAMk1', { arcResults: 'i=1; dmarc=pass header.from=netorgft20811795.onmicrosoft.com' }, SYS), 'own_domain_dmarc');
-  assertEquals(tenantStampOf('m365:AAMk1', { authResults: 'dmarc=pass header.from=evil.example' }, 'postmaster@quotesdone.com'), null, 'a pass for another domain');
-});
-Deno.test('path 3: X-MS-Exchange-Message-Is-Ndr with no fail verdict', () => {
-  assertEquals(tenantStampOf('m365:AAMk1', { isNdr: '' }, SYS), 'is_ndr');
-});
-Deno.test('a forged postmaster on our domain is refused on every path', () => {
-  const forged = 'spf=fail smtp.mailfrom=quotesdone.com; dkim=none; dmarc=fail action=quarantine header.from=quotesdone.com;compauth=fail reason=000';
-  assertEquals(tenantStampOf('m365:AAMk1', { authAs: 'Anonymous', isNdr: '', authResults: forged }, 'postmaster@quotesdone.com'), null);
-  assertEquals(tenantStampOf('m365:AAMk1', { isNdr: '', authResults: forged }, SYS), null);
+// Final review of #1792: these are refused, every one.
+Deno.test('a forged Is-Ndr, another tenant, an ARC pass and a DMARC pass for our domain are not our tenant', () => {
+  const pass = 'spf=pass smtp.mailfrom=quotesdone.com; dkim=pass header.d=quotesdone.com; dmarc=pass action=none header.from=quotesdone.com;compauth=pass reason=100';
+  assertEquals(tenantStampOf('m365:AAMk1', { isNdr: '' }, SYS), null, 'X-MS-Exchange-Message-Is-Ndr is not stripped: anyone can set it');
+  assertEquals(tenantStampOf('m365:AAMk1', { authAs: 'Internal' }, 'microsoftexchange329e71ec88ae4615bbc36ab6ce41109e@othertenant.onmicrosoft.com'), null,
+    'another tenant\'s Exchange is stamped Internal by its own organisation');
+  assertEquals(tenantStampOf('m365:AAMk1', { arcResults: 'i=1; dmarc=pass header.from=netorgft20811795.onmicrosoft.com' }, SYS), null, 'any hop writes ARC');
+  assertEquals(tenantStampOf('m365:AAMk1', { authResults: pass }, 'postmaster@quotesdone.com'), null, 'shared SPF senders can pass DMARC as us');
+  assertEquals(tenantStampOf('m365:AAMk1', { authAs: 'Anonymous', isNdr: '', authResults: pass }, 'postmaster@quotesdone.com'), null);
   assertEquals(tenantStampOf('m365:AAMk1', {}, SYS), null, 'no proof at all');
-  assertEquals(tenantStampOf('m365:AAMk1', { isNdr: '' }, 'mailer-daemon@evil.example'), null, 'not a tenant system sender');
+  assertEquals(tenantStampOf('m365:AAMk1', { authAs: 'Internal' }, 'postmaster@quotesdone.com'), 'auth_as_internal', 'our postmaster, stamped');
 });
 
 Deno.test('an unsubscribed address still receives a sign-in code; a hard-bounced or complained one does not', () => {

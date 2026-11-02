@@ -77,10 +77,10 @@ Deno.test('a 429, a 503 and a timeout go over with no 200, so none of them can b
 
 // Review of #1792: the 6 tenant reports of 29-30 Oct were stored without headers; each is read again from Graph by its id.
 Deno.test('a stored report is read again: the tenant\'s Internal stamp is recorded true, Anonymous or gone false, an outage nothing', async () => {
-  const SYS = 'microsoftexchange329e71ec88ae4615bbc36ab6ce41109e@zz-demo.onmicrosoft.com';
-  const msg = (authAs: string) => ({ status: 200, body: { from: { emailAddress: { address: SYS } }, internetMessageHeaders: [
+  const SYS = 'microsoftexchange329e71ec88ae4615bbc36ab6ce41109e@netorgft20811795.onmicrosoft.com';
+  const msg =(authAs: string) => ({ status: 200, body: { from: { emailAddress: { address: SYS } }, internetMessageHeaders: [
     { name: 'X-MS-Exchange-Organization-AuthAs', value: authAs },
-    { name: 'Authentication-Results', value: 'dmarc=fail header.from=zz-demo.onmicrosoft.com;compauth=fail reason=000' }] } });
+    { name: 'Authentication-Results', value: 'dmarc=fail header.from=netorgft20811795.onmicrosoft.com;compauth=fail reason=000' }] } });
   const h = harness([], (url) => url.includes('/messages/g1?') ? msg('Internal') : url.includes('/messages/g2?') ? msg('Anonymous')
     : url.includes('/messages/g3?') ? { status: 404 } : { status: 503 });
   const stamped: Array<[number, boolean]> = [];
@@ -93,7 +93,7 @@ Deno.test('a stored report is read again: the tenant\'s Internal stamp is record
 });
 
 Deno.test('the read-only measurement reports which stamp headers Graph returns, and writes nothing', async () => {
-  const SYS = 'microsoftexchange329e71ec88ae4615bbc36ab6ce41109e@zz-demo.onmicrosoft.com';
+  const SYS = 'microsoftexchange329e71ec88ae4615bbc36ab6ce41109e@netorgft20811795.onmicrosoft.com';
   const h = harness([], (url) => {
     const f = new URL(url).searchParams.get('$filter') || '';
     if (f.includes('ndr-a')) return { status: 200, body: { value: [{ id: 'g1', from: { emailAddress: { address: SYS } }, internetMessageHeaders: [{ name: 'X-MS-Exchange-Message-Is-Ndr', value: '' }] }] } };
@@ -105,7 +105,8 @@ Deno.test('the read-only measurement reports which stamp headers Graph returns, 
   const out = await measureNdrHeaders({ env: h.deps.env, mailbox: 'supplier@quotesdone.com', messageIds: ['<ndr-a@x>', '<ndr-b@x>', '<ndr-c@x>'],
     fetchFn: (u, i) => { methods.push(String(i?.method || 'GET')); return fetchFn(u, i); } });
   const r = out.readings as Array<Record<string, unknown>>;
-  assertEquals([r[0].recognised, r[0].is_ndr, r[0].auth_as, r[1].found, r[2].http], ['is_ndr', true, null, false, 503]);
+  // Is-Ndr is reported but proves nothing (final review of #1792): only AuthAs Internal is accepted
+  assertEquals([r[0].recognised, r[0].is_ndr, r[0].auth_as, r[1].found, r[2].http], [null, true, null, false, 503]);
   assertEquals(out.writes, 0);
   assert(methods.slice(1).every((m) => m === 'GET'), 'the measurement only reads');
 });

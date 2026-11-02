@@ -144,27 +144,21 @@ export function senderAuthenticated(providerEmailId: unknown, authResults: unkno
 
 /** The headers a tenant-written delivery report can prove itself by (null = absent). */
 export type TenantStamp = { authAs?: string | null; isNdr?: string | null; authResults?: string | null; arcResults?: string | null };
-/** Our tenant's system senders: Exchange's own NDR address and postmaster, on the tenant's onmicrosoft domain or ours. */
-const SYSTEM_SENDER = /^(microsoftexchange[0-9a-f]{32}|postmaster)@([a-z0-9-]+\.onmicrosoft\.com|quotesdone\.com)$/i;
+/** OUR tenant's system senders only: Exchange's own NDR address and postmaster, on our tenant's onmicrosoft domain (the
+ *  sender of the 6 measured NDRs, 29-30 Oct) or quotesdone.com. Any other tenant is someone else's Exchange. */
+const SYSTEM_SENDER = /^(microsoftexchange[0-9a-f]{32}|postmaster)@(netorgft20811795\.onmicrosoft\.com|quotesdone\.com)$/i;
 
-/** Which proof shows our own tenant's Exchange wrote it, or null (2 Nov 2026, review of #1792). Only on a delivery handed in
- *  from the M365 mailbox (provider id 'm365:', our own signed handover) from a tenant system sender, then any one of:
- *   - 'auth_as_internal': X-MS-Exchange-Organization-AuthAs: Internal. Exchange's header firewall strips
- *     X-MS-Exchange-Organization-* from mail arriving from outside, so the value is the tenant's own;
- *   - 'own_domain_dmarc': Authentication-Results or ARC-Authentication-Results show dmarc=pass or compauth=pass with
- *     header.from = the sender's domain (a forged From on our domain fails DMARC);
- *   - 'is_ndr': X-MS-Exchange-Message-Is-Ndr present and no dmarc=fail / compauth=fail verdict. ponytail: the weakest of
- *     the three, as the coordinator ruled; drop it once the read-only measurement shows which header the real NDRs carry.
- *  Fails closed on everything else. */
-export function tenantStampOf(providerEmailId: unknown, h: TenantStamp, fromEmail: string): 'auth_as_internal' | 'own_domain_dmarc' | 'is_ndr' | null {
+/** Our own tenant's Exchange wrote it, or null (2 Nov 2026, final review of #1792). ONE proof only:
+ *  X-MS-Exchange-Organization-AuthAs: Internal on a delivery handed in from the M365 mailbox (provider id 'm365:', our own
+ *  signed handover) from our tenant's system sender. Exchange's header firewall strips X-MS-Exchange-Organization-* from
+ *  mail arriving from outside, so the value is our organisation's own.
+ *  Refused on purpose: X-MS-Exchange-Message-Is-Ndr (not stripped: anyone can set it); ARC-Authentication-Results (any hop
+ *  writes it); a DMARC pass for quotesdone.com (our SPF includes shared senders, so others can pass as us).
+ *  Fails closed on everything else. The headers stay in TenantStamp for the read-only measurement (m365_ndr_headers). */
+export function tenantStampOf(providerEmailId: unknown, h: TenantStamp, fromEmail: string): 'auth_as_internal' | null {
   const from = (String(fromEmail || '').match(/[^<>\s"]+@[^<>\s"]+/)?.[0] || '').toLowerCase();
   if (!String(providerEmailId || '').startsWith('m365:') || !SYSTEM_SENDER.test(from)) return null;
-  if (typeof h.authAs === 'string' && h.authAs.trim().toLowerCase() === 'internal') return 'auth_as_internal';
-  const ar = [h.authResults, h.arcResults].filter((x): x is string => typeof x === 'string').join(';').toLowerCase();
-  const dom = from.split('@')[1];
-  if (/\b(dmarc|compauth)=pass\b/.test(ar) && ar.includes('header.from=' + dom)) return 'own_domain_dmarc';
-  if (typeof h.isNdr === 'string' && !/\b(dmarc|compauth)=fail\b/.test(ar)) return 'is_ndr';
-  return null;
+  return typeof h.authAs === 'string' && h.authAs.trim().toLowerCase() === 'internal' ? 'auth_as_internal' : null;
 }
 export function exchangeInternal(providerEmailId: unknown, h: TenantStamp, fromEmail: string): boolean {
   return tenantStampOf(providerEmailId, h, fromEmail) !== null;

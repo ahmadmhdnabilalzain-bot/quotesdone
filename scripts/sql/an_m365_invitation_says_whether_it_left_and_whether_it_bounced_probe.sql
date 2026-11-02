@@ -48,7 +48,15 @@ begin
   if (select invite_status from public.leads where id = v_lead) = 'bounced' or (select provider_status from public.notifications where id = v_nid) is not null then
     raise exception 'PROBE FAILED: an unauthenticated report that only knew the Message-ID marked lead % or send %', v_lead, v_nid;
   end if;
-  update public.inbound_messages set owner_role = null, raw = raw || '{"exchange_internal": true}'::jsonb where id = v_inb;
+  -- final review of #1792: an authenticated sender that is not Gmail's mailer-daemon (a DMARC pass anyone on a shared SPF
+  -- sender can get) marks nothing either
+  update public.inbound_messages set owner_role = null, raw = raw || '{"sender_authenticated": true}'::jsonb, from_email = 'postmaster@quotesdone.com' where id = v_inb;
+  perform public.fn_supplier_mailbox_mail_gets_its_owner(v_inb);
+  if (select invite_status from public.leads where id = v_lead) = 'bounced' or (select provider_status from public.notifications where id = v_nid) is not null then
+    raise exception 'PROBE FAILED: an authenticated sender that is neither our tenant nor Gmail marked lead % or send %', v_lead, v_nid;
+  end if;
+  update public.inbound_messages set owner_role = null, raw = (raw - 'sender_authenticated') || '{"sender_authenticated": false, "exchange_internal": true}'::jsonb,
+         from_email = 'microsoftexchange329e71ec88ae4615bbc36ab6ce41109e@netorgft20811795.onmicrosoft.com' where id = v_inb;
   perform public.fn_supplier_mailbox_mail_gets_its_owner(v_inb);
   if (select invite_status from public.leads where id = v_lead) <> 'bounced' or (select provider_status from public.notifications where id = v_nid) is distinct from 'undelivered' then
     raise exception 'PROBE FAILED: our tenant''s stamped report did not mark lead % and send %', v_lead, v_nid;
