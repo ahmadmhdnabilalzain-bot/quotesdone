@@ -10,7 +10,8 @@
 //   Documents tab (supplier_portal save_documents): the photo, a bilingual Arabic/English licence PDF, a licence 1 MB
 //     under the 25 MB limit and one 1 MB over it, the company profile, insurance, ISO and a dealer letter, and last the
 //     plain DED licence, so the registration ends on a licence the review can read;
-// and finishes registration (terms + Save, approved). Every upload records what the server answered, how long it took,
+// and finishes registration (terms + Save: held at services_unconfirmed; the supplier confirms its services; approved, ledger 1469).
+// Every upload records what the server answered, how long it took,
 // what the card says afterwards, and what the row holds. Every fixture prints "ZZ DEMO FIXTURE".
 // Teardown removes every supplier-docs object under the lead (replaced versions too), doc_versions, supporting documents,
 // the run's rows (closeRun) and the sink accounts; the operator's scan afterwards covers e-mail columns and jsonb.
@@ -263,10 +264,22 @@ async function leg(browser, run, vp) {
   await M.getByRole('checkbox', { name: /I accept the QuotesDone/ }).check();
   await M.getByRole('button', { name: /^Save changes$/ }).click();
   await M.getByRole('button', { name: /Saving/ }).waitFor({ state: 'detached', timeout: 90000 }).catch(() => {});
+  // LEDGER 1469 (2 Nov 2026), in the order scripts/e2e/supplier_document_read_walk.mjs uses (#1772): a supplier is verified only after it
+  // confirms its services. Terms + Save complete the registration and hold it at pending / services_unconfirmed; the supplier's own confirm
+  // (supplier_api capability_confirm, the writer the Services tab uses) releases the approval. Approved straight after Save would be a FAIL.
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const t3 = Date.now(); let reg;
-  for (;;) { reg = await rowOf(lead.id); if ((reg.approval_status === 'approved') || Date.now() - t3 > 75000) break; await new Promise((r) => setTimeout(r, 2500)); }
+  // settled = held for the services (the documents are read and the certificate is in), or already approved
+  for (;;) { reg = await rowOf(lead.id); if (reg.approval_status === 'approved' || (reg.approval_status === 'pending' && reg.licence_gate_reason === 'services_unconfirmed') || Date.now() - t3 > 75000) break; await sleep(2500); }
   const sh = await shot(p, m, 'after_submit');
-  step(m, 'the supplier finishes registration: approved, no licence hold', reg.approval_status === 'approved' && !reg.licence_gate_reason, `${JSON.stringify({ a: reg.approval_status, why: reg.licence_gate_reason })}; ${sh || ''}`);
+  step(m, 'ledger 1469: the supplier finishes registration and is held for its services (pending / services_unconfirmed), not approved', reg.approval_status === 'pending' && reg.licence_gate_reason === 'services_unconfirmed', `${JSON.stringify({ a: reg.approval_status, why: reg.licence_gate_reason })}; ${sh || ''}`);
+  const pick = (await read(`select s.trade_code, s.trade_code || '.' || s.code as k, (select code from public.taxonomy_role where active order by sort limit 1) as role from public.taxonomy_trade_service s where s.active order by s.trade_code, s.sort limit 1`))[0];
+  let cc; // retried on a platform blip (502/503/504/546), never on a refusal
+  for (let k = 0; k < 3; k++) { cc = await call('supplier_api', s.access_token, { action: 'capability_confirm', trades: [pick.trade_code], roles: [pick.role], services: [pick.k] }, 60000); if (![0, 502, 503, 504, 546].includes(cc.status)) break; await sleep(3000); }
+  step(m, 'ledger 1469: the supplier confirms its services', cc.json?.ok === true, `HTTP ${cc.status} ${String(cc.text).slice(0, 120)}`);
+  const t3b = Date.now();
+  for (;;) { reg = await rowOf(lead.id); if (reg.approval_status === 'approved' || Date.now() - t3b > 60000) break; await sleep(2000); }
+  step(m, 'the supplier is approved after it confirms its services: no licence hold', reg.approval_status === 'approved' && !reg.licence_gate_reason, `${JSON.stringify({ a: reg.approval_status, why: reg.licence_gate_reason })}`);
   await ctx.close();
 }
 
