@@ -130,6 +130,9 @@ export interface ThinkRequest {
   reader?: boolean;
   // The reasoning effort asked of the model for the answer or decision (a choice among a few options needs little).
   effort?: 'low' | 'medium' | 'high';
+  // Sampling temperature for every call of this run (absent: 0.2, and 0 for the independent check). The quote hold
+  // gate's readers pass 0 (sales_engineer, 2 Nov 2026): the same quotation must read the same way every time.
+  temperature?: number;
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
 export interface Fact { name: string; why: string; changes_answer: boolean; value: string | null; from: string | null }
@@ -161,7 +164,7 @@ export interface ThinkDeps {
   gate(): Promise<GateAnswer>;
   // subject: what the question is about, forwarded to ai_gateway so its fixture check (fn_ai_subject_is_fixture)
   // can answer our own test traffic with the no-cost stub (704, 28 Sep 2026).
-  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h'; timeoutMs?: number; history?: { role: 'user' | 'assistant'; content: string }[]; effort?: 'low' | 'medium' | 'high' }): Promise<LlmReply>;
+  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h'; timeoutMs?: number; history?: { role: 'user' | 'assistant'; content: string }[]; effort?: 'low' | 'medium' | 'high'; temperature?: number }): Promise<LlmReply>;
   // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
   embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
   /** Why the last embed of this text in this space returned null, when the embedder said (ml_embed_client's `why`). */
@@ -590,7 +593,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     steps.push({ id: 'fixture', kind: 'hold', goal: 'our own test traffic is never sent to a paid model', status: 'skipped', detail: 'subject.fixture' });
     return await hold('fixture_no_spend', {});
   }
-  { const base = deps; deps = { ...base, llm: (p, s, i, o) => base.llm(p, s, i, { ...o, subject: req.subject ?? null }) }; }
+  { const base = deps; deps = { ...base, llm: (p, s, i, o) => base.llm(p, s, i, { ...o, subject: req.subject ?? null, ...(req.temperature != null ? { temperature: req.temperature } : {}) }) }; }
   // A PROVIDER BLIP IS RETRIED ONCE (ceo, ledger 1003 stage 2, 19 Oct 2026). Measured on the real-model seat exam: 27 of
   // 633 questions were held for one 502/503/546 or a gateway deadline on the plan or the answer, not for anything the
   // model said. A model call writes nothing, so one more try is safe; a hold, an open circuit or a refusal is not retried.
@@ -867,7 +870,7 @@ export function defaultDeps(admin: Admin, fn: string, o: { gte?: GtePlacement } 
     gate: async () => (await admin.rpc('fn_kernel_paid_provider_gate', { p_model: HOLD_PROBE_MODEL })).data,
     llm: async (phase, system, input, o) => {
       const { makeLlmRich } = await import('./llm.ts');
-      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: o.timeoutMs ?? 45_000, cacheTtlMin: 0, json: true, temperature: phase === 'verify' ? 0 : 0.2, ...(o.rateKey ? { rateKey: o.rateKey } : {}) });
+      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: o.timeoutMs ?? 45_000, cacheTtlMin: 0, json: true, temperature: o.temperature ?? (phase === 'verify' ? 0 : 0.2), ...(o.rateKey ? { rateKey: o.rateKey } : {}) });
       // A photo or drawing the person sent rides as image parts; the gateway routes it to a vision-capable model.
       const last = o.images?.length ? { role: 'user', content: [{ type: 'text', text: input }, ...o.images.map((url) => ({ type: 'image_url', image_url: { url } }))] } : { role: 'user', content: input };
       // history (chat_history.ts): the conversation so far as real turns before this one, cached by the gateway
