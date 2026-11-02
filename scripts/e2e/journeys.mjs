@@ -620,6 +620,21 @@ export async function journeyPayment(ctx) {
     && Math.round(Number(tx.total_charged) * 100) === baseF;
   rep.step(J, "the fee matches #919's formula (3% base only, no card fee, no VAT)", ok ? 'PASS' : 'FAIL',
     `quote ${tx.quote_amount} x ${rate}: expected base ${baseF / 100} + processing 0 = ${baseF / 100}; recorded ${tx.reveal_fee} + ${tx.processing_fee} = ${tx.total_charged}`);
+  // BOTH PARTIES ARE TOLD (2 Nov 2026, customer_support; founder's ruling "reveal notifies both parties").
+  // The paid reveal opens trg_reveal_receipt's handoff, which queues reveal_receipt to the customer and
+  // quote_accepted to the revealed supplier (stripe_webhook logs a warning below 2). Until today this
+  // journey proved the money and never looked at either message; only stage2 (S10) did, by API.
+  const sup = (await read(`select l.email from public.quotes qq join public.leads l on l.id = qq.supplier_id where qq.id = ${q(live.id)}`))[0];
+  const notes = (await waitFor(async () => {
+    const r = await read(`select type, to_email, status from public.notifications where quote_id = ${q(live.id)} and type in ('reveal_receipt','quote_accepted')`);
+    return r.some((x) => x.type === 'reveal_receipt') && r.some((x) => x.type === 'quote_accepted') ? r : null;
+  }, { timeoutMs: 90000, everyMs: 3000 })) || await read(`select type, to_email, status from public.notifications where quote_id = ${q(live.id)} and type in ('reveal_receipt','quote_accepted')`);
+  const toCust = notes.filter((x) => x.type === 'reveal_receipt' && x.to_email === fx.customer.email);
+  const toSup = notes.filter((x) => x.type === 'quote_accepted' && sup?.email && x.to_email === sup.email);
+  // Every address is a reserved demo one, so a row read 'sent' to anything else is a leak, not a delivery.
+  const leaked = notes.filter((x) => x.status === 'sent' && !/@example\.invalid$|@resend\.dev$/i.test(String(x.to_email || '')));
+  rep.step(J, 'the reveal notifies both parties (customer receipt, supplier acceptance)', toCust.length && toSup.length && !leaked.length ? 'PASS' : 'FAIL',
+    `customer reveal_receipt ${toCust.length}, supplier quote_accepted ${toSup.length}, leaked ${leaked.length}; rows: ${notes.map((x) => `${x.type}/${x.status}`).join(', ') || 'none'}`);
 }
 
 // ---- e. invoice and refund ladder ------------------------------------------------------------------

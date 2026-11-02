@@ -13,7 +13,12 @@ name: Nightly full journey (demo data)
 on:
   # schedule:
     # - cron: '0 22 * * *'   # 02:00 Dubai
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      journeys:
+        description: 'run.mjs --journey list (e.g. a,b,c,d); empty = every journey. A subset never settles findings of journeys it skipped (run_scope.mjs).'
+        required: false
+        default: ''
 
 jobs:
   journey:
@@ -81,7 +86,9 @@ jobs:
       # A failed step is the finding, not a failed job: the report below always runs.
       - id: journeys
         if: steps.gate.outputs.skip != '1'
-        run: node scripts/e2e/run.mjs
+        env:
+          JOURNEYS: ${{ inputs.journeys }}
+        run: node scripts/e2e/run.mjs ${JOURNEYS:+--journey "$JOURNEYS"}
         continue-on-error: true
         timeout-minutes: 70
       # THE DRAWING JOURNEYS, WALKED EVERY NIGHT AND REPORTED (24 Sep 2026, sales_engineer; drawings audit finding 3,
@@ -91,8 +98,9 @@ jobs:
       # BEFORE the report, and their PASS / FAIL lines are written into this run's steps.json as journey
       # "f-drawings/..." - so fn_it_journey_ingest hands a failure to the sales engineer instead of it dying in a log.
       # Up to 12 minutes each (drawing_journeys_into_report.mjs PER_SCRIPT_MS); the wall above grew by 36.
+      # A dispatched subset (inputs.journeys) re-proves a funnel fix; the drawings and the quote review are not part of it.
       - id: drawings
-        if: steps.gate.outputs.skip != '1'
+        if: steps.gate.outputs.skip != '1' && inputs.journeys == ''
         run: node scripts/e2e/drawing_journeys_into_report.mjs e2e-out
         continue-on-error: true
         timeout-minutes: 38
@@ -109,7 +117,7 @@ jobs:
       # It runs AFTER the ingest above so a failure here cannot delay the journey heartbeat, and with
       # continue-on-error for the same reason every other step has it: a failed step is the finding.
       - id: quote_review
-        if: steps.gate.outputs.skip != '1'
+        if: steps.gate.outputs.skip != '1' && inputs.journeys == ''
         run: node scripts/e2e/supplier_quote_review.mjs
         continue-on-error: true
         timeout-minutes: 10
@@ -131,6 +139,7 @@ jobs:
           QUOTE_REVIEW: ${{ steps.quote_review.outcome }}
         run: |
           echo "journeys=$JOURNEYS drawings=$DRAWINGS quote_review=$QUOTE_REVIEW"
+          # 'skipped' only when a dispatched subset left the drawings and the quote review out (their if: above).
           for o in "$JOURNEYS" "$DRAWINGS" "$QUOTE_REVIEW"; do
-            if [ "$o" != success ]; then echo "::error::a nightly journey step failed (journeys=$JOURNEYS drawings=$DRAWINGS quote_review=$QUOTE_REVIEW)"; exit 1; fi
+            if [ "$o" != success ] && [ "$o" != skipped ]; then echo "::error::a nightly journey step failed (journeys=$JOURNEYS drawings=$DRAWINGS quote_review=$QUOTE_REVIEW)"; exit 1; fi
           done
