@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-01T22:11:24.550Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-01T23:56:04.912Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -11945,9 +11945,9 @@ ALTER TABLE public.knowledge_library ADD CONSTRAINT knowledge_library_store_ck C
 ALTER TABLE public.knowledge_library_state ADD CONSTRAINT knowledge_library_state_one_row_ck CHECK ((id = 1));
 ALTER TABLE public.knowledge_ml_status ADD CONSTRAINT knowledge_ml_status_id_check CHECK (id);
 ALTER TABLE public.knowledge_vector_ml ADD CONSTRAINT knowledge_vector_ml_src_check CHECK ((src = ANY (ARRAY['seat_case_memory'::text, 'ceo_knowledge'::text, 'support_knowledge'::text, 'accountant_knowledge'::text, 'it_engineer_knowledge'::text, 'marketing_knowledge'::text, 'sales_knowledge'::text, 'company_faq'::text, 'agent_knowledge'::text, 'ops_knowledge'::text, 'reasoning_knowledge_candidate'::text, 'kb_chunks'::text, 'knowledge_library'::text])));
-ALTER TABLE public.lead_email_check ADD CONSTRAINT lead_email_check_check CHECK (((verdict <> 'verified'::text) OR (mx_kind = 'mx'::text)));
 ALTER TABLE public.lead_email_check ADD CONSTRAINT lead_email_check_mailbox_check CHECK ((mailbox = ANY (ARRAY['named'::text, 'role'::text, 'free'::text])));
 ALTER TABLE public.lead_email_check ADD CONSTRAINT lead_email_check_verdict_check CHECK ((verdict = ANY (ARRAY['verified'::text, 'rejected'::text, 'retry'::text])));
+ALTER TABLE public.lead_email_check ADD CONSTRAINT lead_email_check_verified_needs_mx CHECK (((verdict <> 'verified'::text) OR (mx_kind = 'mx'::text)));
 ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_field_sources_check CHECK ((jsonb_typeof(field_sources) = 'object'::text));
 ALTER TABLE public.lead_prospect ADD CONSTRAINT lead_prospect_status_check CHECK ((status = ANY (ARRAY['complete'::text, 'incomplete'::text, 'duplicate'::text, 'suppressed'::text, 'promoted'::text])));
 ALTER TABLE public.lead_sourcing_run ADD CONSTRAINT lead_sourcing_run_kind_check CHECK ((kind = ANY (ARRAY['batch'::text, 'pilot'::text, 'probe'::text])));
