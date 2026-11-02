@@ -76,7 +76,10 @@ test('static: registrations get the existing refusal, claim leaks no Postgres te
   assert.doesNotMatch(map, /\.rpc\(/, 'the mapping calls a SQL routine: it must work before the SQL is applied');
   const api = read(API);
   const door = (name) => { const i = api.indexOf(`if (action === '${name}')`); assert.ok(i > 0, `${name} is gone`); return api.slice(i, api.indexOf('\n    if (action === ', i + 10)); };
-  assert.match(door('create_company'), /if \(isDuplicateCompany\(error\)\) return J\(COMPANY_ALREADY_REGISTERED, 409\)/, 'create_company: a duplicate insert is not the existing refusal');
+  // 28 Oct 2026 (ledger 1401 audit S7): create_company's body moved to supplier_api/create_company.ts, which also claims the
+  // invited listing its address holds (an_invited_supplier_who_registers_on_the_website_claims_his_invited_listing.test.mjs).
+  assert.match(door('create_company'), /const r = await createCompany\(admin, email, body, /, 'create_company no longer goes through create_company.ts');
+  assert.match(read('supabase/functions/supplier_api/create_company.ts'), /if \(isDuplicateCompany\(error\)\) return \{ status: 409, body: \{ \.\.\.COMPANY_ALREADY_REGISTERED \} \}/, 'create_company: a duplicate write is not the existing refusal');
   const claim = door('claim');
   assert.match(claim, /if \(claimErr\) \{[^}]*const r = registrationRefusal\(claimErr\); return J\(r\.body, r\.status\); \}/, 'claim: a refused claim is not mapped (or its result is discarded again)');
   assert.doesNotMatch(claim, /J\(\{ error: \w+\.message/, 'claim: raw Postgres text reaches the browser (SP-I-01)');

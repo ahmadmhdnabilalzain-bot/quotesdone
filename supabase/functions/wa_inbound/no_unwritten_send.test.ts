@@ -26,15 +26,22 @@ Deno.test('1195-1197: every WhatsApp reply variable is assigned only model-writt
         || /^\(await say\(situation\)\)\.slice\(0, 1200\)$/.test(rhs)
         || rhs === 'toContact(reply)'                   // the outgoing guard over the model's own text
         || rhs === 'h.notice'                           // the HELD NOTICE: a notification when no model answered
-        || (v === 'text' && rhs === 'msg.body');        // the accepted-offer confirmation: a NOTIFICATION
+        || (v === 'text' && rhs === 'msg.body');        // the accepted-offer template: OpenRouter-down fallback only (1339)
       if (!ok) bad.push(v + ' = ' + rhs.slice(0, 120));
     }
   }
   assertEquals(bad, [], 'reply text assigned from something other than the model:\n' + bad.join('\n'));
 });
 
-Deno.test('1195-1197: the only notification sent as-is is the accepted-offer confirmation, and it is marked', () => {
-  assert(/so\.state === 'accepted'\) \{ text = msg\.body; notice = true; \}/.test(code));
+// founder_instruction 1339 (27 Oct 2026): the accepted-offer confirmation is a reply to their message, so the model writes
+// it from the template; the template itself goes out only when OpenRouter is down (sayOutage), and it is marked.
+Deno.test('1339: the accepted-offer confirmation is the model\'s; the template only when OpenRouter is down, and marked', () => {
+  assert(/if \(!text && sayOutage\) \{ text = msg\.body; notice = true; \}/.test(code), 'the template is gated on the outage');
+  assert(!/so\.state === 'accepted'\) \{ text = msg\.body;/.test(code), 'the template is sent as-is again while the model is up');
+});
+Deno.test('1339: every held notice is gated on the outage of the last model call', () => {
+  assert(/holdUnwritten\(\{[^}]*outage: sayOutage/.test(code), 'heldTurn passes the outage of the last say to holdUnwritten');
+  assert(/sayOutage = !r\.text && r\.outage;/.test(code), 'sayFor records whether OpenRouter was down');
 });
 
 Deno.test('1195-1197: no stored-sentence road remains, and no path leaves the person silent', () => {

@@ -200,11 +200,24 @@ export function exactService(text: string, vocab: ServiceTerm[], supplyOnly = fa
   return s && !(supplyOnly && isInstallWork(s)) ? s : null;
 }
 
+/** WHO THE WORK IS FOR IS NOT A SERVICE (2 Nov 2026). "... glass curtain walls for villas and offices": what
+ *  follows "for" names the customer or building the work is done for, so it is cut before the phrase is split at
+ *  "and" — otherwise "offices" became a part of its own and meaning proposed "Serviced offices" for it. Grammar,
+ *  not vocabulary: no word list of customers or buildings. Arabic: the preposition ل attached to the article
+ *  (للفلل والمكاتب) or standing alone as لـ. A phrase that IS a service name is matched whole before this is
+ *  reached, so a name holding "for" survives. A phrase that begins with "for" is left whole. */
+const AUDIENCE_TAIL = /\s+for\s+.*$|\s+لـ?\s*(?=ال).*$|\s+لل\p{L}.*$/isu;
+export const withoutAudience = (phrase: string): string => {
+  const cut = phrase.replace(AUDIENCE_TAIL, '').trim();
+  return cut.length >= 2 ? cut : phrase;
+};
+
 /** Rule 3: a phrase's parts, split at the connectives a list uses. Prose is set aside: a phrase that is not
  *  service-shaped as a whole ("We are a leading company with many years of experience") has no parts. */
 export function phraseParts(phrase: string): string[] {
-  if (!looksLikeAService(phrase)) return [];
-  return phrase.split(/\s+(?:and|or|with|plus)\s+|\s*[&+]\s*|\s+و\s+/i)
+  const head = withoutAudience(phrase);
+  if (!looksLikeAService(head)) return [];
+  return head.split(/\s+(?:and|or|with|plus)\s+|\s*[&+]\s*|\s+و\s+/i)
     .map((p) => p.trim()).filter((p) => p.length >= 2 && looksLikeAService(p));
 }
 
@@ -236,8 +249,13 @@ export function rewriteServices(text: string, services: ServiceTerm[], opts: Rew
     const whole = exactService(phrase, services, opts.supplyOnly);
     if (whole) { push(serviceItem(whole, phrase)); continue; }
     const parts = phraseParts(phrase);
-    if (parts.length <= 1) { const p = parts[0] ?? phrase; const s = exactService(p, services, opts.supplyOnly); push(s ? serviceItem(s, phrase) : wordsItem(p, phrase)); continue; }
-    for (const p of parts) { const s = exactService(p, services, opts.supplyOnly); push(s ? serviceItem(s, phrase) : wordsItem(p, phrase)); }
+    // THE TAIL CREATES NO PART OF ITS OWN, BUT IT IS NOT LOST (review of #1756): "Repairs for air conditioners",
+    // "Cranes for hire", "صيانة للمصاعد" name their object after "for". When the head is no service, the supplier's
+    // own words keep the whole wording; only a head that IS a service drops the tail ("False ceilings for hotels").
+    const tail = parts.length ? phrase.slice(withoutAudience(phrase).length).trim() : '';
+    const own = (p: string, last: boolean) => wordsItem(last && tail ? `${p} ${tail}` : p, phrase);
+    if (parts.length <= 1) { const p = parts[0] ?? phrase; const s = exactService(p, services, opts.supplyOnly); push(s ? serviceItem(s, phrase) : own(p, true)); continue; }
+    parts.forEach((p, i) => { const s = exactService(p, services, opts.supplyOnly); push(s ? serviceItem(s, phrase) : own(p, i === parts.length - 1)); });
   }
   return finishRewrite(items);
 }

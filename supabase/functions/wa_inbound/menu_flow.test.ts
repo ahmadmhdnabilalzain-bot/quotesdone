@@ -129,6 +129,8 @@ function harness(o: { ctx?: Partial<MenuContext>; sids?: Record<string, string>;
     // the held notice (model_says.ts HELD_NOTICE), sent as index.ts sends it
     held: (r) => { const notice = HELD_NOTICE[r.audience === 'supplier' ? 'en' : r.lang]; sent.push({ to: FROM, body: notice }); return Promise.resolve({ notice, sent: true, err: null }); },
     write: (r) => { if (o.noModel) return Promise.resolve(''); const t = r.situation; written.push(t); return Promise.resolve(t); },
+    // o.noModel is OpenRouter DOWN (no call reached a model): the only case a code-written line may go out (1339)
+    outage: () => !!o.noModel,
     meaning: (text, awaitingProblem, offerMenu) => {
       meanings.push([text, awaitingProblem]);
       offered.push(offerMenu);
@@ -782,7 +784,9 @@ Deno.test('777: the figures are read in exactly one place, behind the command wo
 // RULINGS 1195/1196/1197 (12 Oct 2026): every CONVERSATION reply is written by a model in that turn. This fails the
 // moment any menu path sends text the fake model did not write in the same turn. Notifications are the only exception,
 // and they are named: a case-reference receipt, the founder's close confirmations and his FIGURES report.
-const NOTIFICATION_ROUTES = new Set(['menu_case', 'founder_close_case', 'founder_close_human', 'founder_figures']);
+// founder_instruction 1339 (27 Oct 2026): the case confirmation is a reply to their message, so it left this list: the model
+// writes it (carrying the reference); the fixed caseConfirm goes out only when OpenRouter is down (extra.outage_fallback).
+const NOTIFICATION_ROUTES = new Set(['founder_close_case', 'founder_close_human', 'founder_figures']);
 const ONE_LINE = (t: string) => t.replace(/\s*\n+\s*/g, ' ');
 Deno.test('1195-1197: no conversation reply leaves the menu unless a model wrote it in this turn; with no model, nothing is sent', async () => {
   const menuShown = [{ route: 'menu_welcome', await: null, lang: 'en' as Lang }];
@@ -801,6 +805,7 @@ Deno.test('1195-1197: no conversation reply leaves the menu unless a model wrote
     add('unanswered', { noModel }, (h) => unanswered(h.d, msg('what about the metro'), 'no_grounded_answer'));
     add('founder unanswered', { noModel, ctx: { audience: 'founder' } }, (h) => founderUnanswered(h.d, msg('anything', 'founder'), 'no_grounded_answer'));
     add('reoffer', { noModel }, (h) => reofferMenu(h.d, msg('blah'), 'Their message was unclear.'));
+    add('problem case', { noModel, history: [{ route: 'menu_qd_problem', await: 'problem', lang: 'en' }] }, (h) => menuTurn(h.d, msg('the supplier never came')));
   }
   let conversational = 0;
   for (const [name, run, h] of turns) {
@@ -808,6 +813,10 @@ Deno.test('1195-1197: no conversation reply leaves the menu unless a model wrote
     h.rows.forEach((row, i) => {
       if (NOTIFICATION_ROUTES.has(String(row.route))) return;
       const extra = row.extra as Record<string, unknown>;
+      if (extra.outage_fallback === true) {
+        assertEquals(h.written.length, 0, name + ': a code-written outage fallback went out while a model was writing');
+        return;
+      }
       if (extra.held_notice === true) {
         // no model: the person still hears from us — the fixed receipt, never an answer
         assert(Object.values(HELD_NOTICE).includes(String(row.reply)), name + ': a held turn sent something other than the held notice');
@@ -822,7 +831,7 @@ Deno.test('1195-1197: no conversation reply leaves the menu unless a model wrote
       // no model answered: only notifications and the held notice went out, and the person was not left silent
       for (const s of h.sent) {
         const row = h.rows.find((r) => r.reply === s.body);
-        assert(row && (NOTIFICATION_ROUTES.has(String(row.route)) || (row.extra as Record<string, unknown>).held_notice === true),
+        assert(row && (NOTIFICATION_ROUTES.has(String(row.route)) || (row.extra as Record<string, unknown>).held_notice === true || (row.extra as Record<string, unknown>).outage_fallback === true),
           name + ': with no model a conversation reply was still sent: ' + s.body.slice(0, 80));
       }
       assert(h.sent.length > 0, name + ': with no model the person was left silent');

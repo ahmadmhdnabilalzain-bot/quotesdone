@@ -62,9 +62,9 @@ Deno.test('suppliers are answered in English; an action is picked from the list 
 // prevented by: these tests (#1335's needs, 12 Oct 2026). Identity before a reveal, deferrals, the call cap, the
 // escalation flag and the sender's rate bucket.
 Deno.test('another party identity or an unpublished contact is rewritten; the published contact passes', async () => {
-  const s = stub([A('The supplier is Al Noor Contracting, call 050 123 4567.'), A('Your supplier stays anonymous until you reveal them. Call us on +971 50 931 9355.')]);
+  const s = stub([A('The supplier is Al Noor Contracting, call 050 123 4567.'), A('Your supplier stays anonymous until you reveal them. Call us on +1 218 316 6814.')]);
   const r = await aiReply(s.deps, { ...req, forbidden: ['Al Noor Contracting'] });
-  assertEquals(r.reply, 'Your supplier stays anonymous until you reveal them. Call us on +971 50 931 9355.');
+  assertEquals(r.reply, 'Your supplier stays anonymous until you reveal them. Call us on +1 218 316 6814.');
   assert(s.calls[1].input.includes("reveals another party's identity") && s.calls[1].input.includes('contact or licence details'));
 });
 Deno.test('a deferral is rewritten (903)', async () => {
@@ -142,4 +142,32 @@ Deno.test('an answer cut at the output cap is still refused, never sent half-wri
   const s = stub(['{"answer":"Installation usually takes a few days, depending on', null, null, null]);
   assertEquals((await aiReply(s.deps, req)).reply, '');
   assertEquals(s.calls[0].o.max, 900);
+});
+
+// founder_instruction 1339 (27 Oct 2026): "the engineer and customer support never replies without llm unless the server of
+// open router is down". `outage` is the only licence a caller has to send code-written text; it must be true only when no
+// call reached a model. A model that answered keeps its own safe sentences (salvage); `must` text is required exactly.
+Deno.test('1339: outage only when every call failed at the provider; a refused answer is not an outage', async () => {
+  const down = await aiReply(stub([]).deps, req);   // every call: { content: null, error: 'down' } — not an outage word
+  assertEquals(down.outage, false, "'down' is not an outage signal; only the provider's own failure is");
+  const s = stub([]);
+  (s.deps as { llm: unknown }).llm = () => Promise.resolve({ content: null, error: 'gateway_http_502' } as LlmReply);
+  const r502 = await aiReply(s.deps, req);
+  assertEquals([r502.reply, r502.outage], ['', true]);
+  (s.deps as { llm: unknown }).llm = () => Promise.resolve({ content: null, error: 'client_timeout_30000ms' } as LlmReply);
+  assertEquals((await aiReply(s.deps, req)).outage, true);
+  const refused = await aiReply(stub([A('5% fee.'), A('5% fee.'), A('5% fee.'), A('5% fee.')]).deps, req);
+  assertEquals([refused.reply, refused.outage], ['', false], 'the model answered: no code-written fallback is licensed');
+});
+Deno.test("1339: the model's own safe sentences are kept when no whole draft passes; code adds no word", async () => {
+  const bad = A('The reveal fee is 3% of the quote you choose, with no card fee and no VAT. Our system runs on openrouter.');
+  const r = await aiReply(stub([bad, bad, bad, bad]).deps, req);
+  assertEquals(r.reply, 'The reveal fee is 3% of the quote you choose, with no card fee and no VAT.');
+  assert(r.attempts.some((a) => a.startsWith('salvaged')));
+});
+Deno.test('1339: must-carry text (a case reference) is rewritten in when the draft leaves it out', async () => {
+  const s = stub([A('Thank you, your problem is logged and our team will look at it.'), A('Thank you, your problem is logged under reference QD-C-0042; our team will look at it.')]);
+  const r = await aiReply(s.deps, { ...req, must: ['QD-C-0042'] });
+  assertEquals(r.reply, 'Thank you, your problem is logged under reference QD-C-0042; our team will look at it.');
+  assert(s.calls[1].input.includes('QD-C-0042'));
 });

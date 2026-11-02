@@ -21,7 +21,12 @@
 // public.fn_opt_out_types() (scripts/sql/complaints_quotes_reveals_and_support_replies_each_run_on_a_clock.sql);
 // scripts/checks/every_duty_has_an_owner_and_a_clock.test.mjs fails if the two lists differ.
 
-export const OPT_OUT_TYPES: readonly string[] = ['supplier_invite', 'supplier_registration_reminder', 'supplier_rfq_widened_invite'];
+// 'supplier_invite_nudge' (28 Oct 2026, sales_engineer; ledger 1401 audit, S6): the day-3/7/14 reminder of an unopened
+// invitation is the same cold outreach. It was missing, so an unsubscribe did not stop a nudge already queued (the
+// onboarding duty queues it after midnight Dubai for the 09:00 window): send_outbox's suppressionStops answered false.
+// fn_email_type_is_marketing already counted it as marketing; the SQL mirror moves with this list
+// (scripts/sql/a_supplier_who_said_stop_is_never_nudged.sql).
+export const OPT_OUT_TYPES: readonly string[] = ['supplier_invite', 'supplier_invite_nudge', 'supplier_registration_reminder', 'supplier_rfq_widened_invite'];
 
 /** A preference row (the person unsubscribed), as opposed to a deliverability fact. */
 export function isOptOut(reason: unknown): boolean {
@@ -125,6 +130,16 @@ export function microsoftDomainAuthenticated(authResults: unknown, fromEmail: st
   const clauses = ar.replace(/\([^()]*\)/g, ' ').split(';').map((c) => c.trim()).filter(Boolean)
     .map((c) => c.replace(/(?:^|\s)smtp\.mailfrom=([a-z0-9.-]+)/, ' envelope-from=x@$1').trim());
   return clausesAuthenticate(clauses, dom);
+}
+
+/** Did the receiving server authenticate the From domain, read on the lane the mail arrived by: EOP's verdict for a reply
+ *  handed in from the Microsoft 365 mailbox (provider id 'm365:...', set only by our own signed handover), SES's for the
+ *  rest. Review of #1699, 28 Oct 2026: raw.sender_authenticated used SES's reader alone, so every invited supplier's reply
+ *  (they all arrive through the M365 mailbox) was stored unauthenticated (3 of 3 live m365 rows) and email_triage never
+ *  gave a verified lead its own facts. The unsubscribe path above already read the lane this way. */
+export function senderAuthenticated(providerEmailId: unknown, authResults: unknown, fromEmail: string): boolean {
+  return String(providerEmailId || '').startsWith('m365:') ? microsoftDomainAuthenticated(authResults, fromEmail)
+    : fromDomainAuthenticated(authResults, fromEmail);
 }
 
 /** Addresses no email may ever suppress: our own domains and the people who run the company. */

@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all. It always raises CHK<<...>>. scripts/checks/the_ceo_acts_on_the_supplier_target_and_writes_its_effects.test.mjs replays it, with the change file while that is pending.

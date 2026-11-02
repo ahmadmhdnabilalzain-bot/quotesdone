@@ -4,6 +4,7 @@
 
 ## Aluminium (aluminium)
 - **Open:** What are you after: windows, doors (sliding, hinged, folding), curtain wall/storefront, cladding panels, partitions, or replacement of old frames? How many openings?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: how many windows or doors and their sizes; system: the glazing (double, thermal break, acoustic); doors: the opening type (sliding, casement, tilt-turn); finish: frame colour; existing: removal of the old frames; location; timing
 - **Then ask (in order, one or two at a time):**
   - Width x height of each opening (a list or schedule); villa, apartment or commercial; floor level.
   - Opening type per item: fixed, casement, sliding, lift-and-slide, tilt-and-turn, folding.
@@ -20,6 +21,7 @@
 
 ## Glass (glass)
 - **Open:** What is the glass for: shower enclosure, balustrade/railing, partition, mirror, tabletop, window replacement, facade, skylight?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: the run length and height; system: glass type and thickness, framed or frameless; doors: the door type (hinged, sliding); performance: privacy, sound or heat control; permits: landlord or building drawings; location; timing
 - **Then ask:**
   - Sizes of each panel; number of panels.
   - Glass type and thickness: tempered, laminated, tempered-laminated, low-iron (extra clear), frosted, tinted, smart glass.
@@ -29,11 +31,12 @@
   - Replacement: broken unit only, or the whole sash?
 - **Photo/drawing tells you:** layout, fitting style, finish. **It cannot tell you:** exact dimensions or fixing substrate. Supplier measures on site before cutting; tempered glass cannot be cut after toughening.
 - **Price drivers:** type and thickness, size, edge work and holes, fittings and finish, coatings, height/access, removal of old glass, safety certification (DM glass certification where required), installation.
-- **Misconceptions to correct:** balustrades and overhead glass need safety glass (laminated/tempered as the code and consultant require); tempered glass cannot be altered once made; slight tint is normal in standard clear glass.
+- **Misconceptions to correct:** balustrades and overhead glass need safety glass (laminated/tempered as the code and consultant require); tempered glass cannot be altered once made; slight tint is normal in standard clear glass. Frameless partitions, glass doors and shower enclosures are toughened (tempered) safety glass, commonly 10-12 mm for frameless office partitions and 8-10 mm for showers; 6 mm ordinary (annealed) glass is not safety glass and is not used for them, so correct it before asking sizes. A frameless partition also needs a visible manifestation band. (Ledger 1200 scenario bank, 27 Oct 2026.)
 - **Complete quotable request =** application; sizes and quantity; glass type/thickness; fittings and finish; location (indoor/outdoor, floor); removal yes/no; timeline; photos.
 
 ## Steel and structural steel fabrication (steel, structural-steel-fabrication)
 - **Open:** What do you need: gates, railings, staircase, mezzanine, canopy/carport frame, warehouse structure, or supply of steel sections?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: the lengths and opening sizes; doors: sliding or swing, manual or automatic; finish: material and coating; existing: removal of the old one; permits: community rules; location; timing
 - **Then ask:**
   - Dimensions (span, height, length), quantity; drawings available?
   - Structural or decorative? For mezzanines, stairs, canopies and buildings: is there a structural design and engineer?
@@ -48,6 +51,7 @@
 
 ## Garage doors (garage-doors)
 - **Open:** Garage door for a villa, or a roller shutter for a shop/warehouse? New or replacing/repairing an existing one?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: a garage door or a roller shutter; size: the opening width and height; doors: manual or motorised; existing; location; timing
 - **Then ask:**
   - Opening width x height; headroom above the opening and side room.
   - Type: sectional overhead, roller shutter, side-sliding, swing; insulated panels or single skin.
@@ -62,6 +66,7 @@
 
 ## Elevators (elevators)
 - **Open:** New lift, modernisation of an existing one, or maintenance/repair? Villa home lift, residential building, commercial, or goods lift?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: new, modernisation or maintenance; usage: villa, residential, commercial or goods; size: floors, stops and load; existing: the shaft; location; timing
 - **Then ask:**
   - Floors/stops and travel height; number of lifts.
   - Load and passenger capacity; car size; wheelchair use.
@@ -76,6 +81,7 @@
 
 ## Signage (signage)
 - **Open:** What sign: shop front, building name, 3D letters, light box, pylon, wayfinding indoor, vehicle branding, or digital screen?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: the sign type; size; finish: lit or not, and material; permits: municipality or landlord approval; location; timing
 - **Then ask:**
   - Size (width x height), letter height, quantity; location on facade or ground.
   - Illuminated or not: front-lit, back-lit (halo), LED; operating hours.
@@ -90,6 +96,7 @@
 
 ## Tents and shade structures (tents-and-shade-structures)
 - **Open:** Permanent shade (car parking, garden, pool, playground) or temporary tent (event, Ramadan, wedding)?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: permanent shade or a temporary tent, and what it covers; size; finish: the material; fixing: how it is fixed (footings, base plates, ballast) and wind; permits; location; timing
 - **Then ask:**
   - Area or dimensions; number of car spaces; height.
   - Type: tensile fabric (HDPE or PVC), pergola, cantilever, pyramid, sail, aluminium louvre; frame steel or aluminium.

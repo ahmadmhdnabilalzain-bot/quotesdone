@@ -14,6 +14,7 @@ Covers split, ducted, package, VRF/VRV, chilled-water FCUs, ventilation, AC repa
 
 ### AC replacement (most common request; go deep)
 - **Open:** How many units are you replacing, and what type are they now (wall split, ducted/concealed, package, cassette, window, VRF)? Is the old unit dead, or are you upgrading?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: the room size and sun (or the area and rooms for a whole home); existing: what is there now (type and age) or a new installation; system: the type wanted (split, ducted) and inverter; services: where the outdoor unit and pipes go, or the ceiling void for ducts; design [ducted|concealed|central|whole|دكت|مخفي|مركزي]: drawings or a heat-load calculation (ducted or whole-home systems only); location; timing
 - **Then ask (in order, one or two at a time):**
   1. **Cooling source:** own AC units, or central/district chiller with FCUs (then it is FCU/thermostat work, not new condensers; building management controls the chilled water).
   2. **Rooms served:** room use and size per unit (length x width, ceiling height); bedroom, majlis, living, kitchen, office.
@@ -42,6 +43,7 @@ Covers split, ducted, package, VRF/VRV, chilled-water FCUs, ventilation, AC repa
   - A unit that "does not cool" may have a gas leak, dirty coil, blocked filter or leaky duct; repair may beat replacement.
   - Reusing old pipes is not always possible with a different refrigerant or capacity.
   - Inverter units save running energy but still need correct sizing.
+  - Undersizing is the commoner mistake: a 1-ton (12,000 BTU/h) split suits a small bedroom. In UAE heat allow roughly 1 ton per 10-14 m2 of ordinary room, more for west or south sun, a top floor or large glazing; a 28 m2 sunny living room is about 2 to 2.5 tons. The supplier's heat-load check fixes the size; an undersized unit runs flat out and never reaches the set temperature. When a customer names a capacity that is clearly too small, say so first. (Ledger 1200 scenario bank, 27 Oct 2026.)
   - Outdoor units in enclosed, unshaded spots lose capacity in summer heat.
 - **Complete quotable request (replacement) =** emirate, property type, floor; number of units; per unit: room use, size, exposure, existing type/capacity, new type, capacity if known, star rating; pipe and drain reuse or new; outdoor unit location and distance; electrical supply; removal and disposal; access/crane; controls; NOC/working hours; start date.
 
@@ -53,6 +55,7 @@ Covers split, ducted, package, VRF/VRV, chilled-water FCUs, ventilation, AC repa
 
 ## Plumbing (plumbing)
 - **Open:** What is the problem or job: leak, blockage, low pressure, no hot water, new fixtures, or full bathroom/kitchen replumbing?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: the problem or the job; size: how many fixtures, or the size or capacity; existing: what is there now and its condition; layout [bathroom|kitchen|shower|toilet|sink|basin|حمام|مطبخ|دش|مغسلة]: the fixtures and where they go; location; timing
 - **Then ask (in order, one or two at a time):**
   - Where is it: bathroom, kitchen, roof tank, pump room, outside? Villa or apartment?
   - For leaks: visible water, wet wall or ceiling below, high water bill? Neighbour's ceiling affected?
@@ -70,6 +73,7 @@ Covers split, ducted, package, VRF/VRV, chilled-water FCUs, ventilation, AC repa
 ## MEP and combined MEP (mep, combined-mep)
 Single trade (mep) or one contractor for mechanical, electrical and plumbing together (combined-mep), mostly fit-outs, extensions and new builds.
 - **Open:** Is this a fit-out, villa extension, new build, or modification? Do you have approved drawings or a consultant?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: the building size and use; scope: the systems in scope; system: the maintenance terms (planned visits, emergency response) or the installation type; design: drawings or a consultant; location; timing
 - **Then ask (in order, one or two at a time):**
   - Area (m2), use (office, retail, restaurant, clinic, villa), floors.
   - Which systems: HVAC, power and lighting, plumbing and drainage, fire fighting/alarm (civil defence), low current, gas.
@@ -85,6 +89,7 @@ Single trade (mep) or one contractor for mechanical, electrical and plumbing tog
 
 ## Insulation (insulation)
 - **Open:** What do you want insulated: roof, walls, AC ducts, chilled-water or refrigerant pipes, water tanks, or soundproofing?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: what is insulated; size; existing; location; timing
 - **Then ask:** area (m2) or pipe/duct length and size; new or replacing damaged insulation; reason (heat gain, condensation drips, noise, energy bills); material preference (foam board, spray foam, mineral wool, rubber/closed-cell pipe insulation, reflective foil); roof waterproofing combined?; access (roof, ceiling void); fire rating requirement for commercial; green-building requirement (Al Sa'fat in Dubai, Estidama in Abu Dhabi) on new projects.
 - **Photo/drawing tells you:** current insulation condition, sweating pipes, roof type. **It cannot tell you:** thickness needed, hidden wet insulation. Supplier confirms on site.
 - **Price drivers:** material type and thickness, area/length, removal of wet or old insulation, cladding/jacketing, height and access, roof waterproofing combination, fire-rating certificates.
@@ -93,6 +98,7 @@ Single trade (mep) or one contractor for mechanical, electrical and plumbing tog
 
 ## Water tank cleaning (water-tank-cleaning)
 - **Open:** How many tanks, and where are they (roof, underground, both)? Villa, building or commercial?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** size: how many tanks and their capacity; scope: roof or underground tanks; location; timing
 - **Then ask:** tank capacity (gallons or litres) and material (GRP, concrete, polyethylene, steel); last cleaning date; any complaint (smell, colour, sediment, insects); disinfection and lab water test wanted; certificate needed (municipality requirements for buildings and food outlets; ask the municipality or building management what they require); access (ladder, manhole size, confined space); water shut-off window and notice to residents; repairs (lid, ladder, float valve, cracks).
 - **Photo/drawing tells you:** tank type, location, visible dirt, lid condition. **It cannot tell you:** inside condition or water quality; a lab test does.
 - **Price drivers:** number, size and type of tanks; underground/confined-space access; disinfection; lab test and certificate; repairs; after-hours shutdown.

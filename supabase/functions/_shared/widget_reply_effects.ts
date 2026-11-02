@@ -12,6 +12,12 @@
 //   2. THE PERSON REPORT (fn_support_report_to_ceo) — when the visitor asked for a person (reasoned by the
 //      caller, site_assistant.person). Visibility only; it runs beside the reply and never blocks it.
 //
+// NEITHER IS FILED FOR A TURN THE GATEWAY RATE-LIMITED (rateLimited; review of #1729, 1 Nov 2026). No model read the
+// question, so "could not source an answer from company knowledge" would be false, and fn_support_knowledge_gap opens
+// an org_tasks row per distinct question: a scripted caller past the limit could open one per message it sends. The
+// person decision is skipped too: it is itself a model call (needsAPerson) for a caller the gateway just refused, and
+// the rate-limit notice (RL_REPLY) already carries the published contact. The turn's assistant_logs row is still written.
+//
 // Tested with stubs in widget_reply_effects.test.ts, which also asserts site_assistant's reasoned exit calls it.
 
 /** assistant_logs.audience for a widget reply. A signed-in person is logged as their PARTY — customer:<uuid> or
@@ -31,6 +37,7 @@ export interface WidgetReplyEffectsInput {
   grounded: boolean;             // the reply rests on company knowledge
   answered: boolean;
   refusal: string;               // why it is not grounded, for the gap row
+  rateLimited: boolean;          // the gateway refused the turn before any model read it: nothing is filed
   ip: string;
   path: string;
   askedForAPerson: () => Promise<boolean | null>;
@@ -44,6 +51,7 @@ export interface WidgetReplyEffects {
 export async function widgetReplyEffects(rpc: Rpc, o: WidgetReplyEffectsInput): Promise<WidgetReplyEffects> {
   let gapTaskId: number | null = null;
   let gapReply: WidgetReplyEffects['gapReply'] = null;
+  if (o.rateLimited) return { gapTaskId, gapReply, person: Promise.resolve(false) };
   if (!o.live && !o.grounded) {
     try {
       const { data } = await rpc('fn_support_knowledge_gap', { p_question: o.message, p_refusal: o.refusal || 'no_grounded_answer', p_surface: 'website_widget' });

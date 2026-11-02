@@ -12,6 +12,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
+import { WA_INVITE_BUTTONS, WA_INVITE_SAMPLE_TRADE, WA_INVITE_TEMPLATE_EN } from '../_shared/marketing_send_gate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string | undefined) || undefined; }
@@ -42,7 +43,8 @@ type Catalogue =
   // recipient's own language, so there is nothing to author or translate except the button label.
   | { category: 'AUTHENTICATION'; copy_code_en: string; copy_code_ar: string; expiry_minutes: number }
   // MARKETING (19 Oct 2026): written to suppliers, who are only ever written to in English, so it has no Arabic.
-  | { category: 'MARKETING'; en: string; sample1_en: string; sample2_en: string; url: string };
+  // 27 Oct 2026: one variable (the trade) and no link (ruling 1301); quick-reply buttons instead of a URL.
+  | { category: 'MARKETING'; en: string; sample1_en: string; buttons: readonly { id: string; title: string }[] };
 const CATALOGUE: Record<string, Catalogue> = {
   // 18 SEP 2026 — THE SIGN-IN CODE. Founder authorised this submission. AUTHENTICATION category:
   // Meta refuses to carry a one-time code under UTILITY, and refuses an authentication body written
@@ -121,16 +123,17 @@ const CATALOGUE: Record<string, Catalogue> = {
   // 19 OCT 2026 (marketing, ruling 1184) — the WhatsApp supplier invitation. MARKETING category: it is a
   // business-initiated invitation to a company that has not opted in, which Meta allows only as MARKETING.
   // The body names the opt-out (STOP), which wa_inbound honours through fn_wa_supplier_invite_opt_out.
-  // {{1}} is the trade label, {{2}} the lead's own claim link (send_whatsapp varsFor). Suppliers are written
-  // to in English only, so the template has no Arabic and an Arabic create is refused.
-  // Rows are queued only by fn_wa_supplier_invite_queue, which writes nothing while wa_supplier_invite_golive
-  // is not 'true'.
+  // 27 Oct 2026 (ruling 1301): the text is _shared/marketing_send_gate.ts WA_INVITE_TEMPLATE_EN, the email the
+  // founder approved said over WhatsApp: no link, {{1}} the trade only, a "Set up my page" and a "Stop" button.
+  // It has NEVER been submitted (no messaging_template row, measured 27 Oct): the campaign is paused (ledger 1312).
+  // Suppliers are written to in English only, so the template has no Arabic and an Arabic create is refused.
+  // Rows are queued only by fn_wa_supplier_invite_queue, which writes nothing unless wa_supplier_invite_golive AND
+  // invite_enabled are 'true', no brake is open, and the lead has opted in to WhatsApp.
   supplier_invite: {
     category: 'MARKETING',
-    en: 'Hello from QuotesDone, the UAE procurement marketplace. Businesses are requesting quotes for {{1}} and we would like to send them to your company. Registration is free; claim your supplier profile here: {{2}} Reply STOP to receive no further messages.',
-    sample1_en: 'office furniture',
-    sample2_en: 'https://quotesdone.com/en/portal?t=00000000-0000-0000-0000-000000000000',
-    url: 'https://quotesdone.com/en/portal',
+    en: WA_INVITE_TEMPLATE_EN,
+    sample1_en: WA_INVITE_SAMPLE_TRADE,
+    buttons: WA_INVITE_BUTTONS,
   },
   // The supplier's side of a paid reveal (founder, 19 Aug 2026: both parties, both channels).
   supplier_quote_accepted: {
@@ -201,7 +204,8 @@ Deno.serve(observe('wa_template_setup', async (req) => {
               actions: [{ type: 'COPY_CODE', copy_code_text: isAr ? cat.copy_code_ar : cat.copy_code_en }],
             } } }
         : cat.category === 'MARKETING'
-        ? { variables: { '1': cat.sample1_en, '2': cat.sample2_en }, types: { 'twilio/text': { body: cat.en } } }
+        ? { variables: { '1': cat.sample1_en },
+            types: { 'twilio/quick-reply': { body: cat.en, actions: cat.buttons.map((b) => ({ id: b.id, title: b.title })) } } }
         : { variables: { '1': isAr ? cat.sample1_ar : cat.sample1_en,
                          // {{2}} is a link for the customer/supplier notices, a detail for the founder alert
                          '2': (isAr ? cat.sample2_ar : cat.sample2_en) || cat.url },
