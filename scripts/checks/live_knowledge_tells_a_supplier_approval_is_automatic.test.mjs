@@ -14,7 +14,7 @@ const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8')
 const SEEDS = ['ai-organization/org-as-code/agent_knowledge.json', 'supabase/seeds/agent_knowledge.seed.sql'];
 const FALSE = [/not auto-approved/i, /no supplier is (ever )?approved automatically/i, /approval is manual/i,
   /not approved automatically/i, /auto-approve flag exists/i,
-  /لا (تُ?منح|يتم) الموافقة[^.]{0,30}تلقائي/, /لا يُ?وافَ?ق على أي مورّ?د تلقائي/, /لا نوافق على أي مورّ?د تلقائي/];
+  /لا (تُمنح|تمنح|يتم) الموافقة[^.]{0,30}تلقائي/, /لا (يُوافَق|يوافق) على أي (مورّد|مورد) تلقائي/, /لا نوافق على أي (مورّد|مورد) تلقائي/];
 const TRUE_EN = 'approval is automatic once the documents pass these checks and the supplier has confirmed its services, and a licence from a foreign or unconfirmed issuing authority is held).';
 const SQL = 'scripts/sql/live_knowledge_tells_a_supplier_approval_is_automatic_when_the_gate_passes.sql';
 

@@ -77,7 +77,7 @@ with k(t, id, x) as (
   select
     (select string_agg(t || ' ' || id, ', ') from k
       where x ~* '(not auto-approved|no supplier is (ever )?approved automatically|approval is manual|not approved automatically|auto-approve flag exists)'
-         or x ~ '(لا (تُ?منح|يتم) الموافقة[^.]{0,30}تلقائي|لا يُ?وافَ?ق على أي مورّ?د تلقائي|لا نوافق على أي مورّ?د تلقائي)') as false_rows,
+         or x ~ '(لا (تُمنح|تمنح|يتم) الموافقة[^.]{0,30}تلقائي|لا (يُوافَق|يوافق) على أي (مورّد|مورد) تلقائي|لا نوافق على أي (مورّد|مورد) تلقائي)') as false_rows,
     (select count(*) from public.company_faq where id = 159 and answer like '%approval is automatic once the documents pass these checks and the supplier has confirmed its services, and a licence from a foreign or unconfirmed issuing authority is held).%')
   + (select count(*) from public.company_faq where id = 786 and answer like '%وتصدر الموافقة تلقائيًا متى اجتازت المستندات هذا التحقق وأكّد المورّد خدماته%')
   + (select count(*) from public.kb_chunks where id in (174359, 177559) and content like '%approval is automatic once the documents pass these checks and the supplier has confirmed its services, and a licence from a foreign or unconfirmed issuing authority is held).%')

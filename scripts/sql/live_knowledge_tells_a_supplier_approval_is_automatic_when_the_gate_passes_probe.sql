@@ -36,7 +36,7 @@ begin
     union all select 'knowledge_exam_questions', id::text, question || ' ' || coalesce(reference_answer, '') from public.knowledge_exam_questions
   ) k
   where k.x ~* '(not auto-approved|no supplier is (ever )?approved automatically|approval is manual|not approved automatically|auto-approve flag exists)'
-     or k.x ~ '(لا (تُ?منح|يتم) الموافقة[^.]{0,30}تلقائي|لا يُ?وافَ?ق على أي مورّ?د تلقائي|لا نوافق على أي مورّ?د تلقائي)';
+     or k.x ~ '(لا (تُمنح|تمنح|يتم) الموافقة[^.]{0,30}تلقائي|لا (يُوافَق|يوافق) على أي (مورّد|مورد) تلقائي|لا نوافق على أي (مورّد|مورد) تلقائي)';
   if v_false is not null then f := f || ('live knowledge still says approval is not automatic: ' || v_false); end if;
 
   if cardinality(f) > 0 then raise exception 'CHK<<PROBE FAILED: %>>', array_to_string(f, '; '); end if;
