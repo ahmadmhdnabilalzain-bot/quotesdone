@@ -13,5 +13,5 @@ const count = (s: string, re: RegExp) => (s.match(re) || []).length;
 export function needsArabic(s: string): boolean {
   const t = String(s ?? '');
   const latin = count(t, /[A-Za-z]/g);
-  return latin > 0 && latin >= count(t, /[؀-ۿ]/g);
+  return latin > 0 && latin >= count(t, /\p{Script=Arabic}/gu);
 }
