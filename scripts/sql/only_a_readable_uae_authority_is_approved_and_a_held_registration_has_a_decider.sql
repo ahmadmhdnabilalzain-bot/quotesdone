@@ -6,7 +6,7 @@
 -- A registration held for an unread field had no reader: its agent_actions row stayed needs_review and nothing acted.
 --   1. fn_licence_authority_class(text): 'uae', 'foreign', 'unknown' or 'unread', after normalising case, hyphens and Arabic forms.
 --   2. fn_sales_engineer_verifies_supplier: this file is the live body (MANIFEST key of
---      a_supplier_document_still_being_read_...) plus three holds, licence_authority_unread, licence_authority_unconfirmed and licence_authority_not_uae,
+--      a_supplier_document_still_being_read_...) plus the services gate of ledger 1469 (services_unconfirmed, from a_supplier_is_verified_only_after_it_confirms_its_services.sql, kept whole) and three holds, licence_authority_unread, licence_authority_unconfirmed and licence_authority_not_uae,
 --      for an approved supplier's new licence too. A supplier whose licence reads a UAE authority is untouched.
 --   3. fn_sales_engineer_decides_held_registrations(): hourly. Asks the supplier for what is missing at once, again at
 --      day 3 and day 7; at day 14 the ceo seat closes it, and the supplier may reopen by uploading and saving. The clock
@@ -64,7 +64,7 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_verifies_supplier(p_lead_id 
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare l public.leads; v_missing text[]; v_expired boolean; v_name_mismatch boolean; v_name_unread boolean; v_name_taken boolean := false; v_old_name text; v_expiry_unread boolean; v_number_unread boolean; v_auto boolean; v_reason text; v_decision text; v_changed int; v_doc_reading boolean; v_authority_unread boolean; v_authority_foreign boolean; v_authority_unknown boolean;
+declare l public.leads; v_missing text[]; v_expired boolean; v_name_mismatch boolean; v_name_unread boolean; v_name_taken boolean := false; v_old_name text; v_expiry_unread boolean; v_number_unread boolean; v_auto boolean; v_reason text; v_decision text; v_changed int; v_doc_reading boolean; v_authority_unread boolean; v_authority_foreign boolean; v_authority_unknown boolean; v_services_open boolean;
 begin
   select * into l from public.leads where id = p_lead_id for update;
   if not found then return jsonb_build_object('ok', false, 'error', 'lead_not_found'); end if;
@@ -128,6 +128,12 @@ begin
   -- approval: the gate never approves past a document whose read has not finished (or was killed mid-parse).
   v_doc_reading := exists (select 1 from public.supplier_capabilities c, jsonb_array_elements(coalesce(c.source_docs -> 'docs', '[]'::jsonb)) e
                             where c.supplier_id = l.id and e ->> 'status' = 'reading');
+  -- 2 Nov 2026 (founder ledger 1469, a_supplier_is_verified_only_after_it_confirms_its_services): the supplier has confirmed what the company does, for the CURRENT version of the record.
+  -- Seeders (their own source) are given a capability row by their harness and are not asked.
+  v_services_open := p_source not in ('demo_factory', 'hvac_dress_rehearsal', 'document_intake_accuracy')
+                     and not exists (select 1 from public.supplier_capabilities c
+                                      where c.supplier_id = l.id and c.confirmed_at is not null
+                                        and coalesce(c.confirmed_version, 0) >= coalesce((select max(k.version) from public.supplier_capability_confirmation k where k.supplier_id = l.id), 0));
   v_reason := case when cardinality(v_missing) > 0 then v_missing[1]
                    when v_name_mismatch then 'licence_name_mismatch'
                    when v_expired then 'licence_expired' end;
@@ -137,6 +143,7 @@ begin
      and not v_authority_unread and not v_authority_foreign and not v_authority_unknown then
     -- An approved supplier whose licence has since expired stays approved: fn_reconcile_doc_blocks
     -- pauses their matching and restores it on renewal, without taking the registration away.
+    -- An approved supplier is never asked to confirm services after the fact (ledger 1469): nobody is demoted.
     v_decision := 'approved';
   -- 7 Oct 2026 (review of #1275): an APPROVED supplier whose licence names another company is held for
   -- review, whatever asked - a licence change or a save. The approved branch above used to keep him approved
@@ -153,6 +160,7 @@ begin
   elsif v_authority_foreign then v_decision := 'pending'; v_reason := 'licence_authority_not_uae';
   elsif v_authority_unknown then v_decision := 'pending'; v_reason := 'licence_authority_unconfirmed';
   elsif v_doc_reading then v_decision := 'pending'; v_reason := 'documents_being_read';
+  elsif v_services_open then v_decision := 'pending'; v_reason := 'services_unconfirmed';
   elsif coalesce(v_auto, false) then v_decision := 'approved';
   else v_decision := 'pending';
   end if;
@@ -175,9 +183,11 @@ begin
           case when v_decision = 'action_required' or v_reason in ('licence_unreadable', 'licence_name_mismatch', 'licence_expiry_unread', 'licence_number_unread', 'licence_authority_unread', 'licence_authority_not_uae', 'licence_authority_unconfirmed') then 'medium' else 'low' end,
           'Supplier ' || v_decision || coalesce(' (' || v_reason || ')', '') || ' — ' || left(coalesce(l.company_name, 'supplier #' || l.id), 120),
           case v_decision
-            when 'approved' then 'No action required. All six mandatory items are present, the licence name matches and the licence is not known to be expired.'
+            when 'approved' then 'No action required. All six mandatory items are present, the licence name matches, the licence is not known to be expired and the supplier has confirmed its services.'
             when 'pending' then case when v_reason = 'documents_being_read'
               then 'Held: a company profile or catalogue of this supplier is still being read. The gate is run again when the read finishes; a read still unfinished after 30 minutes is marked unreadable and handed to you (document_read_stuck).'
+              when v_reason = 'services_unconfirmed'
+              then 'Held: the six mandatory items are complete, but the supplier has not yet confirmed what its company does. The portal shows the summary and keywords prepared from its company profile; the gate is run again the moment it presses confirm (source services_confirmed).'
               when v_reason in ('licence_authority_unread', 'licence_authority_not_uae', 'licence_authority_unconfirmed')
               then 'Held: the issuing authority on the trade licence ' || case v_reason when 'licence_authority_unread' then 'could not be read' when 'licence_authority_unconfirmed' then 'is on no list we hold, which does not make it foreign' else 'names a foreign country or registry' end || '. fn_sales_engineer_decides_held_registrations asks the supplier and closes the registration through the ceo seat after 14 days.'
               when v_reason = 'licence_name_mismatch'
@@ -192,6 +202,7 @@ begin
                              'missing', v_missing, 'licence_expired', v_expired, 'license_expiry', l.license_expiry,
                              'licence_name_mismatch', v_name_mismatch, 'licence_name_unread', v_name_unread,
                              'licence_expiry_unread', v_expiry_unread, 'licence_number_unread', v_number_unread,
+                             'services_unconfirmed', v_services_open,
                              'licence_authority_unread', v_authority_unread, 'licence_authority_foreign', v_authority_foreign, 'license_authority', l.license_authority,
                              'licence_legal_name', l.licence_legal_name, 'license_doc_path', l.license_doc_path,
                              'auto_approve', v_auto, 'source', p_source),
