@@ -574,17 +574,23 @@ async function handleInbound(req: Request): Promise<Response> {
     let sayProblems: string[] = [];
     // THE WHOLE CONVERSATION, EVERY TURN (2 Nov 2026): this number's earlier turns, read once per turn (_shared/wa_history.ts).
     let history: ReturnType<typeof waConversation> | null = null;
-    const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[]) => {
+    // askModel writes nothing the turn keeps; adopt() is what makes a draft THE turn's reply (its escalate flag, outage and problems).
+    // They are apart so a reply started speculatively (below) that is then discarded can never escalate or flag the turn.
+    const askModel = async (aud: 'customer' | 'supplier' | 'visitor' | 'founder', situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[]) => {
       history ??= waConversation(admin, From, receivedAt, isDemoPhone(From));
-      const r = await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: await history,
+      return await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: await history,
         budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
         rateKey: 'wa:' + From,   // the per-number ceiling (20/hour) the old prompt path had
         subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}) });
+    };
+    const adopt = (r: Awaited<ReturnType<typeof askModel>>) => {
       modelEscalate = modelEscalate || r.escalate;
       sayOutage = !r.text && r.outage;
       sayProblems = r.text ? [] : (r.problems ?? []);
       return r.text;
     };
+    const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[]) =>
+      adopt(await askModel(aud, situation, lang, must));
     // `audience` is resolved further down; `say` is only called after that (the spec-offer branch uses sayFor('customer')).
     const say = (situation: string, lang?: 'en' | 'ar') => sayFor(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : audience === 'founder' ? 'founder' : 'visitor')(situation, lang);
     // NOBODY IS LEFT SILENT (review of #1335). When no model wrote the reply, or the guard refused what it wrote, the
@@ -899,6 +905,104 @@ async function handleInbound(req: Request): Promise<Response> {
     }).then((x) => x.value, () => null /* unreasoned is not "no": the route records it as held */)));
     // Held or failed, the person check falls back to its own think(): under the hold that files it for replay (no model).
     if (typedQuestion && !bareGreeting(Body)) readings();
+    // THE REPLY'S FACTS, composed from a route (customer_support, 2 Nov 2026). A function so the reply can be started BEFORE the
+    // classification returns, on the route the commonest class gives (see `speculative` below), and again on the real route when the
+    // class turned out otherwise. Reads only the prefetched facts and the route it is given; it writes nothing.
+    const composeSituation = async (rt: Record<string, unknown> | null): Promise<{ situation: string; ids: number[] }> => {
+    let timeline: any = null;
+    try { const { data: tl } = await prefetch.timeline; timeline = tl || null; } catch (_e) { timeline = null; }
+    const timelineEvents = Number(timeline?.event_count ?? 0);
+    const detReply = String(rt?.deterministic_reply || '');
+    let audienceBlock: string;
+    if (audience === 'supplier') {
+      audienceBlock = `AUDIENCE: this number belongs to a REGISTERED SUPPLIER${known?.name ? ' (' + known.name + ')' : ''}${known?.approved ? ', already verified' : ', registration not yet verified'}. Treat them as a supplier. You may naturally acknowledge that they are registered with us, but never recite ANOTHER person's private details. Their OWN record is supplied below and you may state it back to them plainly - that is the point of this channel.`;
+    } else if (audience === 'customer') {
+      audienceBlock = `AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer. Do NOT bring up supplier subscriptions, founding-supplier exemptions, supplier fines or supplier recruitment.`;
+    } else {
+      audienceBlock = `AUDIENCE: UNKNOWN - this number is not in our records. Most people messaging this number are UAE SUPPLIERS who received our invitation, but customers write too. Work out which they are from their wording (a supplier talks about registering, their trade licence, receiving jobs, their company; a customer talks about needing a price, getting quotes, a job they want done). If it is genuinely unclear and the answer would differ, ask ONE short friendly question to find out before giving fee details.`;
+    }
+
+    // THEIR OWN RECORD, SCOPED IN SQL (v15, 13 Aug 2026). "Is my profile approved", "how many
+    // inquiries did I miss", "what was my last quotation", "how many suppliers received my
+    // inquiry", "what were I quoted on average" are all data questions about the SENDER. The
+    // scoping is done by fn_wa_context in SQL off their phone number, so this prompt can never be
+    // talked into another person's rows — the model is handed facts, it does not request them.
+    // Pre-reveal a customer gets a rounded band and a count, never the individual quotes and never
+    // a supplier name, which is the same rule the portal enforces.
+    let ownRecord = '';
+    try {
+      const { data: mine } = await prefetch.mine;
+      if (mine && (mine as any).known === true) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else\'s):\n' + JSON.stringify(mine) + '\n';
+      else if (mine && (mine as any).known === false) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD: no account matches this number, so answer generally and invite them to register or sign in rather than guessing at their status.\n';
+    } catch (_e) { /* fall through with no record rather than dropping the message */ }
+    if (timeline && timelineEvents > 0) ownRecord += '\n\nTHIS SENDER\'S CASE TIMELINE (newest first; every channel and every seat; theirs only). Never contradict it, and never repeat something it shows was already sent unless they ask:\n' + JSON.stringify((timeline as any).events) + '\n';
+
+    // THE MODEL GETS THE SAME PACK THE DATABASE ANSWERED FROM. fn_wa_route was reached above and
+    // said a model is needed; its fact_pack and model_brief carry the sender's own rows, the
+    // company register, the list of things that are genuinely unknown, and the rules the model may
+    // not break. Appending them here is what stops the model filling a gap from memory.
+    let brainPack = '';
+    if (rt?.fact_pack) {
+      // fn_wa_model_brief (rt.model_brief, the old STANDING BRIEF) is NOT sent any more (customer_support, 19 Oct 2026).
+      // It predates the reply rules in _shared/ai_reply.ts and contradicts them: its "ABSOLUTE RULE ON SUBJECT" made the
+      // model answer "how long does installation usually take?" with fn_wa_off_topic_reply's "QuotesDone inquiries only"
+      // sentence (runs 0f48ea10 and c95eb7da, EN and AR), and it said "say you will check", which the answer standard forbids.
+      brainPack = '\n\nFACT PACK (the ONLY source for any fact about this person, their own jobs and quotes, and any '
+        + 'QuotesDone fee; a trade, material, timing or specification question is answered from your own expertise):\n'
+        + JSON.stringify(rt.fact_pack) + '\n';
+    }
+
+    // THE COMPANY BLOCK — customer_support's half of the founder's 9 Sep 2026 ruling: "the company
+    // knowledge is literally connected to every seat automatically. Any seat that we made, the
+    // company knowledge should be there."
+    //
+    // p_audience => 'public' is deliberate and is the reason the parameter exists. This channel
+    // answers strangers and suppliers; the INTERNAL block carries the seat list, the founder's
+    // standing decisions and the revenue targets, and none of that belongs in a WhatsApp reply. The
+    // public half is identity, what we sell, the published hard rules and the licence/VAT position,
+    // every figure read from company_registration and pricing_config on this message.
+    //
+    // IT REPLACES A DEADLINE THAT NO LONGER EXISTS. This prompt told suppliers "free until 31 July
+    // 2027; AED 1,000/year from 1 August 2027". The founder ruled on 6 September that there is no
+    // calendar date at all — charging begins with registration number 1,001, whenever that happens —
+    // and pricing_config.supplier_charging_starts has been NULL since. A price typed into a prompt
+    // cannot be corrected by correcting the company.
+    let companyBlock = '';
+    try {
+      const { data: cc } = await prefetch.company;
+      companyBlock = String((cc as Record<string, unknown> | null)?.block || '');
+    } catch (_e) { companyBlock = ''; } // a thinner grounding beats a dropped WhatsApp message
+
+    const { ctx, ids } = await prefetch.faq;
+    // THE REPLY IS THE MODEL'S (1195-1197, _shared/ai_reply.ts via model_says.ts): the company brief, the model chain
+    // (conversation_reply: claude-sonnet-5.5 -> gemini -> another family; ruling 1219), the figure and reply guard with a model rewrite, suppliers in English.
+    // Everything code knows about this message goes in as facts: who they are, their own record, the database's own
+    // answer for the intent it recognised, the approved FAQ for it, the live company block.
+    const situation = [audienceBlock,
+      ownRecord.trim(), brainPack.trim(),
+      detReply ? 'OUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\n' + detReply : '',
+      ctx ? 'APPROVED FAQ FOR THIS MESSAGE (may be for the other audience; apply the audience rules):\n' + ctx : '',
+      rt?.needs_a_person === true ? 'They need a person: give the direct contact (+1 218 316 6814, call or WhatsApp, Mon-Fri 9am-6pm GST; management@quotesdone.com) and say the team has their message.' : '',
+      'Never volunteer supplier-side commercial terms to a customer. Do not promise that quote requests arrive immediately.',
+      companyBlock ? 'COMPANY BLOCK (live):\n' + companyBlock : ''].filter(Boolean).join('\n\n');
+    return { situation, ids };
+    };
+
+    // THE REPLY STARTS BESIDE THE CLASSIFICATION (customer_support, 2 Nov 2026). Measured: the classification is 11-14 s of a 23-41 s
+    // turn and the reply waited for it. The commonest class is "needs no person, no intent row fits" (p_needs_person false,
+    // p_intent 'none'): the reply is composed on THAT route (fn_wa_route_dry: the same answer, no wa_answer_log row) and asked now.
+    // When the classification says exactly that, this draft IS the reply; any other class (an intent, a person, a complaint, held)
+    // discards it and the reply is asked on the real route as before. A discarded draft is never adopted, so it cannot escalate,
+    // flag or be sent; the only send is the one at the end of the turn. Null (autoreply off, the dry route not applied) = no speculation.
+    const speculative: Promise<Awaited<ReturnType<typeof askModel>> | null> | null = typedQuestion && !bareGreeting(Body) && audience !== 'founder'
+      ? (async () => {
+          if ((await sec('wa_autoreply_enabled')) !== 'true') return null;
+          const { data, error } = await admin.rpc('fn_wa_route_dry', { p_phone: From, p_body: Body.slice(0, 4000), p_needs_person: false, p_intent: 'none' });
+          if (error || !data) return null;
+          const { situation: s0 } = await composeSituation(data as Record<string, unknown>);
+          return await askModel(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', s0);
+        })().catch(() => null)
+      : null;
     const m = await menuTurn(menuDeps, menuIn);
     if (m.handled) {
       await logRun('ok', { audience, route: m.route, cost_aed: 0 }, 'answered from the WhatsApp menu: ' + m.route);
@@ -1271,10 +1375,12 @@ async function handleInbound(req: Request): Promise<Response> {
         });
       } catch (_e) { /* visibility must not block the reply */ }
     }
+    let routedIntent: string | null | undefined;
     try {
       // The intent is the REASONED meaning (above), never the body's words: null = held, 'none' = no row fits.
       const meaning = await menuDeps.intent(Body);
       const intent = meaning === null ? null : meaning.startsWith('intent:') ? meaning.slice(7) : meaning;
+      routedIntent = intent;
       const { data } = await admin.rpc('fn_wa_route', { p_phone: From, p_body: Body.slice(0, 4000), p_has_audio: media.length > 0, p_needs_person: needsPerson, p_intent: intent });
       route = (data || null) as Record<string, unknown> | null;
     } catch (_e) { /* the brain being unreachable must never lose their message */ }
@@ -1288,85 +1394,16 @@ async function handleInbound(req: Request): Promise<Response> {
     } catch (_e) { /* memory is worth less than the reply */ }
 
     const routeAction = String(route?.action || '');
-    const detReply = String(route?.deterministic_reply || '');
     // 1195-1197 (12 Oct 2026): no stored sentence is ever the reply — not fn_wa_route's deterministic answer, not the
     // welcome, not an FAQ row, not even under the hold. They are FACTS the model answers from (below). With no model
     // (the hold, every model in the chain failing) nothing conversational is sent; the meaning waits in the queue.
 
-    let audienceBlock: string;
-    if (audience === 'supplier') {
-      audienceBlock = `AUDIENCE: this number belongs to a REGISTERED SUPPLIER${known?.name ? ' (' + known.name + ')' : ''}${known?.approved ? ', already verified' : ', registration not yet verified'}. Treat them as a supplier. You may naturally acknowledge that they are registered with us, but never recite ANOTHER person's private details. Their OWN record is supplied below and you may state it back to them plainly - that is the point of this channel.`;
-    } else if (audience === 'customer') {
-      audienceBlock = `AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer. Do NOT bring up supplier subscriptions, founding-supplier exemptions, supplier fines or supplier recruitment.`;
-    } else {
-      audienceBlock = `AUDIENCE: UNKNOWN - this number is not in our records. Most people messaging this number are UAE SUPPLIERS who received our invitation, but customers write too. Work out which they are from their wording (a supplier talks about registering, their trade licence, receiving jobs, their company; a customer talks about needing a price, getting quotes, a job they want done). If it is genuinely unclear and the answer would differ, ask ONE short friendly question to find out before giving fee details.`;
-    }
-
-    // THEIR OWN RECORD, SCOPED IN SQL (v15, 13 Aug 2026). "Is my profile approved", "how many
-    // inquiries did I miss", "what was my last quotation", "how many suppliers received my
-    // inquiry", "what were I quoted on average" are all data questions about the SENDER. The
-    // scoping is done by fn_wa_context in SQL off their phone number, so this prompt can never be
-    // talked into another person's rows — the model is handed facts, it does not request them.
-    // Pre-reveal a customer gets a rounded band and a count, never the individual quotes and never
-    // a supplier name, which is the same rule the portal enforces.
-    let ownRecord = '';
-    try {
-      const { data: mine } = await prefetch.mine;
-      if (mine && (mine as any).known === true) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else\'s):\n' + JSON.stringify(mine) + '\n';
-      else if (mine && (mine as any).known === false) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD: no account matches this number, so answer generally and invite them to register or sign in rather than guessing at their status.\n';
-    } catch (_e) { /* fall through with no record rather than dropping the message */ }
-    if (timeline && timelineEvents > 0) ownRecord += '\n\nTHIS SENDER\'S CASE TIMELINE (newest first; every channel and every seat; theirs only). Never contradict it, and never repeat something it shows was already sent unless they ask:\n' + JSON.stringify((timeline as any).events) + '\n';
-
-    // THE MODEL GETS THE SAME PACK THE DATABASE ANSWERED FROM. fn_wa_route was reached above and
-    // said a model is needed; its fact_pack and model_brief carry the sender's own rows, the
-    // company register, the list of things that are genuinely unknown, and the rules the model may
-    // not break. Appending them here is what stops the model filling a gap from memory.
-    let brainPack = '';
-    if (route?.fact_pack) {
-      // fn_wa_model_brief (route.model_brief, the old STANDING BRIEF) is NOT sent any more (customer_support, 19 Oct 2026).
-      // It predates the reply rules in _shared/ai_reply.ts and contradicts them: its "ABSOLUTE RULE ON SUBJECT" made the
-      // model answer "how long does installation usually take?" with fn_wa_off_topic_reply's "QuotesDone inquiries only"
-      // sentence (runs 0f48ea10 and c95eb7da, EN and AR), and it said "say you will check", which the answer standard forbids.
-      brainPack = '\n\nFACT PACK (the ONLY source for any fact about this person, their own jobs and quotes, and any '
-        + 'QuotesDone fee; a trade, material, timing or specification question is answered from your own expertise):\n'
-        + JSON.stringify(route.fact_pack) + '\n';
-    }
-
-    // THE COMPANY BLOCK — customer_support's half of the founder's 9 Sep 2026 ruling: "the company
-    // knowledge is literally connected to every seat automatically. Any seat that we made, the
-    // company knowledge should be there."
-    //
-    // p_audience => 'public' is deliberate and is the reason the parameter exists. This channel
-    // answers strangers and suppliers; the INTERNAL block carries the seat list, the founder's
-    // standing decisions and the revenue targets, and none of that belongs in a WhatsApp reply. The
-    // public half is identity, what we sell, the published hard rules and the licence/VAT position,
-    // every figure read from company_registration and pricing_config on this message.
-    //
-    // IT REPLACES A DEADLINE THAT NO LONGER EXISTS. This prompt told suppliers "free until 31 July
-    // 2027; AED 1,000/year from 1 August 2027". The founder ruled on 6 September that there is no
-    // calendar date at all — charging begins with registration number 1,001, whenever that happens —
-    // and pricing_config.supplier_charging_starts has been NULL since. A price typed into a prompt
-    // cannot be corrected by correcting the company.
-    let companyBlock = '';
-    try {
-      const { data: cc } = await prefetch.company;
-      companyBlock = String((cc as Record<string, unknown> | null)?.block || '');
-    } catch (_e) { companyBlock = ''; } // a thinner grounding beats a dropped WhatsApp message
-
-    const { ctx, ids } = await prefetch.faq;
-    // THE REPLY IS THE MODEL'S (1195-1197, _shared/ai_reply.ts via model_says.ts): the company brief, the model chain
-    // (conversation_reply: claude-sonnet-5.5 -> gemini -> another family; ruling 1219), the figure and reply guard with a model rewrite, suppliers in English.
-    // Everything code knows about this message goes in as facts: who they are, their own record, the database's own
-    // answer for the intent it recognised, the approved FAQ for it, the live company block.
-    const situation = [audienceBlock,
-      ownRecord.trim(), brainPack.trim(),
-      detReply ? 'OUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\n' + detReply : '',
-      ctx ? 'APPROVED FAQ FOR THIS MESSAGE (may be for the other audience; apply the audience rules):\n' + ctx : '',
-      route?.needs_a_person === true ? 'They need a person: give the direct contact (+1 218 316 6814, call or WhatsApp, Mon-Fri 9am-6pm GST; management@quotesdone.com) and say the team has their message.' : '',
-      'Never volunteer supplier-side commercial terms to a customer. Do not promise that quote requests arrive immediately.',
-      companyBlock ? 'COMPANY BLOCK (live):\n' + companyBlock : ''].filter(Boolean).join('\n\n');
+    const { situation, ids } = await composeSituation(route);
     mark('facts_ready');
-    let reply = (await say(situation)).slice(0, 1200);
+    // The speculative draft is the reply only when the real route's inputs are exactly the ones it was composed on.
+    const drafted = speculative && needsPerson === false && routedIntent === 'none' && route?.needs_a_person === false ? await speculative : null;
+    timings.speculative = drafted ? 1 : 0;
+    let reply = (drafted ? adopt(drafted) : await say(situation)).slice(0, 1200);
     mark('reply_written');
     const llmFailed = !reply;
     const escalate = route?.needs_a_person === true || modelEscalate;
