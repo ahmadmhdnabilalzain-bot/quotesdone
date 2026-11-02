@@ -16,7 +16,7 @@ export function addedFiles(diff) {
 const SEATS = 'ceo|customer_support|sales_engineer|accountant|it_engineer|marketing';
 /** The seat an apply is attributed to: the file's own "Seat:" header, else the first seat the merge title names. A title naming two seats is still attributed. */
 export function seatOf(sql, title) {
-  return sql.match(new RegExp('^--\s*Seat:\s*(' + SEATS + ')\b', 'mi'))?.[1] ?? title.match(new RegExp('\b(' + SEATS + ')\b'))?.[1] ?? 'it_engineer';
+  return sql.match(new RegExp(String.raw`^--\s*Seat:\s*(${SEATS})\b`, 'mi'))?.[1] ?? title.match(new RegExp(String.raw`\b(${SEATS})\b`))?.[1] ?? 'it_engineer';
 }
 const run = (cmd, args) => execFileSync(cmd, args, { stdio: 'inherit' });
 

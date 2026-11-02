@@ -9,8 +9,7 @@ test('only added scripts/sql lines are applied, in order', () => {
 });
 
 test('an apply always names a seat: the file header first, then the merge title, even one naming two seats', () => {
-  assert.equal(seatOf('-- Seat: it_engineer, for x
-select 1;', 'customer_support: y'), 'it_engineer');
+  assert.equal(seatOf('-- Seat: it_engineer, for x\nselect 1;', 'customer_support: y'), 'it_engineer');
   assert.equal(seatOf('select 1;', 'customer_support, sales_engineer: y'), 'customer_support');
   assert.equal(seatOf('select 1;', 'Merge branch'), 'it_engineer');
 });
