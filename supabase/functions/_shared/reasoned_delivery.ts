@@ -354,16 +354,24 @@ export async function holdingNotice(row: { id: number; surface: string; question
  *  later tick instead of being lost with the step's log (a_customer_notice_that_failed_is_sent_again.sql). A throw is
  *  a failed attempt, never an abandoned batch.
  *  `record` may return a bare thenable: a supabase-js `admin.rpc(...)` builder has `then` and no `catch`, and
- *  calling `.catch` on it threw a TypeError AFTER the notice was sent, so the send was never recorded (it was sent
- *  again on a later tick) and reask_turns answered 500 (15 times on 1-2 Nov 2026, it_engineer). Awaiting inside
- *  try/catch runs the builder and catches a throw of either kind. */
+ *  calling `.catch` on it threw a TypeError AFTER the notice was sent, so the send was never recorded and
+ *  reask_turns answered 500 (15 times on 1-2 Nov 2026, it_engineer). A builder also never THROWS on a database
+ *  error: it resolves `{ error }`. So both a throw and a resolved `.error` are a failed record, logged and returned
+ *  as `record_error`. A delivered notice that was not recorded is offered again by fn_reason_held_notice_due once
+ *  its 30-minute claim lapses (a_holding_notice_is_claimed_by_one_sender.sql), up to 8 times: that repeat is why
+ *  the failure must be seen, not swallowed. */
 export async function sendHeldNotices(rows: { id: number; surface: string; question?: string; subject?: Record<string, unknown> | null }[], io: DeliveryIO,
-  record: (id: number, d: Delivery) => PromiseLike<unknown>): Promise<{ id: number; delivered: boolean; via: string; detail?: string }[]> {
+  record: (id: number, d: Delivery) => PromiseLike<unknown>): Promise<{ id: number; delivered: boolean; via: string; detail?: string; record_error?: string }[]> {
   const out = [];
   for (const r of rows) {
     const d: Delivery = await holdingNotice(r, io).catch((e) => ({ delivered: false, via: 'none' as const, detail: String(e?.message || e).slice(0, 200) }));
-    try { await record(r.id, d); } catch { /* an unrecorded attempt: fn_reason_held_notice_due offers the row again */ }
-    out.push({ id: r.id, ...d });
+    let recordError: string | undefined;
+    try {
+      const res = await record(r.id, d) as { error?: { message?: string } | null } | null | undefined;
+      if (res?.error) recordError = String(res.error.message || JSON.stringify(res.error)).slice(0, 200);
+    } catch (e) { recordError = String((e as Error)?.message || e).slice(0, 200); }
+    if (recordError) console.error('fn_reason_held_notice_record failed for held question ' + r.id + ' (delivered=' + d.delivered + '): ' + recordError);
+    out.push({ id: r.id, ...d, ...(recordError ? { record_error: recordError } : {}) });
   }
   return out;
 }

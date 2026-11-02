@@ -58,6 +58,20 @@ Deno.test('the heartbeat\'s deps carry the reason from embedGteRemote to embedFa
   assertEquals(d.embedFailure?.('ZZ DEMO q', 'gte'), null);
 });
 
+Deno.test('a visitor\'s deps (embedTimeoutMs 3000) wait 3 s on embed_ml, not 8, and a timeout is the null path', async () => {
+  const { defaultDeps } = await import('./think.ts');
+  _resetEmbedClientForTest();
+  const d = defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000 });
+  const v = await withFetch(() => { throw new DOMException('Signal timed out.', 'TimeoutError'); }, () => d.embed('ZZ DEMO price?', 'gte'));
+  assertEquals(v, null);
+  assertEquals(d.embedFailure?.('ZZ DEMO price?', 'gte'), 'embed_ml_timeout_3000ms');
+  _resetEmbedClientForTest();
+  const other = defaultDeps(admin, 'resilience_ping', { gte: 'remote' });
+  await withFetch(() => { throw new DOMException('Signal timed out.', 'TimeoutError'); }, () => other.embed('ZZ DEMO q', 'gte'));
+  assertEquals(other.embedFailure?.('ZZ DEMO q', 'gte'), 'embed_ml_timeout_8000ms', 'every other caller keeps 8 s');
+  _resetEmbedClientForTest();
+});
+
 Deno.test('embed_ml down costs one timeout per worker, not one per text: the next calls return at once', async () => {
   _resetEmbedClientForTest();
   let hops = 0; const whys: string[] = [];

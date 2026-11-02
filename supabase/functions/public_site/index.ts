@@ -37,7 +37,8 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 // median 324 ms CPU each, think.ts) and route_brief's think() embeds its steps the same way. Remote placement is
 // the same model and space, one embed_ml worker per text, as the heartbeat already does (heartbeatDeps).
 // prevented by: _shared/held_replay_keeps_gte_out_of_the_worker.test.ts (public_site case)
-const deps = () => defaultDeps(admin, 'public_site', { gte: 'remote' });
+// A visitor is waiting on the page: 3 s per embedding, not 8; a timeout is the null path (no vector, no block).
+const deps = () => defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000 });
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, content-type, apikey',
