@@ -119,6 +119,7 @@ async function openWidget(p) {
 }
 // the conversation as the server holds it must be what the screen shows: wait for the redraw, then compare
 async function settleHistory(p, want) {
+  await openWidget(p);
   let st = [];
   for (let i = 0; i < 40; i++) {
     st = (await screenTurns(p)) || [];
@@ -249,7 +250,8 @@ async function widgetSurface(browser, run) {
   // 6. A REPLY THAT NEVER ARRIVES: the real answer is produced and stored, then the connection is cut with a 504 page
   const priceAsk = 'How much will it cost me to fit a 3 metre wardrobe in Dubai?';
   let cut = 0;
-  await b.route('**/functions/v1/site_assistant', async (route) => {
+  const isSA = (u) => u.pathname === '/functions/v1/site_assistant';
+  await b.route(isSA, async (route) => {
     if (route.request().method() !== 'POST' || cut > 0) return route.fallback();
     cut++;
     await route.fetch({ url: upstream(route.request().url()), headers: { ...route.request().headers(), ...(await proof(run)) } });   // the server answers and stores the turn
@@ -262,7 +264,7 @@ async function widgetSurface(browser, run) {
   await shot(b, 'widget-lost-reply');
   let priceRec = lost;
   if (!lost.reply || shownErr) {
-    await b.unroute('**/functions/v1/site_assistant');
+    await b.unroute(isSA);
     priceRec = await sendWidget(b, S, 'B', 3, 'retry', priceAsk);   // the visitor asks again
     check(S, 'the retry of a lost reply is answered', !!priceRec.reply, 'no reply');
   }
@@ -414,7 +416,8 @@ async function portalSurface(browser, run) {
   await expectPortalHistory(page, 'after switching back to English', exp);
   // a reply lost in transit: the real answer is stored, the connection is cut with a 504 page
   let cut = 0;
-  await page.route('**/functions/v1/sales_engineer', async (route) => {
+  const isSE = (u) => u.pathname === '/functions/v1/sales_engineer';
+  await page.route(isSE, async (route) => {
     let a = null; try { a = route.request().postDataJSON()?.action; } catch { /* not JSON */ }
     if (route.request().method() !== 'POST' || a !== 'assist' || cut > 0) return route.fallback();
     cut++; await route.fetch({ url: upstream(route.request().url()), headers: { ...route.request().headers(), ...(await proof(run)) } }); await route.fulfill({ status: 504, contentType: 'text/html', body: '<html><body>504 Gateway Time-out</body></html>' });
@@ -422,7 +425,7 @@ async function portalSurface(browser, run) {
   const lost = await say(page, 6, 'lost reply');
   check(S, 'the connection was cut once, after the server had answered (the 504 was injected)', cut === 1, 'cuts: ' + cut);
   check(S, 'a reply lost in transit is found in the stored conversation (no error line, no retyping)', !!lost.reply && !/something went wrong/i.test(lost.reply), norm(lost.reply).slice(0, 140));
-  await page.unroute('**/functions/v1/sales_engineer');
+  await page.unroute(isSE);
   await say(page, 7, 'after lost reply');
   // a page reload
   await page.reload({ waitUntil: 'domcontentloaded' });

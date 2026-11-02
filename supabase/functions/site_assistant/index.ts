@@ -38,7 +38,7 @@ import { recallCases } from '../_shared/case_recall.ts';
 import { answerFromBrief } from '../_shared/brief_answer.ts';
 import { acceptImages } from '../_shared/chat_images.ts';
 import { logWithAttempts } from '../_shared/reply_attempts.ts';
-import { accountKey, clientHistory, fitHistory, openConversation, visitorIdOf } from '../_shared/chat_history.ts';
+import { accountKey, clientHistory, fitHistory, openConversation, visitorIdOf, visitorKey } from '../_shared/chat_history.ts';
 import { STATUS, streamReply, wantsStream } from '../_shared/stream_reply.ts';
 import { VISITOR_CAP, capReply, capReplyByModel, pastVisitorCap, signupAction, visitorRules } from './visitor_scope.ts';
 import { modelOrOutage } from '../_shared/openrouter_down.ts';
@@ -311,7 +311,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
       const capped = await capReplyByModel(defaultDeps(admin, 'site_assistant'), { audience, lang: visitorLang, message,
         subject: /^ZZ ?DEMO/i.test(message) ? { fixture: true, conv } : undefined });
       const reply = modelOrOutage(capped, capReply(audience, visitorLang));
-      await logWithAttempts(admin, 'assistant_logs', { message, reply: reply || null, matched_ids: [], seat: 'customer_support', answered: !!reply, gap_task_id: null, audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) },
+      await logWithAttempts(admin, 'assistant_logs', { message, reply: reply || null, matched_ids: [], seat: 'customer_support', answered: !!reply, gap_task_id: null, ...(hasConv ? { conv_id: visitorKey(conv) } : {}), audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) },
         { attempts: ['visitor_cap', ...capped.attempts, ...(capped.outage ? ['outage: code-written cap reply'] : [])], rewrites: 0, images: photos.images.length });
       return J({ reply, scope: 'public', routed: 'visitor_cap', visitor_cap: true, signup });
     }
