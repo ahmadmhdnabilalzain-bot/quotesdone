@@ -526,7 +526,8 @@ export async function makeSupplier(run, opts = {}) {
       company_type: 'LLC', contact_name: 'Demo Contact', phone,
       service_emirates: profile.coverage_emirates,
     });
-    await call('kyc', u.jwt, { action: 'accept_terms', user_kind: 'supplier', email });
+    // accept_terms writes the signed-terms PDF; a platform blip (HTTP 0/502/503/504/546) is retried, a refusal is not (run 41389615237: one 502 failed the setup).
+    for (let k = 0; k < 3; k++) { const at = await call('kyc', u.jwt, { action: 'accept_terms', user_kind: 'supplier', email }); if (![0, 502, 503, 504, 546].includes(at.status)) break; await new Promise((r) => setTimeout(r, 3000)); }
     // No approval is written here any more: completeMandatorySix below brings the documents and the
     // sales engineer decides. The mobile is recorded as verified directly - Twilio Verify cannot be
     // driven without sending an SMS, and the number is the fixture block by design. The e-mail was

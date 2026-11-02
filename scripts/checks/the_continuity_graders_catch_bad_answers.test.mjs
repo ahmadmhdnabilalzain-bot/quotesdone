@@ -17,6 +17,13 @@ const caught = (name, reply, why, ctx) => {
   if (why) assert.ok(v.some((x) => why.test(x)), `${name} caught it for the wrong reason: ${v.join('; ')}`);
 };
 
+test('feeOneLine: a one-line fee answer needs the 3%, not the word free', () => {
+  holds('feeOneLine', "The fee is 3% of the selected quote's final price, charged only when you reveal that supplier.");
+  caught('feeOneLine', 'There is a small fee when you reveal a supplier.', /3%/);   // the known-bad control: no 3%
+  caught('feeOneLine', 'The fee is 5% of the quote.', /3%|percentage/);
+  caught('feeOneLine', 'The fee is 3% plus a 2% service charge.', /percentage/);
+});
+
 test('fee: 3% at reveal only, posting free', () => {
   holds('fee', 'Posting a request and comparing quotes is free. The only charge is a 3% reveal fee, paid when you choose to reveal a supplier.');
   caught('fee', 'It is free to post, with a fee when you reveal a supplier.', /3%/);

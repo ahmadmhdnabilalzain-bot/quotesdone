@@ -386,7 +386,7 @@ async function portalSurface(browser, run) {
     { say: 'Can I post a job worth AED 300?', grade: 'minimum' },
     { say: 'Which emirates do you cover?', grade: 'emirates' },
     { say: 'Can I pay the supplier through QuotesDone, and do you hold the money?', grade: 'escrow' },
-    { say: 'Thanks. In one line, what is the fee again?', grade: 'fee' },
+    { say: 'Thanks. In one line, what is the fee again?', grade: 'feeOneLine' },
     { say: 'Remind me: where is my villa and how wide must the main door be?', grade: 'recall', facts: [/barsha/i, /2[.,]4/] },
     { say: 'Last one: is the fee free to post, still?', grade: 'fee' },
   ];
