@@ -108,7 +108,13 @@ const screenTurns = (p) => p.evaluate(() => {
 });
 async function openWidget(p) {
   const dlg = p.locator(DLG);
-  if (!(await dlg.count())) { await launcher(p).click({ timeout: 30000 }); await dlg.waitFor({ timeout: 15000 }); }
+  // a click before the page has hydrated does nothing, so it is repeated until the chat is open; the launcher is only pressed
+  // while it says "Ask QuotesDone" (once open it says "Close"), so a late hydration can never toggle it shut
+  for (let i = 0; i < 8 && !(await dlg.count()); i++) {
+    if (await launcher(p).count()) await launcher(p).click({ timeout: 10000 }).catch(() => {});
+    await dlg.waitFor({ timeout: 4000 }).catch(() => {});
+  }
+  await dlg.waitFor({ timeout: 15000 });
   return dlg;
 }
 // the conversation as the server holds it must be what the screen shows: wait for the redraw, then compare
@@ -345,8 +351,8 @@ async function sendPortal(page, conv, n, phase, say, { settleMs = 240000 } = {})
 async function switchLang(page, name, want) {
   await page.locator(`button[aria-label="${name}"]`).first().evaluate((b) => b.click()).catch(() => {});
   let ok = false;
-  for (let i = 0; i < 20 && !ok; i++) { await sleep(500); ok = (await page.evaluate(() => document.documentElement.lang || '')).toLowerCase().startsWith(want); }
-  check('portal', `the portal switched to ${want === 'ar' ? 'Arabic' : 'English'}`, ok, 'document language: ' + (await page.evaluate(() => document.documentElement.lang)));
+  for (let i = 0; i < 20 && !ok; i++) { await sleep(500); const lbl = await page.evaluate(() => (document.querySelector('aside[role="complementary"]') || document.body).getAttribute('aria-label') || ''); ok = want === 'ar' ? /[؀-ۿ]/.test(lbl) : /sales engineer/i.test(lbl); }
+  check('portal', `the portal switched to ${want === 'ar' ? 'Arabic' : 'English'}`, ok, 'panel title did not change');
 }
 
 async function portalSurface(browser, run) {
@@ -409,7 +415,7 @@ async function portalSurface(browser, run) {
   // a reply lost in transit: the real answer is stored, the connection is cut with a 504 page
   let cut = 0;
   await page.route('**/functions/v1/sales_engineer', async (route) => {
-    let a = null; try { a = JSON.parse(route.request().postData() || '{}').action; } catch { /* not JSON */ }
+    let a = null; try { a = route.request().postDataJSON()?.action; } catch { /* not JSON */ }
     if (route.request().method() !== 'POST' || a !== 'assist' || cut > 0) return route.fallback();
     cut++; await route.fetch({ url: upstream(route.request().url()), headers: { ...route.request().headers(), ...(await proof(run)) } }); await route.fulfill({ status: 504, contentType: 'text/html', body: '<html><body>504 Gateway Time-out</body></html>' });
   });
