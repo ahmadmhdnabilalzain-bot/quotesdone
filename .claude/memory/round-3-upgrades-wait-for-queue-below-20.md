@@ -18,6 +18,6 @@ On 29 Sep 2026, 70 PRs were open because builds outran merges, and a GitHub Acti
 5. Supplier capacity and availability.
 6. Fix `trade_words.ts`, which still matches supplier documents by words, against ruling 890.
 
-**How to apply:** check the open-PR count at the start of each session and whenever asked about merging. Start these builds (10 agents max; apply at merge, never before) only once the count is under 20.
+**How to apply:** check the open-PR count at the start of each session and whenever asked about merging. Start these builds (5 agents max; apply at merge, never before) only once the count is under 20.
 
 Related: [[apply-at-merge-never-before]], [[use-the-installed-skills]].

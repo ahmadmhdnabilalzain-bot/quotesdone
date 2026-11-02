@@ -39,3 +39,21 @@ export async function uploadToSignedUrl(supaUrl: string, anon: string, bucket: s
     return { error: { status: 0, message: String((e as Error)?.message || e) } };
   }
 }
+
+// A gateway 502/503/546 or a dropped leg is the platform busy, not the file refused (walk 41379033121, 2 Nov 2026: one 502
+// on the catalogue's upload_url call ended a registration). `e` is call()'s failure object or uploadToSignedUrl's error.
+export function isTransientUploadError(e: any): boolean {
+  if (!e) return false;
+  if (e.status === 0 || e.status >= 500 || e._http >= 500) return true;
+  return e.code === 'timeout' || e.code === 'network' || (e.code === 'bad_response' && !(e._http >= 400 && e._http < 500));
+}
+
+// Runs one whole upload (sign, then PUT; the path is new each time) up to `tries` times while the failure is transient.
+export async function retryTransient<T extends { error?: any }>(attempt: () => Promise<T>, tries = 3, waitMs = 1500): Promise<T> {
+  let r = await attempt();
+  for (let i = 1; i < tries && r.error && isTransientUploadError(r.error); i++) {
+    await new Promise((res) => setTimeout(res, waitMs * i));
+    r = await attempt();
+  }
+  return r;
+}

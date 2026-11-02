@@ -7,7 +7,8 @@ name: Dropbox backup second scheduler
 # a lost pg_net request delays a document by at most six hours instead of losing it.
 # Cost: ~1 Actions-minute per run, 4 a day, ~120 a month. Owner: sales_engineer.
 
-# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
+# founder 26 Oct (ledger 1279) switched every automatic trigger off; founder 28 Oct (ledger 1410): "activate github actions",
+# on GitHub-hosted runners. push / pull_request / workflow_run are back; schedules stay on pg_cron (moved 26 Oct, no double run).
 on:
   # schedule:
     # - cron: '41 */6 * * *'
@@ -19,7 +20,7 @@ concurrency:
 
 jobs:
   kick:
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7

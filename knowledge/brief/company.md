@@ -35,6 +35,8 @@ In Arabic and English the documents are bilingual; **the Arabic text prevails**,
   waterproofing, landscaping and pools, signage, CCTV/security, smart home, solar, facilities, cleaning, pest
   control, movers, AC maintenance and more; new trades are added as suppliers register them.
   (FAQ "What industries…") Food & beverage is not a category. (src/content/categories.json `_source`)
+- Not covered: food & beverage, and services that can only be priced by an on-site visit. The **minimum job value is
+  AED 500**; a job below it is not taken. (FAQ "What industries…"; the same facts the website assistant states.)
 - No advertising and no paid ranking: nobody can pay to rank higher. (FAQ "Can I advertise?", "How are suppliers ranked?")
 
 ## 2. How it works for a customer, step by step
@@ -74,8 +76,9 @@ or approved-manufacturer list; products must meet the UAE approvals for the job)
    (OTP-verified), email (verified), valid UAE trade licence (uploaded), company profile (uploaded), signed
    Supplier Agreement. The licence and the profile are the two required documents. (SA§13; HWV)
 3. **Verification** within **3 working days** of complete documents: licence number, issuing authority and
-   expiry date are read from the licence and checked. Approval is **automatic** when the six are complete and
-   the licence is read and in date (SA "Automated decisions"). An expired licence must be renewed first; a
+   expiry date are read from the licence and checked. Approval is **automatic** when the six are complete,
+   the licence is read and in date, and the supplier has **confirmed the services it provides** (Services tab); until it
+   confirms them it is held and the portal says what is left (SA "Automated decisions"; ledger 1469). An expired licence must be renewed first; a
    licence that cannot be read in full is held for review, and the supplier is told what is pending. (SA§13; HWV)
 4. **Receive matched RFQs** anonymised; ignoring an invitation carries no penalty. (FAQ "Can I decline invitations?")
 5. **Quote** itemised: scope, line items with brand/model and specs, quantities, unit prices, materials,
@@ -230,7 +233,7 @@ or subscriptions; a supplier's own quotation may state discounts, which we relay
 
 ## 12. Contact
 
-- **management@quotesdone.com** · **+971 50 931 9355** · Mon–Fri 9am–6pm GST, excluding UAE public holidays. (CON; SA contact line)
+- **management@quotesdone.com** · **+1 218 316 6814** · Mon–Fri 9am–6pm GST, excluding UAE public holidays. (CON; SA contact line)
 - info@quotesdone.com for questions about the Terms (CT§20); supplier@quotesdone.com to copy on a
   non-response complaint (CT§5); complaints status at quotesdone.com/complaints/status (CT§18).
 - Governing law: UAE; courts of Dubai. (CT§19)

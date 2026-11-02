@@ -1,0 +1,1 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row. scripts/checks/an_unverified_lead_cannot_be_queued.test.mjs replays it through scripts/lib/safe_replay.mjs (after the fix while that is pending, alone once it is applied) and requires PROBE OK. This note stays for the life of the file. Seat: sales_engineer.

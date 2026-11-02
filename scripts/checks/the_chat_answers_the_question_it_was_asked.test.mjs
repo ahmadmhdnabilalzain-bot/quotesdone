@@ -27,7 +27,7 @@ test('sales_engineer gives the own quote to the model as a fact, prints no assem
   const own = s.indexOf('answerFromOwnQuotes(caller.customerId');
   const rpc = s.indexOf("rpc('fn_sales_assist'");
   assert.ok(own > 0 && rpc > 0 && own < rpc, 'own-quote fact must precede fn_sales_assist');
-  assert.ok(s.includes("facts: ownQuote ? 'THEIR OWN QUOTE"), 'the own quote is a fact for the composed reply');
+  assert.ok(s.includes("facts: ownQuote ? 'THEIR OWN REQUESTS AND QUOTES"), 'the own quote is a fact for the composed reply');
   assert.ok(!s.includes('notYet(') && !s.includes('const recs = pick'), 'a code-written reply (notYet / assembled passages) is back');
   assert.doesNotMatch(s, /'\[' \+ String\(x\.corpus\)/, 'the raw [corpus · provenance] tag is back in the reply');
   assert.match(s, /setTimeout\(\(\) => r\(null\), 1500\)/, 'the gte-small embed must stay bounded');
