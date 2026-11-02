@@ -43,6 +43,7 @@ begin
               where s.key in ('admin_emails', 'expense_forwarders', 'founder_email') and btrim(a) = e) then return 'staff'; end if;
   if exists (select 1 from public.customers where lower(email) = e) then return 'customer'; end if;
   if exists (select 1 from public.leads where lower(email) = e) then return 'supplier'; end if;
+  if exists (select 1 from public.leads where lower(btrim(claimed_by)) = e) then return 'supplier'; end if;
   return null;
 end $function$
 

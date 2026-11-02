@@ -8,7 +8,8 @@ name: Nightly full journey (demo data)
 # workflow). If it were ever missing the job skips with a notice, and the IT engineer reports the missing
 # run itself after 26 hours (fn_it_duties, 'journey_heartbeat').
 
-# founder 26 Oct: automatic triggers off until bugs clear; re-enable push/pull_request/schedule then
+# founder 26 Oct (ledger 1279) switched every automatic trigger off; founder 28 Oct (ledger 1410): "activate github actions",
+# on GitHub-hosted runners. push / pull_request / workflow_run are back; schedules stay on pg_cron (moved 26 Oct, no double run).
 on:
   # schedule:
     # - cron: '0 22 * * *'   # 02:00 Dubai
@@ -16,7 +17,7 @@ on:
 
 jobs:
   journey:
-    runs-on: ${{ vars.RUNNER || 'ubicloud-standard-2' }}
+    runs-on: ubuntu-latest
     # 17 Sep 2026: the wall was 30 minutes and NOTHING told the harness about it. Two consecutive
     # nights (35037401883, 35164572430) were cancelled mid-crawl, which skips the report step below,
     # so the heartbeat never reached fn_it_journey_ingest (duty:journey_heartbeat:no_run, open 3 days

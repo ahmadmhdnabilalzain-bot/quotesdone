@@ -3,6 +3,7 @@ import { photoToDataUrl } from '@/lib/chatPhoto';
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
+import { lookForStoredAnswer, noVerdict, readReply } from '@/lib/portalReply';
 
 // Was an inline `process.env.NEXT_PUBLIC_SUPABASE_URL || '<production ref>'`, which meant a
 // preview deployment missing the variable pointed the public chat widget at the LIVE database
@@ -16,13 +17,13 @@ type Msg = { role: 'user' | 'assistant'; content: string; signup?: { url: string
 
 const T = {
   en: { title: 'QuotesDone Assistant', sub: 'Powered by the Smart Engine', open: 'Ask QuotesDone', close: 'Close',
-        ph: 'Ask about QuotesDone…', send: 'Send', thinking: 'Typing…',
+        ph: 'Ask about QuotesDone…', send: 'Send', thinking: 'Typing…', late: 'Still working on your answer…',
         greet: 'Hi! Ask me what QuotesDone is, how it works, what it costs or why you can trust it. Ready to send a job? Sign up free and our sales engineer takes it from there. Try one of these:',
         chips: ['How does QuotesDone work?', 'Is it free for customers?', 'How do you keep my details private?'],
         err: 'Sorry — something went wrong. Please try again, or email management@quotesdone.com.',
         photo: 'Photo', photoAdd: 'Add a photo or drawing', photoOn: 'Photo attached', photoOnly: '(photo)' },
   ar: { title: 'مساعد QuotesDone', sub: 'مدعوم بالمحرك الذكي', open: 'اسأل QuotesDone', close: 'إغلاق',
-        ph: 'اسأل عن QuotesDone…', send: 'إرسال', thinking: 'يكتب…',
+        ph: 'اسأل عن QuotesDone…', send: 'إرسال', thinking: 'يكتب…', late: 'ما زلتُ أعمل على إجابتك…',
         greet: 'مرحباً! اسألني ما هي QuotesDone وكيف تعمل وما تكلفتها ولماذا يمكنك الوثوق بها. لديك طلب؟ سجّل مجانًا وسيتابع معك مهندس المبيعات لدينا. جرّب أحد هذه الأسئلة:',
         chips: ['كيف تعمل QuotesDone؟', 'هل الخدمة مجانية للعملاء؟', 'كيف تحافظون على سرية بياناتي؟'],
         err: 'عذراً، حدث خطأ. يُرجى المحاولة مرة أخرى أو مراسلتنا على management@quotesdone.com.',
@@ -82,13 +83,24 @@ export function ChatWidget() {
     } catch (_e) { conv.current = ''; }
   }, []);
   // redrawn when the chat is opened (not on every page view): only a visitor who has one gets turns back
+  // restored is set only once the server ANSWERED: a history call that failed (a network blip, a 5xx) used to be marked done,
+  // so the chat stayed a bare greeting for the rest of the visit although the server held every turn (2 Nov 2026).
   const restored = useRef(false);
+  const restoring = useRef(false);
+  const readHistory = async (): Promise<Msg[] | null> => {
+    if (!conv.current) return null;
+    const r = await fetch(FN, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
+      body: JSON.stringify({ action: 'history', conv: conv.current }) });
+    const j = r.ok ? await r.json() : null;
+    return Array.isArray(j?.turns) ? j.turns : null;
+  };
   const restore = () => {
-    if (restored.current || !conv.current) return; restored.current = true;
-    fetch(FN, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
-      body: JSON.stringify({ action: 'history', conv: conv.current }) })
-      .then((r) => r.json()).then((j) => { if (Array.isArray(j?.turns) && j.turns.length) setMsgs((m) => (m.length > 1 ? m : [{ role: 'assistant', content: t.greet }, ...j.turns])); })
-      .catch(() => { /* the next turn still reads the whole conversation on the server */ });
+    if (restored.current || restoring.current || !conv.current) return; restoring.current = true;
+    readHistory().then((turns) => {
+      if (turns === null) return;   // not answered: asked again the next time the chat opens
+      restored.current = true;
+      if (turns.length) setMsgs((m) => (m.length > 1 ? m : [{ role: 'assistant', content: t.greet }, ...turns]));
+    }).catch(() => { /* the next turn still reads the whole conversation on the server */ }).finally(() => { restoring.current = false; });
   };
 
   // On a phone the launcher sat over the hero's demonstration card. Below 640px it waits for the
@@ -129,31 +141,23 @@ export function ChatWidget() {
         // history is only a first-turn fallback: site_assistant stores every turn and reads the whole conversation back by conv
         body: JSON.stringify({ message: m, lang: locale, history: next.slice(-40), path: pathname, conv: conv.current, ...(images.length ? { images } : {}) })
       });
-      if (r.body && (r.headers.get('content-type') || '').includes('ndjson')) {
-        const rd = r.body.getReader(); const dec = new TextDecoder();
-        let buf = '', text = '', final = ''; let signup: Msg['signup'];
-        for (;;) {
-          const { done, value } = await rd.read();
-          if (done) break;
-          buf += dec.decode(value, { stream: true });
-          let k: number;
-          while ((k = buf.indexOf('\n')) >= 0) {
-            const line = buf.slice(0, k); buf = buf.slice(k + 1);
-            if (!line.trim()) continue;
-            const e = JSON.parse(line);
-            if (e.t === 'status') setStatus(e.text);
-            else if (e.t === 'reset') text = '';
-            else if (e.t === 'delta') { text += e.text; setStatus(''); show(text); }
-            else if (e.t === 'done') { final = e.reply || ''; signup = e.signup; }
-          }
-        }
-        show(final || text || t.err, signup);
-      } else {
-        const j = await r.json();
-        // past the visitor cap with the model up but no line it wrote passing the guard, the server sends no text
-        // (founder_instruction 1339): the sign-up button alone is shown, never the error line.
-        show((j && j.reply) || (j && j.visitor_cap && j.signup ? '' : t.err), j && j.signup);
+      // THE PORTAL'S READER (src/lib/portalReply.ts), not a second copy of it (2 Nov 2026): only the approved text is kept,
+      // a reset clears what was shown, and a cut stream or a 504 page reads as "no reply yet" instead of throwing, which
+      // used to print the error line over a half-written answer (the cut stream showed `text` as if it were the reply).
+      const j = await readReply(r, { status: setStatus, text: (s) => show(s) });
+      const signup = (j.done?.signup as Msg['signup']) || undefined;
+      // past the visitor cap with the model up but no line it wrote passing the guard, the server sends no text
+      // (founder_instruction 1339): the sign-up button alone is shown, never the error line.
+      const capOnly = j.done?.visitor_cap === true && !!signup;
+      let reply = j.reply;
+      // THE ANSWER THAT NEVER ARRIVED IS LOOKED FOR (2 Nov 2026). The server stores every turn under the conversation even
+      // when the connection drops, so the chat reads it back from the history for up to 45 s before it says anything went
+      // wrong, exactly as the portal does; the error line is for a turn that has no stored answer either.
+      if (!reply && !capOnly && noVerdict(j) && conv.current) {
+        setStatus(t.late);
+        reply = await lookForStoredAnswer(readHistory, m, { waitMs: 45_000, everyMs: 5_000 });
       }
+      show(reply || (capOnly ? '' : t.err), signup);
     } catch (_e) {
       show(t.err);
     } finally { setBusy(false); setStatus(''); }

@@ -31,7 +31,7 @@
 //   * portal chat (sales_engineer): nothing is queued; the honest notYet answer files a task with the question.
 //   * website widget: an anonymous visitor has no channel to be answered on later, so nothing is queued; the
 //     widget's own path answers (gateway, price guide, corpus) or files the question as a knowledge gap.
-import { think, type ThinkDeps, type ThinkRequest, type ThinkResult } from './think.ts';
+import { think, type ThinkDeps, type ThinkRequest, type ThinkResult, type Turn } from './think.ts';
 import { FIELD_LABEL, FIELDS, figures, type QuoteForAnswer } from './chat_answers.ts';
 import { NEEDS_PERSON_OPTIONS, type Reasoned } from './reasoned_decisions.ts';
 import { menuOptions } from './reasoned_menus.ts';
@@ -80,13 +80,18 @@ export function whatsappOptions(intents: WaIntent[], trades: WaTrade[]): Option[
 export interface WaMeaningInput {
   message: string; intents: WaIntent[]; trades: WaTrade[]; phone: string; messageSid?: string | null;
   audience?: 'customer' | 'supplier' | 'founder' | 'unknown';
+  /** The last few turns of this chat, so "the second one" is read in context. */
+  conversation?: Turn[];
 }
+/** The classification is lean (no company brief). Module state only so the real-model parity run can ask for the old, full shape. */
+export const waLean = { on: true };
 function waRequest(o: WaMeaningInput, queue: boolean): ThinkRequest {
   return {
+    lean: waLean.on,
     seat: 'customer_support', surface: 'wa_inbound.intent_table', question: o.message.slice(0, 4000),
     dedupeKey: 'wa_meaning:' + (o.messageSid || o.phone + ':' + o.message.slice(0, 40)),
     subject: { channel: 'whatsapp', phone: o.phone, message_sid: o.messageSid ?? null },
-    context: { audience: o.audience === 'supplier' ? 'supplier' : o.audience === 'founder' ? 'founder' : 'customer' },
+    context: { audience: o.audience === 'supplier' ? 'supplier' : o.audience === 'founder' ? 'founder' : 'customer', ...(o.conversation?.length ? { conversation: o.conversation.slice(-6) } : {}) },
     decision: { name: 'whatsapp_question', options: whatsappOptions(o.intents, o.trades) },
     // A choice among given options needs no planner: its options are the whole of what it needs (think.ts `plan`).
     // Measured 18 Oct 2026: the plan call was 5-8 s of every one of these, and the plan was never used by a decision.
