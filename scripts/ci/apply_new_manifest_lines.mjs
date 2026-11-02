@@ -6,12 +6,17 @@
 // is covered by the next one.
 //   node scripts/ci/apply_new_manifest_lines.mjs <from-sha> <after-sha>
 import { execFileSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 /** The files a diff of MANIFEST.txt adds, in order. A removed line, a comment and a probe (never applied) are not an apply. */
 export function addedFiles(diff) {
   return diff.split('\n').filter((l) => /^\+scripts\/sql\/\S+\.sql\s*$/.test(l) && !/_probe\.sql\s*$/.test(l)).map((l) => l.slice(1).trim());
+}
+const SEATS = 'ceo|customer_support|sales_engineer|accountant|it_engineer|marketing';
+/** The seat an apply is attributed to: the file's own "Seat:" header, else the first seat the merge title names. A title naming two seats is still attributed. */
+export function seatOf(sql, title) {
+  return sql.match(new RegExp(String.raw`^--\s*Seat:\s*(${SEATS})\b`, 'mi'))?.[1] ?? title.match(new RegExp(String.raw`\b(${SEATS})\b`))?.[1] ?? 'it_engineer';
 }
 const run = (cmd, args) => execFileSync(cmd, args, { stdio: 'inherit' });
 
@@ -38,7 +43,7 @@ async function main([from, after]) {
     const probeArgs = existsSync(probe) ? [probe] : [];
     try {
       run('node', ['scripts/ci/rehearse_sql.mjs', file, ...probeArgs]);
-      run('node', ['scripts/apply_sql.mjs', file, '--apply', '--ddl']);
+      run('node', ['scripts/apply_sql.mjs', file, '--apply', '--ddl', '--seat', seatOf(readFileSync(file, 'utf8'), execFileSync('git', ['log', '-1', '--format=%s', after], { encoding: 'utf8' }))]);
       if (probeArgs.length) run('node', ['scripts/ci/rehearse_sql.mjs', 'scripts/ci/noop.sql', probe]);
     } catch (e) {
       await stop(file, after);
