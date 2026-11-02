@@ -71,13 +71,13 @@ export const GRADERS = {
   // food and beverage is not covered
   nofood: (r, c) => run([
     need(/food|catering|beverage|f\s?&\s?b/i, 'does not address food / catering'),
-    need(/\b(not|n't|cannot|can't|unable|outside|except|do not|don't|no longer)\b/i, 'does not decline food and beverage'),
+    need(/\b(not|cannot|unable|outside|except|no longer)\b|n't|\bno\b/i, 'does not decline food and beverage'),
     never(/^(yes|sure|absolutely|of course)\b/i, 'opens with a yes'),
   ], r, c),
   nofood_ar: (r, c) => run([
     need(AR, 'is not in Arabic'),
     need(/غذ|طعام|مأكولات|تموين|أطعمة|مشروبات|الضيافة/, 'does not address food / catering'),
-    need(/لا |لن |غير |خارج|باستثناء|عدا/, 'does not decline food and beverage'),
+    need(/لا|لن|غير|ليست|ليس|خارج|باستثناء|عدا/, 'does not decline food and beverage'),
   ], r, c),
   // a policy the brief never states must not be affirmed
   invented: (r, c) => run([

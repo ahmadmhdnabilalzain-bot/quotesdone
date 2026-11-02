@@ -168,7 +168,7 @@ async function widgetSurface(browser, run) {
   const net = []; p.on('response', (r) => { if (r.url().includes('/functions/v1/site_assistant')) net.push({ status: r.status(), at: Date.now() }); });
   await p.goto(SITE + '/', { waitUntil: 'domcontentloaded' });
   await openWidget(p);
-  const greet = (await screenTurns(p)) || [];
+  const greet = await (async () => { for (let i = 0; i < 20; i++) { const g = (await screenTurns(p)) || []; if (g.length) return g; await sleep(500); } return []; })();
   check(S, 'the widget opens with its greeting', greet.length >= 1 && greet[0].role === 'assistant', JSON.stringify(greet).slice(0, 200));
   const key = await convOf(p);
   check(S, 'the conversation id is a random UUID v4 kept in localStorage', /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(key || ''), key);
