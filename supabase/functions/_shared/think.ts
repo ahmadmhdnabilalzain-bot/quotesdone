@@ -858,7 +858,10 @@ export function withDeadline(deps: ThinkDeps, deadline: number, minMs = MIN_STEP
 // the heartbeat's deps (heartbeatDeps) use it. Other callers keep the in-worker session: their latency, not a batch.
 // prevented by: _shared/held_replay_keeps_gte_out_of_the_worker.test.ts
 export type GtePlacement = 'worker' | 'remote';
-export function defaultDeps(admin: Admin, fn: string, o: { gte?: GtePlacement } = {}): ThinkDeps {
+export function defaultDeps(admin: Admin, fn: string, o: { gte?: GtePlacement; embedTimeoutMs?: number } = {}): ThinkDeps {
+  // 8 s covers embed_ml's cold start (1.2-2.6 s); a visitor waiting on a page (public_site) gets a shorter clock, and a
+  // timeout is the same null an embed failure is: the caller goes on without the vector (it_engineer, review of #1786).
+  const embedMs = o.embedTimeoutMs ?? 8000;
   // why each remote embed returned null, per space and text, for the step detail (embedFailure); cleared on success
   const embedFails = new Map<string, string>();
   const noteFail = (sp: EmbedSpace, t: string) => (why: string) => { embedFails.set(sp + '\u0001' + t, why); };
@@ -878,12 +881,12 @@ export function defaultDeps(admin: Admin, fn: string, o: { gte?: GtePlacement } 
     },
     embed: async (t, space) => {
       // The model runs in embed_ml, never in this worker (ml_embed_client.ts); 8 s covers its cold start (1.2-2.6 s).
-      if (space === 'ml') { const { embedQueryMlRemote } = await import('./ml_embed_client.ts'); return settle('ml', t, await embedQueryMlRemote(admin, t, fn, 8000, noteFail('ml', t))); }
+      if (space === 'ml') { const { embedQueryMlRemote } = await import('./ml_embed_client.ts'); return settle('ml', t, await embedQueryMlRemote(admin, t, fn, embedMs, noteFail('ml', t))); }
       const { embedLine } = await import('./gte_embed.ts');
       // Outside the edge runtime (the seat exam on a machine) there is no Supabase.ai: the same gte-small answers from
       // embed_ml instead of null, so a run off the edge retrieves exactly as the edge does (ml_embed_client.embedGteRemote).
       // deno-lint-ignore no-explicit-any
-      if (o.gte === 'remote' || !(globalThis as any).Supabase?.ai) { const { embedGteRemote } = await import('./ml_embed_client.ts'); return settle('gte', t, await embedGteRemote(admin, t, fn, 8000, noteFail('gte', t))); }
+      if (o.gte === 'remote' || !(globalThis as any).Supabase?.ai) { const { embedGteRemote } = await import('./ml_embed_client.ts'); return settle('gte', t, await embedGteRemote(admin, t, fn, embedMs, noteFail('gte', t))); }
       return await embedLine(t);
     },
     embedFailure: (t, sp) => embedFails.get(sp + '\u0001' + t) ?? null,

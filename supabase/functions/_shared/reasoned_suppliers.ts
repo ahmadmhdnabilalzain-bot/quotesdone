@@ -96,7 +96,8 @@ const exemplarVecs = new Map<string, number[]>();
 async function plausiblyAPriceQuestion(deps: ThinkDeps, question: string): Promise<boolean | null> {
   const q = await deps.embed(question.slice(0, 500)).catch(() => null);
   if (!q) return null;
-  for (const e of PRICE_EXEMPLARS) if (!exemplarVecs.has(e)) { const v = await deps.embed(e).catch(() => null); if (v) exemplarVecs.set(e, v); }
+  // side by side: with gte-small in embed_ml (public_site) each is a network hop, so 8 in a row was 8 round trips
+  await Promise.all(PRICE_EXEMPLARS.filter((e) => !exemplarVecs.has(e)).map(async (e) => { const v = await deps.embed(e).catch(() => null); if (v) exemplarVecs.set(e, v); }));
   const vs = [...exemplarVecs.values()];
   if (!vs.length) return null;
   return Math.max(...vs.map((v) => cos(q, v))) >= PRICE_PREFILTER_FLOOR;
