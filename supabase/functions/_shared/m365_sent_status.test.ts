@@ -56,12 +56,23 @@ Deno.test('nothing claimed asks Graph nothing; missing secrets claim nothing', a
   assert(!claimed && out.held === 'edge secrets not set');
 });
 
-Deno.test('a refused token is one failed try on every claimed row, and the secret is never in the answer', async () => {
+// Review of #1792: an outage is not an answer about a send. A refused token records nothing; a 429/5xx or a timeout is
+// handed over with its HTTP status, which fn_m365_sent_status_record does not count as a try (the probe proves that half).
+Deno.test('a refused token records nothing, and the secret is never in the answer', async () => {
   const h = harness([{ notification_id: 7, message_id: MID }], () => ({ status: 200 }));
   h.deps.fetchFn = () => Promise.resolve(new Response(JSON.stringify({ error: 'invalid_client zz-demo-secret-0123456789' }), { status: 401 }));
   const out = await pollM365SentStatus(h.deps);
-  assertEquals(h.recs, [{ id: 7, found: false, sentAt: null, http: null, code: 'm365:token_refused' }]);
+  assertEquals(h.recs, []);
   assert(out.ok === false && !String(out.why).includes(ENV.MS_CLIENT_SECRET));
+});
+
+Deno.test('a 429, a 503 and a timeout go over with no 200, so none of them can be counted as "not in Sent Items"', async () => {
+  const rows = [1, 2, 3].map((i) => ({ notification_id: i, message_id: `<qd-notif-${i}.1@quotesdone.com>` }));
+  const h = harness(rows, (url) => ({ status: url.includes('qd-notif-1.') ? 429 : 503 }));
+  const real = h.deps.fetchFn;
+  h.deps.fetchFn = (u, i) => u.includes('qd-notif-3.') ? Promise.reject(new Error('timed out')) : real(u, i);
+  await pollM365SentStatus(h.deps);
+  assertEquals(h.recs.map((r) => [r.id, r.http, r.code]), [[1, 429, 'http:429'], [2, 503, 'http:503'], [3, null, 'm365:no_answer']]);
 });
 
 Deno.test('a quote in a Message-ID is doubled, so the filter cannot be broken out of', () => {

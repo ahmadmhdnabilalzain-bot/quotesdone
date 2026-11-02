@@ -142,6 +142,17 @@ export function senderAuthenticated(providerEmailId: unknown, authResults: unkno
     : fromDomainAuthenticated(authResults, fromEmail);
 }
 
+/** Our own tenant's Exchange wrote it (2 Nov 2026, review of #1792). Exchange stamps X-MS-Exchange-Organization-AuthAs on the
+ *  mail it accepts, and its header firewall strips X-MS-Exchange-Organization-* from mail arriving from outside, so 'Internal'
+ *  on a delivery handed in from the M365 mailbox (provider id 'm365:', our own signed handover) from the tenant's
+ *  microsoftexchange<hex> system address is the tenant's own word. Its non-delivery reports carry no DMARC result, so this is
+ *  their only proof. Fails closed: no header, another value, another sender, another lane. */
+export function exchangeInternal(providerEmailId: unknown, authAs: unknown, fromEmail: string): boolean {
+  const from = String(fromEmail || '').match(/[^<>\s"]+@[^<>\s"]+/)?.[0] || '';
+  return String(providerEmailId || '').startsWith('m365:') && typeof authAs === 'string' && authAs.trim().toLowerCase() === 'internal'
+    && /^microsoftexchange[0-9a-f]{32}@[a-z0-9-]+\.onmicrosoft\.com$/i.test(from);
+}
+
 /** Addresses no email may ever suppress: our own domains and the people who run the company. */
 export function neverSuppressible(email: string, protectedList: string[]): boolean {
   const e = String(email || '').trim().toLowerCase();

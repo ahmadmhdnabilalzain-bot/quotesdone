@@ -1,23 +1,68 @@
 -- PROBE for an_m365_invitation_says_whether_it_left_and_whether_it_bounced.sql. Seat: sales_engineer. Always raises, so every
--- row it touches is rolled back; it writes no row of its own that could survive.
--- 1. Every M365 invitation a delivery report quotes by its exact Message-ID reads 'undelivered' with a 'bounce:' code.
--- 2. The claim hands out only M365 sends with no status; 'sent' is written once and never over a bounce; five failed
---    tries read 'unreadable'.
--- 3. A bounce overwrites 'sent'.
--- 4. A permanent bounce from our own tenant's Exchange (no authentication result, exact Message-ID) marks its lead bounced.
+-- row it touches is rolled back; it writes no row of its own that could survive. Each step fails on the reviewed head of #1792.
+--  1. A report quoting our exact Message-ID from an unauthenticated sender that is not our tenant's stamped Exchange marks
+--     nothing (neither the lead nor the send); the same report stamped exchange_internal marks the lead and the send.
+--  2. A report naming our send only in References writes nothing.
+--  3. A delay notice carrying a dotted number (5.62.10.1) writes nothing; a report with no 5.x.x code writes nothing.
+--  4. Five 503s are not five tries; five 200s with no such message are, and read 'unreadable'.
+--  Also: the claim hands out only M365 sends with no status, and 'sent' is written once.
 do $probe$
 declare
-  v_quoted int; v_marked int; v_a bigint; v_b bigint; v_r jsonb; v_inb bigint; v_nid bigint; v_lead bigint; i int;
+  v_a bigint; v_b bigint; v_r jsonb; v_inb bigint; v_nid bigint; v_lead bigint; v_auth bigint; v_anid bigint; i int; v_backfilled int;
 begin
-  select count(distinct n.id), count(distinct n.id) filter (where n.provider_status = 'undelivered' and n.provider_error_code like 'bounce:%')
-    into v_quoted, v_marked
-    from public.inbound_messages m
-    join public.notifications n on n.id = nullif(substring(coalesce(m.raw->>'in_reply_to', '') || ' ' || coalesce(m.raw->>'references', '') from 'qd-notif-([0-9]+)\.'), '')::bigint
-   where public.fn_inbound_is_bounce(m.from_email, m.subject, m.raw) and n.provider_message_id like 'm365:<%>'
-     and position(substr(n.provider_message_id, 6) in coalesce(m.raw->>'in_reply_to', '') || ' ' || coalesce(m.raw->>'references', '')) > 0
-     and coalesce(m.subject, '') !~* 'delay';
-  if v_quoted <> v_marked then raise exception 'PROBE FAILED: % sends quoted by a bounce, % marked undelivered', v_quoted, v_marked; end if;
+  select count(*) into v_backfilled from public.notifications where provider_message_id like 'm365:<%>' and provider_status = 'undelivered';
 
+  -- 1. our tenant's report 1611-style: unauthenticated, exact In-Reply-To, a 5.1.1
+  select m.id, n.id, n.lead_id into v_inb, v_nid, v_lead
+    from public.inbound_messages m
+    join public.notifications n on n.id = nullif(substring(coalesce(m.raw->>'in_reply_to', '') from 'qd-notif-([0-9]+)\.'), '')::bigint
+   where coalesce(m.raw->>'sender_authenticated', 'false') <> 'true' and n.provider_message_id like 'm365:<%>'
+     and position(substr(n.provider_message_id, 6) in coalesce(m.raw->>'in_reply_to', '')) > 0
+     and m.body ~ '5\.1\.1' and position(lower(btrim(n.to_email)) in lower(m.body)) > 0
+   order by m.id limit 1;
+  if v_inb is null then raise exception 'PROBE FAILED: no unauthenticated report of our tenant to replay'; end if;
+  update public.notifications set provider_status = null, provider_error_code = null where id = v_nid;
+  update public.leads set invite_status = 'sent' where id = v_lead;
+  update public.inbound_messages set owner_role = null, raw = raw - 'exchange_internal' where id = v_inb;
+  perform public.fn_supplier_mailbox_mail_gets_its_owner(v_inb);
+  if (select invite_status from public.leads where id = v_lead) = 'bounced' or (select provider_status from public.notifications where id = v_nid) is not null then
+    raise exception 'PROBE FAILED: an unauthenticated report that only knew the Message-ID marked lead % or send %', v_lead, v_nid;
+  end if;
+  update public.inbound_messages set owner_role = null, raw = raw || '{"exchange_internal": true}'::jsonb where id = v_inb;
+  perform public.fn_supplier_mailbox_mail_gets_its_owner(v_inb);
+  if (select invite_status from public.leads where id = v_lead) <> 'bounced' or (select provider_status from public.notifications where id = v_nid) is distinct from 'undelivered' then
+    raise exception 'PROBE FAILED: our tenant''s stamped report did not mark lead % and send %', v_lead, v_nid;
+  end if;
+
+  -- 2 and 3 on an authenticated report (1484-style)
+  select m.id, n.id into v_auth, v_anid
+    from public.inbound_messages m
+    join public.notifications n on n.id = nullif(substring(coalesce(m.raw->>'in_reply_to', '') from 'qd-notif-([0-9]+)\.'), '')::bigint
+   where coalesce(m.raw->>'sender_authenticated', 'false') = 'true' and n.provider_message_id like 'm365:<%>'
+     and public.fn_inbound_is_bounce(m.from_email, m.subject, m.raw)
+   order by m.id limit 1;
+  if v_auth is not null then
+    update public.inbound_messages set raw = jsonb_set(jsonb_set(raw, '{references}', to_jsonb(raw->>'in_reply_to')), '{in_reply_to}', '""'::jsonb) where id = v_auth;
+    update public.notifications set provider_status = null, provider_error_code = null where id = v_anid;
+    perform public.fn_mail_bounce_marks_its_send(v_auth);
+    if (select provider_status from public.notifications where id = v_anid) is not null then
+      raise exception 'PROBE FAILED: a report naming our send only in References marked it';
+    end if;
+    update public.inbound_messages set raw = jsonb_set(raw, '{in_reply_to}', raw->'references'),
+           subject = 'Delivery Status Notification (Delay)', body = 'Delivery to the recipient is delayed; we will retry. Remote host 5.62.10.1.'
+     where id = v_auth;
+    perform public.fn_mail_bounce_marks_its_send(v_auth);
+    if (select provider_status from public.notifications where id = v_anid) is not null then
+      raise exception 'PROBE FAILED: a delay notice with an IP address marked the send undelivered';
+    end if;
+    update public.inbound_messages set subject = 'Undeliverable: Delivery Status Notification (Failure)', body = 'The message could not be delivered.' where id = v_auth;
+    perform public.fn_mail_bounce_marks_its_send(v_auth);
+    if (select provider_status from public.notifications where id = v_anid) is not null then
+      raise exception 'PROBE FAILED: a report with no 5.x.x code wrote a status';
+    end if;
+  end if;
+
+  -- 4 and the claim
   select min(c.notification_id), max(c.notification_id) into v_a, v_b from public.fn_m365_sent_status_claim(50) c;
   if v_a is null or v_a = v_b then raise exception 'PROBE FAILED: the claim returned fewer than two M365 sends with no status'; end if;
   if exists (select 1 from public.notifications where id in (v_a, v_b) and (provider_status is not null or provider_message_id not like 'm365:<%>')) then
@@ -28,33 +73,15 @@ begin
   if (select provider_status from public.notifications where id = v_a) <> 'sent' or (v_r->>'applied')::boolean then
     raise exception 'PROBE FAILED: found in Sent Items did not read sent once: %', v_r;
   end if;
+  for i in 1..5 loop perform public.fn_m365_sent_status_record(v_b, false, null, 503, 'http:503'); end loop;
+  if (select provider_status from public.notifications where id = v_b) is not null or (select coalesce(provider_poll_failures, 0) from public.notifications where id = v_b) <> 0 then
+    raise exception 'PROBE FAILED: five 503s were counted as tries';
+  end if;
   for i in 1..5 loop perform public.fn_m365_sent_status_record(v_b, false, null, 200, 'm365:not_in_sent_items'); end loop;
   if (select provider_status || '/' || provider_error_code from public.notifications where id = v_b) <> 'unreadable/m365:not_in_sent_items' then
-    raise exception 'PROBE FAILED: five failed tries did not read unreadable';
+    raise exception 'PROBE FAILED: five 200s with no such message did not read unreadable';
   end if;
-
-  -- 3 and 4 on a real report of our own tenant's Exchange, if one exists: its send set back to 'sent', its lead to 'sent'
-  select m.id, n.id, n.lead_id into v_inb, v_nid, v_lead
-    from public.inbound_messages m
-    join public.notifications n on n.id = nullif(substring(coalesce(m.raw->>'in_reply_to', '') from 'qd-notif-([0-9]+)\.'), '')::bigint
-   where coalesce(m.raw->>'sender_authenticated', 'false') <> 'true' and n.provider_message_id like 'm365:<%>'
-     and position(substr(n.provider_message_id, 6) in coalesce(m.raw->>'in_reply_to', '')) > 0
-     and m.body ~ '5\.1\.1\M' and position(lower(btrim(n.to_email)) in lower(m.body)) > 0
-   order by m.id limit 1;
-  if v_inb is null then
-    raise exception 'PROBE OK: % of % quoted sends read undelivered; claim, sent, unreadable as written; no own-tenant report to replay', v_marked, v_quoted;
-  end if;
-  update public.notifications set provider_status = 'sent' where id = v_nid;
-  update public.leads set invite_status = 'sent' where id = v_lead;
-  update public.inbound_messages set owner_role = null where id = v_inb;
-  v_r := public.fn_supplier_mailbox_mail_gets_its_owner(v_inb);
-  if (select provider_status from public.notifications where id = v_nid) <> 'undelivered' then
-    raise exception 'PROBE FAILED: a bounce did not overwrite sent on %', v_nid;
-  end if;
-  if (select invite_status from public.leads where id = v_lead) <> 'bounced' then
-    raise exception 'PROBE FAILED: our own tenant''s permanent bounce did not mark lead % bounced: %', v_lead, v_r;
-  end if;
-  raise exception 'PROBE OK: % of % quoted sends read undelivered; claim, sent, unreadable as written; report % overwrote sent and marked lead % bounced',
-    v_marked, v_quoted, v_inb, v_lead;
+  raise exception 'PROBE OK: backfill marked % undelivered; forged-sender report marked nothing, stamped one marked lead % and send %; References-only, delay+IP and no-code wrote nothing (report %); 503s not counted, five empty 200s unreadable',
+    v_backfilled, v_lead, v_nid, coalesce(v_auth::text, 'none');
 end
 $probe$;

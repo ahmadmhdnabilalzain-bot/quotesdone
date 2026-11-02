@@ -1,6 +1,17 @@
 // Replays the two faults the 22 Sep 2026 review of PR #804 found. Run: deno test supabase/functions/_shared/suppression_policy.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { blocksTransactional, fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES, senderAuthenticated, suppressionStops } from './suppression_policy.ts';
+import { blocksTransactional, exchangeInternal, fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES, senderAuthenticated, suppressionStops } from './suppression_policy.ts';
+
+// Review of #1792: a bounce from our own tenant's Exchange is believed only on the tenant's own stamp, never on the From alone.
+Deno.test('only our tenant\'s Exchange, stamped Internal, on the M365 lane, is our own tenant', () => {
+  const sys = 'microsoftexchange329e71ec88ae4615bbc36ab6ce41109e@netorgft20811795.onmicrosoft.com';
+  assert(exchangeInternal('m365:AAMk1', 'Internal', sys));
+  assert(exchangeInternal('m365:AAMk1', 'internal', 'Microsoft Outlook <' + sys + '>'));
+  assert(!exchangeInternal('m365:AAMk1', 'Anonymous', sys), 'mail from outside is stamped Anonymous');
+  assert(!exchangeInternal('m365:AAMk1', undefined, sys), 'no stamp, no proof');
+  assert(!exchangeInternal('re_123', 'Internal', sys), 'only the M365 lane carries the tenant\'s stamp');
+  assert(!exchangeInternal('m365:AAMk1', 'Internal', 'postmaster@evil.example'), 'another sender');
+});
 
 Deno.test('an unsubscribed address still receives a sign-in code; a hard-bounced or complained one does not', () => {
   assert(!blocksTransactional('unsubscribe'));

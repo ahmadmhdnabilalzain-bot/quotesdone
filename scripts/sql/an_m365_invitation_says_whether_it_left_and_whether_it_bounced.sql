@@ -13,16 +13,21 @@
 -- WHAT THIS DOES
 --  1. fn_m365_sent_status_claim / fn_m365_sent_status_record: resilience_ping (_shared/m365_sent_status.ts) asks Graph for
 --     each M365 send in supplier@'s Sent Items by its internetMessageId. Found: provider_status 'sent' at Graph's
---     sentDateTime (Exchange took it and sent it; it does not prove the recipient's server accepted it). Not found or no answer:
---     provider_poll_failures + 1, and after 5 tries (2.5 h) 'unreadable' with the reason in provider_error_code. Never 'delivered':
---     Graph has no delivery receipt for this lane.
---  2. fn_mail_bounce_marks_its_send: a delivery report that quotes the EXACT Message-ID of an M365 send writes
---     'undelivered' and 'bounce:<enhanced code>' on that send. A delay notice writes nothing. A bounce overwrites 'sent'.
---  3. fn_supplier_mailbox_mail_gets_its_owner (live body, three edits): an exact Message-ID match counts as authenticated,
---     so a permanent bounce from our own tenant's Exchange marks the lead 'bounced' and the bounce brake counts it; it
---     calls (2).
---  4. Backfill, at apply, from what Graph already returned: every report in inbound_messages naming a qd-notif send goes
---     through (2). The Sent Items read-back fills the rest on resilience_ping's 15-minute beat, 20 sends at a time.
+--     sentDateTime (Exchange took it and sent it; it does not prove the recipient's server accepted it). Graph answering 200
+--     with no such message is one try, and after 5 (2.5 h) the send reads 'unreadable'. A refused token, 429, 5xx or timeout
+--     is not counted (review of #1792): an outage never gives up on a send. Never 'delivered': Graph cannot see delivery.
+--  2. fn_mail_bounce_marks_its_send: a delivery report whose In-Reply-To is the EXACT Message-ID of an M365 send, from an
+--     authenticated sender or our own tenant's Exchange on its own stamp (raw.exchange_internal), carrying a standalone
+--     5.x.x code, writes 'undelivered' 'bounce:<code>'. A delay notice, or a report with no code, writes nothing. A bounce
+--     overwrites 'sent'.
+--  3. fn_supplier_mailbox_mail_gets_its_owner (live body, three edits): our tenant's Exchange, on its own stamp and with the
+--     exact In-Reply-To, counts as authenticated, so its permanent bounce marks the lead 'bounced' and the brake counts it.
+--     The Message-ID alone is no proof: the recipient knows it. It calls (2).
+--     raw.exchange_internal is written by resend_inbound from X-MS-Exchange-Organization-AuthAs: Internal, which Exchange's
+--     header firewall strips from outside mail. NOT MEASURED: whether Graph's internetMessageHeaders carries it on an NDR.
+--     If it does not, nothing changes for those NDRs (fail closed); the 6 already stored carry no such fact.
+--  4. Backfill, at apply, from what Graph already returned: every report in inbound_messages whose In-Reply-To names a
+--     qd-notif send goes through (2). The Sent Items read-back fills the rest on resilience_ping's 15-minute beat.
 -- Prevented by: supabase/functions/_shared/m365_sent_status.test.ts, an_m365_invitation_says_whether_it_left_and_whether_it_bounced_probe.sql
 
 -- 1. THE SENT ITEMS READ-BACK
@@ -68,6 +73,15 @@ begin
      where id = n.id;
     return jsonb_build_object('matched', true, 'applied', true, 'status', 'sent');
   end if;
+  -- Review of #1792: only Graph answering 200 with no such message is a try. A refused token, a 429, a 5xx or a timeout is
+  -- an outage, not an answer about this message: its code is kept and the try is not counted, so an outage never marks
+  -- every pending send 'unreadable'.
+  if p_http is distinct from 200 then
+    update public.notifications
+       set provider_error_code = left(coalesce(nullif(btrim(coalesce(p_code, '')), ''), 'http:' || coalesce(p_http::text, 'none')), 120)
+     where id = n.id;
+    return jsonb_build_object('matched', true, 'applied', false, 'reason', 'no answer from Graph; not counted');
+  end if;
   v_fails := coalesce(n.provider_poll_failures, 0) + 1;
   update public.notifications
      set provider_poll_failures = v_fails,
@@ -91,23 +105,34 @@ begin
   if m.id is null or not public.fn_inbound_is_bounce(m.from_email, m.subject, m.raw) then
     return jsonb_build_object('applied', false, 'reason', 'not a delivery report');
   end if;
-  v_ids := coalesce(m.raw->>'in_reply_to', '') || ' ' || coalesce(m.raw->>'references', '');
+  -- Review of #1792: In-Reply-To only. A report about a later reply in the same thread lists the invitation in References.
+  v_ids := coalesce(m.raw->>'in_reply_to', '');
   v_nid := nullif(substring(v_ids from 'qd-notif-([0-9]+)\.'), '')::bigint;
   if v_nid is not null then select * into n from public.notifications where id = v_nid; end if;
   if n.id is null or coalesce(n.provider_message_id, '') not like 'm365:<%>' or position(substr(n.provider_message_id, 6) in v_ids) = 0 then
-    return jsonb_build_object('applied', false, 'reason', 'it does not quote the exact Message-ID of an M365 send of ours', 'notification_id', v_nid);
+    return jsonb_build_object('applied', false, 'reason', 'its In-Reply-To is not the exact Message-ID of an M365 send of ours', 'notification_id', v_nid);
+  end if;
+  -- whoever can read the Message-ID (the recipient, anyone it was forwarded to) could write a "report": the sender must be
+  -- authenticated, or be our own tenant's Exchange on its own stamp (raw.exchange_internal, _shared/suppression_policy.ts)
+  if coalesce(m.raw->>'sender_authenticated', 'false') <> 'true' and coalesce(m.raw->>'exchange_internal', 'false') <> 'true' then
+    return jsonb_build_object('applied', false, 'reason', 'the report''s sender is neither authenticated nor our own tenant', 'notification_id', n.id);
   end if;
   v_text := left(coalesce(m.subject, '') || ' ' || coalesce(m.body, ''), 6000);
-  v_code := substring(v_text from '\m(5\.[0-9]{1,3}\.[0-9]{1,3})\M');
-  if v_code is null and v_text ~* '(delay|will retry|will be retried|still trying|temporar)' then
+  -- the delay test first: a delay notice writes nothing, whatever numbers it carries
+  if v_text ~* '(delay|will retry|will be retried|still trying|temporar)' then
     return jsonb_build_object('applied', false, 'reason', 'a delay notice: the message may still arrive', 'notification_id', n.id);
+  end if;
+  -- an RFC 3463 permanent code standing alone, never the start of a dotted number such as an IP address (5.62.10.1)
+  v_code := substring(v_text from '(?<![0-9.])(5\.[0-9]{1,3}\.[0-9]{1,3})(?![0-9.])');
+  if v_code is null then
+    return jsonb_build_object('applied', false, 'reason', 'no permanent status code: nothing is written', 'notification_id', n.id);
   end if;
   update public.notifications
      set provider_status = 'undelivered', provider_status_at = m.created_at, provider_status_checked_at = now(),
-         provider_error_code = 'bounce:' || coalesce(v_code, 'unknown')
+         provider_error_code = 'bounce:' || v_code
    where id = n.id and provider_status is distinct from 'undelivered';
   get diagnostics v_n = row_count;
-  return jsonb_build_object('applied', v_n > 0, 'notification_id', n.id, 'code', coalesce(v_code, 'unknown'));
+  return jsonb_build_object('applied', v_n > 0, 'notification_id', n.id, 'code', v_code);
 end $fn$;
 revoke execute on function public.fn_mail_bounce_marks_its_send(bigint) from public, anon, authenticated;
 
@@ -143,10 +168,12 @@ begin
     v_nid := nullif(substring(coalesce(m.raw->>'in_reply_to', '') || ' ' || coalesce(m.raw->>'references', '') from 'qd-notif-([0-9]+)\.'), '')::bigint;
     if v_nid is not null then select * into n from public.notifications where id = v_nid and channel = 'email'; end if;
     v_to := lower(btrim(n.to_email));
-    -- 2 Nov 2026: the bounce quotes the exact Message-ID our send carried (a millisecond stamp only a receiving system saw),
-    -- so it cannot be a forger guessing a qd-notif id. Our own tenant's Exchange NDRs carry no authentication result.
-    v_exact := coalesce(n.provider_message_id like 'm365:%' and position(substr(n.provider_message_id, 6) in
-                 coalesce(m.raw->>'in_reply_to', '') || ' ' || coalesce(m.raw->>'references', '')) > 0, false);
+    -- 2 Nov 2026 (review of #1792): our own tenant's Exchange NDRs carry no DMARC result. One stands in for an authenticated
+    -- sender only on the tenant's own stamp (raw.exchange_internal, suppression_policy.ts exchangeInternal) AND when its
+    -- In-Reply-To is the exact Message-ID of our send. The Message-ID alone proves nothing: the recipient knows it.
+    v_exact := coalesce(m.raw->>'exchange_internal', 'false') = 'true'
+               and coalesce(n.provider_message_id like 'm365:%' and position(substr(n.provider_message_id, 6) in
+                     coalesce(m.raw->>'in_reply_to', '')) > 0, false);
     v_body := left(coalesce(m.body, ''), 4000);
     if v_to is null or v_to = '' then
       v_why := 'a bounce that names no send of ours';
@@ -229,7 +256,7 @@ do $backfill$
 declare r record;
 begin
   for r in select i.id from public.inbound_messages i
-            where (coalesce(i.raw->>'in_reply_to', '') || ' ' || coalesce(i.raw->>'references', '')) ~ 'qd-notif-[0-9]+\.'
+            where coalesce(i.raw->>'in_reply_to', '') ~ 'qd-notif-[0-9]+\.'
             order by i.id
   loop
     perform public.fn_mail_bounce_marks_its_send(r.id);
