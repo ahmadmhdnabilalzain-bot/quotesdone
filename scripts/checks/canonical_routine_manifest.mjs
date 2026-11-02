@@ -601,4 +601,11 @@ if (findings && !REPO_ONLY) {
   console.log("  Green on main:   the finding is this branch's - its SQL is unapplied, or its file is stale.");
   console.log("  Red on both while another PR is mid-apply: that is the apply-then-merge window; re-read after it merges.");
 }
-process.exit(findings ? 1 : 0);
+// THE EXIT CODE IS SET, NOT FORCED (it_engineer, 3 Nov 2026). This line was process.exit(), and on
+// Linux a child's stdout pipe is asynchronous: whatever the kernel buffer has not yet taken is queued in
+// the process, and process.exit() throws the queue away. Once the PENDING notes above grew to ~75 KB of
+// separate writes, CI lost the whole tail — main's own run 41529498335 (6987460e) and #1796's run
+// 41524780655 both had canonical_routines.test.mjs read "exit 0, countable findings ?" and "reported
+// nothing" for every counter, while f6dcbe7d, one commit earlier, read 0. Windows pipes are synchronous,
+// so it never reproduced locally. exitCode lets Node flush stdout first; the code itself is unchanged.
+process.exitCode = findings ? 1 : 0;
