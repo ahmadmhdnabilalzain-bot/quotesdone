@@ -131,7 +131,7 @@ async function freshLeg({ run, browser, m, n, lang, vp, email, company }) {
   const fixtureMobile = `+9715000000${String(10 + n).padStart(2, '0')}`;
 
   // STEP 1. The supplier landing page, its call to action, and the sign-up form it opens.
-  let refusal = { ok: false, ms: 0 };
+  let refusal = { ok: false, ms: 0 }; let kept = null;
   { const ctx = await browser.newContext(ctxOpts); await ctx.addInitScript(consent); const p = await ctx.newPage(); const t0 = Date.now();
     await p.goto(`${SITE}${pre}/supplier`, { waitUntil: 'domcontentloaded' });
     const h1 = await p.locator('h1').first().innerText({ timeout: 20000 }).catch(() => '');
@@ -150,29 +150,62 @@ async function freshLeg({ run, browser, m, n, lang, vp, email, company }) {
 
     // STEP 2a. The real form refuses a reserved test domain BEFORE any code is sent (no OTP bypass in production code).
     const t1 = Date.now();
-    await p.locator('#qd-supplier-signin input').first().fill(email);
+    await p.locator('#qd-supplier-signin input').first().fill(REAL_OTP ? `qd-${run.tag}-refuse${n}@example.invalid` : email);
     await p.locator('#qd-supplier-signin').getByRole('button', { name: /^(Create my account|إنشاء حسابي)$/ }).click();
     const refused = await p.getByText(/reserved for examples and testing|محجوز للأمثلة/).first().waitFor({ timeout: 10000 }).then(() => true).catch(() => false);
     await shot(p, m, 'step2_reserved_domain_refused');
     refusal = { ok: refused, ms: Date.now() - t1 };
-    await ctx.close(); }
+    if (REAL_OTP) kept = { ctx, p }; else await ctx.close(); }
+
+  // STEP 2 (--real-otp): the REAL e-mail code. The same page types the run's Resend sink address into the real form, the
+  // server sends the code through Resend, the delivered message is read back (resend_sink.mjs) and typed. No seeded OTP,
+  // no injected session: the session the page ends with is the one the real verification minted.
+  let sReal = null;
+  if (REAL_OTP) {
+    const { p } = kept; const box = p.locator('#qd-supplier-signin'); const t2r = Date.now();
+    await box.locator('input').first().fill(email);
+    await shot(p, m, 'step2_real_email_typed');
+    const tSend = Date.now();
+    await box.getByRole('button', { name: /^Create my account$/ }).click();
+    const codeBox = box.locator('input[autocomplete="one-time-code"]');
+    const sentOk = await codeBox.waitFor({ timeout: 20000 }).then(() => true).catch(() => false);
+    const shown = await box.innerText().catch(() => '');
+    await shot(p, m, 'step2_code_screen');
+    let got = { code: null }, claimed = false;
+    if (sentOk) {
+      got = await readCode(email, tSend);
+      if (got.code) {
+        await codeBox.fill(got.code);
+        await box.getByRole('button', { name: /^Verify and continue$|^Verify/ }).first().click();
+        claimed = await p.locator('main').getByText(/^Register your company$/).first().waitFor({ timeout: 30000 }).then(() => true).catch(() => false);
+      }
+    }
+    await shot(p, m, 'step2_after_verify');
+    const tok = await p.evaluate(() => { try { const a = JSON.parse(localStorage.getItem('qd-portal-auth') || 'null'); return a?.access_token ? a : { access_token: localStorage.getItem('qd-sup-token'), refresh_token: localStorage.getItem('qd-sup-refresh') }; } catch { return null; } });
+    sReal = tok?.access_token ? tok : null;
+    const ev = (await read(`select count(*)::int n from auth.users where lower(email)=lower('${email}') and email_confirmed_at is not null`))[0].n;
+    jstep(m, 2, 'REAL e-mail code: the form sends it, Resend delivers it, it is read back and typed, the real session opens the registration form',
+      refusal.ok && sentOk && !!got.code && claimed && !!sReal && ev === 1, refusal.ms + (Date.now() - t2r),
+      `reserved-domain refusal ${refusal.ok}; code step ${sentOk}; mail from ${got.from}, subject "${got.subject}", last_event ${got.last_event}, accepted ${got.queued_ms} ms after click; code typed ${!!got.code}; registration form opened ${claimed}; auth user confirmed in DB ${ev}${sentOk ? '' : '; screen: ' + shown.slice(0, 120)}`);
+    if (!sReal) { await kept.ctx.close(); return; }
+  }
 
   // STEP 2b. The e-mail code: seeded hashed and verified through the real login_otp endpoint (the harness's OTP path).
   const t2 = Date.now();
-  const u = await mkAuthUser(run, email);
-  const v = await verifyEmailByOtp(email, 'supplier');
+  const u = REAL_OTP ? null : await mkAuthUser(run, email);
+  const v = REAL_OTP ? null : await verifyEmailByOtp(email, 'supplier');
   const { ANON } = await keys();
-  const s = await (await fetch(`${BASE}/auth/v1/token?grant_type=password`, { method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: u.password }) })).json();
-  jstep(m, 2, 'e-mail verification (form refuses the reserved domain before sending; code verified through login_otp)', refusal.ok && v.json?.ok === true && !!s.access_token, refusal.ms + (Date.now() - t2),
+  const s = REAL_OTP ? sReal : await (await fetch(`${BASE}/auth/v1/token?grant_type=password`, { method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password: u.password }) })).json();
+  if (!REAL_OTP) jstep(m, 2, 'e-mail verification (form refuses the reserved domain before sending; code verified through login_otp)', refusal.ok && v.json?.ok === true && !!s.access_token, refusal.ms + (Date.now() - t2),
     `reserved-domain refusal on screen: ${refusal.ok}; login_otp HTTP ${v.status} ok=${v.json?.ok}; session ${s.access_token ? 'issued' : 'MISSING'}`);
   if (!s.access_token) return;
 
-  const ctx = await browser.newContext(ctxOpts); await ctx.addInitScript(consent);
-  await ctx.addInitScript(([s]) => {
+  const ctx = kept ? kept.ctx : await browser.newContext(ctxOpts); if (!kept) await ctx.addInitScript(consent);
+  if (!kept) await ctx.addInitScript(([s]) => {
     localStorage.setItem('qd-sup-token', s.access_token); localStorage.setItem('qd-sup-refresh', s.refresh_token);
     localStorage.setItem('qd-portal-auth', JSON.stringify({ access_token: s.access_token, refresh_token: s.refresh_token, expires_in: s.expires_in, expires_at: s.expires_at, token_type: 'bearer', user: s.user }));
   }, [s]);
-  const p = await ctx.newPage(); lastPage = p; p.setDefaultTimeout(45000); const M = p.locator('main');
+  const p = kept ? kept.p : await ctx.newPage(); lastPage = p; p.setDefaultTimeout(45000); const M = p.locator('main');
   // The workspace's own tab strip (the site header has a navigation landmark too).
   const wsNav = () => p.getByRole('navigation').filter({ has: p.getByRole('button', { name: /^(Inquiries received|الاستفسارات الواردة)$/ }) }).first();
   const errs = []; p.on('pageerror', (e) => errs.push(String(e.message).slice(0, 160)));
@@ -262,7 +295,7 @@ async function freshLeg({ run, browser, m, n, lang, vp, email, company }) {
       `catalog_doc_paths ${docs?.cats}, objects ${docs?.cat_obj}`);
     for (const d of await read(`select license_doc_path p from public.leads where id=${lead.id} union all select company_profile_doc_path from public.leads where id=${lead.id} union all select unnest(catalog_doc_paths) from public.leads where id=${lead.id}`)) if (d.p) run.ids.storage.push('supplier-docs/' + d.p);
     step(m, 'a fixture mobile is refused before any SMS', sms.json?.ok !== true, sms.text.slice(0, 90));
-    step(m, 'the form shows the mobile verified', mobileOk);
+    step(m, 'NOT REAL: the mobile SMS code (no readable phone; the fixture number is recorded verified in the database, then the form shows it)', mobileOk);
 
     // Ruling 1230: registration completes 100% on ZZ DEMO — approved, signed certificate, every mandatory field stored.
     const t5 = Date.now(); let r;
@@ -344,7 +377,7 @@ try {
   for (const { lang, vp, c } of MATRIX) {
     const m = `${lang}/${vp}${c ? '/' + c.id : ''}`, n = run.seq++;
     const approveCase = !c || ['approve', 'name_autofilled'].includes(c.expected);
-    const email = REAL_OTP && !FRESH ? sinkAddress(run.tag, n) : `qd-${run.tag}-sup${n}@example.invalid`, company = `ZZ DEMO Walk ${run.tag} ${lang} ${vp} ${n}`;
+    const email = REAL_OTP ? sinkAddress(run.tag, n) : `qd-${run.tag}-sup${n}@example.invalid`, company = `ZZ DEMO Walk ${run.tag} ${lang} ${vp} ${n}`;
     if (isSink(email)) sinks.push(email);
     if (FRESH) { await freshLeg({ run, browser, m, n, lang, vp, email, company }); continue; }
     const lead = (await write(`insert into public.leads (company_name, email, emirate, source, invite_status, invited_at, locale, tags)
