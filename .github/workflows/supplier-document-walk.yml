@@ -5,12 +5,18 @@ name: Supplier document walk (demo data)
 # only; teardown removes the run by its tag. Runs on push of its own two paths (as a workflow not yet on main cannot be
 # dispatched) and on dispatch once it is.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      walk:
+        description: 'licences = the licence form (default); profiles = the company profile, its summary and keywords, confirmed by the supplier (ledger 1469). By hand only, never on push to main.'
+        type: choice
+        options: [licences, profiles]
+        default: licences
 
 jobs:
   walk:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QD_FIXTURES: '1'
@@ -24,8 +30,14 @@ jobs:
         run: npm ci && npx playwright install --with-deps chromium
         timeout-minutes: 8
       - name: Walk the supplier's documents
+        if: ${{ inputs.walk != 'profiles' }}
         run: node scripts/e2e/supplier_document_read_walk.mjs --browser --case t_text_pdf,t_scanned_pdf,t_png,t_jpg,t_blank_pdf,t_wrong_company,t_expired --json walk.json --shots walk-shots
         timeout-minutes: 30
+      # The judge's own known-bad controls first: a judge that cannot fail would make the walk below a pass by default.
+      - name: Walk the supplier's company profiles (summary and keywords against the file, USD 2 budget)
+        if: ${{ inputs.walk == 'profiles' }}
+        run: node --test scripts/checks/supplier_profile_read_judge.test.mjs && node scripts/e2e/supplier_profile_read_walk.mjs --json profile-walk.json --shots profile-walk-shots
+        timeout-minutes: 45
       # Runs even when the walk failed or was cancelled; touches only the tags this job wrote.
       - name: Close this job's rehearsal windows
         if: always()
@@ -38,4 +50,6 @@ jobs:
           path: |
             walk.json
             walk-shots
+            profile-walk.json
+            profile-walk-shots
           if-no-files-found: warn
