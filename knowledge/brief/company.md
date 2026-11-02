@@ -35,6 +35,8 @@ In Arabic and English the documents are bilingual; **the Arabic text prevails**,
   waterproofing, landscaping and pools, signage, CCTV/security, smart home, solar, facilities, cleaning, pest
   control, movers, AC maintenance and more; new trades are added as suppliers register them.
   (FAQ "What industries…") Food & beverage is not a category. (src/content/categories.json `_source`)
+- Not covered: food & beverage, and services that can only be priced by an on-site visit. The **minimum job value is
+  AED 500**; a job below it is not taken. (FAQ "What industries…"; the same facts the website assistant states.)
 - No advertising and no paid ranking: nobody can pay to rank higher. (FAQ "Can I advertise?", "How are suppliers ranked?")
 
 ## 2. How it works for a customer, step by step
@@ -228,7 +230,7 @@ or subscriptions; a supplier's own quotation may state discounts, which we relay
 
 ## 12. Contact
 
-- **management@quotesdone.com** · **+971 50 931 9355** · Mon–Fri 9am–6pm GST, excluding UAE public holidays. (CON; SA contact line)
+- **management@quotesdone.com** · **+1 218 316 6814** · Mon–Fri 9am–6pm GST, excluding UAE public holidays. (CON; SA contact line)
 - info@quotesdone.com for questions about the Terms (CT§20); supplier@quotesdone.com to copy on a
   non-response complaint (CT§5); complaints status at quotesdone.com/complaints/status (CT§18).
 - Governing law: UAE; courts of Dubai. (CT§19)

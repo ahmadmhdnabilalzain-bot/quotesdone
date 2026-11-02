@@ -231,7 +231,10 @@ for (const fn of ['login_otp', 'kyc', 'mobile_otp', 'inquiry_intake']) {
     if (/from\('customers'\)\s*\.insert\(/.test(call.replace(/\s+/g, ' ')) && /from\('customers'\)/.test(l)) ok(/locale/.test(call), `${fn}: a customer is registered without a language: ${l.trim().slice(0, 90)}`);
   });
 }
-ok(/source: 'self_registered', locale:/.test(src(F + 'supplier_api/index.ts')), 'supplier_api create_company: a supplier is registered without a language');
+// 28 Oct 2026 (#1712, ledger 1401 audit S7): create_company's insert moved to supplier_api/create_company.ts, which takes
+// the language from the door (SUPPLIER_LOCALE, the constant English). Both halves are asserted, so neither can drop it.
+ok(/source: 'self_registered',\s*locale: deps\.locale,/.test(src(F + 'supplier_api/create_company.ts'))
+  && /createCompany\(admin, email, body, \{[^}]*\blocale: SUPPLIER_LOCALE \}\)/.test(src(F + 'supplier_api/index.ts')), 'supplier_api create_company: a supplier is registered without a language');
 const cp = src('src/components/me/CustomerPortal.tsx');
 ok(!/getItem\('qd-lang'\)\) return/.test(cp), 'CustomerPortal: this device\'s stored language still overrides the registered one');
 ok(/action: 'set_locale', locale: l/.test(cp), 'CustomerPortal: switching language while signed in must save customers.locale');

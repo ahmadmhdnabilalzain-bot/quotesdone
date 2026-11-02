@@ -323,6 +323,8 @@ export interface State {
   unsure: boolean;
   /** asked together last turn, answered by a statement no detector could read: the extraction call decides these */
   undecided: string[];
+  /** the message asks a question and states no must-have: a summary-due reply answers it first */
+  direct?: boolean;
 }
 /** Extra fills for the latest message from the extraction call (slot -> value, or 'unsure'). */
 export type Extracted = Record<string, string>;
@@ -366,6 +368,10 @@ export function planState(past: Turn[], message: string, extracted: Extracted | 
       if (isQuestion(s) && !fillsOf(s.replace(/[?؟]\s*$/, '')).length) continue;
       const change = CHANGE.test(normalise(s));
       for (const id of fillsOf(s)) {
+        // A FIGURE INSIDE A QUESTION IS NOT THE BUDGET (browser proof, 2 Nov 2026, ledger 1464: "Can I post a job worth AED 300?"
+        // was a question about the platform and the read-back said "Budget: AED 300"). A question fills the budget only when it
+        // says budget.
+        if (id === 'budget' && isQuestion(s) && !/\bbudget\b|ميزانية|الميزانية/i.test(s)) continue;
         got.add(id);
         const prev = filled.get(id);
         if (prev && change) { if (!changed.has(id)) changed.set(id, prev); filled.set(id, s); }
@@ -419,8 +425,13 @@ export function planState(past: Turn[], message: string, extracted: Extracted | 
     else mode = 'ask';
   }
   if (mode === 'summary') for (const id of open) toConfirm.add(id);
+  // THE CUSTOMER ASKED SOMETHING (browser proof, 2 Nov 2026, ledger 1464): once the summary was due, every later turn was told
+  // "this reply is the summary", so "what is the fee again?" was answered without the figure and "is it still free?" with
+  // the job read-back and the answer buried in it. A message that asks and states no must-have is answered first.
+  const sents = sentencesOf(message);
+  const direct = sents.some(isQuestion) && !sents.some((s) => !isQuestion(s) && fillsOf(s).length) && !CONFIRMED.test(message);
   return { plan, filled, changed, toConfirm, open: mode === 'summary' ? [] : open, next: mode === 'ask' ? open[0] : null,
-    also: mode === 'ask' ? open[1] ?? null : null, mode, seatTurns, unsure, undecided: mode === 'ask' ? undecided : [] };
+    also: mode === 'ask' ? open[1] ?? null : null, mode, seatTurns, unsure, undecided: mode === 'ask' ? undecided : [], direct };
 }
 
 /** A plan slot is given when its own slot is filled; the plan's 'size' also by a count ("a 2-bedroom flat"). */
@@ -443,6 +454,7 @@ export function stateBlock(st: State): string {
       + ' Word it for this job as they described it, and leave out any part of it that does not apply to this job.'
       + ' Ask nothing else: no other question, and nothing listed above.' + (st.unsure ? ' They were unsure about your last question: first recommend an answer to it in one sentence, without repeating that they are unsure.' : ''));
   } else if (st.mode === 'summary') {
+    if (st.direct) lines.push('THEY ASKED A QUESTION: answer it first, directly and completely in one or two sentences (state any figure or fact it asks for, from the brief), and only then give the summary below. Do not open with the summary.');
     lines.push('THIS REPLY IS THE SUMMARY. Open with a short phrase such as "Here is your request as I have it:" (Arabic: "هذا ملخص طلبك:"), then the job in short sentences of under 20 words each, with every value above (only the latest choice where they changed one), then the items to confirm at the site visit, if any. End with one question asking whether it is correct, such as "Is this correct?" (Arabic: "هل هذا صحيح؟"). No other question.');
   } else {
     lines.push('THEY CONFIRMED THE SUMMARY. Thank them in a few words and tell them to press "New request" (Arabic portal: "طلب جديد") to send it to verified suppliers. Ask nothing.');

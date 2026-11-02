@@ -30,7 +30,9 @@ test('the daily invitation cap is the founder schedule, enforced by the ramp and
     public.fn_invite_founder_cap('2026-10-26') c, public.fn_invite_founder_cap('2026-11-02') d,
     public.fn_invite_founder_cap('2026-11-09') e, public.fn_invite_founder_cap('2030-01-01') f;
     commit;`, { ref: 'htdblwldjkcgjvmqkbeh' });
-  assert.deepEqual([caps.a, caps.b, caps.c, caps.d, caps.e, caps.f].map(Number), [20, 20, 30, 40, 50, 50],
+  // Ledger 1455: above the dated weeks only by the ceiling the CEO routine holds on measured health.
+  const [{ c: ceil }] = await q(`select coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_ceo_ceiling'), 0) c`);
+  assert.deepEqual([caps.a, caps.b, caps.c, caps.d, caps.e, caps.f].map(Number), [20, 20, 30, 40, 50, 50].map((n) => Math.max(n, Number(ceil))),
     'fn_invite_founder_cap no longer returns ruling 1231 (20 until 25 Oct / 30 from 26 Oct / 40 from 2 Nov / 50 from 9 Nov, ceiling 50)');
 
   const defs = await q(`select p.proname, pg_get_functiondef(p.oid) def from pg_proc p join pg_namespace n on n.oid = p.pronamespace

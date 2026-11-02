@@ -20,8 +20,8 @@ export function customerFacts(inqs: CustomerInq[]): string {
 
 export function supplierFacts(company: string, jobs: SupplierJob[]): string {
   const head = `THE SENDER IS A REGISTERED SUPPLIER${company ? ' (' + company + ')' : ''}, matched on their exact e-mail address.`;
-  if (!jobs.length) return head + ' No jobs have been sent to them yet.';
-  return head + ' Jobs sent to them, newest first, with THEIR OWN quote only (never another supplier\'s quote or the customer\'s identity):\n'
+  if (!jobs.length) return head + ' No jobs have been sent to them yet. ' + SEPARATE_COMPANY_FACT;
+  return SEPARATE_COMPANY_FACT + '\n' + head + ' Jobs sent to them, newest first, with THEIR OWN quote only (never another supplier\'s quote or the customer\'s identity):\n'
     + jobs.slice(0, 15).map((j) => `- Job #${j.inquiry_id}: ${j.category || 'job'}${j.emirate ? ' in ' + j.emirate : ''}${j.sent_at ? ', sent ' + day(j.sent_at) : ''}, job status ${j.status || 'unknown'}, their quote: ${j.my_quote_status || 'not submitted'}`).join('\n');
 }
 
@@ -49,13 +49,24 @@ export const SIX_ITEMS = 'the company\'s licensed name, a UAE mobile number veri
 export const NO_SETUP_FOR_THEM = 'Never offer to register them, to set up their company page or to do any step for them, and never say '
   + 'our team will: only they can verify their e-mail and mobile, upload their documents and accept the terms.';
 const LINK_LEAD = "open their company's own registration link ";
+// A SECOND COMPANY (2 Nov 2026, customer_support; a supplier asked to register its subsidiary). Read from
+// supplier_api/create_company.ts and the indexes on leads, measured on production: an account manages one company
+// (company_exists), an address holding a claimed lead is refused (email_already_registered; uq_leads_email_lower,
+// leads_claimed_by_lower_uidx), and a claimed licence or name cannot repeat. Nothing links two companies to one login.
+export const SEPARATE_COMPANY_FACT = 'IF THEY ASK TO REGISTER ANOTHER COMPANY (a subsidiary or sister company with its own trade licence): it registers as its own '
+  + 'separate company at quotesdone.com/portal with "Create account", with its own trade licence and details and a different work e-mail that has no '
+  + 'account with us, because one e-mail manages exactly one company and it cannot be added under their existing account. '
+  + `It needs all six of: ${SIX_ITEMS}. Any registration link given above is for the company named above only, never for the other company. ` + NO_SETUP_FOR_THEM;
+// 2 Nov 2026 (it_engineer, ledger 1445): Microsoft and Yahoo file our first mail to a company in Junk, and a message the
+// company wrote first or a sender it added as a contact is what its mailbox trusts. So the first reply asks, once and in English.
+export const ADD_CONTACT_FACT = 'END THE REPLY WITH ONE PLAIN SENTENCE IN ENGLISH ASKING THEM TO ADD supplier@quotesdone.com TO THEIR CONTACTS, or to write to that address first, so that our messages reach their inbox rather than their junk folder. Say it once, as a request, with no explanation of mail filters.';
 export function unregisteredSupplierFacts(company: string, link: string): string {
   return `THE SENDER IS A SUPPLIER COMPANY WE INVITED${company ? ' (' + company + ')' : ''}, matched on their exact e-mail address. `
     + 'THEY HAVE NOT REGISTERED YET: never call them registered and never mention jobs or quotes sent to them. '
     + 'If they say yes, want to join or ask how, tell them registration is free for our first 1,000 suppliers and takes a few minutes: '
     + `${LINK_LEAD}${link} , choose "Create account" with their work e-mail and type the 6-digit code we e-mail them. `
     + `To be verified they need all six of: ${SIX_ITEMS}. The trades they cover are confirmed in the Services tab of their portal. `
-    + 'Give the link exactly as written, on its own line. ' + NO_SETUP_FOR_THEM;
+    + 'Give the link exactly as written, on its own line. ' + NO_SETUP_FOR_THEM + ' ' + SEPARATE_COMPANY_FACT + ' ' + ADD_CONTACT_FACT;
 }
 // THE LINK IS NOT LEFT TO THE MODEL (supplier journey audit, 28 Oct 2026, docs/reports/supplier_journey_audit_28_oct/
 // sales_agent): the facts above ask for the link on its own line, and the model still dropped it in 3 of 8 replies to
@@ -80,7 +91,7 @@ export function withClaimLink(body: string, facts: string): string {
 export const SUPPLIER_SIGN_IN_FACT = 'THE SENDER\'S E-MAIL COULD NOT BE VERIFIED AS COMING FROM THEIR ADDRESS, so no account details may be given. '
   + 'If they ask about their jobs, quotes or account, say that for their security they can see them by signing in at quotesdone.com/portal. '
   + 'If they are not registered yet and want to join, they can register at quotesdone.com/portal with "Create account" and their work e-mail; '
-  + `to be verified they need all six of: ${SIX_ITEMS}. ` + NO_SETUP_FOR_THEM;
+  + `to be verified they need all six of: ${SIX_ITEMS}. ` + NO_SETUP_FOR_THEM + ' ' + SEPARATE_COMPANY_FACT + ' ' + ADD_CONTACT_FACT;
 
 /** The verified sender's own records as reply facts, or '' for anyone else (or when a read fails). */
 export async function accountFacts(admin: Db, email: string, relation: unknown): Promise<string> {
@@ -95,7 +106,10 @@ export async function accountFacts(admin: Db, email: string, relation: unknown):
       return customerFacts(((stats as { inquiries?: CustomerInq[] } | null)?.inquiries) || []);
     }
     if (relation === 'supplier') {
-      const { data: leads } = await admin.from('leads').select('id,company_name,claimed,claim_token').ilike('email', e.replace(/[\\%_]/g, (c) => '\\' + c)).limit(2);
+      const exact = e.replace(/[\\%_]/g, (c) => '\\' + c);
+      let { data: leads } = await admin.from('leads').select('id,company_name,claimed,claim_token').ilike('email', exact).limit(2);
+      // the account holder's address may differ from the listing's (fn_mail_sender_known reads claimed_by too)
+      if (leads && !leads.length) ({ data: leads } = await admin.from('leads').select('id,company_name,claimed,claim_token').ilike('claimed_by', exact).limit(2));
       if (!leads || leads.length !== 1) return '';
       const sup = leads[0];
       if (!sup.claimed) return unregisteredSupplierFacts(String(sup.company_name || ''), sup.claim_token ? `${SITE}/portal?t=${sup.claim_token}` : `${SITE}/portal`);
