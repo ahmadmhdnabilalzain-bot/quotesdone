@@ -579,6 +579,7 @@ ALTER TABLE public.control_mode_challenge ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.control_mode_identity ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.control_mode_session ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conversation_archive ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.conversation_archive_attempt ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conversation_retention_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conversation_retention_pdf ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conversation_retention_plan_log ENABLE ROW LEVEL SECURITY;
@@ -1244,6 +1245,7 @@ CREATE POLICY complaint_tickets_service_role_only ON public.complaint_tickets AS
 CREATE POLICY contact_duplicate_group_service_role_only ON public.contact_duplicate_group AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY contact_merge_audit_service_role_only ON public.contact_merge_audit AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY conversation_archive_service_role_only ON public.conversation_archive AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY conversation_archive_attempt_service_role_only ON public.conversation_archive_attempt AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY conversation_retention_log_service_only ON public.conversation_retention_log AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY conversation_retention_pdf_service_only ON public.conversation_retention_pdf AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY conversation_retention_plan_log_service_only ON public.conversation_retention_plan_log AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
@@ -1849,6 +1851,7 @@ select cron.schedule('seat_duty:ceo.daily_number','*/5 * * * *',$CRON$set statem
 --   supplier_subscription_aed
 --   supplier_subscription_start
 --   supplier_subscription_term
+--   supplier_terms_carries_from
 --   supplier_terms_html
 --   supplier_terms_label
 --   supplier_terms_version
