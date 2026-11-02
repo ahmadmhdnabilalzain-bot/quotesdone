@@ -3690,15 +3690,22 @@ CREATE OR REPLACE FUNCTION public.fn_reason_held_notice_due(p_limit integer DEFA
 AS $function$
 declare v jsonb; v_dead int;
 begin
-  select coalesce(jsonb_agg(jsonb_build_object('id', h.id, 'seat', h.seat, 'surface', h.surface, 'question', left(h.question, 500),
-                                               'subject', h.subject, 'attempts', h.notice_attempts) order by h.escalated_at), '[]'::jsonb)
-    into v
-    from (select * from public.reasoning_held_question
-           where escalated_at is not null and notice_delivered_at is null
-             and coalesce(subject->>'phone', '') <> '' and notice_attempts < 8
-             and (notice_last_at is null or notice_last_at < now() - interval '30 minutes')
-           order by escalated_at
-           limit greatest(1, least(coalesce(p_limit, 20), 100))) h;
+  with due as (
+    select h.id from public.reasoning_held_question h
+     where h.escalated_at is not null and h.notice_delivered_at is null
+       and coalesce(h.subject->>'phone', '') <> '' and h.notice_attempts < 8
+       and (h.notice_last_at is null or h.notice_last_at < now() - interval '30 minutes')
+     order by h.escalated_at
+     limit greatest(1, least(coalesce(p_limit, 20), 100))
+     for update skip locked
+  ), claimed as (
+    update public.reasoning_held_question h set notice_last_at = now()
+      from due where h.id = due.id
+    returning h.id, h.seat, h.surface, h.question, h.subject, h.notice_attempts, h.escalated_at
+  )
+  select coalesce(jsonb_agg(jsonb_build_object('id', c.id, 'seat', c.seat, 'surface', c.surface, 'question', left(c.question, 500),
+                                               'subject', c.subject, 'attempts', c.notice_attempts) order by c.escalated_at), '[]'::jsonb)
+    into v from claimed c;
 
   select count(*) into v_dead from public.reasoning_held_question
    where escalated_at is not null and notice_delivered_at is null and coalesce(subject->>'phone', '') <> '' and notice_attempts >= 8;

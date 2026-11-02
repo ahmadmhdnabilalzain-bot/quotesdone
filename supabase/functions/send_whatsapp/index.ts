@@ -50,6 +50,7 @@ import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 // provider_status that callback (or its 30-minute backstop poll) writes onto the row.
 import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 import { portfolioGate } from './portfolio_gate.ts';
+import { registrationNeeds } from './registration_reminder.ts';
 // v9 (24 Sep 2026, customer_support, founder ledger 994): nothing depends on WhatsApp alone. While the IT
 // engineer's watch holds the sender down, or when one send fails, the notice goes once by SMS
 // (_shared/whatsapp_failover.ts, public.fn_wa_sms_twin), and back to WhatsApp when the watch closes.
@@ -151,6 +152,9 @@ function tmplKey(type:string):string|null{
   // 24 Sep 2026 (sales_engineer): the approval notice, twinned from its email to the confirmed number.
   // {{1}} is its subject ("You are verified on QuotesDone: please confirm your categories"), {{2}} the portal.
   if(t==='supplier_approved') return 'supplier_account_notice';
+  // 2 Nov 2026 (it_engineer): the registration reminder's WhatsApp twin. Unmapped, the first one (05:00Z) was skipped
+  // "no WhatsApp template mapping". Its own UTILITY template, English only; held queued until Meta approves it.
+  if(t==='supplier_registration_reminder') return 'supplier_registration_reminder';
   // 6 SEP 2026: the founder's own alert. fn_notify_founder queues it (allowed kind, severe level) and
   // wa_flush drains it here. "QuotesDone alert: {{1}}. Details: {{2}}. Open the OS to act." — registered
   // by wa_template_setup under this key.
@@ -182,12 +186,13 @@ function varsFor(key:string, n:{subject?:string|null; body?:string|null}): Recor
   // send links"): the template carries no link, so there is no {{2}} and no claim link is read out of the body.
   if (key==='supplier_invite') return {'1': waVar(waInviteTrade(n.subject), 60)};
   if (key==='support_reply') return {'1': waVar(shortSummary(n.subject||''), 120), '2': waVar(String(n.body||''), 700)};
+  if (key==='supplier_registration_reminder') return {'1': waVar(registrationNeeds(n.body), 160), '2': linkFor(key)};
   return {'1':shortSummary(n.subject||n.body||''),'2':linkFor(key)};
 }
 // The page a notice points to. The SMS twin carries the same link as the WhatsApp template.
 function linkFor(key:string|null){
   return key==='supplier_new_inquiry' ? SUP_URL
-       : (key==='supplier_doc_expiry' || key==='supplier_quote_accepted' || key==='supplier_account_notice') ? PORTAL_URL
+       : (key==='supplier_doc_expiry' || key==='supplier_quote_accepted' || key==='supplier_account_notice' || key==='supplier_registration_reminder') ? PORTAL_URL
        : APP_URL;
 }
 // LIVE WHATSAPP HEALTH: the IT engineer's integration watch. An unreadable finding table reads as healthy,
