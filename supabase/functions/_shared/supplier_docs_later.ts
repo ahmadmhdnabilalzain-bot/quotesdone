@@ -51,7 +51,7 @@ export type LaterDoc = DocIn & { gate?: boolean };
 //
 // WHAT IT MAY COST (review of #1796): the model is billed per page and per image. So an image above PROFILE_IMAGE_MAX is not sent, a PDF above
 // PROFILE_PDF_MODEL_MAX is not sent, and a PDF of more than PROFILE_PDF_PAGES pages is cut to its first pages (a profile says what the company
-// does early; pdf-lib copies the pages, and a PDF it cannot cut is not sent). Each is recorded on the document as the reason it was not read
+// does early; pdf-lib removes the later pages, and a PDF it cannot cut is not sent). Each is recorded on the document as the reason it was not read
 // (`unread_reason`, worded for the supplier) instead of being sent whole. The call carries the supplier as its subject so the spend is theirs.
 // ponytail: a big image is skipped, not downscaled (decoding 10 MB of JPEG is more CPU than an edge function has); upgrade: downscale to 2600 px.
 export const PROFILE_PDF_MODEL_MAX = 12 * 1024 * 1024;
@@ -66,14 +66,17 @@ export async function pdfPageCount(bytes: Uint8Array): Promise<number | null> {
   const r = await pdfjsText(bytes, 1, undefined, undefined, LIMITS.maxPaperBytes);
   return typeof r.of === 'number' ? r.of : null;
 }
-/** The first `n` pages of a PDF as a PDF of their own, or null when it cannot be cut. */
+/** The supplier's own PDF with every page after the first `n` removed, or null when it cannot be cut. It EDITS the supplier's file (load,
+ *  remove pages, save) and authors nothing: no new document, no copied or drawn page. That is the one shape
+ *  scripts/checks/every_pdf_we_issue_is_on_our_template.mjs allows outside pdf_native; the copy goes to the model, never to a person.
+ *  The removed pages' objects stay in the file, so it is no smaller than the original (already under PROFILE_PDF_MODEL_MAX); the model
+ *  is billed by the pages it is given, which is what the cut bounds. */
 export async function firstPdfPages(bytes: Uint8Array, n: number): Promise<Uint8Array | null> {
   try {
     const { PDFDocument } = await import('https://esm.sh/pdf-lib@1.17.1');
-    const src = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
-    const out = await PDFDocument.create();
-    for (const p of await out.copyPages(src, Array.from({ length: Math.min(n, src.getPageCount()) }, (_, i) => i))) out.addPage(p);
-    return await out.save();
+    const doc = await PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+    for (let i = doc.getPageCount() - 1; i >= n; i--) doc.removePage(i);
+    return await doc.save();
   } catch (_e) { return null; }
 }
 

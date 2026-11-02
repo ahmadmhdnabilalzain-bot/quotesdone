@@ -4,7 +4,7 @@
 
 // ENGLISH ONLY TO A SUPPLIER (ruling 1008). A profile read off a picture may be Arabic; the trade it names is shown by its English name, and
 // the Arabic line that proved it stays stored and is not repeated on this screen.
-export const ARABIC_SCRIPT = /[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/;
+export const ARABIC_SCRIPT = /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/;
 export const isEnglishLine = (line: unknown): boolean => { const s = String(line ?? '').trim(); return !!s && !ARABIC_SCRIPT.test(s); };
 export const englishLines = (lines: readonly unknown[]): string[] => lines.map((l) => String(l ?? '').trim()).filter(isEnglishLine);
 
