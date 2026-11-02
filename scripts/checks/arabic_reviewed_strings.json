@@ -3229,11 +3229,11 @@
   "3c6dd88f41c0"
  ],
  "src/components/ChatWidget.tsx": [
+  "062f2cecfce4",
   "22b2e5437067",
   "429cb37af1cd",
   "a4879318094c",
   "a69c82313935",
-  "c8eadf831cf9",
   "c90195aef20c"
  ],
  "src/components/CompanyIdentity.tsx": [
@@ -3355,6 +3355,7 @@
   "13962c829494",
   "1414d5859c0e",
   "14849c72fb93",
+  "1497d2ca70a0",
   "1504bfc3a8dc",
   "15df8b2eee6f",
   "180191c15927",
@@ -3550,7 +3551,6 @@
   "d466a6a5871c",
   "d83ee5b92b13",
   "d90bc276f4d6",
-  "db49f39b569d",
   "db55605ea27a",
   "dc3ee77b163f",
   "dc8e37e88336",
@@ -6815,6 +6815,7 @@
   "c0ee79012a31",
   "c38dea87d6d8",
   "c42ec2aa484f",
+  "c4b3366146fd",
   "c5aa58a7cbbd",
   "c617c47dc3e6",
   "c658ef82cc94",
@@ -6868,6 +6869,7 @@
   "850c5e015517",
   "8fd10a276bcc",
   "9f77f6e4aecc",
+  "b6ac81ab97ed",
   "b826522b091c",
   "bcce5e7e8862",
   "be5080422359",
@@ -6877,7 +6879,6 @@
   "da91acd0d662",
   "dedb2a621dd9",
   "df51b0fe23f3",
-  "e9a092d6ee0b",
   "e9fef18a4a36",
   "f0519b8b163a",
   "f85ba8db503e",
