@@ -1,1 +1,0 @@
-Apply at merge, AFTER an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql (#1744): this file redefines its queue. Outside the campaign window; deploy send_whatsapp and resilience_ping with it. Both switches stay off on apply: the duty only logs decisions until ceo_growth_act_golive is true.
