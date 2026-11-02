@@ -1,0 +1,4 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. Measured 13 Oct 2026
+with the_it_engineer_sends_a_mystery_shopper_through_every_day.sql in the same rolled-back query through scripts/qsql.mjs -> CHK<<PROBE OK matching FAIL filed to sales_engineer
+naming the error; SKIP and PASS filed nothing; all-PASS closed it; 30 h silence raised the heartbeat, a fresh report cleared
+it>>. This note stays for the life of the file. Seat: it_engineer.

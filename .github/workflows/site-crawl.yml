@@ -1,0 +1,36 @@
+name: Site crawl (browser proof)
+
+# Founder, ledger 1464: confirm no bugs, every link smooth and quick, browser proof. Crawls every sitemap
+# and linked URL on quotesdone.com and quotesdone.ae in en and ar at 1440 and 390, the redirect matrix and
+# the public-page menus. Read-only: GETs and clicks, no form is submitted. Runs by hand, or once when
+# this file or the crawler changes on a branch. The report is the artifact.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/site-crawl.yml
+      - scripts/e2e/site_crawl.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  crawl:
+    if: ${{ github.ref_name != 'main' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci && npx playwright install --with-deps chromium
+        timeout-minutes: 10
+      - run: node scripts/e2e/site_crawl.mjs
+        env:
+          QD_CRAWL_OUT: crawl-out
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: site-crawl-report
+          path: crawl-out

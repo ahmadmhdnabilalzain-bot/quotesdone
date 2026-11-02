@@ -113,6 +113,7 @@ export function holdForM365(o: { m365: M365; type: unknown; cappedSentToday: num
 }
 
 // ---------------------------------------------------------------- the plain-text invitation (marketing)
+// (The wording itself was replaced the same day by variant A, below; the rules in this paragraph still hold.)
 // THE FOUNDER'S EMAIL (27 Oct 2026, founder_instruction 1298-1301): "the wording sounds fine to me"; pitched the way
 // a very large company writes to a business partner; "safer to not send links"; the signature is "just QuotesDone
 // Technologies, Dubai, UAE". So: NO link in the body (quotesdone.com is plain text, no scheme, no path), no HTML frame,
@@ -123,6 +124,9 @@ export function holdForM365(o: { m365: M365; type: unknown; cappedSentToday: num
 /** Anything a mail client would turn into a link: a scheme, a www. host, or a host followed by a path. */
 export const ANY_LINK = /https?:\/\/|\bwww\.|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,}\/[^\s]*/i;
 export const STOP_LINE = 'If this isn\'t relevant, reply "stop" and we won\'t contact you again.';
+// 2 Nov 2026 (it_engineer, ledger 1445): a person and company in the display name; low-strength evidence only (the vendor
+// posts say a role address is flagged; nothing from Microsoft or Yahoo). The comma needs the quoted form (RFC 5322).
+export const M365_FROM_NAME = '"Ahmad Alzain, QuotesDone"';
 export const SIGNATURE = 'Best regards,\nAhmad Alzain\nFounder, QuotesDone\nQuotesDone Technologies · Dubai, UAE';
 
 // 19 Oct 2026 (marketing + it_engineer, ledger 1113: no campaign email in spam). MEASURED (GlockApps
@@ -131,38 +135,102 @@ export const SIGNATURE = 'Best regards,\nAhmad Alzain\nFounder, QuotesDone\nQuot
 // addressed to the company and its trade, no promotional word in the subject or the opening, and the opt-out in the
 // List-Unsubscribe headers plus one "reply stop" line. Since 27 Oct 2026 the body carries no link at all (above).
 export type Who = { company?: string; trade?: string };
-const ENTITY: Record<string, string> = { amp: '&', '#038': '&', '#38': '&', quot: '"', '#039': "'", '#39': "'", apos: "'" };
-/** A company name as a person writes it: entities decoded, a "| tagline" or " - branch" cut, SHOUTING lowered. */
+// THE GREETING READS A COMPANY NAME, NOT A PAGE TITLE (sales_engineer, 28 Oct 2026). leads.company_name is often a
+// scraped page title. MEASURED on notifications 116649-116668: "Speed Blast Trading L.L.C &#8211; Top notch Industrial
+// Equipments Suppliers in Dubai, UAE" reached the greeting whole (the entity map had no numeric entities, so the dash cut
+// never saw a dash), "CERAMIC MEGA ... TR LLC (Manufacturer and wholesaler of any kind of porcelain tile.)" kept its
+// tagline and its capitals, "NRA INTERNATIONAL" became "Nra" and "TRADING L L C" kept its spaces. So: decode every
+// entity first, then cut (dash/pipe, a trailing parenthetical, a ", Dubai"/", Suppliers in ..." tail), then case, and a
+// name still too long or written like a sentence gets the neutral "Hello," rather than a title.
+const ENTITY: Record<string, string> = {
+  amp: '&', quot: '"', apos: "'", nbsp: ' ', ndash: '–', mdash: '—', lt: '<', gt: '>', rsquo: "'", lsquo: "'", rdquo: '"', ldquo: '"',
+};
+const decodeOnce = (s: string) => s.replace(/&(?:#(\d{1,7})|#x([0-9a-f]{1,6})|([a-z]+));/gi, (m, dec, hex, name) => {
+  if (name) return ENTITY[name.toLowerCase()] ?? m;
+  const cp = dec ? parseInt(dec, 10) : parseInt(hex, 16);
+  return cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : m;
+});
+/** What follows ", " in a page title rather than a name: an emirate, the country, or a "Suppliers in ..." tagline. */
+const PLACE_OR_TAGLINE = /^(?:dubai|uae|u\.a\.e|united arab emirates|abu dhabi|sharjah|ajman|ras al khaimah|fujairah|umm al quwain|al ain|jebel ali)\b|\bsuppliers?\s+in\b/i;
+const LEGAL = /^(?:l\.?l\.?c\.?|fze|fzco|fzc|fz|tr|dmcc|pjsc|wll)$/i;
+/** Two-letter words that are words, not acronyms, when a name is written in capitals ("AL", "CO", "OF"). */
+const SHORT_WORD = new Set('AL EL OF CO BU DE LA LE DA BY TO IN ON OR AT IS AS MY UP NO DR MR MS ST HI'.split(' '));
+/** Three-letter acronyms that carry a vowel. Any other three-letter token with a vowel is a word or an abbreviation and is
+ *  title-cased: MEASURED on all 20,249 distinct leads.company_name (28 Oct 2026, review of #1706), keeping every 3-letter
+ *  token in capitals turned GEN (258 names), ALI (89), IND, MIX, MAT, ENT, AIN, SPA, ENG, BAB and EZZ into shouting. */
+const ACRONYM3 = new Set('UAE UAQ RAK MEP NRA MAF ETA ABD'.split(' '));
+/** Vowel-less abbreviations that read as words, not acronyms: "Co Ltd", "Pvt", "Svcs" (MEASURED 28 Oct 2026: LTD alone
+ *  is in 376 distinct names). */
+const ABBREVIATION = new Set('LTD PVT SVC SVCS MKTG TRDG MFG MNFG DVLP SRVS PCKG CNTG BLDG'.split(' '));
+/** Title case: a letter after anything but a letter, a digit, "_" or an apostrophe ("Gen.Trading", "Center/L.L.C",
+ *  "Ronny's", "18th"). */
+const word = (w: string) => w.toLowerCase().replace(/(^|[^a-z0-9_'’])([a-z])/g, (_m, p, c) => p + c.toUpperCase());
+/** One token of a name written in capitals: a legal suffix or a 2-3 letter acronym stays, anything else is title-cased. */
+const capsToken = (w: string) => {
+  const bare = w.replace(/[^A-Za-z.]/g, '');
+  if (LEGAL.test(bare)) return w.toUpperCase();
+  const letters = w.replace(/[^A-Z]/g, '');
+  if (letters === w && !ABBREVIATION.has(w) && ((w.length === 2 && !SHORT_WORD.has(w)) || (w.length === 3 && (ACRONYM3.has(w) || !/[AEIOUY]/.test(w))) ||
+    (w.length === 4 && !/[AEIOUY]/.test(w)))) return w;
+  return word(w);
+};
+/** One part of a hyphenated capitals token ("LLC-SPC", "HI-TECH", "AL-FUTTAIM"): a legal suffix, a known acronym or a
+ *  vowel-less one stays; anything else is title-cased, so "HI" and "AL" read as words here (review of #1706). */
+const hyphenPart = (w: string) => {
+  if (LEGAL.test(w.replace(/[^A-Za-z.]/g, ''))) return w.toUpperCase();
+  const keep = /^[A-Z]{2,4}$/.test(w) && !ABBREVIATION.has(w) && (ACRONYM3.has(w) || !/[AEIOUY]/.test(w));
+  return keep ? w : word(w);
+};
+/** A company name as a person writes it: entities decoded, a page-title tail cut, SHOUTING lowered; '' for the neutral
+ *  greeting. It never throws: the greeting is not worth a failed send, so any exception reads as "no name". */
 export function companyName(raw: unknown): string {
-  let s = String(raw || '').replace(/&(#0?\d+|[a-z]+);/gi, (m, k) => ENTITY[String(k).toLowerCase()] ?? m);
-  s = s.split(/\s[|–—-]\s/)[0].replace(/\s+/g, ' ').trim();
+  try { return nameFrom(raw); } catch { return ''; }
+}
+function nameFrom(raw: unknown): string {
+  let s = decodeOnce(decodeOnce(String(raw || '')));          // twice: "&amp;#8211;" is a dash too
+  s = s.replace(/\s+/g, ' ').split(/\s*[|»]\s*|\s[–—-]\s|:\s/)[0]; // "Name – tagline", "Name |tagline", "Name: tagline", "Name » x"
+  s = s.replace(/\s*\([^()]*\)?\s*$/, '');                   // "Name (Manufacturer and wholesaler of ...)"
+  const comma = s.indexOf(', ');
+  if (comma > 0 && PLACE_OR_TAGLINE.test(s.slice(comma + 2))) s = s.slice(0, comma);
+  s = s.replace(/\bL\s+L\s+C\b/g, 'LLC').replace(/[\s,;:|–—-]+$/, '').trim();
   if (/[؀-ۿ]/.test(s) || /^zz\s*demo/i.test(s) || s.length < 2) return '';
   // a registered name carrying a web address ("www.khaazay.com online division of ...") gets the neutral greeting:
   // the founder's email carries no link, and the name is never cut into something the company did not write
   if (/https?:\/\/|\bwww\.|\b[a-z0-9-]+\.(?:com|ae|net|org|co|biz|info)\b/i.test(s)) return '';
-  if (s === s.toUpperCase() && /[A-Z]{4}/.test(s)) {
-    s = s.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase()).replace(/\b(Llc|Fze|Fzco|Fzc|Fz)\b/g, (w) => w.toUpperCase());
-  }
-  return s;
+  // still a title, not a name: too long, too many words, a comma-separated keyword list, or written to the reader. Words
+  // are counted without "&" and legal suffixes: a registered name like "AL MARZOQI AUTO ACCESSORIES & MOBILE PHONE TRADING
+  // CO LLC" is long and is still a name (MEASURED 28 Oct 2026: a plain 8-word / 60-char cap sent 280 such names to "Hello,").
+  const words = s.split(' ').filter((w) => w !== '&' && !LEGAL.test(w.replace(/[^A-Za-z.]/g, '')));
+  if (s.length > 80 || words.length > 10 || (s.match(/, /g) || []).length >= 2) return '';
+  if (words.length >= 4 && /\b(?:we|our|you|your)\b/i.test(s)) return '';
+  if (s === s.toUpperCase() && /[A-Z]{4}/.test(s)) return s.split(' ').map((t) => (t.includes('-') ? t.split('-').map(hyphenPart).join('-') : capsToken(t))).join(' ')
+      .replace(/\b(?:Llc|Fze|Fzco|Fzc|Dmcc|Pjsc|Wll)\b/g, (w) => w.toUpperCase());   // a suffix inside a dotted token: "Studio-Ati.FZE"
+  return s.split(' ').map((w) => (LEGAL.test(w.replace(/[^A-Za-z.]/g, '')) && /[a-z]/.test(w) && w.length > 2 ? w.toUpperCase() : w)).join(' ');
 }
 /** "fire_fighting" -> "fire fighting"; '' when there is none. */
 export function tradeLabel(slug: unknown): string { return String(slug || '').replace(/[_-]+/g, ' ').trim().toLowerCase(); }
 const cap1 = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-/** The subject names the company (and the trade when known). Never "invitation", "free", "commission" or "exclusive". */
+// VARIANT A, "ONE QUESTION, NO OFFER" (it_engineer, 27 Oct 2026; founder: "approved. dont ask me", the choice delegated).
+// MEASURED: GlockApps 2026-10-27-09:33:53:634t placed the 27 Oct text above (bullet list "What you get", "Free
+// registration", "No commission", "To join, register at quotesdone.com") in Junk at 18 of 18 Microsoft seeds, SPF/DKIM/DMARC
+// passing and no blocklist, so content and reputation were what was left. This text keeps the founder's rules (no link, no
+// domain written out, English, never the word AI, the signature, the stop line) and drops every offer phrase: no list, no
+// "free", "join", "register", "commission" or "1,000". It is short (~80 words) and asks one question a supplier answers by
+// replying, because a reply is the strongest positive signal a new mailbox can earn. Report:
+// docs/reports/QuotesDone Campaign/GLOCKAPPS_27_OCT_RESULT_AND_FIX_PLAN.md (variants B and C are there, unapplied).
+/** The subject asks; it names the trade when known, else the company. Never "invitation", "free", "commission" or "exclusive". */
 export function m365Subject(who: Who = {}): string {
-  const c = companyName(who.company); const t = tradeLabel(who.trade);
-  const what = t ? `${cap1(t)} quote requests` : 'Quote requests';
-  return c ? `${what} for ${c}` : `${what} in the UAE`;
+  const t = tradeLabel(who.trade);
+  return t ? `A question about your ${t} work` : 'A question about your work in the UAE';
 }
-/** The founder's approved text (27 Oct 2026), word for word. Company and trade when known, else the neutral variant. */
+/** Variant A (27 Oct 2026). Company and trade when known, else the neutral wording. */
 export function m365InvitationText(who: Who = {}): string {
   const c = companyName(who.company); const t = tradeLabel(who.trade);
   return [
     c ? `Hi ${c} team,` : 'Hello,',
-    "I'm Ahmad, founder of QuotesDone. QuotesDone connects companies in the UAE with qualified suppliers: buyers post a request for quotation, and each request reaches only the suppliers registered for that exact trade.",
-    `We are now onboarding ${t ? t + ' ' : ''}suppliers ahead of our buyer launch.`,
-    'What you get:\n– Requests that match your trade, delivered directly to you.\n– You choose which ones to quote on.\n– No commission on work you win.\n– Free registration for our first 1,000 suppliers.',
-    'To join, register at quotesdone.com, or simply reply with the trades you cover and our team will set up your company page for you.',
+    "I'm Ahmad, founder of QuotesDone in Dubai. QuotesDone is a platform where companies in the UAE post requests for quotation, and each request goes only to suppliers who work in that exact trade.",
+    `We are putting together our list of ${t ? t + ' ' : ''}suppliers now, before buyers start sending requests. ` +
+      `Would your company like to receive ${t ? t + ' requests' : 'the requests that match your trade'} when they come in?`,
     SIGNATURE,
     STOP_LINE,
   ].join('\n\n');
@@ -262,7 +330,6 @@ export function m365CopyLint(o: { subject: string; body: string; preheader?: str
 
 // ---------------------------------------------------------------- MIME and the send
 const b64 = (s: string) => { const bytes = new TextEncoder().encode(s); let bin = ''; for (const b of bytes) bin += String.fromCharCode(b); return btoa(bin); };
-const wrap76 = (s: string) => s.replace(/.{1,76}/g, (m) => m + '\r\n').trimEnd();
 const hdr = (s: string) => (/^[\x20-\x7e]*$/.test(s) ? s : `=?UTF-8?B?${b64(s)}?=`);
 const clean = (s: string) => String(s || '').replace(/[\r\n]+/g, ' ').trim();
 
@@ -281,10 +348,46 @@ export function messageIdFor(notificationId: number | string, now: Date): string
 export const M365_INBOX_AGENT = 'resend_inbound';   // = m365_reply_inbox.ts PROOF_LABEL; its rows carry counts.m365_inbox = 1
 export const M365_INBOX_PROOF_MAX_AGE_MS = 2 * 60 * 60_000;
 /** '' = no Reply-To header (replies reach the From mailbox); otherwise the fallback, kept until the reader is proven. */
+// A SUPPLIER ANSWERED IN A CONVERSATION REPLIES INTO THE READ SUPPLIER MAILBOX (2 Nov 2026, customer_support). MEASURED:
+// notification 117599 (inbound_reply, Resend, From and Reply-To info@) was answered 13 minutes later and the reply landed
+// in management@, read by nothing. inbound_reply has no to_role, so it took the customer's Reply-To. supplier@ is on the
+// From's own domain, so the cross-domain reasoning above does not apply. Only while its reader is proven; otherwise the
+// old Reply-To stands.
+export function conversationReplyTo(o: { type: unknown; toSupplier: boolean; mailbox: string | undefined; proofAt: string | null | undefined; now: Date; fallback: string }): string {
+  const mailbox = String(o.mailbox || '').trim();
+  if (o.type !== 'inbound_reply' || !o.toSupplier || !/@quotesdone\.com$/i.test(mailbox)) return o.fallback;
+  return m365ReplyTo({ proofAt: o.proofAt, now: o.now, fallback: o.fallback }) === '' ? mailbox : o.fallback;
+}
 export function m365ReplyTo(o: { proofAt: string | null | undefined; now: Date; fallback: string }): string {
   const t = o.proofAt ? Date.parse(o.proofAt) : NaN;
   const age = o.now.getTime() - t;
   return Number.isFinite(t) && age <= M365_INBOX_PROOF_MAX_AGE_MS && age >= -60_000 ? '' : o.fallback;
+}
+
+// THE TEXT PART IS QUOTED-PRINTABLE, NOT BASE64 (it_engineer, 27 Oct 2026). A person's mail client writes a plain
+// English note as 7bit or quoted-printable; a base64-encoded text/plain body that is almost all ASCII is what bulk
+// tools emit, and content filters score it (SpamAssassin's MIME_BASE64_TEXT is the public example). Quoted-printable
+// keeps every ASCII character readable and encodes only the few UTF-8 ones ("·", "–"). MEASURED the same day on a
+// received copy (founder's Gmail, raw): Exchange rebuilds the MIME on the way out and re-encodes the text part itself,
+// so this changes what we SUBMIT, not what arrives; it is kept because it is harmless and tested. RFC 2045 §6.7:
+// "=" and non-ASCII bytes as =XX, a space or tab before a line break as =20/=09, lines at most 76 characters with a
+// soft break "=". The envelope itself stays base64: that is sendMail's own text/plain input format, not a MIME part.
+const QP_HEX = (b: number) => '=' + b.toString(16).toUpperCase().padStart(2, '0');
+export function qpEncode(text: string): string {
+  return text.replace(/\r?\n/g, '\n').split('\n').map((line) => {
+    const bytes = new TextEncoder().encode(line);
+    const tokens: string[] = [];
+    bytes.forEach((b, i) => {
+      const last = i === bytes.length - 1;
+      if ((b === 0x20 || b === 0x09) && last) tokens.push(QP_HEX(b));
+      else if (b === 0x09 || (b >= 0x20 && b <= 0x7e && b !== 0x3d)) tokens.push(String.fromCharCode(b));
+      else tokens.push(QP_HEX(b));
+    });
+    const out: string[] = []; let cur = '';
+    for (const t of tokens) { if (cur.length + t.length > 75) { out.push(cur + '='); cur = ''; } cur += t; }
+    out.push(cur);
+    return out.join('\r\n');
+  }).join('\r\n');
 }
 
 /** The whole message as MIME (base64, as sendMail's text/plain mode wants it). An empty reply writes no Reply-To. */
@@ -294,9 +397,21 @@ export function m365Mime(o: { from: string; to: string; reply: string; subject: 
     `Date: ${o.now.toUTCString()}`, `Message-ID: ${o.messageId}`, 'MIME-Version: 1.0',
   ];
   if (o.unsub) lines.push(`List-Unsubscribe: <${clean(o.unsub)}>, <mailto:${o.unsubMailto}?subject=unsubscribe>`, 'List-Unsubscribe-Post: List-Unsubscribe=One-Click');
-  lines.push('Content-Type: text/plain; charset=utf-8', 'Content-Transfer-Encoding: base64', '', wrap76(b64(o.text.replace(/\r?\n/g, '\r\n'))));
+  lines.push('Content-Type: text/plain; charset=utf-8', 'Content-Transfer-Encoding: quoted-printable', '', qpEncode(o.text));
   return b64(lines.join('\r\n'));
 }
+
+// PACING (it_engineer, 27 Oct 2026). MEASURED: the 112 GlockApps seeds of 27 Oct were queued at once at 09:41Z and
+// send_outbox, which runs every 15 minutes, sent 20 of them back to back in each run (09:46, 10:01, 10:16, 10:31-32,
+// 10:46-47; about 4 s apart). A new mailbox whose whole history is bursts of 20 to strangers looks like a bulk tool.
+// Microsoft Learn ("Troubleshoot outbound sending limits", best practices for bulk senders): "Spread bulk sends over
+// time rather than sending all at once". So the lane sends at most M365_PER_RUN messages a run; the rest of the run's
+// lane rows go back to the queue (not_before = now + M365_PACE_MS) for a later run. At one run per 15 minutes that is
+// 20 an hour, which still finishes Week 2's 10-15 invitations in under an hour and a 112-seed test in about 6 hours.
+export const M365_PER_RUN = 5;
+export const M365_PACE_MS = 10 * 60_000;
+/** Hold this lane row for pacing? true once this run has already sent M365_PER_RUN through the lane. */
+export function paceM365(sentThisRun: number): boolean { return sentThisRun >= M365_PER_RUN; }
 
 export type SendResult = { ok: true; providerId: string } | { ok: false; refused: true; status: string } | { ok: false; refused: false; status: string };
 

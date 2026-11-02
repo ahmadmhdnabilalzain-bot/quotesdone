@@ -1,0 +1,27 @@
+name: Supplier registration walk in a browser (demo data)
+
+# Founder ledger 1464: nothing is done until it is proved in a browser. Playwright walks the live site's sign-up screens as an
+# invited supplier, on GitHub so no laptop or session is needed. ZZ DEMO leads at @example.invalid only; teardown removes the run.
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - .github/workflows/supplier-registration-walk.yml
+
+jobs:
+  walk:
+    if: ${{ github.ref_name != 'main' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      QD_FIXTURES: '1'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci && npx playwright install --with-deps chromium
+        timeout-minutes: 8
+      - run: node scripts/e2e/supplier_registration_walk.mjs
+        timeout-minutes: 30
