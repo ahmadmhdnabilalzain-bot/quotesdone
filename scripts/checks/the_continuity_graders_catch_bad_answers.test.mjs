@@ -103,6 +103,9 @@ test('refund, minimum, escrow, emirates, quote supplier', () => {
   const ctx = { secretNames: ['Zorvex1234'] };
   holds('quoteSupplier', 'The supplier stays anonymous until you pay the reveal fee on that quote.', ctx);
   caught('quoteSupplier', 'It is Zorvex1234, phone +971 4 555 0000.', /names the supplier|contact/, ctx);
+  // known-bad control (2 Nov 2026, portal turn 5): an offer to explain, with the word "reveal" in it, used to pass
+  caught('quoteSupplier', 'Would you like me to explain how the reveal works?', /sealed|offers to explain/, ctx);
+  holds('quoteSupplier', 'Supplier identities stay sealed until a reveal. When you pay the 3% reveal fee on the quote you choose, the name and contact details unlock.', ctx);
 });
 
 test('recall: the earlier fact must be in the reply; an empty reply never passes', () => {

@@ -753,7 +753,7 @@
     {
      "file": "supabase/functions/public_site/index.ts",
      "must_contain": [
-      "catalogueCategoryOf(defaultDeps(admin, 'public_site')"
+      "catalogueCategoryOf(defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000 })"
      ]
     },
     {
@@ -1103,7 +1103,7 @@
     {
      "file": "supabase/functions/public_site/index.ts",
      "must_contain": [
-      "priceGuidanceFor(defaultDeps(admin, 'public_site')"
+      "priceGuidanceFor(defaultDeps(admin, 'public_site', { gte: 'remote', embedTimeoutMs: 3000 })"
      ],
      "must_not_contain": [
       "p_question"

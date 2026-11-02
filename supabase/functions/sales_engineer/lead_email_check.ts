@@ -66,15 +66,23 @@ export function mailboxOf(email: string): Mailbox {
   return FREE_MAIL.test(domain) ? 'free' : ROLE_LOCAL.test(local) ? 'role' : 'named';
 }
 
+// AN MX THAT TAKES NO MAIL (2 Nov 2026). MEASURED: unibetonrm.com's only MX is ghs.google.com, Google's web-hosting front
+// end, and the invitation died "5.4.316 connection refused". An MX naming only such a host, localhost or a bare IP is no MX.
+// ponytail: a fixed list; resolve each MX host's A record if another kind of dead MX shows up in a bounce.
+const NOT_A_MAIL_HOST = /^(ghs\.google\.com|ghs\.googlehosted\.com|localhost)$|^\d{1,3}(\.\d{1,3}){3}$/;
+
 /** A cold invitation needs a measured MX (fn_supplier_invite_eligible, 22 Sep); a failed lookup decides nothing. */
-export function judgeDns(email: string, kind: string): Verdict {
+export function judgeDns(email: string, kind: string, hosts: string[] = []): Verdict {
   const mailbox = mailboxOf(email);
+  if (kind === 'mx' && hosts.length && hosts.every((h) => NOT_A_MAIL_HOST.test(h))) {
+    return { verdict: 'rejected', reason: 'MX points only at a host that takes no mail: ' + hosts.join(', '), mailbox };
+  }
   if (kind === 'mx') return { verdict: 'verified', reason: 'syntax, typo and role rules passed; domain has MX', mailbox };
   if (kind === 'error') return { verdict: 'retry', reason: 'the DNS lookup failed', mailbox };
   return { verdict: 'rejected', reason: 'domain has no MX: ' + kind, mailbox };
 }
 
-type Lead = { lead_id: number; email: string; email_verified: string | null; mx_kind: string | null };
+type Lead = { lead_id: number; email: string; email_verified: string | null; mx_kind: string | null; mx_hosts?: string[] | null };
 type Rpc = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 
 export const BATCH_LEADS = 200;
@@ -91,7 +99,7 @@ export async function leadEmailCheckBatch(rpc: Rpc, lookup: (d: string) => Promi
   for (const l of leads) {
     const early = judgeWithoutDns(l.email, l.email_verified);
     if (early) decided.set(l.lead_id, early);
-    else if (l.mx_kind) decided.set(l.lead_id, judgeDns(l.email, l.mx_kind));
+    else if (l.mx_kind) decided.set(l.lead_id, judgeDns(l.email, l.mx_kind, l.mx_hosts ?? []));
     else {
       const d = l.email.toLowerCase().trim().split('@')[1];
       ask.set(d, [...(ask.get(d) ?? []), l]);
@@ -103,7 +111,7 @@ export async function leadEmailCheckBatch(rpc: Rpc, lookup: (d: string) => Promi
     await Promise.all(domains.slice(i, i + DNS_AT_ONCE).map(async (domain) => {
       const r = await lookup(domain);
       found.push({ domain, kind: r.kind, hosts: r.hosts });
-      for (const l of ask.get(domain)!) decided.set(l.lead_id, judgeDns(l.email, r.kind));
+      for (const l of ask.get(domain)!) decided.set(l.lead_id, judgeDns(l.email, r.kind, r.hosts));
     }));
   }
   // A lead whose domain waits for the next run gets no verdict, so it stays due and stays out of the invitations.

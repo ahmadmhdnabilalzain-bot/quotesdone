@@ -58,6 +58,7 @@ export interface AiReplyRequest {
   priorProblems?: string[]; // why the earlier drafts for this same message were refused; named in the prompt
   otherFamilyFirst?: boolean; // start on another model family (the counterpart of REPLY_MODEL), the route after it
   effort?: 'low' | 'medium' | 'high'; // reasoning effort asked of the model
+  signal?: AbortSignal;     // the caller no longer wants the answer (a discarded speculative draft): the call in flight is aborted and none starts
   extraCheck?: (text: string) => string[]; // the caller's own rules (the portal's plain-language gate, English for suppliers)
 }
 /** outage: no call reached a model — every one failed with a network error, 5xx, timeout/deadline or an open circuit
@@ -163,10 +164,11 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   let calls = 0; let lastProblems: string[] = [];
   const left = () => (r.deadline ?? Infinity) - Date.now();
   const call = async (prompt: string, counterpartModel: string | null) => {
+    if (r.signal?.aborted) { calls = MAX_CALLS; attempts.push('aborted by the caller'); return null; }
     if (left() < MIN_CALL_MS) { calls = MAX_CALLS; attempts.push('deadline: no time left for another call'); return null; }
     calls++;
     const timeout = r.deadline ? { timeoutMs: Math.min(PER_CALL_MS, left()) } : {};
-    return await deps.llm('synthesise', sys, prompt, { ...opts, ...timeout, ...(counterpartModel ? { counterpartModel } : {}) }).catch(() => null);
+    return await deps.llm('synthesise', sys, prompt, { ...opts, ...timeout, ...(r.signal ? { signal: r.signal } : {}), ...(counterpartModel ? { counterpartModel } : {}) }).catch(() => null);
   };
   const done = (text: string, content: string | null | undefined, model: string | null): AiReply => {
     const j = json(content);
