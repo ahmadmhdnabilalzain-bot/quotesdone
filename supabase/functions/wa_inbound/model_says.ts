@@ -22,6 +22,7 @@ export interface SayRequest {
   forbidden?: string[];         // another party's identity before a reveal: a hit is rewritten by the model
   budgetMs?: number;            // the reply's wall-clock budget (default WA_REPLY_BUDGET_MS)
   must?: string[];              // text the reply must carry exactly (a job number, a case reference)
+  signal?: AbortSignal;         // a speculative draft that was discarded: abort it
 }
 // A WhatsApp reply is written within this, or the person gets the held notice and the turn is queued (run 5: 73.7 s).
 // 2 Nov 2026: 90 s, was 45. The webhook is acknowledged at once (ackThenWork), so the wall is the edge worker's background
@@ -51,7 +52,7 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
       message: r.message || '(no text — they pressed a menu option or sent a file)',
       conversation: r.conversation,
       facts: 'WHAT HAS HAPPENED ON THIS TURN (decided by our systems; convey it accurately, do not change or add to it):\n' + r.situation,
-      rules: WA_RULES, subject: r.subject, rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, must: r.must,
+      rules: WA_RULES, subject: r.subject, rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, must: r.must, ...(r.signal ? { signal: r.signal } : {}),
       deadline: t0 + (r.budgetMs ?? WA_REPLY_BUDGET_MS),
     });
     return { text: String(out.reply || '').trim(), model: out.model, attempts: out.attempts, ms: Date.now() - t0, escalate: out.escalate === true, outage: out.outage === true, problems: out.problems ?? [] };

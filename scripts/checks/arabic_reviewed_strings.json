@@ -1728,6 +1728,43 @@
   "dc528da26c82",
   "e586ea015bca"
  ],
+ "scripts/sql/the_founders_mobile_leaves_the_current_legal_texts.sql": [
+  "005b945eb449",
+  "076b6d5ad3ac",
+  "083e8276f79e",
+  "347954a3e357",
+  "3540d39928d8",
+  "48175a54e663",
+  "527c251b42af",
+  "56b5c7595316",
+  "5a3aba61ee2b",
+  "66cdbd243f65",
+  "6ee550bf08c6",
+  "70f8f9c95bcf",
+  "716792202838",
+  "7f5bf781c4e8",
+  "832c92fb3975",
+  "871e87c1a2ae",
+  "8c92b3e38b32",
+  "9fcba2406792",
+  "9ff28a224a3d",
+  "a56dbf495b14",
+  "aaaf4fb2adf3",
+  "aed9d55060dd",
+  "af68e7f40dcb",
+  "afc34aee5102",
+  "c086f100b7da",
+  "c945142d1ff3",
+  "ccb8aba3164f",
+  "d8571810ff3d",
+  "d8f5c71bf9df",
+  "d9a4353cc86d",
+  "da5f51f2705d",
+  "e5b97c22b0a2",
+  "e7df148bfae0",
+  "ee8222ed97de",
+  "fa8603f50563"
+ ],
  "scripts/sql/the_invitation_batch_runs_on_its_own_clock_and_the_guard_takes_the_link_less_copy.sql": [
   "361ce5b53fac"
  ],
@@ -1820,6 +1857,29 @@
   "fa24f24c3dfe",
   "fb978336c061",
   "fea22eb87ec7"
+ ],
+ "scripts/sql/the_live_system_gives_out_the_public_numbers_and_never_the_founders_mobile.sql": [
+  "0cd0d8e9e8ac",
+  "0f801472cbda",
+  "1f53662a789a",
+  "2e6df55e7fe7",
+  "35e25ee25577",
+  "4420918b2522",
+  "4b65c2649f23",
+  "4bfd36ca8885",
+  "4c154c99a9fe",
+  "4d08f55b09ee",
+  "647e426a076f",
+  "6b7d4a713f5f",
+  "6bc9dc1285ab",
+  "6ece79da1cbc",
+  "8e635ee667d6",
+  "92da785f368a",
+  "9cc56ceba9de",
+  "ca0361692484",
+  "d0479646925c",
+  "e24997779d68",
+  "f68a7ffaa78f"
  ],
  "scripts/sql/the_marketing_seat_answers_comments_on_every_channel.sql": [
   "0694622edd7b",
@@ -5617,6 +5677,7 @@
   "86fd348b8681",
   "88c760c2dc76",
   "890d9f859c40",
+  "8a26957e0bd8",
   "8a4e319b09e8",
   "8b70666059e2",
   "8d1c703ac22d",
@@ -6333,8 +6394,8 @@
   "aeb58bdf5c4d"
  ],
  "supabase/functions/_shared/supplier_agreement.ts": [
-  "b72aaecaef24",
-  "d469c60c6d28"
+  "d806cd4ff281",
+  "da77abaa0f5a"
  ],
  "supabase/functions/_shared/supplier_charge_documents.ts": [
   "028bd4e1bdc6",
@@ -7116,7 +7177,8 @@
   "cdda50dc07b3"
  ],
  "supabase/functions/wa_inbound/index.ts": [
-  "37463229efc9",
+  "02bba358ab4d",
+  "3fb0796f2806",
   "5cbb277245b5",
   "61e5bb9d6ede",
   "75e7c95e9ceb",
