@@ -1,0 +1,8 @@
+A PROBE (pure, no DDL, no write, ends in raise exception CHK<<...>>): run after its .sql in the SAME query through
+node scripts/qsql.mjs, or alone to read the live routines. Never applied on its own; kept as the proof named by
+"Prevented by:" (scripts/checks/knowledge_the_ai_wrote_itself_is_withheld_from_customers.test.mjs). This note stays for
+the life of the file. Seat: customer_support.
+
+27 Oct 2026, production: alone (live routines) -> PROBE FAILED, every outside audience got the generated row;
+with the .sql -> PROBE OK (generated kb_chunks:6735 internal-only, memory kb_chunks:40698 withheld, standard
+kb_chunks:224847 still served).

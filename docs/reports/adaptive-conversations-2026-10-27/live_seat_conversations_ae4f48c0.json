@@ -1,0 +1,2370 @@
+{
+ "ledger": 1200,
+ "surface": "portal: sales_engineer assist",
+ "url": "http://localhost:8000",
+ "run_tag": "ae4f48c0",
+ "measured_at": "2026-10-27T16:18:20.556Z",
+ "spend": {
+  "calls": 85,
+  "aed": "6.0628",
+  "models": "anthropic/claude-sonnet-5.5,none,openai/gpt-6-luna-pro"
+ },
+ "latency": {
+  "turns": 83,
+  "p50_s": 12.3,
+  "p95_s": 32,
+  "max_s": 64.3,
+  "no_answer": 0
+ },
+ "outcomes": {
+  "conversations": 21,
+  "confirmed_summary": 19,
+  "stalled_before_summary": [
+   "water_tank_ar",
+   "smart_home_ar"
+  ],
+  "timeline_asked": 21,
+  "timeline_scenarios": 21,
+  "timeline_never_asked": [],
+  "reask_flags": 18,
+  "reask_conversations": [
+   "glass_partition_ar",
+   "landscaping_ar",
+   "carpet_office",
+   "water_tank_ar",
+   "fence_gate",
+   "deep_clean_ar",
+   "mep_maintenance",
+   "gym_flooring",
+   "wardrobe_photo_ar",
+   "shopfront_en",
+   "villa_painting_int_en"
+  ]
+ },
+ "results": [
+  {
+   "id": "pool_build",
+   "lang": "en",
+   "trade": "swimming-pools",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 6,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     1,
+     1
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     1
+    ]
+   ],
+   "hidden_facts": [
+    "Garden is about 12 m by 8 m; pool about 8 m by 4 m, 1.2 to 1.6 m deep.",
+    "Mosaic tiles, a small sun shelf, a heater-chiller and LED lights.",
+    "Our villa in Arabian Ranches.",
+    "The community needs a developer NOC and engineer drawings.",
+    "We have young kids, so safety matters.",
+    "Before next summer."
+   ],
+   "expert": [
+    "garden and pool size and depth",
+    "concrete or other build, skimmer or overflow",
+    "finish, features, heater-chiller (essential in UAE summers)",
+    "developer NOC and stamped drawings",
+    "child safety: fence, cover, alarm",
+    "site access for excavation"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "We want to build a swimming pool in our garden.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Your garden is a good fit for a private pool. In a villa community it normally needs the developer's NOC and a building permit, applied for through a licensed consultant. Is this a new build in the ground, or a rooftop or terrace pool? And roughly what length, width and depth do you have in mind?",
+     "ms": 23772
+    },
+    {
+     "role": "customer",
+     "text": "Garden is about 12 m by 8 m; pool about 8 m by 4 m, 1.2 to 1.6 m deep. Our villa in Arabian Ranches. The community needs a developer NOC and engineer drawings."
+    },
+    {
+     "role": "agent",
+     "text": "Good, an 8 by 4 m pool fits comfortably in that garden, and the NOC and engineer drawings are the right route. In UAE summers pool water gets very warm, so a heater-chiller is worth considering. What finish do you prefer (glass mosaic tiles, porcelain or pebble), and do you want a chiller or heater and underwater lights? Will children be using the pool, so a safety fence or barrier should be in the scope?",
+     "ms": 11291
+    },
+    {
+     "role": "customer",
+     "text": "Mosaic tiles, a small sun shelf, a heater-chiller and LED lights. We have young kids, so safety matters. Before next summer."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nA new in-ground private pool in the garden of your villa in Arabian Ranches. The garden is about 12 m by 8 m.\n\nThe pool is about 8 m by 4 m, 1.2 to 1.6 m deep. Finish is mosaic tiles, with a small sun shelf.\n\nEquipment is a heater-chiller and LED lights. You have young kids, so a child-safety fence or barrier is included in the scope.\n\nThe community requires a developer NOC and engineer drawings, and the work is needed before next summer.\n\nTo confirm at the supplier's site visit: soil and groundwater conditions, machinery access, plant-room location and who applies for the permit.\n\nIs this correct?",
+     "ms": 10702
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "glass_partition_ar",
+   "lang": "ar",
+   "trade": "glass",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "بدون إطار مع شريط مصنفر."
+     }
+    ]
+   },
+   "facts_released": 6,
+   "facts_total": 7,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     6,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "ثلاث غرف اجتماعات، الطول الكلي حوالي 18 متر، والارتفاع 2.8 متر.",
+    "بدون إطار مع شريط مصنفر.",
+    "باب منزلق لغرفة وبابين مفصليين.",
+    "العزل الصوتي مهم.",
+    "الطابق 14 في الخليج التجاري.",
+    "لوائح المبنى والدفاع المدني تنطبق.",
+    "خلال 6 أسابيع."
+   ],
+   "expert": [
+    "الطول الكلي والارتفاع",
+    "زجاج بإطار أو بدون، السماكة (مقسّى 10-12 مم)",
+    "الأبواب: منزلقة أو مفصلية، الأقفال",
+    "العزل الصوتي (زجاج مزدوج أو مصفح)",
+    "الخصوصية: شريط مصنفر",
+    "موافقات المبنى والدفاع المدني"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "نحتاج قواطع زجاج لمكتبنا.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "حياكم الله. بالنسبة لقواطع المكاتب الزجاجية، يُستخدم زجاج مقسّى (سيكوريت) للسلامة، وعادةً بسماكة 10 إلى 12 ملم للقواطع بدون إطار، ولا يُستخدم الزجاج العادي بسماكة 6 ملم.\n\nما هو الطول الإجمالي للقواطع وارتفاعها؟ وهل تفضلون قواطع بدون إطار (فريم لس) أم بإطار ألمنيوم؟",
+     "ms": 10626
+    },
+    {
+     "role": "customer",
+     "text": "ثلاث غرف اجتماعات، الطول الكلي حوالي 18 متر، والارتفاع 2.8 متر. بدون إطار مع شريط مصنفر."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، ثلاث غرف اجتماعات بطول 18 متراً وارتفاع 2.8 متر، بدون إطار مع شريط مصنفر. بهذا الارتفاع يلزم زجاج مقسّى بسماكة 12 ملم عادةً.\n\nما نوع الأبواب التي تريدونها لغرف الاجتماعات: مفصلية (سوينغ) أم منزلقة؟ وهل لديكم رسومات المبنى أو موافقة إدارة المبنى على أعمال التقسيم؟",
+     "ms": 12221
+    },
+    {
+     "role": "customer",
+     "text": "باب منزلق لغرفة وبابين مفصليين. الطابق 14 في الخليج التجاري. لوائح المبنى والدفاع المدني تنطبق."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، باب منزلق لغرفة وبابان مفصليان للغرفتين الأخريين، في الطابق 14 بالخليج التجاري، مع الالتزام بلوائح المبنى والدفاع المدني. التفاصيل المتبقية (اللون والتشطيب والتوزيع الداخلي) يؤكدها المورّد في زيارة الموقع.\n\nمتى تحتاجون إنجاز العمل؟",
+     "ms": 9240
+    },
+    {
+     "role": "customer",
+     "text": "خلال 6 أسابيع."
+    },
+    {
+     "role": "agent",
+     "text": "هذا ملخص طلبك:\nقواطع زجاج لمكتب في الطابق 14 بالخليج التجاري.\nثلاث غرف اجتماعات بطول إجمالي حوالي 18 متراً وارتفاع 2.8 متر.\nزجاج مقسّى بدون إطار مع شريط مصنفر.\nباب منزلق لغرفة وبابان مفصليان للغرفتين الأخريين.\nتنطبق لوائح المبنى والدفاع المدني.\nالمطلوب إنجاز العمل خلال 6 أسابيع.\nهل هذا صحيح؟",
+     "ms": 13260
+    },
+    {
+     "role": "customer",
+     "text": "نعم، صحيح."
+    }
+   ]
+  },
+  {
+   "id": "solar_villa",
+   "lang": "en",
+   "trade": "solar",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 5,
+   "facts_total": 5,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     1
+    ]
+   ],
+   "hidden_facts": [
+    "Flat roof about 120 square metres, some shade from a water tank.",
+    "Summer DEWA bills are around AED 3,500 a month.",
+    "Grid-connected, no batteries.",
+    "Owned villa in Dubai.",
+    "I want a proposal within a month."
+   ],
+   "expert": [
+    "usable roof area, orientation and shade",
+    "monthly consumption (DEWA bills)",
+    "grid-tied under Shams Dubai or with batteries",
+    "ownership (owner applies)",
+    "timeline"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "Is it worth putting solar panels on my villa?",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Usually yes. UAE sun is strong all year, and a villa roof often has enough space. In Dubai, Shams Dubai net metering offsets what you export against what you use, as credits and not cash. Only DEWA-enrolled solar contractors can apply. Roughly what do your summer electricity bills run to, in kWh if the bill shows it? And what is the usable roof area, and is any of it shaded by tanks or AC units?",
+     "ms": 17316
+    },
+    {
+     "role": "customer",
+     "text": "Flat roof about 120 square metres, some shade from a water tank. Summer DEWA bills are around AED 3,500 a month. Grid-connected, no batteries. Owned villa in Dubai."
+    },
+    {
+     "role": "agent",
+     "text": "Thanks, that gives me a good picture. For a grid-connected system in Dubai, the tank shade is worth keeping off the panels, and the installer will confirm that at the site visit. When do you need the system installed?",
+     "ms": 13741
+    },
+    {
+     "role": "customer",
+     "text": "I want a proposal within a month."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it: Solar PV system for an owned villa in Dubai. The roof is flat, about 120 square metres, with some shade from a water tank. The system is grid-connected, with no batteries. You want a proposal within a month. To confirm at the supplier's site visit: The exact roof area clear of the tank shade. The roof's structural condition. The kWh on your bills. The DEWA application, which a DEWA-enrolled contractor submits. Is this correct?",
+     "ms": 18741
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "villa_painting_ext_ar",
+   "lang": "ar",
+   "trade": "painting",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 6,
+   "facts_total": 7,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     6,
+     1
+    ]
+   ],
+   "hidden_facts": [
+    "فيلا دورين، الواجهات حوالي 400 متر مربع.",
+    "الصبغ الحالي متقشر وفيه شروخ صغيرة.",
+    "نفس اللون البيج، تكستشر.",
+    "لازم سقالة، الارتفاع حوالي 8 متر.",
+    "الراشدية، دبي.",
+    "الفيلا ملك.",
+    "الشهر الجاي."
+   ],
+   "expert": [
+    "عدد الأدوار ومساحة الواجهات",
+    "حالة الصبغ الحالي والشروخ (معالجة قبل الصبغ)",
+    "نوع الدهان الخارجي واللون والملمس",
+    "السقالات والارتفاع",
+    "الموعد"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "نبي نصبغ واجهة الفيلا من برا.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "تمام، واجهة الفيلا من الخارج. كم تقريبًا مساحة الواجهة (الطول والارتفاع، أو عدد الأدوار)؟ وهل تبون نفس اللون الحالي أو تغيير اللون؟",
+     "ms": 11071
+    },
+    {
+     "role": "customer",
+     "text": "فيلا دورين، الواجهات حوالي 400 متر مربع. الصبغ الحالي متقشر وفيه شروخ صغيرة. نفس اللون البيج، تكستشر. لازم سقالة، الارتفاع حوالي 8 متر. الراشدية، دبي."
+    },
+    {
+     "role": "agent",
+     "text": "شكرًا، هذي التفاصيل تكفي. بما أن الصبغ متقشر وفيه شروخ، لازم يُكشط المتقشر وتُعالج الشروخ ويوضع برايمر قبل التكستشر، وهذا يحدده المورد في المعاينة. هل البيت مسكون أثناء العمل أم فاضي؟ ومتى تبون البدء؟",
+     "ms": 13750
+    },
+    {
+     "role": "customer",
+     "text": "الشهر الجاي."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، الشهر الجاي. وهل فيه أثاث أو سيارات قريبة من الواجهة تحتاج تغطية؟",
+     "ms": 12369
+    },
+    {
+     "role": "customer",
+     "text": "مو متأكد، شو تنصحني؟"
+    },
+    {
+     "role": "agent",
+     "text": "أنصحك بتغطية السيارات والأثاث الخارجي القريب من الواجهة، والمورد يتكفل بالتغطية أثناء العمل. هذا ملخص طلبك:\nدهان خارجي لواجهات فيلا من دورين في الراشدية، دبي.\nالمساحة حوالي 400 متر مربع، والارتفاع حوالي 8 أمتار، مع سقالة.\nالدهان الحالي متقشر وفيه شروخ صغيرة.\nاللون بيج نفس الحالي، بتكستشر.\nالبدء الشهر القادم.\nيؤكَّد في معاينة المورد: هل البيت مسكون أو فاضي، والأثاث والسيارات القريبة من الواجهة.\nهل هذا صحيح؟",
+     "ms": 11641
+    },
+    {
+     "role": "customer",
+     "text": "نعم، صحيح."
+    }
+   ]
+  },
+  {
+   "id": "pest_control_ar",
+   "lang": "ar",
+   "trade": "pest-control",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 6,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     1
+    ]
+   ],
+   "hidden_facts": [
+    "شقة 3 غرف.",
+    "عندي أطفال صغار وقطة.",
+    "من شهرين تقريباً.",
+    "شقة في المجاز، الشارقة.",
+    "هالأسبوع.",
+    "أبي معالجة مع زيارة متابعة."
+   ],
+   "expert": [
+    "حجم الوحدة",
+    "أطفال أو حيوانات أليفة (نوع المبيد، جل بدل الرش)",
+    "مدة المشكلة ومكانها",
+    "زيارة واحدة أم عقد مع متابعة",
+    "شركة مرخصة من البلدية"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "عندي صراصير في المطبخ ما راحت.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "سنساعدك في التخلص من الصراصير. كم مساحة السكن تقريبًا، وهل هو شقة أم فيلا وكم عدد الغرف؟ وهل يوجد أطفال أو حيوانات أليفة في المنزل؟",
+     "ms": 12053
+    },
+    {
+     "role": "customer",
+     "text": "شقة 3 غرف. عندي أطفال صغار وقطة. شقة في المجاز، الشارقة."
+    },
+    {
+     "role": "agent",
+     "text": "شكرًا، وبما أن لديك أطفالًا صغارًا وقطة، سيحدد المورّد المبيد المسجّل المناسب ومدة الابتعاد عن الشقة بعد المعالجة. هل تريد زيارة معالجة واحدة، أم عقدًا بزيارات متابعة؟ ومتى تحتاج تنفيذ العمل؟",
+     "ms": 9564
+    },
+    {
+     "role": "customer",
+     "text": "من شهرين تقريباً. هالأسبوع. أبي معالجة مع زيارة متابعة."
+    },
+    {
+     "role": "agent",
+     "text": "هذا ملخص طلبك:\nالمشكلة: صراصير في المطبخ لم تذهب منذ شهرين تقريبًا.\nالعقار: شقة 3 غرف في المجاز، الشارقة.\nفي المنزل أطفال صغار وقطة.\nالخدمة: معالجة مع زيارة متابعة.\nالموعد: هذا الأسبوع.\nيُحدَّد في زيارة المورّد: مساحة الشقة.\n\nهل هذا صحيح؟",
+     "ms": 10605
+    },
+    {
+     "role": "customer",
+     "text": "نعم، صحيح."
+    }
+   ]
+  },
+  {
+   "id": "landscaping_ar",
+   "lang": "ar",
+   "trade": "landscaping",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "نظام ري بالتنقيط أوتوماتيك."
+     }
+    ]
+   },
+   "facts_released": 6,
+   "facts_total": 7,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     5,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "الحديقة حوالي 200 متر مربع.",
+    "عشب صناعي في جزء وطبيعي في جزء، وكم شجرة.",
+    "نظام ري بالتنقيط أوتوماتيك.",
+    "برجولا خشب وممر حجر.",
+    "فيلا في خليفة سيتي، أبوظبي.",
+    "قبل الشتاء.",
+    "متوسطة."
+   ],
+   "expert": [
+    "المساحة",
+    "عشب طبيعي أو صناعي والنباتات",
+    "نظام الري",
+    "الجلسة: برجولا، ممرات، إضاءة",
+    "الموقع والموعد"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "أبغى أرتب الحديقة، عشب وإضاءة وجلسة.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "تمام، حديقة فيها عشب وإضاءة وجلسة. كم مساحة الحديقة تقريباً (الطول × العرض)؟ وهل هي حديقة فيلا خلفية أم أمامية، ومن سيستخدمها أكثر (أطفال، جلسات عائلية)؟",
+     "ms": 11088
+    },
+    {
+     "role": "customer",
+     "text": "الحديقة حوالي 200 متر مربع. عشب صناعي في جزء وطبيعي في جزء، وكم شجرة. نظام ري بالتنقيط أوتوماتيك. برجولا خشب وممر حجر. فيلا في خليفة سيتي، أبوظبي."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، 200 متر مربع في خليفة سيتي بعشب صناعي وطبيعي وبرجولا خشب وممر حجر. ملاحظة: العشب الطبيعي لا يناسب التنقيط، فهو يحتاج رشاشات للمساحة، والتنقيط للأشجار والنباتات فقط. هل هي حديقة جديدة (أرض رملية بعد البناء) أم إعادة تصميم لحديقة قائمة؟ وهل توجد نقاط مياه وكهرباء قريبة من الحديقة، وهل مصدر الماء شبكة المياه أم مياه معالجة؟",
+     "ms": 14276
+    },
+    {
+     "role": "customer",
+     "text": "مو متأكد، شو تنصحني؟"
+    },
+    {
+     "role": "agent",
+     "text": "أنصحك بالاعتماد على مصدر المياه المعالجة (TSE) للري إن كان متوفراً في المجمّع، وإلا فمياه الشبكة مع فلتر وجهاز تحكم بالمناطق، والمورّد يؤكد ذلك عند زيارة الموقع. ومتى تحتاج إنجاز العمل؟",
+     "ms": 11047
+    },
+    {
+     "role": "customer",
+     "text": "قبل الشتاء."
+    },
+    {
+     "role": "agent",
+     "text": "هذا ملخص طلبك:\nترتيب حديقة فيلا في خليفة سيتي، أبوظبي.\nالمساحة حوالي 200 متر مربع.\nعشب صناعي في جزء وعشب طبيعي في جزء، مع عدة أشجار.\nري أوتوماتيك بالتنقيط للأشجار والنباتات، ورشاشات للعشب الطبيعي.\nبرجولا خشب وممر حجر وإضاءة وجلسة.\nالموعد المطلوب: قبل الشتاء.\nيؤكد المورّد في زيارة الموقع: طريقة الاستخدام، والمخططات أو التصميم، ونقاط المياه والكهرباء ومصدر الماء، وهل الحديقة جديدة أم إعادة تصميم.\nهل هذا صحيح؟",
+     "ms": 12765
+    },
+    {
+     "role": "customer",
+     "text": "نعم، صحيح."
+    }
+   ]
+  },
+  {
+   "id": "carpet_office",
+   "lang": "en",
+   "trade": "flooring",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "Office in Business Bay, 9th floor."
+     }
+    ]
+   },
+   "facts_released": 7,
+   "facts_total": 7,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     6,
+     1
+    ],
+    [
+     5,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "About 300 square metres open plan.",
+    "Old carpet glued down, needs removing; raised floor underneath.",
+    "Commercial nylon carpet tiles, dark grey, heavy traffic.",
+    "Work must happen on weekends while we keep operating.",
+    "Office in Business Bay, 9th floor.",
+    "Building management needs a permit.",
+    "Next month."
+   ],
+   "expert": [
+    "area",
+    "existing floor and subfloor (raised floor access panels)",
+    "tile grade, pile, traffic class, colour",
+    "working hours while occupied",
+    "building permit"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "We need new carpet tiles for our office.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Carpet tiles suit offices well, since a damaged tile can be swapped without lifting the whole floor. What is the floor area of the office in square metres, or the length and width of each room? And what is on the floor now, and should the supplier remove it?",
+     "ms": 12582
+    },
+    {
+     "role": "customer",
+     "text": "About 300 square metres open plan. Old carpet glued down, needs removing; raised floor underneath. Office in Business Bay, 9th floor."
+    },
+    {
+     "role": "agent",
+     "text": "Noted: 300 square metres open plan, glued carpet removed from a raised floor. Will the office be occupied while the work is done, or can the supplier work evenings and weekends only? And when do you need it finished?",
+     "ms": 11971
+    },
+    {
+     "role": "customer",
+     "text": "Commercial nylon carpet tiles, dark grey, heavy traffic. Work must happen on weekends while we keep operating. Next month."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nSupply and install new carpet tiles in your office in Business Bay, 9th floor.\nThe area is about 300 square metres, open plan.\nThe tiles are commercial nylon, dark grey, for heavy traffic.\nThe old carpet is glued down and the supplier removes it. A raised floor sits underneath.\nWork happens on weekends while you keep operating.\nYou need it done next month.\n\nTo confirm at the supplier's site visit: building management's fit-out approval and work permit, lift and loading access, and the fire rating certificate for the tiles.\n\nIs this correct?",
+     "ms": 10223
+    },
+    {
+     "role": "customer",
+     "text": "Building management needs a permit."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nSupply and install new carpet tiles in your office in Business Bay, 9th floor.\nThe area is about 300 square metres, open plan.\nThe tiles are commercial nylon, dark grey, for heavy traffic.\nThe old carpet is glued down and the supplier removes it. A raised floor sits underneath.\nBuilding management requires a permit, which is noted.\nWork happens on weekends while you keep operating.\nYou need it done next month.\n\nTo confirm at the supplier's site visit: lift and loading access, and the fire rating certificate for the tiles.\n\nIs this correct?",
+     "ms": 11446
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "water_tank_ar",
+   "lang": "ar",
+   "trade": "plumbing",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": false,
+    "trap_corrected": true,
+    "pass": false,
+    "reask_flagged": [
+     {
+      "turn": 3,
+      "fact": "المضخة شغالة بس ضعيفة."
+     },
+     {
+      "turn": 4,
+      "fact": "المضخة شغالة بس ضعيفة."
+     },
+     {
+      "turn": 4,
+      "fact": "فيلا في عجمان."
+     }
+    ]
+   },
+   "facts_released": 5,
+   "facts_total": 6,
+   "released": [
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     2
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     5,
+     3
+    ]
+   ],
+   "hidden_facts": [
+    "خزان علوي 1000 جالون.",
+    "أبي خزان فايبر جلاس أو بلاستيك مزدوج الطبقات.",
+    "الخزان الحالي فايبر قديم، والقاعدة بحالة جيدة.",
+    "المضخة شغالة بس ضعيفة.",
+    "فيلا في عجمان.",
+    "بأسرع وقت."
+   ],
+   "expert": [
+    "سعة الخزان ومكانه (علوي أو أرضي)",
+    "المادة المطلوبة",
+    "حالة القاعدة والمواسير",
+    "المضخة",
+    "الموقع والموعد"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "خزان الماء عندي يسرب وأبي أغيره.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "فهمت أن خزان الماء عندك يسرب وتريد استبداله. وإذا كان التسرب من الوصلات أو الأنابيب وليس من جسم الخزان فقد يكفي إصلاحه، والفني يحسم ذلك في المعاينة.\n\nما سعة الخزان الجديد الذي تريده بالجالون أو اللتر، وهل هو علوي على السطح أم أرضي؟ وما نوع الخزان الحالي (بلاستيك أو GRP أو خرسانة) وما حالته؟",
+     "ms": 9820
+    },
+    {
+     "role": "customer",
+     "text": "أبي خزان فايبر جلاس أو بلاستيك مزدوج الطبقات. الخزان الحالي فايبر قديم، والقاعدة بحالة جيدة."
+    },
+    {
+     "role": "agent",
+     "text": "سنعتمد سعة الخزان الجديدة مثل سعة الحالي، ويؤكدها المورّد عند المعاينة، فلا داعي لتحديدها الآن. وهل وصلات الخزان (الدخول والخروج والتصريف والعوامة) سليمة وتبقى كما هي، أم تريد تغييرها مع الخزان الجديد؟",
+     "ms": 21343
+    },
+    {
+     "role": "customer",
+     "text": "مو متأكد، شو تنصحني؟"
+    },
+    {
+     "role": "agent",
+     "text": "أنصحك بتغيير الوصلات (العوامة وصمامات الدخول والخروج والتصريف) مع الخزان الجديد، لأن الوصلات القديمة غالباً ما تتلف عند فكها ولا تتحمل خزاناً جديداً. وأين تقع هذه الوصلات بالنسبة للخزان (دخول الماء من الأعلى، والخروج والتصريف من الأسفل)، وهل هناك مضخة أو أنابيب إضافية متصلة به؟ وفي أي إمارة ومنطقة العقار؟",
+     "ms": 11713
+    },
+    {
+     "role": "customer",
+     "text": "المضخة شغالة بس ضعيفة. فيلا في عجمان."
+    },
+    {
+     "role": "agent",
+     "text": "ضعف المضخة لا يعني أنها تالفة. قد يكون السبب انسداد الفلتر أو الأنابيب، أو نزول مستوى الماء بسبب التسرب، والفني يفحصها عند المعاينة قبل أي استبدال. هل تريد تغيير المضخة أيضاً أم الإبقاء عليها؟ ومتى تريد إنجاز العمل؟",
+     "ms": 19759
+    },
+    {
+     "role": "customer",
+     "text": "بأسرع وقت."
+    },
+    {
+     "role": "agent",
+     "text": "حاضر، سنعتبر العمل مستعجلاً. أي تجهيزات ستتصل بالخزان الجديد وأين مواضعها، مثل مدخل الماء ومخرج الشبكة وخط المضخة والتصريف والعوامة؟ وإن لم تكن متأكداً من مواضعها فسيؤكدها المورّد عند المعاينة.",
+     "ms": 19568
+    }
+   ]
+  },
+  {
+   "id": "interlock_paving",
+   "lang": "en",
+   "trade": "paving",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 6,
+   "facts_total": 7,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     6,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "About 90 square metres.",
+    "Two cars park on it daily.",
+    "Currently sand and some broken concrete to remove.",
+    "80 mm interlock, grey and charcoal pattern.",
+    "Water collects near the gate.",
+    "Villa in Al Warqa, owned.",
+    "In 3 weeks."
+   ],
+   "expert": [
+    "area",
+    "vehicle load (thickness 60 vs 80 mm)",
+    "existing surface and sub-base",
+    "block type and pattern",
+    "levels and drainage",
+    "location"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "I need interlock paving for my driveway.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Interlock paving suits a driveway well. How long and wide is the driveway, or roughly how many square metres? And will it take only family cars, or heavier vehicles like vans or trucks too?",
+     "ms": 12318
+    },
+    {
+     "role": "customer",
+     "text": "About 90 square metres. Two cars park on it daily."
+    },
+    {
+     "role": "agent",
+     "text": "Got it, 90 square metres for two cars is a standard residential load. Is this a new driveway on bare ground, or are you replacing an existing surface such as old pavers or asphalt that has to come out first? Also, are there drains, gully points or a power point near the driveway that the paving needs to work around?",
+     "ms": 10522
+    },
+    {
+     "role": "customer",
+     "text": "Currently sand and some broken concrete to remove. Water collects near the gate."
+    },
+    {
+     "role": "agent",
+     "text": "Water collecting near the gate means the surface needs proper falls toward a drain. The supplier will level and compact the sub-base and clear the broken concrete first. Which emirate and community is the property in? And when do you need the work done?",
+     "ms": 23579
+    },
+    {
+     "role": "customer",
+     "text": "Villa in Al Warqa, owned. In 3 weeks."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nInterlock paving for a villa driveway in Al Warqa, owned by you.\nThe area is about 90 square metres.\nTwo cars park on it daily.\nThe surface is currently sand with some broken concrete, which needs removing.\nWater collects near the gate, so the paving needs falls toward a drain.\nYou need the work done in 3 weeks.\n\nTo confirm at the supplier's site visit: irrigation, water and power points.\n\nIs this correct?",
+     "ms": 10161
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "smart_home_ar",
+   "lang": "ar",
+   "trade": "smart-home",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": false,
+    "trap_corrected": true,
+    "pass": false,
+    "reask_flagged": []
+   },
+   "facts_released": 5,
+   "facts_total": 7,
+   "released": [
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     5,
+     0
+    ],
+    [
+     6,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "فيلا 5 غرف، دورين.",
+    "أفضل نظام لاسلكي يشتغل من تطبيق واحد.",
+    "8 ستائر كهربائية.",
+    "مكيفات سبليت في كل غرفة.",
+    "الفيلا مسكونة وما أبي تكسير.",
+    "الخوانيج، دبي.",
+    "خلال شهر."
+   ],
+   "expert": [
+    "حجم الفيلا وعدد الغرف",
+    "نظام سلكي (KNX) أم لاسلكي (Zigbee/Wi-Fi)",
+    "عدد الستائر ونوع المحركات",
+    "نوع المكيفات وطريقة التحكم",
+    "مسكونة: بدون تكسير"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "أبغى بيتي يكون سمارت، إضاءة ومكيفات وستائر.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "تمام، إضاءة ومكيفات وستائر في نظام واحد. كم عدد الغرف والأدوار في البيت، وهل هو فيلا أو شقة؟\n\nوهل تفضل نظامًا سلكيًا (الأنسب إذا كان البيت تحت التشطيب)، أم لاسلكيًا يركّب بدون كسر الجدران، مع تطبيق واحد للتحكم بالكل؟",
+     "ms": 12126
+    },
+    {
+     "role": "customer",
+     "text": "أفضل نظام لاسلكي يشتغل من تطبيق واحد. 8 ستائر كهربائية. مكيفات سبليت في كل غرفة. الخوانيج، دبي."
+    },
+    {
+     "role": "agent",
+     "text": "حسب ما ذكرتم: نظام لاسلكي بتطبيق واحد يشمل الإضاءة، ومكيفات سبليت في كل غرفة، و8 ستائر كهربائية، في الخوانيج، دبي. عدد الغرف وعدد الأدوار ونوع العقار والخامات واللون يؤكدها المورّد في زيارة الموقع. ملاحظة مهمة: الستائر الكهربائية تحتاج نقطة كهرباء قرب كل نافذة، والتحكم بالمكيفات السبليت يتم عبر بوابة تحكم (gateway) لكل وحدة حسب موديلها. وهل تريدون إضافة شيء آخر مثل الكاميرات أو القفل الذكي؟",
+     "ms": 27203
+    },
+    {
+     "role": "customer",
+     "text": "مو متأكد، شو تنصحني؟"
+    },
+    {
+     "role": "agent",
+     "text": "أنصحك بالنظام اللاسلكي، لأنه يركّب بدون كسر الجدران ولا إعادة دهان، وهو الأنسب لبيت جاهز ومسكون.\n\nومتى تحتاجون إنجاز العمل؟",
+     "ms": 11949
+    },
+    {
+     "role": "customer",
+     "text": "خلال شهر."
+    },
+    {
+     "role": "agent",
+     "text": "تم، خلال شهر.",
+     "ms": 64310
+    }
+   ]
+  },
+  {
+   "id": "fence_gate",
+   "lang": "en",
+   "trade": "metal-works",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 2,
+      "fact": "Front boundary about 22 m; gate opening 4.5 m."
+     },
+     {
+      "turn": 2,
+      "fact": "Villa in Al Barsha South, owned."
+     }
+    ]
+   },
+   "facts_released": 7,
+   "facts_total": 7,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     6,
+     1
+    ],
+    [
+     5,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "Front boundary about 22 m; gate opening 4.5 m.",
+    "An automatic sliding gate with a remote.",
+    "Galvanised steel, powder-coated black, privacy panels.",
+    "The old fence is a low wall with railings, to be removed.",
+    "Villa in Al Barsha South, owned.",
+    "Community guidelines restrict the height.",
+    "Within 6 weeks."
+   ],
+   "expert": [
+    "boundary length and gate opening",
+    "sliding or swing, manual or automatic",
+    "material and finish (galvanised, powder-coated)",
+    "removal of the old fence",
+    "community height and design rules"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "I need a new gate and fence for my villa.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "A new gate and fence for a villa is a straightforward steel job. What are the lengths of the fence runs, and the width and height of the gate opening? Would you like the gate sliding or swing, and manual or automatic?",
+     "ms": 10994
+    },
+    {
+     "role": "customer",
+     "text": "Front boundary about 22 m; gate opening 4.5 m. An automatic sliding gate with a remote. Villa in Al Barsha South, owned."
+    },
+    {
+     "role": "agent",
+     "text": "Good, that gives me the main sizes. Near the coast mild steel rusts quickly, so for the finish I'd recommend hot-dip galvanised steel with a powder coat, or stainless steel if you want it maintenance-free. Which material and coating would you like, and is there an old gate or fence to remove and dispose of?",
+     "ms": 10350
+    },
+    {
+     "role": "customer",
+     "text": "Galvanised steel, powder-coated black, privacy panels. The old fence is a low wall with railings, to be removed. Within 6 weeks."
+    },
+    {
+     "role": "agent",
+     "text": "Galvanised steel with black powder coat is a solid choice for the UAE climate. Al Barsha South is a Dubai community, so does your community or developer require an NOC or has set rules on boundary wall height and design?",
+     "ms": 10449
+    },
+    {
+     "role": "customer",
+     "text": "Community guidelines restrict the height."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\nA new gate and fence for your owned villa in Al Barsha South, Dubai.\nFront boundary is about 22 m.\nGate opening is 4.5 m.\nThe gate is automatic sliding, with a remote.\nMaterial is galvanised steel, powder-coated black, with privacy panels.\nThe old low wall with railings is to be removed.\nCommunity guidelines restrict the height.\nWork is needed within 6 weeks.\nTo confirm at the supplier's site visit: the system or type, and the drawings or design.\nIs this correct?",
+     "ms": 10476
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "deep_clean_ar",
+   "lang": "ar",
+   "trade": "cleaning",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "جميرا فيلج سيركل."
+     },
+     {
+      "turn": 2,
+      "fact": "النوافذ من داخل فقط."
+     }
+    ]
+   },
+   "facts_released": 5,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     1
+    ]
+   ],
+   "hidden_facts": [
+    "شقة 3 غرف تقريباً 160 متر.",
+    "غبار جبس وبقع دهان على الأرضيات والزجاج.",
+    "النوافذ من داخل فقط.",
+    "جميرا فيلج سيركل.",
+    "يوم الخميس.",
+    "تجيبون موادكم."
+   ],
+   "expert": [
+    "المساحة وعدد الغرف",
+    "نوع البقايا (جبس، دهان، أسمنت)",
+    "النوافذ من الداخل أو الخارج",
+    "المواد والمعدات",
+    "الموعد"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "أبي تنظيف عميق للشقة بعد التشطيب.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "تمام، تنظيف عميق بعد التشطيب لشقة. كم عدد الغرف والحمامات، وما مساحة الشقة تقريباً؟ وما المتبقي بعد الأعمال: غبار فقط، أم بقع دهان وآثار أسمنت أو لاصق على الأرضيات والزجاج؟",
+     "ms": 12472
+    },
+    {
+     "role": "customer",
+     "text": "شقة 3 غرف تقريباً 160 متر. غبار جبس وبقع دهان على الأرضيات والزجاج. النوافذ من داخل فقط. جميرا فيلج سيركل."
+    },
+    {
+     "role": "agent",
+     "text": "تم، غبار جبس وبقع دهان على الأرضيات والزجاج، والنوافذ من الداخل فقط. عدد الحمامات سيُؤكَّد في زيارة المورد للموقع.\n\nمتى تحتاج إنجاز التنظيف؟ وهل إدارة المبنى تشترط تصريح عمل أو أوقات دخول محددة للعمال؟",
+     "ms": 19343
+    },
+    {
+     "role": "customer",
+     "text": "يوم الخميس."
+    },
+    {
+     "role": "agent",
+     "text": "تم، الخميس موعد مناسب. هل ما زالت المخلفات تغطي الأرضيات والزجاج بالكامل، أم بقيت أجزاء تحتاج إزالة خاصة مثل البقع الجافة القديمة؟",
+     "ms": 34698
+    },
+    {
+     "role": "customer",
+     "text": "مو متأكد، شو تنصحني؟"
+    },
+    {
+     "role": "agent",
+     "text": "أنصحك بأن يشمل التنظيف إزالة بقع الدهان الجافة عن الأرضيات والزجاج، والمورد يحدد مدى الحاجة عند الزيارة.\n\nهذا ملخص طلبك:\nتنظيف عميق بعد التشطيب لشقة في جميرا فيلج سيركل.\nالشقة 3 غرف، ومساحتها تقريباً 160 متراً.\nالمخلفات غبار جبس وبقع دهان على الأرضيات والزجاج.\nالنوافذ من الداخل فقط.\nالموعد المطلوب يوم الخميس.\n\nيُؤكَّد في زيارة المورد للموقع: عدد الحمامات، وحجم ما تبقى من المخلفات، وتصاريح العمل وأوقات الدخول لدى إدارة المبنى.\n\nهل هذا صحيح؟",
+     "ms": 13699
+    },
+    {
+     "role": "customer",
+     "text": "نعم، صحيح."
+    }
+   ]
+  },
+  {
+   "id": "mep_maintenance",
+   "lang": "en",
+   "trade": "mep-maintenance",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "Central chillers, pumps, fire alarm and fighting, electrical and plumbing; lifts are separate."
+     },
+     {
+      "turn": 1,
+      "fact": "Al Qusais, Dubai."
+     }
+    ]
+   },
+   "facts_released": 5,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     2,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "A G+8 residential building, 64 apartments.",
+    "Central chillers, pumps, fire alarm and fighting, electrical and plumbing; lifts are separate.",
+    "We need 24/7 emergency response and monthly PPM visits.",
+    "Al Qusais, Dubai.",
+    "We are the owners association.",
+    "Contract to start on 1 January."
+   ],
+   "expert": [
+    "building size and use",
+    "systems in scope (chillers, pumps, fire, electrical, plumbing, lifts)",
+    "PPM frequency and emergency response time",
+    "comprehensive or non-comprehensive (parts included)",
+    "Civil Defence fire-system maintenance certificate",
+    "start date"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "We need an annual maintenance contract for our building.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Happy to help with that. To scope the contract, what is the building used for (offices, retail, residential, mixed) and roughly how big is it, in floors or total square metres? Also, which systems should it cover: AC and ventilation, electrical, plumbing and drainage, or fire systems too?",
+     "ms": 10175
+    },
+    {
+     "role": "customer",
+     "text": "A G+8 residential building, 64 apartments. Central chillers, pumps, fire alarm and fighting, electrical and plumbing; lifts are separate. Al Qusais, Dubai."
+    },
+    {
+     "role": "agent",
+     "text": "Thanks, that's a clear scope. Fire alarm and firefighting maintenance in Dubai must be done by a Dubai Civil Defence-approved company, so suppliers will be matched on that. Do you have a consultant or any as-built drawings and an equipment list for the building? And when would you like the contract to start?",
+     "ms": 11032
+    },
+    {
+     "role": "customer",
+     "text": "Contract to start on 1 January."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nAn annual maintenance contract for a G+8 residential building with 64 apartments.\nLocation is Al Qusais, Dubai.\nScope: central chillers, pumps, fire alarm and firefighting, electrical and plumbing. Lifts are separate.\nThe contract is to start on 1 January.\n\nTo confirm at the supplier's site visit: planned visits and emergency response terms, and any drawings, equipment list or consultant.\n\nIs this correct?",
+     "ms": 8484
+    },
+    {
+     "role": "customer",
+     "text": "We need 24/7 emergency response and monthly PPM visits."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nAn annual maintenance contract for a G+8 residential building with 64 apartments.\nLocation is Al Qusais, Dubai.\nScope: central chillers, pumps, fire alarm and firefighting, electrical and plumbing. Lifts are separate.\nTerms: 24/7 emergency response and monthly PPM visits.\nThe contract starts on 1 January.\n\nTo confirm at the supplier's site visit: drawings, equipment list or consultant, and the number of points to cover.\n\nIs this correct?",
+     "ms": 12934
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "curtains_ar",
+   "lang": "ar",
+   "trade": "curtains",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 6,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     1
+    ]
+   ],
+   "hidden_facts": [
+    "المجلس فيه 3 نوافذ كل وحدة 2.5 متر عرض، وغرف النوم 4 نوافذ 1.8 متر. الارتفاع من السقف 3 متر.",
+    "بلاك أوت مع طبقة شيفون.",
+    "المجلس كهربائي والغرف يدوي.",
+    "لون رمادي فاتح.",
+    "فيلا في الشارقة، الرحمانية.",
+    "خلال 3 أسابيع."
+   ],
+   "expert": [
+    "عدد النوافذ وأبعادها والارتفاع",
+    "نوع القماش (بلاك أوت، شيفون، طبقتين)",
+    "كهربائي أو يدوي",
+    "نوع التركيب (سقف أو جدار، مخفي)",
+    "اللون والموعد"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "أبغى ستائر للمجلس وغرف النوم.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "فهمت، تحتاجون ستائر للمجلس وغرف النوم. كم عدد النوافذ في كل غرفة تقريباً، وما عرض كل نافذة وارتفاعها؟ وهل تفضلون ستائر قماشية مع شفاف، أم بلاك أوت للنوم، وهل تريدونها يدوية أم بمحرك؟",
+     "ms": 10287
+    },
+    {
+     "role": "customer",
+     "text": "المجلس فيه 3 نوافذ كل وحدة 2.5 متر عرض، وغرف النوم 4 نوافذ 1.8 متر. الارتفاع من السقف 3 متر. بلاك أوت مع طبقة شيفون. المجلس كهربائي والغرف يدوي. لون رمادي فاتح."
+    },
+    {
+     "role": "agent",
+     "text": "شكراً، التفاصيل واضحة. في أي إمارة ومنطقة العقار بالضبط، وهل هو فيلا ملك أم مستأجر؟ ومتى تحتاجون تركيب الستائر؟",
+     "ms": 9975
+    },
+    {
+     "role": "customer",
+     "text": "فيلا في الشارقة، الرحمانية. خلال 3 أسابيع."
+    },
+    {
+     "role": "agent",
+     "text": "هذا ملخص طلبك:\nستائر لفيلا في الشارقة، منطقة الرحمانية.\nالمجلس: 3 نوافذ، عرض كل نافذة 2.5 متر.\nغرف النوم: 4 نوافذ، عرض كل نافذة 1.8 متر.\nالارتفاع من السقف 3 أمتار.\nالنوع: بلاك أوت مع طبقة شيفون، باللون الرمادي الفاتح.\nالمجلس بمحرك كهربائي، وغرف النوم يدوية.\nمدة التنفيذ المطلوبة: خلال 3 أسابيع.\nيؤكد المورد في زيارة الموقع: هل العقار ملك أم مستأجر، ومقاسات النوافذ النهائية.\nهل هذا صحيح؟",
+     "ms": 12394
+    },
+    {
+     "role": "customer",
+     "text": "نعم، صحيح."
+    }
+   ]
+  },
+  {
+   "id": "roof_pergola",
+   "lang": "en",
+   "trade": "carpentry-joinery",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 7,
+   "facts_total": 7,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     5,
+     0
+    ],
+    [
+     6,
+     1
+    ],
+    [
+     1,
+     3
+    ],
+    [
+     3,
+     3
+    ]
+   ],
+   "hidden_facts": [
+    "About 5 m by 4 m.",
+    "Aluminium louvred, white.",
+    "The terrace is waterproofed, so I do not want it drilled through.",
+    "Motorised louvres with LED lighting.",
+    "Penthouse in Al Reem, Abu Dhabi.",
+    "Building owners association approval needed.",
+    "Before the cool season."
+   ],
+   "expert": [
+    "size",
+    "material: aluminium louvred, timber, steel",
+    "fixing without breaking the waterproofing (ballast or base plates), wind load at height",
+    "motorised, lighting",
+    "building approval"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "Can you get me a pergola for my roof terrace?",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Yes, we can take that to suppliers. A pergola on a roof terrace is a permanent structure. It needs a structural check of the slab and the building's approval, and the supplier's engineer designs for wind load. What are the terrace's length and width? Would you prefer an aluminium or a steel frame?",
+     "ms": 19493
+    },
+    {
+     "role": "customer",
+     "text": "About 5 m by 4 m. The terrace is waterproofed, so I do not want it drilled through. Penthouse in Al Reem, Abu Dhabi. Building owners association approval needed."
+    },
+    {
+     "role": "agent",
+     "text": "Understood, no drilling through the waterproofing. A free-standing pergola on ballasted base plates or a weighted frame works, but the supplier's engineer must confirm the slab can carry it and that it resists wind. And when do you need it installed?",
+     "ms": 11903
+    },
+    {
+     "role": "customer",
+     "text": "Before the cool season."
+    },
+    {
+     "role": "agent",
+     "text": "Noted—before the cool season.",
+     "ms": 52745
+    },
+    {
+     "role": "customer",
+     "text": "I am not sure, what do you recommend?"
+    },
+    {
+     "role": "agent",
+     "text": "I recommend powder-coated aluminium. It is lighter on the slab, does not rust in Abu Dhabi's humid air, and suits a free-standing ballasted frame.\n\nHere is your request as I have it:\nA permanent pergola on a roof terrace.\nSize is about 5 m by 4 m.\nIt must be free-standing, with no drilling through the waterproofing.\nIt is for a penthouse in Al Reem, Abu Dhabi.\nBuilding owners association approval is needed.\nYou need it installed before the cool season.\n\nTo confirm at the supplier's site visit: the frame material (aluminium recommended), the slab capacity, and the wind design.\n\nIs this correct?",
+     "ms": 15208
+    },
+    {
+     "role": "customer",
+     "text": "Aluminium louvred, white. Motorised louvres with LED lighting."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\nA permanent pergola on a roof terrace, with motorised aluminium louvres in white and LED lighting.\nSize is about 5 m by 4 m.\nIt must be free-standing, with no drilling through the waterproofing.\nIt is for a penthouse in Al Reem, Abu Dhabi.\nBuilding owners association approval is needed.\nYou need it installed before the cool season.\n\nTo confirm at the supplier's site visit: the slab capacity, the wind design, the ballast or base plate arrangement, and the power point for the motors and lights.\n\nIs this correct?",
+     "ms": 10286
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "gym_flooring",
+   "lang": "en",
+   "trade": "flooring",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "Ground floor unit in Al Quoz."
+     },
+     {
+      "turn": 2,
+      "fact": "Ground floor unit in Al Quoz."
+     },
+     {
+      "turn": 2,
+      "fact": "Rubber tiles, 30 mm in the weights zone."
+     }
+    ]
+   },
+   "facts_released": 6,
+   "facts_total": 7,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     6,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "About 180 square metres.",
+    "A free-weights zone with dropping, and a cardio area.",
+    "Rubber tiles, 30 mm in the weights zone.",
+    "Bare concrete screed, level.",
+    "Ground floor unit in Al Quoz.",
+    "Landlord approval in hand.",
+    "Within 5 weeks."
+   ],
+   "expert": [
+    "area",
+    "zones and impact (free weights dropping vs cardio)",
+    "rubber thickness per zone",
+    "subfloor and level",
+    "timeline"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "I am opening a small gym and need the right floor.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "A gym floor needs to take impact, dropped weights and heavy machines, so the right system depends on how it will be used. Roughly how many square metres is the gym, and which areas does it include (free weights, machines, studio or stretching zone, changing rooms)? Also, will you have heavy free weights and deadlifts, or mostly machines and light training?",
+     "ms": 13888
+    },
+    {
+     "role": "customer",
+     "text": "About 180 square metres. A free-weights zone with dropping, and a cardio area. Ground floor unit in Al Quoz."
+    },
+    {
+     "role": "agent",
+     "text": "A free-weights zone with dropping on a ground-floor slab needs a heavy-duty rubber impact floor, with a rubber tile platform under the drop area. The cardio zone can take a lighter rubber or sports vinyl floor. Ground-floor slabs can hold moisture, so the supplier checks that on site before laying. What is on the floor now, and what condition is it in? Do you prefer rubber tiles, rolls or sports vinyl, and in what thickness and colour?",
+     "ms": 22598
+    },
+    {
+     "role": "customer",
+     "text": "Rubber tiles, 30 mm in the weights zone. Bare concrete screed, level."
+    },
+    {
+     "role": "agent",
+     "text": "Rubber tiles at 30 mm over a level bare screed suit a dropping zone well. Is the unit empty during the work, or will anything else be operating there? And when do you need the floor finished?",
+     "ms": 12279
+    },
+    {
+     "role": "customer",
+     "text": "Within 5 weeks."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it: A small gym floor in a ground-floor unit in Al Quoz. The area is about 180 square metres. The weights zone has free weights with dropping. It gets 30 mm rubber tiles. There is also a cardio area. Its floor type is to be confirmed. The base is bare concrete screed, level. You need it finished within 5 weeks. To confirm at the supplier's site visit: the number of zones and the exact job scope. Also the areas and points to cover. Finally, whether the unit is empty or occupied during the work. Is this correct?",
+     "ms": 26065
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "majlis_furniture_ar",
+   "lang": "ar",
+   "trade": "furniture",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 5,
+   "facts_total": 7,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     3
+    ]
+   ],
+   "hidden_facts": [
+    "المجلس 7 في 5 متر.",
+    "جلسة على ثلاث جهات بشكل U.",
+    "قماش مخمل لون بيج مع ذهبي.",
+    "جلسة أرضية بارتفاع 25 سم.",
+    "رأس الخيمة.",
+    "قبل رمضان.",
+    "متوسطة إلى عالية."
+   ],
+   "expert": [
+    "أبعاد المجلس",
+    "التوزيع (U أو L أو جهتين)",
+    "نوع الجلسة (أرضية أو كنب) والارتفاع والعمق",
+    "القماش واللون والمساند",
+    "الموعد"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "أبغى تفصيل جلسة مجلس عربي.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "تمام، جلسة مجلس عربي جديدة. كم طول كل جدار من جدران المجلس (بالمتر)، وكم مقعداً تحتاجون تقريباً؟ وهل الترتيب على شكل U أو L أو على جانبين فقط؟",
+     "ms": 10773
+    },
+    {
+     "role": "customer",
+     "text": "المجلس 7 في 5 متر. جلسة على ثلاث جهات بشكل U."
+    },
+    {
+     "role": "agent",
+     "text": "مجلس 7 في 5 متر بترتيب U مساحة مريحة. أي نوع قماش تفضلون: مخمل، أو كتان، أو جلد صناعي، وما اللون الذي في بالكم؟ وفي أي إمارة ومنطقة سيكون التركيب؟",
+     "ms": 10490
+    },
+    {
+     "role": "customer",
+     "text": "قماش مخمل لون بيج مع ذهبي. رأس الخيمة."
+    },
+    {
+     "role": "agent",
+     "text": "مخمل بيج مع ذهبي اختيار مناسب للمجلس، وهو يتحمل الاستعمال اليومي إذا كان الإسفنج بكثافة جيدة. ما التاريخ الذي تحتاجون فيه الجلسة جاهزة ومركّبة في مجلسكم؟",
+     "ms": 20831
+    },
+    {
+     "role": "customer",
+     "text": "مو متأكد، شو تنصحني؟"
+    },
+    {
+     "role": "agent",
+     "text": "أنصحك بأن تحدد موعداً تقريبياً، مثل خلال شهر أو شهرين، لأن تفصيل جلسة بهذا المقاس يحتاج وقتاً للتصنيع والتركيب، وفي كل الأحوال يؤكد المورد المدة بعد زيارة الموقع. متى تفضّل أن تكون الجلسة جاهزة: خلال شهر، أو شهرين، أو لا يوجد موعد محدد؟",
+     "ms": 33559
+    },
+    {
+     "role": "customer",
+     "text": "قبل رمضان."
+    },
+    {
+     "role": "agent",
+     "text": "هذا ملخص طلبك:\nتفصيل جلسة مجلس عربي جديدة بمخمل لون بيج مع ذهبي.\nالمجلس مقاسه 7 في 5 متر، والترتيب على ثلاث جهات بشكل U.\nالتركيب في رأس الخيمة، والمطلوب أن تكون جاهزة قبل رمضان.\nنوع النظام أو التصميم التفصيلي يؤكده المورد في زيارة الموقع.\nهل هذا صحيح؟",
+     "ms": 11682
+    },
+    {
+     "role": "customer",
+     "text": "نعم، صحيح."
+    }
+   ]
+  },
+  {
+   "id": "wardrobe_photo_ar",
+   "lang": "ar",
+   "trade": "carpentry-joinery",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "عرض الجدار 3 متر والارتفاع 2.8 متر."
+     }
+    ]
+   },
+   "facts_released": 6,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     4,
+     2
+    ],
+    [
+     5,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "عرض الجدار 3 متر والارتفاع 2.8 متر.",
+    "نص تعليق طويل ونص رفوف مع 3 أدراج.",
+    "أبواب مفصلية بنظام ضغط بدون مقابض.",
+    "خشب MDF بلون جوزي.",
+    "فيلا في الشارقة، ملك.",
+    "خلال شهر."
+   ],
+   "expert": [
+    "عرض الجدار والارتفاع (حتى السقف أم لا)",
+    "التقسيم الداخلي: تعليق طويل وقصير، رفوف، أدراج",
+    "نوع الأبواب: مفصلية، منزلقة، ضغط؛ مقابض أو بدون",
+    "المادة والتشطيب واللون",
+    "الموقع والموعد"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "مرحبا، أبي خزانة ملابس تفصيل لغرفة النوم، هذي صورة الجدار.",
+     "image": true
+    },
+    {
+     "role": "agent",
+     "text": "فهمت: خزانة ملابس مفصّلة لجدار غرفة النوم، ويظهر في الصورة نافذة على جانب الجدار، وبلاطة سكيرتنغ في أسفله، ونقطة داكنة قرب الزاوية السفلية (غالبًا مفتاح أو مقبس). الصورة لا تعطي المقاسات الفعلية.\n\nكم عرض الجدار وارتفاعه من الأرض إلى السقف، وكم العمق المتاح للخزانة؟ وما التقسيم الداخلي الذي تفضّله: تعليق، رفوف، أم أدراج؟",
+     "ms": 13561
+    },
+    {
+     "role": "customer",
+     "text": "عرض الجدار 3 متر والارتفاع 2.8 متر. نص تعليق طويل ونص رفوف مع 3 أدراج."
+    },
+    {
+     "role": "agent",
+     "text": "ممتاز، عرض 3 متر وارتفاع 2.8 متر يسمحان بخزانة بارتفاع كامل حتى السقف، ونصف تعليق طويل ونصف رفوف مع 3 أدراج تقسيم مناسب.\n\nأي نوع أبواب تفضّل: سحّاب (ينفع إذا الغرفة ضيقة ولا يحتاج مساحة فتح)، أو مفصلي بنظام فتح باللمس، أو مفصلي بمقابض؟ وما الخامة واللون والتشطيب الذي تريده: ميلامين، أو لاكيه مطفي، أو لاكيه لامع؟",
+     "ms": 12214
+    },
+    {
+     "role": "customer",
+     "text": "أبواب مفصلية بنظام ضغط بدون مقابض. خشب MDF بلون جوزي."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، أبواب مفصلية بنظام الضغط وبدون مقابض، وخشب MDF بلون جوزي. ملاحظة: اختر لوح MDF مقاوم للرطوبة (MR) لهيكل الخزانة، لأن الرطوبة وتكثّف المكيف في الجو الإماراتي ينفّخان الـ MDF العادي.\n\nفي أي إمارة ومنطقة الشقة أو الفيلا؟ ومتى تحتاج الخزانة جاهزة؟",
+     "ms": 12675
+    },
+    {
+     "role": "customer",
+     "text": "فيلا في الشارقة، ملك. خلال شهر."
+    },
+    {
+     "role": "agent",
+     "text": "هذا ملخص طلبك:\nخزانة ملابس مفصّلة لغرفة النوم في فيلا ملك بالشارقة.\nعرض الجدار 3 متر، والارتفاع 2.8 متر حتى السقف.\nالتقسيم الداخلي: نصف تعليق طويل، ونصف رفوف مع 3 أدراج.\nالأبواب مفصلية بنظام الضغط وبدون مقابض.\nالخامة MDF بلون جوزي، وهيكل الخزانة من MDF مقاوم للرطوبة.\nالمطلوب جاهزة خلال شهر.\nيؤكد المورّد في زيارة الموقع: العمق المتاح والمقاسات النهائية بالقياس الفعلي، ونظام الأبواب.\n\nهل هذا صحيح؟",
+     "ms": 11313
+    },
+    {
+     "role": "customer",
+     "text": "نعم، صحيح."
+    }
+   ]
+  },
+  {
+   "id": "kitchen_photo_en",
+   "lang": "en",
+   "trade": "kitchens",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 7,
+   "facts_total": 7,
+   "released": [
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     6,
+     1
+    ],
+    [
+     0,
+     2
+    ],
+    [
+     1,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "Wall cabinets up to the ceiling, please.",
+    "Matt white lacquer doors and a quartz worktop.",
+    "A built-in oven and hob, a hood and an integrated dishwasher; I keep my freestanding fridge.",
+    "The sink stays where it is; the hob is electric.",
+    "The old kitchen must be removed.",
+    "Apartment in Al Barsha, owned.",
+    "Within 6 weeks."
+   ],
+   "expert": [
+    "(size given: do not ask it again) upper cabinets height, tall units",
+    "door material and finish, worktop material",
+    "appliances: built-in or freestanding, which are new",
+    "sink, hob and services positions",
+    "removal of the old kitchen",
+    "location, timeline"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "Here is a photo of my kitchen. It is a straight run, 3.6 m long with a 2.7 m ceiling, and I want new cabinets and a worktop.",
+     "image": true
+    },
+    {
+     "role": "agent",
+     "text": "Thanks, the photo shows an old straight run with peeling doors, one wall unit, a hood and what looks like a sink in the worktop. Will the old kitchen be removed and disposed of by the supplier, or are you keeping any of it? And for the new cabinet doors and worktop, would you prefer laminate, lacquer or acrylic doors, and quartz or granite for the top?",
+     "ms": 17597
+    },
+    {
+     "role": "customer",
+     "text": "A built-in oven and hob, a hood and an integrated dishwasher; I keep my freestanding fridge. The sink stays where it is; the hob is electric. The old kitchen must be removed."
+    },
+    {
+     "role": "agent",
+     "text": "Noted: the old kitchen comes out, and the electric hob and sink stay put. Which emirate and exact area or community is the flat or villa in, and is it owned or rented? Also, when do you need the new kitchen done?",
+     "ms": 15294
+    },
+    {
+     "role": "customer",
+     "text": "Apartment in Al Barsha, owned. Within 6 weeks."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nApartment in Al Barsha, Dubai, owned. Needed within 6 weeks.\nStraight kitchen run, 3.6 m long, ceiling 2.7 m.\nNew cabinets and a new worktop.\nOld kitchen removed and disposed of.\nSink stays where it is.\nBuilt-in oven, electric hob, hood and integrated dishwasher, all new.\nYour freestanding fridge stays.\n\nTo confirm at the supplier's site visit: cabinet door finish and worktop material.\n\nIs this correct?",
+     "ms": 11653
+    },
+    {
+     "role": "customer",
+     "text": "Wall cabinets up to the ceiling, please. Matt white lacquer doors and a quartz worktop."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nApartment in Al Barsha, Dubai, owned. Needed within 6 weeks.\nStraight kitchen run, 3.6 m long, ceiling 2.7 m.\nNew base cabinets and wall cabinets up to the ceiling.\nDoors in matt white lacquer.\nQuartz worktop.\nOld kitchen removed and disposed of.\nSink stays where it is.\nBuilt-in oven, electric hob, hood and integrated dishwasher, all new.\nYour freestanding fridge stays.\n\nTo confirm at the supplier's site visit: final dimensions and handle or opening style.\n\nIs this correct?",
+     "ms": 15580
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "shopfront_en",
+   "lang": "en",
+   "trade": "aluminium",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "The frontage is 7 m wide and 3.2 m high."
+     }
+    ]
+   },
+   "facts_released": 6,
+   "facts_total": 7,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     6,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "The frontage is 7 m wide and 3.2 m high.",
+    "An automatic sliding entrance door.",
+    "It faces south, so heat control matters.",
+    "The unit has a temporary hoarding now.",
+    "Ground floor retail unit in Al Barsha.",
+    "The landlord and Dubai Municipality need shop drawings.",
+    "Before we open in 6 weeks."
+   ],
+   "expert": [
+    "frontage width and height",
+    "door: automatic sliding or swing, access control",
+    "glass: toughened, solar control or low-E for a south face",
+    "profile system and colour",
+    "landlord and municipality shop drawings",
+    "opening date"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "We are opening a cafe and need a new glass shopfront with an entrance door.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "A glass shopfront for a cafe is a good fit for toughened (tempered) safety glass, and the entrance door must be safety glass too. Ordinary 6 mm glass is not accepted for this.\n\nWhat is the total run length and the height of the shopfront opening? And do you prefer a frameless look with patch fittings, or an aluminium-framed system?",
+     "ms": 12257
+    },
+    {
+     "role": "customer",
+     "text": "The frontage is 7 m wide and 3.2 m high. An automatic sliding entrance door. It faces south, so heat control matters."
+    },
+    {
+     "role": "agent",
+     "text": "For a south-facing frontage, use double glazing with a low-E or solar-control coating. The supplier will confirm the exact glass build-up at the site visit. Do you have the landlord's or building's fit-out drawings or guidelines for the shopfront? And which emirate and area is the cafe in?",
+     "ms": 18936
+    },
+    {
+     "role": "customer",
+     "text": "Ground floor retail unit in Al Barsha. The landlord and Dubai Municipality need shop drawings."
+    },
+    {
+     "role": "agent",
+     "text": "Since the landlord and Dubai Municipality both need shop drawings, the supplier should include them in the scope. Work should not start before the approvals are in place. When do you need the shopfront completed by?",
+     "ms": 21640
+    },
+    {
+     "role": "customer",
+     "text": "Before we open in 6 weeks."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\nA new glass shopfront with an entrance door for a cafe.\nGround floor retail unit in Al Barsha, Dubai, south-facing.\nThe frontage is 7 m wide and 3.2 m high.\nThe entrance is an automatic sliding door.\nHeat control matters, so double glazing with a low-E or solar-control coating is advised.\nThe landlord and Dubai Municipality need shop drawings.\nIt must be completed in 6 weeks, before you open.\nTo confirm at the supplier's site visit: glass type and thickness, framed or frameless.\n\nIs this correct?",
+     "ms": 12089
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "villa_painting_int_en",
+   "lang": "en",
+   "trade": "painting",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "Villa in Jumeirah Park."
+     }
+    ]
+   },
+   "facts_released": 6,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     2,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "Mostly the same off-white; one dark feature wall in the living room.",
+    "Some hairline cracks and a damp patch under a window.",
+    "Ceilings too, not the doors.",
+    "We live there, so furniture has to be moved and covered.",
+    "Villa in Jumeirah Park.",
+    "Within 3 weeks."
+   ],
+   "expert": [
+    "(4-bedroom given) total area or rooms included: halls, stairs, majlis",
+    "colours and feature walls",
+    "repairs first: cracks, damp source",
+    "ceilings, doors, trims included",
+    "occupied: furniture moving and protection",
+    "paint grade (washable, low-VOC)",
+    "timeline"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "I want the whole inside of my villa repainted, it is a 4-bedroom.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Noted, a full interior repaint of your 4-bedroom villa. Are you keeping the current colours or changing them, and do you want standard emulsion or a premium washable paint? Also, are there any cracks, damp patches or peeling on the walls?",
+     "ms": 10039
+    },
+    {
+     "role": "customer",
+     "text": "Mostly the same off-white; one dark feature wall in the living room. Some hairline cracks and a damp patch under a window. Villa in Jumeirah Park."
+    },
+    {
+     "role": "agent",
+     "text": "Thanks. The damp patch needs its source found and fixed before painting, otherwise it will come back through the new paint, and the hairline cracks will be filled first. Is the villa occupied during the work, and will the furniture stay in the rooms or be moved out? Also, when do you need it done?",
+     "ms": 31955
+    },
+    {
+     "role": "customer",
+     "text": "We live there, so furniture has to be moved and covered. Within 3 weeks."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it: Full interior repaint of a 4-bedroom villa in Jumeirah Park, Dubai. Walls are mostly the same off-white, with one dark feature wall in the living room. Hairline cracks will be filled before painting. The damp patch under a window needs its source fixed first. You live there, so furniture will be moved and covered. You need it done within 3 weeks. To confirm at the supplier's site visit: exact paint areas and ceiling heights, paint grade, and whether ceilings are included. Also the community's work permit and working hours, and the cause of the damp. Is this correct?",
+     "ms": 19593
+    },
+    {
+     "role": "customer",
+     "text": "Ceilings too, not the doors."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it: Full interior repaint of a 4-bedroom villa in Jumeirah Park, Dubai. Walls and ceilings are included, doors are not. Walls are mostly the same off-white, with one dark feature wall in the living room. Hairline cracks will be filled before painting. The damp patch under a window needs its source fixed first. You live there, so furniture will be moved and covered. You need it done within 3 weeks. To confirm at the supplier's site visit: exact paint areas and ceiling heights, paint grade, the cause of the damp, and the community's work permit and working hours. Is this correct?",
+     "ms": 11874
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  }
+ ]
+}

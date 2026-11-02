@@ -2639,15 +2639,16 @@ CREATE OR REPLACE VIEW public.v_internal_secret_migration_progress AS  WITH j AS
            FROM internal_credential
           WHERE (internal_credential.context = 'legacy.shared'::text)), '1970-01-01 00:00:00+00'::timestamp with time zone) < (now() - '7 days'::interval))) AS safe_to_withdraw_shared_secret;
 
-CREATE OR REPLACE VIEW public.v_invite_deliverability_daily AS  SELECT ((invited_at AT TIME ZONE 'Asia/Dubai'::text))::date AS dubai_day,
+CREATE OR REPLACE VIEW public.v_invite_deliverability_daily AS  SELECT ((n.sent_at AT TIME ZONE 'Asia/Dubai'::text))::date AS dubai_day,
     count(*) AS sent,
-    count(*) FILTER (WHERE (invite_status = 'bounced'::text)) AS bounced,
-    count(*) FILTER (WHERE (invite_status = 'complained'::text)) AS complained,
-    round(((count(*) FILTER (WHERE (invite_status = 'bounced'::text)))::numeric / (count(*))::numeric), 4) AS bounce_rate,
-    round(((count(*) FILTER (WHERE (invite_status = 'complained'::text)))::numeric / (count(*))::numeric), 4) AS complaint_rate
-   FROM leads l
-  WHERE (invited_at IS NOT NULL)
-  GROUP BY (((invited_at AT TIME ZONE 'Asia/Dubai'::text))::date);
+    count(*) FILTER (WHERE (l.invite_status = 'bounced'::text)) AS bounced,
+    count(*) FILTER (WHERE (l.invite_status = 'complained'::text)) AS complained,
+    round(((count(*) FILTER (WHERE (l.invite_status = 'bounced'::text)))::numeric / (count(*))::numeric), 4) AS bounce_rate,
+    round(((count(*) FILTER (WHERE (l.invite_status = 'complained'::text)))::numeric / (count(*))::numeric), 4) AS complaint_rate
+   FROM (notifications n
+     JOIN leads l ON ((l.id = n.lead_id)))
+  WHERE ((n.type = 'supplier_invite'::text) AND (n.sent_at IS NOT NULL) AND (NOT COALESCE(l.is_demo, false)) AND (NOT fn_is_demo_email(n.to_email)))
+  GROUP BY (((n.sent_at AT TIME ZONE 'Asia/Dubai'::text))::date);
 
 CREATE OR REPLACE VIEW public.v_kb_coverage AS  SELECT c.slug AS category,
     c.name AS label,
@@ -3213,6 +3214,7 @@ CREATE OR REPLACE VIEW public.v_support_corpus AS  WITH base AS (
             'en'::text AS lang
            FROM (ops_knowledge k
              LEFT JOIN support_public_override o ON (((o.src = 'ops'::text) AND (o.src_id = k.record_id))))
+          WHERE ((COALESCE(k.supersession_state, 'current'::text) = 'current'::text) AND k.runtime_eligible)
         )
  SELECT src,
     src_id,

@@ -1,0 +1,120 @@
+{
+ "run_tag": "3de61aa6",
+ "scenarios": 10,
+ "met": 0,
+ "mean_pct": 84,
+ "idk_conversations": 0,
+ "yesno_only_conversations": 0,
+ "acceptance": "NOT MET",
+ "gaps": [
+  {
+   "id": "wardrobe_photo",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "read the image honestly (a sketch, not a photo) and asked size + door type at once",
+    "no re-ask; socket handled; summary confirmed",
+    "AC pipes and skirting not raised"
+   ]
+  },
+  {
+   "id": "kitchen_villa_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 90,
+   "issues": [
+    "no re-ask; flagged moisture-resistant carcass under the sink",
+    "summary given before the budget answer, then updated and confirmed"
+   ]
+  },
+  {
+   "id": "cctv_shop",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "stated SIRA (licensed installer, 31 days) itself",
+    "timeline never asked",
+    "no summary reached"
+   ]
+  },
+  {
+   "id": "fire_alarm_office",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 70,
+   "issues": [
+    "normal cable corrected firmly in turn 1",
+    "asked tenant or owner in turn 3 and again as a bare 'Are you the tenant?' in turn 5 (one-word re-ask the filter cannot match)",
+    "summary given and updated with the panel tie-in"
+   ]
+  },
+  {
+   "id": "fire_alarm_warehouse_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 90,
+   "issues": [
+    "expert: beam detectors at 9 m, addressable, full DCD package",
+    "one 65 s turn (fallback model)",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "ac_undersized_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "1 ton corrected firmly in turn 1",
+    "turn 3 asked to change 'the old 1 ton size' on a new installation (lost context)",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "glass_partition_trap_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "6 mm corrected at once",
+    "acoustic advice adapted to the privacy ask; slab height recommended",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "parquet_wet_area_trap_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "wet areas corrected at once; clarified whether 85 m2 includes bathrooms",
+    "door trimming and acoustic underlay",
+    "no summary reached"
+   ]
+  },
+  {
+   "id": "wardrobe_change_of_mind_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "kept the hinged change; recommended push-to-open for narrow rooms",
+    "called it 'the flat' before the property was named",
+    "summary with New request, confirmed"
+   ]
+  },
+  {
+   "id": "boundary_wall_paint_trap_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 80,
+   "issues": [
+    "interior paint corrected at once, salts and damp diagnosed",
+    "timeline never asked",
+    "no summary reached"
+   ]
+  }
+ ]
+}

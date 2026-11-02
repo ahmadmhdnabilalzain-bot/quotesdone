@@ -1,0 +1,278 @@
+{
+ "run_tag": "26c1ea71",
+ "outcomes": {
+  "conversations": 22,
+  "confirmed_summary": 22,
+  "stalled_before_summary": [],
+  "timeline_asked": 21,
+  "timeline_scenarios": 22,
+  "timeline_never_asked": [
+   "parquet_wet_area_trap_en"
+  ],
+  "reask_flags": 14,
+  "reask_conversations": [
+   "kitchen_villa_ar",
+   "ac_replacement",
+   "floor_tiles",
+   "painting_ar",
+   "bathroom_refit",
+   "aluminium_windows",
+   "office_fitout",
+   "electrical_ev",
+   "kitchen_cabinets_en",
+   "fire_alarm_office",
+   "ac_undersized_en",
+   "ac_ducted_villa_ar",
+   "glass_partition_trap_en",
+   "cctv_villa_ar"
+  ]
+ },
+ "scenarios": 22,
+ "met": 0,
+ "mean_pct": 76,
+ "idk_conversations": 0,
+ "yesno_only_conversations": 1,
+ "acceptance": "NOT MET",
+ "gaps": [
+  {
+   "id": "wardrobe_photo",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "read the sketch honestly, asked size, depth and layout at once",
+    "doors, handles and finish in one turn; summary updated with the landlord and work hours",
+    "skirting and socket noted but never asked; 'to confirm: the exact dimensions' after they were given"
+   ]
+  },
+  {
+   "id": "kitchen_villa_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 90,
+   "issues": [
+    "gloss lacquer shows fingerprints (expert)",
+    "sink, hob and gas noted to confirm after it was asked once",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "ac_replacement",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "repair before replace; 1.5 to 2 tons for 18 m2 with west sun (expert)",
+    "ESMA rating not asked",
+    "summary updated with the pipes, confirmed"
+   ]
+  },
+  {
+   "id": "roof_waterproofing_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 90,
+   "issues": [
+    "existing waterproofing and age asked in turn 1",
+    "full or local, warranty, roof equipment and drains asked",
+    "summary updated when the old membrane came out"
+   ]
+  },
+  {
+   "id": "cctv_shop",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "SIRA 31 days stated, faces, existing system, timeline",
+    "IP camera and resolution advice thin",
+    "summary updated with the mall's approved contractor"
+   ]
+  },
+  {
+   "id": "floor_tiles",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "price guide answered; hollow tiles must come out (expert)",
+    "building permit, skirting and door clearances never asked",
+    "'to confirm: what the job includes' is vague"
+   ]
+  },
+  {
+   "id": "painting_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 0,
+   "issues": [
+    "code: no_yesno_only",
+    "the area asked again in turn 3 (a count asked in turn 1 was not held as the size)",
+    "turn 5 was a bare acknowledgement after a 52 s rewrite deadlock (the wall-condition question was placed on no slot)",
+    "damp: fix the source first (expert) only after the summary"
+   ]
+  },
+  {
+   "id": "bathroom_refit",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "past leak -> full waterproofing (expert)",
+    "tiles and fittings finish never asked",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "gypsum_ceiling_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 80,
+   "issues": [
+    "size, design, AC grilles and sprinklers, location, timeline",
+    "summary lists 'the number of points and areas to cover' to confirm, which belongs to no gypsum job"
+   ]
+  },
+  {
+   "id": "aluminium_windows",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "laminated pane for road noise, powder coat for sun (expert)",
+    "opening type not asked",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "office_fitout",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "area, condition, headcount and rooms in one turn; design and build",
+    "budget band and server room never asked",
+    "'to confirm: what the job includes' is vague"
+   ]
+  },
+  {
+   "id": "electrical_ev",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "DEWA, cable run, phase and spare load in turn 1; 7 kW on single phase (expert)",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "kitchen_cabinets_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 70,
+   "issues": [
+    "a doors-only job was asked the layout shape, wall lengths, ceiling height, appliances and gas (the kitchen plan's labels, not this job)",
+    "hinges and drawer runners never asked",
+    "summary lists those as 'to confirm'"
+   ]
+  },
+  {
+   "id": "fire_alarm_office",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 0,
+   "issues": [
+    "code: must_asked",
+    "normal cable corrected firmly in turn 1; addressable and tie-in to the tower panel recommended",
+    "ceiling void and raised floor not asked",
+    "the tie-in WAS asked, but not in the words the bank's must-have pattern needs (main panel / connect): code gate fails"
+   ]
+  },
+  {
+   "id": "fire_alarm_warehouse_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 80,
+   "issues": [
+    "beam detectors at 9 m (expert), storage, suppression, timeline",
+    "summary lists 'materials, finish and colour' to confirm for a fire alarm"
+   ]
+  },
+  {
+   "id": "ac_undersized_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "1 ton corrected firmly in turn 1 (2 to 2.5 tons)",
+    "inverter and ESMA not asked",
+    "summary updated with the permit and facade rule"
+   ]
+  },
+  {
+   "id": "ac_ducted_villa_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 70,
+   "issues": [
+    "load calculation and duct design asked (expert), ceiling void, outdoor units",
+    "turn 3 asked the pipe route after the outdoor position went unanswered (a near re-ask), 44 s",
+    "summary lists 'material, finish and colour' to confirm; zone control never asked"
+   ]
+  },
+  {
+   "id": "glass_partition_trap_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "6 mm corrected at once (10-12 mm toughened, manifestation)",
+    "DDA permit and landlord drawings",
+    "acoustic needs not asked"
+   ]
+  },
+  {
+   "id": "cctv_villa_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 90,
+   "issues": [
+    "coverage, faces, recording days, phone, existing cables, timeline",
+    "PoE vs wireless not asked"
+   ]
+  },
+  {
+   "id": "parquet_wet_area_trap_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 70,
+   "issues": [
+    "wet areas corrected at once with wood-look porcelain",
+    "'empty until we move in' was taken as the timeline, so it was never asked",
+    "species, thickness and finish never asked; 'how the floor is used' asked generically and left to confirm"
+   ]
+  },
+  {
+   "id": "wardrobe_change_of_mind_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "kept the change to hinged and noted the swing space",
+    "depth held to confirm",
+    "handles not asked"
+   ]
+  },
+  {
+   "id": "boundary_wall_paint_trap_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 70,
+   "issues": [
+    "interior paint corrected firmly, salts and primer (expert)",
+    "said 'ما راح أكرر التصحيح' (an instruction spoken aloud)",
+    "colour and texture never asked; 'the performance level' to confirm is vague"
+   ]
+  }
+ ]
+}

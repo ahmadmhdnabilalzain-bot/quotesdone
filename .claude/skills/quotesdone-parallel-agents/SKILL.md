@@ -1,9 +1,9 @@
 ---
 name: quotesdone-parallel-agents
-description: The founder's standing rule of 8 Sep 2026 — use as many agents as possible, in parallel, to speed the work up. Fan out by default; work serially only when a step genuinely depends on the one before it.
+description: The founder's standing rule of 8 Sep 2026 — use agents in parallel to speed the work up, at most 5 at once with Sonnet for simple tasks (1 Nov 2026, ledger 1417). Fan out by default; work serially only when a step genuinely depends on the one before it.
 ---
 
-# Use as many agents as possible
+# Use agents in parallel, up to the cap of 5
 
 Founder's instruction, 8 September 2026: **"use multiple agents. its taking ages for every task"**
 and **"use as many agents possible to speed up the process"**.
@@ -11,12 +11,15 @@ and **"use as many agents possible to speed up the process"**.
 This is a standing rule about HOW the session runs, not a suggestion for one task. It sits beside
 `quotesdone-session` (conduct) and `quotesdone-build-until-done` (do not stop).
 
+**The cap, 1 Nov 2026 (ledger 1417): at most 5 agents at once, and simple tasks run with `model: "sonnet"`.**
+One task per agent; start a fresh agent for the next task. See `.claude/memory/max-five-agents.md`.
+
 ---
 
 ## 1. Fan out by default
 
 Before starting anything that takes more than a couple of minutes, ask: **how many independent
-pieces does this split into?** Then start them all at once.
+pieces does this split into?** Then start them together, up to the cap.
 
 - **Independent tool calls go in ONE message.** Two greps, three reads, a database query and a
   `gh` call with no dependency between them are one message with five tool calls, never five
@@ -55,7 +58,7 @@ a corrupted apply is not faster.
 
 ## 4. Reporting
 
-Subagent output is not shown to the founder — **relay the conclusion, not the transcript.** Ten
+Subagent output is not shown to the founder — **relay the conclusion, not the transcript.** Five
 agents reporting back is still one short answer to him. Do not narrate the fan-out while it is
 running; that is the check-in `quotesdone-session` forbids.
 

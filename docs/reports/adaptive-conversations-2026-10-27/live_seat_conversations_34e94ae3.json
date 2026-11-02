@@ -1,0 +1,2370 @@
+{
+ "ledger": 1200,
+ "surface": "portal: sales_engineer assist",
+ "url": "http://localhost:8000",
+ "run_tag": "34e94ae3",
+ "measured_at": "2026-10-27T15:16:54.850Z",
+ "spend": {
+  "calls": 82,
+  "aed": "5.9901",
+  "models": "anthropic/claude-sonnet-5.5,openai/gpt-6-luna-pro"
+ },
+ "latency": {
+  "turns": 81,
+  "p50_s": 11.5,
+  "p95_s": 21.1,
+  "max_s": 48.9,
+  "no_answer": 0
+ },
+ "outcomes": {
+  "conversations": 22,
+  "confirmed_summary": 21,
+  "stalled_before_summary": [
+   "roof_waterproofing_ar"
+  ],
+  "timeline_asked": 20,
+  "timeline_scenarios": 22,
+  "timeline_never_asked": [
+   "roof_waterproofing_ar",
+   "parquet_wet_area_trap_en"
+  ],
+  "reask_flags": 11,
+  "reask_conversations": [
+   "kitchen_villa_ar",
+   "ac_replacement",
+   "floor_tiles",
+   "painting_ar",
+   "bathroom_refit",
+   "aluminium_windows",
+   "office_fitout",
+   "fire_alarm_office",
+   "fire_alarm_warehouse_ar",
+   "glass_partition_trap_en",
+   "boundary_wall_paint_trap_ar"
+  ]
+ },
+ "results": [
+  {
+   "id": "wardrobe_photo",
+   "lang": "en",
+   "trade": "carpentry-joinery",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 7,
+   "facts_total": 8,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     6,
+     1
+    ],
+    [
+     5,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "The wall is about 2.4 m wide and the ceiling is 2.7 m.",
+    "Mostly hanging, plus 4 shelves and 2 drawers.",
+    "Sliding doors, handle-less.",
+    "Matte white.",
+    "A rented studio in JLT, Dubai.",
+    "I rent; the landlord is fine with it but wants to be told. Building allows work 9 to 6 on weekdays.",
+    "Within 4 weeks.",
+    "Moderate, not luxury."
+   ],
+   "expert": [
+    "wall width and ceiling height (full height or with a bulkhead)",
+    "internal layout: long/double hanging, shelves, drawers",
+    "door type: hinged, sliding or push-to-open; handles or handle-less",
+    "board and finish (MDF/plywood, laminate/lacquer, colour)",
+    "skirting, sockets or AC pipes on the wall",
+    "location, building work hours, landlord consent",
+    "timeline"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "Hi, I want a custom wardrobe for my studio, here is a photo of the wall where it should go.",
+     "image": true
+    },
+    {
+     "role": "agent",
+     "text": "Thanks, I can see the plain wall with a window to its right, a socket or switch point low in the bottom-right corner, and skirting along the floor. The photo can't show exact sizes, so what is the wall width, floor-to-ceiling height and usable depth (in cm)? And inside, do you want mostly hanging space, shelves or drawers?",
+     "ms": 13886
+    },
+    {
+     "role": "customer",
+     "text": "The wall is about 2.4 m wide and the ceiling is 2.7 m. Mostly hanging, plus 4 shelves and 2 drawers. A rented studio in JLT, Dubai."
+    },
+    {
+     "role": "agent",
+     "text": "Thanks. For a studio, sliding doors save the swing space, while hinged doors with push-to-open give a cleaner handle-less look. Which do you prefer, and do you want handles or handle-less? Also, what board and finish: white matt laminate, wood-grain, or gloss lacquer?",
+     "ms": 9483
+    },
+    {
+     "role": "customer",
+     "text": "Sliding doors, handle-less. Matte white. Within 4 weeks."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\nA built-in wardrobe for a rented studio in JLT, Dubai.\nThe wall is about 2.4 m wide, with a 2.7 m ceiling.\nInside: mostly hanging space, 4 shelves and 2 drawers.\nDoors: sliding and handle-less.\nFinish: matte white.\nNeeded within 4 weeks.\nTo confirm at the supplier's site visit: usable depth, final dimensions, and landlord or building approval for the work.\n\nIs this correct?",
+     "ms": 10838
+    },
+    {
+     "role": "customer",
+     "text": "I rent; the landlord is fine with it but wants to be told. Building allows work 9 to 6 on weekdays."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\nA built-in wardrobe for a rented studio in JLT, Dubai.\nThe wall is about 2.4 m wide, with a 2.7 m ceiling.\nInside: mostly hanging space, 4 shelves and 2 drawers.\nDoors: sliding and handle-less.\nFinish: matte white.\nNeeded within 4 weeks.\nThe landlord agrees but wants to be told. The building allows work 9 to 6 on weekdays.\nTo confirm at the supplier's site visit: usable depth and final dimensions.\n\nIs this correct?",
+     "ms": 9355
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "kitchen_villa_ar",
+   "lang": "ar",
+   "trade": "kitchens",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 2,
+      "fact": "فيلا ملك في البرشاء."
+     }
+    ]
+   },
+   "facts_released": 7,
+   "facts_total": 8,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     5,
+     0
+    ],
+    [
+     1,
+     1
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     3,
+     2
+    ],
+    [
+     6,
+     3
+    ]
+   ],
+   "hidden_facts": [
+    "المطبخ على شكل L تقريباً 4 في 3 متر.",
+    "خزائن لامعة هاي جلوس، وسطح كوارتز.",
+    "أبقي الأجهزة الحالية إلا فرن مدمج جديد وشفاط.",
+    "السباكة تبقى في مكانها.",
+    "المطبخ القديم يجب إزالته.",
+    "فيلا ملك في البرشاء.",
+    "خلال شهرين.",
+    "متوسطة."
+   ],
+   "expert": [
+    "الشكل والأبعاد (L أو U أو جزيرة) وارتفاع السقف",
+    "مادة وتشطيب الخزائن وسطح العمل",
+    "الأجهزة: مدمجة أو قائمة، ما يبقى وما يُشترى",
+    "نقل السباكة أو الكهرباء أو الغاز",
+    "إزالة المطبخ القديم",
+    "الموعد"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "السلام عليكم، أريد تجديد مطبخ الفيلا بالكامل.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "وعليكم السلام ورحمة الله. تجديد كامل لمطبخ الفيلا، جميل.\n\nما شكل المطبخ (مستقيم، حرف L، حرف U أو مع جزيرة)، وما أطوال الجدران وارتفاع السقف تقريباً؟ وهل سيتم تفكيك المطبخ القديم وإزالته ضمن العمل؟",
+     "ms": 10153
+    },
+    {
+     "role": "customer",
+     "text": "المطبخ على شكل L تقريباً 4 في 3 متر. المطبخ القديم يجب إزالته. فيلا ملك في البرشاء."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، مطبخ L بمقاس 4 في 3 متر مع إزالة القديم في فيلا ملك بالبرشاء.\n\nما نوع أبواب الخزائن (لاكر مطفي أو لامع، أكريليك، لامينيت، خشب)؟ وما مادة سطح العمل (كوارتز، جرانيت، رخام أو سطح صلب)؟",
+     "ms": 10823
+    },
+    {
+     "role": "customer",
+     "text": "خزائن لامعة هاي جلوس، وسطح كوارتز."
+    },
+    {
+     "role": "agent",
+     "text": "ممتاز، خزائن هاي جلوس مع سطح كوارتز. ننتبه فقط إلى أن الكوارتز لا يتحمل الحرارة العالية، فيلزم استخدام قواعد للأواني الساخنة.\n\nهل الأجهزة (الفرن، الموقد، الشفاط، الثلاجة، غسالة الأطباق) مدمجة أم منفصلة، وأيها جديد وسيتم توريده؟ وأين موقع المغسلة والموقد، وهل يوجد خط غاز؟",
+     "ms": 11637
+    },
+    {
+     "role": "customer",
+     "text": "أبقي الأجهزة الحالية إلا فرن مدمج جديد وشفاط. السباكة تبقى في مكانها."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، سنُبقي الأجهزة الحالية ونوفّر فرناً مدمجاً جديداً وشفاطاً، والسباكة في مكانها.\n\nمتى تحتاجون إنجاز المطبخ، وهل لديكم موعد محدد للبدء؟",
+     "ms": 9640
+    },
+    {
+     "role": "customer",
+     "text": "خلال شهرين."
+    },
+    {
+     "role": "agent",
+     "text": "هذا ملخص طلبك:\n\nتجديد كامل لمطبخ في فيلا ملك بالبرشاء.\nالمطبخ على شكل L بمقاس 4 في 3 متر تقريباً، وإزالة المطبخ القديم ضمن العمل.\nالخزائن لامعة هاي جلوس، وسطح العمل كوارتز.\nنُبقي الأجهزة الحالية، ونوفّر فرناً مدمجاً جديداً وشفاطاً.\nالسباكة تبقى في مكانها.\nالإنجاز المطلوب خلال شهرين.\n\nيُؤكَّد في زيارة المورّد للموقع: ارتفاع السقف، وقياسات الفرن والشفاط، وخط الغاز.\n\nهل هذا صحيح؟",
+     "ms": 11399
+    },
+    {
+     "role": "customer",
+     "text": "نعم، صحيح."
+    }
+   ]
+  },
+  {
+   "id": "ac_replacement",
+   "lang": "en",
+   "trade": "hvac",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "The master bedroom is about 4 m by 4.5 m with a big west-facing window."
+     }
+    ]
+   },
+   "facts_released": 7,
+   "facts_total": 7,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     6,
+     1
+    ],
+    [
+     3,
+     2
+    ],
+    [
+     5,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "The master bedroom is about 4 m by 4.5 m with a big west-facing window.",
+    "It is a 12-year-old wall split; the outdoor unit is on the balcony.",
+    "I want an inverter split.",
+    "The copper pipes look fine.",
+    "2-bedroom apartment in Dubai Marina.",
+    "Building management needs a work permit.",
+    "This week please."
+   ],
+   "expert": [
+    "room size and sun exposure (sizes the tonnage)",
+    "existing unit type, age and where the outdoor unit sits",
+    "whether a repair (gas, PCB, capacitor) was ruled out",
+    "inverter and efficiency rating (ESMA stars)",
+    "reuse or replace copper pipes and drain",
+    "building permit and work hours"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "My AC in the bedroom stopped cooling, I think I need to replace it.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Sorry to hear that. A unit that stops cooling can sometimes be a gas leak or a dirty coil, so repair may be enough, but we can price the replacement.\n\nWhat are the bedroom's length and width, and does it get strong afternoon sun (west or south facing)? Also, what type of unit is it now (wall split, ducted or window), and roughly how old?",
+     "ms": 13140
+    },
+    {
+     "role": "customer",
+     "text": "The master bedroom is about 4 m by 4.5 m with a big west-facing window. It is a 12-year-old wall split; the outdoor unit is on the balcony."
+    },
+    {
+     "role": "agent",
+     "text": "Thanks. 18 m2 with a big west-facing window is a heavy load in UAE heat, so the new unit will need to be sized for that. The supplier confirms the final capacity at the site visit.\n\nWhich emirate and area is the property in? And when do you need the new unit installed?",
+     "ms": 11361
+    },
+    {
+     "role": "customer",
+     "text": "I want an inverter split. 2-bedroom apartment in Dubai Marina. This week please."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nReplace the AC in the master bedroom of a 2-bedroom apartment in Dubai Marina.\nThe room is about 4 m by 4.5 m with a big west-facing window.\nThe current unit is a 12-year-old wall split; the outdoor unit is on the balcony.\nYou want an inverter wall split.\nYou need it installed this week.\n\nTo confirm at the supplier's site visit: final capacity, existing pipework and drain reuse, electrical supply, and building management approval.\n\nIs this correct?",
+     "ms": 9641
+    },
+    {
+     "role": "customer",
+     "text": "The copper pipes look fine. Building management needs a work permit."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your updated request as I have it:\n\nReplace the AC in the master bedroom of a 2-bedroom apartment in Dubai Marina.\nThe room is about 4 m by 4.5 m with a big west-facing window.\nThe current unit is a 12-year-old wall split; the outdoor unit is on the balcony.\nThe existing copper pipes look fine, so reuse is likely.\nYou want an inverter wall split.\nBuilding management needs a work permit.\nYou need it installed this week.\n\nTo confirm at the supplier's site visit: final capacity, pipework condition and drain, and the electrical supply.\n\nIs this correct?",
+     "ms": 11133
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "roof_waterproofing_ar",
+   "lang": "ar",
+   "trade": "waterproofing",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": false,
+    "trap_corrected": true,
+    "pass": false,
+    "reask_flagged": []
+   },
+   "facts_released": 2,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     4,
+     0
+    ]
+   ],
+   "hidden_facts": [
+    "السطح خرسانة مستوي تقريباً 150 متر مربع.",
+    "آخر عزل قبل 10 سنوات بممبرين بيتومين، والبلاط متشقق في أماكن.",
+    "أبي عزل كامل مع ضمان.",
+    "فيه وحدات مكيفات وخزان ماء على السطح.",
+    "فيلا في الشارقة.",
+    "مرن، قبل الشتاء."
+   ],
+   "expert": [
+    "مساحة السطح ونوعه",
+    "نظام العزل الحالي وعمره وحالة البلاط",
+    "عزل كامل أم معالجة موضعية، وسنوات الضمان",
+    "المعدات على السطح والفتحات والمزاريب",
+    "الموقع والموعد"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "عندي تسريب مياه من السطح إلى غرفة النوم بعد المطر.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "تسريب السطح بعد المطر يعالج عادةً بإعادة عزل مائي للسطح، وسبب التسريب يحدده المورّد بالفحص في موقع العمل قبل تثبيت السعر.\n\nكم مساحة السطح تقريباً بالمتر المربع؟ وهل يوجد عزل حالي على السطح، وما عمره التقريبي؟",
+     "ms": 12367
+    },
+    {
+     "role": "customer",
+     "text": "السطح خرسانة مستوي تقريباً 150 متر مربع. فيلا في الشارقة."
+    },
+    {
+     "role": "agent",
+     "text": "سطح خرساني مستوٍ بمساحة 150 متراً مربعاً في فيلا بالشارقة، فهذا يكفي مبدئياً لتحديد نوع العمل.\n\nهل يوجد على السطح عزل قديم أو طبقة بلاط أو رمل فوق الخرسانة، وما عمره إن عُرف، وهل يتسرب الماء أيضاً من نقاط محددة مثل المصارف أو الحواف؟",
+     "ms": 15009
+    },
+    {
+     "role": "customer",
+     "text": "مو متأكد، شو تنصحني؟"
+    },
+    {
+     "role": "agent",
+     "text": "أنصحك بإعادة عزل كاملة للسطح بدل ترقيع نقطة واحدة. التسريب بعد المطر على سطح بهذه المساحة غالباً يأتي من أكثر من موضع. هل ظهر التسريب في غرفة النوم بعد كل مطر أم بعد الأمطار الغزيرة فقط؟",
+     "ms": 22507
+    }
+   ]
+  },
+  {
+   "id": "cctv_shop",
+   "lang": "en",
+   "trade": "security",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 6,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     4,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "About 60 square metres, one entrance, one stock room and a cash counter.",
+    "I need to see faces at the entrance and the cash counter, view on my phone, and keep recordings as the law requires.",
+    "There is no existing system.",
+    "A phone accessories shop in a Deira mall.",
+    "Mall management requires an approved contractor.",
+    "Within 2 weeks."
+   ],
+   "expert": [
+    "floor area and the points to cover (entrance, cash counter, stock room)",
+    "face-level detail where it matters, IP cameras and resolution",
+    "recording retention (SIRA/Dubai Police rules on retention for licensed premises) and remote viewing",
+    "existing cabling or system",
+    "mall management approved-contractor rules",
+    "timeline"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "I need CCTV for my shop.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Happy to help with that. Which areas of the shop need to be covered (entrance, cash counter, stockroom, outside the door), and roughly how many cameras do you have in mind? Also, do you need to identify faces or read number plates, and will it be viewed at night too?",
+     "ms": 12715
+    },
+    {
+     "role": "customer",
+     "text": "About 60 square metres, one entrance, one stock room and a cash counter. I need to see faces at the entrance and the cash counter, view on my phone, and keep recordings as the law requires. A phone accessories shop in a Deira mall."
+    },
+    {
+     "role": "agent",
+     "text": "Deira is in Dubai, so SIRA's rules apply to your shop: recordings are kept at least 31 days, and the system must be installed by a SIRA-licensed company. For the entrance and cash counter I'd suggest 4MP cameras, so faces are clear. Is there any existing CCTV system or cabling in the shop, or is this a fresh installation? And when would you like it done by?",
+     "ms": 12729
+    },
+    {
+     "role": "customer",
+     "text": "There is no existing system. Within 2 weeks."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\nA phone accessories shop of about 60 square metres in a Deira mall, Dubai. CCTV for the entrance, the stock room and the cash counter.\nFaces must be clearly visible at the entrance and the cash counter. Viewing on your phone is required.\nRecordings are kept for at least 31 days, as SIRA requires. There is no existing system. Needed within 2 weeks.\nTo confirm at the supplier's site visit: the exact camera count, what the job includes, and the cable routes and power points.\nIs this correct?",
+     "ms": 10498
+    },
+    {
+     "role": "customer",
+     "text": "Mall management requires an approved contractor."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\nA phone accessories shop of about 60 square metres in a Deira mall, Dubai. CCTV for the entrance, the stock room and the cash counter.\nFaces must be clearly visible at the entrance and the cash counter. Viewing on your phone is required.\nRecordings are kept for at least 31 days, as SIRA requires. There is no existing system.\nMall management requires an approved contractor. Needed within 2 weeks.\nTo confirm at the supplier's site visit: the exact camera count, what the job includes, and the cable routes and power points.\nIs this correct?",
+     "ms": 9931
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "floor_tiles",
+   "lang": "en",
+   "trade": "tiling",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "1-bedroom apartment on Reem Island, Abu Dhabi. I own it."
+     }
+    ]
+   },
+   "facts_released": 5,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     1
+    ]
+   ],
+   "hidden_facts": [
+    "About 70 square metres, not counting bathrooms.",
+    "Existing ceramic tiles, some sound hollow. Not sure whether to remove them or tile over.",
+    "Large-format porcelain 60x120, matt light grey.",
+    "1-bedroom apartment on Reem Island, Abu Dhabi. I own it.",
+    "I am living there, so it needs to be done in phases.",
+    "Next month."
+   ],
+   "expert": [
+    "area, and which rooms",
+    "existing tiles: remove or overlay (hollow tiles must come out)",
+    "new tile size, type and finish; skirting",
+    "door clearances and levels",
+    "occupied or empty (phasing)",
+    "building permit"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "How much to replace the floor tiles in my apartment?",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Supply and fix for tiles typically runs AED 40 to 120 per sqm, and labour only AED 25 to 60 per sqm. That's a published guide, not a quotation, as suppliers price the actual job.\n\nWhat is the floor area, and which rooms are being retiled? Also, should the old tiles be removed, or will the new ones go over them?",
+     "ms": 11210
+    },
+    {
+     "role": "customer",
+     "text": "About 70 square metres, not counting bathrooms. Existing ceramic tiles, some sound hollow. Not sure whether to remove them or tile over. 1-bedroom apartment on Reem Island, Abu Dhabi. I own it."
+    },
+    {
+     "role": "agent",
+     "text": "I'd recommend removing the old tiles. Hollow-sounding tiles mean the bond has failed. New tiles laid over them would crack or lift, so removal is the safer choice. The supplier will confirm the full scope at the site visit. Will the apartment be occupied or empty during the work? And when do you need it done?",
+     "ms": 18708
+    },
+    {
+     "role": "customer",
+     "text": "I am living there, so it needs to be done in phases. Next month."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\nFloor tile replacement in your owned 1-bedroom apartment on Reem Island, Abu Dhabi.\nArea is about 70 sqm, excluding bathrooms.\nExisting ceramic tiles, some sounding hollow, will be removed rather than tiled over.\nYou are living there, so work will be done in phases.\nYou need it done next month.\nTo confirm at the supplier's site visit: what the job includes, such as tile choice, screed levelling and debris removal.\n\nIs this correct?",
+     "ms": 16872
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "painting_ar",
+   "lang": "ar",
+   "trade": "painting",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "النهدة، دبي. أنا مستأجر."
+     }
+    ]
+   },
+   "facts_released": 6,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     2
+    ],
+    [
+     2,
+     3
+    ]
+   ],
+   "hidden_facts": [
+    "شقة غرفتين تقريباً 110 متر مربع.",
+    "المالك يبي الجدران والأسقف أبيض.",
+    "فيه ثقوب مسامير وبقعة رطوبة قرب الحمام.",
+    "النهدة، دبي. أنا مستأجر.",
+    "الشقة فاضية.",
+    "خلال 5 أيام."
+   ],
+   "expert": [
+    "عدد الغرف والمساحة",
+    "الألوان المطلوبة من المالك (جدران وأسقف)",
+    "حالة الجدران: ثقوب، رطوبة، تشققات",
+    "فاضية أم مسكونة",
+    "الموعد قبل التسليم"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "أبي صباغة شقتي قبل ما أسلم المفتاح.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "حياك الله. ما دمت تسلّم الشقة، فالعمل غالبًا داخلي. هل المطلوب صباغة الجدران والأسقف معًا، أم الجدران فقط؟ وكم عدد الغرف تقريبًا، أو ما مساحة الشقة؟",
+     "ms": 14320
+    },
+    {
+     "role": "customer",
+     "text": "شقة غرفتين تقريباً 110 متر مربع. المالك يبي الجدران والأسقف أبيض. النهدة، دبي. أنا مستأجر."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، هذا الوضع معروف: الجدران والأسقف أبيض بحسب طلب المالك. هل في الجدران شقوق أو آثار رطوبة أو تقشّر، أم حالتها سليمة؟ وهل الشقة فاضية الآن أم فيها أثاث؟",
+     "ms": 12376
+    },
+    {
+     "role": "customer",
+     "text": "الشقة فاضية."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، الشقة فاضية فالعمل أسهل وأسرع. ومتى تحتاج إنهاء الصباغة قبل تسليم المفتاح؟",
+     "ms": 12551
+    },
+    {
+     "role": "customer",
+     "text": "خلال 5 أيام."
+    },
+    {
+     "role": "agent",
+     "text": "هذا ملخص طلبك:\nصباغة داخلية لشقة غرفتين في النهدة، دبي.\nالمساحة تقريباً 110 متر مربع.\nالجدران والأسقف باللون الأبيض بحسب طلب المالك.\nأنت مستأجر، والشقة فاضية.\nحالة الجدران (شقوق أو رطوبة أو تقشّر) تُؤكَّد في زيارة المورّد للموقع.\nهل هذا صحيح؟",
+     "ms": 13100
+    },
+    {
+     "role": "customer",
+     "text": "فيه ثقوب مسامير وبقعة رطوبة قرب الحمام."
+    },
+    {
+     "role": "agent",
+     "text": "هذا ملخص طلبك:\nصباغة داخلية لشقة غرفتين في النهدة، دبي.\nالمساحة تقريباً 110 متر مربع.\nالجدران والأسقف باللون الأبيض بحسب طلب المالك.\nأنت مستأجر، والشقة فاضية.\nالحالة الحالية: ثقوب مسامير وبقعة رطوبة قرب الحمام.\nالرطوبة تحتاج معرفة مصدرها وإصلاحه قبل الصباغة، وإلا ستعود البقعة. ويُؤكَّد مصدرها وحجم الإصلاح في زيارة المورّد للموقع.\nهل هذا صحيح؟",
+     "ms": 11529
+    },
+    {
+     "role": "customer",
+     "text": "نعم، صحيح."
+    }
+   ]
+  },
+  {
+   "id": "bathroom_refit",
+   "lang": "en",
+   "trade": "bathrooms",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "About 2.5 m by 2 m, ceiling 2.6 m."
+     }
+    ]
+   },
+   "facts_released": 6,
+   "facts_total": 7,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     6,
+     1
+    ],
+    [
+     5,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "About 2.5 m by 2 m, ceiling 2.6 m.",
+    "Swap the bathtub for a walk-in shower, wall-hung WC, new vanity.",
+    "Porcelain wall and floor tiles, matt black fittings.",
+    "There was a small leak to the flat below last year.",
+    "Apartment in Al Nahda, Sharjah. I own it.",
+    "Building needs a permit and work hours 9 to 5.",
+    "Within 6 weeks."
+   ],
+   "expert": [
+    "size and ceiling height",
+    "layout changes: bath to shower, WC type, vanity",
+    "tiles and fittings finish",
+    "waterproofing and past leaks",
+    "building permit and hours"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "I want to redo my bathroom completely.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Understood, a full bathroom redo. How many fixtures are in it (WC, basin, shower or bathtub, bidet spray), and roughly what size is the bathroom? Also, what is there now, and is the existing plumbing in good condition or have you had leaks?",
+     "ms": 13514
+    },
+    {
+     "role": "customer",
+     "text": "About 2.5 m by 2 m, ceiling 2.6 m. Swap the bathtub for a walk-in shower, wall-hung WC, new vanity. There was a small leak to the flat below last year."
+    },
+    {
+     "role": "agent",
+     "text": "Because of last year's leak to the flat below, the walk-in shower area needs a proper waterproofing membrane under the tiles. Grout alone is not waterproofing. A wall-hung WC also needs a concealed cistern frame fixed to a solid wall or a floor-anchored frame. Which emirate and area is the apartment in? And when do you need the work done?",
+     "ms": 25503
+    },
+    {
+     "role": "customer",
+     "text": "Apartment in Al Nahda, Sharjah. I own it. Within 6 weeks."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\nFull bathroom redo in an apartment in Al Nahda, Sharjah. You own it.\nBathroom is 2.5 m by 2 m, ceiling 2.6 m.\nReplace the bathtub with a walk-in shower, fit a wall-hung WC and a new vanity.\nThere was a small leak to the flat below last year, so the shower area needs a waterproofing membrane.\nWork needed within 6 weeks.\nTo confirm at the supplier's site visit: what is there now and its condition, and the pipe and drain routes.\nIs this correct?",
+     "ms": 12064
+    },
+    {
+     "role": "customer",
+     "text": "Building needs a permit and work hours 9 to 5."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\nFull bathroom redo in an apartment in Al Nahda, Sharjah. You own it.\nBathroom is 2.5 m by 2 m, ceiling 2.6 m.\nReplace the bathtub with a walk-in shower, fit a wall-hung WC and a new vanity.\nThere was a small leak to the flat below last year, so the shower area needs a waterproofing membrane.\nThe building needs a permit, and work hours are 9 to 5.\nWork needed within 6 weeks.\nTo confirm at the supplier's site visit: what is there now and its condition, and the pipe and drain routes.\nIs this correct?",
+     "ms": 11466
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "gypsum_ceiling_ar",
+   "lang": "ar",
+   "trade": "gypsum",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 5,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     4,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "الصالة 6 في 5 متر، والارتفاع 3.2 متر.",
+    "سقف بمستويين مع ليد مخفي وسبوتات.",
+    "فيه فتحات تكييف مركزي لازم تبقى.",
+    "فيلا في العين.",
+    "خلال 3 أسابيع.",
+    "متوسطة."
+   ],
+   "expert": [
+    "أبعاد الصالة وارتفاع السقف",
+    "التصميم: مستويات وكرانيش ونوع الإضاءة",
+    "فتحات التكييف والرشاشات والكشافات",
+    "الموقع والموعد"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "أبغى أسوي جبس بورد في الصالة مع إضاءة مخفية.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "تمام، سقف جبس بورد في الصالة مع إضاءة مخفية (كوف لايت). كم طول وعرض الصالة وارتفاع السقف الحالي؟",
+     "ms": 10702
+    },
+    {
+     "role": "customer",
+     "text": "الصالة 6 في 5 متر، والارتفاع 3.2 متر. سقف بمستويين مع ليد مخفي وسبوتات."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، صالة 6×5 متر بارتفاع 3.2 متر وسقف بمستويين مع ليد مخفي وسبوتات. هل في السقف مخارج مكيف (دكت أو سبليت) أو رشاشات حريق أو فتحات صيانة لازم تبقى في أماكنها؟ وفي أي إمارة ومنطقة العقار؟",
+     "ms": 10764
+    },
+    {
+     "role": "customer",
+     "text": "فيه فتحات تكييف مركزي لازم تبقى. فيلا في العين."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، فيلا في العين وفتحات التكييف المركزي تبقى في أماكنها. متى تحتاج إنجاز العمل؟",
+     "ms": 13941
+    },
+    {
+     "role": "customer",
+     "text": "خلال 3 أسابيع."
+    },
+    {
+     "role": "agent",
+     "text": "هذا ملخص طلبك:\nسقف جبس بورد في صالة فيلا في العين.\nمقاس الصالة 6 × 5 متر، وارتفاع السقف 3.2 متر.\nالتصميم: سقف بمستويين مع ليد مخفي وسبوتات.\nفتحات التكييف المركزي تبقى في أماكنها.\nالمدة المطلوبة: خلال 3 أسابيع.\nيؤكدها المورد في زيارة الموقع: الوضع الحالي للسقف وهل يلزم إزالة شيء، وعدد نقاط الإضاءة ومواقعها.\nهل هذا صحيح؟",
+     "ms": 12832
+    },
+    {
+     "role": "customer",
+     "text": "نعم، صحيح."
+    }
+   ]
+  },
+  {
+   "id": "aluminium_windows",
+   "lang": "en",
+   "trade": "aluminium",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "14 windows, mostly 1.5 m by 1.8 m, and two sliding doors 3 m by 2.4 m."
+     }
+    ]
+   },
+   "facts_released": 6,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     2,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "14 windows, mostly 1.5 m by 1.8 m, and two sliding doors 3 m by 2.4 m.",
+    "Double glazed with thermal break, it is noisy near the road too.",
+    "Dark grey frames.",
+    "Old single-glazed aluminium, about 18 years old, to be removed.",
+    "Villa in Mirdif, owned.",
+    "Within 2 months."
+   ],
+   "expert": [
+    "count and sizes of windows and doors",
+    "glazing: double glazed, low-E, thermal-break profile, acoustic",
+    "opening type (sliding, casement, tilt-turn)",
+    "frame colour",
+    "removal of old frames and making good",
+    "timeline"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "Our villa windows let in dust and heat, we want to change them.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Dust and heat gain usually point to old single-glazed frames with worn seals. The usual fix is new thermal-break aluminium frames with double glazing and proper gaskets.\n\nHow many windows and doors are you replacing, and roughly what size is each (width x height)? And would you like double glazing with a thermal break, or do you also need noise reduction (acoustic glass)?",
+     "ms": 10579
+    },
+    {
+     "role": "customer",
+     "text": "14 windows, mostly 1.5 m by 1.8 m, and two sliding doors 3 m by 2.4 m. Double glazed with thermal break, it is noisy near the road too. Old single-glazed aluminium, about 18 years old, to be removed."
+    },
+    {
+     "role": "agent",
+     "text": "Since it is noisy near the road, laminated glass in the double-glazed units will cut the sound noticeably, and the supplier can confirm the exact build-up. Which emirate and area is the villa in? And when would you like the work done?",
+     "ms": 10946
+    },
+    {
+     "role": "customer",
+     "text": "Villa in Mirdif, owned. Within 2 months."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nOwned villa in Mirdif, Dubai. Within 2 months.\n14 windows, mostly 1.5 m by 1.8 m. Two sliding doors, 3 m by 2.4 m.\nDouble glazed, thermal-break aluminium, with laminated glass for road noise.\nOld single-glazed aluminium frames, about 18 years old, to be removed.\n\nTo confirm at the supplier's site visit: final measurements, frame colour and glass build-up.\n\nIs this correct?",
+     "ms": 9874
+    },
+    {
+     "role": "customer",
+     "text": "Dark grey frames."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nOwned villa in Mirdif, Dubai. Work needed within 2 months.\n14 windows, mostly 1.5 m by 1.8 m. Two sliding doors, 3 m by 2.4 m.\nThermal-break aluminium frames in dark grey.\nDouble glazing with laminated glass for road noise.\nOld single-glazed aluminium frames, about 18 years old, to be removed.\n\nTo confirm at the supplier's site visit: final measurements and glass build-up.\n\nIs this correct?",
+     "ms": 9567
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "office_fitout",
+   "lang": "en",
+   "trade": "fit-out",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "25 workstations, 2 meeting rooms, a manager office and a pantry."
+     }
+    ]
+   },
+   "facts_released": 6,
+   "facts_total": 7,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     5,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     4,
+     1
+    ]
+   ],
+   "hidden_facts": [
+    "About 220 square metres shell and core.",
+    "25 workstations, 2 meeting rooms, a manager office and a pantry.",
+    "We have no design yet; we need design and build.",
+    "JLT Cluster X, Dubai.",
+    "Landlord and DMCC approvals plus Civil Defence apply.",
+    "Move in within 3 months.",
+    "Mid-range."
+   ],
+   "expert": [
+    "area and handover condition (shell and core or Cat A)",
+    "headcount, rooms, pantry, server room",
+    "design available or design and build",
+    "free zone authority, landlord and Civil Defence approvals",
+    "move-in date",
+    "budget band"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "We just leased an office and need it fitted out.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Congratulations on the new office. How large is the space in sqm or sqft, and is it shell and core (bare concrete, no ceilings or finishes) or an existing fit-out to renovate? Also, roughly how many people will work there, and do you need meeting rooms or a pantry?",
+     "ms": 10717
+    },
+    {
+     "role": "customer",
+     "text": "About 220 square metres shell and core. 25 workstations, 2 meeting rooms, a manager office and a pantry. JLT Cluster X, Dubai. Move in within 3 months."
+    },
+    {
+     "role": "agent",
+     "text": "Thanks, that is clear. Do you already have a design and layout drawings, or do you need the supplier to handle design and build? Has the landlord or free zone authority issued a fit-out NOC yet? Civil Defence approval for any sprinkler or fire alarm changes is obtained by a Civil Defence-approved contractor.",
+     "ms": 21104
+    },
+    {
+     "role": "customer",
+     "text": "We have no design yet; we need design and build. Landlord and DMCC approvals plus Civil Defence apply."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nOffice fit-out, design and build, in JLT Cluster X, Dubai. You have leased the unit.\nThe space is about 220 sqm, shell and core.\nIt needs 25 workstations, 2 meeting rooms, a manager office and a pantry.\nYou have no design yet.\nLandlord and DMCC approvals plus Civil Defence apply.\nYou need to move in within 3 months.\n\nTo confirm at the supplier's site visit: material, finish and colour.\n\nIs this correct?",
+     "ms": 9253
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "electrical_ev",
+   "lang": "en",
+   "trade": "electrical",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 6,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     5,
+     1
+    ]
+   ],
+   "hidden_facts": [
+    "It is a Tesla Model Y; I want a 7 kW wall charger.",
+    "The parking is about 15 m from the main board, in a covered car porch.",
+    "Single-phase supply, I do not know the load.",
+    "Villa in Dubai Hills, owned.",
+    "DEWA EV Green Charger approval if needed.",
+    "Within 2 weeks."
+   ],
+   "expert": [
+    "vehicle and charger rating",
+    "cable run from the DB to the parking, indoor or outdoor",
+    "supply phase and spare capacity (load calculation)",
+    "DEWA approval for the connection",
+    "ownership"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "I bought an electric car and need a charger at home.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Happy to help with the home charger. In Dubai, EV charger installation needs DEWA approval, so the installer must handle that.\n\nHow far is your parking spot from the main board, and does the cable run indoors or outdoors? Also, is your supply single phase or three phase, and do you know the spare load at the board?",
+     "ms": 15306
+    },
+    {
+     "role": "customer",
+     "text": "It is a Tesla Model Y; I want a 7 kW wall charger. The parking is about 15 m from the main board, in a covered car porch. Single-phase supply, I do not know the load. DEWA EV Green Charger approval if needed."
+    },
+    {
+     "role": "agent",
+     "text": "A 7 kW charger on a single-phase supply is a sound match for a Model Y. Which emirate and area is the home in? And when do you need it installed?",
+     "ms": 9752
+    },
+    {
+     "role": "customer",
+     "text": "Villa in Dubai Hills, owned. Within 2 weeks."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nSupply and install one 7 kW wall charger for a Tesla Model Y.\nProperty: owned villa in Dubai Hills, Dubai.\nParking is a covered car porch, about 15 m from the main board.\nSupply is single phase.\nTiming: within 2 weeks.\nDEWA EV Green Charger approval is included if needed.\n\nTo confirm at the supplier's site visit: the spare load at your main board and the cable route.\n\nIs this correct?",
+     "ms": 8869
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "kitchen_cabinets_en",
+   "lang": "en",
+   "trade": "kitchens",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 6,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     5,
+     0
+    ],
+    [
+     4,
+     1
+    ]
+   ],
+   "hidden_facts": [
+    "About 14 doors and 6 drawer fronts.",
+    "The carcasses are fine, the doors are peeling foil.",
+    "Matt sage green, handle-less with J-pull.",
+    "Yes, soft-close hinges please.",
+    "Townhouse in Town Square, owned.",
+    "Within a month."
+   ],
+   "expert": [
+    "count and sizes of doors and drawer fronts",
+    "carcass condition",
+    "door material and finish, handles",
+    "hinges and drawer runners",
+    "location"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "Can I just replace my kitchen cabinet doors?",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Yes, you can replace just the doors and drawer fronts. It works when the existing cabinet boxes are sound and not swollen by moisture, especially around the sink. Door sizes and hinge positions must match, so the supplier checks them at a site measure. What is the layout (straight, L or U shape), and what are the wall lengths and ceiling height? Is this a door-only refresh, or are you replacing the whole kitchen, including removal of the old units?",
+     "ms": 18007
+    },
+    {
+     "role": "customer",
+     "text": "About 14 doors and 6 drawer fronts. The carcasses are fine, the doors are peeling foil. Matt sage green, handle-less with J-pull. Yes, soft-close hinges please. Within a month."
+    },
+    {
+     "role": "agent",
+     "text": "Peeling foil usually means the old doors are vinyl-wrapped MDF. The new doors should be matt lacquered or laminate, with sealed edges. J-pull profiles mean each door is cut to suit its cabinet height. Are your appliances built-in or freestanding, and which of them are new? Also, where are the sink, hob and any gas line positioned?",
+     "ms": 15384
+    },
+    {
+     "role": "customer",
+     "text": "Townhouse in Town Square, owned."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it: Kitchen door refresh in an owned townhouse in Town Square, Dubai. Replace 14 cabinet doors and 6 drawer fronts. The existing carcasses are fine. The old doors have peeling foil. New doors in matt sage green, handle-less with J-pull. Soft-close hinges. Needed within a month. To confirm at the supplier's site visit: the layout, wall lengths and ceiling height. Also what the job includes, which appliances are built-in or new, and the sink, hob and gas positions. Is this correct?",
+     "ms": 23674
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "fire_alarm_office",
+   "lang": "en",
+   "trade": "fire-safety",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": false,
+    "trap_corrected": true,
+    "pass": false,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "Office tower in Business Bay, Dubai."
+     }
+    ]
+   },
+   "facts_released": 6,
+   "facts_total": 7,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     5,
+     0
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     6,
+     1
+    ]
+   ],
+   "hidden_facts": [
+    "About 450 square metres on one floor, with 6 closed rooms and a server room.",
+    "Whatever Civil Defence accepts; we have no preference.",
+    "The building has a main addressable panel; ours must connect to it.",
+    "The server room needs its own gas suppression.",
+    "Office tower in Business Bay, Dubai.",
+    "We have no approved drawings yet.",
+    "Before we open in 8 weeks."
+   ],
+   "expert": [
+    "correct the cable: fire-resistant (e.g. FP200-type), not normal cable",
+    "floor area, rooms, ceiling void and raised floor (detectors there too)",
+    "tie-in to the base-building addressable panel (same make or a compatible interface)",
+    "server room: gas suppression and early smoke detection",
+    "Civil Defence approved shop drawings by a listed contractor",
+    "opening date and fit-out sequence"
+   ],
+   "trap": "UAE Fire and Life Safety Code requires fire-resistant cable for fire alarm circuits; normal cable is not accepted by Civil Defence",
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "We need a fire alarm system for our new office. To save money we will just use normal electrical cable for it.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Normal electrical cable will not pass for a fire alarm. Alarm circuits must use fire-resistant, low-smoke cable, such as FP200-class, as the UAE Fire and Life Safety Code requires. Civil Defence will not accept ordinary building cable, so it is not a saving. What is the floor area of the office, and how many rooms does it have, including the ceiling height? Is the system addressable or conventional, and does it tie into the building's fire alarm panel?",
+     "ms": 16817
+    },
+    {
+     "role": "customer",
+     "text": "About 450 square metres on one floor, with 6 closed rooms and a server room. Whatever Civil Defence accepts; we have no preference. Office tower in Business Bay, Dubai. We have no approved drawings yet."
+    },
+    {
+     "role": "agent",
+     "text": "For an office tower, an addressable system tied into the building's fire alarm panel is the usual choice, and the supplier will confirm it at the site visit. Your server room will probably need gas suppression, which Civil Defence-approved contractors design with the drawings. What is kept or done in the office and the server room, for example general desk work, document storage or racks of servers? And when do you need it completed?",
+     "ms": 11990
+    },
+    {
+     "role": "customer",
+     "text": "The server room needs its own gas suppression. Before we open in 8 weeks."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\nNew fire alarm system for a new office, one floor, about 450 square metres.\nOffice tower in Business Bay, Dubai.\nSix closed rooms plus a server room.\nThe server room needs its own gas suppression.\nFire alarm cable must be fire-resistant, low-smoke, as Civil Defence requires.\nNo approved Civil Defence drawings yet; Civil Defence approval is required.\nNeeded within 8 weeks, before opening.\nTo confirm at the supplier's site visit: number of detection points, system type and tie-in to the building panel, and what is stored or done there.\n\nIs this correct?",
+     "ms": 14059
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "fire_alarm_warehouse_ar",
+   "lang": "ar",
+   "trade": "fire-safety",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "منطقة الصجعة الصناعية، الشارقة."
+     }
+    ]
+   },
+   "facts_released": 6,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     1,
+     2
+    ],
+    [
+     2,
+     2
+    ],
+    [
+     3,
+     3
+    ],
+    [
+     5,
+     3
+    ]
+   ],
+   "hidden_facts": [
+    "المستودع 1500 متر مربع وارتفاع السقف 9 متر.",
+    "نخزن كراتين وأثاث، مو مواد خطرة.",
+    "ما فيه نظام إطفاء حالياً.",
+    "عندنا مخطط المستودع بس مو معتمد.",
+    "منطقة الصجعة الصناعية، الشارقة.",
+    "خلال شهرين."
+   ],
+   "expert": [
+    "المساحة وارتفاع السقف (كواشف شعاعية للأسقف العالية)",
+    "نوع المواد المخزنة ودرجة الخطورة",
+    "نظام الإطفاء: رشاشات وخراطيم ومضخة",
+    "نوع اللوحة: عنونة أم تقليدية",
+    "المخططات المعتمدة من الدفاع المدني ومقاول معتمد",
+    "الموقع والموعد"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "عندنا مستودع جديد ونبي نظام إنذار حريق معتمد من الدفاع المدني.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "كم مساحة المستودع تقريباً بالمتر المربع، وكم ارتفاع السقف، وهل فيه غرف أو مكاتب داخلية؟ وهل تبون لوحة إنذار عنوانية (كل كاشف يحدد موقعه) أم تقليدية بالمناطق؟",
+     "ms": 15905
+    },
+    {
+     "role": "customer",
+     "text": "المستودع 1500 متر مربع وارتفاع السقف 9 متر. منطقة الصجعة الصناعية، الشارقة."
+    },
+    {
+     "role": "agent",
+     "text": "هل النظام مستقل أم يربط بلوحة إنذار المبنى أو المالك؟",
+     "ms": 14764
+    },
+    {
+     "role": "customer",
+     "text": "مو متأكد، شو تنصحني؟"
+    },
+    {
+     "role": "agent",
+     "text": "أنصحك بنظام مستقل بلوحة عنوانية، لأن مستودعاً جديداً بمساحة 1500 متر مربع وسقف 9 أمتار يحتاج تحديد موقع كل كاشف بدقة، وكاشفات الشعاع (Beam) مناسبة للأسقف العالية. اعتماد الدفاع المدني يتم عبر مقاول معتمد لديهم، وتأكيد ربطه بأي لوحة أخرى يكون في زيارة المورد.\n\nما نوع البضاعة المخزنة أو النشاط داخل المستودع (مثلاً مواد غذائية، مواد قابلة للاشتعال، إطارات، قطع غيار)؟ وهل تحتاجون رشاشات حريق أو خراطيم إطفاء بالإضافة إلى الإنذار؟",
+     "ms": 12173
+    },
+    {
+     "role": "customer",
+     "text": "نخزن كراتين وأثاث، مو مواد خطرة. ما فيه نظام إطفاء حالياً."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، كراتين وأثاث حمل حريق عادي، ويبقى تصنيف الخطورة النهائي بيد الدفاع المدني ومقاولكم المعتمد. هل عندكم مخططات معتمدة من الدفاع المدني للمستودع، أم تحتاجون أن يُعدّها المورد ويرفعها للاعتماد؟ ومتى تحتاجون إنجاز النظام؟",
+     "ms": 9790
+    },
+    {
+     "role": "customer",
+     "text": "عندنا مخطط المستودع بس مو معتمد. خلال شهرين."
+    },
+    {
+     "role": "agent",
+     "text": "هذا ملخص طلبك:\nنظام إنذار حريق لمستودع جديد في منطقة الصجعة الصناعية، الشارقة.\nالمساحة 1500 متر مربع وارتفاع السقف 9 أمتار.\nالمخزون كراتين وأثاث، ولا مواد خطرة.\nلا يوجد نظام إطفاء حالياً.\nالمخطط موجود لكنه غير معتمد من الدفاع المدني.\nالمطلوب إنجازه خلال شهرين.\n\nيُؤكَّد في زيارة المورد: توزيع المستودع من الداخل، والمناطق وعدد النقاط المطلوب تغطيتها، ونوع النظام وربطه بلوحة المبنى.\n\nهل هذا صحيح؟",
+     "ms": 14338
+    },
+    {
+     "role": "customer",
+     "text": "نعم، صحيح."
+    }
+   ]
+  },
+  {
+   "id": "ac_undersized_en",
+   "lang": "en",
+   "trade": "hvac",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 5,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     1
+    ],
+    [
+     5,
+     1
+    ]
+   ],
+   "hidden_facts": [
+    "It is a new installation; there is no unit there now.",
+    "The outdoor unit can go on the balcony, about 5 m of pipe.",
+    "Inverter please.",
+    "Apartment in Al Nahda, Dubai, owned.",
+    "Building needs a permit and the facade must not change.",
+    "Within 2 weeks."
+   ],
+   "expert": [
+    "correct the capacity: about 2 tons for 28 m² with west sun",
+    "new installation or replacement",
+    "outdoor unit position and pipe length, drain route",
+    "inverter, ESMA rating",
+    "building permit and facade rules"
+   ],
+   "trap": "28 m² with afternoon sun in the UAE needs about 2 tons (24,000 BTU); 1 ton will run flat out and never cool it",
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "I want a 1 ton split AC for my living room, it is about 28 square metres and gets the afternoon sun.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "A 1 ton split is too small for a 28 square metre living room with afternoon sun. That room needs roughly 2 to 2.5 tons, otherwise the unit runs flat out and never reaches the set temperature. The supplier's heat-load check will confirm the final size.\n\nIs this replacing an existing AC (what type and how old), or a new installation? And where would the outdoor unit and pipes go, on a balcony, ledge or roof?",
+     "ms": 15053
+    },
+    {
+     "role": "customer",
+     "text": "It is a new installation; there is no unit there now. The outdoor unit can go on the balcony, about 5 m of pipe. Apartment in Al Nahda, Dubai, owned."
+    },
+    {
+     "role": "agent",
+     "text": "Thanks, that covers the site. A new installation in an owned apartment with a balcony outdoor unit and a 5 m pipe run is straightforward. Just check the building management's rules on where outdoor units may sit.\n\nWhen do you need it installed?",
+     "ms": 10900
+    },
+    {
+     "role": "customer",
+     "text": "Building needs a permit and the facade must not change. Within 2 weeks."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nNew installation of a split AC for your living room, about 28 square metres with afternoon sun. No unit there now.\n\nYou asked for 1 ton, but this room needs roughly 2 to 2.5 tons, so the supplier will size it properly.\n\nApartment in Al Nahda, Dubai, owned. The outdoor unit goes on the balcony with about 5 m of pipe.\n\nThe building needs a permit and the facade must not change. Needed within 2 weeks.\n\nTo confirm at the supplier's site visit: final capacity from the heat-load check, the exact outdoor unit position, and electrical supply.\n\nIs this correct?",
+     "ms": 10892
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "ac_ducted_villa_ar",
+   "lang": "ar",
+   "trade": "hvac",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": false,
+    "trap_corrected": true,
+    "pass": false,
+    "reask_flagged": []
+   },
+   "facts_released": 4,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     1,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "الفيلا دورين، 4 غرف نوم ومجلس وصالة، تقريباً 450 متر مربع.",
+    "فيه سقف جبس معلق بفراغ 40 سم.",
+    "عندنا مخططات معمارية بس ما فيه تصميم تكييف.",
+    "نبي تحكم منفصل لكل غرفة.",
+    "الفيلا في الياسمين، عجمان، ملك.",
+    "خلال 3 شهور."
+   ],
+   "expert": [
+    "المساحة وعدد الغرف والأدوار",
+    "فراغ السقف المتاح لمجاري الهواء",
+    "حسابات الأحمال وتصميم المجاري (أو تصميم وتنفيذ)",
+    "التحكم لكل منطقة",
+    "موقع الوحدات الخارجية",
+    "الموعد"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "أبغى أركب تكييف مخفي (دكت) لفيلا جديدة.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "حياك الله. للفيلا الجديدة يناسبك التكييف المخفي (دكت)، وتحديد السعة يعتمد على مساحة الفيلا وعدد الغرف. كم مساحة البناء تقريباً وكم عدد الغرف والصالات، وهل واجهات الفيلا فيها زجاج كبير مواجه للغرب أو الجنوب؟\n\nوأين تفضّل وضع الوحدات الخارجية: على السطح أم في الأرض بجانب الفيلا؟",
+     "ms": 9767
+    },
+    {
+     "role": "customer",
+     "text": "الفيلا دورين، 4 غرف نوم ومجلس وصالة، تقريباً 450 متر مربع. الفيلا في الياسمين، عجمان، ملك."
+    },
+    {
+     "role": "agent",
+     "text": "شكراً، بيانات الفيلا واضحة. ومتى تحتاج إنجاز التركيب تقريباً؟",
+     "ms": 10836
+    },
+    {
+     "role": "customer",
+     "text": "خلال 3 شهور."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، موعد التركيب خلال 3 شهور. هل يوجد فراغ بالسقف المستعار لتمديد الدكت، أم أن السقف لم يُنفّذ بعد؟",
+     "ms": 48894
+    },
+    {
+     "role": "customer",
+     "text": "فيه سقف جبس معلق بفراغ 40 سم."
+    },
+    {
+     "role": "agent",
+     "text": "هذا ملخص طلبك:\nتركيب تكييف مخفي (دكت) لفيلا جديدة.\nالفيلا دورين، وفيها 4 غرف نوم ومجلس وصالة، بمساحة بناء 450 متر مربع تقريباً.\nالموقع: الياسمين، عجمان، والفيلا ملك.\nالسقف جبس معلق بفراغ 40 سم.\nموعد الإنجاز المطلوب خلال 3 شهور.\n\nيُؤكَّد في زيارة المورّد للموقع: مكان الوحدات الخارجية ومسار المواسير، وتفاصيل الفراغ في السقف.\n\nهل هذا صحيح؟",
+     "ms": 10506
+    },
+    {
+     "role": "customer",
+     "text": "نعم، صحيح."
+    }
+   ]
+  },
+  {
+   "id": "glass_partition_trap_en",
+   "lang": "en",
+   "trade": "glass",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 1,
+      "fact": "Office in Dubai Silicon Oasis."
+     }
+    ]
+   },
+   "facts_released": 6,
+   "facts_total": 7,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     5,
+     1
+    ],
+    [
+     6,
+     1
+    ]
+   ],
+   "hidden_facts": [
+    "Two rooms, about 12 m of partition in total, 2.7 m high.",
+    "One hinged glass door per room.",
+    "A frosted band at eye level.",
+    "Some sound privacy would be good.",
+    "Office in Dubai Silicon Oasis.",
+    "The landlord needs drawings first.",
+    "Within 5 weeks."
+   ],
+   "expert": [
+    "correct the glass: 10-12 mm toughened (tempered) safety glass",
+    "run length and height",
+    "doors: hinged or sliding, patch fittings, locks",
+    "manifestation/frosted band (required for visibility)",
+    "acoustic needs (laminated or double)",
+    "landlord drawings"
+   ],
+   "trap": "frameless partitions use 10-12 mm toughened safety glass; 6 mm annealed glass is unsafe and will not pass",
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "I want frameless glass partitions for two meeting rooms, 6 mm normal clear glass should be fine.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Frameless partitions must be toughened (tempered) safety glass, so 6 mm ordinary clear glass is not suitable. Frameless office partitions are normally 10 to 12 mm toughened, and they need a visible manifestation band for safety.\n\nWhat is the total run length and the floor-to-ceiling height of the partitions in each room? And do you want hinged or sliding glass doors?",
+     "ms": 10552
+    },
+    {
+     "role": "customer",
+     "text": "Two rooms, about 12 m of partition in total, 2.7 m high. One hinged glass door per room. A frosted band at eye level. Office in Dubai Silicon Oasis."
+    },
+    {
+     "role": "agent",
+     "text": "Noted, a frosted band at eye level also doubles as the safety manifestation. Dubai Silicon Oasis is under DDA, so the fit-out normally needs the landlord's NOC and approved drawings. Do you have the landlord's or building's drawings and fit-out approval for these two rooms, or will the supplier need to arrange that? And when do you need the partitions installed?",
+     "ms": 11905
+    },
+    {
+     "role": "customer",
+     "text": "The landlord needs drawings first. Within 5 weeks."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nTwo frameless glass partitions for two meeting rooms in an office in Dubai Silicon Oasis. Total run is about 12 m, 2.7 m high. The glass is toughened safety glass, 10 to 12 mm, not the 6 mm ordinary glass you first mentioned. One hinged glass door per room. A frosted band at eye level, which also serves as the safety manifestation. The landlord needs drawings first, so the supplier prepares them for approval. You need installation within 5 weeks.\n\nTo confirm at the supplier's site visit: final dimensions, door position and hardware finish, and whether you own or rent the unit.\n\nIs this correct?",
+     "ms": 10737
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "cctv_villa_ar",
+   "lang": "ar",
+   "trade": "security",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 6,
+   "facts_total": 6,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     3,
+     1
+    ],
+    [
+     5,
+     2
+    ]
+   ],
+   "hidden_facts": [
+    "خارجي بس: البوابة والحوش الخلفي ومواقف السيارات.",
+    "أبي صورة واضحة بالليل.",
+    "أبي أشوف من الجوال وتسجيل شهر.",
+    "ما فيه تمديدات جاهزة.",
+    "فيلا في مردف، ملك.",
+    "خلال أسبوعين."
+   ],
+   "expert": [
+    "عدد الكاميرات وأماكنها (داخلي أو خارجي)",
+    "الرؤية الليلية والدقة",
+    "مدة التسجيل والمشاهدة من الجوال",
+    "التمديدات: كيبل شبكة (PoE) أو لاسلكي",
+    "الموقع والموعد"
+   ],
+   "trap": null,
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "أبي كاميرات مراقبة للفيلا.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "حياك الله، كاميرات الفيلا نقطة مفهومة. هل تريد تغطية المدخل والبوابة والسور الخارجي فقط، أم الغرف الداخلية والممرات أيضاً، وكم كاميرا تقريباً؟ وهل تحتاج وضوحاً يكفي للتعرف على الوجوه أو قراءة لوحات السيارات، ورؤية ليلية؟",
+     "ms": 12346
+    },
+    {
+     "role": "customer",
+     "text": "خارجي بس: البوابة والحوش الخلفي ومواقف السيارات. أبي صورة واضحة بالليل. فيلا في مردف، ملك."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، تغطية خارجية بصورة واضحة بالليل، وفي فيلا ملك تقدر تركّب بدون موافقة مالك. كم يوماً تبي التسجيل يُحفظ (مثلاً 14 أو 30 يوماً)، وهل تبي تشاهد الكاميرات من جوالك؟ وهل عندك حالياً نظام كاميرات أو تمديدات كيبل قديمة نستفيد منها؟",
+     "ms": 10106
+    },
+    {
+     "role": "customer",
+     "text": "أبي أشوف من الجوال وتسجيل شهر. ما فيه تمديدات جاهزة."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، مراقبة من الجوال وتسجيل شهر، وبما أن ما فيه تمديدات فالكيبل يُمدّد من جديد، وعدد الكاميرات ونوعها يحددهما المورّد في زيارة الموقع. متى تحتاج التركيب جاهزاً؟",
+     "ms": 11747
+    },
+    {
+     "role": "customer",
+     "text": "خلال أسبوعين."
+    },
+    {
+     "role": "agent",
+     "text": "هذا ملخص طلبك:\nنظام كاميرات مراقبة لفيلا ملك في مردف.\nالتغطية خارجية فقط: البوابة والحوش الخلفي ومواقف السيارات.\nالمطلوب صورة واضحة بالليل.\nمشاهدة مباشرة من الجوال.\nالتسجيل يُحفظ شهراً.\nلا توجد تمديدات جاهزة، فالكيبل جديد.\nالتركيب خلال أسبوعين.\nيُؤكَّد في زيارة المورّد: عدد الكاميرات ومواقعها ونوع النظام.\nهل هذا صحيح؟",
+     "ms": 11524
+    },
+    {
+     "role": "customer",
+     "text": "نعم، صحيح."
+    }
+   ]
+  },
+  {
+   "id": "parquet_wet_area_trap_en",
+   "lang": "en",
+   "trade": "flooring",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 5,
+   "facts_total": 7,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     2,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     0
+    ],
+    [
+     5,
+     1
+    ]
+   ],
+   "hidden_facts": [
+    "There are ceramic tiles now, flat and sound.",
+    "Oak, about 14 mm, matt natural.",
+    "New white skirting please.",
+    "The flat is empty until we move in.",
+    "Apartment in Dubai Hills, owned.",
+    "Building permit needed.",
+    "Within 4 weeks."
+   ],
+   "expert": [
+    "correct the wet areas: no engineered wood in bathrooms, wood-look porcelain or SPC there",
+    "existing floor: over tiles or remove, levels, underlay and moisture barrier",
+    "species, thickness, finish",
+    "skirting and thresholds, door undercuts",
+    "occupied or empty",
+    "building permit"
+   ],
+   "trap": "engineered wood swells and fails in bathrooms; a matching porcelain wood-look tile or SPC goes in wet areas",
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "I want engineered wood flooring in my apartment, about 85 square metres, and in the bathrooms too so it all matches.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Engineered wood isn't suitable for bathrooms, because standing water and steam swell and lift it. For a matching look, use a wood-effect porcelain tile in the bathrooms (waterproofed beneath), with a transition profile at each door. Keep the engineered wood for the dry rooms.\n\nHow is the floor used day to day, for example any heavy-traffic or heavy-furniture zones? And what is on the floor now, and in what condition?",
+     "ms": 10405
+    },
+    {
+     "role": "customer",
+     "text": "There are ceramic tiles now, flat and sound. New white skirting please. The flat is empty until we move in. Apartment in Dubai Hills, owned."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nOwned apartment in Dubai Hills, Dubai, empty until you move in.\nAbout 85 square metres of engineered wood flooring in the dry rooms.\nBathrooms in wood-effect porcelain tile, waterproofed beneath, with a transition profile at each door.\nExisting ceramic tiles are flat and sound.\nNew white skirting.\n\nTo confirm at the supplier's site visit: the layout of the rooms, and how the floor is used (traffic, heavy furniture zones).\n\nIs this correct?",
+     "ms": 11280
+    },
+    {
+     "role": "customer",
+     "text": "Building permit needed."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nOwned apartment in Dubai Hills, Dubai, empty until you move in.\nAbout 85 square metres of engineered wood flooring in the dry rooms.\nBathrooms in wood-effect porcelain tile, waterproofed beneath, with a transition profile at each door.\nExisting ceramic tiles are flat and sound.\nNew white skirting.\nBuilding permit needed.\n\nTo confirm at the supplier's site visit: the room layout, and how the floor is used (traffic, heavy furniture zones).\n\nIs this correct?",
+     "ms": 11307
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "wardrobe_change_of_mind_en",
+   "lang": "en",
+   "trade": "carpentry-joinery",
+   "path": "/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": []
+   },
+   "facts_released": 5,
+   "facts_total": 5,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     2,
+     1
+    ],
+    [
+     4,
+     1
+    ]
+   ],
+   "hidden_facts": [
+    "Each wall is about 2 m wide with a 2.6 m ceiling.",
+    "Half hanging, half shelves, 2 drawers each.",
+    "White gloss. And actually, change the doors to hinged: the rooms are too narrow for sliding doors.",
+    "Villa in Mirdif, owned.",
+    "Within 5 weeks."
+   ],
+   "expert": [
+    "wall width and ceiling height for each",
+    "internal layout",
+    "board and finish",
+    "confirm the door change to hinged (narrow room) and handles",
+    "location and timeline"
+   ],
+   "trap": null,
+   "keeps": "two wardrobes, HINGED doors (the customer changed from sliding), 2 m x 2.6 m each, white gloss",
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "I need two built-in wardrobes for the bedrooms, with sliding doors.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "Two built-in wardrobes with sliding doors suit bedrooms well, as long as there is about 600 mm of depth for the door tracks and hanging space.\n\nWhat are the wall width, floor-to-ceiling height and available depth for each wardrobe? And inside, do you want mostly hanging space, shelves or drawers?",
+     "ms": 15569
+    },
+    {
+     "role": "customer",
+     "text": "Each wall is about 2 m wide with a 2.6 m ceiling. Half hanging, half shelves, 2 drawers each. Villa in Mirdif, owned."
+    },
+    {
+     "role": "agent",
+     "text": "Noted: a 2 m wall with a 2.6 m ceiling suits full-height sliding doors. For the depth, I'll record it as confirmed at the supplier's site measure.\n\nWhat board, colour and finish do you prefer? For example white matt laminate, wood-grain, or gloss lacquer, with moisture-resistant board as the carcass if you like. And when do you need it done?",
+     "ms": 11457
+    },
+    {
+     "role": "customer",
+     "text": "White gloss. And actually, change the doors to hinged: the rooms are too narrow for sliding doors. Within 5 weeks."
+    },
+    {
+     "role": "agent",
+     "text": "Here is your request as I have it:\n\nTwo built-in wardrobes, one in each bedroom, in your owned villa in Mirdif.\nEach wall is about 2 m wide with a 2.6 m ceiling, full height.\nDoors are hinged, since the rooms are too narrow for sliding.\nInside: half hanging, half shelves, 2 drawers each.\nFinish: white gloss.\nNeeded within 5 weeks.\n\nTo confirm at the supplier's site visit: the available depth, the final dimensions, and handle style.\n\nIs this correct?",
+     "ms": 11219
+    },
+    {
+     "role": "customer",
+     "text": "Yes, that is correct."
+    }
+   ]
+  },
+  {
+   "id": "boundary_wall_paint_trap_ar",
+   "lang": "ar",
+   "trade": "painting",
+   "path": "/ar/me",
+   "gates": {
+    "answered": true,
+    "in_time": true,
+    "no_idk": true,
+    "no_yesno_only": true,
+    "language": true,
+    "asks_first": true,
+    "no_reask_told": true,
+    "must_asked": true,
+    "trap_corrected": true,
+    "pass": true,
+    "reask_flagged": [
+     {
+      "turn": 2,
+      "fact": "فيلا في البرشاء، ملك."
+     }
+    ]
+   },
+   "facts_released": 4,
+   "facts_total": 5,
+   "released": [
+    [
+     0,
+     0
+    ],
+    [
+     1,
+     0
+    ],
+    [
+     3,
+     0
+    ],
+    [
+     4,
+     1
+    ]
+   ],
+   "hidden_facts": [
+    "السور طوله حوالي 60 متر وارتفاعه 2.5 متر.",
+    "الصبغ القديم باهت وفيه أملاح وتقشر تحت.",
+    "لون رملي، ناعم.",
+    "فيلا في البرشاء، ملك.",
+    "خلال أسبوعين."
+   ],
+   "expert": [
+    "تصحيح الصبغ: صبغ خارجي مقاوم للشمس والرطوبة، لا الداخلي",
+    "الطول والارتفاع",
+    "معالجة الأملاح والتقشر وبرايمر مقاوم للقلويات",
+    "اللون والملمس",
+    "الموعد"
+   ],
+   "trap": "interior emulsion chalks and peels outdoors in UAE sun and salt; an exterior acrylic or elastomeric paint over an alkali-resistant primer is needed",
+   "keeps": null,
+   "transcript": [
+    {
+     "role": "customer",
+     "text": "أبي أصبغ سور الفيلا من برا بنفس الصبغ البلاستيكي الداخلي اللي عندي عشان أوفر.",
+     "image": false
+    },
+    {
+     "role": "agent",
+     "text": "لا أنصحك بذلك، فالصبغ البلاستيكي الداخلي لا يتحمل شمس الإمارات وحرارتها ورطوبتها، ويتقشر ويبهت خلال أشهر قليلة، فتدفع مرتين. سور الفيلا من الخارج يحتاج دهان أكريليك خارجي أو مرن فوق طبقة أساس مقاومة للقلويات، بعد إزالة الأملاح والصبغ المتقشر.\n\nكم طول السور تقريباً وارتفاعه؟ وما حالة الجدار الآن: هل فيه تشققات أو رطوبة أو صبغ متقشر؟",
+     "ms": 11199
+    },
+    {
+     "role": "customer",
+     "text": "السور طوله حوالي 60 متر وارتفاعه 2.5 متر. الصبغ القديم باهت وفيه أملاح وتقشر تحت. فيلا في البرشاء، ملك."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، يعني مساحة السور نحو 150 متراً مربعاً من جهة واحدة، والأملاح والتقشر يعالجون قبل الدهان بإزالتهما ثم وضع طبقة الأساس.\n\nهل السور مطلوب دهانه من الخارج فقط أم من الجهتين، وهل في الجهة الداخلية نباتات أو مقاعد أو سيارات يجب حمايتها أثناء العمل؟ ومتى تحتاج إنجاز العمل؟",
+     "ms": 11235
+    },
+    {
+     "role": "customer",
+     "text": "خلال أسبوعين."
+    },
+    {
+     "role": "agent",
+     "text": "تمام، أسبوعان مسجلان. هل الفيلا مسكونة أثناء العمل؟",
+     "ms": 9268
+    },
+    {
+     "role": "customer",
+     "text": "مو متأكد، شو تنصحني؟"
+    },
+    {
+     "role": "agent",
+     "text": "هذا ملخص طلبك:\nدهان سور فيلا من الخارج، في البرشاء، والفيلا ملك.\nطول السور 60 متراً وارتفاعه 2.5 متر، أي نحو 150 متراً مربعاً.\nالصبغ القديم باهت وفيه أملاح وتقشر تحت.\nالمطلوب دهان أكريليك خارجي فوق طبقة أساس مقاومة للقلويات، بدل الصبغ البلاستيكي الداخلي.\nيُنفذ العمل خلال أسبوعين.\nيتم تأكيد التفاصيل التالية في زيارة المورد للموقع: ترتيب المكان، وهل الفيلا مسكونة أثناء العمل.\nهل هذا صحيح؟",
+     "ms": 13367
+    },
+    {
+     "role": "customer",
+     "text": "نعم، صحيح."
+    }
+   ]
+  }
+ ]
+}

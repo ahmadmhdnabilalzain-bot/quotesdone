@@ -1,6 +1,6 @@
 // Replays the two faults the 22 Sep 2026 review of PR #804 found. Run: deno test supabase/functions/_shared/suppression_policy.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { blocksTransactional, fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES, suppressionStops } from './suppression_policy.ts';
+import { blocksTransactional, fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES, senderAuthenticated, suppressionStops } from './suppression_policy.ts';
 
 Deno.test('an unsubscribed address still receives a sign-in code; a hard-bounced or complained one does not', () => {
   assert(!blocksTransactional('unsubscribe'));
@@ -10,8 +10,9 @@ Deno.test('an unsubscribed address still receives a sign-in code; a hard-bounced
 });
 
 Deno.test('an unsubscribe stops only the invitation and its reminders; a bounce stops everything', () => {
-  assertEquals([...OPT_OUT_TYPES], ['supplier_invite', 'supplier_registration_reminder', 'supplier_rfq_widened_invite']);
-  for (const t of ['supplier_invite', 'supplier_registration_reminder', 'supplier_rfq_widened_invite']) assert(suppressionStops('unsubscribe', t), t);
+  assertEquals([...OPT_OUT_TYPES], ['supplier_invite', 'supplier_invite_nudge', 'supplier_registration_reminder', 'supplier_rfq_widened_invite']);
+  // the reminder of an unopened invitation is stopped too: a nudge queued before the "stop" never leaves (ledger 1401 audit S6)
+  for (const t of ['supplier_invite', 'supplier_invite_nudge', 'supplier_registration_reminder', 'supplier_rfq_widened_invite']) assert(suppressionStops('unsubscribe', t), t);
   for (const t of ['new_inquiry', 'rfq_quote_reminder', 'rfq_short_of_quotes', 'reveal_outcome_check', 'quote_accepted', 'registration_received', 'reveal_no_response_notice', 'nonresponse_charge', 'login_otp']) {
     assert(!suppressionStops('unsubscribe', t), t);
     assert(suppressionStops('hard_bounce:permanent', t), t);
@@ -67,4 +68,17 @@ Deno.test('our own domains and the admin addresses can never be suppressed by an
   assert(neverSuppressible('zz.demo.founder@example.invalid', ['ZZ.Demo.Founder@example.invalid']));
   assert(!neverSuppressible('zz.demo.supplier@example.invalid', ['zz.demo.founder@example.invalid']));
   assert(!neverSuppressible('a@notquotesdone.com', []));
+});
+
+Deno.test('senderAuthenticated reads the lane: EOP for an m365 handover, SES for the rest, never the other way (review of #1699)', () => {
+  const eop = 'spf=pass (sender IP is 209.85.128.41) smtp.mailfrom=supplier.ae; dkim=pass (signature was verified) header.d=supplier.ae;dmarc=pass action=none header.from=supplier.ae;compauth=pass reason=100';
+  const eopFail = 'spf=fail (sender IP is 203.0.113.9) smtp.mailfrom=supplier.ae; dkim=none (message not signed) header.d=none;dmarc=fail action=quarantine header.from=supplier.ae;compauth=fail reason=000';
+  const ses = 'amazonses.com; spf=pass (spfCheck) envelope-from=b@supplier.ae; dkim=pass header.i=@supplier.ae; dmarc=pass header.from=supplier.ae;';
+  assert(senderAuthenticated('m365:AAMk1', eop, 'info@supplier.ae'));
+  assert(!senderAuthenticated('m365:AAMk1', eopFail, 'info@supplier.ae'));        // a spoofed From fails EOP's DMARC
+  assert(!senderAuthenticated('m365:AAMk1', eop, 'info@other.ae'));              // EOP passed another domain
+  assert(!senderAuthenticated('m365:AAMk1', ses, 'info@supplier.ae'));           // an SES verdict on the m365 lane is not EOP's
+  assert(senderAuthenticated('re_123', ses, 'info@supplier.ae'));
+  assert(!senderAuthenticated('re_123', eop, 'info@supplier.ae'));               // an EOP-shaped header on the SES lane is refused
+  assert(!senderAuthenticated(null, eop, 'info@supplier.ae'));
 });

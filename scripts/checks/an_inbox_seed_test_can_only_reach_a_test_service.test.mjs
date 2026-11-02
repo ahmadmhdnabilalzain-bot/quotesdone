@@ -10,10 +10,12 @@ test('a mail-tester address (and its srv subdomain) is accepted', () => {
   assert.equal(seedAddressAllowed('x@mail-tester.com'), true);
 });
 
-test("the founder's own two inboxes are accepted, and nobody else on those domains", () => {
-  assert.equal(seedAddressAllowed('ahmadmhdnabilalzain@gmail.com'), true);
-  assert.equal(seedAddressAllowed('Management@QuotesDone.com'), true);
-  assert.equal(seedAddressAllowed('management@doratajewelries.com'), true);
+// 27 Oct 2026: the founder, "stop doing tests on my email. thats extremely useless". His own inboxes are refused.
+test("the founder's own inboxes are refused, and nobody else on those domains is accepted", () => {
+  for (const a of ['ahmadmhdnabilalzain@gmail.com', 'Management@QuotesDone.com', 'management@doratajewelries.com',
+    'djzaino@outlook.com', 'bookings@djzaino.com', 'fati.labib@icloud.com', 'ahmadmhdnabilalzain+seed@gmail.com']) {
+    assert.equal(seedAddressAllowed(a), false, a);
+  }
   assert.equal(seedAddressAllowed('info@doratajewelries.com'), false);
   for (const a of ['info@quotesdone.com', 'someone@gmail.com', 'ahmadmhdnabilalzain@gmail.com.evil.ae']) assert.equal(seedAddressAllowed(a), false, a);
 });

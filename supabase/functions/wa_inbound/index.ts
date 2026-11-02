@@ -1,6 +1,6 @@
 // wa_inbound v10 - smart WhatsApp responder on the API number (+1 218 316 6814).
 // v5-v9: see history below. v10 adds WEBHOOK AUTHENTICITY (see PROVENANCE block).
-// v5: may share the published direct line (+971 50 931 9355) when someone asks for a human.
+// v5: may share the published WhatsApp contact (+1 218 316 6814) when someone asks for a human.
 // v6: BIDI-SAFE Arabic (LTR runs wrapped in U+2066/U+2069 isolates).
 // v7: AUDIENCE AWARENESS via fn_identify_contact() phone lookup + wording inference.
 // v8: SEND FAILURES ARE NO LONGER SILENT.
@@ -53,6 +53,7 @@ import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 import { waRow } from './wa_row.ts';
+import { waConversation } from '../_shared/wa_history.ts';
 import { budgetLeft, holdUnwritten, modelSays } from './model_says.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
@@ -331,6 +332,8 @@ async function handleSupplierDoc(leadId: number, url: string, declaredMime: stri
   // licence on file, and license_doc_path is what unblocks the approval gate.
   const upd: Record<string, unknown> = {
     license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString(),
+    // What the old licence printed never judges a new one (2 Nov 2026, ledger 1442).
+    trade_license_no: null, license_authority: null, license_expiry: null,
     // The name printed on this licence, read by the vision model off the photo or scan; null = not read,
     // and the review then holds the registration for a human (licence_name_unread).
     licence_legal_name: licenceNameFromModel(doc),
@@ -544,6 +547,18 @@ async function handleInbound(req: Request): Promise<Response> {
         return TW(200);
       }
     }
+    // ---- A SUPPLIER LEAD'S OPT-IN IS THE BUTTON OR A YES TO THE CONSENT QUESTION, NEVER JUST A MESSAGE ----
+    // (marketing, 27 Oct 2026, rulings 1184 and 1341.) Meta lets a business send a template only to a person who opted
+    // in. Founder ledger 1341: an opt-in counts only when the supplier taps "Set up my page" (ButtonPayload
+    // 'supplier_invite_yes') or answers yes to a message that asked the consent question; "who is this?" is not one.
+    // fn_marketing_files_wa_invite_reply decides with fn_wa_optin_rule (the one shared check) and records an opt-in only
+    // then. ButtonPayload is passed as Twilio sent it, so a typed "Set up my page" (no payload) is not a tap. When the
+    // lead was invited on any channel and has no company page yet the message is still filed as 'invite.reply'
+    // marketing -> sales_engineer. It never ends the turn: the supplier still gets the normal answer.
+    if (!isStop(Body)) {
+      const { error: repErr } = await admin.rpc('fn_marketing_files_wa_invite_reply', { p_from: From, p_body: Body.slice(0, 4000), p_button_payload: ButtonPayload || null });
+      if (repErr) await logRun('error', { invite_reply: 0 }, 'a WhatsApp message from a possible supplier lead was not filed: ' + repErr.message + '; the turn continues.');
+    }
 
 
     // ---- THE WORDS OF EVERY CONVERSATION REPLY (rulings 1195/1196/1197, 12 Oct 2026) ----------------------------
@@ -553,12 +568,21 @@ async function handleInbound(req: Request): Promise<Response> {
     // modelEscalate: the model's own reading that a person is needed (a complaint, a dispute, a request for one), OR-ed
     // with fn_wa_route's needs_a_person, so a complaint the router misses still reaches a person (review of #1335).
     let modelEscalate = false;
-    const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en') => {
-      const r = await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
+    // OPENROUTER DOWN ON THIS TURN (founder_instruction 1339): set by the last say; heldTurn sends its fixed notice only then.
+    let sayOutage = false;
+    // WHY THE LAST SAY'S DRAFTS WERE REFUSED (aiReply.problems): filed with the turn so the re-ask names them (_shared/reask.ts).
+    let sayProblems: string[] = [];
+    // THE WHOLE CONVERSATION, EVERY TURN (2 Nov 2026): this number's earlier turns, read once per turn (_shared/wa_history.ts).
+    let history: ReturnType<typeof waConversation> | null = null;
+    const sayFor = (aud: 'customer' | 'supplier' | 'visitor' | 'founder') => async (situation: string, lang: 'en' | 'ar' = /[؀-ۿ]/.test(Body) ? 'ar' : 'en', must?: string[]) => {
+      history ??= waConversation(admin, From, receivedAt, isDemoPhone(From));
+      const r = await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation, conversation: await history,
         budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
         rateKey: 'wa:' + From,   // the per-number ceiling (20/hour) the old prompt path had
-        subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From } });
+        subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, ...(must?.length ? { must } : {}) });
       modelEscalate = modelEscalate || r.escalate;
+      sayOutage = !r.text && r.outage;
+      sayProblems = r.text ? [] : (r.problems ?? []);
       return r.text;
     };
     // `audience` is resolved further down; `say` is only called after that (the spec-offer branch uses sayFor('customer')).
@@ -569,7 +593,7 @@ async function handleInbound(req: Request): Promise<Response> {
     // sends the written answer here (reasoned_delivery.ts); still unanswered after 15 minutes it is escalated to
     // customer_support (fn_reason_held_escalate, scripts/sql/an_unwritten_conversation_reply_reaches_its_seat_in_fifteen_minutes.sql).
     const heldTurn = (aud: 'customer' | 'supplier' | 'visitor' | 'founder', lang: 'en' | 'ar', situation: string, why: string) =>
-      holdUnwritten({ from: From, body: Body, messageSid: MessageSid || null, audience: aud, lang, situation, why,
+      holdUnwritten({ from: From, body: Body, messageSid: MessageSid || null, audience: aud, lang, situation, why, outage: sayOutage, problems: sayProblems,
         enabled: async () => (await sec('wa_autoreply_enabled')) === 'true', send: (t) => sendWa(From, t),
         rpc: async (f, a) => { const r = await admin.rpc(f, a); return { data: r.data, error: r.error }; } });
 
@@ -594,8 +618,10 @@ async function handleInbound(req: Request): Promise<Response> {
         let lang: 'en' | 'ar' = 'en';
         if (so.customer_id) lang = await registeredLocale(admin, { role: 'customer', customerId: String(so.customer_id) });
         let text = '';
-        const sayC = (situation: string) => sayFor('customer')(situation, lang);
-        let notice = false;   // the accepted-offer confirmation is a NOTIFICATION (kept templated); everything else is the model's
+        const sayC = (situation: string, must?: string[]) => sayFor('customer')(situation, lang, must);
+        // notice: the templated confirmation went out because OpenRouter was down (founder_instruction 1339). The accepted
+        // offer's confirmation is a reply to their message, so the model writes it from the template; never otherwise.
+        let notice = false;
         if (so.ok === true) {
           const { data: offer } = await admin.from('spec_alternative_offer')
             .select('item,label_en,label_ar,requested,alternatives,accepted_value,inquiry_id').eq('id', so.offer_id).single();
@@ -616,7 +642,11 @@ async function handleInbound(req: Request): Promise<Response> {
                 const { error: pErr } = await admin.rpc('fn_arabic_outbound_park', { p_texts: msg.untranslated, p_rows: rows });
                 if (pErr) await logRun('error', { route: 'spec_offer_reply', parked: 0 }, 'the Arabic confirmation could not be parked: ' + pErr.message);
               }
-            } else if (so.state === 'accepted') { text = msg.body; notice = true; }
+            } else if (so.state === 'accepted') {
+              text = await sayC('They chose an alternative and it is recorded. Our written confirmation, to convey accurately in your own words (keep the job number, the item and the accepted value exactly):\n' + msg.body,
+                inq?.rfq_no ? [String(inq.rfq_no)] : undefined);
+              if (!text && sayOutage) { text = msg.body; notice = true; }   // OpenRouter down: the template is the outage fallback
+            }
             else text = await sayC('They declined the alternatives offered for job ' + String(inq?.rfq_no ?? '') + '. What we tell them about it (convey it accurately):\n' + msg.body);
           }
         } else if (so.error === 'unknown_option') {
@@ -656,6 +686,22 @@ async function handleInbound(req: Request): Promise<Response> {
       if (idres && idres.audience) { audience = String(idres.audience); known = idres; }
     } catch (_e) { /* fall back to inference */ }
 
+    // WHERE THE SECONDS GO (2 Nov 2026, measured on the real exchange: 26-47 s a supplier turn against a 45 s reply budget,
+    // two turns in twelve unanswered). The reads below were awaited ONE AFTER ANOTHER after the classification call; none
+    // depends on it, so they start now and run beside it. `timings` (ms since arrival) rides on the turn's row so the next
+    // measurement names the stage. Prevented by: the_whole_exchange.test.ts (the reads start before the reply is asked for).
+    const timings: Record<string, number> = {};
+    const mark = (k: string) => { timings[k] = Date.now() - Date.parse(receivedAt); };
+    const soft = <T>(p: PromiseLike<T>, empty: T): Promise<T> => Promise.resolve(p).then((v) => v, () => empty);
+    const prefetch = {
+      timeline: soft(admin.rpc('fn_contact_timeline', { p_contact: From, p_limit: 40 }), { data: null } as never),
+      mine: soft(admin.rpc('fn_wa_context', { p_audience: audience, p_phone: From }), { data: null } as never),
+      company: soft(admin.rpc('fn_company_context', { p_max_chars: 6000, p_audience: 'public' }), { data: null } as never),
+      faq: soft(retrieveFaq(Body), { ctx: '', ids: [] as number[] }),
+    };
+    history ??= waConversation(admin, From, receivedAt, isDemoPhone(From));
+    mark('identified');
+
     // ---- THE WELCOME AND THE MENU (22 Sep 2026, founder_instruction 759) ---------------------------
     // "said hi, got no response. Even without the LLM there should be automatic replies: a professional
     // welcome message and options." menu_flow.ts decides; this block only wires it to the database and
@@ -678,7 +724,8 @@ async function handleInbound(req: Request): Promise<Response> {
     const meaningIn = async (): Promise<WaMeaningInput> => {
       const { data: rows } = await admin.from('wa_reply_intent').select('intent_key,label').eq('active', true).order('sort').order('intent_key');
       return { message: Body, intents: (rows || []) as WaMeaningInput['intents'], trades: await menuDeps.trades(), phone: From,
-               messageSid: MessageSid || null, audience: (['customer', 'supplier', 'founder'].includes(audience) ? audience : 'unknown') as WaMeaningInput['audience'] };
+               messageSid: MessageSid || null, audience: (['customer', 'supplier', 'founder'].includes(audience) ? audience : 'unknown') as WaMeaningInput['audience'],
+               conversation: history ? await history : [] };
     };
     // Both languages' titles, so a typed Arabic title is recognised as surely as an English one.
     // Paired by option id, never by position, so the two languages cannot drift onto each other's option.
@@ -809,7 +856,8 @@ async function handleInbound(req: Request): Promise<Response> {
       },
       // A customer or supplier reply passes support_reply_guard.ts (FAQ rows can carry the licence number);
       // the founder's own command channel is not a customer surface and is left as it is.
-      write: (r) => sayFor(r.audience === 'unknown' ? 'visitor' : r.audience)(r.situation, r.lang),
+      write: (r) => sayFor(r.audience === 'unknown' ? 'visitor' : r.audience)(r.situation, r.lang, r.must),
+      outage: () => sayOutage,
       held: (r) => heldTurn(r.audience === 'unknown' ? 'visitor' : r.audience, r.lang, r.situation, r.route),
       send: (to: string, text: string, content?: Content) => {
         const guarded = content ? text : (audience === 'founder' ? bidiSafe(text.slice(0, 1500)) : toContact(text.slice(0, 1500)));
@@ -864,7 +912,7 @@ async function handleInbound(req: Request): Promise<Response> {
     // them, and every message sent or received. Scoped to the sender's own number.
     let timeline: Record<string, unknown> | null = null;
     try {
-      const { data: tl } = await admin.rpc('fn_contact_timeline', { p_contact: From, p_limit: 40 });
+      const { data: tl } = await prefetch.timeline;
       timeline = (tl || null) as Record<string, unknown> | null;
     } catch (_e) { timeline = null; /* a missing timeline must never lose their message */ }
     const timelineEvents = Number((timeline as any)?.event_count ?? 0);
@@ -1015,7 +1063,16 @@ async function handleInbound(req: Request): Promise<Response> {
         const enabled = (await sec('wa_autoreply_enabled')) === 'true';
         let reply = ''; const results: string[] = []; let readText = '';
 
-        if (!leadId) {
+        // A VOICE NOTE IS NOT A DOCUMENT (2 Nov 2026). It reached the document intake, which accepts only a PDF or an
+        // image, so a supplier who spoke a question was told to "send the trade licence as a PDF or a clear photo".
+        // Nothing here transcribes WhatsApp audio (the format Gemini takes from a Twilio ogg is not established, see
+        // fn_wa_route.transcription_gap), so the honest answer is that it was not heard and a typed message will be.
+        // Prevented by: the_whole_exchange.test.ts.
+        const audioOnly = media.every((m) => /^audio\//i.test(m.mime));
+        if (audioOnly) {
+          results.push('voice note: not heard, no transcription on WhatsApp yet');
+          reply = await sayFor(leadId ? 'supplier' : 'visitor')('They sent a voice note. Voice notes cannot be listened to on WhatsApp yet, so nothing they said was heard and nothing was filed. Tell them so plainly, apologise briefly, and ask them to type the message here; a typed message is answered at once.', 'en');
+        } else if (!leadId) {
           // RULING 1177 (12 Oct 2026): a file from a number with no account is READ too (code first, then the vision
           // model, one more asking). It is never filed against a company — there is none — but its words are kept on this
           // conversation turn, so the next message on this chat is answered knowing what was sent. The reply says it was
@@ -1192,6 +1249,7 @@ async function handleInbound(req: Request): Promise<Response> {
     // on a guess (_shared/reasoned_decisions.ts).
     let needsPerson: boolean | null = null;
     if (Body.trim()) needsPerson = await needsPersonP();
+    mark('classified');
     // A person asked to review an automated decision (ledger 1152): it is filed with the seat that owns that decision
     // (review_route), decided by another model family. Only asked when the reasoning above already said a person.
     if (needsPerson === true) {
@@ -1252,7 +1310,7 @@ async function handleInbound(req: Request): Promise<Response> {
     // a supplier name, which is the same rule the portal enforces.
     let ownRecord = '';
     try {
-      const { data: mine } = await admin.rpc('fn_wa_context', { p_audience: audience, p_phone: From });
+      const { data: mine } = await prefetch.mine;
       if (mine && (mine as any).known === true) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else\'s):\n' + JSON.stringify(mine) + '\n';
       else if (mine && (mine as any).known === false) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD: no account matches this number, so answer generally and invite them to register or sign in rather than guessing at their status.\n';
     } catch (_e) { /* fall through with no record rather than dropping the message */ }
@@ -1290,11 +1348,11 @@ async function handleInbound(req: Request): Promise<Response> {
     // cannot be corrected by correcting the company.
     let companyBlock = '';
     try {
-      const { data: cc } = await admin.rpc('fn_company_context', { p_max_chars: 6000, p_audience: 'public' });
+      const { data: cc } = await prefetch.company;
       companyBlock = String((cc as Record<string, unknown> | null)?.block || '');
     } catch (_e) { companyBlock = ''; } // a thinner grounding beats a dropped WhatsApp message
 
-    const { ctx, ids } = await retrieveFaq(Body);
+    const { ctx, ids } = await prefetch.faq;
     // THE REPLY IS THE MODEL'S (1195-1197, _shared/ai_reply.ts via model_says.ts): the company brief, the model chain
     // (conversation_reply: claude-sonnet-5.5 -> gemini -> another family; ruling 1219), the figure and reply guard with a model rewrite, suppliers in English.
     // Everything code knows about this message goes in as facts: who they are, their own record, the database's own
@@ -1303,10 +1361,12 @@ async function handleInbound(req: Request): Promise<Response> {
       ownRecord.trim(), brainPack.trim(),
       detReply ? 'OUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\n' + detReply : '',
       ctx ? 'APPROVED FAQ FOR THIS MESSAGE (may be for the other audience; apply the audience rules):\n' + ctx : '',
-      route?.needs_a_person === true ? 'They need a person: give the direct contact (+971 50 931 9355, call or WhatsApp, Mon-Fri 9am-6pm GST; management@quotesdone.com) and say the team has their message.' : '',
+      route?.needs_a_person === true ? 'They need a person: give the direct contact (+1 218 316 6814, call or WhatsApp, Mon-Fri 9am-6pm GST; management@quotesdone.com) and say the team has their message.' : '',
       'Never volunteer supplier-side commercial terms to a customer. Do not promise that quote requests arrive immediately.',
       companyBlock ? 'COMPANY BLOCK (live):\n' + companyBlock : ''].filter(Boolean).join('\n\n');
+    mark('facts_ready');
     let reply = (await say(situation)).slice(0, 1200);
+    mark('reply_written');
     const llmFailed = !reply;
     const escalate = route?.needs_a_person === true || modelEscalate;
     const lang = /[؀-ۿ]/.test(reply || Body) ? 'ar' : 'en';
@@ -1322,13 +1382,13 @@ async function handleInbound(req: Request): Promise<Response> {
     let heldNotice = false;
     if (reply) { if (enabled) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; } }
     else {
-      // NOBODY IS LEFT SILENT: the held notice (a notification) now, the model's answer from the queue later.
-      const h = await heldTurn(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', lang, situation, llmFailed ? 'no_model_answer' : 'guard_refused');
-      reply = h.notice; sent = h.sent; sendErr = h.err ?? undefined; heldNotice = true;
+      // The turn is queued for the model's answer; the fixed held notice goes out now only if OpenRouter is down (1339).
+      const h = await heldTurn(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', lang, situation, sayOutage ? 'no_model_answer' : 'guard_refused');
+      reply = h.notice; sent = h.sent; sendErr = h.err ?? undefined; heldNotice = !!h.notice;
     }
 
     let rowSaved = true;
-    try { const { error: wErr } = await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { enabled, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, held_notice: heldNotice, model_written: !heldNotice, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
+    try { const { error: wErr } = await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { timings, enabled, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, held_notice: heldNotice, model_written: !heldNotice, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }
 
 
     // A captured fixture send (isDemoPhone: never handed to Twilio) is not a failed delivery: the QA channels run of 19 Oct

@@ -4,6 +4,7 @@
 
 ## Electrical works (electrical)
 - **Open:** What needs doing: new points, a repair or fault, a DB/load upgrade, lighting, or full rewiring of a fit-out? Which emirate and what type of property (villa, apartment, office, shop, warehouse)?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: what is being installed or fixed (the item, its rating and how many); services: the cable route and its distance from the main board, indoors or outdoors; performance: the supply (single or three phase) and the spare load at the board; permits: DEWA or building approval; location; timing
 - **Then ask (in order, one or two at a time):**
   - Is power on now and is anything unsafe (tripping, burning smell, hot sockets)? If yes: switch off at the breaker and treat as urgent.
   - Scope count: number of sockets, switches, light points, isolators (AC, water heater, cooker), outdoor points.
@@ -26,6 +27,7 @@
 
 ## Generators (generators)
 - **Open:** What is the generator for: standby when grid fails, prime power on a site with no grid, or an event/temporary hire? Buy or rent?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** usage: what it is for (standby, prime power or an event) and buy or rent; performance: the load it must carry (kVA or the equipment on it); system: fuel, silent canopy and changeover; location; timing
 - **Then ask (in order, one or two at a time):**
   - What must it run: whole building or essential loads only (lifts, pumps, lighting, servers, cold rooms)? Any motor starting loads?
   - Known size in kVA, or the connected load list / main breaker rating so suppliers can size it.
@@ -47,6 +49,7 @@
 
 ## Solar PV (solar)
 - **Open:** Grid-connected to cut the electricity bill, off-grid (farm, remote site), or hybrid with batteries for backup? Which emirate?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** performance: the electricity use (summer bills); size: usable roof area, orientation and shade; system: grid-connected or with batteries; ownership; location; timing
 - **Then ask (in order, one or two at a time):**
   - Property type and ownership; owner, or tenant with landlord consent?
   - Usable roof area, roof type (concrete flat, metal sheet, carport, ground mount) and shading (tanks, AC units, neighbouring towers).
@@ -67,6 +70,7 @@
 
 ## Smart home (smart-home)
 - **Open:** What should be smart: lighting, curtains/blinds, AC, security, intercom, audio, or all? New build/renovation, or an existing finished home?
+- **Must-haves (asked in this order, one or two a turn, then the summary):** scope: what should be smart (lighting, curtains, AC, security); size: rooms and floors; system: wired or wireless, one app; existing: a new build or a finished home (no breaking walls); location; timing
 - **Then ask (in order, one or two at a time):**
   - Property size: number of rooms and floors; villa or apartment.
   - Wired system (needs cabling, best at fit-out) or wireless retrofit (no wall chasing)?

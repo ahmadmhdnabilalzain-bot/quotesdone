@@ -88,7 +88,7 @@ try {
     const wantLang = c.audience === 'supplier' ? 'en' : c.lang;
     const langOk = text ? (wantLang === 'ar' ? AR.test(text) : !AR.test(text)) : false;
     // the SAME check aiReply runs: the brief, the turn's facts and the published contact are allowed (ai_reply.ts line 88)
-    const allowed = figureSource(brief) + '\n' + c.situation + '\n+971 50 931 9355 management@quotesdone.com';
+    const allowed = figureSource(brief) + '\n' + c.situation + '\n+1 218 316 6814 management@quotesdone.com';
     const problems = text ? replyProblems(text, briefNumbers(figureSource(brief) + ' ' + c.situation), { allowed }) : ['no reply'];
     const strictProblems = text ? replyProblems(text, briefNumbers(figureSource(brief) + ' ' + c.situation)) : [];
     let judge: number | null = null; let judgeWhy = "";

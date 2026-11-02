@@ -160,16 +160,56 @@ export function carriedFailures(state: StepState[], ranMs: Record<string, number
 // A DETACHED RUN'S FAILURES AS fn_it_duty_settle ITEMS (12 Oct 2026, it_engineer). `marketing` and `itlater`
 // run in their own invocation (index.ts, DETACHED), so their failures no longer reach the tick's heartbeat;
 // each failing sub-step is one item, keyed by its own name, so a nested runner's map is read per entry.
-export function detachedItems(name: string, out: unknown, nested: boolean) {
+// WHERE A DETACHED RUN SPENT ITS TIME (it_engineer, 27 Oct 2026). duty:detached_itlater:itlater reopened at 22:03:12Z
+// (seen 53) saying only "passed its 120000 ms limit": the 120 s race in runDetached threw away the run's per-step
+// results, and nothing stored per-step timing, so the finding could not say which of 25 steps was still running. Every
+// step of a nested run now reports to a StepClock the run shares with runDetached; the clock survives the race. Its
+// snapshot goes into the finding (title: the step still running and for how long; evidence.timing: every finished step
+// with its ms) and, for every run, pass or fail, into the function log as one `detached_timing` line.
+// prevented by: resilience_ping/steps.test.ts ("a detached run that overruns names the step it was in")
+export type StepTime = { step: string; ms: number; ok: boolean };
+export type Timing = { total_ms: number; steps: StepTime[]; running: { step: string; ms: number } | null };
+export type StepClock = { begin(step: string): void; end(step: string, ok: boolean): void; snapshot(): Timing };
+export function stepClock(now: () => number = Date.now): StepClock {
+  const t0 = now();
+  const steps: StepTime[] = [];
+  let running: { step: string; at: number } | null = null;
+  return {
+    begin(step) { running = { step, at: now() }; },
+    end(step, ok) {
+      const at = running?.step === step ? running.at : now();
+      steps.push({ step, ms: now() - at, ok });
+      running = null;
+    },
+    snapshot() {
+      return { total_ms: now() - t0, steps: steps.map((s) => ({ ...s })), running: running ? { step: running.step, ms: now() - running.at } : null };
+    },
+  };
+}
+/** "running routine_judgements for 93410 ms; slowest finished review_requests 12034 ms" - empty when nothing was timed. */
+export function timingLine(t: Timing | undefined): string {
+  if (!t) return '';
+  const parts: string[] = [];
+  if (t.running) parts.push('running ' + t.running.step + ' for ' + t.running.ms + ' ms');
+  const slow = [...t.steps].sort((a, b) => b.ms - a.ms)[0];
+  if (slow) parts.push('slowest finished ' + slow.step + ' ' + slow.ms + ' ms');
+  return parts.join('; ');
+}
+
+export function detachedItems(name: string, out: unknown, nested: boolean, timing?: Timing) {
   // A whole-run failure (the 120 s cap, a throw) is {ok:false,error} even for a nested runner: it is ONE item
   // under the step's name, never read entry by entry, or an empty list would close open findings over a hung run.
   const whole = failureOf(out);
-  if (whole) return [{ item: name, title: 'detached ' + name + ' failed: ' + whole, owner_seat: 'it_engineer',
-    subject: 'resilience_ping', blast: 'agent_facing', affected: 1, evidence: { step: name, error: whole } }];
+  const line = timingLine(timing);
+  if (whole) return [{ item: name, title: ('detached ' + name + ' failed: ' + whole + (line ? ' (' + line + ')' : '')).slice(0, 300),
+    owner_seat: 'it_engineer', subject: 'resilience_ping', blast: 'agent_facing', affected: 1,
+    evidence: { step: name, error: whole, ...(timing ? { timing } : {}) } }];
   const parts: Record<string, unknown> = nested && out && typeof out === 'object' ? out as Record<string, unknown> : { [name]: out };
   return Object.entries(parts).flatMap(([k, v]) => {
     const f = failureOf(v);
+    const ms = timing?.steps.find((s) => s.step === k)?.ms;
     return f ? [{ item: k, title: 'detached ' + name + ' step ' + k + ' failed: ' + f, owner_seat: 'it_engineer',
-      subject: 'resilience_ping', blast: 'agent_facing', affected: 1, evidence: { step: name, sub: k, error: f } }] : [];
+      subject: 'resilience_ping', blast: 'agent_facing', affected: 1,
+      evidence: { step: name, sub: k, error: f, ...(ms !== undefined ? { ms } : {}), ...(timing ? { timing } : {}) } }] : [];
   });
 }

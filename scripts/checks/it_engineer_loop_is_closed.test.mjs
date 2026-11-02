@@ -120,15 +120,24 @@ test('a receiving seat cannot close an it_engineer handoff; the it_engineer can'
         values (t.to_seat, 'handoff', 'pending', 'low', 'ZZ DEMO close probe',
                 jsonb_build_object('type', t.type, 'from', 'it_engineer', 'to', t.to_seat), 'probe', 'zz_probe:' || n)
         returning id into v_id;
+        -- Both attempts CITE the handover note (evidence.cites_note from fn_handoff_note_citation, what
+        -- fn_seat_handoff_complete writes). Since 27 Oct (a_handoff_closes_only_when_its_receiver_cites_the_note_or_
+        -- says_why_not.sql, ledger 1013) trigger a02 refuses an uncited close with 23514, which failed the
+        -- originator's close here AND would have let a02, not z61, account for the receiver's refusal. With the note
+        -- cited, z61 is the only thing that can refuse the receiver, which is what this test is about.
         begin
           perform set_config('qd.handoff_closer', t.to_seat, true);
           perform set_config('qd.backup_closer', t.to_seat, true);
-          update public.agent_actions set status = 'done' where id = v_id;
+          update public.agent_actions set status = 'done', evidence = coalesce(evidence, '{}'::jsonb)
+                 || jsonb_build_object('cites_note', public.fn_handoff_note_citation(v_id))
+           where id = v_id;
         exception when others then refused := refused + 1; end;
         -- qd.backup_closer too: the backup build's own trigger (z60) reads that name for its two types.
         perform set_config('qd.handoff_closer', 'it_engineer', true);
         perform set_config('qd.backup_closer', 'it_engineer', true);
-        update public.agent_actions set status = 'done' where id = v_id and status <> 'done';
+        update public.agent_actions set status = 'done', evidence = coalesce(evidence, '{}'::jsonb)
+               || jsonb_build_object('cites_note', public.fn_handoff_note_citation(v_id))
+         where id = v_id and status <> 'done';
         if found then closed := closed + 1; end if;
       end loop;
       raise exception 'CHK<<%>>', json_build_object('conversations', n, 'refused', refused, 'originator_closed', closed);
@@ -420,4 +429,20 @@ test('successive reverify calls reach and close the closable tail', { skip: SKIP
   assert.equal(r.final_closed, 0, `a call after the drain still found handoffs to close: earlier calls never reached them ${JSON.stringify(r)}`);
   assert.equal(r.final_escalated, 0, `a call after the drain still found handoffs to escalate ${JSON.stringify(r)}`);
   assert.ok(r.slowest_ms < 3000, `one reverify call took ${r.slowest_ms} ms; its budget is 1 s`);
+});
+
+// CLEARED FINDINGS FIRST (it_engineer, 27 Oct 2026). With escalations at ~150-200 ms each, an oldest-first walk spent its
+// 1 s before reaching the newest ~280 handoffs, so a seat whose fix cleared its finding stayed open behind the backlog:
+// the_accountant_closes_every_loop_it_opens failed with "handoff 308365 ... reads pending after re-verification", and
+// one call closed 0 where the cleared-first walk closed 21 (rolled back, production). The body that will run (the
+// last MANIFEST or pending file that defines it) must order the walk by the cleared test before the id.
+// the_it_loop_reverify_walks_cleared_findings_first_so_a_close_is_never_starved.sql
+test('the reverify walk takes cleared findings first, then the rest by id', () => {
+  const def = manifestWithPending().map((f) => readFileSync(join(REPO, f), 'utf8'))
+    .filter((t) => /function public\.fn_it_loop_reverify\(\)/i.test(t)).pop();
+  assert.ok(def, 'no file defines fn_it_loop_reverify');
+  const body = def.slice(def.search(/function public\.fn_it_loop_reverify\(\)/i));
+  const walk = body.slice(body.indexOf('for h in select'), body.indexOf(' loop', body.indexOf('for h in select')) + 5);
+  assert.match(walk, /order by coalesce\(f0\.issue_key is null or f0\.closed_at is not null\s+or f0\.started_at > \(a\.detail->>'occurrence_started_at'\)::timestamptz, false\) desc,\s+a\.id loop/,
+    'fn_it_loop_reverify walks oldest first again: a cleared handoff can wait behind the escalation backlog for ever');
 });

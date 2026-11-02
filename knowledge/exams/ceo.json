@@ -11,11 +11,11 @@
         "ceo:network-effects-and-defensibility"
       ],
       "expected_facts": [
-        "one network per trade and area"
+        "one network per trade"
       ],
       "q_reworded": "Is our marketplace one big network where every new user helps everyone?",
       "answer_must": [
-        "No: network effects are local, one network per trade and area",
+        "No: network effects are local, one network per trade (every supplier covers the whole UAE)",
         "Defensibility is built cell by cell"
       ]
     },

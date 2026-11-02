@@ -40,13 +40,14 @@ const REF = 'htdblwldjkcgjvmqkbeh';
 const PROJECT_URL = `https://${REF}.supabase.co`;
 // Inbox-placement test services only. A subdomain of one of these is accepted (srv1.mail-tester.com).
 export const SEED_DOMAINS = ['mail-tester.com', 'glockapps.com', 'mailgenius.com', 'dkimvalidator.com', 'appmaildev.com', 'learndmarc.com'];
-// The founder's OWN inboxes, exact match only (marketing, ledger 993, 24 Sep 2026: placement is read in
-// his Gmail and his Outlook). Never a domain: a colleague at quotesdone.com is still a real person.
-export const FOUNDER_INBOXES = ['ahmadmhdnabilalzain@gmail.com', 'management@quotesdone.com', 'management@doratajewelries.com'];
+// The founder's OWN inboxes are NOT seed addresses (27 Oct 2026, it_engineer). Until then a FOUNDER_INBOXES list let a
+// seed reach his Gmail, management@quotesdone.com and management@doratajewelries.com (ledger 993). He said, 27 Oct
+// 2026, "stop doing tests on my email. thats extremely useless": GlockApps seeds decide deliverability (ledger 1312,
+// 1344). The list is gone, and the database refuses the same rows
+// (scripts/sql/no_test_mail_goes_to_the_founders_own_inboxes.sql).
 export function seedAddressAllowed(addr) {
   const m = /^[a-z0-9._+-]+@([a-z0-9.-]+)$/i.exec(String(addr || '').trim());
   if (!m) return false;
-  if (FOUNDER_INBOXES.includes(String(addr).trim().toLowerCase())) return true;
   const host = m[1].toLowerCase();
   return SEED_DOMAINS.some((d) => host === d || host.endsWith('.' + d));
 }

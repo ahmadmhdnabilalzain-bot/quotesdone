@@ -47,6 +47,9 @@ export interface DeliveryIO extends BooksIO, OutreachIO {
    *  ladder; rulings 1195/1196). null when no model answered — then nothing is sent. */
   writeReply(question: string, lang: 'en' | 'ar', o?: { channel?: string; note?: string; subject?: Record<string, unknown>;
     audience?: 'customer' | 'supplier' | 'visitor' | 'founder'; facts?: string; seat?: 'customer_support' | 'sales_engineer' }): Promise<string | null>;
+  /** writeReply with the model's state: outage is true only when no call reached a model (openrouter_down.ts), the one case
+   *  a code-written notice may go out (founder ruling 1339). Optional: an io without it never sends a code-written notice. */
+  writeNotice?(question: string, lang: 'en' | 'ar', o?: { channel?: string; note?: string; subject?: Record<string, unknown>; facts?: string; must?: string[] }): Promise<{ reply: string; outage: boolean }>;
   /** A model-written, guarded reply posted into a supplier's quotation thread (never one that is submitted or closed). */
   postQuoteReview?(reviewId: string, text: string): Promise<Sent>;
   /** A held DM's grounded reply, sent by marketing_social_inbox on the platform (reasoned_reply). */
@@ -66,12 +69,16 @@ export interface DeliveryIO extends BooksIO, OutreachIO {
    *  files the pending inbound_review a customer who asked for a person is owed. */
   emailReply?(messageId: number, text: string, person: boolean): Promise<Sent>;
 }
-export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'accountant_sweep' | 'bookkeeper' | 'outreach_follow_up' | 'email' | 'portal' | 'none'; detail?: string };
+/** 'unwritten': the model was up and nothing it wrote passed — nothing was sent. fn_reason_held_delivered puts the row back
+ *  to 'held' (scripts/sql/an_unwritten_person_notice_goes_back_to_the_replay.sql; without it the row stayed 'reasoned',
+ *  which nothing reads), so fn_reason_held_due asks again after 10 minutes; at its third try the row is 'failed',
+ *  fn_reason_held_escalate hands it to customer_support, and the person is owed the model-written holding notice. */
+export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'accountant_sweep' | 'bookkeeper' | 'outreach_follow_up' | 'email' | 'portal' | 'unwritten' | 'none'; detail?: string };
 
 const isAr = (s: string) => /[؀-ۿ]/.test(s);
 
 /** WhatsApp: free text inside the window, the approved template outside it. */
-async function whatsapp(io: DeliveryIO, phone: string, question: string, text: string): Promise<Delivery> {
+export async function whatsapp(io: DeliveryIO, phone: string, question: string, text: string): Promise<Delivery> {
   if (await io.waWindowOpen(phone)) {
     const s = await io.sendWaText(phone, text);
     return { delivered: s.ok, via: 'whatsapp_text', detail: s.err };
@@ -96,12 +103,27 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
     if (choice !== 'needs_a_person') return { delivered: false, via: 'none', detail: 'reasoned: no person is needed; the reply already went' };
     const phone = String(subject.phone ?? '');
     if (!phone) return { delivered: false, via: 'none', detail: 'no phone on the held row' };
-    const contact = (await io.founderContact()) ?? '';
-    const text = isAr(question)
-      ? `شكرًا لصبركم. إن كنتم تفضّلون التحدث مع شخص مباشرةً، يمكنكم الاتصال أو المراسلة على ${contact}، ويجيب عليه مالك الشركة.`
-      : `Thank you for your patience. If you would rather speak to someone directly, call or message ${contact}, which is answered by the owner.`;
-    await io.reportToCeo('reasoned:person:' + row.id, 'A held WhatsApp message was reasoned to need a person and was given the public contact',
-      { held_id: row.id, message: question.slice(0, 300), reasoning: r.answer.slice(0, 500) });
+    const contact = ((await io.founderContact()) ?? '').trim();
+    const [, said] = splitHeldQuestion(question);
+    const lang: 'en' | 'ar' = isAr(said || question) ? 'ar' : 'en';
+    // THE MODEL WRITES THE CONTACT NOTICE (founder ruling 1339, extended by ledger 1348: any message a person reads as a
+    // reply is the model's; code-written text only when OpenRouter is down). The facts are code's: a person will follow
+    // up, and the direct line and who answers it. personContactNotice goes out only on an outage; with the model up and
+    // nothing it wrote passing (or a draft in the wrong language, or the brand in Arabic letters), nothing is sent and the
+    // row goes back to the replay (via 'unwritten'; fn_reason_held_delivered).
+    const w = io.writeNotice
+      ? await io.writeNotice(said || question, lang, { channel: 'WhatsApp', subject, facts: personContactFacts(contact), must: contact ? [contact] : undefined,
+        note: 'Plain text for WhatsApp, two sentences at most. They need a person. Thank them for their patience and tell them, in your own words, the facts given: a person will follow up with them, and the direct line (keep the number exactly, on its own line). Do not answer their question itself and do not promise a time.' })
+      : { reply: '', outage: false };
+    // A draft in the wrong language, or one that spells the brand in Arabic letters, is refused: it counts as unwritten.
+    const refused = personNoticeProblems(w.reply, lang);
+    const text = personNoticeDraft(w.reply, lang) || (w.outage ? personContactNotice(lang, contact) : '');
+    await io.reportToCeo('reasoned:person:' + row.id, text
+      ? 'A held WhatsApp message was reasoned to need a person and was given the public contact'
+      : 'A held WhatsApp message was reasoned to need a person; no model-written contact notice passed yet, so nothing was sent (1339)',
+      { held_id: row.id, message: question.slice(0, 300), reasoning: r.answer.slice(0, 500), written_by: personNoticeDraft(w.reply, lang) ? 'model' : w.outage ? 'outage_fallback' : 'none',
+        ...(refused.length ? { refused } : {}) });
+    if (!text) return { delivered: false, via: 'unwritten', detail: io.writeNotice ? 'model up, no contact notice it wrote passed the guards' + (refused.length ? ' (' + refused.join('; ') + ')' : '') + ': nothing code-written is sent (1339); asked again on replay' : 'no model writer: a code-written notice is never sent blind (1339)' };
     return await whatsapp(io, phone, question, text);
   }
 
@@ -258,16 +280,72 @@ export async function replayHeldComment(ev: Pick<CommentEvent, 'platform' | 'acc
   catch (e) { return { ok: false, err: String((e as Error)?.message || e).slice(0, 200) }; }
 }
 
-/** A question held 48 hours (or failed) was escalated to its seat (fn_reason_held_escalate). A WhatsApp customer
- *  is told it is being handled — once, by the row's escalation — under the same window rule as an answer. Other
- *  surfaces already replied at the time, or have no person waiting on a channel. */
+/** What the person-contact notice must convey: the model's facts (founder ruling 1339 / ledger 1348). */
+export function personContactFacts(contact: string): string {
+  return 'A person from our team will follow up with them.' + (contact
+    ? ' If they would rather speak to someone directly, they can call or message ' + contact + ', which is answered by the owner of the company.'
+    : ' They can reply in this same chat and a person will see it.');
+}
+/** The brand written in Arabic letters (kwts dn, with its variants of the vowel, the s and the n, spaced or not): every
+ *  customer reads it as "QuotesDone". */
+// written in escapes: a pattern, not a message (every_arabic_message_is_written_not_translated reviews messages)
+const ARABIC_BRAND = /\u0643[\u0648\u064F]?[\u062A\u0637][\u0633\u0632\u0635]\s*[-\u0640]?\s*\u062F[\u0648\u064F]?[\u0646\u06BB]/;
+const LATIN = /[A-Za-z]/g;
+const ARABIC_LETTERS = /[\u0621-\u064A\u0671-\u06D3]/g;
+/** Why a model draft of the person-contact notice is refused (empty: it may be sent). The person's language is
+ *  the notice's: an Arabic message gets Arabic, an English one gets no Arabic. Latin letters that are the brand, a
+ *  link or an e-mail address are not counted against an Arabic draft. */
+export function personNoticeProblems(draft: string, lang: 'en' | 'ar'): string[] {
+  const t = String(draft ?? '').trim();
+  if (!t) return [];
+  const out: string[] = [];
+  const ar = (t.match(ARABIC_LETTERS) ?? []).length;
+  const latin = (t.replace(/QuotesDone/gi, '').replace(/\S+@\S+|https?:\/\/\S+|\b[\w-]+\.(?:com|ae)\b/gi, '').match(LATIN) ?? []).length;
+  if (lang === 'ar' && ar <= latin) out.push('it is not in Arabic, the language they wrote in');
+  if (lang === 'en' && ar > 0) out.push('it carries Arabic, but they wrote in English');
+  if (ARABIC_BRAND.test(t)) out.push('it spells the brand in Arabic letters; it must read "QuotesDone"');
+  return out;
+}
+/** The model's draft when it passes personNoticeProblems, else '' (unwritten). */
+export function personNoticeDraft(draft: string, lang: 'en' | 'ar'): string {
+  const t = String(draft ?? '').trim();
+  return t && !personNoticeProblems(t, lang).length ? t : '';
+}
+/** The person-contact notice in code's words: sent ONLY when OpenRouter is down (Delivery of wa_inbound.needs_a_person).
+ *  With no published line on file it is the holding notice (a person has it, the reply comes here), never a blank number. */
+export function personContactNotice(lang: 'en' | 'ar', contact: string): string {
+  if (!contact) return HOLDING_NOTICE[lang];
+  return lang === 'ar'
+    ? `شكرًا لصبركم. إن كنتم تفضّلون التحدث مع شخص مباشرةً، يمكنكم الاتصال أو المراسلة على ${contact}، ويجيب عليه مالك الشركة.`
+    : `Thank you for your patience. If you would rather speak to someone directly, call or message ${contact}, which is answered by the owner.`;
+}
+
+/** The fixed holding notice: with personContactNotice, the ONLY code-written words here, sent only when OpenRouter is down
+ *  (founder ruling 1339). */
+export const HOLDING_NOTICE: Record<'en' | 'ar', string> = {
+  en: 'Thank you for your patience. Your question is now with our team and a person is handling it; we will reply here.',
+  ar: 'شكرًا لصبركم. سؤالكم لدى فريقنا الآن ويتابعه شخص مختص، وسنعود إليكم بالإجابة هنا.',
+};
+
+/** A question held 48 hours (or failed, or refused by every re-ask: _shared/reask.ts) was escalated to its seat
+ *  (fn_reason_held_escalate). A WhatsApp customer is told it is being handled — once, by the row's escalation — under the
+ *  same window rule as an answer. Other surfaces already replied at the time, or have no person waiting on a channel.
+ *  THE MODEL WRITES IT (founder ruling 1339, 27 Oct 2026: "the engineer and customer support never replies without llm
+ *  unless the server of open router is down"). Until this change the fixed line went out whatever the model's state. Now
+ *  writeNotice asks the model (aiReply: every guard), HOLDING_NOTICE goes only when no call reached a model (outage), and
+ *  with the model up and nothing it wrote passing, nothing is sent: the attempt is recorded and tried again (30 minutes,
+ *  fn_reason_held_notice_due). An io with no model writer sends nothing (fail closed: it cannot tell up from down). */
 export async function holdingNotice(row: { id: number; surface: string; question?: string; subject?: Record<string, unknown> | null }, io: DeliveryIO): Promise<Delivery> {
   const phone = String(row.subject?.phone ?? '');
   if (!phone) return { delivered: false, via: 'none', detail: 'no customer channel on ' + row.surface };
   const q = String(row.question ?? '');
-  const text = isAr(q)
-    ? 'شكرًا لصبركم. سؤالكم لدى فريقنا الآن ويتابعه شخص مختص، وسنعود إليكم بالإجابة هنا.'
-    : 'Thank you for your patience. Your question is now with our team and a person is handling it; we will reply here.';
+  const [, said] = splitHeldQuestion(q);
+  const lang: 'en' | 'ar' = row.subject?.audience === 'supplier' ? 'en' : isAr(said || q) ? 'ar' : 'en';
+  if (!io.writeNotice) return { delivered: false, via: 'none', detail: 'no model writer: a code-written notice is never sent blind (1339)' };
+  const w = await io.writeNotice(said || q, lang, { channel: 'WhatsApp', subject: row.subject ?? undefined,
+    note: 'Plain text for WhatsApp, two sentences at most. We could not answer their message yet. Thank them for their patience and tell them a member of our team now has their question and will reply in this same chat. Do not answer the question itself, do not promise a time, and do not say we will get back to them or contact them: say the reply will come here.' });
+  const text = w.reply.trim() || (w.outage ? HOLDING_NOTICE[lang] : '');
+  if (!text) return { delivered: false, via: 'none', detail: 'model up, no notice it wrote passed the guards: nothing code-written is sent (1339); tried again later' };
   return await whatsapp(io, phone, q, text);
 }
 
@@ -402,6 +480,13 @@ export function liveDeliveryIO(admin: Admin, seams: { master?: string; fetch?: F
         message: question, rules: o.note, facts: o.facts, subject: o.subject });
       return a.reply || null;
     },
+    writeNotice: async (question, lang, o = {}) => {
+      const { aiReply } = await import('./ai_reply.ts');
+      const { defaultDeps } = await import('./think.ts');
+      const a = await aiReply(defaultDeps(admin, 'reasoned_delivery'), { seat: 'customer_support', channel: o.channel ?? 'WhatsApp', audience: 'customer', lang,
+        message: question, rules: o.note, subject: o.subject, facts: o.facts, must: o.must });
+      return { reply: a.reply || '', outage: a.outage === true };
+    },
     postQuoteReview: async (reviewId, text) => {
       const { data: rv } = await admin.from('quote_reviews').select('id,status').eq('id', reviewId).maybeSingle();
       if (!rv || ['submitted', 'closed'].includes(String(rv.status))) return { ok: false, err: 'the thread is closed' };
@@ -427,6 +512,7 @@ export function liveDeliveryIO(admin: Admin, seams: { master?: string; fetch?: F
       // processComment's own insert takes a held_classify row over (marketing_social_store.ts); the row is never emptied.
       const { processComment } = await import('./marketing_social_comments.ts');
       const { adminStore, metaPageToken } = await import('./marketing_social_store.ts');
+      const { defaultDeps } = await import('./think.ts');
       const { accessToken } = await import('./marketing_social_oauth.ts');
       const { timedFetch } = await import('./timed_fetch.ts');
       const f = seams.fetch ?? timedFetch;
@@ -442,7 +528,8 @@ export function liveDeliveryIO(admin: Admin, seams: { master?: string; fetch?: F
         // TikTok (#898): the business account's own token, as the marketing duty uses it; replies post AS that account.
         tiktokToken: async () => String((await admin.from('app_secrets').select('value').eq('key', 'tiktok_business_token').maybeSingle()).data?.value ?? '').trim() || null,
         // deno-lint-ignore no-explicit-any
-        process: (tokenFor) => processComment(adminStore(admin, f, tokenFor, Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway'), ev, cls as any),
+        // gte-small in embed_ml (heartbeat placement): this runs in the resilience_ping replay worker, 2 s CPU cap (#1678)
+        process: (tokenFor) => processComment(adminStore(admin, f, tokenFor, Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway', defaultDeps(admin, 'marketing', { gte: 'remote' })), ev, cls as any),
       });
     },
     socialCommentHandoff: async (subject) => {

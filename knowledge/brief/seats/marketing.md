@@ -25,7 +25,7 @@
 - If the revealed supplier does not respond within 5 working days, everything you paid is refunded automatically. [marketing:company-pricing-message]
 - Registration is free permanently for the first 1,000 suppliers; after that the subscription is AED 1,000 a year. [marketing:company-pricing-message]
 - Never attach a date to this. [marketing:company-pricing-message]
-- Things the seat must not say: "free" without the reveal-fee condition; a fee cap or minimum (there is none); "from AED X" examples that imply a fixed price; "cheapest"; "no hidden fees" unless the processing charge is mentioned in the same sentence. [marketing:company-pricing-message]
+- Things the seat must not say: "free" without the reveal-fee condition; a fee cap or minimum (there is none); "from AED X" examples that imply a fixed price; "cheapest"; "no hidden fees" unless the same sentence says what the customer does pay: the 3% Reveal Fee, shown in full before payment, with no card fee added. [marketing:company-pricing-message]
 - Why the model matters for marketing economics: the fee scales with ticket size, so a fit-out or villa-renovation request is worth tens of times a cleaning request. [marketing:company-pricing-message]
 - The seat explains the fee plainly to every buyer, and directs paid effort to the categories where the fee can repay acquisition (see the category priority entry). [marketing:company-pricing-message]
 - The founder withdrew the AED 1M target; the plan model of 23 Sep 2026 is kept as the evidence base and read as scenarios. [marketing:company-plan-scenarios]

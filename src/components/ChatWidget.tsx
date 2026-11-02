@@ -3,6 +3,7 @@ import { photoToDataUrl } from '@/lib/chatPhoto';
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { useLocale } from 'next-intl';
+import { lookForStoredAnswer, noVerdict, readReply } from '@/lib/portalReply';
 
 // Was an inline `process.env.NEXT_PUBLIC_SUPABASE_URL || '<production ref>'`, which meant a
 // preview deployment missing the variable pointed the public chat widget at the LIVE database
@@ -10,19 +11,21 @@ import { useLocale } from 'next-intl';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 const FN = fnUrl('site_assistant');
 
-type Msg = { role: 'user' | 'assistant'; content: string };
+// signup: the server's sign-up button (site_assistant/visitor_scope.ts, founder ruling 18 Oct 2026). A visitor who is
+// not signed up is guided to register; the button is on every reply the server sends them.
+type Msg = { role: 'user' | 'assistant'; content: string; signup?: { url: string; label: string } };
 
 const T = {
   en: { title: 'QuotesDone Assistant', sub: 'Powered by the Smart Engine', open: 'Ask QuotesDone', close: 'Close',
-        ph: 'Ask about QuotesDone…', send: 'Send', thinking: 'Typing…',
-        greet: 'Hi! Ask me what a trade typically costs in the UAE, which documents a supplier will need, or how anonymous quotes work. Try one of these:',
-        chips: ['What does gypsum ceiling cost per sqm in Dubai?', 'Which documents will a fit-out supplier need?', 'كم تكلفة أرضيات SPC للمتر؟'],
+        ph: 'Ask about QuotesDone…', send: 'Send', thinking: 'Typing…', late: 'Still working on your answer…',
+        greet: 'Hi! Ask me what QuotesDone is, how it works, what it costs or why you can trust it. Ready to send a job? Sign up free and our sales engineer takes it from there. Try one of these:',
+        chips: ['How does QuotesDone work?', 'Is it free for customers?', 'How do you keep my details private?'],
         err: 'Sorry — something went wrong. Please try again, or email management@quotesdone.com.',
         photo: 'Photo', photoAdd: 'Add a photo or drawing', photoOn: 'Photo attached', photoOnly: '(photo)' },
   ar: { title: 'مساعد QuotesDone', sub: 'مدعوم بالمحرك الذكي', open: 'اسأل QuotesDone', close: 'إغلاق',
-        ph: 'اسأل عن QuotesDone…', send: 'إرسال', thinking: 'يكتب…',
-        greet: 'مرحباً! اسألني عن التكلفة المعتادة لأي نشاط في الإمارات، أو عن المستندات التي يحتاجها المورّد، أو عن طريقة عمل عروض الأسعار السرّية. جرّب أحد هذه الأسئلة:',
-        chips: ['كم تكلفة السقف الجبسي للمتر المربع في دبي؟', 'ما المستندات التي يحتاجها مورّد التشطيبات؟', 'كم تكلفة أرضيات SPC للمتر؟'],
+        ph: 'اسأل عن QuotesDone…', send: 'إرسال', thinking: 'يكتب…', late: 'ما زلتُ أعمل على إجابتك…',
+        greet: 'مرحباً! اسألني ما هي QuotesDone وكيف تعمل وما تكلفتها ولماذا يمكنك الوثوق بها. لديك طلب؟ سجّل مجانًا وسيتابع معك مهندس المبيعات لدينا. جرّب أحد هذه الأسئلة:',
+        chips: ['كيف تعمل QuotesDone؟', 'هل الخدمة مجانية للعملاء؟', 'كيف تحافظون على سرية بياناتي؟'],
         err: 'عذراً، حدث خطأ. يُرجى المحاولة مرة أخرى أو مراسلتنا على management@quotesdone.com.',
         photo: 'صورة', photoAdd: 'أرفق صورة أو مخططًا', photoOn: 'تم إرفاق الصورة', photoOnly: '(صورة)' }
 };
@@ -39,7 +42,7 @@ export function render(text: string) {
   let h = esc(text);
   h = h.replace(/(https?:\/\/[^\s<]+)/g, (m) => `<bdi><a href="${m}" target="_blank" rel="noopener noreferrer" style="color:#2DD4BF;font-weight:600">${m}</a></bdi>`);
   h = h.replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, (m) => `<bdi><a href="mailto:${m}" style="color:#2DD4BF;font-weight:600">${m}</a></bdi>`);
-  h = h.replace(/(^|[\s(])(\/(?:contact|me|supplier|faq|services|blog|about)\/?)(?![\w-])/g, (_m, p, path) => `${p}<bdi><a href="${path}" style="color:#2DD4BF;font-weight:600">${path}</a></bdi>`);
+  h = h.replace(/(^|[\s(])(\/(?:ar\/me|contact|me|portal|supplier|faq|services|blog|about)\/?)(?![\w-])/g, (_m, p, path) => `${p}<bdi><a href="${path}" style="color:#2DD4BF;font-weight:600">${path}</a></bdi>`);
   h = h.replace(/(\+?\d[\d\s\-()]{6,}\d)/g, (m) => `<bdi>${m}</bdi>`);
   return h.replace(/\n/g, '<br>');
 }
@@ -80,13 +83,24 @@ export function ChatWidget() {
     } catch (_e) { conv.current = ''; }
   }, []);
   // redrawn when the chat is opened (not on every page view): only a visitor who has one gets turns back
+  // restored is set only once the server ANSWERED: a history call that failed (a network blip, a 5xx) used to be marked done,
+  // so the chat stayed a bare greeting for the rest of the visit although the server held every turn (2 Nov 2026).
   const restored = useRef(false);
+  const restoring = useRef(false);
+  const readHistory = async (): Promise<Msg[] | null> => {
+    if (!conv.current) return null;
+    const r = await fetch(FN, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
+      body: JSON.stringify({ action: 'history', conv: conv.current }) });
+    const j = r.ok ? await r.json() : null;
+    return Array.isArray(j?.turns) ? j.turns : null;
+  };
   const restore = () => {
-    if (restored.current || !conv.current) return; restored.current = true;
-    fetch(FN, { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
-      body: JSON.stringify({ action: 'history', conv: conv.current }) })
-      .then((r) => r.json()).then((j) => { if (Array.isArray(j?.turns) && j.turns.length) setMsgs((m) => (m.length > 1 ? m : [{ role: 'assistant', content: t.greet }, ...j.turns])); })
-      .catch(() => { /* the next turn still reads the whole conversation on the server */ });
+    if (restored.current || restoring.current || !conv.current) return; restoring.current = true;
+    readHistory().then((turns) => {
+      if (turns === null) return;   // not answered: asked again the next time the chat opens
+      restored.current = true;
+      if (turns.length) setMsgs((m) => (m.length > 1 ? m : [{ role: 'assistant', content: t.greet }, ...turns]));
+    }).catch(() => { /* the next turn still reads the whole conversation on the server */ }).finally(() => { restoring.current = false; });
   };
 
   // On a phone the launcher sat over the hero's demonstration card. Below 640px it waits for the
@@ -114,11 +128,11 @@ export function ChatWidget() {
     setVal('');
     const next = [...msgs, { role: 'user' as const, content: m }];
     setMsgs(next); setBusy(true);
-    const show = (content: string) => setMsgs([...next, { role: 'assistant', content }]);
+    const show = (content: string, signup?: Msg['signup']) => setMsgs([...next, { role: 'assistant', content, ...(signup ? { signup } : {}) }]);
     try {
       const r = await fetch(FN, {
         method: 'POST',
-        // THE ANSWER STREAMS (12 Oct 2026, site_assistant/stream_reply.ts): a status line at once, then the finished,
+        // THE ANSWER STREAMS (12 Oct 2026, _shared/stream_reply.ts): a status line at once, then the finished,
         // checked reply a few words at a time. A server that does not stream answers JSON, read below as before.
         headers: { 'Content-Type': 'application/json', Accept: 'application/x-ndjson, application/json', apikey: ANON, Authorization: `Bearer ${ANON}` },
         // lang WAS NEVER SENT until 9 Sep 2026, so site_assistant resolved uiLang to 'en' on every
@@ -127,29 +141,23 @@ export function ChatWidget() {
         // history is only a first-turn fallback: site_assistant stores every turn and reads the whole conversation back by conv
         body: JSON.stringify({ message: m, lang: locale, history: next.slice(-40), path: pathname, conv: conv.current, ...(images.length ? { images } : {}) })
       });
-      if (r.body && (r.headers.get('content-type') || '').includes('ndjson')) {
-        const rd = r.body.getReader(); const dec = new TextDecoder();
-        let buf = '', text = '', final = '';
-        for (;;) {
-          const { done, value } = await rd.read();
-          if (done) break;
-          buf += dec.decode(value, { stream: true });
-          let k: number;
-          while ((k = buf.indexOf('\n')) >= 0) {
-            const line = buf.slice(0, k); buf = buf.slice(k + 1);
-            if (!line.trim()) continue;
-            const e = JSON.parse(line);
-            if (e.t === 'status') setStatus(e.text);
-            else if (e.t === 'reset') text = '';
-            else if (e.t === 'delta') { text += e.text; setStatus(''); show(text); }
-            else if (e.t === 'done') final = e.reply || '';
-          }
-        }
-        show(final || text || t.err);
-      } else {
-        const j = await r.json();
-        show((j && j.reply) || t.err);
+      // THE PORTAL'S READER (src/lib/portalReply.ts), not a second copy of it (2 Nov 2026): only the approved text is kept,
+      // a reset clears what was shown, and a cut stream or a 504 page reads as "no reply yet" instead of throwing, which
+      // used to print the error line over a half-written answer (the cut stream showed `text` as if it were the reply).
+      const j = await readReply(r, { status: setStatus, text: (s) => show(s) });
+      const signup = (j.done?.signup as Msg['signup']) || undefined;
+      // past the visitor cap with the model up but no line it wrote passing the guard, the server sends no text
+      // (founder_instruction 1339): the sign-up button alone is shown, never the error line.
+      const capOnly = j.done?.visitor_cap === true && !!signup;
+      let reply = j.reply;
+      // THE ANSWER THAT NEVER ARRIVED IS LOOKED FOR (2 Nov 2026). The server stores every turn under the conversation even
+      // when the connection drops, so the chat reads it back from the history for up to 45 s before it says anything went
+      // wrong, exactly as the portal does; the error line is for a turn that has no stored answer either.
+      if (!reply && !capOnly && noVerdict(j) && conv.current) {
+        setStatus(t.late);
+        reply = await lookForStoredAnswer(readHistory, m, { waitMs: 45_000, everyMs: 5_000 });
       }
+      show(reply || (capOnly ? '' : t.err), signup);
     } catch (_e) {
       show(t.err);
     } finally { setBusy(false); setStatus(''); }
@@ -184,7 +192,14 @@ export function ChatWidget() {
           </div>
           <div ref={boxRef} style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 9 }}>
             {msgs.map((m, i) => (
-              <div key={i} dir="auto" style={bubble(m.role)} dangerouslySetInnerHTML={{ __html: render(m.content) }} />
+              <div key={i} style={{ display: 'contents' }}>
+                {m.content && <div dir="auto" style={bubble(m.role)} dangerouslySetInnerHTML={{ __html: render(m.content) }} />}
+                {m.signup && /^\/[a-z/]*$/.test(m.signup.url) && (
+                  <a href={m.signup.url} dir="auto"
+                    style={{ alignSelf: 'flex-start', background: 'linear-gradient(135deg,#2DD4BF,#14B8A6)', color: '#04222b', fontWeight: 800,
+                      fontSize: 13.5, borderRadius: 10, padding: '8px 14px', textDecoration: 'none' }}>{m.signup.label}</a>
+                )}
+              </div>
             ))}
             {msgs.length === 1 && !busy && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>

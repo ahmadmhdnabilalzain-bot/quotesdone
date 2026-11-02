@@ -165,6 +165,16 @@ Deno.test('sentences come off the front of the stream whole, the unfinished tail
   assertEquals(takeSentences('نعم، هويتك مخفية؟ ثم').done, ['نعم، هويتك مخفية؟ ']);
 });
 
+// prevented by: this test (run 91fb819d, 27 Oct 2026). A decimal ended the sticky match: every sentence after "2.5"
+// stayed in `rest` until the stream closed and was then checked as one piece.
+Deno.test('a decimal is part of its number, not the end of a sentence', () => {
+  const { done, rest } = takeSentences('Go with a 2.5 ton inverter split. The room is 3.2 m high. Is there a balcony? The');
+  assertEquals(done, ['Go with a 2.5 ton inverter split. ', 'The room is 3.2 m high. ', 'Is there a balcony? ']);
+  assertEquals(rest, 'The');
+  // a number still being written at the end of the buffer waits for its next character
+  assertEquals(takeSentences('It needs 2.').done, []);
+});
+
 // prevented by: this test (ruling 1207, 13 Oct 2026). A supplier's quotation is shown as stated: its discount, "VAT
 // included", "+5% VAT" or card surcharge is never contradicted, and the no-card-fee / no-VAT line is never forced onto
 // it. The line still belongs to OUR 3% fee, computed on the final quoted price.

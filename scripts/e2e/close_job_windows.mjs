@@ -16,7 +16,7 @@ export async function closeJobWindows(file) {
   if (!file || !existsSync(file)) return [];
   const tags = [...new Set(readFileSync(file, 'utf8').split(/\s+/).filter((t) => /^[a-z0-9]{4,16}$/.test(t)))];
   if (!tags.length) return [];
-  const open = (await read(`select substring(run_tag from 5) tag from public.rehearsal_window
+  const open = (await read(`select substring(run_tag from 8) tag from public.rehearsal_window
                              where ended_at is null and run_tag in (${tags.map((t) => q('qd_run:' + t)).join(',')})`)).map((r) => r.tag);
   const out = [];
   for (const tag of open) {
