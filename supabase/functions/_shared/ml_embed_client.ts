@@ -70,7 +70,7 @@ async function embedRemote(admin: Admin, text: string, caller: string, timeoutMs
     const ask = () => fetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/embed_ml', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ __secret: cred!.v, fn: caller, action: space === 'ml' ? 'query' : 'gte', text: t }),
-      signal,
+      signal: signal,
     });
     // A relay 502/503 no worker served (2 Nov 2026: 8 on embed_ml, all at a five-minute mark) is asked once more
     // inside the same timeout rather than opening the 30 s cool-off for every embed in this worker.

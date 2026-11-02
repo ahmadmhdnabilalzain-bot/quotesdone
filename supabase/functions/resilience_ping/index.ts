@@ -166,7 +166,7 @@ async function archiveTick(): Promise<unknown> {
         const signal = AbortSignal.timeout(50000);
         const ask = () => fetch(FN + '/conversation_archive', {
           method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
-          body: JSON.stringify({ __secret: secret, action: 'sweep', limit: ARCHIVE_BATCH, offset }), signal,
+          body: JSON.stringify({ __secret: secret, action: 'sweep', limit: ARCHIVE_BATCH, offset }), signal: signal,
         });
         let r = await ask();
         if (notReached(r)) { await r.body?.cancel(); r = await ask(); }
