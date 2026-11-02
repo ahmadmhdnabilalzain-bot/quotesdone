@@ -890,6 +890,7 @@ AS $function$
              || coalesce(' (as of ' || pb.as_of::text || ')', '') as line
       from public.price_benchmark pb
      where pb.source_kind <> 'gap' and pb.item is not null and pb.low is not null
+       and pb.confidence = 'published'
      order by pb.category, pb.item, pb.unit, (case when pb.source_kind = 'blog_post' then 0 else 1 end), pb.as_of desc nulls last, pb.id
   )
   select '## PUBLISHED PRICE GUIDE (UAE ranges QuotesDone publishes; quote them as a range and say it is a guide, not a quotation — suppliers price the work)'

@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-02T03:04:10.956Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-02T05:35:27.847Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -223,7 +223,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (770) =====
+-- ===== TABLES (775) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -1616,6 +1616,24 @@ CREATE TABLE IF NOT EXISTS public.ceo_experiment_verdict (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.ceo_growth_action (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  decided_on date NOT NULL,
+  power text NOT NULL,
+  subject text NOT NULL,
+  before_value text,
+  after_value text,
+  reason text NOT NULL,
+  applied boolean DEFAULT false NOT NULL,
+  baseline jsonb DEFAULT '{}'::jsonb NOT NULL,
+  review_on date,
+  effect jsonb,
+  verdict text DEFAULT 'pending'::text NOT NULL,
+  reviewed_at timestamp with time zone,
+  dedupe_key text NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.ceo_identity (
   identity text NOT NULL,
   active boolean DEFAULT true NOT NULL,
@@ -1640,6 +1658,15 @@ CREATE TABLE IF NOT EXISTS public.ceo_improvement (
   close_check text,
   escalations integer DEFAULT 0 NOT NULL,
   last_escalated_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.ceo_invite_trade_priority (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  trade text NOT NULL,
+  reason text NOT NULL,
+  set_at timestamp with time zone DEFAULT now() NOT NULL,
+  cleared_at timestamp with time zone,
+  cleared_why text
 );
 
 CREATE TABLE IF NOT EXISTS public.ceo_knowledge (
@@ -1857,6 +1884,41 @@ CREATE TABLE IF NOT EXISTS public.ceo_strategy_memo (
   notify jsonb,
   include_demo boolean DEFAULT false NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.ceo_supplier_channel (
+  channel text NOT NULL,
+  owner_seat text NOT NULL,
+  switch_key text,
+  ceo_may_open boolean DEFAULT false NOT NULL,
+  rule text NOT NULL,
+  access_needed text,
+  state text DEFAULT 'not_measured'::text NOT NULL,
+  state_why text,
+  measured jsonb DEFAULT '{}'::jsonb NOT NULL,
+  measured_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.ceo_supplier_funnel_daily (
+  day date NOT NULL,
+  channel text NOT NULL,
+  sent integer DEFAULT 0 NOT NULL,
+  delivered integer DEFAULT 0 NOT NULL,
+  replied integer DEFAULT 0 NOT NULL,
+  started integer DEFAULT 0 NOT NULL,
+  submitted integer DEFAULT 0 NOT NULL,
+  approved integer DEFAULT 0 NOT NULL,
+  measured_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.ceo_supplier_goal (
+  goal text NOT NULL,
+  target_low integer NOT NULL,
+  target_high integer NOT NULL,
+  due_on date NOT NULL,
+  counts_as text NOT NULL,
+  ruling text NOT NULL,
+  set_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.ceo_task (
@@ -5509,7 +5571,8 @@ CREATE TABLE IF NOT EXISTS public.leads (
   merged_at timestamp with time zone,
   marketing_consent boolean DEFAULT false NOT NULL,
   marketing_consent_at timestamp with time zone,
-  marketing_consent_source text
+  marketing_consent_source text,
+  license_issue_date date
 );
 
 CREATE TABLE IF NOT EXISTS public.legal_checklist (
@@ -10744,8 +10807,10 @@ ALTER TABLE public.ceo_decision_round ADD CONSTRAINT ceo_decision_round_pkey PRI
 ALTER TABLE public.ceo_directive ADD CONSTRAINT ceo_directive_pkey PRIMARY KEY (id);
 ALTER TABLE public.ceo_experiment ADD CONSTRAINT ceo_experiment_pkey PRIMARY KEY (id);
 ALTER TABLE public.ceo_experiment_verdict ADD CONSTRAINT ceo_experiment_verdict_pkey PRIMARY KEY (experiment_id, week);
+ALTER TABLE public.ceo_growth_action ADD CONSTRAINT ceo_growth_action_pkey PRIMARY KEY (id);
 ALTER TABLE public.ceo_identity ADD CONSTRAINT ceo_identity_pkey PRIMARY KEY (identity);
 ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_pkey PRIMARY KEY (id);
+ALTER TABLE public.ceo_invite_trade_priority ADD CONSTRAINT ceo_invite_trade_priority_pkey PRIMARY KEY (id);
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_pkey PRIMARY KEY (record_id);
 ALTER TABLE public.ceo_launch_gate ADD CONSTRAINT ceo_launch_gate_pkey PRIMARY KEY (week);
 ALTER TABLE public.ceo_mandate ADD CONSTRAINT ceo_mandate_pkey PRIMARY KEY (clause_key);
@@ -10762,6 +10827,9 @@ ALTER TABLE public.ceo_seat_audit ADD CONSTRAINT ceo_seat_audit_pkey PRIMARY KEY
 ALTER TABLE public.ceo_seat_directive ADD CONSTRAINT ceo_seat_directive_pkey PRIMARY KEY (month, seat);
 ALTER TABLE public.ceo_standing_grant ADD CONSTRAINT ceo_standing_grant_pkey PRIMARY KEY (grant_key);
 ALTER TABLE public.ceo_strategy_memo ADD CONSTRAINT ceo_strategy_memo_pkey PRIMARY KEY (month);
+ALTER TABLE public.ceo_supplier_channel ADD CONSTRAINT ceo_supplier_channel_pkey PRIMARY KEY (channel);
+ALTER TABLE public.ceo_supplier_funnel_daily ADD CONSTRAINT ceo_supplier_funnel_daily_pkey PRIMARY KEY (day, channel);
+ALTER TABLE public.ceo_supplier_goal ADD CONSTRAINT ceo_supplier_goal_pkey PRIMARY KEY (goal);
 ALTER TABLE public.ceo_task ADD CONSTRAINT ceo_task_pkey PRIMARY KEY (task_id);
 ALTER TABLE public.ceo_task_state ADD CONSTRAINT ceo_task_state_pkey PRIMARY KEY (state);
 ALTER TABLE public.ceo_weekly_report ADD CONSTRAINT ceo_weekly_report_pkey PRIMARY KEY (id);
@@ -11419,6 +11487,7 @@ ALTER TABLE public.ceo_company_stage ADD CONSTRAINT ceo_company_stage_stage_orde
 ALTER TABLE public.ceo_daily_digest ADD CONSTRAINT ceo_daily_digest_report_key_uniq UNIQUE (report_key);
 ALTER TABLE public.ceo_decision_round ADD CONSTRAINT ceo_decision_round_item_key_generation_round_key UNIQUE (item_key, generation, round);
 ALTER TABLE public.ceo_experiment ADD CONSTRAINT ceo_experiment_key_key UNIQUE (key);
+ALTER TABLE public.ceo_growth_action ADD CONSTRAINT ceo_growth_action_dedupe_key_key UNIQUE (dedupe_key);
 ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_source_kind_source_ref_key UNIQUE (source_kind, source_ref);
 ALTER TABLE public.ceo_plan ADD CONSTRAINT ceo_plan_plan_date_key UNIQUE (plan_date);
 ALTER TABLE public.ceo_plan_action ADD CONSTRAINT ceo_plan_action_seat_from_month_action_key UNIQUE (seat, from_month, action);
@@ -11683,6 +11752,8 @@ ALTER TABLE public.ceo_experiment ADD CONSTRAINT ceo_experiment_hypothesis_check
 ALTER TABLE public.ceo_experiment ADD CONSTRAINT ceo_experiment_key_check CHECK ((key ~ '^[a-z0-9_]+$'::text));
 ALTER TABLE public.ceo_experiment ADD CONSTRAINT ceo_experiment_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'approved'::text, 'running'::text, 'rejected'::text, 'kept'::text, 'killed'::text])));
 ALTER TABLE public.ceo_experiment_verdict ADD CONSTRAINT ceo_experiment_verdict_decision_check CHECK ((decision = ANY (ARRAY['kept'::text, 'killed'::text, 'iterated'::text])));
+ALTER TABLE public.ceo_growth_action ADD CONSTRAINT ceo_growth_action_power_check CHECK ((power = ANY (ARRAY['run'::text, 'cap'::text, 'ceiling'::text, 'reachable'::text, 'trade'::text, 'channel'::text, 'directive'::text])));
+ALTER TABLE public.ceo_growth_action ADD CONSTRAINT ceo_growth_action_verdict_check CHECK ((verdict = ANY (ARRAY['pending'::text, 'not_applied'::text, 'worked'::text, 'failed'::text, 'rolled_back'::text, 'no_signal'::text, 'recorded'::text])));
 ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_proposal_check CHECK ((btrim(proposal) <> ''::text));
 ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_source_kind_check CHECK ((source_kind = ANY (ARRAY['recurring_miss'::text, 'month_miss'::text, 'lesson'::text, 'recurring_finding'::text, 'binding_constraint'::text, 'marketing_plan_late'::text, 'seat_audit'::text, 'funnel_stage_drop'::text, 'weekly_review'::text, 'self_review'::text, 'market_report'::text])));
 ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_status_check CHECK ((status = ANY (ARRAY['open'::text, 'assigned'::text, 'done'::text, 'dropped'::text])));
@@ -11713,6 +11784,7 @@ ALTER TABLE public.ceo_seat_directive ADD CONSTRAINT ceo_seat_directive_month_ch
 ALTER TABLE public.ceo_seat_directive ADD CONSTRAINT ceo_seat_directive_status_check CHECK ((status = ANY (ARRAY['issued'::text, 'met'::text, 'missed'::text, 'not_measurable'::text])));
 ALTER TABLE public.ceo_standing_grant ADD CONSTRAINT ceo_standing_grant_issuer CHECK ((issued_by = 'ceo'::text));
 ALTER TABLE public.ceo_strategy_memo ADD CONSTRAINT ceo_strategy_memo_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
+ALTER TABLE public.ceo_supplier_channel ADD CONSTRAINT ceo_supplier_channel_state_check CHECK ((state = ANY (ARRAY['not_measured'::text, 'on'::text, 'paused'::text, 'ready'::text, 'blocked'::text, 'missing'::text])));
 ALTER TABLE public.ceo_task ADD CONSTRAINT ceo_task_blocked_says_why CHECK (((state <> 'blocked'::text) OR (COALESCE(btrim(blocked_reason), ''::text) <> ''::text)));
 ALTER TABLE public.ceo_task ADD CONSTRAINT ceo_task_done_shows_evidence CHECK (((state <> 'done'::text) OR (COALESCE(btrim(evidence), ''::text) <> ''::text)));
 ALTER TABLE public.ceo_weekly_report ADD CONSTRAINT ceo_weekly_report_status_check CHECK ((status = ANY (ARRAY['generated'::text, 'partial'::text, 'delivered'::text, 'delivery_failed'::text])));
@@ -13077,8 +13149,10 @@ CREATE UNIQUE INDEX ceo_decision_log_dedupe_uidx ON public.ceo_decision_log USIN
 CREATE INDEX ceo_decision_round_by_item ON public.ceo_decision_round USING btree (item_key, generation DESC, round DESC);
 CREATE UNIQUE INDEX ceo_decision_round_one_per_source ON public.ceo_decision_round USING btree (item_key, source_table, source_id) WHERE (source_id IS NOT NULL);
 CREATE UNIQUE INDEX ceo_directive_one_live_per_signal ON public.ceo_directive USING btree (seat, source_kind, source_ref) WHERE (status = 'open'::text);
+CREATE INDEX ceo_growth_action_due ON public.ceo_growth_action USING btree (review_on) WHERE (verdict = 'pending'::text);
 CREATE UNIQUE INDEX ceo_improvement_one_open_per_metric ON public.ceo_improvement USING btree (((evidence ->> 'metric'::text))) WHERE ((source_kind = 'recurring_miss'::text) AND (status = ANY (ARRAY['open'::text, 'assigned'::text])));
 CREATE UNIQUE INDEX ceo_improvement_one_open_weekly_per_target ON public.ceo_improvement USING btree (seat, ((evidence ->> 'target'::text))) WHERE ((source_kind = 'weekly_review'::text) AND (status = ANY (ARRAY['open'::text, 'assigned'::text])));
+CREATE UNIQUE INDEX ceo_invite_trade_priority_one_live ON public.ceo_invite_trade_priority USING btree (trade) WHERE (cleared_at IS NULL);
 CREATE INDEX ceo_knowledge_emb_hnsw ON public.ceo_knowledge USING hnsw (embedding_gte vector_cosine_ops);
 CREATE INDEX ceo_knowledge_kind_idx ON public.ceo_knowledge USING btree (record_kind, domain);
 CREATE INDEX ceo_knowledge_search_idx ON public.ceo_knowledge USING gin (search);
