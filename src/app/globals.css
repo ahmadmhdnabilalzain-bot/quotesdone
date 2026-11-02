@@ -107,6 +107,9 @@ html,body{padding:0;margin:0}
    scrollWidth 600 vs clientWidth 375 (aurora + hero marquee), so phones scrolled sideways and zoomed
    out. `clip` (not hidden) creates no scroll container, so position:sticky on the header still works. */
 html,body{overflow-x:clip}
+/* Below md the sticky header carries the portal row (AudienceNav PortalRow: 44px links + 10px foot),
+   so in-page anchors (#cats, #why) land 54px lower than their scroll-mt-20 alone would put them. */
+@media (max-width:767.98px){html:has(.qd-portal-row){scroll-padding-top:54px}}
 body{background:transparent;color:var(--paper);min-height:100dvh;-webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;font-feature-settings:"ss01","cv11";line-height:var(--lh-body)}
 /* the grain: a fixed, static film over the ground (never over text — it sits at z -1) */
