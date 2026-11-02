@@ -17,10 +17,13 @@ import { writeFileSync, mkdtempSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openRun, closeRun, read, write, call, BASE } from './fixtures.mjs';
-import { keys, verifyEmailByOtp, mkAuthUser } from '../lib/demo_factory.mjs';
+import { keys, verifyEmailByOtp, mkAuthUser, internalCred } from '../lib/demo_factory.mjs';
 import { buildCorpus, licenceTruth, licenceTextPdf, licenceSvg, picture, rawPdf, AUTHORITIES } from './document_intake_corpus.mjs';
 import { demoPdfPages } from '../lib/demo_pdf.mjs';
 import sharp from 'sharp';
+import { launch, signedInPage, SITE } from './browser.mjs';
+import { mkdirSync } from 'node:fs';
+import { pdfFactsFromBytes } from './pdf_facts.mjs';
 
 const argv = process.argv.slice(2);
 const val = (f, d) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : d; };
@@ -28,6 +31,9 @@ const ONLY = val('--case', '').split(',').filter(Boolean);
 const CONC = Number(val('--concurrency', '3'));
 const KEEP = argv.includes('--keep');
 const JSON_OUT = val('--json', '');
+const BROWSER = argv.includes('--browser');   // the licence goes in through the portal's own form in a real browser
+const SHOTS = val('--shots', 'walk-shots');
+if (BROWSER) mkdirSync(SHOTS, { recursive: true });
 
 const TMP = mkdtempSync(join(tmpdir(), 'qd-docwalk-'));
 const docs = await buildCorpus(TMP);
@@ -67,11 +73,62 @@ const CASES = [
   { id: 'foreign_scan', licence: foreignScan, profile: profileText, want: { status: 'pending', reason: 'licence_authority_not_uae' } },
   { id: 'blank_photo', licence: byId('lic_blank_photo'), profile: profileText, want: { status: 'pending', reason: 'licence_unreadable' } },
   { id: 'blank_profile', licence: byId('lic_dubai_ded_old_text'), profile: profileBlank, want: APPROVE, doc: { licence: 'read', profile: 'unreadable' } },
+  // 2 Nov 2026, ledger 1467/1468: the seven files a supplier actually sends, each judged against its printed truth.
+  // observe: the decision is reported, not asserted (what the system does with it is the question).
+  { id: 't_text_pdf', licence: byId('lic_dubai_det_text'), profile: profileText, want: APPROVE, read: ['licence_no', 'name', 'authority', 'expiry'] },
+  { id: 't_scanned_pdf', licence: byId('lic_dubai_ded_old_scan_pdf'), profile: profileText, want: APPROVE, read: ['licence_no', 'name', 'authority', 'expiry'] },
+  { id: 't_png', licence: byId('lic_dubai_det_png'), profile: profileText, want: APPROVE, read: ['licence_no', 'name', 'authority', 'expiry'] },
+  { id: 't_jpg', licence: byId('lic_abu_dhabi_added_jpg'), profile: profileText, want: APPROVE, read: ['licence_no', 'name', 'authority', 'expiry'] },
+  { id: 't_blank_pdf', licence: byId('lic_blank_pdf'), profile: profileText, want: { status: 'pending', reason: 'licence_unreadable' } },
+  { id: 't_wrong_company', licence: byId('lic_mismatch_text'), profile: profileText, want: APPROVE, nameFromLicence: true, read: ['licence_no', 'name', 'authority', 'expiry'] },
+  { id: 't_expired', licence: byId('lic_expired_text'), profile: profileText, want: { status: 'action_required', reason: 'licence_expired' }, read: ['licence_no', 'name', 'authority', 'expiry'] },
 ].filter((c) => !ONLY.length || ONLY.includes(c.id));
 
 const b64 = (p) => readFileSync(p).toString('base64');
 const results = [];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+let BR = null;
+// The licence through the portal's OWN form, in a real browser on the live site: the file is picked, the browser renders
+// a PDF's pages, process_docs is sent, and what the supplier sees afterwards is read off the screen. A form that never
+// answers is a hang. The caller falls back to the API only when the form was not reached.
+async function browserLicence(c, who, id) {
+  BR ||= await launch();
+  const { ctx, page } = await signedInPage(BR, who, { lang: 'en', viewport: 'desktop' });
+  const o = { reached: false, answered: false, hung: false, ms: null, sees: null, alerts: [], shot: null, response: null };
+  try {
+    await page.goto(`${SITE}/portal`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    // A claimed supplier manages the licence in the Documents tab (SupplierPortal: save_documents), not the sign-up form.
+    await page.getByRole('button', { name: /^Documents$/ }).first().click({ timeout: 60000 });
+    const head = page.getByText('Documents & certificates').first();
+    await head.waitFor({ timeout: 60000 });
+    const input = head.locator('xpath=following::input[@type="file"][1]');
+    await input.waitFor({ state: 'attached', timeout: 60000 });
+    o.reached = true;
+    const isLic = (r) => /\/functions\/v1\/supplier_portal/.test(r.url()) && /save_documents/.test(r.request().postData() || '');
+    const t0 = Date.now();
+    const ans = page.waitForResponse(isLic, { timeout: 200000 }).then(async (r) => { o.answered = true; o.ms = Date.now() - t0; o.response = `HTTP ${r.status()} ${(await r.text().catch(() => '')).slice(0, 600)}`; }).catch(() => { o.hung = true; o.ms = Date.now() - t0; });
+    await input.setInputFiles(c.licence.file);
+    await input.locator('xpath=../..').getByRole('button', { name: /^Upload$/ }).click({ timeout: 15000 });
+    await ans;
+    await page.getByText(/^Uploading…/).first().waitFor({ state: 'detached', timeout: 20000 }).catch(() => { o.still_reading = true; });
+    await page.waitForTimeout(1500);
+    const main = (await page.locator('main').first().innerText().catch(() => page.locator('body').innerText())).replace(/[ \t]+/g, ' ');
+    o.unread_badge = /Could not be read/.test(main) && /use Replace|upload a clear/i.test(main);
+    o.sees = main.split('\n').map((l) => l.trim()).filter((l) => /licen|expir|read|upload|could not|auto|number|authority|wrong|action|review/i.test(l)).slice(0, 14).join(' | ').slice(0, 900);
+    o.alerts = await page.getByRole('alert').allInnerTexts().catch(() => []);
+    o.shot = join(SHOTS, `${id}.png`);
+    await page.screenshot({ path: o.shot, fullPage: true }).catch(() => {});
+  } catch (e) {
+    o.error = String(e.message).slice(0, 200);
+    o.shot = join(SHOTS, `${id}_form_not_reached.png`);
+    await page.screenshot({ path: o.shot, fullPage: true }).catch(() => {});
+    o.page_text = (await page.locator('body').innerText().catch(() => '')).replace(/s+/g, ' ').slice(0, 700);
+    o.url = page.url();
+  }
+  await ctx.close().catch(() => {});
+  return o;
+}
 
 async function walk(run, c, n) {
   const out = { id: c.id, steps: [], ok: true };
@@ -104,12 +161,24 @@ async function walk(run, c, n) {
 
   // 4. The licence, as the form sends it: base64 plus page images (an image file is its own page; a PDF's pages are
   // rendered by the browser, and with none the server sends the file itself to the model).
-  const lb = b64(c.licence.file);
-  const images = /^image\//.test(c.licence.mime) ? [{ mime: c.licence.mime, data: lb }] : [];
-  const t0 = Date.now();
-  const lic = await call('supplier_api', jwt, { action: 'process_docs', license: { original_b64: lb, file_b64: lb, images, filename: c.licence.name, mime: c.licence.mime } }, 200000);
-  out.licence_response = lic.json?.extracted ?? lic.text?.slice(0, 200);
-  step('process_docs takes the licence', lic.status === 200 && lic.json?.ok === true, `HTTP ${lic.status} in ${Date.now() - t0} ms${lic.json?.extracted?.license_error ? ' license_error=' + lic.json.extracted.license_error : ''}`);
+  let viaBrowser = false;
+  if (BROWSER && c.licence.file) {
+    const who = { kind: 'supplier', email, newSession: async () => s };
+    const b = await browserLicence(c, who, c.id); out.browser = b;
+    viaBrowser = b.reached;
+    step('the portal form takes the licence in a real browser', b.reached && b.answered && !b.hung, `reached=${b.reached} answered=${b.answered} hung=${b.hung} ${b.ms} ms ${b.error || ''} url=${b.url} page=${b.page_text} ${String(b.response).slice(0, 300)}`);
+    step('what the supplier sees after the read', true, `${b.sees} | alerts: ${JSON.stringify(b.alerts)}`);
+    out.licence_response = b.response;
+    if (c.id === 't_blank_pdf') step('an unreadable licence says it could not be read and offers Replace', b.unread_badge === true, `badge+instruction on the card: ${b.unread_badge}`);
+  }
+  if (!viaBrowser) {
+    const lb = b64(c.licence.file);
+    const images = /^image\//.test(c.licence.mime) ? [{ mime: c.licence.mime, data: lb }] : [];
+    const t0 = Date.now();
+    const lic = await call('supplier_api', jwt, { action: 'process_docs', license: { original_b64: lb, file_b64: lb, images, filename: c.licence.name, mime: c.licence.mime } }, 200000);
+    out.licence_response = lic.json?.extracted ?? lic.text?.slice(0, 200);
+    step('process_docs takes the licence (API; the form was not reached)', lic.status === 200 && lic.json?.ok === true, `HTTP ${lic.status} in ${Date.now() - t0} ms${lic.json?.extracted?.license_error ? ' license_error=' + lic.json.extracted.license_error : ''}`);
+  }
 
   // 5. The company profile, as the form sends it: straight to storage on a signed URL, then named by path.
   const up = await call('supplier_api', jwt, { action: 'upload_url', kind: 'profile', filename: c.profile.name, mime: c.profile.mime });
@@ -127,25 +196,57 @@ async function walk(run, c, n) {
   const payload = { action: 'save_profile', service_emirates: ['Dubai'], accept_terms: true, marketing_consent: false, contact_name: 'ZZ DEMO Contact', signatory_name: 'ZZ DEMO Signatory' };
   let sv = await call('supplier_api', jwt, payload, 60000);
   await call('kyc', jwt, { action: 'accept_terms' }, 60000).catch(() => null);
-  step('save_profile answers', sv.status === 200 && sv.json?.ok === true, `HTTP ${sv.status} ${String(sv.text).slice(0, 120)}`);
+  step('save_profile answers (a held decision is saved too)', (sv.status === 200 && sv.json?.ok === true) || (sv.json?.saved === true && c.want.status !== 'approved'), `HTTP ${sv.status} ${String(sv.text).slice(0, 120)}`);
 
   // 7. Wait for the reads and the certificate to land, then judge from the row.
   const t1 = Date.now(); let row;
   for (;;) {
-    row = (await read(`select l.approval_status status, l.licence_gate_reason reason, l.verified, l.signed_terms_path is not null signed, l.registration_submitted_at is not null submitted,
+    row = (await read(`select l.approval_status status, l.licence_gate_reason reason, l.verified, l.signed_terms_path is not null signed, l.signed_terms_path stp, l.accepted_terms_ip ip, to_char(l.accepted_terms_at at time zone 'UTC','YYYY-MM-DD HH24:MI:SS') acc_utc, l.registration_submitted_at is not null submitted,
         l.trade_license_no licence_no, l.licence_legal_name name, l.license_authority authority, l.license_expiry::text expiry, l.doc_extracted_at is not null extracted, l.company_name, l.sector,
         c.source_docs -> 'docs' docs, c.proposed_trades, (select count(*)::int from public.agent_actions a where a.kind='supplier_verification' and a.target_id=l.id::text) decisions
        from public.leads l left join public.supplier_capabilities c on c.supplier_id = l.id where l.id=${lead.id}`))[0];
     const reading = (row.docs || []).some((d) => d.status === 'reading');
-    if ((row.signed && !reading && row.status !== 'action_required') || (row.signed && !reading && row.reason !== 'reg_terms') || Date.now() - t1 > 240000) break;
+    // settled = certificate signed, nothing still being read, and the gate is no longer waiting on a read or on the terms
+    if ((row.signed && !reading && row.reason !== 'documents_being_read' && row.reason !== 'reg_terms') || Date.now() - t1 > 240000) break;
     await sleep(5000);
   }
   out.row = row;
+  // The certificate itself, read back from the signed-terms bucket: is the IP printed inside it? (ledger 1468)
+  if (row.stp) {
+    try {
+      const { SERVICE } = await keys();
+      const r = await fetch(`${BASE}/storage/v1/object/signed-terms/${row.stp}`, { headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}` } });
+      const f = r.ok ? await pdfFactsFromBytes(new Uint8Array(await r.arrayBuffer())) : { ok: false, why: 'HTTP ' + r.status };
+      const m = f.ok ? f.text.match(/IP address\s+(\d[\d.:a-f]*)/i) : null;
+      const tm = f.ok ? f.text.match(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} UTC/) : null;
+      out.certificate = { ok: f.ok, why: f.why, bytes: f.bytes?.length, ip_in_row: row.ip, ip_in_certificate: m?.[1] ?? null, ip_line: m?.[0] ?? null, time_in_row_utc: row.acc_utc, time_in_certificate: tm?.[0] ?? null, time_matches: !!tm && tm[0].startsWith(row.acc_utc) };
+      run.ids.storage.push('signed-terms/' + row.stp);
+    } catch (e) { out.certificate = { error: String(e.message).slice(0, 160) }; }
+    step('the signed certificate prints the IP', !!out.certificate?.ip_in_certificate && out.certificate.time_matches === true, JSON.stringify(out.certificate));
+  }
   step('terms: certificate signed, registration submitted', row.signed && row.submitted, `${Date.now() - t1} ms after Save`);
-  step(`decision is ${c.want.status}${c.want.reason ? ' / ' + c.want.reason : ''}`, row.status === c.want.status && (row.reason ?? null) === c.want.reason, `got ${row.status} / ${row.reason}`);
+  step(`decision is ${c.want.status}${c.want.reason ? ' / ' + c.want.reason : ''}${c.observe ? ' (observed, not asserted)' : ''}`, c.observe || (row.status === c.want.status && (row.reason ?? null) === c.want.reason), `got ${row.status} / ${row.reason}`);
   for (const f of c.read || []) step(`the licence read wrote ${f}`, !!row[f], String(row[f]));
   if (c.read?.includes('licence_no') && c.licence.truth?.licence_no) step('the licence number is the printed one', row.licence_no === c.licence.truth.licence_no, `${row.licence_no} vs ${c.licence.truth.licence_no}`);
   if (c.read?.includes('expiry') && c.licence.truth?.expiry_date) step('the expiry is the printed one', row.expiry === c.licence.truth.expiry_date, `${row.expiry} vs ${c.licence.truth.expiry_date}`);
+  if (c.read?.includes('name') && c.licence.truth?.legal_name_en) step('the company name read is the printed one', row.name === c.licence.truth.legal_name_en, `${row.name} vs ${c.licence.truth.legal_name_en} (registered as ${c.licence.registered})`);
+  if (c.read?.includes('authority') && c.licence.truth?.authority) step('the authority read is the printed one', row.authority === c.licence.truth.authority, `${row.authority} vs ${c.licence.truth.authority}`);
+  out.truth = c.licence.truth ? { licence_no: c.licence.truth.licence_no, name: c.licence.truth.legal_name_en, authority: c.licence.truth.authority, issue: c.licence.truth.issue_date, expiry: c.licence.truth.expiry_date } : null;
+  // FOUNDER RULING 1176 (7 Oct 2026): a licence name that differs becomes the company name; the old name is kept in
+  // history and the supplier is told, in English, instead of any hold or rejection for the name alone.
+  if (c.nameFromLicence) {
+    step('1176: the licence name became the company name', row.company_name === c.licence.truth.legal_name_en, `${row.company_name} (registered as ${c.licence.registered})`);
+    const hist = await read(`select detail->>'previous_name' prev, detail->>'new_name' nw from public.agent_actions where kind='supplier_name_from_licence' and target_table='leads' and target_id='${lead.id}'`);
+    step('1176: the old name is kept in history (agent_actions supplier_name_from_licence)', hist.length === 1 && hist[0].prev === c.licence.registered && hist[0].nw === c.licence.truth.legal_name_en, JSON.stringify(hist));
+    const told = await read(`select to_jsonb(n)::text j from public.notifications n where lead_id=${lead.id} and type='company_name_from_licence' and channel='email'`);
+    const tj = told[0]?.j || '';
+    step('1176: the supplier is told by e-mail, in English, with both names', told.length === 1 && /updated to match your trade licence/.test(tj) && tj.includes(c.licence.registered) && tj.includes(c.licence.truth.legal_name_en) && !/[؀-ۿ]/.test(tj), tj.slice(0, 260));
+  }
+  if (c.read?.length) {
+    const iss = await read(`select license_issue_date::text d from public.leads where id=${lead.id}`).then((x) => x[0]?.d ?? null).catch(() => 'COLUMN_ABSENT');
+    out.issue = iss;
+    if (c.licence.truth?.issue_date) step('the issue date is read and kept', iss === c.licence.truth.issue_date, `${iss} vs ${c.licence.truth.issue_date}${iss === 'COLUMN_ABSENT' ? ' (leads.license_issue_date is not live: pending SQL)' : ''}`);
+  }
   if (c.read?.length) step('doc_extracted_at is stamped', row.extracted);
   for (const [kind, status] of Object.entries(c.doc || {})) {
     const rec = (row.docs || []).filter((d) => d.kind === kind);
@@ -156,14 +257,33 @@ async function walk(run, c, n) {
   const dash = await call('supplier_portal', jwt, { action: 'dashboard' });
   const card = dash.json?.supplier;
   step('the portal shows the stage', card?.approval_status === row.status && (card?.licence_gate_reason ?? null) === (row.reason ?? null), JSON.stringify({ s: card?.approval_status, r: card?.licence_gate_reason, due: card?.exception_due_at }));
+  if (BROWSER && c.nameFromLicence) {
+    const who = { kind: 'supplier', email, newSession: async () => s };
+    BR ||= await launch();
+    const { ctx, page } = await signedInPage(BR, who, { lang: 'en', viewport: 'desktop' });
+    let txt = '';
+    try {
+      await page.goto(`${SITE}/portal`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await page.locator('nav:visible, button[aria-controls="qd-nav-more"]:visible').first().waitFor({ timeout: 60000 });
+      await page.waitForTimeout(1500);
+      txt = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
+      await page.screenshot({ path: join(SHOTS, `${c.id}_after_rename.png`), fullPage: true }).catch(() => {});
+    } catch (e) { txt = 'ERR ' + e.message; }
+    await ctx.close().catch(() => {});
+    step('1176: on screen the supplier sees the licence name as the company name', txt.includes(c.licence.truth.legal_name_en) && !txt.includes(c.licence.registered), txt.includes(c.licence.registered) ? 'old name still on screen' : (txt.includes(c.licence.truth.legal_name_en) ? 'new name on screen' : txt.slice(0, 200)));
+  }
+  out.card = { s: card?.approval_status, r: card?.licence_gate_reason, due: card?.exception_due_at };
   out.eligibility = dash.json?.eligibility ? { eligible: dash.json.eligibility.eligible, blocking: dash.json.eligibility.blocking?.map((b) => b.code) } : null;
   await sleep(3000);
   const nt = await read(`select type, channel, status, subject from public.notifications where lead_id=${lead.id} order by id`);
+  out.notices = nt.map((x) => `${x.type}/${x.channel}/${x.status}: ${x.subject}`);
   const real = nt.filter((x) => x.status !== 'suppressed');
   step('every notice is suppressed, none sent', real.length === 0, JSON.stringify(real).slice(0, 200));
   if (c.want.status === 'approved') {
     step('the approval notice is written', nt.some((x) => x.type === 'supplier_approved' && x.channel === 'email'), JSON.stringify(nt.map((x) => x.type)));
-    step('an approved supplier is eligible for matching', dash.json?.eligibility?.eligible === true, JSON.stringify(out.eligibility));
+    // A fixture confirms no services and has no catalogue, so these two always block a demo supplier; anything else blocking is a real finding.
+    const FIXTURE_ONLY = new Set(['scope_unconfirmed', 'undiscoverable']);
+    step('an approved supplier has no blocker but the fixture own unconfirmed scope', (out.eligibility?.blocking || []).every((b) => FIXTURE_ONLY.has(b)), JSON.stringify(out.eligibility));
   } else {
     step('a held supplier is told why', nt.length > 0, JSON.stringify(nt.map((x) => x.subject)).slice(0, 240));
     step('a held supplier is never approved or verified', row.verified !== true);
@@ -180,9 +300,12 @@ try {
       catch (e) { console.error('LEG ERROR', job[0].id, String(e?.stack || e).slice(0, 400)); results.push({ id: job[0].id, ok: false, error: String(e?.message || e) }); }
     }
   }));
-  const spend = await read(`select coalesce(sum(cost_usd),0)::numeric(10,4) usd, count(*)::int calls from public.ai_cost_log where run_tag = 'qd_run:${run.tag}'`).catch((e) => [{ error: String(e.message).slice(0, 120) }]);
+  const spend = await read(`select coalesce(sum(cost_usd_reported),0)::numeric(10,4) usd, count(*)::int calls from public.ai_cost_log where e2e_run_tag = '${run.tag}'`).catch((e) => [{ error: String(e.message).slice(0, 120) }]);
   console.log('model spend', JSON.stringify(spend[0]));
 } finally {
+  // Is Dropbox ready? (read-only ping of the archive function; ledger 1468)
+  try { const { ANON } = await keys(); const pg = await call('compliance_archive', ANON, { action: 'ping', __secret: await internalCred() }, 30000); console.log('compliance_archive ping', pg.status, String(pg.text).slice(0, 160)); } catch (e) { console.log('compliance_archive ping failed', String(e.message).slice(0, 160)); }
+  await BR?.close().catch(() => {});
   const c = await closeRun(run, { keep: KEEP });
   console.log('teardown:', JSON.stringify(c.leftovers || 'kept'));
 }
