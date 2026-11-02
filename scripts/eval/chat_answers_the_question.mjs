@@ -20,7 +20,7 @@ const TRUTH = 'QuotesDone is a UAE procurement marketplace. Customers post reque
   + '"Send your quotation to the sales engineer" (attach the file; in an open review "Attach a revised file") > "Submit to Job <n>", or '
   + '"Or type it into the quote form"; submitting again replaces the earlier quote for that option, and a quote may carry '
   + 'separate options; quotes are accepted until the customer selects a supplier (request Concluded). '
-  + 'Published contact: +971 50 931 9355, management@quotesdone.com.';
+  + 'Published contact: +1 218 316 6814, management@quotesdone.com.';
 
 export const QUESTIONS = [
   { who: 'visitor', lang: 'en', path: '/', msg: 'How much does it cost to reveal a supplier?' },

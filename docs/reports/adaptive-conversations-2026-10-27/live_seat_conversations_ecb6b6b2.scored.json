@@ -1,0 +1,140 @@
+{
+ "run_tag": "ecb6b6b2",
+ "scenarios": 12,
+ "met": 0,
+ "mean_pct": 83,
+ "idk_conversations": 0,
+ "yesno_only_conversations": 0,
+ "acceptance": "NOT MET",
+ "gaps": [
+  {
+   "id": "ac_replacement",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "repair before replace, sizing and refrigerant age: expert",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "roof_waterproofing_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 90,
+   "issues": [
+    "changed the recommendation when the 10-year membrane and cracked tiles came out (remove, then re-waterproof)",
+    "manufacturer-backed warranty",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "floor_tiles",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "answered the asked cost from the price guide",
+    "hollow tiles: remove, not tile over",
+    "timeline never asked; no summary reached"
+   ]
+  },
+  {
+   "id": "painting_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 70,
+   "issues": [
+    "damp patch: fix the leak first (expert)",
+    "asked the room count three times in different wording",
+    "offered to write the summary instead of giving it"
+   ]
+  },
+  {
+   "id": "bathroom_refit",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "full re-waterproofing with a flood test after the past leak",
+    "linear drain recommended",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "gypsum_ceiling_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 80,
+   "issues": [
+    "AC grilles kept, maintenance access kept",
+    "asked villa or apartment before it was said (fine), then timing and budget never reached",
+    "no summary reached"
+   ]
+  },
+  {
+   "id": "aluminium_windows",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "laminated pane for road noise, brushes and gaskets for dust",
+    "summary with New request, confirmed"
+   ]
+  },
+  {
+   "id": "office_fitout",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "approvals, timeline realism",
+    "budget asked in turn 2 and again in turn 3",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "electrical_ev",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "32 A circuit, DEWA approval, installer-supplied Wall Connector",
+    "an odd question about finishes along the route",
+    "no summary reached"
+   ]
+  },
+  {
+   "id": "kitchen_cabinets_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "J-pull needs sound, square boxes; MR MDF lacquer",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "ac_ducted_villa_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 80,
+   "issues": [
+    "asked for drawings in turn 1; split per zone recommended",
+    "40 cm void checked",
+    "timeline never asked; no summary reached"
+   ]
+  },
+  {
+   "id": "cctv_villa_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 70,
+   "issues": [
+    "IP66, night colour, PoE: expert",
+    "asked the camera count three times (Arabic singular/plural not matched)",
+    "no summary reached"
+   ]
+  }
+ ]
+}

@@ -24,17 +24,25 @@ Deno.test('1195-1197: every WhatsApp reply variable is assigned only model-writt
         || /^(?:text|out|reply|replyS|replyD) \? (?:toContact|bidiSafe)\((?:text|out|reply)\.slice\(0, 1200\)\) : ''$/.test(rhs)
         || /^reply\.trim\(\) \? bidiSafe\(reply\.slice\(0, 1200\)\) : ''$/.test(rhs)
         || /^\(await say\(situation\)\)\.slice\(0, 1200\)$/.test(rhs)
+        || /^\(drafted \? adopt\(drafted\) : await say\(situation\)\)\.slice\(0, 1200\)$/.test(rhs)   // the model's draft asked beside the classification
         || rhs === 'toContact(reply)'                   // the outgoing guard over the model's own text
         || rhs === 'h.notice'                           // the HELD NOTICE: a notification when no model answered
-        || (v === 'text' && rhs === 'msg.body');        // the accepted-offer confirmation: a NOTIFICATION
+        || (v === 'text' && rhs === 'msg.body');        // the accepted-offer template: OpenRouter-down fallback only (1339)
       if (!ok) bad.push(v + ' = ' + rhs.slice(0, 120));
     }
   }
   assertEquals(bad, [], 'reply text assigned from something other than the model:\n' + bad.join('\n'));
 });
 
-Deno.test('1195-1197: the only notification sent as-is is the accepted-offer confirmation, and it is marked', () => {
-  assert(/so\.state === 'accepted'\) \{ text = msg\.body; notice = true; \}/.test(code));
+// founder_instruction 1339 (27 Oct 2026): the accepted-offer confirmation is a reply to their message, so the model writes
+// it from the template; the template itself goes out only when OpenRouter is down (sayOutage), and it is marked.
+Deno.test('1339: the accepted-offer confirmation is the model\'s; the template only when OpenRouter is down, and marked', () => {
+  assert(/if \(!text && sayOutage\) \{ text = msg\.body; notice = true; \}/.test(code), 'the template is gated on the outage');
+  assert(!/so\.state === 'accepted'\) \{ text = msg\.body;/.test(code), 'the template is sent as-is again while the model is up');
+});
+Deno.test('1339: every held notice is gated on the outage of the last model call', () => {
+  assert(/holdUnwritten\(\{[^}]*outage: sayOutage/.test(code), 'heldTurn passes the outage of the last say to holdUnwritten');
+  assert(/sayOutage = !r\.text && r\.outage;/.test(code), 'sayFor records whether OpenRouter was down');
 });
 
 Deno.test('1195-1197: no stored-sentence road remains, and no path leaves the person silent', () => {
@@ -47,6 +55,22 @@ Deno.test('1195-1197: no stored-sentence road remains, and no path leaves the pe
 });
 
 Deno.test('review of #1335: the per-number rate key is carried, and the model\'s own escalate flag is OR-ed with the router', () => {
-  assert(code.includes("rateKey: 'wa:' + From"), 'the per-number ceiling (wa:<From>) reaches the gateway');
+  assert(code.includes("rateKey: signal ? 'wa-spec:' + From : 'wa:' + From"), 'the per-number ceiling (wa:<From>) reaches the gateway; a speculative draft has its own bucket');
   assert(code.includes('const escalate = route?.needs_a_person === true || modelEscalate;'), 'a complaint the router misses still reaches a person');
+});
+
+// customer_support, 2 Nov 2026: the reply is asked beside the classification. A draft asked before the class is known is adopted ONLY
+// when the real route's inputs are exactly the ones it was composed on, and asking writes nothing the turn keeps, so a discarded draft
+// can neither escalate, flag the turn nor be sent (the one send is the one at the end).
+Deno.test('a speculative reply is adopted only on the route it was composed on, and asking never touches the turn', () => {
+  assert(/fn_wa_route_dry', \{ p_phone: From, p_body: Body\.slice\(0, 4000\), p_needs_person: false, p_intent: 'none' \}/.test(code), 'the draft is composed on the dry route for class (no person, none)');
+  assert(/speculative && needsPerson === false && routedIntent === 'none' && route\?\.needs_a_person === false/.test(code), 'adopted only when the classification says exactly that');
+  // discarded drafts cannot use up the real reply's rate allowance, and are aborted when discarded
+  assert(code.includes("specAbort.signal") && /askModel\([^\n]*specAbort\.signal\)/.test(code), 'the speculative call carries the abort signal, which is what selects its own bucket');
+  assert(code.includes("if (!(spec && spec.text)) specAbort.abort();") && code.includes('specAbort.abort();\n'), 'a discarded draft is aborted');
+  assertEquals((code.match(/'wa:' \+ From/g) || []).length >= 1 && code.includes("'wa-spec:' + From"), true, 'two buckets: wa: for the real reply, wa-spec: for drafts');
+  assert(code.includes("itFinding('wa_inbound:route_dry_unavailable'"), 'a dry route that is missing or failing is an IT finding, not silence');
+  const ask = code.slice(code.indexOf('const askModel ='), code.indexOf('const adopt ='));
+  assert(!/modelEscalate|sayOutage|sayProblems/.test(ask), 'askModel must not set the turn\'s escalate / outage / problems');
+  assertEquals((code.match(/adopt\(/g) || []).length, 2, 'adopt is called by sayFor and by the speculative draft, and nowhere else');
 });

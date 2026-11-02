@@ -48,9 +48,9 @@ const ICONS: Record<string, LucideIcon> = {
   'facilities-management': Building2,
 };
 
-const linkBase = 'relative inline-flex h-9 items-center gap-1 rounded-btn px-3 text-small font-medium transition-colors duration-base';
+const linkBase = 'relative inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-btn px-2.5 text-small font-medium transition-colors duration-base';
 const linkIdle = 'text-muted hover:bg-teal-light/5 hover:text-white';
-const linkOn = 'text-white after:absolute after:inset-x-3 after:bottom-[-15px] after:h-px after:bg-teal-light after:shadow-[0_0_10px_rgba(110,231,212,.9)]';
+const linkOn = 'text-white after:absolute after:inset-x-3 after:-bottom-[15px] after:h-px after:bg-teal-light after:shadow-[0_0_10px_rgba(110,231,212,.9)]';
 
 export function AudienceNav({ labels, services }: { labels: AudienceLabels; services: NavService[] }) {
   const [audience, setAudience] = useState<Audience>('visitor');
@@ -60,6 +60,9 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
   const panelId = useId();
   const wrap = useRef<HTMLDivElement>(null);
   const closeT = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Set when hovering opened the panel: the click that follows on the same trigger must keep it open,
+  // not toggle it shut (a mouse user hovers, then clicks; measured by scripts/e2e/site_crawl.mjs).
+  const byHover = useRef(false);
 
   useEffect(() => {
     setAudience(readAudience());
@@ -79,8 +82,9 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
     return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('pointerdown', onDown); };
   }, [open]);
 
-  const hoverOpen = () => { if (closeT.current) clearTimeout(closeT.current); setOpen(true); };
-  const hoverClose = () => { closeT.current = setTimeout(() => setOpen(false), 140); };
+  const hoverOpen = () => { if (closeT.current) clearTimeout(closeT.current); if (!open) byHover.current = true; setOpen(true); };
+  const onTrigger = () => { if (byHover.current) { byHover.current = false; return; } setOpen((v) => !v); };
+  const hoverClose = () => { byHover.current = false; closeT.current = setTimeout(() => setOpen(false), 140); };
 
   // "How it works" opens its own page, "Categories" the homepage grid, "For suppliers" the supplier
   // landing page. Services is rendered separately as the mega-menu trigger.
@@ -105,14 +109,14 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
 
   return (
     <>
-      <nav className="hidden items-center gap-0.5 lg:flex" aria-label={labels.menu}>
+      <nav className="hidden items-center gap-0.5 xl:flex" aria-label={labels.menu}>
         <Link href={items[0].href} aria-current={isOn(items[0].href) ? 'page' : undefined} className={`${linkBase} ${isOn(items[0].href) ? linkOn : linkIdle}`}>{items[0].label}</Link>
         <div ref={wrap} className="relative" onPointerEnter={hoverOpen} onPointerLeave={hoverClose}>
           <button
             type="button"
             aria-expanded={open}
             aria-controls={panelId}
-            onClick={() => setOpen((v) => !v)}
+            onClick={onTrigger}
             className={`${linkBase} ${servicesOn ? linkOn : linkIdle} ${open ? 'bg-teal-light/6 text-white' : ''}`}
           >
             {labels.services}
@@ -175,7 +179,10 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
         <span className="hidden sm:contents"><LangSwitch /></span>
         {/* A signed-in person does not need a "Sign in" link; the CTA already goes to their portal. */}
         {audience === 'visitor' ? (
-          <Link href="/me" className="hidden h-9 items-center px-3 text-small font-medium text-muted transition-colors hover:text-white sm:inline-flex">{labels.login}</Link>
+          <Link href="/supplier" className="hidden h-9 items-center whitespace-nowrap px-3 text-small font-medium text-muted transition-colors hover:text-white md:inline-flex xl:hidden">{labels.suppliers}</Link>
+        ) : null}
+        {audience === 'visitor' ? (
+          <Link href="/me" className="hidden h-9 items-center whitespace-nowrap px-3 text-small font-medium text-muted transition-colors hover:text-white sm:inline-flex">{labels.login}</Link>
         ) : null}
         <Link
           href={cta.href}

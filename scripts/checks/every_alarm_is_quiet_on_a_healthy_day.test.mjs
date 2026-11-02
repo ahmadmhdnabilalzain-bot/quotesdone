@@ -112,6 +112,37 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_support_reply_watch_tick()',
     asOf: { inbound_messages: 'created_at', wa_messages: 'created_at', assistant_logs: 'created_at' },
   },
+  // 19 Oct 2026 (customer_support, #1549, CS-C08). Raises delivery_outcome_unreturned: a delivery.request done or
+  // failed more than 2 h before the instant with no delivery.result returned and no open watch window. It runs
+  // fn_customer_support_delivery_watch first (its returns are written inside the rolled-back replay). A request's
+  // status and result_handoff_id are PRESENT state (same ceiling as fn_support_reply_watch_tick): one returned
+  // after the instant reads as returned then, so it can under-fire, never over-fire.
+  // The watch is stubbed in the replay (review of #1549 after main's row-lock walk): it returns results through
+  // fn_seat_handoff -> act -> complete, which can lock a LIVE refunds or refund_incident row when the asking seat is the
+  // accountant. The alarm's decision does not need it here: result_handoff_id is present state, so a request the watch
+  // returned after the instant already reads as returned, and stubbing can only under-fire.
+  fn_customer_support_delivery_outcome_tick: {
+    stub: { 'public.fn_customer_support_delivery_watch': `'{}'::jsonb` },
+    replay: 'pg_temp.qd_replay_fn_customer_support_delivery_outcome_tick()',
+    asOf: { agent_actions: 'created_at', notifications: 'created_at' },
+  },
+  // 19 Oct 2026 (customer_support, #1549, CS-C06). Raises support_reply_quality:<readability_avg|tone_avg|scored_share>
+  // over the 7 days to the instant. scored_share judges only replies sent after support_reply_scoring_complete_since
+  // (the day every road scores), so an instant before it cannot fire on the gap that file fixed.
+  fn_customer_support_reply_quality_week: {
+    replay: 'pg_temp.qd_replay_fn_customer_support_reply_quality_week()',
+    asOf: { support_reply_readability: 'created_at', assistant_logs: 'created_at', wa_messages: 'created_at', inbound_messages: 'created_at' },
+  },
+  // 19 Oct 2026 (customer_support, #1549, CS-C09). Raises delivery_health:<send_failures|whatsapp_failures|
+  // template_watch|unsubscribe_refusals> over the 24 h to the instant: failures over 5% of 20+ sends, a template
+  // watcher run not ok (or none), a refused unsubscribe from a real address.
+  // Sending the signed opt-out confirmation is the follow-on action, not the alarm: stubbed, so the replay neither
+  // queues a message nor walks fn_customer_support_takes_delivery's handoff chain into a live row lock.
+  fn_customer_support_delivery_health_tick: {
+    stub: { 'public.fn_customer_support_duty_send': `'{}'::jsonb` },
+    replay: 'pg_temp.qd_replay_fn_customer_support_delivery_health_tick()',
+    asOf: { notifications: 'created_at', agent_runs: 'started_at', email_suppressions: 'created_at', inbound_messages: 'created_at' },
+  },
   // 23 Sep 2026 (sales_engineer, #869). Raises two findings: a reminder whose handler failed three times,
   // and a reminder whose delivery never became final in 3 days. Both read handoffs and leads that existed
   // at the instant; p_include_fixtures false, so a healthy day with no failing or stuck reminder is quiet.
@@ -186,6 +217,12 @@ export const REGISTER = {
   fn_it_engineer_duty_pause_expiry: {
     replay: 'pg_temp.qd_replay_fn_it_engineer_duty_pause_expiry()',
     asOf: { duty_pause: 'paused_at' },
+  },
+  // 27 Oct 2026 (it_engineer, 68046f265, ledger 1003 IT-C14). A run label with more than 5 runs in 7 days and more than
+  // half of them not ok is one owned finding. Runs that existed at the instant.
+  fn_it_engineer_run_clusters: {
+    replay: 'pg_temp.qd_replay_fn_it_engineer_run_clusters()',
+    asOf: { agent_runs: 'started_at' },
   },
   fn_ceo_report_answer_sweep: { stub: { 'public.fn_ceo_decide_report': 'null', 'public.fn_ceo_backup_heartbeat_decide': 'null' }, replay: 'pg_temp.qd_replay_fn_ceo_report_answer_sweep()', asOf: {} },
   fn_ceo_constraint_lever: { stub: { 'public.fn_ceo_improvement_close': 'null' }, replay: 'pg_temp.qd_replay_fn_ceo_constraint_lever()', asOf: {} },
@@ -272,10 +309,17 @@ export const REGISTER = {
   // ── RELAYS: they pass on what another routine decided ─────────────────────────────────────────
   trg_high_stakes_review: { relay: 'records the disagreement a second seat recorded with a high-stakes decision that already went ahead; the verdict is the reviewer\'s (seat_deliberation_turn), and a healthy day has none' },
   fn_spec_offer_failed: { relay: 'records a spec comparison the sales_engineer sweep reported failed; raises only after its fifth backed-off failure, never on a healthy day' },
+  // 27 Oct 2026 (it_engineer for marketing): the WhatsApp supplier invitation brake (#1634) writes it_watch_finding
+  // directly, and main went red on this check because nobody registered it. It decides nothing itself: its two callers
+  // decide (fn_wa_sender_quality_record on Twilio's own quality reading, fn_wa_supplier_invite_gate on >= 2 STOP replies
+  // and >= 5% of the invitations sent in 7 days), and fn_it_engineer_ingest_watch_findings carries the open row into
+  // the finding ledger. With 0 invitations sent and no reading below HIGH, a healthy day raises nothing.
+  fn_wa_supplier_invite_brake: { relay: 'records the WhatsApp invitation brake that fn_wa_sender_quality_record (a Twilio quality reading below HIGH / ONLINE) or fn_wa_supplier_invite_gate (>= 2 STOPs and >= 5% of 7-day invitations) decided; a healthy day sends no invitation below HIGH and has no STOPs, so it raises nothing' },
   fn_wa_signature_watch: { relay: 'records a WhatsApp webhook wa_inbound itself refused for a bad X-Twilio-Signature; the refusal is the decision of the signature check, and nothing fires on a healthy day with no refused inbound' },
   fn_seat_clock_deliver: { relay: 'records a message the send door refused; the refusal is the door\'s decision' },
   fn_it_engineer_ingest_watch_findings: { relay: 'copies fn_it_detect\'s open it_watch_finding rows into the finding ledger' },
-  fn_invite_placement_finding: { relay: 'records the verdict fn_invite_placement_settle reached on a seed message the inbox reader (resilience_ping inboxPlacement) looked at; the folder is the reader\'s reading, and no seed is sent on a healthy day before the morning batch' },
+  fn_invite_placement_finding: { relay: 'records the verdict fn_invite_placement_judge reached from the latest recorded GlockApps result (public.deliverability_test against public.invite_placement_bar, 28 Oct 2026; the morning seed is retired); it files only on an open sending day, so a held campaign files nothing, and a healthy open day has a passing verdict' },
+  fn_wa_supplier_invite_brake: { relay: 'records the brake a caller pulled on the supplier WhatsApp invitations (the quality or opt-in gate, with its reason); it cancels the queued sends and files deliverability:supplier_invite_wa only when called, and a healthy day never calls it' },
   fn_lesson_reapproval_lapse_escalates: { relay: 'records that the CEO escalation of a lapsed lesson re-approval could not be opened (#1443); fires only when fn_seat_handoff itself errors on that lapse, and a healthy day has none' },
   fn_rehearsal_window_sweep: { relay: 'logs a window it closed as an already-resolved info row (status resolved, severity info); the decision is the window\'s own expires_at (#1401), and no alarm is raised' },
   fn_it_duty_settle: { relay: 'writes the failing items a duty reading hands it; the rule is the duty\'s' },
@@ -288,6 +332,8 @@ export const REGISTER = {
   fn_it_loop_stage: { relay: 'records that an IT loop stage raised; the error is the finding' },
   fn_seat_duty_cross_review: { relay: 'records that a cross-family review could not be opened; the error from fn_seat_deliberation_open is the finding' },
   fn_seat_handoff: { relay: 'records a handoff that could not be opened; the error is the finding' },
+  // 27 Oct 2026 (#1607, accountant): the reveal-invoice trigger raises only in the exception arm of its handoff insert.
+  fn_accountant_files_reveal_invoice: { relay: 'records that the invoice.issued handoff to the sales engineer could not be filed for a transaction whose invoice it just filed; fires only when that insert is refused (the error is the finding), and a healthy day has none' },
   fn_ceo_accountant_notice_report_decide: { relay: 'the CEO\'s decision on an accountant report' },
   fn_ceo_sales_engineer_report_decide: { relay: 'the CEO\'s decision on a sales engineer report' },
   fn_it_journey_ingest: { relay: 'writes the failed steps a nightly journey or smoke run reports' },

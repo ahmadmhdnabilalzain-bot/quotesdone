@@ -88,6 +88,10 @@ export interface ThinkRequest {
   subject?: Record<string, unknown>;   // what a replay acts on (a command id, a phone, a message id)
   dedupeKey?: string;       // one held row per inbound message
   queueWhenHeld?: boolean;  // default true
+  // LEAN (customer_support, 2 Nov 2026): a decision among given options reads the message, the recent turns, who is asking and the
+  // options; it needs no company brief. Measured on the real exchange: the brief made WhatsApp's one classification call ~150k
+  // tokens and 17-24 s. Lean sends no settled facts to the decide/verify calls; the reply step is a different request and keeps them.
+  lean?: boolean;
   // An ANSWER that also names which seat owns the matter (support_reply.ts, founder_instruction 781). Unlike
   // `decision`, the answer stays the reply; the chosen id comes back as result.route (null if not one of these).
   route?: { id: string; meaning: string }[];
@@ -126,6 +130,9 @@ export interface ThinkRequest {
   reader?: boolean;
   // The reasoning effort asked of the model for the answer or decision (a choice among a few options needs little).
   effort?: 'low' | 'medium' | 'high';
+  // Sampling temperature for every call of this run (absent: 0.2, and 0 for the independent check). The quote hold
+  // gate's readers pass 0 (sales_engineer, 2 Nov 2026): the same quotation must read the same way every time.
+  temperature?: number;
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
 export interface Fact { name: string; why: string; changes_answer: boolean; value: string | null; from: string | null }
@@ -157,9 +164,11 @@ export interface ThinkDeps {
   gate(): Promise<GateAnswer>;
   // subject: what the question is about, forwarded to ai_gateway so its fixture check (fn_ai_subject_is_fixture)
   // can answer our own test traffic with the no-cost stub (704, 28 Sep 2026).
-  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h'; timeoutMs?: number; history?: { role: 'user' | 'assistant'; content: string }[]; effort?: 'low' | 'medium' | 'high' }): Promise<LlmReply>;
+  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null; rateKey?: string; images?: string[]; sysStable?: string; sysShared?: string; cacheTtl?: '1h'; timeoutMs?: number; history?: { role: 'user' | 'assistant'; content: string }[]; effort?: 'low' | 'medium' | 'high'; temperature?: number; signal?: AbortSignal }): Promise<LlmReply>;
   // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
   embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
+  /** Why the last embed of this text in this space returned null, when the embedder said (ml_embed_client's `why`). */
+  embedFailure?(text: string, space: EmbedSpace): string | null;
   /** Which space retrieval reads (fn_ml_read_space). Absent = 'gte', the path every test and caller had. */
   space?(): Promise<EmbedSpace>;
   rpc(fn: string, args: Record<string, unknown>): Promise<RpcResult>;
@@ -200,6 +209,12 @@ export const BRIEF_SOURCE_ID = 'brief';
 // JSON object'. Every class think() writes in allows at least 2,000 (model_policy: internal_judgement and
 // routine_employee_reasoning 2,000; the audience classes and ceo__internal_judgement 4,000).
 export const SYNTH_MAX = 2000;
+// A LEAN CHOICE WRITES LITTLE (customer_support, 2 Nov 2026). Its caller reads decision.choice (and `also`) and nothing else, yet the
+// model wrote a two-or-three sentence "answer" and a reasoning trail first: decode time is most of the ~15 s classification.
+// Lean decisions are told to keep every other field minimal, and are capped at this many tokens (the JSON itself is ~100).
+export const LEAN_DECIDE_MAX = 500;
+const LEAN_DECIDE_NOTE = `
+This choice is read by a program: only "decision" (and any "Also" keys) is used. Keep "answer" to at most eight words, "reasoning" [], "cited" [], "asked_back" null, and write nothing outside the JSON object.`;
 // The planner runs on a reasoning model whose hidden tokens count against the clock: on the seat exam (19 Oct 2026)
 // 41 of 432 plans (routine_employee_reasoning on gpt-6-luna-pro) hit the gateway's 47 s wall and the question was held
 // (25 of 67 for ceo); the slowest plan that finished took 47.3 s.
@@ -584,7 +599,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     steps.push({ id: 'fixture', kind: 'hold', goal: 'our own test traffic is never sent to a paid model', status: 'skipped', detail: 'subject.fixture' });
     return await hold('fixture_no_spend', {});
   }
-  { const base = deps; deps = { ...base, llm: (p, s, i, o) => base.llm(p, s, i, { ...o, subject: req.subject ?? null }) }; }
+  { const base = deps; deps = { ...base, llm: (p, s, i, o) => base.llm(p, s, i, { ...o, subject: req.subject ?? null, ...(req.temperature != null ? { temperature: req.temperature } : {}) }) }; }
   // A PROVIDER BLIP IS RETRIED ONCE (ceo, ledger 1003 stage 2, 19 Oct 2026). Measured on the real-model seat exam: 27 of
   // 633 questions were held for one 502/503/546 or a gateway deadline on the plan or the answer, not for anything the
   // model said. A model call writes nothing, so one more try is safe; a hold, an open circuit or a refusal is not retried.
@@ -604,7 +619,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   }
 
   // a. DECOMPOSE
-  const facts0 = settledFacts(audience, req.seat);
+  const facts0 = req.lean === true && deciding ? '' : settledFacts(audience, req.seat);
   const d0 = req.plan ? { content: JSON.stringify({ steps: req.plan.steps, facts: [] }), error: null }
     : await deps.llm('decompose', decomposePrompt(req.seat, req.decision),
       JSON.stringify({ question: req.question, context: ctx, decision: req.decision ?? null }),
@@ -689,7 +704,8 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   for (const s of [...planSteps, ...asked]) {
     if (!s.needs) { steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: 'skipped' }); continue; }
     const { v, r: rt } = await embedIn(s.query);
-    if (!v) { steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: 'failed', detail: 'embedding_unavailable' }); thin.push(s); continue; }
+    // The reason rides in the detail (27 Oct 2026: five rows read 'embedding_unavailable' and nothing said why).
+    if (!v) { const why = deps.embedFailure?.(s.query, 'gte') ?? deps.embedFailure?.(s.query, 'ml') ?? null; steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: 'failed', detail: why ? 'embedding_unavailable: ' + why : 'embedding_unavailable' }); thin.push(s); continue; }
     // The multilingual search fuses both spaces (fn_reason_retrieve_ml), so it takes the gte-small vector too;
     // without one it ranks by the multilingual space alone. An Arabic question gets none: gte-small is English-only
     // and its vector for Arabic text pulled the fused ranking down (gteReads, _shared/ml_embed_recipe.ts).
@@ -737,12 +753,14 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     + (req.ask && !deciding ? `
 Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.` : '')
     + (req.also ?? []).map((a) => `
-Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.`).join('');
+Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.`).join('')
+    + (req.lean === true && deciding ? LEAN_DECIDE_NOTE : '');
+  const synthMax = req.lean === true && deciding ? LEAN_DECIDE_MAX : req.maxTokens?.synthesise ?? SYNTH_MAX;
   const payload = { question: req.question, context: ctx, plan: planSteps, facts_known: facts.filter((f) => f.value), facts_missing: missing, sources };
   let draft: Draft | null = null; let model: string | null = null; let refusal: string | null = null;
   for (let pass = 1; pass <= (deciding ? 2 : MAX_SYNTH_PASSES); pass++) {
     const r = await deps.llm('synthesise', synthSys + (refusal ? `\n\nYOUR PREVIOUS DRAFT WAS REFUSED: ${refusal}. Write it again, correctly.` : ''),
-      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? SYNTH_MAX, sysStable: facts0, ...(req.effort ? { effort: req.effort } : {}) });
+      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: synthMax, sysStable: facts0, ...(req.effort ? { effort: req.effort } : {}) });
     draft = parseJson<Draft>(r.content); model = r.model ?? model;
     if (req.reader && draft && typeof draft === 'object') {
       draft.asked_back = null;
@@ -778,7 +796,7 @@ Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((
     } else {
       // One corrective pass with the reviewer's problems; the second reading is final and marked.
       const r = await deps.llm('synthesise', synthSys + `\n\nAN INDEPENDENT REVIEWER FOUND PROBLEMS: ${(vj.problems ?? []).join(' | ')}. Correct them.`,
-        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: req.maxTokens?.synthesise ?? SYNTH_MAX, sysStable: facts0, ...(req.effort ? { effort: req.effort } : {}) });
+        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: synthMax, sysStable: facts0, ...(req.effort ? { effort: req.effort } : {}) });
       const fixed = parseJson<Draft>(r.content);
       if (req.reader && fixed && typeof fixed === 'object') { fixed.asked_back = null; keepProvenFields(fixed, req.decision, textOf(ctx) + '\n' + req.question); }
       if (fixed) groundDraft(fixed, missing);
@@ -819,35 +837,80 @@ Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((
 // ── the live dependencies ────────────────────────────────────────────────────────────────────────
 // deno-lint-ignore no-explicit-any
 type Admin = any;
-export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
+/** A step under a CALLER'S clock (sales_engineer, 27 Oct 2026; inquiry_intake/turn_clock.ts measured why): the same deps,
+ *  with every model call cut at `deadline` (epoch ms). None starts with under `minMs` left and none may run past it. A
+ *  call that cannot run returns no content with error 'turn_deadline', which think() treats as a model that did not
+ *  answer and never retries (SLOW_MODEL_ERROR): the decision is held, nothing is chosen or filled. A per-call timeout is
+ *  not a turn budget; this is. prevented by: _shared/think_deadline.test.ts */
+export const MIN_STEP_MS = 5_000;
+export function withDeadline(deps: ThinkDeps, deadline: number, minMs = MIN_STEP_MS, now: () => number = Date.now): ThinkDeps {
+  return {
+    ...deps,
+    llm: async (phase, system, input, o) => {
+      const left = deadline - now();
+      if (left < minMs) return { content: null, model: null, error: 'turn_deadline: ' + Math.max(0, left) + ' ms left' };
+      return await deps.llm(phase, system, input, { ...o, timeoutMs: Math.min(o.timeoutMs ?? left, left) });
+    },
+  };
+}
+
+// THE HELD REPLAY NEVER RUNS GTE-SMALL IN ITS OWN WORKER (it_engineer, 27 Oct 2026). Measured on production: every
+// detached itlater run that replayed three or more held questions was killed by the edge runtime at its 2 s CPU cap
+// (function_logs "CPU Time exceeded", shutdown reason CPUTime, 2,000-2,160 ms; 10 runs on 26-27 Oct, e.g. 01:17:52,
+// 01:47:34 and 02:17:25 UTC), while the same run with no held row used 49-194 ms. The worker died with the model's
+// answer in flight, fn_reason_held_resolve never ran, the claim had already counted a try, and after three claims the
+// sweep closed the row 'failed' with no result: marketing.ceo_revision 28986 (the November month plan) and its three
+// siblings 28985/28987/28988, and the it_engineer.postmortem rows the same day. The cause is what each row does in the
+// worker: on the multilingual space every English plan step and the question are ALSO embedded with gte-small for the
+// fused ranking, and defaultDeps ran that in-process. Replayed locally with the four real requests, think() spends
+// 13 ms of JavaScript CPU for all four rows and asks for 24 gte-small runs; one embedding in embed_ml's own worker costs
+// a median 324 ms CPU (p90 415 ms, 21,140 runs on 27 Oct). So `gte: 'remote'` sends gte-small to embed_ml - the same
+// model, the same 384-dimension space, its own worker per call (meaning_embed.ts made the same move on 29 Sep) - and
+// the heartbeat's deps (heartbeatDeps) use it. Other callers keep the in-worker session: their latency, not a batch.
+// prevented by: _shared/held_replay_keeps_gte_out_of_the_worker.test.ts
+export type GtePlacement = 'worker' | 'remote';
+export function defaultDeps(admin: Admin, fn: string, o: { gte?: GtePlacement; embedTimeoutMs?: number } = {}): ThinkDeps {
+  // 8 s covers embed_ml's cold start (1.2-2.6 s); a visitor waiting on a page (public_site) gets a shorter clock, and a
+  // timeout is the same null an embed failure is: the caller goes on without the vector (it_engineer, review of #1786).
+  const embedMs = o.embedTimeoutMs ?? 8000;
+  // why each remote embed returned null, per space and text, for the step detail (embedFailure); cleared on success
+  const embedFails = new Map<string, string>();
+  const noteFail = (sp: EmbedSpace, t: string) => (why: string) => { embedFails.set(sp + '\u0001' + t, why); };
+  const settle = (sp: EmbedSpace, t: string, v: number[] | null) => { if (v) embedFails.delete(sp + '\u0001' + t); return v; };
   return {
     gate: async () => (await admin.rpc('fn_kernel_paid_provider_gate', { p_model: HOLD_PROBE_MODEL })).data,
     llm: async (phase, system, input, o) => {
       const { makeLlmRich } = await import('./llm.ts');
-      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: o.timeoutMs ?? 45_000, cacheTtlMin: 0, json: true, temperature: phase === 'verify' ? 0 : 0.2, ...(o.rateKey ? { rateKey: o.rateKey } : {}) });
+      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: o.timeoutMs ?? 45_000, cacheTtlMin: 0, json: true, temperature: o.temperature ?? (phase === 'verify' ? 0 : 0.2), ...(o.rateKey ? { rateKey: o.rateKey } : {}) });
       // A photo or drawing the person sent rides as image parts; the gateway routes it to a vision-capable model.
       const last = o.images?.length ? { role: 'user', content: [{ type: 'text', text: input }, ...o.images.map((url) => ({ type: 'image_url', image_url: { url } }))] } : { role: 'user', content: input };
       // history (chat_history.ts): the conversation so far as real turns before this one, cached by the gateway
       const content = o.history?.length ? [...o.history, last] : o.images?.length ? [last] : input;
       // sysStable: the byte-stable prefix (the company brief) the gateway marks cacheable; `system` follows it.
-      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(o.sysShared ? { sysShared: o.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}), ...(o.history?.length ? { cacheHistory: true } : {}), ...(o.effort ? { effort: o.effort } : {}) });
+      const r = await call(system, content as never, o.max ?? 900, o.sysStable ?? '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}), ...(o.sysShared ? { sysShared: o.sysShared } : {}), ...(o.cacheTtl ? { cacheTtl: o.cacheTtl } : {}), ...(o.history?.length ? { cacheHistory: true } : {}), ...(o.effort ? { effort: o.effort } : {}), ...(o.signal ? { signal: o.signal } : {}) });
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
     embed: async (t, space) => {
       // The model runs in embed_ml, never in this worker (ml_embed_client.ts); 8 s covers its cold start (1.2-2.6 s).
-      if (space === 'ml') { const { embedQueryMlRemote } = await import('./ml_embed_client.ts'); return await embedQueryMlRemote(admin, t, fn, 8000); }
+      if (space === 'ml') { const { embedQueryMlRemote } = await import('./ml_embed_client.ts'); return settle('ml', t, await embedQueryMlRemote(admin, t, fn, embedMs, noteFail('ml', t))); }
       const { embedLine } = await import('./gte_embed.ts');
       // Outside the edge runtime (the seat exam on a machine) there is no Supabase.ai: the same gte-small answers from
       // embed_ml instead of null, so a run off the edge retrieves exactly as the edge does (ml_embed_client.embedGteRemote).
       // deno-lint-ignore no-explicit-any
-      if (!(globalThis as any).Supabase?.ai) { const { embedGteRemote } = await import('./ml_embed_client.ts'); return await embedGteRemote(admin, t, fn, 8000); }
+      if (o.gte === 'remote' || !(globalThis as any).Supabase?.ai) { const { embedGteRemote } = await import('./ml_embed_client.ts'); return settle('gte', t, await embedGteRemote(admin, t, fn, embedMs, noteFail('gte', t))); }
       return await embedLine(t);
     },
+    embedFailure: (t, sp) => embedFails.get(sp + '\u0001' + t) ?? null,
     space: async () => { const { readSpace } = await import('./ml_embed_client.ts'); return await readSpace(admin); },
     rpc: async (f, args) => { const r = await admin.rpc(f, args); return { data: r.data, error: r.error }; },
     search: (q) => webSearch(admin, q),
     read: readPage,
   };
+}
+
+/** The deps of the resilience_ping heartbeat's batch work (held replay, routine judgements): gte-small in embed_ml. */
+export function heartbeatDeps(admin: Admin): ThinkDeps {
+  return defaultDeps(admin, 'resilience_ping', { gte: 'remote' });
 }
 
 // The search engine: Serper, through web_search.ts (cap, private-name guard, official UAE sources only).
@@ -893,17 +956,39 @@ export type HeldRow = { id: number; seat: string; surface: string; request: Stor
 // whose cost rose to ewma 84 s / last 119 s, so the tick plan deferred it on most ticks (5 deferrals in a row) and 6 of
 // 32 ticks ended 546 with 10 concurrent think() calls in flight. The held queue fell 253 -> 248 in eight hours.
 // A smaller slice that fits every tick drains faster than a large one that rarely runs.
+// TWO ROWS AT A TIME, ONE CLAIM A TICK, AND NO MODEL CALL PAST THE BUDGET (it_engineer, 27 Oct 2026). Measured on
+// production at 20:30Z: the tick claimed 5 rows (28985-28988, 32248) and reasoned them under one Promise.all. Since
+// #1678 every gte-small vector is its own embed_ml invocation, so that was dozens of function-to-function calls in
+// about 10 s beside the routine-judgements drain: ai_gateway answered 503 after ~10 s with no execution_id (no worker
+// served it), the other fetches threw, and all five rows came back 'model_failed: no reply' - the 12 Oct symptom again.
+// Rows are now reasoned at most REPLAY_CLAIM at a time (a claim never asks for more than that), a claim starts only
+// while a whole row's measured time (REPLAY_ROW_MS) still fits in the budget, and every model call of the replay is
+// cut at the budget's end (withDeadline), so nothing is left in flight when the step returns. Measured per row (13
+// rows applied 21-27 Oct, claim to reasoned_at, one or two at a time): 41-80 s for ten, 105/125/162 s for three that
+// rode a larger burst; a resilience_ping model call takes p50 24-34 s (ai_cost_log, 3 days), and a row makes two or
+// three of them. So budget = row = 90 s: one claim of up to two rows per tick, 8 an hour at the 15-minute tick
+// against a held queue of 9. embed_ml takes one text per call (action 'gte'), so the embeddings are not batched.
+// prevented by: _shared/think_replay_concurrency.test.ts
 export const REPLAY_MAX_ROWS = 20;
-export const REPLAY_BUDGET_MS = 25_000;
-export const REPLAY_CLAIM = 5;
+export const REPLAY_BUDGET_MS = 90_000;
+export const REPLAY_ROW_MS = 90_000;
+export const REPLAY_CLAIM = 2;
+// The time a caller's own clock keeps after the replay (fn_it_duty_settle, the delivery record): with a `deadline`
+// the budget is what is left of it less this reserve, so a replay that starts late claims less, or nothing, and waits
+// for the next tick rather than running past its caller (review of #1688: the detached run is raced at 120 s).
+export const REPLAY_RESERVE_MS = 25_000;
 export const REPLAY_STALE_MS = 24 * 3600_000;
 export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deliver?: (row: HeldRow, r: ThinkResult) => Promise<unknown>,
-  opts: { maxRows?: number; budgetMs?: number; staleMs?: number; now?: () => number } = {}): Promise<unknown> {
-  const d = deps ?? defaultDeps(admin, 'resilience_ping');
+  opts: { maxRows?: number; budgetMs?: number; rowMs?: number; staleMs?: number; now?: () => number; deadline?: number } = {}): Promise<unknown> {
   const now = opts.now ?? Date.now;
   const t0 = now();
   const maxRows = opts.maxRows ?? limit;            // a caller that does not opt in keeps the old one-claim behaviour
-  const budget = opts.budgetMs ?? REPLAY_BUDGET_MS;
+  const budget = Math.max(0, Math.min(opts.budgetMs ?? REPLAY_BUDGET_MS, opts.deadline === undefined ? Infinity : opts.deadline - t0 - REPLAY_RESERVE_MS));
+  const rowMs = opts.rowMs ?? REPLAY_ROW_MS;
+  const claimSize = Math.max(1, Math.min(limit, REPLAY_CLAIM));   // the rows reasoned together, never more than REPLAY_CLAIM
+  // Every model call of every row ends by the budget: a call with under MIN_STEP_MS left is not started and the row
+  // stays held (turn_deadline), so the step never returns over a call still in flight.
+  const d = withDeadline(deps ?? heartbeatDeps(admin), t0 + budget, MIN_STEP_MS, now);
   const staleMs = opts.staleMs ?? REPLAY_STALE_MS;
   // The sweep runs on every tick, hold or not (5 Oct 2026): until then it ran inside fn_reason_held_due, which this
   // function never reached while the hold was on, so fixture and stale rows piled up for the day the hold lifts.
@@ -939,12 +1024,20 @@ export async function replayHeld(admin: Admin, limit = 3, deps?: ThinkDeps, deli
     return { id: row.id, status: r.status, effect: (res as { status?: string } | null)?.status ?? null, fanned: fanned.length, delivery, error: e?.message };
   };
   let error: string | undefined;
-  while (out.length < maxRows && now() - t0 < budget) {
-    const { data, error: ce } = await d.rpc('fn_reason_held_due', { p_limit: Math.min(limit, maxRows - out.length) });
+  // A claim counts a try on every row it returns, so a claim starts only while a whole row's time still fits in the
+  // budget: the first against the whole budget (the sweep and gate read before it are not a row's time), each later
+  // one against what is left. A budget under one row claims nothing and the rows wait for the next tick.
+  if (budget < rowMs) return { replayed: 0, deferred: `budget ${budget} ms is under one row (${rowMs} ms)`, swept };
+  while (out.length < maxRows) {
+    const spent = now() - t0;
+    if (spent >= budget || (out.length > 0 && budget - spent < rowMs)) break;
+    const ask = Math.min(claimSize, maxRows - out.length);
+    const { data, error: ce } = await d.rpc('fn_reason_held_due', { p_limit: ask });
     if (ce) { error = ce.message; break; }
+    // never more than claimSize rows in flight, whatever the claim returned; a claimed row is never dropped unreasoned
     const rows = (data ?? []) as HeldRow[];
-    out.push(...await Promise.all(rows.map(one)));
-    if (rows.length < limit) break;               // the queue is drained (or the claim was short)
+    for (let i = 0; i < rows.length; i += claimSize) out.push(...await Promise.all(rows.slice(i, i + claimSize).map(one)));
+    if (rows.length < ask) break;                 // the queue is drained (or the claim was short)
   }
   return error && !out.length ? { replayed: 0, error, swept } : { replayed: out.length, rows: out, swept, ...(error ? { error } : {}) };
 }

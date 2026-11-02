@@ -24,8 +24,10 @@ import { boqWithArabic } from '../_shared/boq_arabic.ts';
 import { boqReadings, liveReadingStore } from '../_shared/reasoned_documents.ts';
 import { arabicOf, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
+import { createCompany, sessionOpenedByCode } from './create_company.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
-import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
+import { SERVICES_UNCONFIRMED, servicesHoldMail, pendingFounderSubject } from '../_shared/services_hold_copy.ts';
+import { clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { markReading, proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { LIMITS } from '../_shared/doc_read/types.ts';
@@ -33,12 +35,12 @@ import { afterResponse, readStoredDocsLater, signedUpload, stuckReads, type Late
 import { toB64, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
-import { approve, deskAssess, fillIn, finishArabic, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
+import { approve, checkVerdict, deskAssess, fillIn, finishArabic, formSchema, gate, gateInputKey, pdfDoc, readAndAssess, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
-import { applyReading, readQuote } from '../_shared/reasoned_matching.ts';
-import { assessQuote, requirementsOf } from '../_shared/line_specs/assess.ts';
+import { readQuote } from '../_shared/reasoned_matching.ts';
+import { requirementsOf, type Assessment } from '../_shared/line_specs/assess.ts';
 import type { Attr } from '../_shared/line_specs/model.ts';
-import { checklistAttrs, chooseChecklist, needsChecklist, reasonLineSpecs, unionOf, type Checklist, type ChecklistRow } from '../_shared/line_specs/reasoned_specs.ts';
+import { checklistAttrs, chooseChecklist, needsChecklist, reasonLineSpecs, type Checklist, type ChecklistRow } from '../_shared/line_specs/reasoned_specs.ts';
 import type { Line, MissingItem } from '../_shared/line_specs/assess.ts';
 import type { Ctx } from '../_shared/line_specs/workflow.ts';
 import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
@@ -58,10 +60,20 @@ import { inquiryDocuments, MAX_FILE, REVIEW_ACTIONS, reviewAction, safeInquiry }
 import { supabaseReviewRepo } from './quote_review_flow.ts';
 import { jobNo, readWorking, reviewQuotation, sanitizeSpec, sanitizeTermsSpec } from './quote_review.ts';
 import { issueAsMissing, resolvedFrom, withResolved, workingFromStoredQuote, workingFromSubmit } from './submit_review.ts';
-import { SANCTIONED_REFUSAL, SANCTIONED_REGISTRATION_REFUSAL, sanctionedEmail, sanctionedLeads } from '../_shared/sanctioned.ts';
+import { SANCTIONED_REFUSAL, SANCTIONED_REGISTRATION_REFUSAL, sanctionedEmail, sanctionedLead, sanctionedLeads } from '../_shared/sanctioned.ts';
 import { COMPANY_ALREADY_REGISTERED, isDuplicateCompany, type LeadWriter, registrationRefusal, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
+// NO DATABASE SENTENCE REACHES A RESPONSE (28 Oct 2026, review of #1712; ledger 1401 audit S7). Six actions answered a
+// refused write with the Postgres message itself, eight put a database, storage or exception message in `detail`, and
+// the outer catch answered String(e) on every action, create_company's included (sanctionedEmail throws the PostgREST
+// error when its read fails). The message is logged here; the caller gets the portal's existing unexpected_error copy.
+const SERVER_ERROR = { error: 'Something went wrong. Please try again.', code: 'unexpected_error' } as const;
+const failed = (where: string, e: unknown, status = 500) => {
+  console.error(`supplier_api ${where}:`, String((e as { message?: unknown } | null)?.message ?? e));
+  return J({ ...SERVER_ERROR }, status);
+};
+const logged = (where: string, e: unknown) => { console.error(`supplier_api ${where}:`, String((e as { message?: unknown } | null)?.message ?? e)); };
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 // 15 Sep 2026 (sales_engineer): trade_license_no, license_expiry and license_doc_path are NOT here. They
@@ -75,7 +87,7 @@ const PROFILE_PDF_MODEL_MAX = 12 * 1024 * 1024;
 // A file over the 25 MB ceiling (the supplier-docs bucket's file_size_limit) was told its FORMAT was wrong. 3 of 29 real UAE
 // profiles measured on 13 Oct 2026 are larger (30, 38 and 85 MB): the supplier is now told the size, and how to fix it.
 const TOO_LARGE = (what: string) => `That ${what} is larger than 25 MB. Please upload a smaller copy - most PDF tools can export a compressed or "smallest file size" version.`;
-const PROFILE_COLS = ['contact_name','signatory_name','emirates_id','phone','products','services','description','certifications','founded_year','company_type','company_size','license_authority','trn','egr_doc_path','egr_doc_name','egr_number'];
+const PROFILE_COLS = ['contact_name','signatory_name','emirates_id','phone','products','services','description','certifications','founded_year','company_type','company_size','trn','egr_doc_path','egr_doc_name','egr_number'];
 const YEAR_MS = 365 * 864e5;
 const CONCLUDED = ['completed','closed','cancelled'];
 // EVIDENCE FIX 19 Jul 2026 -----------------------------------------------------------------
@@ -103,9 +115,9 @@ const numOrNull = (v: unknown) => { const n = Number(v); return isFinite(n) && n
 // (_shared/line_specs/reasoned_specs.ts). Under the model hold nothing is judged and every required spec
 // is asked, so the quote is held until it is stated. A trade with a reader, or no checklist, is unchanged.
 // mode 'gate': choose the checklist (reasoned) and judge the lines — once per submission. 'stored': the
-// live hold's own checklist, read back for fill-in and approval, no reasoning. 'preflight': no reasoning,
-// a prediction only (one checklist, or every checklist together).
-async function specChecklist(category: string | null, quoteId: string, mode: 'gate' | 'stored' | 'preflight' = 'gate'): Promise<{ checklist?: Attr[]; reason?: Ctx['reason'] }> {
+// live hold's own checklist, read back for fill-in and approval, no reasoning. The preflight asks 'gate' too (2 Nov 2026):
+// its own "one checklist or every checklist together" prediction disagreed with the submission it predicted.
+async function specChecklist(category: string | null, quoteId: string, mode: 'gate' | 'stored' = 'gate'): Promise<{ checklist?: Attr[]; reason?: Ctx['reason'] }> {
   if (!category || !needsChecklist(category)) return {};
   if (mode === 'stored') {
     const { data: h } = await admin.from('quote_spec_hold').select('original_snapshot').eq('quote_id', quoteId)
@@ -121,13 +133,25 @@ async function specChecklist(category: string | null, quoteId: string, mode: 'ga
       p_where: 'edge function supplier_api', p_blast: 'customer_facing', p_affected: 1, p_evidence: { category, quote_id: quoteId, error: error?.message ?? null }, p_ruled_out: [], p_undetermined: [], p_raised_by: 'sales_engineer' }); } catch (_e) { /* the gate goes on */ }
     return {};
   }
-  if (mode === 'preflight') return { checklist: checklistAttrs(lists.length === 1 ? lists[0].specs : unionOf(lists)) };
   const deps = defaultDeps(admin, 'supplier_api');
   const { data: lineRows } = await admin.from('quote_items').select('*').eq('quote_id', quoteId).order('line_no', { ascending: true }).limit(60);
   const picked = await chooseChecklist(deps, { checklists: lists, lines: (lineRows ?? []) as Line[], trade: category, quoteId });
   const checklist = checklistAttrs(picked.rows);
   if (!checklist.length) return {};
   return { checklist, reason: (lines, cl) => reasonLineSpecs(deps, { lines, checklist: cl, trade: category, quoteId }) };
+}
+// ONE QUOTATION, ONE VERDICT (sales_engineer, 2 Nov 2026): workflow.ts checkVerdict stores the first SETTLED verdict on
+// a set of gate inputs (gateInputKey) and compares later ones; a disagreement is an IT finding with both verdicts.
+async function sameVerdict(key: string, a: Assessment, settled: boolean, quoteId: string, phase: 'preflight' | 'submission') {
+  try {
+    const v = await checkVerdict(async (fn, args) => { const r = await admin.rpc(fn, args); return { data: r.data, error: r.error }; }, key, a, settled);
+    if (v.outcome === 'unreadable') console.error('quote gate verdict could not be stored or read back for quote', quoteId);
+    if (v.outcome !== 'disagree') return;
+    const { first, now } = v;
+    await admin.rpc('fn_it_engineer_finding_upsert', { p_issue_key: 'quote_gate_disagreement:' + key.slice(0, 16), p_title: 'The quote hold gate gave one quotation two different verdicts',
+      p_where: 'edge function supplier_api submit_quote (' + phase + ')', p_blast: 'customer_facing', p_affected: 1,
+      p_evidence: { quote_id: quoteId, gate_input_key: key, first, now }, p_ruled_out: [], p_undetermined: ['which reading was not settled'], p_raised_by: 'sales_engineer' });
+  } catch (_e) { /* the record never blocks the gate */ }
 }
 async function secretVal(key: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return data?.value || null; }
 // A SUPPLIER ACTS ONLY ON A JOB IT WAS MATCHED TO (audit 22 Sep 2026, finding SP-N-03).
@@ -517,30 +541,33 @@ const handle = async (req: Request): Promise<Response> => {
             message: v.supplierMessage || '(no message from them on this step: write your next message in the thread)',
             // a photo the supplier attached (already read, ruling 1177); acceptImages is the same gate the customer chat uses
             images: acceptImages(v.images, new URL(Deno.env.get('SUPABASE_URL')!).host).images,
-            facts: v.situation, actions: v.actions, rateKey: 'qr:' + String(sup.id),
+            facts: v.situation, actions: v.actions, rateKey: 'qr:' + String(sup.id), ...(v.conversation?.length ? { conversation: v.conversation } : {}),
             rules: 'Plain text for the portal chat, no markdown headings. Keep every job number, figure, numbered point and button name from the facts exactly; a short numbered list is right when the facts list points.',
             subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) },
           });
-          return { text: r.reply, action: r.action ?? null };
+          return { text: r.reply, action: r.action ?? null, outage: r.outage === true, problems: r.problems ?? [] };   // outage: OpenRouter down (1339)
         },
         // THE REVIEW RUNS OFF THE REQUEST (quote_review_flow.ts offRequest): the turn answers at once in 'reviewing',
         // and the runtime keeps the job alive after the response. The portal polls while it is reviewing.
         background: (job) => { const er = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime; if (er?.waitUntil) er.waitUntil(job); },
-        // No model answer: the turn waits in sales_engineer's queue; reasoned_delivery.ts posts the GUARDED (aiReply)
-        // replayed answer into this thread, and fn_reason_held_escalate hands it to the seat after 15 minutes.
+        // No model answer: the turn waits in sales_engineer's queue; the re-ask (_shared/reask.ts) asks the model again
+        // within about a minute (another family, the refused drafts' problems named), posts the GUARDED answer into this
+        // thread, and hands the turn to the seat after its last refused attempt. context.turn_id makes each turn its own
+        // question (the same words in two threads were one qhash, and a failed one swallowed the other in fn_reason_hold).
         hold: async (v) => {
           const subject = { channel: 'portal', review_id: v.reviewId, supplier_id: Number(sup.id) };
           const q = (v.supplierMessage || '(the next message in the thread)').slice(0, 4000);
           await admin.rpc('fn_reason_hold', { p_seat: 'sales_engineer', p_surface: 'supplier_api.quote_review_unwritten', p_question: q,
             p_request: { seat: 'sales_engineer', surface: 'supplier_api.quote_review_unwritten', subject, research: false,
-              question: `Write the sales engineer's next message in this supplier's quotation thread, in English. They were told we received their message.
+              question: `Write the sales engineer's next message in this supplier's quotation thread, in English. ${v.outage ? 'They were told we received their message.' : 'They have not had a reply yet.'}
 
 WHAT THE REVIEW DECIDED (facts):
 ${v.situation.slice(0, 3000)}
 
 THEIR MESSAGE:
 ${q}`,
-              context: { audience: 'supplier', language: 'en' } },
+              context: { audience: 'supplier', language: 'en', turn_id: 'qr:' + v.reviewId + ':' + q.slice(0, 40) },
+              reask: { message: q, facts: v.situation.slice(0, 3000), audience: 'supplier', lang: 'en', channel: 'the supplier portal quotation chat', problems: (v.problems ?? []).slice(0, 12) } },
             p_plan: {}, p_subject: subject, p_reason: v.why, p_dedupe_key: 'qr_unwritten:' + v.reviewId + ':' + q.slice(0, 40) });
         } });
       return J(out.json, out.status);
@@ -549,9 +576,10 @@ ${q}`,
     // claimed_by is the account e-mail. Registration SHOWS it with its verification state rather
     // than asking for it — the supplier signed in with it, so a field here could only ever be
     // answered with the value we already hold.
-    if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle(); return J({ supplier: data ? { ...data, terms_current: await secretVal('terms_version') } : null }); }
+    if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle(); return J({ supplier: data ? { ...data, terms_current: await secretVal('terms_version'), terms_stands: await supplierAcceptanceStands(secretVal, data.accepted_terms_version) } : null }); }
     if (action === 'search') { const q = String(body.q || '').slice(0, 60); if (q.length < 2) return J({ results: [] }); const { data } = await admin.from('leads').select(SEARCH_COLUMNS).ilike('company_name', '%' + q + '%').order('reviews', { ascending: false, nullsFirst: false }).limit(8); const rows = (data || []) as LeadHit[]; /* a sanctioned party is never shown to anybody — founder instruction 516, 18 Sep 2026 */ const barred = await sanctionedLeads(admin, rows.map((r) => r.id)); return J({ results: rows.filter((r) => !barred.has(String(r.id))).map((r) => searchResult(r, email)) }); } // search_result.ts: claimed_by is read, never returned
-    if (action === 'create_company') { const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing) return J({ error: 'Your account already manages a company.', code: 'company_exists' }, 409); const name = String(body.company_name || '').trim().slice(0, 160); if (name.length < 2) return J({ error: 'Enter your company name.', code: 'enter_company' }, 400); /* A COMPANY ALREADY CLAIMED IS NOT REGISTERED TWICE (24 Sep 2026, sales_engineer, ledger 993). Measured on production with two ZZ DEMO accounts: after account A claimed "ZZ DEMO Errors …", account B created a second listing with the identical name and got HTTP 200, so one company could hold two verified profiles and be matched twice. The comparison is case- and space-folded and exact; a different company with a similar name is not blocked. */ { const { data: twins } = await admin.from('leads').select('id').eq('claimed', true).ilike('company_name', name.replace(/\s+/g, ' ').replace(/[\\%_]/g, (c) => '\\' + c)).limit(1); if (twins && twins.length) return J(COMPANY_ALREADY_REGISTERED, 409); } const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null, business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, owner_email_verified: await emailProven(email), source: 'self_registered', locale: SUPPLIER_LOCALE, scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle(); if (error) { /* The exact-name check above is not atomic and does not fold spellings; the duplicate-company indexes are the rule itself (_shared/duplicate_company.ts). */ if (isDuplicateCompany(error)) return J(COMPANY_ALREADY_REGISTERED, 409); /* a01_leads_sanctioned_identity_cannot_re_register raises this when the name, trade licence or account e-mail belongs to a confirmed sanctions ban. The trigger is the guard; this turns it into a sentence a stranger can read rather than a raw 23514 — founder instruction 516, 18 Sep 2026. */ if (String(error.message || '').includes('SANCTIONED_PARTY_BLOCKED')) return J(SANCTIONED_REGISTRATION_REFUSAL, 403); return J({ error: error.message }, 500); } const reg = await setRegistration(ins!.id); await recordFirstTouch(ins!.id, body.first_touch); return J({ ok: true, id: ins?.id, registration: reg }); }
+    // THE INVITED COMPANY IS CLAIMED, NEVER REGISTERED A SECOND TIME (28 Oct 2026, ledger 1401 audit S7): ./create_company.ts.
+    if (action === 'create_company') { const r = await createCompany(admin, email, body, { emailProven, sessionByCode: sessionOpenedByCode(jwt), sanctionedLead: (id: number) => sanctionedLead(admin, id), setRegistration: (id: number) => setRegistration(id), recordFirstTouch, locale: SUPPLIER_LOCALE }); return J(r.body, r.status); }
     // TAKEOVER FIX 27 Jul 2026 -----------------------------------------------------------------
     // 'claim' resolved the listing from body.leads_id - the sequential primary key - and never
     // looked at claim_token. claim_lookup v2 was rewritten on 19 Jul 2026 to accept ONLY the
@@ -562,7 +590,7 @@ ${q}`,
     // token is the proof of invitation, so the token is now the LOOKUP KEY. leads_id is accepted
     // only as a cross-check: if it is sent and disagrees with the row the token resolves to, the
     // call is rejected rather than silently trusting either one.
-    if (action === 'claim') { const token = String(body.claim_token || body.token || body.t || '').trim(); if (!UUID_RE.test(token)) return J({ error: 'invalid_link', message: 'This claim link is not valid. Please use the link from your invitation, or contact management@quotesdone.com.' }, 400); /* The token's row, this account's current company and the e-mail proof are independent reads: issued together (28 Sep 2026, it_engineer — the claim was a chain of seven round trips, 3.3-4.1 s measured). */ const [{ data: row }, { data: existing }, proven] = await Promise.all([admin.from('leads').select('id,claimed,claimed_by').eq('claim_token', token).maybeSingle(), admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(), emailProven(email)]); if (!row) return J({ error: 'not found' }, 404); const id = Number(row.id); const askedId = Number(body.leads_id); if (body.leads_id != null && isFinite(askedId) && askedId !== id) return J({ error: 'invalid_link', message: 'This claim link does not match the company you selected. Please use the link from your invitation.' }, 400); if (row.claimed && row.claimed_by !== email) return J({ error: 'This company is already claimed by another account.' }, 409); if (existing && existing.id !== id) return J({ error: 'Your account already manages another company.' }, 409); const { error: claimErr } = await admin.from('leads').update({ claimed: true, claimed_by: email, portal_updated_at: new Date().toISOString(), ...(proven ? { owner_email_verified: true } : {}) }).eq('id', id); /* 24 Sep 2026 (#962): a claim the database refused (duplicate-company indexes) gets the same answer as create_company. */ if (claimErr) { console.error('claim: leads update failed —', claimErr.message); const r = registrationRefusal(claimErr); return J(r.body, r.status); } /* that update already touched the row, so the registration trigger has run: read the state, and record the first touch beside it */ const [reg] = await Promise.all([setRegistration(id, false), recordFirstTouch(id, body.first_touch)]); return J({ ok: true, id, registration: reg }); }
+    if (action === 'claim') { const token = String(body.claim_token || body.token || body.t || '').trim(); if (!UUID_RE.test(token)) return J({ error: 'invalid_link', message: 'This claim link is not valid. Please use the link from your invitation, or contact management@quotesdone.com.' }, 400); /* The token's row, this account's current company and the e-mail proof are independent reads: issued together (28 Sep 2026, it_engineer — the claim was a chain of seven round trips, 3.3-4.1 s measured). */ const [{ data: row }, { data: existing }, proven] = await Promise.all([admin.from('leads').select('id,claimed,claimed_by').eq('claim_token', token).maybeSingle(), admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(), emailProven(email)]); if (!row) return J({ error: 'not found' }, 404); const id = Number(row.id); const askedId = Number(body.leads_id); if (body.leads_id != null && isFinite(askedId) && askedId !== id) return J({ error: 'invalid_link', message: 'This claim link does not match the company you selected. Please use the link from your invitation.' }, 400); if (row.claimed && row.claimed_by !== email) return J({ error: 'This company is already claimed by another account.' }, 409); if (existing && existing.id !== id) return J({ error: 'Your account already manages another company.' }, 409); /* A SANCTIONED LISTING IS NEVER CLAIMED (28 Oct 2026, review of #1712): fn_sanctioned_identity excludes the row's own id, so the a01 trigger does not stop a claim of the banned row itself. */ if (await sanctionedLead(admin, id)) return J(SANCTIONED_REGISTRATION_REFUSAL, 403); /* ONE WINNER (review of #1712): the write lands only on a row still unclaimed, or already this account's - the guard create_company.ts claims under - so a website sign-up and a token claim racing for one listing cannot both win; the loser reads 0 rows and is told so. */ const owned = row.claimed_by != null && String(row.claimed_by).trim() !== ''; const claimWrite = admin.from('leads').update({ claimed: true, claimed_by: email, portal_updated_at: new Date().toISOString(), ...(proven ? { owner_email_verified: true } : {}) }).eq('id', id); const { data: won, error: claimErr } = await (owned ? claimWrite.eq('claimed_by', email) : claimWrite.is('claimed_by', null)).select('id'); /* 24 Sep 2026 (#962): a claim the database refused (duplicate-company indexes) gets the same answer as create_company. */ if (claimErr) { console.error('claim: leads update failed —', claimErr.message); const r = registrationRefusal(claimErr); return J(r.body, r.status); } if (!won || !won.length) return J({ error: 'This company is already claimed by another account.' }, 409); /* that update already touched the row, so the registration trigger has run: read the state, and record the first touch beside it */ const [reg] = await Promise.all([setRegistration(id, false), recordFirstTouch(id, body.first_touch)]); return J({ ok: true, id, registration: reg }); }
 
     // WHAT THIS COMPANY CAN QUOTE FOR (12 Aug 2026; answered here since 14 Sep 2026).
     //
@@ -733,7 +761,7 @@ ${q}`,
         const s = sc.result;
         const p = `licenses/${sup.id}/${Date.now()}_${safeFilename(lic.filename || 'license', s.mime)}`;
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-        if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your trade licence. Please try again.' }, 502);
+        if (up.error || !(await storedAt(admin, 'supplier-docs', p))) { logged('licence upload', up.error ?? 'storage does not hold the object after upload'); return J({ error: 'upload_failed', code: 'upload_failed', message: 'We could not store your trade licence. Please try again.' }, 502); }
         upd.license_doc_path = p;
         readQueue.push({ path: p, name: String(lic.filename || 'licence'), kind: 'licence', bytes: s.bytes, mime: s.mime });
       }
@@ -768,9 +796,14 @@ ${q}`,
       // EVERY LABELLED FIELD, BY CODE (7 Oct 2026, accuracy suite ledger 1162). Until today the licence number, the
       // authority and the emirate were written only from the model, whose switch is off, so a text licence's number
       // was never recorded. Code's reading is written first; the model below fills only what code left unread.
+      let licIssue: string | null | undefined;   // undefined = no licence in this call: leave the column alone
       let codeFields: Partial<LicenceFields> = {};
       if (licBytes?.bytes) { try { codeFields = await readLicenceFields(licBytes.bytes, licBytes.mime || 'application/pdf'); } catch (_e) { codeFields = {}; } }
+      // ...and its number and authority (2 Nov 2026, ledger 1442): what the old licence printed never judges a new one.
+      if (licBytes?.bytes) { upd.trade_license_no = null; upd.license_authority = null; }
       if (codeFields.licence_no) upd.trade_license_no = codeFields.licence_no;
+      // THE ISSUE DATE (2 Nov 2026, ledger 1467): read and kept when the licence prints one; never required.
+      if (licBytes?.bytes) licIssue = codeFields.issue_date || null;
       if (codeFields.authority) upd.license_authority = codeFields.authority;
       if (codeFields.emirate) upd.emirate = codeFields.emirate;
       // The supplier reads this note in the portal, so it is written in both languages the
@@ -821,6 +854,7 @@ ${q}`,
               } else upd.license_expiry = d.expiry_date;
             }
             if (d.emirate && !codeFields.emirate) upd.emirate = d.emirate;
+            if (d.issue_date && !licIssue) licIssue = String(d.issue_date).slice(0, 10);
             if (d.trn) upd.trn = d.trn;
             upd.doc_extracted_at = new Date().toISOString();
             // 24 Sep 2026: the licence name is RECORDED, never copied over the registered name. Copying it
@@ -836,7 +870,7 @@ ${q}`,
             out.license = { ...(out.license as Record<string, unknown> || {}),
               legal_name: legal, license_number: d.license_number, authority: d.license_authority, city: d.city,
               expiry: codeExpiry || d.expiry_date, model_expiry: d.expiry_date, emirate: d.emirate, trn: d.trn,
-              licence_name: upd.licence_legal_name ?? null, confidence: d.confidence };
+              licence_name: upd.licence_legal_name ?? null, confidence: d.confidence, issue_date: licIssue ?? null };
           } else out.license_error = jd?.doc?.unreadable ? 'licence_unreadable' : (jd?.error || 'extract_failed');
         } catch (e) { out.license_error = String((e as Error)?.message || e); }
       }
@@ -856,7 +890,7 @@ ${q}`,
         const s = sc.result;
         const p = `profiles/${sup.id}/${Date.now()}_${safeFilename(prof.filename || 'profile', s.mime)}`;
         const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-        if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store your company profile. Please try again.' }, 502);
+        if (up.error || !(await storedAt(admin, 'supplier-docs', p))) { logged('profile upload', up.error ?? 'storage does not hold the object after upload'); return J({ error: 'upload_failed', code: 'upload_failed', message: 'We could not store your company profile. Please try again.' }, 502); }
         upd.company_profile_doc_path = p;
         // Read after the response (supplier_docs_later.ts); the picture / scan model step is profileHook below.
         readQueue.push({ path: p, name: String(prof.filename || 'profile'), kind: 'profile', bytes: s.bytes, mime: s.mime });
@@ -874,7 +908,7 @@ ${q}`,
           const s = sc.result;
           const p = `catalogs/${sup.id}/${Date.now()}_${safeFilename(c.filename || 'catalog', s.mime)}`;
           const up = await admin.storage.from('supplier-docs').upload(p, s.bytes, { contentType: s.mime, upsert: true });
-          if (up.error || !(await storedAt(admin, 'supplier-docs', p))) return J({ error: 'upload_failed', code: 'upload_failed', detail: up.error?.message || 'storage does not hold the object after upload', message: 'We could not store one of your catalogue files. Please try again.' }, 502);
+          if (up.error || !(await storedAt(admin, 'supplier-docs', p))) { logged('catalogue upload', up.error ?? 'storage does not hold the object after upload'); return J({ error: 'upload_failed', code: 'upload_failed', message: 'We could not store one of your catalogue files. Please try again.' }, 502); }
           catPaths.push(p);
           readQueue.push({ path: p, name: String(c.filename || 'catalogue'), kind: 'catalogue', bytes: s.bytes, mime: s.mime });
         }
@@ -935,6 +969,8 @@ ${q}`,
       // A licence number another claimed company holds is set aside (the rest of the row is still
       // written) and handed to a human: _shared/duplicate_company.ts.
       const { error: updErr, licenceSetAside } = await updateLeadSettingAsideClashingLicence(admin as unknown as LeadWriter, sup.id, upd, 'supplier_api.process_docs');
+      // Its own write, so a deploy that lands before the column (SQL leads_keep_the_licence_issue_date) costs only this line.
+      if (!updErr && licIssue !== undefined) { const ri = await admin.from('leads').update({ license_issue_date: licIssue }).eq('id', sup.id); if (ri.error) console.error('process_docs: licence issue date not saved —', ri.error.message); }
       if (licenceSetAside) {
         const lic = out.license as Record<string, unknown> | undefined;
         if (lic) delete lic.license_number;   // never fill the form with a number the row does not hold
@@ -979,7 +1015,7 @@ ${q}`,
       if ('locale' in body) upd.locale = SUPPLIER_LOCALE;
       if (body.email_shared !== undefined) upd.email_shared = !!body.email_shared;
       const { error } = await admin.from('leads').update(upd).eq('id', sup.id);
-      if (error) return J({ error: error.message }, 500);
+      if (error) return failed(String(action), error);
       return J({ ok: true, saved: Object.keys(upd).filter((k) => k !== 'portal_updated_at') });
     }
 
@@ -995,7 +1031,7 @@ ${q}`,
       const rec = await supplierTermsRecord(secretVal, clientIp(req), req.headers.get('user-agent') || '');
       if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
       const { error } = await admin.from('leads').update(rec).eq('id', sup.id);
-      if (error) return J({ error: error.message }, 500);
+      if (error) return failed(String(action), error);
       return J({ ok: true, accepted_terms_version: rec.accepted_terms_version, text_hash_stored: !!rec.accepted_terms_sha256 });
     }
 
@@ -1020,7 +1056,7 @@ ${q}`,
       const { data, error } = await admin.rpc('fn_supplier_set_availability', {
         p_supplier_id: sup.id, p_state: String(body.state ?? ''), p_busy_until: until, p_by: 'supplier (portal)',
       });
-      if (error) return J({ error: error.message }, 500);
+      if (error) return failed(String(action), error);
       return J(data, data?.ok ? 200 : 400);
     }
 
@@ -1062,7 +1098,7 @@ ${q}`,
       // A save repeating an acceptance already on file for the current version records nothing new: a second
       // record would move the acceptance time and ask for a second certificate (kyc's rule too).
       const accepting = body.accept_terms === true
-        && !(sup.accepted_terms_at && sup.accepted_terms_version === await currentSupplierTermsVersion(secretVal));
+        && !(sup.accepted_terms_at && await supplierAcceptanceStands(secretVal, sup.accepted_terms_version));
       if (accepting) {
         const rec = await supplierTermsRecord(secretVal, clientIp(req), req.headers.get('user-agent') || '');
         if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
@@ -1092,7 +1128,7 @@ ${q}`,
       const { error: updErr } = await admin.from('leads').update(upd).eq('id', sup.id);
       if (updErr) {
         console.error('save_profile: leads update failed —', updErr.message);
-        return J({ error: 'save_failed', code: 'save_failed', detail: updErr.message, message: 'We could not save your profile. Please try again.' }, 502);
+        return J({ error: 'save_failed', code: 'save_failed', message: 'We could not save your profile. Please try again.' }, 502);
       }
       // The certificate is rendered by compliance_archive after the trigger above posts to it. Give it a
       // few seconds so a supplier who accepts and submits in one go is verified on the signed copy; if it
@@ -1114,7 +1150,7 @@ ${q}`,
       const { data: vd, error: vErr } = await admin.rpc('fn_sales_engineer_verifies_supplier', { p_lead_id: sup.id, p_source: 'save_profile' });
       if (vErr || !(vd as { ok?: boolean })?.ok) {
         console.error('save_profile: verification failed —', vErr?.message || JSON.stringify(vd));
-        return J({ error: 'verification_failed', code: 'verification_failed', detail: vErr?.message || null, message: 'Your profile was saved, but we could not check your registration. Please try again.' }, 502);
+        return J({ error: 'verification_failed', code: 'verification_failed', message: 'Your profile was saved, but we could not check your registration. Please try again.' }, 502);
       }
       const v = vd as { approval_status: string; missing: string[]; reason: string | null; licence_expired: boolean };
       const decision = String(v.approval_status || 'pending');
@@ -1135,14 +1171,18 @@ ${q}`,
         // "your account activates automatically ... Nothing is needed from you", and the gate then held them (pending,
         // licence_unreadable / _number_unread / _expiry_unread) with no further notice. Measured on production with an
         // Arabic-only and a blank licence. They are told what could not be read and asked for a clearer copy instead.
-        const licUnread = [!full?.licence_legal_name && 'the company name', !full?.trade_license_no && 'the licence number', !full?.license_expiry && 'the expiry date'].filter(Boolean) as string[];
+        const licUnread = [!full?.licence_legal_name && 'the company name', !full?.trade_license_no && 'the licence number', !full?.license_expiry && 'the expiry date', !full?.license_authority && 'the issuing authority'].filter(Boolean) as string[];
         const licUnreadEn = licUnread.length ? `Thank you for registering ${name}. We could not read ${licUnread.join(', ').replace(/, ([^,]*)$/, ' and $1')} on the trade licence you uploaded, so your registration is on hold. ${clearerCopyAsk('supplier', 'en', 'your trade licence')} Upload it in the Documents tab of your supplier portal: https://quotesdone.com/portal` : '';
         const supplierMail = decision === 'approved'
           ? (ar ? { subject: 'أصبح حسابكم على QuotesDone مفعّلًا', body: `فُعِّل حساب ${name} لدى QuotesDone، وبإمكانكم الآن استلام الطلبات وتقديم عروض الأسعار.` }
                 : { subject: 'Your QuotesDone supplier account is active', body: `Your account for ${name} is active — you can now receive inquiries and submit quotes.` })
           // Any decision short of approved: the unread licence is said first, with whatever else is still missing.
+          : full?.licence_gate_reason === 'licence_authority_not_uae'
+          ? { subject: 'Your QuotesDone registration: please send your UAE trade licence', body: `Thank you for registering ${name}. The trade licence you uploaded was not issued by a UAE authority, and QuotesDone registers companies licensed in the UAE, so your registration is on hold. Please upload your current UAE trade licence in the Documents tab of your supplier portal: https://quotesdone.com/portal` }
           : licUnreadEn
           ? { subject: 'Your QuotesDone registration: please send a clearer trade licence', body: licUnreadEn + (stillNeeded.length ? ` We also still need: ${needEn}.` : '') }
+          : decision === 'pending' && v.reason === SERVICES_UNCONFIRMED
+          ? servicesHoldMail(name)
           : decision === 'pending'
           ? (ar ? { subject: 'استلمنا طلب تسجيلكم لدى QuotesDone', body: `نشكركم على تسجيل ${name}. اكتملت البنود الستة المطلوبة، ويتولّى مهندس المبيعات مراجعة طلب التسجيل حاليًا، وسنوافيكم برسالة فور اعتماده.` }
                 : { subject: 'Thanks for registering with QuotesDone', body: `Thank you for registering ${name}. All six required items are in, and our sales engineer is reviewing your registration now. We will e-mail you as soon as it is approved.` })
@@ -1158,7 +1198,7 @@ ${q}`,
         const fixture = isFixtureLead(full ?? sup);
         await notify([
           ...(fixture ? [] : [{ type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id,
-            subject: decision === 'approved' ? 'New supplier approved by the sales engineer' : decision === 'pending' ? 'New supplier waiting for approval (auto-approve is off)' : 'Supplier registration incomplete',
+            subject: decision === 'approved' ? 'New supplier approved by the sales engineer' : decision === 'pending' ? pendingFounderSubject(v.reason) : 'Supplier registration incomplete',
             body: `New supplier "${name}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : (certificatePending ? ' — the signed terms certificate is being issued' : '')}. No action needed; this is a record.${licInfo}` }]),
           { type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, lang: ar ? 'ar' : 'en', ...supplierMail },
         ]);
@@ -1201,7 +1241,7 @@ ${q}`,
         p_from: 'sales_engineer', p_to: 'accountant', p_type: 'charge.disputed', p_subject_table: 'supplier_dues',
         p_subject_id: String(due.id) + ':' + Date.now(),
         p_payload: { supplier_id: sup.id, due_id: due.id, reason: String(body.reason || '').slice(0, 1000) } });
-      if (hErr) return J({ error: 'dispute_not_recorded', detail: hErr.message }, 503);
+      if (hErr) { logged('dispute handoff', hErr); return J({ error: 'dispute_not_recorded' }, 503); }
       return J({ ok: true, handoff_id: hid, message: 'We have your query. We are checking the charge against the payment record and will write back to you.' });
     }
     if (action === 'inbox') {
@@ -1626,7 +1666,7 @@ ${q}`,
       if (t.supplier_ack_at) return J({ ok: true, acknowledged_at: t.supplier_ack_at });
       const now = new Date().toISOString();
       const { error } = await admin.from('transactions').update({ supplier_ack_at: now }).eq('id', txId).is('supplier_ack_at', null);
-      if (error) return J({ error: error.message }, 500);
+      if (error) return failed(String(action), error);
       return J({ ok: true, acknowledged_at: now });
     }
     // T3 QUOTE TEMPLATES (sales_engineer, 5 Oct 2026): structure a supplier reuses, never a price
@@ -1689,7 +1729,7 @@ ${q}`,
       const { data: inq } = await admin.from('inquiries').select('category,summary').eq('id', inquiry_id).maybeSingle();
       const secret = await secretVal('cred_fn_supplier_api');
       let jd: any = {};
-      try { const r = await fetch(`${SUPA_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: (sup as any).id, email }, images, inquiry: inq || {}, ...(orig.b64 ? { file_b64: String(orig.b64), mime: String(orig.mime || ''), filename: String(orig.filename || 'quotation') } : {}), supplier_terms: [String((sup as any).company_name || '')].filter(Boolean) }) }); jd = await r.json(); } catch (e) { return J({ error: 'Reading failed, please try again or fill the form.', code: 'quote_read_failed', detail: String((e as Error)?.message || e) }, 502); }
+      try { const r = await fetch(`${SUPA_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: (sup as any).id, email }, images, inquiry: inq || {}, ...(orig.b64 ? { file_b64: String(orig.b64), mime: String(orig.mime || ''), filename: String(orig.filename || 'quotation') } : {}), supplier_terms: [String((sup as any).company_name || '')].filter(Boolean) }) }); jd = await r.json(); } catch (e) { logged('quote_extract call', e); return J({ error: 'Reading failed, please try again or fill the form.', code: 'quote_read_failed' }, 502); }
       // Under the OpenRouter hold quote_extract has no model to call, so this is the expected path:
       // the code tells the portal to say "fill in the form", which is a complete way to quote.
       // RULING 1177 (12 Oct 2026): 'fill the form instead' was the answer to every quotation quote_extract could not price.
@@ -1701,7 +1741,7 @@ ${q}`,
         const seen = await readQuotationFile(b64Bytes(String(orig.b64)), String(orig.filename || 'quotation'), String(orig.mime || ''), [String((sup as any).company_name || '')].filter(Boolean), undefined, envGatewayVision({ subject: { supplier_id: (sup as any).id, email } })).catch(() => null);
         if (seen?.proposal) jd = { ok: true, proposal: seen.proposal, extracted_by_model: 'read_every_attachment' };
       }
-      if (!jd?.ok) return J({ error: jd?.error || 'quote_unreadable', code: 'quote_read_failed', message: clearerCopyAsk('supplier', 'en', String(orig.filename || 'your quotation')), detail: jd?.detail || null }, 502);
+      if (!jd?.ok) { logged('quote_extract answer', `${jd?.error ?? 'no error'} ${jd?.detail ?? ''}`); return J({ error: 'quote_unreadable', code: 'quote_read_failed', message: clearerCopyAsk('supplier', 'en', String(orig.filename || 'your quotation')) }, 502); }
       // WHO READ IT (founder instruction ~891). The model quote_extract read this quotation with, kept per supplier and
       // inquiry so the quote submitted from it carries its author and quote_compare can be routed to another family.
       const readBy = typeof jd.extracted_by_model === 'string' && jd.extracted_by_model ? jd.extracted_by_model : 'unknown';
@@ -1814,7 +1854,7 @@ ${q}`,
       {
         const { data: regSt, error: regErr } = await admin.rpc('fn_supplier_registration_state', { p_lead_id: sup.id });
         const reg = regSt as any;
-        if (regErr || !reg?.ok) return J({ error: 'registration_state_unavailable', code: 'registration_state_unavailable', detail: regErr?.message || 'lead_not_found', hint: 'We could not confirm your registration status. Please try again shortly.' }, 503);
+        if (regErr || !reg?.ok) { logged('submit_quote registration state', regErr ?? 'lead_not_found'); return J({ error: 'registration_state_unavailable', code: 'registration_state_unavailable', hint: 'We could not confirm your registration status. Please try again shortly.' }, 503); }
         if (reg.may_quote === false) return J({ error: 'Your ' + String(reg.currency || 'AED') + ' ' + Number(reg.fee_due || 0) + ' annual Subscription Fee is due. Please pay it in Billing to send quotes.', code: 'registration_due', params: { fee: Number(reg.fee_due || 0), currency: String(reg.currency || 'AED') }, registration: { status: reg.status, fee_due: reg.fee_due, currency: reg.currency, reason: reg.reason } }, 402);
       }
       const { data: inqStat } = await admin.from('inquiries').select('status').eq('id', inquiryId).maybeSingle();
@@ -1958,8 +1998,8 @@ ${q}`,
           snapRow = sr as unknown as Record<string, unknown>; snapLines = (sl || []) as unknown as Record<string, unknown>[];
         }
         let qid: string;
-        if (prior) { const { error } = await admin.from('quotes').update(det).eq('id', prior.id); if (error) return J({ error: error.message }, 500); qid = String(prior.id); }
-        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error) return J({ error: error.message }, 500); qid = String(ins.id); }
+        if (prior) { const { error } = await admin.from('quotes').update(det).eq('id', prior.id); if (error) return failed(String(action), error); qid = String(prior.id); }
+        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error) return failed(String(action), error); qid = String(ins.id); }
         try {
           await admin.from('quote_items').delete().eq('quote_id', qid);
           // A line's own words fill brand / model / specification where the caller sent none; a scope
@@ -1975,12 +2015,16 @@ ${q}`,
         } catch (_e) { /* */ }
         // Preflight (dry_run). Runs the real scorer, the real accept rule and the real hold gate's
         // assessment, then stops: the status is put back as it was, nothing is notified, no hold opens.
+        // The gate's own context: the same checklist, the same settled readings, the same assessment (workflow.ts
+        // readAndAssess), so "check before sending" and the submission give one verdict for one quotation.
+        const gctx: Ctx = { category, requirements, ref, multiOption, ...(await specChecklist(category, qid)),
+          // His quotation is READ by reasoning before the check (decision points 29-30); held: nothing is read and he is asked.
+          read: (qr, ls) => readQuote(defaultDeps(admin, 'supplier_api'), { quoteId: qid, category, lines: ls, terms: qr, requirements }) };
+        const gkey = await gateInputKey((await repo.quote(qid))!, await repo.lines(qid), gctx);
         if (dryRun) {
           const acc = await acceptRule(qid);
-          // The same reading the real submission's gate does (reasoned_matching.ts), so the preflight and the gate agree.
-          const dq = (await repo.quote(qid))!; const dl = await repo.lines(qid);
-          const rd = applyReading(dl, dq.terms_spec, await readQuote(defaultDeps(admin, 'supplier_api'), { quoteId: qid, category, lines: dl, terms: dq, requirements }));
-          const a = assessQuote({ category, lines: rd.lines, terms: { ...dq, terms_spec: rd.terms_spec }, requirements, checklist: (await specChecklist(category, qid, 'preflight')).checklist });
+          const { a, settled } = await readAndAssess(repo, qid, gctx);
+          await sameVerdict(gkey, a, settled, qid, 'preflight');
           // Put it back exactly as it was: the snapshotted columns and the snapshotted lines (with their
           // own ids, so anything that references a line still does). A row this check CREATED is removed.
           let restored = true;
@@ -2020,9 +2064,8 @@ ${q}`,
         }
         // THE HOLD GATE (founder, 14 Sep 2026). The sales engineer holds a quote that does not state
         // every required detail exactly, records which line and which detail, and tells the supplier.
-        const g = await gate(repo, qid, supplier, { category, requirements, ref, multiOption, ...(await specChecklist(category, qid)),
-          // His quotation is READ by reasoning before the check (decision points 29-30); held: nothing is read and he is asked.
-          read: (qr, ls) => readQuote(defaultDeps(admin, 'supplier_api'), { quoteId: qid, category, lines: ls, terms: qr, requirements }) });
+        const g = await gate(repo, qid, supplier, gctx);
+        await sameVerdict(gkey, g.assessment, g.settled, qid, 'submission');
         // a submission the door did not accept never inherits the wait of an earlier accepted one (review of #1108)
         if (g.held) { await supersedeQualityHold(qid); results.push({ quote_id: qid, option_no: p.option_no, accepted: false, held: true, missing: g.missing, code: 'spec_hold' }); continue; }
         // THE REVIEW'S OWN RULES, held the same way (finding SP-F-02). The gate above is the exact-specs
@@ -2056,7 +2099,7 @@ ${q}`,
     }
     return J({ error: 'unknown action' }, 400);
   } catch (e) {
-    return J({ error: String(e) }, 500);
+    return failed('unhandled', e);
   }
 };
 Deno.serve(siteCors(observe('supplier_api', handle)));

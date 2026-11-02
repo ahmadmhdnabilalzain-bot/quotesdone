@@ -30,10 +30,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { blobToWav } from '@/lib/wavEncode';
-import { call } from './api';
+import { call, REASONING_TIMEOUT_MS } from './api';
 import { panelErrorText } from './PanelState';
 import { srvMsg, vocabLabel } from './serverCopy';
-import { countServices, sc, scCount } from './servicesCopy';
+import { countServices, sc, scCount, VERIFY_COPY } from './servicesCopy';
 
 type Service = { key: string; label_en: string; label_ar: string };
 type Trade = { code: string; label: string; label_ar?: string | null };
@@ -41,7 +41,7 @@ type Role = { code: string; label: string };
 type ChecklistTrade = { code: string; source: 'confirmed' | 'on_file' | 'documents' | 'refine' };
 type Proposal = { code: string; label_en?: string | null; label_ar?: string | null; status: string; mapped_to?: string | null };
 type DocHit = { code: string; snippet?: string };
-type Doc = { path: string; name: string; status?: string; trades?: DocHit[] };
+type Doc = { path: string; name: string; kind?: string; status?: string; trades?: DocHit[] };
 type Voice = { enabled: boolean; max_seconds: number; max_bytes: number };
 type State = {
   ok: boolean; confirmed: boolean; first_run: boolean;
@@ -193,7 +193,19 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const activeTrades = trades.filter((c) => !removedTrades.has(c));
   const ofActive = (k: string) => !removedTrades.has(k.split('.')[0]);
   const liveTicks = [...ticked].filter((k) => activeTrades.includes(k.split('.')[0]));
-  const docs = (d.capability?.source_docs?.docs || []).filter((x) => (x.trades || []).length);
+  const allDocs = d.capability?.source_docs?.docs || [];
+  const docs = allDocs.filter((x) => (x.trades || []).length);
+  // THE COMPANY PROFILE, SUMMARISED FOR THE SUPPLIER TO CONFIRM (founder ledger 1469, 2 Nov 2026). The list above shows only documents that
+  // named a trade, so a profile that was read but named none looked unread. This says what happened to the profile, and when it did name
+  // trades it shows the lines they were found on (the summary) and the trade names (the keywords). Words come from the stored reading; nothing is invented.
+  const profileDocs = allDocs.filter((x) => x.kind === 'profile');
+  const profileHits = profileDocs.flatMap((x) => x.trades || []);
+  const profileKeywords = [...new Set(profileHits.map((h) => h.code))].map(tradeName);
+  const profileLines = [...new Set(profileHits.map((h) => (h.snippet || '').trim()).filter(Boolean))].slice(0, 3);
+  const profileState = profileHits.length ? 'hits'
+    : profileDocs.some((x) => x.status === 'reading') ? 'reading'
+    : profileDocs.some((x) => x.status === 'needs_ocr' || x.status === 'unreadable') ? 'scan'
+    : profileDocs.length ? 'none' : 'missing';
   const noPrep = !d.confirmed && d.checklist.length === 0;
   // THE REWRITE CARRIES ITS OWN LABELS and they are read first. services_by_trade only holds the
   // trades the sales engineer PREPARED, so a service recognised from a trade the supplier does not
@@ -228,7 +240,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       action: 'services_rewrite', removed: [...dropped],
       ...(fromCatalogue ? { from_catalogue: true } : { text }),
       ...(o.supplyOnly !== undefined ? { supply_only: o.supplyOnly } : {}),
-    }, token).catch(() => null);
+    }, token, { timeoutMs: REASONING_TIMEOUT_MS }).catch(() => null);
     if (j && j.code === 'services_no_catalogue') { setRwBusy(false); setRwMsg(sc(lang, 'no_catalogue')); return; }
     if (!mounted.current) return;
     setRwBusy(false);
@@ -278,7 +290,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
       action: 'services_save_rewrite', trades: activeTrades.filter((c) => sourceOf(c) !== 'refine' || statedKeys.some((k) => k.startsWith(c + '.'))), removed_trades: [...removedTrades], roles,
       services: statedKeys, implied: rwImplied, removed: rwRemoved,
       own_words: rwOwnWords, raw_text: rawText.trim(),
-    }, token).catch(() => null);
+    // The save reasons over each own word (~37 s measured, 27 Oct): see REASONING_TIMEOUT_MS in ./api.
+    }, token, { timeoutMs: REASONING_TIMEOUT_MS }).catch(() => null);
     if (!mounted.current) return;
     setBusy(false);
     if (j && j.ok) {
@@ -307,6 +320,29 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
           <p className={sub}>{sc(lang, 'no_prep')}</p>
           {goTo ? <Button variant="outline" className="mt-3 min-h-11" onClick={() => goTo('documents')}>{sc(lang, 'go_documents')}</Button> : null}
         </div>
+      )}
+
+      {!d.confirmed && <p role="status" data-testid="verify-needed" className="mt-3 rounded-md border border-border bg-muted/30 p-3 text-[13px] text-foreground">{VERIFY_COPY.verify_needed}</p>}
+
+      <section className="mt-4" aria-labelledby={uid + '-profile'} data-testid="profile-summary">
+        <h3 id={uid + '-profile'} className={cn(sub, 'font-semibold')}>{VERIFY_COPY.profile_summary_title}</h3>
+        {profileState === 'hits' ? (
+          <>
+            <ul className="mt-1.5 space-y-1">
+              {profileLines.map((line) => <li key={line} className="text-[12.5px] text-muted-foreground"><q dir="auto">{line}</q></li>)}
+            </ul>
+            <p className={cn(sub, 'mt-2 font-semibold')}>{VERIFY_COPY.profile_keywords}</p>
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {profileKeywords.map((k) => <Badge key={k} variant="secondary" dir="auto">{k}</Badge>)}
+            </div>
+          </>
+        ) : <p className={cn(sub, 'mt-1')}>{VERIFY_COPY[('profile_' + profileState) as 'profile_none']}</p>}
+      </section>
+
+      {docs.length === 0 && allDocs.length > 0 && (
+        <ul className="mt-2 space-y-1">
+          {allDocs.map((doc) => <li key={doc.path} className="text-[12.5px] text-muted-foreground"><span className="font-medium text-foreground break-all" dir="auto">{doc.name}</span>{' — '}{doc.status === 'read' ? VERIFY_COPY.doc_read_none : doc.status}</li>)}
+        </ul>
       )}
 
       {docs.length > 0 && (

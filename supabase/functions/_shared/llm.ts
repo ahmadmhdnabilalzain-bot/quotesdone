@@ -22,6 +22,7 @@
 //   * the model ladder passed by the caller is now a HINT, not a command. Policy wins. That is
 //     the entire point; a function should not get to pick Opus for a classification task.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { errorText } from './error_text.ts';
 
 // The client is made on first use, not at import (29 Sep 2026). Made at import, it threw "supabaseUrl is
 // required" out of every module that merely IMPORTS this one wherever SUPABASE_URL is unset (the CI Deno
@@ -118,6 +119,7 @@ export interface LlmCallOpts {
   // the conversation's earlier turns ride as a cached block (chat_history.ts; ai_gateway withHistoryBreakpoint)
   cacheHistory?: boolean;
   effort?: 'low' | 'medium' | 'high';   // the reasoning effort asked of the model (request_shape.ts); absent = its default
+  signal?: AbortSignal;   // the caller stops waiting (a speculative reply that was discarded): the request is aborted
 }
 const EMPTY = (e: string | null, status = 0, used = true): LlmResult =>
   ({ content: null, message: null, tool_calls: [], finish_reason: null, truncated: false, used_llm: used, http_status: status, error: e });
@@ -190,6 +192,12 @@ async function gatewayCredential(fnName: string): Promise<string> {
   return legacy;
 }
 
+/** A 503 the gateway did not write: no `ok` in a JSON body, so the platform answered before any gateway code ran. */
+export function noWorkerServed(status: number, body: unknown): boolean {
+  return status === 503 && !(body && typeof body === 'object' && 'ok' in (body as Record<string, unknown>));
+}
+export const NO_WORKER_RETRY_MS = 750;
+
 /**
  * Rich client. Returns the whole gateway envelope: content, the assistant message (so a tool loop
  * can replay it), tool_calls, finish_reason and truncated. Never throws.
@@ -210,6 +218,7 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
   return async function llmRich(sys: string, input: string | Msg[], max: number = dMax, sysStable = '', opts: LlmCallOpts = {}): Promise<LlmResult> {
     const ac = new AbortController();
     const to = setTimeout(() => ac.abort(), dTo + 5000); // gateway has its own 25s per attempt
+    if (opts.signal) { if (opts.signal.aborted) ac.abort(); else opts.signal.addEventListener('abort', () => ac.abort(), { once: true }); }
     try {
       const secret = await gatewayCredential(fnName);
       if (!secret) {
@@ -219,7 +228,7 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
         return EMPTY('no_credential');
       }
 
-      const r = await fetch(GATEWAY, {
+      const init: RequestInit = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -293,9 +302,20 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
           ...(opts.counterpartModel ? { counterpart_model: opts.counterpartModel } : {}),
         }),
         signal: ac.signal,
-      });
-
-      const j = await r.json().catch(() => null);
+      };
+      let r = await fetch(GATEWAY, { ...init, signal: ac.signal });
+      let j = await r.json().catch(() => null);
+      // ONE RETRY WHEN NO WORKER SERVED THE CALL (it_engineer, 27 Oct 2026). Measured on production at 20:30Z: under a
+      // burst of function-to-function calls ai_gateway answered 503 after ~10 s with no execution_id - the platform
+      // refused before any gateway code ran, so nothing was routed, cached or paid. Every 503 the gateway itself writes
+      // carries its JSON envelope with `ok` (a hold, a fixture stub, an open circuit) and is never retried here; only
+      // a 503 without that envelope is, once, after a short pause, inside the same abort timer.
+      // prevented by: _shared/llm_client_errors.test.ts
+      if (noWorkerServed(r.status, j)) {
+        await new Promise((res) => setTimeout(res, NO_WORKER_RETRY_MS));
+        r = await fetch(GATEWAY, { ...init, signal: ac.signal });
+        j = await r.json().catch(() => null);
+      }
 
       // AUDIT 9.5. THE FAILURE THAT LOOKED LIKE A POLICY DECISION. Everything below still returns
       // null, because 32 call sites depend on that contract and changing it is a separate job. What
@@ -364,7 +384,9 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
       // An abort here is OUR client timeout, not the model declining. Naming it matters: a prior
       // incident spent hours on "the model returned nothing" that was an 8-of-10 client abort.
       const aborted = (e as any)?.name === 'AbortError';
-      return EMPTY(aborted ? 'client_timeout_' + (dTo + 5000) + 'ms' : 'client_error');
+      // The thrown message is kept (27 Oct 2026: five held rows read 'client_error' and nothing said which hop threw),
+      // cut and with credential-shaped text replaced (error_text.ts). It still starts with 'client_error'.
+      return EMPTY(aborted ? 'client_timeout_' + (dTo + 5000) + 'ms' : 'client_error: ' + errorText(e));
     } finally {
       clearTimeout(to);
     }

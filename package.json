@@ -60,7 +60,7 @@
     "@types/three": "^0.186.0",
     "playwright": "^1.55.1",
     "postcss": "8.5.28",
-    "squawk-cli": "^2.66.0",
+    "squawk-cli": "2.66.0",
     "tailwindcss": "4.3.3",
     "tailwindcss-animate": "1.0.7",
     "typescript": "5.5.4"

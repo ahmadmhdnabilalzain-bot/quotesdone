@@ -10,11 +10,11 @@ metadata:
 
 The founder's standing instruction (1 Sep 2026): **"always use as much agents as possible to proceed faster."**
 
-**Capped at 10 at once** (26 Oct 2026, ledger 1280) — see [[max-ten-agents]]. "As many as possible" means up to that cap.
+**Capped at 5 at once, with Sonnet for simple tasks** (1 Nov 2026, ledger 1417) — see [[max-five-agents]]. "As many as possible" means up to that cap.
 
-**Why:** he wants throughput. Wall-clock speed matters to him; token cost does not (see [[autonomous-company-is-the-standard]] and the ultracode default). A single-threaded pass through work he could have fanned out reads as slow.
+**Why:** he wants throughput. Wall-clock speed matters to him, within the cap, because a spent weekly limit stops all work (see [[autonomous-company-is-the-standard]] and the ultracode default). A single-threaded pass through work he could have fanned out reads as slow.
 
-**How to apply:** for any substantial build/audit/mapping/authoring task, reach for a `Workflow` with a wide fan-out (parallel/pipeline) rather than doing it serially or with a couple of agents. Max out the concurrency the harness allows. Prepare downstream steps (ingestion, scoping, verification) in parallel with a running workflow rather than waiting idle. Default to MORE agents, not fewer. Serial only for genuinely sequential dependencies or trivial one-shot edits.
+**How to apply:** for any substantial build/audit/mapping/authoring task, reach for a `Workflow` with a wide fan-out (parallel/pipeline) rather than doing it serially or with a couple of agents. Prepare downstream steps (ingestion, scoping, verification) in parallel with a running workflow rather than waiting idle. Serial only for genuinely sequential dependencies or trivial one-shot edits.
 
 **What parallel agents do to the gates (4 Sep 2026):** every agent applies to the ONE production
 project, so until all their PRs merge, each PR's "repo and database agree" job sees the others'

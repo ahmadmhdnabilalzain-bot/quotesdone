@@ -1,0 +1,587 @@
+{
+ "measured": "2026-10-27",
+ "script": "out/lat/replay.mjs (scratch): 12 EN wardrobe + 12 AR kitchen turns, two ZZ DEMO @example.invalid customers, in parallel",
+ "before": {
+  "label": "before2",
+  "served_by": "production sales_engineer v308",
+  "stream": false,
+  "turns": [
+   {
+    "lang": "en",
+    "turn": 1,
+    "at": "2026-10-27T09:49:52.975Z",
+    "status": 503,
+    "ok": false,
+    "total_ms": 10216,
+    "first_byte_ms": 10216,
+    "first_words_ms": null,
+    "error": "{\"code\":\"BOOT_ERROR\",\"message\":\"Function failed to start (please check logs)\"}"
+   },
+   {
+    "lang": "en",
+    "turn": 2,
+    "at": "2026-10-27T09:50:03.192Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 59863,
+    "first_byte_ms": 59863,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 3,
+    "at": "2026-10-27T09:51:03.087Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 69767,
+    "first_byte_ms": 69767,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 4,
+    "at": "2026-10-27T09:52:12.863Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 83450,
+    "first_byte_ms": 83450,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 5,
+    "at": "2026-10-27T09:53:36.314Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 87555,
+    "first_byte_ms": 87554,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 6,
+    "at": "2026-10-27T09:55:03.871Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 62649,
+    "first_byte_ms": 62649,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 7,
+    "at": "2026-10-27T09:56:06.521Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 71899,
+    "first_byte_ms": 71899,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 8,
+    "at": "2026-10-27T09:57:18.421Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 106526,
+    "first_byte_ms": 106526,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 9,
+    "at": "2026-10-27T09:59:04.948Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 135136,
+    "first_byte_ms": 135136,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 10,
+    "at": "2026-10-27T10:01:20.087Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 93967,
+    "first_byte_ms": 93967,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 11,
+    "at": "2026-10-27T10:02:54.055Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 78580,
+    "first_byte_ms": 78580,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 12,
+    "at": "2026-10-27T10:04:12.636Z",
+    "status": 504,
+    "ok": false,
+    "total_ms": 150307,
+    "first_byte_ms": 150307,
+    "first_words_ms": null,
+    "error": "{\"code\":\"IDLE_TIMEOUT\",\"message\":\"Request idle timeout limit (150s) reached\"}"
+   },
+   {
+    "lang": "ar",
+    "turn": 1,
+    "at": "2026-10-27T09:49:52.975Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 89229,
+    "first_byte_ms": 89229,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 2,
+    "at": "2026-10-27T09:51:22.207Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 73442,
+    "first_byte_ms": 73442,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 3,
+    "at": "2026-10-27T09:52:35.687Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 70734,
+    "first_byte_ms": 70734,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 4,
+    "at": "2026-10-27T09:53:46.422Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 56569,
+    "first_byte_ms": 56569,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 5,
+    "at": "2026-10-27T09:54:42.995Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 62502,
+    "first_byte_ms": 62502,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 6,
+    "at": "2026-10-27T09:55:45.498Z",
+    "status": 504,
+    "ok": false,
+    "total_ms": 150266,
+    "first_byte_ms": 150266,
+    "first_words_ms": null,
+    "error": "{\"code\":\"IDLE_TIMEOUT\",\"message\":\"Request idle timeout limit (150s) reached\"}"
+   },
+   {
+    "lang": "ar",
+    "turn": 7,
+    "at": "2026-10-27T09:58:15.765Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 68316,
+    "first_byte_ms": 68316,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 8,
+    "at": "2026-10-27T09:59:24.082Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 65544,
+    "first_byte_ms": 65544,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 9,
+    "at": "2026-10-27T10:00:29.627Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 79060,
+    "first_byte_ms": 79060,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 10,
+    "at": "2026-10-27T10:01:48.688Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 88346,
+    "first_byte_ms": 88346,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 11,
+    "at": "2026-10-27T10:03:17.035Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 113549,
+    "first_byte_ms": 113549,
+    "first_words_ms": null,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 12,
+    "at": "2026-10-27T10:05:10.586Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 78901,
+    "first_byte_ms": 78901,
+    "first_words_ms": null,
+    "error": null
+   }
+  ]
+ },
+ "after": {
+  "label": "after2",
+  "served_by": "branch code served locally against production data and ai_gateway",
+  "stream": true,
+  "turns": [
+   {
+    "lang": "en",
+    "turn": 1,
+    "at": "2026-10-27T09:59:09.696Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 10393,
+    "first_byte_ms": 23,
+    "first_words_ms": 9279,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 2,
+    "at": "2026-10-27T09:59:20.090Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 9740,
+    "first_byte_ms": 3,
+    "first_words_ms": 8956,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 3,
+    "at": "2026-10-27T09:59:29.831Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 7767,
+    "first_byte_ms": 3,
+    "first_words_ms": 6453,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 4,
+    "at": "2026-10-27T09:59:37.598Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 7748,
+    "first_byte_ms": 4,
+    "first_words_ms": 6080,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 5,
+    "at": "2026-10-27T09:59:45.348Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 9136,
+    "first_byte_ms": 3,
+    "first_words_ms": 7037,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 6,
+    "at": "2026-10-27T09:59:54.484Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 8254,
+    "first_byte_ms": 3,
+    "first_words_ms": 6781,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 7,
+    "at": "2026-10-27T10:00:02.739Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 9324,
+    "first_byte_ms": 3,
+    "first_words_ms": 7202,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 8,
+    "at": "2026-10-27T10:00:12.064Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 10428,
+    "first_byte_ms": 3,
+    "first_words_ms": 8595,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 9,
+    "at": "2026-10-27T10:00:22.493Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 12694,
+    "first_byte_ms": 4,
+    "first_words_ms": 11686,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 10,
+    "at": "2026-10-27T10:00:35.188Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 10304,
+    "first_byte_ms": 3,
+    "first_words_ms": 7714,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 11,
+    "at": "2026-10-27T10:00:45.493Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 8487,
+    "first_byte_ms": 3,
+    "first_words_ms": 6772,
+    "error": null
+   },
+   {
+    "lang": "en",
+    "turn": 12,
+    "at": "2026-10-27T10:00:53.983Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 9061,
+    "first_byte_ms": 4,
+    "first_words_ms": 6149,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 1,
+    "at": "2026-10-27T09:59:09.696Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 12986,
+    "first_byte_ms": 24,
+    "first_words_ms": 10625,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 2,
+    "at": "2026-10-27T09:59:22.683Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 10436,
+    "first_byte_ms": 4,
+    "first_words_ms": 7632,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 3,
+    "at": "2026-10-27T09:59:33.120Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 12126,
+    "first_byte_ms": 4,
+    "first_words_ms": 10417,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 4,
+    "at": "2026-10-27T09:59:45.247Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 10237,
+    "first_byte_ms": 2,
+    "first_words_ms": 6626,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 5,
+    "at": "2026-10-27T09:59:55.484Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 11083,
+    "first_byte_ms": 3,
+    "first_words_ms": 7523,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 6,
+    "at": "2026-10-27T10:00:06.568Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 34560,
+    "first_byte_ms": 2,
+    "first_words_ms": 34560,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 7,
+    "at": "2026-10-27T10:00:41.129Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 10148,
+    "first_byte_ms": 5,
+    "first_words_ms": 7793,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 8,
+    "at": "2026-10-27T10:00:51.279Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 11324,
+    "first_byte_ms": 3,
+    "first_words_ms": 8038,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 9,
+    "at": "2026-10-27T10:01:02.604Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 10085,
+    "first_byte_ms": 4,
+    "first_words_ms": 6659,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 10,
+    "at": "2026-10-27T10:01:12.695Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 12141,
+    "first_byte_ms": 3,
+    "first_words_ms": 9114,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 11,
+    "at": "2026-10-27T10:01:24.839Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 10347,
+    "first_byte_ms": 6,
+    "first_words_ms": 8017,
+    "error": null
+   },
+   {
+    "lang": "ar",
+    "turn": 12,
+    "at": "2026-10-27T10:01:35.187Z",
+    "status": 200,
+    "ok": true,
+    "total_ms": 9324,
+    "first_byte_ms": 5,
+    "first_words_ms": 6434,
+    "error": null
+   }
+  ]
+ },
+ "gateway_calls_by_class": {
+  "before": {
+   "routine_employee_reasoning / openai/gpt-6-luna-pro": {
+    "n": 23,
+    "p50": 23180,
+    "p95": 27164,
+    "max": 29566,
+    "min": 16152
+   },
+   "customer_communication / openai/gpt-6-luna-pro": {
+    "n": 35,
+    "p50": 27804,
+    "p95": 39493,
+    "max": 41134,
+    "min": 15337
+   },
+   "knowledge_validation / anthropic/claude-sonnet-5.5": {
+    "n": 6,
+    "p50": 6913,
+    "p95": 7881,
+    "max": 7881,
+    "min": 4291
+   },
+   "conversation_reply / anthropic/claude-sonnet-5.5": {
+    "n": 1,
+    "p50": 9527,
+    "p95": 9527,
+    "max": 9527,
+    "min": 9527
+   }
+  },
+  "after": {
+   "customer_portal_assistant / anthropic/claude-sonnet-5.5": {
+    "n": 26,
+    "p50": 6580,
+    "p95": 12299,
+    "max": 13034,
+    "min": 4838
+   }
+  }
+ }
+}

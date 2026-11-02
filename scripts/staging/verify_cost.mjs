@@ -25,6 +25,7 @@ import { join } from 'node:path';
 // REHOMED 15 AUG 2026: this defaulted to 'pglpqrhvozwepymcuunn', a project deleted that morning.
 // The target now comes from demo_factory, which is the single place that decides it.
 import { REF } from '../lib/demo_factory.mjs';
+import { pickApiKey } from '../lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 const BASE = `https://${REF}.supabase.co`;
 const LIVE = process.argv.includes('--live');
 
@@ -215,7 +216,7 @@ if (LIVE) {
     const mgmt = supabaseAccessToken();
     const k = await (await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`,
       { headers: { Authorization: 'Bearer ' + mgmt } })).json();
-    return k.find((x) => x.name === 'anon')?.api_key;
+    return pickApiKey(k, 'publishable');
   })();
 
   const gw = async (payload) => {
