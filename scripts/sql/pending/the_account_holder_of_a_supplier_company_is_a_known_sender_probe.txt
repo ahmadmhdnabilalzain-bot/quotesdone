@@ -1,0 +1,1 @@
+A PROBE (pure, aborted transaction, no DDL, ends in raise exception CHK<<...>>): run after its .sql in the same query. Never applied on its own; kept as the proof named by "Prevented by:" (scripts/checks/the_account_holder_of_a_supplier_company_is_a_known_sender.test.mjs).

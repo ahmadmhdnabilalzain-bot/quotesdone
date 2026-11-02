@@ -1,0 +1,1 @@
+A PROBE (pure, aborted transaction, no DDL, ends in raise exception CHK<<verdict|evidence>>): run after its .sql in the same query. Never applied on its own; kept as the proof named by "Prevented by:" (scripts/checks/no_test_mail_goes_to_the_founders_own_inboxes.test.mjs).

@@ -35,3 +35,8 @@ test('(b) production: no rehearsal window is open past its expires_at', { skip: 
   } catch (e) { return void console.log(`(b) skipped: production unreadable here (${String(e?.message || e).slice(0, 120)})`); }
   assert.deepEqual(rows, [], `windows open past expires_at: ${JSON.stringify(rows)}`);
 });
+
+test('(c) close_job_windows cuts the qd_run: prefix whole (run 41384201126 threw bad run tag un:82bf7a60)', () => {
+  const n = Number(src('scripts/e2e/close_job_windows.mjs').match(/substring\(run_tag from (\d+)\)/)?.[1]);
+  assert.equal(n, 'qd_run:'.length + 1, 'the prefix is 7 characters, so the tag starts at 8');
+});

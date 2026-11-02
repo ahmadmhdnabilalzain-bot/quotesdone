@@ -1,0 +1,6 @@
+PASS resend_inbound takes the M365 hand-off and matches the lead — HTTP 200 {"ok":true,"matched_lead":150945,"stored":0,"reviews":[],"applied":[]}
+PASS stored with sender_authenticated from Microsoft's verdict — {"id":1379,"auth":"true"}
+PASS an answer is queued for the supplier — 171691 ms after the reply arrived
+PASS the answer carries the company's own registration link
+PASS the answer never calls the company registered
+PASS nothing the probe made is left (every e-mail column scanned)

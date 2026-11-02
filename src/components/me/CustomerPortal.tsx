@@ -122,6 +122,7 @@ import { useReducedMotion } from 'motion/react';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import SupportRatingPrompt from '@/components/portal/SupportRatingPrompt';
 import { signupEmailProblem } from '@/lib/signupEmail';
+import { retryRead, isReadAction } from '@/lib/fetchRetry';
 const SB = () => supaClient('qd-cust-auth');
 // A TOKEN READ FROM localStorage IS NOT A TOKEN THAT STILL WORKS. It is restored synchronously on
 // mount while the Supabase client refreshes asynchronously, so for the first moment after a page
@@ -136,12 +137,16 @@ const tokenAlive = (t) => {
   catch (_e) { return true; } // unparseable: let the endpoint be the judge, do not lock anyone out
 };
 const CALL_TIMEOUT_MS = 30000; // longer than any endpoint's own budget; this is the hang, not the slow answer
-async function call(path, body, token) {
+// The comparison report is the one call whose own budget is longer: quote_compare can take ~56 s on its own and the
+// Arabic build may then reason until 90 s (customer_api ARABIC_COMPARE_BUDGET_MS), inside the 150 s edge wall. Cut
+// at 30 s, the customer saw "timed out" instead of the 202 that says the Arabic report will be sent (PR #1574).
+const COMPARE_PDF_TIMEOUT_MS = 150000;
+async function call(path, body, token, timeoutMs = CALL_TIMEOUT_MS) {
   const ac = typeof AbortController === 'function' ? new AbortController() : null;
-  const timer = ac ? setTimeout(() => ac.abort(), CALL_TIMEOUT_MS) : null;
+  const timer = ac ? setTimeout(() => ac.abort(), timeoutMs) : null;
   let r;
   try {
-    r = await fetch(fnUrl(path), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body), signal: ac ? ac.signal : undefined });
+    r = await retryRead(async () => await fetch(fnUrl(path), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body), signal: ac ? ac.signal : undefined }), isReadAction(body), 2, () => !!(ac && ac.signal.aborted));
   } catch (e) {
     return { ok: false, error: (e && e.name === 'AbortError') ? 'qd_timeout' : 'qd_network' };
   } finally { if (timer) clearTimeout(timer); }
@@ -440,6 +445,9 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
     setErr('');
     take(token, 'kyc', () => call('kyc', { action: 'state' }, token)).then(async (j) => {
       if (!alive.current) return;
+      // A warmed (boot-prefetch) answer that failed in transit is asked once more, fresh (call() itself retries a read),
+      // before the customer sees "Couldn't load your account".
+      if (transportFailed(j)) { j = await call('kyc', { action: 'state' }, token); if (!alive.current) return; }
       if (j && j.error === 'unauthorized') {
         if (retried) { setErr('unauth'); return; }
         try {
@@ -497,18 +505,28 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const load = () => call('kyc', { action: 'state' }, token).then((j) => { if (transportFailed(j)) { setMsg(t(lang, 'load_failed')); return; } setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
   useEffect(() => { drop(); load(); }, []);
+  // A HOOK BELONGS ABOVE THE EARLY RETURN (2 Nov 2026, customer sign-up walk, React error #310): this sat below
+  // `if (!st) return`, so the render that first had the state called one more hook than the loading render and
+  // every new customer's "Complete your account" crashed to "This page couldn't load".
+  const failover = useFailover();
   if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
   const saveProfile = async () => { if (!dob) { setMsg(t(lang, 'err_dob_required')); return; } if (isUnder18(dob)) { setMsg(t(lang, 'err_under_18')); return; } setBusy('save'); setMsg(''); const j = await call('kyc', { action: 'save_customer', full_name, phone, dob, lang }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'load_failed')); };
   // sentSms carries the CHANNEL, not a boolean: kyc falls back to a voice call when the number is a
   // landline, and telling someone to check their junk folder for a code that is being read down the
   // phone is the wrong instruction.
   // The first code to a UAE mobile goes by WhatsApp (kyc nextChannel, 18 Oct 2026); 'sms' is the explicit failover.
-  const failover = useFailover();
   const sendSms = async (channel?: 'sms' | 'whatsapp') => { if (!phone) { setMsg(t(lang, 'enter_mobile_first')); return; } setBusy('sms'); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone, ...(channel ? { channel } : {}) }, token); setBusy(''); if (j && j.ok) { setSentSms(j.channel || 'sms'); if (j.channel === 'whatsapp') failover(() => call('kyc', { action: 'phone_failover', phone }, token), () => setSentSms('sms_failover')); } else setMsg(errText(j, lang, 'err_code_send')); };
   const verifySms = async () => { setBusy('vsms'); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone, code: smsCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'err_incorrect')); };
   const sendEmailCode = async () => { setBusy('em'); setMsg(''); const j = await call('kyc', { action: 'send_email' }, token); setBusy(''); if (j && j.ok) setSentEmail(true); else setMsg(errText(j, lang, 'err_code_send')); };
   const verifyEmail = async () => { setBusy('vem'); setMsg(''); const j = await call('kyc', { action: 'verify_email', code: emCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'err_incorrect')); };
-  const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms', marketing_consent: marketingOptIn === true }, token); setBusy(''); if (j && j.ok) { onDone(); } else setMsg(errText(j, lang, 'load_failed')); };
+  const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms', marketing_consent: marketingOptIn === true }, token); if (j && j.ok) {
+      // THE CERTIFICATE LANDS AFTER THE ANSWER (kyc accept_terms renders the signed PDF in the background), and the account is
+      // complete only once it has (terms_signed). Reading the state once left the customer on this unchanged form, with no word,
+      // until they reloaded (measured 2 Nov 2026 by the sign-up walk: still here 60 s after "Finish & continue"). The button
+      // stays on "Finishing…" while the state is asked again, every 2.5 s for up to two minutes.
+      for (let i = 0; i < 48; i++) { const s = await call('kyc', { action: 'state' }, token).catch(() => null); if (s && s.terms_signed) break; await new Promise((r) => setTimeout(r, 2500)); }
+      setBusy(''); onDone();
+    } else { setBusy(''); setMsg(errText(j, lang, 'load_failed')); } };
   // DOB IS REQUIRED AGAIN (founder's account rule, 14 Sep 2026: name, date of birth with under-18
   // rejected, OTP-verified mobile/email, Terms). The 6 Sep change made it optional because a customer
   // without one was silently stuck; the fix for silence is a message, not dropping the field. kyc now
@@ -863,7 +881,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         // The request just posted is opened by its stable id: a split opens its combined parent, which
         // lists one card per trade; the note says how many trades were sent separately.
         const n = r && Array.isArray(r.child_ids) ? r.child_ids.length : 0;
-        setNote(n > 1 ? tf(lang, 'request_sent_split', { n }) : t(lang, 'request_sent'));
+        setNote(r && r.none ? '' : n > 1 ? tf(lang, 'request_sent_split', { n }) : t(lang, 'request_sent'));
         // The first-request concierge (founder ledger 1018): a first request, or one held for its specs, gets the
         // steps and what is missing on screen as well as by e-mail.
         const g = r && r.concierge;
@@ -1503,7 +1521,7 @@ function ExportComparison({ inqId, token, lang }) {
   const go = (docLang) => async () => {
     setBusy(true); setErr(''); let j = null;
     try {
-      const ok = await openDocument(lang, async () => { j = await call('customer_api', { action: 'compare_pdf', inquiry_id: inqId, lang: docLang }, token); return j && (j.url || j.pdf_url || j.file_url) || null; });
+      const ok = await openDocument(lang, async () => { j = await call('customer_api', { action: 'compare_pdf', inquiry_id: inqId, lang: docLang }, token, COMPARE_PDF_TIMEOUT_MS); return j && (j.url || j.pdf_url || j.file_url) || null; });
       if (!ok) setErr(errText(j, lang, 'cmp_save_fail'));
     } catch (_e) {
       setErr(t(lang, 'cmp_save_fail'));
@@ -1680,6 +1698,34 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
   // a customer who writes nothing has still rated and a customer who writes something is adding to
   // a rating that is already counted. Nothing here can block a rating.
   const [note, setNote] = useState(''); const [noteSaved, setNoteSaved] = useState(false); const [noteErr, setNoteErr] = useState('');
+  // PHOTOS OF THE FINISHED JOB (T2): offered once the rating is saved, up to 5, sent ONE request per
+  // photo so no request carries more than one 5 MB image. The server re-checks everything
+  // (customer_api/review_photos.ts); the checks here only spare the customer a wasted upload.
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]); const [phErr, setPhErr] = useState(''); const [phDone, setPhDone] = useState('');
+  // A rated review may already carry photos from an earlier visit: show them and count them.
+  useEffect(() => {
+    if (!rated || !q || !q.id) return;
+    let live = true;
+    call('customer_api', { action: 'review_photos', quote_id: q.id }, token).then((j) => { if (live && j && j.ok) setPhotoUrls(j.photo_urls || []); }).catch(() => {});
+    return () => { live = false; };
+  }, [rated, q && q.id, token]);
+  const addPhotos = (files: FileList | null) => act.run('photos', async () => {
+    setPhErr(''); setPhDone('');
+    const list = Array.from(files || []);
+    if (!list.length) return;
+    if (photoUrls.length + list.length > 5) { setPhErr(t(lang, 'err_photo_count')); return; }
+    for (const f of list) {
+      if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { setPhErr(t(lang, 'err_photo_type')); return; }
+      if (f.size > 5 * 1024 * 1024) { setPhErr(t(lang, 'err_photo_size')); return; }
+    }
+    for (const f of list) {
+      const b64 = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(f); }).catch(() => '');
+      const j = await call('customer_api', { action: 'add_review_photos', quote_id: q.id, photos: [{ b64 }] }, token).catch(() => null);
+      if (!(j && j.ok)) { setPhErr(errText(j, lang, 'err_photo_fail')); return; }
+      setPhotoUrls(j.photo_urls || []);
+    }
+    setPhDone(t(lang, 'c_ph_done'));
+  });
   const [dialog, ask] = useConfirm(lang);
   const g = terms || {};
   // The three actions on a revealed supplier are all round trips and none of them said so: the stars
@@ -1743,6 +1789,19 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
           </div>
           <div id={'rv-hint-' + q.id} className={S.hint}>{t(lang, 'c_note_min')}</div>
           {noteErr && <div id={'rv-err-' + q.id} className={S.err} role="alert">{noteErr}</div>}
+        </div>
+      ) : null}
+      {rated ? (
+        <div className="mt-2.5 border-t border-accent/25 pt-2.5">
+          <label className="block text-[12px] font-semibold text-muted-foreground" htmlFor={'rp-' + q.id}>{t(lang, 'c_ph_h')}</label>
+          {photoUrls.length ? <div className="mt-1.5 flex flex-wrap gap-2">{photoUrls.map((u, i) => <img key={u} src={u} alt={tf(lang, 'c_ph_alt', { n: i + 1 })} width={64} height={64} loading="lazy" className="size-16 rounded-md border border-border object-cover" />)}</div> : null}
+          {photoUrls.length < 5 ? <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <input id={'rp-' + q.id} type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={act.pending} aria-describedby={'rp-hint-' + q.id + (phErr ? ' rp-err-' + q.id : '')} aria-invalid={phErr ? true : undefined} onChange={(e) => { addPhotos(e.target.files); e.target.value = ''; }} className="min-w-0 max-w-full text-[13px] file:me-2 file:rounded-md file:border file:border-border file:bg-background file:px-2.5 file:py-1 file:text-[13px] file:font-semibold" />
+            <BusyNote busy={act.busy && act.key === 'photos'}>{t(lang, 'q_wait')}</BusyNote>
+          </div> : null}
+          <div id={'rp-hint-' + q.id} className={S.hint}>{t(lang, 'c_ph_hint')}</div>
+          {phDone && <div className={cn(S.sub, 'mt-1 text-primary')} role="status">{phDone}</div>}
+          {phErr && <div id={'rp-err-' + q.id} className={S.err} role="alert">{phErr}</div>}
         </div>
       ) : null}
       {gq.refund_ref ? <div className={cn(S.sub, 'mt-1.5')}>{tf(lang, 'c_refund_ref', { r: gq.refund_ref })}{' · '}{gq.decision_ref ? tf(lang, 'c_decision_ref', { d: gq.decision_ref }) : t(lang, 'c_decision_wait')}</div> : null}

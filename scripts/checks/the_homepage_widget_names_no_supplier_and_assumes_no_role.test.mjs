@@ -7,11 +7,16 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const src = readFileSync(new URL('../../supabase/functions/site_assistant/index.ts', import.meta.url), 'utf8');
+// The public-chat rule moved into visitor_scope.ts with #1434 (founder ruling 18 Oct 2026); index.ts applies it to every
+// caller who is not signed up. Both files are pinned, so the rule cannot leave the prompt without failing here.
+const scope = readFileSync(new URL('../../supabase/functions/site_assistant/visitor_scope.ts', import.meta.url), 'utf8');
 test('the widget never names a supplier and points to sign-up', () => {
   assert.match(src, /Never recommend, name or rank any supplier/);
-  assert.match(src, /founder ruling 1249/);
-  assert.match(src, /sign up free at quotesdone\.com\/me/);
-  assert.match(src, /Never collect or ask for job details/);
+  assert.match(scope, /founder rulings 1249 and 18 Oct 2026/);
+  assert.match(scope, /sign up free at \$\{url\}/);
+  assert.match(scope, /: \{ url: '\/me', label:/);
+  assert.match(scope, /Never collect or discuss the details of a job/);
+  assert.match(src, /\$\{who \? '- Answer what they asked[^']*' : visitorRules\(audience, replyLang\)\}/);
 });
 test('the widget assumes no role', () => {
   assert.match(src, /Never assume, state or hint at their role/);

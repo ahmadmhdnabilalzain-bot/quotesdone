@@ -8,7 +8,9 @@ import { cadSupplierBoq, dxfTextOf } from '../_shared/cad_identity.ts';
 import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
 import { notSureKeys, specHandoffArgs } from './spec_handoff.ts';
 import { parseRatingInput } from './rating_input.ts';
+import { parseReviewPhotos } from './review_photos.ts';
 import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
+import { isPhotoOrScan, visionCountBody, applyVisionCounts } from './vision_count_wire.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
 import { repeatCheck, repeatPlan } from './repeat.ts';
 import { HELD_NOTICE, hasArabic, holdForEnglish, mailMatched, supplierMail } from '../_shared/supplier_english.ts';
@@ -34,6 +36,9 @@ import { portalLink, siteCors } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
 import { feeBaseOf, feeBasisLine, priceStated, vatStated } from '../_shared/stated_price.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
+import { requireInternal } from '../_shared/internal_auth.ts';
+import { ackThenWork } from '../_shared/async_webhook.ts';
+import { finishCompareArabic, MAX_ATTEMPTS as MAX_COMPARE_ATTEMPTS, type CompareFinishIO } from './compare_arabic.ts';
 import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { arabicOf, arabicTextsFor, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { SANCTIONED_REFUSAL, sanctionedLead, sanctionedLeads } from '../_shared/sanctioned.ts';
@@ -73,6 +78,7 @@ const EDIT_WINDOW_MS = 60 * 60e3;
 // emits '[', '\\', ']' from the 27th, so a customer with 30 quotes saw "Supplier [" and the
 // comparison report referenced a label that did not exist in their list.
 function supplierLabel(i: number): string { let n = Number(i) || 0, out = ''; do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0); return out; }
+async function signedReviewPhotos(paths: string[]): Promise<string[]> { const urls = await Promise.all(paths.map(async (p) => { try { const { data } = await admin.storage.from('review-photos').createSignedUrl(p, 3600); return data?.signedUrl || null; } catch { return null; } })); return urls.filter((u): u is string => !!u); }
 async function signedDrawing(path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from('drawing-files').createSignedUrl(path, 3600); return data?.signedUrl || null; } catch { return null; } }
 async function signedDoc(bucket: string | null | undefined, path: string | null | undefined): Promise<string | null> { if (!path) return null; try { const { data } = await admin.storage.from(bucket || 'agent-docs').createSignedUrl(path, 7 * 24 * 3600); return data?.signedUrl || null; } catch { return null; } }
 async function getSecret(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
@@ -235,13 +241,8 @@ async function flagCoverageGap(inqId: string, category: string, emirate: string 
       cost: 'No spend to record it. Closing the gap costs invitation volume and sending reputation, which the invite ramp caps — or nothing at all, if a supplier already on file simply has not declared the trade.',
       target_table: 'inquiries', target_id: inqId });
   } catch (_e) { flagged = false; }
-  try { await admin.from('founder_alerts').insert({ level: 'high', event: 'rfq_no_supplier', detail: ('A customer request (' + label + ', inquiry ' + inqId + ') matched zero suppliers and reached nobody.' + (flagged ? '' : ' The coverage_gap flag ALSO failed to insert, so this gap is not in the action queue.')).slice(0, 900), channel: 'email' }); } catch (_e) { /* */ }
-  try {
-    const owner = ((await getSecret('admin_emails')) || 'management@quotesdone.com').split(',')[0].trim();
-    await queueNotifications([{ type: 'rfq_no_supplier', to_email: owner, to_role: 'admin', inquiry_id: inqId, channel: 'email', status: 'queued',
-      subject: 'Customer request reached no suppliers: ' + label,
-      body: 'A customer posted a request (' + label + ') and it matched ZERO suppliers, so no one was contacted and no quote can arrive.\n\nInquiry: ' + inqId + '\nSummary: ' + String(summary || '').slice(0, 300) + '\n\nThe customer is waiting. Onboard suppliers in this trade/emirate, or contact them directly.' }]);
-  } catch (_e) { /* */ }
+  // Founder ledger 1436/1447: he is an investor and is not paged. The coverage_gap above is the sales engineer's to act on;
+  // 55 pages went out (30 in the last 14 days), and only 3 named an inquiry that still exists: all rehearsals.
   return flagged;
 }
 async function matchAndNotify(inqId: string, opts: { category: string; emirate: string | null; summary: string; budget: string | null; extra: string }): Promise<{ matches: number; routing: Record<string, any> }> {
@@ -719,14 +720,24 @@ async function fetchCompareAnalysis(iid: string, lang: 'en' | 'ar'): Promise<{ a
 /** An Arabic document with a line not yet translated by reasoning (under the founder's model hold). */
 const ARABIC_HELD = { ok: false, held: true, error: 'arabic_held' } as const;
 const heldReply = () => J({ ok: false, held: true, code: 'arabic_held',
-  message: 'The Arabic version is being prepared by our sales engineer and will be ready shortly. The English version is available now.',
-  message_ar: 'يُعدّ مهندس المبيعات لدينا النسخة العربية وستكون جاهزة قريبًا. النسخة الإنجليزية متاحة الآن.' }, 202);
-async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar') {
+  message: 'The Arabic version is being prepared by our sales engineer. We will send it to you by email and WhatsApp as soon as it is ready. The English version is available now.',
+  message_ar: 'يُعدّ مهندس المبيعات لدينا النسخة العربية، وسنرسلها إليكم بالبريد الإلكتروني وواتساب فور جاهزيتها. النسخة الإنجليزية متاحة الآن.' }, 202);
+// The edge wall is 150 s; one think() batch can run ~47 s (the gateway wall). A batch may START only before
+// started + 90 s, so the request always answers (the 202 held reply) instead of a 504.
+const ARABIC_COMPARE_BUDGET_MS = 90_000;
+// deadline (epoch ms): past it a missing line is FILED for the replay, never reasoned. compare_pdf passes its start
+// + ARABIC_COMPARE_BUDGET_MS; the replay's finisher (compare_arabic.ts) passes Date.now(), so it never calls a model.
+// A held Arabic report records its waiter, and the replay sends it to the customer once its lines exist.
+async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar', deadline: number) {
   const { data: sq } = await admin.from('quotes').select('supplier_id').eq('inquiry_id', inq.id);
   const maskNames = await supplierIdentities((sq || []).map((r: any) => r.supplier_id));
   const portalUrl = portalLink(lang, inq.id);
-  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => compareDocument({ analysis: a, inquiry: inq, lang, maskNames, portalUrl, linkFor: (qid) => portalLink(lang, inq.id, qid), arTexts }), { subject: { inquiry_id: inq.id } });
-  if (!doc.doc) return { j: ARABIC_HELD, ref: 'QD-' + jobNoOf(inq) + '-CMP' };
+  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => compareDocument({ analysis: a, inquiry: inq, lang, maskNames, portalUrl, linkFor: (qid) => portalLink(lang, inq.id, qid), arTexts }), { subject: { inquiry_id: inq.id }, deadline });
+  if (!doc.doc) {
+    const { error: wErr } = await admin.rpc('fn_arabic_compare_wait', { p_inquiry: String(inq.id), p_texts: doc.missing });
+    if (wErr) console.error('compare_pdf: the Arabic report waiter was not recorded:', wErr.message);
+    return { j: ARABIC_HELD, ref: 'QD-' + jobNoOf(inq) + '-CMP' };
+  }
   const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -734,6 +745,30 @@ async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar') {
     body: JSON.stringify({ ...body, __secret: secret, folder: 'compare/' + inq.id }) });
   const j = await r.json();
   return { j, ref };
+}
+// The live IO of the held Arabic report's finisher (compare_arabic.ts holds the decisions and their tests).
+const COMPARE_INQ_COLS = 'id,rfq_no,customer_id,category,summary,emirate';
+function compareFinishIO(): CompareFinishIO {
+  return {
+    waiter: async (iid) => { const { data } = await admin.from('arabic_compare_waiter').select('inquiry_id,created_at,attempts').eq('inquiry_id', iid).maybeSingle(); return (data as any) ?? null; },
+    inquiry: async (iid) => { const { data } = await admin.from('inquiries').select(COMPARE_INQ_COLS).eq('id', iid).maybeSingle(); return (data as any) ?? null; },
+    customer: async (cid) => { const { data } = await admin.from('customers').select('email').eq('id', cid).maybeSingle(); return (data as any) ?? null; },
+    render: async (inq) => {
+      const got = await fetchCompareAnalysis(inq.id, 'ar');
+      if (!got.analysis) return { error: got.error || 'comparison_unavailable' };
+      // deadline = now: every line is read from the cache; one still missing is filed, never reasoned here.
+      const { j, ref } = await buildComparePdf(got.analysis, inq, 'ar', Date.now());
+      if ((j as any)?.held) return { held: true };
+      return j?.ok && j.url ? { url: String(j.url), ref } : { error: String(j?.error || j?.detail || 'pdf_failed') };
+    },
+    deliver: async (rows) => { const { error } = await requestDelivery(admin, rows); return error ? { ok: false, err: error.message } : { ok: true }; },
+    done: async (iid) => { await admin.from('arabic_compare_waiter').delete().eq('inquiry_id', iid); },
+    tried: async (iid, attempts) => { await admin.from('arabic_compare_waiter').update({ attempts, last_tried_at: new Date().toISOString() }).eq('inquiry_id', iid); },
+    tellSalesEngineer: async (iid, last) => {
+      await admin.from('agent_actions').insert({ agent: 'sales_engineer', kind: 'arabic_comparison_render_failed', status: 'pending', risk: 'medium',
+        title: `The Arabic comparison report could not be sent after ${MAX_COMPARE_ATTEMPTS} tries`, detail: { inquiry_id: iid, last }, target_table: 'inquiries', target_id: iid });
+    },
+  };
 }
 
 // REDACTION PROVENANCE 2 Aug 2026 (external security review). WHY: QuotesDone sells anonymity —
@@ -817,6 +852,22 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
   // what needs exercising, not a real answer. See the header of resilience_ping/index.ts.
   if (req.headers.get('x-qd-warm') === '1') return new Response(null, { status: 204 });
   try {
+    // THE REPLAY'S ONE DOOR IN (compare_arabic.ts): a held Arabic comparison report whose lines now all exist is
+    // rendered and sent to its customer. Internal credential only (fn.resilience_ping, scope customer_api). The work
+    // runs after the answer, so the replay's tick never waits on a render. Only a caller presenting the service key
+    // (which passes the gateway; __secret decides the caller) has its body read twice: a customer's upload is not.
+    const bearer = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+    const peek = bearer === SERVICE ? await req.clone().json().catch(() => ({})) : null;
+    if (peek?.__secret && peek.action === 'compare_arabic_finish') {
+      const ok = await requireInternal(admin, String(peek.__secret), 'customer_api');
+      if (!ok.ok) return J({ error: 'forbidden' }, 403);
+      const iid = String(peek.inquiry_id || '');
+      if (!iid) return J({ error: 'bad_request' }, 400);
+      return ackThenWork(J({ ok: true, accepted: iid }, 202), async () => {
+        const r = await finishCompareArabic(compareFinishIO(), iid);
+        console.log(JSON.stringify({ at: 'customer_api.compare_arabic_finish', inquiry_id: iid, ...r }));
+      }, 'customer_api.compare_arabic_finish');
+    }
     const auth = req.headers.get('Authorization') || ''; const jwt = auth.replace(/^Bearer\s+/i, '');
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user || !user.email) return J({ error: 'Not signed in' }, 401);
@@ -850,7 +901,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
     // suppliers, request refunds and rate them from the main buyer surface. Every mutating
     // action is refused now. 'me' and 'my_inquiries' stay open on purpose so the person can
     // still see their own account state and existing requests rather than hitting a dead wall.
-    const MUTATING = ['create_inquiry', 'repeat_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'complete_inquiry', 'cancel_inquiry', 'rfq_note', 'add_missing_specs'];
+    const MUTATING = ['create_inquiry', 'repeat_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'add_review_photos', 'complete_inquiry', 'cancel_inquiry', 'rfq_note', 'add_missing_specs'];
     if (cust?.banned === true && MUTATING.includes(action)) return J({ error: 'Your account is suspended. Please contact support@quotesdone.com if you believe this is a mistake.' }, 403);
 
     // RE-ACCEPTANCE OF A NEW TERMS VERSION (6 Oct 2026, release review of #1240). Recorded the same way as sign-up
@@ -886,13 +937,34 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
     if (action === 'cad_read_status') {
       const id = String(body.job_id || '');
       if (!/^[0-9a-f-]{36}$/i.test(id)) return J({ ok: false, error: 'not_found' }, 404);
-      const { data: job } = await admin.from('cad_read_jobs').select('status, result, finished_at, created_at, claimed_at').eq('id', id).eq('customer_id', cust.id).maybeSingle();
+      const { data: job } = await admin.from('cad_read_jobs').select('status, result, boq_in, finished_at, created_at, claimed_at').eq('id', id).eq('customer_id', cust.id).maybeSingle();
       if (!job) return J({ ok: false, error: 'not_found' }, 404);
       // 24 Sep 2026: the worker also DRAWS a CAD file the edge could not, for suppliers (cad_read_worker.ts
       // supplierDrawing); its recorded page comes back here so the customer's request can carry it.
       const res = job.status === 'done' ? (job.result as any) : null;
       const pages = res?.redaction_complete === true && Array.isArray(res.drawing_redacted_paths) ? res.drawing_redacted_paths.map((p: unknown) => String(p)) : [];
-      return J({ ok: true, status: job.status, ...(job.status === 'queued' || job.status === 'running' ? { held_for: 'sales_engineer' } : {}), boq: res?.boq ?? null, ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_job_ids: Array.isArray(res.redaction_job_ids) ? res.redaction_job_ids.map((x: unknown) => String(x)) : [String(res.redaction_job_id || '')], redaction_complete: true, drawing_held: false } : {}) });
+      // THE PHOTO'S LEGEND, COUNTED ON THE PAGE THE WORKER PROVED CLEAN (27 Oct 2026, ledger 580; ./vision_count_wire.ts).
+      // Once per job: the reply is kept on the job's result, so a poll every 15 s does not pay for it again.
+      const vcIn = (job.boq_in as any)?.vision_count;
+      let counted: { boq: unknown; vision_count: unknown } | null = null;
+      if (res && pages.length && vcIn && Array.isArray((job.boq_in as any)?.vision_lines)) {
+        let vj = res.vision_count ?? null;
+        // AT MOST 3 ASKINGS PER JOB (independent review of #1641, 27 Oct 2026): only a success was kept, so a failing
+        // model call was paid again on every 15 s poll for as long as the customer's page stayed open. A failure is now
+        // kept too, with its count; after the third the code's counts stand for good.
+        const tries = Number((vj as any)?.attempts) || 0;
+        if (!vj || (vj.ok !== true && tries < 3)) {
+          try {
+            // 60 s: one vision call on one page (VISION_COUNT_MAX_TOKENS 600); past it the code's counts stand and the next poll retries.
+            const vr = await timedFetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: await getSecret('cred_fn_customer_api'), mode: 'vision_count', redaction_job_id: String(res.redaction_job_id || ''), ...vcIn }) }, 60_000);
+            vj = await vr.json().catch(() => null);
+          } catch (_e) { vj = null; }
+          vj = vj && typeof vj === 'object' ? { ok: vj.ok === true, counts: vj.counts ?? null, source: vj.source ?? null, agrees: vj.agrees ?? null, vision: vj.vision ?? null, why: vj.why ?? null, attempts: tries + 1 } : { ok: false, why: 'no_reply', attempts: tries + 1 };
+          await admin.from('cad_read_jobs').update({ result: { ...res, vision_count: vj } }).eq('id', id);
+        }
+        counted = { boq: applyVisionCounts((job.boq_in as any).vision_lines, vj), vision_count: { source: vj?.source ?? null, why: vj?.why ?? null, agrees: vj?.agrees ?? null } };
+      }
+      return J({ ok: true, status: job.status, ...(job.status === 'queued' || job.status === 'running' ? { held_for: 'sales_engineer' } : {}), boq: res?.boq ?? null, ...(counted ? { counted_boq: counted.boq, vision_count: counted.vision_count } : {}), ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_job_ids: Array.isArray(res.redaction_job_ids) ? res.redaction_job_ids.map((x: unknown) => String(x)) : [String(res.redaction_job_id || '')], redaction_complete: true, drawing_held: false } : {}) });
     }
 
     if (action === 'analyze_boq') {
@@ -1168,6 +1240,16 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
             if (lj?.ok && lj.boq && Array.isArray(lj.boq.boq)) Object.assign(boqOut, lj.boq);
             else if (!lengthsJob && Array.isArray(boqOut.boq) && boqOut.boq.some((l: any) => /^(duct|pipe):/.test(String(l?.type || '')) && l?.qty == null)) boqOut.missing_info = [LENGTHS_FAILED_NOTE, ...(Array.isArray(boqOut.missing_info) ? boqOut.missing_info : [])];
           } catch (_e) { /* the counted take-off stands */ }
+        }
+        // THE VISION COUNT FOR A PHOTO OR A SCAN (27 Oct 2026, ledger 580; ./vision_count_wire.ts says what was measured).
+        // Its page is redacted later, by the CAD worker's OCR (scanJob above): this edge holds every photo and scan page.
+        // So the legend's count request rides on that job, and cad_read_status runs it once the worker's run is recorded.
+        if (scanJob && boqOut && isPhotoOrScan(mime, pdfWords, isCad)) {
+          const vcBody = visionCountBody(boqOut.boq);
+          if (vcBody) {
+            const { data: jr } = await admin.from('cad_read_jobs').select('boq_in').eq('id', scanJob).maybeSingle();
+            await admin.from('cad_read_jobs').update({ boq_in: { ...((jr?.boq_in as Record<string, unknown>) || {}), vision_count: vcBody, vision_lines: boqOut.boq } }).eq('id', scanJob);
+          }
         }
         if (boqOut && Array.isArray(boqOut.boq) && boqOut.boq.length) {
           try {
@@ -1859,6 +1941,7 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       if ((gens || 0) >= PDF_LIMIT_PER_HOUR) return J({ error: 'You have generated many PDFs recently. Please try again shortly.' }, 429);
       // Reuse the cached analysis when the quote set is unchanged; otherwise ask for a fresh one.
       let analysis: any = null;
+      const started = Date.now();
       try {
         const got = await fetchCompareAnalysis(iid, lang);
         // A DOCUMENT THAT COULD NOT BE BUILT IS NOT AN HTTP 200 (audit CP-10). 409: the comparison
@@ -1866,8 +1949,10 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
         if (got.analysis) analysis = got.analysis; else return J({ ok: false, error: got.error, code: got.error, message: 'The comparison report is not available yet. Your quotes are unaffected.', message_ar: 'تقرير المقارنة غير متاح بعد. عروضك لم تتأثر.' }, 409);
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 502); }
       try {
-        const { j, ref } = await buildComparePdf(analysis, inq, lang);
+        const { j, ref } = await buildComparePdf(analysis, inq, lang, started + ARABIC_COMPARE_BUDGET_MS);
         if ((j as any)?.held) return heldReply();
+        // The Arabic report is in the customer's hands now: a waiter from an earlier held press is not sent again.
+        if (j?.ok && j.url && lang === 'ar') await admin.from('arabic_compare_waiter').delete().eq('inquiry_id', iid);
         if (j?.ok && j.url) return J({ ok: true, url: j.url, ref });
         return J({ error: 'pdf_failed', detail: j?.error || j?.detail || '' }, 502);
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
@@ -2038,6 +2123,44 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       }
       await admin.rpc('recompute_supplier_rating', { p_supplier: q.supplier_id });
       return J({ ok: true });
+    }
+
+    // PHOTOS ON A POST-JOB REVIEW (T2). Only after the customer has rated (a review row exists for
+    // THEIR transaction on this quote), at most 5 per review, images only — the rule is
+    // ./review_photos.ts with its tests. Stored in the PRIVATE review-photos bucket under a random
+    // name (never the customer's file name), camera metadata cut, served back only as signed URLs.
+    // The supplier sees them in its Projects tab, which lists post-reveal jobs only.
+    if (action === 'add_review_photos') {
+      const qid = String(body.quote_id || '');
+      const { data: tx } = await admin.from('transactions').select('id').eq('quote_id', qid).eq('customer_id', cust.id).maybeSingle();
+      if (!tx) return J({ error: 'You can only add photos to a supplier you have revealed and dealt with.', code: 'forbidden' }, 403);
+      const { data: rv } = await admin.from('reviews').select('id,photo_paths').eq('transaction_id', tx.id).maybeSingle();
+      if (!rv) return J({ error: 'Rate the supplier first, then add photos.', code: 'review_required' }, 400);
+      const existing: string[] = Array.isArray(rv.photo_paths) ? rv.photo_paths : [];
+      const parsed = parseReviewPhotos(body.photos, existing.length);
+      if (!parsed.ok) return J({ error: parsed.error, code: parsed.code }, 400);
+      const added: string[] = [];
+      for (const ph of parsed.photos) {
+        const path = tx.id + '/' + crypto.randomUUID() + '.' + ph.ext;
+        const up = await admin.storage.from('review-photos').upload(path, ph.bytes, { contentType: ph.mime, upsert: false });
+        if (up.error) { if (added.length) await admin.storage.from('review-photos').remove(added); console.error('add_review_photos upload', up.error.message); return J({ error: 'Could not save your photos. Please try again in a moment.', code: 'photo_save_failed' }, 500); }
+        added.push(path);
+      }
+      const all = existing.concat(added);
+      // Written only if the row still holds what we read (two tabs, a double submit): otherwise the
+      // later write would drop the earlier one's paths and both would pass the cap. Paths are
+      // <uuid>/<uuid>.<ext>, so the array literal needs no quoting. The database check (max 5) is the
+      // last line either way.
+      const { data: upd, error } = await admin.from('reviews').update({ photo_paths: all }).eq('id', rv.id).filter('photo_paths', 'eq', '{' + existing.join(',') + '}').select('id');
+      if (error || !upd || upd.length !== 1) { await admin.storage.from('review-photos').remove(added); console.error('add_review_photos update', error?.message || 'row changed'); return J({ error: 'Could not save your photos. Please try again in a moment.', code: 'photo_save_failed' }, error ? 500 : 409); }
+      return J({ ok: true, photo_count: all.length, photo_urls: await signedReviewPhotos(all) });
+    }
+    // Read-only: the photos already on the customer's own review, so the picker shows them after a reload.
+    if (action === 'review_photos') {
+      const { data: tx } = await admin.from('transactions').select('id').eq('quote_id', String(body.quote_id || '')).eq('customer_id', cust.id).maybeSingle();
+      if (!tx) return J({ error: 'Not found', code: 'not_found' }, 404);
+      const { data: rv } = await admin.from('reviews').select('photo_paths').eq('transaction_id', tx.id).maybeSingle();
+      return J({ ok: true, photo_urls: await signedReviewPhotos((rv?.photo_paths as string[]) || []) });
     }
 
     if (action === 'complete_inquiry') {

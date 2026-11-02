@@ -1,0 +1,23 @@
+{
+ "pool_build": { "overall": 9, "issues": ["NOC and permit stated, heater-chiller for UAE summers, child safety (expert)", "build type and skimmer/overflow not asked", "summary confirmed"] },
+ "glass_partition_ar": { "overall": 8, "issues": ["10-12 mm toughened, 12 mm at 2.8 m (expert); doors, approvals, timeline", "acoustic needs not asked", "said colour, finish and internal layout are left to the site visit (not partition items)"] },
+ "solar_villa": { "overall": 9, "issues": ["Shams Dubai net metering, enrolled contractor, bills, roof and shade", "summary confirmed"] },
+ "villa_painting_ext_ar": { "overall": 9, "issues": ["scrape, treat cracks, primer before texture (expert); scaffolding", "occupancy asked generically", "summary confirmed"] },
+ "pest_control_ar": { "overall": 8, "issues": ["size, children and cat, one visit or contract, timeline", "municipality-licensed company never mentioned", "summary lists the flat's area to confirm after 3 rooms were given"] },
+ "landscaping_ar": { "overall": 8, "issues": ["natural lawn needs sprinklers, not drip; TSE water (expert)", "summary lists use, drawings and design to confirm (not this job's items)"] },
+ "carpet_office": { "overall": 9, "issues": ["area, existing glued carpet and raised floor, weekend work, timeline", "summary updated with the permit"] },
+ "water_tank_ar": { "overall": 5, "issues": ["repair before replace (expert)", "capacity asked as سعة (the bank's size pattern does not know it): code gate fails", "the fittings asked twice (the plumbing plan's bathroom slot), no summary reached"] },
+ "interlock_paving": { "overall": 8, "issues": ["load, existing surface, falls to a drain (expert)", "block type and pattern not asked", "summary lists irrigation, water and power points to confirm (a garden's items)"] },
+ "smart_home_ar": { "overall": 5, "issues": ["wired vs wireless, gateway per split AC (expert)", "the room count asked as عدد الغرف والأدوار (the bank's size pattern does not know it): code gate fails", "the last reply was a bare 'تم، خلال شهر.' after a 64 s rewrite deadlock; no summary"] },
+ "fence_gate": { "overall": 8, "issues": ["hot-dip galvanised near the coast (expert), community rules", "summary lists 'the system or type, drawings or design' to confirm"] },
+ "deep_clean_ar": { "overall": 8, "issues": ["residue type, windows inside only, building permit and hours", "turn 3 asked about the residue again in other words"] },
+ "mep_maintenance": { "overall": 8, "issues": ["DCD-approved fire maintenance (expert), scope, start date", "comprehensive or not never asked", "summary lists 'the number of points to cover' to confirm"] },
+ "curtains_ar": { "overall": 9, "issues": ["windows, sizes, fabric, motorised or manual, timeline", "mounting type not asked"] },
+ "roof_pergola": { "overall": 8, "issues": ["slab check, wind design, ballasted free-standing frame (expert)", "turn 3 was a bare 'Noted - before the cool season.' after 53 s"] },
+ "gym_flooring": { "overall": 8, "issues": ["heavy-duty impact tiles under the drop zone, slab moisture (expert)", "summary lists 'areas and points to cover' to confirm"] },
+ "majlis_furniture_ar": { "overall": 8, "issues": ["size, U layout, fabric, location", "the date asked again in other words after 'not sure'", "seating type and height never asked"] },
+ "wardrobe_photo_ar": { "overall": 9, "issues": ["read the photo honestly; moisture-resistant MDF for the carcass (expert)", "summary confirmed"] },
+ "kitchen_photo_en": { "overall": 9, "issues": ["did not ask the given size again; removal, appliances, services", "summary updated with the wall cabinets and finishes"] },
+ "shopfront_en": { "overall": 9, "issues": ["low-E or solar control for a south face, shop drawings before work (expert)", "a remark about 6 mm glass nobody proposed", "summary confirmed"] },
+ "villa_painting_int_en": { "overall": 9, "issues": ["damp source first, cracks filled (expert); occupied, furniture", "summary updated with the ceilings"] }
+}

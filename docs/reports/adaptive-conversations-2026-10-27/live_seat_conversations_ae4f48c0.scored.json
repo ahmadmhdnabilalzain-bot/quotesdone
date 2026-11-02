@@ -1,0 +1,258 @@
+{
+ "run_tag": "ae4f48c0",
+ "outcomes": {
+  "conversations": 21,
+  "confirmed_summary": 19,
+  "stalled_before_summary": [
+   "water_tank_ar",
+   "smart_home_ar"
+  ],
+  "timeline_asked": 21,
+  "timeline_scenarios": 21,
+  "timeline_never_asked": [],
+  "reask_flags": 18,
+  "reask_conversations": [
+   "glass_partition_ar",
+   "landscaping_ar",
+   "carpet_office",
+   "water_tank_ar",
+   "fence_gate",
+   "deep_clean_ar",
+   "mep_maintenance",
+   "gym_flooring",
+   "wardrobe_photo_ar",
+   "shopfront_en",
+   "villa_painting_int_en"
+  ]
+ },
+ "scenarios": 21,
+ "met": 0,
+ "mean_pct": 77,
+ "idk_conversations": 0,
+ "yesno_only_conversations": 0,
+ "acceptance": "NOT MET",
+ "gaps": [
+  {
+   "id": "pool_build",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "NOC and permit stated, heater-chiller for UAE summers, child safety (expert)",
+    "build type and skimmer/overflow not asked",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "glass_partition_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 80,
+   "issues": [
+    "10-12 mm toughened, 12 mm at 2.8 m (expert); doors, approvals, timeline",
+    "acoustic needs not asked",
+    "said colour, finish and internal layout are left to the site visit (not partition items)"
+   ]
+  },
+  {
+   "id": "solar_villa",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "Shams Dubai net metering, enrolled contractor, bills, roof and shade",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "villa_painting_ext_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 90,
+   "issues": [
+    "scrape, treat cracks, primer before texture (expert); scaffolding",
+    "occupancy asked generically",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "pest_control_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 80,
+   "issues": [
+    "size, children and cat, one visit or contract, timeline",
+    "municipality-licensed company never mentioned",
+    "summary lists the flat's area to confirm after 3 rooms were given"
+   ]
+  },
+  {
+   "id": "landscaping_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 80,
+   "issues": [
+    "natural lawn needs sprinklers, not drip; TSE water (expert)",
+    "summary lists use, drawings and design to confirm (not this job's items)"
+   ]
+  },
+  {
+   "id": "carpet_office",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "area, existing glued carpet and raised floor, weekend work, timeline",
+    "summary updated with the permit"
+   ]
+  },
+  {
+   "id": "water_tank_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 0,
+   "issues": [
+    "code: must_asked",
+    "repair before replace (expert)",
+    "capacity asked as سعة (the bank's size pattern does not know it): code gate fails",
+    "the fittings asked twice (the plumbing plan's bathroom slot), no summary reached"
+   ]
+  },
+  {
+   "id": "interlock_paving",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "load, existing surface, falls to a drain (expert)",
+    "block type and pattern not asked",
+    "summary lists irrigation, water and power points to confirm (a garden's items)"
+   ]
+  },
+  {
+   "id": "smart_home_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 0,
+   "issues": [
+    "code: must_asked",
+    "wired vs wireless, gateway per split AC (expert)",
+    "the room count asked as عدد الغرف والأدوار (the bank's size pattern does not know it): code gate fails",
+    "the last reply was a bare 'تم، خلال شهر.' after a 64 s rewrite deadlock; no summary"
+   ]
+  },
+  {
+   "id": "fence_gate",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "hot-dip galvanised near the coast (expert), community rules",
+    "summary lists 'the system or type, drawings or design' to confirm"
+   ]
+  },
+  {
+   "id": "deep_clean_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 80,
+   "issues": [
+    "residue type, windows inside only, building permit and hours",
+    "turn 3 asked about the residue again in other words"
+   ]
+  },
+  {
+   "id": "mep_maintenance",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "DCD-approved fire maintenance (expert), scope, start date",
+    "comprehensive or not never asked",
+    "summary lists 'the number of points to cover' to confirm"
+   ]
+  },
+  {
+   "id": "curtains_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 90,
+   "issues": [
+    "windows, sizes, fabric, motorised or manual, timeline",
+    "mounting type not asked"
+   ]
+  },
+  {
+   "id": "roof_pergola",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "slab check, wind design, ballasted free-standing frame (expert)",
+    "turn 3 was a bare 'Noted - before the cool season.' after 53 s"
+   ]
+  },
+  {
+   "id": "gym_flooring",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 80,
+   "issues": [
+    "heavy-duty impact tiles under the drop zone, slab moisture (expert)",
+    "summary lists 'areas and points to cover' to confirm"
+   ]
+  },
+  {
+   "id": "majlis_furniture_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 80,
+   "issues": [
+    "size, U layout, fabric, location",
+    "the date asked again in other words after 'not sure'",
+    "seating type and height never asked"
+   ]
+  },
+  {
+   "id": "wardrobe_photo_ar",
+   "seat": "sales_engineer",
+   "lang": "ar",
+   "pct": 90,
+   "issues": [
+    "read the photo honestly; moisture-resistant MDF for the carcass (expert)",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "kitchen_photo_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "did not ask the given size again; removal, appliances, services",
+    "summary updated with the wall cabinets and finishes"
+   ]
+  },
+  {
+   "id": "shopfront_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "low-E or solar control for a south face, shop drawings before work (expert)",
+    "a remark about 6 mm glass nobody proposed",
+    "summary confirmed"
+   ]
+  },
+  {
+   "id": "villa_painting_int_en",
+   "seat": "sales_engineer",
+   "lang": "en",
+   "pct": 90,
+   "issues": [
+    "damp source first, cracks filled (expert); occupied, furniture",
+    "summary updated with the ceilings"
+   ]
+  }
+ ]
+}

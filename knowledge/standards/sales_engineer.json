@@ -1143,25 +1143,25 @@
    "id": "SE-C12",
    "what": "Negotiates for the customer once quotes are levelled (clarify, then levers, then price)",
    "cadence": "event",
-   "duties": [],
-   "status": "missing",
-   "gap": "No duty runs a negotiation or clarification round with suppliers; the sequence exists only as knowledge."
+   "duties": ["sales_engineer.negotiation_round"],
+   "status": "live",
+   "gap": "Closed by sales_engineer.negotiation_round (scripts/sql/the_sales_engineer_closes_the_loops_a_senior_sales_engineer_closes.sql), built 19 Oct 2026; measured 27 Oct 2026: enabled, last ok 2026-10-27. The standard still said \"no duty\" until this correction."
   },
   {
    "id": "SE-C13",
    "what": "Runs a win/loss review on chosen, declined and no-decision outcomes and reduces leakage",
    "cadence": "monthly",
-   "duties": [],
-   "status": "missing",
-   "gap": "Follow-up records outcomes, but no duty analyses win/loss reasons or measures off-platform leakage."
+   "duties": ["sales_engineer.win_loss_review"],
+   "status": "live",
+   "gap": "Closed by sales_engineer.win_loss_review (scripts/sql/the_sales_engineer_closes_the_loops_a_senior_sales_engineer_closes.sql), built 19 Oct 2026; measured 27 Oct 2026: enabled, last ok 2026-10-26. The standard still said \"no duty\" until this correction."
   },
   {
    "id": "SE-C14",
    "what": "Proposes framework/rate agreements to repeat customers",
    "cadence": "event",
-   "duties": [],
-   "status": "missing",
-   "gap": "No duty identifies repeat demand or drafts a framework; there are only customer and supplier accounts (founder ruling 30 Sep 2026), so this is low priority before launch."
+   "duties": ["sales_engineer.framework_proposal"],
+   "status": "live",
+   "gap": "Closed by sales_engineer.framework_proposal (scripts/sql/the_sales_engineer_closes_the_loops_a_senior_sales_engineer_closes.sql), built 19 Oct 2026; measured 27 Oct 2026: enabled, last ok 2026-10-26. The standard still said \"no duty\" until this correction."
   }
  ]
 }

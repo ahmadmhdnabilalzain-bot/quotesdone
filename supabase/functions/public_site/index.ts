@@ -70,7 +70,7 @@ export function detectEmirate(t: string): string | null {
   return null;
 }
 
-async function routeBrief(text: string, lang: 'en' | 'ar') {
+async function routeBrief(text: string, lang: 'en' | 'ar', ip = 'unknown') {
   const emirate = detectEmirate(text);
   // WHICH CATEGORY IS REASONED, NOT ALIAS-MATCHED (founder_instruction 886-903; decision point 24). The
   // router hands back the activated categories; think() reads the visitor's words over them
@@ -93,6 +93,11 @@ async function routeBrief(text: string, lang: 'en' | 'ar') {
     const { data: mapped } = await admin.rpc('fn_intake_slug_for_catalog', { p_catalog_slug: liveSlug });
     if (mapped) category = String(mapped);
   }
+  // DEMAND SIGNAL (backlog T4, sales_engineer): a recognised trade is a visitor searching for it. Recorded as
+  // trade + emirate only (no text), read by fn_demand_forecast_tick. Never blocks the answer.
+  // At most 5 recorded searches per IP per day, so one visitor cannot inflate a trade's search count; searches
+  // alone never start recruitment (fn_demand_forecast_tick acts on forecast inquiries only).
+  if (category && await rl('demand_search_ip:' + ip, 5, 86400)) await admin.rpc('fn_demand_search_record', { p_category: category, p_emirate: emirate }).then(() => {}, () => {});
   if (!category) {
     return {
       ok: true, recognised: false, emirate,
@@ -176,7 +181,14 @@ async function priceGuidance(question: string, ip: string) {
   return { ok: false, reason: String(p.reason || 'no_match') };
 }
 
+// Any throw outside the per-action try blocks (the counters, worked_case and trade_needs reads) still
+// answers WITH the CORS headers; without them the browser reports a plain 500 as a CORS failure.
+// (A 546 CPU kill or a gateway 502 never reaches this code: those are met by the client retry.)
 Deno.serve(async (req) => {
+  try { return await handle(req); } catch (_e) { return J({ ok: false, error: 'internal' }, 500); }
+});
+
+async function handle(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   if (req.method !== 'POST') return J({ error: 'method' }, 405);
   const b = await req.json().catch(() => ({} as any));
@@ -260,7 +272,7 @@ Deno.serve(async (req) => {
     if (action === 'route_brief') {
       const text = String(b.text || '').trim();
       if (text.length < 3) return J({ ok: false, error: 'empty' }, 400);
-      return J(await routeBrief(text.slice(0, 1000), lang));
+      return J(await routeBrief(text.slice(0, 1000), lang, ip));
     }
     if (action === 'price_guidance') {
       const q = String(b.question || '').trim() || (b.topic ? `How much does ${String(b.topic).slice(0, 80)} cost per square metre in the UAE?` : '');
@@ -271,4 +283,4 @@ Deno.serve(async (req) => {
   } catch (_e) {
     return J({ ok: false, error: 'internal' }, 500);
   }
-});
+}

@@ -1,0 +1,49 @@
+name: Supplier services gate proof (demo data)
+
+# Founder ledger 1469: a supplier is verified only after it confirms its services. Proof on a branch, demo data only:
+#   1. type check (tsc, run first, English-only copy; the deno tests of the hold wording and the gate re-run run in checks), the offline checks and the rolled-back production probe of the gate (one aborted transaction on ZZ DEMO rows);
+#   2. the sign-up walk in a real browser against a site URL you give (a branch preview carries the new Services tab), which asks the
+#      database whether the gate is applied and prints NOT RUN for the half that needs it. Teardown removes the run.
+on:
+  push:
+    paths:
+      - .github/workflows/supplier-services-gate-proof.yml
+  workflow_dispatch:
+    inputs:
+      site:
+        description: 'Site to walk (a Vercel preview of this branch, or https://www.quotesdone.com)'
+        required: false
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      QD_FIXTURES: '1'
+      QD_SITE: ${{ inputs.site || 'http://localhost:3000' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci && npx playwright install --with-deps chromium
+        timeout-minutes: 8
+      - run: npx tsc --noEmit
+        timeout-minutes: 10
+      - run: node --test scripts/checks/a_supplier_is_verified_only_after_it_confirms_its_services.test.mjs scripts/checks/a_licence_read_by_its_trade_name_is_judged_like_any_licence_name.test.mjs scripts/checks/services_tab_count_and_removal.test.mjs scripts/checks/supplier_services_checklist_is_bilingual.test.mjs
+        timeout-minutes: 10
+      # The branch's own build, served here (a preview's origin is not one the backend answers to). Its data is the live project's, demo rows only.
+      - run: npm run build
+        if: ${{ inputs.site == '' || inputs.site == null }}
+        timeout-minutes: 15
+      - run: (npx next start -p 3000 > next.log 2>&1 &) ; for i in $(seq 1 60); do curl -sf http://localhost:3000/supplier >/dev/null && break; sleep 2; done
+        if: ${{ inputs.site == '' || inputs.site == null }}
+      - run: mkdir -p shots
+      - run: node scripts/e2e/supplier_registration_walk.mjs --fresh --real-otp --lang en --vp desktop --shots shots --summary shots/summary.json
+        timeout-minutes: 25
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: services-gate-proof-screenshots
+          path: shots

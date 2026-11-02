@@ -9,7 +9,8 @@ import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_
 import { customerTermsRecord } from '../_shared/customer_terms.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
-import { askedPatch, channelOfRow, choosePatch, failoverStep, nextChannel, RESEND_GAP_S, sidOfRow, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, voiceAfterSms, whatsappState, type Patch, type VerifySent, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
+import { askedPatch, channelOfRow, choosePatch, waDeliveredCode, failoverStep, isOwnRow, nextChannel, RESEND_GAP_S, sidOfRow, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, voiceAfterSms, whatsappState, type Patch, type VerifySent, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
+import { checkOwnCode, ownMarker, ownMessageStatus, ownSent, sendOwnWhatsAppCode, type WaCodeDeps } from '../_shared/wa_code.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
 import { blocksTransactional } from '../_shared/suppression_policy.ts';
@@ -54,6 +55,9 @@ const KYC_EMAIL_MAX_ATTEMPTS = 5;
 const KYC_EMAIL_VERIFY_PER_IP_HOUR = 30;
 let _otpKey: string | null = null;
 async function otpKey(): Promise<string> { if (_otpKey) return _otpKey; const k = await sec('otp_hmac_key'); if (!k) throw new Error('otp_hmac_key_missing'); _otpKey = k; return k; }
+// A WhatsApp phone code we send ourselves, without Verify's USD 0.05 a code (ledger 1252, _shared/wa_code.ts). kyc
+// codes are bound to the signed-in account's email as well as the number: one account's code verifies nothing for another.
+const waDeps: WaCodeDeps = { admin, secret: secCached, hmac: (s) => otpHash(s) };
 async function otpHash(code: string): Promise<string> { const ck = await crypto.subtle.importKey('raw', new TextEncoder().encode(await otpKey()), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); const mac = await crypto.subtle.sign('HMAC', ck, new TextEncoder().encode(code)); return Array.from(new Uint8Array(mac)).map((x) => x.toString(16).padStart(2, '0')).join(''); }
 async function rl(key: string, limit: number, seconds: number): Promise<boolean> {
   try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: limit, p_seconds: seconds }); if (error) return true; return data !== false; }
@@ -378,7 +382,9 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       const pick = nextChannel({ e164: phone, asked: b.channel, lastChannel: channelOfRow(lastRow?.code) });
       const send = async (c: 'whatsapp' | 'sms' | 'call') => verifySend(tw, phone, c, vLocale);
       const one = async (c: 'sms' | 'call'): Promise<VerifySent> => { const x = await send(c); return x.r.ok && x.jd?.status !== 'canceled' ? { ...x, refused: null, ok: true, channel: c } : { ...x, refused: null, ok: false, channel: null }; };
-      let res: VerifySent = pick === 'whatsapp' ? await sendWhatsAppFirst(send) : await one(pick);
+      // ledger 1252: a WhatsApp code is ours (USD 0.0157), not Verify's (0.0657); anything short of a clean send uses Verify.
+      const own = pick === 'whatsapp' ? await sendOwnWhatsAppCode(waDeps, { phone, purpose: 'kyc_phone', binding: email, kind, email, lang: vLocale }) : null;
+      let res: VerifySent = own?.ok ? ownSent(own.sid) : pick === 'whatsapp' ? await sendWhatsAppFirst(send) : await one(pick);
       // 21635 is the landline refusal kept from 12 Aug; voiceAfterSms covers the other SMS-unreachable codes.
       if (!res.ok && res.jd?.code === 21635 && pick === 'sms') res = await one('call');
       res = await voiceAfterSms(res, send);
@@ -387,7 +393,7 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       // The row carries the delivered channel and Verify's SID (never the code) so phone_failover can read
       // the WhatsApp message's delivery status.
       const sid = /^VE\w+$/.test(String(jd?.sid || '')) ? ':' + jd.sid : '';
-      await admin.from('phone_verifications').insert({ email, phone, code: 'twilio:' + channel + sid, user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
+      await admin.from('phone_verifications').insert({ email, phone, code: own?.ok ? ownMarker(own.sid) : 'twilio:' + channel + sid, user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
       await logRun('ok', { action, kind, channel }, '');
       return J({ ok: true, channel });
     }
@@ -403,9 +409,14 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       const sid = sidOfRow(row?.code);
       if (!row || channelOfRow(row.code) !== 'whatsapp' || !sid) return J({ ok: true, state: 'nothing_to_do' });
       const tw = await twilioAuth(); if (!tw) return J({ ok: true, state: 'nothing_to_do' });
-      const ar = await timedFetch(`https://verify.twilio.com/v2/Attempts?VerificationSid=${sid}&Channel=whatsapp&PageSize=5`, { headers: { Authorization: tw.hdr } });
-      const aj: any = await ar.json().catch(() => ({}));
-      const status = (aj?.attempts || [])[0]?.channel_data?.message_status ?? null;
+      // our own WhatsApp code is read from the Messages API (ledger 1252), a Verify one from Verify's Attempts
+      let status: string | null = null;
+      if (isOwnRow(row.code)) status = await ownMessageStatus(waDeps, sid);
+      else {
+        const ar = await timedFetch(`https://verify.twilio.com/v2/Attempts?VerificationSid=${sid}&Channel=whatsapp&PageSize=5`, { headers: { Authorization: tw.hdr } });
+        const aj: any = await ar.json().catch(() => ({}));
+        status = (aj?.attempts || [])[0]?.channel_data?.message_status ?? null;
+      }
       const step = failoverStep(status, Date.now() - Date.parse(row.created_at));
       if (step !== 'sms') return J({ ok: true, state: step === 'none' ? 'delivered' : 'waiting' });
       if (!(await rl('otp_failover:' + sid, 1, 600)) || await phoneRateLimited(phone, email)) return J({ ok: true, state: 'waiting' });
@@ -428,8 +439,18 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       if (kind === 'supplier' && !phone) return J({ error: 'Enter a valid UAE mobile number, for example 05X XXX XXXX.', code: 'bad_mobile' }, 400);
       if (!phone || !code) return J({ error: 'Enter the 6-digit code.', code: 'enter_code' }, 400);
       const tw = await twilioAuth(); if (!tw) { await logRun('error', { action, kind }, 'SMS not configured: missing twilio credentials'); return J({ error: 'SMS is not configured.', code: 'sms_unavailable' }, 500); }
-      if (!(await verifyCheck(tw, phone, code))) return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400);
+      // ours first (ledger 1252); otherwise it is a Verify code (SMS, voice, the SMS failover, a Verify WhatsApp code)
+      if ((await checkOwnCode(waDeps, { phone, purpose: 'kyc_phone', binding: email, code })) !== 'ok' && !(await verifyCheck(tw, phone, code))) return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400);
       if (kind === 'supplier') await admin.from('leads').update({ owner_phone_verified: true, phone }).eq('claimed_by', email); else await admin.from('customers').update({ phone_verified: true, phone }).eq('email', email);
+      // A CODE THAT ARRIVED ON WHATSAPP IS PROOF OF THE WHATSAPP NUMBER (2 Nov 2026, customer_support). The user chose
+      // "send the code on WhatsApp" and typed back what that message carried: the same proof whatsapp_verify takes, so the
+      // number is confirmed for WhatsApp now (verifiedPatch) and a text from it is recognised (fn_whatsapp_owner). The
+      // consent rule is unchanged: only a code actually DELIVERED on WhatsApp counts (the last row's channel; an SMS or
+      // call failover row says 'sms'/'call' and confirms nothing), and the user picked that channel.
+      // Prevented by: _shared/whatsapp_choice.test.ts (waDeliveredCode).
+      const { data: lastCodeRow } = await admin.from('phone_verifications').select('code').eq('phone', phone).eq('email', email)
+        .gte('created_at', new Date(Date.now() - 10 * 60e3).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      if (waDeliveredCode(lastCodeRow?.code)) await writeWa(verifiedPatch(phone, new Date().toISOString()));
       await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', phone).is('used_at', null);
       await logRun('ok', { action, kind }, '');
       return J({ ok: true });
@@ -471,14 +492,17 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       if (await phoneRateLimited(phone, email)) { await logRun('ok', { action, kind, rate_limited: true }, 'rate limit hit: 5+ code requests for this number in the last hour (SMS, call and WhatsApp share it)'); return J({ ok: false, error: 'rate_limited', code: 'rate_limited' }, 429); }
       if (!(await writeWa(askedPatch(new Date().toISOString())))) return saveFailed();
       const vLocale = await registeredLocale(admin, { role: kind, email }, b.lang);
-      const res = await sendWhatsAppFirst((ch) => verifySend(tw, phone, ch, vLocale));
+      // ledger 1252: this code proves the number is on WhatsApp, so it is ours by the login_code template (USD 0.0157);
+      // Verify (WhatsApp, then SMS on its template refusal) only when our send is not clean.
+      const own = await sendOwnWhatsAppCode(waDeps, { phone, purpose: 'kyc_whatsapp', binding: email, kind, email, lang: vLocale });
+      const res: VerifySent = own.ok ? ownSent(own.sid) : await sendWhatsAppFirst((ch) => verifySend(tw, phone, ch, vLocale));
       if (!res.ok) {
         await logRun('error', { action, kind, http: res.r.status, twilio_code: res.jd?.code ?? null, whatsapp_refused: res.refused }, 'twilio verify send failed' + (res.refused ? ' on SMS after WhatsApp was refused (' + res.refused + ')' : ' on channel whatsapp') + ': ' + String(res.jd?.message || res.jd?.status || '').slice(0, 200));
         return J({ ok: false, error: 'send_failed', code: 'send_failed', twilio_code: res.jd?.code ?? null }, 502);
       }
       // The row is the rate-limit ledger shared with send_sms, not a record of the number as the
       // account's WhatsApp - that is written only by whatsapp_verify.
-      const marker = 'twilio:' + res.channel;
+      const marker = own.ok ? ownMarker(own.sid) : 'twilio:' + res.channel;
       const pv = await admin.from('phone_verifications').insert({ email, phone, code: marker, user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
       if (pv.error) await logRun('error', { action, kind, stage: 'phone_verifications' }, 'WhatsApp code sent but the rate-limit row was not written: ' + pv.error.message);
       else await logRun('ok', { action, kind, channel: res.channel, whatsapp_refused: res.refused }, res.channel === 'whatsapp' ? '' : 'The WhatsApp-number code went by SMS: ' + (res.refused ? 'Verify refused the WhatsApp channel (' + res.refused + ')' : 'Verify accepted Channel=whatsapp and delivered by SMS itself') + '. Expected until Meta approves the Authentication template.');
@@ -495,7 +519,7 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       if (!code) return J({ ok: false, error: 'wrong_code', code: 'wrong_code' }, 400);
       const tw = await twilioAuth();
       if (!tw) { await logRun('error', { action, kind }, 'WhatsApp code not checked: missing twilio credentials'); return J({ ok: false, error: 'whatsapp_unavailable', code: 'whatsapp_unavailable' }, 200); }
-      if (!(await verifyCheck(tw, phone, code))) return J({ ok: false, error: 'wrong_code', code: 'wrong_code' }, 400);
+      if ((await checkOwnCode(waDeps, { phone, purpose: 'kyc_whatsapp', binding: email, code })) !== 'ok' && !(await verifyCheck(tw, phone, code))) return J({ ok: false, error: 'wrong_code', code: 'wrong_code' }, 400);
       const patch = verifiedPatch(phone, new Date().toISOString());
       if (!(await writeWa(patch))) return saveFailed();
       const used = await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', phone).is('used_at', null);
