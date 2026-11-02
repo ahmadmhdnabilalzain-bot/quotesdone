@@ -9,9 +9,11 @@
 // bounce is written by fn_mail_bounce_marks_its_send from the delivery report the reply reader hands in.
 // Same app and secrets as the reply reader (MS_TENANT_ID / MS_CLIENT_ID / MS_CLIENT_SECRET, Mail.ReadWrite). Counts only:
 // resilience_ping is public.
-import { graphToken, type Fetch } from './m365_reply_inbox.ts';
+import { graphToken, headersOf, M365_INBOUND_PREFIX, type Fetch, type GraphMessage } from './m365_reply_inbox.ts';
+import { exchangeInternal } from './suppression_policy.ts';
 
 export const CLAIM = 20;
+export const REPORTS = 10;
 export const BUDGET_MS = 20_000;
 const GRAPH = 'https://graph.microsoft.com/v1.0';
 const SECRET_NAMES = ['MS_TENANT_ID', 'MS_CLIENT_ID', 'MS_CLIENT_SECRET'] as const;
@@ -23,6 +25,9 @@ export type SentDeps = {
   mailbox: string | undefined;
   claim: (limit: number) => Promise<Claimed[]>;
   record: (id: number, found: boolean, sentAt: string | null, http: number | null, code: string | null) => Promise<unknown>;
+  /** fn_mail_bounce_headers_due / _record: delivery reports stored without the tenant's stamp. */
+  headersDue?: (limit: number) => Promise<Array<{ inbound_id: number; graph_id: string }>>;
+  headersRecord?: (inboundId: number, exchangeInternal: boolean) => Promise<unknown>;
   now?: () => number;
 };
 
@@ -42,12 +47,13 @@ export async function pollM365SentStatus(d: SentDeps): Promise<Record<string, un
   if (!/^[a-z0-9._+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(mailbox)) return { ok: true, held: 'invite_m365_mailbox is not an address', ...c };
   const [tenant, client, secret] = SECRET_NAMES.map((k) => String(d.env(k) || '').trim());
   if (!tenant || !client || !secret) return { ok: true, held: 'edge secrets not set', ...c };
-  let rows: Claimed[];
+  let rows: Claimed[], reports: Array<{ inbound_id: number; graph_id: string }> = [];
   try { rows = await d.claim(CLAIM); } catch (e) { return { ok: false, why: 'claim: ' + String((e as Error)?.message || e).slice(0, 160), ...c }; }
+  try { reports = d.headersDue ? await d.headersDue(REPORTS) : []; } catch (_e) { reports = []; }
   c.claimed = rows.length;
-  if (!rows.length) return { ok: true, ...c };
+  if (!rows.length && !reports.length) return { ok: true, ...c };
   let auth: Record<string, string>;
-  try { auth = { Authorization: 'Bearer ' + await graphToken(d.fetchFn, tenant, client, secret) }; }
+  try { auth = { Authorization: 'Bearer ' + await graphToken(d.fetchFn, tenant, client, secret), Prefer: 'IdType="ImmutableId"' }; }
   catch (e) {
     // an outage, not an answer about any send: nothing is recorded, and the claim's stamp asks them again in 30 minutes
     return { ok: false, why: String((e as Error)?.message || e).split(secret).join('[redacted]').slice(0, 200), ...c };
@@ -68,5 +74,20 @@ export async function pollM365SentStatus(d: SentDeps): Promise<Record<string, un
     try { await d.record(r.notification_id, found, sentAt, http, code); } catch (_e) { c.failed++; continue; }
     if (found) c.sent++; else if (code === 'm365:not_in_sent_items') c.not_found++; else c.failed++;
   }
-  return { ok: true, ...c };
+  // A delivery report stored before resend_inbound captured the tenant's stamp: its headers, read again by its Graph id
+  // (immutable, as the reply reader stored it). 404: Graph no longer has it, recorded false. Anything else: next beat.
+  const h = { reread: 0, stamped: 0 };
+  for (const r of reports) {
+    if (now() - t0 > BUDGET_MS || !d.headersRecord) break;
+    try {
+      const res = await d.fetchFn(`${GRAPH}/users/${encodeURIComponent(mailbox)}/messages/${encodeURIComponent(r.graph_id)}?$select=from,internetMessageHeaders`, { headers: auth });
+      if (res.status === 404) { await res.body?.cancel(); await d.headersRecord(r.inbound_id, false); h.reread++; continue; }
+      if (!res.ok) { await res.body?.cancel(); continue; }
+      const m = await res.json() as GraphMessage;
+      const stamped = exchangeInternal(M365_INBOUND_PREFIX + r.graph_id, headersOf(m.internetMessageHeaders)['x-ms-exchange-organization-authas'], String(m.from?.emailAddress?.address || ''));
+      await d.headersRecord(r.inbound_id, stamped);
+      h.reread++; if (stamped) h.stamped++;
+    } catch (_e) { /* next beat */ }
+  }
+  return { ok: true, ...c, reports_reread: h.reread, reports_stamped: h.stamped };
 }

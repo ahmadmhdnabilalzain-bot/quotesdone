@@ -8,9 +8,29 @@
 --  Also: the claim hands out only M365 sends with no status, and 'sent' is written once.
 do $probe$
 declare
-  v_a bigint; v_b bigint; v_r jsonb; v_inb bigint; v_nid bigint; v_lead bigint; v_auth bigint; v_anid bigint; i int; v_backfilled int;
+  v_a bigint; v_b bigint; v_r jsonb; v_inb bigint; v_nid bigint; v_lead bigint; v_auth bigint; v_anid bigint; i int; v_backfilled int; v_list text;
 begin
   select count(*) into v_backfilled from public.notifications where provider_message_id like 'm365:<%>' and provider_status = 'undelivered';
+
+  -- 0. CONTROLS ON THE 7 REAL REPORTS of 29-30 Oct (inbound 1484, 1611-1614, 1617, 1618; review of #1792).
+  --    Negative: with no tenant stamp, only Gmail's authenticated report marks its send. Positive: once the re-read records
+  --    the tenant's stamp on the other six, all 7 sends read undelivered with the code each report carries.
+  update public.notifications set provider_status = null, provider_error_code = null
+   where id in (117550, 117555, 117557, 117559, 117560, 117580, 117584);
+  update public.inbound_messages set raw = raw - 'exchange_internal' where id in (1484, 1611, 1612, 1613, 1614, 1617, 1618);
+  perform public.fn_mail_bounce_marks_its_send(x) from unnest(array[1484, 1611, 1612, 1613, 1614, 1617, 1618]::bigint[]) x;
+  select string_agg(id || '=' || provider_error_code, ', ' order by id) into v_list from public.notifications
+   where id in (117550, 117555, 117557, 117559, 117560, 117580, 117584) and provider_status = 'undelivered';
+  if v_list is distinct from '117557=bounce:gmail:NoSuchUser' then
+    raise exception 'PROBE FAILED: unstamped reports gave [%], expected Gmail''s alone', v_list;
+  end if;
+  perform public.fn_mail_bounce_headers_record(x, true) from unnest(array[1611, 1612, 1613, 1614, 1617, 1618]::bigint[]) x;
+  select string_agg(id || '=' || provider_error_code, ', ' order by id) into v_list from public.notifications
+   where id in (117550, 117555, 117557, 117559, 117560, 117580, 117584) and provider_status = 'undelivered';
+  if v_list is distinct from '117550=bounce:5.1.1, 117555=bounce:5.1.1, 117557=bounce:gmail:NoSuchUser, 117559=bounce:5.4.310, 117560=bounce:5.4.316, 117580=bounce:5.1.1, 117584=bounce:5.4.311' then
+    raise exception 'PROBE FAILED: the 7 real reports gave [%]', v_list;
+  end if;
+  update public.inbound_messages set raw = raw - 'exchange_internal' where id in (1611, 1612, 1613, 1614, 1617, 1618);
 
   -- 1. our tenant's report 1611-style: unauthenticated, exact In-Reply-To, a 5.1.1
   select m.id, n.id, n.lead_id into v_inb, v_nid, v_lead

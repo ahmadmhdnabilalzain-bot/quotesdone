@@ -1234,6 +1234,15 @@ async function m365SentStatus(): Promise<Record<string, unknown>> {
         const { error } = await admin.rpc('fn_m365_sent_status_record', { p_notification_id: id, p_found: found, p_sent_at: sentAt, p_http: http, p_code: code });
         if (error) throw new Error(error.message);
       },
+      headersDue: async (limit) => {
+        const { data, error } = await admin.rpc('fn_mail_bounce_headers_due', { p_limit: limit });
+        if (error) throw new Error(error.message);
+        return (data || []) as Array<{ inbound_id: number; graph_id: string }>;
+      },
+      headersRecord: async (id, stamped) => {
+        const { error } = await admin.rpc('fn_mail_bounce_headers_record', { p_inbound_id: id, p_exchange_internal: stamped });
+        if (error) throw new Error(error.message);
+      },
     });
   } catch (e) { return { ok: false, why: String((e as Error)?.message || e).slice(0, 200) }; }
 }

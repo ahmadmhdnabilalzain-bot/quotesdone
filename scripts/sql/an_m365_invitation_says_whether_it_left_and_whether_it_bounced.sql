@@ -18,8 +18,12 @@
 --     is not counted (review of #1792): an outage never gives up on a send. Never 'delivered': Graph cannot see delivery.
 --  2. fn_mail_bounce_marks_its_send: a delivery report whose In-Reply-To is the EXACT Message-ID of an M365 send, from an
 --     authenticated sender or our own tenant's Exchange on its own stamp (raw.exchange_internal), carrying a standalone
---     5.x.x code, writes 'undelivered' 'bounce:<code>'. A delay notice, or a report with no code, writes nothing. A bounce
---     overwrites 'sent'.
+--     5.x.x code (Gmail's text has none: its own ?p=<Reason> token is taken, e.g. 'gmail:NoSuchUser'), writes 'undelivered'
+--     'bounce:<code>'. A delay notice, or a report with no code, writes nothing. A bounce overwrites 'sent'.
+--     Controls (probe, on the 7 real reports): unstamped, only Gmail's marks its send; with the tenant's stamp recorded, all 7
+--     read undelivered with 5.1.1 x3, 5.4.310, 5.4.311, 5.4.316 and gmail:NoSuchUser. A forged sender marks nothing.
+--  2b. The 7 reports were stored before the stamp was captured: m365_sent_status.ts reads each one's headers again from Graph
+--     (fn_mail_bounce_headers_due / _record). After deploy, that re-read is what decides whether the 6 tenant NDRs count.
 --  3. fn_supplier_mailbox_mail_gets_its_owner (live body, three edits): our tenant's Exchange, on its own stamp and with the
 --     exact In-Reply-To, counts as authenticated, so its permanent bounce marks the lead 'bounced' and the brake counts it.
 --     The Message-ID alone is no proof: the recipient knows it. It calls (2).
@@ -124,6 +128,11 @@ begin
   end if;
   -- an RFC 3463 permanent code standing alone, never the start of a dotted number such as an IP address (5.62.10.1)
   v_code := substring(v_text from '(?<![0-9.])(5\.[0-9]{1,3}\.[0-9]{1,3})(?![0-9.])');
+  -- Gmail's report text carries no RFC code (its 550 5.1.1 line is in the delivery-status part, which is not stored); it
+  -- names its reason in its own help link, support.google.com/mail/?p=NoSuchUser. That token is the code, as Google wrote it.
+  if v_code is null and coalesce(m.raw->>'sender_authenticated', 'false') = 'true' and lower(coalesce(m.from_email, '')) ~ 'mailer-daemon@googlemail\.com' then
+    v_code := 'gmail:' || substring(v_text from 'support\.google\.com/mail/\?p=([A-Za-z]+)');
+  end if;
   if v_code is null then
     return jsonb_build_object('applied', false, 'reason', 'no permanent status code: nothing is written', 'notification_id', n.id);
   end if;
@@ -135,6 +144,36 @@ begin
   return jsonb_build_object('applied', v_n > 0, 'notification_id', n.id, 'code', v_code);
 end $fn$;
 revoke execute on function public.fn_mail_bounce_marks_its_send(bigint) from public, anon, authenticated;
+
+-- 2b. A REPORT STORED BEFORE ITS STAMP WAS CAPTURED IS READ AGAIN FROM GRAPH (review of #1792). The 6 tenant NDRs of 29-30 Oct
+--     were stored without their headers. m365_sent_status.ts reads each one's internetMessageHeaders again by its Graph id
+--     and records what the tenant stamped (exchangeInternal); a report Graph no longer has records false (fail closed).
+create or replace function public.fn_mail_bounce_headers_due(p_limit int default 10)
+returns table (inbound_id bigint, graph_id text)
+language sql stable security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select i.id, substr(i.provider_email_id, 6)
+    from public.inbound_messages i
+   where i.provider_email_id like 'm365:%' and not (coalesce(i.raw, '{}'::jsonb) ? 'exchange_internal')
+     and coalesce(i.raw->>'in_reply_to', '') ~ 'qd-notif-[0-9]+\.'
+     and public.fn_inbound_is_bounce(i.from_email, i.subject, i.raw)
+   order by i.id
+   limit least(greatest(coalesce(p_limit, 10), 1), 25)
+$fn$;
+revoke execute on function public.fn_mail_bounce_headers_due(int) from public, anon, authenticated;
+
+create or replace function public.fn_mail_bounce_headers_record(p_inbound_id bigint, p_exchange_internal boolean)
+returns jsonb
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+begin
+  update public.inbound_messages set raw = coalesce(raw, '{}'::jsonb) || jsonb_build_object('exchange_internal', coalesce(p_exchange_internal, false))
+   where id = p_inbound_id and not (coalesce(raw, '{}'::jsonb) ? 'exchange_internal');
+  return public.fn_mail_bounce_marks_its_send(p_inbound_id);
+end $fn$;
+revoke execute on function public.fn_mail_bounce_headers_record(bigint, boolean) from public, anon, authenticated;
 
 -- 3. THE OWNER OF SUPPLIER-MAILBOX MAIL (live body of every_reply_and_bounce_in_the_supplier_mailbox_has_an_owning_seat.sql,
 --    edits: v_exact, the authentication test, the call to fn_mail_bounce_marks_its_send)

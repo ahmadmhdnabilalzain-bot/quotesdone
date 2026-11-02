@@ -75,6 +75,22 @@ Deno.test('a 429, a 503 and a timeout go over with no 200, so none of them can b
   assertEquals(h.recs.map((r) => [r.id, r.http, r.code]), [[1, 429, 'http:429'], [2, 503, 'http:503'], [3, null, 'm365:no_answer']]);
 });
 
+// Review of #1792: the 6 tenant reports of 29-30 Oct were stored without headers; each is read again from Graph by its id.
+Deno.test('a stored report is read again: the tenant\'s Internal stamp is recorded true, Anonymous or gone false, an outage nothing', async () => {
+  const SYS = 'microsoftexchange329e71ec88ae4615bbc36ab6ce41109e@zz-demo.onmicrosoft.com';
+  const msg = (authAs: string) => ({ status: 200, body: { from: { emailAddress: { address: SYS } }, internetMessageHeaders: [
+    { name: 'X-MS-Exchange-Message-Is-Ndr', value: '' }, { name: 'X-MS-Exchange-Organization-AuthAs', value: authAs }] } });
+  const h = harness([], (url) => url.includes('/messages/g1?') ? msg('Internal') : url.includes('/messages/g2?') ? msg('Anonymous')
+    : url.includes('/messages/g3?') ? { status: 404 } : { status: 503 });
+  const stamped: Array<[number, boolean]> = [];
+  h.deps.headersDue = () => Promise.resolve([1, 2, 3, 4].map((i) => ({ inbound_id: i, graph_id: 'g' + i })));
+  h.deps.headersRecord = (id, s) => { stamped.push([id, s]); return Promise.resolve(); };
+  const out = await pollM365SentStatus(h.deps);
+  assertEquals(stamped, [[1, true], [2, false], [3, false]]);
+  assertEquals(out.reports_stamped, 1);
+  assert(h.urls.filter((u) => u.includes('/messages/g')).every((u) => u.includes('internetMessageHeaders')));
+});
+
 Deno.test('a quote in a Message-ID is doubled, so the filter cannot be broken out of', () => {
   assertEquals(new URL(sentItemsUrl('supplier@quotesdone.com', "<a'b@x>")).searchParams.get('$filter'), "internetMessageId eq '<a''b@x>'");
 });
