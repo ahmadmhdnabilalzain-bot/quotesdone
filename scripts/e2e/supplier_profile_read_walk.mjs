@@ -40,10 +40,14 @@ mkdirSync(SHOTS, { recursive: true });
 
 const TMP = mkdtempSync(join(tmpdir(), 'qd-profwalk-'));
 const licences = await buildCorpus(join(TMP, 'lic'));
-const LIC = licences.find((d) => d.id === 'lic_dubai_det_text');
-const LICENCE = { file: join(TMP, 'lic', LIC.file), mime: LIC.mime, name: LIC.file, registered: LIC.registered_name };
+// EACH SUPPLIER GETS ITS OWN CLEAN TEXT LICENCE: one licence number and one company name can belong to one account only (claim answers 409).
+// The licence is not the subject here; its own activities are the only other trades a read may legitimately propose.
+const POOL = licences.filter((d) => d.kind === 'licence' && d.expected === 'approve' && d.text_layer && /_text$/.test(d.id));
 mkdirSync(join(TMP, 'prof'), { recursive: true });
-const CASES = (await profileCorpus(join(TMP, 'prof'))).filter((c) => !ONLY.length || ONLY.includes(c.id));
+const ALL = await profileCorpus(join(TMP, 'prof'));
+if (POOL.length < ALL.length) throw new Error(`only ${POOL.length} clean text licences for ${ALL.length} profiles`);
+const CASES = ALL.map((c, i) => ({ ...c, lic: { file: join(TMP, 'lic', POOL[i].file), mime: POOL[i].mime, name: POOL[i].file, registered: POOL[i].registered_name, trades: POOL[i].truth.trades || [] } }))
+  .filter((c) => !ONLY.length || ONLY.includes(c.id));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let BR = null;
 
@@ -69,7 +73,7 @@ async function walk(run, c, n) {
   const out = { id: c.id, label: c.label, steps: [], ok: true };
   const step = (name, ok, detail = '') => { out.steps.push({ name, ok: !!ok, detail }); if (!ok) out.ok = false; console.log(`${ok ? 'PASS' : 'FAIL'} [${c.id}] ${name}${detail ? ' — ' + String(detail).slice(0, 400) : ''}`); };
   const email = `qd-${run.tag}-prof${n}@example.invalid`, mobile = `+9715000000${String(30 + n).padStart(2, '0')}`;
-  const company = LICENCE.registered;
+  const company = c.lic.registered;
   const lead = (await write(`insert into public.leads (company_name, email, emirate, source, invite_status, invited_at, locale, tags)
      values ('${company.replace(/'/g, "''")}', '${email}', 'Dubai', 'directory', 'sent', now(), 'en', ARRAY['qd_demo','qd_run:${run.tag}']) returning id, claim_token::text t`, 'invited demo lead'))[0];
   run.ids.leads.add(String(lead.id));
@@ -89,8 +93,8 @@ async function walk(run, c, n) {
   await call('kyc', jwt, { action: 'whatsapp_choose', user_kind: 'supplier', email, opt: 'same' });
 
   // 2. the licence (not the subject here): a clean text licence, so the only variable is the profile
-  const lb = readFileSync(LICENCE.file).toString('base64');
-  const lic = await call('supplier_api', jwt, { action: 'process_docs', license: { original_b64: lb, file_b64: lb, images: [], filename: LICENCE.name, mime: LICENCE.mime } }, 200000);
+  const lb = readFileSync(c.lic.file).toString('base64');
+  const lic = await call('supplier_api', jwt, { action: 'process_docs', license: { original_b64: lb, file_b64: lb, images: [], filename: c.lic.name, mime: c.lic.mime } }, 200000);
   step('the licence is taken (API)', lic.status === 200 && lic.json?.ok === true, `HTTP ${lic.status}`);
 
   // 3. THE PROFILE through the Documents tab's own card, in Chromium
@@ -137,8 +141,11 @@ async function walk(run, c, n) {
     }
     const docTrades = (rec?.trades || []).map((t) => t.code);
     // EXACT TRADE OR NONE in the stored read as well as on screen: the codes proposed are the codes the file states.
-    const stray = [...docTrades, ...(row.proposed_trades || [])].filter((t) => !c.truth.stated.includes(t));
-    step('the stored read names only trades the file states (no nearest mapping)', stray.length === 0, stray.length ? `not in the file: ${stray.join(', ')}` : `${docTrades.join(', ') || 'none'}`);
+    const stray = docTrades.filter((t) => !c.truth.stated.includes(t));
+    step('the stored read of the profile names only trades the file states (no nearest mapping)', stray.length === 0, stray.length ? `not in the file: ${stray.join(', ')}` : `${docTrades.join(', ') || 'none'}`);
+    const okTrades = [...c.truth.stated, ...c.lic.trades];   // the file's, and the licence's own activities
+    const strayAll = (row.proposed_trades || []).filter((t) => !okTrades.includes(t));
+    step('every trade proposed for the supplier comes from the profile or the licence', strayAll.length === 0, strayAll.length ? `from neither: ${strayAll.join(', ')}` : `${(row.proposed_trades || []).join(', ') || 'none'}`);
 
     // 5. terms + Save, as the Profile tab sends them; an otherwise complete registration is held for the services
     const sv = await call('supplier_api', jwt, { action: 'save_profile', service_emirates: ['Dubai'], accept_terms: true, marketing_consent: false, contact_name: 'ZZ DEMO Contact', signatory_name: 'ZZ DEMO Signatory' }, 60000);
@@ -168,8 +175,8 @@ async function walk(run, c, n) {
     }
     const checklist = (st.checklist || []).map((x) => ({ code: x.code, source: x.source }));
     out.checklist = checklist;
-    const fromDocs = checklist.filter((x) => x.source === 'documents').map((x) => x.code).filter((x) => !c.truth.stated.includes(x));
-    step('the prepared checklist offers no trade from the documents that the file does not state', fromDocs.length === 0, fromDocs.join(', '));
+    const fromDocs = checklist.filter((x) => x.source === 'documents').map((x) => x.code).filter((x) => !okTrades.includes(x));
+    step('the prepared checklist offers no trade from the documents that neither the profile nor the licence states', fromDocs.length === 0, fromDocs.join(', '));
 
     // 7. THE SUPPLIER EDITS AND CONFIRMS, in the browser
     const roleBoxes = M.locator('input[type=checkbox][id*="-role-"]');
