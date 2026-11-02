@@ -122,6 +122,7 @@ import { useReducedMotion } from 'motion/react';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import SupportRatingPrompt from '@/components/portal/SupportRatingPrompt';
 import { signupEmailProblem } from '@/lib/signupEmail';
+import { retryRead, isReadAction } from '@/lib/fetchRetry';
 const SB = () => supaClient('qd-cust-auth');
 // A TOKEN READ FROM localStorage IS NOT A TOKEN THAT STILL WORKS. It is restored synchronously on
 // mount while the Supabase client refreshes asynchronously, so for the first moment after a page
@@ -145,7 +146,7 @@ async function call(path, body, token, timeoutMs = CALL_TIMEOUT_MS) {
   const timer = ac ? setTimeout(() => ac.abort(), timeoutMs) : null;
   let r;
   try {
-    r = await fetch(fnUrl(path), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body), signal: ac ? ac.signal : undefined });
+    r = await retryRead(async () => await fetch(fnUrl(path), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) }, body: JSON.stringify(body), signal: ac ? ac.signal : undefined }), isReadAction(body), 2, () => !!(ac && ac.signal.aborted));
   } catch (e) {
     return { ok: false, error: (e && e.name === 'AbortError') ? 'qd_timeout' : 'qd_network' };
   } finally { if (timer) clearTimeout(timer); }
@@ -444,6 +445,9 @@ function Authed({ token, lang, strip, theme, onSwapTheme, onSetLang, onSignOut, 
     setErr('');
     take(token, 'kyc', () => call('kyc', { action: 'state' }, token)).then(async (j) => {
       if (!alive.current) return;
+      // A warmed (boot-prefetch) answer that failed in transit is asked once more, fresh (call() itself retries a read),
+      // before the customer sees "Couldn't load your account".
+      if (transportFailed(j)) { j = await call('kyc', { action: 'state' }, token); if (!alive.current) return; }
       if (j && j.error === 'unauthorized') {
         if (retried) { setErr('unauth'); return; }
         try {
