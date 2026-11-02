@@ -1,0 +1,1 @@
+A pure probe: it raises and rolls back, so it is never applied or listed in MANIFEST. Run it after nothing_a_person_sends_us_waits_without_a_seat_that_acts.sql is live; it moves only if the routines it reads are retired.

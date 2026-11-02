@@ -5471,6 +5471,20 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_glockapps_provider_class(p_name text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when lower(btrim(coalesce(p_name, ''))) ~ '^(outlook|hotmail|live|msn|exchange|office ?365|microsoft)' then 'microsoft'
+    when lower(btrim(coalesce(p_name, ''))) ~ '^(gmail|google|g ?suite)' then 'google'
+    when lower(btrim(coalesce(p_name, ''))) ~ '^(yahoo|aol)' then 'yahoo_aol'
+    else 'other' end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_goal_attainment(p_horizon text DEFAULT 'monthly'::text)
  RETURNS jsonb
  LANGUAGE sql

@@ -62,9 +62,9 @@ Deno.test('suppliers are answered in English; an action is picked from the list 
 // prevented by: these tests (#1335's needs, 12 Oct 2026). Identity before a reveal, deferrals, the call cap, the
 // escalation flag and the sender's rate bucket.
 Deno.test('another party identity or an unpublished contact is rewritten; the published contact passes', async () => {
-  const s = stub([A('The supplier is Al Noor Contracting, call 050 123 4567.'), A('Your supplier stays anonymous until you reveal them. Call us on +971 50 931 9355.')]);
+  const s = stub([A('The supplier is Al Noor Contracting, call 050 123 4567.'), A('Your supplier stays anonymous until you reveal them. Call us on +1 218 316 6814.')]);
   const r = await aiReply(s.deps, { ...req, forbidden: ['Al Noor Contracting'] });
-  assertEquals(r.reply, 'Your supplier stays anonymous until you reveal them. Call us on +971 50 931 9355.');
+  assertEquals(r.reply, 'Your supplier stays anonymous until you reveal them. Call us on +1 218 316 6814.');
   assert(s.calls[1].input.includes("reveals another party's identity") && s.calls[1].input.includes('contact or licence details'));
 });
 Deno.test('a deferral is rewritten (903)', async () => {

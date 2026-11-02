@@ -53,8 +53,8 @@
       "action": "Store a Gmail refresh token (scope gmail.readonly) as app_secrets.gmail_seed_refresh_token and the Microsoft Graph app's tenant, client id and secret as ms_graph_tenant_id / ms_graph_client_id / ms_graph_client_secret", "link": "https://console.cloud.google.com/apis/credentials"
     },
     "m365_invitation_lane": {
-      "what": "the supplier invitation sent from the company's Microsoft 365 mailbox (app_secrets.invite_m365_mailbox) through Microsoft Graph sendMail with client credentials, only while app_secrets.invite_m365_enabled is true (or for a --lane=m365 seed); send_outbox/m365_lane.ts holds the invitations and files invite_m365_lane_refused when the token or a send is refused (5 Oct 2026, ledger 1115)",
-      "hosts": ["graph.microsoft.com", "login.microsoftonline.com"],
+      "what": "the supplier invitation sent from the company's Microsoft 365 mailbox (app_secrets.invite_m365_mailbox) through Microsoft Graph sendMail with client credentials, only while app_secrets.invite_m365_enabled is true (or for a --lane=m365 seed); send_outbox/m365_lane.ts holds the invitations and files invite_m365_lane_refused when the token or a send is refused (5 Oct 2026, ledger 1115). The same app is asked, read-only, whether it holds Exchange admin rights (it_engineer/exo_transport_rule.ts, outlook.office365.com, 27 Oct 2026)",
+      "hosts": ["graph.microsoft.com", "login.microsoftonline.com", "outlook.office365.com"],
       "secrets": ["invite_m365_enabled", "invite_m365_mailbox"],
       "env": ["MS_TENANT_ID", "MS_CLIENT_ID", "MS_CLIENT_SECRET"],
       "owner_seat": "it_engineer", "blast": "customer_facing",
@@ -287,6 +287,9 @@
     "_about": "Secrets and env the company mints itself or plain settings stored beside the credentials. Nothing outside answers for them, so there is nothing external to probe; internal credentials are rotated by fn_it_credential_rotate.",
     "prefixes": { "cred_": "an internal credential between our own functions (internal_credential)" },
     "secrets": {
+      "m365_tenant_mailboxes": "setting",
+      "m365_tenant_strangers_from": "setting",
+      "m365_financial_domains": "setting",
       "lead_sourcing_daily_quota": "setting",
       "wa_supplier_invite_golive": "setting", "lead_sourcing_daily_serper_usd": "setting", "lead_sourcing_daily_llm_usd": "setting", "lead_sourcing_usd_per_credit": "setting",
       "admin_emails": "setting", "backup_prune_mode": "setting", "conversation_retention_mode": "setting", "document_expiry_ai": "setting", "admin_mfa_phone": "setting", "email_triage_enabled": "setting", "invite_preheader": "setting", "ceo_model_slot": "setting", "compliance_ref": "setting",

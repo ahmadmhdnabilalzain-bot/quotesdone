@@ -79,7 +79,11 @@ test('every step the handler declares is one the schedule can plan', () => {
   const unscheduled = keys.filter((k) => !new RegExp("\\('" + k + "',\\s+interval").test(SEED));
   assert.deepEqual(unscheduled, [], 'steps the handler can run that public.resilience_step never names');
   // and the other way: a row for a step the code does not have fails every tick, for ever
-  const seeded = [...SEED.matchAll(/^ {2}\('(\w+)',\s+interval/gm)].map((m) => m[1]);
+  // A step a later file DELETES is not in the schedule (28 Oct 2026: supplierOutreach moved to its own seat-duty job,
+  // the_invitation_batch_runs_on_its_own_clock_and_the_guard_takes_the_link_less_copy.sql); every file is read for it.
+  const retired = new Set(readdirSync(SQL_DIR).filter((f) => f.endsWith('.sql'))
+    .flatMap((f) => [...readFileSync(SQL_DIR + f, 'utf8').matchAll(/^delete from public\.resilience_step where step = '(\w+)';/gm)].map((m) => m[1])));
+  const seeded = [...SEED.matchAll(/^ {2}\('(\w+)',\s+interval/gm)].map((m) => m[1]).filter((s) => !retired.has(s));
   assert.deepEqual(seeded.filter((s) => !keys.includes(s)), [], 'the schedule names steps the handler does not have');
 });
 

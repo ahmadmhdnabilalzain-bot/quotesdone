@@ -1,3 +1,35 @@
+CREATE OR REPLACE FUNCTION public.fn_mail_provider_class(p_domain text, p_mx_hosts text[])
+ RETURNS text
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d text := lower(btrim(coalesce(p_domain, ''))); h text := lower(rtrim(btrim(coalesce(p_mx_hosts[1], '')), '.'));
+begin
+  if h <> '' then
+    if h ~ '(^|\.)(protection\.)?outlook\.com$' or h ~ '(^|\.)hotmail\.com$' then return 'microsoft'; end if;
+    if h ~ '(^|\.)(google|googlemail)\.com$' then return 'google'; end if;
+    if h ~ '(^|\.)yahoodns\.net$' or h ~ '(^|\.)(yahoo|aol)\.com$' then return 'yahoo_aol'; end if;
+    return 'other';
+  end if;
+  if d ~ '^(outlook|hotmail|live|msn)\.[a-z.]+$' then return 'microsoft'; end if;
+  if d in ('gmail.com', 'googlemail.com') then return 'google'; end if;
+  if d ~ '^(yahoo|ymail|rocketmail|aol)\.[a-z.]+$' then return 'yahoo_aol'; end if;
+  return 'other';
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_mail_provider_of_email(p_email text)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_mail_provider_class(x.dom, (select m.hosts from public.email_domain_mx m where m.domain = x.dom and m.kind = 'mx'))
+    from (select split_part(lower(btrim(coalesce(p_email, ''))), '@', 2) as dom) x;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_mail_sender_known(p_email text)
  RETURNS text
  LANGUAGE plpgsql
@@ -11,7 +43,26 @@ begin
               where s.key in ('admin_emails', 'expense_forwarders', 'founder_email') and btrim(a) = e) then return 'staff'; end if;
   if exists (select 1 from public.customers where lower(email) = e) then return 'customer'; end if;
   if exists (select 1 from public.leads where lower(email) = e) then return 'supplier'; end if;
+  if exists (select 1 from public.leads where lower(btrim(claimed_by)) = e) then return 'supplier'; end if;
   return null;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_mailbox_fold(p_addr text)
+ RETURNS text
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare e text := lower(btrim(coalesce(p_addr, ''))); l text; d text;
+begin
+  -- "Name <a@b>" is reduced to the address inside the brackets.
+  if e ~ '<[^<>]+>' then e := btrim(substring(e from '<([^<>]+)>')); end if;
+  if position('@' in e) = 0 then return e; end if;
+  l := split_part(e, '@', 1); d := split_part(e, '@', 2);
+  l := regexp_replace(l, '\+.*$', '');
+  if d in ('gmail.com', 'googlemail.com') then l := replace(l, '.', ''); d := 'gmail.com'; end if;
+  return l || '@' || d;
 end $function$
 
 
@@ -5359,6 +5410,28 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_notifications_no_test_mail_to_the_founder()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_hit text;
+begin
+  select a into v_hit
+    from unnest(array[NEW.to_email] || coalesce(NEW.cc_emails, '{}'::text[])) a
+   where public.fn_is_founder_own_inbox(a)
+   limit 1;
+  if v_hit is not null then
+    raise exception 'no_test_mail_to_the_founder: a % (kind %) may not be addressed to the founder''s own inbox %; '
+      'founder instruction of 27 Oct 2026, "stop doing tests on my email". GlockApps seeds decide deliverability '
+      '(ledger 1312, 1344).', NEW.type, coalesce(NEW.kind, '-'), v_hit
+      using errcode = 'check_violation';
+  end if;
+  return NEW;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_notifications_promotional_consent_gate()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -5493,8 +5566,18 @@ AS $function$
 declare l public.leads;
 begin
   if coalesce(new.type, '') <> 'supplier_invite' then return new; end if;
-  if coalesce(new.body, '') !~ '/(en|ar)/portal[?]t=[0-9a-f-]{36}' then
-    raise exception 'SUPPLIER_INVITE_REFUSED: the invitation to % carries no portal link', new.to_email using errcode = 'check_violation';
+  -- 28 Oct 2026: the approved invitation carries no link (#1614). An empty body, or one with a placeholder the
+  -- composer never filled, is refused instead.
+  if btrim(coalesce(new.body, '')) = '' then
+    raise exception 'SUPPLIER_INVITE_REFUSED: the invitation to % has no body', new.to_email using errcode = 'check_violation';
+  end if;
+  if position('{{' in coalesce(new.body, '')) > 0 then
+    raise exception 'SUPPLIER_INVITE_REFUSED: the invitation to % still carries an unfilled placeholder', new.to_email using errcode = 'check_violation';
+  end if;
+  -- The link was never the opt-out; the reply-"stop" line is (m365_lane.ts STOP_LINE, the approved body's last line).
+  -- A body without it is refused, so the guard still asks for the one thing an unsolicited invitation must carry.
+  if coalesce(new.body, '') !~* 'reply[[:space:]]+["“”'']?stop' then
+    raise exception 'SUPPLIER_INVITE_REFUSED: the invitation to % has no reply-"stop" opt-out line', new.to_email using errcode = 'check_violation';
   end if;
   if coalesce(new.lang, 'en') = 'ar' and coalesce(new.body, '') !~ '[؀-ۿ]' then
     raise exception 'SUPPLIER_INVITE_REFUSED: an Arabic invitation to % has no Arabic in it', new.to_email using errcode = 'check_violation';
@@ -5994,7 +6077,7 @@ CREATE OR REPLACE FUNCTION public.fn_opt_out_types()
  IMMUTABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select array['supplier_invite', 'supplier_registration_reminder', 'supplier_rfq_widened_invite']::text[]
+  select array['supplier_invite', 'supplier_invite_nudge', 'supplier_registration_reminder', 'supplier_rfq_widened_invite']::text[]
 $function$
 
 

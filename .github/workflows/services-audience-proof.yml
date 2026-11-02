@@ -1,0 +1,38 @@
+name: Services tab - who the work is for is not a service (browser proof)
+
+# sales_engineer, 2 Nov 2026. Drives the real ServicesTab in headless Chromium against the real rewriteServices
+# (scripts/e2e/services_audience_is_not_a_service.mjs). Demo data only, no account, no network to the live site.
+# Runs twice: the base branch's rewrite must SHOW the defect (the control), this branch's must NOT.
+on:
+  pull_request:
+    paths:
+      - 'supabase/functions/_shared/service_rewrite.ts'
+      - 'src/components/portal/supplier/ServicesTab.tsx'
+      - 'scripts/e2e/services_audience_is_not_a_service.mjs'
+      - '.github/workflows/services-audience-proof.yml'
+  workflow_dispatch: {}
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci && npm i --no-save --no-audit --no-fund esbuild@0.25.10 && npx playwright install --with-deps chromium
+      - name: Control - the base branch still shows the audience as a part (informational only, once this merges the base is fixed too)
+        continue-on-error: true
+        run: |
+          mkdir -p base && git archive origin/${{ github.base_ref || 'main' }} supabase/functions/_shared | tar -x -C base
+          QD_EXPECT=defect QD_OUT=e2e-out QD_REWRITE_SRC=base/supabase/functions/_shared/service_rewrite.ts node scripts/e2e/services_audience_is_not_a_service.mjs
+      - name: This branch - no customer or building type becomes a part
+        run: QD_EXPECT=fixed QD_OUT=e2e-out node scripts/e2e/services_audience_is_not_a_service.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: services-audience-proof
+          path: |
+            e2e-out/*.png
+            e2e-out/*.json

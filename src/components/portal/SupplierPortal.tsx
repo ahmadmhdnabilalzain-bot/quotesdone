@@ -1,6 +1,6 @@
 // @ts-nocheck
 'use client';
-import { useDeferredValue, useEffect, useRef, useState } from 'react';
+import { Fragment, useDeferredValue, useEffect, useRef, useState } from 'react';
 import { useFailover } from '@/lib/otpFailover';
 import { localisedPath, applyDocumentLocale, applyShellChrome } from '@/lib/documentLocale';
 import { arDays } from '@/lib/durationLabel';
@@ -31,7 +31,7 @@ import ServicesTab from './supplier/ServicesTab';
 import EmirateCheckboxes from './supplier/EmirateCheckboxes';
 import { Kicker } from '@/components/ui/sealed';
 import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, TRADE_GROUPS, tradeLabel } from './supplier/serverCopy';
-import { call } from './supplier/api';
+import { call, REASONING_TIMEOUT_MS } from './supplier/api';
 import { warmTabs, firstRead } from './supplier/tabPrefetch';
 // THE ONE MONEY FORMATTER (audit 22 Sep 2026, SP-I-10): ./supplier/money.ts. The local `aed(n)` that
 // stood here printed "AED 1,200" on /ar too, while the quotation tabs printed "1,200 د.إ" for the
@@ -68,7 +68,7 @@ import { BrandMark } from '@/components/BrandMark';
 // Same as the customer portal: an inline production fallback meant an unconfigured preview let
 // suppliers upload trade licences into the LIVE database. See supaEnv.
 import { SUPA_ANON as ANON, SUPA_FN as FN, SUPA_URL } from '@/lib/supaEnv';
-import { uploadToSignedUrl } from '@/lib/signedUpload';
+import { uploadToSignedUrl, retryTransient } from '@/lib/signedUpload';
 import { Ltr } from '@/lib/Ltr';
 const SB = () => supaClient('qd-portal-auth');
 
@@ -134,12 +134,14 @@ const QUOTE_ACCEPT = 'image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,.
 // the file goes to it, and process_docs / save_documents are given the path (the server gates the stored bytes).
 // SB() is AUTH-ONLY (src/lib/supaClient.ts), so the file goes up by hand on the signed URL (src/lib/signedUpload.ts).
 // SB().storage was undefined: every profile and catalogue threw before upload and "Uploading..." never ended (27 Oct).
-const uploadDirect = async (kind, file, token) => {
+// A platform 502/503/546 or a dropped leg is retried (up to 3 tries, a new signed path each time): walk 41379033121 (2 Nov 2026)
+// lost a whole registration to ONE 502 on the catalogue's upload_url call.
+const uploadDirect = (kind, file, token) => retryTransient(async () => {
   const u = await call('supplier_api', { action: 'upload_url', kind, filename: file.name, mime: file.type }, token);
   if (!(u && u.ok && u.path && u.token)) return { error: u };
   const { error } = await uploadToSignedUrl(SUPA_URL, ANON, 'supplier-docs', u.path, u.token, file, file.type);
-  return error ? { error: { code: 'direct_upload_failed' } } : { path: u.path, filename: file.name, mime: file.type };
-};
+  return error ? { error: { code: 'direct_upload_failed', status: error.status } } : { path: u.path, filename: file.name, mime: file.type };
+});
 const fileToB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.readAsDataURL(f); });
 // STRIPE CAME BACK AND THE PAGE SAID NOTHING (audit 2026-09-14). supplier_pay and pay_registration
 // return the supplier to /portal?dues_paid=… or ?registration_paid=…, and nothing read either query
@@ -343,7 +345,7 @@ const T = {
     create_my_account:'Create my account', send_code:'Send me a code', sending:'Sending…', code_placeholder:'6-digit code',
     verify_continue:'Verify & continue', verify_signin:'Verify & sign in', verifying:'Verifying…', use_diff:'Use a different email/number',
     wa_note:'We sent the code to this number on WhatsApp. Not there after a minute? Send it by SMS instead.', send_by_sms:'Send it by SMS instead',
-    junk_note:'The code can take a minute — please check your spam/junk folder too.', err_code_send:'Could not send a code.', err_incorrect:'Incorrect code.',
+    code_sent_to:'We sent a 6-digit code to {id}. Enter it below.', junk_note:'The code can take a minute — please check your spam/junk folder too.', contact_note:'So our messages reach your inbox, add supplier@quotesdone.com to your contacts, or write to us at that address.', err_code_send:'Could not send a code.', err_incorrect:'Incorrect code.',
     signup_email_only:"Please sign up with your work email — you'll register your company and verify your mobile next.",
     signup_email_reserved:'That email domain is reserved for examples and testing and cannot receive mail, so no code can reach it. Please use your real work email.', err_need_email:'Please enter your work email first.', err_need_id:'Please enter your email or mobile number first.',
     conflict_customer:'This email is registered as a customer. Please use the customer app to sign in.',
@@ -384,6 +386,7 @@ const T = {
     signin_sub:'سجّلوا الدخول بالبريد الإلكتروني أو برقم الجوال المسجّل.', work_email:'البريد الإلكتروني للعمل', email_or_mobile:'البريد الإلكتروني أو الجوال',
     create_my_account:'إنشاء حسابي', send_code:'إرسال الرمز', sending:'جارٍ الإرسال…', code_placeholder:'رمز من 6 أرقام',
     verify_continue:'تأكيد ومتابعة', verify_signin:'تأكيد وتسجيل الدخول', verifying:'جارٍ التحقق…', use_diff:'استخدام بريد أو رقم آخر',
+    contact_note:'So our messages reach your inbox, add supplier@quotesdone.com to your contacts, or write to us at that address.',
     junk_note:'قد يستغرق وصول الرمز دقيقة — يُرجى التحقق من مجلد الرسائل غير المرغوب فيها (Spam) أيضًا.', err_code_send:'تعذّر إرسال الرمز.', err_incorrect:'رمز غير صحيح.',
     signup_email_only:'يُرجى التسجيل ببريدكم الإلكتروني للعمل، ثم تسجيل شركتكم وتأكيد رقم جوالكم في الخطوة التالية.',
     signup_email_reserved:'نطاق هذا البريد محجوز للأمثلة والاختبار ولا يستقبل الرسائل، فلن يصله أي رمز. يُرجى استخدام بريد العمل الحقيقي.', err_need_email:'يُرجى إدخال بريد العمل أولًا.', err_need_id:'يُرجى إدخال بريدكم الإلكتروني أو رقم جوالكم أولًا.',
@@ -696,9 +699,9 @@ export function SupplierPortal() {
       <main id="main">
       {!mounted ? <div className={S.center}>{t(lang, 'loading')}</div> : (<>
         {/* An invited supplier is told whose listing this is, before anything else on the page. */}
-        {phase === 'login' && invite && <InviteBanner invite={invite} lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
+        {phase === 'login' && invite && <InviteBanner invite={invite} lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); (document.querySelector('#qd-supplier-signin input') as HTMLInputElement | null)?.focus({ preventScroll: true }); } catch (_e) {} }} />}
         {/* §1 — the supplier meets the product before the sign-in box, not after it. */}
-        {phase === 'login' && <SupplierEntryHero lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
+        {phase === 'login' && <SupplierEntryHero lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); (document.querySelector('#qd-supplier-signin input') as HTMLInputElement | null)?.focus({ preventScroll: true }); } catch (_e) {} }} />}
         {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} startMode={invite && (invite.claimable || invite.invalid) ? 'signup' : 'signin'} /></div>}
         {phase === 'app' && (claiming
           ? <div className={S.center} aria-busy="true" role="status">{t(lang, 'claiming_listing')}</div>
@@ -814,7 +817,12 @@ function Login({ onAuth, lang, startMode }) {
       <div className="mb-5 flex flex-col items-center text-center">
         <span className="qd-brandbadge mb-4 grid h-12 w-12 place-items-center rounded-2xl"><BrandMark className="h-6 w-6" /></span>
         <h1 className={cn(S.h1, 'qd-grad-text font-[family-name:var(--font-head)]')}>{isSignup ? t(lang, 'register_title') : t(lang, 'welcome_back')}</h1>
-        <div className={cn(S.sub, 'mx-auto mt-2')}>{isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub')}</div>
+        {/* THE CODE STEP SAYS WHERE THE CODE WENT (28 Oct 2026, sales_engineer, production browser walk at 1366 and 390 px):
+            after "Create my account" the subtitle still read "Enter your work email and we'll create your account", and
+            nothing on the screen named the address, so a typo could only be found by waiting for a code that never came. */}
+        <div className={cn(S.sub, 'mx-auto mt-2')}>{step === 'code' && ident
+          ? t(lang, 'code_sent_to').split('{id}').map((part, i) => i === 0 ? part : <Fragment key={i}><bdi dir="ltr" className="font-semibold text-foreground [overflow-wrap:anywhere]">{ident}</bdi>{part}</Fragment>)
+          : (isSignup ? t(lang, 'signup_sub') : t(lang, 'signin_sub'))}</div>
       </div>
       <div className={cn(S.tabsWrap, 'mb-4 flex w-full')}><button className={cn(S.tab, 'flex-1', !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button><button className={cn(S.tab, 'flex-1', isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button></div>
       {step === 'id' ? (<>
@@ -823,6 +831,7 @@ function Login({ onAuth, lang, startMode }) {
       </>) : (<>
         <Lbl text={t(lang, 'code_placeholder')}><Input className="mt-3 min-h-11" inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} /></Lbl>
         <div className={S.hint}>{t(lang, 'junk_note')}</div>
+        <div className={S.hint} dir="ltr">{t(lang, 'contact_note')}</div>
         <Button className="w-full mt-3" disabled={busy} onClick={verify}>{busy ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button>
         <Button variant="link" className="mt-2 px-0 h-auto" onClick={() => { setStep('id'); setCode(''); setMsg(''); }}>{t(lang, 'use_diff')}</Button>
       </>)}
@@ -1184,7 +1193,7 @@ function Dashboard({ token, lang, onExpired }) {
                 is held as PENDING (licence_unreadable / _expiry_unread / _number_unread), and the reason showed only for
                 action_required: a held supplier saw 'Pending' and 'Trade licence: on file' and never learned a clearer copy
                 was needed. Prevented by scripts/checks/a_held_supplier_is_never_told_nothing_is_needed.test.mjs. */}
-            {(ov.supplier.approval_status === 'action_required' || (ov.supplier.approval_status === 'pending' && /^licence_/.test(String(ov.supplier.licence_gate_reason || '')))) && ov.supplier.licence_gate_reason
+            {(ov.supplier.approval_status === 'action_required' || (ov.supplier.approval_status === 'pending' && /^licence_/.test(String(ov.supplier.licence_gate_reason || ''))) || (ov.supplier.approval_status === 'pending' && ov.supplier.licence_gate_reason === 'services_unconfirmed')) && ov.supplier.licence_gate_reason
               ? <span className="text-[13px] text-destructive font-medium basis-full">{t(lang, 'ar_why') + ': ' + srvText(lang, ov.supplier.licence_gate_reason, {}, ov.supplier.licence_gate_reason)}</span> : null}
             {ov.supplier.license_expiry ? (() => { const days = Math.round((new Date(ov.supplier.license_expiry) - new Date()) / 864e5); const v = days < 0 ? 'destructive' : days <= 30 ? 'warn' : 'secondary'; return <Badge variant={v}>{(days < 0 ? t(lang, 'lic_expired') : t(lang, 'lic_expires')) + ' · '}<Ltr>{fmtDate(ov.supplier.license_expiry, lang)}</Ltr></Badge>; })() : null}
           </div>
@@ -1269,7 +1278,10 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
     : (Array.isArray(q0.items) && q0.items.length ? q0.items.map((r) => ({ description: r.description || '', qty: r.qty == null ? '' : String(r.qty), unit: r.unit || '', unit_price: r.unit_price == null ? '' : String(r.unit_price) })) : [{ description: '', qty: '', unit: '', unit_price: '' }]);
   const [amount, setAmount] = useState(vat0 === 'inclusive' && Number(q0.amount_as_stated) > 0 ? String(q0.amount_as_stated) : q0.quote_amount != null ? String(q0.quote_amount) : ''); const [lead, setLead] = useState(q0.lead_time || ''); const [notes, setNotes] = useState(q0.notes || ''); const [scope, setScope] = useState(q0.scope || ''); const [validity, setValidity] = useState(q0.validity || ''); const [payment, setPayment] = useState(q0.payment_terms || ''); const [warranty, setWarranty] = useState(q0.warranty || ''); const [items, setItems] = useState(lines0); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const [reading, setReading] = useState(false); const [prop, setProp] = useState(null); const [orig, setOrig] = useState(null);
-  const onFile = async (file) => { if (!file) return; setReading(true); setMsg(''); try { const { images, b64, mime } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name, mime } }, token); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (pr.notes) setNotes(pr.notes); if (VAT_BASIS.includes(pr.vat_treatment)) setVat(pr.vat_treatment); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + lineCount(lang, pr.line_items.length) : '') + t(lang, 'read_quote_post') + (pr.options && pr.options.length > 1 ? ' ' + srvText(lang, 'options_split', { count: pr.options.length }) : '')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_read'))); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
+  // THE QUOTATION IS READ BEFORE THE ANSWER (28 Oct 2026, sales_engineer): extract_quote calls quote_extract synchronously,
+  // whose model read measured p50 15.5 s / p90 20.7 s / max 24.7 s (ai_cost_log, 30 days, n=29), so the 20 s default cut
+  // off more than half of all quotation uploads. It waits REASONING_TIMEOUT_MS, as the document uploads do (#1709).
+  const onFile = async (file) => { if (!file) return; setReading(true); setMsg(''); try { const { images, b64, mime } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name, mime } }, token, { timeoutMs: REASONING_TIMEOUT_MS }); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (pr.notes) setNotes(pr.notes); if (VAT_BASIS.includes(pr.vat_treatment)) setVat(pr.vat_treatment); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + lineCount(lang, pr.line_items.length) : '') + t(lang, 'read_quote_post') + (pr.options && pr.options.length > 1 ? ' ' + srvText(lang, 'options_split', { count: pr.options.length }) : '')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_read'))); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
   const [chk, setChk] = useState(null); const [checking, setChecking] = useState(false);
   const vatArgs = { vat_treatment: vat || undefined, price_ex_vat: vat === 'inclusive' && Number(exVat) > 0 ? Number(exVat) : undefined };
   const buildPayload = () => prop ? { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, conditions: prop.conditions || '', exclusions: prop.exclusions || '', validity: validity || prop.validity || '', payment_terms: payment || prop.payment_terms || '', warranty: warranty || prop.warranty || '', items: prop.line_items || [], masked_terms: prop.masked_terms || null, source: 'upload', original_file_path: orig && orig.path, original_file_name: orig && orig.name, subtotal: prop.subtotal ?? undefined, vat_amount: prop.vat_amount ?? undefined, trn: prop.trn ?? undefined, option_totals: prop.option_totals || undefined, ...vatArgs, ...optionArgs } : { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, validity, payment_terms: payment, warranty, items: items.filter((x) => (x.description || '').trim()), source: 'form', ...vatArgs, ...optionArgs };
@@ -1485,7 +1497,10 @@ function Documents({ token, lang, onSaved = null, onExpired = null }) {
       if (d.error) { setBusy(''); setErr(srvMsg(lang, d.error, srvText(lang, 'direct_upload_failed'))); return; }
       item = { kind, path: d.path, filename: d.filename, mime: d.mime, expiry };
     } else item = { kind, original_b64: await fileToB64(file), filename: file.name, mime: file.type, expiry };
-    const j = await call('supplier_portal', { action: 'save_documents', items: [item] }, token);
+    // A LICENCE OR CERTIFICATE IS READ BEFORE THE ANSWER (28 Oct 2026, sales_engineer; production document walk e8d1e4b5):
+    // a phone photo of a licence answered in 18,019 ms (the model's read, ~9-16 s), two seconds inside the 20 s every
+    // other call keeps. A slower read was cut off and the supplier told the save failed while the file was on record.
+    const j = await call('supplier_portal', { action: 'save_documents', items: [item] }, token, { timeoutMs: REASONING_TIMEOUT_MS });
     setBusy('');
     if (j && j.read) setReads((o) => ({ ...o, ...j.read }));
     const failed = (j && j.failed) || [];
@@ -1631,6 +1646,7 @@ function DocRow({ d, busy, onUpload, onRemove, onConfirmExpiry, read, lang }) {
     expiring: { t: ar ? 'تنتهي قريبًا' : 'Expiring soon', v: 'warn' },
     valid:    { t: ar ? 'سارية' : 'Valid',          v: 'ok' },
     on_file:  { t: ar ? 'على الملف' : 'On file',    v: 'secondary' },
+    unread:   { t: 'Could not be read', v: 'destructive' },
     missing:  { t: ar ? 'مفقود' : 'Not uploaded',   v: d.required ? 'destructive' : 'secondary' },
   };
   const st = ST[d.status] || null;
@@ -1668,10 +1684,14 @@ function DocRow({ d, busy, onUpload, onRemove, onConfirmExpiry, read, lang }) {
             </li>)}</ul>
           : <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'not_uploaded')}</div>)}
         {!isCat && !d.path && <div className={cn(S.sub, 'mt-1.5')}>{t(lang, 'not_uploaded')}</div>}
+        {d.status === 'unread' && !read && <div className={cn(S.sub, 'mt-2 text-danger-fg')} role="status">We could not read this licence. Please use Replace to upload a clear PDF, or a sharp photo of the whole page.</div>}
         <ExpiryRead read={read} lang={lang} label={label} onConfirm={onConfirmExpiry} />
       </div>
       {/* First upload (nothing on file) or another catalogue. A file on record is replaced from its own row above. */}
-      {(!d.path || isCat) && <div className="flex gap-2 items-center flex-wrap shrink-0">
+      {/* max-w-full (28 Oct 2026, 390 px production walk): as a shrink-0 flex item this row took its one-line width
+          (Attach file + date + Upload, ~390 px) inside a ~318 px card, so Upload sat off-screen on Insurance, ISO and
+          the dealer letter, and the whole page scrolled sideways. Bounded by the card, it wraps. */}
+      {(!d.path || isCat) && <div className="flex gap-2 items-center flex-wrap shrink-0 max-w-full">
         <FilePick lang={lang} onPick={setFile} />
         {file && <span className={cn(S.sub, 'max-w-[180px] truncate')}>{file.name}</span>}
         {/* Not for the trade licence: its expiry is read off the licence itself and save_documents
@@ -1684,7 +1704,7 @@ function DocRow({ d, busy, onUpload, onRemove, onConfirmExpiry, read, lang }) {
         </Button>
       </div>}
       {/* A certificate on file whose date is missing or wrong: the same box, without a new file. */}
-      {d.path && !isCat && d.has_expiry && d.key !== 'license' && !read && <div className="flex gap-2 items-center flex-wrap shrink-0">
+      {d.path && !isCat && d.has_expiry && d.key !== 'license' && !read && <div className="flex gap-2 items-center flex-wrap shrink-0 max-w-full">
         <Input type="date" dir="ltr" className="w-auto" value={exp} onChange={(e) => setExp(e.target.value)} aria-label={(ar ? 'تاريخ انتهاء ' : 'Expiry date for ') + label} />
         <Button size="sm" variant="outline" disabled={busy || !exp || exp === (d.expiry || '')} onClick={() => onConfirmExpiry(d.key, exp)}>{ar ? 'حفظ التاريخ' : 'Save date'}</Button>
       </div>}
@@ -1885,7 +1905,8 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
     if (!file) return; setUploading(true); setLicNote(''); setMsg('');
     try {
       const { images, b64, mime } = await fileToImages(file);
-      const j = await call('supplier_api', { action: 'process_docs', license: { original_b64: b64, file_b64: b64, images, filename: file.name, mime } }, token);
+      // The licence is read before the answer (the model, up to two attempts): the reasoning wait, not 20 s (see save_documents).
+      const j = await call('supplier_api', { action: 'process_docs', license: { original_b64: b64, file_b64: b64, images, filename: file.name, mime } }, token, { timeoutMs: REASONING_TIMEOUT_MS });
       if (!(j && j.ok)) { setMsg(srvMsg(lang, j, t(lang, 'lic_upload_failed'))); }
       else {
         setLicOnFile(true);

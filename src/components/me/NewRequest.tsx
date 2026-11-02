@@ -510,7 +510,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     <section dir={ar ? 'rtl' : 'ltr'} className="qd-panel mb-3.5 p-5 shadow-e2" aria-live="polite">
       <h2 className="font-head text-[17px] font-semibold tracking-snug text-foreground">{t(lang, 'nr_posted')}</h2>
       <p className="mt-2 text-copy leading-relaxed text-foreground">{t(lang, 'nr_posted_none')}</p>
-      <Button size="lg" className="mt-4" onClick={onDone}>{t(lang, 'nr_posted_view')}</Button>
+      <Button size="lg" className="mt-4" onClick={() => onDone({ none: true, inquiry_id: posted.id })}>{t(lang, 'nr_posted_view')}</Button>
     </section>
   );
   return (

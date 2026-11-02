@@ -22,7 +22,9 @@ const MEASURED_MS = 36959;
 // The real api.ts, with only its one import (the project's env module) replaced, loaded by Node's own type stripping.
 async function loadApi() {
   const dir = mkdtempSync(join(tmpdir(), 'qd-api-'));
-  const src = API.replace(/^import \{ SUPA_ANON as ANON, fnUrl \} from '@\/lib\/supaEnv';$/m,
+  // the real retry helper is loaded by file URL (the temp copy cannot resolve '@/lib'), so the timeout checks run through it
+  const retryUrl = new URL('../../src/lib/fetchRetry.ts', import.meta.url).href;
+  const src = API.replace(/^import \{ retryRead, isReadAction \} from '@\/lib\/fetchRetry';$/m, `import { retryRead, isReadAction } from '${retryUrl}';`).replace(/^import \{ SUPA_ANON as ANON, fnUrl \} from '@\/lib\/supaEnv';$/m,
     "const ANON = 'anon'; const fnUrl = (p) => 'https://fn.invalid/functions/v1/' + p;");
   assert.notEqual(src, API, 'api.ts no longer imports SUPA_ANON/fnUrl the way this check expects; update the stub');
   const f = join(dir, 'api.mts'); writeFileSync(f, src);

@@ -164,3 +164,10 @@ Deno.test('the ledger row carries the channel and the Verify SID, never a code',
   assertEquals(channelOfRow('twilio'), null);
   assertEquals(channelOfRow('twilio:sms:123456'), null);   // a 6-digit code is never a valid row
 });
+
+Deno.test('waDeliveredCode: only a code delivered on WhatsApp confirms the WhatsApp number (known-bad: sms, call, failover, garbage)', async () => {
+  const { waDeliveredCode } = await import('./whatsapp_choice.ts');
+  assert(waDeliveredCode('qd:whatsapp:SM' + 'a'.repeat(32)));
+  assert(waDeliveredCode('twilio:whatsapp:VE' + 'a'.repeat(32)));
+  for (const c of ['twilio:sms', 'twilio:call', 'twilio:sms:SM' + 'a'.repeat(32), '', null, undefined, '123456']) assert(!waDeliveredCode(c as string), String(c));
+});

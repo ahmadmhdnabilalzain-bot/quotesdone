@@ -1,0 +1,4 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, and it writes nothing. Run it after
+a_supplier_who_said_stop_is_never_nudged.sql is applied, or with that file in the same rolled-back request.
+Measured 28 Oct 2026 on production: with the file -> CHK<<PROBE OK ...>>; alone, against the live routine -> PROBE FAILED
+(unsubscribe does not stop supplier_invite_nudge). This note stays for the life of the file. Seat: sales_engineer.

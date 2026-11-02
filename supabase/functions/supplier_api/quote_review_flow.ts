@@ -105,7 +105,7 @@ export interface ReviewDeps {
   /** THE WORDS (1195-1197): the model writes the engineer's message from `situation` (what code decided); with
    *  `actions`, it also picks the supplier's next step from their message. text '' = no usable model answer; outage =
    *  no call reached a model (OpenRouter down, _shared/openrouter_down.ts) — only then does the fixed notice go out (1339). */
-  voice(v: { kind: MsgKind; situation: string; supplierMessage: string | null; actions?: { id: string; meaning: string }[]; images?: string[] }): Promise<{ text: string; action: string | null; outage?: boolean; problems?: string[] }>;
+  voice(v: { kind: MsgKind; situation: string; supplierMessage: string | null; actions?: { id: string; meaning: string }[]; images?: string[]; conversation?: { role: 'supplier' | 'seat'; text: string }[] }): Promise<{ text: string; action: string | null; outage?: boolean; problems?: string[] }>;
   /** RULING 1177: a photo or document the supplier attaches to a chat message is READ - code first, then the vision
    *  model (_shared/read_every_attachment.ts). Absent: code only. */
   readAttachment?(bytes: Uint8Array, filename: string, mime: string): Promise<AttachmentRead>;
@@ -571,7 +571,11 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
     ? [{ id: 'generate', meaning: 'they want us to generate the standardised quotation for them from what they sent' },
        { id: 'reupload', meaning: 'they will upload a new version of their own quotation' }]
     : st === 'ready_to_submit' ? [{ id: 'submit', meaning: 'they clearly tell us to submit the quotation to the customer now' }] : [];
-  const v = await deps.voice({ kind: 'text', supplierMessage: t, actions, situation: stateFacts(l.inq, r, st, open) })
+  // THE THREAD SO FAR (browser proof, 2 Nov 2026): the model was given the review's state and this one message, never what the
+  // supplier had already said, so "what lead time did I tell you?" was answered "nothing has come through". Every earlier
+  // message of the thread rides as the conversation; the message just written is the one being answered.
+  const conversation = (await repo.messages(r.id)).filter((m) => m.id !== sm.id && (m.body ?? '').trim()).map((m) => ({ role: m.role === SEAT ? 'seat' as const : 'supplier' as const, text: String(m.body) }));
+  const v = await deps.voice({ kind: 'text', supplierMessage: t, actions, situation: stateFacts(l.inq, r, st, open), conversation })
     .catch(() => ({ text: '', action: null as string | null, outage: false, problems: [] as string[] }));
   if (v.action === 'generate' || v.action === 'reupload') return decide(repo, deps, ctx, l, r, v.action, sm.id);
   if (v.action === 'submit') return doSubmit(repo, deps, ctx, l.inq, r, sm.id);

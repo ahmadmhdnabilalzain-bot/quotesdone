@@ -188,3 +188,16 @@ export function countServices(keys: readonly string[], ownWords: readonly string
   const words = new Set(ownWords.map((w) => w.replace(/\s+/g, ' ').trim().toLowerCase()).filter((w) => w.length >= 2));
   return new Set(keys).size + words.size;
 }
+
+// English only, on purpose (ledger 1469; suppliers are always written to in English, ruling 1008): what the Services tab says about
+// verification and about what was read from the company profile.
+export const VERIFY_COPY = {
+  verify_needed: 'To be verified, confirm what your company does. Below is the summary and the keywords our sales engineer prepared from your company profile. Check them, correct anything wrong, then press Confirm my services. Until you do, your registration stays Pending, even when your mobile, e-mail, trade licence, company profile and terms are complete.',
+  profile_summary_title: 'Summary of your company profile',
+  profile_keywords: 'Keywords of your services',
+  profile_none: 'We read your company profile and found no service we could match. Tick what you do below, or describe it in your own words.',
+  profile_reading: 'We are still reading your company profile. This page updates by itself when the read finishes.',
+  profile_scan: 'Your company profile is a scan or photo that we could not read as text yet. Tick what you do below, or describe it in your own words.',
+  profile_missing: 'No company profile has been read yet. Upload it in Documents, or describe your services below.',
+  doc_read_none: 'read, no service matched',
+} as const;

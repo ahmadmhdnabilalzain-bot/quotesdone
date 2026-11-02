@@ -890,6 +890,7 @@ AS $function$
              || coalesce(' (as of ' || pb.as_of::text || ')', '') as line
       from public.price_benchmark pb
      where pb.source_kind <> 'gap' and pb.item is not null and pb.low is not null
+       and pb.confidence = 'published'
      order by pb.category, pb.item, pb.unit, (case when pb.source_kind = 'blog_post' then 0 else 1 end), pb.as_of desc nulls last, pb.id
   )
   select '## PUBLISHED PRICE GUIDE (UAE ranges QuotesDone publishes; quote them as a range and say it is a guide, not a quotation — suppliers price the work)'
@@ -3637,14 +3638,30 @@ CREATE OR REPLACE FUNCTION public.fn_reason_held_expire(p_ids bigint[], p_by tex
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare n_exp int; n_handoff int;
+declare n_exp int; n_handoff int; n_kept int := 0; h record; c jsonb; v_ids bigint[] := p_ids;
 begin
+  for h in select id from public.reasoning_held_question where id = any(p_ids) and status = 'held' loop
+    c := public.fn_cs_held_question_contact(h.id);
+    if (nullif(c->>'email', '') is not null and not public.fn_is_demo_email(c->>'email'))
+       or (nullif(c->>'phone', '') is not null and c->>'phone' !~ '^\+?97150000') then
+      update public.reasoning_held_question
+         set expires_at = now() + interval '14 days',
+             result = coalesce(result, '{}'::jsonb) || jsonb_build_object('kept_for_a_person_at', now(), 'would_have_expired_because', p_why)
+       where id = h.id;
+      perform public.fn_cs_held_question_message(h.id, 'support_question_ack',
+        case when c ->> 'lang' = 'ar' then 'سؤالكم لدى فريقنا' else 'Your question is with our team' end,
+        case when c ->> 'lang' = 'ar' then 'وصلنا سؤالكم وهو لدى فريقنا، وسنعود إليكم بالإجابة. لا حاجة لأي إجراء إضافي منكم.'
+             else 'We have your question and it is with our team. We will reply here; there is nothing more you need to do.' end);
+      v_ids := array_remove(v_ids, h.id);
+      n_kept := n_kept + 1;
+    end if;
+  end loop;
   with gone as (
-    update public.reasoning_held_question h
-       set status = 'expired', result = coalesce(h.result, '{}'::jsonb) || jsonb_build_object('expired_by', p_by, 'why', p_why)
-     where h.id = any(p_ids) and h.status = 'held'
-    returning h.id, h.seat, h.surface, h.question, h.subject, h.created_at,
-              coalesce(h.request -> 'context' ->> 'audience', '') audience
+    update public.reasoning_held_question q
+       set status = 'expired', result = coalesce(q.result, '{}'::jsonb) || jsonb_build_object('expired_by', p_by, 'why', p_why)
+     where q.id = any(v_ids) and q.status = 'held'
+    returning q.id, q.seat, q.surface, q.question, q.subject, q.created_at,
+              coalesce(q.request -> 'context' ->> 'audience', '') audience
   ), filed as (
     insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
     select g.seat, 'held_question_expired', 'pending', 'low',
@@ -3661,7 +3678,7 @@ begin
     returning id
   )
   select (select count(*) from gone), (select count(*) from filed) into n_exp, n_handoff;
-  return jsonb_build_object('expired', n_exp, 'handoffs', n_handoff);
+  return jsonb_build_object('expired', n_exp, 'handoffs', n_handoff, 'kept_for_a_person', n_kept);
 end $function$
 
 
@@ -4978,6 +4995,123 @@ begin
 
   return json_build_object('licence_suspended', v_lic_susp, 'insurance_suspended', v_ins_susp,
                            'restored', v_restored, 'grace_days', p_grace_days, 'ran_at', now());
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_record_inbox_placement_verdict(p_result jsonb, p_from text, p_recorded_by text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_test text := btrim(coalesce(p_result ->> 'testId', p_result ->> 'test_id', ''));
+  v_tested timestamptz; v_from text := public.fn_mailbox_fold(p_from); v_dom text; v_rates jsonb := '{}'; v_verdict jsonb;
+  e jsonb; c text; t record; v_sum jsonb; v_seed_rows int;
+begin
+  if v_test !~ '^[0-9A-Za-z:_-]{6,64}$' then
+    raise exception 'fn_record_inbox_placement_verdict: testId % is not a GlockApps test id', v_test using errcode = 'check_violation'; end if;
+  begin v_tested := (p_result ->> 'created')::timestamptz;
+  exception when others then v_tested := null; end;
+  if v_tested is null then
+    raise exception 'fn_record_inbox_placement_verdict: created (when the test ran) is missing or unreadable' using errcode = 'check_violation'; end if;
+  if v_from !~ '^[^@\s]+@[^@\s]+\.[a-z]{2,}$' then
+    raise exception 'fn_record_inbox_placement_verdict: from % is not a mailbox', p_from using errcode = 'check_violation'; end if;
+  v_dom := lower(btrim(coalesce(p_result #>> '{sender,senderDomain}', '')));
+  if v_dom <> '' and v_dom <> split_part(v_from, '@', 2) then
+    raise exception 'fn_record_inbox_placement_verdict: GlockApps saw sender domain %, not the domain of %', v_dom, v_from
+      using errcode = 'check_violation'; end if;
+  if not exists (select 1 from public.org_role r where r.role_id = p_recorded_by and r.status = 'active') then
+    raise exception 'fn_record_inbox_placement_verdict: % is not a live seat', p_recorded_by using errcode = 'check_violation'; end if;
+  if jsonb_typeof(p_result -> 'providerRollup') is distinct from 'array' or jsonb_array_length(p_result -> 'providerRollup') = 0 then
+    raise exception 'fn_record_inbox_placement_verdict: providerRollup is missing; call get_results with detail ''providers'''
+      using errcode = 'check_violation'; end if;
+  for e in select x from jsonb_array_elements(p_result -> 'providerRollup') x loop
+    if coalesce(btrim(e ->> 'providerGroupName'), '') = ''
+       or (e ->> 'total')::int is distinct from coalesce((e ->> 'inbox')::int, -1) + coalesce((e ->> 'spam')::int, -1)
+                                               + coalesce((e ->> 'other')::int, -1) + coalesce((e ->> 'notDelivered')::int, -1) then
+      raise exception 'fn_record_inbox_placement_verdict: provider % does not add up (total = inbox + spam + other + notDelivered)', e
+        using errcode = 'check_violation'; end if;
+  end loop;
+
+  select count(*) into v_seed_rows from public.notifications n
+   where n.kind = 'invite_m365_seed' and rtrim(n.body) like '%id:' || v_test;
+
+  insert into public.deliverability_test as d (test_id, project_id, from_address, reason, requested_by, marker, status,
+         stats, tested_at, recorded_by, recorded_at, source, verdict, decided_at)
+  values (v_test, p_result ->> 'projectId', v_from, 'recorded from the GlockApps connector (get_results, detail providers)',
+          p_recorded_by, 'id:' || v_test,
+          case when coalesce((p_result ->> 'finished')::boolean, false) then 'complete' else 'incomplete' end,
+          coalesce(p_result -> 'stats', '{}'::jsonb) || jsonb_build_object('finished', p_result -> 'finished',
+            'trackedSeeds', p_result -> 'trackedSeeds', 'authSummary', p_result -> 'authSummary', 'sender', p_result -> 'sender',
+            'seed_notifications', v_seed_rows),
+          v_tested, p_recorded_by, null, 'glockapps_connector', 'pending', null)
+  on conflict (test_id) do update set project_id = excluded.project_id, from_address = excluded.from_address,
+         status = excluded.status, stats = excluded.stats, tested_at = excluded.tested_at, recorded_by = excluded.recorded_by,
+         recorded_at = null, source = excluded.source;
+
+  delete from public.deliverability_test_provider where test_id = v_test;
+  insert into public.deliverability_test_provider (test_id, provider, provider_group_id, is_outlook, seeds, inbox, spam,
+         tabs, missing, inbox_pct, raw_itypes, provider_class)
+  select v_test, g.name, min(g.gid), public.fn_glockapps_provider_class(g.name) = 'microsoft',
+         sum(g.total), sum(g.inbox), sum(g.spam), sum(g.tabs), sum(g.missing),
+         round(100.0 * sum(g.inbox) / nullif(sum(g.total), 0), 1),
+         jsonb_build_object('tabs', jsonb_agg(g.tablist) filter (where g.tablist is not null)),
+         public.fn_glockapps_provider_class(g.name)
+    from (select btrim(x ->> 'providerGroupName') name, x ->> 'providerGroupId' gid, (x ->> 'total')::int total,
+                 (x ->> 'inbox')::int inbox, (x ->> 'spam')::int spam, (x ->> 'other')::int tabs,
+                 (x ->> 'notDelivered')::int missing, x -> 'tabs' tablist
+            from jsonb_array_elements(p_result -> 'providerRollup') x) g
+   group by g.name;
+
+  -- THE OVERALL FIGURE IS GLOCKAPPS' OWN (stats), when it gives one. Measured on test 2026-10-27-09:33:53:634t: stats
+  -- covers 111 tracked seeds (44 inbox, 21 tabs, 41 spam, 5 missing) while the providerRollup rows add up to 106 (41, 21,
+  -- 39, 5): GlockApps leaves 5 seeds out of its provider breakdown. Those 5 cannot be put in a class, so the classes are
+  -- judged on the rollup and 'overall' carries 'unclassified' = stats total - rollup total, said rather than hidden.
+  for c in select unnest(array['microsoft', 'google', 'yahoo_aol', 'other', 'overall']) loop
+    if c = 'overall' and (p_result #>> '{stats,inbox}') ~ '^\d+$' and (p_result #>> '{stats,other}') ~ '^\d+$'
+       and (p_result #>> '{stats,spam}') ~ '^\d+$' and (p_result #>> '{stats,notDelivered}') ~ '^\d+$' then
+      select (p_result #>> '{stats,inbox}')::bigint + (p_result #>> '{stats,other}')::bigint + (p_result #>> '{stats,spam}')::bigint
+               + (p_result #>> '{stats,notDelivered}')::bigint s,
+             (p_result #>> '{stats,inbox}')::bigint i, (p_result #>> '{stats,other}')::bigint tb,
+             (p_result #>> '{stats,spam}')::bigint sp, (p_result #>> '{stats,notDelivered}')::bigint m into t;
+    else
+      select coalesce(sum(p.seeds), 0) s, coalesce(sum(p.inbox), 0) i, coalesce(sum(p.tabs), 0) tb,
+             coalesce(sum(p.spam), 0) sp, coalesce(sum(p.missing), 0) m into t
+        from public.deliverability_test_provider p
+       where p.test_id = v_test and (c = 'overall' or p.provider_class = c);
+    end if;
+    v_rates := v_rates || jsonb_build_object(c, jsonb_build_object('seeds', t.s, 'inbox', t.i, 'tabs', t.tb, 'spam', t.sp,
+      'missing', t.m,
+      'inbox_pct', round(100.0 * t.i / nullif(t.s, 0), 1), 'tabs_pct', round(100.0 * t.tb / nullif(t.s, 0), 1),
+      'spam_pct', round(100.0 * t.sp / nullif(t.s, 0), 1), 'missing_pct', round(100.0 * t.m / nullif(t.s, 0), 1),
+      'delivered_pct', round(100.0 * (t.i + t.tb) / nullif(t.s, 0), 1)));
+  end loop;
+  v_rates := jsonb_set(v_rates, '{overall,unclassified}', to_jsonb((v_rates #>> '{overall,seeds}')::int
+               - (select coalesce(sum(p.seeds), 0)::int from public.deliverability_test_provider p where p.test_id = v_test)));
+  v_verdict := public.fn_invite_placement_rates_verdict(v_rates);
+  v_sum := v_rates -> 'overall';
+
+  update public.deliverability_test set
+         class_rates = v_rates, outlook = v_rates -> 'microsoft',
+         outlook_inbox_pct = (v_rates #>> '{microsoft,inbox_pct}')::numeric,
+         overall_inbox_pct = (v_sum ->> 'inbox_pct')::numeric, overall_tabs_pct = (v_sum ->> 'tabs_pct')::numeric,
+         overall_spam_pct = (v_sum ->> 'spam_pct')::numeric, overall_missing_pct = (v_sum ->> 'missing_pct')::numeric,
+         verdict = case when v_verdict ->> 'strict' = 'pass' then 'pass' else 'fail' end, decided_at = now(),
+         recorded_at = now(),
+         summary = format('GlockApps %s from %s, tested %s: Microsoft %s/%s inbox (%s%%), Google %s inbox + %s tabs of %s (spam %s%%), '
+                          || 'Yahoo/AOL %s/%s inbox (spam %s%%), overall %s/%s inbox (%s%%). Against the bar: %s.',
+                          v_test, v_from, to_char(v_tested at time zone 'UTC', 'YYYY-MM-DD HH24:MI"Z"'),
+                          v_rates #>> '{microsoft,inbox}', v_rates #>> '{microsoft,seeds}', coalesce(v_rates #>> '{microsoft,inbox_pct}', '-'),
+                          v_rates #>> '{google,inbox}', v_rates #>> '{google,tabs}', v_rates #>> '{google,seeds}',
+                          coalesce(v_rates #>> '{google,spam_pct}', '-'),
+                          v_rates #>> '{yahoo_aol,inbox}', v_rates #>> '{yahoo_aol,seeds}', coalesce(v_rates #>> '{yahoo_aol,spam_pct}', '-'),
+                          v_sum ->> 'inbox', v_sum ->> 'seeds', coalesce(v_sum ->> 'inbox_pct', '-'), v_verdict::text)
+   where test_id = v_test;
+
+  return jsonb_build_object('recorded', true, 'test_id', v_test, 'from', v_from, 'tested_at', v_tested,
+    'recorded_by', p_recorded_by, 'seed_notifications', v_seed_rows, 'class_rates', v_rates,
+    'against_the_bar', v_verdict, 'gate_now', public.fn_invite_placement_class_verdicts(now()));
 end $function$
 
 
