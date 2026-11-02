@@ -80,7 +80,7 @@ const CASES = [
   { id: 't_png', licence: byId('lic_dubai_det_png'), profile: profileText, want: APPROVE, read: ['licence_no', 'name', 'authority', 'expiry'] },
   { id: 't_jpg', licence: byId('lic_abu_dhabi_added_jpg'), profile: profileText, want: APPROVE, read: ['licence_no', 'name', 'authority', 'expiry'] },
   { id: 't_blank_pdf', licence: byId('lic_blank_pdf'), profile: profileText, want: { status: 'pending', reason: 'licence_unreadable' } },
-  { id: 't_wrong_company', licence: byId('lic_mismatch_text'), profile: profileText, want: { status: 'pending', reason: 'licence_name_mismatch' }, keepName: true, read: ['licence_no', 'name', 'authority', 'expiry'] },
+  { id: 't_wrong_company', licence: byId('lic_mismatch_text'), profile: profileText, want: APPROVE, nameFromLicence: true, read: ['licence_no', 'name', 'authority', 'expiry'] },
   { id: 't_expired', licence: byId('lic_expired_text'), profile: profileText, want: { status: 'action_required', reason: 'licence_expired' }, read: ['licence_no', 'name', 'authority', 'expiry'] },
 ].filter((c) => !ONLY.length || ONLY.includes(c.id));
 
@@ -232,7 +232,16 @@ async function walk(run, c, n) {
   if (c.read?.includes('name') && c.licence.truth?.legal_name_en) step('the company name read is the printed one', row.name === c.licence.truth.legal_name_en, `${row.name} vs ${c.licence.truth.legal_name_en} (registered as ${c.licence.registered})`);
   if (c.read?.includes('authority') && c.licence.truth?.authority) step('the authority read is the printed one', row.authority === c.licence.truth.authority, `${row.authority} vs ${c.licence.truth.authority}`);
   out.truth = c.licence.truth ? { licence_no: c.licence.truth.licence_no, name: c.licence.truth.legal_name_en, authority: c.licence.truth.authority, issue: c.licence.truth.issue_date, expiry: c.licence.truth.expiry_date } : null;
-  if (c.keepName) step('the registered name was not overwritten', row.company_name === c.licence.registered, `${row.company_name} vs registered ${c.licence.registered}`);
+  // FOUNDER RULING 1176 (7 Oct 2026): a licence name that differs becomes the company name; the old name is kept in
+  // history and the supplier is told, in English, instead of any hold or rejection for the name alone.
+  if (c.nameFromLicence) {
+    step('1176: the licence name became the company name', row.company_name === c.licence.truth.legal_name_en, `${row.company_name} (registered as ${c.licence.registered})`);
+    const hist = await read(`select detail->>'previous_name' prev, detail->>'new_name' nw from public.agent_actions where kind='supplier_name_from_licence' and target_table='leads' and target_id='${lead.id}'`);
+    step('1176: the old name is kept in history (agent_actions supplier_name_from_licence)', hist.length === 1 && hist[0].prev === c.licence.registered && hist[0].nw === c.licence.truth.legal_name_en, JSON.stringify(hist));
+    const told = await read(`select to_jsonb(n)::text j from public.notifications n where lead_id=${lead.id} and type='company_name_from_licence' and channel='email'`);
+    const tj = told[0]?.j || '';
+    step('1176: the supplier is told by e-mail, in English, with both names', told.length === 1 && /updated to match your trade licence/.test(tj) && tj.includes(c.licence.registered) && tj.includes(c.licence.truth.legal_name_en) && !/[؀-ۿ]/.test(tj), tj.slice(0, 260));
+  }
   if (c.read?.length) {
     const iss = await read(`select license_issue_date::text d from public.leads where id=${lead.id}`).then((x) => x[0]?.d ?? null).catch(() => 'COLUMN_ABSENT');
     out.issue = iss;
@@ -248,6 +257,21 @@ async function walk(run, c, n) {
   const dash = await call('supplier_portal', jwt, { action: 'dashboard' });
   const card = dash.json?.supplier;
   step('the portal shows the stage', card?.approval_status === row.status && (card?.licence_gate_reason ?? null) === (row.reason ?? null), JSON.stringify({ s: card?.approval_status, r: card?.licence_gate_reason, due: card?.exception_due_at }));
+  if (BROWSER && c.nameFromLicence) {
+    const who = { kind: 'supplier', email, newSession: async () => s };
+    BR ||= await launch();
+    const { ctx, page } = await signedInPage(BR, who, { lang: 'en', viewport: 'desktop' });
+    let txt = '';
+    try {
+      await page.goto(`${SITE}/portal`, { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await page.locator('nav:visible, button[aria-controls="qd-nav-more"]:visible').first().waitFor({ timeout: 60000 });
+      await page.waitForTimeout(1500);
+      txt = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
+      await page.screenshot({ path: join(SHOTS, `${c.id}_after_rename.png`), fullPage: true }).catch(() => {});
+    } catch (e) { txt = 'ERR ' + e.message; }
+    await ctx.close().catch(() => {});
+    step('1176: on screen the supplier sees the licence name as the company name', txt.includes(c.licence.truth.legal_name_en) && !txt.includes(c.licence.registered), txt.includes(c.licence.registered) ? 'old name still on screen' : (txt.includes(c.licence.truth.legal_name_en) ? 'new name on screen' : txt.slice(0, 200)));
+  }
   out.card = { s: card?.approval_status, r: card?.licence_gate_reason, due: card?.exception_due_at };
   out.eligibility = dash.json?.eligibility ? { eligible: dash.json.eligibility.eligible, blocking: dash.json.eligibility.blocking?.map((b) => b.code) } : null;
   await sleep(3000);

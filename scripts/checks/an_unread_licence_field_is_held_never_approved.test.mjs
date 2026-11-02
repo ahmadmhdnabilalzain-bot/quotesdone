@@ -29,22 +29,17 @@ test('an approved supplier stays approved only while his licence was read in ful
   assert.match(SQL, /= 'approved' and cardinality\(v_missing\) = 0 and not v_name_unread\s+and not v_name_mismatch and not v_expiry_unread and not v_number_unread then/);
 });
 
-// 2 Nov 2026 (ledger 1467): ruling 1176 is NARROWED. The licence name fills the company name only when the registered name
-// is blank; a name that differs is held for the sales engineer, never overwritten, never approved.
-const NEW = R('scripts/sql/a_licence_naming_another_company_is_held_for_the_sales_engineer_and_never_overwrites_the_name.sql');
-const hasNew = (s, why) => assert.ok(NEW.includes(s), why || s);
-test('ruling 1176 narrowed: the licence name fills a BLANK company name only; a differing one is held, never overwritten', () => {
-  hasNew("if v_name_mismatch and public.fn_company_name_norm(coalesce(l.company_name, '')) = '' then", 'the fill is not limited to a blank name');
-  hasNew("'supplier_name_from_licence'", 'the old name is not kept in history');
-  hasNew("'previous_name', v_old_name");
-  hasNew("elsif cardinality(v_missing) = 0 and v_name_mismatch then v_decision := 'pending'; v_reason := 'licence_name_mismatch';", 'a differing name is not held for a person');
-  hasNew("'supplier_licence_name_confirmed'", 'a subsidiary has no way through');
-  hasNew("public.fn_sales_engineer_writes('licence_names_another_company', 'supplier'", 'the supplier is not told');
-  hasNew("revoke all on function public.fn_sales_engineer_confirms_licence_name(bigint, text) from public, anon, authenticated;");
-  assert.ok(!/update public.leads set company_name = btrim(l.licence_legal_name) where id = l.id;[sS]{0,40}elsif/.test(NEW));
-  // the one exception to filling: a name another claimed supplier holds is not copied (unique index, identity) - #1275's hold
-  hasNew("public.fn_company_registration_name_key(o.company_name) = public.fn_company_registration_name_key(l.licence_legal_name)");
-  hasNew("if not v_name_taken then");
+test('ruling 1176: a read licence name that differs becomes the company name, the old one is kept, the supplier is told', () => {
+  const fill = SQL.indexOf("update public.leads set company_name = btrim(l.licence_legal_name) where id = l.id;");
+  const gate = SQL.indexOf("v_reason := case when cardinality(v_missing) > 0");
+  assert.ok(fill > 0 && gate > fill, 'the name is filled before the gate decides');
+  has("v_name_mismatch := false;", 'after the fill the gate goes on as for a matching name');
+  has("'supplier_name_from_licence'", 'the old name is not kept in history');
+  has("'previous_name', v_old_name");
+  has("public.fn_sales_engineer_writes('company_name_from_licence', 'supplier'", 'the supplier is not told');
+  // the one exception: a name another claimed supplier holds is not copied (unique index, identity) - #1275's hold
+  has("public.fn_company_registration_name_key(o.company_name) = public.fn_company_registration_name_key(l.licence_legal_name)");
+  has("if not v_name_taken then");
 });
 
 // Review of #1285: this file is built on #1275, which applies first; rebuilding from an older body silently reverted it.

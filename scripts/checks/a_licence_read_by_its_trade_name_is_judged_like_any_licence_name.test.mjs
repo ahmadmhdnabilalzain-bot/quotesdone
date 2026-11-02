@@ -47,7 +47,6 @@ begin
     r := r || jsonb_build_object(k, jsonb_build_object('decision', g ->> 'decision', 'reason', g ->> 'reason', 'status', l.approval_status,
            'verified', l.verified, 'company', l.company_name, 'demo', l.company_name like 'ZZ DEMO %' and l.email like '%@example.invalid'));
   end loop;
-  r := r || jsonb_build_object('narrowed', position('supplier_licence_name_confirmed' in pg_get_functiondef('public.fn_sales_engineer_verifies_supplier(bigint,text)'::regprocedure)) > 0);
   raise exception 'CHK<<%>>', r::text;
 end $p$;`;
 
@@ -63,15 +62,10 @@ test('production, one aborted transaction on ZZ DEMO rows, automatic approval ON
   assert.ok(r, 'the probe committed instead of rolling back');
   for (const k of ['a', 'b', 'c']) assert.equal(r[k].demo, true, `case ${k} is not a ZZ DEMO fixture`);
   // A. another claimed supplier's name: held for a person, never approved, the entered name kept
-  assert.deepEqual([r.a.decision, r.a.reason, r.a.verified, r.a.company], [r.narrowed ? 'pending' : 'action_required', 'licence_name_mismatch', false, 'ZZ DEMO TN1711 Entered A LLC'], JSON.stringify(r.a));
+  assert.deepEqual([r.a.decision, r.a.reason, r.a.verified, r.a.company], ['action_required', 'licence_name_mismatch', false, 'ZZ DEMO TN1711 Entered A LLC'], JSON.stringify(r.a));
   // B. a different trade name becomes the company name before the approval: approved only under the printed name
-  // (ruling 1176 was NARROWED on 2 Nov 2026, ledger 1467: once the pending SQL a_licence_naming_another_company_... is applied, a
-  // differing name is held for the sales engineer and the entered name kept. The probe reports which body is live.)
-  if (r.narrowed) assert.deepEqual([r.b.decision, r.b.verified, r.b.company], ['pending', false, 'ZZ DEMO TN1711 Entered B LLC'], JSON.stringify(r.b));
-  else {
-    assert.equal(r.b.company, 'ZZ DEMO TN1711 Printed B Aluminium LLC', JSON.stringify(r.b));
-    assert.deepEqual([r.b.decision, r.b.verified], ['approved', true], JSON.stringify(r.b));
-  }
+  assert.equal(r.b.company, 'ZZ DEMO TN1711 Printed B Aluminium LLC', JSON.stringify(r.b));
+  assert.deepEqual([r.b.decision, r.b.verified], ['approved', true], JSON.stringify(r.b));
   // C. an unread licence name: held, never approved automatically
   assert.deepEqual([r.c.decision, r.c.reason, r.c.verified, r.c.company], ['pending', 'licence_unreadable', false, 'ZZ DEMO TN1711 Entered C LLC'], JSON.stringify(r.c));
 });

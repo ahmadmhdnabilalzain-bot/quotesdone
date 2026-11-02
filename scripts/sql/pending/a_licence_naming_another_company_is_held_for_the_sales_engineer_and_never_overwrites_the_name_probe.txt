@@ -1,1 +1,0 @@
-A PROBE, so it is never applied: it always raises CHK<<...>> and rolls back. Rehearsed by apply-sql.yml with the file. This note stays for the life of the file. Seat: sales_engineer.
