@@ -20,7 +20,7 @@
 // 24 Sep 2026: no caps on LLM spend). HELD — the model hold, a failed reading, an answer
 // outside the format — leaves the row queued. Nothing here reads meaning from words: the only string handling is
 // parsing the format the model was told to answer in, and exact set membership of taxonomy codes.
-import { think, type ThinkDeps } from './think.ts';
+import { MIN_STEP_MS, think, type ThinkDeps, withDeadline } from './think.ts';
 import { heldFromGate } from './llm_hold.ts';
 
 export const KINDS = ['quote_spec_match', 'repeat_request', 'supplier_trade_words', 'unknown_sender_mail'] as const;
@@ -166,22 +166,59 @@ export async function judge(deps: ThinkDeps, row: Row, taxonomy: () => Promise<{
   } catch (e) { return held('error: ' + String((e as Error)?.message ?? e).slice(0, 200), true); }
 }
 
+// A JUDGEMENT UNDER A CALLER'S CLOCK (it_engineer, 27 Oct 2026). Measured on production, the detached itlater run of
+// 22:01:12Z (resilience_ping v409): this drain claimed five supplier_trade_words rows at 22:01:27 (lease to 22:06:27) and
+// judged them one after another, two model calls each (ai_cost_log, seat sales_engineer: 24.9, 20.4, 30.9, 19.6, 22.4,
+// 21.2 and 19.3 s). Rows 344, 327 and 341 were decided at 22:02:30, 22:03:31 and 22:04:29, about 60 s apiece; the run's
+// 120 s cap fired at 22:03:12 (duty:detached_itlater:itlater, seen 53) and every step after this one went with it.
+// Rows 334 and 346 were never settled. With a `deadline`, a claim of at most JUDGE_CLAIM rows starts only while a whole
+// row (JUDGE_ROW_MS) still fits before deadline - JUDGE_RESERVE_MS, and withDeadline cuts any model call at that line,
+// so the drain returns before its caller's cap with time to record.
+// JUDGE_CLAIM IS 1 (review of #1693): this run and heldReplay are kicked seconds apart, and the gateway failed every
+// call when five ran at once (20:30Z, 5 of 5) and when four did (21:31Z, 4 of 4); 22:01Z, one judgement beside the
+// replay's two, worked. A claim of 3 would put five think() calls in flight again.
+// Without a deadline (email_triage, the tests) it behaves exactly as before.
+// prevented by: _shared/routine_judgements_keep_a_deadline.test.ts
+export const JUDGE_CLAIM = 1;
+export const JUDGE_ROW_MS = 65_000;
+export const JUDGE_RESERVE_MS = 25_000;
+
 /** Take up to `limit` due rows (optionally only `ids`), judge each, and record the answer or defer the row. */
-export async function drain(deps: ThinkDeps, limit = 5, ids: number[] | null = null): Promise<{ done: number; held: number; failed_reading: number }> {
-  const out = { done: 0, held: 0, failed_reading: 0 };
-  const due = await deps.rpc('fn_routine_judgement_due', { p_limit: limit, p_ids: ids });
-  if (due.error || !Array.isArray(due.data)) return out;
+export async function drain(deps: ThinkDeps, limit = 5, ids: number[] | null = null,
+  opts: { deadline?: number; now?: () => number } = {}): Promise<{ done: number; held: number; failed_reading: number; deferred?: string }> {
+  const out: { done: number; held: number; failed_reading: number; deferred?: string } = { done: 0, held: 0, failed_reading: 0 };
+  const now = opts.now ?? Date.now;
+  const end = opts.deadline === undefined ? Infinity : opts.deadline - JUDGE_RESERVE_MS;
+  const d = opts.deadline === undefined ? deps : withDeadline(deps, end, MIN_STEP_MS, now);
   let tax: { code: string; label: string }[] | null = null;
   const taxonomy = async () => {
     if (tax) return tax;
-    const r = await deps.rpc('fn_taxonomy_trades_active', {});
+    const r = await d.rpc('fn_taxonomy_trades_active', {});
     tax = Array.isArray(r.data) ? r.data as { code: string; label: string }[] : [];
     return tax;
   };
-  for (const row of due.data as Row[]) {
-    const o = await judge(deps, row, taxonomy);
-    if (o.status === 'done') { await deps.rpc('fn_routine_judgement_resolve', { p_id: row.id, p_result: o.result, p_model: o.model }); out.done++; }
-    else { await deps.rpc('fn_routine_judgement_defer', { p_id: row.id, p_error: o.reason, p_counts: o.counts }); if (o.counts) out.failed_reading++; else out.held++; }
+  const one = async (row: Row) => {
+    const o = await judge(d, row, taxonomy);
+    if (o.status === 'done') { await d.rpc('fn_routine_judgement_resolve', { p_id: row.id, p_result: o.result, p_model: o.model }); out.done++; }
+    else { await d.rpc('fn_routine_judgement_defer', { p_id: row.id, p_error: o.reason, p_counts: o.counts }); if (o.counts) out.failed_reading++; else out.held++; }
+  };
+  if (opts.deadline === undefined) {
+    const due = await d.rpc('fn_routine_judgement_due', { p_limit: limit, p_ids: ids });
+    if (due.error || !Array.isArray(due.data)) return out;
+    for (const row of due.data as Row[]) await one(row);
+    return out;
+  }
+  let taken = 0;
+  while (taken < limit) {
+    const left = end - now();
+    if (left < JUDGE_ROW_MS) { if (taken === 0) out.deferred = `${Math.max(0, left)} ms left is under one judgement (${JUDGE_ROW_MS} ms)`; break; }
+    const ask = Math.min(JUDGE_CLAIM, limit - taken);
+    const due = await d.rpc('fn_routine_judgement_due', { p_limit: ask, p_ids: ids });
+    if (due.error || !Array.isArray(due.data)) break;
+    const rows = due.data as Row[];
+    taken += rows.length;
+    await Promise.all(rows.map(one));
+    if (rows.length < ask) break;                       // the queue is drained
   }
   return out;
 }

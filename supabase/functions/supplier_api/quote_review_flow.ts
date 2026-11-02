@@ -105,16 +105,17 @@ export interface ReviewDeps {
   /** THE WORDS (1195-1197): the model writes the engineer's message from `situation` (what code decided); with
    *  `actions`, it also picks the supplier's next step from their message. text '' = no usable model answer; outage =
    *  no call reached a model (OpenRouter down, _shared/openrouter_down.ts) — only then does the fixed notice go out (1339). */
-  voice(v: { kind: MsgKind; situation: string; supplierMessage: string | null; actions?: { id: string; meaning: string }[]; images?: string[] }): Promise<{ text: string; action: string | null; outage?: boolean }>;
+  voice(v: { kind: MsgKind; situation: string; supplierMessage: string | null; actions?: { id: string; meaning: string }[]; images?: string[]; conversation?: { role: 'supplier' | 'seat'; text: string }[] }): Promise<{ text: string; action: string | null; outage?: boolean; problems?: string[] }>;
   /** RULING 1177: a photo or document the supplier attaches to a chat message is READ - code first, then the vision
    *  model (_shared/read_every_attachment.ts). Absent: code only. */
   readAttachment?(bytes: Uint8Array, filename: string, mime: string): Promise<AttachmentRead>;
   /** Keep a job running after the response is sent (EdgeRuntime.waitUntil). Absent: the job runs inline (tests). */
   background?(job: Promise<void>): void;
   /** No model answer: the turn is filed in sales_engineer's reasoning queue (fn_reason_hold, surface
-   *  supplier_api.quote_review_unwritten); the replayed answer is posted into this thread and a turn still unanswered
-   *  after 15 minutes is escalated to the seat. The HELD NOTICE is added by the flow itself. */
-  hold(v: { reviewId: string; situation: string; supplierMessage: string | null; why: string }): Promise<void>;
+   *  supplier_api.quote_review_unwritten); the re-ask (_shared/reask.ts) asks the model again within about a minute with
+   *  `problems` named, posts its answer into this thread, and hands the turn to the seat after its last refused attempt.
+   *  The HELD NOTICE is added by the flow itself, on an outage only. */
+  hold(v: { reviewId: string; situation: string; supplierMessage: string | null; why: string; outage?: boolean; problems?: string[] }): Promise<void>;
 }
 export type Ctx = { supplierId: number; email: string; lang: Lang; companyName?: string | null };
 
@@ -257,9 +258,9 @@ const NOTIFICATION_KINDS: MsgKind[] = ['submitted'];
 export const QR_HELD_NOTICE = 'Thank you, we have received your message. The sales engineer will reply here shortly.';
 /** Nothing was added to the thread (the model is up; its answer comes from the queue). */
 const NOTHING_ADDED = { id: null } as unknown as MessageRow;
-async function held(repo: ReviewRepo, deps: ReviewDeps, reviewId: string, situation: string, supplierMessage: string | null, outage: boolean, issues?: Issue[]): Promise<MessageRow> {
+async function held(repo: ReviewRepo, deps: ReviewDeps, reviewId: string, situation: string, supplierMessage: string | null, outage: boolean, issues?: Issue[], problems: string[] = []): Promise<MessageRow> {
   const r = outage ? await repo.addMessage({ review_id: reviewId, role: SEAT, kind: 'notice', body: QR_HELD_NOTICE, body_ar: null, attachments: [], issues: issues ?? null }) : NOTHING_ADDED;
-  await deps.hold({ reviewId, situation, supplierMessage, why: outage ? 'no_model_answer' : 'model_up_no_safe_reply' }).catch(() => {});
+  await deps.hold({ reviewId, situation, supplierMessage, why: outage ? 'no_model_answer' : 'model_up_no_safe_reply', outage, problems }).catch(() => {});
   await repo.log({ signal: outage ? 'quote_review_held_notice' : 'quote_review_queued_for_model' }, outage
     ? 'OpenRouter was down: the held notice was added and the turn queued for the model (1339).'
     : 'The model answered but nothing it wrote could be sent: no code-written message was added; the turn is queued for the model (1339).');
@@ -270,8 +271,8 @@ async function say(repo: ReviewRepo, deps: ReviewDeps, reviewId: string, kind: M
   const add = (body: string, body_ar: string | null) =>
     repo.addMessage({ review_id: reviewId, role: SEAT, kind, body, body_ar, attachments: extra.attachments ?? [], issues: extra.issues ?? null });
   if (extra.notification || NOTIFICATION_KINDS.includes(kind)) return add(s.en, s.ar);
-  const v = await deps.voice({ kind, situation: s.en, supplierMessage: extra.supplierMessage ?? null }).catch(() => ({ text: '', action: null, outage: false }));
-  if (!v.text) return held(repo, deps, reviewId, s.en, extra.supplierMessage ?? null, v.outage === true, extra.issues);
+  const v = await deps.voice({ kind, situation: s.en, supplierMessage: extra.supplierMessage ?? null }).catch(() => ({ text: '', action: null, outage: false, problems: [] as string[] }));
+  if (!v.text) return held(repo, deps, reviewId, s.en, extra.supplierMessage ?? null, v.outage === true, extra.issues, v.problems ?? []);
   return add(v.text, null);
 }
 const supplierSays = (repo: ReviewRepo, reviewId: string, kind: MsgKind, text: string | null, attachments: Attachment[] = []) =>
@@ -570,12 +571,16 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
     ? [{ id: 'generate', meaning: 'they want us to generate the standardised quotation for them from what they sent' },
        { id: 'reupload', meaning: 'they will upload a new version of their own quotation' }]
     : st === 'ready_to_submit' ? [{ id: 'submit', meaning: 'they clearly tell us to submit the quotation to the customer now' }] : [];
-  const v = await deps.voice({ kind: 'text', supplierMessage: t, actions, situation: stateFacts(l.inq, r, st, open) })
-    .catch(() => ({ text: '', action: null as string | null, outage: false }));
+  // THE THREAD SO FAR (browser proof, 2 Nov 2026): the model was given the review's state and this one message, never what the
+  // supplier had already said, so "what lead time did I tell you?" was answered "nothing has come through". Every earlier
+  // message of the thread rides as the conversation; the message just written is the one being answered.
+  const conversation = (await repo.messages(r.id)).filter((m) => m.id !== sm.id && (m.body ?? '').trim()).map((m) => ({ role: m.role === SEAT ? 'seat' as const : 'supplier' as const, text: String(m.body) }));
+  const v = await deps.voice({ kind: 'text', supplierMessage: t, actions, situation: stateFacts(l.inq, r, st, open), conversation })
+    .catch(() => ({ text: '', action: null as string | null, outage: false, problems: [] as string[] }));
   if (v.action === 'generate' || v.action === 'reupload') return decide(repo, deps, ctx, l, r, v.action, sm.id);
   if (v.action === 'submit') return doSubmit(repo, deps, ctx, l.inq, r, sm.id);
   if (v.text) await repo.addMessage({ review_id: r.id, role: SEAT, kind: st === 'awaiting_choice' ? 'choice_prompt' : 'text', body: v.text, body_ar: null, attachments: [], issues: null });
-  else await held(repo, deps, r.id, stateFacts(l.inq, r, st, open), t, v.outage === true);
+  else await held(repo, deps, r.id, stateFacts(l.inq, r, st, open), t, v.outage === true, undefined, v.problems ?? []);
   return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
 }
 
@@ -616,9 +621,9 @@ async function messageWithFile(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: 
     const said = (t || '(they sent this file with no message)') + `\n\nThey attached "${sc.name}". What it says:` + untrustedBlock(a.text.slice(0, 6000));
     const situation = stateFacts(l.inq, r1, prior, open) + '\nThey attached a file with this message; what it says is in their message. Use it in your answer.';
     const v = await deps.voice({ kind: 'text', supplierMessage: said, situation, images: seenImage(sc.bytes, sc.mime) })
-      .catch(() => ({ text: '', action: null as string | null, outage: false }));
+      .catch(() => ({ text: '', action: null as string | null, outage: false, problems: [] as string[] }));
     if (v.text) await repo.addMessage({ review_id: r.id, role: SEAT, kind: 'text', body: v.text, body_ar: null, attachments: [], issues: null });
-    else await held(repo, deps, r.id, situation, said, v.outage === true);
+    else await held(repo, deps, r.id, situation, said, v.outage === true, undefined, v.problems ?? []);
   });
   return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId));
 }

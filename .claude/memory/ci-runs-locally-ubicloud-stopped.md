@@ -6,6 +6,18 @@ metadata:
   modified: 2026-10-26
 ---
 
+**SUPERSEDED 28 Oct 2026 (ledger 1410).** The founder: *"activate github actions"* and *"they go through
+github normally. no routing to ubicloud or any other service"*. Every workflow now runs on `ubuntu-latest`
+(GitHub-hosted); `vars.RUNNER` and every Ubicloud label are gone. Back on: `checks` and `repo and database agree`
+on push and pull_request, `deploy edge functions` on push, and the post-deploy smoke after it. Still off:
+- the scheduled jobs. They were moved to pg_cron on 26 Oct, and re-adding the GitHub cron would run them twice;
+- `release train`. It merges, applies and deploys on its own every 10 minutes, and must not race the release
+  operator's manual train. It comes back by the founder's word or once the manual train is idle.
+
+The local gate (`npm run gate`) remains the release operator's own check. A PR now also has the
+GitHub `checks` status, and the merge-chain rules in [[never-merge-on-a-red-check]] apply to it again.
+
+---
 **The ruling, 26 Oct 2026 (ledger 1279):** *"Ubicloud is stopped. No paid service for CI, GitHub
 Actions included, until the bugs are cleared. Claude sessions do the checks and actions themselves;
 GitHub Actions comes back once the bugs are cleared."*

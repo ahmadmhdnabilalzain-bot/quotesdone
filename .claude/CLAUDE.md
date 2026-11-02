@@ -47,7 +47,8 @@ Load this alongside `quotesdone-session` at the START of every session on this r
   founder's ruling of 8 Sep 2026: "use as many agents possible to speed up the process". Fan out by
   default — independent tool calls in ONE message, independent investigations to subagents launched
   together, long work to the background while you pick up something else. Serial only where a step
-  genuinely depends on the one before it, and NEVER for production writes, applies or git.
+  genuinely depends on the one before it, and NEVER for production writes, applies or git. Capped at
+  5 agents at once, with Sonnet for simple tasks (1 Nov 2026, ledger 1417).
 
 Load this alongside `quotesdone-session` at the START of every session on this repository.
 

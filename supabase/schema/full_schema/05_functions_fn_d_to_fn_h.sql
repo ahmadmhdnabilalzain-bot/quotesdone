@@ -4955,6 +4955,19 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_gateway_client_key()
+ RETURNS text
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- the new key first; the legacy anon JWT only while the publishable_key row is absent (TEMPORARY, 27 Oct 2026)
+  select coalesce(
+    (select nullif(btrim(value), '') from public.app_secrets where key = 'publishable_key'),
+    (select nullif(btrim(value), '') from public.app_secrets where key = 'anon_key'));
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_gl_entry(p_date date, p_memo text, p_source text, p_ref text, p_lines jsonb, p_created_by text DEFAULT 'system'::text)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -5458,6 +5471,20 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_glockapps_provider_class(p_name text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when lower(btrim(coalesce(p_name, ''))) ~ '^(outlook|hotmail|live|msn|exchange|office ?365|microsoft)' then 'microsoft'
+    when lower(btrim(coalesce(p_name, ''))) ~ '^(gmail|google|g ?suite)' then 'google'
+    when lower(btrim(coalesce(p_name, ''))) ~ '^(yahoo|aol)' then 'yahoo_aol'
+    else 'other' end;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_goal_attainment(p_horizon text DEFAULT 'monthly'::text)
  RETURNS jsonb
  LANGUAGE sql
@@ -5525,14 +5552,24 @@ CREATE OR REPLACE FUNCTION public.fn_handoff_citation_gaps(p_since timestamp wit
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+  with c as (
+    select a.id,
+           (a.evidence->'cites_note'->>'handoff_id') = a.id::text as cited,
+           nullif(btrim(coalesce(a.evidence->'not_cited'->>'reason', '')), '') is not null as reasoned,
+           coalesce(a.evidence->'not_cited'->>'by', 'unnamed') as reason_by
+      from public.agent_actions a
+     where a.kind = 'handoff' and a.status = 'done' and a.decided_at >= p_since
+       and a.detail->'summary' ?& array['context','decision','open_asks','deadline'])
   select jsonb_build_object(
     'since', p_since,
     'closed_with_note', count(*),
-    'cited', count(*) filter (where (a.evidence->'cites_note'->>'handoff_id') = a.id::text),
-    'uncited_ids', coalesce(jsonb_agg(a.id order by a.id) filter (where (a.evidence->'cites_note'->>'handoff_id') is distinct from a.id::text), '[]'::jsonb))
-    from public.agent_actions a
-   where a.kind = 'handoff' and a.status = 'done' and a.decided_at >= p_since
-     and a.detail->'summary' ?& array['context','decision','open_asks','deadline'];
+    'cited', count(*) filter (where cited),
+    'reason_recorded', count(*) filter (where not coalesce(cited, false) and reasoned),
+    'reason_by', coalesce((select jsonb_object_agg(reason_by, n) from (select reason_by, count(*) n from c
+                             where not coalesce(cited, false) and reasoned group by 1) r), '{}'::jsonb),
+    'neither', count(*) filter (where not coalesce(cited, false) and not reasoned),
+    'uncited_ids', coalesce(jsonb_agg(id order by id) filter (where not coalesce(cited, false) and not reasoned), '[]'::jsonb))
+    from c;
 $function$
 
 

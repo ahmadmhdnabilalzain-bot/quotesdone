@@ -40,6 +40,8 @@ const DIR = join(process.env.QD_E2E_REPORTS || join(MAIN, 'e2e-reports'), stamp)
 process.env.QD_FIXTURES = '1';
 
 if (val('--purge-tag')) {
+  // The founder's permanent demo accounts are never purged (instruction 571; stage2.mjs refuses the same tag).
+  if (val('--purge-tag') === 'founderdemo') { console.error('REFUSED: founderdemo is the founder\'s permanent demo account and is never purged'); process.exit(2); }
   const t = await teardown(newRun({ tag: val('--purge-tag'), quiet: true }));
   console.log('torn down:', t.summary);
   // a purged run is over: its window closes too (a run killed before its finally left one open)
@@ -99,8 +101,11 @@ const state = { truncated: false };
 const outOfTime = () => { if (Date.now() <= DEADLINE) return false; state.truncated = true; return true; };
 // Ledger 1247: no spend limit on tests (USD 15 = the CHECK maximum). Measured: avg 0.146, max 0.431 per run (13 runs, 30 days to 18 Oct 2026).
 const run = await openRun({ keep: KEEP });
-// A cancelled job (SIGTERM), Ctrl-C or a stray crash never reaches the finally below; close this run's window anyway.
-const disarm = closeOnExit(() => closeRehearsalWindow(run.tag));
+// A cancelled job (SIGTERM), Ctrl-C or a stray crash never reaches the finally below; tear the run down and close its
+// window anyway (closeRun always closes the window, even when teardown throws). 27 Oct 2026: this closed the window
+// only, so run fd24a83f's ZZ DEMO customer and auth user outlived it. A kill -9 is caught by nothing: the next run's
+// sweepStaleRuns (and every withRun's) removes it once its window is over.
+const disarm = closeOnExit(() => closeRun(run, { keep: KEEP }));
 const ctx = { run, rep, dir: DIR, consoleErrors: [], fx: {}, deadline: DEADLINE, outOfTime };
 let browser = null, closed = null, fatal = null;
 // Set when the harness's OWN session died mid-run (browser.mjs HarnessSignedOut). It is kept apart

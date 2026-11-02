@@ -12,7 +12,9 @@ import { fileURLToPath } from 'node:url';
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FILE = 'scripts/sql/a_held_question_lives_fourteen_days_once_the_model_is_open_and_the_newest_is_answered_first.sql';
 const manifest = readFileSync(join(REPO, 'scripts/sql/MANIFEST.txt'), 'utf8').split('\n').map((l) => l.trim()).filter((l) => l.endsWith('.sql'));
-const order = manifest.includes(FILE) ? manifest : [...manifest, FILE];
+// 27 Oct 2026: the order moved to OLDEST first; its file is read after the manifest (pending until applied).
+const OLDEST = 'scripts/sql/a_held_question_is_answered_oldest_first_so_a_seats_revision_is_never_starved.sql';
+const order = [...manifest, ...[FILE, OLDEST].filter((f) => !manifest.includes(f))];
 const code = (t) => t.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 
 /** The body of the LAST definition of a routine in apply order: the one production runs. */
@@ -30,8 +32,14 @@ function body(name) {
   return last;
 }
 
-test('the scheduler claims the newest due question first', () => {
-  assert.match(body('fn_reason_held_due'), /order by h\.last_attempt_at nulls first, h\.created_at desc/i);
+// 27 Oct 2026 (it_engineer): newest first starved the older rows. Measured: untried rows went before every retry
+// (NULLS FIRST, the opposite of what the 6 Oct header promised), it_engineer.postmortem files 3 rows an hour against
+// 4 claims an hour, and at 22:01 the replay took two 22:00 postmortem rows while marketing's revision owed to the CEO
+// (28986, 28987, filed 01:05) waited. Oldest first; the three-try bound keeps the head moving.
+test('the scheduler claims the oldest due question first, tried or not', () => {
+  const b = body('fn_reason_held_due');
+  assert.match(b, /order by h\.created_at, h\.id\s+limit/i);
+  assert.doesNotMatch(b, /nulls first, h\.created_at desc/i, 'untried-first, newest-first is back');
 });
 
 test('a filed question gets 14 days; a visitor chat keeps its hour', () => {

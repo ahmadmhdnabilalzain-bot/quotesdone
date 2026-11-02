@@ -1,0 +1,759 @@
+{
+  "tag": "f224f85a",
+  "site": "https://quotesdone.com",
+  "journey": [],
+  "results": [
+    {
+      "m": "en/desktop",
+      "name": "the invitation names the company on landing",
+      "ok": true,
+      "detail": "6317 ms"
+    },
+    {
+      "m": "en/desktop",
+      "name": "the form opens on create-account, not \"Welcome back\"",
+      "ok": true,
+      "detail": "Register as a supplier"
+    },
+    {
+      "m": "en/desktop",
+      "name": "\"Claim my listing\" brings the e-mail box into view",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "en/desktop",
+      "name": "the form sends the code and opens the code step",
+      "ok": true,
+      "detail": "4076 ms (>3 s)"
+    },
+    {
+      "m": "en/desktop",
+      "name": "the code step names the address the code went to (#1700)",
+      "ok": true,
+      "detail": "Register as a supplier | We sent a 6-digit code to delivered+qd-f224f85a-sup0@resend.dev. Enter it below. | Sign in"
+    },
+    {
+      "m": "en/desktop",
+      "name": "the code e-mail is delivered and carries a 6-digit code",
+      "ok": true,
+      "detail": "from QuotesDone <info@quotesdone.com>; subject \"Your QuotesDone sign-in code\"; last_event delivered; accepted by Resend 3530 ms after the click; read 17622 ms"
+    },
+    {
+      "m": "en/desktop",
+      "name": "the real code verifies and the invited company opens, claimed",
+      "ok": true,
+      "detail": "6997 ms (>3 s)"
+    },
+    {
+      "m": "en/desktop",
+      "name": "the claimed company opens — never a blank \"Register your company\"",
+      "ok": true,
+      "detail": "6572 ms"
+    },
+    {
+      "m": "en/desktop",
+      "name": "the listing is claimed by this account with the e-mail proof carried",
+      "ok": true,
+      "detail": "{\"claimed\":true,\"mine\":true,\"ev\":true}"
+    },
+    {
+      "m": "en/desktop",
+      "name": "licence + company profile uploaded; licence expiry read",
+      "ok": true,
+      "detail": "{\"lic\":true,\"license_expiry\":\"2028-03-14\",\"prof\":true}"
+    },
+    {
+      "m": "en/desktop",
+      "name": "the Documents tab read the licence name and it matches the company",
+      "ok": true,
+      "detail": "{\"licence_legal_name\":\"ZZ DEMO Walk f224f85a en desktop 0\",\"company_name\":\"ZZ DEMO Walk f224f85a en desktop 0\",\"matches\":true,\"mismatch\":false}"
+    },
+    {
+      "m": "en/desktop",
+      "name": "every button on the Documents tab is inside the screen",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "en/desktop",
+      "name": "a fixture mobile is refused before any SMS",
+      "ok": true,
+      "detail": "{\"ok\":false,\"captured\":true,\"code\":\"fixture_number\",\"error\":\"This is a reserved test numbe"
+    },
+    {
+      "m": "en/desktop",
+      "name": "the WhatsApp question is on the Profile tab while registration needs it",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "en/desktop",
+      "name": "the WhatsApp answer is recorded",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "m": "en/desktop",
+      "name": "terms + Save → approved with a signed certificate, by the deterministic check with no licence hold",
+      "ok": true,
+      "detail": "{\"approval_status\":\"approved\",\"signed_terms_path\":\"suppliers/1793151671062_ZZ_DEMO_Walk_f224f85a_en_desktop_0_TnC-Acceptance.pdf\",\"signatory_name\":\"ZZ DEMO Signatory\",\"approval_decided_by\":\"sales_engineer\",\"licence_gate_reason\":null}; Save answered in 6275 ms, approved 5787 ms after"
+    },
+    {
+      "m": "en/desktop",
+      "name": "acceptance stored with IP, agent, version, hash, signatory; mobile + e-mail verified; fields as typed",
+      "ok": true,
+      "detail": "{\"ip\":true,\"ua\":true,\"v\":\"v16\",\"sha\":true,\"signatory_name\":\"ZZ DEMO Signatory\",\"contact_name\":\"ZZ DEMO Contact\",\"service_emirates\":[\"Dubai\"],\"pv\":true,\"ev\":true,\"company_name\":\"ZZ DEMO Walk f224f85a en desktop 0\"}"
+    },
+    {
+      "m": "en/desktop",
+      "name": "the approval mail to the sink is refused by the fixture guard and the skip is on record",
+      "ok": true,
+      "detail": "[{\"type\":\"registration_received\",\"channel\":\"email\",\"status\":\"suppressed\"},{\"type\":\"registration_received\",\"channel\":\"whatsapp\",\"status\":\"suppressed\"}]"
+    },
+    {
+      "m": "en/desktop",
+      "name": "the approval notice decision is on record",
+      "ok": true,
+      "detail": "agent_actions rows 1"
+    },
+    {
+      "m": "en/desktop",
+      "name": "tab \"Services\" settles",
+      "ok": true,
+      "detail": "1636 ms"
+    },
+    {
+      "m": "en/desktop",
+      "name": "tab \"Inquiries received\" settles",
+      "ok": true,
+      "detail": "2155 ms"
+    },
+    {
+      "m": "en/desktop",
+      "name": "tab \"Quotations submitted\" settles",
+      "ok": true,
+      "detail": "2693 ms"
+    },
+    {
+      "m": "en/desktop",
+      "name": "tab \"Messages\" settles",
+      "ok": true,
+      "detail": "28 ms"
+    },
+    {
+      "m": "en/desktop",
+      "name": "tab \"Documents\" settles",
+      "ok": true,
+      "detail": "3600 ms (>3 s)"
+    },
+    {
+      "m": "en/desktop",
+      "name": "tab \"Insights\" settles",
+      "ok": true,
+      "detail": "5458 ms (>3 s)"
+    },
+    {
+      "m": "en/desktop",
+      "name": "account \"Profile\" settles",
+      "ok": true,
+      "detail": "365 ms"
+    },
+    {
+      "m": "en/desktop",
+      "name": "account \"Billing\" settles",
+      "ok": true,
+      "detail": "231 ms"
+    },
+    {
+      "m": "en/desktop",
+      "name": "account \"Settings\" settles",
+      "ok": true,
+      "detail": "38 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "the invitation names the company on landing",
+      "ok": true,
+      "detail": "2853 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "the form opens on create-account, not \"Welcome back\"",
+      "ok": true,
+      "detail": "Register as a supplier"
+    },
+    {
+      "m": "en/mobile",
+      "name": "\"Claim my listing\" brings the e-mail box into view",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "en/mobile",
+      "name": "the form sends the code and opens the code step",
+      "ok": true,
+      "detail": "2377 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "the code step names the address the code went to (#1700)",
+      "ok": true,
+      "detail": "Register as a supplier | We sent a 6-digit code to delivered+qd-f224f85a-sup1@resend.dev. Enter it below. | Sign in"
+    },
+    {
+      "m": "en/mobile",
+      "name": "the code e-mail is delivered and carries a 6-digit code",
+      "ok": true,
+      "detail": "from QuotesDone <info@quotesdone.com>; subject \"Your QuotesDone sign-in code\"; last_event delivered; accepted by Resend 2146 ms after the click; read 16114 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "the real code verifies and the invited company opens, claimed",
+      "ok": true,
+      "detail": "7879 ms (>3 s)"
+    },
+    {
+      "m": "en/mobile",
+      "name": "the claimed company opens — never a blank \"Register your company\"",
+      "ok": true,
+      "detail": "5220 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "the listing is claimed by this account with the e-mail proof carried",
+      "ok": true,
+      "detail": "{\"claimed\":true,\"mine\":true,\"ev\":true}"
+    },
+    {
+      "m": "en/mobile",
+      "name": "licence + company profile uploaded; licence expiry read",
+      "ok": true,
+      "detail": "{\"lic\":true,\"license_expiry\":\"2028-03-14\",\"prof\":true}"
+    },
+    {
+      "m": "en/mobile",
+      "name": "the Documents tab read the licence name and it matches the company",
+      "ok": true,
+      "detail": "{\"licence_legal_name\":\"ZZ DEMO Walk f224f85a en mobile 1\",\"company_name\":\"ZZ DEMO Walk f224f85a en mobile 1\",\"matches\":true,\"mismatch\":false}"
+    },
+    {
+      "m": "en/mobile",
+      "name": "every button on the Documents tab is inside the screen",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "en/mobile",
+      "name": "a fixture mobile is refused before any SMS",
+      "ok": true,
+      "detail": "{\"ok\":false,\"captured\":true,\"code\":\"fixture_number\",\"error\":\"This is a reserved test numbe"
+    },
+    {
+      "m": "en/mobile",
+      "name": "the WhatsApp question is on the Profile tab while registration needs it",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "en/mobile",
+      "name": "the WhatsApp answer is recorded",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "m": "en/mobile",
+      "name": "terms + Save → approved with a signed certificate, by the deterministic check with no licence hold",
+      "ok": true,
+      "detail": "{\"approval_status\":\"approved\",\"signed_terms_path\":\"suppliers/1793151797031_ZZ_DEMO_Walk_f224f85a_en_mobile_1_TnC-Acceptance.pdf\",\"signatory_name\":\"ZZ DEMO Signatory\",\"approval_decided_by\":\"sales_engineer\",\"licence_gate_reason\":null}; Save answered in 2397 ms, approved 5741 ms after"
+    },
+    {
+      "m": "en/mobile",
+      "name": "acceptance stored with IP, agent, version, hash, signatory; mobile + e-mail verified; fields as typed",
+      "ok": true,
+      "detail": "{\"ip\":true,\"ua\":true,\"v\":\"v16\",\"sha\":true,\"signatory_name\":\"ZZ DEMO Signatory\",\"contact_name\":\"ZZ DEMO Contact\",\"service_emirates\":[\"Dubai\"],\"pv\":true,\"ev\":true,\"company_name\":\"ZZ DEMO Walk f224f85a en mobile 1\"}"
+    },
+    {
+      "m": "en/mobile",
+      "name": "the approval mail to the sink is refused by the fixture guard and the skip is on record",
+      "ok": true,
+      "detail": "[{\"type\":\"registration_received\",\"channel\":\"email\",\"status\":\"suppressed\"},{\"type\":\"registration_received\",\"channel\":\"whatsapp\",\"status\":\"suppressed\"}]"
+    },
+    {
+      "m": "en/mobile",
+      "name": "the approval notice decision is on record",
+      "ok": true,
+      "detail": "agent_actions rows 1"
+    },
+    {
+      "m": "en/mobile",
+      "name": "tab \"Services\" settles",
+      "ok": true,
+      "detail": "2611 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "tab \"Inquiries received\" settles",
+      "ok": true,
+      "detail": "1573 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "tab \"Quotations submitted\" settles",
+      "ok": true,
+      "detail": "1316 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "tab \"Messages\" settles",
+      "ok": true,
+      "detail": "14 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "tab \"Documents\" settles",
+      "ok": true,
+      "detail": "2720 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "tab \"Insights\" settles",
+      "ok": true,
+      "detail": "4295 ms (>3 s)"
+    },
+    {
+      "m": "en/mobile",
+      "name": "account \"Profile\" settles",
+      "ok": true,
+      "detail": "18 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "account \"Billing\" settles",
+      "ok": true,
+      "detail": "277 ms"
+    },
+    {
+      "m": "en/mobile",
+      "name": "account \"Settings\" settles",
+      "ok": true,
+      "detail": "262 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "the invitation names the company on landing",
+      "ok": true,
+      "detail": "2779 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "the form opens on create-account, not \"Welcome back\"",
+      "ok": true,
+      "detail": "Register as a supplier"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "\"Claim my listing\" brings the e-mail box into view",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "ar/desktop",
+      "name": "the form sends the code and opens the code step",
+      "ok": true,
+      "detail": "2502 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "the code step names the address the code went to (#1700)",
+      "ok": true,
+      "detail": "Register as a supplier | We sent a 6-digit code to delivered+qd-f224f85a-sup2@resend.dev. Enter it below. | Sign in"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "the code e-mail is delivered and carries a 6-digit code",
+      "ok": true,
+      "detail": "from QuotesDone <info@quotesdone.com>; subject \"Your QuotesDone sign-in code\"; last_event delivered; accepted by Resend 1865 ms after the click; read 16071 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "the real code verifies and the invited company opens, claimed",
+      "ok": true,
+      "detail": "7057 ms (>3 s)"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "the claimed company opens — never a blank \"Register your company\"",
+      "ok": true,
+      "detail": "4472 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "the listing is claimed by this account with the e-mail proof carried",
+      "ok": true,
+      "detail": "{\"claimed\":true,\"mine\":true,\"ev\":true}"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "licence + company profile uploaded; licence expiry read",
+      "ok": true,
+      "detail": "{\"lic\":true,\"license_expiry\":\"2028-03-14\",\"prof\":true}"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "the Documents tab read the licence name and it matches the company",
+      "ok": true,
+      "detail": "{\"licence_legal_name\":\"ZZ DEMO Walk f224f85a ar desktop 2\",\"company_name\":\"ZZ DEMO Walk f224f85a ar desktop 2\",\"matches\":true,\"mismatch\":false}"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "every button on the Documents tab is inside the screen",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "ar/desktop",
+      "name": "a fixture mobile is refused before any SMS",
+      "ok": true,
+      "detail": "{\"ok\":false,\"captured\":true,\"code\":\"fixture_number\",\"error\":\"This is a reserved test numbe"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "the WhatsApp question is on the Profile tab while registration needs it",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "ar/desktop",
+      "name": "the WhatsApp answer is recorded",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "terms + Save → approved with a signed certificate, by the deterministic check with no licence hold",
+      "ok": true,
+      "detail": "{\"approval_status\":\"approved\",\"signed_terms_path\":\"suppliers/1793151921792_ZZ_DEMO_Walk_f224f85a_ar_desktop_2_TnC-Acceptance.pdf\",\"signatory_name\":\"ZZ DEMO Signatory\",\"approval_decided_by\":\"sales_engineer\",\"licence_gate_reason\":null}; Save answered in 5941 ms, approved 5742 ms after"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "acceptance stored with IP, agent, version, hash, signatory; mobile + e-mail verified; fields as typed",
+      "ok": true,
+      "detail": "{\"ip\":true,\"ua\":true,\"v\":\"v16\",\"sha\":true,\"signatory_name\":\"ZZ DEMO Signatory\",\"contact_name\":\"ZZ DEMO Contact\",\"service_emirates\":[\"Dubai\"],\"pv\":true,\"ev\":true,\"company_name\":\"ZZ DEMO Walk f224f85a ar desktop 2\"}"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "the approval mail to the sink is refused by the fixture guard and the skip is on record",
+      "ok": true,
+      "detail": "[{\"type\":\"registration_received\",\"channel\":\"email\",\"status\":\"suppressed\"},{\"type\":\"registration_received\",\"channel\":\"whatsapp\",\"status\":\"suppressed\"}]"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "the approval notice decision is on record",
+      "ok": true,
+      "detail": "agent_actions rows 1"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "tab \"Services\" settles",
+      "ok": true,
+      "detail": "1356 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "tab \"Inquiries received\" settles",
+      "ok": true,
+      "detail": "3220 ms (>3 s)"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "tab \"Quotations submitted\" settles",
+      "ok": true,
+      "detail": "1356 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "tab \"Messages\" settles",
+      "ok": true,
+      "detail": "7 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "tab \"Documents\" settles",
+      "ok": true,
+      "detail": "2863 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "tab \"Insights\" settles",
+      "ok": true,
+      "detail": "2785 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "account \"Profile\" settles",
+      "ok": true,
+      "detail": "433 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "account \"Billing\" settles",
+      "ok": true,
+      "detail": "277 ms"
+    },
+    {
+      "m": "ar/desktop",
+      "name": "account \"Settings\" settles",
+      "ok": true,
+      "detail": "58 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "the invitation names the company on landing",
+      "ok": true,
+      "detail": "2765 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "the form opens on create-account, not \"Welcome back\"",
+      "ok": true,
+      "detail": "Register as a supplier"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "\"Claim my listing\" brings the e-mail box into view",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "ar/mobile",
+      "name": "the form sends the code and opens the code step",
+      "ok": true,
+      "detail": "2364 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "the code step names the address the code went to (#1700)",
+      "ok": true,
+      "detail": "Register as a supplier | We sent a 6-digit code to delivered+qd-f224f85a-sup3@resend.dev. Enter it below. | Sign in"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "the code e-mail is delivered and carries a 6-digit code",
+      "ok": true,
+      "detail": "from QuotesDone <info@quotesdone.com>; subject \"Your QuotesDone sign-in code\"; last_event delivered; accepted by Resend 1817 ms after the click; read 16150 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "the real code verifies and the invited company opens, claimed",
+      "ok": true,
+      "detail": "9873 ms (>3 s)"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "the claimed company opens — never a blank \"Register your company\"",
+      "ok": true,
+      "detail": "5279 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "the listing is claimed by this account with the e-mail proof carried",
+      "ok": true,
+      "detail": "{\"claimed\":true,\"mine\":true,\"ev\":true}"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "licence + company profile uploaded; licence expiry read",
+      "ok": true,
+      "detail": "{\"lic\":true,\"license_expiry\":\"2028-03-14\",\"prof\":true}"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "the Documents tab read the licence name and it matches the company",
+      "ok": true,
+      "detail": "{\"licence_legal_name\":\"ZZ DEMO Walk f224f85a ar mobile 3\",\"company_name\":\"ZZ DEMO Walk f224f85a ar mobile 3\",\"matches\":true,\"mismatch\":false}"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "every button on the Documents tab is inside the screen",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "ar/mobile",
+      "name": "a fixture mobile is refused before any SMS",
+      "ok": true,
+      "detail": "{\"ok\":false,\"captured\":true,\"code\":\"fixture_number\",\"error\":\"This is a reserved test numbe"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "the WhatsApp question is on the Profile tab while registration needs it",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "ar/mobile",
+      "name": "the WhatsApp answer is recorded",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "terms + Save → approved with a signed certificate, by the deterministic check with no licence hold",
+      "ok": true,
+      "detail": "{\"approval_status\":\"approved\",\"signed_terms_path\":\"suppliers/1793152045908_ZZ_DEMO_Walk_f224f85a_ar_mobile_3_TnC-Acceptance.pdf\",\"signatory_name\":\"ZZ DEMO Signatory\",\"approval_decided_by\":\"sales_engineer\",\"licence_gate_reason\":null}; Save answered in 2884 ms, approved 5860 ms after"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "acceptance stored with IP, agent, version, hash, signatory; mobile + e-mail verified; fields as typed",
+      "ok": true,
+      "detail": "{\"ip\":true,\"ua\":true,\"v\":\"v16\",\"sha\":true,\"signatory_name\":\"ZZ DEMO Signatory\",\"contact_name\":\"ZZ DEMO Contact\",\"service_emirates\":[\"Dubai\"],\"pv\":true,\"ev\":true,\"company_name\":\"ZZ DEMO Walk f224f85a ar mobile 3\"}"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "the approval mail to the sink is refused by the fixture guard and the skip is on record",
+      "ok": true,
+      "detail": "[{\"type\":\"registration_received\",\"channel\":\"email\",\"status\":\"suppressed\"},{\"type\":\"registration_received\",\"channel\":\"whatsapp\",\"status\":\"suppressed\"}]"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "the approval notice decision is on record",
+      "ok": true,
+      "detail": "agent_actions rows 1"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Services\" settles",
+      "ok": true,
+      "detail": "2082 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Inquiries received\" settles",
+      "ok": true,
+      "detail": "2344 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Quotations submitted\" settles",
+      "ok": true,
+      "detail": "1296 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Messages\" settles",
+      "ok": true,
+      "detail": "266 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Documents\" settles",
+      "ok": true,
+      "detail": "2085 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "tab \"Insights\" settles",
+      "ok": true,
+      "detail": "2607 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "account \"Profile\" settles",
+      "ok": true,
+      "detail": "13 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "account \"Billing\" settles",
+      "ok": true,
+      "detail": "265 ms"
+    },
+    {
+      "m": "ar/mobile",
+      "name": "account \"Settings\" settles",
+      "ok": true,
+      "detail": "264 ms"
+    }
+  ],
+  "teardown": {
+    "removed": {
+      "counts": {
+        "notifications": 8,
+        "comparison_candidate_v2 (table no longer exists)": 0,
+        "agent_actions": 12,
+        "documents": 8,
+        "company_event (lead)": 8,
+        "file_scan": 8,
+        "supplier_capabilities (fk supplier_id -> leads)": 4,
+        "leads": 4,
+        "customer_organization (table no longer exists)": 0,
+        "storage_objects": 20
+      },
+      "objects": {
+        "drawing-files": 0,
+        "quote-files": 0,
+        "signed-terms": 4,
+        "supplier-docs": 16,
+        "agent-docs": 0
+      },
+      "summary": "notifications 8, comparison_candidate_v2 (table no longer exists) 0, agent_actions 12, documents 8, company_event (lead) 8, file_scan 8, supplier_capabilities (fk supplier_id -> leads) 4, leads 4, customer_organization (table no longer exists) 0, storage_objects 20"
+    },
+    "leftovers": {
+      "auth_users": 0,
+      "customers": 0,
+      "leads": 0,
+      "inquiries": 0,
+      "quotes": 0,
+      "quote_spec_hold": 0,
+      "quote_reviews": 0,
+      "notifications": 0,
+      "transactions": 0,
+      "refunds": 0,
+      "supplier_dues": 0,
+      "refund_case": 0,
+      "inquiry_intake": 0,
+      "email_verifications": 0,
+      "storage_objects": 0,
+      "total": 0
+    },
+    "sinks": [
+      {
+        "a": "delivered+qd-f224f85a-sup0@resend.dev",
+        "l": {
+          "auth_users": 0,
+          "email_verifications": 0,
+          "notifications": 0,
+          "leads": 0
+        }
+      },
+      {
+        "a": "delivered+qd-f224f85a-sup1@resend.dev",
+        "l": {
+          "auth_users": 0,
+          "email_verifications": 0,
+          "notifications": 0,
+          "leads": 0
+        }
+      },
+      {
+        "a": "delivered+qd-f224f85a-sup2@resend.dev",
+        "l": {
+          "auth_users": 0,
+          "email_verifications": 0,
+          "notifications": 0,
+          "leads": 0
+        }
+      },
+      {
+        "a": "delivered+qd-f224f85a-sup3@resend.dev",
+        "l": {
+          "auth_users": 0,
+          "email_verifications": 0,
+          "notifications": 0,
+          "leads": 0
+        }
+      }
+    ]
+  }
+}

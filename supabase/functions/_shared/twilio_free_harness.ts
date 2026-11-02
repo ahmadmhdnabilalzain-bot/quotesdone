@@ -90,5 +90,19 @@ export async function invoke(handler: (req: Request) => Promise<Response>, stub:
   };
 }
 
+/** Like invoke, but the caller builds the Request (a Twilio form POST with its signature); `after` runs before the calls are read. */
+export async function invokeRequest(handler: (req: Request) => Promise<Response>, stub: Stub, req: Request, after: () => Promise<void> = async () => {}) {
+  current = stub;
+  calls.length = 0;
+  const res = await handler(req);
+  await after();
+  await new Promise((r) => setTimeout(r, 30));
+  const made = [...calls];
+  return {
+    status: res.status, calls: made,
+    twilio: made.filter((c) => { const h = new URL(c.url).hostname; return h === 'twilio.com' || h.endsWith('.twilio.com'); }),
+  };
+}
+
 export const FIXTURE = '+971500000042';      // the number texted on 14 Sep
 export const REAL_LOOKING = '+971501234567'; // outside the reserved block: must reach (stubbed) Twilio

@@ -28,6 +28,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
+import { pickApiKey } from '../lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 export const EXTRACTOR_VERSION = 'mf-1';
 const REF = 'htdblwldjkcgjvmqkbeh';
@@ -54,19 +55,19 @@ async function serviceKey() {
   if (_key) return _key;
   const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/api-keys?reveal=true`, { headers: { Authorization: 'Bearer ' + token() } });
   const k = await r.json();
-  _key = Array.isArray(k) ? k.find((x) => x.name === 'service_role')?.api_key : undefined;
+  _key = Array.isArray(k) ? pickApiKey(k, 'secret') : undefined;
   if (!_key) throw new Error('no service_role key from the management API');
   return _key;
 }
 const enc = (p) => p.split('/').map(encodeURIComponent).join('/');
 async function download(bucket, path) {
-  const r = await fetch(`${BASE}/storage/v1/object/${bucket}/${enc(path)}`, { headers: { Authorization: 'Bearer ' + await serviceKey() } });
+  const r = await fetch(`${BASE}/storage/v1/object/${bucket}/${enc(path)}`, { headers: { apikey: await serviceKey(), Authorization: 'Bearer ' + await serviceKey() } });
   if (!r.ok) throw new Error(`download ${bucket}/${path}: ${r.status}`);
   return Buffer.from(await r.arrayBuffer());
 }
 async function upload(bucket, path, bytes, type) {
   const r = await fetch(`${BASE}/storage/v1/object/${bucket}/${enc(path)}`, {
-    method: 'POST', headers: { Authorization: 'Bearer ' + await serviceKey(), 'Content-Type': type, 'x-upsert': 'true' }, body: bytes });
+    method: 'POST', headers: { apikey: await serviceKey(), Authorization: 'Bearer ' + await serviceKey(), 'Content-Type': type, 'x-upsert': 'true' }, body: bytes });
   if (!r.ok) throw new Error(`upload ${bucket}/${path}: ${r.status} ${(await r.text()).slice(0, 200)}`);
 }
 

@@ -63,12 +63,22 @@ test('(a) a real SIGTERM from outside closes the window', { skip: process.platfo
 
 test('(a) run.mjs and withRun arm closeOnExit with their own run tag and disarm in finally', () => {
   const run = R('scripts/e2e/run.mjs');
-  assert.match(run, /const disarm = closeOnExit\(\(\) => closeRehearsalWindow\(run\.tag\)\);/);
+  // 27 Oct 2026: run.mjs arms closeRun (teardown AND the window), not the bare window close.
+  assert.match(run, /const disarm = closeOnExit\(\(\) => closeRun\(run, \{ keep: KEEP \}\)\);/);
   assert.match(run.slice(run.indexOf('} finally {')), /closeRun\(run[^\n]*\n\s*disarm\(\);/);
+  const fx = R('scripts/e2e/fixtures.mjs');
+  assert.match(fx.slice(fx.indexOf('export async function closeRun')), /\} finally \{[\s\S]{0,400}update public\.rehearsal_window set ended_at = now\(\)/, 'closeRun must close the window in its finally');
   const f = R('scripts/lib/demo_factory.mjs');
   const w = f.slice(f.indexOf('export async function withRun'));
-  assert.match(w, /const disarm = closeOnExit\(\(\) => closeRehearsalWindow\(run\.tag\)\);\s*try \{/);
+  // 27 Oct 2026: the exit handler tears the run down, and closes the window in its finally even when teardown throws.
+  assert.match(w, /const disarm = closeOnExit\(async \(\) => \{\s*try \{ if \(!run\.keep\) await teardown\(run\); \} finally \{ await closeRehearsalWindow\(run\.tag\); \}\s*\}\);\s*try \{/);
   assert.match(w, /\} finally \{\s*disarm\(\);/);
+});
+
+test('(a) withRun closes the window even when teardown throws (#1436): the close sits in the finally of the teardown try', () => {
+  const f = R('scripts/lib/demo_factory.mjs');
+  const w = f.slice(f.indexOf('export async function withRun'), f.indexOf('// ---- auth'));
+  assert.match(w, /await teardown\(run\);[\s\S]*?\}\s*\}\s*finally \{\s*try \{ await closeRehearsalWindow\(run\.tag\); \}/);
 });
 
 const FILE = 'scripts/sql/a_rehearsal_window_past_its_run_time_is_closed.sql';
