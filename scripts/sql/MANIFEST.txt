@@ -2201,3 +2201,4 @@ scripts/sql/leads_keep_the_licence_issue_date.sql
 scripts/sql/an_inbox_placement_verdict_is_good_for_30_days.sql
 scripts/sql/a_resumed_invitation_day_sends_the_same_day.sql
 scripts/sql/a_supplier_reply_names_confirming_services_and_is_signed.sql
+scripts/sql/a_dead_domain_is_caught_before_the_invitation_not_by_its_bounce.sql
