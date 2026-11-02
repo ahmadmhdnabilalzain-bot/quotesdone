@@ -183,8 +183,14 @@ begin
       f := f || text 'the reply finding did not close once the channel was clear'; end if;
 
     -- ── nothing to a real address, nothing to the founder, and the whole step runs ──
+    -- ONLY THIS REHEARSAL'S OWN WRITES (2 Nov 2026, customer_support). `id > v_before` also matched rows other sessions committed
+    -- while the probe ran: PR #1650's run counted a live WhatsApp walk's support_reply (id 122777, channel whatsapp, status
+    -- skipped, to_email null -- and not fn_is_demo_email(null) is true), not one the clocks wrote. A row born in this
+    -- transaction has created_at = now() (the column default; now() is the transaction's start and is fixed for it); another
+    -- session's row is stamped by its own transaction. The assertion is unchanged: nothing the clocks wrote reaches a real address.
     select count(*) into v_n from public.notifications
-     where id > v_before and (not public.fn_is_demo_email(to_email) or to_role in ('founder', 'admin') or type = 'founder_alert');
+     where id > v_before and created_at = now()
+       and (not public.fn_is_demo_email(to_email) or to_role in ('founder', 'admin') or type = 'founder_alert');
     if v_n <> 0 then f := f || (v_n || ' message(s) went to a real address or to the founder'); end if;
     v := public.fn_seat_clocks_tick();
     if not coalesce((v->>'ok')::boolean, false) then f := f || ('fn_seat_clocks_tick did not run clean: ' || left(v::text, 300)); end if;
