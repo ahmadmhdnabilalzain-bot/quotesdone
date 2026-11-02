@@ -54,7 +54,9 @@ export type DocIn = { path: string; name: string; kind: DocKind; bytes?: Uint8Ar
   /** names the company is known by (registered, licence legal name read by code or model): never read as a trade */
   names?: (string | null)[];
   /** set by supplier_docs_later.gateStored when the stored bytes failed the type / malware gate: recorded, never read */
-  refused?: string };
+  refused?: string;
+  /** set by supplier_docs_later.readProfileByModel when it did not send the file to the model (too big, too many pages): the reason, worded for the supplier */
+  unread_reason?: string };
 export type DocEvidence = {
   path: string; name: string; kind: DocKind;
   /** 'reading': marked BEFORE the parse (markReading); if the worker is killed mid-parse it stays, and it proposes nothing.
@@ -211,7 +213,7 @@ ${whole}`;
   if (!text.trim() && photo.trim()) return await found(photo, 'photo_text', r && r.ok ? r.kind : undefined);
   if (!r) return { ...base, status: 'unreadable', reason: 'the file could not be fetched from storage', trades: [] };
   if (!r.ok) return { ...base, status: 'unreadable', reason: `${r.error}: ${r.detail}`.slice(0, 200), trades: [] };
-  if (!text.trim() && r.needs === 'ocr') return { ...base, status: 'needs_ocr', format: r.kind, reason: r.notes.join(' ').slice(0, 200), trades: [] };
+  if (!text.trim() && r.needs === 'ocr') return { ...base, status: 'needs_ocr', format: r.kind, reason: (doc.unread_reason || r.notes.join(' ')).slice(0, 200), trades: [] };
   if (!text.trim() && r.needs) return { ...base, status: 'needs_cad_conversion', format: r.kind, reason: r.notes.join(' ').slice(0, 200), trades: [] };
   return await found(text, 'document_text', r.kind);
 }

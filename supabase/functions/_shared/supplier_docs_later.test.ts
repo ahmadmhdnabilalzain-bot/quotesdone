@@ -97,22 +97,69 @@ Deno.test('a picture and a PDF with no text layer go to the model with two attem
   const ask = (replies: unknown[]) => async (b: Record<string, unknown>) => { calls.push(b); return (replies.shift() ?? null) as never; };
   // a picture: the page goes as an image; the first attempt fails, the second answers
   const png = { path: 'p', name: 'p.png', kind: 'profile' as const, mime: 'image/png', bytes: new Uint8Array([1, 2, 3]), photo_text: undefined as string | undefined };
-  assertEquals(await readProfileByModel(png, ask([null, answer])), { asked: true, ok: true });
+  assertEquals((await readProfileByModel(png, ask([null, answer]))).ok, true);
   assertEquals([calls.length, Object.keys(calls[0])], [2, ['images']]);
   assertEquals(png.photo_text?.includes('Elevator installation'), true);
   // a scanned PDF (no text layer): the file itself goes
   calls.length = 0;
   const scan = { path: 's', name: 's.pdf', kind: 'profile' as const, mime: 'application/pdf', bytes: pdf(''), photo_text: undefined as string | undefined };
-  assertEquals(await readProfileByModel(scan, ask([answer])), { asked: true, ok: true });
+  assertEquals((await readProfileByModel(scan, ask([answer]))).ok, true);
   assertEquals(Object.keys(calls[0]).sort(), ['file_b64', 'filename', 'mime']);
   assert(!!scan.photo_text);
   // known-bad controls: a PDF that HAS a text layer is not sent (code reads its text); both attempts failing leaves it as it was
   calls.length = 0;
   const text = { path: 't', name: 't.pdf', kind: 'profile' as const, mime: 'application/pdf', bytes: pdf('BT /F1 12 Tf 20 100 Td (Our services - Elevator installation - Flooring works - HVAC works) Tj ET'), photo_text: undefined as string | undefined };
-  assertEquals(await readProfileByModel(text, ask([answer])), { asked: false, ok: false });
+  assertEquals((await readProfileByModel(text, ask([answer]))).asked, false);
   assertEquals([calls.length, text.photo_text], [0, undefined]);
   const failing = { path: 'f', name: 'f.png', kind: 'profile' as const, mime: 'image/png', bytes: new Uint8Array([1]), photo_text: undefined as string | undefined };
-  assertEquals(await readProfileByModel(failing, ask([null, { ok: false }])), { asked: true, ok: false });
+  const lost = await readProfileByModel(failing, ask([null, { ok: false }]));
+  assertEquals([lost.asked, lost.ok], [true, false]);
   assertEquals(failing.photo_text, undefined);
   assertEquals((await readProfileByModel({ path: 'x', name: 'x.docx', kind: 'profile' as const, mime: 'application/msword', bytes: new Uint8Array([1]) }, ask([answer]))).asked, false);
+});
+
+// Review of #1796: what the model may cost, who pays, when it is not asked twice, and that a failure is never silent.
+Deno.test('the model read is bounded (image size, PDF pages), billed to the supplier, not repeated on a plain 4xx, and a failure is logged and filed', async () => {
+  const { readProfileByModel, pdfPageCount, firstPdfPages, PROFILE_IMAGE_MAX, PROFILE_PDF_PAGES } = await import('./supplier_docs_later.ts');
+  const { PDFDocument } = await import('https://esm.sh/pdf-lib@1.17.1');
+  const many = async (n: number) => { const d = await PDFDocument.create(); for (let i = 0; i < n; i++) d.addPage([200, 200]); return new Uint8Array(await d.save()); };
+  const answer = { ok: true, profile: { lines: ['Our services', '- Elevator installation'] } };
+  const calls: Record<string, unknown>[] = [];
+  const ask = (replies: unknown[]) => async (b: Record<string, unknown>) => { calls.push(b); const r = replies.shift(); if (r instanceof Error) throw r; return (r ?? null) as never; };
+  // a picture above the cap is not sent, and the document says why in words the supplier can use
+  const big = { path: 'b', name: 'b.jpg', kind: 'profile' as const, mime: 'image/jpeg', bytes: new Uint8Array(PROFILE_IMAGE_MAX + 1), unread_reason: undefined as string | undefined };
+  assertEquals([(await readProfileByModel(big, ask([answer]))).asked, calls.length, /larger than 10 MB/.test(big.unread_reason || '')], [false, 0, true]);
+  // a scanned PDF of 25 pages: only the first PROFILE_PDF_PAGES go (the file the model receives is a PDF of ten pages)
+  assertEquals(await pdfPageCount(await many(25)), 25);
+  const cut = await firstPdfPages(await many(25), PROFILE_PDF_PAGES);
+  assertEquals(cut ? await pdfPageCount(cut) : null, PROFILE_PDF_PAGES);
+  const scan = { path: 's', name: 's.pdf', kind: 'profile' as const, mime: 'application/pdf', bytes: await many(25), photo_text: undefined as string | undefined };
+  calls.length = 0;
+  const r1 = await readProfileByModel(scan, ask([answer]), { subject: { supplier_id: 77, email: 'qd-x@example.invalid' } });
+  assertEquals(r1.ok, true);
+  assertEquals((calls[0].subject as { supplier_id: number }).supplier_id, 77);   // the spend is the supplier's
+  const sent = Uint8Array.from(atob(String(calls[0].file_b64)), (c) => c.charCodeAt(0));
+  assertEquals(await pdfPageCount(sent), PROFILE_PDF_PAGES);
+  // a 4xx is not asked again; a 5xx and a thrown error are (twice in all)
+  calls.length = 0;
+  const png = () => ({ path: 'p', name: 'p.png', kind: 'profile' as const, mime: 'image/png', bytes: new Uint8Array([1, 2, 3]) });
+  assertEquals([(await readProfileByModel(png(), ask([{ ok: false, status: 400, error: 'no_readable_page' }, answer]))).ok, calls.length], [false, 1]);
+  calls.length = 0;
+  assertEquals([(await readProfileByModel(png(), ask([{ ok: false, status: 502 }, answer]))).ok, calls.length], [true, 2]);
+  calls.length = 0;
+  assertEquals([(await readProfileByModel(png(), ask([new Error('timeout'), answer]))).ok, calls.length], [true, 2]);
+  // both attempts failing is logged and filed as an IT finding naming the supplier; a success files nothing
+  const filed: { fn: string; args: Record<string, unknown> }[] = [];
+  const admin = { rpc: async (fn: string, args: Record<string, unknown>) => { filed.push({ fn, args }); return {}; } };
+  const errors: string[] = []; const was = console.error; console.error = (...a: unknown[]) => { errors.push(a.join(' ')); };
+  try {
+    calls.length = 0;
+    const lost = await readProfileByModel(png(), ask([{ ok: false, status: 502, error: 'upstream' }, { ok: false, status: 502, error: 'upstream' }]), { subject: { supplier_id: 77 }, admin });
+    assertEquals([lost.asked, lost.ok, calls.length], [true, false, 2]);
+    assertEquals(filed.map((f) => [f.fn, f.args.p_issue_key]), [['fn_it_engineer_finding_upsert', 'profile_model_read_failed:77']]);
+    assert(errors.some((e) => e.includes('supplier_docs_later.profile_model') && e.includes('upstream')), errors.join('|'));
+    filed.length = 0;
+    await readProfileByModel(png(), ask([answer]), { subject: { supplier_id: 77 }, admin });
+    assertEquals(filed.length, 0);
+  } finally { console.error = was; }
 });

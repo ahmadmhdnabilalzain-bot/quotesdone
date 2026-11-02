@@ -29,9 +29,7 @@ import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registratio
 import { SERVICES_UNCONFIRMED, servicesHoldMail, pendingFounderSubject } from '../_shared/services_hold_copy.ts';
 import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { markReading, proposeTradesFromDocs, modelReadText, type DocIn } from '../_shared/supplier_doc_trades.ts';
-import { readDocument } from '../_shared/doc_read/index.ts';
-import { LIMITS } from '../_shared/doc_read/types.ts';
-import { afterResponse, readStoredDocsLater, signedUpload, stuckReads, type LaterDoc } from '../_shared/supplier_docs_later.ts';
+import { afterResponse, readProfileByModel, readStoredDocsLater, signedUpload, stuckReads, type LaterDoc } from '../_shared/supplier_docs_later.ts';
 import { toB64, licenceModelPayload, licenceNameFromModel, licenceNeedsModel, readExpiry, readLicenceFields, readLicenceName, type LicenceFields } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
@@ -82,8 +80,6 @@ const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 // bank_name, bank_account_name, bank_iban and iban_doc_path left this list on 21 Sep 2026: the columns are
 // being dropped/purged (scripts/sql/the_founder_removed_bank_details_from_the_estate.sql). Money moves both
 // directions through Stripe, so the estate never holds a supplier's bank details — founder instruction 527.
-// The largest profile PDF with no text layer sent to the vision model as a file (an 8.4 MB, 87-page scan was measured).
-const PROFILE_PDF_MODEL_MAX = 12 * 1024 * 1024;
 // A file over the 25 MB ceiling (the supplier-docs bucket's file_size_limit) was told its FORMAT was wrong. 3 of 29 real UAE
 // profiles measured on 13 Oct 2026 are larger (30, 38 and 85 MB): the supplier is now told the size, and how to fix it.
 const TOO_LARGE = (what: string) => `That ${what} is larger than 25 MB. Please upload a smaller copy - most PDF tools can export a compressed or "smallest file size" version.`;
@@ -916,27 +912,28 @@ ${q}`,
       // license_extract's profile mode (ruling 1177), up to PROFILE_PDF_MODEL_MAX; a PDF pdf.js could not parse is held
       // unreadable, never taken for a scan. Its findings are written to the row on their own update.
       const runProfileModel = async (pq?: LaterDoc) => {
-        let profPdf: { file_b64: string; mime: string; filename: string } | null = null;
-        const imgs = [...profImgs];
-        if (pq?.bytes && pq.mime && /^image\//i.test(pq.mime)) imgs.unshift({ b64: toB64(pq.bytes), mime: pq.mime });
-        else if (pq?.bytes && pq.mime && /pdf/i.test(pq.mime)) {
-          const small = pq.bytes.length <= PROFILE_PDF_MODEL_MAX;
-          const b64 = small ? toB64(pq.bytes) : '';   // before the read: above 25 MB the read hands pdf.js the buffer itself
-          // ONE read of the profile (review of #1404): kept on the item, so the trade read does not parse it again.
-          pq.read = await readDocument(pq.bytes, pq.name, pq.mime, 0, { textOnly: true, maxBytes: LIMITS.maxPaperBytes });
-          if (pq.read.ok && pq.read.needs === 'ocr' && small) profPdf = { file_b64: b64, mime: pq.mime, filename: pq.name };
-        }
-        if (!imgs.length && !profPdf) return;
+        // THE ONE PROFILE READ (review of #1796): the Documents tab and registration read a picture or a scan through readProfileByModel, with the
+        // same size and page caps, the same two attempts, the same subject for the spend, and the same finding when both attempts fail.
+        // Here the browser's own page images (profImgs) are sent when it rendered any, ahead of which goes a picture profile's own bytes.
+        const pqImage = !!(pq?.bytes && pq.mime && /^image\//i.test(pq.mime));
+        const images = profImgs.length ? [...(pqImage ? [{ b64: toB64(pq!.bytes!), mime: pq!.mime }] : []), ...profImgs] : undefined;
+        const holder: LaterDoc = pq ?? { path: '', name: 'profile', kind: 'profile' };
+        const res = await readProfileByModel(holder, async (b) => {
+          const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'profile', ...b }), signal: AbortSignal.timeout(120_000) });
+          const j = await r.json().catch(() => null);
+          return { ...(j ?? {}), status: r.status };
+        }, { subject: { supplier_id: sup.id, email }, admin, ...(images ? { images } : {}) });
+        if (!res.asked) return;
         const mUpd: Record<string, unknown> = {};
-        const jd = await extract({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'profile', ...(imgs.length ? { images: imgs.slice(0, 10) } : profPdf) });
-        if (!(jd?.ok && jd.profile)) { console.error(JSON.stringify({ at: 'supplier_api.process_docs.profile', supplier: sup.id, error: jd?.error || 'extract_failed' })); return; }
-        const pf = jd.profile;
+        if (!(res.ok && res.profile)) return;   // readProfileByModel has logged it and filed the finding
+        const pf = res.profile as Record<string, any>;
         if (pf.summary) mUpd.capability_summary = pf.summary;
         // DOCUMENTS LEAD (spec, 29 Jul 2026): what the documents say ALWAYS becomes leads.services; the supplier's own
         // words are kept as the declared value and cross-checked below.
         if (Array.isArray(pf.services) && pf.services.length) { xServices = pf.services.map((s: unknown) => String(s).trim()).filter(Boolean).slice(0, 40); mUpd.services = xServices.join(', '); }
         // The services the model read off a picture are read for trades exactly as a text profile's lines are.
-        if (pq && (imgs.length ? /^image\//i.test(pq.mime || '') : !!profPdf)) pq.photo_text = modelReadText('profile', pf.lines);
+        // (readProfileByModel sets photo_text itself when it read the document's own bytes; with the browser's pages it is set here for a picture)
+        if (pq && images && pqImage) pq.photo_text = modelReadText('profile', pf.lines);
         if (Array.isArray(pf.products) && pf.products.length && !sup.products) mUpd.products = pf.products.join(', ');
         if (Array.isArray(pf.emirates) && pf.emirates.length && !(Array.isArray(sup.service_emirates) && sup.service_emirates.length)) mUpd.service_emirates = pf.emirates;
         if (Object.keys(mUpd).length) { const { error } = await admin.from('leads').update(mUpd).eq('id', sup.id); if (error) console.error('process_docs: profile fields not saved —', error.message); }

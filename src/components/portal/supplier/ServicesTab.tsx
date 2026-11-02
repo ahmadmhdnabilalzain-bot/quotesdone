@@ -34,6 +34,7 @@ import { call, REASONING_TIMEOUT_MS } from './api';
 import { panelErrorText } from './PanelState';
 import { srvMsg, vocabLabel } from './serverCopy';
 import { countServices, profileStateOf, sc, scCount, VERIFY_COPY } from './servicesCopy';
+import { docStateLine, englishLines, isEnglishLine, reloadRoles, reloadSet, reloadText } from './servicesRead';
 
 type Service = { key: string; label_en: string; label_ar: string };
 type Trade = { code: string; label: string; label_ar?: string | null };
@@ -41,7 +42,7 @@ type Role = { code: string; label: string };
 type ChecklistTrade = { code: string; source: 'confirmed' | 'on_file' | 'documents' | 'refine' };
 type Proposal = { code: string; label_en?: string | null; label_ar?: string | null; status: string; mapped_to?: string | null };
 type DocHit = { code: string; snippet?: string };
-type Doc = { path: string; name: string; kind?: string; status?: string; source?: string; choice?: string; vision_held?: DocHit[]; trades?: DocHit[] };
+type Doc = { path: string; name: string; kind?: string; status?: string; source?: string; choice?: string; reason?: string; vision_held?: DocHit[]; trades?: DocHit[] };
 type Voice = { enabled: boolean; max_seconds: number; max_bytes: number };
 type State = {
   ok: boolean; confirmed: boolean; first_run: boolean;
@@ -115,15 +116,17 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     if (j && j.ok) {
       const d = j as State;
       setTrades(d.checklist.map((c) => c.code));
-      setRemovedTrades(new Set());
-      setTicked(new Set(d.selected_services));
-      setRoles((d.capability && d.capability.roles) || []);
+      // keepText = a refresh because the profile finished reading: everything the supplier did meanwhile stays (review of #1796).
+      const keep = !!o.keepText;
+      setRemovedTrades((cur) => reloadSet(cur, [], keep));
+      setTicked((cur) => reloadSet(cur, d.selected_services, keep));
+      setRoles((cur) => reloadRoles(cur, (d.capability && d.capability.roles) || [], keep));
       // A refresh because the profile finished reading must not take away what the supplier has typed meanwhile.
-      setRawText((cur) => (o.keepText && cur.trim() ? cur : d.raw_text || ''));
+      setRawText((cur) => reloadText(cur, d.raw_text || '', keep));
       // `dropped` starts empty on every load and is seeded from the preview instead: the server marks
       // an implication the supplier removed before as `removed: true`, so what was struck out survives
       // without this set having to hold keys the checklist may legitimately tick.
-      setRw(null); setDropped(new Set());
+      if (!keep) { setRw(null); setDropped(new Set()); }   // the rewrite preview the supplier is reading stays on a refresh
       setSt({ loading: false, err: '', data: d });
     } else {
       setSt((s) => ({ ...s, loading: false, err: srvMsg(lang, j, sc(lang, 'load_failed')) }));
@@ -223,7 +226,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const profileKeywords = [...new Set(profileHits.map((h) => h.code))].map(tradeName);
   // English only to a supplier (ruling 1008): an Arabic line of the profile reads its trade, but the keyword beside it is the English name and
   // the Arabic quote is not repeated here; an Arabic-only profile shows its keywords alone.
-  const profileLines = [...new Set(profileHits.map((h) => (h.snippet || '').trim()).filter((l) => l && !/[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/.test(l)))].slice(0, 3);
+  const profileLines = englishLines([...new Set(profileHits.map((h) => (h.snippet || '').trim()))]).slice(0, 3);
   const profileState = profileStateOf(profileDocs);
   const noPrep = !d.confirmed && d.checklist.length === 0;
   // THE REWRITE CARRIES ITS OWN LABELS and they are read first. services_by_trade only holds the
@@ -360,7 +363,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
 
       {docs.length === 0 && allDocs.length > 0 && (
         <ul className="mt-2 space-y-1">
-          {allDocs.map((doc) => <li key={doc.path} className="text-[12.5px] text-muted-foreground"><span className="font-medium text-foreground break-all" dir="auto">{doc.name}</span>{' — '}{doc.status === 'read' ? VERIFY_COPY.doc_read_none : doc.status}</li>)}
+          {allDocs.map((doc) => <li key={doc.path} className="text-[12.5px] text-muted-foreground"><span className="font-medium text-foreground break-all" dir="auto">{doc.name}</span>{' — '}{docStateLine(doc)}</li>)}
         </ul>
       )}
 
@@ -372,7 +375,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
               <li key={doc.path} className="text-[12.5px] text-muted-foreground">
                 <span className="font-medium text-foreground break-all" dir="auto">{doc.name}</span>
                 {' — '}{(doc.trades || []).map((h) => tradeName(h.code)).join(ar ? '، ' : ', ')}
-                {doc.trades && doc.trades[0] && doc.trades[0].snippet ? <q className="ms-1.5 opacity-80" dir="auto">{doc.trades[0].snippet}</q> : null}
+                {/* English only (review of #1796): a line read off an Arabic picture is not repeated; the trade names beside it say it */}
+                {doc.trades && doc.trades[0] && isEnglishLine(doc.trades[0].snippet) ? <q className="ms-1.5 opacity-80" dir="auto">{doc.trades[0].snippet}</q> : null}
               </li>
             ))}
           </ul>

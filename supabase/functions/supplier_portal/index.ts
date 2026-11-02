@@ -683,9 +683,10 @@ Deno.serve(siteCors(observe('supplier_portal', async (req) => {
         const profile = async (d: LaterDoc) => {
           if (!(aiOn && INBOUND_SECRET)) return;
           await readProfileByModel(d, async (b) => {
-            const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: INBOUND_SECRET, mode: 'profile', ...b }) });
-            return await r.json().catch(() => null);
-          });
+            const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: INBOUND_SECRET, mode: 'profile', ...b }), signal: AbortSignal.timeout(120_000) });
+            const jd = await r.json().catch(() => null);
+            return { ...(jd ?? {}), status: r.status };
+          }, { subject: { supplier_id: Number(sup.id), email }, admin });
         };
         const w = afterResponse(readStoredDocsLater(admin, Number(sup.id), later, { profile }), 'supplier_portal.save_documents.later'); if (w) await w;
       }

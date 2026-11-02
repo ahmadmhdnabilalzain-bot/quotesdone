@@ -30,10 +30,6 @@ test('known-bad: a file that does not open (corrupt) says it is damaged, not "sc
   assert.match(VERIFY_COPY.profile_damaged, /damaged/);
   assert.doesNotMatch(VERIFY_COPY.profile_damaged, /scan or photo/);
 });
-test('an Arabic summary line is not repeated to the supplier: the tab filters it, the English keyword stays', () => {
-  const line = TAB.split('\n').find((l) => l.includes('const profileLines = '));
-  assert.ok(line && /\.filter\(\(l\) => l && !\/\[/.test(line) && line.includes('؀-ۿ'), line);
-});
 test('control: a text profile that named nothing is "found no service"', () => assert.equal(profileStateOf([{ status: 'read', source: 'document_text', choice: 'on', trades: [] }]), 'none'));
 test('control: a text profile that named nothing because the readings disagreed is still "found no service"', () => assert.equal(profileStateOf([{ status: 'read', source: 'document_text', choice: 'held', trades: [] }]), 'none'));
 test('control: trades win, then reading, then scan, then failed, then none, then missing', () => {
@@ -46,6 +42,45 @@ test('every state has a sentence', () => { for (const s of ['none', 'reading', '
 test('the tab asks the one function, and keeps no second copy of the rule', () => {
   assert.match(TAB, /profileStateOf\(profileDocs\)/);
   assert.doesNotMatch(TAB, /x\.status === 'needs_ocr' \|\| x\.status === 'unreadable'/);
+});
+// ── review of #1796 ──
+const R = await import(new URL('../../src/components/portal/supplier/servicesRead.ts', import.meta.url).href);
+test('1. a refresh because the profile finished reading keeps the ticks, the removed trades, the roles, the text and the rewrite preview', () => {
+  const cur = new Set(['aluminium.windows']), fresh = ['glazing.facade'];
+  assert.deepEqual([...R.reloadSet(cur, fresh, true)], ['aluminium.windows']);          // known-bad: the old load() replaced it with the server's
+  assert.deepEqual([...R.reloadSet(new Set(['hvac']), [], true)], ['hvac']);             // removed trades
+  assert.deepEqual([...R.reloadSet(cur, fresh, false)], ['glazing.facade']);             // any other reload still takes the server's
+  assert.deepEqual(R.reloadRoles(['installer'], ['supplier'], true), ['installer']);
+  assert.deepEqual(R.reloadRoles([], ['supplier'], true), ['supplier']);                 // nothing chosen yet: the server's
+  assert.equal(R.reloadText('We install lifts', 'saved text', true), 'We install lifts');
+  assert.equal(R.reloadText('  ', 'saved text', true), 'saved text');
+  assert.equal(R.reloadText('typed', 'saved text', false), 'saved text');
+  assert.match(TAB, /if \(!keep\) \{ setRw\(null\); setDropped\(new Set\(\)\); \}/);
+  assert.match(TAB, /setTicked\(\(cur\) => reloadSet\(cur, d\.selected_services, keep\)\)/);
+  assert.match(TAB, /setRemovedTrades\(\(cur\) => reloadSet\(cur, \[\], keep\)\)/);
+  assert.doesNotMatch(TAB, /setTicked\(new Set\(d\.selected_services\)\)/);
+});
+test('2. an Arabic line is shown nowhere: not in the summary, not in the "found in" list', () => {
+  assert.deepEqual(R.englishLines(['- Elevator installation', 'أعمال تنسيق الحدائق', '', '  Flooring works ']), ['- Elevator installation', 'Flooring works']);
+  assert.equal(R.isEnglishLine('أعمال العزل المائي'), false);
+  assert.equal(R.isEnglishLine('Waterproofing 2020 (أعمال)'), false);   // a mixed line is Arabic to read
+  assert.match(TAB, /isEnglishLine\(doc\.trades\[0\]\.snippet\)/);
+  assert.doesNotMatch(TAB, /doc\.trades\[0\] && doc\.trades\[0\]\.snippet \?/);   // the old unfiltered condition
+  assert.match(TAB, /const profileLines = englishLines\(/);
+});
+test('3. every line of the fallback list is worded from the document\'s real state, in plain English, never a raw code', () => {
+  const states = [
+    [{ status: 'needs_ocr' }, /no printed text/], [{ status: 'needs_ocr', reason: 'The picture is larger than 10 MB. Upload a smaller photo or a PDF.' }, /larger than 10 MB/],
+    [{ status: 'unreadable' }, /damaged/], [{ status: 'refused' }, /file check/], [{ status: 'needs_cad_conversion' }, /converted/], [{ status: 'reading' }, /still being read/],
+    [{ status: 'read', choice: 'unavailable' }, /not available/], [{ status: 'read', choice: 'held' }, /could not settle/],
+    [{ status: 'read', vision_held: [{ code: 'x' }] }, /waiting for our sales engineer/], [{ status: 'read' }, /no service matched/], [{ status: 'mystery' }, /not read yet/],
+  ];
+  for (const [d, re] of states) { const line = R.docStateLine(d); assert.match(line, re, JSON.stringify(d)); assert.doesNotMatch(line, /needs_ocr|unreadable|refused|needs_cad|_/, line); }
+  // known-bad: the old fallback said "read, no service matched" for a reading service that was down and for held trades
+  assert.doesNotMatch(R.docStateLine({ status: 'read', choice: 'unavailable' }), /no service matched/);
+  assert.doesNotMatch(R.docStateLine({ status: 'read', vision_held: [{}] }), /no service matched/);
+  assert.match(TAB, /docStateLine\(doc\)/);
+  assert.doesNotMatch(TAB, /doc\.status === 'read' \? VERIFY_COPY\.doc_read_none : doc\.status/);
 });
 test('"updates by itself" is true: while a profile is being read the tab asks again and reloads when it finishes', () => {
   assert.match(TAB, /x\.kind === 'profile' && x\.status === 'reading'/);
