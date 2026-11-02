@@ -501,18 +501,28 @@ function ProfileGate({ token, lang, theme, onDone }) {
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const load = () => call('kyc', { action: 'state' }, token).then((j) => { if (transportFailed(j)) { setMsg(t(lang, 'load_failed')); return; } setSt(j); setFullName((x) => x || j.full_name || ''); setPhone((x) => x || j.phone || ''); setDob((x) => x || j.dob || ''); }).catch(() => setMsg(t(lang, 'load_failed')));
   useEffect(() => { drop(); load(); }, []);
+  // A HOOK BELONGS ABOVE THE EARLY RETURN (2 Nov 2026, customer sign-up walk, React error #310): this sat below
+  // `if (!st) return`, so the render that first had the state called one more hook than the loading render and
+  // every new customer's "Complete your account" crashed to "This page couldn't load".
+  const failover = useFailover();
   if (!st) return <div className={S.center}>{t(lang, 'loading')}</div>;
   const saveProfile = async () => { if (!dob) { setMsg(t(lang, 'err_dob_required')); return; } if (isUnder18(dob)) { setMsg(t(lang, 'err_under_18')); return; } setBusy('save'); setMsg(''); const j = await call('kyc', { action: 'save_customer', full_name, phone, dob, lang }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'load_failed')); };
   // sentSms carries the CHANNEL, not a boolean: kyc falls back to a voice call when the number is a
   // landline, and telling someone to check their junk folder for a code that is being read down the
   // phone is the wrong instruction.
   // The first code to a UAE mobile goes by WhatsApp (kyc nextChannel, 18 Oct 2026); 'sms' is the explicit failover.
-  const failover = useFailover();
   const sendSms = async (channel?: 'sms' | 'whatsapp') => { if (!phone) { setMsg(t(lang, 'enter_mobile_first')); return; } setBusy('sms'); setMsg(''); const j = await call('kyc', { action: 'send_sms', phone, ...(channel ? { channel } : {}) }, token); setBusy(''); if (j && j.ok) { setSentSms(j.channel || 'sms'); if (j.channel === 'whatsapp') failover(() => call('kyc', { action: 'phone_failover', phone }, token), () => setSentSms('sms_failover')); } else setMsg(errText(j, lang, 'err_code_send')); };
   const verifySms = async () => { setBusy('vsms'); setMsg(''); const j = await call('kyc', { action: 'verify_sms', phone, code: smsCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'err_incorrect')); };
   const sendEmailCode = async () => { setBusy('em'); setMsg(''); const j = await call('kyc', { action: 'send_email' }, token); setBusy(''); if (j && j.ok) setSentEmail(true); else setMsg(errText(j, lang, 'err_code_send')); };
   const verifyEmail = async () => { setBusy('vem'); setMsg(''); const j = await call('kyc', { action: 'verify_email', code: emCode }, token); setBusy(''); if (j && j.ok) load(); else setMsg(errText(j, lang, 'err_incorrect')); };
-  const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms', marketing_consent: marketingOptIn === true }, token); setBusy(''); if (j && j.ok) { onDone(); } else setMsg(errText(j, lang, 'load_failed')); };
+  const acceptTerms = async () => { if (!terms) { setMsg(t(lang, 'must_accept')); return; } setBusy('terms'); setMsg(''); const j = await call('kyc', { action: 'accept_terms', marketing_consent: marketingOptIn === true }, token); if (j && j.ok) {
+      // THE CERTIFICATE LANDS AFTER THE ANSWER (kyc accept_terms renders the signed PDF in the background), and the account is
+      // complete only once it has (terms_signed). Reading the state once left the customer on this unchanged form, with no word,
+      // until they reloaded (measured 2 Nov 2026 by the sign-up walk: still here 60 s after "Finish & continue"). The button
+      // stays on "Finishing…" while the state is asked again, every 2.5 s for up to two minutes.
+      for (let i = 0; i < 48; i++) { const s = await call('kyc', { action: 'state' }, token).catch(() => null); if (s && s.terms_signed) break; await new Promise((r) => setTimeout(r, 2500)); }
+      setBusy(''); onDone();
+    } else { setBusy(''); setMsg(errText(j, lang, 'load_failed')); } };
   // DOB IS REQUIRED AGAIN (founder's account rule, 14 Sep 2026: name, date of birth with under-18
   // rejected, OTP-verified mobile/email, Terms). The 6 Sep change made it optional because a customer
   // without one was silently stuck; the fix for silence is a message, not dropping the field. kyc now
