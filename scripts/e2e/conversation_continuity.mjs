@@ -87,7 +87,7 @@ async function visitor(browser, extra) {
     await ctx.route(`${new URL(SITE).origin}/functions/v1/**`, async (route) => {
       const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': 'POST, GET, OPTIONS' };
       if (route.request().method() === 'OPTIONS') return route.fulfill({ status: 200, headers: cors, body: 'ok' });
-      const res = await route.fetch({ url: upstream(route.request().url()), headers: { ...route.request().headers(), ...h } });
+      const res = await route.fetch({ timeout: 120000, url: upstream(route.request().url()), headers: { ...route.request().headers(), ...h } });
       return route.fulfill({ response: res });
     });
   }
@@ -254,7 +254,7 @@ async function widgetSurface(browser, run) {
   await b.route(isSA, async (route) => {
     if (route.request().method() !== 'POST' || cut > 0) return route.fallback();
     cut++;
-    await route.fetch({ url: upstream(route.request().url()), headers: { ...route.request().headers(), ...(await proof(run)) } });   // the server answers and stores the turn
+    await route.fetch({ timeout: 120000, url: upstream(route.request().url()), headers: { ...route.request().headers(), ...(await proof(run)) } });   // the server answers and stores the turn
     await route.fulfill({ status: 504, contentType: 'text/html', body: '<html><body>504 Gateway Time-out</body></html>' });
   });
   const lost = await sendWidget(b, S, 'B', 2, 'lost reply', priceAsk);
@@ -420,7 +420,7 @@ async function portalSurface(browser, run) {
   await page.route(isSE, async (route) => {
     let a = null; try { a = route.request().postDataJSON()?.action; } catch { /* not JSON */ }
     if (route.request().method() !== 'POST' || a !== 'assist' || cut > 0) return route.fallback();
-    cut++; await route.fetch({ url: upstream(route.request().url()), headers: { ...route.request().headers(), ...(await proof(run)) } }); await route.fulfill({ status: 504, contentType: 'text/html', body: '<html><body>504 Gateway Time-out</body></html>' });
+    cut++; await route.fetch({ timeout: 120000, url: upstream(route.request().url()), headers: { ...route.request().headers(), ...(await proof(run)) } }); await route.fulfill({ status: 504, contentType: 'text/html', body: '<html><body>504 Gateway Time-out</body></html>' });
   });
   const lost = await say(page, 6, 'lost reply');
   check(S, 'the connection was cut once, after the server had answered (the 504 was injected)', cut === 1, 'cuts: ' + cut);
