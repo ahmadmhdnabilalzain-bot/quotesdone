@@ -12,8 +12,8 @@
 -- FOUNDER LEDGER 1469 (2 Nov 2026) is in the new text: a supplier is held (pending / services_unconfirmed) until it confirms the
 -- services it provides, so "automatic" is true only once the six are complete, the licence is read and in date AND the services
 -- are confirmed. The first draft of this file left the services confirmation out of that condition.
--- Data only: no routine, no table, no grant.
-begin;
+-- Data only: no routine, no table, no grant. No BEGIN/COMMIT of its own: apply_sql.mjs runs the file as one transaction,
+-- so the closing block's raise rolls every update back with it (no_sql_file_carries_its_own_transaction).
 
 update public.dept_library set content = replace(content, 'A supplier registers and is approved by providing a contact name, an SMS-verified mobile, a trade licence number, a company profile document, and accepting supplier terms.',
   'A supplier registers and completes the mandatory six: the company''s licensed name, a UAE mobile number verified with a code, a verified work email, the trade licence (uploaded), the company profile (uploaded) and acceptance of the Supplier Agreement.')
@@ -43,4 +43,3 @@ do $$ declare n int; begin
   select count(*) into n from public.canon_eval_questions where reference ilike '%only required document%';
   if n > 0 then raise exception 'canon_eval_questions still states the old document rule on % row(s)', n; end if;
 end $$;
-commit;
