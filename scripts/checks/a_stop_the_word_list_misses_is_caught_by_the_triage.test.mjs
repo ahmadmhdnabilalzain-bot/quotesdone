@@ -30,7 +30,7 @@ test('the triage model is offered opt_out, with an empty draft', () => {
 });
 
 test('the scope is the invitation reply invitationReplyAnswerable let through, and nothing else', () => {
-  assert.match(TRIAGE, /invitationReplyAnswerable\(m, rel, !!\(sup && sup\.length\)\)\) skip = noAutoReply\(\{ \.\.\.m, to_email: '' \}, founder\);\s*invitationReply = !skip;/);
+  assert.match(TRIAGE, /invitationReplyAnswerable\(m, rel, !!\(sup && sup\.length\)\)\) \{ skip = noAutoReply\(\{ \.\.\.m, to_email: '' \}, founder\);\s*invitationReply = !skip; \}\s*else if \(tenantMailAnswerable/);   // tenant mail (main) is the else branch: it never sets the flag
   assert.equal((TRIAGE.match(/invitationReply = /g) || []).length, 2, 'invitationReply is set only where the internal skip is lifted');
 });
 
