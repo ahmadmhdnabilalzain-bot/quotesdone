@@ -101,7 +101,8 @@ Deno.test('the 45 s clock runs from arrival: time spent before the model call is
   const { budgetLeft, WA_REPLY_BUDGET_MS, WA_SEND_MARGIN_MS } = await import('./model_says.ts');
   assertEquals(budgetLeft(1_000, 1_000), WA_REPLY_BUDGET_MS - WA_SEND_MARGIN_MS);
   assertEquals(budgetLeft(0, 30_000), WA_REPLY_BUDGET_MS - WA_SEND_MARGIN_MS - 30_000);
-  assertEquals(budgetLeft(0, 50_000), 0);   // measured case: ~45 s of routing before the reply began
+  assertEquals(budgetLeft(0, 90_000), 0);   // the budget is spent: no call starts and the turn is queued
+  assertEquals(budgetLeft(0, 50_000), WA_REPLY_BUDGET_MS - WA_SEND_MARGIN_MS - 50_000);   // a 50 s routing still leaves the reply its time
 });
 
 Deno.test('no budget left: no model call starts and the text is empty, so the caller sends the held notice', async () => {
