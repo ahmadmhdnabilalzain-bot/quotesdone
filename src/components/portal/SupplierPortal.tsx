@@ -68,7 +68,7 @@ import { BrandMark } from '@/components/BrandMark';
 // Same as the customer portal: an inline production fallback meant an unconfigured preview let
 // suppliers upload trade licences into the LIVE database. See supaEnv.
 import { SUPA_ANON as ANON, SUPA_FN as FN, SUPA_URL } from '@/lib/supaEnv';
-import { uploadToSignedUrl } from '@/lib/signedUpload';
+import { uploadToSignedUrl, retryTransient } from '@/lib/signedUpload';
 import { Ltr } from '@/lib/Ltr';
 const SB = () => supaClient('qd-portal-auth');
 
@@ -134,12 +134,14 @@ const QUOTE_ACCEPT = 'image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,.
 // the file goes to it, and process_docs / save_documents are given the path (the server gates the stored bytes).
 // SB() is AUTH-ONLY (src/lib/supaClient.ts), so the file goes up by hand on the signed URL (src/lib/signedUpload.ts).
 // SB().storage was undefined: every profile and catalogue threw before upload and "Uploading..." never ended (27 Oct).
-const uploadDirect = async (kind, file, token) => {
+// A platform 502/503/546 or a dropped leg is retried (up to 3 tries, a new signed path each time): walk 41379033121 (2 Nov 2026)
+// lost a whole registration to ONE 502 on the catalogue's upload_url call.
+const uploadDirect = (kind, file, token) => retryTransient(async () => {
   const u = await call('supplier_api', { action: 'upload_url', kind, filename: file.name, mime: file.type }, token);
   if (!(u && u.ok && u.path && u.token)) return { error: u };
   const { error } = await uploadToSignedUrl(SUPA_URL, ANON, 'supplier-docs', u.path, u.token, file, file.type);
-  return error ? { error: { code: 'direct_upload_failed' } } : { path: u.path, filename: file.name, mime: file.type };
-};
+  return error ? { error: { code: 'direct_upload_failed', status: error.status } } : { path: u.path, filename: file.name, mime: file.type };
+});
 const fileToB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.readAsDataURL(f); });
 // STRIPE CAME BACK AND THE PAGE SAID NOTHING (audit 2026-09-14). supplier_pay and pay_registration
 // return the supplier to /portal?dues_paid=… or ?registration_paid=…, and nothing read either query
