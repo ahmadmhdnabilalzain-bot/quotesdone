@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-02T03:04:10.956Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-02T04:38:40.905Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -5509,7 +5509,8 @@ CREATE TABLE IF NOT EXISTS public.leads (
   merged_at timestamp with time zone,
   marketing_consent boolean DEFAULT false NOT NULL,
   marketing_consent_at timestamp with time zone,
-  marketing_consent_source text
+  marketing_consent_source text,
+  license_issue_date date
 );
 
 CREATE TABLE IF NOT EXISTS public.legal_checklist (
