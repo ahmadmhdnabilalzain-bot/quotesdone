@@ -741,6 +741,9 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   const missing = facts.filter((f) => !f.value);
   const sourceIds = new Set(sources.map((s) => s.id));
   const synthSys = synthesisPrompt(req.seat, audience, ctx.language ?? 'en', req.decision, req.route, req.allowDecline === true)
+    // A lean decision is read for its choice alone: the prose is generated token by token, and measured 2 Nov 2026 it was most of
+    // the ~15 s a WhatsApp classification took. One short sentence and no more than one reasoning step carry the same choice.
+    + (req.lean === true && deciding ? '\nBE BRIEF: "answer" is ONE short sentence, "reasoning" has at most one short item, "cited" is [] unless a source decided it. The choice and the other choices asked for below are what matter.' : '')
     + (req.ask && !deciding ? `
 Also set "${req.ask.key}" in the same JSON object to exactly one of: ${req.ask.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}.` : '')
     + (req.also ?? []).map((a) => `
