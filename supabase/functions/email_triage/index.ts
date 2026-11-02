@@ -22,7 +22,7 @@ import { observe } from '../_shared/observe.ts';
 import { drain as drainJudgements } from '../_shared/routine_judgements.ts';
 import { defaultDeps, think, type ThinkDeps } from '../_shared/think.ts';
 import { knownSenderCategory } from '../_shared/triage_known_sender.ts';
-import { mailFacts, SEPARATE_COMPANY_FACT } from './account_facts.ts';
+import { mailFacts, SEPARATE_COMPANY_FACT, withClaimLink } from './account_facts.ts';
 import { composeMailReply, declinedRowFields, invitationReplyAnswerable, noAutoReply, overDailyAnswerCap, tenantMailAnswerable } from '../_shared/customer_mail.ts';
 import { langOf } from '../_shared/chat_answers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
@@ -63,7 +63,7 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
   if (person.value === true) {
     const body = await direct(' They asked to speak to a person: say plainly that a member of the team will reply to them in this same thread, and answer whatever else they asked.');
     if (!body) throw new Error('no model answered the e-mail');
-    text = composeMailReply({ lang, answer: body }); how = 'person';
+    text = composeMailReply({ lang, answer: withClaimLink(body, facts) }); how = 'person';
     // a person asked to review an automated decision (ledger 1152): filed with the seat that owns it (review_route)
     await fileReviewRequest(admin, deps, { channel: 'email', requester: String(m.from_email || 'unknown sender'), message: q,
       surface: 'email_triage.review_of_decision', dedupeKey: String(m.id), subjectTable: 'inbound_messages', subjectId: String(m.id) });
@@ -75,7 +75,7 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
     const verified = r.status === 'answered' && r.verified?.status === 'agreed' && r.answer.trim() ? r.answer.trim() : null;
     const body = verified ?? await direct('');
     if (!body) throw new Error('no model answered the e-mail');
-    text = composeMailReply({ lang, answer: body });
+    text = composeMailReply({ lang, answer: withClaimLink(body, facts) });   // every path carries the invited supplier's link
     how = verified ? 'reasoned' : 'direct';
   }
   const { data: sent, error } = await admin.rpc('fn_inbox_send', { p_id: m.id, p_body: text, p_by: 'customer_support' });
