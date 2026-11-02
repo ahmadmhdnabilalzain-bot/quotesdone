@@ -722,7 +722,8 @@ async function handleInbound(req: Request): Promise<Response> {
     const meaningIn = async (): Promise<WaMeaningInput> => {
       const { data: rows } = await admin.from('wa_reply_intent').select('intent_key,label').eq('active', true).order('sort').order('intent_key');
       return { message: Body, intents: (rows || []) as WaMeaningInput['intents'], trades: await menuDeps.trades(), phone: From,
-               messageSid: MessageSid || null, audience: (['customer', 'supplier', 'founder'].includes(audience) ? audience : 'unknown') as WaMeaningInput['audience'] };
+               messageSid: MessageSid || null, audience: (['customer', 'supplier', 'founder'].includes(audience) ? audience : 'unknown') as WaMeaningInput['audience'],
+               conversation: history ? await history : [] };
     };
     // Both languages' titles, so a typed Arabic title is recognised as surely as an English one.
     // Paired by option id, never by position, so the two languages cannot drift onto each other's option.

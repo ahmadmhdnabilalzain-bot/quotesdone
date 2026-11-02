@@ -54,6 +54,24 @@ out.forged = await (async () => { // known-bad control: wrong token, no row, no 
   await new Promise((r) => setTimeout(r, 1500));
   return { status: res.status, rows: (await lastRow('whatsapp:' + X, 'S'.padEnd(34, 'f'))).length };
 })();
+// PARITY: the same five messages classified in the old full shape (brief sent) and the lean shape, each from a fresh
+// fixture number so the chat history is the same (none). The deterministic intent and the needs-a-person reading must match.
+{
+  const { waLean } = await import('../../supabase/functions/_shared/reasoned_channels.ts');
+  const msgs = ['ZZ DEMO How much does it cost to be listed on QuotesDone?', 'ZZ DEMO Do you cover glass balustrades?', 'ZZ DEMO I want to speak to a person please',
+    'ZZ DEMO my villa air conditioning is broken, who can fix it?', 'ZZ DEMO you took my money and vanished, this is a scam'];
+  const read = async (phone: string, lean: boolean) => {
+    waLean.on = lean; const res = [];
+    try { for (const m of msgs) { const r = await say(phone, m); const meta = r.rows[0]?.meta ?? {}; res.push({ ms: r.ms, intent: meta.route_intent ?? null, person: meta.asked_for_a_person ?? null, answered: !!r.reply, cls: (meta.timings as Record<string, number> | undefined)?.classified ?? null }); } }
+    finally { waLean.on = true; }
+    return res;
+  };
+  const oldR = await read(cfg.parityOld, false); const newR = await read(cfg.parityNew, true);
+  out.parity = msgs.map((m, i) => ({ m: m.slice(8, 50), old: oldR[i], lean: newR[i], same: oldR[i].intent === newR[i].intent && oldR[i].person === newR[i].person }));
+  // known-bad control: the comparison itself must fail on a different intent
+  const cmp = (a: { intent: unknown; person: unknown }, b: { intent: unknown; person: unknown }) => a.intent === b.intent && a.person === b.person;
+  out.parity_control_detects_a_difference = cmp({ intent: 'pricing', person: false }, { intent: 'contact_human', person: true }) === false;
+}
 out.question = await say(S, 'ZZ DEMO When will I start receiving jobs after I register?');
 out.hi = await say(S, 'Hi');
 out.arabic = await say(S, 'ZZ DEMO كم تبلغ رسوم الاشتراك؟');

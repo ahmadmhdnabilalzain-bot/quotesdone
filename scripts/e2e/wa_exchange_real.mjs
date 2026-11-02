@@ -31,7 +31,7 @@ try {
   const dir = mkdtempSync(join(tmpdir(), 'waexch-'));
   const cfg = join(dir, 'cfg.json');
   writeFileSync(cfg, JSON.stringify({ url: `https://${REF}.supabase.co`, service: SERVICE, authToken: sec.twilio_auth_token, internal: sec.cred_fn_wa_inbound,
-    supplier: phone, stranger: STRANGER,
+    supplier: phone, stranger: STRANGER, parityOld: '+971500000094', parityNew: '+971500000095',
     pngB64: demoOfficePlanPng().toString('base64'),
     pdfB64: demoTradeLicence({ company: sup.companyName, licenceNo: 'ZZ-DEMO-000123' }).toString('base64') }));
   const r = spawnSync('deno', ['run', '--no-lock', '--node-modules-dir=auto', '--allow-net', '--allow-env', '--allow-read', 'scripts/e2e/wa_exchange_real_driver.ts', cfg],
@@ -41,19 +41,31 @@ try {
   if (!line) throw new Error('driver produced no RESULT; stdout tail: ' + (r.stdout || '').slice(-600) + ' stderr tail: ' + (r.stderr || '').slice(-1200));
   result = JSON.parse(line.slice(7));
   const brief = (x) => ({ status: x?.status, ms: x?.ms, reply: x?.reply, results: x?.rows?.[0]?.meta?.results, err: x?.rows?.[0]?.meta?.send_error, nrows: x?.rows?.length, t: x?.rows?.[0]?.meta?.timings });
-  for (const k of ['forged', 'question', 'hi', 'arabic', 'stranger_hi', 'fee', 'top3', 'identity', 'reveal', 'image', 'document']) console.log('## ' + k + ' ' + JSON.stringify(k === 'forged' ? result[k] : brief(result[k])));
+  for (const k of ['parity', 'parity_control_detects_a_difference', 'forged', 'question', 'hi', 'arabic', 'stranger_hi', 'fee', 'top3', 'identity', 'reveal', 'image', 'document']) console.log('## ' + k + ' ' + JSON.stringify(['forged', 'parity', 'parity_control_detects_a_difference'].includes(k) ? result[k] : brief(result[k])));
   console.log('## ten ' + JSON.stringify(result.ten));
   {
     const turns = [...['question', 'hi', 'arabic', 'stranger_hi', 'fee', 'top3', 'identity', 'reveal'].map((k) => result[k]), ...result.ten.filter((t) => typeof t.ms === 'number')].filter((t) => t && typeof t.ms === 'number');
     const ms = turns.map((t) => t.ms).sort((a, b) => a - b); const pct = (p) => ms[Math.min(ms.length - 1, Math.floor(p * ms.length))];
     console.log('LATENCY turns=' + ms.length + ' p50_ms=' + pct(0.5) + ' p95_ms=' + pct(0.95) + ' max_ms=' + ms[ms.length - 1] + ' unanswered=' + turns.filter((t) => !t.reply).length);
   }
+  // The held queue, by design: a turn that got no reply is filed (fn_reason_hold) and the re-ask cron answers it or lets it expire.
+  // Polled up to 5 minutes. A fixture reply is captured, never delivered, so 'failed' with reask_delivery.detail 'captured' means
+  // the model's answer WAS written and handed to the sender, which is the most a fixture can show.
+  try {
+    const phones = [phone, STRANGER, '+971500000094', '+971500000095'].map((p) => `'${p}'`).join(',');
+    for (let i = 0; i < 10; i++) {
+      const held = await mgmtRead(REF, `select id, status, attempts, left(coalesce(result::text,''),260) res from public.reasoning_held_question where surface='wa_inbound.unwritten_reply' and created_at >= ${q(started)} and subject->>'phone' in (${phones.replaceAll("'+", "'whatsapp:+").replace(/'/g, "'")}) order by id`).catch(() => []);
+      if (held.length === 0 || held.every((h) => h.status !== 'pending' && h.status !== 'held')) { console.log('HELD_QUEUE ' + JSON.stringify(held)); break; }
+      if (i === 9) console.log('HELD_QUEUE (still open after 5 min) ' + JSON.stringify(held));
+      await new Promise((r) => setTimeout(r, 30000));
+    }
+  } catch (e) { console.log('held queue read failed: ' + String(e).slice(0, 200)); }
   try {
     const cost = (await mgmtRead(REF, `select coalesce(sum(cost_aed),0)::float aed from public.ai_cost_log where occurred_at >= ${q(started)}`))[0];
     console.log('COST_AED_SINCE_START(all callers)=' + cost.aed + ' (USD ' + (cost.aed / 3.6725).toFixed(2) + ')');
   } catch (e) { console.log('cost read failed: ' + String(e).slice(0, 200)); }
 } finally {
-  for (const p of [sup && (await mgmtRead(REF, `select phone from public.leads where id=${sup.leadId}`).then((x) => x[0]?.phone).catch(() => null)), STRANGER].filter(Boolean)) {
+  for (const p of [sup && (await mgmtRead(REF, `select phone from public.leads where id=${sup.leadId}`).then((x) => x[0]?.phone).catch(() => null)), STRANGER, '+971500000094', '+971500000095'].filter(Boolean)) {
     const d = p.replace(/\D/g, '');
     await mgmtFixture(REF, `delete from public.wa_turn where conversation_id in (select id from public.wa_conversation where phone_e164=${q(d)});
       delete from public.wa_conversation where phone_e164=${q(d)}; delete from public.wa_messages where wa_from=${q('whatsapp:' + p)};
