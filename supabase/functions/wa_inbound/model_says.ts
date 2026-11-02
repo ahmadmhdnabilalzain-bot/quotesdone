@@ -22,6 +22,16 @@ export interface SayRequest {
   forbidden?: string[];         // another party's identity before a reveal: a hit is rewritten by the model
   budgetMs?: number;            // the reply's wall-clock budget (default WA_REPLY_BUDGET_MS)
   must?: string[];              // text the reply must carry exactly (a job number, a case reference)
+  signal?: AbortSignal;         // a speculative draft that was discarded: abort it
+  extraCheck?: (text: string) => string[];   // the turn's own rule: a draft it names a problem in is rewritten, never sent
+}
+// A VOICE NOTE REPLY NEVER ASKS FOR A DOCUMENT (customer_support, 3 Nov 2026). Measured on the real exchange on main
+// (run 41528725657, after f6dcbe7d): the voice turn came after four licence/file turns in the same chat, the model saw them
+// (the whole conversation rides with every turn since #1758) and added "If it is your trade licence, you can also send it
+// as a PDF or a clear photo". The situation only told it what to say, not what not to; the reply is now refused and rewritten.
+export function voiceReplyProblems(text: string): string[] {
+  return /trade licen|\bpdf\b|photo of|upload/i.test(text)
+    ? ['it asks for or mentions a document (licence, PDF, photo, upload) in a reply to a voice note that nobody heard'] : [];
 }
 // A WhatsApp reply is written within this, or the person gets the held notice and the turn is queued (run 5: 73.7 s).
 // 2 Nov 2026: 90 s, was 45. The webhook is acknowledged at once (ackThenWork), so the wall is the edge worker's background
@@ -51,7 +61,7 @@ export async function modelSays(deps: ThinkDeps, r: SayRequest): Promise<Said> {
       message: r.message || '(no text — they pressed a menu option or sent a file)',
       conversation: r.conversation,
       facts: 'WHAT HAS HAPPENED ON THIS TURN (decided by our systems; convey it accurately, do not change or add to it):\n' + r.situation,
-      rules: WA_RULES, subject: r.subject, rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, must: r.must,
+      rules: WA_RULES, subject: r.subject, rateKey: r.rateKey, forbidden: r.forbidden, askEscalate: true, must: r.must, ...(r.signal ? { signal: r.signal } : {}), ...(r.extraCheck ? { extraCheck: r.extraCheck } : {}),
       deadline: t0 + (r.budgetMs ?? WA_REPLY_BUDGET_MS),
     });
     return { text: String(out.reply || '').trim(), model: out.model, attempts: out.attempts, ms: Date.now() - t0, escalate: out.escalate === true, outage: out.outage === true, problems: out.problems ?? [] };
