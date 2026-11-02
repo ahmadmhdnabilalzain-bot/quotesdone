@@ -15,7 +15,7 @@ import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, ownsChannel } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
-import { M365_HARD_CEILING, M365_ID_PREFIX, M365_PACE_MS, M365_PER_RUN, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, campaignMail, conversationReplyTo, graphSend, holdForM365, m365Carries, m365Mime, m365ReplyTo, messageIdFor, paceM365, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
+import { M365_FROM_NAME, M365_HARD_CEILING, M365_ID_PREFIX, M365_PACE_MS, M365_PER_RUN, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, campaignMail, conversationReplyTo, graphSend, holdForM365, m365Carries, m365Mime, m365ReplyTo, messageIdFor, paceM365, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
@@ -320,7 +320,7 @@ Deno.serve(observe('send_outbox', async (req) => {
         const { subject: mSubject, text: mBody, bad } = await campaignFor(n);
         if (bad.length) { await admin.from('notifications').update({ status: 'held', last_error: ('held: Microsoft 365 invitation copy rule failed: ' + bad.map((l) => l.rule + ' (' + (l.detail || '') + ')').join('; ')).slice(0, 500) }).eq('id', n.id); held++; continue; }
         const now = new Date(); const mid = messageIdFor(n.id, now);
-        const mime = m365Mime({ from: 'Ahmad Alzain at QuotesDone <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: mSubject, text: mBody, unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now });
+        const mime = m365Mime({ from: M365_FROM_NAME + ' <' + m365.mailbox + '>', to: n.to_email, reply: m365ReplyTo({ proofAt: m365ProofAt, now, fallback: reply }), subject: mSubject, text: mBody, unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, messageId: mid, now });
         try {
           const r = await graphSend((u, i) => timedFetch(u, i || {}, 15_000), m365, mime, mid, closeFinding);
           if (r.ok) {

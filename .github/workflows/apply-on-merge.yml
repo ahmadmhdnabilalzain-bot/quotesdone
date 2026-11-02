@@ -1,0 +1,53 @@
+name: A merged SQL file applies itself
+
+# Founder ledger 1463: merging is the go-live. Waits for the same commit's edge deploy, then rehearses, applies, reads back and
+# probes each file added to MANIFEST.txt since the last successful run. No laptop and no session.
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths: ['scripts/sql/MANIFEST.txt']
+
+concurrency:
+  group: apply-sql
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - run: npm ci
+        timeout-minutes: 8
+      - name: Find what has not been applied
+        run: |
+          from=$(gh run list --workflow apply-on-merge.yml --branch main --status success --limit 1 --json headSha --jq '.[0].headSha // ""')
+          git cat-file -e "$from^{commit}" 2>/dev/null || from="${{ github.event.before }}"
+          git cat-file -e "$from^{commit}" 2>/dev/null || from="$GITHUB_SHA~1"
+          echo "FROM=$from" >> "$GITHUB_ENV"
+      - name: Wait for this commit's deploy, when this commit changed functions
+        id: deploy
+        timeout-minutes: 15
+        run: |
+          git diff --quiet "$GITHUB_SHA~1" "$GITHUB_SHA" -- supabase/functions && exit 0
+          for i in $(seq 1 56); do
+            good=$(gh run list --workflow deploy-functions.yml --commit "$GITHUB_SHA" --json conclusion --jq 'map(select(.conclusion == "success")) | length')
+            open=$(gh run list --workflow deploy-functions.yml --commit "$GITHUB_SHA" --json status --jq 'map(select(.status != "completed")) | length')
+            [ "${good:-0}" -gt 0 ] && [ "${open:-1}" = 0 ] && exit 0
+            sleep 15
+          done
+          echo "the deploy did not succeed"; exit 1
+      - name: Apply what has not been applied
+        run: node scripts/ci/apply_new_manifest_lines.mjs "$FROM" "$GITHUB_SHA"
+      - name: Say so when the deploy held the apply back
+        if: failure() && steps.deploy.outcome == 'failure'
+        run: node scripts/ci/apply_new_manifest_lines.mjs --deploy-failed "$GITHUB_SHA"

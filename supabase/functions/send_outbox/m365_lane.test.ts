@@ -10,6 +10,7 @@ import {
   M365_INBOX_AGENT, M365_INBOX_PROOF_MAX_AGE_MS, m365ReplyTo, conversationReplyTo, withPlacementRef, campaignMail,
   M365_PACE_MS, M365_PER_RUN, paceM365, qpEncode,
 } from './m365_lane.ts';
+import { M365_FROM_NAME } from './m365_lane.ts';
 import { resendPayload } from './payload.ts';
 import { INVITE_LANE_TYPES } from './invite_lane.ts';
 
@@ -325,7 +326,7 @@ Deno.test('the invitation names the company and its trade, and the subject carri
 Deno.test('opt-out: one-click List-Unsubscribe with -Post in the MIME, and a "stop" reply is an unsubscribe request', async () => {
   const { isUnsubscribeRequest } = await import('../_shared/unsubscribe_mailbox.ts');
   const unsub = 'https://quotesdone.com/u/unsubscribe?e=zz&t=1';
-  const head = unb64(m365Mime({ from: 'Ahmad Alzain at QuotesDone <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '',
+  const head = unb64(m365Mime({ from: M365_FROM_NAME + ' <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '',
     subject: 's', text: m365InvitationText(), unsub, unsubMailto: 'unsubscribe@mail.quotesdone.com', messageId: '<m@q>', now: new Date() })).split('\r\n\r\n')[0];
   assert(head.includes(`List-Unsubscribe: <${unsub}>, <mailto:unsubscribe@mail.quotesdone.com?subject=unsubscribe>`));
   assert(head.includes('List-Unsubscribe-Post: List-Unsubscribe=One-Click'));
@@ -374,7 +375,7 @@ Deno.test('both routes send the identical approved body and subject: Microsoft 3
     const c = campaignMail(row, row.type === 'supplier_invite_seed' ? {} : who);
     assertEquals(c.bad, [], `${row.type} fails a copy rule`);
     // route 1: the Microsoft 365 MIME, as index.ts builds it
-    const raw = unb64(m365Mime({ from: 'Ahmad Alzain at QuotesDone <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '', subject: c.subject,
+    const raw = unb64(m365Mime({ from: M365_FROM_NAME + ' <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '', subject: c.subject,
       text: c.text, unsub, unsubMailto: 'unsubscribe@mail.quotesdone.com', messageId: '<m@q>', now: new Date('2026-10-27T04:30:00Z') }));
     const [head, qp] = splitMime(raw);
     const m365Text = qpDecode(qp).replace(/\r\n/g, '\n');
@@ -530,4 +531,9 @@ Deno.test('a long registered name, a three-letter word and a dotted suffix read 
     const got = companyName(odd);
     assert(typeof got === 'string' && got === got.trim() && (got === '' || got.length >= 2), JSON.stringify(odd));
   }
+});
+
+Deno.test('the display name is quoted so its comma stays one name', () => {
+  const head = unb64(m365Mime({ from: M365_FROM_NAME + ' <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '', subject: 's', text: 'x', unsub: '', unsubMailto: 'u@mail.quotesdone.com', messageId: '<m@q>', now: new Date() })).split('\r\n\r\n')[0];
+  assert(head.includes('From: "Ahmad Alzain, QuotesDone" <supplier@quotesdone.com>'));
 });
