@@ -37,11 +37,14 @@ drop policy if exists supplier_reply_followup_service_role_only on public.suppli
 create policy supplier_reply_followup_service_role_only on public.supplier_reply_followup
   as permissive for all to public using (false) with check (false);
 revoke all on public.supplier_reply_followup from anon, authenticated;
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('supplier_reply_followup', true, 'supplier', 'Each follow-up promised to a supplier who replied to an invitation, with its due date and outcome.', 'sales_engineer')
+on conflict (table_name) do nothing;
 
 create or replace function public.fn_supplier_reply_intent(p_text text)
 returns text
 language sql immutable
-set search_path to 'pg_catalog', 'pg_temp'
+set search_path to 'public', 'pg_temp'
 as $fn$
   select case
     -- a decline or a stop outranks everything else in the same mail
@@ -56,7 +59,7 @@ revoke execute on function public.fn_supplier_reply_intent(text) from public, an
 create or replace function public.fn_supplier_reply_answer(p_intent text, p_link text)
 returns text
 language sql immutable
-set search_path to 'pg_catalog', 'pg_temp'
+set search_path to 'public', 'pg_temp'
 as $fn$
   select case p_intent
     when 'subsidiary' then
@@ -240,6 +243,7 @@ begin
   v := public.fn_mailbox_fold(p_addr);
   return v = any(v_list);
 end $fn$;
+revoke execute on function public.fn_is_founder_own_inbox(text) from public, anon, authenticated;
 select public.fn_seat_handoff_complete(329843, jsonb_build_object('action', 'none',
   'reason', 'ahmad@666realestate.ae is the founder''s own address, a warm-up reply: nobody is waiting and nothing is sent'))
  where exists (select 1 from public.agent_actions where id = 329843 and status <> 'done');

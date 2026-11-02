@@ -4,6 +4,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { contactMessageError } from '../_shared/contact_limits.ts';
+import { answerHold } from '../_shared/contact_answer_gate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -14,6 +15,11 @@ const IP_LIMIT = 10, EMAIL_LIMIT = 5, WINDOW_S = 3600;
 async function rl(key: string, limit: number): Promise<boolean> {
   try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: limit, p_seconds: WINDOW_S }); if (error) return true; return data !== false; }
   catch (_e) { return true; } // the limiter being down must not lose a customer's message
+}
+// The limiter for AUTOMATIC ANSWERS fails CLOSED: if it cannot count, the message is held for the seat, never answered.
+async function allow(key: string, limit: number, seconds: number): Promise<boolean> {
+  try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: limit, p_seconds: seconds }); return !error && data !== false; }
+  catch (_e) { return false; }
 }
 Deno.serve(observe('contact_submit', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -34,7 +40,9 @@ Deno.serve(observe('contact_submit', async (req) => {
     }
     const ua = String(req.headers.get('user-agent')||'').slice(0,300);
     const isComplaint = String(b.kind || '') === 'complaint';
-    const { data: row, error } = await admin.from('contact_messages').insert({ name, email, phone, message, user_agent: ua, ...(isComplaint ? { source: 'complaint' } : {}) }).select('id').maybeSingle();
+    // Whether we may ANSWER this stranger by mail; the message is stored either way (source 'held:<reason>' -> z55 holds it).
+    const hold = isComplaint ? null : await answerHold(email, ip, allow).catch(() => 'gate_error');
+    const { data: row, error } = await admin.from('contact_messages').insert({ name, email, phone, message, user_agent: ua, ...(isComplaint ? { source: 'complaint' } : hold ? { source: 'held:' + hold } : {}) }).select('id').maybeSingle();
     if (error) return J({ error: 'Could not send. Please try again.' }, 500);
     // A complaint gets a ticket number and the two policy clocks (2 and 10 working days).
     type Ticket = { ticket?: string; acknowledge_due?: string; respond_due?: string };

@@ -593,6 +593,41 @@
   "d0466f61047f",
   "fae3d0feb457"
  ],
+ "scripts/sql/a_customer_with_no_supplier_is_told_the_truth_and_nothing_is_left_waiting.sql": [
+  "01676ef8c54f",
+  "15bd385ae25c",
+  "167af62ca0cf",
+  "1a270a5c297c",
+  "2c63c7dc2b84",
+  "354d136ec049",
+  "42af9e9a3efb",
+  "4513f89d5413",
+  "5015f46e7ff1",
+  "51fafd239b66",
+  "573a5258329a",
+  "5ae94b7c9aaa",
+  "5c0e1026e817",
+  "6542c8565aeb",
+  "65bc30b75d95",
+  "7affa4ca66a6",
+  "7d9440dd2cec",
+  "84aab694ce70",
+  "859798d5f8bb",
+  "90b5b2b84b6c",
+  "95be65272de8",
+  "aa1597b6e501",
+  "acb14c24213d",
+  "b3988efa6f34",
+  "b9a73df3c9f5",
+  "c5822971da3f",
+  "cb76a6eb29d7",
+  "d0fcea2d7d46",
+  "d345c9a3397d",
+  "d5e8cb4363a1",
+  "df5bbb5efec4",
+  "eb9024a4bba6",
+  "fa24f24c3dfe"
+ ],
  "scripts/sql/a_customer_with_quotes_who_has_not_revealed_is_nudged_and_offered_help.sql": [
   "0f73aac5d3bd",
   "12a0161d6030",
@@ -717,6 +752,34 @@
   "952398d7142e",
   "bafd773faf8b",
   "cda600d8f764"
+ ],
+ "scripts/sql/a_supplier_reply_gets_the_action_it_asked_for.sql": [
+  "06c2c091e00b",
+  "0e9641d49d63",
+  "2d551f20cff9",
+  "2db74939ec90",
+  "397f42ed1af8",
+  "40c727c4b206",
+  "5d8adcdb143f",
+  "6f5d58da4658",
+  "73ea698a6606",
+  "8d830e69af35",
+  "8eb45a668edd",
+  "929733ebfd93",
+  "949d99a44662",
+  "a0f7bc0e68c1",
+  "a7b12e29109b",
+  "aa1597b6e501",
+  "b5a1ab5a4562",
+  "c404dcbfc009",
+  "ca7c28b7da70",
+  "cb8f763fa1a4",
+  "ccb8af999709",
+  "e2412e49f925",
+  "e78ca62a0878",
+  "eb68fdfd93fd",
+  "fb978336c061",
+  "fea22eb87ec7"
  ],
  "scripts/sql/a_verified_supplier_is_told_what_his_portfolio_is_missing.sql": [
   "033fce7adb9c",
@@ -1286,8 +1349,27 @@
   "e5b97c22b0a2",
   "f38622845c37"
  ],
+ "scripts/sql/nothing_a_person_sends_us_waits_without_a_seat_that_acts.sql": [
+  "00a9866295f2",
+  "0baf11bb08c5",
+  "18d04f89f17b",
+  "2abcb380ea03",
+  "3f2b6cea75a0",
+  "4e591e6009a7",
+  "59288b902a9c",
+  "5e36ae3b4c07"
+ ],
  "scripts/sql/one_approve_schedules_and_publishes_the_month_on_working_days.sql": [
   "1721f87d2f73"
+ ],
+ "scripts/sql/only_a_readable_uae_authority_is_approved_and_a_held_registration_has_a_decider.sql": [
+  "055e0305039c",
+  "2b44f074e4b1",
+  "5235a9ebfc0f",
+  "624c1dae6a73",
+  "7cca2db04f36",
+  "810f80c800cd",
+  "ece1a9ac419d"
  ],
  "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql": [
   "033fce7adb9c",
@@ -3252,7 +3334,6 @@
  "src/components/me/portalText.ts": [
   "00883d7920a3",
   "01776b1f13a4",
-  "020d45ecac5c",
   "027290433d84",
   "051b56e3955b",
   "05540d2a35b6",
@@ -3384,7 +3465,6 @@
   "85980dfd0bb7",
   "86d87cb239a4",
   "87d53faafb92",
-  "881e37b0eed0",
   "882aee9ac1ba",
   "88d875e6b235",
   "89c6b2f490e6",
@@ -3453,6 +3533,7 @@
   "c51a5a802337",
   "c5be592a2af7",
   "c6d01499693f",
+  "c7991c045c58",
   "c82d980e242a",
   "c935324cb3cf",
   "ca8822bf102e",
@@ -3493,6 +3574,7 @@
   "ea239deff6d6",
   "ea4af2f30734",
   "eae85698e58b",
+  "ee3e3c7967da",
   "ef4f41b972a1",
   "efa91f65ffc9",
   "f1624f88a2ac",
@@ -6826,8 +6908,8 @@
  ],
  "supabase/functions/site_assistant/index.ts": [
   "244053c77971",
-  "9a03685e2791",
-  "ee486754ccff"
+  "416b9983b5ec",
+  "9a03685e2791"
  ],
  "supabase/functions/site_assistant/visitor_scope.ts": [
   "0b3fc2f067e7",
@@ -7003,8 +7085,9 @@
   "e6000ddeb9a0"
  ],
  "supabase/functions/voice_otp/twiml.ts": [
-  "2106a8f82cd2",
-  "ee21e997c5f4"
+  "20af4c620d2d",
+  "55de853f52d0",
+  "715de60cd3cb"
  ],
  "supabase/functions/wa_inbound/coverage.ts": [
   "0aa6fdf4e4a5",

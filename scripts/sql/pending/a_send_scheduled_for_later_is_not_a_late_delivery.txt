@@ -1,1 +1,0 @@
-Applied at merge of this PR. fn_it_duties with one added clause, built from the schema mirror of origin/main 0d57a7c5: re-diff against the live body at apply, since another PR may redefine it first. Moves when the release operator applies it with --apply --ddl --seat it_engineer.

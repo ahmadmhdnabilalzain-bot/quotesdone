@@ -22,12 +22,30 @@
 -- Prevented by: scripts/checks/nothing_a_person_sends_us_waits.test.mjs and
 -- scripts/sql/nothing_a_person_sends_us_waits_without_a_seat_that_acts_probe.sql
 
--- 1. THE CONTACT FORM: a message becomes an inbound row, which email_triage answers on its 15-minute tick.
+-- 1. THE CONTACT FORM: a message becomes an inbound row, which email_triage answers on its 15-minute tick, unless it is held.
+-- THE FORM'S SENDER IS NOT AUTHENTICATED, so an automatic answer is a mail we send to an address a stranger typed. Measured
+-- protection before this change (contact_submit): a honeypot, 10 posts an hour per IP, 5 an hour per address (rl_check), a
+-- loose address shape, and email_triage's own rules (founder, no-reply, bounce, auto-submitted, 5 answers a day to one
+-- address). Missing: a daily ceiling, a suppression check, MX, and any rule against a stranger naming a supplier's address.
+-- An answer goes out only when NONE of these holds; otherwise the message is HELD FOR customer_support (owner_role set, so
+-- email_triage never picks it up; an agent_actions 'inbound_review' item names it; contact_messages.status says why), never
+-- answered and never lost:
+--   * contact_submit marked it source 'held:<reason>' (bad shape, no MX or MX unreadable, over the per-IP or per-address
+--     daily limit, or over the day's ceiling for all automatic answers);
+--   * the address is in email_suppressions (unsubscribed, or a hard bounce), the founder's own inbox, or a role/no-reply local part;
+--   * the address is a known supplier or lead (fn_mail_sender_known = supplier): its answer would leave on the supplier
+--     lane (supplier@), which is for invitations and which a stranger must not be able to make us use;
+--   * the same address wrote to the form in the last 24 hours (only the first message is answered automatically);
+--   * 20 automatic answers have already been released today (the ceiling for the whole form).
+-- A customer-side answer leaves on the customer sender (send_outbox senderFor: only to_role 'supplier' uses supplier@), and
+-- the invitation lane's cap (LANE_CAPPED_TYPES) does not count it.
 create or replace function public.trg_z55_contact_message_reaches_customer_support()
 returns trigger
 language plpgsql security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
+declare v_hold text; v_addr text := lower(btrim(coalesce(new.email, ''))); v_local text := split_part(lower(btrim(coalesce(new.email, ''))), '@', 1);
+        v_in bigint;
 begin
   if public.fn_is_demo_email(new.email) or coalesce(new.message, '') like 'ZZ DEMO%' then
     update public.contact_messages set status = 'demo' where id = new.id;
@@ -35,11 +53,34 @@ begin
   end if;
   if coalesce(new.source, '') = 'complaint' then return null; end if;  -- fn_complaint_open owns it, with its two clocks
   begin
-    insert into public.inbound_messages (from_email, to_email, subject, body, needs_review, raw)
+    v_hold := case
+      when coalesce(new.source, '') like 'held:%' then substr(new.source, 6)
+      when v_addr !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then 'address_shape'
+      when exists (select 1 from public.email_suppressions s where lower(btrim(s.email)) = v_addr) then 'suppressed_or_bounced'
+      when public.fn_is_founder_own_inbox(v_addr) then 'founder_address'
+      when v_local ~ '^(postmaster|mailer-daemon|no-?reply|do-?not-?reply|bounces?|abuse|root|daemon|notifications?)$' then 'role_address'
+      when public.fn_mail_sender_known(v_addr) = 'supplier' then 'known_supplier_lane'
+      when exists (select 1 from public.contact_messages m where m.id <> new.id and lower(btrim(m.email)) = v_addr
+                      and m.created_at > now() - interval '24 hours') then 'second_message_in_24h'
+      when (select count(*) from public.inbound_messages i where i.to_email = 'contact-form@quotesdone.com' and i.owner_role is null
+               and i.created_at > date_trunc('day', now())) >= 20 then 'daily_ceiling'
+    end;
+    insert into public.inbound_messages (from_email, to_email, subject, body, needs_review, owner_role, raw)
     values (new.email, 'contact-form@quotesdone.com', left('Contact form: ' || coalesce(nullif(new.name, ''), new.email), 200),
             new.message || coalesce(E'\n\nPhone given: ' || nullif(new.phone, ''), ''), true,
-            jsonb_build_object('source', 'contact_form', 'contact_message_id', new.id, 'sender_authenticated', false));
-    update public.contact_messages set status = 'with_customer_support' where id = new.id;
+            case when v_hold is not null then 'customer_support' end,
+            jsonb_build_object('source', 'contact_form', 'contact_message_id', new.id, 'sender_authenticated', false,
+                               'held_reason', v_hold))
+    returning id into v_in;
+    if v_hold is not null then
+      insert into public.agent_actions (agent, kind, status, risk, title, recommendation, target_table, target_id, detail)
+      values ('email', 'inbound_review', 'pending', 'low',
+              left('Contact form held, not answered automatically (' || v_hold || '): ' || coalesce(nullif(new.name, ''), new.email), 200),
+              'The sender is not authenticated and an automatic answer was not safe. Read it in the Inbox and answer by hand if it is genuine.',
+              'inbound_messages', v_in::text, jsonb_build_object('contact_message_id', new.id, 'held_reason', v_hold));
+    end if;
+    update public.contact_messages set status = case when v_hold is null then 'with_customer_support'
+                                                      else 'held_for_customer_support' end where id = new.id;
   exception when others then
     -- the message is stored either way; a row left 'new' is what the check below reads
     raise warning 'trg_z55_contact_message_reaches_customer_support: contact_messages % was not handed over: %', new.id, sqlerrm;
@@ -111,11 +152,11 @@ begin
     end if;
   end loop;
   with gone as (
-    update public.reasoning_held_question h
-       set status = 'expired', result = coalesce(h.result, '{}'::jsonb) || jsonb_build_object('expired_by', p_by, 'why', p_why)
-     where h.id = any(v_ids) and h.status = 'held'
-    returning h.id, h.seat, h.surface, h.question, h.subject, h.created_at,
-              coalesce(h.request -> 'context' ->> 'audience', '') audience
+    update public.reasoning_held_question q
+       set status = 'expired', result = coalesce(q.result, '{}'::jsonb) || jsonb_build_object('expired_by', p_by, 'why', p_why)
+     where q.id = any(v_ids) and q.status = 'held'
+    returning q.id, q.seat, q.surface, q.question, q.subject, q.created_at,
+              coalesce(q.request -> 'context' ->> 'audience', '') audience
   ), filed as (
     insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id)
     select g.seat, 'held_question_expired', 'pending', 'low',
@@ -235,7 +276,9 @@ select set_config('qd.handoff_closer', '', true);
 update public.doc_backups set error = 'abandoned: no source in storage; the file exists only in Dropbox (' || dropbox_content_hash || ')'
  where id = 445197 and error = 'no_source';
 
--- 7. THE PUBLIC CONTACT IS THE COMPANY'S WHATSAPP LINE, NOT THE FOUNDER'S MOBILE.
+-- 7. THE PUBLIC CONTACT IS THE COMPANY'S WHATSAPP LINE, NOT THE FOUNDER'S MOBILE. Verified 2 Nov 2026 (read-only): app_secrets.twilio_wa_from
+-- is 12183166814, the WABA sender memory records as connected; the founder texted it as "our WhatsApp number" (instruction 759). The
+-- registered legal texts (privacy, cookie policy, supplier agreement) keep the old line until their next version: a signed text keeps its hash.
 update public.app_secrets set value = '+12183166814' where key = 'founder_public_phone' and value = '+971509319355';
 update public.agent_knowledge
    set content = replace(replace(content, '+971 50 931 9355', '+1 218 316 6814'), '+971509319355', '+12183166814'), updated_at = now()

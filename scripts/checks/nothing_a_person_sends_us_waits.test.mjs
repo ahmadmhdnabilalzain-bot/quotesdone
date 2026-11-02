@@ -59,3 +59,17 @@ test('the reply handlers act, and the expiry keeps a question with a person', ()
   assert.match(b, /kept_for_a_person_at/);
   assert.match(R('scripts/sql/a_send_scheduled_for_later_is_not_a_late_delivery.sql'), /n\.not_before > now\(\)/);
 });
+
+test('a stranger cannot make the contact form mail an address: every unsafe case is held for the seat, not answered, not lost', () => {
+  const sql = R('scripts/sql/nothing_a_person_sends_us_waits_without_a_seat_that_acts.sql');
+  for (const why of ['suppressed_or_bounced', 'founder_address', 'role_address', 'known_supplier_lane', 'second_message_in_24h', 'daily_ceiling', 'address_shape']) {
+    assert.match(sql, new RegExp(`'${why}'`), why);
+  }
+  assert.match(sql, /case when v_hold is not null then 'customer_support' end/, 'a held message must be owned so triage never answers it');
+  assert.match(sql, /'inbound_review'/, 'a held message must be named on a seat item');
+  const edge = R('supabase/functions/contact_submit/index.ts');
+  assert.match(edge, /answerHold\(email, ip, allow\)/);
+  assert.match(edge, /source: 'held:' \+ hold/);
+  assert.match(R('supabase/functions/_shared/contact_answer_gate.ts'), /judgeDns/);
+  assert.match(R('scripts/sql/nothing_a_person_sends_us_waits_without_a_seat_that_acts_probe.sql'), /was LOST/);
+});
