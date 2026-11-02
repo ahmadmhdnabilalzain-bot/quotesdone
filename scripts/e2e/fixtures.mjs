@@ -314,9 +314,12 @@ export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', 
 // services_rewrite, then services_save_rewrite with what the rewrite named. A trade with no sentence
 // here gets no services and says so; the caller that needs routing must add one.
 const SERVICE_WORDS = {
-  aluminium: 'Aluminium windows and doors, curtain wall, ACP cladding, pergolas and louvres',
-  gypsum: 'Gypsum partitions, false ceilings, decorative gypsum and bulkheads',
-  painting: 'Interior painting and exterior painting',
+  // 2 Nov 2026, nightly run 41417049225: "Aluminium windows and doors" is not a label, so the exact rewrite
+  // never confirmed aluminium.windows_doors and the journey's window request routed to none of the three.
+  // Every phrase is now an exact label. prevented by: scripts/checks/every_demo_service_sentence_names_exact_taxonomy_labels.test.mjs
+  aluminium: 'Aluminium windows & doors, Curtain wall, ACP cladding, Pergolas & shades, Louvres',
+  gypsum: 'Gypsum partitions, False ceilings, Decorative gypsum',
+  painting: 'Interior painting, Exterior painting',
   // 19 Oct 2026, stage2 run 0a717394: these trades had no sentence, so their demo supplier confirmed no
   // service and fn_match_capability's services gate dropped it from every request that named one
   // (6 of 9 routed to nobody; hvac passed only because its brief named none). Exact taxonomy labels.

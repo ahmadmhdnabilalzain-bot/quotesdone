@@ -408,7 +408,7 @@ export async function journeySuppliers(ctx) {
   if (cQid) ctx.run.ids.quotes.add(String(cQid));
   const cHeld = mHold && c1.json?.held === true && c1.json?.code === 'spec_hold';
   rep.step(J, 'a complete quote is accepted', c1.json?.accepted === true ? 'PASS' : cHeld ? 'SKIP' : 'FAIL',
-    `HTTP ${c1.status} held=${c1.json?.held} accepted=${c1.json?.accepted} code=${c1.json?.code ?? ''}${cHeld ? UNDER_HOLD(mHold) : ''}`);
+    `HTTP ${c1.status} held=${c1.json?.held} accepted=${c1.json?.accepted} code=${c1.json?.code ?? ''} missing=${(c1.json?.spec_missing || c1.json?.missing || []).map((x) => x?.attr ?? x).join(',') || 'none'}${cHeld ? UNDER_HOLD(mHold) : ''}`);
   // Under the hold a supplier's quotation goes live the only way the product allows: he states each
   // detail on the hold desk and approves the regenerated quotation. C and both of B's options walk that
   // path with exactly what their quotations say, so the comparison has the live quotes it ranks.
@@ -425,7 +425,10 @@ export async function journeySuppliers(ctx) {
   const cmp = await call('quote_compare', fx.customer.jwt, { inquiry_id: inquiryId, lang: 'en' });
   const ids = JSON.stringify(cmp.json?.analysis?.all_quotes || cmp.json || {});
   rep.step(J, 'a held quote is not ranked', cmp.status === 200 && aQid && !ids.includes(aQid) && Number(cmp.json?.analysis?.on_hold ?? cmp.json?.on_hold ?? 0) >= 1 ? 'PASS' : 'FAIL',
-    `HTTP ${cmp.status} ok=${cmp.json?.ok} on_hold=${cmp.json?.analysis?.on_hold ?? cmp.json?.on_hold} held quote in ranking=${aQid ? ids.includes(aQid) : '?'}${cmp.json?.degraded ? ' (deterministic comparison)' : ''}`);
+    `HTTP ${cmp.status} ok=${cmp.json?.ok} on_hold=${cmp.json?.analysis?.on_hold ?? cmp.json?.on_hold} held quote in ranking=${aQid ? ids.includes(aQid) : '?'}${cmp.json?.degraded ? ' (deterministic comparison)' : ''}` +
+    // WHY a quote is not live, named (2 Nov 2026): run 41417049225 read on_hold=2 and live=0 with no cause on screen.
+    `; quotes: ${(await read(`select qq.id, qq.status, qq.option_no, h.flags, h.released_at from public.quotes qq left join public.quote_quality_hold h on h.quote_id = qq.id where qq.inquiry_id = ${q(inquiryId)} order by qq.created_at`))
+      .map((r) => `${String(r.id).slice(0, 8)}#${r.option_no ?? 1}:${r.status}${r.flags ? ` quality_hold${r.released_at ? '(released)' : ''}=${JSON.stringify(r.flags).slice(0, 160)}` : ''}`).join(' | ')}`);
 
   // A fills in the missing details -> regenerated -> approves -> released
   if (aQid) {
@@ -633,8 +636,37 @@ export async function journeyPayment(ctx) {
   const toSup = notes.filter((x) => x.type === 'quote_accepted' && sup?.email && x.to_email === sup.email);
   // Every address is a reserved demo one, so a row read 'sent' to anything else is a leak, not a delivery.
   const leaked = notes.filter((x) => x.status === 'sent' && !/@example\.invalid$|@resend\.dev$/i.test(String(x.to_email || '')));
-  rep.step(J, 'the reveal notifies both parties (customer receipt, supplier acceptance)', toCust.length && toSup.length && !leaked.length ? 'PASS' : 'FAIL',
-    `customer reveal_receipt ${toCust.length}, supplier quote_accepted ${toSup.length}, leaked ${leaked.length}; rows: ${notes.map((x) => `${x.type}/${x.status}`).join(', ') || 'none'}`);
+  // A DEMO REVEAL FILES NO HANDOFF (ruling 1199, fn_seat_handoff), so on these rows the sales engineer is never
+  // asked and nothing above can appear: run 41417049225 read 0 and 0. The production path is then walked in a
+  // transaction that always rolls back, through the one door fn_seat_handoff keeps for it
+  // (qd.probe_files_demo_handoff): the same reveal.paid handoff trg_reveal_receipt raises, acted on by the real
+  // seat, and the messages it writes counted before the rollback. Nothing commits, nothing is sent.
+  let probe = null;
+  if (!toCust.length && !toSup.length && !leaked.length) {
+    const sql = `do $probe$ declare t public.transactions; v jsonb; begin
+      perform set_config('qd.probe_files_demo_handoff', 'on', true);
+      select * into t from public.transactions where quote_id = ${q(live.id)};
+      perform public.fn_seat_handoff('accountant', 'sales_engineer', 'reveal.paid', 'transactions', t.id::text,
+        jsonb_build_object('transaction_id', t.id, 'customer_id', t.customer_id, 'supplier_id', t.supplier_id,
+                           'inquiry_id', t.inquiry_id, 'quote_id', t.quote_id, 'revealed_at', t.revealed_at));
+      select coalesce(jsonb_agg(jsonb_build_object('type', n.type, 'to', n.to_email, 'status', n.status)), '[]') into v
+        from public.notifications n where n.quote_id = t.quote_id and n.type in ('reveal_receipt', 'quote_accepted') and n.created_at >= now();
+      raise exception 'CHK<<%>>', v::text;
+    end $probe$;`;
+    try { await write(sql, 'reveal notifies both parties probe (always rolls back)'); probe = { error: 'the probe did not raise' }; }
+    catch (e) {
+      let msg = String(e.message || e); try { msg = JSON.parse(e.body).message; } catch { /* not JSON */ }
+      const m = /CHK<<([\s\S]*)>>/.exec(msg);
+      probe = m ? JSON.parse(m[1]) : { error: msg.slice(0, 200) };
+    }
+  }
+  const pRows = Array.isArray(probe) ? probe : [];
+  const pCust = pRows.filter((x) => x.type === 'reveal_receipt' && x.to === fx.customer.email).length;
+  const pSup = pRows.filter((x) => x.type === 'quote_accepted' && sup?.email && x.to === sup.email).length;
+  const bothTold = !leaked.length && ((toCust.length && toSup.length) || (pCust && pSup));
+  rep.step(J, 'the reveal notifies both parties (customer receipt, supplier acceptance)', bothTold ? 'PASS' : 'FAIL',
+    `customer reveal_receipt ${toCust.length}, supplier quote_accepted ${toSup.length}, leaked ${leaked.length}` +
+    (probe ? `; demo work files no handoff (ruling 1199), so the production path was walked and rolled back: customer ${pCust}, supplier ${pSup} ${Array.isArray(probe) ? '' : JSON.stringify(probe)}` : ''));
 }
 
 // ---- e. invoice and refund ladder ------------------------------------------------------------------
