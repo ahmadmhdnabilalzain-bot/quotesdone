@@ -89,3 +89,9 @@ export function tradeIn(texts: (string | null | undefined)[], known: (code: stri
   }
   return null;
 }
+
+// THE WORDS THAT ASK FOR A TRADE, AND THE WORDS THAT ONLY COMPARE WITH ONE (it_engineer, 3 Nov 2026; company_brief.ts
+// conversationTrade reads them). Matched against normalise()d text. Vocabulary, not a message.
+export const ASKS = /\b(?:i|we)\s+(?:also\s+|now\s+|still\s+)?(?:need|want|would like|require|am looking for|are looking for)\b|\b(?:need|want)s?\s+(?:a|an|to|new|some)\b|\bquote for\b|\blooking for\b|\bhow much (?:is|for|does|to)\b|(?<![\p{L}])(?:و)?(?:ابي|ابغي|اريد|نبي|نبغي|نريد|احتاج|نحتاج|محتاج|محتاجين|ودي|بدي)(?![\p{L}])/u;
+// a trade word right after one of these is a comparison, not a request ("match the tiles", "like a glass splashback")
+export const COMPARED = /\b(?:match|matching|matches|like|as|same|similar|with|than|plus|add|adding)\b(?:\s+\S+){0,2}\s*$|(?:مثل|زي|نفس|مع|يناسب|يطابق)(?:\s+\S+){0,2}\s*$/u;

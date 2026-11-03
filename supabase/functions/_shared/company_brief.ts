@@ -19,7 +19,7 @@
 // held under BRIEF_TOKEN_CAP by construction: the FAQ takes what is left, and a pack that does not fit is left out.
 // prevented by: _shared/company_brief.test.ts, _shared/brief_budget.test.ts, scripts/checks/every_brief_line_reaches_a_reply.test.mjs
 import { BRIEF_PACKS, BRIEF_PART_IDS, BRIEF_PART_TEXT, BRIEF_SUPPLIER, BRIEF_TEXT } from './brief.generated.ts';
-import { normalise, TRADE_WORDS, tradeIn } from './conversation_trade.ts';
+import { ASKS, COMPARED, normalise, TRADE_WORDS, tradeIn } from './conversation_trade.ts';
 
 /** Estimated Sonnet tokens (scripts/kb/compile_brief.mjs approxTokens, calibrated on production 3 Nov 2026: the cheapest
  *  wa_inbound call's whole old prompt was 139,874 tokens; this formula gives 142,228, about 2% high, on purpose). */
@@ -51,9 +51,6 @@ export const KNOWLEDGE_TEXT = [BRIEF_TEXT, BRIEF_SUPPLIER, ...BRIEF_PART_TEXT].j
  *    - nothing named anywhere: the trade the caller's facts name.
  *  `earlier` is the person's own turns, oldest first. */
 export const TRADE_WINDOW = 12;
-const ASKS = /\b(?:i|we)\s+(?:also\s+|now\s+|still\s+)?(?:need|want|would like|require|am looking for|are looking for)\b|\b(?:need|want)s?\s+(?:a|an|to|new|some)\b|\bquote for\b|\blooking for\b|\bhow much (?:is|for|does|to)\b|(?<![\p{L}])(?:و)?(?:ابي|ابغي|اريد|نبي|نبغي|نريد|احتاج|نحتاج|محتاج|محتاجين|ودي|بدي)(?![\p{L}])/u;
-// a trade word right after one of these is a comparison, not a request ("match the tiles", "like a glass splashback")
-const COMPARED = /\b(?:match|matching|matches|like|as|same|similar|with|than|plus|add|adding)\b(?:\s+\S+){0,2}\s*$|(?:مثل|زي|نفس|مع|يناسب|يطابق)(?:\s+\S+){0,2}\s*$/u;
 /** Whether `message` ASKS for `code` and names no other trade: the request words come before the trade's word, and that
  *  word is not part of a comparison. "We need it to match the tiles" asks for no tiling. */
 function asksFor(message: string, code: string): boolean {
