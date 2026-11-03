@@ -39,7 +39,7 @@ export async function pdfFactsFromBytes(input) {
     text += items.map((x) => x.str).join(' ') + '\n';
     // Where each run sits, so the money can be read in the page's reading order (moneyOf below).
     // pdfjs's y grows upward; it is negated so lines sort top to bottom.
-    for (const x of items) if (x.str && x.transform) runs.push({ text: x.str, page: i, x: x.transform[4], y: -x.transform[5], w: Number(x.width) || 0 });
+    for (const x of items) if (x.str && x.transform) runs.push({ text: x.str, page: i, x: x.transform[4], y: -x.transform[5], w: Number(x.width) || 0, dir: x.dir });
   }
   await task.destroy().catch(() => {});
   const letters = text.match(/\p{L}/gu) || [];
@@ -88,7 +88,10 @@ export function amountsInReadingOrder(runs, rtl, tol = 2) {
   const hits = [];
   for (const r of runs || []) {
     const t = String(r.text || '');
-    for (const m of t.matchAll(/\d[\d,]*\.\d\d/g)) hits.push({ v: m[0], page: r.page ?? 0, y: r.y, x: r.x + (t.length ? (m.index / t.length) * (r.w || 0) : 0) });
+    // pdfjs hands a right-to-left item back in LOGICAL order (first-written figure first) with x at its LEFT edge,
+    // so inside such an item the first figure sits at the RIGHT: its share of the width is counted from the right.
+    // 3 Nov 2026: without this the Arabic note "add up to X; the quoted total is Y" read Y, X (nightly since 20 Oct).
+    for (const m of t.matchAll(/\d[\d,]*\.\d\d/g)) { const share = t.length ? m.index / t.length : 0; hits.push({ v: m[0], page: r.page ?? 0, y: r.y, x: r.x + (r.dir === 'rtl' ? 1 - share : share) * (r.w || 0) }); }
   }
   hits.sort((a, b) => a.page - b.page || a.y - b.y);
   const lines = [];
