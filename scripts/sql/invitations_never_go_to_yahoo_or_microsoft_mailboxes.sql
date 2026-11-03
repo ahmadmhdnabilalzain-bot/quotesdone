@@ -6,8 +6,9 @@
 -- 92 invitations of the 8 days before went to either class; 2,390 not-yet-invited leads are on yahoo/ymail/rocketmail/
 -- aol/hotmail/outlook/live/msn domains.
 --
--- WHAT CHANGES. fn_invite_placement_open_providers is the one list every caller reads: the queue
--- (enqueue_supplier_invites), send_outbox's per-row check and the daily supplier list. It now never contains
+-- WHAT CHANGES. fn_invite_placement_open_providers is the one list every SQL caller reads when an invitation is
+-- QUEUED: enqueue, the nudges, the invite batch, the CEO's target and the resumed-day release (send_outbox has no
+-- provider check, so this acts at queue time; measured 3 Nov: the 38 queued invitations are all google). It now never contains
 -- 'microsoft' or 'yahoo_aol', whatever the verdict. The classes are fn_mail_provider_of_email's (the first cached MX
 -- host, then the domain), the same ones the gate already used, so a company whose mail is hosted by Microsoft 365
 -- stays excluded as it is today. Nothing else moves: Google and other providers still follow their verdict.
