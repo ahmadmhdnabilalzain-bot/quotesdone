@@ -168,8 +168,9 @@ export function replyProblems(text: string, known: Set<string>, o: { allowed?: s
   // a deferral with little else in it (think.ts's measure): "I'll check" alone is refused; a full answer that also says
   // "a member of the team will contact you" is not
   if ((EVASION.some((re) => re.test(text)) || /\bI'?m not sure\b|لست متأكد/i.test(text)) && substanceWords(text) < 25) out.push('it defers or says it does not know (answer what can be said now)');
-  if (namesForbidden(text, o.forbidden ?? [])) out.push("it reveals another party's identity before the reveal");
   const allowed = o.allowed ?? '';
+  // a term the brief or the facts already use is the company's own wording, never the other party's identity (review of #1836)
+  if (namesForbidden(text, (o.forbidden ?? []).filter((f) => !namesForbidden(allowed, [f])))) out.push("it reveals another party's identity before the reveal");
   const allowedLower = allowed.toLowerCase(); const allowedDigits = digits(allowed);
   const leaks = [...(text.match(EMAIL) ?? []).filter((e) => !allowedLower.includes(e.toLowerCase())),
     ...(text.match(PHONE) ?? []).filter((p) => digits(p).length >= 7 && !allowedDigits.includes(digits(p))),

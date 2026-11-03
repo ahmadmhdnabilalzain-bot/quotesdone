@@ -127,18 +127,28 @@ export function reasoned(l: Pick<Line, 'spec' | 'spec_source'>, key: string): st
 }
 
 // "NO MATERIAL" NEEDS MORE THAN THE SUPPLIER SAYING SO (it_engineer, 3 Nov 2026, release qualification). READ.notMaterial
-// is the supplier's own words as reasoning read them, and it skipped every spec question on the line: "Ceramic tiles
-// 60x60 (labour only, no material)" passed unasked. The words now count only when the line itself agrees: they are in
-// its description, the line has no dimension, no brand or model and no stated value, and EITHER the words are nearly all
-// of the description (one other word at most, besides joining words: "Tile laying labour", "Transport to site") OR the
-// line is priced as labour (a labour or install figure and no unit price): "Installation of ceramic tiles - labour only"
-// with its labour column filled. The unit says nothing either way (review of #1836: labour per m2 is ordinary).
-// ponytail: a short line naming a material ("Tiles - labour only") still passes on its words; a trade-vocabulary check
-// is the upgrade if a measured case shows it.
+// is the supplier's own words as reasoning read them, and it skipped every spec question on the line: "Wardrobe MDF
+// carcass, labour only" and "Ceramic tiles 60x60 (labour only)" passed unasked. The words now count only when the line
+// itself agrees: they are in its description; the line has no dimension, no brand or model and no stated value; and no
+// other word of the line is a material or finish of its trade (the catalogue's own options: MDF, plywood, oak, HPL for
+// joinery; porcelain, ceramic, marble for tiling), unless the line is priced as labour (a labour or install figure and no
+// unit price). A service line of any length ("Delivery charges to Abu Dhabi site", "Removal and disposal of existing
+// wardrobes", "Labour charges for installation of 3 wardrobes") still skips its specs (review of #1836: a one-other-word
+// rule held them). The unit says nothing either way: labour per m2 is ordinary.
+// ponytail: a material named in no catalogue option ("tiles", "gypsum board") passes on the words; extending the
+// vocabulary is the upgrade if a measured case shows it.
 const DIMENSION = /\d\s*(?:mm|cm|m²|m2|m3)\b|\d\s*[x×*]\s*\d/i;
-const JOINING = new Set(['a', 'an', 'the', 'and', 'or', 'of', 'for', 'to', 'on', 'at', 'in', 'only', 'with', '&', '-']);
 const words = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}&]+/gu, ' ').trim().split(' ').filter(Boolean);
-export function notMaterialHolds(l: Line): boolean {
+const optionWords = (codes: string[]) => new Set(codes.flatMap((c) => TRADES[c]?.attrs ?? [])
+  .flatMap((a) => a.options ?? []).flatMap(words).filter((w) => w.length >= 3 && !/^\d/.test(w)));
+const VOCAB_OF = new Map<string, Set<string>>();
+/** The material and finish words of a trade (every catalogue trade's, for a trade the catalogue does not hold). */
+function materialWords(trade: string | null): Set<string> {
+  const key = trade && TRADES[trade] ? trade : '*';
+  if (!VOCAB_OF.has(key)) VOCAB_OF.set(key, optionWords(key === '*' ? Object.keys(TRADES) : [key]));
+  return VOCAB_OF.get(key)!;
+}
+export function notMaterialHolds(l: Line, trade: string | null = null): boolean {
   const said = reasoned(l, READ.notMaterial);
   if (!said) return false;
   const desc = words(l.description ?? ''); const ev = words(said);
@@ -146,7 +156,8 @@ export function notMaterialHolds(l: Line): boolean {
   if (DIMENSION.test([l.description, l.specification].filter(Boolean).join(' ')) || l.brand || l.model) return false;
   if (Object.entries(l.spec ?? {}).some(([k, v]) => !k.startsWith('_') && String(v ?? '').trim())) return false;
   const pricedAsLabour = (Number(l.labour) > 0 || Number(l.install) > 0) && !(Number(l.unit_price) > 0);
-  return pricedAsLabour || desc.filter((w) => !ev.includes(w) && !JOINING.has(w)).length <= 1;
+  const vocab = materialWords(trade);
+  return pricedAsLabour || !desc.some((w) => !ev.includes(w) && vocab.has(w));
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -322,7 +333,7 @@ export function assessQuote(input: { category: string | null; lines: Line[]; ter
     // A line carries no material only when reasoning read the supplier's words saying so AND the line's shape agrees
     // (notMaterialHolds), or read a composite line as no trade. Unread, every line is a material line: asking is safe,
     // passing it unchecked is not.
-    const material = !notMaterialHolds(l) && reasoned(l, READ.trade) !== 'none';
+    const material = !notMaterialHolds(l, reasoned(l, READ.trade) ?? trade) && reasoned(l, READ.trade) !== 'none';
     const lt = material ? lineTradeOf(trade, l) : null;
     const unreadComposite = material && !lt && COMPOSITE.has(trade);
     const namesComponent = material && (req?.materials ?? []).some((m) => m?.component && m.component !== 'main' && componentOnLine(m, l));

@@ -51,9 +51,25 @@ Deno.test('the match is whole-word: a name is refused, a word containing it is n
   assertEquals(namesForbidden('The quality of the finish matters.', ['Ali']), false);   // a substring match refused this
   assert(namesForbidden('Al-Noor will start Sunday.', ['Al Noor']) && namesForbidden('ALNOOR', ['Al Noor']), 'punctuation between the words');
   assert(namesForbidden('mail sales@alnoor.example.invalid', ['sales@alnoor.example.invalid']));
-  // a bare first name or a short company word is not a party's identity (review of #1836)
+  // a bare first name or a one-word company name or core is not a party's identity (review of #1836, production leads)
   assertEquals(identityTerms([{ contact_name: 'Ahmed', full_name: 'Omar', company_name: 'Gulf' }]), []);
-  assertEquals(identityTerms([{ full_name: 'Ahmed Khan', company_name: 'Alnoorco' }]), ['Ahmed Khan', 'Alnoorco']);
+  assertEquals(identityTerms([{ company_name: 'EMIRATES' }, { company_name: 'Signage LLC' }, { company_name: 'Reliance Trading' }]), ['Signage LLC', 'Reliance Trading']);
+  assertEquals(identityTerms([{ full_name: 'Ahmed Khan', company_name: 'Al Noor Trading LLC' }]), ['Ahmed Khan', 'Al Noor Trading LLC', 'Al Noor']);
+});
+
+Deno.test('a platform or shared web host names no party; the party\'s own domain does (review of #1836)', () => {
+  const t = identityTerms([{ website: 'https://wa.me/971500000000' }, { website: 'facebook.com/zzdemo' }, { website: 'https://sites.google.com/view/zz' },
+    { website: 'drive.google.com/x' }, { website: 'http://www.emirates.net.ae/~zz' }, { website: 'https://shared-demo.invalid/a' },
+    { website: 'shared-demo.invalid/b' }, { website: 'https://www.own-demo.invalid/about' }]);
+  assertEquals(t, ['own-demo.invalid']);
+});
+
+Deno.test('a forbidden term the brief or the facts already use is not refused in a reply', () => {
+  const ok = 'We cover all seven emirates, and your signage job goes to verified suppliers.';
+  assertEquals(replyProblems(ok, new Set(), { allowed: 'Coverage: all 7 emirates. Trades include Signage.', forbidden: ['Emirates', 'Signage'] })
+    .filter((p) => p.includes("another party's identity")), []);
+  assert(replyProblems('ZZ DEMO Al Noor will start Sunday.', new Set(), { allowed: 'Coverage: all 7 emirates.', forbidden: ['ZZ DEMO Al Noor'] })
+    .some((p) => p.includes("another party's identity")));
   assert(replyProblems('Ahmed Khan asked for the tiles.', new Set(), { forbidden: ['Ahmed Khan'] }).some((p) => p.includes("another party's identity")));
 });
 

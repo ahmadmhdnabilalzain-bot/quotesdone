@@ -83,7 +83,15 @@ Deno.test('"no material" in the supplier\'s own words skips the specs only when 
   assert(said('Installation labour 2400x600', 'Installation labour').lines[0].material, 'a dimension');
   assert(said('Fixing labour', 'labour', { notes: 'x', spec: { material: 'MDF' }, spec_source: { material: 'supplier_portal' } }).lines[0].material, 'a stated value');
   assert(said('Wardrobe', 'labour only').lines[0].material, 'words the line does not carry');
-  assert(said('Installation of ceramic tiles - labour only', 'labour only').lines[0].material, 'more than the words, and not priced as labour');
+  // a material word of the line's own trade, from the catalogue's options (tiling: ceramic, porcelain, marble ...)
+  const tiling = (description: string, words: string, x: Partial<Line> = {}) =>
+    aq({ category: 'tiling', lines: [L(1, description, x)], read: { 1: { [READ.notMaterial]: words } }, terms: { lead_time: '3 weeks' }, requirements: NONE_NEEDED });
+  assert(tiling('Installation of ceramic tiles - labour only', 'labour only').lines[0].material, 'names a tiling material, not priced as labour');
+  assert(tiling('Ceramic tiles 60x60 (labour only)', 'labour only').lines[0].material, 'a dimension');
+  // service lines of any length skip their specs (review of #1836: the one-other-word rule held every one of these)
+  for (const d of ['Delivery charges to Abu Dhabi site', 'Installation charges for 12 doors', 'Lump sum for preliminaries and site setup',
+    'Site cleaning after completion of works', 'Removal and disposal of existing wardrobes', 'Labour charges for installation of 3 wardrobes'])
+    assertEquals(said(d, d).lines[0].material, false, d);
   // ordinary labour and transport lines are not material (review of #1836): the unit says nothing either way
   assertEquals(said('Transport to site', 'Transport').lines[0].material, false);
   assertEquals(said('Tile laying labour', 'Tile laying labour', { unit: 'm2' }).lines[0].material, false);

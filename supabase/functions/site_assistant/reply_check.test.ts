@@ -19,6 +19,11 @@ Deno.test('a clean reply that repeats the brief and the published contact passes
   assertEquals(siteReplyCheck(BRIEF, SYS, 'en')('The reveal fee is 3.00% of the quotation you select. For a person, WhatsApp +1 218 316 6814 or write to management@quotesdone.com.'), []);
 });
 
+Deno.test('one sentence that defers passes: the check runs per streamed sentence, deferral is a whole-answer rule', () => {
+  for (const s of ['A member of the team will contact you shortly.', "I'll check with the team and come back to you.",
+    "I'm not sure which trade covers that, so tell me what the job is."]) assertEquals(siteReplyCheck(BRIEF, SYS, 'en')(s), [], s);
+});
+
 Deno.test('site_assistant hands this check to answerFromBrief', async () => {
   const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
   assert(src.includes('check: siteReplyCheck(brief, sys, replyLang),'));
