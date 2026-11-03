@@ -27,7 +27,9 @@ import { composeMailReply, declinedRowFields, EXPENSE_MAILBOX, invitationReplyAn
 import { langOf } from '../_shared/chat_answers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { fileReviewRequest } from '../_shared/review_request.ts';
-import { aiReply } from '../_shared/ai_reply.ts';
+import { aiReply, namesForbidden } from '../_shared/ai_reply.ts';
+import { preRevealIdentities } from '../_shared/pre_reveal_identities.ts';
+import { untrustedMail } from '../_shared/untrusted.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { TRIAGE_LLM } from './triage_llm.ts';
 import { applyBackstop, backstopApplies, holdsUnread, readTriage, UNREAD_CATEGORY, UNREAD_SUMMARY } from './opt_out_backstop.ts';
@@ -47,9 +49,23 @@ type Mail = { id: number; from_email: string | null; to_email: string | null; su
 // reveal fee. fn_mail_sender_known already names the sender's relation; a supplier is answered as a supplier, in English.
 export function audienceOf(relation: unknown): 'customer' | 'supplier' { return relation === 'supplier' ? 'supplier' : 'customer'; }
 
+/** The counterpart identities this sender may not be told: a supplier by its linked lead, a customer by the exact
+ *  address. Spoofing the From only blocks names, it never reveals one, so no authentication is needed here. */
+async function mailForbidden(m: Mail, audience: 'customer' | 'supplier'): Promise<string[]> {
+  if (audience === 'supplier' && m.lead_id) return preRevealIdentities(admin, { leadId: Number(m.lead_id) });
+  const addr = String(m.from_email || '').trim();
+  if (!addr) return [];
+  const { data } = await admin.from('customers').select('id').ilike('email', addr.replace(/[\\%_]/g, (c) => '\\' + c)).limit(1).maybeSingle();
+  return data?.id ? preRevealIdentities(admin, { customerId: String(data.id) }) : [];
+}
+
 async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier' = 'customer', facts = ''): Promise<string> {
-  const q = ('Subject: ' + (m.subject || '') + '\n\n' + String(m.body || '')).slice(0, 4000);
-  const lang = audience === 'supplier' ? 'en' : langOf(q);   // suppliers always English (28 Sep 2026)
+  // THE MAIL IS DATA (3 Nov 2026, release qualification): every prompt below carries it fenced (untrusted.ts), so a line
+  // in the body reading "ignore your rules" is something the sender wrote, never an instruction to the model.
+  const q = untrustedMail(m.subject, m.body);
+  const lang = audience === 'supplier' ? 'en' : langOf(String(m.subject || '') + ' ' + String(m.body || ''));   // suppliers always English (28 Sep 2026)
+  // the other party on the sender's jobs not yet revealed to them: a reply naming one is refused (pre_reveal_identities.ts)
+  const forbidden = await mailForbidden(m, audience);
   // A fixture (@example.invalid, the ZZ DEMO convention) is never queued for the replay (think.ts isFixtureRequest).
   const subject = { message_id: m.id, channel: 'email', ...(/@example\.invalid$/i.test(String(m.from_email || '')) ? { fixture: true } : {}) };
   const person = await needsAPerson(deps, { seat: 'customer_support', surface: 'email_triage.needs_a_person', message: q,
@@ -74,7 +90,7 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
   } };
   try {
     const direct = async (note: string) => (await aiReply(deps, { seat: 'customer_support', channel: 'e-mail', audience, lang, message: q,
-      subject, ...(facts ? { facts } : {}), rules: 'An e-mail body without a greeting or a sign-off (they are added). Never promise a date.' + note })).reply;
+      subject, forbidden, ...(facts ? { facts } : {}), rules: 'An e-mail body without a greeting or a sign-off (they are added). Never promise a date.' + note })).reply;
     if (person.value === true) {
       const body = await direct(' They asked to speak to a person: say plainly that a member of the team will reply to them in this same thread, and answer whatever else they asked.');
       if (!body) throw new Error('no model answered the e-mail');
@@ -87,7 +103,8 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
         question: `Answer this e-mail to QuotesDone as its customer support, in ${lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}, plain text, `
           + 'without a greeting or a sign-off (they are added). Never name another customer or supplier, never quote an unpublished price, never promise a date.\n\n' + q,
         context: { audience, language: lang, ...(facts ? { profile: { own_account: facts } } : {}) } });
-      const verified = r.status === 'answered' && r.verified?.status === 'agreed' && r.answer.trim() ? r.answer.trim() : null;
+      // a reasoned answer naming a counterpart is not sent: the direct reply below is held to the same list by aiReply
+      const verified = r.status === 'answered' && r.verified?.status === 'agreed' && r.answer.trim() && !namesForbidden(r.answer, forbidden) ? r.answer.trim() : null;
       const body = verified ?? await direct('');
       if (!body) throw new Error('no model answered the e-mail');
       text = composeMailReply({ lang, answer: withClaimLink(body, facts) });   // every path carries the invited supplier's link
@@ -213,7 +230,7 @@ Deno.serve(observe('email_triage', async (req) => {
         .not('triaged_at', 'is', null).order('triaged_at', { ascending: false }).limit(10);
       const settled = m.from_email ? knownSenderCategory((prior || []).map((p: any) => p.ai_category)) : null;
       if (settled) { category = settled; summary = 'Known sender: every earlier mail from this exact address was triaged spam (no model called).'; parsed = true; }
-      const out = settled ? null : await llm(SYS, 'From: ' + (m.from_email||'') + '\nSubject: ' + (m.subject||'') + '\n\n' + String(m.body||'').slice(0, 4000) + tlText, 800);
+      const out = settled ? null : await llm(SYS, 'From: ' + (m.from_email||'') + '\n' + untrustedMail(m.subject, m.body) + tlText, 800);
       if (!settled) ({ parsed, category, summary, reply } = readTriage(out));
       // makeLlm returns null on a failure or timeout; on the backstop's scope an unread classification is held, never answered (opt_out_backstop.ts).
       const held = holdsUnread(invitationReply, parsed);
