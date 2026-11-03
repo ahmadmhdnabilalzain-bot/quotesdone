@@ -74,6 +74,19 @@ Deno.test('a reading key the SUPPLIER typed is ignored: only reasoning can say a
   assertEquals([read.lines[0].material, codes(read)], [false, ['line_items']]);
 });
 
+Deno.test('"no material" in the supplier\'s own words skips the specs only when the line\'s shape agrees (3 Nov 2026)', () => {
+  // Before: any reasoned READ.notMaterial skipped every spec question, whatever else the line said.
+  const said = (description: string, words: string, x: Partial<Line> = {}) =>
+    aq({ category: 'joinery', lines: [L(1, description, x)], read: { 1: { [READ.notMaterial]: words } }, terms: { lead_time: '3 weeks' }, requirements: NONE_NEEDED });
+  const tiles = said('Wardrobe MDF carcass labour only no material', 'labour only no material');
+  assertEquals([tiles.lines[0].material, codes(tiles)], [true, ['1:material', '1:thickness_mm', '1:finish']]);
+  assert(said('Installation labour', 'Installation labour', { unit: 'm2' }).lines[0].material, 'a material unit');
+  assert(said('Installation labour 2400x600', 'Installation labour').lines[0].material, 'a dimension');
+  assert(said('Fixing labour', 'labour', { notes: 'x', spec: { material: 'MDF' }, spec_source: { material: 'supplier_portal' } }).lines[0].material, 'a stated value');
+  assert(said('Wardrobe', 'labour only').lines[0].material, 'words the line does not carry');
+  assertEquals(said('Transport to site', 'Transport').lines[0].material, false);
+});
+
 Deno.test('(1) a line whose reading did not find a detail holds the quote and names the line and the detail', () => {
   const read = { ...FITOUT_READ, 1: { [READ.trade]: 'joinery', material: 'MDF', finish: 'HPL' } };
   const a = aq({ category: 'fitout', lines: FITOUT, terms: { lead_time: '4 weeks' }, read, readTerms: TERMS_READ });

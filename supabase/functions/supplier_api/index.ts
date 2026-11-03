@@ -14,6 +14,7 @@ import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
+import { preRevealIdentities } from '../_shared/pre_reveal_identities.ts';
 import { acceptImages } from '../_shared/chat_images.ts';
 import { quoteTerms } from '../_shared/reasoned_suppliers.ts';
 import { storedAt } from '../_shared/stored_at.ts';
@@ -530,6 +531,8 @@ const handle = async (req: Request): Promise<Response> => {
             // a photo the supplier attached (already read, ruling 1177); acceptImages is the same gate the customer chat uses
             images: acceptImages(v.images, new URL(Deno.env.get('SUPABASE_URL')!).host).images,
             facts: v.situation, actions: v.actions, rateKey: 'qr:' + String(sup.id), ...(v.conversation?.length ? { conversation: v.conversation } : {}),
+            // the customers on their jobs not yet revealed to them: a reply naming one is refused (pre_reveal_identities.ts)
+            forbidden: await preRevealIdentities(admin, { leadId: Number(sup.id) }),
             rules: 'Plain text for the portal chat, no markdown headings. Keep every job number, figure, numbered point and button name from the facts exactly; a short numbered list is right when the facts list points.',
             subject: /^ZZ DEMO/i.test(String(sup.company_name || '')) ? { fixture: true, supplier_id: Number(sup.id) } : { supplier_id: Number(sup.id) },
           });

@@ -124,6 +124,26 @@ export function reasoned(l: Pick<Line, 'spec' | 'spec_source'>, key: string): st
   return l.spec_source?.[key] === 'reasoned' && l.spec?.[key] ? String(l.spec[key]) : null;
 }
 
+// "NO MATERIAL" NEEDS MORE THAN THE SUPPLIER SAYING SO (it_engineer, 3 Nov 2026, release qualification). READ.notMaterial
+// is the supplier's own words as reasoning read them, and it skipped every spec question on the line: "Ceramic tiles
+// 60x60, 120 m2 (labour only, no material)" passed unasked. The words now count only when the line's own shape agrees:
+// they are in its description and are nearly all of it (one other word at most, besides joining words), and the line
+// has no material unit, no dimension, no brand or model and no stated value. Otherwise it is a material line and asked.
+const MATERIAL_UNIT = /^(?:m2|m²|sq\.?\s?m|sqm|sq\.?\s?ft|sqft|m|lm|rm|rmt|m3|m³|cum|kgs?|tons?|tonnes?|pcs?|nos?\.?|each|ea|sheets?|rolls?|box(?:es)?|bags?|litres?|ltrs?|l)$/i;
+const DIMENSION = /\d\s*(?:mm|cm|m²|m2|m3)\b|\d\s*[x×*]\s*\d/i;
+const JOINING = new Set(['a', 'an', 'the', 'and', 'or', 'of', 'for', 'to', 'on', 'at', 'in', 'only', 'with', '&', '-']);
+const words = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}&]+/gu, ' ').trim().split(' ').filter(Boolean);
+export function notMaterialHolds(l: Line): boolean {
+  const said = reasoned(l, READ.notMaterial);
+  if (!said) return false;
+  const desc = words(l.description ?? ''); const ev = words(said);
+  if (!ev.length || !ev.every((w) => desc.includes(w))) return false;   // the words are not the line's own
+  if (desc.filter((w) => !ev.includes(w) && !JOINING.has(w)).length > 1) return false;   // the line says more than that
+  if (l.unit && MATERIAL_UNIT.test(String(l.unit).trim())) return false;
+  if (DIMENSION.test([l.description, l.specification].filter(Boolean).join(' ')) || l.brand || l.model) return false;
+  return !Object.entries(l.spec ?? {}).some(([k, v]) => !k.startsWith('_') && String(v ?? '').trim());
+}
+
 // ---------------------------------------------------------------------------------------------
 // The customer's components on the supplier's lines.
 // ---------------------------------------------------------------------------------------------
@@ -279,9 +299,10 @@ export function assessQuote(input: { category: string | null; lines: Line[]; ter
   const lineTrades = new Set<string>();
   const named = new Set<string>();
   for (const l of input.lines) {
-    // A line carries no material only when reasoning read the supplier's words saying so (or read a composite
-    // line as no trade). Unread, every line is a material line: asking is safe, passing it unchecked is not.
-    const material = !reasoned(l, READ.notMaterial) && reasoned(l, READ.trade) !== 'none';
+    // A line carries no material only when reasoning read the supplier's words saying so AND the line's shape agrees
+    // (notMaterialHolds), or read a composite line as no trade. Unread, every line is a material line: asking is safe,
+    // passing it unchecked is not.
+    const material = !notMaterialHolds(l) && reasoned(l, READ.trade) !== 'none';
     const lt = material ? lineTradeOf(trade, l) : null;
     const unreadComposite = material && !lt && COMPOSITE.has(trade);
     const namesComponent = material && (req?.materials ?? []).some((m) => m?.component && m.component !== 'main' && componentOnLine(m, l));
