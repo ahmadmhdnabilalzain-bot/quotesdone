@@ -1248,6 +1248,13 @@
   "82d439166a51",
   "a1899880347c"
  ],
+ "scripts/sql/live_knowledge_tells_a_supplier_approval_is_automatic_when_the_gate_passes.sql": [
+  "1e75910a58bc",
+  "23beca16c35d",
+  "44aee814390e",
+  "8180be4f7188",
+  "a4a98a0161c6"
+ ],
  "scripts/sql/marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql": [
   "727278a3b830",
   "80b387cc3fb7",
@@ -1793,6 +1800,10 @@
  ],
  "scripts/sql/the_last_traces_of_bank_details_negotiations_and_the_network_map_leave.sql": [
   "e3377772a818"
+ ],
+ "scripts/sql/the_legacy_site_pages_carry_the_public_numbers_and_never_the_founders_mobile.sql": [
+  "3c3557cba102",
+  "ede7dec21a56"
  ],
  "scripts/sql/the_live_composers_say_it_in_native_arabic.sql": [
   "06c2c091e00b",
@@ -6639,7 +6650,7 @@
   "f045dd46c30e"
  ],
  "supabase/functions/email_triage/index.ts": [
-  "2564e8b2cc53"
+  "21457f021dbc"
  ],
  "supabase/functions/inquiry_intake/index.ts": [
   "3a572c138209",
@@ -7177,12 +7188,12 @@
   "cdda50dc07b3"
  ],
  "supabase/functions/wa_inbound/index.ts": [
-  "02bba358ab4d",
-  "3fb0796f2806",
+  "1967d96de607",
   "5cbb277245b5",
   "61e5bb9d6ede",
   "75e7c95e9ceb",
   "7fea49861151",
+  "a59d3e5b21bb",
   "c09183a62789",
   "caa8dfdaf4f5",
   "f00b7f659d1a"

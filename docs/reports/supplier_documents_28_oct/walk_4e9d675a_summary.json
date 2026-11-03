@@ -1,0 +1,312 @@
+{
+  "tag": "4e9d675a",
+  "site": "https://quotesdone.com",
+  "leads": [
+    151554,
+    151556
+  ],
+  "results": [
+    {
+      "m": "desktop1366",
+      "name": "the real sign-up code is delivered to the sink and read",
+      "ok": true,
+      "detail": "last_event delivered, 16355 ms"
+    },
+    {
+      "m": "desktop1366",
+      "name": "the real code verifies and the invited company opens, claimed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "desktop1366",
+      "name": "registration-form licence box (portal body replayed): a phone photo stores",
+      "ok": true,
+      "detail": "HTTP 200 in 14402 ms"
+    },
+    {
+      "m": "desktop1366",
+      "name": "registration-form licence box: the phone photo is READ (number + expiry)",
+      "ok": true,
+      "detail": "extracted={\"legal_name\":\"ZZ DEMO Docs 4e9d675a desktop 1\",\"license_number\":\"ZZDEMO-4E9D675A-1\",\"authority\":\"Dubai Department of Economy and Tourism\",\"city\":\"Dubai\",\"expiry\":\"2028-03-14\",\"model_expiry\":\"2028-03-14\",\"emirate\":\"Dubai\",\"trn\":\"\",\"licence_name\":\"ZZ DEMO Docs 4e9d675a desktop 1\",\"confidence\":\"high\"}; license_error=null; 14402 ms"
+    },
+    {
+      "m": "desktop1366",
+      "name": "Documents: phone-photo licence stores",
+      "ok": true,
+      "detail": "HTTP 200 in 11071 ms; failed=[]"
+    },
+    {
+      "m": "desktop1366",
+      "name": "Documents: phone-photo licence is read, or says plainly it was not",
+      "ok": true,
+      "detail": "row {\"no\":\"ZZDEMO-4E9D675A-1\",\"exp\":\"2028-03-14\",\"name\":\"ZZ DEMO Docs 4e9d675a desktop 1\"}; read={\"kind\":\"license\",\"expiry\":\"2028-03-14\",\"source\":\"ai\",\"needs_confirm\":false,\"typed\":null}; card: \"Trade licence Required Valid Required. Your current trade licence from your licensing authority (Economic Department or free-zone authority). licence_photo.jpg · expires 14 Mar 2028 View Download Replace Remove 1 · Earlier versions kept Read from the document:\"; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/desktop1366_01_docs_licence_photo.png"
+    },
+    {
+      "m": "desktop1366",
+      "name": "Documents: the photo upload answers inside the portal's 20 s wait",
+      "ok": true,
+      "detail": "11071 ms"
+    },
+    {
+      "m": "desktop1366",
+      "name": "Documents: bilingual (Arabic/English) licence PDF stores and is read",
+      "ok": true,
+      "detail": "HTTP 200 in 14517 ms; row {\"no\":\"ZZDEMO-4E9D675A-1\",\"exp\":\"2028-03-14\",\"name\":\"ZZ DEMO Docs 4e9d675a desktop 1\",\"auth\":\"Dubai Department of Economy and Tourism\"}; card: \"Trade licence Required Valid Required. Your current trade licence from your licensing authority (Economic Department or free-zone authority). licence_bilingual.pdf · expires 14 Mar 2028 View Download Replace Remove 2 · Earlier versions kept Read from the docum\"; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/desktop1366_02_docs_licence_bilingual.png"
+    },
+    {
+      "m": "desktop1366",
+      "name": "Documents: a 24 MB licence PDF (under the 25 MB limit) stores",
+      "ok": false,
+      "detail": "HTTP 546 in 13679 ms; failed=[]; screen: \"\"; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/desktop1366_03_docs_licence_24mb.png"
+    },
+    {
+      "m": "desktop1366",
+      "name": "Documents: a 26 MB licence PDF is refused, and the screen says it is too large",
+      "ok": false,
+      "detail": "HTTP 200 in 7724 ms; failed=[]; screen: \"\"; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/desktop1366_04_docs_licence_26mb.png"
+    },
+    {
+      "m": "desktop1366",
+      "name": "Documents: company profile PDF stores",
+      "ok": true,
+      "detail": "upload_url HTTP 200; save HTTP 200 in 5777 ms; card: \"Company profile Required On file Required. Your company introduction deck or PDF. Shown to customers after a reveal. company_profile.pdf View Download Replace Remove\"; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/desktop1366_05_docs_profile.png"
+    },
+    {
+      "m": "desktop1366",
+      "name": "Documents: Insurance stores, and its expiry is read off the file",
+      "ok": false,
+      "detail": "HTTP 200 in 2277 ms; read={\"kind\":\"insurance\",\"expiry\":\"2026-01-01\",\"source\":\"text\",\"needs_confirm\":true,\"typed\":null}; card: \"Insurance On file Public liability or contractor all-risk cover. insurance_schedule.pdf View Download Replace Remove We read from the document: expires 1 Jan 2026 — is that right? Confirm Save correction\"; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/desktop1366_06_docs_insurance.png"
+    },
+    {
+      "m": "desktop1366",
+      "name": "Documents: Insurance expiry confirmed and on file",
+      "ok": false,
+      "detail": "row insurance_expiry=2026-01-01"
+    },
+    {
+      "m": "desktop1366",
+      "name": "Documents: ISO certification stores, and its expiry is read off the file",
+      "ok": true,
+      "detail": "HTTP 200 in 3569 ms; read={\"kind\":\"iso\",\"expiry\":\"2027-02-09\",\"source\":\"text\",\"needs_confirm\":true,\"typed\":null}; card: \"ISO certification On file Any ISO certificate you hold. Strengthens your capability score. iso_9001.pdf View Download Replace Remove We read from the document: expires 9 Feb 2027 — is that right? Confirm Save correction\"; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/desktop1366_07_docs_iso.png"
+    },
+    {
+      "m": "desktop1366",
+      "name": "Documents: ISO certification expiry confirmed and on file",
+      "ok": true,
+      "detail": "row iso_expiry=2027-02-09"
+    },
+    {
+      "m": "desktop1366",
+      "name": "Documents: Manufacturer authorisation letter stores, and its expiry is read off the file",
+      "ok": true,
+      "detail": "HTTP 200 in 2443 ms; read={\"kind\":\"manufacturer\",\"expiry\":\"2027-06-30\",\"source\":\"text\",\"needs_confirm\":true,\"typed\":null}; card: \"Manufacturer authorisation letter On file Authorised-dealer letters from the brands you carry. dealer_letter.pdf View Download Replace Remove We read from the document: expires 30 Jun 2027 — is that right? Confirm Save correction\"; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/desktop1366_08_docs_manufacturer.png"
+    },
+    {
+      "m": "desktop1366",
+      "name": "Documents: Manufacturer authorisation letter expiry confirmed and on file",
+      "ok": true,
+      "detail": "row manufacturer_auth_expiry=2027-06-30"
+    },
+    {
+      "m": "desktop1366",
+      "name": "Documents: DED licence PDF stores; number, expiry and name read by code; name matches",
+      "ok": true,
+      "detail": "HTTP 200 in 3078 ms; row {\"no\":\"ZZDEMO-4E9D675A-1\",\"exp\":\"2028-03-14\",\"name\":\"ZZ DEMO Docs 4e9d675a desktop 1\"}; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/desktop1366_09_docs_licence_ded.png"
+    },
+    {
+      "m": "desktop1366",
+      "name": "Documents: every control is inside the screen after all uploads",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "desktop1366",
+      "name": "the supplier finishes registration: approved, no licence hold",
+      "ok": true,
+      "detail": "{\"a\":\"approved\",\"why\":null}; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/desktop1366_11_after_submit.png"
+    },
+    {
+      "m": "mobile390",
+      "name": "the real sign-up code is delivered to the sink and read",
+      "ok": true,
+      "detail": "last_event delivered, 15739 ms"
+    },
+    {
+      "m": "mobile390",
+      "name": "the real code verifies and the invited company opens, claimed",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "mobile390",
+      "name": "registration-form licence box (portal body replayed): a phone photo stores",
+      "ok": true,
+      "detail": "HTTP 200 in 14081 ms"
+    },
+    {
+      "m": "mobile390",
+      "name": "registration-form licence box: the phone photo is READ (number + expiry)",
+      "ok": true,
+      "detail": "extracted={\"legal_name\":\"ZZ DEMO Docs 4e9d675a mobile 2\",\"license_number\":\"ZZDEMO-4E9D675A-2\",\"authority\":\"Dubai Department of Economy and Tourism\",\"city\":\"Dubai\",\"expiry\":\"2028-03-14\",\"model_expiry\":\"2028-03-14\",\"emirate\":\"Dubai\",\"trn\":\"\",\"licence_name\":\"ZZ DEMO Docs 4e9d675a mobile 2\",\"confidence\":\"high\"}; license_error=null; 14081 ms"
+    },
+    {
+      "m": "mobile390",
+      "name": "Documents: phone-photo licence stores",
+      "ok": true,
+      "detail": "HTTP 200 in 10357 ms; failed=[]"
+    },
+    {
+      "m": "mobile390",
+      "name": "Documents: phone-photo licence is read, or says plainly it was not",
+      "ok": true,
+      "detail": "row {\"no\":\"ZZDEMO-4E9D675A-2\",\"exp\":\"2028-03-14\",\"name\":\"ZZ DEMO Docs 4e9d675a mobile 2\"}; read={\"kind\":\"license\",\"expiry\":\"2028-03-14\",\"source\":\"ai\",\"needs_confirm\":false,\"typed\":null}; card: \"Trade licence Required Valid Required. Your current trade licence from your licensing authority (Economic Department or free-zone authority). licence_photo.jpg · expires 14 Mar 2028 View Download Replace Remove 1 · Earlier versions kept Read from the document:\"; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/mobile390_12_docs_licence_photo.png"
+    },
+    {
+      "m": "mobile390",
+      "name": "Documents: the photo upload answers inside the portal's 20 s wait",
+      "ok": true,
+      "detail": "10357 ms"
+    },
+    {
+      "m": "mobile390",
+      "name": "Documents: bilingual (Arabic/English) licence PDF stores and is read",
+      "ok": true,
+      "detail": "HTTP 200 in 11878 ms; row {\"no\":\"ZZDEMO-4E9D675A-2\",\"exp\":\"2028-03-14\",\"name\":\"ZZ DEMO Docs 4e9d675a mobile 2\",\"auth\":\"Dubai Department of Economy and Tourism\"}; card: \"Trade licence Required Valid Required. Your current trade licence from your licensing authority (Economic Department or free-zone authority). licence_bilingual.pdf · expires 14 Mar 2028 View Download Replace Remove 2 · Earlier versions kept Read from the docum\"; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/mobile390_13_docs_licence_bilingual.png"
+    },
+    {
+      "m": "mobile390",
+      "name": "Documents: a 24 MB licence PDF (under the 25 MB limit) stores",
+      "ok": false,
+      "detail": "HTTP 546 in 14713 ms; failed=[]; screen: \"\"; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/mobile390_14_docs_licence_24mb.png"
+    },
+    {
+      "m": "mobile390",
+      "name": "Documents: a 26 MB licence PDF is refused, and the screen says it is too large",
+      "ok": false,
+      "detail": "HTTP 200 in 6954 ms; failed=[]; screen: \"\"; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/mobile390_15_docs_licence_26mb.png"
+    },
+    {
+      "m": "mobile390",
+      "name": "Documents: company profile PDF stores",
+      "ok": true,
+      "detail": "upload_url HTTP 200; save HTTP 200 in 6398 ms; card: \"Company profile Required On file Required. Your company introduction deck or PDF. Shown to customers after a reveal. company_profile.pdf View Download Replace Remove\"; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/mobile390_16_docs_profile.png"
+    },
+    {
+      "m": "mobile390",
+      "name": "Documents: Insurance stores, and its expiry is read off the file",
+      "ok": false,
+      "detail": "HTTP 200 in 3677 ms; read={\"kind\":\"insurance\",\"expiry\":\"2026-01-01\",\"source\":\"text\",\"needs_confirm\":true,\"typed\":null}; card: \"Insurance On file Public liability or contractor all-risk cover. insurance_schedule.pdf View Download Replace Remove We read from the document: expires 1 Jan 2026 — is that right? Confirm Save correction\"; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/mobile390_17_docs_insurance.png"
+    },
+    {
+      "m": "mobile390",
+      "name": "Documents: Insurance expiry confirmed and on file",
+      "ok": false,
+      "detail": "row insurance_expiry=2026-01-01"
+    },
+    {
+      "m": "mobile390",
+      "name": "Documents: ISO certification stores, and its expiry is read off the file",
+      "ok": true,
+      "detail": "HTTP 200 in 2957 ms; read={\"kind\":\"iso\",\"expiry\":\"2027-02-09\",\"source\":\"text\",\"needs_confirm\":true,\"typed\":null}; card: \"ISO certification On file Any ISO certificate you hold. Strengthens your capability score. iso_9001.pdf View Download Replace Remove We read from the document: expires 9 Feb 2027 — is that right? Confirm Save correction\"; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/mobile390_18_docs_iso.png"
+    },
+    {
+      "m": "mobile390",
+      "name": "Documents: ISO certification expiry confirmed and on file",
+      "ok": true,
+      "detail": "row iso_expiry=2027-02-09"
+    },
+    {
+      "m": "mobile390",
+      "name": "Documents: Manufacturer authorisation letter stores, and its expiry is read off the file",
+      "ok": true,
+      "detail": "HTTP 200 in 4699 ms; read={\"kind\":\"manufacturer\",\"expiry\":\"2027-06-30\",\"source\":\"text\",\"needs_confirm\":true,\"typed\":null}; card: \"Manufacturer authorisation letter On file Authorised-dealer letters from the brands you carry. dealer_letter.pdf View Download Replace Remove We read from the document: expires 30 Jun 2027 — is that right? Confirm Save correction\"; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/mobile390_19_docs_manufacturer.png"
+    },
+    {
+      "m": "mobile390",
+      "name": "Documents: Manufacturer authorisation letter expiry confirmed and on file",
+      "ok": true,
+      "detail": "row manufacturer_auth_expiry=2027-06-30"
+    },
+    {
+      "m": "mobile390",
+      "name": "Documents: DED licence PDF stores; number, expiry and name read by code; name matches",
+      "ok": true,
+      "detail": "HTTP 200 in 2854 ms; row {\"no\":\"ZZDEMO-4E9D675A-2\",\"exp\":\"2028-03-14\",\"name\":\"ZZ DEMO Docs 4e9d675a mobile 2\"}; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/mobile390_20_docs_licence_ded.png"
+    },
+    {
+      "m": "mobile390",
+      "name": "Documents: every control is inside the screen after all uploads",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "m": "mobile390",
+      "name": "the supplier finishes registration: approved, no licence hold",
+      "ok": true,
+      "detail": "{\"a\":\"approved\",\"why\":null}; /tmp/claude-0/-home-user/97b82be2-e1b1-59ec-91b8-d7fce479bd05/scratchpad/shots2/mobile390_22_after_submit.png"
+    }
+  ],
+  "teardown": {
+    "removed": {
+      "counts": {
+        "notifications": 4,
+        "comparison_candidate_v2 (table no longer exists)": 0,
+        "agent_actions": 6,
+        "documents": 10,
+        "company_event (lead)": 4,
+        "file_scan": 18,
+        "supplier_capabilities (fk supplier_id -> leads)": 2,
+        "leads": 2,
+        "customer_organization (table no longer exists)": 0,
+        "storage_objects": 16
+      },
+      "objects": {
+        "drawing-files": 0,
+        "quote-files": 0,
+        "signed-terms": 2,
+        "supplier-docs": 14,
+        "agent-docs": 0
+      },
+      "summary": "notifications 4, comparison_candidate_v2 (table no longer exists) 0, agent_actions 6, documents 10, company_event (lead) 4, file_scan 18, supplier_capabilities (fk supplier_id -> leads) 2, leads 2, customer_organization (table no longer exists) 0, storage_objects 16"
+    },
+    "leftovers": {
+      "auth_users": 0,
+      "customers": 0,
+      "leads": 0,
+      "inquiries": 0,
+      "quotes": 0,
+      "quote_spec_hold": 0,
+      "quote_reviews": 0,
+      "notifications": 0,
+      "transactions": 0,
+      "refunds": 0,
+      "supplier_dues": 0,
+      "refund_case": 0,
+      "inquiry_intake": 0,
+      "email_verifications": 0,
+      "storage_objects": 0,
+      "total": 0
+    },
+    "sinks": [
+      {
+        "a": "delivered+qd-4e9d675a-sup1@resend.dev",
+        "l": {
+          "auth_users": 0,
+          "email_verifications": 0,
+          "notifications": 0,
+          "leads": 0
+        }
+      },
+      {
+        "a": "delivered+qd-4e9d675a-sup2@resend.dev",
+        "l": {
+          "auth_users": 0,
+          "email_verifications": 0,
+          "notifications": 0,
+          "leads": 0
+        }
+      }
+    ]
+  }
+}
