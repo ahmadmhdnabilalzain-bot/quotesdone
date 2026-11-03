@@ -370,7 +370,7 @@ async function getCfg(): Promise<Cfg | null> { const r = await readRevealRate(ad
 // 6 Sep 2026 (founder): the reveal fee is 3% of the quotation value with NO discount, NO promotional rate
 // and NO cap. This copy computes the standard rate and nothing else, the same as public.reveal_fee();
 // pricing_config forbids a promo or a cap by constraint (pricing_config_no_discount_no_cap_ck).
-function revealFee(amount: number, cfg: Cfg | null): number | null { if (!cfg) return null; if (!amount || amount <= 0) return 0; return Math.round(amount * Number(cfg.standard_reveal_rate) * 100) / 100; }
+function revealFee(amount: number, cfg: Cfg | null): number | null { if (!cfg) return null; if (!amount || amount <= 0) return 0; return revealCharge(amount, Number(cfg.standard_reveal_rate)).base_fee; }
 // A RATING IS EARNED HERE OR IT DOES NOT EXIST (founder, 9 Sep 2026): "supplier rating should be
 // from customers after they tried them", "google review shouldnt be counted". This used to fall
 // back to leads.rating ?? leads.rating_maps — the Google Maps star of a business QuotesDone has

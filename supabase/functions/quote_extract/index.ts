@@ -19,6 +19,7 @@ import { quoteFromExtracted, quoteText } from './quote_from_document.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { quoteTerms } from '../_shared/reasoned_suppliers.ts';
 import { pageB64, pageMime } from '../_shared/licence_extract.ts';
+import { DATA_NOT_INSTRUCTIONS, untrustedBlock } from '../_shared/untrusted.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -87,7 +88,8 @@ Deno.serve(observe('quote_extract', async (req) => {
     if (!secret) { await logRun('error', { quote_extracted: 0, ai_key_present: 0 }, 'quote_extract aborted: the cred_fn_ai credential is missing, so the AI gateway cannot be called and no supplier quotation can be read at all. Every quote uploaded while this persists is silently dropped and the customer sees fewer (or zero) quotes to compare.'); return J({ error: 'no ai key' }, 500); }
     const inq = body.inquiry || {};
 
-    const content: any[] = [{ type: 'text', text: `Job context (for understanding only): category ${inq.category||'-'}${inq.summary?(', summary: '+inq.summary):''}. Read the attached supplier quotation (all pages) and return the anonymized standardized JSON.` }];
+    // the quotation's printed text and the customer's summary are data, never instructions (untrusted.ts, 3 Nov 2026)
+    const content: any[] = [{ type: 'text', text: `Read the attached supplier quotation (all pages) and return the anonymized standardized JSON. ${DATA_NOT_INSTRUCTIONS}\nJob context (for understanding only): category ${inq.category||'-'}.` + (inq.summary ? ' The customer\'s summary:' + untrustedBlock(String(inq.summary), 'NOTE') : '') }];
 
     const imgs: any[] = Array.isArray(body.images) ? body.images : [];
     // THE PORTAL'S PAGE SHAPE (review of #1707, 28 Oct 2026, sales_engineer). SupplierPortal's fileToImages sends each
