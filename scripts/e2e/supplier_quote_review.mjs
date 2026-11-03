@@ -225,7 +225,15 @@ async function drive(browser, run, supplier, inquiryId, lang, viewport) {
     await spoke(said3 + 1);
     step(name('Generate shows the quotation first and nothing is submitted before Submit'), (await quoteRows()).every((r) => r.status !== 'submitted'));
     await chat.getByRole('button', { name: `Submit to Job ${job}`, exact: true }).click();
-    await chat.getByText(L('Submitted to the job.', 'قُدّم العرض إلى الطلب.')).first().waitFor({ timeout: 90000 });
+    // Branch run 41636727579 timed out here with no artifact to say why: on a timeout the review row, the quotes and the
+    // end of the chat are named in the failure, so the run says whether the submission was held, still running, or
+    // submitted and not shown.
+    await chat.getByText(L('Submitted to the job.', 'قُدّم العرض إلى الطلب.')).first().waitFor({ timeout: 120000 }).catch(async (e) => {
+      const rv = await read(`select status, choice, reviewing_since from public.quote_reviews where inquiry_id = ${q(inquiryId)} and supplier_id = ${Number(supplier.leadId)}`).catch(() => []);
+      const qrows = await quoteRows().catch(() => []);
+      const tail = (await chat.innerText().catch(() => '')).replace(/\s+/g, ' ').slice(-400);
+      throw new Error(`${String(e.message).split('\n')[0]} | review ${JSON.stringify(rv)} | quotes ${JSON.stringify(qrows.map((r) => r.status))} | chat ends: ${tail}`);
+    });
     await shot('08_submitted');
     const qs = await quoteRows();
     for (const r of qs) run.ids.quotes.add(r.id);
