@@ -116,4 +116,17 @@ Deno.test('send_outbox calls the database only when the share is on, cut short, 
   // the Resend fallback never carries HTML for a campaign row, so Resend's own open/click tracking cannot touch an invitation
   assert(/camp\s*\? resendPayload\(\{ from, to: n\.to_email, reply, subject: camp\.subject, html: '', text: camp\.text,/.test(src), 'the Resend fallback sends HTML');
   assertEquals((src.match(/openHtmlFor\(/g) || []).length, 1, 'openHtmlFor is called once, by the Microsoft 365 lane');
+  // #1834's mailbox replies share this lane: a reply never asks for a token and never carries the twin
+  assert(/const mHtml = rm \? '' : await openHtmlFor\(n, mBody\);/.test(src), 'a mailbox reply could ask for an open-tracking twin');
+});
+
+Deno.test('a threaded mailbox reply is always plain text: html is ignored when inReplyTo is set', () => {
+  const html = invitationHtml(camp.text, PIXEL);
+  const reply = { ...MIME, unsub: '', inReplyTo: '<CAF1abc@mail.gulfsteel.example>' };
+  const raw = decode(m365Mime({ ...reply, html }));
+  assertEquals(m365Mime({ ...reply, html }), m365Mime(reply), 'html changed a reply');
+  assert(raw.includes('In-Reply-To: <CAF1abc@mail.gulfsteel.example>') && raw.includes('References: <CAF1abc@mail.gulfsteel.example>'));
+  assertFalse(raw.includes('multipart') || raw.includes(PIXEL) || raw.includes('<img'));
+  assertFalse(openTracks({ type: 'inbound_reply', to_role: 'supplier', kind: 'supplier_mailbox_reply' }));
+  assertFalse(openTracks({ type: 'inbound_reply', to_role: null, kind: 'supplier_mailbox_reply' }));
 });
