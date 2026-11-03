@@ -102,7 +102,7 @@ export const ARTEFACTS = [
 
 // Files on a surface above that are vocabulary, parsers, fixtures or PDF renderers.
 const NOT_A_MESSAGE = [
-  /^supabase\/functions\/_shared\/(trade_glossary_ar|alias_pattern|boq_arabic|anonymise|identity_numbers|bank_statement_parse|receipt_parse|catalogue_read|catalogue_model|service_meaning|service_rewrite|drawing_identity_text|pdf_measure|registered_locale|doc_template|quote_documents|reveal_fee_documents|supplier_payment_documents|supplier_charge|supplier_capability|project_budget|boq_open_lines|marketing_calendar_mail|marketing_social_comments|trade_words)\.ts$/,
+  /^supabase\/functions\/_shared\/(trade_glossary_ar|alias_pattern|boq_arabic|anonymise|identity_numbers|bank_statement_parse|receipt_parse|catalogue_read|catalogue_model|service_meaning|service_rewrite|drawing_identity_text|pdf_measure|registered_locale|doc_template|quote_documents|reveal_fee_documents|supplier_payment_documents|supplier_charge|supplier_capability|project_budget|boq_open_lines|marketing_calendar_mail|marketing_social_comments|conversation_trade)\.ts$/,
   /^supabase\/functions\/_shared\/(doc_read|rules|vendor)\//,
   /^supabase\/functions\/(pdf_native|drawing_boq|sanctions_screen|supplier_catalog_ingest|quote_extract|compliance_archive|conversation_archive)\//,
   /^supabase\/functions\/_shared\/line_specs\/(derive|compare|vat|workflow|options)\.ts$/,

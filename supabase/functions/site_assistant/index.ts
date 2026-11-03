@@ -375,10 +375,10 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // The verified trade knowledge is GIVEN with the brief (given_trade_knowledge.ts, ruling 1195): fetched in parallel, '' on failure.
     const tradeDeps = defaultDeps(admin, 'site_assistant');
     const [brief, memory, given] = await Promise.all([
-      // ONE TRADE PACK (company_brief.ts, 3 Nov 2026): the trade the message names, else the visitor's newest turn that names one
+      // ONE TRADE PACK (company_brief.ts, 3 Nov 2026): the first trade the visitor named in its recent turns, else the message's
       companyBrief(rpc, (faqs || []) as FaqRow[], [FACTS_SHARED, FACTS_CUSTOMER, FACTS_SUPPLIER].join('\n\n'), replyLang, [], undefined, {
         // deno-lint-ignore no-explicit-any
-        trade: conversationTrade([message, ...history.filter((h: any) => h?.role === 'user').map((h: any) => String(h.content ?? '')).reverse()]),
+        trade: conversationTrade(message, history.filter((h: any) => h?.role === 'user').map((h: any) => String(h.content ?? ''))),
         supplier: audience === 'supplier' }),
       recallCases(admin, { seat: 'customer_support', path: 'reply', situation: message, otherSeats: false }).catch(() => null),
       givenTradeKnowledge({ embed: (t, sp) => tradeDeps.embed(t, sp), rpc, gteReads, audience: audience === 'unknown' ? 'visitor' : audience }, message),

@@ -98,17 +98,19 @@ Deno.test('the knowledge block never licenses a fee figure', async () => {
   assert(!s.calls[0].system.includes('# Conversation playbook:'), 'and not again in the varying sys');
 });
 
-// prevented by: this test (it_engineer, 3 Nov 2026). The pack follows the trade named most recently by the other party,
-// an explicit trade wins, null sends none, and a supplier reader alone gets the supplier how-to.
-Deno.test('the one trade pack: newest named trade, the caller\'s own, none, and the supplier part', async () => {
+// prevented by: this test (it_engineer, 3 Nov 2026; sticky since the independent review). The pack is the first trade the
+// other party named in its recent turns, an explicit trade wins, null sends none, and a supplier reader alone gets the
+// supplier how-to.
+Deno.test('the one trade pack: the first named trade, the caller\'s own, none, and the supplier part', async () => {
   const sent = async (r: Partial<typeof req> & Record<string, unknown>) => {
     const s = stub([A('The reveal fee is 3%, with no card fee and no VAT.')]);
     await aiReply(s.deps, { ...req, ...r } as typeof req);
     return String(s.calls[0].o.sysStable ?? '');
   };
   const conv = [{ role: 'customer' as const, text: 'I need my AC serviced.' }, { role: 'seat' as const, text: 'Sure, and your kitchen?' }, { role: 'customer' as const, text: 'Also the kitchen cabinets.' }];
-  assert((await sent({ message: 'How long does it take?', conversation: conv })).includes('## Kitchens (kitchens)'), 'the newest customer turn that names a trade');
-  assert((await sent({ message: 'How long does it take?', conversation: conv, trade: 'hvac' })).includes('## HVAC (hvac)'), "the caller's own trade wins");
+  const first = await sent({ message: 'How long does it take?', conversation: conv });
+  assert(first.includes('## HVAC (hvac)') && !first.includes('## Kitchens (kitchens)'), 'the first trade the customer named stays');
+  assert((await sent({ message: 'How long does it take?', conversation: conv, trade: 'kitchens' })).includes('## Kitchens (kitchens)'), "the caller's own trade wins");
   assert(!(await sent({ message: 'kitchen?', trade: null })).includes('# Conversation playbook:'), 'null: no pack');
   assert(!(await sent({})).includes('Supplier how-to'), 'a customer gets no supplier how-to');
   assert((await sent({ audience: 'supplier' as never })).includes('Supplier how-to'), 'a supplier does');

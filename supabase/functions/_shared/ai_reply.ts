@@ -64,14 +64,14 @@ export interface AiReplyRequest {
   // against the brief. WhatsApp's last chance (model_says.ts) uses it: a short prompt answers in seconds, not 10-15 s.
   briefInPrompt?: boolean;
   // THE ONE TRADE PACK (company_brief.ts, 3 Nov 2026): the category code the caller resolved for this conversation. Absent:
-  // read by code from the message, then the earlier turns of the other party (newest first), then the facts. null: none.
+  // read by code from the other party's own words (company_brief.ts conversationTrade: sticky). null: none.
   trade?: string | null;
 }
-/** The trade pack a reply carries: the caller's own, else the first of the message, the other party's turns newest
- *  first, and the facts that names a trade with a pack. */
+/** The trade pack a reply carries: the caller's own, else the first trade the other party named in its recent turns,
+ *  then the message, then the facts (company_brief.ts conversationTrade). */
 export function replyTrade(r: Pick<AiReplyRequest, 'trade' | 'message' | 'conversation' | 'facts'>): string | null {
   if (r.trade !== undefined) return r.trade;
-  return conversationTrade([r.message, ...(r.conversation ?? []).filter((t) => t.role !== 'seat').map((t) => t.text).reverse(), r.facts]);
+  return conversationTrade(r.message, (r.conversation ?? []).filter((t) => t.role !== 'seat').map((t) => t.text), r.facts);
 }
 /** outage: no call reached a model — every one failed with a network error, 5xx, timeout/deadline or an open circuit
  *  (openrouter_down.ts). Only then may a caller send its code-written fallback (founder_instruction 1339). */

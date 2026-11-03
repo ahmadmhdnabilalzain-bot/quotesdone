@@ -12,6 +12,8 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { sql } from '../lib/db.mjs';
 import { compileBrief } from './compile_brief.mjs';
+// what production sends since 3 Nov 2026: the core and the one trade pack the question names (company_brief.ts)
+import { conversationTrade, packOf } from '../../supabase/functions/_shared/company_brief.ts';
 
 const arg = (k, d) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : d; };
 const OUT = arg('--out'); if (!OUT) throw new Error('--out <dir> is required (use the session scratchpad)');
@@ -30,12 +32,12 @@ const PREAMBLE = `You are QuotesDone's customer-facing assistant (website chat, 
   `human colleague: give one direct, exact answer in the language the person writes in (Arabic in, Arabic out). ` +
   `Never invent figures, dates, clauses, approvals or supplier identities. If the brief does not cover it, say ` +
   `so plainly and give your best general expert guidance labelled as such. Keep replies chat-length.\n\n`;
-const SYSTEM = PREAMBLE + brief.text;
+const SYSTEM = (q) => PREAMBLE + brief.core + '\n\n' + packOf(conversationTrade(q));
 // A candidate written "model+deep" runs that model with one added instruction (coordinator, 13 Oct: Luna and Haiku
 // scored low on helpfulness with ~200-token answers; does asking for depth close the gap?).
 const DEEP = 'Give a complete, expert, well-structured answer (not a short one), then ask the one or two follow-up questions that matter.\n\n';
 const modelOf = (c) => c.replace(/\+deep$/, '');
-const systemOf = (c) => (c.endsWith('+deep') ? DEEP : '') + SYSTEM;
+const systemOf = (c, q) => (c.endsWith('+deep') ? DEEP : '') + SYSTEM(q);
 
 let spent = 0;
 const key = (await sql(`select value from public.app_secrets where key = 'openrouter_api_key'`))[0]?.value;
@@ -70,10 +72,10 @@ try {
     const cache = modelOf(m).startsWith('anthropic/') || modelOf(m).startsWith('google/'); // explicit cache_control; OpenAI caches the stable prefix by itself
     answers[m] = {};
     // first call alone writes the cache; the rest read it (3 lanes, inside the 5-minute TTL)
-    answers[m][questions[0].id] = await call(modelOf(m), systemOf(m), questions[0].q, { cache });
+    answers[m][questions[0].id] = await call(modelOf(m), systemOf(m, questions[0].q), questions[0].q, { cache });
     for (let i = 1; i < questions.length; i += 3) {
       const batch = questions.slice(i, i + 3);
-      const res = await Promise.all(batch.map((q) => call(modelOf(m), systemOf(m), q.q, { cache }).catch((e) => ({ error: String(e), cost: 0 }))));
+      const res = await Promise.all(batch.map((q) => call(modelOf(m), systemOf(m, q.q), q.q, { cache }).catch((e) => ({ error: String(e), cost: 0 }))));
       batch.forEach((q, k) => { answers[m][q.id] = res[k]; });
     }
     writeFileSync(join(OUT, 'answers.json'), JSON.stringify(answers, null, 1)); // saved per model: a key-limit stop keeps what was bought

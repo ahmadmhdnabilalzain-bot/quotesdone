@@ -20,18 +20,29 @@ const read = (p) => readFileSync(join(REPO, p), 'utf8').replace(/\r\n/g, '\n');
 const b = compileBrief();
 const byId = new Map(b.partIds.map((id, i) => [id, b.partText[i]]));
 
-test('every non-empty line of every compiled source file is in the core, the supplier part or a pack part', () => {
-  const blocks = [b.core, b.supplier, ...b.partText].join('\n');
-  const lines = new Set(blocks.split('\n').map((l) => l.trim()));
+// Per file, the multiset of its lines must be found in the blocks that file was compiled into (its own <<<FILE>>> blocks),
+// so a dropped section cannot hide behind the same line in another file.
+const blocksOf = (f) => [b.core, b.supplier, ...b.partText].join('\n').split(/(?=<<<FILE knowledge\/brief\/)/)
+  .filter((x) => x.startsWith(`<<<FILE knowledge/brief/${f}>>>`) || x.startsWith(`<<<FILE knowledge/brief/${f}#`)).join('\n');
+function lostLines(files, blocks = blocksOf) {
   const lost = [];
-  for (const f of b.files) for (const l of read('knowledge/brief/' + f).split('\n').map((x) => x.trim()).filter(Boolean)) if (!lines.has(l)) lost.push(`${f}: ${l.slice(0, 100)}`);
-  assert.deepEqual(lost, [], 'lines no reply can receive');
+  for (const f of files) {
+    const have = new Set(blocks(f).split('\n').map((l) => l.trim()));
+    for (const l of read('knowledge/brief/' + f).split('\n').map((x) => x.trim()).filter(Boolean)) if (!have.has(l)) lost.push(`${f}: ${l.slice(0, 100)}`);
+  }
+  return lost;
+}
+
+test('every non-empty line of every compiled source file is in that file\'s own blocks (core, supplier part or pack parts)', () => {
+  assert.deepEqual(lostLines(b.files), [], 'lines no reply can receive');
 });
 
-test('known-bad control: a line the compiler drops is caught', () => {
-  const lines = new Set(b.core.split('\n').map((l) => l.trim()));
-  assert.ok(!lines.has('| **joinery_and_furniture** |'.trim()) && read('knowledge/brief/uae_contract_practice.md').includes('| **joinery_and_furniture** |'),
-    'the per-trade-group table row is outside the core, so the check above must find it in a pack');
+test('known-bad control: a section the compiler drops is caught', () => {
+  // drop the joinery row of the contract-practice table from the blocks: the check must name it
+  const without = (f) => blocksOf(f).split('\n').filter((l) => !l.startsWith('| **joinery_and_furniture** |')).join('\n');
+  const lost = lostLines(['uae_contract_practice.md'], without);
+  assert.equal(lost.length, 1, lost.join('\n'));
+  assert.match(lost[0], /joinery_and_furniture/);
 });
 
 test('every playbook category has a pack with its section, general rules, materials, regulation digest and contract row', () => {
@@ -69,7 +80,7 @@ test('the facts the existing checks pin are in the core, which every reply carri
 test('only the brief module reads the pack parts: no reply path can send every pack', () => {
   const walk = (d) => readdirSync(d).flatMap((e) => { const p = join(d, e); return statSync(p).isDirectory() ? walk(p) : [p]; });
   const users = walk(join(REPO, 'supabase/functions')).filter((p) => p.endsWith('.ts') && !/\.test\.ts$|brief\.generated\.ts$/.test(p))
-    .filter((p) => /\b(BRIEF_PART_TEXT|BRIEF_PART_IDS|KNOWLEDGE_TEXT|PLAYBOOK_TEXT)\b/.test(readFileSync(p, 'utf8')))
+    .filter((p) => /\b(BRIEF_PART_TEXT|BRIEF_PART_IDS|BRIEF_PACKS|KNOWLEDGE_TEXT|PLAYBOOK_TEXT|packOf)\b/.test(readFileSync(p, 'utf8')))
     .map((p) => relative(REPO, p).replace(/\\/g, '/')).sort();
   assert.deepEqual(users, ['supabase/functions/_shared/company_brief.ts', 'supabase/functions/sales_engineer/conversation_plan.ts']);
   assert.match(read('supabase/functions/sales_engineer/conversation_plan.ts'), /plansFrom\(PLAYBOOK_TEXT\)/, 'the plan reads the playbooks; it sends nothing');

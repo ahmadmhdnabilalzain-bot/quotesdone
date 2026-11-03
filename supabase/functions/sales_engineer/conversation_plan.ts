@@ -25,15 +25,15 @@
 // specs, which read the category checklists, not this plan.
 // prevented by: sales_engineer/conversation_plan.test.ts, sales_engineer/portal_conversation.test.ts
 // The playbooks are read from every compiled trade pack (company_brief.ts PLAYBOOK_TEXT), not from the core a reply
-// carries; normalise, rx and TRADE_WORDS live in _shared/trade_words.ts since 3 Nov 2026 (every reply's pack uses them).
+// carries; normalise, rx and TRADE_WORDS live in _shared/conversation_trade.ts since 3 Nov 2026 (every reply's pack uses them).
 import { PLAYBOOK_TEXT } from '../_shared/company_brief.ts';
-import { normalise, rx, TRADE_WORDS, tradeIn } from '../_shared/trade_words.ts';
+import { normalise, rx, TRADE_WORDS, tradeIn } from '../_shared/conversation_trade.ts';
 export { normalise, TRADE_WORDS };
 
 export type Lang = 'en' | 'ar';
 export interface Turn { role: 'user' | 'assistant'; content: string }
 
-// ── normalisation: one spelling per letter, one stem per word form (normalise: _shared/trade_words.ts) ─────────────
+// ── normalisation: one spelling per letter, one stem per word form (normalise: _shared/conversation_trade.ts) ─────────────
 
 const AR_PREFIX = /^(?:وال|فال|بال|كال|لل|ال|و|ف)(?=..)/;
 /** A light stem: English plural/tense endings; Arabic article and conjunction prefixes, plural, dual and pronoun

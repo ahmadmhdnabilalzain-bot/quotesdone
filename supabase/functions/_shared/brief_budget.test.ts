@@ -70,12 +70,37 @@ Deno.test('every exam question reaches its facts: the company ones in the core, 
   assertEquals(qs.length, 30);
   for (const k of ['## 4. Fees', '## 5. Refunds', '## 6. Liability', '## 9. Privacy', '## 7. Verification', '## 12. Contact']) assert(BRIEF_TEXT.includes(k), 'the core lost ' + k);
   for (const x of qs.filter((q) => ['technical', 'uae_code', 'compare'].includes(q.kind))) {
-    const t = conversationTrade([x.q]);
+    const t = conversationTrade(x.q);
     assert(t, `${x.id} names no trade with a pack: ${x.q.slice(0, 80)}`);
     assert(packOf(t).includes('<<<FILE knowledge/brief/uae_regulations/'), `${x.id} (${t}): its pack has no regulation digest`);
   }
-  // a fee question that only looks like a trade (بقيمة "worth", أنشر "I post") carries no pack (trade_words.ts)
-  for (const id of ['ar02', 'ar06']) assertEquals(conversationTrade([qs.find((q) => q.id === id)!.q]), null, id);
+  // a fee question that only looks like a trade (بقيمة "worth", أنشر "I post") carries no pack (conversation_trade.ts)
+  for (const id of ['ar02', 'ar06']) assertEquals(conversationTrade(qs.find((q) => q.id === id)!.q), null, id);
+});
+
+// prevented by: these tests (independent review of this change, 3 Nov 2026). Each is a scenario the review produced.
+Deno.test('the trade is sticky and passing words are not trades', async () => {
+  const { conversationTrade } = await import('./company_brief.ts');
+  for (const q of ['How do I sign up?', 'ok where do I sign in?', 'How big is your supplier network?', 'Can you build a quote for me?', 'كم سأدفع إذا اخترت عرض سعر بقيمة 20,000 درهم؟'])
+    assertEquals(conversationTrade(q), null, q);
+  assertEquals(conversationTrade('the cabinets should match the floor tiles', ['I want new kitchen cabinets.']), 'kitchens', 'a passing word does not swap the job');
+  assertEquals(conversationTrade('عندي البق في الشقة'), 'pest', 'the article form still matches');
+  assertEquals(conversationTrade('الشتر خربان'), 'garage-doors');
+  assertEquals(conversationTrade('عندنا مشكلة النش في السقف'), 'waterproofing');
+  assertEquals(conversationTrade('Do I need a Dubai Municipality permit to renovate my villa?'), 'fitout', 'a renovation carries the fit-out digest');
+  assertEquals(conversationTrade('We need a new sign board for the shop'), 'signage');
+});
+
+Deno.test('the figure check accepts what it accepted before: other families\' prices and the FAQ rows the budget cut', async () => {
+  const chat = await build([], '', 'signage', false);   // a kitchen job whose customer said "sign board"
+  assert(!chat.includes('- kitchens: Item 1') && figureSource(chat).includes('- kitchens: Item 1'), 'another family\'s range is out of the prompt and still accepted');
+  const b = await build(FAQS, SITE_FACTS, 'signage', true);   // a supplier on the website: the smallest FAQ share
+  assert(!b.includes('Q: How does step 149 work for me?') && figureSource(b).includes('Q: How does step 40 work for me?'), 'a cut FAQ row is still a published source');
+  const rows = (t: string) => (t.match(/^Q: /gm) ?? []).length;
+  // the rows the prompt keeps, per reader (FAQ_CAP alone kept ~84 of these fixture rows): a floor, so a change that
+  // starves the FAQ further fails here
+  assert(rows(await build(FAQS, SITE_FACTS, null, false)) >= 30, 'website customer, no trade');
+  assert(rows(await build(FAQS, SITE_FACTS, 'kitchens', false)) >= 20, 'website customer with a pack');
 });
 
 Deno.test('with a pack the price guide keeps only that trade family, its heading and its notes; the figures follow', async () => {

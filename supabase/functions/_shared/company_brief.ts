@@ -19,7 +19,7 @@
 // held under BRIEF_TOKEN_CAP by construction: the FAQ takes what is left, and a pack that does not fit is left out.
 // prevented by: _shared/company_brief.test.ts, _shared/brief_budget.test.ts, scripts/checks/every_brief_line_reaches_a_reply.test.mjs
 import { BRIEF_PACKS, BRIEF_PART_IDS, BRIEF_PART_TEXT, BRIEF_SUPPLIER, BRIEF_TEXT } from './brief.generated.ts';
-import { tradeIn } from './trade_words.ts';
+import { tradeIn } from './conversation_trade.ts';
 
 /** Estimated Sonnet tokens (scripts/kb/compile_brief.mjs approxTokens, calibrated on production 3 Nov 2026: the cheapest
  *  wa_inbound call's whole old prompt was 139,874 tokens; this formula gives 142,228, about 2% high, on purpose). */
@@ -39,9 +39,13 @@ export const PLAYBOOK_TEXT = BRIEF_PART_IDS.map((id, i) => (id.startsWith('conve
 /** Every compiled knowledge block: the core, the supplier part and every pack part. */
 export const KNOWLEDGE_TEXT = [BRIEF_TEXT, BRIEF_SUPPLIER, ...BRIEF_PART_TEXT].join('\n\n');
 
-/** The trade a reply's pack is for: the newest text that names one, the caller's order (the message, then earlier turns
- *  newest first, then the facts). */
-export const conversationTrade = (texts: (string | null | undefined)[]): string | null => tradeIn(texts, hasPack);
+/** THE TRADE IS STICKY (review of this change, 3 Nov 2026). The pack is for the first trade the person named in their last
+ *  TRADE_WINDOW turns, then the message, then the caller's facts, as the portal's plan picks its playbook (tradeOf): a
+ *  passing word in a later message ("the cabinets should match the floor tiles") does not swap a kitchen job's pack. A
+ *  new job takes over once its turns fill the window. `earlier` is the person's own turns, oldest first. */
+export const TRADE_WINDOW = 12;
+export const conversationTrade = (message: string, earlier: string[] = [], facts?: string | null): string | null =>
+  tradeIn([...earlier.slice(-TRADE_WINDOW), message, facts], hasPack);
 
 /** The published price guide with a pack: its heading and notes, the lines of the pack's trade family, and the lines of
  *  any code that is no trade (fn_price_brief's `general` rows: MDF, plywood, cement and other materials, measured 3 Nov
@@ -56,7 +60,13 @@ export function pricesFor(guide: string, trade?: string | null): string {
  *  part, the pack: every <<<FILE ...>>> block). Measured 13 Oct 2026: with the knowledge counted, "The reveal fee is
  *  5%." passed the check, because the regulation digests state a 5% VAT. Fees and prices come from the live sources
  *  (fn_company_context, fn_price_brief, FAQ); the knowledge informs the answer but never licenses a money figure. */
-export const figureSource = (brief: string): string => brief.replace(/<<<FILE knowledge\/brief\/[^>\n]*>>>[\s\S]*?<<<END>>>/g, '');
+// AND IT ACCEPTS EXACTLY WHAT IT ACCEPTED BEFORE 3 NOV (review of this change): the price lines of other trade families
+// and the FAQ rows the budget left out of the prompt are still published sources, so a figure from them (a kitchen range
+// already given before the customer asked "where do I sign up?") is accepted as it always was. companyBrief records that
+// unsent text against the brief it built; the prompt is smaller, the check is unchanged.
+const UNSENT = new Map<string, string>();
+export const figureSource = (brief: string): string =>
+  brief.replace(/<<<FILE knowledge\/brief\/[^>\n]*>>>[\s\S]*?<<<END>>>/g, '') + (UNSENT.has(brief) ? '\n\n' + UNSENT.get(brief) : '');
 
 /** ONE CACHED PREFIX FOR EVERY LANGUAGE AND CHANNEL (13 Oct 2026, coordinator's option a). The core is the brief's
  *  FIRST part and identical for every caller, so it is sent as the gateway's sys_shared with its own cache breakpoint;
@@ -130,12 +140,7 @@ export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, _lang: 
   const key = lang + ':' + (trade ?? '') + ':' + (o.supplier ? 's' : '') + ':' + fnv1a([facts, ...blocks].join('\u0001'));
   const hit = cache.get(key);
   if (hit && now - hit.at < BRIEF_TTL_MS) return hit.brief;
-  // The company block and the PUBLISHED PRICE GUIDE (fn_price_brief: every price_benchmark range, read live), together.
-  // A failed read leaves that part out; the figure check then accepts none of its numbers, which is the safe side.
-  const read = async (fn: string, args: Record<string, unknown>) => { try { return (await rpc(fn, args)).data; } catch (_e) { return null; } };
-  const [cc, pb] = await Promise.all([read('fn_company_context', { p_max_chars: 8000, p_audience: 'public' }), read('fn_price_brief', {})]);
-  const company = String((cc as { block?: string } | null)?.block || '');
-  const guide = typeof pb === 'string' ? pb : '';
+  const { company, guide } = await liveSources(rpc);
   const supplier = o.supplier ? BRIEF_SUPPLIER : '';
   // THE CAP BY CONSTRUCTION: the pack rides only if the core, the supplier part, the live blocks and the caller's facts
   // leave it room (measured: only a supplier on the website chat, with its three FACTS blocks, leaves none); the FAQ then
@@ -148,9 +153,32 @@ export async function companyBrief(rpc: Rpc, faqs: Faq[], facts: string, _lang: 
   const faqTokens = Math.max(0, Math.floor((BRIEF_TOKEN_CAP - fixed(knowledge, prices)) / 2));
   // BRIEF_TEXT FIRST, byte-identical for every caller: splitBrief() hands it to the gateway as its own cached block.
   const brief = BRIEF_TEXT + '\n\n' + composeBrief({ company, facts, faqs, lang, knowledge, faqTokens, blocks: [prices, ...blocks].filter(Boolean) });
+  // what the prompt left out but the figure check still accepts (figureSource): other families' price lines, FAQ rows past the budget
+  const unsent = [prices === guide ? '' : guide, composeBrief({ company: '', facts: '', faqs, lang })].filter(Boolean).join('\n\n');
+  const old = cache.get(key)?.brief;
+  if (old !== undefined && old !== brief) UNSENT.delete(old);
+  UNSENT.set(brief, unsent);
   cache.set(key, { at: now, brief });
   return brief;
 }
+
+/** The two live reads every brief carries: the company block and the PUBLISHED PRICE GUIDE (fn_price_brief: every
+ *  price_benchmark range). One read per `rpc` (a request's own client), so a caller can start them before it knows the
+ *  trade (warmBrief) and companyBrief reuses them. A failed read leaves that part out; the figure check then accepts none
+ *  of its numbers, which is the safe side. */
+// a long-lived rpc (a module-level client) re-reads after BRIEF_TTL_MS, so a price edit still reaches the brief in that window
+const LIVE = new WeakMap<Rpc, { at: number; p: Promise<{ company: string; guide: string }> }>();
+function liveSources(rpc: Rpc): Promise<{ company: string; guide: string }> {
+  const hit = LIVE.get(rpc);
+  if (hit && Date.now() - hit.at < BRIEF_TTL_MS) return hit.p;
+  const read = async (fn: string, args: Record<string, unknown>) => { try { return (await rpc(fn, args)).data; } catch (_e) { return null; } };
+  const p = Promise.all([read('fn_company_context', { p_max_chars: 8000, p_audience: 'public' }), read('fn_price_brief', {})])
+    .then(([cc, pb]) => ({ company: String((cc as { block?: string } | null)?.block || ''), guide: typeof pb === 'string' ? pb : '' }));
+  LIVE.set(rpc, { at: Date.now(), p });
+  return p;
+}
+/** Start the live reads now, for a caller that learns the trade later (the portal reads its conversation first). */
+export const warmBrief = (rpc: Rpc): void => { void liveSources(rpc); };
 
 // ── the figure check ── (number AND unit; review of #1330, twice)
 // Digits: Arabic-Indic ٠-٩ and Persian ۰-۹ become Western; the Arabic decimal mark ٫ becomes "." and the Arabic
