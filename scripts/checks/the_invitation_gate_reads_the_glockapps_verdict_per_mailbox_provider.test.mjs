@@ -186,3 +186,15 @@ test('production, aborted: the recorder\'s own SQL stores the fixture', { skip: 
   assert.equal(r.against_the_bar.microsoft, 'fail:below_bar:microsoft');
   assert.equal(r.class_rates.overall.unclassified, 5);
 });
+
+// founder_instruction 1537 (3 Nov 2026): invitations never go to Yahoo/AOL or Microsoft mailboxes, whatever the verdict.
+// The LAST MANIFEST file that defines fn_invite_placement_open_providers is the live one; it must filter both classes.
+test('the open-provider list never holds microsoft or yahoo_aol (founder_instruction 1537)', () => {
+  const root = join(dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')), '..', '..');
+  const manifest = readFileSync(join(root, 'scripts/sql/MANIFEST.txt'), 'utf8').split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
+  const defs = manifest.filter((f) => existsSync(join(root, f)) && /create or replace function public\.fn_invite_placement_open_providers\(/i.test(readFileSync(join(root, f), 'utf8')));
+  assert.ok(defs.length > 0, 'no file defines fn_invite_placement_open_providers');
+  const last = readFileSync(join(root, defs[defs.length - 1]), 'utf8');
+  const body = last.slice(last.search(/create or replace function public\.fn_invite_placement_open_providers\(/i));
+  assert.match(body.slice(0, 900), /not in \('microsoft', 'yahoo_aol'\)/, defs[defs.length - 1] + ' lets Microsoft or Yahoo back into the open list');
+});

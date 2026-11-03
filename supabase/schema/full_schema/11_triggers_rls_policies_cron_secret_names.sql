@@ -1627,6 +1627,9 @@ select cron.schedule('seat_duty:marketing.kpi_scorecard','*/5 * * * *',$CRON$set
 select cron.schedule('seat_duty:marketing.fact_register','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.fact_register');$CRON$);
 select cron.schedule('seat_duty:marketing.paid_spend_report','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('marketing.paid_spend_report');$CRON$);
 select cron.schedule('seat_duty:it_engineer.openrouter_unattributed','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.openrouter_unattributed');$CRON$);
+select cron.schedule('seat_duty:it_engineer.postmortem','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('it_engineer.postmortem');$CRON$);
+select cron.schedule('seat_duty:customer_support.status_chase_close','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.status_chase_close');$CRON$);
+select cron.schedule('seat_duty:customer_support.person_followup_email','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.person_followup_email');$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow
