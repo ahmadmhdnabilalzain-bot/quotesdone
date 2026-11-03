@@ -294,16 +294,21 @@ const judgedIn = (dir) => Object.assign({}, ...readdirSync(join(dir, 'judged')).
 function score(dir, carry) {
   const own = finalVerdicts(json(join(dir, 'code.json')), judgedIn(dir));
   let final = own;
-  if (carry) {
+  // --carry D1,D0: earlier rounds, latest first; an item takes its verdict from the latest round that asked it.
+  const chain = carry ? carry.split(',') : [];
+  if (chain.length) {
     const asked = new Set(own.map((r) => r.id));
-    const prior = finalVerdicts(json(join(carry, 'code.json')), judgedIn(carry));
-    final = [...own, ...prior.filter((r) => !asked.has(r.id)).map((r) => ({ ...r, by: r.pass ? 'carried' : r.by, carried: true }))];
+    for (const d of chain) {
+      const prior = finalVerdicts(json(join(d, 'code.json')), judgedIn(d)).filter((r) => !asked.has(r.id));
+      prior.forEach((r) => asked.add(r.id));
+      final = [...final, ...prior.map((r) => ({ ...r, by: r.pass ? 'carried' : r.by, carried: true }))];
+    }
   }
   const rows = scoreTable(final);
   const failing = final.filter((r) => !r.pass).map(({ id, seat, money_terms, by, reason, note, canon, missing, unsupported, wording, answer, carried }) => ({ id, seat, money_terms, by, reason, note, canon, missing, unsupported, wording, answer, carried: !!carried }));
   const out = { rows, failing };
-  if (carry) {
-    const priorPass = new Set(finalVerdicts(json(join(carry, 'code.json')), judgedIn(carry)).filter((r) => r.pass).map((r) => r.id));
+  if (chain.length) {
+    const priorPass = new Set(finalVerdicts(json(join(chain[0], 'code.json')), judgedIn(chain[0])).filter((r) => r.pass).map((r) => r.id));
     const sample = own.filter((r) => priorPass.has(r.id));
     out.reasked = { items: own.length, passed: own.filter((r) => r.pass).length, previously_passing: sample.length, still_passing: sample.filter((r) => r.pass).length,
       newly_failing: sample.filter((r) => !r.pass).map((r) => r.id) };
