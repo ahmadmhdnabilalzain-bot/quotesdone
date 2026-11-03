@@ -1170,11 +1170,9 @@ ${q}`,
         // Arabic-only and a blank licence. They are told what could not be read and asked for a clearer copy instead.
         const licUnread = [!full?.licence_legal_name && 'the company name', !full?.trade_license_no && 'the licence number', !full?.license_expiry && 'the expiry date', !full?.license_authority && 'the issuing authority'].filter(Boolean) as string[];
         const licUnreadEn = licUnread.length ? `Thank you for registering ${name}. We could not read ${licUnread.join(', ').replace(/, ([^,]*)$/, ' and $1')} on the trade licence you uploaded, so your registration is on hold. ${clearerCopyAsk('supplier', 'en', 'your trade licence')} Upload it in the Documents tab of your supplier portal: https://quotesdone.com/portal` : '';
-        const supplierMail = decision === 'approved'
-          ? (ar ? { subject: 'أصبح حسابكم على QuotesDone مفعّلًا', body: `فُعِّل حساب ${name} لدى QuotesDone، وبإمكانكم الآن استلام الطلبات وتقديم عروض الأسعار.` }
-                : { subject: 'Your QuotesDone supplier account is active', body: `Your account for ${name} is active — you can now receive inquiries and submit quotes.` })
-          // Any decision short of approved: the unread licence is said first, with whatever else is still missing.
-          : full?.licence_gate_reason === 'licence_authority_not_uae'
+        // Sent only for a decision short of approved (an approval is confirmed by supplier_approved, below): the unread
+        // licence is said first, with whatever else is still missing.
+        const supplierMail = full?.licence_gate_reason === 'licence_authority_not_uae'
           ? { subject: 'Your QuotesDone registration: please send your UAE trade licence', body: `Thank you for registering ${name}. The trade licence you uploaded was not issued by a UAE authority, and QuotesDone registers companies licensed in the UAE, so your registration is on hold. Please upload your current UAE trade licence in the Documents tab of your supplier portal: https://quotesdone.com/portal` }
           : licUnreadEn
           ? { subject: 'Your QuotesDone registration: please send a clearer trade licence', body: licUnreadEn + (stillNeeded.length ? ` We also still need: ${needEn}.` : '') }
@@ -1197,7 +1195,13 @@ ${q}`,
           ...(fixture ? [] : [{ type: 'supplier_registered', to_email: mgmt, to_role: 'admin', lead_id: sup.id,
             subject: decision === 'approved' ? 'New supplier approved by the sales engineer' : decision === 'pending' ? pendingFounderSubject(v.reason) : 'Supplier registration incomplete',
             body: `New supplier "${name}"${full?.emirate ? ' (' + full.emirate + ')' : ''} registered. Decision: ${decision}${stillNeeded.length ? ' — still needs: ' + needEn : (certificatePending ? ' — the signed terms certificate is being issued' : '')}. No action needed; this is a record.${licInfo}` }]),
-          { type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, lang: ar ? 'ar' : 'en', ...supplierMail },
+          // ONE CONFIRMATION, NOT TWO (3 Nov 2026, customer_support). An approved first save used to send this "Your QuotesDone
+          // supplier account is active" notice AND, from the same approval, trg_sales_engineer_tells_the_supplier_he_is_approved's
+          // supplier_approved notice ("You are verified on QuotesDone"), each with its WhatsApp twin: two emails and two
+          // WhatsApp messages for one event. The approval trigger fires on every path that approves a supplier (this save, the
+          // certificate landing, the sales engineer), so it is the one confirmation; this notice goes only while the
+          // registration is not yet active. prevented by: supplier_api/one_confirmation_per_activation.test.ts
+          ...(decision === 'approved' ? [] : [{ type: 'registration_received', to_email: email, to_role: 'supplier', lead_id: sup.id, lang: ar ? 'ar' : 'en', ...supplierMail }]),
         ]);
       }
       if (!wasApproved && decision !== 'approved' && stillNeeded.length) {

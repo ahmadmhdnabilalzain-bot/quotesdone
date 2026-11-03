@@ -51,6 +51,7 @@ import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 import { portfolioGate } from './portfolio_gate.ts';
 import { registrationNeeds } from './registration_reminder.ts';
+import { invoiceLink, isConfirmation } from './confirmations.ts';
 // v9 (24 Sep 2026, customer_support, founder ledger 994): nothing depends on WhatsApp alone. While the IT
 // engineer's watch holds the sender down, or when one send fails, the notice goes once by SMS
 // (_shared/whatsapp_failover.ts, public.fn_wa_sms_twin), and back to WhatsApp when the watch closes.
@@ -152,6 +153,13 @@ function tmplKey(type:string):string|null{
   // 24 Sep 2026 (sales_engineer): the approval notice, twinned from its email to the confirmed number.
   // {{1}} is its subject ("You are verified on QuotesDone: please confirm your categories"), {{2}} the portal.
   if(t==='supplier_approved') return 'supplier_account_notice';
+  // 3 Nov 2026 (customer_support): supplier_api save_profile's first-save notice (what the registration still needs, or
+  // that it is under review). fn_wa_fanout already queued its twin to the confirmed number and this mapped nothing, so the
+  // twin would have been skipped "no WhatsApp template mapping". {{1}} is its subject, {{2}} the portal.
+  if(t==='registration_received') return 'supplier_account_notice';
+  // 3 Nov 2026 (customer_support): the customer's account-active confirmation (fn_customer_account_active_notice).
+  // Its own UTILITY template, English and Arabic; held queued until Meta approves it.
+  if(t==='customer_account_active') return 'customer_account_active';
   // 2 Nov 2026 (it_engineer): the registration reminder's WhatsApp twin. Unmapped, the first one (05:00Z) was skipped
   // "no WhatsApp template mapping". Its own UTILITY template, English only; held queued until Meta approves it.
   if(t==='supplier_registration_reminder') return 'supplier_registration_reminder';
@@ -187,6 +195,8 @@ function varsFor(key:string, n:{subject?:string|null; body?:string|null}): Recor
   if (key==='supplier_invite') return {'1': waVar(waInviteTrade(n.subject), 60)};
   if (key==='support_reply') return {'1': waVar(shortSummary(n.subject||''), 120), '2': waVar(String(n.body||''), 700)};
   if (key==='supplier_registration_reminder') return {'1': waVar(registrationNeeds(n.body), 160), '2': linkFor(key)};
+  // customer_reveal_invoice is chosen only when the body carries the invoice link (see the loop), so {{2}} is that link.
+  if (key==='customer_reveal_invoice') return {'1': shortSummary(n.subject||''), '2': invoiceLink(n.body) || linkFor(key)};
   return {'1':shortSummary(n.subject||n.body||''),'2':linkFor(key)};
 }
 // The page a notice points to. The SMS twin carries the same link as the WhatsApp template.
@@ -497,17 +507,26 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       // does not get three business-initiated messages in a day and report the sender; the founder
       // asked for this channel himself and will not report his own company. Applying it to him
       // meant only the FIRST alert of any 24 hours ever reached him, and the rest aged out.
-      if (!isFounderRow(n)) {
+      // 3 Nov 2026 (customer_support): nor for the three confirmations (confirmations.ts), each sent once to a number its
+      // owner confirmed with a code minutes earlier. The daily cap above still counts them.
+      if (!isFounderRow(n) && !isConfirmation(n.type)) {
         const { count: toThisNumber } = await admin.from('notifications').select('id', { count: 'exact', head: true })
           .eq('channel','whatsapp').eq('status','sent').eq('to_phone', n.to_phone).gte('sent_at', since24);
         if (Number(toThisNumber || 0) >= perRecip) { capped++; continue; }
       }
-      const key = tmplKey(String(n.type||''));
+      let key = tmplKey(String(n.type||''));
       // THE RECIPIENT'S REGISTERED LANGUAGE (notifications.lang, stamped from fn_registered_locale).
       // This always took .en, although wa_template_sids holds an Arabic SID for every customer and
       // supplier key - so an Arabic-registered customer got the English template.
       // A supplier is always sent the English template (founder, 28 Sep 2026), whatever the row's lang says.
       const wlang = n.lang === 'ar' && n.to_role !== 'supplier' ? 'ar' : 'en';
+      // THE INVOICE GOES ON WHATSAPP TOO (3 Nov 2026, customer_support). A reveal receipt whose invoice reveal_invoice has
+      // attached carries the signed link in its body; it is sent on customer_reveal_invoice, whose {{2}} is that link, once
+      // Meta has approved that template in this language. Until then, or with no link, it keeps the approved reveal template.
+      if (key === 'customer_supplier_unlocked' && invoiceLink(n.body) && ready && tmpl.customer_reveal_invoice?.[wlang]) {
+        const inv = await templateStatus(auth, String(tmpl.customer_reveal_invoice[wlang]), 'customer_reveal_invoice', wlang);
+        if (inv.status === 'approved') key = 'customer_reveal_invoice';
+      }
       const sid = (ready && key && tmpl[key]) ? (tmpl[key][wlang] || null) : null;
       let res;
       if (sid) {
