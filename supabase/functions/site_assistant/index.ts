@@ -33,7 +33,7 @@ import { fileReviewRequest } from '../_shared/review_request.ts';
 import { siteReplyCheck } from './reply_check.ts';
 import { checkReadability } from '../_shared/readability.ts';
 import { logParty, widgetReplyEffects } from '../_shared/widget_reply_effects.ts';
-import { companyBrief } from '../_shared/company_brief.ts';
+import { companyBrief, conversationTrade } from '../_shared/company_brief.ts';
 import { recallCases } from '../_shared/case_recall.ts';
 import { answerFromBrief } from '../_shared/brief_answer.ts';
 import { acceptImages } from '../_shared/chat_images.ts';
@@ -375,7 +375,11 @@ async function handle(req: Request, T: Timer): Promise<Response> {
     // The verified trade knowledge is GIVEN with the brief (given_trade_knowledge.ts, ruling 1195): fetched in parallel, '' on failure.
     const tradeDeps = defaultDeps(admin, 'site_assistant');
     const [brief, memory, given] = await Promise.all([
-      companyBrief(rpc, (faqs || []) as FaqRow[], [FACTS_SHARED, FACTS_CUSTOMER, FACTS_SUPPLIER].join('\n\n'), replyLang),
+      // ONE TRADE PACK (company_brief.ts, 3 Nov 2026): the first trade the visitor named in its recent turns, else the message's
+      companyBrief(rpc, (faqs || []) as FaqRow[], [FACTS_SHARED, FACTS_CUSTOMER, FACTS_SUPPLIER].join('\n\n'), replyLang, [], undefined, {
+        // deno-lint-ignore no-explicit-any
+        trade: conversationTrade(message, history.filter((h: any) => h?.role === 'user').map((h: any) => String(h.content ?? ''))),
+        supplier: audience === 'supplier' }),
       recallCases(admin, { seat: 'customer_support', path: 'reply', situation: message, otherSeats: false }).catch(() => null),
       givenTradeKnowledge({ embed: (t, sp) => tradeDeps.embed(t, sp), rpc, gteReads, audience: audience === 'unknown' ? 'visitor' : audience }, message),
     ]);
