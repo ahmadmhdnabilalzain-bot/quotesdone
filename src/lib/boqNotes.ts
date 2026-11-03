@@ -109,6 +109,10 @@ const RULES: Rule[] = [
   R(/^an RTF table stopped at (.+?) rows$/, (m) => `توقفت قراءة جدول RTF عند ${m[1]} صفًا`),
   R(/^(.+?): (.+?) bytes is over the (.+?) byte entry cap; not read$/, (m) => `${m[1]}: حجمه ${m[2]} بايت ويتجاوز الحد المسموح للملف الواحد (${m[3]} بايت)؛ لم يُقرأ`),
   R(/^(.+?): listed, not read \(no reader supplied\)$/, (m) => `${m[1]}: مُدرج ولم يُقرأ (لا يوجد قارئ لهذا النوع)`),
+  // drawing_boq/cross_check.ts (3 Nov 2026): the drawing reading cross-checked by the count of the drawing's own tags
+  R(/^The drawing reading and the count of the drawing's own tags disagree on (.+?); the tag count is shown and is confirmed with the customer\.$/, (m) => `اختلفت قراءة المخطط عن عدّ الرموز المكتوبة على المخطط نفسه في: ${m[1]}؛ يُعرض عدّ الرموز ويُؤكَّد مع العميل.`),
+  R(/^Counted from the drawing's own tags but not listed by the drawing reading: (.+?)\.$/, (m) => `عُدّت من الرموز المكتوبة على المخطط ولم تذكرها قراءة المخطط: ${m[1]}.`),
+  R(/^(.+?) line\(s\) come from the drawing reading alone; they are estimates and are confirmed with the customer\.$/, (m) => `عدد البنود المأخوذة من قراءة المخطط وحدها: ${m[1]}؛ وهي تقديرات تُؤكَّد مع العميل.`),
   // zip.ts's two error lines name a FILE then the reader's own error; anchored on a file name so no
   // other sentence with a colon is ever read as one of them.
   R(/^([^\s:]+\.[A-Za-z0-9]{1,5}): (.+)$/, (m) => `${m[1]}: تعذّرت قراءته (${m[2]})`),
