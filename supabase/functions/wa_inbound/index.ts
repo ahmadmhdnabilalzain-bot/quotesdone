@@ -1089,7 +1089,7 @@ async function handleInbound(req: Request): Promise<Response> {
     if (audience === 'founder') {
       const question = Body.slice(0, 1500);
       // HIS LANGUAGE IS THE LANGUAGE HE WROTE IN (gap #10): the model's reply, the held notice and its replay, and the row.
-      const founderLang: 'en' | 'ar' = /[؀-ۿ]/.test(question) ? 'ar' : 'en';
+      const founderLang: 'en' | 'ar' = /[\u0600-\u06FF]/.test(question) ? 'ar' : 'en';
 
       const work = (async () => {
         let reply = ''; let directive: any = null;
