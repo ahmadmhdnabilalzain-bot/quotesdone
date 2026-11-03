@@ -1093,7 +1093,9 @@ CREATE OR REPLACE FUNCTION public.fn_invite_placement_open_providers(p_day date 
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 begin
-  return array(select jsonb_array_elements_text(public.fn_invite_placement_judge(p_day, p_now) -> 'open_providers'));
+  -- founder_instruction 1537 (3 Nov 2026): never Yahoo/AOL or Microsoft, whatever the GlockApps verdict says
+  return array(select p from jsonb_array_elements_text(public.fn_invite_placement_judge(p_day, p_now) -> 'open_providers') p
+               where p not in ('microsoft', 'yahoo_aol'));
 end $function$
 
 
