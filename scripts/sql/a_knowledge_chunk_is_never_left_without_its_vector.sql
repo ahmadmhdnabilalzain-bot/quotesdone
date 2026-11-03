@@ -27,7 +27,8 @@
 --      leave the table and release the row's claim lease, so a row still NULL is sent again by the same tick; the
 --      attempts of a row that now has its vector (or is gone) are cleared.
 --   3. fn_kb_embed_dispatch: never sends a row that already has a request in flight, and stops after 5 failed
---      attempts for the same text (a changed text gets 5 fresh attempts). It reports how many rows it gave up on.
+--      attempts for the same text within 24 hours (a changed text gets 5 fresh attempts; an outage never strands a
+--      row for good, it is tried again the next day). It reports how many rows it gave up on.
 --      Same text window (title + newline + content, first 1,200 characters), same free in-region path
 --      (ai_gateway {action:'embed'}, gte-small, not OpenRouter), same tiers, same in-flight ceiling.
 --   4. pg_cron 'kb_embed' every 10 minutes replaces 'kb_embed_daily': each harvest now finds answers at most
@@ -119,6 +120,11 @@ begin
    where f.failed_at is not null
      and not exists (select 1 from public.kb_chunks k where k.id = f.chunk_id and k.embedding_gte is null);
 
+  -- Attempts older than a day no longer count (the dispatch reads only the last 24 hours), so a row that ran out of
+  -- attempts during an outage is tried again the next day rather than never; the old rows are dropped here.
+  delete from public.kb_embed_inflight f
+   where f.failed_at is not null and f.failed_at < now() - interval '24 hours';
+
   return jsonb_build_object('ok', true, 'embedded', v_written, 'failed', v_failed,
                             'expired_and_released', v_expired,
                             'still_inflight', (select count(*) from public.kb_embed_inflight where failed_at is null),
@@ -178,7 +184,7 @@ begin
        and coalesce(p.tier, 3) <= greatest(1, least(coalesce(p_max_tier, 4), 4))
        and not exists (select 1 from public.kb_embed_inflight f where f.chunk_id = k.id and f.failed_at is null)
        and (select count(*) from public.kb_embed_inflight f
-             where f.chunk_id = k.id and f.failed_at is not null
+             where f.chunk_id = k.id and f.failed_at is not null and f.failed_at > now() - interval '24 hours'
                and f.text_md5 = md5(left(coalesce(k.title, '') || E'\n' || coalesce(k.content, ''), 1200))) < v_tries
      order by coalesce(p.tier, 3) asc, k.created_at asc
      limit v_lim
