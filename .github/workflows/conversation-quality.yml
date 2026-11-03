@@ -23,9 +23,13 @@ on:
         description: Conversations per scenario per surface
         required: false
         default: '5'
+      sides:
+        description: "before,after (default: .github/conversation-quality-sides.txt, which a push run reads too)"
+        required: false
+        default: ''
   push:
     branches-ignore: [main]
-    paths: ['.github/workflows/conversation-quality.yml']
+    paths: ['.github/workflows/conversation-quality.yml']   # not the sides file: changing it never starts a run
 
 permissions:
   contents: read
@@ -59,16 +63,27 @@ jobs:
       QD_E2E_WINDOW_MIN: '120'
       DENO_NO_PACKAGE_JSON: '1'
     steps:
+      - if: matrix.side == 'before'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0   # main's supabase/functions come from this clone: the repository is private, a later fetch has no credential
+      - if: matrix.side != 'before'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # which sides this run measures: the dispatch input, else the committed file (so a push run can measure one side
+      # without spending on the other)
       - id: gate
+        env:
+          SIDES: ${{ inputs.sides }}
         run: |
+          sides="${SIDES:-$(cat .github/conversation-quality-sides.txt 2>/dev/null || echo before,after)}"
+          case ",$sides," in *",${{ matrix.side }},"*) ;; *) echo "::notice::side ${{ matrix.side }} not in '$sides': skipped"; echo "skip=1" >> "$GITHUB_OUTPUT"; exit 0;; esac
           if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
             echo "::notice::SUPABASE_ACCESS_TOKEN is not set; the conversation-quality run needs it for the demo fixtures and is skipped"
             echo "skip=1" >> "$GITHUB_OUTPUT"
           fi
-      - if: steps.gate.outputs.skip != '1'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
       - if: steps.gate.outputs.skip != '1'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -85,9 +100,8 @@ jobs:
       - name: BEFORE - main's functions, this branch's harness and graders
         if: steps.gate.outputs.skip != '1' && matrix.side == 'before'
         run: |
-          git fetch --no-tags --depth=1 https://github.com/${{ github.repository }}.git main
-          git checkout FETCH_HEAD -- supabase/functions
-          echo "functions from main $(git rev-parse FETCH_HEAD)"
+          git checkout origin/main -- supabase/functions
+          echo "functions from main $(git rev-parse origin/main)"
       - if: steps.gate.outputs.skip != '1'
         name: Drive ${{ matrix.surface }} (${{ matrix.side }})
         env:
