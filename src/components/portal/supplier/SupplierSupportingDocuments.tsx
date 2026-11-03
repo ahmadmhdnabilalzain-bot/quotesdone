@@ -97,7 +97,7 @@ export default function SupplierSupportingDocuments({ token, lang }: { token: st
         </label>
         <label className="flex min-w-0 flex-col gap-1.5 text-[12.5px] font-semibold text-muted-foreground">{ws(lang, 'sd_type')}
           <select value={type} onChange={(e) => setType(e.target.value)} disabled={full}
-            className="h-10 rounded-md border border-input bg-background px-2.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            className="h-10 rounded-md border border-input bg-background px-2.5 text-sm text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
             {types.map((t) => <option key={t} value={t}>{ws(lang, 'sd_t_' + t)}</option>)}
           </select>
         </label>

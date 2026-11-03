@@ -31,9 +31,9 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40">
       <PointerLight />
-      <div className="relative border-b border-line bg-navy-deep/70 backdrop-blur-xl backdrop-saturate-150 supports-[backdrop-filter]:bg-navy-deep/55">
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-noise bg-[length:64px] opacity-[.035]" />
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-[-1px] h-px bg-[linear-gradient(90deg,transparent,rgba(110,231,212,.35)_30%,rgba(110,231,212,.35)_70%,transparent)]" />
+      <div className="relative border-b border-line bg-navy-deep/70 backdrop-blur-xl backdrop-saturate-150 supports-backdrop-filter:bg-navy-deep/55">
+        <div aria-hidden className="pointer-events-none absolute inset-0 bg-noise bg-size-[64px] opacity-[.035]" />
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-[linear-gradient(90deg,transparent,rgba(110,231,212,.35)_30%,rgba(110,231,212,.35)_70%,transparent)]" />
         <ScrollProgress />
         <div className="container-x relative flex h-[68px] items-center gap-2 sm:gap-4 lg:gap-8">
           <Link

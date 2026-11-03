@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 /** An honest absence: a heading and a sentence saying WHICH absence is true. Never a cheerful nudge. */
 export function Empty({ title, body, className }: { title: string; body: string; className?: string }) {
   return (
-    <div className={cn('rounded-lg border border-dashed border-border bg-white/[0.02] px-5 py-8 text-center', className)}>
+    <div className={cn('rounded-lg border border-dashed border-border bg-white/2 px-5 py-8 text-center', className)}>
       <h3 className="text-[15px] font-bold text-foreground">{title}</h3>
       <p className="mx-auto mt-2 max-w-[62ch] text-[13px] leading-relaxed text-muted-foreground">{body}</p>
     </div>
@@ -32,7 +32,7 @@ export function Field({
 }) {
   const missing = value === undefined || value === null || value === '';
   return (
-    <div className={cn('rounded-lg border border-border bg-white/[0.03] px-3.5 py-3', className)}>
+    <div className={cn('rounded-lg border border-border bg-white/3 px-3.5 py-3', className)}>
       <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className={cn('mt-1 text-[19px] font-bold leading-tight', missing ? 'text-muted-foreground' : 'text-foreground')}>
         {missing ? '—' : value}

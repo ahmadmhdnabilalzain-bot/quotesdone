@@ -87,7 +87,7 @@ export default function SupportRatingPrompt({ token, lang, api }: { token: strin
 
   return (
     <aside dir={L === 'ar' ? 'rtl' : 'ltr'} aria-live="polite"
-      className="fixed bottom-4 start-4 z-40 w-[min(22rem,calc(100vw-2rem))] rounded-xl border bg-card p-4 text-card-foreground shadow-lg">
+      className="fixed bottom-4 inset-s-4 z-40 w-[min(22rem,calc(100vw-2rem))] rounded-xl border bg-card p-4 text-card-foreground shadow-lg">
       {state === 'done' ? <p className="text-sm">{t.thanks}</p> : (<>
         <p className="text-sm font-semibold">{t.title(cur.case_ref)}</p>
         <Scale label={t.csat} lo={t.csatLo} hi={t.csatHi} max={5} value={csat} onPick={setCsat} rtl={L === 'ar'} />

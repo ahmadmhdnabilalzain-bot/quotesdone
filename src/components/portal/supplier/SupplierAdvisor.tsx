@@ -96,13 +96,13 @@ export default function SupplierAdvisor({
   return (
     <div className="space-y-4" dir={ar ? 'rtl' : 'ltr'}>
       {/* §4's actionable assistant line: a concrete gap AND a quantified upside, or nothing to fix. */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+      <section className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
         <h3 className="text-xs uppercase tracking-wide opacity-60 mb-2">{t(lang, 'title')}</h3>
         <p className="text-sm leading-relaxed">{(ar && a.headline_ar) || a.headline}</p>
       </section>
 
       {/* §15 — the loss question, asked in the supplier's own words. */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+      <section className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
         <div className="text-[13px] font-medium mb-3">{t(lang, 'ask')}</div>
 
         <div className="grid grid-cols-3 gap-4 mb-3">
@@ -145,7 +145,7 @@ export default function SupplierAdvisor({
 
       {/* §15's recommendations. Each links to the tab that fixes it — advice you cannot act on is
           a sentence, not an assistant. */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
+      <section className="rounded-2xl border border-white/10 bg-white/3 backdrop-blur-xl p-4">
         <div className="flex justify-between items-baseline mb-3">
           <h3 className="text-xs uppercase tracking-wide opacity-60">{t(lang, 'recTitle')}</h3>
           {a.impact_basis?.live_inquiries != null && (
