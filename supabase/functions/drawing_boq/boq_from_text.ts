@@ -37,8 +37,9 @@ export function scrubIdentity(s: string): string {
   return scrubContacts(scrubIdentityText(String(s || '')))
     .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '')
     .replace(/\b(?:https?:\/\/|www\.)\S+/gi, '')
-    .replace(/(?:\+?971|00971|\b0)[\s-]?\d{1,2}[\s-]?\d{3}[\s-]?\d{4}\b/g, '')
-    .replace(/\b[\w&.' -]{2,40}\s(?:L\.?L\.?C|FZ-?LLC|FZE|FZCO|Est\.?|Establishment|Consultants?|Contracting|Architects?|Engineering\s+Consultants?)\b\.?/gi, '')
+    // The UAE phone and firm-suffix patterns that lived here went with the review of #1838 (3 Nov 2026): the phone one
+    // took "03 120 4500" out of a BOQ row, the firm one took "Approved by MEP Consultants" whole. The shared list
+    // above reads both, held to a must-keep list.
     // TRNs and licence / registration numbers identify a company as surely as its phone (14 Sep 2026).
     .replace(TRN_LABELLED, '').replace(TRN_BARE, '').replace(LICENCE_NO, '')
     .replace(/\s{2,}/g, ' ').trim();

@@ -9,6 +9,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { tooLargeToParse } from '../_shared/parse_ceiling.ts';
 import { observe } from '../_shared/observe.ts';
+import { scrubIdentityText } from '../_shared/identity_text.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import { boqFromPages } from './boq_from_text.ts';
 import { boqFromDrawingSet, lengthsForSet, mergeLengths, setBeforeModel, type ScheduleTable } from './drawing_set.ts';
@@ -69,7 +70,8 @@ async function confirmStep(lines: any[], page: RedactedPage, author: string): Pr
 
 function parseJson(t:string){ try{return JSON.parse(t);}catch{ const m=t.match(/\{[\s\S]*\}/); if(m){try{return JSON.parse(m[0]);}catch{}} return {}; } }
 function dataUrl(b64: string, mime: string){ return `data:${mime};base64,${String(b64).replace(/^data:[^;]+;base64,/,'')}`; }
-function scrub(s: unknown){ let t = String(s == null ? '' : s); t = t.replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[removed]'); t = t.replace(/\b(?:https?:\/\/|www\.)[^\s)]+/gi, '[removed]'); return t; }
+// The model's take-off text: e-mails and URLs, and since 3 Nov 2026 the shared identity shapes (_shared/identity_text.ts).
+function scrub(s: unknown){ let t = String(s == null ? '' : s); t = t.replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[removed]'); t = t.replace(/\b(?:https?:\/\/|www\.)[^\s)]+/gi, '[removed]'); return scrubIdentityText(t, '[removed]'); }
 
 const CATS = 'civil_construction, fit_out_interior, mep_electrical, mep_plumbing, mep_hvac, joinery_carpentry, flooring_tiling, painting_finishes, aluminium_glass, false_ceiling_partitions, steel_fabrication, waterproofing, landscaping, signage, cleaning_facilities, swimming_pools';
 

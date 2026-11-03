@@ -156,7 +156,7 @@ for (const [ri, req] of man.requests.entries()) {
 
 // ── pre-reveal Q&A ────────────────────────────────────────────────────────────────────────────────────
 for (const m of man.qa) {
-  const text = stripContact(m.text, m.names);
+  const text = stripContact(m.text, m.names, m.whole ?? []);
   await write(`${dir}/out/${m.id}/message.txt`, text);
   result.qa.push({ id: m.id, surfaces: [{ kind: 'text_file', path: `out/${m.id}/message.txt` }], held: [] });
 }

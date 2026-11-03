@@ -61,7 +61,11 @@ export function supplierLabel(i: number): string { let n = Number(i) || 0, out =
 const HIDDEN = { en: '[contact hidden until reveal]', ar: '[بيانات التواصل مخفية حتى الكشف]' };
 function escapeRe(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 /** Blank emails, phone numbers, web addresses and the named suppliers out of one string. */
-export function maskContacts(s: unknown, names: string[] = [], lang: Lang = 'en'): string {
+/**
+ * `parties: false` (a quotation the customer PAID to reveal, review of #1838 item 1): firm and person names are left
+ * alone, so the party chip and the supplier's own words name the supplier; contacts and numbers are still masked.
+ */
+export function maskContacts(s: unknown, names: string[] = [], lang: Lang = 'en', opts: { parties?: boolean } = {}): string {
   let t = String(s == null ? '' : s);
   // The placeholder follows the script of the text it sits in, not the page: an Arabic placeholder
   // inside an English supplier note turned the whole note right-to-left and scrambled its order.
@@ -76,13 +80,14 @@ export function maskContacts(s: unknown, names: string[] = [], lang: Lang = 'en'
   // A TRN or licence number finds the company on a public register (founder, 14 Sep 2026). Before
   // the phone patterns, which would otherwise take a 15-digit TRN apart and leave its label behind.
   t = t.replace(TRN_LABELLED, H).replace(TRN_BARE, H).replace(LICENCE_NO, H);
-  // UAE numbers in every usual spelling, then any international-looking run of 9+ digits.
-  t = t.replace(/(?:\+|00)?971[\s-]?\(?0?\)?[\s-]?\d(?:[\s-]?\d){6,8}\b/g, H);
-  t = t.replace(/\b0[2-9](?:[\s-]?\d){7,8}\b/g, H);
+  // UAE numbers are read by the shared list below (3 Nov 2026, review of #1838: "\b0[2-9](?:[\s-]?\d){7,8}" took
+  // "03 120 4500" out of a BOQ row and "075 110 160" out of a pipe list). Any other international run of 9+ digits:
   t = t.replace(/\+\d(?:[\s-]?\d){8,13}\b/g, H);
   // 3 Nov 2026 (identity_never_leaks_before_reveal.mjs): every shape in the shared list (_shared/identity_text.ts), and
   // each named supplier by knownNameRe too: its suffix-free core and any two consecutive words of its name.
-  t = scrubIdentityText(t, H);
+  // Whole names only here: these documents carry several suppliers' text and a fragment of one supplier's name is
+  // another's ordinary scope (review of #1838 item 2). The supplier's own text lost its fragments at save.
+  t = scrubIdentityText(t, H, { parties: opts.parties });
   for (const n of names) { const re = knownNameRe(n); if (re && String(n).replace(/[^A-Za-z؀-ۿ]/g, '').length >= 3) t = t.replace(re, H); }
   for (const n of names) {
     const v = String(n || '').trim();
@@ -95,11 +100,11 @@ export function maskContacts(s: unknown, names: string[] = [], lang: Lang = 'en'
   return t;
 }
 // deno-lint-ignore no-explicit-any
-function maskDeep(v: any, names: string[], lang: Lang): any {
-  if (typeof v === 'string') return maskContacts(v, names, lang);
-  if (Array.isArray(v)) return v.map((x) => maskDeep(x, names, lang));
+function maskDeep(v: any, names: string[], lang: Lang, parties = true): any {
+  if (typeof v === 'string') return maskContacts(v, names, lang, { parties });
+  if (Array.isArray(v)) return v.map((x) => maskDeep(x, names, lang, parties));
   // deno-lint-ignore no-explicit-any
-  if (v && typeof v === 'object') { const o: any = {}; for (const k of Object.keys(v)) o[k] = (k === 'link') ? v[k] : maskDeep(v[k], names, lang); return o; }
+  if (v && typeof v === 'object') { const o: any = {}; for (const k of Object.keys(v)) o[k] = (k === 'link') ? v[k] : maskDeep(v[k], names, lang, parties); return o; }
   return v;
 }
 
@@ -459,7 +464,9 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
   const names = args.maskNames || [];
   const body: Record<string, unknown> = {
     lang, ref, name: docName(ref, 'quotation', lang), title: T('Quotation', 'عرض أسعار'),
-    cover: maskDeep(cover0, names, lang), control, blocks: maskDeep(blocks, names, lang), options: { letterhead: true },
+    // A REVEALED quotation (partyName set) names its supplier: firm and person shapes are not masked there (review of
+    // #1838 item 1: the chip read "[contact hidden until reveal]" after a paid reveal). Contacts still are, as before.
+    cover: maskDeep(cover0, names, lang, !args.partyName), control, blocks: maskDeep(blocks, names, lang, !args.partyName), options: { letterhead: true },
   };
   if (args.date) body.date = args.date; if (args.date_ar) body.date_ar = args.date_ar;
   return { body, ref, untranslated: [...k.untranslated] };

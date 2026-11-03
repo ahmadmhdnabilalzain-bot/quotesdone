@@ -136,7 +136,7 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
     // The PROJECT name too (3 Nov 2026, identity_never_leaks_before_reveal.mjs: "Site is ZZ Dune Heights Villa 2" reached
     // every matched supplier in 20 of 20 answers). No pattern recognises a project name; only knowing it removes it.
     const { data: proj } = inq.project_id ? await admin.from('projects').select('name').eq('id', inq.project_id).maybeSingle() : { data: null };
-    const text = stripContact(b.text, [me?.full_name, proj?.name]);
+    const text = stripContact(b.text, [me?.full_name], [proj?.name]);
     if (text.replace(/\[removed\]/g, '').trim().length < 1) return R(400, { error: 'text_required' });
     // Every matched supplier reads this answer, and suppliers read English only (_shared/supplier_english.ts):
     // Arabic is kept as written and the supplier copy is held until the model route writes its English.

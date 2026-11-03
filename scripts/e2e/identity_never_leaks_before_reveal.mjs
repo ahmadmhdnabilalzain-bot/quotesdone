@@ -99,7 +99,10 @@ function supplierIdentity(n) {
     T('email', id.email, { words: [id.email.split('@')[0] + slug] }), T('website', id.web, { words: [slug] }),
     T('phone_mobile', pick(ph.mobile.all), { digitsKey: ph.mobile.key }), T('phone_land', pick(ph.land.all), { digitsKey: ph.land.key }),
     T('trn', pick([`TRN: ${trn}`, `TRN ${trn.replace(/^(\d{3})(\d{4})(\d{4})(\d{4})$/, '$1 $2 $3 $4')}`, `VAT Reg. No. ${trn.replace(/^(\d{3})(\d{4})(\d{4})(\d{4})$/, '$1-$2-$3-$4')}`, `الرقم الضريبي: ${toAr(trn)}`, `Tax Registration Number ${trn}`, trn]), { digitsKey: trn }),
-    T('licence', pick([`Trade Licence No. ${lic}`, `License No: ${lic}`, `CN-${lic}`, `TL ${lic}`, `رقم الرخصة: ${toAr(lic)}`, `D.E.D. Licence ${lic}`]), { digitsKey: lic }),
+    // A licence printed the way a UAE letterhead prints it: the DED "CN-" number has SEVEN digits, and the TL abbreviation
+    // carries its number marker or a licence word. A bare "TL 273158" or a six-digit "CN-123456" is a product code as often
+    // as a licence (review of #1838), so the corpus does not plant them and the shared list keeps them.
+    T('licence', pick([`Trade Licence No. ${lic}`, `License No: ${lic}`, `CN-${lic}${digits(1)}`, `T.L. No. ${lic}`, `Trade licence TL ${lic}`, `رقم الرخصة: ${toAr(lic)}`, `D.E.D. Licence ${lic}`]), { digitsKey: lic }),
     T('iban', pick([`IBAN: ${iban}`, `IBAN ${iban.replace(/(.{4})/g, '$1 ').trim()}`, `Account IBAN ${iban}`]), { digitsKey: iban.slice(2) }),
     T('po_box', pick([`P.O. Box ${pob}, Dubai`, `PO BOX: ${pob}`, `POB ${pob}`, `ص.ب ${toAr(pob)}`, `P. O. Box ${pob}`]), { digitsKey: pob }),
     T('address', `Office ${100 + Math.floor(rnd() * 900)}, ZZ ${c} ${code} Tower, Al Quoz Industrial Area ${1 + Math.floor(rnd() * 4)}, Dubai`, { words: [`${c} ${code} Tower`] }),
@@ -463,9 +466,10 @@ else for (let rep = 0; rep < REPEATS; rep++) {
     const ask = [`Is the majlis ceiling 3.2 m? ${pick([`Call me on ${tk('phone_mobile').printed}`, `WhatsApp ${tk('phone_mobile').printed}`, `email ${tk('email').printed.replace('@', pick(['@', ' (at) ', ' [at] ']))}`, `see ${tk('website').printed}`])}`, `${pick(['Regards', 'Thanks'])}, ${tk('person_en').printed} - ${tk('company_en').printed}`];
     const askAr = `هل السقف ٣٫٢ م؟ اتصل على ${toAr('0' + sup.phones.mobile.all[0].replace(/^\+971 /, ''))} - ${tk('company_ar').printed}`;
     const ans = `Yes 3.2 m. Site is ${ck('project').printed}. ${pick([`Call ${ck('customer_phone').printed}`, `Mail ${ck('customer_email').printed}`])} - ${ck('customer_name').printed}`;
-    for (const [k, text, toks, name] of [['a', ask.join(' '), [tk('phone_mobile'), tk('email'), tk('website'), tk('person_en'), tk('company_en')], [sup.name]], ['r', askAr, [tk('phone_mobile'), tk('company_ar')], [sup.name]], ['c', ans, [ck('project'), ck('customer_phone'), ck('customer_email'), ck('customer_name')], [cust.name, cust.project]]]) {
-      // names = what messages_api passes: the supplier's company; the customer's full name and project name.
-      const id = `m${rep}_${i}${k}`; man.qa.push({ id, text, names: name }); meta[id] = { tokens: toks.filter((t) => found(t, text)) };
+    for (const [k, text, toks, name, whole = []] of [['a', ask.join(' '), [tk('phone_mobile'), tk('email'), tk('website'), tk('person_en'), tk('company_en')], [sup.name]], ['r', askAr, [tk('phone_mobile'), tk('company_ar')], [sup.name]], ['c', ans, [ck('project'), ck('customer_phone'), ck('customer_email'), ck('customer_name')], [cust.name], [cust.project]]]) {
+      // names / whole = what messages_api passes: the supplier's company; the customer's full name, and the project name
+      // as a WHOLE name only (review of #1838: its ordinary words are the answer).
+      const id = `m${rep}_${i}${k}`; man.qa.push({ id, text, names: name, whole }); meta[id] = { tokens: toks.filter((t) => found(t, text)) };
     }
   }
 }

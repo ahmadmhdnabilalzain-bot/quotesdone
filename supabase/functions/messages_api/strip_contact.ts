@@ -22,15 +22,17 @@ function scrubName(text: string, name: unknown): string {
   for (const w of words) out = out.replace(new RegExp('(^|[^A-Za-z؀-ۿ])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=$|[^A-Za-z؀-ۿ])', 'gi'), '$1[removed]');
   return out;
 }
-export function stripContact(raw: unknown, names: unknown[] = []): string {
+/** `whole`: names removed only as the whole name (a project's name is ordinary words: "Villa Kitchen Renovation"). */
+export function stripContact(raw: unknown, names: unknown[] = [], whole: unknown[] = []): string {
   // Arabic-Indic digits first, so ٠٥٠١٢٣٤٥٦٧ is caught by the same number patterns.
   let s = clip(raw, 1500).replace(/[٠-٩]/g, (c) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))).replace(/[۰-۹]/g, (c) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c)));
   for (const re of STRIP) s = s.replace(re, (m: string, lead?: string) => (typeof lead === 'string' && /^\s?$/.test(lead) && m.startsWith(lead) ? lead : '') + '[removed]');
   // 3 Nov 2026 (identity_never_leaks_before_reveal.mjs: 60 of 60 messages leaked): "(050) 000 0058", "971500000064",
   // an Arabic firm name, "Thanks, ZZ Rashid Ketbi" and the customer's project went through. The shared list runs
-  // too, and each known name is also matched by knownNameRe (the whole name, any two consecutive words of it).
+  // too, and each known name is also matched whole by knownNameRe. A PROJECT name goes in `whole` only: scrubName
+  // removes every 4+ letter word of a name, and "kitchen", "villa", "renovation" are the answer (review of #1838).
   s = scrubIdentityText(s, '[removed]');
-  for (const n of names) { const re = knownNameRe(n); if (re) s = s.replace(re, '[removed]'); }
+  for (const n of [...names, ...whole]) { const re = knownNameRe(n); if (re) s = s.replace(re, '[removed]'); }
   for (const n of names) s = scrubName(s, n);
   return s.trim();
 }
