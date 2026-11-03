@@ -551,6 +551,7 @@ ALTER TABLE public.company_charter ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_constitution ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_event ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_faq ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.company_faq_embed_inflight ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_financial_stance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_goals ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_index ENABLE ROW LEVEL SECURITY;
@@ -1238,6 +1239,7 @@ CREATE POLICY ceo_weekly_review_service_role_only ON public.ceo_weekly_review AS
 CREATE POLICY ceo_year_plan_service_role_only ON public.ceo_year_plan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_year_plan_milestone_service ON public.ceo_year_plan_milestone AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY charge_audit_service_role_only ON public.charge_audit AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY company_faq_embed_inflight_service_role_only ON public.company_faq_embed_inflight AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY company_reputation_snapshot_service_role_only ON public.company_reputation_snapshot AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY company_review_ask_service_role_only ON public.company_review_ask AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY competitor_scan_service_role_only ON public.competitor_scan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1602,6 +1604,8 @@ select cron.schedule('seat_duty:sales_engineer.supplier_reply_followups','*/5 * 
 select cron.schedule('seat_duty:customer_support.dead_answer_rescue','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('customer_support.dead_answer_rescue');$CRON$);
 select cron.schedule('seat_duty:ceo.supplier_growth','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.supplier_growth');$CRON$);
 select cron.schedule('seat_duty:ceo.daily_number','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('ceo.daily_number');$CRON$);
+select cron.schedule('seat_duty:sales_engineer.supplier_onboarding','*/5 * * * *',$CRON$set statement_timeout = '60s'; select public.fn_seat_duty_run('sales_engineer.supplier_onboarding');$CRON$);
+select cron.schedule('company_faq_embed','*/10 * * * *',$CRON$select public.fn_company_faq_embed_tick();$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow

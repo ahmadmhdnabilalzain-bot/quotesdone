@@ -42,6 +42,7 @@ import { annotate, observe } from '../_shared/observe.ts';
 import { attemptPlan, failureKind, fixtureVerdict, nextAttempt, ownWorkByName, rehearsalLetsFixtureThrough, reservationVerdict, subjectOf, unprovenRunTag } from '../_shared/spend_guards.ts';
 import { e2eRunTag } from '../_shared/e2e_run.ts';
 import { embedAnswer } from '../_shared/embed_answer.ts';
+import { embedGteRemote } from '../_shared/ml_embed_client.ts';
 import { shapeRequest } from '../_shared/request_shape.ts';
 import { cacheHitServesRoute } from './cache_hit.ts';
 
@@ -55,27 +56,17 @@ async function sec(k: string) {
 }
 const secretOk = (v: unknown): v is string => typeof v === 'string' && v.trim().length >= 24;
 
-// Free, in-region. Module scope on purpose: building the session per request is exactly what killed
-// kb_embed with WORKER_RESOURCE_LIMIT on 28 Jul.
-// deno-lint-ignore no-explicit-any
-let _emb: any = null;
-// deno-lint-ignore no-explicit-any
-function embedder(): any {
-  // deno-lint-ignore no-explicit-any
-  if (_emb === null) _emb = new (globalThis as any).Supabase.ai.Session('gte-small');
-  return _emb;
-}
-async function embed(text: string): Promise<string | null> {
-  try {
-    const v = await embedder().run(String(text).slice(0, 1200), { mean_pool: true, normalize: true }) as number[];
-    return '[' + v.join(',') + ']';
-  } catch (e) {
-    // Still null, so the semantic cache never fails the call for it -- but no longer silent (22 Sep
-    // 2026, instruction 645): the gte-small error reaches the edge log, and the embed action below
-    // answers 503 embed_failed instead of ok:true over a missing vector.
-    console.error('ai_gateway embed: gte-small failed:', String((e as Error)?.message || e).slice(0, 300));
-    return null;
-  }
+// Free, in-region gte-small - RUN IN embed_ml, NOT IN THIS WORKER (it_engineer, 2 Nov 2026). Measured on production
+// (function_edge_logs + function_logs, 1-2 Nov): 6 ai_gateway requests died "CPU Time exceeded" (HTTP 546). Four were
+// {action:'embed'} calls of ~200 bytes from a Node client that died 400-450 ms after boot, two per worker: the model's
+// inference threads spend the 2 s CPU allowance in a fraction of that wall time, and every request sharing the worker
+// dies with it. The other two were chat calls whose semantic-cache embed ran in the same worker as the model call.
+// embed_ml is the one place a model runs (the same gte-small, action 'gte', so the vector space never mixes); a call
+// it cannot answer is a null here, exactly as a failed in-process run was. prevented by: ai_gateway/embed_is_remote.test.ts
+async function embed(text: string, timeoutMs = 8000): Promise<string | null> {
+  const v = await embedGteRemote(admin, String(text).slice(0, 1200), 'ai_gateway', timeoutMs,
+    (why) => console.error('ai_gateway embed: embed_ml gave no vector:', why.slice(0, 300)));
+  return v ? '[' + v.join(',') + ']' : null;
 }
 
 async function sha256(s: string): Promise<string> {
@@ -298,6 +289,8 @@ async function handle(req: Request): Promise<Response> {
       const q = String(body.faq_text ?? (typeof body.input === 'string' ? body.input : '') ?? '');
       promptHash = await sha256('faq ' + fnName + ' ' + q);
       const qEmb = q.length > 2 ? await embed(q) : null;
+      // Said, not silent (review of #1797): without a vector fn_faq_answer matches on keywords alone.
+      if (q.length > 2 && !qEmb) console.warn('ai_gateway faq: no vector from embed_ml for ' + fnName + '; the FAQ match falls back to keywords');
       const { data: faq } = await admin.rpc('fn_faq_answer', {
         p_text: q, p_min_rank: 0.15, p_embedding: qEmb, p_min_similarity: 0.86,
       });
@@ -469,7 +462,7 @@ async function handle(req: Request): Promise<Response> {
         model, String(maxTok), sysStable, sys, JSON.stringify(convo),
         JSON.stringify(body.plugins ?? null), JSON.stringify(body.response_format ?? null),
       ].join(' '));
-      promptEmb = await embed((sysStable + sys).slice(0, 400) + ' ' + JSON.stringify(convo).slice(0, 800));
+      promptEmb = await embed((sysStable + sys).slice(0, 400) + ' ' + JSON.stringify(convo).slice(0, 800), 3000);
       const { data: hit } = await admin.rpc('fn_llm_cache_lookup', {
         p_key: cacheKey, p_embedding: promptEmb,
         p_task_class: route.task_class ?? null, p_min_similarity: 0.95,

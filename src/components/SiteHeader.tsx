@@ -3,7 +3,7 @@ import { Link } from '@/i18n/routing';
 import { ScrollProgress } from '@/components/motion/ScrollProgress';
 import { BrandMark } from '@/components/BrandMark';
 import { PointerLight } from '@/components/ui/pointer-light';
-import { AudienceNav, type NavService } from './AudienceNav';
+import { AudienceNav, PortalRow, type NavService } from './AudienceNav';
 
 /**
  * The Sealed header: a translucent sealed bar (navy glass over the grain, a teal specular hairline
@@ -50,6 +50,7 @@ export function SiteHeader() {
           </Link>
           <AudienceNav labels={labels} services={services} />
         </div>
+        <PortalRow customer={labels.login} supplier={labels.suppliers} />
       </div>
     </header>
   );

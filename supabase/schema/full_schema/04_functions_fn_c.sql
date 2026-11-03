@@ -9187,6 +9187,88 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_company_faq_embed_tick(p_limit integer DEFAULT 100)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'extensions', 'pg_temp'
+AS $function$
+declare
+  v_lim     int := greatest(1, least(coalesce(p_limit, 100), 1000));
+  v_url     text;
+  v_secret  text;
+  v_written int := 0;
+  v_failed  int := 0;
+  v_stale   int := 0;
+  v_queued  int := 0;
+begin
+  -- HARVEST. Only the row that is still NULL and still says what was sent gets the vector.
+  with done as (
+    select f.request_id, f.faq_id, f.text_md5, r.status_code, r.content
+      from public.company_faq_embed_inflight f
+      join net._http_response r on r.id = f.request_id
+  ), good as (
+    select d.faq_id, d.text_md5, (d.content::jsonb) ->> 'embedding' as vec
+      from done d
+     where d.status_code = 200 and (d.content::jsonb) ->> 'embedding' is not null
+  ), upd as (
+    update public.company_faq q
+       set embedding_gte = g.vec::vector
+      from good g
+     where q.id = g.faq_id and q.embedding_gte is null
+       and md5(coalesce(q.question, '') || E'\n' || coalesce(q.answer, '')) = g.text_md5
+    returning q.id
+  ), del as (
+    delete from public.company_faq_embed_inflight f using done d where f.request_id = d.request_id
+    returning d.status_code
+  )
+  select (select count(*) from upd), (select count(*) from del where status_code is distinct from 200)
+    into v_written, v_failed;
+
+  -- A request pg_net never answered: forget it, so the row is sent again below.
+  delete from public.company_faq_embed_inflight where queued_at < now() - interval '30 minutes';
+  get diagnostics v_stale = row_count;
+
+  if not exists (select 1 from public.company_faq q where q.embedding_gte is null
+                    and not exists (select 1 from public.company_faq_embed_inflight f where f.faq_id = q.id)) then
+    return jsonb_build_object('ok', true, 'embedded', v_written, 'failed', v_failed, 'released', v_stale, 'queued', 0,
+                              'still_null', (select count(*) from public.company_faq where embedding_gte is null), 'at', now());
+  end if;
+
+  select 'https://' || value || '.supabase.co/functions/v1/ai_gateway' into v_url from public.app_secrets where key = 'project_ref';
+  select value into v_secret from public.app_secrets where key = 'cred_fn_ai';
+  if v_url is null or coalesce(v_secret, '') = '' then
+    return jsonb_build_object('ok', false, 'error', 'missing_project_ref_or_cred_fn_ai', 'embedded', v_written);
+  end if;
+
+  -- DISPATCH. The text is the recipe the existing vectors were built from (embed_sales_knowledge.mjs: question + "\n" + answer).
+  with pick as (
+    select q.id, coalesce(q.question, '') || E'\n' || coalesce(q.answer, '') as txt
+      from public.company_faq q
+     where q.embedding_gte is null
+       and not exists (select 1 from public.company_faq_embed_inflight f where f.faq_id = q.id)
+     order by q.id
+     limit v_lim
+  ), sent as (
+    select p.id, md5(p.txt) as text_md5,
+           net.http_post(
+             url := v_url,
+             headers := '{"Content-Type":"application/json"}'::jsonb,
+             body := jsonb_build_object('__secret', v_secret, 'fn', 'embed_company_faq', 'action', 'embed', 'text', p.txt),
+             timeout_milliseconds := 25000) as request_id
+      from pick p
+  )
+  insert into public.company_faq_embed_inflight (request_id, faq_id, text_md5)
+  select s.request_id, s.id, s.text_md5 from sent s
+  on conflict (request_id) do nothing;
+  get diagnostics v_queued = row_count;
+
+  return jsonb_build_object('ok', true, 'embedded', v_written, 'failed', v_failed, 'released', v_stale, 'queued', v_queued,
+                            'still_null', (select count(*) from public.company_faq where embedding_gte is null), 'at', now());
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_company_faq_text_change_clears_embedding()
  RETURNS trigger
  LANGUAGE plpgsql

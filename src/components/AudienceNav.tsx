@@ -181,8 +181,9 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
         {audience === 'visitor' ? (
           <Link href="/supplier" className="hidden h-9 items-center whitespace-nowrap px-3 text-small font-medium text-muted transition-colors hover:text-white md:inline-flex xl:hidden">{labels.suppliers}</Link>
         ) : null}
+        {/* below md both portal links sit in PortalRow, under the bar */}
         {audience === 'visitor' ? (
-          <Link href="/me" className="hidden h-9 items-center whitespace-nowrap px-3 text-small font-medium text-muted transition-colors hover:text-white sm:inline-flex">{labels.login}</Link>
+          <Link href="/me" className="hidden h-9 items-center whitespace-nowrap px-3 text-small font-medium text-muted transition-colors hover:text-white md:inline-flex">{labels.login}</Link>
         ) : null}
         <Link
           href={cta.href}
@@ -202,5 +203,30 @@ export function AudienceNav({ labels, services }: { labels: AudienceLabels; serv
         />
       </div>
     </>
+  );
+}
+
+/**
+ * 3 Nov 2026, the founder: "why there is no customer portal button on the website till now". Below
+ * md the bar holds only the logo, the CTA and the menu button (it measured 398px in a 375px viewport
+ * with more), so both portal links were hidden and a phone visitor saw neither without opening the
+ * menu. They get their own row under the bar, equal width, 44px tall. Visitors only, like the bar's
+ * own portal links: a signed-in person's CTA already opens their portal.
+ */
+export function PortalRow({ customer, supplier }: { customer: string; supplier: string }) {
+  const [audience, setAudience] = useState<Audience>('visitor');
+  useEffect(() => {
+    setAudience(readAudience());
+    const onStorage = () => setAudience(readAudience());
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+  if (audience !== 'visitor') return null;
+  const cls = 'inline-flex h-11 min-w-0 items-center justify-center whitespace-nowrap rounded-btn border border-line2 bg-surf/60 px-3 text-small font-medium text-paper shadow-key transition-colors duration-base hover:border-teal/50 hover:text-white';
+  return (
+    <div className="qd-portal-row container-x relative grid grid-cols-2 gap-2 pb-2.5 md:hidden">
+      <Link href="/me" className={cls}>{customer}</Link>
+      <Link href="/supplier" className={cls}>{supplier}</Link>
+    </div>
   );
 }

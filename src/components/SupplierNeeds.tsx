@@ -58,7 +58,7 @@ export async function SupplierNeeds({ service, locale }: { service: string; loca
       <div className="qd-frame-bar"><i /><i /><i />
         <h2 id="supplier-needs" className="ms-2 truncate font-mono text-label text-muted">{t('serviceTitle')}</h2>
       </div>
-      <div className="grid md:grid-cols-2 md:divide-x md:divide-(--line) md:rtl:divide-x-reverse">
+      <div className="grid md:grid-cols-2 md:divide-x md:divide-(--line)">
         {questions.length > 0 && (
           <div className="p-6 md:p-7">
             <h3 className="font-mono text-label uppercase tracking-caps text-teal-light">{t('questions')}</h3>

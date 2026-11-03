@@ -222,6 +222,12 @@
   ::file-selector-button {
     border-color: var(--color-gray-200, currentcolor);
   }
+  /* v4 preflight paints a placeholder in 50% of the text colour; v3 painted gray-400. src has 62
+     <input>/<textarea> tags and 22 placeholder: classes (3 Nov 2026), so most fields read this rule. */
+  input::placeholder,
+  textarea::placeholder {
+    color: #9ca3af;
+  }
 }
 
 @layer utilities {
@@ -464,6 +470,13 @@
   html,
   body {
     overflow-x: clip;
+  }
+  /* Below md the sticky header carries the portal row (AudienceNav PortalRow: 44px links + 10px foot),
+   so in-page anchors (#cats, #why) land 54px lower than their scroll-mt-20 alone would put them. */
+  @media (max-width: 767.98px) {
+    html:has(.qd-portal-row) {
+      scroll-padding-top: 54px;
+    }
   }
   body {
     background: transparent;

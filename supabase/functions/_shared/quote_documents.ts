@@ -33,6 +33,7 @@ import { METHOD_NOTE_AR, METHOD_NOTE_EN } from '../quote_compare/deterministic.t
 
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
 import { aed, aedRange, figure } from './money.ts';
+import { needsArabic } from './arabic_script.ts';
 import { feeBaseOf, feeBasisLine, NOT_RESPONSIBLE, priceStated, vatShort, vatStated, type PriceRow } from './stated_price.ts';
 import { assessQuote, requirementsOf, type Line as SpecLine, type TermsSpec } from './line_specs/assess.ts';
 export type Lang = 'en' | 'ar';
@@ -271,7 +272,7 @@ function kit(lang: Lang, names: string[] = [], arTexts: ArTexts = {}) {
   // in as arTexts; a line without it is recorded in `untranslated` and the document is held, never printed.
   const loc = (v: unknown, max = 400): { text: string; sub?: string } => {
     const s = clipCell(clean(v), max);
-    if (!s || !ar || !/[A-Za-z]/.test(s)) return { text: s };
+    if (!s || !ar || !needsArabic(s)) return { text: s };   // Arabic with a label or code kept as written is Arabic (arabic_script.ts)
     if (arTexts[s]) return { text: arTexts[s] };
     untranslated.add(s);
     return { text: s };

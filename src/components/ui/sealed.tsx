@@ -237,7 +237,7 @@ export function Stepper({ steps, className }: { steps: Step[]; className?: strin
 
 export function FactBand({ facts, className }: { facts: { k: ReactNode; v: ReactNode }[]; className?: string }) {
   return (
-    <div className={cn('qd-panel grid grid-cols-2 divide-line md:grid-cols-4 md:divide-x md:rtl:divide-x-reverse', className)}>
+    <div className={cn('qd-panel grid grid-cols-2 divide-line md:grid-cols-4 md:divide-x', className)}>
       {facts.map((f, i) => (
         <div key={i} className="flex flex-col gap-1.5 px-6 py-5">
           <span className="font-mono text-label uppercase tracking-caps text-faint">{f.k}</span>
