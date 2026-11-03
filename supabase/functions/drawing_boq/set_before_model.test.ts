@@ -77,7 +77,7 @@ Deno.test('index.ts gates the early return on the coverage floor, not on any non
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   const at = src.indexOf("fallback_reason: 'code_counted_the_set'");
   const block = src.slice(src.lastIndexOf('if (pdfB64 && body.deterministic !== true)', at), at);
-  assert(/codeSet = setBeforeModel\(/.test(block), 'the early path must call setBeforeModel (boqFromDrawingSet alone has no floor)');
+  assert(/const set = setBeforeModel\(/.test(block) && /codeSet = set;/.test(block), 'the early path must call setBeforeModel (boqFromDrawingSet alone has no floor)');
 });
 
 // ── independent review of 29dda0b5a (27 Oct 2026): the floor knew only one spelling of a tag ──────────────────────────

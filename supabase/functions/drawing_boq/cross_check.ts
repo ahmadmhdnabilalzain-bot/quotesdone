@@ -13,6 +13,9 @@
 //     to_confirm, never as a read quantity.
 // Nothing is gated on agreement: every disagreement is FLAGGED in the line and in missing_info.
 // deno-lint-ignore-file no-explicit-any
+import { linesFromRuns, type PdfPage } from '../_shared/pdf_text_positions.ts';
+import { stripSeeds, titleStrip } from '../_shared/anonymise.ts';
+import { drawingIdentityTerms, gateDrawingBoq } from '../_shared/drawing_identity_gate.ts';
 
 type Line = Record<string, any>;
 const tagOf = (l: Line): string | null => {
@@ -62,4 +65,38 @@ export function crossCheckNotes(x: CrossChecked): string[] {
   if (x.code_only.length) notes.push(`Counted from the drawing's own tags but not listed by the drawing reading: ${x.code_only.join(', ')}.`);
   if (x.model_only) notes.push(`${x.model_only} line(s) come from the drawing reading alone; they are estimates and are confirmed with the customer.`);
   return notes;
+}
+
+// THE IDENTITY TERMS OF THE MERGED TAKE-OFF (3 Nov 2026, independent review of #1837). The gate was first fed the text
+// the model is sent: runs space-joined per page and cut at 12,000 characters. Joined that way a label runs into the
+// next one, so the terms come out as fragments; measured on zzPdfSet: "ZZ DEMO ORBIT ZZ DEMO ORBIT CONSULTING ENGINEERS
+// LLC TEL +971 4 000 0017 zz.orbi" and "ZZ DEMO Rashid Kareem PROJECT: ... DR" (the drafter lost, "consulting" a seed),
+// where linesFromRuns over every page - what scan_takeoff and pdf_vector_redact read - gives "ZZ DEMO Rashid Kareem",
+// "ZZ DEMO Harbour Tower", "ZZ Demo Drafter", "ZZ DEMO ORBIT". The title strip's own names (the seeds drawing_set.ts
+// scrubs its lines with) are added, so a party printed only in the strip is gated too - WITHOUT their label: the gate
+// splits every term into words (seedTerms), and a whole strip run "drawn by zz demo drafter" made "drawn" a seed, so
+// the coded basis "tag FD-1 drawn 7x on P-1.01" reached suppliers as "tag FD-1 █ 7x" (second review, same day). An
+// address is left to the contact patterns, which match it whole.
+const STRIP_LABEL = /^(?:client|owner|employer|customer|consultant|contractor|developer|architect|engineer|project(?: (?:name|title|location|address|no|number))?|location|site(?: address)?|address|attn|attention|contact|(?:drawn|checked|approved|designed|prepared|reviewed) by|(?:drawing|dwg|sheet|job) (?:no|number)|tel|fax|phone|mob(?:ile)?|e ?mail)\b\s*/i;
+export function setIdentityTerms(pages: PdfPage[]): string[] {
+  const strip = pages.flatMap((p) => { const s = titleStrip(p); return s ? stripSeeds(p, s) : []; })
+    .filter((t) => !t.includes('@')).map((t) => t.replace(STRIP_LABEL, '').trim()).filter((t) => t.length >= 4);
+  return [...new Set([...drawingIdentityTerms(linesFromRuns(pages)), ...strip])];
+}
+
+/** The model's normalised reading merged into code's completely-counted set, then gated. `boq: null` = answer with the
+ *  code set alone: the model gave no line (its reply was prose, truncated or empty), or identity was left outside the lines. */
+export function mergeReading(ai: Line, codeSet: Line, terms: string[]): { boq: Line | null; dropped_lines: number; found: string[] } {
+  // A reply with no line is no reading: merging it would blank the coded set's summary and sign it with the model.
+  if (!Array.isArray(ai.boq) || !ai.boq.length) return { boq: null, dropped_lines: 0, found: ['model_gave_no_line'] };
+  const x = crossCheck(ai.boq, codeSet.boq || []);
+  const or = (k: string) => ai[k] || codeSet[k] || '';
+  const merged = { ...codeSet, ...ai, boq: x.boq,
+    summary: or('summary'), drawing_type: or('drawing_type'), scale_detected: or('scale_detected'), category: or('category'),
+    total_area_sqm: ai.total_area_sqm ?? codeSet.total_area_sqm ?? null,
+    missing_info: [...new Set([...(codeSet.missing_info || []), ...crossCheckNotes(x), ...(ai.missing_info || [])])].slice(0, 30),
+    keywords: [...new Set([...(codeSet.keywords || []), ...(ai.keywords || [])])].slice(0, 12),
+    cross_check: { by: 'deterministic', agreed: x.agreed, disagreed: x.disagreed, code_only: x.code_only, model_only: x.model_only } };
+  const g = gateDrawingBoq(merged, terms, false);
+  return { boq: g.boq, dropped_lines: g.dropped_lines, found: g.found };
 }

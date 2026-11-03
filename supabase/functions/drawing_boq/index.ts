@@ -17,7 +17,7 @@ import { boqFromExtracted } from './boq_from_document.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { readEveryAttachment, gatewayVision, b64Bytes } from '../_shared/read_every_attachment.ts';
 import { DATA_NOT_INSTRUCTIONS, untrustedBlock } from '../_shared/untrusted.ts';
-import { crossCheck, crossCheckNotes } from './cross_check.ts';
+import { mergeReading, setIdentityTerms } from './cross_check.ts';
 import { DRAWING_KINDS, drawingIdentityTerms, gateDrawingBoq } from '../_shared/drawing_identity_gate.ts';
 import { empty } from '../_shared/doc_read/types.ts';
 import { drawingInput } from './drawing_input.ts';
@@ -236,14 +236,17 @@ Deno.serve(observe('drawing_boq', async (req) => {
     // longer the whole answer: it is read here, and MERGED into the model's reading below (agreements confirmed,
     // disagreements flagged to_confirm, code's printed-tag count kept as the quantity). The text layer goes to the model
     // with the pages. With no model input, no key, a refusal or an error, the coded set answers alone, as before.
-    let codeSet: any = null, pdfText = '';
+    // pdfText is the model's copy only (12k characters); the gate reads every page (setIdentityTerms, cross_check.ts).
+    let codeSet: any = null, pdfText = '', idTerms: string[] = [];
     if (pdfB64 && body.deterministic !== true) {
       try {
         const bytes = Uint8Array.from(atob(pdfB64.replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
         const sched = Array.isArray(body.schedule_tables) ? (body.schedule_tables as ScheduleTable[]).slice(0, 40).filter((t) => t && Array.isArray(t.rows)) : [];
         const pages = await pdfPages(bytes, undefined, { layers: false });
         pdfText = pages.map((p) => p.runs.map((r) => r.text).join(' ')).join('\n').slice(0, 12_000);
-        codeSet = setBeforeModel(pages, hint, sched);
+        const set = setBeforeModel(pages, hint, sched);
+        // The terms first: a set is never merged without them (a throw here leaves the model drafting alone).
+        if (set) { idTerms = setIdentityTerms(pages); codeSet = set; }
       } catch (_e) { /* not a readable PDF text layer: the model drafts alone, as before */ }
     }
     const codeAnswer = () => J({ ok: true, boq: { ...codeSet, fallback_reason: 'code_counted_the_set', author_model: 'deterministic' } });
@@ -299,14 +302,14 @@ Deno.serve(observe('drawing_boq', async (req) => {
     if (!['low','medium','high'].includes(ai.confidence)) ai.confidence = 'low';
     ai.author_model = authorModel;
     if (codeSet) {
-      // The model read it; code's complete count of the same text layer cross-checks it (cross_check.ts). The merged
-      // take-off then passes the drawing identity gate on the file's own text, so a model line naming a party is dropped.
-      const x = crossCheck(ai.boq, codeSet.boq || []);
-      const merged = { ...codeSet, ...ai, boq: x.boq, missing_info: [...new Set([...(codeSet.missing_info || []), ...crossCheckNotes(x), ...ai.missing_info])].slice(0, 30),
-        keywords: [...new Set([...(codeSet.keywords || []), ...ai.keywords])].slice(0, 12), category: ai.category || codeSet.category || '',
-        cross_check: { by: 'deterministic', agreed: x.agreed, disagreed: x.disagreed, code_only: x.code_only, model_only: x.model_only } };
-      const g = gateDrawingBoq(merged, drawingIdentityTerms(pdfText), false);
-      return g.boq ? J({ ok: true, boq: g.boq, identity_dropped_lines: g.dropped_lines }) : codeAnswer();
+      // The model read it; code's complete count of the same text layer cross-checks it (cross_check.ts mergeReading). A
+      // reply with no line (prose, truncated, empty) leaves the coded set answering unchanged; the merged take-off passes
+      // the drawing identity gate on every page's text and the title strip's names, so a model line naming a party is dropped.
+      const g = mergeReading(ai, codeSet, idTerms);
+      if (g.boq) return J({ ok: true, boq: g.boq, identity_dropped_lines: g.dropped_lines });
+      // What the gate found: a 'seed:' entry carries the party's own name, so it is logged as 'seed' and never by value.
+      console.warn(`[drawing_boq] the model's reading was not merged; the coded set answers alone (${[...new Set(g.found.map((f) => (f.startsWith('seed:') ? 'seed' : f)))].join(', ')})`);
+      return codeAnswer();
     }
     return J({ ok: true, boq: ai });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }

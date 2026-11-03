@@ -48,6 +48,7 @@ import { canReveal, heldQuoteIds, itemsByQuote } from '../_shared/reveal_guard.t
 import { verifiedBadges } from '../_shared/verified_badges.ts';
 import { readRevealRate, recordRateUnreadable } from '../_shared/reveal_rate.ts';
 import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from '../_shared/drawing_format.ts';
+import { cadJobNeedsRedispatch, claimCadDispatch } from './cad_dispatch.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -447,9 +448,12 @@ async function queueCadRead(o: { customerId: string; email: string; path: string
 // GitHub Actions was off; 28 Oct the founder switched Actions back on (ledger 1410) and nothing restored it, so every
 // queued drawing waited for a hand run: the nightly journey's 2.1 MB DWG sat 'queued' for 248 s on 2 Nov and 253 s on
 // 3 Nov (runs 41410340385, 41598217377), where the same job was read in 66-67 s on 20-21 Oct while this dispatch lived
-// (runs 39349907536, 39520102356). A job is dispatched the moment it is queued and again while the customer's screen
-// polls one that has not started; a refused or failed dispatch raises the hour's sales_engineer finding (cadReadHeld),
-// so a queued drawing is never silent. Prevented by scripts/checks/a_cad_upload_reaches_the_cad_reader.test.mjs.
+// (runs 39349907536, 39520102356). A job is dispatched the moment it is queued, and while the customer's screen polls
+// one that has not started it is dispatched again AT MOST ONCE A MINUTE, for its first hour (cad_dispatch.ts: the poll
+// claims cad_read_jobs.last_dispatch_at in one UPDATE); past the hour the poll raises the held finding instead. A
+// refused or failed dispatch raises the hour's sales_engineer finding (cadReadHeld). NOT SEEN: a dispatch answered 204
+// whose run never starts after the customer closed the page - no poll comes, and nothing sweeps cad_read_jobs (the
+// worker's 6-hourly schedule is off). Prevented by cad_dispatch.test.ts and scripts/checks/a_cad_upload_reaches_the_cad_reader.test.mjs.
 async function startCadWorker(jobId: string, why: string): Promise<void> {
   let answer = 'no_github_token';
   try {
@@ -465,14 +469,8 @@ async function startCadWorker(jobId: string, why: string): Promise<void> {
   console.error(`[cad] the CAD worker was not dispatched for job ${jobId} (${answer}); held for the sales_engineer`);
   await cadReadHeld(jobId, `${why}; dispatch ${answer}`);
 }
-/** A polled job that should have started by now: queued past 2 minutes, or running with no word for 30. At most once a minute per job. */
-function cadJobNeedsRedispatch(job: { status: string; created_at: string; claimed_at: string | null }, now = Date.now()): boolean {
-  const age = (t: string | null) => (t ? now - Date.parse(t) : 0);
-  const stuck = (job.status === 'queued' && age(job.created_at) > 120_000) || (job.status === 'running' && age(job.claimed_at) > 30 * 60_000);
-  return stuck && Math.floor(age(job.created_at) / 1000) % 60 < 15;
-}
-// THE FALLBACK WHEN THE DISPATCH IS REFUSED (27 Oct 2026, it_engineer; since 3 Nov it runs only when startCadWorker's
-// dispatch answers anything but 204). Written when this used to dispatch .github/workflows/cad-read-worker.yml
+// THE FALLBACK WHEN THE DISPATCH IS REFUSED (27 Oct 2026, it_engineer; since 3 Nov it runs when startCadWorker's
+// dispatch answers anything but 204, and when a polled job has not started within its first hour). Written when this used to dispatch .github/workflows/cad-read-worker.yml
 // and re-dispatch it while the customer's screen polled. GitHub Actions is off, so every dispatch reached nothing and a
 // queued drawing waited for a runner that never came while the customer was told "a few minutes". The reader cannot run
 // on the edge (2 s CPU cap; a scanned drawing is OCR'd for up to 30 minutes) nor in pg_cron (no Deno, no LibreDWG), so a
@@ -974,7 +972,11 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
       if (!/^[0-9a-f-]{36}$/i.test(id)) return J({ ok: false, error: 'not_found' }, 404);
       const { data: job } = await admin.from('cad_read_jobs').select('status, result, boq_in, finished_at, created_at, claimed_at').eq('id', id).eq('customer_id', cust.id).maybeSingle();
       if (!job) return J({ ok: false, error: 'not_found' }, 404);
-      if (cadJobNeedsRedispatch(job as any)) await startCadWorker(id, 'still_queued_when_polled');
+      const redo = cadJobNeedsRedispatch(job as any);
+      if (redo && await claimCadDispatch(admin, id)) {
+        if (redo === 'dispatch') await startCadWorker(id, 'still_queued_when_polled');
+        else await cadReadHeld(id, 'not_started_within_an_hour_of_dispatches');
+      }
       // 24 Sep 2026: the worker also DRAWS a CAD file the edge could not, for suppliers (cad_read_worker.ts
       // supplierDrawing); its recorded page comes back here so the customer's request can carry it.
       const res = job.status === 'done' ? (job.result as any) : null;

@@ -1,10 +1,11 @@
 // cross_check.test — the model's reading of a PDF set is cross-checked by code's complete count (3 Nov 2026).
 //   deno test --no-lock --node-modules-dir=auto --allow-read=. supabase/functions/drawing_boq/cross_check.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { crossCheck, crossCheckNotes } from './cross_check.ts';
+import { crossCheck, crossCheckNotes, mergeReading, setIdentityTerms } from './cross_check.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
+import { seedTerms } from '../_shared/anonymise.ts';
 import { setBeforeModel } from './drawing_set.ts';
-import { zzPdfSheet, PDF_COUNTS } from '../_shared/doc_read/zz_demo_drawings.fixtures.ts';
+import { zzPdfSet, zzPdfSheet, PDF_COUNTS } from '../_shared/doc_read/zz_demo_drawings.fixtures.ts';
 
 // The 27 Oct 2026 failure, replayed: the model doubled EF-1 and missed WC/L-1 on a set code read exactly.
 const code = [
@@ -52,8 +53,64 @@ Deno.test('on the journey fixture, a model that reads the sheet right is confirm
 Deno.test('drawing_boq merges the coded set into the model reading instead of answering before the model', () => {
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   const model = src.indexOf('const payload = { __secret: key, fn: \'drawing_boq\'');
-  const merge = src.indexOf('const x = crossCheck(ai.boq, codeSet.boq || [])');
+  const merge = src.indexOf('const g = mergeReading(ai, codeSet, idTerms);');
   assert(model > 0 && merge > model, 'the cross-check must run on the model reading, after the model call');
-  assert(/gateDrawingBoq\(merged, drawingIdentityTerms\(pdfText\), false\)/.test(src), 'the merged take-off must pass the identity gate');
+  assert(/idTerms = setIdentityTerms\(pages\)/.test(src), 'the merged take-off is gated on every page and the title strip, not on the model\'s 12k copy');
+  assert(/if \(g\.boq\) return J\([^\n]*\n\s*\/\/[^\n]*\n\s*console\.warn\([^\n]*g\.found\.map\(\(f\) => \(f\.startsWith\('seed:'\) \? 'seed' : f\)\)[^\n]*\n\s*return codeAnswer\(\);/.test(src),
+    'a reading not merged is said (never a seed by value: it is the party\'s name), and the coded set answers');
+  assert(/if \(set\) \{ idTerms = setIdentityTerms\(pages\); codeSet = set; \}/.test(src), 'a coded set is never kept without its identity terms');
   assert(/if \(codeSet && !key\) return codeAnswer\(\);/.test(src) && /ok === false\) \{ if \(codeSet\) return codeAnswer\(\);/.test(src), 'without the model the coded set still answers');
+});
+
+// ── independent review of #1837 (3 Nov 2026) ─────────────────────────────────────────────────────────────────────────
+// What index.ts makes of a reply that is prose ("I cannot read this drawing") or JSON cut off mid-line: parseJson gives {}
+// and the normalisation leaves exactly this. Merged as it was, it blanked the coded set's summary and signed it 'low'.
+const unread = { boq: [], summary: '', drawing_type: '', scale_detected: '', category: '', total_area_sqm: null, keywords: [], assumptions: [], missing_info: [], confidence: 'low', author_model: 'some/model' };
+
+Deno.test('a prose, truncated or empty model reply on a countable set leaves the code answer unchanged', async () => {
+  const pages = await pdfPages(zzPdfSheet(), undefined, { layers: false });
+  const set = setBeforeModel(pages)!;
+  const g = mergeReading(unread, set, setIdentityTerms(pages));
+  assertEquals(g.boq, null, 'no line from the model = the coded set answers alone (index.ts codeAnswer)');
+  assertEquals(mergeReading({ ...unread, boq: undefined }, set, []).boq, null);
+});
+
+Deno.test("a model that gives lines but no summary keeps the coded set's summary, drawing type and scale", async () => {
+  const pages = await pdfPages(zzPdfSheet(), undefined, { layers: false });
+  const set = { ...setBeforeModel(pages)!, summary: 'Plumbing and HVAC fixtures, ground floor' };
+  const g = mergeReading({ ...unread, boq: [{ description: 'FD-1 - floor drain', qty: 7, unit: 'nos' }] }, set, setIdentityTerms(pages));
+  assert(g.boq, 'a clean merge answers');
+  assertEquals([g.boq.summary, g.boq.drawing_type, g.boq.scale_detected], [set.summary, set.drawing_type, set.scale_detected]);
+  assertEquals(g.boq.author_model, 'some/model', 'lines the model read carry its name');
+});
+
+Deno.test("the merged take-off is gated on every page and the title strip: a model summary naming the title-block party is removed whole", async () => {
+  const pages = await pdfPages(zzPdfSet(), undefined, { layers: false });
+  const set = setBeforeModel(pages)!;
+  const terms = setIdentityTerms(pages);
+  // The 12k space-joined copy lost the drafter and made "consulting" a seed (measured on zzPdfSet); every page does not.
+  // Asserted on the SEEDS the gate builds (seedTerms splits each term into words), not on the terms list.
+  const seeds = seedTerms({ extra: terms });
+  assert(seeds.includes('drafter'), 'the drafter printed in the strip is a seed');
+  for (const w of ['consulting', 'client', 'drawn', 'invalid']) assert(!seeds.includes(w), `"${w}" is a label or a common word, not a party`);
+  const line = { section: 'Plumbing', description: 'FD-1 - floor drain', qty: 7, unit: 'nos' };
+  for (const party of ['ZZ DEMO ORBIT CONSULTING ENGINEERS LLC', 'ZZ Demo Drafter', 'ZZ DEMO Harbour Tower']) {
+    const g = mergeReading({ ...unread, boq: [line], summary: `Ground floor plumbing by ${party}` }, set, terms);
+    // Measured with the old terms: "by ZZ DEMO █ █", "by ZZ Demo Drafter" (untouched), "by ZZ DEMO █ Tower".
+    assertEquals(g.boq?.summary, 'Ground floor plumbing by █', `"${party}" must be redacted as one name, not word by word`);
+    assertEquals([g.dropped_lines, g.boq?.boq.length], [0, set.boq.length], 'every clean coded line stays');
+  }
+});
+
+Deno.test('when the model agrees, every coded line leaves the gate byte-identical (no label word is a seed)', async () => {
+  for (const pdf of [zzPdfSet, zzPdfSheet]) {
+    const pages = await pdfPages(pdf(), undefined, { layers: false });
+    const set = setBeforeModel(pages)!;
+    const agree = set.boq.map((l: any) => ({ description: l.description, qty: l.qty, unit: l.unit }));
+    const g = mergeReading({ ...unread, boq: agree, summary: 'the client confirms the layout; or approved equal' }, set, setIdentityTerms(pages));
+    assert(g.boq, 'a clean agreeing merge answers');
+    const pick = (l: any) => ({ item: l.item, description: l.description, basis: l.basis, section: l.section, qty: l.qty });
+    assertEquals(g.boq.boq.map(pick), set.boq.map(pick), 'measured before this fix: "tag FD-1 drawn 7x" became "tag FD-1 █ 7x"');
+    assertEquals(g.boq.summary, 'the client confirms the layout; or approved equal');
+  }
 });
