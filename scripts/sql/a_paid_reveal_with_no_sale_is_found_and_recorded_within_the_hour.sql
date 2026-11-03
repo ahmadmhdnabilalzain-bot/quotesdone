@@ -15,9 +15,12 @@
 --      supabase/functions/_shared/reveal_reconcile.ts): Stripe's paid invoices and succeeded PaymentIntents of the last
 --      gl_settings.reveal_reconcile_window_days (30) days that carry metadata.quote_id, live and test keys, are matched
 --      against transactions by stripe_invoice_id, then payment_ref; each one unmatched is recorded through
---      recordRevealSale with its PaymentIntent (never the invoice id). Bounded: 5 pages of 100 per list per mode, 25
---      recordings per run, nothing paid in the last 15 minutes. Idempotent: a match writes nothing, and recordRevealSale
---      is idempotent on quote_id (transactions.quote_id is unique).
+--      recordRevealSale with its PaymentIntent (never the invoice id), and the fee Stripe kept is written to
+--      stripe_fee_fils as stripe_webhook does. A quote already sold is never recorded again: it is a second payment.
+--      Bounded per mode, live first, newest first: 5 pages of 100 per list, 50 unmatched payments looked at and 25 sales
+--      written per run, nothing paid in the last 15 minutes. Idempotent: a match writes nothing, and recordRevealSale is
+--      idempotent on quote_id (transactions.quote_id is unique). NOT DONE HERE: the invoice PDF (doc_path) of a
+--      recovered sale; stripe_webhook's captureInvoice files it on the next invoice event, and nothing else backfills it.
 --   2. public.accountant_reveal_reconcile_item: one row per Stripe payment the sweep could NOT simply match (recovered,
 --      second payment, refunded, failed, deferred), keyed on the invoice id (pi_ when there is none). The audit record
 --      of every sale the sweep wrote and every one it could not.
@@ -137,7 +140,7 @@ begin
           when 'failed' then 'the hourly sweep retries it; read the error (a quote that no longer exists, or a PaymentIntent Stripe would not return)'
           when 'second_payment' then 'a CEO-approved refund of the second payment; the first payment is the sale'
           when 'refunded_unrecorded' then 'the accountant decides: record the sale, or refund the remainder through the CEO'
-          else 'more than 25 unrecorded payments an hour: read the failed items first' end))
+          else 'more than 50 unmatched live payments an hour (the sweep''s per-run bound): read the failed and second-payment items first' end))
     order by i.first_seen_at), '[]'::jsonb)
     into v_items
     from public.accountant_reveal_reconcile_item i
@@ -228,13 +231,17 @@ begin
         v_demo, x->>'outcome', case when x->>'transaction_id' ~ c_uuid then (x->>'transaction_id')::uuid end,
         left(nullif(x->>'error', ''), 1000), v_run,
         case when x->>'outcome' in ('recovered', 'refunded') then now() end)
+    -- 'deferred' says only "not looked at this run": it never overwrites what an earlier run found (failed, second payment).
     on conflict (key) do update set
-        outcome = excluded.outcome, error = excluded.error, demo = excluded.demo,
+        outcome = case when excluded.outcome = 'deferred' and it.resolved_at is null then it.outcome else excluded.outcome end,
+        error = case when excluded.outcome = 'deferred' and it.resolved_at is null then it.error else excluded.error end,
+        demo = excluded.demo,
         payment_intent = coalesce(excluded.payment_intent, it.payment_intent),
         customer_email = coalesce(excluded.customer_email, it.customer_email),
         transaction_id = coalesce(excluded.transaction_id, it.transaction_id),
         attempts = it.attempts + 1, last_seen_at = now(), last_run_id = excluded.last_run_id,
-        resolved_at = case when excluded.outcome in ('recovered', 'refunded') then coalesce(it.resolved_at, now()) end;
+        resolved_at = case when excluded.outcome in ('recovered', 'refunded') then coalesce(it.resolved_at, now())
+                           when excluded.outcome = 'deferred' then null end;
     n_kept := n_kept + 1;
   end loop;
 

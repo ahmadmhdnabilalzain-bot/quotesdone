@@ -54,8 +54,13 @@ test('the runtime records through recordRevealSale only, with a bounded sweep, a
   const a = ACC.slice(ACC.indexOf("if (action === 'reveal_reconcile')"), ACC.indexOf("if (action === 'bank_statement')"));
   assert.ok(a.length > 100, 'the accountant runtime has no reveal_reconcile action');
   assert.match(a, /record: \(a\) => recordRevealSale\(admin, a\)/);
-  assert.doesNotMatch(a, /from\('transactions'\)\.(insert|upsert|update)/, 'the sweep writes a sale itself instead of through recordRevealSale');
-  assert.match(a, /maxPages: 5, maxRecords: 25, graceSeconds: 900/);
+  assert.doesNotMatch(a, /from\('transactions'\)\.(insert|upsert)/, 'the sweep writes a sale itself instead of through recordRevealSale');
+  // The one update it may make is the write-once fee (stripe_webhook's recordStripeFee does the same).
+  const updates = [...a.matchAll(/from\('transactions'\)\.update\(([^)]*)\)/g)].map((m) => m[1]);
+  assert.deepEqual(updates, ['{ stripe_fee_fils: feeFils, stripe_fee_details: details }']);
+  assert.match(a, /\.eq\('id', txId\)\.is\('stripe_fee_fils', null\)/, 'the fee is not write-once');
+  assert.match(a, /maxPages: 5, maxRecords: 25, maxAttempts: 50, graceSeconds: 900/);
+  assert.match(a, /xs\.slice\(i \* 100, i \* 100 \+ 100\)/, 'the transactions lookup is not chunked');
   assert.match(a, /rpc\('fn_accountant_reveal_reconcile_record'/);
   assert.match(a, /throw new Error\('transactions could not be read: '/, 'an unread book must stop the sweep, not read as empty');
   assert.match(ACC, /import \{ recordRevealSale \} from '\.\.\/_shared\/reveal_sale\.ts';/);
@@ -63,6 +68,7 @@ test('the runtime records through recordRevealSale only, with a bounded sweep, a
 
 test('the sweep never records an invoice id as the payment reference, and lists by created[gte] with paging', () => {
   assert.match(SWEEP, /if \(!isPi\(pi\)\) \{ done\(c, 'failed'/);
+  assert.match(SWEEP, /if \(before\) \{[\s\S]{0,400}done\(cc, 'second_payment', before\.id\);\s+continue;/, 'a sold quote is handed to recordRevealSale');
   assert.match(SWEEP, /paymentRef: pi, invoiceId: c\.invoiceId \|\| ''/);
   assert.match(SWEEP, /invoices\?status=paid&limit=100&created\[gte\]=\$\{since\}&expand\[\]=data\.payments/);
   assert.match(SWEEP, /starting_after=/);
@@ -97,7 +103,7 @@ test('the probe drives the real runner and proves each rule, rolled back', () =>
   const p = read(PROBE);
   for (const s of ["fn_seat_duty_run('accountant.reveal_reconcile')", "'1:second_dispatch_in_flight; '", "'2:silent_not_filed; '",
     "'3:failed_not_filed; '", "'3:second_payment_not_filed_for_ceo; '", "'3:demo_or_recovered_filed; '", "'4:findings_changed; '",
-    "'5:refund_finding_open; '", "'5:second_payment_filed_twice; '", "'5:live_unread_not_filed; '", "'6:reached_the_founder; '",
+    "'3:deferred_overwrote_failed; '", "set last_started_at = null where duty = 'accountant.reveal_reconcile'", "'5:refund_finding_open; '", "'5:second_payment_filed_twice; '", "'5:live_unread_not_filed; '", "'6:reached_the_founder; '",
     "raise exception 'CHK<<%>>'"]) {
     assert.ok(p.includes(s), 'probe lacks ' + s);
   }

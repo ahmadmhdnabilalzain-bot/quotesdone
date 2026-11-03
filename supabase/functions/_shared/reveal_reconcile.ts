@@ -20,8 +20,14 @@
 //      A payment refunded in full is 'refunded' (nothing to record); a partial refund is 'refunded_unrecorded', for
 //      the accountant to judge. A quote already sold under a different PaymentIntent is 'second_payment' (refund).
 //
-// BOUNDED: at most maxPages pages of 100 per list per mode, at most maxRecords payments recorded per run (the rest
-// are 'deferred' to the next run), and nothing paid within graceSeconds (the other three paths are still running).
+// BOUNDED, PER MODE, LIVE FIRST: at most maxPages pages of 100 per list, at most maxAttempts unmatched payments looked
+// at (each costs one or two Stripe reads) and maxRecords sales written per run; the rest are 'deferred' to the next run.
+// Newest first, so a payment that can never be recorded (already a finding) cannot starve a new one, and a test-mode
+// demo payment whose quote a teardown deleted never spends live's budget (review of #1841). Nothing paid within
+// graceSeconds is touched (the other three paths are still running).
+// A QUOTE ALREADY SOLD is never handed to recordRevealSale: by then neither the invoice nor the PaymentIntent matched
+// that sale, so this is a different payment ('second_payment'), and recording would stamp this invoice id onto the first
+// sale (reveal_sale.ts fills an empty stripe_invoice_id) and hide it from every later run (review of #1841).
 // IDEMPOTENT: a match writes nothing, and recordRevealSale is idempotent on quote_id (transactions.quote_id is unique).
 // deno-lint-ignore-file no-explicit-any
 import type { SaleArgs } from './reveal_sale.ts';
@@ -68,14 +74,16 @@ export type SweepDeps = {
   /** The PaymentIntent behind an invoice that did not carry it, or null. */
   invoicePayment: (mode: Mode, invoiceId: string) => Promise<string | null>;
   /** The PaymentIntent itself, or null when it cannot be read. */
-  readPayment: (mode: Mode, pi: string) => Promise<{ status: string; amount_received: number; amount_refunded: number } | null>;
+  readPayment: (mode: Mode, pi: string) => Promise<{ status: string; amount_received: number; amount_refunded: number; fee_fils?: number | null; fee_details?: unknown } | null>;
   /** Sales whose stripe_invoice_id, payment_ref or quote_id is one of these. */
   findTransactions: (q: { invoices: string[]; refs: string[]; quotes: string[] }) => Promise<Tx[]>;
   /** recordRevealSale. */
   record: (a: SaleArgs) => Promise<{ id: string; created: boolean; other_payment?: string } | { error: string }>;
+  /** What Stripe kept on a sale this sweep wrote (stripe_webhook's recordStripeFee does the same); best-effort. */
+  recordFee?: (txId: string, feeFils: number, details: unknown) => Promise<void>;
 };
 
-export type SweepOptions = { days: number; nowSec: number; maxPages?: number; maxRecords?: number; graceSeconds?: number };
+export type SweepOptions = { days: number; nowSec: number; maxPages?: number; maxRecords?: number; maxAttempts?: number; graceSeconds?: number };
 
 const isPi = (s: unknown): s is string => typeof s === 'string' && /^pi_[A-Za-z0-9_]+$/.test(s);
 const isIn = (s: unknown): s is string => typeof s === 'string' && /^in_[A-Za-z0-9_]+$/.test(s);
@@ -93,7 +101,9 @@ export function invoiceCandidate(inv: any, mode: Mode): Candidate | null {
   const md = inv?.metadata || {};
   const quoteId = String(md.quote_id || '');
   if (!quoteId || !isIn(inv?.id) || inv?.status !== 'paid' || !notSupplier(md)) return null;
-  const pi = idOf(inv?.payments?.data?.find((p: any) => isPi(idOf(p?.payment?.payment_intent)))?.payment?.payment_intent);
+  // The PAID attempt: an invoice can list a canceled attempt before the one that paid it (review of #1841).
+  const pays = (inv?.payments?.data || []).filter((p: any) => isPi(idOf(p?.payment?.payment_intent)));
+  const pi = idOf((pays.find((p: any) => p?.status === 'paid') || pays[0])?.payment?.payment_intent);
   const amountFils = num(inv.amount_paid);
   const totalCharged = amountFils / 100;
   const baseFee = md.base_fee != null && md.base_fee !== '' ? num(md.base_fee) : totalCharged;
@@ -170,6 +180,7 @@ async function listAll(deps: SweepDeps, mode: Mode, base: string, maxPages: numb
 export async function sweepReveals(deps: SweepDeps, o: SweepOptions): Promise<{ modes: Record<string, ModeRead>; outcomes: Outcome[]; checked: number; too_recent: number }> {
   const maxPages = Math.max(1, o.maxPages ?? 5);
   const maxRecords = Math.max(0, o.maxRecords ?? 25);
+  const maxAttempts = Math.max(0, o.maxAttempts ?? 50);
   const grace = Math.max(0, o.graceSeconds ?? 900);
   const since = o.nowSec - clampDays(o.days) * 86400;
   const modes: Record<string, ModeRead> = {};
@@ -192,19 +203,27 @@ export async function sweepReveals(deps: SweepDeps, o: SweepOptions): Promise<{ 
   }) : [];
 
   const outcomes: Outcome[] = [];
-  let recorded = 0;
+  const budget: Record<string, { attempts: number; records: number }> = {};
+  const seenPi = new Set<string>();
   const done = (c: Candidate, outcome: OutcomeKind, transactionId: string | null = null, error: string | null = null) =>
     outcomes.push({ ...c, outcome, transactionId, error });
-  // Oldest first, so a payment nearest the end of the window is never the one a bound keeps deferring.
-  for (const c of [...ready].sort((a, b) => (a.paidAt ?? 0) - (b.paidAt ?? 0))) {
+  const order = (c: Candidate) => (c.mode === 'live' ? 0 : 1);
+  for (const c of [...ready].sort((a, b) => order(a) - order(b) || (b.paidAt ?? 0) - (a.paidAt ?? 0))) {
     const held = matchSale(c, txs);
     if (held) { done(c, 'recorded', held.id); continue; }
-    if (recorded >= maxRecords) { done(c, 'deferred'); continue; }
-    recorded++;
+    const b = (budget[c.mode] ??= { attempts: 0, records: 0 });
+    if (b.attempts >= maxAttempts) { done(c, 'deferred'); continue; }
+    b.attempts++;
     let pi = c.paymentIntent;
     if (!pi && c.invoiceId) pi = await deps.invoicePayment(c.mode, c.invoiceId);
     if (!isPi(pi)) { done(c, 'failed', null, 'the PaymentIntent behind the invoice could not be read'); continue; }
+    // One payment, one outcome: a hosted-Checkout invoice and its PaymentIntent can both reach here (review of #1841).
+    if (seenPi.has(pi)) continue;
+    seenPi.add(pi);
     const cc = { ...c, paymentIntent: pi };
+    // Recorded since the books were read (a racing path), by the PaymentIntent the invoice did not carry.
+    const late = txs.find((t) => t.payment_ref === pi);
+    if (late) { done(cc, 'recorded', late.id); continue; }
     const pay = await deps.readPayment(c.mode, pi);
     if (!pay) { done(cc, 'failed', null, 'the PaymentIntent could not be read'); continue; }
     if (pay.status !== 'succeeded') { done(cc, 'failed', null, 'the PaymentIntent is ' + pay.status + ', not succeeded'); continue; }
@@ -212,19 +231,29 @@ export async function sweepReveals(deps: SweepDeps, o: SweepOptions): Promise<{ 
       done(cc, pay.amount_refunded >= pay.amount_received ? 'refunded' : 'refunded_unrecorded');
       continue;
     }
-    // Recorded since the books were read (a racing path), by the PaymentIntent the invoice did not carry.
-    const late = txs.find((t) => t.payment_ref === pi);
-    if (late) { done(cc, 'recorded', late.id); continue; }
     const before = txs.find((t) => t.quote_id === c.quoteId) || null;
+    if (before) {
+      // A Checkout Session reference (cs_...) names no payment, so whether this is that sale's payment cannot be told.
+      if (/^cs_/.test(String(before.payment_ref || ''))) {
+        done(cc, 'failed', before.id, 'the quote\'s sale carries Checkout Session reference ' + before.payment_ref + ', so whether this payment is that sale cannot be told');
+      } else done(cc, 'second_payment', before.id);
+      continue;
+    }
+    if (b.records >= maxRecords) { done(cc, 'deferred'); continue; }
+    b.records++;
     let res;
     try {
       res = await deps.record({ quoteId: c.quoteId, customerId: c.customerId, baseFee: c.baseFee, processingFee: c.processingFee,
         totalCharged: c.totalCharged, paymentRef: pi, invoiceId: c.invoiceId || '' });
     } catch (e) { res = { error: String((e as Error)?.message || e) }; }
     if ('error' in res) { done(cc, 'failed', null, String(res.error).slice(0, 300)); continue; }
-    const other = res.other_payment || (!res.created && before && isPi(before.payment_ref) && before.payment_ref !== pi ? pi : '');
-    if (other) done(cc, 'second_payment', res.id);
-    else done(cc, res.created ? 'recovered' : 'recorded', res.id);
+    // The sale exists now: a second payment of the same quote later in this run is seen as one (review of #1841).
+    txs.push({ id: res.id, quote_id: c.quoteId, payment_ref: pi, stripe_invoice_id: c.invoiceId });
+    if (res.other_payment) { done(cc, 'second_payment', res.id); continue; }
+    done(cc, res.created ? 'recovered' : 'recorded', res.id);
+    if (res.created && deps.recordFee && typeof pay.fee_fils === 'number') {
+      try { await deps.recordFee(res.id, pay.fee_fils, pay.fee_details ?? null); } catch (_e) { /* a record, never a reason to fail */ }
+    }
   }
   return { modes, outcomes, checked: ready.length, too_recent: tooRecent };
 }

@@ -18,15 +18,16 @@ const pint = (id: string, quote: string | null, o: Record<string, unknown> = {})
   created: NOW - 2 * HOUR, metadata: quote ? { quote_id: quote } : {}, ...o,
 });
 
-type World = { invoices: any[]; intents: any[]; book: Tx[]; refunded?: Record<string, number>; unreadable?: Set<string>; failRecord?: Set<string>; listDown?: boolean };
+type World = { invoices: any[]; intents: any[]; book: Tx[]; refunded?: Record<string, number>; unreadable?: Set<string>; failRecord?: Set<string>; listDown?: boolean;
+  modes?: ('live' | 'test')[]; fees?: Record<string, number> };
 
 function deps(w: World, calls: { record: SaleArgs[]; lists: string[] } = { record: [], lists: [] }): SweepDeps {
   return {
-    modes: ['live'],
+    modes: w.modes ?? ['live'],
     list: async (_m, path) => {
       calls.lists.push(path);
       if (w.listDown) return null;
-      const src = path.startsWith('invoices') ? w.invoices : w.intents;
+      const src = (path.startsWith('invoices') ? w.invoices : w.intents).filter((x) => (x.livemode !== false) === (_m === 'live'));
       const after = /starting_after=([^&]+)/.exec(path)?.[1];
       const from = after ? src.findIndex((x) => x.id === after) + 1 : 0;
       const page = src.slice(from, from + 2);              // pages of 2, so paging is exercised
@@ -34,13 +35,15 @@ function deps(w: World, calls: { record: SaleArgs[]; lists: string[] } = { recor
     },
     invoicePayment: async (_m, id) => (w.invoices.find((i) => i.id === id)?.payments?.data?.[0]?.payment?.payment_intent ?? null),
     readPayment: async (_m, pi) => (w.unreadable?.has(pi) ? null
-      : { status: 'succeeded', amount_received: 30000, amount_refunded: w.refunded?.[pi] ?? 0 }),
+      : { status: 'succeeded', amount_received: 30000, amount_refunded: w.refunded?.[pi] ?? 0, fee_fils: 1234, fee_details: [{ type: 'stripe_fee' }] }),
+    recordFee: async (tx, fee) => { (w.fees ??= {})[tx] = fee; },
     findTransactions: async (q) => w.book.filter((t) => q.invoices.includes(t.stripe_invoice_id!) || q.refs.includes(t.payment_ref!) || q.quotes.includes(t.quote_id!)),
     record: async (a) => {
       calls.record.push(a);
       if (w.failRecord?.has(a.quoteId)) return { error: 'quote not found: ' + a.quoteId };
       const had = w.book.find((t) => t.quote_id === a.quoteId);
-      if (had) return { id: had.id, created: false };
+      // reveal_sale.ts: an empty stripe_invoice_id on the existing sale is filled with the caller's invoice.
+      if (had) { if (!had.stripe_invoice_id && a.invoiceId) had.stripe_invoice_id = a.invoiceId; return { id: had.id, created: false }; }
       const t = { id: 'tx-' + a.quoteId, quote_id: a.quoteId, payment_ref: a.paymentRef, stripe_invoice_id: a.invoiceId || null };
       w.book.push(t);
       return { id: t.id, created: true };
@@ -98,11 +101,56 @@ Deno.test('a refund decides: in full is nothing to record, in part is for the ac
   assertEquals(calls.record.length, 0);
 });
 
-Deno.test('a quote already sold under another PaymentIntent is a second payment, never a second sale', async () => {
-  const w: World = { invoices: [inv('in_2nd', 'qs', 'pi_2nd')], intents: [], book: [{ id: 'ts', quote_id: 'qs', payment_ref: 'pi_1st', stripe_invoice_id: 'in_1st' }] };
+Deno.test('a quote already sold under another payment is a second payment, never a second sale, and never touches the first', async () => {
+  // Review of #1841: the first sale's reference may be pi_, in_ (element_settle / webhook fallback) or null-invoice.
+  for (const first of [{ payment_ref: 'pi_1st', stripe_invoice_id: 'in_1st' }, { payment_ref: 'in_1st', stripe_invoice_id: 'in_1st' },
+                       { payment_ref: 'pi_1st', stripe_invoice_id: null }]) {
+    const w: World = { invoices: [inv('in_2nd', 'qs', 'pi_2nd')], intents: [], book: [{ id: 'ts', quote_id: 'qs', ...first }] };
+    const calls = { record: [] as SaleArgs[], lists: [] as string[] };
+    const r = await sweepReveals(deps(w, calls), { days: 30, nowSec: NOW });
+    assertEquals(r.outcomes.map((x) => [x.outcome, x.transactionId]), [['second_payment', 'ts']], JSON.stringify(first));
+    assertEquals(calls.record.length, 0, 'recordRevealSale would stamp in_2nd onto the first sale');
+    assertEquals(w.book, [{ id: 'ts', quote_id: 'qs', ...first }]);
+    // ...so the next run still sees it, and once refunded in full it resolves.
+    w.refunded = { pi_2nd: 30000 };
+    assertEquals((await sweepReveals(deps(w), { days: 30, nowSec: NOW })).outcomes.map((x) => x.outcome), ['refunded']);
+  }
+  const cs: World = { invoices: [inv('in_x', 'qc', 'pi_x')], intents: [], book: [{ id: 'tc', quote_id: 'qc', payment_ref: 'cs_session', stripe_invoice_id: null }] };
+  assertEquals((await sweepReveals(deps(cs), { days: 30, nowSec: NOW })).outcomes.map((x) => x.outcome), ['failed']);
+});
+
+Deno.test('two unrecorded payments of one quote in one run: one sale, one second payment', async () => {
+  const w: World = { invoices: [inv('in_a1', 'qd', 'pi_a1'), inv('in_a2', 'qd', 'pi_a2', { status_transitions: { paid_at: NOW - HOUR } })], intents: [], book: [] };
   const r = await sweepReveals(deps(w), { days: 30, nowSec: NOW });
-  assertEquals(r.outcomes.map((x) => [x.outcome, x.transactionId]), [['second_payment', 'ts']]);
+  assertEquals(r.outcomes.map((x) => [x.key, x.outcome]), [['in_a2', 'recovered'], ['in_a1', 'second_payment']]);
   assertEquals(w.book.length, 1);
+});
+
+Deno.test('a recovered sale gets the fee Stripe kept; the paid attempt is the one read, not a canceled one before it', async () => {
+  const two = inv('in_pa', 'qp', null, { payments: { data: [{ status: 'canceled', payment: { payment_intent: 'pi_dead' } }, { status: 'paid', payment: { payment_intent: 'pi_live' } }] } });
+  const w: World = { invoices: [two], intents: [], book: [] };
+  const calls = { record: [] as SaleArgs[], lists: [] as string[] };
+  await sweepReveals(deps(w, calls), { days: 30, nowSec: NOW });
+  assertEquals(calls.record.map((a) => a.paymentRef), ['pi_live']);
+  assertEquals(w.fees, { 'tx-qp': 1234 });
+});
+
+Deno.test('one payment, one outcome: a hosted-Checkout invoice and its PaymentIntent are not both reported', async () => {
+  // Two paid sessions on one quote: nothing merges, so both invoices and both PaymentIntents are candidates.
+  const w: World = { invoices: [inv('in_s1', 'qq', null), inv('in_s2', 'qq', null)], intents: [pint('pi_s1', 'qq'), pint('pi_s2', 'qq')],
+    book: [{ id: 'tq', quote_id: 'qq', payment_ref: 'pi_s1', stripe_invoice_id: null }] };
+  const r = await sweepReveals({ ...deps(w), invoicePayment: async (_m, id) => ({ in_s1: 'pi_s1', in_s2: 'pi_s2' } as Record<string, string>)[id] ?? null },
+    { days: 30, nowSec: NOW });
+  assertEquals(r.outcomes.filter((x) => x.outcome === 'second_payment').length, 1);
+});
+
+Deno.test('live is read first with its own budget: test-mode payments that can never be recorded do not starve it', async () => {
+  const dead = Array.from({ length: 4 }, (_, i) => ({ ...inv('in_t' + i, 'qt' + i, 'pi_t' + i), livemode: false }));
+  const w: World = { modes: ['test', 'live'], invoices: [...dead, inv('in_live', 'qlive', 'pi_live', { status_transitions: { paid_at: NOW - 20 * 86400 } })],
+    intents: [], book: [], failRecord: new Set(['qt0', 'qt1', 'qt2', 'qt3']) };
+  const r = await sweepReveals(deps(w), { days: 30, nowSec: NOW, maxAttempts: 2 });
+  assertEquals(r.outcomes.find((x) => x.key === 'in_live')?.outcome, 'recovered');
+  assertEquals(r.outcomes.filter((x) => x.mode === 'test').map((x) => x.outcome).sort(), ['deferred', 'deferred', 'failed', 'failed']);
 });
 
 Deno.test('a recorder that refuses (quote gone) is failed with its reason', async () => {

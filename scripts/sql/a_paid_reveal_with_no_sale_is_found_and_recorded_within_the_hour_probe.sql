@@ -32,7 +32,9 @@ begin
     insert into public.accountant_reveal_reconcile_run (requested_at, window_days) values (now() - interval '150 minutes', 30);
   end if;
 
-  -- 1. The duty, through the runner.
+  -- 1. The duty, through the runner. Once the duty is live it is due only ~2 minutes an hour, so it is made due here
+  --    (rolled back with everything else) rather than letting the runner answer {ran:false} (review of #1841).
+  update public.seat_duty set last_started_at = null where duty = 'accountant.reveal_reconcile';
   v_r := v_r || jsonb_build_object('run', public.fn_seat_duty_run('accountant.reveal_reconcile'));
   v_tick := (select last_result from public.seat_duty where duty = 'accountant.reveal_reconcile');
   if coalesce((v_r->'run'->>'ok')::boolean, false) is not true then v_fail := v_fail || '1:runner_not_ok ' || coalesce(v_r->'run'->>'error', '') || '; '; end if;
@@ -63,6 +65,10 @@ begin
         'customer_email', 'zz-demo-buyer@example.invalid', 'amount_fils', 30000, 'outcome', 'failed', 'error', 'probe'),
       jsonb_build_object('key', 'not a stripe id', 'source', 'invoice', 'quote_id', q1, 'outcome', 'failed'),
       jsonb_build_object('key', 'in_zzprobematch', 'source', 'invoice', 'quote_id', q1, 'outcome', 'recorded'))));
+  -- 3b. A later run that did not get to the failed payment ('deferred') keeps what the earlier run found.
+  perform public.fn_accountant_reveal_reconcile_record(null, jsonb_build_object('days', 30, 'modes', v_live, 'outcomes', jsonb_build_array(
+      jsonb_build_object('key', 'in_zzprobefail1', 'livemode', true, 'source', 'invoice', 'quote_id', q1, 'outcome', 'deferred'))));
+  if (select outcome from public.accountant_reveal_reconcile_item where key = 'in_zzprobefail1') <> 'failed' then v_fail := v_fail || '3:deferred_overwrote_failed; '; end if;
   v_r := v_r || jsonb_build_object('first', v_out - 'findings');
   if (v_out->>'kept')::int <> 5 or (v_out->>'refused')::int <> 2 then v_fail := v_fail || '3:kept_or_refused ' || (v_out - 'findings')::text || '; '; end if;
   if not exists (select 1 from public.it_engineer_finding where issue_key = k || 'failed:in_zzprobefail1' and closed_at is null) then v_fail := v_fail || '3:failed_not_filed; '; end if;
@@ -87,7 +93,7 @@ begin
       jsonb_build_object('key', 'in_zzprobefail1', 'livemode', true, 'source', 'invoice', 'quote_id', q1, 'invoice_id', 'in_zzprobefail1',
         'payment_intent', 'pi_zzprobefail1', 'customer_email', 'zz.reconcile.probe@quotesdone.com', 'amount_fils', 30000, 'outcome', 'failed', 'error', 'quote not found: probe'))));
   if (select count(*) from public.accountant_reveal_reconcile_item) <> items0 + 5 then v_fail := v_fail || '4:item_count; '; end if;
-  if (select attempts from public.accountant_reveal_reconcile_item where key = 'in_zzprobefail1') <> 2 then v_fail := v_fail || '4:attempts; '; end if;
+  if (select attempts from public.accountant_reveal_reconcile_item where key = 'in_zzprobefail1') <> 3 then v_fail := v_fail || '4:attempts; '; end if;
   if (select count(*) from public.it_engineer_finding where issue_key like k || '%' and closed_at is null) <> open_f then v_fail := v_fail || '4:findings_changed; '; end if;
 
   -- 5a. Refunded in full: resolved and closed.

@@ -1593,21 +1593,25 @@ Deno.serve(observe('accountant', async (req) => {
           list: async (mode, path) => { const j = await S(mode, path); return j && Array.isArray(j.data) ? { data: j.data, has_more: j.has_more === true } : null; },
           invoicePayment: async (mode, id) => {
             const j = await S(mode, 'invoice_payments?invoice=' + encodeURIComponent(id));
-            const p = j?.data?.find((x: { payment?: { payment_intent?: unknown } }) => x?.payment?.payment_intent)?.payment?.payment_intent;
+            const list = ((j?.data || []) as { status?: string; payment?: { payment_intent?: unknown } }[]).filter((x) => x?.payment?.payment_intent);
+            const p = (list.find((x) => x.status === 'paid') || list[0])?.payment?.payment_intent as string | { id: string } | undefined;
             return p ? String(typeof p === 'string' ? p : p.id) : null;
           },
           readPayment: async (mode, pi) => {
-            const j = await S(mode, 'payment_intents/' + encodeURIComponent(pi) + '?expand[]=latest_charge');
+            const j = await S(mode, 'payment_intents/' + encodeURIComponent(pi) + '?expand[]=latest_charge.balance_transaction');
             if (!j?.id) return null;
-            return { status: String(j.status), amount_received: Number(j.amount_received || 0), amount_refunded: Number(j.latest_charge?.amount_refunded || 0) };
+            const bt = j.latest_charge?.balance_transaction;
+            return { status: String(j.status), amount_received: Number(j.amount_received || 0), amount_refunded: Number(j.latest_charge?.amount_refunded || 0),
+              fee_fils: typeof bt?.fee === 'number' ? bt.fee : null, fee_details: bt?.fee_details ?? null };
           },
           findTransactions: async (q) => {
             const cols = 'id,quote_id,payment_ref,stripe_invoice_id';
-            const parts = await Promise.all([
-              q.invoices.length ? admin.from('transactions').select(cols).in('stripe_invoice_id', q.invoices) : { data: [], error: null },
-              q.refs.length ? admin.from('transactions').select(cols).in('payment_ref', q.refs) : { data: [], error: null },
-              q.quotes.length ? admin.from('transactions').select(cols).in('quote_id', q.quotes) : { data: [], error: null },
-            ]);
+            // 100 ids a request: a 30-day window of every paid reveal would otherwise be one URL of many kilobytes.
+            const chunks = (xs: string[]) => Array.from({ length: Math.ceil(xs.length / 100) }, (_, i) => xs.slice(i * 100, i * 100 + 100));
+            const parts = [];
+            for (const [col, ids] of [['stripe_invoice_id', q.invoices], ['payment_ref', q.refs], ['quote_id', q.quotes]] as const) {
+              for (const part of chunks(ids)) parts.push(await admin.from('transactions').select(cols).in(col, part));
+            }
             const bad = parts.find((p) => p.error);
             // An unread book is not an empty book: recording against it could write a second sale.
             if (bad?.error) throw new Error('transactions could not be read: ' + bad.error.message);
@@ -1616,7 +1620,11 @@ Deno.serve(observe('accountant', async (req) => {
             return [...seen.values()];
           },
           record: (a) => recordRevealSale(admin, a),
-        }, { days, nowSec: Math.floor(Date.now() / 1000), maxPages: 5, maxRecords: 25, graceSeconds: 900 });
+          // What Stripe kept, write-once, exactly as stripe_webhook's recordStripeFee: fn_gl_sync_business books it to 6100.
+          recordFee: async (txId, feeFils, details) => {
+            await admin.from('transactions').update({ stripe_fee_fils: feeFils, stripe_fee_details: details }).eq('id', txId).is('stripe_fee_fils', null);
+          },
+        }, { days, nowSec: Math.floor(Date.now() / 1000), maxPages: 5, maxRecords: 25, maxAttempts: 50, graceSeconds: 900 });
       } catch (e) {
         const msg = String((e as Error)?.message || e).slice(0, 300);
         await admin.rpc('fn_accountant_reveal_reconcile_record', { p_run_id: runId, p_r: { days, error: msg, modes: {}, outcomes: [] } });
