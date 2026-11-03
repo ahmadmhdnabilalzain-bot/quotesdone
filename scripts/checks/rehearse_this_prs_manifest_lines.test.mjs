@@ -29,7 +29,12 @@ globalThis.fetch = async (url, init) => {
     return new Response(JSON.stringify(live.map((n) => ({ n }))), { status: 200 });
   }
   if (q.includes('FAILME')) return err('ERROR: 42601: syntax error at or near "FAILME"');
-  if (q.includes('SAFE_REPLAY_ROWS')) return err('ERROR: P0001: SAFE_REPLAY_ROWS<<' + process.env.FIXTURE_ROWS + '>>SAFE_REPLAY_ROWS');
+  if (q.includes('SAFE_REPLAY_ROWS')) {
+    // the read-back gets the fixture's rows; a file's own last statement answers with the literal verdict it selects
+    const verdict = /from \\(\\s*select '([^']*)' as verdict\\s*;?\\s*\\) safe_replay_row/.exec(q);
+    const rows = q.includes("'routine' as kind") ? process.env.FIXTURE_ROWS : JSON.stringify(verdict ? [{ verdict: verdict[1] }] : []);
+    return err('ERROR: P0001: SAFE_REPLAY_ROWS<<' + rows + '>>SAFE_REPLAY_ROWS');
+  }
   if (q.includes("raise exception 'PROBE OK'")) return err('ERROR: P0001: CHK<<PROBE OK>>');
   return err('ERROR: P0001: SAFE_REPLAY_ROLLBACK: the replay is always rolled back');
 };\n`;
@@ -135,6 +140,33 @@ test('anything a file calls that the read-back after every file does not hold fa
   const readBack = liveToday.replays.find((q) => q.includes('SAFE_REPLAY_ROWS')) || '';
   assert.match(readBack, /p\.proname = any\(array\[[^\]]*'fn_live'/, 'the read-back never asked for the callee:\n' + readBack);
   assert.match(readBack, /c\.relname = any\(array\[[^\]]*'fn_live'/, 'the read-back never asked whether the callee is a relation:\n' + readBack);
+});
+
+test('a file\'s own inline verdict is read as apply_sql reads it: PROBE OK passes, with nothing appended to the replay', () => {
+  const { code, stdout, results, replays } = rehearse({ aAlso: "select 'PROBE OK: fn_a answers 1' as verdict;\n" });
+  assert.equal(code, 0, stdout);
+  assert.deepEqual(verdicts(results), ['REHEARSED', 'PROBE OK', 'REHEARSED'], stdout);
+  assert.equal(replays.length, 3, 'a\'s own verdict, b\'s probe, and the read-back:\n' + replays.join('\n----\n'));
+  const own = replays[0];
+  assert.match(own, /^set local lock_timeout = '5s';\nset local statement_timeout = '90s';/, own);
+  assert.ok(/from \(\s*select 'PROBE OK: fn_a answers 1' as verdict/.test(own) && !own.includes('as rehearsed') && !own.includes('fn_b'), own);
+});
+
+test('a file\'s own inline verdict FAILS the file when it says PROBE FAILED, or promises one and returns none', () => {
+  for (const [why, aAlso, said] of [
+    ['PROBE FAILED', "select 'PROBE FAILED: fn_a returned 2' as verdict;\n", /its own verdict: PROBE FAILED: fn_a returned 2/],
+    ['a marker, and the last statement is not a query', "do $v$ begin if false then raise exception 'PROBE OK'; end if; end $v$;\n", /promises a verdict[\s\S]*returned none/],
+    ['a marker, and the last query returns no verdict', "select v from (values ('PROBE OK')) t(v) where false;\n", /promises a verdict[\s\S]*returned none/],
+  ]) {
+    const { code, stdout, results, replays } = rehearse({ aAlso });
+    assert.equal(code, 0, stdout);
+    assert.deepEqual(verdicts(results), ['FAILED', 'NOT REHEARSED', 'NOT REHEARSED'], `${why}:\n${stdout}`);
+    assert.match(results.files[0].verdict, said, `${why}: ${results.files[0].verdict}`);
+    assert.ok(!replays.some((q) => q.includes("'routine' as kind")), `${why}: a read-back ran after a failure`);
+  }
+  // a marker only in a comment is prose, not a promise (apply_sql's rule)
+  const prose = rehearse({ aAlso: '-- the probe file must print PROBE OK\n' });
+  assert.deepEqual(verdicts(prose.results), ['REHEARSED', 'PROBE OK', 'REHEARSED'], prose.stdout);
 });
 
 test('a call-shaped name that is a relation in the read-back is not a missing routine', () => {

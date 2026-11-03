@@ -7,7 +7,11 @@
 //      does not define itself: at merge it would run after the drop, whatever production holds today.
 //   2. apply_sql.mjs's own pre-write guards, as a DRY RUN (refused statements, a foreign project ref, a callee the
 //      database does not have), with the credited routines handed to it as comments, which apply_sql reads as defined.
-//   3. Only when k has a _probe.sql: files 1..k replayed with the probe, which must answer PROBE OK.
+//   3. When k's CODE (comments stripped, apply_sql.mjs's rule) carries PROBE OK or PROBE FAILED, it has promised an
+//      INLINE verdict: files 1..k are replayed with nothing appended and the rows of k's last statement are judged by
+//      apply_sql's rule (a cell starting PROBE OK, none starting PROBE FAILED). A last statement that is not a query,
+//      or returns no verdict, FAILS: at merge apply_sql exits 3 on exactly that (fourth review of #1825).
+//   4. When k has a _probe.sql (as well, or instead): files 1..k replayed with the probe, which must answer PROBE OK.
 // Then ONE replay of all the files together, reading back from inside the rolled-back transaction every routine they
 // define or call, and every relation a call might name: that read-back is what production will hold once the merge
 // has applied them, and it is the rehearsal of every file without a probe. A file FAILS when something it calls
@@ -16,9 +20,11 @@
 // instead, and the finding counts. Nothing commits: safe_replay refuses transaction control and fingerprints the
 // routines before and after.
 //
-// KNOWN LIMIT (review of #1825): a routine dropped by an earlier file through text no pattern can see — built at run
-// time, e.g. `execute format('drop function %s', ...)` — and recreated by a file AFTER k passes here and stops the
-// merge at k. The dry run asks production as it is now, and the read-back sees the state after every file.
+// KNOWN LIMIT (review of #1825): a routine an earlier file removes in a form the drop pattern cannot see, and that a
+// file AFTER k recreates, passes here and stops the merge at k. Unseen forms: the second and later names of
+// `drop function a(), b()`; a quoted-name drop; `drop routine`; `alter function|procedure|routine ... rename`; and a
+// drop built at run time, e.g. `execute format('drop function %s', ...)`. The dry run asks production as it is now,
+// and the read-back sees the state after every file, so neither notices the gap between.
 // What the merge does that this does not: the release guard (it passes on main by construction) and the seat (the
 // merge always names one). The rehearsal runs against production as it is NOW; the merge runs minutes or days later.
 //   node scripts/ci/rehearse_this_prs_manifest_lines.mjs <base-sha> <results.json>
@@ -78,6 +84,25 @@ const credited = [], gone = [];
   }
 }
 
+// apply_sql.mjs's rule for a file's own verdict: CODE (comments stripped) naming a marker has promised one, and the
+// rows of its last statement must carry a cell starting PROBE OK and none starting PROBE FAILED.
+const promisesAVerdict = (t) => {
+  const code = t.replace(/\/\*[\s\S]*?\*\//g, ' ').split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
+  return code.includes('PROBE OK') || code.includes('PROBE FAILED');
+};
+const inlineVerdict = async (k) => {
+  let rows;
+  try {
+    rows = await replaySql(upTo(k), { label: `${files[k]} (its own verdict, on top of ${k} earlier file(s) of this PR)`, rows: true });
+  } catch (e) {
+    throw new Error(`it promises a verdict (PROBE OK / PROBE FAILED in its code) and the replay returned none: ${String(e?.message ?? e).slice(0, 1200)}`);
+  }
+  const cells = (Array.isArray(rows) ? rows : []).flatMap((r) => Object.values(r || {})).filter((c) => typeof c === 'string').map((c) => c.trim());
+  const bad = cells.find((c) => c.startsWith('PROBE FAILED'));
+  if (bad) throw new Error(`its own verdict: ${bad.slice(0, 600)}`);
+  if (!cells.some((c) => c.startsWith('PROBE OK'))) throw new Error('it promises a verdict (PROBE OK / PROBE FAILED in its code) and its last statement returned none; apply_sql exits 3 on that');
+  return 'PROBE OK';
+};
 const scratch = mkdtempSync(join(tmpdir(), 'qd-rehearse-'));
 const guards = (k) => {
   const after = calls[k].filter((c) => gone[k].includes(c));
@@ -100,6 +125,9 @@ for (const [k, file] of files.entries()) {
   if (failed) { row.verdict = 'NOT REHEARSED: an earlier file of this PR failed, and the merge would stop there'; continue; }
   try {
     guards(k);
+    if (promisesAVerdict(texts[k])) {
+      console.log(`${await inlineVerdict(k)}, rolled back: ${file} (its own verdict)`);
+    }
     if (probe) {
       row.verdict = await rehearse(upTo(k), probeText, `${file} (on top of ${k} earlier file(s) of this PR)`);
       console.log(`${row.verdict}, rolled back: ${file}`);
