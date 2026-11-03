@@ -30,6 +30,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -358,7 +359,9 @@ function pdftotext(file) { try { return execFileSync('pdftotext', ['-enc', 'UTF-
 // ── rasterise (pdf.js in Chromium, exactly as src/components/me/pdfRaster.ts does) ───────────────────────
 async function rasteriser() {
   const { chromium } = await import('playwright');
-  const PDFJS = path.join(ROOT, 'node_modules/pdfjs-dist/build');
+  // Resolved the way node resolves playwright above, not from ROOT: an agent worktree's node_modules is partial and node
+  // walks up to the checkout's; a fixed ROOT path 404'd every page and the run died on rasters[0] (3 Nov 2026).
+  const PDFJS = path.join(path.dirname(createRequire(import.meta.url).resolve('pdfjs-dist/package.json')), 'build');
   let cur = null;
   const srv = http.createServer((q, s) => {
     if (q.url.startsWith('/doc.pdf')) { s.setHeader('Content-Type', 'application/pdf'); return s.end(cur); }
