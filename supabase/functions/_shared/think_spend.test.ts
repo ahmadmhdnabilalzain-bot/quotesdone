@@ -89,5 +89,9 @@ Deno.test('code agrees only when EVERY figure, with the word after it, is printe
   assert(!figuresGrounded('You need a permit from the municipality.', src));          // no figure: code cannot judge it
   // a figure must be printed in ONE source with its words, never stitched across two
   assert(!figuresGrounded('pay AED 14 working', ['pay AED 99', '14 working']));
-  assertEquals(figuresOf('AED 1,500 a year, 3 %').map((f) => [f.before, f.num, f.after]), [['aed', '1500', 'year'], ['year', '3', '%']]);
+  assertEquals(figuresOf('AED 1,500 a year, 3 % of fees').map((f) => [f.before, f.num, f.after]), [['aed', '1500', 'year'], ['year', '3%', 'fees']]);
+  // the re-review's cases: the word after a '%' and a comparator both count
+  assert(!figuresGrounded('A reveal costs 3% of the subscription.', src));
+  assert(!figuresGrounded('It is more than 3% of the quote.', ['It is less than 3% of the quote.']));
+  assert(figuresGrounded('It is less than 3% of the quote.', ['It is less than 3% of the quote.']));
 });

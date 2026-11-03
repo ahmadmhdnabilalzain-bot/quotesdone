@@ -161,15 +161,19 @@ const asciiDigits = (s: string) => s.replace(/[\u0660-\u0669]/g, (d) => String(d
 const toks = (s: string) => asciiDigits(String(s ?? '').toLowerCase()).replace(/(\d),(?=\d{3})/g, '$1').match(/\d+(?:\.\d+)?|%|[\p{L}]+/gu) ?? [];
 const FUNCTION_WORDS = new Set(['a', 'an', 'the', 'per', 'of', 'to', 'for', 'in', 'on', 'at', 'and', 'or', 'is', 'are', 'be', 'by', 'up', 'within', 'about']);
 const isNum = (t: string) => /^\d/.test(t);
+const COMPARATOR_TAIL = new Set(['than', 'least', 'most']);
 /** A figure in context: the word before it and the first content word (or %) after it, as they appear in the text. */
 export type Figure = { num: string; before: string | null; after: string | null };
 function figuresIn(t: string[]): Figure[] {
   return t.flatMap((x, i) => {
     if (!isNum(x)) return [];
-    const prev = t.slice(Math.max(0, i - 3), i).reverse().find((y) => !FUNCTION_WORDS.has(y)) ?? null;
-    const before = prev && !isNum(prev) ? prev : null;
-    const after = t.slice(i + 1, i + 4).find((y) => !FUNCTION_WORDS.has(y)) ?? null;
-    return [{ num: x, before, after: after && !isNum(after) ? after : null }];
+    const back = t.slice(Math.max(0, i - 4), i).reverse().filter((y) => !FUNCTION_WORDS.has(y));
+    // a comparator keeps the word it compares ("more than 3" is not "less than 3")
+    const before = back[0] && !isNum(back[0]) ? (COMPARATOR_TAIL.has(back[0]) && back[1] && !isNum(back[1]) ? back[1] + ' ' + back[0] : back[0]) : null;
+    // '%' is part of the figure, and the word after it is still compared ("3% of the quote" is not "3% of the subscription")
+    const pct = t[i + 1] === '%';
+    const after = t.slice(i + (pct ? 2 : 1), i + (pct ? 5 : 4)).find((y) => !FUNCTION_WORDS.has(y)) ?? null;
+    return [{ num: pct ? x + '%' : x, before, after: after && !isNum(after) ? after : null }];
   });
 }
 export function figuresOf(answer: string): Figure[] { return figuresIn(toks(answer)); }
@@ -182,7 +186,8 @@ export function figuresGrounded(answer: string, sources: string[]): boolean {
   const figs = figuresOf(answer);
   if (!figs.length) return false;
   const inSrc = sources.map((s) => figuresIn(toks(s)));
-  const same = (a: Figure, b: Figure) => a.num === b.num && a.before === b.before && a.after === b.after;
+  // an answer figure with nothing after it ("costs 3%.") claims no unit to contradict; one with a word must match it
+  const same = (a: Figure, b: Figure) => a.num === b.num && a.before === b.before && (a.after === null || a.after === b.after);
   return figs.every((f) => inSrc.some((src) => src.some((g) => same(f, g))));
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
