@@ -1,0 +1,17 @@
+{
+ "about": "What .github/workflows/document-reading-qualification.yml runs, per corpus. Changing this file on the branch runs the workflow (a workflow not yet on main cannot be dispatched); on main, a dispatch runs it as written. cap_usd is the tagged window's database-enforced cap; the two together stay at or under USD 15.",
+ "real": {
+  "run": true,
+  "repeats": 3,
+  "parallel": 5,
+  "cap_usd": 7,
+  "only": ""
+ },
+ "synthetic": {
+  "run": true,
+  "repeats": 5,
+  "parallel": 5,
+  "cap_usd": 8,
+  "only": ""
+ }
+}
