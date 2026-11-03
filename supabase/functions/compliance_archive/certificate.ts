@@ -4,8 +4,13 @@
 // noAcceptanceRunStatus (30 Sep 2026, senior-hire audit): 118 of 118 refusals in a week were
 // @example.invalid demo fixtures that never accept the Terms. The refusal is correct; counting it as
 // a failure is not. A fixture's refusal is 'skipped'; a real party's stays 'error' so it is still seen.
+// 3 Nov 2026 (it_engineer): 28 of the 29 'error' refusals of 27-30 Oct were the registration walks' Resend
+// sink (delivered+qd-<tag>-...@resend.dev, the fixture address demo_factory tears down), and they held the
+// finding duty:run_cluster:compliance_archive open as "29 of 29 failed". Only that exact sink form is a
+// fixture; any other resend.dev address, and every real party, stays 'error'.
 export function noAcceptanceRunStatus(email: unknown): 'skipped' | 'error' {
-  return /@example\.invalid$/i.test(String(email ?? '').trim()) ? 'skipped' : 'error';
+  const e = String(email ?? '').trim();
+  return /@example\.invalid$/i.test(e) || /^delivered\+qd-[^@\s]+@resend\.dev$/i.test(e) ? 'skipped' : 'error';
 }
 
 // isRegisterRow (12 Oct 2026, final sandbox test): the company's customer register (signed-terms/registers
