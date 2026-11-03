@@ -1,37 +1,40 @@
 // deno test supabase/functions/send_whatsapp/confirmations.test.ts
-// 3 Nov 2026 (customer_support): the three confirmations the founder asked for go on WhatsApp as well as email.
+// 3 Nov 2026 (customer_support): the confirmations the founder asked for go on WhatsApp as well as email.
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
-import { CONFIRMATION_TYPES, invoiceLink, isConfirmation } from './confirmations.ts';
+import { CONFIRMATION_TYPES, invoiceAttachment, isConfirmation } from './confirmations.ts';
 
-const SIGNED = 'https://htdblwldjkcgjvmqkbeh.supabase.co/storage/v1/object/sign/agent-docs/reveal_invoice/zzdemo01/1730000000000_invoice-ZZDEMO-0001-en-t2.pdf?token=eyJhbGciOiJIUzI1NiJ9.zz.demo';
+const REF = { bucket: 'agent-docs', path: 'reveal_invoice/0b9b1c7e/1730000000000_invoice-ZZDEMO-0001-en-t2.pdf', filename: 'QuotesDone-invoice-ZZDEMO-0001.pdf' };
 
-Deno.test('the three confirmation types, and nothing else, are confirmations', () => {
-  assertEquals([...CONFIRMATION_TYPES].sort(), ['customer_account_active', 'reveal_receipt', 'supplier_approved']);
+Deno.test('the confirmation types, and nothing else, are confirmations', () => {
+  assertEquals([...CONFIRMATION_TYPES].sort(), ['customer_account_active', 'invoice_ready', 'reveal_receipt', 'supplier_approved']);
   for (const t of ['supplier_invite_wa', 'new_quote', 'registration_received', 'founder_alert', '', null]) assert(!isConfirmation(t), String(t));
 });
 
-Deno.test('the invoice link is read only as a signed storage URL', () => {
-  assertEquals(invoiceLink('You have unlocked ZZ DEMO.\n\nYour invoice: ' + SIGNED), SIGNED);
-  assertEquals(invoiceLink('فاتورتكم: ' + SIGNED + '\n'), SIGNED);
+Deno.test('the invoice is read only from the row\'s attachments, as a QuotesDone invoice in agent-docs', () => {
+  assertEquals(invoiceAttachment([REF]), { bucket: REF.bucket, path: REF.path });
 });
 
-Deno.test('KNOWN-BAD control: a portal link, a supplier site or an over-long link is never "your invoice"', () => {
-  assertEquals(invoiceLink('Open https://quotesdone.com/me to see it.'), null);
-  assertEquals(invoiceLink('See https://zz-demo.example.invalid/storage/v1/object/public/x.pdf'), null);
-  assertEquals(invoiceLink('Your invoice: ' + SIGNED + 'x'.repeat(1000)), null);
-  assertEquals(invoiceLink(null), null);
+Deno.test('KNOWN-BAD control: another bucket, another folder, a traversal, a non-PDF or a body is never "your invoice"', () => {
+  assertEquals(invoiceAttachment([{ ...REF, bucket: 'finance-docs' }]), null);
+  assertEquals(invoiceAttachment([{ ...REF, path: 'invoices/zz/stripe.pdf' }]), null);
+  assertEquals(invoiceAttachment([{ ...REF, path: 'reveal_invoice/../finance/x.pdf' }]), null);
+  assertEquals(invoiceAttachment([{ ...REF, path: 'reveal_invoice/0b9b1c7e/x.html' }]), null);
+  assertEquals(invoiceAttachment('Your invoice: https://evil.example.invalid/storage/v1/object/sign/x'), null);
+  assertEquals(invoiceAttachment(null), null);
 });
 
 Deno.test('send_whatsapp maps each confirmation to a template and exempts only them from the per-recipient cap', () => {
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   assertMatch(src, /if\(t==='customer_account_active'\) return 'customer_account_active';/);
+  assertMatch(src, /if\(t==='invoice_ready'\) return 'customer_reveal_invoice';/);
   assertMatch(src, /if\(t==='registration_received'\) return 'supplier_account_notice';/);
   assertMatch(src, /if\(t==='supplier_approved'\) return 'supplier_account_notice';/);
   assertMatch(src, /'reveal_receipt'[^\n]*return 'customer_supplier_unlocked';/);
-  // the invoice template only with the link and only once approved
-  assertMatch(src, /key === 'customer_supplier_unlocked' && invoiceLink\(n\.body\) && ready && tmpl\.customer_reveal_invoice\?\.\[wlang\]/);
-  assertMatch(src, /if \(inv\.status === 'approved'\) key = 'customer_reveal_invoice';/);
-  assertMatch(src, /key==='customer_reveal_invoice'\) return \{'1': shortSummary\(n\.subject\|\|''\), '2': invoiceLink\(n\.body\) \|\| linkFor\(key\)\}/);
+  // the link is signed from the row's attachment as it leaves, never parsed out of the body
+  assertMatch(src, /const inv = key === 'customer_reveal_invoice' \? invoiceAttachment\(n\.attachments\) : null;/);
+  assertMatch(src, /createSignedUrl\(inv\.path, INVOICE_LINK_TTL\)/);
+  assertMatch(src, /key==='customer_reveal_invoice'\) return \{'1': shortSummary\(n\.subject\|\|''\), '2': n\.invoice_url \|\| linkFor\(key\)\}/);
+  assert(!/invoiceLink\(/.test(src), 'no link may be read out of a body');
   assertMatch(src, /if \(!isFounderRow\(n\) && !isConfirmation\(n\.type\)\) \{\n\s+const \{ count: toThisNumber \}/);
   // the daily cap still applies to them
   assertMatch(src, /if \(budget <= 0 && !isFounderRow\(n\)\) \{ capped\+\+; continue; \}/);

@@ -6874,8 +6874,7 @@
   "ae49912278d5"
  ],
  "supabase/functions/reveal_invoice/attach.ts": [
-  "232bd676e53b",
-  "db22ccb4c30d"
+  "232bd676e53b"
  ],
  "supabase/functions/sales_engineer/conversation_plan.ts": [
   "02df85d6d9d0",
@@ -7376,15 +7375,15 @@
  "supabase/functions/wa_template_setup/index.ts": [
   "06650a058c0a",
   "08c4943939dc",
-  "16f730417c64",
   "1cf2009cf634",
-  "2f7780dc8925",
   "3a21898ab8de",
   "44b8438b538b",
   "563fa99e3ccc",
   "59eee1a94a43",
   "5d7f0a4d3f98",
   "805a68c2628d",
+  "82b4992bae4d",
+  "88c90d880be0",
   "96059a8ef96c",
   "a5cba62f3cdc",
   "d7028cd29b51",

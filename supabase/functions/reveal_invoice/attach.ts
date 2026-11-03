@@ -1,35 +1,37 @@
-// THE INVOICE TRAVELS WITH THE RECEIPT (customer_support, 3 Nov 2026). Founder, 3 Nov 2026: after a customer pays the reveal
-// fee "an invoice from our app is shared on email and whatsapp with the customer".
+// THE INVOICE TRAVELS WITH "YOUR INVOICE IS READY" (customer_support, 3 Nov 2026). Founder, 3 Nov 2026: after a customer
+// pays the reveal fee "an invoice from our app is shared on email and whatsapp with the customer".
 //
-// Measured on production before this: the reveal receipt (fn_sales_engineer_acts_on_handoff, reveal.paid) carried no
-// attachment and no link, and its WhatsApp twin used customer_supplier_unlocked, whose {{2}} is the account page. The
-// QuotesDone invoice existed only when the customer pressed "Invoice" in the portal (this function, signed-in path).
+// Measured on production before this: a paid reveal sends reveal_receipt (the reveal.paid handoff) and, once
+// stripe_webhook's captureInvoice files the Stripe invoice, invoice_ready (the invoice.issued handoff, "Your invoice is
+// ready"). Neither carried the invoice; invoice_ready only said it was in the account, and its WhatsApp twin had no
+// template mapping. The QuotesDone invoice existed only when the customer pressed "Invoice" in the portal.
 //
-// Now a08_reveal_receipt_waits_for_its_invoice holds both receipt rows for ten minutes and z30_reveal_receipt_asks_for_its_invoice
-// asks this function (action 'attach') to render the invoice in the receipt's language. attachInvoice() then attaches the
-// PDF to the email row, says so in its body, puts the signed link on each WhatsApp twin and releases them. If anything
-// fails, nothing is claimed: the rows go at the end of the hold as the plain receipt, and the failure is logged.
+// Now a08_invoice_ready_waits_for_its_invoice holds both invoice_ready rows for ten minutes and
+// z30_invoice_ready_asks_for_its_invoice asks this function (action 'attach') to render the invoice in the notice's
+// language. attachInvoice() attaches the PDF reference to the email row (send_outbox attaches the file), says so in its
+// body, puts the same reference on each WhatsApp twin (send_whatsapp signs a short-lived link when it sends: no link is
+// stored) and releases them. Each update must land on a row that is still waiting, or it counts as a failure. If anything
+// fails, nothing is claimed: the rows go at the end of the hold as the plain notice, and the failure is logged.
+// invoice_ready is the carrier, not reveal_receipt: it exists exactly when the Stripe invoice number is known.
 // prevented by: reveal_invoice/attach.test.ts
 export type Lang = 'en' | 'ar';
-export type ReceiptRow = { id: number; channel: string | null; lang: string | null; body: string | null; attachments: unknown };
+export type NoticeRow = { id: number; channel: string | null; lang: string | null; body: string | null; attachments: unknown };
 export type Rendered = { bucket: string; path: string; invoice_no: string | null; ref: string };
 export type AttachDeps = {
-  /** reveal_receipt rows to the customer for this quote that are still queued (email and WhatsApp). */
-  receipts: (quoteId: string) => Promise<ReceiptRow[] | { error: string }>;
+  /** invoice_ready rows to the customer for this quote that are still waiting (queued or pending; email and WhatsApp). */
+  notices: (quoteId: string) => Promise<NoticeRow[] | { error: string }>;
   render: (lang: Lang) => Promise<Rendered | { error: string }>;
-  signedUrl: (bucket: string, path: string) => Promise<string | null>;
-  /** Updates one row only while it is still queued; returns an error message, or null. */
+  /** Updates one row only while it is still waiting; returns an error message, or null when exactly that row changed. */
   update: (id: number, patch: Record<string, unknown>) => Promise<string | null>;
 };
 export type AttachResult = { ok: boolean; outcome: string; email_id?: number; whatsapp_ids?: number[] };
 
-const SIGNED_MARK = '/storage/v1/object/sign/';
-export const isEmail = (r: ReceiptRow) => !r.channel || (r.channel !== 'whatsapp' && r.channel !== 'sms');
+export const isEmail = (r: NoticeRow) => !r.channel || (r.channel !== 'whatsapp' && r.channel !== 'sms');
 const attached = (a: unknown) => Array.isArray(a) && a.length > 0;
 
 /** send_outbox and a20_notifications_attachment_policy accept only letters, digits, space, dot, underscore and hyphen. */
 export function invoiceFilename(ref: string): string {
-  const safe = String(ref || '').replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
+  const safe = String(ref || '').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80);
   return 'QuotesDone-invoice' + (safe ? '-' + safe : '') + '.pdf';
 }
 export function emailInvoiceLine(lang: Lang, invoiceNo: string | null): string {
@@ -38,33 +40,29 @@ export function emailInvoiceLine(lang: Lang, invoiceNo: string | null): string {
     ? 'أرفقنا بهذه الرسالة فاتورة QuotesDone' + (no ? ' رقم' + no : '') + ' عن هذه الدفعة، ويمكنكم تنزيلها في أي وقت من صفحة الطلب في حسابكم.'
     : 'Your QuotesDone invoice' + no + ' for this payment is attached to this e-mail. You can also download it at any time from the request in your account.';
 }
-export function waInvoiceLine(lang: Lang, url: string): string {
-  return (lang === 'ar' ? 'فاتورتكم: ' : 'Your invoice: ') + url;
-}
 
 export async function attachInvoice(deps: AttachDeps, quoteId: string): Promise<AttachResult> {
-  if (!/^[0-9a-f-]{36}$/i.test(String(quoteId || ''))) return { ok: false, outcome: 'bad_quote_id' };
-  const rows = await deps.receipts(quoteId);
-  if (!Array.isArray(rows)) return { ok: false, outcome: 'receipts_unreadable: ' + rows.error };
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(quoteId || ''))) return { ok: false, outcome: 'bad_quote_id' };
+  const rows = await deps.notices(quoteId);
+  if (!Array.isArray(rows)) return { ok: false, outcome: 'notices_unreadable: ' + rows.error };
   const email = rows.find(isEmail);
-  if (!email) return { ok: false, outcome: 'no_receipt_waiting' };
+  if (!email) return { ok: false, outcome: 'no_notice_waiting' };
   if (attached(email.attachments)) return { ok: true, outcome: 'already_attached', email_id: email.id };
   const lang: Lang = email.lang === 'ar' ? 'ar' : 'en';
   const doc = await deps.render(lang);
   if ('error' in doc) return { ok: false, outcome: 'render_failed: ' + doc.error, email_id: email.id };
+  const ref = [{ bucket: doc.bucket, path: doc.path, filename: invoiceFilename(doc.ref) }];
   const err = await deps.update(email.id, {
-    attachments: [{ bucket: doc.bucket, path: doc.path, filename: invoiceFilename(doc.ref) }],
+    attachments: ref,
     body: String(email.body || '').trimEnd() + '\n\n' + emailInvoiceLine(lang, doc.invoice_no),
     not_before: null,
   });
   if (err) return { ok: false, outcome: 'email_not_updated: ' + err, email_id: email.id };
-  const url = await deps.signedUrl(doc.bucket, doc.path);
-  const wa: number[] = [];
+  const wa: number[] = []; const missed: string[] = [];
   for (const r of rows.filter((x) => x.channel === 'whatsapp')) {
-    const has = String(r.body || '').includes(SIGNED_MARK);
-    const patch: Record<string, unknown> = { not_before: null };
-    if (url && !has) patch.body = String(r.body || '').trimEnd() + '\n\n' + waInvoiceLine(r.lang === 'ar' ? 'ar' : 'en', url);
-    if (!(await deps.update(r.id, patch))) wa.push(r.id);
+    const e = await deps.update(r.id, attached(r.attachments) ? { not_before: null } : { attachments: ref, not_before: null });
+    if (e) missed.push(r.id + ': ' + e); else wa.push(r.id);
   }
-  return { ok: true, outcome: url ? 'attached' : 'attached_without_link', email_id: email.id, whatsapp_ids: wa };
+  if (missed.length) return { ok: false, outcome: 'whatsapp_not_updated: ' + missed.join('; '), email_id: email.id, whatsapp_ids: wa };
+  return { ok: true, outcome: 'attached', email_id: email.id, whatsapp_ids: wa };
 }

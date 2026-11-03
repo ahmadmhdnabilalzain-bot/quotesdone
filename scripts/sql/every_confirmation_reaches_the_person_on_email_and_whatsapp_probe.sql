@@ -14,8 +14,9 @@
 --   2. an English customer whose verified mobile is their WhatsApp gets the English email and a twin addressed to it;
 --   3. a supplier_approved email to an address with no WhatsApp answer gets a recorded 'skipped' twin, while a
 --      non-confirmation type to the same address still gets no twin (fanout unchanged for it);
---   4. a customer's reveal_receipt email and its twin are both held ~10 minutes (not_before), and the attach trigger
---      exists for a queued email row with a quote;
+--   4. a customer's invoice_ready email (written as its real writer writes it: status left to the 'pending' default)
+--      and its twin are both held ~10 minutes (not_before), the attach trigger exists for a waiting email row with a
+--      quote, and the reveal receipt is not held but still gets its twin;
 --   5. db.internal may call reveal_invoice, and anon / authenticated can run none of the new routines.
 do $probe$
 declare
@@ -65,16 +66,24 @@ begin
   if exists (select 1 from public.notifications where type = 'new_inquiry' and channel = 'whatsapp' and to_email = e_sup) then
     fails := fails || ' 3:other_type_twinned'; end if;
 
-  -- 4. the reveal receipt is held for its invoice, email and twin alike
-  insert into public.notifications (type, channel, to_email, to_role, quote_id, subject, body, status, requested_by)
-  values ('reveal_receipt', 'email', e_en, 'customer', gen_random_uuid(), 'Reveal confirmed: ZZ DEMO probe', 'ZZ DEMO probe', 'queued', 'sales_engineer');
-  select not_before into nb from public.notifications where type = 'reveal_receipt' and channel = 'email' and to_email = e_en;
-  select not_before into nbw from public.notifications where type = 'reveal_receipt' and channel = 'whatsapp' and to_email = e_en;
+  -- 4. "Your invoice is ready" is held for its invoice, email and twin alike. Written as its real writer writes it
+  --    (fn_sales_engineer_answers_reveal_invoice: no status, so the column default 'pending'; the channel left null).
+  insert into public.notifications (type, to_email, to_role, quote_id, subject, body, lang)
+  values ('invoice_ready', e_en, 'customer', gen_random_uuid(), 'Your invoice is ready', 'ZZ DEMO probe', 'en');
+  select not_before into nb from public.notifications where type = 'invoice_ready' and coalesce(channel, 'email') = 'email' and to_email = e_en;
+  select not_before into nbw from public.notifications where type = 'invoice_ready' and channel = 'whatsapp' and to_email = e_en;
   if nb is null or nb < now() + interval '9 minutes' or nb > now() + interval '11 minutes' then fails := fails || ' 4:email_hold'; end if;
   if nbw is null or nbw < now() + interval '9 minutes' then fails := fails || ' 4:twin_hold'; end if;
-  if not exists (select 1 from pg_trigger where tgname = 'z30_reveal_receipt_asks_for_its_invoice' and tgenabled = 'O'
-                  and pg_get_triggerdef(oid) like '%status = ''queued''%' and pg_get_triggerdef(oid) like '%quote_id IS NOT NULL%') then
+  if not exists (select 1 from pg_trigger where tgname = 'z30_invoice_ready_asks_for_its_invoice' and tgenabled = 'O'
+                  and pg_get_triggerdef(oid) like '%''queued''%''pending''%' and pg_get_triggerdef(oid) like '%quote_id IS NOT NULL%') then
     fails := fails || ' 4:attach_trigger'; end if;
+  -- the receipt itself is not held any more than it was
+  insert into public.notifications (type, channel, to_email, to_role, quote_id, subject, body, status, requested_by)
+  values ('reveal_receipt', 'email', e_en, 'customer', gen_random_uuid(), 'Reveal confirmed: ZZ DEMO probe', 'ZZ DEMO probe', 'queued', 'sales_engineer');
+  if (select not_before from public.notifications where type = 'reveal_receipt' and channel = 'email' and to_email = e_en) is not null then
+    fails := fails || ' 4:receipt_held'; end if;
+  if (select count(*) from public.notifications where type = 'reveal_receipt' and channel = 'whatsapp' and to_email = e_en) <> 1 then
+    fails := fails || ' 4:receipt_twin'; end if;
 
   -- 5. the credential and the grants
   if not exists (select 1 from public.internal_credential where context = 'db.internal' and active and 'reveal_invoice' = any(scope)) then
@@ -82,9 +91,9 @@ begin
   if has_function_privilege('anon', 'public.fn_customer_account_active_compose(public.customers)', 'execute')
      or has_function_privilege('authenticated', 'public.fn_customer_account_active_compose(public.customers)', 'execute')
      or has_function_privilege('anon', 'public.fn_customer_account_active_notice()', 'execute')
-     or has_function_privilege('anon', 'public.fn_reveal_receipt_waits_for_its_invoice()', 'execute')
-     or has_function_privilege('anon', 'public.fn_reveal_receipt_asks_for_its_invoice()', 'execute')
-     or has_function_privilege('authenticated', 'public.fn_reveal_receipt_asks_for_its_invoice()', 'execute') then
+     or has_function_privilege('anon', 'public.fn_invoice_ready_waits_for_its_invoice()', 'execute')
+     or has_function_privilege('anon', 'public.fn_invoice_ready_asks_for_its_invoice()', 'execute')
+     or has_function_privilege('authenticated', 'public.fn_invoice_ready_asks_for_its_invoice()', 'execute') then
     fails := fails || ' 5:grants'; end if;
 
   -- nothing the probe wrote may be sendable
@@ -92,7 +101,7 @@ begin
     fails := fails || ' X:sendable_row'; end if;
 
   raise exception 'CHK<<%>>', case when fails = ''
-    then 'PROBE OK ar_email=1 ar_twin=skipped en_twin=addressed supplier_twin=skipped other_type_twin=none receipt_hold='
-         || to_char(nb - now(), 'MI:SS')
+    then 'PROBE OK ar_email=1 ar_twin=skipped en_twin=addressed supplier_twin=skipped other_type_twin=none invoice_ready_hold='
+         || to_char(nb - now(), 'MI:SS') || ' receipt_hold=none'
     else 'PROBE FAILED:' || fails end;
 end $probe$;

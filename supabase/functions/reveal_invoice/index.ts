@@ -99,18 +99,19 @@ async function documentFor(tx: Tx, sale: RevealSale, kind: 'invoice' | 'receipt'
   return { bucket, path: pj.path, url: pj.url || await signedDoc(bucket, pj.path), cached: false };
 }
 
-// THE RECEIPT'S ATTACHMENT (3 Nov 2026, customer_support; attach.ts says why). Called only by
-// z30_reveal_receipt_asks_for_its_invoice through pg_net, with the database's internal credential; never by a browser.
-// The WhatsApp link lives 30 days; the e-mailed PDF and the portal's Invoice button do not expire.
-const WA_LINK_TTL = 30 * 24 * 3600;
-async function attachToReceipt(body: Record<string, unknown>, logRun: Log): Promise<Response> {
+// THE INVOICE ATTACHED TO "YOUR INVOICE IS READY" (3 Nov 2026, customer_support; attach.ts says why). Called only by
+// z30_invoice_ready_asks_for_its_invoice through pg_net, with the database's internal credential; never by a browser.
+// A refused caller is not logged here: fn_internal_auth already records every refusal, and this door is public
+// (verify_jwt = false), so a log line per refusal would let anyone fill agent_runs.
+const WAITING = ['queued', 'pending'];
+async function attachToNotice(body: Record<string, unknown>, logRun: Log): Promise<Response> {
   const auth = await requireInternal(admin, body.__secret, 'reveal_invoice');
-  if (!auth.ok) { await logRun('error', { action: 'attach' }, 'attach refused: ' + auth.error); return J({ error: 'forbidden' }, 403); }
+  if (!auth.ok) return J({ error: 'forbidden' }, 403);
   const qid = String(body.quote_id || '');
   const out = await attachInvoice({
-    receipts: async (q) => {
+    notices: async (q) => {
       const { data, error } = await admin.from('notifications').select('id,channel,lang,body,attachments')
-        .eq('quote_id', q).eq('type', 'reveal_receipt').eq('to_role', 'customer').eq('status', 'queued').order('id');
+        .eq('quote_id', q).eq('type', 'invoice_ready').eq('to_role', 'customer').in('status', WAITING).order('id');
       return error ? { error: error.message } : (data || []);
     },
     render: async (lang): Promise<Rendered | { error: string }> => {
@@ -123,15 +124,16 @@ async function attachToReceipt(body: Record<string, unknown>, logRun: Log): Prom
       if ('error' in d) return d;
       return { bucket: d.bucket, path: d.path, invoice_no: s.sale.invoice_no, ref: s.sale.invoice_no || s.sale.payment_ref };
     },
-    signedUrl: (b, p) => signedDoc(b, p, WA_LINK_TTL),
+    // A row that left the queue between the read and this write matches nothing and returns no error, so the update must
+    // return exactly that row (review of this PR: an empty match was reported as "attached").
     update: async (id, patch) => {
-      const { error } = await admin.from('notifications').update(patch).eq('id', id).eq('status', 'queued');
-      return error ? error.message : null;
+      const { data, error } = await admin.from('notifications').update(patch).eq('id', id).in('status', WAITING).select('id');
+      return error ? error.message : (data?.length === 1 ? null : 'row_no_longer_waiting');
     },
   }, qid);
-  // A failure is never quiet: the rows go at the end of their hold as the plain receipt, and this line says why.
+  // A failure is never quiet: the rows go at the end of their hold as the plain notice, and this line says why.
   await logRun(out.ok ? 'ok' : 'error', { action: 'attach', quote_id: qid, outcome: out.outcome.slice(0, 60), email_id: out.email_id ?? null, whatsapp: out.whatsapp_ids?.length ?? 0 },
-    out.ok ? '' : 'the reveal receipt goes without its invoice: ' + out.outcome.slice(0, 300));
+    out.ok ? '' : '"Your invoice is ready" goes without its invoice: ' + out.outcome.slice(0, 300));
   return J(out, out.ok ? 200 : (out.outcome === 'bad_quote_id' ? 400 : 200));
 }
 
@@ -140,7 +142,7 @@ Deno.serve(siteCors(observe('reveal_invoice', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
   try {
     const body = await req.json().catch(() => ({}));
-    if (body?.action === 'attach') return await attachToReceipt(body, logRun);
+    if (body?.action === 'attach') return await attachToNotice(body, logRun);
     const jwt = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user || !user.email) return J({ error: 'Not signed in' }, 401);

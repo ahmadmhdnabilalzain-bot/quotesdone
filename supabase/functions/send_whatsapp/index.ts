@@ -51,7 +51,7 @@ import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 import { portfolioGate } from './portfolio_gate.ts';
 import { registrationNeeds } from './registration_reminder.ts';
-import { invoiceLink, isConfirmation } from './confirmations.ts';
+import { INVOICE_LINK_TTL, invoiceAttachment, isConfirmation } from './confirmations.ts';
 // v9 (24 Sep 2026, customer_support, founder ledger 994): nothing depends on WhatsApp alone. While the IT
 // engineer's watch holds the sender down, or when one send fails, the notice goes once by SMS
 // (_shared/whatsapp_failover.ts, public.fn_wa_sms_twin), and back to WhatsApp when the watch closes.
@@ -93,7 +93,8 @@ async function logThrottled(signal: string, minutes: number, status: string, cou
 // then marks THIS row 'skipped' with the reason. It returns null for a row that is not the
 // founder's, so the caller falls through to the behaviour it always had.
 type WaRow = { id: number; type?: string|null; to_phone?: string|null; to_role?: string|null;
-               subject?: string|null; body?: string|null; created_at?: string|null; lang?: string|null; lead_id?: number|null };
+               subject?: string|null; body?: string|null; created_at?: string|null; lang?: string|null; lead_id?: number|null;
+               attachments?: unknown };
 // isFounderRow decides the CAP EXEMPTIONS only. Who the founder is for the fallback is decided in
 // one place — fn_wa_founder_alert_fallback, which uses a10's own test (to_role, or to_phone equal
 // to admin_mfa_phone) — so this function does not pre-filter and the two cannot disagree about a
@@ -160,6 +161,9 @@ function tmplKey(type:string):string|null{
   // 3 Nov 2026 (customer_support): the customer's account-active confirmation (fn_customer_account_active_notice).
   // Its own UTILITY template, English and Arabic; held queued until Meta approves it.
   if(t==='customer_account_active') return 'customer_account_active';
+  // 3 Nov 2026 (customer_support): "Your invoice is ready" (the invoice.issued handoff), carrying the QuotesDone invoice
+  // reveal_invoice attached. Unmapped until now, so its twin was skipped. Its own UTILITY template, English and Arabic.
+  if(t==='invoice_ready') return 'customer_reveal_invoice';
   // 2 Nov 2026 (it_engineer): the registration reminder's WhatsApp twin. Unmapped, the first one (05:00Z) was skipped
   // "no WhatsApp template mapping". Its own UTILITY template, English only; held queued until Meta approves it.
   if(t==='supplier_registration_reminder') return 'supplier_registration_reminder';
@@ -183,7 +187,7 @@ function shortSummary(s:string){ let x=String(s||'').replace(/\s+/g,' ').trim();
 // A template variable may not carry a newline, a tab or a run of spaces (Meta refuses the send), so
 // every value is flattened and capped before it reaches Twilio.
 function waVar(s:string, max:number){ const x=String(s||'').replace(/\s+/g,' ').trim(); return x.length>max ? x.slice(0,max-1)+'…' : x; }
-function varsFor(key:string, n:{subject?:string|null; body?:string|null}): Record<string,string>{
+function varsFor(key:string, n:{subject?:string|null; body?:string|null; invoice_url?:string|null}): Record<string,string>{
   if (key==='founder_alert') {
     // fn_notify_founder writes 'QuotesDone [level]: event' on the first line and the detail after it.
     const lines = String(n.body||'').split('\n'); const head = lines.shift()||''; const rest = lines.join(' ').trim();
@@ -195,8 +199,8 @@ function varsFor(key:string, n:{subject?:string|null; body?:string|null}): Recor
   if (key==='supplier_invite') return {'1': waVar(waInviteTrade(n.subject), 60)};
   if (key==='support_reply') return {'1': waVar(shortSummary(n.subject||''), 120), '2': waVar(String(n.body||''), 700)};
   if (key==='supplier_registration_reminder') return {'1': waVar(registrationNeeds(n.body), 160), '2': linkFor(key)};
-  // customer_reveal_invoice is chosen only when the body carries the invoice link (see the loop), so {{2}} is that link.
-  if (key==='customer_reveal_invoice') return {'1': shortSummary(n.subject||''), '2': invoiceLink(n.body) || linkFor(key)};
+  // customer_reveal_invoice: {{1}} the notice's subject, {{2}} the invoice link the loop signed, else the account page.
+  if (key==='customer_reveal_invoice') return {'1': shortSummary(n.subject||''), '2': n.invoice_url || linkFor(key)};
   return {'1':shortSummary(n.subject||n.body||''),'2':linkFor(key)};
 }
 // The page a notice points to. The SMS twin carries the same link as the WhatsApp template.
@@ -514,19 +518,12 @@ Deno.serve(observe('send_whatsapp', async (req) => {
           .eq('channel','whatsapp').eq('status','sent').eq('to_phone', n.to_phone).gte('sent_at', since24);
         if (Number(toThisNumber || 0) >= perRecip) { capped++; continue; }
       }
-      let key = tmplKey(String(n.type||''));
+      const key = tmplKey(String(n.type||''));
       // THE RECIPIENT'S REGISTERED LANGUAGE (notifications.lang, stamped from fn_registered_locale).
       // This always took .en, although wa_template_sids holds an Arabic SID for every customer and
       // supplier key - so an Arabic-registered customer got the English template.
       // A supplier is always sent the English template (founder, 28 Sep 2026), whatever the row's lang says.
       const wlang = n.lang === 'ar' && n.to_role !== 'supplier' ? 'ar' : 'en';
-      // THE INVOICE GOES ON WHATSAPP TOO (3 Nov 2026, customer_support). A reveal receipt whose invoice reveal_invoice has
-      // attached carries the signed link in its body; it is sent on customer_reveal_invoice, whose {{2}} is that link, once
-      // Meta has approved that template in this language. Until then, or with no link, it keeps the approved reveal template.
-      if (key === 'customer_supplier_unlocked' && invoiceLink(n.body) && ready && tmpl.customer_reveal_invoice?.[wlang]) {
-        const inv = await templateStatus(auth, String(tmpl.customer_reveal_invoice[wlang]), 'customer_reveal_invoice', wlang);
-        if (inv.status === 'approved') key = 'customer_reveal_invoice';
-      }
       const sid = (ready && key && tmpl[key]) ? (tmpl[key][wlang] || null) : null;
       let res;
       if (sid) {
@@ -553,7 +550,11 @@ Deno.serve(observe('send_whatsapp', async (req) => {
           // supplier / customer notice: held, never dropped — it goes the moment the template is approved
           skipped++; requeued++; lastErr = 'template ' + key + ' is ' + st.status + (st.reason ? ': ' + String(st.reason).slice(0, 120) : ''); continue;
         }
-        res = await waSendTemplate(acct, ks, kk, from, to, sid, varsFor(key!, n));
+        // THE INVOICE LINK IS SIGNED AS IT LEAVES (3 Nov 2026, customer_support; confirmations.ts says why). With no invoice
+        // reference on the row, or a signature Storage refuses, {{2}} is the account page, where the Invoice button is.
+        const inv = key === 'customer_reveal_invoice' ? invoiceAttachment(n.attachments) : null;
+        const invoiceUrl = inv ? (await admin.storage.from(inv.bucket).createSignedUrl(inv.path, INVOICE_LINK_TTL).catch(() => ({ data: null })))?.data?.signedUrl || null : null;
+        res = await waSendTemplate(acct, ks, kk, from, to, sid, varsFor(key!, { ...n, invoice_url: invoiceUrl }));
       } else if (!ready) {
         // NOTE: the row is deliberately left 'queued' so it can go out once templates are approved.
         // That means it will be rescanned every run - tracked as 'requeued' so the backlog is visible.

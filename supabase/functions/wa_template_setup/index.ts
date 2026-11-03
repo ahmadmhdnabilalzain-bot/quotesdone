@@ -163,13 +163,14 @@ const CATALOGUE: Record<string, Catalogue> = {
     url: 'https://quotesdone.com/me',
   },
   // 3 NOV 2026 (customer_support) — the invoice for a paid reveal, on WhatsApp. Founder, 3 Nov 2026: "an invoice from our
-  // app is shared on email and whatsapp with the customer". reveal_invoice (action 'attach') renders the QuotesDone invoice,
-  // attaches it to the receipt email and puts its signed link on the WhatsApp twin; send_whatsapp uses this template only
-  // when that link is there. {{1}} is the receipt's subject, {{2}} the invoice link. Both are bounded by literal text.
+  // app is shared on email and whatsapp with the customer". The carrier is invoice_ready ("Your invoice is ready", the
+  // invoice.issued handoff): reveal_invoice (action 'attach') renders the QuotesDone invoice, attaches it to that email and
+  // puts the same PDF reference on its WhatsApp twin; send_whatsapp signs a 7-day link to it as it sends. {{1}} is the
+  // notice's subject, {{2}} the invoice link (the account page if no invoice was attached). Both are literal-bounded.
   customer_reveal_invoice: {
-    en: 'QuotesDone receipt: {{1}}. Your invoice for this payment is ready, and you can download it here: {{2}} Thank you.',
-    ar: 'إيصال من QuotesDone: {{1}}. فاتورتكم عن هذه الدفعة جاهزة، ويمكنكم تنزيلها عبر الرابط: {{2}} وشكرًا لكم.',
-    sample1_en: 'Reveal confirmed for the supplier you chose', sample1_ar: 'اكتمل الكشف عن المورّد الذي اخترتموه',
+    en: 'QuotesDone: {{1}}. You can download the invoice for your payment here: {{2}} Thank you.',
+    ar: 'QuotesDone: {{1}}. يمكنكم تنزيل فاتورة دفعتكم عبر الرابط: {{2}} وشكرًا لكم.',
+    sample1_en: 'Your invoice is ready', sample1_ar: 'فاتورتكم جاهزة',
     url: 'https://quotesdone.com/me',
   },
   // The supplier's side of a paid reveal (founder, 19 Aug 2026: both parties, both channels).
