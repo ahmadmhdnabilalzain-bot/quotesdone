@@ -38,7 +38,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { readExams } from './seat_qualification_exam.mjs';
 import { bankItemsFor, norm } from './seat_exam_bank.mjs';
-import { canonFindings, isMoneyOrTerms, unsupportedFigures } from './seat_exam_canon.mjs';
+import { canonFindings, arabicFindings, isMoneyOrTerms, unsupportedFigures } from './seat_exam_canon.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing'];
@@ -245,11 +245,17 @@ function grade(dir) {
   for (const s of SEATS) for (const e of json(join(ROOT, `knowledge/seats/${s}.json`)).entries) entryText.set(e.id, e);
   const tradeEntry = (id) => { const t = id.split(':')[0]; for (const f of [`${t}.json`, `${t}.market.json`]) { const p = join(ROOT, 'knowledge/packs', f); if (existsSync(p)) { const e = json(p).entries.find((x) => x.id === id); if (e) return e; } } return null; };
   const entry = (id) => entryText.get(id) ?? tradeEntry(id);
-  const settled = new Map(SEATS.map((s) => [s, settledFacts(s)]));
+  // What the seat was given is its batch file, exactly as it was written (the knowledge may have moved on since), less
+  // the answering rules: the settled facts, the source library of its batch, and the questions.
+  const shown = new Map();
+  for (const m of json(join(dir, 'manifest.json'))) {
+    const text = readFileSync(join(dir, 'batches', m.batch + '.md'), 'utf8').replace(/## How to answer[\s\S]*?## SETTLED FACTS/, '## SETTLED FACTS');
+    for (const id of m.items) shown.set(id, text);
+  }
   const results = [], queue = [];
   for (const [id, a] of asked) {
     const it = items.get(id);
-    const ctx = [settled.get(it.seat), a.wording, ...a.sources.map((s) => excerpt(entry(s) ?? { body_en: '' }))].join('\n');
+    const ctx = shown.get(id);
     const g = gradeAnswer(it, answers.get(id), ctx);
     results.push({ id, seat: it.seat, money_terms: it.money_terms, wording: a.wording, answer: answers.get(id) ?? null, ...g });
     if (g.verdict === 'judge') queue.push({ id, seat: it.seat, question: a.wording, answer_must: it.answer_must, expected_facts: it.expected_facts,
@@ -346,7 +352,10 @@ function calibrate(dir) {
 export function auditKnowledge() {
   const out = [];
   for (const s of SEATS) {
-    for (const e of json(join(ROOT, `knowledge/seats/${s}.json`)).entries.filter(served)) for (const f of canonFindings(e.body_en)) out.push({ where: e.id, ...f });
+    for (const e of json(join(ROOT, `knowledge/seats/${s}.json`)).entries.filter(served)) {
+      for (const f of canonFindings(e.body_en)) out.push({ where: e.id, ...f });
+      for (const f of arabicFindings(e.body_ar)) out.push({ where: `${e.id}@ar`, ...f });   // the Arabic text prevails
+    }
     const card = `knowledge/brief/seats/${s}.md`;
     if (existsSync(join(ROOT, card))) for (const f of canonFindings(read(card))) out.push({ where: card, ...f });
   }

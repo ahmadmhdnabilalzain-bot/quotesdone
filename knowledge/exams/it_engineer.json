@@ -1161,7 +1161,7 @@
         "runbook",
         "postmortem action"
       ],
-      "q_reworded": "An alert fired at night and nobody knew what to do. What was missing?",
+      "q_reworded": "An alert fired at night and nobody knew what to do. What was missing, and what should happen about it now?",
       "answer_must": [
         "A runbook link; a page nobody can act on should not be sent, and an alert with no runbook produces a postmortem action to write one"
       ]

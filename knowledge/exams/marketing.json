@@ -921,11 +921,13 @@
         "marketing:linkedin-lead-gen-forms"
       ],
       "expected_facts": [
-        "after 90 days"
+        "after 90 days",
+        "three custom questions"
       ],
-      "q_reworded": "How long can we pull leads from LinkedIn forms before they vanish?",
+      "q_reworded": "How long can we pull leads from LinkedIn forms before they vanish, and how many questions of our own can we add to a form?",
       "answer_must": [
-        "Lead data is available for 90 days, download before then"
+        "Lead data is available for 90 days, download before then",
+        "Forms allow up to three custom questions"
       ]
     },
     {
@@ -1339,10 +1341,11 @@
       "expected_facts": [
         "a status column is not a delivery record"
       ],
-      "q_reworded": "The dashboard says 171 suppliers were invited. Is that the number to report?",
+      "q_reworded": "The dashboard says 171 suppliers were invited. Is that the number to report, how should the funnel be measured, and which trades should recruiting go after first?",
       "answer_must": [
         "Only an invitation actually delivered through the outbox counts, not a status flag",
-        "Measure each stage: sourced, invited, registered, verified, activated, retained"
+        "Measure each stage: sourced, invited, registered, verified, activated, retained",
+        "Prioritise trades where buyers post and coverage is thin"
       ]
     },
     {

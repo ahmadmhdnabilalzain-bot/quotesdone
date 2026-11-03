@@ -15,8 +15,15 @@
 //
 // The same detectors run over the knowledge itself (seat packs, seat cards, the briefs, the canon, the exam keys), so
 // a wrong source is found before any model is asked. Pure: no token, no database, no model.
-import { findings, wrongWordings, loadFacts } from '../legal/company_facts.mjs';
+import { findings, wrongWordings, loadFacts, plain } from '../legal/company_facts.mjs';
 
+// The last version a legacy figure applies to (company_facts.json legacy.applies_to): AED 250 up to v12, 9% up to v13.
+const LEGACY_MAX = { nonresponse_admin_fee_aed: 12, late_interest_pct_pa: 13 };
+function isLegacyContext(win, fact) {
+  const vs = [...win.matchAll(/\bv(?:ersion)?\s?(\d{1,2})\b/gi)].map((m) => Number(m[1]));
+  if (vs.length) return vs[vs.length - 1] <= (LEGACY_MAX[fact] ?? 13);
+  return /\b(?:earlier|older|legacy|previous) (?:version|agreement)\b|\bsigned before\b/i.test(win);
+}
 const LEGACY = /\b(?:v(?:ersion)?\s?(?:9|1[0-3])\b|(?:12|13|thirteen|twelve)\s+or\s+earlier|earlier (?:version|agreement)|older (?:version|agreement)|legacy|signed before)/i;
 const BORNE = /^\s*(?:cost|costs|charges?|fees?)?\s*(?:is|are)\s+(?:booked|borne|absorbed|recorded|expensed|paid by QuotesDone)\b/i;
 const NEG = /\b(?:no|not|never|none|nothing|without|neither|nor|cannot)\b|n't\b/i;
@@ -64,9 +71,11 @@ export const VALUE_CLAIMS = [
 /** FORBIDDEN statements: a sentence the canon contradicts. */
 export const FORBIDDEN_CLAIMS = [
   { id: 'founder_decides_refunds', canon: 'company.md §5 "Every refund is decided by QuotesDone\'s CEO"; seats.md "Every approval is the CEO seat\'s, refunds included"',
-    re: /\b(?:the )?founder\b[^.]{0,50}\b(?:approves?|decides?|signs? off|authori[sz]es?)\b[^.]{0,40}\brefunds?\b|\brefunds?\b[^.]{0,50}\b(?:approved|decided|signed off|authori[sz]ed)\s+by\s+(?:the\s+)?founder\b/gi },
-  { id: 'automatic_refund', canon: 'company.md §5 "Every refund is decided by QuotesDone\'s CEO … None is automatic"',
-    re: /\bautomatic(?:ally)?\s+(?:[\w-]+\s+){0,2}refunds?\b|\brefund(?:s|ed)?\s*,?\s+(?:is\s+|are\s+|was\s+|has been\s+|have been\s+)?(?:issued\s+|paid\s+|made\s+)?automatic(?:ally)?\b|\bautomatically\s+refund(?:ed|s)?\b|\brefunded\b[^.;:]{0,45}?,?\s+automatically\b|\btriggers?\s+(?:a\s+|an\s+)?(?:full\s+)?refund\s+automatically\b/gi },
+    re: /\b(?:the )?founder\b(?:(?!\bCEO\b|\bnotified\b|\binformed\b)[^.]){0,50}\b(?:approves?|decides?|signs? off|authori[sz]es?)\b[^.]{0,40}\brefunds?\b|\brefunds?\b[^.]{0,50}\b(?:approved|decided|signed off|authori[sz]ed)\s+by\s+(?:the\s+)?founder\b/gi },
+  { id: 'automatic_refund', canon: 'company.md §5 "Every refund is decided by QuotesDone\'s CEO … None is automatic"; Customer Terms v11 clause 5 "no refund is automatic"',
+    re: /\bautomatic(?:ally)?\s+(?:[\w-]+\s+){0,2}refunds?\b|\brefund(?:s|ed)?\b[^.;:?!]{0,45}?\bautomatic(?:ally)?\b|\bautomatically\s+(?:\w+\s+){0,2}refund(?:ed|s)?\b|\brefunds?\s+you\s+automatically\b|\bmoney\s+back\s+automatically\b|\btriggers?\s+(?:a\s+|an\s+)?(?:full\s+)?refund\s+automatically\b/gi,
+    // the LADDER (the clock, the chase) runs by itself; that is not the refund being automatic (Refund Policy v1.9 s4)
+    except: /\b(?:ladder|clock)\s+(?:above\s+)?runs?\s+automatically\b|\btracks?\s+(?:every|each)\s+reveal\b/i },
   { id: 'quotesdone_vat_registered', canon: 'company.md §4 "QuotesDone is not VAT-registered"',
     re: /\bQuotesDone\s+(?:is|has been)\s+VAT[- ]registered\b|\bQuotesDone\s+charges?\s+VAT\b|\bVAT\b[^.;]{0,25}\b(?:is\s+)?(?:charged|added)\b[^.;]{0,30}\b(?:reveal|unlock)\s+fee\b|\b(?:we|QuotesDone)\s+(?:add|charge)s?\s+(?:\d+\s?%\s+)?VAT\b/gi,
     // "applies only AFTER QuotesDone is VAT registered" is a condition, not a claim that it is.
@@ -79,6 +88,8 @@ export const FORBIDDEN_CLAIMS = [
     re: /\bQuotesDone\s+(?:holds|keeps|retains)\s+(?:the\s+)?(?:job(?:'s)?\s+|customer'?s?\s+|buyer'?s?\s+)?(?:money|funds|payment)\s+(?:in escrow|until)/gi },
   { id: 'quotesdone_takes_commission', canon: 'company.md §4 "Commission on won work: None"',
     re: /\bQuotesDone\s+(?:takes|charges|earns)\s+(?:a\s+)?(?:\d+\s?%\s+)?commission\b/gi },
+  { id: 'interest_from_refund_date', canon: 'company.md §5 "12% p.a. simple interest … from the due date — payable within 7 days of notice" (Supplier Agreement clauses 31, 33)',
+    re: /\binterest\b[^.]{0,200}?\bfrom the (?:refund|reveal|payment) date\b/gi },
   { id: 'free_tier_has_end_date', canon: 'company.md §4 "The free-1,000 offer has no end date … Never quote a date"',
     re: /\bfree\s+until\s+\d{1,2}\s+[A-Z][a-z]+\s+20\d\d\b/g,
     // company.md quotes the superseded note in order to rule it out.
@@ -86,12 +97,12 @@ export const FORBIDDEN_CLAIMS = [
 ];
 
 const sentenceAround = (t, i) => {
-  const s = Math.max(t.lastIndexOf('. ', i), t.lastIndexOf('\n', i), t.lastIndexOf('; ', i)) + 1;
+  const s = Math.max(t.lastIndexOf('. ', i), t.lastIndexOf('\n', i), t.lastIndexOf('; ', i), t.lastIndexOf('? ', i), t.lastIndexOf('! ', i)) + 1;
   return t.slice(s, i);
 };
 
 const sentenceTail = (t, i) => {
-  const ends = ['. ', '\n', '; '].map((x) => t.indexOf(x, i)).filter((x) => x >= 0);
+  const ends = ['. ', '\n', '; ', '? ', '! '].map((x) => t.indexOf(x, i)).filter((x) => x >= 0);
   return t.slice(i, ends.length ? Math.min(...ends) : t.length);
 };
 
@@ -100,13 +111,16 @@ export function canonFindings(text) {
   const t = String(text ?? '');
   const out = [];
   const facts = loadFacts().facts;
+  const P = plain(t);
   for (const f of findings(t)) {
     // A supplier bound by an earlier signed version owes that version's figure (company_facts.json `legacy`, clause 33
     // as signed): AED 250 or 9% is right when the same sentence names the earlier version it applies to.
     const leg = facts[f.fact]?.legacy?.value;
     // The version may be named a clause or a sentence before ("… v12 or earlier; … The interest for such a supplier is
     // 9%"), so the window is the 250 characters before the figure and the rest of its sentence.
-    if (leg != null && f.got === leg && LEGACY.test(t.slice(Math.max(0, f.at - 250), f.at) + sentenceTail(t, f.at))) continue;
+    // findings() indexes the tag-stripped, whitespace-collapsed text, so the window is read from that text; and the
+    // NEAREST version named before the figure decides ("v12 … AED 250. A supplier on v17 owes AED 250" is not excused).
+    if (leg != null && f.got === leg && isLegacyContext(P.slice(Math.max(0, f.at - 250), f.at), f.fact)) continue;
     out.push({ claim: `company_facts.${f.fact}`, kind: 'value', got: f.got, want: f.want, text: f.text });
   }
   for (const w of wrongWordings(t)) {
@@ -131,10 +145,34 @@ export function canonFindings(text) {
       // Negation counts only where it governs the claim: inside it, or in the few words just before it ("no automatic
       // refund"). A negation elsewhere in the sentence ("if the supplier does NOT respond, the refund is automatic")
       // does not excuse it.
-      if (NEG.test(before.slice(-24) + m[0])) continue;
-      if (c.except && c.except.test(before + m[0] + sentenceTail(t, m.index + m[0].length))) continue;
+      // The window stops at the clause: "Don't worry, the refund is automatic" is NOT excused by "Don't".
+      const clause = before.slice(-24).split(/[,:;—–]|\s-\s/).pop();
+      if (NEG.test(clause + m[0])) continue;
+      const tail = sentenceTail(t, m.index + m[0].length);
+      if (c.except && c.except.test(before + m[0] + tail)) continue;
+      if (t[m.index + m[0].length + tail.length] === '?') continue;   // a question asks; it does not state
       out.push({ claim: c.id, kind: 'forbidden', got: m[0], want: 'not stated', text: m[0].slice(0, 160), canon: c.canon });
     }
+  }
+  return out;
+}
+
+/** ARABIC (the Arabic text prevails, CT§22): the same refund facts, in the forms the packs use. */
+export const ARABIC_CLAIMS = [
+  { id: 'automatic_refund_ar', canon: 'Customer Terms v11 clause 5 (Arabic): no refund is automatic',
+    re: /(?:استرداد|استردادات|يُ?رد|يُ?ردّ|رُدّ|تُرد|تُردّ|المبلغ)[^.؛،]{0,50}تلقائ(?:ي|ياً|يا|ية)|تلقائ(?:ي|ياً|يا)[^.؛،]{0,20}(?:استرداد|يُ?رد)/g,
+    neg: /(?:^|[\s(])(?:و?لا|و?ليس|و?غير|و?دون)(?:\s|$)/ },
+  { id: 'interest_from_refund_date_ar', canon: 'Supplier Agreement clauses 31, 33: interest runs from the due date',
+    re: /فائدة[^.]{0,220}?من تاريخ (?:الرد|الاسترداد|الكشف|الدفع) حتى/g },
+  { id: 'bank_refund_days_ar', canon: 'Customer Terms v11 clause 5: seven (7) to fourteen (14) working days',
+    re: /(?<!دليل Stripe[^.]{0,40})(?:\b5|٥)\s*(?:إلى|-|–)\s*(?:10|١٠)\s*أيام\s*عمل/g },
+];
+export function arabicFindings(text) {
+  const t = String(text ?? ''), out = [];
+  for (const c of ARABIC_CLAIMS) for (const m of t.matchAll(c.re)) {
+    const before = t.slice(Math.max(0, m.index - 30), m.index);
+    if (c.neg && c.neg.test(before.split(/[،؛:]/).pop() + ' ' + m[0])) continue;
+    out.push({ claim: c.id, kind: 'forbidden', got: m[0], want: 'not stated', text: m[0].slice(0, 160), canon: c.canon });
   }
   return out;
 }
@@ -148,14 +186,15 @@ export function figuresOf(text) {
   const t = String(text ?? '');
   const out = new Set();
   for (const m of t.matchAll(/\bAED\s?([\d,]+(?:\.\d+)?)\s?(k|K|m|M|million|thousand)?\b/g)) out.add(`AED ${m[1].replace(/,/g, '')}${m[2] ? m[2][0].toLowerCase() : ''}`);
-  for (const m of t.matchAll(/(\d+(?:\.\d+)?)\s?%/g)) out.add(`${m[1]}%`);
+  for (const m of t.matchAll(/(\d+(?:\.\d+)?)\s?(?:%|per ?cent\b)/gi)) out.add(`${m[1]}%`);
+  for (const m of t.matchAll(/\b([\d,]+(?:\.\d+)?)\s?(?:AED|dirhams?)\b/gi)) out.add(`AED ${m[1].replace(/,/g, '')}`);
   return [...out];
 }
 
 /** A figure the answer states that nothing the seat was given states: a possible invention, sent to the judge. */
+// The context is compared as FIGURES, never as bare numbers: matched as a bare number anywhere in the ~25k-character
+// settled facts, an invented "2% handling fee" passed (review of 3 Nov 2026), because some 2 appears somewhere.
 export function unsupportedFigures(answer, context) {
   const have = new Set(figuresOf(context));
-  // A context figure may be written with a thousands comma or a k/M suffix; compare the bare numbers too.
-  const bare = new Set([...String(context).matchAll(/\d[\d,]*(?:\.\d+)?/g)].map((m) => m[0].replace(/,/g, '')));
-  return figuresOf(answer).filter((f) => !have.has(f) && !bare.has(f.replace(/^AED |%$|[km]$/g, '')));
+  return figuresOf(answer).filter((f) => !have.has(f));
 }

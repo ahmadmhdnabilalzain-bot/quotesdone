@@ -10,7 +10,7 @@ QuotesDone is a UAE B2B anonymous quotation marketplace. A buyer posts a request
 
 **What is QuotesDone's vision?**
 
-QuotesDone's vision is to become the smartest marketplace engine in the world. Everything the company builds and every department's work is oriented toward that goal.
+QuotesDone's vision is to become the smartest marketplace engine in the world. Everything the company builds and every seat's work is oriented toward that goal.
 
 ## Anonymity
 

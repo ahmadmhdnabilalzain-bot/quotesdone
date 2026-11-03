@@ -4,9 +4,12 @@
 // MEASURED 3 Nov 2026 before this file existed: 22 served seat-pack entries (ceo, customer_support, accountant,
 // it_engineer, marketing; English and Arabic) told the seats that a silent supplier's refund is "automatic", and four
 // said banks show a refund in "5 to 10" days, while the signed Customer Terms v11 clause 5 say "no refund is automatic"
-// (every refund is decided on the record by the CEO seat) and "seven (7) to fourteen (14) working days"; the seat cards
+// (every refund is decided under the published rules and recorded against a case reference; seats.md: by the CEO
+// seat) and "seven (7) to fourteen (14) working days"; two said interest runs "from the refund date" (Supplier
+// Agreement clauses 31 and 33, company.md §5: from the due date); the seat cards
 // compiled from them carried the same; COMPANY_CANON.md still described ten departments and the founder approving
-// refunds; and exam item customer_support-exam-84 expected "5 to 10 business days". 45 contradictions on main, 0 here.
+// refunds; and exam item customer_support-exam-84 expected "5 to 10 business days". 86 contradictions on main (English
+// and Arabic, counted by the detectors as corrected after the branch's independent review), 0 here.
 //
 // WHAT FAILS IF THE CAUSE RETURNS
 //   * a served seat-pack entry, a seat card, company.md, seats.md, COMPANY_CANON.md or an exam key states a company
@@ -20,7 +23,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { canonFindings, unsupportedFigures, isMoneyOrTerms } from '../eval/seat_exam_canon.mjs';
+import { canonFindings, arabicFindings, unsupportedFigures, isMoneyOrTerms } from '../eval/seat_exam_canon.mjs';
 import { auditKnowledge, allItems, gradeAnswer, calibration, finalVerdicts, scoreTable, CALIBRATION } from '../eval/seat_exam_sweep.mjs';
 
 const claims = (t) => canonFindings(t).map((f) => f.claim);
@@ -37,6 +40,13 @@ test('a contradiction of the canon is found (the control for the test above)', (
   assert.ok(claims('Yes, 5% VAT is added on top of the 3% reveal fee.').includes('quotesdone_vat_registered'));
   assert.ok(claims('Stripe costs are passed to the customer as a card surcharge.').includes('card_cost_passed_to_customer'));
   assert.ok(claims('QuotesDone runs on 10 departments.').includes('departments_exist'));
+  // the independent review's cases (3 Nov 2026): phrasings the first detector let through
+  for (const t of ["Don't worry, the refund is automatic.", 'Nothing to do: refund is automatic.', 'The refund is processed automatically.',
+    'QuotesDone refunds you automatically.', 'You get your money back automatically.']) assert.ok(claims(t).includes('automatic_refund'), t);
+  assert.ok(claims('A supplier on v12 or earlier owes AED 250. A supplier on v17 owes an AED 250 administrative fee.').some((c) => c.startsWith('company_facts.')));
+  assert.ok(claims('12% a year simple interest runs from the refund date until paid.').includes('interest_from_refund_date'));
+  assert.deepEqual(arabicFindings('رُدّ إليكم كامل المبلغ المدفوع تلقائياً').map((f) => f.claim), ['automatic_refund_ar']);
+  assert.deepEqual(arabicFindings('خلال 5 إلى 10 أيام عمل').map((f) => f.claim), ['bank_refund_days_ar']);
   assert.ok(claims('The supplier owes an AED 250 administrative fee.').some((c) => c.startsWith('company_facts.')));
   assert.ok(claims('Interest runs at 9% per annum simple from the due date.').some((c) => c.startsWith('company_facts.')));
 });
@@ -49,6 +59,9 @@ test('a statement the canon makes is not a contradiction', () => {
     'Applies only after QuotesDone is VAT registered.',
     'An earlier note ("free until 31 July 2027") was superseded; never quote a date.',
     "Stripe's guide says customers usually see the credit in about 5-10 business days, but QuotesDone gives the Terms' 7 to 14 working days.",
+    'The founder is notified after the CEO seat approves the refund.',
+    'Is the refund automatic? No, the CEO seat decides it on the record.',
+    'You do not need to submit a request for a non-response refund: the ladder above runs automatically from the moment you pay.',
     'There are six seats and no departments.',
     // two correct answers the first grading flagged (3 Nov 2026): a legacy figure with its version named, and the
     // processor cost described as QuotesDone's own expense
@@ -68,6 +81,8 @@ test('the code grader: canon first, then facts, then figures; the judge only for
   assert.equal(invented.verdict, 'judge'); assert.deepEqual(invented.unsupported, ['2%']);
   assert.equal(gradeAnswer(item, '', ctx).verdict, 'fail');
   assert.deepEqual(unsupportedFigures('The fee is 3% and the floor AED 1,000.', 'reveal fee 3%; liability AED 1,000'), []);
+  // a bare number elsewhere in a long context is not the figure (review of 3 Nov 2026: "2% handling fee" passed)
+  assert.deepEqual(unsupportedFigures('less a 2% handling fee and AED 50', 'The reveal fee is 3%. There are 2 seats. 50 suppliers.').sort(), ['2%', 'AED 50']);
 });
 
 test('a judged miss counts only with a verdict, and a canon failure is never re-judged', () => {
