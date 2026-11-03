@@ -27,7 +27,11 @@ const val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : nu
 const MODEL = argv.includes('--model'), REAL = argv.includes('--real');
 const REPEATS = val('--repeats') || '5', PARALLEL = val('--parallel') || '1';
 const CAP_USD = Number(val('--cap-usd') || 5);
-if (!(CAP_USD > 0 && CAP_USD <= 15)) { console.error('REFUSED: --cap-usd must be in (0, 15]'); process.exit(2); }
+if (!(CAP_USD > 0 && CAP_USD <= 5)) { console.error('REFUSED: --cap-usd must be in (0, 5] (coordinator, 3 Nov 2026)'); process.exit(2); }
+// THE SYNTHETIC CORPUS NEVER OPENS A MODEL WINDOW (3 Nov 2026, coordinator): its two model-stage windows (cbfb5114, 256e0148) billed the
+// real model AED 23.46 of the day's AED 48.22, measured in ai_cost_log. Its model questions are answered on the real corpus; the
+// synthetic corpus is measured by code only. Refused before any window, row or call exists.
+if (MODEL && !REAL) { console.error('REFUSED: --model runs on the real corpus only (--real); the synthetic corpus is measured by code, with no model'); process.exit(2); }
 const HERE = dirname(fileURLToPath(import.meta.url)), REPO = resolve(HERE, '..', '..');
 const OUT = resolve(val('--out') || join(SANDBOX_OUT, 'document_reading_qualification'));
 const CORPUS = join(OUT, REAL ? 'real' : 'synthetic');
