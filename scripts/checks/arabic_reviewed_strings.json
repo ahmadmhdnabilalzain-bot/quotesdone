@@ -1248,6 +1248,13 @@
   "82d439166a51",
   "a1899880347c"
  ],
+ "scripts/sql/live_knowledge_tells_a_supplier_approval_is_automatic_when_the_gate_passes.sql": [
+  "1e75910a58bc",
+  "23beca16c35d",
+  "44aee814390e",
+  "8180be4f7188",
+  "a4a98a0161c6"
+ ],
  "scripts/sql/marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql": [
   "727278a3b830",
   "80b387cc3fb7",
