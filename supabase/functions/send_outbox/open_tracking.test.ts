@@ -49,7 +49,7 @@ Deno.test('only an English supplier invitation or nudge can carry the image; nev
 Deno.test('the pixel is served only from our own https domain, and only for a 32-hex token', () => {
   assertEquals(pixelBase('https://quotesdone.com/u/unsubscribe'), BASE);
   assertEquals(pixelBase('https://www.quotesdone.ae/u/unsubscribe'), 'https://www.quotesdone.ae/u/o/');
-  for (const bad of ['', undefined, 'not a url', 'http://quotesdone.com/u/unsubscribe', 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/unsubscribe',
+  for (const bad of ['', undefined, 'not a url', 'http://quotesdone.com/u/unsubscribe', 'https://zzdemoprojectrefzzzzz.supabase.co/functions/v1/unsubscribe',
     'https://quotesdone.com.evil.example/u', 'https://pixel.tracker.example/u']) assertEquals(pixelBase(bad), '', String(bad));
   assertEquals(pixelUrl(BASE, TOKEN), PIXEL);
   for (const t of [null, '', 'abc', TOKEN.toUpperCase(), TOKEN + '0', 'sales@gulfsteel.example', '154213']) assertEquals(pixelUrl(BASE, t), '', String(t));

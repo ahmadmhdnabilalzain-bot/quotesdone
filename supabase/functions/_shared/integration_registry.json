@@ -287,6 +287,7 @@
     "_about": "Secrets and env the company mints itself or plain settings stored beside the credentials. Nothing outside answers for them, so there is nothing external to probe; internal credentials are rotated by fn_it_credential_rotate.",
     "prefixes": { "cred_": "an internal credential between our own functions (internal_credential)" },
     "secrets": {
+      "invite_open_tracking": "setting",
       "m365_tenant_mailboxes": "setting",
       "m365_tenant_strangers_from": "setting",
       "m365_financial_domains": "setting",
