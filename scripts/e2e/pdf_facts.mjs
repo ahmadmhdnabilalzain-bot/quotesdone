@@ -21,13 +21,14 @@ export const isArabic = (ch) => /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-
 export const languageOf = (f) => (f.arabicShare >= 0.3 ? 'ar' : f.arabicShare < 0.2 ? 'en' : 'mixed');
 
 /** Facts about PDF bytes. `bytes` in the result is the caller's data, intact. */
-export async function pdfFactsFromBytes(input) {
+/** @param {any} [pdfjsModule] a caller that cannot resolve the bare package (a Deno test run with DENO_NO_PACKAGE_JSON) passes its own. */
+export async function pdfFactsFromBytes(input, pdfjsModule = /** @type {any} */ (null)) {
   const bytes = new Uint8Array(input);   // our own copy: the caller's buffer is never handed to pdfjs
   if (bytes.length < 5 || Buffer.from(bytes.subarray(0, 5)).toString() !== '%PDF-') {
     return { ok: false, why: `not a PDF (${Buffer.from(bytes.subarray(0, 12)).toString().replace(/\W+/g, ' ')})` };
   }
   const sha256 = createHash('sha256').update(bytes).digest('hex');
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const pdfjs = pdfjsModule || await import('pdfjs-dist/legacy/build/pdf.mjs');
   // The LOADING TASK is what is destroyed: pdfjs-dist 6 removed PDFDocumentProxy.destroy (4.x had both).
   const task = pdfjs.getDocument({ data: bytes.slice(), isEvalSupported: false, verbosity: 0 });
   const doc = await task.promise;

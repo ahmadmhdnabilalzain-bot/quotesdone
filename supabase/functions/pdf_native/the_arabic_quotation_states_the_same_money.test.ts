@@ -64,7 +64,10 @@ Deno.test('the Arabic quotation states the same money, in the same order, as the
 // x=0.752 and the total at x=0.546). The nightly failed on exactly that from 20 Oct. This reads the two real renders
 // with the nightly's own extraction (pdfFactsFromBytes + moneyVerdict), so a reader that misorders them fails here.
 Deno.test('the nightlys own reader finds the same money on both quotations', async () => {
-  const [en, ar] = [await pdfFactsFromBytes(await renderBytes('en')), await pdfFactsFromBytes(await renderBytes('ar'))];
+  // The checks job runs Deno with DENO_NO_PACKAGE_JSON=1, so the bare 'pdfjs-dist' the nightly imports does not resolve
+  // here: the same package, pinned to package-lock.json's version, is handed in.
+  const pdfjs = await import('npm:pdfjs-dist@6.4.299/legacy/build/pdf.mjs');
+  const [en, ar] = [await pdfFactsFromBytes(await renderBytes('en'), pdfjs), await pdfFactsFromBytes(await renderBytes('ar'), pdfjs)];
   const v = moneyVerdict(en, ar);
   assertEquals(v.status, 'PASS', v.why);
 });
